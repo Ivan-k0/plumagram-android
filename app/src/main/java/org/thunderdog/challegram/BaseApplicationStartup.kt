@@ -36,6 +36,9 @@ object BaseApplicationStartup {
     val applicationContext = application.applicationContext
     scope = MainScope()
 
+    // TGx101: OpenStreetMap tiles require an identifying user agent
+    org.osmdroid.config.Configuration.getInstance().userAgentValue = application.packageName
+
     PushManagerBridge.initialize(
       scope,
 

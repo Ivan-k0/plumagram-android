@@ -70,12 +70,12 @@ google-play-billing-latest = "9.1.0"
 google-play-integrity-latest = "1.6.0"
 google-play-services-base-latest = "18.10.1"
 google-play-services-basement-latest = "18.11.0"
-google-play-services-maps-latest = "20.0.0"
-google-play-services-location-latest = "21.4.0"
 google-play-services-safetynet-latest = "18.1.0"
 google-play-services-mlkit-barcode-scanning-latest = "18.3.1"
 
 google-mlkit-language-id-latest = "17.0.6"
+
+osmdroid = "6.1.20"
 
 # marshmallow
 
@@ -98,8 +98,6 @@ google-play-billing-lollipop = "8.0.0" # 9.1.0+ requires minSdk 23
 google-play-integrity-lollipop = "1.4.0" # 1.5.0+ requires minSdk 23
 google-play-services-base-lollipop = "18.7.2" # 18.8.0+ requires minSdk 23
 google-play-services-basement-lollipop = "18.7.1" # 18.7.2 was not released
-google-play-services-maps-lollipop = "19.2.0"
-google-play-services-location-lollipop = "21.3.0"
 
 # legacy
 
@@ -124,8 +122,6 @@ google-recaptcha-legacy = "18.4.0" # 18.5.0+ requires minSdk 21
 
 google-play-integrity-legacy = "1.3.0" # 1.4.0+ requires minSdk 21
 google-play-services-base-legacy = "17.6.0" # 18.0.0+ requires minSdk 21
-google-play-services-maps-legacy = "17.0.1"
-google-play-services-location-legacy = "18.0.0"
 google-play-services-safetynet-legacy = "18.0.1" # 18.1.0+ requires minSdk 21
 google-play-services-mlkit-barcode-scanning-legacy = "16.2.1" # 18.3.0+ requires minSdk 21, 18.3.1+ requires minSdk 26
 
@@ -239,13 +235,7 @@ google-play-services-basement-legacy = { module = "com.google.android.gms:play-s
 google-play-services-basement-lollipop = { module = "com.google.android.gms:play-services-basement", version.ref = "google-play-services-basement-lollipop" }
 google-play-services-basement-latest = { module = "com.google.android.gms:play-services-basement", version.ref = "google-play-services-basement-latest" }
 
-google-play-services-maps-legacy = { module = "com.google.android.gms:play-services-maps", version.ref = "google-play-services-maps-legacy" }
-google-play-services-maps-lollipop = { module = "com.google.android.gms:play-services-maps", version.ref = "google-play-services-maps-lollipop" }
-google-play-services-maps-latest = { module = "com.google.android.gms:play-services-maps", version.ref = "google-play-services-maps-latest" }
-
-google-play-services-location-legacy = { module = "com.google.android.gms:play-services-location", version.ref = "google-play-services-location-legacy" }
-google-play-services-location-lollipop = { module = "com.google.android.gms:play-services-location", version.ref = "google-play-services-location-lollipop" }
-google-play-services-location-latest = { module = "com.google.android.gms:play-services-location", version.ref = "google-play-services-location-latest" }
+osmdroid = { module = "org.osmdroid:osmdroid-android", version.ref = "osmdroid" }
 
 google-play-services-mlkit-barcode-scanning-legacy = { module = "com.google.android.gms:play-services-mlkit-barcode-scanning", version.ref = "google-play-services-mlkit-barcode-scanning-legacy" }
 google-play-services-mlkit-barcode-scanning-latest = { module = "com.google.android.gms:play-services-mlkit-barcode-scanning", version.ref = "google-play-services-mlkit-barcode-scanning-latest" }

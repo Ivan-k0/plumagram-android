@@ -997,16 +997,6 @@ dependencies {
     libs.google.play.services.basement.latest
   )
   flavorImplementation(
-    libs.google.play.services.maps.legacy,
-    libs.google.play.services.maps.lollipop,
-    libs.google.play.services.maps.latest
-  )
-  flavorImplementation(
-    libs.google.play.services.location.legacy,
-    libs.google.play.services.location.lollipop,
-    libs.google.play.services.location.latest
-  )
-  flavorImplementation(
     libs.google.play.services.safetynet.legacy,
     libs.google.play.services.safetynet.latest
   )
@@ -1093,6 +1083,9 @@ dependencies {
   implementation(libs.konfetti)
   // Transcoder: https://github.com/natario1/Transcoder/blob/master/docs/_about/changelog.md
   legacyImplementation(libs.transcoder)
+
+  // OSMDroid: https://github.com/osmdroid/osmdroid
+  implementation(libs.osmdroid)
   // https://github.com/mikereedell/sunrisesunsetlib-java
   implementation(libs.sunriseSunsetCalculator)
 
