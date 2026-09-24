@@ -18,6 +18,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -34,6 +35,7 @@ import org.thunderdog.challegram.ui.camera.CameraError;
 import org.thunderdog.challegram.ui.camera.CameraManagerTexture;
 import org.thunderdog.challegram.ui.camera.CameraQrBridge;
 import org.thunderdog.challegram.ui.camera.CameraTextureView;
+import org.thunderdog.challegram.unsorted.Settings;
 
 import me.vkryl.core.MathUtils;
 
@@ -136,6 +138,30 @@ public class CameraManagerLegacy extends CameraManagerTexture {
         }
       }
     }
+    // Video messages can use Camera2 for its preview stabilization; everything else stays on Camera1.
+    if (useRoundRender && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+      Settings.instance().getRoundStabilizationMode() == Settings.ROUND_STABILIZATION_CAMERA2 &&
+      !(api instanceof CameraApiCamera2) && CameraApiCamera2.isAvailable(context)) {
+      replaceApi(new CameraApiCamera2(context, this));
+    } else if (!useRoundRender && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && api instanceof CameraApiCamera2) {
+      replaceApi(new CameraApiLegacy(context, this));
+    }
+  }
+
+  private void replaceApi (CameraApi newApi) {
+    if (!UI.inUiThread()) {
+      UI.post(() -> replaceApi(newApi));
+      return;
+    }
+    Log.i(Log.TAG_CAMERA, "Switching camera API to %s", newApi.getClass().getSimpleName());
+    destroy();
+    destroyedCamera = null;
+    api = newApi;
+    api.setDisplayOrientation(getDisplayRotation());
+    if (getSurfaceTexture() != null) {
+      api.onSurfaceTextureAvailable(getSurfaceTexture(), getTextureWidth(), getTextureHeight());
+    }
+    checkCameraState();
   }
 
   @Override

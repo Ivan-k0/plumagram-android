@@ -745,6 +745,11 @@ public abstract class CameraApi {
     }
   }
 
+  /** Whether frames already come stabilized by the camera (Camera2 preview stabilization). */
+  public boolean hasHardwarePreviewStabilization () {
+    return false;
+  }
+
   public final boolean isFrontFacing () {
     CameraFeatures features = mFeatures;
     return features != null && features.has(CameraFeatures.FEATURE_FACING_FRONT);

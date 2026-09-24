@@ -642,7 +642,10 @@ public class RoundVideoRecorder {
     cameraSurface = new SurfaceTexture(cameraTexture[0]);
     cameraSurface.setOnFrameAvailableListener(surfaceTexture -> requestRender());
     createCamera(cameraSurface);
-    if (Settings.instance().getRoundStabilizationMode() == Settings.ROUND_STABILIZATION_GYRO) {
+    int stabilizationMode = Settings.instance().getRoundStabilizationMode();
+    // Camera2 mode falls back to the gyroscope when the device couldn't use Camera2.
+    if (stabilizationMode == Settings.ROUND_STABILIZATION_GYRO ||
+      (stabilizationMode == Settings.ROUND_STABILIZATION_CAMERA2 && !context.hasHardwarePreviewStabilization())) {
       stabilizer.start();
     }
     Log.i(Log.TAG_ROUND, "gl initied");
