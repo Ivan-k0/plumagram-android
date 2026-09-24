@@ -980,6 +980,7 @@
   <string name="RecordingAndPhotos">Recording &amp; Photos</string>
   <string name="PauseMediaOnRecord">Pause media on recording</string>
   <string name="SendPhotosInHD">Send photos in HD</string>
+  <string name="WriteContactsToPhoneBook">Add Telegram contacts to phone book</string>
   <string name="Advanced">Advanced</string>
   <string name="Never">Never</string>
   <string name="WhenUsingRoaming">When switching to roaming</string>
