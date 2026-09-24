@@ -50,6 +50,7 @@ import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.data.TD;
 import org.thunderdog.challegram.loader.ImageReader;
 import org.thunderdog.challegram.player.AudioController;
+import org.thunderdog.challegram.player.ExternalAudioFocus;
 import org.thunderdog.challegram.player.TGPlayerController;
 import org.thunderdog.challegram.receiver.AudioMediaReceiver;
 import org.thunderdog.challegram.telegram.Tdlib;
@@ -807,6 +808,10 @@ public class AudioService extends Service implements TGPlayerController.TrackLis
 
   @Override
   public void onAudioFocusChange (int focusChange) {
+    if (ExternalAudioFocus.instance().isHeld()) {
+      // Focus was taken by our own voice/round recording or playback, not by another app
+      return;
+    }
     setAudioFocusState(focusChange);
   }
 }
