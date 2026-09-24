@@ -767,15 +767,9 @@ public class RoundVideoRecorder {
 
     if (isCapturing()) {
       if (!recording) {
-        int resolution;
-        int bitrate;
-        if (Settings.instance().needHqRoundVideos()) {
-          resolution = 320;
-          bitrate = 600000;
-        } else {
-          resolution = 240;
-          bitrate = 400000;
-        }
+        int quality = Settings.instance().getRoundVideoQuality();
+        int resolution = Settings.roundVideoResolution(quality);
+        int bitrate = Settings.roundVideoBitrate(quality);
         videoEncoder.startRecording(cameraFile, resolution, bitrate, EGL14.eglGetCurrentContext());
         recordStartTime = SystemClock.uptimeMillis();
         recording = true;
@@ -1326,7 +1320,7 @@ public class RoundVideoRecorder {
         audioFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
         audioFormat.setInteger(MediaFormat.KEY_SAMPLE_RATE, sampleRate);
         audioFormat.setInteger(MediaFormat.KEY_CHANNEL_COUNT, 1);
-        audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, 32000);
+        audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, Settings.roundAudioBitrate(Settings.instance().getRoundVideoQuality()));
         audioFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 2048 * 10);
 
         audioEncoder = MediaCodec.createEncoderByType(AUDIO_MIME_TYPE);

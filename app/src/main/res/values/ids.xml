@@ -1434,4 +1434,9 @@
   <item type="id" name="btn_playback_speed_1_2" />
   <item type="id" name="btn_playback_speed_1_5" />
   <item type="id" name="btn_playback_speed_2_0" />
+  <item name="btn_roundVideoQuality" type="id"/>
+  <item name="btn_roundQualitySd" type="id"/>
+  <item name="btn_roundQualityHq" type="id"/>
+  <item name="btn_roundQualityHigh" type="id"/>
+  <item name="btn_roundQualityMax" type="id"/>
 </resources>

@@ -3085,7 +3085,62 @@ public class Settings {
   }
 
   public boolean needHqRoundVideos () {
-    return Device.NEED_HQ_ROUND_VIDEOS || checkSetting(FLAG_OTHER_HQ_ROUND_VIDEOS);
+    return getRoundVideoQuality() >= ROUND_VIDEO_QUALITY_HQ;
+  }
+
+  // Video message (round video) quality. Video notes must stay square and at most
+  // 640px on a side, otherwise they can't be sent as video messages.
+  public static final int ROUND_VIDEO_QUALITY_SD = 0;
+  public static final int ROUND_VIDEO_QUALITY_HQ = 1;
+  public static final int ROUND_VIDEO_QUALITY_HIGH = 2;
+  public static final int ROUND_VIDEO_QUALITY_MAX = 3;
+  private static final String KEY_ROUND_VIDEO_QUALITY = "settings_round_video_quality";
+
+  public int getRoundVideoQuality () {
+    int quality = pmc.getInt(KEY_ROUND_VIDEO_QUALITY, checkSetting(FLAG_OTHER_HQ_ROUND_VIDEOS) ? ROUND_VIDEO_QUALITY_HQ : ROUND_VIDEO_QUALITY_HIGH);
+    quality = Math.max(ROUND_VIDEO_QUALITY_SD, Math.min(ROUND_VIDEO_QUALITY_MAX, quality));
+    if (Device.NEED_HQ_ROUND_VIDEOS) {
+      quality = Math.max(quality, ROUND_VIDEO_QUALITY_HQ);
+    }
+    return quality;
+  }
+
+  public void setRoundVideoQuality (int quality) {
+    pmc.putInt(KEY_ROUND_VIDEO_QUALITY, quality);
+  }
+
+  // Encoded size of the square video, px.
+  public static int roundVideoResolution (int quality) {
+    switch (quality) {
+      case ROUND_VIDEO_QUALITY_MAX: return 640;
+      case ROUND_VIDEO_QUALITY_HIGH: return 480;
+      case ROUND_VIDEO_QUALITY_HQ: return 320;
+      default: return 240;
+    }
+  }
+
+  public static int roundVideoBitrate (int quality) {
+    switch (quality) {
+      case ROUND_VIDEO_QUALITY_MAX: return 2_500_000;
+      case ROUND_VIDEO_QUALITY_HIGH: return 1_200_000;
+      case ROUND_VIDEO_QUALITY_HQ: return 600_000;
+      default: return 400_000;
+    }
+  }
+
+  public static int roundAudioBitrate (int quality) {
+    return quality >= ROUND_VIDEO_QUALITY_HIGH ? 64_000 : 32_000;
+  }
+
+  // Camera preview is picked by area closest to this value squared (16:9), and the
+  // square is cropped from its short side, so it must be >= roundVideoResolution.
+  public static int roundCameraMaxResolution (int quality) {
+    switch (quality) {
+      case ROUND_VIDEO_QUALITY_MAX: return 960; // ~1280x720
+      case ROUND_VIDEO_QUALITY_HIGH: return 720; // ~960x540
+      case ROUND_VIDEO_QUALITY_HQ: return 480; // ~640x360
+      default: return 280;
+    }
   }
 
   public void setNeedHqRoundVideos (boolean needRoundVideos) {
