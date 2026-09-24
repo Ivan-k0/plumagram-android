@@ -3411,8 +3411,12 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
   }
 
   protected final void handleSettingClick (View v, SettingsAdapter adapter) {
-    ListItem item = (ListItem) v.getTag();
-    boolean value = adapter.toggleView(v);
+    applySettingToggle((ListItem) v.getTag(), adapter.toggleView(v));
+  }
+
+  // For controllers whose onClick already called adapter.toggleView(v)
+  protected final void applySettingToggle (ListItem item, boolean toggleResult) {
+    boolean value = toggleResult;
     if (item.getBoolValue())
       value = !value;
     Settings.instance().setNewSetting(item.getLongId(), value);
