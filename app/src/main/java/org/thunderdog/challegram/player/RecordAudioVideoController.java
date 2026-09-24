@@ -96,8 +96,6 @@ public class RecordAudioVideoController implements
   TdlibFilesManager.SimpleListener,
   BaseActivity.ActivityListener,
   ThemeChangeListener {
-  private static final int MAX_HQ_ROUND_RESOLUTION = Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ? 360 : 480;
-  private static final int MAX_ROUND_RESOLUTION = 280;
   private static final int MAX_ROUND_DURATION_MS = 59500;
 
   private final BaseActivity context;
@@ -1596,7 +1594,7 @@ public class RecordAudioVideoController implements
 
   private void setupCamera (boolean isOwned) {
     ownedCamera.getManager().setPreferFrontFacingCamera(!Settings.instance().startRoundWithRear() && isOwned);
-    ownedCamera.getManager().setMaxResolution(isOwned ? (Settings.instance().needHqRoundVideos() ? MAX_HQ_ROUND_RESOLUTION : MAX_ROUND_RESOLUTION) : 0);
+    ownedCamera.getManager().setMaxResolution(isOwned ? Settings.roundCameraMaxResolution(Settings.instance().getRoundVideoQuality()) : 0);
     ownedCamera.getLegacyManager().setNoPreviewBlur(false);
     ownedCamera.getLegacyManager().setUseRoundRender(isOwned);
     ownedCamera.getLegacyManager().getView().setIgnoreAspectRatio(isOwned);

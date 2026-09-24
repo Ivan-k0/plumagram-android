@@ -214,6 +214,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(networkStats != null ? networkStats.getWiFiEntry() : Lang.getString(R.string.Calculating));
         } else if (itemId == R.id.btn_resetNetworkStats) {
           view.setData(networkStats != null ? networkStats.getDateEntry() : Lang.getString(R.string.LoadingInformation));
+        } else if (itemId == R.id.btn_roundVideoQuality) {
+          view.setData(roundVideoQualityName(Settings.instance().getRoundVideoQuality()));
         } else if (itemId == R.id.btn_toggleNewSetting) {
           updateSettingView(view, item, isUpdate);
         }
@@ -279,6 +281,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.PauseMediaOnRecord).setLongId(Settings.SETTING_FLAG_PAUSE_MEDIA_ON_RECORD),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.SendPhotosInHD).setLongId(Settings.SETTING_FLAG_SEND_PHOTOS_IN_HD),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_roundVideoQuality, 0, R.string.RoundVideoQuality),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Contacts),
@@ -532,6 +536,14 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_mobile, 0, R.string.OnMobileNetwork, id, tdlib.files().getVoipDataSavingOption() == DataSavingOption.MOBILE),
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_always, 0, R.string.UseLessDataAlways, id, tdlib.files().getVoipDataSavingOption() == DataSavingOption.ALWAYS)
       }).setIntDelegate(this));
+    } else if (id == R.id.btn_roundVideoQuality) {
+      int quality = Settings.instance().getRoundVideoQuality();
+      showSettings(new SettingsWrapBuilder(id).addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.RoundVideoQualityHint)).setRawItems(new ListItem[] {
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_roundQualitySd, 0, R.string.RoundVideoQualitySd, id, quality == Settings.ROUND_VIDEO_QUALITY_SD),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_roundQualityHq, 0, R.string.RoundVideoQualityHq, id, quality == Settings.ROUND_VIDEO_QUALITY_HQ),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_roundQualityHigh, 0, R.string.RoundVideoQualityHigh, id, quality == Settings.ROUND_VIDEO_QUALITY_HIGH),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_roundQualityMax, 0, R.string.RoundVideoQualityMax, id, quality == Settings.ROUND_VIDEO_QUALITY_MAX)
+      }).setIntDelegate(this));
     } else if (id == R.id.btn_proxy) {
       tdlib.ui().openProxySettings(this, true);
     } else if (id == R.id.btn_dataSaver) {
@@ -631,6 +643,15 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     };
   }
 
+  private static int roundVideoQualityName (int quality) {
+    switch (quality) {
+      case Settings.ROUND_VIDEO_QUALITY_SD: return R.string.RoundVideoQualitySd;
+      case Settings.ROUND_VIDEO_QUALITY_HQ: return R.string.RoundVideoQualityHq;
+      case Settings.ROUND_VIDEO_QUALITY_MAX: return R.string.RoundVideoQualityMax;
+      default: return R.string.RoundVideoQualityHigh;
+    }
+  }
+
   @Override
   public void onApplySettings (@IdRes int id, SparseIntArray result) {
     if (id == R.id.btn_dataSaverForce) {
@@ -641,6 +662,20 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         adapter.updateValuedSettingById(R.id.btn_dataSaver);
         adapter.updateValuedSettingById(id);
       }
+    } else if (id == R.id.btn_roundVideoQuality) {
+      final int res = result.get(R.id.btn_roundVideoQuality);
+      int quality;
+      if (res == R.id.btn_roundQualitySd) {
+        quality = Settings.ROUND_VIDEO_QUALITY_SD;
+      } else if (res == R.id.btn_roundQualityHq) {
+        quality = Settings.ROUND_VIDEO_QUALITY_HQ;
+      } else if (res == R.id.btn_roundQualityMax) {
+        quality = Settings.ROUND_VIDEO_QUALITY_MAX;
+      } else {
+        quality = Settings.ROUND_VIDEO_QUALITY_HIGH;
+      }
+      Settings.instance().setRoundVideoQuality(quality);
+      adapter.updateValuedSettingById(R.id.btn_roundVideoQuality);
     } else if (id == R.id.btn_lessDataForCalls) {
       final int res = result.get(R.id.btn_lessDataForCalls);
       final @DataSavingOption int option =
