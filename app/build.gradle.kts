@@ -757,17 +757,24 @@ android {
         }
       }.toString()
 
+      // Mod build number: commits on top of upstream 9312ace, so every mod build
+      // gets a higher versionCode and installs over the previous one.
+      val modBuild = ProcessBuilder("git", "rev-list", "--count", "9312ace..HEAD")
+        .directory(rootDir).redirectErrorStream(true).start()
+        .inputStream.bufferedReader().readText().trim().toIntOrNull() ?: 0
+      require(modBuild in 0..999) { "modBuild out of range: $modBuild" }
+
       var baseVersionCode: Int? = null
       var baseVersionName: String? = null
       var fileName: String? = null
 
       variant.outputs.forEach { output ->
         baseVersionCode = output.versionCode.get()
-        val modifiedVersionCode = baseVersionCode * 1000 + flavorVersionCode
+        val modifiedVersionCode = (baseVersionCode * 1000 + modBuild) * 1000 + flavorVersionCode
         output.versionCode.set(modifiedVersionCode)
 
         baseVersionName = output.versionName.get()
-        val modifiedVersionName = "$baseVersionName.$baseVersionCode$flavorVersionNameSuffix"
+        val modifiedVersionName = "$baseVersionName.$baseVersionCode-mod$modBuild$flavorVersionNameSuffix"
         output.versionName.set(modifiedVersionName)
 
         fileName = "${config.outputFileNamePrefix}-${modifiedVersionName.replace(Regex("-universal(?=-|$)"), "")}"
