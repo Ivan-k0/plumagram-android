@@ -1805,7 +1805,7 @@ public class MediaItem implements MessageSourceProvider, InvalidateContentProvid
     if (type == TYPE_CHAT_PROFILE || type == TYPE_USER_PROFILE || (sourceChatId != 0 && ChatId.isSecret(sourceChatId))) {
       file = TD.createFileCopy(targetFile);
     } else if (type == TYPE_GALLERY_PHOTO) {
-      file = PhotoGenerationInfo.newFile(sourceGalleryFile);
+      file = PhotoGenerationInfo.newFile(sourceGalleryFile, PhotoGenerationInfo.outgoingPhotoResolutionLimit());
     } else {
       file = new TdApi.InputFileId(targetFile.id);
     }

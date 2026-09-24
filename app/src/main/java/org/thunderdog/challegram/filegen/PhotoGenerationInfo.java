@@ -33,6 +33,7 @@ import org.thunderdog.challegram.mediaview.crop.CropState;
 import org.thunderdog.challegram.mediaview.crop.CropStateParser;
 import org.thunderdog.challegram.mediaview.data.FiltersState;
 import org.thunderdog.challegram.mediaview.paint.PaintState;
+import org.thunderdog.challegram.unsorted.Settings;
 
 import java.io.InputStream;
 
@@ -41,6 +42,17 @@ import me.vkryl.core.StringUtils;
 
 public class PhotoGenerationInfo extends GenerationInfo {
   public static final int SIZE_LIMIT = 1280;
+  // "HD" resolution cap used for outgoing chat photos when Settings.SETTING_FLAG_SEND_PHOTOS_IN_HD
+  // is enabled. Judgment call: no existing app-level HD constant was found to reuse, and this
+  // isn't sent-as-file/original quality -- it's just a larger compressed-photo cap, matching the
+  // two-tier SD/HD choice in stock Telegram. Tune if a different value is preferred.
+  public static final int HD_RESOLUTION_LIMIT = 2560;
+
+  // 0 (SD/default) if the user hasn't enabled HD photo sending, HD_RESOLUTION_LIMIT otherwise.
+  // Use this wherever an outgoing *chat message* photo (not an avatar/chat photo) is generated.
+  public static int outgoingPhotoResolutionLimit () {
+    return Settings.instance().getNewSetting(Settings.SETTING_FLAG_SEND_PHOTOS_IN_HD) ? HD_RESOLUTION_LIMIT : 0;
+  }
 
   private int rotation; // 0, 90, 180 or 270
   private boolean isFiltered;
@@ -370,6 +382,15 @@ public class PhotoGenerationInfo extends GenerationInfo {
     return new TdApi.InputFileGenerated(path, makeConversion(rotation, lastModified(path), null), 0);
   }
 
+  // resolutionLimit: 0 means "use default SIZE_LIMIT" (SD/compressed, unchanged behavior).
+  // Only meant for outgoing chat-photo sends -- do not use for avatars/chat photos.
+  public static TdApi.InputFileGenerated newFile (String path, int rotation, int resolutionLimit) {
+    if (resolutionLimit == 0) {
+      return newFile(path, rotation);
+    }
+    return new TdApi.InputFileGenerated(path, makeConversion(rotation, lastModified(path), false, resolutionLimit), 0);
+  }
+
   public static String makeConversion (int rotation, long lastModified, boolean transparent, int resolutionLimit) {
     String parameters = null;
     if (transparent || resolutionLimit != 0) {
@@ -395,6 +416,17 @@ public class PhotoGenerationInfo extends GenerationInfo {
   public static TdApi.InputFileGenerated newFile (ImageGalleryFile file) {
     String path = file.getTargetPath();
     return new TdApi.InputFileGenerated(path, makeConversion(file, lastModified(path)), 0);
+  }
+
+  // resolutionLimit: 0 means "use default SIZE_LIMIT" (SD/compressed, unchanged behavior).
+  // Only meant for outgoing chat-photo sends -- do not use for avatars/chat photos.
+  public static TdApi.InputFileGenerated newFile (ImageGalleryFile file, int resolutionLimit) {
+    if (resolutionLimit == 0) {
+      return newFile(file);
+    }
+    String path = file.getTargetPath();
+    String conversion = makeConversion(file, lastModified(path)) + ",l:" + resolutionLimit;
+    return new TdApi.InputFileGenerated(path, conversion, 0);
   }
 
   private static String makeConversion (int rotation, long lastModifiedTime, String parameters) {
