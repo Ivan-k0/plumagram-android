@@ -6273,7 +6273,8 @@ public class TD {
       }
     } else {
       int[] size = new int[2];
-      file.getOutputSize(size);
+      int resolutionLimit = PhotoGenerationInfo.outgoingPhotoResolutionLimit();
+      file.getOutputSize(size, resolutionLimit != 0 ? resolutionLimit : PhotoGenerationInfo.SIZE_LIMIT);
 
       final int width = size[0];
       final int height = size[1];
@@ -6282,7 +6283,7 @@ public class TD {
       if (asFiles && PhotoGenerationInfo.isEmpty(file)) {
         inputFile = TD.createInputFile(file.getFilePath());
       } else {
-        inputFile = PhotoGenerationInfo.newFile(file, PhotoGenerationInfo.outgoingPhotoResolutionLimit());
+        inputFile = PhotoGenerationInfo.newFile(file, resolutionLimit);
       }
 
       TdApi.FormattedText caption = file.getCaption(true, !disableMarkdown);

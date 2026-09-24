@@ -336,6 +336,12 @@ public class ImageGalleryFile extends ImageFile implements Comparable<ImageGalle
   }
 
   public void getOutputSize (int[] out) {
+    getOutputSize(out, PhotoGenerationInfo.SIZE_LIMIT);
+  }
+
+  // sizeLimit must match the resolution limit the photo is generated with,
+  // otherwise TDLib gets width/height that don't match the uploaded file.
+  public void getOutputSize (int[] out, int sizeLimit) {
     int outWidth, outHeight;
     CropState cropState = getCropState();
     if (cropState == null || cropState.isEmpty()) {
@@ -358,7 +364,7 @@ public class ImageGalleryFile extends ImageFile implements Comparable<ImageGalle
       }
     }
 
-    float scale = Math.min((float) PhotoGenerationInfo.SIZE_LIMIT / outWidth, (float) PhotoGenerationInfo.SIZE_LIMIT / outHeight);
+    float scale = Math.min((float) sizeLimit / outWidth, (float) sizeLimit / outHeight);
     if (scale < 1.0f) {
       outWidth *= scale;
       outHeight *= scale;
