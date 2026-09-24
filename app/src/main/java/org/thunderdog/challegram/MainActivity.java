@@ -51,6 +51,7 @@ import org.thunderdog.challegram.telegram.GlobalCountersListener;
 import org.thunderdog.challegram.telegram.GlobalResolvableProblemListener;
 import org.thunderdog.challegram.telegram.LiveLocationManager;
 import org.thunderdog.challegram.service.KeepAliveService;
+import org.thunderdog.challegram.service.TGCallService;
 import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.telegram.TdlibAccount;
 import org.thunderdog.challegram.telegram.TdlibBadgeCounter;
@@ -1497,7 +1498,7 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     // Log.e("%s", Strings.getHexColor(U.compositeColor(Theme.headerColor(), Theme.getColor(ColorId.statusBar)), false));
     tdlib.contacts().makeSilentPermissionCheck(this);
     KeepAliveService.sync(this);
-    if (!tdlib.account().isUnauthorized()) {
+    if (!tdlib.account().isUnauthorized() && !TGCallService.requestFullScreenIntentOnce(this)) {
       KeepAliveService.requestIgnoreBatteryOptimizationsOnce(this);
     }
     tdlib.context().global().notifyResolvableProblemAvailabilityMightHaveChanged();

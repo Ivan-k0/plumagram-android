@@ -1460,4 +1460,31 @@ public class TGCallService extends Service implements
     }
     return "";
   }
+
+  // Without this permission Android shows an incoming call as a plain notification
+  // instead of the full-screen call screen. On Android 14+ the user may have to allow
+  // it manually; ask once. Returns true if the settings screen was opened.
+  public static boolean requestFullScreenIntentOnce (android.app.Activity activity) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+      return false;
+    }
+    NotificationManager manager = (NotificationManager) activity.getSystemService(Context.NOTIFICATION_SERVICE);
+    if (manager == null || manager.canUseFullScreenIntent()) {
+      return false;
+    }
+    android.content.SharedPreferences prefs = activity.getSharedPreferences("calls", Context.MODE_PRIVATE);
+    if (prefs.getBoolean("full_screen_intent_asked", false)) {
+      return false;
+    }
+    prefs.edit().putBoolean("full_screen_intent_asked", true).apply();
+    try {
+      Intent intent = new Intent(android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT);
+      intent.setData(android.net.Uri.parse("package:" + activity.getPackageName()));
+      activity.startActivity(intent);
+      return true;
+    } catch (Throwable t) {
+      Log.e("Unable to open full-screen intent settings", t);
+      return false;
+    }
+  }
 }
