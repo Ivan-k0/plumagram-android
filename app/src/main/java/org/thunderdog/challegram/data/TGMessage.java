@@ -135,8 +135,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -8789,6 +8791,20 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         return 0;
       });
     }
+    // Most used reactions first; stable sort keeps the default order for the rest.
+    Map<String, Integer> usage = new HashMap<>(sortedReactions.size());
+    for (TdApi.AvailableReaction reaction : sortedReactions) {
+      String key = TD.makeReactionKey(reaction.type);
+      usage.put(key, Settings.instance().getReactionUsage(key));
+    }
+    Collections.sort(sortedReactions, (a, b) -> {
+      int aPriority = getPriority(a.type);
+      int bPriority = getPriority(b.type);
+      if (aPriority == 0 || bPriority == 0) {
+        return Integer.compare(aPriority, bPriority);
+      }
+      return Integer.compare(usage.get(TD.makeReactionKey(b.type)), usage.get(TD.makeReactionKey(a.type)));
+    });
     return prioritizeElements(sortedReactions.toArray(new TdApi.AvailableReaction[0]), messageReactions.getChosen());
   }
 

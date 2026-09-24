@@ -603,6 +603,7 @@ public class TGReactions implements Destroyable, ReactionLoadListener {
     TdApi.Message message = parent.getOldestMessage();
     boolean hasReaction = !hasReaction(reactionType);
     if (hasReaction) {
+      Settings.instance().incrementReactionUsage(TD.makeReactionKey(reactionType));
       tdlib.client().send(new TdApi.AddMessageReaction(parent.getChatId(), message.id, reactionType, isBig, updateRecentReactions), handler);
     } else {
       tdlib.client().send(new TdApi.RemoveMessageReaction(parent.getChatId(), message.id, reactionType), handler);
