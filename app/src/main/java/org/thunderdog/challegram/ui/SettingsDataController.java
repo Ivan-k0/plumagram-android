@@ -589,7 +589,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     } else if (id == R.id.btn_cacheSettings) {
       navigateTo(new SettingsCacheController(context, tdlib));
     } else if (id == R.id.btn_toggleNewSetting) {
-      handleSettingClick(v, adapter);
+      applySettingToggle((ListItem) v.getTag(), toggleResult);
     } else if (id == R.id.btn_showAdvanced) {
       final int index = adapter.indexOfViewById(R.id.btn_showAdvanced);
 
