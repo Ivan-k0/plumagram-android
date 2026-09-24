@@ -987,6 +987,18 @@ public class Settings {
     pmc.putInt(key, value);
   }
 
+  // How many times the user has put each reaction, used to order quick reactions.
+  private static final String KEY_REACTION_USAGE_PREFIX = "reaction_usage_";
+
+  public void incrementReactionUsage (String reactionKey) {
+    String key = KEY_REACTION_USAGE_PREFIX + reactionKey;
+    pmc.putInt(key, pmc.getInt(key, 0) + 1);
+  }
+
+  public int getReactionUsage (String reactionKey) {
+    return pmc.getInt(KEY_REACTION_USAGE_PREFIX + reactionKey, 0);
+  }
+
   public int getInt (String key, int defValue) {
     return pmc.getInt(key, defValue);
   }
