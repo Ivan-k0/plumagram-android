@@ -619,7 +619,7 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
       return Status.INTERNAL_ERROR;
     if (!tdlib.account().forceEnableNotifications() && Settings.instance().checkNotificationFlag(Settings.NOTIFICATION_FLAG_ONLY_SELECTED_ACCOUNTS))
       return Status.ACCOUNT_NOT_SELECTED;
-    if (tdlib.context().getTokenState() == TdlibManager.TokenState.ERROR)
+    if (tdlib.context().getTokenState() == TdlibManager.TokenState.ERROR && !Settings.instance().getNewSetting(Settings.SETTING_FLAG_KEEP_ALIVE_CONNECTION))
       return Status.PUSH_SERVICE_ERROR;
     return Status.NOT_BLOCKED;
   }

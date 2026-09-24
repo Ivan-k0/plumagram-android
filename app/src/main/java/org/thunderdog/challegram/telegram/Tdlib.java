@@ -723,6 +723,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   private static final String JOB_ID_VERIFICATION = "verification";
   private static final String JOB_ID_RECAPTCHA = "recaptcha";
   private static final String JOB_ID_JOB = "job";
+  private static final String JOB_ID_KEEP_ALIVE = "keep_alive";
 
   private static final int REFERENCE_TYPE_UI = 0;
   private static final int REFERENCE_TYPE_JOB = 1;
@@ -734,6 +735,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   private static final int REFERENCE_TYPE_MESSAGE = 8;
   private static final int REFERENCE_TYPE_TASK = 9;
   private static final int REFERENCE_TYPE_TASK_EXECUTION = 10;
+  private static final int REFERENCE_TYPE_KEEP_ALIVE = 11;
 
   public void changeLocationReferenceCount (int deltaCount) {
     if (deltaCount > 0) {
@@ -769,6 +771,14 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
 
   void decrementNotificationReferenceCount () {
     decrementReferenceCount(REFERENCE_TYPE_NOTIFICATION, JOB_ID_NOTIFICATION);
+  }
+
+  public void incrementKeepAliveReferenceCount () {
+    incrementReferenceCount(REFERENCE_TYPE_KEEP_ALIVE, JOB_ID_KEEP_ALIVE);
+  }
+
+  public void decrementKeepAliveReferenceCount () {
+    decrementReferenceCount(REFERENCE_TYPE_KEEP_ALIVE, JOB_ID_KEEP_ALIVE);
   }
 
   void incrementJobReferenceCount (String id) {

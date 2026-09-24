@@ -433,6 +433,7 @@ public class Settings {
   public static final long SETTING_FLAG_SEND_PHOTOS_IN_HD = 1 << 22;
   public static final long SETTING_FLAG_WRITE_CONTACTS_TO_PHONEBOOK = 1 << 23;
   public static final long SETTING_FLAG_SELECT_TEXT_TO_QUOTE = 1 << 24;
+  public static final long SETTING_FLAG_KEEP_ALIVE_CONNECTION = 1 << 25;
 
   public static final long EXPERIMENT_FLAG_ALLOW_EXPERIMENTS = 1;
   public static final long EXPERIMENT_FLAG_SHOW_PEER_IDS = 1 << 2;
@@ -1369,6 +1370,7 @@ public class Settings {
 
     settings |= SETTING_FLAG_PAUSE_MEDIA_ON_RECORD;
     settings |= SETTING_FLAG_SELECT_TEXT_TO_QUOTE;
+    settings |= SETTING_FLAG_KEEP_ALIVE_CONNECTION;
 
     return settings;
   }
