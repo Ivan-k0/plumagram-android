@@ -195,6 +195,11 @@ public class CameraApiLegacy extends CameraApi implements Camera.PreviewCallback
       }
     }
 
+    // Video messages: the stabilization mode is chosen in settings, for both cameras.
+    if (manager.getMaxResolution() != 0 && params.isVideoStabilizationSupported()) {
+      params.setVideoStabilization(Settings.instance().getRoundStabilizationMode() == Settings.ROUND_STABILIZATION_SYSTEM);
+    }
+
     List<String> focusModes = params.getSupportedFocusModes();
     if (focusModes != null) {
       for (String focusMode : focusModes) {

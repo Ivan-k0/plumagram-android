@@ -745,6 +745,11 @@ public abstract class CameraApi {
     }
   }
 
+  public final boolean isFrontFacing () {
+    CameraFeatures features = mFeatures;
+    return features != null && features.has(CameraFeatures.FEATURE_FACING_FRONT);
+  }
+
   public final void destroyRoundRenderer () {
     if (!checkCameraThread()) {
       sendMessage(ACTION_DESTROY_ROUND_RENDERER);

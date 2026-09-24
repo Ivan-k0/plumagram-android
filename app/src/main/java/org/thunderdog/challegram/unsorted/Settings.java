@@ -3109,6 +3109,23 @@ public class Settings {
     pmc.putInt(KEY_ROUND_VIDEO_QUALITY, quality);
   }
 
+  // Video message stabilization. CAMERA2 uses Camera2 preview stabilization (Android 13+)
+  // and falls back to GYRO when the device doesn't support it.
+  public static final int ROUND_STABILIZATION_OFF = 0;
+  public static final int ROUND_STABILIZATION_SYSTEM = 1;
+  public static final int ROUND_STABILIZATION_GYRO = 2;
+  public static final int ROUND_STABILIZATION_CAMERA2 = 3;
+  private static final String KEY_ROUND_STABILIZATION = "settings_round_stabilization";
+
+  public int getRoundStabilizationMode () {
+    int mode = pmc.getInt(KEY_ROUND_STABILIZATION, ROUND_STABILIZATION_GYRO);
+    return Math.max(ROUND_STABILIZATION_OFF, Math.min(ROUND_STABILIZATION_CAMERA2, mode));
+  }
+
+  public void setRoundStabilizationMode (int mode) {
+    pmc.putInt(KEY_ROUND_STABILIZATION, mode);
+  }
+
   // Encoded size of the square video, px.
   public static int roundVideoResolution (int quality) {
     switch (quality) {
