@@ -17,7 +17,9 @@ package org.thunderdog.challegram.v;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
+import android.view.HapticFeedbackConstants;
 import android.view.View;
+import android.view.ViewConfiguration;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -89,6 +91,49 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
   }
 
   private final ClickHelper helper = new ClickHelper(this);
+
+  // Pulling down once more when the list is already at the top opens search.
+  // The gesture has to start at the top, so the swipe that brings the list
+  // there doesn't count. Long presses (pinned chat drag, previews) and
+  // mostly-horizontal swipes (folder switching) are ignored.
+  private boolean pullToSearchTracking;
+  private float pullToSearchStartX, pullToSearchStartY;
+
+  @Override
+  public boolean dispatchTouchEvent (MotionEvent e) {
+    switch (e.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN: {
+        pullToSearchTracking = controller != null && controller.canOpenSearchByPull() && getScrollState() == SCROLL_STATE_IDLE && !canScrollVertically(-1);
+        pullToSearchStartX = e.getX();
+        pullToSearchStartY = e.getY();
+        break;
+      }
+      case MotionEvent.ACTION_MOVE: {
+        if (!pullToSearchTracking)
+          break;
+        if (e.getPointerCount() > 1 || e.getEventTime() - e.getDownTime() > ViewConfiguration.getLongPressTimeout()) {
+          pullToSearchTracking = false;
+          break;
+        }
+        float dx = Math.abs(e.getX() - pullToSearchStartX);
+        float dy = e.getY() - pullToSearchStartY;
+        if (dy < -Screen.dp(8f) || dx > Screen.dp(24f)) {
+          pullToSearchTracking = false;
+        } else if (dy >= Screen.dp(80f) && dy > dx * 2f) {
+          pullToSearchTracking = false;
+          performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+          controller.openSearchByPull();
+        }
+        break;
+      }
+      case MotionEvent.ACTION_UP:
+      case MotionEvent.ACTION_CANCEL: {
+        pullToSearchTracking = false;
+        break;
+      }
+    }
+    return super.dispatchTouchEvent(e);
+  }
 
   // Touching the list while it's still flinging makes RecyclerView call
   // requestDisallowInterceptTouchEvent(true) on its parent, so the chat folders

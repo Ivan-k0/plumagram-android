@@ -191,6 +191,16 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     return parentController;
   }
 
+  public boolean canOpenSearchByPull () {
+    return parentController != null && parentController.isFocused() && !isInForceTouchMode();
+  }
+
+  public void openSearchByPull () {
+    if (parentController != null) {
+      parentController.onMenuItemPressed(R.id.menu_btn_search, null);
+    }
+  }
+
   public interface PickerDelegate {
     boolean onChatPicked (TdApi.Chat chat, Runnable onDone);
     default Object getShareItem () { return null; }
