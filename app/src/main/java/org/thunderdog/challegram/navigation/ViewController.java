@@ -80,6 +80,7 @@ import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.telegram.TdlibAccount;
 import org.thunderdog.challegram.telegram.TdlibContext;
 import org.thunderdog.challegram.telegram.TdlibDelegate;
+import org.thunderdog.challegram.telegram.TdlibPhoneBookSync;
 import org.thunderdog.challegram.telegram.TdlibUi;
 import org.thunderdog.challegram.theme.ColorId;
 import org.thunderdog.challegram.theme.ColorState;
@@ -3417,6 +3418,13 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     Settings.instance().setNewSetting(item.getLongId(), value);
     if (value && item.getLongId() == Settings.SETTING_FLAG_DOWNLOAD_BETAS) {
       context().appUpdater().checkForUpdates();
+    }
+    if (item.getLongId() == Settings.SETTING_FLAG_WRITE_CONTACTS_TO_PHONEBOOK) {
+      if (value) {
+        TdlibPhoneBookSync.instance().enable(context(), tdlib);
+      } else {
+        TdlibPhoneBookSync.instance().disable(context());
+      }
     }
   }
 

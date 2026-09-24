@@ -60,6 +60,7 @@
   <uses-permission android:name="android.permission.WAKE_LOCK" />
   <uses-permission android:name="android.permission.VIBRATE" />
   <uses-permission android:name="android.permission.READ_CONTACTS" />
+  <uses-permission android:name="android.permission.WRITE_CONTACTS" />
   <uses-permission android:name="android.permission.USE_FINGERPRINT" />
   <uses-permission android:name="android.permission.USE_BIOMETRIC" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -230,6 +231,35 @@
       <meta-data
         android:name="android.content.SyncAdapter"
         android:resource="@xml/syncadapter" />
+    </service>
+
+    <!-- Writes Telegram contacts into the real system contacts (com.android.contacts authority),
+         so third-party caller-ID apps can show names for Telegram-only numbers. Distinct from the
+         stub account/authenticator/sync-adapter above, which is private and unrelated. -->
+    <service
+      android:name=".sync.ContactsPhoneBookAuthenticatorService"
+      android:exported="false">
+      <intent-filter>
+        <action android:name="android.accounts.AccountAuthenticator" />
+      </intent-filter>
+      <meta-data
+        android:name="android.accounts.AccountAuthenticator"
+        android:resource="@xml/contacts_authenticator" />
+    </service>
+
+    <service
+      android:name="org.thunderdog.challegram.sync.ContactsSyncAdapterService"
+      android:exported="true"
+      tools:ignore="ExportedService">
+      <intent-filter>
+        <action android:name="android.content.SyncAdapter" />
+      </intent-filter>
+      <meta-data
+        android:name="android.content.SyncAdapter"
+        android:resource="@xml/contacts_syncadapter" />
+      <meta-data
+        android:name="android.provider.CONTACTS_STRUCTURE"
+        android:resource="@xml/contacts_datakind" />
     </service>
 
     <meta-data

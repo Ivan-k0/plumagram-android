@@ -407,6 +407,7 @@ public class TdlibContactManager implements CleanupStartupDelegate {
   @TdlibThread
   void notifyContactStatusChanged (long userId, boolean isContact) {
     checkRegisteredCount();
+    TdlibPhoneBookSync.instance().onContactStatusChanged(UI.getAppContext(), tdlib, userId, isContact);
   }
 
   private Client.ResultHandler newHandler () {

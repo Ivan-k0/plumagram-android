@@ -244,6 +244,10 @@ public class Permissions {
     return requestPermissions(after, Manifest.permission.READ_CONTACTS);
   }
 
+  public boolean requestWriteContacts (@Nullable RunnableBool after) {
+    return requestPermissions(after, Manifest.permission.WRITE_CONTACTS);
+  }
+
   public boolean requestForegroundService (@NonNull RunnableBool after) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
       return requestPermissions(after, Manifest.permission.FOREGROUND_SERVICE);
@@ -340,6 +344,10 @@ public class Permissions {
 
   public boolean canReadContacts () {
     return checkPermission(Manifest.permission.READ_CONTACTS);
+  }
+
+  public boolean canWriteContacts () {
+    return checkPermission(Manifest.permission.WRITE_CONTACTS);
   }
 
   private boolean canReadExternalStorage () {

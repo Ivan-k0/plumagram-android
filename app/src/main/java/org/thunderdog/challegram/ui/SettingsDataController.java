@@ -280,6 +280,11 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.SendPhotosInHD).setLongId(Settings.SETTING_FLAG_SEND_PHOTOS_IN_HD),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+
+        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Contacts),
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.WriteContactsToPhoneBook).setLongId(Settings.SETTING_FLAG_WRITE_CONTACTS_TO_PHONEBOOK),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
       };
     }
     this.adapter.setItems(rawItems, false);
