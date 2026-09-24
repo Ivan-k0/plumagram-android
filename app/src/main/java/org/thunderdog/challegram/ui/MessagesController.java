@@ -10355,7 +10355,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       Media.instance().post(() -> {
         BitmapFactory.Options opts = ImageReader.getImageSize(path);
         int orientation = U.getExifOrientation(path);
-        int inSampleSize = ImageReader.calculateInSampleSize(opts, 1280, 1280);
+        int resolutionLimit = PhotoGenerationInfo.outgoingPhotoResolutionLimit();
+        int sizeLimit = resolutionLimit != 0 ? resolutionLimit : PhotoGenerationInfo.SIZE_LIMIT;
+        int inSampleSize = ImageReader.calculateInSampleSize(opts, sizeLimit, sizeLimit);
         int sampledWidth = opts.outWidth / inSampleSize;
         int sampledHeight = opts.outHeight / inSampleSize;
         int width, height;
@@ -10366,7 +10368,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           width = sampledWidth;
           height = sampledHeight;
         }
-        TdApi.InputFileGenerated inputFile = PhotoGenerationInfo.newFile(path, U.getRotationForExifOrientation(orientation), PhotoGenerationInfo.outgoingPhotoResolutionLimit());
+        TdApi.InputFileGenerated inputFile = PhotoGenerationInfo.newFile(path, U.getRotationForExifOrientation(orientation), resolutionLimit);
         TdApi.InputMessagePhoto photo = tdlib.filegen().createThumbnail(new TdApi.InputMessagePhoto(new TdApi.InputPhoto(inputFile, null, null, null, width, height), null, false, selfDestructType, false), isSecret);
         tdlib.sendMessage(chatId, topicId, replyTo, sendOptions, photo);
       });
@@ -10440,7 +10442,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
           }
         } else {
           int[] size = new int[2];
-          file.getOutputSize(size);
+          int resolutionLimit = PhotoGenerationInfo.outgoingPhotoResolutionLimit();
+          file.getOutputSize(size, resolutionLimit != 0 ? resolutionLimit : PhotoGenerationInfo.SIZE_LIMIT);
 
           final int width = size[0];
           final int height = size[1];
@@ -10449,7 +10452,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           if (asFiles && PhotoGenerationInfo.isEmpty(file)) {
             inputFile = TD.createInputFile(file.getFilePath());
           } else {
-            inputFile = PhotoGenerationInfo.newFile(file, PhotoGenerationInfo.outgoingPhotoResolutionLimit());
+            inputFile = PhotoGenerationInfo.newFile(file, resolutionLimit);
           }
 
           TdApi.FormattedText caption = file.getCaption(true, !disableMarkdown);
