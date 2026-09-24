@@ -12,15 +12,19 @@
  */
 package org.thunderdog.challegram.telegram;
 
+import android.Manifest;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.ContactsContract;
 import android.text.TextUtils;
+
+import androidx.core.content.ContextCompat;
 
 import org.drinkless.tdlib.TdApi;
 import org.thunderdog.challegram.BaseActivity;
@@ -125,7 +129,7 @@ public class TdlibPhoneBookSync {
     if (!Settings.instance().getNewSetting(Settings.SETTING_FLAG_WRITE_CONTACTS_TO_PHONEBOOK)) {
       return;
     }
-    if (!context.permissions().canWriteContacts()) {
+    if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
       return;
     }
     tdlib.searchContacts("", Integer.MAX_VALUE, result -> {
@@ -148,7 +152,7 @@ public class TdlibPhoneBookSync {
     if (!Settings.instance().getNewSetting(Settings.SETTING_FLAG_WRITE_CONTACTS_TO_PHONEBOOK)) {
       return;
     }
-    if (!context.permissions().canWriteContacts()) {
+    if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
       return;
     }
     if (isContact) {
