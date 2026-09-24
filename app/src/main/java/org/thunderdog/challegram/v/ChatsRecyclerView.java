@@ -90,6 +90,21 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
 
   private final ClickHelper helper = new ClickHelper(this);
 
+  // Touching the list while it's still flinging makes RecyclerView call
+  // requestDisallowInterceptTouchEvent(true) on its parent, so the chat folders
+  // pager can't pick up a horizontal swipe until scrolling fully stops.
+  // Stop the fling ourselves first so RecyclerView stays idle and the pager
+  // still gets to intercept; keep the gesture so the tap doesn't open a chat.
+  @Override
+  public boolean onInterceptTouchEvent (MotionEvent e) {
+    if (e.getActionMasked() == MotionEvent.ACTION_DOWN && getScrollState() == SCROLL_STATE_SETTLING) {
+      stopScroll();
+      super.onInterceptTouchEvent(e);
+      return true;
+    }
+    return super.onInterceptTouchEvent(e);
+  }
+
   @Override
   public boolean onTouchEvent (MotionEvent e) {
     boolean res = super.onTouchEvent(e);
