@@ -1418,7 +1418,7 @@ public class SettingsController extends ViewController<Void> implements
       colors.append(OptionColor.NORMAL);
     }
 
-    boolean notificationError = tdlib.context().getTokenState() == TdlibManager.TokenState.ERROR;
+    boolean notificationError = tdlib.context().getTokenState() == TdlibManager.TokenState.ERROR && !Settings.instance().getNewSetting(Settings.SETTING_FLAG_KEEP_ALIVE_CONNECTION);
     if (allowDebug || notificationError) {
       ids.append(R.id.btn_pushService);
       strings.append(R.string.PushServices);

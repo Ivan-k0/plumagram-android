@@ -985,6 +985,11 @@
   <string name="SelectTextToQuoteSetting">Select text to quote in replies</string>
   <string name="SelectText">Select Text</string>
   <string name="SelectTextToQuoteHint">Select part of the message, then tap Reply to quote just that part</string>
+  <string name="BackgroundConnection">Background connection</string>
+  <string name="KeepAliveConnectionSetting">Keep connection in background</string>
+  <string name="KeepAliveConnectionHint">Keeps Telegram connected when the app is closed, so messages arrive instantly without Google push services. To hide the notification, long-press it and turn it off.</string>
+  <string name="KeepAliveChannel">Background connection</string>
+  <string name="KeepAliveNotification">Connected to Telegram</string>
   <string name="Advanced">Advanced</string>
   <string name="Never">Never</string>
   <string name="WhenUsingRoaming">When switching to roaming</string>

@@ -291,6 +291,12 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.SelectTextToQuoteSetting).setLongId(Settings.SETTING_FLAG_SELECT_TEXT_TO_QUOTE),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.SelectTextToQuoteHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+
+        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.BackgroundConnection),
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.KeepAliveConnectionSetting).setLongId(Settings.SETTING_FLAG_KEEP_ALIVE_CONNECTION),
+        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.KeepAliveConnectionHint),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
       };
     }
     this.adapter.setItems(rawItems, false);

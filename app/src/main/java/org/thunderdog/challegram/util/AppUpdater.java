@@ -326,7 +326,8 @@ public class AppUpdater implements InstallStateUpdatedListener, FileUpdateListen
       onUpdateUnavailable();
       return;
     }
-    if (BuildConfig.EXPERIMENTAL || (!AppInstallationUtil.allowInAppTelegramUpdates(UI.getAppContext()) && !tdlib.hasUrgentInAppUpdate())) {
+    // Mod build: official channel APKs are signed with a different key and can't be installed over it
+    if (true || BuildConfig.EXPERIMENTAL || (!AppInstallationUtil.allowInAppTelegramUpdates(UI.getAppContext()) && !tdlib.hasUrgentInAppUpdate())) {
       onUpdateUnavailable();
       return;
     }
