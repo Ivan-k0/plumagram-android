@@ -5779,6 +5779,20 @@ public class MessagesController extends ViewController<MessagesController.Argume
         if (text != null)
           UI.copyText(TD.toCopyText(text), R.string.CopiedText);
         return true;
+      } else if (id == R.id.btn_messageSelectText) {
+        TdApi.Message message = null;
+        if (selectedMessage instanceof TGMessageMedia) {
+          long messageId = ((TGMessageMedia) selectedMessage).getCaptionMessageId();
+          message = selectedMessage.getMessage(messageId);
+        }
+        if (message == null) {
+          message = selectedMessage.getNewestMessage();
+        }
+        TdApi.FormattedText text = Td.textOrCaption(message.content);
+        if (text != null) {
+          SelectTextForQuoteDialog.show(this, tdlib, selectedMessage, text);
+        }
+        return true;
       } else if (id == R.id.btn_messageEdit) {
         TdApi.Message message = null;
         if (selectedMessage instanceof TGMessageMedia) {
