@@ -2275,6 +2275,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       });
     } else if (id == R.id.btn_reportChat) {
       reportChat(null, null);
+    } else if (id == R.id.btn_phone_call) {
+      tdlib.context().calls().makeCall(this, TD.getUserId(chat), null);
     } else if (id == R.id.btn_search) {
       if (manager.isReadyToSearch()) {
         openSearchMode();
@@ -4458,6 +4460,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
       return;
     }
 
+    if (canCallChatUser()) {
+      ids.append(R.id.btn_phone_call);
+      strings.append(R.string.Call);
+    }
+
     if (!manager.isTotallyEmpty() && (Config.USE_SECRET_SEARCH || !isSecretChat()) && !messagesHidden) {
       ids.append(R.id.btn_search);
       strings.append(R.string.Search);
@@ -4525,6 +4532,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
 
     showMore(ids.get(), strings.get(), 0);
+  }
+
+  private boolean canCallChatUser () {
+    long userId = TD.getUserId(chat);
+    if (!BuildConfig.CALLS_AVAILABLE || userId == 0 || tdlib.isSelfUserId(userId) || tdlib.isBotChat(chat.id)) {
+      return false;
+    }
+    TdApi.UserFullInfo userFull = tdlib.cache().userFull(userId, false);
+    return userFull == null || userFull.canBeCalled || userFull.hasPrivateCalls;
   }
 
   // Clear history
