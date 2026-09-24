@@ -5927,4 +5927,10 @@
   <string name="RoundVideoQualityHigh">High (480p)</string>
   <string name="RoundVideoQualityMax">Maximum (640p)</string>
   <string name="RoundVideoQualityHint">Approximate size of one minute: Standard 3 MB, HQ 5 MB, High 9 MB, Maximum 19 MB. 640p is the largest size Telegram accepts for video messages, so every option is always sent as a video message.</string>
+  <string name="RoundStabilization">Video message stabilization</string>
+  <string name="RoundStabilizationOff">Off</string>
+  <string name="RoundStabilizationSystem">System</string>
+  <string name="RoundStabilizationGyro">Gyroscope</string>
+  <string name="RoundStabilizationCamera2">Camera2</string>
+  <string name="RoundStabilizationHint">Phones differ, so pick whichever works best on yours. System: the camera\'s built-in stabilization; has no effect on many phones. Gyroscope: the app evens out hand shake using the gyroscope and zooms in slightly; works on any phone. Camera2: the phone\'s own preview stabilization on Android 13+; if the phone doesn\'t support it, Gyroscope is used instead.</string>
 </resources>

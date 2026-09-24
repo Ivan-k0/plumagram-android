@@ -506,6 +506,9 @@ public class RoundVideoRecorder {
 
   private float[] mMVPMatrix = new float[16];
   private float[] mSTMatrix = new float[16];
+  private final RoundStabilizer stabilizer = new RoundStabilizer();
+  private final float[] previewMVPMatrix = new float[16];
+  private final float[] encoderMVPMatrix = new float[16];
   private float[] moldSTMatrix = new float[16];
 
   private boolean initGL () {
@@ -639,12 +642,16 @@ public class RoundVideoRecorder {
     cameraSurface = new SurfaceTexture(cameraTexture[0]);
     cameraSurface.setOnFrameAvailableListener(surfaceTexture -> requestRender());
     createCamera(cameraSurface);
+    if (Settings.instance().getRoundStabilizationMode() == Settings.ROUND_STABILIZATION_GYRO) {
+      stabilizer.start();
+    }
     Log.i(Log.TAG_ROUND, "gl initied");
 
     return true;
   }
 
   public void finish() {
+    stabilizer.stop();
     if (eglSurface != null) {
       egl10.eglMakeCurrent(eglDisplay, EGL10.EGL_NO_SURFACE, EGL10.EGL_NO_SURFACE, EGL10.EGL_NO_CONTEXT);
       egl10.eglDestroySurface(eglDisplay, eglSurface);
@@ -798,7 +805,8 @@ public class RoundVideoRecorder {
     GLES20.glEnableVertexAttribArray(textureHandle);
 
     GLES20.glUniformMatrix4fv(textureMatrixHandle, 1, false, mSTMatrix, 0);
-    GLES20.glUniformMatrix4fv(vertexMatrixHandle, 1, false, mMVPMatrix, 0);
+    stabilizer.apply(previewMVPMatrix, mMVPMatrix, context.isFrontFacing());
+    GLES20.glUniformMatrix4fv(vertexMatrixHandle, 1, false, previewMVPMatrix, 0);
 
     GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
 
@@ -1169,7 +1177,8 @@ public class RoundVideoRecorder {
       GLES20.glEnableVertexAttribArray(textureHandle);
       GLES20.glUniform1f(scaleXHandle, scaleX);
       GLES20.glUniform1f(scaleYHandle, scaleY);
-      GLES20.glUniformMatrix4fv(vertexMatrixHandle, 1, false, mMVPMatrix, 0);
+      stabilizer.apply(encoderMVPMatrix, mMVPMatrix, context.isFrontFacing());
+      GLES20.glUniformMatrix4fv(vertexMatrixHandle, 1, false, encoderMVPMatrix, 0);
 
       GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
       if (oldCameraTexture[0] != 0) {

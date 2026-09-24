@@ -214,6 +214,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(networkStats != null ? networkStats.getWiFiEntry() : Lang.getString(R.string.Calculating));
         } else if (itemId == R.id.btn_resetNetworkStats) {
           view.setData(networkStats != null ? networkStats.getDateEntry() : Lang.getString(R.string.LoadingInformation));
+        } else if (itemId == R.id.btn_roundStabilization) {
+          view.setData(roundStabilizationName(Settings.instance().getRoundStabilizationMode()));
         } else if (itemId == R.id.btn_roundVideoQuality) {
           view.setData(roundVideoQualityName(Settings.instance().getRoundVideoQuality()));
         } else if (itemId == R.id.btn_toggleNewSetting) {
@@ -283,6 +285,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.SendPhotosInHD).setLongId(Settings.SETTING_FLAG_SEND_PHOTOS_IN_HD),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_roundVideoQuality, 0, R.string.RoundVideoQuality),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_roundStabilization, 0, R.string.RoundStabilization),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Contacts),
@@ -536,6 +540,14 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_mobile, 0, R.string.OnMobileNetwork, id, tdlib.files().getVoipDataSavingOption() == DataSavingOption.MOBILE),
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_always, 0, R.string.UseLessDataAlways, id, tdlib.files().getVoipDataSavingOption() == DataSavingOption.ALWAYS)
       }).setIntDelegate(this));
+    } else if (id == R.id.btn_roundStabilization) {
+      int mode = Settings.instance().getRoundStabilizationMode();
+      showSettings(new SettingsWrapBuilder(id).addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.RoundStabilizationHint)).setRawItems(new ListItem[] {
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_roundStabilizationOff, 0, R.string.RoundStabilizationOff, id, mode == Settings.ROUND_STABILIZATION_OFF),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_roundStabilizationSystem, 0, R.string.RoundStabilizationSystem, id, mode == Settings.ROUND_STABILIZATION_SYSTEM),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_roundStabilizationGyro, 0, R.string.RoundStabilizationGyro, id, mode == Settings.ROUND_STABILIZATION_GYRO),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_roundStabilizationCamera2, 0, R.string.RoundStabilizationCamera2, id, mode == Settings.ROUND_STABILIZATION_CAMERA2)
+      }).setIntDelegate(this));
     } else if (id == R.id.btn_roundVideoQuality) {
       int quality = Settings.instance().getRoundVideoQuality();
       showSettings(new SettingsWrapBuilder(id).addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.RoundVideoQualityHint)).setRawItems(new ListItem[] {
@@ -643,6 +655,15 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     };
   }
 
+  private static int roundStabilizationName (int mode) {
+    switch (mode) {
+      case Settings.ROUND_STABILIZATION_OFF: return R.string.RoundStabilizationOff;
+      case Settings.ROUND_STABILIZATION_SYSTEM: return R.string.RoundStabilizationSystem;
+      case Settings.ROUND_STABILIZATION_CAMERA2: return R.string.RoundStabilizationCamera2;
+      default: return R.string.RoundStabilizationGyro;
+    }
+  }
+
   private static int roundVideoQualityName (int quality) {
     switch (quality) {
       case Settings.ROUND_VIDEO_QUALITY_SD: return R.string.RoundVideoQualitySd;
@@ -662,6 +683,20 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         adapter.updateValuedSettingById(R.id.btn_dataSaver);
         adapter.updateValuedSettingById(id);
       }
+    } else if (id == R.id.btn_roundStabilization) {
+      final int res = result.get(R.id.btn_roundStabilization);
+      int mode;
+      if (res == R.id.btn_roundStabilizationOff) {
+        mode = Settings.ROUND_STABILIZATION_OFF;
+      } else if (res == R.id.btn_roundStabilizationSystem) {
+        mode = Settings.ROUND_STABILIZATION_SYSTEM;
+      } else if (res == R.id.btn_roundStabilizationCamera2) {
+        mode = Settings.ROUND_STABILIZATION_CAMERA2;
+      } else {
+        mode = Settings.ROUND_STABILIZATION_GYRO;
+      }
+      Settings.instance().setRoundStabilizationMode(mode);
+      adapter.updateValuedSettingById(R.id.btn_roundStabilization);
     } else if (id == R.id.btn_roundVideoQuality) {
       final int res = result.get(R.id.btn_roundVideoQuality);
       int quality;

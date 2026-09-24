@@ -1439,4 +1439,9 @@
   <item name="btn_roundQualityHq" type="id"/>
   <item name="btn_roundQualityHigh" type="id"/>
   <item name="btn_roundQualityMax" type="id"/>
+  <item name="btn_roundStabilization" type="id"/>
+  <item name="btn_roundStabilizationOff" type="id"/>
+  <item name="btn_roundStabilizationSystem" type="id"/>
+  <item name="btn_roundStabilizationGyro" type="id"/>
+  <item name="btn_roundStabilizationCamera2" type="id"/>
 </resources>
