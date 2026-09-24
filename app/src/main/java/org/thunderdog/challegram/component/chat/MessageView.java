@@ -62,6 +62,7 @@ import org.thunderdog.challegram.tool.Views;
 import org.thunderdog.challegram.ui.EditRightsController;
 import org.thunderdog.challegram.ui.HashtagChatController;
 import org.thunderdog.challegram.ui.MessagesController;
+import org.thunderdog.challegram.ui.VoiceTranscriptionDialog;
 import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.util.DrawableProvider;
 import org.thunderdog.challegram.util.StringList;
@@ -881,6 +882,12 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       ids.append(R.id.btn_messageCopyLink);
       strings.append(R.string.CopyLink);
       icons.append(R.drawable.baseline_link_24);
+    }
+
+    if (!isMore && VoiceTranscriptionDialog.canTranscribe(msg.getMessage().content)) {
+      ids.append(R.id.btn_messageTranscribe);
+      strings.append(R.string.Transcribe);
+      icons.append(R.drawable.baseline_translate_24);
     }
 
     if (!isMore && msg.canBeSaved() && msg.canCopyText()) {

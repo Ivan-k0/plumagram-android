@@ -118,6 +118,9 @@
       <action android:name="com.google.android.youtube.api.service.START" />
     </intent>
     <intent>
+      <action android:name="android.speech.RecognitionService" />
+    </intent>
+    <intent>
       <action android:name="android.intent.action.VIEW" />
       <data android:scheme="*" />
     </intent>

@@ -5795,6 +5795,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
         if (text != null)
           UI.copyText(TD.toCopyText(text), R.string.CopiedText);
         return true;
+      } else if (id == R.id.btn_messageTranscribe) {
+        VoiceTranscriptionDialog.show(this, tdlib, selectedMessage.getMessage(), selectedMessage.isSecretChat());
+        return true;
       } else if (id == R.id.btn_messageSelectText) {
         TdApi.Message message = null;
         if (selectedMessage instanceof TGMessageMedia) {

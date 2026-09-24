@@ -5933,4 +5933,11 @@
   <string name="RoundStabilizationGyro">Gyroscope</string>
   <string name="RoundStabilizationCamera2">Camera2</string>
   <string name="RoundStabilizationHint">Phones differ, so pick whichever works best on yours. System: the camera\'s built-in stabilization; has no effect on many phones. Gyroscope: the app evens out hand shake using the gyroscope and zooms in slightly; works on any phone. Camera2: the phone\'s own preview stabilization on Android 13+; if the phone doesn\'t support it, Gyroscope is used instead.</string>
+  <string name="Transcribe">Transcribe</string>
+  <string name="TranscriptionClose">Close</string>
+  <string name="TranscriptionInProgress">Recognizing speech…</string>
+  <string name="TranscriptionEmpty">No speech recognized.</string>
+  <string name="TranscriptionFailed">Couldn\'t recognize speech.</string>
+  <string name="TranscriptionUnavailable">Telegram couldn\'t transcribe this message (Premium or weekly limit), and on-device speech recognition isn\'t available on this phone (needs Android 13+ and a speech recognition service).</string>
+  <string name="TranscriptionLanguageUnavailable">The phone\'s speech recognizer doesn\'t support this language. Download it in the system voice input settings.</string>
 </resources>

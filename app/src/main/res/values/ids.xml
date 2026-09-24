@@ -1444,4 +1444,5 @@
   <item name="btn_roundStabilizationSystem" type="id"/>
   <item name="btn_roundStabilizationGyro" type="id"/>
   <item name="btn_roundStabilizationCamera2" type="id"/>
+  <item name="btn_messageTranscribe" type="id"/>
 </resources>
