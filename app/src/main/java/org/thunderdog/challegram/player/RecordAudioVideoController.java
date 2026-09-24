@@ -920,9 +920,11 @@ public class RecordAudioVideoController implements
       if (Settings.instance().getNewSetting(Settings.SETTING_FLAG_PAUSE_MEDIA_ON_RECORD)) {
         tdlib.context().player().setPauseReason(TGPlayerController.PAUSE_REASON_RECORD_AUDIO_VIDEO, true);
       }
-    } else if (Settings.instance().getNewSetting(Settings.SETTING_FLAG_PAUSE_MEDIA_ON_RECORD)) {
+    } else {
+      // Clear unconditionally, in case the setting was switched off mid-recording
       tdlib.context().player().setPauseReason(TGPlayerController.PAUSE_REASON_RECORD_AUDIO_VIDEO, false);
     }
+    ExternalAudioFocus.instance().setActive(ExternalAudioFocus.REASON_RECORD, isRecording);
 
     final int size = recordListeners.size();
     for (int i = size - 1; i >= 0; i--) {

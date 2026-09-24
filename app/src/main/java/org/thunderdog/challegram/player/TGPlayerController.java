@@ -1032,6 +1032,8 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
       needResume = false;
       pauseReasons = 0;
     }
+    boolean isVoiceOrRound = message != null && (Td.isVoiceNote(message.content) || Td.isVideoNote(message.content));
+    ExternalAudioFocus.instance().setActive(ExternalAudioFocus.REASON_PLAYBACK, newState == STATE_PLAYING && isVoiceOrRound);
   }
 
   private void playPauseMessageImpl (@Nullable TdApi.Message message, boolean byUserRequest, boolean isNext, Tdlib tdlib, @Nullable PlayListBuilder builder) {
