@@ -759,9 +759,10 @@ android {
 
       // Mod build number: commits on top of upstream 9312ace, so every mod build
       // gets a higher versionCode and installs over the previous one.
-      val modBuild = ProcessBuilder("git", "rev-list", "--count", "9312ace..HEAD")
-        .directory(rootDir).redirectErrorStream(true).start()
-        .inputStream.bufferedReader().readText().trim().toIntOrNull() ?: 0
+      val modBuild = providers.exec {
+        commandLine("git", "rev-list", "--count", "9312ace..HEAD")
+        workingDir(rootDir)
+      }.standardOutput.asText.get().trim().toIntOrNull() ?: 0
       require(modBuild in 0..999) { "modBuild out of range: $modBuild" }
 
       var baseVersionCode: Int? = null
