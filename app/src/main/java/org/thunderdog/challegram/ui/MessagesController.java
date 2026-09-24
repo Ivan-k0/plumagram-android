@@ -10352,7 +10352,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           width = sampledWidth;
           height = sampledHeight;
         }
-        TdApi.InputFileGenerated inputFile = PhotoGenerationInfo.newFile(path, U.getRotationForExifOrientation(orientation));
+        TdApi.InputFileGenerated inputFile = PhotoGenerationInfo.newFile(path, U.getRotationForExifOrientation(orientation), PhotoGenerationInfo.outgoingPhotoResolutionLimit());
         TdApi.InputMessagePhoto photo = tdlib.filegen().createThumbnail(new TdApi.InputMessagePhoto(new TdApi.InputPhoto(inputFile, null, null, null, width, height), null, false, selfDestructType, false), isSecret);
         tdlib.sendMessage(chatId, topicId, replyTo, sendOptions, photo);
       });
@@ -10435,7 +10435,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           if (asFiles && PhotoGenerationInfo.isEmpty(file)) {
             inputFile = TD.createInputFile(file.getFilePath());
           } else {
-            inputFile = PhotoGenerationInfo.newFile(file);
+            inputFile = PhotoGenerationInfo.newFile(file, PhotoGenerationInfo.outgoingPhotoResolutionLimit());
           }
 
           TdApi.FormattedText caption = file.getCaption(true, !disableMarkdown);
