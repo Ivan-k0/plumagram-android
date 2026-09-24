@@ -214,6 +214,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(networkStats != null ? networkStats.getWiFiEntry() : Lang.getString(R.string.Calculating));
         } else if (itemId == R.id.btn_resetNetworkStats) {
           view.setData(networkStats != null ? networkStats.getDateEntry() : Lang.getString(R.string.LoadingInformation));
+        } else if (itemId == R.id.btn_toggleNewSetting) {
+          updateSettingView(view, item, isUpdate);
         }
       }
     };
@@ -270,6 +272,13 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_inChannelChats, 0, R.string.InChannels),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_showAdvanced, 0, R.string.Advanced),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+
+        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.RecordingAndPhotos),
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.PauseMediaOnRecord).setLongId(Settings.SETTING_FLAG_PAUSE_MEDIA_ON_RECORD),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.SendPhotosInHD).setLongId(Settings.SETTING_FLAG_SEND_PHOTOS_IN_HD),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
       };
     }
@@ -568,6 +577,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       }).setIntDelegate(this).setSizeOptionId(sizeOption).setSizeValue(currentValue).setSizeValues(sizeOptions).setAllowResize(false));
     } else if (id == R.id.btn_cacheSettings) {
       navigateTo(new SettingsCacheController(context, tdlib));
+    } else if (id == R.id.btn_toggleNewSetting) {
+      handleSettingClick(v, adapter);
     } else if (id == R.id.btn_showAdvanced) {
       final int index = adapter.indexOfViewById(R.id.btn_showAdvanced);
 

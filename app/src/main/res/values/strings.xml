@@ -977,6 +977,9 @@
   <string name="InGroups">In Groups</string>
   <string name="InChannels">In Channels</string>
   <string name="AutomaticMediaDownload">Automatic media download</string>
+  <string name="RecordingAndPhotos">Recording &amp; Photos</string>
+  <string name="PauseMediaOnRecord">Pause media on recording</string>
+  <string name="SendPhotosInHD">Send photos in HD</string>
   <string name="Advanced">Advanced</string>
   <string name="Never">Never</string>
   <string name="WhenUsingRoaming">When switching to roaming</string>

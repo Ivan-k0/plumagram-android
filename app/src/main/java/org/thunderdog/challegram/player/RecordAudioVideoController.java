@@ -917,7 +917,11 @@ public class RecordAudioVideoController implements
 
     if (isRecording) {
       UI.forceVibrate(voiceVideoButtonView, true, true);
-      tdlib.context().player().pauseWithReason(TGPlayerController.PAUSE_REASON_RECORD_AUDIO_VIDEO);
+      if (Settings.instance().getNewSetting(Settings.SETTING_FLAG_PAUSE_MEDIA_ON_RECORD)) {
+        tdlib.context().player().setPauseReason(TGPlayerController.PAUSE_REASON_RECORD_AUDIO_VIDEO, true);
+      }
+    } else if (Settings.instance().getNewSetting(Settings.SETTING_FLAG_PAUSE_MEDIA_ON_RECORD)) {
+      tdlib.context().player().setPauseReason(TGPlayerController.PAUSE_REASON_RECORD_AUDIO_VIDEO, false);
     }
 
     final int size = recordListeners.size();
