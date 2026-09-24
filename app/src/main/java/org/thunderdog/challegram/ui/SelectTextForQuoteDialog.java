@@ -92,13 +92,13 @@ public class SelectTextForQuoteDialog {
       quote = new TdApi.InputTextQuote(quoteFormatted, position);
     }
     // else: nothing selected -- fall through with quote == null, i.e. a normal whole-message reply.
+    final TdApi.InputTextQuote finalQuote = quote;
 
     TdApi.Message newestMessage = message.getNewestMessage();
     message.getMessageProperties(newestMessage.id, properties -> {
       if (properties == null) {
         return;
       }
-      TdApi.InputTextQuote finalQuote = quote;
       controller.runOnUiThreadOptional(() ->
         controller.showReply(new MessageWithProperties(newestMessage, properties), finalQuote, 0, "", true, true)
       );
