@@ -2137,6 +2137,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private void send (TdApi.MessageSendOptions sendOptions, boolean applyMarkdown) {
     if (isEditingMessage()) {
       saveMessage(applyMarkdown);
+    } else if (pendingAttachment != null) {
+      sendPendingAttachment(sendOptions, applyMarkdown);
     } else if (hasAttachedFiles()) {
       if (isSendingText) {
         return;
@@ -2279,7 +2281,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tdlib.context().calls().makeCall(this, TD.getUserId(chat), null);
     } else if (id == R.id.btn_attachFromMenu) {
       hideBottomHint();
-      openMediaView(false, false);
+      openPendingAttachmentPicker();
     } else if (id == R.id.btn_search) {
       if (manager.isReadyToSearch()) {
         openSearchMode();
@@ -6623,6 +6625,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       replyBarView.showWebPage(findTargetContext(), findTargetContext().findSelectedUrlIndex());
     } else if (isEditingMessage()) {
       replyBarView.setEditingMessage(new MessageWithProperties(editContext.message, editContext.messageProperties), editContext.localPickedFile);
+    } else if (pendingAttachment != null) {
+      replyBarView.setPendingAttachment(pendingAttachmentPlaceholder(), pendingAttachment);
     } else if (reply != null) {
       replyBarView.setReplyTo(reply.message, reply.quote);
     } else {
@@ -6641,6 +6645,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       closeLinkPreview();
     } else if (isEditingMessage()) {
       closeEdit(false);
+    } else if (pendingAttachment != null) {
+      setPendingAttachment(null);
     } else {
       closeReply(true, true);
     }
@@ -6650,6 +6656,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   public void onMessageMediaReplaceRequested (ReplyBarView view, TdApi.Message message) {
+    if (!isEditingMessage() && pendingAttachment != null) {
+      openPendingAttachmentPicker();
+      return;
+    }
     if (mediaPickerManager == null) {
       mediaPickerManager = new MediaToReplacePickerManager(this);
     }
@@ -6743,10 +6753,90 @@ public class MessagesController extends ViewController<MessagesController.Argume
     updateReplyBarVisibility(true);
   }
 
+  // Pending attachment: a single file picked from the "Attach" menu item stays above the
+  // message field (like a reply) until Send, so text can still be typed as its caption.
+  // Tapping it offers to pick another file instead.
+
+  private @Nullable MediaToReplacePickerManager.LocalPickedFile pendingAttachment;
+
+  private void openPendingAttachmentPicker () {
+    if (mediaPickerManager == null) {
+      mediaPickerManager = new MediaToReplacePickerManager(this);
+    }
+    int rightsFlags = (1 << RightId.SEND_PHOTOS) | (1 << RightId.SEND_VIDEOS) | (1 << RightId.SEND_DOCS) | (1 << RightId.SEND_AUDIO) | (1 << RightId.SEND_OTHER_MESSAGES);
+    mediaPickerManager.openMediaView(this::setPendingAttachment, getChatId(), null, false, this, rightsFlags, false);
+  }
+
+  private void setPendingAttachment (@Nullable MediaToReplacePickerManager.LocalPickedFile file) {
+    if (file != null && file.imageGalleryFile != null) {
+      // A caption typed in the media preview goes to the message field, where it can be edited.
+      TdApi.FormattedText caption = file.imageGalleryFile.getCaption(true, false);
+      file.imageGalleryFile.setCaption(null);
+      if (!Td.isEmpty(caption) && inputView != null && inputView.isEmpty()) {
+        CharSequence text = TD.toCharSequence(caption);
+        inputView.setText(text);
+        inputView.setSelection(text.length());
+      }
+    }
+    this.pendingAttachment = file;
+    updateReplyBarVisibility(true);
+    checkSendButton(true);
+  }
+
+  private TdApi.Message pendingAttachmentPlaceholder () {
+    TdApi.Message message = new TdApi.Message();
+    message.chatId = getChatId();
+    message.senderId = new TdApi.MessageSenderUser(tdlib.myUserId());
+    message.content = new TdApi.MessageText(new TdApi.FormattedText("", new TdApi.TextEntity[0]), null, null);
+    return message;
+  }
+
+  private void sendPendingAttachment (TdApi.MessageSendOptions sendOptions, boolean applyMarkdown) {
+    MediaToReplacePickerManager.LocalPickedFile file = pendingAttachment;
+    if (file == null) {
+      return;
+    }
+    TdApi.FormattedText caption = inputView != null ? inputView.getOutputText(false) : null;
+    boolean sent;
+    if (file.imageGalleryFile != null) {
+      file.imageGalleryFile.setCaption(caption);
+      sent = sendPhotosAndVideosCompressed(new ImageGalleryFile[] {file.imageGalleryFile}, false, sendOptions, !applyMarkdown, false, false, false);
+    } else if (file.inlineResult != null && file.inlineResult.getType() == InlineResult.TYPE_AUDIO) {
+      TdApi.FormattedText audioCaption = inputView != null ? inputView.getOutputText(applyMarkdown) : null;
+      List<MediaBottomFilesController.MusicEntry> music = java.util.Collections.singletonList((MediaBottomFilesController.MusicEntry) ((InlineResultCommon) file.inlineResult).getTag());
+      List<TdApi.Function<?>> functions = getSendMusicFunctions(sendButton, music, false, true, audioCaption, sendOptions);
+      sent = functions != null && !functions.isEmpty();
+      if (sent) {
+        for (TdApi.Function<?> function : functions) {
+          tdlib.client().send(function, tdlib.messageHandler());
+        }
+      }
+    } else if (file.inlineResult != null) {
+      TdApi.FormattedText fileCaption = inputView != null ? inputView.getOutputText(applyMarkdown) : null;
+      sendFiles(sendButton, java.util.Collections.singletonList(file.inlineResult.getId()), false, true, Td.isEmpty(fileCaption) ? null : fileCaption, sendOptions);
+      sent = true;
+    } else {
+      sent = false;
+    }
+    if (sent) {
+      pendingAttachment = null;
+      if (inputView != null) {
+        inputView.setInput("", false, true);
+      }
+      updateReplyBarVisibility(true);
+      checkSendButton(true);
+    }
+  }
+
   private TooltipOverlayView.TooltipInfo anotherChatHint;
 
   @Override
   public void onMessageHighlightRequested (ReplyBarView view, TdApi.Message message, @Nullable TdApi.InputTextQuote quote) {
+    if (!isEditingMessage() && pendingAttachment != null) {
+      // Tapping the attached file offers to replace it.
+      openPendingAttachmentPicker();
+      return;
+    }
     if (message.chatId == getChatId()) {
       highlightMessage(new MessageId(message.chatId, message.id));
     } else {
@@ -6846,6 +6936,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private void clearReply () {
+    pendingAttachment = null;
     draftContext.reset();
     setReplyInfo(null, false);
     updateReplyBarVisibility(false);
@@ -9673,7 +9764,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private void checkSendButton (boolean animated) {
-    setSendVisible(inputView.getText().length() > 0 || isEditingMessage() || hasAttachedFiles(), animated && getParentOrSelf().isAttachedToNavigationController());
+    setSendVisible(inputView.getText().length() > 0 || isEditingMessage() || hasAttachedFiles() || pendingAttachment != null, animated && getParentOrSelf().isAttachedToNavigationController());
   }
 
   private void displaySendButton () {

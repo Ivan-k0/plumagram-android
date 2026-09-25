@@ -5944,4 +5944,5 @@
   <string name="PullToSearch">Pull down to search</string>
   <string name="PullToSearchHint">When the chat list is already at the top, pull down once more to open search.</string>
   <string name="AttachFromMenu">Прикрепить</string>
+  <string name="PendingAttachment">Вложение</string>
 </resources>

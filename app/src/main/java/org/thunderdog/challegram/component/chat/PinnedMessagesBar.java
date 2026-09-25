@@ -822,6 +822,16 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
     }
   }
 
+  /** Shows a file picked to be sent (not a real message yet): {@code placeholder} only provides the chat. */
+  public void setLocalAttachment (@NonNull Tdlib tdlib, @NonNull TdApi.Message placeholder, @NonNull MediaToReplacePickerManager.LocalPickedFile localPickedFile, String title) {
+    setStaticMessageList(Collections.singletonList(new Entry(tdlib, placeholder, null).setForceLocalPicledFile(localPickedFile)), RecyclerView.NO_POSITION);
+    ListItem item = messagesAdapter.getItem(0);
+    if (item != null) {
+      item.setStringValue(title);
+      messagesAdapter.notifyItemChanged(0);
+    }
+  }
+
   public void setContextChatId (long contextChatId) {
     this.contextChatId = contextChatId;
   }

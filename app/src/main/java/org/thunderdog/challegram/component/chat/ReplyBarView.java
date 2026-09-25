@@ -326,6 +326,15 @@ public class ReplyBarView extends FrameLayoutFix implements View.OnClickListener
     setMessageInputContext(null);
   }
 
+  public void setPendingAttachment (@NonNull TdApi.Message placeholder, @NonNull MediaToReplacePickerManager.LocalPickedFile localPickedFile) {
+    replaceMediaView.setImageResource(localPickedFile.imageGalleryFile != null ? R.drawable.dot_baseline_image_replace_24 : R.drawable.dot_baseline_file_replace_24);
+    displayedMessage = null;
+    pinnedMessagesBar.setLocalAttachment(tdlib, placeholder, localPickedFile, Lang.getString(R.string.PendingAttachment));
+    setLinkPreviewToggleVisible(false);
+    setMediaEditToggleVisible(true, false);
+    setMessageInputContext(null);
+  }
+
   public void reset () {
     performDestroy();
   }
