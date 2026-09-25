@@ -48,6 +48,7 @@ import org.thunderdog.challegram.U;
 import org.thunderdog.challegram.config.Config;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.loader.DoubleImageReceiver;
+import org.thunderdog.challegram.filegen.PhotoGenerationInfo;
 import org.thunderdog.challegram.loader.ImageFile;
 import org.thunderdog.challegram.loader.ImageFileLocal;
 import org.thunderdog.challegram.loader.ImageReceiver;
@@ -961,7 +962,14 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
   }
 
   public boolean setImageScaling (int size) {
-    size = Math.min(MAX_BITMAP_SIZE, size);
+    if (size == 0 && Math.max(contentWidth, contentHeight) > PhotoGenerationInfo.SIZE_LIMIT) {
+      // "No scaling" used to mean full size, fine for photos up to 1280px. The sender's own
+      // HD photo (2560px, ~20 MB as a bitmap) doesn't fit the image memory cache, gets evicted
+      // right after decoding and only the blurred thumbnail stays visible.
+      size = PhotoGenerationInfo.SIZE_LIMIT;
+    } else {
+      size = Math.min(MAX_BITMAP_SIZE, size);
+    }
     if (targetImageFile != null && targetImageFile.getSize() != size) {
       targetImageFile.setSize(size);
       return showImage();
