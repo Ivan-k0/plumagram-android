@@ -10299,7 +10299,21 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   public void sendFiles (View view, final List<String> paths, boolean needGroupMedia, boolean allowReply, TdApi.MessageSendOptions initialSendOptions) {
-    sendFiles(view, paths, needGroupMedia, allowReply, null, initialSendOptions);
+    sendFiles(view, paths, needGroupMedia, allowReply, takeInputAsCaption(), initialSendOptions);
+  }
+
+  // Like the official app: text already typed in the message field becomes the caption
+  // of media or files attached through the attach menu, and the field is cleared.
+  private @Nullable TdApi.FormattedText takeInputAsCaption () {
+    if (inputView == null || isEditingMessage() || sendButton.inInlineMode() || inputView.isEmpty()) {
+      return null;
+    }
+    TdApi.FormattedText text = inputView.getOutputText(false);
+    if (Td.isEmpty(text)) {
+      return null;
+    }
+    inputView.setInput("", false, true);
+    return text;
   }
 
   public void sendFiles (View view, final List<String> paths, boolean needGroupMedia, boolean allowReply, @Nullable TdApi.FormattedText lastFileCaption, TdApi.MessageSendOptions initialSendOptions) {
@@ -10411,6 +10425,20 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public boolean sendPhotosAndVideosCompressed (final ImageGalleryFile[] files, final boolean needGroupMedia, final TdApi.MessageSendOptions modifiedSendOptions, boolean disableMarkdown, boolean asFiles, boolean showCaptionAboveMedia, boolean hasSpoiler) {
     if (files == null || files.length == 0) {
       return false;
+    }
+
+    boolean hasCaption = false;
+    for (ImageGalleryFile file : files) {
+      if (file.hasCaption()) {
+        hasCaption = true;
+        break;
+      }
+    }
+    if (!hasCaption) {
+      TdApi.FormattedText caption = takeInputAsCaption();
+      if (caption != null) {
+        files[0].setCaption(caption);
+      }
     }
 
     // TODO check RightId.SEND_PHOTOS / RightId.SEND_VIDEOS
