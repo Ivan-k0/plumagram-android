@@ -1382,7 +1382,8 @@ public class Settings {
 
     settings |= SETTING_FLAG_PAUSE_MEDIA_ON_RECORD;
     settings |= SETTING_FLAG_SELECT_TEXT_TO_QUOTE;
-    settings |= SETTING_FLAG_KEEP_ALIVE_CONNECTION;
+    // SETTING_FLAG_KEEP_ALIVE_CONNECTION is off by default: push notifications work
+    // through the mod's own Firebase project, the background connection is optional.
 
     return settings;
   }
