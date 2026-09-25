@@ -202,6 +202,65 @@ public class MessagesLoader implements Client.ResultHandler {
     }
   }
 
+  // Saved Messages tag filter (reactions used as tags). With Premium the server searches
+  // (SearchSavedMessages); without it the history is scanned and filtered locally.
+  private @Nullable TdApi.ReactionType savedMessagesTag;
+
+  public void setSavedMessagesTag (@Nullable TdApi.ReactionType tag) {
+    this.savedMessagesTag = tag;
+  }
+
+  private static final int LOCAL_TAG_SCAN_LIMIT = 10000;
+
+  private void searchSavedMessagesLocally (long chatId, TdApi.ReactionType tag, long fromMessageId, int offset, int limit, Client.ResultHandler handler) {
+    if (offset < 0) {
+      // Results start from the newest match, there's nothing newer to add.
+      handler.onResult(new TdApi.FoundChatMessages(-1, new TdApi.Message[0], 0));
+      return;
+    }
+    final java.util.List<TdApi.Message> found = new java.util.ArrayList<>();
+    final int[] scanned = new int[1];
+    final Client.ResultHandler[] pageHandler = new Client.ResultHandler[1];
+    pageHandler[0] = result -> {
+      if (!(result instanceof TdApi.Messages)) {
+        handler.onResult(result);
+        return;
+      }
+      TdApi.Message[] page = ((TdApi.Messages) result).messages;
+      long lastId = 0;
+      for (TdApi.Message message : page) {
+        lastId = message.id;
+        if (message.id == fromMessageId) {
+          continue;
+        }
+        if (hasReaction(message, tag)) {
+          found.add(message);
+        }
+      }
+      scanned[0] += page.length;
+      boolean exhausted = page.length == 0 || scanned[0] >= LOCAL_TAG_SCAN_LIMIT;
+      if (found.size() >= limit || exhausted) {
+        handler.onResult(new TdApi.FoundChatMessages(-1, found.toArray(new TdApi.Message[0]), exhausted ? 0 : lastId));
+      } else {
+        tdlib.client().send(new TdApi.GetChatHistory(chatId, lastId, 0, 100, false), pageHandler[0]);
+      }
+    };
+    tdlib.client().send(new TdApi.GetChatHistory(chatId, fromMessageId, 0, 100, false), pageHandler[0]);
+  }
+
+  public static boolean hasReaction (TdApi.Message message, TdApi.ReactionType tag) {
+    if (message.interactionInfo == null || message.interactionInfo.reactions == null) {
+      return false;
+    }
+    String key = TD.makeReactionKey(tag);
+    for (TdApi.MessageReaction reaction : message.interactionInfo.reactions.reactions) {
+      if (key.equals(TD.makeReactionKey(reaction.type))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public void setSearchParameters (String query, TdApi.MessageSender sender, TdApi.SearchMessagesFilter filter) {
     this.searchQuery = query;
     this.searchSender = sender;
@@ -1143,7 +1202,11 @@ public class MessagesLoader implements Client.ResultHandler {
           function = new TdApi.GetChatScheduledMessages(sourceChatId);
           break;
         default:
-          if (hasSearchFilter()) {
+          if (savedMessagesTag != null) {
+            loadingLocal = false;
+            Log.ensureReturnType(TdApi.SearchSavedMessages.class, TdApi.FoundChatMessages.class);
+            function = new TdApi.SearchSavedMessages(0, savedMessagesTag, "", (lastFromMessageId = fromMessageId).getMessageId(), lastOffset = offset, lastLimit = limit);
+          } else if (hasSearchFilter()) {
             loadingLocal = false;
             Log.ensureReturnType(TdApi.SearchChatMessages.class, TdApi.FoundChatMessages.class);
             function = new TdApi.SearchChatMessages(sourceChatId, topicId, null, null, (lastFromMessageId = fromMessageId).getMessageId(), lastOffset = offset, lastLimit = limit, searchFilter);
@@ -1172,6 +1235,15 @@ public class MessagesLoader implements Client.ResultHandler {
         }
         case TdApi.SearchChatMessages.CONSTRUCTOR: {
           searchManagerMiddleware.search((TdApi.SearchChatMessages) function, handler);
+          break;
+        }
+        case TdApi.SearchSavedMessages.CONSTRUCTOR: {
+          TdApi.SearchSavedMessages search = (TdApi.SearchSavedMessages) function;
+          if (tdlib.hasPremium()) {
+            tdlib.client().send(search, handler);
+          } else {
+            searchSavedMessagesLocally(sourceChatId, search.tag, search.fromMessageId, search.offset, search.limit, handler);
+          }
           break;
         }
         default: {

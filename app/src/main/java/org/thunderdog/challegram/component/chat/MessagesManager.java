@@ -710,6 +710,10 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     tdlib.settings().addPinnedMessageDismissListener(this);
   }
 
+  public void setSavedMessagesTag (@Nullable TdApi.ReactionType tag) {
+    loader.setSavedMessagesTag(tag);
+  }
+
   public void openChat (TdApi.Chat chat, @Nullable ThreadInfo messageThread, @Nullable TdApi.MessageTopic topicId, TdApi.SearchMessagesFilter filter, MessagesController context, boolean areScheduled, boolean needPinnedMessages) {
     if (chat.id != 0) {
       if (Log.isEnabled(Log.TAG_MESSAGES_LOADER)) {

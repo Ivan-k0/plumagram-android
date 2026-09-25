@@ -5945,4 +5945,10 @@
   <string name="PullToSearchHint">When the chat list is already at the top, pull down once more to open search.</string>
   <string name="AttachFromMenu">Прикрепить</string>
   <string name="PendingAttachment">Вложение</string>
+  <string name="SavedTags">Теги</string>
+  <string name="SavedTagSubtitle">тег %1$s</string>
+  <string name="SavedTagsInfo">Реакции в Избранном работают как теги. Выберите тег, чтобы увидеть только отмеченные им сообщения.</string>
+  <string name="SavedTagsInfoPartial">Реакции в Избранном работают как теги. Показаны теги из последних 3000 сообщений.</string>
+  <string name="SavedTagsEmpty">В Избранном нет сообщений с реакциями. Поставьте реакцию на сообщение, чтобы отметить его тегом.</string>
+  <string name="SavedTagsScanning">Ищу теги в Избранном…</string>
 </resources>
