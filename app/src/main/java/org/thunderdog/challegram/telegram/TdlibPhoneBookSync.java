@@ -56,7 +56,7 @@ public class TdlibPhoneBookSync {
   private static final String ACCOUNT_NAME = "Telegram Contacts";
   // Must match app/src/main/res/xml/contacts_datakind.xml's android:mimeType.
   // Also must match the VIEW intent filter on MainActivity in AndroidManifest.xml.
-  public static final String MIME_OPEN_CHAT = "vnd.android.cursor.item/vnd.org.thunderdog.challegram.contact";
+  public static final String MIME_OPEN_CHAT = "vnd.android.cursor.item/vnd.com.tgx101.app.contact";
   private static final int CHUNK_SIZE = 100; // contacts per applyBatch call, well under provider limits
 
   private static TdlibPhoneBookSync instance;
