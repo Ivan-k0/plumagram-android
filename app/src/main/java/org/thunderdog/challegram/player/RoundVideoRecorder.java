@@ -509,6 +509,8 @@ public class RoundVideoRecorder {
   private final RoundStabilizer stabilizer = new RoundStabilizer();
   private final float[] previewMVPMatrix = new float[16];
   private final float[] encoderMVPMatrix = new float[16];
+  private final float[] stabilizationDebug = new float[4];
+  private int encodedFrameIndex;
   private float[] moldSTMatrix = new float[16];
 
   private boolean initGL () {
@@ -808,7 +810,7 @@ public class RoundVideoRecorder {
     GLES20.glEnableVertexAttribArray(textureHandle);
 
     GLES20.glUniformMatrix4fv(textureMatrixHandle, 1, false, mSTMatrix, 0);
-    stabilizer.apply(previewMVPMatrix, mMVPMatrix, context.isFrontFacing());
+    stabilizer.apply(previewMVPMatrix, mMVPMatrix, context.isFrontFacing(), cameraSurface.getTimestamp());
     GLES20.glUniformMatrix4fv(vertexMatrixHandle, 1, false, previewMVPMatrix, 0);
 
     GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
@@ -1180,7 +1182,12 @@ public class RoundVideoRecorder {
       GLES20.glEnableVertexAttribArray(textureHandle);
       GLES20.glUniform1f(scaleXHandle, scaleX);
       GLES20.glUniform1f(scaleYHandle, scaleY);
-      stabilizer.apply(encoderMVPMatrix, mMVPMatrix, context.isFrontFacing());
+      stabilizer.apply(encoderMVPMatrix, mMVPMatrix, context.isFrontFacing(), timestampNanos, stabilizationDebug);
+      if (stabilizer.isActive() && Log.isEnabled(Log.TAG_ROUND)) {
+        Log.v(Log.TAG_ROUND, "stab frame=%d t=%d shiftX=%.4f shiftY=%.4f roll=%.4f lagMs=%.1f front=%b", encodedFrameIndex, timestampNanos,
+          stabilizationDebug[0], stabilizationDebug[1], stabilizationDebug[2], stabilizationDebug[3], context.isFrontFacing());
+      }
+      encodedFrameIndex++;
       GLES20.glUniformMatrix4fv(vertexMatrixHandle, 1, false, encoderMVPMatrix, 0);
 
       GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
