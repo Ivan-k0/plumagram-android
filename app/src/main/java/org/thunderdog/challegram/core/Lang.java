@@ -1048,7 +1048,8 @@ public class Lang {
   // Build no
 
   public static String getAppBuildAndVersion (@Nullable Tdlib tdlib) {
-    String msg = getString(R.string.AppNameAndVersion, BuildConfig.VERSION_NAME);
+    // Uses the build's app name, not the translatable "Telegram X %s" string.
+    String msg = BuildConfig.PROJECT_NAME + " " + BuildConfig.VERSION_NAME;
     if (tdlib != null && tdlib.isEmulator()) {
       msg += " (emulator)";
     }
