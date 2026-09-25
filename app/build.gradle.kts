@@ -764,6 +764,7 @@ android {
         workingDir(rootDir)
       }.standardOutput.asText.get().trim().toIntOrNull() ?: 0
       require(modBuild in 0..999) { "modBuild out of range: $modBuild" }
+      val modVersion = "0.1"
 
       var baseVersionCode: Int? = null
       var baseVersionName: String? = null
@@ -775,10 +776,11 @@ android {
         output.versionCode.set(modifiedVersionCode)
 
         baseVersionName = output.versionName.get()
-        val modifiedVersionName = "$baseVersionName.$baseVersionCode-mod$modBuild$flavorVersionNameSuffix"
+        // TGX 101's own version, shown in the app; the upstream base version stays in ORIGINAL_VERSION_NAME.
+        val modifiedVersionName = "$modVersion.$modBuild$flavorVersionNameSuffix"
         output.versionName.set(modifiedVersionName)
 
-        fileName = "${config.outputFileNamePrefix}-${modifiedVersionName.replace(Regex("-universal(?=-|$)"), "")}"
+        fileName = "TGX101-$modVersion${flavorVersionNameSuffix.replace(Regex("-universal(?=-|$)"), "")}"
         if (output is VariantOutputImpl) {
           output.outputFileName.set("$fileName.apk")
         }
