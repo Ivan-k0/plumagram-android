@@ -3109,6 +3109,18 @@ public class Settings {
     pmc.putInt(KEY_ROUND_VIDEO_QUALITY, quality);
   }
 
+  // Pull down at the top of the chat list to open search. A separate key (not a
+  // new-settings flag) so it's on by default for existing installs too.
+  private static final String KEY_PULL_TO_SEARCH = "settings_pull_to_search";
+
+  public boolean isPullToSearchEnabled () {
+    return pmc.getBoolean(KEY_PULL_TO_SEARCH, true);
+  }
+
+  public void setPullToSearchEnabled (boolean enabled) {
+    pmc.putBoolean(KEY_PULL_TO_SEARCH, enabled);
+  }
+
   // Video message stabilization. CAMERA2 uses Camera2 preview stabilization (Android 13+)
   // and falls back to GYRO when the device doesn't support it.
   public static final int ROUND_STABILIZATION_OFF = 0;

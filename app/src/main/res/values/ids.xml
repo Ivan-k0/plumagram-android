@@ -1445,4 +1445,5 @@
   <item name="btn_roundStabilizationGyro" type="id"/>
   <item name="btn_roundStabilizationCamera2" type="id"/>
   <item name="btn_messageTranscribe" type="id"/>
+  <item name="btn_pullToSearch" type="id"/>
 </resources>
