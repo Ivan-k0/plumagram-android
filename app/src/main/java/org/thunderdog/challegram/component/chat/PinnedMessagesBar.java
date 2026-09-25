@@ -437,7 +437,12 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
         } else if (data.isMessage()) {
           TdApi.Message message = data.message;
           TdApi.InputTextQuote quote = data.quote;
-          previewView.setMessage(message, quote, new TdApi.SearchMessagesFilterPinned(), item.getStringValue(), ignoreAlbums ? MessagePreviewView.Options.IGNORE_ALBUM_REFRESHERS : MessagePreviewView.Options.NONE, data.localPickedFile);
+          int options = ignoreAlbums ? MessagePreviewView.Options.IGNORE_ALBUM_REFRESHERS : MessagePreviewView.Options.NONE;
+          if (messageList != null) {
+            // Pinned messages bar: a tap anywhere acts on the bar, links inside aren't clickable.
+            options |= MessagePreviewView.Options.NO_TEXT_CLICKS;
+          }
+          previewView.setMessage(message, quote, new TdApi.SearchMessagesFilterPinned(), item.getStringValue(), options, data.localPickedFile);
           if (messageList == null) {
             // override message preview
             MessageId highlightMessageId;
@@ -587,7 +592,12 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
         if (entry.isLinkPreview()) {
           messageListener.onSelectLinkPreviewUrl(this, entry.linkPreviewContext, entry.linkPreviewUrl);
         } else if (entry.isMessage()) {
-          messageListener.onMessageClick(this, entry.message, entry.quote);
+          if (messageList != null && canExpand.getValue() && !isExpanded.getValue()) {
+            // Collapsed pinned bar: open the list of pinned messages, same as the arrow.
+            isExpanded.setValue(true, true);
+          } else {
+            messageListener.onMessageClick(this, entry.message, entry.quote);
+          }
         } else {
           // TODO
         }

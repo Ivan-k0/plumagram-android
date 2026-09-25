@@ -232,7 +232,8 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
     Options.IGNORE_ALBUM_REFRESHERS,
     Options.DISABLE_MESSAGE_PREVIEW,
     Options.NO_UPDATES,
-    Options.HANDLE_MEDIA_CLICKS
+    Options.HANDLE_MEDIA_CLICKS,
+    Options.NO_TEXT_CLICKS
   }, flag = true)
   public @interface Options {
     int
@@ -240,7 +241,9 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
       IGNORE_ALBUM_REFRESHERS = 1,
       DISABLE_MESSAGE_PREVIEW = 1 << 1,
       NO_UPDATES = 1 << 2,
-      HANDLE_MEDIA_CLICKS = 1 << 3;
+      HANDLE_MEDIA_CLICKS = 1 << 3,
+      // Links and entities in the text aren't clickable; the whole view handles the tap.
+      NO_TEXT_CLICKS = 1 << 4;
   }
 
   private ContentPreview contentPreview;
@@ -727,7 +730,8 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
 
   @Override
   public boolean onTouchEvent (MotionEvent e) {
-    for (ListAnimator.Entry<TextEntry> entry : contentText) {
+    boolean noTextClicks = data != null && BitwiseUtils.hasFlag(data.options, Options.NO_TEXT_CLICKS);
+    for (ListAnimator.Entry<TextEntry> entry : noTextClicks ? java.util.Collections.<ListAnimator.Entry<TextEntry>>emptyList() : contentText) {
       if (entry.item.content != null && entry.item.content.onTouchEvent(this, e)) {
         return true;
       }
