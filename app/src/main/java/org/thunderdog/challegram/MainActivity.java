@@ -137,6 +137,7 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     TdlibManager.instance().global().addAccountListener(this);
     TdlibManager.instance().global().addCountersListener(this);
     TdlibManager.instance().global().addResolvableProblemAvailabilityListener(this);
+    TdlibManager.instance().calls().addCurrentCallListener(lockScreenCallListener);
     reloadTdlib();
 
     tempSavedInstanceState = savedInstanceState;
@@ -837,6 +838,9 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     }
 
     if (Intents.ACTION_OPEN_CALL.equals(action)) {
+      // Opened by the incoming call's full-screen intent: show over the lock screen and
+      // turn the screen on, otherwise the call screen stays hidden behind the keyguard.
+      setShowOverLockScreen(true);
       openCallController();
       return true;
     }
@@ -1530,11 +1534,40 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     TemporaryNotification.hide(this);
   }
 
+  // Lock screen (only while there's a call)
+
+  private boolean showOverLockScreen;
+
+  private final org.thunderdog.challegram.telegram.CallManager.CurrentCallListener lockScreenCallListener = (tdlib, call) -> {
+    if (call == null || TD.isFinished(call)) {
+      UI.post(() -> setShowOverLockScreen(false));
+    }
+  };
+
+  private void setShowOverLockScreen (boolean show) {
+    if (this.showOverLockScreen == show) {
+      return;
+    }
+    this.showOverLockScreen = show;
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {
+      setShowWhenLocked(show);
+      setTurnScreenOn(show);
+    } else {
+      int flags = android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON;
+      if (show) {
+        getWindow().addFlags(flags);
+      } else {
+        getWindow().clearFlags(flags);
+      }
+    }
+  }
+
   @Override
   public void onDestroy () {
     TdlibManager.instance().global().removeAccountListener(this);
     TdlibManager.instance().global().removeCountersListener(this);
     TdlibManager.instance().global().removeResolvableProblemAvailabilityListener(this);
+    TdlibManager.instance().calls().removeCurrentCallListener(lockScreenCallListener);
     destroyMessageControllers();
 
     Log.i("MainActivity.onDestroy");
