@@ -541,7 +541,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     int totalCount = manager != null ? manager.getKnownTotalMessageCount() : -1;
 
     if (previewSearchFilter != null) {
-      if (Td.isPinnedFilter(previewSearchFilter)) {
+      if (savedMessagesTag != null) {
+        String tag = Lang.getString(R.string.SavedTagSubtitle, savedMessagesTagLabel);
+        headerCell.setForcedSubtitle(totalCount > 0 ? tag + " · " + totalCount : tag);
+      } else if (Td.isPinnedFilter(previewSearchFilter)) {
         if (totalCount > 0) {
           headerCell.setForcedSubtitle(Lang.pluralBold(R.string.XPinnedMessages, totalCount));
         } else {
@@ -2279,6 +2282,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       reportChat(null, null);
     } else if (id == R.id.btn_phone_call) {
       tdlib.context().calls().makeCall(this, TD.getUserId(chat), null);
+    } else if (id == R.id.btn_savedMessagesTags) {
+      showSavedMessagesTags();
     } else if (id == R.id.btn_attachFromMenu) {
       hideBottomHint();
       openPendingAttachmentPicker();
@@ -2417,6 +2422,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     public @Nullable String searchQuery;
     public TdApi.MessageSender searchSender;
     public TdApi.SearchMessagesFilter searchFilter;
+    public @Nullable TdApi.ReactionType savedMessagesTag;
+    public @Nullable String savedMessagesTagLabel;
 
     public boolean areScheduled, openKeyboard;
 
@@ -2539,6 +2546,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       return this;
     }
 
+    public Arguments setSavedMessagesTag (TdApi.ReactionType tag, String label) {
+      this.savedMessagesTag = tag;
+      this.savedMessagesTagLabel = label;
+      return this;
+    }
+
     public Arguments setScheduled (boolean areScheduled) {
       if (areScheduled && messageThread != null) {
         throw new IllegalArgumentException();
@@ -2634,6 +2647,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     this.previewSearchQuery = args.searchQuery;
     this.previewSearchSender = args.searchSender;
     this.previewSearchFilter = args.searchFilter;
+    this.savedMessagesTag = args.savedMessagesTag;
+    this.savedMessagesTagLabel = args.savedMessagesTagLabel;
+    this.manager.setSavedMessagesTag(args.savedMessagesTag);
     this.manager.setHighlightMessageId(args.highlightMessageId, args.highlightMode);
     this.inPreviewMode = args.inPreviewMode;
     this.previewMode = args.previewMode;
@@ -4537,8 +4553,117 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
     }
 
+    if (tdlib.isSelfChat(chat.id) && previewSearchFilter == null && messageThread == null) {
+      ids.append(R.id.btn_savedMessagesTags);
+      strings.append(R.string.SavedTags);
+    }
+
     appendAttachMoreItem(ids, strings);
     showMore(ids.get(), strings.get(), 0);
+  }
+
+  // Saved Messages tags: reactions in Saved Messages work as tags. Pick one to see only the
+  // messages marked with it. With Premium the server lists tags and searches; without it the
+  // recent history is scanned locally (see MessagesLoader.setSavedMessagesTag).
+
+  private @Nullable TdApi.ReactionType savedMessagesTag;
+  private @Nullable String savedMessagesTagLabel;
+
+  private static final int SAVED_TAGS_LOCAL_SCAN_LIMIT = 3000;
+
+  private void showSavedMessagesTags () {
+    final long chatId = getChatId();
+    if (tdlib.hasPremium()) {
+      tdlib.client().send(new TdApi.GetSavedMessagesTags(0), result -> {
+        if (result instanceof TdApi.SavedMessagesTags) {
+          TdApi.SavedMessagesTag[] tags = ((TdApi.SavedMessagesTags) result).tags;
+          java.util.List<TdApi.ReactionType> types = new java.util.ArrayList<>();
+          java.util.List<String> labels = new java.util.ArrayList<>();
+          java.util.List<Integer> counts = new java.util.ArrayList<>();
+          for (TdApi.SavedMessagesTag tag : tags) {
+            types.add(tag.tag);
+            labels.add(savedTagLabel(tag.tag, tag.label));
+            counts.add(tag.count);
+          }
+          runOnUiThreadOptional(() -> showSavedMessagesTagsPicker(types, labels, counts, false));
+        } else {
+          collectSavedMessagesTagsLocally(chatId);
+        }
+      });
+    } else {
+      collectSavedMessagesTagsLocally(chatId);
+    }
+  }
+
+  private void collectSavedMessagesTagsLocally (long chatId) {
+    runOnUiThreadOptional(() -> UI.showToast(R.string.SavedTagsScanning, Toast.LENGTH_SHORT));
+    final java.util.LinkedHashMap<String, TdApi.ReactionType> types = new java.util.LinkedHashMap<>();
+    final java.util.Map<String, Integer> counts = new java.util.HashMap<>();
+    final int[] scanned = new int[1];
+    final Client.ResultHandler[] handler = new Client.ResultHandler[1];
+    handler[0] = result -> {
+      TdApi.Message[] page = result instanceof TdApi.Messages ? ((TdApi.Messages) result).messages : new TdApi.Message[0];
+      long lastId = 0;
+      for (TdApi.Message message : page) {
+        lastId = message.id;
+        if (message.interactionInfo != null && message.interactionInfo.reactions != null) {
+          for (TdApi.MessageReaction reaction : message.interactionInfo.reactions.reactions) {
+            if (reaction.type.getConstructor() == TdApi.ReactionTypePaid.CONSTRUCTOR) {
+              continue;
+            }
+            String key = TD.makeReactionKey(reaction.type);
+            types.put(key, reaction.type);
+            Integer count = counts.get(key);
+            counts.put(key, count != null ? count + 1 : 1);
+          }
+        }
+      }
+      scanned[0] += page.length;
+      if (page.length > 0 && scanned[0] < SAVED_TAGS_LOCAL_SCAN_LIMIT) {
+        tdlib.client().send(new TdApi.GetChatHistory(chatId, lastId, 0, 100, false), handler[0]);
+        return;
+      }
+      java.util.List<TdApi.ReactionType> typeList = new java.util.ArrayList<>(types.values());
+      java.util.List<String> labels = new java.util.ArrayList<>();
+      java.util.List<Integer> countList = new java.util.ArrayList<>();
+      for (java.util.Map.Entry<String, TdApi.ReactionType> entry : types.entrySet()) {
+        labels.add(savedTagLabel(entry.getValue(), null));
+        countList.add(counts.get(entry.getKey()));
+      }
+      runOnUiThreadOptional(() -> showSavedMessagesTagsPicker(typeList, labels, countList, scanned[0] >= SAVED_TAGS_LOCAL_SCAN_LIMIT));
+    };
+    tdlib.client().send(new TdApi.GetChatHistory(chatId, 0, 0, 100, false), handler[0]);
+  }
+
+  private static String savedTagLabel (TdApi.ReactionType type, @Nullable String customLabel) {
+    String base = type.getConstructor() == TdApi.ReactionTypeEmoji.CONSTRUCTOR ? ((TdApi.ReactionTypeEmoji) type).emoji : "⭐";
+    return StringUtils.isEmpty(customLabel) ? base : base + " " + customLabel;
+  }
+
+  private void showSavedMessagesTagsPicker (java.util.List<TdApi.ReactionType> types, java.util.List<String> labels, java.util.List<Integer> counts, boolean partial) {
+    if (isDestroyed()) {
+      return;
+    }
+    if (types.isEmpty()) {
+      UI.showToast(R.string.SavedTagsEmpty, Toast.LENGTH_LONG);
+      return;
+    }
+    int[] ids = new int[types.size()];
+    String[] titles = new String[types.size()];
+    for (int i = 0; i < types.size(); i++) {
+      ids[i] = i + 1;
+      titles[i] = labels.get(i) + "   " + counts.get(i);
+    }
+    String info = Lang.getString(partial ? R.string.SavedTagsInfoPartial : R.string.SavedTagsInfo);
+    showOptions(info, ids, titles, (itemView, id) -> {
+      int index = id - 1;
+      if (index >= 0 && index < types.size()) {
+        MessagesController c = new MessagesController(context, tdlib);
+        c.setArguments(new Arguments(null, chat, null, null, new TdApi.SearchMessagesFilterEmpty()).setSavedMessagesTag(types.get(index), labels.get(index)));
+        navigateTo(c);
+      }
+      return true;
+    });
   }
 
   // The attach button disappears once you start typing; this keeps it reachable
