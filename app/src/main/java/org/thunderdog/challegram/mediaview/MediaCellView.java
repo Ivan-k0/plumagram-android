@@ -1396,9 +1396,65 @@ public class MediaCellView extends ViewGroup implements
 
     if (tReceiver.isInsideContent(x, y, media != null ? media.getWidth() : 0, media != null ? media.getHeight() : 0)) {
       if (canTouch(false)) {
+        if (handleVideoTap(x, y)) {
+          return;
+        }
         ((MediaView) getParent()).onMediaClick(x, y);
       }
     }
+  }
+
+  // Video taps: double tap on the left/right third seeks by 5 seconds (each further quick
+  // tap adds 5 more), a tap in the middle plays/pauses. A single tap on the sides still
+  // toggles the controls, after a short wait to tell it apart from a double tap.
+
+  private static final long VIDEO_SEEK_STEP_MS = 5000;
+  private static final long VIDEO_DOUBLE_TAP_TIMEOUT_MS = 300;
+
+  private long lastVideoTapTime;
+  private int lastVideoTapZone;
+  private boolean inVideoSeekSeries;
+  private Runnable pendingVideoTap;
+
+  private boolean isSeekableVideo () {
+    return media != null && media.isVideo() && !media.isGifType() && Config.VIDEO_PLAYER_AVAILABLE && playerView != null && hideStaticView && timeTotal > 0;
+  }
+
+  private boolean handleVideoTap (float x, float y) {
+    if (!isSeekableVideo()) {
+      return false;
+    }
+    int width = getMeasuredWidth();
+    int zone = x < width / 3f ? -1 : x > width * 2f / 3f ? 1 : 0;
+    long now = android.os.SystemClock.uptimeMillis();
+    boolean isQuickRepeat = zone != 0 && zone == lastVideoTapZone && now - lastVideoTapTime < VIDEO_DOUBLE_TAP_TIMEOUT_MS * (inVideoSeekSeries ? 2 : 1);
+    lastVideoTapTime = now;
+    lastVideoTapZone = zone;
+    if (pendingVideoTap != null) {
+      removeCallbacks(pendingVideoTap);
+      pendingVideoTap = null;
+    }
+    if (zone == 0) {
+      inVideoSeekSeries = false;
+      playerView.playPause();
+      return true;
+    }
+    if (isQuickRepeat) {
+      inVideoSeekSeries = true;
+      long position = Math.max(0, Math.min(timeTotal, timeNow + zone * VIDEO_SEEK_STEP_MS));
+      timeNow = position;
+      playerView.setSeekProgress((float) ((double) position / (double) timeTotal));
+      return true;
+    }
+    inVideoSeekSeries = false;
+    pendingVideoTap = () -> {
+      pendingVideoTap = null;
+      if (getParent() instanceof MediaView) {
+        ((MediaView) getParent()).onMediaClick(x, y);
+      }
+    };
+    postDelayed(pendingVideoTap, VIDEO_DOUBLE_TAP_TIMEOUT_MS);
+    return true;
   }
 
   public void invalidateContent (MediaItem item) {
@@ -1621,6 +1677,10 @@ public class MediaCellView extends ViewGroup implements
       return false;
     }
     if (media != null && canZoom()) {
+      if (isSeekableVideo()) {
+        // Double taps on a playing video seek instead of zooming.
+        return false;
+      }
       if (media.isVideo()) {
         int bound = Screen.dp(FileProgressComponent.DEFAULT_RADIUS);
         int centerX = getMeasuredWidth() / 2;
