@@ -57,6 +57,7 @@ import org.thunderdog.challegram.telegram.TdlibAccount;
 import org.thunderdog.challegram.telegram.TdlibBadgeCounter;
 import org.thunderdog.challegram.telegram.TdlibContext;
 import org.thunderdog.challegram.telegram.TdlibManager;
+import org.thunderdog.challegram.telegram.TdlibPhoneBookSync;
 import org.thunderdog.challegram.telegram.TdlibSettingsManager;
 import org.thunderdog.challegram.telegram.TdlibUi;
 import org.thunderdog.challegram.theme.ColorId;
@@ -111,6 +112,7 @@ import me.vkryl.android.animator.BoolAnimator;
 import me.vkryl.android.animator.FactorAnimator;
 import me.vkryl.core.ArrayUtils;
 import me.vkryl.core.StringUtils;
+import tgx.td.ChatId;
 import me.vkryl.core.lambda.CancellableRunnable;
 import me.vkryl.core.lambda.RunnableData;
 import tgx.td.MessageId;
@@ -745,6 +747,27 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
 
     if (Log.checkLogLevel(Log.LEVEL_INFO)) {
       Log.i("handleIntent action=%s intent=%s fromCreate=%b stackSize=%d", action, intent, fromCreate, navigation != null ? navigation.getStackSize() : -1);
+    }
+
+    // "Open chat" row of a synced Telegram contact, tapped in a dialer or contacts app
+
+    if (Intent.ACTION_VIEW.equals(action) && TdlibPhoneBookSync.MIME_OPEN_CHAT.equals(intent.getType()) && intent.getData() != null) {
+      long userId = 0;
+      try (android.database.Cursor cursor = getContentResolver().query(intent.getData(),
+        new String[] {android.provider.ContactsContract.Data.DATA1}, null, null, null)) {
+        if (cursor != null && cursor.moveToFirst()) {
+          userId = StringUtils.parseLong(cursor.getString(0));
+        }
+      } catch (Throwable t) {
+        Log.e("Unable to read contact data: %s", t, intent.getData());
+      }
+      // Contacts are synced from the current account.
+      int accountId = TdlibManager.instance().currentAccount().id;
+      if (userId != 0) {
+        openMessagesController(accountId, ChatId.fromUserId(userId), 0);
+        return true;
+      }
+      return false;
     }
 
     // Custom
