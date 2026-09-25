@@ -1499,7 +1499,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       addThemeInvalidateListener(pagerHeaderView.getTopView());
       fparams = (FrameLayoutFix.LayoutParams) pagerHeaderView.getRecyclerView().getLayoutParams();
       fparams.leftMargin = Screen.dp(56f);
-      fparams.rightMargin = Screen.dp(56f);
+      fparams.rightMargin = Screen.dp(56f + 48f); // search + Saved Messages tags buttons
       pagerHeaderView.getTopView().setOnItemClickListener(this);
       addThemeInvalidateListener(pagerHeaderView.getTopView());
 
@@ -3526,7 +3526,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     if (getChatId() != 0) {
       if (isSelfChat()) {
-        return R.id.menu_search;
+        // Saved Messages has no "more" menu: tags get their own header button.
+        return previewSearchFilter == null && messageThread == null ? R.id.menu_savedMessages : R.id.menu_search;
       }
       if (isSecretChat()) {
         return R.id.menu_secretChat;
@@ -3601,6 +3602,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       header.addClearButton(menu, this).setColorId(ColorId.headerLightIcon);
     } else if (id == R.id.menu_search) {
       header.addSearchButton(menu, this);
+    } else if (id == R.id.menu_savedMessages) {
+      header.addButton(menu, R.id.menu_btn_savedMessagesTags, R.drawable.baseline_label_24, getHeaderIconColorId(), this, Screen.dp(48f));
+      header.addSearchButton(menu, this);
     } else if (id == R.id.menu_chat) {
       HeaderButton btn = header.addButton(menu, R.id.menu_btn_viewScheduled, R.drawable.baseline_date_range_24, getHeaderIconColorId(), this, Screen.dp(52f));
       btn.setVisibility(tdlib.chatHasScheduled(getChatId()) ? View.VISIBLE : View.GONE);
@@ -3668,6 +3672,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   public void onMenuItemPressed (int id, View view) {
+    if (id == R.id.menu_btn_savedMessagesTags) {
+      showSavedMessagesTags();
+      return;
+    }
     if (id == R.id.menu_btn_more) {
       if (inPreviewMode) {
         if (previewMode == PREVIEW_MODE_FONT_SIZE) {
