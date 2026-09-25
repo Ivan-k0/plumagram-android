@@ -1180,7 +1180,13 @@ public class MessagesLoader implements Client.ResultHandler {
 
       TdApi.Function<?> function;
 
-      switch (specialMode) {
+      // Saved Messages tag filter works the same whether the chat was opened as a filtered
+      // view or in search mode.
+      if (savedMessagesTag != null && specialMode != SPECIAL_MODE_EVENT_LOG && specialMode != SPECIAL_MODE_SCHEDULED) {
+        loadingLocal = false;
+        Log.ensureReturnType(TdApi.SearchSavedMessages.class, TdApi.FoundChatMessages.class);
+        function = new TdApi.SearchSavedMessages(0, savedMessagesTag, "", (lastFromMessageId = fromMessageId).getMessageId(), lastOffset = offset, lastLimit = limit);
+      } else switch (specialMode) {
         case SPECIAL_MODE_EVENT_LOG:
           Log.ensureReturnType(TdApi.GetChatEventLog.class, TdApi.ChatEvents.class);
           function = new TdApi.GetChatEventLog(sourceChatId, manager.getEventLogQuery(), (lastFromMessageId = fromMessageId).getMessageId(), lastLimit = limit, manager.getEventLogFilters(), manager.getEventLogUserIds());
@@ -1202,11 +1208,7 @@ public class MessagesLoader implements Client.ResultHandler {
           function = new TdApi.GetChatScheduledMessages(sourceChatId);
           break;
         default:
-          if (savedMessagesTag != null) {
-            loadingLocal = false;
-            Log.ensureReturnType(TdApi.SearchSavedMessages.class, TdApi.FoundChatMessages.class);
-            function = new TdApi.SearchSavedMessages(0, savedMessagesTag, "", (lastFromMessageId = fromMessageId).getMessageId(), lastOffset = offset, lastLimit = limit);
-          } else if (hasSearchFilter()) {
+          if (hasSearchFilter()) {
             loadingLocal = false;
             Log.ensureReturnType(TdApi.SearchChatMessages.class, TdApi.FoundChatMessages.class);
             function = new TdApi.SearchChatMessages(sourceChatId, topicId, null, null, (lastFromMessageId = fromMessageId).getMessageId(), lastOffset = offset, lastLimit = limit, searchFilter);

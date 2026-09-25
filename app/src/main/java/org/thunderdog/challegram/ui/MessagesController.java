@@ -4578,6 +4578,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private @Nullable String savedMessagesTagLabel;
 
   private static final int SAVED_TAGS_LOCAL_SCAN_LIMIT = 3000;
+  private boolean resolvingCustomTagEmoji;
 
   private void showSavedMessagesTags () {
     final long chatId = getChatId();
@@ -4650,6 +4651,43 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void showSavedMessagesTagsPicker (java.util.List<TdApi.ReactionType> types, java.util.List<String> labels, java.util.List<Integer> counts, boolean partial) {
     if (isDestroyed()) {
+      return;
+    }
+    // Custom emoji tags: show the emoji each custom emoji stands for instead of a placeholder.
+    java.util.List<Long> customIds = new java.util.ArrayList<>();
+    for (TdApi.ReactionType type : types) {
+      if (type.getConstructor() == TdApi.ReactionTypeCustomEmoji.CONSTRUCTOR) {
+        customIds.add(((TdApi.ReactionTypeCustomEmoji) type).customEmojiId);
+      }
+    }
+    if (!customIds.isEmpty() && !resolvingCustomTagEmoji) {
+      long[] ids = new long[customIds.size()];
+      for (int i = 0; i < ids.length; i++) {
+        ids[i] = customIds.get(i);
+      }
+      resolvingCustomTagEmoji = true;
+      tdlib.client().send(new TdApi.GetCustomEmojiStickers(ids), result -> runOnUiThreadOptional(() -> {
+        java.util.List<String> resolved = new java.util.ArrayList<>(labels);
+        if (result instanceof TdApi.Stickers) {
+          java.util.Map<Long, String> emojiById = new java.util.HashMap<>();
+          for (TdApi.Sticker sticker : ((TdApi.Stickers) result).stickers) {
+            if (sticker.fullType instanceof TdApi.StickerFullTypeCustomEmoji && !StringUtils.isEmpty(sticker.emoji)) {
+              emojiById.put(((TdApi.StickerFullTypeCustomEmoji) sticker.fullType).customEmojiId, sticker.emoji);
+            }
+          }
+          for (int i = 0; i < types.size(); i++) {
+            TdApi.ReactionType type = types.get(i);
+            if (type.getConstructor() == TdApi.ReactionTypeCustomEmoji.CONSTRUCTOR) {
+              String emoji = emojiById.get(((TdApi.ReactionTypeCustomEmoji) type).customEmojiId);
+              if (emoji != null && resolved.get(i).startsWith("⭐")) {
+                resolved.set(i, emoji + resolved.get(i).substring("⭐".length()));
+              }
+            }
+          }
+        }
+        showSavedMessagesTagsPicker(types, resolved, counts, partial);
+        resolvingCustomTagEmoji = false;
+      }));
       return;
     }
     if (types.isEmpty()) {
