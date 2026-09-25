@@ -2393,7 +2393,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
   }
 
   private void drawPressHighlight (Canvas c, int startX, int endX, int endXBottomPadding, int startY, boolean center, @Nullable PressHighlight highlight, float alpha, @Nullable TextColorSet defaultTheme) {
-    if (highlight == null || highlight.isSpoilerReveal())
+    if (highlight == null || highlight.isSpoilerReveal() || android.os.SystemClock.uptimeMillis() < highlight.visibleAt)
       return;
     final int partsCount = parts.size();
     int index = highlight.startPartIndex;
@@ -2795,6 +2795,8 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
     public final int causePartIndex;
     public final int startPartIndex, endPartIndex;
     public final Spoiler spoiler;
+    // Not drawn until the tap timeout passes, so starting a scroll on a link doesn't flash it.
+    public final long visibleAt = android.os.SystemClock.uptimeMillis() + android.view.ViewConfiguration.getTapTimeout();
 
     public PressHighlight (int causePartIndex, int startPartIndex, int endPartIndex, Spoiler spoiler) {
       this.causePartIndex = causePartIndex;
@@ -2834,8 +2836,22 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
     return viewProvider;
   }
 
+  // The quote's ripple only gets the touch-down after the tap timeout, so a scroll that starts
+  // on a quote doesn't make it flash.
+  private @Nullable Runnable pendingQuotePress;
+  private @Nullable View pendingQuotePressView;
+
+  private void cancelPendingQuotePress () {
+    if (pendingQuotePress != null && pendingQuotePressView != null) {
+      pendingQuotePressView.removeCallbacks(pendingQuotePress);
+    }
+    pendingQuotePress = null;
+    pendingQuotePressView = null;
+  }
+
   public void cancelTouch () {
     boolean canceled = false;
+    cancelPendingQuotePress();
     if (pressedQuote != null) {
       pressedQuote.performCancelTouch();
       pressedQuote = null;
@@ -2923,7 +2939,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
       return false;
     }
 
-    if (pressedQuote != null && e.getAction() != MotionEvent.ACTION_DOWN) {
+    if (pressedQuote != null && e.getAction() != MotionEvent.ACTION_DOWN && pendingQuotePress == null) {
       pressedQuote.onTouchEvent(view, e);
     }
 
@@ -2939,7 +2955,18 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
           for (QuoteBackground quote : quotes) {
             if (quote.contains(touchX, touchY)) {
               pressedQuote = quote;
-              pressedQuote.onTouchEvent(view, e);
+              cancelPendingQuotePress();
+              final MotionEvent down = MotionEvent.obtain(e);
+              pendingQuotePressView = view;
+              pendingQuotePress = () -> {
+                pendingQuotePress = null;
+                pendingQuotePressView = null;
+                if (pressedQuote == quote) {
+                  quote.onTouchEvent(view, down);
+                }
+                down.recycle();
+              };
+              view.postDelayed(pendingQuotePress, android.view.ViewConfiguration.getTapTimeout());
               if ((textFlags & FLAG_CUSTOM_LONG_PRESS) != 0) {
                 scheduleLongPress(view, callback);
               } else {
@@ -2977,6 +3004,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
         }
 
         this.pressHighlight = new PressHighlight(causeIndex, startIndex, endIndex, needRevealSpoiler ? spoiler : null);
+        view.postDelayed(view::invalidate, android.view.ViewConfiguration.getTapTimeout());
         if (this.pressHighlight.isSpoilerReveal()) {
           this.pressHighlight.spoiler.setPressed(true, true);
         } else {
