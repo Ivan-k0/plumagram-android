@@ -1448,4 +1448,6 @@
   <item name="btn_pullToSearch" type="id"/>
   <item name="btn_attachFromMenu" type="id"/>
   <item name="btn_savedMessagesTags" type="id"/>
+  <item name="menu_savedMessages" type="id"/>
+  <item name="menu_btn_savedMessagesTags" type="id"/>
 </resources>
