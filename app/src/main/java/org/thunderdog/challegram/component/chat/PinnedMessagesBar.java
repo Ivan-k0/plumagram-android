@@ -592,16 +592,31 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
         if (entry.isLinkPreview()) {
           messageListener.onSelectLinkPreviewUrl(this, entry.linkPreviewContext, entry.linkPreviewUrl);
         } else if (entry.isMessage()) {
-          if (messageList != null && canExpand.getValue() && !isExpanded.getValue()) {
-            // Collapsed pinned bar: open the list of pinned messages, same as the arrow.
-            isExpanded.setValue(true, true);
-          } else {
-            messageListener.onMessageClick(this, entry.message, entry.quote);
+          messageListener.onMessageClick(this, entry.message, entry.quote);
+          if (messageList != null && !isExpanded.getValue()) {
+            // Like the official app: each tap on the collapsed bar jumps to the shown
+            // pinned message and then moves the bar on to the next (older) one.
+            showNextPinnedMessage(recyclerView.getChildAdapterPosition(v));
           }
         } else {
           // TODO
         }
       }
+    }
+  }
+
+  private void showNextPinnedMessage (int position) {
+    if (position == RecyclerView.NO_POSITION) {
+      return;
+    }
+    int nextPosition = position + 1;
+    if (nextPosition < messagesAdapter.getItemCount()) {
+      recyclerView.smoothScrollToPosition(nextPosition);
+    } else if (messageList.getCount() < messageList.getTotalCount()) {
+      messageList.loadItems(false, null);
+    } else if (position != 0) {
+      // Past the oldest pinned message: start over from the newest one.
+      ((LinearLayoutManager) recyclerView.getLayoutManager()).scrollToPositionWithOffset(0, 0);
     }
   }
 
