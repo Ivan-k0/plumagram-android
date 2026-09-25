@@ -192,7 +192,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   }
 
   public boolean canOpenSearchByPull () {
-    return parentController != null && parentController.isFocused() && !isInForceTouchMode();
+    return parentController != null && parentController.isFocused() && !isInForceTouchMode() && Settings.instance().isPullToSearchEnabled();
   }
 
   public void openSearchByPull () {
