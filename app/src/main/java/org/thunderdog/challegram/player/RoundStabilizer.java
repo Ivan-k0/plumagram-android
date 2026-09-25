@@ -49,7 +49,16 @@ public class RoundStabilizer implements SensorEventListener {
   private boolean started;
 
   private long lastTimestampNs;
-  private volatile float angleX, angleY, angleZ;
+  private float angleX, angleY, angleZ;
+
+  // Filtered angles with their sensor timestamps, so each camera frame can be corrected
+  // with the rotation at the moment it was captured rather than at the moment it's drawn
+  // (camera frames arrive ~50-100 ms late, enough to turn correction into amplification).
+  private static final int HISTORY_SIZE = 512;
+  private final long[] historyTime = new long[HISTORY_SIZE];
+  private final float[] historyAngles = new float[HISTORY_SIZE * 3];
+  private int historyCount, historyHead;
+  private final Object historyLock = new Object();
 
   public RoundStabilizer () {
     Context context = UI.getAppContext();
@@ -65,6 +74,9 @@ public class RoundStabilizer implements SensorEventListener {
     isPortrait = windowManager == null || windowManager.getDefaultDisplay().getRotation() == Surface.ROTATION_0;
     angleX = angleY = angleZ = 0;
     lastTimestampNs = 0;
+    synchronized (historyLock) {
+      historyCount = historyHead = 0;
+    }
     started = sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST);
   }
 
@@ -91,6 +103,14 @@ public class RoundStabilizer implements SensorEventListener {
       }
     }
     lastTimestampNs = event.timestamp;
+    synchronized (historyLock) {
+      historyTime[historyHead] = event.timestamp;
+      historyAngles[historyHead * 3] = angleX;
+      historyAngles[historyHead * 3 + 1] = angleY;
+      historyAngles[historyHead * 3 + 2] = angleZ;
+      historyHead = (historyHead + 1) % HISTORY_SIZE;
+      historyCount = Math.min(historyCount + 1, HISTORY_SIZE);
+    }
   }
 
   @Override
@@ -100,12 +120,19 @@ public class RoundStabilizer implements SensorEventListener {
    * Writes {@code stabilization * base} to {@code out}, or copies {@code base} if inactive.
    * Signs assume the front camera picture is mirrored, like the preview.
    */
-  public void apply (float[] out, float[] base, boolean isFrontFacing) {
+  public void apply (float[] out, float[] base, boolean isFrontFacing, long frameTimestampNs) {
+    apply(out, base, isFrontFacing, frameTimestampNs, null);
+  }
+
+  /** @param debugOut if not null, receives {shiftX, shiftY, roll, lagMs} actually applied */
+  public void apply (float[] out, float[] base, boolean isFrontFacing, long frameTimestampNs, @androidx.annotation.Nullable float[] debugOut) {
     if (!isActive()) {
       System.arraycopy(base, 0, out, 0, 16);
       return;
     }
-    float ax = angleX, ay = angleY, az = angleZ;
+    float[] angles = new float[3];
+    long lagNs = anglesAt(toSensorClock(frameTimestampNs), angles);
+    float ax = angles[0], ay = angles[1], az = angles[2];
     // Tilting the top towards the user makes the rear camera look up (scene moves down)
     // and the front camera look down (scene moves up).
     float shiftY = clamp((isFrontFacing ? -ax : ax) * SHIFT_PER_RADIAN, MAX_SHIFT);
@@ -120,6 +147,48 @@ public class RoundStabilizer implements SensorEventListener {
     Matrix.rotateM(stabilization, 0, (float) Math.toDegrees(roll), 0, 0, 1);
     Matrix.scaleM(stabilization, 0, ZOOM, ZOOM, 1);
     Matrix.multiplyMM(out, 0, stabilization, 0, base, 0);
+    if (debugOut != null) {
+      debugOut[0] = shiftX;
+      debugOut[1] = shiftY;
+      debugOut[2] = roll;
+      debugOut[3] = lagNs / 1_000_000f;
+    }
+  }
+
+  // Camera frame timestamps are either CLOCK_BOOTTIME (same as sensor events) or
+  // CLOCK_MONOTONIC depending on the device; bring monotonic ones to boot time.
+  private static long toSensorClock (long frameTimestampNs) {
+    long boot = android.os.SystemClock.elapsedRealtimeNanos();
+    long mono = System.nanoTime();
+    if (frameTimestampNs <= 0) {
+      return boot;
+    }
+    if (Math.abs(boot - frameTimestampNs) <= Math.abs(mono - frameTimestampNs)) {
+      return frameTimestampNs;
+    }
+    return frameTimestampNs + (boot - mono);
+  }
+
+  /** Fills angles at the given sensor time (nearest earlier sample); returns how far back it looked. */
+  private long anglesAt (long timeNs, float[] outAngles) {
+    synchronized (historyLock) {
+      if (historyCount == 0) {
+        return 0;
+      }
+      int newest = (historyHead - 1 + HISTORY_SIZE) % HISTORY_SIZE;
+      int index = newest;
+      for (int i = 0; i < historyCount; i++) {
+        int candidate = (newest - i + HISTORY_SIZE) % HISTORY_SIZE;
+        index = candidate;
+        if (historyTime[candidate] <= timeNs) {
+          break;
+        }
+      }
+      outAngles[0] = historyAngles[index * 3];
+      outAngles[1] = historyAngles[index * 3 + 1];
+      outAngles[2] = historyAngles[index * 3 + 2];
+      return historyTime[newest] - historyTime[index];
+    }
   }
 
   private static float clamp (float value, float max) {
