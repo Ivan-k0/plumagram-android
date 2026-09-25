@@ -2277,6 +2277,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       reportChat(null, null);
     } else if (id == R.id.btn_phone_call) {
       tdlib.context().calls().makeCall(this, TD.getUserId(chat), null);
+    } else if (id == R.id.btn_attachFromMenu) {
+      hideBottomHint();
+      openMediaView(false, false);
     } else if (id == R.id.btn_search) {
       if (manager.isReadyToSearch()) {
         openSearchMode();
@@ -4456,6 +4459,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         ids.append(R.id.btn_viewScheduled);
         strings.append(R.string.ScheduledMessages);
       }
+      appendAttachMoreItem(ids, strings);
       showMore(ids.get(), strings.get());
       return;
     }
@@ -4531,7 +4535,17 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
     }
 
+    appendAttachMoreItem(ids, strings);
     showMore(ids.get(), strings.get(), 0);
+  }
+
+  // The attach button disappears once you start typing; this keeps it reachable
+  // from the header menu, always as the last item.
+  private void appendAttachMoreItem (IntList ids, StringList strings) {
+    if (canWriteMessages()) {
+      ids.append(R.id.btn_attachFromMenu);
+      strings.append(R.string.AttachFromMenu);
+    }
   }
 
   private boolean canCallChatUser () {
