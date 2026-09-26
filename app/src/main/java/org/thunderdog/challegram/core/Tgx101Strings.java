@@ -20,7 +20,7 @@ import org.drinkless.tdlib.TdApi;
 import org.thunderdog.challegram.R;
 
 /**
- * Russian texts for TGX 101's own strings.
+ * Russian texts for TGx101's own strings.
  *
  * Telegram's cloud language packs don't know the mod's keys, so without this every mod
  * string would stay English. English (res/values/strings.xml) is used for any other

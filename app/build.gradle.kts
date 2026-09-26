@@ -777,11 +777,11 @@ android {
         output.versionCode.set(modifiedVersionCode)
 
         baseVersionName = output.versionName.get()
-        // TGX 101's own version, shown in the app; the upstream base version stays in ORIGINAL_VERSION_NAME.
+        // TGx101's own version, shown in the app; the upstream base version stays in ORIGINAL_VERSION_NAME.
         val modifiedVersionName = "$modVersion.$modBuild${flavorVersionNameSuffix.replace(Regex("-universal(?=-|$)"), "")}"
         output.versionName.set(modifiedVersionName)
 
-        fileName = "TGX101-$modVersion${flavorVersionNameSuffix.replace(Regex("-universal(?=-|$)"), "")}"
+        fileName = "TGx101-$modVersion${flavorVersionNameSuffix.replace(Regex("-universal(?=-|$)"), "")}"
         if (output is VariantOutputImpl) {
           output.outputFileName.set("$fileName.apk")
         }

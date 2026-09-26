@@ -19,6 +19,6 @@ obj
 
 libc++_shared.so
 
-# TGX 101: our own Firebase config for release/debug builds, kept out of git
+# TGx101: our own Firebase config for release/debug builds, kept out of git
 /app/src/release/google-services.json
 /app/src/debug/google-services.json

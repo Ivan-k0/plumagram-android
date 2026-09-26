@@ -84,7 +84,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
 
   private static final int MODE_NONE = 0;
   private static final int MODE_STATISTICS = 1;
-  /** TGX 101: all of the mod's own settings, opened from the main settings list. */
+  /** TGx101: all of the mod's own settings, opened from the main settings list. */
   public static final int MODE_TGX101 = 2;
 
   @Override
