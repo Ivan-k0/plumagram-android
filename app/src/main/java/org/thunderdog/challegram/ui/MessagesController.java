@@ -5995,17 +5995,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       } else if (id == R.id.btn_messageTranscribe) {
         VoiceTranscriptionDialog.show(this, tdlib, selectedMessage.getMessage(), selectedMessage.isSecretChat());
         return true;
-      } else if (id == R.id.btn_messageOpenInBrowser) {
-        tdlib.getMessageLink(selectedMessage.getMessage(), false, false, link -> {
-          if (link == null || link.url == null) {
-            return;
-          }
-          android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link.url));
-          try {
-            // A chooser, so the link isn't caught by this app again.
-            context().startActivity(android.content.Intent.createChooser(intent, Lang.getString(R.string.OpenInBrowser)));
-          } catch (Throwable ignored) { }
-        });
+      } else if (id == R.id.btn_messageOpenRich) {
+        org.thunderdog.challegram.data.Tgx101RichMessage.open(this, selectedMessage.getMessage());
         return true;
       } else if (id == R.id.btn_messageSelectText) {
         TdApi.Message message = null;

@@ -1468,4 +1468,5 @@
   <item name="btn_tgx101CheckUpdates" type="id"/>
   <item name="btn_tgx101BottomGap" type="id"/>
   <item name="btn_messageOpenInBrowser" type="id"/>
+  <item name="btn_messageOpenRich" type="id"/>
 </resources>

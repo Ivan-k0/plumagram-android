@@ -163,8 +163,13 @@ public final class Tgx101Text {
 
   /** "Unsupported message (story)" — says what kind of message Telegram X can't show yet. */
   public static String unsupportedText (String base, @Nullable TdApi.MessageContent content) {
-    int kind = content != null ? unsupportedKind(content) : 0;
-    return kind != 0 ? base + " (" + org.thunderdog.challegram.core.Lang.getString(kind) + ")" : base;
+    if (content == null) {
+      return base;
+    }
+    int kind = unsupportedKind(content);
+    String name = kind != 0 ? org.thunderdog.challegram.core.Lang.getString(kind) : content.getClass().getSimpleName();
+    org.thunderdog.challegram.Log.i("TGx101 unsupported message: %s", content.getClass().getSimpleName());
+    return base + " (" + name + ")";
   }
 
   private static int unsupportedKind (TdApi.MessageContent content) {

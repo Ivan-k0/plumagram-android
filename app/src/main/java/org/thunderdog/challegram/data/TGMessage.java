@@ -8257,6 +8257,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           }
           return new TGMessageText(context, msg, nonNull((TdApi.MessageText) content), null);
         }
+        case TdApi.MessageRichMessage.CONSTRUCTOR: { // TGx101: show the text, full post opens in Instant View
+          return Tgx101RichMessage.valueOf(context, msg, (TdApi.MessageRichMessage) content);
+        }
         case TdApi.MessageCall.CONSTRUCTOR: {
           return new TGMessageCall(context, msg, nonNull(((TdApi.MessageCall) content)));
         }
@@ -8480,7 +8483,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           return new TGMessageGiveaway(context, msg, (TdApi.MessageGiveaway) content);
         }
         // unsupported
-        case TdApi.MessageRichMessage.CONSTRUCTOR:
+        // TGx101: MessageRichMessage is handled above (Tgx101RichMessage)
         case TdApi.MessageInvoice.CONSTRUCTOR:
         case TdApi.MessagePassportDataSent.CONSTRUCTOR:
         case TdApi.MessageStory.CONSTRUCTOR:

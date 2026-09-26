@@ -76,7 +76,7 @@ git submodule update --init --recursive   # обязательно сразу п
 | `ui/MessagesController.java` (меню ⋮) | «Экспорт чата» → `Tgx101ChatExport` |
 | `MainActivity.java` (onResume) | `Tgx101Updates.checkIfNeeded` — уведомление о новой версии |
 | `ui/MessageOptionsPagerController.java` (высота подзаголовка, getContentOffset), `ui/MessagesController.java` (updateBottomWrapOffset, onFocus) | отступ 16 dp снизу при навигации жестами, `Settings.isGestureNavigation` |
-| `data/TGMessage.java` (valueOf: unsupported), `component/chat/MessageView.java` | тип неподдерживаемого сообщения, «Открыть в браузере» |
+| `data/TGMessage.java` (valueOf: unsupported), `component/chat/MessageView.java` | тип неподдерживаемого сообщения; `MessageRichMessage` → `Tgx101RichMessage` (убран из списка unsupported), «Открыть пост» |
 | `app/jni/CMakeLists.txt` | путь к `libtdjni.so` (обход опечатки в `tdlib/source/install.sh`; можно убрать, когда Telegram X её исправит) |
 
 **Важно про флаги настроек.** Если в новой версии Telegram X в `Settings.java` появятся свои
@@ -140,6 +140,7 @@ strings /tmp/tdcheck/libtdjni.so | grep -c "$(cat tdlib/version.txt)"   # дол
 - [ ] Прокси: вставка одной и нескольких ссылок из буфера, «Скопировать все», «Удалить неработающие», QR-код.
 - [ ] Имя TGx1Ø1 на рабочем столе и в уведомлениях; «1Ø1» первым пунктом настроек.
 - [ ] Канал в плоском виде: между постами отступ с линией.
+- [ ] Пост нового формата (например t.me/rrozetka/18478): текст в ленте, «Открыть пост» показывает его целиком.
 - [ ] Экран «Настройки → 1Ø1»: все пункты на месте, на русском при русском языке приложения.
 - [ ] Каналы: переключатели кнопки «Обсудить» и кнопки комментариев работают.
 

@@ -36,6 +36,7 @@ import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.data.ContentPreview;
 import org.thunderdog.challegram.data.TD;
 import org.thunderdog.challegram.data.TGMessage;
+import org.thunderdog.challegram.data.Tgx101RichMessage;
 import org.thunderdog.challegram.data.TGMessageBotInfo;
 import org.thunderdog.challegram.data.TGMessageLocation;
 import org.thunderdog.challegram.data.TGMessageSticker;
@@ -898,10 +899,10 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       icons.append(R.drawable.baseline_translate_24);
     }
 
-    // TGx101: messages Telegram X can't show can be opened on the web / in another Telegram app
-    if (!isMore && msg.isUnsupportedContent() && !msg.isSecretChat()) {
-      ids.append(R.id.btn_messageOpenInBrowser);
-      strings.append(R.string.OpenInBrowser);
+    // TGx101: rich posts open in full in the built-in Instant View viewer
+    if (!isMore && Tgx101RichMessage.isRichMessage(msg.getMessage())) {
+      ids.append(R.id.btn_messageOpenRich);
+      strings.append(R.string.RichMessageOpen);
       icons.append(R.drawable.baseline_open_in_browser_24);
     }
 
