@@ -322,6 +322,9 @@ public class Lang {
       TdApi.LanguagePackStringValueOrdinary string = getStringValue(key, languagePackInfo);
       if (string != null)
         return string.value;
+      String modString = Tgx101Strings.localized(languagePackInfo, resId);
+      if (modString != null)
+        return modString;
     }
     try {
       return getAndroidString(resId);
@@ -439,6 +442,10 @@ public class Lang {
         } catch (Throwable t) {
           warnResource(true, pluralCode(), resId);
         }
+      }
+      String modString = Tgx101Strings.localized(languagePackInfo, resId);
+      if (modString != null) {
+        return formatString(applyFlags(modString, flags), hasSpanned, creator, formatArgs);
       }
     }
     try {

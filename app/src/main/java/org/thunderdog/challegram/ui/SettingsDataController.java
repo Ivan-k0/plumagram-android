@@ -84,6 +84,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
 
   private static final int MODE_NONE = 0;
   private static final int MODE_STATISTICS = 1;
+  /** TGX 101: all of the mod's own settings, opened from the main settings list. */
+  public static final int MODE_TGX101 = 2;
 
   @Override
   public int getId () {
@@ -92,7 +94,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
 
   @Override
   public CharSequence getName () {
-    return Lang.getString(mode == MODE_STATISTICS ? R.string.NetworkUsage : R.string.DataSettings);
+    return Lang.getString(mode == MODE_STATISTICS ? R.string.NetworkUsage : mode == MODE_TGX101 ? R.string.Tgx101Settings : R.string.DataSettings);
   }
 
   @Override
@@ -252,38 +254,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_resetNetworkStats, 0, R.string.ResetStatistics).setTextColorId(ColorId.textNegative),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM)
       };
-    } else {
+    } else if (mode == MODE_TGX101) {
       rawItems = new ListItem[] {
-        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_storageUsage, R.drawable.baseline_data_usage_24, R.string.StorageUsage),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_dataUsageTotal, R.drawable.baseline_import_export_24, R.string.NetworkUsage),
-        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
-
-        new ListItem(ListItem.TYPE_SHADOW_TOP),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_dataSaver, 0, R.string.DataSaver),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_dataSaverForce, 0, R.string.TurnOnAutomatically),
-        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
-        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.DataSaverDesc),
-
-        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Connection),
-        new ListItem(ListItem.TYPE_SHADOW_TOP),
-        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_lessDataForCalls, 0, R.string.VoipUseLessData),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_proxy, 0, R.string.Proxy),
-        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
-
-        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.AutomaticMediaDownload),
-        new ListItem(ListItem.TYPE_SHADOW_TOP),
-        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_inPrivateChats, 0, R.string.InPrivateChats),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_inGroupChats, 0, R.string.InGroups),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_inChannelChats, 0, R.string.InChannels),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_SETTING, R.id.btn_showAdvanced, 0, R.string.Advanced),
-        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
-
+        new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL),
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.RecordingAndPhotos),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.PauseMediaOnRecord).setLongId(Settings.SETTING_FLAG_PAUSE_MEDIA_ON_RECORD),
@@ -325,6 +298,39 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.KeepAliveConnectionSetting).setLongId(Settings.SETTING_FLAG_KEEP_ALIVE_CONNECTION),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.KeepAliveConnectionHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+      };
+    } else {
+      rawItems = new ListItem[] {
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_storageUsage, R.drawable.baseline_data_usage_24, R.string.StorageUsage),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_dataUsageTotal, R.drawable.baseline_import_export_24, R.string.NetworkUsage),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_dataSaver, 0, R.string.DataSaver),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_dataSaverForce, 0, R.string.TurnOnAutomatically),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.DataSaverDesc),
+
+        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Connection),
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_lessDataForCalls, 0, R.string.VoipUseLessData),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_proxy, 0, R.string.Proxy),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+
+        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.AutomaticMediaDownload),
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_inPrivateChats, 0, R.string.InPrivateChats),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_inGroupChats, 0, R.string.InGroups),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_inChannelChats, 0, R.string.InChannels),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_SETTING, R.id.btn_showAdvanced, 0, R.string.Advanced),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+
       };
     }
     this.adapter.setItems(rawItems, false);
