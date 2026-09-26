@@ -72,6 +72,9 @@ git submodule update --init --recursive   # обязательно сразу п
 | `data/TGMessage.java` (getHeaderPadding, draw) | `getPostGap()` — отступ и линия между постами каналов |
 | `core/Lang.java` (getStringImpl ×2) | `AppName` не берётся из облачного перевода |
 | `app/build.gradle.kts` (`resValue AppName`) | отображаемое имя TGx1Ø1 |
+| `ui/MainController.java` (shareIntentImpl) | `Tgx101ChatImport.tryHandle` — импорт выгрузки WhatsApp |
+| `ui/MessagesController.java` (меню ⋮) | «Экспорт чата» → `Tgx101ChatExport` |
+| `MainActivity.java` (onResume) | `Tgx101Updates.checkIfNeeded` — уведомление о новой версии |
 | `app/jni/CMakeLists.txt` | путь к `libtdjni.so` (обход опечатки в `tdlib/source/install.sh`; можно убрать, когда Telegram X её исправит) |
 
 **Важно про флаги настроек.** Если в новой версии Telegram X в `Settings.java` появятся свои
@@ -140,9 +143,13 @@ strings /tmp/tdcheck/libtdjni.so | grep -c "$(cat tdlib/version.txt)"   # дол
 
 ## 5. Выпуск
 
-1. Дописать в `MOD_CHANGES.md` новую основу и изменения этой версии.
-2. Закоммитить, поставить тег `tgx101-0.1.N` (N — номер сборки из «О приложении»).
-3. Публичная сборка (отдельное приложение `com.tgx101.app`):
-   в `local.properties` временно `app.id=com.tgx101.app` → собрать → вернуть `app.id=org.thunderdog.challegram`.
-4. Выложить исходники (`git push` в репозиторий на GitHub).
-5. Пост на 4PDA — по шаблону «Новая версия» из `~/Desktop/TGx101_4PDA_пост.txt`.
+1. Дописать в `MOD_CHANGES.md` изменения этой версии.
+2. Закоммитить и отправить: `git push tgx101 main:tgx101`.
+3. Публичная сборка всех файлов (Android 7+, 6, 5, 4.1–4.4) в `~/Desktop/TGX/Версии/TGx101-<версия>/`:
+   `scripts/tgx101/build-public.sh` (с `--no-old` — только Android 7+).
+4. GitHub-релиз с тегом `tgx101-<версия>` и всеми APK — **обязательно**: по нему приложения
+   узнают о новой версии, а universal-APK всегда должен лежать в последнем релизе:
+   `gh release create tgx101-<версия> ~/Desktop/TGX/Версии/TGx101-<версия>/*.apk -R Ivan-k0/tgx101-android --title "TGx101 <версия>" --notes-file <список изменений>`
+5. 4PDA: новый пост с изменениями и файлами (APK прикрепляются вручную), затем шапка:
+   файлы — ссылками на вложения поста, по спойлерам «Android 7.0 и выше», «Android 6», «Android 5»,
+   «Android 4.1–4.4»; прошлая версия — в спойлер «Прошлые версии».

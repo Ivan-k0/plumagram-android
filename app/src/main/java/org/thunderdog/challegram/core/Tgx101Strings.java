@@ -1,6 +1,6 @@
 /*
- * This file is a part of Telegram X
- * Copyright © 2014 (tgx-android@pm.me)
+ * This file is a part of TGx101, a modification of Telegram X
+ * Copyright © 2026 1vank0 (https://github.com/Ivan-k0/tgx101-android)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -96,6 +96,33 @@ final class Tgx101Strings {
     RU.put(R.string.ProxyReturnDirect, "Возвращаться на прямое соединение");
     RU.put(R.string.ProxyHideSponsor, "Скрывать канал спонсора прокси");
     RU.put(R.string.ProxyAutoSwitchHintTgx101, "Переключать автоматически: если приложение долго не может подключиться, оно пробует другие прокси и прямое соединение. Возвращаться на прямое соединение: после смены сети (Wi-Fi, мобильная), если Telegram работает без прокси, прокси выключается. Не включайте, если провайдер замедляет Telegram: проверка этого не заметит. Скрывать канал спонсора прокси: канал, который владелец прокси закрепляет в списке чатов, не показывается. Применится после перезапуска приложения.");
+    RU.put(R.string.ChatExport, "Экспорт чата");
+    RU.put(R.string.ChatExportFormatHint, "Вся история чата сохранится в «Загрузки/TGx101» одним файлом. Только текст: фото, видео и голосовые отмечаются как [Фото] и т. п.");
+    RU.put(R.string.ChatExportHtml, "Веб-страница (HTML) — для чтения");
+    RU.put(R.string.ChatExportTxt, "Обычный текст (TXT)");
+    RU.put(R.string.ChatExportProgress, "Загружено сообщений: %1$d");
+    RU.put(R.string.ChatExportHeader, "Сообщений: %1$d · экспорт %2$s");
+    RU.put(R.string.ChatExportForwarded, "Переслано от %1$s");
+    RU.put(R.string.ChatExportDone, "Экспортировано сообщений: %1$d\n%2$s");
+    RU.put(R.string.ChatExportFailed, "Не удалось экспортировать: %1$s");
+    RU.put(R.string.ChatImport, "Импортировать чат");
+    RU.put(R.string.ChatImportHint, "Это выгрузка чата из другого мессенджера. Её можно импортировать в чат Telegram.");
+    RU.put(R.string.ChatImportPrivateHint, "Это выгрузка чата WhatsApp с %1$s. Её можно импортировать в ваш чат Telegram с этим человеком: сообщения появятся со своими датами и пометкой «импортировано».");
+    RU.put(R.string.ChatImportGroupHint, "Это выгрузка группы WhatsApp «%1$s». Её можно импортировать в группу Telegram, где вы администратор: сообщения появятся со своими датами и пометкой «импортировано».");
+    RU.put(R.string.ChatImportSendAsFiles, "Отправить как файлы");
+    RU.put(R.string.ChatImportPick, "Импортировать в…");
+    RU.put(R.string.ChatImportPickPrivate, "Выберите личный чат с этим человеком");
+    RU.put(R.string.ChatImportPickGroup, "Выберите группу, где вы администратор");
+    RU.put(R.string.ChatImportConfirm, "Импортировать в «%1$s»?");
+    RU.put(R.string.ChatImportProgress, "Загружаю чат и файлов: %1$d… Это может занять время, не закрывайте приложение.");
+    RU.put(R.string.ChatImportDone, "Чат импортирован в «%1$s»");
+    RU.put(R.string.ChatImportFailed, "Не удалось импортировать: %1$s");
+    RU.put(R.string.Tgx101Updates, "Обновления");
+    RU.put(R.string.Tgx101CheckUpdates, "Сообщать о новых версиях");
+    RU.put(R.string.Tgx101CheckUpdatesHint, "Раз в день при открытии приложение проверяет на GitHub, не вышла ли новая версия TGx1Ø1, и показывает уведомление со ссылками на GitHub и 4PDA. Ничего не скачивается и не устанавливается само.");
+    RU.put(R.string.Tgx101UpdateChannel, "Обновления TGx1Ø1");
+    RU.put(R.string.Tgx101UpdateTitle, "Вышла TGx1Ø1 %1$s");
+    RU.put(R.string.Tgx101UpdateText, "Нажмите, чтобы скачать новую версию");
   }
 
   /** Russian text for a mod string when the app language is Russian, otherwise null. */
