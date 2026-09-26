@@ -5955,7 +5955,7 @@
   <string name="ChannelsSection">Channels</string>
   <string name="ShowDiscussButton">Show «Discuss» button</string>
   <string name="ShowCommentsButton">Show comments button under posts</string>
-  <string name="ChannelButtonsHint">Without the «Discuss» button the discussion group opens from the channel\'s ⋮ menu. Without the comments button, comments open from the post\'s menu. Reopen the channel to apply.</string>
+  <string name="ChannelButtonsHint">Without the «Discuss» button the discussion group opens from the channel\'s ⋮ menu. Without the comments button, comments open from the post\'s menu. Reopen the channel to apply. «Subscribe» is removed only when it is the last line of a post and leads to the same channel.</string>
   <string name="Tgx101Settings">101</string>
   <string name="ProxyPaste">Paste from clipboard</string>
   <string name="ProxyPasteNothing">No proxy links in the clipboard</string>
@@ -5971,5 +5971,7 @@
   <string name="ProxyAllAvailable">All proxies respond</string>
   <string name="ProxyShowQr">QR code</string>
   <string name="ProxyReturnDirect">Return to direct connection</string>
-  <string name="ProxyAutoSwitchHintTgx101">Switch automatically: try other connections when the app takes too long to connect. Return to direct connection: after switching networks (Wi-Fi, mobile), if Telegram works without a proxy, the proxy is turned off. Don\'t turn it on if your provider slows Telegram down: the check won\'t notice it.</string>
+  <string name="ProxyAutoSwitchHintTgx101">Switch automatically: try other connections when the app takes too long to connect. Return to direct connection: after switching networks (Wi-Fi, mobile), if Telegram works without a proxy, the proxy is turned off. Don\'t turn it on if your provider slows Telegram down: the check won\'t notice it. Hide proxy sponsor channel: the channel that the proxy owner pins to your chat list is not shown. Restart the app to apply.</string>
+  <string name="ProxyHideSponsor">Hide proxy sponsor channel</string>
+  <string name="HideSubscribeLink">Hide «Subscribe» link under posts</string>
 </resources>

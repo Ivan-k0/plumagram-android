@@ -66,6 +66,9 @@ git submodule update --init --recursive   # обязательно сразу п
 | `player/RoundVideoRecorder.java` | качество кружков, стабилизация |
 | `util/text/Text.java` | задержка подсветки цитат и ссылок |
 | `ui/SettingsProxyController.java`, `telegram/TdlibUi.java` (addNewProxy), `telegram/TdlibManager.java` (смена сети) | вызовы `Tgx101Proxies`; в экране прокси число строк блока автопереключения — константа `AUTO_SWITCH_ITEM_COUNT` |
+| `data/TD.java` (getDownloadedFile, saveFiles, saveFile), `component/chat/MessageView.java` | сохранение голосовых и кружков |
+| `ui/ChatsController.java` (`list()`) | фильтр `Tgx101Proxies.chatListFilter` — скрытие канала спонсора прокси |
+| `data/TGMessageText.java` (setText), `data/TGMessageMedia.java` (setCaption) | вызов `Tgx101Text.displayText` — скрытие «Подписаться» |
 | `app/jni/CMakeLists.txt` | путь к `libtdjni.so` (обход опечатки в `tdlib/source/install.sh`; можно убрать, когда Telegram X её исправит) |
 
 **Важно про флаги настроек.** Если в новой версии Telegram X в `Settings.java` появятся свои
@@ -123,6 +126,9 @@ strings /tmp/tdcheck/libtdjni.so | grep -c "$(cat tdlib/version.txt)"   # дол
 
 **Прочее**
 - [ ] Контакты в телефонной книге, кнопка «Telegram» у контакта открывает чат.
+- [ ] Канал с «Подписаться» в конце постов: строка скрыта, в тексте без неё ничего не пропало.
+- [ ] Голосовое и кружок: пункт «Сохранить», файл появляется в «Музыке» / галерее.
+- [ ] Прокси: «Скрывать канал спонсора» — после перезапуска канала спонсора нет в списке.
 - [ ] Прокси: вставка одной и нескольких ссылок из буфера, «Скопировать все», «Удалить неработающие», QR-код.
 - [ ] Экран «Настройки → 101»: все пункты на месте, на русском при русском языке приложения.
 - [ ] Каналы: переключатели кнопки «Обсудить» и кнопки комментариев работают.

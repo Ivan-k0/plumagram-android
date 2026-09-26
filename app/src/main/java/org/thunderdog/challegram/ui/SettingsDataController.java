@@ -220,6 +220,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().showDiscussButton(), isUpdate);
         } else if (itemId == R.id.btn_showCommentsButton) {
           view.getToggler().setRadioEnabled(Settings.instance().showCommentsButton(), isUpdate);
+        } else if (itemId == R.id.btn_hideSubscribeLink) {
+          view.getToggler().setRadioEnabled(Settings.instance().hideChannelSubscribeLink(), isUpdate);
         } else if (itemId == R.id.btn_pullToSearch) {
           view.getToggler().setRadioEnabled(Settings.instance().isPullToSearchEnabled(), isUpdate);
         } else if (itemId == R.id.btn_roundStabilization) {
@@ -279,6 +281,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showDiscussButton, 0, R.string.ShowDiscussButton),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showCommentsButton, 0, R.string.ShowCommentsButton),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_hideSubscribeLink, 0, R.string.HideSubscribeLink),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.ChannelButtonsHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
@@ -572,6 +576,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setShowDiscussButton(adapter.toggleView(v));
     } else if (id == R.id.btn_showCommentsButton) {
       Settings.instance().setShowCommentsButton(adapter.toggleView(v));
+    } else if (id == R.id.btn_hideSubscribeLink) {
+      Settings.instance().setHideChannelSubscribeLink(adapter.toggleView(v));
     } else if (id == R.id.btn_roundStabilization) {
       int mode = Settings.instance().getRoundStabilizationMode();
       showSettings(new SettingsWrapBuilder(id).addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.RoundStabilizationHint)).setRawItems(new ListItem[] {

@@ -48,6 +48,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import me.vkryl.core.lambda.Filter;
 import me.vkryl.core.lambda.RunnableInt;
 
 /**
@@ -309,5 +310,27 @@ public final class Tgx101Proxies {
     return settings.checkProxySetting(Settings.PROXY_FLAG_ENABLED) &&
       settings.checkProxySetting(Settings.PROXY_FLAG_SWITCH_AUTOMATICALLY) &&
       settings.checkProxySetting(PROXY_FLAG_RETURN_DIRECT);
+  }
+
+  // Proxy sponsor channel
+
+  /** Chat list filter that leaves out the proxy sponsor channel when the user chose to hide it. */
+  public static @Nullable Filter<TdApi.Chat> chatListFilter (@Nullable Filter<TdApi.Chat> filter) {
+    if (!Settings.instance().hideProxySponsor()) {
+      return filter;
+    }
+    return chat -> !isProxySponsor(chat) && (filter == null || filter.accept(chat));
+  }
+
+  private static boolean isProxySponsor (TdApi.Chat chat) {
+    TdApi.ChatPosition[] positions = chat.positions;
+    if (positions != null) {
+      for (TdApi.ChatPosition position : positions) {
+        if (position.source != null && position.source.getConstructor() == TdApi.ChatSourceMtprotoProxy.CONSTRUCTOR) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }

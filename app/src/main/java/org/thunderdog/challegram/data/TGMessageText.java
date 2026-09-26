@@ -275,9 +275,10 @@ public class TGMessageText extends TGMessage {
           .setHighlightText(getHighlightedText(Highlight.Pool.KEY_TEXT, translatedText.text))
           .setClickCallback(clickCallback());
       } else if (text.entities != null || !parseEntities) {
-        wrapper = new TextWrapper(text.text, getTextStyleProvider(), colorSet)
-          .setEntities(TextEntity.valueOf(tdlib, text, openParameters()), textMediaListener)
-          .setHighlightText(getHighlightedText(Highlight.Pool.KEY_TEXT, text.text))
+        TdApi.FormattedText displayText = Tgx101Text.displayText(this, text); // TGx101: without the channel's "Subscribe" line
+        wrapper = new TextWrapper(displayText.text, getTextStyleProvider(), colorSet)
+          .setEntities(TextEntity.valueOf(tdlib, displayText, openParameters()), textMediaListener)
+          .setHighlightText(getHighlightedText(Highlight.Pool.KEY_TEXT, displayText.text))
           .setClickCallback(clickCallback());
       } else {
         wrapper = new TextWrapper(text.text, getTextStyleProvider(), colorSet)

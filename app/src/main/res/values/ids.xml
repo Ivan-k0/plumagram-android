@@ -1458,4 +1458,6 @@
   <item name="btn_removeUnavailableProxies" type="id"/>
   <item name="btn_proxyShowQr" type="id"/>
   <item name="btn_proxyReturnDirect" type="id"/>
+  <item name="btn_hideProxySponsor" type="id"/>
+  <item name="btn_hideSubscribeLink" type="id"/>
 </resources>

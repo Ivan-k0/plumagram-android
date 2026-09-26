@@ -402,8 +402,8 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.UseProxyForCallsInfo));
   }
 
-  // TGx101: + "Return to direct connection" toggle (was 4 items)
-  private static final int AUTO_SWITCH_ITEM_COUNT = 6;
+  // TGx101: + "Return to direct connection" and "Hide proxy sponsor" toggles (was 4 items)
+  private static final int AUTO_SWITCH_ITEM_COUNT = 8;
 
   private static ListItem[] newAutoSwitchItems () {
     return new ListItem[] {
@@ -411,6 +411,8 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
       new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_proxyAutoSwitch, 0, R.string.ProxyAutoSwitch),
       new ListItem(ListItem.TYPE_SEPARATOR_FULL),
       new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_proxyReturnDirect, 0, R.string.ProxyReturnDirect),
+      new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+      new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_hideProxySponsor, 0, R.string.ProxyHideSponsor),
       new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
       new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.ProxyAutoSwitchHintTgx101)
     };
@@ -489,6 +491,8 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
         final int itemId = item.getId();
         if (itemId == R.id.btn_proxyAutoSwitch) {
           view.getToggler().setRadioEnabled(Settings.instance().checkProxySetting(Settings.PROXY_FLAG_SWITCH_AUTOMATICALLY), isUpdate);
+        } else if (itemId == R.id.btn_hideProxySponsor) {
+          view.getToggler().setRadioEnabled(Settings.instance().hideProxySponsor(), isUpdate);
         } else if (itemId == R.id.btn_proxyReturnDirect) {
           view.getToggler().setRadioEnabled(Settings.instance().checkProxySetting(Tgx101Proxies.PROXY_FLAG_RETURN_DIRECT), isUpdate);
         } else if (itemId == R.id.btn_noProxy || itemId == R.id.btn_proxy) {
@@ -634,6 +638,8 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
       } else {
         Settings.instance().setProxySetting(Settings.PROXY_FLAG_SWITCH_AUTOMATICALLY, false);
       }
+    } else if (viewId == R.id.btn_hideProxySponsor) {
+      Settings.instance().setHideProxySponsor(adapter.toggleView(v));
     } else if (viewId == R.id.btn_proxyReturnDirect) {
       Settings.instance().setProxySetting(Tgx101Proxies.PROXY_FLAG_RETURN_DIRECT, adapter.toggleView(v));
     } else if (viewId == R.id.btn_addProxy) {

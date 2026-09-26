@@ -3143,6 +3143,28 @@ public class Settings {
     pmc.putBoolean(KEY_SHOW_COMMENTS_BUTTON, show);
   }
 
+  // TGx101: hide the "Subscribe" link that channels append to their own posts
+  private static final String KEY_HIDE_CHANNEL_SUBSCRIBE_LINK = "settings_hide_channel_subscribe_link";
+
+  public boolean hideChannelSubscribeLink () {
+    return pmc.getBoolean(KEY_HIDE_CHANNEL_SUBSCRIBE_LINK, true);
+  }
+
+  public void setHideChannelSubscribeLink (boolean hide) {
+    pmc.putBoolean(KEY_HIDE_CHANNEL_SUBSCRIBE_LINK, hide);
+  }
+
+  // TGx101: hide the channel that an MTProto proxy owner pins to the chat list
+  private static final String KEY_HIDE_PROXY_SPONSOR = "settings_hide_proxy_sponsor";
+
+  public boolean hideProxySponsor () {
+    return pmc.getBoolean(KEY_HIDE_PROXY_SPONSOR, false);
+  }
+
+  public void setHideProxySponsor (boolean hide) {
+    pmc.putBoolean(KEY_HIDE_PROXY_SPONSOR, hide);
+  }
+
   // Video message stabilization. CAMERA2 uses Camera2 preview stabilization (Android 13+)
   // and falls back to GYRO when the device doesn't support it.
   public static final int ROUND_STABILIZATION_OFF = 0;
