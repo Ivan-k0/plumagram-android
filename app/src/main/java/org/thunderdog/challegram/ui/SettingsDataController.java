@@ -222,6 +222,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().showCommentsButton(), isUpdate);
         } else if (itemId == R.id.btn_hideSubscribeLink) {
           view.getToggler().setRadioEnabled(Settings.instance().hideChannelSubscribeLink(), isUpdate);
+        } else if (itemId == R.id.btn_separateChannelPosts) {
+          view.getToggler().setRadioEnabled(Settings.instance().separateChannelPosts(), isUpdate);
         } else if (itemId == R.id.btn_pullToSearch) {
           view.getToggler().setRadioEnabled(Settings.instance().isPullToSearchEnabled(), isUpdate);
         } else if (itemId == R.id.btn_roundStabilization) {
@@ -283,6 +285,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showCommentsButton, 0, R.string.ShowCommentsButton),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_hideSubscribeLink, 0, R.string.HideSubscribeLink),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_separateChannelPosts, 0, R.string.SeparateChannelPosts),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.ChannelButtonsHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
@@ -571,13 +575,15 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_always, 0, R.string.UseLessDataAlways, id, tdlib.files().getVoipDataSavingOption() == DataSavingOption.ALWAYS)
       }).setIntDelegate(this));
     } else if (id == R.id.btn_pullToSearch) {
-      Settings.instance().setPullToSearchEnabled(adapter.toggleView(v));
+      Settings.instance().setPullToSearchEnabled(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showDiscussButton) {
-      Settings.instance().setShowDiscussButton(adapter.toggleView(v));
+      Settings.instance().setShowDiscussButton(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showCommentsButton) {
-      Settings.instance().setShowCommentsButton(adapter.toggleView(v));
+      Settings.instance().setShowCommentsButton(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_hideSubscribeLink) {
-      Settings.instance().setHideChannelSubscribeLink(adapter.toggleView(v));
+      Settings.instance().setHideChannelSubscribeLink(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_separateChannelPosts) {
+      Settings.instance().setSeparateChannelPosts(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_roundStabilization) {
       int mode = Settings.instance().getRoundStabilizationMode();
       showSettings(new SettingsWrapBuilder(id).addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.RoundStabilizationHint)).setRawItems(new ListItem[] {

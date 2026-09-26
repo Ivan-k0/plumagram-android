@@ -3143,6 +3143,17 @@ public class Settings {
     pmc.putBoolean(KEY_SHOW_COMMENTS_BUTTON, show);
   }
 
+  // TGx101: extra space and a line between channel posts in the flat layout
+  private static final String KEY_SEPARATE_CHANNEL_POSTS = "settings_separate_channel_posts";
+
+  public boolean separateChannelPosts () {
+    return pmc.getBoolean(KEY_SEPARATE_CHANNEL_POSTS, true);
+  }
+
+  public void setSeparateChannelPosts (boolean separate) {
+    pmc.putBoolean(KEY_SEPARATE_CHANNEL_POSTS, separate);
+  }
+
   // TGx101: hide the "Subscribe" link that channels append to their own posts
   private static final String KEY_HIDE_CHANNEL_SUBSCRIBE_LINK = "settings_hide_channel_subscribe_link";
 

@@ -69,6 +69,9 @@ git submodule update --init --recursive   # обязательно сразу п
 | `data/TD.java` (getDownloadedFile, saveFiles, saveFile), `component/chat/MessageView.java` | сохранение голосовых и кружков |
 | `ui/ChatsController.java` (`list()`) | фильтр `Tgx101Proxies.chatListFilter` — скрытие канала спонсора прокси |
 | `data/TGMessageText.java` (setText), `data/TGMessageMedia.java` (setCaption) | вызов `Tgx101Text.displayText` — скрытие «Подписаться» |
+| `data/TGMessage.java` (getHeaderPadding, draw) | `getPostGap()` — отступ и линия между постами каналов |
+| `core/Lang.java` (getStringImpl ×2) | `AppName` не берётся из облачного перевода |
+| `app/build.gradle.kts` (`resValue AppName`) | отображаемое имя TGx1Ø1 |
 | `app/jni/CMakeLists.txt` | путь к `libtdjni.so` (обход опечатки в `tdlib/source/install.sh`; можно убрать, когда Telegram X её исправит) |
 
 **Важно про флаги настроек.** Если в новой версии Telegram X в `Settings.java` появятся свои
@@ -130,7 +133,9 @@ strings /tmp/tdcheck/libtdjni.so | grep -c "$(cat tdlib/version.txt)"   # дол
 - [ ] Голосовое и кружок: пункт «Сохранить», файл появляется в «Музыке» / галерее.
 - [ ] Прокси: «Скрывать канал спонсора» — после перезапуска канала спонсора нет в списке.
 - [ ] Прокси: вставка одной и нескольких ссылок из буфера, «Скопировать все», «Удалить неработающие», QR-код.
-- [ ] Экран «Настройки → 101»: все пункты на месте, на русском при русском языке приложения.
+- [ ] Имя TGx1Ø1 на рабочем столе и в уведомлениях; «1Ø1» первым пунктом настроек.
+- [ ] Канал в плоском виде: между постами отступ с линией.
+- [ ] Экран «Настройки → 1Ø1»: все пункты на месте, на русском при русском языке приложения.
 - [ ] Каналы: переключатели кнопки «Обсудить» и кнопки комментариев работают.
 
 ## 5. Выпуск

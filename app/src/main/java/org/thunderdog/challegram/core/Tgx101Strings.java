@@ -30,7 +30,7 @@ final class Tgx101Strings {
   private static final SparseArray<String> RU = new SparseArray<>();
 
   static {
-    RU.put(R.string.Tgx101Settings, "101");
+    RU.put(R.string.Tgx101Settings, "1Ø1");
     RU.put(R.string.RecordingAndPhotos, "Запись и фото");
     RU.put(R.string.PauseMediaOnRecord, "Пауза музыки при записи и голосовых");
     RU.put(R.string.SendPhotosInHD, "Отправлять фото в HD");
@@ -78,6 +78,7 @@ final class Tgx101Strings {
     RU.put(R.string.ShowDiscussButton, "Кнопка «Обсудить»");
     RU.put(R.string.ShowCommentsButton, "Кнопка комментариев под постами");
     RU.put(R.string.HideSubscribeLink, "Скрывать «Подписаться» под постами");
+    RU.put(R.string.SeparateChannelPosts, "Отступ и линия между постами");
     RU.put(R.string.ChannelButtonsHint, "Без кнопки «Обсудить» группа обсуждения открывается из меню канала ⋮. Без кнопки комментариев комментарии открываются из меню поста. Чтобы изменения применились, откройте канал заново. «Подписаться» убирается, только если это последняя строка поста и ссылка ведёт на этот же канал.");
     RU.put(R.string.ProxyPaste, "Вставить из буфера");
     RU.put(R.string.ProxyPasteNothing, "В буфере обмена нет ссылок на прокси");

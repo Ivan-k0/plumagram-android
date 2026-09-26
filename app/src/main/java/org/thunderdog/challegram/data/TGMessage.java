@@ -2002,6 +2002,15 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       drawBackground(view, c);
     }
 
+    // TGx101: separator between channel posts (flat layout)
+    if (!useBubbles && (flags & FLAG_HEADER_ENABLED) != 0) {
+      int postGap = getPostGap();
+      if (postGap > 0) {
+        float y = postGap / 2f;
+        c.drawLine(0, y, viewWidth, y, Paints.strokeSmallPaint(Theme.separatorColor()));
+      }
+    }
+
     final boolean savedTranslation = translation != 0f;
     if (savedTranslation) {
       c.save();
@@ -4424,7 +4433,18 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         result = 0;
       }
     }
-    return (flags & FLAG_HEADER_ENABLED) != 0 && !useBubbles() ? xHeaderPadding + result : result;
+    return (flags & FLAG_HEADER_ENABLED) != 0 && !useBubbles() ? xHeaderPadding + result + getPostGap() : result;
+  }
+
+  /**
+   * TGx101: extra space above a channel post in the flat (non-bubble) layout, with a separator line
+   * drawn in its middle. Skipped when a date or "Unread messages" badge already separates posts.
+   */
+  private int getPostGap () {
+    if ((flags & (FLAG_SHOW_DATE | FLAG_SHOW_BADGE)) != 0 || !isChannel() || !Settings.instance().separateChannelPosts()) {
+      return 0;
+    }
+    return Screen.dp(14f);
   }
 
   // Data getters
