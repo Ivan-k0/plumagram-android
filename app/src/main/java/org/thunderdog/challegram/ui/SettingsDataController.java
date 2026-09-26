@@ -214,6 +214,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(networkStats != null ? networkStats.getWiFiEntry() : Lang.getString(R.string.Calculating));
         } else if (itemId == R.id.btn_resetNetworkStats) {
           view.setData(networkStats != null ? networkStats.getDateEntry() : Lang.getString(R.string.LoadingInformation));
+        } else if (itemId == R.id.btn_showDiscussButton) {
+          view.getToggler().setRadioEnabled(Settings.instance().showDiscussButton(), isUpdate);
+        } else if (itemId == R.id.btn_showCommentsButton) {
+          view.getToggler().setRadioEnabled(Settings.instance().showCommentsButton(), isUpdate);
         } else if (itemId == R.id.btn_pullToSearch) {
           view.getToggler().setRadioEnabled(Settings.instance().isPullToSearchEnabled(), isUpdate);
         } else if (itemId == R.id.btn_roundStabilization) {
@@ -295,6 +299,14 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_pullToSearch, 0, R.string.PullToSearch),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.PullToSearchHint),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+
+        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ChannelsSection),
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showDiscussButton, 0, R.string.ShowDiscussButton),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showCommentsButton, 0, R.string.ShowCommentsButton),
+        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.ChannelButtonsHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Contacts),
@@ -550,6 +562,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       }).setIntDelegate(this));
     } else if (id == R.id.btn_pullToSearch) {
       Settings.instance().setPullToSearchEnabled(adapter.toggleView(v));
+    } else if (id == R.id.btn_showDiscussButton) {
+      Settings.instance().setShowDiscussButton(adapter.toggleView(v));
+    } else if (id == R.id.btn_showCommentsButton) {
+      Settings.instance().setShowCommentsButton(adapter.toggleView(v));
     } else if (id == R.id.btn_roundStabilization) {
       int mode = Settings.instance().getRoundStabilizationMode();
       showSettings(new SettingsWrapBuilder(id).addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.RoundStabilizationHint)).setRawItems(new ListItem[] {

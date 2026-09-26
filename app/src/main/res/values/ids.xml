@@ -1450,4 +1450,6 @@
   <item name="btn_savedMessagesTags" type="id"/>
   <item name="menu_savedMessages" type="id"/>
   <item name="menu_btn_savedMessagesTags" type="id"/>
+  <item name="btn_showDiscussButton" type="id"/>
+  <item name="btn_showCommentsButton" type="id"/>
 </resources>

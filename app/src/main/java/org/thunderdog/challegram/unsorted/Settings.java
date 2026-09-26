@@ -3122,6 +3122,27 @@ public class Settings {
     pmc.putBoolean(KEY_PULL_TO_SEARCH, enabled);
   }
 
+  // Channels: the bottom "Discuss" button and the comments button under posts can be hidden.
+  // Separate keys (not new-settings flags) so both stay on for existing installs.
+  private static final String KEY_SHOW_DISCUSS_BUTTON = "settings_show_discuss_button";
+  private static final String KEY_SHOW_COMMENTS_BUTTON = "settings_show_comments_button";
+
+  public boolean showDiscussButton () {
+    return pmc.getBoolean(KEY_SHOW_DISCUSS_BUTTON, true);
+  }
+
+  public void setShowDiscussButton (boolean show) {
+    pmc.putBoolean(KEY_SHOW_DISCUSS_BUTTON, show);
+  }
+
+  public boolean showCommentsButton () {
+    return pmc.getBoolean(KEY_SHOW_COMMENTS_BUTTON, true);
+  }
+
+  public void setShowCommentsButton (boolean show) {
+    pmc.putBoolean(KEY_SHOW_COMMENTS_BUTTON, show);
+  }
+
   // Video message stabilization. CAMERA2 uses Camera2 preview stabilization (Android 13+)
   // and falls back to GYRO when the device doesn't support it.
   public static final int ROUND_STABILIZATION_OFF = 0;

@@ -3187,7 +3187,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         showBottomButton(BOTTOM_ACTION_FOLLOW, 0, isUpdate);
       } else {
         TdApi.SupergroupFullInfo info = tdlib.cache().supergroupFull(ChatId.toSupergroupId(chat.id));
-        if (info != null && info.linkedChatId != 0) {
+        if (info != null && info.linkedChatId != 0 && Settings.instance().showDiscussButton()) {
           showBottomButton(BOTTOM_ACTION_DISCUSS, info.linkedChatId, isUpdate);
         } else {
           showBottomButton(BOTTOM_ACTION_TOGGLE_MUTE, 0, isUpdate);

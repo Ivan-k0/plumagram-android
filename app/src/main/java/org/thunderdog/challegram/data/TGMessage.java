@@ -1018,7 +1018,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       return false;
     }
     if (isChannel()) {
-      return findMessageWithReplyInfo() != null;
+      // Comments stay reachable from the message menu when the button is turned off.
+      return Settings.instance().showCommentsButton() && findMessageWithReplyInfo() != null;
     }
     if (isRepliesChat()) {
       return FeatureToggles.SHOW_VIEW_IN_CHAT_BUTTON_IN_REPLIES && msg.forwardInfo != null && Td.hasMessageSource(msg.forwardInfo) && msg.forwardInfo.source.chatId != msg.chatId;

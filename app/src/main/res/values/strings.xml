@@ -5951,4 +5951,8 @@
   <string name="SavedTagsInfoPartial">Реакции в Избранном работают как теги. Показаны теги из последних 3000 сообщений.</string>
   <string name="SavedTagsEmpty">В Избранном нет сообщений с реакциями. Поставьте реакцию на сообщение, чтобы отметить его тегом.</string>
   <string name="SavedTagsScanning">Ищу теги в Избранном…</string>
+  <string name="ChannelsSection">Channels</string>
+  <string name="ShowDiscussButton">Show «Discuss» button</string>
+  <string name="ShowCommentsButton">Show comments button under posts</string>
+  <string name="ChannelButtonsHint">Without the «Discuss» button the discussion group opens from the channel\'s ⋮ menu. Without the comments button, comments open from the post\'s menu. Reopen the channel to apply.</string>
 </resources>
