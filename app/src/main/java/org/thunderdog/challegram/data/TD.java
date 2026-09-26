@@ -4235,7 +4235,8 @@ public class TD {
             ok = U.copyToGalleryImpl(file.getPath(), savedType = U.TYPE_GIF, null);
             break;
           }
-          case TdApi.FileTypeVideo.CONSTRUCTOR: {
+          case TdApi.FileTypeVideo.CONSTRUCTOR:
+          case TdApi.FileTypeVideoNote.CONSTRUCTOR: { // TGx101: video messages go to the gallery
             ok = U.copyToGalleryImpl(file.getPath(), savedType = U.TYPE_VIDEO, null);
             break;
           }
@@ -4304,7 +4305,8 @@ public class TD {
         U.copyToGallery(context, file.getPath(), U.TYPE_GIF);
         break;
       }
-      case TdApi.FileTypeVideo.CONSTRUCTOR: {
+      case TdApi.FileTypeVideo.CONSTRUCTOR:
+      case TdApi.FileTypeVideoNote.CONSTRUCTOR: { // TGx101
         U.copyToGallery(context, file.getPath(), U.TYPE_VIDEO);
         break;
       }
@@ -4462,6 +4464,21 @@ public class TD {
         TdApi.Audio audio = ((TdApi.MessageAudio) msg.content).audio;
         if (audio != null && TD.isFileLoaded(audio.audio)) {
           return DownloadedFile.valueOf(tdlib, audio);
+        }
+        return null;
+      }
+      // TGx101: voice and video messages can be saved too
+      case TdApi.MessageVoiceNote.CONSTRUCTOR: {
+        TdApi.VoiceNote voiceNote = ((TdApi.MessageVoiceNote) msg.content).voiceNote;
+        if (voiceNote != null && TD.isFileLoaded(voiceNote.voice)) {
+          return DownloadedFile.valueOf(tdlib, voiceNote);
+        }
+        return null;
+      }
+      case TdApi.MessageVideoNote.CONSTRUCTOR: {
+        TdApi.VideoNote videoNote = ((TdApi.MessageVideoNote) msg.content).videoNote;
+        if (videoNote != null && TD.isFileLoaded(videoNote.video)) {
+          return new DownloadedFile(tdlib, videoNote.video, "video/mp4", new TdApi.FileTypeVideoNote());
         }
         return null;
       }

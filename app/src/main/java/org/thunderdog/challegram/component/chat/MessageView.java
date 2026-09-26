@@ -971,8 +971,29 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
           icons.append(R.drawable.deproko_baseline_gif_24);
         }
         switch (baseDownloadedFile.getFileType().getConstructor()) {
-          case TdApi.FileTypeVoiceNote.CONSTRUCTOR:
+          // TGx101: save voice messages to Music and video messages to the gallery
+          case TdApi.FileTypeVoiceNote.CONSTRUCTOR: {
+            if (msg.canBeSaved()) {
+              ids.append(R.id.btn_saveFile);
+              if (allMessages.length == 1) {
+                strings.append(R.string.SaveToMusic);
+              } else {
+                strings.append(Lang.plural(R.string.SaveXToMusic, downloadedFiles.size()));
+              }
+              icons.append(R.drawable.baseline_music_note_24);
+            }
+            break;
+          }
           case TdApi.FileTypeVideoNote.CONSTRUCTOR: {
+            if (msg.canBeSaved()) {
+              ids.append(R.id.btn_saveFile);
+              if (allMessages.length == 1) {
+                strings.append(R.string.SaveToGallery);
+              } else {
+                strings.append(Lang.plural(R.string.SaveXToGallery, downloadedFiles.size()));
+              }
+              icons.append(R.drawable.baseline_image_24);
+            }
             break;
           }
           case TdApi.FileTypeAnimation.CONSTRUCTOR:
