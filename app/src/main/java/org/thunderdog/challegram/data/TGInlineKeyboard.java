@@ -450,7 +450,9 @@ public class TGInlineKeyboard {
       this.wrapper = new EmojiString(text, maxWidth, textPaint);
       this.type = button.type;
       if (type.getConstructor() == TdApi.InlineKeyboardButtonTypeBuy.CONSTRUCTOR) {
-        currencyChar = CurrencyUtils.getCurrencyChar(((TdApi.MessageInvoice) parent.getMessage().content).currency);
+        TdApi.MessageContent content = parent.getMessage().content; // TGx101: Buy also comes with paid media
+        String currency = content instanceof TdApi.MessageInvoice ? ((TdApi.MessageInvoice) content).currency : Tgx101Stars.CURRENCY_STARS;
+        currencyChar = Tgx101Stars.CURRENCY_STARS.equals(currency) ? "⭐" : CurrencyUtils.getCurrencyChar(currency);
         currencyCharWidth = U.measureText(currencyChar, Paints.getBoldTextPaint(CURRENCY_TEXT_SIZE_DP));
       }
     }
@@ -1102,7 +1104,13 @@ public class TGInlineKeyboard {
       }
 
       switch (type.getConstructor()) {
-        case TdApi.InlineKeyboardButtonTypeBuy.CONSTRUCTOR:
+        case TdApi.InlineKeyboardButtonTypeBuy.CONSTRUCTOR: { // TGx101: pay with Stars
+          ViewController<?> c = context.context.messagesController();
+          if (c != null) {
+            Tgx101Stars.payForMessage(c, parent.getMessage());
+          }
+          break;
+        }
         case TdApi.InlineKeyboardButtonTypeCopyText.CONSTRUCTOR:
         case TdApi.InlineKeyboardButtonTypeWebApp.CONSTRUCTOR:
           // TODO

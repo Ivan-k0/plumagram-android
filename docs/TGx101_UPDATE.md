@@ -75,6 +75,7 @@ git submodule update --init --recursive   # обязательно сразу п
 | `ui/MainController.java` (shareIntentImpl) | `Tgx101ChatImport.tryHandle` — импорт выгрузки WhatsApp |
 | `ui/MessagesController.java` (меню ⋮) | «Экспорт чата» → `Tgx101ChatExport` |
 | `ui/MessagesController.java` (меню ⋮), `component/chat/MessagesManager.java` (openChat, getUsedTranslateStyleMode), `data/TGMessage.java` (onAttachedToView → applyWholeChatTranslation) | «Перевести чат»; язык хранится в `Settings.getWholeChatTranslateLanguage` |
+| `data/TGMessage.java` (valueOf: MessageInvoice, MessagePaidMedia; replaceMessageContent), `data/TGInlineKeyboard.java` (Buy), `telegram/TdlibUi.java` (InternalLinkTypeInvoice), `component/chat/MessageView.java` + `ui/MessagesController.java` (меню «Оплатить»), `ui/SettingsController.java` (пункт «Звёзды») | звёзды → `Tgx101Stars`, `Tgx101StarsController` |
 | `MainActivity.java` (onResume) | `Tgx101Updates.checkIfNeeded` — уведомление о новой версии |
 | `ui/MessageOptionsPagerController.java` (высота подзаголовка, getContentOffset), `ui/MessagesController.java` (updateBottomWrapOffset, onFocus) | отступ 16 dp снизу при навигации жестами, `Settings.isGestureNavigation` |
 | `data/TGMessage.java` (valueOf: unsupported), `component/chat/MessageView.java` | тип неподдерживаемого сообщения; `MessageRichMessage` → `Tgx101RichMessage` (убран из списка unsupported), «Открыть пост» |
@@ -123,6 +124,7 @@ strings /tmp/tdcheck/libtdjni.so | grep -c "$(cat tdlib/version.txt)"   # дол
 - [ ] Расшифровка голосового (Transcribe).
 - [ ] «Выделить текст» → ответ цитатой.
 - [ ] Быстрые реакции: частые — первыми.
+- [ ] Звёзды: Настройки → «Звёзды Telegram» показывает баланс и историю; счёт бота открывает подтверждение с ценой.
 - [ ] «⋮ → Перевести чат»: сообщения на другом языке переводятся в пузырях, «Показать оригинал» возвращает.
 - [ ] Теги в Избранном: кнопка в шапке, фильтр показывает только сообщения с тегом.
 

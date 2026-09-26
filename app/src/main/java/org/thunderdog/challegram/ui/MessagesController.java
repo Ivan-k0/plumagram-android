@@ -6003,6 +6003,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       } else if (id == R.id.btn_messageTranscribe) {
         VoiceTranscriptionDialog.show(this, tdlib, selectedMessage.getMessage(), selectedMessage.isSecretChat());
         return true;
+      } else if (id == R.id.btn_starsPay) {
+        org.thunderdog.challegram.data.Tgx101Stars.payForMessage(this, selectedMessage.getMessage());
+        return true;
       } else if (id == R.id.btn_messageOpenRich) {
         org.thunderdog.challegram.data.Tgx101RichMessage.open(this, selectedMessage.getMessage());
         return true;

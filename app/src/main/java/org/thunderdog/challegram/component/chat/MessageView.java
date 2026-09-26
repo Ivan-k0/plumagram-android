@@ -37,6 +37,7 @@ import org.thunderdog.challegram.data.ContentPreview;
 import org.thunderdog.challegram.data.TD;
 import org.thunderdog.challegram.data.TGMessage;
 import org.thunderdog.challegram.data.Tgx101RichMessage;
+import org.thunderdog.challegram.data.Tgx101Stars;
 import org.thunderdog.challegram.data.TGMessageBotInfo;
 import org.thunderdog.challegram.data.TGMessageLocation;
 import org.thunderdog.challegram.data.TGMessageSticker;
@@ -897,6 +898,14 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       ids.append(R.id.btn_messageTranscribe);
       strings.append(R.string.Transcribe);
       icons.append(R.drawable.baseline_translate_24);
+    }
+
+    // TGx101: pay a bot invoice or unlock paid media with Stars
+    String payLabel = !isMore ? Tgx101Stars.payLabel(msg.getMessage()) : null;
+    if (payLabel != null) {
+      ids.append(R.id.btn_starsPay);
+      strings.append(payLabel);
+      icons.append(R.drawable.baseline_star_24);
     }
 
     // TGx101: rich posts open in full in the built-in Instant View viewer

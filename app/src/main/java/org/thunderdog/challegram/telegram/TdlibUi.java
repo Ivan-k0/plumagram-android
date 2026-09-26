@@ -4092,8 +4092,6 @@ public class TdlibUi extends Handler {
       case TdApi.InternalLinkTypeWebApp.CONSTRUCTOR:
       case TdApi.InternalLinkTypeMainWebApp.CONSTRUCTOR:
 
-      case TdApi.InternalLinkTypeInvoice.CONSTRUCTOR:
-
       case TdApi.InternalLinkTypeRestorePurchases.CONSTRUCTOR:
       case TdApi.InternalLinkTypeChatBoost.CONSTRUCTOR:
       case TdApi.InternalLinkTypeGiftCollection.CONSTRUCTOR:
@@ -4120,6 +4118,14 @@ public class TdlibUi extends Handler {
       case TdApi.InternalLinkTypeStarPurchase.CONSTRUCTOR:
       case TdApi.InternalLinkTypeTextCompositionStyle.CONSTRUCTOR: {
         unsupported.run();
+        break;
+      }
+
+      case TdApi.InternalLinkTypeInvoice.CONSTRUCTOR: { // TGx101: invoices payable with Stars
+        ViewController<?> c = context instanceof ViewController<?> ? (ViewController<?>) context : context.context().navigation().getCurrentStackItem();
+        if (c != null) {
+          org.thunderdog.challegram.data.Tgx101Stars.pay(c, new TdApi.InputInvoiceName(((TdApi.InternalLinkTypeInvoice) linkType).invoiceName));
+        }
         break;
       }
 

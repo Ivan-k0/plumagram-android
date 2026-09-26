@@ -5513,6 +5513,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       }
       return MESSAGE_NOT_CHANGED;
     }
+    if (Tgx101Stars.needsReplace(message.content, newContent)) { // TGx101: bought or paid
+      return MESSAGE_REPLACE_REQUIRED;
+    }
     if (isSupportedMessageContent(message, newContent)) {
       int height = getHeight();
       int width = getWidth();
@@ -8263,6 +8266,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         case TdApi.MessageRichMessage.CONSTRUCTOR: { // TGx101: show the text, full post opens in Instant View
           return Tgx101RichMessage.valueOf(context, msg, (TdApi.MessageRichMessage) content);
         }
+        case TdApi.MessageInvoice.CONSTRUCTOR: { // TGx101: invoice text, paid with Stars
+          return Tgx101Stars.invoiceMessage(context, msg, (TdApi.MessageInvoice) content);
+        }
+        case TdApi.MessagePaidMedia.CONSTRUCTOR: { // TGx101: bought paid media is shown as a normal photo or video
+          return Tgx101Stars.paidMediaMessage(context, msg, (TdApi.MessagePaidMedia) content);
+        }
         case TdApi.MessageCall.CONSTRUCTOR: {
           return new TGMessageCall(context, msg, nonNull(((TdApi.MessageCall) content)));
         }
@@ -8486,8 +8495,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           return new TGMessageGiveaway(context, msg, (TdApi.MessageGiveaway) content);
         }
         // unsupported
-        // TGx101: MessageRichMessage is handled above (Tgx101RichMessage)
-        case TdApi.MessageInvoice.CONSTRUCTOR:
+        // TGx101: MessageRichMessage, MessageInvoice, MessagePaidMedia are handled above
         case TdApi.MessagePassportDataSent.CONSTRUCTOR:
         case TdApi.MessageStory.CONSTRUCTOR:
         case TdApi.MessageChatSetBackground.CONSTRUCTOR:
@@ -8495,7 +8503,6 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         case TdApi.MessageSuggestBirthdate.CONSTRUCTOR:
         case TdApi.MessageUsersShared.CONSTRUCTOR:
         case TdApi.MessageChatShared.CONSTRUCTOR:
-        case TdApi.MessagePaidMedia.CONSTRUCTOR:
         case TdApi.MessageGiveawayPrizeStars.CONSTRUCTOR:
         case TdApi.MessageGift.CONSTRUCTOR:
         case TdApi.MessageUpgradedGift.CONSTRUCTOR:
