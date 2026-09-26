@@ -5941,9 +5941,9 @@
   <string name="TranscriptionFailed">Couldn\'t recognize speech.</string>
   <string name="TranscriptionUnavailable">Telegram couldn\'t transcribe this message (Premium or weekly limit), and on-device speech recognition isn\'t available on this phone (needs Android 13+ and a speech recognition service).</string>
   <string name="TranscriptionLanguageUnavailable">The phone\'s speech recognizer doesn\'t support this language. Download it in the system voice input settings.</string>
-  <string name="ChatListSection">Chat list</string>
+  <string name="ChatListSection">Chats</string>
   <string name="PullToSearch">Pull down to search</string>
-  <string name="PullToSearchHint">When the chat list is already at the top, pull down once more to open search.</string>
+  <string name="PullToSearchHint">When the chat list is already at the top, pull down once more to open search. Space under the message field and menus: keeps them 16dp above the bottom edge of the screen, so they don\'t sit on the gesture bar. Only with gesture navigation: with navigation buttons there is no gap.</string>
   <string name="AttachFromMenu">Attach</string>
   <string name="PendingAttachment">Attachment</string>
   <string name="SavedTags">Tags</string>
@@ -6002,4 +6002,14 @@
   <string name="Tgx101UpdateChannel">TGx1Ø1 updates</string>
   <string name="Tgx101UpdateTitle">TGx1Ø1 %1$s is available</string>
   <string name="Tgx101UpdateText">Tap to download the new version</string>
+  <string name="Tgx101BottomGap">Space under the message field and menus</string>
+  <string name="OpenInBrowser">Open in browser</string>
+  <string name="UnsupportedKindStory">story</string>
+  <string name="UnsupportedKindPaidMedia">paid photo or video</string>
+  <string name="UnsupportedKindChecklist">checklist</string>
+  <string name="UnsupportedKindStakeDice">dice bet</string>
+  <string name="UnsupportedKindGroupCall">group call</string>
+  <string name="UnsupportedKindGift">gift</string>
+  <string name="UnsupportedKindGiveaway">giveaway prize</string>
+  <string name="UnsupportedKindShared">shared chats or users</string>
 </resources>

@@ -75,6 +75,8 @@ git submodule update --init --recursive   # обязательно сразу п
 | `ui/MainController.java` (shareIntentImpl) | `Tgx101ChatImport.tryHandle` — импорт выгрузки WhatsApp |
 | `ui/MessagesController.java` (меню ⋮) | «Экспорт чата» → `Tgx101ChatExport` |
 | `MainActivity.java` (onResume) | `Tgx101Updates.checkIfNeeded` — уведомление о новой версии |
+| `ui/MessageOptionsPagerController.java` (высота подзаголовка, getContentOffset), `ui/MessagesController.java` (updateBottomWrapOffset, onFocus) | отступ 16 dp снизу при навигации жестами, `Settings.isGestureNavigation` |
+| `data/TGMessage.java` (valueOf: unsupported), `component/chat/MessageView.java` | тип неподдерживаемого сообщения, «Открыть в браузере» |
 | `app/jni/CMakeLists.txt` | путь к `libtdjni.so` (обход опечатки в `tdlib/source/install.sh`; можно убрать, когда Telegram X её исправит) |
 
 **Важно про флаги настроек.** Если в новой версии Telegram X в `Settings.java` появятся свои

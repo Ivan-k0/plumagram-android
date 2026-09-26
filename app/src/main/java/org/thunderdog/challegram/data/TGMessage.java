@@ -5181,6 +5181,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     //return !isChannel() && messageReactions.getTotalCount() > 0 && (msg.forwardInfo == null || msg.forwardInfo.origin.getConstructor() != TdApi.MessageOriginChannel.CONSTRUCTOR);
   }
 
+  /** TGx101: a message Telegram X can't show (not an error). */
+  public boolean isUnsupportedContent () {
+    return (flags & FLAG_UNSUPPORTED) != 0 && (flags & FLAG_ERROR) == 0;
+  }
+
   public boolean canBeSelected () {
     return (!isNotSent() || canResend()) && (flags & FLAG_UNSUPPORTED) == 0 && allowInteraction() && !isSponsoredMessage() && !messagesController().inSearchMode();
   }
@@ -8524,7 +8529,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       Log.e("Cannot parse message", t);
       return valueOfError(context, msg, t);
     }
-    String unsupportedText = Lang.getString(unsupportedStringRes);
+    String unsupportedText = Tgx101Text.unsupportedText(Lang.getString(unsupportedStringRes), content); // TGx101: + kind
     TGMessageText text = new TGMessageText(context, msg, new TdApi.FormattedText(unsupportedText, new TdApi.TextEntity[]{
       new TdApi.TextEntity(0, unsupportedText.length(), new TdApi.TextEntityTypeItalic())
     }));

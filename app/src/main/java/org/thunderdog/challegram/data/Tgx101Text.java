@@ -158,4 +158,29 @@ public final class Tgx101Text {
     }
     return usernames.editableUsername != null && username.equalsIgnoreCase(usernames.editableUsername);
   }
+
+  // Unsupported messages
+
+  /** "Unsupported message (story)" — says what kind of message Telegram X can't show yet. */
+  public static String unsupportedText (String base, @Nullable TdApi.MessageContent content) {
+    int kind = content != null ? unsupportedKind(content) : 0;
+    return kind != 0 ? base + " (" + org.thunderdog.challegram.core.Lang.getString(kind) + ")" : base;
+  }
+
+  private static int unsupportedKind (TdApi.MessageContent content) {
+    switch (content.getConstructor()) {
+      case TdApi.MessageStory.CONSTRUCTOR: return org.thunderdog.challegram.R.string.UnsupportedKindStory;
+      case TdApi.MessagePaidMedia.CONSTRUCTOR: return org.thunderdog.challegram.R.string.UnsupportedKindPaidMedia;
+      case TdApi.MessageChecklist.CONSTRUCTOR: return org.thunderdog.challegram.R.string.UnsupportedKindChecklist;
+      case TdApi.MessageStakeDice.CONSTRUCTOR: return org.thunderdog.challegram.R.string.UnsupportedKindStakeDice;
+      case TdApi.MessageGroupCall.CONSTRUCTOR: return org.thunderdog.challegram.R.string.UnsupportedKindGroupCall;
+      case TdApi.MessageGift.CONSTRUCTOR:
+      case TdApi.MessageUpgradedGift.CONSTRUCTOR:
+      case TdApi.MessageRefundedUpgradedGift.CONSTRUCTOR: return org.thunderdog.challegram.R.string.UnsupportedKindGift;
+      case TdApi.MessageGiveawayPrizeStars.CONSTRUCTOR: return org.thunderdog.challegram.R.string.UnsupportedKindGiveaway;
+      case TdApi.MessageUsersShared.CONSTRUCTOR:
+      case TdApi.MessageChatShared.CONSTRUCTOR: return org.thunderdog.challegram.R.string.UnsupportedKindShared;
+      default: return 0;
+    }
+  }
 }

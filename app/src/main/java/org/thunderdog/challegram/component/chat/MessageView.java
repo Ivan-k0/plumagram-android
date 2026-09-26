@@ -898,6 +898,13 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       icons.append(R.drawable.baseline_translate_24);
     }
 
+    // TGx101: messages Telegram X can't show can be opened on the web / in another Telegram app
+    if (!isMore && msg.isUnsupportedContent() && !msg.isSecretChat()) {
+      ids.append(R.id.btn_messageOpenInBrowser);
+      strings.append(R.string.OpenInBrowser);
+      icons.append(R.drawable.baseline_open_in_browser_24);
+    }
+
     if (!isMore && msg.canBeSaved() && msg.canCopyText()) {
       if (msg.isTranslated()) {
         ids.append(R.id.btn_copyTranslation);

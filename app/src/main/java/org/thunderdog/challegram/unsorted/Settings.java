@@ -3143,6 +3143,49 @@ public class Settings {
     pmc.putBoolean(KEY_SHOW_COMMENTS_BUTTON, show);
   }
 
+  // TGx101: keep the input bar and message menus 16dp above the screen edge
+  private static final String KEY_BOTTOM_GAP = "settings_tgx101_bottom_gap";
+
+  public boolean bottomGapEnabled () {
+    return pmc.getBoolean(KEY_BOTTOM_GAP, true);
+  }
+
+  /** The 16dp gap is only for gesture navigation; with navigation buttons it isn't needed. */
+  public boolean needBottomGap () {
+    return bottomGapEnabled() && isGestureNavigation();
+  }
+
+  private static Boolean gestureNavigation;
+  private static long gestureNavigationCheckTime;
+
+  /**
+   * Gesture navigation, including OEM implementations that don't report it the AOSP way
+   * (Vivo, Xiaomi, Samsung, Huawei). Cached for a few seconds.
+   */
+  public static boolean isGestureNavigation () {
+    long now = android.os.SystemClock.uptimeMillis();
+    if (gestureNavigation != null && now - gestureNavigationCheckTime < 5000) {
+      return gestureNavigation;
+    }
+    boolean result = false;
+    try {
+      android.content.ContentResolver cr = org.thunderdog.challegram.tool.UI.getAppContext().getContentResolver();
+      result = org.thunderdog.challegram.tool.Screen.isGesturalNavigationEnabled(org.thunderdog.challegram.tool.UI.getResources()) ||
+        android.provider.Settings.Secure.getInt(cr, "navigation_mode", 0) == 2 ||
+        android.provider.Settings.Secure.getInt(cr, "navigation_gesture_on", 0) != 0 ||        // Vivo
+        android.provider.Settings.Global.getInt(cr, "force_fsg_nav_bar", 0) != 0 ||            // Xiaomi
+        android.provider.Settings.Global.getInt(cr, "navigation_bar_gesture_while_hidden", 0) != 0 || // Samsung
+        android.provider.Settings.Secure.getInt(cr, "secure_gesture_navigation", 0) != 0;      // Huawei
+    } catch (Throwable ignored) { }
+    gestureNavigation = result;
+    gestureNavigationCheckTime = now;
+    return result;
+  }
+
+  public void setBottomGapEnabled (boolean enabled) {
+    pmc.putBoolean(KEY_BOTTOM_GAP, enabled);
+  }
+
   // TGx101: extra space and a line between channel posts in the flat layout
   private static final String KEY_SEPARATE_CHANNEL_POSTS = "settings_separate_channel_posts";
 

@@ -1460,6 +1460,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     contentView.addView(bottomSpace);
     contentView.addView(bottomWrap);
+    updateBottomWrapOffset(); // TGx101: apply the bottom gap right away, insets may have arrived before bottomWrap existed
     contentView.addView(messagesView);
     contentView.addView(bottomShadowView);
 
@@ -4032,6 +4033,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   @Override
   public void onFocus () {
     super.onFocus();
+    updateBottomWrapOffset(); // TGx101
     if (promptDraftPrefillOnFocus) {
       promptDraftPrefillOnFocus = false;
       fillDraft(this.fillDraft, true);
@@ -5992,6 +5994,18 @@ public class MessagesController extends ViewController<MessagesController.Argume
         return true;
       } else if (id == R.id.btn_messageTranscribe) {
         VoiceTranscriptionDialog.show(this, tdlib, selectedMessage.getMessage(), selectedMessage.isSecretChat());
+        return true;
+      } else if (id == R.id.btn_messageOpenInBrowser) {
+        tdlib.getMessageLink(selectedMessage.getMessage(), false, false, link -> {
+          if (link == null || link.url == null) {
+            return;
+          }
+          android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link.url));
+          try {
+            // A chooser, so the link isn't caught by this app again.
+            context().startActivity(android.content.Intent.createChooser(intent, Lang.getString(R.string.OpenInBrowser)));
+          } catch (Throwable ignored) { }
+        });
         return true;
       } else if (id == R.id.btn_messageSelectText) {
         TdApi.Message message = null;
@@ -9060,6 +9074,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   public boolean onKeyboardStateChanged (boolean visible) {
+    updateBottomWrapOffset(); // TGx101: the 16dp gap under the input bar depends on the keyboard
     if (isEventLog()) {
       bottomWrap.setVisibility(visible ? View.INVISIBLE : View.VISIBLE);
       bottomSpace.setVisibility(visible ? View.INVISIBLE : View.VISIBLE);
@@ -9173,6 +9188,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private void updateBottomWrapOffset () {
     if (bottomWrap != null) {
       int height = emojiShown || commandsShown ? 0 : extraBottomInset;
+      // TGx101: lift the input bar 16dp above the screen edge (only the part the system inset
+      // doesn't already give), but not when the keyboard is open.
+      if (Settings.instance().needBottomGap() && !emojiShown && !commandsShown && !context().isKeyboardVisible() && extraBottomInset <= extraBottomInsetWithoutIme) {
+        height += Math.max(0, Screen.dp(16f) - extraBottomInset);
+      }
       Views.setPaddingBottom(bottomWrap, height);
       if (bottomSpace.setLayoutHeight(height, false)) {
         onMessagesFrameChanged();

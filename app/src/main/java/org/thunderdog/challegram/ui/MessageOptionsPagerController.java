@@ -447,19 +447,24 @@ public class MessageOptionsPagerController extends BottomSheetViewController<Opt
     }
     if (state.options.subtitle != null) {
       // FIXME: this works only for single line
-      hintHeight += Screen.dp(15f) + Screen.dp(7f) + Screen.dp(8f);
+      // TGx101: the subtitle ("Read at …") view has a 40dp minimum height (OptionsLayout.genSubtitle);
+      // counting 30dp pushed the last option of your own messages under the screen edge.
+      hintHeight += Screen.dp(40f);
     }
     return optionItemsHeight + hintHeight;
   }
 
+
   @Override
   protected int getContentOffset () {
     if (state.needShowMessageOptions) {
+      int navigationInset = Settings.instance().useEdgeToEdge() ? context().getRootView().getSystemInsetsWithoutIme().bottom : 0;
       return (getTargetHeight()
         - (Screen.dp(54) + HeaderView.getTopOffset())
         - getOptionItemsHeight()
         - Screen.dp(1)
-        - (Settings.instance().useEdgeToEdge() ? context().getRootView().getSystemInsetsWithoutIme().bottom : 0)
+        - navigationInset
+        - (Settings.instance().needBottomGap() ? Math.max(0, Screen.dp(16f) - navigationInset) : 0) // TGx101: keep the last option 16dp above the screen edge
       );
     } else {
       return Screen.currentHeight() / 2;

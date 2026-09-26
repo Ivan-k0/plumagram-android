@@ -63,9 +63,10 @@ final class Tgx101Strings {
     RU.put(R.string.TranscriptionFailed, "Не удалось распознать речь.");
     RU.put(R.string.TranscriptionUnavailable, "Telegram не смог расшифровать сообщение (нужен Premium или исчерпан недельный лимит), а распознавание на телефоне недоступно (нужен Android 13+ и сервис распознавания речи).");
     RU.put(R.string.TranscriptionLanguageUnavailable, "Распознаватель речи на телефоне не поддерживает этот язык. Скачайте его в системных настройках голосового ввода.");
-    RU.put(R.string.ChatListSection, "Список чатов");
+    RU.put(R.string.ChatListSection, "Чаты");
     RU.put(R.string.PullToSearch, "Поиск свайпом вниз");
-    RU.put(R.string.PullToSearchHint, "Когда список чатов уже в самом верху, ещё один свайп вниз открывает поиск.");
+    RU.put(R.string.Tgx101BottomGap, "Отступ под полем ввода и меню");
+    RU.put(R.string.PullToSearchHint, "Когда список чатов уже в самом верху, ещё один свайп вниз открывает поиск. Отступ под полем ввода и меню: поднимает их на 16 dp над нижним краем экрана, чтобы они не лежали на полоске жестов. Только при навигации жестами: с кнопками навигации отступа нет.");
     RU.put(R.string.AttachFromMenu, "Прикрепить");
     RU.put(R.string.PendingAttachment, "Вложение");
     RU.put(R.string.SavedTags, "Теги");
@@ -123,6 +124,15 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101UpdateChannel, "Обновления TGx1Ø1");
     RU.put(R.string.Tgx101UpdateTitle, "Вышла TGx1Ø1 %1$s");
     RU.put(R.string.Tgx101UpdateText, "Нажмите, чтобы скачать новую версию");
+    RU.put(R.string.OpenInBrowser, "Открыть в браузере");
+    RU.put(R.string.UnsupportedKindStory, "история");
+    RU.put(R.string.UnsupportedKindPaidMedia, "платное фото или видео");
+    RU.put(R.string.UnsupportedKindChecklist, "список задач");
+    RU.put(R.string.UnsupportedKindStakeDice, "ставка на кубик");
+    RU.put(R.string.UnsupportedKindGroupCall, "групповой звонок");
+    RU.put(R.string.UnsupportedKindGift, "подарок");
+    RU.put(R.string.UnsupportedKindGiveaway, "приз розыгрыша");
+    RU.put(R.string.UnsupportedKindShared, "выбранные чаты или пользователи");
   }
 
   /** Russian text for a mod string when the app language is Russian, otherwise null. */

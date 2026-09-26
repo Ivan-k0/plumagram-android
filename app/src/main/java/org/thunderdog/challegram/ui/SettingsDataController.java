@@ -226,6 +226,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(org.thunderdog.challegram.service.Tgx101Updates.isEnabled(context()), isUpdate);
         } else if (itemId == R.id.btn_separateChannelPosts) {
           view.getToggler().setRadioEnabled(Settings.instance().separateChannelPosts(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101BottomGap) {
+          view.getToggler().setRadioEnabled(Settings.instance().bottomGapEnabled(), isUpdate);
         } else if (itemId == R.id.btn_pullToSearch) {
           view.getToggler().setRadioEnabled(Settings.instance().isPullToSearchEnabled(), isUpdate);
         } else if (itemId == R.id.btn_roundStabilization) {
@@ -277,6 +279,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ChatListSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_pullToSearch, 0, R.string.PullToSearch),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101BottomGap, 0, R.string.Tgx101BottomGap),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.PullToSearchHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
@@ -582,6 +586,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_mobile, 0, R.string.OnMobileNetwork, id, tdlib.files().getVoipDataSavingOption() == DataSavingOption.MOBILE),
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_always, 0, R.string.UseLessDataAlways, id, tdlib.files().getVoipDataSavingOption() == DataSavingOption.ALWAYS)
       }).setIntDelegate(this));
+    } else if (id == R.id.btn_tgx101BottomGap) {
+      Settings.instance().setBottomGapEnabled(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_pullToSearch) {
       Settings.instance().setPullToSearchEnabled(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showDiscussButton) {
