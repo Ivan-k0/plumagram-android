@@ -1995,20 +1995,28 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       };
       runnable.removeOnCancel(UI.getAppHandler());
       UI.post(runnable, 1000l);
-      try {
-        switch (intentAction) {
-          case Intent.ACTION_SEND: {
-            shareIntentImplSingle(tdlib, intent);
-            break;
+      Runnable share = () -> {
+        try {
+          switch (intentAction) {
+            case Intent.ACTION_SEND: {
+              shareIntentImplSingle(tdlib, intent);
+              break;
+            }
+            case Intent.ACTION_SEND_MULTIPLE: {
+              shareIntentImplMultiple(tdlib, intent);
+              break;
+            }
           }
-          case Intent.ACTION_SEND_MULTIPLE: {
-            shareIntentImplMultiple(tdlib, intent);
-            break;
-          }
+        } catch (Throwable t) {
+          Log.e(t);
+          UI.showToast(R.string.ShareContentUnsupported, Toast.LENGTH_SHORT);
         }
-      } catch (Throwable t) {
-        Log.e(t);
-        UI.showToast(R.string.ShareContentUnsupported, Toast.LENGTH_SHORT);
+      };
+      try {
+        // TGx101: a shared WhatsApp chat export can be imported instead of sent as files
+        if (!Tgx101ChatImport.tryHandle(this, tdlib, intent, share)) {
+          share.run();
+        }
       } finally {
         runnable.cancel();
       }

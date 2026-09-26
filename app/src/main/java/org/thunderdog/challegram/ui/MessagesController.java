@@ -2284,6 +2284,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tdlib.context().calls().makeCall(this, TD.getUserId(chat), null);
     } else if (id == R.id.btn_savedMessagesTags) {
       showSavedMessagesTags();
+    } else if (id == R.id.btn_exportChat) {
+      Tgx101ChatExport.start(this, chat);
     } else if (id == R.id.btn_attachFromMenu) {
       hideBottomHint();
       openPendingAttachmentPicker();
@@ -4564,6 +4566,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tdlib.isSelfChat(chat.id) && previewSearchFilter == null && messageThread == null) {
       ids.append(R.id.btn_savedMessagesTags);
       strings.append(R.string.SavedTags);
+    }
+
+    // TGx101: export the chat history to a file (Android 7.0+)
+    if (!messagesHidden && Tgx101ChatExport.canExport(chat)) {
+      ids.append(R.id.btn_exportChat);
+      strings.append(R.string.ChatExport);
     }
 
     appendAttachMoreItem(ids, strings);
