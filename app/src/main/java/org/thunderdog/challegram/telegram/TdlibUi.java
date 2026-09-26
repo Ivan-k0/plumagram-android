@@ -4579,8 +4579,14 @@ public class TdlibUi extends Handler {
       strings.append(R.string.ScanQR);
     }
 
+    // TGx101: one or many proxy links from the clipboard
+    ids.append(R.id.btn_pasteProxies);
+    strings.append(R.string.ProxyPaste);
+
     OptionDelegate callback = (itemView, id) -> {
-      if (id == R.id.btn_proxySocks5) {
+      if (id == R.id.btn_pasteProxies) {
+        org.thunderdog.challegram.ui.Tgx101Proxies.pasteFromClipboard(c);
+      } else if (id == R.id.btn_proxySocks5) {
         EditProxyController e = new EditProxyController(context.context(), context.tdlib());
         e.setArguments(new EditProxyController.Args(EditProxyController.MODE_SOCKS5));
         c.navigateTo(e);

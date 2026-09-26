@@ -78,6 +78,21 @@ final class Tgx101Strings {
     RU.put(R.string.ShowDiscussButton, "Кнопка «Обсудить»");
     RU.put(R.string.ShowCommentsButton, "Кнопка комментариев под постами");
     RU.put(R.string.ChannelButtonsHint, "Без кнопки «Обсудить» группа обсуждения открывается из меню канала ⋮. Без кнопки комментариев комментарии открываются из меню поста. Чтобы изменения применились, откройте канал заново.");
+    RU.put(R.string.ProxyPaste, "Вставить из буфера");
+    RU.put(R.string.ProxyPasteNothing, "В буфере обмена нет ссылок на прокси");
+    RU.put(R.string.ProxyPasteResult, "Добавлено прокси: %1$d, уже были в списке: %2$d");
+    RU.put(R.string.ProxyCopyAll, "Скопировать все прокси");
+    RU.put(R.string.ProxyCopyAllNothing, "Нет прокси, которыми можно поделиться ссылкой");
+    RU.put(R.string.ProxyCopyAllResult, "Скопировано ссылок на прокси: %1$d");
+    RU.put(R.string.ProxyCopyAllResultHttp, "Скопировано ссылок на прокси: %1$d. HTTP-прокси (%2$d) нельзя передать ссылкой");
+    RU.put(R.string.ProxyRemoveUnavailable, "Удалить неработающие");
+    RU.put(R.string.ProxyRemoveUnavailableConfirm, "Не ответили при повторной проверке: %1$d. Удалить их?");
+    RU.put(R.string.ProxyCheckingAll, "Проверяю прокси…");
+    RU.put(R.string.ProxyCheckNoNetwork, "Ничего не отвечает. Проверьте подключение к интернету");
+    RU.put(R.string.ProxyAllAvailable, "Все прокси отвечают");
+    RU.put(R.string.ProxyShowQr, "QR-код");
+    RU.put(R.string.ProxyReturnDirect, "Возвращаться на прямое соединение");
+    RU.put(R.string.ProxyAutoSwitchHintTgx101, "Переключать автоматически: если приложение долго не может подключиться, оно пробует другие прокси и прямое соединение. Возвращаться на прямое соединение: после смены сети (Wi-Fi, мобильная), если Telegram работает без прокси, прокси выключается. Не включайте, если провайдер замедляет Telegram: проверка этого не заметит.");
   }
 
   /** Russian text for a mod string when the app language is Russian, otherwise null. */

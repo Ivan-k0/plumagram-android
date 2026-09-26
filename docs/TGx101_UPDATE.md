@@ -54,7 +54,7 @@ git submodule update --init --recursive   # обязательно сразу п
 | Файл | Наши правки |
 |---|---|
 | `ui/MessagesController.java` | «Прикрепить» (вложение над полем), подпись из поля ввода, звонок в меню, теги Избранного, кнопка тегов в шапке |
-| `unsorted/Settings.java` | новые настройки: флаги `SETTING_FLAG_*` с `1 << 21` по `1 << 25`, качество и стабилизация кружков, поиск свайпом, счётчик реакций |
+| `unsorted/Settings.java` | новые настройки: флаги `SETTING_FLAG_*` с `1 << 21` по `1 << 25`; флаг прокси `Tgx101Proxies.PROXY_FLAG_RETURN_DIRECT = 1 << 6` (проверить, что `PROXY_FLAG_*` в `Settings.java` его не заняли), качество и стабилизация кружков, поиск свайпом, счётчик реакций |
 | `ui/SettingsDataController.java` | экран «101» (`MODE_TGX101`) со всеми пунктами мода |
 | `ui/SettingsController.java`, `navigation/DrawerController.java` | пункт «101» в настройках; боковое меню без «Пригласить друзей» и «Помощь» |
 | `core/Lang.java` | русские тексты мода (`Tgx101Strings`) |
@@ -65,6 +65,7 @@ git submodule update --init --recursive   # обязательно сразу п
 | `data/TGMessage.java`, `data/TGReactions.java` | порядок реакций по частоте |
 | `player/RoundVideoRecorder.java` | качество кружков, стабилизация |
 | `util/text/Text.java` | задержка подсветки цитат и ссылок |
+| `ui/SettingsProxyController.java`, `telegram/TdlibUi.java` (addNewProxy), `telegram/TdlibManager.java` (смена сети) | вызовы `Tgx101Proxies`; в экране прокси число строк блока автопереключения — константа `AUTO_SWITCH_ITEM_COUNT` |
 | `app/jni/CMakeLists.txt` | путь к `libtdjni.so` (обход опечатки в `tdlib/source/install.sh`; можно убрать, когда Telegram X её исправит) |
 
 **Важно про флаги настроек.** Если в новой версии Telegram X в `Settings.java` появятся свои
@@ -122,6 +123,7 @@ strings /tmp/tdcheck/libtdjni.so | grep -c "$(cat tdlib/version.txt)"   # дол
 
 **Прочее**
 - [ ] Контакты в телефонной книге, кнопка «Telegram» у контакта открывает чат.
+- [ ] Прокси: вставка одной и нескольких ссылок из буфера, «Скопировать все», «Удалить неработающие», QR-код.
 - [ ] Экран «Настройки → 101»: все пункты на месте, на русском при русском языке приложения.
 - [ ] Каналы: переключатели кнопки «Обсудить» и кнопки комментариев работают.
 

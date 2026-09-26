@@ -1453,4 +1453,9 @@
   <item name="btn_showDiscussButton" type="id"/>
   <item name="btn_showCommentsButton" type="id"/>
   <item name="btn_tgx101Settings" type="id"/>
+  <item name="btn_pasteProxies" type="id"/>
+  <item name="btn_copyAllProxies" type="id"/>
+  <item name="btn_removeUnavailableProxies" type="id"/>
+  <item name="btn_proxyShowQr" type="id"/>
+  <item name="btn_proxyReturnDirect" type="id"/>
 </resources>

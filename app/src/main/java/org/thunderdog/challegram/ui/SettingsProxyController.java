@@ -90,6 +90,16 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
       }
     }
 
+    // TGx101: bulk actions with the proxy list
+    ids.append(R.id.btn_pasteProxies);
+    strings.append(R.string.ProxyPaste);
+    if (!proxies.isEmpty()) {
+      ids.append(R.id.btn_copyAllProxies);
+      strings.append(R.string.ProxyCopyAll);
+      ids.append(R.id.btn_removeUnavailableProxies);
+      strings.append(R.string.ProxyRemoveUnavailable);
+    }
+
     if (BuildConfig.DEBUG) {
       ids.append(R.id.btn_test);
       strings.append("Auto-select proxy");
@@ -125,6 +135,12 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
   public void onMoreItemPressed (int id) {
     if (id == R.id.btn_test) {
       tdlib.resolveConnectionIssues();
+    } else if (id == R.id.btn_pasteProxies) {
+      Tgx101Proxies.pasteFromClipboard(this);
+    } else if (id == R.id.btn_copyAllProxies) {
+      Tgx101Proxies.copyAll(this, proxies);
+    } else if (id == R.id.btn_removeUnavailableProxies) {
+      Tgx101Proxies.removeUnavailable(this, proxies, noProxy, this::removeProxyImpl);
     } else if (id == R.id.btn_toggleErrors) {
       Settings.instance().toggleProxySetting(Settings.PROXY_FLAG_SHOW_ERRORS);
       if (noProxy.pingError != null) {
@@ -386,12 +402,17 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.UseProxyForCallsInfo));
   }
 
+  // TGx101: + "Return to direct connection" toggle (was 4 items)
+  private static final int AUTO_SWITCH_ITEM_COUNT = 6;
+
   private static ListItem[] newAutoSwitchItems () {
     return new ListItem[] {
       new ListItem(ListItem.TYPE_SHADOW_TOP),
       new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_proxyAutoSwitch, 0, R.string.ProxyAutoSwitch),
+      new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+      new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_proxyReturnDirect, 0, R.string.ProxyReturnDirect),
       new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
-      new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.ProxyAutoSwitchHint)
+      new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.ProxyAutoSwitchHintTgx101)
     };
   }
 
@@ -407,7 +428,7 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
       } else {
         int i = adapter.indexOfViewById(R.id.btn_proxyAutoSwitch);
         if (i != -1) {
-          adapter.removeRange(i - 1, 4);
+          adapter.removeRange(i - 1, AUTO_SWITCH_ITEM_COUNT);
         }
       }
     }
@@ -468,6 +489,8 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
         final int itemId = item.getId();
         if (itemId == R.id.btn_proxyAutoSwitch) {
           view.getToggler().setRadioEnabled(Settings.instance().checkProxySetting(Settings.PROXY_FLAG_SWITCH_AUTOMATICALLY), isUpdate);
+        } else if (itemId == R.id.btn_proxyReturnDirect) {
+          view.getToggler().setRadioEnabled(Settings.instance().checkProxySetting(Tgx101Proxies.PROXY_FLAG_RETURN_DIRECT), isUpdate);
         } else if (itemId == R.id.btn_noProxy || itemId == R.id.btn_proxy) {
           Settings.Proxy proxy = (Settings.Proxy) item.getData();
           if (proxy != null) {
@@ -611,6 +634,8 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
       } else {
         Settings.instance().setProxySetting(Settings.PROXY_FLAG_SWITCH_AUTOMATICALLY, false);
       }
+    } else if (viewId == R.id.btn_proxyReturnDirect) {
+      Settings.instance().setProxySetting(Tgx101Proxies.PROXY_FLAG_RETURN_DIRECT, adapter.toggleView(v));
     } else if (viewId == R.id.btn_addProxy) {
       tdlib.ui().addNewProxy(this, false);
     } else if (viewId == R.id.btn_proxy) {
@@ -679,6 +704,12 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
       strings.append(R.string.CopyLink);
       icons.append(R.drawable.baseline_link_24);
       colors.append(OptionColor.NORMAL);
+
+      // TGx101: share the proxy as a QR code
+      ids.append(R.id.btn_proxyShowQr);
+      strings.append(R.string.ProxyShowQr);
+      icons.append(R.drawable.xt3000_baseline_qrcode_scan_24);
+      colors.append(OptionColor.NORMAL);
     }
 
     ids.append(R.id.btn_removeProxy);
@@ -699,6 +730,8 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
             UI.copyText(url, R.string.CopiedLink);
           }
         });
+      } else if (id == R.id.btn_proxyShowQr) {
+        Tgx101Proxies.showQr(this, proxy);
       } else if (id == R.id.btn_editProxy) {
         EditProxyController c = new EditProxyController(context, tdlib);
         c.setArguments(new EditProxyController.Args(proxy));
@@ -770,7 +803,7 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
   private int cellIndexToProxyIndex (int cellIndex) {
     int headerItemCount = 7;
     if (hasProxyAutoSwitchSettings) {
-      headerItemCount += 4;
+      headerItemCount += AUTO_SWITCH_ITEM_COUNT;
     }
     if (cellIndex < headerItemCount)
       return -1;
@@ -785,7 +818,7 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
   private int indexOfProxyCellByProxyIndex (int proxyIndex, int proxyId) {
     int headerItemCount = 7;
     if (hasProxyAutoSwitchSettings) {
-      headerItemCount += 4;
+      headerItemCount += AUTO_SWITCH_ITEM_COUNT;
     }
     int index = headerItemCount + proxyIndex * 2;
     if (proxyId != -1 && indexOfProxy(proxyId) != index)
@@ -795,7 +828,7 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
 
   private int indexOfProxy (int proxyId) {
     if (proxyId == Settings.PROXY_ID_NONE) {
-      return 5 + (hasProxyAutoSwitchSettings ? 4 : 0); // adapter.indexOfViewById(R.id.btn_noProxy);
+      return 5 + (hasProxyAutoSwitchSettings ? AUTO_SWITCH_ITEM_COUNT : 0); // adapter.indexOfViewById(R.id.btn_noProxy);
     } else {
       return adapter.indexOfViewByLongId(proxyId);
     }

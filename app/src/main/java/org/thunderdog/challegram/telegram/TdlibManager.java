@@ -688,6 +688,7 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
         break;
       case ACTION_DISPATCH_NETWORK_TYPE:
         global().notifyConnectionTypeChanged(msg.arg1, msg.arg2);
+        org.thunderdog.challegram.ui.Tgx101Proxies.onNetworkTypeChanged(); // TGx101
         break;
       case ACTION_DISPATCH_NETWORK_DATA_SAVER:
         global().notifySystemDataSaverStateChanged(msg.arg1 == 1);
