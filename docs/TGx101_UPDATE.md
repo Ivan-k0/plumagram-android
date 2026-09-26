@@ -65,6 +65,7 @@ git submodule update --init --recursive   # обязательно сразу п
 | `data/TGMessage.java`, `data/TGReactions.java` | порядок реакций по частоте |
 | `player/RoundVideoRecorder.java` | качество кружков, стабилизация |
 | `util/text/Text.java` | задержка подсветки цитат и ссылок |
+| `app/jni/CMakeLists.txt` | путь к `libtdjni.so` (обход опечатки в `tdlib/source/install.sh`; можно убрать, когда Telegram X её исправит) |
 
 **Важно про флаги настроек.** Если в новой версии Telegram X в `Settings.java` появятся свои
 `SETTING_FLAG_* = 1 << 21` (или 22–25), наши флаги нужно сдвинуть на свободные номера, иначе
@@ -80,6 +81,13 @@ export ANDROID_SDK_ROOT=$ANDROID_HOME PATH="$JAVA_HOME/bin:$PATH"
 
 Если Telegram X поменял версии SDK/NDK в `version.properties`, их нужно доустановить
 (`sdkmanager "platforms;android-XX" "ndk;…"`).
+
+Проверить, что нативный TDLib в APK совпадает с Java-частью (иначе возможны падения):
+
+```sh
+unzip -o -j app/build/outputs/apk/latestUniversal/release/TGx101-0.1.apk lib/arm64-v8a/libtdjni.so -d /tmp/tdcheck
+strings /tmp/tdcheck/libtdjni.so | grep -c "$(cat tdlib/version.txt)"   # должно быть больше 0
+```
 
 ## 4. Проверка на телефоне
 
