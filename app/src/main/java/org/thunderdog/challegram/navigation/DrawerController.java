@@ -288,7 +288,7 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
     items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_savedMessages, R.drawable.baseline_bookmark_24, R.string.SavedMessages));
     this.settingsClickBait = getSettingsClickBait();
     items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_settings, R.drawable.baseline_settings_24, R.string.Settings));
-    // TGX 101: no "Invite Friends" and "Help" items in the drawer.
+    // TGx101: no "Invite Friends" and "Help" items in the drawer.
 
     this.proxyAvailable = Settings.instance().getAvailableProxyCount() > 0;
     if (proxyAvailable) {
