@@ -1452,4 +1452,5 @@
   <item name="menu_btn_savedMessagesTags" type="id"/>
   <item name="btn_showDiscussButton" type="id"/>
   <item name="btn_showCommentsButton" type="id"/>
+  <item name="btn_tgx101Settings" type="id"/>
 </resources>

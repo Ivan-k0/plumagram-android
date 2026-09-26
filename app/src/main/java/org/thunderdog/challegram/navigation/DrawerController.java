@@ -288,14 +288,13 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
     items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_savedMessages, R.drawable.baseline_bookmark_24, R.string.SavedMessages));
     this.settingsClickBait = getSettingsClickBait();
     items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_settings, R.drawable.baseline_settings_24, R.string.Settings));
-    items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_invite, R.drawable.baseline_person_add_24, R.string.InviteFriends));
+    // TGX 101: no "Invite Friends" and "Help" items in the drawer.
 
     this.proxyAvailable = Settings.instance().getAvailableProxyCount() > 0;
     if (proxyAvailable) {
       proxyItem.setSelected(Settings.instance().getEffectiveProxyId() != Settings.PROXY_ID_NONE);
       items.add(proxyItem);
     }
-    items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_help, R.drawable.baseline_help_24, R.string.Help));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM_WITH_RADIO, R.id.btn_night, R.drawable.baseline_brightness_2_24, R.string.NightMode, R.id.btn_night, Theme.isDark()));
     if (Test.NEED_CLICK) {
@@ -939,8 +938,8 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
     if (this.proxyAvailable != isAvailable) {
       this.proxyAvailable = isAvailable;
       if (isAvailable) {
-        int i = adapter.indexOfViewByIdReverse(R.id.btn_help);
-        adapter.addItem(i, proxyItem);
+        int i = adapter.indexOfViewByIdReverse(R.id.btn_settings);
+        adapter.addItem(i + 1, proxyItem);
       } else {
         int i = adapter.indexOfViewById(R.id.btn_proxy);
         adapter.removeItem(i);

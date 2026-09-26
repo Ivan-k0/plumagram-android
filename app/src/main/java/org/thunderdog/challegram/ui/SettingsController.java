@@ -635,6 +635,8 @@ public class SettingsController extends ViewController<Void> implements
 
     items.add(new ListItem(notificationErrorDescriptionRes != 0 ? ListItem.TYPE_VALUED_SETTING_COMPACT : ListItem.TYPE_SETTING, R.id.btn_notificationSettings, R.drawable.baseline_notifications_24, R.string.Notifications));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101Settings, R.drawable.baseline_stars_24, R.string.Tgx101Settings));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_chatSettings, R.drawable.baseline_data_usage_24, R.string.DataSettings));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_privacySettings, R.drawable.baseline_lock_24, R.string.PrivacySettings));
@@ -1226,6 +1228,10 @@ public class SettingsController extends ViewController<Void> implements
     } else if (viewId == R.id.btn_tweakSettings) {
       SettingsThemeController c = new SettingsThemeController(context, tdlib);
       c.setArguments(new SettingsThemeController.Args(SettingsThemeController.MODE_INTERFACE_OPTIONS));
+      navigateTo(c);
+    } else if (viewId == R.id.btn_tgx101Settings) {
+      SettingsDataController c = new SettingsDataController(context, tdlib);
+      c.setArguments(new SettingsDataController.Args(SettingsDataController.MODE_TGX101));
       navigateTo(c);
     } else if (viewId == R.id.btn_chatSettings) {
       navigateTo(new SettingsDataController(context, tdlib));

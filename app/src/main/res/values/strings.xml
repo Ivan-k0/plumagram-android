@@ -5943,16 +5943,17 @@
   <string name="ChatListSection">Chat list</string>
   <string name="PullToSearch">Pull down to search</string>
   <string name="PullToSearchHint">When the chat list is already at the top, pull down once more to open search.</string>
-  <string name="AttachFromMenu">Прикрепить</string>
-  <string name="PendingAttachment">Вложение</string>
-  <string name="SavedTags">Теги</string>
-  <string name="SavedTagSubtitle">тег %1$s</string>
-  <string name="SavedTagsInfo">Реакции в Избранном работают как теги. Выберите тег, чтобы увидеть только отмеченные им сообщения.</string>
-  <string name="SavedTagsInfoPartial">Реакции в Избранном работают как теги. Показаны теги из последних 3000 сообщений.</string>
-  <string name="SavedTagsEmpty">В Избранном нет сообщений с реакциями. Поставьте реакцию на сообщение, чтобы отметить его тегом.</string>
-  <string name="SavedTagsScanning">Ищу теги в Избранном…</string>
+  <string name="AttachFromMenu">Attach</string>
+  <string name="PendingAttachment">Attachment</string>
+  <string name="SavedTags">Tags</string>
+  <string name="SavedTagSubtitle">tag %1$s</string>
+  <string name="SavedTagsInfo">Reactions in Saved Messages work as tags. Pick a tag to see only the messages marked with it.</string>
+  <string name="SavedTagsInfoPartial">Reactions in Saved Messages work as tags. Showing tags from the last 3000 messages.</string>
+  <string name="SavedTagsEmpty">No messages with reactions in Saved Messages. React to a message to tag it.</string>
+  <string name="SavedTagsScanning">Looking for tags in Saved Messages…</string>
   <string name="ChannelsSection">Channels</string>
   <string name="ShowDiscussButton">Show «Discuss» button</string>
   <string name="ShowCommentsButton">Show comments button under posts</string>
   <string name="ChannelButtonsHint">Without the «Discuss» button the discussion group opens from the channel\'s ⋮ menu. Without the comments button, comments open from the post\'s menu. Reopen the channel to apply.</string>
+  <string name="Tgx101Settings">101</string>
 </resources>
