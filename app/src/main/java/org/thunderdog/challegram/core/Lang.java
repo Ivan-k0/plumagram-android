@@ -315,7 +315,7 @@ public class Lang {
   private static String getStringImpl (@Nullable TdApi.LanguagePackInfo languagePackInfo, @StringRes int resId, boolean allowCloud) {
     if (resId == 0)
       throw new Resources.NotFoundException("resId == 0");
-    if (allowCloud) {
+    if (allowCloud && resId != R.string.AppName) { // TGx101: the cloud pack's AppName is "Telegram X"
       if (languagePackInfo == null)
         languagePackInfo = Settings.instance().getLanguagePackInfo();
       final String key = getResourceEntryName(resId);
@@ -431,7 +431,7 @@ public class Lang {
     if (formatArgs == null || formatArgs.length == 0)
       return getStringImpl(null, resId, allowCloud);
     final boolean hasSpanned = hasSpanned(formatArgs);
-    if (allowCloud) {
+    if (allowCloud && resId != R.string.AppName) { // TGx101: the cloud pack's AppName is "Telegram X"
       if (languagePackInfo == null)
         languagePackInfo = Settings.instance().getLanguagePackInfo();
       final String key = getResourceEntryName(resId);
