@@ -758,10 +758,11 @@ android {
         }
       }.toString()
 
-      // Mod build number: commits on top of upstream 9312ace, so every mod build
-      // gets a higher versionCode and installs over the previous one.
+      // Mod build number: count of TGx101 commits (by the mod author), so every mod build
+      // gets a higher versionCode and installs over the previous one. Doesn't depend on
+      // the upstream base, so nothing here changes when moving to a new Telegram X version.
       val modBuild = providers.exec {
-        commandLine("git", "rev-list", "--count", "9312ace..HEAD")
+        commandLine("git", "rev-list", "--count", "--author=188923247+Ivan-k0@users.noreply.github.com", "HEAD")
         workingDir(rootDir)
       }.standardOutput.asText.get().trim().toIntOrNull() ?: 0
       require(modBuild in 0..999) { "modBuild out of range: $modBuild" }
