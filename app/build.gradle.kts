@@ -107,8 +107,9 @@ val validateApiTokens = tasks.register<ValidateApiTokensTask>("validateApiTokens
   applicationId.set(
     config.applicationId
   )
+  // A builder's own Firebase config in src/release (kept out of git) wins over the upstream one.
   googleServicesJson.set(layout.projectDirectory.file(
-    "google-services.json"
+    if (file("src/release/google-services.json").exists()) "src/release/google-services.json" else "google-services.json"
   ))
 }
 val fetchLocalizedStrings = tasks.register<FetchLocalizedStringsTask>("fetchLocalizedStrings") {
