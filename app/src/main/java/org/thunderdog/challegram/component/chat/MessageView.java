@@ -794,6 +794,14 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
         }
       }
 
+      if (msg.isChannel() && !Settings.instance().showCommentsButton() && msg.findMessageWithReplyInfo() != null) {
+        TdApi.Message withReplies = msg.findMessageWithReplyInfo();
+        int replyCount = TD.getReplyCount(withReplies.interactionInfo);
+        strings.append(replyCount > 0 ? Lang.plural(R.string.ViewXComments, replyCount) : Lang.getString(R.string.LeaveComment));
+        ids.append(R.id.btn_messageReplies);
+        icons.append(R.drawable.outline_forum_24);
+      }
+
       if (m.canWriteMessagesOrWaitingForReply() && isSent && msg.canReplyTo()) {
         if (msg.getMessage().content.getConstructor() == TdApi.MessageDice.CONSTRUCTOR && !msg.tdlib().hasRestriction(msg.getMessage().chatId, RightId.SEND_OTHER_MESSAGES)) {
           String emoji = ((TdApi.MessageDice) msg.getMessage().content).emoji;
