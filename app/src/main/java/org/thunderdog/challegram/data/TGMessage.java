@@ -2647,6 +2647,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (currentViews.attachToView(view) && view != null) {
       onMessageAttachedToView(view, true);
     }
+    if (view != null) {
+      applyWholeChatTranslation();
+    }
   }
 
   public final void onDetachedFromView (@Nullable MessageView view) {
@@ -9686,6 +9689,33 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   public void stopTranslated () {
     translatedCounterForceShow = false;
     mTranslationsManager.stopTranslation();
+  }
+
+  // TGx101: whole chat translation. Language is detected only once the message is on screen
+  private @Nullable String wholeChatTranslationTarget;
+  private boolean translatedByWholeChat;
+
+  public void applyWholeChatTranslation () {
+    final String target = manager().getWholeChatTranslateLanguage();
+    if (target == null) {
+      wholeChatTranslationTarget = null;
+      if (translatedByWholeChat) {
+        translatedByWholeChat = false;
+        stopTranslated();
+      }
+      return;
+    }
+    if (target.equals(wholeChatTranslationTarget) || !hasAttachedToAnything()) {
+      return;
+    }
+    wholeChatTranslationTarget = target;
+    checkTranslatableText(() -> {
+      if (!target.equals(manager().getWholeChatTranslateLanguage()) || !isTranslatable() || StringUtils.equalsOrBothEmpty(target, getOriginalMessageLanguage())) {
+        return;
+      }
+      translatedByWholeChat = true;
+      mTranslationsManager.requestTranslation(target);
+    });
   }
 
   public int translationStyleMode () {

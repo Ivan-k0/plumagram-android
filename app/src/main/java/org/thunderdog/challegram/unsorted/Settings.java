@@ -3219,6 +3219,22 @@ public class Settings {
     pmc.putBoolean(KEY_HIDE_PROXY_SPONSOR, hide);
   }
 
+  // TGx101: translate a whole chat. Stores the target language per account and chat
+  private static final String KEY_CHAT_TRANSLATE_LANGUAGE_PREFIX = "tgx101_chat_translate_";
+
+  public @Nullable String getWholeChatTranslateLanguage (int accountId, long chatId) {
+    return pmc.getString(KEY_CHAT_TRANSLATE_LANGUAGE_PREFIX + accountId + "_" + chatId, null);
+  }
+
+  public void setWholeChatTranslateLanguage (int accountId, long chatId, @Nullable String language) {
+    String key = KEY_CHAT_TRANSLATE_LANGUAGE_PREFIX + accountId + "_" + chatId;
+    if (StringUtils.isEmpty(language)) {
+      pmc.remove(key);
+    } else {
+      pmc.putString(key, language);
+    }
+  }
+
   // Video message stabilization. CAMERA2 uses Camera2 preview stabilization (Android 13+)
   // and falls back to GYRO when the device doesn't support it.
   public static final int ROUND_STABILIZATION_OFF = 0;

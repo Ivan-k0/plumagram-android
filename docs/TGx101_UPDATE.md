@@ -74,6 +74,7 @@ git submodule update --init --recursive   # обязательно сразу п
 | `app/build.gradle.kts` (`resValue AppName`) | отображаемое имя TGx1Ø1 |
 | `ui/MainController.java` (shareIntentImpl) | `Tgx101ChatImport.tryHandle` — импорт выгрузки WhatsApp |
 | `ui/MessagesController.java` (меню ⋮) | «Экспорт чата» → `Tgx101ChatExport` |
+| `ui/MessagesController.java` (меню ⋮), `component/chat/MessagesManager.java` (openChat, getUsedTranslateStyleMode), `data/TGMessage.java` (onAttachedToView → applyWholeChatTranslation) | «Перевести чат»; язык хранится в `Settings.getWholeChatTranslateLanguage` |
 | `MainActivity.java` (onResume) | `Tgx101Updates.checkIfNeeded` — уведомление о новой версии |
 | `ui/MessageOptionsPagerController.java` (высота подзаголовка, getContentOffset), `ui/MessagesController.java` (updateBottomWrapOffset, onFocus) | отступ 16 dp снизу при навигации жестами, `Settings.isGestureNavigation` |
 | `data/TGMessage.java` (valueOf: unsupported), `component/chat/MessageView.java` | тип неподдерживаемого сообщения; `MessageRichMessage` → `Tgx101RichMessage` (убран из списка unsupported), «Открыть пост» |
@@ -122,6 +123,7 @@ strings /tmp/tdcheck/libtdjni.so | grep -c "$(cat tdlib/version.txt)"   # дол
 - [ ] Расшифровка голосового (Transcribe).
 - [ ] «Выделить текст» → ответ цитатой.
 - [ ] Быстрые реакции: частые — первыми.
+- [ ] «⋮ → Перевести чат»: сообщения на другом языке переводятся в пузырях, «Показать оригинал» возвращает.
 - [ ] Теги в Избранном: кнопка в шапке, фильтр показывает только сообщения с тегом.
 
 **Интерфейс**

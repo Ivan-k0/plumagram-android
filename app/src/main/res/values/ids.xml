@@ -1464,6 +1464,7 @@
   <item name="btn_exportChat" type="id"/>
   <item name="btn_exportChatHtml" type="id"/>
   <item name="btn_exportChatTxt" type="id"/>
+  <item name="btn_translateWholeChat" type="id"/>
   <item name="btn_importChat" type="id"/>
   <item name="btn_tgx101CheckUpdates" type="id"/>
   <item name="btn_tgx101BottomGap" type="id"/>

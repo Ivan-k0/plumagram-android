@@ -5976,6 +5976,8 @@
   <string name="HideSubscribeLink">Hide «Subscribe» link under posts</string>
   <string name="SeparateChannelPosts">Space and line between posts</string>
   <string name="ChatExport">Export chat</string>
+  <string name="TranslateWholeChat">Translate chat</string>
+  <string name="TranslateWholeChatOff">Show original</string>
   <string name="ChatExportFormatHint">The whole chat history is saved to Downloads/TGx101 as a file. Only text: photos, videos and voice messages are marked like [Photo].</string>
   <string name="ChatExportHtml">Web page (HTML) — for reading</string>
   <string name="ChatExportTxt">Plain text (TXT)</string>

@@ -798,6 +798,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     this.useReactionBubblesValue = checkReactionBubbles();
     this.usedTranslateStyleMode = checkTranslateStyleMode();
     this.wasScrollByUser = false;
+    this.wholeChatTranslateLanguage = chat.id != 0 && !areScheduled ? Settings.instance().getWholeChatTranslateLanguage(tdlib.id(), chat.id) : null;
   }
 
   public void loadPreview () {
@@ -1019,7 +1020,31 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
   }
 
   public int getUsedTranslateStyleMode () {
+    // TGx101: translated chats always show translations inside the messages
+    if (wholeChatTranslateLanguage != null && usedTranslateStyleMode != Settings.TRANSLATE_MODE_NONE) {
+      return Settings.TRANSLATE_MODE_INLINE;
+    }
     return usedTranslateStyleMode;
+  }
+
+  // TGx101: translate the whole chat. Each message translates itself when it appears on screen
+  private @Nullable String wholeChatTranslateLanguage;
+
+  public @Nullable String getWholeChatTranslateLanguage () {
+    return usedTranslateStyleMode != Settings.TRANSLATE_MODE_NONE ? wholeChatTranslateLanguage : null;
+  }
+
+  public void setWholeChatTranslateLanguage (@Nullable String language) {
+    long chatId = loader.getChatId();
+    if (chatId == 0) return;
+    this.wholeChatTranslateLanguage = language;
+    Settings.instance().setWholeChatTranslateLanguage(tdlib.id(), chatId, language);
+    ArrayList<TGMessage> items = adapter.getItems();
+    if (items != null) {
+      for (TGMessage item : items) {
+        item.applyWholeChatTranslation();
+      }
+    }
   }
 
   @Nullable
