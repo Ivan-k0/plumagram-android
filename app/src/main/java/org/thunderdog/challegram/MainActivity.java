@@ -1525,6 +1525,7 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     // Log.e("%s", Strings.getHexColor(U.compositeColor(Theme.headerColor(), Theme.getColor(ColorId.statusBar)), false));
     tdlib.contacts().makeSilentPermissionCheck(this);
     KeepAliveService.sync(this);
+    org.thunderdog.challegram.service.Tgx101Updates.checkIfNeeded(this); // TGx101: once a day
     if (!tdlib.account().isUnauthorized() && !TGCallService.requestFullScreenIntentOnce(this)) {
       KeepAliveService.requestIgnoreBatteryOptimizationsOnce(this);
     }
