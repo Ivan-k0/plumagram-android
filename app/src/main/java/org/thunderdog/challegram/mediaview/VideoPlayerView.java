@@ -162,6 +162,9 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     if (this.currentItem == mediaItem) {
       return;
     }
+    if (this.currentItem != null && player != null && !isDetached) {
+      Tgx101VideoResume.save(this.currentItem, player.getCurrentPosition(), player.getDuration());
+    }
     this.currentItem = mediaItem;
     if (isDetached) {
       return;
@@ -248,6 +251,11 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     if (seekToSavedPosition) {
       seekToSavedPosition = false;
       player.seekTo(savedPosition);
+    } else {
+      long resumePosition = Tgx101VideoResume.get(mediaItem);
+      if (resumePosition > 0) {
+        player.seekTo(resumePosition);
+      }
     }
     if (forcePlay) {
       setPlaying(true);

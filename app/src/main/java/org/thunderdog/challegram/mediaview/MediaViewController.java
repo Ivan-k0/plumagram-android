@@ -3502,10 +3502,18 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       return true;
     }
     if (inSlideMode) {
-      dropSlideMode(velocityX, velocityY, Math.max(Math.abs(velocityX), Math.abs(velocityY)) > Screen.dp(50f));
+      // TGx101: only a moderate swipe down closes the viewer, not any tiny flick either way
+      boolean apply =
+        (velocityY >= Screen.dp(TGX101_CLOSE_FLING_DP) && lastSlideY >= Screen.dp(TGX101_CLOSE_FLING_MIN_DISTANCE_DP) && velocityY > Math.abs(velocityX)) ||
+        (lastSlideY >= Screen.dp(TGX101_CLOSE_DISTANCE_DP) && velocityY >= 0f);
+      dropSlideMode(apply ? 0f : velocityX, velocityY, apply);
     }
     return false;
   }
+
+  private static final float TGX101_CLOSE_FLING_DP = 700f;
+  private static final float TGX101_CLOSE_FLING_MIN_DISTANCE_DP = 56f;
+  private static final float TGX101_CLOSE_DISTANCE_DP = 140f;
 
   private boolean canCloseBySlide () {
     return mode != MODE_SECRET && (mode != MODE_GALLERY || currentSection == SECTION_CAPTION) && !mediaView.isZoomed() && !inCaption;
@@ -5031,7 +5039,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             if (listenCloseBySlide) {
               float x = e.getX();
               float y = e.getY();
-              if (Math.abs(startY - y) >= Screen.getTouchSlopBig() && Math.abs(startX - x) < Screen.getTouchSlop() * 1.65f) {
+              if (startY - y >= Screen.getTouchSlopBig()) {
+                // TGx101: swipe up doesn't close the viewer
+                listenCloseBySlide = false;
+                break;
+              }
+              if (y - startY >= Screen.getTouchSlopBig() && Math.abs(startX - x) < Screen.getTouchSlop() * 1.65f) {
                 mediaView.dropPreview(MediaView.DIRECTION_AUTO, 0f);
                 listenCloseBySlide = false;
                 slideStartX = x;
@@ -5086,7 +5099,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             if (inSlideMode) {
               float x = e.getX();
               float y = e.getY();
-              setSlide(x - slideStartX, y - slideStartY, slideStartX, false, true);
+              setSlide(x - slideStartX, Math.max(0f, y - slideStartY), slideStartX, false, true);
               return true;
             }
             break;
@@ -5098,7 +5111,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
               return true;
             }
             if (inSlideMode) {
-              dropSlideMode(0f, 0f, false);
+              boolean apply = e.getAction() == MotionEvent.ACTION_UP && lastSlideY >= Screen.dp(TGX101_CLOSE_DISTANCE_DP);
+              dropSlideMode(0f, apply ? 1f : 0f, apply);
             }
             break;
           }
