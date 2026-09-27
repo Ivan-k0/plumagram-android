@@ -1758,6 +1758,7 @@ public class TdlibUi extends Handler {
     public TdApi.ChatInviteLinkInfo inviteLinkInfo;
     public ThreadInfo threadInfo;
     public TdApi.MessageTopic messageTopicId;
+    public boolean tgx101IgnoreTopics; // TGx101: open a forum as one feed instead of its topics
     public TdApi.SearchMessagesFilter filter;
     public TdApi.InternalLinkTypeVideoChat videoChatOrLiveStreamInvitation;
     public TdApi.FormattedText fillDraft;
@@ -2152,6 +2153,32 @@ public class TdlibUi extends Handler {
         after.runWithLong(chat.id);
       }
       params.onDone();
+      return;
+    }
+
+    // TGx101: a message in a forum (from a notification or a link) opens inside its topic
+    if (messageThread == null && messageTopicId == null && params != null && !params.tgx101IgnoreTopics && params.highlightSet && params.highlightMessageId != null &&
+      (params.highlightMode == MessagesManager.HIGHLIGHT_MODE_NORMAL || params.highlightMode == MessagesManager.HIGHLIGHT_MODE_NORMAL_NEXT) &&
+      org.thunderdog.challegram.ui.Tgx101TopicsController.shouldOpenTopics(tdlib, chat)) {
+      params.tgx101IgnoreTopics = true;
+      tdlib.send(new TdApi.GetMessage(chat.id, params.highlightMessageId.getMessageId()), (message, error) -> {
+        if (message != null && message.topicId instanceof TdApi.MessageTopicForum) {
+          params.messageTopicId = message.topicId;
+        }
+        openChat(context, chat, params);
+      });
+      return;
+    }
+
+    // TGx101: a forum group opens as its list of topics, unless a topic, message or search is requested
+    if (messageThread == null && messageTopicId == null && !onlyScheduled && shareItem == null && voiceChatInvitation == null && forceDraft == null &&
+      (params == null || (!params.tgx101IgnoreTopics && StringUtils.isEmpty(params.searchQuery) &&
+        !(params.highlightSet && (params.highlightMode == MessagesManager.HIGHLIGHT_MODE_NORMAL || params.highlightMode == MessagesManager.HIGHLIGHT_MODE_NORMAL_NEXT)))) &&
+      org.thunderdog.challegram.ui.Tgx101TopicsController.shouldOpenTopics(tdlib, chat)) {
+      org.thunderdog.challegram.ui.Tgx101TopicsController.open(context, chat, chatList);
+      if (params != null) {
+        params.onDone();
+      }
       return;
     }
 

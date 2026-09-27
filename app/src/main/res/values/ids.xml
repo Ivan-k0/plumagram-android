@@ -1437,6 +1437,13 @@
   <item name="btn_roundVideoQuality" type="id"/>
   <item name="btn_roundQualitySd" type="id"/>
   <item name="btn_bigEmojiSize" type="id"/>
+  <item name="controller_tgx101Topics" type="id"/>
+  <item name="btn_tgx101ShowTopics" type="id"/>
+  <item name="btn_tgx101TopicEdit" type="id"/>
+  <item name="btn_tgx101TopicPin" type="id"/>
+  <item name="btn_tgx101TopicClose" type="id"/>
+  <item name="btn_tgx101TopicHide" type="id"/>
+  <item name="btn_tgx101TopicDelete" type="id"/>
   <item name="btn_bigEmojiSizeOff" type="id"/>
   <item name="btn_bigEmojiSize60" type="id"/>
   <item name="btn_bigEmojiSize80" type="id"/>

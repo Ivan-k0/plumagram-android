@@ -2302,6 +2302,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (chat.videoChat != null && chat.videoChat.groupCallId != 0) {
         Tgx101GroupCallController.join(this, chat.id, chat.videoChat.groupCallId, null);
       }
+    } else if (id == R.id.btn_tgx101ShowTopics) {
+      Tgx101TopicsController.showTopics(this, chat);
     } else if (id == R.id.btn_tgx101VoiceChatStart) {
       Tgx101GroupCallController.start(this, chat.id);
     } else if (id == R.id.btn_translateWholeChat) {
@@ -2829,6 +2831,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     TdApi.Chat headerChat = messageThread != null ? tdlib.chatSync(messageThread.getContextChatId()) : null;
     headerCell.setChat(tdlib, headerChat != null ? headerChat : chat, messageThread);
+    Tgx101TopicsController.bindTopicHeader(this, headerCell, chat, messageTopicId); // TGx101: topic name in forum topics
 
     if (inPreviewMode) {
       switch (previewMode) {
@@ -4591,6 +4594,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tdlib.isSelfChat(chat.id) && previewSearchFilter == null && messageThread == null) {
       ids.append(R.id.btn_savedMessagesTags);
       strings.append(R.string.SavedTags);
+    }
+
+    // TGx101: a forum opened as one feed can switch back to its topics
+    if (messageThread == null && messageTopicId == null && !areScheduledOnly() && tdlib.isForum(chat.id)) {
+      ids.append(R.id.btn_tgx101ShowTopics);
+      strings.append(R.string.Tgx101TopicsShow);
     }
 
     // TGx101: join the chat's voice chat, or start one
