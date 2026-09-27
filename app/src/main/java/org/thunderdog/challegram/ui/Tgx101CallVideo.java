@@ -67,8 +67,9 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
     buttons.setOrientation(LinearLayout.HORIZONTAL);
     buttons.setGravity(Gravity.CENTER);
     FrameLayout.LayoutParams buttonsParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
-    buttonsParams.bottomMargin = Screen.dp(100f);
+    buttonsParams.bottomMargin = Screen.dp(196f); // above the end call button
     contentView.addView(buttons, buttonsParams);
+    contentView.post(() -> contentView.bringChildToFront(buttons)); // above the call controls layer, which covers the screen
     cameraButton = addButton(buttons, R.drawable.baseline_videocam_24, v -> toggleCamera());
     switchButton = addButton(buttons, R.drawable.baseline_camera_front_24, v -> {
       Tgx101Video.switchCamera();
