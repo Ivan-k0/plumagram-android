@@ -436,7 +436,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
     avatarView.setUser(tdlib, user, false);
     contentView.addView(avatarView);
     callBackground.setPhotoView(isCircle ? avatarView : null);
-    callVideo = new Tgx101CallVideo(this, contentView, contentView.indexOfChild(avatarView) + 1, avatarView); // TGx101: video calls
+    callVideo = new Tgx101CallVideo(this, contentView, contentView.indexOfChild(avatarView) + 1, this::enableSpeakerForVideo, avatarView); // TGx101: video calls
 
     FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
 
@@ -890,6 +890,19 @@ public class CallController extends ViewController<CallController.Arguments> imp
           callSettings.toggleSpeakerMode(this);
         }
       }
+    }
+  }
+
+  // TGx101: video turns the loudspeaker on unless headphones or Bluetooth are in use
+  private void enableSpeakerForVideo () {
+    if (call == null || TD.isFinished(call)) return;
+    android.media.AudioManager audio = (android.media.AudioManager) context().getSystemService(Context.AUDIO_SERVICE);
+    if (audio == null || audio.isWiredHeadsetOn() || audio.isBluetoothScoOn() || audio.isBluetoothA2dpOn()) return;
+    if (callSettings == null) {
+      callSettings = new CallSettings(tdlib, call.id);
+    }
+    if (!callSettings.isSpeakerModeEnabled()) {
+      callSettings.setSpeakerMode(CallSettings.SPEAKER_MODE_SPEAKER);
     }
   }
 

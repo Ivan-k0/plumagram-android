@@ -40,10 +40,13 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
   private final ImageView cameraButton, switchButton;
   private final android.widget.TextView qualityButton;
   private final View[] hideWhenRemoteVideo;
+  private final Runnable onVideoStarted;
+  private boolean videoWasOn;
 
   /** Adds the video views to the call screen at the given index (above the background and photo). */
-  Tgx101CallVideo (ViewController<?> controller, FrameLayout contentView, int index, View... hideWhenRemoteVideo) {
+  Tgx101CallVideo (ViewController<?> controller, FrameLayout contentView, int index, Runnable onVideoStarted, View... hideWhenRemoteVideo) {
     this.controller = controller;
+    this.onVideoStarted = onVideoStarted;
     this.hideWhenRemoteVideo = hideWhenRemoteVideo;
 
     remoteView = new SurfaceViewRenderer(controller.context());
@@ -144,6 +147,10 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
     boolean camera = Tgx101Video.isCameraEnabled();
     boolean remote = Tgx101Video.isRemoteVideoActive();
     setKeepScreenOn(camera || remote);
+    if ((camera || remote) && !videoWasOn) {
+      onVideoStarted.run(); // loudspeaker, as in the official app
+    }
+    videoWasOn = camera || remote;
     localView.setVisibility(camera ? View.VISIBLE : View.GONE);
     remoteView.setVisibility(remote ? View.VISIBLE : View.GONE);
     for (View view : hideWhenRemoteVideo) {
