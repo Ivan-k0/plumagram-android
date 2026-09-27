@@ -77,6 +77,7 @@ git submodule update --init --recursive   # обязательно сразу п
 | `ui/MessagesController.java` (меню ⋮), `component/chat/MessagesManager.java` (openChat, getUsedTranslateStyleMode), `data/TGMessage.java` (onAttachedToView → applyWholeChatTranslation) | «Перевести чат»; язык хранится в `Settings.getWholeChatTranslateLanguage` |
 | `data/TGMessage.java` (valueOf: MessageInvoice, MessagePaidMedia; replaceMessageContent), `data/TGInlineKeyboard.java` (Buy), `telegram/TdlibUi.java` (InternalLinkTypeInvoice), `component/chat/MessageView.java` + `ui/MessagesController.java` (меню «Оплатить»), `ui/SettingsController.java` (пункт «Звёзды») | звёзды → `Tgx101Stars`, `Tgx101StarsController` |
 | `ui/CallController.java` (onCreateView: фон, фото круг / на весь экран / нет, текст по центру; updateControlsAlpha без сдвига кнопок) | экран звонка → `Tgx101CallBackground`, `Settings.getCallPhotoMode/getCallPattern` |
+| `config/Config.java` (`DEFAULT_WINDOW_PARAMS`: STATE_UNCHANGED), `AndroidManifest.xml` (MainActivity stateUnchanged) | клавиатура не прячется при возврате в приложение |
 | `res/values/colors.xml` (`splash`) | заставка всегда тёмная |
 | `ui/MessagesController.java` (updateBottomBar), `ui/SettingsDataController.java` | `Settings.showChannelMuteButton` — кнопка уведомлений в каналах |
 | `kotlin/tgx/td/TdExt.kt` (`isUnsupported` → false), `data/TGReaction.java` (конструктор для ⭐), `telegram/Tdlib.java` (getReaction: ReactionTypePaid), `data/TGReactions.java` (toggleReaction) | звёздные реакции → `Tgx101Stars.sendPaidReaction` |

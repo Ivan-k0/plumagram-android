@@ -242,7 +242,8 @@ public class Config {
   public static final int VIDEO_RESOLUTION = 640;
   public static final int VIDEO_BITRATE = 800 * 1000;
 
-  public static final int DEFAULT_WINDOW_PARAMS = WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE;
+  // TGx101: STATE_UNCHANGED instead of STATE_HIDDEN, so returning to the app keeps an open keyboard
+  public static final int DEFAULT_WINDOW_PARAMS = WindowManager.LayoutParams.SOFT_INPUT_STATE_UNCHANGED | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE;
 
   public static final int MAX_ROBOT_ID = 9;
   public static final int ROBOT_ID_PREFIX = 50;
