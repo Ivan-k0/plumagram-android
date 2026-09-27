@@ -436,7 +436,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
     avatarView.setUser(tdlib, user, false);
     contentView.addView(avatarView);
     callBackground.setPhotoView(isCircle ? avatarView : null);
-    callVideo = new Tgx101CallVideo(this, contentView, contentView.indexOfChild(avatarView) + 1, this::enableSpeakerForVideo, avatarView); // TGx101: video calls
+    callVideo = new Tgx101CallVideo(this, contentView, contentView.indexOfChild(avatarView) + 1, newCallVideoHost(), avatarView); // TGx101: call panel and video
 
     FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
 
@@ -690,6 +690,8 @@ public class CallController extends ViewController<CallController.Arguments> imp
     callControlsLayout.setCallback(this);
     callControlsLayout.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     contentView.addView(callControlsLayout);
+    callVideo.setOriginalControls(buttonWrap, callControlsLayout); // TGx101: replaced by one panel during outgoing and active calls
+    callVideo.onCallStateChanged(call);
     callControlsLayout.setCall(tdlib, call, false);
 
     // Data
@@ -893,6 +895,58 @@ public class CallController extends ViewController<CallController.Arguments> imp
     }
   }
 
+  // TGx101: the call panel uses the call screen's own actions
+  private Tgx101CallVideo.Host newCallVideoHost () {
+    return new Tgx101CallVideo.Host() {
+      @Override
+      public boolean isMicMuted () {
+        return callSettings != null && callSettings.isMicMuted();
+      }
+
+      @Override
+      public void toggleMicMuted () {
+        if (TD.isFinished(call)) return;
+        if (callSettings == null) {
+          callSettings = new CallSettings(tdlib, call.id);
+        }
+        callSettings.setMicMuted(!callSettings.isMicMuted());
+      }
+
+      @Override
+      public boolean isSpeakerOn () {
+        return callSettings != null && callSettings.isSpeakerModeEnabled();
+      }
+
+      @Override
+      public void toggleSpeaker () {
+        if (TD.isFinished(call)) return;
+        if (callSettings == null) {
+          callSettings = new CallSettings(tdlib, call.id);
+        }
+        if (callSettings.isSpeakerModeEnabled()) {
+          callSettings.setSpeakerMode(CallSettings.SPEAKER_MODE_EARPIECE);
+        } else {
+          callSettings.toggleSpeakerMode(CallController.this);
+        }
+      }
+
+      @Override
+      public void openChat () {
+        tdlib.ui().openPrivateChat(CallController.this, call.userId, null);
+      }
+
+      @Override
+      public void hangUp () {
+        tdlib.context().calls().hangUp(tdlib, call.id);
+      }
+
+      @Override
+      public void onVideoStarted () {
+        enableSpeakerForVideo();
+      }
+    };
+  }
+
   // TGx101: video turns the loudspeaker on unless headphones or Bluetooth are in use
   private void enableSpeakerForVideo () {
     if (call == null || TD.isFinished(call)) return;
@@ -949,6 +1003,9 @@ public class CallController extends ViewController<CallController.Arguments> imp
       closeCall();
     } else {
       callControlsLayout.setCall(tdlib, call, navigationController != null);
+      if (callVideo != null) {
+        callVideo.onCallStateChanged(call); // TGx101
+      }
     }
   }
 
@@ -1055,6 +1112,9 @@ public class CallController extends ViewController<CallController.Arguments> imp
     if (buttonWrap != null) {
       muteButtonView.setIsActive(callSettings != null && callSettings.isMicMuted(), isFocused());
       speakerButtonView.setIsActive(callSettings != null && callSettings.isSpeakerModeEnabled(), isFocused());
+      if (callVideo != null) {
+        callVideo.updateControls(); // TGx101
+      }
     }
   }
 
