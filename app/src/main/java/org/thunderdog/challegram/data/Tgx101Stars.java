@@ -230,6 +230,13 @@ public final class Tgx101Stars {
           price = ((TdApi.PaymentFormTypeStarSubscription) form.type).pricing.starCount;
           isSubscription = true;
           break;
+        case TdApi.PaymentFormTypeRegular.CONSTRUCTOR:
+          UI.post(() -> {
+            if (!c.isDestroyed()) {
+              org.thunderdog.challegram.ui.Tgx101CardPayment.start(c, invoice, form);
+            }
+          });
+          return;
         default:
           UI.post(() -> UI.showToast(R.string.StarsCardUnsupported, Toast.LENGTH_LONG));
           return;

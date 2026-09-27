@@ -1,7 +1,8 @@
 #!/bin/zsh
 # TGx101 public release build (package com.tgx101.app).
 # Builds Android 7+ (arm64, arm7, universal) and Android 6, 5, 4.1–4.4 APKs into
-# $TGX101_OUT/TGx101-<version>/ (default ~/Desktop/TGX/Версии). Pass "--no-old" to skip Android 4–6.
+# $TGX101_OUT/TGx101-<version>/ (default ~/Desktop/TGX/Версии). Pass "--no-old" to skip Android 4–6,
+# "--no-android4" to skip only Android 4.1–4.4.
 set -u
 cd "$(dirname "$0")/../.."
 export JAVA_HOME=${JAVA_HOME:-/opt/homebrew/opt/openjdk@21} ANDROID_HOME=${ANDROID_HOME:-$HOME/Library/Android/sdk}
@@ -26,7 +27,7 @@ build LatestUniversal latestUniversal "" TGx101-$VER-universal.apk
 if [[ "${1:-}" != "--no-old" ]]; then
   build LollipopUniversal lollipopUniversal "" TGx101-$VER-android5.apk
   build MarshmallowUniversal marshmallowUniversal "" TGx101-$VER-android6.apk
-  build LegacyArm32 legacyArm32 "-PuseLegacyNdk=true" TGx101-$VER-android4.apk
+  [[ "${1:-}" != "--no-android4" ]] && build LegacyArm32 legacyArm32 "-PuseLegacyNdk=true" TGx101-$VER-android4.apk
 fi
 rm -rf vkryl/leveldb/jni/leveldb/out vkryl/leveldb/.cxx
 cp app/src/main/res/mipmap-xxxhdpi/app_launcher.png "$OUT/TGx101-icon.png" 2>/dev/null || true

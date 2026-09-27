@@ -632,6 +632,8 @@ public class SettingsController extends ViewController<Void> implements
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101Settings, R.drawable.baseline_stars_24, R.string.Tgx101Settings));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101Stars, R.drawable.baseline_star_24, R.string.Tgx101Stars));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101Premium, R.drawable.baseline_stars_24, R.string.Tgx101Premium));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_devices, R.drawable.baseline_devices_other_24, R.string.Devices));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
@@ -1232,6 +1234,8 @@ public class SettingsController extends ViewController<Void> implements
       SettingsThemeController c = new SettingsThemeController(context, tdlib);
       c.setArguments(new SettingsThemeController.Args(SettingsThemeController.MODE_INTERFACE_OPTIONS));
       navigateTo(c);
+    } else if (viewId == R.id.btn_tgx101Premium) {
+      navigateTo(new Tgx101PremiumController(context, tdlib));
     } else if (viewId == R.id.btn_tgx101Stars) {
       navigateTo(new Tgx101StarsController(context, tdlib));
     } else if (viewId == R.id.btn_tgx101Settings) {

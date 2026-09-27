@@ -1454,6 +1454,10 @@
   <item name="btn_showChannelMuteButton" type="id"/>
   <item name="btn_tgx101CallPattern" type="id"/>
   <item name="btn_tgx101CallPhoto" type="id"/>
+  <item name="btn_tgx101Premium" type="id"/>
+  <item name="btn_tgx101PremiumOption" type="id"/>
+  <item name="btn_tgx101PremiumGift" type="id"/>
+  <item name="controller_tgx101Premium" type="id"/>
   <item name="btn_showCommentsButton" type="id"/>
   <item name="btn_tgx101Settings" type="id"/>
   <item name="btn_pasteProxies" type="id"/>
