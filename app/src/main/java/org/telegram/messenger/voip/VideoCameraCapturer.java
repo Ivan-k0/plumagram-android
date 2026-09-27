@@ -49,6 +49,7 @@ public class VideoCameraCapturer {
       capturer.handler.post(() -> {
         if (capturer.capturer != null && capturer.capturing) {
           int[] size = captureSize();
+          android.util.Log.i("TGx101Video", "camera format " + size[0] + "x" + size[1]);
           capturer.capturer.changeCaptureFormat(size[0], size[1], FPS);
         }
       });
@@ -80,6 +81,7 @@ public class VideoCameraCapturer {
   @Keep
   public void init (long ptr, boolean useFrontCamera) {
     handler.post(() -> {
+      android.util.Log.i("TGx101Video", "camera init ptr=" + ptr + " front=" + useFrontCamera + " (previous " + nativePtr + ")");
       release();
       nativePtr = ptr;
       current = this;
@@ -98,7 +100,14 @@ public class VideoCameraCapturer {
       if (device == null) {
         return;
       }
-      capturer = enumerator.createCapturer(device, null);
+      capturer = enumerator.createCapturer(device, new CameraVideoCapturer.CameraEventsHandler() {
+        @Override public void onCameraError (String error) { android.util.Log.w("TGx101Video", "camera error: " + error); }
+        @Override public void onCameraDisconnected () { android.util.Log.w("TGx101Video", "camera disconnected"); }
+        @Override public void onCameraFreezed (String error) { android.util.Log.w("TGx101Video", "camera frozen: " + error); }
+        @Override public void onCameraOpening (String name) { android.util.Log.i("TGx101Video", "camera opening " + name); }
+        @Override public void onFirstFrameAvailable () { android.util.Log.i("TGx101Video", "camera first frame"); }
+        @Override public void onCameraClosed () { android.util.Log.i("TGx101Video", "camera closed"); }
+      });
       textureHelper = SurfaceTextureHelper.create("TGx101CameraTexture", Tgx101Video.eglContext());
       capturer.initialize(textureHelper, context, nativeGetJavaVideoCapturerObserver(ptr));
     });
@@ -107,6 +116,7 @@ public class VideoCameraCapturer {
   @Keep
   public void onStateChanged (long ptr, int state) {
     handler.post(() -> {
+      android.util.Log.i("TGx101Video", "camera state " + state + " ptr=" + ptr + " current=" + nativePtr + " capturing=" + capturing);
       if (ptr != nativePtr || capturer == null) return;
       if (state == STATE_ACTIVE && !capturing) {
         int[] size = captureSize(); // SD / HD button on the call screen
@@ -137,6 +147,7 @@ public class VideoCameraCapturer {
   }
 
   private void release () {
+    if (capturer != null) android.util.Log.i("TGx101Video", "camera release ptr=" + nativePtr);
     if (capturer != null) {
       if (capturing) {
         stopCapture();
