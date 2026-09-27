@@ -66,10 +66,10 @@ final class Tgx101Strings {
     RU.put(R.string.ChatListSection, "Чаты");
     RU.put(R.string.BigEmojiSize, "Размер больших эмодзи");
     RU.put(R.string.BigEmojiSizeOff, "Выкл (обычные эмодзи)");
-    RU.put(R.string.BigEmojiSize60, "Маленькие (60%)");
-    RU.put(R.string.BigEmojiSize80, "Средние (80%)");
-    RU.put(R.string.BigEmojiSize100, "Стандарт (100%)");
-    RU.put(R.string.BigEmojiSize125, "Крупные (125%)");
+    RU.put(R.string.BigEmojiSize60, "Маленькие");
+    RU.put(R.string.BigEmojiSize80, "Средние");
+    RU.put(R.string.BigEmojiSize100, "Стандарт");
+    RU.put(R.string.BigEmojiSize125, "Крупные");
     RU.put(R.string.BigEmojiSizeHint, "Размер сообщений, состоящих только из эмодзи. «Выкл» показывает их обычным текстом в пузыре. Это та же настройка, что «Большие эмодзи» в разделе «Стикеры и эмодзи». Применяется к чатам, открытым после изменения.");
     RU.put(R.string.PullToSearch, "Поиск свайпом вниз");
     RU.put(R.string.Tgx101BottomGap, "Отступ под полем ввода и меню");
