@@ -93,6 +93,11 @@ git submodule update --init --recursive   # обязательно сразу п
 `SETTING_FLAG_* = 1 << 21` (или 22–25), наши флаги нужно сдвинуть на свободные номера, иначе
 настройки перепутаются. Проверить: `grep -n "SETTING_FLAG_.* = 1 <<" app/src/main/java/org/thunderdog/challegram/unsorted/Settings.java`.
 
+**Видеозвонки и Android 4.** Код на WebRTC (`Tgx101Video`, `Tgx101CallVideo`, `Tgx101TextureVideoView`,
+`VideoCameraCapturer`) лежит в `app/src/sinceLollipop/java`, для сборки Android 4 — заглушки в
+`app/src/onlyLegacy/java` (там нет WebRTC). Меняя публичные методы этих классов, обновить заглушки.
+Сама сборка Android 4 падает при запуске: R8 не умещает все стартовые классы в первый dex (см. лог Ubeavis 2026-09-28).
+
 ## 3. Сборка
 
 ```sh
