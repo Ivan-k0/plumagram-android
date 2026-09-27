@@ -107,6 +107,8 @@ public final class Tgx101GroupCall implements GroupCallListener {
       }
     }));
     Context context = UI.getAppContext();
+    // WebRTC needs ContextUtils set before the audio device is created; otherwise it's done only by TGCallService
+    VoIP.initialize(context);
     File log = new File(context.getCacheDir(), "tgx101_voice_chat.log");
     ptr = nativeCreate(log.getPath(), muted);
     if (ptr == 0) {
