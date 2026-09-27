@@ -3154,7 +3154,7 @@ public class Settings {
   private static final String KEY_CALL_VIDEO_QUALITY = "settings_call_video_quality";
 
   public int getCallVideoQuality () {
-    return pmc.getInt(KEY_CALL_VIDEO_QUALITY, CALL_VIDEO_SD) == CALL_VIDEO_HD ? CALL_VIDEO_HD : CALL_VIDEO_SD;
+    return pmc.getInt(KEY_CALL_VIDEO_QUALITY, CALL_VIDEO_HD) == CALL_VIDEO_SD ? CALL_VIDEO_SD : CALL_VIDEO_HD; // HD by default, as the official app
   }
 
   public void setCallVideoQuality (int quality) {
