@@ -34,6 +34,9 @@ public class TgCallsController extends VoIPInstance {
       throw new IllegalArgumentException(Integer.toString(configuration.state.encryptionKey.length));
     this.version = version;
     this.nativePtr = newInstance(version, configuration, options);
+    if (nativePtr != 0) {
+      Tgx101Video.onInstanceCreated(nativePtr, call); // TGx101: video calls
+    }
   }
 
   private long nativePtr () {
@@ -120,6 +123,7 @@ public class TgCallsController extends VoIPInstance {
   @Override
   public void performDestroy () {
     if (nativePtr != 0) {
+      Tgx101Video.onInstanceDestroyed(nativePtr); // TGx101: video calls
       destroyInstance(nativePtr);
       nativePtr = 0;
     }
@@ -130,6 +134,7 @@ public class TgCallsController extends VoIPInstance {
   @Keep
   protected final void handleRemoteMediaStateChange (@AudioState int audioState, @VideoState int videoState) {
     connectionStateListener.onRemoteMediaStateChanged(this, audioState, videoState);
+    Tgx101Video.onRemoteVideoState(videoState); // TGx101: video calls
   }
 
   @Keep

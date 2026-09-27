@@ -2283,6 +2283,17 @@ public class MessagesController extends ViewController<MessagesController.Argume
       reportChat(null, null);
     } else if (id == R.id.btn_phone_call) {
       tdlib.context().calls().makeCall(this, TD.getUserId(chat), null);
+    } else if (id == R.id.btn_tgx101VideoCall) {
+      long userId = TD.getUserId(chat);
+      Runnable call = () -> {
+        org.thunderdog.challegram.voip.Tgx101Video.requestVideoCall(userId);
+        tdlib.context().calls().makeCall(this, userId, null);
+      };
+      if (org.thunderdog.challegram.voip.Tgx101Video.hasCameraPermission()) {
+        call.run();
+      } else {
+        context().requestCustomPermissions(new String[] {android.Manifest.permission.CAMERA}, (code, permissions, grantResults, grantCount) -> call.run());
+      }
     } else if (id == R.id.btn_savedMessagesTags) {
       showSavedMessagesTags();
     } else if (id == R.id.btn_exportChat) {
@@ -4507,6 +4518,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (canCallChatUser()) {
       ids.append(R.id.btn_phone_call);
       strings.append(R.string.Call);
+      ids.append(R.id.btn_tgx101VideoCall); // TGx101: video calls
+      strings.append(R.string.Tgx101VideoCall);
     }
 
     if (!manager.isTotallyEmpty() && (Config.USE_SECRET_SEARCH || !isSecretChat()) && !messagesHidden) {

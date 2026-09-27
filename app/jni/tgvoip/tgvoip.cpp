@@ -418,6 +418,14 @@ struct TgCallsContext {
   std::shared_ptr<JniWrapper> javaController;
 };
 
+#ifndef DISABLE_TGCALLS
+// TGx101: video calls (tgx101_video.cpp) reach the running call through this
+tgcalls::Instance *tgx101_instance (jlong ptr) {
+  auto context = jni::jlong_to_ptr<TgCallsContext *>(ptr);
+  return context != nullptr ? context->tgcalls.get() : nullptr;
+}
+#endif
+
 jbyteArray toJavaByteArray (JNIEnv *env, const std::vector<uint8_t> &data) {
   auto size = (jsize) data.size();
   jbyteArray bytesArray = env->NewByteArray(size);

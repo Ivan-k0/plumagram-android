@@ -476,7 +476,8 @@ debugCall id:long debug:string = Ok;
       return;
     }
     context.context().closeAllMedia(false);
-    context.tdlib().send(new TdApi.CreateCall(userId, VoIP.getProtocol(), false), (callId, error) -> {
+    boolean isVideo = org.thunderdog.challegram.voip.Tgx101Video.takeVideoRequest(userId); // TGx101: video calls
+    context.tdlib().send(new TdApi.CreateCall(userId, VoIP.getProtocol(), isVideo), (callId, error) -> {
       if (error != null) {
         Log.e(Log.TAG_VOIP, "Failed to create call: %s", TD.toErrorString(error));
         UI.showError(error);

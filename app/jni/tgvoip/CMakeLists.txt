@@ -39,6 +39,7 @@ set(TGCALLS_LIB "tgcallsjni")
 add_library(${TGCALLS_LIB} SHARED
   tgvoip.cpp
   tgx101_group.cpp # TGx101: voice chats
+  tgx101_video.cpp # TGx101: video calls
 
   "${WEBRTC_DIR}/sdk/android/native_api/audio_device_module/audio_device_android.cc"
   "${WEBRTC_DIR}/sdk/android/native_api/base/init.cc"

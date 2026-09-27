@@ -5955,6 +5955,9 @@
   <string name="ChannelsSection">Channels</string>
   <string name="ShowDiscussButton">Show «Discuss» button</string>
   <string name="Tgx101Premium">Telegram Premium</string>
+  <string name="Tgx101VideoCall">Video call</string>
+  <string name="Tgx101VideoWaitCall">The camera can be turned on once the call is answered</string>
+  <string name="Tgx101VideoNoCamera">Video needs access to the camera</string>
   <string name="Tgx101WebProxyAdd">Add WEB proxy</string>
   <string name="Tgx101WebProxyAddHint">A WEB proxy looks like an ordinary website to your provider: Telegram traffic goes over HTTPS through the proxy\'s site. Enter the address (site.com or site.com/path) and the secret from the proxy owner.</string>
   <string name="Tgx101WebProxyAddress">Address, e.g. proxy.example.com</string>

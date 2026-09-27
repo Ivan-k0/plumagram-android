@@ -42,6 +42,8 @@
 # Keep all related to VoIP
 -keep class org.thunderdog.challegram.voip.**
 -keepclassmembers class org.thunderdog.challegram.voip.** { *; }
+# TGx101: camera class looked up by name from tgcalls (platform/android/AndroidContext.cpp)
+-keep class org.telegram.messenger.voip.** { *; }
 # Keep sync services
 -keep class org.thunderdog.challegram.sync.**
 

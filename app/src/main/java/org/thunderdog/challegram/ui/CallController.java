@@ -214,6 +214,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
 
   private AvatarView avatarView;
   private Tgx101CallBackground callBackground;
+  private Tgx101CallVideo callVideo;
   private TextView nameView, stateView;
   private EmojiStatusHelper emojiStatusHelper;
   private float nameTextWidth;
@@ -435,6 +436,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
     avatarView.setUser(tdlib, user, false);
     contentView.addView(avatarView);
     callBackground.setPhotoView(isCircle ? avatarView : null);
+    callVideo = new Tgx101CallVideo(this, contentView, contentView.indexOfChild(avatarView) + 1, avatarView); // TGx101: video calls
 
     FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
 
@@ -1227,6 +1229,9 @@ public class CallController extends ViewController<CallController.Arguments> imp
     tdlib.cache().unsubscribeFromCallUpdates(call.id, this);
     tdlib.cache().removeUserDataListener(call.userId, this);
     avatarView.performDestroy();
+    if (callVideo != null) {
+      callVideo.destroy();
+    }
   }
 
   @Override
