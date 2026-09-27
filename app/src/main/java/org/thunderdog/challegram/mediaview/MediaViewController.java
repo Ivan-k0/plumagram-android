@@ -3511,9 +3511,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     return false;
   }
 
-  private static final float TGX101_CLOSE_FLING_DP = 700f;
-  private static final float TGX101_CLOSE_FLING_MIN_DISTANCE_DP = 56f;
-  private static final float TGX101_CLOSE_DISTANCE_DP = 140f;
+  private static final float TGX101_CLOSE_FLING_DP = 900f;
+  private static final float TGX101_CLOSE_FLING_MIN_DISTANCE_DP = 72f;
+  private static final float TGX101_CLOSE_DISTANCE_DP = 160f;
 
   private boolean canCloseBySlide () {
     return mode != MODE_SECRET && (mode != MODE_GALLERY || currentSection == SECTION_CAPTION) && !mediaView.isZoomed() && !inCaption;

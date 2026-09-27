@@ -197,11 +197,17 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
     return false;
   }
 
+  private static final float TGX101_POPUP_CLOSE_FLING_DP = 1000f;
+  private static final float TGX101_POPUP_CLOSE_MIN_DISTANCE_DP = 72f;
+
   public boolean onFling (MotionEvent event, MotionEvent event2, float velocityX, float velocityY) {
     float velocity = slidingVertical ? velocityY : velocityX;
     float abs = Math.abs(velocity);
 
-    if (abs > Screen.dp(250, 1f)) {
+    // TGx101: popup screens (the call screen) closed on the lightest downward flick; ask for a firmer one
+    boolean firmEnough = !slidingVertical || (abs > Screen.dp(TGX101_POPUP_CLOSE_FLING_DP) && lastScrollY >= Screen.dp(TGX101_POPUP_CLOSE_MIN_DISTANCE_DP));
+
+    if (abs > Screen.dp(250, 1f) && firmEnough) {
       abortUp = true;
 
       if (slidingBack) {
