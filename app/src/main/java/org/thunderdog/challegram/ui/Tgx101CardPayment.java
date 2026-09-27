@@ -75,7 +75,7 @@ public final class Tgx101CardPayment {
       return;
     }
     requestOrderInfo(c, inputInvoice, regular, orderInfoId ->
-      requestCredentials(c, regular, credentials ->
+      requestCredentials(c, regular, c.tdlib().cache().userName(form.sellerBotUserId), credentials ->
         confirm(c, inputInvoice, form, regular, orderInfoId, credentials)));
   }
 
@@ -116,18 +116,18 @@ public final class Tgx101CardPayment {
 
   // Card
 
-  private static void requestCredentials (ViewController<?> c, TdApi.PaymentFormTypeRegular regular, RunnableData<String> after) {
+  private static void requestCredentials (ViewController<?> c, TdApi.PaymentFormTypeRegular regular, String botName, RunnableData<String> after) {
     TdApi.PaymentProvider provider = regular.paymentProvider;
     switch (provider.getConstructor()) {
       case TdApi.PaymentProviderStripe.CONSTRUCTOR: {
         TdApi.PaymentProviderStripe stripe = (TdApi.PaymentProviderStripe) provider;
-        showCardForm(c, stripe.needCardholderName, stripe.needCountry, stripe.needPostalCode, card ->
+        showCardForm(c, Lang.getString(R.string.Tgx101CardNotice, "Stripe", botName), stripe.needCardholderName, stripe.needCountry, stripe.needPostalCode, card ->
           tokenize(c, () -> stripeToken(stripe.publishableKey, card), after));
         break;
       }
       case TdApi.PaymentProviderSmartGlocal.CONSTRUCTOR: {
         TdApi.PaymentProviderSmartGlocal glocal = (TdApi.PaymentProviderSmartGlocal) provider;
-        showCardForm(c, false, false, false, card ->
+        showCardForm(c, Lang.getString(R.string.Tgx101CardNotice, "Smart Glocal", botName), false, false, false, card ->
           tokenize(c, () -> smartGlocalToken(glocal, regular.invoice.isTest, card), after));
         break;
       }
@@ -146,7 +146,7 @@ public final class Tgx101CardPayment {
     int month, year; // year: two digits
   }
 
-  private static void showCardForm (ViewController<?> c, boolean needName, boolean needCountry, boolean needPostalCode, RunnableData<Card> after) {
+  private static void showCardForm (ViewController<?> c, String notice, boolean needName, boolean needCountry, boolean needPostalCode, RunnableData<Card> after) {
     LinearLayout layout = newForm(c);
     EditText number = addField(c, layout, R.string.Tgx101CardNumber, InputType.TYPE_CLASS_NUMBER, null);
     EditText expiry = addField(c, layout, R.string.Tgx101CardExpiry, InputType.TYPE_CLASS_DATETIME | InputType.TYPE_DATETIME_VARIATION_DATE, null);
@@ -156,6 +156,7 @@ public final class Tgx101CardPayment {
     EditText zip = needPostalCode ? addField(c, layout, R.string.Tgx101CardZip, InputType.TYPE_CLASS_TEXT, null) : null;
     AlertDialog.Builder b = new AlertDialog.Builder(c.context(), Theme.dialogTheme());
     b.setTitle(Lang.getString(R.string.Tgx101CardTitle));
+    b.setMessage(notice); // who sees the card data, as the official app warns before paying
     b.setView(layout);
     b.setPositiveButton(Lang.getString(R.string.Tgx101CardNext), (dialog, which) -> {
       Card card = new Card();

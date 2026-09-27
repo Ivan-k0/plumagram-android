@@ -108,6 +108,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101VoiceChatNoMic, "Для голосового чата нужен доступ к микрофону");
     RU.put(R.string.Tgx101VoiceChatMutedByAdmin, "Администратор выключил вам микрофон");
     RU.put(R.string.Tgx101CardTitle, "Банковская карта");
+    RU.put(R.string.Tgx101CardNotice, "Данные карты видит только платёжная система — %1$s. Ни Telegram, ни %2$s, ни TGx101 их не получают и не сохраняют. Деньги идут владельцу %2$s.");
     RU.put(R.string.Tgx101CardNumber, "Номер карты");
     RU.put(R.string.Tgx101CardExpiry, "ММ/ГГ");
     RU.put(R.string.Tgx101CardCvc, "CVC / CVV");

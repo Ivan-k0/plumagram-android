@@ -5985,6 +5985,7 @@
   <string name="Tgx101VoiceChatNoMic">Voice chats need access to the microphone</string>
   <string name="Tgx101VoiceChatMutedByAdmin">An admin turned your microphone off</string>
   <string name="Tgx101CardTitle">Bank card</string>
+  <string name="Tgx101CardNotice">Card details are seen only by the payment system, %1$s. Neither Telegram, nor %2$s, nor TGx101 receive or save them. The payment goes to the owner of %2$s.</string>
   <string name="Tgx101CardNumber">Card number</string>
   <string name="Tgx101CardExpiry">MM/YY</string>
   <string name="Tgx101CardCvc">CVC / CVV</string>
