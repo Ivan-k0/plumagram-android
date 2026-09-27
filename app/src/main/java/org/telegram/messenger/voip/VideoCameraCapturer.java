@@ -34,7 +34,7 @@ import org.webrtc.SurfaceTextureHelper;
  */
 @Keep
 public class VideoCameraCapturer {
-  private static final int WIDTH = 1280, HEIGHT = 720, FPS = 30;
+  private static final int WIDTH = 960, HEIGHT = 540, FPS = 30; // frames are copied to memory for encoding: 540p keeps calls smooth
   private static final int STATE_ACTIVE = 2; // tgcalls::VideoState::Active
 
   private static HandlerThread thread;
