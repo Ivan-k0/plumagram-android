@@ -40,6 +40,26 @@ public class VideoCameraCapturer {
   private static HandlerThread thread;
   private final Handler handler;
 
+  private static VideoCameraCapturer current;
+
+  /** Applies the SD/HD choice to the running camera without restarting it. */
+  public static void applyQuality () {
+    VideoCameraCapturer capturer = current;
+    if (capturer != null) {
+      capturer.handler.post(() -> {
+        if (capturer.capturer != null && capturer.capturing) {
+          int[] size = captureSize();
+          capturer.capturer.changeCaptureFormat(size[0], size[1], FPS);
+        }
+      });
+    }
+  }
+
+  private static int[] captureSize () {
+    boolean hd = org.thunderdog.challegram.unsorted.Settings.instance().getCallVideoQuality() == org.thunderdog.challegram.unsorted.Settings.CALL_VIDEO_HD;
+    return hd ? new int[] {1280, 720} : new int[] {960, 540};
+  }
+
   private CameraVideoCapturer capturer;
   private SurfaceTextureHelper textureHelper;
   private long nativePtr;
@@ -62,6 +82,7 @@ public class VideoCameraCapturer {
     handler.post(() -> {
       release();
       nativePtr = ptr;
+      current = this;
       Context context = UI.getAppContext();
       CameraEnumerator enumerator = Camera2Enumerator.isSupported(context) ? new Camera2Enumerator(context) : new Camera1Enumerator(true);
       String device = null;
@@ -88,8 +109,8 @@ public class VideoCameraCapturer {
     handler.post(() -> {
       if (ptr != nativePtr || capturer == null) return;
       if (state == STATE_ACTIVE && !capturing) {
-        boolean hd = org.thunderdog.challegram.unsorted.Settings.instance().getCallVideoQuality() == org.thunderdog.challegram.unsorted.Settings.CALL_VIDEO_HD;
-        capturer.startCapture(hd ? 1280 : 960, hd ? 720 : 540, FPS); // Settings → 1Ø1 → Calls
+        int[] size = captureSize(); // SD / HD button on the call screen
+        capturer.startCapture(size[0], size[1], FPS);
         capturing = true;
       } else if (state != STATE_ACTIVE && capturing) {
         stopCapture();
@@ -102,7 +123,10 @@ public class VideoCameraCapturer {
 
   @Keep
   public void onDestroy () {
-    handler.post(this::release);
+    handler.post(() -> {
+      release();
+      if (current == this) current = null;
+    });
   }
 
   private void stopCapture () {

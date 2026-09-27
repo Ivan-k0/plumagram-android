@@ -38,6 +38,7 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
   private final ViewController<?> controller;
   private final SurfaceViewRenderer remoteView, localView;
   private final ImageView cameraButton, switchButton;
+  private final android.widget.TextView qualityButton;
   private final View[] hideWhenRemoteVideo;
 
   /** Adds the video views to the call screen at the given index (above the background and photo). */
@@ -75,6 +76,25 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
       Tgx101Video.switchCamera();
       localView.setMirror(Tgx101Video.isFrontCamera());
     });
+    qualityButton = new android.widget.TextView(controller.context());
+    qualityButton.setTextColor(0xffffffff);
+    qualityButton.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 13);
+    qualityButton.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+    qualityButton.setGravity(Gravity.CENTER);
+    GradientDrawable qualityBackground = new GradientDrawable();
+    qualityBackground.setShape(GradientDrawable.OVAL);
+    qualityBackground.setColor(0x33ffffff);
+    qualityButton.setBackground(qualityBackground);
+    qualityButton.setOnClickListener(v -> {
+      org.thunderdog.challegram.unsorted.Settings settings = org.thunderdog.challegram.unsorted.Settings.instance();
+      boolean hd = settings.getCallVideoQuality() == org.thunderdog.challegram.unsorted.Settings.CALL_VIDEO_HD;
+      settings.setCallVideoQuality(hd ? org.thunderdog.challegram.unsorted.Settings.CALL_VIDEO_SD : org.thunderdog.challegram.unsorted.Settings.CALL_VIDEO_HD);
+      org.telegram.messenger.voip.VideoCameraCapturer.applyQuality(); // takes effect during the call
+      update();
+    });
+    LinearLayout.LayoutParams qualityParams = new LinearLayout.LayoutParams(Screen.dp(48f), Screen.dp(48f));
+    qualityParams.leftMargin = qualityParams.rightMargin = Screen.dp(12f);
+    buttons.addView(qualityButton, qualityParams);
 
     Tgx101Video.remoteSink.setTarget(remoteView);
     Tgx101Video.localSink.setTarget(localView);
@@ -131,6 +151,8 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
     cameraButton.setAlpha(camera ? 1f : .6f);
     ((GradientDrawable) cameraButton.getBackground()).setColor(camera ? 0xff3f8ae0 : 0x33ffffff);
     switchButton.setVisibility(camera ? View.VISIBLE : View.GONE);
+    qualityButton.setVisibility(camera ? View.VISIBLE : View.GONE);
+    qualityButton.setText(org.thunderdog.challegram.unsorted.Settings.instance().getCallVideoQuality() == org.thunderdog.challegram.unsorted.Settings.CALL_VIDEO_HD ? "HD" : "SD");
   }
 
   @Override
