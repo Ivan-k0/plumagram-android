@@ -6063,7 +6063,9 @@
   <string name="Tgx101Stars">Telegram Stars</string>
   <string name="Tgx101StarsBalance">Balance</string>
   <string name="Tgx101StarsBuy">Buy Stars on Fragment</string>
-  <string name="Tgx101StarsBuyHint">Stars can\'t be bought inside TGx101: only on Fragment (with TON) or in the official Telegram app. Bought Stars show up here and can be spent in bots and channels.</string>
+  <string name="Tgx101StarsBuyHeader">Buy Stars</string>
+  <string name="Tgx101StarsBuyMore">More packages</string>
+  <string name="Tgx101StarsBuyHint">Pay with a bank card right here, or buy on Fragment with TON. Stars can be spent in bots and channels.</string>
   <string name="Tgx101StarsHistory">History</string>
   <string name="Tgx101StarsHistoryEmpty">No transactions yet</string>
   <string name="Tgx101StarsMore">Show more</string>

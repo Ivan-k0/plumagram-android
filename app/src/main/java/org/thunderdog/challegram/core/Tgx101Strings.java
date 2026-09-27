@@ -185,7 +185,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101Stars, "Звёзды Telegram");
     RU.put(R.string.Tgx101StarsBalance, "Баланс");
     RU.put(R.string.Tgx101StarsBuy, "Купить звёзды на Fragment");
-    RU.put(R.string.Tgx101StarsBuyHint, "Внутри TGx101 звёзды купить нельзя: только на Fragment (за TON) или в официальном Telegram. Купленные звёзды появятся здесь, и их можно тратить в ботах и каналах.");
+    RU.put(R.string.Tgx101StarsBuyHint, "Оплатите банковской картой прямо здесь или купите на Fragment за TON. Звёзды можно тратить в ботах и каналах.");
+    RU.put(R.string.Tgx101StarsBuyHeader, "Купить звёзды");
+    RU.put(R.string.Tgx101StarsBuyMore, "Другие пакеты");
     RU.put(R.string.Tgx101StarsHistory, "История");
     RU.put(R.string.Tgx101StarsHistoryEmpty, "Операций пока нет");
     RU.put(R.string.Tgx101StarsMore, "Показать ещё");

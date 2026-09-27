@@ -57,6 +57,8 @@ public class Tgx101StarsController extends RecyclerViewController<Void> implemen
   private final List<TdApi.StarTransaction> transactions = new ArrayList<>();
   private String nextOffset = "";
   private boolean loading, loaded;
+  private final List<TdApi.StarPaymentOption> buyOptions = new ArrayList<>();
+  private boolean hasMoreBuyOptions;
 
   @Override
   protected void onCreateView (Context context, CustomRecyclerView recyclerView) {
@@ -65,6 +67,9 @@ public class Tgx101StarsController extends RecyclerViewController<Void> implemen
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
         if (item.getId() == R.id.btn_tgx101StarsBalance) {
           view.setData(balance >= 0 ? Tgx101Stars.formatStars(balance) : Lang.getString(R.string.LoadingInformation));
+        } else if (item.getId() == R.id.btn_tgx101StarsBuyOption) {
+          TdApi.StarPaymentOption option = (TdApi.StarPaymentOption) item.getData();
+          view.setData(me.vkryl.core.CurrencyUtils.buildAmount(option.currency, option.amount));
         } else if (item.getId() == R.id.btn_tgx101StarsTransaction) {
           TdApi.StarTransaction transaction = (TdApi.StarTransaction) item.getData();
           view.setData(Lang.dateYearShortTime(transaction.date, TimeUnit.SECONDS) + (transaction.isRefund ? " · " + Lang.getString(R.string.Tgx101StarsRefund) : ""));
@@ -74,6 +79,57 @@ public class Tgx101StarsController extends RecyclerViewController<Void> implemen
     buildCells();
     recyclerView.setAdapter(adapter);
     loadMore();
+    tdlib.send(new TdApi.GetStarPaymentOptions(), (result, error) -> runOnUiThreadOptional(() -> {
+      if (result == null) return;
+      buyOptions.clear();
+      for (TdApi.StarPaymentOption option : result.options) {
+        buyOptions.add(option);
+      }
+      buildCells();
+    }));
+  }
+
+  private boolean needRefresh;
+
+  @Override
+  public void onFocus () {
+    super.onFocus();
+    if (needRefresh) { // back from a purchase: fresh balance and history
+      needRefresh = false;
+      transactions.clear();
+      nextOffset = "";
+      loaded = false;
+      loadMore();
+    }
+  }
+
+  @Override
+  public void onBlur () {
+    super.onBlur();
+    needRefresh = true;
+  }
+
+  /** Stars bought with a card: an invoice from Telegram itself, paid through the card form. */
+  private void buy (TdApi.StarPaymentOption option) {
+    Tgx101Stars.pay(this, new TdApi.InputInvoiceTelegram(new TdApi.TelegramPaymentPurposeStars(option.currency, option.amount, option.starCount, 0)));
+  }
+
+  private void showAllBuyOptions () {
+    int[] ids = new int[buyOptions.size()];
+    String[] titles = new String[ids.length];
+    int[] icons = new int[ids.length];
+    for (int i = 0; i < ids.length; i++) {
+      TdApi.StarPaymentOption option = buyOptions.get(i);
+      ids[i] = i + 1;
+      titles[i] = Tgx101Stars.formatStars(option.starCount) + " — " + me.vkryl.core.CurrencyUtils.buildAmount(option.currency, option.amount);
+      icons[i] = R.drawable.baseline_star_24;
+    }
+    showOptions(null, ids, titles, null, icons, (itemView, id) -> {
+      if (id >= 1 && id <= buyOptions.size()) {
+        buy(buyOptions.get(id - 1));
+      }
+      return true;
+    });
   }
 
   private void loadMore () {
@@ -102,7 +158,23 @@ public class Tgx101StarsController extends RecyclerViewController<Void> implemen
     items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101StarsBalance, R.drawable.baseline_star_24, R.string.Tgx101StarsBalance));
-    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+
+    items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101StarsBuyHeader));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    hasMoreBuyOptions = false;
+    for (TdApi.StarPaymentOption option : buyOptions) {
+      if (option.isAdditional) {
+        hasMoreBuyOptions = true;
+        continue;
+      }
+      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101StarsBuyOption, R.drawable.baseline_star_24, Tgx101Stars.formatStars(option.starCount)).setData(option));
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+    }
+    if (hasMoreBuyOptions) {
+      items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101StarsBuyMore, 0, R.string.Tgx101StarsBuyMore));
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+    }
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_openLink, R.drawable.baseline_open_in_browser_24, R.string.Tgx101StarsBuy));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101StarsBuyHint));
@@ -183,6 +255,10 @@ public class Tgx101StarsController extends RecyclerViewController<Void> implemen
     int id = v.getId();
     if (id == R.id.btn_openLink) {
       tdlib.ui().openUrl(this, Tgx101Stars.FRAGMENT_URL, null);
+    } else if (id == R.id.btn_tgx101StarsBuyOption) {
+      buy((TdApi.StarPaymentOption) ((ListItem) v.getTag()).getData());
+    } else if (id == R.id.btn_tgx101StarsBuyMore) {
+      showAllBuyOptions();
     } else if (id == R.id.btn_tgx101StarsMore) {
       loadMore();
     }
