@@ -1531,6 +1531,9 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
   @Override
   public void onResume () {
     super.onResume();
+    // TGx101: the dark splash colour is the launch window background only; while the app runs the
+    // window background follows the theme, so relayouts (keyboard) don't flash the splash colour.
+    getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(org.thunderdog.challegram.theme.Theme.backgroundColor()));
     Log.i("MainActivity.onResume");
     Tgx101Diag.mark("MainActivity.onResume: screen shown"); // TGx101
     // Log.e("%s", Strings.getHexColor(U.compositeColor(Theme.headerColor(), Theme.getColor(ColorId.statusBar)), false));
