@@ -839,6 +839,14 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       return true;
     }
 
+    if (org.thunderdog.challegram.service.Tgx101GroupCallService.ACTION_OPEN.equals(action)) { // TGx101: voice chat notification
+      if (navigation.isEmpty()) {
+        initDefault(currentTdlib().id(), false);
+      }
+      org.thunderdog.challegram.ui.Tgx101GroupCallController.open(this);
+      return true;
+    }
+
     if (Intents.ACTION_OPEN_CALL.equals(action)) {
       // Opened by the incoming call's full-screen intent: show over the lock screen and
       // turn the screen on, otherwise the call screen stays hidden behind the keyguard.

@@ -2287,6 +2287,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       showSavedMessagesTags();
     } else if (id == R.id.btn_exportChat) {
       Tgx101ChatExport.start(this, chat);
+    } else if (id == R.id.btn_tgx101VoiceChat) {
+      if (chat.videoChat != null && chat.videoChat.groupCallId != 0) {
+        Tgx101GroupCallController.join(this, chat.id, chat.videoChat.groupCallId, null);
+      }
+    } else if (id == R.id.btn_tgx101VoiceChatStart) {
+      Tgx101GroupCallController.start(this, chat.id);
     } else if (id == R.id.btn_translateWholeChat) {
       manager.setWholeChatTranslateLanguage(manager.getWholeChatTranslateLanguage() != null ? null : Lang.getDefaultLanguageToTranslateV2(null));
     } else if (id == R.id.btn_attachFromMenu) {
@@ -4572,6 +4578,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tdlib.isSelfChat(chat.id) && previewSearchFilter == null && messageThread == null) {
       ids.append(R.id.btn_savedMessagesTags);
       strings.append(R.string.SavedTags);
+    }
+
+    // TGx101: join the chat's voice chat, or start one
+    if (chat.videoChat != null && chat.videoChat.groupCallId != 0 && !areScheduledOnly()) {
+      ids.append(R.id.btn_tgx101VoiceChat);
+      strings.append(R.string.Tgx101VoiceChatJoin);
+    } else if (!areScheduledOnly() && Tgx101GroupCallController.canStart(tdlib, chat)) {
+      ids.append(R.id.btn_tgx101VoiceChatStart);
+      strings.append(R.string.Tgx101VoiceChatStart);
     }
 
     // TGx101: translate every message of the chat into one language

@@ -38,6 +38,7 @@ set(TGCALLS_LIB "tgcallsjni")
 
 add_library(${TGCALLS_LIB} SHARED
   tgvoip.cpp
+  tgx101_group.cpp # TGx101: voice chats
 
   "${WEBRTC_DIR}/sdk/android/native_api/audio_device_module/audio_device_android.cc"
   "${WEBRTC_DIR}/sdk/android/native_api/base/init.cc"
@@ -182,6 +183,10 @@ target_link_libraries(${TGCALLS_LIB}
   jni-utils
   tgcalls
 )
+# TGx101: voice chats use tgcalls' group module, whose stream decoding needs FFmpeg
+foreach(ffmpeg_lib ${FFMPEG_LIBS})
+  target_link_libraries(${TGCALLS_LIB} "${ffmpeg_lib}")
+endforeach()
 
 target_link_libraries(${TGCALLS_LIB}
   log

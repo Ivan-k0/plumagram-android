@@ -7667,11 +7667,18 @@ public class TdlibUi extends Handler {
   // Video Chats & Live Streams
 
   public void openVoiceChatInvitation (ViewController<?> context, TdApi.InternalLinkTypeVideoChat invitation) {
-    // TODO some confirmation screen & join voice chat if agreed
+    // TGx101: voice chats
+    tdlib.send(new TdApi.SearchPublicChat(invitation.chatUsername), (chat, error) -> post(() -> {
+      if (chat != null && chat.videoChat != null && chat.videoChat.groupCallId != 0 && !context.isDestroyed()) {
+        org.thunderdog.challegram.ui.Tgx101GroupCallController.join(context, chat.id, chat.videoChat.groupCallId, invitation.inviteHash);
+      } else {
+        UI.showToast(R.string.Tgx101VoiceChatEnded, android.widget.Toast.LENGTH_SHORT);
+      }
+    }));
   }
 
   public void openVoiceChat (ViewController<?> context, int groupCallId, @Nullable UrlOpenParameters openParameters) {
-    // TODO open voice chat layer
+    org.thunderdog.challegram.ui.Tgx101GroupCallController.join(context, 0, groupCallId, null); // TGx101: voice chats
   }
 
   // Suggestions by emoji

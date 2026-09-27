@@ -321,6 +321,11 @@
       android:name=".service.TGCallService"
       android:exported="false"
       android:foregroundServiceType="phoneCall|microphone|mediaPlayback" />
+    <!-- TGx101: voice chats keep the microphone in the background -->
+    <service
+      android:name=".service.Tgx101GroupCallService"
+      android:exported="false"
+      android:foregroundServiceType="microphone" />
     <receiver android:name=".receiver.VoIPMediaButtonReceiver"
       android:exported="false">
       <intent-filter>
