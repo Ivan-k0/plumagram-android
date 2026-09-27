@@ -27,6 +27,8 @@
 #include <sdk/android/native_api/jni/jvm.h>
 #include <tgcalls/StaticThreads.h>
 #include <tgcalls/group/GroupInstanceCustomImpl.h>
+#include <tgcalls/platform/PlatformInterface.h>
+#include <sdk/android/native_api/audio_device_module/audio_device_android.h>
 
 namespace tgcalls {
   bool initialize (JNIEnv *env); // tgvoip.cpp
@@ -71,6 +73,31 @@ struct GroupJava {
 class ImmediateDescriptionTask final : public tgcalls::RequestMediaChannelDescriptionTask {
 public:
   void cancel () override { }
+};
+
+// The Android audio device aborts (RTC_CHECK_NOTREACHED) on questions the group module asks at
+// start, such as MicrophoneMuteIsAvailable. Answer them safely and pass everything else through.
+class SafeAndroidAudioDevice : public tgcalls::DefaultWrappedAudioDeviceModule {
+public:
+  explicit SafeAndroidAudioDevice (webrtc::scoped_refptr<webrtc::AudioDeviceModule> impl) : DefaultWrappedAudioDeviceModule(std::move(impl)) { }
+
+  int32_t PlayoutDeviceName (uint16_t, char name[webrtc::kAdmMaxDeviceNameSize], char guid[webrtc::kAdmMaxGuidSize]) override { name[0] = 0; guid[0] = 0; return 0; }
+  int32_t RecordingDeviceName (uint16_t, char name[webrtc::kAdmMaxDeviceNameSize], char guid[webrtc::kAdmMaxGuidSize]) override { name[0] = 0; guid[0] = 0; return 0; }
+  int32_t SetPlayoutDevice (uint16_t) override { return 0; }
+  int32_t SetPlayoutDevice (WindowsDeviceType) override { return 0; }
+  int32_t SetRecordingDevice (uint16_t) override { return 0; }
+  int32_t SetRecordingDevice (WindowsDeviceType) override { return 0; }
+  int32_t SetMicrophoneVolume (uint32_t) override { return -1; }
+  int32_t MicrophoneVolume (uint32_t *) const override { return -1; }
+  int32_t MaxMicrophoneVolume (uint32_t *) const override { return -1; }
+  int32_t MinMicrophoneVolume (uint32_t *) const override { return -1; }
+  int32_t SpeakerMuteIsAvailable (bool *available) override { *available = false; return 0; }
+  int32_t SetSpeakerMute (bool) override { return -1; }
+  int32_t SpeakerMute (bool *enabled) const override { *enabled = false; return -1; }
+  int32_t MicrophoneMuteIsAvailable (bool *available) override { *available = false; return 0; }
+  int32_t SetMicrophoneMute (bool) override { return -1; }
+  int32_t MicrophoneMute (bool *enabled) const override { *enabled = false; return -1; }
+  int32_t EnableBuiltInAGC (bool) override { return -1; }
 };
 
 struct GroupContext {
@@ -130,6 +157,13 @@ JNI_OBJECT_FUNC(jlong, voip_Tgx101GroupCall, nativeCreate, jstring jLogPath, jbo
     return std::make_shared<ImmediateDescriptionTask>();
   };
   descriptor.initialEnableNoiseSuppression = true;
+  descriptor.createWrappedAudioDeviceModule = [](webrtc::TaskQueueFactory *) -> webrtc::scoped_refptr<tgcalls::WrappedAudioDeviceModule> {
+    auto device = webrtc::CreateAndroidAudioDeviceModule(webrtc::AudioDeviceModule::kPlatformDefaultAudio);
+    if (device == nullptr || device->Init() != 0) {
+      return nullptr;
+    }
+    return rtc::make_ref_counted<SafeAndroidAudioDevice>(device);
+  };
 
   auto *context = new GroupContext;
   context->java = java;
