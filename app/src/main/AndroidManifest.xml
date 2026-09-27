@@ -412,11 +412,13 @@
       android:windowSoftInputMode="adjustPan"
       android:exported="true" />
 
+    <!-- TGx101: stateUnchanged, not stateHidden: returning from the launcher kept hiding the
+         keyboard, and the chat jumped when it came back -->
     <activity
       android:name=".MainActivity"
       android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|locale|layoutDirection|uiMode"
       android:launchMode="singleTask"
-      android:windowSoftInputMode="stateHidden|adjustPan"
+      android:windowSoftInputMode="stateUnchanged|adjustPan"
       android:exported="true">
       <intent-filter android:label="@string/AppName">
         <action android:name="android.intent.action.MAIN" />
