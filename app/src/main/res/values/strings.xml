@@ -6065,6 +6065,7 @@
   <string name="Tgx101StarsBuy">Buy Stars on Fragment</string>
   <string name="Tgx101StarsBuyHeader">Buy Stars</string>
   <string name="Tgx101StarsBuyMore">More packages</string>
+  <string name="Tgx101StarsPremiumBot">Buy via @PremiumBot</string>
   <string name="Tgx101StarsBuyHint">Pay with a bank card right here, or buy on Fragment with TON. Stars can be spent in bots and channels.</string>
   <string name="Tgx101StarsHistory">History</string>
   <string name="Tgx101StarsHistoryEmpty">No transactions yet</string>

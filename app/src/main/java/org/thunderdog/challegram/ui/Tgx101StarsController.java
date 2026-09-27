@@ -175,6 +175,8 @@ public class Tgx101StarsController extends RecyclerViewController<Void> implemen
       items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101StarsBuyMore, 0, R.string.Tgx101StarsBuyMore));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     }
+    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101StarsPremiumBot, R.drawable.baseline_premium_star_24, R.string.Tgx101StarsPremiumBot));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_openLink, R.drawable.baseline_open_in_browser_24, R.string.Tgx101StarsBuy));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101StarsBuyHint));
@@ -257,6 +259,8 @@ public class Tgx101StarsController extends RecyclerViewController<Void> implemen
       tdlib.ui().openUrl(this, Tgx101Stars.FRAGMENT_URL, null);
     } else if (id == R.id.btn_tgx101StarsBuyOption) {
       buy((TdApi.StarPaymentOption) ((ListItem) v.getTag()).getData());
+    } else if (id == R.id.btn_tgx101StarsPremiumBot) {
+      tdlib.ui().openUrl(this, "https://t.me/PremiumBot", null);
     } else if (id == R.id.btn_tgx101StarsBuyMore) {
       showAllBuyOptions();
     } else if (id == R.id.btn_tgx101StarsMore) {

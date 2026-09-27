@@ -1484,6 +1484,7 @@
   <item name="btn_tgx101StarsMore" type="id"/>
   <item name="btn_tgx101StarsBuyOption" type="id"/>
   <item name="btn_tgx101StarsBuyMore" type="id"/>
+  <item name="btn_tgx101StarsPremiumBot" type="id"/>
   <item name="controller_tgx101Stars" type="id"/>
   <item name="btn_importChat" type="id"/>
   <item name="btn_tgx101CheckUpdates" type="id"/>
