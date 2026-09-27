@@ -5942,13 +5942,13 @@
   <string name="TranscriptionUnavailable">Telegram couldn\'t transcribe this message (Premium or weekly limit), and on-device speech recognition isn\'t available on this phone (needs Android 13+ and a speech recognition service).</string>
   <string name="TranscriptionLanguageUnavailable">The phone\'s speech recognizer doesn\'t support this language. Download it in the system voice input settings.</string>
   <string name="ChatListSection">Chats</string>
-  <string name="BigEmojiSize">Big emoji size</string>
+  <string name="BigEmojiSize">Emoji and sticker size</string>
   <string name="BigEmojiSizeOff">Off (regular emoji)</string>
   <string name="BigEmojiSize60">Small</string>
   <string name="BigEmojiSize80">Medium</string>
   <string name="BigEmojiSize100">Standard</string>
   <string name="BigEmojiSize125">Large</string>
-  <string name="BigEmojiSizeHint">Size of messages that consist only of emoji. Off shows them as regular text in a bubble. Same setting as Big Emoji in Stickers and emoji. Applies to chats opened after the change.</string>
+  <string name="BigEmojiSizeHint">Size of stickers and of messages that consist only of emoji. Off shows emoji as regular text in a bubble; stickers keep the standard size. Same setting as Big Emoji in Stickers and emoji. Applies to chats opened after the change.</string>
   <string name="PullToSearch">Pull down to search</string>
   <string name="PullToSearchHint">When the chat list is already at the top, pull down once more to open search. Space under the message field and menus: keeps them 16dp above the bottom edge of the screen, so they don\'t sit on the gesture bar. Only with gesture navigation: with navigation buttons there is no gap.</string>
   <string name="AttachFromMenu">Attach</string>

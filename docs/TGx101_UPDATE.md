@@ -146,7 +146,7 @@ strings /tmp/tdcheck/libtdjni.so | grep -c "$(cat tdlib/version.txt)"   # дол
 - [ ] Видео: двойное нажатие слева/справа — ±5 с, по центру — пауза.
 - [ ] Видео: лёгкий свайп вверх/вниз не закрывает; уверенный вниз закрывает; открыть снова — продолжает с места (правки в `MediaViewController.onFling`/слайде и `VideoPlayerView.setVideo`, кэш `Tgx101VideoResume`).
 - [ ] Цитаты не мигают при прокрутке канала.
-- [ ] 1Ø1 → «Размер больших эмодзи»: 60/125% меняют размер одиночного и 2–3 эмодзи; «Выкл» (и стоковый «Big Emoji») — все эмодзи обычные, включая анимированные (правки: `TGMessage` allowAnimatedEmoji, `TGMessageSticker.buildContent/checkContent`, `TextWrapper`).
+- [ ] 1Ø1 → «Размер эмодзи и стикеров»: 60/125% меняют размер стикеров, одиночного и 2–3 эмодзи; «Выкл» (и стоковый «Big Emoji») — все эмодзи обычные, включая анимированные (правки: `TGMessage` allowAnimatedEmoji, `TGMessageSticker.buildContent/checkContent`, `TextWrapper`).
 - [ ] Меню чата: «Позвонить» первым, «Прикрепить» последним.
 
 **Прочее**

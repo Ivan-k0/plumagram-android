@@ -521,9 +521,10 @@ public class TGMessageSticker extends TGMessage implements AnimatedEmojiListener
     float max = Screen.dp(useForward() ? MAX_STICKER_FORWARD_SIZE : MAX_STICKER_SIZE);
     if (specialType != SPECIAL_TYPE_NONE || (sticker != null && sticker.setId == TdConstants.TELEGRAM_ANIMATED_EMOJI_STICKER_SET_ID)) { // TODO check for dice sticker set id
       max *= tdlib.emojiesAnimatedZoom();
-      if (specialType == SPECIAL_TYPE_ANIMATED_EMOJI) {
-        max *= Settings.instance().getBigEmojiScale();
-      }
+    }
+    // TGx101: the big emoji size setting applies to stickers too (dice keep their size)
+    if (specialType == SPECIAL_TYPE_NONE || specialType == SPECIAL_TYPE_ANIMATED_EMOJI) {
+      max = Math.min(max * Settings.instance().getBigEmojiScale(), origMaxWidth);
     }
     if (sticker != null) {
       float ratio = Math.min(max / (float) sticker.width, max / (float) sticker.height);
