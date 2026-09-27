@@ -6021,6 +6021,9 @@
   <string name="Tgx101CallPhotoCircle">Circle</string>
   <string name="Tgx101CallPhotoFullScreen">Full screen (as before)</string>
   <string name="Tgx101CallPhotoNone">Don\'t show</string>
+  <string name="Tgx101CallVideoQuality">Video quality</string>
+  <string name="Tgx101CallVideoSd">SD (960×540) — lighter for the phone and network</string>
+  <string name="Tgx101CallVideoHd">HD (1280×720)</string>
   <string name="Tgx101CallPattern">Paper plane pattern</string>
   <string name="Tgx101CallPatternHint">Circle: a sharp photo under the name. Full screen: the original Telegram X design. The pattern of paper planes is faint and still; it is hidden behind a full-screen photo.</string>
   <string name="ShowChannelMuteButton">«Mute» button and bell</string>

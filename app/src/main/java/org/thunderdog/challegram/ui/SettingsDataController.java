@@ -216,6 +216,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(networkStats != null ? networkStats.getWiFiEntry() : Lang.getString(R.string.Calculating));
         } else if (itemId == R.id.btn_resetNetworkStats) {
           view.setData(networkStats != null ? networkStats.getDateEntry() : Lang.getString(R.string.LoadingInformation));
+        } else if (itemId == R.id.btn_tgx101CallVideoQuality) {
+          view.setData(Settings.instance().getCallVideoQuality() == Settings.CALL_VIDEO_HD ? R.string.Tgx101CallVideoHd : R.string.Tgx101CallVideoSd);
         } else if (itemId == R.id.btn_tgx101CallPhoto) {
           view.setData(callPhotoModeName(Settings.instance().getCallPhotoMode()));
         } else if (itemId == R.id.btn_tgx101CallPattern) {
@@ -309,6 +311,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101CallPhoto, 0, R.string.Tgx101CallPhoto),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CallPattern, 0, R.string.Tgx101CallPattern),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101CallVideoQuality, 0, R.string.Tgx101CallVideoQuality),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101CallPatternHint),
 
@@ -608,6 +612,17 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setPullToSearchEnabled(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showDiscussButton) {
       Settings.instance().setShowDiscussButton(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101CallVideoQuality) {
+      final int current = Settings.instance().getCallVideoQuality();
+      showSettings(new SettingsWrapBuilder(R.id.btn_tgx101CallVideoQuality)
+        .setRawItems(new ListItem[] {
+          new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101CallVideoSd, 0, R.string.Tgx101CallVideoSd, R.id.btn_tgx101CallVideoQuality, current == Settings.CALL_VIDEO_SD),
+          new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101CallVideoHd, 0, R.string.Tgx101CallVideoHd, R.id.btn_tgx101CallVideoQuality, current == Settings.CALL_VIDEO_HD)
+        })
+        .setIntDelegate((resultId, result) -> {
+          Settings.instance().setCallVideoQuality(result.get(R.id.btn_tgx101CallVideoQuality) == R.id.btn_tgx101CallVideoHd ? Settings.CALL_VIDEO_HD : Settings.CALL_VIDEO_SD);
+          adapter.updateValuedSettingById(R.id.btn_tgx101CallVideoQuality);
+        }));
     } else if (id == R.id.btn_tgx101CallPhoto) {
       showCallPhotoModes();
     } else if (id == R.id.btn_tgx101CallPattern) {

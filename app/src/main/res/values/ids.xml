@@ -1454,6 +1454,9 @@
   <item name="btn_showChannelMuteButton" type="id"/>
   <item name="btn_tgx101CallPattern" type="id"/>
   <item name="btn_tgx101CallPhoto" type="id"/>
+  <item name="btn_tgx101CallVideoQuality" type="id"/>
+  <item name="btn_tgx101CallVideoSd" type="id"/>
+  <item name="btn_tgx101CallVideoHd" type="id"/>
   <item name="btn_tgx101Premium" type="id"/>
   <item name="btn_tgx101VoiceChat" type="id"/>
   <item name="btn_tgx101AddWebProxy" type="id"/>

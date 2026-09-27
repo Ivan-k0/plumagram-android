@@ -3148,6 +3148,19 @@ public class Settings {
     pmc.putInt(KEY_CALL_PATTERN, pattern);
   }
 
+  // TGx101: camera quality in video calls
+  public static final int CALL_VIDEO_SD = 0; // 960x540
+  public static final int CALL_VIDEO_HD = 1; // 1280x720
+  private static final String KEY_CALL_VIDEO_QUALITY = "settings_call_video_quality";
+
+  public int getCallVideoQuality () {
+    return pmc.getInt(KEY_CALL_VIDEO_QUALITY, CALL_VIDEO_SD) == CALL_VIDEO_HD ? CALL_VIDEO_HD : CALL_VIDEO_SD;
+  }
+
+  public void setCallVideoQuality (int quality) {
+    pmc.putInt(KEY_CALL_VIDEO_QUALITY, quality);
+  }
+
   // TGx101: photo on the call screen: a big circle (new), the original full-screen photo, or none
   public static final int CALL_PHOTO_CIRCLE = 0;
   public static final int CALL_PHOTO_FULL_SCREEN = 1;

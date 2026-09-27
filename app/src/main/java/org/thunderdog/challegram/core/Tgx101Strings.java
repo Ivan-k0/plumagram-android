@@ -144,6 +144,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101CallPhotoCircle, "Круг");
     RU.put(R.string.Tgx101CallPhotoFullScreen, "На весь экран (как раньше)");
     RU.put(R.string.Tgx101CallPhotoNone, "Не показывать");
+    RU.put(R.string.Tgx101CallVideoQuality, "Качество видео");
+    RU.put(R.string.Tgx101CallVideoSd, "SD (960×540) — легче для телефона и сети");
+    RU.put(R.string.Tgx101CallVideoHd, "HD (1280×720)");
     RU.put(R.string.Tgx101CallPattern, "Узор из самолётиков");
     RU.put(R.string.Tgx101CallPatternHint, "Круг — чёткое фото под именем. На весь экран — прежний дизайн Telegram X. Узор из бумажных самолётиков еле заметный и неподвижный; за фото на весь экран его не видно.");
     RU.put(R.string.ShowChannelMuteButton, "Кнопка уведомлений и колокольчик");

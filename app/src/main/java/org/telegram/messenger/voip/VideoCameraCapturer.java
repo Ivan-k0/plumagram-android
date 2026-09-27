@@ -34,7 +34,7 @@ import org.webrtc.SurfaceTextureHelper;
  */
 @Keep
 public class VideoCameraCapturer {
-  private static final int WIDTH = 960, HEIGHT = 540, FPS = 30; // frames are copied to memory for encoding: 540p keeps calls smooth
+  private static final int FPS = 30;
   private static final int STATE_ACTIVE = 2; // tgcalls::VideoState::Active
 
   private static HandlerThread thread;
@@ -88,7 +88,8 @@ public class VideoCameraCapturer {
     handler.post(() -> {
       if (ptr != nativePtr || capturer == null) return;
       if (state == STATE_ACTIVE && !capturing) {
-        capturer.startCapture(WIDTH, HEIGHT, FPS);
+        boolean hd = org.thunderdog.challegram.unsorted.Settings.instance().getCallVideoQuality() == org.thunderdog.challegram.unsorted.Settings.CALL_VIDEO_HD;
+        capturer.startCapture(hd ? 1280 : 960, hd ? 720 : 540, FPS); // Settings → 1Ø1 → Calls
         capturing = true;
       } else if (state != STATE_ACTIVE && capturing) {
         stopCapture();
