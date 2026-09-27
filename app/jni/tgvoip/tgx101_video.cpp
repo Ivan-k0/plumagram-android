@@ -26,6 +26,7 @@
 #include <tgcalls/StaticThreads.h>
 #include <tgcalls/VideoCaptureInterface.h>
 #include <platform/android/AndroidContext.h>
+#include <platform/android/VideoCameraCapturer.h>
 
 namespace tgcalls {
   bool initialize (JNIEnv *env); // tgvoip.cpp
@@ -51,8 +52,36 @@ CaptureHolder *holder (jlong ptr) {
 #define TGX101_VIDEO(RETURN_TYPE, NAME, ...) \
   extern "C" JNIEXPORT RETURN_TYPE JNICALL Java_org_thunderdog_challegram_voip_Tgx101Video_##NAME(JNIEnv *env, jclass clazz, ##__VA_ARGS__)
 
+// tgcalls defines VideoCameraCapturer.nativeGetJavaVideoCapturerObserver inside its static library,
+// and --exclude-libs,ALL hides it from the JNI lookup, so the camera class's native method is bound here.
+static jobject getJavaVideoCapturerObserver (JNIEnv *env, jclass clazz, jlong ptr) {
+  auto *capturer = reinterpret_cast<tgcalls::VideoCameraCapturer *>((intptr_t) ptr);
+  return capturer != nullptr ? capturer->GetJavaVideoCapturerObserver(env).Release() : nullptr;
+}
+
+static bool registerCameraNatives (JNIEnv *env) {
+  static bool registered = false;
+  if (registered) {
+    return true;
+  }
+  jclass cameraClass = env->FindClass("org/telegram/messenger/voip/VideoCameraCapturer");
+  if (cameraClass == nullptr) {
+    env->ExceptionClear();
+    return false;
+  }
+  JNINativeMethod methods[] = {
+    {"nativeGetJavaVideoCapturerObserver", "(J)Lorg/webrtc/CapturerObserver;", (void *) getJavaVideoCapturerObserver}
+  };
+  registered = env->RegisterNatives(cameraClass, methods, 1) == JNI_OK;
+  env->DeleteLocalRef(cameraClass);
+  if (!registered) {
+    env->ExceptionClear();
+  }
+  return registered;
+}
+
 TGX101_VIDEO(jlong, nativeCreateCapture, jboolean front) {
-  if (!tgcalls::initialize(env)) {
+  if (!tgcalls::initialize(env) || !registerCameraNatives(env)) {
     return 0;
   }
   auto platformContext = std::make_shared<tgcalls::AndroidContext>(env);
