@@ -4625,9 +4625,28 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         }
         break;
       }
+      case TdApi.ReactionTypePaid.CONSTRUCTOR: { // TGx101: Stars reaction, drawn with the animated ⭐ emoji
+        if (allowRequest && !paidReactionRequested) {
+          paidReactionRequested = true;
+          send(new TdApi.GetAnimatedEmoji("⭐"), (emoji, error) -> {
+            if (emoji != null && emoji.sticker != null) {
+              TGReaction reaction = new TGReaction(this, emoji.sticker, new TdApi.ReactionTypePaid());
+              synchronized (dataLock) {
+                cachedReactions.put(key, reaction);
+              }
+              listeners().notifyReactionLoaded(key);
+            } else {
+              paidReactionRequested = false;
+            }
+          });
+        }
+        break;
+      }
     }
     return null;
   }
+
+  private volatile boolean paidReactionRequested;
 
   public boolean shouldSendAsDice (TdApi.FormattedText text) {
     return getDiceEmoji(text) != null;

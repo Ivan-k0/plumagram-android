@@ -57,6 +57,17 @@ public class TGReaction {
     initialize();
   }
 
+  // TGx101: the paid (Stars) reaction, drawn with the animated ⭐ emoji
+  public TGReaction (@NonNull Tdlib tdlib, @NonNull TdApi.Sticker sticker, @NonNull TdApi.ReactionType type) {
+    this.tdlib = tdlib;
+    this.customReaction = sticker;
+    this.type = type;
+    this.key = TD.makeReactionKey(type);
+    this.emojiReaction = null;
+
+    initialize();
+  }
+
   private void initialize () {
     _staticIconSicker = newStaticIconSicker();
     _activateAnimationSicker = newActivateAnimationSicker();

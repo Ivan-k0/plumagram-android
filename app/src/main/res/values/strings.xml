@@ -5954,8 +5954,16 @@
   <string name="SavedTagsScanning">Looking for tags in Saved Messages…</string>
   <string name="ChannelsSection">Channels</string>
   <string name="ShowDiscussButton">Show «Discuss» button</string>
+  <string name="Tgx101CallsSection">Calls</string>
+  <string name="Tgx101CallPhoto">Photo</string>
+  <string name="Tgx101CallPhotoCircle">Circle</string>
+  <string name="Tgx101CallPhotoFullScreen">Full screen (as before)</string>
+  <string name="Tgx101CallPhotoNone">Don\'t show</string>
+  <string name="Tgx101CallPattern">Paper plane pattern</string>
+  <string name="Tgx101CallPatternHint">Circle: a sharp photo under the name. Full screen: the original Telegram X design. The pattern of paper planes is faint and still; it is hidden behind a full-screen photo.</string>
+  <string name="ShowChannelMuteButton">«Mute» button and bell</string>
   <string name="ShowCommentsButton">Show comments button under posts</string>
-  <string name="ChannelButtonsHint">Without the «Discuss» button the discussion group opens from the channel\'s ⋮ menu. Without the comments button, comments open from the post\'s menu. Reopen the channel to apply. «Subscribe» is removed only when it is the last line of a post and leads to the same channel.</string>
+  <string name="ChannelButtonsHint">Without the «Discuss» button the discussion group opens from the channel\'s ⋮ menu. Without the comments button, comments open from the post\'s menu. Without the «Mute» button, channel notifications are turned on and off in the ⋮ menu. Reopen the channel to apply. «Subscribe» is removed only when it is the last line of a post and leads to the same channel.</string>
   <string name="Tgx101Settings">1Ø1</string>
   <string name="ProxyPaste">Paste from clipboard</string>
   <string name="ProxyPasteNothing">No proxy links in the clipboard</string>
@@ -6006,6 +6014,8 @@
   <string name="Tgx101StarsKindPaidMedia">paid post</string>
   <string name="Tgx101StarsKindSale">sale</string>
   <string name="Tgx101StarsKindPurchase">purchase</string>
+  <string name="PaidReactionHint">Support this post with Stars. The author gets them, your Stars reaction is shown under the post.\nBalance: %1$s</string>
+  <string name="PaidReactionSent">Sent: %1$s</string>
   <string name="StarsCardUnsupported">This is a card payment. TGx101 pays only with Stars: pay in the official Telegram app.</string>
   <string name="ChatExportFormatHint">The whole chat history is saved to Downloads/TGx101 as a file. Only text: photos, videos and voice messages are marked like [Photo].</string>
   <string name="ChatExportHtml">Web page (HTML) — for reading</string>

@@ -3194,8 +3194,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
         TdApi.SupergroupFullInfo info = tdlib.cache().supergroupFull(ChatId.toSupergroupId(chat.id));
         if (info != null && info.linkedChatId != 0 && Settings.instance().showDiscussButton()) {
           showBottomButton(BOTTOM_ACTION_DISCUSS, info.linkedChatId, isUpdate);
-        } else {
+        } else if (Settings.instance().showChannelMuteButton()) {
           showBottomButton(BOTTOM_ACTION_TOGGLE_MUTE, 0, isUpdate);
+        } else {
+          hideBottomBar(isUpdate); // TGx101: mute stays in the ⋮ menu
         }
       }
     } else if (tdlib.isRepliesChat(chat.id)) {

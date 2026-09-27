@@ -353,4 +353,4 @@ fun Array<MessageWithProperties>?.toMessageIdsMap (): LongSparseArray<LongArray>
   return result
 }
 
-fun ReactionType?.isUnsupported (): Boolean = this?.constructor == ReactionTypePaid.CONSTRUCTOR
+fun ReactionType?.isUnsupported (): Boolean = false // TGx101: paid (Stars) reactions are shown and sent, see Tgx101Stars

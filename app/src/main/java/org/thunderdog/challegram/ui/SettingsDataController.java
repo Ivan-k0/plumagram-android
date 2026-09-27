@@ -216,6 +216,12 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(networkStats != null ? networkStats.getWiFiEntry() : Lang.getString(R.string.Calculating));
         } else if (itemId == R.id.btn_resetNetworkStats) {
           view.setData(networkStats != null ? networkStats.getDateEntry() : Lang.getString(R.string.LoadingInformation));
+        } else if (itemId == R.id.btn_tgx101CallPhoto) {
+          view.setData(callPhotoModeName(Settings.instance().getCallPhotoMode()));
+        } else if (itemId == R.id.btn_tgx101CallPattern) {
+          view.getToggler().setRadioEnabled(Settings.instance().getCallPattern() != Settings.CALL_PATTERN_NONE, isUpdate);
+        } else if (itemId == R.id.btn_showChannelMuteButton) {
+          view.getToggler().setRadioEnabled(Settings.instance().showChannelMuteButton(), isUpdate);
         } else if (itemId == R.id.btn_showDiscussButton) {
           view.getToggler().setRadioEnabled(Settings.instance().showDiscussButton(), isUpdate);
         } else if (itemId == R.id.btn_showCommentsButton) {
@@ -290,11 +296,21 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showCommentsButton, 0, R.string.ShowCommentsButton),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showChannelMuteButton, 0, R.string.ShowChannelMuteButton),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_hideSubscribeLink, 0, R.string.HideSubscribeLink),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_separateChannelPosts, 0, R.string.SeparateChannelPosts),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.ChannelButtonsHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+
+        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101CallsSection),
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101CallPhoto, 0, R.string.Tgx101CallPhoto),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CallPattern, 0, R.string.Tgx101CallPattern),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101CallPatternHint),
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101Updates),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
@@ -592,6 +608,12 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setPullToSearchEnabled(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showDiscussButton) {
       Settings.instance().setShowDiscussButton(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101CallPhoto) {
+      showCallPhotoModes();
+    } else if (id == R.id.btn_tgx101CallPattern) {
+      Settings.instance().setCallPattern(toggleResult ? Settings.CALL_PATTERN_PAPER_PLANES : Settings.CALL_PATTERN_NONE); // the view was already toggled above
+    } else if (id == R.id.btn_showChannelMuteButton) {
+      Settings.instance().setShowChannelMuteButton(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showCommentsButton) {
       Settings.instance().setShowCommentsButton(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_hideSubscribeLink) {
@@ -827,5 +849,33 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         adapter.updateValuedSettingById(id);
       }
     }
+  }
+
+  // TGx101: photo on the call screen
+
+  private static int callPhotoModeName (int mode) {
+    switch (mode) {
+      case Settings.CALL_PHOTO_FULL_SCREEN: return R.string.Tgx101CallPhotoFullScreen;
+      case Settings.CALL_PHOTO_NONE: return R.string.Tgx101CallPhotoNone;
+      default: return R.string.Tgx101CallPhotoCircle;
+    }
+  }
+
+  private void showCallPhotoModes () {
+    final int[] modes = {Settings.CALL_PHOTO_CIRCLE, Settings.CALL_PHOTO_FULL_SCREEN, Settings.CALL_PHOTO_NONE};
+    final int current = Settings.instance().getCallPhotoMode();
+    ListItem[] items = new ListItem[modes.length];
+    for (int i = 0; i < modes.length; i++) {
+      items[i] = new ListItem(ListItem.TYPE_RADIO_OPTION, modes[i] + 1, 0, callPhotoModeName(modes[i]), R.id.btn_tgx101CallPhoto, modes[i] == current);
+    }
+    showSettings(new SettingsWrapBuilder(R.id.btn_tgx101CallPhoto)
+      .setRawItems(items)
+      .setIntDelegate((id, result) -> {
+        int selected = result.get(R.id.btn_tgx101CallPhoto);
+        if (selected > 0) {
+          Settings.instance().setCallPhotoMode(selected - 1);
+          adapter.updateValuedSettingById(R.id.btn_tgx101CallPhoto);
+        }
+      }));
   }
 }

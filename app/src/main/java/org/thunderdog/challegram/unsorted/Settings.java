@@ -3135,6 +3135,45 @@ public class Settings {
     pmc.putBoolean(KEY_SHOW_DISCUSS_BUTTON, show);
   }
 
+  // TGx101: call screen pattern. Stored as a number so more backgrounds, colours and patterns can be added later
+  public static final int CALL_PATTERN_NONE = 0;
+  public static final int CALL_PATTERN_PAPER_PLANES = 1;
+  private static final String KEY_CALL_PATTERN = "settings_call_pattern";
+
+  public int getCallPattern () {
+    return pmc.getInt(KEY_CALL_PATTERN, CALL_PATTERN_PAPER_PLANES);
+  }
+
+  public void setCallPattern (int pattern) {
+    pmc.putInt(KEY_CALL_PATTERN, pattern);
+  }
+
+  // TGx101: photo on the call screen: a big circle (new), the original full-screen photo, or none
+  public static final int CALL_PHOTO_CIRCLE = 0;
+  public static final int CALL_PHOTO_FULL_SCREEN = 1;
+  public static final int CALL_PHOTO_NONE = 2;
+  private static final String KEY_CALL_PHOTO_MODE = "settings_call_photo_mode";
+
+  public int getCallPhotoMode () {
+    int mode = pmc.getInt(KEY_CALL_PHOTO_MODE, CALL_PHOTO_CIRCLE);
+    return mode >= CALL_PHOTO_CIRCLE && mode <= CALL_PHOTO_NONE ? mode : CALL_PHOTO_CIRCLE;
+  }
+
+  public void setCallPhotoMode (int mode) {
+    pmc.putInt(KEY_CALL_PHOTO_MODE, mode);
+  }
+
+  // TGx101: the bottom "Mute / Unmute" button in channels (it collapses into a bell while scrolling)
+  private static final String KEY_SHOW_CHANNEL_MUTE_BUTTON = "settings_show_channel_mute_button";
+
+  public boolean showChannelMuteButton () {
+    return pmc.getBoolean(KEY_SHOW_CHANNEL_MUTE_BUTTON, true);
+  }
+
+  public void setShowChannelMuteButton (boolean show) {
+    pmc.putBoolean(KEY_SHOW_CHANNEL_MUTE_BUTTON, show);
+  }
+
   public boolean showCommentsButton () {
     return pmc.getBoolean(KEY_SHOW_COMMENTS_BUTTON, true);
   }

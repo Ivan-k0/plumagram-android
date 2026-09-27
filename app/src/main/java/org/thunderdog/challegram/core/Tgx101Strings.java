@@ -77,10 +77,18 @@ final class Tgx101Strings {
     RU.put(R.string.SavedTagsScanning, "Ищу теги в Избранном…");
     RU.put(R.string.ChannelsSection, "Каналы");
     RU.put(R.string.ShowDiscussButton, "Кнопка «Обсудить»");
+    RU.put(R.string.Tgx101CallsSection, "Звонки");
+    RU.put(R.string.Tgx101CallPhoto, "Фото собеседника");
+    RU.put(R.string.Tgx101CallPhotoCircle, "Круг");
+    RU.put(R.string.Tgx101CallPhotoFullScreen, "На весь экран (как раньше)");
+    RU.put(R.string.Tgx101CallPhotoNone, "Не показывать");
+    RU.put(R.string.Tgx101CallPattern, "Узор из самолётиков");
+    RU.put(R.string.Tgx101CallPatternHint, "Круг — чёткое фото под именем. На весь экран — прежний дизайн Telegram X. Узор из бумажных самолётиков еле заметный и неподвижный; за фото на весь экран его не видно.");
+    RU.put(R.string.ShowChannelMuteButton, "Кнопка уведомлений и колокольчик");
     RU.put(R.string.ShowCommentsButton, "Кнопка комментариев под постами");
     RU.put(R.string.HideSubscribeLink, "Скрывать «Подписаться» под постами");
     RU.put(R.string.SeparateChannelPosts, "Отступ и линия между постами");
-    RU.put(R.string.ChannelButtonsHint, "Без кнопки «Обсудить» группа обсуждения открывается из меню канала ⋮. Без кнопки комментариев комментарии открываются из меню поста. Чтобы изменения применились, откройте канал заново. «Подписаться» убирается, только если это последняя строка поста и ссылка ведёт на этот же канал.");
+    RU.put(R.string.ChannelButtonsHint, "Без кнопки «Обсудить» группа обсуждения открывается из меню канала ⋮. Без кнопки комментариев комментарии открываются из меню поста. Без кнопки уведомлений звук канала включается и выключается в меню ⋮. Чтобы изменения применились, откройте канал заново. «Подписаться» убирается, только если это последняя строка поста и ссылка ведёт на этот же канал.");
     RU.put(R.string.ProxyPaste, "Вставить из буфера");
     RU.put(R.string.ProxyPasteNothing, "В буфере обмена нет ссылок на прокси");
     RU.put(R.string.ProxyPasteResult, "Добавлено прокси: %1$d, уже были в списке: %2$d");
@@ -128,6 +136,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101StarsKindPaidMedia, "платный пост");
     RU.put(R.string.Tgx101StarsKindSale, "продажа");
     RU.put(R.string.Tgx101StarsKindPurchase, "покупка");
+    RU.put(R.string.PaidReactionHint, "Поддержать пост звёздами. Их получит автор, под постом появится ваша звёздная реакция.\nНа балансе: %1$s");
+    RU.put(R.string.PaidReactionSent, "Отправлено: %1$s");
     RU.put(R.string.StarsCardUnsupported, "Это оплата картой. TGx101 платит только звёздами: оплатите в официальном Telegram.");
     RU.put(R.string.ChatExportFormatHint, "Вся история чата сохранится в «Загрузки/TGx101» одним файлом. Только текст: фото, видео и голосовые отмечаются как [Фото] и т. п.");
     RU.put(R.string.ChatExportHtml, "Веб-страница (HTML) — для чтения");

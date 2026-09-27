@@ -55,6 +55,7 @@ import org.thunderdog.challegram.theme.ColorId;
 import org.thunderdog.challegram.theme.Theme;
 import org.thunderdog.challegram.tool.DrawAlgorithms;
 import org.thunderdog.challegram.tool.Drawables;
+import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.tool.Fonts;
 import org.thunderdog.challegram.tool.Paints;
 import org.thunderdog.challegram.tool.Screen;
@@ -212,6 +213,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
   }
 
   private AvatarView avatarView;
+  private Tgx101CallBackground callBackground;
   private TextView nameView, stateView;
   private EmojiStatusHelper emojiStatusHelper;
   private float nameTextWidth;
@@ -333,7 +335,13 @@ public class CallController extends ViewController<CallController.Arguments> imp
     Views.setTopMargin(brandWrap, startMargin);
     Views.setTopMargin(nameView, startMargin + Screen.dp(34f));
     Views.setTopMargin(stateView, startMargin + Screen.dp(94f));
+    if (photoMode == Settings.CALL_PHOTO_CIRCLE) {
+      Views.setTopMargin(avatarView, startMargin + AVATAR_TOP_OFFSET);
+    }
   }
+
+  private int photoMode; // TGx101: Settings.CALL_PHOTO_*
+  private static final int AVATAR_TOP_OFFSET = Screen.dp(150f); // TGx101: under the name and the call state
 
   @Override
   protected View onCreateView (final Context context) {
@@ -350,19 +358,47 @@ public class CallController extends ViewController<CallController.Arguments> imp
         updateEmojiPosition();
       }
     };
-    ViewSupport.setThemedBackground(contentView, ColorId.headerBackground, this);
+    photoMode = Settings.instance().getCallPhotoMode();
+    final boolean isCircle = photoMode == Settings.CALL_PHOTO_CIRCLE;
+    final boolean isFullScreen = photoMode == Settings.CALL_PHOTO_FULL_SCREEN;
 
+    // TGx101: dark background in the app icon colours with a faint paper plane pattern
+    callBackground = new Tgx101CallBackground(context) {
+      @Override
+      public boolean onTouchEvent (MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_UP && emojiExpandFactor == 1f && isEmojiExpanded) {
+          setEmojiExpanded(false);
+        }
+        return true;
+      }
+    };
+    callBackground.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    contentView.addView(callBackground);
+
+    // TGx101: the photo is a big circle under the name instead of a stretched full-screen picture
     avatarView = new AvatarView(context) {
-      private final Drawable topShadow = ScrimUtil.makeCubicGradientScrimDrawable(0xff000000, 2, Gravity.TOP, false);
+      private final Drawable topShadow = isFullScreen ? ScrimUtil.makeCubicGradientScrimDrawable(0xff000000, 2, Gravity.TOP, false) : null;
 
       @Override
       protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        int width = getMeasuredWidth();
-        int shadowSize = Screen.dp(212f);
-        if (topShadow.getBounds().right != width || topShadow.getBounds().bottom != shadowSize) {
-          topShadow.setBounds(0, 0, width, shadowSize);
+        if (!isCircle) { // the original full-screen photo
+          super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+          if (topShadow != null) {
+            topShadow.setBounds(0, 0, getMeasuredWidth(), Screen.dp(212f));
+          }
+          return;
         }
+        int width = MeasureSpec.getSize(widthMeasureSpec);
+        int height = MeasureSpec.getSize(heightMeasureSpec) - Screen.dp(76f) - Screen.dp(96f);
+        int size = Math.max(0, Math.min((int) (width * .64f), (int) (height * .8f)));
+        int spec = MeasureSpec.makeMeasureSpec(size, MeasureSpec.EXACTLY);
+        super.onMeasure(spec, spec);
+      }
+
+      @Override
+      protected void onLayout (boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+        callBackground.invalidate();
       }
 
       @Override
@@ -381,25 +417,34 @@ public class CallController extends ViewController<CallController.Arguments> imp
       }
 
       @Override
-      protected void onDraw(Canvas c){
+      protected void onDraw (Canvas c) {
         super.onDraw(c);
-        int alpha = (int) (255f * lastHeaderFactor * .5f);
-        Drawables.setAlpha(topShadow, alpha);
-        topShadow.draw(c);
+        if (topShadow != null) {
+          Drawables.setAlpha(topShadow, (int) (255f * lastHeaderFactor * .5f));
+          topShadow.draw(c);
+        }
       }
     };
-    avatarView.setNoRound(true);
-    avatarView.setNoPlaceholders(true);
+    if (isFullScreen) {
+      avatarView.setNoRound(true);
+      avatarView.setNoPlaceholders(true);
+    } else if (!isCircle) {
+      avatarView.setVisibility(View.GONE);
+    }
     avatarView.setNeedFull(true);
     avatarView.setUser(tdlib, user, false);
-    avatarView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     contentView.addView(avatarView);
+    callBackground.setPhotoView(isCircle ? avatarView : null);
 
     FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
 
     // Top-left corner
 
     int startMargin = Math.max(Screen.dp(18f) + Screen.getStatusBarHeight(), Screen.dp(42f));
+    avatarView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER_HORIZONTAL | Gravity.TOP));
+    if (isCircle) {
+      Views.setTopMargin(avatarView, startMargin + AVATAR_TOP_OFFSET);
+    }
 
     params.topMargin = startMargin + Screen.dp(34f);
     params.leftMargin = params.rightMargin = Screen.dp(18f);
@@ -418,7 +463,8 @@ public class CallController extends ViewController<CallController.Arguments> imp
       @Override
       protected void onDraw (Canvas canvas) {
         super.onDraw(canvas);
-        emojiStatusHelper.draw(canvas, (int) Math.min(getMeasuredWidth() - emojiStatusHelper.getWidth(0), nameTextWidth + Screen.dp(7)), Screen.dp(9));
+        int textLeft = isFullScreen ? 0 : (int) Math.max(0, (getMeasuredWidth() - nameTextWidth - emojiStatusHelper.getWidth(0) - Screen.dp(7)) / 2f); // TGx101: centred name
+        emojiStatusHelper.draw(canvas, (int) Math.min(getMeasuredWidth() - emojiStatusHelper.getWidth(0), textLeft + nameTextWidth + Screen.dp(7)), Screen.dp(9));
       }
     };
     nameView.setScrollDisabled(true);
@@ -428,6 +474,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
     nameView.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
     Views.setSimpleShadow(nameView);
     nameView.setEllipsize(TextUtils.TruncateAt.END);
+    nameView.setGravity(isFullScreen ? Gravity.LEFT : Gravity.CENTER_HORIZONTAL);
     nameView.setLayoutParams(params);
     contentView.addView(nameView);
 
@@ -450,11 +497,12 @@ public class CallController extends ViewController<CallController.Arguments> imp
     stateView.setTypeface(Fonts.getRobotoRegular());
     Views.setSimpleShadow(stateView);
     // stateView.setEllipsize(TextUtils.TruncateAt.END);
+    stateView.setGravity(isFullScreen ? Gravity.LEFT : Gravity.CENTER_HORIZONTAL);
     stateView.setLayoutParams(params);
     contentView.addView(stateView);
 
     Screen.addStatusBarHeightListener(this);
-    params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, (isFullScreen ? Gravity.LEFT : Gravity.CENTER_HORIZONTAL) | Gravity.TOP);
     params.topMargin = startMargin;
     params.leftMargin = params.rightMargin = Screen.dp(18f);
     brandWrap = new LinearLayout(context);
@@ -986,7 +1034,6 @@ public class CallController extends ViewController<CallController.Arguments> imp
   private void updateControlsAlpha () {
     float alpha = lastHeaderFactor * buttonsFactor;
     buttonWrap.setAlpha(alpha);
-    buttonWrap.setTranslationY((1f - lastHeaderFactor) * buttonWrap.getMeasuredHeight() * .2f);
   }
 
   private void updateCallButtons () {

@@ -284,4 +284,64 @@ public final class Tgx101Stars {
       }
     }));
   }
+
+  // Paid reactions: support a channel post with Stars
+
+  private static final int[] PAID_REACTION_AMOUNTS = {1, 5, 10, 50, 100};
+
+  public static void sendPaidReaction (@NonNull ViewController<?> c, long chatId, long messageId) {
+    requestBalance(c.tdlib(), balance -> {
+      if (c.isDestroyed()) {
+        return;
+      }
+      int[] ids = new int[PAID_REACTION_AMOUNTS.length + 1];
+      String[] titles = new String[ids.length];
+      int[] colors = new int[ids.length];
+      int[] icons = new int[ids.length];
+      for (int i = 0; i < PAID_REACTION_AMOUNTS.length; i++) {
+        ids[i] = PAID_REACTION_AMOUNTS[i];
+        titles[i] = formatStars(PAID_REACTION_AMOUNTS[i]);
+        colors[i] = ViewController.OptionColor.NORMAL;
+        icons[i] = R.drawable.baseline_star_24;
+      }
+      ids[ids.length - 1] = R.id.btn_cancel;
+      titles[ids.length - 1] = Lang.getString(R.string.Cancel);
+      colors[ids.length - 1] = ViewController.OptionColor.NORMAL;
+      icons[ids.length - 1] = R.drawable.baseline_cancel_24;
+      c.showOptions(Lang.getString(R.string.PaidReactionHint, balance >= 0 ? formatStars(balance) : "?"), ids, titles, colors, icons, (itemView, id) -> {
+        if (id == R.id.btn_cancel) {
+          return true;
+        }
+        if (balance >= 0 && id > balance) {
+          c.showOptions(Lang.getString(R.string.StarsNotEnough, formatStars(id), formatStars(balance)),
+            new int[] {R.id.btn_openLink, R.id.btn_cancel},
+            new String[] {Lang.getString(R.string.StarsOpenFragment), Lang.getString(R.string.Cancel)},
+            new int[] {ViewController.OptionColor.BLUE, ViewController.OptionColor.NORMAL},
+            new int[] {R.drawable.baseline_open_in_browser_24, R.drawable.baseline_cancel_24},
+            (v, which) -> {
+              if (which == R.id.btn_openLink) {
+                c.tdlib().ui().openUrl(c, FRAGMENT_URL, null);
+              }
+              return true;
+            });
+          return true;
+        }
+        final int count = id;
+        c.tdlib().send(new TdApi.AddPendingPaidMessageReaction(chatId, messageId, count, new TdApi.PaidReactionTypeRegular()), (ok, error) -> {
+          if (error != null) {
+            UI.post(() -> UI.showToast(Lang.getString(R.string.StarsPayFailed, TD.toErrorString(error)), Toast.LENGTH_LONG));
+            return;
+          }
+          c.tdlib().send(new TdApi.CommitPendingPaidMessageReactions(chatId, messageId), (ok2, error2) -> UI.post(() -> {
+            if (error2 != null) {
+              UI.showToast(Lang.getString(R.string.StarsPayFailed, TD.toErrorString(error2)), Toast.LENGTH_LONG);
+            } else {
+              UI.showToast(Lang.getString(R.string.PaidReactionSent, formatStars(count)), Toast.LENGTH_SHORT);
+            }
+          }));
+        });
+        return true;
+      });
+    });
+  }
 }

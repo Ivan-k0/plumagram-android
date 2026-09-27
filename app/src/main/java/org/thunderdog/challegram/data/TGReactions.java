@@ -601,6 +601,12 @@ public class TGReactions implements Destroyable, ReactionLoadListener {
 
   public boolean toggleReaction (TdApi.ReactionType reactionType, boolean isBig, boolean updateRecentReactions, Client.ResultHandler handler) {
     TdApi.Message message = parent.getOldestMessage();
+    if (reactionType.getConstructor() == TdApi.ReactionTypePaid.CONSTRUCTOR) { // TGx101: Stars are chosen and confirmed
+      if (parent.messagesController() != null) {
+        Tgx101Stars.sendPaidReaction(parent.messagesController(), parent.getChatId(), message.id);
+      }
+      return false;
+    }
     boolean hasReaction = !hasReaction(reactionType);
     if (hasReaction) {
       Settings.instance().incrementReactionUsage(TD.makeReactionKey(reactionType));
