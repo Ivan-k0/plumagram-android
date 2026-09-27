@@ -38,6 +38,8 @@
 
 # Keep log
 -keep class org.thunderdog.challegram.Log
+# TGx101: called by name from BaseApplication
+-keep class org.thunderdog.challegram.BaseApplicationStartup { public static void onCreate(android.app.Application); }
 -keepclassmembers class org.thunderdog.challegram.Log { *; }
 # Keep all related to VoIP
 -keep class org.thunderdog.challegram.voip.**

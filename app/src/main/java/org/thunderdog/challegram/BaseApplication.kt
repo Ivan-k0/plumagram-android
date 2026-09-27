@@ -16,25 +16,9 @@ package org.thunderdog.challegram
 
 import android.content.Context
 import androidx.work.Configuration
-import com.google.firebase.messaging.FirebaseMessaging
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.MainScope
-import org.thunderdog.challegram.push.FirebaseDeviceTokenRetriever
-import org.thunderdog.challegram.service.PushHandler
-import org.thunderdog.challegram.telegram.TdlibNotificationUtils
-import org.thunderdog.challegram.tool.UI
-import org.thunderdog.challegram.unsorted.Settings
-import tgx.bridge.DeviceTokenRetriever
-import tgx.bridge.DeviceTokenRetrieverFactory
-import tgx.bridge.PushManagerBridge
-import tgx.extension.TelegramXExtension
 import tgx.flavor.TgxApplication
 
 class BaseApplication : TgxApplication(), Configuration.Provider {
-  companion object {
-    lateinit var scope: CoroutineScope
-  }
-
   override fun attachBaseContext(base: Context) {
     super.attachBaseContext(base)
     Tgx101Diag.start(base) // TGx101: only in diagnostics builds
@@ -44,37 +28,9 @@ class BaseApplication : TgxApplication(), Configuration.Provider {
     Tgx101Diag.mark("Application.onCreate …")
     super.onCreate()
     Tgx101Diag.mark("Application.onCreate: base ready")
-    scope = MainScope()
-
-    PushManagerBridge.initialize(
-      scope,
-
-      PushHandler(),
-      object : DeviceTokenRetrieverFactory {
-        override fun onCreateNewTokenRetriever(context: Context): DeviceTokenRetriever {
-          val defaultTokenRetriever = FirebaseDeviceTokenRetriever()
-          val tokenRetriever = TelegramXExtension.createNewTokenRetriever(context)
-          return tokenRetriever?.takeIf {
-            !BuildConfig.EXPERIMENTAL && (
-              Settings.instance().isExperimentEnabled(Settings.EXPERIMENT_FLAG_FORCE_ALTERNATIVE_PUSH_SERVICE) ||
-              !defaultTokenRetriever.isAvailable(applicationContext)
-            )
-          } ?: defaultTokenRetriever
-        }
-      }
-    )
-
-    UI.initApp(applicationContext)
-    org.thunderdog.challegram.proxy.Tgx101WebProxy.init() // TGx101: WEB proxy carrier follows the current proxy
-    Tgx101Diag.mark("Application.onCreate: UI ready")
-
-    if (!BuildConfig.EXPERIMENTAL) {
-      val deviceTokenRetriever = TdlibNotificationUtils.getDeviceTokenRetriever()
-      TelegramXExtension.configure(this, deviceTokenRetriever)
-      if (deviceTokenRetriever !is FirebaseDeviceTokenRetriever) {
-        FirebaseMessaging.getInstance().isAutoInitEnabled = false
-      }
-    }
+    // TGx101: startup lives in BaseApplicationStartup and is called by name. On Android 4 this class is
+    // verified before MultiDex adds the secondary dex files, so it must not reference the rest of the app.
+    Class.forName(javaClass.name + "Startup").getMethod("onCreate", android.app.Application::class.java).invoke(null, this)
   }
 
   override val workManagerConfiguration: Configuration

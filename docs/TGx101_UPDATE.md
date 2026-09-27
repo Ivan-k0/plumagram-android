@@ -96,7 +96,10 @@ git submodule update --init --recursive   # обязательно сразу п
 **Видеозвонки и Android 4.** Код на WebRTC (`Tgx101Video`, `Tgx101CallVideo`, `Tgx101TextureVideoView`,
 `VideoCameraCapturer`) лежит в `app/src/sinceLollipop/java`, для сборки Android 4 — заглушки в
 `app/src/onlyLegacy/java` (там нет WebRTC). Меняя публичные методы этих классов, обновить заглушки.
-Сама сборка Android 4 падает при запуске: R8 не умещает все стартовые классы в первый dex (см. лог Ubeavis 2026-09-28).
+**Запуск и Android 4.** Тело `BaseApplication.onCreate` вынесено в `BaseApplicationStartup` и вызывается по имени
+(`Class.forName`). На Android 4 `BaseApplication` проверяется до подключения вторичных dex, и все классы, на которые
+он ссылается, должны быть в первом dex; раньше R8 не умещал их (~6400 классов, см. лог Ubeavis 2026-09-28).
+При обновлении Telegram X переносить новый код из `BaseApplication.onCreate` в `BaseApplicationStartup`.
 
 ## 3. Сборка
 
