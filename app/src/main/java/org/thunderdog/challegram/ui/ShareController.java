@@ -1440,7 +1440,17 @@ public class ShareController extends TelegramViewController<ShareController.Args
 
     // Load chats
 
-    initializeChatList(displayingChatList);
+    if (TD.isChatListMain(displayingChatList)) {
+      // TGx101: Saved Messages, two rows of private chats you share with most, then chats you share with most
+      Tgx101ShareOrder.load(tdlib, calculateSpanCount() * 2 - 1, chatIds -> { // Saved Messages + private chats = two rows
+        if (!isDestroyed()) {
+          tgx101Promoted = chatIds;
+          initializeChatList(displayingChatList);
+        }
+      });
+    } else {
+      initializeChatList(displayingChatList);
+    }
 
     return wrapView;
   }
@@ -1513,6 +1523,9 @@ public class ShareController extends TelegramViewController<ShareController.Args
 
   @Override
   public void onChatAdded (TdlibChatList chatList, TdApi.Chat chat, int atIndex, Tdlib.ChatChange changeInfo) {
+    if (tgx101Ordered && TD.isChatListMain(chatList.chatList())) {
+      return; // TGx101: the reordered Share list stays as opened
+    }
     runOnUiThreadOptional(() -> {
       List<TGFoundChat> displayingChats = getChatsByChatList(chatList.chatList());
       if (displayingChats != null) {
@@ -1531,6 +1544,9 @@ public class ShareController extends TelegramViewController<ShareController.Args
 
   @Override
   public void onChatRemoved (TdlibChatList chatList, TdApi.Chat chat, int fromIndex, Tdlib.ChatChange changeInfo) {
+    if (tgx101Ordered && TD.isChatListMain(chatList.chatList())) {
+      return; // TGx101: the reordered Share list stays as opened
+    }
     runOnUiThreadOptional(() -> {
       List<TGFoundChat> displayingChats = getChatsByChatList(chatList.chatList());
       if (displayingChats != null) {
@@ -1545,6 +1561,9 @@ public class ShareController extends TelegramViewController<ShareController.Args
 
   @Override
   public void onChatMoved (TdlibChatList chatList, TdApi.Chat chat, int fromIndex, int toIndex, Tdlib.ChatChange changeInfo) {
+    if (tgx101Ordered && TD.isChatListMain(chatList.chatList())) {
+      return; // TGx101: the reordered Share list stays as opened
+    }
     runOnUiThreadOptional(() -> {
       List<TGFoundChat> displayingChats = getChatsByChatList(chatList.chatList());
       if (displayingChats != null) {
@@ -1579,8 +1598,46 @@ public class ShareController extends TelegramViewController<ShareController.Args
     return chat;
   }
 
+  // TGx101: chats moved to the top of the main list, skipped when their page arrives
+  private @Nullable List<Long> tgx101Promoted;
+  private final java.util.Set<Long> tgx101PromotedShown = new java.util.HashSet<>();
+  private boolean tgx101Ordered;
+
   private void processChats (TdApi.ChatList chatList, List<TdlibChatListSlice.Entry> entries) {
     final List<TGFoundChat> result = new ArrayList<>(entries.size());
+    if (tgx101Promoted != null && TD.isChatListMain(chatList)) {
+      if (!tgx101Ordered) {
+        tgx101Ordered = true;
+        int index = 0;
+        if (!entries.isEmpty() && tdlib.isSelfChat(entries.get(0).chat)) {
+          result.add(newChat(chatList, entries.get(0).chat)); // Saved Messages stay first
+          tgx101PromotedShown.add(entries.get(0).chat.id);
+          index = 1;
+        }
+        for (long chatId : tgx101Promoted) {
+          TdApi.Chat chat = tdlib.chat(chatId);
+          if (chat != null && !tgx101PromotedShown.contains(chatId) && accept(chat)) {
+            result.add(newChat(chatList, chat));
+            tgx101PromotedShown.add(chatId);
+          }
+        }
+        for (int i = index; i < entries.size(); i++) {
+          if (!tgx101PromotedShown.contains(entries.get(i).chat.id)) {
+            result.add(newChat(chatList, entries.get(i).chat));
+          }
+        }
+      } else {
+        for (TdlibChatList.Entry entry : entries) {
+          if (!tgx101PromotedShown.contains(entry.chat.id)) {
+            result.add(newChat(chatList, entry.chat));
+          }
+        }
+      }
+      runOnUiThreadOptional(() ->
+        displayChats(chatList, result)
+      );
+      return;
+    }
     for (TdlibChatList.Entry entry : entries) {
       result.add(newChat(chatList, entry.chat));
     }
@@ -3534,6 +3591,9 @@ public class ShareController extends TelegramViewController<ShareController.Args
   private void onSent () {
     if (!isSent) {
       isSent = true;
+      for (int i = 0; i < selectedChats.size(); i++) {
+        Tgx101ShareOrder.recordShare(tdlib, selectedChats.valueAt(i).getChatId()); // TGx101: Share order
+      }
       Args args = getArgumentsStrict();
       if (args.after != null) {
         args.after.run();
