@@ -957,6 +957,7 @@ dependencies {
     libs.androidx.exifinterface.latest
   )
   implementation(libs.androidx.biometric)
+  implementation(libs.androidx.webkit) // TGx101: WEB proxy, Android 5+
   implementation(libs.androidx.palette)
   implementation(libs.androidx.collection)
   implementation(libs.androidx.interpolator)

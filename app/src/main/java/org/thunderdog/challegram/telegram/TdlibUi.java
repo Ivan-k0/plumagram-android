@@ -3175,6 +3175,12 @@ public class TdlibUi extends Handler {
   }
   
   public void openUrl (final TdlibDelegate context, final String url, @Nullable UrlOpenParameters options, @Nullable RunnableBool after) {
+    // TGx101: WEB proxy links (tg://webproxy, t.me/webproxy)
+    ViewController<?> webProxyContext = context instanceof ViewController<?> ? (ViewController<?>) context : context.context().navigation().getCurrentStackItem();
+    if (org.thunderdog.challegram.proxy.Tgx101WebProxy.tryOpenLink(webProxyContext, url)) {
+      if (after != null) after.runWithBool(true);
+      return;
+    }
     openTelegramUrl(context, url, options, processed -> {
       if (!processed) {
         openExternalUrl(context, url, options, after);

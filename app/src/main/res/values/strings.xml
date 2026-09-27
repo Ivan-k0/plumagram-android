@@ -5955,6 +5955,15 @@
   <string name="ChannelsSection">Channels</string>
   <string name="ShowDiscussButton">Show «Discuss» button</string>
   <string name="Tgx101Premium">Telegram Premium</string>
+  <string name="Tgx101WebProxyAdd">Add WEB proxy</string>
+  <string name="Tgx101WebProxyAddHint">A WEB proxy looks like an ordinary website to your provider: Telegram traffic goes over HTTPS through the proxy\'s site. Enter the address (site.com or site.com/path) and the secret from the proxy owner.</string>
+  <string name="Tgx101WebProxyAddress">Address, e.g. proxy.example.com</string>
+  <string name="Tgx101WebProxySecret">Secret</string>
+  <string name="Tgx101WebProxyConnect">Connect</string>
+  <string name="Tgx101WebProxyConfirm">Connect to the WEB proxy %1$s?\nTelegram traffic will go over HTTPS through this site.</string>
+  <string name="Tgx101WebProxyAdded">WEB proxy added: %1$s</string>
+  <string name="Tgx101WebProxyInvalid">This WEB proxy address or secret is not valid</string>
+  <string name="Tgx101WebProxyUnsupported">WEB proxies need Android 5.0+ with an up-to-date Android System WebView</string>
   <string name="Tgx101VoiceChat">Voice chat</string>
   <string name="Tgx101VoiceChatJoin">Join voice chat</string>
   <string name="Tgx101VoiceChatStart">Start voice chat</string>

@@ -49,6 +49,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import me.vkryl.core.lambda.Filter;
+import me.vkryl.core.lambda.RunnableData;
 import me.vkryl.core.lambda.RunnableInt;
 
 /**
@@ -90,7 +91,12 @@ public final class Tgx101Proxies {
   // 1.1 + 1.2: one or many proxy links from the clipboard
 
   public static void pasteFromClipboard (@NonNull ViewController<?> c) {
-    List<String> links = findProxyLinks(U.getPasteText(c.context()));
+    CharSequence pasted = U.getPasteText(c.context());
+    int webAdded = org.thunderdog.challegram.proxy.Tgx101WebProxy.addFromText(pasted); // WEB proxy links
+    List<String> links = findProxyLinks(pasted);
+    if (links.isEmpty() && webAdded > 0) {
+      return;
+    }
     if (links.isEmpty()) {
       UI.showToast(R.string.ProxyPasteNothing, Toast.LENGTH_SHORT);
       return;
@@ -153,7 +159,8 @@ public final class Tgx101Proxies {
     AtomicInteger remaining = new AtomicInteger(linkable.size());
     for (int i = 0; i < linkable.size(); i++) {
       final int index = i;
-      c.tdlib().getProxyLink(linkable.get(i), url -> {
+      String webLink = org.thunderdog.challegram.proxy.Tgx101WebProxy.linkFor(linkable.get(i).id);
+      RunnableData<String> onLink = url -> {
         urls[index] = url;
         if (remaining.decrementAndGet() == 0) {
           StringBuilder b = new StringBuilder();
@@ -172,7 +179,12 @@ public final class Tgx101Proxies {
             Lang.getString(R.string.ProxyCopyAllResultHttp, count, skipped) :
             Lang.getString(R.string.ProxyCopyAllResult, count), Toast.LENGTH_LONG);
         }
-      });
+      };
+      if (webLink != null) {
+        onLink.runWithData(webLink);
+      } else {
+        c.tdlib().getProxyLink(linkable.get(i), onLink::runWithData);
+      }
     }
   }
 
@@ -207,6 +219,9 @@ public final class Tgx101Proxies {
     List<Settings.Proxy> dead = new ArrayList<>();
     int alive = 0;
     for (Settings.Proxy proxy : proxies) {
+      if (org.thunderdog.challegram.proxy.Tgx101WebProxy.isWebProxy(proxy.id)) {
+        continue; // an inactive WEB proxy can't be checked without starting its carrier
+      }
       if (proxy.pingMs == Settings.PROXY_TIME_EMPTY) {
         dead.add(proxy);
       } else if (proxy.pingMs >= 0) {

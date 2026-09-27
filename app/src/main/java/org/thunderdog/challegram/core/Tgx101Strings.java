@@ -78,6 +78,15 @@ final class Tgx101Strings {
     RU.put(R.string.ChannelsSection, "Каналы");
     RU.put(R.string.ShowDiscussButton, "Кнопка «Обсудить»");
     RU.put(R.string.Tgx101Premium, "Telegram Premium");
+    RU.put(R.string.Tgx101WebProxyAdd, "Добавить WEB-прокси");
+    RU.put(R.string.Tgx101WebProxyAddHint, "Для провайдера WEB-прокси выглядит как обычный сайт: трафик Telegram идёт по HTTPS через сайт прокси. Введите адрес (site.com или site.com/путь) и секрет от владельца прокси.");
+    RU.put(R.string.Tgx101WebProxyAddress, "Адрес, например proxy.example.com");
+    RU.put(R.string.Tgx101WebProxySecret, "Секрет");
+    RU.put(R.string.Tgx101WebProxyConnect, "Подключить");
+    RU.put(R.string.Tgx101WebProxyConfirm, "Подключить WEB-прокси %1$s?\nТрафик Telegram пойдёт по HTTPS через этот сайт.");
+    RU.put(R.string.Tgx101WebProxyAdded, "WEB-прокси добавлен: %1$s");
+    RU.put(R.string.Tgx101WebProxyInvalid, "Неверный адрес или секрет WEB-прокси");
+    RU.put(R.string.Tgx101WebProxyUnsupported, "Для WEB-прокси нужен Android 5.0+ и свежий Android System WebView");
     RU.put(R.string.Tgx101VoiceChat, "Голосовой чат");
     RU.put(R.string.Tgx101VoiceChatJoin, "Голосовой чат");
     RU.put(R.string.Tgx101VoiceChatStart, "Начать голосовой чат");

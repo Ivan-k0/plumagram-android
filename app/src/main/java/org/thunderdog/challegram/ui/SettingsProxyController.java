@@ -93,6 +93,8 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
     // TGx101: bulk actions with the proxy list
     ids.append(R.id.btn_pasteProxies);
     strings.append(R.string.ProxyPaste);
+    ids.append(R.id.btn_tgx101AddWebProxy); // TGx101: Telegram's WEB proxy
+    strings.append(R.string.Tgx101WebProxyAdd);
     if (!proxies.isEmpty()) {
       ids.append(R.id.btn_copyAllProxies);
       strings.append(R.string.ProxyCopyAll);
@@ -135,6 +137,8 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
   public void onMoreItemPressed (int id) {
     if (id == R.id.btn_test) {
       tdlib.resolveConnectionIssues();
+    } else if (id == R.id.btn_tgx101AddWebProxy) {
+      org.thunderdog.challegram.proxy.Tgx101WebProxy.showAddDialog(this);
     } else if (id == R.id.btn_pasteProxies) {
       Tgx101Proxies.pasteFromClipboard(this);
     } else if (id == R.id.btn_copyAllProxies) {

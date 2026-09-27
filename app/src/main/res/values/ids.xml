@@ -1456,6 +1456,7 @@
   <item name="btn_tgx101CallPhoto" type="id"/>
   <item name="btn_tgx101Premium" type="id"/>
   <item name="btn_tgx101VoiceChat" type="id"/>
+  <item name="btn_tgx101AddWebProxy" type="id"/>
   <item name="btn_tgx101VoiceChatStart" type="id"/>
   <item name="controller_tgx101VoiceChat" type="id"/>
   <item name="btn_tgx101PremiumOption" type="id"/>

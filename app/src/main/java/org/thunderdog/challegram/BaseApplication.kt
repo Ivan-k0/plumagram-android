@@ -65,6 +65,7 @@ class BaseApplication : TgxApplication(), Configuration.Provider {
     )
 
     UI.initApp(applicationContext)
+    org.thunderdog.challegram.proxy.Tgx101WebProxy.init() // TGx101: WEB proxy carrier follows the current proxy
     Tgx101Diag.mark("Application.onCreate: UI ready")
 
     if (!BuildConfig.EXPERIMENTAL) {

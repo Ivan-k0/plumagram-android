@@ -25,6 +25,7 @@
     androidx.media3.effect
    -->
   <uses-sdk tools:overrideLibrary="
+    androidx.webkit,
     com.otaliastudios.transcoder,
     com.otaliastudios.opengl,
     com.google.android.recaptcha,
