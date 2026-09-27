@@ -749,6 +749,16 @@ public class TGCallService extends Service implements
       if (isHeadsetPlugged || am.isSpeakerphoneOn() || (isBtHeadsetConnected && am.isBluetoothScoOn())) {
         return;
       }
+      if (org.thunderdog.challegram.voip.Tgx101Video.isCameraEnabled() || org.thunderdog.challegram.voip.Tgx101Video.isRemoteVideoActive()) {
+        // TGx101: video is on, the screen must stay on
+        if (proximityWakelock != null && proximityWakelock.isHeld()) {
+          try {
+            proximityWakelock.release(1);
+          } catch (Throwable ignored) { }
+        }
+        isProximityNear = false;
+        return;
+      }
       boolean newIsNear = event.values[0] < Math.min(event.sensor.getMaximumRange(), 3);
       if (newIsNear != isProximityNear) {
         if (Log.isEnabled(Log.TAG_VOIP)) {

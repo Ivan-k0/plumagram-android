@@ -620,8 +620,8 @@ JNI_OBJECT_FUNC(jlong, voip_TgCallsController, newInstance,
       .statsLogPath = {statsLogFilePath},
 
       .maxApiLayer = maxApiLayer,
-      .enableHighBitrateVideo = true, // TGx101: video calls as in the official app
-      .preferredVideoCodecs = {cricket::kVp9CodecName}, // TGx101: VP9, as in the official app
+      .enableHighBitrateVideo = false,
+      .preferredVideoCodecs = {/*cricket::kVp9CodecName*/},
       .customParameters = customParameters
     },
     .endpoints = endpoints,

@@ -143,6 +143,7 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
   private void update () {
     boolean camera = Tgx101Video.isCameraEnabled();
     boolean remote = Tgx101Video.isRemoteVideoActive();
+    setKeepScreenOn(camera || remote);
     localView.setVisibility(camera ? View.VISIBLE : View.GONE);
     remoteView.setVisibility(remote ? View.VISIBLE : View.GONE);
     for (View view : hideWhenRemoteVideo) {
@@ -165,7 +166,17 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
     update();
   }
 
+  private void setKeepScreenOn (boolean keepOn) {
+    android.view.Window window = controller.context().getWindow();
+    if (keepOn) {
+      window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    } else {
+      window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    }
+  }
+
   void destroy () {
+    setKeepScreenOn(false);
     Tgx101Video.removeListener(this);
     Tgx101Video.remoteSink.setTarget(null);
     Tgx101Video.localSink.setTarget(null);
