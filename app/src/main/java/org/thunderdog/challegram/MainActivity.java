@@ -128,7 +128,9 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
 
   @Override
   public void onCreate (Bundle savedInstanceState) {
+    Tgx101Diag.mark("MainActivity.onCreate …"); // TGx101: diagnostics builds only
     super.onCreate(savedInstanceState);
+    Tgx101Diag.mark("MainActivity.onCreate: window ready");
 
     Log.i("MainActivity.onCreate");
 
@@ -1522,6 +1524,7 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
   public void onResume () {
     super.onResume();
     Log.i("MainActivity.onResume");
+    Tgx101Diag.mark("MainActivity.onResume: screen shown"); // TGx101
     // Log.e("%s", Strings.getHexColor(U.compositeColor(Theme.headerColor(), Theme.getColor(ColorId.statusBar)), false));
     tdlib.contacts().makeSilentPermissionCheck(this);
     KeepAliveService.sync(this);

@@ -35,8 +35,15 @@ class BaseApplication : TgxApplication(), Configuration.Provider {
     lateinit var scope: CoroutineScope
   }
 
+  override fun attachBaseContext(base: Context) {
+    super.attachBaseContext(base)
+    Tgx101Diag.start(base) // TGx101: only in diagnostics builds
+  }
+
   override fun onCreate() {
+    Tgx101Diag.mark("Application.onCreate …")
     super.onCreate()
+    Tgx101Diag.mark("Application.onCreate: base ready")
     scope = MainScope()
 
     PushManagerBridge.initialize(
@@ -58,6 +65,7 @@ class BaseApplication : TgxApplication(), Configuration.Provider {
     )
 
     UI.initApp(applicationContext)
+    Tgx101Diag.mark("Application.onCreate: UI ready")
 
     if (!BuildConfig.EXPERIMENTAL) {
       val deviceTokenRetriever = TdlibNotificationUtils.getDeviceTokenRetriever()

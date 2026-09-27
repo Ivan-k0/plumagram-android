@@ -341,6 +341,7 @@ android {
     buildConfigString("TDLIB_REMOTE_URL", "https://github.com/tdlib/td")
 
     buildConfigField("boolean", "EXPERIMENTAL", config.isExperimentalBuild.toString())
+    buildConfigField("boolean", "TGX101_DIAG", (project.findProperty("tgx101Diag") == "true").toString()) // TGx101: startup diagnostics build
 
     buildConfigInt("TARGET_SDK_INT", config.build.targetSdkVersion)
 
