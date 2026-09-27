@@ -521,6 +521,9 @@ public class TGMessageSticker extends TGMessage implements AnimatedEmojiListener
     float max = Screen.dp(useForward() ? MAX_STICKER_FORWARD_SIZE : MAX_STICKER_SIZE);
     if (specialType != SPECIAL_TYPE_NONE || (sticker != null && sticker.setId == TdConstants.TELEGRAM_ANIMATED_EMOJI_STICKER_SET_ID)) { // TODO check for dice sticker set id
       max *= tdlib.emojiesAnimatedZoom();
+      if (specialType == SPECIAL_TYPE_ANIMATED_EMOJI) {
+        max *= Settings.instance().getBigEmojiScale();
+      }
     }
     if (sticker != null) {
       float ratio = Math.min(max / (float) sticker.width, max / (float) sticker.height);
@@ -539,7 +542,7 @@ public class TGMessageSticker extends TGMessage implements AnimatedEmojiListener
         throw new IllegalArgumentException();
       }
 
-      final int minEmojiSize = Screen.dp(30);
+      final int minEmojiSize = (int) (Screen.dp(30) * Math.min(1f, Settings.instance().getBigEmojiScale()));
       final int maxRowSize = origMaxWidth / minEmojiSize;
       NonBubbleEmojiLayout.LayoutBuildResult layout = multiEmojiLayout.layout(maxRowSize, 0.2f);
 
@@ -558,7 +561,7 @@ public class TGMessageSticker extends TGMessage implements AnimatedEmojiListener
       float realMaxWidth = MathUtils.fromTo(max, origMaxWidth, MathUtils.clamp(stickersMaxRowSize / maxRowSize));
       stickerWidth = stickerHeight = (int) Math.min(realMaxWidth / stickersMaxRowSize, Math.max(max / stickerRowsCount, minEmojiSize));
       if (layout.hasClassicEmoji) {
-        stickerWidth = stickerHeight = Math.min(stickerWidth, Screen.dp(40));
+        stickerWidth = stickerHeight = Math.min(stickerWidth, (int) (Screen.dp(40) * Settings.instance().getBigEmojiScale()));
       }
     } else {
       stickersMaxRowSize = stickerRowsCount = 1;
@@ -940,7 +943,7 @@ public class TGMessageSticker extends TGMessage implements AnimatedEmojiListener
   }
 
   private static TdApi.MessageContent checkContent (TdApi.MessageContent content) {
-    final boolean allowAnimatedEmoji = !Settings.instance().getNewSetting(Settings.SETTING_FLAG_NO_ANIMATED_EMOJI);
+    final boolean allowAnimatedEmoji = Settings.instance().useBigEmoji() && !Settings.instance().getNewSetting(Settings.SETTING_FLAG_NO_ANIMATED_EMOJI);
     return !allowAnimatedEmoji && TD.isStickerFromAnimatedEmojiPack(content) ?
       new TdApi.MessageText(Td.textOrCaption(content), null, null) : content;
   }

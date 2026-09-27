@@ -249,7 +249,7 @@ public class TextWrapper implements ListAnimator.Measurable, Destroyable, Text.T
           int emojiCount = text.getEmojiOnlyCount();
           if (emojiCount >= 1 && emojiCount <= SCALABLE_EMOJI_COUNT) {
             float textSizeDp = textStyleProvider.getTextSizeInDp();
-            float maxEmojiSize = Math.min(Settings.CHAT_FONT_SIZE_DEFAULT + 4f, textSizeDp) + 12f;
+            float maxEmojiSize = Math.min(Settings.CHAT_FONT_SIZE_DEFAULT + 4f, textSizeDp) + 12f * Settings.instance().getBigEmojiScale();
             if (maxEmojiSize > textSizeDp) {
               float desiredEmojiSize = maxEmojiSize - (maxEmojiSize - textSizeDp) / SCALABLE_EMOJI_COUNT * (emojiCount - 1);
               if (desiredEmojiSize > textSizeDp) {

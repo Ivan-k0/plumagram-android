@@ -240,6 +240,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(roundStabilizationName(Settings.instance().getRoundStabilizationMode()));
         } else if (itemId == R.id.btn_roundVideoQuality) {
           view.setData(roundVideoQualityName(Settings.instance().getRoundVideoQuality()));
+        } else if (itemId == R.id.btn_bigEmojiSize) {
+          view.setData(bigEmojiSizeName(Settings.instance().getBigEmojiSize()));
         } else if (itemId == R.id.btn_toggleNewSetting) {
           updateSettingView(view, item, isUpdate);
         }
@@ -284,6 +286,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ChatListSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_bigEmojiSize, 0, R.string.BigEmojiSize),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_pullToSearch, 0, R.string.PullToSearch),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101BottomGap, 0, R.string.Tgx101BottomGap),
@@ -639,6 +643,15 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_roundQualityHigh, 0, R.string.RoundVideoQualityHigh, id, quality == Settings.ROUND_VIDEO_QUALITY_HIGH),
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_roundQualityMax, 0, R.string.RoundVideoQualityMax, id, quality == Settings.ROUND_VIDEO_QUALITY_MAX)
       }).setIntDelegate(this));
+    } else if (id == R.id.btn_bigEmojiSize) {
+      int size = Settings.instance().getBigEmojiSize();
+      showSettings(new SettingsWrapBuilder(id).addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.BigEmojiSizeHint)).setRawItems(new ListItem[] {
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_bigEmojiSizeOff, 0, R.string.BigEmojiSizeOff, id, size == Settings.BIG_EMOJI_SIZE_OFF),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_bigEmojiSize60, 0, R.string.BigEmojiSize60, id, size == 60),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_bigEmojiSize80, 0, R.string.BigEmojiSize80, id, size == 80),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_bigEmojiSize100, 0, R.string.BigEmojiSize100, id, size == 100),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_bigEmojiSize125, 0, R.string.BigEmojiSize125, id, size == 125)
+      }).setIntDelegate(this));
     } else if (id == R.id.btn_proxy) {
       tdlib.ui().openProxySettings(this, true);
     } else if (id == R.id.btn_dataSaver) {
@@ -747,6 +760,16 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     }
   }
 
+  private static int bigEmojiSizeName (int size) {
+    switch (size) {
+      case Settings.BIG_EMOJI_SIZE_OFF: return R.string.BigEmojiSizeOff;
+      case 60: return R.string.BigEmojiSize60;
+      case 80: return R.string.BigEmojiSize80;
+      case 125: return R.string.BigEmojiSize125;
+      default: return R.string.BigEmojiSize100;
+    }
+  }
+
   private static int roundVideoQualityName (int quality) {
     switch (quality) {
       case Settings.ROUND_VIDEO_QUALITY_SD: return R.string.RoundVideoQualitySd;
@@ -780,6 +803,22 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       }
       Settings.instance().setRoundStabilizationMode(mode);
       adapter.updateValuedSettingById(R.id.btn_roundStabilization);
+    } else if (id == R.id.btn_bigEmojiSize) {
+      final int res = result.get(R.id.btn_bigEmojiSize);
+      int size;
+      if (res == R.id.btn_bigEmojiSizeOff) {
+        size = Settings.BIG_EMOJI_SIZE_OFF;
+      } else if (res == R.id.btn_bigEmojiSize60) {
+        size = 60;
+      } else if (res == R.id.btn_bigEmojiSize80) {
+        size = 80;
+      } else if (res == R.id.btn_bigEmojiSize125) {
+        size = 125;
+      } else {
+        size = Settings.BIG_EMOJI_SIZE_DEFAULT;
+      }
+      Settings.instance().setBigEmojiSize(size);
+      adapter.updateValuedSettingById(R.id.btn_bigEmojiSize);
     } else if (id == R.id.btn_roundVideoQuality) {
       final int res = result.get(R.id.btn_roundVideoQuality);
       int quality;

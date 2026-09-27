@@ -8220,8 +8220,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         return ChatEventUtil.newMessage(context, msg, (TdApiExt.MessageChatEvent) content);
       }
 
-      final boolean allowAnimatedEmoji = !Settings.instance().getNewSetting(Settings.SETTING_FLAG_NO_ANIMATED_EMOJI);
       final boolean allowNonBubbleEmoji = Settings.instance().useBigEmoji();
+      // TGx101: with Big Emoji off an emoji message stays plain text, even if it has an animated version
+      final boolean allowAnimatedEmoji = allowNonBubbleEmoji && !Settings.instance().getNewSetting(Settings.SETTING_FLAG_NO_ANIMATED_EMOJI);
       final MessageEditMediaPending pendingMedia = tdlib.getPendingMessageMedia(msg.chatId, msg.id);
       final TdApi.MessageContent pendingContent = tdlib.getPendingMessageText(msg.chatId, msg.id);
 
@@ -9953,8 +9954,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   /* * */
 
   public static @EmojiMessageContentType int getEmojiMessageContentType (TdApi.MessageContent content) {
-    final boolean allowAnimatedEmoji = !Settings.instance().getNewSetting(Settings.SETTING_FLAG_NO_ANIMATED_EMOJI);
     final boolean allowNonBubbleEmoji = Settings.instance().useBigEmoji();
+    final boolean allowAnimatedEmoji = allowNonBubbleEmoji && !Settings.instance().getNewSetting(Settings.SETTING_FLAG_NO_ANIMATED_EMOJI);
     return getEmojiMessageContentType(content, allowAnimatedEmoji, allowNonBubbleEmoji);
   }
 

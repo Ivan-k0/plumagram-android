@@ -3110,6 +3110,32 @@ public class Settings {
     pmc.putInt(KEY_ROUND_VIDEO_QUALITY, quality);
   }
 
+  // TGx101: size of big emoji (emoji-only messages), in percent of the stock size.
+  // 0 means big emoji are off; it's kept in sync with the stock "Big Emoji" toggle.
+  public static final int BIG_EMOJI_SIZE_OFF = 0;
+  public static final int BIG_EMOJI_SIZE_DEFAULT = 100;
+  private static final String KEY_BIG_EMOJI_SIZE = "settings_big_emoji_size";
+
+  public int getBigEmojiSize () {
+    if (!useBigEmoji()) {
+      return BIG_EMOJI_SIZE_OFF;
+    }
+    int size = pmc.getInt(KEY_BIG_EMOJI_SIZE, BIG_EMOJI_SIZE_DEFAULT);
+    return size > 0 ? size : BIG_EMOJI_SIZE_DEFAULT;
+  }
+
+  public float getBigEmojiScale () {
+    int size = getBigEmojiSize();
+    return size > 0 ? size / 100f : 1f;
+  }
+
+  public void setBigEmojiSize (int size) {
+    if (size > 0) {
+      pmc.putInt(KEY_BIG_EMOJI_SIZE, size);
+    }
+    setUseBigEmoji(size > 0);
+  }
+
   // Pull down at the top of the chat list to open search. A separate key (not a
   // new-settings flag) so it's on by default for existing installs too.
   private static final String KEY_PULL_TO_SEARCH = "settings_pull_to_search";

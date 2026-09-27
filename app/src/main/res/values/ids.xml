@@ -1436,6 +1436,12 @@
   <item type="id" name="btn_playback_speed_2_0" />
   <item name="btn_roundVideoQuality" type="id"/>
   <item name="btn_roundQualitySd" type="id"/>
+  <item name="btn_bigEmojiSize" type="id"/>
+  <item name="btn_bigEmojiSizeOff" type="id"/>
+  <item name="btn_bigEmojiSize60" type="id"/>
+  <item name="btn_bigEmojiSize80" type="id"/>
+  <item name="btn_bigEmojiSize100" type="id"/>
+  <item name="btn_bigEmojiSize125" type="id"/>
   <item name="btn_roundQualityHq" type="id"/>
   <item name="btn_roundQualityHigh" type="id"/>
   <item name="btn_roundQualityMax" type="id"/>
