@@ -1,6 +1,6 @@
 /*
  * This file is a part of TGx101, a modification of Telegram X
- * Copyright © 2026 1vank0 (https://github.com/Ivan-k0/tgx101-android)
+ * Copyright © 2026 1vank0 (https://github.com/Ivan-k0/plumagram-android)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,9 +48,9 @@ import java.util.regex.Pattern;
 public final class Tgx101Updates {
   private Tgx101Updates () { }
 
-  public static final String RELEASES_URL = "https://github.com/Ivan-k0/tgx101-android/releases/latest";
+  public static final String RELEASES_URL = "https://github.com/Ivan-k0/plumagram-android/releases/latest";
   public static final String FORUM_URL = "https://4pda.to/forum/index.php?showtopic=1126862";
-  private static final String API_URL = "https://api.github.com/repos/Ivan-k0/tgx101-android/releases/latest";
+  private static final String API_URL = "https://api.github.com/repos/Ivan-k0/plumagram-android/releases/latest";
 
   private static final String PREFS = "tgx101";
   private static final String KEY_ENABLED = "update_check_enabled";

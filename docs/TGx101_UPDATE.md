@@ -186,7 +186,7 @@ strings /tmp/tdcheck/libtdjni.so | grep -c "$(cat tdlib/version.txt)"   # дол
    `scripts/tgx101/build-public.sh` (с `--no-old` — только Android 7+).
 4. GitHub-релиз с тегом `tgx101-<версия>` и всеми APK — **обязательно**: по нему приложения
    узнают о новой версии, а universal-APK всегда должен лежать в последнем релизе:
-   `gh release create tgx101-<версия> ~/Desktop/TGX/Версии/TGx101-<версия>/*.apk -R Ivan-k0/tgx101-android --title "TGx101 <версия>" --notes-file <список изменений>`
+   `gh release create tgx101-<версия> ~/Desktop/TGX/Версии/TGx101-<версия>/*.apk -R Ivan-k0/plumagram-android --title "TGx101 <версия>" --notes-file <список изменений>`
 5. 4PDA: новый пост с изменениями и файлами (APK прикрепляются вручную), затем шапка:
    файлы — ссылками на вложения поста, по спойлерам «Android 7.0 и выше», «Android 6», «Android 5»,
    «Android 4.1–4.4»; прошлая версия — в спойлер «Прошлые версии».

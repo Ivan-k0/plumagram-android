@@ -3,7 +3,7 @@
 TGx101 is a modification of [Telegram X](https://github.com/TGX-Android/Telegram-X)
 (© Telegram FZ-LLC and contributors), distributed under the GNU General Public License v3.
 
-**TGx101 modifications © 2026 1vank0** — <https://github.com/Ivan-k0/tgx101-android>.
+**TGx101 modifications © 2026 1vank0** — <https://github.com/Ivan-k0/plumagram-android>.
 The modifications are the commits by 1vank0 on top of Telegram X and the files whose header
 says "This file is a part of TGx101".
 
@@ -15,7 +15,7 @@ section 7 of the GPLv3:
 1. **Attribution (§7b).** Any work that includes or is based on TGx101 code must keep this notice
    and state, in its README and in the app's "About" or settings screen or in its store/forum
    description, that it is based on TGx101 by 1vank0, with a link to
-   <https://github.com/Ivan-k0/tgx101-android>.
+   <https://github.com/Ivan-k0/plumagram-android>.
 2. **No misrepresentation (§7c).** Modified versions must be marked as modified and must not be
    presented as the original TGx101 or as made by 1vank0.
 3. **Name (§7e).** No rights are granted to use the name "TGx101" / "TGx1Ø1" or its icon for

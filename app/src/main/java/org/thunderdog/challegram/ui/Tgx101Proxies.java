@@ -1,6 +1,6 @@
 /*
  * This file is a part of TGx101, a modification of Telegram X
- * Copyright © 2026 1vank0 (https://github.com/Ivan-k0/tgx101-android)
+ * Copyright © 2026 1vank0 (https://github.com/Ivan-k0/plumagram-android)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

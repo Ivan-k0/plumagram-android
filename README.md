@@ -1,15 +1,15 @@
-# TGx101
+# PlumaGram
 
-**TGx101** is an unofficial Telegram client, a modification of [Telegram X](https://github.com/TGX-Android/Telegram-X) by 1vank0.
-Base: Telegram X 0.29.0.1814. Package name: `com.tgx101.app`. License: GPLv3, same as Telegram X.
+**PlumaGram** (formerly TGx101) is an unofficial Telegram client, a modification of [Telegram X](https://github.com/TGX-Android/Telegram-X) by 1vank0.
+Base: Telegram X 0.29.0.1814. Package name: `com.plumagram.app`. License: GPLv3, same as Telegram X.
 
-* Authorship and additional license terms: [NOTICE.md](NOTICE.md) — keep the credit to 1vank0 when reusing TGx101 code
+* Authorship and additional license terms: [NOTICE.md](NOTICE.md) — keep the credit to 1vank0 when reusing PlumaGram (TGx101) code
 * What it changes: [MOD_CHANGES.md](MOD_CHANGES.md) (in Russian)
 * Moving the changes onto a new Telegram X version: [docs/TGx101_UPDATE.md](docs/TGx101_UPDATE.md)
 * The changes are the commits on the `tgx101` branch on top of Telegram X 0.29.0.1814 (upstream commit `9291ce1`).
 
 To build it, follow the Telegram X instructions below. In `local.properties` set your own
-`telegram.api_id` / `telegram.api_hash`, `app.id=com.tgx101.app` and `app.name=TGx101`, and use
+`telegram.api_id` / `telegram.api_hash`, `app.id=com.plumagram.app` and `app.name=TGx101` (the displayed name is PlumaGram), and use
 your own keystore and Firebase project (`app/google-services.json`) for push notifications.
 
 ---

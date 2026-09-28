@@ -1,5 +1,5 @@
 #!/bin/zsh
-# PlumaGram (TGx101) public release build (package com.tgx101.app).
+# PlumaGram (TGx101) public release build (package com.plumagram.app).
 # Builds Android 7+ (arm64, arm7, universal) and Android 6, 5, 4.1–4.4 APKs into
 # $TGX101_OUT/TGx101-<version>/ (default ~/Desktop/TGX/Версии). Pass "--no-old" to skip Android 4–6,
 # "--no-android4" to skip only Android 4.1–4.4.
@@ -11,14 +11,16 @@ VER=0.1.$(git rev-list --count --author=188923247+Ivan-k0@users.noreply.github.c
 OUT=${TGX101_OUT:-$HOME/Desktop/TGX/Версии}/PlumaGram-$VER
 LOGS=$(mktemp -d)
 mkdir -p "$OUT"
-sed -i '' 's/^app.id=org.thunderdog.challegram$/app.id=com.tgx101.app/' local.properties
-trap "sed -i '' 's/^app.id=com.tgx101.app\$/app.id=org.thunderdog.challegram/' '$PWD/local.properties'" EXIT
+sed -i '' 's/^app.id=org.thunderdog.challegram$/app.id=com.plumagram.app/' local.properties
+restore_app_id () { sed -i '' 's/^app.id=com.plumagram.app$/app.id=org.thunderdog.challegram/' "$PWD/local.properties"; }
+trap restore_app_id EXIT
+trap 'restore_app_id; exit 1' INT TERM HUP
 AAPT=$(ls $ANDROID_HOME/build-tools/*/aapt2 | tail -1)
 build () { # gradle variant, output dir, extra flag, target file name
   rm -rf vkryl/leveldb/jni/leveldb/out vkryl/leveldb/.cxx
   ./gradlew :app:assemble$1Release $3 > $LOGS/$1.log 2>&1 || { echo "$1 FAILED, log: $LOGS/$1.log"; return 1; }
   for f in app/build/outputs/apk/$2/release/*.apk(N); do
-    case "$($AAPT dump badging $f | head -1)" in *com.tgx101.app*) cp "$f" "$OUT/$4"; echo "$4 ok" ;; esac
+    case "$($AAPT dump badging $f | head -1)" in *com.plumagram.app*) cp "$f" "$OUT/$4"; echo "$4 ok" ;; esac
   done
 }
 build LatestArm64 latestArm64 "" PlumaGram-$VER-arm64.apk
