@@ -4179,6 +4179,11 @@ public class TD {
   }
 
   public static void deleteFiles (final ViewController<?> context, final TdApi.File[] files, final @Nullable Runnable after) {
+    deleteFiles(context, files, null, after);
+  }
+
+  // TGx101: with an anchor, the confirmation drops down under that header button
+  public static void deleteFiles (final ViewController<?> context, final TdApi.File[] files, final @Nullable View anchor, final @Nullable Runnable after) {
     if (files == null || files.length == 0) {
       return;
     }
@@ -4188,8 +4193,25 @@ public class TD {
     }
     final String size = Strings.buildSize(totalSize);
     final long totalSizeFinal = totalSize;
+    if (anchor != null && context.getTgx101HeaderView() != null) {
+      context.getTgx101HeaderView().showMore(new int[] {R.id.btn_deleteFile}, new String[] {Lang.getString(R.string.ClearX, size)}, new int[] {R.drawable.baseline_delete_24}, anchor, context, id -> {
+        if (id == R.id.btn_deleteFile) {
+          deleteFilesNow(context, files, totalSizeFinal, after);
+        }
+      });
+      return;
+    }
     context.showOptions(Lang.getString(files.length == 1 ? R.string.DeleteFileHint : R.string.DeleteMultipleFilesHint), new int[]{R.id.btn_deleteFile, R.id.btn_cancel}, new String[]{Lang.getString(R.string.ClearX, size), Lang.getString(R.string.Cancel)}, new int[]{ViewController.OptionColor.RED, ViewController.OptionColor.NORMAL}, new int[]{R.drawable.baseline_delete_24, R.drawable.baseline_cancel_24}, (itemView, id) -> {
       if (id == R.id.btn_deleteFile) {
+        deleteFilesNow(context, files, totalSizeFinal, after);
+      }
+      return true;
+    });
+  }
+
+  private static void deleteFilesNow (final ViewController<?> context, final TdApi.File[] files, final long totalSizeFinal, final @Nullable Runnable after) {
+    {
+      {
         TdlibManager.instance().player().stopPlaybackIfPlayingAnyOf(files);
         context.context().closeFilePip(files);
         for (TdApi.File file : files) {
@@ -4211,8 +4233,7 @@ public class TD {
           after.run();
         }
       }
-      return true;
-    });
+    }
   }
 
   public static void saveFiles (BaseActivity context, List<DownloadedFile> files) {

@@ -692,8 +692,12 @@ public class TdlibUi extends Handler {
   }
 
   // TGx101: delete confirmation as a dropdown under the header delete button
-  public void showDeleteDropdown (final ViewController<?> context, final MessageWithProperties[] messages, int buttonIndex, final @Nullable Runnable after) {
-    if (context == null || messages == null || messages.length == 0 || context.getTgx101HeaderView() == null) {
+  public void showDeleteDropdown (final ViewController<?> context, final MessageWithProperties[] messages, @Nullable View anchor, final @Nullable Runnable after) {
+    if (context == null || messages == null || messages.length == 0) {
+      return;
+    }
+    if (context.getTgx101HeaderView() == null || anchor == null) {
+      showDeleteOptions(context, messages, after);
       return;
     }
     final long chatId = TdExt.findUniqueChatId(messages);
@@ -707,7 +711,7 @@ public class TdlibUi extends Handler {
         new int[] {R.id.menu_btn_delete, R.id.btn_moreActions},
         new String[] {Lang.plural(R.string.DeleteXMessages, messages.length), Lang.getString(R.string.Tgx101DeleteMore)},
         new int[] {R.drawable.baseline_delete_24, R.drawable.baseline_more_horiz_24},
-        buttonIndex, context, id -> {
+        anchor, context, id -> {
           if (id == R.id.menu_btn_delete) {
             deleteMessagesSplit(messages, true);
             onDone.run();
@@ -751,7 +755,7 @@ public class TdlibUi extends Handler {
       int[] ids = revokeFirst ? new int[] {R.id.btn_revokeMessages, R.id.menu_btn_delete} : new int[] {R.id.menu_btn_delete, R.id.btn_revokeMessages};
       String[] titles = revokeFirst ? new String[] {revokeFor, forMe} : new String[] {forMe, revokeFor};
       int[] icons = revokeFirst ? new int[] {R.drawable.baseline_delete_forever_24, R.drawable.baseline_delete_24} : new int[] {R.drawable.baseline_delete_24, R.drawable.baseline_delete_forever_24};
-      context.getTgx101HeaderView().showMore(ids, titles, icons, buttonIndex, context, id -> {
+      context.getTgx101HeaderView().showMore(ids, titles, icons, anchor, context, id -> {
         if (id == R.id.btn_revokeMessages || id == R.id.menu_btn_delete) {
           deleteMessagesSplit(messages, id == R.id.btn_revokeMessages);
           onDone.run();
@@ -764,7 +768,7 @@ public class TdlibUi extends Handler {
     if (!allScheduled && needsRevokeLabel) {
       title = ChatId.isUserChat(chatId) ? Lang.getString(R.string.DeleteForMeAndX, tdlib.cache().userFirstName(tdlib.chatUserId(chatId))) : Lang.getString(R.string.DeleteForEveryone);
     }
-    context.getTgx101HeaderView().showMore(new int[] {R.id.menu_btn_delete}, new String[] {title}, new int[] {R.drawable.baseline_delete_24}, buttonIndex, context, id -> {
+    context.getTgx101HeaderView().showMore(new int[] {R.id.menu_btn_delete}, new String[] {title}, new int[] {R.drawable.baseline_delete_24}, anchor, context, id -> {
       if (id == R.id.menu_btn_delete) {
         deleteMessagesSplit(messages, false);
         onDone.run();

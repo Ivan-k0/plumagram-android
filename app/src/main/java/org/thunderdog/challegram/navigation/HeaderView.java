@@ -1081,7 +1081,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
   }
 
   // TGx101: dropdown anchored to a header button, with its own item callback
-  public void showMore (int[] ids, String[] titles, int[] icons, int buttonIndex, @Nullable ViewController<?> themeProvider, RunnableInt onItemPressed) {
+  public void showMore (int[] ids, String[] titles, int[] icons, @Nullable View anchor, @Nullable ViewController<?> themeProvider, RunnableInt onItemPressed) {
     if (ids.length == 0) {
       return;
     }
@@ -1091,7 +1091,6 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
       moreWrap.init(themeListenerList, null);
     }
     moreWrap.setAnchorMode(MenuMoreWrap.ANCHOR_MODE_RIGHT);
-    moreWrap.setRightNumber(buttonIndex);
     moreWrap.setTranslationY(getTranslationY() + getCurrentHeaderOffset());
     showMore(ids, titles, icons, v -> {
       ((PopupLayout) v.getParent().getParent()).hideWindow(true);
@@ -1100,9 +1099,15 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     // Centered under the button, but the whole menu stays on screen
     int width = getMeasuredWidth();
     int menuWidth = moreWrap.getItemsWidth();
-    int buttonCenter = width - Screen.dp(49f) * buttonIndex - Screen.dp(24f);
-    int right = Math.max(menuWidth, Math.min(width, buttonCenter + menuWidth / 2));
-    moreWrap.setTranslationX(Lang.rtl() ? width - right : right - width);
+    int buttonCenter = Lang.rtl() ? Screen.dp(24f) : width - Screen.dp(24f);
+    if (anchor != null && anchor.getWidth() > 0) {
+      int[] anchorLocation = new int[2], headerLocation = new int[2];
+      anchor.getLocationOnScreen(anchorLocation);
+      getLocationOnScreen(headerLocation);
+      buttonCenter = anchorLocation[0] - headerLocation[0] + anchor.getWidth() / 2;
+    }
+    int left = Math.max(0, Math.min(width - menuWidth, buttonCenter - menuWidth / 2));
+    moreWrap.setTranslationX(Lang.rtl() ? left : left + menuWidth - width);
     // Trash icons in red
     for (int i = 0; i < ids.length && i < moreWrap.getChildCount(); i++) {
       if (icons != null && (icons[i] == R.drawable.baseline_delete_24 || icons[i] == R.drawable.baseline_delete_forever_24)) {

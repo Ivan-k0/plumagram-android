@@ -4788,12 +4788,12 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     } else if (viewId == R.id.menu_btn_delete) {
       ViewController<?> c = findCurrentCachedController();
       if (c != null) {
-        ((SharedBaseController<?>) c).deleteMessages();
+        ((SharedBaseController<?>) c).deleteMessages(deleteButton);
       }
     } else if (viewId == R.id.menu_btn_clear) {
       ViewController<?> c = findCurrentCachedController();
       if (c != null) {
-        ((SharedBaseController<?>) c).clearMessages();
+        ((SharedBaseController<?>) c).clearMessages(clearButton);
       }
     } else if (viewId == R.id.menu_btn_view) {
       ViewController<?> c = findCurrentCachedController();

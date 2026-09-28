@@ -272,6 +272,7 @@ import me.vkryl.core.StringUtils;
 import me.vkryl.core.collection.IntList;
 import me.vkryl.core.collection.LongList;
 import me.vkryl.core.collection.LongSet;
+import me.vkryl.core.lambda.RunnableInt;
 import me.vkryl.core.lambda.CancellableRunnable;
 import me.vkryl.core.lambda.Future;
 import me.vkryl.core.lambda.RunnableBool;
@@ -3676,19 +3677,20 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
-  private int getTgx101DeleteButtonIndex () {
-    View button = headerView != null ? headerView.findViewById(R.id.menu_btn_delete) : null;
-    if (button == null || !(button.getParent() instanceof ViewGroup)) {
-      return 0;
+  // TGx101: header button to drop a confirmation under
+  private @Nullable View findTgx101HeaderButton (int buttonId) {
+    return headerView != null ? headerView.findViewById(buttonId) : null;
+  }
+
+  private static String tgx101NoQuestion (String text) {
+    return text.endsWith("?") ? text.substring(0, text.length() - 1) : text;
+  }
+
+  private void showTgx101Dropdown (int buttonId, int[] ids, String[] titles, int[] icons, RunnableInt onItemPressed) {
+    View anchor = findTgx101HeaderButton(buttonId);
+    if (headerView != null && anchor != null) {
+      headerView.showMore(ids, titles, icons, anchor, this, onItemPressed);
     }
-    ViewGroup menu = (ViewGroup) button.getParent();
-    int count = 0;
-    for (int i = menu.indexOfChild(button) + 1; i < menu.getChildCount(); i++) {
-      if (menu.getChildAt(i).getVisibility() == View.VISIBLE) {
-        count++;
-      }
-    }
-    return count;
   }
 
   private MessageWithProperties getSingleSelectedMessage () {
@@ -3859,7 +3861,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
     } else if (id == R.id.menu_btn_send) {
       if (selectedMessageIds != null && selectedMessageIds.size() > 0) {
-        showOptions(Lang.pluralBold(R.string.SendXMessagesNow, selectedMessageIds.size()), new int[] {R.id.btn_send, R.id.btn_cancel}, new String[] {Lang.getString(R.string.SendNow), Lang.getString(R.string.Cancel)}, null, new int[] {R.drawable.baseline_send_24, R.drawable.baseline_cancel_24}, (v, optionId) -> {
+        showTgx101Dropdown(R.id.menu_btn_send, new int[] {R.id.btn_send}, new String[] {tgx101NoQuestion(Lang.plural(R.string.SendXMessagesNow, selectedMessageIds.size()))}, new int[] {R.drawable.baseline_send_24}, optionId -> {
           if (optionId == R.id.btn_send && selectedMessageIds != null) {
             for (int i = selectedMessageIds.size() - 1; i >= 0; i--) {
               long messageId = selectedMessageIds.keyAt(i);
@@ -3867,14 +3869,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
             }
             finishSelectMode(-1);
           }
-          return true;
         });
       }
     } else if (id == R.id.menu_btn_clearCache) {
       if (pagerScrollPosition != 0 && pagerContentAdapter != null) {
         SharedBaseController<?> c = pagerContentAdapter.cachedItems.get(pagerScrollPosition);
         if (c != null) {
-          c.clearMessages();
+          c.clearMessages(findTgx101HeaderButton(R.id.menu_btn_clearCache));
         }
         return;
       }
@@ -3892,11 +3893,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
             }
           }
         }
-        TD.deleteFiles(this, ArrayUtils.asArray(files, new TdApi.File[files.size()]), () -> finishSelectMode(-1));
+        TD.deleteFiles(this, ArrayUtils.asArray(files, new TdApi.File[files.size()]), findTgx101HeaderButton(R.id.menu_btn_clearCache), () -> finishSelectMode(-1));
       }
     } else if (id == R.id.menu_btn_unpinAll) {
       if (selectedMessageIds != null && selectedMessageIds.size() > 0) {
-        showOptions(Lang.pluralBold(R.string.UnpinXMessages, selectedMessageIds.size()), new int[] {R.id.btn_unpinAll, R.id.btn_cancel}, new String[] {Lang.getString(R.string.Unpin), Lang.getString(R.string.Cancel)}, new int[] {OptionColor.RED, OptionColor.NORMAL}, new int[] {R.drawable.deproko_baseline_pin_undo_24, R.drawable.baseline_cancel_24}, (itemView, viewId) -> {
+        showTgx101Dropdown(R.id.menu_btn_unpinAll, new int[] {R.id.btn_unpinAll}, new String[] {tgx101NoQuestion(Lang.plural(R.string.UnpinXMessages, selectedMessageIds.size()))}, new int[] {R.drawable.deproko_baseline_pin_undo_24}, viewId -> {
           if (viewId == R.id.btn_unpinAll) {
             final int size = selectedMessageIds.size();
             for (int i = 0; i < size; i++) {
@@ -3905,14 +3906,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
             exitOnTransformFinish = true;
             finishSelectMode(-1);
           }
-          return true;
         });
       }
     } else if (id == R.id.menu_btn_delete) {
       if (pagerScrollPosition != 0 && pagerContentAdapter != null) {
         SharedBaseController<?> c = pagerContentAdapter.cachedItems.get(pagerScrollPosition);
         if (c != null) {
-          c.deleteMessages();
+          c.deleteMessages(findTgx101HeaderButton(R.id.menu_btn_delete));
         }
         return;
       }
@@ -3927,7 +3927,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           messages[i] = new MessageWithProperties(message, properties);
         }
         // TGx101: confirmation drops down under the delete button instead of a bottom sheet
-        tdlib.ui().showDeleteDropdown(this, messages, getTgx101DeleteButtonIndex(), () -> finishSelectMode(-1));
+        tdlib.ui().showDeleteDropdown(this, messages, findTgx101HeaderButton(R.id.menu_btn_delete), () -> finishSelectMode(-1));
       }
     } else if (id == R.id.menu_btn_retry) {
       if (selectedMessageIds != null && selectedMessageIds.size() > 0) {
@@ -3944,12 +3944,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
           }
         }
         if (count > 0) {
-          showOptions(new int[] {R.id.btn_messageResend, R.id.btn_cancel}, new String[] {Lang.plural(R.string.ResendXMessages, count), Lang.getString(R.string.Cancel)}, new int[] {OptionColor.BLUE, OptionColor.NORMAL}, (v, optionId) -> {
+          showTgx101Dropdown(R.id.menu_btn_retry, new int[] {R.id.btn_messageResend}, new String[] {Lang.plural(R.string.ResendXMessages, count)}, new int[] {R.drawable.baseline_repeat_24}, optionId -> {
             if (optionId == R.id.btn_messageResend) {
               resendSelectedMessages();
               finishSelectMode(-1);
             }
-            return true;
           });
         }
       }

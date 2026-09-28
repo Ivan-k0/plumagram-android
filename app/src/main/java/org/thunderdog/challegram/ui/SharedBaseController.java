@@ -1085,8 +1085,13 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
   }
 
   public void deleteMessages () {
+    deleteMessages(null);
+  }
+
+  // TGx101: anchor = header button to drop the confirmation under
+  public void deleteMessages (@Nullable View anchor) {
     if (canDeleteMessages()) {
-      tdlib.ui().showDeleteOptions(this, selectedMessages.values().toArray(new MessageWithProperties[0]), () -> setInMediaSelectMode(false));
+      tdlib.ui().showDeleteDropdown(getParentOrSelf(), selectedMessages.values().toArray(new MessageWithProperties[0]), anchor, () -> setInMediaSelectMode(false));
     }
   }
 
@@ -1121,6 +1126,10 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
   }
 
   public void clearMessages () {
+    clearMessages(null);
+  }
+
+  public void clearMessages (@Nullable View anchor) {
     if (canClearMessages()) {
       final SparseArrayCompat<TdApi.File> files = new SparseArrayCompat<>(selectedMessages.size());
       for (MessageWithProperties message : selectedMessages.values()) {
@@ -1136,7 +1145,7 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
           }
         }
       }
-      TD.deleteFiles(getParentOrSelf(), ArrayUtils.asArray(files, new TdApi.File[files.size()]), () -> setInMediaSelectMode(false));
+      TD.deleteFiles(getParentOrSelf(), ArrayUtils.asArray(files, new TdApi.File[files.size()]), anchor, () -> setInMediaSelectMode(false));
     }
   }
 
