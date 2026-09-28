@@ -30,7 +30,7 @@ final class Tgx101Strings {
   private static final SparseArray<String> RU = new SparseArray<>();
 
   static {
-    RU.put(R.string.Tgx101Settings, "1Ø1");
+    RU.put(R.string.Tgx101Settings, "MagiX");
     RU.put(R.string.RecordingAndPhotos, "Запись и фото");
     RU.put(R.string.PauseMediaOnRecord, "Пауза музыки при записи и голосовых");
     RU.put(R.string.SendPhotosInHD, "Отправлять фото в HD");

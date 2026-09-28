@@ -6050,7 +6050,7 @@
   <string name="ShowChannelMuteButton">«Mute» button and bell</string>
   <string name="ShowCommentsButton">Show comments button under posts</string>
   <string name="ChannelButtonsHint">Without the «Discuss» button the discussion group opens from the channel\'s ⋮ menu. Without the comments button, comments open from the post\'s menu. Without the «Mute» button, channel notifications are turned on and off in the ⋮ menu. Reopen the channel to apply. «Subscribe» is removed only when it is the last line of a post and leads to the same channel.</string>
-  <string name="Tgx101Settings">1Ø1</string>
+  <string name="Tgx101Settings">MagiX</string>
   <string name="ProxyPaste">Paste from clipboard</string>
   <string name="ProxyPasteNothing">No proxy links in the clipboard</string>
   <string name="ProxyPasteResult">Proxies added: %1$d, already in the list: %2$d</string>
