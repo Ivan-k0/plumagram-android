@@ -1380,9 +1380,15 @@ public class TGCallService extends Service implements
     TdApi.CallStateReady state = (TdApi.CallStateReady) call.state;
 
     ConnectionStateListener stateListener = new ConnectionStateListener() {
+      private boolean vibratedOnConnect; // TGx101
+
       @Override
       public void onConnectionStateChanged (VoIPInstance context, @CallState int newState) {
         if (newState == CallState.ESTABLISHED) {
+          if (!vibratedOnConnect) { // TGx101: a short vibration when the call connects, as in the official app
+            vibratedOnConnect = true;
+            vibrateOnConnect();
+          }
           tdlib.dispatchCallStateChanged(call.id, newState);
         } else if (newState == CallState.FAILED) {
           long connectionId = context.getConnectionId();
@@ -1496,5 +1502,20 @@ public class TGCallService extends Service implements
       Log.e("Unable to open full-screen intent settings", t);
       return false;
     }
+  }
+
+  // TGx101: short vibration when a call connects; skipped in silent mode
+  private void vibrateOnConnect () {
+    try {
+      android.media.AudioManager audio = (android.media.AudioManager) getSystemService(Context.AUDIO_SERVICE);
+      if (audio != null && audio.getRingerMode() == android.media.AudioManager.RINGER_MODE_SILENT) return;
+      android.os.Vibrator vibrator = (android.os.Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+      if (vibrator == null || !vibrator.hasVibrator()) return;
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        vibrator.vibrate(android.os.VibrationEffect.createOneShot(100, android.os.VibrationEffect.DEFAULT_AMPLITUDE));
+      } else {
+        vibrator.vibrate(100);
+      }
+    } catch (Throwable ignored) { }
   }
 }

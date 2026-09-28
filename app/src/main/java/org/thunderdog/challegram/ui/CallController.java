@@ -941,23 +941,33 @@ public class CallController extends ViewController<CallController.Arguments> imp
       }
 
       @Override
-      public void onVideoStarted () {
-        enableSpeakerForVideo();
+      public boolean onVideoStarted () {
+        return enableSpeakerForVideo();
+      }
+
+      @Override
+      public void onVideoStopped () {
+        if (call == null || TD.isFinished(call) || callSettings == null) return;
+        if (callSettings.isSpeakerModeEnabled()) {
+          callSettings.setSpeakerMode(CallSettings.SPEAKER_MODE_EARPIECE);
+        }
       }
     };
   }
 
   // TGx101: video turns the loudspeaker on unless headphones or Bluetooth are in use
-  private void enableSpeakerForVideo () {
-    if (call == null || TD.isFinished(call)) return;
+  private boolean enableSpeakerForVideo () {
+    if (call == null || TD.isFinished(call)) return false;
     android.media.AudioManager audio = (android.media.AudioManager) context().getSystemService(Context.AUDIO_SERVICE);
-    if (audio == null || audio.isWiredHeadsetOn() || audio.isBluetoothScoOn() || audio.isBluetoothA2dpOn()) return;
+    if (audio == null || audio.isWiredHeadsetOn() || audio.isBluetoothScoOn() || audio.isBluetoothA2dpOn()) return false;
     if (callSettings == null) {
       callSettings = new CallSettings(tdlib, call.id);
     }
     if (!callSettings.isSpeakerModeEnabled()) {
       callSettings.setSpeakerMode(CallSettings.SPEAKER_MODE_SPEAKER);
+      return true;
     }
+    return false;
   }
 
   @Override

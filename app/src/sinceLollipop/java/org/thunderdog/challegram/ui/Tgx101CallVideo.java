@@ -53,7 +53,9 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
     void toggleSpeaker ();
     void openChat ();
     void hangUp ();
-    void onVideoStarted ();
+    /** @return whether the loudspeaker was turned on because of the video */
+    boolean onVideoStarted ();
+    void onVideoStopped ();
   }
 
   private static final int COLOR_ACCENT = 0xff3f8ae0, COLOR_END = 0xffe5484d, COLOR_BUTTON = 0x29ffffff;
@@ -67,7 +69,16 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
   private final LinearLayout panel;
   private final ImageView speakerButton, cameraButton, micButton;
   private final TextView qualityButton;
-  private boolean videoWasOn, panelVisible;
+  private boolean videoWasOn, panelVisible, speakerForVideo;
+  // The loudspeaker turns on only after video has been showing for a moment, so a short video
+  // signal in an audio call doesn't switch it
+  private final Runnable speakerForVideoRunnable = this::applySpeakerForVideo;
+
+  private void applySpeakerForVideo () {
+    if (Tgx101Video.isCameraEnabled() || Tgx101Video.isRemoteVideoActive()) {
+      speakerForVideo = host.onVideoStarted();
+    }
+  }
   private View[] originalControls = new View[0];
 
   Tgx101CallVideo (ViewController<?> controller, FrameLayout contentView, int index, Host host, View... hideWhenRemoteVideo) {
@@ -243,7 +254,13 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
     boolean remote = Tgx101Video.isRemoteVideoActive();
     setKeepScreenOn(camera || remote);
     if ((camera || remote) && !videoWasOn) {
-      host.onVideoStarted(); // loudspeaker, as in the official app
+      UI.post(speakerForVideoRunnable, 1500); // loudspeaker, as in the official app
+    } else if (!(camera || remote) && videoWasOn) {
+      UI.removePendingRunnable(speakerForVideoRunnable);
+      if (speakerForVideo) { // video ended: back to the earpiece if the video had turned the loudspeaker on
+        speakerForVideo = false;
+        host.onVideoStopped();
+      }
     }
     videoWasOn = camera || remote;
     localWrap.setVisibility(camera ? View.VISIBLE : View.GONE);
@@ -280,6 +297,7 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
   }
 
   void destroy () {
+    UI.removePendingRunnable(speakerForVideoRunnable);
     setKeepScreenOn(false);
     Tgx101Video.removeListener(this);
     Tgx101Video.remoteSink.setTarget(null);

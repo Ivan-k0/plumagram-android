@@ -155,6 +155,9 @@ strings /tmp/tdcheck/libtdjni.so | grep -c "$(cat tdlib/version.txt)"   # дол
 - [ ] Экран звонка: лёгкое смахивание вниз не закрывает, уверенное — закрывает (`NavigationGestureController.onFling`, только popup-режим).
 - [ ] Видео: лёгкий свайп вверх/вниз не закрывает; уверенный вниз закрывает; открыть снова — продолжает с места (правки в `MediaViewController.onFling`/слайде и `VideoPlayerView.setVideo`, кэш `Tgx101VideoResume`).
 - [ ] Цитаты не мигают при прокрутке канала.
+- [ ] Альбом с несколькими подписями показывает их под альбомом (`TGMessageMedia.checkCommonCaption`).
+- [ ] Звонок: короткая вибрация при соединении (`TGCallService.vibrateOnConnect`); в аудиозвонке громкий динамик не включается, после видео возвращается трубка (`Tgx101CallVideo`, запрос видеозвонка живёт 30 с в `Tgx101Video`).
+- [ ] Свернуть приложение с клавиатурой и вернуться — клавиатура не мигает (`ViewController.onKeyboardStateChanged` игнорирует «скрыта», пока экран на паузе).
 - [ ] Форум открывается списком тем; тема — отдельный чат с её названием в шапке; «Новая тема», долгое нажатие — управление; «Все сообщения одной лентой» и «⋮ → Показать темы»; уведомление из темы открывает тему (`Tgx101TopicsController`, перехват в `TdlibUi.openChat`, `ChatOpenParameters.tgx101IgnoreTopics`, шапка в `MessagesController`).
 - [ ] 1Ø1 → «Размер эмодзи и стикеров»: 60/125% меняют размер стикеров, одиночного и 2–3 эмодзи; «Выкл» (и стоковый «Big Emoji») — все эмодзи обычные, включая анимированные (правки: `TGMessage` allowAnimatedEmoji, `TGMessageSticker.buildContent/checkContent`, `TextWrapper`).
 - [ ] Меню чата: «Позвонить» первым, «Прикрепить» последним.

@@ -266,6 +266,21 @@ public class TGMessageMedia extends TGMessage {
             caption = Td.textOrCaption(captionMessage.content);
           }
           captionMessageId = captionMessage.id;
+        } else {
+          // TGx101: several items of the album have captions (often the same one after forwarding).
+          // Telegram X showed none; show each distinct caption once, in album order.
+          ArrayList<String> seen = new ArrayList<>();
+          for (TdApi.Message message : combinedMessages) {
+            TdApi.FormattedText text = tdlib.getFormattedText(message);
+            if (Td.isEmpty(text) || seen.contains(text.text.trim())) continue;
+            seen.add(text.text.trim());
+            if (caption == null) {
+              caption = text;
+              captionMessageId = message.id;
+            } else {
+              caption = Td.concat(caption, new TdApi.FormattedText("\n\n", null), text);
+            }
+          }
         }
       } else {
         caption = tdlib.getPendingFormattedText(msg.chatId, msg.id);

@@ -3270,6 +3270,11 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
 
   @CallSuper
   public boolean onKeyboardStateChanged (boolean visible) {
+    if (!visible && isPaused()) {
+      // TGx101: the system hides the keyboard while the app goes to the background and reports it late.
+      // Keeping the state avoids hiding it on return just before the system restores it (a flash).
+      return false;
+    }
     View currentPopup = context.getCurrentPopupWindow();
     if (currentPopup != null && !(currentPopup instanceof Keyboard.OnStateChangeListener)) {
       currentPopup = null;

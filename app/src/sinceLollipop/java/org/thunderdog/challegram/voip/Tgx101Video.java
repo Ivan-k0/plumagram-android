@@ -66,7 +66,7 @@ public final class Tgx101Video {
   private static long capturePtr;
   private static boolean frontCamera = true;
   private static boolean remoteActive;
-  private static long requestedVideoUserId;
+  private static long requestedVideoUserId, requestedVideoTime;
 
   public static synchronized EglBase.Context eglContext () {
     if (eglBase == null) {
@@ -88,10 +88,12 @@ public final class Tgx101Video {
   /** The next call to this user is a video call. */
   public static void requestVideoCall (long userId) {
     requestedVideoUserId = userId;
+    requestedVideoTime = android.os.SystemClock.elapsedRealtime();
   }
 
   public static boolean takeVideoRequest (long userId) {
-    boolean isVideo = requestedVideoUserId == userId;
+    // A request older than 30 s is stale (the call didn't happen), so a later audio call stays audio
+    boolean isVideo = requestedVideoUserId == userId && android.os.SystemClock.elapsedRealtime() - requestedVideoTime < 30_000;
     requestedVideoUserId = 0;
     return isVideo;
   }

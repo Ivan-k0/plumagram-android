@@ -27,7 +27,8 @@ final class Tgx101CallVideo {
     void toggleSpeaker ();
     void openChat ();
     void hangUp ();
-    void onVideoStarted ();
+    boolean onVideoStarted ();
+    void onVideoStopped ();
   }
 
   Tgx101CallVideo (ViewController<?> controller, FrameLayout contentView, int index, Host host, View... hideWhenRemoteVideo) { }
