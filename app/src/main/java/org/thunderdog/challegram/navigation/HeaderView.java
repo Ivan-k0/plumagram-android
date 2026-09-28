@@ -1097,6 +1097,19 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
       ((PopupLayout) v.getParent().getParent()).hideWindow(true);
       onItemPressed.runWithInt(v.getId());
     }, false, themeListenerList);
+    // Trash icons in red
+    for (int i = 0; i < ids.length && i < moreWrap.getChildCount(); i++) {
+      if (icons != null && (icons[i] == R.drawable.baseline_delete_24 || icons[i] == R.drawable.baseline_delete_forever_24)) {
+        android.graphics.drawable.Drawable drawable = org.thunderdog.challegram.tool.Drawables.get(getResources(), icons[i]).mutate();
+        drawable.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.iconNegative)));
+        TextView item = (TextView) moreWrap.getChildAt(i);
+        if (Lang.rtl()) {
+          item.setCompoundDrawablesWithIntrinsicBounds(null, null, drawable, null);
+        } else {
+          item.setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null);
+        }
+      }
+    }
   }
 
   private void showMore (int[] ids, String[] titles, int[] icons, View.OnClickListener onItemClick, boolean isLayered, @Nullable ThemeListenerList themeListeners) {
