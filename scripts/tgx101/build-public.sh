@@ -11,10 +11,8 @@ VER=0.1.$(git rev-list --count --author=188923247+Ivan-k0@users.noreply.github.c
 OUT=${TGX101_OUT:-$HOME/Desktop/TGX/Версии}/PlumaGram-$VER
 LOGS=$(mktemp -d)
 mkdir -p "$OUT"
-sed -i '' 's/^app.id=org.thunderdog.challegram$/app.id=com.plumagram.app/' local.properties
-restore_app_id () { sed -i '' 's/^app.id=com.plumagram.app$/app.id=org.thunderdog.challegram/' "$PWD/local.properties"; }
-trap restore_app_id EXIT
-trap 'restore_app_id; exit 1' INT TERM HUP
+# local.properties must already build the public package (the phone uses it too since 0.1.113)
+grep -q '^app.id=com.plumagram.app$' local.properties || { echo "local.properties: app.id must be com.plumagram.app"; exit 1; }
 AAPT=$(ls $ANDROID_HOME/build-tools/*/aapt2 | tail -1)
 build () { # gradle variant, output dir, extra flag, target file name
   rm -rf vkryl/leveldb/jni/leveldb/out vkryl/leveldb/.cxx
