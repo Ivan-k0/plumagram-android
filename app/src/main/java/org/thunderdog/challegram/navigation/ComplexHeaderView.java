@@ -845,6 +845,40 @@ public class ComplexHeaderView extends BaseView implements RtlCheckListener, Sti
     return ColorUtils.fromToArgb(this.subtitleColor, ColorUtils.alphaColor(Theme.getSubtitleAlpha(), Color.WHITE), getAvatarExpandFactor());
   }
 
+  // TGx101: "1/N" badge when the profile has several photos (tap opens the viewer where they can be swiped)
+  private int tgx101PhotoCount;
+
+  public void setTgx101PhotoCount (int count) {
+    if (this.tgx101PhotoCount != count) {
+      this.tgx101PhotoCount = count;
+      invalidate();
+    }
+  }
+
+  private void drawTgx101PhotoCount (Canvas c, float avatarExpandFactor) {
+    if (tgx101PhotoCount <= 1 || receiver.needPlaceholder()) {
+      return;
+    }
+    String text = "1/" + tgx101PhotoCount;
+    android.graphics.Paint paint = Paints.getSmallTitlePaint();
+    float textSize = paint.getTextSize();
+    paint.setTextSize(Screen.sp(10f + 2f * avatarExpandFactor));
+    float textWidth = paint.measureText(text);
+    float padding = Screen.dp(5f), height = Screen.dp(16f + 4f * avatarExpandFactor);
+    float collapsedRight = receiver.getRight() + Screen.dp(2f), collapsedBottom = receiver.getBottom() + Screen.dp(2f);
+    float expandedRight = getMeasuredWidth() - Screen.dp(12f), expandedTop = receiver.getTop() + Screen.dp(12f) + HeaderView.getTopOffset();
+    float right = collapsedRight + (expandedRight - collapsedRight) * avatarExpandFactor;
+    float bottom = collapsedBottom + (expandedTop + height - collapsedBottom) * avatarExpandFactor;
+    android.graphics.RectF rect = Paints.getRectF();
+    rect.set(right - textWidth - padding * 2, bottom - height, right, bottom);
+    c.drawRoundRect(rect, height / 2f, height / 2f, Paints.fillingPaint(0x99000000));
+    int color = paint.getColor();
+    paint.setColor(0xffffffff);
+    c.drawText(text, rect.left + padding, rect.centerY() - (paint.descent() + paint.ascent()) / 2f, paint);
+    paint.setColor(color);
+    paint.setTextSize(textSize);
+  }
+
   @Override
   @SuppressWarnings("deprecation")
   protected void onDraw (@NonNull Canvas c) {
@@ -876,6 +910,7 @@ public class ComplexHeaderView extends BaseView implements RtlCheckListener, Sti
         receiver.drawPlaceholderRounded(c, receiver.getDisplayRadius(), Theme.headerPlaceholderColor());
       }
       receiver.draw(c);
+      drawTgx101PhotoCount(c, avatarExpandFactor);
       if (avatarExpandFactor > 0f && receiver.getRequestedPlaceholder() == null) {
         getTopShadow().setAlpha((int) (255f * .8f * avatarExpandFactor));
         getTopShadow().draw(c);

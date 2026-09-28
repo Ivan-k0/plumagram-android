@@ -1598,6 +1598,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       headerCell.setAllowEmptyClick();
       headerCell.initWithController(this, false);
       headerCell.setPhotoOpenCallback(this);
+      loadTgx101PhotoCount();
 
       baseRecyclerView = new ComplexRecyclerView(context, this) {
         @Override
@@ -4689,6 +4690,33 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     } else {
       openPhoto();
     }
+  }
+
+  // TGx101: one small request for the number of profile photos (limit 1: only the total is needed)
+  private void loadTgx101PhotoCount () {
+    TdApi.Function<?> function;
+    if (user != null) {
+      function = new TdApi.GetUserProfilePhotos(user.id, 0, 1);
+    } else if (chat != null) {
+      function = new TdApi.GetChatMessageCount(chat.id, null, new TdApi.SearchMessagesFilterChatPhoto(), false);
+    } else {
+      return;
+    }
+    tdlib.client().send(function, result -> {
+      int count;
+      if (result.getConstructor() == TdApi.ChatPhotos.CONSTRUCTOR) {
+        count = ((TdApi.ChatPhotos) result).totalCount;
+      } else if (result.getConstructor() == TdApi.Count.CONSTRUCTOR) {
+        count = ((TdApi.Count) result).count;
+      } else {
+        return;
+      }
+      runOnUiThreadOptional(() -> {
+        if (headerCell != null) {
+          headerCell.setTgx101PhotoCount(count);
+        }
+      });
+    });
   }
 
   private void openPhoto () {
