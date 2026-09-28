@@ -1190,6 +1190,8 @@ public class SettingsController extends ViewController<Void> implements
         }
         b.info(hint);
         b.item(new OptionItem(R.id.btn_sourceCode, Lang.getCharSequence(R.string.format_commit, BuildConfig.PROJECT_NAME, appBuildInfo.getCommit()), OptionColor.NORMAL, R.drawable.baseline_logo_telegram_24));
+        // TGx101: the Telegram X version the fork is built on
+        b.item(new OptionItem(R.id.btn_tgx101BaseSource, Lang.getCharSequence(R.string.format_commit, "Telegram X", "9291ce1"), OptionColor.NORMAL, R.drawable.baseline_github_24));
         if (appBuildInfo.getTdlibCommitFull() != null) {
           b.item(new OptionItem(R.id.btn_tdlib, Lang.getCharSequence(R.string.format_commit, "TDLib " + Td.tdlibVersion(), Td.tdlibCommitHash()), OptionColor.NORMAL, R.drawable.baseline_tdlib_24));
         }
@@ -1207,6 +1209,8 @@ public class SettingsController extends ViewController<Void> implements
         showOptions(b.build(), (view, id) -> {
           if (id == R.id.btn_sourceCode) {
             viewSourceCode(SourceCodeType.TELEGRAM_X);
+          } else if (id == R.id.btn_tgx101BaseSource) {
+            tdlib.ui().openUrl(this, BuildConfig.TGX101_BASE_URL, new TdlibUi.UrlOpenParameters().disableInstantView());
           } else if (id == R.id.btn_tdlib) {
             viewSourceCode(SourceCodeType.TDLIB);
           } else if (id == R.id.btn_openssl) {

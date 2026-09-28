@@ -385,11 +385,14 @@ android {
     }
     val tgxGit = tgxGitVersionProvider.get()
 
+    // TGx101: "origin" is the upstream Telegram X repository, but the commits live in the fork's repository
+    val tgx101RepoUrl = "https://github.com/Ivan-k0/plumagram-android"
     val sourcesUrl = config.sourceCodeUrl.takeIf {
       it.isNotEmpty()
-    } ?: tgxGit.remoteUrl
-    buildConfigString("REMOTE_URL", tgxGit.remoteUrl)
-    buildConfigString("COMMIT_URL", tgxGit.commitUrl)
+    } ?: tgx101RepoUrl
+    buildConfigString("REMOTE_URL", tgx101RepoUrl)
+    buildConfigString("COMMIT_URL", "$tgx101RepoUrl/tree/${tgxGit.commitHashLong}")
+    buildConfigString("TGX101_BASE_URL", "https://github.com/TGX-Android/Telegram-X/tree/9291ce110ccc852c0b7043b92f4ac19c4e651242")
     buildConfigString("COMMIT", tgxGit.commitHashShort)
     buildConfigString("COMMIT_FULL", tgxGit.commitHashLong)
     buildConfigLong("COMMIT_DATE", tgxGit.commitDate)
@@ -425,7 +428,7 @@ android {
     // WebRTC version
 
     val webrtcGit = providers.of(GitVersionSource::class) {
-      parameters.module = layout.projectDirectory.dir("jni/third_party/webrtc")
+      parameters.module = layout.projectDirectory.dir("jni/tgvoip/third_party/webrtc")
     }.get()
     buildConfigString("WEBRTC_COMMIT", webrtcGit.commitHashShort)
     buildConfigString("WEBRTC_COMMIT_URL", webrtcGit.commitUrl)
@@ -433,7 +436,7 @@ android {
     // tgcalls version
 
     val tgcallsGit = providers.of(GitVersionSource::class) {
-      parameters.module = layout.projectDirectory.dir("jni/third_party/tgcalls")
+      parameters.module = layout.projectDirectory.dir("jni/tgvoip/third_party/tgcalls")
     }.get()
     buildConfigString("TGCALLS_COMMIT", tgcallsGit.commitHashShort)
     buildConfigString("TGCALLS_COMMIT_URL", tgcallsGit.commitUrl)
