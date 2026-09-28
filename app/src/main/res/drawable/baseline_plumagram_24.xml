@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- PlumaGram bird (generated from Макеты/птица/bird-polys.json) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="24dp"
+  android:height="24dp"
+  android:viewportWidth="24"
+  android:viewportHeight="24">
+  <path android:fillColor="#FF000000" android:fillAlpha="1.00" android:pathData="M22.96,9.56 L20.39,8.82 L18.58,7.12 L16.47,7.24 L14.19,9.11 L14.03,9.11 L11.42,4.31 L6.79,1.41 L6.46,1.29 L7.00,3.56 L6.95,3.89 L6.38,3.73 L1.95,1.87 L2.32,2.70 L8.15,13.08 L8.32,13.57 L1.25,22.30 L1.00,22.71 L16.47,14.23 L16.71,13.61 L17.91,9.31 L18.08,9.15 L18.66,9.15 L18.66,9.44 L18.24,10.84 L18.33,11.17 L22.26,12.21 L22.38,12.08 L23.00,9.77 Z" />
+  <path android:fillColor="#FF000000" android:fillAlpha="1.00" android:pathData="M8.28,13.70 L1.04,22.63 L7.45,19.11 Z" />
+  <path android:fillColor="#FF000000" android:fillAlpha="1.00" android:pathData="M22.71,9.52 L20.39,8.86 L18.66,7.20 L18.33,7.12 L16.38,7.33 L13.57,9.60 L13.45,9.85 L16.51,14.07 L18.41,7.66 L18.66,7.78 L18.74,9.06 L18.24,11.01 L18.41,11.17 L22.26,12.17 L22.83,10.30 L22.88,9.81 L20.73,10.72 L20.48,10.72 L20.39,10.47 L21.59,10.10 L22.67,9.64 Z" />
+  <path android:fillColor="#FF000000" android:fillAlpha="1.00" android:pathData="M1.99,1.91 L8.36,13.36 L10.10,5.34 Z" />
+  <path android:fillColor="#FF000000" android:fillAlpha="0.85" android:pathData="M22.96,9.85 L22.59,9.44 L22.59,9.68 L20.60,10.47 L20.73,10.51 L20.73,10.68 L22.71,9.81 L22.88,9.81 L22.92,10.02 Z" />
+  <path android:fillColor="#FF000000" android:fillAlpha="0.85" android:pathData="M10.10,5.30 L10.14,5.59 L8.36,13.53 L16.42,14.19 L16.55,14.07 L16.34,13.98 L13.49,10.02 L13.53,9.60 L13.20,9.60 Z" />
+  <path android:fillColor="#FF000000" android:fillAlpha="0.70" android:pathData="M7.45,19.20 L16.55,14.11 L15.89,14.19 L8.40,13.57 L8.32,13.45 L8.32,13.74 L8.15,13.78 L8.32,13.82 L8.32,14.23 Z" />
+  <path android:fillColor="#FF000000" android:fillAlpha="0.70" android:pathData="M19.32,9.06 L20.52,10.68 L22.75,9.77 L22.92,9.77 L22.96,9.89 L22.92,9.60 L22.63,9.44 L22.63,9.68 L20.56,10.47 L19.61,9.23 Z" />
+  <path android:fillColor="#FF000000" android:fillAlpha="0.70" android:pathData="M18.58,7.58 L18.45,7.62 L18.00,9.19 L18.66,9.11 Z" />
+  <path android:fillColor="#FF000000" android:fillAlpha="0.70" android:pathData="M6.46,1.33 L7.04,3.69 L7.00,3.94 L10.10,5.26 L13.32,9.68 L14.03,9.19 L11.46,4.39 L7.24,1.70 Z" />
+</vector>

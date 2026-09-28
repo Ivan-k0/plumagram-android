@@ -1189,9 +1189,9 @@ public class SettingsController extends ViewController<Void> implements
           hint.append(Lang.pluralBold(R.string.PullRequestsInfo, appBuildInfo.getPullRequests().size()));
         }
         b.info(hint);
-        b.item(new OptionItem(R.id.btn_sourceCode, Lang.getCharSequence(R.string.format_commit, BuildConfig.PROJECT_NAME, appBuildInfo.getCommit()), OptionColor.NORMAL, R.drawable.baseline_logo_telegram_24));
+        b.item(new OptionItem(R.id.btn_sourceCode, Lang.getCharSequence(R.string.format_commit, BuildConfig.PROJECT_NAME, appBuildInfo.getCommit()), OptionColor.NORMAL, R.drawable.baseline_plumagram_24));
         // TGx101: the Telegram X version the fork is built on
-        b.item(new OptionItem(R.id.btn_tgx101BaseSource, Lang.getCharSequence(R.string.format_commit, "Telegram X", "9291ce1"), OptionColor.NORMAL, R.drawable.baseline_github_24));
+        b.item(new OptionItem(R.id.btn_tgx101BaseSource, Lang.getCharSequence(R.string.format_commit, "Telegram X", "9291ce1"), OptionColor.NORMAL, R.drawable.baseline_logo_telegram_24));
         if (appBuildInfo.getTdlibCommitFull() != null) {
           b.item(new OptionItem(R.id.btn_tdlib, Lang.getCharSequence(R.string.format_commit, "TDLib " + Td.tdlibVersion(), Td.tdlibCommitHash()), OptionColor.NORMAL, R.drawable.baseline_tdlib_24));
         }
