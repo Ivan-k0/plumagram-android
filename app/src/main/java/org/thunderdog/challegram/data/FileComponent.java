@@ -358,7 +358,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       buildTitles(maxWidth - (getPreviewSize() + getPreviewOffset()));
     }
     if (waveform != null) {
-      waveform.layout(Math.min(Screen.dp(420f), Math.min(TGMessage.getEstimatedContentMaxWidth(), maxWidth) - Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS) * 2 - getPreviewOffset() - (int) sizeWidth - Screen.dp(12f)));
+      waveform.layout(Math.min(Screen.dp(420f), Math.min(TGMessage.getEstimatedContentMaxWidth(), maxWidth) - Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS) * 2 - getPreviewOffset() - (int) sizeWidth - Screen.dp(12f) - transcribeButtonSpace()));
     }
   }
 
@@ -521,7 +521,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   public int getWidth () {
     int contentWidth = getPreviewSize() + getPreviewOffset();
     if (waveform != null) {
-      contentWidth += waveform.getWidth() + sizeWidth + Screen.dp(12f);
+      contentWidth += waveform.getWidth() + sizeWidth + Screen.dp(12f) + transcribeButtonSpace();
     } else {
       contentWidth += Math.max(getTitleWidth(), sizeWidth) + Screen.dp(6f);
     }
@@ -565,6 +565,39 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
     float x = event.getX();
     float y = event.getY();
+
+    // TGx101: the "A" transcription button
+    if (hasTranscribeButton()) {
+      switch (event.getAction()) {
+        case MotionEvent.ACTION_DOWN: {
+          transcribeCaught = false;
+          float bx = transcribeButtonCenterX(startX), by = startY + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS);
+          float touchRadius = Screen.dp(TRANSCRIBE_BUTTON_SIZE / 2f + 8f);
+          if (Math.abs(x - bx) <= touchRadius && Math.abs(y - by) <= touchRadius) {
+            transcribeCaught = true;
+            return true;
+          }
+          break;
+        }
+        case MotionEvent.ACTION_MOVE:
+          if (transcribeCaught) return true;
+          break;
+        case MotionEvent.ACTION_UP:
+          if (transcribeCaught) {
+            transcribeCaught = false;
+            context.performClickSoundFeedback();
+            ((TGMessageFile) context).onTranscribeButtonClick(message.id);
+            return true;
+          }
+          break;
+        case MotionEvent.ACTION_CANCEL:
+          if (transcribeCaught) {
+            transcribeCaught = false;
+            return true;
+          }
+          break;
+      }
+    }
 
     switch (event.getAction()) {
       case MotionEvent.ACTION_DOWN: {
@@ -646,6 +679,36 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
   public void clearTouch () {
     loadCaught = false;
+  }
+
+  // TGx101: "A" button next to a voice message, starts the background transcription or hides/shows it
+
+  private static final float TRANSCRIBE_BUTTON_SIZE = 28f;
+  private boolean transcribeCaught;
+
+  private boolean hasTranscribeButton () {
+    return waveform != null && message != null && context instanceof TGMessageFile && message.content instanceof TdApi.MessageVoiceNote;
+  }
+
+  private int transcribeButtonSpace () {
+    return hasTranscribeButton() ? Screen.dp(TRANSCRIBE_BUTTON_SIZE + 8f) : 0;
+  }
+
+  private float transcribeButtonCenterX (int startX) {
+    return startX + getPreviewSize() + getPreviewOffset() + waveform.getWidth() + Screen.dp(12f) + sizeWidth + Screen.dp(8f) + Screen.dp(TRANSCRIBE_BUTTON_SIZE / 2f);
+  }
+
+  private void drawTranscribeButton (Canvas c, float cx, float cy, boolean outgoing, float alpha) {
+    Tgx101Transcription.Result result = Tgx101Transcription.get(context.tdlib(), message);
+    boolean shown = result != null && !result.collapsed && result.state != Tgx101Transcription.STATE_ERROR;
+    int active = Theme.getColor(outgoing ? ColorId.bubbleOut_waveformActive : ColorId.waveformActive);
+    int inactive = Theme.getColor(outgoing ? ColorId.bubbleOut_waveformInactive : ColorId.waveformInactive);
+    float radius = Screen.dp(TRANSCRIBE_BUTTON_SIZE / 2f);
+    c.drawCircle(cx, cy, radius, Paints.fillingPaint(ColorUtils.alphaColor(alpha, shown ? active : inactive)));
+    String label = result != null && result.state == Tgx101Transcription.STATE_PENDING ? "…" : "A";
+    android.text.TextPaint paint = Paints.getBoldPaint15(false, ColorUtils.alphaColor(alpha, shown ? Theme.getColor(outgoing ? ColorId.bubbleOut_background : (context.useBubbles() ? ColorId.bubbleIn_background : ColorId.filling)) : active));
+    float textWidth = paint.measureText(label);
+    c.drawText(label, cx - textWidth / 2f, cy + Screen.dp(5.5f), paint);
   }
 
   // private static final boolean USE_ROUND_SMOOTHING = false;
@@ -770,6 +833,9 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       if (trimmedSubtitle != null) {
         int textX = startX + previewSize + getPreviewOffset() + waveform.getWidth() + Screen.dp(12f);
         trimmedSubtitle.draw(c, textX, textX + trimmedSubtitle.getWidth(), 0, startY + Screen.dp(18f), null, alpha);
+      }
+      if (hasTranscribeButton()) {
+        drawTranscribeButton(c, transcribeButtonCenterX(startX), cy, align, alpha);
       }
     }
   }

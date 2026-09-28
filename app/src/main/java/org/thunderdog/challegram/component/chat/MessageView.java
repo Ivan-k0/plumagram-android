@@ -64,7 +64,6 @@ import org.thunderdog.challegram.tool.Views;
 import org.thunderdog.challegram.ui.EditRightsController;
 import org.thunderdog.challegram.ui.HashtagChatController;
 import org.thunderdog.challegram.ui.MessagesController;
-import org.thunderdog.challegram.ui.VoiceTranscriptionDialog;
 import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.util.DrawableProvider;
 import org.thunderdog.challegram.util.StringList;
@@ -894,10 +893,12 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       icons.append(R.drawable.baseline_link_24);
     }
 
-    if (!isMore && VoiceTranscriptionDialog.canTranscribe(msg.getMessage().content)) {
+    // TGx101: transcription is started with the "A" button on the message; its text can be selected
+    if (!isMore && org.thunderdog.challegram.data.Tgx101Transcription.canTranscribe(msg.getMessage().content) &&
+      org.thunderdog.challegram.data.Tgx101Transcription.doneText(m.tdlib(), msg.getMessage()) != null) {
       ids.append(R.id.btn_messageTranscribe);
-      strings.append(R.string.Transcribe);
-      icons.append(R.drawable.baseline_translate_24);
+      strings.append(R.string.SelectText);
+      icons.append(R.drawable.baseline_format_quote_close_24);
     }
 
     // TGx101: pay a bot invoice or unlock paid media with Stars

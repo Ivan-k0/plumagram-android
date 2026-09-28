@@ -6040,7 +6040,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
           UI.copyText(TD.toCopyText(text), R.string.CopiedText);
         return true;
       } else if (id == R.id.btn_messageTranscribe) {
-        VoiceTranscriptionDialog.show(this, tdlib, selectedMessage.getMessage(), selectedMessage.isSecretChat());
+        String transcription = org.thunderdog.challegram.data.Tgx101Transcription.doneText(tdlib, selectedMessage.getMessage());
+        if (transcription != null) {
+          SelectTextForQuoteDialog.showForTranscription(this, tdlib, selectedMessage, transcription); // TGx101: select, reply or copy
+        }
         return true;
       } else if (id == R.id.btn_starsPay) {
         org.thunderdog.challegram.data.Tgx101Stars.payForMessage(this, selectedMessage.getMessage());

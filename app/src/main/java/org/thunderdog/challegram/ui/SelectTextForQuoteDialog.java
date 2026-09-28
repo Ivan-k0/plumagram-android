@@ -24,6 +24,7 @@ import org.thunderdog.challegram.data.TGMessage;
 import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.theme.Theme;
 import org.thunderdog.challegram.tool.Screen;
+import org.thunderdog.challegram.tool.UI;
 
 import tgx.td.data.MessageWithProperties;
 
@@ -69,6 +70,55 @@ public class SelectTextForQuoteDialog {
       onReplyRequested(controller, tdlib, message, formattedText, textView.getSelectionStart(), textView.getSelectionEnd());
     });
 
+    controller.showAlert(builder);
+  }
+
+  /**
+   * TGx101: the same selectable text for a voice/round message transcription. Telegram can quote only the
+   * message's own text, so "Reply" answers the voice message and puts the selected fragment into the input
+   * as a block quote; "Copy" copies the selection (or everything).
+   */
+  public static void showForTranscription (MessagesController controller, Tdlib tdlib, TGMessage message, String text) {
+    if (controller == null || text == null || text.isEmpty()) {
+      return;
+    }
+    Context context = controller.context();
+    final TextView textView = new TextView(context);
+    textView.setText(text);
+    textView.setTextIsSelectable(true);
+    textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f);
+    textView.setTextColor(Theme.textAccentColor());
+    int paddingH = Screen.dp(20f), paddingV = Screen.dp(14f);
+    textView.setPadding(paddingH, paddingV, paddingH, paddingV);
+
+    AlertDialog.Builder builder = new AlertDialog.Builder(context, Theme.dialogTheme());
+    builder.setTitle(Lang.getString(R.string.SelectText));
+    builder.setView(textView);
+    builder.setNegativeButton(Lang.getString(R.string.Cancel), (dialog, which) -> dialog.dismiss());
+    builder.setNeutralButton(Lang.getString(R.string.Copy), (dialog, which) -> {
+      int start = textView.getSelectionStart(), end = textView.getSelectionEnd();
+      String copy = start >= 0 && end > start && end <= text.length() ? text.substring(start, end) : text;
+      UI.copyText(copy, R.string.CopiedText);
+      dialog.dismiss();
+    });
+    builder.setPositiveButton(Lang.getString(R.string.Reply), (dialog, which) -> {
+      int start = textView.getSelectionStart(), end = textView.getSelectionEnd();
+      String selected = start >= 0 && end > start && end <= text.length() ? text.substring(start, end).trim() : null;
+      dialog.dismiss();
+      TdApi.Message newestMessage = message.getNewestMessage();
+      message.getMessageProperties(newestMessage.id, properties -> {
+        if (properties == null) return;
+        controller.runOnUiThreadOptional(() -> {
+          controller.showReply(new MessageWithProperties(newestMessage, properties), null, 0, "", true, true);
+          if (selected != null && !selected.isEmpty()) {
+            String draft = selected + "\n";
+            controller.fillDraft(new TdApi.FormattedText(draft, new TdApi.TextEntity[] {
+              new TdApi.TextEntity(0, selected.length(), new TdApi.TextEntityTypeBlockQuote())
+            }), true);
+          }
+        });
+      });
+    });
     controller.showAlert(builder);
   }
 

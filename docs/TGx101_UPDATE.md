@@ -155,6 +155,7 @@ strings /tmp/tdcheck/libtdjni.so | grep -c "$(cat tdlib/version.txt)"   # дол
 - [ ] Экран звонка: лёгкое смахивание вниз не закрывает, уверенное — закрывает (`NavigationGestureController.onFling`, только popup-режим).
 - [ ] Видео: лёгкий свайп вверх/вниз не закрывает; уверенный вниз закрывает; открыть снова — продолжает с места (правки в `MediaViewController.onFling`/слайде и `VideoPlayerView.setVideo`, кэш `Tgx101VideoResume`).
 - [ ] Цитаты не мигают при прокрутке канала.
+- [ ] Расшифровка: «A» на голосовом (текст в пузыре, `FileComponent` + `TGMessageFile.CaptionedFile.updateCaption`) и на кружке (окно, `TGMessageVideo`); движок `data/Tgx101Transcription` (сервер → телефон, очередь, SharedPreferences); «Выделить текст» → `SelectTextForQuoteDialog.showForTranscription`.
 - [ ] Альбом с несколькими подписями показывает их под альбомом (`TGMessageMedia.checkCommonCaption`).
 - [ ] Звонок: короткая вибрация при соединении (`TGCallService.vibrateOnConnect`); в аудиозвонке громкий динамик не включается, после видео возвращается трубка (`Tgx101CallVideo`, запрос видеозвонка живёт 30 с в `Tgx101Video`).
 - [ ] Смайлы → клавиатура: без пустого кадра под полем (`MessagesController.closeEmojiKeyboard` ждёт клавиатуру; `KeyboardFrameLayout` держит «заморозку» 1 с по времени, не по кадрам).

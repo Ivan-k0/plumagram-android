@@ -66,7 +66,7 @@ import me.vkryl.core.ColorUtils;
 import me.vkryl.core.MathUtils;
 import me.vkryl.core.StringUtils;
 
-public class TGMessageVideo extends TGMessage implements FileProgressComponent.SimpleListener, TGPlayerController.TrackListener {
+public class TGMessageVideo extends TGMessage implements FileProgressComponent.SimpleListener, TGPlayerController.TrackListener, Tgx101Transcription.Listener {
   private TdApi.VideoNote videoNote;
   private boolean notViewed;
 
@@ -91,6 +91,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     super(context, msg);
     setVideoNote(videoNote);
     setNotViewed(!isViewed, false);
+    Tgx101Transcription.addListener(this); // TGx101
   }
 
   private void setVideoNote (TdApi.VideoNote videoNote) {
@@ -399,6 +400,19 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     videoSize = MathUtils.fromTo(videoSmallSize, videoFullSize, isFullSizeAnimator.getFloatValue());
   }
 
+  // TGx101: "A" button on the round video starts the background transcription; when it's ready, the
+  // text opens in a window (the round video player covers the whole content area, so no text under it)
+
+  private static final float TRANSCRIBE_BUTTON_RADIUS = 13f;
+  private float transcribeButtonX, transcribeButtonY;
+  private boolean transcribeCaught;
+
+  @Override
+  public void onTranscriptionChanged (long chatId, long messageId) {
+    if (chatId != msg.chatId || messageId != msg.id || isDestroyed()) return;
+    invalidate(); // the "A" button state
+  }
+
   public static int getVideoSize () {
     return Math.min(Screen.smallestSide() - Screen.dp(32), Screen.dp(640));
   }
@@ -577,6 +591,22 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
       c.drawCircle(circleX, textY + Screen.dp(11.5f), Screen.dp(1.5f), Paints.fillingPaint(ColorUtils.alphaColor(viewFactor, useBubbles ? 0xffffffff : Theme.getColor(ColorId.online))));
     }
 
+    // TGx101: "A" transcription button at the top right of the circle (the bottom has the duration, the
+    // sound icon and, on outgoing ones, the time), hidden while the video plays full size
+    if (!TD.isSelfDestructTypeImmediately(getMessage())) {
+      float circleRadius = receiver.getWidth() / 2f;
+      transcribeButtonX = centerX + circleRadius * 0.72f;
+      transcribeButtonY = receiver.centerY() - circleRadius * 0.72f;
+      Tgx101Transcription.Result result = Tgx101Transcription.get(tdlib, msg);
+      boolean shown = result != null && result.state == Tgx101Transcription.STATE_DONE;
+      c.drawCircle(transcribeButtonX, transcribeButtonY, Screen.dp(TRANSCRIBE_BUTTON_RADIUS), Paints.fillingPaint(shown ? 0xf0ffffff : getBubbleTimeColor()));
+      String label = result != null && result.state == Tgx101Transcription.STATE_PENDING ? "…" : "A";
+      android.text.TextPaint labelPaint = Paints.getBoldPaint14(false, shown ? 0xff222222 : 0xffffffff);
+      c.drawText(label, transcribeButtonX - labelPaint.measureText(label) / 2f, transcribeButtonY + Screen.dp(5f), labelPaint);
+    } else {
+      transcribeButtonX = transcribeButtonY = 0;
+    }
+
     final boolean drawSpoiler = TD.isSelfDestructTypeImmediately(getMessage());
     float alpha = (1f - unmuteFactor) * (1f - fileProgress.getBackgroundAlpha());
     if (alpha > 0f && !drawSpoiler) {
@@ -606,6 +636,39 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   public boolean onTouchEvent (MessageView view, MotionEvent e) {
+    // TGx101: "A" button
+    if (transcribeButtonX != 0) {
+      float touch = Screen.dp(TRANSCRIBE_BUTTON_RADIUS + 8f);
+      switch (e.getAction()) {
+        case MotionEvent.ACTION_DOWN:
+          transcribeCaught = Math.abs(e.getX() - transcribeButtonX) <= touch && Math.abs(e.getY() - transcribeButtonY) <= touch;
+          if (transcribeCaught) return true;
+          break;
+        case MotionEvent.ACTION_MOVE:
+          if (transcribeCaught) return true;
+          break;
+        case MotionEvent.ACTION_UP:
+          if (transcribeCaught) {
+            transcribeCaught = false;
+            performClickSoundFeedback();
+            // TGx101: first tap starts the background transcription; when it's ready, a tap opens the text
+            String done = Tgx101Transcription.doneText(tdlib, msg);
+            if (done != null && messagesController() != null) {
+              org.thunderdog.challegram.ui.SelectTextForQuoteDialog.showForTranscription(messagesController(), tdlib, this, done);
+            } else {
+              Tgx101Transcription.start(tdlib, msg, isSecretChat());
+            }
+            return true;
+          }
+          break;
+        case MotionEvent.ACTION_CANCEL:
+          if (transcribeCaught) {
+            transcribeCaught = false;
+            return true;
+          }
+          break;
+      }
+    }
     return super.onTouchEvent(view, e) || fileProgress.onTouchEvent(view, e);
   }
 

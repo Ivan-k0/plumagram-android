@@ -60,7 +60,7 @@ import me.vkryl.core.MathUtils;
 import tgx.td.Td;
 import tgx.td.TdConstants;
 
-public class TGMessageFile extends TGMessage {
+public class TGMessageFile extends TGMessage implements Tgx101Transcription.Listener {
   private int objectCount;
 
   private class CaptionedFile implements ListAnimator.Measurable, Animatable {
@@ -121,6 +121,12 @@ public class TGMessageFile extends TGMessage {
 
     private boolean updateCaption (boolean animated, boolean force) {
       TdApi.FormattedText caption = translatedCaption != null ? translatedCaption : (this.pendingCaption != null ? this.pendingCaption : this.serverCaption);
+      // TGx101: a voice message transcription is shown above its caption
+      TdApi.Message fileMessage = getMessage(messageId);
+      TdApi.FormattedText transcription = fileMessage != null && component.isVoice() ? Tgx101Transcription.captionFor(tdlib, fileMessage) : null;
+      if (transcription != null) {
+        caption = Td.isEmpty(caption) ? transcription : Td.concat(transcription, new TdApi.FormattedText("\n\n", null), caption);
+      }
       if (!Td.equalsTo(this.effectiveCaption, caption) || force) {
         this.effectiveCaption = Td.isEmpty(caption) ? null : caption;
         if (this.captionWrapper != null) {
@@ -299,6 +305,9 @@ public class TGMessageFile extends TGMessage {
     checkHasEditedMedia();
     filesList.add(newFile(this, msg, messageContent));
     files.reset(filesList, false);
+    if (messageContent instanceof TdApi.MessageVoiceNote) {
+      Tgx101Transcription.addListener(this); // TGx101
+    }
   }
 
   @Override
@@ -879,5 +888,30 @@ public class TGMessageFile extends TGMessage {
     }
 
     this.hasEditedMedia = hasEditedMedia;
+  }
+
+  // TGx101: background transcription finished or changed for one of the voice messages here
+
+  @Override
+  public void onTranscriptionChanged (long chatId, long messageId) {
+    if (chatId != getChatId() || isDestroyed()) return;
+    boolean changed = false;
+    for (CaptionedFile file : filesList) {
+      if (file.messageId == messageId) {
+        changed |= file.updateCaption(needAnimateChanges(), true);
+      }
+    }
+    if (changed) {
+      rebuildAndUpdateContent();
+      invalidateTextMediaReceiver();
+    }
+    invalidate(); // the "A" button state
+  }
+
+  public void onTranscribeButtonClick (long messageId) {
+    TdApi.Message message = getMessage(messageId);
+    if (message != null) {
+      Tgx101Transcription.toggle(tdlib, message, isSecretChat());
+    }
   }
 }
