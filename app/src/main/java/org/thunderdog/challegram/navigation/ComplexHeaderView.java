@@ -862,16 +862,19 @@ public class ComplexHeaderView extends BaseView implements RtlCheckListener, Sti
     String text = "1/" + tgx101PhotoCount;
     android.graphics.Paint paint = Paints.getSmallTitlePaint();
     float textSize = paint.getTextSize();
-    paint.setTextSize(Screen.sp(10f + 2f * avatarExpandFactor));
+    paint.setTextSize(Screen.sp(11f + 3f * avatarExpandFactor));
     float textWidth = paint.measureText(text);
-    float padding = Screen.dp(5f), height = Screen.dp(16f + 4f * avatarExpandFactor);
-    float collapsedRight = receiver.getRight() + Screen.dp(2f), collapsedBottom = receiver.getBottom() + Screen.dp(2f);
-    float expandedRight = getMeasuredWidth() - Screen.dp(12f), expandedTop = receiver.getTop() + Screen.dp(12f) + HeaderView.getTopOffset();
-    float right = collapsedRight + (expandedRight - collapsedRight) * avatarExpandFactor;
-    float bottom = collapsedBottom + (expandedTop + height - collapsedBottom) * avatarExpandFactor;
+    float padding = Screen.dp(6f + 2f * avatarExpandFactor), height = Screen.dp(18f + 8f * avatarExpandFactor);
+    float width = textWidth + padding * 2;
+    // collapsed: on the corner of the small avatar; expanded: under the ⋮ menu at the right edge
+    float collapsedCenterX = receiver.getRight() - Screen.dp(2f), collapsedBottom = receiver.getBottom() + Screen.dp(2f);
+    float expandedCenterX = getMeasuredWidth() - Screen.dp(12f) - width / 2f;
+    float expandedBottom = HeaderView.getTopOffset() + Screen.dp(56f) + Screen.dp(4f) + height;
+    float centerX = collapsedCenterX + (expandedCenterX - collapsedCenterX) * avatarExpandFactor;
+    float bottom = collapsedBottom + (expandedBottom - collapsedBottom) * avatarExpandFactor;
     android.graphics.RectF rect = Paints.getRectF();
-    rect.set(right - textWidth - padding * 2, bottom - height, right, bottom);
-    c.drawRoundRect(rect, height / 2f, height / 2f, Paints.fillingPaint(0x99000000));
+    rect.set(centerX - width / 2f, bottom - height, centerX + width / 2f, bottom);
+    c.drawRoundRect(rect, height / 2f, height / 2f, Paints.fillingPaint(0xb3000000));
     int color = paint.getColor();
     paint.setColor(0xffffffff);
     c.drawText(text, rect.left + padding, rect.centerY() - (paint.descent() + paint.ascent()) / 2f, paint);

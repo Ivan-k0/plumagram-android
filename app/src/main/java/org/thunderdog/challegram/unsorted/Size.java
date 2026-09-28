@@ -45,7 +45,15 @@ public class Size {
   }
 
   public static int getHeaderBigPortraitSize (boolean needExpand) {
-    return Screen.dp(needExpand ? RAW_HEADER_BIG_PORTRAIT_SIZE : RAW_HEADER_BIG_PORTRAIT_SIZE_NOEXPAND);
+    if (needExpand) {
+      // TGx101: the expanded profile photo is a bit taller (234dp cut too much of it), never more than
+      // 45% of the screen so the profile info stays in view
+      int base = Screen.dp(RAW_HEADER_BIG_PORTRAIT_SIZE);
+      int taller = Screen.dp(280f);
+      int limit = (int) (Screen.currentHeight() * .45f);
+      return Math.max(base, Math.min(taller, limit));
+    }
+    return Screen.dp(RAW_HEADER_BIG_PORTRAIT_SIZE_NOEXPAND);
   }
 
   public static int getHeaderSizeDifference (boolean needExpand) {
