@@ -80,13 +80,30 @@ public class Tgx101StarsController extends RecyclerViewController<Void> implemen
     recyclerView.setAdapter(adapter);
     loadMore();
     tdlib.send(new TdApi.GetStarPaymentOptions(), (result, error) -> runOnUiThreadOptional(() -> {
-      if (result == null) return;
-      buyOptions.clear();
-      for (TdApi.StarPaymentOption option : result.options) {
-        buyOptions.add(option);
+      optionsLoaded = true;
+      if (result != null) {
+        buyOptions.clear();
+        for (TdApi.StarPaymentOption option : result.options) {
+          buyOptions.add(option);
+        }
+        buildCells();
       }
-      buildCells();
+      checkReady();
     }));
+  }
+
+  private boolean optionsLoaded, firstPageLoaded;
+
+  // Open once balance, options and history are in, so the list isn't rebuilt mid-animation (flash).
+  @Override
+  public boolean needAsynchronousAnimation () {
+    return !optionsLoaded || !firstPageLoaded;
+  }
+
+  private void checkReady () {
+    if (optionsLoaded && firstPageLoaded) {
+      executeScheduledAnimation();
+    }
   }
 
   private boolean needRefresh;
@@ -137,8 +154,10 @@ public class Tgx101StarsController extends RecyclerViewController<Void> implemen
     loading = true;
     tdlib.send(new TdApi.GetStarTransactions(new TdApi.MessageSenderUser(tdlib.myUserId()), "", null, nextOffset, PAGE_SIZE), (result, error) -> runOnUiThreadOptional(() -> {
       loading = false;
+      firstPageLoaded = true;
       if (error != null) {
         UI.showError(error);
+        checkReady();
         return;
       }
       loaded = true;
@@ -150,6 +169,7 @@ public class Tgx101StarsController extends RecyclerViewController<Void> implemen
       }
       nextOffset = result.nextOffset;
       buildCells();
+      checkReady();
     }));
   }
 

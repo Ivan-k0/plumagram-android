@@ -1009,11 +1009,7 @@ public class RoundVideoRecorder {
             if (!running) {
               done = true;
             } else {
-              try {
-                buffers.put(buffer);
-              } catch (Exception ignore) {
-
-              }
+              buffers.offer(buffer);
             }
           }
         }
@@ -1123,7 +1119,9 @@ public class RoundVideoRecorder {
               if (a >= input.results - 1) {
                 buffersToWrite.remove(input);
                 if (running) {
-                  buffers.put(input);
+                  // TGx101: offer, not put. The audio thread allocates new buffers while the
+                  // encoder lags (long HD rounds), so the pool can overflow and put() froze the encoder.
+                  buffers.offer(input);
                 }
                 if (!buffersToWrite.isEmpty()) {
                   input = buffersToWrite.get(0);

@@ -78,13 +78,23 @@ public class Tgx101PremiumController extends RecyclerViewController<Void> implem
     buildCells();
     recyclerView.setAdapter(adapter);
     tdlib.send(new TdApi.GetPremiumState(), (result, error) -> runOnUiThreadOptional(() -> {
+      stateLoaded = true;
       if (error != null) {
         UI.showError(error);
       } else {
         state = result;
         buildCells();
       }
+      executeScheduledAnimation();
     }));
+  }
+
+  private boolean stateLoaded;
+
+  // Open once the options are in, so the list isn't rebuilt mid-animation (flash).
+  @Override
+  public boolean needAsynchronousAnimation () {
+    return !stateLoaded;
   }
 
   private void buildCells () {
