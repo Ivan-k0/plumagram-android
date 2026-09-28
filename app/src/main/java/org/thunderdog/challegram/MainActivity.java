@@ -1426,13 +1426,20 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     final Tdlib tdlib = TdlibManager.instanceForAccountId(accountId).account(accountId).tdlib();
     tdlib.awaitInitialization(() -> {
       tdlib.incrementUiReferenceCount();
-      handler.post(() -> {
+      Runnable open = () -> {
         final TdlibContext context = new TdlibContext(this, tdlib);
         final TdlibUi.ChatOpenParameters params = new TdlibUi.ChatOpenParameters().onDone(tdlib::decrementUiReferenceCount);
         if (specificMessageId != 0)
           params.highlightMessage(new MessageId(chatId, specificMessageId));
         tdlib.ui().openChat(context, chatId, params);
-      });
+      };
+      // TGx101: from a notification with the app already running, open the chat right away, before the
+      // window is shown again; posting it showed the previous screen for a moment first (a flash)
+      if (UI.inUiThread() && navigation != null && !navigation.isEmpty()) {
+        open.run();
+      } else {
+        handler.post(open);
+      }
     });
   }
 
