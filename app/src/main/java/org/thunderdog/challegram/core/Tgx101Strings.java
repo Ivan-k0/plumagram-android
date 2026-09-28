@@ -132,7 +132,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101VoiceChatNoMic, "Для голосового чата нужен доступ к микрофону");
     RU.put(R.string.Tgx101VoiceChatMutedByAdmin, "Администратор выключил вам микрофон");
     RU.put(R.string.Tgx101CardTitle, "Банковская карта");
-    RU.put(R.string.Tgx101CardNotice, "Данные карты видит только платёжная система — %1$s. Ни Telegram, ни %2$s, ни TGx101 их не получают и не сохраняют. Деньги идут владельцу %2$s.");
+    RU.put(R.string.Tgx101CardNotice, "Данные карты видит только платёжная система — %1$s. Ни Telegram, ни %2$s, ни PlumaGram их не получают и не сохраняют. Деньги идут владельцу %2$s.");
     RU.put(R.string.Tgx101CardNumber, "Номер карты");
     RU.put(R.string.Tgx101CardExpiry, "ММ/ГГ");
     RU.put(R.string.Tgx101CardCvc, "CVC / CVV");
@@ -144,7 +144,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101CardProcessing, "Проверяем карту…");
     RU.put(R.string.Tgx101CardConnectionFailed, "Платёжная система не приняла карту или не ответила. Попробуйте ещё раз.");
     RU.put(R.string.Tgx101CardConfirm, "Оплатить %1$s за «%2$s» картой? Данные карты уходят напрямую в платёжную систему и не сохраняются.");
-    RU.put(R.string.Tgx101CardShippingUnsupported, "Этот счёт требует адрес доставки, такое TGx101 пока оплатить не может");
+    RU.put(R.string.Tgx101CardShippingUnsupported, "Этот счёт требует адрес доставки, такое PlumaGram пока оплатить не может");
     RU.put(R.string.Tgx101OrderTitle, "Данные для оплаты");
     RU.put(R.string.Tgx101OrderName, "Имя");
     RU.put(R.string.Tgx101OrderPhone, "Телефон");
@@ -154,7 +154,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PremiumFragment, "Купить на Fragment (TON)");
     RU.put(R.string.Tgx101PremiumActive, "Premium активен.");
     RU.put(R.string.Tgx101PremiumInactive, "Premium не активен.");
-    RU.put(R.string.Tgx101PremiumBuyHint, "TGx101 не может платить через Google Play. Срок подписки открывает @PremiumBot, он пришлёт счёт для оплаты картой; на Fragment Premium покупается за TON на ваш ник.");
+    RU.put(R.string.Tgx101PremiumBuyHint, "PlumaGram не может платить через Google Play. Срок подписки открывает @PremiumBot, он пришлёт счёт для оплаты картой; на Fragment Premium покупается за TON на ваш ник.");
     RU.put(R.string.Tgx101PremiumNoLink, "Для этого варианта Telegram не дал ссылку на оплату");
     RU.put(R.string.Tgx101PremiumGift, "Подарок");
     RU.put(R.string.Tgx101PremiumGiftStars, "Подарить Premium за звёзды");
@@ -227,7 +227,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101StarsKindPurchase, "покупка");
     RU.put(R.string.PaidReactionHint, "Поддержать пост звёздами. Их получит автор, под постом появится ваша звёздная реакция.\nНа балансе: %1$s");
     RU.put(R.string.PaidReactionSent, "Отправлено: %1$s");
-    RU.put(R.string.StarsCardUnsupported, "Этот способ оплаты в TGx101 не поддерживается: оплатите в официальном Telegram.");
+    RU.put(R.string.StarsCardUnsupported, "Этот способ оплаты в PlumaGram не поддерживается: оплатите в официальном Telegram.");
     RU.put(R.string.ChatExportFormatHint, "Вся история чата сохранится в «Загрузки/TGx101» одним файлом. Только текст: фото, видео и голосовые отмечаются как [Фото] и т. п.");
     RU.put(R.string.ChatExportHtml, "Веб-страница (HTML) — для чтения");
     RU.put(R.string.ChatExportTxt, "Обычный текст (TXT)");
@@ -250,9 +250,9 @@ final class Tgx101Strings {
     RU.put(R.string.ChatImportFailed, "Не удалось импортировать: %1$s");
     RU.put(R.string.Tgx101Updates, "Обновления");
     RU.put(R.string.Tgx101CheckUpdates, "Сообщать о новых версиях");
-    RU.put(R.string.Tgx101CheckUpdatesHint, "Раз в день при открытии приложение проверяет на GitHub, не вышла ли новая версия TGx1Ø1, и показывает уведомление со ссылками на GitHub и 4PDA. Ничего не скачивается и не устанавливается само.");
-    RU.put(R.string.Tgx101UpdateChannel, "Обновления TGx1Ø1");
-    RU.put(R.string.Tgx101UpdateTitle, "Вышла TGx1Ø1 %1$s");
+    RU.put(R.string.Tgx101CheckUpdatesHint, "Раз в день при открытии приложение проверяет на GitHub, не вышла ли новая версия PlumaGram, и показывает уведомление со ссылками на GitHub и 4PDA. Ничего не скачивается и не устанавливается само.");
+    RU.put(R.string.Tgx101UpdateChannel, "Обновления PlumaGram");
+    RU.put(R.string.Tgx101UpdateTitle, "Вышла PlumaGram %1$s");
     RU.put(R.string.Tgx101UpdateText, "Нажмите, чтобы скачать новую версию");
     RU.put(R.string.OpenInBrowser, "Открыть в браузере");
     RU.put(R.string.UnsupportedKindStory, "история");
