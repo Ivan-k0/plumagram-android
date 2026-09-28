@@ -926,7 +926,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       }
       icons.append(R.drawable.baseline_content_copy_24);
 
-      if (Settings.instance().getNewSetting(Settings.SETTING_FLAG_SELECT_TEXT_TO_QUOTE)) {
+      if (true) { // TGx101: "Select text" is always available (the MagiX toggle was removed)
         ids.append(R.id.btn_messageSelectText);
         strings.append(R.string.SelectText);
         icons.append(R.drawable.baseline_format_quote_close_24);
