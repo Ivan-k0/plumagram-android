@@ -327,7 +327,8 @@ public class RecordAudioVideoController implements
       this.durationView.setTimerCallback(() -> {
         float progress = recordingVideo ? getRecordProgress() : 0f;
         progressView.setVisualProgress(MathUtils.clamp(progress));
-        if (progress >= 1f) {
+        // TGx101: Telegram refuses video notes over 12 MB, so a round that gets that big is stopped like at 60 s
+        if (progress >= 1f || (recordingVideo && roundBytesWritten >= MAX_VIDEO_NOTE_BYTES_TO_STOP)) {
           finishRecording(true);
         }
       });
@@ -1072,6 +1073,7 @@ public class RecordAudioVideoController implements
     }
 
     this.savedRoundDurationSeconds = 0;
+    this.roundBytesWritten = 0;
     this.prevVideoPath = null;
     this.targetChatId = targetController.getChatId();
     this.targetMessageTopicId = targetController.getMessageTopicId();
@@ -1732,6 +1734,9 @@ public class RecordAudioVideoController implements
 
   @Override
   public void onVideoRecordProgress (String key, long readyBytesCount) {
+    if (StringUtils.equalsOrBothEmpty(roundKey, key)) {
+      roundBytesWritten = readyBytesCount;
+    }
     if (StringUtils.equalsOrBothEmpty(roundKey, key) && prevVideoPath == null) {
       tdlib.client().send(new TdApi.SetFileGenerationProgress(roundGenerationId, 0, readyBytesCount), tdlib.silentHandler());
     }
@@ -1816,6 +1821,10 @@ public class RecordAudioVideoController implements
   }
 
   private static final int VIDEO_NOTE_LENGTH = 360;
+  private static final int MAX_VIDEO_NOTE_DURATION_SECONDS = 60;
+  // Telegram's limit is 12582912 bytes; leave room for the frames still in the encoder and the file index
+  private static final long MAX_VIDEO_NOTE_BYTES_TO_STOP = 12582912L - 700_000L;
+  private long roundBytesWritten;
 
   @Override
   public void onVideoRecordingFinished (String key, long resultFileSize, long resultFileDuration, TimeUnit resultFileDurationUnit) {
@@ -1824,6 +1833,8 @@ public class RecordAudioVideoController implements
       if (awaitingRoundResult()) {
         if (success) {
           this.savedRoundDurationSeconds += (int) resultFileDurationUnit.toSeconds(resultFileDuration);
+          // TGx101: the measured time includes finishing the file; keep it within Telegram's 60 s limit for video notes
+          this.savedRoundDurationSeconds = Math.min(MAX_VIDEO_NOTE_DURATION_SECONDS, this.savedRoundDurationSeconds);
           if (roundCloseMode == CLOSE_MODE_PREVIEW || roundCloseMode == CLOSE_MODE_PREVIEW_SCHEDULE) {
             awaitRoundVideo();
             finishFileGeneration(resultFileSize, null);
@@ -1966,7 +1977,7 @@ public class RecordAudioVideoController implements
           0
         );
         TdApi.InputFileGenerated trimmedFile = new TdApi.InputFileGenerated(roundFile.local.path, conversion, 0);
-        sendVideoNote(new TdApi.InputMessageVideoNote(new TdApi.InputVideoNote(trimmedFile, null, (int) Math.round(endTimeSeconds - startTimeSeconds), VIDEO_NOTE_LENGTH), obtainSelfDestructType()), initialSendOptions, null);
+        sendVideoNote(new TdApi.InputMessageVideoNote(new TdApi.InputVideoNote(trimmedFile, null, (int) Math.min(MAX_VIDEO_NOTE_DURATION_SECONDS, Math.round(endTimeSeconds - startTimeSeconds)), VIDEO_NOTE_LENGTH), obtainSelfDestructType()), initialSendOptions, null);
       } else {
         sendVideoNote(new TdApi.InputMessageVideoNote(new TdApi.InputVideoNote(new TdApi.InputFileId(roundFile.id), null, savedRoundDurationSeconds, VIDEO_NOTE_LENGTH), obtainSelfDestructType()), initialSendOptions, roundFile);
       }

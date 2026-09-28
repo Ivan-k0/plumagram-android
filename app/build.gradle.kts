@@ -318,8 +318,9 @@ android {
     targetSdk = config.build.targetSdkVersion
     multiDexEnabled = true
 
-    // TGx101: the displayed name uses Ø (slashed zero); the technical name (folders, files) stays TGx101
-    resValue("string", "AppName", config.applicationName.replace("TGx101", "TGx1Ø1"))
+    // TGx101: the displayed name is PlumaGram (matches the bird icon);
+    // the technical name (folders, files, update checks) stays TGx101
+    resValue("string", "AppName", "PlumaGram")
     resValue("string", "account_type", "${config.applicationId}.sync.account")
     resValue("string", "content_authority", "${config.applicationId}.sync.provider")
     resValue("string", "contacts_account_type", "${config.applicationId}.contacts")

@@ -49,7 +49,7 @@ final class Tgx101Strings {
     RU.put(R.string.RoundVideoQualityHq, "HQ (320p)");
     RU.put(R.string.RoundVideoQualityHigh, "Высокое (480p)");
     RU.put(R.string.RoundVideoQualityMax, "Максимум (640p)");
-    RU.put(R.string.RoundVideoQualityHint, "Примерный вес минуты: Стандарт 3 МБ, HQ 5 МБ, Высокое 9 МБ, Максимум 19 МБ. 640p — максимум, который Telegram принимает для кружков, поэтому при любом выборе кружок уходит кружком.");
+    RU.put(R.string.RoundVideoQualityHint, "Примерный вес минуты: Стандарт 3 МБ, HQ 5 МБ, Высокое 9 МБ, Максимум 10–11 МБ. Telegram принимает кружки до 640p и до 12 МБ, поэтому при любом выборе кружок уходит кружком; если кружок подходит к 12 МБ, запись останавливается сама.");
     RU.put(R.string.RoundStabilization, "Стабилизация кружков");
     RU.put(R.string.RoundStabilizationOff, "Выкл");
     RU.put(R.string.RoundStabilizationSystem, "Системная");

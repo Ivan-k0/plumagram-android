@@ -3342,7 +3342,7 @@ public class Settings {
 
   public static int roundVideoBitrate (int quality) {
     switch (quality) {
-      case ROUND_VIDEO_QUALITY_MAX: return 2_500_000;
+      case ROUND_VIDEO_QUALITY_MAX: return 1_150_000; // encoders overshoot ~20%: a minute is ~10.5 MB, under Telegram's 12 MB limit for video notes
       case ROUND_VIDEO_QUALITY_HIGH: return 1_200_000;
       case ROUND_VIDEO_QUALITY_HQ: return 600_000;
       default: return 400_000;

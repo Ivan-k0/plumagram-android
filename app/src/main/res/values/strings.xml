@@ -5927,7 +5927,7 @@
   <string name="RoundVideoQualityHq">HQ (320p)</string>
   <string name="RoundVideoQualityHigh">High (480p)</string>
   <string name="RoundVideoQualityMax">Maximum (640p)</string>
-  <string name="RoundVideoQualityHint">Approximate size of one minute: Standard 3 MB, HQ 5 MB, High 9 MB, Maximum 19 MB. 640p is the largest size Telegram accepts for video messages, so every option is always sent as a video message.</string>
+  <string name="RoundVideoQualityHint">Approximate size of one minute: Standard 3 MB, HQ 5 MB, High 9 MB, Maximum 10–11 MB. Telegram accepts video messages up to 640p and 12 MB, so every option is always sent as a video message; recording stops by itself when a video message gets close to 12 MB.</string>
   <string name="RoundStabilization">Video message stabilization</string>
   <string name="RoundStabilizationOff">Off</string>
   <string name="RoundStabilizationSystem">System</string>
