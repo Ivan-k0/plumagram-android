@@ -114,7 +114,16 @@ public class LiveLocationService extends Service implements LiveLocationManager.
       return;
     }
     if (!showingNotification) {
-      U.startForeground(this, TdlibNotificationManager.ID_FOREGROUND_LOCATION, buildNotification());
+      // TGx101: on Android 14+ a location service can't start without the location permission (e.g. a
+      // "only this time" grant was revoked in the background). Stop sharing updates instead of crashing
+      // on every restart of the sticky service.
+      try {
+        U.startForeground(this, TdlibNotificationManager.ID_FOREGROUND_LOCATION, buildNotification());
+        showingNotification = true;
+      } catch (SecurityException | IllegalStateException e) {
+        org.thunderdog.challegram.Log.e("Live location service can't run in the foreground, stopping", e);
+        stopSelf();
+      }
       return;
     }
     try {
