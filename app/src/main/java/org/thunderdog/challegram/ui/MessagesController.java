@@ -3676,6 +3676,21 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
+  private int getTgx101DeleteButtonIndex () {
+    View button = headerView != null ? headerView.findViewById(R.id.menu_btn_delete) : null;
+    if (button == null || !(button.getParent() instanceof ViewGroup)) {
+      return 0;
+    }
+    ViewGroup menu = (ViewGroup) button.getParent();
+    int count = 0;
+    for (int i = menu.indexOfChild(button) + 1; i < menu.getChildCount(); i++) {
+      if (menu.getChildAt(i).getVisibility() == View.VISIBLE) {
+        count++;
+      }
+    }
+    return count;
+  }
+
   private MessageWithProperties getSingleSelectedMessage () {
     if (selectedMessageIds != null && selectedMessageIds.size() == 1) {
       long messageId = selectedMessageIds.keyAt(0);
@@ -3911,7 +3926,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
           TdApi.MessageProperties properties = m.lastMessageProperties(messageId);
           messages[i] = new MessageWithProperties(message, properties);
         }
-        tdlib.ui().showDeleteOptions(this, messages, () -> finishSelectMode(-1));
+        // TGx101: confirmation drops down under the delete button instead of a bottom sheet
+        tdlib.ui().showDeleteDropdown(this, messages, getTgx101DeleteButtonIndex(), () -> finishSelectMode(-1));
       }
     } else if (id == R.id.menu_btn_retry) {
       if (selectedMessageIds != null && selectedMessageIds.size() > 0) {

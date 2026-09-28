@@ -298,6 +298,10 @@ public class TdlibUi extends Handler {
   // Unsorted UI-related common stuff
 
   private static boolean deleteSuperGroupMessages (final ViewController<?> context, final MessageWithProperties[] deletingMessages, final @Nullable Runnable after) {
+    return deleteSuperGroupMessages(context, deletingMessages, after, false);
+  }
+
+  private static boolean deleteSuperGroupMessages (final ViewController<?> context, final MessageWithProperties[] deletingMessages, final @Nullable Runnable after, boolean checkOnly) {
     final Tdlib tdlib = context.tdlib();
     if (deletingMessages == null || deletingMessages.length == 0) {
       return false;
@@ -325,6 +329,10 @@ public class TdlibUi extends Handler {
       ) {
         return false;
       }
+    }
+
+    if (checkOnly) {
+      return true;
     }
 
     final String name = tdlib.senderName(senderId, true);
@@ -680,6 +688,111 @@ public class TdlibUi extends Handler {
           return true;
         }
       );
+    }
+  }
+
+  // TGx101: delete confirmation as a dropdown under the header delete button
+  public void showDeleteDropdown (final ViewController<?> context, final MessageWithProperties[] messages, int buttonIndex, final @Nullable Runnable after) {
+    if (context == null || messages == null || messages.length == 0 || context.getTgx101HeaderView() == null) {
+      return;
+    }
+    final long chatId = TdExt.findUniqueChatId(messages);
+    final Runnable onDone = () -> {
+      if (after != null) {
+        after.run();
+      }
+    };
+    if (deleteSuperGroupMessages(context, messages, after, true)) {
+      context.getTgx101HeaderView().showMore(
+        new int[] {R.id.menu_btn_delete, R.id.btn_moreActions},
+        new String[] {Lang.plural(R.string.DeleteXMessages, messages.length), Lang.getString(R.string.Tgx101DeleteMore)},
+        new int[] {R.drawable.baseline_delete_24, R.drawable.baseline_more_horiz_24},
+        buttonIndex, context, id -> {
+          if (id == R.id.menu_btn_delete) {
+            deleteMessagesSplit(messages, true);
+            onDone.run();
+          } else if (id == R.id.btn_moreActions) {
+            deleteSuperGroupMessages(context, messages, after);
+          }
+        });
+      return;
+    }
+
+    boolean allScheduled = true;
+    int optionalCount = 0, outgoingCount = 0;
+    boolean needsRevokeLabel = false;
+    for (MessageWithProperties msg : messages) {
+      if (!TD.isScheduled(msg.message)) {
+        allScheduled = false;
+      }
+      if (msg.properties.canBeDeletedForAllUsers && msg.properties.canBeDeletedOnlyForSelf) {
+        optionalCount++;
+        if (msg.message.isOutgoing) {
+          outgoingCount++;
+        }
+      }
+      if (!msg.properties.canBeDeletedOnlyForSelf) {
+        needsRevokeLabel = true;
+      }
+    }
+    final boolean isSelfChat = tdlib.isSelfChat(chatId);
+    final String forMe = messages.length == 1 ?
+      Lang.getString(allScheduled ? (isSelfChat ? R.string.DeleteReminder : R.string.DeleteScheduled) : (isSelfChat ? R.string.DeleteMessage : R.string.DeleteForMe)) :
+      Lang.plural(allScheduled ? (isSelfChat ? R.string.DeleteXReminders : R.string.DeleteXScheduled) : (isSelfChat ? R.string.DeleteXMessages : R.string.DeleteXForMe), messages.length);
+
+    if (optionalCount > 0 && !isSelfChat && !allScheduled) {
+      String revokeFor;
+      if (optionalCount == messages.length) {
+        revokeFor = ChatId.isMultiChat(chatId) ? Lang.getString(R.string.DeleteForEveryone) : Lang.getString(R.string.DeleteForMeAndX, tdlib.cache().userFirstName(tdlib.chatUserId(chatId)));
+      } else {
+        revokeFor = ChatId.isMultiChat(chatId) ? Lang.plural(R.string.DeleteXForEveryone, optionalCount) : Lang.plural(R.string.DeleteXForUser, optionalCount, tdlib.cache().userFirstName(tdlib.chatUserId(chatId)));
+      }
+      boolean revokeFirst = outgoingCount > 0;
+      int[] ids = revokeFirst ? new int[] {R.id.btn_revokeMessages, R.id.menu_btn_delete} : new int[] {R.id.menu_btn_delete, R.id.btn_revokeMessages};
+      String[] titles = revokeFirst ? new String[] {revokeFor, forMe} : new String[] {forMe, revokeFor};
+      int[] icons = revokeFirst ? new int[] {R.drawable.baseline_delete_forever_24, R.drawable.baseline_delete_24} : new int[] {R.drawable.baseline_delete_24, R.drawable.baseline_delete_forever_24};
+      context.getTgx101HeaderView().showMore(ids, titles, icons, buttonIndex, context, id -> {
+        if (id == R.id.btn_revokeMessages || id == R.id.menu_btn_delete) {
+          deleteMessagesSplit(messages, id == R.id.btn_revokeMessages);
+          onDone.run();
+        }
+      });
+      return;
+    }
+
+    String title = forMe;
+    if (!allScheduled && needsRevokeLabel) {
+      title = ChatId.isUserChat(chatId) ? Lang.getString(R.string.DeleteForMeAndX, tdlib.cache().userFirstName(tdlib.chatUserId(chatId))) : Lang.getString(R.string.DeleteForEveryone);
+    }
+    context.getTgx101HeaderView().showMore(new int[] {R.id.menu_btn_delete}, new String[] {title}, new int[] {R.drawable.baseline_delete_24}, buttonIndex, context, id -> {
+      if (id == R.id.menu_btn_delete) {
+        deleteMessagesSplit(messages, false);
+        onDone.run();
+      }
+    });
+  }
+
+  private void deleteMessagesSplit (MessageWithProperties[] messages, boolean revoke) {
+    ArrayList<TdApi.Message> revokeList = new ArrayList<>();
+    ArrayList<TdApi.Message> keepList = new ArrayList<>();
+    for (MessageWithProperties msg : messages) {
+      if (revoke && msg.properties.canBeDeletedForAllUsers) {
+        revokeList.add(msg.message);
+      } else {
+        keepList.add(msg.message);
+      }
+    }
+    if (!revokeList.isEmpty()) {
+      LongSparseArray<long[]> ids = TD.getMessageIds(revokeList.toArray(new TdApi.Message[0]));
+      for (int i = 0; i < ids.size(); i++) {
+        tdlib.deleteMessages(ids.keyAt(i), ids.valueAt(i), true);
+      }
+    }
+    if (!keepList.isEmpty()) {
+      LongSparseArray<long[]> ids = TD.getMessageIds(keepList.toArray(new TdApi.Message[0]));
+      for (int i = 0; i < ids.size(); i++) {
+        tdlib.deleteMessages(ids.keyAt(i), ids.valueAt(i), false);
+      }
     }
   }
 

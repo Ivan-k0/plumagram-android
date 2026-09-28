@@ -1072,6 +1072,8 @@
   <item type="id" name="btn_deleteSupergroupMessages" />
   <item type="id" name="btn_deleteMessagesWithRevoke" />
   <item type="id" name="btn_revokeMessages" />
+  <item type="id" name="btn_moreActions" />
+  <item type="id" name="btn_tgx101Channel" />
 
   <item type="id" name="btn_notifications_snooze" />
   <item type="id" name="btn_notifications_preview" />

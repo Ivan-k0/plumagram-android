@@ -196,6 +196,11 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
   private @Nullable ViewController<?> parentWrapper;
 
   protected @Nullable HeaderView headerView;
+
+  // TGx101: header access for dropdowns anchored to header buttons
+  public final @Nullable HeaderView getTgx101HeaderView () {
+    return headerView;
+  }
   protected @Nullable FloatingButton floatingButton;
   protected @Nullable NavigationController navigationController;
 

@@ -382,6 +382,11 @@ public class SettingView extends FrameLayoutFix implements FactorAnimator.Target
     return itemName;
   }
 
+  // TGx101: the name did not fit and is cut with "…"
+  public boolean isNameEllipsized () {
+    return itemName != null && displayItemName != null && displayItemNameText == null && displayItemName.length() < itemName.length();
+  }
+
   private int getCurrentHeight () {
     int height;
     if (text != null) {

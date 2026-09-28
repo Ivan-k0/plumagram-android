@@ -546,6 +546,11 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     final int id = v.getId();
     final boolean toggleResult = adapter.toggleView(v);
 
+    // TGx101: long MagiX titles don't fit, show the full one on tap
+    if (mode == MODE_TGX101 && v instanceof SettingView && ((SettingView) v).isNameEllipsized()) {
+      context().tooltipManager().builder(v).show(tdlib, ((SettingView) v).getName().toString()).hideDelayed();
+    }
+
     if (id == R.id.btn_resetNetworkStats) {
       showOptions(Lang.getString(R.string.ResetStatsHint), new int[] {R.id.btn_delete, R.id.btn_cancel}, new String[] {Lang.getString(R.string.Reset), Lang.getString(R.string.Cancel)}, new int[] {OptionColor.RED, OptionColor.NORMAL}, new int[] {R.drawable.baseline_delete_forever_24, R.drawable.baseline_cancel_24}, (itemView, optionId) -> {
         if (optionId == R.id.btn_delete) {

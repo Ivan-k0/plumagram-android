@@ -5968,6 +5968,8 @@
   <string name="BigEmojiSizeHint">Size of stickers and of messages that consist only of emoji. Off shows emoji as regular text in a bubble; stickers keep the standard size. Same setting as Big Emoji in Stickers and emoji. Applies to chats opened after the change.</string>
   <string name="PullToSearch">Pull down to search</string>
   <string name="Tgx101NotificationPlane">Telegram plane as the notification icon</string>
+  <string name="Tgx101DeleteMore">More options…</string>
+  <string name="Tgx101Channel">PlumaGram channel</string>
   <string name="PullToSearchHint">When the chat list is already at the top, pull down once more to open search. Space under the message field and menus: keeps them 16dp above the bottom edge of the screen, so they don\'t sit on the gesture bar. Only with gesture navigation: with navigation buttons there is no gap.</string>
   <string name="AttachFromMenu">Attach</string>
   <string name="PendingAttachment">Attachment</string>

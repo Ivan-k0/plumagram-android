@@ -457,6 +457,9 @@ public class SettingsController extends ViewController<Void> implements
           hasError = sessions != null && sessions.incompleteLoginAttempts.length > 0;
         }
         view.setUnreadCounter(hasError ? Tdlib.CHAT_FAILED : 0, false, isUpdate);
+        if (itemId == R.id.btn_tgx101Channel) {
+          view.setData("@plumagram");
+        }
         if (itemId == R.id.btn_sourceCode) {
           PullRequest specificPullRequest = (PullRequest) item.getData();
           CharSequence buildInfoShort;
@@ -715,6 +718,9 @@ public class SettingsController extends ViewController<Void> implements
     }
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_sourceCode, R.drawable.baseline_github_24, R.string.ViewSourceCode));
+    // TGx101: our news channel
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+    items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Channel, R.drawable.baseline_logo_telegram_24, R.string.Tgx101Channel));
     this.previousBuildInfo = Settings.instance().getPreviousBuildInformation();
     if (this.previousBuildInfo != null) {
       items.add(new ListItem(ListItem.TYPE_SEPARATOR));
@@ -1176,6 +1182,8 @@ public class SettingsController extends ViewController<Void> implements
       tdlib.ui().openUrl(this, appBuildInfo.changesUrlFrom(previousBuildInfo), new TdlibUi.UrlOpenParameters().disableInstantView());
     } else if (viewId == R.id.btn_tdlib) {
       viewSourceCode(SourceCodeType.TDLIB);
+    } else if (viewId == R.id.btn_tgx101Channel) {
+      tdlib.ui().openUrl(this, "https://t.me/plumagram", new TdlibUi.UrlOpenParameters());
     } else if (viewId == R.id.btn_sourceCode) {
       AppBuildInfo appBuildInfo = Settings.instance().getCurrentBuildInformation();
       PullRequest specificPullRequest = (PullRequest) ((ListItem) v.getTag()).getData();

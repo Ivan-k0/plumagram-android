@@ -74,6 +74,7 @@ import me.vkryl.core.ColorUtils;
 import me.vkryl.core.StringUtils;
 import me.vkryl.core.lambda.Destroyable;
 import me.vkryl.core.lambda.RunnableData;
+import me.vkryl.core.lambda.RunnableInt;
 import me.vkryl.core.util.ColorChanger;
 
 @SuppressWarnings("unused")
@@ -1077,6 +1078,25 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     moreWrap.setRightNumber(buttonIndex);
     moreWrap.setTranslationY(getTranslationY() + getCurrentHeaderOffset());
     showMore(ids, titles, icons, onMoreItemClick, isLayered, themeListenerList);
+  }
+
+  // TGx101: dropdown anchored to a header button, with its own item callback
+  public void showMore (int[] ids, String[] titles, int[] icons, int buttonIndex, @Nullable ViewController<?> themeProvider, RunnableInt onItemPressed) {
+    if (ids.length == 0) {
+      return;
+    }
+    ThemeListenerList themeListenerList = navigation != null ? navigation.getThemeListeners() : themeProvider != null ? themeProvider.getThemeListeners() : null;
+    if (moreWrap == null) {
+      moreWrap = new MenuMoreWrap(getContext());
+      moreWrap.init(themeListenerList, null);
+    }
+    moreWrap.setAnchorMode(MenuMoreWrap.ANCHOR_MODE_RIGHT);
+    moreWrap.setRightNumber(buttonIndex);
+    moreWrap.setTranslationY(getTranslationY() + getCurrentHeaderOffset());
+    showMore(ids, titles, icons, v -> {
+      ((PopupLayout) v.getParent().getParent()).hideWindow(true);
+      onItemPressed.runWithInt(v.getId());
+    }, false, themeListenerList);
   }
 
   private void showMore (int[] ids, String[] titles, int[] icons, View.OnClickListener onItemClick, boolean isLayered, @Nullable ThemeListenerList themeListeners) {
