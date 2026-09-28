@@ -234,6 +234,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().separateChannelPosts(), isUpdate);
         } else if (itemId == R.id.btn_tgx101BottomGap) {
           view.getToggler().setRadioEnabled(Settings.instance().bottomGapEnabled(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101NotificationPlane) {
+          view.getToggler().setRadioEnabled(Settings.instance().useTgx101NotificationPlane(), isUpdate);
         } else if (itemId == R.id.btn_pullToSearch) {
           view.getToggler().setRadioEnabled(Settings.instance().isPullToSearchEnabled(), isUpdate);
         } else if (itemId == R.id.btn_roundStabilization) {
@@ -291,6 +293,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_pullToSearch, 0, R.string.PullToSearch),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101BottomGap, 0, R.string.Tgx101BottomGap),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NotificationPlane, 0, R.string.Tgx101NotificationPlane),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.PullToSearchHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
@@ -605,6 +609,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       }).setIntDelegate(this));
     } else if (id == R.id.btn_tgx101BottomGap) {
       Settings.instance().setBottomGapEnabled(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101NotificationPlane) {
+      Settings.instance().setTgx101NotificationPlane(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_pullToSearch) {
       Settings.instance().setPullToSearchEnabled(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showDiscussButton) {

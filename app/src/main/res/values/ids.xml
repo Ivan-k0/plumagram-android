@@ -1460,6 +1460,7 @@
   <item name="btn_roundStabilizationCamera2" type="id"/>
   <item name="btn_messageTranscribe" type="id"/>
   <item name="btn_pullToSearch" type="id"/>
+  <item name="btn_tgx101NotificationPlane" type="id"/>
   <item name="btn_attachFromMenu" type="id"/>
   <item name="btn_savedMessagesTags" type="id"/>
   <item name="menu_savedMessages" type="id"/>

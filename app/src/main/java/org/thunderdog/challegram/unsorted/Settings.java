@@ -3149,6 +3149,21 @@ public class Settings {
     pmc.putBoolean(KEY_PULL_TO_SEARCH, enabled);
   }
 
+  // TGx101: status bar icon of message notifications — PlumaGram bird (default) or the Telegram plane
+  private static final String KEY_TGX101_NOTIFICATION_PLANE = "tgx101_notification_plane";
+
+  public boolean useTgx101NotificationPlane () {
+    return pmc.getBoolean(KEY_TGX101_NOTIFICATION_PLANE, false);
+  }
+
+  public void setTgx101NotificationPlane (boolean plane) {
+    pmc.putBoolean(KEY_TGX101_NOTIFICATION_PLANE, plane);
+  }
+
+  public int getNotificationIconRes () {
+    return useTgx101NotificationPlane() ? R.mipmap.app_notification_plane : R.mipmap.app_notification;
+  }
+
   // Channels: the bottom "Discuss" button and the comments button under posts can be hidden.
   // Separate keys (not new-settings flags) so both stay on for existing installs.
   private static final String KEY_SHOW_DISCUSS_BUTTON = "settings_show_discuss_button";

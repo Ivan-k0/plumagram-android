@@ -616,7 +616,7 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
 
     builder
       .setContentTitle(visualChatTitle)
-      .setSmallIcon(R.mipmap.app_notification)
+      .setSmallIcon(Settings.instance().getNotificationIconRes())
       .setContentText(textContent)
       .setTicker(tickerText)
       .setAutoCancel(Config.NOTIFICATION_AUTO_CANCEL)
@@ -1078,7 +1078,7 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
     }
 
     b.setAutoCancel(Config.NOTIFICATION_AUTO_CANCEL_SPECIFIC);
-    b.setSmallIcon(R.mipmap.app_notification);
+    b.setSmallIcon(Settings.instance().getNotificationIconRes());
     b.setWhen(timeMs);
     if (!Device.FLYME) {
       b.setNumber(badgeCount);
