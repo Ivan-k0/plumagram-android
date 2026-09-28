@@ -107,17 +107,20 @@ public class KeyboardFrameLayout extends FrameLayoutFix implements ViewTreeObser
 
   public void showKeyboard (android.widget.EditText input) {
     keyboardState = STATE_AWAITING_SHOW;
+    awaitStartTime = android.os.SystemClock.uptimeMillis(); // TGx101
     Keyboard.show(input);
   }
 
   public void hideKeyboard (android.widget.EditText input) {
     keyboardState = STATE_AWAITING_HIDE;
+    awaitStartTime = android.os.SystemClock.uptimeMillis(); // TGx101
     Keyboard.hide(input);
   }
 
   public void onKeyboardStateChanged (boolean visible) {
     if (keyboardState == STATE_AWAITING_SHOW && visible) {
       framesDropped = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? 45 : 55;
+      awaitStartTime = android.os.SystemClock.uptimeMillis() - (long) framesDropped * 1000 / 60; // TGx101
     } else if (keyboardState == STATE_AWAITING_HIDE && !visible) {
       keyboardState = STATE_NONE;
     }
@@ -126,11 +129,15 @@ public class KeyboardFrameLayout extends FrameLayoutFix implements ViewTreeObser
   }
 
   private int framesDropped;
+  // TGx101: the freeze was counted in frames (60 = 1 s at 60 Hz); on 120 Hz screens it ended twice as
+  // early, before the keyboard was drawn, and the empty space under the input flashed. Count time instead.
+  private long awaitStartTime;
 
   @Override
   public boolean onPreDraw () {
     if (keyboardState == STATE_AWAITING_SHOW || keyboardState == STATE_AWAITING_HIDE) {
-      if (++framesDropped >= 60) {
+      ++framesDropped;
+      if (android.os.SystemClock.uptimeMillis() - awaitStartTime >= 1000) {
         framesDropped = 0;
         keyboardState = STATE_NONE;
         return true;

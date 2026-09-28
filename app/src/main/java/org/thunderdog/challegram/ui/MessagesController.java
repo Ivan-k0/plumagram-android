@@ -9337,13 +9337,23 @@ public class MessagesController extends ViewController<MessagesController.Argume
     closeEmojiKeyboard(false);
   }
 
+  // TGx101: switching from emoji to the keyboard used to hide the emoji panel first and only then ask
+  // for the keyboard, so for a few frames nothing was below the input and the chat jumped (a flash).
+  // Now the panel stays until the keyboard is actually shown (closeEmojiKeyboard(true) from
+  // onKeyboardStateChanged), with a fallback in case no keyboard appears.
+  private final Runnable tgx101CloseEmojiFallback = () -> closeEmojiKeyboard(true);
+
   private void closeEmojiKeyboard (boolean byKeyboardOpen) {
     if (emojiShown) {
+      if (emojiState && isFocused() && !byKeyboardOpen && emojiKeyboardFrameLayout != null) {
+        emojiKeyboardFrameLayout.showKeyboard(inputView);
+        UI.removePendingRunnable(tgx101CloseEmojiFallback);
+        UI.post(tgx101CloseEmojiFallback, 500);
+        return;
+      }
+      UI.removePendingRunnable(tgx101CloseEmojiFallback);
       if (emojiKeyboardFrameLayout != null) {
         emojiKeyboardFrameLayout.setVisible(false);
-      }
-      if (emojiState && isFocused() && !byKeyboardOpen) {
-        emojiKeyboardFrameLayout.showKeyboard(inputView);
       }
       setEmojiShown(false, true);
       emojiButton.setImageResource(getTargetIcon(true));
