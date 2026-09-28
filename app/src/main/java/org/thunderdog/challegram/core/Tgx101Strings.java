@@ -228,7 +228,7 @@ final class Tgx101Strings {
     RU.put(R.string.PaidReactionHint, "Поддержать пост звёздами. Их получит автор, под постом появится ваша звёздная реакция.\nНа балансе: %1$s");
     RU.put(R.string.PaidReactionSent, "Отправлено: %1$s");
     RU.put(R.string.StarsCardUnsupported, "Этот способ оплаты в PlumaGram не поддерживается: оплатите в официальном Telegram.");
-    RU.put(R.string.ChatExportFormatHint, "Вся история чата сохранится в «Загрузки/TGx101» одним файлом. Только текст: фото, видео и голосовые отмечаются как [Фото] и т. п.");
+    RU.put(R.string.ChatExportFormatHint, "Вся история чата сохранится в «Загрузки/PlumaGram» одним файлом. Только текст: фото, видео и голосовые отмечаются как [Фото] и т. п.");
     RU.put(R.string.ChatExportHtml, "Веб-страница (HTML) — для чтения");
     RU.put(R.string.ChatExportTxt, "Обычный текст (TXT)");
     RU.put(R.string.ChatExportProgress, "Загружено сообщений: %1$d");

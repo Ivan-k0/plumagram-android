@@ -9,7 +9,7 @@ Base: Telegram X 0.29.0.1814. Package name: `com.plumagram.app`. License: GPLv3,
 * The changes are the commits on the `tgx101` branch on top of Telegram X 0.29.0.1814 (upstream commit `9291ce1`).
 
 To build it, follow the Telegram X instructions below. In `local.properties` set your own
-`telegram.api_id` / `telegram.api_hash`, `app.id=com.plumagram.app` and `app.name=TGx101` (the displayed name is PlumaGram), and use
+`telegram.api_id` / `telegram.api_hash`, `app.id=com.plumagram.app` and `app.name=PlumaGram`, and use
 your own keystore and Firebase project (`app/google-services.json`) for push notifications.
 
 ---

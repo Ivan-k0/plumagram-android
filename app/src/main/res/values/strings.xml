@@ -6106,7 +6106,7 @@
   <string name="PaidReactionHint">Support this post with Stars. The author gets them, your Stars reaction is shown under the post.\nBalance: %1$s</string>
   <string name="PaidReactionSent">Sent: %1$s</string>
   <string name="StarsCardUnsupported">This payment method is not supported in PlumaGram: pay in the official Telegram app.</string>
-  <string name="ChatExportFormatHint">The whole chat history is saved to Downloads/TGx101 as a file. Only text: photos, videos and voice messages are marked like [Photo].</string>
+  <string name="ChatExportFormatHint">The whole chat history is saved to Downloads/PlumaGram as a file. Only text: photos, videos and voice messages are marked like [Photo].</string>
   <string name="ChatExportHtml">Web page (HTML) — for reading</string>
   <string name="ChatExportTxt">Plain text (TXT)</string>
   <string name="ChatExportProgress">Messages loaded: %1$d</string>

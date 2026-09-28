@@ -25,6 +25,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import org.drinkless.tdlib.TdApi;
+import org.thunderdog.challegram.BuildConfig;
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.U;
 import org.thunderdog.challegram.core.Background;
@@ -57,7 +58,7 @@ import java.util.Set;
 import tgx.td.Td;
 
 /**
- * TGx101: exports the history of one chat to Downloads/TGx101 as an HTML page (for reading)
+ * TGx101: exports the history of one chat to Downloads/<app name> as an HTML page (for reading)
  * or a plain text file. Text only: media are listed as "[Photo]", "[Voice message]" etc.
  * Android 7.0+ only.
  */
@@ -234,7 +235,7 @@ public final class Tgx101ChatExport {
         return;
       }
       Collections.reverse(entries); // oldest first
-      File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "TGx101");
+      File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), BuildConfig.PROJECT_NAME);
       String stamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm", Locale.US).format(new Date());
       String title = chat.title != null && !chat.title.isEmpty() ? chat.title : "chat";
       String safeTitle = title.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "_").trim();
