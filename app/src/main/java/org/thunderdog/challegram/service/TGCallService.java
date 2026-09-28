@@ -254,15 +254,31 @@ public class TGCallService extends Service implements
   private boolean audioGainControlEnabled;
   private int echoCancellationStrength;
 
+  // TGx101: getCommunicationDevice() is a slow system call on some phones (up to ~150 ms on Vivo);
+  // on the main thread it froze the call screen animation, so it runs in the background
+  private static java.util.concurrent.ExecutorService audioQueryExecutor;
+
   public void updateOutputGainControlState () {
     AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
     boolean var;
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-      android.media.AudioDeviceInfo deviceInfo = am.getCommunicationDevice();
-      var = deviceInfo == null || deviceInfo.getType() == android.media.AudioDeviceInfo.TYPE_BUILTIN_EARPIECE;
+      if (am == null) return;
+      synchronized (TGCallService.class) {
+        if (audioQueryExecutor == null) audioQueryExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
+      }
+      audioQueryExecutor.execute(() -> {
+        android.media.AudioDeviceInfo deviceInfo = am.getCommunicationDevice();
+        boolean earpiece = deviceInfo == null || deviceInfo.getType() == android.media.AudioDeviceInfo.TYPE_BUILTIN_EARPIECE;
+        UI.post(() -> applyOutputGainControlState(earpiece));
+      });
+      return;
     } else {
       var = hasEarpiece() && am != null && !am.isSpeakerphoneOn() && !am.isBluetoothScoOn() && !isHeadsetPlugged;
     }
+    applyOutputGainControlState(var);
+  }
+
+  private void applyOutputGainControlState (boolean var) {
     this.audioGainControlEnabled = var;
     this.echoCancellationStrength = isHeadsetPlugged || var ? 0 : 1;
     if (tgcalls != null) {
