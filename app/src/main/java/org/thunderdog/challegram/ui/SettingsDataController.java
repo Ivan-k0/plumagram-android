@@ -317,11 +317,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101CallPatternHint),
 
-        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101Updates),
-        new ListItem(ListItem.TYPE_SHADOW_TOP),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CheckUpdates, 0, R.string.Tgx101CheckUpdates),
-        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
-        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101CheckUpdatesHint),
+        // TGx101: the update check moved to Settings → Interface, in place of Telegram X's in-app updates
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Contacts),
         new ListItem(ListItem.TYPE_SHADOW_TOP),

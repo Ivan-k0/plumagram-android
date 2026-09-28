@@ -312,6 +312,8 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
           v.getToggler().setRadioEnabled(Settings.instance().needPreviewChatOnHold(), isUpdate);
         } else if (itemId == R.id.btn_sendByEnter) {
           v.getToggler().setRadioEnabled(Settings.instance().needSendByEnter(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101CheckUpdates) {
+          v.getToggler().setRadioEnabled(org.thunderdog.challegram.service.Tgx101Updates.isEnabled(context()), isUpdate);
         } else if (itemId == R.id.btn_toggleNewSetting) {
           updateSettingView(v, item, isUpdate);
         } else if (itemId == R.id.btn_updateAutomatically) {
@@ -526,7 +528,16 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
       }*/
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
 
-      if (AppInstallationUtil.isAppSideLoaded(UI.getAppContext())) {
+      // TGx101: updates come from the fork's GitHub releases, not Google Play or the Telegram X beta channel
+      if (true) {
+        items.addAll(Arrays.asList(
+          new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101Updates),
+          new ListItem(ListItem.TYPE_SHADOW_TOP),
+          new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CheckUpdates, 0, R.string.Tgx101CheckUpdates),
+          new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+          new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101CheckUpdatesHint)
+        ));
+      } else if (AppInstallationUtil.isAppSideLoaded(UI.getAppContext())) {
         items.addAll(Arrays.asList(
           new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.InAppUpdates),
           new ListItem(ListItem.TYPE_SHADOW_TOP),
@@ -544,7 +555,7 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
           new ListItem(ListItem.TYPE_SETTING, R.id.btn_subscribeToBeta, 0, R.string.SubscribeToBeta)
         ));
       }
-      items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+      if (false) items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM)); // TGx101: our block closes its own shadow
       context().appUpdater().addListener(this);
 
       items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Chats));
@@ -1210,6 +1221,8 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
       Settings.instance().setNeedHideChatKeyboardOnScroll(adapter.toggleView(v));
     } else if (viewId == R.id.btn_sendByEnter) {
       Settings.instance().setNeedSendByEnter(adapter.toggleView(v));
+    } else if (viewId == R.id.btn_tgx101CheckUpdates) {
+      org.thunderdog.challegram.service.Tgx101Updates.setEnabled(context(), adapter.toggleView(v));
     } else if (viewId == R.id.btn_toggleNewSetting) {
       handleSettingClick(v, adapter);
     } else if (viewId == R.id.btn_subscribeToBeta) {
