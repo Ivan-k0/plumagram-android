@@ -1097,6 +1097,12 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
       ((PopupLayout) v.getParent().getParent()).hideWindow(true);
       onItemPressed.runWithInt(v.getId());
     }, false, themeListenerList);
+    // Centered under the button, but the whole menu stays on screen
+    int width = getMeasuredWidth();
+    int menuWidth = moreWrap.getItemsWidth();
+    int buttonCenter = width - Screen.dp(49f) * buttonIndex - Screen.dp(24f);
+    int right = Math.max(menuWidth, Math.min(width, buttonCenter + menuWidth / 2));
+    moreWrap.setTranslationX(Lang.rtl() ? width - right : right - width);
     // Trash icons in red
     for (int i = 0; i < ids.length && i < moreWrap.getChildCount(); i++) {
       if (icons != null && (icons[i] == R.drawable.baseline_delete_24 || icons[i] == R.drawable.baseline_delete_forever_24)) {
