@@ -103,6 +103,8 @@ final class MapGoogleController extends MapController<MapView, MapGoogleControll
     mapView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     mapView.setPadding(0, 0, 0, marginBottom);
     mapView.setMultiTouchControls(true);
+    // TGx101: OpenStreetMap requires the "© OpenStreetMap contributors" attribution on the map
+    mapView.getOverlays().add(new org.osmdroid.views.overlay.CopyrightOverlay(mapView.getContext()));
     mapView.setBuiltInZoomControls(false);
     return mapView;
   }

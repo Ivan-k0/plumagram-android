@@ -1334,8 +1334,6 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     }
   }
 
-  private boolean notificationsRequested;
-
   private void showAnnoyingAlertsForCompliance (boolean fromAppResume) {
     if (Config.ENABLE_BASELINE_PROFILE_HOOKS) {
       addStartupMarker();
@@ -1345,16 +1343,19 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     }
     tdlib.checkDeadlocks(() -> runOnUiThreadOptional(() -> {
       if (isFocused() && context.getActivityState() == UI.State.RESUMED) {
-        boolean needNotifications = fromAppResume || !notificationsRequested;
-        if (needNotifications && !notificationsRequested) {
-          notificationsRequested = true;
+        // TGx101: ask for the notification permission once, not on every return to the app
+        // (from Telegram X FOSS by Amano Team)
+        boolean requested = false;
+        if (Settings.instance().needTutorial(Settings.TUTORIAL_NOTIFICATION_PERMISSION)) {
+          Settings.instance().markTutorialAsComplete(Settings.TUTORIAL_NOTIFICATION_PERMISSION);
+          requested = context().permissions().requestPostNotifications(granted -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && granted) {
+              tdlib.notifications().onNotificationPermissionGranted();
+            }
+            syncContacts(null);
+          });
         }
-        if (needNotifications && !context().permissions().requestPostNotifications(granted -> {
-          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && granted) {
-            tdlib.notifications().onNotificationPermissionGranted();
-          }
-          syncContacts(null);
-        })) {
+        if (!requested) {
           syncContacts(null);
         }
       }

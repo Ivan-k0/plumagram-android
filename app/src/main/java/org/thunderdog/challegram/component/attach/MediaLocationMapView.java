@@ -139,6 +139,8 @@ public class MediaLocationMapView extends FrameLayoutFix implements View.OnClick
     };
     mapView.setLayoutParams(params);
     mapView.setMultiTouchControls(true);
+    // TGx101: OpenStreetMap requires the "© OpenStreetMap contributors" attribution on the map
+    mapView.getOverlays().add(new org.osmdroid.views.overlay.CopyrightOverlay(mapView.getContext()));
     mapView.setBuiltInZoomControls(false);
     mapView.setTileSource(TileSourceFactory.MAPNIK);
     addView(mapView);

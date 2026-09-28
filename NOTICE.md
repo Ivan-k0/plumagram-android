@@ -1,6 +1,6 @@
-# TGx101 — authorship and additional terms
+# PlumaGram (formerly TGx101) — authorship and additional terms
 
-TGx101 is a modification of [Telegram X](https://github.com/TGX-Android/Telegram-X)
+PlumaGram (formerly TGx101) is a modification of [Telegram X](https://github.com/TGX-Android/Telegram-X)
 (© Telegram FZ-LLC and contributors), distributed under the GNU General Public License v3.
 
 **TGx101 modifications © 2026 1vank0** — <https://github.com/Ivan-k0/plumagram-android>.
@@ -18,8 +18,14 @@ section 7 of the GPLv3:
    <https://github.com/Ivan-k0/plumagram-android>.
 2. **No misrepresentation (§7c).** Modified versions must be marked as modified and must not be
    presented as the original TGx101 or as made by 1vank0.
-3. **Name (§7e).** No rights are granted to use the name "TGx101" / "TGx1Ø1" or its icon for
+3. **Name (§7e).** No rights are granted to use the names "PlumaGram", "TGx101" / "TGx1Ø1" or their icons for
    other builds. Forks must use a different name and icon.
 
 Everything else in the GPLv3 applies unchanged: you may use, study, change and share the code,
 as long as you publish the full source of your version under the same license.
+
+## Code from other projects
+
+- OpenStreetMap maps (osmdroid) instead of Google Maps, and location without Google Play services:
+  from [Telegram X FOSS](https://github.com/AmanoTeam/Telegram-X-FOSS) by Amano Team (GPLv3).
+  The original commits keep their author. Map tiles © OpenStreetMap contributors.
