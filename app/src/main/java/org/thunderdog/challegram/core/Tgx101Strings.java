@@ -116,6 +116,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MoveUp, "Выше");
     RU.put(R.string.Tgx101MoveDown, "Ниже");
     RU.put(R.string.Tgx101MoveToBottom, "В самый низ");
+    RU.put(R.string.Tgx101ReadDateUnread, "Ещё не прочитано");
+    RU.put(R.string.Tgx101ReadDateRead, "Прочитано");
+    RU.put(R.string.Tgx101ReadDateHidden, "Время прочтения скрыто");
     RU.put(R.string.Tgx101DeleteMore, "Другие действия…");
     RU.put(R.string.Tgx101Channel, "Канал PlumaGram");
     RU.put(R.string.Tgx101BottomGap, "Отступ под полем ввода и меню");

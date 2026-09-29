@@ -5994,6 +5994,9 @@
   <string name="Tgx101MoveUp">Move up</string>
   <string name="Tgx101MoveDown">Move down</string>
   <string name="Tgx101MoveToBottom">Move to bottom</string>
+  <string name="Tgx101ReadDateUnread">Not read yet</string>
+  <string name="Tgx101ReadDateRead">Read</string>
+  <string name="Tgx101ReadDateHidden">Read time is hidden</string>
   <string name="Tgx101DeleteMore">More options…</string>
   <string name="Tgx101Channel">PlumaGram channel</string>
   <string name="PullToSearchHint">When the chat list is already at the top, pull down once more to open search. Space under the message field and menus: keeps them 16dp above the bottom edge of the screen, so they don\'t sit on the gesture bar. Only with gesture navigation: with navigation buttons there is no gap.</string>

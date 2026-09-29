@@ -131,7 +131,7 @@ public final class Tgx101MessageMenu {
   }
 
   public static PopupLayout show (MessagesController c, TGMessage message, ViewController.Options options, OptionDelegate delegate,
-                                  Runnable onExpandReactions, Runnable onDismissPrepare, Runnable onDismiss) {
+                                  boolean readDatePending, Runnable onExpandReactions, Runnable onDismissPrepare, Runnable onDismiss) {
     Context context = c.context();
     Host host = new Host();
     PopupLayout popup = new PopupLayout(context);
@@ -144,7 +144,7 @@ public final class Tgx101MessageMenu {
     int cardWidth = Math.min(Screen.dp(268f), Screen.currentWidth() - Screen.dp(24f));
 
     FrameLayout root = new FrameLayout(context);
-    root.setBackgroundColor(0x59000000);
+    root.setBackground(blurredBackground(c));
     root.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     root.setOnClickListener(v -> dismiss(host));
 
@@ -152,9 +152,17 @@ public final class Tgx101MessageMenu {
     column.setOrientation(LinearLayout.VERTICAL);
     column.setGravity(leftHand ? Gravity.LEFT : Gravity.RIGHT);
     int navigationInset = Settings.instance().useEdgeToEdge() ? c.context().getRootView().getSystemInsetsWithoutIme().bottom : 0;
+    int keyboardHeight = 0;
+    if (Settings.instance().useEdgeToEdge()) {
+      android.graphics.Rect all = c.context().getRootView().getSystemInsets();
+      android.graphics.Rect withoutIme = c.context().getRootView().getSystemInsetsWithoutIme();
+      if (all != null && withoutIme != null) {
+        keyboardHeight = Math.max(0, all.bottom - withoutIme.bottom);
+      }
+    }
     FrameLayout.LayoutParams columnParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
       Gravity.BOTTOM | (leftHand ? Gravity.LEFT : Gravity.RIGHT));
-    columnParams.setMargins(Screen.dp(12f), Screen.dp(12f), Screen.dp(12f), Screen.dp(68f) + navigationInset); // above the message input
+    columnParams.setMargins(Screen.dp(12f), Screen.dp(12f), Screen.dp(12f), (keyboardHeight > 0 ? Screen.dp(12f) + keyboardHeight : Screen.dp(68f) + navigationInset)); // above the message input or the keyboard
     column.setLayoutParams(columnParams);
     column.setOnClickListener(v -> { }); // taps between the pill and the card don't close the menu
     root.addView(column);
@@ -222,6 +230,8 @@ public final class Tgx101MessageMenu {
     host.readDateDivider = headerDivider;
     if (options.subtitle != null) {
       setHeader(host, options.subtitle);
+    } else if (readDatePending) {
+      setHeader(host, new ViewController.OptionItem(0, "…", ViewController.OptionColor.NORMAL, R.drawable.deproko_baseline_check_double_24));
     } else if (!TextUtils.isEmpty(options.info)) {
       header.setText(options.info);
     } else {
@@ -315,6 +325,51 @@ public final class Tgx101MessageMenu {
     }
   }
 
+  /** The read time can't be shown: replace the "…" placeholder with a short reason, keeping the height */
+  public static void setReadDateUnavailable (@Nullable PopupLayout popup, TdApi.MessageReadDate readDate) {
+    if (popup == null || popup.isDestroyed() || !(popup.getTag() instanceof Host)) {
+      return;
+    }
+    int text;
+    int icon = R.drawable.deproko_baseline_check_double_24;
+    switch (readDate.getConstructor()) {
+      case TdApi.MessageReadDateUnread.CONSTRUCTOR:
+        text = R.string.Tgx101ReadDateUnread;
+        icon = R.drawable.deproko_baseline_check_single_24;
+        break;
+      case TdApi.MessageReadDateTooOld.CONSTRUCTOR:
+        text = R.string.Tgx101ReadDateRead;
+        break;
+      default:
+        text = R.string.Tgx101ReadDateHidden;
+        break;
+    }
+    setHeader((Host) popup.getTag(), new ViewController.OptionItem(0, Lang.getString(text), ViewController.OptionColor.NORMAL, icon));
+  }
+
+  /**
+   * iOS-like frosted background at no running cost: the screen is drawn once into a tiny bitmap,
+   * which is then stretched with filtering and dimmed a little.
+   */
+  private static Drawable blurredBackground (MessagesController c) {
+    try {
+      View source = c.context().getWindow().getDecorView();
+      int width = source.getWidth(), height = source.getHeight();
+      if (width > 0 && height > 0) {
+        final float scale = 1f / 14f;
+        android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(Math.max(1, (int) (width * scale)), Math.max(1, (int) (height * scale)), android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
+        canvas.scale(scale, scale);
+        source.draw(canvas);
+        canvas.drawColor(0x40000000);
+        android.graphics.drawable.BitmapDrawable drawable = new android.graphics.drawable.BitmapDrawable(c.context().getResources(), bitmap);
+        drawable.setFilterBitmap(true);
+        return drawable;
+      }
+    } catch (Throwable ignored) { }
+    return new android.graphics.drawable.ColorDrawable(0x59000000);
+  }
+
   private static void setHeader (Host host, ViewController.OptionItem item) {
     TextView header = host.readDateView;
     header.setText(item.name);
@@ -363,9 +418,12 @@ public final class Tgx101MessageMenu {
     Views.setClickable(row);
     RippleSupport.setTransparentSelector(row);
     row.setOnClickListener(v -> {
-      if (delegate.onOptionItemPressed(v, v.getId())) {
-        dismiss(host);
-      }
+      // Close right away, then act: "Share" and "Pin" open their own windows, which the closing
+      // menu used to take down with it
+      if (host.dismissing) return;
+      host.dismissing = true;
+      host.popup.hideWindow(false);
+      UI.post(() -> delegate.onOptionItemPressed(v, v.getId()));
     });
     return row;
   }

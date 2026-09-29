@@ -4924,6 +4924,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
           TdApi.MessageReadDate readDate = msg.getReadDate();
 
           if (shown.getAndSet(true)) {
+            if (!expectAgain && readDate != null && readDate.getConstructor() != TdApi.MessageReadDateRead.CONSTRUCTOR) {
+              RunnableData<TdApi.MessageReadDate> act = inject.get();
+              if (act != null) {
+                act.runWithData(readDate); // TGx101: the compact menu shows why there is no read time
+              }
+            }
             if (!expectAgain && readDate != null && readDate.getConstructor() == TdApi.MessageReadDateRead.CONSTRUCTOR) {
               RunnableData<TdApi.MessageReadDate> act = inject.get();
               if (act != null) {
@@ -4961,11 +4967,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
           Options messageOptions = messageOptionsBuilder.build();
           if (!messageContext.disableMetadata && Settings.instance().useTgx101MessageMenu()) {
             // TGx101: compact menu in the lower corner (MagiX → Message menu)
-            PopupLayout popupLayout = showTgx101MessageMenu(messageOptions, messageContext.message, messageHandler);
+            PopupLayout popupLayout = showTgx101MessageMenu(messageOptions, messageContext.message, messageHandler, expectAgain && readDate == null);
             if (expectAgain && popupLayout != null) {
               inject.set((loadedReadDate) -> {
                 if (loadedReadDate.getConstructor() == TdApi.MessageReadDateRead.CONSTRUCTOR) {
                   Tgx101MessageMenu.setReadDate(popupLayout, readItem(tdlib, ((TdApi.MessageReadDateRead) loadedReadDate).readDate));
+                } else {
+                  Tgx101MessageMenu.setReadDateUnavailable(popupLayout, loadedReadDate);
                 }
               });
             }
@@ -5008,12 +5016,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private boolean isMessageOptionsVisible;
 
   // TGx101: compact message menu; "⌄" in its reactions opens the stock sheet with all reactions
-  private PopupLayout showTgx101MessageMenu (Options options, TGMessage message, OptionDelegate delegate) {
+  private PopupLayout showTgx101MessageMenu (Options options, TGMessage message, OptionDelegate delegate, boolean readDatePending) {
     if (isMessageOptionsVisible) {
       return null;
     }
     isMessageOptionsVisible = true;
-    PopupLayout popup = Tgx101MessageMenu.show(this, message, options, delegate,
+    PopupLayout popup = Tgx101MessageMenu.show(this, message, options, delegate, readDatePending,
       () -> UI.post(() -> {
         PopupLayout full = showMessageOptions(options, message, null, delegate);
         if (full != null && full.getBoundController() instanceof MessageOptionsPagerController) {
@@ -5025,9 +5033,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
         optimizeEmojiLayoutForOptionsWindow(false);
         isMessageOptionsVisible = false;
       });
-    prepareToShowMessageOptions();
-    hideCursorsForInputView();
-    optimizeEmojiLayoutForOptionsWindow(true);
+    // The keyboard stays open under the menu: no switch to the emoji panel and back
+    needShowKeyboardAfterHideMessageOptions = false;
+    needShowEmojiKeyboardAfterHideMessageOptions = false;
     return popup;
   }
 
