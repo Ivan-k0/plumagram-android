@@ -811,6 +811,10 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
           hideMoreWrap();
           break;
         }
+        case ANIMATION_TYPE_NONE: { // TGx101: views shown without animation used to never close
+          dismissWindow();
+          break;
+        }
       }
     }
   }

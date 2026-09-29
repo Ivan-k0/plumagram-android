@@ -124,6 +124,8 @@ public final class Tgx101MessageMenu {
 
   private static class Host {
     PopupLayout popup;
+    View content;
+    boolean dismissing;
     TextView readDateView;
     View readDateDivider;
   }
@@ -144,7 +146,7 @@ public final class Tgx101MessageMenu {
     FrameLayout root = new FrameLayout(context);
     root.setBackgroundColor(0x59000000);
     root.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-    root.setOnClickListener(v -> popup.hideWindow(true));
+    root.setOnClickListener(v -> dismiss(host));
 
     LinearLayout column = new LinearLayout(context);
     column.setOrientation(LinearLayout.VERTICAL);
@@ -156,6 +158,7 @@ public final class Tgx101MessageMenu {
     column.setLayoutParams(columnParams);
     column.setOnClickListener(v -> { }); // taps between the pill and the card don't close the menu
     root.addView(column);
+    host.content = column;
 
     // Reactions pill
     if (message.canBeReacted() && message.getMessageAvailableReactions() != null && message.getMessageAvailableReactions().length > 0) {
@@ -181,7 +184,7 @@ public final class Tgx101MessageMenu {
         expand.setScaleType(ImageView.ScaleType.CENTER);
         expand.setBackground(rounded(Theme.getColor(ColorId.background), Screen.dp(16f)));
         expand.setOnClickListener(v -> {
-          popup.hideWindow(true);
+          dismiss(host);
           onExpandReactions.run();
         });
         LinearLayout.LayoutParams expandParams = new LinearLayout.LayoutParams(Screen.dp(32f), Screen.dp(32f));
@@ -291,6 +294,20 @@ public final class Tgx101MessageMenu {
     return popup;
   }
 
+  /** Popups without their own hide animation are closed right away, after a short fade */
+  private static void dismiss (Host host) {
+    if (host.dismissing) {
+      return;
+    }
+    host.dismissing = true;
+    if (host.content != null) {
+      host.content.animate().cancel();
+      host.content.animate().alpha(0f).setDuration(90).withEndAction(() -> host.popup.hideWindow(false)).start();
+    } else {
+      host.popup.hideWindow(false);
+    }
+  }
+
   /** The read time arrived after the menu was shown */
   public static void setReadDate (@Nullable PopupLayout popup, ViewController.OptionItem item) {
     if (popup != null && !popup.isDestroyed() && popup.getTag() instanceof Host) {
@@ -347,7 +364,7 @@ public final class Tgx101MessageMenu {
     RippleSupport.setTransparentSelector(row);
     row.setOnClickListener(v -> {
       if (delegate.onOptionItemPressed(v, v.getId())) {
-        host.popup.hideWindow(true);
+        dismiss(host);
       }
     });
     return row;
@@ -405,6 +422,6 @@ public final class Tgx101MessageMenu {
         message.scheduleSetReactionAnimationFromBottomSheet(reaction, start);
       }
     }
-    host.popup.hideWindow(true);
+    dismiss(host);
   }
 }

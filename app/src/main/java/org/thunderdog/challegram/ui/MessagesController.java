@@ -5014,7 +5014,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     isMessageOptionsVisible = true;
     PopupLayout popup = Tgx101MessageMenu.show(this, message, options, delegate,
-      () -> UI.post(() -> showMessageOptions(options, message, null, delegate), 120),
+      () -> UI.post(() -> showMessageOptions(options, message, null, delegate), 220),
       this::onHideMessageOptions,
       () -> {
         optimizeEmojiLayoutForOptionsWindow(false);
