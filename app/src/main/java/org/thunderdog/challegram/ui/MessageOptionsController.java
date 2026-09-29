@@ -117,12 +117,38 @@ public class MessageOptionsController extends BottomSheetViewController.BottomSh
   }
 
 
+  // TGx101: shorter menu (MagiX redesign, variant 1)
+  private static final float OPTION_HEIGHT_DP = 48f;
+  private static final float QUICK_BAR_HEIGHT_DP = 72f;
+
   private static class OptionHolder extends RecyclerView.ViewHolder {
     public OptionHolder (@NonNull View itemView) {
       super(itemView);
     }
 
     public static OptionHolder create (Context context, ViewController<?> parent, int viewType, View.OnClickListener onClickListener) {
+      if (viewType == OptionsAdapter.TYPE_QUICK_BAR) {
+        // TGx101: the most used actions as one row of icon buttons
+        LinearLayout bar = new LinearLayout(context);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setPadding(Screen.dp(6f), Screen.dp(4f), Screen.dp(6f), Screen.dp(4f));
+        bar.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(QUICK_BAR_HEIGHT_DP)));
+        for (int i = 0; i < OptionsAdapter.QUICK_BAR_MAX; i++) {
+          TextView button = new TextView(context);
+          button.setTypeface(Fonts.getRobotoRegular());
+          button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12f);
+          button.setGravity(Gravity.CENTER);
+          button.setSingleLine(true);
+          button.setEllipsize(TextUtils.TruncateAt.END);
+          button.setCompoundDrawablePadding(Screen.dp(6f));
+          button.setPadding(Screen.dp(2f), Screen.dp(8f), Screen.dp(2f), Screen.dp(6f));
+          button.setOnClickListener(onClickListener);
+          Views.setClickable(button);
+          RippleSupport.setTransparentSelector(button);
+          bar.addView(button, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+        }
+        return new OptionHolder(bar);
+      }
       if (viewType == OptionsAdapter.TYPE_OPTION) {
         EmojiTextView text = new EmojiTextView(context);
         text.setScrollDisabled(true);
@@ -134,7 +160,7 @@ public class MessageOptionsController extends BottomSheetViewController.BottomSh
         text.setGravity(Lang.rtl() ? Gravity.RIGHT | Gravity.CENTER_VERTICAL : Gravity.LEFT | Gravity.CENTER_VERTICAL);
         text.setPadding(Screen.dp(17f), Screen.dp(1f), Screen.dp(17f), 0);
         text.setCompoundDrawablePadding(Screen.dp(18f));
-        text.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(54f)));
+        text.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(OPTION_HEIGHT_DP))); // TGx101: 54 → 48 dp
         Views.setClickable(text);
         RippleSupport.setTransparentSelector(text);
         return new OptionHolder(text);
@@ -201,6 +227,57 @@ public class MessageOptionsController extends BottomSheetViewController.BottomSh
     public static final int TYPE_INFO = 1;
     public static final int TYPE_EMOJI_PACK_INFO = 2;
     public static final int TYPE_SUBTITLE = 3;
+    public static final int TYPE_QUICK_BAR = 4;
+    public static final int QUICK_BAR_MAX = 4;
+
+    // TGx101: actions shown in the icon row, and the rest shown as the list
+    private OptionItem[] barItems = new OptionItem[0];
+    private OptionItem[] listItems;
+
+    private void splitItems () {
+      OptionItem[] all = options.items;
+      int[] candidates = {R.id.btn_messageReply, R.id.btn_messageCopy, R.id.btn_messageEdit, R.id.btn_messageShare};
+      OptionItem delete = null;
+      java.util.ArrayList<OptionItem> bar = new java.util.ArrayList<>();
+      for (OptionItem item : all) {
+        if (item.id == R.id.btn_messageDelete) {
+          delete = item;
+        }
+      }
+      int limit = delete != null ? QUICK_BAR_MAX - 1 : QUICK_BAR_MAX;
+      for (int candidate : candidates) {
+        if (bar.size() >= limit) break;
+        for (OptionItem item : all) {
+          if (item.id == candidate) {
+            bar.add(item);
+            break;
+          }
+        }
+      }
+      if (delete != null) {
+        bar.add(delete);
+      }
+      if (bar.size() < 3) {
+        barItems = new OptionItem[0];
+        listItems = all;
+        return;
+      }
+      barItems = bar.toArray(new OptionItem[0]);
+      java.util.ArrayList<OptionItem> rest = new java.util.ArrayList<>();
+      for (OptionItem item : all) {
+        if (!bar.contains(item)) {
+          rest.add(item);
+        }
+      }
+      listItems = rest.toArray(new OptionItem[0]);
+    }
+
+    private int quickBarPosition () {
+      if (barItems.length == 0) {
+        return -1;
+      }
+      return Math.max(textInfoPosition, Math.max(emojiInfoPosition, subtitlePosition)) + 1;
+    }
 
     OptionsAdapter (Context context, MessageOptionsController parent, Options options, long emojiPackFirstEmoji, long[] emojiPackIds, View.OnClickListener onClickListener, @Nullable ThemeListenerList themeProvider) {
       this.parent = parent;
@@ -215,6 +292,7 @@ public class MessageOptionsController extends BottomSheetViewController.BottomSh
       this.subtitlePosition = options.subtitle != null ? 0 : -1;
       this.emojiInfoPosition = emojiPackIds.length > 0 ? (subtitlePosition + 1) : -1;
       this.textInfoPosition = StringUtils.isEmpty(options.info) ? -1 : (Math.max(emojiInfoPosition, subtitlePosition) + 1);
+      splitItems();
     }
 
     @NonNull
@@ -227,6 +305,34 @@ public class MessageOptionsController extends BottomSheetViewController.BottomSh
     public void onBindViewHolder (@NonNull OptionHolder holder, int position) {
       int type = getItemViewType(position);
       switch (type) {
+        case TYPE_QUICK_BAR: {
+          ViewGroup bar = (ViewGroup) holder.itemView;
+          for (int i = 0; i < bar.getChildCount(); i++) {
+            TextView button = (TextView) bar.getChildAt(i);
+            if (i >= barItems.length) {
+              button.setVisibility(View.GONE);
+              continue;
+            }
+            OptionItem item = barItems[i];
+            button.setVisibility(View.VISIBLE);
+            button.setId(item.id);
+            final int textColorId = OptionsLayout.getOptionColorId(item.textColor);
+            button.setTextColor(Theme.getColor(textColorId));
+            if (themeProvider != null)
+              themeProvider.addThemeColorListener(button, textColorId);
+            Drawable drawable = item.icon != 0 ? Drawables.get(context.getResources(), item.icon) : null;
+            if (drawable != null) {
+              final int drawableColorId = item.iconColor == OptionColor.NORMAL ? (item.textColor == OptionColor.NORMAL ? ColorId.text : textColorId) : item.iconColor;
+              drawable.setColorFilter(Paints.getColorFilter(Theme.getColor(drawableColorId)));
+              if (themeProvider != null) {
+                themeProvider.addThemeFilterListener(drawable, drawableColorId);
+              }
+            }
+            button.setCompoundDrawablesWithIntrinsicBounds(null, drawable, null, null);
+            button.setText(item.name);
+          }
+          break;
+        }
         case TYPE_OPTION: {
           if (subtitlePosition >= 0) {
             position--;
@@ -237,7 +343,10 @@ public class MessageOptionsController extends BottomSheetViewController.BottomSh
           if (textInfoPosition >= 0) {
             position--;
           }
-          OptionItem item = options.items[position];
+          if (quickBarPosition() >= 0) {
+            position--;
+          }
+          OptionItem item = listItems[position];
           TextView textView = ((TextView) holder.itemView);
           textView.setId(item.id);
           final int textColorId = OptionsLayout.getOptionColorId(item.textColor);
@@ -299,6 +408,9 @@ public class MessageOptionsController extends BottomSheetViewController.BottomSh
 
     @Override
     public int getItemViewType (int position) {
+      if (position == quickBarPosition()) {
+        return TYPE_QUICK_BAR;
+      }
       if (position == textInfoPosition) {
         return TYPE_INFO;
       }
@@ -313,7 +425,7 @@ public class MessageOptionsController extends BottomSheetViewController.BottomSh
 
     @Override
     public int getItemCount () {
-      int itemCount = options.items.length;
+      int itemCount = listItems.length + (barItems.length > 0 ? 1 : 0);
       if (textInfoPosition >= 0) {
         itemCount++;
       }
@@ -334,7 +446,7 @@ public class MessageOptionsController extends BottomSheetViewController.BottomSh
 
   @Override
   public int getItemsHeight (RecyclerView recyclerView) {
-    int totalHeight = (options.items.length + 2) * Screen.dp(54);
+    int totalHeight = 2 * Screen.dp(54) + adapter.listItems.length * Screen.dp(OPTION_HEIGHT_DP) + (adapter.barItems.length > 0 ? Screen.dp(QUICK_BAR_HEIGHT_DP) : 0); // TGx101
     if (adapter.textInfoPosition >= 0) {
       View view = recyclerView.getLayoutManager().findViewByPosition(adapter.textInfoPosition);
       int hintHeight =
