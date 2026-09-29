@@ -245,6 +245,7 @@ public class TdlibPhoneBookSync {
     builder.withValue(ContactsContract.RawContacts.ACCOUNT_TYPE, account.type);
     builder.withValue(ContactsContract.RawContacts.SYNC1, TextUtils.isEmpty(user.phoneNumber) ? "" : user.phoneNumber);
     builder.withValue(ContactsContract.RawContacts.SYNC2, String.valueOf(user.id));
+    builder.withValue(ContactsContract.RawContacts.SYNC3, fingerprint(user));
     ops.add(builder.build());
 
     builder = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI);
@@ -307,6 +308,11 @@ public class TdlibPhoneBookSync {
    * Makes the set of raw contacts under our account exactly match {@code users}: upserts everyone
    * in the list, then deletes any raw contact (by SYNC2 user id) that isn't in it.
    */
+  /** Name + phone: a contact is rewritten only when this changes */
+  private static String fingerprint (TdApi.User user) {
+    return (user.firstName != null ? user.firstName : "") + "\u0001" + (user.lastName != null ? user.lastName : "") + "\u0001" + (user.phoneNumber != null ? user.phoneNumber : "");
+  }
+
   private void writeExactSet (Context context, List<TdApi.User> users) {
     try {
       Set<Long> incomingIds = new HashSet<>();
@@ -316,9 +322,10 @@ public class TdlibPhoneBookSync {
 
       // Existing raw-contact ids under our account, to compute deletions.
       Set<Long> existingIds = new HashSet<>();
+      java.util.Map<Long, String> existingFingerprints = new java.util.HashMap<>();
       Cursor cursor = context.getContentResolver().query(
         ContactsContract.RawContacts.CONTENT_URI,
-        new String[] {ContactsContract.RawContacts.SYNC2},
+        new String[] {ContactsContract.RawContacts.SYNC2, ContactsContract.RawContacts.SYNC3},
         ContactsContract.RawContacts.ACCOUNT_TYPE + " = ? AND " + ContactsContract.RawContacts.ACCOUNT_NAME + " = ?",
         new String[] {accountType(context), ACCOUNT_NAME},
         null
@@ -326,11 +333,14 @@ public class TdlibPhoneBookSync {
       if (cursor != null) {
         try {
           int syncIndex = cursor.getColumnIndex(ContactsContract.RawContacts.SYNC2);
+          int fingerprintIndex = cursor.getColumnIndex(ContactsContract.RawContacts.SYNC3);
           while (cursor.moveToNext()) {
             String raw = syncIndex >= 0 ? cursor.getString(syncIndex) : null;
             if (raw != null) {
               try {
-                existingIds.add(Long.parseLong(raw));
+                long id = Long.parseLong(raw);
+                existingIds.add(id);
+                existingFingerprints.put(id, fingerprintIndex >= 0 ? cursor.getString(fingerprintIndex) : null);
               } catch (NumberFormatException ignored) { }
             }
           }
@@ -341,6 +351,10 @@ public class TdlibPhoneBookSync {
 
       ArrayList<ContentProviderOperation> ops = new ArrayList<>();
       for (TdApi.User user : users) {
+        // Unchanged contacts are left alone, so a launch doesn't rewrite the whole phone book
+        if (existingIds.contains(user.id) && fingerprint(user).equals(existingFingerprints.get(user.id))) {
+          continue;
+        }
         addDeleteOp(ops, context, user.id);
         addInsertOps(ops, context, user);
         if (ops.size() >= CHUNK_SIZE * 4) { // ~4 ops per contact

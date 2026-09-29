@@ -691,17 +691,9 @@ public class TdlibContactManager implements CleanupStartupDelegate {
 
       Runnable act = () -> UI.execute(() -> {
         if (task.isPending()) {
-          startForeground(success -> {
-            if (task.isPending()) {
-              if (success) {
-                foregroundShowing = true;
-                Background.instance().post(task);
-              } else {
-                Log.w(Log.TAG_CONTACT, "Unable to start dataSync service to import contacts");
-                setState(STATE_NOT_STARTED);
-              }
-            }
-          });
+          // TGx101: the import is short and runs in the open app, so no foreground service and no
+          // "Uploading contacts…" notification; if the app is closed midway, the next launch finishes it
+          Background.instance().post(task);
         }
       });
 
