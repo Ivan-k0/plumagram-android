@@ -663,7 +663,10 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
     styleNotification(tdlib, builder, chatId, chat, allowPreview);
 
     boolean hasIcon = false;
-    final Bitmap bitmap = TdlibNotificationUtils.buildLargeIcon(tdlib, chat, !isRebuild);
+    // TGx101: in a private chat the conversation style already shows the sender's photo on the left;
+    // the large icon repeated it on the right
+    boolean duplicatesSenderPhoto = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && ChatId.isUserChat(chatId);
+    final Bitmap bitmap = duplicatesSenderPhoto ? null : TdlibNotificationUtils.buildLargeIcon(tdlib, chat, !isRebuild);
     if (U.isValidBitmap(bitmap)) {
       builder.setLargeIcon(bitmap);
       hasIcon = true;
