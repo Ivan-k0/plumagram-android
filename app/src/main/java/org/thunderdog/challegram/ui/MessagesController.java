@@ -4010,7 +4010,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         long userId = tdlib.chatUserId(getChatId());
         boolean canSendOnceOnline = !isSelfChat() && tdlib.cache().userLastSeenAvailable(userId);
         String tutorialKey = tutorialFlag + (isSelfChat() ? "_self" : canSendOnceOnline ? "_online" : isChannel() ? "_channel" : "");
-        if (shownTutorials == null || !shownTutorials.contains(tutorialKey)) {
+        if ((shownTutorials == null || !shownTutorials.contains(tutorialKey)) && org.thunderdog.challegram.Tgx101Hints.take(org.thunderdog.challegram.Tgx101Hints.HOLD_TO_SCHEDULE)) { // TGx101: twice at most
           if (shownTutorials == null)
             shownTutorials = new HashSet<>();
           shownTutorials.add(tutorialKey);

@@ -28,6 +28,7 @@ public final class Tgx101Hints {
   public static final String DRAG_CHATS = "drag_chats";
   public static final String CALL_EMOJI = "call_emoji";
   public static final String HOLD_MEDIA = "hold_media";
+  public static final String HOLD_TO_SCHEDULE = "hold_to_schedule";
 
   private static final int MAX_SHOWS = 2;
 
