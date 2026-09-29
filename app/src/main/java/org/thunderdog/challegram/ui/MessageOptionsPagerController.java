@@ -783,6 +783,10 @@ public class MessageOptionsPagerController extends BottomSheetViewController<Opt
   }
 
   private void hideReactionPicker () {
+    if (tgx101PickerOnly) {
+      hidePopupWindow(true);
+      return;
+    }
     doNotUpdateScrollReactionPicker = true;
     reactionsPickerRecyclerView.stopScroll();
     reactionsPickerScrollListener.reset(true);
@@ -796,12 +800,23 @@ public class MessageOptionsPagerController extends BottomSheetViewController<Opt
     }
   }
 
+  // TGx101: opened from the "⌄" of the compact menu — straight to the full reactions picker,
+  // and "back" from the picker closes the sheet instead of showing the stock menu
+  private boolean tgx101PickerOnly;
+
+  public void setTgx101PickerOnly (boolean pickerOnly) {
+    this.tgx101PickerOnly = pickerOnly;
+  }
+
   @Override
   protected void onCustomShowComplete () {
     super.onCustomShowComplete();
     if (reactionsPickerRecyclerView != null) {
       reactionsPickerRecyclerView.invalidateItemDecorations();
       reactionsPickerRecyclerView.scrollToPosition(0);
+    }
+    if (tgx101PickerOnly && state.needShowReactionsPopupPicker && reactionsPickerController != null) {
+      showReactionPicker();
     }
   }
 

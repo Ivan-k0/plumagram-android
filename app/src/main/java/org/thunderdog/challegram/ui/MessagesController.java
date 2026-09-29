@@ -5014,7 +5014,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     isMessageOptionsVisible = true;
     PopupLayout popup = Tgx101MessageMenu.show(this, message, options, delegate,
-      () -> UI.post(() -> showMessageOptions(options, message, null, delegate), 220),
+      () -> UI.post(() -> {
+        PopupLayout full = showMessageOptions(options, message, null, delegate);
+        if (full != null && full.getBoundController() instanceof MessageOptionsPagerController) {
+          ((MessageOptionsPagerController) full.getBoundController()).setTgx101PickerOnly(true);
+        }
+      }, 220),
       this::onHideMessageOptions,
       () -> {
         optimizeEmojiLayoutForOptionsWindow(false);
