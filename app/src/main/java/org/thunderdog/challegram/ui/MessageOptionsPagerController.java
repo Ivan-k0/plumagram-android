@@ -817,7 +817,70 @@ public class MessageOptionsPagerController extends BottomSheetViewController<Opt
     }
     if (tgx101PickerOnly && state.needShowReactionsPopupPicker && reactionsPickerController != null) {
       showReactionPicker();
+      if (reactionsPickerRecyclerView != null) {
+        reactionsPickerRecyclerView.addOnItemTouchListener(new Tgx101SwipeDownToClose());
+      }
     }
+  }
+
+  // TGx101: swipe down from the top of the emoji grid closes it. Deliberately stiff (about half as
+  // sensitive as the video viewer), so scrolling the emoji never closes it by accident.
+  private class Tgx101SwipeDownToClose implements RecyclerView.OnItemTouchListener {
+    private float startY, startX;
+    private boolean tracking;
+    private android.view.VelocityTracker velocity;
+
+    @Override
+    public boolean onInterceptTouchEvent (@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+          tracking = !rv.canScrollVertically(-1);
+          startX = e.getRawX();
+          startY = e.getRawY();
+          if (velocity != null) velocity.recycle();
+          velocity = tracking ? android.view.VelocityTracker.obtain() : null;
+          if (velocity != null) velocity.addMovement(e);
+          break;
+        case MotionEvent.ACTION_MOVE: {
+          if (!tracking) break;
+          if (velocity != null) velocity.addMovement(e);
+          float dy = e.getRawY() - startY;
+          float dx = Math.abs(e.getRawX() - startX);
+          if (dy < -Screen.dp(8f) || dx > Math.abs(dy) * 1.5f && dx > Screen.dp(16f)) {
+            tracking = false; // scrolling up or sideways: not a close gesture
+          } else if (dy > Screen.dp(180f)) {
+            tracking = false;
+            hidePopupWindow(true);
+            return true;
+          }
+          break;
+        }
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL: {
+          if (tracking && velocity != null && e.getActionMasked() == MotionEvent.ACTION_UP) {
+            velocity.addMovement(e);
+            velocity.computeCurrentVelocity(1000);
+            float dy = e.getRawY() - startY;
+            if (velocity.getYVelocity() > Screen.dp(2000f) && dy > Screen.dp(72f)) {
+              hidePopupWindow(true);
+            }
+          }
+          tracking = false;
+          if (velocity != null) {
+            velocity.recycle();
+            velocity = null;
+          }
+          break;
+        }
+      }
+      return false;
+    }
+
+    @Override
+    public void onTouchEvent (@NonNull RecyclerView rv, @NonNull MotionEvent e) { }
+
+    @Override
+    public void onRequestDisallowInterceptTouchEvent (boolean disallowIntercept) { }
   }
 
   private void checkReactionPickerPosition () {

@@ -351,17 +351,51 @@ public final class Tgx101MessageMenu {
    * iOS-like frosted background at no running cost: the screen is drawn once into a tiny bitmap,
    * which is then stretched with filtering and dimmed a little.
    */
+  /** One horizontal and one vertical box-blur pass over a small bitmap (a couple of ms, once) */
+  private static void boxBlur (android.graphics.Bitmap bitmap, int radius) {
+    int w = bitmap.getWidth(), h = bitmap.getHeight();
+    int[] src = new int[w * h];
+    int[] dst = new int[w * h];
+    bitmap.getPixels(src, 0, w, 0, 0, w, h);
+    for (int pass = 0; pass < 2; pass++) {
+      boolean horizontal = pass == 0;
+      int lines = horizontal ? h : w, length = horizontal ? w : h;
+      for (int line = 0; line < lines; line++) {
+        int r = 0, g = 0, b = 0, count = 0;
+        for (int i = -radius; i <= radius; i++) {
+          int k = Math.max(0, Math.min(length - 1, i));
+          int p = src[horizontal ? line * w + k : k * w + line];
+          r += (p >> 16) & 0xff; g += (p >> 8) & 0xff; b += p & 0xff; count++;
+        }
+        for (int i = 0; i < length; i++) {
+          dst[horizontal ? line * w + i : i * w + line] = 0xff000000 | ((r / count) << 16) | ((g / count) << 8) | (b / count);
+          int outK = Math.max(0, Math.min(length - 1, i - radius));
+          int inK = Math.max(0, Math.min(length - 1, i + radius + 1));
+          int po = src[horizontal ? line * w + outK : outK * w + line];
+          int pi = src[horizontal ? line * w + inK : inK * w + line];
+          r += ((pi >> 16) & 0xff) - ((po >> 16) & 0xff);
+          g += ((pi >> 8) & 0xff) - ((po >> 8) & 0xff);
+          b += (pi & 0xff) - (po & 0xff);
+        }
+      }
+      int[] t = src; src = dst; dst = t;
+    }
+    bitmap.setPixels(src, 0, w, 0, 0, w, h);
+  }
+
   private static Drawable blurredBackground (MessagesController c) {
     try {
       View source = c.context().getWindow().getDecorView();
       int width = source.getWidth(), height = source.getHeight();
       if (width > 0 && height > 0) {
-        final float scale = 1f / 14f;
+        final float scale = 1f / 8f;
         android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(Math.max(1, (int) (width * scale)), Math.max(1, (int) (height * scale)), android.graphics.Bitmap.Config.ARGB_8888);
         android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
         canvas.scale(scale, scale);
         source.draw(canvas);
-        canvas.drawColor(0x40000000);
+        boxBlur(bitmap, 3);
+        boxBlur(bitmap, 3);
+        new android.graphics.Canvas(bitmap).drawColor(0x40000000);
         android.graphics.drawable.BitmapDrawable drawable = new android.graphics.drawable.BitmapDrawable(c.context().getResources(), bitmap);
         drawable.setFilterBitmap(true);
         return drawable;
