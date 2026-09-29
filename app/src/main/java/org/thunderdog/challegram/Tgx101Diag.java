@@ -84,6 +84,24 @@ public final class Tgx101Diag {
     }
   }
 
+  /** Current network, for the call log: "wifi", "mobile LTE", "none" */
+  @SuppressWarnings("deprecation")
+  public static String network () {
+    if (!BuildConfig.TGX101_DIAG) {
+      return "";
+    }
+    try {
+      android.net.ConnectivityManager cm = (android.net.ConnectivityManager) org.thunderdog.challegram.tool.UI.getAppContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+      android.net.NetworkInfo info = cm != null ? cm.getActiveNetworkInfo() : null;
+      if (info == null || !info.isConnected()) {
+        return "none";
+      }
+      return info.getTypeName().toLowerCase(Locale.US) + (info.getSubtypeName() != null && !info.getSubtypeName().isEmpty() ? " " + info.getSubtypeName() : "");
+    } catch (Throwable t) {
+      return "?";
+    }
+  }
+
   private static String[] abis () {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       return Build.SUPPORTED_ABIS;

@@ -714,6 +714,12 @@ public class Log {
     if (!loaded) {
       load();
     }
+    // TGx101: diagnostics builds also keep the call log in the diagnostics file
+    if (BuildConfig.TGX101_DIAG && tag == TAG_VOIP) {
+      try {
+        Tgx101Diag.mark("[call] " + (args.length != 0 ? String.format(Locale.US, fmt, args) : fmt) + (t != null ? " " + t : ""));
+      } catch (Throwable ignored) { }
+    }
     boolean force = Config.USE_CRASHLYTICS && level <= LEVEL_ERROR;
     boolean hasPermission = checkPermission(tag, level);
     if (hasPermission || force) {

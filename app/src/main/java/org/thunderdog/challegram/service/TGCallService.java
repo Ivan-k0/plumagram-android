@@ -1400,6 +1400,7 @@ public class TGCallService extends Service implements
 
       @Override
       public void onConnectionStateChanged (VoIPInstance context, @CallState int newState) {
+        org.thunderdog.challegram.Tgx101Diag.mark("[call] connection state " + newState + " (" + org.thunderdog.challegram.Tgx101Diag.network() + ")");
         if (newState == CallState.ESTABLISHED) {
           if (!vibratedOnConnect) { // TGx101: a short vibration when the call connects, as in the official app
             vibratedOnConnect = true;
@@ -1414,6 +1415,7 @@ public class TGCallService extends Service implements
 
       @Override
       public void onSignalBarCountChanged (int newCount) {
+        org.thunderdog.challegram.Tgx101Diag.mark("[call] signal bars " + newCount);
         tdlib.dispatchCallBarsCount(call.id, newCount);
       }
 
