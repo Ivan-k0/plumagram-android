@@ -133,13 +133,41 @@ public class TdlibPhoneBookSync {
     if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
       return;
     }
-    tdlib.searchContacts("", Integer.MAX_VALUE, result -> {
+    tdlib.client().send(new TdApi.GetContacts(), result -> {
       if (result.getConstructor() == TdApi.Users.CONSTRUCTOR) {
         long[] userIds = ((TdApi.Users) result).userIds;
-        ArrayList<TdApi.User> users = tdlib.cache().users(userIds);
-        Background.instance().post(() -> writeExactSet(context, users));
+        // Users missing from the in-memory cache (e.g. right after start or a fresh install)
+        // are requested one by one; without them only a few dozen contacts got written.
+        ArrayList<TdApi.User> users = new ArrayList<>(userIds.length);
+        ArrayList<Long> missing = new ArrayList<>();
+        for (long userId : userIds) {
+          TdApi.User user = tdlib.cache().user(userId);
+          if (user != null) {
+            users.add(user);
+          } else {
+            missing.add(userId);
+          }
+        }
+        if (missing.isEmpty()) {
+          Background.instance().post(() -> writeExactSet(context, users));
+          return;
+        }
+        final int[] pending = {missing.size()};
+        for (long userId : missing) {
+          tdlib.client().send(new TdApi.GetUser(userId), userResult -> {
+            synchronized (users) {
+              if (userResult.getConstructor() == TdApi.User.CONSTRUCTOR) {
+                users.add((TdApi.User) userResult);
+              }
+              if (--pending[0] == 0) {
+                ArrayList<TdApi.User> all = new ArrayList<>(users);
+                Background.instance().post(() -> writeExactSet(context, all));
+              }
+            }
+          });
+        }
       } else {
-        Log.e(Log.TAG_CONTACT, "searchContacts failed for phonebook full resync: %s", result);
+        Log.e(Log.TAG_CONTACT, "getContacts failed for phonebook full resync: %s", result);
       }
     });
   }

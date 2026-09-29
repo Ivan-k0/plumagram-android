@@ -1334,9 +1334,16 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     }
   }
 
+  private static boolean tgx101PhoneBookSynced;
+
   private void showAnnoyingAlertsForCompliance (boolean fromAppResume) {
     if (Config.ENABLE_BASELINE_PROFILE_HOOKS) {
       addStartupMarker();
+    }
+    // TGx101: bring the phone book copy of Telegram contacts up to date once per launch
+    if (!tgx101PhoneBookSynced) {
+      tgx101PhoneBookSynced = true;
+      org.thunderdog.challegram.telegram.TdlibPhoneBookSync.instance().fullResync(context(), tdlib);
     }
     if (checkSyncAlert()) {
       return;
