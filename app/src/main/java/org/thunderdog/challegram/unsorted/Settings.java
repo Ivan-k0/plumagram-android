@@ -3112,6 +3112,52 @@ public class Settings {
   }
 
   // TGx101: size of big emoji (emoji-only messages), in percent of the stock size.
+  // TGx101: chat list text size (percent of the stock size) and text weight
+  private static final String KEY_TGX101_CHAT_LIST_TEXT_SIZE = "tgx101_chat_list_text_size";
+  private static final String KEY_TGX101_TEXT_WEIGHT = "tgx101_text_weight";
+  public static final int TEXT_WEIGHT_NORMAL = 0, TEXT_WEIGHT_SLIGHTLY_BOLDER = 1, TEXT_WEIGHT_SEMIBOLD = 2;
+  private float _chatListTextScale = -1f;
+  private int _textWeight = -1;
+
+  public int getChatListTextSize () {
+    int size = pmc.getInt(KEY_TGX101_CHAT_LIST_TEXT_SIZE, 100);
+    return size >= 100 && size <= 130 ? size : 100;
+  }
+
+  public float getChatListTextScale () {
+    if (_chatListTextScale < 0f) {
+      _chatListTextScale = getChatListTextSize() / 100f;
+    }
+    return _chatListTextScale;
+  }
+
+  public void setChatListTextSize (int size) {
+    if (size != getChatListTextSize()) {
+      pmc.putInt(KEY_TGX101_CHAT_LIST_TEXT_SIZE, size);
+      _chatListTextScale = size / 100f;
+      if (chatListModeListeners != null) {
+        int mode = getChatListMode();
+        for (ChatListModeChangeListener listener : chatListModeListeners) {
+          listener.onChatListModeChanged(mode);
+        }
+      }
+    }
+  }
+
+  public int getTextWeight () {
+    if (_textWeight < 0) {
+      int weight = pmc.getInt(KEY_TGX101_TEXT_WEIGHT, TEXT_WEIGHT_NORMAL);
+      _textWeight = weight >= TEXT_WEIGHT_NORMAL && weight <= TEXT_WEIGHT_SEMIBOLD ? weight : TEXT_WEIGHT_NORMAL;
+    }
+    return _textWeight;
+  }
+
+  /** Applies after the app restarts: fonts are loaded once. */
+  public void setTextWeight (int weight) {
+    pmc.putInt(KEY_TGX101_TEXT_WEIGHT, weight);
+    _textWeight = weight;
+  }
+
   // 0 means big emoji are off; it's kept in sync with the stock "Big Emoji" toggle.
   public static final int BIG_EMOJI_SIZE_OFF = 0;
   public static final int BIG_EMOJI_SIZE_DEFAULT = 100;

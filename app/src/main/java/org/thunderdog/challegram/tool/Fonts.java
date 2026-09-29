@@ -102,7 +102,59 @@ public class Fonts {
   private static final boolean LOAD_MONO = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
   public static final boolean FORCE_BUILTIN_MONO = LOAD_MONO && Device.IS_SAMSUNG;
 
+  // TGx101: text weight (MagiX → Text). Android 12+ ships a variable Roboto, so in-between weights
+  // are possible; older systems fall back to the built-in Medium/Bold.
+  @Nullable
+  private static Typeface loadVariableRoboto (int weight) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+      return null;
+    }
+    try {
+      java.io.File file = new java.io.File("/system/fonts/Roboto-Regular.ttf");
+      if (!file.exists()) {
+        return null;
+      }
+      return new Typeface.Builder(file).setFontVariationSettings("'wght' " + weight).build();
+    } catch (Throwable t) {
+      Log.i("TGx101: variable Roboto unavailable", t);
+      return null;
+    }
+  }
+
+  @Nullable
+  private static Typeface weightedRegular () {
+    int weight = Settings.instance().getTextWeight();
+    if (weight == Settings.TEXT_WEIGHT_NORMAL) {
+      return null;
+    }
+    Typeface typeface = loadVariableRoboto(weight == Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER ? 450 : 500);
+    if (typeface == null && weight == Settings.TEXT_WEIGHT_SEMIBOLD) {
+      typeface = loadFont("fonts/Roboto-Medium.ttf", () -> Typeface.DEFAULT_BOLD); // the stock Medium, not the heavier title font
+    }
+    return typeface;
+  }
+
+  @Nullable
+  private static Typeface weightedMedium () {
+    int weight = Settings.instance().getTextWeight();
+    if (weight == Settings.TEXT_WEIGHT_NORMAL) {
+      return null;
+    }
+    // Titles stay heavier than the text they sit above
+    Typeface typeface = loadVariableRoboto(weight == Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER ? 560 : 620);
+    if (typeface == null && weight == Settings.TEXT_WEIGHT_SEMIBOLD) {
+      typeface = loadFont("fonts/Roboto-Bold.ttf", () -> Typeface.DEFAULT_BOLD);
+    }
+    return typeface;
+  }
+
   public static Typeface getRobotoRegular () {
+    if (robotoRegular == null) {
+      Typeface weighted = weightedRegular();
+      if (weighted != null) {
+        return robotoRegular = weighted;
+      }
+    }
     return robotoRegular != null ? robotoRegular : (robotoRegular = loadFont("fonts/Roboto-Regular.ttf", () ->
       LOAD_SANS ? loadSystemFont("sans-serif", Typeface.NORMAL, Typeface.DEFAULT) : Typeface.DEFAULT
     ));
@@ -119,6 +171,12 @@ public class Fonts {
   }
 
   public static Typeface getRobotoMedium () {
+    if (robotoMedium == null) {
+      Typeface weighted = weightedMedium();
+      if (weighted != null) {
+        return robotoMedium = weighted;
+      }
+    }
     return robotoMedium != null ? robotoMedium : (robotoMedium = loadFont("fonts/Roboto-Medium.ttf", () -> {
       if (LOAD_SANS) {
         Typeface typeface = loadSystemFont("sans-serif-light", Typeface.BOLD, null);

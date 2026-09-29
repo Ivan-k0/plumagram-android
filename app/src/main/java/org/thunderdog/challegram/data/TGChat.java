@@ -298,10 +298,14 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
     return listMode;
   }
 
+  private float listTextScale = Settings.instance().getChatListTextScale();
+
   public void checkChatListMode () {
     int newMode = Settings.instance().getChatListMode();
-    if (listMode != newMode) {
+    float newScale = Settings.instance().getChatListTextScale(); // TGx101: MagiX text size
+    if (listMode != newMode || listTextScale != newScale) {
       listMode = newMode;
+      listTextScale = newScale;
       currentWidth = 0;
       if (avatarPlaceholder != null) {
         setAvatar();
@@ -1200,11 +1204,11 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   private int textIconsPadding;
 
   private static TextStyleProvider getTextStyleProvider (int chatListMode) {
-    return Paints.robotoStyleProvider(chatListMode == Settings.CHAT_MODE_3LINE ? 15 : 16);
+    return Paints.robotoStyleProvider((chatListMode == Settings.CHAT_MODE_3LINE ? 15 : 16) * org.thunderdog.challegram.component.dialogs.ChatView.textScale()); // TGx101: MagiX text size
   }
 
   private static TextStyleProvider getTitleStyleProvider (int chatListMode) {
-    return Paints.robotoStyleProvider(chatListMode == Settings.CHAT_MODE_3LINE ? 16 : 17);
+    return Paints.robotoStyleProvider((chatListMode == Settings.CHAT_MODE_3LINE ? 16 : 17) * org.thunderdog.challegram.component.dialogs.ChatView.textScale()); // TGx101: MagiX text size
   }
 
   public @Nullable IntList getTextIconIds () {

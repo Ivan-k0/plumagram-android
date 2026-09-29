@@ -80,7 +80,7 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
     if (titlePaint != null)
       titlePaint.setTextSize(Screen.dp(17f));
     if (titlePaintFake != null)
-      titlePaintFake.setTextSize(Screen.dp(17f));
+      titlePaintFake.setTextSize(Screen.dp(17f * textScale()));
     if (timePaint != null)
       timePaint.setTextSize(Screen.dp(12f));
   }
@@ -88,7 +88,7 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
   private static void initPaints () {
     titlePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     titlePaint.setColor(Theme.textAccentColor());
-    titlePaint.setTextSize(Screen.dp(17f));
+    titlePaint.setTextSize(Screen.dp(17f * textScale()));
     titlePaint.setTypeface(Fonts.getRobotoMedium());
     ThemeManager.addThemeListener(titlePaint, ColorId.text);
 
@@ -101,9 +101,32 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
 
     timePaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     timePaint.setColor(Theme.textDecentColor());
-    timePaint.setTextSize(Screen.dp(12f));
+    timePaint.setTextSize(Screen.dp(12f * textScale()));
     timePaint.setTypeface(Fonts.getRobotoRegular());
     ThemeManager.addThemeListener(timePaint, ColorId.textLight);
+  }
+
+  // TGx101: bigger chat list text (MagiX → Text). Rows grow, the avatar stays centred.
+
+  public static float textScale () {
+    return Settings.instance().getChatListTextScale();
+  }
+
+  /** Extra pixels for something that is {@code dp} tall at the stock text size */
+  private static int scaled (float dp) {
+    return Screen.dp(dp * (textScale() - 1f));
+  }
+
+  private static int extraHeight (int chatListMode) {
+    return scaled((17f + 16f * (chatListMode == Settings.CHAT_MODE_2LINE ? 1 : 2)) * 1.15f);
+  }
+
+  public static void updateTextScale () {
+    if (titlePaint != null) {
+      titlePaint.setTextSize(Screen.dp(17f * textScale()));
+      titlePaintFake.setTextSize(Screen.dp(17f * textScale()));
+      timePaint.setTextSize(Screen.dp(12f * textScale()));
+    }
   }
 
   public static TextPaint getTitlePaint (boolean needFake) {
@@ -145,7 +168,7 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
   }
 
   public static int getLeftPadding (int chatListMode) {
-    return chatListMode != Settings.CHAT_MODE_2LINE ? getAvatarLeft(chatListMode) + getAvatarSize(chatListMode) + Screen.dp(11f) : getViewHeight(chatListMode);
+    return chatListMode != Settings.CHAT_MODE_2LINE ? getAvatarLeft(chatListMode) + getAvatarSize(chatListMode) + Screen.dp(11f) : getBaseViewHeight(chatListMode);
   }
 
   public static int getRightPadding () {
@@ -219,6 +242,10 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
   }
 
   public static int getViewHeight (int chatListMode) {
+    return getBaseViewHeight(chatListMode) + extraHeight(chatListMode);
+  }
+
+  private static int getBaseViewHeight (int chatListMode) {
     switch (chatListMode) {
       case Settings.CHAT_MODE_3LINE_BIG:
         return Screen.dp(82f);
@@ -249,11 +276,11 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
   private static int getAvatarTop (int chatListMode) {
     switch (chatListMode) {
       case Settings.CHAT_MODE_3LINE_BIG:
-        return Screen.dp(11f);
+        return Screen.dp(11f) + extraHeight(chatListMode) / 2;
       case Settings.CHAT_MODE_3LINE:
       case Settings.CHAT_MODE_2LINE:
       default:
-        return Screen.dp(10f);
+        return Screen.dp(10f) + extraHeight(chatListMode) / 2;
     }
   }
 
@@ -274,18 +301,19 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
   }
 
   public static int getCounterTop (int chatsListMode) {
-    return getCounterOffset(chatsListMode) + getCounterRadius();
+    return getCounterOffset(chatsListMode) + scaled(17f * 1.15f) + getCounterRadius();
   }
 
   public static int getTextTop (int chatListMode) {
+    int shift = scaled(17f * 1.15f);
     switch (chatListMode) {
       case Settings.CHAT_MODE_3LINE:
-        return Screen.dp(32f);
+        return Screen.dp(32f) + shift;
       case Settings.CHAT_MODE_3LINE_BIG:
-        return Screen.dp(33f);
+        return Screen.dp(33f) + shift;
       case Settings.CHAT_MODE_2LINE:
       default:
-        return Screen.dp(39.5f);
+        return Screen.dp(39.5f) + shift;
     }
   }
 
@@ -297,10 +325,10 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
     switch (chatListMode) {
       case Settings.CHAT_MODE_3LINE:
       case Settings.CHAT_MODE_3LINE_BIG:
-        return getTextOffset() + Screen.dp(14f);
+        return getTextOffset() + Screen.dp(14f) + scaled(15f);
       case Settings.CHAT_MODE_2LINE:
       default:
-        return getTextOffset() + Screen.dp(16f);
+        return getTextOffset() + Screen.dp(16f) + scaled(15f);
     }
   }
 
@@ -308,10 +336,10 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
     switch (chatListMode) {
       case Settings.CHAT_MODE_3LINE:
       case Settings.CHAT_MODE_3LINE_BIG:
-        return Screen.dp(15f);
+        return Screen.dp(15f) + scaled(8f);
       case Settings.CHAT_MODE_2LINE:
       default:
-        return Screen.dp(17f);
+        return Screen.dp(17f) + scaled(8f);
     }
   }
 
@@ -319,10 +347,10 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
     switch (chatListMode) {
       case Settings.CHAT_MODE_3LINE:
       case Settings.CHAT_MODE_3LINE_BIG:
-        return Screen.dp(9f);
+        return Screen.dp(9f) + scaled(8f);
       case Settings.CHAT_MODE_2LINE:
       default:
-        return Screen.dp(11f);
+        return Screen.dp(11f) + scaled(8f);
     }
   }
 

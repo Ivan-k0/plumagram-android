@@ -881,6 +881,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
   @Override
   public void onChatListModeChanged (int newChatListMode) {
+    ChatView.updateTextScale(); // TGx101: MagiX text size
     if (adapter != null) {
       adapter.checkChatListMode();
     }

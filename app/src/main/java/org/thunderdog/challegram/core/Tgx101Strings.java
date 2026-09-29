@@ -92,6 +92,18 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101NotificationPlane, "Самолётик Telegram в уведомлениях");
     RU.put(R.string.Tgx101CallSpeakerOn, "Динамик");
     RU.put(R.string.Tgx101CallSpeakerOff, "Выключить динамик");
+    RU.put(R.string.Tgx101TextSection, "Текст");
+    RU.put(R.string.Tgx101ChatListTextSize, "Размер текста в списке чатов");
+    RU.put(R.string.Tgx101ChatListTextSize100, "Стандарт");
+    RU.put(R.string.Tgx101ChatListTextSize110, "Крупнее");
+    RU.put(R.string.Tgx101ChatListTextSize120, "Крупный");
+    RU.put(R.string.Tgx101ChatListTextSize130, "Очень крупный");
+    RU.put(R.string.Tgx101TextWeight, "Толщина текста");
+    RU.put(R.string.Tgx101TextWeightNormal, "Обычная");
+    RU.put(R.string.Tgx101TextWeightSlightlyBolder, "Чуть жирнее");
+    RU.put(R.string.Tgx101TextWeightSemibold, "Полужирная");
+    RU.put(R.string.Tgx101TextWeightHint, "Сообщения, список чатов и остальной обычный текст. Заголовки остаются жирнее текста. Применится после перезапуска приложения.");
+    RU.put(R.string.Tgx101TextWeightRestart, "Перезапустите приложение, чтобы применить толщину текста");
     RU.put(R.string.Tgx101DeleteMore, "Другие действия…");
     RU.put(R.string.Tgx101Channel, "Канал PlumaGram");
     RU.put(R.string.Tgx101BottomGap, "Отступ под полем ввода и меню");

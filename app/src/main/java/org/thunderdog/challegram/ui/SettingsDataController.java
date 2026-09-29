@@ -254,6 +254,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(roundVideoQualityName(Settings.instance().getRoundVideoQuality()));
         } else if (itemId == R.id.btn_bigEmojiSize) {
           view.setData(bigEmojiSizeName(Settings.instance().getBigEmojiSize()));
+        } else if (itemId == R.id.btn_tgx101ChatListTextSize) {
+          view.setData(chatListTextSizeName(Settings.instance().getChatListTextSize()));
+        } else if (itemId == R.id.btn_tgx101TextWeight) {
+          view.setData(textWeightName(Settings.instance().getTextWeight()));
         } else if (itemId == R.id.btn_toggleNewSetting) {
           updateSettingView(view, item, isUpdate);
         }
@@ -294,6 +298,16 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_roundVideoQuality, 0, R.string.RoundVideoQuality),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_roundStabilization, 0, R.string.RoundStabilization),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+
+        // TGx101: text size and weight
+        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101TextSection),
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101ChatListTextSize, 0, R.string.Tgx101ChatListTextSize),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101TextWeight, 0, R.string.Tgx101TextWeight),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_SETTING, R.id.btn_chatFontSize, 0, R.string.TextSize),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ChatListSection),
@@ -650,6 +664,25 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_roundQualityHigh, 0, R.string.RoundVideoQualityHigh, id, quality == Settings.ROUND_VIDEO_QUALITY_HIGH),
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_roundQualityMax, 0, R.string.RoundVideoQualityMax, id, quality == Settings.ROUND_VIDEO_QUALITY_MAX)
       }).setIntDelegate(this));
+    } else if (id == R.id.btn_tgx101ChatListTextSize) {
+      int size = Settings.instance().getChatListTextSize();
+      showSettings(new SettingsWrapBuilder(id).setRawItems(new ListItem[] {
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101ChatListTextSize100, 0, R.string.Tgx101ChatListTextSize100, id, size == 100),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101ChatListTextSize110, 0, R.string.Tgx101ChatListTextSize110, id, size == 110),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101ChatListTextSize120, 0, R.string.Tgx101ChatListTextSize120, id, size == 120),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101ChatListTextSize130, 0, R.string.Tgx101ChatListTextSize130, id, size == 130)
+      }).setIntDelegate(this));
+    } else if (id == R.id.btn_tgx101TextWeight) {
+      int weight = Settings.instance().getTextWeight();
+      showSettings(new SettingsWrapBuilder(id).addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.Tgx101TextWeightHint)).setRawItems(new ListItem[] {
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101TextWeight0, 0, R.string.Tgx101TextWeightNormal, id, weight == Settings.TEXT_WEIGHT_NORMAL),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101TextWeight1, 0, R.string.Tgx101TextWeightSlightlyBolder, id, weight == Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101TextWeight2, 0, R.string.Tgx101TextWeightSemibold, id, weight == Settings.TEXT_WEIGHT_SEMIBOLD)
+      }).setIntDelegate(this));
+    } else if (id == R.id.btn_chatFontSize) {
+      MessagesController controller = new MessagesController(context, tdlib);
+      controller.setArguments(new MessagesController.Arguments(MessagesController.PREVIEW_MODE_FONT_SIZE, null, null));
+      navigateTo(controller);
     } else if (id == R.id.btn_bigEmojiSize) {
       int size = Settings.instance().getBigEmojiSize();
       showSettings(new SettingsWrapBuilder(id).addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.BigEmojiSizeHint)).setRawItems(new ListItem[] {
@@ -767,6 +800,23 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     }
   }
 
+  private static int chatListTextSizeName (int size) {
+    switch (size) {
+      case 110: return R.string.Tgx101ChatListTextSize110;
+      case 120: return R.string.Tgx101ChatListTextSize120;
+      case 130: return R.string.Tgx101ChatListTextSize130;
+      default: return R.string.Tgx101ChatListTextSize100;
+    }
+  }
+
+  private static int textWeightName (int weight) {
+    switch (weight) {
+      case Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER: return R.string.Tgx101TextWeightSlightlyBolder;
+      case Settings.TEXT_WEIGHT_SEMIBOLD: return R.string.Tgx101TextWeightSemibold;
+      default: return R.string.Tgx101TextWeightNormal;
+    }
+  }
+
   private static int bigEmojiSizeName (int size) {
     switch (size) {
       case Settings.BIG_EMOJI_SIZE_OFF: return R.string.BigEmojiSizeOff;
@@ -810,6 +860,19 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       }
       Settings.instance().setRoundStabilizationMode(mode);
       adapter.updateValuedSettingById(R.id.btn_roundStabilization);
+    } else if (id == R.id.btn_tgx101ChatListTextSize) {
+      final int res = result.get(R.id.btn_tgx101ChatListTextSize);
+      int size = res == R.id.btn_tgx101ChatListTextSize110 ? 110 : res == R.id.btn_tgx101ChatListTextSize120 ? 120 : res == R.id.btn_tgx101ChatListTextSize130 ? 130 : 100;
+      Settings.instance().setChatListTextSize(size);
+      adapter.updateValuedSettingById(R.id.btn_tgx101ChatListTextSize);
+    } else if (id == R.id.btn_tgx101TextWeight) {
+      final int res = result.get(R.id.btn_tgx101TextWeight);
+      int weight = res == R.id.btn_tgx101TextWeight1 ? Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER : res == R.id.btn_tgx101TextWeight2 ? Settings.TEXT_WEIGHT_SEMIBOLD : Settings.TEXT_WEIGHT_NORMAL;
+      if (weight != Settings.instance().getTextWeight()) {
+        Settings.instance().setTextWeight(weight);
+        adapter.updateValuedSettingById(R.id.btn_tgx101TextWeight);
+        UI.showToast(R.string.Tgx101TextWeightRestart, android.widget.Toast.LENGTH_LONG);
+      }
     } else if (id == R.id.btn_bigEmojiSize) {
       final int res = result.get(R.id.btn_bigEmojiSize);
       int size;

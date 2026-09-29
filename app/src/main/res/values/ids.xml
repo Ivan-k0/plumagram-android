@@ -1073,6 +1073,15 @@
   <item type="id" name="btn_deleteMessagesWithRevoke" />
   <item type="id" name="btn_revokeMessages" />
   <item type="id" name="btn_moreActions" />
+  <item type="id" name="btn_tgx101ChatListTextSize" />
+  <item type="id" name="btn_tgx101ChatListTextSize100" />
+  <item type="id" name="btn_tgx101ChatListTextSize110" />
+  <item type="id" name="btn_tgx101ChatListTextSize120" />
+  <item type="id" name="btn_tgx101ChatListTextSize130" />
+  <item type="id" name="btn_tgx101TextWeight" />
+  <item type="id" name="btn_tgx101TextWeight0" />
+  <item type="id" name="btn_tgx101TextWeight1" />
+  <item type="id" name="btn_tgx101TextWeight2" />
   <item type="id" name="btn_tgx101Channel" />
 
   <item type="id" name="btn_notifications_snooze" />
