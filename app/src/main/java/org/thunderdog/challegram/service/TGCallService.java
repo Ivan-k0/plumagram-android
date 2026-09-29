@@ -942,7 +942,8 @@ public class TGCallService extends Service implements
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       builder.setColor(tdlib.accountColor());
     }
-    Bitmap bitmap = TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true);
+    Bitmap bitmap = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? null : // TGx101: the own layout already shows the photo
+      TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true);
     if (bitmap != null) {
       builder.setLargeIcon(bitmap);
     }
