@@ -599,7 +599,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
       transcribeButtonY = receiver.centerY() - circleRadius * 0.72f;
       Tgx101Transcription.Result result = Tgx101Transcription.get(tdlib, msg);
       boolean shown = result != null && result.state == Tgx101Transcription.STATE_DONE;
-      c.drawCircle(transcribeButtonX, transcribeButtonY, Screen.dp(TRANSCRIBE_BUTTON_RADIUS), Paints.fillingPaint(shown ? 0xf0ffffff : getBubbleTimeColor()));
+      c.drawCircle(transcribeButtonX, transcribeButtonY, Screen.dp(TRANSCRIBE_BUTTON_RADIUS), Paints.fillingPaint(shown ? 0xf0ffffff : (useBubbles() ? getBubbleTimeColor() : 0x80000000)));
       String label = result != null && result.state == Tgx101Transcription.STATE_PENDING ? "…" : "A";
       android.text.TextPaint labelPaint = Paints.getBoldPaint14(false, shown ? 0xff222222 : 0xffffffff);
       c.drawText(label, transcribeButtonX - labelPaint.measureText(label) / 2f, transcribeButtonY + Screen.dp(5f), labelPaint);
