@@ -331,8 +331,8 @@
       android:name=".receiver.TGAutoMessageReceiver"
       android:exported="false">
       <intent-filter>
-        <action android:name="org.thunderdog.challegram.ACTION_MESSAGE_REPLY" />
-        <action android:name="org.thunderdog.challegram.ACTION_MESSAGE_HEARD" />
+        <action android:name="${applicationId}.ACTION_MESSAGE_REPLY" />
+        <action android:name="${applicationId}.ACTION_MESSAGE_HEARD" />
       </intent-filter>
     </receiver>
     <receiver
@@ -359,9 +359,10 @@
       android:enabled="true"
       android:exported="false">
       <intent-filter>
-        <action android:name="org.thunderdog.challegram.END_CALL" />
-        <action android:name="org.thunderdog.challegram.DECLINE_CALL" />
-        <action android:name="org.thunderdog.challegram.ANSWER_CALL" />
+        <action android:name="${applicationId}.END_CALL" />
+        <action android:name="${applicationId}.DECLINE_CALL" />
+        <action android:name="${applicationId}.ANSWER_CALL" />
+        <action android:name="${applicationId}.TOGGLE_CALL_SPEAKER" />
       </intent-filter>
     </receiver>
 
@@ -371,11 +372,11 @@
       android:exported="false"
       android:enabled="true">
       <intent-filter>
-        <action android:name="org.thunderdog.challegram.ACTION_PLAY_SKIP_PREVIOUS" />
-        <action android:name="org.thunderdog.challegram.ACTION_PLAY_SKIP_NEXT" />
-        <action android:name="org.thunderdog.challegram.ACTION_PLAY_STOP" />
-        <action android:name="org.thunderdog.challegram.ACTION_PLAY_PLAY" />
-        <action android:name="org.thunderdog.challegram.ACTION_PLAY_PAUSE" />
+        <action android:name="${applicationId}.ACTION_PLAY_SKIP_PREVIOUS" />
+        <action android:name="${applicationId}.ACTION_PLAY_SKIP_NEXT" />
+        <action android:name="${applicationId}.ACTION_PLAY_STOP" />
+        <action android:name="${applicationId}.ACTION_PLAY_PLAY" />
+        <action android:name="${applicationId}.ACTION_PLAY_PAUSE" />
       </intent-filter>
     </receiver>
 
@@ -393,7 +394,7 @@
       android:enabled="true"
       android:exported="false">
       <intent-filter>
-        <action android:name="org.thunderdog.challegram.ACTION_STOP_LOCATION" />
+        <action android:name="${applicationId}.ACTION_STOP_LOCATION" />
       </intent-filter>
     </receiver>
 

@@ -236,6 +236,14 @@ public class TGCallService extends Service implements
         acceptIncomingCall();
         return;
       }
+
+      if (Intents.ACTION_TOGGLE_CALL_SPEAKER.equals(action)) { // TGx101: speaker button in the call notification
+        CallSettings settings = getCallSettings();
+        if (settings != null) {
+          settings.setSpeakerMode(settings.isSpeakerModeEnabled() ? CallSettings.SPEAKER_MODE_EARPIECE : CallSettings.SPEAKER_MODE_SPEAKER);
+        }
+        return;
+      }
     }
   };
 
@@ -650,6 +658,7 @@ public class TGCallService extends Service implements
       tgcalls.setMicDisabled(settings != null && settings.isMicMuted());
     }
     setAudioMode(settings != null ? settings.getSpeakerMode() : CallSettings.SPEAKER_MODE_EARPIECE);
+    UI.post(this::refreshOngoingNotification); // TGx101: speaker button label
   }
 
   // Implementation
@@ -827,7 +836,9 @@ public class TGCallService extends Service implements
       NotificationManager m = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
       cleanupChannels(m);
       // final String channelId = "call_" + call.id + "_" + System.currentTimeMillis();
-      android.app.NotificationChannel channel = new android.app.NotificationChannel(callChannelId, Lang.getString(R.string.NotificationChannelOutgoingCall), NotificationManager.IMPORTANCE_LOW);
+      // TGx101: DEFAULT (still silent) so the call stays visible on the lock screen
+      android.app.NotificationChannel channel = new android.app.NotificationChannel(callChannelId, Lang.getString(R.string.NotificationChannelOutgoingCall), NotificationManager.IMPORTANCE_DEFAULT);
+      channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
       channel.enableVibration(false);
       channel.enableLights(false);
       channel.setSound(null, null);
@@ -856,8 +867,30 @@ public class TGCallService extends Service implements
       Intent endIntent = new Intent();
       Intents.secureIntent(endIntent, false);
       endIntent.setAction(Intents.ACTION_END_CALL);
-      builder.addAction(R.drawable.round_call_end_24_white, Lang.getString(R.string.VoipEndCall), PendingIntent.getBroadcast(this, 0, endIntent, Intents.mutabilityFlags(false)));
+      PendingIntent endPendingIntent = PendingIntent.getBroadcast(this, 0, endIntent, Intents.mutabilityFlags(false));
+      // TGx101: loudspeaker button next to "End call"
+      Intent speakerIntent = new Intent();
+      Intents.secureIntent(speakerIntent, false);
+      speakerIntent.setAction(Intents.ACTION_TOGGLE_CALL_SPEAKER);
+      PendingIntent speakerPendingIntent = PendingIntent.getBroadcast(this, 1, speakerIntent, PendingIntent.FLAG_UPDATE_CURRENT | Intents.mutabilityFlags(false));
+      CallSettings speakerSettings = getCallSettings();
+      boolean speakerOn = speakerSettings != null && speakerSettings.getSpeakerMode() == CallSettings.SPEAKER_MODE_SPEAKER;
+      String speakerTitle = Lang.getString(speakerOn ? R.string.Tgx101CallSpeakerOff : R.string.Tgx101CallSpeakerOn);
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        // System call style: the call chip in the status bar and a proper call card on the lock screen
+        android.app.Person person = new android.app.Person.Builder().setName(TD.getUserName(user)).setImportant(true).build();
+        builder.setStyle(Notification.CallStyle.forOngoingCall(person, endPendingIntent));
+        builder.addAction(new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(this, R.drawable.baseline_volume_up_24_white), speakerTitle, speakerPendingIntent).build());
+      } else {
+        builder.addAction(R.drawable.round_call_end_24_white, Lang.getString(R.string.VoipEndCall), endPendingIntent);
+        builder.addAction(R.drawable.baseline_volume_up_24_white, speakerTitle, speakerPendingIntent);
+      }
       builder.setPriority(Notification.PRIORITY_MAX);
+      builder.setOngoing(true);
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        builder.setVisibility(Notification.VISIBILITY_PUBLIC);
+        builder.setCategory(Notification.CATEGORY_CALL);
+      }
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
       builder.setShowWhen(false);
@@ -983,7 +1016,12 @@ public class TGCallService extends Service implements
       builder.setColor(tdlib.accountColor());
       builder.setVibrate(new long[0]);
       builder.setCategory(Notification.CATEGORY_CALL);
-      builder.setFullScreenIntent(PendingIntent.getActivity(this, PendingIntent.FLAG_ONE_SHOT, Intents.valueOfCall(), Intents.mutabilityFlags(false)), true);
+      // TGx101: only over a locked or dark screen. On an unlocked phone some firmwares (Vivo) launch
+      // the full-screen intent right away, so the app came back every time it was minimized.
+      if (needFullScreenIntent()) {
+        builder.setFullScreenIntent(PendingIntent.getActivity(this, PendingIntent.FLAG_ONE_SHOT, Intents.valueOfCall(), Intents.mutabilityFlags(false)), true);
+      }
+      builder.setVisibility(Notification.VISIBILITY_PUBLIC);
     }
     Bitmap bitmap = user != null ? TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true) : null;
     if (bitmap != null) {
@@ -996,6 +1034,22 @@ public class TGCallService extends Service implements
     }
     U.startForeground(this, TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION, incomingNotification);
     return true;
+  }
+
+  private boolean needFullScreenIntent () {
+    android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+    android.app.KeyguardManager km = (android.app.KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+    boolean interactive = pm == null || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH ? pm.isInteractive() : pm.isScreenOn());
+    boolean locked = km != null && km.isKeyguardLocked();
+    return !interactive || locked;
+  }
+
+  // TGx101: rebuild the ongoing call notification (speaker button label)
+  private void refreshOngoingNotification () {
+    if (ongoingCallNotification != null) {
+      ongoingCallNotification = null;
+      showNotification();
+    }
   }
 
   private void startRinging () {
@@ -1029,7 +1083,10 @@ public class TGCallService extends Service implements
             vibrator.vibrate(TdlibNotificationManager.VIBRATE_CALL_LONG_PATTERN, 0);
             break;
           default:
-            if (tdlib.notifications().needVibrateWhenRinging()) {
+            // TGx101: like the official app, vibrate unless the phone is on silent; many firmwares
+            // (Vivo) keep the system "vibrate when ringing" switch at 0 while vibrating on calls
+            AudioManager ringerAudio = (AudioManager) getSystemService(AUDIO_SERVICE);
+            if ((ringerAudio != null && ringerAudio.getRingerMode() != AudioManager.RINGER_MODE_SILENT) || tdlib.notifications().needVibrateWhenRinging()) {
               vibrator.vibrate(TdlibNotificationManager.VIBRATE_CALL_LONG_PATTERN, 0);
             }
             break;
@@ -1397,6 +1454,7 @@ public class TGCallService extends Service implements
 
     ConnectionStateListener stateListener = new ConnectionStateListener() {
       private boolean vibratedOnConnect; // TGx101
+      private int lastLoggedSignalBars = -1; // TGx101: diagnostics log only on change
 
       @Override
       public void onConnectionStateChanged (VoIPInstance context, @CallState int newState) {
@@ -1415,7 +1473,10 @@ public class TGCallService extends Service implements
 
       @Override
       public void onSignalBarCountChanged (int newCount) {
-        org.thunderdog.challegram.Tgx101Diag.mark("[call] signal bars " + newCount);
+        if (newCount != lastLoggedSignalBars) {
+          lastLoggedSignalBars = newCount;
+          org.thunderdog.challegram.Tgx101Diag.mark("[call] signal bars " + newCount + " (" + org.thunderdog.challegram.Tgx101Diag.network() + ")");
+        }
         tdlib.dispatchCallBarsCount(call.id, newCount);
       }
 
