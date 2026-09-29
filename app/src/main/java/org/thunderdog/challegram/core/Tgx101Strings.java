@@ -90,8 +90,8 @@ final class Tgx101Strings {
     RU.put(R.string.BigEmojiSizeHint, "Размер стикеров и сообщений, состоящих только из эмодзи. «Выкл» показывает эмодзи обычным текстом в пузыре, стикеры остаются стандартного размера. Это та же настройка, что «Большие эмодзи» в разделе «Стикеры и эмодзи». Применяется к чатам, открытым после изменения.");
     RU.put(R.string.PullToSearch, "Поиск свайпом вниз");
     RU.put(R.string.Tgx101NotificationPlane, "Самолётик Telegram в уведомлениях");
-    RU.put(R.string.Tgx101CallSpeakerOn, "Громкая связь");
-    RU.put(R.string.Tgx101CallSpeakerOff, "Выключить громкую");
+    RU.put(R.string.Tgx101CallSpeakerOn, "Динамик");
+    RU.put(R.string.Tgx101CallSpeakerOff, "Выключить динамик");
     RU.put(R.string.Tgx101DeleteMore, "Другие действия…");
     RU.put(R.string.Tgx101Channel, "Канал PlumaGram");
     RU.put(R.string.Tgx101BottomGap, "Отступ под полем ввода и меню");

@@ -222,6 +222,13 @@ public class TGCallService extends Service implements
         return;
       }
 
+      if (Intent.ACTION_SCREEN_OFF.equals(action)) {
+        // TGx101: some lock screens (Vivo) show only notifications posted after locking,
+        // so the ongoing call notification is posted again when the screen goes off
+        refreshOngoingNotification();
+        return;
+      }
+
       if (Intents.ACTION_DECLINE_CALL.equals(action)) {
         declineIncomingCall();
         return;
@@ -240,7 +247,10 @@ public class TGCallService extends Service implements
       if (Intents.ACTION_TOGGLE_CALL_SPEAKER.equals(action)) { // TGx101: speaker button in the call notification
         CallSettings settings = getCallSettings();
         if (settings != null) {
-          settings.setSpeakerMode(settings.isSpeakerModeEnabled() ? CallSettings.SPEAKER_MODE_EARPIECE : CallSettings.SPEAKER_MODE_SPEAKER);
+          // Speaker on, or back to the headset (Bluetooth) / earpiece (wired headset is picked there too)
+          int current = settings.getSpeakerMode();
+          boolean speakerNow = current == CallSettings.SPEAKER_MODE_SPEAKER || current == CallSettings.SPEAKER_MODE_SPEAKER_DEFAULT;
+          settings.setSpeakerMode(!speakerNow ? CallSettings.SPEAKER_MODE_SPEAKER : isBluetoothHeadsetConnected() ? CallSettings.SPEAKER_MODE_BLUETOOTH : CallSettings.SPEAKER_MODE_EARPIECE);
         }
         return;
       }
@@ -344,6 +354,7 @@ public class TGCallService extends Service implements
         filter.addAction(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED);
       }
       filter.addAction(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
+      filter.addAction(Intent.ACTION_SCREEN_OFF); // TGx101: re-post the call notification for the lock screen
       /*filter.addAction(Intents.ACTION_END_CALL);
       filter.addAction(Intents.ACTION_DECLINE_CALL);
       filter.addAction(Intents.ACTION_ANSWER_CALL);*/
@@ -540,9 +551,23 @@ public class TGCallService extends Service implements
       Filter<android.media.AudioDeviceInfo> filter = null;
       switch (mode) {
         case CallSettings.SPEAKER_MODE_EARPIECE: {
+          // TGx101: a plugged-in wired headset wins over the earpiece
+          boolean wired = false;
+          for (android.media.AudioDeviceInfo device : am.getAvailableCommunicationDevices()) {
+            int type = device.getType();
+            if (type == android.media.AudioDeviceInfo.TYPE_WIRED_HEADSET || type == android.media.AudioDeviceInfo.TYPE_WIRED_HEADPHONES || type == android.media.AudioDeviceInfo.TYPE_USB_HEADSET) {
+              wired = true;
+              break;
+            }
+          }
+          final boolean preferWired = wired;
           filter = device -> switch (device.getType()) {
             case android.media.AudioDeviceInfo.TYPE_BUILTIN_EARPIECE ->
-              true;
+              !preferWired;
+            case android.media.AudioDeviceInfo.TYPE_WIRED_HEADSET,
+              android.media.AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+              android.media.AudioDeviceInfo.TYPE_USB_HEADSET ->
+              preferWired;
             default ->
               false;
           };
@@ -837,7 +862,7 @@ public class TGCallService extends Service implements
       cleanupChannels(m);
       // final String channelId = "call_" + call.id + "_" + System.currentTimeMillis();
       // TGx101: DEFAULT (still silent) so the call stays visible on the lock screen
-      android.app.NotificationChannel channel = new android.app.NotificationChannel(callChannelId, Lang.getString(R.string.NotificationChannelOutgoingCall), NotificationManager.IMPORTANCE_DEFAULT);
+      android.app.NotificationChannel channel = new android.app.NotificationChannel(callChannelId, Lang.getString(R.string.NotificationChannelOutgoingCall), NotificationManager.IMPORTANCE_HIGH);
       channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
       channel.enableVibration(false);
       channel.enableLights(false);
@@ -874,17 +899,36 @@ public class TGCallService extends Service implements
       speakerIntent.setAction(Intents.ACTION_TOGGLE_CALL_SPEAKER);
       PendingIntent speakerPendingIntent = PendingIntent.getBroadcast(this, 1, speakerIntent, PendingIntent.FLAG_UPDATE_CURRENT | Intents.mutabilityFlags(false));
       CallSettings speakerSettings = getCallSettings();
-      boolean speakerOn = speakerSettings != null && speakerSettings.getSpeakerMode() == CallSettings.SPEAKER_MODE_SPEAKER;
+      boolean speakerOn = speakerSettings != null && (speakerSettings.getSpeakerMode() == CallSettings.SPEAKER_MODE_SPEAKER || speakerSettings.getSpeakerMode() == CallSettings.SPEAKER_MODE_SPEAKER_DEFAULT);
       String speakerTitle = Lang.getString(speakerOn ? R.string.Tgx101CallSpeakerOff : R.string.Tgx101CallSpeakerOn);
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        // System call style: the call chip in the status bar and a proper call card on the lock screen
-        android.app.Person person = new android.app.Person.Builder().setName(TD.getUserName(user)).setImportant(true).build();
-        builder.setStyle(Notification.CallStyle.forOngoingCall(person, endPendingIntent));
-        builder.addAction(new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(this, R.drawable.baseline_volume_up_24_white), speakerTitle, speakerPendingIntent).build());
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        // Own layout: firmwares like Vivo draw CallStyle buttons as plain text without icons
+        android.widget.RemoteViews views = new android.widget.RemoteViews(getPackageName(), R.layout.tgx101_call_notification);
+        views.setTextViewText(R.id.tgx101_call_name, TD.getUserName(user));
+        long callDuration = getCallDuration();
+        long base = android.os.SystemClock.elapsedRealtime() - (callDuration > 0 ? callDuration : 0);
+        views.setChronometer(R.id.tgx101_call_timer, base, null, callDuration > 0);
+        if (callDuration <= 0) {
+          views.setTextViewText(R.id.tgx101_call_timer, Lang.getString(R.string.OutgoingCall));
+        }
+        Bitmap photo = TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true);
+        if (photo != null) {
+          views.setImageViewBitmap(R.id.tgx101_call_photo, photo);
+        }
+        views.setInt(R.id.tgx101_call_speaker, "setBackgroundResource", speakerOn ? R.drawable.tgx101_call_button_speaker_on : R.drawable.tgx101_call_button_speaker);
+        views.setContentDescription(R.id.tgx101_call_speaker, speakerTitle);
+        views.setContentDescription(R.id.tgx101_call_end, Lang.getString(R.string.VoipEndCall));
+        views.setOnClickPendingIntent(R.id.tgx101_call_speaker, speakerPendingIntent);
+        views.setOnClickPendingIntent(R.id.tgx101_call_end, endPendingIntent);
+        builder.setCustomContentView(views);
+        builder.setCustomBigContentView(views);
+        builder.setCustomHeadsUpContentView(views);
+        builder.setStyle(new Notification.DecoratedCustomViewStyle());
       } else {
         builder.addAction(R.drawable.round_call_end_24_white, Lang.getString(R.string.VoipEndCall), endPendingIntent);
         builder.addAction(R.drawable.baseline_volume_up_24_white, speakerTitle, speakerPendingIntent);
       }
+      builder.setOnlyAlertOnce(true);
       builder.setPriority(Notification.PRIORITY_MAX);
       builder.setOngoing(true);
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -1465,6 +1509,7 @@ public class TGCallService extends Service implements
             vibrateOnConnect();
           }
           tdlib.dispatchCallStateChanged(call.id, newState);
+          UI.post(TGCallService.this::refreshOngoingNotification); // TGx101: start the timer in the notification
         } else if (newState == CallState.FAILED) {
           long connectionId = context.getConnectionId();
           tdlib.context().calls().hangUp(tdlib, call.id, true, connectionId);

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TGx101: ongoing call notification: photo, name, timer, loudspeaker and hang-up buttons -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent"
+  android:layout_height="wrap_content"
+  android:gravity="center_vertical"
+  android:orientation="horizontal"
+  android:paddingTop="4dp"
+  android:paddingBottom="4dp">
+
+  <ImageView
+    android:id="@+id/tgx101_call_photo"
+    android:layout_width="40dp"
+    android:layout_height="40dp"
+    android:scaleType="centerCrop" />
+
+  <LinearLayout
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="12dp"
+    android:layout_marginLeft="12dp"
+    android:layout_weight="1"
+    android:orientation="vertical">
+
+    <TextView
+      android:id="@+id/tgx101_call_name"
+      style="@android:style/TextAppearance.Material.Notification.Title"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:ellipsize="end"
+      android:singleLine="true" />
+
+    <Chronometer
+      android:id="@+id/tgx101_call_timer"
+      style="@android:style/TextAppearance.Material.Notification.Info"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:singleLine="true" />
+  </LinearLayout>
+
+  <ImageView
+    android:id="@+id/tgx101_call_speaker"
+    android:layout_width="44dp"
+    android:layout_height="44dp"
+    android:layout_marginStart="8dp"
+    android:layout_marginLeft="8dp"
+    android:background="@drawable/tgx101_call_button_speaker"
+    android:padding="10dp"
+    android:src="@drawable/baseline_volume_up_24_white" />
+
+  <ImageView
+    android:id="@+id/tgx101_call_end"
+    android:layout_width="44dp"
+    android:layout_height="44dp"
+    android:layout_marginStart="12dp"
+    android:layout_marginLeft="12dp"
+    android:background="@drawable/tgx101_call_button_end"
+    android:padding="10dp"
+    android:src="@drawable/round_call_end_24_white" />
+</LinearLayout>
