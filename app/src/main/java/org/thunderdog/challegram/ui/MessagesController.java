@@ -5025,7 +5025,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       () -> UI.post(() -> {
         PopupLayout full = showMessageOptions(options, message, null, delegate);
         if (full != null && full.getBoundController() instanceof MessageOptionsPagerController) {
-          ((MessageOptionsPagerController) full.getBoundController()).setTgx101PickerOnly(true);
+          MessageOptionsPagerController pager = (MessageOptionsPagerController) full.getBoundController();
+          pager.setTgx101PickerOnly(true);
+          pager.setTgx101AfterClose(() -> showTgx101MessageMenu(options, message, delegate, false));
         }
       }, 220),
       this::onHideMessageOptions,
@@ -5058,6 +5060,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
       public void onPopupDismiss (PopupLayout popup) {
         optimizeEmojiLayoutForOptionsWindow(false);
         isMessageOptionsVisible = false;
+        Runnable after = r.takeTgx101AfterClose(); // TGx101: back to the compact menu
+        if (after != null) {
+          UI.post(after);
+        }
       }
 
       @Override

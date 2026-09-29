@@ -808,6 +808,20 @@ public class MessageOptionsPagerController extends BottomSheetViewController<Opt
     this.tgx101PickerOnly = pickerOnly;
   }
 
+  // TGx101: closed without choosing a reaction -> the compact menu comes back
+  private Runnable tgx101AfterClose;
+  private boolean tgx101ReactionChosen;
+
+  public void setTgx101AfterClose (Runnable afterClose) {
+    this.tgx101AfterClose = afterClose;
+  }
+
+  public Runnable takeTgx101AfterClose () {
+    Runnable after = tgx101ReactionChosen ? null : tgx101AfterClose;
+    tgx101AfterClose = null;
+    return after;
+  }
+
   @Override
   protected void onCustomShowComplete () {
     super.onCustomShowComplete();
@@ -901,6 +915,7 @@ public class MessageOptionsPagerController extends BottomSheetViewController<Opt
   }
 
   private void onReactionClick (View v, TGReaction reaction, boolean isLongClick) {
+    tgx101ReactionChosen = true;
     if (isLongClick) {
       if (Config.DISABLE_ANONYMOUS_NON_OWNER_REACTIONS && tdlib.isAnonymousAdminNonCreator(state.message.getChatId())) {
         return;
