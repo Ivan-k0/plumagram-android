@@ -4959,7 +4959,17 @@ public class MessagesController extends ViewController<MessagesController.Argume
             }
           }
           Options messageOptions = messageOptionsBuilder.build();
-          if (!messageContext.disableMetadata && msg.canBeReacted()) {
+          if (!messageContext.disableMetadata && Settings.instance().useTgx101MessageMenu()) {
+            // TGx101: compact menu in the lower corner (MagiX → Message menu)
+            PopupLayout popupLayout = showTgx101MessageMenu(messageOptions, messageContext.message, messageHandler);
+            if (expectAgain && popupLayout != null) {
+              inject.set((loadedReadDate) -> {
+                if (loadedReadDate.getConstructor() == TdApi.MessageReadDateRead.CONSTRUCTOR) {
+                  Tgx101MessageMenu.setReadDate(popupLayout, readItem(tdlib, ((TdApi.MessageReadDateRead) loadedReadDate).readDate));
+                }
+              });
+            }
+          } else if (!messageContext.disableMetadata && msg.canBeReacted()) {
             PopupLayout popupLayout = showMessageOptions(messageOptions, messageContext.message, null, messageHandler);
             if (expectAgain && popupLayout != null) {
               inject.set((loadedReadDate) -> {
@@ -4996,6 +5006,25 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private boolean isMessageOptionsVisible;
+
+  // TGx101: compact message menu; "⌄" in its reactions opens the stock sheet with all reactions
+  private PopupLayout showTgx101MessageMenu (Options options, TGMessage message, OptionDelegate delegate) {
+    if (isMessageOptionsVisible) {
+      return null;
+    }
+    isMessageOptionsVisible = true;
+    PopupLayout popup = Tgx101MessageMenu.show(this, message, options, delegate,
+      () -> UI.post(() -> showMessageOptions(options, message, null, delegate), 120),
+      this::onHideMessageOptions,
+      () -> {
+        optimizeEmojiLayoutForOptionsWindow(false);
+        isMessageOptionsVisible = false;
+      });
+    prepareToShowMessageOptions();
+    hideCursorsForInputView();
+    optimizeEmojiLayoutForOptionsWindow(true);
+    return popup;
+  }
 
   private PopupLayout showMessageOptions (Options options, TGMessage message, @Nullable TdApi.ReactionType reactionType, OptionDelegate optionsDelegate) {
     if (isMessageOptionsVisible) {

@@ -3112,6 +3112,62 @@ public class Settings {
   }
 
   // TGx101: size of big emoji (emoji-only messages), in percent of the stock size.
+  // TGx101: compact message menu (on by default), the hand it sits under, and the order of actions
+  private static final String KEY_TGX101_MESSAGE_MENU = "tgx101_message_menu";
+  private static final String KEY_TGX101_MESSAGE_MENU_LEFT = "tgx101_message_menu_left";
+  private static final String KEY_TGX101_MESSAGE_MENU_ORDER = "tgx101_message_menu_order";
+
+  public boolean useTgx101MessageMenu () {
+    return pmc.getBoolean(KEY_TGX101_MESSAGE_MENU, true);
+  }
+
+  public void setUseTgx101MessageMenu (boolean use) {
+    pmc.putBoolean(KEY_TGX101_MESSAGE_MENU, use);
+  }
+
+  public boolean isTgx101MessageMenuLeftHand () {
+    return pmc.getBoolean(KEY_TGX101_MESSAGE_MENU_LEFT, false);
+  }
+
+  public void setTgx101MessageMenuLeftHand (boolean left) {
+    pmc.putBoolean(KEY_TGX101_MESSAGE_MENU_LEFT, left);
+  }
+
+  /** Resource ids in the saved order; names are stored so the order survives app updates */
+  @androidx.annotation.Nullable
+  public int[] getTgx101MessageMenuOrder () {
+    String saved = pmc.getString(KEY_TGX101_MESSAGE_MENU_ORDER, null);
+    if (saved == null || saved.isEmpty()) {
+      return null;
+    }
+    android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
+    String[] names = saved.split(",");
+    java.util.ArrayList<Integer> ids = new java.util.ArrayList<>();
+    for (String name : names) {
+      int id = res.getIdentifier(name, "id", org.thunderdog.challegram.tool.UI.getAppContext().getPackageName());
+      if (id != 0) {
+        ids.add(id);
+      }
+    }
+    int[] result = new int[ids.size()];
+    for (int i = 0; i < result.length; i++) result[i] = ids.get(i);
+    return result;
+  }
+
+  public void setTgx101MessageMenuOrder (@androidx.annotation.Nullable int[] ids) {
+    if (ids == null) {
+      pmc.remove(KEY_TGX101_MESSAGE_MENU_ORDER);
+      return;
+    }
+    android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
+    StringBuilder b = new StringBuilder();
+    for (int id : ids) {
+      if (b.length() > 0) b.append(',');
+      b.append(res.getResourceEntryName(id));
+    }
+    pmc.putString(KEY_TGX101_MESSAGE_MENU_ORDER, b.toString());
+  }
+
   // TGx101: chat list text size (percent of the stock size) and text weight
   private static final String KEY_TGX101_CHAT_LIST_TEXT_SIZE = "tgx101_chat_list_text_size";
   private static final String KEY_TGX101_TEXT_WEIGHT = "tgx101_text_weight";

@@ -1073,6 +1073,18 @@
   <item type="id" name="btn_deleteMessagesWithRevoke" />
   <item type="id" name="btn_revokeMessages" />
   <item type="id" name="btn_moreActions" />
+  <item type="id" name="controller_tgx101MenuOrder" />
+  <item type="id" name="btn_tgx101MessageMenu" />
+  <item type="id" name="btn_tgx101MessageMenuHand" />
+  <item type="id" name="btn_tgx101MessageMenuHandLeft" />
+  <item type="id" name="btn_tgx101MessageMenuHandRight" />
+  <item type="id" name="btn_tgx101MessageMenuOrder" />
+  <item type="id" name="btn_tgx101MenuAction" />
+  <item type="id" name="btn_tgx101MenuOrderReset" />
+  <item type="id" name="btn_moveToTop" />
+  <item type="id" name="btn_moveUp" />
+  <item type="id" name="btn_moveDown" />
+  <item type="id" name="btn_moveToBottom" />
   <item type="id" name="btn_tgx101ChatListTextSize" />
   <item type="id" name="btn_tgx101ChatListTextSize100" />
   <item type="id" name="btn_tgx101ChatListTextSize110" />

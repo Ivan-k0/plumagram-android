@@ -254,6 +254,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(roundVideoQualityName(Settings.instance().getRoundVideoQuality()));
         } else if (itemId == R.id.btn_bigEmojiSize) {
           view.setData(bigEmojiSizeName(Settings.instance().getBigEmojiSize()));
+        } else if (itemId == R.id.btn_tgx101MessageMenu) {
+          view.getToggler().setRadioEnabled(Settings.instance().useTgx101MessageMenu(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101MessageMenuHand) {
+          view.setData(Settings.instance().isTgx101MessageMenuLeftHand() ? R.string.Tgx101MessageMenuHandLeft : R.string.Tgx101MessageMenuHandRight);
         } else if (itemId == R.id.btn_tgx101ChatListTextSize) {
           view.setData(chatListTextSizeName(Settings.instance().getChatListTextSize()));
         } else if (itemId == R.id.btn_tgx101TextWeight) {
@@ -308,6 +312,16 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101TextWeight, 0, R.string.Tgx101TextWeight),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_chatFontSize, 0, R.string.TextSize),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+
+        // TGx101: compact message menu
+        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101MessageMenuSection),
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MessageMenu, 0, R.string.Tgx101MessageMenu),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101MessageMenuHand, 0, R.string.Tgx101MessageMenuHand),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MessageMenuOrder, 0, R.string.Tgx101MessageMenuOrder),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ChatListSection),
@@ -664,6 +678,16 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_roundQualityHigh, 0, R.string.RoundVideoQualityHigh, id, quality == Settings.ROUND_VIDEO_QUALITY_HIGH),
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_roundQualityMax, 0, R.string.RoundVideoQualityMax, id, quality == Settings.ROUND_VIDEO_QUALITY_MAX)
       }).setIntDelegate(this));
+    } else if (id == R.id.btn_tgx101MessageMenu) {
+      Settings.instance().setUseTgx101MessageMenu(toggleResult);
+    } else if (id == R.id.btn_tgx101MessageMenuHand) {
+      boolean left = Settings.instance().isTgx101MessageMenuLeftHand();
+      showSettings(new SettingsWrapBuilder(id).setRawItems(new ListItem[] {
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101MessageMenuHandRight, 0, R.string.Tgx101MessageMenuHandRight, id, !left),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101MessageMenuHandLeft, 0, R.string.Tgx101MessageMenuHandLeft, id, left)
+      }).setIntDelegate(this));
+    } else if (id == R.id.btn_tgx101MessageMenuOrder) {
+      navigateTo(new Tgx101MenuOrderController(context, tdlib));
     } else if (id == R.id.btn_tgx101ChatListTextSize) {
       int size = Settings.instance().getChatListTextSize();
       showSettings(new SettingsWrapBuilder(id).setRawItems(new ListItem[] {
@@ -860,6 +884,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       }
       Settings.instance().setRoundStabilizationMode(mode);
       adapter.updateValuedSettingById(R.id.btn_roundStabilization);
+    } else if (id == R.id.btn_tgx101MessageMenuHand) {
+      Settings.instance().setTgx101MessageMenuLeftHand(result.get(R.id.btn_tgx101MessageMenuHand) == R.id.btn_tgx101MessageMenuHandLeft);
+      adapter.updateValuedSettingById(R.id.btn_tgx101MessageMenuHand);
     } else if (id == R.id.btn_tgx101ChatListTextSize) {
       final int res = result.get(R.id.btn_tgx101ChatListTextSize);
       int size = res == R.id.btn_tgx101ChatListTextSize110 ? 110 : res == R.id.btn_tgx101ChatListTextSize120 ? 120 : res == R.id.btn_tgx101ChatListTextSize130 ? 130 : 100;

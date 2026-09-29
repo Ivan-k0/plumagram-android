@@ -104,6 +104,18 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101TextWeightSemibold, "Полужирная");
     RU.put(R.string.Tgx101TextWeightHint, "Сообщения, список чатов и остальной обычный текст. Заголовки остаются жирнее текста. Применится после перезапуска приложения.");
     RU.put(R.string.Tgx101TextWeightRestart, "Перезапустите приложение, чтобы применить толщину текста");
+    RU.put(R.string.Tgx101MessageMenuSection, "Меню сообщения");
+    RU.put(R.string.Tgx101MessageMenu, "Компактное меню сообщения");
+    RU.put(R.string.Tgx101MessageMenuHand, "Меню под руку");
+    RU.put(R.string.Tgx101MessageMenuHandRight, "Правую");
+    RU.put(R.string.Tgx101MessageMenuHandLeft, "Левую");
+    RU.put(R.string.Tgx101MessageMenuOrder, "Порядок пунктов");
+    RU.put(R.string.Tgx101MessageMenuOrderHint, "Нажмите на пункт, чтобы передвинуть его. Пункты, которых нет у сообщения, пропускаются. «Удалить» всегда внизу.");
+    RU.put(R.string.Tgx101MessageMenuOrderReset, "Вернуть порядок по умолчанию");
+    RU.put(R.string.Tgx101MoveToTop, "В самый верх");
+    RU.put(R.string.Tgx101MoveUp, "Выше");
+    RU.put(R.string.Tgx101MoveDown, "Ниже");
+    RU.put(R.string.Tgx101MoveToBottom, "В самый низ");
     RU.put(R.string.Tgx101DeleteMore, "Другие действия…");
     RU.put(R.string.Tgx101Channel, "Канал PlumaGram");
     RU.put(R.string.Tgx101BottomGap, "Отступ под полем ввода и меню");
