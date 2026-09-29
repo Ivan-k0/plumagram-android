@@ -426,7 +426,7 @@ public class MessageOptionsPagerController extends BottomSheetViewController<Opt
   private int cachedHintHeight, cachedHintAvailWidth;
 
   private int getOptionItemsHeight () {
-    int optionItemsHeight = state.options.items != null ? Screen.dp(54) * state.options.items.length : 0;
+    int optionItemsHeight = MessageOptionsController.getOptionRowsHeight(state.options.items); // TGx101: icon row + 48dp rows
     int hintHeight;
     if (!StringUtils.isEmpty(state.options.info)) {
       int availWidth = Screen.currentWidth() - Screen.dp(16f) * 2; // FIXME: rely on parent view width

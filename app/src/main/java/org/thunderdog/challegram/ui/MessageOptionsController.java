@@ -117,6 +117,15 @@ public class MessageOptionsController extends BottomSheetViewController.BottomSh
   }
 
 
+  /** TGx101: height of the option rows (icon row + list), for the sheet position */
+  public static int getOptionRowsHeight (OptionItem[] items) {
+    if (items == null) {
+      return 0;
+    }
+    OptionItem[][] split = OptionsAdapter.split(items);
+    return split[1].length * Screen.dp(OPTION_HEIGHT_DP) + (split[0].length > 0 ? Screen.dp(QUICK_BAR_HEIGHT_DP) : 0);
+  }
+
   // TGx101: shorter menu (MagiX redesign, variant 1)
   private static final float OPTION_HEIGHT_DP = 48f;
   private static final float QUICK_BAR_HEIGHT_DP = 72f;
@@ -235,7 +244,12 @@ public class MessageOptionsController extends BottomSheetViewController.BottomSh
     private OptionItem[] listItems;
 
     private void splitItems () {
-      OptionItem[] all = options.items;
+      OptionItem[][] split = split(options.items);
+      barItems = split[0];
+      listItems = split[1];
+    }
+
+    static OptionItem[][] split (OptionItem[] all) {
       int[] candidates = {R.id.btn_messageReply, R.id.btn_messageCopy, R.id.btn_messageEdit, R.id.btn_messageShare};
       OptionItem delete = null;
       java.util.ArrayList<OptionItem> bar = new java.util.ArrayList<>();
@@ -258,18 +272,15 @@ public class MessageOptionsController extends BottomSheetViewController.BottomSh
         bar.add(delete);
       }
       if (bar.size() < 3) {
-        barItems = new OptionItem[0];
-        listItems = all;
-        return;
+        return new OptionItem[][] {new OptionItem[0], all};
       }
-      barItems = bar.toArray(new OptionItem[0]);
       java.util.ArrayList<OptionItem> rest = new java.util.ArrayList<>();
       for (OptionItem item : all) {
         if (!bar.contains(item)) {
           rest.add(item);
         }
       }
-      listItems = rest.toArray(new OptionItem[0]);
+      return new OptionItem[][] {bar.toArray(new OptionItem[0]), rest.toArray(new OptionItem[0])};
     }
 
     private int quickBarPosition () {
@@ -316,13 +327,14 @@ public class MessageOptionsController extends BottomSheetViewController.BottomSh
             OptionItem item = barItems[i];
             button.setVisibility(View.VISIBLE);
             button.setId(item.id);
-            final int textColorId = OptionsLayout.getOptionColorId(item.textColor);
+            final boolean isDelete = item.id == R.id.btn_messageDelete;
+            final int textColorId = isDelete ? ColorId.textNegative : OptionsLayout.getOptionColorId(item.textColor);
             button.setTextColor(Theme.getColor(textColorId));
             if (themeProvider != null)
               themeProvider.addThemeColorListener(button, textColorId);
-            Drawable drawable = item.icon != 0 ? Drawables.get(context.getResources(), item.icon) : null;
+            Drawable drawable = item.icon != 0 ? Drawables.get(context.getResources(), item.icon).mutate() : null;
             if (drawable != null) {
-              final int drawableColorId = item.iconColor == OptionColor.NORMAL ? (item.textColor == OptionColor.NORMAL ? ColorId.text : textColorId) : item.iconColor;
+              final int drawableColorId = isDelete ? ColorId.iconNegative : item.iconColor == OptionColor.NORMAL ? ColorId.icon : item.iconColor;
               drawable.setColorFilter(Paints.getColorFilter(Theme.getColor(drawableColorId)));
               if (themeProvider != null) {
                 themeProvider.addThemeFilterListener(drawable, drawableColorId);
@@ -446,7 +458,7 @@ public class MessageOptionsController extends BottomSheetViewController.BottomSh
 
   @Override
   public int getItemsHeight (RecyclerView recyclerView) {
-    int totalHeight = 2 * Screen.dp(54) + adapter.listItems.length * Screen.dp(OPTION_HEIGHT_DP) + (adapter.barItems.length > 0 ? Screen.dp(QUICK_BAR_HEIGHT_DP) : 0); // TGx101
+    int totalHeight = 2 * Screen.dp(54) + getOptionRowsHeight(options.items); // TGx101
     if (adapter.textInfoPosition >= 0) {
       View view = recyclerView.getLayoutManager().findViewByPosition(adapter.textInfoPosition);
       int hintHeight =
