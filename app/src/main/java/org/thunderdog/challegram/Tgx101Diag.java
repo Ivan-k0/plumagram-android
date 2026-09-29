@@ -12,7 +12,13 @@
  */
 package org.thunderdog.challegram;
 
+import android.content.ContentResolver;
+import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.os.Build;
 import android.os.Environment;
 
@@ -20,6 +26,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
@@ -36,13 +43,22 @@ import java.util.Locale;
 public final class Tgx101Diag {
   private Tgx101Diag () { }
 
+  private static final String FILE_NAME = "PlumaGram-diagnostics.txt";
   private static File file;
+  private static Uri uri; // Android 10+: the file in Download, visible to any file manager
+  private static ContentResolver resolver;
 
   public static void start (Context context) {
-    if (!BuildConfig.TGX101_DIAG || file != null) {
+    if (!BuildConfig.TGX101_DIAG || file != null || uri != null) {
       return;
     }
-    file = pickFile(context);
+    if (Build.VERSION.SDK_INT >= 29) {
+      resolver = context.getContentResolver();
+      uri = pickDownloadsUri(resolver);
+    }
+    if (uri == null) {
+      file = pickFile(context);
+    }
     write("\n===== Launch " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date()) + " =====\n" +
       "App: " + BuildConfig.VERSION_NAME + " (" + BuildConfig.VERSION_CODE + ")\n" +
       "Device: " + Build.MANUFACTURER + " " + Build.MODEL + " (" + Build.DEVICE + ", " + Build.PRODUCT + ")\n" +
@@ -63,7 +79,7 @@ public final class Tgx101Diag {
   }
 
   public static void mark (String step) {
-    if (BuildConfig.TGX101_DIAG && file != null) {
+    if (BuildConfig.TGX101_DIAG && (file != null || uri != null)) {
       write(new SimpleDateFormat("HH:mm:ss.SSS", Locale.US).format(new Date()) + "  " + step + "\n");
     }
   }
@@ -76,20 +92,47 @@ public final class Tgx101Diag {
     return new String[] {Build.CPU_ABI, Build.CPU_ABI2};
   }
 
+  private static Uri pickDownloadsUri (ContentResolver resolver) {
+    if (Build.VERSION.SDK_INT < 29) {
+      return null;
+    }
+    try {
+      Uri collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI;
+      Cursor cursor = resolver.query(collection, new String[] {MediaStore.MediaColumns._ID},
+        MediaStore.MediaColumns.DISPLAY_NAME + " = ?", new String[] {FILE_NAME}, null);
+      if (cursor != null) {
+        try {
+          if (cursor.moveToFirst()) {
+            return ContentUris.withAppendedId(collection, cursor.getLong(0));
+          }
+        } finally {
+          cursor.close();
+        }
+      }
+      ContentValues values = new ContentValues();
+      values.put(MediaStore.MediaColumns.DISPLAY_NAME, FILE_NAME);
+      values.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
+      values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+      return resolver.insert(collection, values);
+    } catch (Throwable t) {
+      return null;
+    }
+  }
+
   private static File pickFile (Context context) {
     File root = Environment.getExternalStorageDirectory();
-    File candidate = new File(root, "TGx101-diagnostics.txt");
+    File candidate = new File(root, FILE_NAME);
     if (canWrite(candidate)) {
       return candidate;
     }
     File dir = context.getExternalFilesDir(null);
     if (dir != null) {
-      candidate = new File(dir, "TGx101-diagnostics.txt");
+      candidate = new File(dir, FILE_NAME);
       if (canWrite(candidate)) {
         return candidate;
       }
     }
-    return new File(context.getFilesDir(), "TGx101-diagnostics.txt");
+    return new File(context.getFilesDir(), FILE_NAME);
   }
 
   private static boolean canWrite (File candidate) {
@@ -103,11 +146,19 @@ public final class Tgx101Diag {
 
   private static synchronized void write (String text) {
     // No try-with-resources: AutoCloseable is missing before Android 4.4
-    FileOutputStream out = null;
+    OutputStream out = null;
     try {
-      out = new FileOutputStream(file, true);
-      out.write(text.getBytes(Charset.forName("UTF-8")));
-      out.getFD().sync(); // survive an immediate native crash
+      if (uri != null) {
+        out = resolver.openOutputStream(uri, "wa");
+        if (out == null) return;
+        out.write(text.getBytes(Charset.forName("UTF-8")));
+        out.flush();
+        return;
+      }
+      FileOutputStream fileOut = new FileOutputStream(file, true);
+      out = fileOut;
+      fileOut.write(text.getBytes(Charset.forName("UTF-8")));
+      fileOut.getFD().sync(); // survive an immediate native crash
     } catch (Throwable ignored) {
     } finally {
       if (out != null) {
