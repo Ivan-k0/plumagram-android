@@ -154,7 +154,7 @@ public final class Tgx101MessageMenu {
     int navigationInset = Settings.instance().useEdgeToEdge() ? c.context().getRootView().getSystemInsetsWithoutIme().bottom : 0;
     FrameLayout.LayoutParams columnParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
       Gravity.BOTTOM | (leftHand ? Gravity.LEFT : Gravity.RIGHT));
-    columnParams.setMargins(Screen.dp(12f), Screen.dp(12f), Screen.dp(12f), Screen.dp(16f) + navigationInset);
+    columnParams.setMargins(Screen.dp(12f), Screen.dp(12f), Screen.dp(12f), Screen.dp(68f) + navigationInset); // above the message input
     column.setLayoutParams(columnParams);
     column.setOnClickListener(v -> { }); // taps between the pill and the card don't close the menu
     root.addView(column);
@@ -390,12 +390,13 @@ public final class Tgx101MessageMenu {
     GradientDrawable drawable = new GradientDrawable();
     drawable.setColor(color);
     drawable.setCornerRadius(radius);
+    // A thin edge instead of an elevation shadow: some firmwares (Vivo) draw that shadow with square corners
+    drawable.setStroke(Math.max(1, Screen.dp(.5f)), Theme.getColor(ColorId.separator));
     return drawable;
   }
 
   private static void elevate (View view, float radius) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      view.setElevation(Screen.dp(6f));
       view.setOutlineProvider(new ViewOutlineProvider() {
         @Override
         public void getOutline (View v, Outline outline) {
