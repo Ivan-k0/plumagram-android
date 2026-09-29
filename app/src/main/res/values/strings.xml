@@ -6148,5 +6148,6 @@
   <string name="RichMessageOpen">Open post</string>
   <string name="RichMessageOpenHint">Post with photos and buttons. Tap to open it.</string>
   <string name="RichMessageOpenFailed">Couldn\'t load the post: %1$s</string>
+  <string name="RichMessageOpenFull">Open the whole post ›</string>
   <string name="RichMessageOpenUnsupported">This post contains blocks the viewer doesn\'t support yet</string>
 </resources>

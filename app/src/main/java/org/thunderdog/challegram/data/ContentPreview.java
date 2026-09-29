@@ -281,9 +281,8 @@ public class ContentPreview {
         break;
       }
       case TdApi.MessageRichMessage.CONSTRUCTOR: {
-        TdApi.MessageRichMessage richMessage = (TdApi.MessageRichMessage) message.content;
-        // TODO rich message text representation
-        break;
+        // TGx101: "Photo" + beginning of the post instead of "Unsupported message"
+        return Tgx101RichMessage.preview((TdApi.MessageRichMessage) message.content);
       }
       case TdApi.MessageAnimatedEmoji.CONSTRUCTOR: {
         TdApi.MessageAnimatedEmoji animatedEmoji = (TdApi.MessageAnimatedEmoji) message.content;

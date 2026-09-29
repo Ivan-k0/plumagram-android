@@ -268,6 +268,7 @@ final class Tgx101Strings {
     RU.put(R.string.UnsupportedKindShared, "выбранные чаты или пользователи");
     RU.put(R.string.RichMessageOpen, "Открыть пост");
     RU.put(R.string.RichMessageOpenHint, "Пост с фото и кнопками. Нажмите, чтобы открыть.");
+    RU.put(R.string.RichMessageOpenFull, "Открыть пост полностью ›");
     RU.put(R.string.RichMessageOpenFailed, "Не удалось загрузить пост: %1$s");
     RU.put(R.string.RichMessageOpenUnsupported, "В посте есть элементы, которые просмотрщик пока не умеет показывать");
   }

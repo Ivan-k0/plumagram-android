@@ -458,6 +458,10 @@ public class TextEntityMessage extends TextEntity {
       }
       case TdApi.TextEntityTypeTextUrl.CONSTRUCTOR: {
         String link = ((TdApi.TextEntityTypeTextUrl) clickableEntity.type).url;
+        // TGx101: "Open the whole post" link under rich posts
+        if (context instanceof ViewController<?> && org.thunderdog.challegram.data.Tgx101RichMessage.openLink((ViewController<?>) context, link)) {
+          break;
+        }
         TdlibUi.UrlOpenParameters openParameters = this.openParameters(view, text, part, isFromLongPressMenu);
         if (callback == null || !callback.onUrlClick(view, link, true, openParameters)) {
           context.openLinkAlert(link, modifyUrlOpenParameters(openParameters, callback, link));
