@@ -3323,14 +3323,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   public void onPreferVideoModeChanged (boolean preferVideoMode) {
-    if (!sendShown.getValue()) {
+    if (!sendShown.getValue() && org.thunderdog.challegram.Tgx101Hints.take(org.thunderdog.challegram.Tgx101Hints.HOLD_TO_RECORD)) { // TGx101: twice at most
       showBottomHint(preferVideoMode ? R.string.HoldToVideo : R.string.HoldToAudio);
     }
   }
 
   @Override
   public void onRecordAudioVideoError (boolean preferVideoMode) {
-    if (!sendShown.getValue()) {
+    if (!sendShown.getValue() && org.thunderdog.challegram.Tgx101Hints.take(org.thunderdog.challegram.Tgx101Hints.HOLD_TO_RECORD)) { // TGx101: twice at most
       showBottomHint(preferVideoMode ? R.string.HoldToVideo : R.string.HoldToAudio);
     }
   }

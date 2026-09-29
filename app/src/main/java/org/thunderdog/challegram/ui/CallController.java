@@ -1156,6 +1156,9 @@ public class CallController extends ViewController<CallController.Arguments> imp
   }
 
   private void showEmojiTooltip () {
+    if (!org.thunderdog.challegram.Tgx101Hints.take(org.thunderdog.challegram.Tgx101Hints.CALL_EMOJI)) { // TGx101: twice at most
+      return;
+    }
     context().tooltipManager().builder(emojiViewSmall).controller(this).show(tdlib, Lang.getStringBold(R.string.CallEmojiHint, TD.getUserSingleName(call.userId, user)));
   }
 

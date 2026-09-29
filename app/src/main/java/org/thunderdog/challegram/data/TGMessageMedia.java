@@ -719,6 +719,9 @@ public class TGMessageMedia extends TGMessage {
   private CancellableRunnable hotOpen;
 
   private void showHotHint (View view) {
+    if (!org.thunderdog.challegram.Tgx101Hints.take(org.thunderdog.challegram.Tgx101Hints.HOLD_MEDIA)) { // TGx101: twice at most
+      return;
+    }
     context().tooltipManager().builder(view, currentViews).controller(controller()).locate((targetView, outRect) -> mosaicWrapper.getSingularItem().getFileProgress().toRect(outRect)).show(tdlib, R.string.HoldMediaTutorial);
   }
 

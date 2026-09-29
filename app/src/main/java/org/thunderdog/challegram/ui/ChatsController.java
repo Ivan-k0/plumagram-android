@@ -3176,7 +3176,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
         touchHelper.startDrag(viewHolder);
         if (dragTooltip != null)
           dragTooltip.hide(true);
-        dragTooltip = context.tooltipManager().builder(v).controller(getParentOrSelf()).locate((targetView, outRect) -> ((ChatView) targetView).getAvatarReceiver().toRect(outRect)).show(tdlib, R.string.DragChatsHint);
+        if (org.thunderdog.challegram.Tgx101Hints.take(org.thunderdog.challegram.Tgx101Hints.DRAG_CHATS)) { // TGx101: twice at most
+          dragTooltip = context.tooltipManager().builder(v).controller(getParentOrSelf()).locate((targetView, outRect) -> ((ChatView) targetView).getAvatarReceiver().toRect(outRect)).show(tdlib, R.string.DragChatsHint);
+        }
         return true;
       }
     }
