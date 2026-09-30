@@ -9000,6 +9000,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
 
     final String[] quickReactions = Settings.instance().getQuickReactions(tdlib);
+    tgx101FirstQuickReaction = null;
+    final boolean swipeReactions = Settings.instance().getTapMode() != Settings.TAP_MODE_DOUBLE; // TGx101: «Double tap — like»: swipe only replies
     for (int a = 0; a < quickReactions.length; a++) {
       final String reactionString = quickReactions[a];
       TdApi.ReactionType reactionType = TD.toReactionType(reactionString);
@@ -9021,6 +9023,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           }
         }, false, true);
 
+        if (tgx101FirstQuickReaction == null) {
+          tgx101FirstQuickReaction = quickReaction.handler; // TGx101: double tap
+        }
+        if (!swipeReactions) {
+          continue;
+        }
         if (isOdd) {
           rightQuickDefaultPosition += 1;
           rightActions.add(0, quickReaction);
@@ -9037,6 +9045,17 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         messagesController().shareMessages(getAllMessages(), false);
       }, true, false));
     }
+  }
+
+  // TGx101: reaction №1 of the quick reactions, set by a double tap on the message
+  private Runnable tgx101FirstQuickReaction;
+
+  public boolean tgx101SetFirstQuickReaction () {
+    if (tgx101FirstQuickReaction == null) {
+      return false;
+    }
+    tgx101FirstQuickReaction.run();
+    return true;
   }
 
   public ArrayList<SwipeQuickAction> getLeftQuickReactions () {

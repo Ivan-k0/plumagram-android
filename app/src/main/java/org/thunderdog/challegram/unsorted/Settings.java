@@ -3284,6 +3284,18 @@ public class Settings {
   public static final int CALL_PATTERN_PAPER_PLANES = 1;
   private static final String KEY_CALL_PATTERN = "settings_call_pattern";
 
+  // TGx101: message taps — stock / double tap sets reaction №1 (swipe only replies) / double tap and swipe reactions
+  public static final int TAP_MODE_STOCK = 0, TAP_MODE_DOUBLE = 1, TAP_MODE_DOUBLE_SWIPE = 2;
+  private static final String KEY_TGX101_TAP_MODE = "tgx101_tap_mode";
+
+  public int getTapMode () {
+    return pmc.getInt(KEY_TGX101_TAP_MODE, TAP_MODE_STOCK);
+  }
+
+  public void setTapMode (int mode) {
+    pmc.putInt(KEY_TGX101_TAP_MODE, mode);
+  }
+
   // TGx101: new call screen (card with 2×3 labelled buttons, TruePhone-style incoming call); off = the previous one
   private static final String KEY_TGX101_NEW_CALL_SCREEN = "tgx101_new_call_screen";
 

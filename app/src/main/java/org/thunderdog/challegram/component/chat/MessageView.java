@@ -595,8 +595,38 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
         return true;
       }
     }*/
+    // TGx101: double tap sets reaction №1; the menu opens after the double-tap timeout (only when the option is on)
+    if (Settings.instance().getTapMode() != Settings.TAP_MODE_STOCK && msg.canBeReacted()) {
+      if (pendingMenuTap != null && pendingMenuMessage == msg) {
+        pendingMenuTap.cancel();
+        pendingMenuTap = null;
+        pendingMenuMessage = null;
+        return msg.tgx101SetFirstQuickReaction() || onMessageClickImpl(x, y, null);
+      }
+      if (pendingMenuTap != null) {
+        pendingMenuTap.cancel();
+      }
+      final TGMessage tappedMessage = msg;
+      pendingMenuMessage = tappedMessage;
+      pendingMenuTap = new CancellableRunnable() {
+        @Override
+        public void act () {
+          pendingMenuTap = null;
+          pendingMenuMessage = null;
+          if (msg == tappedMessage && !msg.isDestroyed()) {
+            onMessageClickImpl(x, y, null);
+          }
+        }
+      };
+      postDelayed(pendingMenuTap, DOUBLE_TAP_TIMEOUT_MS);
+      return true;
+    }
     return onMessageClickImpl(x, y, null);
   }
+
+  private static final long DOUBLE_TAP_TIMEOUT_MS = 250;
+  private CancellableRunnable pendingMenuTap;
+  private TGMessage pendingMenuMessage;
 
   private boolean onMessageClickImpl (float x, float y, @Nullable TdApi.ChatMember sender) {
     MessagesController m = msg.messagesController();
@@ -896,9 +926,9 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     // TGx101: transcription is started with the "A" button on the message; its text can be selected
     if (!isMore && org.thunderdog.challegram.data.Tgx101Transcription.canTranscribe(msg.getMessage().content) &&
       org.thunderdog.challegram.data.Tgx101Transcription.doneText(m.tdlib(), msg.getMessage()) != null) {
-      ids.append(R.id.btn_messageTranscribe);
-      strings.append(R.string.SelectText);
-      icons.append(R.drawable.baseline_format_quote_close_24);
+      ids.append(R.id.btn_messageTranscribe); // TGx101: copies the transcription; selecting is a second long press
+      strings.append(R.string.Copy);
+      icons.append(R.drawable.baseline_content_copy_24);
     }
 
     // TGx101: pay a bot invoice or unlock paid media with Stars
@@ -926,11 +956,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       }
       icons.append(R.drawable.baseline_content_copy_24);
 
-      if (true) { // TGx101: "Select text" is always available (the MagiX toggle was removed)
-        ids.append(R.id.btn_messageSelectText);
-        strings.append(R.string.SelectText);
-        icons.append(R.drawable.baseline_format_quote_close_24);
-      }
+      // TGx101: «Select text» left the menu: a second long press on the selected message opens it
     }
 
     if (!isMore && msg.isTranslated()) {
@@ -1444,6 +1470,10 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       return false;
     }
     MessagesController m = (MessagesController) c;
+    // TGx101: a second long press on an already selected message opens text selection
+    if (m.inSelectMode() && m.isMessageSelected(msg.getChatId(), msg.getId(), msg) && m.tgx101OpenSelectText(msg)) {
+      return true;
+    }
     if (msg.canBeSelected()) {
       selectMessage(m, msg, touchX, touchY);
       return true;

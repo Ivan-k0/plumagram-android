@@ -5695,6 +5695,33 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return counterSet;
   }
 
+  /** TGx101: text selection for a message (its text or caption, or a finished transcription). Returns false if there's no text. */
+  public boolean tgx101OpenSelectText (TGMessage msg) {
+    String transcription = org.thunderdog.challegram.data.Tgx101Transcription.canTranscribe(msg.getMessage().content) ?
+      org.thunderdog.challegram.data.Tgx101Transcription.doneText(tdlib, msg.getMessage()) : null;
+    TdApi.FormattedText text = null;
+    if (transcription == null) {
+      TdApi.Message message = null;
+      if (msg instanceof TGMessageMedia) {
+        message = msg.getMessage(((TGMessageMedia) msg).getCaptionMessageId());
+      }
+      if (message == null) {
+        message = msg.getNewestMessage();
+      }
+      text = Td.textOrCaption(message.content);
+      if (text == null || StringUtils.isEmpty(text.text) || !msg.canBeSaved() || !msg.canCopyText()) {
+        return false;
+      }
+    }
+    finishSelectMode(-1);
+    if (transcription != null) {
+      SelectTextForQuoteDialog.showForTranscription(this, tdlib, msg, transcription);
+    } else {
+      SelectTextForQuoteDialog.show(this, tdlib, msg, text);
+    }
+    return true;
+  }
+
   @Override
   public void finishSelectMode (int position) {
     if ((position == -2 || position == -1)) {
@@ -6092,7 +6119,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       } else if (id == R.id.btn_messageTranscribe) {
         String transcription = org.thunderdog.challegram.data.Tgx101Transcription.doneText(tdlib, selectedMessage.getMessage());
         if (transcription != null) {
-          SelectTextForQuoteDialog.showForTranscription(this, tdlib, selectedMessage, transcription); // TGx101: select, reply or copy
+          UI.copyText(transcription, R.string.CopiedText); // TGx101: the whole transcription; a second long press selects part of it
         }
         return true;
       } else if (id == R.id.btn_starsPay) {

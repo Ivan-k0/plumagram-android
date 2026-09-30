@@ -202,6 +202,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101CallPhotoNone, "Не показывать");
     RU.put(R.string.Tgx101CallPattern, "Узор из самолётиков");
     RU.put(R.string.Tgx101RingRamp, "Нарастающая громкость звонка");
+    RU.put(R.string.Tgx101TapMode, "Двойной тап");
+    RU.put(R.string.Tgx101TapModeStock, "Выкл (как сейчас)");
+    RU.put(R.string.Tgx101TapModeDouble, "Двойной тап — лайк");
+    RU.put(R.string.Tgx101TapModeDoubleSwipe, "Двойной тап и свайп — лайк");
+    RU.put(R.string.Tgx101TapModeHint, "Двойной тап ставит реакцию №1 из быстрых реакций. В режиме «Двойной тап — лайк» свайп только отвечает. Долгое нажатие выделяет сообщение, повторное долгое нажатие открывает выделение текста.");
     RU.put(R.string.Tgx101CallMic, "Микрофон");
     RU.put(R.string.Tgx101CallVideoButton, "Видео");
     RU.put(R.string.Tgx101CallSpeaker, "Динамик");

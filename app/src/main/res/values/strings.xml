@@ -6079,6 +6079,11 @@
   <string name="Tgx101CallPhotoNone">Don\'t show</string>
   <string name="Tgx101CallPattern">Paper plane pattern</string>
   <string name="Tgx101RingRamp">Increasing ringtone volume</string>
+  <string name="Tgx101TapMode">Double tap</string>
+  <string name="Tgx101TapModeStock">Off (as now)</string>
+  <string name="Tgx101TapModeDouble">Double tap — like</string>
+  <string name="Tgx101TapModeDoubleSwipe">Double tap and swipe — like</string>
+  <string name="Tgx101TapModeHint">Double tap sets reaction №1 from the quick reactions. With «Double tap — like» the swipe only replies. A long press selects a message; a second long press on it opens text selection.</string>
   <string name="Tgx101CallMic">Microphone</string>
   <string name="Tgx101CallVideoButton">Video</string>
   <string name="Tgx101CallSpeaker">Speaker</string>

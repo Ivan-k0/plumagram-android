@@ -232,6 +232,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().getCallPattern() != Settings.CALL_PATTERN_NONE, isUpdate);
         } else if (itemId == R.id.btn_tgx101RingRamp) {
           view.getToggler().setRadioEnabled(Settings.instance().isRingRampEnabled(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101TapMode) {
+          view.setData(tapModeName(Settings.instance().getTapMode()));
         } else if (itemId == R.id.btn_tgx101NewCallScreen) {
           view.getToggler().setRadioEnabled(Settings.instance().useNewCallScreen(), isUpdate);
         } else if (quickReplyIndex(itemId) != -1) {
@@ -328,7 +330,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101MessageMenuHand, 0, R.string.Tgx101MessageMenuHand),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MessageMenuOrder, 0, R.string.Tgx101MessageMenuOrder),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101TapMode, 0, R.string.Tgx101TapMode),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101TapModeHint),
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ChatListSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
@@ -678,6 +683,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setCallPattern(toggleResult ? Settings.CALL_PATTERN_PAPER_PLANES : Settings.CALL_PATTERN_NONE); // the view was already toggled above
     } else if (id == R.id.btn_tgx101RingRamp) {
       Settings.instance().setRingRampEnabled(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101TapMode) {
+      showTapModes();
     } else if (id == R.id.btn_tgx101NewCallScreen) {
       Settings.instance().setUseNewCallScreen(toggleResult); // the view was already toggled above
     } else if (quickReplyIndex(id) != -1) {
@@ -1031,6 +1038,32 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       case Settings.CALL_PHOTO_NONE: return R.string.Tgx101CallPhotoNone;
       default: return R.string.Tgx101CallPhotoCircle;
     }
+  }
+
+  private static int tapModeName (int mode) {
+    switch (mode) {
+      case Settings.TAP_MODE_DOUBLE: return R.string.Tgx101TapModeDouble;
+      case Settings.TAP_MODE_DOUBLE_SWIPE: return R.string.Tgx101TapModeDoubleSwipe;
+      default: return R.string.Tgx101TapModeStock;
+    }
+  }
+
+  private void showTapModes () {
+    final int[] modes = {Settings.TAP_MODE_STOCK, Settings.TAP_MODE_DOUBLE, Settings.TAP_MODE_DOUBLE_SWIPE};
+    final int current = Settings.instance().getTapMode();
+    ListItem[] items = new ListItem[modes.length];
+    for (int i = 0; i < modes.length; i++) {
+      items[i] = new ListItem(ListItem.TYPE_RADIO_OPTION, modes[i] + 1, 0, tapModeName(modes[i]), R.id.btn_tgx101TapMode, modes[i] == current);
+    }
+    showSettings(new SettingsWrapBuilder(R.id.btn_tgx101TapMode)
+      .setRawItems(items)
+      .setIntDelegate((id, result) -> {
+        int selected = result.get(R.id.btn_tgx101TapMode);
+        if (selected > 0) {
+          Settings.instance().setTapMode(selected - 1);
+          adapter.updateValuedSettingById(R.id.btn_tgx101TapMode);
+        }
+      }));
   }
 
   private static int quickReplyIndex (int id) {
