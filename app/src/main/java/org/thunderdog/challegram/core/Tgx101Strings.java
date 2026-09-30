@@ -116,6 +116,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101EditorLink, "Ссылка");
     RU.put(R.string.Tgx101EditorPlain, "Обычный");
     RU.put(R.string.Tgx101EditorSelectAll, "Выбрать всё");
+    RU.put(R.string.Tgx101EditorSelectAllShort, "Всё");
     RU.put(R.string.Tgx101EditorCopy, "Скопировать");
     RU.put(R.string.Tgx101EditorCopyAll, "Скопировать всё");
     RU.put(R.string.Tgx101EditorSave, "Сохранить");

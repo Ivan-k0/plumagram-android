@@ -165,7 +165,7 @@ public final class Tgx101TextEditor {
         grid.removeAllViews();
         for (Object[] item : groups[index]) {
           final int action = (int) item[2];
-          addToolButton(grid, item[0], (int) item[1], 4, v -> onFormatAction(controller, input, action, plainUndo));
+          addToolButton(grid, item[0], (int) item[1], groups[index].length, v -> onFormatAction(controller, input, action, plainUndo));
         }
       };
     }
@@ -189,6 +189,33 @@ public final class Tgx101TextEditor {
     root.findViewWithTag("close").setOnClickListener(v -> { if (dialog[0] != null) dialog[0].dismiss(); });
     fitAboveKeyboard(root, input);
     input.requestFocus();
+  }
+
+  /** Whether [start, end) is fully covered by spans of this entity type */
+  private static boolean isFullyStyled (android.text.Spanned text, int start, int end, TdApi.TextEntityType type) {
+    Object[] spans = text.getSpans(start, end, Object.class);
+    java.util.List<int[]> ranges = new java.util.ArrayList<>();
+    if (spans != null) {
+      for (Object span : spans) {
+        if (!TD.canConvertToEntityType(span)) continue;
+        TdApi.TextEntityType[] types = TD.toEntityType(span);
+        if (types == null) continue;
+        for (TdApi.TextEntityType t : types) {
+          if (t.getConstructor() == type.getConstructor()) {
+            ranges.add(new int[] {text.getSpanStart(span), text.getSpanEnd(span)});
+            break;
+          }
+        }
+      }
+    }
+    java.util.Collections.sort(ranges, (a, b) -> Integer.compare(a[0], b[0]));
+    int covered = start;
+    for (int[] range : ranges) {
+      if (range[0] > covered) break;
+      covered = Math.max(covered, range[1]);
+      if (covered >= end) return true;
+    }
+    return covered >= end;
   }
 
   private static TdApi.TextEntityType typeOf (int action) {
@@ -253,13 +280,13 @@ public final class Tgx101TextEditor {
       }
       return;
     }
-    if (!input.setSpan(action)) {
-      // the whole selection already has this style → take it back
-      TdApi.TextEntityType type = typeOf(action);
-      if (type != null) {
-        input.removeSpan(type);
-        input.setSelection(start, end);
-      }
+    TdApi.TextEntityType type = typeOf(action);
+    if (type != null && isFullyStyled(input.getText(), start, end, type)) {
+      // the whole selection already has this style → the second press takes it back
+      input.removeSpan(type);
+      input.setSelection(start, end);
+    } else {
+      input.setSpan(action);
     }
   }
 
@@ -444,6 +471,16 @@ public final class Tgx101TextEditor {
       name.setTextColor(Theme.textAccentColor());
       name.setGravity(Gravity.CENTER);
       name.setSingleLine(true);
+      if (label == R.string.Tgx101EditorSelectAll) {
+        // «Выбрать всё» → «Всё» when the button is too narrow
+        name.addOnLayoutChangeListener((view, l, t, r, b, ol, ot, or, ob) -> {
+          int available = button.getWidth() - Screen.dp(10f);
+          String full = Lang.getString(R.string.Tgx101EditorSelectAll);
+          if (available > 0 && name.getPaint().measureText(full) > available && full.contentEquals(name.getText())) {
+            name.post(() -> name.setText(Lang.getString(R.string.Tgx101EditorSelectAllShort)));
+          }
+        });
+      }
       button.addView(name, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
       LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
       params.leftMargin = params.rightMargin = Screen.dp(3f);

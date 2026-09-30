@@ -5994,6 +5994,7 @@
   <string name="Tgx101EditorLink">Link</string>
   <string name="Tgx101EditorPlain">Plain</string>
   <string name="Tgx101EditorSelectAll">Select all</string>
+  <string name="Tgx101EditorSelectAllShort">All</string>
   <string name="Tgx101EditorCopy">Copy</string>
   <string name="Tgx101EditorCopyAll">Copy all</string>
   <string name="Tgx101EditorSave">Save</string>
