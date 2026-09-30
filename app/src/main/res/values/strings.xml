@@ -6079,6 +6079,7 @@
   <string name="Tgx101CallPhotoNone">Don\'t show</string>
   <string name="Tgx101CallPattern">Paper plane pattern</string>
   <string name="Tgx101RingRamp">Increasing ringtone volume</string>
+  <string name="Tgx101FloatingInput">Floating message field</string>
   <string name="Tgx101CameraInAttach">Camera button in the attach menu</string>
   <string name="Tgx101AttachCamera">Camera</string>
   <string name="Tgx101VoiceQueue">Voice messages in a row</string>

@@ -732,12 +732,19 @@ public class MessagesController extends ViewController<MessagesController.Argume
     params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0);
     params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
 
+    floatingInput = Settings.instance().useFloatingInput() && previewMode == PREVIEW_MODE_NONE && !isInForceTouchMode();
+
     bottomSpace = new FillingSpace(context);
     bottomSpace.setLayoutParams(params);
-    bottomSpace.setThemedBackground(ColorId.filling, this);
+    if (!floatingInput) { // TGx101: with the floating capsule the chat shows around and under it
+      bottomSpace.setThemedBackground(ColorId.filling, this);
+    }
 
     params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+    if (floatingInput) {
+      params.leftMargin = params.rightMargin = Screen.dp(FLOATING_INPUT_SIDE);
+    }
 
     bottomWrap = new LinearLayout(context) {
       int lastHeight;
@@ -755,6 +762,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
     };
     bottomWrap.setId(R.id.msg_bottom);
+    if (floatingInput) {
+      applyFloatingInputShape(bottomWrap);
+    }
     bottomWrap.setOrientation(LinearLayout.VERTICAL);
     bottomWrap.setMinimumHeight(Screen.dp(49f));
     bottomWrap.setLayoutParams(params);
@@ -792,7 +802,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       addThemeHintTextColorListener(inputView, ColorId.textPlaceholder);
       inputView.setLinkTextColor(Theme.textLinkColor());
       addThemeLinkTextColorListener(inputView, ColorId.textLink);
-      ViewSupport.setThemedBackground(inputView, ColorId.filling, this);
+      if (!floatingInput) { // TGx101: the capsule draws the background
+        ViewSupport.setThemedBackground(inputView, ColorId.filling, this);
+      }
       inputView.setHighlightColor(Theme.fillingTextSelectionColor());
       addThemeHighlightColorListener(inputView, ColorId.textSelectionHighlight);
       bindLocaleChanger(inputView.setController(this));
@@ -1093,6 +1105,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     bottomShadowView.setAlignBottom();
     addThemeInvalidateListener(bottomShadowView);
     bottomShadowView.setId(R.id.msg_bottomShadow);
+    if (floatingInput) {
+      bottomShadowView.setVisibility(View.GONE); // the capsule has its own shadow
+    }
 
     params = new RelativeLayout.LayoutParams(Screen.dp(55f), Screen.dp(49f));
     params.addRule(RelativeLayout.ALIGN_PARENT_TOP);
@@ -1100,6 +1115,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
     } else {
       params.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+    }
+    if (floatingInput) {
+      params.leftMargin = params.rightMargin = Screen.dp(FLOATING_INPUT_SIDE);
     }
 
     emojiButton = new ImageView(context);
@@ -1117,6 +1135,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       params.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
     } else {
       params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+    }
+    if (floatingInput) {
+      params.leftMargin = params.rightMargin = Screen.dp(FLOATING_INPUT_SIDE);
     }
 
     attachButtons = new AttachLinearLayout(context) {
@@ -1241,6 +1262,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       params.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
     } else {
       params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+    }
+    if (floatingInput) {
+      params.leftMargin = params.rightMargin = Screen.dp(FLOATING_INPUT_SIDE);
     }
 
     sendButton = new SendButton(context, areScheduled ? R.drawable.dotvhs_baseline_send_schedule_24 : R.drawable.deproko_baseline_send_24);
@@ -9198,6 +9222,53 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
+  // TGx101: floating message field — a rounded capsule with a shadow; the bottom padding (gap) stays transparent
+
+  private static final float FLOATING_INPUT_SIDE = 10f, FLOATING_INPUT_BOTTOM = 8f, FLOATING_INPUT_RADIUS = 24f;
+  private boolean floatingInput;
+
+  private void applyFloatingInputShape (View view) {
+    view.setBackground(new android.graphics.drawable.Drawable() {
+      private final android.graphics.RectF rect = new android.graphics.RectF();
+
+      @Override
+      public void draw (@NonNull Canvas c) {
+        android.graphics.Rect bounds = getBounds();
+        rect.set(bounds.left, bounds.top, bounds.right, bounds.bottom - view.getPaddingBottom());
+        float radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), rect.height() / 2f);
+        c.drawRoundRect(rect, radius, radius, Paints.fillingPaint(Theme.fillingColor()));
+        // No elevation (it would lift the capsule above the input buttons and the recording overlay): a hairline instead
+        float half = Math.max(1, Screen.dp(.5f)) / 2f;
+        rect.inset(half, half);
+        c.drawRoundRect(rect, radius, radius, Paints.strokeSeparatorPaint(Theme.separatorColor()));
+      }
+
+      @Override
+      public void setAlpha (int alpha) { }
+
+      @Override
+      public void setColorFilter (@Nullable android.graphics.ColorFilter colorFilter) { }
+
+      @Override
+      public int getOpacity () {
+        return android.graphics.PixelFormat.TRANSLUCENT;
+      }
+    });
+    addThemeInvalidateListener(view);
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+      view.setOutlineProvider(new android.view.ViewOutlineProvider() {
+        @Override
+        public void getOutline (View v, android.graphics.Outline outline) {
+          int bottom = v.getHeight() - v.getPaddingBottom();
+          float radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), bottom / 2f);
+          outline.setRoundRect(0, 0, v.getWidth(), Math.max(1, bottom), radius);
+        }
+      });
+      view.setClipToOutline(true); // reply / edit bars inside get the rounded corners too
+      view.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> v.invalidateOutline());
+    }
+  }
+
   private void updateBottomWrapOffset () {
     if (bottomWrap != null) {
       int height = emojiShown || commandsShown ? 0 : extraBottomInset;
@@ -9206,6 +9277,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // IME inset only: the activity's keyboard flag is updated after this runs and would lag.
       if (Settings.instance().needBottomGap() && !emojiShown && !commandsShown && extraBottomInset <= extraBottomInsetWithoutIme) {
         height += Math.max(0, Screen.dp(16f) - extraBottomInset);
+      }
+      if (floatingInput && !emojiShown && !commandsShown) {
+        height += Screen.dp(FLOATING_INPUT_BOTTOM); // TGx101: the capsule floats above the edge (or the keyboard)
       }
       Views.setPaddingBottom(bottomWrap, height);
       if (bottomSpace.setLayoutHeight(height, false)) {

@@ -254,6 +254,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(org.thunderdog.challegram.service.Tgx101Updates.isEnabled(context()), isUpdate);
         } else if (itemId == R.id.btn_separateChannelPosts) {
           view.getToggler().setRadioEnabled(Settings.instance().separateChannelPosts(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101FloatingInput) {
+          view.getToggler().setRadioEnabled(Settings.instance().useFloatingInput(), isUpdate);
         } else if (itemId == R.id.btn_tgx101BottomGap) {
           view.getToggler().setRadioEnabled(Settings.instance().bottomGapEnabled(), isUpdate);
         } else if (itemId == R.id.btn_tgx101NotificationPlane) {
@@ -348,6 +350,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_bigEmojiSize, 0, R.string.BigEmojiSize),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_pullToSearch, 0, R.string.PullToSearch),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101FloatingInput, 0, R.string.Tgx101FloatingInput),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101BottomGap, 0, R.string.Tgx101BottomGap),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -677,6 +681,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_mobile, 0, R.string.OnMobileNetwork, id, tdlib.files().getVoipDataSavingOption() == DataSavingOption.MOBILE),
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_always, 0, R.string.UseLessDataAlways, id, tdlib.files().getVoipDataSavingOption() == DataSavingOption.ALWAYS)
       }).setIntDelegate(this));
+    } else if (id == R.id.btn_tgx101FloatingInput) {
+      Settings.instance().setUseFloatingInput(toggleResult); // the view was already toggled above; applies to chats opened afterwards
     } else if (id == R.id.btn_tgx101BottomGap) {
       Settings.instance().setBottomGapEnabled(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101NotificationPlane) {

@@ -3284,6 +3284,17 @@ public class Settings {
   public static final int CALL_PATTERN_PAPER_PLANES = 1;
   private static final String KEY_CALL_PATTERN = "settings_call_pattern";
 
+  // TGx101: the message field floats over the chat as a rounded capsule with a shadow (approved input variant 5)
+  private static final String KEY_TGX101_FLOATING_INPUT = "tgx101_floating_input";
+
+  public boolean useFloatingInput () {
+    return pmc.getBoolean(KEY_TGX101_FLOATING_INPUT, true);
+  }
+
+  public void setUseFloatingInput (boolean use) {
+    pmc.putBoolean(KEY_TGX101_FLOATING_INPUT, use);
+  }
+
   // TGx101: the camera button leaves the message input for the attach (paperclip) menu, in place of «Inline bot»
   private static final String KEY_TGX101_CAMERA_IN_ATTACH = "tgx101_camera_in_attach";
 
