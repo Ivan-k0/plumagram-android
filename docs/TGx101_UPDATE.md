@@ -87,6 +87,24 @@ git submodule update --init --recursive   # обязательно сразу п
 | `MainActivity.java` (onResume) | `Tgx101Updates.checkIfNeeded` — уведомление о новой версии |
 | `ui/MessageOptionsPagerController.java` (высота подзаголовка, getContentOffset), `ui/MessagesController.java` (updateBottomWrapOffset, onFocus) | отступ 16 dp снизу при навигации жестами, `Settings.isGestureNavigation` |
 | `data/TGMessage.java` (valueOf: unsupported), `component/chat/MessageView.java` | тип неподдерживаемого сообщения; `MessageRichMessage` → `Tgx101RichMessage` (убран из списка unsupported), «Открыть пост» |
+| `Tgx101Diag`, `Tgx101DiagHooks` (новые) + вызовы в `BaseApplication.kt`, `BaseActivity` (dispatchTouchEvent, keyboard, popup, back), `Log.java`, `telegram/Tdlib.java` (processUpdate), `TdlibNotificationStyle`, `navigation/ViewController` (onFocus), `component/chat/ChatHeaderView` | диагностические сборки (`-Ptgx101Diag=true`): полный журнал событий, в публичных сборках ничего не делает |
+| `BaseActivity.requestCustomPermissions` | уже выданные разрешения не запрашиваются повторно (иначе окно системы на миг сворачивало приложение при каждом звонке) |
+| `BaseActivity` (updatePopupBackPriority, isPopupOverChatInput), `component/chat/InputView.onKeyPreIme` | «назад» сначала закрывает меню, потом клавиатуру |
+| `service/TGCallService` (configureDeviceForCall, notifyAudioSettingsChanged, onTgx101Headset/BluetoothChanged, silenceRinging, ramp, onDestroy без getMode) | маршрут звука звонка, «Без звука», нарастающая мелодия; настройки звука менять только через `UI.post` (внутри рассылки событий звонка — падение) |
+| `ui/CallController` (имя в 2 строки, птица, `showAudioOutputPicker`, `Tgx101IncomingControls`), `sinceLollipop/…/Tgx101CallVideo` (карточка К1), `util/EmojiStatusHelper.setAnimationDisabled` | новый экран звонка (MagiX «Новый экран звонка») |
+| `MainActivity` (coverUntilCallShown, openCallController возвращает контроллер) | тёмная заслонка до появления экрана звонка |
+| `telegram/Tgx101NotificationText` (новый), `TdlibNotificationStyle` (3 вызова shorten, largeIcon только до Android 7) | короткий текст уведомлений, без повтора фото |
+| `navigation/HeaderView.DEFAULT_STATUS_COLOR = 0`, `widget/NetworkStatusBarView` (alpha фона всегда по factor) | строка состояния в цвет шапки |
+| `mediaview/MediaViewController` (onInterceptTouchEvent) | свайп от верхнего края не закрывает просмотр |
+| `tool/Fonts.getRobotoRegularStock`, `component/chat/InputView` | поле ввода без «Толщины текста» |
+| `ui/IntroController.getString`, `res/drawable-*/intro_tg_plane.png` | птица и «PlumaGram» на стартовом экране |
+| `component/chat/MessagesLoader` (GetForumTopicHistory) | тема форума — только её сообщения |
+| `data/TGMessageFile` (disallowTouch, отмена клика по сообщению), `data/FileComponent.isTouchCaught` | файл открывается по названию |
+| `ui/Tgx101MessageMenu` | узкая карточка меню, реакции с выступом, целое число реакций |
+| `component/chat/MessageView` (двойной тап, повторное долгое нажатие, меню без «Выделить текст»), `data/TGMessage.tgx101SetFirstQuickReaction`, `ui/MessagesController.tgx101OpenSelectText` | нажатия на сообщения |
+| `player/TGPlayerController.playNextMessage` | «Голосовые подряд»: пропуск своих |
+| `component/attach/MediaLayout` (пункт «Камера»), `ui/MessagesController` (камера не в строке ввода, `tgx101OpenCameraFromAttach`) | камера в скрепке |
+| `ui/MessagesController` (floatingInput: список под капсулой, `applyFloatingInputShape`, панель ответа, порядок addView) | плавающее поле ввода (по умолчанию выключено) |
 | `app/jni/CMakeLists.txt` | путь к `libtdjni.so` (обход опечатки в `tdlib/source/install.sh`; можно убрать, когда Telegram X её исправит) |
 
 **Важно про флаги настроек.** Если в новой версии Telegram X в `Settings.java` появятся свои
@@ -165,6 +183,20 @@ strings /tmp/tdcheck/libtdjni.so | grep -c "$(cat tdlib/version.txt)"   # дол
 - [ ] Форум открывается списком тем; тема — отдельный чат с её названием в шапке; «Новая тема», долгое нажатие — управление; «Все сообщения одной лентой» и «⋮ → Показать темы»; уведомление из темы открывает тему (`Tgx101TopicsController`, перехват в `TdlibUi.openChat`, `ChatOpenParameters.tgx101IgnoreTopics`, шапка в `MessagesController`).
 - [ ] 1Ø1 → «Размер эмодзи и стикеров»: 60/125% меняют размер стикеров, одиночного и 2–3 эмодзи; «Выкл» (и стоковый «Big Emoji») — все эмодзи обычные, включая анимированные (правки: `TGMessage` allowAnimatedEmoji, `TGMessageSticker.buildContent/checkContent`, `TextWrapper`).
 - [ ] Меню чата: «Позвонить» первым, «Прикрепить» последним.
+
+**Изменения 2026-09-30**
+- [ ] Входящий звонок: ползунок «Ответить», «Отклонить», «Без звука», быстрый ответ уходит собеседнику; белой вспышки нет.
+- [ ] Разговор: карточка из 6 кнопок, «Аудиовыход» (телефон / гарнитура / Bluetooth / динамик), наушники во время звонка подхватываются, звонок не стартует на громкой.
+- [ ] Длинное имя на экране звонка в 2 строки, эмодзи-статус виден; птица не наезжает на шифр-эмодзи.
+- [ ] Нарастающая мелодия (MagiX → «Звонки»).
+- [ ] Длинное сообщение со ссылками в уведомлении: кнопки видны; у канала нет фото справа.
+- [ ] Строка состояния в цвет шапки (светлая и тёмная темы).
+- [ ] Просмотр фото: свайп сверху опускает шторку, фото не сворачивается.
+- [ ] Тема форума показывает только свои сообщения; Android 4: форум открывается.
+- [ ] Файл открывается нажатием на название; меню при этом не открывается.
+- [ ] Меню сообщения: реакции шире карточки, свободная полоса у края закрывает меню; «назад» при открытой клавиатуре закрывает сначала меню.
+- [ ] Двойной тап (если включён) ставит реакцию №1; повторное долгое нажатие открывает выделение текста; у расшифровки «Копировать».
+- [ ] «Голосовые подряд → Пропускать свои»; «Камера в скрепке»; «Плавающее поле ввода».
 
 **Прочее**
 - [ ] Контакты в телефонной книге, кнопка «Telegram» у контакта открывает чат.
