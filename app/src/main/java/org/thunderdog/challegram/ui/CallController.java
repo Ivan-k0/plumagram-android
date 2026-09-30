@@ -445,10 +445,11 @@ public class CallController extends ViewController<CallController.Arguments> imp
     int startMargin = Math.max(Screen.dp(18f) + Screen.getStatusBarHeight(), Screen.dp(42f));
     avatarView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER_HORIZONTAL | Gravity.TOP));
     if (isCircle) {
-      Views.setTopMargin(avatarView, startMargin + AVATAR_TOP_OFFSET);
+      Views.setTopMargin(avatarView, startMargin + AVATAR_TOP_OFFSET - (Settings.instance().useNewCallScreen() ? Screen.dp(28f) : 0));
     }
 
-    params.topMargin = startMargin + Screen.dp(34f);
+    final boolean tgx101New = Settings.instance().useNewCallScreen() && !isFullScreen;
+    params.topMargin = tgx101New ? startMargin + Screen.dp(6f) : startMargin + Screen.dp(34f); // TGx101: the name as high as possible
     params.leftMargin = params.rightMargin = Screen.dp(18f);
 
     final boolean newScreen = Settings.instance().useNewCallScreen() && !isFullScreen;
@@ -529,7 +530,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
     emojiStatusHelper.attach(); // TGx101: without it custom (animated) statuses were never loaded
 
     params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    params.topMargin = startMargin + Screen.dp(94f);
+    params.topMargin = tgx101New ? startMargin + Screen.dp(66f) : startMargin + Screen.dp(94f);
     params.leftMargin = params.rightMargin = Screen.dp(18f);
 
     stateView = new TextView(context);
@@ -548,7 +549,10 @@ public class CallController extends ViewController<CallController.Arguments> imp
 
     Screen.addStatusBarHeightListener(this);
     params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, (newScreen ? Gravity.RIGHT : isFullScreen ? Gravity.LEFT : Gravity.CENTER_HORIZONTAL) | Gravity.TOP);
-    params.topMargin = newScreen ? startMargin - Screen.dp(6f) : startMargin;
+    params.topMargin = newScreen ? Screen.getStatusBarHeight() + Screen.dp(4f) : startMargin; // TGx101: the bird in the very top-right corner
+    if (newScreen) {
+      params.rightMargin = Screen.dp(10f);
+    }
     params.leftMargin = params.rightMargin = Screen.dp(18f);
     brandWrap = new LinearLayout(context);
     if (DEBUG_FADE_BRANDING) {
@@ -1096,11 +1100,19 @@ public class CallController extends ViewController<CallController.Arguments> imp
     int extra = layout != null && layout.getLineCount() > 1 ? layout.getLineTop(layout.getLineCount() - 1) : 0;
     if (extra != nameExtraHeight) {
       nameExtraHeight = extra;
-      stateView.setTranslationY(extra);
-      if (photoMode == Settings.CALL_PHOTO_CIRCLE) {
-        avatarView.setTranslationY(extra);
-        if (callBackground != null) callBackground.invalidate();
-      }
+      applyTgx101Shifts();
+    }
+  }
+
+  private int tgx101EmojiShift;
+
+  /** The timer and the photo move down under a two-line name and under the encryption emoji row */
+  private void applyTgx101Shifts () {
+    int shift = nameExtraHeight + tgx101EmojiShift;
+    stateView.setTranslationY(shift);
+    if (photoMode == Settings.CALL_PHOTO_CIRCLE) {
+      avatarView.setTranslationY(shift);
+      if (callBackground != null) callBackground.invalidate();
     }
   }
 
@@ -1444,13 +1456,17 @@ public class CallController extends ViewController<CallController.Arguments> imp
     final int viewWidthSmall = emojiViewSmall.getMeasuredWidth();
     final int viewHeightSmall = emojiViewSmall.getMeasuredHeight();
 
-    final int startLeft = parentWidth - viewWidthSmall;
-    final int startTop = Screen.dp(42f) - emojiViewSmall.getPaddingTop();
-
-    // TGx101: the bird sits in the same corner — move it left of the encryption emoji while they are shown
-    if (brandWrap != null && Settings.instance().useNewCallScreen() && photoMode != Settings.CALL_PHOTO_FULL_SCREEN) {
+    // TGx101: new call screen — the encryption emoji sit centred between the name and the call timer
+    final boolean emojiUnderName = Settings.instance().useNewCallScreen() && photoMode != Settings.CALL_PHOTO_FULL_SCREEN && nameView != null;
+    final int startLeft = emojiUnderName ? (parentWidth - viewWidthSmall) / 2 : parentWidth - viewWidthSmall;
+    final int startTop = emojiUnderName ? nameView.getBottom() + Screen.dp(2f) - emojiViewSmall.getPaddingTop() : Screen.dp(42f) - emojiViewSmall.getPaddingTop();
+    if (emojiUnderName) {
       boolean hasEmoji = emojiViewSmall.getVisibility() == View.VISIBLE && emojiViewSmall.getText() != null && emojiViewSmall.getText().length() > 0;
-      brandWrap.setTranslationX(hasEmoji ? -(viewWidthSmall - emojiViewSmall.getPaddingLeft()) : 0);
+      int shift = hasEmoji ? viewHeightSmall - emojiViewSmall.getPaddingTop() - emojiViewSmall.getPaddingBottom() + Screen.dp(8f) : 0;
+      if (shift != tgx101EmojiShift) {
+        tgx101EmojiShift = shift;
+        applyTgx101Shifts();
+      }
     }
 
     final int fromCenterX = startLeft + viewWidthSmall / 2;

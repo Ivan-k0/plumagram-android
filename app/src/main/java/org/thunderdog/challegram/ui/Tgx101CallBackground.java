@@ -72,8 +72,8 @@ public class Tgx101CallBackground extends View {
     float cx = width / 2f, cy = height * .35f, radius = 0;
     if (photoView != null && photoView.getWidth() > 0) {
       radius = Math.min(photoView.getWidth(), photoView.getHeight()) / 2f;
-      cx = photoView.getLeft() + photoView.getWidth() / 2f;
-      cy = photoView.getTop() + photoView.getHeight() / 2f;
+      cx = photoView.getLeft() + photoView.getTranslationX() + photoView.getWidth() / 2f;
+      cy = photoView.getTop() + photoView.getTranslationY() + photoView.getHeight() / 2f; // the photo moves down under a two-line name
     }
     if (cx != glowCenterX || cy != glowCenterY || width != glowWidth || height != glowHeight) {
       glowCenterX = cx;
