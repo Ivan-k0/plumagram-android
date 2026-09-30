@@ -494,7 +494,36 @@ public class TGCallService extends Service implements
   private boolean sentDebugLog;
   private boolean sentRating;
 
+  // TGx101: own incoming call card over an unlocked phone (Vivo hides third-party heads-up notifications)
+  private void tgx101SyncCallPopup () {
+    boolean pendingIncoming = call != null && !call.isOutgoing && call.state.getConstructor() == TdApi.CallStatePending.CONSTRUCTOR;
+    if (!pendingIncoming) {
+      Tgx101CallPopup.reset(this);
+      return;
+    }
+    if (UI.getUiState() == UI.State.RESUMED || !Tgx101CallPopup.canShow(this)) {
+      Tgx101CallPopup.hide(this);
+      return;
+    }
+    TdApi.User caller = tdlib.cache().user(call.userId);
+    Bitmap photo = caller != null ? TdlibNotificationUtils.buildLargeIcon(tdlib, caller.profilePhoto != null ? caller.profilePhoto.small : null, tdlib.cache().userAccentColor(caller), TD.getLetters(caller), false, true) : null;
+    Tgx101CallPopup.show(this, call.id, caller != null ? TD.getUserName(caller) : "", photo, new Tgx101CallPopup.Callback() {
+      @Override public void onAnswer () { acceptIncomingCall(); }
+      @Override public void onDecline () { declineIncomingCall(); }
+      @Override public void onOpen () {
+        try {
+          Intent intent = Intents.valueOfCall();
+          intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+          startActivity(intent);
+        } catch (Throwable t) {
+          Log.w(Log.TAG_VOIP, "Cannot open the call screen", t);
+        }
+      }
+    });
+  }
+
   private void updateCurrentState () {
+    tgx101SyncCallPopup();
     if (call != null && call.state.getConstructor() == TdApi.CallStateDiscarded.CONSTRUCTOR) {
       updateStats();
       if (!sentDebugLog && ((TdApi.CallStateDiscarded) call.state).needDebugInformation && !StringUtils.isEmpty(lastDebugLog)) {
@@ -914,7 +943,7 @@ public class TGCallService extends Service implements
       .setContentTitle(Lang.getString(R.string.OutgoingCall))
       .setContentText(TD.getUserName(user))
       .setSmallIcon(CALL_ICON_RES)
-      .setContentIntent(PendingIntent.getActivity(UI.getContext(), 0, Intents.valueOfCall(), PendingIntent.FLAG_ONE_SHOT | Intents.mutabilityFlags(false)));
+      .setContentIntent(PendingIntent.getActivity(UI.getContext(), 0, Intents.valueOfCall(), PendingIntent.FLAG_UPDATE_CURRENT | Intents.mutabilityFlags(false))); // TGx101: not one-shot — the call chip / card can be tapped again
     if (tdlib.context().isMultiUser()) {
       String shortName = tdlib.accountShortName();
       if (shortName != null) {
@@ -1071,7 +1100,7 @@ public class TGCallService extends Service implements
       .setContentTitle(Lang.getString(R.string.CallBrandingIncoming))
       .setContentText(TD.getUserName(user))
       .setSmallIcon(CALL_ICON_RES)
-      .setContentIntent(PendingIntent.getActivity(UI.getContext(), 0, Intents.valueOfCall(), PendingIntent.FLAG_ONE_SHOT | Intents.mutabilityFlags(false)));
+      .setContentIntent(PendingIntent.getActivity(UI.getContext(), 0, Intents.valueOfCall(), PendingIntent.FLAG_UPDATE_CURRENT | Intents.mutabilityFlags(false))); // TGx101: not one-shot — the call chip / card can be tapped again
     if (tdlib.context().isMultiUser()) {
       String shortName = tdlib.accountShortName();
       if (shortName != null) {

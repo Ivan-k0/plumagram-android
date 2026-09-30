@@ -725,9 +725,18 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     }
   }
 
+  private int tgx101OpenCallRetries;
+
   private boolean handleIntent (String actionRaw, final Intent intent, boolean fromCreate) {
     final String action = Intents.getCleanAction(actionRaw);
 
+    // TGx101: a tap on the call chip / notification while the app is still coming back — retry shortly instead of dropping it
+    if (Intents.ACTION_OPEN_CALL.equals(action) && isNavigationBusy() && tgx101OpenCallRetries < 10) {
+      tgx101OpenCallRetries++;
+      UI.post(() -> handleIntent(actionRaw, intent, fromCreate), 120);
+      return true;
+    }
+    tgx101OpenCallRetries = 0;
     if (StringUtils.isEmpty(action) || isNavigationBusy() || StringUtils.equalsOrBothEmpty(action, Intent.ACTION_MAIN) || TdlibManager.instance().inRecoveryMode()) {
       return false;
     }
