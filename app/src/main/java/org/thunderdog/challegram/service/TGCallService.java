@@ -1226,6 +1226,21 @@ public class TGCallService extends Service implements
     }
   }
 
+  /** TGx101: «Без звука» on the incoming call screen — mutes our ringtone and vibration, the call keeps ringing for the caller */
+  public void silenceRinging () {
+    if (ringtonePlayer != null) {
+      try {
+        ringtonePlayer.stop();
+        ringtonePlayer.release();
+      } catch (Throwable ignored) { }
+      ringtonePlayer = null;
+    }
+    if (vibrator != null) {
+      vibrator.cancel();
+      vibrator = null;
+    }
+  }
+
   private void stopRinging () {
     cleanupChannels((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE));
     U.stopForeground(this, true, TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION, TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION);

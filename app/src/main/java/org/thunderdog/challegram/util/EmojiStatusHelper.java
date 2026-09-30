@@ -151,6 +151,11 @@ public class EmojiStatusHelper implements Destroyable {
     emojiStatusReceiver.attach();
   }
 
+  /** TGx101: draw animated statuses as a still first frame (call screen) */
+  public void setAnimationDisabled (boolean disabled) {
+    emojiStatusReceiver.setAnimationDisabled(disabled);
+  }
+
   public void detach () {
     emojiStatusReceiver.detach();
   }

@@ -451,10 +451,34 @@ public class CallController extends ViewController<CallController.Arguments> imp
     params.topMargin = startMargin + Screen.dp(34f);
     params.leftMargin = params.rightMargin = Screen.dp(18f);
 
+    final boolean newScreen = Settings.instance().useNewCallScreen() && !isFullScreen;
     nameView = new EmojiTextView(context) {
+      @Override
+      protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
+        if (newScreen) {
+          // TGx101: the name shrinks down to 75 % to fit one line, then wraps to two lines at most
+          int available = MeasureSpec.getSize(widthMeasureSpec) - getPaddingLeft() - getPaddingRight();
+          String name = TD.getUserName(user);
+          float full = Screen.dp(NAME_TEXT_SIZE), min = Screen.dp(NAME_TEXT_SIZE * .75f);
+          nameTextPaint.setTextSize(full);
+          float width = U.measureText(name, nameTextPaint);
+          float size = width <= available || available <= 0 ? full : Math.max(min, full * available / width);
+          float sizeDp = size / Screen.density();
+          if (Math.abs(getTextSize() - size) > 1f) {
+            setTextSize(TypedValue.COMPLEX_UNIT_DIP, sizeDp);
+          }
+          nameTextPaint.setTextSize(size);
+        }
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+      }
+
       @Override
       protected void onLayout (boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
+        if (newScreen) {
+          onNameLayout(this);
+          return;
+        }
         nameTextWidth = U.measureText(TD.getUserName(user), nameTextPaint);
         if (nameTextWidth > getMeasuredWidth() - getPaddingRight()) {
           CharSequence text = getText().subSequence(0, getLayout().getEllipsisStart(0)) + "...";
@@ -465,12 +489,29 @@ public class CallController extends ViewController<CallController.Arguments> imp
       @Override
       protected void onDraw (Canvas canvas) {
         super.onDraw(canvas);
+        if (newScreen) {
+          android.text.Layout layout = getLayout();
+          if (layout != null && layout.getLineCount() > 0) {
+            int last = layout.getLineCount() - 1;
+            int x = getPaddingLeft() + (int) layout.getLineRight(last) + Screen.dp(7);
+            int lineCenter = getPaddingTop() + (layout.getLineTop(last) + layout.getLineBottom(last)) / 2;
+            int emojiSize = emojiStatusHelper.getWidth(0);
+            emojiStatusHelper.draw(canvas, Math.min(getMeasuredWidth() - emojiSize, x), lineCenter - emojiSize / 2);
+          }
+          return;
+        }
         int textLeft = isFullScreen ? 0 : (int) Math.max(0, (getMeasuredWidth() - nameTextWidth - emojiStatusHelper.getWidth(0) - Screen.dp(7)) / 2f); // TGx101: centred name
         emojiStatusHelper.draw(canvas, (int) Math.min(getMeasuredWidth() - emojiStatusHelper.getWidth(0), textLeft + nameTextWidth + Screen.dp(7)), Screen.dp(9));
       }
     };
     nameView.setScrollDisabled(true);
-    nameView.setSingleLine(true);
+    if (newScreen) {
+      nameView.setSingleLine(false);
+      nameView.setMaxLines(2);
+      nameView.setLineSpacing(0, .95f);
+    } else {
+      nameView.setSingleLine(true);
+    }
     nameView.setTextColor(0xffffffff);
     nameView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 40);
     nameView.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
@@ -484,6 +525,8 @@ public class CallController extends ViewController<CallController.Arguments> imp
     nameTextPaint.setTextSize(Screen.dp(40));
     nameTextPaint.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
     emojiStatusHelper = new EmojiStatusHelper(tdlib, nameView, null);
+    emojiStatusHelper.setAnimationDisabled(true); // TGx101: animated statuses as a still picture
+    emojiStatusHelper.attach(); // TGx101: without it custom (animated) statuses were never loaded
 
     params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     params.topMargin = startMargin + Screen.dp(94f);
@@ -504,8 +547,8 @@ public class CallController extends ViewController<CallController.Arguments> imp
     contentView.addView(stateView);
 
     Screen.addStatusBarHeightListener(this);
-    params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, (isFullScreen ? Gravity.LEFT : Gravity.CENTER_HORIZONTAL) | Gravity.TOP);
-    params.topMargin = startMargin;
+    params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, (newScreen ? Gravity.RIGHT : isFullScreen ? Gravity.LEFT : Gravity.CENTER_HORIZONTAL) | Gravity.TOP);
+    params.topMargin = newScreen ? startMargin - Screen.dp(6f) : startMargin;
     params.leftMargin = params.rightMargin = Screen.dp(18f);
     brandWrap = new LinearLayout(context);
     if (DEBUG_FADE_BRANDING) {
@@ -524,6 +567,13 @@ public class CallController extends ViewController<CallController.Arguments> imp
     brandIcon.setScaleType(ImageView.ScaleType.CENTER);
     brandIcon.setImageResource(R.drawable.deproko_logo_telegram_18);
     brandIcon.setLayoutParams(lp);
+    if (newScreen) {
+      // TGx101: no «Звонок через Telegram» text, just the PlumaGram bird in the top-right corner
+      brandIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+      brandIcon.setImageResource(R.drawable.baseline_plumagram_24);
+      brandIcon.setColorFilter(0xffffffff);
+      brandIcon.setLayoutParams(new LinearLayout.LayoutParams(Screen.dp(28f), Screen.dp(28f)));
+    }
     brandWrap.addView(brandIcon);
 
     lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -587,6 +637,10 @@ public class CallController extends ViewController<CallController.Arguments> imp
       });
     }
     brandWrap.addView(brandView);
+    if (newScreen) {
+      brandView.setVisibility(View.GONE);
+      brandIcon.setOnClickListener(v -> brandView.performClick()); // the debug log stays reachable
+    }
 
     lp = new LinearLayout.LayoutParams(Screen.dp(18f), Screen.dp(18f));
     // lp.topMargin = Screen.dp(2f);
@@ -691,8 +745,16 @@ public class CallController extends ViewController<CallController.Arguments> imp
     callControlsLayout.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     contentView.addView(callControlsLayout);
     callVideo.setOriginalControls(buttonWrap, callControlsLayout); // TGx101: replaced by one panel during outgoing and active calls
+    if (newScreen) {
+      incomingControls = new Tgx101IncomingControls(context, newIncomingCallback());
+      Views.setPaddingBottom(incomingControls, extraBottomInset);
+      incomingControls.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      incomingControls.setVisibility(View.GONE);
+      contentView.addView(incomingControls);
+    }
     callVideo.onCallStateChanged(call);
     callControlsLayout.setCall(tdlib, call, false);
+    updateIncomingControls();
 
     // Data
 
@@ -968,6 +1030,72 @@ public class CallController extends ViewController<CallController.Arguments> imp
     };
   }
 
+  // TGx101: new incoming call controls replace the accept/decline swipe layer while the call rings
+
+  private Tgx101IncomingControls incomingControls;
+
+  private void updateIncomingControls () {
+    if (incomingControls == null) return;
+    boolean incoming = call != null && !call.isOutgoing && call.state.getConstructor() == TdApi.CallStatePending.CONSTRUCTOR;
+    incomingControls.setVisibility(incoming ? View.VISIBLE : View.GONE);
+    if (incoming) {
+      callControlsLayout.setVisibility(View.GONE);
+      buttonWrap.setVisibility(View.GONE);
+      incomingControls.bringToFront();
+    }
+  }
+
+  private Tgx101IncomingControls.Callback newIncomingCallback () {
+    return new Tgx101IncomingControls.Callback() {
+      @Override
+      public void onAnswer () {
+        onCallAccept(call);
+      }
+
+      @Override
+      public void onDecline () {
+        onCallDecline(call, false);
+      }
+
+      @Override
+      public void onSilence () {
+        TGCallService service = TGCallService.currentInstance();
+        if (service != null) {
+          service.silenceRinging();
+        }
+      }
+
+      @Override
+      public void onQuickReply (String text) {
+        final long userId = call.userId;
+        onCallDecline(call, false);
+        // Sent right away, also from the lock screen: it's one of the user's own templates
+        tdlib.send(new TdApi.CreatePrivateChat(userId, false), (chat, error) -> {
+          if (chat != null) {
+            tdlib.send(new TdApi.SendMessage(chat.id, null, null, null, null, new TdApi.InputMessageText(new TdApi.FormattedText(text, new TdApi.TextEntity[0]), null, false)), (message, sendError) -> { });
+          }
+        });
+      }
+    };
+  }
+
+  private static final float NAME_TEXT_SIZE = 40f;
+  private int nameExtraHeight;
+
+  /** TGx101: a two-line name pushes the call state and the photo down */
+  private void onNameLayout (android.widget.TextView view) {
+    android.text.Layout layout = view.getLayout();
+    int extra = layout != null && layout.getLineCount() > 1 ? layout.getLineTop(layout.getLineCount() - 1) : 0;
+    if (extra != nameExtraHeight) {
+      nameExtraHeight = extra;
+      stateView.setTranslationY(extra);
+      if (photoMode == Settings.CALL_PHOTO_CIRCLE) {
+        avatarView.setTranslationY(extra);
+        if (callBackground != null) callBackground.invalidate();
+      }
+    }
+  }
+
   // TGx101: «Аудиовыход» — phone (or the wired headset when plugged in), Bluetooth when connected, loudspeaker
   private void showAudioOutputPicker () {
     if (call == null || TD.isFinished(call)) return;
@@ -1076,6 +1204,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
       if (callVideo != null) {
         callVideo.onCallStateChanged(call); // TGx101
       }
+      updateIncomingControls();
     }
   }
 
@@ -1375,6 +1504,10 @@ public class CallController extends ViewController<CallController.Arguments> imp
     tdlib.cache().unsubscribeFromCallUpdates(call.id, this);
     tdlib.cache().removeUserDataListener(call.userId, this);
     avatarView.performDestroy();
+    if (emojiStatusHelper != null) {
+      emojiStatusHelper.detach();
+      emojiStatusHelper.performDestroy();
+    }
     if (callVideo != null) {
       callVideo.destroy();
     }
