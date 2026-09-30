@@ -703,8 +703,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     wallpaperView.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     addThemeInvalidateListener(wallpaperView);
 
+    floatingInput = Settings.instance().useFloatingInput() && previewMode == PREVIEW_MODE_NONE && !isInForceTouchMode();
     params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-    params.addRule(RelativeLayout.ABOVE, R.id.msg_bottom);
+    if (floatingInput) {
+      params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM); // TGx101: messages scroll under the floating capsule (bottom padding keeps the last one visible)
+    } else {
+      params.addRule(RelativeLayout.ABOVE, R.id.msg_bottom);
+    }
 
     MessagesLayoutManager messagesManager;
 
@@ -732,8 +737,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
     params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0);
     params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
 
-    floatingInput = Settings.instance().useFloatingInput() && previewMode == PREVIEW_MODE_NONE && !isInForceTouchMode();
-
     bottomSpace = new FillingSpace(context);
     bottomSpace.setLayoutParams(params);
     if (!floatingInput) { // TGx101: with the floating capsule the chat shows around and under it
@@ -759,6 +762,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       protected void onLayout (boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
         updateButtonsY();
+        updateFloatingListPadding();
       }
     };
     bottomWrap.setId(R.id.msg_bottom);
@@ -804,6 +808,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       addThemeLinkTextColorListener(inputView, ColorId.textLink);
       if (!floatingInput) { // TGx101: the capsule draws the background
         ViewSupport.setThemedBackground(inputView, ColorId.filling, this);
+      } else {
+        inputView.setBackground(null); // otherwise the system EditText background draws its blue underline
       }
       inputView.setHighlightColor(Theme.fillingTextSelectionColor());
       addThemeHighlightColorListener(inputView, ColorId.textSelectionHighlight);
@@ -819,6 +825,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (!inPreviewMode) {
       params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(48f));
       params.addRule(RelativeLayout.ALIGN_TOP, R.id.msg_bottom);
+      if (floatingInput) { // TGx101: it lies behind the capsule; full width it showed as a white strip at the sides
+        params.leftMargin = params.rightMargin = Screen.dp(FLOATING_INPUT_SIDE);
+      }
 
       replyBarView = new ReplyBarView(context(), tdlib);
       ViewSupport.setThemedBackground(replyBarView, ColorId.filling, this);
@@ -1470,13 +1479,18 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (wallpaperViewBlurPreview != null) {
       contentView.addView(wallpaperViewBlurPreview);
     }
+    if (floatingInput) {
+      contentView.addView(messagesView); // TGx101: the list goes first, the floating capsule lies over it
+    }
     if (!inPreviewMode) {
       contentView.addView(replyBarView);
     }
     contentView.addView(bottomSpace);
     contentView.addView(bottomWrap);
     updateBottomWrapOffset(); // TGx101: apply the bottom gap right away, insets may have arrived before bottomWrap existed
-    contentView.addView(messagesView);
+    if (!floatingInput) {
+      contentView.addView(messagesView);
+    }
     contentView.addView(bottomShadowView);
 
     contentView.addView(topBar);
@@ -3391,7 +3405,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (visible) {
       bottomWrap.setVisibility(View.VISIBLE);
       bottomSpace.setVisibility(View.VISIBLE);
-      bottomShadowView.setVisibility(View.VISIBLE);
+      bottomShadowView.setVisibility(floatingInput ? View.GONE : View.VISIBLE);
       if (replyBarView != null) {
         replyBarView.setVisibility(View.VISIBLE);
       }
@@ -9226,6 +9240,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private static final float FLOATING_INPUT_SIDE = 10f, FLOATING_INPUT_BOTTOM = 8f, FLOATING_INPUT_RADIUS = 24f;
   private boolean floatingInput;
+
+  private void updateFloatingListPadding () {
+    if (!floatingInput || messagesView == null || bottomWrap == null) return;
+    int padding = bottomWrap.getVisibility() == View.VISIBLE ? bottomWrap.getHeight() : 0;
+    if (messagesView.getPaddingBottom() != padding) {
+      messagesView.setClipToPadding(false);
+      messagesView.setPadding(messagesView.getPaddingLeft(), messagesView.getPaddingTop(), messagesView.getPaddingRight(), padding);
+    }
+  }
 
   private void applyFloatingInputShape (View view) {
     view.setBackground(new android.graphics.drawable.Drawable() {
