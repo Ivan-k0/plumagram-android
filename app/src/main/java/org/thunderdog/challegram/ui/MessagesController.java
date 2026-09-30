@@ -9260,8 +9260,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (!floatingInput || messagesView == null || bottomWrap == null) return;
     int padding = bottomWrap.getVisibility() == View.VISIBLE ? bottomWrap.getHeight() : 0;
     if (messagesView.getPaddingBottom() != padding) {
+      // At the newest message? Stay there, otherwise it ends up under the capsule until the next layout
+      boolean atBottom = !messagesView.canScrollVertically(1);
       messagesView.setClipToPadding(false);
       messagesView.setPadding(messagesView.getPaddingLeft(), messagesView.getPaddingTop(), messagesView.getPaddingRight(), padding);
+      if (atBottom) {
+        messagesView.post(() -> messagesView.scrollToPosition(0)); // reverse layout: 0 is the newest message
+      }
     }
   }
 
