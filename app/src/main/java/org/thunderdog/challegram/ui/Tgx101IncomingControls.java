@@ -15,7 +15,11 @@ package org.thunderdog.challegram.ui;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.drawable.GradientDrawable;
+import android.os.SystemClock;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -175,8 +179,11 @@ public class Tgx101IncomingControls extends FrameLayout {
   /** Wide pill with a white knob: drag it to the right end to answer; released earlier it slides back. */
   private class AnswerSlider extends FrameLayout {
     private final ImageView knob;
+    private final LinearLayout content;
     private float downX, startTranslation;
     private boolean dragging;
+    private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final RectF fillRect = new RectF();
 
     AnswerSlider (Context context) {
       super(context);
@@ -189,13 +196,25 @@ public class Tgx101IncomingControls extends FrameLayout {
 
       label.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoRegular()); // TGx101: Manrope
 
-      label.setText(Lang.getString(R.string.Tgx101CallAnswer) + "  ›››");
+      label.setText(Lang.getString(R.string.Tgx101CallAnswer));
       label.setTextColor(0xffffffff);
       label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
-      label.setGravity(Gravity.CENTER);
-      LayoutParams labelParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-      labelParams.leftMargin = Screen.dp(66f);
-      addView(label, labelParams);
+      label.setGravity(Gravity.CENTER_VERTICAL);
+
+      // «Ответить ›››»: the arrows run as a wave toward the answer end; the whole label hides under the dark fill behind the knob
+      content = new LinearLayout(context);
+      content.setOrientation(LinearLayout.HORIZONTAL);
+      content.setGravity(Gravity.CENTER);
+      content.addView(label, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      LinearLayout.LayoutParams arrowsParams = new LinearLayout.LayoutParams(Screen.dp(40f), ViewGroup.LayoutParams.MATCH_PARENT);
+      arrowsParams.leftMargin = Screen.dp(10f);
+      content.addView(new ArrowsView(context), arrowsParams);
+      LayoutParams contentParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+      contentParams.leftMargin = Screen.dp(66f);
+      addView(content, contentParams);
+
+      fillPaint.setColor(0x8c11161c);
+      setWillNotDraw(false);
 
       knob = new ImageView(context);
       knob.setImageResource(R.drawable.baseline_phone_24);
@@ -209,6 +228,38 @@ public class Tgx101IncomingControls extends FrameLayout {
       LayoutParams knobParams = new LayoutParams(Screen.dp(60f), Screen.dp(60f), Gravity.LEFT | Gravity.CENTER_VERTICAL);
       knobParams.leftMargin = Screen.dp(6f);
       addView(knob, knobParams);
+    }
+
+    private float fillRight () {
+      return knob.getLeft() + knob.getTranslationX() + knob.getWidth() + Screen.dp(6f);
+    }
+
+    @Override
+    protected void dispatchDraw (Canvas c) {
+      if (knob.getTranslationX() > 0f) {
+        float inset = Screen.dp(2f);
+        fillRect.set(inset, inset, fillRight(), getHeight() - inset);
+        float r = fillRect.height() / 2f;
+        c.drawRoundRect(fillRect, r, r, fillPaint);
+      }
+      super.dispatchDraw(c);
+    }
+
+    @Override
+    protected boolean drawChild (Canvas c, View child, long drawingTime) {
+      if (child == content && knob.getTranslationX() > 0f) {
+        int save = c.save();
+        c.clipRect(fillRight(), 0, getWidth(), getHeight());
+        boolean result = super.drawChild(c, child, drawingTime);
+        c.restoreToCount(save);
+        return result;
+      }
+      return super.drawChild(c, child, drawingTime);
+    }
+
+    private void setKnobTranslation (float t) {
+      knob.setTranslationX(t);
+      invalidate();
     }
 
     private float maxTranslation () {
@@ -231,7 +282,7 @@ public class Tgx101IncomingControls extends FrameLayout {
         case MotionEvent.ACTION_MOVE: {
           if (!dragging) return false;
           float t = Math.max(0f, Math.min(maxTranslation(), startTranslation + e.getX() - downX));
-          knob.setTranslationX(t);
+          setKnobTranslation(t);
           return true;
         }
         case MotionEvent.ACTION_UP:
@@ -241,18 +292,59 @@ public class Tgx101IncomingControls extends FrameLayout {
           float max = maxTranslation();
           if (e.getAction() == MotionEvent.ACTION_UP && max > 0 && knob.getTranslationX() >= max * .75f) {
             answered = true;
-            knob.animate().translationX(max).setDuration(120).start();
+            ValueAnimator end = ValueAnimator.ofFloat(knob.getTranslationX(), max);
+            end.setDuration(120);
+            end.addUpdateListener(a -> setKnobTranslation((float) a.getAnimatedValue()));
+            end.start();
             callback.onAnswer();
           } else {
             ValueAnimator back = ValueAnimator.ofFloat(knob.getTranslationX(), 0f);
             back.setDuration(200);
-            back.addUpdateListener(a -> knob.setTranslationX((float) a.getAnimatedValue()));
+            back.addUpdateListener(a -> setKnobTranslation((float) a.getAnimatedValue()));
             back.start();
           }
           return true;
         }
       }
       return false;
+    }
+  }
+
+  /** Three «›» lighting up one after another (a slow wave, ~1.4 s), only while the incoming screen is shown. */
+  private class ArrowsView extends View {
+    private static final long PERIOD = 1400;
+    private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    ArrowsView (Context context) {
+      super(context);
+      paint.setColor(0xffffffff);
+      paint.setTextSize(Screen.dp(22f));
+      paint.setTextAlign(Paint.Align.CENTER);
+      paint.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+    }
+
+    @Override
+    protected void onDraw (Canvas c) {
+      float phase = (SystemClock.uptimeMillis() % PERIOD) / (float) PERIOD;
+      float step = getWidth() / 3f;
+      float baseline = getHeight() / 2f - (paint.descent() + paint.ascent()) / 2f;
+      for (int i = 0; i < 3; i++) {
+        // distance of this arrow from the wave crest, wrapping around
+        float d = Math.abs(phase * 3f - i);
+        d = Math.min(d, 3f - d);
+        float glow = Math.max(0f, 1f - d);
+        paint.setAlpha((int) (255 * (.3f + .7f * glow)));
+        c.drawText("›", step * i + step / 2f + Screen.dp(2f) * glow, baseline, paint);
+      }
+      if (!answered && isAttachedToWindow() && getWindowVisibility() == View.VISIBLE) {
+        postInvalidateOnAnimation();
+      }
+    }
+
+    @Override
+    protected void onWindowVisibilityChanged (int visibility) {
+      super.onWindowVisibilityChanged(visibility);
+      if (visibility == View.VISIBLE) invalidate();
     }
   }
 }
