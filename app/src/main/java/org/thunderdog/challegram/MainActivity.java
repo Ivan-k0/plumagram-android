@@ -851,7 +851,9 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       // Opened by the incoming call's full-screen intent: show over the lock screen and
       // turn the screen on, otherwise the call screen stays hidden behind the keyguard.
       setShowOverLockScreen(true);
-      openCallController();
+      // TGx101: the last screen (often a white chat) was drawn first and the call screen slid over it a moment
+      // later — a white flash. A dark cover hides it until the call screen is on top.
+      coverUntilCallShown(openCallController());
       return true;
     }
 
@@ -1461,7 +1463,18 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     }
   }
 
-  private void openCallController () {
+  private void coverUntilCallShown (@androidx.annotation.Nullable ViewController<?> callController) {
+    if (callController == null || android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) {
+      return;
+    }
+    final View decor = getWindow().getDecorView();
+    decor.setForeground(new android.graphics.drawable.ColorDrawable(0xff16212c));
+    final Runnable uncover = () -> decor.setForeground(null);
+    callController.addOneShotFocusListener(() -> decor.postOnAnimation(uncover));
+    decor.postDelayed(uncover, 1500); // never leave the screen covered
+  }
+
+  private @androidx.annotation.Nullable ViewController<?> openCallController () {
     TdApi.Call call = TdlibManager.instance().calls().getCurrentCall();
     Tdlib tdlib = TdlibManager.instance().calls().getCurrentCallTdlib();
 
@@ -1470,19 +1483,20 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
         initDefault(currentTdlib().id(), false);
       }
       UI.showToast(R.string.CallNoLongerActive, Toast.LENGTH_SHORT);
-      return;
+      return null;
     }
 
     ViewController<?> c = navigation.getCurrentStackItem();
     if (c != null && c.tdlibId() == tdlib.id() && c instanceof CallController && ((CallController) c).compareUserId(call.userId)) {
       ((CallController) c).replaceCall(call);
-      return;
+      return null;
     }
 
     CallController controller = new CallController(this, tdlib);
     controller.setArguments(new CallController.Arguments(call));
 
     navigateToSafely(controller);
+    return controller;
   }
 
   public void navigateToSafely (@NonNull ViewController<?> c) {

@@ -65,7 +65,15 @@ public final class Tgx101DiagHooks {
         }
         case TdApi.UpdateCall.CONSTRUCTOR: {
           TdApi.Call call = ((TdApi.UpdateCall) update).call;
-          Tgx101Diag.mark("td call " + call.id + " user " + call.userId + (call.isOutgoing ? " out " : " in ") + call.state.getClass().getSimpleName() + (call.isVideo ? " video" : ""));
+          String extra = "";
+          if (call.state instanceof TdApi.CallStateDiscarded) {
+            TdApi.CallStateDiscarded d = (TdApi.CallStateDiscarded) call.state;
+            extra = " reason " + (d.reason != null ? d.reason.getClass().getSimpleName() : "null") + (d.needDebugInformation ? " needDebug" : "");
+          } else if (call.state instanceof TdApi.CallStateError) {
+            TdApi.Error e = ((TdApi.CallStateError) call.state).error;
+            extra = " error " + e.code + " " + e.message;
+          }
+          Tgx101Diag.mark("td call " + call.id + " user " + call.userId + (call.isOutgoing ? " out " : " in ") + call.state.getClass().getSimpleName() + (call.isVideo ? " video" : "") + extra);
           return;
         }
       }
