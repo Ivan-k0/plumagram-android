@@ -288,9 +288,7 @@ public class NetworkStatusBarView extends FrameLayoutFix implements Destroyable,
       this.factor = factor;
       statusWrap.setAlpha(factor);
       statusWrap.setTranslationY(-Screen.getStatusBarHeight() + (int) ((float) Screen.getStatusBarHeight() * getVisibilityFactor()));
-      if (Config.USE_TRANSPARENT_STATUS_BAR && Settings.instance().useEdgeToEdge()) {
-        backgroundDrawable.setAlphaFactor(factor);
-      }
+      backgroundDrawable.setAlphaFactor(factor); // TGx101: the dark strip only while the connection status is shown, so the status bar matches the header
       checkLowProfile();
     }
   }

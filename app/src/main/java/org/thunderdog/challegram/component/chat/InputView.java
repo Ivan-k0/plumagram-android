@@ -193,10 +193,10 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     this.boundController = boundController;
     this.paint = new TextPaint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     this.paint.setColor(Theme.textPlaceholderColor());
-    this.paint.setTypeface(Fonts.getRobotoRegular());
+    this.paint.setTypeface(Fonts.getRobotoRegularStock()); // TGx101: the input field ignores MagiX text weight
     this.paint.setTextSize(Screen.sp(18f));
     setGravity(Lang.gravity() | Gravity.TOP);
-    setTypeface(Fonts.getRobotoRegular());
+    setTypeface(Fonts.getRobotoRegularStock());
     setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f);
     final int verticalPadding = Screen.dp(12f);
     if (Lang.rtl()) {

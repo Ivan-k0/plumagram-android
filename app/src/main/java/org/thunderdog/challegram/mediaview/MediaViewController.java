@@ -5033,6 +5033,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             startX = e.getX();
             startY = e.getY();
             listenCloseBySlide = canCloseBySlide() && pipFactor == 0f && !mediaView.isZoomed() && mediaView.isBaseVisible();
+            // TGx101: a swipe that starts at the top edge is pulling the notification shade, not the photo
+            if (e.getRawY() < Screen.getStatusBarHeight() + Screen.dp(32f)) {
+              listenCloseBySlide = false;
+            }
             break;
           }
           case MotionEvent.ACTION_MOVE: {

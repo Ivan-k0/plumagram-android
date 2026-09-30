@@ -2869,7 +2869,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     return computeStatusBarColor(Theme.headerColor());
   }
 
-  public static final int DEFAULT_STATUS_COLOR = 0x4c000000;
+  public static final int DEFAULT_STATUS_COLOR = 0x00000000; // TGx101: same colour as the header (was 0x4c000000, a darker strip)
 
   public static @ColorInt int whiteStatusColor () {
     return computeStatusBarColor(0xffffffff);

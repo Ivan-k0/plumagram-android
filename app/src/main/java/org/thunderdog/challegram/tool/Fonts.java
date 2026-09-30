@@ -160,6 +160,18 @@ public class Fonts {
     ));
   }
 
+  private static Typeface robotoRegularStock;
+
+  /** TGx101: the stock regular Roboto, ignoring MagiX «Толщина текста» (message input field) */
+  public static Typeface getRobotoRegularStock () {
+    if (Settings.instance().getTextWeight() == Settings.TEXT_WEIGHT_NORMAL) {
+      return getRobotoRegular();
+    }
+    return robotoRegularStock != null ? robotoRegularStock : (robotoRegularStock = loadFont("fonts/Roboto-Regular.ttf", () ->
+      LOAD_SANS ? loadSystemFont("sans-serif", Typeface.NORMAL, Typeface.DEFAULT) : Typeface.DEFAULT
+    ));
+  }
+
   public static Typeface getRobotoBold () {
     return robotoBold != null ? robotoBold : (robotoBold = loadFont("fonts/Roboto-Bold.ttf", () -> {
       if (LOAD_SANS) {

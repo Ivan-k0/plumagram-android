@@ -471,7 +471,7 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
         TdlibNotification notification = mergedList.get(0);
         final CharSequence messageText;
         if (needPreview) {
-          CharSequence content = notification.getTextRepresentation(tdlib, group.isMention() && onlyPinned, true, hasCustomText);
+          CharSequence content = Tgx101NotificationText.shorten(notification.getTextRepresentation(tdlib, group.isMention() && onlyPinned, true, hasCustomText)); // TGx101
           messageText = Config.USE_GROUP_NAMES || tdlib.isUserChat(chat) || tdlib.isChannelChat(chat) ? content : Lang.getString(R.string.format_notificationContentGroup, notification.findSenderName(), content);
         } else {
           messageText = Lang.getString(R.string.YouHaveNewMessage);
@@ -499,7 +499,7 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
           }
         }
         if (needPreview) {
-          CharSequence content = mergedList.get(0).getTextRepresentation(tdlib, group.isMention() && onlyPinned, true, mergedList, isEdited, isEditedVisible, hasCustomText);
+          CharSequence content = Tgx101NotificationText.shorten(mergedList.get(0).getTextRepresentation(tdlib, group.isMention() && onlyPinned, true, mergedList, isEdited, isEditedVisible, hasCustomText)); // TGx101
           messageText = Config.USE_GROUP_NAMES || tdlib.isUserChat(chat) || tdlib.isChannelChat(chat) ? content : Lang.getCharSequence(R.string.format_notificationContentGroup, mergedList.get(0).findSenderName(), content);
         } else {
           messageText = Lang.plural(R.string.xNewMessages, mergedList.size());
@@ -663,11 +663,11 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
     styleNotification(tdlib, builder, chatId, chat, allowPreview);
 
     boolean hasIcon = false;
-    // TGx101: in a private chat the conversation style already shows the sender's photo on the left;
-    // the large icon repeated it on the right
-    boolean duplicatesSenderPhoto = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && ChatId.isUserChat(chatId);
-    final Bitmap bitmap = duplicatesSenderPhoto ? null : TdlibNotificationUtils.buildLargeIcon(tdlib, chat, !isRebuild);
-    if (U.isValidBitmap(bitmap)) {
+    // TGx101: the conversation style already shows the sender's (private chat) or the chat's (group, channel)
+    // photo on the left; the large icon repeated it on the right. The bitmap is still built for the shortcut.
+    boolean duplicatesSenderPhoto = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N;
+    final Bitmap bitmap = TdlibNotificationUtils.buildLargeIcon(tdlib, chat, !isRebuild);
+    if (U.isValidBitmap(bitmap) && !duplicatesSenderPhoto) {
       builder.setLargeIcon(bitmap);
       hasIcon = true;
     }
@@ -1108,7 +1108,7 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
       PendingIntent hidePendingIntent = PendingIntent.getBroadcast(UI.getAppContext(), helper.getBaseNotificationId(category), hideIntent, Intents.mutabilityFlags(true));
       b.setDeleteIntent(hidePendingIntent);
 
-      if (displayingChatsCount == 1) {
+      if (displayingChatsCount == 1 && Build.VERSION.SDK_INT < Build.VERSION_CODES.N) { // TGx101: N+ shows the chat photo on the left already
         Bitmap bitmap = TdlibNotificationUtils.buildLargeIcon(tdlib, chat, !isRebuild);
         if (U.isValidBitmap(bitmap)) {
           b.setLargeIcon(bitmap);
@@ -1164,7 +1164,7 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
           for (TdlibNotification notification : notifications) {
             CharSequence preview;
             if (usePreview) {
-              preview = notification.getTextRepresentation(tdlib, isMention && onlyPinned, true, hasCustomText);
+              preview = Tgx101NotificationText.shorten(notification.getTextRepresentation(tdlib, isMention && onlyPinned, true, hasCustomText)); // TGx101
             } else {
               preview = Lang.getString(R.string.YouHaveNewMessage);
             }
