@@ -270,12 +270,14 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
         TdApi.MessageDocument document = (TdApi.MessageDocument) content;
         component = new FileComponent(context, message, document.document);
         caption = document.caption;
+        disallowTouch = false; // TGx101: the file name and size open the file too, not only the icon
         break;
       }
       case TdApi.MessageAudio.CONSTRUCTOR: {
         TdApi.MessageAudio audio = (TdApi.MessageAudio) content;
         component = new FileComponent(context, message, audio.audio, message, context.manager);
         caption = audio.caption;
+        disallowTouch = false; // TGx101: same for music
         break;
       }
       case TdApi.MessageVoiceNote.CONSTRUCTOR: {
@@ -753,7 +755,17 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
 
   @Override
   public boolean onTouchEvent (MessageView view, MotionEvent e) {
-    boolean res = super.onTouchEvent(view, e);
+    boolean res;
+    if (e.getAction() == MotionEvent.ACTION_UP && isFileTouchCaught()) {
+      // TGx101: a tap on the file (name, size) opens it; the message menu must not open as well
+      MotionEvent cancel = MotionEvent.obtain(e);
+      cancel.setAction(MotionEvent.ACTION_CANCEL);
+      super.onTouchEvent(view, cancel);
+      cancel.recycle();
+      res = true;
+    } else {
+      res = super.onTouchEvent(view, e);
+    }
     for (CaptionedFile file : filesList) {
       for (ListAnimator.Entry<TextWrapper> caption : file.caption) {
         if (caption.item.onTouchEvent(view, e)) {
@@ -765,6 +777,15 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
       }
     }
     return res;
+  }
+
+  private boolean isFileTouchCaught () {
+    for (CaptionedFile file : filesList) {
+      if (file.component.isTouchCaught()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override

@@ -681,6 +681,11 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     loadCaught = false;
   }
 
+  /** TGx101: this component took the current touch (file tap, seek, transcription button) */
+  public boolean isTouchCaught () {
+    return loadCaught || seekCaught != null || transcribeCaught;
+  }
+
   // TGx101: "A" button next to a voice message, starts the background transcription or hides/shows it
 
   private static final float TRANSCRIBE_BUTTON_SIZE = 28f;
