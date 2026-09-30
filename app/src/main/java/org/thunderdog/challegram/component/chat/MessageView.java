@@ -600,10 +600,8 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       org.thunderdog.challegram.Tgx101Diag.mark("double tap: message can't be reacted to");
     }
     if (Settings.instance().getTapMode() != Settings.TAP_MODE_STOCK && msg.canBeReacted()) {
-      if (pendingMenuTap != null && pendingMenuMessage == msg) {
-        pendingMenuTap.cancel();
-        pendingMenuTap = null;
-        pendingMenuMessage = null;
+      if (doubleTapArmed) {
+        doubleTapArmed = false;
         return msg.tgx101SetFirstQuickReaction() || onMessageClickImpl(x, y, null);
       }
       if (pendingMenuTap != null) {
@@ -621,13 +619,13 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
           }
         }
       };
-      postDelayed(pendingMenuTap, DOUBLE_TAP_TIMEOUT_MS);
+      postDelayed(pendingMenuTap, android.view.ViewConfiguration.getDoubleTapTimeout()); // 300 ms on most phones
       return true;
     }
     return onMessageClickImpl(x, y, null);
   }
 
-  private static final long DOUBLE_TAP_TIMEOUT_MS = 250;
+  private boolean doubleTapArmed;
   private CancellableRunnable pendingMenuTap;
   private TGMessage pendingMenuMessage;
 
@@ -1632,6 +1630,15 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       case MotionEvent.ACTION_DOWN: {
         if (msg.shouldIgnoreTap(e)) {
           return false;
+        }
+        // TGx101: like the official app and Android's GestureDetector, a double tap counts when the second
+        // touch STARTS within the double-tap timeout after the first tap; the pending menu is cancelled right away
+        doubleTapArmed = false;
+        if (pendingMenuTap != null && pendingMenuMessage == msg) {
+          pendingMenuTap.cancel();
+          pendingMenuTap = null;
+          pendingMenuMessage = null;
+          doubleTapArmed = true;
         }
         MessagesController c = msg.messagesController();
         if (c.isEditingMessage()) {
