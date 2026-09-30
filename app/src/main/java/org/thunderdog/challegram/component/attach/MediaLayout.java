@@ -213,7 +213,7 @@ public class MediaLayout extends FrameLayoutFix implements
     this.target = target;
     this.rtl = Lang.rtl();
     this.needVote = false;
-    final MediaBottomBar.BarItem[] items;
+    MediaBottomBar.BarItem[] items; // TGx101: not final, extra items may be appended
     final int index;
 
     switch (mode) {
@@ -268,6 +268,20 @@ public class MediaLayout extends FrameLayoutFix implements
               new MediaBottomBar.BarItem(R.drawable.baseline_camera_alt_24, R.string.Tgx101AttachCamera, ColorId.attachInlineBot) :
               new MediaBottomBar.BarItem(R.drawable.deproko_baseline_bots_24, R.string.InlineBot, ColorId.attachInlineBot)
           };
+        }
+        // TGx101: bot commands / keyboard, «silent», «scheduled» (moved here from the input row), LTR only
+        if (!rtl && target != null) {
+          tgx101Actions = target.tgx101AttachActions();
+          if (!tgx101Actions.isEmpty()) {
+            tgx101ActionsFrom = items.length;
+            MediaBottomBar.BarItem[] all = new MediaBottomBar.BarItem[items.length + tgx101Actions.size()];
+            System.arraycopy(items, 0, all, 0, items.length);
+            for (int i = 0; i < tgx101Actions.size(); i++) {
+              Object[] action = tgx101Actions.get(i);
+              all[items.length + i] = new MediaBottomBar.BarItem((int) action[0], (int) action[1], ColorId.attachInlineBot);
+            }
+            items = all;
+          }
         }
         index = 2;
         mode = MODE_DEFAULT;
@@ -450,6 +464,8 @@ public class MediaLayout extends FrameLayoutFix implements
   }
 
   private boolean tgx101Camera;
+  private java.util.List<Object[]> tgx101Actions;
+  private int tgx101ActionsFrom;
 
   /** TGx101: switch to a section (LTR index: 0 contacts, 1 file, 2 gallery, 3 location, 4 poll/bot) right after show() */
   public void tgx101SelectSection (int ltrIndex) {
@@ -703,6 +719,12 @@ public class MediaLayout extends FrameLayoutFix implements
 
   @Override
   public boolean onBottomPrepareSectionChange (int fromIndex, int toIndex, boolean ignorePermissionsRequest) {
+    if (tgx101Actions != null && tgx101ActionsFrom > 0 && toIndex >= tgx101ActionsFrom && toIndex - tgx101ActionsFrom < tgx101Actions.size()) {
+      Runnable action = (Runnable) tgx101Actions.get(toIndex - tgx101ActionsFrom)[2];
+      hide(false);
+      action.run();
+      return false;
+    }
     if (counterFactor != 0f || (counterAnimator != null && counterAnimator.isAnimating()) || getCurrentController().isAnimating()) {
       return false;
     }

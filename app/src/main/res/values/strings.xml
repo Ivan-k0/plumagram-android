@@ -6079,6 +6079,12 @@
   <string name="Tgx101CallPhotoNone">Don\'t show</string>
   <string name="Tgx101CallPattern">Paper plane pattern</string>
   <string name="Tgx101RingRamp">Increasing ringtone volume</string>
+  <string name="Tgx101AttachBotCommands">Commands</string>
+  <string name="Tgx101AttachBotKeyboard">Bot keyboard</string>
+  <string name="Tgx101AttachHideKeyboard">Hide keyboard</string>
+  <string name="Tgx101AttachSilentOn">Silent: on</string>
+  <string name="Tgx101AttachSilentOff">With sound</string>
+  <string name="Tgx101AttachScheduled">Scheduled</string>
   <string name="Tgx101MenuToGallery">To gallery</string>
   <string name="Tgx101MenuToOriginal">Go to original</string>
   <string name="Tgx101FloatingInput">Floating message field</string>
