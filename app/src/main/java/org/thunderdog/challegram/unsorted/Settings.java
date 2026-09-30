@@ -3288,7 +3288,7 @@ public class Settings {
   private static final String KEY_TGX101_FLOATING_INPUT = "tgx101_floating_input";
 
   public boolean useFloatingInput () {
-    return pmc.getBoolean(KEY_TGX101_FLOATING_INPUT, true);
+    return pmc.getBoolean(KEY_TGX101_FLOATING_INPUT, false); // user 2026-09-30: classic (variant 1) by default, the capsule stays an option
   }
 
   public void setUseFloatingInput (boolean use) {
@@ -3299,7 +3299,7 @@ public class Settings {
   private static final String KEY_TGX101_CAMERA_IN_ATTACH = "tgx101_camera_in_attach";
 
   public boolean isCameraInAttach () {
-    return pmc.getBoolean(KEY_TGX101_CAMERA_IN_ATTACH, false);
+    return pmc.getBoolean(KEY_TGX101_CAMERA_IN_ATTACH, true); // variant 1: emoji · field · paperclip · mic
   }
 
   public void setCameraInAttach (boolean inAttach) {
