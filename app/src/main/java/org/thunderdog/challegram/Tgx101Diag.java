@@ -124,9 +124,11 @@ public final class Tgx101Diag {
       @Override public void onActivityResumed (Activity a) {
         mark("activity " + a.getClass().getSimpleName() + " resumed");
         if (resumed++ == 0) StallWatch.setEnabled(true);
+        FrameWatch.attach(a);
       }
       @Override public void onActivityPaused (Activity a) {
         mark("activity " + a.getClass().getSimpleName() + " paused");
+        FrameWatch.detach(a);
         if (--resumed <= 0) { resumed = 0; StallWatch.setEnabled(false); }
       }
       @Override public void onActivityStopped (Activity a) { mark("activity " + a.getClass().getSimpleName() + " stopped"); }
@@ -262,6 +264,78 @@ public final class Tgx101Diag {
           stack = b.toString();
         }
       }
+    }
+  }
+
+  // Dropped frames: one line per second with janky frames, and the phases of the worst one.
+  // unknownDelay = the frame waited for the main thread (busy with other work), anim/layout/draw = our own UI code.
+
+  private static final class FrameWatch {
+    private static final long JANK_NS = 20_000_000L; // missed at least one 60 Hz frame
+    private static final java.util.WeakHashMap<Activity, Object> listeners = new java.util.WeakHashMap<>();
+    private static int total, janky;
+    private static long windowStart, worst;
+    private static String worstPhases;
+
+    static void attach (Activity activity) {
+      if (Build.VERSION.SDK_INT < 24 || listeners.containsKey(activity)) return;
+      android.view.Window.OnFrameMetricsAvailableListener listener = (window, metrics, dropCount) -> onFrame(metrics);
+      try {
+        activity.getWindow().addOnFrameMetricsAvailableListener(listener, writer);
+        listeners.put(activity, listener);
+      } catch (Throwable t) {
+        mark("frame watch failed: " + t);
+      }
+    }
+
+    static void detach (Activity activity) {
+      if (Build.VERSION.SDK_INT < 24) return;
+      Object listener = listeners.remove(activity);
+      if (listener != null) {
+        try {
+          activity.getWindow().removeOnFrameMetricsAvailableListener((android.view.Window.OnFrameMetricsAvailableListener) listener);
+        } catch (Throwable ignored) { }
+      }
+      writer.post(FrameWatch::report);
+    }
+
+    // Runs on the diagnostics thread
+    private static void onFrame (android.view.FrameMetrics m) {
+      if (Build.VERSION.SDK_INT < 24) return;
+      if (m.getMetric(android.view.FrameMetrics.FIRST_DRAW_FRAME) == 1) return;
+      long now = SystemClock.uptimeMillis();
+      if (windowStart == 0) windowStart = now;
+      if (now - windowStart >= 1000) report();
+      if (windowStart == 0) windowStart = now;
+      total++;
+      long duration = m.getMetric(android.view.FrameMetrics.TOTAL_DURATION);
+      if (duration >= JANK_NS) {
+        janky++;
+        if (duration > worst) {
+          worst = duration;
+          worstPhases = "wait " + ms(m, android.view.FrameMetrics.UNKNOWN_DELAY_DURATION) +
+            " input " + ms(m, android.view.FrameMetrics.INPUT_HANDLING_DURATION) +
+            " anim " + ms(m, android.view.FrameMetrics.ANIMATION_DURATION) +
+            " layout " + ms(m, android.view.FrameMetrics.LAYOUT_MEASURE_DURATION) +
+            " draw " + ms(m, android.view.FrameMetrics.DRAW_DURATION) +
+            " sync " + ms(m, android.view.FrameMetrics.SYNC_DURATION) +
+            " gpu " + (ms(m, android.view.FrameMetrics.COMMAND_ISSUE_DURATION) + ms(m, android.view.FrameMetrics.SWAP_BUFFERS_DURATION));
+        }
+      }
+    }
+
+    private static long ms (android.view.FrameMetrics m, int id) {
+      return Build.VERSION.SDK_INT >= 24 ? m.getMetric(id) / 1_000_000L : 0;
+    }
+
+    private static void report () {
+      if (janky > 0) {
+        mark("JANK " + janky + "/" + total + " frames ≥20 ms, worst " + (worst / 1_000_000L) + " ms (" + worstPhases + ")");
+      }
+      total = janky = 0;
+      worst = 0;
+      worstPhases = null;
+      windowStart = 0;
     }
   }
 
