@@ -125,7 +125,9 @@ public class ChatHeaderView extends ComplexHeaderView {
 
   public void updateUserStatus (TdApi.Chat chat) {
     if (StringUtils.isEmpty(forcedSubtitle)) {
-      setSubtitle(tdlib.status().chatStatus(chat));
+      CharSequence status = tdlib.status().chatStatus(chat);
+      setSubtitle(status);
+      org.thunderdog.challegram.Tgx101DiagHooks.onChatHeaderStatus(chat.id, status); // TGx101: diagnostics builds only
       setExpandedSubtitle(tdlib.status().chatStatusExpanded(chat));
     }
   }

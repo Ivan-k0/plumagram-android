@@ -9869,6 +9869,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   }
 
   private void processUpdate (ClientHolder context, TdApi.Update update) {
+    org.thunderdog.challegram.Tgx101DiagHooks.onUpdate(update); // TGx101: diagnostics builds only
     switch (update.getConstructor()) {
       // Notifications
       case TdApi.UpdateHavePendingNotifications.CONSTRUCTOR:

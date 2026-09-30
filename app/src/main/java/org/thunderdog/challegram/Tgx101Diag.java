@@ -12,15 +12,29 @@
  */
 package org.thunderdog.challegram;
 
+import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.Application;
+import android.content.BroadcastReceiver;
+import android.content.ComponentCallbacks2;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.res.Configuration;
 import android.database.Cursor;
 import android.net.Uri;
-import android.provider.MediaStore;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
+import android.os.ParcelFileDescriptor;
+import android.os.SystemClock;
+import android.provider.MediaStore;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -33,20 +47,32 @@ import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 /**
- * TGx101: startup diagnostics for devices where the app closes at launch (old Android, BlackBerry).
- * Only in builds made with -Ptgx101Diag=true. Writes each startup step, Java crashes and the
- * previous run's system log to TGx101-diagnostics.txt in the root of the phone storage.
+ * TGx101: diagnostics log for the developer's test builds. Only in builds made with -Ptgx101Diag=true,
+ * public builds skip everything here. Writes PlumaGram-diagnostics.txt to Download: startup, crashes,
+ * previous process exit reason, activity lifecycle, screen on/off/unlock, memory trims, UI stalls
+ * (with the main thread stack) and every event other classes report through {@link #mark}.
+ * Writing happens on a background thread in batches; the file is rotated at {@link #MAX_SIZE}
+ * (previous part kept as PlumaGram-diagnostics-old.txt). No message texts, names or numbers: IDs and types only.
  */
 public final class Tgx101Diag {
   private Tgx101Diag () { }
 
   private static final String FILE_NAME = "PlumaGram-diagnostics.txt";
+  private static final String OLD_FILE_NAME = "PlumaGram-diagnostics-old.txt";
+  private static final long MAX_SIZE = 8L * 1024 * 1024;
+  private static final long STALL_MS = 100, STALL_STACK_MS = 150;
+
   private static File file;
   private static Uri uri; // Android 10+: the file in Download, visible to any file manager
   private static ContentResolver resolver;
+  private static long size;
+
+  private static final StringBuilder pending = new StringBuilder();
+  private static Handler writer;
 
   public static void start (Context context) {
     if (!BuildConfig.TGX101_DIAG || file != null || uri != null) {
@@ -54,33 +80,101 @@ public final class Tgx101Diag {
     }
     if (Build.VERSION.SDK_INT >= 29) {
       resolver = context.getContentResolver();
-      uri = pickDownloadsUri(resolver);
+      uri = pickDownloadsUri(resolver, FILE_NAME);
     }
     if (uri == null) {
       file = pickFile(context);
     }
-    write("\n===== Launch " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date()) + " =====\n" +
+    size = currentSize();
+    HandlerThread thread = new HandlerThread("TGx101Diag");
+    thread.start();
+    writer = new Handler(thread.getLooper());
+    mark("\n===== Launch " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date()) + " =====\n" +
       "App: " + BuildConfig.VERSION_NAME + " (" + BuildConfig.VERSION_CODE + ")\n" +
       "Device: " + Build.MANUFACTURER + " " + Build.MODEL + " (" + Build.DEVICE + ", " + Build.PRODUCT + ")\n" +
       "Android: " + Build.VERSION.RELEASE + ", API " + Build.VERSION.SDK_INT + "\n" +
       "ABI: " + Arrays.toString(abis()) + "\n" +
-      "Fingerprint: " + Build.FINGERPRINT + "\n");
+      "Fingerprint: " + Build.FINGERPRINT);
+    logExitReasons(context);
     final Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
-    Thread.setDefaultUncaughtExceptionHandler((thread, error) -> {
+    Thread.setDefaultUncaughtExceptionHandler((thread1, error) -> {
       StringWriter trace = new StringWriter();
       error.printStackTrace(new PrintWriter(trace));
-      write("CRASH in thread " + thread.getName() + ":\n" + trace + "\n");
+      synchronized (pending) {
+        pending.append(time()).append("  CRASH in thread ").append(thread1.getName()).append(":\n").append(trace).append('\n');
+      }
+      flush(); // synchronously: the process dies right after
       if (previous != null) {
-        previous.uncaughtException(thread, error);
+        previous.uncaughtException(thread1, error);
       }
     });
     // A native crash can't be caught here: the log of the previous launch shows it
-    new Thread(Tgx101Diag::dumpSystemLog, "TGx101Diag").start();
+    writer.post(Tgx101Diag::dumpSystemLog);
+  }
+
+  /** Lifecycle, screen, memory and UI stall tracking. Called from Application.onCreate. */
+  public static void attach (Application app) {
+    if (!BuildConfig.TGX101_DIAG || writer == null) {
+      return;
+    }
+    app.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
+      private int resumed;
+      @Override public void onActivityCreated (Activity a, Bundle state) { mark("activity " + a.getClass().getSimpleName() + " created" + (state != null ? " (restored)" : "")); }
+      @Override public void onActivityStarted (Activity a) { mark("activity " + a.getClass().getSimpleName() + " started"); }
+      @Override public void onActivityResumed (Activity a) {
+        mark("activity " + a.getClass().getSimpleName() + " resumed");
+        if (resumed++ == 0) StallWatch.setEnabled(true);
+      }
+      @Override public void onActivityPaused (Activity a) {
+        mark("activity " + a.getClass().getSimpleName() + " paused");
+        if (--resumed <= 0) { resumed = 0; StallWatch.setEnabled(false); }
+      }
+      @Override public void onActivityStopped (Activity a) { mark("activity " + a.getClass().getSimpleName() + " stopped"); }
+      @Override public void onActivitySaveInstanceState (Activity a, Bundle outState) { }
+      @Override public void onActivityDestroyed (Activity a) { mark("activity " + a.getClass().getSimpleName() + " destroyed"); }
+    });
+    app.registerComponentCallbacks(new ComponentCallbacks2() {
+      @Override public void onTrimMemory (int level) { mark("trim memory level " + level); }
+      @Override public void onConfigurationChanged (Configuration config) { mark("configuration changed: orientation " + config.orientation + ", night " + (config.uiMode & Configuration.UI_MODE_NIGHT_MASK) + ", fontScale " + config.fontScale); }
+      @Override public void onLowMemory () { mark("LOW MEMORY"); }
+    });
+    IntentFilter filter = new IntentFilter();
+    filter.addAction(Intent.ACTION_SCREEN_ON);
+    filter.addAction(Intent.ACTION_SCREEN_OFF);
+    filter.addAction(Intent.ACTION_USER_PRESENT);
+    filter.addAction(Intent.ACTION_POWER_CONNECTED);
+    filter.addAction(Intent.ACTION_POWER_DISCONNECTED);
+    filter.addAction(Intent.ACTION_HEADSET_PLUG);
+    try {
+      app.registerReceiver(new BroadcastReceiver() {
+        @Override
+        public void onReceive (Context context, Intent intent) {
+          String action = intent.getAction();
+          if (action == null) return;
+          String event = action.substring(action.lastIndexOf('.') + 1);
+          if (Intent.ACTION_HEADSET_PLUG.equals(action)) {
+            event += " state=" + intent.getIntExtra("state", -1);
+          }
+          mark("system " + event);
+        }
+      }, filter);
+    } catch (Throwable t) {
+      mark("system receiver failed: " + t);
+    }
+    mark("diagnostics attached");
   }
 
   public static void mark (String step) {
-    if (BuildConfig.TGX101_DIAG && (file != null || uri != null)) {
-      write(new SimpleDateFormat("HH:mm:ss.SSS", Locale.US).format(new Date()) + "  " + step + "\n");
+    if (!BuildConfig.TGX101_DIAG || writer == null) {
+      return;
+    }
+    boolean schedule;
+    synchronized (pending) {
+      schedule = pending.length() == 0;
+      pending.append(time()).append("  ").append(step).append('\n');
+    }
+    if (schedule) {
+      writer.postDelayed(Tgx101Diag::flush, 500);
     }
   }
 
@@ -102,6 +196,103 @@ public final class Tgx101Diag {
     }
   }
 
+  /** Runs a periodic task on the diagnostics thread (e.g. summaries) */
+  public static void postDelayed (Runnable task, long delayMs) {
+    if (BuildConfig.TGX101_DIAG && writer != null) {
+      writer.postDelayed(task, delayMs);
+    }
+  }
+
+  private static String time () {
+    return new SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US).format(new Date());
+  }
+
+  // UI stalls: every main thread message longer than STALL_MS, with its stack when it lasts STALL_STACK_MS+
+
+  private static final class StallWatch {
+    private static volatile long dispatchStart; // 0 = idle
+    private static volatile String stack;
+    private static volatile boolean enabled;
+    private static Thread sampler;
+
+    static void setEnabled (boolean enable) {
+      if (enabled == enable) return;
+      enabled = enable;
+      Looper main = Looper.getMainLooper();
+      if (enable) {
+        main.setMessageLogging(line -> {
+          if (line.startsWith(">")) {
+            stack = null;
+            dispatchStart = SystemClock.uptimeMillis();
+          } else if (dispatchStart != 0) {
+            long duration = SystemClock.uptimeMillis() - dispatchStart;
+            dispatchStart = 0;
+            if (duration >= STALL_MS) {
+              String s = stack;
+              mark("UI STALL " + duration + " ms: " + line.replace("<<<<< Finished to ", "") + (s != null ? "\n" + s : ""));
+            }
+          }
+        });
+        if (sampler == null || !sampler.isAlive()) {
+          sampler = new Thread(StallWatch::sample, "TGx101Stall");
+          sampler.setDaemon(true);
+          sampler.start();
+        }
+      } else {
+        main.setMessageLogging(null);
+        dispatchStart = 0;
+      }
+    }
+
+    private static void sample () {
+      Thread mainThread = Looper.getMainLooper().getThread();
+      while (enabled) {
+        try {
+          Thread.sleep(50);
+        } catch (InterruptedException e) {
+          return;
+        }
+        long start = dispatchStart;
+        if (start != 0 && stack == null && SystemClock.uptimeMillis() - start >= STALL_STACK_MS) {
+          StackTraceElement[] trace = mainThread.getStackTrace();
+          StringBuilder b = new StringBuilder("    main thread at:");
+          for (int i = 0; i < Math.min(trace.length, 18); i++) {
+            b.append("\n      ").append(trace[i]);
+          }
+          stack = b.toString();
+        }
+      }
+    }
+  }
+
+  // Previous process exits: native crashes, ANRs, low-memory kills
+
+  private static void logExitReasons (Context context) {
+    if (Build.VERSION.SDK_INT < 30) {
+      return;
+    }
+    try {
+      ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+      List<android.app.ApplicationExitInfo> exits = am.getHistoricalProcessExitReasons(null, 0, 3);
+      StringBuilder b = new StringBuilder("Previous exits:");
+      SimpleDateFormat format = new SimpleDateFormat("MM-dd HH:mm:ss", Locale.US);
+      for (android.app.ApplicationExitInfo exit : exits) {
+        b.append("\n  ").append(format.format(new Date(exit.getTimestamp())))
+          .append(" reason=").append(exit.getReason())
+          .append(" status=").append(exit.getStatus())
+          .append(" importance=").append(exit.getImportance())
+          .append(" pss=").append(exit.getPss() / 1024).append("MB");
+        if (exit.getDescription() != null) {
+          b.append(" ").append(exit.getDescription());
+        }
+      }
+      b.append("\n  (reasons: 1 exit self, 2 signaled, 3 low memory, 4 crash, 5 native crash, 6 ANR, 10 user requested, 13 other)");
+      mark(b.toString());
+    } catch (Throwable t) {
+      mark("Previous exits unavailable: " + t);
+    }
+  }
+
   private static String[] abis () {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       return Build.SUPPORTED_ABIS;
@@ -110,31 +301,42 @@ public final class Tgx101Diag {
     return new String[] {Build.CPU_ABI, Build.CPU_ABI2};
   }
 
-  private static Uri pickDownloadsUri (ContentResolver resolver) {
+  private static Uri pickDownloadsUri (ContentResolver resolver, String name) {
     if (Build.VERSION.SDK_INT < 29) {
       return null;
     }
     try {
-      Uri collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI;
-      Cursor cursor = resolver.query(collection, new String[] {MediaStore.MediaColumns._ID},
-        MediaStore.MediaColumns.DISPLAY_NAME + " = ?", new String[] {FILE_NAME}, null);
-      if (cursor != null) {
-        try {
-          if (cursor.moveToFirst()) {
-            return ContentUris.withAppendedId(collection, cursor.getLong(0));
-          }
-        } finally {
-          cursor.close();
-        }
+      Uri existing = findDownload(resolver, name);
+      if (existing != null) {
+        return existing;
       }
       ContentValues values = new ContentValues();
-      values.put(MediaStore.MediaColumns.DISPLAY_NAME, FILE_NAME);
+      values.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
       values.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
       values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
-      return resolver.insert(collection, values);
+      return resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
     } catch (Throwable t) {
       return null;
     }
+  }
+
+  private static Uri findDownload (ContentResolver resolver, String name) {
+    if (Build.VERSION.SDK_INT < 29) {
+      return null;
+    }
+    Uri collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI;
+    Cursor cursor = resolver.query(collection, new String[] {MediaStore.MediaColumns._ID},
+      MediaStore.MediaColumns.DISPLAY_NAME + " = ?", new String[] {name}, null);
+    if (cursor != null) {
+      try {
+        if (cursor.moveToFirst()) {
+          return ContentUris.withAppendedId(collection, cursor.getLong(0));
+        }
+      } finally {
+        cursor.close();
+      }
+    }
+    return null;
   }
 
   private static File pickFile (Context context) {
@@ -162,21 +364,75 @@ public final class Tgx101Diag {
     }
   }
 
-  private static synchronized void write (String text) {
+  private static long currentSize () {
+    if (uri != null) {
+      ParcelFileDescriptor fd = null;
+      try {
+        fd = resolver.openFileDescriptor(uri, "r");
+        return fd != null ? fd.getStatSize() : 0;
+      } catch (Throwable t) {
+        return 0;
+      } finally {
+        if (fd != null) {
+          try { fd.close(); } catch (Throwable ignored) { }
+        }
+      }
+    }
+    return file != null ? file.length() : 0;
+  }
+
+  /** Keeps the current part below MAX_SIZE: current → -old (replacing the previous -old), new empty current */
+  private static void rotate () {
+    try {
+      if (uri != null) {
+        Uri old = findDownload(resolver, OLD_FILE_NAME);
+        if (old != null) {
+          resolver.delete(old, null, null);
+        }
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.DISPLAY_NAME, OLD_FILE_NAME);
+        resolver.update(uri, values, null, null);
+        Uri fresh = pickDownloadsUri(resolver, FILE_NAME);
+        if (fresh != null) {
+          uri = fresh;
+        }
+      } else if (file != null) {
+        File old = new File(file.getParentFile(), OLD_FILE_NAME);
+        //noinspection ResultOfMethodCallIgnored
+        old.delete();
+        //noinspection ResultOfMethodCallIgnored
+        file.renameTo(old);
+      }
+    } catch (Throwable ignored) { }
+    size = currentSize();
+  }
+
+  private static synchronized void flush () {
+    String text;
+    synchronized (pending) {
+      if (pending.length() == 0) return;
+      text = pending.toString();
+      pending.setLength(0);
+    }
+    if (size > MAX_SIZE) {
+      rotate();
+    }
+    byte[] bytes = text.getBytes(Charset.forName("UTF-8"));
     // No try-with-resources: AutoCloseable is missing before Android 4.4
     OutputStream out = null;
     try {
       if (uri != null) {
         out = resolver.openOutputStream(uri, "wa");
         if (out == null) return;
-        out.write(text.getBytes(Charset.forName("UTF-8")));
+        out.write(bytes);
         out.flush();
-        return;
+      } else {
+        FileOutputStream fileOut = new FileOutputStream(file, true);
+        out = fileOut;
+        fileOut.write(bytes);
+        fileOut.getFD().sync(); // survive an immediate native crash
       }
-      FileOutputStream fileOut = new FileOutputStream(file, true);
-      out = fileOut;
-      fileOut.write(text.getBytes(Charset.forName("UTF-8")));
-      fileOut.getFD().sync(); // survive an immediate native crash
+      size += bytes.length;
     } catch (Throwable ignored) {
     } finally {
       if (out != null) {
@@ -203,10 +459,10 @@ public final class Tgx101Diag {
       } finally {
         reader.close();
       }
-      b.append("--- end of system log ---\n");
-      write(b.toString());
+      b.append("--- end of system log ---");
+      mark(b.toString());
     } catch (Throwable t) {
-      write("System log unavailable: " + t + "\n");
+      mark("System log unavailable: " + t);
     }
   }
 }

@@ -28,6 +28,7 @@ class BaseApplication : TgxApplication(), Configuration.Provider {
     Tgx101Diag.mark("Application.onCreate …")
     super.onCreate()
     Tgx101Diag.mark("Application.onCreate: base ready")
+    Tgx101Diag.attach(this) // TGx101: lifecycle, screen and UI stall log (diagnostics builds only)
     // TGx101: startup lives in BaseApplicationStartup and is called by name. On Android 4 this class is
     // verified before MultiDex adds the secondary dex files, so it must not reference the rest of the app.
     Class.forName(javaClass.name + "Startup").getMethod("onCreate", android.app.Application::class.java).invoke(null, this)

@@ -724,6 +724,7 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
         if (Config.TEST_NOTIFICATION_PROBLEM_RESOLUTION)
           throw new RuntimeException();
         manager.notify(helper.tag(category), notificationId, notification);
+        org.thunderdog.challegram.Tgx101DiagHooks.onNotificationShown(notificationId, group.getChatId(), "category " + category); // TGx101
         state = DISPLAY_STATE_OK;
       } catch (Throwable t) {
         Log.e("Cannot display notification", t);

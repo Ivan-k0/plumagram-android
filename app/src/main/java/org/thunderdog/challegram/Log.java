@@ -720,6 +720,11 @@ public class Log {
         Tgx101Diag.mark("[call] " + (args.length != 0 ? String.format(Locale.US, fmt, args) : fmt) + (t != null ? " " + t : ""));
       } catch (Throwable ignored) { }
     }
+    if (BuildConfig.TGX101_DIAG && tag != TAG_VOIP && level <= LEVEL_WARNING) {
+      try {
+        Tgx101DiagHooks.onLog(tag != 0 ? getLogTag(tag) : null, level, args.length != 0 ? String.format(Locale.US, fmt, args) : fmt, t);
+      } catch (Throwable ignored) { }
+    }
     boolean force = Config.USE_CRASHLYTICS && level <= LEVEL_ERROR;
     boolean hasPermission = checkPermission(tag, level);
     if (hasPermission || force) {

@@ -1441,6 +1441,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   }
 
   public void performBackPress (boolean fromTop) {
+    Tgx101DiagHooks.onBack(fromTop ? "top" : "system"); // TGx101: diagnostics builds only
     if (handleOnBackPress(fromTop, true) == BackPressMode.SYSTEM_ACTION_REQUIRED) {
       backPressedCallback.setEnabled(false);
       getOnBackPressedDispatcher().onBackPressed();
@@ -1505,6 +1506,14 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   private boolean isKeyboardVisible;
 
+  @Override
+  public boolean dispatchTouchEvent (MotionEvent ev) {
+    if (BuildConfig.TGX101_DIAG) { // TGx101: gesture log in diagnostics builds
+      Tgx101DiagHooks.onTouch(ev, navigation != null ? navigation.getCurrentStackItem() : null);
+    }
+    return super.dispatchTouchEvent(ev);
+  }
+
   public boolean isKeyboardVisible () {
     return isKeyboardVisible;
   }
@@ -1512,6 +1521,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   @Override
   public void onKeyboardStateChanged (boolean visible) {
     navigation.onKeyboardStateChanged(visible);
+    Tgx101DiagHooks.onKeyboard(visible); // TGx101: diagnostics builds only
     this.isKeyboardVisible = visible;
     if (statusBar != null) {
       statusBar.updateVisible();
@@ -2468,6 +2478,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       hideContextualPopups(false);
     }
     windows.add(window);
+    Tgx101DiagHooks.onPopup(window, window.getBoundController() != null ? window.getBoundController() : window.getBoundView(), true); // TGx101
     checkDisallowScreenshots();
     window.showBoundWindow(rootView);
     notifyBackPressAvailabilityChanged();
@@ -2492,6 +2503,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   }
 
   public void removeWindowFromList (PopupLayout window) {
+    Tgx101DiagHooks.onPopup(window, window.getBoundController() != null ? window.getBoundController() : window.getBoundView(), false); // TGx101
     if (!windows.remove(window)) {
       completelyForgetThisWindow(window);
     }
