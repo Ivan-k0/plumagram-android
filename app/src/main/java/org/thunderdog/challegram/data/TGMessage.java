@@ -9000,7 +9000,6 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
 
     final String[] quickReactions = Settings.instance().getQuickReactions(tdlib);
-    tgx101FirstQuickReaction = null;
     final boolean swipeReactions = Settings.instance().getTapMode() != Settings.TAP_MODE_DOUBLE; // TGx101: «Double tap — like»: swipe only replies
     for (int a = 0; a < quickReactions.length; a++) {
       final String reactionString = quickReactions[a];
@@ -9023,9 +9022,6 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           }
         }, false, true);
 
-        if (tgx101FirstQuickReaction == null) {
-          tgx101FirstQuickReaction = quickReaction.handler; // TGx101: double tap
-        }
         if (!swipeReactions) {
           continue;
         }
@@ -9048,13 +9044,31 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   // TGx101: reaction №1 of the quick reactions, set by a double tap on the message
-  private Runnable tgx101FirstQuickReaction;
 
   public boolean tgx101SetFirstQuickReaction () {
-    if (tgx101FirstQuickReaction == null) {
+    // The swipe actions are built only when a swipe starts, so reaction №1 is resolved here directly
+    final String[] quickReactions = Settings.instance().getQuickReactions(tdlib);
+    if (quickReactions == null || quickReactions.length == 0) {
+      org.thunderdog.challegram.Tgx101Diag.mark("double tap: no quick reactions");
       return false;
     }
-    tgx101FirstQuickReaction.run();
+    TdApi.ReactionType reactionType = TD.toReactionType(quickReactions[0]);
+    final TGReaction reactionObj = tdlib.getReaction(reactionType);
+    if (reactionObj == null || !canSendReaction(reactionType)) {
+      org.thunderdog.challegram.Tgx101Diag.mark("double tap: reaction " + quickReactions[0] + " unavailable here");
+      return false;
+    }
+    boolean hasReaction = messageReactions.hasReaction(reactionType);
+    if (Config.DISABLE_ANONYMOUS_NON_OWNER_REACTIONS && !hasReaction && tdlib.isAnonymousAdminNonCreator(msg.chatId)) {
+      showContentHint(findCurrentView(), null, R.string.error_ANONYMOUS_REACTIONS_DISABLED);
+      return true;
+    }
+    if (!Config.PROTECT_ANONYMOUS_REACTIONS || hasReaction || !canGetAddedReactions() || messagesController().callNonAnonymousProtection(getId() + reactionObj.hashCode(), null)) {
+      if (messageReactions.toggleReaction(reactionType, false, false, handler(findCurrentView(), null, () -> {}))) {
+        scheduleSetReactionAnimation(new NextReactionAnimation(reactionObj, NextReactionAnimation.TYPE_QUICK));
+      }
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("double tap: reaction " + quickReactions[0]);
     return true;
   }
 

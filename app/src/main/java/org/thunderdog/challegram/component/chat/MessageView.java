@@ -596,6 +596,9 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       }
     }*/
     // TGx101: double tap sets reaction №1; the menu opens after the double-tap timeout (only when the option is on)
+    if (Settings.instance().getTapMode() != Settings.TAP_MODE_STOCK && !msg.canBeReacted()) {
+      org.thunderdog.challegram.Tgx101Diag.mark("double tap: message can't be reacted to");
+    }
     if (Settings.instance().getTapMode() != Settings.TAP_MODE_STOCK && msg.canBeReacted()) {
       if (pendingMenuTap != null && pendingMenuMessage == msg) {
         pendingMenuTap.cancel();
