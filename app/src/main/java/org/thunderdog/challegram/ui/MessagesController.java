@@ -9252,7 +9252,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   // TGx101: floating message field — a rounded capsule with a shadow; the bottom padding (gap) stays transparent
 
-  private static final float FLOATING_INPUT_SIDE = 10f, FLOATING_INPUT_BOTTOM = 8f, FLOATING_INPUT_RADIUS = 24f, FLOATING_INPUT_ALPHA = .85f;
+  private static final float FLOATING_INPUT_SIDE = 10f, FLOATING_INPUT_BOTTOM = 8f, FLOATING_INPUT_RADIUS = 24f, FLOATING_INPUT_ALPHA = 1f; // see-through (.85) was tried: file icons and messages under it showed through, user rejected
   private boolean floatingInput;
 
   private void updateFloatingListPadding () {
