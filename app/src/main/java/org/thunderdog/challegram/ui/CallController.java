@@ -573,6 +573,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
       brandIcon.setImageResource(R.drawable.baseline_plumagram_24);
       brandIcon.setColorFilter(0xffffffff);
       brandIcon.setLayoutParams(new LinearLayout.LayoutParams(Screen.dp(28f), Screen.dp(28f)));
+      tgx101BrandIcon = brandIcon;
     }
     brandWrap.addView(brandIcon);
 
@@ -1034,9 +1035,16 @@ public class CallController extends ViewController<CallController.Arguments> imp
 
   private Tgx101IncomingControls incomingControls;
 
+  private ImageView tgx101BrandIcon;
+
   private void updateIncomingControls () {
+    boolean ringing = call != null && !call.isOutgoing && call.state.getConstructor() == TdApi.CallStatePending.CONSTRUCTOR;
+    if (tgx101BrandIcon != null) {
+      // TGx101: the bird only on the incoming call screen; during a call that corner belongs to the encryption emoji
+      tgx101BrandIcon.setVisibility(ringing ? View.VISIBLE : View.GONE);
+    }
     if (incomingControls == null) return;
-    boolean incoming = call != null && !call.isOutgoing && call.state.getConstructor() == TdApi.CallStatePending.CONSTRUCTOR;
+    boolean incoming = ringing;
     incomingControls.setVisibility(incoming ? View.VISIBLE : View.GONE);
     if (incoming) {
       callControlsLayout.setVisibility(View.GONE);
