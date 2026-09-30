@@ -727,6 +727,15 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
 
   private int tgx101OpenCallRetries;
 
+  /** TGx101: a busy activity (closing pop-up, animation) silently drops the new call screen — wait until it's free */
+  private void tgx101OpenCallWhenFree (int attempt) {
+    if (isActivityBusyWithSomething() && attempt < 20) {
+      UI.post(() -> tgx101OpenCallWhenFree(attempt + 1), 100);
+      return;
+    }
+    coverUntilCallShown(openCallController());
+  }
+
   private boolean handleIntent (String actionRaw, final Intent intent, boolean fromCreate) {
     final String action = Intents.getCleanAction(actionRaw);
 
@@ -862,7 +871,8 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       setShowOverLockScreen(true);
       // TGx101: the last screen (often a white chat) was drawn first and the call screen slid over it a moment
       // later — a white flash. A dark cover hides it until the call screen is on top.
-      coverUntilCallShown(openCallController());
+      tgx101CloseOverlaysForCall();
+      tgx101OpenCallWhenFree(0);
       return true;
     }
 

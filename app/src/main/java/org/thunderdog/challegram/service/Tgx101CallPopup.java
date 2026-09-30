@@ -76,12 +76,14 @@ final class Tgx101CallPopup {
     WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
     if (wm == null) return;
 
+    // follows the system theme: dark card in the dark mode
+    boolean dark = (context.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
     LinearLayout card = new LinearLayout(context);
     card.setOrientation(LinearLayout.VERTICAL);
     int pad = Screen.dp(14f);
     card.setPadding(pad, pad, pad, pad);
     GradientDrawable bg = new GradientDrawable();
-    bg.setColor(0xffffffff);
+    bg.setColor(dark ? 0xff1f2a33 : 0xffffffff);
     bg.setCornerRadius(Screen.dp(22f));
     card.setBackground(bg);
     card.setElevation(Screen.dp(8f));
@@ -94,7 +96,7 @@ final class Tgx101CallPopup {
       avatar.setImageBitmap(photo);
     } else {
       avatar.setImageResource(R.drawable.baseline_plumagram_24);
-      avatar.setColorFilter(0xff4f7aa3);
+      avatar.setColorFilter(dark ? 0xff8fb3d9 : 0xff4f7aa3);
     }
     avatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
     top.addView(avatar, new LinearLayout.LayoutParams(Screen.dp(44f), Screen.dp(44f)));
@@ -104,13 +106,13 @@ final class Tgx101CallPopup {
     TextView subtitle = new TextView(context);
     subtitle.setText(Lang.getString(R.string.Tgx101CallPopupSubtitle));
     subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12f);
-    subtitle.setTextColor(0xff6f7d89);
+    subtitle.setTextColor(dark ? 0xff9fb0bf : 0xff6f7d89);
     subtitle.setTypeface(Fonts.getRobotoRegular());
     texts.addView(subtitle);
     TextView title = new TextView(context);
     title.setText(name);
     title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17f);
-    title.setTextColor(0xff1f2a33);
+    title.setTextColor(dark ? 0xffffffff : 0xff1f2a33);
     title.setTypeface(Fonts.getRobotoBold());
     title.setSingleLine(true);
     title.setEllipsize(android.text.TextUtils.TruncateAt.END);

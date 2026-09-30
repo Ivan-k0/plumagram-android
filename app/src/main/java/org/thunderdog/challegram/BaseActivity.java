@@ -685,6 +685,25 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     return showAlert(b, null);
   }
 
+  private final ArrayList<java.lang.ref.WeakReference<AlertDialog>> tgx101ShownDialogs = new ArrayList<>();
+
+  /** TGx101: opening the call screen from the call chip — close dialogs (e.g. the message text window), pop-ups and the keyboard first */
+  public void tgx101CloseOverlaysForCall () {
+    for (java.lang.ref.WeakReference<AlertDialog> ref : tgx101ShownDialogs) {
+      AlertDialog dialog = ref.get();
+      if (dialog != null && dialog.isShowing()) {
+        try {
+          dialog.dismiss();
+        } catch (Throwable ignored) { }
+      }
+    }
+    tgx101ShownDialogs.clear();
+    for (int i = windows.size() - 1; i >= 0; i--) {
+      windows.get(i).hideWindow(false);
+    }
+    hideSoftwareKeyboard();
+  }
+
   public final AlertDialog showAlert (AlertDialog.Builder b, ThemeDelegate theme) {
     if (isFinishing()) {
       return null;
@@ -698,6 +717,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       Log.e("Cannot show dialog", t);
       return null;
     }
+    tgx101ShownDialogs.add(new java.lang.ref.WeakReference<>(dialog));
     View view = dialog.findViewById(android.R.id.message);
     if (view != null) {
       if (dialogMessages == null) {
