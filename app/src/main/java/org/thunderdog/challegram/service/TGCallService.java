@@ -1118,11 +1118,45 @@ public class TGCallService extends Service implements
     }
   }
 
+  private static final float RING_RAMP_START = 0.2f;
+  private static final long RING_RAMP_DURATION_MS = 20_000, RING_RAMP_STEP_MS = 250;
+
+  private void startRingRamp (MediaPlayer player) {
+    final long start = android.os.SystemClock.uptimeMillis();
+    UI.post(new Runnable() {
+      @Override
+      public void run () {
+        if (ringtonePlayer != player) {
+          return; // stopped or restarted
+        }
+        float progress = Math.min(1f, (android.os.SystemClock.uptimeMillis() - start) / (float) RING_RAMP_DURATION_MS);
+        float volume = RING_RAMP_START + (1f - RING_RAMP_START) * progress;
+        try {
+          player.setVolume(volume, volume);
+        } catch (Throwable ignored) {
+          return;
+        }
+        if (progress < 1f) {
+          UI.post(this, RING_RAMP_STEP_MS);
+        }
+      }
+    });
+  }
+
   private void startRinging () {
     Log.i(Log.TAG_VOIP, "startRinging");
     TdlibManager.instance().player().pauseWithReason(TGPlayerController.PAUSE_REASON_TELEGRAM_CALL);
     ringtonePlayer = new MediaPlayer();
-    ringtonePlayer.setOnPreparedListener(mediaPlayer -> ringtonePlayer.start());
+    final boolean ramp = Settings.instance().isRingRampEnabled(); // TGx101: 20 % → 100 % over 20 s
+    if (ramp) {
+      ringtonePlayer.setVolume(RING_RAMP_START, RING_RAMP_START);
+    }
+    ringtonePlayer.setOnPreparedListener(mediaPlayer -> {
+      ringtonePlayer.start();
+      if (ramp) {
+        startRingRamp(mediaPlayer);
+      }
+    });
     ringtonePlayer.setLooping(true);
     ringtonePlayer.setAudioStreamType(AudioManager.STREAM_RING);
     try {

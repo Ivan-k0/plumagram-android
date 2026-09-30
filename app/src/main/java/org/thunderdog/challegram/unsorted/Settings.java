@@ -3284,6 +3284,17 @@ public class Settings {
   public static final int CALL_PATTERN_PAPER_PLANES = 1;
   private static final String KEY_CALL_PATTERN = "settings_call_pattern";
 
+  // TGx101: the incoming call ringtone starts at 20 % and rises to 100 % over 20 seconds
+  private static final String KEY_TGX101_RING_RAMP = "tgx101_ring_ramp";
+
+  public boolean isRingRampEnabled () {
+    return pmc.getBoolean(KEY_TGX101_RING_RAMP, false);
+  }
+
+  public void setRingRampEnabled (boolean enabled) {
+    pmc.putBoolean(KEY_TGX101_RING_RAMP, enabled);
+  }
+
   public int getCallPattern () {
     return pmc.getInt(KEY_CALL_PATTERN, CALL_PATTERN_PAPER_PLANES);
   }

@@ -230,6 +230,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(callPhotoModeName(Settings.instance().getCallPhotoMode()));
         } else if (itemId == R.id.btn_tgx101CallPattern) {
           view.getToggler().setRadioEnabled(Settings.instance().getCallPattern() != Settings.CALL_PATTERN_NONE, isUpdate);
+        } else if (itemId == R.id.btn_tgx101RingRamp) {
+          view.getToggler().setRadioEnabled(Settings.instance().isRingRampEnabled(), isUpdate);
         } else if (itemId == R.id.btn_showChannelMuteButton) {
           view.getToggler().setRadioEnabled(Settings.instance().showChannelMuteButton(), isUpdate);
         } else if (itemId == R.id.btn_showDiscussButton) {
@@ -355,6 +357,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101CallPhoto, 0, R.string.Tgx101CallPhoto),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CallPattern, 0, R.string.Tgx101CallPattern),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101RingRamp, 0, R.string.Tgx101RingRamp),
 
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101CallPatternHint),
@@ -652,6 +656,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       showCallPhotoModes();
     } else if (id == R.id.btn_tgx101CallPattern) {
       Settings.instance().setCallPattern(toggleResult ? Settings.CALL_PATTERN_PAPER_PLANES : Settings.CALL_PATTERN_NONE); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101RingRamp) {
+      Settings.instance().setRingRampEnabled(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showChannelMuteButton) {
       Settings.instance().setShowChannelMuteButton(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showCommentsButton) {
