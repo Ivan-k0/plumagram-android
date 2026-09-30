@@ -144,9 +144,17 @@ public final class Tgx101MessageMenu {
     // TGx101: the reactions keep their width; the action card is narrower and moved toward the centre,
     // leaving a free strip at the screen edge — a tap there closes the menu (like the official app)
     // The reactions stick out of the card by REACTIONS_OVERHANG on both sides
-    int cardEdgeGap = Screen.dp(52f), overhang = Screen.dp(REACTIONS_OVERHANG);
-    int cardWidth = Math.max(Math.min(Screen.dp(200f), Screen.currentWidth() - Screen.dp(24f)), Math.min(Screen.dp(268f), Screen.currentWidth() - Screen.dp(24f)) - cardEdgeGap);
-    int pillWidth = cardWidth + overhang * 2;
+    int maxCardWidth = Math.min(Screen.dp(268f), Screen.currentWidth() - Screen.dp(24f));
+    int cardWidth = Math.max(Math.min(Screen.dp(200f), maxCardWidth), maxCardWidth - Screen.dp(52f));
+    // The card keeps its width (user 2026-09-30); long items use short names in this menu, see shortName()
+    // The reactions pill fits whole reactions and sticks out of the card by ~16–20 dp on each side
+    int overhangMin = Screen.dp(REACTIONS_OVERHANG);
+    int pillChrome = Screen.dp(18f) + Screen.dp(44f);
+    int reactionCount = Math.max(1, (int) Math.ceil((cardWidth + overhangMin * 2 - pillChrome) / (float) Screen.dp(REACTION_ITEM_WIDTH)));
+    int pillWidth = pillChrome + reactionCount * Screen.dp(REACTION_ITEM_WIDTH);
+    int overhang = (pillWidth - cardWidth) / 2;
+    // Free strip at the edge (tap closes the menu): up to 52 dp, never less than the reactions' overhang
+    int cardEdgeGap = Math.max(overhang, Math.min(Screen.dp(52f), maxCardWidth - cardWidth + overhang));
 
     FrameLayout root = new FrameLayout(context);
     root.setBackground(blurredBackground(c));
@@ -185,10 +193,7 @@ public final class Tgx101MessageMenu {
       reactions.setNeedDrawBorderGradient(false);
       boolean canExpand = state.needShowReactionsPopupPicker && onExpandReactions != null;
       // Whole reactions only: the one that would be cut under the ⌄ button is left out (still reachable by scrolling or ⌄)
-      int available = pillWidth - (canExpand ? Screen.dp(44f) : 0);
-      int item = Screen.dp(REACTION_ITEM_WIDTH), padding = Screen.dp(18f);
-      int count = Math.max(1, (available - padding) / item);
-      int reactionsWidth = padding + count * item;
+      int reactionsWidth = Screen.dp(18f) + (reactionCount + (canExpand ? 0 : 1)) * Screen.dp(REACTION_ITEM_WIDTH);
       pill.setClickable(true);
       pill.addView(reactions, new LinearLayout.LayoutParams(reactionsWidth, Screen.dp(52f)));
       if (canExpand) {
@@ -456,7 +461,7 @@ public final class Tgx101MessageMenu {
     row.setCompoundDrawablePadding(Screen.dp(14f));
     int textColorId = isDelete ? ColorId.textNegative : OptionsLayoutColor.text(item);
     row.setTextColor(Theme.getColor(textColorId));
-    row.setText(item.name);
+    row.setText(shortName(item));
     if (item.icon != 0) {
       Drawable icon = Drawables.get(context.getResources(), item.icon);
       if (icon != null) {
@@ -499,6 +504,17 @@ public final class Tgx101MessageMenu {
     params.rightMargin = Screen.dp(12f);
     divider.setLayoutParams(params);
     return divider;
+  }
+
+  /** TGx101: shorter names for the narrow card; the full names stay everywhere else */
+  private static CharSequence shortName (ViewController.OptionItem item) {
+    if (item.id == R.id.btn_saveFile && item.name != null && item.name.toString().equals(org.thunderdog.challegram.core.Lang.getString(R.string.SaveToGallery))) {
+      return org.thunderdog.challegram.core.Lang.getString(R.string.Tgx101MenuToGallery);
+    }
+    if (item.id == R.id.btn_messageShowSource) {
+      return org.thunderdog.challegram.core.Lang.getString(R.string.Tgx101MenuToOriginal);
+    }
+    return item.name;
   }
 
   private static final float REACTIONS_OVERHANG = 16f, REACTION_ITEM_WIDTH = 38f; // item: 40dp view with -1dp decoration on each side
