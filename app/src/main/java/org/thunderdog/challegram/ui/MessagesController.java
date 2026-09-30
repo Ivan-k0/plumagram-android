@@ -352,7 +352,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private TextFormattingLayout textFormattingLayout;
   private AttachLinearLayout attachButtons;
   private ImageView emojiButton;
-  private ImageView filesButton; // TGx101
   private VoiceVideoButtonView recordButton;
   private SendButton sendButton;
   private HapticMenuHelper sendMenu;
@@ -800,12 +799,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
       };
       inputView.setNoPersonalizedLearning(Settings.instance().needsIncognitoMode(chat));
       inputView.setId(R.id.msg_input);
-      // TGx101: room for the «Files» button next to the emoji button
-      if (Lang.rtl()) {
-        inputView.setPadding(inputView.getPaddingLeft(), inputView.getPaddingTop(), inputView.getPaddingRight() + Screen.dp(FILES_BUTTON_WIDTH), inputView.getPaddingBottom());
-      } else {
-        inputView.setPadding(inputView.getPaddingLeft() + Screen.dp(FILES_BUTTON_WIDTH), inputView.getPaddingTop(), inputView.getPaddingRight(), inputView.getPaddingBottom());
-      }
       inputView.setTextColor(Theme.textAccentColor());
       addThemePaintColorListener(inputView.getPlaceholderPaint(), ColorId.textPlaceholder);
       addThemeTextColorListener(inputView, ColorId.text);
@@ -1145,24 +1138,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (floatingInput) {
       params.leftMargin = params.rightMargin = Screen.dp(FLOATING_INPUT_SIDE);
     }
-    RelativeLayout.LayoutParams filesParams = new RelativeLayout.LayoutParams(params);
-    // TGx101: «Files» at the edge, the emoji button moves one step toward the centre
-    if (Lang.rtl()) {
-      params.rightMargin += Screen.dp(FILES_BUTTON_WIDTH);
-    } else {
-      params.leftMargin += Screen.dp(FILES_BUTTON_WIDTH);
-    }
-    filesParams.width = Screen.dp(FILES_BUTTON_WIDTH);
-
-    filesButton = new ImageView(context);
-    filesButton.setId(R.id.btn_tgx101Files);
-    filesButton.setScaleType(ImageView.ScaleType.CENTER);
-    filesButton.setImageResource(R.drawable.baseline_insert_drive_file_24);
-    filesButton.setColorFilter(Theme.iconColor());
-    addThemeFilterListener(filesButton, ColorId.icon);
-    filesButton.setOnClickListener(this);
-    filesButton.setContentDescription(Lang.getString(R.string.File));
-    filesButton.setLayoutParams(filesParams);
 
     emojiButton = new ImageView(context);
     emojiButton.setId(R.id.msg_emoji);
@@ -1537,7 +1512,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
     contentView.addView(goToPrevFoundMessageButtonBadge);
 
     if (previewMode == PREVIEW_MODE_NONE) {
-      contentView.addView(filesButton);
       contentView.addView(emojiButton);
       contentView.addView(attachButtons);
       contentView.addView(sendButton);
@@ -2148,10 +2122,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
       toggleEmojiKeyboard();
     } else if (viewId == R.id.msg_attach) {
       hideBottomHint();
-      openMediaView(false, false);
-    } else if (viewId == R.id.btn_tgx101Files) {
-      hideBottomHint();
-      pendingMediaSection = 1; // TGx101: the attach menu opens right on «File»
       openMediaView(false, false);
     } else if (viewId == R.id.msg_send) {
       if (!leaveInlineMode()) {
@@ -3451,7 +3421,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
         replyBarView.setVisibility(View.VISIBLE);
       }
       emojiButton.setVisibility(View.VISIBLE);
-      filesButton.setVisibility(View.VISIBLE);
       if (notEmpty) {
         attachButtons.setVisibility(View.INVISIBLE);
         sendButton.setVisibility(View.VISIBLE);
@@ -3472,7 +3441,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
       bottomShadowView.setVisibility(View.GONE);
       emojiButton.setVisibility(View.GONE);
-      filesButton.setVisibility(View.GONE);
       attachButtons.setVisibility(View.GONE);
       sendButton.setVisibility(View.GONE);
       messageSenderButton.setVisibility(View.GONE);
@@ -8164,7 +8132,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     sendButton.setTranslationY(y);
     emojiButton.setTranslationY(y);
-    filesButton.setTranslationY(y);
     attachButtons.setTranslationY(y);
     messageSenderButton.setTranslationY(y);
 
@@ -10163,13 +10130,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void displayEmojiButton () {
     emojiButton.setVisibility(View.VISIBLE);
-    filesButton.setVisibility(View.VISIBLE);
     emojiButton.setOnClickListener(this);
   }
 
   private void hideEmojiButton () {
     emojiButton.setVisibility(View.INVISIBLE);
-    filesButton.setVisibility(View.INVISIBLE);
     emojiButton.setOnClickListener(null);
   }
 
@@ -10588,8 +10553,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // Attach
 
   private boolean openingMediaLayout;
-  private int pendingMediaSection = -1;
-  private static final float FILES_BUTTON_WIDTH = 44f;
 
   private void openMediaView (boolean ignorePermissionRequest, boolean noMedia) {
     if (openingMediaLayout) {
@@ -10611,14 +10574,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
 
     openingMediaLayout = true;
-    final int section = pendingMediaSection;
-    pendingMediaSection = -1;
     mediaLayout.preload(() -> {
       if (isFocused() && !isDestroyed()) {
         mediaLayout.show();
-        if (section >= 0) {
-          mediaLayout.tgx101SelectSection(section);
-        }
       }
       openingMediaLayout = false;
     }, 300l);
