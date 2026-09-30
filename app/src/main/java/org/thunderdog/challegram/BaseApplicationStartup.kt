@@ -59,7 +59,6 @@ object BaseApplicationStartup {
 
     UI.initApp(applicationContext)
     org.thunderdog.challegram.proxy.Tgx101WebProxy.init() // TGx101: WEB proxy carrier follows the current proxy
-    org.thunderdog.challegram.service.Tgx101LockScreenNotifications.register(application) // TGx101: Vivo lock screen
     Tgx101Diag.mark("Application.onCreate: UI ready")
 
     if (!BuildConfig.EXPERIMENTAL) {
