@@ -133,6 +133,21 @@ import tgx.td.ChatId;
 import tgx.td.Td;
 
 public class InputView extends NoClipEditText implements InlineSearchContext.Callback, InlineResultsWrap.PickListener, RtlCheckListener, FinalNewLineFilter.Callback, CustomEmojiSurfaceProvider, Destroyable {
+  // TGx101: before Android 13, back reaches the focused field before the keyboard: close an open pop-up menu first
+  @Override
+  public boolean onKeyPreIme (int keyCode, android.view.KeyEvent event) {
+    if (keyCode == android.view.KeyEvent.KEYCODE_BACK && android.os.Build.VERSION.SDK_INT < 33) {
+      org.thunderdog.challegram.BaseActivity activity = UI.getContext(getContext());
+      if (activity != null && activity.isPopupOverChatInput()) {
+        if (event.getAction() == android.view.KeyEvent.ACTION_UP) {
+          activity.dismissLastOpenWindow(false, true, false, true);
+        }
+        return true;
+      }
+    }
+    return super.onKeyPreIme(keyCode, event);
+  }
+
   public static final boolean USE_ANDROID_SELECTION_FIX = true;
   private final TextPaint paint;
 

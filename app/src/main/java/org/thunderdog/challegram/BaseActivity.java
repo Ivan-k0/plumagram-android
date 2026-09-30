@@ -1523,6 +1523,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     navigation.onKeyboardStateChanged(visible);
     Tgx101DiagHooks.onKeyboard(visible); // TGx101: diagnostics builds only
     this.isKeyboardVisible = visible;
+    updatePopupBackPriority();
     if (statusBar != null) {
       statusBar.updateVisible();
     }
@@ -2478,6 +2479,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       hideContextualPopups(false);
     }
     windows.add(window);
+    UI.post(this::updatePopupBackPriority);
     Tgx101DiagHooks.onPopup(window, window.getBoundController() != null ? window.getBoundController() : window.getBoundView(), true); // TGx101
     checkDisallowScreenshots();
     window.showBoundWindow(rootView);
@@ -2503,6 +2505,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   }
 
   public void removeWindowFromList (PopupLayout window) {
+    UI.post(this::updatePopupBackPriority);
     Tgx101DiagHooks.onPopup(window, window.getBoundController() != null ? window.getBoundController() : window.getBoundView(), false); // TGx101
     if (!windows.remove(window)) {
       completelyForgetThisWindow(window);
@@ -2514,6 +2517,36 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   public @Nullable ViewController<?> getCurrentlyOpenWindowedViewController () {
     PopupLayout popupLayout = getCurrentPopupWindow();
     return popupLayout != null ? popupLayout.getBoundController() : null;
+  }
+
+  // TGx101: with the keyboard up and a pop-up menu open over the chat, the first back closes the menu, not the keyboard.
+  // Android 13+ gives back to the keyboard first, so a callback with a higher priority takes it while that's the case.
+
+  private Object popupBackCallback;
+
+  /** The chat input still has the focus: the open pop-up is a menu over the chat, not something with its own text field */
+  public boolean isPopupOverChatInput () {
+    return !windows.isEmpty() && getCurrentFocus() instanceof org.thunderdog.challegram.component.chat.InputView;
+  }
+
+  private void updatePopupBackPriority () {
+    if (Build.VERSION.SDK_INT < 33) {
+      return; // InputView.onKeyPreIme handles it
+    }
+    boolean need = isKeyboardVisible && isPopupOverChatInput();
+    android.window.OnBackInvokedDispatcher dispatcher = getOnBackInvokedDispatcher();
+    if (need && popupBackCallback == null) {
+      android.window.OnBackInvokedCallback callback = () -> {
+        if (!dismissLastOpenWindow(false, true, false, true)) {
+          updatePopupBackPriority();
+        }
+      };
+      popupBackCallback = callback;
+      dispatcher.registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_OVERLAY, callback);
+    } else if (!need && popupBackCallback != null) {
+      dispatcher.unregisterOnBackInvokedCallback((android.window.OnBackInvokedCallback) popupBackCallback);
+      popupBackCallback = null;
+    }
   }
 
   public boolean dismissLastOpenWindow (boolean byKeyPress, boolean byBackPress, boolean byHeaderBackPress, boolean commit) {
