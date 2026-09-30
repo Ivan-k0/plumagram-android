@@ -1527,6 +1527,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       return tdlib.cache().user(userId);
   }
 
+  /** TGx101: a post of the channel itself in the channel feed (flat mode) — its name next to views/time is redundant */
+  private boolean tgx101IsOwnChannelPost () {
+    return !useBubbles() && isChannel() && msg.forwardInfo == null && msg.senderId instanceof TdApi.MessageSenderChat && ((TdApi.MessageSenderChat) msg.senderId).chatId == msg.chatId;
+  }
+
   protected final boolean needName () {
     return needName(true);
   }
@@ -3396,6 +3401,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         }
         hAuthorAccentColor = forceForwardOrImportInfo() ? forwardInfo.getAuthorAccentColor() : sender.getAccentColor();
         hAuthorNameT = makeName(authorName, hAuthorAccentColor, !(forceForwardOrImportInfo() && forwardInfo instanceof TGSourceHidden), isPsa, !needName(false), msg.forwardInfo == null || forceForwardOrImportInfo() ? msg.viaBotUserId : 0, maxWidth, false);
+        if (tgx101IsOwnChannelPost()) {
+          hAuthorNameT = null; // TGx101: the channel's own name under its posts is redundant and pushed out the views
+        }
       } else {
         hAuthorAccentColor = null;
         hAuthorNameT = null;
@@ -3500,6 +3508,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       }
       hAuthorAccentColor = forceForwardOrImportInfo() ? forwardInfo.getAuthorAccentColor() : sender.getAccentColor();
       hAuthorNameT = makeName(authorName, hAuthorAccentColor, !(forceForwardOrImportInfo() && forwardInfo instanceof TGSourceHidden), isPsa, !needName(false), msg.forwardInfo == null || forceForwardOrImportInfo() ? msg.viaBotUserId : 0, nameMaxWidth, false);
+      if (tgx101IsOwnChannelPost()) {
+        hAuthorNameT = null; // TGx101: see above
+      }
     } else {
       hAuthorNameT = null;
       hAuthorAccentColor = null;

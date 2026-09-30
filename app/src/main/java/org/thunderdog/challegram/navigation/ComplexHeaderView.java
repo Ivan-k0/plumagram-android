@@ -109,6 +109,7 @@ public class ComplexHeaderView extends BaseView implements RtlCheckListener, Sti
 
   private final EmojiStatusHelper emojiStatusHelper;
   private String title, subtitle, expandedSubtitle;
+  private static final float[] TGX101_TITLE_SIZES = {18f, 16.5f, 15.5f};
   private TextEntity[] subtitleEntities;
   private @Nullable Text trimmedTitle, trimmedTitleExpanded, trimmedSubtitle, trimmedSubtitleExpanded;
   private RectF trimmedTitleClickRect = new RectF();
@@ -667,13 +668,19 @@ public class ComplexHeaderView extends BaseView implements RtlCheckListener, Sti
       }
 
       avatarTextScale = DEFAULT_AVATAR_TEXT_SCALE;
-      trimmedTitle = new Text.Builder(title, getCurrentScaledTextMaxWidth() - additionalTextEndPadding, Paints.robotoStyleProvider(18), getTitleColorSet())
-        .lineWidthProvider((lineIndex, y, defaultMaxWidth, lineHeight) -> defaultMaxWidth - getTextOffsetLeft() - getTextOffsetRight())
-        .lineMarginProvider((lineIndex, y, defaultMaxWidth, lineHeight) -> lineIndex == 0 ? getTextOffsetLeft() : 0)
-        .singleLine()
-        .clipTextArea()
-        .allBold()
-        .build();
+      // TGx101: a long title (e.g. a channel name next to the verified and mute icons) first shrinks down to ~85 %, then gets «…»
+      for (float titleSize : TGX101_TITLE_SIZES) {
+        trimmedTitle = new Text.Builder(title, getCurrentScaledTextMaxWidth() - additionalTextEndPadding, Paints.robotoStyleProvider(titleSize), getTitleColorSet())
+          .lineWidthProvider((lineIndex, y, defaultMaxWidth, lineHeight) -> defaultMaxWidth - getTextOffsetLeft() - getTextOffsetRight())
+          .lineMarginProvider((lineIndex, y, defaultMaxWidth, lineHeight) -> lineIndex == 0 ? getTextOffsetLeft() : 0)
+          .singleLine()
+          .clipTextArea()
+          .allBold()
+          .build();
+        if (!trimmedTitle.isEllipsized()) {
+          break;
+        }
+      }
       trimmedTitleExpanded = null;
       if (trimmedTitle.isEllipsized()) {
         int maxLineCount = 2;
