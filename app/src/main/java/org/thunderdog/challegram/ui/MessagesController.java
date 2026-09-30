@@ -2130,6 +2130,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else if (viewId == R.id.btn_silent) {
       if (tdlib.isChannel(chat.id)) {
         boolean silent = silentButton.toggle();
+        tgx101UpdateLeftSlot();
         tdlib.send(new TdApi.ToggleChatDefaultDisableNotification(chat.id, silent), tdlib.typedOkHandler());
         int[] pos = new int[2];
         Views.getPosition(bottomWrap, pos);
@@ -2146,6 +2147,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
       hideBottomHint();
       openMediaView(false, false);
     } else if (viewId == R.id.btn_tgx101Files) {
+      if (tgx101LeftSlotTarget != null) { // the slot shows a bot / silent / scheduled button instead of «Files»
+        onClick(tgx101LeftSlotTarget);
+        return;
+      }
       hideBottomHint();
       pendingMediaSection = 1; // TGx101: the attach menu opens right on «File»
       openMediaView(false, false);
@@ -2986,6 +2991,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       commandButton.setTranslationX(scheduleButton.isVisible() ? 0 : scheduleButton.getLayoutParams().width);
       attachButtons.updatePivot();
     }
+    tgx101UpdateLeftSlot();
 
     // Preloading data so profile will not jump when opening
     switch (chat.type.getConstructor()) {
@@ -5772,20 +5778,44 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return counterSet;
   }
 
+  /**
+   * TGx101: the left input slot shows «Files», or — when the chat has one — the first extra button in the order
+   * bot commands / keyboard → silent broadcast → scheduled. Any further extras are items in the attach menu.
+   */
+  private View tgx101LeftSlotTarget;
+
+  private void tgx101UpdateLeftSlot () {
+    if (filesButton == null) return;
+    View target = null;
+    int icon = R.drawable.baseline_insert_drive_file_24;
+    if (commandButton != null && commandButton.isVisible() && lastCmdResource != 0) {
+      target = commandButton;
+      icon = lastCmdResource;
+    } else if (silentButton != null && silentButton.getVisibility() == View.VISIBLE) {
+      target = silentButton;
+      icon = silentButton.getIsSilent() ? R.drawable.baseline_notifications_off_24 : R.drawable.outline_notifications_24;
+    } else if (scheduleButton != null && scheduleButton.isVisible()) {
+      target = scheduleButton;
+      icon = R.drawable.baseline_date_range_24;
+    }
+    tgx101LeftSlotTarget = target;
+    filesButton.setImageResource(icon);
+  }
+
   /** TGx101: extra attach menu items for what used to be buttons next to the input; each runs the old button's action */
   public java.util.List<Object[]> tgx101AttachActions () {
     java.util.List<Object[]> actions = new java.util.ArrayList<>();
-    if (commandButton != null && commandButton.isVisible() && lastCmdResource != 0) {
+    if (commandButton != null && commandButton.isVisible() && lastCmdResource != 0 && tgx101LeftSlotTarget != commandButton) {
       int label = lastCmdResource == R.drawable.deproko_baseline_bots_command_26 ? R.string.Tgx101AttachBotCommands :
         lastCmdResource == R.drawable.baseline_direction_arrow_down_24 ? R.string.Tgx101AttachHideKeyboard : R.string.Tgx101AttachBotKeyboard;
       actions.add(new Object[] {lastCmdResource, label, (Runnable) () -> onClick(commandButton)});
     }
-    if (silentButton != null && silentButton.getVisibility() == View.VISIBLE) {
+    if (silentButton != null && silentButton.getVisibility() == View.VISIBLE && tgx101LeftSlotTarget != silentButton) {
       boolean silent = silentButton.getIsSilent();
       actions.add(new Object[] {silent ? R.drawable.baseline_notifications_off_24 : R.drawable.outline_notifications_24,
         silent ? R.string.Tgx101AttachSilentOn : R.string.Tgx101AttachSilentOff, (Runnable) () -> onClick(silentButton)});
     }
-    if (scheduleButton != null && scheduleButton.isVisible()) {
+    if (scheduleButton != null && scheduleButton.isVisible() && tgx101LeftSlotTarget != scheduleButton) {
       actions.add(new Object[] {R.drawable.baseline_date_range_24, R.string.Tgx101AttachScheduled, (Runnable) () -> onClick(scheduleButton)});
     }
     return actions;
@@ -8009,6 +8039,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (commandButton.setVisible(false)) {
         attachButtons.updatePivot();
       }
+      tgx101UpdateLeftSlot();
       return;
     }
     if (commandButton.setVisible(true)) {
@@ -8018,6 +8049,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       lastCmdResource = resource;
       commandButton.setImageResource(resource);
     }
+    tgx101UpdateLeftSlot();
   }
 
   private void onCommandClick () {
@@ -8449,6 +8481,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (visible) {
         silentButton.forceState(tdlib.chatDefaultDisableNotifications(getChatId()));
       }
+      tgx101UpdateLeftSlot();
     }
   }
 
@@ -11389,6 +11422,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           commandButton.setTranslationX(scheduleButton.isVisible() ? 0 : scheduleButton.getLayoutParams().width);
           attachButtons.updatePivot();
         }
+        tgx101UpdateLeftSlot();
         if (areScheduled && !hasScheduledMessages) {
           forceFastAnimationOnce();
           if (inTransformMode()) {
