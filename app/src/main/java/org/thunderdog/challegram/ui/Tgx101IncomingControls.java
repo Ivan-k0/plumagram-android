@@ -113,6 +113,7 @@ public class Tgx101IncomingControls extends FrameLayout {
     button.setContentDescription(Lang.getString(label));
     cell.addView(button, new LinearLayout.LayoutParams(Screen.dp(64f), Screen.dp(64f)));
     TextView text = new TextView(getContext());
+    text.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoRegular()); // TGx101: Manrope
     text.setText(Lang.getString(label));
     text.setTextColor(0xffffffff);
     text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
@@ -136,6 +137,7 @@ public class Tgx101IncomingControls extends FrameLayout {
       for (int i = 0; i < Settings.QUICK_REPLY_SHOWN; i++) {
         final String reply = Settings.instance().getQuickReply(i);
         TextView item = new TextView(getContext());
+        item.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoRegular()); // TGx101: Manrope
         item.setText(reply);
         item.setTextColor(0xffffffff);
         item.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17);
@@ -184,6 +186,9 @@ public class Tgx101IncomingControls extends FrameLayout {
       setBackground(pill);
 
       TextView label = new TextView(context);
+
+      label.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoRegular()); // TGx101: Manrope
+
       label.setText(Lang.getString(R.string.Tgx101CallAnswer) + "  ›››");
       label.setTextColor(0xffffffff);
       label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);

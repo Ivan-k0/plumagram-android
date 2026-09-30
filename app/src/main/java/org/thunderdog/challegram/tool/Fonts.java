@@ -127,11 +127,8 @@ public class Fonts {
     if (weight == Settings.TEXT_WEIGHT_NORMAL) {
       return null;
     }
-    Typeface typeface = loadVariableRoboto(weight == Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER ? 450 : 500);
-    if (typeface == null && weight == Settings.TEXT_WEIGHT_SEMIBOLD) {
-      typeface = loadFont("fonts/Roboto-Medium.ttf", () -> Typeface.DEFAULT_BOLD); // the stock Medium, not the heavier title font
-    }
-    return typeface;
+    // TGx101: the app font is Manrope; «Толщина текста» picks its heavier static weights
+    return loadFont(weight == Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER ? "fonts/Manrope-Medium.ttf" : "fonts/Manrope-SemiBold.ttf", () -> Typeface.DEFAULT_BOLD);
   }
 
   @Nullable
@@ -141,11 +138,7 @@ public class Fonts {
       return null;
     }
     // Titles stay heavier than the text they sit above
-    Typeface typeface = loadVariableRoboto(weight == Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER ? 560 : 620);
-    if (typeface == null && weight == Settings.TEXT_WEIGHT_SEMIBOLD) {
-      typeface = loadFont("fonts/Roboto-Bold.ttf", () -> Typeface.DEFAULT_BOLD);
-    }
-    return typeface;
+    return loadFont("fonts/Manrope-Bold.ttf", () -> Typeface.DEFAULT_BOLD);
   }
 
   public static Typeface getRobotoRegular () {
@@ -155,7 +148,7 @@ public class Fonts {
         return robotoRegular = weighted;
       }
     }
-    return robotoRegular != null ? robotoRegular : (robotoRegular = loadFont("fonts/Roboto-Regular.ttf", () ->
+    return robotoRegular != null ? robotoRegular : (robotoRegular = loadFont("fonts/Manrope-Regular.ttf", () -> // TGx101: Manrope everywhere
       LOAD_SANS ? loadSystemFont("sans-serif", Typeface.NORMAL, Typeface.DEFAULT) : Typeface.DEFAULT
     ));
   }
@@ -167,13 +160,13 @@ public class Fonts {
     if (Settings.instance().getTextWeight() == Settings.TEXT_WEIGHT_NORMAL) {
       return getRobotoRegular();
     }
-    return robotoRegularStock != null ? robotoRegularStock : (robotoRegularStock = loadFont("fonts/Roboto-Regular.ttf", () ->
+    return robotoRegularStock != null ? robotoRegularStock : (robotoRegularStock = loadFont("fonts/Manrope-Regular.ttf", () ->
       LOAD_SANS ? loadSystemFont("sans-serif", Typeface.NORMAL, Typeface.DEFAULT) : Typeface.DEFAULT
     ));
   }
 
   public static Typeface getRobotoBold () {
-    return robotoBold != null ? robotoBold : (robotoBold = loadFont("fonts/Roboto-Bold.ttf", () -> {
+    return robotoBold != null ? robotoBold : (robotoBold = loadFont("fonts/Manrope-Bold.ttf", () -> {
       if (LOAD_SANS) {
         return loadSystemFont("sans-serif", Typeface.BOLD, Typeface.DEFAULT_BOLD);
       } else {
@@ -189,7 +182,7 @@ public class Fonts {
         return robotoMedium = weighted;
       }
     }
-    return robotoMedium != null ? robotoMedium : (robotoMedium = loadFont("fonts/Roboto-Medium.ttf", () -> {
+    return robotoMedium != null ? robotoMedium : (robotoMedium = loadFont("fonts/Manrope-SemiBold.ttf", () -> { // Manrope 500 is too close to 400 for titles
       if (LOAD_SANS) {
         Typeface typeface = loadSystemFont("sans-serif-light", Typeface.BOLD, null);
         return typeface != null ? typeface : loadSystemFont("sans-serif-medium", Typeface.NORMAL, Typeface.DEFAULT_BOLD);

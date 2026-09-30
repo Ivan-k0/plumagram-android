@@ -185,6 +185,7 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
 
     // SD / HD, top right
     qualityButton = new TextView(controller.context());
+    qualityButton.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoRegular()); // TGx101: Manrope
     qualityButton.setTextColor(0xffffffff);
     qualityButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
     qualityButton.setTypeface(Typeface.DEFAULT_BOLD);
@@ -277,6 +278,7 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
     button.setContentDescription(org.thunderdog.challegram.core.Lang.getString(label));
     cell.addView(button, new LinearLayout.LayoutParams(Screen.dp(64f), Screen.dp(64f)));
     TextView text = new TextView(controller.context());
+    text.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoRegular()); // TGx101: Manrope
     text.setText(org.thunderdog.challegram.core.Lang.getString(label));
     text.setTextColor(0xffdfe7ee);
     text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);

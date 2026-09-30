@@ -514,7 +514,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
     }
     nameView.setTextColor(0xffffffff);
     nameView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 40);
-    nameView.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
+    nameView.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoRegular());
     Views.setSimpleShadow(nameView);
     nameView.setEllipsize(TextUtils.TruncateAt.END);
     nameView.setGravity(isFullScreen ? Gravity.LEFT : Gravity.CENTER_HORIZONTAL);
@@ -523,7 +523,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
 
     nameTextPaint = new TextPaint();
     nameTextPaint.setTextSize(Screen.dp(40));
-    nameTextPaint.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
+    nameTextPaint.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoRegular());
     emojiStatusHelper = new EmojiStatusHelper(tdlib, nameView, null);
     emojiStatusHelper.setAnimationDisabled(true); // TGx101: animated statuses as a still picture
     emojiStatusHelper.attach(); // TGx101: without it custom (animated) statuses were never loaded

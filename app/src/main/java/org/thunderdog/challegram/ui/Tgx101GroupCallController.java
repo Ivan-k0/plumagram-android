@@ -354,7 +354,7 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
     view.setEllipsize(TextUtils.TruncateAt.END);
     view.setGravity(Gravity.CENTER_HORIZONTAL);
     if (bold) {
-      view.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+      view.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
     }
     return view;
   }
