@@ -44,6 +44,7 @@ import org.thunderdog.challegram.telegram.TdlibDelegate;
 import org.thunderdog.challegram.telegram.TdlibUi;
 import org.thunderdog.challegram.theme.ColorId;
 import org.thunderdog.challegram.theme.Theme;
+import org.thunderdog.challegram.tool.Paints;
 import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.v.CustomRecyclerView;
@@ -453,7 +454,7 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
       int stateRes = info.isClosed ? R.drawable.baseline_lock_24 : topic.isPinned ? R.drawable.deproko_baseline_pin_24 : 0;
       if (stateRes != 0) {
         Drawable d = ContextCompat.getDrawable(context(), stateRes);
-        if (d != null) d.mutate().setTint(Theme.textDecentColor());
+        if (d != null) d.mutate().setColorFilter(Paints.getColorFilter(Theme.textDecentColor())); // TGx101: setTint needs Android 5
         stateIcon.setImageDrawable(d);
         stateIcon.setVisibility(View.VISIBLE);
       } else {
@@ -496,7 +497,7 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     void bindAction (int iconRes, String text, View.OnClickListener listener) {
       applyTheme();
       Drawable d = ContextCompat.getDrawable(context(), iconRes);
-      if (d != null) d.mutate().setTint(Theme.getColor(ColorId.iconActive));
+      if (d != null) d.mutate().setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.iconActive))); // TGx101: setTint needs Android 5
       actionIcon.setImageDrawable(d);
       title.setText(text);
       title.setTextColor(Theme.getColor(ColorId.textNeutral));
