@@ -1286,9 +1286,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     addThemeInvalidateListener(recordButton);
     recordButton.setLayoutParams(lp);
 
-    // TGx101: bot commands / keyboard, «silent» and «scheduled» live in the attach menu (tgx101AttachActions),
-    // so the input row always has the same buttons; the views stay as state holders and click targets
-
+    attachButtons.addView(commandButton);
+    if (silentButton != null) {
+      attachButtons.addView(silentButton);
+    }
+    if (scheduleButton != null) {
+      attachButtons.addView(scheduleButton);
+    }
     if (cameraButton != null && !Settings.instance().isCameraInAttach()) { // TGx101: the camera can live in the attach menu instead
       attachButtons.addView(cameraButton);
     }
@@ -5770,25 +5774,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
       updateSelectButtons();
     }
     return counterSet;
-  }
-
-  /** TGx101: extra attach menu items for what used to be buttons next to the input; each runs the old button's action */
-  public java.util.List<Object[]> tgx101AttachActions () {
-    java.util.List<Object[]> actions = new java.util.ArrayList<>();
-    if (commandButton != null && commandButton.isVisible() && lastCmdResource != 0) {
-      int label = lastCmdResource == R.drawable.deproko_baseline_bots_command_26 ? R.string.Tgx101AttachBotCommands :
-        lastCmdResource == R.drawable.baseline_direction_arrow_down_24 ? R.string.Tgx101AttachHideKeyboard : R.string.Tgx101AttachBotKeyboard;
-      actions.add(new Object[] {lastCmdResource, label, (Runnable) () -> onClick(commandButton)});
-    }
-    if (silentButton != null && silentButton.getVisibility() == View.VISIBLE) {
-      boolean silent = silentButton.getIsSilent();
-      actions.add(new Object[] {silent ? R.drawable.baseline_notifications_off_24 : R.drawable.outline_notifications_24,
-        silent ? R.string.Tgx101AttachSilentOn : R.string.Tgx101AttachSilentOff, (Runnable) () -> onClick(silentButton)});
-    }
-    if (scheduleButton != null && scheduleButton.isVisible()) {
-      actions.add(new Object[] {R.drawable.baseline_date_range_24, R.string.Tgx101AttachScheduled, (Runnable) () -> onClick(scheduleButton)});
-    }
-    return actions;
   }
 
   /** TGx101: «Camera» in the attach menu (the camera button left the message input) */

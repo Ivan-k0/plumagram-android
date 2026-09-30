@@ -202,12 +202,6 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101CallPhotoNone, "Не показывать");
     RU.put(R.string.Tgx101CallPattern, "Узор из самолётиков");
     RU.put(R.string.Tgx101RingRamp, "Нарастающая громкость звонка");
-    RU.put(R.string.Tgx101AttachBotCommands, "Команды");
-    RU.put(R.string.Tgx101AttachBotKeyboard, "Клавиатура");
-    RU.put(R.string.Tgx101AttachHideKeyboard, "Скрыть клав.");
-    RU.put(R.string.Tgx101AttachSilentOn, "Без звука");
-    RU.put(R.string.Tgx101AttachSilentOff, "Со звуком");
-    RU.put(R.string.Tgx101AttachScheduled, "Отложенные");
     RU.put(R.string.Tgx101MenuToGallery, "В галерею");
     RU.put(R.string.Tgx101MenuToOriginal, "К оригиналу");
     RU.put(R.string.Tgx101FloatingInput, "Плавающее поле ввода");
