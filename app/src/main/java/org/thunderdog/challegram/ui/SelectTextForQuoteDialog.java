@@ -122,7 +122,7 @@ public class SelectTextForQuoteDialog {
     controller.showAlert(builder);
   }
 
-  private static void onReplyRequested (MessagesController controller, Tdlib tdlib, TGMessage message, TdApi.FormattedText fullText, int selStart, int selEnd) {
+  static void onReplyRequested (MessagesController controller, Tdlib tdlib, TGMessage message, TdApi.FormattedText fullText, int selStart, int selEnd) {
     TdApi.InputTextQuote quote = null;
 
     if (selStart >= 0 && selEnd > selStart && selEnd <= fullText.text.length()) {

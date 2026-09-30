@@ -957,6 +957,12 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       icons.append(R.drawable.baseline_content_copy_24);
 
       // TGx101: «Select text» left the menu: a second long press on the selected message opens it
+      // TGx101: «Цитировать» on others' messages opens the quote window (select a part, copy, reply with it)
+      if (!msg.isOutgoing() && !msg.isTranslated()) {
+        ids.append(R.id.btn_messageSelectText);
+        strings.append(R.string.Tgx101QuoteAction);
+        icons.append(R.drawable.baseline_format_quote_close_24);
+      }
     }
 
     if (!isMore && msg.isTranslated()) {

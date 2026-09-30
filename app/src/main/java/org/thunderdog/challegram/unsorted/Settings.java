@@ -3172,6 +3172,16 @@ public class Settings {
   private static final String KEY_TGX101_CHAT_LIST_TEXT_SIZE = "tgx101_chat_list_text_size";
   private static final String KEY_TGX101_TEXT_WEIGHT = "tgx101_text_weight";
   private static final String KEY_TGX101_FONT_ROBOTO = "tgx101_font_roboto";
+  private static final String KEY_TGX101_TEXT_EDITOR = "tgx101_text_editor";
+
+  /** TGx101: «Изменить» opens the message text window (formatting buttons) instead of editing in the input field */
+  public boolean useTgx101TextEditor () {
+    return pmc.getBoolean(KEY_TGX101_TEXT_EDITOR, true);
+  }
+
+  public void setUseTgx101TextEditor (boolean use) {
+    pmc.putBoolean(KEY_TGX101_TEXT_EDITOR, use);
+  }
   private Boolean _robotoFont;
 
   /** TGx101: the stock Roboto instead of Manrope (only the typeface; size and weight settings stay). Applies after a restart. */

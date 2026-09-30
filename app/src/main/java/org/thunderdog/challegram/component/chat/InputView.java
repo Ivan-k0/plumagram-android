@@ -791,6 +791,13 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     }
   }
 
+  private ViewController<?> tgx101FallbackController;
+
+  /** TGx101: the message text window uses this input without a chat controller; links still need one. */
+  public void setTgx101FallbackController (ViewController<?> c) {
+    this.tgx101FallbackController = c;
+  }
+
   public void createTextUrl (URLSpan existingSpan, String result, int start, int end) {
     if (start < 0 || end < 0 || start > getText().length() || end > getText().length()) {
       return;
@@ -798,6 +805,9 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     ViewController<?> c = controller;
     if (c == null && inputListener instanceof ViewController<?>) {
       c = (ViewController<?>) inputListener;
+    }
+    if (c == null) {
+      c = tgx101FallbackController;
     }
     if (c != null) {
       if (StringUtils.isEmpty(result)) {

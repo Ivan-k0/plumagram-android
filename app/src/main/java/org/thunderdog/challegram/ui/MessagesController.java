@@ -6196,7 +6196,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         }
         TdApi.FormattedText text = Td.textOrCaption(message.content);
         if (text != null) {
-          SelectTextForQuoteDialog.show(this, tdlib, selectedMessage, text);
+          Tgx101TextEditor.showQuote(this, tdlib, selectedMessage, text); // TGx101: the quote window
         }
         return true;
       } else if (id == R.id.btn_messageEdit) {
@@ -6209,6 +6209,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
           message = selectedMessage.getNewestMessage();
         }
         TdApi.Message editingMessage = message;
+        if (Tgx101TextEditor.canEdit(editingMessage)) { // TGx101: the message text window with formatting buttons
+          Tgx101TextEditor.showEdit(this, tdlib, editingMessage);
+          return true;
+        }
         TdApi.MessageProperties properties = selectedMessage.lastMessageProperties(editingMessage.id);
         editMessage(new MessageWithProperties(editingMessage, properties));
         return true;
@@ -7830,6 +7834,42 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // Intentionally doesn't match the send logic (where there's no animation after send).
     // For the exact match, !isSaved could be passed here instead.
     updateReplyBarVisibility(true);
+  }
+
+  /** TGx101: saves the text from the message text window; false keeps the window open (too long / empty). */
+  boolean tgx101SaveEditedText (TdApi.Message message, TdApi.FormattedText newText) {
+    switch (message.content.getConstructor()) {
+      case TdApi.MessageText.CONSTRUCTOR:
+      case TdApi.MessageAnimatedEmoji.CONSTRUCTOR: {
+        if (Td.isEmpty(newText)) {
+          return false;
+        }
+        final int maxLength = tdlib.maxMessageTextLength();
+        final int newTextLength = newText.text.codePointCount(0, newText.text.length());
+        if (newTextLength > maxLength) {
+          UI.showToast(Lang.pluralBold(R.string.EditMessageTextTooLong, newTextLength - maxLength), android.widget.Toast.LENGTH_SHORT);
+          return false;
+        }
+        TdApi.LinkPreviewOptions options = message.content.getConstructor() == TdApi.MessageText.CONSTRUCTOR ? ((TdApi.MessageText) message.content).linkPreviewOptions : null;
+        if (!Td.equalsTo(newText, Td.textOrCaption(message.content))) {
+          tdlib.editMessageText(message.chatId, message.id, new TdApi.InputMessageText(newText, options, false), null);
+        }
+        return true;
+      }
+      default: {
+        String newString = newText.text.trim();
+        final int maxLength = tdlib.maxCaptionLength();
+        final int newCaptionLength = newString.codePointCount(0, newString.length());
+        if (newCaptionLength > maxLength) {
+          UI.showToast(Lang.pluralBold(R.string.EditMessageCaptionTooLong, newCaptionLength - maxLength), android.widget.Toast.LENGTH_SHORT);
+          return false;
+        }
+        if (!Td.equalsTo(Td.textOrCaption(message.content), newText)) {
+          tdlib.editMessageCaption(message.chatId, message.id, newText, Td.showCaptionAboveMedia(message.content));
+        }
+        return true;
+      }
+    }
   }
 
   private void saveMessage (boolean applyMarkdown) {

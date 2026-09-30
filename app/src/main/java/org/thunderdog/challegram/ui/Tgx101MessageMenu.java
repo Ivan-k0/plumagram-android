@@ -78,7 +78,7 @@ public final class Tgx101MessageMenu {
   };
   public static final int[] ORDERABLE_NAMES = {
     R.string.Reply, R.string.Copy, R.string.edit, R.string.Share, R.string.MessagePin,
-    R.string.SelectText, R.string.Translate, R.string.CopyLink, R.string.Save, R.string.MessageReport
+    R.string.Tgx101QuoteAction, R.string.Translate, R.string.CopyLink, R.string.Save, R.string.MessageReport
   };
   public static final int[] ORDERABLE_ICONS = {
     R.drawable.baseline_reply_24, R.drawable.baseline_content_copy_24, R.drawable.baseline_edit_24,

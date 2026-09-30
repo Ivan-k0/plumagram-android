@@ -1092,6 +1092,7 @@
   <item type="id" name="btn_tgx101ChatListTextSize130" />
   <item type="id" name="btn_tgx101TextWeight" />
   <item type="id" name="btn_tgx101Font" />
+  <item type="id" name="btn_tgx101TextEditor" />
   <item type="id" name="btn_tgx101FontManrope" />
   <item type="id" name="btn_tgx101FontRoboto" />
   <item type="id" name="btn_tgx101TextWeight0" />
