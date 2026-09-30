@@ -141,7 +141,11 @@ public final class Tgx101MessageMenu {
     popup.setOverlayStatusBar(true);
 
     boolean leftHand = Settings.instance().isTgx101MessageMenuLeftHand();
-    int cardWidth = Math.min(Screen.dp(268f), Screen.currentWidth() - Screen.dp(24f));
+    // TGx101: the reactions keep their width; the action card is narrower and moved toward the centre,
+    // leaving a free strip at the screen edge — a tap there closes the menu (like the official app)
+    int pillWidth = Math.min(Screen.dp(268f), Screen.currentWidth() - Screen.dp(24f));
+    int cardEdgeGap = Screen.dp(52f);
+    int cardWidth = Math.max(Math.min(Screen.dp(200f), pillWidth), pillWidth - cardEdgeGap);
 
     FrameLayout root = new FrameLayout(context);
     root.setBackground(blurredBackground(c));
@@ -164,7 +168,7 @@ public final class Tgx101MessageMenu {
       Gravity.BOTTOM | (leftHand ? Gravity.LEFT : Gravity.RIGHT));
     columnParams.setMargins(Screen.dp(12f), Screen.dp(12f), Screen.dp(12f), (keyboardHeight > 0 ? Screen.dp(12f) + keyboardHeight : Screen.dp(68f) + navigationInset)); // above the message input or the keyboard
     column.setLayoutParams(columnParams);
-    column.setOnClickListener(v -> { }); // taps between the pill and the card don't close the menu
+    column.setOnClickListener(v -> dismiss(host)); // the free strip beside the card closes the menu; the pill and the card consume their own taps
     root.addView(column);
     host.content = column;
 
@@ -179,7 +183,8 @@ public final class Tgx101MessageMenu {
       ReactionsSelectorRecyclerView reactions = new ReactionsSelectorRecyclerView(context, state);
       reactions.setNeedDrawBorderGradient(false);
       boolean canExpand = state.needShowReactionsPopupPicker && onExpandReactions != null;
-      int reactionsWidth = cardWidth - (canExpand ? Screen.dp(44f) : 0);
+      int reactionsWidth = pillWidth - (canExpand ? Screen.dp(44f) : 0);
+      pill.setClickable(true);
       pill.addView(reactions, new LinearLayout.LayoutParams(reactionsWidth, Screen.dp(52f)));
       if (canExpand) {
         ImageView expand = new ImageView(context);
@@ -210,7 +215,14 @@ public final class Tgx101MessageMenu {
     card.setOrientation(LinearLayout.VERTICAL);
     card.setBackground(rounded(Theme.getColor(ColorId.filling), Screen.dp(16f)));
     elevate(card, Screen.dp(16f));
-    column.addView(card, new LinearLayout.LayoutParams(cardWidth, ViewGroup.LayoutParams.WRAP_CONTENT));
+    card.setClickable(true);
+    LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(cardWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
+    if (leftHand) {
+      cardParams.leftMargin = pillWidth - cardWidth;
+    } else {
+      cardParams.rightMargin = pillWidth - cardWidth;
+    }
+    column.addView(card, cardParams);
 
     // Header: read time (filled in later if it arrives after the menu is shown), or the message info
     TextView header = new TextView(context);
@@ -279,7 +291,7 @@ public final class Tgx101MessageMenu {
     }
 
     // A short scale-in from the corner
-    column.setPivotX(leftHand ? 0 : cardWidth);
+    column.setPivotX(leftHand ? 0 : pillWidth);
     column.setAlpha(0f);
     column.setScaleX(.92f);
     column.setScaleY(.92f);
