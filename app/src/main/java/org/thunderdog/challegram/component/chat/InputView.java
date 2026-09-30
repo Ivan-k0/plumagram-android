@@ -1378,7 +1378,13 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
 
   @Override
   protected void onDraw (Canvas c) {
-    final int x = getPaddingLeft() + Screen.dp(placeholderIcon != null ? 20 : 0);
+    // TGx101: the placeholder is centred between the left buttons and the right ones (typing still starts at the left)
+    int placeholderX = getPaddingLeft() + Screen.dp(placeholderIcon != null ? 20 : 0);
+    if (placeholderTitle != null && placeholderIcon == null && !Lang.rtl() && controller != null) { // chat input only
+      int rightEdge = getMeasuredWidth() - (controller != null ? controller.getHorizontalInputPadding() : getPaddingRight());
+      placeholderX += Math.max(0, (rightEdge - placeholderX - placeholderTitle.getWidth()) / 2);
+    }
+    final int x = placeholderX;
     final float alpha = showPlaceholder.getFloatValue();
     final int offset = (int) (hasSubPlaceholder.getFloatValue() * (getTextSize() / 18 * 8));
     final int baseline = getBaseline();

@@ -451,6 +451,15 @@ public class MediaLayout extends FrameLayoutFix implements
 
   private boolean tgx101Camera;
 
+  /** TGx101: switch to a section (LTR index: 0 contacts, 1 file, 2 gallery, 3 location, 4 poll/bot) right after show() */
+  public void tgx101SelectSection (int ltrIndex) {
+    post(() -> {
+      if (bottomBar != null && controllers != null && ltrIndex < controllers.length) {
+        bottomBar.setSelectedIndex(rtl ? controllers.length - ltrIndex - 1 : ltrIndex, false);
+      }
+    });
+  }
+
   private MediaBottomBaseController<?> getControllerForIndex (int index) {
     MediaBottomBaseController<?> c = controllers[index];
     if (c == null) {
