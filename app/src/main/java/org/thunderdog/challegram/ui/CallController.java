@@ -530,7 +530,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
     emojiStatusHelper.attach(); // TGx101: without it custom (animated) statuses were never loaded
 
     params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    params.topMargin = tgx101New ? startMargin + Screen.dp(66f) : startMargin + Screen.dp(94f);
+    params.topMargin = tgx101New ? startMargin + Screen.dp(58f) : startMargin + Screen.dp(94f); // TGx101: the timer a little higher
     params.leftMargin = params.rightMargin = Screen.dp(18f);
 
     stateView = new TextView(context);
@@ -539,8 +539,8 @@ public class CallController extends ViewController<CallController.Arguments> imp
     stateView.setMaxLines(2);
     stateView.setLineSpacing(Screen.dp(3f), 1f);
     stateView.setTextColor(0xffffffff);
-    stateView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-    stateView.setTypeface(Fonts.getRobotoRegular());
+    stateView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, tgx101New ? 16 : 14);
+    stateView.setTypeface(tgx101New ? Fonts.getRobotoMedium() : Fonts.getRobotoRegular()); // TGx101: bolder timer
     Views.setSimpleShadow(stateView);
     // stateView.setEllipsize(TextUtils.TruncateAt.END);
     stateView.setGravity(isFullScreen ? Gravity.LEFT : Gravity.CENTER_HORIZONTAL);
@@ -1105,6 +1105,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
   }
 
   private int tgx101EmojiShift;
+  private static final float TGX101_EMOJI_ROW = 26f;
 
   /** The timer and the photo move down under a two-line name and under the encryption emoji row */
   private void applyTgx101Shifts () {
@@ -1461,8 +1462,8 @@ public class CallController extends ViewController<CallController.Arguments> imp
     final int startLeft = emojiUnderName ? (parentWidth - viewWidthSmall) / 2 : parentWidth - viewWidthSmall;
     final int startTop = emojiUnderName ? nameView.getBottom() + Screen.dp(2f) - emojiViewSmall.getPaddingTop() : Screen.dp(42f) - emojiViewSmall.getPaddingTop();
     if (emojiUnderName) {
-      boolean hasEmoji = emojiViewSmall.getVisibility() == View.VISIBLE && emojiViewSmall.getText() != null && emojiViewSmall.getText().length() > 0;
-      int shift = hasEmoji ? viewHeightSmall - emojiViewSmall.getPaddingTop() - emojiViewSmall.getPaddingBottom() + Screen.dp(8f) : 0;
+      // The emoji row's place is reserved from the start, so answering a call doesn't move the timer or the photo
+      int shift = Screen.dp(TGX101_EMOJI_ROW);
       if (shift != tgx101EmojiShift) {
         tgx101EmojiShift = shift;
         applyTgx101Shifts();
