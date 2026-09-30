@@ -96,8 +96,7 @@ public final class Tgx101TextEditor {
     input.setMinimumHeight(Screen.dp(40f));
     input.setMaxLines(Integer.MAX_VALUE);
     input.setMaxHeight(textMaxHeight());
-    input.setVerticalScrollBarEnabled(true);
-    input.setScrollbarFadingEnabled(false);
+    setupScrollbar(input);
     input.setMaxCodePointCount(message.content.getConstructor() == TdApi.MessageText.CONSTRUCTOR || message.content.getConstructor() == TdApi.MessageAnimatedEmoji.CONSTRUCTOR ? tdlib.maxMessageTextLength() : tdlib.maxCaptionLength());
     input.setInput(markdown ? TD.toMarkdown(text) : TD.toCharSequence(text), true, false);
     root.addView(input, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -250,8 +249,7 @@ public final class Tgx101TextEditor {
     text.setLineSpacing(0, 1.1f);
     text.setPadding(Screen.dp(18f), Screen.dp(4f), Screen.dp(14f), Screen.dp(10f));
     text.setMaxHeight(textMaxHeight());
-    text.setVerticalScrollBarEnabled(true);
-    text.setScrollbarFadingEnabled(false);
+    setupScrollbar(text);
     root.addView(text, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     updateCounter(counter, formattedText.text);
 
@@ -290,6 +288,22 @@ public final class Tgx101TextEditor {
   }
 
   // Views
+
+  /** Views made in code have no scrollbar drawable (it comes from a style), so the bar is set explicitly; hidden before Android 10. */
+  private static void setupScrollbar (View view) {
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+      GradientDrawable thumb = rounded(ColorUtils.alphaColor(.35f, Theme.textAccentColor()), 2f);
+      thumb.setSize(Screen.dp(4f), Screen.dp(24f));
+      GradientDrawable track = rounded(ColorUtils.alphaColor(.08f, Theme.textAccentColor()), 2f);
+      track.setSize(Screen.dp(4f), Screen.dp(24f));
+      view.setVerticalScrollbarThumbDrawable(thumb);
+      view.setVerticalScrollbarTrackDrawable(track);
+      view.setVerticalScrollBarEnabled(true);
+      view.setScrollbarFadingEnabled(false);
+    } else {
+      view.setVerticalScrollBarEnabled(false);
+    }
+  }
 
   private static int textMaxHeight () {
     return Math.min(Screen.dp(300f), (int) (Screen.currentHeight() * .38f));
