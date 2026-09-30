@@ -7450,6 +7450,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     bottomShadowView.setTranslationY(y + offset + keyboardOffset);
     if (replyBarView != null) {
       replyBarView.setTranslationY(y + keyboardOffset);
+      if (floatingInput) {
+        // TGx101: hidden behind the see-through capsule while there's no reply (it would show through)
+        replyBarView.setAlpha(MathUtils.clamp(-y / (float) Screen.dp(48f)));
+      }
     }
     checkScrollButtonOffsets();
     onMessagesFrameChanged();
@@ -9248,7 +9252,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   // TGx101: floating message field — a rounded capsule with a shadow; the bottom padding (gap) stays transparent
 
-  private static final float FLOATING_INPUT_SIDE = 10f, FLOATING_INPUT_BOTTOM = 8f, FLOATING_INPUT_RADIUS = 24f;
+  private static final float FLOATING_INPUT_SIDE = 10f, FLOATING_INPUT_BOTTOM = 8f, FLOATING_INPUT_RADIUS = 24f, FLOATING_INPUT_ALPHA = .85f;
   private boolean floatingInput;
 
   private void updateFloatingListPadding () {
@@ -9269,7 +9273,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
         android.graphics.Rect bounds = getBounds();
         rect.set(bounds.left, bounds.top, bounds.right, bounds.bottom - view.getPaddingBottom());
         float radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), rect.height() / 2f);
-        c.drawRoundRect(rect, radius, radius, Paints.fillingPaint(Theme.fillingColor()));
+        // «Frosted» capsule: the filling at ~85 %, messages under it show through slightly (no blur: zero cost)
+        c.drawRoundRect(rect, radius, radius, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(FLOATING_INPUT_ALPHA, Theme.fillingColor())));
         // No elevation (it would lift the capsule above the input buttons and the recording overlay): a hairline instead
         float half = Math.max(1, Screen.dp(.5f)) / 2f;
         rect.inset(half, half);
