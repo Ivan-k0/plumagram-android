@@ -232,6 +232,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().getCallPattern() != Settings.CALL_PATTERN_NONE, isUpdate);
         } else if (itemId == R.id.btn_tgx101RingRamp) {
           view.getToggler().setRadioEnabled(Settings.instance().isRingRampEnabled(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101CameraInAttach) {
+          view.getToggler().setRadioEnabled(Settings.instance().isCameraInAttach(), isUpdate);
         } else if (itemId == R.id.btn_tgx101VoiceQueue) {
           view.setData(Settings.instance().skipOwnVoiceInQueue() ? R.string.Tgx101VoiceQueueSkipOwn : R.string.Tgx101VoiceQueueAll);
         } else if (itemId == R.id.btn_tgx101TapMode) {
@@ -308,6 +310,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.PauseMediaOnRecord).setLongId(Settings.SETTING_FLAG_PAUSE_MEDIA_ON_RECORD),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101VoiceQueue, 0, R.string.Tgx101VoiceQueue),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CameraInAttach, 0, R.string.Tgx101CameraInAttach),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.SendPhotosInHD).setLongId(Settings.SETTING_FLAG_SEND_PHOTOS_IN_HD),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -687,6 +691,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setCallPattern(toggleResult ? Settings.CALL_PATTERN_PAPER_PLANES : Settings.CALL_PATTERN_NONE); // the view was already toggled above
     } else if (id == R.id.btn_tgx101RingRamp) {
       Settings.instance().setRingRampEnabled(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101CameraInAttach) {
+      Settings.instance().setCameraInAttach(toggleResult); // the view was already toggled above; applies to chats opened afterwards
     } else if (id == R.id.btn_tgx101VoiceQueue) {
       boolean skip = Settings.instance().skipOwnVoiceInQueue();
       showSettings(new SettingsWrapBuilder(R.id.btn_tgx101VoiceQueue)

@@ -1228,7 +1228,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (scheduleButton != null) {
       attachButtons.addView(scheduleButton);
     }
-    if (cameraButton != null) {
+    if (cameraButton != null && !Settings.instance().isCameraInAttach()) { // TGx101: the camera can live in the attach menu instead
       attachButtons.addView(cameraButton);
     }
     attachButtons.addView(mediaButton);
@@ -5693,6 +5693,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
       updateSelectButtons();
     }
     return counterSet;
+  }
+
+  /** TGx101: «Camera» in the attach menu (the camera button left the message input) */
+  public void tgx101OpenCameraFromAttach () {
+    View anchor = mediaButton != null ? mediaButton : inputView;
+    if (!showPhotoVideoRestriction(anchor)) {
+      openInAppCamera(new CameraOpenOptions().anchor(anchor).noTrace(isSecretChat()));
+    }
   }
 
   /** TGx101: text selection for a message (its text or caption, or a finished transcription). Returns false if there's no text. */

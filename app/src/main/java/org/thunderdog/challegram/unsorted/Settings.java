@@ -3284,6 +3284,17 @@ public class Settings {
   public static final int CALL_PATTERN_PAPER_PLANES = 1;
   private static final String KEY_CALL_PATTERN = "settings_call_pattern";
 
+  // TGx101: the camera button leaves the message input for the attach (paperclip) menu, in place of «Inline bot»
+  private static final String KEY_TGX101_CAMERA_IN_ATTACH = "tgx101_camera_in_attach";
+
+  public boolean isCameraInAttach () {
+    return pmc.getBoolean(KEY_TGX101_CAMERA_IN_ATTACH, false);
+  }
+
+  public void setCameraInAttach (boolean inAttach) {
+    pmc.putBoolean(KEY_TGX101_CAMERA_IN_ATTACH, inAttach);
+  }
+
   // TGx101: after a voice or video message ends, the next one plays automatically; optionally skipping my own
   private static final String KEY_TGX101_VOICE_SKIP_OWN = "tgx101_voice_skip_own";
 

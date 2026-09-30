@@ -202,6 +202,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101CallPhotoNone, "Не показывать");
     RU.put(R.string.Tgx101CallPattern, "Узор из самолётиков");
     RU.put(R.string.Tgx101RingRamp, "Нарастающая громкость звонка");
+    RU.put(R.string.Tgx101CameraInAttach, "Камера в скрепке");
+    RU.put(R.string.Tgx101AttachCamera, "Камера");
     RU.put(R.string.Tgx101VoiceQueue, "Голосовые подряд");
     RU.put(R.string.Tgx101VoiceQueueAll, "Все (как сейчас)");
     RU.put(R.string.Tgx101VoiceQueueSkipOwn, "Пропускать свои");

@@ -242,10 +242,14 @@ public class MediaLayout extends FrameLayoutFix implements
       }
       default: {
         this.needVote = tdlib().canSendPolls(getTargetChatId());
+        // TGx101: «Camera» in place of «Inline bot» when the camera button left the message input
+        this.tgx101Camera = !needVote && Settings.instance().isCameraInAttach() && target != null;
         if (rtl) {
           items = new MediaBottomBar.BarItem[]{
             needVote ?
               new MediaBottomBar.BarItem(R.drawable.baseline_poll_24, R.string.CreatePoll, ColorId.attachInlineBot) :
+            tgx101Camera ?
+              new MediaBottomBar.BarItem(R.drawable.baseline_camera_alt_24, R.string.Tgx101AttachCamera, ColorId.attachInlineBot) :
               new MediaBottomBar.BarItem(R.drawable.deproko_baseline_bots_24, R.string.InlineBot, ColorId.attachInlineBot),
             new MediaBottomBar.BarItem(R.drawable.baseline_location_on_24, R.string.Location, ColorId.attachLocation, Screen.dp(1f)),
             new MediaBottomBar.BarItem(R.drawable.baseline_image_24, R.string.Gallery, ColorId.attachPhoto),
@@ -260,6 +264,8 @@ public class MediaLayout extends FrameLayoutFix implements
             new MediaBottomBar.BarItem(R.drawable.baseline_location_on_24, R.string.Location, ColorId.attachLocation, Screen.dp(1f)),
             needVote ?
               new MediaBottomBar.BarItem(R.drawable.baseline_poll_24, R.string.CreatePoll, ColorId.attachInlineBot) :
+            tgx101Camera ?
+              new MediaBottomBar.BarItem(R.drawable.baseline_camera_alt_24, R.string.Tgx101AttachCamera, ColorId.attachInlineBot) :
               new MediaBottomBar.BarItem(R.drawable.deproko_baseline_bots_24, R.string.InlineBot, ColorId.attachInlineBot)
           };
         }
@@ -442,6 +448,8 @@ public class MediaLayout extends FrameLayoutFix implements
     }
     return headerView;
   }
+
+  private boolean tgx101Camera;
 
   private MediaBottomBaseController<?> getControllerForIndex (int index) {
     MediaBottomBaseController<?> c = controllers[index];
@@ -707,6 +715,11 @@ public class MediaLayout extends FrameLayoutFix implements
         break;
       }
       case 4: {
+        if (tgx101Camera) {
+          hide(false);
+          target.tgx101OpenCameraFromAttach();
+          return false;
+        }
         if (needVote) {
           if (target != null && target.isFocused()) {
             long chatId = getTargetChatId();
