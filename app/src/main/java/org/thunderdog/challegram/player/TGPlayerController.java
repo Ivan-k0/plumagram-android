@@ -959,12 +959,30 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
     } else {
       int currentIndex = indexOfCurrentMessage();
       int i = indexOfNextMessage(currentIndex, isNext, byUserRequest);
+      if (!byUserRequest && i != -1 && org.thunderdog.challegram.unsorted.Settings.instance().skipOwnVoiceInQueue()) {
+        // TGx101: autoplay goes on with the other person's voice and video messages only
+        int guard = messageList.size();
+        while (i != -1 && guard-- > 0 && isOwnVoiceMessage(messageList.get(i))) {
+          int next = indexOfNextMessage(i, isNext, false);
+          if (next == i) {
+            break;
+          }
+          i = next;
+        }
+        if (i != -1 && isOwnVoiceMessage(messageList.get(i))) {
+          i = -1;
+        }
+      }
       if (i != -1) {
         playPauseMessageImpl(messageList.get(i), byUserRequest, true, tdlib, null);
       } else {
         playPauseMessageImpl(null, byUserRequest, true, tdlib, null);
       }
     }
+  }
+
+  private static boolean isOwnVoiceMessage (TdApi.Message message) {
+    return message.isOutgoing && (message.content.getConstructor() == TdApi.MessageVoiceNote.CONSTRUCTOR || message.content.getConstructor() == TdApi.MessageVideoNote.CONSTRUCTOR);
   }
 
   public void playIfPaused (TdApi.Message message) {

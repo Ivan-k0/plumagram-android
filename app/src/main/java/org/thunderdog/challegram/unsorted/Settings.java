@@ -3284,6 +3284,17 @@ public class Settings {
   public static final int CALL_PATTERN_PAPER_PLANES = 1;
   private static final String KEY_CALL_PATTERN = "settings_call_pattern";
 
+  // TGx101: after a voice or video message ends, the next one plays automatically; optionally skipping my own
+  private static final String KEY_TGX101_VOICE_SKIP_OWN = "tgx101_voice_skip_own";
+
+  public boolean skipOwnVoiceInQueue () {
+    return pmc.getBoolean(KEY_TGX101_VOICE_SKIP_OWN, false);
+  }
+
+  public void setSkipOwnVoiceInQueue (boolean skip) {
+    pmc.putBoolean(KEY_TGX101_VOICE_SKIP_OWN, skip);
+  }
+
   // TGx101: message taps — stock / double tap sets reaction №1 (swipe only replies) / double tap and swipe reactions
   public static final int TAP_MODE_STOCK = 0, TAP_MODE_DOUBLE = 1, TAP_MODE_DOUBLE_SWIPE = 2;
   private static final String KEY_TGX101_TAP_MODE = "tgx101_tap_mode";

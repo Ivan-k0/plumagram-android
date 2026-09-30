@@ -202,6 +202,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101CallPhotoNone, "Не показывать");
     RU.put(R.string.Tgx101CallPattern, "Узор из самолётиков");
     RU.put(R.string.Tgx101RingRamp, "Нарастающая громкость звонка");
+    RU.put(R.string.Tgx101VoiceQueue, "Голосовые подряд");
+    RU.put(R.string.Tgx101VoiceQueueAll, "Все (как сейчас)");
+    RU.put(R.string.Tgx101VoiceQueueSkipOwn, "Пропускать свои");
     RU.put(R.string.Tgx101TapMode, "Двойной тап");
     RU.put(R.string.Tgx101TapModeStock, "Выкл (как сейчас)");
     RU.put(R.string.Tgx101TapModeDouble, "Двойной тап — лайк");
