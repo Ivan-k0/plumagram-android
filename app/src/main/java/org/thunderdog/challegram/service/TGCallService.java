@@ -405,8 +405,11 @@ public class TGCallService extends Service implements
         if (disconnectBt != null) {
           disconnectBt.runWithBool(false);
         }
-        am.setMode(AudioManager.MODE_NORMAL);
-        Log.d(Log.TAG_VOIP, "AudioManager.setMode(AudioManager.MODE_NORMAL) (in onDestroy)");
+        // TGx101: the call end already switched to MODE_NORMAL; a second switch blocks the UI thread (~100 ms on Vivo)
+        if (am.getMode() != AudioManager.MODE_NORMAL) {
+          am.setMode(AudioManager.MODE_NORMAL);
+          Log.d(Log.TAG_VOIP, "AudioManager.setMode(AudioManager.MODE_NORMAL) (in onDestroy)");
+        }
       } else {
         final int amChangeCounterFinal = amChangeCounter;
         UI.post(() -> {

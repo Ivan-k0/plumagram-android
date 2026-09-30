@@ -64,7 +64,7 @@ public final class Tgx101Diag {
   private static final String FILE_NAME = "PlumaGram-diagnostics.txt";
   private static final String OLD_FILE_NAME = "PlumaGram-diagnostics-old.txt";
   private static final long MAX_SIZE = 8L * 1024 * 1024;
-  private static final long STALL_MS = 100, STALL_STACK_MS = 150;
+  private static final long STALL_MS = 100, STALL_STACK_MS = 80;
 
   private static File file;
   private static Uri uri; // Android 10+: the file in Download, visible to any file manager
@@ -250,7 +250,7 @@ public final class Tgx101Diag {
       Thread mainThread = Looper.getMainLooper().getThread();
       while (enabled) {
         try {
-          Thread.sleep(50);
+          Thread.sleep(25);
         } catch (InterruptedException e) {
           return;
         }

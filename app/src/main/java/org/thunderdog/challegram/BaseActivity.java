@@ -2676,6 +2676,20 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   public void requestCustomPermissions (String[] permissions, ActivityPermissionResult after) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      // TGx101: already granted (e.g. FOREGROUND_SERVICE on every call start) → no system request.
+      // The request opens the system permission activity for a moment, pausing and resuming ours mid-animation.
+      boolean allGranted = true;
+      for (String permission : permissions) {
+        if (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
+          allGranted = false;
+          break;
+        }
+      }
+      if (allGranted) {
+        int[] results = new int[permissions.length]; // PERMISSION_GRANTED == 0
+        after.onPermissionResult(REQUEST_CUSTOM_NEW, permissions, results, permissions.length);
+        return;
+      }
       this.requestCustomPermissionCallback = after;
       try {
         requestPermissions(permissions, REQUEST_CUSTOM_NEW);
