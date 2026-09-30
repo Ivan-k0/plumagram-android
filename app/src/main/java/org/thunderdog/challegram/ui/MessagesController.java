@@ -2321,12 +2321,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else if (id == R.id.btn_reportChat) {
       reportChat(null, null);
     } else if (id == R.id.btn_phone_call) {
-      tdlib.context().calls().makeCall(this, TD.getUserId(chat), null);
+      // TGx101: after the ⋮ menu has closed — its fade-out over the opening call screen flickered
+      tdlib.context().calls().makeCallDelayed(this, TD.getUserId(chat), null, Settings.instance().needOutboundCallsPrompt());
     } else if (id == R.id.btn_tgx101VideoCall) {
       long userId = TD.getUserId(chat);
       Runnable call = () -> {
         org.thunderdog.challegram.voip.Tgx101Video.requestVideoCall(userId);
-        tdlib.context().calls().makeCall(this, userId, null);
+        tdlib.context().calls().makeCallDelayed(this, userId, null, Settings.instance().needOutboundCallsPrompt()); // TGx101: after the menu closes
       };
       if (org.thunderdog.challegram.voip.Tgx101Video.hasCameraPermission()) {
         call.run();
