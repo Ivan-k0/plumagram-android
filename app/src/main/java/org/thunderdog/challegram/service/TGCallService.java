@@ -407,7 +407,7 @@ public class TGCallService extends Service implements
           disconnectBt.runWithBool(false);
         }
         // TGx101: the call end already switched to MODE_NORMAL; a second switch blocks the UI thread (~100 ms on Vivo)
-        if (am.getMode() != AudioManager.MODE_NORMAL) {
+        if (!tgx101ModeNormalSet) {
           am.setMode(AudioManager.MODE_NORMAL);
           Log.d(Log.TAG_VOIP, "AudioManager.setMode(AudioManager.MODE_NORMAL) (in onDestroy)");
         }
@@ -741,6 +741,7 @@ public class TGCallService extends Service implements
   private PowerManager.WakeLock proximityWakelock;
   private boolean haveAudioFocus;
   private boolean isConfigured;
+  private boolean tgx101ModeNormalSet; // TGx101: the call end already switched the audio mode back
 
   private void configureDeviceForCall () {
     AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
@@ -751,15 +752,21 @@ public class TGCallService extends Service implements
       Log.i(Log.TAG_VOIP, "Configuring device for call...");
 
       am.setMode(AudioManager.MODE_IN_COMMUNICATION);
+      tgx101ModeNormalSet = false;
       amChangeCounter++;
       // TGx101: audio calls start on Bluetooth if connected, otherwise on the earpiece (a wired headset wins over it,
       // see setAudioMode). The loudspeaker is only turned on by the user or by video (Tgx101CallVideo).
-      CallSettings startSettings = getCallSettings();
+      // Posted: we are inside the call update dispatch, and changing the settings notifies the same listener list
+      // (a direct call crashed with IllegalStateException on answer). onCallSettingsChanged applies the route.
+      final CallSettings startSettings = getCallSettings();
       if (startSettings != null && startSettings.getSpeakerMode() != CallSettings.SPEAKER_MODE_SPEAKER) {
-        int startMode = isBluetoothHeadsetConnected() ? CallSettings.SPEAKER_MODE_BLUETOOTH : CallSettings.SPEAKER_MODE_EARPIECE;
-        lastAudioMode = startMode;
-        startSettings.setSpeakerMode(startMode);
-        setAudioMode(startMode);
+        final int startMode = isBluetoothHeadsetConnected() ? CallSettings.SPEAKER_MODE_BLUETOOTH : CallSettings.SPEAKER_MODE_EARPIECE;
+        UI.post(() -> {
+          if (isConfigured && startSettings.getSpeakerMode() != CallSettings.SPEAKER_MODE_SPEAKER) {
+            lastAudioMode = startMode;
+            startSettings.setSpeakerMode(startMode);
+          }
+        });
       }
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
 
@@ -785,6 +792,7 @@ public class TGCallService extends Service implements
       Log.i(Log.TAG_VOIP, "Unconfiguring device from call...");
 
       am.setMode(AudioManager.MODE_NORMAL);
+      tgx101ModeNormalSet = true;
       // Audio focus changed in the onDestroy
 
       SensorManager sm = (SensorManager) getSystemService(SENSOR_SERVICE);
@@ -1297,6 +1305,10 @@ public class TGCallService extends Service implements
   // TGx101: routing follows headsets connected or removed during the call, like the phone's own dialer
 
   private void onTgx101HeadsetChanged (boolean plugged) {
+    UI.post(() -> applyTgx101HeadsetChanged(plugged));
+  }
+
+  private void applyTgx101HeadsetChanged (boolean plugged) {
     CallSettings settings = isConfigured ? getCallSettings() : null;
     if (settings == null) return;
     int mode = settings.getSpeakerMode();
