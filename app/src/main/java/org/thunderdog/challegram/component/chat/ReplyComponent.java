@@ -201,7 +201,20 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
   }
 
   private static TextStyleProvider getTitleStyleProvider (boolean big) {
-    return Paints.robotoStyleProvider(big ? 15 : 13);
+    return Paints.robotoStyleProvider(big ? 14 : 13); // TGx101: variant 1A — the quote is a step smaller than the message
+  }
+
+  // TGx101: variant 1A — quote text ~82 % of the chat font size (follows the user's text size setting)
+  private static TextStyleProvider quoteStyleProvider;
+  private static float quoteStyleSize;
+
+  private static TextStyleProvider getQuoteTextStyleProvider () {
+    float size = Math.max(12f, org.thunderdog.challegram.unsorted.Settings.instance().getChatFontSize() * .82f);
+    if (quoteStyleProvider == null || quoteStyleSize != size) {
+      quoteStyleProvider = new TextStyleProvider(org.thunderdog.challegram.tool.Fonts.newRobotoStorage()).setTextSize(size).setAllowSp(true);
+      quoteStyleSize = size;
+    }
+    return quoteStyleProvider;
   }
 
   private static TextStyleProvider getTextStyleProvider () {
@@ -224,7 +237,7 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
     int width = getContentWidth(false);
 
     //noinspection UnsafeOptInUsageError
-    Text trimmedContent = new Text.Builder(content != null ? content.buildText(true) : Lang.getString(R.string.LoadingMessage), width, isMessageComponent() ? TGMessage.getTextStyleProvider() : getTextStyleProvider(), getContentColorSet())
+    Text trimmedContent = new Text.Builder(content != null ? content.buildText(true) : Lang.getString(R.string.LoadingMessage), width, isMessageComponent() ? getQuoteTextStyleProvider() : getTextStyleProvider(), getContentColorSet())
       .singleLine()
       .textFlags(Text.FLAG_CUSTOM_LONG_PRESS)
       .ignoreNewLines().ignoreContinuousNewLines()
