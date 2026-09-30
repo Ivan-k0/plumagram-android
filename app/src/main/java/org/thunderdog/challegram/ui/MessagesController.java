@@ -836,6 +836,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
       replyBarView.initWithCallback(this, this);
       replyBarView.setOnClickListener(this);
       replyBarView.setLayoutParams(params);
+      if (floatingInput && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        // TGx101: rounded like the capsule, so its square corners don't show behind it
+        replyBarView.setOutlineProvider(new android.view.ViewOutlineProvider() {
+          @Override
+          public void getOutline (View v, android.graphics.Outline outline) {
+            outline.setRoundRect(0, 0, v.getWidth(), v.getHeight(), Math.min(Screen.dp(FLOATING_INPUT_RADIUS), v.getHeight() / 2f));
+          }
+        });
+        replyBarView.setClipToOutline(true);
+      }
     }
 
     params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
