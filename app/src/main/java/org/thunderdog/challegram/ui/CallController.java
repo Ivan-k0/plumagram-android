@@ -923,11 +923,24 @@ public class CallController extends ViewController<CallController.Arguments> imp
         if (callSettings == null) {
           callSettings = new CallSettings(tdlib, call.id);
         }
+        if (Settings.instance().useNewCallScreen()) {
+          // TGx101: «Динамик» only switches the loudspeaker; the route picker is «Аудиовыход»
+          TGCallService service = TGCallService.currentInstance();
+          boolean bluetooth = service != null && service.isBluetoothHeadsetConnected();
+          callSettings.setSpeakerMode(callSettings.isSpeakerModeEnabled() && callSettings.getSpeakerMode() != CallSettings.SPEAKER_MODE_BLUETOOTH ?
+            (bluetooth ? CallSettings.SPEAKER_MODE_BLUETOOTH : CallSettings.SPEAKER_MODE_EARPIECE) : CallSettings.SPEAKER_MODE_SPEAKER);
+          return;
+        }
         if (callSettings.isSpeakerModeEnabled()) {
           callSettings.setSpeakerMode(CallSettings.SPEAKER_MODE_EARPIECE);
         } else {
           callSettings.toggleSpeakerMode(CallController.this);
         }
+      }
+
+      @Override
+      public void showAudioOutput () {
+        showAudioOutputPicker();
       }
 
       @Override
@@ -953,6 +966,53 @@ public class CallController extends ViewController<CallController.Arguments> imp
         }
       }
     };
+  }
+
+  // TGx101: «Аудиовыход» — phone (or the wired headset when plugged in), Bluetooth when connected, loudspeaker
+  private void showAudioOutputPicker () {
+    if (call == null || TD.isFinished(call)) return;
+    if (callSettings == null) {
+      callSettings = new CallSettings(tdlib, call.id);
+    }
+    TGCallService service = TGCallService.currentInstance();
+    android.media.AudioManager audio = (android.media.AudioManager) context().getSystemService(Context.AUDIO_SERVICE);
+    boolean wired = audio != null && audio.isWiredHeadsetOn();
+    boolean bluetooth = service != null && service.isBluetoothHeadsetConnected();
+    int current = callSettings.getSpeakerMode();
+    java.util.List<Integer> ids = new java.util.ArrayList<>();
+    java.util.List<String> names = new java.util.ArrayList<>();
+    java.util.List<Integer> icons = new java.util.ArrayList<>();
+    ids.add(R.id.btn_routingEarpiece);
+    names.add(Lang.getString(wired ? R.string.Tgx101AudioHeadset : R.string.Tgx101AudioPhone) + (current == CallSettings.SPEAKER_MODE_EARPIECE ? "  ✓" : ""));
+    icons.add(wired ? R.drawable.baseline_headset_24 : R.drawable.baseline_phone_in_talk_24);
+    if (bluetooth) {
+      ids.add(R.id.btn_routingBluetooth);
+      names.add(Lang.getString(R.string.Tgx101AudioBluetooth) + (current == CallSettings.SPEAKER_MODE_BLUETOOTH ? "  ✓" : ""));
+      icons.add(R.drawable.baseline_bluetooth_24);
+    }
+    ids.add(R.id.btn_routingSpeaker);
+    boolean speaker = current == CallSettings.SPEAKER_MODE_SPEAKER || current == CallSettings.SPEAKER_MODE_SPEAKER_DEFAULT;
+    names.add(Lang.getString(R.string.Tgx101CallSpeaker) + (speaker ? "  ✓" : ""));
+    icons.add(R.drawable.baseline_volume_up_24);
+    int[] idArray = new int[ids.size()], iconArray = new int[icons.size()];
+    for (int i = 0; i < idArray.length; i++) {
+      idArray[i] = ids.get(i);
+      iconArray[i] = icons.get(i);
+    }
+    showOptions(null, idArray, names.toArray(new String[0]), null, iconArray, (itemView, id) -> {
+      if (call == null || TD.isFinished(call)) return true;
+      if (id == R.id.btn_routingBluetooth) {
+        callSettings.setSpeakerMode(CallSettings.SPEAKER_MODE_BLUETOOTH);
+      } else if (id == R.id.btn_routingEarpiece) {
+        callSettings.setSpeakerMode(CallSettings.SPEAKER_MODE_EARPIECE);
+      } else if (id == R.id.btn_routingSpeaker) {
+        callSettings.setSpeakerMode(CallSettings.SPEAKER_MODE_SPEAKER);
+      }
+      if (callVideo != null) {
+        callVideo.updateControls();
+      }
+      return true;
+    });
   }
 
   // TGx101: video turns the loudspeaker on unless headphones or Bluetooth are in use

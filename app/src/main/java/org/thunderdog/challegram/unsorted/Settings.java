@@ -3284,6 +3284,38 @@ public class Settings {
   public static final int CALL_PATTERN_PAPER_PLANES = 1;
   private static final String KEY_CALL_PATTERN = "settings_call_pattern";
 
+  // TGx101: new call screen (card with 2×3 labelled buttons, TruePhone-style incoming call); off = the previous one
+  private static final String KEY_TGX101_NEW_CALL_SCREEN = "tgx101_new_call_screen";
+
+  public boolean useNewCallScreen () {
+    return pmc.getBoolean(KEY_TGX101_NEW_CALL_SCREEN, true);
+  }
+
+  public void setUseNewCallScreen (boolean use) {
+    pmc.putBoolean(KEY_TGX101_NEW_CALL_SCREEN, use);
+  }
+
+  // TGx101: five quick reply templates for incoming calls; the first three are offered on the call screen
+  public static final int QUICK_REPLY_COUNT = 5, QUICK_REPLY_SHOWN = 3;
+  private static final String KEY_TGX101_QUICK_REPLY = "tgx101_quick_reply_";
+
+  public String getQuickReply (int index) {
+    String saved = pmc.getString(KEY_TGX101_QUICK_REPLY + index, null);
+    if (saved != null && !saved.trim().isEmpty()) {
+      return saved;
+    }
+    int[] defaults = {R.string.Tgx101QuickReply1, R.string.Tgx101QuickReply2, R.string.Tgx101QuickReply3, R.string.Tgx101QuickReply4, R.string.Tgx101QuickReply5};
+    return org.thunderdog.challegram.core.Lang.getString(defaults[index]);
+  }
+
+  public void setQuickReply (int index, String text) {
+    if (text == null || text.trim().isEmpty()) {
+      pmc.remove(KEY_TGX101_QUICK_REPLY + index);
+    } else {
+      pmc.putString(KEY_TGX101_QUICK_REPLY + index, text.trim());
+    }
+  }
+
   // TGx101: the incoming call ringtone starts at 20 % and rises to 100 % over 20 seconds
   private static final String KEY_TGX101_RING_RAMP = "tgx101_ring_ramp";
 

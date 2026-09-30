@@ -27,6 +27,7 @@ final class Tgx101CallVideo {
     void toggleSpeaker ();
     void openChat ();
     void hangUp ();
+    void showAudioOutput ();
     boolean onVideoStarted ();
     void onVideoStopped ();
   }

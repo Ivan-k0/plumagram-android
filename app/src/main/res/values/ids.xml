@@ -1492,6 +1492,12 @@
   <item name="btn_showChannelMuteButton" type="id"/>
   <item name="btn_tgx101CallPattern" type="id"/>
   <item name="btn_tgx101RingRamp" type="id"/>
+  <item name="btn_tgx101NewCallScreen" type="id"/>
+  <item name="btn_tgx101QuickReply1" type="id"/>
+  <item name="btn_tgx101QuickReply2" type="id"/>
+  <item name="btn_tgx101QuickReply3" type="id"/>
+  <item name="btn_tgx101QuickReply4" type="id"/>
+  <item name="btn_tgx101QuickReply5" type="id"/>
   <item name="btn_tgx101CallPhoto" type="id"/>
   <item name="btn_tgx101Premium" type="id"/>
   <item name="btn_tgx101VoiceChat" type="id"/>

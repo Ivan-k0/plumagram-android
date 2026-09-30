@@ -232,6 +232,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().getCallPattern() != Settings.CALL_PATTERN_NONE, isUpdate);
         } else if (itemId == R.id.btn_tgx101RingRamp) {
           view.getToggler().setRadioEnabled(Settings.instance().isRingRampEnabled(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101NewCallScreen) {
+          view.getToggler().setRadioEnabled(Settings.instance().useNewCallScreen(), isUpdate);
+        } else if (quickReplyIndex(itemId) != -1) {
+          view.setData(Settings.instance().getQuickReply(quickReplyIndex(itemId)));
         } else if (itemId == R.id.btn_showChannelMuteButton) {
           view.getToggler().setRadioEnabled(Settings.instance().showChannelMuteButton(), isUpdate);
         } else if (itemId == R.id.btn_showDiscussButton) {
@@ -354,6 +358,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101CallsSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NewCallScreen, 0, R.string.Tgx101NewCallScreen),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101CallPhoto, 0, R.string.Tgx101CallPhoto),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CallPattern, 0, R.string.Tgx101CallPattern),
@@ -362,6 +368,20 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
 
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101CallPatternHint),
+
+        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101QuickReplies),
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101QuickReply1, 0, Lang.getString(R.string.Tgx101QuickReplyN, 1), false),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101QuickReply2, 0, Lang.getString(R.string.Tgx101QuickReplyN, 2), false),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101QuickReply3, 0, Lang.getString(R.string.Tgx101QuickReplyN, 3), false),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101QuickReply4, 0, Lang.getString(R.string.Tgx101QuickReplyN, 4), false),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101QuickReply5, 0, Lang.getString(R.string.Tgx101QuickReplyN, 5), false),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101QuickRepliesHint),
 
         // TGx101: the update check moved to Settings → Interface, in place of Telegram X's in-app updates
 
@@ -658,6 +678,15 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setCallPattern(toggleResult ? Settings.CALL_PATTERN_PAPER_PLANES : Settings.CALL_PATTERN_NONE); // the view was already toggled above
     } else if (id == R.id.btn_tgx101RingRamp) {
       Settings.instance().setRingRampEnabled(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101NewCallScreen) {
+      Settings.instance().setUseNewCallScreen(toggleResult); // the view was already toggled above
+    } else if (quickReplyIndex(id) != -1) {
+      final int index = quickReplyIndex(id);
+      openInputAlert(Lang.getString(R.string.Tgx101QuickReplyN, index + 1), Lang.getString(R.string.Tgx101QuickReplies), R.string.Done, R.string.Cancel, Settings.instance().getQuickReply(index), (inputView, result) -> {
+        Settings.instance().setQuickReply(index, result);
+        adapter.updateValuedSettingById(id);
+        return true;
+      }, true);
     } else if (id == R.id.btn_showChannelMuteButton) {
       Settings.instance().setShowChannelMuteButton(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showCommentsButton) {
@@ -1002,6 +1031,15 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       case Settings.CALL_PHOTO_NONE: return R.string.Tgx101CallPhotoNone;
       default: return R.string.Tgx101CallPhotoCircle;
     }
+  }
+
+  private static int quickReplyIndex (int id) {
+    if (id == R.id.btn_tgx101QuickReply1) return 0;
+    if (id == R.id.btn_tgx101QuickReply2) return 1;
+    if (id == R.id.btn_tgx101QuickReply3) return 2;
+    if (id == R.id.btn_tgx101QuickReply4) return 3;
+    if (id == R.id.btn_tgx101QuickReply5) return 4;
+    return -1;
   }
 
   private void showCallPhotoModes () {

@@ -53,6 +53,7 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
     void toggleSpeaker ();
     void openChat ();
     void hangUp ();
+    void showAudioOutput (); // TGx101: earpiece / headset / Bluetooth / loudspeaker picker
     /** @return whether the loudspeaker was turned on because of the video */
     boolean onVideoStarted ();
     void onVideoStopped ();
@@ -70,6 +71,9 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
   private final ImageView speakerButton, cameraButton, micButton;
   private final TextView qualityButton;
   private boolean videoWasOn, panelVisible, speakerForVideo;
+  // TGx101: the new call screen (MagiX → Calls) — a card with 2×3 labelled buttons; otherwise the one-row panel
+  private final boolean card = Settings.instance().useNewCallScreen();
+  private static final int COLOR_CARD_ACTIVE = 0x52ffffff, COLOR_CARD_BUTTON = 0x1affffff;
   // The loudspeaker turns on only after video has been showing for a moment, so a short video
   // signal in an audio call doesn't switch it
   private final Runnable speakerForVideoRunnable = this::applySpeakerForVideo;
@@ -95,6 +99,34 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
 
     // Bottom panel
     panel = new LinearLayout(controller.context());
+    if (card) {
+      panel.setOrientation(LinearLayout.VERTICAL);
+      panel.setPadding(Screen.dp(8f), Screen.dp(24f), Screen.dp(8f), Screen.dp(20f));
+      GradientDrawable cardBackground = new GradientDrawable();
+      cardBackground.setCornerRadius(Screen.dp(30f));
+      cardBackground.setColor(0xf01f2c39);
+      cardBackground.setStroke(Screen.dp(1f), 0x0fffffff);
+      panel.setBackground(cardBackground);
+      panel.setVisibility(View.GONE);
+      FrameLayout.LayoutParams panelParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+      panelParams.leftMargin = panelParams.rightMargin = Screen.dp(16f);
+      panelParams.bottomMargin = Screen.dp(24f);
+      contentView.addView(panel, panelParams);
+      LinearLayout top = addCardRow(), bottom = addCardRow();
+      micButton = addCardButton(top, R.drawable.baseline_mic_24, R.string.Tgx101CallMic, v -> {
+        host.toggleMicMuted();
+        update();
+      });
+      cameraButton = addCardButton(top, R.drawable.baseline_videocam_24, R.string.Tgx101CallVideoButton, v -> toggleCamera());
+      speakerButton = addCardButton(top, R.drawable.baseline_volume_up_24, R.string.Tgx101CallSpeaker, v -> {
+        host.toggleSpeaker();
+        update();
+      });
+      addCardButton(bottom, R.drawable.baseline_chat_bubble_24, R.string.Tgx101CallChat, v -> host.openChat());
+      addCardButton(bottom, R.drawable.baseline_headset_24, R.string.Tgx101CallAudioOutput, v -> host.showAudioOutput());
+      ImageView endButton = addCardButton(bottom, R.drawable.baseline_call_end_24, R.string.Tgx101CallEnd, v -> host.hangUp());
+      ((GradientDrawable) endButton.getBackground()).setColor(COLOR_END);
+    } else {
     panel.setOrientation(LinearLayout.HORIZONTAL);
     panel.setGravity(Gravity.CENTER_VERTICAL);
     int padding = Screen.dp(10f);
@@ -120,6 +152,7 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
     addPanelButton(R.drawable.baseline_chat_bubble_24, v -> host.openChat());
     ImageView endButton = addPanelButton(R.drawable.baseline_call_end_24, v -> host.hangUp());
     ((GradientDrawable) endButton.getBackground()).setColor(COLOR_END);
+    }
 
     // Own camera: rounded window above the panel, switch camera in its corner
     localWrap = new FrameLayout(controller.context());
@@ -147,7 +180,7 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
     localWrap.setVisibility(View.GONE);
     FrameLayout.LayoutParams localParams = new FrameLayout.LayoutParams(Screen.dp(104f), Screen.dp(140f), Gravity.RIGHT | Gravity.BOTTOM);
     localParams.rightMargin = Screen.dp(20f);
-    localParams.bottomMargin = Screen.dp(28f + 68f + 14f); // above the panel
+    localParams.bottomMargin = card ? Screen.dp(24f + 244f + 14f) : Screen.dp(28f + 68f + 14f); // above the panel
     contentView.addView(localWrap, localParams);
 
     // SD / HD, top right
@@ -220,6 +253,42 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
     return button;
   }
 
+  private LinearLayout addCardRow () {
+    LinearLayout row = new LinearLayout(controller.context());
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    if (panel.getChildCount() > 0) {
+      params.topMargin = Screen.dp(20f);
+    }
+    panel.addView(row, params);
+    return row;
+  }
+
+  private ImageView addCardButton (LinearLayout row, int icon, int label, View.OnClickListener onClick) {
+    LinearLayout cell = new LinearLayout(controller.context());
+    cell.setOrientation(LinearLayout.VERTICAL);
+    cell.setGravity(Gravity.CENTER_HORIZONTAL);
+    ImageView button = new ImageView(controller.context());
+    button.setImageResource(icon);
+    button.setColorFilter(0xffffffff);
+    button.setScaleType(ImageView.ScaleType.CENTER);
+    button.setBackground(circle(COLOR_CARD_BUTTON));
+    button.setOnClickListener(onClick);
+    button.setContentDescription(org.thunderdog.challegram.core.Lang.getString(label));
+    cell.addView(button, new LinearLayout.LayoutParams(Screen.dp(64f), Screen.dp(64f)));
+    TextView text = new TextView(controller.context());
+    text.setText(org.thunderdog.challegram.core.Lang.getString(label));
+    text.setTextColor(0xffdfe7ee);
+    text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+    text.setGravity(Gravity.CENTER_HORIZONTAL);
+    text.setMaxLines(2);
+    LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    textParams.topMargin = Screen.dp(8f);
+    cell.addView(text, textParams);
+    row.addView(cell, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+    return button;
+  }
+
   private static GradientDrawable circle (int color) {
     GradientDrawable drawable = new GradientDrawable();
     drawable.setShape(GradientDrawable.OVAL);
@@ -270,9 +339,17 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
     }
     qualityButton.setVisibility(camera ? View.VISIBLE : View.GONE);
     qualityButton.setText(Settings.instance().getCallVideoQuality() == Settings.CALL_VIDEO_HD ? "HD" : "SD");
+    boolean muted = host.isMicMuted();
+    if (card) {
+      // Active buttons: light translucent circle, white icon (never solid white)
+      ((GradientDrawable) cameraButton.getBackground()).setColor(camera ? COLOR_CARD_ACTIVE : COLOR_CARD_BUTTON);
+      ((GradientDrawable) speakerButton.getBackground()).setColor(host.isSpeakerOn() ? COLOR_CARD_ACTIVE : COLOR_CARD_BUTTON);
+      ((GradientDrawable) micButton.getBackground()).setColor(muted ? COLOR_CARD_ACTIVE : COLOR_CARD_BUTTON);
+      micButton.setImageResource(muted ? R.drawable.baseline_mic_off_24 : R.drawable.baseline_mic_24);
+      return;
+    }
     ((GradientDrawable) cameraButton.getBackground()).setColor(camera ? COLOR_ACCENT : COLOR_BUTTON);
     ((GradientDrawable) speakerButton.getBackground()).setColor(host.isSpeakerOn() ? COLOR_ACCENT : COLOR_BUTTON);
-    boolean muted = host.isMicMuted();
     ((GradientDrawable) micButton.getBackground()).setColor(muted ? 0xffffffff : COLOR_BUTTON);
     micButton.setColorFilter(muted ? 0xff0a0f15 : 0xffffffff);
   }
