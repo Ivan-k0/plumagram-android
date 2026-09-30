@@ -196,6 +196,7 @@ public class TGCallService extends Service implements
         }
         isProximityNear = false;
         updateOutputGainControlState();
+        onTgx101HeadsetChanged(isHeadsetPlugged);
         return;
       }
 
@@ -751,6 +752,15 @@ public class TGCallService extends Service implements
 
       am.setMode(AudioManager.MODE_IN_COMMUNICATION);
       amChangeCounter++;
+      // TGx101: audio calls start on Bluetooth if connected, otherwise on the earpiece (a wired headset wins over it,
+      // see setAudioMode). The loudspeaker is only turned on by the user or by video (Tgx101CallVideo).
+      CallSettings startSettings = getCallSettings();
+      if (startSettings != null && startSettings.getSpeakerMode() != CallSettings.SPEAKER_MODE_SPEAKER) {
+        int startMode = isBluetoothHeadsetConnected() ? CallSettings.SPEAKER_MODE_BLUETOOTH : CallSettings.SPEAKER_MODE_EARPIECE;
+        lastAudioMode = startMode;
+        startSettings.setSpeakerMode(startMode);
+        setAudioMode(startMode);
+      }
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
 
       } else {
@@ -1270,7 +1280,7 @@ public class TGCallService extends Service implements
       this.isBtHeadsetConnected = isConnected;
       AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-
+        onTgx101BluetoothChanged(isConnected);
       } else {
         if (isConnected) {
           Log.d(Log.TAG_VOIP, "AudioManager.startBluetoothSco()");
@@ -1281,6 +1291,35 @@ public class TGCallService extends Service implements
         }
       }
       notifyAudioSettingsChanged();
+    }
+  }
+
+  // TGx101: routing follows headsets connected or removed during the call, like the phone's own dialer
+
+  private void onTgx101HeadsetChanged (boolean plugged) {
+    CallSettings settings = isConfigured ? getCallSettings() : null;
+    if (settings == null) return;
+    int mode = settings.getSpeakerMode();
+    if (plugged && (mode == CallSettings.SPEAKER_MODE_SPEAKER || mode == CallSettings.SPEAKER_MODE_SPEAKER_DEFAULT)) {
+      settings.setSpeakerMode(CallSettings.SPEAKER_MODE_EARPIECE); // → the wired headset
+    } else if (mode == CallSettings.SPEAKER_MODE_EARPIECE) {
+      setAudioMode(CallSettings.SPEAKER_MODE_EARPIECE); // re-pick: headset when plugged, earpiece when removed
+    }
+  }
+
+  private void onTgx101BluetoothChanged (boolean connected) {
+    CallSettings settings = isConfigured ? getCallSettings() : null;
+    if (settings == null) return;
+    int mode = settings.getSpeakerMode();
+    if (connected && mode != CallSettings.SPEAKER_MODE_BLUETOOTH) {
+      // the headset shows up among communication devices a moment after it connects
+      UI.post(() -> {
+        if (isConfigured && isBtHeadsetConnected && settings.getSpeakerMode() != CallSettings.SPEAKER_MODE_BLUETOOTH) {
+          settings.setSpeakerMode(CallSettings.SPEAKER_MODE_BLUETOOTH);
+        }
+      }, 1000);
+    } else if (!connected && mode == CallSettings.SPEAKER_MODE_BLUETOOTH) {
+      settings.setSpeakerMode(CallSettings.SPEAKER_MODE_EARPIECE);
     }
   }
 
@@ -1340,6 +1379,11 @@ public class TGCallService extends Service implements
       }
     } else {
       mode = isBluetoothHeadsetConnected() && am.isBluetoothScoOn() ? CallSettings.SPEAKER_MODE_BLUETOOTH : am.isSpeakerphoneOn() ? CallSettings.SPEAKER_MODE_SPEAKER : CallSettings.SPEAKER_MODE_EARPIECE;
+    }
+    if (!isConfigured) {
+      // TGx101: before the call audio mode is set, the system reports the media route (often the loudspeaker);
+      // adopting it turned audio calls on speaker. The call picks its own route in configureDeviceForCall.
+      return;
     }
     if (this.lastAudioMode != mode) {
       CallSettings settings = getCallSettings();
