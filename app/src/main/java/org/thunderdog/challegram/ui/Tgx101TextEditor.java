@@ -139,7 +139,7 @@ public final class Tgx101TextEditor {
       {R.drawable.baseline_format_bold_24, R.string.Tgx101EditorBold, R.id.btn_bold},
       {R.drawable.baseline_format_italic_24, R.string.Tgx101EditorItalic, R.id.btn_italic},
       {R.drawable.baseline_format_underlined_24, R.string.Tgx101EditorUnderline, R.id.btn_underline},
-      {"S", R.string.Tgx101EditorStrike, R.id.btn_strikethrough}
+      {R.drawable.tgx101_format_strikethrough_24, R.string.Tgx101EditorStrike, R.id.btn_strikethrough}
     };
     final Object[][] blocks = {
       {R.drawable.baseline_format_quote_close_24, R.string.Tgx101EditorQuote, R.id.btn_quote},
@@ -148,11 +148,12 @@ public final class Tgx101TextEditor {
       {R.drawable.baseline_link_24, R.string.Tgx101EditorLink, R.id.btn_link}
     };
     final Object[][] edit = {
-      {R.drawable.baseline_format_clear_24, R.string.Tgx101EditorPlain, R.id.btn_plain},
-      {"▣", R.string.Tgx101EditorSelectAll, 1},
-      {R.drawable.baseline_content_copy_24, R.string.Tgx101EditorCopy, 2}
+      {null, R.string.Tgx101EditorPlain, R.id.btn_plain},
+      {null, R.string.Tgx101EditorSelectAll, 1},
+      {null, R.string.Tgx101EditorCopy, 2}
     };
     final Object[][][] groups = {style, blocks, edit};
+    final Object[] plainUndo = new Object[3]; // text before «Обычный», selection start, end
     for (int i = 0; i < 3; i++) {
       final int index = i;
       showTab[i] = () -> {
@@ -164,28 +165,7 @@ public final class Tgx101TextEditor {
         grid.removeAllViews();
         for (Object[] item : groups[index]) {
           final int action = (int) item[2];
-          addToolButton(grid, item[0], (int) item[1], 4, v -> {
-            if (action == 1) {
-              input.requestFocus();
-              input.selectAll();
-            } else if (action == 2) {
-              int start = input.getSelectionStart(), end = input.getSelectionEnd();
-              CharSequence all = input.getText();
-              UI.copyText(start >= 0 && end > start ? all.subSequence(start, end) : all, R.string.CopiedText);
-            } else if (action == R.id.btn_link) {
-              int start = input.getSelectionStart(), end = input.getSelectionEnd();
-              if (start < 0 || end <= start) {
-                UI.showToast(R.string.Tgx101EditorSelectFirst, android.widget.Toast.LENGTH_SHORT);
-              } else {
-                askLink(controller, input);
-              }
-            } else if (!input.setSpan(action)) {
-              int start = input.getSelectionStart(), end = input.getSelectionEnd();
-              if (start < 0 || end <= start) {
-                UI.showToast(R.string.Tgx101EditorSelectFirst, android.widget.Toast.LENGTH_SHORT);
-              }
-            }
-          });
+          addToolButton(grid, item[0], (int) item[1], 4, v -> onFormatAction(controller, input, action, plainUndo));
         }
       };
     }
@@ -207,7 +187,80 @@ public final class Tgx101TextEditor {
       dialog[0].getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
     }
     root.findViewWithTag("close").setOnClickListener(v -> { if (dialog[0] != null) dialog[0].dismiss(); });
+    fitAboveKeyboard(root, input);
     input.requestFocus();
+  }
+
+  private static TdApi.TextEntityType typeOf (int action) {
+    if (action == R.id.btn_bold) return new TdApi.TextEntityTypeBold();
+    if (action == R.id.btn_italic) return new TdApi.TextEntityTypeItalic();
+    if (action == R.id.btn_underline) return new TdApi.TextEntityTypeUnderline();
+    if (action == R.id.btn_strikethrough) return new TdApi.TextEntityTypeStrikethrough();
+    if (action == R.id.btn_quote) return new TdApi.TextEntityTypeBlockQuote();
+    if (action == R.id.btn_monospace) return new TdApi.TextEntityTypeCode();
+    if (action == R.id.btn_spoiler) return new TdApi.TextEntityTypeSpoiler();
+    return null;
+  }
+
+  /** A button applies its action; pressed again on the same selection it takes the action back. */
+  private static void onFormatAction (MessagesController controller, InputView input, int action, Object[] plainUndo) {
+    int start = input.getSelectionStart(), end = input.getSelectionEnd();
+    boolean hasSelection = start >= 0 && end > start;
+    if (action == 1) { // select all / unselect
+      input.requestFocus();
+      if (hasSelection && start == 0 && end == input.getText().length()) {
+        input.setSelection(end);
+      } else {
+        input.selectAll();
+      }
+      return;
+    }
+    if (action == 2) { // copy
+      CharSequence all = input.getText();
+      UI.copyText(hasSelection ? all.subSequence(start, end) : all, R.string.CopiedText);
+      return;
+    }
+    if (action == R.id.btn_plain) {
+      if (plainUndo[0] != null && plainUndo[0].toString().equals(input.getText().toString())) {
+        // second press: the formatting comes back
+        CharSequence before = (CharSequence) plainUndo[0];
+        plainUndo[0] = null;
+        input.setInput(before, false, true);
+        input.setSelection((int) plainUndo[1], (int) plainUndo[2]);
+        return;
+      }
+      if (!hasSelection) {
+        UI.showToast(R.string.Tgx101EditorSelectFirst, android.widget.Toast.LENGTH_SHORT);
+        return;
+      }
+      plainUndo[0] = new android.text.SpannableStringBuilder(input.getText());
+      plainUndo[1] = start;
+      plainUndo[2] = end;
+      input.setSpan(R.id.btn_plain);
+      return;
+    }
+    plainUndo[0] = null;
+    if (!hasSelection) {
+      UI.showToast(R.string.Tgx101EditorSelectFirst, android.widget.Toast.LENGTH_SHORT);
+      return;
+    }
+    if (action == R.id.btn_link) {
+      android.text.style.URLSpan[] links = input.getText().getSpans(start, end, android.text.style.URLSpan.class);
+      if (links != null && links.length > 0) {
+        input.removeSpan(new TdApi.TextEntityTypeTextUrl(links[0].getURL())); // second press: the link is removed
+      } else {
+        askLink(controller, input);
+      }
+      return;
+    }
+    if (!input.setSpan(action)) {
+      // the whole selection already has this style → take it back
+      TdApi.TextEntityType type = typeOf(action);
+      if (type != null) {
+        input.removeSpan(type);
+        input.setSelection(start, end);
+      }
+    }
   }
 
   private static void askLink (MessagesController controller, InputView input) {
@@ -268,7 +321,7 @@ public final class Tgx101TextEditor {
       UI.copyText(formattedText.text.substring(start, end), R.string.CopiedText);
       if (dialog[0] != null) dialog[0].dismiss();
     });
-    addToolButton(grid, "▣", R.string.Tgx101EditorCopyAll, 3, v -> {
+    addToolButton(grid, R.drawable.tgx101_select_all_24, R.string.Tgx101EditorCopyAll, 3, v -> {
       UI.copyText(formattedText.text, R.string.CopiedText);
       if (dialog[0] != null) dialog[0].dismiss();
     });
@@ -288,6 +341,20 @@ public final class Tgx101TextEditor {
   }
 
   // Views
+
+  /** With the keyboard open the window must fit above it: the text area shrinks (it scrolls) so the buttons and «Save» stay visible. */
+  private static void fitAboveKeyboard (View root, android.widget.TextView text) {
+    final android.graphics.Rect frame = new android.graphics.Rect();
+    root.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+      if (root.getHeight() == 0) return;
+      root.getWindowVisibleDisplayFrame(frame);
+      int others = root.getHeight() - text.getHeight();
+      int max = Math.max(Screen.dp(72f), Math.min(textMaxHeight(), frame.height() - others - Screen.dp(48f)));
+      if (text.getMaxHeight() != max) {
+        text.setMaxHeight(max);
+      }
+    });
+  }
 
   /** Views made in code have no scrollbar drawable (it comes from a style), so the bar is set explicitly; hidden before Android 10. */
   private static void setupScrollbar (View view) {
@@ -365,9 +432,25 @@ public final class Tgx101TextEditor {
     button.setGravity(Gravity.CENTER);
     button.setMinimumHeight(Screen.dp(52f));
     button.setPadding(0, Screen.dp(6f), 0, Screen.dp(5f));
-    button.setBackground(rounded(Theme.fillingColor(), 12f));
+    button.setBackground(pressable(Theme.fillingColor(), 12f));
     button.setOnClickListener(onClick);
     button.setContentDescription(Lang.getString(label));
+    if (icon == null) {
+      // text-only button (the «Edit» tab)
+      TextView name = new TextView(context);
+      name.setText(Lang.getString(label));
+      name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13.5f);
+      name.setTypeface(Fonts.getRobotoMedium());
+      name.setTextColor(Theme.textAccentColor());
+      name.setGravity(Gravity.CENTER);
+      name.setSingleLine(true);
+      button.addView(name, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+      LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
+      params.leftMargin = params.rightMargin = Screen.dp(3f);
+      grid.addView(button, params);
+      grid.setWeightSum(Math.max(columns, grid.getChildCount()));
+      return;
+    }
     if (icon instanceof Integer) {
       ImageView image = new ImageView(context);
       image.setImageResource((Integer) icon);
@@ -407,7 +490,7 @@ public final class Tgx101TextEditor {
     button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
     button.setTypeface(Fonts.getRobotoMedium());
     button.setTextColor(0xffffffff);
-    button.setBackground(rounded(Theme.getColor(ColorId.fillingPositive), 12f));
+    button.setBackground(pressable(Theme.getColor(ColorId.fillingPositive), 12f));
     button.setOnClickListener(onClick);
     LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f));
     params.topMargin = Screen.dp(10f);
@@ -419,6 +502,14 @@ public final class Tgx101TextEditor {
     LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     params.topMargin = topMargin;
     return params;
+  }
+
+  /** A short highlight on tap */
+  private static android.graphics.drawable.Drawable pressable (int color, float radiusDp) {
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+      return new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(ColorUtils.alphaColor(.22f, Theme.textAccentColor())), rounded(color, radiusDp), rounded(0xffffffff, radiusDp));
+    }
+    return rounded(color, radiusDp);
   }
 
   private static GradientDrawable rounded (int color, float radiusDp) {

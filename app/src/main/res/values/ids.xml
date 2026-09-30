@@ -1095,6 +1095,7 @@
   <item type="id" name="btn_tgx101TextEditor" />
   <item type="id" name="btn_tgx101FontManrope" />
   <item type="id" name="btn_tgx101FontRoboto" />
+  <item type="id" name="btn_tgx101FontSystem" />
   <item type="id" name="btn_tgx101TextWeight0" />
   <item type="id" name="btn_tgx101TextWeight1" />
   <item type="id" name="btn_tgx101TextWeight2" />

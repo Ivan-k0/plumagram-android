@@ -123,6 +123,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101EditorSelectFirst, "Сначала выделите текст");
     RU.put(R.string.Tgx101EditorChars, "%1$d симв.");
     RU.put(R.string.Tgx101Font, "Шрифт");
+    RU.put(R.string.Tgx101FontSystem, "Системный (как в настройках телефона)");
     RU.put(R.string.Tgx101FontRoboto, "Roboto (как в Telegram X)");
     RU.put(R.string.Tgx101FontHint, "Меняется только начертание; размер и толщина текста остаются как настроены. Применится после перезапуска приложения.");
     RU.put(R.string.Tgx101FontRestart, "Перезапустите приложение, чтобы применить шрифт");

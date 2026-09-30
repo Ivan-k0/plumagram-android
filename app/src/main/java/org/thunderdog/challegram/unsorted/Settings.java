@@ -3182,19 +3182,30 @@ public class Settings {
   public void setUseTgx101TextEditor (boolean use) {
     pmc.putBoolean(KEY_TGX101_TEXT_EDITOR, use);
   }
-  private Boolean _robotoFont;
+  private static final String KEY_TGX101_APP_FONT = "tgx101_app_font";
+  public static final int APP_FONT_MANROPE = 0, APP_FONT_ROBOTO = 1, APP_FONT_SYSTEM = 2;
+  private int _appFont = -1;
 
-  /** TGx101: the stock Roboto instead of Manrope (only the typeface; size and weight settings stay). Applies after a restart. */
-  public boolean useRobotoFont () {
-    if (_robotoFont == null) {
-      _robotoFont = pmc.getBoolean(KEY_TGX101_FONT_ROBOTO, false);
+  /** TGx101: Manrope, the stock Roboto or the phone's system font (only the typeface; size and weight settings stay). Applies after a restart. */
+  public int getAppFont () {
+    if (_appFont < 0) {
+      int font = pmc.getInt(KEY_TGX101_APP_FONT, pmc.getBoolean(KEY_TGX101_FONT_ROBOTO, false) ? APP_FONT_ROBOTO : APP_FONT_MANROPE);
+      _appFont = font >= APP_FONT_MANROPE && font <= APP_FONT_SYSTEM ? font : APP_FONT_MANROPE;
     }
-    return _robotoFont;
+    return _appFont;
   }
 
-  public void setUseRobotoFont (boolean roboto) {
-    pmc.putBoolean(KEY_TGX101_FONT_ROBOTO, roboto);
-    _robotoFont = roboto;
+  public void setAppFont (int font) {
+    pmc.putInt(KEY_TGX101_APP_FONT, font);
+    _appFont = font;
+  }
+
+  public boolean useRobotoFont () {
+    return getAppFont() == APP_FONT_ROBOTO;
+  }
+
+  public boolean useSystemFont () {
+    return getAppFont() == APP_FONT_SYSTEM;
   }
   public static final int TEXT_WEIGHT_NORMAL = 0, TEXT_WEIGHT_SLIGHTLY_BOLDER = 1, TEXT_WEIGHT_SEMIBOLD = 2;
   private float _chatListTextScale = -1f;

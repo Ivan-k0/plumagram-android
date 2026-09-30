@@ -121,11 +121,24 @@ public class Fonts {
     }
   }
 
+  /** TGx101: the phone's own font (e.g. Vivo Sans on Vivo) at the given weight */
+  private static Typeface systemFont (int weight) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+      return Typeface.create(Typeface.DEFAULT, weight, false);
+    }
+    if (weight >= 600) return Typeface.DEFAULT_BOLD;
+    if (weight >= 500) return loadSystemFont("sans-serif-medium", Typeface.NORMAL, Typeface.DEFAULT_BOLD);
+    return Typeface.DEFAULT;
+  }
+
   @Nullable
   private static Typeface weightedRegular () {
     int weight = Settings.instance().getTextWeight();
     if (weight == Settings.TEXT_WEIGHT_NORMAL) {
       return null;
+    }
+    if (Settings.instance().useSystemFont()) {
+      return systemFont(weight == Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER ? 450 : 500);
     }
     if (Settings.instance().useRobotoFont()) {
       Typeface typeface = loadVariableRoboto(weight == Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER ? 450 : 500);
@@ -145,6 +158,9 @@ public class Fonts {
       return null;
     }
     // Titles stay heavier than the text they sit above
+    if (Settings.instance().useSystemFont()) {
+      return systemFont(weight == Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER ? 600 : 650);
+    }
     if (Settings.instance().useRobotoFont()) {
       Typeface typeface = loadVariableRoboto(weight == Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER ? 560 : 620);
       if (typeface == null && weight == Settings.TEXT_WEIGHT_SEMIBOLD) {
@@ -167,6 +183,9 @@ public class Fonts {
         return robotoRegular = weighted;
       }
     }
+    if (robotoRegular == null && Settings.instance().useSystemFont()) {
+      return robotoRegular = systemFont(400);
+    }
     return robotoRegular != null ? robotoRegular : (robotoRegular = loadFont(appFont("Regular", "Regular"), () -> // TGx101: Manrope everywhere (Roboto if chosen in settings)
       LOAD_SANS ? loadSystemFont("sans-serif", Typeface.NORMAL, Typeface.DEFAULT) : Typeface.DEFAULT
     ));
@@ -179,12 +198,18 @@ public class Fonts {
     if (Settings.instance().getTextWeight() == Settings.TEXT_WEIGHT_NORMAL) {
       return getRobotoRegular();
     }
+    if (robotoRegularStock == null && Settings.instance().useSystemFont()) {
+      return robotoRegularStock = systemFont(400);
+    }
     return robotoRegularStock != null ? robotoRegularStock : (robotoRegularStock = loadFont(appFont("Regular", "Regular"), () ->
       LOAD_SANS ? loadSystemFont("sans-serif", Typeface.NORMAL, Typeface.DEFAULT) : Typeface.DEFAULT
     ));
   }
 
   public static Typeface getRobotoBold () {
+    if (robotoBold == null && Settings.instance().useSystemFont()) {
+      return robotoBold = systemFont(700);
+    }
     return robotoBold != null ? robotoBold : (robotoBold = loadFont(appFont("Bold", "Bold"), () -> {
       if (LOAD_SANS) {
         return loadSystemFont("sans-serif", Typeface.BOLD, Typeface.DEFAULT_BOLD);
@@ -200,6 +225,9 @@ public class Fonts {
       if (weighted != null) {
         return robotoMedium = weighted;
       }
+    }
+    if (robotoMedium == null && Settings.instance().useSystemFont()) {
+      return robotoMedium = systemFont(500);
     }
     return robotoMedium != null ? robotoMedium : (robotoMedium = loadFont(appFont("SemiBold", "Medium"), () -> { // Manrope 500 is too close to 400 for titles
       if (LOAD_SANS) {

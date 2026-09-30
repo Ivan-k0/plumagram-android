@@ -858,7 +858,19 @@ public class TGCallService extends Service implements
 
   private Notification ongoingCallNotification;
 
-  private static final @DrawableRes int CALL_ICON_RES = R.drawable.baseline_phone_24_white;
+  private static final @DrawableRes int CALL_ICON_RES = R.drawable.baseline_plumagram_24; // TGx101: the PlumaGram bird
+
+  /** TGx101: the caller for Android 12+ CallStyle notifications (system call card, status bar call chip) */
+  @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
+  private android.app.Person tgx101Caller (TdApi.User user, @Nullable Bitmap photo) {
+    android.app.Person.Builder person = new android.app.Person.Builder()
+      .setName(user != null ? TD.getUserName(user) : "")
+      .setImportant(true);
+    if (photo != null) {
+      person.setIcon(android.graphics.drawable.Icon.createWithBitmap(photo));
+    }
+    return person.build();
+  }
 
   private void showNotification () {
     boolean needNotification = call != null && (call.isOutgoing || call.state.getConstructor() == TdApi.CallStateExchangingKeys.CONSTRUCTOR || call.state.getConstructor() == TdApi.CallStateReady.CONSTRUCTOR) && !TD.isFinished(call);
@@ -922,7 +934,19 @@ public class TGCallService extends Service implements
       CallSettings speakerSettings = getCallSettings();
       boolean speakerOn = speakerSettings != null && (speakerSettings.getSpeakerMode() == CallSettings.SPEAKER_MODE_SPEAKER || speakerSettings.getSpeakerMode() == CallSettings.SPEAKER_MODE_SPEAKER_DEFAULT);
       String speakerTitle = Lang.getString(speakerOn ? R.string.Tgx101CallSpeakerOff : R.string.Tgx101CallSpeakerOn);
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        // TGx101: Android 12+ system call card — the status bar then shows the call chip with the timer; tap returns to the call
+        Bitmap photo = TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true);
+        builder.setStyle(Notification.CallStyle.forOngoingCall(tgx101Caller(user, photo), endPendingIntent));
+        builder.addAction(new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(this, R.drawable.baseline_volume_up_24_white), speakerTitle, speakerPendingIntent).build());
+        long callDuration = getCallDuration();
+        if (callDuration > 0) {
+          builder.setUsesChronometer(true);
+          builder.setWhen(System.currentTimeMillis() - callDuration);
+        } else {
+          builder.setContentText(Lang.getString(R.string.OutgoingCall));
+        }
+      } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
         // Own layout: firmwares like Vivo draw CallStyle buttons as plain text without icons
         android.widget.RemoteViews views = new android.widget.RemoteViews(getPackageName(), R.layout.tgx101_call_notification);
         views.setTextViewText(R.id.tgx101_call_name, TD.getUserName(user));
@@ -958,12 +982,12 @@ public class TGCallService extends Service implements
       }
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-      builder.setShowWhen(false);
+      builder.setShowWhen(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && getCallDuration() > 0); // TGx101: the call timer
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       builder.setColor(tdlib.accountColor());
     }
-    Bitmap bitmap = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? null : // TGx101: the own layout already shows the photo
+    Bitmap bitmap = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? null : // TGx101: the own layout / the caller already shows the photo
       TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true);
     if (bitmap != null) {
       builder.setLargeIcon(bitmap);
@@ -1063,16 +1087,24 @@ public class TGCallService extends Service implements
         endTitle = new SpannableString(endTitle);
         ((SpannableString) endTitle).setSpan(new ForegroundColorSpan(Theme.getColor(ColorId.circleButtonNegative)), 0, endTitle.length(), 0);
       }
-      builder.addAction(R.drawable.round_call_end_24_white, endTitle, PendingIntent.getBroadcast(this, 0, endIntent, PendingIntent.FLAG_ONE_SHOT | Intents.mutabilityFlags(false)));
+      PendingIntent declinePendingIntent = PendingIntent.getBroadcast(this, 0, endIntent, PendingIntent.FLAG_ONE_SHOT | Intents.mutabilityFlags(false));
       Intent answerIntent = new Intent();
       Intents.secureIntent(answerIntent, false);
       answerIntent.setAction(Intents.ACTION_ANSWER_CALL);
-      CharSequence answerTitle = Lang.getString(R.string.AnswerCall);
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-        answerTitle = new SpannableString(answerTitle);
-        ((SpannableString) answerTitle).setSpan(new ForegroundColorSpan(Theme.getColor(ColorId.circleButtonPositive)), 0, answerTitle.length(), 0);
+      PendingIntent answerPendingIntent = PendingIntent.getBroadcast(this, 0, answerIntent, PendingIntent.FLAG_ONE_SHOT | Intents.mutabilityFlags(false));
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        // TGx101: Android 12+ system incoming call card — shown as a pop-up over an unlocked phone too
+        Bitmap photo = user != null ? TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true) : null;
+        builder.setStyle(Notification.CallStyle.forIncomingCall(tgx101Caller(user, photo), declinePendingIntent, answerPendingIntent));
+      } else {
+        builder.addAction(R.drawable.round_call_end_24_white, endTitle, declinePendingIntent);
+        CharSequence answerTitle = Lang.getString(R.string.AnswerCall);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+          answerTitle = new SpannableString(answerTitle);
+          ((SpannableString) answerTitle).setSpan(new ForegroundColorSpan(Theme.getColor(ColorId.circleButtonPositive)), 0, answerTitle.length(), 0);
+        }
+        builder.addAction(R.drawable.round_call_24_white, answerTitle, answerPendingIntent);
       }
-      builder.addAction(R.drawable.round_call_24_white, answerTitle, PendingIntent.getBroadcast(this, 0, answerIntent, PendingIntent.FLAG_ONE_SHOT | Intents.mutabilityFlags(false)));
       builder.setPriority(Notification.PRIORITY_MAX);
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
@@ -1089,7 +1121,7 @@ public class TGCallService extends Service implements
       }
       builder.setVisibility(Notification.VISIBILITY_PUBLIC);
     }
-    Bitmap bitmap = user != null ? TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true) : null;
+    Bitmap bitmap = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? null : user != null ? TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true) : null;
     if (bitmap != null) {
       builder.setLargeIcon(bitmap);
     }
