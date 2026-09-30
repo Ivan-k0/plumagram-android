@@ -143,9 +143,10 @@ public final class Tgx101MessageMenu {
     boolean leftHand = Settings.instance().isTgx101MessageMenuLeftHand();
     // TGx101: the reactions keep their width; the action card is narrower and moved toward the centre,
     // leaving a free strip at the screen edge — a tap there closes the menu (like the official app)
-    int pillWidth = Math.min(Screen.dp(268f), Screen.currentWidth() - Screen.dp(24f));
-    int cardEdgeGap = Screen.dp(52f);
-    int cardWidth = Math.max(Math.min(Screen.dp(200f), pillWidth), pillWidth - cardEdgeGap);
+    // The reactions stick out of the card by REACTIONS_OVERHANG on both sides
+    int cardEdgeGap = Screen.dp(52f), overhang = Screen.dp(REACTIONS_OVERHANG);
+    int cardWidth = Math.max(Math.min(Screen.dp(200f), Screen.currentWidth() - Screen.dp(24f)), Math.min(Screen.dp(268f), Screen.currentWidth() - Screen.dp(24f)) - cardEdgeGap);
+    int pillWidth = cardWidth + overhang * 2;
 
     FrameLayout root = new FrameLayout(context);
     root.setBackground(blurredBackground(c));
@@ -183,7 +184,11 @@ public final class Tgx101MessageMenu {
       ReactionsSelectorRecyclerView reactions = new ReactionsSelectorRecyclerView(context, state);
       reactions.setNeedDrawBorderGradient(false);
       boolean canExpand = state.needShowReactionsPopupPicker && onExpandReactions != null;
-      int reactionsWidth = pillWidth - (canExpand ? Screen.dp(44f) : 0);
+      // Whole reactions only: the one that would be cut under the ⌄ button is left out (still reachable by scrolling or ⌄)
+      int available = pillWidth - (canExpand ? Screen.dp(44f) : 0);
+      int item = Screen.dp(REACTION_ITEM_WIDTH), padding = Screen.dp(18f);
+      int count = Math.max(1, (available - padding) / item);
+      int reactionsWidth = padding + count * item;
       pill.setClickable(true);
       pill.addView(reactions, new LinearLayout.LayoutParams(reactionsWidth, Screen.dp(52f)));
       if (canExpand) {
@@ -205,8 +210,14 @@ public final class Tgx101MessageMenu {
         expandParams.leftMargin = Screen.dp(2f);
         pill.addView(expand, expandParams);
       }
-      LinearLayout.LayoutParams pillParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      LinearLayout.LayoutParams pillParams = new LinearLayout.LayoutParams(pillWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
+      pill.setGravity(Gravity.CENTER);
       pillParams.bottomMargin = Screen.dp(8f);
+      if (leftHand) {
+        pillParams.leftMargin = cardEdgeGap - overhang;
+      } else {
+        pillParams.rightMargin = cardEdgeGap - overhang;
+      }
       column.addView(pill, pillParams);
     }
 
@@ -218,9 +229,9 @@ public final class Tgx101MessageMenu {
     card.setClickable(true);
     LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(cardWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
     if (leftHand) {
-      cardParams.leftMargin = pillWidth - cardWidth;
+      cardParams.leftMargin = cardEdgeGap;
     } else {
-      cardParams.rightMargin = pillWidth - cardWidth;
+      cardParams.rightMargin = cardEdgeGap;
     }
     column.addView(card, cardParams);
 
@@ -291,7 +302,7 @@ public final class Tgx101MessageMenu {
     }
 
     // A short scale-in from the corner
-    column.setPivotX(leftHand ? 0 : pillWidth);
+    column.setPivotX(leftHand ? 0 : pillWidth + cardEdgeGap - overhang);
     column.setAlpha(0f);
     column.setScaleX(.92f);
     column.setScaleY(.92f);
@@ -489,6 +500,8 @@ public final class Tgx101MessageMenu {
     divider.setLayoutParams(params);
     return divider;
   }
+
+  private static final float REACTIONS_OVERHANG = 16f, REACTION_ITEM_WIDTH = 38f; // item: 40dp view with -1dp decoration on each side
 
   private static GradientDrawable rounded (int color, float radius) {
     GradientDrawable drawable = new GradientDrawable();
