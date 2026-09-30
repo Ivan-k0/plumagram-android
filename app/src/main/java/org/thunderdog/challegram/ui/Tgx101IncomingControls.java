@@ -53,7 +53,7 @@ public class Tgx101IncomingControls extends FrameLayout {
 
   private final Callback callback;
   private final LinearLayout replies;
-  private final ImageView messageButton, silenceButton;
+  private final ImageView messageButton;
   private boolean answered;
 
   public Tgx101IncomingControls (Context context, Callback callback) {
@@ -77,11 +77,11 @@ public class Tgx101IncomingControls extends FrameLayout {
     repliesParams.bottomMargin = Screen.dp(44f + 72f + 36f + 100f + 14f);
     addView(replies, repliesParams);
 
-    // Decline · Message · Silence
+    // Decline · Message, closer to the centre (TGx101: the ringing is muted with the volume or power key, no «Без звука» button)
     LinearLayout row = new LinearLayout(context);
     row.setOrientation(LinearLayout.HORIZONTAL);
     LayoutParams rowParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
-    rowParams.leftMargin = rowParams.rightMargin = Screen.dp(20f);
+    rowParams.leftMargin = rowParams.rightMargin = Screen.dp(56f);
     rowParams.bottomMargin = Screen.dp(44f + 72f + 36f);
     addView(row, rowParams);
     ImageView decline = addButton(row, R.drawable.baseline_call_end_24, R.string.Tgx101CallDecline, v -> {
@@ -89,10 +89,6 @@ public class Tgx101IncomingControls extends FrameLayout {
     });
     decline.setColorFilter(0xffff6b6b);
     messageButton = addButton(row, R.drawable.baseline_chat_bubble_24, R.string.Tgx101CallMessage, v -> toggleReplies());
-    silenceButton = addButton(row, R.drawable.baseline_volume_off_24, R.string.Tgx101CallSilence, v -> {
-      callback.onSilence();
-      setActive((ImageView) v, true);
-    });
 
     // «Ответить» slider
     AnswerSlider slider = new AnswerSlider(context);

@@ -1264,6 +1264,45 @@ public class U {
     return parcelable == null ? null : parcelable instanceof Uri ? (Uri) parcelable : Uri.parse(parcelable.toString());
   }
 
+  @androidx.annotation.RequiresApi(Build.VERSION_CODES.P)
+  private static void tgx101OpenRawPreview (TdlibDelegate context, File file) {
+    UI.showToast(R.string.Tgx101RawPreviewOpening, Toast.LENGTH_SHORT);
+    Background.instance().post(() -> {
+      File preview = null;
+      try {
+        File dir = new File(UI.getAppContext().getFilesDir(), "media/dng_preview");
+        if (!dir.exists() && !dir.mkdirs()) throw new java.io.IOException("mkdirs");
+        File[] old = dir.listFiles();
+        if (old != null) for (File f : old) f.delete(); // keep only the latest preview
+        String name = file.getName();
+        int dot = name.lastIndexOf('.');
+        preview = new File(dir, (dot > 0 ? name.substring(0, dot) : name) + ".jpg");
+        android.graphics.Bitmap bitmap = android.graphics.ImageDecoder.decodeBitmap(android.graphics.ImageDecoder.createSource(file), (decoder, info, source) -> {
+          int max = Math.max(info.getSize().getWidth(), info.getSize().getHeight());
+          int sample = 1;
+          while (max / sample > 4096) sample *= 2;
+          decoder.setTargetSampleSize(sample);
+          decoder.setAllocator(android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE);
+        });
+        try (java.io.FileOutputStream out = new java.io.FileOutputStream(preview)) {
+          bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 92, out);
+        }
+        bitmap.recycle();
+      } catch (Throwable t) {
+        Log.w("TGx101: RAW preview failed", t);
+        preview = null;
+      }
+      final File result = preview;
+      UI.post(() -> {
+        if (result != null) {
+          Intents.openFile(context.context(), result, "image/jpeg");
+        } else if (!Intents.openFileAsType(context.context(), file, "image/*")) {
+          Intents.openFileAsType(context.context(), file, "*/*");
+        }
+      });
+    });
+  }
+
   public static void openFile (TdlibDelegate context, String displayName, File file, String mimeType, int viewCount) {
     String extension = getExtension(file.getPath());
     if (StringUtils.isEmpty(mimeType)) {
@@ -1275,6 +1314,12 @@ public class U {
       c = new TextController(context.context(), context.tdlib());
       c.setArguments(TextController.Arguments.fromFile(displayName, file.getPath(), mimeType).setViews(viewCount));
       UI.navigateTo(c);
+      return;
+    }
+
+    // TGx101: RAW photos (DNG) — galleries show a black screen for a DNG passed by another app, so a JPEG preview is opened instead
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && "dng".equalsIgnoreCase(extension)) {
+      tgx101OpenRawPreview(context, file);
       return;
     }
 

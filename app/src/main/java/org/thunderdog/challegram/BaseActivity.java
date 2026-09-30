@@ -831,6 +831,14 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_DOWN) {
       backKeyDownReceived = true;
     }
+    // TGx101: volume keys mute a ringing incoming call (and don't change the volume then)
+    if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+      org.thunderdog.challegram.service.TGCallService callService = org.thunderdog.challegram.service.TGCallService.currentInstance();
+      if (callService != null && callService.tgx101IsRingingIncoming()) {
+        callService.silenceRinging();
+        return true;
+      }
+    }
     boolean handled = false;
     for (KeyEventListener listener : keyEventListeners) {
       if (!handled && listener.onKeyDown(keyCode, event)) {

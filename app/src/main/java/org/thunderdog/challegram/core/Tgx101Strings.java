@@ -124,6 +124,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101EditorSelectFirst, "Сначала выделите текст");
     RU.put(R.string.Tgx101EditorChars, "%1$d симв.");
     RU.put(R.string.Tgx101CallPopupSubtitle, "PlumaGram · входящий звонок");
+    RU.put(R.string.Tgx101RawPreviewOpening, "Открываю RAW-фото…");
     RU.put(R.string.Tgx101Font, "Шрифт");
     RU.put(R.string.Tgx101FontSystem, "Системный (как в настройках телефона)");
     RU.put(R.string.Tgx101FontRoboto, "Roboto (как в Telegram X)");

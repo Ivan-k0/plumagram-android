@@ -224,9 +224,21 @@ public class TGCallService extends Service implements
       }
 
       if (Intent.ACTION_SCREEN_OFF.equals(action)) {
+        // TGx101: the power key mutes a ringing incoming call, like the system dialer
+        if (tgx101IsRingingIncoming()) {
+          silenceRinging();
+        }
         // TGx101: some lock screens (Vivo) show only notifications posted after locking,
         // so the ongoing call notification is posted again when the screen goes off
         refreshOngoingNotification();
+        return;
+      }
+
+      if (TGX101_VOLUME_CHANGED.equals(action)) {
+        // TGx101: a volume key (with the app in the background) mutes a ringing incoming call
+        if (tgx101IsRingingIncoming()) {
+          silenceRinging();
+        }
         return;
       }
 
@@ -355,7 +367,8 @@ public class TGCallService extends Service implements
         filter.addAction(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED);
       }
       filter.addAction(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
-      filter.addAction(Intent.ACTION_SCREEN_OFF); // TGx101: re-post the call notification for the lock screen
+      filter.addAction(Intent.ACTION_SCREEN_OFF); // TGx101: re-post the call notification for the lock screen; power key mutes the ringing
+      filter.addAction(TGX101_VOLUME_CHANGED); // TGx101: volume keys mute the ringing
       /*filter.addAction(Intents.ACTION_END_CALL);
       filter.addAction(Intents.ACTION_DECLINE_CALL);
       filter.addAction(Intents.ACTION_ANSWER_CALL);*/
@@ -1287,6 +1300,13 @@ public class TGCallService extends Service implements
         }
       }
     }
+  }
+
+  private static final String TGX101_VOLUME_CHANGED = "android.media.VOLUME_CHANGED_ACTION";
+
+  /** TGx101: an incoming call is ringing (not answered yet) and our ringtone / vibration is on */
+  public boolean tgx101IsRingingIncoming () {
+    return call != null && !call.isOutgoing && call.state.getConstructor() == TdApi.CallStatePending.CONSTRUCTOR && (ringtonePlayer != null || vibrator != null);
   }
 
   /** TGx101: «Без звука» on the incoming call screen — mutes our ringtone and vibration, the call keeps ringing for the caller */
