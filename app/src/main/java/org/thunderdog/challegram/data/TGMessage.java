@@ -9045,7 +9045,31 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   // TGx101: reaction №1 of the quick reactions, set by a double tap on the message
 
+  /** TGx101: the message's available reactions are loaded lazily (by the menu); a double tap starts loading them on the first tap */
+  public boolean tgx101CanTryDoubleTapReaction () {
+    return !isSponsoredMessage() && !isEventLog();
+  }
+
+  public void tgx101PrefetchAvailableReactions () {
+    if (Td.isEmpty(messageAvailableReactions)) {
+      loadAvailableReactions(() -> { });
+    }
+  }
+
   public boolean tgx101SetFirstQuickReaction () {
+    if (Td.isEmpty(messageAvailableReactions)) {
+      org.thunderdog.challegram.Tgx101Diag.mark("double tap: reactions not loaded yet, loading");
+      loadAvailableReactions(() -> {
+        if (!Td.isEmpty(messageAvailableReactions)) {
+          tgx101SetFirstQuickReactionLoaded();
+        }
+      });
+      return true;
+    }
+    return tgx101SetFirstQuickReactionLoaded();
+  }
+
+  private boolean tgx101SetFirstQuickReactionLoaded () {
     // The swipe actions are built only when a swipe starts, so reaction №1 is resolved here directly
     final String[] quickReactions = Settings.instance().getQuickReactions(tdlib);
     if (quickReactions == null || quickReactions.length == 0) {
