@@ -352,8 +352,20 @@ public class Intents {
     return openFile(context, file, mimeType, false);
   }
 
+  // TGx101: open with exactly this type (no re-detection from the extension) — fallback for exotic types like DNG
+  private static boolean keepMimeType;
+
+  public static boolean openFileAsType (final BaseActivity context, File file, String mimeType) {
+    keepMimeType = true;
+    try {
+      return openFile(context, file, mimeType, false);
+    } finally {
+      keepMimeType = false;
+    }
+  }
+
   private static boolean openFile (final BaseActivity context, final File file, @Nullable String mimeTypeRaw, final boolean isRetry) {
-    if (!isRetry) {
+    if (!isRetry && !keepMimeType) {
       String newMimeType = U.resolveMimeType(file.getPath());
       if (!StringUtils.isEmpty(newMimeType)) {
         mimeTypeRaw = newMimeType;

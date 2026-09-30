@@ -1288,6 +1288,18 @@ public class U {
       return;
     }
 
+    // TGx101: exotic subtypes (e.g. image/x-adobe-dng) have no handler on many phones; try the general type
+    // («image/*» — galleries and photo editors open RAW), then let the user pick any app
+    if (!StringUtils.isEmpty(mimeType) && mimeType.indexOf('/') > 0) {
+      String general = mimeType.substring(0, mimeType.indexOf('/')) + "/*";
+      if (!general.equals(mimeType) && Intents.openFileAsType(context.context(), file, general)) {
+        return;
+      }
+    }
+    if (!"*/*".equals(mimeType) && Intents.openFileAsType(context.context(), file, "*/*")) {
+      return;
+    }
+
     UI.showToast(R.string.NoAppToOpen, Toast.LENGTH_SHORT);
   }
 
