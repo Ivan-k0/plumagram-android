@@ -1094,6 +1094,9 @@ public class IntroController extends ViewController<Void> implements GLSurfaceVi
   private BoolAnimator progressAnimator, continueAnimator;
 
   public String getString (int resId) {
+    if (resId == R.string.Page1Title) {
+      return "PlumaGram"; // TGx101: the app's name, the same in every language (the cloud pack says «Telegram X»)
+    }
     return Lang.getString(displayLanguage.packInfo, resId);
   }
 
