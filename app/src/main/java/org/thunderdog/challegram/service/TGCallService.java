@@ -1118,8 +1118,10 @@ public class TGCallService extends Service implements
     }
   }
 
-  private static final float RING_RAMP_START = 0.2f;
-  private static final long RING_RAMP_DURATION_MS = 20_000, RING_RAMP_STEP_MS = 250;
+  // Loudness is perceived logarithmically: the ramp goes evenly in decibels (-26 dB ≈ 20 % of the perceived volume → 0 dB)
+  private static final float RING_RAMP_START_DB = -26f;
+  private static final float RING_RAMP_START = (float) Math.pow(10, RING_RAMP_START_DB / 20f);
+  private static final long RING_RAMP_DURATION_MS = 30_000, RING_RAMP_STEP_MS = 250;
 
   private void startRingRamp (MediaPlayer player) {
     final long start = android.os.SystemClock.uptimeMillis();
@@ -1130,7 +1132,7 @@ public class TGCallService extends Service implements
           return; // stopped or restarted
         }
         float progress = Math.min(1f, (android.os.SystemClock.uptimeMillis() - start) / (float) RING_RAMP_DURATION_MS);
-        float volume = RING_RAMP_START + (1f - RING_RAMP_START) * progress;
+        float volume = (float) Math.pow(10, RING_RAMP_START_DB * (1f - progress) / 20f);
         try {
           player.setVolume(volume, volume);
         } catch (Throwable ignored) {

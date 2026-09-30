@@ -1439,6 +1439,12 @@ public class CallController extends ViewController<CallController.Arguments> imp
     final int startLeft = parentWidth - viewWidthSmall;
     final int startTop = Screen.dp(42f) - emojiViewSmall.getPaddingTop();
 
+    // TGx101: the bird sits in the same corner — move it left of the encryption emoji while they are shown
+    if (brandWrap != null && Settings.instance().useNewCallScreen() && photoMode != Settings.CALL_PHOTO_FULL_SCREEN) {
+      boolean hasEmoji = emojiViewSmall.getVisibility() == View.VISIBLE && emojiViewSmall.getText() != null && emojiViewSmall.getText().length() > 0;
+      brandWrap.setTranslationX(hasEmoji ? -(viewWidthSmall - emojiViewSmall.getPaddingLeft()) : 0);
+    }
+
     final int fromCenterX = startLeft + viewWidthSmall / 2;
     final int fromCenterY = startTop + viewHeightSmall / 2;
 
