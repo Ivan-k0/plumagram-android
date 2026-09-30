@@ -99,6 +99,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ChatListTextSize120, "Крупный");
     RU.put(R.string.Tgx101ChatListTextSize130, "Очень крупный");
     RU.put(R.string.Tgx101TextWeight, "Толщина текста");
+    RU.put(R.string.Tgx101Font, "Шрифт");
+    RU.put(R.string.Tgx101FontRoboto, "Roboto (как в Telegram X)");
+    RU.put(R.string.Tgx101FontHint, "Меняется только начертание; размер и толщина текста остаются как настроены. Применится после перезапуска приложения.");
+    RU.put(R.string.Tgx101FontRestart, "Перезапустите приложение, чтобы применить шрифт");
     RU.put(R.string.Tgx101TextWeightNormal, "Обычная");
     RU.put(R.string.Tgx101TextWeightSlightlyBolder, "Чуть жирнее");
     RU.put(R.string.Tgx101TextWeightSemibold, "Полужирная");

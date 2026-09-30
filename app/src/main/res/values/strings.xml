@@ -5977,6 +5977,11 @@
   <string name="Tgx101ChatListTextSize120">Large</string>
   <string name="Tgx101ChatListTextSize130">Extra large</string>
   <string name="Tgx101TextWeight">Text weight</string>
+  <string name="Tgx101Font">Font</string>
+  <string name="Tgx101FontManrope">Manrope</string>
+  <string name="Tgx101FontRoboto">Roboto (as in Telegram X)</string>
+  <string name="Tgx101FontHint">Only the typeface changes; text size and weight stay as set. Applies after the app restarts.</string>
+  <string name="Tgx101FontRestart">Restart the app to apply the font</string>
   <string name="Tgx101TextWeightNormal">Regular</string>
   <string name="Tgx101TextWeightSlightlyBolder">Slightly bolder</string>
   <string name="Tgx101TextWeightSemibold">Semibold</string>

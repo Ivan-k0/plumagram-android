@@ -276,6 +276,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(chatListTextSizeName(Settings.instance().getChatListTextSize()));
         } else if (itemId == R.id.btn_tgx101TextWeight) {
           view.setData(textWeightName(Settings.instance().getTextWeight()));
+        } else if (itemId == R.id.btn_tgx101Font) {
+          view.setData(Settings.instance().useRobotoFont() ? R.string.Tgx101FontRoboto : R.string.Tgx101FontManrope);
         } else if (itemId == R.id.btn_toggleNewSetting) {
           updateSettingView(view, item, isUpdate);
         }
@@ -326,6 +328,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101TextSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101ChatListTextSize, 0, R.string.Tgx101ChatListTextSize),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101Font, 0, R.string.Tgx101Font),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101TextWeight, 0, R.string.Tgx101TextWeight),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -772,6 +776,12 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101TextWeight1, 0, R.string.Tgx101TextWeightSlightlyBolder, id, weight == Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER),
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101TextWeight2, 0, R.string.Tgx101TextWeightSemibold, id, weight == Settings.TEXT_WEIGHT_SEMIBOLD)
       }).setIntDelegate(this));
+    } else if (id == R.id.btn_tgx101Font) {
+      boolean roboto = Settings.instance().useRobotoFont();
+      showSettings(new SettingsWrapBuilder(id).addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.Tgx101FontHint)).setRawItems(new ListItem[] {
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101FontManrope, 0, R.string.Tgx101FontManrope, id, !roboto),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101FontRoboto, 0, R.string.Tgx101FontRoboto, id, roboto)
+      }).setIntDelegate(this));
     } else if (id == R.id.btn_chatFontSize) {
       MessagesController controller = new MessagesController(context, tdlib);
       controller.setArguments(new MessagesController.Arguments(MessagesController.PREVIEW_MODE_FONT_SIZE, null, null));
@@ -961,6 +971,13 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       int size = res == R.id.btn_tgx101ChatListTextSize110 ? 110 : res == R.id.btn_tgx101ChatListTextSize120 ? 120 : res == R.id.btn_tgx101ChatListTextSize130 ? 130 : 100;
       Settings.instance().setChatListTextSize(size);
       adapter.updateValuedSettingById(R.id.btn_tgx101ChatListTextSize);
+    } else if (id == R.id.btn_tgx101Font) {
+      boolean roboto = result.get(R.id.btn_tgx101Font) == R.id.btn_tgx101FontRoboto;
+      if (roboto != Settings.instance().useRobotoFont()) {
+        Settings.instance().setUseRobotoFont(roboto);
+        adapter.updateValuedSettingById(R.id.btn_tgx101Font);
+        UI.showToast(R.string.Tgx101FontRestart, android.widget.Toast.LENGTH_LONG);
+      }
     } else if (id == R.id.btn_tgx101TextWeight) {
       final int res = result.get(R.id.btn_tgx101TextWeight);
       int weight = res == R.id.btn_tgx101TextWeight1 ? Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER : res == R.id.btn_tgx101TextWeight2 ? Settings.TEXT_WEIGHT_SEMIBOLD : Settings.TEXT_WEIGHT_NORMAL;

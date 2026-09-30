@@ -3171,6 +3171,21 @@ public class Settings {
   // TGx101: chat list text size (percent of the stock size) and text weight
   private static final String KEY_TGX101_CHAT_LIST_TEXT_SIZE = "tgx101_chat_list_text_size";
   private static final String KEY_TGX101_TEXT_WEIGHT = "tgx101_text_weight";
+  private static final String KEY_TGX101_FONT_ROBOTO = "tgx101_font_roboto";
+  private Boolean _robotoFont;
+
+  /** TGx101: the stock Roboto instead of Manrope (only the typeface; size and weight settings stay). Applies after a restart. */
+  public boolean useRobotoFont () {
+    if (_robotoFont == null) {
+      _robotoFont = pmc.getBoolean(KEY_TGX101_FONT_ROBOTO, false);
+    }
+    return _robotoFont;
+  }
+
+  public void setUseRobotoFont (boolean roboto) {
+    pmc.putBoolean(KEY_TGX101_FONT_ROBOTO, roboto);
+    _robotoFont = roboto;
+  }
   public static final int TEXT_WEIGHT_NORMAL = 0, TEXT_WEIGHT_SLIGHTLY_BOLDER = 1, TEXT_WEIGHT_SEMIBOLD = 2;
   private float _chatListTextScale = -1f;
   private int _textWeight = -1;
