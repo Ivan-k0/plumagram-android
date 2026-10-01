@@ -935,11 +935,11 @@ public class MediaView extends FrameLayoutFix {
         if (gState == G_PENDING) {
           if (Math.max(Math.abs(dx), Math.abs(dy)) < Screen.getTouchSlop() * 1.5f) return false;
           removeCallbacks(gLongPress);
-          // zones: a sideways swipe from the outer 12 % of the width pages the media; vertical swipes on the left third
+          // zones: a sideways swipe from the outer 18 % of the width pages the media; vertical swipes on the left third
           // are brightness, on the right third volume, in the middle third they close the viewer as usual
           float width = getMeasuredWidth();
           boolean horizontal = Math.abs(dx) > Math.abs(dy), left = gDownX < width / 3f, right = gDownX > width * 2f / 3f;
-          boolean fromEdge = gDownX < width * .12f || gDownX > width * .88f;
+          boolean fromEdge = gDownX < width * .18f || gDownX > width * .82f;
           boolean pass;
           if (horizontal) {
             pass = fromEdge || !gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_SEEK);
