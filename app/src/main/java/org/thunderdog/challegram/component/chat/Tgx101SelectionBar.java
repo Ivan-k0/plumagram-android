@@ -211,7 +211,7 @@ public final class Tgx101SelectionBar {
     int pad = Screen.dp(5f);
     card.setPadding(pad, pad, pad, pad);
     card.setBackground(rounded(panel, 14f));
-    card.setElevation(Screen.dp(6f));
+    androidx.core.view.ViewCompat.setElevation(card, Screen.dp(6f));
 
     HorizontalScrollView scroll = new HorizontalScrollView(context);
     scroll.setHorizontalScrollBarEnabled(false);
@@ -438,7 +438,7 @@ public final class Tgx101SelectionBar {
     int pad = Screen.dp(5f);
     field.setPadding(pad, pad, pad, pad);
     field.setBackground(rounded(panelColor(), 14f));
-    field.setElevation(Screen.dp(6f));
+    androidx.core.view.ViewCompat.setElevation(field, Screen.dp(6f));
     field.setClickable(true);
     android.widget.EditText url = new android.widget.EditText(activity);
     url.setSingleLine(true);
@@ -581,6 +581,9 @@ public final class Tgx101SelectionBar {
   }
 
   private static Drawable pressable (int color, float radiusDp) {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.LOLLIPOP) {
+      return rounded(color, radiusDp); // Android 4: no ripple
+    }
     return new RippleDrawable(ColorStateList.valueOf(ColorUtils.alphaColor(.18f, Theme.textAccentColor())), rounded(color, radiusDp), rounded(0xffffffff, radiusDp));
   }
 }

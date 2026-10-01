@@ -8536,7 +8536,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     circle.setColor(0xc0141a20);
     button.setBackground(circle);
     button.setContentDescription(Lang.getString(R.string.Tgx101Rotate));
-    button.setTranslationZ(Screen.dp(4f));
+    androidx.core.view.ViewCompat.setTranslationZ(button, Screen.dp(4f));
     button.setVisibility(View.INVISIBLE);
     button.setOnClickListener(v -> {
       if (tgx101Locked() || !v.isEnabled()) return;

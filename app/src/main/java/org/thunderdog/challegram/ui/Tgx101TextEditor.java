@@ -397,8 +397,10 @@ public final class Tgx101TextEditor {
     wrap.setClickable(true); // closes only with ✕ — taps around the card do nothing
     card.setClickable(true);
     card.setBackground(rounded(Theme.fillingColor(), 20f));
-    card.setClipToOutline(true);
-    card.setElevation(Screen.dp(12f));
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+      card.setClipToOutline(true);
+      card.setElevation(Screen.dp(12f));
+    }
     // right above the keyboard, over the (unused) chat input
     android.widget.FrameLayout.LayoutParams cardParams = new android.widget.FrameLayout.LayoutParams(Math.min(Screen.currentWidth() - Screen.dp(12f), Screen.dp(480f)), ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
     cardParams.bottomMargin = Screen.dp(6f);

@@ -71,7 +71,7 @@ final class Tgx101PlayerLock extends View {
     Tgx101PlayerLock view = new Tgx101PlayerLock(context, delegate);
     view.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     // above everything in the viewer: the video and the bars are raised 1–3 dp, and touches go to the highest view
-    view.setTranslationZ(Screen.dp(24f));
+    androidx.core.view.ViewCompat.setTranslationZ(view, Screen.dp(24f));
     return view;
   }
 

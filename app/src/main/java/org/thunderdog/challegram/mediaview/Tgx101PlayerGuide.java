@@ -47,7 +47,7 @@ final class Tgx101PlayerGuide {
     FrameLayout wrap = new FrameLayout(context);
     wrap.setBackgroundColor(0x99000000);
     wrap.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-    wrap.setTranslationZ(Screen.dp(30f)); // above the video, the bars and the lock layer
+    androidx.core.view.ViewCompat.setTranslationZ(wrap, Screen.dp(30f)); // above the video, the bars and the lock layer
     wrap.setOnClickListener(v -> close.run());
 
     LinearLayout card = new LinearLayout(context);

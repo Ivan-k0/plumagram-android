@@ -86,7 +86,7 @@ final class Tgx101CallPopup {
     bg.setColor(dark ? 0xff1f2a33 : 0xffffffff);
     bg.setCornerRadius(Screen.dp(22f));
     card.setBackground(bg);
-    card.setElevation(Screen.dp(8f));
+    androidx.core.view.ViewCompat.setElevation(card, Screen.dp(8f));
 
     LinearLayout top = new LinearLayout(context);
     top.setOrientation(LinearLayout.HORIZONTAL);
