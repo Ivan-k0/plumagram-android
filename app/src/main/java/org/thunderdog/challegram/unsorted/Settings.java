@@ -3533,6 +3533,17 @@ public class Settings {
   }
 
   // TGx101: the bottom "Mute / Unmute" button in channels (it collapses into a bell while scrolling)
+  private static final String KEY_TGX101_TRANSLATE_ON_DEVICE = "tgx101_translate_on_device";
+
+  /** TGx101: translate with Google ML Kit on the phone instead of Telegram's server translation — off by default */
+  public boolean tgx101TranslateOnDevice () {
+    return pmc.getBoolean(KEY_TGX101_TRANSLATE_ON_DEVICE, false);
+  }
+
+  public void setTgx101TranslateOnDevice (boolean value) {
+    pmc.putBoolean(KEY_TGX101_TRANSLATE_ON_DEVICE, value);
+  }
+
   private static final String KEY_TGX101_PLAYER_SPEED = "tgx101_player_speed";
 
   /** TGx101: the video player's speed, remembered between videos */

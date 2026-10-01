@@ -285,6 +285,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101QuickReplyN, "Ответ %1$d");
     RU.put(R.string.Tgx101CallPatternHint, "Круг — чёткое фото под именем. На весь экран — прежний дизайн Telegram X. Узор из бумажных самолётиков еле заметный и неподвижный; за фото на весь экран его не видно.");
     RU.put(R.string.ShowChannelMuteButton, "Кнопка уведомлений и колокольчик");
+    RU.put(R.string.Tgx101TranslateSection, "Перевод");
+    RU.put(R.string.Tgx101TranslateOnDevice, "Переводить на телефоне (Google)");
+    RU.put(R.string.Tgx101TranslateOnDeviceHint, "Сообщения переводит Google ML Kit прямо на телефоне, а не сервер Telegram. Каждый язык скачивается один раз (около 30 МБ), дальше перевод работает без интернета. Языки, которых он не знает, переводит Telegram, как раньше.");
     RU.put(R.string.Tgx101PlayerSection, "Видеоплеер");
     RU.put(R.string.Tgx101PlayerGestures, "Жесты");
     RU.put(R.string.Tgx101PlayerGesturesHint, "Свайп влево-вправо — перемотка, вверх-вниз слева — яркость, справа — громкость; удержание — скорость 2×. С жестами двойное нажатие по краям больше не перематывает. Двойное нажатие по центру ставит на паузу в обоих режимах.");

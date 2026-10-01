@@ -6165,6 +6165,9 @@
   <string name="Tgx101QuickReplyN">Reply %1$d</string>
   <string name="Tgx101CallPatternHint">Circle: a sharp photo under the name. Full screen: the original Telegram X design. The pattern of paper planes is faint and still; it is hidden behind a full-screen photo.</string>
   <string name="ShowChannelMuteButton">«Mute» button and bell</string>
+  <string name="Tgx101TranslateSection">Translation</string>
+  <string name="Tgx101TranslateOnDevice">Translate on the phone (Google)</string>
+  <string name="Tgx101TranslateOnDeviceHint">Messages are translated by Google ML Kit right on the phone instead of Telegram\'s server. Each language is downloaded once (about 30 MB), then it works without the internet. Languages it doesn\'t know go to Telegram\'s translation as before.</string>
   <string name="Tgx101PlayerSection">Video player</string>
   <string name="Tgx101PlayerGestures">Gestures</string>
   <string name="Tgx101PlayerGesturesHint">Swipe left / right to seek, up / down on the left half for brightness, on the right half for volume; hold for 2×. With gestures on, a double tap on the sides no longer seeks. A double tap in the middle pauses in both modes.</string>

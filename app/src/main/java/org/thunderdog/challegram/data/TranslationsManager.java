@@ -121,6 +121,17 @@ public final class TranslationsManager {
   }
 
   private void requestTranslationImpl (TdApi.FormattedText originalText, String toLanguage, Client.ResultHandler callback) {
+    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101TranslateOnDevice()) {
+      // TGx101: Google ML Kit on the phone; anything it can't do goes to Telegram's translation as before
+      org.thunderdog.challegram.util.Tgx101OnDeviceTranslator.translate(originalText.text, toLanguage, result -> {
+        if (result != null) {
+          callback.onResult(new TdApi.FormattedText(result, new TdApi.TextEntity[0]));
+        } else {
+          tdlib.client().send(new TdApi.TranslateText(originalText, toLanguage, TdConstants.TEXT_FORMAT_NEUTRAL), callback);
+        }
+      });
+      return;
+    }
     tdlib.client().send(new TdApi.TranslateText(originalText, toLanguage, TdConstants.TEXT_FORMAT_NEUTRAL), callback);
   }
 

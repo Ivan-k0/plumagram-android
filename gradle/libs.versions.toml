@@ -74,6 +74,7 @@ google-play-services-safetynet-latest = "18.1.0"
 google-play-services-mlkit-barcode-scanning-latest = "18.3.1"
 
 google-mlkit-language-id-latest = "17.0.6"
+google-mlkit-translate-latest = "17.0.3"
 
 osmdroid = "6.1.20"
 
@@ -126,6 +127,7 @@ google-play-services-safetynet-legacy = "18.0.1" # 18.1.0+ requires minSdk 21
 google-play-services-mlkit-barcode-scanning-legacy = "16.2.1" # 18.3.0+ requires minSdk 21, 18.3.1+ requires minSdk 26
 
 google-mlkit-language-id-legacy = "16.1.1"
+google-mlkit-translate-legacy = "16.1.2"
 
 [libraries]
 desugaring = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugaring" }
@@ -242,6 +244,8 @@ google-play-services-mlkit-barcode-scanning-latest = { module = "com.google.andr
 
 google-mlkit-language-id-legacy = { module = "com.google.mlkit:language-id", version.ref = "google-mlkit-language-id-legacy" }
 google-mlkit-language-id-latest = { module = "com.google.mlkit:language-id", version.ref = "google-mlkit-language-id-latest" }
+google-mlkit-translate-legacy = { module = "com.google.mlkit:translate", version.ref = "google-mlkit-translate-legacy" }
+google-mlkit-translate-latest = { module = "com.google.mlkit:translate", version.ref = "google-mlkit-translate-latest" }
 
 google-play-services-safetynet-legacy = { module = "com.google.android.gms:play-services-safetynet", version.ref = "google-play-services-safetynet-legacy" }
 google-play-services-safetynet-latest = { module = "com.google.android.gms:play-services-safetynet", version.ref = "google-play-services-safetynet-latest" }

@@ -244,6 +244,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().useNewCallScreen(), isUpdate);
         } else if (quickReplyIndex(itemId) != -1) {
           view.setData(Settings.instance().getQuickReply(quickReplyIndex(itemId)));
+        } else if (itemId == R.id.btn_tgx101TranslateOnDevice) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101TranslateOnDevice(), isUpdate);
         } else if (itemId == R.id.btn_tgx101PlayerGestures) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101PlayerGestures(), isUpdate);
         } else if (itemId == R.id.btn_tgx101GhostNoRead) {
@@ -382,6 +384,12 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NotificationPlane, 0, R.string.Tgx101NotificationPlane),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.PullToSearchHint),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+
+        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101TranslateSection),
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101TranslateOnDevice, 0, R.string.Tgx101TranslateOnDevice),
+        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101TranslateOnDeviceHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101PlayerSection),
@@ -773,6 +781,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         adapter.updateValuedSettingById(id);
         return true;
       }, true);
+    } else if (id == R.id.btn_tgx101TranslateOnDevice) {
+      Settings.instance().setTgx101TranslateOnDevice(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101PlayerGestures) {
       Settings.instance().setTgx101PlayerGestures(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101GhostNoRead) {

@@ -1507,6 +1507,7 @@
   <item name="btn_showDiscussButton" type="id"/>
   <item name="btn_showChannelMuteButton" type="id"/>
   <item name="btn_tgx101PlayerGestures" type="id"/>
+  <item name="btn_tgx101TranslateOnDevice" type="id"/>
   <item name="btn_tgx101GhostNoRead" type="id"/>
   <item name="btn_tgx101GhostHideOnline" type="id"/>
   <item name="btn_tgx101GhostNoTyping" type="id"/>

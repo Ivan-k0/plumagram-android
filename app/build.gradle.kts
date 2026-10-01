@@ -1009,6 +1009,11 @@ dependencies {
     libs.google.mlkit.language.id.legacy,
     libs.google.mlkit.language.id.latest
   )
+  // TGx101: on-device translation (the «Google» translator option); language models are downloaded on first use
+  flavorImplementation(
+    libs.google.mlkit.translate.legacy,
+    libs.google.mlkit.translate.latest
+  )
   // Firebase: https://firebase.google.com/support/release-notes/android
   flavorImplementation(
     libs.google.firebase.messaging.legacy,
