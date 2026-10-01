@@ -82,10 +82,9 @@ public class ReplyBarView extends FrameLayoutFix implements View.OnClickListener
   ImageView editMediaView;
   LinkPreviewToggleView linkPreviewToggleView;
 
+  private static final float TGX101_CLOSE_WIDTH = 48f;
+
   public void checkRtl () {
-    if (Views.setGravity(closeView, Lang.gravity())) {
-      Views.updateLayoutParams(closeView);
-    }
     if (Views.setGravity(closeView, Lang.reverseGravity())) {
       Views.updateLayoutParams(closeView);
     }
@@ -101,7 +100,7 @@ public class ReplyBarView extends FrameLayoutFix implements View.OnClickListener
     FrameLayoutFix.LayoutParams params;
 
     pinnedMessagesBar = new PinnedMessagesBar(getContext(), false);
-    pinnedMessagesBar.setPadding(Screen.dp(49.5f), 0, 0, 0);
+    pinnedMessagesBar.setPadding(0, 0, Screen.dp(TGX101_CLOSE_WIDTH), 0); // TGx101: ✕ on the right, like the pinned message bar
     pinnedMessagesBar.setCollapseButtonVisible(false);
     pinnedMessagesBar.setIgnoreAlbums(true);
     pinnedMessagesBar.setMessageListener(new PinnedMessagesBar.MessageListener() {
@@ -145,13 +144,14 @@ public class ReplyBarView extends FrameLayoutFix implements View.OnClickListener
     addView(pinnedMessagesBar);
 
     params = FrameLayoutFix.newParams(Screen.dp(56f), ViewGroup.LayoutParams.MATCH_PARENT);
-    params.gravity = Lang.gravity();
+    params.gravity = Lang.reverseGravity();
     closeView = newButton(R.id.btn_close, R.drawable.baseline_close_24, themeProvider);
     closeView.setLayoutParams(params);
     addView(closeView);
 
     params = FrameLayoutFix.newParams(Screen.dp(56f), ViewGroup.LayoutParams.MATCH_PARENT);
     params.gravity = Lang.reverseGravity();
+    params.rightMargin = Screen.dp(TGX101_CLOSE_WIDTH);
     replaceMediaView = newButton(R.id.btn_replace, R.drawable.dot_baseline_image_replace_24, themeProvider);
     replaceMediaView.setLayoutParams(params);
     replaceMediaView.setVisibility(View.GONE);
@@ -159,7 +159,7 @@ public class ReplyBarView extends FrameLayoutFix implements View.OnClickListener
 
     params = FrameLayoutFix.newParams(Screen.dp(56f), ViewGroup.LayoutParams.MATCH_PARENT);
     params.gravity = Lang.reverseGravity();
-    params.rightMargin = Screen.dp(46);
+    params.rightMargin = Screen.dp(46 + TGX101_CLOSE_WIDTH);
     editMediaView = newButton(R.id.btn_edit, R.drawable.baseline_brush_24, themeProvider);
     editMediaView.setLayoutParams(params);
     editMediaView.setVisibility(View.GONE);
@@ -167,6 +167,7 @@ public class ReplyBarView extends FrameLayoutFix implements View.OnClickListener
 
     params = FrameLayoutFix.newParams(Screen.dp(56f), ViewGroup.LayoutParams.MATCH_PARENT);
     params.gravity = Lang.reverseGravity();
+    params.rightMargin = Screen.dp(TGX101_CLOSE_WIDTH);
     linkPreviewToggleView = new LinkPreviewToggleView(getContext());
     linkPreviewToggleView.setLayoutParams(params);
     linkPreviewToggleView.setVisibility(View.GONE);
@@ -367,6 +368,6 @@ public class ReplyBarView extends FrameLayoutFix implements View.OnClickListener
     final int buttonsCount = (Views.isValid(linkPreviewToggleView) ? 1 : 0)
       + (Views.isValid(editMediaView) ? 1 : 0)
       + (Views.isValid(replaceMediaView) ? 1 : 0);
-    pinnedMessagesBar.setPadding(Screen.dp(49.5f), 0, buttonsCount > 0 ? Screen.dp(buttonsCount * 48f + 1.5f) : 0, 0);
+    pinnedMessagesBar.setPadding(0, 0, Screen.dp(TGX101_CLOSE_WIDTH + (buttonsCount > 0 ? buttonsCount * 48f + 1.5f : 0)), 0);
   }
 }
