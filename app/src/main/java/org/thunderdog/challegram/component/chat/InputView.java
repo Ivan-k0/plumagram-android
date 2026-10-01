@@ -870,6 +870,34 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   }
 
   private int tgx101LastSelStart = -1, tgx101LastSelEnd = -1;
+  private long tgx101LastIgnoredTap;
+  private boolean tgx101IgnoringGesture;
+
+  /** Returns true when the event is swallowed by the safety tap */
+  private boolean tgx101SafetyTap (MotionEvent e) {
+    // TGx101 safety tap: with text selected (new editing system), the first touch in the field outside the selection is
+    // ignored — an accidental tap no longer drops the selection; a second one within 2 s works as usual
+    int action = e.getActionMasked();
+    if (action == MotionEvent.ACTION_DOWN) {
+      tgx101IgnoringGesture = false;
+      if (hasSelection() && org.thunderdog.challegram.unsorted.Settings.instance().useTgx101TextEditor() && getLayout() != null) {
+        int offset = getOffsetForPosition(e.getX(), e.getY());
+        int start = Math.min(getSelectionStart(), getSelectionEnd()), end = Math.max(getSelectionStart(), getSelectionEnd());
+        boolean outside = offset < start || offset > end;
+        long now = android.os.SystemClock.uptimeMillis();
+        if (outside && now - tgx101LastIgnoredTap > 2000) {
+          tgx101LastIgnoredTap = now;
+          tgx101IgnoringGesture = true;
+          org.thunderdog.challegram.Tgx101Diag.mark("input: first touch outside the selection ignored");
+          return true;
+        }
+      }
+    } else if (tgx101IgnoringGesture) {
+      if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) tgx101IgnoringGesture = false;
+      return true;
+    }
+    return false;
+  }
 
   @Override
   protected void onSelectionChanged (int selStart, int selEnd) {
@@ -1773,6 +1801,9 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
 
   @Override
   public boolean onTouchEvent (MotionEvent event) {
+    if (tgx101SafetyTap(event)) {
+      return true;
+    }
     try {
       return super.onTouchEvent(event);
     } catch (Throwable t) {

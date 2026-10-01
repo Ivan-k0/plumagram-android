@@ -292,19 +292,23 @@ public final class Tgx101MessageTextSelection {
         text.getViewTreeObserver().removeOnGlobalLayoutListener(this);
         final float lx = Math.max(1f, Math.min(text.getWidth() - 1f, x));
         final float ly = Math.max(1f, Math.min(text.getHeight() - 1f, y));
-        // a touch at the word (the editor remembers where), then the editor's own "long click": selects the word under
-        // the finger with handles and the action bar
-        long now = SystemClock.uptimeMillis();
-        MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, lx, ly, 0);
-        text.dispatchTouchEvent(down);
-        down.recycle();
-        text.setTag("allowLongClick");
-        boolean handled = text.performLongClick();
-        text.setTag(null);
-        MotionEvent up = MotionEvent.obtain(now, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, lx, ly, 0);
-        text.dispatchTouchEvent(up);
-        up.recycle();
-        org.thunderdog.challegram.Tgx101Diag.mark("select: word selection started=" + text.hasSelection() + " handled=" + handled);
+        // the layer takes focus first (without it Android selects the word but shows no handles), then, a frame later,
+        // a touch at the word and the editor's own "long click": the word under the finger with handles and the bar
+        text.setFocusableInTouchMode(true);
+        text.requestFocus();
+        text.postOnAnimation(() -> {
+          long now = SystemClock.uptimeMillis();
+          MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, lx, ly, 0);
+          text.dispatchTouchEvent(down);
+          down.recycle();
+          text.setTag("allowLongClick");
+          boolean handled = text.performLongClick();
+          text.setTag(null);
+          MotionEvent up = MotionEvent.obtain(now, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, lx, ly, 0);
+          text.dispatchTouchEvent(up);
+          up.recycle();
+          org.thunderdog.challegram.Tgx101Diag.mark("select: word selection started=" + text.hasSelection() + " handled=" + handled + " focused=" + text.isFocused());
+        });
       }
     });
     return true;
