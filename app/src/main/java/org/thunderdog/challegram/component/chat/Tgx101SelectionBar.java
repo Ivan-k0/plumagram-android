@@ -14,10 +14,14 @@ package org.thunderdog.challegram.component.chat;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.ColorStateList;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
-import android.content.res.ColorStateList;
+import android.text.Layout;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -25,11 +29,14 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
+
+import androidx.annotation.Nullable;
 
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.core.Lang;
@@ -44,52 +51,73 @@ import java.util.List;
 import me.vkryl.core.ColorUtils;
 
 /**
- * TGx101: the text selection bar of the message input (mockup B3) — a fixed-width card instead of the system
- * floating toolbar whose width jumped with its ◀ ▶ pages. The top row scrolls sideways: Cut, Copy, Paste,
- * Select all, then every item the system or other apps added (Translate, Web search, Share…); the bottom row
- * holds the formatting icons in the user's order. The system items stay in the action mode's menu (hidden) and
- * are invoked from there, so they keep working exactly as in the system toolbar.
+ * TGx101: the text selection bar (mockups B3 / bubble 2) — a compact card in the editor window's colours that
+ * sits right above the start of the selection and follows the top handle, with a tail pointing at it. Used by
+ * the message input (with the formatting row) and by the in-message text selection (actions only).
+ * The top row scrolls sideways: the leading actions, Cut / Copy / Paste / Select all, then every item the
+ * system or other apps added (Translate, Web search, Share…). Those stay in the action mode's menu, hidden,
+ * and are invoked from there, so they work exactly as in the system toolbar.
  */
-final class Tgx101SelectionBar {
-  private final InputView input;
+public final class Tgx101SelectionBar {
+  public static final class Action {
+    final String title;
+    final Runnable onClick;
+
+    public Action (String title, Runnable onClick) {
+      this.title = title;
+      this.onClick = onClick;
+    }
+  }
+
+  private final TextView view;
+  private final boolean withFormatting;
+  private final List<Action> leadingActions;
   private PopupWindow window;
   private Menu menu;
+  private FrameLayout content;
+  private LinearLayout card;
+  private TailView tail;
 
-  Tgx101SelectionBar (InputView input) {
-    this.input = input;
+  public Tgx101SelectionBar (TextView view, boolean withFormatting, @Nullable List<Action> leadingActions) {
+    this.view = view;
+    this.withFormatting = withFormatting;
+    this.leadingActions = leadingActions != null ? leadingActions : new ArrayList<>();
   }
 
   private static boolean isStandard (int id) {
     return id == android.R.id.cut || id == android.R.id.copy || id == android.R.id.paste || id == android.R.id.selectAll;
   }
 
-  /** Called from onPrepareActionMode: hides the system toolbar's items and shows / refreshes the bar */
-  void update (Menu menu) {
+  private static boolean isFormat (int id) {
+    for (int formatId : Tgx101FormatMenuController.IDS) {
+      if (formatId == id) return true;
+    }
+    return false;
+  }
+
+  /** From onPrepareActionMode: hides the system toolbar's items and shows / refreshes the bar */
+  public void update (Menu menu) {
     this.menu = menu;
     List<MenuItem> standard = new ArrayList<>();
     List<MenuItem> others = new ArrayList<>();
     for (int i = 0; i < menu.size(); i++) {
       MenuItem item = menu.getItem(i);
       int id = item.getItemId();
-      boolean format = false;
-      for (int formatId : Tgx101FormatMenuController.IDS) {
-        if (formatId == id) { format = true; break; }
-      }
-      if (!format && !TextUtils.isEmpty(item.getTitle()) && (item.isVisible() || item.isEnabled())) {
+      if (!isFormat(id) && !TextUtils.isEmpty(item.getTitle())) {
         if (isStandard(id)) standard.add(item); else others.add(item);
       }
       item.setVisible(false); // the system toolbar shows nothing
     }
-    // Cut, Copy, Paste, Select all in this order
     List<MenuItem> top = new ArrayList<>();
     for (int id : new int[] {android.R.id.cut, android.R.id.copy, android.R.id.paste, android.R.id.selectAll}) {
       for (MenuItem item : standard) if (item.getItemId() == id) top.add(item);
     }
     top.addAll(others);
-    show(build(top));
+    build(top);
+    reposition();
   }
 
-  void dismiss () {
+  public void dismiss () {
     if (window != null) {
       try { window.dismiss(); } catch (Throwable ignored) { }
       window = null;
@@ -97,108 +125,166 @@ final class Tgx101SelectionBar {
     menu = null;
   }
 
-  private View build (List<MenuItem> topItems) {
-    Context context = input.getContext();
-    LinearLayout card = new LinearLayout(context);
-    card.setOrientation(LinearLayout.VERTICAL);
-    int pad = Screen.dp(6f);
-    card.setPadding(pad, pad, pad, pad);
-    card.setBackground(rounded(Theme.fillingColor(), 18f));
-    card.setElevation(Screen.dp(8f));
+  public boolean isShowing () {
+    return window != null && window.isShowing();
+  }
 
-    // top row: scrolls sideways
+  // Colours: the editor window's panel and its white buttons
+
+  private static int panelColor () {
+    return ColorUtils.compositeColor(Theme.fillingColor(), ColorUtils.alphaColor(.07f, Theme.textAccentColor()));
+  }
+
+  private void build (List<MenuItem> systemItems) {
+    Context context = view.getContext();
+    int panel = panelColor();
+    card = new LinearLayout(context);
+    card.setOrientation(LinearLayout.VERTICAL);
+    int pad = Screen.dp(5f);
+    card.setPadding(pad, pad, pad, pad);
+    card.setBackground(rounded(panel, 14f));
+    card.setElevation(Screen.dp(6f));
+
     HorizontalScrollView scroll = new HorizontalScrollView(context);
     scroll.setHorizontalScrollBarEnabled(false);
     scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
-    scroll.setFadingEdgeLength(Screen.dp(24f));
+    scroll.setFadingEdgeLength(Screen.dp(22f));
     scroll.setHorizontalFadingEdgeEnabled(true);
     LinearLayout row = new LinearLayout(context);
     row.setOrientation(LinearLayout.HORIZONTAL);
-    for (MenuItem item : topItems) {
-      TextView button = new TextView(context);
+    for (Action action : leadingActions) {
+      row.addView(chip(context, action.title, v -> action.onClick.run()), chipParams());
+    }
+    for (MenuItem item : systemItems) {
       CharSequence title = item.getItemId() == android.R.id.selectAll ? Lang.getString(R.string.Tgx101SelectAllFull) : item.getTitle();
-      button.setText(title != null ? title.toString() : "");
-      button.setSingleLine(true);
-      button.setGravity(Gravity.CENTER);
-      button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13f);
-      button.setTypeface(Fonts.getRobotoMedium());
-      button.setTextColor(Theme.textAccentColor());
-      button.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
-      button.setBackground(pressable(ColorUtils.alphaColor(.06f, Theme.textAccentColor()), 10f));
-      button.setOnClickListener(v -> invoke(item));
-      LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(34f));
-      params.rightMargin = Screen.dp(4f);
-      row.addView(button, params);
+      row.addView(chip(context, title != null ? title.toString() : "", v -> invoke(item)), chipParams());
     }
     scroll.addView(row);
-    card.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(34f)));
+    card.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(30f)));
 
-    // bottom row: formatting icons in the user's order
-    LinearLayout icons = new LinearLayout(context);
-    icons.setOrientation(LinearLayout.HORIZONTAL);
-    for (int entry : Tgx101FormatMenuController.getOrder()) {
-      if (entry <= 0) continue;
-      final int id = entry;
-      ImageView icon = new ImageView(context);
-      icon.setImageResource(Tgx101FormatMenuController.iconOf(id));
-      icon.setColorFilter(Theme.textAccentColor());
-      icon.setScaleType(ImageView.ScaleType.CENTER);
-      icon.setBackground(pressable(0, 10f));
-      icon.setContentDescription(Lang.getString(Tgx101FormatMenuController.nameOf(id)));
-      icon.setOnClickListener(v -> {
-        if (id == R.id.btn_link || id == R.id.btn_plain) {
-          input.setSpan(id);
-        } else {
-          input.tgx101ToggleSpan(id);
-        }
-      });
-      icons.addView(icon, new LinearLayout.LayoutParams(0, Screen.dp(38f), 1f));
+    if (withFormatting && view instanceof InputView) {
+      InputView input = (InputView) view;
+      LinearLayout icons = new LinearLayout(context);
+      icons.setOrientation(LinearLayout.HORIZONTAL);
+      for (int entry : Tgx101FormatMenuController.getOrder()) {
+        if (entry <= 0) continue;
+        final int id = entry;
+        ImageView icon = new ImageView(context);
+        icon.setImageResource(Tgx101FormatMenuController.iconOf(id));
+        icon.setColorFilter(Theme.textAccentColor());
+        icon.setScaleType(ImageView.ScaleType.CENTER);
+        icon.setBackground(pressable(0, 9f));
+        icon.setContentDescription(Lang.getString(Tgx101FormatMenuController.nameOf(id)));
+        icon.setOnClickListener(v -> {
+          if (id == R.id.btn_link || id == R.id.btn_plain) {
+            input.setSpan(id);
+          } else {
+            input.tgx101ToggleSpan(id);
+          }
+        });
+        icons.addView(icon, new LinearLayout.LayoutParams(0, Screen.dp(30f), 1f));
+      }
+      LinearLayout.LayoutParams iconsParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(30f));
+      iconsParams.topMargin = Screen.dp(3f);
+      card.addView(icons, iconsParams);
     }
-    LinearLayout.LayoutParams iconsParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(38f));
-    iconsParams.topMargin = Screen.dp(4f);
-    card.addView(icons, iconsParams);
-    return card;
+
+    content = new FrameLayout(context);
+    content.setClipChildren(false);
+    content.setClipToPadding(false);
+    FrameLayout.LayoutParams cardParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    content.addView(card, cardParams);
+    tail = new TailView(context, panel);
+    content.addView(tail, new FrameLayout.LayoutParams(Screen.dp(16f), Screen.dp(8f)));
+  }
+
+  private static TextView chip (Context context, String title, View.OnClickListener onClick) {
+    TextView button = new TextView(context);
+    button.setText(title);
+    button.setSingleLine(true);
+    button.setGravity(Gravity.CENTER);
+    button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+    button.setTypeface(Fonts.getRobotoRegular());
+    button.setTextColor(Theme.textAccentColor());
+    button.setPadding(Screen.dp(11f), 0, Screen.dp(11f), 0);
+    button.setBackground(pressable(Theme.fillingColor(), 9f));
+    button.setOnClickListener(onClick);
+    return button;
+  }
+
+  private static LinearLayout.LayoutParams chipParams () {
+    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(30f));
+    params.rightMargin = Screen.dp(4f);
+    return params;
   }
 
   private void invoke (MenuItem item) {
     Menu menu = this.menu;
     int id = item.getItemId();
     if (isStandard(id)) {
-      input.onTextContextMenuItem(id);
+      view.onTextContextMenuItem(id);
       return;
     }
     Intent intent = item.getIntent();
     if (intent != null && Intent.ACTION_PROCESS_TEXT.equals(intent.getAction())) {
-      int start = input.getSelectionStart(), end = input.getSelectionEnd();
-      if (start >= 0 && end > start) {
+      int start = view.getSelectionStart(), end = view.getSelectionEnd();
+      if (start >= 0 && end != start) {
         Intent copy = new Intent(intent);
-        copy.putExtra(Intent.EXTRA_PROCESS_TEXT, input.getText().subSequence(Math.min(start, end), Math.max(start, end)).toString());
-        copy.putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, false);
-        try { input.getContext().startActivity(copy); } catch (Throwable ignored) { }
+        copy.putExtra(Intent.EXTRA_PROCESS_TEXT, view.getText().subSequence(Math.min(start, end), Math.max(start, end)).toString());
+        copy.putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, !(view instanceof InputView));
+        try { view.getContext().startActivity(copy); } catch (Throwable ignored) { }
       }
       return;
     }
     if (menu != null && id != 0) {
       menu.performIdentifierAction(id, 0);
     } else if (intent != null) {
-      try { input.getContext().startActivity(intent); } catch (Throwable ignored) { }
+      try { view.getContext().startActivity(intent); } catch (Throwable ignored) { }
     }
   }
 
-  private void show (View content) {
-    int width = Math.min(Screen.currentWidth() - Screen.dp(12f), Screen.dp(480f));
-    content.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-    int height = content.getMeasuredHeight();
+  // Position: right above the start of the selection, following the top handle
+
+  public void reposition () {
+    if (content == null) return;
+    Layout layout = view.getLayout();
+    int start = Math.min(view.getSelectionStart(), view.getSelectionEnd());
+    int end = Math.max(view.getSelectionStart(), view.getSelectionEnd());
+    if (layout == null || start < 0) return;
     int[] location = new int[2];
-    input.getLocationOnScreen(location);
-    int x = (Screen.currentWidth() - width) / 2;
-    int y = location[1] - height - Screen.dp(6f);
-    if (y < Screen.getStatusBarHeight()) {
-      y = location[1] + input.getHeight() + Screen.dp(6f);
+    view.getLocationOnScreen(location);
+    int originX = location[0] + view.getTotalPaddingLeft() - view.getScrollX();
+    int originY = location[1] + view.getTotalPaddingTop() - view.getScrollY();
+    int startLine = layout.getLineForOffset(start);
+    int anchorX = originX + (int) layout.getPrimaryHorizontal(start);
+    int anchorTop = originY + layout.getLineTop(startLine);
+    int endLine = layout.getLineForOffset(end);
+    int anchorBottom = originY + layout.getLineBottom(endLine);
+
+    int screenWidth = Screen.currentWidth();
+    int width = Math.min(Screen.dp(300f), screenWidth - Screen.dp(24f));
+    content.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+    int cardHeight = card.getMeasuredHeight();
+    int tailHeight = Screen.dp(8f);
+    int height = cardHeight + tailHeight;
+
+    int x = Math.max(Screen.dp(12f), Math.min(screenWidth - width - Screen.dp(12f), anchorX - width / 2));
+    int y = anchorTop - height - Screen.dp(2f);
+    boolean below = y < Screen.getStatusBarHeight() + Screen.dp(4f);
+    if (below) {
+      y = anchorBottom + Screen.dp(26f); // under the bottom handle
     }
+    // the tail points at the start of the selection
+    FrameLayout.LayoutParams cardParams = (FrameLayout.LayoutParams) card.getLayoutParams();
+    cardParams.topMargin = below ? tailHeight : 0;
+    FrameLayout.LayoutParams tailParams = (FrameLayout.LayoutParams) tail.getLayoutParams();
+    tailParams.leftMargin = Math.max(Screen.dp(12f), Math.min(width - Screen.dp(28f), anchorX - x - Screen.dp(8f)));
+    tailParams.topMargin = below ? 0 : cardHeight - Screen.dp(1f);
+    tail.setPointingUp(below);
+
     if (window != null) {
-      window.setContentView(content);
       window.update(x, y, width, height);
+      content.requestLayout();
       return;
     }
     window = new PopupWindow(content, width, height, false);
@@ -207,9 +293,40 @@ final class Tgx101SelectionBar {
     window.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
     window.setClippingEnabled(false);
     try {
-      window.showAtLocation(input, Gravity.TOP | Gravity.LEFT, x, y);
+      window.showAtLocation(view, Gravity.TOP | Gravity.LEFT, x, y);
     } catch (Throwable t) {
       window = null;
+    }
+  }
+
+  private static final class TailView extends View {
+    private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Path path = new Path();
+    private boolean up;
+
+    TailView (Context context, int color) {
+      super(context);
+      paint.setColor(color);
+    }
+
+    void setPointingUp (boolean up) {
+      if (this.up != up) {
+        this.up = up;
+        invalidate();
+      }
+    }
+
+    @Override
+    protected void onDraw (Canvas c) {
+      float w = getWidth(), h = getHeight();
+      path.reset();
+      if (up) {
+        path.moveTo(0, h); path.lineTo(w / 2f, 0); path.lineTo(w, h);
+      } else {
+        path.moveTo(0, 0); path.lineTo(w / 2f, h); path.lineTo(w, 0);
+      }
+      path.close();
+      c.drawPath(path, paint);
     }
   }
 
