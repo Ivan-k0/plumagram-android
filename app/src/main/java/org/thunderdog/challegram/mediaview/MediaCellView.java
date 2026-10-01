@@ -1437,6 +1437,7 @@ public class MediaCellView extends ViewGroup implements
     }
     if (isQuickRepeat && zone == 0) {
       // double tap in the middle: play / pause
+      org.thunderdog.challegram.Tgx101Diag.mark("player: double tap centre → " + (playerView.isPlaying() ? "pause" : "play"));
       inVideoSeekSeries = false;
       lastVideoTapZone = Integer.MIN_VALUE;
       playerView.playPause();
@@ -1445,11 +1446,13 @@ public class MediaCellView extends ViewGroup implements
     if (isQuickRepeat && !gestures) {
       inVideoSeekSeries = true;
       long position = Math.max(0, Math.min(timeTotal, timeNow + zone * org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerSeekStep() * 1000L));
+      org.thunderdog.challegram.Tgx101Diag.mark("player: double tap " + (zone < 0 ? "left" : "right") + " seek " + timeNow / 1000 + " → " + position / 1000 + " s");
       timeNow = position;
       playerView.setSeekProgress((float) ((double) position / (double) timeTotal));
       return true;
     }
     inVideoSeekSeries = false;
+    org.thunderdog.challegram.Tgx101Diag.mark("player: tap " + (zone < 0 ? "left" : zone > 0 ? "right" : "centre") + (gestures && zone != 0 ? " → controls" : " (waits for a second tap)"));
     if (gestures && zone != 0) {
       // nothing else to wait for on the sides: the controls show / hide right away
       lastVideoTapZone = Integer.MIN_VALUE;

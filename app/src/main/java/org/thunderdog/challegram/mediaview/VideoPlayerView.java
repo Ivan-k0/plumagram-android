@@ -259,6 +259,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     } else {
       long resumePosition = org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerResume() ? Tgx101VideoResume.get(mediaItem) : 0;
       if (resumePosition > 0) {
+        org.thunderdog.challegram.Tgx101Diag.mark("player: resumed at " + resumePosition / 1000 + " s");
         player.seekTo(resumePosition);
       }
     }
@@ -409,6 +410,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
   public void onVideoSizeChanged (@NonNull VideoSize videoSize) {
     if (player == null || currentItem == null || videoSize.width == 0 || videoSize.height == 0)
       return;
+    org.thunderdog.challegram.Tgx101Diag.mark("player: video " + videoSize.width + "x" + videoSize.height + (videoSize.unappliedRotationDegrees != 0 ? " rot " + videoSize.unappliedRotationDegrees : "") + ", " + Math.max(0, player.getDuration()) / 1000 + " s");
     if (enableCropping) {
       croppedLayout.setSourceDimensions(videoSize.width, videoSize.height, videoSize.unappliedRotationDegrees);
     }
@@ -466,6 +468,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
 
   @Override
   public void onPlaybackStateChanged (@Player.State int playbackState) {
+    org.thunderdog.challegram.Tgx101Diag.mark("player: state " + (playbackState == Player.STATE_IDLE ? "idle" : playbackState == Player.STATE_BUFFERING ? "buffering" : playbackState == Player.STATE_READY ? "ready" : playbackState == Player.STATE_ENDED ? "ended" : Integer.toString(playbackState)) + (player != null ? " at " + player.getCurrentPosition() / 1000 + "/" + Math.max(0, player.getDuration()) / 1000 + " s" : ""));
     if (callback != null) {
       if (playbackState == Player.STATE_READY) {
         callback.onPlayReady();
@@ -487,6 +490,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
 
   @Override
   public void onPlayerError (@NonNull PlaybackException error) {
+    org.thunderdog.challegram.Tgx101Diag.mark("player: error " + error.getErrorCodeName() + " (" + error.errorCode + ")" + (error.getCause() != null ? " cause " + error.getCause().getClass().getSimpleName() : "") + ", extensions " + preferExtensions);
     if (U.isRenderError(error) && preferExtensions == Config.PREFER_RENDER_EXTENSIONS) {
       Log.w(Log.TAG_VIDEO, "Unable to play video, but trying to retry, preferExtensions:%b", error, preferExtensions);
       preferExtensions = !preferExtensions;
@@ -612,6 +616,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
 
   /** TGx101: playback speed (1 = normal); the long-press 2× and the player settings */
   public void setPlaybackSpeed (float speed) {
+    org.thunderdog.challegram.Tgx101Diag.mark("player: speed " + speed + "×");
     if (player != null) {
       player.setPlaybackSpeed(speed);
     }

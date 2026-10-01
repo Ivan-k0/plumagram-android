@@ -833,6 +833,7 @@ public class MediaView extends FrameLayoutFix {
   private final Runnable gLongPress = () -> {
     if (gState == G_PENDING && baseCell.tgx101CanGesture() && gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_SPEED)) {
       gState = G_SPEED;
+      org.thunderdog.challegram.Tgx101Diag.mark("player: hold → 2×");
       gSavedSpeed = baseCell.tgx101GetSpeed();
       baseCell.tgx101SetSpeed(2f);
       cancelChildren();
@@ -923,6 +924,7 @@ public class MediaView extends FrameLayoutFix {
           boolean horizontal = Math.abs(dx) > Math.abs(dy), left = gDownX < getMeasuredWidth() / 2f;
           if (horizontal ? !gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_SEEK) : !gestureOn(left ? org.thunderdog.challegram.unsorted.Settings.GESTURE_BRIGHTNESS : org.thunderdog.challegram.unsorted.Settings.GESTURE_VOLUME)) {
             gState = G_NONE; // this gesture is off: the swipe works as usual
+            org.thunderdog.challegram.Tgx101Diag.mark("player: swipe " + (horizontal ? "sideways" : left ? "left vertical" : "right vertical") + " — gesture off, passed on");
             return false;
           }
           if (horizontal) {
@@ -937,6 +939,7 @@ public class MediaView extends FrameLayoutFix {
             gStartValue = audio != null ? audio.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) : 0;
           }
           cancelChildren();
+          org.thunderdog.challegram.Tgx101Diag.mark("player: gesture " + (gState == G_SEEK ? "seek from " + gStartTime / 1000 + " s" : gState == G_BRIGHTNESS ? "brightness from " + Math.round(gStartValue * 100) + "%" : "volume from " + Math.round(gStartValue)));
         }
         updateGesture(dx, dy, false);
         return true;
@@ -948,10 +951,13 @@ public class MediaView extends FrameLayoutFix {
         gState = G_NONE;
         if (state == G_PENDING || state == G_NONE) return false;
         if (state == G_SEEK && e.getActionMasked() == MotionEvent.ACTION_UP) {
+          gState = G_SEEK;
           updateGesture(e.getX() - gDownX, e.getY() - gDownY, true);
+          gState = G_NONE;
         } else if (state == G_SPEED) {
           baseCell.tgx101SetSpeed(gSavedSpeed);
         }
+        org.thunderdog.challegram.Tgx101Diag.mark("player: gesture end " + (state == G_SEEK ? "seek → " + gHudValue : state == G_SPEED ? "2× released, back to " + gSavedSpeed + "×" : (state == G_BRIGHTNESS ? "brightness " : "volume ") + gHudValue) + (e.getActionMasked() == MotionEvent.ACTION_CANCEL ? " (cancelled)" : ""));
         postDelayed(gHideHud, 600);
         return true;
       }

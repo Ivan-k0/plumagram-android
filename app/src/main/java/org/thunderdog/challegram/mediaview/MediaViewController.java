@@ -3205,6 +3205,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   @Override
   public boolean performOnBackPressed (boolean fromTop, boolean commit) {
     if (tgx101Locked()) {
+      org.thunderdog.challegram.Tgx101Diag.mark("player: Back blocked by the lock");
       return true; // TGx101: the child lock — Back doesn't close the video either
     }
     if (inSlideMode || (slideAnimator != null && slideAnimator.isAnimating())) {
@@ -3395,6 +3396,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   @Override
   public boolean onDisplayError (@NonNull PlaybackException error, @Nullable MediaItem item) {
+    org.thunderdog.challegram.Tgx101Diag.mark("player: error shown " + error.getErrorCodeName() + (item != null && item.isGifType() ? " (gif)" : ""));
     boolean isGif = item != null && item.isGifType();
     String info = Lang.getString(U.isUnsupportedFormat(error) ? (isGif ? R.string.GifPlaybackUnsupported : R.string.VideoPlaybackUnsupported) : (isGif ? R.string.GifPlaybackError : R.string.VideoPlaybackError));
     showOptions(info, new int[]{R.id.btn_view, R.id.btn_cancel}, new String[]{Lang.getString(R.string.ViewVideoError), Lang.getString(R.string.Cancel)}, new int[] {OptionColor.RED, OptionColor.NORMAL}, new int[] {R.drawable.baseline_bug_report_24, R.drawable.baseline_cancel_24}, (itemView, id) -> {
@@ -3453,6 +3455,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
     showOptions(Lang.getString(R.string.Tgx101PlayerSpeed), ids, names, null, null, (itemView, id) -> {
       float speed = TGX101_SPEEDS[id - 1];
+      org.thunderdog.challegram.Tgx101Diag.mark("player settings: speed " + speed + "×");
       Settings.instance().setTgx101PlayerSpeed(speed);
       mediaView.tgx101SetSpeed(speed);
       if (videoSliderView != null) videoSliderView.setTgx101Speed(speed);
@@ -3484,6 +3487,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
         @Override
         public void onTap () {
+          org.thunderdog.challegram.Tgx101Diag.mark("player: tap while locked → controls");
           toggleHeaderVisibility();
         }
       });
@@ -3512,6 +3516,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
     showOptions(Lang.getString(R.string.Tgx101PlayerSleep), ids, names, null, null, (itemView, id) -> {
       int value = minutes[id - 1];
+      org.thunderdog.challegram.Tgx101Diag.mark("player settings: sleep timer " + value + " min");
       contentView.removeCallbacks(tgx101SleepAction);
       if (value == 0) {
         tgx101SleepAt = 0;
@@ -3537,12 +3542,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       new int[] {R.drawable.baseline_swap_horiz_24, R.drawable.baseline_brightness_5_24, R.drawable.baseline_volume_up_24, R.drawable.baseline_fast_forward_24},
       (itemView, id) -> {
         settings.setTgx101PlayerGesture(id, !settings.tgx101PlayerGesture(id));
+        org.thunderdog.challegram.Tgx101Diag.mark("player settings: gesture " + id + " " + (settings.tgx101PlayerGesture(id) ? "on" : "off"));
         tgx101ChooseGestures(); // reopen with the new values
         return true;
       }, getForcedTheme());
   }
 
   private void tgx101ShowPlayerSettings () {
+    org.thunderdog.challegram.Tgx101Diag.mark("player: settings opened");
     Settings settings = Settings.instance();
     float speed = settings.tgx101PlayerSpeed();
     String speedText = (speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed)) + "×";
@@ -3568,14 +3575,17 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         case 3: {
           int step = settings.tgx101PlayerSeekStep();
           settings.setTgx101PlayerSeekStep(step >= 15 ? 5 : step + 5);
+          org.thunderdog.challegram.Tgx101Diag.mark("player settings: seek step " + settings.tgx101PlayerSeekStep() + " s");
           break;
         }
         case 4:
           settings.setTgx101PlayerLoop(!settings.tgx101PlayerLoop());
+          org.thunderdog.challegram.Tgx101Diag.mark("player settings: repeat " + settings.tgx101PlayerLoop());
           mediaView.tgx101ApplyLooping();
           break;
         case 5:
           settings.setTgx101PlayerResume(!settings.tgx101PlayerResume());
+          org.thunderdog.challegram.Tgx101Diag.mark("player settings: resume " + settings.tgx101PlayerResume());
           break;
         case 6:
           tgx101ChooseSleepTimer();
@@ -3591,6 +3601,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     if (stack.getCurrent() != item) {
       return;
     }
+    org.thunderdog.challegram.Tgx101Diag.mark("player: " + (isPlaying ? "playing" : "paused"));
     if (isPlaying && mode == MODE_MESSAGES) {
       mediaView.tgx101SetSpeed(Settings.instance().tgx101PlayerSpeed()); // TGx101: the remembered speed
     }
