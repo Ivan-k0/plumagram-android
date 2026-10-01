@@ -2319,6 +2319,23 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     return messageCaption != null;
   }
 
+  /**
+   * TGx101: something was shared into the app while a chat with the keyboard was open. Coming back, Android puts the
+   * keyboard back on the chat's input a moment later and it covered the chat picker (only the keyboard was seen):
+   * the input loses focus first, so there is nothing to bring the keyboard back for.
+   */
+  private void tgx101ShowOverKeyboard (ShareController c) {
+    View focus = context.getCurrentFocus();
+    if (focus instanceof android.widget.EditText) {
+      org.thunderdog.challegram.Tgx101Diag.mark("share picker: chat input unfocused, keyboard " + (context.isKeyboardVisible() ? "visible" : "not yet visible"));
+      focus.clearFocus();
+      org.thunderdog.challegram.tool.Keyboard.hide(focus);
+      UI.post(c::show, 250);
+    } else {
+      c.show();
+    }
+  }
+
   /** TGx101: the local path of a shared video (it may be wrapped into a conversion), null if it isn't one */
   private static @Nullable String tgx101SharedVideoPath (TdApi.InputMessageContent content) {
     if (!(content instanceof TdApi.InputMessageVideo)) return null;
@@ -2368,14 +2385,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         // the chat opens 250 ms after the picker closes — then the preview goes over it
         UI.post(() -> tgx101OpenSharedVideoPreview(tdlib, picked.get(0), path, video), 600);
       })));
-      View focus = context.getCurrentFocus();
-      if (context.isKeyboardVisible() && focus != null) {
-        focus.clearFocus();
-        org.thunderdog.challegram.tool.Keyboard.hide(focus);
-        UI.post(c::show, 250);
-      } else {
-        c.show();
-      }
+      tgx101ShowOverKeyboard(c);
     })));
     return true;
   }
@@ -2500,15 +2510,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       c.setArguments(new ShareController.Args(shareDelegate).setNeedOpenChat(true));
       // TGx101: shared into the app while a chat with the keyboard was open — the keyboard came back over the chat
       // picker and only the keyboard was visible: hide it first, show the picker once it is down
-      View focus = context.getCurrentFocus();
-      if (context.isKeyboardVisible() && focus != null) {
-        org.thunderdog.challegram.Tgx101Diag.mark("share picker: keyboard hidden first");
-        focus.clearFocus();
-        org.thunderdog.challegram.tool.Keyboard.hide(focus);
-        UI.post(c::show, 250);
-      } else {
-        c.show();
-      }
+      tgx101ShowOverKeyboard(c);
     })));
   }
 
