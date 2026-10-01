@@ -1496,6 +1496,10 @@ public class MediaCellView extends ViewGroup implements
     if (playerView != null) playerView.setPlaybackSpeed(speed);
   }
 
+  public void tgx101PlayPause () {
+    if (isSeekableVideo()) playerView.playPause();
+  }
+
   public void tgx101ApplyLooping () {
     if (playerView != null) playerView.tgx101ApplyLooping();
   }

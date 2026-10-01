@@ -975,6 +975,22 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     if (this.tgx101ImmersiveLock != lock) {
       this.tgx101ImmersiveLock = lock;
       setWindowDecorSystemUiVisibility(computeUiVisibility(), true);
+      View decor = getWindow().getDecorView();
+      Tgx101Diag.mark("player lock: system bars " + (lock ? "hidden (sticky)" : "back") + ", ui flags 0x" + Integer.toHexString(decor.getSystemUiVisibility()) + ", gesture nav " + tgx101GestureNav());
+      if (lock) {
+        decor.setOnSystemUiVisibilityChangeListener(visibility -> Tgx101Diag.mark("player lock: system bars changed, ui flags 0x" + Integer.toHexString(visibility) + (this.tgx101ImmersiveLock ? " (locked)" : "")));
+      } else {
+        decor.setOnSystemUiVisibilityChangeListener(null);
+      }
+    }
+  }
+
+  private String tgx101GestureNav () {
+    try {
+      int mode = android.provider.Settings.Secure.getInt(getContentResolver(), "navigation_mode", -1);
+      return mode == 2 ? "gestures" : mode == 0 ? "3 buttons" : mode == 1 ? "2 buttons" : Integer.toString(mode);
+    } catch (Throwable t) {
+      return "?";
     }
   }
 

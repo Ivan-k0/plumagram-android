@@ -864,6 +864,10 @@ public class MediaView extends FrameLayoutFix {
     return media != null && media.isVideo() && !media.isGifType();
   }
 
+  public void tgx101PlayPause () {
+    if (baseCell != null) baseCell.tgx101PlayPause();
+  }
+
   public void tgx101ApplyLooping () {
     if (baseCell != null) baseCell.tgx101ApplyLooping();
   }

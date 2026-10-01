@@ -439,12 +439,21 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
     if (lockView == null) return;
     lockView.setLocked(locked, animated);
     float alpha = locked ? .35f : 1f;
-    for (View view : new View[] {speedView, settingsView, playPauseButton, prevView, nextView}) {
+    for (View view : new View[] {speedView, settingsView, prevView, nextView}) { // pause keeps working under the lock
       view.setEnabled(!locked);
       view.setClickable(!locked);
       view.animate().alpha(alpha).setDuration(150).start();
     }
     sliderView.setEnabled(!locked);
+  }
+
+  /** The pause button's centre on the screen (it works under the lock); false while hidden */
+  public boolean tgx101GetPauseCenter (int[] out) {
+    if (getAlpha() < .5f || playPauseButton.getTranslationX() < -Screen.dp(20f)) return false;
+    playPauseButton.getLocationOnScreen(out);
+    out[0] += playPauseButton.getWidth() / 2;
+    out[1] += playPauseButton.getHeight() / 2;
+    return true;
   }
 
   /** The lock button's centre on the screen (for the lock layer, which takes every touch); false while hidden */

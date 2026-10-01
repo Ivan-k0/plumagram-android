@@ -3489,6 +3489,16 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         }
 
         @Override
+        public boolean getPauseCenter (int[] outRawXY) {
+          return videoSliderView != null && headerVisible.getValue() && videoSliderView.tgx101GetPauseCenter(outRawXY);
+        }
+
+        @Override
+        public void onPlayPause () {
+          mediaView.tgx101PlayPause();
+        }
+
+        @Override
         public void onUnlock () {
           tgx101SetLocked(false);
         }

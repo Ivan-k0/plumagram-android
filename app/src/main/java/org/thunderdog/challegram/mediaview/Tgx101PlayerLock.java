@@ -35,8 +35,10 @@ final class Tgx101PlayerLock extends View {
   interface Delegate {
     /** The lock button's centre on the screen, or false when the controls are hidden */
     boolean getLockCenter (int[] outRawXY);
+    boolean getPauseCenter (int[] outRawXY);
     void onUnlock ();
     void onTap ();
+    void onPlayPause ();
   }
 
   private static final long HOLD_MS = 2000;
@@ -46,6 +48,13 @@ final class Tgx101PlayerLock extends View {
   private final RectF ring = new RectF();
   private final int[] center = new int[2], location = new int[2];
   private float downX, downY;
+  private long lastTapAt;
+  private float lastTapX;
+  private final Runnable pendingTap = this::tapNow;
+
+  private void tapNow () {
+    delegate.onTap();
+  }
   private boolean moved, holding;
   private long holdStart;
 
@@ -103,12 +112,43 @@ final class Tgx101PlayerLock extends View {
         } else if (moved) {
           Tgx101Diag.mark("player: swipe blocked by the lock");
         } else if (e.getActionMasked() == MotionEvent.ACTION_UP) {
-          delegate.onTap();
+          onTapUp(e.getRawX(), e.getRawY());
         }
         break;
       }
     }
     return true;
+  }
+
+  /** Under the lock: the pause button and a double tap in the middle still play / pause; any other tap shows the controls */
+  private void onTapUp (float rawX, float rawY) {
+    int[] pause = new int[2];
+    if (delegate.getPauseCenter(pause) && Math.hypot(rawX - pause[0], rawY - pause[1]) < Screen.dp(28f)) {
+      Tgx101Diag.mark("player: pause button under the lock");
+      delegate.onPlayPause();
+      delegate.onTap();
+      return;
+    }
+    long now = SystemClock.uptimeMillis();
+    float width = getMeasuredWidth();
+    getLocationOnScreen(location);
+    float x = rawX - location[0];
+    boolean middle = x > width / 3f && x < width * 2f / 3f;
+    if (middle && now - lastTapAt < 300 && Math.abs(rawX - lastTapX) < Screen.dp(80f)) {
+      removeCallbacks(pendingTap);
+      lastTapAt = 0;
+      Tgx101Diag.mark("player: double tap centre under the lock");
+      delegate.onPlayPause();
+      return;
+    }
+    lastTapAt = now;
+    lastTapX = rawX;
+    removeCallbacks(pendingTap);
+    if (middle) {
+      postDelayed(pendingTap, 300); // may become a double tap
+    } else {
+      delegate.onTap();
+    }
   }
 
   @Override
