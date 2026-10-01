@@ -176,6 +176,8 @@ import me.vkryl.android.animator.FactorAnimator;
 import me.vkryl.android.util.ClickHelper;
 import me.vkryl.android.util.InvalidateContentProvider;
 import me.vkryl.android.widget.FrameLayoutFix;
+import org.thunderdog.challegram.ui.ListItem;
+import org.thunderdog.challegram.navigation.SettingsWrapBuilder;
 import me.vkryl.core.ArrayUtils;
 import me.vkryl.core.BitwiseUtils;
 import me.vkryl.core.ColorUtils;
@@ -3580,29 +3582,27 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }, getForcedTheme());
   }
 
-  /** Each player gesture on / off: seek, brightness, volume swipes and hold for 2× */
+  /** Each player gesture on / off in one window with check boxes (no menu reopening on every tap); saved by «Done» */
   private void tgx101ChooseGestures () {
     Settings settings = Settings.instance();
-    String on = Lang.getString(R.string.Tgx101On), off = Lang.getString(R.string.Tgx101Off);
-    int[] gestures = {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED, 100};
-    int[] names = {R.string.Tgx101GestureSeek, R.string.Tgx101GestureBrightness, R.string.Tgx101GestureVolume, R.string.Tgx101GestureSpeed, R.string.Tgx101PlayerGuide};
-    String[] titles = new String[gestures.length];
-    for (int i = 0; i < gestures.length; i++) {
-      titles[i] = Lang.getString(names[i]) + (gestures[i] == 100 ? "" : ": " + (settings.tgx101PlayerGesture(gestures[i]) ? on : off));
+    final int[] ids = {R.id.btn_tgx101GestureSeek, R.id.btn_tgx101GestureBrightness, R.id.btn_tgx101GestureVolume, R.id.btn_tgx101GestureSpeed};
+    final int[] gestures = {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED};
+    final int[] names = {R.string.Tgx101GestureSeek, R.string.Tgx101GestureBrightness, R.string.Tgx101GestureVolume, R.string.Tgx101GestureSpeed};
+    ListItem[] items = new ListItem[ids.length];
+    for (int i = 0; i < ids.length; i++) {
+      items[i] = new ListItem(ListItem.TYPE_CHECKBOX_OPTION, ids[i], 0, names[i], settings.tgx101PlayerGesture(gestures[i]));
     }
-    showOptions(Lang.getString(R.string.Tgx101PlayerGesturesHint), gestures, titles, null,
-      new int[] {R.drawable.baseline_swap_horiz_24, R.drawable.baseline_brightness_5_24, R.drawable.baseline_volume_up_24, R.drawable.baseline_fast_forward_24, R.drawable.baseline_school_24},
-      (itemView, id) -> {
-        if (id == 100) {
-          org.thunderdog.challegram.Tgx101Diag.mark("player: guide opened");
-          tgx101ShowGuide();
-          return true;
+    showSettings(new SettingsWrapBuilder(R.id.btn_tgx101PlayerGestures)
+      .addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.Tgx101PlayerGesturesHint))
+      .setRawItems(items)
+      .setSaveStr(R.string.Done)
+      .setIntDelegate((id, result) -> {
+        for (int i = 0; i < ids.length; i++) {
+          boolean on = result.get(ids[i]) != 0;
+          settings.setTgx101PlayerGesture(gestures[i], on);
         }
-        settings.setTgx101PlayerGesture(id, !settings.tgx101PlayerGesture(id));
-        org.thunderdog.challegram.Tgx101Diag.mark("player settings: gesture " + id + " " + (settings.tgx101PlayerGesture(id) ? "on" : "off"));
-        tgx101ChooseGestures(); // reopen with the new values
-        return true;
-      }, getForcedTheme());
+        org.thunderdog.challegram.Tgx101Diag.mark("player settings: gestures seek " + settings.tgx101PlayerGesture(Settings.GESTURE_SEEK) + " brightness " + settings.tgx101PlayerGesture(Settings.GESTURE_BRIGHTNESS) + " volume " + settings.tgx101PlayerGesture(Settings.GESTURE_VOLUME) + " 2× " + settings.tgx101PlayerGesture(Settings.GESTURE_SPEED));
+      }));
   }
 
   private void tgx101ChooseSeekStep () {
@@ -3641,17 +3641,18 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     float speed = settings.tgx101PlayerSpeed();
     String speedText = (speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed)) + "×";
     String on = Lang.getString(R.string.Tgx101On), off = Lang.getString(R.string.Tgx101Off);
-    int[] ids = {1, 2, 3, 4, 5, 6, 9};
+    int[] ids = {1, 2, 10, 3, 4, 5, 6, 9};
     String[] names = {
       Lang.getString(R.string.Tgx101PlayerSpeed) + ": " + speedText,
       Lang.getString(R.string.Tgx101PlayerGestures) + "…",
+      Lang.getString(R.string.Tgx101PlayerGuide),
       Lang.getString(R.string.Tgx101PlayerSeekStep) + ": " + Lang.getString(R.string.Tgx101Seconds, settings.tgx101PlayerSeekStep()),
       Lang.getString(R.string.Tgx101PlayerLoop) + ": " + (settings.tgx101PlayerLoop() ? on : off),
       Lang.getString(R.string.Tgx101PlayerResume) + ": " + (settings.tgx101PlayerResume() ? on : off),
       Lang.getString(R.string.Tgx101PlayerSleep) + ": " + (tgx101SleepAt > 0 ? Lang.getString(R.string.Tgx101Minutes, (int) Math.max(1, (tgx101SleepAt - android.os.SystemClock.uptimeMillis() + 59999) / 60000)) : off),
       Lang.getString(R.string.Tgx101Orientation) + ": " + Lang.getString(settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_AUTO ? R.string.Tgx101OrientationAutoShort : settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_PORTRAIT ? R.string.Tgx101OrientationPortraitShort : R.string.Tgx101OrientationSystemShort)
     };
-    int[] icons = {R.drawable.baseline_fast_forward_24, R.drawable.baseline_gesture_24, R.drawable.baseline_replay_24, R.drawable.baseline_repeat_24, R.drawable.baseline_history_24, R.drawable.baseline_timer_16, R.drawable.baseline_screen_rotation_24};
+    int[] icons = {R.drawable.baseline_fast_forward_24, R.drawable.baseline_gesture_24, R.drawable.baseline_school_24, R.drawable.baseline_replay_24, R.drawable.baseline_repeat_24, R.drawable.baseline_history_24, R.drawable.baseline_timer_16, R.drawable.baseline_screen_rotation_24};
     showOptions(Lang.getString(R.string.Tgx101PlayerSettings), ids, names, null, icons, (itemView, id) -> {
       switch (id) {
         case 1:
@@ -3677,6 +3678,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           break;
         case 9:
           tgx101ChooseOrientation();
+          break;
+        case 10:
+          org.thunderdog.challegram.Tgx101Diag.mark("player: guide opened");
+          tgx101ShowGuide();
           break;
 
       }

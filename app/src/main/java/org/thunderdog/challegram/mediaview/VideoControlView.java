@@ -323,7 +323,7 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
     addView(settingsView, params);
 
     lockView = new LockIcon(getContext());
-    lockView.setOnClickListener(onLock);
+    lockView.onHeld = () -> onLock.onClick(lockView); // locking takes a 1.5 s hold (a ring fills up), not a tap
     lockView.setContentDescription(org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101PlayerLock));
     params = FrameLayoutFix.newParams(toolWidth, Screen.dp(56f), Gravity.RIGHT | Gravity.BOTTOM);
     params.rightMargin = side + toolWidth;
@@ -456,10 +456,44 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
     return true;
   }
 
-  /** Padlock like the passcode one: the shackle slides aside when it is open */
+  /** Padlock like the passcode one: the shackle slides aside when it is open; held 1.5 s while open it locks */
   private static final class LockIcon extends View implements FactorAnimator.Target {
+    private static final long HOLD_MS = 1500;
     private final android.graphics.drawable.Drawable top, base;
     private final BoolAnimator open = new BoolAnimator(0, this, new android.view.animation.OvershootInterpolator(3f), 160L, true);
+    private final android.graphics.Paint ringPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+    private final android.graphics.RectF ring = new android.graphics.RectF();
+    Runnable onHeld;
+    private boolean holding;
+    private long holdStart;
+
+    @Override
+    public boolean onTouchEvent (MotionEvent e) {
+      if (!open.getValue()) return false; // locked: the lock layer above takes the touches (2 s hold to unlock)
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+          holding = true;
+          holdStart = android.os.SystemClock.uptimeMillis();
+          org.thunderdog.challegram.Tgx101Diag.mark("player: lock button held");
+          invalidate();
+          return true;
+        case MotionEvent.ACTION_MOVE:
+          if (holding && (e.getX() < -Screen.dp(10f) || e.getY() < -Screen.dp(10f) || e.getX() > getWidth() + Screen.dp(10f) || e.getY() > getHeight() + Screen.dp(10f))) {
+            holding = false;
+            invalidate();
+          }
+          return true;
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL:
+          if (holding) {
+            org.thunderdog.challegram.Tgx101Diag.mark("player: lock button released after " + (android.os.SystemClock.uptimeMillis() - holdStart) + " ms — not locked");
+          }
+          holding = false;
+          invalidate();
+          return true;
+      }
+      return true;
+    }
 
     LockIcon (Context context) {
       super(context);
@@ -482,6 +516,22 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
       android.graphics.Paint paint = Paints.getPorterDuffPaint(0xffffffff);
       org.thunderdog.challegram.tool.Drawables.draw(c, top, cx - top.getMinimumWidth() / 2 + (int) (Screen.dp(8f) * open.getFloatValue()), cy - top.getMinimumHeight() / 2, paint);
       org.thunderdog.challegram.tool.Drawables.draw(c, base, cx - base.getMinimumWidth() / 2, cy - base.getMinimumHeight() / 2, paint);
+      if (holding) {
+        float progress = Math.min(1f, (android.os.SystemClock.uptimeMillis() - holdStart) / (float) HOLD_MS);
+        ringPaint.setStyle(android.graphics.Paint.Style.STROKE);
+        ringPaint.setStrokeWidth(Screen.dp(3f));
+        ringPaint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+        ringPaint.setColor(0xff5b87b0);
+        float r = Screen.dp(17f);
+        ring.set(cx - r, cy - r, cx + r, cy + r);
+        c.drawArc(ring, -90, 360 * progress, false, ringPaint);
+        if (progress >= 1f) {
+          holding = false;
+          if (onHeld != null) post(onHeld);
+          return;
+        }
+        postInvalidateOnAnimation();
+      }
     }
   }
 
