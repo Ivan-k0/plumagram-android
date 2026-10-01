@@ -703,6 +703,21 @@ public class U {
     }
   }
 
+  /** TGx101: a video renderer that survives a missing output MediaFormat (sizes are taken from the track format) */
+  private static final class Tgx101SafeVideoRenderer extends androidx.media3.exoplayer.video.MediaCodecVideoRenderer {
+    Tgx101SafeVideoRenderer (Context context, androidx.media3.exoplayer.mediacodec.MediaCodecSelector selector, long allowedJoiningTimeMs, android.os.Handler handler, androidx.media3.exoplayer.video.VideoRendererEventListener listener, int maxDroppedFramesToNotify) {
+      super(context, selector, allowedJoiningTimeMs, handler, listener, maxDroppedFramesToNotify);
+    }
+
+    @Override
+    protected void onOutputFormatChanged (androidx.media3.common.Format format, @Nullable android.media.MediaFormat mediaFormat) {
+      if (mediaFormat == null && format.sampleMimeType != null && format.width > 0 && format.height > 0) {
+        mediaFormat = android.media.MediaFormat.createVideoFormat(format.sampleMimeType, format.width, format.height);
+      }
+      super.onOutputFormatChanged(format, mediaFormat);
+    }
+  }
+
   public static ExoPlayer newExoPlayer (Context context, boolean preferExtensions) {
     // new AdaptiveVideoTrackSelection.Factory(new DefaultBandwidthMeter())
     // DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
@@ -710,7 +725,20 @@ public class U {
     final int extensionMode = preferExtensions || org.thunderdog.challegram.unsorted.Settings.instance().getNewSetting(org.thunderdog.challegram.unsorted.Settings.SETTING_FLAG_FORCE_EXO_PLAYER_EXTENSIONS) ?
       DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER :
       DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON;
-    final RenderersFactory renderersFactory = new DefaultRenderersFactory(context).setExtensionRendererMode(extensionMode);
+    final RenderersFactory renderersFactory = new DefaultRenderersFactory(context) {
+      @Override
+      protected void buildVideoRenderers (Context context, int extensionRendererMode, androidx.media3.exoplayer.mediacodec.MediaCodecSelector mediaCodecSelector, boolean enableDecoderFallback, android.os.Handler eventHandler, androidx.media3.exoplayer.video.VideoRendererEventListener eventListener, long allowedVideoJoiningTimeMs, java.util.ArrayList<androidx.media3.exoplayer.Renderer> out) {
+        super.buildVideoRenderers(context, extensionRendererMode, mediaCodecSelector, enableDecoderFallback, eventHandler, eventListener, allowedVideoJoiningTimeMs, out);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+          // TGx101: old MediaTek decoders (Android 6) report a format change without a MediaFormat → crash on video
+          for (int i = 0; i < out.size(); i++) {
+            if (out.get(i).getClass() == androidx.media3.exoplayer.video.MediaCodecVideoRenderer.class) {
+              out.set(i, new Tgx101SafeVideoRenderer(context, mediaCodecSelector, allowedVideoJoiningTimeMs, eventHandler, eventListener, 50));
+            }
+          }
+        }
+      }
+    }.setExtensionRendererMode(extensionMode);
     final MediaSource.Factory mediaSourceFactory = new DefaultMediaSourceFactory(context, new DefaultExtractorsFactory().setConstantBitrateSeekingEnabled(true));
     final AnalyticsCollector analyticsCollector;
     if (Log.getLogLevel() > Log.LEVEL_ASSERT) {
