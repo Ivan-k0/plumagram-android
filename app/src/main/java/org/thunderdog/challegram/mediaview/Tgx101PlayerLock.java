@@ -43,6 +43,8 @@ final class Tgx101PlayerLock extends View {
   static View create (Context context, Delegate delegate) {
     Tgx101PlayerLock view = new Tgx101PlayerLock(context, delegate);
     view.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    // above everything in the viewer: the video and the bars are raised 1–3 dp, and touches go to the highest view
+    view.setTranslationZ(Screen.dp(24f));
     return view;
   }
 
@@ -58,6 +60,9 @@ final class Tgx101PlayerLock extends View {
         if (Math.hypot(e.getRawX() - downX, e.getRawY() - downY) > Screen.getTouchSlop()) moved = true;
         break;
       case MotionEvent.ACTION_UP:
+        if (moved) {
+          org.thunderdog.challegram.Tgx101Diag.mark("player: swipe blocked by the lock");
+        }
         if (!moved) {
           if (delegate.isOnLock(e.getRawX(), e.getRawY())) {
             delegate.onUnlock();
