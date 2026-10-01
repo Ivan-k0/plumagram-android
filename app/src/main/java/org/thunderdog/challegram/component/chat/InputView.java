@@ -281,17 +281,19 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
           return true;
         }
         inflater.inflate(R.menu.text, menu);
-        // TGx101: the official order — after Paste / Select all: Bold, Italic, Mono, Strike, Underline, Link, Quote, Spoiler, Plain
+        // TGx101: after Paste / Select all — the formatting in the user's order (Settings → Data → «Меню форматирования»), hidden items removed
         try {
-          final int[] officialOrder = {R.id.btn_bold, R.id.btn_italic, R.id.btn_monospace, R.id.btn_strikethrough, R.id.btn_underline, R.id.btn_link, R.id.btn_quote, R.id.btn_spoiler, R.id.btn_plain};
           int order = 9;
-          for (int id : officialOrder) {
+          for (int entry : org.thunderdog.challegram.ui.Tgx101FormatMenuController.getOrder()) {
+            int id = Math.abs(entry);
             MenuItem item = menu.findItem(id);
             if (item == null) continue;
             CharSequence title = item.getTitle();
             android.graphics.drawable.Drawable icon = item.getIcon();
             menu.removeItem(id);
-            menu.add(Menu.NONE, id, order++, title).setIcon(icon).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+            if (entry > 0) {
+              menu.add(Menu.NONE, id, order++, title).setIcon(icon).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+            }
           }
         } catch (Throwable ignored) { }
         try {
@@ -319,7 +321,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
               overrideResId = R.string.TextFormatStrikethrough;
               type = new TdApi.TextEntityTypeStrikethrough();
             } else if (itemId == R.id.btn_monospace) {
-              overrideResId = R.string.TextFormatMonospace;
+              overrideResId = R.string.Tgx101FormatMonoShort; // TGx101: «Моноширинный» didn't fit the selection bar
               type = new TdApi.TextEntityTypeCode();
             } else if (itemId == R.id.btn_link) {
               overrideResId = R.string.TextFormatLink;

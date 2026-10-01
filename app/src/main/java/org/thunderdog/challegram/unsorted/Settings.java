@@ -3116,6 +3116,38 @@ public class Settings {
   private static final String KEY_TGX101_MESSAGE_MENU = "tgx101_message_menu";
   private static final String KEY_TGX101_MESSAGE_MENU_LEFT = "tgx101_message_menu_left";
   private static final String KEY_TGX101_MESSAGE_MENU_ORDER = "tgx101_message_menu_order";
+  private static final String KEY_TGX101_FORMAT_MENU = "tgx101_format_menu";
+
+  /** TGx101: formatting items of the text selection menu in the user's order; hidden ones are negative ids */
+  public @androidx.annotation.Nullable int[] getTgx101FormatMenu () {
+    String saved = pmc.getString(KEY_TGX101_FORMAT_MENU, null);
+    if (saved == null || saved.isEmpty()) return null;
+    android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
+    java.util.ArrayList<Integer> ids = new java.util.ArrayList<>();
+    for (String name : saved.split(",")) {
+      boolean hidden = name.startsWith("-");
+      int id = res.getIdentifier(hidden ? name.substring(1) : name, "id", org.thunderdog.challegram.tool.UI.getAppContext().getPackageName());
+      if (id != 0) ids.add(hidden ? -id : id);
+    }
+    int[] result = new int[ids.size()];
+    for (int i = 0; i < result.length; i++) result[i] = ids.get(i);
+    return result;
+  }
+
+  public void setTgx101FormatMenu (@androidx.annotation.Nullable int[] ids) {
+    if (ids == null) {
+      pmc.remove(KEY_TGX101_FORMAT_MENU);
+      return;
+    }
+    android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
+    StringBuilder b = new StringBuilder();
+    for (int id : ids) {
+      if (b.length() > 0) b.append(',');
+      if (id < 0) b.append('-');
+      b.append(res.getResourceEntryName(Math.abs(id)));
+    }
+    pmc.putString(KEY_TGX101_FORMAT_MENU, b.toString());
+  }
 
   public boolean useTgx101MessageMenu () {
     return pmc.getBoolean(KEY_TGX101_MESSAGE_MENU, true);

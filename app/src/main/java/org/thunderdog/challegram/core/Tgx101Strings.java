@@ -127,6 +127,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101RawPreviewOpening, "Открываю RAW-фото…");
     RU.put(R.string.Tgx101CallBarSetting, "Плашка текущего звонка над чатами");
     RU.put(R.string.Tgx101EditorMenu, "Редактор");
+    RU.put(R.string.Tgx101FormatMenu, "Меню форматирования");
+    RU.put(R.string.Tgx101FormatMenuHint, "Пункты оформления, которые видны при выделении текста в поле ввода — после «Копировать», «Вставить», «Выбрать всё». Нажмите на пункт, чтобы переместить или скрыть его.");
+    RU.put(R.string.Tgx101FormatHidden, "скрыт");
+    RU.put(R.string.Tgx101FormatShow, "Показать");
+    RU.put(R.string.Tgx101FormatHide, "Скрыть");
+    RU.put(R.string.Tgx101FormatMonoShort, "Моно");
     RU.put(R.string.Tgx101Font, "Шрифт");
     RU.put(R.string.Tgx101FontSystem, "Системный (как в настройках телефона)");
     RU.put(R.string.Tgx101FontRoboto, "Roboto (как в Telegram X)");

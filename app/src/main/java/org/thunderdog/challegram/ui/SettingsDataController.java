@@ -354,6 +354,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MessageMenuOrder, 0, R.string.Tgx101MessageMenuOrder),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101FormatMenu, 0, R.string.Tgx101FormatMenu),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101TapMode, 0, R.string.Tgx101TapMode),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101TapModeHint),
@@ -772,6 +774,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101MessageMenuHandRight, 0, R.string.Tgx101MessageMenuHandRight, id, !left),
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101MessageMenuHandLeft, 0, R.string.Tgx101MessageMenuHandLeft, id, left)
       }).setIntDelegate(this));
+    } else if (id == R.id.btn_tgx101FormatMenu) {
+      navigateTo(new Tgx101FormatMenuController(context, tdlib));
     } else if (id == R.id.btn_tgx101MessageMenuOrder) {
       navigateTo(new Tgx101MenuOrderController(context, tdlib));
     } else if (id == R.id.btn_tgx101ChatListTextSize) {

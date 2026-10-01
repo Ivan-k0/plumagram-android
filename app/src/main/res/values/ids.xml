@@ -1074,6 +1074,9 @@
   <item type="id" name="btn_revokeMessages" />
   <item type="id" name="btn_moreActions" />
   <item type="id" name="controller_tgx101MenuOrder" />
+  <item type="id" name="controller_tgx101FormatMenu" />
+  <item type="id" name="btn_tgx101FormatMenu" />
+  <item type="id" name="btn_tgx101FormatToggle" />
   <item type="id" name="btn_tgx101MessageMenu" />
   <item type="id" name="btn_tgx101MessageMenuHand" />
   <item type="id" name="btn_tgx101MessageMenuHandLeft" />
