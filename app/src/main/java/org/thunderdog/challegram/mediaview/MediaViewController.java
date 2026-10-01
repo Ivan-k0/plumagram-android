@@ -3554,16 +3554,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
    * edge only shows them, the second one goes home.
    */
   private void tgx101SetSystemBarsLocked (boolean locked) {
-    android.view.Window window = context.getWindow();
-    androidx.core.view.WindowInsetsControllerCompat controller = androidx.core.view.WindowCompat.getInsetsController(window, window.getDecorView());
-    if (locked) {
-      controller.setSystemBarsBehavior(androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-      controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars());
-    } else {
-      controller.show(androidx.core.view.WindowInsetsCompat.Type.systemBars());
-      controller.setSystemBarsBehavior(androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_DEFAULT);
-    }
+    context.setTgx101ImmersiveLock(locked);
   }
+
 
   private void tgx101UpdateNav () {
     if (videoSliderView != null && mediaView != null && mode == MODE_MESSAGES) {

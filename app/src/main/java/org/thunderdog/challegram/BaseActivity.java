@@ -965,7 +965,23 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   private boolean isFullscreen, cutoutIgnored;
 
+  private boolean tgx101ImmersiveLock;
+
+  /**
+   * TGx101: the video player's child lock — the system bars stay hidden in the sticky mode whatever the viewer's
+   * controls do, so the first swipe from an edge only shows them and «home» takes a second one.
+   */
+  public void setTgx101ImmersiveLock (boolean lock) {
+    if (this.tgx101ImmersiveLock != lock) {
+      this.tgx101ImmersiveLock = lock;
+      setWindowDecorSystemUiVisibility(computeUiVisibility(), true);
+    }
+  }
+
   private int computeUiVisibility () {
+    if (tgx101ImmersiveLock && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+      return View.SYSTEM_UI_FLAG_LOW_PROFILE | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+    }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && isFullscreen) {
       int uiVisibility = View.SYSTEM_UI_FLAG_LOW_PROFILE;
       if (hideNavigation) {
