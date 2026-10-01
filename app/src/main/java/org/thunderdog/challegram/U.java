@@ -1267,6 +1267,7 @@ public class U {
   @androidx.annotation.RequiresApi(Build.VERSION_CODES.P)
   private static void tgx101OpenRawPreview (TdlibDelegate context, File file) {
     UI.showToast(R.string.Tgx101RawPreviewOpening, Toast.LENGTH_SHORT);
+    Log.i("TGx101: RAW preview for %s", file.getName());
     Background.instance().post(() -> {
       File preview = null;
       try {

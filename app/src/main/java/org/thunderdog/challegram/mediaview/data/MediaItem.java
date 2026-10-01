@@ -258,6 +258,10 @@ public class MediaItem implements MessageSourceProvider, InvalidateContentProvid
       // Unsupported image types
       return false;
     }
+    if ("image/x-adobe-dng".equals(mimeType) || "image/dng".equals(mimeType) || mimeType.startsWith("image/x-") && mimeType.endsWith("-raw")) {
+      // TGx101: RAW photos — the viewer shows them black; they open as a decoded JPEG preview in the gallery instead
+      return false;
+    }
     return TGMimeType.isImageMimeType(mimeType) || mimeType.startsWith("image/");
   }
 
