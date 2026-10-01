@@ -114,6 +114,15 @@ public final class Tgx101MessageMenu {
     return out;
   }
 
+  /** Hidden in Settings → MagiX → message menu (Pin hides Unpin too) */
+  public static boolean isHidden (int id) {
+    int key = orderKey(id);
+    for (int hidden : Settings.instance().getTgx101MessageMenuHidden()) {
+      if (hidden == key) return true;
+    }
+    return false;
+  }
+
   private static int rank (int[] order, int id) {
     int key = orderKey(id);
     for (int i = 0; i < order.length; i++) {
@@ -336,7 +345,7 @@ public final class Tgx101MessageMenu {
         if (item == null || item.id == 0) continue;
         if (item.id == R.id.btn_messageDelete) {
           deleteItem = item;
-        } else {
+        } else if (!isHidden(item.id)) { // TGx101: actions the user hid in «Message menu»
           items.add(item);
         }
       }

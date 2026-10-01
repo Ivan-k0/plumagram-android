@@ -154,8 +154,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MessageMenuHand, "Меню под руку");
     RU.put(R.string.Tgx101MessageMenuHandRight, "Правую");
     RU.put(R.string.Tgx101MessageMenuHandLeft, "Левую");
-    RU.put(R.string.Tgx101MessageMenuOrder, "Порядок пунктов");
-    RU.put(R.string.Tgx101MessageMenuOrderHint, "Нажмите на пункт, чтобы передвинуть его. Пункты, которых нет у сообщения, пропускаются. «Удалить» всегда внизу.");
+    RU.put(R.string.Tgx101MessageMenuOrder, "Пункты меню сообщения");
+    RU.put(R.string.Tgx101MessageMenuOrderHint, "Нажмите на пункт, чтобы передвинуть или скрыть его. Пункты, которых нет у сообщения, пропускаются. «Удалить» и остальные пункты не меняются: «Удалить» всегда внизу.");
     RU.put(R.string.Tgx101MessageMenuOrderReset, "Вернуть порядок по умолчанию");
     RU.put(R.string.Tgx101MoveToTop, "В самый верх");
     RU.put(R.string.Tgx101MoveUp, "Выше");

@@ -49,7 +49,10 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
       @Override
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
         if (item.getId() == R.id.btn_tgx101MenuAction) {
-          view.setData(Integer.toString((int) item.getLongId() + 1));
+          int position = (int) item.getLongId();
+          int[] order = Tgx101MessageMenu.getOrder();
+          boolean hidden = position < order.length && Tgx101MessageMenu.isHidden(order[position]);
+          view.setData(hidden ? Lang.getString(R.string.Tgx101FormatHidden) : Integer.toString(position + 1));
         }
       }
     };
@@ -93,6 +96,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     int id = v.getId();
     if (id == R.id.btn_tgx101MenuOrderReset) {
       Settings.instance().setTgx101MessageMenuOrder(null);
+      Settings.instance().setTgx101MessageMenuHidden(null);
       rebuild();
       return;
     }
@@ -102,12 +106,25 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     ListItem item = (ListItem) v.getTag();
     final int position = (int) item.getLongId();
     final int[] order = Tgx101MessageMenu.getOrder();
+    final boolean hidden = Tgx101MessageMenu.isHidden(order[position]);
     showOptions(item.getString(),
-      new int[] {R.id.btn_moveToTop, R.id.btn_moveUp, R.id.btn_moveDown, R.id.btn_moveToBottom},
-      new String[] {Lang.getString(R.string.Tgx101MoveToTop), Lang.getString(R.string.Tgx101MoveUp), Lang.getString(R.string.Tgx101MoveDown), Lang.getString(R.string.Tgx101MoveToBottom)},
+      new int[] {R.id.btn_tgx101FormatToggle, R.id.btn_moveToTop, R.id.btn_moveUp, R.id.btn_moveDown, R.id.btn_moveToBottom},
+      new String[] {Lang.getString(hidden ? R.string.Tgx101FormatShow : R.string.Tgx101FormatHide), Lang.getString(R.string.Tgx101MoveToTop), Lang.getString(R.string.Tgx101MoveUp), Lang.getString(R.string.Tgx101MoveDown), Lang.getString(R.string.Tgx101MoveToBottom)},
       null,
-      new int[] {R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_downward_24, R.drawable.baseline_arrow_downward_24},
+      new int[] {hidden ? R.drawable.baseline_visibility_24 : R.drawable.baseline_eye_off_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_downward_24, R.drawable.baseline_arrow_downward_24},
       (itemView, optionId) -> {
+        if (optionId == R.id.btn_tgx101FormatToggle) {
+          // hide / show this action in the message menu
+          ArrayList<Integer> hiddenIds = new ArrayList<>();
+          for (int x : Settings.instance().getTgx101MessageMenuHidden()) hiddenIds.add(x);
+          Integer key = order[position];
+          if (hidden) hiddenIds.remove(key); else hiddenIds.add(key);
+          int[] result = new int[hiddenIds.size()];
+          for (int i = 0; i < result.length; i++) result[i] = hiddenIds.get(i);
+          Settings.instance().setTgx101MessageMenuHidden(result);
+          rebuild();
+          return true;
+        }
         int target;
         if (optionId == R.id.btn_moveToTop) {
           target = 0;

@@ -6035,8 +6035,8 @@
   <string name="Tgx101MessageMenuHand">Menu for</string>
   <string name="Tgx101MessageMenuHandRight">Right hand</string>
   <string name="Tgx101MessageMenuHandLeft">Left hand</string>
-  <string name="Tgx101MessageMenuOrder">Order of actions</string>
-  <string name="Tgx101MessageMenuOrderHint">Tap an action to move it. Actions a message does not have are skipped. Delete is always at the bottom.</string>
+  <string name="Tgx101MessageMenuOrder">Message menu actions</string>
+  <string name="Tgx101MessageMenuOrderHint">Tap an action to move or hide it. Actions a message does not have are skipped. Delete and the other actions stay as they are: Delete is always at the bottom.</string>
   <string name="Tgx101MessageMenuOrderReset">Reset order</string>
   <string name="Tgx101MoveToTop">Move to top</string>
   <string name="Tgx101MoveUp">Move up</string>
