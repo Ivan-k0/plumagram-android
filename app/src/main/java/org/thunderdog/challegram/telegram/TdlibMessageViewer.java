@@ -765,6 +765,14 @@ public class TdlibMessageViewer {
     }
 
     private void viewMessagesImpl (long chatId, long[] messageIds, TdApi.MessageSource messageSource, boolean forceRead, @Nullable RunnableBool after) {
+      if (messageIds.length > 0 && org.thunderdog.challegram.unsorted.Settings.instance().tgx101GhostNoRead()) {
+        // TGx101: ghost mode — opened messages are not reported as read (they stay unread here too);
+        // «Mark as read» and the notification's «Read» still work
+        if (after != null) {
+          after.runWithBool(true);
+        }
+        return;
+      }
       if (messageIds.length > 0) {
         context.tdlib.send(new TdApi.ViewMessages(chatId, messageIds, messageSource, forceRead), (ok, error) -> {
           if (after != null) {

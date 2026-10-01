@@ -281,7 +281,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       this.client = Client.create(this, this, this);
       tdlib.updateParameters(client);
       if (Config.NEED_ONLINE) {
-        if (tdlib.isOnline) {
+        if (tdlib.isOnline && !org.thunderdog.challegram.unsorted.Settings.instance().tgx101GhostHideOnline()) {
           client.send(new TdApi.SetOption("online", new TdApi.OptionValueBoolean(true)), tdlib.okHandler());
         }
       }
@@ -6609,9 +6609,18 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       this.isOnline = isOnline;
       Log.i("SetOnline accountId:%d -> %b", accountId, isOnline);
       if (Config.NEED_ONLINE) {
-        performOptional(client -> client.send(new TdApi.SetOption("online", new TdApi.OptionValueBoolean(isOnline)), okHandler()), null);
+        final boolean effective = isOnline && !org.thunderdog.challegram.unsorted.Settings.instance().tgx101GhostHideOnline(); // TGx101: ghost mode
+        performOptional(client -> client.send(new TdApi.SetOption("online", new TdApi.OptionValueBoolean(effective)), okHandler()), null);
       }
       // cache().setPauseStatusRefreshers(!isOnline);
+    }
+  }
+
+  /** TGx101: the ghost mode's «hide online» switch changed — tell the server right away */
+  public void tgx101ApplyOnline () {
+    if (Config.NEED_ONLINE) {
+      final boolean effective = isOnline && !org.thunderdog.challegram.unsorted.Settings.instance().tgx101GhostHideOnline();
+      performOptional(client -> client.send(new TdApi.SetOption("online", new TdApi.OptionValueBoolean(effective)), okHandler()), null);
     }
   }
 

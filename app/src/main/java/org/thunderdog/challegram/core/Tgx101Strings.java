@@ -285,6 +285,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101QuickReplyN, "Ответ %1$d");
     RU.put(R.string.Tgx101CallPatternHint, "Круг — чёткое фото под именем. На весь экран — прежний дизайн Telegram X. Узор из бумажных самолётиков еле заметный и неподвижный; за фото на весь экран его не видно.");
     RU.put(R.string.ShowChannelMuteButton, "Кнопка уведомлений и колокольчик");
+    RU.put(R.string.Tgx101GhostSection, "Режим призрака");
+    RU.put(R.string.Tgx101GhostNoRead, "Не отмечать сообщения прочитанными");
+    RU.put(R.string.Tgx101GhostHideOnline, "Скрывать «в сети»");
+    RU.put(R.string.Tgx101GhostNoTyping, "Не показывать «печатает…»");
+    RU.put(R.string.Tgx101GhostHint, "Собеседники не видят, что вы прочитали их сообщения, в сети или печатаете. Непрочитанные чаты остаются непрочитанными и у вас — «Прочитать» в меню чата и «Прочитано» в уведомлении работают. Отправка сообщения в чат отмечает его прочитанным, как в любом Telegram.");
     RU.put(R.string.ShowCommentsButton, "Кнопка комментариев под постами");
     RU.put(R.string.HideSubscribeLink, "Скрывать «Подписаться» под постами");
     RU.put(R.string.SeparateChannelPosts, "Отступ и линия между постами");
