@@ -630,7 +630,9 @@ public class TGMessageText extends TGMessage {
   /** TGx101: where the text is drawn inside the message view — {x, y, width}; null with a link preview above the text or a translation */
   public @androidx.annotation.Nullable int[] tgx101TextFrame () {
     if (linkPreview != null && linkPreviewAboveText.getFloatValue() != 0f) return null;
-    return new int[] {getContentX(), getContentY() + getTextTopOffset(), Math.round(visibleText.getMetadata().getTotalWidth())};
+    // {x, y, width, height, line height} — the overlay matches the line height so it covers the bubble's text exactly
+    return new int[] {getContentX(), getContentY() + getTextTopOffset(), Math.round(visibleText.getMetadata().getTotalWidth()),
+      wrapper != null ? wrapper.getHeight() : 0, wrapper != null ? wrapper.getLineHeight() : 0};
   }
 
   @Override

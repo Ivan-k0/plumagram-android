@@ -110,6 +110,12 @@ public final class Tgx101MessageTextSelection {
     text.setTextColor(msg.getTextColor());
     text.setHighlightColor(msg.getTextLinkHighlightColor());
     text.setIncludeFontPadding(false);
+    if (frame[4] > 0 && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+      text.setLineHeight(frame[4]); // same line spacing as the bubble, so the lines sit over the original ones
+    }
+    if (frame[3] > 0) {
+      text.setMinHeight(frame[3]); // never shorter than the original text — nothing of it shows below
+    }
     text.setPadding(0, 0, 0, 0);
     text.setBackgroundColor(Theme.getColor(msg.useBubbles() ? (msg.isOutgoingBubble() ? ColorId.bubbleOut_background : ColorId.bubbleIn_background) : ColorId.chatBackground));
     text.setTextIsSelectable(true);
@@ -176,34 +182,19 @@ public final class Tgx101MessageTextSelection {
         text.getViewTreeObserver().removeOnGlobalLayoutListener(this);
         final float lx = Math.max(1f, Math.min(text.getWidth() - 1f, x));
         final float ly = Math.max(1f, Math.min(text.getHeight() - 1f, y));
+        // a touch at the word (the editor remembers where), then the editor's own "long click": selects the word under
+        // the finger with handles and the action bar
         long now = SystemClock.uptimeMillis();
         MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, lx, ly, 0);
         text.dispatchTouchEvent(down);
         down.recycle();
-        UI.post(() -> {
-          MotionEvent up = MotionEvent.obtain(now, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, lx, ly, 0);
-          text.dispatchTouchEvent(up);
-          up.recycle();
-        }, ViewConfiguration.getLongPressTimeout() + 80);
-        // fallback: no selection after a second → select the word under the finger directly
-        UI.post(() -> {
-          if (popup.isWindowHidden() || text.hasSelection()) return;
-          int offset = text.getOffsetForPosition(lx, ly);
-          CharSequence value = text.getText();
-          java.text.BreakIterator words = java.text.BreakIterator.getWordInstance();
-          words.setText(value.toString());
-          int from = words.preceding(Math.min(value.length(), offset + 1));
-          int to = words.following(Math.max(0, offset));
-          if (from == java.text.BreakIterator.DONE) from = 0;
-          if (to == java.text.BreakIterator.DONE) to = value.length();
-          org.thunderdog.challegram.Tgx101Diag.mark("select: long press didn't start the selection, selecting the word directly");
-          if (value instanceof android.text.Spannable && to > from) {
-            android.text.Selection.setSelection((android.text.Spannable) value, from, to);
-            text.setTag("allowLongClick");
-            text.performLongClick(); // shows the handles and the bar for the current selection
-            text.setTag(null);
-          }
-        }, 1000);
+        text.setTag("allowLongClick");
+        boolean handled = text.performLongClick();
+        text.setTag(null);
+        MotionEvent up = MotionEvent.obtain(now, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, lx, ly, 0);
+        text.dispatchTouchEvent(up);
+        up.recycle();
+        org.thunderdog.challegram.Tgx101Diag.mark("select: word selection started=" + text.hasSelection() + " handled=" + handled);
       }
     });
     return true;
