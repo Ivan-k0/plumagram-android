@@ -3544,6 +3544,27 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_TRANSLATE_ON_DEVICE, value);
   }
 
+  private static final String KEY_TGX101_PLAYER_SWIPE_CLOSE = "tgx101_player_swipe_close";
+  private static final String KEY_TGX101_PLAYER_SWIPE_PAGING = "tgx101_player_swipe_paging";
+
+  /** TGx101 player: a swipe down closes a video */
+  public boolean tgx101PlayerSwipeClose () {
+    return pmc.getBoolean(KEY_TGX101_PLAYER_SWIPE_CLOSE, true);
+  }
+
+  public void setTgx101PlayerSwipeClose (boolean value) {
+    pmc.putBoolean(KEY_TGX101_PLAYER_SWIPE_CLOSE, value);
+  }
+
+  /** TGx101 player: a sideways swipe on a video goes to the next / previous media */
+  public boolean tgx101PlayerSwipePaging () {
+    return pmc.getBoolean(KEY_TGX101_PLAYER_SWIPE_PAGING, true);
+  }
+
+  public void setTgx101PlayerSwipePaging (boolean value) {
+    pmc.putBoolean(KEY_TGX101_PLAYER_SWIPE_PAGING, value);
+  }
+
   private static final String KEY_TGX101_PLAYER_SEEK_STEP = "tgx101_player_seek_step";
   private static final String KEY_TGX101_PLAYER_LOOP = "tgx101_player_loop";
   private static final String KEY_TGX101_PLAYER_RESUME = "tgx101_player_resume";

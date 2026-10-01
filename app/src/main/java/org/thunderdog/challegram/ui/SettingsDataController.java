@@ -392,12 +392,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101TranslateOnDeviceHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
-        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101PlayerSection),
-        new ListItem(ListItem.TYPE_SHADOW_TOP),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101PlayerGestures, 0, R.string.Tgx101PlayerGestures),
-        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101PlayerGesturesHint),
-        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
-
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101GhostSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GhostNoRead, 0, R.string.Tgx101GhostNoRead),

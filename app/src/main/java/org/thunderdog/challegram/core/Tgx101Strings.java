@@ -296,6 +296,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PlayerSettings, "Настройки плеера");
     RU.put(R.string.Tgx101PlayerSeekStep, "Шаг двойного нажатия");
     RU.put(R.string.Tgx101PlayerLoop, "Повтор видео");
+    RU.put(R.string.Tgx101PlayerSwipeClose, "Свайп вниз закрывает");
+    RU.put(R.string.Tgx101PlayerSwipePaging, "Листать свайпом");
     RU.put(R.string.Tgx101PlayerResume, "Продолжать с места остановки");
     RU.put(R.string.Tgx101PlayerSleep, "Таймер сна");
     RU.put(R.string.Tgx101On, "вкл");

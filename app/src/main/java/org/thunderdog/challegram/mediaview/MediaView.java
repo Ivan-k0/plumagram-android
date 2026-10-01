@@ -656,6 +656,9 @@ public class MediaView extends FrameLayoutFix {
         break;
       }
       case MotionEvent.ACTION_MOVE: {
+        if (listenMove && tgx101IsVideo() && !org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerSwipePaging()) {
+          listenMove = false; // TGx101: the player settings turned sideways swipes on videos off
+        }
         if (listenMove && Math.abs(e.getX() - downStartX) > Screen.getTouchSlopBig() && Math.abs(e.getY() - downStartY) < Screen.getTouchSlopBig()) {
           listenMove = false;
           startX = e.getX();
@@ -840,6 +843,12 @@ public class MediaView extends FrameLayoutFix {
 
   public void tgx101SetSpeed (float speed) {
     if (baseCell != null) baseCell.tgx101SetSpeed(speed);
+  }
+
+  /** The current item is a video (not a GIF) */
+  public boolean tgx101IsVideo () {
+    MediaItem media = baseCell != null ? baseCell.getMedia() : null;
+    return media != null && media.isVideo() && !media.isGifType();
   }
 
   public void tgx101ApplyLooping () {

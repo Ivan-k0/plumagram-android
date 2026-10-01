@@ -3528,16 +3528,18 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     float speed = settings.tgx101PlayerSpeed();
     String speedText = (speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed)) + "×";
     String on = Lang.getString(R.string.Tgx101On), off = Lang.getString(R.string.Tgx101Off);
-    int[] ids = {1, 2, 3, 4, 5, 6};
+    int[] ids = {1, 2, 7, 8, 3, 4, 5, 6};
     String[] names = {
       Lang.getString(R.string.Tgx101PlayerSpeed) + ": " + speedText,
       Lang.getString(R.string.Tgx101PlayerGestures) + ": " + (settings.tgx101PlayerGestures() ? on : off),
+      Lang.getString(R.string.Tgx101PlayerSwipeClose) + ": " + (settings.tgx101PlayerSwipeClose() ? on : off),
+      Lang.getString(R.string.Tgx101PlayerSwipePaging) + ": " + (settings.tgx101PlayerSwipePaging() ? on : off),
       Lang.getString(R.string.Tgx101PlayerSeekStep) + ": " + Lang.getString(R.string.Tgx101Seconds, settings.tgx101PlayerSeekStep()),
       Lang.getString(R.string.Tgx101PlayerLoop) + ": " + (settings.tgx101PlayerLoop() ? on : off),
       Lang.getString(R.string.Tgx101PlayerResume) + ": " + (settings.tgx101PlayerResume() ? on : off),
       Lang.getString(R.string.Tgx101PlayerSleep) + ": " + (tgx101SleepAt > 0 ? Lang.getString(R.string.Tgx101Minutes, (int) Math.max(1, (tgx101SleepAt - android.os.SystemClock.uptimeMillis() + 59999) / 60000)) : off)
     };
-    int[] icons = {R.drawable.baseline_fast_forward_24, R.drawable.baseline_gesture_24, R.drawable.baseline_replay_24, R.drawable.baseline_repeat_24, R.drawable.baseline_history_24, R.drawable.baseline_timer_16};
+    int[] icons = {R.drawable.baseline_fast_forward_24, R.drawable.baseline_gesture_24, R.drawable.baseline_arrow_downward_24, R.drawable.baseline_swap_horiz_24, R.drawable.baseline_replay_24, R.drawable.baseline_repeat_24, R.drawable.baseline_history_24, R.drawable.baseline_timer_16};
     showOptions(Lang.getString(R.string.Tgx101PlayerSettings), ids, names, null, icons, (itemView, id) -> {
       switch (id) {
         case 1:
@@ -3560,6 +3562,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           break;
         case 6:
           tgx101ChooseSleepTimer();
+          break;
+        case 7:
+          settings.setTgx101PlayerSwipeClose(!settings.tgx101PlayerSwipeClose());
+          break;
+        case 8:
+          settings.setTgx101PlayerSwipePaging(!settings.tgx101PlayerSwipePaging());
           break;
       }
       return true;
@@ -5176,6 +5184,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             }
             // TGx101: with the player gestures on, a vertical swipe on a video is brightness / volume, not closing
             if (mediaView.tgx101GesturesActive()) {
+              listenCloseBySlide = false;
+            }
+            // TGx101: «Swipe down closes» switched off in the player settings
+            if (mediaView.tgx101IsVideo() && !Settings.instance().tgx101PlayerSwipeClose()) {
               listenCloseBySlide = false;
             }
             break;
