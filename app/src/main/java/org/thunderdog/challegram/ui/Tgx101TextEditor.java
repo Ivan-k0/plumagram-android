@@ -110,7 +110,7 @@ public final class Tgx101TextEditor {
     LinearLayout panel = newPanel(context);
     root.addView(panel);
 
-    final AlertDialog[] dialog = new AlertDialog[1];
+    final Card[] dialog = new Card[1];
     LinearLayout grid = new LinearLayout(context);
     grid.setOrientation(LinearLayout.HORIZONTAL);
     Runnable[] showTab = new Runnable[3];
@@ -178,17 +178,11 @@ public final class Tgx101TextEditor {
       }
     });
 
-    AlertDialog.Builder builder = new AlertDialog.Builder(context, Theme.dialogTheme());
-    builder.setView(root);
-    builder.setOnDismissListener(d -> input.performDestroy());
-    dialog[0] = controller.showAlert(builder);
-    if (dialog[0] != null && dialog[0].getWindow() != null) {
-      dialog[0].getWindow().clearFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
-      dialog[0].getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
-    }
-    root.findViewWithTag("close").setOnClickListener(v -> { if (dialog[0] != null) dialog[0].dismiss(); });
+    dialog[0] = showCard(controller, root, input::performDestroy);
+    root.findViewWithTag("close").setOnClickListener(v -> dialog[0].dismiss());
     fitAboveKeyboard(root, input);
     input.requestFocus();
+    org.thunderdog.challegram.tool.Keyboard.show(input);
   }
 
   /** Whether [start, end) is fully covered by spans of this entity type */
@@ -333,7 +327,7 @@ public final class Tgx101TextEditor {
     root.addView(text, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     updateCounter(counter, formattedText.text);
 
-    final AlertDialog[] dialog = new AlertDialog[1];
+    final Card[] dialog = new Card[1];
     LinearLayout panel = newPanel(context);
     root.addView(panel);
     LinearLayout grid = new LinearLayout(context);
@@ -361,13 +355,74 @@ public final class Tgx101TextEditor {
       SelectTextForQuoteDialog.onReplyRequested(controller, tdlib, message, formattedText, start, end);
     });
 
-    AlertDialog.Builder builder = new AlertDialog.Builder(context, Theme.dialogTheme());
-    builder.setView(root);
-    dialog[0] = controller.showAlert(builder);
-    root.findViewWithTag("close").setOnClickListener(v -> { if (dialog[0] != null) dialog[0].dismiss(); });
+    dialog[0] = showCard(controller, root, null);
+    root.findViewWithTag("close").setOnClickListener(v -> dialog[0].dismiss());
   }
 
   // Views
+
+  /**
+   * The window is a layer inside the chat screen (PopupLayout), not a separate dialog window: the keyboard moves
+   * from the chat input to the editor and back without hiding, so the chat doesn't jump.
+   */
+  private static final class Card {
+    private final org.thunderdog.challegram.widget.PopupLayout popup;
+
+    Card (org.thunderdog.challegram.widget.PopupLayout popup) {
+      this.popup = popup;
+    }
+
+    void dismiss () {
+      popup.hideWindow(true);
+    }
+  }
+
+  private static Card showCard (MessagesController controller, LinearLayout card, @androidx.annotation.Nullable Runnable onDismiss) {
+    org.thunderdog.challegram.BaseActivity activity = controller.context();
+    final View previousFocus = activity.getCurrentFocus();
+    final org.thunderdog.challegram.widget.PopupLayout popup = new org.thunderdog.challegram.widget.PopupLayout(activity);
+    final Card result = new Card(popup);
+
+    android.widget.FrameLayout wrap = new android.widget.FrameLayout(activity);
+    wrap.setBackgroundColor(0x80000000);
+    wrap.setOnClickListener(v -> result.dismiss()); // tap outside the card
+    card.setClickable(true);
+    card.setBackground(rounded(Theme.fillingColor(), 20f));
+    card.setClipToOutline(true);
+    card.setElevation(Screen.dp(12f));
+    android.widget.FrameLayout.LayoutParams cardParams = new android.widget.FrameLayout.LayoutParams(Math.min(Screen.currentWidth() - Screen.dp(32f), Screen.dp(440f)), ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+    wrap.addView(card, cardParams);
+    wrap.setLayoutParams(new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+    // keep the card centred in the space above the keyboard
+    final android.graphics.Rect frame = new android.graphics.Rect();
+    final int[] location = new int[2];
+    wrap.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+      if (wrap.getHeight() == 0) return;
+      wrap.getWindowVisibleDisplayFrame(frame);
+      wrap.getLocationOnScreen(location);
+      int bottomInset = Math.max(0, location[1] + wrap.getHeight() - frame.bottom);
+      int topInset = Math.max(0, frame.top - location[1]);
+      if (wrap.getPaddingBottom() != bottomInset || wrap.getPaddingTop() != topInset) {
+        wrap.setPadding(0, topInset, 0, bottomInset);
+      }
+    });
+
+    popup.setDismissListener(p -> {
+      if (onDismiss != null) onDismiss.run();
+      // the keyboard goes back to the chat input if it had it
+      if (previousFocus != null && previousFocus.isAttachedToWindow() && previousFocus instanceof android.widget.EditText) {
+        previousFocus.requestFocus();
+      } else {
+        View focus = activity.getCurrentFocus();
+        if (focus != null) org.thunderdog.challegram.tool.Keyboard.hide(focus);
+      }
+    });
+    wrap.setAlpha(0f);
+    popup.showNonAnimatedView(wrap);
+    wrap.animate().alpha(1f).setDuration(150).start();
+    return result;
+  }
 
   /** With the keyboard open the window must fit above it: the text area shrinks (it scrolls) so the buttons and «Save» stay visible. */
   private static void fitAboveKeyboard (View root, android.widget.TextView text) {
