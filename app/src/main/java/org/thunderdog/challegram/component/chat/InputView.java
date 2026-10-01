@@ -281,6 +281,19 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
           return true;
         }
         inflater.inflate(R.menu.text, menu);
+        // TGx101: the official order — after Paste / Select all: Bold, Italic, Mono, Strike, Underline, Link, Quote, Spoiler, Plain
+        try {
+          final int[] officialOrder = {R.id.btn_bold, R.id.btn_italic, R.id.btn_monospace, R.id.btn_strikethrough, R.id.btn_underline, R.id.btn_link, R.id.btn_quote, R.id.btn_spoiler, R.id.btn_plain};
+          int order = 9;
+          for (int id : officialOrder) {
+            MenuItem item = menu.findItem(id);
+            if (item == null) continue;
+            CharSequence title = item.getTitle();
+            android.graphics.drawable.Drawable icon = item.getIcon();
+            menu.removeItem(id);
+            menu.add(Menu.NONE, id, order++, title).setIcon(icon).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+          }
+        } catch (Throwable ignored) { }
         try {
           for (int i = 0; i < menu.size(); i++) {
             MenuItem item = menu.getItem(i);
