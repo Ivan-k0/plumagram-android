@@ -30,12 +30,10 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
-import org.thunderdog.challegram.BaseActivity;
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.tool.Fonts;
 import org.thunderdog.challegram.tool.Screen;
-import org.thunderdog.challegram.widget.PopupLayout;
 
 /**
  * TGx101: «How to use» for the video player — a drawn phone screen with the gesture zones, arrows and numbers,
@@ -44,14 +42,13 @@ import org.thunderdog.challegram.widget.PopupLayout;
 final class Tgx101PlayerGuide {
   private Tgx101PlayerGuide () { }
 
-  static void show (BaseActivity context) {
-    PopupLayout popup = new PopupLayout(context);
-    popup.setNeedRootInsets();
-
+  /** Shown inside the viewer (a separate window would open under it); returns the layer, removed by its owner */
+  static View show (Context context, Runnable close) {
     FrameLayout wrap = new FrameLayout(context);
     wrap.setBackgroundColor(0x99000000);
     wrap.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-    wrap.setOnClickListener(v -> popup.hideWindow(true));
+    wrap.setTranslationZ(Screen.dp(30f)); // above the video, the bars and the lock layer
+    wrap.setOnClickListener(v -> close.run());
 
     LinearLayout card = new LinearLayout(context);
     card.setOrientation(LinearLayout.VERTICAL);
@@ -117,7 +114,7 @@ final class Tgx101PlayerGuide {
     okBackground.setColor(0xff5b87b0);
     okBackground.setCornerRadius(Screen.dp(12f));
     ok.setBackground(okBackground);
-    ok.setOnClickListener(v -> popup.hideWindow(true));
+    ok.setOnClickListener(v -> close.run());
     LinearLayout.LayoutParams okParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f));
     okParams.topMargin = Screen.dp(12f);
     card.addView(ok, okParams);
@@ -126,7 +123,7 @@ final class Tgx101PlayerGuide {
     cardParams.topMargin = Screen.getStatusBarHeight() + Screen.dp(12f);
     cardParams.bottomMargin = Screen.dp(24f);
     wrap.addView(card, cardParams);
-    popup.showNonAnimatedView(wrap);
+    return wrap;
   }
 
   /** A phone screen with the zones; numbers match the list below */

@@ -3204,6 +3204,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   @Override
   public boolean performOnBackPressed (boolean fromTop, boolean commit) {
+    if (tgx101GuideView != null) {
+      if (commit) tgx101CloseGuide(); // TGx101: Back closes the gestures guide first
+      return true;
+    }
     if (tgx101Locked()) {
       org.thunderdog.challegram.Tgx101Diag.mark("player: Back blocked by the lock");
       return true; // TGx101: the child lock — Back doesn't close the video either
@@ -3591,7 +3595,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       (itemView, id) -> {
         if (id == 100) {
           org.thunderdog.challegram.Tgx101Diag.mark("player: guide opened");
-          Tgx101PlayerGuide.show(context);
+          tgx101ShowGuide();
           return true;
         }
         settings.setTgx101PlayerGesture(id, !settings.tgx101PlayerGesture(id));
@@ -3599,6 +3603,21 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         tgx101ChooseGestures(); // reopen with the new values
         return true;
       }, getForcedTheme());
+  }
+
+  private @Nullable View tgx101GuideView;
+
+  private void tgx101ShowGuide () {
+    if (tgx101GuideView != null) return;
+    tgx101GuideView = Tgx101PlayerGuide.show(context, this::tgx101CloseGuide);
+    contentView.addView(tgx101GuideView);
+  }
+
+  private boolean tgx101CloseGuide () {
+    if (tgx101GuideView == null) return false;
+    contentView.removeView(tgx101GuideView);
+    tgx101GuideView = null;
+    return true;
   }
 
   private void tgx101ShowPlayerSettings () {
