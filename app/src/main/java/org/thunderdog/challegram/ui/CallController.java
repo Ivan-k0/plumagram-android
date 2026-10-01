@@ -1201,6 +1201,11 @@ public class CallController extends ViewController<CallController.Arguments> imp
   private void closeCall () {
     isClosed = true;
     tdlib.cache().unsubscribeFromCallUpdates(call.id, this);
+    if (UI.getUiState() != UI.State.RESUMED && getValue() != null) {
+      // TGx101: ended while the app was in the background — the back animation only plays on return,
+      // so the ended call flashed before the chats; hide it right away
+      getValue().setAlpha(0f);
+    }
     navigateBack();
   }
 
