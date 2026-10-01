@@ -3049,6 +3049,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
         setUnreadCountBadge(unreadCount, animated);
         setMentionCountBadge(0);
         setReactionCountBadge(0);
+      } else if (messageTopicId instanceof TdApi.MessageTopicForum) {
+        tgx101UpdateForumTopicCounters(animated); // TGx101: a forum topic counts its own unread messages, not the whole chat's
       } else {
         setUnreadCountBadge(chat.unreadCount, true);
         setMentionCountBadge(chat.unreadMentionCount);
@@ -3058,6 +3060,31 @@ public class MessagesController extends ViewController<MessagesController.Argume
         showBottomButton(bottomButtonAction, 0, animated);
       }
     }
+  }
+
+  private void tgx101UpdateForumTopicCounters (boolean animated) {
+    final TdApi.Chat chat = this.chat;
+    if (chat == null || !(messageTopicId instanceof TdApi.MessageTopicForum)) return;
+    final int forumTopicId = ((TdApi.MessageTopicForum) messageTopicId).forumTopicId;
+    TdApi.GetForumTopic request = new TdApi.GetForumTopic();
+    request.chatId = chat.id;
+    request.forumTopicId = forumTopicId;
+    tdlib.send(request, (topic, error) -> runOnUiThreadOptional(() -> {
+      if (topic == null || this.chat == null || this.chat.id != chat.id || !(messageTopicId instanceof TdApi.MessageTopicForum) || ((TdApi.MessageTopicForum) messageTopicId).forumTopicId != forumTopicId) return;
+      setUnreadCountBadge(areScheduledOnly() ? 0 : topic.unreadCount, animated);
+      setMentionCountBadge(topic.unreadMentionCount);
+      setReactionCountBadge(topic.unreadReactionCount);
+    }));
+  }
+
+  @Override
+  public void onForumTopicUpdated (long chatId, long messageThreadId, boolean isPinned, long lastReadInboxMessageId, long lastReadOutboxMessageId, TdApi.ChatNotificationSettings notificationSettings) {
+    // TGx101: messages read in this forum topic → the arrow counter goes down
+    tdlib.ui().post(() -> {
+      if (getChatId() == chatId && messageTopicId instanceof TdApi.MessageTopicForum && ((TdApi.MessageTopicForum) messageTopicId).forumTopicId == messageThreadId) {
+        updateCounters(true);
+      }
+    });
   }
 
   private void scrollToUnreadOrStartMessage () {
