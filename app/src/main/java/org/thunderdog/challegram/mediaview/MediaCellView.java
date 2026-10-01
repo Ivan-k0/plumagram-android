@@ -1394,7 +1394,8 @@ public class MediaCellView extends ViewGroup implements
       tReceiver = gifReceiver;
     }
 
-    if (tReceiver.isInsideContent(x, y, media != null ? media.getWidth() : 0, media != null ? media.getHeight() : 0)) {
+    // TGx101: on a video a tap anywhere (black bars too) shows / hides the controls
+    if (tReceiver.isInsideContent(x, y, media != null ? media.getWidth() : 0, media != null ? media.getHeight() : 0) || isSeekableVideo()) {
       if (canTouch(false)) {
         if (handleVideoTap(x, y)) {
           return;

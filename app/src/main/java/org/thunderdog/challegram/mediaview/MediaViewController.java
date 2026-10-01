@@ -3211,7 +3211,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       return true;
     }
     if (tgx101SettingsView != null) {
-      if (commit) tgx101CloseSettings(); // TGx101: Back closes the player settings panel
+      if (commit) {
+        if (tgx101SettingsPage != PAGE_MAIN) {
+          tgx101SettingsPage = PAGE_MAIN; // TGx101: Back on a list returns to the settings
+          tgx101RefreshSettings();
+        } else {
+          tgx101CloseSettings(); // TGx101: Back closes the player settings panel
+        }
+      }
       return true;
     }
     if (tgx101Locked()) {
@@ -3683,17 +3690,145 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private @Nullable View tgx101SettingsView;
   private @Nullable LinearLayout tgx101SettingsRows;
+  private @Nullable android.widget.TextView tgx101SettingsTitle;
+  private @Nullable View tgx101SettingsBack;
+  private static final int PAGE_MAIN = 0, PAGE_SPEED = 1, PAGE_GESTURES = 2, PAGE_STEP = 3, PAGE_SLEEP = 4, PAGE_ORIENTATION = 5;
+  private int tgx101SettingsPage = PAGE_MAIN;
+
+  /** The panel shows a list on its own page instead of a separate full-screen menu */
+  private void tgx101OpenSettingsPage (int page) {
+    if (tgx101SettingsView == null) {
+      tgx101ShowPlayerSettings();
+    }
+    tgx101SettingsPage = page;
+    tgx101RefreshSettings();
+  }
 
   private boolean tgx101CloseSettings () {
     if (tgx101SettingsView == null) return false;
     contentView.removeView(tgx101SettingsView);
     tgx101SettingsView = null;
     tgx101SettingsRows = null;
+    tgx101SettingsPage = PAGE_MAIN;
     return true;
   }
 
   private void tgx101RefreshSettings () {
-    if (tgx101SettingsRows != null) tgx101FillSettingsRows(tgx101SettingsRows);
+    if (tgx101SettingsRows == null) return;
+    String[] titles = {Lang.getString(R.string.Tgx101PlayerSettings), Lang.getString(R.string.Tgx101PlayerSpeed), Lang.getString(R.string.Tgx101PlayerGestures), Lang.getString(R.string.Tgx101PlayerSeekStep), Lang.getString(R.string.Tgx101PlayerSleep), Lang.getString(R.string.Tgx101Orientation)};
+    if (tgx101SettingsTitle != null) tgx101SettingsTitle.setText(titles[tgx101SettingsPage]);
+    if (tgx101SettingsBack != null) tgx101SettingsBack.setVisibility(tgx101SettingsPage == PAGE_MAIN ? View.GONE : View.VISIBLE);
+    if (tgx101SettingsPage == PAGE_MAIN) {
+      tgx101FillSettingsRows(tgx101SettingsRows);
+    } else {
+      tgx101FillSettingsPage(tgx101SettingsRows, tgx101SettingsPage);
+    }
+  }
+
+  private void tgx101FillSettingsPage (LinearLayout rows, int page) {
+    rows.removeAllViews();
+    Settings settings = Settings.instance();
+    switch (page) {
+      case PAGE_SPEED: {
+        float current = settings.tgx101PlayerSpeed();
+        for (float speed : TGX101_SPEEDS) {
+          String name = (speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed)) + "×";
+          tgx101ChoiceRow(rows, name, speed == current, () -> {
+            org.thunderdog.challegram.Tgx101Diag.mark("player settings: speed " + speed + "×");
+            settings.setTgx101PlayerSpeed(speed);
+            mediaView.tgx101SetSpeed(speed);
+            if (videoSliderView != null) videoSliderView.setTgx101Speed(speed);
+            tgx101SettingsPage = PAGE_MAIN;
+            tgx101RefreshSettings();
+          });
+        }
+        break;
+      }
+      case PAGE_GESTURES: {
+        final int[] gestures = {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED};
+        final int[] names = {R.string.Tgx101GestureSeek, R.string.Tgx101GestureBrightness, R.string.Tgx101GestureVolume, R.string.Tgx101GestureSpeed};
+        final int[] icons = {R.drawable.baseline_swap_horiz_24, R.drawable.baseline_brightness_5_24, R.drawable.baseline_volume_up_24, R.drawable.baseline_fast_forward_24};
+        for (int i = 0; i < gestures.length; i++) {
+          final int gesture = gestures[i];
+          tgx101SettingsRow(rows, icons[i], Lang.getString(names[i]), null, settings.tgx101PlayerGesture(gesture) ? 1 : 0, () -> {
+            settings.setTgx101PlayerGesture(gesture, !settings.tgx101PlayerGesture(gesture));
+            org.thunderdog.challegram.Tgx101Diag.mark("player settings: gesture " + gesture + " " + settings.tgx101PlayerGesture(gesture));
+            tgx101RefreshSettings();
+          });
+        }
+        break;
+      }
+      case PAGE_STEP: {
+        int current = settings.tgx101PlayerSeekStep();
+        for (int step : new int[] {5, 10, 15, 30}) {
+          tgx101ChoiceRow(rows, Lang.getString(R.string.Tgx101Seconds, step), step == current, () -> {
+            settings.setTgx101PlayerSeekStep(step);
+            org.thunderdog.challegram.Tgx101Diag.mark("player settings: seek step " + step + " s");
+            tgx101SettingsPage = PAGE_MAIN;
+            tgx101RefreshSettings();
+          });
+        }
+        break;
+      }
+      case PAGE_SLEEP: {
+        long left = tgx101SleepAt > 0 ? (tgx101SleepAt - android.os.SystemClock.uptimeMillis()) / 60000 : -1;
+        for (int minutes : new int[] {0, 15, 30, 45, 60}) {
+          tgx101ChoiceRow(rows, minutes == 0 ? Lang.getString(R.string.Tgx101Off) : Lang.getString(R.string.Tgx101Minutes, minutes), minutes == 0 ? tgx101SleepAt == 0 : false, () -> {
+            org.thunderdog.challegram.Tgx101Diag.mark("player settings: sleep timer " + minutes + " min");
+            contentView.removeCallbacks(tgx101SleepAction);
+            if (minutes == 0) {
+              tgx101SleepAt = 0;
+            } else {
+              tgx101SleepAt = android.os.SystemClock.uptimeMillis() + minutes * 60000L;
+              contentView.postDelayed(tgx101SleepAction, minutes * 60000L);
+            }
+            tgx101SettingsPage = PAGE_MAIN;
+            tgx101RefreshSettings();
+          });
+        }
+        break;
+      }
+      case PAGE_ORIENTATION: {
+        int current = settings.tgx101PlayerOrientation();
+        int[] modes = {Settings.PLAYER_ORIENTATION_SYSTEM, Settings.PLAYER_ORIENTATION_AUTO, Settings.PLAYER_ORIENTATION_PORTRAIT};
+        int[] names = {R.string.Tgx101OrientationSystem, R.string.Tgx101OrientationAuto, R.string.Tgx101OrientationPortrait};
+        for (int i = 0; i < modes.length; i++) {
+          final int mode = modes[i];
+          tgx101ChoiceRow(rows, Lang.getString(names[i]), mode == current, () -> {
+            settings.setTgx101PlayerOrientation(mode);
+            org.thunderdog.challegram.Tgx101Diag.mark("player settings: orientation " + mode);
+            tgx101ApplyOrientation();
+            tgx101SettingsPage = PAGE_MAIN;
+            tgx101RefreshSettings();
+          });
+        }
+        break;
+      }
+    }
+  }
+
+  private void tgx101ChoiceRow (LinearLayout rows, String name, boolean selected, Runnable onClick) {
+    LinearLayout row = new LinearLayout(context);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setPadding(Screen.dp(18f), 0, Screen.dp(18f), 0);
+    android.graphics.drawable.StateListDrawable pressed = new android.graphics.drawable.StateListDrawable();
+    pressed.addState(new int[] {android.R.attr.state_pressed}, new android.graphics.drawable.ColorDrawable(0x1affffff));
+    row.setBackground(pressed);
+    row.setOnClickListener(v -> onClick.run());
+    android.widget.TextView text = new android.widget.TextView(context);
+    text.setText(name);
+    text.setTextColor(selected ? 0xff8fb3d9 : 0xffffffff);
+    text.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 15f);
+    row.addView(text, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+    if (selected) {
+      android.widget.TextView check = new android.widget.TextView(context);
+      check.setText("✓");
+      check.setTextColor(0xff8fb3d9);
+      check.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 17f);
+      row.addView(check);
+    }
+    rows.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(46f)));
   }
 
   private void tgx101ShowPlayerSettings () {
@@ -3718,8 +3853,21 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     LinearLayout header = new LinearLayout(context);
     header.setOrientation(LinearLayout.HORIZONTAL);
     header.setGravity(Gravity.CENTER_VERTICAL);
-    header.setPadding(Screen.dp(18f), Screen.dp(6f), Screen.dp(12f), Screen.dp(6f));
+    header.setPadding(Screen.dp(8f), Screen.dp(6f), Screen.dp(12f), Screen.dp(6f));
+    android.widget.ImageView back = new android.widget.ImageView(context);
+    back.setImageResource(R.drawable.baseline_arrow_back_24);
+    back.setColorFilter(0xffffffff);
+    back.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+    back.setOnClickListener(v -> {
+      tgx101SettingsPage = PAGE_MAIN;
+      tgx101RefreshSettings();
+    });
+    back.setVisibility(View.GONE);
+    header.addView(back, new LinearLayout.LayoutParams(Screen.dp(40f), Screen.dp(40f)));
+    tgx101SettingsBack = back;
     android.widget.TextView title = new android.widget.TextView(context);
+    title.setPadding(Screen.dp(10f), 0, 0, 0);
+    tgx101SettingsTitle = title;
     title.setText(Lang.getString(R.string.Tgx101PlayerSettings));
     title.setTextColor(0xffffffff);
     title.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16f);
@@ -3744,7 +3892,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     scroll.addView(rows);
     panel.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, landscape ? 0 : ViewGroup.LayoutParams.WRAP_CONTENT, landscape ? 1f : 0f));
     tgx101SettingsRows = rows;
-    tgx101FillSettingsRows(rows);
+    tgx101RefreshSettings();
 
     android.widget.FrameLayout.LayoutParams params;
     if (landscape) {
@@ -3767,14 +3915,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       if (settings.tgx101PlayerGesture(g)) gesturesOn++;
     }
     String off = Lang.getString(R.string.Tgx101Off);
-    tgx101SettingsRow(rows, R.drawable.baseline_fast_forward_24, Lang.getString(R.string.Tgx101PlayerSpeed), speedText, -1, this::tgx101ChooseSpeed);
-    tgx101SettingsRow(rows, R.drawable.baseline_gesture_24, Lang.getString(R.string.Tgx101PlayerGestures), gesturesOn + " / 4", -1, this::tgx101ChooseGestures);
+    tgx101SettingsRow(rows, R.drawable.baseline_fast_forward_24, Lang.getString(R.string.Tgx101PlayerSpeed), speedText, -1, () -> tgx101OpenSettingsPage(PAGE_SPEED));
+    tgx101SettingsRow(rows, R.drawable.baseline_gesture_24, Lang.getString(R.string.Tgx101PlayerGestures), gesturesOn + " / 4", -1, () -> tgx101OpenSettingsPage(PAGE_GESTURES));
     tgx101SettingsRow(rows, R.drawable.baseline_school_24, Lang.getString(R.string.Tgx101PlayerGuide), "", -1, () -> {
       tgx101CloseSettings();
       org.thunderdog.challegram.Tgx101Diag.mark("player: guide opened");
       tgx101ShowGuide();
     });
-    tgx101SettingsRow(rows, R.drawable.baseline_replay_24, Lang.getString(R.string.Tgx101PlayerSeekStep), Lang.getString(R.string.Tgx101Seconds, settings.tgx101PlayerSeekStep()), -1, this::tgx101ChooseSeekStep);
+    tgx101SettingsRow(rows, R.drawable.baseline_replay_24, Lang.getString(R.string.Tgx101PlayerSeekStep), Lang.getString(R.string.Tgx101Seconds, settings.tgx101PlayerSeekStep()), -1, () -> tgx101OpenSettingsPage(PAGE_STEP));
     tgx101SettingsRow(rows, R.drawable.baseline_repeat_24, Lang.getString(R.string.Tgx101PlayerLoop), null, settings.tgx101PlayerLoop() ? 1 : 0, () -> {
       settings.setTgx101PlayerLoop(!settings.tgx101PlayerLoop());
       org.thunderdog.challegram.Tgx101Diag.mark("player settings: repeat " + settings.tgx101PlayerLoop());
@@ -3786,8 +3934,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       org.thunderdog.challegram.Tgx101Diag.mark("player settings: resume " + settings.tgx101PlayerResume());
       tgx101RefreshSettings();
     });
-    tgx101SettingsRow(rows, R.drawable.baseline_timer_16, Lang.getString(R.string.Tgx101PlayerSleep), tgx101SleepAt > 0 ? Lang.getString(R.string.Tgx101Minutes, (int) Math.max(1, (tgx101SleepAt - android.os.SystemClock.uptimeMillis() + 59999) / 60000)) : off, -1, this::tgx101ChooseSleepTimer);
-    tgx101SettingsRow(rows, R.drawable.baseline_screen_rotation_24, Lang.getString(R.string.Tgx101Orientation), Lang.getString(settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_AUTO ? R.string.Tgx101OrientationAutoShort : settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_PORTRAIT ? R.string.Tgx101OrientationPortraitShort : R.string.Tgx101OrientationSystemShort), -1, this::tgx101ChooseOrientation);
+    tgx101SettingsRow(rows, R.drawable.baseline_timer_16, Lang.getString(R.string.Tgx101PlayerSleep), tgx101SleepAt > 0 ? Lang.getString(R.string.Tgx101Minutes, (int) Math.max(1, (tgx101SleepAt - android.os.SystemClock.uptimeMillis() + 59999) / 60000)) : off, -1, () -> tgx101OpenSettingsPage(PAGE_SLEEP));
+    tgx101SettingsRow(rows, R.drawable.baseline_screen_rotation_24, Lang.getString(R.string.Tgx101Orientation), Lang.getString(settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_AUTO ? R.string.Tgx101OrientationAutoShort : settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_PORTRAIT ? R.string.Tgx101OrientationPortraitShort : R.string.Tgx101OrientationSystemShort), -1, () -> tgx101OpenSettingsPage(PAGE_ORIENTATION));
   }
 
   /** One row: icon, title, and either a value with › (switchState -1) or a switch (0 / 1) */
@@ -5766,7 +5914,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           }
         });
         videoSliderView.setSliderListener(this);
-        videoSliderView.tgx101EnableCapsule(v -> tgx101ChooseSpeed(), v -> tgx101SetLocked(!tgx101Locked()), v -> tgx101ShowPlayerSettings());
+        videoSliderView.tgx101EnableCapsule(v -> tgx101OpenSettingsPage(PAGE_SPEED), v -> tgx101SetLocked(!tgx101Locked()), v -> tgx101ShowPlayerSettings());
         tgx101AddRotateButton();
         videoSliderView.tgx101OnConfigurationChanged = this::tgx101OnOrientationChanged;
         videoSliderView.setTgx101Speed(Settings.instance().tgx101PlayerSpeed());
