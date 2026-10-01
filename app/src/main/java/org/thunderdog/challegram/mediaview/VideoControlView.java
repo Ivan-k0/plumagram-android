@@ -299,25 +299,34 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
     }
   }
 
-  // TGx101 player (mockup 3): the bar as a floating dark-glass capsule with a speed chip and the child lock
+  // TGx101 player (mockup 3): the bar as a floating dark-glass capsule with a speed chip, the child lock and ⋮ settings
 
   private boolean capsule;
   private TextView speedView;
+  private LockIcon lockView;
+  private android.widget.ImageView settingsView;
   private final android.graphics.RectF capsuleRect = new android.graphics.RectF();
 
-  public void tgx101EnableCapsule (View.OnClickListener onSpeed, View.OnClickListener onLock) {
+  public void tgx101EnableCapsule (View.OnClickListener onSpeed, View.OnClickListener onLock, View.OnClickListener onSettings) {
     if (capsule) return;
     capsule = true;
     int side = Screen.dp(10f);
     int toolWidth = Screen.dp(40f);
-    lockView = new android.widget.ImageView(getContext());
-    lockView.setImageResource(org.thunderdog.challegram.R.drawable.baseline_lock_24);
-    lockView.setColorFilter(0xffffffff);
-    lockView.setScaleType(android.widget.ImageView.ScaleType.CENTER);
-    lockView.setOnClickListener(onLock);
-    lockView.setContentDescription(org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101PlayerLock));
+
+    settingsView = new android.widget.ImageView(getContext());
+    settingsView.setImageResource(org.thunderdog.challegram.R.drawable.baseline_more_vert_24);
+    settingsView.setColorFilter(0xffffffff);
+    settingsView.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+    settingsView.setOnClickListener(onSettings);
     FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(toolWidth, Screen.dp(56f), Gravity.RIGHT | Gravity.BOTTOM);
     params.rightMargin = side;
+    addView(settingsView, params);
+
+    lockView = new LockIcon(getContext());
+    lockView.setOnClickListener(onLock);
+    lockView.setContentDescription(org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101PlayerLock));
+    params = FrameLayoutFix.newParams(toolWidth, Screen.dp(56f), Gravity.RIGHT | Gravity.BOTTOM);
+    params.rightMargin = side + toolWidth;
     addView(lockView, params);
 
     speedView = new NoScrollTextView(getContext());
@@ -325,24 +334,73 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
     speedView.setTypeface(Fonts.getRobotoMedium());
     speedView.setOnClickListener(onSpeed);
     params = FrameLayoutFix.newParams(toolWidth, Screen.dp(56f), Gravity.RIGHT | Gravity.BOTTOM);
-    params.rightMargin = side + toolWidth;
+    params.rightMargin = side + toolWidth * 2;
     addView(speedView, params);
     setTgx101Speed(1f);
 
-    ((FrameLayoutFix.LayoutParams) totalView.getLayoutParams()).rightMargin = side + toolWidth * 2;
+    ((FrameLayoutFix.LayoutParams) totalView.getLayoutParams()).rightMargin = side + toolWidth * 3;
     ((FrameLayoutFix.LayoutParams) nowView.getLayoutParams()).leftMargin = side;
     ((FrameLayoutFix.LayoutParams) playPauseButton.getLayoutParams()).leftMargin = side;
-    sliderView.setPadding(Screen.dp(56f) + side, 0, Screen.dp(56f) + side + toolWidth * 2, 0);
+    sliderView.setPadding(Screen.dp(56f) + side, 0, Screen.dp(56f) + side + toolWidth * 3, 0);
     requestLayout();
     invalidate();
   }
-
-  private android.widget.ImageView lockView;
 
   public void setTgx101Speed (float speed) {
     if (speedView != null) {
       String text = (speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed)) + "×";
       speedView.setText(text);
+    }
+  }
+
+  /** The child lock: only the lock itself stays active, everything else is dimmed and doesn't react */
+  public void setTgx101Locked (boolean locked, boolean animated) {
+    if (lockView == null) return;
+    lockView.setLocked(locked, animated);
+    float alpha = locked ? .35f : 1f;
+    for (View view : new View[] {speedView, settingsView, playPauseButton}) {
+      view.setEnabled(!locked);
+      view.setClickable(!locked);
+      view.animate().alpha(alpha).setDuration(150).start();
+    }
+    sliderView.setEnabled(!locked);
+  }
+
+  /** Where the lock button is on the screen (for the lock layer, which takes every other touch) */
+  public boolean tgx101IsOnLock (float rawX, float rawY) {
+    if (lockView == null || getAlpha() < .5f) return false;
+    int[] location = new int[2];
+    lockView.getLocationOnScreen(location);
+    int pad = Screen.dp(8f);
+    return rawX >= location[0] - pad && rawX <= location[0] + lockView.getWidth() + pad && rawY >= location[1] - pad && rawY <= location[1] + lockView.getHeight() + pad;
+  }
+
+  /** Padlock like the passcode one: the shackle slides aside when it is open */
+  private static final class LockIcon extends View implements FactorAnimator.Target {
+    private final android.graphics.drawable.Drawable top, base;
+    private final BoolAnimator open = new BoolAnimator(0, this, new android.view.animation.OvershootInterpolator(3f), 160L, true);
+
+    LockIcon (Context context) {
+      super(context);
+      top = org.thunderdog.challegram.tool.Drawables.get(getResources(), org.thunderdog.challegram.R.drawable.baseline_lock_top_24);
+      base = org.thunderdog.challegram.tool.Drawables.get(getResources(), org.thunderdog.challegram.R.drawable.baseline_lock_base_24);
+    }
+
+    void setLocked (boolean locked, boolean animated) {
+      open.setValue(!locked, animated);
+    }
+
+    @Override
+    public void onFactorChanged (int id, float factor, float fraction, FactorAnimator callee) {
+      invalidate();
+    }
+
+    @Override
+    protected void onDraw (Canvas c) {
+      int cx = getMeasuredWidth() / 2, cy = getMeasuredHeight() / 2;
+      android.graphics.Paint paint = Paints.getPorterDuffPaint(0xffffffff);
+      org.thunderdog.challegram.tool.Drawables.draw(c, top, cx - top.getMinimumWidth() / 2 + (int) (Screen.dp(8f) * open.getFloatValue()), cy - top.getMinimumHeight() / 2, paint);
+      org.thunderdog.challegram.tool.Drawables.draw(c, base, cx - base.getMinimumWidth() / 2, cy - base.getMinimumHeight() / 2, paint);
     }
   }
 

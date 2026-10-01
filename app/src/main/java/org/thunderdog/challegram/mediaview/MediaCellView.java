@@ -1444,7 +1444,7 @@ public class MediaCellView extends ViewGroup implements
     }
     if (isQuickRepeat && !gestures) {
       inVideoSeekSeries = true;
-      long position = Math.max(0, Math.min(timeTotal, timeNow + zone * VIDEO_SEEK_STEP_MS));
+      long position = Math.max(0, Math.min(timeTotal, timeNow + zone * org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerSeekStep() * 1000L));
       timeNow = position;
       playerView.setSeekProgress((float) ((double) position / (double) timeTotal));
       return true;
@@ -1491,6 +1491,10 @@ public class MediaCellView extends ViewGroup implements
 
   public void tgx101SetSpeed (float speed) {
     if (playerView != null) playerView.setPlaybackSpeed(speed);
+  }
+
+  public void tgx101ApplyLooping () {
+    if (playerView != null) playerView.tgx101ApplyLooping();
   }
 
   public float tgx101GetSpeed () {

@@ -3544,6 +3544,36 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_TRANSLATE_ON_DEVICE, value);
   }
 
+  private static final String KEY_TGX101_PLAYER_SEEK_STEP = "tgx101_player_seek_step";
+  private static final String KEY_TGX101_PLAYER_LOOP = "tgx101_player_loop";
+  private static final String KEY_TGX101_PLAYER_RESUME = "tgx101_player_resume";
+
+  /** TGx101 player: seconds per double tap on the sides */
+  public int tgx101PlayerSeekStep () {
+    return pmc.getInt(KEY_TGX101_PLAYER_SEEK_STEP, 5);
+  }
+
+  public void setTgx101PlayerSeekStep (int seconds) {
+    pmc.putInt(KEY_TGX101_PLAYER_SEEK_STEP, seconds);
+  }
+
+  public boolean tgx101PlayerLoop () {
+    return pmc.getBoolean(KEY_TGX101_PLAYER_LOOP, false);
+  }
+
+  public void setTgx101PlayerLoop (boolean value) {
+    pmc.putBoolean(KEY_TGX101_PLAYER_LOOP, value);
+  }
+
+  /** Continue a video from where it was stopped */
+  public boolean tgx101PlayerResume () {
+    return pmc.getBoolean(KEY_TGX101_PLAYER_RESUME, true);
+  }
+
+  public void setTgx101PlayerResume (boolean value) {
+    pmc.putBoolean(KEY_TGX101_PLAYER_RESUME, value);
+  }
+
   private static final String KEY_TGX101_PLAYER_SPEED = "tgx101_player_speed";
 
   /** TGx101: the video player's speed, remembered between videos */

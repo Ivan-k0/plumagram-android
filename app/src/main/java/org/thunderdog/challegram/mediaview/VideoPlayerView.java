@@ -131,6 +131,11 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     this.forceLooping = force;
   }
 
+  /** TGx101: the player settings' «Repeat» switched while a video plays */
+  public void tgx101ApplyLooping () {
+    setLooping(forceLooping || org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerLoop() || (currentItem != null && (currentItem.isSecret() || currentItem.isGifType())));
+  }
+
   private void setLooping (boolean isLooping) {
     this.isLooping = isLooping;
   }
@@ -152,7 +157,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     }
     prepareTextureView();
     setMuted(mediaItem != null && mediaItem.needMute());
-    setLooping(forceLooping || (mediaItem != null && (mediaItem.isSecret() || mediaItem.isGifType())));
+    setLooping(forceLooping || org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerLoop() || (mediaItem != null && (mediaItem.isSecret() || mediaItem.isGifType())));
     setNoProgressUpdates(mediaItem != null && mediaItem.isSecret());
     if (mediaItem != null) {
       TdlibManager.instance().calls().addCurrentCallListener(this);
@@ -252,7 +257,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
       seekToSavedPosition = false;
       player.seekTo(savedPosition);
     } else {
-      long resumePosition = Tgx101VideoResume.get(mediaItem);
+      long resumePosition = org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerResume() ? Tgx101VideoResume.get(mediaItem) : 0;
       if (resumePosition > 0) {
         player.seekTo(resumePosition);
       }

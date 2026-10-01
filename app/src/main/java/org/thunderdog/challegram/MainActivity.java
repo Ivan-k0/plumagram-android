@@ -907,6 +907,13 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
         if (navigation.isEmpty()) {
           initMainController(null, null, null);
         }
+        // TGx101: something shared into the app over an open chat — unfocus its input before the window comes back,
+        // otherwise Android restores the keyboard for a moment (it flashed) before the chat picker
+        View tgx101Focus = getCurrentFocus();
+        if (tgx101Focus instanceof android.widget.EditText) {
+          tgx101Focus.clearFocus();
+          org.thunderdog.challegram.tool.Keyboard.hide(tgx101Focus);
+        }
         consumer = account -> {
           shareIntent(account, action, intent);
         };

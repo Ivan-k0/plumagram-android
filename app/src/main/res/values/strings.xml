@@ -6173,6 +6173,15 @@
   <string name="Tgx101PlayerGesturesHint">Swipe left / right to seek, up / down on the left half for brightness, on the right half for volume; hold for 2×. With gestures on, a double tap on the sides no longer seeks. A double tap in the middle pauses in both modes.</string>
   <string name="Tgx101PlayerBrightness">Brightness</string>
   <string name="Tgx101PlayerSpeed">Playback speed</string>
+  <string name="Tgx101PlayerSettings">Player settings</string>
+  <string name="Tgx101PlayerSeekStep">Double tap step</string>
+  <string name="Tgx101PlayerLoop">Repeat video</string>
+  <string name="Tgx101PlayerResume">Continue where stopped</string>
+  <string name="Tgx101PlayerSleep">Sleep timer</string>
+  <string name="Tgx101On">on</string>
+  <string name="Tgx101Off">off</string>
+  <string name="Tgx101Seconds">%1$d s</string>
+  <string name="Tgx101Minutes">%1$d min</string>
   <string name="Tgx101PlayerLock">Lock the screen</string>
   <string name="Tgx101PlayerLockedHint">Screen locked.\nHold for 2 s to unlock</string>
   <string name="Tgx101PlayerVolume">Volume</string>

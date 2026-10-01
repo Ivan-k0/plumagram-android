@@ -3468,15 +3468,102 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private void tgx101SetLocked (boolean locked) {
     if (locked == tgx101Locked()) return;
+    org.thunderdog.challegram.Tgx101Diag.mark("player: child lock " + (locked ? "on" : "off"));
+    if (videoSliderView != null) videoSliderView.setTgx101Locked(locked, true);
     if (locked) {
-      if (headerVisible.getValue()) headerVisible.toggleValue(true);
-      tgx101LockView = Tgx101PlayerLock.create(context, () -> tgx101SetLocked(false));
+      tgx101LockView = Tgx101PlayerLock.create(context, new Tgx101PlayerLock.Delegate() {
+        @Override
+        public boolean isOnLock (float rawX, float rawY) {
+          return videoSliderView != null && headerVisible.getValue() && videoSliderView.tgx101IsOnLock(rawX, rawY);
+        }
+
+        @Override
+        public void onUnlock () {
+          tgx101SetLocked(false);
+        }
+
+        @Override
+        public void onTap () {
+          toggleHeaderVisibility();
+        }
+      });
       contentView.addView(tgx101LockView);
     } else {
       contentView.removeView(tgx101LockView);
       tgx101LockView = null;
-      if (!headerVisible.getValue()) headerVisible.toggleValue(true);
     }
+  }
+
+  // Sleep timer: the video pauses after the chosen time (for this viewer only)
+
+  private long tgx101SleepAt;
+  private final Runnable tgx101SleepAction = () -> {
+    tgx101SleepAt = 0;
+    org.thunderdog.challegram.Tgx101Diag.mark("player: sleep timer — paused");
+    mediaView.pauseIfPlaying();
+  };
+
+  private void tgx101ChooseSleepTimer () {
+    final int[] minutes = {0, 15, 30, 45, 60};
+    int[] ids = {1, 2, 3, 4, 5};
+    String[] names = new String[minutes.length];
+    for (int i = 0; i < minutes.length; i++) {
+      names[i] = minutes[i] == 0 ? Lang.getString(R.string.Tgx101Off) : Lang.getString(R.string.Tgx101Minutes, minutes[i]);
+    }
+    showOptions(Lang.getString(R.string.Tgx101PlayerSleep), ids, names, null, null, (itemView, id) -> {
+      int value = minutes[id - 1];
+      contentView.removeCallbacks(tgx101SleepAction);
+      if (value == 0) {
+        tgx101SleepAt = 0;
+      } else {
+        tgx101SleepAt = android.os.SystemClock.uptimeMillis() + value * 60000L;
+        contentView.postDelayed(tgx101SleepAction, value * 60000L);
+      }
+      return true;
+    }, getForcedTheme());
+  }
+
+  private void tgx101ShowPlayerSettings () {
+    Settings settings = Settings.instance();
+    float speed = settings.tgx101PlayerSpeed();
+    String speedText = (speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed)) + "×";
+    String on = Lang.getString(R.string.Tgx101On), off = Lang.getString(R.string.Tgx101Off);
+    int[] ids = {1, 2, 3, 4, 5, 6};
+    String[] names = {
+      Lang.getString(R.string.Tgx101PlayerSpeed) + ": " + speedText,
+      Lang.getString(R.string.Tgx101PlayerGestures) + ": " + (settings.tgx101PlayerGestures() ? on : off),
+      Lang.getString(R.string.Tgx101PlayerSeekStep) + ": " + Lang.getString(R.string.Tgx101Seconds, settings.tgx101PlayerSeekStep()),
+      Lang.getString(R.string.Tgx101PlayerLoop) + ": " + (settings.tgx101PlayerLoop() ? on : off),
+      Lang.getString(R.string.Tgx101PlayerResume) + ": " + (settings.tgx101PlayerResume() ? on : off),
+      Lang.getString(R.string.Tgx101PlayerSleep) + ": " + (tgx101SleepAt > 0 ? Lang.getString(R.string.Tgx101Minutes, (int) Math.max(1, (tgx101SleepAt - android.os.SystemClock.uptimeMillis() + 59999) / 60000)) : off)
+    };
+    int[] icons = {R.drawable.baseline_fast_forward_24, R.drawable.baseline_gesture_24, R.drawable.baseline_replay_24, R.drawable.baseline_repeat_24, R.drawable.baseline_history_24, R.drawable.baseline_timer_16};
+    showOptions(Lang.getString(R.string.Tgx101PlayerSettings), ids, names, null, icons, (itemView, id) -> {
+      switch (id) {
+        case 1:
+          tgx101ChooseSpeed();
+          break;
+        case 2:
+          settings.setTgx101PlayerGestures(!settings.tgx101PlayerGestures());
+          break;
+        case 3: {
+          int step = settings.tgx101PlayerSeekStep();
+          settings.setTgx101PlayerSeekStep(step >= 15 ? 5 : step + 5);
+          break;
+        }
+        case 4:
+          settings.setTgx101PlayerLoop(!settings.tgx101PlayerLoop());
+          mediaView.tgx101ApplyLooping();
+          break;
+        case 5:
+          settings.setTgx101PlayerResume(!settings.tgx101PlayerResume());
+          break;
+        case 6:
+          tgx101ChooseSleepTimer();
+          break;
+      }
+      return true;
+    }, getForcedTheme());
   }
 
   @Override
@@ -5390,7 +5477,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           }
         });
         videoSliderView.setSliderListener(this);
-        videoSliderView.tgx101EnableCapsule(v -> tgx101ChooseSpeed(), v -> tgx101SetLocked(true));
+        videoSliderView.tgx101EnableCapsule(v -> tgx101ChooseSpeed(), v -> tgx101SetLocked(!tgx101Locked()), v -> tgx101ShowPlayerSettings());
         videoSliderView.setTgx101Speed(Settings.instance().tgx101PlayerSpeed());
         videoSliderView.setInnerAlpha(0f);
         videoSliderView.setAlpha(0f);

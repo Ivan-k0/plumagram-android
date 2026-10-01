@@ -293,6 +293,15 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PlayerGesturesHint, "Свайп влево-вправо — перемотка, вверх-вниз слева — яркость, справа — громкость; удержание — скорость 2×. С жестами двойное нажатие по краям больше не перематывает. Двойное нажатие по центру ставит на паузу в обоих режимах.");
     RU.put(R.string.Tgx101PlayerBrightness, "Яркость");
     RU.put(R.string.Tgx101PlayerSpeed, "Скорость воспроизведения");
+    RU.put(R.string.Tgx101PlayerSettings, "Настройки плеера");
+    RU.put(R.string.Tgx101PlayerSeekStep, "Шаг двойного нажатия");
+    RU.put(R.string.Tgx101PlayerLoop, "Повтор видео");
+    RU.put(R.string.Tgx101PlayerResume, "Продолжать с места остановки");
+    RU.put(R.string.Tgx101PlayerSleep, "Таймер сна");
+    RU.put(R.string.Tgx101On, "вкл");
+    RU.put(R.string.Tgx101Off, "выкл");
+    RU.put(R.string.Tgx101Seconds, "%1$d с");
+    RU.put(R.string.Tgx101Minutes, "%1$d мин");
     RU.put(R.string.Tgx101PlayerLock, "Заблокировать экран");
     RU.put(R.string.Tgx101PlayerLockedHint, "Экран заблокирован.\nУдерживайте 2 с, чтобы снять");
     RU.put(R.string.Tgx101PlayerVolume, "Громкость");
