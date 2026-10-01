@@ -3641,16 +3641,17 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     float speed = settings.tgx101PlayerSpeed();
     String speedText = (speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed)) + "×";
     String on = Lang.getString(R.string.Tgx101On), off = Lang.getString(R.string.Tgx101Off);
-    int[] ids = {1, 2, 3, 4, 5, 6};
+    int[] ids = {1, 2, 3, 4, 5, 6, 9};
     String[] names = {
       Lang.getString(R.string.Tgx101PlayerSpeed) + ": " + speedText,
       Lang.getString(R.string.Tgx101PlayerGestures) + "…",
       Lang.getString(R.string.Tgx101PlayerSeekStep) + ": " + Lang.getString(R.string.Tgx101Seconds, settings.tgx101PlayerSeekStep()),
       Lang.getString(R.string.Tgx101PlayerLoop) + ": " + (settings.tgx101PlayerLoop() ? on : off),
       Lang.getString(R.string.Tgx101PlayerResume) + ": " + (settings.tgx101PlayerResume() ? on : off),
-      Lang.getString(R.string.Tgx101PlayerSleep) + ": " + (tgx101SleepAt > 0 ? Lang.getString(R.string.Tgx101Minutes, (int) Math.max(1, (tgx101SleepAt - android.os.SystemClock.uptimeMillis() + 59999) / 60000)) : off)
+      Lang.getString(R.string.Tgx101PlayerSleep) + ": " + (tgx101SleepAt > 0 ? Lang.getString(R.string.Tgx101Minutes, (int) Math.max(1, (tgx101SleepAt - android.os.SystemClock.uptimeMillis() + 59999) / 60000)) : off),
+      Lang.getString(R.string.Tgx101Orientation) + ": " + Lang.getString(settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_AUTO ? R.string.Tgx101OrientationAutoShort : settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_PORTRAIT ? R.string.Tgx101OrientationPortraitShort : R.string.Tgx101OrientationSystemShort)
     };
-    int[] icons = {R.drawable.baseline_fast_forward_24, R.drawable.baseline_gesture_24, R.drawable.baseline_replay_24, R.drawable.baseline_repeat_24, R.drawable.baseline_history_24, R.drawable.baseline_timer_16};
+    int[] icons = {R.drawable.baseline_fast_forward_24, R.drawable.baseline_gesture_24, R.drawable.baseline_replay_24, R.drawable.baseline_repeat_24, R.drawable.baseline_history_24, R.drawable.baseline_timer_16, R.drawable.baseline_screen_rotation_24};
     showOptions(Lang.getString(R.string.Tgx101PlayerSettings), ids, names, null, icons, (itemView, id) -> {
       switch (id) {
         case 1:
@@ -3673,6 +3674,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           break;
         case 6:
           tgx101ChooseSleepTimer();
+          break;
+        case 9:
+          tgx101ChooseOrientation();
           break;
 
       }
@@ -5766,6 +5770,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   @Override
   public void destroy () {
     super.destroy();
+    if (tgx101OrientationSet) {
+      context.setOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED); // TGx101: the app's own orientation back
+      tgx101OrientationSet = false;
+    }
     MediaItem current = stack.getCurrent();
     if (current != null && current.isViewOnce()) {
       current.viewContent(true);
@@ -8436,6 +8444,57 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   public void open () {
     getValue();
     popupView.showAnimatedPopupView(contentView, this);
+    tgx101ApplyOrientation();
+  }
+
+  // TGx101: the viewer's own screen orientation (player settings) and the manual rotation
+
+  private boolean tgx101OrientationSet;
+
+  private void tgx101ApplyOrientation () {
+    if (mode != MODE_MESSAGES && mode != MODE_SIMPLE) return;
+    int setting = Settings.instance().tgx101PlayerOrientation();
+    int orientation;
+    switch (setting) {
+      case Settings.PLAYER_ORIENTATION_AUTO:
+        orientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR; // turns with the phone even with the system rotation locked
+        break;
+      case Settings.PLAYER_ORIENTATION_PORTRAIT:
+        orientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+        break;
+      default:
+        if (tgx101OrientationSet) {
+          context.setOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+          tgx101OrientationSet = false;
+        }
+        return;
+    }
+    context.setOrientation(orientation);
+    tgx101OrientationSet = true;
+  }
+
+  /** The rotate button: portrait ⇄ landscape, whatever the setting, until the viewer closes */
+  public void tgx101RotateManually () {
+    boolean landscape = context.getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+    org.thunderdog.challegram.Tgx101Diag.mark("player: rotate → " + (landscape ? "portrait" : "landscape"));
+    context.setOrientation(landscape ? android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT : android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+    tgx101OrientationSet = true;
+  }
+
+  private void tgx101ChooseOrientation () {
+    int current = Settings.instance().tgx101PlayerOrientation();
+    int[] ids = {Settings.PLAYER_ORIENTATION_SYSTEM + 1, Settings.PLAYER_ORIENTATION_AUTO + 1, Settings.PLAYER_ORIENTATION_PORTRAIT + 1};
+    int[] names = {R.string.Tgx101OrientationSystem, R.string.Tgx101OrientationAuto, R.string.Tgx101OrientationPortrait};
+    String[] titles = new String[ids.length];
+    for (int i = 0; i < ids.length; i++) {
+      titles[i] = Lang.getString(names[i]) + (ids[i] - 1 == current ? "  ✓" : "");
+    }
+    showOptions(Lang.getString(R.string.Tgx101OrientationHint), ids, titles, null, null, (itemView, id) -> {
+      Settings.instance().setTgx101PlayerOrientation(id - 1);
+      org.thunderdog.challegram.Tgx101Diag.mark("player settings: orientation " + (id - 1));
+      tgx101ApplyOrientation();
+      return true;
+    }, getForcedTheme());
   }
 
   public void minimizeOrClose () {

@@ -3565,6 +3565,18 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_PLAYER_SWIPE_PAGING, value);
   }
 
+  private static final String KEY_TGX101_PLAYER_ORIENTATION = "tgx101_player_orientation";
+  public static final int PLAYER_ORIENTATION_SYSTEM = 0, PLAYER_ORIENTATION_AUTO = 1, PLAYER_ORIENTATION_PORTRAIT = 2;
+
+  /** TGx101 player: screen orientation in the viewer — as the system, always turning with the phone, or portrait only */
+  public int tgx101PlayerOrientation () {
+    return pmc.getInt(KEY_TGX101_PLAYER_ORIENTATION, PLAYER_ORIENTATION_SYSTEM);
+  }
+
+  public void setTgx101PlayerOrientation (int mode) {
+    pmc.putInt(KEY_TGX101_PLAYER_ORIENTATION, mode);
+  }
+
   private static final String KEY_TGX101_PLAYER_SEEK_STEP = "tgx101_player_seek_step";
   private static final String KEY_TGX101_PLAYER_LOOP = "tgx101_player_loop";
   private static final String KEY_TGX101_PLAYER_RESUME = "tgx101_player_resume";

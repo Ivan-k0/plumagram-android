@@ -306,6 +306,14 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101GestureSpeed, "Скорость 2×");
     RU.put(R.string.Tgx101PlayerResume, "Продолжать с места");
     RU.put(R.string.Tgx101PlayerSleep, "Таймер сна");
+    RU.put(R.string.Tgx101Orientation, "Ориентация");
+    RU.put(R.string.Tgx101OrientationHint, "Ориентация экрана в плеере");
+    RU.put(R.string.Tgx101OrientationSystem, "Как в системе");
+    RU.put(R.string.Tgx101OrientationAuto, "Автоповорот (даже если в системе выключен)");
+    RU.put(R.string.Tgx101OrientationPortrait, "Только вертикально (горизонталь — кнопкой)");
+    RU.put(R.string.Tgx101OrientationSystemShort, "система");
+    RU.put(R.string.Tgx101OrientationAutoShort, "авто");
+    RU.put(R.string.Tgx101OrientationPortraitShort, "вертик.");
     RU.put(R.string.Tgx101On, "вкл");
     RU.put(R.string.Tgx101Off, "выкл");
     RU.put(R.string.Tgx101Seconds, "%1$d с");
