@@ -871,7 +871,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   protected void onSelectionChanged (int selStart, int selEnd) {
     super.onSelectionChanged(selStart, selEnd);
     if (tgx101SelectionBar != null && tgx101SelectionBar.isShowing()) {
-      tgx101SelectionBar.reposition(); // follows the top handle
+      tgx101SelectionBar.onSelectionChanging(); // hidden while a handle is dragged (the magnifier), back above the selection after
     }
     if (selectionChangeListener != null) {
       selectionChangeListener.onInputSelectionChanged(this, selStart, selEnd);

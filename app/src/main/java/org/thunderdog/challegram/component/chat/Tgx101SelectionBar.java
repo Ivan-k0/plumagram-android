@@ -118,6 +118,8 @@ public final class Tgx101SelectionBar {
   }
 
   public void dismiss () {
+    view.removeCallbacks(showAfterDrag);
+    hiddenWhileDragging = false;
     if (window != null) {
       try { window.dismiss(); } catch (Throwable ignored) { }
       window = null;
@@ -127,6 +129,30 @@ public final class Tgx101SelectionBar {
 
   public boolean isShowing () {
     return window != null && window.isShowing();
+  }
+
+  private boolean hiddenWhileDragging;
+  private final Runnable showAfterDrag = () -> {
+    hiddenWhileDragging = false;
+    if (content != null && window != null) {
+      reposition();
+      content.animate().alpha(1f).setDuration(120).start();
+    }
+  };
+
+  /**
+   * The selection is changing (a handle is being dragged): hide the bar so it doesn't cover the system magnifier,
+   * show it again a moment after the selection settles.
+   */
+  public void onSelectionChanging () {
+    if (content == null || window == null) return;
+    if (!hiddenWhileDragging) {
+      hiddenWhileDragging = true;
+      content.animate().cancel();
+      content.setAlpha(0f);
+    }
+    view.removeCallbacks(showAfterDrag);
+    view.postDelayed(showAfterDrag, 350);
   }
 
   // Colours: the editor window's panel and its white buttons
