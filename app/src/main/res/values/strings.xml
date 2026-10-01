@@ -6012,6 +6012,9 @@
   <string name="Tgx101FormatHide">Hide</string>
   <string name="Tgx101FormatMonoShort">Mono</string>
   <string name="Tgx101SelectAllFull">Select all</string>
+  <string name="Tgx101RingRampTime">Fade-in time</string>
+  <string name="Tgx101RingRampSeconds">%1$d s</string>
+  <string name="Tgx101RingRampHint">How long the incoming call ringtone takes to grow from quiet to full volume.</string>
   <string name="Tgx101Font">Font</string>
   <string name="Tgx101FontSystem">System (as set on the phone)</string>
   <string name="Tgx101FontManrope">Manrope</string>

@@ -134,6 +134,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101FormatHide, "Скрыть");
     RU.put(R.string.Tgx101FormatMonoShort, "Моно");
     RU.put(R.string.Tgx101SelectAllFull, "Выделить всё");
+    RU.put(R.string.Tgx101RingRampTime, "Время нарастания звонка");
+    RU.put(R.string.Tgx101RingRampSeconds, "%1$d с");
+    RU.put(R.string.Tgx101RingRampHint, "За сколько секунд мелодия входящего звонка вырастает от тихой до полной громкости.");
     RU.put(R.string.Tgx101Font, "Шрифт");
     RU.put(R.string.Tgx101FontSystem, "Системный (как в настройках телефона)");
     RU.put(R.string.Tgx101FontRoboto, "Roboto (как в Telegram X)");

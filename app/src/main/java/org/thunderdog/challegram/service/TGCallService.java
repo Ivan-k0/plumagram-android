@@ -1197,17 +1197,18 @@ public class TGCallService extends Service implements
   // Loudness is perceived logarithmically: the ramp goes evenly in decibels (-26 dB ≈ 20 % of the perceived volume → 0 dB)
   private static final float RING_RAMP_START_DB = -26f;
   private static final float RING_RAMP_START = (float) Math.pow(10, RING_RAMP_START_DB / 20f);
-  private static final long RING_RAMP_DURATION_MS = 30_000, RING_RAMP_STEP_MS = 250;
+  private static final long RING_RAMP_STEP_MS = 250;
 
   private void startRingRamp (MediaPlayer player) {
     final long start = android.os.SystemClock.uptimeMillis();
+    final long rampMs = org.thunderdog.challegram.unsorted.Settings.instance().getTgx101RingRampSeconds() * 1000L; // TGx101: user's choice
     UI.post(new Runnable() {
       @Override
       public void run () {
         if (ringtonePlayer != player) {
           return; // stopped or restarted
         }
-        float progress = Math.min(1f, (android.os.SystemClock.uptimeMillis() - start) / (float) RING_RAMP_DURATION_MS);
+        float progress = Math.min(1f, (android.os.SystemClock.uptimeMillis() - start) / (float) rampMs);
         float volume = (float) Math.pow(10, RING_RAMP_START_DB * (1f - progress) / 20f);
         try {
           player.setVolume(volume, volume);

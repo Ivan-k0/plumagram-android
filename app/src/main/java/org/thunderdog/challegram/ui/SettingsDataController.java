@@ -196,6 +196,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         } else if (itemId == R.id.btn_mediaRoamingLimits) {
           view.setData(tdlib.files().getDownloadLimitOverRoamingString());
           // Voice
+        } else if (itemId == R.id.btn_tgx101RingRampTime) {
+          view.setData(Lang.getString(R.string.Tgx101RingRampSeconds, Settings.instance().getTgx101RingRampSeconds()));
         } else if (itemId == R.id.btn_lessDataForCalls) {
           switch (tdlib.files().getVoipDataSavingOption()) {
             case DataSavingOption.ALWAYS:
@@ -446,6 +448,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_lessDataForCalls, 0, R.string.VoipUseLessData),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101RingRampTime, 0, R.string.Tgx101RingRampTime),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_proxy, 0, R.string.Proxy),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
@@ -689,6 +693,15 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       SettingsNetworkStatsController c = new SettingsNetworkStatsController(context, tdlib);
       c.setArguments(new SettingsNetworkStatsController.Args(type, networkStats));
       navigateTo(c);
+    } else if (id == R.id.btn_tgx101RingRampTime) {
+      int current = Settings.instance().getTgx101RingRampSeconds();
+      int[] ids = {R.id.btn_tgx101RingRamp5, R.id.btn_tgx101RingRamp10, R.id.btn_tgx101RingRamp15, R.id.btn_tgx101RingRamp20, R.id.btn_tgx101RingRamp30};
+      ListItem[] items = new ListItem[ids.length];
+      for (int k = 0; k < ids.length; k++) {
+        int seconds = Settings.TGX101_RING_RAMP_OPTIONS[k];
+        items[k] = new ListItem(ListItem.TYPE_RADIO_OPTION, ids[k], 0, Lang.getString(R.string.Tgx101RingRampSeconds, seconds), id, current == seconds);
+      }
+      showSettings(new SettingsWrapBuilder(id).addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.Tgx101RingRampHint)).setRawItems(items).setIntDelegate(this));
     } else if (id == R.id.btn_lessDataForCalls) {
       showSettings(new SettingsWrapBuilder(id).addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.UseLessDataForCallsDesc)).setRawItems(new ListItem[] {
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_disabled, 0, R.string.Never, id, tdlib.files().getVoipDataSavingOption() == DataSavingOption.NEVER),
@@ -1035,6 +1048,11 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       }
       Settings.instance().setRoundVideoQuality(quality);
       adapter.updateValuedSettingById(R.id.btn_roundVideoQuality);
+    } else if (id == R.id.btn_tgx101RingRampTime) {
+      final int res = result.get(R.id.btn_tgx101RingRampTime);
+      int seconds = res == R.id.btn_tgx101RingRamp5 ? 5 : res == R.id.btn_tgx101RingRamp10 ? 10 : res == R.id.btn_tgx101RingRamp15 ? 15 : res == R.id.btn_tgx101RingRamp20 ? 20 : 30;
+      Settings.instance().setTgx101RingRampSeconds(seconds);
+      adapter.updateValuedSettingById(R.id.btn_tgx101RingRampTime);
     } else if (id == R.id.btn_lessDataForCalls) {
       final int res = result.get(R.id.btn_lessDataForCalls);
       final @DataSavingOption int option =

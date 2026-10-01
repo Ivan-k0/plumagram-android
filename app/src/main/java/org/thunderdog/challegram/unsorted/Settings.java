@@ -3206,6 +3206,19 @@ public class Settings {
   private static final String KEY_TGX101_FONT_ROBOTO = "tgx101_font_roboto";
   private static final String KEY_TGX101_TEXT_EDITOR = "tgx101_text_editor";
   private static final String KEY_TGX101_CALL_BAR = "tgx101_call_bar";
+  private static final String KEY_TGX101_RING_RAMP_SECONDS = "tgx101_ring_ramp_seconds";
+  public static final int[] TGX101_RING_RAMP_OPTIONS = {5, 10, 15, 20, 30};
+
+  /** TGx101: seconds the incoming call ringtone takes to grow from quiet to full volume */
+  public int getTgx101RingRampSeconds () {
+    int value = pmc.getInt(KEY_TGX101_RING_RAMP_SECONDS, 30);
+    for (int option : TGX101_RING_RAMP_OPTIONS) if (option == value) return value;
+    return 30;
+  }
+
+  public void setTgx101RingRampSeconds (int seconds) {
+    pmc.putInt(KEY_TGX101_RING_RAMP_SECONDS, seconds);
+  }
 
   /** TGx101: the «ongoing call» bar over the chats (the status bar chip also leads back to the call) */
   public boolean showTgx101CallBar () {
