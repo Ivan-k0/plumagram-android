@@ -5781,6 +5781,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   /** TGx101: text selection for a message (its text or caption, or a finished transcription). Returns false if there's no text. */
   public boolean tgx101OpenSelectText (TGMessage msg) {
+    return tgx101OpenSelectText(msg, null, 0, 0);
+  }
+
+  /** TGx101: in-bubble selection for text messages (double long press); the quote window for captions, the old dialog for transcriptions */
+  public boolean tgx101OpenSelectText (TGMessage msg, @Nullable org.thunderdog.challegram.component.chat.MessageView view, float touchX, float touchY) {
     String transcription = org.thunderdog.challegram.data.Tgx101Transcription.canTranscribe(msg.getMessage().content) ?
       org.thunderdog.challegram.data.Tgx101Transcription.doneText(tdlib, msg.getMessage()) : null;
     TdApi.FormattedText text = null;
@@ -5797,9 +5802,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
         return false;
       }
     }
+    if (transcription == null && view != null && Settings.instance().useTgx101TextEditor() && Tgx101MessageTextSelection.show(this, tdlib, view, msg, touchX, touchY)) {
+      finishSelectMode(-1);
+      return true;
+    }
     finishSelectMode(-1);
     if (transcription != null) {
       SelectTextForQuoteDialog.showForTranscription(this, tdlib, msg, transcription);
+    } else if (Settings.instance().useTgx101TextEditor()) {
+      Tgx101TextEditor.showQuote(this, tdlib, msg, text); // TGx101: no old «Select text» dialog with the new system
     } else {
       SelectTextForQuoteDialog.show(this, tdlib, msg, text);
     }

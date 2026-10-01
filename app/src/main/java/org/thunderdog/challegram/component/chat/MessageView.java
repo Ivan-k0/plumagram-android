@@ -1478,7 +1478,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     }
     MessagesController m = (MessagesController) c;
     // TGx101: a second long press on an already selected message opens text selection
-    if (m.inSelectMode() && m.isMessageSelected(msg.getChatId(), msg.getId(), msg) && m.tgx101OpenSelectText(msg)) {
+    if (m.inSelectMode() && m.isMessageSelected(msg.getChatId(), msg.getId(), msg) && m.tgx101OpenSelectText(msg, this, touchX, touchY)) {
       return true;
     }
     if (msg.canBeSelected()) {

@@ -627,6 +627,12 @@ public class TGMessageText extends TGMessage {
     return MathUtils.fromTo(fromLastLineWidth, toLastLineWidth, factor);
   }
 
+  /** TGx101: where the text is drawn inside the message view — {x, y, width}; null with a link preview above the text or a translation */
+  public @androidx.annotation.Nullable int[] tgx101TextFrame () {
+    if (linkPreview != null && linkPreviewAboveText.getFloatValue() != 0f) return null;
+    return new int[] {getContentX(), getContentY() + getTextTopOffset(), Math.round(visibleText.getMetadata().getTotalWidth())};
+  }
+
   @Override
   protected int getContentWidth () {
     int textWidth = Math.round(visibleText.getMetadata().getTotalWidth());
