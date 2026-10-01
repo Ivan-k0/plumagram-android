@@ -1457,6 +1457,7 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       // TGx101: from a notification with the app already running, open the chat right away, before the
       // window is shown again; posting it showed the previous screen for a moment first (a flash)
       if (UI.inUiThread() && navigation != null && !navigation.isEmpty()) {
+        tgx101CoverUntilChatShown(chatId);
         open.run();
       } else {
         handler.post(open);
@@ -1480,6 +1481,39 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     if (!(current instanceof PlaybackController)) {
       navigateToSafely(c);
     }
+  }
+
+  /**
+   * TGx101: opening a chat from a notification over another chat — the old chat, the slide-in and the keyboard
+   * switching flashed for a moment. The window is covered with the chat background until the new chat is in
+   * place, then the cover fades out.
+   */
+  private void tgx101CoverUntilChatShown (long chatId) {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) return;
+    final View decor = getWindow().getDecorView();
+    final android.graphics.drawable.ColorDrawable cover = new android.graphics.drawable.ColorDrawable(org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.chatBackground));
+    decor.setForeground(cover);
+    final long startTime = android.os.SystemClock.uptimeMillis();
+    final Runnable[] check = new Runnable[1];
+    check[0] = () -> {
+      ViewController<?> current = navigation.getCurrentStackItem();
+      boolean ready = !navigation.isAnimating() && current instanceof MessagesController && ((MessagesController) current).getChatId() == chatId;
+      if (!ready && android.os.SystemClock.uptimeMillis() - startTime < 1500) {
+        decor.postOnAnimation(check[0]);
+        return;
+      }
+      android.animation.ValueAnimator fade = android.animation.ValueAnimator.ofInt(255, 0);
+      fade.setDuration(140);
+      fade.addUpdateListener(a -> cover.setAlpha((int) a.getAnimatedValue()));
+      fade.addListener(new android.animation.AnimatorListenerAdapter() {
+        @Override
+        public void onAnimationEnd (android.animation.Animator animation) {
+          if (decor.getForeground() == cover) decor.setForeground(null);
+        }
+      });
+      fade.start();
+    };
+    decor.postOnAnimation(check[0]);
   }
 
   private void coverUntilCallShown (@androidx.annotation.Nullable ViewController<?> callController) {
