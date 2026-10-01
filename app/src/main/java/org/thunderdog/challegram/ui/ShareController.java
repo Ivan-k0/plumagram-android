@@ -2109,6 +2109,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
   private boolean sendOnKeyboardCloseGoToChat;
 
   private void performSend (boolean needHideKeyboard, TdApi.MessageSendOptions finalSendOptions, boolean forceGoToChat) {
+    org.thunderdog.challegram.Tgx101Diag.mark("share picker: send (hide keyboard " + needHideKeyboard + ", go to chat " + forceGoToChat + ")");
     if (needHideKeyboard) {
       if (!sendOnKeyboardClose) {
         sendOnKeyboardClose = true;
@@ -2422,6 +2423,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
   }
 
   public void show (boolean overlayStatusBar) {
+    org.thunderdog.challegram.Tgx101Diag.mark("share picker: open (overlay status bar " + overlayStatusBar + ")");
     if (tdlib == null) {
       if (getExportContentState() == EXPORT_AVAILABLE) {
         exportContent();
@@ -3779,6 +3781,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
 
   @Override
   public void destroy () {
+    org.thunderdog.challegram.Tgx101Diag.mark("share picker: closed");
     super.destroy();
     for (TdlibChatListSlice list : listByChatList.values()) {
       list.performDestroy();

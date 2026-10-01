@@ -2365,7 +2365,17 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       };
 
       c.setArguments(new ShareController.Args(shareDelegate).setNeedOpenChat(true));
-      c.show();
+      // TGx101: shared into the app while a chat with the keyboard was open — the keyboard came back over the chat
+      // picker and only the keyboard was visible: hide it first, show the picker once it is down
+      View focus = context.getCurrentFocus();
+      if (context.isKeyboardVisible() && focus != null) {
+        org.thunderdog.challegram.Tgx101Diag.mark("share picker: keyboard hidden first");
+        focus.clearFocus();
+        org.thunderdog.challegram.tool.Keyboard.hide(focus);
+        UI.post(c::show, 250);
+      } else {
+        c.show();
+      }
     })));
   }
 
