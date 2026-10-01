@@ -909,10 +909,15 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     // Edit
 
     if (!isMore && msg.canEditText() && isSent) {
+      // TGx101: «Изменить» edits in the message input like the official app; «Редактор» opens the text window
       ids.append(R.id.btn_messageEdit);
-      // TGx101: «Редактор» when the message text window is on
-      strings.append(org.thunderdog.challegram.ui.Tgx101TextEditor.canEdit(msg.getNewestMessage()) ? R.string.Tgx101EditorMenu : R.string.edit);
+      strings.append(R.string.edit);
       icons.append(R.drawable.baseline_edit_24);
+      if (org.thunderdog.challegram.ui.Tgx101TextEditor.canEdit(msg.getNewestMessage())) {
+        ids.append(R.id.btn_tgx101EditorWindow);
+        strings.append(R.string.Tgx101EditorMenu);
+        icons.append(R.drawable.baseline_format_text_24);
+      }
     }
 
     // Copy, select

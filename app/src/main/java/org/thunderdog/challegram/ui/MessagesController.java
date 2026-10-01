@@ -6237,7 +6237,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           Tgx101TextEditor.showQuote(this, tdlib, selectedMessage, text); // TGx101: the quote window
         }
         return true;
-      } else if (id == R.id.btn_messageEdit) {
+      } else if (id == R.id.btn_messageEdit || id == R.id.btn_tgx101EditorWindow) {
         TdApi.Message message = null;
         if (selectedMessage instanceof TGMessageMedia) {
           long messageId = ((TGMessageMedia) selectedMessage).getCaptionMessageId();
@@ -6247,7 +6247,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           message = selectedMessage.getNewestMessage();
         }
         TdApi.Message editingMessage = message;
-        if (Tgx101TextEditor.canEdit(editingMessage)) { // TGx101: the message text window with formatting buttons
+        if (id == R.id.btn_tgx101EditorWindow && Tgx101TextEditor.canEdit(editingMessage)) { // TGx101: the message text window with formatting buttons
           Tgx101TextEditor.showEdit(this, tdlib, editingMessage);
           return true;
         }

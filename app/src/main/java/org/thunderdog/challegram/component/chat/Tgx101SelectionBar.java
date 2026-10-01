@@ -114,6 +114,9 @@ public final class Tgx101SelectionBar {
     }
     top.addAll(others);
     build(top);
+    if (hiddenWhileDragging) {
+      content.setAlpha(0f); // still dragging — the system re-asks the menu, don't pop the bar back over the magnifier
+    }
     reposition();
   }
 
@@ -152,7 +155,7 @@ public final class Tgx101SelectionBar {
       content.setAlpha(0f);
     }
     view.removeCallbacks(showAfterDrag);
-    view.postDelayed(showAfterDrag, 350);
+    view.postDelayed(showAfterDrag, 150);
   }
 
   // Colours: the editor window's panel and its white buttons

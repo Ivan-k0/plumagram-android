@@ -1097,6 +1097,7 @@
   <item type="id" name="btn_tgx101Font" />
   <item type="id" name="btn_tgx101TextEditor" />
   <item type="id" name="btn_tgx101CallBar" />
+  <item type="id" name="btn_tgx101EditorWindow" />
   <item type="id" name="btn_tgx101RingRampTime" />
   <item type="id" name="btn_tgx101RingRamp5" />
   <item type="id" name="btn_tgx101RingRamp10" />

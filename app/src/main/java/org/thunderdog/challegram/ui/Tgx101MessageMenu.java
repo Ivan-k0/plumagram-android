@@ -130,9 +130,48 @@ public final class Tgx101MessageMenu {
     View readDateDivider;
   }
 
+  /** TGx101 diagnostics: what invisible characters / formatting a message has (counts only, never the text) */
+  private static void tgx101LogTextShape (TGMessage message) {
+    try {
+      org.drinkless.tdlib.TdApi.FormattedText text = tgx.td.Td.textOrCaption(message.getNewestMessage().content);
+      if (text == null || text.text == null) return;
+      String t = text.text;
+      int tabs = 0, cr = 0, lf = 0, nbsp = 0, ls = 0, ps = 0, vt = 0, ff = 0, zw = 0, wide = 0, maxSpaces = 0, run = 0;
+      for (int i = 0; i < t.length(); i++) {
+        char ch = t.charAt(i);
+        if (ch == ' ') { run++; maxSpaces = Math.max(maxSpaces, run); continue; }
+        run = 0;
+        switch (ch) {
+          case '\t': tabs++; break;
+          case '\r': cr++; break;
+          case '\n': lf++; break;
+          case '\u00A0': nbsp++; break;
+          case '\u2028': ls++; break;
+          case '\u2029': ps++; break;
+          case '\u000B': vt++; break;
+          case '\u000C': ff++; break;
+          case '\u200B': case '\u200C': case '\u200D': case '\uFEFF': zw++; break;
+          default:
+            if (Character.getType(ch) == Character.SPACE_SEPARATOR) wide++;
+        }
+      }
+      StringBuilder entities = new StringBuilder();
+      if (text.entities != null) {
+        for (org.drinkless.tdlib.TdApi.TextEntity e : text.entities) {
+          String name = e.type.getClass().getSimpleName().replace("TextEntityType", "");
+          if (entities.indexOf(name) < 0) entities.append(name).append(' ');
+        }
+      }
+      org.thunderdog.challegram.Tgx101Diag.mark("text shape: len=" + t.length() + " lf=" + lf + " cr=" + cr + " tab=" + tabs + " nbsp=" + nbsp +
+        " ls=" + ls + " ps=" + ps + " vt=" + vt + " ff=" + ff + " zw=" + zw + " otherSpaces=" + wide + " maxSpaceRun=" + maxSpaces +
+        " entities=[" + entities.toString().trim() + "] type=" + message.getClass().getSimpleName());
+    } catch (Throwable ignored) { }
+  }
+
   public static PopupLayout show (MessagesController c, TGMessage message, ViewController.Options options, OptionDelegate delegate,
                                   boolean readDatePending, Runnable onExpandReactions, Runnable onDismissPrepare, Runnable onDismiss) {
     Context context = c.context();
+    tgx101LogTextShape(message);
     Host host = new Host();
     PopupLayout popup = new PopupLayout(context);
     host.popup = popup;
