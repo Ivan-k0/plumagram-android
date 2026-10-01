@@ -3210,6 +3210,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       if (commit) tgx101CloseGuide(); // TGx101: Back closes the gestures guide first
       return true;
     }
+    if (tgx101SettingsView != null) {
+      if (commit) tgx101CloseSettings(); // TGx101: Back closes the player settings panel
+      return true;
+    }
     if (tgx101Locked()) {
       org.thunderdog.challegram.Tgx101Diag.mark("player: Back blocked by the lock");
       return true; // TGx101: the child lock — Back doesn't close the video either
@@ -3467,6 +3471,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       Settings.instance().setTgx101PlayerSpeed(speed);
       mediaView.tgx101SetSpeed(speed);
       if (videoSliderView != null) videoSliderView.setTgx101Speed(speed);
+      tgx101RefreshSettings();
       return true;
     }, getForcedTheme());
   }
@@ -3613,6 +3618,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         tgx101SleepAt = android.os.SystemClock.uptimeMillis() + value * 60000L;
         contentView.postDelayed(tgx101SleepAction, value * 60000L);
       }
+      tgx101RefreshSettings();
       return true;
     }, getForcedTheme());
   }
@@ -3636,6 +3642,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           boolean on = result.get(ids[i]) != 0;
           settings.setTgx101PlayerGesture(gestures[i], on);
         }
+        tgx101RefreshSettings();
         org.thunderdog.challegram.Tgx101Diag.mark("player settings: gestures seek " + settings.tgx101PlayerGesture(Settings.GESTURE_SEEK) + " brightness " + settings.tgx101PlayerGesture(Settings.GESTURE_BRIGHTNESS) + " volume " + settings.tgx101PlayerGesture(Settings.GESTURE_VOLUME) + " 2× " + settings.tgx101PlayerGesture(Settings.GESTURE_SPEED));
       }));
   }
@@ -3650,6 +3657,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
     showOptions(Lang.getString(R.string.Tgx101PlayerSeekStep), ids, names, null, null, (itemView, id) -> {
       Settings.instance().setTgx101PlayerSeekStep(steps[id - 1]);
+      tgx101RefreshSettings();
       org.thunderdog.challegram.Tgx101Diag.mark("player settings: seek step " + steps[id - 1] + " s");
       return true;
     }, getForcedTheme());
@@ -3670,59 +3678,168 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     return true;
   }
 
+  // Player settings (variant A): a panel on the right over the whole height in landscape, from the bottom in portrait;
+  // a title with ✕, rows with values (a tap opens the list) and switches (toggle in place). Back or a tap aside closes.
+
+  private @Nullable View tgx101SettingsView;
+  private @Nullable LinearLayout tgx101SettingsRows;
+
+  private boolean tgx101CloseSettings () {
+    if (tgx101SettingsView == null) return false;
+    contentView.removeView(tgx101SettingsView);
+    tgx101SettingsView = null;
+    tgx101SettingsRows = null;
+    return true;
+  }
+
+  private void tgx101RefreshSettings () {
+    if (tgx101SettingsRows != null) tgx101FillSettingsRows(tgx101SettingsRows);
+  }
+
   private void tgx101ShowPlayerSettings () {
     org.thunderdog.challegram.Tgx101Diag.mark("player: settings opened");
+    if (tgx101SettingsView != null) return;
+    boolean landscape = context.getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+    android.widget.FrameLayout wrap = new android.widget.FrameLayout(context);
+    wrap.setBackgroundColor(0x59000000);
+    wrap.setOnClickListener(v -> tgx101CloseSettings());
+    androidx.core.view.ViewCompat.setTranslationZ(wrap, Screen.dp(30f));
+
+    LinearLayout panel = new LinearLayout(context);
+    panel.setOrientation(LinearLayout.VERTICAL);
+    panel.setClickable(true);
+    android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+    bg.setColor(0xf5161c22);
+    float r = Screen.dp(20f);
+    bg.setCornerRadii(landscape ? new float[] {r, r, 0, 0, 0, 0, r, r} : new float[] {r, r, r, r, 0, 0, 0, 0});
+    panel.setBackground(bg);
+    panel.setPadding(0, Screen.dp(6f), 0, Screen.dp(landscape ? 6f : 16f));
+
+    LinearLayout header = new LinearLayout(context);
+    header.setOrientation(LinearLayout.HORIZONTAL);
+    header.setGravity(Gravity.CENTER_VERTICAL);
+    header.setPadding(Screen.dp(18f), Screen.dp(6f), Screen.dp(12f), Screen.dp(6f));
+    android.widget.TextView title = new android.widget.TextView(context);
+    title.setText(Lang.getString(R.string.Tgx101PlayerSettings));
+    title.setTextColor(0xffffffff);
+    title.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16f);
+    title.setTypeface(Fonts.getRobotoMedium());
+    header.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+    android.widget.ImageView close = new android.widget.ImageView(context);
+    close.setImageResource(R.drawable.baseline_close_24);
+    close.setColorFilter(0xffffffff);
+    close.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+    android.graphics.drawable.GradientDrawable closeBg = new android.graphics.drawable.GradientDrawable();
+    closeBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+    closeBg.setColor(0x1fffffff);
+    close.setBackground(closeBg);
+    close.setContentDescription(Lang.getString(R.string.Cancel));
+    close.setOnClickListener(v -> tgx101CloseSettings());
+    header.addView(close, new LinearLayout.LayoutParams(Screen.dp(34f), Screen.dp(34f)));
+    panel.addView(header);
+
+    android.widget.ScrollView scroll = new android.widget.ScrollView(context);
+    LinearLayout rows = new LinearLayout(context);
+    rows.setOrientation(LinearLayout.VERTICAL);
+    scroll.addView(rows);
+    panel.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, landscape ? 0 : ViewGroup.LayoutParams.WRAP_CONTENT, landscape ? 1f : 0f));
+    tgx101SettingsRows = rows;
+    tgx101FillSettingsRows(rows);
+
+    android.widget.FrameLayout.LayoutParams params;
+    if (landscape) {
+      params = new android.widget.FrameLayout.LayoutParams(Math.min(Screen.dp(360f), (int) (Screen.currentWidth() * .48f)), ViewGroup.LayoutParams.MATCH_PARENT, Gravity.RIGHT);
+    } else {
+      params = new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+    }
+    wrap.addView(panel, params);
+    tgx101SettingsView = wrap;
+    contentView.addView(wrap);
+  }
+
+  private void tgx101FillSettingsRows (LinearLayout rows) {
+    rows.removeAllViews();
     Settings settings = Settings.instance();
     float speed = settings.tgx101PlayerSpeed();
     String speedText = (speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed)) + "×";
-    String on = Lang.getString(R.string.Tgx101On), off = Lang.getString(R.string.Tgx101Off);
-    int[] ids = {1, 2, 10, 3, 4, 5, 6, 9};
-    String[] names = {
-      Lang.getString(R.string.Tgx101PlayerSpeed) + ": " + speedText,
-      Lang.getString(R.string.Tgx101PlayerGestures) + "…",
-      Lang.getString(R.string.Tgx101PlayerGuide),
-      Lang.getString(R.string.Tgx101PlayerSeekStep) + ": " + Lang.getString(R.string.Tgx101Seconds, settings.tgx101PlayerSeekStep()),
-      Lang.getString(R.string.Tgx101PlayerLoop) + ": " + (settings.tgx101PlayerLoop() ? on : off),
-      Lang.getString(R.string.Tgx101PlayerResume) + ": " + (settings.tgx101PlayerResume() ? on : off),
-      Lang.getString(R.string.Tgx101PlayerSleep) + ": " + (tgx101SleepAt > 0 ? Lang.getString(R.string.Tgx101Minutes, (int) Math.max(1, (tgx101SleepAt - android.os.SystemClock.uptimeMillis() + 59999) / 60000)) : off),
-      Lang.getString(R.string.Tgx101Orientation) + ": " + Lang.getString(settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_AUTO ? R.string.Tgx101OrientationAutoShort : settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_PORTRAIT ? R.string.Tgx101OrientationPortraitShort : R.string.Tgx101OrientationSystemShort)
-    };
-    int[] icons = {R.drawable.baseline_fast_forward_24, R.drawable.baseline_gesture_24, R.drawable.baseline_school_24, R.drawable.baseline_replay_24, R.drawable.baseline_repeat_24, R.drawable.baseline_history_24, R.drawable.baseline_timer_16, R.drawable.baseline_screen_rotation_24};
-    showOptions(Lang.getString(R.string.Tgx101PlayerSettings), ids, names, null, icons, (itemView, id) -> {
-      switch (id) {
-        case 1:
-          tgx101ChooseSpeed();
-          break;
-        case 2:
-          tgx101ChooseGestures();
-          break;
-        case 3:
-          tgx101ChooseSeekStep();
-          break;
-        case 4:
-          settings.setTgx101PlayerLoop(!settings.tgx101PlayerLoop());
-          org.thunderdog.challegram.Tgx101Diag.mark("player settings: repeat " + settings.tgx101PlayerLoop());
-          mediaView.tgx101ApplyLooping();
-          break;
-        case 5:
-          settings.setTgx101PlayerResume(!settings.tgx101PlayerResume());
-          org.thunderdog.challegram.Tgx101Diag.mark("player settings: resume " + settings.tgx101PlayerResume());
-          break;
-        case 6:
-          tgx101ChooseSleepTimer();
-          break;
-        case 9:
-          tgx101ChooseOrientation();
-          break;
-        case 10:
-          org.thunderdog.challegram.Tgx101Diag.mark("player: guide opened");
-          tgx101ShowGuide();
-          break;
-
-      }
-      return true;
-    }, getForcedTheme());
+    int gesturesOn = 0;
+    for (int g : new int[] {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED}) {
+      if (settings.tgx101PlayerGesture(g)) gesturesOn++;
+    }
+    String off = Lang.getString(R.string.Tgx101Off);
+    tgx101SettingsRow(rows, R.drawable.baseline_fast_forward_24, Lang.getString(R.string.Tgx101PlayerSpeed), speedText, -1, this::tgx101ChooseSpeed);
+    tgx101SettingsRow(rows, R.drawable.baseline_gesture_24, Lang.getString(R.string.Tgx101PlayerGestures), gesturesOn + " / 4", -1, this::tgx101ChooseGestures);
+    tgx101SettingsRow(rows, R.drawable.baseline_school_24, Lang.getString(R.string.Tgx101PlayerGuide), "", -1, () -> {
+      tgx101CloseSettings();
+      org.thunderdog.challegram.Tgx101Diag.mark("player: guide opened");
+      tgx101ShowGuide();
+    });
+    tgx101SettingsRow(rows, R.drawable.baseline_replay_24, Lang.getString(R.string.Tgx101PlayerSeekStep), Lang.getString(R.string.Tgx101Seconds, settings.tgx101PlayerSeekStep()), -1, this::tgx101ChooseSeekStep);
+    tgx101SettingsRow(rows, R.drawable.baseline_repeat_24, Lang.getString(R.string.Tgx101PlayerLoop), null, settings.tgx101PlayerLoop() ? 1 : 0, () -> {
+      settings.setTgx101PlayerLoop(!settings.tgx101PlayerLoop());
+      org.thunderdog.challegram.Tgx101Diag.mark("player settings: repeat " + settings.tgx101PlayerLoop());
+      mediaView.tgx101ApplyLooping();
+      tgx101RefreshSettings();
+    });
+    tgx101SettingsRow(rows, R.drawable.baseline_history_24, Lang.getString(R.string.Tgx101PlayerResume), null, settings.tgx101PlayerResume() ? 1 : 0, () -> {
+      settings.setTgx101PlayerResume(!settings.tgx101PlayerResume());
+      org.thunderdog.challegram.Tgx101Diag.mark("player settings: resume " + settings.tgx101PlayerResume());
+      tgx101RefreshSettings();
+    });
+    tgx101SettingsRow(rows, R.drawable.baseline_timer_16, Lang.getString(R.string.Tgx101PlayerSleep), tgx101SleepAt > 0 ? Lang.getString(R.string.Tgx101Minutes, (int) Math.max(1, (tgx101SleepAt - android.os.SystemClock.uptimeMillis() + 59999) / 60000)) : off, -1, this::tgx101ChooseSleepTimer);
+    tgx101SettingsRow(rows, R.drawable.baseline_screen_rotation_24, Lang.getString(R.string.Tgx101Orientation), Lang.getString(settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_AUTO ? R.string.Tgx101OrientationAutoShort : settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_PORTRAIT ? R.string.Tgx101OrientationPortraitShort : R.string.Tgx101OrientationSystemShort), -1, this::tgx101ChooseOrientation);
   }
+
+  /** One row: icon, title, and either a value with › (switchState -1) or a switch (0 / 1) */
+  private void tgx101SettingsRow (LinearLayout rows, int icon, String name, @Nullable String value, int switchState, Runnable onClick) {
+    LinearLayout row = new LinearLayout(context);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setPadding(Screen.dp(18f), 0, Screen.dp(16f), 0);
+    android.graphics.drawable.StateListDrawable pressed = new android.graphics.drawable.StateListDrawable();
+    pressed.addState(new int[] {android.R.attr.state_pressed}, new android.graphics.drawable.ColorDrawable(0x1affffff));
+    row.setBackground(pressed);
+    row.setOnClickListener(v -> onClick.run());
+    android.widget.ImageView iconView = new android.widget.ImageView(context);
+    iconView.setImageResource(icon);
+    iconView.setColorFilter(0xb3ffffff);
+    iconView.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+    row.addView(iconView, new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f)));
+    android.widget.TextView text = new android.widget.TextView(context);
+    text.setText(name);
+    text.setTextColor(0xffffffff);
+    text.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 15f);
+    text.setSingleLine(true);
+    LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+    textParams.leftMargin = Screen.dp(16f);
+    row.addView(text, textParams);
+    if (switchState >= 0) {
+      View toggle = new View(context) {
+        private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        private final android.graphics.RectF rect = new android.graphics.RectF();
+
+        @Override
+        protected void onDraw (android.graphics.Canvas c) {
+          float h = getHeight(), w = getWidth();
+          paint.setColor(switchState == 1 ? 0xff5b87b0 : 0xff4a5560);
+          rect.set(0, 0, w, h);
+          c.drawRoundRect(rect, h / 2f, h / 2f, paint);
+          paint.setColor(0xffffffff);
+          float knob = h / 2f - Screen.dp(2f);
+          c.drawCircle(switchState == 1 ? w - h / 2f : h / 2f, h / 2f, knob, paint);
+        }
+      };
+      row.addView(toggle, new LinearLayout.LayoutParams(Screen.dp(36f), Screen.dp(20f)));
+    } else {
+      android.widget.TextView valueView = new android.widget.TextView(context);
+      valueView.setText((value != null ? value : "") + "  ›");
+      valueView.setTextColor(0xff8fb3d9);
+      valueView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14f);
+      row.addView(valueView);
+    }
+    rows.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(48f)));
+  }
+
 
   @Override
   public void onPlayPause (MediaItem item, boolean isPlaying) {
@@ -8572,6 +8689,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       Settings.instance().setTgx101PlayerOrientation(id - 1);
       org.thunderdog.challegram.Tgx101Diag.mark("player settings: orientation " + (id - 1));
       tgx101ApplyOrientation();
+      tgx101RefreshSettings();
       return true;
     }, getForcedTheme());
   }
