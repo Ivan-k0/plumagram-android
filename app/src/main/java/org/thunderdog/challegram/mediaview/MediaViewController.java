@@ -3297,6 +3297,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           }
           videoSliderView.setFile(stack.getCurrent().getSourceGalleryFile());
           MediaItem item = stack.getCurrent();
+          tgx101UpdateNav();
           videoSliderView.setShowPlayPause(item.isVideoOrGif(), animated && videoFactor != 0f);
           videoSliderView.setIsPlaying(false, true);
           videoSliderView.setSlideEnabled(item.canSeekVideo());
@@ -3326,6 +3327,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         MediaItem item = stack.getCurrent();
         videoSliderView.updateSecondarySeek(TD.getFileOffsetProgress(item.getTargetFile()), TD.getFilePrefixProgress(item.getTargetFile()));
         videoSliderView.setFile(item.getSourceGalleryFile());
+        tgx101UpdateNav();
         videoSliderView.setShowPlayPause(item.isVideoOrGif(), animated);
         videoSliderView.setIsPlaying(false, true);
         videoSliderView.setSlideEnabled(item.canSeekVideo());
@@ -3529,6 +3531,18 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     } else {
       controller.show(androidx.core.view.WindowInsetsCompat.Type.systemBars());
       controller.setSystemBarsBehavior(androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_DEFAULT);
+    }
+  }
+
+  private void tgx101UpdateNav () {
+    if (videoSliderView != null && mediaView != null && mode == MODE_MESSAGES) {
+      videoSliderView.setTgx101Nav(mediaView.hasPrevious(), mediaView.hasNext(), v -> {
+        org.thunderdog.challegram.Tgx101Diag.mark("player: ‹ previous");
+        mediaView.tgx101Page(false);
+      }, v -> {
+        org.thunderdog.challegram.Tgx101Diag.mark("player: › next");
+        mediaView.tgx101Page(true);
+      });
     }
   }
 

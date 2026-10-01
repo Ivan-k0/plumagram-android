@@ -338,12 +338,59 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
     addView(speedView, params);
     setTgx101Speed(1f);
 
-    ((FrameLayoutFix.LayoutParams) totalView.getLayoutParams()).rightMargin = side + toolWidth * 3;
-    ((FrameLayoutFix.LayoutParams) nowView.getLayoutParams()).leftMargin = side;
-    ((FrameLayoutFix.LayoutParams) playPauseButton.getLayoutParams()).leftMargin = side;
-    sliderView.setPadding(Screen.dp(56f) + side, 0, Screen.dp(56f) + side + toolWidth * 3, 0);
+    prevView = navButton(org.thunderdog.challegram.R.drawable.baseline_skip_previous_24_white, Gravity.LEFT | Gravity.BOTTOM);
+    nextView = navButton(org.thunderdog.challegram.R.drawable.baseline_skip_next_24_white, Gravity.RIGHT | Gravity.BOTTOM);
+    applyNavLayout();
+  }
+
+  // Previous / next file: only in landscape (no room in portrait), only when there is one
+
+  private android.widget.ImageView prevView, nextView;
+  private boolean hasPrev, hasNext;
+
+  private android.widget.ImageView navButton (int icon, int gravity) {
+    android.widget.ImageView view = new android.widget.ImageView(getContext());
+    view.setImageResource(icon);
+    view.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+    view.setVisibility(View.GONE);
+    FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(Screen.dp(36f), Screen.dp(56f), gravity);
+    if ((gravity & Gravity.LEFT) == Gravity.LEFT) params.leftMargin = Screen.dp(12f); else params.rightMargin = Screen.dp(12f);
+    addView(view, params);
+    return view;
+  }
+
+  public void setTgx101Nav (boolean hasPrev, boolean hasNext, View.OnClickListener onPrev, View.OnClickListener onNext) {
+    this.hasPrev = hasPrev;
+    this.hasNext = hasNext;
+    if (prevView == null) return;
+    prevView.setOnClickListener(onPrev);
+    nextView.setOnClickListener(onNext);
+    applyNavLayout();
+  }
+
+  private void applyNavLayout () {
+    if (!capsule) return;
+    boolean landscape = getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+    boolean showPrev = landscape && hasPrev, showNext = landscape && hasNext;
+    prevView.setVisibility(showPrev ? View.VISIBLE : View.GONE);
+    nextView.setVisibility(showNext ? View.VISIBLE : View.GONE);
+    int side = Screen.dp(10f), toolWidth = Screen.dp(40f), nav = Screen.dp(36f);
+    int leftShift = showPrev ? nav : 0, rightShift = showNext ? nav : 0;
+    ((FrameLayoutFix.LayoutParams) settingsView.getLayoutParams()).rightMargin = side + rightShift;
+    ((FrameLayoutFix.LayoutParams) lockView.getLayoutParams()).rightMargin = side + rightShift + toolWidth;
+    ((FrameLayoutFix.LayoutParams) speedView.getLayoutParams()).rightMargin = side + rightShift + toolWidth * 2;
+    ((FrameLayoutFix.LayoutParams) totalView.getLayoutParams()).rightMargin = side + rightShift + toolWidth * 3;
+    ((FrameLayoutFix.LayoutParams) nowView.getLayoutParams()).leftMargin = side + leftShift;
+    ((FrameLayoutFix.LayoutParams) playPauseButton.getLayoutParams()).leftMargin = side + leftShift;
+    sliderView.setPadding(Screen.dp(56f) + side + leftShift, 0, Screen.dp(56f) + side + rightShift + toolWidth * 3, 0);
     requestLayout();
     invalidate();
+  }
+
+  @Override
+  protected void onConfigurationChanged (android.content.res.Configuration newConfig) {
+    super.onConfigurationChanged(newConfig);
+    applyNavLayout();
   }
 
   public void setTgx101Speed (float speed) {
@@ -358,7 +405,7 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
     if (lockView == null) return;
     lockView.setLocked(locked, animated);
     float alpha = locked ? .35f : 1f;
-    for (View view : new View[] {speedView, settingsView, playPauseButton}) {
+    for (View view : new View[] {speedView, settingsView, playPauseButton, prevView, nextView}) {
       view.setEnabled(!locked);
       view.setClickable(!locked);
       view.animate().alpha(alpha).setDuration(150).start();

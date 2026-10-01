@@ -850,6 +850,14 @@ public class MediaView extends FrameLayoutFix {
     if (baseCell != null) baseCell.tgx101SetSpeed(speed);
   }
 
+  /** TGx101: the player's ‹ › buttons — previous / next media with the usual slide */
+  public void tgx101Page (boolean next) {
+    if (next ? !hasNext() : !hasPrevious()) return;
+    stopAnimator();
+    translate(next ? .01f : -.01f);
+    dropPreview(next ? DIRECTION_FORWARD : DIRECTION_BACKWARD, 0f);
+  }
+
   /** The current item is a video (not a GIF) */
   public boolean tgx101IsVideo () {
     MediaItem media = baseCell != null ? baseCell.getMedia() : null;
