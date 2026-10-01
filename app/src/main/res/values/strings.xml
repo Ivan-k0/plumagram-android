@@ -6013,6 +6013,8 @@
   <string name="Tgx101FormatMonoShort">Mono</string>
   <string name="Tgx101SelectAllFull">Select all</string>
   <string name="Tgx101Undo">Undo</string>
+  <!-- the system share sheet wraps «PlumaGram» as «PlumaGra / m»: a zero-width space lets it break as «Pluma / Gram» -->
+  <string name="Tgx101ShareLabel" translatable="false">Pluma&#8203;Gram</string>
   <string name="Tgx101NothingToUndo">Nothing to undo</string>
   <string name="Tgx101RingRampTime">Fade-in time</string>
   <string name="Tgx101RingRampSeconds">%1$d s</string>

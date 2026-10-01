@@ -530,6 +530,19 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     return true;
   }
 
+  /** TGx101: the chat is closing — the selection bar (its own window) goes at once */
+  public void tgx101DismissSelectionBar () {
+    if (tgx101SelectionBar != null) {
+      tgx101SelectionBar.dismiss();
+    }
+  }
+
+  @Override
+  protected void onDetachedFromWindow () {
+    super.onDetachedFromWindow();
+    tgx101DismissSelectionBar();
+  }
+
   @Override
   protected void onFocusChanged (boolean focused, int direction, @androidx.annotation.Nullable android.graphics.Rect previouslyFocusedRect) {
     super.onFocusChanged(focused, direction, previouslyFocusedRect);

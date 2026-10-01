@@ -4325,6 +4325,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
   @Override
   public void onBlur () {
     saveDraft();
+    if (inputView != null) {
+      inputView.tgx101DismissSelectionBar();
+    }
 
     super.onBlur();
 
@@ -9292,6 +9295,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
 
     if (!fromTop) {
+      // TGx101: the system back with the keyboard up only hides the keyboard (the back gesture used to leave the chat
+      // at the same time); the next back leaves the chat
+      if (inputView != null && inputView.hasFocus() && context.isKeyboardVisible()) {
+        if (commit) {
+          org.thunderdog.challegram.Tgx101Diag.mark("back: keyboard hidden, chat stays");
+          inputView.tgx101DismissSelectionBar();
+          hideSoftwareKeyboard();
+        }
+        return true;
+      }
       if (emojiShown) {
         if (commit) {
           emojiState = false;
@@ -9308,6 +9321,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
     }
 
+    if (commit && inputView != null) {
+      inputView.tgx101DismissSelectionBar(); // TGx101: the input's selection bar goes right away, not after the chat is gone
+    }
     return super.performOnBackPressed(fromTop, commit);
   }
 

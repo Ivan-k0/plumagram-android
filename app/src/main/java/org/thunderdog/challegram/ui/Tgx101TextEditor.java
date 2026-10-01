@@ -177,6 +177,7 @@ public final class Tgx101TextEditor {
         if (dialog[0] != null) dialog[0].dismiss();
       }
     });
+    addUndoNextToPrimary(panel, input);
 
     dialog[0] = showCard(controller, root, input::performDestroy);
     root.findViewWithTag("close").setOnClickListener(v -> dialog[0].dismiss());
@@ -625,6 +626,35 @@ public final class Tgx101TextEditor {
     params.topMargin = Screen.dp(10f);
     params.leftMargin = params.rightMargin = Screen.dp(3f);
     panel.addView(button, params);
+  }
+
+  /** «Undo» (any change of the text, 50 steps) as a white square right of the last primary button (mockup 4, on the right) */
+  private static void addUndoNextToPrimary (LinearLayout panel, InputView input) {
+    View save = panel.getChildAt(panel.getChildCount() - 1);
+    LinearLayout.LayoutParams saveParams = (LinearLayout.LayoutParams) save.getLayoutParams();
+    panel.removeView(save);
+    LinearLayout row = new LinearLayout(panel.getContext());
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, saveParams.height);
+    rowParams.topMargin = saveParams.topMargin;
+    rowParams.leftMargin = saveParams.leftMargin;
+    rowParams.rightMargin = saveParams.rightMargin;
+    row.addView(save, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+    ImageView undo = new ImageView(panel.getContext());
+    undo.setImageResource(R.drawable.baseline_undo_24);
+    undo.setColorFilter(Theme.textAccentColor());
+    undo.setScaleType(ImageView.ScaleType.CENTER);
+    undo.setBackground(pressable(Theme.fillingColor(), 12f));
+    undo.setContentDescription(Lang.getString(R.string.Tgx101Undo));
+    undo.setOnClickListener(v -> {
+      if (!input.tgx101Undo()) {
+        UI.showToast(R.string.Tgx101NothingToUndo, android.widget.Toast.LENGTH_SHORT);
+      }
+    });
+    LinearLayout.LayoutParams undoParams = new LinearLayout.LayoutParams(Screen.dp(52f), ViewGroup.LayoutParams.MATCH_PARENT);
+    undoParams.leftMargin = Screen.dp(6f);
+    row.addView(undo, undoParams);
+    panel.addView(row, rowParams);
   }
 
   private static LinearLayout.LayoutParams matchWrap (int topMargin) {
