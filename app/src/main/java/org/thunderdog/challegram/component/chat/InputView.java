@@ -350,6 +350,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
       @Override
       public boolean onPrepareActionMode (ActionMode mode, Menu menu) {
         updateMenuVisibility(menu);
+        org.thunderdog.challegram.Tgx101Diag.mark("input selection mode prepared " + getSelectionStart() + "-" + getSelectionEnd());
         // TGx101: own fixed-width selection bar instead of the system floating toolbar (Android 6+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && actionModeVisibility && Config.USE_CUSTOM_INPUT_STYLING && org.thunderdog.challegram.unsorted.Settings.instance().useTgx101TextEditor()) {
           if (tgx101SelectionBar == null) tgx101SelectionBar = new Tgx101SelectionBar(InputView.this, true, null);
@@ -365,6 +366,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
 
       @Override
       public void onDestroyActionMode (ActionMode mode) {
+        org.thunderdog.challegram.Tgx101Diag.mark("input selection mode ended at " + getSelectionStart() + "-" + getSelectionEnd());
         if (currentActionMode == mode) {
           currentActionMode = null;
         }
@@ -867,9 +869,17 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     inlineContext.onTextChanged(cs, str, selection != null && selection.isEmpty() ? selection.start : -1);
   }
 
+  private int tgx101LastSelStart = -1, tgx101LastSelEnd = -1;
+
   @Override
   protected void onSelectionChanged (int selStart, int selEnd) {
     super.onSelectionChanged(selStart, selEnd);
+    // TGx101 diagnostics: a selection that collapses to a cursor while handles are dragged (positions only)
+    if (tgx101LastSelStart != tgx101LastSelEnd && selStart == selEnd && tgx101LastSelStart >= 0) {
+      org.thunderdog.challegram.Tgx101Diag.mark("input selection collapsed " + tgx101LastSelStart + "-" + tgx101LastSelEnd + " → " + selStart + " (len " + length() + ", lines " + getLineCount() + ")");
+    }
+    tgx101LastSelStart = selStart;
+    tgx101LastSelEnd = selEnd;
     if (tgx101SelectionBar != null && tgx101SelectionBar.isShowing()) {
       tgx101SelectionBar.onSelectionChanging(); // hidden while a handle is dragged (the magnifier), back above the selection after
     }
