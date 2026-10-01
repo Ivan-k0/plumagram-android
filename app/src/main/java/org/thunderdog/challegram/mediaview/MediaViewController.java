@@ -3523,30 +3523,47 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }, getForcedTheme());
   }
 
+  /** Each player gesture on / off: seek, brightness, volume swipes and hold for 2× */
+  private void tgx101ChooseGestures () {
+    Settings settings = Settings.instance();
+    String on = Lang.getString(R.string.Tgx101On), off = Lang.getString(R.string.Tgx101Off);
+    int[] gestures = {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED};
+    int[] names = {R.string.Tgx101GestureSeek, R.string.Tgx101GestureBrightness, R.string.Tgx101GestureVolume, R.string.Tgx101GestureSpeed};
+    String[] titles = new String[gestures.length];
+    for (int i = 0; i < gestures.length; i++) {
+      titles[i] = Lang.getString(names[i]) + ": " + (settings.tgx101PlayerGesture(gestures[i]) ? on : off);
+    }
+    showOptions(Lang.getString(R.string.Tgx101PlayerGesturesHint), gestures, titles, null,
+      new int[] {R.drawable.baseline_swap_horiz_24, R.drawable.baseline_brightness_5_24, R.drawable.baseline_volume_up_24, R.drawable.baseline_fast_forward_24},
+      (itemView, id) -> {
+        settings.setTgx101PlayerGesture(id, !settings.tgx101PlayerGesture(id));
+        tgx101ChooseGestures(); // reopen with the new values
+        return true;
+      }, getForcedTheme());
+  }
+
   private void tgx101ShowPlayerSettings () {
     Settings settings = Settings.instance();
     float speed = settings.tgx101PlayerSpeed();
     String speedText = (speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed)) + "×";
     String on = Lang.getString(R.string.Tgx101On), off = Lang.getString(R.string.Tgx101Off);
-    int[] ids = {1, 2, 7, 8, 3, 4, 5, 6};
+    int[] ids = {1, 2, 3, 4, 5, 6};
     String[] names = {
       Lang.getString(R.string.Tgx101PlayerSpeed) + ": " + speedText,
-      Lang.getString(R.string.Tgx101PlayerGestures) + ": " + (settings.tgx101PlayerGestures() ? on : off),
-      Lang.getString(R.string.Tgx101PlayerSwipeClose) + ": " + (settings.tgx101PlayerSwipeClose() ? on : off),
-      Lang.getString(R.string.Tgx101PlayerSwipePaging) + ": " + (settings.tgx101PlayerSwipePaging() ? on : off),
+      Lang.getString(R.string.Tgx101PlayerGestures) + "…",
       Lang.getString(R.string.Tgx101PlayerSeekStep) + ": " + Lang.getString(R.string.Tgx101Seconds, settings.tgx101PlayerSeekStep()),
       Lang.getString(R.string.Tgx101PlayerLoop) + ": " + (settings.tgx101PlayerLoop() ? on : off),
       Lang.getString(R.string.Tgx101PlayerResume) + ": " + (settings.tgx101PlayerResume() ? on : off),
       Lang.getString(R.string.Tgx101PlayerSleep) + ": " + (tgx101SleepAt > 0 ? Lang.getString(R.string.Tgx101Minutes, (int) Math.max(1, (tgx101SleepAt - android.os.SystemClock.uptimeMillis() + 59999) / 60000)) : off)
     };
-    int[] icons = {R.drawable.baseline_fast_forward_24, R.drawable.baseline_gesture_24, R.drawable.baseline_arrow_downward_24, R.drawable.baseline_swap_horiz_24, R.drawable.baseline_replay_24, R.drawable.baseline_repeat_24, R.drawable.baseline_history_24, R.drawable.baseline_timer_16};
+    int[] icons = {R.drawable.baseline_fast_forward_24, R.drawable.baseline_gesture_24, R.drawable.baseline_replay_24, R.drawable.baseline_repeat_24, R.drawable.baseline_history_24, R.drawable.baseline_timer_16};
     showOptions(Lang.getString(R.string.Tgx101PlayerSettings), ids, names, null, icons, (itemView, id) -> {
       switch (id) {
         case 1:
           tgx101ChooseSpeed();
           break;
         case 2:
-          settings.setTgx101PlayerGestures(!settings.tgx101PlayerGestures());
+          tgx101ChooseGestures();
           break;
         case 3: {
           int step = settings.tgx101PlayerSeekStep();
@@ -3563,12 +3580,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         case 6:
           tgx101ChooseSleepTimer();
           break;
-        case 7:
-          settings.setTgx101PlayerSwipeClose(!settings.tgx101PlayerSwipeClose());
-          break;
-        case 8:
-          settings.setTgx101PlayerSwipePaging(!settings.tgx101PlayerSwipePaging());
-          break;
+
       }
       return true;
     }, getForcedTheme());

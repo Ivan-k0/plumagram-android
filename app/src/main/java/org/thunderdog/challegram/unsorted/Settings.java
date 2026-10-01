@@ -3608,13 +3608,20 @@ public class Settings {
 
   private static final String KEY_TGX101_PLAYER_GESTURES = "tgx101_player_gestures";
 
-  /** TGx101: video player gestures (brightness / volume / seek swipes, long press 2×) — off by default */
+  /** TGx101: any of the video player gestures is on */
   public boolean tgx101PlayerGestures () {
-    return pmc.getBoolean(KEY_TGX101_PLAYER_GESTURES, false);
+    return tgx101PlayerGesture(GESTURE_SEEK) || tgx101PlayerGesture(GESTURE_BRIGHTNESS) || tgx101PlayerGesture(GESTURE_VOLUME) || tgx101PlayerGesture(GESTURE_SPEED);
   }
 
-  public void setTgx101PlayerGestures (boolean value) {
-    pmc.putBoolean(KEY_TGX101_PLAYER_GESTURES, value);
+  public static final int GESTURE_SEEK = 1, GESTURE_BRIGHTNESS = 2, GESTURE_VOLUME = 3, GESTURE_SPEED = 4;
+
+  /** TGx101: one player gesture — seek / brightness / volume swipes, hold for 2× — each off by default */
+  public boolean tgx101PlayerGesture (int gesture) {
+    return pmc.getBoolean(KEY_TGX101_PLAYER_GESTURES + "_" + gesture, false);
+  }
+
+  public void setTgx101PlayerGesture (int gesture, boolean value) {
+    pmc.putBoolean(KEY_TGX101_PLAYER_GESTURES + "_" + gesture, value);
   }
 
   // TGx101: ghost mode — each part separately, all off by default

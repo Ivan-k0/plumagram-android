@@ -246,8 +246,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(Settings.instance().getQuickReply(quickReplyIndex(itemId)));
         } else if (itemId == R.id.btn_tgx101TranslateOnDevice) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101TranslateOnDevice(), isUpdate);
-        } else if (itemId == R.id.btn_tgx101PlayerGestures) {
-          view.getToggler().setRadioEnabled(Settings.instance().tgx101PlayerGestures(), isUpdate);
         } else if (itemId == R.id.btn_tgx101GhostNoRead) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101GhostNoRead(), isUpdate);
         } else if (itemId == R.id.btn_tgx101GhostHideOnline) {
@@ -777,8 +775,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       }, true);
     } else if (id == R.id.btn_tgx101TranslateOnDevice) {
       Settings.instance().setTgx101TranslateOnDevice(toggleResult); // the view was already toggled above
-    } else if (id == R.id.btn_tgx101PlayerGestures) {
-      Settings.instance().setTgx101PlayerGestures(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101GhostNoRead) {
       Settings.instance().setTgx101GhostNoRead(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101GhostHideOnline) {

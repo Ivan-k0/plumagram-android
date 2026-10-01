@@ -1424,7 +1424,7 @@ public class MediaCellView extends ViewGroup implements
     if (!isSeekableVideo()) {
       return false;
     }
-    final boolean gestures = org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerGestures();
+    final boolean gestures = org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerGesture(org.thunderdog.challegram.unsorted.Settings.GESTURE_SEEK); // seeking is a swipe then
     int width = getMeasuredWidth();
     int zone = x < width / 3f ? -1 : x > width * 2f / 3f ? 1 : 0;
     long now = android.os.SystemClock.uptimeMillis();

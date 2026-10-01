@@ -826,8 +826,12 @@ public class MediaView extends FrameLayoutFix {
   private float gHudAlpha;
   private final android.graphics.Paint gHudPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
   private final android.graphics.RectF gHudRect = new android.graphics.RectF();
+  private static boolean gestureOn (int gesture) {
+    return org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerGesture(gesture);
+  }
+
   private final Runnable gLongPress = () -> {
-    if (gState == G_PENDING && baseCell.tgx101CanGesture()) {
+    if (gState == G_PENDING && baseCell.tgx101CanGesture() && gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_SPEED)) {
       gState = G_SPEED;
       gSavedSpeed = baseCell.tgx101GetSpeed();
       baseCell.tgx101SetSpeed(2f);
@@ -855,8 +859,12 @@ public class MediaView extends FrameLayoutFix {
     if (baseCell != null) baseCell.tgx101ApplyLooping();
   }
 
-  /** The viewer's swipe-to-close must not start while a player gesture may */
+  /** The viewer's swipe-to-close must not start while a vertical player gesture may */
   public boolean tgx101GesturesActive () {
+    return (gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_BRIGHTNESS) || gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_VOLUME)) && baseCell != null && baseCell.tgx101CanGesture();
+  }
+
+  private boolean anyGestureActive () {
     return org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerGestures() && baseCell != null && baseCell.tgx101CanGesture();
   }
 
@@ -891,7 +899,7 @@ public class MediaView extends FrameLayoutFix {
     switch (e.getActionMasked()) {
       case MotionEvent.ACTION_DOWN: {
         gState = G_NONE;
-        if (tgx101GesturesActive() && e.getRawY() > Screen.getStatusBarHeight() + Screen.dp(32f)) {
+        if (anyGestureActive() && e.getRawY() > Screen.getStatusBarHeight() + Screen.dp(32f)) {
           gState = G_PENDING;
           gDownX = e.getX();
           gDownY = e.getY();
@@ -912,10 +920,15 @@ public class MediaView extends FrameLayoutFix {
         if (gState == G_PENDING) {
           if (Math.max(Math.abs(dx), Math.abs(dy)) < Screen.getTouchSlop() * 1.5f) return false;
           removeCallbacks(gLongPress);
-          if (Math.abs(dx) > Math.abs(dy)) {
+          boolean horizontal = Math.abs(dx) > Math.abs(dy), left = gDownX < getMeasuredWidth() / 2f;
+          if (horizontal ? !gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_SEEK) : !gestureOn(left ? org.thunderdog.challegram.unsorted.Settings.GESTURE_BRIGHTNESS : org.thunderdog.challegram.unsorted.Settings.GESTURE_VOLUME)) {
+            gState = G_NONE; // this gesture is off: the swipe works as usual
+            return false;
+          }
+          if (horizontal) {
             gState = G_SEEK;
             gStartTime = baseCell.tgx101TimeNow();
-          } else if (gDownX < getMeasuredWidth() / 2f) {
+          } else if (left) {
             gState = G_BRIGHTNESS;
             gStartValue = currentBrightness();
           } else {
