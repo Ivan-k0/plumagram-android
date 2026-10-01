@@ -2319,9 +2319,142 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     return messageCaption != null;
   }
 
+  /** TGx101: the local path of a shared video (it may be wrapped into a conversion), null if it isn't one */
+  private static @Nullable String tgx101SharedVideoPath (TdApi.InputMessageContent content) {
+    if (!(content instanceof TdApi.InputMessageVideo)) return null;
+    TdApi.InputFile file = ((TdApi.InputMessageVideo) content).video.video;
+    if (file instanceof TdApi.InputFileLocal) return ((TdApi.InputFileLocal) file).path;
+    if (file instanceof TdApi.InputFileGenerated) return ((TdApi.InputFileGenerated) file).originalPath;
+    return null;
+  }
+
+  /**
+   * TGx101: a single video shared into the app: the chat picker only picks the chat; after «Send» the chat opens
+   * with the same preview as a video from the gallery — quality, trim, caption, how to send. Several chats: as before.
+   */
+  private boolean tgx101ShareVideoWithPreview (final Tdlib tdlib, final ArrayList<TdApi.InputMessageContent> contents) {
+    if (contents.size() != 1) return false;
+    final String path = tgx101SharedVideoPath(contents.get(0));
+    if (path == null || !new java.io.File(path).exists()) return false;
+    final TdApi.InputMessageVideo video = (TdApi.InputMessageVideo) contents.get(0);
+    final ArrayList<Long> picked = new ArrayList<>();
+    final ArrayList<TdApi.MessageSendOptions> pickedOptions = new ArrayList<>();
+    tdlib.ui().post(() -> tdlib.awaitInitialization(() -> tdlib.ui().post(() -> {
+      ShareController c = new ShareController(context, tdlib);
+      ShareController.ShareProviderDelegate delegate = new ShareController.ShareProviderDelegate() {
+        @Override
+        public void generateFunctionsForChat (long chatId, TdApi.Chat chat, TdApi.MessageSendOptions sendOptions, ArrayList<TdApi.Function<?>> functions) {
+          picked.add(chatId); // nothing is sent yet
+          pickedOptions.add(sendOptions);
+        }
+
+        @Override
+        public CharSequence generateErrorMessageForChat (long chatId) {
+          return tdlib.getRestrictionText(tdlib.chatStrict(chatId), video);
+        }
+      };
+      c.setArguments(new ShareController.Args(delegate).setNeedOpenChat(true).setAfter(() -> UI.post(() -> {
+        if (picked.size() > 1) {
+          // several chats: no preview, the video goes to each of them as before
+          for (int i = 0; i < picked.size(); i++) {
+            ArrayList<TdApi.Function<?>> functions = new ArrayList<>();
+            TD.processSingle(tdlib, picked.get(i), pickedOptions.get(i), functions, tdlib.filegen().createThumbnail(video, ChatId.isSecret(picked.get(i))));
+            for (TdApi.Function<?> function : functions) tdlib.client().send(function, tdlib.messageHandler());
+          }
+          return;
+        }
+        if (picked.isEmpty()) return;
+        org.thunderdog.challegram.Tgx101Diag.mark("share: video preview before sending");
+        // the chat opens 250 ms after the picker closes — then the preview goes over it
+        UI.post(() -> tgx101OpenSharedVideoPreview(tdlib, picked.get(0), path, video), 600);
+      })));
+      View focus = context.getCurrentFocus();
+      if (context.isKeyboardVisible() && focus != null) {
+        focus.clearFocus();
+        org.thunderdog.challegram.tool.Keyboard.hide(focus);
+        UI.post(c::show, 250);
+      } else {
+        c.show();
+      }
+    })));
+    return true;
+  }
+
+  private void tgx101OpenSharedVideoPreview (Tdlib tdlib, long chatId, String path, TdApi.InputMessageVideo video) {
+    ViewController<?> top = context.navigation().getCurrentStackItem();
+    final MessagesController m = top instanceof MessagesController && ((MessagesController) top).getChatId() == chatId ? (MessagesController) top : null;
+    if (m == null) {
+      org.thunderdog.challegram.Tgx101Diag.mark("share: the chat isn't open, video sent as is");
+      ArrayList<TdApi.Function<?>> functions = new ArrayList<>();
+      TD.processSingle(tdlib, chatId, Td.newSendOptions(), functions, tdlib.filegen().createThumbnail(video, ChatId.isSecret(chatId)));
+      for (TdApi.Function<?> function : functions) tdlib.client().send(function, tdlib.messageHandler());
+      return;
+    }
+    final org.thunderdog.challegram.loader.ImageGalleryFile file = new org.thunderdog.challegram.loader.ImageGalleryFile(-1, path, System.currentTimeMillis(), video.video.width, video.video.height, -1, true);
+    file.setIsVideo(video.video.duration * 1000L, "video/mp4");
+    file.setNoCache();
+    org.thunderdog.challegram.mediaview.data.MediaStack stack = new org.thunderdog.challegram.mediaview.data.MediaStack(context, tdlib);
+    org.thunderdog.challegram.mediaview.data.MediaItem item = new org.thunderdog.challegram.mediaview.data.MediaItem(context, tdlib, file);
+    stack.set(item);
+    org.thunderdog.challegram.mediaview.MediaViewController viewer = new org.thunderdog.challegram.mediaview.MediaViewController(context, tdlib);
+    org.thunderdog.challegram.mediaview.MediaViewController.Args args = org.thunderdog.challegram.mediaview.MediaViewController.Args.fromGallery(m, new org.thunderdog.challegram.mediaview.MediaViewDelegate() {
+      @Override
+      public org.thunderdog.challegram.mediaview.MediaViewThumbLocation getTargetLocation (int indexInStack, org.thunderdog.challegram.mediaview.data.MediaItem item) {
+        View root = m.getValue();
+        org.thunderdog.challegram.mediaview.MediaViewThumbLocation location = new org.thunderdog.challegram.mediaview.MediaViewThumbLocation(0, 0, root != null ? root.getMeasuredWidth() : Screen.currentWidth(), root != null ? root.getMeasuredHeight() : Screen.currentHeight());
+        location.setNoBounce();
+        location.setNoPlaceholder();
+        return location;
+      }
+
+      @Override
+      public void setMediaItemVisible (int index, org.thunderdog.challegram.mediaview.data.MediaItem item, boolean isVisible) { }
+    }, new org.thunderdog.challegram.mediaview.MediaSelectDelegate() {
+      @Override
+      public boolean isMediaItemSelected (int index, org.thunderdog.challegram.mediaview.data.MediaItem item) {
+        return false;
+      }
+
+      @Override
+      public void setMediaItemSelected (int index, org.thunderdog.challegram.mediaview.data.MediaItem item, boolean isSelected) { }
+
+      @Override
+      public int getSelectedMediaCount () {
+        return 0;
+      }
+
+      @Override
+      public boolean canDisableMarkdown () {
+        return file.canDisableMarkdown();
+      }
+
+      @Override
+      public long getOutputChatId () {
+        return chatId;
+      }
+
+      @Override
+      public ArrayList<org.thunderdog.challegram.loader.ImageFile> getSelectedMediaItems (boolean copy) {
+        return null;
+      }
+    }, new org.thunderdog.challegram.mediaview.MediaSpoilerSendDelegate() {
+      @Override
+      public boolean sendSelectedItems (View view, ArrayList<org.thunderdog.challegram.loader.ImageFile> images, TdApi.MessageSendOptions options, boolean disableMarkdown, boolean asFiles, boolean showCaptionAboveMedia, boolean hasSpoiler) {
+        org.thunderdog.challegram.loader.ImageGalleryFile galleryFile = (org.thunderdog.challegram.loader.ImageGalleryFile) images.get(0);
+        return m.sendPhotosAndVideosCompressed(new org.thunderdog.challegram.loader.ImageGalleryFile[] {galleryFile}, false, options, disableMarkdown, asFiles, showCaptionAboveMedia, hasSpoiler);
+      }
+    }, stack, m.areScheduledOnly());
+    args.setReceiverChatId(chatId);
+    viewer.setArguments(args);
+    viewer.open();
+  }
+
   private void shareContents (final Tdlib tdlib, final String type, final ArrayList<TdApi.InputMessageContent> contents, boolean mergeAlbum) {
     if (contents.isEmpty()) {
       throw new IllegalArgumentException("Unsupported content type: " + type);
+    }
+    if (tgx101ShareVideoWithPreview(tdlib, contents)) {
+      return;
     }
     tdlib.ui().post(() -> tdlib.awaitInitialization(() -> tdlib.ui().post(() -> {
       ShareController c = new ShareController(context, tdlib);
