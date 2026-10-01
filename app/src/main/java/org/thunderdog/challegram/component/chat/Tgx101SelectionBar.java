@@ -75,9 +75,6 @@ public final class Tgx101SelectionBar {
   private final List<Action> leadingActions;
   private final boolean followSelection; // in a message: follows the top handle; in the input: static above the field
   private PopupWindow window;
-  private @Nullable ImageView undoView;
-  private PopupWindow undoWindow;
-  private int undoCells = 1;
   private Menu menu;
   private FrameLayout content;
   private LinearLayout card;
@@ -156,7 +153,6 @@ public final class Tgx101SelectionBar {
   public void dismiss () {
     view.removeCallbacks(showAfterDrag);
     hiddenWhileDragging = false;
-    dismissUndo();
     if (window != null) {
       try { window.dismiss(); } catch (Throwable ignored) { }
       window = null;
@@ -265,20 +261,26 @@ public final class Tgx101SelectionBar {
       iconsParams.topMargin = Screen.dp(3f);
       card.addView(icons, iconsParams);
 
-      // «Undo»: a separate little window on the white input field right under the last icon (Clear formatting)
-      undoCells = Math.max(1, icons.getChildCount());
+      // «Undo» right under the last icon (Clear formatting), in a cell of the same width
+      LinearLayout undoRow = new LinearLayout(context);
+      undoRow.setOrientation(LinearLayout.HORIZONTAL);
+      undoRow.setGravity(Gravity.END);
+      undoRow.setWeightSum(Math.max(1, icons.getChildCount()));
       ImageView undo = new ImageView(context);
       undo.setImageResource(R.drawable.baseline_undo_24);
       undo.setColorFilter(Theme.textAccentColor());
       undo.setScaleType(ImageView.ScaleType.CENTER);
-      undo.setBackground(pressable(0, 9f));
+      undo.setBackground(pressable(Theme.fillingColor(), 9f));
       undo.setContentDescription(Lang.getString(R.string.Tgx101Undo));
       undo.setOnClickListener(v -> {
         if (!input.tgx101Undo()) {
           org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101NothingToUndo, android.widget.Toast.LENGTH_SHORT);
         }
       });
-      undoView = undo;
+      undoRow.addView(undo, new LinearLayout.LayoutParams(0, Screen.dp(28f), 1f));
+      LinearLayout.LayoutParams undoParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(28f));
+      undoParams.topMargin = Screen.dp(3f);
+      card.addView(undoRow, undoParams);
     }
 
     content = new FrameLayout(context);
@@ -379,14 +381,6 @@ public final class Tgx101SelectionBar {
       int y = inputLocation[1] - height + shadow - Screen.dp(6f);
       if (y < Screen.getStatusBarHeight()) y = inputLocation[1] + view.getHeight() + Screen.dp(6f);
       showAt(x, y, width, height);
-      if (undoView != null && window != null) {
-        // under the Clear formatting icon: the last cell of the icon row
-        int cell = (width - card.getPaddingLeft() - card.getPaddingRight()) / undoCells;
-        int undoWidth = Math.max(cell, Screen.dp(36f)), undoHeight = Screen.dp(32f);
-        int undoX = x + width - card.getPaddingRight() - cell / 2 - undoWidth / 2;
-        int undoY = y + card.getMeasuredHeight() + Screen.dp(2f);
-        showUndo(undoX, undoY, undoWidth, undoHeight);
-      }
       return;
     }
     positionFollowing(anchorX, anchorTop, anchorBottom);
@@ -508,7 +502,6 @@ public final class Tgx101SelectionBar {
     });
 
     input.tgx101LinkOpen = true;
-    dismissUndo();
     if (window != null) {
       try { window.dismiss(); } catch (Throwable ignored) { }
       window = null;
@@ -528,31 +521,6 @@ public final class Tgx101SelectionBar {
   }
 
   private int lastX, lastY, lastWidth;
-
-  private void showUndo (int x, int y, int width, int height) {
-    if (undoWindow != null) {
-      undoWindow.update(x, y, width, height);
-      return;
-    }
-    if (undoView.getParent() instanceof ViewGroup) ((ViewGroup) undoView.getParent()).removeView(undoView);
-    undoWindow = new PopupWindow(undoView, width, height, false);
-    undoWindow.setTouchable(true);
-    undoWindow.setOutsideTouchable(false);
-    undoWindow.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
-    undoWindow.setClippingEnabled(false);
-    try {
-      undoWindow.showAtLocation(view, Gravity.TOP | Gravity.LEFT, x, y);
-    } catch (Throwable t) {
-      undoWindow = null;
-    }
-  }
-
-  private void dismissUndo () {
-    if (undoWindow != null) {
-      try { undoWindow.dismiss(); } catch (Throwable ignored) { }
-      undoWindow = null;
-    }
-  }
 
   private void showAt (int x, int y, int width, int height) {
     lastX = x;
