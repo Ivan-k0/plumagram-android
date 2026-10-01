@@ -3605,6 +3605,21 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       }, getForcedTheme());
   }
 
+  private void tgx101ChooseSeekStep () {
+    final int[] steps = {5, 10, 15, 30};
+    int current = Settings.instance().tgx101PlayerSeekStep();
+    int[] ids = {1, 2, 3, 4};
+    String[] names = new String[steps.length];
+    for (int i = 0; i < steps.length; i++) {
+      names[i] = Lang.getString(R.string.Tgx101Seconds, steps[i]) + (steps[i] == current ? "  ✓" : "");
+    }
+    showOptions(Lang.getString(R.string.Tgx101PlayerSeekStep), ids, names, null, null, (itemView, id) -> {
+      Settings.instance().setTgx101PlayerSeekStep(steps[id - 1]);
+      org.thunderdog.challegram.Tgx101Diag.mark("player settings: seek step " + steps[id - 1] + " s");
+      return true;
+    }, getForcedTheme());
+  }
+
   private @Nullable View tgx101GuideView;
 
   private void tgx101ShowGuide () {
@@ -3644,12 +3659,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         case 2:
           tgx101ChooseGestures();
           break;
-        case 3: {
-          int step = settings.tgx101PlayerSeekStep();
-          settings.setTgx101PlayerSeekStep(step >= 15 ? 5 : step + 5);
-          org.thunderdog.challegram.Tgx101Diag.mark("player settings: seek step " + settings.tgx101PlayerSeekStep() + " s");
+        case 3:
+          tgx101ChooseSeekStep();
           break;
-        }
         case 4:
           settings.setTgx101PlayerLoop(!settings.tgx101PlayerLoop());
           org.thunderdog.challegram.Tgx101Diag.mark("player settings: repeat " + settings.tgx101PlayerLoop());
