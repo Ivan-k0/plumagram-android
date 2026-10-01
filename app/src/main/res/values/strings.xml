@@ -6187,6 +6187,7 @@
   <string name="Tgx101PlayerResume">Resume</string>
   <string name="Tgx101PlayerSleep">Sleep timer</string>
   <string name="Tgx101Orientation">Orientation</string>
+  <string name="Tgx101Rotate">Rotate the screen</string>
   <string name="Tgx101OrientationHint">Screen orientation in the player</string>
   <string name="Tgx101OrientationSystem">As the system</string>
   <string name="Tgx101OrientationAuto">Turn with the phone (even with rotation locked)</string>

@@ -307,6 +307,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PlayerResume, "Продолжать с места");
     RU.put(R.string.Tgx101PlayerSleep, "Таймер сна");
     RU.put(R.string.Tgx101Orientation, "Ориентация");
+    RU.put(R.string.Tgx101Rotate, "Повернуть экран");
     RU.put(R.string.Tgx101OrientationHint, "Ориентация экрана в плеере");
     RU.put(R.string.Tgx101OrientationSystem, "Как в системе");
     RU.put(R.string.Tgx101OrientationAuto, "Автоповорот (даже если в системе выключен)");

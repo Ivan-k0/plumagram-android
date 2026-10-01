@@ -5601,6 +5601,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         });
         videoSliderView.setSliderListener(this);
         videoSliderView.tgx101EnableCapsule(v -> tgx101ChooseSpeed(), v -> tgx101SetLocked(!tgx101Locked()), v -> tgx101ShowPlayerSettings());
+        tgx101AddRotateButton();
         videoSliderView.setTgx101Speed(Settings.instance().tgx101PlayerSpeed());
         videoSliderView.setInnerAlpha(0f);
         videoSliderView.setAlpha(0f);
@@ -8471,6 +8472,34 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
     context.setOrientation(orientation);
     tgx101OrientationSet = true;
+  }
+
+  /** Variant B: a round button on the right above the capsule; the icon turns counter-clockwise in portrait,
+   * clockwise in landscape, then the screen follows; blocked by the lock */
+  private void tgx101AddRotateButton () {
+    android.widget.ImageView button = new android.widget.ImageView(context);
+    button.setImageResource(R.drawable.baseline_screen_rotation_24);
+    button.setColorFilter(0xffffffff);
+    button.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+    android.graphics.drawable.GradientDrawable circle = new android.graphics.drawable.GradientDrawable();
+    circle.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+    circle.setColor(0xc0141a20);
+    button.setBackground(circle);
+    button.setContentDescription(Lang.getString(R.string.Tgx101Rotate));
+    button.setTranslationZ(Screen.dp(4f));
+    button.setVisibility(View.INVISIBLE);
+    button.setOnClickListener(v -> {
+      if (tgx101Locked() || !v.isEnabled()) return;
+      boolean landscape = context.getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+      v.animate().rotation(landscape ? 90f : -90f).setDuration(220).withEndAction(() -> {
+        v.setRotation(0f);
+        tgx101RotateManually();
+      }).start();
+    });
+    FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(Screen.dp(42f), Screen.dp(42f), Gravity.TOP | Gravity.RIGHT);
+    params.rightMargin = Screen.dp(14f);
+    contentView.addView(button, params);
+    videoSliderView.tgx101SetCompanion(button);
   }
 
   /** The rotate button: portrait ⇄ landscape, whatever the setting, until the viewer closes */

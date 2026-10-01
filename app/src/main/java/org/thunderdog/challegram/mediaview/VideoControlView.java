@@ -400,8 +400,42 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
     }
   }
 
+  // The rotate button lives over the video (above the capsule, on the right), outside this view: it follows the
+  // capsule's place, visibility and lock state on every frame
+
+  private @Nullable View companion;
+  private final int[] companionLocation = new int[2], parentLocation = new int[2];
+  private boolean locked;
+
+  public void tgx101SetCompanion (View companion) {
+    this.companion = companion;
+    getViewTreeObserver().addOnPreDrawListener(() -> {
+      syncCompanion();
+      return true;
+    });
+  }
+
+  private void syncCompanion () {
+    View companion = this.companion;
+    if (companion == null || !(companion.getParent() instanceof View)) return;
+    float alpha = getAlpha() * getInnerAlpha();
+    if (alpha <= 0f || !isShown()) {
+      companion.setAlpha(0f);
+      companion.setVisibility(View.INVISIBLE);
+      return;
+    }
+    companion.setVisibility(View.VISIBLE);
+    companion.setAlpha(alpha * (locked ? .35f : 1f));
+    companion.setEnabled(!locked);
+    getLocationOnScreen(companionLocation);
+    ((View) companion.getParent()).getLocationOnScreen(parentLocation);
+    float capsuleTop = companionLocation[1] + getMeasuredHeight() - Screen.dp(56f) + getTranslationY() * 0f;
+    companion.setTranslationY(capsuleTop - parentLocation[1] - companion.getMeasuredHeight() - Screen.dp(8f));
+  }
+
   /** The child lock: only the lock itself stays active, everything else is dimmed and doesn't react */
   public void setTgx101Locked (boolean locked, boolean animated) {
+    this.locked = locked;
     if (lockView == null) return;
     lockView.setLocked(locked, animated);
     float alpha = locked ? .35f : 1f;
