@@ -41,6 +41,16 @@ public class Tgx101FormatMenuController extends RecyclerViewController<Void> imp
     R.drawable.baseline_link_24, R.drawable.baseline_format_quote_close_24, R.drawable.baseline_eye_off_24, R.drawable.baseline_format_clear_24
   };
 
+  public static int iconOf (int id) {
+    int i = indexOf(IDS, id);
+    return i >= 0 ? ICONS[i] : 0;
+  }
+
+  public static int nameOf (int id) {
+    int i = indexOf(IDS, id);
+    return i >= 0 ? NAMES[i] : 0;
+  }
+
   /** Ids in the user's order; hidden ones are negative */
   public static int[] getOrder () {
     int[] saved = Settings.instance().getTgx101FormatMenu();

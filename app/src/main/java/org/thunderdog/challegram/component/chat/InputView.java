@@ -350,6 +350,11 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
       @Override
       public boolean onPrepareActionMode (ActionMode mode, Menu menu) {
         updateMenuVisibility(menu);
+        // TGx101: own fixed-width selection bar instead of the system floating toolbar (Android 6+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && actionModeVisibility && Config.USE_CUSTOM_INPUT_STYLING) {
+          if (tgx101SelectionBar == null) tgx101SelectionBar = new Tgx101SelectionBar(InputView.this);
+          tgx101SelectionBar.update(menu);
+        }
         return true;
       }
 
@@ -362,6 +367,9 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
       public void onDestroyActionMode (ActionMode mode) {
         if (currentActionMode == mode) {
           currentActionMode = null;
+        }
+        if (tgx101SelectionBar != null) {
+          tgx101SelectionBar.dismiss();
         }
       }
     });
@@ -423,6 +431,21 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   public void performDestroy () {
     super.performDestroy();
     mediaHolder.performDestroy();
+  }
+
+  private Tgx101SelectionBar tgx101SelectionBar;
+
+  /** TGx101: applies a style, or takes it back when the whole selection already has it */
+  public void tgx101ToggleSpan (@IdRes int id) {
+    int start = getSelectionStart(), end = getSelectionEnd();
+    if (start < 0 || end <= start) return;
+    TdApi.TextEntityType type = org.thunderdog.challegram.ui.Tgx101TextEditor.typeOf(id);
+    if (type != null && org.thunderdog.challegram.ui.Tgx101TextEditor.isFullyStyled(getText(), start, end, type)) {
+      removeSpan(type);
+      setSelection(start, end);
+    } else {
+      setSpan(id);
+    }
   }
 
   public boolean setSpan (@IdRes int id) {

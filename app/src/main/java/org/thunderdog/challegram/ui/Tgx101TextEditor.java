@@ -189,7 +189,7 @@ public final class Tgx101TextEditor {
   }
 
   /** Whether [start, end) is fully covered by spans of this entity type */
-  private static boolean isFullyStyled (android.text.Spanned text, int start, int end, TdApi.TextEntityType type) {
+  public static boolean isFullyStyled (android.text.Spanned text, int start, int end, TdApi.TextEntityType type) {
     Object[] spans = text.getSpans(start, end, Object.class);
     java.util.List<int[]> ranges = new java.util.ArrayList<>();
     if (spans != null) {
@@ -215,7 +215,7 @@ public final class Tgx101TextEditor {
     return covered >= end;
   }
 
-  private static TdApi.TextEntityType typeOf (int action) {
+  public static TdApi.TextEntityType typeOf (int action) {
     if (action == R.id.btn_bold) return new TdApi.TextEntityTypeBold();
     if (action == R.id.btn_italic) return new TdApi.TextEntityTypeItalic();
     if (action == R.id.btn_underline) return new TdApi.TextEntityTypeUnderline();
