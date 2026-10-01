@@ -182,7 +182,10 @@ public final class Tgx101TextEditor {
     root.findViewWithTag("close").setOnClickListener(v -> dialog[0].dismiss());
     fitAboveKeyboard(root, input);
     input.requestFocus();
-    org.thunderdog.challegram.tool.Keyboard.show(input);
+    input.post(() -> {
+      input.requestFocus();
+      org.thunderdog.challegram.tool.Keyboard.show(input);
+    });
   }
 
   /** Whether [start, end) is fully covered by spans of this entity type */
@@ -410,6 +413,7 @@ public final class Tgx101TextEditor {
       }
     });
 
+    popup.setNeedRootInsets(); // embedded in the activity's own window (not a separate PopupWindow) — the keyboard works and stays put
     popup.setBackListener((fromTop, commit) -> true); // the back key doesn't close it either (it only hides the keyboard)
     popup.setDismissListener(p -> {
       if (onDismiss != null) onDismiss.run();
