@@ -6011,6 +6011,8 @@
   <string name="Tgx101FormatShow">Show</string>
   <string name="Tgx101FormatHide">Hide</string>
   <string name="Tgx101FormatMonoShort">Mono</string>
+  <string name="Tgx101EditorEditing">Editing</string>
+  <string name="Tgx101EditorQuoting">Quote</string>
   <string name="Tgx101Font">Font</string>
   <string name="Tgx101FontSystem">System (as set on the phone)</string>
   <string name="Tgx101FontManrope">Manrope</string>
