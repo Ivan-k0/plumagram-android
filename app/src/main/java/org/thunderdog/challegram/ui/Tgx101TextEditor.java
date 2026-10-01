@@ -358,7 +358,7 @@ public final class Tgx101TextEditor {
       SelectTextForQuoteDialog.onReplyRequested(controller, tdlib, message, formattedText, start, end);
     });
 
-    dialog[0] = showCard(controller, root, null);
+    dialog[0] = showCard(controller, root, null, true);
     root.findViewWithTag("close").setOnClickListener(v -> dialog[0].dismiss());
   }
 
@@ -381,6 +381,11 @@ public final class Tgx101TextEditor {
   }
 
   private static Card showCard (MessagesController controller, LinearLayout card, @androidx.annotation.Nullable Runnable onDismiss) {
+    return showCard(controller, card, onDismiss, false);
+  }
+
+  /** keepPosition: the card stays where it opened when the keyboard goes away (the read-only quote window) */
+  private static Card showCard (MessagesController controller, LinearLayout card, @androidx.annotation.Nullable Runnable onDismiss, boolean keepPosition) {
     org.thunderdog.challegram.BaseActivity activity = controller.context();
     final View previousFocus = activity.getCurrentFocus();
     final org.thunderdog.challegram.widget.PopupLayout popup = new org.thunderdog.challegram.widget.PopupLayout(activity);
@@ -402,11 +407,30 @@ public final class Tgx101TextEditor {
     // keep the card centred in the space above the keyboard
     final android.graphics.Rect frame = new android.graphics.Rect();
     final int[] location = new int[2];
+    final int[] maxImeInset = new int[1];
     wrap.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
       if (wrap.getHeight() == 0) return;
       wrap.getWindowVisibleDisplayFrame(frame);
       wrap.getLocationOnScreen(location);
       int bottomInset = Math.max(0, location[1] + wrap.getHeight() - frame.bottom);
+      // the keyboard's own height incl. its suggestion row: some keyboards (Vivo) first report it with the row, then
+      // without it, and the card slid down over the suggestions
+      android.view.WindowInsets insets = wrap.getRootWindowInsets();
+      if (insets != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+        boolean imeVisible = insets.isVisible(android.view.WindowInsets.Type.ime());
+        int ime = insets.getInsets(android.view.WindowInsets.Type.ime()).bottom;
+        int screenBottom = location[1] + wrap.getHeight();
+        int imeTop = wrap.getRootView().getHeight() - ime;
+        bottomInset = imeVisible ? Math.max(bottomInset, Math.max(0, screenBottom - imeTop)) : 0;
+      }
+      if (bottomInset > Screen.dp(80f)) {
+        maxImeInset[0] = Math.max(maxImeInset[0], bottomInset);
+        bottomInset = maxImeInset[0];
+      } else if (keepPosition) {
+        bottomInset = maxImeInset[0];
+      } else {
+        maxImeInset[0] = 0;
+      }
       int topInset = Math.max(0, frame.top - location[1]);
       if (wrap.getPaddingBottom() != bottomInset || wrap.getPaddingTop() != topInset) {
         wrap.setPadding(0, topInset, 0, bottomInset);
