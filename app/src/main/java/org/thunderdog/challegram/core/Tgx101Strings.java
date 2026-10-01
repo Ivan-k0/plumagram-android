@@ -133,8 +133,6 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101FormatShow, "Показать");
     RU.put(R.string.Tgx101FormatHide, "Скрыть");
     RU.put(R.string.Tgx101FormatMonoShort, "Моно");
-    RU.put(R.string.Tgx101EditorEditing, "Редактирование");
-    RU.put(R.string.Tgx101EditorQuoting, "Цитата");
     RU.put(R.string.Tgx101Font, "Шрифт");
     RU.put(R.string.Tgx101FontSystem, "Системный (как в настройках телефона)");
     RU.put(R.string.Tgx101FontRoboto, "Roboto (как в Telegram X)");

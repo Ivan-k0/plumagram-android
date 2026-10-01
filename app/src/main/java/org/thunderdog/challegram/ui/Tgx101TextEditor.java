@@ -84,7 +84,7 @@ public final class Tgx101TextEditor {
     final boolean markdown = Settings.instance().getNewSetting(Settings.SETTING_FLAG_EDIT_MARKDOWN);
 
     LinearLayout root = newRoot(context);
-    TextView counter = addHeader(root, R.drawable.baseline_edit_24, Lang.getString(R.string.Tgx101EditorEditing), text.text);
+    TextView counter = addHeader(root, Lang.getString(R.string.Tgx101EditorEdit));
 
     InputView input = new InputView(context, tdlib, controller);
     input.setTgx101FallbackController(controller);
@@ -315,7 +315,7 @@ public final class Tgx101TextEditor {
     if (formattedText == null || StringUtils.isEmpty(formattedText.text)) return;
     Context context = controller.context();
     LinearLayout root = newRoot(context);
-    TextView counter = addHeader(root, R.drawable.baseline_format_quote_close_24, Lang.getString(R.string.Tgx101EditorQuoting), formattedText.text);
+    TextView counter = addHeader(root, Lang.getString(R.string.Tgx101EditorQuoteTitle));
 
     TextView text = new TextView(context);
     text.setText(formattedText.text);
@@ -509,43 +509,18 @@ public final class Tgx101TextEditor {
     return panel;
   }
 
-  /** Like the edit / reply bar over the chat input: icon, accent line, «Редактирование» / «Цитата» and the original text, ✕ on the right */
-  private static TextView addHeader (LinearLayout root, int iconRes, String title, String preview) {
+  private static TextView addHeader (LinearLayout root, String title) {
     Context context = root.getContext();
-    int accent = Theme.getColor(ColorId.textLink);
     LinearLayout header = new LinearLayout(context);
     header.setOrientation(LinearLayout.HORIZONTAL);
     header.setGravity(Gravity.CENTER_VERTICAL);
-    header.setPadding(Screen.dp(14f), Screen.dp(12f), Screen.dp(10f), Screen.dp(6f));
-    ImageView icon = new ImageView(context);
-    icon.setImageResource(iconRes);
-    icon.setColorFilter(accent);
-    icon.setScaleType(ImageView.ScaleType.CENTER);
-    header.addView(icon, new LinearLayout.LayoutParams(Screen.dp(28f), Screen.dp(28f)));
-    View line = new View(context);
-    line.setBackgroundColor(accent);
-    LinearLayout.LayoutParams lineParams = new LinearLayout.LayoutParams(Screen.dp(2f), Screen.dp(36f));
-    lineParams.leftMargin = Screen.dp(10f);
-    lineParams.rightMargin = Screen.dp(8f);
-    header.addView(line, lineParams);
-    LinearLayout texts = new LinearLayout(context);
-    texts.setOrientation(LinearLayout.VERTICAL);
+    header.setPadding(Screen.dp(18f), Screen.dp(14f), Screen.dp(10f), Screen.dp(4f));
     TextView titleView = new TextView(context);
     titleView.setText(title);
-    titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
-    titleView.setTypeface(Fonts.getRobotoMedium());
-    titleView.setTextColor(accent);
-    titleView.setSingleLine(true);
-    texts.addView(titleView);
-    TextView previewView = new TextView(context);
-    previewView.setText(preview != null ? preview.replace('\n', ' ') : "");
-    previewView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f);
-    previewView.setTypeface(Fonts.getRobotoRegular());
-    previewView.setTextColor(Theme.textDecentColor());
-    previewView.setSingleLine(true);
-    previewView.setEllipsize(android.text.TextUtils.TruncateAt.END);
-    texts.addView(previewView);
-    header.addView(texts, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+    titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17f);
+    titleView.setTypeface(Fonts.getRobotoBold());
+    titleView.setTextColor(Theme.textAccentColor());
+    header.addView(titleView, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
     TextView counter = new TextView(context);
     counter.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11.5f);
     counter.setTextColor(Theme.textDecentColor());
