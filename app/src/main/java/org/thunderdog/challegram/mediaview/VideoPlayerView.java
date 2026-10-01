@@ -445,6 +445,11 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
   public void attach () {
     if (isDetached) {
       isDetached = false;
+      if (player != null && currentItem != null && detachedItem == null) {
+        // TGx101: the player was kept while the app was in the background — its last frame is still on the screen
+        org.thunderdog.challegram.Tgx101Diag.mark("player: back from the background, kept at " + player.getCurrentPosition() / 1000 + " s");
+        return;
+      }
       seekToSavedPosition = detachedItem != null;
       setVideo(detachedItem);
       detachedItem = null;
@@ -453,13 +458,12 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
 
   public void detach () {
     if (!isDetached) {
-      detachedItem = currentItem;
-      savedPosition = lastPosition;
+      // TGx101: the app goes to the background — the video only pauses and the player is kept. Rebuilding it on the
+      // way back showed a black frame until the first picture came (the video «blinked» after returning).
       if (player != null) {
         player.setPlayWhenReady(false);
       }
       setPlaying(false);
-      setVideo(null);
       isDetached = true;
     }
   }
