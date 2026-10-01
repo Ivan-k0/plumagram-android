@@ -366,13 +366,13 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
     sliderView.setEnabled(!locked);
   }
 
-  /** Where the lock button is on the screen (for the lock layer, which takes every other touch) */
-  public boolean tgx101IsOnLock (float rawX, float rawY) {
+  /** The lock button's centre on the screen (for the lock layer, which takes every touch); false while hidden */
+  public boolean tgx101GetLockCenter (int[] out) {
     if (lockView == null || getAlpha() < .5f) return false;
-    int[] location = new int[2];
-    lockView.getLocationOnScreen(location);
-    int pad = Screen.dp(8f);
-    return rawX >= location[0] - pad && rawX <= location[0] + lockView.getWidth() + pad && rawY >= location[1] - pad && rawY <= location[1] + lockView.getHeight() + pad;
+    lockView.getLocationOnScreen(out);
+    out[0] += lockView.getWidth() / 2;
+    out[1] += lockView.getHeight() / 2;
+    return true;
   }
 
   /** Padlock like the passcode one: the shackle slides aside when it is open */

@@ -3476,8 +3476,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     if (locked) {
       tgx101LockView = Tgx101PlayerLock.create(context, new Tgx101PlayerLock.Delegate() {
         @Override
-        public boolean isOnLock (float rawX, float rawY) {
-          return videoSliderView != null && headerVisible.getValue() && videoSliderView.tgx101IsOnLock(rawX, rawY);
+        public boolean getLockCenter (int[] outRawXY) {
+          return videoSliderView != null && headerVisible.getValue() && videoSliderView.tgx101GetLockCenter(outRawXY);
         }
 
         @Override
@@ -3488,13 +3488,47 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         @Override
         public void onTap () {
           org.thunderdog.challegram.Tgx101Diag.mark("player: tap while locked → controls");
-          toggleHeaderVisibility();
+          if (!headerVisible.getValue()) toggleHeaderVisibility();
+          tgx101ScheduleLockedHide();
         }
       });
       contentView.addView(tgx101LockView);
+      tgx101SetSystemBarsLocked(true);
+      tgx101ScheduleLockedHide();
     } else {
+      contentView.removeCallbacks(tgx101HideLockedControls);
       contentView.removeView(tgx101LockView);
       tgx101LockView = null;
+      tgx101SetSystemBarsLocked(false);
+      if (!headerVisible.getValue()) toggleHeaderVisibility();
+    }
+  }
+
+  // While locked the controls hide by themselves 3 s after they were shown
+  private final Runnable tgx101HideLockedControls = () -> {
+    if (tgx101Locked() && headerVisible.getValue()) {
+      toggleHeaderVisibility();
+    }
+  };
+
+  private void tgx101ScheduleLockedHide () {
+    contentView.removeCallbacks(tgx101HideLockedControls);
+    contentView.postDelayed(tgx101HideLockedControls, 3000);
+  }
+
+  /**
+   * The «home» swipe still works under the lock, but protected: the system bars are hidden, the first swipe from the
+   * edge only shows them, the second one goes home.
+   */
+  private void tgx101SetSystemBarsLocked (boolean locked) {
+    android.view.Window window = context.getWindow();
+    androidx.core.view.WindowInsetsControllerCompat controller = androidx.core.view.WindowCompat.getInsetsController(window, window.getDecorView());
+    if (locked) {
+      controller.setSystemBarsBehavior(androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+      controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars());
+    } else {
+      controller.show(androidx.core.view.WindowInsetsCompat.Type.systemBars());
+      controller.setSystemBarsBehavior(androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_DEFAULT);
     }
   }
 
