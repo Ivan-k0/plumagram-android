@@ -372,11 +372,13 @@ public final class Tgx101SelectionBar {
       tail.setVisibility(View.GONE);
       ((FrameLayout.LayoutParams) card.getLayoutParams()).topMargin = 0;
       content.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-      int height = card.getMeasuredHeight();
+      // room under the card for its shadow and rounded bottom corners (a window of exactly the card's height cuts them off)
+      int shadow = Screen.dp(8f);
+      int height = card.getMeasuredHeight() + shadow;
       int[] inputLocation = new int[2];
       view.getLocationOnScreen(inputLocation);
       int x = (screenWidth - width) / 2;
-      int y = inputLocation[1] - height - Screen.dp(6f);
+      int y = inputLocation[1] - height + shadow - Screen.dp(6f);
       if (y < Screen.getStatusBarHeight()) y = inputLocation[1] + view.getHeight() + Screen.dp(6f);
       showAt(x, y, width, height);
       return;
