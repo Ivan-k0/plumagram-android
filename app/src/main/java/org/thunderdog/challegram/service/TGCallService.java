@@ -905,8 +905,10 @@ public class TGCallService extends Service implements
   /** TGx101: the caller for Android 12+ CallStyle notifications (system call card, status bar call chip) */
   @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
   private android.app.Person tgx101Caller (TdApi.User user, @Nullable Bitmap photo) {
+    // The first name only: the notification header («name • PlumaGram • 00:54») cut long names; the full name is the text line
+    String shortName = user != null && !StringUtils.isEmpty(user.firstName) ? user.firstName.trim() : user != null ? TD.getUserName(user) : "";
     android.app.Person.Builder person = new android.app.Person.Builder()
-      .setName(user != null ? TD.getUserName(user) : "")
+      .setName(shortName)
       .setImportant(true);
     if (photo != null) {
       person.setIcon(android.graphics.drawable.Icon.createWithBitmap(photo));
