@@ -295,7 +295,8 @@ public final class Tgx101MessageTextSelection {
       endX = b[0] + ox;
       endTop = b[1] + oy;
       endBottom = b[2] + oy;
-      handlePaint.setColor(Theme.textAccentColor());
+      // the app's own colour (the header blue); the accent in a dark theme, where the header is grey
+      handlePaint.setColor(Theme.isDark() ? Theme.textAccentColor() : Theme.getColor(ColorId.headerBackground));
       int r = radius();
       // the drop shape: a circle hanging below the line with a square corner at the tip
       c.drawCircle(startX - r, startBottom + r, r, handlePaint);
@@ -361,6 +362,8 @@ public final class Tgx101MessageTextSelection {
           if (dragging != NONE) {
             dragging = NONE;
             dismissMagnifier();
+            updateBar(); // the spot where the bar comes back
+            session.bar.showNow(); // right away, not after the drag pause
             Tgx101Diag.mark("select: handle released at " + session.start + ".." + session.end);
             invalidate();
             return true;

@@ -371,7 +371,12 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
           currentActionMode = null;
         }
         if (tgx101SelectionBar != null) {
-          tgx101SelectionBar.dismiss();
+          // TGx101: a style / link / quote changes the text and Android ends its selection mode — the bar stays where it is
+          if (hasSelection() && (isFocused() || tgx101LinkOpen) && org.thunderdog.challegram.unsorted.Settings.instance().useTgx101TextEditor()) {
+            org.thunderdog.challegram.Tgx101Diag.mark("input selection bar kept");
+          } else {
+            tgx101SelectionBar.dismiss();
+          }
         }
       }
     });
@@ -436,6 +441,35 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   }
 
   private Tgx101SelectionBar tgx101SelectionBar;
+  boolean tgx101LinkOpen; // the bar's link field has the focus for a moment
+
+  // TGx101: undo for the selection bar's actions (styles, link, quote, clear, cut, paste)
+  private final java.util.ArrayList<Object[]> tgx101UndoStack = new java.util.ArrayList<>();
+
+  public void tgx101SaveUndo () {
+    tgx101UndoStack.add(new Object[] {new android.text.SpannableStringBuilder(getText()), getSelectionStart(), getSelectionEnd()});
+    if (tgx101UndoStack.size() > 30) tgx101UndoStack.remove(0);
+  }
+
+  /** Returns false when there is nothing to undo */
+  public boolean tgx101Undo () {
+    if (tgx101UndoStack.isEmpty()) return false;
+    Object[] state = tgx101UndoStack.remove(tgx101UndoStack.size() - 1);
+    Editable text = getText();
+    text.replace(0, text.length(), (CharSequence) state[0]);
+    int length = text.length();
+    setSelection(Math.max(0, Math.min(length, (int) state[1])), Math.max(0, Math.min(length, (int) state[2])));
+    inlineContext.forceCheck();
+    return true;
+  }
+
+  @Override
+  protected void onFocusChanged (boolean focused, int direction, @androidx.annotation.Nullable android.graphics.Rect previouslyFocusedRect) {
+    super.onFocusChanged(focused, direction, previouslyFocusedRect);
+    if (!focused && !tgx101LinkOpen && tgx101SelectionBar != null && currentActionMode == null) {
+      tgx101SelectionBar.dismiss();
+    }
+  }
 
   /** TGx101: applies a style, or takes it back when the whole selection already has it */
   public void tgx101ToggleSpan (@IdRes int id) {
@@ -876,21 +910,18 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
 
   /** Returns true when the event is swallowed by the safety tap */
   private boolean tgx101SafetyTap (MotionEvent e) {
-    // TGx101: with text selected (new editing system) touches outside the selection don't drop it: a finger moved over
+    // TGx101: with text selected (new editing system) touches on the text don't drop it: a finger moved over
     // the text is ignored (Android would put the cursor there), and only a second short tap within 2 s moves the cursor
     int action = e.getActionMasked();
     if (action == MotionEvent.ACTION_DOWN) {
       tgx101IgnoringGesture = false;
       if (hasSelection() && org.thunderdog.challegram.unsorted.Settings.instance().useTgx101TextEditor() && getLayout() != null) {
-        int offset = getOffsetForPosition(e.getX(), e.getY());
-        int start = Math.min(getSelectionStart(), getSelectionEnd()), end = Math.max(getSelectionStart(), getSelectionEnd());
-        if (offset < start || offset > end) {
-          tgx101IgnoringGesture = true;
-          tgx101DownX = e.getX();
-          tgx101DownY = e.getY();
-          tgx101Moved = false;
-          return true;
-        }
+        // anywhere on the text, inside the selection too (a tap there would drop it as well)
+        tgx101IgnoringGesture = true;
+        tgx101DownX = e.getX();
+        tgx101DownY = e.getY();
+        tgx101Moved = false;
+        return true;
       }
       return false;
     }
@@ -908,7 +939,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
           tgx101LastIgnoredTap = 0;
         } else {
           tgx101LastIgnoredTap = now;
-          org.thunderdog.challegram.Tgx101Diag.mark("input: first tap outside the selection ignored");
+          org.thunderdog.challegram.Tgx101Diag.mark("input: first tap on the selected text ignored");
         }
       }
     } else if (action == MotionEvent.ACTION_CANCEL) {
@@ -920,6 +951,9 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   @Override
   protected void onSelectionChanged (int selStart, int selEnd) {
     super.onSelectionChanged(selStart, selEnd);
+    if (selStart == selEnd && tgx101SelectionBar != null && currentActionMode == null && !tgx101LinkOpen) {
+      tgx101SelectionBar.dismiss(); // the kept bar goes with the selection
+    }
     // TGx101 diagnostics: a selection that collapses to a cursor while handles are dragged (positions only)
     if (tgx101LastSelStart != tgx101LastSelEnd && selStart == selEnd && tgx101LastSelStart >= 0) {
       org.thunderdog.challegram.Tgx101Diag.mark("input selection collapsed " + tgx101LastSelStart + "-" + tgx101LastSelEnd + " → " + selStart + " (len " + length() + ", lines " + getLineCount() + ")");

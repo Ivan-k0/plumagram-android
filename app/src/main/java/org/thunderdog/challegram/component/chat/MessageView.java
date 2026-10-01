@@ -1572,7 +1572,17 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       }
     };
     cancelLongPress();
-    postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout());
+    postDelayed(longPressRunnable, tgx101LongPressDelay());
+  }
+
+  /** TGx101: on an already selected message the long press opens text selection — a shorter hold, as in the official app */
+  private long tgx101LongPressDelay () {
+    long timeout = ViewConfiguration.getLongPressTimeout();
+    ViewController<?> c = ViewController.findRoot(this);
+    if (msg != null && c instanceof MessagesController && ((MessagesController) c).inSelectMode() && ((MessagesController) c).isMessageSelected(msg.getChatId(), msg.getId(), msg) && org.thunderdog.challegram.unsorted.Settings.instance().useTgx101TextEditor()) {
+      return Math.min(timeout, 250);
+    }
+    return timeout;
   }
 
   private void preventLongPress () {

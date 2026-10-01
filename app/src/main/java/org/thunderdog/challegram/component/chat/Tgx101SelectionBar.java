@@ -190,6 +190,13 @@ public final class Tgx101SelectionBar {
     view.postDelayed(showAfterDrag, 900);
   }
 
+  /** The drag is over (the in-bubble handles know it): the bar comes back right away */
+  public void showNow () {
+    if (!hiddenWhileDragging) return;
+    view.removeCallbacks(showAfterDrag);
+    showAfterDrag.run();
+  }
+
   // Colours: the editor window's panel and its white buttons
 
   private static int panelColor () {
@@ -237,7 +244,12 @@ public final class Tgx101SelectionBar {
         icon.setBackground(pressable(0, 9f));
         icon.setContentDescription(Lang.getString(Tgx101FormatMenuController.nameOf(id)));
         icon.setOnClickListener(v -> {
-          if (id == R.id.btn_link || id == R.id.btn_plain) {
+          if (id == R.id.btn_link) {
+            onLink(input);
+            return;
+          }
+          input.tgx101SaveUndo();
+          if (id == R.id.btn_plain) {
             input.setSpan(id);
           } else {
             input.tgx101ToggleSpan(id);
@@ -248,6 +260,27 @@ public final class Tgx101SelectionBar {
       LinearLayout.LayoutParams iconsParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(30f));
       iconsParams.topMargin = Screen.dp(3f);
       card.addView(icons, iconsParams);
+
+      // «Undo» right under the last icon (Clear formatting), in a cell of the same width
+      LinearLayout undoRow = new LinearLayout(context);
+      undoRow.setOrientation(LinearLayout.HORIZONTAL);
+      undoRow.setGravity(Gravity.END);
+      undoRow.setWeightSum(Math.max(1, icons.getChildCount()));
+      ImageView undo = new ImageView(context);
+      undo.setImageResource(R.drawable.baseline_undo_24);
+      undo.setColorFilter(Theme.textAccentColor());
+      undo.setScaleType(ImageView.ScaleType.CENTER);
+      undo.setBackground(pressable(Theme.fillingColor(), 9f));
+      undo.setContentDescription(Lang.getString(R.string.Tgx101Undo));
+      undo.setOnClickListener(v -> {
+        if (!input.tgx101Undo()) {
+          org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101NothingToUndo, android.widget.Toast.LENGTH_SHORT);
+        }
+      });
+      undoRow.addView(undo, new LinearLayout.LayoutParams(0, Screen.dp(28f), 1f));
+      LinearLayout.LayoutParams undoParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(28f));
+      undoParams.topMargin = Screen.dp(3f);
+      card.addView(undoRow, undoParams);
     }
 
     content = new FrameLayout(context);
@@ -285,6 +318,9 @@ public final class Tgx101SelectionBar {
     if (view == null) return;
     int id = item.getItemId();
     if (isStandard(id)) {
+      if (view instanceof InputView && (id == android.R.id.cut || id == android.R.id.paste)) {
+        ((InputView) view).tgx101SaveUndo();
+      }
       view.onTextContextMenuItem(id);
       return;
     }
@@ -373,7 +409,121 @@ public final class Tgx101SelectionBar {
     showAt(x, y, width, height);
   }
 
+  // The link: typed right here, in a field in place of the bar — the keyboard stays up (no dialog window)
+
+  private void onLink (InputView input) {
+    int start = input.getSelectionStart(), end = input.getSelectionEnd();
+    if (start < 0 || end <= start) return;
+    android.text.style.URLSpan[] links = input.getText().getSpans(start, end, android.text.style.URLSpan.class);
+    if (links != null && links.length > 0) {
+      // second press: the link is taken off
+      input.tgx101SaveUndo();
+      input.removeSpan(new org.drinkless.tdlib.TdApi.TextEntityTypeTextUrl(links[0].getURL()));
+      input.setSelection(start, end);
+      return;
+    }
+    Context context = view.getContext();
+    org.thunderdog.challegram.BaseActivity activity = org.thunderdog.challegram.tool.UI.getContext(context);
+    if (activity == null) return;
+    final int barX = lastX, barY = lastY, barWidth = lastWidth;
+    final org.thunderdog.challegram.widget.PopupLayout popup = new org.thunderdog.challegram.widget.PopupLayout(activity);
+    popup.setNeedRootInsets();
+    FrameLayout wrap = new FrameLayout(activity);
+    wrap.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    wrap.setOnClickListener(v -> popup.hideWindow(false)); // a tap aside: no link
+
+    LinearLayout field = new LinearLayout(activity);
+    field.setOrientation(LinearLayout.HORIZONTAL);
+    field.setGravity(Gravity.CENTER_VERTICAL);
+    int pad = Screen.dp(5f);
+    field.setPadding(pad, pad, pad, pad);
+    field.setBackground(rounded(panelColor(), 14f));
+    field.setElevation(Screen.dp(6f));
+    field.setClickable(true);
+    android.widget.EditText url = new android.widget.EditText(activity);
+    url.setSingleLine(true);
+    url.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
+    url.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE | android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+    url.setHint(Lang.getString(R.string.URL));
+    url.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f);
+    url.setTextColor(Theme.textAccentColor());
+    url.setHintTextColor(Theme.textDecentColor());
+    url.setBackground(rounded(Theme.fillingColor(), 9f));
+    url.setPadding(Screen.dp(10f), 0, Screen.dp(10f), 0);
+    field.addView(url, new LinearLayout.LayoutParams(0, Screen.dp(34f), 1f));
+    final boolean[] applied = {false};
+    Runnable apply = () -> {
+      String link = url.getText().toString().trim();
+      if (link.isEmpty()) {
+        popup.hideWindow(false);
+        return;
+      }
+      if (!org.thunderdog.challegram.tool.Strings.isValidLink(link)) {
+        url.setError(Lang.getString(R.string.URL));
+        return;
+      }
+      applied[0] = true;
+      input.tgx101LinkOpen = false;
+      input.requestFocus();
+      input.setSelection(start, end);
+      input.tgx101SaveUndo();
+      input.setSpanLink(link);
+      popup.hideWindow(false);
+    };
+    TextView done = chip(activity, Lang.getString(R.string.CreateLinkDone), v -> apply.run());
+    LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(34f));
+    doneParams.leftMargin = Screen.dp(4f);
+    field.addView(done, doneParams);
+    TextView cancel = chip(activity, "✕", v -> popup.hideWindow(false));
+    field.addView(cancel, doneParams);
+    url.setOnEditorActionListener((v, actionId, event) -> {
+      apply.run();
+      return true;
+    });
+
+    FrameLayout.LayoutParams fieldParams = new FrameLayout.LayoutParams(barWidth > 0 ? barWidth : ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    wrap.addView(field, fieldParams);
+    // where the bar was (screen coordinates → this layer's)
+    wrap.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+      @Override
+      public void onLayoutChange (View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
+        int[] location = new int[2];
+        wrap.getLocationOnScreen(location);
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) field.getLayoutParams();
+        int left = barX - location[0], top = barY - location[1];
+        if (params.leftMargin != left || params.topMargin != top) {
+          params.leftMargin = left;
+          params.topMargin = top;
+          field.setLayoutParams(params);
+        }
+      }
+    });
+
+    input.tgx101LinkOpen = true;
+    if (window != null) {
+      try { window.dismiss(); } catch (Throwable ignored) { }
+      window = null;
+    }
+    popup.setDismissListener(p -> {
+      input.tgx101LinkOpen = false;
+      if (!applied[0]) {
+        input.requestFocus(); // the keyboard goes straight back to the message
+        input.setSelection(start, end);
+      }
+      if (input.hasSelection()) {
+        reposition(); // the bar comes back to its place
+      }
+    });
+    popup.showNonAnimatedView(wrap);
+    url.requestFocus();
+  }
+
+  private int lastX, lastY, lastWidth;
+
   private void showAt (int x, int y, int width, int height) {
+    lastX = x;
+    lastY = y;
+    lastWidth = width;
     if (window != null) {
       window.setContentView(content);
       window.update(x, y, width, height);
