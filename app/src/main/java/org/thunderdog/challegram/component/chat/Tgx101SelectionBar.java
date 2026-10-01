@@ -69,7 +69,8 @@ public final class Tgx101SelectionBar {
     }
   }
 
-  private final TextView view;
+  private final View view;
+  private final @Nullable TextView textView; // null: anchored to a point (the in-bubble selection), actions only
   private final boolean withFormatting;
   private final List<Action> leadingActions;
   private final boolean followSelection; // in a message: follows the top handle; in the input: static above the field
@@ -81,9 +82,36 @@ public final class Tgx101SelectionBar {
 
   public Tgx101SelectionBar (TextView view, boolean withFormatting, @Nullable List<Action> leadingActions) {
     this.view = view;
+    this.textView = view;
     this.withFormatting = withFormatting;
     this.leadingActions = leadingActions != null ? leadingActions : new ArrayList<>();
     this.followSelection = !(view instanceof InputView);
+  }
+
+  /** A bar over any view, pointing at a spot set with {@link #showAnchored} — only the given actions */
+  public Tgx101SelectionBar (View anchorView, List<Action> actions) {
+    this.view = anchorView;
+    this.textView = null;
+    this.withFormatting = false;
+    this.leadingActions = actions;
+    this.followSelection = true;
+  }
+
+  private int anchorX, anchorTop, anchorBottom;
+
+  /** Anchored mode: shows (or moves) the bar above a spot on the screen — x, line top and the selection's bottom */
+  public void showAnchored (int x, int top, int bottom) {
+    anchorX = x;
+    anchorTop = top;
+    anchorBottom = bottom;
+    if (content == null) {
+      build(new ArrayList<>());
+    }
+    if (hiddenWhileDragging) {
+      content.setAlpha(0f);
+      return;
+    }
+    reposition();
   }
 
   private static boolean isStandard (int id) {
@@ -195,7 +223,7 @@ public final class Tgx101SelectionBar {
     scroll.addView(row);
     card.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(30f)));
 
-    if (withFormatting && view instanceof InputView) {
+    if (withFormatting && textView instanceof InputView) {
       InputView input = (InputView) view;
       LinearLayout icons = new LinearLayout(context);
       icons.setOrientation(LinearLayout.HORIZONTAL);
@@ -253,6 +281,8 @@ public final class Tgx101SelectionBar {
 
   private void invoke (MenuItem item) {
     Menu menu = this.menu;
+    TextView view = this.textView;
+    if (view == null) return;
     int id = item.getItemId();
     if (isStandard(id)) {
       view.onTextContextMenuItem(id);
@@ -280,6 +310,11 @@ public final class Tgx101SelectionBar {
 
   public void reposition () {
     if (content == null) return;
+    if (textView == null) {
+      positionFollowing(anchorX, anchorTop, anchorBottom);
+      return;
+    }
+    TextView view = textView;
     Layout layout = view.getLayout();
     int start = Math.min(view.getSelectionStart(), view.getSelectionEnd());
     int end = Math.max(view.getSelectionStart(), view.getSelectionEnd());
@@ -310,6 +345,11 @@ public final class Tgx101SelectionBar {
       showAt(x, y, width, height);
       return;
     }
+    positionFollowing(anchorX, anchorTop, anchorBottom);
+  }
+
+  private void positionFollowing (int anchorX, int anchorTop, int anchorBottom) {
+    int screenWidth = Screen.currentWidth();
     int width = Math.min(Screen.dp(300f), screenWidth - Screen.dp(24f));
     content.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
     int cardHeight = card.getMeasuredHeight();

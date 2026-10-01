@@ -5802,8 +5802,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
         return false;
       }
     }
-    // the message stays selected while its text is selected (no jump); the selection mode ends when it closes
-    if (transcription == null && view != null && Settings.instance().useTgx101TextEditor() && Tgx101MessageTextSelection.show(this, tdlib, view, msg, touchX, touchY, () -> finishSelectMode(-1))) {
+    // the message stays selected while its text is selected (no jump) and after it closes — a tap unchecks it as usual
+    if (transcription == null && view != null && Settings.instance().useTgx101TextEditor() && Tgx101MessageTextSelection.show(this, tdlib, view, msg, touchX, touchY, null)) {
       return true;
     }
     finishSelectMode(-1);

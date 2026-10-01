@@ -627,6 +627,16 @@ public class TGMessageText extends TGMessage {
     return MathUtils.fromTo(fromLastLineWidth, toLastLineWidth, factor);
   }
 
+  /** TGx101: the text the bubble draws, for the in-bubble selection; null with a link preview above the text */
+  public @androidx.annotation.Nullable org.thunderdog.challegram.util.text.Text tgx101SelectableText () {
+    if (linkPreview != null && linkPreviewAboveText.getFloatValue() != 0f) return null;
+    org.thunderdog.challegram.util.text.Text result = null;
+    for (ListAnimator.Entry<TextWrapper> entry : visibleText) {
+      if (entry.getVisibility() == 1f) result = entry.item.getCurrent();
+    }
+    return result;
+  }
+
   /** TGx101: where the text is drawn inside the message view — {x, y, width}; null with a link preview above the text or a translation */
   public @androidx.annotation.Nullable int[] tgx101TextFrame () {
     if (linkPreview != null && linkPreviewAboveText.getFloatValue() != 0f) return null;

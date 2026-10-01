@@ -2617,6 +2617,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
       }
     }
     drawPressHighlight(c, startX, endX, endXBottomPadding, startY, center, pressHighlight, alpha, defaultTheme);
+    tgx101DrawSelection(c, startX, endX, endXBottomPadding, startY);
 
     if ((textFlags & FLAG_HAS_SPOILERS) != 0) {
       if (spoilers == null) {
@@ -2717,6 +2718,166 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
     if (Color.alpha(backgroundColor) > 0) {
       c.drawPath(path, Paints.fillingPaint(backgroundColor));
     }
+  }
+
+  // TGx101: in-bubble text selection — offsets into getText(), the highlight is drawn behind the text
+
+  private int tgx101SelStart = -1, tgx101SelEnd = -1, tgx101SelColor;
+
+  public void tgx101SetSelection (int start, int end, int color) {
+    tgx101SelStart = Math.max(0, Math.min(start, end));
+    tgx101SelEnd = Math.min(originalText != null ? originalText.length() : 0, Math.max(start, end));
+    tgx101SelColor = color;
+  }
+
+  public void tgx101ClearSelection () {
+    tgx101SelStart = tgx101SelEnd = -1;
+  }
+
+  public boolean tgx101HasSelection () {
+    return tgx101SelStart >= 0 && tgx101SelEnd > tgx101SelStart;
+  }
+
+  public int tgx101SelectionStart () { return tgx101SelStart; }
+  public int tgx101SelectionEnd () { return tgx101SelEnd; }
+
+  private boolean tgx101IsTextPart (TextPart part) {
+    return part.getLine() == originalText && part.getEnd() > part.getStart();
+  }
+
+  private int tgx101PartX (TextPart part, int startX, int endX, int endXBottomPadding) {
+    if (BitwiseUtils.hasFlag(textFlags, FLAG_ALIGN_CENTER)) {
+      int width = getLineWidth(part.getLineIndex());
+      int cx = startX + maxWidth / 2;
+      return part.makeX(cx - width / 2, cx + width / 2, 0);
+    }
+    return part.makeX(startX, endX, endXBottomPadding);
+  }
+
+  private float tgx101XInPart (TextPart part, int offset, int partX) {
+    int start = part.getStart(), end = part.getEnd();
+    float width;
+    if (offset <= start) {
+      width = 0;
+    } else if (offset >= end || part.isRecognizedEmoji() || part.hasMedia()) {
+      width = part.getWidth();
+    } else {
+      width = Math.min(part.getWidth(), getTextPaint(part.getEntity()).measureText(originalText, start, offset));
+    }
+    return part.isRtl() ? partX + part.getWidth() - width : partX + width;
+  }
+
+  private void tgx101DrawSelection (Canvas c, int startX, int endX, int endXBottomPadding, int startY) {
+    if (!tgx101HasSelection() || parts == null)
+      return;
+    Paint paint = Paints.fillingPaint(tgx101SelColor);
+    for (TextPart part : parts) {
+      if (!tgx101IsTextPart(part) || part.getEnd() <= tgx101SelStart || part.getStart() >= tgx101SelEnd)
+        continue;
+      int partX = tgx101PartX(part, startX, endX, endXBottomPadding);
+      float a = tgx101XInPart(part, Math.max(part.getStart(), tgx101SelStart), partX);
+      float b = tgx101XInPart(part, Math.min(part.getEnd(), tgx101SelEnd), partX);
+      float left = Math.max(startX, Math.min(a, b)), right = Math.min(startX + maxWidth, Math.max(a, b));
+      if (right <= left)
+        continue;
+      int top = startY + part.getY();
+      c.drawRect(left, top, right, top + getLineHeight(part.getLineIndex()), paint);
+    }
+  }
+
+  /** The text offset nearest to a point (view coordinates of the last draw); -1 when there is no text */
+  public int tgx101OffsetAt (float x, float y) {
+    if (parts == null || parts.isEmpty() || originalText == null)
+      return -1;
+    float relY = y - lastStartY;
+    // the line: the one under the point, else the nearest
+    int lineIndex = -1;
+    float bestDistance = Float.MAX_VALUE;
+    for (TextPart part : parts) {
+      if (!tgx101IsTextPart(part))
+        continue;
+      int top = part.getY(), bottom = top + getLineHeight(part.getLineIndex());
+      float distance = relY < top ? top - relY : relY >= bottom ? relY - bottom + 1 : 0;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        lineIndex = part.getLineIndex();
+        if (distance == 0)
+          break;
+      }
+    }
+    if (lineIndex == -1)
+      return -1;
+    // the part on that line under the point, else the nearest
+    TextPart best = null;
+    int bestX = 0;
+    bestDistance = Float.MAX_VALUE;
+    for (TextPart part : parts) {
+      if (part.getLineIndex() != lineIndex || !tgx101IsTextPart(part))
+        continue;
+      int partX = tgx101PartX(part, lastStartX, lastEndX, lastEndXBottomPadding);
+      float distance = x < partX ? partX - x : x > partX + part.getWidth() ? x - partX - part.getWidth() : 0;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = part;
+        bestX = partX;
+      }
+    }
+    if (best == null)
+      return -1;
+    int start = best.getStart(), end = best.getEnd();
+    if (best.isRecognizedEmoji() || best.hasMedia()) {
+      return x < bestX + best.getWidth() / 2f ? start : end;
+    }
+    // the character boundary nearest to the point
+    int result = start;
+    float resultDistance = Float.MAX_VALUE;
+    for (int i = start; i <= end; ) {
+      float distance = Math.abs(tgx101XInPart(best, i, bestX) - x);
+      if (distance < resultDistance) {
+        resultDistance = distance;
+        result = i;
+      }
+      if (i == end)
+        break;
+      i += Character.charCount(originalText.codePointAt(i));
+      if (i > end)
+        i = end;
+    }
+    return result;
+  }
+
+  /**
+   * Where an offset is drawn (view coordinates of the last draw): {x, line top, line bottom}.
+   * isEnd: an offset at a line break belongs to the end of the previous line, not the start of the next one.
+   */
+  public @Nullable float[] tgx101LocateOffset (int offset, boolean isEnd) {
+    if (parts == null || originalText == null)
+      return null;
+    TextPart found = null, before = null, after = null;
+    for (TextPart part : parts) {
+      if (!tgx101IsTextPart(part))
+        continue;
+      boolean inside = isEnd ? (offset > part.getStart() && offset <= part.getEnd()) : (offset >= part.getStart() && offset < part.getEnd());
+      if (inside) {
+        found = part;
+        break;
+      }
+      if (part.getEnd() <= offset) {
+        before = part;
+      } else if (after == null && part.getStart() >= offset) {
+        after = part;
+      }
+    }
+    if (found == null) {
+      found = isEnd ? (before != null ? before : after) : (after != null ? after : before);
+    }
+    if (found == null)
+      return null;
+    int partX = tgx101PartX(found, lastStartX, lastEndX, lastEndXBottomPadding);
+    int clamped = Math.max(found.getStart(), Math.min(found.getEnd(), offset));
+    float x = tgx101XInPart(found, clamped, partX);
+    int top = lastStartY + found.getY();
+    return new float[] {x, top, top + getLineHeight(found.getLineIndex())};
   }
 
   // Touch util
