@@ -3563,8 +3563,15 @@ public class MediaViewController extends ViewController<MediaViewController.Args
    * The «home» swipe still works under the lock, but protected: the system bars are hidden, the first swipe from the
    * edge only shows them, the second one goes home.
    */
+  /** The system bars are hidden under the lock only in landscape (user's choice); in portrait they stay as usual */
   private void tgx101SetSystemBarsLocked (boolean locked) {
-    context.setTgx101ImmersiveLock(locked);
+    boolean landscape = context.getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+    context.setTgx101ImmersiveLock(locked && landscape);
+  }
+
+  /** The screen turned while locked: hide / show the system bars for the new orientation */
+  public void tgx101OnOrientationChanged () {
+    if (tgx101Locked()) tgx101SetSystemBarsLocked(true);
   }
 
 
@@ -5644,6 +5651,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         videoSliderView.setSliderListener(this);
         videoSliderView.tgx101EnableCapsule(v -> tgx101ChooseSpeed(), v -> tgx101SetLocked(!tgx101Locked()), v -> tgx101ShowPlayerSettings());
         tgx101AddRotateButton();
+        videoSliderView.tgx101OnConfigurationChanged = this::tgx101OnOrientationChanged;
         videoSliderView.setTgx101Speed(Settings.instance().tgx101PlayerSpeed());
         videoSliderView.setInnerAlpha(0f);
         videoSliderView.setAlpha(0f);

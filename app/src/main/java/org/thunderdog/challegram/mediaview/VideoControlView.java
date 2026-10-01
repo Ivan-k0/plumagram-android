@@ -387,10 +387,13 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
     invalidate();
   }
 
+  public @Nullable Runnable tgx101OnConfigurationChanged;
+
   @Override
   protected void onConfigurationChanged (android.content.res.Configuration newConfig) {
     super.onConfigurationChanged(newConfig);
     applyNavLayout();
+    if (tgx101OnConfigurationChanged != null) tgx101OnConfigurationChanged.run();
   }
 
   public void setTgx101Speed (float speed) {
