@@ -910,7 +910,8 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
 
     if (!isMore && msg.canEditText() && isSent) {
       ids.append(R.id.btn_messageEdit);
-      strings.append(R.string.edit);
+      // TGx101: «Редактор» when the message text window is on
+      strings.append(org.thunderdog.challegram.ui.Tgx101TextEditor.canEdit(msg.getNewestMessage()) ? R.string.Tgx101EditorMenu : R.string.edit);
       icons.append(R.drawable.baseline_edit_24);
     }
 
@@ -960,7 +961,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       // TGx101: «Цитировать» on others' messages opens the quote window (select a part, copy, reply with it)
       if (!msg.isOutgoing() && !msg.isTranslated()) {
         ids.append(R.id.btn_messageSelectText);
-        strings.append(R.string.Tgx101QuoteAction);
+        strings.append(Settings.instance().useTgx101TextEditor() ? R.string.Tgx101EditorMenu : R.string.Tgx101QuoteAction);
         icons.append(R.drawable.baseline_format_quote_close_24);
       }
     }

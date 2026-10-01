@@ -6004,6 +6004,7 @@
   <string name="Tgx101CallPopupSubtitle">PlumaGram · incoming call</string>
   <string name="Tgx101RawPreviewOpening">Opening the RAW photo…</string>
   <string name="Tgx101CallBarSetting">Ongoing call bar over the chats</string>
+  <string name="Tgx101EditorMenu">Editor</string>
   <string name="Tgx101Font">Font</string>
   <string name="Tgx101FontSystem">System (as set on the phone)</string>
   <string name="Tgx101FontManrope">Manrope</string>
