@@ -631,8 +631,13 @@ public class TGMessageText extends TGMessage {
   public @androidx.annotation.Nullable int[] tgx101TextFrame () {
     if (linkPreview != null && linkPreviewAboveText.getFloatValue() != 0f) return null;
     // {x, y, width, height, line height} — the overlay matches the line height so it covers the bubble's text exactly
+    int lineHeight = 0;
+    for (ListAnimator.Entry<TextWrapper> entry : visibleText) {
+      lineHeight = entry.item.getLineHeight();
+      break;
+    }
     return new int[] {getContentX(), getContentY() + getTextTopOffset(), Math.round(visibleText.getMetadata().getTotalWidth()),
-      wrapper != null ? wrapper.getHeight() : 0, wrapper != null ? wrapper.getLineHeight() : 0};
+      Math.round(visibleText.getMetadata().getTotalHeight()), lineHeight};
   }
 
   @Override

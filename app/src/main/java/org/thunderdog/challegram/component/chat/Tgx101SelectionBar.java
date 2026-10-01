@@ -139,6 +139,7 @@ public final class Tgx101SelectionBar {
   private boolean hiddenWhileDragging;
   private final Runnable showAfterDrag = () -> {
     hiddenWhileDragging = false;
+    org.thunderdog.challegram.Tgx101Diag.mark("select: bar shown again");
     if (content != null && window != null) {
       reposition();
       content.animate().alpha(1f).setDuration(120).start();
@@ -153,11 +154,12 @@ public final class Tgx101SelectionBar {
     if (content == null || window == null || !followSelection) return;
     if (!hiddenWhileDragging) {
       hiddenWhileDragging = true;
+      org.thunderdog.challegram.Tgx101Diag.mark("select: bar hidden while the selection changes");
       content.animate().cancel();
       content.setAlpha(0f);
     }
     view.removeCallbacks(showAfterDrag);
-    view.postDelayed(showAfterDrag, 150);
+    view.postDelayed(showAfterDrag, 500);
   }
 
   // Colours: the editor window's panel and its white buttons
