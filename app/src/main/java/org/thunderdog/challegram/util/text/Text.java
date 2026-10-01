@@ -971,6 +971,10 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
           }
           prevIsNewLine = true;
           index++;
+          // TGx101: Windows line breaks ("\r\n", text pasted from Word / Excel) are one line break, not two
+          if (in.charAt(indexOfNewLine) == '\r' && index < totalLength && in.charAt(index) == '\n') {
+            index++;
+          }
         }
       }
       do {
