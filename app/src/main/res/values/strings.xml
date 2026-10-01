@@ -6174,6 +6174,10 @@
   <string name="Tgx101PlayerBrightness">Brightness</string>
   <string name="Tgx101PlayerSpeed">Playback speed</string>
   <string name="Tgx101PlayerSettings">Player settings</string>
+  <string name="Tgx101PlayerGuide">How to use</string>
+  <string name="Tgx101GuideTitle">Gestures in the player</string>
+  <string name="Tgx101GuideOk">Got it</string>
+  <string name="Tgx101GuideText">Swipe up or down on the left third — brightness (if on in Gestures).\nSwipe up or down on the right third — volume (if on in Gestures).\nSwipe down in the middle third — close the video.\nSwipe sideways in the middle — seek, with a hint how far (if on in Gestures). With it off, a double tap on the left or right seeks back or forward.\nSwipe sideways starting from the very edge — previous or next file.\nDouble tap in the middle — pause / play.\nTouch and hold — 2× speed while held (if on in Gestures).\nOne tap anywhere — show or hide the buttons: pause, time, speed, lock, settings.\nThe top edge belongs to the notification shade — the video doesn\'t react to it.</string>
   <string name="Tgx101PlayerSeekStep">Double tap step</string>
   <string name="Tgx101PlayerLoop">Repeat video</string>
   <string name="Tgx101GestureSeek">Swipe sideways to seek</string>

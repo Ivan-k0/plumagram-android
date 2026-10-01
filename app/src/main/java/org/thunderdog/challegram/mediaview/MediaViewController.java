@@ -3566,15 +3566,20 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private void tgx101ChooseGestures () {
     Settings settings = Settings.instance();
     String on = Lang.getString(R.string.Tgx101On), off = Lang.getString(R.string.Tgx101Off);
-    int[] gestures = {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED};
-    int[] names = {R.string.Tgx101GestureSeek, R.string.Tgx101GestureBrightness, R.string.Tgx101GestureVolume, R.string.Tgx101GestureSpeed};
+    int[] gestures = {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED, 100};
+    int[] names = {R.string.Tgx101GestureSeek, R.string.Tgx101GestureBrightness, R.string.Tgx101GestureVolume, R.string.Tgx101GestureSpeed, R.string.Tgx101PlayerGuide};
     String[] titles = new String[gestures.length];
     for (int i = 0; i < gestures.length; i++) {
-      titles[i] = Lang.getString(names[i]) + ": " + (settings.tgx101PlayerGesture(gestures[i]) ? on : off);
+      titles[i] = Lang.getString(names[i]) + (gestures[i] == 100 ? "" : ": " + (settings.tgx101PlayerGesture(gestures[i]) ? on : off));
     }
     showOptions(Lang.getString(R.string.Tgx101PlayerGesturesHint), gestures, titles, null,
-      new int[] {R.drawable.baseline_swap_horiz_24, R.drawable.baseline_brightness_5_24, R.drawable.baseline_volume_up_24, R.drawable.baseline_fast_forward_24},
+      new int[] {R.drawable.baseline_swap_horiz_24, R.drawable.baseline_brightness_5_24, R.drawable.baseline_volume_up_24, R.drawable.baseline_fast_forward_24, R.drawable.baseline_school_24},
       (itemView, id) -> {
+        if (id == 100) {
+          org.thunderdog.challegram.Tgx101Diag.mark("player: guide opened");
+          Tgx101PlayerGuide.show(context);
+          return true;
+        }
         settings.setTgx101PlayerGesture(id, !settings.tgx101PlayerGesture(id));
         org.thunderdog.challegram.Tgx101Diag.mark("player settings: gesture " + id + " " + (settings.tgx101PlayerGesture(id) ? "on" : "off"));
         tgx101ChooseGestures(); // reopen with the new values
@@ -5240,7 +5245,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
               listenCloseBySlide = false;
             }
             // TGx101: with the player gestures on, a vertical swipe on a video is brightness / volume, not closing
-            if (mediaView.tgx101GesturesActive()) {
+            if (mediaView.tgx101GesturesActive(e.getX())) {
               listenCloseBySlide = false;
             }
             // TGx101: «Swipe down closes» switched off in the player settings

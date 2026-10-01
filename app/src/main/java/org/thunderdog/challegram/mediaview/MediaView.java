@@ -860,9 +860,11 @@ public class MediaView extends FrameLayoutFix {
     if (baseCell != null) baseCell.tgx101ApplyLooping();
   }
 
-  /** The viewer's swipe-to-close must not start while a vertical player gesture may */
-  public boolean tgx101GesturesActive () {
-    return (gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_BRIGHTNESS) || gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_VOLUME)) && baseCell != null && baseCell.tgx101CanGesture();
+  /** The viewer's swipe-to-close must not start here: a vertical player gesture owns this third of the screen */
+  public boolean tgx101GesturesActive (float x) {
+    if (baseCell == null || !baseCell.tgx101CanGesture()) return false;
+    float width = getMeasuredWidth();
+    return (x < width / 3f && gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_BRIGHTNESS)) || (x > width * 2f / 3f && gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_VOLUME));
   }
 
   private boolean anyGestureActive () {
@@ -921,10 +923,20 @@ public class MediaView extends FrameLayoutFix {
         if (gState == G_PENDING) {
           if (Math.max(Math.abs(dx), Math.abs(dy)) < Screen.getTouchSlop() * 1.5f) return false;
           removeCallbacks(gLongPress);
-          boolean horizontal = Math.abs(dx) > Math.abs(dy), left = gDownX < getMeasuredWidth() / 2f;
-          if (horizontal ? !gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_SEEK) : !gestureOn(left ? org.thunderdog.challegram.unsorted.Settings.GESTURE_BRIGHTNESS : org.thunderdog.challegram.unsorted.Settings.GESTURE_VOLUME)) {
-            gState = G_NONE; // this gesture is off: the swipe works as usual
-            org.thunderdog.challegram.Tgx101Diag.mark("player: swipe " + (horizontal ? "sideways" : left ? "left vertical" : "right vertical") + " — gesture off, passed on");
+          // zones: a sideways swipe from the outer 12 % of the width pages the media; vertical swipes on the left third
+          // are brightness, on the right third volume, in the middle third they close the viewer as usual
+          float width = getMeasuredWidth();
+          boolean horizontal = Math.abs(dx) > Math.abs(dy), left = gDownX < width / 3f, right = gDownX > width * 2f / 3f;
+          boolean fromEdge = gDownX < width * .12f || gDownX > width * .88f;
+          boolean pass;
+          if (horizontal) {
+            pass = fromEdge || !gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_SEEK);
+          } else {
+            pass = !(left && gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_BRIGHTNESS)) && !(right && gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_VOLUME));
+          }
+          if (pass) {
+            gState = G_NONE; // not a player gesture here: the swipe works as usual (paging / closing)
+            org.thunderdog.challegram.Tgx101Diag.mark("player: swipe " + (horizontal ? (fromEdge ? "from the edge" : "sideways") : left ? "left vertical" : right ? "right vertical" : "middle vertical") + " — passed on");
             return false;
           }
           if (horizontal) {
