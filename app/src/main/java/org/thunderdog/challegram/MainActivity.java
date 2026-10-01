@@ -909,11 +909,18 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
         }
         // TGx101: something shared into the app over an open chat — unfocus its input before the window comes back,
         // otherwise Android restores the keyboard for a moment (it flashed) before the chat picker
+        // (clearing the focus alone isn't enough: Android hands it straight back to the chat's input), so the window
+        // is told not to show the keyboard on its return until the chat picker is up
         View tgx101Focus = getCurrentFocus();
         if (tgx101Focus instanceof android.widget.EditText) {
-          tgx101Focus.clearFocus();
           org.thunderdog.challegram.tool.Keyboard.hide(tgx101Focus);
         }
+        getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN | android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+        org.thunderdog.challegram.Tgx101Diag.mark("share: keyboard kept hidden while the chat picker opens");
+        getWindow().getDecorView().postDelayed(() -> {
+          // back to the manifest's mode: stateUnchanged|adjustPan
+          getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_UNCHANGED | android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+        }, 2500);
         consumer = account -> {
           shareIntent(account, action, intent);
         };

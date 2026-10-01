@@ -2326,9 +2326,8 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
    */
   private void tgx101ShowOverKeyboard (ShareController c) {
     View focus = context.getCurrentFocus();
-    if (focus instanceof android.widget.EditText) {
-      org.thunderdog.challegram.Tgx101Diag.mark("share picker: chat input unfocused, keyboard " + (context.isKeyboardVisible() ? "visible" : "not yet visible"));
-      focus.clearFocus();
+    if (focus instanceof android.widget.EditText && context.isKeyboardVisible()) {
+      org.thunderdog.challegram.Tgx101Diag.mark("share picker: keyboard was up, hidden first");
       org.thunderdog.challegram.tool.Keyboard.hide(focus);
       UI.post(c::show, 250);
     } else {
