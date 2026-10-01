@@ -12972,7 +12972,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   public void onInputSelectionExistChanged (InputView v, boolean hasSelection) {
-    textInputHasSelection = hasSelection;
+    // TGx101: with the new editing system the own selection bar has the formatting — no «T» in place of the emoji button
+    textInputHasSelection = hasSelection && !Settings.instance().useTgx101TextEditor();
     if (!emojiShown) {
       emojiButton.setImageResource(getTargetIcon(true));
     }

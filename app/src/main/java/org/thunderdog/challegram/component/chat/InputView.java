@@ -351,7 +351,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
       public boolean onPrepareActionMode (ActionMode mode, Menu menu) {
         updateMenuVisibility(menu);
         // TGx101: own fixed-width selection bar instead of the system floating toolbar (Android 6+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && actionModeVisibility && Config.USE_CUSTOM_INPUT_STYLING) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && actionModeVisibility && Config.USE_CUSTOM_INPUT_STYLING && org.thunderdog.challegram.unsorted.Settings.instance().useTgx101TextEditor()) {
           if (tgx101SelectionBar == null) tgx101SelectionBar = new Tgx101SelectionBar(InputView.this);
           tgx101SelectionBar.update(menu);
         }
