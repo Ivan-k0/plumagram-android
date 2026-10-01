@@ -229,7 +229,9 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     setMaxCodePointCount(0);
     addTextChangedListener(new TextWatcher() {
       @Override
-      public void beforeTextChanged (CharSequence s, int start, int count, int after) { }
+      public void beforeTextChanged (CharSequence s, int start, int count, int after) {
+        tgx101RecordEdit(count, after);
+      }
 
       @Override
       public void onTextChanged (CharSequence s, int start, int before, int count) {
@@ -443,23 +445,88 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   private Tgx101SelectionBar tgx101SelectionBar;
   boolean tgx101LinkOpen; // the bar's link field has the focus for a moment
 
-  // TGx101: undo for the selection bar's actions (styles, link, quote, clear, cut, paste)
+  // TGx101: undo («Отменить» in the selection bar) for any change of the text — typing, deleting, pasting, styles,
+  // links, quotes: up to 50 steps. Typing is grouped: a pause, or switching between typing and deleting, starts a new step.
   private final java.util.ArrayList<Object[]> tgx101UndoStack = new java.util.ArrayList<>();
+  private boolean tgx101Restoring;
+  private long tgx101LastEditAt;
+  private int tgx101LastEditKind; // 1 typing, 2 deleting, 3 a bar action
+  private long tgx101BarActionUntil;
 
-  public void tgx101SaveUndo () {
+  private void tgx101PushUndo () {
     tgx101UndoStack.add(new Object[] {new android.text.SpannableStringBuilder(getText()), getSelectionStart(), getSelectionEnd()});
-    if (tgx101UndoStack.size() > 30) tgx101UndoStack.remove(0);
+    if (tgx101UndoStack.size() > 50) tgx101UndoStack.remove(0);
+  }
+
+  private void tgx101RecordEdit (int count, int after) {
+    if (tgx101Restoring) return;
+    if (isSettingText && !settingByUserAction) {
+      tgx101UndoStack.clear(); // a draft loaded, the message sent: a new text, nothing to go back to
+      tgx101LastEditKind = 0;
+      return;
+    }
+    long now = android.os.SystemClock.uptimeMillis();
+    int kind = after >= count ? 1 : 2;
+    boolean bigChange = Math.abs(after - count) > 2; // paste, cut, a replaced word
+    boolean barEcho = tgx101LastEditKind == 3 && now - tgx101LastEditAt < 400; // the text change of a bar action, already saved
+    if (!barEcho && (bigChange || kind != tgx101LastEditKind || now - tgx101LastEditAt > 1200)) {
+      tgx101PushUndo();
+    }
+    tgx101LastEditAt = now;
+    if (!barEcho) tgx101LastEditKind = bigChange ? 0 : kind;
+  }
+
+  /** Before a bar action (style, link, quote, clear, cut, paste): one undo step */
+  public void tgx101SaveUndo () {
+    tgx101PushUndo();
+    tgx101LastEditAt = android.os.SystemClock.uptimeMillis();
+    tgx101LastEditKind = 3;
+  }
+
+  /**
+   * Runs a bar action keeping the selection: Android ends its selection mode when the text changes and drops the
+   * selection to its end — the same range is selected again and the bar stays where it is.
+   */
+  public void tgx101RunBarAction (Runnable action) {
+    int start = Math.min(getSelectionStart(), getSelectionEnd()), end = Math.max(getSelectionStart(), getSelectionEnd());
+    tgx101BarActionUntil = android.os.SystemClock.uptimeMillis() + 600;
+    action.run();
+    Runnable restore = () -> {
+      int length = length();
+      if (end > start && getSelectionStart() == getSelectionEnd() && start <= length) {
+        setSelection(start, Math.min(end, length));
+      }
+      if (tgx101SelectionBar != null && hasSelection()) {
+        tgx101SelectionBar.reposition();
+      }
+    };
+    restore.run();
+    post(restore);
   }
 
   /** Returns false when there is nothing to undo */
   public boolean tgx101Undo () {
     if (tgx101UndoStack.isEmpty()) return false;
     Object[] state = tgx101UndoStack.remove(tgx101UndoStack.size() - 1);
-    Editable text = getText();
-    text.replace(0, text.length(), (CharSequence) state[0]);
-    int length = text.length();
-    setSelection(Math.max(0, Math.min(length, (int) state[1])), Math.max(0, Math.min(length, (int) state[2])));
+    int keepStart = Math.min(getSelectionStart(), getSelectionEnd()), keepEnd = Math.max(getSelectionStart(), getSelectionEnd());
+    tgx101Restoring = true;
+    try {
+      Editable text = getText();
+      text.replace(0, text.length(), (CharSequence) state[0]);
+    } finally {
+      tgx101Restoring = false;
+    }
+    tgx101LastEditKind = 0;
+    int length = length();
+    int start = Math.max(0, Math.min(length, (int) state[1])), end = Math.max(0, Math.min(length, (int) state[2]));
+    if (start == end && keepEnd > keepStart && keepStart < length) {
+      // the step had no selection (typing): keep the current one, so the bar stays for the next «Undo»
+      start = keepStart;
+      end = Math.min(keepEnd, length);
+    }
+    setSelection(start, end);
     inlineContext.forceCheck();
+    org.thunderdog.challegram.Tgx101Diag.mark("input undo: " + tgx101UndoStack.size() + " steps left");
     return true;
   }
 
@@ -951,7 +1018,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   @Override
   protected void onSelectionChanged (int selStart, int selEnd) {
     super.onSelectionChanged(selStart, selEnd);
-    if (selStart == selEnd && tgx101SelectionBar != null && currentActionMode == null && !tgx101LinkOpen) {
+    if (selStart == selEnd && tgx101SelectionBar != null && currentActionMode == null && !tgx101LinkOpen && android.os.SystemClock.uptimeMillis() > tgx101BarActionUntil) {
       tgx101SelectionBar.dismiss(); // the kept bar goes with the selection
     }
     // TGx101 diagnostics: a selection that collapses to a cursor while handles are dragged (positions only)

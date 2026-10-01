@@ -235,7 +235,7 @@ public final class Tgx101SelectionBar {
       LinearLayout icons = new LinearLayout(context);
       icons.setOrientation(LinearLayout.HORIZONTAL);
       for (int entry : Tgx101FormatMenuController.getOrder()) {
-        if (entry <= 0) continue;
+        if (entry <= 0 || entry == R.id.btn_plain) continue; // «Clear formatting» gave its place to «Undo» (user's choice)
         final int id = entry;
         ImageView icon = new ImageView(context);
         icon.setImageResource(Tgx101FormatMenuController.iconOf(id));
@@ -249,38 +249,37 @@ public final class Tgx101SelectionBar {
             return;
           }
           input.tgx101SaveUndo();
-          if (id == R.id.btn_plain) {
-            input.setSpan(id);
-          } else {
-            input.tgx101ToggleSpan(id);
-          }
+          input.tgx101RunBarAction(() -> {
+            if (id == R.id.btn_plain) {
+              input.setSpan(id);
+            } else {
+              input.tgx101ToggleSpan(id);
+            }
+          });
         });
         icons.addView(icon, new LinearLayout.LayoutParams(0, Screen.dp(30f), 1f));
       }
-      LinearLayout.LayoutParams iconsParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(30f));
-      iconsParams.topMargin = Screen.dp(3f);
-      card.addView(icons, iconsParams);
-
-      // «Undo» right under the last icon (Clear formatting), in a cell of the same width
-      LinearLayout undoRow = new LinearLayout(context);
-      undoRow.setOrientation(LinearLayout.HORIZONTAL);
-      undoRow.setGravity(Gravity.END);
-      undoRow.setWeightSum(Math.max(1, icons.getChildCount()));
+      // «Undo» — the last one in the row, behind a thin line (mockup 3)
+      View divider = new View(context);
+      divider.setBackgroundColor(ColorUtils.alphaColor(.2f, Theme.textDecentColor()));
+      LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(Math.max(1, Screen.dp(1f) / 2), Screen.dp(20f));
+      dividerParams.gravity = Gravity.CENTER_VERTICAL;
+      icons.addView(divider, dividerParams);
       ImageView undo = new ImageView(context);
       undo.setImageResource(R.drawable.baseline_undo_24);
       undo.setColorFilter(Theme.textAccentColor());
       undo.setScaleType(ImageView.ScaleType.CENTER);
-      undo.setBackground(pressable(Theme.fillingColor(), 9f));
+      undo.setBackground(pressable(0, 9f));
       undo.setContentDescription(Lang.getString(R.string.Tgx101Undo));
-      undo.setOnClickListener(v -> {
+      undo.setOnClickListener(v -> input.tgx101RunBarAction(() -> {
         if (!input.tgx101Undo()) {
           org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101NothingToUndo, android.widget.Toast.LENGTH_SHORT);
         }
-      });
-      undoRow.addView(undo, new LinearLayout.LayoutParams(0, Screen.dp(28f), 1f));
-      LinearLayout.LayoutParams undoParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(28f));
-      undoParams.topMargin = Screen.dp(3f);
-      card.addView(undoRow, undoParams);
+      }));
+      icons.addView(undo, new LinearLayout.LayoutParams(0, Screen.dp(30f), 1f));
+      LinearLayout.LayoutParams iconsParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(30f));
+      iconsParams.topMargin = Screen.dp(3f);
+      card.addView(icons, iconsParams);
     }
 
     content = new FrameLayout(context);
@@ -420,8 +419,7 @@ public final class Tgx101SelectionBar {
     if (links != null && links.length > 0) {
       // second press: the link is taken off
       input.tgx101SaveUndo();
-      input.removeSpan(new org.drinkless.tdlib.TdApi.TextEntityTypeTextUrl(links[0].getURL()));
-      input.setSelection(start, end);
+      input.tgx101RunBarAction(() -> input.removeSpan(new org.drinkless.tdlib.TdApi.TextEntityTypeTextUrl(links[0].getURL())));
       return;
     }
     Context context = view.getContext();
@@ -469,7 +467,7 @@ public final class Tgx101SelectionBar {
       input.requestFocus();
       input.setSelection(start, end);
       input.tgx101SaveUndo();
-      input.setSpanLink(link);
+      input.tgx101RunBarAction(() -> input.setSpanLink(link));
       popup.hideWindow(false);
     };
     TextView done = chip(activity, Lang.getString(R.string.CreateLinkDone), v -> apply.run());
