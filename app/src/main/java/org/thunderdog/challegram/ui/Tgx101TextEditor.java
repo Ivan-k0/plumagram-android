@@ -385,12 +385,14 @@ public final class Tgx101TextEditor {
 
     android.widget.FrameLayout wrap = new android.widget.FrameLayout(activity);
     wrap.setBackgroundColor(0x80000000);
-    wrap.setOnClickListener(v -> result.dismiss()); // tap outside the card
+    wrap.setClickable(true); // closes only with ✕ — taps around the card do nothing
     card.setClickable(true);
     card.setBackground(rounded(Theme.fillingColor(), 20f));
     card.setClipToOutline(true);
     card.setElevation(Screen.dp(12f));
-    android.widget.FrameLayout.LayoutParams cardParams = new android.widget.FrameLayout.LayoutParams(Math.min(Screen.currentWidth() - Screen.dp(32f), Screen.dp(440f)), ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+    // right above the keyboard, over the (unused) chat input
+    android.widget.FrameLayout.LayoutParams cardParams = new android.widget.FrameLayout.LayoutParams(Math.min(Screen.currentWidth() - Screen.dp(12f), Screen.dp(480f)), ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+    cardParams.bottomMargin = Screen.dp(6f);
     wrap.addView(card, cardParams);
     wrap.setLayoutParams(new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
@@ -408,6 +410,7 @@ public final class Tgx101TextEditor {
       }
     });
 
+    popup.setBackListener((fromTop, commit) -> true); // the back key doesn't close it either (it only hides the keyboard)
     popup.setDismissListener(p -> {
       if (onDismiss != null) onDismiss.run();
       // the keyboard goes back to the chat input if it had it
@@ -424,16 +427,22 @@ public final class Tgx101TextEditor {
     return result;
   }
 
-  /** With the keyboard open the window must fit above it: the text area shrinks (it scrolls) so the buttons and «Save» stay visible. */
+  /**
+   * The text area has a fixed height — six lines (it scrolls inside), so the window doesn't jump while typing;
+   * on a small screen with the keyboard open it gets lower so the buttons and «Save» stay visible.
+   */
   private static void fitAboveKeyboard (View root, android.widget.TextView text) {
     final android.graphics.Rect frame = new android.graphics.Rect();
     root.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
       if (root.getHeight() == 0) return;
       root.getWindowVisibleDisplayFrame(frame);
       int others = root.getHeight() - text.getHeight();
-      int max = Math.max(Screen.dp(72f), Math.min(textMaxHeight(), frame.height() - others - Screen.dp(48f)));
-      if (text.getMaxHeight() != max) {
-        text.setMaxHeight(max);
+      int sixLines = text.getLineHeight() * 6 + text.getPaddingTop() + text.getPaddingBottom();
+      int available = frame.height() - others - Screen.dp(20f);
+      int height = Math.max(text.getLineHeight() * 2 + text.getPaddingTop() + text.getPaddingBottom(), Math.min(sixLines, available));
+      if (text.getMaxHeight() != height || text.getMinHeight() != height) {
+        text.setMinHeight(height);
+        text.setMaxHeight(height);
       }
     });
   }
