@@ -809,9 +809,222 @@ public class MediaView extends FrameLayoutFix {
     }
   }
 
+  // TGx101 player gestures (MagiX switch, off by default): on a playing video a horizontal swipe seeks (with a hint),
+  // a vertical swipe on the left half changes the brightness, on the right half the volume; a long press plays at 2×
+  // while held. A swipe that starts at the top edge belongs to the notification shade and is left alone.
+
+  private static final int G_NONE = 0, G_PENDING = 1, G_SEEK = 2, G_BRIGHTNESS = 3, G_VOLUME = 4, G_SPEED = 5;
+  private int gState = G_NONE;
+  private float gDownX, gDownY;
+  private long gStartTime;
+  private float gStartValue;
+  private float gSavedSpeed = 1f;
+  private String gHudTitle, gHudValue;
+  private float gHudAlpha;
+  private final android.graphics.Paint gHudPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+  private final android.graphics.RectF gHudRect = new android.graphics.RectF();
+  private final Runnable gLongPress = () -> {
+    if (gState == G_PENDING && baseCell.tgx101CanGesture()) {
+      gState = G_SPEED;
+      gSavedSpeed = baseCell.tgx101GetSpeed();
+      baseCell.tgx101SetSpeed(2f);
+      cancelChildren();
+      showHud("2×", null);
+      performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+    }
+  };
+  private final Runnable gHideHud = () -> {
+    gHudAlpha = 0f;
+    invalidate();
+  };
+
+  /** The viewer's swipe-to-close must not start while a player gesture may */
+  public boolean tgx101GesturesActive () {
+    return org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerGestures() && baseCell != null && baseCell.tgx101CanGesture();
+  }
+
+  private void cancelChildren () {
+    MotionEvent cancel = MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0, 0, 0);
+    super.dispatchTouchEvent(cancel);
+    cancel.recycle();
+  }
+
+  private void showHud (String title, @Nullable String value) {
+    gHudTitle = title;
+    gHudValue = value;
+    gHudAlpha = 1f;
+    removeCallbacks(gHideHud);
+    invalidate();
+  }
+
+  private static String formatTime (long ms) {
+    long s = Math.max(0, ms) / 1000;
+    return s >= 3600 ? String.format(java.util.Locale.US, "%d:%02d:%02d", s / 3600, s / 60 % 60, s % 60) : String.format(java.util.Locale.US, "%d:%02d", s / 60, s % 60);
+  }
+
+  @Override
+  public boolean dispatchTouchEvent (MotionEvent e) {
+    if (handleGesture(e)) {
+      return true;
+    }
+    return super.dispatchTouchEvent(e);
+  }
+
+  private boolean handleGesture (MotionEvent e) {
+    switch (e.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN: {
+        gState = G_NONE;
+        if (tgx101GesturesActive() && e.getRawY() > Screen.getStatusBarHeight() + Screen.dp(32f)) {
+          gState = G_PENDING;
+          gDownX = e.getX();
+          gDownY = e.getY();
+          postDelayed(gLongPress, android.view.ViewConfiguration.getLongPressTimeout());
+        }
+        return false;
+      }
+      case MotionEvent.ACTION_POINTER_DOWN: {
+        if (gState == G_PENDING) {
+          gState = G_NONE; // a pinch: zoom as usual
+          removeCallbacks(gLongPress);
+        }
+        return gState > G_PENDING;
+      }
+      case MotionEvent.ACTION_MOVE: {
+        if (gState == G_NONE) return false;
+        float dx = e.getX() - gDownX, dy = e.getY() - gDownY;
+        if (gState == G_PENDING) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) < Screen.getTouchSlop() * 1.5f) return false;
+          removeCallbacks(gLongPress);
+          if (Math.abs(dx) > Math.abs(dy)) {
+            gState = G_SEEK;
+            gStartTime = baseCell.tgx101TimeNow();
+          } else if (gDownX < getMeasuredWidth() / 2f) {
+            gState = G_BRIGHTNESS;
+            gStartValue = currentBrightness();
+          } else {
+            gState = G_VOLUME;
+            android.media.AudioManager audio = (android.media.AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+            gStartValue = audio != null ? audio.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) : 0;
+          }
+          cancelChildren();
+        }
+        updateGesture(dx, dy, false);
+        return true;
+      }
+      case MotionEvent.ACTION_UP:
+      case MotionEvent.ACTION_CANCEL: {
+        removeCallbacks(gLongPress);
+        int state = gState;
+        gState = G_NONE;
+        if (state == G_PENDING || state == G_NONE) return false;
+        if (state == G_SEEK && e.getActionMasked() == MotionEvent.ACTION_UP) {
+          updateGesture(e.getX() - gDownX, e.getY() - gDownY, true);
+        } else if (state == G_SPEED) {
+          baseCell.tgx101SetSpeed(gSavedSpeed);
+        }
+        postDelayed(gHideHud, 600);
+        return true;
+      }
+    }
+    return gState > G_PENDING;
+  }
+
+  private void updateGesture (float dx, float dy, boolean commit) {
+    switch (gState) {
+      case G_SEEK: {
+        long total = baseCell.tgx101TimeTotal();
+        // the whole width is 90 seconds (or the whole video if it is shorter)
+        long span = Math.min(total, 90000);
+        long delta = (long) (dx / Math.max(1, getMeasuredWidth()) * span);
+        long target = Math.max(0, Math.min(total, gStartTime + delta));
+        long shown = target - gStartTime;
+        showHud((shown >= 0 ? "+" : "−") + formatTime(Math.abs(shown)), formatTime(target) + " / " + formatTime(total));
+        if (commit) {
+          baseCell.tgx101SeekTo(target);
+        }
+        break;
+      }
+      case G_BRIGHTNESS: {
+        float value = Math.max(0.01f, Math.min(1f, gStartValue - dy / (getMeasuredHeight() * .7f)));
+        if (getContext() instanceof android.app.Activity) {
+          android.view.Window window = ((android.app.Activity) getContext()).getWindow();
+          android.view.WindowManager.LayoutParams params = window.getAttributes();
+          params.screenBrightness = value;
+          window.setAttributes(params);
+          tgx101BrightnessChanged = true;
+        }
+        showHud(Lang.getString(org.thunderdog.challegram.R.string.Tgx101PlayerBrightness), Math.round(value * 100) + "%");
+        break;
+      }
+      case G_VOLUME: {
+        android.media.AudioManager audio = (android.media.AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+        if (audio == null) break;
+        int max = audio.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC);
+        int value = Math.max(0, Math.min(max, Math.round(gStartValue - dy / (getMeasuredHeight() * .7f) * max)));
+        if (value != audio.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)) {
+          audio.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, value, 0);
+        }
+        showHud(Lang.getString(org.thunderdog.challegram.R.string.Tgx101PlayerVolume), Math.round(value * 100f / Math.max(1, max)) + "%");
+        break;
+      }
+    }
+  }
+
+  private boolean tgx101BrightnessChanged;
+
+  private float currentBrightness () {
+    if (getContext() instanceof android.app.Activity) {
+      float value = ((android.app.Activity) getContext()).getWindow().getAttributes().screenBrightness;
+      if (value >= 0) return value;
+    }
+    try {
+      return android.provider.Settings.System.getInt(getContext().getContentResolver(), android.provider.Settings.System.SCREEN_BRIGHTNESS) / 255f;
+    } catch (Throwable t) {
+      return .5f;
+    }
+  }
+
+  @Override
+  protected void dispatchDraw (android.graphics.Canvas c) {
+    super.dispatchDraw(c);
+    if (gHudAlpha > 0f && gHudTitle != null) {
+      float cx = getMeasuredWidth() / 2f, cy = getMeasuredHeight() * .42f;
+      gHudPaint.setTextAlign(android.graphics.Paint.Align.CENTER);
+      gHudPaint.setTextSize(Screen.dp(26f));
+      gHudPaint.setFakeBoldText(true);
+      float titleWidth = gHudPaint.measureText(gHudTitle);
+      float valueWidth = 0;
+      if (gHudValue != null) {
+        gHudPaint.setTextSize(Screen.dp(13f));
+        valueWidth = gHudPaint.measureText(gHudValue);
+      }
+      float w = Math.max(titleWidth, valueWidth) + Screen.dp(36f), h = Screen.dp(gHudValue != null ? 70f : 50f);
+      gHudRect.set(cx - w / 2f, cy - h / 2f, cx + w / 2f, cy + h / 2f);
+      gHudPaint.setColor(0x73000000);
+      c.drawRoundRect(gHudRect, Screen.dp(16f), Screen.dp(16f), gHudPaint);
+      gHudPaint.setColor(0xffffffff);
+      gHudPaint.setTextSize(Screen.dp(26f));
+      c.drawText(gHudTitle, cx, gHudRect.top + Screen.dp(gHudValue != null ? 34f : 34f), gHudPaint);
+      if (gHudValue != null) {
+        gHudPaint.setFakeBoldText(false);
+        gHudPaint.setTextSize(Screen.dp(13f));
+        gHudPaint.setColor(0xccffffff);
+        c.drawText(gHudValue, cx, gHudRect.top + Screen.dp(56f), gHudPaint);
+      }
+    }
+  }
+
   @Override
   protected void onDetachedFromWindow () {
     super.onDetachedFromWindow();
+    if (tgx101BrightnessChanged && getContext() instanceof android.app.Activity) {
+      // the player's brightness only lasts while the viewer is open
+      android.view.Window window = ((android.app.Activity) getContext()).getWindow();
+      android.view.WindowManager.LayoutParams params = window.getAttributes();
+      params.screenBrightness = android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
+      window.setAttributes(params);
+      tgx101BrightnessChanged = false;
+    }
     baseCell.detach();
     if (previewCell != null) {
       previewCell.detach();

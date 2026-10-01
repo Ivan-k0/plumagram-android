@@ -3533,6 +3533,17 @@ public class Settings {
   }
 
   // TGx101: the bottom "Mute / Unmute" button in channels (it collapses into a bell while scrolling)
+  private static final String KEY_TGX101_PLAYER_GESTURES = "tgx101_player_gestures";
+
+  /** TGx101: video player gestures (brightness / volume / seek swipes, long press 2×) — off by default */
+  public boolean tgx101PlayerGestures () {
+    return pmc.getBoolean(KEY_TGX101_PLAYER_GESTURES, false);
+  }
+
+  public void setTgx101PlayerGestures (boolean value) {
+    pmc.putBoolean(KEY_TGX101_PLAYER_GESTURES, value);
+  }
+
   // TGx101: ghost mode — each part separately, all off by default
   private static final String KEY_TGX101_GHOST_NO_READ = "tgx101_ghost_no_read";
   private static final String KEY_TGX101_GHOST_HIDE_ONLINE = "tgx101_ghost_hide_online";

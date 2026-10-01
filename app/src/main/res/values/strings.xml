@@ -6165,6 +6165,11 @@
   <string name="Tgx101QuickReplyN">Reply %1$d</string>
   <string name="Tgx101CallPatternHint">Circle: a sharp photo under the name. Full screen: the original Telegram X design. The pattern of paper planes is faint and still; it is hidden behind a full-screen photo.</string>
   <string name="ShowChannelMuteButton">«Mute» button and bell</string>
+  <string name="Tgx101PlayerSection">Video player</string>
+  <string name="Tgx101PlayerGestures">Gestures</string>
+  <string name="Tgx101PlayerGesturesHint">Swipe left / right to seek, up / down on the left half for brightness, on the right half for volume; hold for 2×. With gestures on, a double tap on the sides no longer seeks. A double tap in the middle pauses in both modes.</string>
+  <string name="Tgx101PlayerBrightness">Brightness</string>
+  <string name="Tgx101PlayerVolume">Volume</string>
   <string name="Tgx101GhostSection">Ghost mode</string>
   <string name="Tgx101GhostNoRead">Don\'t mark messages as read</string>
   <string name="Tgx101GhostHideOnline">Hide «online»</string>

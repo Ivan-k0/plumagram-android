@@ -1404,15 +1404,15 @@ public class MediaCellView extends ViewGroup implements
     }
   }
 
-  // Video taps: double tap on the left/right third seeks by 5 seconds (each further quick
-  // tap adds 5 more), a tap in the middle plays/pauses. A single tap on the sides still
-  // toggles the controls, after a short wait to tell it apart from a double tap.
+  // Video taps (TGx101 player): a single tap anywhere shows / hides the controls; a double tap in the middle third
+  // plays / pauses; a double tap on the left / right third seeks by 5 seconds (each further quick tap adds 5 more) —
+  // only while the player gestures are off (with them on, seeking is a horizontal swipe)
 
   private static final long VIDEO_SEEK_STEP_MS = 5000;
   private static final long VIDEO_DOUBLE_TAP_TIMEOUT_MS = 300;
 
   private long lastVideoTapTime;
-  private int lastVideoTapZone;
+  private int lastVideoTapZone = Integer.MIN_VALUE;
   private boolean inVideoSeekSeries;
   private Runnable pendingVideoTap;
 
@@ -1424,22 +1424,25 @@ public class MediaCellView extends ViewGroup implements
     if (!isSeekableVideo()) {
       return false;
     }
+    final boolean gestures = org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerGestures();
     int width = getMeasuredWidth();
     int zone = x < width / 3f ? -1 : x > width * 2f / 3f ? 1 : 0;
     long now = android.os.SystemClock.uptimeMillis();
-    boolean isQuickRepeat = zone != 0 && zone == lastVideoTapZone && now - lastVideoTapTime < VIDEO_DOUBLE_TAP_TIMEOUT_MS * (inVideoSeekSeries ? 2 : 1);
+    boolean isQuickRepeat = zone == lastVideoTapZone && now - lastVideoTapTime < VIDEO_DOUBLE_TAP_TIMEOUT_MS * (inVideoSeekSeries ? 2 : 1);
     lastVideoTapTime = now;
     lastVideoTapZone = zone;
     if (pendingVideoTap != null) {
       removeCallbacks(pendingVideoTap);
       pendingVideoTap = null;
     }
-    if (zone == 0) {
+    if (isQuickRepeat && zone == 0) {
+      // double tap in the middle: play / pause
       inVideoSeekSeries = false;
+      lastVideoTapZone = Integer.MIN_VALUE;
       playerView.playPause();
       return true;
     }
-    if (isQuickRepeat) {
+    if (isQuickRepeat && !gestures) {
       inVideoSeekSeries = true;
       long position = Math.max(0, Math.min(timeTotal, timeNow + zone * VIDEO_SEEK_STEP_MS));
       timeNow = position;
@@ -1447,6 +1450,14 @@ public class MediaCellView extends ViewGroup implements
       return true;
     }
     inVideoSeekSeries = false;
+    if (gestures && zone != 0) {
+      // nothing else to wait for on the sides: the controls show / hide right away
+      lastVideoTapZone = Integer.MIN_VALUE;
+      if (getParent() instanceof MediaView) {
+        ((MediaView) getParent()).onMediaClick(x, y);
+      }
+      return true;
+    }
     pendingVideoTap = () -> {
       pendingVideoTap = null;
       if (getParent() instanceof MediaView) {
@@ -1455,6 +1466,35 @@ public class MediaCellView extends ViewGroup implements
     };
     postDelayed(pendingVideoTap, VIDEO_DOUBLE_TAP_TIMEOUT_MS);
     return true;
+  }
+
+  // TGx101 player gestures (MediaView drives them, see MediaView#dispatchTouchEvent)
+
+  public boolean tgx101CanGesture () {
+    return isSeekableVideo() && canTouch(false) && !isZoomed();
+  }
+
+  public long tgx101TimeNow () {
+    return timeNow;
+  }
+
+  public long tgx101TimeTotal () {
+    return timeTotal;
+  }
+
+  public void tgx101SeekTo (long positionMs) {
+    if (!isSeekableVideo()) return;
+    long position = Math.max(0, Math.min(timeTotal, positionMs));
+    timeNow = position;
+    playerView.setSeekProgress((float) ((double) position / (double) timeTotal));
+  }
+
+  public void tgx101SetSpeed (float speed) {
+    if (playerView != null) playerView.setPlaybackSpeed(speed);
+  }
+
+  public float tgx101GetSpeed () {
+    return playerView != null ? playerView.getPlaybackSpeed() : 1f;
   }
 
   public void invalidateContent (MediaItem item) {

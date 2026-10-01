@@ -5037,6 +5037,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             if (e.getRawY() < Screen.getStatusBarHeight() + Screen.dp(32f)) {
               listenCloseBySlide = false;
             }
+            // TGx101: with the player gestures on, a vertical swipe on a video is brightness / volume, not closing
+            if (mediaView.tgx101GesturesActive()) {
+              listenCloseBySlide = false;
+            }
             break;
           }
           case MotionEvent.ACTION_MOVE: {

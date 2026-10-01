@@ -605,6 +605,17 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     }
   }
 
+  /** TGx101: playback speed (1 = normal); the long-press 2× and the player settings */
+  public void setPlaybackSpeed (float speed) {
+    if (player != null) {
+      player.setPlaybackSpeed(speed);
+    }
+  }
+
+  public float getPlaybackSpeed () {
+    return player != null ? player.getPlaybackParameters().speed : 1f;
+  }
+
   public void setSeekProgress (float progress) {
     if (player != null) {
       player.seekTo((long) ((double) player.getDuration() * (double) progress));

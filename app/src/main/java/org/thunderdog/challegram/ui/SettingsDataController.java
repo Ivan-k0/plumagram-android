@@ -244,6 +244,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().useNewCallScreen(), isUpdate);
         } else if (quickReplyIndex(itemId) != -1) {
           view.setData(Settings.instance().getQuickReply(quickReplyIndex(itemId)));
+        } else if (itemId == R.id.btn_tgx101PlayerGestures) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101PlayerGestures(), isUpdate);
         } else if (itemId == R.id.btn_tgx101GhostNoRead) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101GhostNoRead(), isUpdate);
         } else if (itemId == R.id.btn_tgx101GhostHideOnline) {
@@ -380,6 +382,12 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NotificationPlane, 0, R.string.Tgx101NotificationPlane),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.PullToSearchHint),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+
+        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101PlayerSection),
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101PlayerGestures, 0, R.string.Tgx101PlayerGestures),
+        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101PlayerGesturesHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101GhostSection),
@@ -765,6 +773,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         adapter.updateValuedSettingById(id);
         return true;
       }, true);
+    } else if (id == R.id.btn_tgx101PlayerGestures) {
+      Settings.instance().setTgx101PlayerGestures(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101GhostNoRead) {
       Settings.instance().setTgx101GhostNoRead(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101GhostHideOnline) {

@@ -285,6 +285,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101QuickReplyN, "Ответ %1$d");
     RU.put(R.string.Tgx101CallPatternHint, "Круг — чёткое фото под именем. На весь экран — прежний дизайн Telegram X. Узор из бумажных самолётиков еле заметный и неподвижный; за фото на весь экран его не видно.");
     RU.put(R.string.ShowChannelMuteButton, "Кнопка уведомлений и колокольчик");
+    RU.put(R.string.Tgx101PlayerSection, "Видеоплеер");
+    RU.put(R.string.Tgx101PlayerGestures, "Жесты");
+    RU.put(R.string.Tgx101PlayerGesturesHint, "Свайп влево-вправо — перемотка, вверх-вниз слева — яркость, справа — громкость; удержание — скорость 2×. С жестами двойное нажатие по краям больше не перематывает. Двойное нажатие по центру ставит на паузу в обоих режимах.");
+    RU.put(R.string.Tgx101PlayerBrightness, "Яркость");
+    RU.put(R.string.Tgx101PlayerVolume, "Громкость");
     RU.put(R.string.Tgx101GhostSection, "Режим призрака");
     RU.put(R.string.Tgx101GhostNoRead, "Не отмечать сообщения прочитанными");
     RU.put(R.string.Tgx101GhostHideOnline, "Скрывать «в сети»");
