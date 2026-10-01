@@ -72,6 +72,7 @@ public final class Tgx101SelectionBar {
   private final TextView view;
   private final boolean withFormatting;
   private final List<Action> leadingActions;
+  private final boolean followSelection; // in a message: follows the top handle; in the input: static above the field
   private PopupWindow window;
   private Menu menu;
   private FrameLayout content;
@@ -82,6 +83,7 @@ public final class Tgx101SelectionBar {
     this.view = view;
     this.withFormatting = withFormatting;
     this.leadingActions = leadingActions != null ? leadingActions : new ArrayList<>();
+    this.followSelection = !(view instanceof InputView);
   }
 
   private static boolean isStandard (int id) {
@@ -148,7 +150,7 @@ public final class Tgx101SelectionBar {
    * show it again a moment after the selection settles.
    */
   public void onSelectionChanging () {
-    if (content == null || window == null) return;
+    if (content == null || window == null || !followSelection) return;
     if (!hiddenWhileDragging) {
       hiddenWhileDragging = true;
       content.animate().cancel();
@@ -291,6 +293,21 @@ public final class Tgx101SelectionBar {
     int anchorBottom = originY + layout.getLineBottom(endLine);
 
     int screenWidth = Screen.currentWidth();
+    if (!followSelection) {
+      // the message input: a static bar right above the input field, full width, no tail
+      int width = Math.min(screenWidth - Screen.dp(12f), Screen.dp(480f));
+      tail.setVisibility(View.GONE);
+      ((FrameLayout.LayoutParams) card.getLayoutParams()).topMargin = 0;
+      content.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+      int height = card.getMeasuredHeight();
+      int[] inputLocation = new int[2];
+      view.getLocationOnScreen(inputLocation);
+      int x = (screenWidth - width) / 2;
+      int y = inputLocation[1] - height - Screen.dp(6f);
+      if (y < Screen.getStatusBarHeight()) y = inputLocation[1] + view.getHeight() + Screen.dp(6f);
+      showAt(x, y, width, height);
+      return;
+    }
     int width = Math.min(Screen.dp(300f), screenWidth - Screen.dp(24f));
     content.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
     int cardHeight = card.getMeasuredHeight();
@@ -311,7 +328,12 @@ public final class Tgx101SelectionBar {
     tailParams.topMargin = below ? 0 : cardHeight - Screen.dp(1f);
     tail.setPointingUp(below);
 
+    showAt(x, y, width, height);
+  }
+
+  private void showAt (int x, int y, int width, int height) {
     if (window != null) {
+      window.setContentView(content);
       window.update(x, y, width, height);
       content.requestLayout();
       return;
