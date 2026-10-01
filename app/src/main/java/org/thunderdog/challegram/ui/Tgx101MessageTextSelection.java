@@ -55,7 +55,7 @@ public final class Tgx101MessageTextSelection {
   private Tgx101MessageTextSelection () { }
 
   private static boolean fail (String reason) {
-    org.thunderdog.challegram.Log.i("TGx101 select: no in-bubble selection — %s", reason);
+    org.thunderdog.challegram.Tgx101Diag.mark("select: no in-bubble selection — " + reason);
     return false;
   }
 
@@ -69,7 +69,7 @@ public final class Tgx101MessageTextSelection {
     if (frame == null) return fail("link preview above the text");
     if (formatted == null || formatted.text.isEmpty()) return fail("no text");
     if (msg.isTranslated()) return fail("translated");
-    org.thunderdog.challegram.Log.i("TGx101 select: in-bubble selection for message %d at %.0f,%.0f", message.id, touchX, touchY);
+    org.thunderdog.challegram.Tgx101Diag.mark("select: in-bubble selection at " + Math.round(touchX) + "," + Math.round(touchY));
 
     org.thunderdog.challegram.BaseActivity activity = controller.context();
     final PopupLayout popup = new PopupLayout(activity);
@@ -196,7 +196,7 @@ public final class Tgx101MessageTextSelection {
           int to = words.following(Math.max(0, offset));
           if (from == java.text.BreakIterator.DONE) from = 0;
           if (to == java.text.BreakIterator.DONE) to = value.length();
-          org.thunderdog.challegram.Log.i("TGx101 select: long press didn't start the selection, selecting %d..%d directly", from, to);
+          org.thunderdog.challegram.Tgx101Diag.mark("select: long press didn't start the selection, selecting the word directly");
           if (value instanceof android.text.Spannable && to > from) {
             android.text.Selection.setSelection((android.text.Spannable) value, from, to);
             text.setTag("allowLongClick");

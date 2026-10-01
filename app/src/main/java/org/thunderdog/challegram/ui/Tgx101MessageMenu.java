@@ -160,6 +160,28 @@ public final class Tgx101MessageMenu {
     root.setBackground(blurredBackground(c));
     root.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     root.setOnClickListener(v -> dismiss(host));
+    // TGx101: a long press on the message itself (under the blurred menu) closes the menu and selects the word under
+    // the finger — text selection on the second long press instead of the third
+    final float[] down = new float[2];
+    root.setOnTouchListener((v, e) -> {
+      if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) {
+        down[0] = e.getRawX();
+        down[1] = e.getRawY();
+      }
+      return false;
+    });
+    root.setOnLongClickListener(v -> {
+      View messageView = message.findCurrentView();
+      if (!(messageView instanceof org.thunderdog.challegram.component.chat.MessageView)) return false;
+      int[] location = new int[2];
+      messageView.getLocationOnScreen(location);
+      float x = down[0] - location[0], y = down[1] - location[1];
+      if (x < 0 || y < 0 || x > messageView.getWidth() || y > messageView.getHeight()) return false;
+      org.thunderdog.challegram.Tgx101Diag.mark("select: long press on the message under the menu");
+      dismiss(host);
+      c.tgx101OpenSelectText(message, (org.thunderdog.challegram.component.chat.MessageView) messageView, x, y);
+      return true;
+    });
 
     LinearLayout column = new LinearLayout(context);
     column.setOrientation(LinearLayout.VERTICAL);

@@ -399,6 +399,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CallPattern, 0, R.string.Tgx101CallPattern),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101RingRamp, 0, R.string.Tgx101RingRamp),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101RingRampTime, 0, R.string.Tgx101RingRampTime),
 
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101CallPatternHint),
@@ -447,8 +449,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Connection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_lessDataForCalls, 0, R.string.VoipUseLessData),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101RingRampTime, 0, R.string.Tgx101RingRampTime),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_proxy, 0, R.string.Proxy),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
