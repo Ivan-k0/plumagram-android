@@ -3289,7 +3289,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
     } else if (tdlib.isRepliesChat(chat.id)) {
       setInputVisible(false, false);
-      showBottomButton(BOTTOM_ACTION_TOGGLE_MUTE, 0, isUpdate);
+      if (Settings.instance().showChannelMuteButton()) {
+        showBottomButton(BOTTOM_ACTION_TOGGLE_MUTE, 0, isUpdate);
+      } else {
+        hideBottomBar(isUpdate); // TGx101: the «Mute» button and bell switched off — the «Replies» chat too
+      }
     } else {
       hideBottomBar(isUpdate);
 
