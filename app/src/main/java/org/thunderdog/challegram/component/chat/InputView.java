@@ -281,27 +281,6 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
           return true;
         }
         inflater.inflate(R.menu.text, menu);
-        // TGx101: like the official app — Copy, Select all, then the formatting (not hidden behind ▶ after Translate)
-        try {
-          java.util.List<MenuItem> formatItems = new java.util.ArrayList<>();
-          for (int i = 0; i < menu.size(); i++) {
-            MenuItem item = menu.getItem(i);
-            if (item.getGroupId() == Menu.NONE && item.getIcon() != null && isFormatItem(item.getItemId())) {
-              formatItems.add(item);
-            }
-          }
-          int order = 9;
-          for (MenuItem item : formatItems) {
-            int id = item.getItemId();
-            CharSequence title = item.getTitle();
-            android.graphics.drawable.Drawable icon = item.getIcon();
-            menu.removeItem(id);
-            menu.add(Menu.NONE, id, order++, title).setIcon(icon).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-          }
-          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            menu.removeItem(android.R.id.textAssist);
-          }
-        } catch (Throwable ignored) { }
         try {
           for (int i = 0; i < menu.size(); i++) {
             MenuItem item = menu.getItem(i);
@@ -429,11 +408,6 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   public void performDestroy () {
     super.performDestroy();
     mediaHolder.performDestroy();
-  }
-
-  private static boolean isFormatItem (int id) {
-    return id == R.id.btn_plain || id == R.id.btn_bold || id == R.id.btn_italic || id == R.id.btn_underline || id == R.id.btn_strikethrough ||
-      id == R.id.btn_monospace || id == R.id.btn_spoiler || id == R.id.btn_link || id == R.id.btn_quote;
   }
 
   public boolean setSpan (@IdRes int id) {

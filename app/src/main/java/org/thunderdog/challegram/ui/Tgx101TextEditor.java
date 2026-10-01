@@ -323,16 +323,6 @@ public final class Tgx101TextEditor {
     TextView text = new TextView(context);
     text.setText(formattedText.text);
     text.setTextIsSelectable(true);
-    // Copy and Select all first (some firmwares put Translate in front)
-    text.setCustomSelectionActionModeCallback(new android.view.ActionMode.Callback() {
-      @Override public boolean onCreateActionMode (android.view.ActionMode mode, android.view.Menu menu) {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) menu.removeItem(android.R.id.textAssist);
-        return true;
-      }
-      @Override public boolean onPrepareActionMode (android.view.ActionMode mode, android.view.Menu menu) { return false; }
-      @Override public boolean onActionItemClicked (android.view.ActionMode mode, android.view.MenuItem item) { return false; }
-      @Override public void onDestroyActionMode (android.view.ActionMode mode) { }
-    });
     text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16.5f);
     text.setTextColor(Theme.textAccentColor());
     text.setTypeface(Fonts.getRobotoRegular());
