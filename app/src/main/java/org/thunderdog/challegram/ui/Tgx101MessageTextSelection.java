@@ -13,6 +13,7 @@
 package org.thunderdog.challegram.ui;
 
 import android.os.SystemClock;
+import android.text.Layout;
 import android.text.TextPaint;
 import android.util.TypedValue;
 import android.view.ActionMode;
@@ -54,6 +55,14 @@ import tgx.td.Td;
 public final class Tgx101MessageTextSelection {
   private Tgx101MessageTextSelection () { }
 
+  private static void forwardToList (androidx.recyclerview.widget.RecyclerView list, long downTime, long eventTime, int action, float rawX, float rawY) {
+    int[] location = new int[2];
+    list.getLocationOnScreen(location);
+    MotionEvent event = MotionEvent.obtain(downTime, eventTime, action, rawX - location[0], rawY - location[1], 0);
+    list.dispatchTouchEvent(event);
+    event.recycle();
+  }
+
   private static boolean fail (String reason) {
     org.thunderdog.challegram.Tgx101Diag.mark("select: no in-bubble selection — " + reason);
     return false;
@@ -77,18 +86,71 @@ public final class Tgx101MessageTextSelection {
 
     FrameLayout wrap = new FrameLayout(activity);
     wrap.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-    wrap.setOnClickListener(v -> popup.hideWindow(true)); // a tap aside closes
+    // Around the text: a swipe scrolls the chat (forwarded to the message list), a tap is a safety tap —
+    // the first one keeps the selection, a second one within 2 s closes it
+    final long[] lastOutsideTap = {0};
+    final androidx.recyclerview.widget.RecyclerView list = controller.getMessagesView();
+    final int slop = ViewConfiguration.get(activity).getScaledTouchSlop();
+    final float[] downRaw = new float[2];
+    final boolean[] forwarding = {false};
+    final long[] downTime = {0};
+    wrap.setOnTouchListener((v, e) -> {
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+          downRaw[0] = e.getRawX();
+          downRaw[1] = e.getRawY();
+          downTime[0] = e.getDownTime();
+          forwarding[0] = false;
+          return true;
+        case MotionEvent.ACTION_MOVE:
+          if (!forwarding[0] && list != null && Math.hypot(e.getRawX() - downRaw[0], e.getRawY() - downRaw[1]) > slop) {
+            forwarding[0] = true;
+            forwardToList(list, downTime[0], downTime[0], MotionEvent.ACTION_DOWN, downRaw[0], downRaw[1]);
+          }
+          if (forwarding[0]) forwardToList(list, downTime[0], e.getEventTime(), MotionEvent.ACTION_MOVE, e.getRawX(), e.getRawY());
+          return true;
+        case MotionEvent.ACTION_UP:
+          if (forwarding[0]) {
+            forwardToList(list, downTime[0], e.getEventTime(), MotionEvent.ACTION_UP, e.getRawX(), e.getRawY());
+            forwarding[0] = false;
+          } else {
+            long now = SystemClock.uptimeMillis();
+            if (now - lastOutsideTap[0] < 2000) {
+              popup.hideWindow(true);
+            } else {
+              lastOutsideTap[0] = now;
+              org.thunderdog.challegram.Tgx101Diag.mark("select: first tap aside — kept (a second one closes)");
+            }
+          }
+          return true;
+        case MotionEvent.ACTION_CANCEL:
+          if (forwarding[0]) forwardToList(list, downTime[0], e.getEventTime(), MotionEvent.ACTION_CANCEL, e.getRawX(), e.getRawY());
+          forwarding[0] = false;
+          return true;
+      }
+      return true;
+    });
 
     TextView text = new TextView(activity) {
       private float downX, downY;
+      private boolean seenDown;
 
       @Override
       public boolean onTouchEvent (MotionEvent e) {
-        if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
+        int action = e.getActionMasked();
+        if (action == MotionEvent.ACTION_DOWN) {
           downX = e.getX();
           downY = e.getY();
+          seenDown = true;
+        } else if (!seenDown) {
+          // the finger of the long press that opened this layer is lifted: its stray UP would read as a tap and drop the selection
+          return true;
         }
-        return super.onTouchEvent(e);
+        boolean result = super.onTouchEvent(e);
+        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+          seenDown = false;
+        }
+        return result;
       }
 
       @Override
@@ -152,7 +214,36 @@ public final class Tgx101MessageTextSelection {
       @Override public boolean onActionItemClicked (ActionMode mode, MenuItem item) { return false; }
       @Override public void onDestroyActionMode (ActionMode mode) {
         bar.dismiss();
-        if (!popup.isWindowHidden()) popup.hideWindow(true); // selection gone → back to the chat
+        // the system ends the selection mode e.g. when a handle is dragged past the text: keep the layer, and if the
+        // selection is still there bring the handles and the bar back
+        boolean hasSelection = text.hasSelection();
+        org.thunderdog.challegram.Tgx101Diag.mark("select: action mode ended, selection kept=" + hasSelection);
+        if (hasSelection && !popup.isWindowHidden()) {
+          text.post(() -> {
+            if (popup.isWindowHidden() || !text.hasSelection()) return;
+            int start = text.getSelectionStart(), end = text.getSelectionEnd();
+            // re-enter the selection mode on the same range
+            android.text.Selection.removeSelection((android.text.Spannable) text.getText());
+            text.setTag("allowLongClick");
+            Layout layout = text.getLayout();
+            if (layout != null) {
+              int line = layout.getLineForOffset(start);
+              float lx = layout.getPrimaryHorizontal(start) + 1f, ly = (layout.getLineTop(line) + layout.getLineBottom(line)) / 2f;
+              long now = SystemClock.uptimeMillis();
+              MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, lx, ly, 0);
+              text.dispatchTouchEvent(down);
+              down.recycle();
+              text.performLongClick();
+              MotionEvent up = MotionEvent.obtain(now, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, lx, ly, 0);
+              text.dispatchTouchEvent(up);
+              up.recycle();
+              if (text.getText() instanceof android.text.Spannable) {
+                android.text.Selection.setSelection((android.text.Spannable) text.getText(), start, end);
+              }
+            }
+            text.setTag(null);
+          });
+        }
       }
     });
     final int[] lastSelection = {-1, -1};
@@ -165,7 +256,26 @@ public final class Tgx101MessageTextSelection {
       }
       return true;
     });
+    final int[] baseTop = {params.topMargin};
+    final int[] viewTopOnScreen = {viewLocation[1]};
+    final androidx.recyclerview.widget.RecyclerView.OnScrollListener follow = new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+      @Override
+      public void onScrolled (@androidx.annotation.NonNull androidx.recyclerview.widget.RecyclerView recyclerView, int dx, int dy) {
+        if (popup.isWindowHidden()) return;
+        View current = msg.findCurrentView();
+        if (current == null || !current.isAttachedToWindow()) {
+          popup.hideWindow(true); // the message scrolled away
+          return;
+        }
+        int[] location = new int[2];
+        current.getLocationOnScreen(location);
+        text.setTranslationY(location[1] - viewTopOnScreen[0]);
+        if (bar.isShowing()) bar.reposition();
+      }
+    };
+    if (list != null) list.addOnScrollListener(follow);
     popup.setDismissListener(p -> {
+      if (list != null) list.removeOnScrollListener(follow);
       bar.dismiss();
       if (onClose != null) onClose.run();
     });

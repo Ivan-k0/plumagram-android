@@ -159,7 +159,7 @@ public final class Tgx101SelectionBar {
       content.setAlpha(0f);
     }
     view.removeCallbacks(showAfterDrag);
-    view.postDelayed(showAfterDrag, 500);
+    view.postDelayed(showAfterDrag, 900);
   }
 
   // Colours: the editor window's panel and its white buttons
