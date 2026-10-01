@@ -911,15 +911,24 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
         // otherwise Android restores the keyboard for a moment (it flashed) before the chat picker
         // (clearing the focus alone isn't enough: Android hands it straight back to the chat's input), so the window
         // is told not to show the keyboard on its return until the chat picker is up
+        // If the keyboard was up when the app was left, Android restores it on the way back whatever the window's
+        // mode — so for a moment the chat's input can't take the focus at all: nothing to restore the keyboard for
         View tgx101Focus = getCurrentFocus();
-        if (tgx101Focus instanceof android.widget.EditText) {
-          org.thunderdog.challegram.tool.Keyboard.hide(tgx101Focus);
+        final View tgx101Input = tgx101Focus instanceof android.widget.EditText ? tgx101Focus : null;
+        if (tgx101Input != null) {
+          org.thunderdog.challegram.tool.Keyboard.hide(tgx101Input);
+          tgx101Input.setFocusable(false);
+          tgx101Input.setFocusableInTouchMode(false);
         }
         getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN | android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
-        org.thunderdog.challegram.Tgx101Diag.mark("share: keyboard kept hidden while the chat picker opens");
+        org.thunderdog.challegram.Tgx101Diag.mark("share: keyboard kept hidden while the chat picker opens (input " + (tgx101Input != null ? "locked" : "not focused") + ")");
         getWindow().getDecorView().postDelayed(() -> {
-          // back to the manifest's mode: stateUnchanged|adjustPan
+          // back to normal: the manifest's stateUnchanged|adjustPan, the input focusable again
           getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_UNCHANGED | android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+          if (tgx101Input != null) {
+            tgx101Input.setFocusable(true);
+            tgx101Input.setFocusableInTouchMode(true);
+          }
         }, 2500);
         consumer = account -> {
           shareIntent(account, action, intent);
