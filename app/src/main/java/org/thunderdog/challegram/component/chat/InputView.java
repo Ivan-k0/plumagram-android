@@ -871,32 +871,50 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
 
   private int tgx101LastSelStart = -1, tgx101LastSelEnd = -1;
   private long tgx101LastIgnoredTap;
-  private boolean tgx101IgnoringGesture;
+  private boolean tgx101IgnoringGesture, tgx101Moved;
+  private float tgx101DownX, tgx101DownY;
 
   /** Returns true when the event is swallowed by the safety tap */
   private boolean tgx101SafetyTap (MotionEvent e) {
-    // TGx101 safety tap: with text selected (new editing system), the first touch in the field outside the selection is
-    // ignored — an accidental tap no longer drops the selection; a second one within 2 s works as usual
+    // TGx101: with text selected (new editing system) touches outside the selection don't drop it: a finger moved over
+    // the text is ignored (Android would put the cursor there), and only a second short tap within 2 s moves the cursor
     int action = e.getActionMasked();
     if (action == MotionEvent.ACTION_DOWN) {
       tgx101IgnoringGesture = false;
       if (hasSelection() && org.thunderdog.challegram.unsorted.Settings.instance().useTgx101TextEditor() && getLayout() != null) {
         int offset = getOffsetForPosition(e.getX(), e.getY());
         int start = Math.min(getSelectionStart(), getSelectionEnd()), end = Math.max(getSelectionStart(), getSelectionEnd());
-        boolean outside = offset < start || offset > end;
-        long now = android.os.SystemClock.uptimeMillis();
-        if (outside && now - tgx101LastIgnoredTap > 2000) {
-          tgx101LastIgnoredTap = now;
+        if (offset < start || offset > end) {
           tgx101IgnoringGesture = true;
-          org.thunderdog.challegram.Tgx101Diag.mark("input: first touch outside the selection ignored");
+          tgx101DownX = e.getX();
+          tgx101DownY = e.getY();
+          tgx101Moved = false;
           return true;
         }
       }
-    } else if (tgx101IgnoringGesture) {
-      if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) tgx101IgnoringGesture = false;
-      return true;
+      return false;
     }
-    return false;
+    if (!tgx101IgnoringGesture) return false;
+    if (action == MotionEvent.ACTION_MOVE) {
+      if (Math.hypot(e.getX() - tgx101DownX, e.getY() - tgx101DownY) > android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop()) {
+        tgx101Moved = true;
+      }
+    } else if (action == MotionEvent.ACTION_UP) {
+      tgx101IgnoringGesture = false;
+      if (!tgx101Moved) {
+        long now = android.os.SystemClock.uptimeMillis();
+        if (now - tgx101LastIgnoredTap < 2000) {
+          setSelection(Math.max(0, Math.min(length(), getOffsetForPosition(e.getX(), e.getY())))); // the second tap: the cursor goes there
+          tgx101LastIgnoredTap = 0;
+        } else {
+          tgx101LastIgnoredTap = now;
+          org.thunderdog.challegram.Tgx101Diag.mark("input: first tap outside the selection ignored");
+        }
+      }
+    } else if (action == MotionEvent.ACTION_CANCEL) {
+      tgx101IgnoringGesture = false;
+    }
+    return true;
   }
 
   @Override
