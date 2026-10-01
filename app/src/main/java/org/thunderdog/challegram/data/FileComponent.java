@@ -363,7 +363,12 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   }
 
   private void buildTitles (int maxWidth) {
-    trimmedTitle = title != null ? new Text.Builder(title, maxWidth, Paints.getTitleStyleProvider(), context.getTextColorSet()).textFlags(doc != null ? Text.FLAG_ELLIPSIZE_MIDDLE : 0).singleLine().allBold().highlight(context.getHighlightedText(Highlight.Pool.KEY_FILE_TITLE, title)).build() : null;
+    if (doc != null && title != null) {
+      // TGx101: like the official app — the document name takes up to two lines, room on the right is kept for ⋮
+      trimmedTitle = new Text.Builder(title, maxWidth - Screen.dp(TGX101_DOTS_SPACE), Paints.getTitleStyleProvider(), context.getTextColorSet()).maxLineCount(2).allBold().highlight(context.getHighlightedText(Highlight.Pool.KEY_FILE_TITLE, title)).build();
+    } else {
+      trimmedTitle = title != null ? new Text.Builder(title, maxWidth, Paints.getTitleStyleProvider(), context.getTextColorSet()).textFlags(doc != null ? Text.FLAG_ELLIPSIZE_MIDDLE : 0).singleLine().allBold().highlight(context.getHighlightedText(Highlight.Pool.KEY_FILE_TITLE, title)).build() : null;
+    }
 
     float oldWidth = sizeWidth;
     trimSubtitle(maxWidth);
@@ -523,13 +528,21 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     if (waveform != null) {
       contentWidth += waveform.getWidth() + sizeWidth + Screen.dp(12f) + transcribeButtonSpace();
     } else {
-      contentWidth += Math.max(getTitleWidth(), sizeWidth) + Screen.dp(6f);
+      contentWidth += Math.max(getTitleWidth(), sizeWidth) + Screen.dp(doc != null ? TGX101_DOTS_SPACE : 6f);
     }
     return contentWidth;
   }
 
   public int getHeight () {
-    return getDocHeight();
+    return getDocHeight() + tgx101TitleExtraHeight();
+  }
+
+  // TGx101: room for ⋮ to the right of a document's name; extra height when the name takes two lines
+  private static final float TGX101_DOTS_SPACE = 20f;
+
+  private int tgx101TitleExtraHeight () {
+    if (waveform != null || trimmedTitle == null || trimmedTitle.getLineCount() <= 1) return 0;
+    return trimmedTitle.getHeight() - trimmedTitle.getLineHeight(0);
   }
 
   private boolean loadCaught;
@@ -799,7 +812,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
         trimmedTitle.draw(c, textLeft, textLeft + trimmedTitle.getWidth(), 0, startY + Screen.dp(8f), null, alpha);
       }
       if (trimmedSubtitle != null) {
-        trimmedSubtitle.draw(c, textLeft, textLeft + trimmedSubtitle.getWidth(), 0, startY + Screen.dp(29f), null, alpha);
+        trimmedSubtitle.draw(c, textLeft, textLeft + trimmedSubtitle.getWidth(), 0, startY + Screen.dp(29f) + tgx101TitleExtraHeight(), null, alpha);
       }
     } else {
       // TODO alpha parameter support for voice messages

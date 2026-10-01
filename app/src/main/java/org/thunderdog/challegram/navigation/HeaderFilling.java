@@ -851,7 +851,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     }
     if (call != null || oldCall == null || force) {
       this.call = call;
-      setShowOngoingSection(SECTION_CALL, call != null, false, force);
+      setShowOngoingSection(SECTION_CALL, call != null && org.thunderdog.challegram.unsorted.Settings.instance().showTgx101CallBar(), false, force); // TGx101: can be turned off
     } else {
       UI.post(() -> {
         if (HeaderFilling.this.callTdlib != null && HeaderFilling.this.callTdlib.id() == oldTdlib.id() &&

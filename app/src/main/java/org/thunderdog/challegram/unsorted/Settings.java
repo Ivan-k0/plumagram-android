@@ -3173,6 +3173,16 @@ public class Settings {
   private static final String KEY_TGX101_TEXT_WEIGHT = "tgx101_text_weight";
   private static final String KEY_TGX101_FONT_ROBOTO = "tgx101_font_roboto";
   private static final String KEY_TGX101_TEXT_EDITOR = "tgx101_text_editor";
+  private static final String KEY_TGX101_CALL_BAR = "tgx101_call_bar";
+
+  /** TGx101: the «ongoing call» bar over the chats (the status bar chip also leads back to the call) */
+  public boolean showTgx101CallBar () {
+    return pmc.getBoolean(KEY_TGX101_CALL_BAR, true);
+  }
+
+  public void setShowTgx101CallBar (boolean show) {
+    pmc.putBoolean(KEY_TGX101_CALL_BAR, show);
+  }
 
   /** TGx101: «Изменить» opens the message text window (formatting buttons) instead of editing in the input field */
   public boolean useTgx101TextEditor () {

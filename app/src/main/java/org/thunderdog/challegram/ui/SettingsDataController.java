@@ -272,6 +272,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().useTgx101MessageMenu(), isUpdate);
         } else if (itemId == R.id.btn_tgx101TextEditor) {
           view.getToggler().setRadioEnabled(Settings.instance().useTgx101TextEditor(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101CallBar) {
+          view.getToggler().setRadioEnabled(Settings.instance().showTgx101CallBar(), isUpdate);
         } else if (itemId == R.id.btn_tgx101MessageMenuHand) {
           view.setData(Settings.instance().isTgx101MessageMenuLeftHand() ? R.string.Tgx101MessageMenuHandLeft : R.string.Tgx101MessageMenuHandRight);
         } else if (itemId == R.id.btn_tgx101ChatListTextSize) {
@@ -345,6 +347,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MessageMenu, 0, R.string.Tgx101MessageMenu),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101TextEditor, 0, R.string.Tgx101TextEditorSetting),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CallBar, 0, R.string.Tgx101CallBarSetting),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101MessageMenuHand, 0, R.string.Tgx101MessageMenuHand),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -760,6 +764,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setUseTgx101MessageMenu(toggleResult);
     } else if (id == R.id.btn_tgx101TextEditor) {
       Settings.instance().setUseTgx101TextEditor(toggleResult);
+    } else if (id == R.id.btn_tgx101CallBar) {
+      Settings.instance().setShowTgx101CallBar(toggleResult);
     } else if (id == R.id.btn_tgx101MessageMenuHand) {
       boolean left = Settings.instance().isTgx101MessageMenuLeftHand();
       showSettings(new SettingsWrapBuilder(id).setRawItems(new ListItem[] {
