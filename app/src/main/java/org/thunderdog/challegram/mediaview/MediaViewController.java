@@ -3204,6 +3204,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   @Override
   public boolean performOnBackPressed (boolean fromTop, boolean commit) {
+    if (tgx101Locked()) {
+      return true; // TGx101: the child lock — Back doesn't close the video either
+    }
     if (inSlideMode || (slideAnimator != null && slideAnimator.isAnimating())) {
       return true;
     }
@@ -3435,10 +3438,54 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
   }
 
+  // TGx101 player: speed (remembered) and the child lock
+
+  private static final float[] TGX101_SPEEDS = {.5f, .75f, 1f, 1.25f, 1.5f, 2f};
+
+  private void tgx101ChooseSpeed () {
+    int[] ids = new int[TGX101_SPEEDS.length];
+    String[] names = new String[TGX101_SPEEDS.length];
+    float current = Settings.instance().tgx101PlayerSpeed();
+    for (int i = 0; i < ids.length; i++) {
+      ids[i] = i + 1;
+      float speed = TGX101_SPEEDS[i];
+      names[i] = (speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed)) + "×" + (speed == current ? "  ✓" : "");
+    }
+    showOptions(Lang.getString(R.string.Tgx101PlayerSpeed), ids, names, null, null, (itemView, id) -> {
+      float speed = TGX101_SPEEDS[id - 1];
+      Settings.instance().setTgx101PlayerSpeed(speed);
+      mediaView.tgx101SetSpeed(speed);
+      if (videoSliderView != null) videoSliderView.setTgx101Speed(speed);
+      return true;
+    }, getForcedTheme());
+  }
+
+  private @Nullable View tgx101LockView;
+
+  private boolean tgx101Locked () {
+    return tgx101LockView != null;
+  }
+
+  private void tgx101SetLocked (boolean locked) {
+    if (locked == tgx101Locked()) return;
+    if (locked) {
+      if (headerVisible.getValue()) headerVisible.toggleValue(true);
+      tgx101LockView = Tgx101PlayerLock.create(context, () -> tgx101SetLocked(false));
+      contentView.addView(tgx101LockView);
+    } else {
+      contentView.removeView(tgx101LockView);
+      tgx101LockView = null;
+      if (!headerVisible.getValue()) headerVisible.toggleValue(true);
+    }
+  }
+
   @Override
   public void onPlayPause (MediaItem item, boolean isPlaying) {
     if (stack.getCurrent() != item) {
       return;
+    }
+    if (isPlaying && mode == MODE_MESSAGES) {
+      mediaView.tgx101SetSpeed(Settings.instance().tgx101PlayerSpeed()); // TGx101: the remembered speed
     }
     if (videoSliderView != null) {
       videoSliderView.setIsPlaying(isPlaying, videoFactor > 0f);
@@ -5022,6 +5069,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
       @Override
       public boolean onInterceptTouchEvent (MotionEvent e) {
+        if (tgx101Locked()) {
+          return false; // TGx101: the child lock layer takes every touch, no swipe closes the video
+        }
         if (slideAnimator != null && slideAnimator.isAnimating()) {
           return true;
         }
@@ -5340,6 +5390,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           }
         });
         videoSliderView.setSliderListener(this);
+        videoSliderView.tgx101EnableCapsule(v -> tgx101ChooseSpeed(), v -> tgx101SetLocked(true));
+        videoSliderView.setTgx101Speed(Settings.instance().tgx101PlayerSpeed());
         videoSliderView.setInnerAlpha(0f);
         videoSliderView.setAlpha(0f);
         videoSliderView.setTranslationY(Screen.dp(56f));

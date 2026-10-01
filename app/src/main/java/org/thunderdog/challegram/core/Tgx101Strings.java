@@ -289,6 +289,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PlayerGestures, "Жесты");
     RU.put(R.string.Tgx101PlayerGesturesHint, "Свайп влево-вправо — перемотка, вверх-вниз слева — яркость, справа — громкость; удержание — скорость 2×. С жестами двойное нажатие по краям больше не перематывает. Двойное нажатие по центру ставит на паузу в обоих режимах.");
     RU.put(R.string.Tgx101PlayerBrightness, "Яркость");
+    RU.put(R.string.Tgx101PlayerSpeed, "Скорость воспроизведения");
+    RU.put(R.string.Tgx101PlayerLock, "Заблокировать экран");
+    RU.put(R.string.Tgx101PlayerLockedHint, "Экран заблокирован.\nУдерживайте 2 с, чтобы снять");
     RU.put(R.string.Tgx101PlayerVolume, "Громкость");
     RU.put(R.string.Tgx101GhostSection, "Режим призрака");
     RU.put(R.string.Tgx101GhostNoRead, "Не отмечать сообщения прочитанными");

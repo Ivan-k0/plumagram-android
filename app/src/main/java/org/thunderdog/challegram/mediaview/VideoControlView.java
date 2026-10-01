@@ -299,8 +299,61 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
     }
   }
 
+  // TGx101 player (mockup 3): the bar as a floating dark-glass capsule with a speed chip and the child lock
+
+  private boolean capsule;
+  private TextView speedView;
+  private final android.graphics.RectF capsuleRect = new android.graphics.RectF();
+
+  public void tgx101EnableCapsule (View.OnClickListener onSpeed, View.OnClickListener onLock) {
+    if (capsule) return;
+    capsule = true;
+    int side = Screen.dp(10f);
+    int toolWidth = Screen.dp(40f);
+    lockView = new android.widget.ImageView(getContext());
+    lockView.setImageResource(org.thunderdog.challegram.R.drawable.baseline_lock_24);
+    lockView.setColorFilter(0xffffffff);
+    lockView.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+    lockView.setOnClickListener(onLock);
+    lockView.setContentDescription(org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101PlayerLock));
+    FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(toolWidth, Screen.dp(56f), Gravity.RIGHT | Gravity.BOTTOM);
+    params.rightMargin = side;
+    addView(lockView, params);
+
+    speedView = new NoScrollTextView(getContext());
+    styleText(speedView);
+    speedView.setTypeface(Fonts.getRobotoMedium());
+    speedView.setOnClickListener(onSpeed);
+    params = FrameLayoutFix.newParams(toolWidth, Screen.dp(56f), Gravity.RIGHT | Gravity.BOTTOM);
+    params.rightMargin = side + toolWidth;
+    addView(speedView, params);
+    setTgx101Speed(1f);
+
+    ((FrameLayoutFix.LayoutParams) totalView.getLayoutParams()).rightMargin = side + toolWidth * 2;
+    ((FrameLayoutFix.LayoutParams) nowView.getLayoutParams()).leftMargin = side;
+    ((FrameLayoutFix.LayoutParams) playPauseButton.getLayoutParams()).leftMargin = side;
+    sliderView.setPadding(Screen.dp(56f) + side, 0, Screen.dp(56f) + side + toolWidth * 2, 0);
+    requestLayout();
+    invalidate();
+  }
+
+  private android.widget.ImageView lockView;
+
+  public void setTgx101Speed (float speed) {
+    if (speedView != null) {
+      String text = (speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed)) + "×";
+      speedView.setText(text);
+    }
+  }
+
   @Override
   protected void onDraw (Canvas c) {
+    if (capsule) {
+      int side = Screen.dp(10f);
+      capsuleRect.set(side, getMeasuredHeight() - Screen.dp(56f) + Screen.dp(4f), getMeasuredWidth() - side, getMeasuredHeight() - Screen.dp(4f));
+      c.drawRoundRect(capsuleRect, Screen.dp(22f), Screen.dp(22f), Paints.fillingPaint(0xc0141a20));
+      return;
+    }
     c.drawRect(0, getMeasuredHeight() - Screen.dp(56f), getMeasuredWidth(), getMeasuredHeight(), Paints.fillingPaint(Theme.getColor(ColorId.transparentEditor)));
   }
 }

@@ -3533,6 +3533,17 @@ public class Settings {
   }
 
   // TGx101: the bottom "Mute / Unmute" button in channels (it collapses into a bell while scrolling)
+  private static final String KEY_TGX101_PLAYER_SPEED = "tgx101_player_speed";
+
+  /** TGx101: the video player's speed, remembered between videos */
+  public float tgx101PlayerSpeed () {
+    return pmc.getFloat(KEY_TGX101_PLAYER_SPEED, 1f);
+  }
+
+  public void setTgx101PlayerSpeed (float speed) {
+    pmc.putFloat(KEY_TGX101_PLAYER_SPEED, speed);
+  }
+
   private static final String KEY_TGX101_PLAYER_GESTURES = "tgx101_player_gestures";
 
   /** TGx101: video player gestures (brightness / volume / seek swipes, long press 2×) — off by default */

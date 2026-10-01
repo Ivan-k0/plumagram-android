@@ -6169,6 +6169,9 @@
   <string name="Tgx101PlayerGestures">Gestures</string>
   <string name="Tgx101PlayerGesturesHint">Swipe left / right to seek, up / down on the left half for brightness, on the right half for volume; hold for 2×. With gestures on, a double tap on the sides no longer seeks. A double tap in the middle pauses in both modes.</string>
   <string name="Tgx101PlayerBrightness">Brightness</string>
+  <string name="Tgx101PlayerSpeed">Playback speed</string>
+  <string name="Tgx101PlayerLock">Lock the screen</string>
+  <string name="Tgx101PlayerLockedHint">Screen locked.\nHold for 2 s to unlock</string>
   <string name="Tgx101PlayerVolume">Volume</string>
   <string name="Tgx101GhostSection">Ghost mode</string>
   <string name="Tgx101GhostNoRead">Don\'t mark messages as read</string>

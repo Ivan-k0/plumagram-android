@@ -838,6 +838,10 @@ public class MediaView extends FrameLayoutFix {
     invalidate();
   };
 
+  public void tgx101SetSpeed (float speed) {
+    if (baseCell != null) baseCell.tgx101SetSpeed(speed);
+  }
+
   /** The viewer's swipe-to-close must not start while a player gesture may */
   public boolean tgx101GesturesActive () {
     return org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerGestures() && baseCell != null && baseCell.tgx101CanGesture();
