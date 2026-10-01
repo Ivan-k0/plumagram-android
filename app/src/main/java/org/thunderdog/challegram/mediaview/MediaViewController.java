@@ -3512,16 +3512,41 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
   }
 
-  // While locked the controls hide by themselves 3 s after they were shown
+  // The controls hide by themselves 4 s after the last touch — while a video plays, and always under the lock.
+  // The count starts when the finger is lifted: a held lock (its 2 s ring) never loses its controls.
   private final Runnable tgx101HideLockedControls = () -> {
-    if (tgx101Locked() && headerVisible.getValue()) {
+    if (headerVisible.getValue() && tgx101CanAutoHide() && !tgx101GuideOpen()) {
+      org.thunderdog.challegram.Tgx101Diag.mark("player: controls hidden after 4 s");
       toggleHeaderVisibility();
     }
   };
 
+  private boolean tgx101GuideOpen () {
+    return tgx101GuideView != null;
+  }
+
+  private boolean tgx101CanAutoHide () {
+    if (mode != MODE_MESSAGES) return false;
+    MediaItem item = stack != null ? stack.getCurrent() : null;
+    return tgx101Locked() || (isPlayingVideo && item != null && item.isVideo() && !item.isGifType());
+  }
+
   private void tgx101ScheduleLockedHide () {
     contentView.removeCallbacks(tgx101HideLockedControls);
-    contentView.postDelayed(tgx101HideLockedControls, 3000);
+    contentView.postDelayed(tgx101HideLockedControls, 4000);
+  }
+
+  private void tgx101TouchActivity (MotionEvent e) {
+    if (contentView == null || mode != MODE_MESSAGES) return;
+    switch (e.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN:
+        contentView.removeCallbacks(tgx101HideLockedControls); // a finger is down: nothing hides
+        break;
+      case MotionEvent.ACTION_UP:
+      case MotionEvent.ACTION_CANCEL:
+        tgx101ScheduleLockedHide();
+        break;
+    }
   }
 
   /**
@@ -3695,6 +3720,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       return;
     }
     org.thunderdog.challegram.Tgx101Diag.mark("player: " + (isPlaying ? "playing" : "paused"));
+    if (isPlaying && mode == MODE_MESSAGES && contentView != null) {
+      tgx101ScheduleLockedHide();
+    }
     if (isPlaying && mode == MODE_MESSAGES) {
       mediaView.tgx101SetSpeed(Settings.instance().tgx101PlayerSpeed()); // TGx101: the remembered speed
     }
@@ -5234,6 +5262,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
     flingDetector = new FlingDetector(context, this);
     contentView = new FrameLayoutFix(context) {
+      @Override
+      public boolean dispatchTouchEvent (MotionEvent e) {
+        tgx101TouchActivity(e); // TGx101: the controls hide 4 s after the last touch
+        return super.dispatchTouchEvent(e);
+      }
+
       private int lastWidth, lastHeight;
 
       @Override
