@@ -1136,7 +1136,9 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       }
 
       ViewController<?> c = navigationController != null ? navigationController.getCurrentStackItem() : null;
-      boolean allowAnimation = c != null && !c.usePopupMode();
+      // TGx101: the call bar appears while the call screen is open or the app is in the background — the slide-in then
+      // played on return to the chats and pushed the list down. When nobody sees it, the bar is put in place at once.
+      boolean allowAnimation = c != null && !c.usePopupMode() && UI.getUiState() == UI.State.RESUMED && !(c instanceof org.thunderdog.challegram.ui.CallController);
       final float toFactor = show ? 1f : 0f;
       if (allowAnimation) {
         if (barShowAnimator == null) {
