@@ -734,12 +734,44 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       UI.post(() -> tgx101OpenCallWhenFree(attempt + 1), 100);
       return;
     }
-    coverUntilCallShown(openCallController());
+    ViewController<?> callController = openCallController();
+    if (callController == null) {
+      tgx101UncoverForCall(); // the call screen is already on top, or there's no call
+    }
+    coverUntilCallShown(callController);
+  }
+
+  private android.graphics.drawable.Drawable tgx101EarlyCallCover;
+
+  private void tgx101CoverForCall () {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) return;
+    ViewController<?> current = navigation.getCurrentStackItem();
+    if (current instanceof CallController) return; // already there: nothing to hide
+    final View decor = getWindow().getDecorView();
+    final android.graphics.drawable.Drawable cover = new android.graphics.drawable.ColorDrawable(0xff16212c);
+    tgx101EarlyCallCover = cover;
+    decor.setForeground(cover);
+    decor.postDelayed(() -> {
+      if (decor.getForeground() == cover) decor.setForeground(null); // never leave the screen covered
+    }, 2000);
+  }
+
+  private void tgx101UncoverForCall () {
+    if (tgx101EarlyCallCover != null) {
+      View decor = getWindow().getDecorView();
+      if (decor.getForeground() == tgx101EarlyCallCover) decor.setForeground(null);
+      tgx101EarlyCallCover = null;
+    }
   }
 
   private boolean handleIntent (String actionRaw, final Intent intent, boolean fromCreate) {
     final String action = Intents.getCleanAction(actionRaw);
 
+    // TGx101: the last chat was drawn for a quarter of a second before the call screen (log 19:33:20: 15 frames) —
+    // the window is covered with the call background right away, before its first frame
+    if (Intents.ACTION_OPEN_CALL.equals(action) && tgx101OpenCallRetries == 0) {
+      tgx101CoverForCall();
+    }
     // TGx101: a tap on the call chip / notification while the app is still coming back — retry shortly instead of dropping it
     if (Intents.ACTION_OPEN_CALL.equals(action) && isNavigationBusy() && tgx101OpenCallRetries < 10) {
       tgx101OpenCallRetries++;
