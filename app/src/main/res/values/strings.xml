@@ -6333,7 +6333,7 @@
   <string name="Tgx101MenuShowInMenu">Show in the menu</string>
   <string name="Tgx101MenuMoveToMore">Move to «More…»</string>
   <string name="Tgx101InputSection">Message input</string>
-  <string name="Tgx101InputSectionHint">The order of the buttons in the bar that appears when you select text in the message input; unneeded ones can be hidden.</string>
+  <string name="Tgx101InputSectionHint">The order of the buttons in the bars that appear when text is selected — in a message and in the message input; unneeded ones can be hidden.</string>
   <string name="Tgx101BarCut">Cut</string>
   <string name="Tgx101BarPaste">Paste</string>
   <string name="Tgx101BarApps">Other apps (Translate, Search…)</string>

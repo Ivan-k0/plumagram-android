@@ -1013,8 +1013,16 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return null;
   }
 
+  // TGx101: a message filter's strip shows neither the hidden post's reactions nor its comments
+  private boolean tgx101NoInteractions;
+
+  protected final void tgx101HideInteractions () {
+    tgx101NoInteractions = true;
+    messageReactions.setReactions((TdApi.MessageReactions) null);
+  }
+
   protected final boolean needCommentButton () {
-    if (isScheduled() || isSponsoredMessage() || !allowInteraction()) {
+    if (tgx101NoInteractions || isScheduled() || isSponsoredMessage() || !allowInteraction()) {
       return false;
     }
     if (isChannel()) {
@@ -5914,7 +5922,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     shareCounter.setCount(interactionInfo != null ? interactionInfo.forwardCount : 0, animated);
     isPinned.showHide(isPinned(), animated);
 
-    if (combinedMessages != null) {
+    if (tgx101NoInteractions) {
+      messageReactions.setReactions((TdApi.MessageReactions) null);
+    } else if (combinedMessages != null) {
       messageReactions.setReactions(combinedMessages);
     } else {
       messageReactions.setReactions(interactionInfo != null ? interactionInfo.reactions : null);

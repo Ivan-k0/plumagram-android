@@ -51,6 +51,7 @@ public final class TGMessageService extends TGMessageServiceImpl {
     super(context, msg);
     setTextCreator(() -> new FormattedText(Lang.getString(R.string.Tgx101FilterHiddenBy, Tgx101MessageFilters.label(filterText))));
     setOnClickListener(() -> Tgx101MessageFilters.reveal(this));
+    tgx101HideInteractions();
   }
 
   public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageContactRegistered contactRegistered) {

@@ -39,7 +39,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101BarFormatSection, "Поле ввода — кнопки оформления");
     RU.put(R.string.Tgx101BarHint, "Нажмите на пункт, чтобы передвинуть или скрыть его. «В сообщении» — строка над текстом, выделенным в сообщении; строки поля ввода появляются при выделении текста в поле ввода.");
     RU.put(R.string.Tgx101InputSection, "Поле ввода");
-    RU.put(R.string.Tgx101InputSectionHint, "Порядок кнопок в строке, которая появляется при выделении текста в поле ввода; ненужные можно скрыть.");
+    RU.put(R.string.Tgx101InputSectionHint, "Порядок кнопок в строках, которые появляются при выделении текста — в сообщении и в поле ввода; ненужные можно скрыть.");
     RU.put(R.string.Tgx101MenuSelectText, "Редактор / Цитировать (чужие сообщения)");
     RU.put(R.string.Tgx101MenuEditorOwn, "Редактор (свои сообщения)");
     RU.put(R.string.Tgx101MenuMessagesFrom, "Сообщения от участника");
