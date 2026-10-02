@@ -28,6 +28,8 @@ final class Tgx101CallVideo {
     void openChat ();
     void hangUp ();
     void showAudioOutput ();
+    int getAudioRouteIcon ();
+    boolean isAudioRouteActive ();
     boolean onVideoStarted ();
     void onVideoStopped ();
   }

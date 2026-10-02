@@ -991,11 +991,12 @@ public class CallController extends ViewController<CallController.Arguments> imp
           callSettings = new CallSettings(tdlib, call.id);
         }
         if (Settings.instance().useNewCallScreen()) {
-          // TGx101: «Динамик» only switches the loudspeaker; the route picker is «Аудиовыход»
-          TGCallService service = TGCallService.currentInstance();
-          boolean bluetooth = service != null && service.isBluetoothHeadsetConnected();
-          callSettings.setSpeakerMode(callSettings.isSpeakerModeEnabled() && callSettings.getSpeakerMode() != CallSettings.SPEAKER_MODE_BLUETOOTH ?
-            (bluetooth ? CallSettings.SPEAKER_MODE_BLUETOOTH : CallSettings.SPEAKER_MODE_EARPIECE) : CallSettings.SPEAKER_MODE_SPEAKER);
+          // TGx101: with headphones or Bluetooth «Динамик» opens the route picker, otherwise it switches the loudspeaker
+          if (hasExternalAudio()) {
+            showAudioOutputPicker();
+            return;
+          }
+          callSettings.setSpeakerMode(callSettings.isSpeakerModeEnabled() ? CallSettings.SPEAKER_MODE_EARPIECE : CallSettings.SPEAKER_MODE_SPEAKER);
           return;
         }
         if (callSettings.isSpeakerModeEnabled()) {
@@ -1008,6 +1009,26 @@ public class CallController extends ViewController<CallController.Arguments> imp
       @Override
       public void showAudioOutput () {
         showAudioOutputPicker();
+      }
+
+      @Override
+      public int getAudioRouteIcon () {
+        int mode = callSettings != null ? callSettings.getSpeakerMode() : CallSettings.SPEAKER_MODE_EARPIECE;
+        if (mode == CallSettings.SPEAKER_MODE_BLUETOOTH) {
+          return R.drawable.baseline_bluetooth_24;
+        }
+        if (mode != CallSettings.SPEAKER_MODE_SPEAKER && mode != CallSettings.SPEAKER_MODE_SPEAKER_DEFAULT) {
+          android.media.AudioManager audio = (android.media.AudioManager) context().getSystemService(Context.AUDIO_SERVICE);
+          if (audio != null && audio.isWiredHeadsetOn()) {
+            return R.drawable.baseline_headset_24;
+          }
+        }
+        return R.drawable.baseline_volume_up_24;
+      }
+
+      @Override
+      public boolean isAudioRouteActive () {
+        return getAudioRouteIcon() != R.drawable.baseline_volume_up_24 || isSpeakerOn();
       }
 
       @Override
@@ -1117,7 +1138,13 @@ public class CallController extends ViewController<CallController.Arguments> imp
     }
   }
 
-  // TGx101: «Аудиовыход» — phone (or the wired headset when plugged in), Bluetooth when connected, loudspeaker
+  private boolean hasExternalAudio () {
+    TGCallService service = TGCallService.currentInstance();
+    android.media.AudioManager audio = (android.media.AudioManager) context().getSystemService(Context.AUDIO_SERVICE);
+    return (service != null && service.isBluetoothHeadsetConnected()) || (audio != null && audio.isWiredHeadsetOn());
+  }
+
+  // TGx101: route picker (opened by «Динамик» with headphones) — phone (or the wired headset when plugged in), Bluetooth when connected, loudspeaker
   private void showAudioOutputPicker () {
     if (call == null || TD.isFinished(call)) return;
     if (callSettings == null) {
