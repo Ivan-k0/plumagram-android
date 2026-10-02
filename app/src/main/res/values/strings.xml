@@ -6312,7 +6312,7 @@
   <string name="Tgx101FiltersHeader">Filters</string>
   <string name="Tgx101FiltersAdd">Add filter</string>
   <string name="Tgx101FiltersOff">Off</string>
-  <string name="Tgx101FiltersHint">Works only on this phone: messages aren\'t deleted and nobody sees that you hid them. A hidden message becomes a strip — tap it to show the message. Your own messages and Telegram\'s sponsored posts are never hidden. Changes apply to chats opened afterwards. Idea suggested on 4PDA after AyuGram\'s filters.</string>
+  <string name="Tgx101FiltersHint">Works only on this phone: messages aren\'t deleted and nobody sees that you hid them. A hidden message becomes a strip — tap it to show the message. Your own messages and Telegram\'s sponsored posts are never hidden. Changes apply to chats opened afterwards.</string>
   <string name="Tgx101FilterNew">New filter</string>
   <string name="Tgx101FilterEdit">Filter</string>
   <string name="Tgx101FilterText">Word, phrase or expression</string>
