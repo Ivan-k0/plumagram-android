@@ -1098,6 +1098,24 @@
   <item type="id" name="btn_tgx101TextEditor" />
   <item type="id" name="btn_tgx101CallBar" />
   <item type="id" name="btn_tgx101EditorWindow" />
+  <item type="id" name="btn_tgx101Filters" />
+  <item type="id" name="btn_tgx101FiltersEnabled" />
+  <item type="id" name="btn_tgx101FilterAdd" />
+  <item type="id" name="btn_tgx101FilterItem" />
+  <item type="id" name="btn_tgx101FilterText" />
+  <item type="id" name="btn_tgx101FilterRegex" />
+  <item type="id" name="btn_tgx101FilterCase" />
+  <item type="id" name="btn_tgx101FilterWholeWord" />
+  <item type="id" name="btn_tgx101FilterAuthor" />
+  <item type="id" name="btn_tgx101FilterScope" />
+  <item type="id" name="btn_tgx101FilterScopeAll" />
+  <item type="id" name="btn_tgx101FilterScopeChannels" />
+  <item type="id" name="btn_tgx101FilterScopeChannelsGroups" />
+  <item type="id" name="btn_tgx101FilterScopeChat" />
+  <item type="id" name="btn_tgx101FilterDelete" />
+  <item type="id" name="btn_tgx101FilterSimilar" />
+  <item type="id" name="controller_tgx101Filters" />
+  <item type="id" name="controller_tgx101FilterEdit" />
   <item type="id" name="btn_tgx101RingRampTime" />
   <item type="id" name="btn_tgx101RingRamp5" />
   <item type="id" name="btn_tgx101RingRamp10" />

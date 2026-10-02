@@ -2136,6 +2136,19 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     }
   }
 
+  // TGx101: a tap on a «Hidden by filter» strip — the message (and the rest of its album) takes its place
+  public void tgx101ShowFilteredMessage (TGMessage strip) {
+    int index = adapter.indexOfMessageContainer(strip.getId());
+    if (index == -1) return;
+    TdApi.Message[] messages = strip.getAllMessages();
+    if (messages == null || messages.length == 0) return;
+    TGMessage replace = TGMessage.valueOf(this, messages[0], strip.getChat(), strip.messagesController().getMessageThread(), chatAdmins);
+    for (int i = 1; i < messages.length; i++) {
+      replace.combineWith(messages[i], true);
+    }
+    adapter.replaceItem(index, replace);
+  }
+
   private void replaceMessageContent (TGMessage msg, int index, long chatId, long messageId, TdApi.MessageContent content) {
     switch (msg.replaceMessageContent(chatId, messageId, content)) {
       case TGMessage.MESSAGE_INVALIDATED: {

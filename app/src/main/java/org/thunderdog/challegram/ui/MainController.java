@@ -2618,6 +2618,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       options.item(OptionItem.SEPARATOR);
     }
     options.item(new OptionItem(R.id.btn_chatFolders, Lang.getString(R.string.EditFolders), OptionColor.NORMAL, R.drawable.baseline_edit_folders_24));
+    options.item(new OptionItem(R.id.btn_tgx101Filters, Lang.getString(R.string.Tgx101Filters), OptionColor.NORMAL, R.drawable.baseline_filter_variant_remove_24)); // TGx101
     showOptions(options.build(), (v, id) -> {
       if (id == R.id.btn_editFolder) {
         tdlib.send(new TdApi.GetChatFolder(chatFolderId), (chatFolder, error) -> runOnUiThreadOptional(() -> {
@@ -2681,6 +2682,8 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         tdlib.ui().showDeleteChatFolderOrLeaveChats(this, chatFolderId);
       } else if (id == R.id.btn_chatFolders) {
         navigateTo(new SettingsFoldersController(context, tdlib));
+      } else if (id == R.id.btn_tgx101Filters) {
+        navigateTo(new Tgx101FiltersController(context, tdlib));
       } else if (id == R.id.btn_markFolderAsRead) {
         tdlib.readAllChats(chatList, /* after */ null);
       }

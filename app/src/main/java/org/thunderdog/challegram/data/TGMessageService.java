@@ -46,6 +46,13 @@ import tgx.td.MediaType;
 import tgx.td.Td;
 
 public final class TGMessageService extends TGMessageServiceImpl {
+  // TGx101: strip in place of a message hidden by a message filter; a tap shows the message
+  TGMessageService (MessagesManager context, TdApi.Message msg, String filterText) {
+    super(context, msg);
+    setTextCreator(() -> new FormattedText(Lang.getString(R.string.Tgx101FilterHiddenBy, Tgx101MessageFilters.label(filterText))));
+    setOnClickListener(() -> Tgx101MessageFilters.reveal(this));
+  }
+
   public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageContactRegistered contactRegistered) {
     super(context, msg);
     setTextCreator(() ->

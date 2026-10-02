@@ -8161,7 +8161,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   public static TGMessage valueOf (MessagesManager context, TdApi.Message msg, TdApi.Chat chat, @Nullable ThreadInfo messageThread, @Nullable TdApi.ChatAdministrator admin) {
-    TGMessage parsedMessage = valueOf(context, msg);
+    TGMessage parsedMessage = Tgx101MessageFilters.placeholder(context, msg, chat); // TGx101: message filters
+    if (parsedMessage == null) {
+      parsedMessage = valueOf(context, msg);
+    }
     if (chat != null) {
       parsedMessage.setChatData(chat, messageThread);
     }

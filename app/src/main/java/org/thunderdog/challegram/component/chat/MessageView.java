@@ -952,6 +952,14 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       icons.append(R.drawable.baseline_open_in_browser_24);
     }
 
+    // TGx101: message filters — a rule made from this message's text, for this chat
+    if (!isMore && !msg.isOutgoing() && !msg.isSponsoredMessage() && !msg.isFakeMessage() &&
+      org.thunderdog.challegram.data.Tgx101MessageFilters.suggestion(msg.getMessage()) != null) {
+      ids.append(R.id.btn_tgx101FilterSimilar);
+      strings.append(R.string.Tgx101FilterSimilar);
+      icons.append(R.drawable.baseline_filter_variant_remove_24);
+    }
+
     if (!isMore && msg.canBeSaved() && msg.canCopyText()) {
       if (msg.isTranslated()) {
         ids.append(R.id.btn_copyTranslation);

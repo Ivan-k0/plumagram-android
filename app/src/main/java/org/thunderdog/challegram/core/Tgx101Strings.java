@@ -31,6 +31,30 @@ final class Tgx101Strings {
 
   static {
     RU.put(R.string.Tgx101Settings, "MagiX");
+    RU.put(R.string.Tgx101Filters, "Фильтры сообщений");
+    RU.put(R.string.Tgx101FiltersEnabled, "Скрывать сообщения по фильтрам");
+    RU.put(R.string.Tgx101FiltersHeader, "Фильтры");
+    RU.put(R.string.Tgx101FiltersAdd, "Добавить фильтр");
+    RU.put(R.string.Tgx101FiltersOff, "Выкл");
+    RU.put(R.string.Tgx101FiltersHint, "Работает только на этом телефоне: сообщения не удаляются, и никто не видит, что вы их скрыли. Скрытое сообщение становится полоской — нажатие показывает его. Свои сообщения и спонсорская реклама Telegram не скрываются. Изменения действуют на чаты, открытые после них. Идею предложили на 4PDA по примеру фильтров AyuGram.");
+    RU.put(R.string.Tgx101FilterNew, "Новый фильтр");
+    RU.put(R.string.Tgx101FilterEdit, "Фильтр");
+    RU.put(R.string.Tgx101FilterText, "Слово, фраза или выражение");
+    RU.put(R.string.Tgx101FilterRegex, "Регулярное выражение");
+    RU.put(R.string.Tgx101FilterCase, "Учитывать регистр");
+    RU.put(R.string.Tgx101FilterWholeWord, "Только целое слово");
+    RU.put(R.string.Tgx101FilterRegexHint, "Без «Регулярного выражения» текст ищется как есть. С ним, например, «розыгрыш|конкурс» скрывает сообщения с любым из этих слов.");
+    RU.put(R.string.Tgx101FilterWhere, "Где применять");
+    RU.put(R.string.Tgx101FilterScopeAll, "Все чаты");
+    RU.put(R.string.Tgx101FilterScopeChannels, "Только каналы");
+    RU.put(R.string.Tgx101FilterScopeChannelsGroups, "Каналы и группы");
+    RU.put(R.string.Tgx101FilterScopeChat, "Только «%1$s»");
+    RU.put(R.string.Tgx101FilterCheckAuthor, "Также имя автора / источника");
+    RU.put(R.string.Tgx101FilterCheckHint, "Текст и подписи к медиа проверяются всегда. Имя автора — это отправитель, подпись поста и источник пересланного сообщения.");
+    RU.put(R.string.Tgx101FilterDelete, "Удалить фильтр");
+    RU.put(R.string.Tgx101FilterBadRegex, "Ошибка в выражении: %1$s");
+    RU.put(R.string.Tgx101FilterHiddenBy, "Скрыто фильтром «%1$s» · Показать");
+    RU.put(R.string.Tgx101FilterSimilar, "Скрывать похожие…");
     RU.put(R.string.RecordingAndPhotos, "Запись и фото");
     RU.put(R.string.PauseMediaOnRecord, "Пауза музыки при записи и голосовых");
     RU.put(R.string.SendPhotosInHD, "Отправлять фото в HD");

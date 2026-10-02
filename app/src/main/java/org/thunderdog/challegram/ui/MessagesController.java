@@ -6198,6 +6198,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
         cancelSheduledKeyboardOpeningAndHideAllKeyboards();
         selectedMessage.openMessageThread();
         return true;
+      } else if (id == R.id.btn_tgx101FilterSimilar) { // TGx101: message filters
+        cancelSheduledKeyboardOpeningAndHideAllKeyboards();
+        Tgx101FiltersController.addRule(this, org.thunderdog.challegram.data.Tgx101MessageFilters.suggestion(selectedMessage.getMessage()), selectedMessage.getChatId(), tdlib.chatTitle(selectedMessage.getChatId()));
+        return true;
       } else if (id == R.id.btn_messageReplyWithDice) {
         sendDice(itemView, ((TdApi.MessageDice) selectedMessage.getMessage().content).emoji);
         return true;

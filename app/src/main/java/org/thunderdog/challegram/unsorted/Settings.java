@@ -3647,6 +3647,30 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_PLAYER_GESTURES + "_" + gesture, value);
   }
 
+  // TGx101: message filters — rules as JSON (Tgx101MessageFilters), on by default once there are rules
+  private static final String KEY_TGX101_MESSAGE_FILTERS = "tgx101_message_filters";
+  private static final String KEY_TGX101_MESSAGE_FILTERS_ON = "tgx101_message_filters_on";
+
+  public String getTgx101MessageFilters () {
+    return pmc.getString(KEY_TGX101_MESSAGE_FILTERS, null);
+  }
+
+  public void setTgx101MessageFilters (String json) {
+    if (json == null) {
+      pmc.remove(KEY_TGX101_MESSAGE_FILTERS);
+    } else {
+      pmc.putString(KEY_TGX101_MESSAGE_FILTERS, json);
+    }
+  }
+
+  public boolean tgx101MessageFiltersEnabled () {
+    return pmc.getBoolean(KEY_TGX101_MESSAGE_FILTERS_ON, true);
+  }
+
+  public void setTgx101MessageFiltersEnabled (boolean value) {
+    pmc.putBoolean(KEY_TGX101_MESSAGE_FILTERS_ON, value);
+  }
+
   // TGx101: ghost mode — each part separately, all off by default
   private static final String KEY_TGX101_GHOST_NO_READ = "tgx101_ghost_no_read";
   private static final String KEY_TGX101_GHOST_HIDE_ONLINE = "tgx101_ghost_hide_online";

@@ -270,6 +270,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().bottomGapEnabled(), isUpdate);
         } else if (itemId == R.id.btn_tgx101NotificationPlane) {
           view.getToggler().setRadioEnabled(Settings.instance().useTgx101NotificationPlane(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101Filters) {
+          int count = org.thunderdog.challegram.data.Tgx101MessageFilters.getRules().size();
+          view.setData(count == 0 || !org.thunderdog.challegram.data.Tgx101MessageFilters.isEnabled() ? Lang.getString(R.string.Tgx101FiltersOff) : Integer.toString(count));
         } else if (itemId == R.id.btn_pullToSearch) {
           view.getToggler().setRadioEnabled(Settings.instance().isPullToSearchEnabled(), isUpdate);
         } else if (itemId == R.id.btn_roundStabilization) {
@@ -373,6 +376,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ChatListSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_bigEmojiSize, 0, R.string.BigEmojiSize),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Filters, 0, R.string.Tgx101Filters),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_pullToSearch, 0, R.string.PullToSearch),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -739,6 +744,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setBottomGapEnabled(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101NotificationPlane) {
       Settings.instance().setTgx101NotificationPlane(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101Filters) {
+      navigateTo(new Tgx101FiltersController(context, tdlib));
     } else if (id == R.id.btn_pullToSearch) {
       Settings.instance().setPullToSearchEnabled(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showDiscussButton) {
