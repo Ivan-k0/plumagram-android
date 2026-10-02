@@ -591,6 +591,14 @@ public class TGCallService extends Service implements
   private void setAudioMode (int mode) {
     Log.d(Log.TAG_VOIP, "setAudioMode: %s", mode == CallSettings.SPEAKER_MODE_BLUETOOTH ? "SPEAKER_MODE_BLUETOOTH" : mode == CallSettings.SPEAKER_MODE_EARPIECE ? "SPEAKER_MODE_NONE" : mode == CallSettings.SPEAKER_MODE_SPEAKER_DEFAULT ? "SPEAKER_MODE_SPEAKER_DEFAULT" : Integer.toString(mode));
     lastAudioMode = mode;
+    // TGx101: AudioManager.setCommunicationDevice is a binder call that took up to 1 s on the main thread
+    // (log 19:35:36: UI STALL 958 ms) — the route picker froze; the switch runs on its own thread, in order
+    AUDIO_ROUTE_EXECUTOR.execute(() -> applyAudioMode(mode));
+  }
+
+  private static final java.util.concurrent.ExecutorService AUDIO_ROUTE_EXECUTOR = java.util.concurrent.Executors.newSingleThreadExecutor();
+
+  private void applyAudioMode (int mode) {
     AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
       android.media.AudioDeviceInfo selectedAudioDevice = null;
