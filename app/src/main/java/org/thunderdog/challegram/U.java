@@ -488,13 +488,14 @@ public class U {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
       switch (notificationId) {
         case TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION:
+        case TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION_2:
         case TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION: {
           int baseType = android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL |
             android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK;
           // A ringing call doesn't need the microphone, and Android 14+ refuses a microphone
           // foreground service started from the background (the call service used to crash
           // there, leaving only a plain notification). Add it once the call is ongoing.
-          if (notificationId == TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+          if ((notificationId == TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION || notificationId == TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION_2) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             try {
               service.startForeground(notificationId, notification, baseType | android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
               return;

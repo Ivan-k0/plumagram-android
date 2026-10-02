@@ -81,6 +81,8 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
   public static final int ID_FOREGROUND_ONGOING_CALL_NOTIFICATION = Integer.MAX_VALUE - 3;
   public static final int ID_FOREGROUND_INCOMING_CALL_NOTIFICATION = Integer.MAX_VALUE - 4;
   public static final int ID_FOREGROUND_PENDING_TASK = Integer.MAX_VALUE - 5;
+  // TGx101: the ongoing call notification alternates between two ids, so a re-post on lock is a NEW notification
+  public static final int ID_FOREGROUND_ONGOING_CALL_NOTIFICATION_2 = Integer.MAX_VALUE - 6;
 
   public static final int IDS_PER_ACCOUNT = (int) ((long) (Integer.MAX_VALUE - 6) / (long) TdlibAccount.ID_MAX) - 1;
 

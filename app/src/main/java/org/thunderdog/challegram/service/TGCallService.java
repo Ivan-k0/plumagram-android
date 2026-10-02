@@ -228,9 +228,17 @@ public class TGCallService extends Service implements
         if (tgx101IsRingingIncoming()) {
           silenceRinging();
         }
-        // TGx101: some lock screens (Vivo) show only notifications posted after locking,
-        // so the ongoing call notification is posted again when the screen goes off
-        refreshOngoingNotification();
+        tgx101OnScreenOff(); // TGx101: the ongoing call on the lock screen
+        return;
+      }
+
+      if (Intent.ACTION_SCREEN_ON.equals(action)) {
+        tgx101OnScreenOn();
+        return;
+      }
+
+      if (Intent.ACTION_USER_PRESENT.equals(action)) {
+        tgx101LockRepostDone = false; // unlocked: the next lock may post again
         return;
       }
 
@@ -368,6 +376,8 @@ public class TGCallService extends Service implements
       }
       filter.addAction(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
       filter.addAction(Intent.ACTION_SCREEN_OFF); // TGx101: re-post the call notification for the lock screen; power key mutes the ringing
+      filter.addAction(Intent.ACTION_SCREEN_ON); // TGx101: lock-screen repost loop guard
+      filter.addAction(Intent.ACTION_USER_PRESENT);
       filter.addAction(TGX101_VOLUME_CHANGED); // TGx101: volume keys mute the ringing
       /*filter.addAction(Intents.ACTION_END_CALL);
       filter.addAction(Intents.ACTION_DECLINE_CALL);
@@ -933,7 +943,7 @@ public class TGCallService extends Service implements
 
     if (!needNotification) {
       cleanupChannels((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE));
-      U.stopForeground(this, true, TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION, TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION);
+      U.stopForeground(this, true, TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION, TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION_2, TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION);
       incomingNotification = ongoingCallNotification = null;
       return;
     }
@@ -1049,7 +1059,50 @@ public class TGCallService extends Service implements
     } else {
       ongoingCallNotification = builder.getNotification();
     }
-    U.startForeground(this, TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION, ongoingCallNotification);
+    U.startForeground(this, tgx101OngoingId, ongoingCallNotification);
+  }
+
+  // TGx101: the ongoing call on the lock screen. Some lock screens (Vivo) show only notifications posted after
+  // locking and ignore updates, so once per lock the notification is posted again under the other id (a new
+  // notification). Guards against the old screen-on loop: no repost for proximity (phone at the ear), none within
+  // 3 s of our own, and if the screen comes on within 1 s of a repost, no more reposts during this call.
+  private int tgx101OngoingId = TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION;
+  private boolean tgx101LockRepostDone, tgx101LockRepostDisabled;
+  private long tgx101LastLockRepost;
+
+  private void tgx101OnScreenOff () {
+    long now = android.os.SystemClock.uptimeMillis();
+    if (ongoingCallNotification == null || tgx101LockRepostDisabled || tgx101LockRepostDone || now - tgx101LastLockRepost < 3000) {
+      return;
+    }
+    if (proximityWakelock != null && proximityWakelock.isHeld()) {
+      return; // the phone is at the ear, not locked
+    }
+    UI.post(() -> {
+      PowerManager power = (PowerManager) getSystemService(POWER_SERVICE);
+      if (ongoingCallNotification == null || tgx101LockRepostDone || (power != null && power.isInteractive())) {
+        return;
+      }
+      tgx101LockRepostDone = true;
+      tgx101LastLockRepost = android.os.SystemClock.uptimeMillis();
+      int oldId = tgx101OngoingId;
+      tgx101OngoingId = oldId == TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION ?
+        TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION_2 : TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION;
+      ongoingCallNotification = null;
+      showNotification();
+      android.app.NotificationManager manager = (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+      if (manager != null) {
+        manager.cancel(oldId);
+      }
+      Log.i(Log.TAG_VOIP, "TGx101: call notification posted again for the lock screen, id %d", tgx101OngoingId);
+    }, 700); // the keyguard comes up a moment after the screen goes off
+  }
+
+  private void tgx101OnScreenOn () {
+    if (tgx101LastLockRepost != 0 && android.os.SystemClock.uptimeMillis() - tgx101LastLockRepost < 1000) {
+      tgx101LockRepostDisabled = true; // our repost turned the screen on: stop for this call
+      Log.w(Log.TAG_VOIP, "TGx101: screen came on right after the lock-screen repost, reposts disabled for this call");
+    }
   }
 
   // Sound
@@ -1337,7 +1390,7 @@ public class TGCallService extends Service implements
 
   private void stopRinging () {
     cleanupChannels((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE));
-    U.stopForeground(this, true, TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION, TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION);
+    U.stopForeground(this, true, TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION, TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION_2, TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION);
     incomingNotification = ongoingCallNotification = null;
     if (ringtonePlayer != null) {
       ringtonePlayer.stop();
@@ -1671,7 +1724,7 @@ public class TGCallService extends Service implements
       if (TD.isFinished(call)) {
         releaseTgCalls(tdlib, call);
         cleanupChannels((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE));
-        U.stopForeground(this, true, TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION, TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION);
+        U.stopForeground(this, true, TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION, TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION_2, TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION);
         incomingNotification = ongoingCallNotification = null;
         stopSelf();
       }
