@@ -2217,6 +2217,15 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
    *
    * @return true if provided caption parameter has been used as caption
    */
+  /** TGx101: the shared file's own name (content:// URIs hide it in the path) */
+  private static @Nullable String tgx101DisplayName (Uri uri) {
+    if (!"content".equals(uri.getScheme())) return null;
+    try (android.database.Cursor c = UI.getAppContext().getContentResolver().query(uri, new String[] {android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+      if (c != null && c.moveToFirst()) return c.getString(0);
+    } catch (Throwable ignored) { }
+    return null;
+  }
+
   private static boolean addShareUri (Tdlib tdlib, ArrayList<TdApi.InputMessageContent> out, String mimeType, Uri uri, final @Nullable String rawCaption) {
     if (uri == null) {
       return false;
@@ -2225,7 +2234,22 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     String filePath = U.tryResolveFilePath(uri);
 
     if (StringUtils.isEmpty(filePath)) {
-      throw new IllegalArgumentException("filePath cannot be resolved for type " + mimeType + ", uri: " + uri);
+      // TGx101: files from Downloads / file managers often have no real path — send the content itself
+      if (!U.canReadContentUri(uri)) {
+        throw new IllegalArgumentException("filePath cannot be resolved for type " + mimeType + ", uri: " + uri);
+      }
+      filePath = uri.toString();
+    }
+
+    if (mimeType == null) {
+      mimeType = "";
+    }
+    // TGx101: a generic type («any file») says nothing — guess from the file name, else send as a document
+    if (mimeType.isEmpty() || mimeType.equals("application/octet-stream") || mimeType.equals("*/*")) {
+      String name = tgx101DisplayName(uri);
+      String extension = U.getExtension(name != null ? name : filePath);
+      String guessed = extension != null ? TGMimeType.mimeTypeForExtension(extension) : null;
+      mimeType = guessed != null ? guessed : "";
     }
 
     if (mimeType.isEmpty()) {
