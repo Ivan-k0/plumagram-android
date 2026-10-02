@@ -30,7 +30,7 @@ import java.util.regex.PatternSyntaxException;
 import tgx.td.Td;
 
 /**
- * TGx101: message filters (idea suggested on 4PDA after AyuGram's filters; own implementation).
+ * TGx101: message filters.
  * Incoming messages whose text or caption matches a rule are shown as a strip «Hidden by filter …»;
  * a tap on it shows the message. Only the display on this phone changes: nothing is deleted, read
  * marks work as usual. Own messages and Telegram's sponsored messages are never hidden (sponsored
