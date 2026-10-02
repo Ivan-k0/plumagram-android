@@ -1018,7 +1018,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   protected final void tgx101HideInteractions () {
     tgx101NoInteractions = true;
-    messageReactions.setReactions((TdApi.MessageReactions) null);
+    updateInteractionInfo(false); // the comment button and reactions were set up before this flag
   }
 
   protected final boolean needCommentButton () {
