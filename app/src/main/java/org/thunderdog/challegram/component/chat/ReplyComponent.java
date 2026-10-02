@@ -316,12 +316,10 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
 
   public int lastX, lastY;
 
-  private int lastDrawWidth;
-
   public boolean isInside (float x, float y, boolean needWhite) {
-    // TGx101: the whole drawn block is tappable (it is drawn as wide as the message), not only its text
-    int width = Math.max(width(needWhite), lastDrawWidth);
-    return x >= lastX && x <= lastX + width && y >= lastY && y <= lastY + mHeight;
+    // TGx101: the whole row at the quote's height is tappable — the quote, the rest of the bubble to its right
+    // and the empty space beside the bubble (log 20:45: taps there opened the menu instead of the original message)
+    return x >= 0 && y >= lastY && y <= lastY + mHeight;
   }
 
   private boolean hasPreview () {
@@ -418,7 +416,6 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
 
     lastX = startX;
     lastY = startY;
-    lastDrawWidth = width;
 
     final boolean isOutBubble = isOutBubble();
     final @ColorInt int lineColor;

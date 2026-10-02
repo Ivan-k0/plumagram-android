@@ -2927,11 +2927,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       }
     }
 
+    if (hasHeader() && needAvatar() && view.getAvatarReceiver().isInsideReceiver(x, y)) {
+      return CLICK_TYPE_AVATAR; // TGx101: before the reply, which now takes its whole row
+    }
     if (replyData != null && replyData.isInside(x, y, useBubbles() && !useBubble())) {
       return CLICK_TYPE_REPLY;
-    }
-    if (hasHeader() && needAvatar() && view.getAvatarReceiver().isInsideReceiver(x, y)) {
-      return CLICK_TYPE_AVATAR;
     }
     return CLICK_TYPE_NONE;
   }
