@@ -388,7 +388,7 @@ public class TGCallService extends Service implements
 
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (communicationDeviceChangedListener == null) {
-          communicationDeviceChangedListener = (AudioManager.OnCommunicationDeviceChangedListener) device -> UI.post(this::notifyAudioSettingsChanged);
+          communicationDeviceChangedListener = (AudioManager.OnCommunicationDeviceChangedListener) device -> AUDIO_ROUTE_EXECUTOR.execute(this::notifyAudioSettingsChanged); // TGx101: off the main thread
         }
         am.addOnCommunicationDeviceChangedListener(Executors.newSingleThreadExecutor(), (AudioManager.OnCommunicationDeviceChangedListener) communicationDeviceChangedListener);
         notifyAudioSettingsChanged();
@@ -603,7 +603,11 @@ public class TGCallService extends Service implements
     lastAudioMode = mode;
     // TGx101: AudioManager.setCommunicationDevice is a binder call that took up to 1 s on the main thread
     // (log 19:35:36: UI STALL 958 ms) — the route picker froze; the switch runs on its own thread, in order
-    AUDIO_ROUTE_EXECUTOR.execute(() -> applyAudioMode(mode));
+    tgx101AudioSwitchUntil = android.os.SystemClock.uptimeMillis() + 3000; // until the switch is done (re-set below)
+    AUDIO_ROUTE_EXECUTOR.execute(() -> {
+      applyAudioMode(mode);
+      tgx101AudioSwitchUntil = android.os.SystemClock.uptimeMillis() + 1000; // the system reports our own switch a moment later
+    });
   }
 
   private static final java.util.concurrent.ExecutorService AUDIO_ROUTE_EXECUTOR = java.util.concurrent.Executors.newSingleThreadExecutor();
@@ -1543,6 +1547,12 @@ public class TGCallService extends Service implements
   }
 
   private void notifyAudioSettingsChanged () {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+      // TGx101: getCommunicationDevice waits for a route switch in progress (~1 s on Vivo, log 20:20:43): the query runs
+      // in the same queue as the switches, after them, so it never freezes the screen and never reads a stale route
+      AUDIO_ROUTE_EXECUTOR.execute(this::notifyAudioSettingsChanged);
+      return;
+    }
     Log.d(Log.TAG_VOIP, "notifyAudioSettingsChanged");
 
     AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
@@ -1593,14 +1603,23 @@ public class TGCallService extends Service implements
       // adopting it turned audio calls on speaker. The call picks its own route in configureDeviceForCall.
       return;
     }
-    if (this.lastAudioMode != mode) {
-      CallSettings settings = getCallSettings();
-      if (settings != null) {
-        this.lastAudioMode = mode;
-        settings.setSpeakerMode(mode);
+    final int reportedMode = mode;
+    UI.post(() -> {
+      // TGx101: the system's echo of our own switch is not a change made elsewhere (it flipped the route back and forth)
+      if (android.os.SystemClock.uptimeMillis() < tgx101AudioSwitchUntil) {
+        return;
       }
-    }
+      if (this.lastAudioMode != reportedMode) {
+        CallSettings settings = getCallSettings();
+        if (settings != null) {
+          this.lastAudioMode = reportedMode;
+          settings.setSpeakerMode(reportedMode);
+        }
+      }
+    });
   }
+
+  private volatile long tgx101AudioSwitchUntil;
 
   // Network type
 
