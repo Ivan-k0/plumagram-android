@@ -3716,35 +3716,6 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_MESSAGE_FILTERS_ON, value);
   }
 
-  // TGx101: ghost mode — each part separately, all off by default
-  private static final String KEY_TGX101_GHOST_NO_READ = "tgx101_ghost_no_read";
-  private static final String KEY_TGX101_GHOST_HIDE_ONLINE = "tgx101_ghost_hide_online";
-  private static final String KEY_TGX101_GHOST_NO_TYPING = "tgx101_ghost_no_typing";
-
-  public boolean tgx101GhostNoRead () {
-    return pmc.getBoolean(KEY_TGX101_GHOST_NO_READ, false);
-  }
-
-  public void setTgx101GhostNoRead (boolean value) {
-    pmc.putBoolean(KEY_TGX101_GHOST_NO_READ, value);
-  }
-
-  public boolean tgx101GhostHideOnline () {
-    return pmc.getBoolean(KEY_TGX101_GHOST_HIDE_ONLINE, false);
-  }
-
-  public void setTgx101GhostHideOnline (boolean value) {
-    pmc.putBoolean(KEY_TGX101_GHOST_HIDE_ONLINE, value);
-  }
-
-  public boolean tgx101GhostNoTyping () {
-    return pmc.getBoolean(KEY_TGX101_GHOST_NO_TYPING, false);
-  }
-
-  public void setTgx101GhostNoTyping (boolean value) {
-    pmc.putBoolean(KEY_TGX101_GHOST_NO_TYPING, value);
-  }
-
   private static final String KEY_SHOW_CHANNEL_MUTE_BUTTON = "settings_show_channel_mute_button";
 
   public boolean showChannelMuteButton () {

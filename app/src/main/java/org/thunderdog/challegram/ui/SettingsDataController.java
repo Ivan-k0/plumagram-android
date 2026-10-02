@@ -246,12 +246,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(Settings.instance().getQuickReply(quickReplyIndex(itemId)));
         } else if (itemId == R.id.btn_tgx101TranslateOnDevice) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101TranslateOnDevice(), isUpdate);
-        } else if (itemId == R.id.btn_tgx101GhostNoRead) {
-          view.getToggler().setRadioEnabled(Settings.instance().tgx101GhostNoRead(), isUpdate);
-        } else if (itemId == R.id.btn_tgx101GhostHideOnline) {
-          view.getToggler().setRadioEnabled(Settings.instance().tgx101GhostHideOnline(), isUpdate);
-        } else if (itemId == R.id.btn_tgx101GhostNoTyping) {
-          view.getToggler().setRadioEnabled(Settings.instance().tgx101GhostNoTyping(), isUpdate);
         } else if (itemId == R.id.btn_showChannelMuteButton) {
           view.getToggler().setRadioEnabled(Settings.instance().showChannelMuteButton(), isUpdate);
         } else if (itemId == R.id.btn_showDiscussButton) {
@@ -398,16 +392,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101TranslateOnDevice, 0, R.string.Tgx101TranslateOnDevice),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101TranslateOnDeviceHint),
-        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
-
-        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101GhostSection),
-        new ListItem(ListItem.TYPE_SHADOW_TOP),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GhostNoRead, 0, R.string.Tgx101GhostNoRead),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GhostHideOnline, 0, R.string.Tgx101GhostHideOnline),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GhostNoTyping, 0, R.string.Tgx101GhostNoTyping),
-        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101GhostHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ChannelsSection),
@@ -787,13 +771,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       }, true);
     } else if (id == R.id.btn_tgx101TranslateOnDevice) {
       Settings.instance().setTgx101TranslateOnDevice(toggleResult); // the view was already toggled above
-    } else if (id == R.id.btn_tgx101GhostNoRead) {
-      Settings.instance().setTgx101GhostNoRead(toggleResult); // the view was already toggled above
-    } else if (id == R.id.btn_tgx101GhostHideOnline) {
-      Settings.instance().setTgx101GhostHideOnline(toggleResult); // the view was already toggled above
-      tdlib.tgx101ApplyOnline();
-    } else if (id == R.id.btn_tgx101GhostNoTyping) {
-      Settings.instance().setTgx101GhostNoTyping(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showChannelMuteButton) {
       Settings.instance().setShowChannelMuteButton(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showCommentsButton) {

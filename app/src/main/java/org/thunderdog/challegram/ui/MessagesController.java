@@ -11206,9 +11206,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
           null;
       }
     }
-    if (set && Settings.instance().tgx101GhostNoTyping()) {
-      return; // TGx101: ghost mode — no «typing…», «recording…» for the others
-    }
     if (set) {
       int time = (int) (SystemClock.uptimeMillis() / 1000L);
       if (time - actions.get(action) >= 4 || force || lastActionCancelled) {

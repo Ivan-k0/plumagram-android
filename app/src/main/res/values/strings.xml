@@ -6203,11 +6203,6 @@
   <string name="Tgx101PlayerLock">Lock the screen</string>
   <string name="Tgx101PlayerLockedHint">Screen locked.\nHold for 2 s to unlock</string>
   <string name="Tgx101PlayerVolume">Volume</string>
-  <string name="Tgx101GhostSection">Ghost mode</string>
-  <string name="Tgx101GhostNoRead">Don\'t mark messages as read</string>
-  <string name="Tgx101GhostHideOnline">Hide «online»</string>
-  <string name="Tgx101GhostNoTyping">Don\'t show «typing…»</string>
-  <string name="Tgx101GhostHint">Others don\'t see that you read their messages, are online or typing. Unread chats stay unread for you too — «Mark as read» and «Read» in a notification still work. Sending a message in a chat marks it read, as in any Telegram app.</string>
   <string name="ShowCommentsButton">Show comments button under posts</string>
   <string name="ChannelButtonsHint">Without the «Discuss» button the discussion group opens from the channel\'s ⋮ menu. Without the comments button, comments open from the post\'s menu. Without the «Mute» button, channel notifications are turned on and off in the ⋮ menu. Reopen the channel to apply. «Subscribe» is removed only when it is the last line of a post and leads to the same channel.</string>
   <string name="Tgx101Settings">MagiX</string>

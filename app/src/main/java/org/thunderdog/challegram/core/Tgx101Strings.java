@@ -362,11 +362,6 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PlayerLock, "Заблокировать экран");
     RU.put(R.string.Tgx101PlayerLockedHint, "Экран заблокирован.\nУдерживайте 2 с, чтобы снять");
     RU.put(R.string.Tgx101PlayerVolume, "Громкость");
-    RU.put(R.string.Tgx101GhostSection, "Режим призрака");
-    RU.put(R.string.Tgx101GhostNoRead, "Не отмечать сообщения прочитанными");
-    RU.put(R.string.Tgx101GhostHideOnline, "Скрывать «в сети»");
-    RU.put(R.string.Tgx101GhostNoTyping, "Не показывать «печатает…»");
-    RU.put(R.string.Tgx101GhostHint, "Собеседники не видят, что вы прочитали их сообщения, в сети или печатаете. Непрочитанные чаты остаются непрочитанными и у вас — «Прочитать» в меню чата и «Прочитано» в уведомлении работают. Отправка сообщения в чат отмечает его прочитанным, как в любом Telegram.");
     RU.put(R.string.ShowCommentsButton, "Кнопка комментариев под постами");
     RU.put(R.string.HideSubscribeLink, "Скрывать «Подписаться» под постами");
     RU.put(R.string.SeparateChannelPosts, "Отступ и линия между постами");
