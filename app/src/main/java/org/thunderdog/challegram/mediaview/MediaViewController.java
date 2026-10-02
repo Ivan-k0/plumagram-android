@@ -3934,6 +3934,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       org.thunderdog.challegram.Tgx101Diag.mark("player settings: resume " + settings.tgx101PlayerResume());
       tgx101RefreshSettings();
     });
+    tgx101SettingsRow(rows, R.drawable.baseline_music_note_24, Lang.getString(R.string.Tgx101PlayerPauseMusic), null, settings.tgx101PlayerPauseMusic() ? 1 : 0, () -> {
+      settings.setTgx101PlayerPauseMusic(!settings.tgx101PlayerPauseMusic());
+      org.thunderdog.challegram.Tgx101Diag.mark("player settings: pause music " + settings.tgx101PlayerPauseMusic());
+      tgx101RefreshSettings();
+    });
     tgx101SettingsRow(rows, R.drawable.baseline_timer_16, Lang.getString(R.string.Tgx101PlayerSleep), tgx101SleepAt > 0 ? Lang.getString(R.string.Tgx101Minutes, (int) Math.max(1, (tgx101SleepAt - android.os.SystemClock.uptimeMillis() + 59999) / 60000)) : off, -1, () -> tgx101OpenSettingsPage(PAGE_SLEEP));
     tgx101SettingsRow(rows, R.drawable.baseline_screen_rotation_24, Lang.getString(R.string.Tgx101Orientation), Lang.getString(settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_AUTO ? R.string.Tgx101OrientationAutoShort : settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_PORTRAIT ? R.string.Tgx101OrientationPortraitShort : R.string.Tgx101OrientationSystemShort), -1, () -> tgx101OpenSettingsPage(PAGE_ORIENTATION));
   }

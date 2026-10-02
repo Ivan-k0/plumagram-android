@@ -30,6 +30,8 @@ import org.thunderdog.challegram.unsorted.Settings;
 public class ExternalAudioFocus implements AudioManager.OnAudioFocusChangeListener {
   public static final int REASON_RECORD = 1;
   public static final int REASON_PLAYBACK = 1 << 1;
+  /** TGx101: a video plays in the viewer (player settings «Pause music», on by default) */
+  public static final int REASON_VIDEO = 1 << 2;
 
   private static ExternalAudioFocus instance;
 
@@ -57,7 +59,8 @@ public class ExternalAudioFocus implements AudioManager.OnAudioFocusChangeListen
 
   public synchronized void setActive (int reason, boolean active) {
     reasons = active ? (reasons | reason) : (reasons & ~reason);
-    boolean needFocus = reasons != 0 && Settings.instance().getNewSetting(Settings.SETTING_FLAG_PAUSE_MEDIA_ON_RECORD);
+    boolean needFocus = ((reasons & ~REASON_VIDEO) != 0 && Settings.instance().getNewSetting(Settings.SETTING_FLAG_PAUSE_MEDIA_ON_RECORD))
+      || ((reasons & REASON_VIDEO) != 0 && Settings.instance().tgx101PlayerPauseMusic());
     if (needFocus == isHeld) {
       return;
     }

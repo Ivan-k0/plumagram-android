@@ -561,9 +561,8 @@ public class TGMessageSticker extends TGMessage implements AnimatedEmojiListener
 
       float realMaxWidth = MathUtils.fromTo(max, origMaxWidth, MathUtils.clamp(stickersMaxRowSize / maxRowSize));
       stickerWidth = stickerHeight = (int) Math.min(realMaxWidth / stickersMaxRowSize, Math.max(max / stickerRowsCount, minEmojiSize));
-      if (layout.hasClassicEmoji) {
-        stickerWidth = stickerHeight = Math.min(stickerWidth, (int) (Screen.dp(40) * Settings.instance().getBigEmojiScale()));
-      }
+      // TGx101: non-animated emoji used to be capped at 40 dp — tiny next to animated ones; as in the official app they
+      // get the same size as animated emoji in the same layout
     } else {
       stickersMaxRowSize = stickerRowsCount = 1;
     }

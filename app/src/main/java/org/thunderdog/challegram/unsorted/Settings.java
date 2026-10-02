@@ -3565,6 +3565,17 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_PLAYER_SWIPE_PAGING, value);
   }
 
+  private static final String KEY_TGX101_PLAYER_PAUSE_MUSIC = "tgx101_player_pause_music";
+
+  /** TGx101 player: music (the app's and other players') pauses while a video plays — on by default */
+  public boolean tgx101PlayerPauseMusic () {
+    return pmc.getBoolean(KEY_TGX101_PLAYER_PAUSE_MUSIC, true);
+  }
+
+  public void setTgx101PlayerPauseMusic (boolean value) {
+    pmc.putBoolean(KEY_TGX101_PLAYER_PAUSE_MUSIC, value);
+  }
+
   private static final String KEY_TGX101_PLAYER_ORIENTATION = "tgx101_player_orientation";
   public static final int PLAYER_ORIENTATION_SYSTEM = 0, PLAYER_ORIENTATION_AUTO = 1, PLAYER_ORIENTATION_PORTRAIT = 2;
 

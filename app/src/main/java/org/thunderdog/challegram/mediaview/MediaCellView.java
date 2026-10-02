@@ -2176,7 +2176,7 @@ public class MediaCellView extends ViewGroup implements
 
   public void autoplayIfNeeded (boolean isSwitch) {
     if (media != null && media.isVideo() && (!isSwitch || media.isGifType()) && (media.isLoaded() || Config.VIDEO_CLOUD_PLAYBACK_AVAILABLE) && media.isRemoteVideo() && !destroyed) {
-      if (!media.isGifType()) {
+      if (!media.isGifType() && org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerPauseMusic()) {
         TdlibManager.instance().player().pauseWithReason(TGPlayerController.PAUSE_REASON_OPEN_VIDEO);
       }
       if (Config.VIDEO_PLAYER_AVAILABLE) {

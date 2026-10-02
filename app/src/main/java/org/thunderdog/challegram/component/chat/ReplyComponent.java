@@ -316,8 +316,12 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
 
   public int lastX, lastY;
 
+  private int lastDrawWidth;
+
   public boolean isInside (float x, float y, boolean needWhite) {
-    return x >= lastX && x <= lastX + width(needWhite) && y >= lastY && y <= lastY + mHeight;
+    // TGx101: the whole drawn block is tappable (it is drawn as wide as the message), not only its text
+    int width = Math.max(width(needWhite), lastDrawWidth);
+    return x >= lastX && x <= lastX + width && y >= lastY && y <= lastY + mHeight;
   }
 
   private boolean hasPreview () {
@@ -414,6 +418,7 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
 
     lastX = startX;
     lastY = startY;
+    lastDrawWidth = width;
 
     final boolean isOutBubble = isOutBubble();
     final @ColorInt int lineColor;

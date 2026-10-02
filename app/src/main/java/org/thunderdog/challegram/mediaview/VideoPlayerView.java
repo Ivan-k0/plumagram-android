@@ -433,6 +433,8 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
   public void destroy () {
     destroyed = true;
     setVideo(null);
+    // TGx101: the viewer closed — other players get the sound back
+    org.thunderdog.challegram.player.ExternalAudioFocus.instance().setActive(org.thunderdog.challegram.player.ExternalAudioFocus.REASON_VIDEO, false);
   }
 
   // instance state
@@ -562,6 +564,9 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
         callback.onPlayPause(isPlaying);
       }
       UI.getContext(context).setScreenFlagEnabled(BaseActivity.SCREEN_FLAG_PLAYING_REGULAR_VIDEO, isPlaying);
+      // TGx101: other players (Spotify, YouTube Music…) pause while a video with sound plays, and continue after
+      boolean withSound = isPlaying && currentItem != null && !currentItem.isGifType() && !isMuted;
+      org.thunderdog.challegram.player.ExternalAudioFocus.instance().setActive(org.thunderdog.challegram.player.ExternalAudioFocus.REASON_VIDEO, withSound);
     }
   }
 
