@@ -94,7 +94,11 @@ public class Tgx101FormatMenuController extends RecyclerViewController<Void> imp
     adapter = new SettingsAdapter(this) {
       @Override
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
-        if (item.getId() == R.id.btn_tgx101MenuAction) {
+        if (item.getId() == R.id.btn_tgx101BarItem) {
+          int bar = (int) item.getLongId() / 100, position = (int) item.getLongId() % 100;
+          java.util.List<String> order = Tgx101BarOrder.getOrder(bar);
+          view.setData(position < order.size() && order.get(position).startsWith("-") ? Lang.getString(R.string.Tgx101FormatHidden) : Integer.toString(position + 1));
+        } else if (item.getId() == R.id.btn_tgx101MenuAction) {
           int[] order = getOrder();
           int position = (int) item.getLongId();
           view.setData(order[position] < 0 ? Lang.getString(R.string.Tgx101FormatHidden) : Integer.toString(position + 1));
@@ -116,6 +120,20 @@ public class Tgx101FormatMenuController extends RecyclerViewController<Void> imp
     int[] order = getOrder();
     List<ListItem> items = new ArrayList<>();
     items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
+    // TGx101: the selection bar's top row — in a message and in the input
+    for (int bar : new int[] {Tgx101BarOrder.BAR_MESSAGE, Tgx101BarOrder.BAR_INPUT}) {
+      items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, bar == Tgx101BarOrder.BAR_MESSAGE ? R.string.Tgx101BarMessageSection : R.string.Tgx101BarInputSection));
+      items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+      java.util.List<String> barOrder = Tgx101BarOrder.getOrder(bar);
+      for (int i = 0; i < barOrder.size(); i++) {
+        String key = barOrder.get(i).startsWith("-") ? barOrder.get(i).substring(1) : barOrder.get(i);
+        if (i > 0) items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+        items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101BarItem, Tgx101BarOrder.iconOf(key), Tgx101BarOrder.nameOf(key)).setLongId(bar * 100 + i));
+      }
+      items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    }
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101BarHint));
+    items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101BarFormatSection));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     for (int i = 0; i < order.length; i++) {
       int known = indexOf(IDS, Math.abs(order[i]));
@@ -142,10 +160,48 @@ public class Tgx101FormatMenuController extends RecyclerViewController<Void> imp
     Settings.instance().setTgx101FormatMenu(result);
   }
 
+  /** Show / hide / move one item of a selection bar's top row */
+  private void showBarOptions (ListItem item) {
+    final int bar = (int) item.getLongId() / 100, position = (int) item.getLongId() % 100;
+    final java.util.List<String> order = Tgx101BarOrder.getOrder(bar);
+    if (position >= order.size()) return;
+    final boolean hidden = order.get(position).startsWith("-");
+    showOptions(item.getString(),
+      new int[] {R.id.btn_tgx101FormatToggle, R.id.btn_moveToTop, R.id.btn_moveUp, R.id.btn_moveDown, R.id.btn_moveToBottom},
+      new String[] {Lang.getString(hidden ? R.string.Tgx101FormatShow : R.string.Tgx101FormatHide), Lang.getString(R.string.Tgx101MoveToTop), Lang.getString(R.string.Tgx101MoveUp), Lang.getString(R.string.Tgx101MoveDown), Lang.getString(R.string.Tgx101MoveToBottom)},
+      null,
+      new int[] {hidden ? R.drawable.baseline_visibility_24 : R.drawable.baseline_eye_off_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_downward_24, R.drawable.baseline_arrow_downward_24},
+      (itemView, optionId) -> {
+        java.util.List<String> list = new ArrayList<>(order);
+        String entry = list.get(position);
+        if (optionId == R.id.btn_tgx101FormatToggle) {
+          list.set(position, hidden ? entry.substring(1) : "-" + entry);
+        } else {
+          int target;
+          if (optionId == R.id.btn_moveToTop) target = 0;
+          else if (optionId == R.id.btn_moveUp) target = Math.max(0, position - 1);
+          else if (optionId == R.id.btn_moveDown) target = Math.min(list.size() - 1, position + 1);
+          else if (optionId == R.id.btn_moveToBottom) target = list.size() - 1;
+          else return true;
+          list.remove(position);
+          list.add(target, entry);
+        }
+        Tgx101BarOrder.setOrder(bar, list);
+        rebuild();
+        return true;
+      });
+  }
+
   @Override
   public void onClick (View v) {
     int id = v.getId();
+    if (id == R.id.btn_tgx101BarItem) {
+      showBarOptions((ListItem) v.getTag());
+      return;
+    }
     if (id == R.id.btn_tgx101MenuOrderReset) {
+      Settings.instance().setTgx101BarOrder(Tgx101BarOrder.BAR_MESSAGE, null);
+      Settings.instance().setTgx101BarOrder(Tgx101BarOrder.BAR_INPUT, null);
       Settings.instance().setTgx101FormatMenu(null);
       rebuild();
       return;

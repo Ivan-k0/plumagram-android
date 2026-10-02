@@ -1114,6 +1114,7 @@
   <item type="id" name="btn_tgx101FilterScopeChat" />
   <item type="id" name="btn_tgx101FilterDelete" />
   <item type="id" name="btn_tgx101FilterSimilar" />
+  <item type="id" name="btn_tgx101BarItem" />
   <item type="id" name="btn_tgx101MenuShow" />
   <item type="id" name="btn_tgx101MenuToMore" />
   <item type="id" name="btn_tgx101MenuHide" />

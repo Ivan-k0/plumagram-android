@@ -3168,6 +3168,19 @@ public class Settings {
   private static final String KEY_TGX101_MESSAGE_MENU_HIDDEN = "tgx101_message_menu_hidden";
   private static final String KEY_TGX101_MESSAGE_MENU_MORE = "tgx101_message_menu_more";
 
+  /** TGx101: the text selection bar's top row (Tgx101BarOrder): "key,-key,…" per bar */
+  public @androidx.annotation.Nullable String getTgx101BarOrder (int bar) {
+    return pmc.getString("tgx101_bar_order_" + bar, null);
+  }
+
+  public void setTgx101BarOrder (int bar, @androidx.annotation.Nullable String order) {
+    if (order == null || order.isEmpty()) {
+      pmc.remove("tgx101_bar_order_" + bar);
+    } else {
+      pmc.putString("tgx101_bar_order_" + bar, order);
+    }
+  }
+
   /** TGx101: message menu actions moved under «More…» (resource names stored, like the order) */
   public int[] getTgx101MessageMenuMore () {
     String saved = pmc.getString(KEY_TGX101_MESSAGE_MENU_MORE, null);

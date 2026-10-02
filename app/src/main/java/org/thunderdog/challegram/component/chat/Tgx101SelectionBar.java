@@ -60,13 +60,28 @@ import me.vkryl.core.ColorUtils;
  */
 public final class Tgx101SelectionBar {
   public static final class Action {
+    final String key; // TGx101: place in the user's order (Tgx101BarOrder), "apps" for other apps' items
     final String title;
     final Runnable onClick;
 
     public Action (String title, Runnable onClick) {
+      this(org.thunderdog.challegram.ui.Tgx101BarOrder.APPS, title, onClick);
+    }
+
+    public Action (String key, String title, Runnable onClick) {
+      this.key = key;
       this.title = title;
       this.onClick = onClick;
     }
+  }
+
+  private static String keyOf (MenuItem item) {
+    int id = item.getItemId();
+    if (id == android.R.id.cut) return org.thunderdog.challegram.ui.Tgx101BarOrder.CUT;
+    if (id == android.R.id.copy) return org.thunderdog.challegram.ui.Tgx101BarOrder.COPY;
+    if (id == android.R.id.paste) return org.thunderdog.challegram.ui.Tgx101BarOrder.PASTE;
+    if (id == android.R.id.selectAll) return org.thunderdog.challegram.ui.Tgx101BarOrder.SELECT_ALL;
+    return org.thunderdog.challegram.ui.Tgx101BarOrder.APPS;
   }
 
   private final View view;
@@ -143,6 +158,9 @@ public final class Tgx101SelectionBar {
       for (MenuItem item : standard) if (item.getItemId() == id) top.add(item);
     }
     top.addAll(others);
+    if (view instanceof InputView) {
+      top = org.thunderdog.challegram.ui.Tgx101BarOrder.apply(org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_INPUT, top, Tgx101SelectionBar::keyOf); // TGx101: user's order
+    }
     build(top);
     if (hiddenWhileDragging) {
       content.setAlpha(0f); // still dragging — the system re-asks the menu, don't pop the bar back over the magnifier
@@ -220,7 +238,10 @@ public final class Tgx101SelectionBar {
     scroll.setHorizontalFadingEdgeEnabled(true);
     LinearLayout row = new LinearLayout(context);
     row.setOrientation(LinearLayout.HORIZONTAL);
-    for (Action action : leadingActions) {
+    // TGx101: in a message the actions follow the user's order (MagiX → Message input → Mini editor buttons)
+    List<Action> actions = view instanceof InputView ? leadingActions :
+      org.thunderdog.challegram.ui.Tgx101BarOrder.apply(org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_MESSAGE, leadingActions, a -> a.key);
+    for (Action action : actions) {
       row.addView(chip(context, action.title, v -> action.onClick.run()), chipParams());
     }
     for (MenuItem item : systemItems) {

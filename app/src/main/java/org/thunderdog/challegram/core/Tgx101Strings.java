@@ -31,6 +31,13 @@ final class Tgx101Strings {
 
   static {
     RU.put(R.string.Tgx101Settings, "MagiX");
+    RU.put(R.string.Tgx101BarCut, "Вырезать");
+    RU.put(R.string.Tgx101BarPaste, "Вставить");
+    RU.put(R.string.Tgx101BarApps, "Другие приложения (Перевести, Поиск…)");
+    RU.put(R.string.Tgx101BarMessageSection, "В сообщении");
+    RU.put(R.string.Tgx101BarInputSection, "Поле ввода — верхний ряд");
+    RU.put(R.string.Tgx101BarFormatSection, "Поле ввода — кнопки оформления");
+    RU.put(R.string.Tgx101BarHint, "Нажмите на пункт, чтобы передвинуть или скрыть его. «В сообщении» — строка над текстом, выделенным в сообщении; строки поля ввода появляются при выделении текста в поле ввода.");
     RU.put(R.string.Tgx101InputSection, "Поле ввода");
     RU.put(R.string.Tgx101InputSectionHint, "Порядок кнопок в строке, которая появляется при выделении текста в поле ввода; ненужные можно скрыть.");
     RU.put(R.string.Tgx101MenuSelectText, "Редактор / Цитировать (чужие сообщения)");

@@ -6339,4 +6339,11 @@
   <string name="Tgx101MenuMoveToMore">Move to «More…»</string>
   <string name="Tgx101InputSection">Message input</string>
   <string name="Tgx101InputSectionHint">The order of the buttons in the bar that appears when you select text in the message input; unneeded ones can be hidden.</string>
+  <string name="Tgx101BarCut">Cut</string>
+  <string name="Tgx101BarPaste">Paste</string>
+  <string name="Tgx101BarApps">Other apps (Translate, Search…)</string>
+  <string name="Tgx101BarMessageSection">In a message</string>
+  <string name="Tgx101BarInputSection">Message input — top row</string>
+  <string name="Tgx101BarFormatSection">Message input — formatting</string>
+  <string name="Tgx101BarHint">Tap an item to move or hide it. «In a message» is the bar over text selected in a message; the input bars appear when text is selected in the message field.</string>
 </resources>

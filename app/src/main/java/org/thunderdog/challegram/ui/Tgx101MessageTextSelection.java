@@ -193,21 +193,21 @@ public final class Tgx101MessageTextSelection {
 
     private List<Tgx101SelectionBar.Action> buildActions (Context context) {
       List<Tgx101SelectionBar.Action> actions = new ArrayList<>();
-      actions.add(new Tgx101SelectionBar.Action(Lang.getString(R.string.Tgx101EditorQuote), () -> {
+      actions.add(new Tgx101SelectionBar.Action(Tgx101BarOrder.QUOTE, Lang.getString(R.string.Tgx101EditorQuote), () -> {
         int[] range = mapToMessage();
         close("quote");
         SelectTextForQuoteDialog.onReplyRequested(controller, tdlib, msg, formatted, range[0], range[1]);
       }));
-      actions.add(new Tgx101SelectionBar.Action(Lang.getString(R.string.Copy), () -> {
+      actions.add(new Tgx101SelectionBar.Action(Tgx101BarOrder.COPY, Lang.getString(R.string.Copy), () -> {
         UI.copyText(selectedText(), R.string.CopiedText);
         close("copy");
       }));
-      actions.add(new Tgx101SelectionBar.Action(Lang.getString(R.string.Tgx101SelectAllFull), () -> {
+      actions.add(new Tgx101SelectionBar.Action(Tgx101BarOrder.SELECT_ALL, Lang.getString(R.string.Tgx101SelectAllFull), () -> {
         setSelection(0, text.getText().length());
         overlay.updateBar();
       }));
       if (Tgx101TextEditor.canEdit(message) && msg.canEditText()) {
-        actions.add(new Tgx101SelectionBar.Action(Lang.getString(R.string.Tgx101EditorMenu), () -> {
+        actions.add(new Tgx101SelectionBar.Action(Tgx101BarOrder.EDITOR, Lang.getString(R.string.Tgx101EditorMenu), () -> {
           close("editor");
           Tgx101TextEditor.showEdit(controller, tdlib, message);
         }));
