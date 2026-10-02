@@ -125,7 +125,7 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
       capsuleBackground.setStroke(Screen.dp(1f), 0x0fffffff);
       capsule.setBackground(capsuleBackground);
       panel.addView(capsule, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-      micButton = addCapsuleButton(R.drawable.baseline_mic_24, R.string.Tgx101CallMic, v -> {
+      micButton = addCapsuleButton(R.drawable.baseline_mic_off_24, R.string.Tgx101CallMic, v -> {
         host.toggleMicMuted();
         update();
       });
@@ -142,6 +142,7 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
       endButton.setBackground(circle(COLOR_END));
       endButton.setContentDescription(org.thunderdog.challegram.core.Lang.getString(R.string.Tgx101CallEnd));
       endButton.setOnClickListener(v -> host.hangUp());
+      addPressAnimation(endButton);
       LinearLayout.LayoutParams endParams = new LinearLayout.LayoutParams(Screen.dp(62f), Screen.dp(62f));
       endParams.leftMargin = Screen.dp(10f);
       panel.addView(endButton, endParams);
@@ -281,10 +282,27 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
     button.setBackground(circle(Color.TRANSPARENT));
     button.setContentDescription(org.thunderdog.challegram.core.Lang.getString(label));
     button.setOnClickListener(onClick);
+    addPressAnimation(button);
     FrameLayout cell = new FrameLayout(controller.context());
     cell.addView(button, new FrameLayout.LayoutParams(Screen.dp(46f), Screen.dp(46f), Gravity.CENTER));
     capsule.addView(cell, new LinearLayout.LayoutParams(0, Screen.dp(46f), 1f));
     return button;
+  }
+
+  /** Light press feedback: the button shrinks a little under the finger and springs back */
+  private static void addPressAnimation (View button) {
+    button.setOnTouchListener((v, e) -> {
+      switch (e.getActionMasked()) {
+        case android.view.MotionEvent.ACTION_DOWN:
+          v.animate().scaleX(.86f).scaleY(.86f).setDuration(90).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+          break;
+        case android.view.MotionEvent.ACTION_UP:
+        case android.view.MotionEvent.ACTION_CANCEL:
+          v.animate().scaleX(1f).scaleY(1f).setDuration(220).setInterpolator(new android.view.animation.OvershootInterpolator(3f)).start();
+          break;
+      }
+      return false; // the click still goes through
+    });
   }
 
   private static GradientDrawable circle (int color) {
@@ -346,8 +364,7 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
       speakerButton.setImageResource(host.getAudioRouteIcon());
       ((GradientDrawable) speakerButton.getBackground()).setColor(host.isAudioRouteActive() ? COLOR_CARD_ACTIVE : Color.TRANSPARENT);
       ((GradientDrawable) micButton.getBackground()).setColor(muted ? COLOR_CARD_ACTIVE : Color.TRANSPARENT);
-      micButton.setImageResource(muted ? R.drawable.baseline_mic_off_24 : R.drawable.baseline_mic_24);
-      return;
+      return; // the microphone button always shows the crossed-out microphone; muted = highlighted
     }
     ((GradientDrawable) cameraButton.getBackground()).setColor(camera ? COLOR_ACCENT : COLOR_BUTTON);
     ((GradientDrawable) speakerButton.getBackground()).setColor(host.isSpeakerOn() ? COLOR_ACCENT : COLOR_BUTTON);
