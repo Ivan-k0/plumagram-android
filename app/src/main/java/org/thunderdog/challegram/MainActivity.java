@@ -719,6 +719,7 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
   @Override
   protected void onNewIntent (Intent intent) {
     super.onNewIntent(intent);
+    Tgx101DiagHooks.onNewIntent(intent); // TGx101
     String action = intent != null ? intent.getAction() : null;
     if (!StringUtils.isEmpty(action)) {
       handleIntent(action, intent, false);

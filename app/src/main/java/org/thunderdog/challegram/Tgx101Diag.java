@@ -120,18 +120,21 @@ public final class Tgx101Diag {
     app.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
       private int resumed;
       @Override public void onActivityCreated (Activity a, Bundle state) { mark("activity " + a.getClass().getSimpleName() + " created" + (state != null ? " (restored)" : "")); }
-      @Override public void onActivityStarted (Activity a) { mark("activity " + a.getClass().getSimpleName() + " started"); }
+      @Override public void onActivityStarted (Activity a) {
+        mark("activity " + a.getClass().getSimpleName() + " started [" + state(a) + "]");
+        StartWatch.onStarted(a);
+      }
       @Override public void onActivityResumed (Activity a) {
-        mark("activity " + a.getClass().getSimpleName() + " resumed");
+        mark("activity " + a.getClass().getSimpleName() + " resumed [" + state(a) + "]");
         if (resumed++ == 0) StallWatch.setEnabled(true);
         FrameWatch.attach(a);
       }
       @Override public void onActivityPaused (Activity a) {
-        mark("activity " + a.getClass().getSimpleName() + " paused");
+        mark("activity " + a.getClass().getSimpleName() + " paused [" + state(a) + "]");
         FrameWatch.detach(a);
         if (--resumed <= 0) { resumed = 0; StallWatch.setEnabled(false); }
       }
-      @Override public void onActivityStopped (Activity a) { mark("activity " + a.getClass().getSimpleName() + " stopped"); }
+      @Override public void onActivityStopped (Activity a) { mark("activity " + a.getClass().getSimpleName() + " stopped [" + state(a) + (a.isChangingConfigurations() ? ", config change" : "") + "]"); }
       @Override public void onActivitySaveInstanceState (Activity a, Bundle outState) { }
       @Override public void onActivityDestroyed (Activity a) { mark("activity " + a.getClass().getSimpleName() + " destroyed"); }
     });
@@ -270,6 +273,59 @@ public final class Tgx101Diag {
   // Dropped frames: one line per second with janky frames, and the phases of the worst one.
   // unknownDelay = the frame waited for the main thread (busy with other work), anim/layout/draw = our own UI code.
 
+  // Blink diagnostics: lock / screen / focus / rotation state at each lifecycle step
+  private static volatile String topScreen = "?";
+
+  static void setTopScreen (String name) {
+    topScreen = name;
+  }
+
+  private static String state (Activity a) {
+    StringBuilder b = new StringBuilder();
+    try {
+      android.app.KeyguardManager keyguard = (android.app.KeyguardManager) a.getSystemService(Context.KEYGUARD_SERVICE);
+      android.os.PowerManager power = (android.os.PowerManager) a.getSystemService(Context.POWER_SERVICE);
+      b.append(keyguard != null && keyguard.isKeyguardLocked() ? "locked" : "unlocked");
+      b.append(power != null && power.isInteractive() ? ", screen on" : ", screen off");
+      b.append(a.hasWindowFocus() ? ", focus" : ", no focus");
+      android.view.Display display = a.getWindowManager().getDefaultDisplay();
+      b.append(", rotation ").append(display.getRotation() * 90);
+      b.append(", top ").append(topScreen);
+    } catch (Throwable t) {
+      b.append("state failed");
+    }
+    return b.toString();
+  }
+
+  /** After each start: window focus changes, the first drawn frame and every frame for 1.5 s */
+  private static final class StartWatch {
+    private static final java.util.WeakHashMap<Activity, Boolean> focusWatched = new java.util.WeakHashMap<>();
+    static volatile long startedAt, burstUntil;
+
+    static void onStarted (Activity a) {
+      startedAt = SystemClock.uptimeMillis();
+      burstUntil = startedAt + 1500;
+      try {
+        final android.view.View decor = a.getWindow().getDecorView();
+        if (!focusWatched.containsKey(a)) {
+          focusWatched.put(a, Boolean.TRUE);
+          decor.getViewTreeObserver().addOnWindowFocusChangeListener(hasFocus ->
+            mark("window focus " + (hasFocus ? "gained" : "lost") + " +" + (SystemClock.uptimeMillis() - startedAt) + " ms after start"));
+        }
+        decor.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+          @Override
+          public boolean onPreDraw () {
+            decor.getViewTreeObserver().removeOnPreDrawListener(this);
+            mark("first draw +" + (SystemClock.uptimeMillis() - startedAt) + " ms after start, top " + topScreen + ", window " + decor.getWidth() + "x" + decor.getHeight());
+            return true;
+          }
+        });
+      } catch (Throwable t) {
+        mark("start watch failed: " + t);
+      }
+    }
+  }
+
   private static final class FrameWatch {
     private static final long JANK_NS = 20_000_000L; // missed at least one 60 Hz frame
     private static final java.util.WeakHashMap<Activity, Object> listeners = new java.util.WeakHashMap<>();
@@ -302,8 +358,13 @@ public final class Tgx101Diag {
     // Runs on the diagnostics thread
     private static void onFrame (android.view.FrameMetrics m) {
       if (Build.VERSION.SDK_INT < 24) return;
-      if (m.getMetric(android.view.FrameMetrics.FIRST_DRAW_FRAME) == 1) return;
       long now = SystemClock.uptimeMillis();
+      if (now < StartWatch.burstUntil) {
+        // every frame right after a start: when it was drawn and how long it took
+        mark("frame +" + (now - StartWatch.startedAt) + " ms: " + (m.getMetric(android.view.FrameMetrics.TOTAL_DURATION) / 1_000_000L) + " ms" +
+          (m.getMetric(android.view.FrameMetrics.FIRST_DRAW_FRAME) == 1 ? " (first)" : "") + ", top " + topScreen);
+      }
+      if (m.getMetric(android.view.FrameMetrics.FIRST_DRAW_FRAME) == 1) return;
       if (windowStart == 0) windowStart = now;
       if (now - windowStart >= 1000) report();
       if (windowStart == 0) windowStart = now;

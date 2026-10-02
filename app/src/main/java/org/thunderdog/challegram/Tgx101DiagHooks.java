@@ -138,6 +138,15 @@ public final class Tgx101DiagHooks {
   public static void onControllerFocus (Object controller, boolean focused) {
     if (BuildConfig.TGX101_DIAG) {
       Tgx101Diag.mark((focused ? "screen → " : "screen ← ") + controller.getClass().getSimpleName());
+      if (focused) Tgx101Diag.setTopScreen(controller.getClass().getSimpleName());
+    }
+  }
+
+  /** How the app was opened again: a notification, a share, a link (action and extra names only) */
+  public static void onNewIntent (android.content.Intent intent) {
+    if (BuildConfig.TGX101_DIAG && intent != null) {
+      android.os.Bundle extras = intent.getExtras();
+      Tgx101Diag.mark("new intent " + intent.getAction() + (extras != null ? " extras " + extras.keySet() : ""));
     }
   }
 
