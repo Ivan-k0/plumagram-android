@@ -31,6 +31,8 @@ final class Tgx101Strings {
 
   static {
     RU.put(R.string.Tgx101Settings, "MagiX");
+    RU.put(R.string.Tgx101InputSection, "Поле ввода");
+    RU.put(R.string.Tgx101InputSectionHint, "Порядок кнопок в строке, которая появляется при выделении текста в поле ввода; ненужные можно скрыть.");
     RU.put(R.string.Tgx101MenuSelectText, "Редактор / Цитировать (чужие сообщения)");
     RU.put(R.string.Tgx101MenuEditorOwn, "Редактор (свои сообщения)");
     RU.put(R.string.Tgx101MenuMessagesFrom, "Сообщения от участника");
@@ -157,7 +159,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101RawPreviewOpening, "Открываю RAW-фото…");
     RU.put(R.string.Tgx101CallBarSetting, "Плашка текущего звонка над чатами");
     RU.put(R.string.Tgx101EditorMenu, "Редактор");
-    RU.put(R.string.Tgx101FormatMenu, "Меню форматирования");
+    RU.put(R.string.Tgx101FormatMenu, "Кнопки мини-редактора");
     RU.put(R.string.Tgx101FormatMenuHint, "Пункты оформления, которые видны при выделении текста в поле ввода — после «Копировать», «Вставить», «Выбрать всё». Нажмите на пункт, чтобы переместить или скрыть его.");
     RU.put(R.string.Tgx101FormatHidden, "скрыт");
     RU.put(R.string.Tgx101FormatShow, "Показать");

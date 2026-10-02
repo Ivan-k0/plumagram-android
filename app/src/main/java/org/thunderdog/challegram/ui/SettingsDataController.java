@@ -367,11 +367,16 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MessageMenuOrder, 0, R.string.Tgx101MessageMenuOrder),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101FormatMenu, 0, R.string.Tgx101FormatMenu),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101TapMode, 0, R.string.Tgx101TapMode),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101TapModeHint),
+
+        // TGx101: the input's own section, so the mini editor's buttons are easy to find
+        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101InputSection),
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101FormatMenu, 0, R.string.Tgx101FormatMenu),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101InputSectionHint),
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ChatListSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),

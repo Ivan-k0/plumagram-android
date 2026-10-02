@@ -6337,4 +6337,6 @@
   <string name="Tgx101MenuInMore">In «More»</string>
   <string name="Tgx101MenuShowInMenu">Show in the menu</string>
   <string name="Tgx101MenuMoveToMore">Move to «More…»</string>
+  <string name="Tgx101InputSection">Message input</string>
+  <string name="Tgx101InputSectionHint">The order of the buttons in the bar that appears when you select text in the message input; unneeded ones can be hidden.</string>
 </resources>

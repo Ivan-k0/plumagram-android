@@ -96,19 +96,31 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
   // The gesture has to start at the top, so the swipe that brings the list
   // there doesn't count. Long presses (pinned chat drag, previews) and
   // mostly-horizontal swipes (folder switching) are ignored.
-  private boolean pullToSearchTracking;
-  private float pullToSearchStartX, pullToSearchStartY;
+  // TGx101: a circle with a magnifier slides down from the top and its ring fills while pulling; at the
+  // threshold it turns blue with one short vibration. Search opens only when the finger is released past
+  // the threshold; pulling back or releasing earlier cancels.
+  private static final float PULL_THRESHOLD_DP = 96f, PULL_SLOP_DP = 10f;
+  private boolean pullToSearchTracking, pullToSearchActive, pullToSearchReady;
+  private float pullToSearchStartX, pullToSearchStartY, pullDistance;
+  private android.animation.ValueAnimator pullReturnAnimator;
+  private final android.graphics.Paint pullPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+  private android.graphics.drawable.Drawable pullIcon;
 
   @Override
   public boolean dispatchTouchEvent (MotionEvent e) {
     switch (e.getActionMasked()) {
       case MotionEvent.ACTION_DOWN: {
         pullToSearchTracking = controller != null && controller.canOpenSearchByPull() && getScrollState() == SCROLL_STATE_IDLE && !canScrollVertically(-1);
+        pullToSearchActive = pullToSearchReady = false;
         pullToSearchStartX = e.getX();
         pullToSearchStartY = e.getY();
         break;
       }
       case MotionEvent.ACTION_MOVE: {
+        if (pullToSearchActive) {
+          setPullDistance(Math.max(0f, e.getY() - pullToSearchStartY));
+          return true; // the list stays still while pulling
+        }
         if (!pullToSearchTracking)
           break;
         if (e.getPointerCount() > 1 || e.getEventTime() - e.getDownTime() > ViewConfiguration.getLongPressTimeout()) {
@@ -119,20 +131,106 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
         float dy = e.getY() - pullToSearchStartY;
         if (dy < -Screen.dp(8f) || dx > Screen.dp(24f)) {
           pullToSearchTracking = false;
-        } else if (dy >= Screen.dp(80f) && dy > dx * 2f) {
+        } else if (dy >= Screen.dp(PULL_SLOP_DP) && dy > dx * 2f) {
+          // the pull starts: the list doesn't get this gesture any more (no tap, no long press)
           pullToSearchTracking = false;
-          performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-          controller.openSearchByPull();
+          pullToSearchActive = true;
+          if (pullReturnAnimator != null) pullReturnAnimator.cancel();
+          MotionEvent cancel = MotionEvent.obtain(e);
+          cancel.setAction(MotionEvent.ACTION_CANCEL);
+          super.dispatchTouchEvent(cancel);
+          cancel.recycle();
+          setPullDistance(dy);
+          return true;
         }
         break;
       }
       case MotionEvent.ACTION_UP:
       case MotionEvent.ACTION_CANCEL: {
         pullToSearchTracking = false;
+        if (pullToSearchActive) {
+          pullToSearchActive = false;
+          boolean open = e.getActionMasked() == MotionEvent.ACTION_UP && pullToSearchReady && controller != null && controller.canOpenSearchByPull();
+          animatePullBack();
+          if (open) {
+            controller.openSearchByPull();
+          }
+          return true;
+        }
         break;
       }
     }
     return super.dispatchTouchEvent(e);
+  }
+
+  private void setPullDistance (float distance) {
+    pullDistance = distance;
+    boolean ready = distance >= Screen.dp(PULL_THRESHOLD_DP);
+    if (ready != pullToSearchReady) {
+      pullToSearchReady = ready;
+      if (ready) {
+        performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+      }
+    }
+    invalidate();
+  }
+
+  private void animatePullBack () {
+    if (pullReturnAnimator != null) pullReturnAnimator.cancel();
+    if (pullDistance <= 0f) return;
+    pullReturnAnimator = android.animation.ValueAnimator.ofFloat(pullDistance, 0f);
+    pullReturnAnimator.setDuration(200);
+    pullReturnAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator());
+    pullReturnAnimator.addUpdateListener(a -> {
+      pullDistance = (float) a.getAnimatedValue();
+      invalidate();
+    });
+    pullReturnAnimator.start();
+  }
+
+  @Override
+  public void draw (@NonNull android.graphics.Canvas c) {
+    super.draw(c);
+    if (pullDistance <= 0f) return;
+    float threshold = Screen.dp(PULL_THRESHOLD_DP);
+    float progress = Math.min(1f, pullDistance / threshold);
+    float radius = Screen.dp(20f);
+    float cx = getWidth() / 2f;
+    // slides down from above the top edge, slower than the finger
+    float cy = -radius + Math.min(pullDistance, threshold * 1.15f) * .62f;
+    float alpha = Math.min(1f, pullDistance / Screen.dp(24f));
+    boolean ready = pullToSearchReady && pullToSearchActive || pullDistance >= threshold;
+    int accent = org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.fillingPositive);
+    int filling = org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.filling);
+    // shadow + circle
+    pullPaint.setStyle(android.graphics.Paint.Style.FILL);
+    pullPaint.setColor(me.vkryl.core.ColorUtils.alphaColor(.18f * alpha, 0xff000000));
+    c.drawCircle(cx, cy + Screen.dp(1.5f), radius + Screen.dp(1f), pullPaint);
+    pullPaint.setColor(me.vkryl.core.ColorUtils.alphaColor(alpha, ready ? accent : filling));
+    c.drawCircle(cx, cy, radius, pullPaint);
+    // progress ring
+    if (!ready) {
+      float ringRadius = radius - Screen.dp(4f);
+      pullPaint.setStyle(android.graphics.Paint.Style.STROKE);
+      pullPaint.setStrokeWidth(Screen.dp(2.5f));
+      pullPaint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+      pullPaint.setColor(me.vkryl.core.ColorUtils.alphaColor(alpha * .25f, accent));
+      c.drawCircle(cx, cy, ringRadius, pullPaint);
+      pullPaint.setColor(me.vkryl.core.ColorUtils.alphaColor(alpha, accent));
+      c.drawArc(cx - ringRadius, cy - ringRadius, cx + ringRadius, cy + ringRadius, -90f, 360f * progress, false, pullPaint);
+    }
+    // magnifier
+    if (pullIcon == null) {
+      pullIcon = org.thunderdog.challegram.tool.Drawables.get(getResources(), org.thunderdog.challegram.R.drawable.baseline_search_24);
+      if (pullIcon != null) pullIcon = pullIcon.mutate();
+    }
+    if (pullIcon != null) {
+      int size = Screen.dp(ready ? 22f : 18f);
+      pullIcon.setColorFilter(org.thunderdog.challegram.tool.Paints.getColorFilter(ready ? 0xffffffff : accent));
+      pullIcon.setAlpha((int) (255 * alpha));
+      pullIcon.setBounds((int) (cx - size / 2f), (int) (cy - size / 2f), (int) (cx + size / 2f), (int) (cy + size / 2f));
+      pullIcon.draw(c);
+    }
   }
 
   // Touching the list while it's still flinging makes RecyclerView call
