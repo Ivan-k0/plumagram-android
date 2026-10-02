@@ -447,10 +447,28 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       }
     }
     lastScrollToBottomVisible = isVisible;
+    // TGx101: back at the very bottom by hand after jumping to a quoted / pinned message — the «return» arrow is
+    // no longer needed (it stayed over the last message although there was nothing below)
+    if (!isVisible && first == 0 && hasReturnMessage() && !loader.canLoadBottom()) {
+      View bottomView = manager.findViewByPosition(0);
+      if (bottomView != null && bottomView.getBottom() <= getRecyclerHeight()) {
+        revokeReturnMessages();
+      }
+    }
     checkScrollToBottomButton();
   }
 
+  private String tgx101LastArrowReason;
+
   public void checkScrollToBottomButton () {
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+      // TGx101: why the scroll-down arrow is shown (it appeared at the bottom of a chat with nothing below)
+      String reason = getActiveMessageCount() == 0 ? "no messages" : "scrolled " + lastScrollToBottomVisible + ", canLoadBottom " + loader.canLoadBottom() + ", return " + hasReturnMessage();
+      if (!reason.equals(tgx101LastArrowReason)) {
+        tgx101LastArrowReason = reason;
+        org.thunderdog.challegram.Tgx101Diag.mark("chat arrow: " + reason);
+      }
+    }
     controller.setScrollToBottomVisible(getActiveMessageCount() > 0 && (lastScrollToBottomVisible || loader.canLoadBottom() || hasReturnMessage()), isReturnAbove());
   }
 
