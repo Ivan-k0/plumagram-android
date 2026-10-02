@@ -1114,6 +1114,9 @@
   <item type="id" name="btn_tgx101FilterScopeChat" />
   <item type="id" name="btn_tgx101FilterDelete" />
   <item type="id" name="btn_tgx101FilterSimilar" />
+  <item type="id" name="btn_tgx101MenuShow" />
+  <item type="id" name="btn_tgx101MenuToMore" />
+  <item type="id" name="btn_tgx101MenuHide" />
   <item type="id" name="controller_tgx101Filters" />
   <item type="id" name="controller_tgx101FilterEdit" />
   <item type="id" name="btn_tgx101RingRampTime" />

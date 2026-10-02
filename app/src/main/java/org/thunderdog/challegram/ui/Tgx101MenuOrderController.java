@@ -52,7 +52,8 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
           int position = (int) item.getLongId();
           int[] order = Tgx101MessageMenu.getOrder();
           boolean hidden = position < order.length && Tgx101MessageMenu.isHidden(order[position]);
-          view.setData(hidden ? Lang.getString(R.string.Tgx101FormatHidden) : Integer.toString(position + 1));
+          boolean inMore = position < order.length && Tgx101MessageMenu.isInMore(order[position]);
+          view.setData(hidden ? Lang.getString(R.string.Tgx101FormatHidden) : inMore ? Lang.getString(R.string.Tgx101MenuInMore) : Integer.toString(position + 1));
         }
       }
     };
@@ -91,12 +92,19 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     adapter.setItems(buildItems(), false);
   }
 
+  private static int[] toArray (List<Integer> list) {
+    int[] result = new int[list.size()];
+    for (int i = 0; i < result.length; i++) result[i] = list.get(i);
+    return result;
+  }
+
   @Override
   public void onClick (View v) {
     int id = v.getId();
     if (id == R.id.btn_tgx101MenuOrderReset) {
       Settings.instance().setTgx101MessageMenuOrder(null);
       Settings.instance().setTgx101MessageMenuHidden(null);
+      Settings.instance().setTgx101MessageMenuMore(null);
       rebuild();
       return;
     }
@@ -107,21 +115,28 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     final int position = (int) item.getLongId();
     final int[] order = Tgx101MessageMenu.getOrder();
     final boolean hidden = Tgx101MessageMenu.isHidden(order[position]);
+    final boolean inMore = Tgx101MessageMenu.isInMore(order[position]);
+    String mark = "  ✓";
     showOptions(item.getString(),
-      new int[] {R.id.btn_tgx101FormatToggle, R.id.btn_moveToTop, R.id.btn_moveUp, R.id.btn_moveDown, R.id.btn_moveToBottom},
-      new String[] {Lang.getString(hidden ? R.string.Tgx101FormatShow : R.string.Tgx101FormatHide), Lang.getString(R.string.Tgx101MoveToTop), Lang.getString(R.string.Tgx101MoveUp), Lang.getString(R.string.Tgx101MoveDown), Lang.getString(R.string.Tgx101MoveToBottom)},
+      new int[] {R.id.btn_tgx101MenuShow, R.id.btn_tgx101MenuToMore, R.id.btn_tgx101MenuHide, R.id.btn_moveToTop, R.id.btn_moveUp, R.id.btn_moveDown, R.id.btn_moveToBottom},
+      new String[] {
+        Lang.getString(R.string.Tgx101MenuShowInMenu) + (!hidden && !inMore ? mark : ""),
+        Lang.getString(R.string.Tgx101MenuMoveToMore) + (inMore && !hidden ? mark : ""),
+        Lang.getString(R.string.Tgx101FormatHide) + (hidden ? mark : ""),
+        Lang.getString(R.string.Tgx101MoveToTop), Lang.getString(R.string.Tgx101MoveUp), Lang.getString(R.string.Tgx101MoveDown), Lang.getString(R.string.Tgx101MoveToBottom)},
       null,
-      new int[] {hidden ? R.drawable.baseline_visibility_24 : R.drawable.baseline_eye_off_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_downward_24, R.drawable.baseline_arrow_downward_24},
+      new int[] {R.drawable.baseline_visibility_24, R.drawable.baseline_more_horiz_24, R.drawable.baseline_eye_off_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_downward_24, R.drawable.baseline_arrow_downward_24},
       (itemView, optionId) -> {
-        if (optionId == R.id.btn_tgx101FormatToggle) {
-          // hide / show this action in the message menu
-          ArrayList<Integer> hiddenIds = new ArrayList<>();
-          for (int x : Settings.instance().getTgx101MessageMenuHidden()) hiddenIds.add(x);
+        if (optionId == R.id.btn_tgx101MenuShow || optionId == R.id.btn_tgx101MenuToMore || optionId == R.id.btn_tgx101MenuHide) {
+          // where this action goes: the menu itself, under «More…», or nowhere
           Integer key = order[position];
-          if (hidden) hiddenIds.remove(key); else hiddenIds.add(key);
-          int[] result = new int[hiddenIds.size()];
-          for (int i = 0; i < result.length; i++) result[i] = hiddenIds.get(i);
-          Settings.instance().setTgx101MessageMenuHidden(result);
+          ArrayList<Integer> hiddenIds = new ArrayList<>(), moreIds = new ArrayList<>();
+          for (int x : Settings.instance().getTgx101MessageMenuHidden()) if (x != key) hiddenIds.add(x);
+          for (int x : Settings.instance().getTgx101MessageMenuMore()) if (x != key) moreIds.add(x);
+          if (optionId == R.id.btn_tgx101MenuHide) hiddenIds.add(key);
+          if (optionId == R.id.btn_tgx101MenuToMore) moreIds.add(key);
+          Settings.instance().setTgx101MessageMenuHidden(toArray(hiddenIds));
+          Settings.instance().setTgx101MessageMenuMore(toArray(moreIds));
           rebuild();
           return true;
         }

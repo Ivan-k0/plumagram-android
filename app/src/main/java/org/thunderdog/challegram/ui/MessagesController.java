@@ -6159,6 +6159,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
             runOnUiThreadOptional(() -> {
               if (!selectedMessage.isDestroyed()) {
                 Object tag = MessageView.fillMessageOptions(this, selectedMessage, otherMember, ids, icons, strings, true);
+                tgx101AddMoreActions(ids, icons, strings);
                 if (!ids.isEmpty()) {
                   showMessageOptions(selectedMessage, ids.get(), strings.get(), icons.get(), tag, otherMember, true);
                 }
@@ -6167,6 +6168,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           });
         } else {
           Object tag = MessageView.fillMessageOptions(this, selectedMessage, selectedMessageSender, ids, icons, strings, true);
+          tgx101AddMoreActions(ids, icons, strings);
           if (!ids.isEmpty()) {
             showMessageOptions(selectedMessage, ids.get(), strings.get(), icons.get(), tag, selectedMessageSender, true);
           }
@@ -8498,6 +8500,30 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   // pinned messages
+
+  // TGx101: «More…» = the actions the user moved there (MagiX → message menu) + Telegram X's own extra ones
+  private void tgx101AddMoreActions (IntList ids, IntList icons, StringList strings) {
+    java.util.List<OptionItem> moved = Tgx101MessageMenu.takePendingMore();
+    int[] oldIds = ids.get(), oldIcons = icons.get();
+    String[] oldStrings = strings.get();
+    ids.clear();
+    icons.clear();
+    strings.clear();
+    java.util.HashSet<Integer> added = new java.util.HashSet<>();
+    for (OptionItem item : moved) {
+      if (added.add(item.id)) {
+        ids.append(item.id);
+        icons.append(item.icon);
+        strings.append(item.name.toString());
+      }
+    }
+    for (int i = 0; i < oldIds.length; i++) {
+      if (Tgx101MessageMenu.isShownInMenu(oldIds[i]) || !added.add(oldIds[i])) continue; // already in the menu itself
+      ids.append(oldIds[i]);
+      icons.append(oldIcons[i]);
+      strings.append(oldStrings[i]);
+    }
+  }
 
   private void pinUnpinMessage (TGMessage m, boolean pin) {
     long chatId = m.getMessage().chatId;

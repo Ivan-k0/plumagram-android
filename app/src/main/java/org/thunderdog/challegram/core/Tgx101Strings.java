@@ -31,6 +31,12 @@ final class Tgx101Strings {
 
   static {
     RU.put(R.string.Tgx101Settings, "MagiX");
+    RU.put(R.string.Tgx101MenuSelectText, "Редактор / Цитировать (чужие сообщения)");
+    RU.put(R.string.Tgx101MenuEditorOwn, "Редактор (свои сообщения)");
+    RU.put(R.string.Tgx101MenuMessagesFrom, "Сообщения от участника");
+    RU.put(R.string.Tgx101MenuInMore, "В «Ещё»");
+    RU.put(R.string.Tgx101MenuShowInMenu, "Показывать в меню");
+    RU.put(R.string.Tgx101MenuMoveToMore, "Перенести в «Ещё…»");
     RU.put(R.string.Tgx101Filters, "Фильтры сообщений");
     RU.put(R.string.Tgx101FiltersEnabled, "Скрывать сообщения по фильтрам");
     RU.put(R.string.Tgx101FiltersHeader, "Фильтры");
@@ -179,7 +185,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MessageMenuHandRight, "Правую");
     RU.put(R.string.Tgx101MessageMenuHandLeft, "Левую");
     RU.put(R.string.Tgx101MessageMenuOrder, "Пункты меню сообщения");
-    RU.put(R.string.Tgx101MessageMenuOrderHint, "Нажмите на пункт, чтобы передвинуть или скрыть его. Пункты, которых нет у сообщения, пропускаются. «Удалить» и остальные пункты не меняются: «Удалить» всегда внизу.");
+    RU.put(R.string.Tgx101MessageMenuOrderHint, "Нажмите на пункт, чтобы передвинуть его, скрыть или перенести в «Ещё…» (там же, где «Удалить из кэша»). Пункты, которых нет у сообщения, пропускаются. «Удалить» и остальные пункты не меняются: «Удалить» всегда внизу.");
     RU.put(R.string.Tgx101MessageMenuOrderReset, "Вернуть порядок по умолчанию");
     RU.put(R.string.Tgx101MoveToTop, "В самый верх");
     RU.put(R.string.Tgx101MoveUp, "Выше");

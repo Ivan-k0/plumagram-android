@@ -75,18 +75,21 @@ public final class Tgx101MessageMenu {
     R.id.btn_messageCopyLink,
     R.id.btn_saveFile,
     R.id.btn_messageReport,
-    R.id.btn_tgx101FilterSimilar
+    R.id.btn_tgx101FilterSimilar,
+    R.id.btn_tgx101EditorWindow,
+    R.id.btn_messageViewList
   };
   public static final int[] ORDERABLE_NAMES = {
     R.string.Reply, R.string.Copy, R.string.edit, R.string.Share, R.string.MessagePin,
-    R.string.Tgx101QuoteAction, R.string.Translate, R.string.CopyLink, R.string.Save, R.string.MessageReport,
-    R.string.Tgx101FilterSimilar
+    R.string.Tgx101MenuSelectText, R.string.Translate, R.string.CopyLink, R.string.Save, R.string.MessageReport,
+    R.string.Tgx101FilterSimilar, R.string.Tgx101MenuEditorOwn, R.string.Tgx101MenuMessagesFrom
   };
   public static final int[] ORDERABLE_ICONS = {
     R.drawable.baseline_reply_24, R.drawable.baseline_content_copy_24, R.drawable.baseline_edit_24,
     R.drawable.baseline_forward_24, R.drawable.deproko_baseline_pin_24, R.drawable.baseline_format_quote_close_24,
     R.drawable.baseline_translate_24, R.drawable.baseline_link_24, R.drawable.baseline_file_download_24,
-    R.drawable.baseline_report_24, R.drawable.baseline_filter_variant_remove_24
+    R.drawable.baseline_report_24, R.drawable.baseline_filter_variant_remove_24, R.drawable.baseline_format_text_24,
+    R.drawable.baseline_person_24
   };
 
   private static int orderKey (int id) {
@@ -123,6 +126,30 @@ public final class Tgx101MessageMenu {
       if (hidden == key) return true;
     }
     return false;
+  }
+
+  /** Moved under «More…» in Settings → MagiX → message menu */
+  public static boolean isInMore (int id) {
+    int key = orderKey(id);
+    for (int more : Settings.instance().getTgx101MessageMenuMore()) {
+      if (more == key) return true;
+    }
+    return false;
+  }
+
+  // The actions moved under «More…» for the menu being shown, and what the menu itself shows
+  private static List<ViewController.OptionItem> pendingMore = new ArrayList<>();
+  private static final java.util.HashSet<Integer> shownIds = new java.util.HashSet<>();
+
+  /** For the «More…» list: the user's moved actions (taken once) */
+  public static List<ViewController.OptionItem> takePendingMore () {
+    List<ViewController.OptionItem> result = pendingMore;
+    pendingMore = new ArrayList<>();
+    return result;
+  }
+
+  public static boolean isShownInMenu (int id) {
+    return shownIds.contains(id);
   }
 
   private static int rank (int[] order, int id) {
@@ -341,13 +368,20 @@ public final class Tgx101MessageMenu {
 
     // Actions in the user's order; "Delete" goes to the bottom
     List<ViewController.OptionItem> items = new ArrayList<>();
-    ViewController.OptionItem deleteItem = null;
+    List<ViewController.OptionItem> moreItems = new ArrayList<>();
+    ViewController.OptionItem deleteItem = null, moreItem = null;
     if (options.items != null) {
       for (ViewController.OptionItem item : options.items) {
         if (item == null || item.id == 0) continue;
         if (item.id == R.id.btn_messageDelete) {
           deleteItem = item;
-        } else if (!isHidden(item.id)) { // TGx101: actions the user hid in «Message menu»
+        } else if (item.id == R.id.btn_messageMore) {
+          moreItem = item;
+        } else if (isHidden(item.id)) {
+          // TGx101: actions the user hid in «Message menu»
+        } else if (isInMore(item.id)) {
+          moreItems.add(item); // TGx101: moved under «More…»
+        } else {
           items.add(item);
         }
       }
@@ -355,6 +389,16 @@ public final class Tgx101MessageMenu {
     final int[] order = getOrder();
     ArrayList<ViewController.OptionItem> sorted = new ArrayList<>(items);
     java.util.Collections.sort(sorted, (a, b) -> Integer.compare(rank(order, a.id), rank(order, b.id))); // stable: unknown items keep their order
+    java.util.Collections.sort(moreItems, (a, b) -> Integer.compare(rank(order, a.id), rank(order, b.id)));
+    pendingMore = moreItems;
+    if (!moreItems.isEmpty() && moreItem == null) {
+      moreItem = new ViewController.OptionItem(R.id.btn_messageMore, Lang.getString(R.string.MoreMessageOptions), ViewController.OptionColor.NORMAL, R.drawable.baseline_more_horiz_24);
+    }
+    if (moreItem != null) {
+      sorted.add(moreItem); // «More…» stays last, above «Delete»
+    }
+    shownIds.clear();
+    for (ViewController.OptionItem item : sorted) shownIds.add(item.id);
 
     LinearLayout list = new LinearLayout(context);
     list.setOrientation(LinearLayout.VERTICAL);

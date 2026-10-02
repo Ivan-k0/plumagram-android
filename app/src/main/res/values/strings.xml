@@ -6331,4 +6331,10 @@
   <string name="Tgx101FilterBadRegex">Error in the expression: %1$s</string>
   <string name="Tgx101FilterHiddenBy">Hidden by filter «%1$s» · Show</string>
   <string name="Tgx101FilterSimilar">Hide similar…</string>
+  <string name="Tgx101MenuSelectText">Editor / Quote (others\' messages)</string>
+  <string name="Tgx101MenuEditorOwn">Editor (own messages)</string>
+  <string name="Tgx101MenuMessagesFrom">Messages from the member</string>
+  <string name="Tgx101MenuInMore">In «More»</string>
+  <string name="Tgx101MenuShowInMenu">Show in the menu</string>
+  <string name="Tgx101MenuMoveToMore">Move to «More…»</string>
 </resources>

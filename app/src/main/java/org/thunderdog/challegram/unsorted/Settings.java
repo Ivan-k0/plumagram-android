@@ -3166,6 +3166,38 @@ public class Settings {
   }
 
   private static final String KEY_TGX101_MESSAGE_MENU_HIDDEN = "tgx101_message_menu_hidden";
+  private static final String KEY_TGX101_MESSAGE_MENU_MORE = "tgx101_message_menu_more";
+
+  /** TGx101: message menu actions moved under «More…» (resource names stored, like the order) */
+  public int[] getTgx101MessageMenuMore () {
+    String saved = pmc.getString(KEY_TGX101_MESSAGE_MENU_MORE, null);
+    if (saved == null || saved.isEmpty()) {
+      return new int[0];
+    }
+    android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
+    java.util.ArrayList<Integer> ids = new java.util.ArrayList<>();
+    for (String name : saved.split(",")) {
+      int id = res.getIdentifier(name, "id", org.thunderdog.challegram.tool.UI.getAppContext().getPackageName());
+      if (id != 0) ids.add(id);
+    }
+    int[] result = new int[ids.size()];
+    for (int i = 0; i < result.length; i++) result[i] = ids.get(i);
+    return result;
+  }
+
+  public void setTgx101MessageMenuMore (int[] ids) {
+    if (ids == null || ids.length == 0) {
+      pmc.remove(KEY_TGX101_MESSAGE_MENU_MORE);
+      return;
+    }
+    android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
+    StringBuilder b = new StringBuilder();
+    for (int id : ids) {
+      if (b.length() > 0) b.append(',');
+      b.append(res.getResourceEntryName(id));
+    }
+    pmc.putString(KEY_TGX101_MESSAGE_MENU_MORE, b.toString());
+  }
 
   /** TGx101: message menu actions the user hid (resource names stored, like the order) */
   public int[] getTgx101MessageMenuHidden () {
