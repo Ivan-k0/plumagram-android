@@ -1170,41 +1170,6 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     }
   }
 
-  // TGx101: leaving the app (home, lock) with the keyboard up made Android bring it back on return —
-  // the chat shrank under it right after unlock (the screen blinked). The keyboard is hidden on the way out
-  // and the input can't take the focus for a moment on the way back, so there is nothing to restore
-  private android.widget.EditText tgx101LockedInput;
-  private final Runnable tgx101UnlockInput = () -> {
-    if (tgx101LockedInput != null) {
-      tgx101LockedInput.setFocusable(true);
-      tgx101LockedInput.setFocusableInTouchMode(true);
-      tgx101LockedInput = null;
-    }
-  };
-
-  @Override
-  protected void onStop () {
-    View focus = getCurrentFocus();
-    if (focus instanceof android.widget.EditText && tgx101LockedInput == null) {
-      tgx101LockedInput = (android.widget.EditText) focus;
-      org.thunderdog.challegram.tool.Keyboard.hide(focus);
-      focus.clearFocus();
-      focus.setFocusable(false);
-      focus.setFocusableInTouchMode(false);
-      Tgx101Diag.mark("app left: keyboard hidden, input locked until return");
-    }
-    super.onStop();
-  }
-
-  @Override
-  public void onWindowFocusChanged (boolean hasFocus) {
-    super.onWindowFocusChanged(hasFocus);
-    if (hasFocus && tgx101LockedInput != null) {
-      getWindow().getDecorView().removeCallbacks(tgx101UnlockInput);
-      getWindow().getDecorView().postDelayed(tgx101UnlockInput, 500);
-    }
-  }
-
   private IntentFilter timeFilter;
   private BroadcastReceiver timeBroadcastReceiver = new BroadcastReceiver() {
     @Override
