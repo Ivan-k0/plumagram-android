@@ -905,6 +905,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       if (groupFull != null)
         groupFull.description = newDescription;
       checkDescription();
+      tgx101CheckNote();
     }
   }
 
@@ -2556,6 +2557,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   private void addFullCells (TdApi.UserFullInfo userFull) {
     checkBirthdate();
     checkDescription();
+    tgx101CheckNote();
     checkGroupsInCommon();
 
     /*if (userFull.commonChatCount > 0) {
@@ -2822,6 +2824,26 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       }
     } else if (hasBirthdate) {
       updateValuedItem(R.id.btn_birthdate);
+    }
+  }
+
+  // TGx101: the note row appears once the full info is in (the list is built before it)
+  private void tgx101CheckNote () {
+    if (isEditing()) return;
+    int foundIndex = baseAdapter.indexOfViewById(R.id.btn_tgx101UserNote);
+    boolean has = userFull != null && tgx101CanHaveNote();
+    if ((foundIndex != -1) != has) {
+      if (foundIndex != -1) {
+        removeTopItem(foundIndex);
+      } else {
+        int index = 0;
+        for (int id : new int[] {R.id.btn_peer_id, R.id.btn_username, R.id.btn_birthdate, R.id.btn_description}) {
+          if ((id != R.id.btn_peer_id || Settings.instance().showPeerIds()) && baseAdapter.indexOfViewById(id) != -1) index++;
+        }
+        addTopItem(tgx101NewNoteItem(), index);
+      }
+    } else if (has) {
+      updateValuedItem(R.id.btn_tgx101UserNote);
     }
   }
 
@@ -3139,6 +3161,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     this.groupFull = groupFull;
 
     checkDescription();
+    tgx101CheckNote();
 
     if (TD.isCreator(group.status)) {
       updateValuedItem(R.id.btn_inviteLink);
@@ -3156,6 +3179,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     this.supergroupFull = channelFull;
 
     checkDescription();
+    tgx101CheckNote();
     checkManage();
 
     if (TD.isCreator(supergroup.status)) {
@@ -3263,6 +3287,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   private void addFullChannelCells (TdApi.SupergroupFullInfo channelFull) {
     this.supergroupFull = channelFull;
     checkDescription();
+    tgx101CheckNote();
     checkManage();
     // checkChannelMembers();
 
@@ -6332,6 +6357,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         checkUserButtons();
         checkGroupsInCommon();
         checkDescription();
+        tgx101CheckNote();
         if (mode == Mode.EDIT_BOT_USER) {
           updateValuedItem(R.id.btn_botDescription);
         }
@@ -6512,6 +6538,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         if (isUpdate) {
           setHeaderText();
           checkDescription();
+          tgx101CheckNote();
         } else {
           addFullCells(groupFull);
         }
@@ -6645,6 +6672,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
             checkPrehistory();
           }
           checkDescription();
+          tgx101CheckNote();
           checkManage();
           if (mode == Mode.EDIT_CHANNEL) {
             checkChannelMembers();
