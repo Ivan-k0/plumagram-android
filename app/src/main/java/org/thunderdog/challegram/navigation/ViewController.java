@@ -1702,8 +1702,9 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         }
       });
     }
-    alert.setCancelable(false);
+    alert.setCancelable(true); // TGx101: Back closes the input window (it ignored Back); a tap outside still doesn't
     AlertDialog dialog = showAlert(alert);
+    dialog.setCanceledOnTouchOutside(false);
     if (dialog.getWindow() != null) {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_UNCHANGED);
