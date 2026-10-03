@@ -8154,6 +8154,17 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return fakeMessage;
   }
 
+  // TGx101: a checklist as text (title + ✅ / ⬜ tasks) until there is a real checklist bubble
+  private static TdApi.FormattedText tgx101ChecklistText (TdApi.Checklist list) {
+    StringBuilder b = new StringBuilder();
+    String title = list.title != null ? list.title.text : "";
+    b.append("📋 ").append(title);
+    for (TdApi.ChecklistTask task : list.tasks) {
+      b.append('\n').append(task.completionDate != 0 ? "✅ " : "⬜ ").append(task.text != null ? task.text.text : "");
+    }
+    return new TdApi.FormattedText(b.toString(), new TdApi.TextEntity[] {new TdApi.TextEntity(0, 3 + title.length(), new TdApi.TextEntityTypeBold())});
+  }
+
   public static TGMessage valueOf (MessagesManager manager, long inChatId, TdApi.SponsoredMessage sponsoredMessage, boolean isBelowAllMessages) {
     switch (sponsoredMessage.content.getConstructor()) {
       case TdApi.MessageText.CONSTRUCTOR:
@@ -8521,29 +8532,52 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         }
         // unsupported
         // TGx101: MessageRichMessage, MessageInvoice, MessagePaidMedia are handled above
+        // TGx101: service lines instead of «unsupported» (user 2026-10-03)
         case TdApi.MessagePassportDataSent.CONSTRUCTOR:
-        case TdApi.MessageStory.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessagePassportDataSent) content);
         case TdApi.MessageChatSetBackground.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageChatSetBackground) content);
         case TdApi.MessageSuggestProfilePhoto.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageSuggestProfilePhoto) content);
         case TdApi.MessageSuggestBirthdate.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageSuggestBirthdate) content);
         case TdApi.MessageUsersShared.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageUsersShared) content);
         case TdApi.MessageChatShared.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageChatShared) content);
         case TdApi.MessageGiveawayPrizeStars.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageGiveawayPrizeStars) content);
         case TdApi.MessageGift.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageGift) content);
         case TdApi.MessageUpgradedGift.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageUpgradedGift) content);
         case TdApi.MessageUpgradedGiftPurchaseOffer.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageUpgradedGiftPurchaseOffer) content);
         case TdApi.MessageUpgradedGiftPurchaseOfferRejected.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageUpgradedGiftPurchaseOfferRejected) content);
         case TdApi.MessageRefundedUpgradedGift.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageRefundedUpgradedGift) content);
         case TdApi.MessageStakeDice.CONSTRUCTOR:
-
-        case TdApi.MessageGroupCall.CONSTRUCTOR: // TODO TGMessageCall
-        case TdApi.MessageChecklist.CONSTRUCTOR: // TODO TGMessagePoll
+          return new TGMessageService(context, msg, (TdApi.MessageStakeDice) content);
+        case TdApi.MessageGroupCall.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageGroupCall) content);
         case TdApi.MessageSuggestedPostApprovalFailed.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageSuggestedPostApprovalFailed) content);
         case TdApi.MessageSuggestedPostApproved.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageSuggestedPostApproved) content);
         case TdApi.MessageSuggestedPostDeclined.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageSuggestedPostDeclined) content);
         case TdApi.MessageSuggestedPostPaid.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageSuggestedPostPaid) content);
         case TdApi.MessageSuggestedPostRefunded.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageSuggestedPostRefunded) content);
         case TdApi.MessageGiftedGrams.CONSTRUCTOR:
+          return new TGMessageService(context, msg, (TdApi.MessageGiftedGrams) content);
+        case TdApi.MessageChecklist.CONSTRUCTOR:
+          return new TGMessageText(context, msg, tgx101ChecklistText(((TdApi.MessageChecklist) content).list));
+        case TdApi.MessageStory.CONSTRUCTOR:
+          return new TGMessageText(context, msg, new TdApi.FormattedText(Lang.getString(R.string.Tgx101StoryMessage), null));
+
         case TdApi.MessagePaymentSuccessfulBot.CONSTRUCTOR:
           break;
 

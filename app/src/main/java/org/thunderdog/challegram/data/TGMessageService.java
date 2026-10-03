@@ -248,6 +248,132 @@ public final class TGMessageService extends TGMessageServiceImpl {
     });
   }
 
+  // TGx101: service lines for messages Telegram X showed as «unsupported» (user 2026-10-03)
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageChatSetBackground setBackground) {
+    super(context, msg);
+    setTextCreator(() -> msg.isOutgoing ?
+      getText(setBackground.onlyForSelf ? R.string.Tgx101BackgroundSetSelf_outgoing : R.string.Tgx101BackgroundSet_outgoing) :
+      getText(R.string.Tgx101BackgroundSet, new SenderArgument(sender, isUserChat())));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageSuggestProfilePhoto suggest) {
+    super(context, msg);
+    setTextCreator(() -> msg.isOutgoing ?
+      getText(R.string.Tgx101SuggestPhoto_outgoing) :
+      getText(R.string.Tgx101SuggestPhoto, new SenderArgument(sender, isUserChat())));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageSuggestBirthdate suggest) {
+    super(context, msg);
+    String date = suggest.birthdate.day + "." + (suggest.birthdate.month < 10 ? "0" : "") + suggest.birthdate.month + (suggest.birthdate.year != 0 ? "." + suggest.birthdate.year : "");
+    setTextCreator(() -> msg.isOutgoing ?
+      getText(R.string.Tgx101SuggestBirthdate_outgoing, new BoldArgument(date)) :
+      getText(R.string.Tgx101SuggestBirthdate, new SenderArgument(sender, isUserChat()), new BoldArgument(date)));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageUsersShared shared) {
+    super(context, msg);
+    setTextCreator(() -> getText(R.string.Tgx101UsersShared));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageChatShared shared) {
+    super(context, msg);
+    setTextCreator(() -> getText(R.string.Tgx101ChatShared));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessagePassportDataSent sent) {
+    super(context, msg);
+    setTextCreator(() -> getText(R.string.Tgx101PassportSent));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageGiveawayPrizeStars prize) {
+    super(context, msg);
+    setTextCreator(() -> getText(R.string.Tgx101PlainText, new PlainArgument(Lang.plural(R.string.WonXStars, prize.starCount))));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageGift gift) {
+    super(context, msg);
+    String price = gift.gift.starCount > 0 ? gift.gift.starCount + " ⭐" : "";
+    setTextCreator(() -> msg.isOutgoing ?
+      getText(R.string.Tgx101GiftSent_outgoing, new BoldArgument(price)) :
+      getText(R.string.Tgx101GiftSent, new SenderArgument(sender, isUserChat()), new BoldArgument(price)));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageUpgradedGift gift) {
+    super(context, msg);
+    String name = gift.gift.title + " #" + gift.gift.number;
+    setTextCreator(() -> getText(R.string.Tgx101GiftUpgraded, new BoldArgument(name)));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageRefundedUpgradedGift gift) {
+    super(context, msg);
+    setTextCreator(() -> getText(R.string.Tgx101GiftRefunded));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageUpgradedGiftPurchaseOffer offer) {
+    super(context, msg);
+    String name = offer.gift.title + " #" + offer.gift.number;
+    setTextCreator(() -> getText(R.string.Tgx101GiftOffer, new BoldArgument(name)));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageUpgradedGiftPurchaseOfferRejected rejected) {
+    super(context, msg);
+    String name = rejected.gift.title + " #" + rejected.gift.number;
+    setTextCreator(() -> getText(R.string.Tgx101GiftOfferRejected, new BoldArgument(name)));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageGiftedGrams grams) {
+    super(context, msg);
+    setTextCreator(() -> msg.isOutgoing ?
+      getText(R.string.Tgx101GramsSent_outgoing) :
+      getText(R.string.Tgx101GramsSent, new SenderArgument(sender, isUserChat())));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageStakeDice dice) {
+    super(context, msg);
+    setTextCreator(() -> getText(R.string.Tgx101StakeDice, new BoldArgument(Integer.toString(dice.value))));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageGroupCall call) {
+    super(context, msg);
+    setTextCreator(() -> {
+      if (call.isActive) {
+        return msg.isOutgoing ? getText(R.string.Tgx101GroupCallActive_outgoing) : getText(R.string.Tgx101GroupCallActive, new SenderArgument(sender, isUserChat()));
+      }
+      if (call.wasMissed) {
+        return getText(R.string.Tgx101GroupCallMissed);
+      }
+      String duration = call.duration > 0 ? " · " + Strings.buildDuration(call.duration) : "";
+      return getText(R.string.Tgx101GroupCallEnded, new PlainArgument(duration));
+    });
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageSuggestedPostApproved post) {
+    super(context, msg);
+    setTextCreator(() -> getText(R.string.Tgx101SuggestedPostApproved));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageSuggestedPostApprovalFailed post) {
+    super(context, msg);
+    setTextCreator(() -> getText(R.string.Tgx101SuggestedPostApprovalFailed));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageSuggestedPostDeclined post) {
+    super(context, msg);
+    setTextCreator(() -> getText(R.string.Tgx101SuggestedPostDeclined));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageSuggestedPostPaid post) {
+    super(context, msg);
+    setTextCreator(() -> getText(R.string.Tgx101SuggestedPostPaid));
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageSuggestedPostRefunded post) {
+    super(context, msg);
+    setTextCreator(() -> getText(R.string.Tgx101SuggestedPostRefunded));
+  }
+
   public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageExpiredPhoto expiredPhoto) {
     super(context, msg);
     setTextCreator(() ->
