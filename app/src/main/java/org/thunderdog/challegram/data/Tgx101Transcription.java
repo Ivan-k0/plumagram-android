@@ -443,7 +443,13 @@ public final class Tgx101Transcription {
       intent.putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_SAMPLING_RATE, RECOGNIZER_SAMPLE_RATE);
       intent.putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_CHANNEL_COUNT, 1);
       // The session ends when the audio source is closed, with results per segment.
-      intent.putExtra(RecognizerIntent.EXTRA_SEGMENTED_SESSION, RecognizerIntent.EXTRA_AUDIO_SOURCE);
+      if (!SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
+        // Google's speech service (com.google.android.tts) ends a segmented session with ERROR_CLIENT (log 15:50:04):
+        // a plain session there, the result comes in onResults
+        intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2000);
+      } else {
+        intent.putExtra(RecognizerIntent.EXTRA_SEGMENTED_SESSION, RecognizerIntent.EXTRA_AUDIO_SOURCE);
+      }
       // Google's speech service answers ERROR_NETWORK for audio fed from another app in its online mode
       // (log 2026-10-03), so the language's downloaded model is used when there is one, or its download is started
       final String language = Locale.getDefault().toLanguageTag();
