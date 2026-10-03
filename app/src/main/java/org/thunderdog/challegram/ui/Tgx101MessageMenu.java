@@ -77,19 +77,21 @@ public final class Tgx101MessageMenu {
     R.id.btn_messageReport,
     R.id.btn_tgx101FilterSimilar,
     R.id.btn_tgx101EditorWindow,
-    R.id.btn_messageViewList
+    R.id.btn_messageViewList,
+    R.id.btn_messageReplies
   };
   public static final int[] ORDERABLE_NAMES = {
     R.string.Reply, R.string.Copy, R.string.edit, R.string.Share, R.string.MessagePin,
     R.string.Tgx101MenuSelectText, R.string.Translate, R.string.CopyLink, R.string.Save, R.string.MessageReport,
-    R.string.Tgx101FilterSimilar, R.string.Tgx101MenuEditorOwn, R.string.Tgx101MenuMessagesFrom
+    R.string.Tgx101FilterSimilar, R.string.Tgx101MenuEditorOwn, R.string.Tgx101MenuMessagesFrom,
+    R.string.Tgx101MenuThread
   };
   public static final int[] ORDERABLE_ICONS = {
     R.drawable.baseline_reply_24, R.drawable.baseline_content_copy_24, R.drawable.baseline_edit_24,
     R.drawable.baseline_forward_24, R.drawable.deproko_baseline_pin_24, R.drawable.baseline_format_quote_close_24,
     R.drawable.baseline_translate_24, R.drawable.baseline_link_24, R.drawable.baseline_file_download_24,
     R.drawable.baseline_report_24, R.drawable.baseline_filter_variant_remove_24, R.drawable.baseline_format_text_24,
-    R.drawable.baseline_person_24
+    R.drawable.baseline_person_24, R.drawable.outline_forum_24
   };
 
   private static int orderKey (int id) {
@@ -160,10 +162,24 @@ public final class Tgx101MessageMenu {
     return order.length; // not orderable: after the ordered ones, in the app's own order
   }
 
+  /** «More…» items arrive (maybe after a server request) with their own handler */
+  public interface MoreCallback {
+    void onMoreLoaded (List<ViewController.OptionItem> items, OptionDelegate delegate);
+  }
+
+  public interface MoreLoader {
+    void load (MoreCallback callback);
+  }
+
   private static class Host {
     PopupLayout popup;
     View content;
     boolean dismissing;
+    @Nullable MoreLoader moreLoader;
+    LinearLayout list; // the card's actions
+    final List<View> mainRows = new ArrayList<>();
+    final List<View> bottomViews = new ArrayList<>(); // «Delete» and its divider: hidden inside «More…»
+    boolean moreShown, moreLoading;
     TextView readDateView;
     View readDateDivider;
   }
@@ -207,10 +223,11 @@ public final class Tgx101MessageMenu {
   }
 
   public static PopupLayout show (MessagesController c, TGMessage message, ViewController.Options options, OptionDelegate delegate,
-                                  boolean readDatePending, Runnable onExpandReactions, Runnable onDismissPrepare, Runnable onDismiss) {
+                                  boolean readDatePending, @Nullable MoreLoader moreLoader, Runnable onExpandReactions, Runnable onDismissPrepare, Runnable onDismiss) {
     Context context = c.context();
     tgx101LogTextShape(message);
     Host host = new Host();
+    host.moreLoader = moreLoader;
     PopupLayout popup = new PopupLayout(context);
     host.popup = popup;
     popup.init(true);
@@ -402,8 +419,11 @@ public final class Tgx101MessageMenu {
 
     LinearLayout list = new LinearLayout(context);
     list.setOrientation(LinearLayout.VERTICAL);
+    host.list = list;
     for (ViewController.OptionItem item : sorted) {
-      list.addView(row(context, host, item, delegate, false));
+      View row = row(context, host, item, delegate, false);
+      host.mainRows.add(row);
+      list.addView(row);
     }
     ScrollView scroll = new ScrollView(context) {
       @Override
@@ -417,9 +437,13 @@ public final class Tgx101MessageMenu {
     card.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     if (deleteItem != null) {
       if (!sorted.isEmpty()) {
-        card.addView(divider(context));
+        View divider = divider(context);
+        host.bottomViews.add(divider);
+        card.addView(divider);
       }
-      card.addView(row(context, host, deleteItem, delegate, true));
+      View deleteRow = row(context, host, deleteItem, delegate, true);
+      host.bottomViews.add(deleteRow);
+      card.addView(deleteRow);
     }
 
     // A short scale-in from the corner
@@ -596,6 +620,10 @@ public final class Tgx101MessageMenu {
     Views.setClickable(row);
     RippleSupport.setTransparentSelector(row);
     row.setOnClickListener(v -> {
+      if (item.id == R.id.btn_messageMore && host.moreLoader != null) {
+        showMore(context, host); // inside this card: the dimmed screen behind stays as it is
+        return;
+      }
       // Close right away, then act: "Share" and "Pin" open their own windows, which the closing
       // menu used to take down with it
       if (host.dismissing) return;
@@ -604,6 +632,42 @@ public final class Tgx101MessageMenu {
       UI.post(() -> delegate.onOptionItemPressed(v, v.getId()));
     });
     return row;
+  }
+
+  /** «More…»: the card's actions are swapped for the extra ones (with «Back»), in the same window */
+  private static void showMore (Context context, Host host) {
+    if (host.moreShown || host.moreLoading || host.dismissing) return;
+    host.moreLoading = true;
+    host.moreLoader.load((items, moreDelegate) -> {
+      host.moreLoading = false;
+      if (host.dismissing || host.popup.isDestroyed() || items.isEmpty()) return;
+      List<View> moreRows = new ArrayList<>();
+      ViewController.OptionItem back = new ViewController.OptionItem(R.id.btn_back, Lang.getString(R.string.Tgx101MenuBack), ViewController.OptionColor.NORMAL, R.drawable.baseline_arrow_back_24);
+      TextView backRow = row(context, host, back, null, false);
+      backRow.setOnClickListener(v -> swapRows(host, host.mainRows, true, false));
+      moreRows.add(backRow);
+      moreRows.add(divider(context));
+      for (ViewController.OptionItem item : items) {
+        if (item.id == R.id.btn_messageMore) continue;
+        moreRows.add(row(context, host, item, moreDelegate, item.id == R.id.btn_messageDelete));
+      }
+      swapRows(host, moreRows, false, true);
+    });
+  }
+
+  private static void swapRows (Host host, List<View> rows, boolean showBottom, boolean moreShown) {
+    host.moreShown = moreShown;
+    LinearLayout list = host.list;
+    list.animate().cancel();
+    list.animate().alpha(0f).setDuration(70).withEndAction(() -> {
+      list.removeAllViews();
+      for (View row : rows) {
+        if (row.getParent() instanceof ViewGroup) ((ViewGroup) row.getParent()).removeView(row);
+        list.addView(row);
+      }
+      for (View view : host.bottomViews) view.setVisibility(showBottom ? View.VISIBLE : View.GONE);
+      list.animate().alpha(1f).setDuration(110).start();
+    }).start();
   }
 
   private static final class OptionsLayoutColor {

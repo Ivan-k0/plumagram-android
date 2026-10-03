@@ -3182,9 +3182,23 @@ public class Settings {
   }
 
   /** TGx101: message menu actions moved under «More…» (resource names stored, like the order) */
+  private static final String KEY_TGX101_MESSAGE_MENU_MORE_REPLIES = "tgx101_message_menu_more_replies";
+
+  /** By default «View in topic / thread» sits under «More…» (user 2026-10-03); "none" = the user emptied «More…» */
   public int[] getTgx101MessageMenuMore () {
     String saved = pmc.getString(KEY_TGX101_MESSAGE_MENU_MORE, null);
-    if (saved == null || saved.isEmpty()) {
+    if (saved == null) {
+      return new int[] {org.thunderdog.challegram.R.id.btn_messageReplies};
+    }
+    if (!pmc.getBoolean(KEY_TGX101_MESSAGE_MENU_MORE_REPLIES, false)) {
+      // a «More…» list saved before the item existed: the item joins it once
+      pmc.putBoolean(KEY_TGX101_MESSAGE_MENU_MORE_REPLIES, true);
+      if (!saved.contains("btn_messageReplies") && !String.valueOf(pmc.getString(KEY_TGX101_MESSAGE_MENU_HIDDEN, "")).contains("btn_messageReplies")) {
+        saved = saved.isEmpty() || saved.equals("none") ? "btn_messageReplies" : saved + ",btn_messageReplies";
+        pmc.putString(KEY_TGX101_MESSAGE_MENU_MORE, saved);
+      }
+    }
+    if (saved.isEmpty() || saved.equals("none")) {
       return new int[0];
     }
     android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
@@ -3199,8 +3213,13 @@ public class Settings {
   }
 
   public void setTgx101MessageMenuMore (int[] ids) {
-    if (ids == null || ids.length == 0) {
-      pmc.remove(KEY_TGX101_MESSAGE_MENU_MORE);
+    pmc.putBoolean(KEY_TGX101_MESSAGE_MENU_MORE_REPLIES, true);
+    if (ids == null) {
+      pmc.remove(KEY_TGX101_MESSAGE_MENU_MORE); // reset: the default list
+      return;
+    }
+    if (ids.length == 0) {
+      pmc.putString(KEY_TGX101_MESSAGE_MENU_MORE, "none");
       return;
     }
     android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();

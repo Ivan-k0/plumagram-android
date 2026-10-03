@@ -5105,6 +5105,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     isMessageOptionsVisible = true;
     PopupLayout popup = Tgx101MessageMenu.show(this, message, options, delegate, readDatePending,
+      callback -> tgx101LoadMore(message, null, callback),
       () -> UI.post(() -> {
         PopupLayout full = showMessageOptions(options, message, null, delegate);
         if (full != null && full.getBoundController() instanceof MessageOptionsPagerController) {
@@ -8500,6 +8501,34 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   // pinned messages
+
+  // TGx101: «More…» items for the compact menu, shown inside it (the screen behind stays dimmed, no second window)
+  private void tgx101LoadMore (TGMessage selectedMessage, TdApi.ChatMember selectedMessageSender, Tgx101MessageMenu.MoreCallback callback) {
+    IntList ids = new IntList(3);
+    IntList icons = new IntList(3);
+    StringList strings = new StringList(3);
+    final long chatId = selectedMessage.getChatId();
+    RunnableData<TdApi.ChatMember> build = (member) -> {
+      Object tag = MessageView.fillMessageOptions(this, selectedMessage, member, ids, icons, strings, true);
+      tgx101AddMoreActions(ids, icons, strings);
+      java.util.List<OptionItem> items = new java.util.ArrayList<>();
+      int[] idArray = ids.get(), iconArray = icons.get();
+      String[] stringArray = strings.get();
+      for (int i = 0; i < idArray.length; i++) {
+        items.add(new OptionItem(idArray[i], stringArray[i], idArray[i] == R.id.btn_messageDelete ? OptionColor.RED : OptionColor.NORMAL, iconArray[i]));
+      }
+      callback.onMoreLoaded(items, newMessageOptionDelegate(selectedMessage, member, tag));
+    };
+    if (ChatId.isMultiChat(chatId) && !tdlib.isChannel(chatId) && TD.isAdmin(tdlib.chatStatus(chatId)) && Td.getSenderId(selectedMessage.getMessage().senderId) != chatId) {
+      tdlib.send(new TdApi.GetChatMember(chatId, selectedMessage.getMessage().senderId), (otherMember, error) -> runOnUiThreadOptional(() -> {
+        if (!selectedMessage.isDestroyed()) {
+          build.runWithData(otherMember);
+        }
+      }));
+    } else {
+      build.runWithData(selectedMessageSender);
+    }
+  }
 
   // TGx101: «More…» = the actions the user moved there (MagiX → message menu) + Telegram X's own extra ones
   private void tgx101AddMoreActions (IntList ids, IntList icons, StringList strings) {
