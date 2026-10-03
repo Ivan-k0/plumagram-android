@@ -6234,6 +6234,9 @@
   <string name="Tgx101ColorCyan">Cyan</string>
   <string name="Tgx101ColorBlue">Blue</string>
   <string name="Tgx101ColorPink">Pink</string>
+  <string name="Tgx101LocalPin">Pin on this phone</string>
+  <string name="Tgx101LocalUnpin">Unpin (this phone)</string>
+  <string name="Tgx101LocalPinned">Pinned on this phone: Telegram\'s pinned-chat limit is reached, other devices won\'t show it</string>
   <string name="Tgx101TestSection">Testing</string>
   <string name="Tgx101FakeNoPremium">As without Premium (test)</string>
   <string name="Tgx101FakeNoPremiumHint">Test builds only. The app shows everything as for an account without Premium; the server still knows the account has it. Restart the app after switching.</string>

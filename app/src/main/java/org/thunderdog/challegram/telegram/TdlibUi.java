@@ -5832,6 +5832,13 @@ public class TdlibUi extends Handler {
     } else if (actionId == R.id.btn_pinUnpinChat) {
       showPinUnpinConfirm(context, chatList, chatId, source, after);
       return true;
+    } else if (actionId == R.id.btn_tgx101LocalPin || actionId == R.id.btn_tgx101LocalUnpin) {
+      Tgx101LocalPins.setPinned(tdlib, chatList, chatId, actionId == R.id.btn_tgx101LocalPin);
+      if (actionId == R.id.btn_tgx101LocalPin) {
+        UI.showToast(R.string.Tgx101LocalPinned, android.widget.Toast.LENGTH_SHORT);
+      }
+      if (after != null) after.run();
+      return true;
     } else if (actionId == R.id.btn_unpinChat) {
       tdlib.client().send(new TdApi.ToggleChatIsPinned(chatList, chatId, false), tdlib.okHandler(after));
       return true;
@@ -5951,9 +5958,26 @@ public class TdlibUi extends Handler {
         }
 
         if (!hasSelect && position != null) {
-          ids.append(R.id.btn_pinUnpinChat);
-          strings.append(position.isPinned ? R.string.Unpin : R.string.Pin);
-          icons.append(position.isPinned ? R.drawable.deproko_baseline_pin_undo_24 : R.drawable.deproko_baseline_pin_24);
+          boolean localPinned = !position.isPinned && Tgx101LocalPins.isPinned(tdlib, chatList, chat.id);
+          if (localPinned) {
+            // TGx101: pinned on this phone only
+            ids.append(R.id.btn_tgx101LocalUnpin);
+            strings.append(R.string.Tgx101LocalUnpin);
+            icons.append(R.drawable.deproko_baseline_pin_undo_24);
+          } else {
+            ids.append(R.id.btn_pinUnpinChat);
+            strings.append(position.isPinned ? R.string.Unpin : R.string.Pin);
+            icons.append(position.isPinned ? R.drawable.deproko_baseline_pin_undo_24 : R.drawable.deproko_baseline_pin_24);
+            if (!position.isPinned) {
+              int max = chatList.getConstructor() == TdApi.ChatListArchive.CONSTRUCTOR ? tdlib.pinnedArchivedChatsMaxCount() : tdlib.pinnedChatsMaxCount();
+              if (tdlib.chatList(chatList).tgx101PinnedCount() >= max) {
+                // TGx101: Telegram's limit is reached — pin on this phone only
+                ids.append(R.id.btn_tgx101LocalPin);
+                strings.append(R.string.Tgx101LocalPin);
+                icons.append(R.drawable.deproko_baseline_pin_24);
+              }
+            }
+          }
         }
 
         boolean canRead = tdlib.canMarkAsRead(chat);

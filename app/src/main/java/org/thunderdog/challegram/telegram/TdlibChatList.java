@@ -390,8 +390,51 @@ public final class TdlibChatList implements Comparator<TdlibChatList.Entry> {
     if (chat.positions != null) {
       TdApi.ChatPosition position = ChatPosition.findPosition(chat, chatList());
       if (position != null && position.order != 0) {
-        addChatToList(new Entry(chat, chatList(), position), new Tdlib.ChatChange(position, 0));
+        addChatToList(tgx101Entry(chat, position), new Tdlib.ChatChange(position, 0));
       }
+    }
+  }
+
+  // TGx101: chats pinned on this phone only (Tgx101LocalPins) sort right under the chats pinned in Telegram
+
+  private Entry tgx101Entry (TdApi.Chat chat, TdApi.ChatPosition position) {
+    Entry entry = new Entry(chat, chatList(), position);
+    entry.effectivePosition.order = Tgx101LocalPins.effectiveOrder(tdlib, chatList(), chat.id, position);
+    return entry;
+  }
+
+  /** Chats pinned in Telegram among the loaded ones */
+  public int tgx101PinnedCount () {
+    int count = 0;
+    synchronized (list) {
+      for (Entry entry : list) {
+        TdApi.ChatPosition position = ChatPosition.findPosition(entry.chat, chatList());
+        if (position != null && position.isPinned) count++;
+      }
+    }
+    return count;
+  }
+
+  @TdlibThread
+  void tgx101RefreshLocalPin (long chatId) {
+    int prevIndex = indexOfEntry(chatId);
+    if (prevIndex == -1) return;
+    Entry entry;
+    int newIndex;
+    synchronized (list) {
+      entry = list.remove(prevIndex);
+      TdApi.ChatPosition position = ChatPosition.findPosition(entry.chat, chatList());
+      if (position == null) {
+        list.add(prevIndex, entry);
+        return;
+      }
+      entry.effectivePosition.order = Tgx101LocalPins.effectiveOrder(tdlib, chatList(), chatId, position);
+      newIndex = Collections.binarySearch(this.list, entry, this);
+      newIndex = newIndex < 0 ? newIndex * -1 - 1 : newIndex;
+      list.add(newIndex, entry);
+    }
+    if (newIndex != prevIndex) {
+      tdlib.listeners().updateChatMoved(this, entry.chat, prevIndex, newIndex, new Tdlib.ChatChange(entry.effectivePosition, Tdlib.ChatChange.ORDER));
     }
   }
 
@@ -401,7 +444,7 @@ public final class TdlibChatList implements Comparator<TdlibChatList.Entry> {
     int prevIndex = indexOfEntry(chat.id);
     if (prevIndex == -1) {
       if (position.order != 0) {
-        addChatToList(new Entry(chat, chatList(), position), changeInfo);
+        addChatToList(tgx101Entry(chat, position), changeInfo);
       }
     } else if (position.order == 0) {
       removeChatFromList(prevIndex, changeInfo);
@@ -412,6 +455,7 @@ public final class TdlibChatList implements Comparator<TdlibChatList.Entry> {
         synchronized (list) {
           existingEntry = list.remove(prevIndex);
           Td.copyTo(position, existingEntry.effectivePosition);
+          existingEntry.effectivePosition.order = Tgx101LocalPins.effectiveOrder(tdlib, chatList(), chat.id, position);
           newIndex = Collections.binarySearch(this.list, existingEntry, this);
           if (newIndex >= 0)
             throw new IllegalStateException();

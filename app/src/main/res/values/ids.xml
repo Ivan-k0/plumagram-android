@@ -1539,6 +1539,8 @@
   <item name="btn_tgx101UserNote" type="id"/>
   <item name="btn_tgx101SharePin" type="id"/>
   <item name="btn_tgx101NameColor" type="id"/>
+  <item name="btn_tgx101LocalPin" type="id"/>
+  <item name="btn_tgx101LocalUnpin" type="id"/>
   <item name="btn_tgx101FakeNoPremium" type="id"/>
   <item name="btn_tgx101CallPattern" type="id"/>
   <item name="btn_tgx101RingRamp" type="id"/>
