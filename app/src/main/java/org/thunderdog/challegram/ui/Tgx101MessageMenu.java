@@ -657,14 +657,35 @@ public final class Tgx101MessageMenu {
     host.moreShown = moreShown;
     LinearLayout list = host.list;
     list.animate().cancel();
-    list.animate().alpha(0f).setDuration(70).withEndAction(() -> {
+    list.animate().alpha(0f).setDuration(70).setStartDelay(0).withEndAction(() -> {
+      // the card's height changes smoothly (the reactions above it used to jump)
+      View card = (View) list.getParent().getParent();
+      int fromHeight = card.getHeight();
       list.removeAllViews();
       for (View row : rows) {
         if (row.getParent() instanceof ViewGroup) ((ViewGroup) row.getParent()).removeView(row);
         list.addView(row);
       }
       for (View view : host.bottomViews) view.setVisibility(showBottom ? View.VISIBLE : View.GONE);
-      list.animate().alpha(1f).setDuration(110).start();
+      card.measure(View.MeasureSpec.makeMeasureSpec(card.getWidth(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+      int toHeight = Math.min(card.getMeasuredHeight(), (int) (Screen.currentHeight() * 0.62f));
+      ViewGroup.LayoutParams params = card.getLayoutParams();
+      android.animation.ValueAnimator animator = android.animation.ValueAnimator.ofInt(fromHeight, toHeight);
+      animator.setDuration(170);
+      animator.setInterpolator(new android.view.animation.DecelerateInterpolator());
+      animator.addUpdateListener(a -> {
+        params.height = (int) a.getAnimatedValue();
+        card.setLayoutParams(params);
+      });
+      animator.addListener(new android.animation.AnimatorListenerAdapter() {
+        @Override
+        public void onAnimationEnd (android.animation.Animator animation) {
+          params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+          card.setLayoutParams(params);
+        }
+      });
+      animator.start();
+      list.animate().alpha(1f).setDuration(130).setStartDelay(40).start();
     }).start();
   }
 
