@@ -1473,11 +1473,18 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       ((CustomTextView) captionView).getCurrentHeight(captionView.getMeasuredWidth()) > tgx101CaptionCollapsedHeight() + Screen.dp(8f);
   }
 
+  /** Space under the caption for the current chapter's title above the bar (they overlapped, user 2026-10-03) */
+  private int tgx101ChapterGap () {
+    return tgx101ChapterStarts != null ? Screen.dp(34f) : 0;
+  }
+
   private void tgx101ApplyCaptionHeight () {
     if (!(captionWrapView instanceof MaxHeightScrollView)) return;
     MaxHeightScrollView scroll = (MaxHeightScrollView) captionWrapView;
+    int gap = tgx101ChapterGap();
+    if (scroll.getPaddingBottom() != gap) scroll.setPadding(0, 0, 0, gap);
     boolean collapsed = !tgx101CaptionExpanded && tgx101CaptionCollapsible();
-    scroll.setMaxHeight(collapsed ? tgx101CaptionCollapsedHeight() : tgx101CaptionExpandedHeight());
+    scroll.setMaxHeight((collapsed ? tgx101CaptionCollapsedHeight() : tgx101CaptionExpandedHeight()) + gap);
     scroll.setVerticalFadingEdgeEnabled(collapsed);
     scroll.setFadingEdgeLength(Text.getLineHeight(TGMessage.getTextStyleProvider(), true));
     if (collapsed) scroll.scrollTo(0, 0);
@@ -1489,8 +1496,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     int from = scroll.getHeight();
     tgx101CaptionExpanded = !tgx101CaptionExpanded;
     org.thunderdog.challegram.Tgx101Diag.mark("player: caption " + (tgx101CaptionExpanded ? "expanded" : "collapsed"));
-    int full = Math.min(((CustomTextView) captionView).getCurrentHeight(captionView.getMeasuredWidth()), tgx101CaptionExpandedHeight());
-    int to = tgx101CaptionExpanded ? full : tgx101CaptionCollapsedHeight();
+    int full = Math.min(((CustomTextView) captionView).getCurrentHeight(captionView.getMeasuredWidth()), tgx101CaptionExpandedHeight()) + tgx101ChapterGap();
+    int to = (tgx101CaptionExpanded ? full - tgx101ChapterGap() : tgx101CaptionCollapsedHeight()) + tgx101ChapterGap();
     scroll.setVerticalFadingEdgeEnabled(!tgx101CaptionExpanded);
     android.animation.ValueAnimator animator = android.animation.ValueAnimator.ofInt(from, to);
     animator.setDuration(200);
@@ -3707,6 +3714,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   /** The screen turned while locked: hide / show the system bars for the new orientation */
   public void tgx101OnOrientationChanged () {
     if (tgx101Locked()) tgx101SetSystemBarsLocked(true);
+    // the caption collapses again after a turn (in landscape it covered the whole video, user 2026-10-03)
+    tgx101CaptionExpanded = false;
+    if (captionView != null) captionView.post(this::tgx101ApplyCaptionHeight);
   }
 
 
