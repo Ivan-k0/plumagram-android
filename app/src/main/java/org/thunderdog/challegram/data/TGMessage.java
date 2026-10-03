@@ -6816,7 +6816,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   /** TGx101: a light bluish wash over the bubble (or one album item), ~12 % lighter */
   private int tgx101FlashColor () {
-    return ColorUtils.alphaColor(highlightFactor * .14f, ColorUtils.fromToArgb(0xffffffff, Theme.getColor(ColorId.textLink), .35f));
+    // dark themes: lighter + bluish; light themes: a visible blue tint (a white wash was invisible there, user 2026-10-04)
+    boolean dark = Theme.isDark();
+    return ColorUtils.alphaColor(highlightFactor * (dark ? .2f : .22f), dark ? ColorUtils.fromToArgb(0xffffffff, Theme.getColor(ColorId.textLink), .5f) : Theme.getColor(ColorId.textLink));
   }
 
   public void drawHighlight (View view, Canvas c) {

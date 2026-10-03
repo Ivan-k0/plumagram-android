@@ -111,8 +111,19 @@ public class Tgx101FiltersController extends RecyclerViewController<Void> implem
   }
 
   /** Asks for the text of a new rule, then opens its page; scope = this chat when started from a message */
+  /** TGx101: a long phrase didn't fit in one line and the text jumped (user 2026-10-03) — a few lines, cursor at the end */
+  static void tgx101MultilineInput (org.thunderdog.challegram.widget.MaterialEditTextGroup group) {
+    if (group == null) return;
+    android.widget.EditText edit = group.getEditText();
+    edit.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+    edit.setSingleLine(false);
+    edit.setHorizontallyScrolling(false);
+    edit.setMaxLines(6);
+    edit.setSelection(edit.length());
+  }
+
   static void addRule (ViewController<?> parent, String suggestion, long chatId, String chatTitle) {
-    parent.openInputAlert(Lang.getString(R.string.Tgx101FilterNew), Lang.getString(R.string.Tgx101FilterText), R.string.Done, R.string.Cancel, suggestion, (inputView, result) -> {
+    tgx101MultilineInput(parent.openInputAlert(Lang.getString(R.string.Tgx101FilterNew), Lang.getString(R.string.Tgx101FilterText), R.string.Done, R.string.Cancel, suggestion, (inputView, result) -> {
       String text = result.trim();
       if (text.isEmpty()) {
         return false;
@@ -132,7 +143,7 @@ public class Tgx101FiltersController extends RecyclerViewController<Void> implem
       c.setArguments(rules.size() - 1);
       parent.navigateTo(c);
       return true;
-    }, true);
+    }, true));
   }
 
   @Override

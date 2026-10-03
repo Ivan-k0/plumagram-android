@@ -134,7 +134,7 @@ public class Tgx101FilterEditController extends RecyclerViewController<Integer> 
     Tgx101MessageFilters.Rule rule = rule();
     if (rule == null) return;
     if (id == R.id.btn_tgx101FilterText) {
-      openInputAlert(Lang.getString(R.string.Tgx101FilterEdit), Lang.getString(R.string.Tgx101FilterText), R.string.Done, R.string.Cancel, rule.text, (inputView, result) -> {
+      Tgx101FiltersController.tgx101MultilineInput(openInputAlert(Lang.getString(R.string.Tgx101FilterEdit), Lang.getString(R.string.Tgx101FilterText), R.string.Done, R.string.Cancel, rule.text, (inputView, result) -> {
         String text = result.trim();
         if (text.isEmpty()) return false;
         rule.text = text;
@@ -142,7 +142,7 @@ public class Tgx101FilterEditController extends RecyclerViewController<Integer> 
         store(rule);
         adapter.updateValuedSettingById(R.id.btn_tgx101FilterText);
         return true;
-      }, true);
+      }, true));
     } else if (id == R.id.btn_tgx101FilterRegex || id == R.id.btn_tgx101FilterCase || id == R.id.btn_tgx101FilterWholeWord || id == R.id.btn_tgx101FilterAuthor) {
       boolean value = adapter.toggleView(v);
       if (id == R.id.btn_tgx101FilterRegex) rule.regex = value;
