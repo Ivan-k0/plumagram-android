@@ -569,6 +569,9 @@ public class TdlibAccount implements Comparable<TdlibAccount>, TdlibProvider {
   }
 
   public boolean isPremium () {
+    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101FakeNoPremium()) {
+      return false; // TGx101: «As without Premium» test switch (diagnostics builds)
+    }
     TdApi.User user = getUser();
     if (user != null)
       return user.isPremium;

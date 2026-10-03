@@ -3589,6 +3589,17 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_TRANSLATE_ON_DEVICE, value);
   }
 
+  private static final String KEY_TGX101_FAKE_NO_PREMIUM = "tgx101_fake_no_premium";
+
+  /** TGx101 diagnostics builds only: the app acts as if the account had no Premium (UI tests; the server still knows) */
+  public boolean tgx101FakeNoPremium () {
+    return org.thunderdog.challegram.BuildConfig.TGX101_DIAG && pmc.getBoolean(KEY_TGX101_FAKE_NO_PREMIUM, false);
+  }
+
+  public void setTgx101FakeNoPremium (boolean value) {
+    pmc.putBoolean(KEY_TGX101_FAKE_NO_PREMIUM, value);
+  }
+
   private static final String KEY_TGX101_PLAYER_SWIPE_CLOSE = "tgx101_player_swipe_close";
   private static final String KEY_TGX101_PLAYER_SWIPE_PAGING = "tgx101_player_swipe_paging";
 

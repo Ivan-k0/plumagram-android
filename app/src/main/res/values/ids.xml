@@ -1534,6 +1534,7 @@
   <item name="btn_tgx101GestureVolume" type="id"/>
   <item name="btn_tgx101GestureSpeed" type="id"/>
   <item name="btn_tgx101TranslateOnDevice" type="id"/>
+  <item name="btn_tgx101FakeNoPremium" type="id"/>
   <item name="btn_tgx101CallPattern" type="id"/>
   <item name="btn_tgx101RingRamp" type="id"/>
   <item name="btn_tgx101TapMode" type="id"/>

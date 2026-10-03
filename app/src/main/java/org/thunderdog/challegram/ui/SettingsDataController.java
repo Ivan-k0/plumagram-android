@@ -246,6 +246,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(Settings.instance().getQuickReply(quickReplyIndex(itemId)));
         } else if (itemId == R.id.btn_tgx101TranslateOnDevice) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101TranslateOnDevice(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101FakeNoPremium) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101FakeNoPremium(), isUpdate);
         } else if (itemId == R.id.btn_showChannelMuteButton) {
           view.getToggler().setRadioEnabled(Settings.instance().showChannelMuteButton(), isUpdate);
         } else if (itemId == R.id.btn_showDiscussButton) {
@@ -485,6 +487,20 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       };
     }
     this.adapter.setItems(rawItems, false);
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+      // TGx101: test switches, diagnostics builds only — own section above «Translation»
+      int at = adapter.indexOfViewById(R.id.btn_tgx101TranslateOnDevice);
+      if (at >= 2) {
+        at -= 2; // before the section's header and top shadow
+        List<ListItem> items = adapter.getItems();
+        items.add(at++, new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101TestSection));
+        items.add(at++, new ListItem(ListItem.TYPE_SHADOW_TOP));
+        items.add(at++, new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101FakeNoPremium, 0, R.string.Tgx101FakeNoPremium));
+        items.add(at++, new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101FakeNoPremiumHint));
+        items.add(at, new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+        adapter.notifyDataSetChanged();
+      }
+    }
     if (forceOpenAdvanced) {
       List<ListItem> items = adapter.getItems();
       int index = adapter.indexOfViewById(R.id.btn_showAdvanced);
@@ -771,6 +787,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       }, true);
     } else if (id == R.id.btn_tgx101TranslateOnDevice) {
       Settings.instance().setTgx101TranslateOnDevice(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101FakeNoPremium) {
+      Settings.instance().setTgx101FakeNoPremium(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showChannelMuteButton) {
       Settings.instance().setShowChannelMuteButton(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showCommentsButton) {

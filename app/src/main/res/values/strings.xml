@@ -6166,6 +6166,9 @@
   <string name="Tgx101CallPatternHint">Circle: a sharp photo under the name. Full screen: the original Telegram X design. The pattern of paper planes is faint and still; it is hidden behind a full-screen photo.</string>
   <string name="ShowChannelMuteButton">«Mute» button and bell</string>
   <string name="Tgx101TranslateSection">Translation</string>
+  <string name="Tgx101TestSection">Testing</string>
+  <string name="Tgx101FakeNoPremium">As without Premium (test)</string>
+  <string name="Tgx101FakeNoPremiumHint">Test builds only. The app shows everything as for an account without Premium; the server still knows the account has it. Restart the app after switching.</string>
   <string name="Tgx101TranslateOnDevice">Translate on the phone (Google)</string>
   <string name="Tgx101TranslateOnDeviceHint">Messages are translated by Google ML Kit right on the phone instead of Telegram\'s server. Each language is downloaded once (about 30 MB), then it works without the internet. Languages it doesn\'t know go to Telegram\'s translation as before.</string>
   <string name="Tgx101PlayerSection">Video player</string>

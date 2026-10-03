@@ -325,6 +325,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101CallPatternHint, "Круг — чёткое фото под именем. На весь экран — прежний дизайн Telegram X. Узор из бумажных самолётиков еле заметный и неподвижный; за фото на весь экран его не видно.");
     RU.put(R.string.ShowChannelMuteButton, "Кнопка уведомлений и колокольчик");
     RU.put(R.string.Tgx101TranslateSection, "Перевод");
+    RU.put(R.string.Tgx101TestSection, "Тесты");
+    RU.put(R.string.Tgx101FakeNoPremium, "Как без Премиума (тест)");
+    RU.put(R.string.Tgx101FakeNoPremiumHint, "Только в тестовых сборках. Приложение показывает всё как для аккаунта без Премиума; сервер по-прежнему знает, что Премиум есть. После переключения перезапустите приложение.");
     RU.put(R.string.Tgx101TranslateOnDevice, "Переводить на телефоне (Google)");
     RU.put(R.string.Tgx101TranslateOnDeviceHint, "Сообщения переводит Google ML Kit прямо на телефоне, а не сервер Telegram. Каждый язык скачивается один раз (около 30 МБ), дальше перевод работает без интернета. Языки, которых он не знает, переводит Telegram, как раньше.");
     RU.put(R.string.Tgx101PlayerSection, "Видеоплеер");

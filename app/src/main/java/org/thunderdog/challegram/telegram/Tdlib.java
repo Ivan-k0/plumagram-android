@@ -2575,6 +2575,9 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   }
 
   public boolean hasPremium () {
+    if (Settings.instance().tgx101FakeNoPremium()) {
+      return false; // TGx101: «As without Premium» test switch (diagnostics builds)
+    }
     TdApi.User user = cache().myUser();
     if (user != null) {
       return user.isPremium;
