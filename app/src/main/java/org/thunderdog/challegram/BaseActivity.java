@@ -957,6 +957,11 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   }
 
   public void removeFullScreenView (ViewController<?> controller, boolean needFullScreen) {
+    if (needFullScreen) {
+      // TGx101: a closed viewer can't keep the navigation hidden — that left the whole app fullscreen
+      // (no status bar, keyboard over the input; diag 2026-10-03 22:52: flags 0x10 with no fullscreen views)
+      removeHideNavigationView(controller);
+    }
     List<ViewController<?>> list = needFullScreen ? fullScreenViews : noFullScreenViews;
     if (list != null && list.remove(controller)) {
       setFullScreenFlag(needFullScreen ? FULLSCREEN_FLAG_HAS_FULLSCREEN_VIEWS : FULLSCREEN_FLAG_HAS_NO_FULLSCREEN_VIEWS, !list.isEmpty());
@@ -1084,6 +1089,15 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   }
 
   private final List<ViewController<?>> hideNavigationViews = new ArrayList<>();
+
+  /** TGx101: hiding the navigation only makes sense while a fullscreen view is shown */
+  private void tgx101CheckHideNavigation () {
+    if ((fullScreenViews == null || fullScreenViews.isEmpty()) && !hideNavigationViews.isEmpty()) {
+      Tgx101Diag.mark("window: hide-navigation dropped (" + hideNavigationViews.size() + " left without a fullscreen view)");
+      hideNavigationViews.clear();
+      setFullScreenFlag(FULLSCREEN_FLAG_HIDE_NAVIGATION, false);
+    }
+  }
 
   public void addHideNavigationView (ViewController<?> viewController) {
     if (!hideNavigationViews.contains(viewController)) {
@@ -1227,6 +1241,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   @Override
   public void onResume () {
+    tgx101CheckHideNavigation(); // TGx101: never come back stuck without the status bar
     boolean lockBefore = isPasscodeShowing;
     UI.setContext(this);
     setActivityState(UI.State.RESUMED);

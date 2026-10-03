@@ -1283,7 +1283,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   private void onHide () {
-    // Nothing to do anymore?
+    context().removeHideNavigationView(this); // TGx101: the header hidden by a tap left the app without a status bar
   }
 
   private static final boolean SET_FULLSCREEN_ON_OPEN = true;
