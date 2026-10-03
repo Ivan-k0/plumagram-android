@@ -6216,6 +6216,9 @@
   <string name="Tgx101DefaultAutoDelete">Auto-delete in new chats</string>
   <string name="Tgx101DefaultAutoDeleteHint">Messages in chats you start from now on are deleted for everyone after this time. Existing chats don\'t change.</string>
   <string name="Tgx101AutoDeleteOff">Off</string>
+  <string name="Tgx101UserNote">Note</string>
+  <string name="Tgx101UserNoteHint">Only you see it</string>
+  <string name="Tgx101UserNoteAdd">Add a note (only you see it)</string>
   <string name="Tgx101TestSection">Testing</string>
   <string name="Tgx101FakeNoPremium">As without Premium (test)</string>
   <string name="Tgx101FakeNoPremiumHint">Test builds only. The app shows everything as for an account without Premium; the server still knows the account has it. Restart the app after switching.</string>

@@ -375,6 +375,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101DefaultAutoDelete, "Автоудаление в новых чатах");
     RU.put(R.string.Tgx101DefaultAutoDeleteHint, "Сообщения в чатах, которые вы начнёте с этого момента, будут удаляться у всех через это время. Уже существующие чаты не меняются.");
     RU.put(R.string.Tgx101AutoDeleteOff, "Выключено");
+    RU.put(R.string.Tgx101UserNote, "Заметка");
+    RU.put(R.string.Tgx101UserNoteHint, "Видна только вам");
+    RU.put(R.string.Tgx101UserNoteAdd, "Добавить заметку (видна только вам)");
     RU.put(R.string.Tgx101TestSection, "Тесты");
     RU.put(R.string.Tgx101FakeNoPremium, "Как без Премиума (тест)");
     RU.put(R.string.Tgx101FakeNoPremiumHint, "Только в тестовых сборках. Приложение показывает всё как для аккаунта без Премиума; сервер по-прежнему знает, что Премиум есть. После переключения перезапустите приложение.");

@@ -1793,6 +1793,9 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           } else {
             view.setName(Lang.getString(R.string.LoadingInformation));
           }
+        } else if (itemId == R.id.btn_tgx101UserNote) {
+          String note = userFull != null && userFull.note != null ? userFull.note.text : null;
+          view.setData(StringUtils.isEmpty(note) ? Lang.getString(R.string.Tgx101UserNoteAdd) : note);
         } else if (itemId == R.id.btn_description) {
           view.setText(aboutWrapper);
           if (canEditDescription() && !hasDescription()) {
@@ -2397,6 +2400,31 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     return new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_notifications, R.drawable.baseline_notifications_24, R.string.Notifications);
   }
 
+  // TGx101: a private note about a contact (official apps: «Note», visible only to you)
+  private ListItem tgx101NewNoteItem () {
+    return new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101UserNote, R.drawable.baseline_edit_24, R.string.Tgx101UserNote);
+  }
+
+  private boolean tgx101CanHaveNote () {
+    return user != null && user.isContact && !TD.isBot(user) && !tdlib.isSelfUserId(user.id);
+  }
+
+  private void tgx101EditNote () {
+    String current = userFull != null && userFull.note != null ? userFull.note.text : "";
+    openInputAlert(Lang.getString(R.string.Tgx101UserNote), Lang.getString(R.string.Tgx101UserNoteHint), R.string.Done, R.string.Cancel, current, (inputView, result) -> {
+      String text = result.trim();
+      tdlib.send(new TdApi.SetUserNote(user.id, new TdApi.FormattedText(text, null)), (ok, error) -> runOnUiThreadOptional(() -> {
+        if (error != null) {
+          UI.showError(error);
+        } else {
+          if (userFull != null) userFull.note = new TdApi.FormattedText(text, null);
+          updateValuedItem(R.id.btn_tgx101UserNote);
+        }
+      }));
+      return true;
+    }, true);
+  }
+
   private ListItem newBirthdateItem () {
     return new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_birthdate, R.drawable.baseline_cake_variant_24, R.string.Birthdate);
   }
@@ -2472,6 +2500,13 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           items.add(new ListItem(ListItem.TYPE_SEPARATOR));
         }
         items.add(newDescriptionItem());
+        addedCount++;
+      }
+      if (tgx101CanHaveNote()) {
+        if (addedCount > 0) {
+          items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+        }
+        items.add(tgx101NewNoteItem());
         addedCount++;
       }
     }
@@ -4873,6 +4908,8 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           null
         );
       }
+    } else if (viewId == R.id.btn_tgx101UserNote) {
+      tgx101EditNote();
     } else if (viewId == R.id.btn_description) {
       if (canEditDescription() && !hasDescription()) {
         editDescription(false);
