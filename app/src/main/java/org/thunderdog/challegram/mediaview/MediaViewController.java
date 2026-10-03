@@ -1679,6 +1679,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       case MODE_SIMPLE: {
         if (!itemCountChanged) {
           updateVideoState(true);
+          // TGx101 (user 2026-10-04): paging to a video plays it (it stayed paused)
+          if (currentItem != null && currentItem.isVideo() && !currentItem.isGifType() && mediaView != null) {
+            mediaView.post(() -> {
+              if (!isDestroyed() && stack.getCurrent() == currentItem) mediaView.autoplayIfNeeded(false);
+            });
+          }
         }
         updateCaption(true);
 
