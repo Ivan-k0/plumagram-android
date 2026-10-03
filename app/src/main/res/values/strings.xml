@@ -6240,6 +6240,13 @@
   <string name="Tgx101SavedByChats">Saved by chats</string>
   <string name="Tgx101SavedMyNotes">My notes</string>
   <string name="Tgx101SavedAuthorHidden">Hidden sender</string>
+  <string name="Tgx101TranslateModels">Dictionaries on the phone</string>
+  <string name="Tgx101TranslateModelsNone">No dictionaries yet. Each language is downloaded once, the first time you translate from or into it — about %1$d MB each (English is built in).</string>
+  <string name="Tgx101TranslateModelsHint">Downloaded dictionaries take about %1$d MB. Tap one to delete it — it is downloaded again when needed.</string>
+  <string name="Tgx101Megabytes">MB</string>
+  <string name="Tgx101TranslateModelDeleted">Dictionary deleted</string>
+  <string name="Tgx101TranslateDownloading">Downloading the %1$s dictionary (≈%2$d MB), only once</string>
+  <string name="Tgx101SavedEmpty">Nothing in Saved Messages yet</string>
   <string name="Tgx101TestSection">Testing</string>
   <string name="Tgx101FakeNoPremium">As without Premium (test)</string>
   <string name="Tgx101FakeNoPremiumHint">Test builds only. The app shows everything as for an account without Premium; the server still knows the account has it. Restart the app after switching.</string>

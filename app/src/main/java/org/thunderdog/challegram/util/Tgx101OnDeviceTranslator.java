@@ -56,6 +56,7 @@ public final class Tgx101OnDeviceTranslator {
             return;
           }
           Translator translator = Translation.getClient(new TranslatorOptions.Builder().setSourceLanguage(source).setTargetLanguage(target).build());
+          announceDownloads(source, target);
           translator.downloadModelIfNeeded(new DownloadConditions.Builder().build())
             .addOnSuccessListener(ignored -> translator.translate(text)
               .addOnSuccessListener(result -> {
@@ -75,6 +76,54 @@ public final class Tgx101OnDeviceTranslator {
     } catch (Throwable t) {
       done(callback, null, "ML Kit unavailable: " + t.getClass().getSimpleName());
     }
+  }
+
+  // TGx101: dictionaries (ML Kit language models) — about 30 MB each, English is built in (user 2026-10-03: show the size)
+
+  public static final int MODEL_SIZE_MB = 30;
+
+  private static void announceDownloads (String source, String target) {
+    com.google.mlkit.common.model.RemoteModelManager manager = com.google.mlkit.common.model.RemoteModelManager.getInstance();
+    for (String language : new String[] {source, target}) {
+      if (TranslateLanguage.ENGLISH.equals(language)) continue;
+      com.google.mlkit.nl.translate.TranslateRemoteModel model = new com.google.mlkit.nl.translate.TranslateRemoteModel.Builder(language).build();
+      manager.isModelDownloaded(model).addOnSuccessListener(downloaded -> {
+        if (!Boolean.TRUE.equals(downloaded)) {
+          UI.showToast(org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101TranslateDownloading, languageName(language), MODEL_SIZE_MB), android.widget.Toast.LENGTH_LONG);
+        }
+      });
+    }
+  }
+
+  public static String languageName (String code) {
+    String name = new java.util.Locale(code).getDisplayLanguage(java.util.Locale.getDefault());
+    return name.isEmpty() ? code : Character.toUpperCase(name.charAt(0)) + name.substring(1);
+  }
+
+  public interface ModelsCallback {
+    void onModels (java.util.List<String> languages);
+  }
+
+  /** Downloaded dictionaries (language codes), on the UI thread */
+  public static void downloadedModels (ModelsCallback callback) {
+    try {
+      com.google.mlkit.common.model.RemoteModelManager.getInstance().getDownloadedModels(com.google.mlkit.nl.translate.TranslateRemoteModel.class)
+        .addOnSuccessListener(models -> {
+          java.util.List<String> list = new java.util.ArrayList<>();
+          for (com.google.mlkit.nl.translate.TranslateRemoteModel model : models) {
+            if (!TranslateLanguage.ENGLISH.equals(model.getLanguage())) list.add(model.getLanguage());
+          }
+          UI.post(() -> callback.onModels(list));
+        })
+        .addOnFailureListener(e -> UI.post(() -> callback.onModels(new java.util.ArrayList<>())));
+    } catch (Throwable t) {
+      UI.post(() -> callback.onModels(new java.util.ArrayList<>()));
+    }
+  }
+
+  public static void deleteModel (String language, Runnable after) {
+    com.google.mlkit.common.model.RemoteModelManager.getInstance().deleteDownloadedModel(new com.google.mlkit.nl.translate.TranslateRemoteModel.Builder(language).build())
+      .addOnCompleteListener(task -> UI.post(after));
   }
 
   private static String baseLanguage (String tag) {

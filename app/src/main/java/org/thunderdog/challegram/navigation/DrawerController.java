@@ -286,6 +286,7 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
       items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_calls, R.drawable.baseline_call_24, R.string.Calls));
     }
     items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_savedMessages, R.drawable.baseline_bookmark_24, R.string.SavedMessages));
+    items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_tgx101SavedByChats, R.drawable.baseline_format_list_bulleted_type_24, R.string.Tgx101SavedByChats)); // TGx101
     this.settingsClickBait = getSettingsClickBait();
     items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_settings, R.drawable.baseline_settings_24, R.string.Settings));
     // TGx101: no "Invite Friends" and "Help" items in the drawer.
@@ -857,6 +858,10 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
       }
     } else if (viewId == R.id.btn_savedMessages) {
       openSavedMessages();
+    } else if (viewId == R.id.btn_tgx101SavedByChats) {
+      // TGx101: Saved Messages grouped by the chat they were saved from
+      final Tdlib tdlib = context.currentTdlib();
+      close(0f, () -> context.navigation().navigateTo(new org.thunderdog.challegram.ui.Tgx101SavedTopicsController(context, tdlib)));
     } else if (viewId == R.id.btn_addAccount) {
       context.currentTdlib().ui().addAccount(context, true, false);
       /*case R.id.btn_logout: {

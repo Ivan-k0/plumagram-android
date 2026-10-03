@@ -399,6 +399,13 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedByChats, "Избранное по чатам");
     RU.put(R.string.Tgx101SavedMyNotes, "Мои заметки");
     RU.put(R.string.Tgx101SavedAuthorHidden, "Скрытый отправитель");
+    RU.put(R.string.Tgx101TranslateModels, "Словари на телефоне");
+    RU.put(R.string.Tgx101TranslateModelsNone, "Словарей пока нет. Каждый язык скачивается один раз, при первом переводе с него или на него, — примерно %1$d МБ каждый (английский встроен).");
+    RU.put(R.string.Tgx101TranslateModelsHint, "Скачанные словари занимают около %1$d МБ. Нажмите на словарь, чтобы удалить его — при необходимости он скачается снова.");
+    RU.put(R.string.Tgx101Megabytes, "МБ");
+    RU.put(R.string.Tgx101TranslateModelDeleted, "Словарь удалён");
+    RU.put(R.string.Tgx101TranslateDownloading, "Скачивается словарь «%1$s» (≈%2$d МБ), только один раз");
+    RU.put(R.string.Tgx101SavedEmpty, "В Избранном пока ничего нет");
     RU.put(R.string.Tgx101TestSection, "Тесты");
     RU.put(R.string.Tgx101FakeNoPremium, "Как без Премиума (тест)");
     RU.put(R.string.Tgx101FakeNoPremiumHint, "Только в тестовых сборках. Приложение показывает всё как для аккаунта без Премиума; сервер по-прежнему знает, что Премиум есть. После переключения перезапустите приложение.");

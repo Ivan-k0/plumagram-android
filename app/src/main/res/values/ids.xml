@@ -1502,6 +1502,7 @@
   <item name="controller_tgx101SavedTopics" type="id"/>
   <item name="btn_tgx101SavedTopic" type="id"/>
   <item name="btn_tgx101SavedByChats" type="id"/>
+  <item name="btn_tgx101TranslateModels" type="id"/>
   <item name="btn_tgx101ShowTopics" type="id"/>
   <item name="btn_tgx101BaseSource" type="id"/>
   <item name="btn_tgx101TopicEdit" type="id"/>

@@ -53,6 +53,7 @@ public class Tgx101SavedTopicsController extends RecyclerViewController<Void> im
 
   private SettingsAdapter adapter;
   private final List<TdApi.SavedMessagesTopic> topics = new ArrayList<>();
+  private boolean loaded;
 
   @Override
   protected void onCreateView (Context context, CustomRecyclerView recyclerView) {
@@ -69,7 +70,11 @@ public class Tgx101SavedTopicsController extends RecyclerViewController<Void> im
     recyclerView.setAdapter(adapter);
     build();
     // the topics arrive as updates once Telegram is asked for them
-    tdlib.send(new TdApi.LoadSavedMessagesTopics(100), (ok, error) -> runOnUiThreadOptional(this::build));
+    // an error means everything is loaded already
+    tdlib.send(new TdApi.LoadSavedMessagesTopics(100), (ok, error) -> runOnUiThreadOptional(() -> {
+      loaded = true;
+      build();
+    }));
   }
 
   private String title (TdApi.SavedMessagesTopic topic) {
@@ -91,7 +96,7 @@ public class Tgx101SavedTopicsController extends RecyclerViewController<Void> im
     items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     if (topics.isEmpty()) {
-      items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.LoadingInformation));
+      items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, loaded ? R.string.Tgx101SavedEmpty : R.string.LoadingInformation));
     }
     boolean first = true;
     for (TdApi.SavedMessagesTopic topic : topics) {

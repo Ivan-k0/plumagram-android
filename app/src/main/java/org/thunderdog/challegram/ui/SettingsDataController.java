@@ -396,6 +396,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101TranslateSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101TranslateOnDevice, 0, R.string.Tgx101TranslateOnDevice),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101TranslateModels, 0, R.string.Tgx101TranslateModels),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101TranslateOnDeviceHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
@@ -799,6 +801,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101TranslateOnDevice(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101SpeechModel) {
       showTgx101SpeechModels();
+    } else if (id == R.id.btn_tgx101TranslateModels) {
+      showTgx101TranslateModels();
     } else if (id == R.id.btn_tgx101FakeNoPremium) {
       Settings.instance().setTgx101FakeNoPremium(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showChannelMuteButton) {
@@ -1225,6 +1229,31 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     }
     org.thunderdog.challegram.data.Tgx101SpeechModels.Model active = org.thunderdog.challegram.data.Tgx101SpeechModels.active();
     return active != null ? Lang.getString(active.nameRes) : Lang.getString(R.string.Tgx101SpeechModelNone);
+  }
+
+  // TGx101: on-device translation dictionaries with their size (user 2026-10-03)
+  private void showTgx101TranslateModels () {
+    org.thunderdog.challegram.util.Tgx101OnDeviceTranslator.downloadedModels(languages -> {
+      if (isDestroyed()) return;
+      int size = org.thunderdog.challegram.util.Tgx101OnDeviceTranslator.MODEL_SIZE_MB;
+      if (languages.isEmpty()) {
+        showOptions(Lang.getString(R.string.Tgx101TranslateModelsNone, size), new int[] {R.id.btn_done}, new String[] {Lang.getString(R.string.OK)}, null, null, (v, id) -> true);
+        return;
+      }
+      int[] ids = new int[languages.size()];
+      String[] names = new String[languages.size()];
+      int[] icons = new int[languages.size()];
+      for (int i = 0; i < ids.length; i++) {
+        ids[i] = i + 1;
+        names[i] = org.thunderdog.challegram.util.Tgx101OnDeviceTranslator.languageName(languages.get(i)) + " · ≈" + size + " " + Lang.getString(R.string.Tgx101Megabytes) + " · " + Lang.getString(R.string.Tgx101SpeechModelDelete);
+        icons[i] = R.drawable.baseline_delete_24;
+      }
+      showOptions(Lang.getString(R.string.Tgx101TranslateModelsHint, languages.size() * size), ids, names, null, icons, (v, optionId) -> {
+        String language = languages.get(optionId - 1);
+        org.thunderdog.challegram.util.Tgx101OnDeviceTranslator.deleteModel(language, () -> UI.showToast(R.string.Tgx101TranslateModelDeleted, android.widget.Toast.LENGTH_SHORT));
+        return true;
+      });
+    });
   }
 
   private void showTgx101SpeechModels () {
