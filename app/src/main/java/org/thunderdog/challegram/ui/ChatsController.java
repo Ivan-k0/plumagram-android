@@ -1406,6 +1406,26 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
       getParentOrSelf().showMore(ids.get(), strings.get(), icons.get());
     } else if (id == R.id.menu_btn_pinUnpin) {
+      // TGx101: chats pinned on this phone only — the pin button unpins them
+      boolean allLocal = selectedChats.size() > 0;
+      for (int i = 0; i < selectedChats.size(); i++) {
+        if (!org.thunderdog.challegram.telegram.Tgx101LocalPins.isPinned(tdlib, chatList, selectedChats.keyAt(i))) {
+          allLocal = false;
+          break;
+        }
+      }
+      if (allLocal) {
+        showOptions(Lang.getString(R.string.Tgx101LocalUnpin), new int[] {R.id.btn_tgx101LocalUnpin, R.id.btn_cancel}, new String[] {Lang.getString(R.string.Tgx101LocalUnpin), Lang.getString(R.string.Cancel)}, null, new int[] {R.drawable.deproko_baseline_pin_undo_24, R.drawable.baseline_cancel_24}, (v, optionId) -> {
+          if (optionId == R.id.btn_tgx101LocalUnpin) {
+            for (int i = 0; i < selectedChats.size(); i++) {
+              org.thunderdog.challegram.telegram.Tgx101LocalPins.setPinned(tdlib, chatList, selectedChats.keyAt(i), false);
+            }
+            onSelectionActionComplete();
+          }
+          return true;
+        });
+        return;
+      }
       int mode = canPinUnpinSelectedChats();
       int cloudPinCount = 0, secretPinCount = 0;
       long lastChatId = 0;
@@ -1431,7 +1451,20 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
         int pinnedCloudCount = adapter.getPinnedChatCount(false), pinnedSecretCount = adapter.getPinnedChatCount(true);
         if (!isUnpin && (pinnedCloudCount + cloudPinCount > maxPinnedCount || pinnedSecretCount + secretPinCount > maxPinnedCount)) {
           CharSequence message = chatList().getConstructor() == TdApi.ChatListMain.CONSTRUCTOR ? Lang.pluralBold(R.string.PinTooMuchWarn, maxPinnedCount) : Lang.plural(R.string.ErrorPinnedChatsLimit, maxPinnedCount);
-          context.tooltipManager().builder(view).controller(getParentOrSelf()).icon(R.drawable.baseline_error_24).show(tdlib, message);
+          // TGx101: over Telegram's limit — offer pinning on this phone only
+          showOptions(message, new int[] {R.id.btn_tgx101LocalPin, R.id.btn_cancel}, new String[] {Lang.getString(R.string.Tgx101LocalPin), Lang.getString(R.string.Cancel)}, null, new int[] {R.drawable.deproko_baseline_pin_24, R.drawable.baseline_cancel_24}, (v, optionId) -> {
+            if (optionId == R.id.btn_tgx101LocalPin) {
+              for (int i = 0; i < selectedChats.size(); i++) {
+                long chatId = selectedChats.keyAt(i);
+                if (!ChatPosition.isPinned(selectedChats.valueAt(i), chatList)) {
+                  org.thunderdog.challegram.telegram.Tgx101LocalPins.setPinned(tdlib, chatList, chatId, true);
+                }
+              }
+              UI.showToast(R.string.Tgx101LocalPinned, android.widget.Toast.LENGTH_SHORT);
+              onSelectionActionComplete();
+            }
+            return true;
+          });
           return;
         }
         showOptions((secretPinCount + cloudPinCount) == 1 ? tdlib.chatTitle(lastChatId) : Lang.pluralBold(isUnpin ? R.string.UnpinXChats : R.string.PinXChats, secretPinCount + cloudPinCount), new int[] {
