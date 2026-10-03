@@ -501,6 +501,13 @@ public class TGMessageMedia extends TGMessage {
       }
     }
 
+    // TGx101: a narrow (portrait) photo with a long caption made a thin bubble with the text in a column
+    // (user 2026-10-03: «слишком узко») — such a bubble is at least ~3/4 of the chat width, like in the official app
+    if (useBubbles() && !needFullWidth && caption != null && caption.text != null && caption.text.length() > 40) {
+      int captionMinWidth = Math.min(maxWidth, Math.max(Screen.dp(260f), (int) (maxWidth * .75f)));
+      minWidth = Math.max(minWidth, captionMinWidth);
+    }
+
     minWidth = Math.min(minWidth, maxWidth);
     minHeight = Math.min(minHeight, maxHeight);
 
