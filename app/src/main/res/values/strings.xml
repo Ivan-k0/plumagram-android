@@ -6219,6 +6219,11 @@
   <string name="Tgx101UserNote">Note</string>
   <string name="Tgx101UserNoteHint">Only you see it</string>
   <string name="Tgx101UserNoteAdd">Add a note (only you see it)</string>
+  <string name="Tgx101SharePin">Pin to the first rows</string>
+  <string name="Tgx101ShareUnpin">Unpin from the first rows</string>
+  <string name="Tgx101SharePinned">Pinned: it will be in the first rows next time you share</string>
+  <string name="Tgx101ShareUnpinned">Unpinned</string>
+  <string name="Tgx101SharePinFull">The two first rows are full — unpin a chat first</string>
   <string name="Tgx101TestSection">Testing</string>
   <string name="Tgx101FakeNoPremium">As without Premium (test)</string>
   <string name="Tgx101FakeNoPremiumHint">Test builds only. The app shows everything as for an account without Premium; the server still knows the account has it. Restart the app after switching.</string>

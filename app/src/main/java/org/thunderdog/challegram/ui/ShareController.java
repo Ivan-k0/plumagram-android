@@ -1671,10 +1671,25 @@ public class ShareController extends TelegramViewController<ShareController.Args
     }
 
     items.add(new BaseView.ActionItem(R.id.btn_selectChat, R.drawable.baseline_playlist_add_check_24, Lang.getString(isChecked(chat.getAnyId()) ? R.string.Unselect : R.string.Select)));
+    final boolean tgx101CanPin = TD.isChatListMain(displayingChatList) && chat.getChatId() != 0 && !tdlib.isSelfChat(chat.getChatId());
+    final boolean tgx101Pinned = tgx101CanPin && Tgx101ShareOrder.isPinned(tdlib, chat.getChatId());
+    if (tgx101CanPin) {
+      // TGx101: the first two rows of the Share sheet are the user's choice (user 2026-10-03)
+      items.add(new BaseView.ActionItem(R.id.btn_tgx101SharePin, R.drawable.deproko_baseline_pin_24, Lang.getString(tgx101Pinned ? R.string.Tgx101ShareUnpin : R.string.Tgx101SharePin)));
+    }
 
     return new ForceTouchView.ActionListener() {
       @Override
       public void onForceTouchAction (ForceTouchView.ForceTouchContext context, int actionId, Object arg) {
+        if (actionId == R.id.btn_tgx101SharePin) {
+          int limit = calculateSpanCount() * 2 - 1; // two rows, Saved Messages first
+          if (Tgx101ShareOrder.setPinned(tdlib, chat.getChatId(), !tgx101Pinned, limit)) {
+            UI.showToast(tgx101Pinned ? R.string.Tgx101ShareUnpinned : R.string.Tgx101SharePinned, Toast.LENGTH_SHORT);
+          } else {
+            UI.showToast(R.string.Tgx101SharePinFull, Toast.LENGTH_SHORT);
+          }
+          return;
+        }
         if (actionId == R.id.btn_openSendersMenu) {
           MessagesController.getChatAvailableMessagesSenders(tdlib, tdChat.id, result -> {
             final SetSenderController c = new SetSenderController(ShareController.this.context, tdlib);

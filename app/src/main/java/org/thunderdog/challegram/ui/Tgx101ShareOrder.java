@@ -47,6 +47,46 @@ final class Tgx101ShareOrder {
     return "tgx101_share_ids_" + tdlib.id();
   }
 
+  // Chats the user pinned to the first two rows (long press in the Share sheet), in pinning order
+
+  private static String pinnedKey (Tdlib tdlib) {
+    return "tgx101_share_pinned_" + tdlib.id();
+  }
+
+  static List<Long> pinnedIds (Tdlib tdlib) {
+    List<Long> ids = new ArrayList<>();
+    String value = Settings.instance().pmc().getString(pinnedKey(tdlib), "");
+    if (value != null && !value.isEmpty()) {
+      for (String part : value.split(",")) {
+        try {
+          ids.add(Long.parseLong(part));
+        } catch (NumberFormatException ignored) { }
+      }
+    }
+    return ids;
+  }
+
+  static boolean isPinned (Tdlib tdlib, long chatId) {
+    return pinnedIds(tdlib).contains(chatId);
+  }
+
+  /** @return false when the two rows are already full */
+  static boolean setPinned (Tdlib tdlib, long chatId, boolean pinned, int limit) {
+    List<Long> ids = pinnedIds(tdlib);
+    ids.remove(chatId);
+    if (pinned) {
+      if (ids.size() >= limit) return false;
+      ids.add(chatId);
+    }
+    StringBuilder b = new StringBuilder();
+    for (long id : ids) {
+      if (b.length() > 0) b.append(',');
+      b.append(id);
+    }
+    Settings.instance().pmc().putString(pinnedKey(tdlib), b.toString());
+    return true;
+  }
+
   /** Counts a share sent through the Share sheet. */
   static void recordShare (Tdlib tdlib, long chatId) {
     LevelDB pmc = Settings.instance().pmc();
@@ -117,6 +157,10 @@ final class Tgx101ShareOrder {
 
     long selfChatId = tdlib.selfChatId();
     Set<Long> result = new LinkedHashSet<>();
+    // Pinned by the user first (fewer than two rows: the rest is filled the usual way below)
+    for (long id : pinnedIds(tdlib)) {
+      if (id != selfChatId && result.size() < privateSlots) result.add(id);
+    }
     // Two rows of private chats: shared with most, then chatted with most
     for (long id : shareRank) {
       if (result.size() >= privateSlots) break;

@@ -378,6 +378,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101UserNote, "Заметка");
     RU.put(R.string.Tgx101UserNoteHint, "Видна только вам");
     RU.put(R.string.Tgx101UserNoteAdd, "Добавить заметку (видна только вам)");
+    RU.put(R.string.Tgx101SharePin, "Закрепить в первых строках");
+    RU.put(R.string.Tgx101ShareUnpin, "Открепить из первых строк");
+    RU.put(R.string.Tgx101SharePinned, "Закреплено: при следующем «Поделиться» чат будет в первых строках");
+    RU.put(R.string.Tgx101ShareUnpinned, "Откреплено");
+    RU.put(R.string.Tgx101SharePinFull, "Две первые строки заполнены — сначала открепите какой-нибудь чат");
     RU.put(R.string.Tgx101TestSection, "Тесты");
     RU.put(R.string.Tgx101FakeNoPremium, "Как без Премиума (тест)");
     RU.put(R.string.Tgx101FakeNoPremiumHint, "Только в тестовых сборках. Приложение показывает всё как для аккаунта без Премиума; сервер по-прежнему знает, что Премиум есть. После переключения перезапустите приложение.");
