@@ -101,6 +101,7 @@ final class Tgx101Strings {
     RU.put(R.string.TranscriptionEmpty, "Речь не распознана.");
     RU.put(R.string.TranscriptionFailed, "Не удалось распознать речь.");
     RU.put(R.string.TranscriptionUnavailable, "Telegram не смог расшифровать сообщение (нужен Premium или исчерпан недельный лимит), а распознавание на телефоне недоступно (нужен Android 13+ и сервис распознавания речи).");
+    RU.put(R.string.Tgx101TranscriptionModelDownloading, "На телефон скачивается пакет распознавания речи для этого языка. Попробуйте через минуту");
     RU.put(R.string.TranscriptionLanguageUnavailable, "Распознаватель речи на телефоне не поддерживает этот язык. Скачайте его в системных настройках голосового ввода.");
     RU.put(R.string.ChatListSection, "Чаты");
     RU.put(R.string.Tgx101Topics, "Темы");

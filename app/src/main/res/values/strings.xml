@@ -5940,6 +5940,7 @@
   <string name="TranscriptionEmpty">No speech recognized.</string>
   <string name="TranscriptionFailed">Couldn\'t recognize speech.</string>
   <string name="TranscriptionUnavailable">Telegram couldn\'t transcribe this message (Premium or weekly limit), and on-device speech recognition isn\'t available on this phone (needs Android 13+ and a speech recognition service).</string>
+  <string name="Tgx101TranscriptionModelDownloading">The speech recognition pack for this language is being downloaded to the phone. Try again in a minute</string>
   <string name="TranscriptionLanguageUnavailable">The phone\'s speech recognizer doesn\'t support this language. Download it in the system voice input settings.</string>
   <string name="ChatListSection">Chats</string>
   <string name="Tgx101Topics">Topics</string>

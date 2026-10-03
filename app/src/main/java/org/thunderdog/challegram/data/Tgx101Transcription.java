@@ -26,6 +26,7 @@ import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
@@ -443,15 +444,70 @@ public final class Tgx101Transcription {
       intent.putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_CHANNEL_COUNT, 1);
       // The session ends when the audio source is closed, with results per segment.
       intent.putExtra(RecognizerIntent.EXTRA_SEGMENTED_SESSION, RecognizerIntent.EXTRA_AUDIO_SOURCE);
-      recognizer.startListening(intent);
+      // Google's speech service answers ERROR_NETWORK for audio fed from another app in its online mode
+      // (log 2026-10-03), so the language's downloaded model is used when there is one, or its download is started
+      final String language = Locale.getDefault().toLanguageTag();
+      final Runnable go = () -> {
+        recognizer.startListening(intent);
+        new Thread(() -> {
+          try (FileOutputStream out = new ParcelFileDescriptor.AutoCloseOutputStream(pipe[1])) {
+            out.write(pcm);
+          } catch (IOException e) {
+            Log.w("Unable to feed audio to the recognizer", e);
+          }
+        }, "VoiceTranscriptionFeed").start();
+      };
+      try {
+        recognizer.checkRecognitionSupport(intent, UI::post, new android.speech.RecognitionSupportCallback() {
+          @Override
+          public void onSupportResult (@NonNull android.speech.RecognitionSupport support) {
+            boolean installed = hasLanguage(support.getInstalledOnDeviceLanguages(), language);
+            boolean downloadable = hasLanguage(support.getSupportedOnDeviceLanguages(), language) || hasLanguage(support.getPendingOnDeviceLanguages(), language);
+            org.thunderdog.challegram.Tgx101Diag.mark("transcription: support " + language + " installed " + installed + ", downloadable " + downloadable +
+              ", online " + hasLanguage(support.getOnlineLanguages(), language) + " (installed " + support.getInstalledOnDeviceLanguages() + ", pending " + support.getPendingOnDeviceLanguages() + ")");
+            if (installed) {
+              intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+              go.run();
+            } else if (downloadable) {
+              try {
+                recognizer.triggerModelDownload(intent);
+                org.thunderdog.challegram.Tgx101Diag.mark("transcription: model download requested for " + language);
+              } catch (Throwable t) {
+                Log.w("Unable to request the speech model download", t);
+              }
+              recognizer.destroy();
+              closeQuietly(pipe[0]);
+              closeQuietly(pipe[1]);
+              fail(Lang.getString(R.string.Tgx101TranscriptionModelDownloading));
+              deviceDone();
+            } else {
+              go.run();
+            }
+          }
 
-      new Thread(() -> {
-        try (FileOutputStream out = new ParcelFileDescriptor.AutoCloseOutputStream(pipe[1])) {
-          out.write(pcm);
-        } catch (IOException e) {
-          Log.w("Unable to feed audio to the recognizer", e);
+          @Override
+          public void onError (int error) {
+            org.thunderdog.challegram.Tgx101Diag.mark("transcription: support check error " + error);
+            intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+            go.run();
+          }
+        });
+      } catch (Throwable t) {
+        Log.w("Speech recognition support check failed", t);
+        intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+        go.run();
+      }
+    }
+
+    private boolean hasLanguage (@Nullable java.util.List<String> languages, String tag) {
+      if (languages == null) return false;
+      String lang = tag.contains("-") ? tag.substring(0, tag.indexOf('-')) : tag;
+      for (String l : languages) {
+        if (l.equalsIgnoreCase(tag) || l.equalsIgnoreCase(lang) || l.toLowerCase(Locale.ROOT).startsWith(lang.toLowerCase(Locale.ROOT) + "-")) {
+          return true;
         }
-      }, "VoiceTranscriptionFeed").start();
+      }
+      return false;
     }
   }
 
