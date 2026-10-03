@@ -385,6 +385,11 @@ public class TGBackground {
     return legacyWallpaperId == ID_CATS_BLUE;
   }
 
+  /** TGx101: the file of a wallpaper picked from the gallery */
+  public @Nullable String tgx101CustomPath () {
+    return customPath;
+  }
+
   public boolean isCustom () {
     return !StringUtils.isEmpty(customPath);
   }

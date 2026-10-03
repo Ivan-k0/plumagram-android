@@ -6247,6 +6247,12 @@
   <string name="Tgx101TranslateModelDeleted">Dictionary deleted</string>
   <string name="Tgx101TranslateDownloading">Downloading the %1$s dictionary (≈%2$d MB), only once</string>
   <string name="Tgx101SavedEmpty">Nothing in Saved Messages yet</string>
+  <string name="Tgx101ChatBackground">Chat wallpaper</string>
+  <string name="Tgx101ChatBackgroundHint">The wallpaper chosen in Settings → Chat settings is set for this chat only</string>
+  <string name="Tgx101ChatBackgroundSelf">Set the current wallpaper for me</string>
+  <string name="Tgx101ChatBackgroundBoth">Set the current wallpaper for both</string>
+  <string name="Tgx101ChatBackgroundReset">Reset the chat wallpaper</string>
+  <string name="Tgx101ChatBackgroundNone">Choose a wallpaper in the chat settings first</string>
   <string name="Tgx101TestSection">Testing</string>
   <string name="Tgx101FakeNoPremium">As without Premium (test)</string>
   <string name="Tgx101FakeNoPremiumHint">Test builds only. The app shows everything as for an account without Premium; the server still knows the account has it. Restart the app after switching.</string>

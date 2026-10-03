@@ -406,6 +406,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101TranslateModelDeleted, "Словарь удалён");
     RU.put(R.string.Tgx101TranslateDownloading, "Скачивается словарь «%1$s» (≈%2$d МБ), только один раз");
     RU.put(R.string.Tgx101SavedEmpty, "В Избранном пока ничего нет");
+    RU.put(R.string.Tgx101ChatBackground, "Фон чата");
+    RU.put(R.string.Tgx101ChatBackgroundHint, "Фон, выбранный в Настройках → Настройки чатов, ставится только для этого чата");
+    RU.put(R.string.Tgx101ChatBackgroundSelf, "Поставить текущий фон для себя");
+    RU.put(R.string.Tgx101ChatBackgroundBoth, "Поставить текущий фон для обоих");
+    RU.put(R.string.Tgx101ChatBackgroundReset, "Сбросить фон чата");
+    RU.put(R.string.Tgx101ChatBackgroundNone, "Сначала выберите фон в настройках чатов");
     RU.put(R.string.Tgx101TestSection, "Тесты");
     RU.put(R.string.Tgx101FakeNoPremium, "Как без Премиума (тест)");
     RU.put(R.string.Tgx101FakeNoPremiumHint, "Только в тестовых сборках. Приложение показывает всё как для аккаунта без Премиума; сервер по-прежнему знает, что Премиум есть. После переключения перезапустите приложение.");

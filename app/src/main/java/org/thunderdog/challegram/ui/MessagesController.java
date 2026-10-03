@@ -2257,6 +2257,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
       Tgx101SavedTopicsController.open(this);
       return;
     }
+    if (id == R.id.btn_tgx101ChatBackground) {
+      tgx101ShowChatBackgroundOptions();
+      return;
+    }
     if (id == R.id.btn_copyLink || id == R.id.btn_share) {
       tdlib.client().send(new TdApi.GetBackgroundUrl(getArgumentsStrict().wallpaperObject.name, TGBackground.makeBlurredBackgroundType(getArgumentsStrict().wallpaperObject.type, backgroundParamsView != null && backgroundParamsView.isBlurred())), result -> {
         if (result.getConstructor() == TdApi.HttpUrl.CONSTRUCTOR) {
@@ -4622,6 +4626,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tdlib.isSelfChat(chat.id) && getMessageTopicId() == null) {
       ids.append(R.id.btn_tgx101SavedByChats); // TGx101: Saved Messages grouped by chat
       strings.append(R.string.Tgx101SavedByChats);
+    }
+
+    if (tdlib.isUserChat(chat.id) && !tdlib.isSelfChat(chat.id) && !tdlib.isBotChat(chat.id) && !isSecretChat()) {
+      ids.append(R.id.btn_tgx101ChatBackground); // TGx101: a wallpaper for this chat
+      strings.append(R.string.Tgx101ChatBackground);
     }
 
     if ((!tdlib.isChannel(chat.id) || (status != null && !TD.isLeft(status))) && !tdlib.isSelfChat(chat.id)) {
@@ -8510,6 +8519,56 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   // pinned messages
+
+  // TGx101: the chat's own wallpaper — the current app wallpaper set for this chat (for yourself or, with Premium, for both)
+  private void tgx101ShowChatBackgroundOptions () {
+    final long chatId = getChatId();
+    TdApi.Chat c = tdlib.chat(chatId);
+    boolean hasOwn = c != null && c.background != null;
+    IntList ids = new IntList(4);
+    StringList strings = new StringList(4);
+    IntList icons = new IntList(4);
+    ids.append(R.id.btn_tgx101ChatBackgroundSelf);
+    strings.append(R.string.Tgx101ChatBackgroundSelf);
+    icons.append(R.drawable.baseline_palette_24);
+    if (tdlib.hasPremium()) {
+      ids.append(R.id.btn_tgx101ChatBackgroundBoth);
+      strings.append(R.string.Tgx101ChatBackgroundBoth);
+      icons.append(R.drawable.baseline_palette_24);
+    }
+    if (hasOwn) {
+      ids.append(R.id.btn_tgx101ChatBackgroundReset);
+      strings.append(R.string.Tgx101ChatBackgroundReset);
+      icons.append(R.drawable.baseline_delete_24);
+    }
+    showOptions(Lang.getString(R.string.Tgx101ChatBackgroundHint), ids.get(), strings.get(), null, icons.get(), (v, optionId) -> {
+      if (optionId == R.id.btn_tgx101ChatBackgroundReset) {
+        tdlib.send(new TdApi.DeleteChatBackground(chatId, false), tdlib.typedOkHandler());
+        return true;
+      }
+      boolean onlyForSelf = optionId != R.id.btn_tgx101ChatBackgroundBoth;
+      TGBackground wallpaper = tdlib.settings().getWallpaper(Theme.getWallpaperIdentifier());
+      if (wallpaper == null || wallpaper.isEmpty()) {
+        UI.showToast(R.string.Tgx101ChatBackgroundNone, Toast.LENGTH_SHORT);
+        return true;
+      }
+      TdApi.BackgroundType type = wallpaper.getType();
+      if (wallpaper.isCustom() && wallpaper.tgx101CustomPath() != null) {
+        tdlib.send(new TdApi.SetChatBackground(chatId, new TdApi.InputBackgroundLocal(new TdApi.InputFileLocal(wallpaper.tgx101CustomPath())), new TdApi.BackgroundTypeWallpaper(false, false), 0, onlyForSelf), tdlib.typedOkHandler());
+      } else if (wallpaper.isFill()) {
+        tdlib.send(new TdApi.SetChatBackground(chatId, null, type, 0, onlyForSelf), tdlib.typedOkHandler());
+      } else {
+        tdlib.send(new TdApi.SearchBackground(wallpaper.getName()), (background, error) -> {
+          if (background == null) {
+            UI.showError(error);
+            return;
+          }
+          tdlib.send(new TdApi.SetChatBackground(chatId, new TdApi.InputBackgroundRemote(background.id), type != null ? type : background.type, 0, onlyForSelf), tdlib.typedOkHandler());
+        });
+      }
+      return true;
+    });
+  }
 
   // TGx101: «More…» items for the compact menu, shown inside it (the screen behind stays dimmed, no second window)
   private void tgx101LoadMore (TGMessage selectedMessage, TdApi.ChatMember selectedMessageSender, Tgx101MessageMenu.MoreCallback callback) {
