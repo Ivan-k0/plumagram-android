@@ -2079,6 +2079,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       drawContent(view, c, pContentX, pContentY, pContentMaxWidth);
     }
 
+    if (highlightFactor != 0f && hasBubble && tgx101HighlightedChildId == 0) {
+      // TGx101: the jump flash over the bubble and its content
+      drawBubble(c, Paints.fillingPaint(tgx101FlashColor()), false, 0);
+    }
+
     if (hasBubble) {
       if (needBubbleCornerFix()) {
         int padding = getBubbleContentPadding();
@@ -6826,11 +6831,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (tgx101HighlightedChildId != 0) {
       return; // the album flashes only the item (TGMessageMedia)
     }
-    if (useBubbles() && !bubblePathRect.isEmpty()) {
-      // TGx101 (user 2026-10-04): the whole bubble flashes lighter with a blue tint, no row fill, no outline
-      float radius = Screen.dp(Theme.getBubbleDefaultRadius());
-      c.drawRoundRect(bubblePathRect, radius, radius, Paints.fillingPaint(tgx101FlashColor()));
-      return;
+    if (useBubbles()) {
+      return; // TGx101 (user 2026-10-04): the whole bubble flashes, drawn over it in draw(); no row fill
     }
     c.drawRect(0, findTopEdge(), view.getMeasuredWidth(), findBottomEdge(), Paints.fillingPaint(getSelectionColor(highlightFactor)));
   }
