@@ -457,10 +457,15 @@ public final class Tgx101Transcription {
           }
         }, "VoiceTranscriptionFeed").start();
       };
+      // Google's service may answer both onError and onSupportResult (log 15:47:51: error 14, then the result twice):
+      // only the first decision starts the recognizer, a second startListening fails the session with ERROR_CLIENT
+      final boolean[] decided = new boolean[1];
       try {
         recognizer.checkRecognitionSupport(intent, UI::post, new android.speech.RecognitionSupportCallback() {
           @Override
           public void onSupportResult (@NonNull android.speech.RecognitionSupport support) {
+            if (decided[0]) return;
+            decided[0] = true;
             boolean installed = hasLanguage(support.getInstalledOnDeviceLanguages(), language);
             boolean downloadable = hasLanguage(support.getSupportedOnDeviceLanguages(), language) || hasLanguage(support.getPendingOnDeviceLanguages(), language);
             org.thunderdog.challegram.Tgx101Diag.mark("transcription: support " + language + " installed " + installed + ", downloadable " + downloadable +
@@ -488,8 +493,12 @@ public final class Tgx101Transcription {
           @Override
           public void onError (int error) {
             org.thunderdog.challegram.Tgx101Diag.mark("transcription: support check error " + error);
-            intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
-            go.run();
+            UI.post(() -> { // a result may still follow the error
+              if (decided[0]) return;
+              decided[0] = true;
+              intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+              go.run();
+            }, 500);
           }
         });
       } catch (Throwable t) {
