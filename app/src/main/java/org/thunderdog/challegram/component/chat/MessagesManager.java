@@ -3216,6 +3216,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         index--;
       }
       TGMessage msg = adapter.getMessage(index);
+      msg.tgx101SetHighlightedChild(messageId.getMessageId()); // TGx101: the album item the reply was to
       msg.highlight(true);
       scrollToMessage(index, msg, highlightMode, allowSmooth, false);
     }

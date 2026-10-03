@@ -1637,6 +1637,7 @@ public class MessagesLoader implements Client.ResultHandler {
         }
         case MessagesManager.HIGHLIGHT_MODE_NORMAL:
         case MessagesManager.HIGHLIGHT_MODE_NORMAL_NEXT: {
+          if (scrollMessageId != null) scrollItem.tgx101SetHighlightedChild(scrollMessageId.getMessageId()); // TGx101: album item
           scrollItem.highlight(false);
           break;
         }

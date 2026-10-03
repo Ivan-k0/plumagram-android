@@ -6797,13 +6797,47 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   // Highlight
 
+  // TGx101: jump highlight (user 2026-10-03, variants T2 / M2): bubbles get an accent outline with a soft glow and a
+  // short outward pulse instead of the row fill (invisible on dark themes); an album item reply dims the other items
+
+  private long tgx101HighlightedChildId;
+  private long tgx101HighlightStart;
+
+  protected final long tgx101HighlightedChildId () {
+    return highlightFactor > 0f ? tgx101HighlightedChildId : 0;
+  }
+
+  protected final float tgx101HighlightFactor () {
+    return highlightFactor;
+  }
+
+  public void tgx101SetHighlightedChild (long messageId) {
+    tgx101HighlightedChildId = combinedMessages != null && combinedMessages.size() > 1 && getMessage(messageId) != null ? messageId : 0;
+  }
+
   public void drawHighlight (View view, Canvas c) {
-    if (highlightFactor != 0f) {
-      c.drawRect(0, findTopEdge(), view.getMeasuredWidth(), findBottomEdge(), Paints.fillingPaint(getSelectionColor(highlightFactor)));
+    if (highlightFactor == 0f) return;
+    if (tgx101HighlightedChildId != 0) {
+      return; // the album draws its own (M2) over the media
     }
+    if (useBubbles() && !bubblePathRect.isEmpty()) {
+      float t = Math.min(1f, (android.os.SystemClock.uptimeMillis() - tgx101HighlightStart) / 600f);
+      float pulse = (float) Math.sin(t * Math.PI) * Screen.dp(3f);
+      float expand = Screen.dp(2.5f) + pulse;
+      float radius = Screen.dp(Theme.getBubbleDefaultRadius()) + expand;
+      int accent = Theme.getColor(ColorId.textLink);
+      android.graphics.RectF rect = Paints.getRectF();
+      rect.set(bubblePathRect.left - expand, bubblePathRect.top - expand, bubblePathRect.right + expand, bubblePathRect.bottom + expand);
+      c.drawRoundRect(rect, radius, radius, Paints.getProgressPaint(ColorUtils.alphaColor(highlightFactor * .28f, accent), Screen.dp(7f))); // glow
+      c.drawRoundRect(rect, radius, radius, Paints.getProgressPaint(ColorUtils.alphaColor(highlightFactor, accent), Screen.dp(2.5f)));
+      if (t < 1f) invalidateParentOrSelf(false);
+      return;
+    }
+    c.drawRect(0, findTopEdge(), view.getMeasuredWidth(), findBottomEdge(), Paints.fillingPaint(getSelectionColor(highlightFactor)));
   }
 
   public void highlight (boolean revoke) {
+    tgx101HighlightStart = android.os.SystemClock.uptimeMillis();
     cancelHighlightRevoke();
     setHighlight(1f);
     if (revoke) {

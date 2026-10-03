@@ -605,6 +605,9 @@ public class TGMessageMedia extends TGMessage {
     final boolean clipped = useBubbles() && !useForward();
     final int saveCount = clipped ? ViewSupport.clipPath(c, getBubbleClipPath()) : Integer.MIN_VALUE;
     mosaicWrapper.draw(view, c, startX, startY, complexReceiver, useFullWidth());
+    if (tgx101HighlightedChildId() != 0) {
+      mosaicWrapper.tgx101DrawItemHighlight(c, tgx101HighlightedChildId(), tgx101HighlightFactor()); // TGx101: M2
+    }
     if (clipped) {
       ViewSupport.restoreClipPath(c, saveCount);
     }
