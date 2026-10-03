@@ -112,11 +112,45 @@ public final class Tgx101Diag {
     writer.post(Tgx101Diag::dumpSystemLog);
   }
 
+  private static java.lang.ref.WeakReference<Activity> topActivity = new java.lang.ref.WeakReference<>(null);
+
+  /**
+   * Diagnostics builds only: `adb shell am broadcast -a com.plumagram.app.DIAG_TEXT --es text "…"` types the text into
+   * the focused input (adb can't type Cyrillic). Only senders holding DUMP (the adb shell) can send it.
+   */
+  private static void registerTextInput (Application app) {
+    android.content.BroadcastReceiver receiver = new android.content.BroadcastReceiver() {
+      @Override
+      public void onReceive (android.content.Context context, android.content.Intent intent) {
+        String text = intent.getStringExtra("text");
+        if (text == null) return;
+        Activity activity = topActivity.get();
+        if (activity == null) return;
+        activity.runOnUiThread(() -> {
+          android.view.View focus = activity.getCurrentFocus();
+          if (focus instanceof android.widget.EditText) {
+            android.widget.EditText edit = (android.widget.EditText) focus;
+            int start = Math.max(0, edit.getSelectionStart()), end = Math.max(0, edit.getSelectionEnd());
+            edit.getText().replace(Math.min(start, end), Math.max(start, end), text);
+            mark("diag text input: " + text.length() + " chars");
+          }
+        });
+      }
+    };
+    android.content.IntentFilter filter = new android.content.IntentFilter(app.getPackageName() + ".DIAG_TEXT");
+    if (android.os.Build.VERSION.SDK_INT >= 33) {
+      app.registerReceiver(receiver, filter, android.Manifest.permission.DUMP, null, android.content.Context.RECEIVER_EXPORTED);
+    } else {
+      app.registerReceiver(receiver, filter, android.Manifest.permission.DUMP, null);
+    }
+  }
+
   /** Lifecycle, screen, memory and UI stall tracking. Called from Application.onCreate. */
   public static void attach (Application app) {
     if (!BuildConfig.TGX101_DIAG || writer == null) {
       return;
     }
+    registerTextInput(app);
     app.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
       private int resumed;
       @Override public void onActivityCreated (Activity a, Bundle state) { mark("activity " + a.getClass().getSimpleName() + " created" + (state != null ? " (restored)" : "")); }
@@ -125,6 +159,7 @@ public final class Tgx101Diag {
         StartWatch.onStarted(a);
       }
       @Override public void onActivityResumed (Activity a) {
+        topActivity = new java.lang.ref.WeakReference<>(a);
         mark("activity " + a.getClass().getSimpleName() + " resumed [" + state(a) + "]");
         if (resumed++ == 0) StallWatch.setEnabled(true);
         FrameWatch.attach(a);
