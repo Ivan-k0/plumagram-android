@@ -9035,7 +9035,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     SwipeQuickAction replyButton = null;
     if (canReply) {
       replyButton = new SwipeQuickAction(replyText, iQuickReply, () -> {
-        TdApi.Message message = getNewestMessage();
+        // TGx101: in an album the reply goes to the photo / video / file the swipe started on (like the official app)
+        long childId = combinedMessages != null && combinedMessages.size() > 1 ? findMessageIdUnder(mInitialTouchX, mInitialTouchY) : 0;
+        TdApi.Message child = childId != 0 ? getMessage(childId) : null;
+        TdApi.Message message = child != null ? child : getNewestMessage();
         getMessageProperties(message.id, properties -> {
           runOnUiThreadOptional(() -> {
             messagesController().showReply(new MessageWithProperties(message, properties), null, 0, "", true, true);
