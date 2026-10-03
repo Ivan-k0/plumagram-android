@@ -1387,6 +1387,125 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
   }
 
+  // TGx101: caption — timestamps seek the video, lines «12:34 Title» become chapters; a long caption starts collapsed
+
+  private static final String TGX101_SEEK_PREFIX = "tgx101seek:";
+  private @Nullable long[] tgx101ChapterStarts;
+  private @Nullable String[] tgx101ChapterTitles;
+  private boolean tgx101CaptionExpanded;
+
+  private void tgx101SetCaptionWithChapters (MediaItem item) {
+    TdApi.FormattedText caption = item.getCaption();
+    java.util.ArrayList<Long> starts = new java.util.ArrayList<>();
+    java.util.ArrayList<String> titles = new java.util.ArrayList<>();
+    TdApi.TextEntity[] entities = caption.entities != null ? caption.entities.clone() : new TdApi.TextEntity[0];
+    boolean hasTimestamps = false;
+    for (int i = 0; i < entities.length; i++) {
+      TdApi.TextEntity entity = entities[i];
+      if (entity.type.getConstructor() != TdApi.TextEntityTypeMediaTimestamp.CONSTRUCTOR) continue;
+      int seconds = ((TdApi.TextEntityTypeMediaTimestamp) entity.type).mediaTimestamp;
+      entities[i] = new TdApi.TextEntity(entity.offset, entity.length, new TdApi.TextEntityTypeTextUrl(TGX101_SEEK_PREFIX + seconds));
+      hasTimestamps = true;
+      // a chapter: the timestamp opens its line and some text follows
+      String text = caption.text;
+      int lineStart = text.lastIndexOf('\n', Math.max(0, entity.offset - 1)) + 1;
+      if (entity.offset > 0 && lineStart > entity.offset) lineStart = 0;
+      if (!text.substring(lineStart, entity.offset).trim().replaceAll("[•·\\-–—*▪►>)(\\[\\]]", "").isEmpty()) continue;
+      int lineEnd = text.indexOf('\n', entity.offset + entity.length);
+      if (lineEnd == -1) lineEnd = text.length();
+      String title = text.substring(entity.offset + entity.length, lineEnd).replaceFirst("^[\\s\\-–—:|•·.)]+", "").trim();
+      if (title.isEmpty()) continue;
+      starts.add(seconds * 1000L);
+      titles.add(title);
+    }
+    TdApi.FormattedText shown = hasTimestamps ? new TdApi.FormattedText(caption.text, entities) : caption;
+    CustomTextView view = (CustomTextView) captionView;
+    view.setText(shown.text, hasTimestamps ? TextEntity.valueOf(tdlib, shown, null) : item.getCaptionEntities(), false);
+    view.setTgx101UrlInterceptor(url -> {
+      if (!url.startsWith(TGX101_SEEK_PREFIX)) return false;
+      try {
+        long ms = Long.parseLong(url.substring(TGX101_SEEK_PREFIX.length())) * 1000L;
+        tgx101SeekTo(ms);
+      } catch (NumberFormatException ignored) { }
+      return true;
+    });
+    if (starts.size() >= 2 && item.isVideo()) {
+      // sorted by time (a list of chapters is usually written in order already)
+      Integer[] order = new Integer[starts.size()];
+      for (int i = 0; i < order.length; i++) order[i] = i;
+      java.util.Arrays.sort(order, (a, b) -> Long.compare(starts.get(a), starts.get(b)));
+      tgx101ChapterStarts = new long[order.length];
+      tgx101ChapterTitles = new String[order.length];
+      for (int i = 0; i < order.length; i++) {
+        tgx101ChapterStarts[i] = starts.get(order[i]);
+        tgx101ChapterTitles[i] = titles.get(order[i]);
+      }
+    } else {
+      tgx101ChapterStarts = null;
+      tgx101ChapterTitles = null;
+    }
+    if (videoSliderView != null) {
+      videoSliderView.setTgx101Chapters(tgx101ChapterStarts, tgx101ChapterTitles, v -> tgx101OpenSettingsPage(PAGE_CHAPTERS));
+    }
+    tgx101CaptionExpanded = false;
+    captionView.post(this::tgx101ApplyCaptionHeight);
+  }
+
+  private void tgx101SeekTo (long ms) {
+    org.thunderdog.challegram.Tgx101Diag.mark("player: seek to " + (ms / 1000) + " s from the caption");
+    MediaCellView cell = mediaView.getBaseCell();
+    if (cell != null && stack.getCurrent().isVideo()) {
+      cell.tgx101SeekTo(ms);
+    }
+  }
+
+  private int tgx101CaptionCollapsedHeight () {
+    return Text.getLineHeight(TGMessage.getTextStyleProvider(), true) * 2 + Screen.dp(28f);
+  }
+
+  private int tgx101CaptionExpandedHeight () {
+    int lines = Text.getLineHeight(TGMessage.getTextStyleProvider(), true) * 10 + Screen.dp(14f);
+    return Math.min(lines, (int) (Screen.currentHeight() * .45f)); // in landscape it used to cover the whole video
+  }
+
+  private boolean tgx101CaptionCollapsible () {
+    return captionView instanceof CustomTextView && captionView.getMeasuredWidth() > 0 &&
+      ((CustomTextView) captionView).getCurrentHeight(captionView.getMeasuredWidth()) > tgx101CaptionCollapsedHeight() + Screen.dp(8f);
+  }
+
+  private void tgx101ApplyCaptionHeight () {
+    if (!(captionWrapView instanceof MaxHeightScrollView)) return;
+    MaxHeightScrollView scroll = (MaxHeightScrollView) captionWrapView;
+    boolean collapsed = !tgx101CaptionExpanded && tgx101CaptionCollapsible();
+    scroll.setMaxHeight(collapsed ? tgx101CaptionCollapsedHeight() : tgx101CaptionExpandedHeight());
+    scroll.setVerticalFadingEdgeEnabled(collapsed);
+    scroll.setFadingEdgeLength(Text.getLineHeight(TGMessage.getTextStyleProvider(), true));
+    if (collapsed) scroll.scrollTo(0, 0);
+  }
+
+  private void tgx101ToggleCaption () {
+    if (!tgx101CaptionCollapsible() || !(captionWrapView instanceof MaxHeightScrollView)) return;
+    MaxHeightScrollView scroll = (MaxHeightScrollView) captionWrapView;
+    int from = scroll.getHeight();
+    tgx101CaptionExpanded = !tgx101CaptionExpanded;
+    org.thunderdog.challegram.Tgx101Diag.mark("player: caption " + (tgx101CaptionExpanded ? "expanded" : "collapsed"));
+    int full = Math.min(((CustomTextView) captionView).getCurrentHeight(captionView.getMeasuredWidth()), tgx101CaptionExpandedHeight());
+    int to = tgx101CaptionExpanded ? full : tgx101CaptionCollapsedHeight();
+    scroll.setVerticalFadingEdgeEnabled(!tgx101CaptionExpanded);
+    android.animation.ValueAnimator animator = android.animation.ValueAnimator.ofInt(from, to);
+    animator.setDuration(200);
+    animator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+    animator.addUpdateListener(a -> scroll.setMaxHeight((int) a.getAnimatedValue()));
+    animator.addListener(new android.animation.AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd (android.animation.Animator animation) {
+        tgx101ApplyCaptionHeight();
+      }
+    });
+    if (!tgx101CaptionExpanded) scroll.smoothScrollTo(0, 0);
+    animator.start();
+  }
+
   private void setCaption (String text, TextEntity[] entities) {
     if (captionView instanceof TextView) {
       ((TextView) captionView).setText(text);
@@ -1413,7 +1532,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       case MODE_SIMPLE: {
         boolean isVisible = item.getCaption() != null;
         if (isVisible) {
-          ((CustomTextView) captionView).setText(item.getCaption().text, item.getCaptionEntities(), false);
+          tgx101SetCaptionWithChapters(item);
           if (!animated && !this.isCaptionVisible) {
             this.isCaptionVisible = true;
             this.captionFactor = 1f;
@@ -3767,7 +3886,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private @Nullable LinearLayout tgx101SettingsRows;
   private @Nullable android.widget.TextView tgx101SettingsTitle;
   private @Nullable View tgx101SettingsBack;
-  private static final int PAGE_MAIN = 0, PAGE_SPEED = 1, PAGE_GESTURES = 2, PAGE_STEP = 3, PAGE_SLEEP = 4, PAGE_ORIENTATION = 5;
+  private static final int PAGE_MAIN = 0, PAGE_SPEED = 1, PAGE_GESTURES = 2, PAGE_STEP = 3, PAGE_SLEEP = 4, PAGE_ORIENTATION = 5, PAGE_CHAPTERS = 6;
   private int tgx101SettingsPage = PAGE_MAIN;
 
   /** The panel shows a list on its own page instead of a separate full-screen menu */
@@ -3781,7 +3900,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private boolean tgx101CloseSettings () {
     if (tgx101SettingsView == null) return false;
-    contentView.removeView(tgx101SettingsView);
+    // TGx101: a light slide out (user 2026-10-03: windows of the player open and close smoothly)
+    View closing = tgx101SettingsView;
+    closing.setClickable(false);
+    View panel = ((ViewGroup) closing).getChildAt(0);
+    boolean landscape = context.getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+    closing.animate().alpha(0f).setDuration(150).start();
+    panel.animate().translationX(landscape ? Screen.dp(36f) : 0).translationY(landscape ? 0 : Screen.dp(36f)).setDuration(150)
+      .setInterpolator(AnimatorUtils.ACCELERATE_INTERPOLATOR).withEndAction(() -> contentView.removeView(closing)).start();
     tgx101SettingsView = null;
     tgx101SettingsRows = null;
     tgx101SettingsPage = PAGE_MAIN;
@@ -3790,7 +3916,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private void tgx101RefreshSettings () {
     if (tgx101SettingsRows == null) return;
-    String[] titles = {Lang.getString(R.string.Tgx101PlayerSettings), Lang.getString(R.string.Tgx101PlayerSpeed), Lang.getString(R.string.Tgx101PlayerGestures), Lang.getString(R.string.Tgx101PlayerSeekStep), Lang.getString(R.string.Tgx101PlayerSleep), Lang.getString(R.string.Tgx101Orientation)};
+    String[] titles = {Lang.getString(R.string.Tgx101PlayerSettings), Lang.getString(R.string.Tgx101PlayerSpeed), Lang.getString(R.string.Tgx101PlayerGestures), Lang.getString(R.string.Tgx101PlayerSeekStep), Lang.getString(R.string.Tgx101PlayerSleep), Lang.getString(R.string.Tgx101Orientation), Lang.getString(R.string.Tgx101PlayerChapters)};
     if (tgx101SettingsTitle != null) tgx101SettingsTitle.setText(titles[tgx101SettingsPage]);
     if (tgx101SettingsBack != null) tgx101SettingsBack.setVisibility(tgx101SettingsPage == PAGE_MAIN ? View.GONE : View.VISIBLE);
     if (tgx101SettingsPage == PAGE_MAIN) {
@@ -3798,12 +3924,32 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     } else {
       tgx101FillSettingsPage(tgx101SettingsRows, tgx101SettingsPage);
     }
+    // a page change fades in (the rows used to be swapped in a single frame)
+    tgx101SettingsRows.setAlpha(0f);
+    tgx101SettingsRows.animate().alpha(1f).setDuration(130).start();
   }
 
   private void tgx101FillSettingsPage (LinearLayout rows, int page) {
     rows.removeAllViews();
     Settings settings = Settings.instance();
     switch (page) {
+      case PAGE_CHAPTERS: {
+        long[] chapterStarts = tgx101ChapterStarts;
+        String[] chapterTitles = tgx101ChapterTitles;
+        if (chapterStarts == null || chapterTitles == null) break;
+        MediaCellView cell = mediaView.getBaseCell();
+        long now = cell != null ? cell.tgx101TimeNow() : 0;
+        int current = 0;
+        for (int i = 0; i < chapterStarts.length; i++) if (chapterStarts[i] <= now) current = i;
+        for (int i = 0; i < chapterStarts.length; i++) {
+          final long start = chapterStarts[i];
+          tgx101ChoiceRow(rows, Strings.buildDuration(start / 1000) + "   " + chapterTitles[i], i == current, () -> {
+            tgx101SeekTo(start);
+            tgx101CloseSettings();
+          });
+        }
+        break;
+      }
       case PAGE_SPEED: {
         float current = settings.tgx101PlayerSpeed();
         for (float speed : TGX101_SPEEDS) {
@@ -3978,6 +4124,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     wrap.addView(panel, params);
     tgx101SettingsView = wrap;
     contentView.addView(wrap);
+    // TGx101: a light slide in from the edge the panel sits at
+    wrap.setAlpha(0f);
+    panel.setTranslationX(landscape ? Screen.dp(36f) : 0);
+    panel.setTranslationY(landscape ? 0 : Screen.dp(36f));
+    wrap.animate().alpha(1f).setDuration(160).start();
+    panel.animate().translationX(0).translationY(0).setDuration(200).setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR).start();
   }
 
   private void tgx101FillSettingsRows (LinearLayout rows) {
@@ -5955,9 +6107,34 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         }
 
         CustomTextView captionView = new CustomTextView(context, tdlib) {
+          private float downX, downY;
+          private boolean tapping;
+
           @Override
           public boolean onTouchEvent (MotionEvent event) {
-            return Views.onTouchEvent(this, event) && super.onTouchEvent(event);
+            boolean handled = Views.onTouchEvent(this, event) && super.onTouchEvent(event);
+            // TGx101: a tap outside links expands / collapses a long caption
+            switch (event.getActionMasked()) {
+              case MotionEvent.ACTION_DOWN:
+                tapping = !handled && tgx101CaptionCollapsible();
+                downX = event.getX();
+                downY = event.getY();
+                break;
+              case MotionEvent.ACTION_MOVE:
+                if (tapping && Math.hypot(event.getX() - downX, event.getY() - downY) > Screen.getTouchSlop()) tapping = false;
+                break;
+              case MotionEvent.ACTION_UP:
+                if (tapping) {
+                  tapping = false;
+                  tgx101ToggleCaption();
+                  return true;
+                }
+                break;
+              case MotionEvent.ACTION_CANCEL:
+                tapping = false;
+                break;
+            }
+            return handled || tapping;
           }
         };
         captionView.setPadding(Screen.dp(14f), Screen.dp(14f), Screen.dp(14f), Screen.dp(14f));
@@ -5976,7 +6153,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         captionWrap.addView(captionView);
         captionWrap.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        MaxHeightScrollView scrollView = new MaxHeightScrollView(context);
+        MaxHeightScrollView scrollView = new MaxHeightScrollView(context) {
+          @Override
+          public boolean onInterceptTouchEvent (MotionEvent ev) {
+            return tgx101CaptionExpanded || !tgx101CaptionCollapsible() ? super.onInterceptTouchEvent(ev) : false; // TGx101: collapsed — a tap expands it
+          }
+        };
         scrollView.setMaxHeight(Text.getLineHeight(TGMessage.getTextStyleProvider(), true) * 10 + Screen.dp(14f));
         scrollView.addView(captionWrap);
         scrollView.setAlpha(0f);

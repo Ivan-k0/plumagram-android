@@ -6182,6 +6182,7 @@
   <string name="Tgx101SpeechModelMissing">Download a speech model in Settings → MagiX → Speech recognition to transcribe voice messages on the phone</string>
   <string name="Tgx101MenuThread">View in topic / replies</string>
   <string name="Tgx101MenuBack">Back</string>
+  <string name="Tgx101PlayerChapters">Chapters</string>
   <string name="Tgx101TestSection">Testing</string>
   <string name="Tgx101FakeNoPremium">As without Premium (test)</string>
   <string name="Tgx101FakeNoPremiumHint">Test builds only. The app shows everything as for an account without Premium; the server still knows the account has it. Restart the app after switching.</string>

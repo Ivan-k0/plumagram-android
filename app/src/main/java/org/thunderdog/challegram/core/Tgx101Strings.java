@@ -341,6 +341,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SpeechModelMissing, "Чтобы расшифровывать голосовые на телефоне, скачайте модель: Настройки → MagiX → Распознавание речи");
     RU.put(R.string.Tgx101MenuThread, "Посмотреть в теме / ответы");
     RU.put(R.string.Tgx101MenuBack, "Назад");
+    RU.put(R.string.Tgx101PlayerChapters, "Главы");
     RU.put(R.string.Tgx101TestSection, "Тесты");
     RU.put(R.string.Tgx101FakeNoPremium, "Как без Премиума (тест)");
     RU.put(R.string.Tgx101FakeNoPremiumHint, "Только в тестовых сборках. Приложение показывает всё как для аккаунта без Премиума; сервер по-прежнему знает, что Премиум есть. После переключения перезапустите приложение.");

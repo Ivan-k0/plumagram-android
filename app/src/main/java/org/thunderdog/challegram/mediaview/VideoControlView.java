@@ -179,6 +179,77 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
     });
   }
 
+  // TGx101: chapters from the caption's timestamps — marks on the track, the current one's title above the bar
+
+  private @Nullable long[] chapterStarts;
+  private @Nullable String[] chapterTitles;
+  private @Nullable TextView chapterView;
+  private int shownChapter = -1;
+
+  public void setTgx101Chapters (@Nullable long[] starts, @Nullable String[] titles, @Nullable View.OnClickListener onClick) {
+    boolean has = starts != null && titles != null && starts.length >= 2;
+    chapterStarts = has ? starts : null;
+    chapterTitles = has ? titles : null;
+    shownChapter = -1;
+    tgx101ChapterTitle = has ? ms -> {
+      int index = chapterIndex(ms);
+      return index >= 0 ? chapterTitles[index] : null;
+    } : null;
+    if (has && chapterView == null) {
+      chapterView = new NoScrollTextView(getContext());
+      chapterView.setTextColor(0xffffffff);
+      chapterView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 13f);
+      chapterView.setTypeface(Fonts.getRobotoMedium());
+      chapterView.setSingleLine(true);
+      chapterView.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      chapterView.setCompoundDrawablePadding(Screen.dp(4f));
+      chapterView.setPadding(Screen.dp(10f), Screen.dp(4f), Screen.dp(8f), Screen.dp(4f));
+      android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+      bg.setColor(0xb3161c22);
+      bg.setCornerRadius(Screen.dp(12f));
+      chapterView.setBackground(bg);
+      FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.LEFT | Gravity.BOTTOM);
+      params.leftMargin = Screen.dp(14f);
+      params.rightMargin = Screen.dp(14f);
+      params.bottomMargin = Screen.dp(62f);
+      addView(chapterView, params);
+    }
+    if (chapterView != null) {
+      chapterView.setVisibility(has ? View.VISIBLE : View.GONE);
+      chapterView.setOnClickListener(onClick);
+      if (has) updateChapter(nowDurationMs);
+    }
+    updateChapterMarks();
+  }
+
+  private int chapterIndex (long ms) {
+    if (chapterStarts == null) return -1;
+    int index = -1;
+    for (int i = 0; i < chapterStarts.length; i++) {
+      if (chapterStarts[i] <= ms) index = i; else break;
+    }
+    return index;
+  }
+
+  private void updateChapter (long ms) {
+    if (chapterView == null || chapterTitles == null) return;
+    int index = Math.max(0, chapterIndex(ms));
+    if (index != shownChapter) {
+      shownChapter = index;
+      chapterView.setText(chapterTitles[index] + "  ›");
+    }
+  }
+
+  private void updateChapterMarks () {
+    if (chapterStarts == null || totalDurationMs <= 0) {
+      sliderView.setTgx101Marks(null);
+      return;
+    }
+    float[] marks = new float[chapterStarts.length];
+    for (int i = 0; i < marks.length; i++) marks[i] = (float) ((double) chapterStarts[i] / totalDurationMs);
+    sliderView.setTgx101Marks(marks);
+  }
+
   private @Nullable TextView seekBubble;
 
   /** TGx101: the chapter title at a moment of the video (from the caption's timestamps), shown under the time */
@@ -332,6 +403,7 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
   private void setNowMs (long ms) {
     if (this.nowDurationMs != ms) {
       this.nowDurationMs = ms;
+      updateChapter(ms);
       nowView.setText(Strings.buildDuration(Math.round(ms / 1000.0)));
     }
   }
@@ -341,6 +413,7 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
       boolean changedState = (ms == 0 || totalDurationMs == 0);
       this.totalDurationMs = ms;
       totalView.setText(Strings.buildDuration(Math.round(ms / 1000.0)));
+      updateChapterMarks();
       if (changedState) {
         updateSliderAvailability();
       }

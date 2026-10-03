@@ -21,6 +21,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.util.ObjectsCompat;
 
@@ -66,11 +67,27 @@ public class CustomTextView extends View implements TGLegacyManager.EmojiLoadLis
               quoteLineColorId = ColorId.blockQuoteLine;
   @Nullable
   private ThemeDelegate forcedTheme;
+  /** TGx101: handles links of its own (the viewer's caption: timestamps seek the video) */
+  public interface UrlInterceptor {
+    boolean onUrl (String url);
+  }
+
+  private @Nullable UrlInterceptor tgx101UrlInterceptor;
+
+  public void setTgx101UrlInterceptor (@Nullable UrlInterceptor interceptor) {
+    this.tgx101UrlInterceptor = interceptor;
+  }
+
   private final Text.ClickCallback clickCallback = new Text.ClickCallback() {
     @Nullable
     @Override
     public ThemeDelegate getForcedTheme (View view, Text text) {
       return forcedTheme;
+    }
+
+    @Override
+    public boolean onUrlClick (View view, String link, boolean promptUser, @NonNull org.thunderdog.challegram.telegram.TdlibUi.UrlOpenParameters openParameters) {
+      return tgx101UrlInterceptor != null && tgx101UrlInterceptor.onUrl(link);
     }
   };
   private int linkFlags = Text.ENTITY_FLAGS_NONE;

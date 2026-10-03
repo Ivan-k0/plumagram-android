@@ -394,6 +394,14 @@ public class SliderView extends View implements FactorAnimator.Target {
     return getPaddingTop() + (getMeasuredHeight() - getPaddingBottom() - getPaddingTop()) / 2;
   }
 
+  private @androidx.annotation.Nullable float[] tgx101Marks;
+
+  /** TGx101: chapter starts (0..1) drawn as small gaps in the track */
+  public void setTgx101Marks (@androidx.annotation.Nullable float[] marks) {
+    this.tgx101Marks = marks;
+    invalidate();
+  }
+
   /** TGx101: x of the thumb in this view (the seek time bubble follows it) */
   public int tgx101ThumbX () {
     return findCenterX();
@@ -498,6 +506,15 @@ public class SliderView extends View implements FactorAnimator.Target {
       }
     }
 
+    if (tgx101Marks != null) {
+      // TGx101: chapter starts — short gaps through the track
+      int gap = Screen.dp(1.5f);
+      for (float mark : tgx101Marks) {
+        if (mark <= 0f || mark >= 1f) continue;
+        float mx = left + width * mark;
+        c.drawRect(mx - gap, top - Screen.dp(2f), mx + gap, bottom + Screen.dp(2f), Paints.fillingPaint(0xcc000000));
+      }
+    }
     int radius = Screen.dp(6f) + (int) ((float) Screen.dp(4f) * upFactor);
     c.drawCircle(cx, cy, radius, Paints.fillingPaint(color));
 
