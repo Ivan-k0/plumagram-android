@@ -7736,9 +7736,28 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
 
   // Updates: SAVED MESSAGES
 
+  // TGx101: Saved Messages split by the chat messages were saved from («Saved by chats»)
+  private final java.util.Map<Long, TdApi.SavedMessagesTopic> tgx101SavedTopics = new java.util.HashMap<>();
+
   @TdlibThread
   private void updateSavedMessagesTopic (TdApi.UpdateSavedMessagesTopic update) {
+    synchronized (tgx101SavedTopics) {
+      if (update.topic.order == 0) {
+        tgx101SavedTopics.remove(update.topic.id);
+      } else {
+        tgx101SavedTopics.put(update.topic.id, update.topic);
+      }
+    }
+  }
 
+  /** Topics of Saved Messages, pinned first, then by recent activity */
+  public java.util.List<TdApi.SavedMessagesTopic> tgx101SavedTopics () {
+    java.util.List<TdApi.SavedMessagesTopic> list;
+    synchronized (tgx101SavedTopics) {
+      list = new java.util.ArrayList<>(tgx101SavedTopics.values());
+    }
+    java.util.Collections.sort(list, (a, b) -> Long.compare(b.order, a.order));
+    return list;
   }
 
   @TdlibThread

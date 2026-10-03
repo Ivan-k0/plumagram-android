@@ -396,6 +396,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101LocalPin, "Закрепить на этом телефоне");
     RU.put(R.string.Tgx101LocalUnpin, "Открепить (на телефоне)");
     RU.put(R.string.Tgx101LocalPinned, "Закреплено на этом телефоне: лимит закреплённых чатов Telegram исчерпан, на других устройствах чат не будет закреплён");
+    RU.put(R.string.Tgx101SavedByChats, "Избранное по чатам");
+    RU.put(R.string.Tgx101SavedMyNotes, "Мои заметки");
+    RU.put(R.string.Tgx101SavedAuthorHidden, "Скрытый отправитель");
     RU.put(R.string.Tgx101TestSection, "Тесты");
     RU.put(R.string.Tgx101FakeNoPremium, "Как без Премиума (тест)");
     RU.put(R.string.Tgx101FakeNoPremiumHint, "Только в тестовых сборках. Приложение показывает всё как для аккаунта без Премиума; сервер по-прежнему знает, что Премиум есть. После переключения перезапустите приложение.");

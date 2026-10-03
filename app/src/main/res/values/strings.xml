@@ -6237,6 +6237,9 @@
   <string name="Tgx101LocalPin">Pin on this phone</string>
   <string name="Tgx101LocalUnpin">Unpin (this phone)</string>
   <string name="Tgx101LocalPinned">Pinned on this phone: Telegram\'s pinned-chat limit is reached, other devices won\'t show it</string>
+  <string name="Tgx101SavedByChats">Saved by chats</string>
+  <string name="Tgx101SavedMyNotes">My notes</string>
+  <string name="Tgx101SavedAuthorHidden">Hidden sender</string>
   <string name="Tgx101TestSection">Testing</string>
   <string name="Tgx101FakeNoPremium">As without Premium (test)</string>
   <string name="Tgx101FakeNoPremiumHint">Test builds only. The app shows everything as for an account without Premium; the server still knows the account has it. Restart the app after switching.</string>

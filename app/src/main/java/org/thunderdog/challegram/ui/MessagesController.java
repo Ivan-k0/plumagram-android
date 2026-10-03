@@ -2253,6 +2253,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tdlib.ui().processLeaveButton(this, null, getChatId(), id, null)) {
       return;
     }
+    if (id == R.id.btn_tgx101SavedByChats) {
+      Tgx101SavedTopicsController.open(this);
+      return;
+    }
     if (id == R.id.btn_copyLink || id == R.id.btn_share) {
       tdlib.client().send(new TdApi.GetBackgroundUrl(getArgumentsStrict().wallpaperObject.name, TGBackground.makeBlurredBackgroundType(getArgumentsStrict().wallpaperObject.type, backgroundParamsView != null && backgroundParamsView.isBlurred())), result -> {
         if (result.getConstructor() == TdApi.HttpUrl.CONSTRUCTOR) {
@@ -4613,6 +4617,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (!manager.isTotallyEmpty() && (Config.USE_SECRET_SEARCH || !isSecretChat()) && !messagesHidden) {
       ids.append(R.id.btn_search);
       strings.append(R.string.Search);
+    }
+
+    if (tdlib.isSelfChat(chat.id) && getMessageTopicId() == null) {
+      ids.append(R.id.btn_tgx101SavedByChats); // TGx101: Saved Messages grouped by chat
+      strings.append(R.string.Tgx101SavedByChats);
     }
 
     if ((!tdlib.isChannel(chat.id) || (status != null && !TD.isLeft(status))) && !tdlib.isSelfChat(chat.id)) {

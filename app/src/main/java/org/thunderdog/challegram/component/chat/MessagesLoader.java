@@ -1216,6 +1216,11 @@ public class MessagesLoader implements Client.ResultHandler {
             loadingLocal = false;
             Log.ensureReturnType(TdApi.GetMessageThreadHistory.class, TdApi.Messages.class);
             function = new TdApi.GetMessageThreadHistory(sourceChatId, messageThread.getOldestMessageId(), (lastFromMessageId = fromMessageId).getMessageId(), lastOffset = offset, lastLimit = limit);
+          } else if (topicId instanceof TdApi.MessageTopicSavedMessages) {
+            // TGx101: one chat of «Saved by chats»
+            loadingLocal = false;
+            Log.ensureReturnType(TdApi.GetSavedMessagesTopicHistory.class, TdApi.Messages.class);
+            function = new TdApi.GetSavedMessagesTopicHistory(((TdApi.MessageTopicSavedMessages) topicId).savedMessagesTopicId, (lastFromMessageId = fromMessageId).getMessageId(), lastOffset = offset, lastLimit = limit);
           } else if (topicId instanceof TdApi.MessageTopicForum) {
             // TGx101: a forum topic shows only its own messages (GetChatHistory returned the whole forum)
             loadingLocal = false;
