@@ -112,6 +112,8 @@ public class SettingsPrivacyController extends RecyclerViewController<SettingsPr
           v.setData(Passcode.instance().getModeName());
         } else if (itemId == R.id.btn_accountTTL) {
           v.setData(getAccountTTLIn());
+        } else if (itemId == R.id.btn_tgx101DefaultAutoDelete) {
+          v.setData(tgx101DefaultAutoDelete < 0 ? "…" : tgx101AutoDeleteName(tgx101DefaultAutoDelete));
         } else if (itemId == R.id.btn_hideSecretChats) {
           v.getToggler().setRadioEnabled(Settings.instance().needHideSecretChats(), isUpdate);
         } else if (itemId == R.id.btn_2fa) {
@@ -244,6 +246,8 @@ public class SettingsPrivacyController extends RecyclerViewController<SettingsPr
     /*items.add(new SettingItem(SettingItem.TYPE_SEPARATOR_FULL));
     items.add(new SettingItem(SettingItem.TYPE_VALUED_SETTING, R.id.btn_mapProviderCloud, 0, R.string.MapPreviewProviderCloud));*/
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101DefaultAutoDelete, 0, R.string.Tgx101DefaultAutoDelete));
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
       items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_accountTTL, 0, R.string.DeleteAccountIfAwayFor2));
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
       items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.DeleteAccountHelp));
@@ -266,6 +270,12 @@ public class SettingsPrivacyController extends RecyclerViewController<SettingsPr
     tdlib.send(new TdApi.GetPasswordState(), (passwordState) -> runOnUiThreadOptional(() ->
       setPasswordState(passwordState, true)
     ), UI::showError);
+    tdlib.send(new TdApi.GetDefaultMessageAutoDeleteTime(), (time, error) -> runOnUiThreadOptional(() -> {
+      if (time != null) {
+        tgx101DefaultAutoDelete = time.time;
+        adapter.updateValuedSettingById(R.id.btn_tgx101DefaultAutoDelete);
+      }
+    }));
     tdlib.send(new TdApi.GetAccountTtl(), (accountTtl) -> runOnUiThreadOptional(() ->
       setAccountTTL(accountTtl)
     ), UI::showError);
@@ -500,6 +510,27 @@ public class SettingsPrivacyController extends RecyclerViewController<SettingsPr
       if (passwordState != null && !StringUtils.isEmpty(passwordState.loginEmailAddressPattern)) {
         tdlib.ui().editLoginEmail(this, passwordState);
       }
+    } else if (id == R.id.btn_tgx101DefaultAutoDelete) {
+      // TGx101: default auto-delete timer for new chats (official apps: Privacy → Auto-delete messages)
+      final int[] values = {0, 86400, 7 * 86400, 31 * 86400};
+      String[] names = new String[values.length];
+      int[] ids = new int[values.length];
+      for (int i = 0; i < values.length; i++) {
+        names[i] = tgx101AutoDeleteName(values[i]) + (values[i] == tgx101DefaultAutoDelete ? "  ✓" : "");
+        ids[i] = i + 1;
+      }
+      showOptions(Lang.getString(R.string.Tgx101DefaultAutoDeleteHint), ids, names, null, null, (itemView, optionId) -> {
+        int value = values[optionId - 1];
+        tdlib.send(new TdApi.SetDefaultMessageAutoDeleteTime(new TdApi.MessageAutoDeleteTime(value)), (ok, error) -> runOnUiThreadOptional(() -> {
+          if (error != null) {
+            UI.showError(error);
+          } else {
+            tgx101DefaultAutoDelete = value;
+            adapter.updateValuedSettingById(R.id.btn_tgx101DefaultAutoDelete);
+          }
+        }));
+        return true;
+      });
     } else if (id == R.id.btn_accountTTL) {
       int days = accountTtl != null ? accountTtl.days : 0;
       int months = days / 30;
@@ -551,6 +582,16 @@ public class SettingsPrivacyController extends RecyclerViewController<SettingsPr
         }
       }
     }
+  }
+
+  private int tgx101DefaultAutoDelete = -1;
+
+  private static String tgx101AutoDeleteName (int seconds) {
+    if (seconds <= 0) return Lang.getString(R.string.Tgx101AutoDeleteOff);
+    int days = seconds / 86400;
+    if (days >= 28) return Lang.plural(R.string.xMonths, Math.max(1, days / 30));
+    if (days >= 7) return Lang.plural(R.string.xWeeks, days / 7);
+    return Lang.plural(R.string.xDays, days);
   }
 
   // Blocked users
