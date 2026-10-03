@@ -288,9 +288,16 @@ public final class Tgx101Transcription {
     // Server
 
     void recognizeOnServer () {
+      if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101FakeNoPremium()) {
+        // «As without Premium» test switch: the phone's own recognizer, as for an account whose weekly trial is used up
+        org.thunderdog.challegram.Tgx101Diag.mark("transcription: server skipped (as without Premium)");
+        recognizeOnDevice();
+        return;
+      }
       tdlib.client().send(new TdApi.RecognizeSpeech(chatId, messageId), result -> {
         if (result instanceof TdApi.Error) {
           Log.i("Server speech recognition refused: %s", TD.toErrorString(result));
+          org.thunderdog.challegram.Tgx101Diag.mark("transcription: server refused: " + TD.toErrorString(result));
           recognizeOnDevice();
         } else {
           pollServerResult(0);
@@ -309,6 +316,7 @@ public final class Tgx101Transcription {
           finish(((TdApi.SpeechRecognitionResultText) recognition).text);
         } else if (recognition instanceof TdApi.SpeechRecognitionResultError) {
           Log.i("Server speech recognition failed: %s", TD.toErrorString(((TdApi.SpeechRecognitionResultError) recognition).error));
+          org.thunderdog.challegram.Tgx101Diag.mark("transcription: server failed: " + TD.toErrorString(((TdApi.SpeechRecognitionResultError) recognition).error));
           recognizeOnDevice();
         } else {
           if (recognition instanceof TdApi.SpeechRecognitionResultPending) {
@@ -322,6 +330,17 @@ public final class Tgx101Transcription {
     // On device
 
     void recognizeOnDevice () {
+      if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+        Context c = UI.getAppContext();
+        boolean available = SpeechRecognizer.isRecognitionAvailable(c);
+        boolean onDevice = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && SpeechRecognizer.isOnDeviceRecognitionAvailable(c);
+        android.content.ComponentName service = null;
+        try {
+          String s = android.provider.Settings.Secure.getString(c.getContentResolver(), "voice_recognition_service");
+          service = s != null ? android.content.ComponentName.unflattenFromString(s) : null;
+        } catch (Throwable ignored) { }
+        org.thunderdog.challegram.Tgx101Diag.mark("transcription: on device, sdk " + Build.VERSION.SDK_INT + ", recognizer " + available + ", on-device " + onDevice + ", service " + (service != null ? service.getPackageName() : "none") + ", language " + Locale.getDefault().toLanguageTag());
+      }
       if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !SpeechRecognizer.isRecognitionAvailable(UI.getAppContext())) {
         fail(Lang.getString(R.string.TranscriptionUnavailable));
         return;
@@ -395,9 +414,10 @@ public final class Tgx101Transcription {
 
         @Override public void onSegmentResults (Bundle segmentResults) { appendResults(segmentResults); }
         @Override public void onEndOfSegmentedSession () { end(null); }
-        @Override public void onResults (Bundle results) { appendResults(results); end(null); }
+        @Override public void onResults (Bundle results) { appendResults(results); org.thunderdog.challegram.Tgx101Diag.mark("transcription: on-device done, " + text.length() + " chars"); end(null); }
         @Override public void onError (int error) {
           Log.w("On-device speech recognition error: %d", error);
+          org.thunderdog.challegram.Tgx101Diag.mark("transcription: on-device error " + error + (text.length() > 0 ? " after some text" : ""));
           if (text.length() > 0) {
             end(null);
           } else {
