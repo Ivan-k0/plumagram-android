@@ -98,3 +98,5 @@
 # OSMDroid: https://github.com/osmdroid/osmdroid
 -keep class org.osmdroid.** { *; }
 -dontwarn org.osmdroid.**
+# TGx101: sherpa-onnx (own speech recognition) — its JNI code reads the config classes' fields by name
+-keep class com.k2fsa.sherpa.onnx.** { *; }

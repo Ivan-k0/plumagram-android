@@ -277,6 +277,9 @@ val buildNativeTasks = mutableMapOf<String, TaskProvider<*>>()
 
 //noinspection WrongGradleMethod
 android {
+  // TGx101: native libraries compressed in the APK (arm64 53 MB instead of 101 MB with the speech engine);
+  // Android unpacks them on install
+  packaging { jniLibs { useLegacyPackaging = true } }
   namespace = "org.thunderdog.challegram"
 
   lint {

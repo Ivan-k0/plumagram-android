@@ -187,29 +187,25 @@ public final class Tgx101SpeechModels {
             continue;
           }
           File part = new File(dir, model.files[i] + ".part");
-          URL url = new URL("https://huggingface.co/csukuangfj/" + model.repository + "/resolve/main/" + model.files[i]);
-          HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-          connection.setConnectTimeout(20000);
-          connection.setReadTimeout(30000);
-          connection.setInstanceFollowRedirects(true);
-          try (InputStream in = connection.getInputStream(); FileOutputStream out = new FileOutputStream(part)) {
-            byte[] buffer = new byte[64 * 1024];
-            int read, lastPercent = -1;
-            while ((read = in.read(buffer)) != -1) {
-              out.write(buffer, 0, read);
-              done += read;
-              int percent = (int) Math.min(99, done * 100 / total);
-              if (percent != lastPercent) {
-                lastPercent = percent;
-                synchronized (progress) {
-                  progress.put(model.id, percent);
-                }
-                notifyChanged(model);
-              }
+          long before = done;
+          IOException lastError = null;
+          boolean fetched = false;
+          for (String address : new String[] {
+            // own mirror first, then the original export on Hugging Face
+            "https://github.com/Ivan-k0/plumagram-android/releases/download/speech-models/" + model.id + "-" + model.files[i],
+            "https://huggingface.co/csukuangfj/" + model.repository + "/resolve/main/" + model.files[i]
+          }) {
+            done = before;
+            try {
+              done = fetch(model, address, part, done, total);
+              fetched = true;
+              break;
+            } catch (IOException e) {
+              lastError = e;
+              Tgx101Diag.mark("speech model " + model.id + ": " + model.files[i] + " from " + new URL(address).getHost() + " failed " + e.getClass().getSimpleName());
             }
-          } finally {
-            connection.disconnect();
           }
+          if (!fetched) throw lastError != null ? lastError : new IOException("no source");
           if (part.length() != model.sizes[i] || !part.renameTo(file)) {
             //noinspection ResultOfMethodCallIgnored
             part.delete();
@@ -221,16 +217,47 @@ public final class Tgx101SpeechModels {
         Log.w("Speech model download failed", t);
         Tgx101Diag.mark("speech model " + model.id + ": download failed " + t.getClass().getSimpleName());
       }
-      synchronized (progress) {
-        progress.remove(model.id);
-      }
-      if (ok) {
-        Tgx101Diag.mark("speech model " + model.id + ": downloaded");
-        UI.post(() -> select(model));
-      } else {
-        notifyChanged(model);
-        UI.showToast(R.string.Tgx101SpeechModelDownloadFailed, android.widget.Toast.LENGTH_SHORT);
-      }
+      finishDownload(model, ok);
     }, "SpeechModelDownload").start();
+  }
+
+  private static long fetch (Model model, String address, File part, long done, long total) throws IOException {
+    URL url = new URL(address);
+    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+    connection.setConnectTimeout(20000);
+    connection.setReadTimeout(30000);
+    connection.setInstanceFollowRedirects(true);
+    try (InputStream in = connection.getInputStream(); FileOutputStream out = new FileOutputStream(part)) {
+      byte[] buffer = new byte[64 * 1024];
+      int read, lastPercent = -1;
+      while ((read = in.read(buffer)) != -1) {
+        out.write(buffer, 0, read);
+        done += read;
+        int percent = (int) Math.min(99, done * 100 / total);
+        if (percent != lastPercent) {
+          lastPercent = percent;
+          synchronized (progress) {
+            progress.put(model.id, percent);
+          }
+          notifyChanged(model);
+        }
+      }
+    } finally {
+      connection.disconnect();
+    }
+    return done;
+  }
+
+  private static void finishDownload (Model model, boolean ok) {
+    synchronized (progress) {
+      progress.remove(model.id);
+    }
+    if (ok) {
+      Tgx101Diag.mark("speech model " + model.id + ": downloaded");
+      UI.post(() -> select(model));
+    } else {
+      notifyChanged(model);
+      UI.showToast(R.string.Tgx101SpeechModelDownloadFailed, android.widget.Toast.LENGTH_SHORT);
+    }
   }
 }
