@@ -6253,6 +6253,10 @@
   <string name="Tgx101ChatBackgroundBoth">Set the current wallpaper for both</string>
   <string name="Tgx101ChatBackgroundReset">Reset the chat wallpaper</string>
   <string name="Tgx101ChatBackgroundNone">Choose a wallpaper in the chat settings first</string>
+  <string name="Tgx101WebAppSubtitle">mini app</string>
+  <string name="Tgx101WebAppReload">Reload</string>
+  <string name="Tgx101WebAppNoPayments">Payments inside mini apps aren\'t supported yet</string>
+  <string name="Tgx101WebAppClose">Close</string>
   <string name="Tgx101TestSection">Testing</string>
   <string name="Tgx101FakeNoPremium">As without Premium (test)</string>
   <string name="Tgx101FakeNoPremiumHint">Test builds only. The app shows everything as for an account without Premium; the server still knows the account has it. Restart the app after switching.</string>

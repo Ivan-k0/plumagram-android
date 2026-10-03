@@ -1500,6 +1500,8 @@
   <item name="btn_bigEmojiSize" type="id"/>
   <item name="controller_tgx101Topics" type="id"/>
   <item name="controller_tgx101SavedTopics" type="id"/>
+  <item name="controller_tgx101WebApp" type="id"/>
+  <item name="btn_reload" type="id"/>
   <item name="btn_tgx101SavedTopic" type="id"/>
   <item name="btn_tgx101SavedByChats" type="id"/>
   <item name="btn_tgx101TranslateModels" type="id"/>

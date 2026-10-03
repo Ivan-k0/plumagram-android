@@ -1111,10 +1111,21 @@ public class TGInlineKeyboard {
           }
           break;
         }
-        case TdApi.InlineKeyboardButtonTypeCopyText.CONSTRUCTOR:
-        case TdApi.InlineKeyboardButtonTypeWebApp.CONSTRUCTOR:
-          // TODO
+        case TdApi.InlineKeyboardButtonTypeCopyText.CONSTRUCTOR: {
+          // TGx101: copy the button's text
+          UI.copyText(((TdApi.InlineKeyboardButtonTypeCopyText) type).text, R.string.CopiedText);
           break;
+        }
+        case TdApi.InlineKeyboardButtonTypeWebApp.CONSTRUCTOR: {
+          // TGx101: the mini app opens inside the app
+          org.thunderdog.challegram.ui.MessagesController c = context.context.messagesController();
+          TdApi.Message msg = parent.getMessage();
+          long botUserId = msg.viaBotUserId != 0 ? msg.viaBotUserId : tgx.td.Td.getSenderUserId(msg);
+          if (c != null && botUserId != 0) {
+            org.thunderdog.challegram.ui.Tgx101WebAppController.openInChat(c, msg.chatId, botUserId, ((TdApi.InlineKeyboardButtonTypeWebApp) type).url);
+          }
+          break;
+        }
 
         case TdApi.InlineKeyboardButtonTypeCallbackWithPassword.CONSTRUCTOR: {
           final TdApi.InlineKeyboardButtonTypeCallbackWithPassword callbackWithPassword = (TdApi.InlineKeyboardButtonTypeCallbackWithPassword) type;

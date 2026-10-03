@@ -8310,6 +8310,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   @Override
+  public void tgx101OnWebAppButton (String url, String text) {
+    long botUserId = tdlib.chatUserId(getChatId());
+    if (botUserId != 0) {
+      Tgx101WebAppController.openKeyboardButton(this, botUserId, url, text);
+    }
+  }
+
+  @Override
   public void onRequestContact (final boolean oneTime) {
     if (chat != null && ChatId.isPrivate(getChatId())) {
       AlertDialog.Builder builder = new AlertDialog.Builder(context(), Theme.dialogTheme());

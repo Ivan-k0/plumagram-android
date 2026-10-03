@@ -4238,9 +4238,21 @@ public class TdlibUi extends Handler {
       case TdApi.InternalLinkTypeLiveStory.CONSTRUCTOR:
       case TdApi.InternalLinkTypeStoryAlbum.CONSTRUCTOR:
 
+      case TdApi.InternalLinkTypeWebApp.CONSTRUCTOR: {
+        // TGx101: mini apps open inside the app
+        TdApi.InternalLinkTypeWebApp webApp = (TdApi.InternalLinkTypeWebApp) linkType;
+        org.thunderdog.challegram.ui.Tgx101WebAppController.openLink(context, context instanceof org.thunderdog.challegram.ui.MessagesController ? ((org.thunderdog.challegram.ui.MessagesController) context).getChatId() : 0, webApp.botUsername, webApp.webAppShortName, webApp.startParameter);
+        if (after != null) after.runWithBool(true);
+        break;
+      }
+      case TdApi.InternalLinkTypeMainWebApp.CONSTRUCTOR: {
+        TdApi.InternalLinkTypeMainWebApp webApp = (TdApi.InternalLinkTypeMainWebApp) linkType;
+        org.thunderdog.challegram.ui.Tgx101WebAppController.openLink(context, context instanceof org.thunderdog.challegram.ui.MessagesController ? ((org.thunderdog.challegram.ui.MessagesController) context).getChatId() : 0, webApp.botUsername, null, webApp.startParameter);
+        if (after != null) after.runWithBool(true);
+        break;
+      }
+
       case TdApi.InternalLinkTypeAttachmentMenuBot.CONSTRUCTOR:
-      case TdApi.InternalLinkTypeWebApp.CONSTRUCTOR:
-      case TdApi.InternalLinkTypeMainWebApp.CONSTRUCTOR:
 
       case TdApi.InternalLinkTypeRestorePurchases.CONSTRUCTOR:
       case TdApi.InternalLinkTypeChatBoost.CONSTRUCTOR:

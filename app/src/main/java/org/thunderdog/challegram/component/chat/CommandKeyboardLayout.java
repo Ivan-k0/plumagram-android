@@ -182,6 +182,10 @@ public class CommandKeyboardLayout extends ViewGroup implements ViewTreeObserver
         callback.onRequestContact(oneTime);
         break;
       }
+      case TdApi.KeyboardButtonTypeWebApp.CONSTRUCTOR: {
+        callback.tgx101OnWebAppButton(((TdApi.KeyboardButtonTypeWebApp) button.type).url, button.text);
+        break;
+      }
     }
   }
 
@@ -316,6 +320,7 @@ public class CommandKeyboardLayout extends ViewGroup implements ViewTreeObserver
     void onRequestPoll (boolean oneTime, boolean forceQuiz, boolean forceRegular);
     void onDestroyCommandKeyboard ();
     void onResizeCommandKeyboard (int size);
+    default void tgx101OnWebAppButton (String url, String text) { } // TGx101: mini app keyboard button
   }
 
   // TODO: 13/08/15 Merge this code with EmojiLayout
