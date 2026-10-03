@@ -816,7 +816,10 @@ public class MediaView extends FrameLayoutFix {
   // a vertical swipe on the left half changes the brightness, on the right half the volume; a long press plays at 2×
   // while held. A swipe that starts at the top edge belongs to the notification shade and is left alone.
 
-  private static final int G_NONE = 0, G_PENDING = 1, G_SEEK = 2, G_BRIGHTNESS = 3, G_VOLUME = 4, G_SPEED = 5;
+  private static final int G_NONE = 0, G_PENDING = 1, G_SEEK = 2, G_BRIGHTNESS = 3, G_VOLUME = 4, G_SPEED = 5, G_ARMED = 6;
+  // TGx101 gestures, variant В4 (user 2026-10-04): vertical swipes close the video anywhere; brightness / volume only
+  // after a hold (0.5 s, light vibration) — left half brightness, right half volume; seek sideways in the middle,
+  // paging sideways from the outer 26 %; no 2× on hold
   private int gState = G_NONE;
   private float gDownX, gDownY;
   private long gStartTime;
@@ -831,15 +834,16 @@ public class MediaView extends FrameLayoutFix {
   }
 
   private final Runnable gLongPress = () -> {
-    if (gState == G_PENDING && baseCell.tgx101CanGesture() && gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_SPEED)) {
-      gState = G_SPEED;
-      org.thunderdog.challegram.Tgx101Diag.mark("player: hold → 2×");
-      gSavedSpeed = baseCell.tgx101GetSpeed();
-      baseCell.tgx101SetSpeed(2f);
-      cancelChildren();
-      showHud("2×", null);
-      performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
-    }
+    if (gState != G_PENDING || !baseCell.tgx101CanGesture()) return;
+    boolean leftHalf = gDownX < getMeasuredWidth() / 2f;
+    boolean on = leftHalf ? gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_BRIGHTNESS) : gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_VOLUME);
+    if (!on) return;
+    gState = G_ARMED;
+    org.thunderdog.challegram.Tgx101Diag.mark("player: hold → " + (leftHalf ? "brightness" : "volume") + " armed");
+    if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true); // no swipe-to-close now
+    cancelChildren();
+    showHud(leftHalf ? "☀ ↕" : "🔊 ↕", null);
+    performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
   };
   private final Runnable gHideHud = () -> {
     gHudAlpha = 0f;
@@ -874,6 +878,7 @@ public class MediaView extends FrameLayoutFix {
 
   /** The viewer's swipe-to-close must not start here: a vertical player gesture owns this third of the screen */
   public boolean tgx101GesturesActive (float x) {
+    if (true) return false; // В4: swipe-to-close works over the whole video; brightness / volume need a hold first
     if (baseCell == null || !baseCell.tgx101CanGesture()) return false;
     float width = getMeasuredWidth();
     return (x < width / 3f && gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_BRIGHTNESS)) || (x > width * 2f / 3f && gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_VOLUME));
@@ -918,7 +923,7 @@ public class MediaView extends FrameLayoutFix {
           gState = G_PENDING;
           gDownX = e.getX();
           gDownY = e.getY();
-          postDelayed(gLongPress, android.view.ViewConfiguration.getLongPressTimeout());
+          postDelayed(gLongPress, 550);
         }
         return false;
       }
@@ -932,6 +937,20 @@ public class MediaView extends FrameLayoutFix {
       case MotionEvent.ACTION_MOVE: {
         if (gState == G_NONE) return false;
         float dx = e.getX() - gDownX, dy = e.getY() - gDownY;
+        if (gState == G_ARMED) {
+          if (Math.abs(dy) < Screen.getTouchSlop()) return true;
+          if (gDownX < getMeasuredWidth() / 2f) {
+            gState = G_BRIGHTNESS;
+            gStartValue = currentBrightness();
+          } else {
+            gState = G_VOLUME;
+            android.media.AudioManager audio = (android.media.AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+            gStartValue = audio != null ? audio.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) : 0;
+          }
+          gDownY = e.getY();
+          dy = 0;
+          org.thunderdog.challegram.Tgx101Diag.mark("player: gesture " + (gState == G_BRIGHTNESS ? "brightness from " + Math.round(gStartValue * 100) + "%" : "volume from " + Math.round(gStartValue)));
+        }
         if (gState == G_PENDING) {
           if (Math.max(Math.abs(dx), Math.abs(dy)) < Screen.getTouchSlop() * 1.5f) return false;
           removeCallbacks(gLongPress);
@@ -939,12 +958,12 @@ public class MediaView extends FrameLayoutFix {
           // are brightness, on the right third volume, in the middle third they close the viewer as usual
           float width = getMeasuredWidth();
           boolean horizontal = Math.abs(dx) > Math.abs(dy), left = gDownX < width / 3f, right = gDownX > width * 2f / 3f;
-          boolean fromEdge = gDownX < width * .18f || gDownX > width * .82f;
+          boolean fromEdge = gDownX < width * .26f || gDownX > width * .74f; // wider paging zone (В4)
           boolean pass;
           if (horizontal) {
             pass = fromEdge || !gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_SEEK);
           } else {
-            pass = !(left && gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_BRIGHTNESS)) && !(right && gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_VOLUME));
+            pass = true; // В4: a vertical swipe without a hold closes the video, anywhere
           }
           if (pass) {
             gState = G_NONE; // not a player gesture here: the swipe works as usual (paging / closing)
@@ -974,6 +993,10 @@ public class MediaView extends FrameLayoutFix {
         int state = gState;
         gState = G_NONE;
         if (state == G_PENDING || state == G_NONE) return false;
+        if (state == G_ARMED) {
+          postDelayed(gHideHud, 300); // held and let go without moving: nothing else happens
+          return true;
+        }
         if (state == G_SEEK && e.getActionMasked() == MotionEvent.ACTION_UP) {
           gState = G_SEEK;
           updateGesture(e.getX() - gDownX, e.getY() - gDownY, true);
