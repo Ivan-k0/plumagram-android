@@ -328,6 +328,40 @@ public final class Tgx101Transcription {
       });
     }
 
+    // Own model (sherpa-onnx), downloaded in MagiX
+
+    void recognizeWithModel (Tgx101SpeechModels.Model model) {
+      enqueueDevice(() -> tdlib.client().send(new TdApi.DownloadFile(file.id, 32, 0, 0, true), result -> {
+        if (!(result instanceof TdApi.File) || !TD.isFileLoaded((TdApi.File) result)) {
+          fail(Lang.getString(R.string.TranscriptionFailed));
+          deviceDone();
+          return;
+        }
+        String path = ((TdApi.File) result).local.path;
+        new Thread(() -> {
+          String text = null;
+          long start = android.os.SystemClock.elapsedRealtime();
+          try {
+            byte[] pcm = decodeToPcm16kMono(path);
+            text = Tgx101SpeechEngine.recognize(model, Tgx101SpeechModels.dir(model), pcm);
+            org.thunderdog.challegram.Tgx101Diag.mark("transcription: model " + model.id + ", " + (pcm.length / 32000) + " s of audio in " + (android.os.SystemClock.elapsedRealtime() - start) + " ms, " + text.length() + " chars");
+          } catch (Throwable t) {
+            Log.e("Speech model recognition failed", t);
+            org.thunderdog.challegram.Tgx101Diag.mark("transcription: model " + model.id + " failed " + t.getClass().getSimpleName());
+          }
+          final String recognized = text;
+          UI.post(() -> {
+            if (recognized != null && !recognized.isEmpty()) {
+              finish(recognized);
+            } else {
+              fail(Lang.getString(R.string.TranscriptionFailed));
+            }
+            deviceDone();
+          });
+        }, "VoiceTranscriptionModel").start();
+      }));
+    }
+
     // On device
 
     void recognizeOnDevice () {
@@ -342,8 +376,13 @@ public final class Tgx101Transcription {
         } catch (Throwable ignored) { }
         org.thunderdog.challegram.Tgx101Diag.mark("transcription: on device, sdk " + Build.VERSION.SDK_INT + ", recognizer " + available + ", on-device " + onDevice + ", service " + (service != null ? service.getPackageName() : "none") + ", language " + Locale.getDefault().toLanguageTag());
       }
+      Tgx101SpeechModels.Model model = Tgx101SpeechModels.active();
+      if (model != null) {
+        recognizeWithModel(model);
+        return;
+      }
       if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !SpeechRecognizer.isRecognitionAvailable(UI.getAppContext())) {
-        fail(Lang.getString(R.string.TranscriptionUnavailable));
+        fail(Lang.getString(Tgx101SpeechModels.isSupported() ? R.string.Tgx101SpeechModelMissing : R.string.TranscriptionUnavailable));
         return;
       }
       enqueueDevice(() -> tdlib.client().send(new TdApi.DownloadFile(file.id, 32, 0, 0, true), result -> {
@@ -423,7 +462,7 @@ public final class Tgx101Transcription {
             end(null);
           } else {
             end(Lang.getString(error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED || error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE ?
-              R.string.TranscriptionLanguageUnavailable : R.string.TranscriptionFailed));
+              R.string.TranscriptionLanguageUnavailable : Tgx101SpeechModels.isSupported() ? R.string.Tgx101SpeechModelMissing : R.string.TranscriptionFailed));
           }
         }
         @Override public void onReadyForSpeech (Bundle params) { }

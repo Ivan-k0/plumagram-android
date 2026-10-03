@@ -3589,6 +3589,21 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_TRANSLATE_ON_DEVICE, value);
   }
 
+  private static final String KEY_TGX101_SPEECH_MODEL = "tgx101_speech_model";
+
+  /** TGx101: id of the own speech recognition model (Tgx101SpeechModels), null = none */
+  public @Nullable String tgx101SpeechModel () {
+    return pmc.getString(KEY_TGX101_SPEECH_MODEL, null);
+  }
+
+  public void setTgx101SpeechModel (@Nullable String id) {
+    if (id == null) {
+      pmc.remove(KEY_TGX101_SPEECH_MODEL);
+    } else {
+      pmc.putString(KEY_TGX101_SPEECH_MODEL, id);
+    }
+  }
+
   private static final String KEY_TGX101_FAKE_NO_PREMIUM = "tgx101_fake_no_premium";
 
   /** TGx101 diagnostics builds only: the app acts as if the account had no Premium (UI tests; the server still knows) */

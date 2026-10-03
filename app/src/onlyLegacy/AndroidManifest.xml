@@ -25,6 +25,7 @@
     androidx.media3.effect
    -->
   <uses-sdk tools:overrideLibrary="
+    com.k2fsa.sherpa.onnx,
     androidx.webkit,
     com.otaliastudios.transcoder,
     com.otaliastudios.opengl,

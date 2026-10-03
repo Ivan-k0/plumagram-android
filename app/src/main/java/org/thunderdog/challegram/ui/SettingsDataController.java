@@ -142,6 +142,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   @SuppressLint("InflateParams")
   @Override
   protected void onCreateView (Context context, CustomRecyclerView recyclerView) {
+    org.thunderdog.challegram.data.Tgx101SpeechModels.addListener(tgx101SpeechListener);
     this.adapter = new SettingsAdapter(this) {
       @Override
       public void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
@@ -246,6 +247,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(Settings.instance().getQuickReply(quickReplyIndex(itemId)));
         } else if (itemId == R.id.btn_tgx101TranslateOnDevice) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101TranslateOnDevice(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101SpeechModel) {
+          view.setData(tgx101SpeechModelStatus());
         } else if (itemId == R.id.btn_tgx101FakeNoPremium) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101FakeNoPremium(), isUpdate);
         } else if (itemId == R.id.btn_showChannelMuteButton) {
@@ -396,6 +399,12 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101TranslateOnDeviceHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
+        new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101SpeechSection),
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101SpeechModel, 0, R.string.Tgx101SpeechModel),
+        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SpeechModelHint),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ChannelsSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showDiscussButton, 0, R.string.ShowDiscussButton),
@@ -540,6 +549,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   @Override
   public void destroy () {
     super.destroy();
+    org.thunderdog.challegram.data.Tgx101SpeechModels.removeListener(tgx101SpeechListener);
     if (mode == MODE_NONE) {
       TdlibManager.instance().global().removeConnectionListener(this);
       Settings.instance().removeProxyListener(this);
@@ -787,6 +797,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       }, true);
     } else if (id == R.id.btn_tgx101TranslateOnDevice) {
       Settings.instance().setTgx101TranslateOnDevice(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101SpeechModel) {
+      showTgx101SpeechModels();
     } else if (id == R.id.btn_tgx101FakeNoPremium) {
       Settings.instance().setTgx101FakeNoPremium(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showChannelMuteButton) {
@@ -1194,6 +1206,72 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101QuickReply4) return 3;
     if (id == R.id.btn_tgx101QuickReply5) return 4;
     return -1;
+  }
+
+  // TGx101: own speech recognition models (MagiX → Speech recognition)
+
+  private final org.thunderdog.challegram.data.Tgx101SpeechModels.Listener tgx101SpeechListener = model -> {
+    if (!isDestroyed() && adapter != null) {
+      adapter.updateValuedSettingById(R.id.btn_tgx101SpeechModel);
+    }
+  };
+
+  private String tgx101SpeechModelStatus () {
+    for (org.thunderdog.challegram.data.Tgx101SpeechModels.Model model : org.thunderdog.challegram.data.Tgx101SpeechModels.ALL) {
+      int percent = org.thunderdog.challegram.data.Tgx101SpeechModels.downloadProgress(model);
+      if (percent >= 0) {
+        return Lang.getString(R.string.Tgx101SpeechModelDownloading, percent);
+      }
+    }
+    org.thunderdog.challegram.data.Tgx101SpeechModels.Model active = org.thunderdog.challegram.data.Tgx101SpeechModels.active();
+    return active != null ? Lang.getString(active.nameRes) : Lang.getString(R.string.Tgx101SpeechModelNone);
+  }
+
+  private void showTgx101SpeechModels () {
+    if (!org.thunderdog.challegram.data.Tgx101SpeechModels.isSupported()) {
+      return;
+    }
+    org.thunderdog.challegram.data.Tgx101SpeechModels.Model[] models = org.thunderdog.challegram.data.Tgx101SpeechModels.ALL;
+    org.thunderdog.challegram.data.Tgx101SpeechModels.Model active = org.thunderdog.challegram.data.Tgx101SpeechModels.active();
+    int[] ids = new int[models.length];
+    String[] names = new String[models.length];
+    int[] icons = new int[models.length];
+    for (int i = 0; i < models.length; i++) {
+      org.thunderdog.challegram.data.Tgx101SpeechModels.Model model = models[i];
+      ids[i] = i + 1;
+      int percent = org.thunderdog.challegram.data.Tgx101SpeechModels.downloadProgress(model);
+      String status = percent >= 0 ? Lang.getString(R.string.Tgx101SpeechModelDownloading, percent) :
+        model == active ? Lang.getString(R.string.Tgx101SpeechModelInUse) :
+        org.thunderdog.challegram.data.Tgx101SpeechModels.isDownloaded(model) ? Lang.getString(R.string.Tgx101SpeechModelUse) :
+        Lang.getString(R.string.Tgx101SpeechModelDownload);
+      names[i] = Lang.getString(model.nameRes) + " · " + status;
+      icons[i] = model == active ? R.drawable.baseline_check_24 : org.thunderdog.challegram.data.Tgx101SpeechModels.isDownloaded(model) ? R.drawable.baseline_mic_24 : R.drawable.baseline_file_download_24;
+    }
+    showOptions(Lang.getString(R.string.Tgx101SpeechModelHint), ids, names, null, icons, (itemView, optionId) -> {
+      org.thunderdog.challegram.data.Tgx101SpeechModels.Model model = models[optionId - 1];
+      if (org.thunderdog.challegram.data.Tgx101SpeechModels.downloadProgress(model) >= 0) {
+        return true;
+      }
+      if (!org.thunderdog.challegram.data.Tgx101SpeechModels.isDownloaded(model)) {
+        org.thunderdog.challegram.data.Tgx101SpeechModels.download(model);
+      } else {
+        boolean inUse = model == org.thunderdog.challegram.data.Tgx101SpeechModels.active();
+        showOptions(Lang.getString(model.nameRes),
+          inUse ? new int[] {R.id.btn_delete} : new int[] {R.id.btn_done, R.id.btn_delete},
+          inUse ? new String[] {Lang.getString(R.string.Tgx101SpeechModelDelete)} : new String[] {Lang.getString(R.string.Tgx101SpeechModelUse), Lang.getString(R.string.Tgx101SpeechModelDelete)},
+          inUse ? new int[] {OptionColor.RED} : new int[] {OptionColor.NORMAL, OptionColor.RED},
+          inUse ? new int[] {R.drawable.baseline_delete_24} : new int[] {R.drawable.baseline_check_24, R.drawable.baseline_delete_24},
+          (v, id) -> {
+            if (id == R.id.btn_done) {
+              org.thunderdog.challegram.data.Tgx101SpeechModels.select(model);
+            } else if (id == R.id.btn_delete) {
+              org.thunderdog.challegram.data.Tgx101SpeechModels.delete(model);
+            }
+            return true;
+          });
+      }
+      return true;
+    });
   }
 
   private void showCallPhotoModes () {

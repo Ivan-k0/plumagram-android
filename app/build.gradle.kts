@@ -1014,6 +1014,9 @@ dependencies {
     libs.google.mlkit.translate.legacy,
     libs.google.mlkit.translate.latest
   )
+  // TGx101: own speech recognition for voice messages (sherpa-onnx, Apache-2.0, onnxruntime linked in; API 21+ only,
+  // models are downloaded in MagiX): https://github.com/k2-fsa/sherpa-onnx/releases
+  implementation(files("libs/sherpa-onnx-static-link-onnxruntime-1.13.8.aar"))
   // Firebase: https://firebase.google.com/support/release-notes/android
   flavorImplementation(
     libs.google.firebase.messaging.legacy,
