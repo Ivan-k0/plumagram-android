@@ -1096,18 +1096,13 @@ public class MosaicWrapper implements FactorAnimator.Target, ComplexReceiver.Key
     return null;
   }
 
-  /** TGx101: highlight of one item after jumping to a reply to it (variant M2): the others dim, the item gets a thin frame */
-  public void tgx101DrawItemHighlight (android.graphics.Canvas c, long messageId, float factor) {
-    if (mosaicItems == null || factor <= 0f) return;
-    int frame = Math.max(1, org.thunderdog.challegram.tool.Screen.dp(2f));
+  /** TGx101: after jumping to a reply to one album item only that item flashes (lighter, bluish) */
+  public void tgx101DrawItemHighlight (android.graphics.Canvas c, long messageId, int color) {
+    if (mosaicItems == null) return;
     for (MosaicItemInfo info : mosaicItems) {
-      int left = lastStartX + info.x, top = lastStartY + info.y;
-      int right = left + info.target.getCellWidth(), bottom = top + info.target.getCellHeight();
       if (info.target.getSourceMessageId() == messageId) {
-        android.graphics.Paint paint = org.thunderdog.challegram.tool.Paints.getProgressPaint(me.vkryl.core.ColorUtils.alphaColor(factor * .95f, 0xffffffff), frame);
-        c.drawRect(left + frame / 2f, top + frame / 2f, right - frame / 2f, bottom - frame / 2f, paint);
-      } else {
-        c.drawRect(left, top, right, bottom, org.thunderdog.challegram.tool.Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(factor * .62f, 0xff000000)));
+        int left = lastStartX + info.x, top = lastStartY + info.y;
+        c.drawRect(left, top, left + info.target.getCellWidth(), top + info.target.getCellHeight(), org.thunderdog.challegram.tool.Paints.fillingPaint(color));
       }
     }
   }
