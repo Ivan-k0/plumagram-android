@@ -6224,6 +6224,16 @@
   <string name="Tgx101SharePinned">Pinned: it will be in the first rows next time you share</string>
   <string name="Tgx101ShareUnpinned">Unpinned</string>
   <string name="Tgx101SharePinFull">The two first rows are full — unpin a chat first</string>
+  <string name="Tgx101NameColor">Name colour</string>
+  <string name="Tgx101NameColorHint">The colour of your name in groups, of replies to you and of your link previews</string>
+  <string name="Tgx101NameColorOther">Other</string>
+  <string name="Tgx101ColorRed">Red</string>
+  <string name="Tgx101ColorOrange">Orange</string>
+  <string name="Tgx101ColorViolet">Violet</string>
+  <string name="Tgx101ColorGreen">Green</string>
+  <string name="Tgx101ColorCyan">Cyan</string>
+  <string name="Tgx101ColorBlue">Blue</string>
+  <string name="Tgx101ColorPink">Pink</string>
   <string name="Tgx101TestSection">Testing</string>
   <string name="Tgx101FakeNoPremium">As without Premium (test)</string>
   <string name="Tgx101FakeNoPremiumHint">Test builds only. The app shows everything as for an account without Premium; the server still knows the account has it. Restart the app after switching.</string>

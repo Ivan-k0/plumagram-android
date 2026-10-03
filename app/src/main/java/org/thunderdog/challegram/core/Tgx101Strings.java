@@ -383,6 +383,16 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SharePinned, "Закреплено: при следующем «Поделиться» чат будет в первых строках");
     RU.put(R.string.Tgx101ShareUnpinned, "Откреплено");
     RU.put(R.string.Tgx101SharePinFull, "Две первые строки заполнены — сначала открепите какой-нибудь чат");
+    RU.put(R.string.Tgx101NameColor, "Цвет имени");
+    RU.put(R.string.Tgx101NameColorHint, "Цвет вашего имени в группах, ответов вам и ваших превью ссылок");
+    RU.put(R.string.Tgx101NameColorOther, "Другой");
+    RU.put(R.string.Tgx101ColorRed, "Красный");
+    RU.put(R.string.Tgx101ColorOrange, "Оранжевый");
+    RU.put(R.string.Tgx101ColorViolet, "Фиолетовый");
+    RU.put(R.string.Tgx101ColorGreen, "Зелёный");
+    RU.put(R.string.Tgx101ColorCyan, "Голубой");
+    RU.put(R.string.Tgx101ColorBlue, "Синий");
+    RU.put(R.string.Tgx101ColorPink, "Розовый");
     RU.put(R.string.Tgx101TestSection, "Тесты");
     RU.put(R.string.Tgx101FakeNoPremium, "Как без Премиума (тест)");
     RU.put(R.string.Tgx101FakeNoPremiumHint, "Только в тестовых сборках. Приложение показывает всё как для аккаунта без Премиума; сервер по-прежнему знает, что Премиум есть. После переключения перезапустите приложение.");

@@ -575,6 +575,10 @@ public class SettingsController extends ViewController<Void> implements
             int collectibleCount = Td.secondaryUsernamesCount(myUsernames);
             view.setData("@" + myUsernames.editableUsername + (collectibleCount != 0 ? " + " + Lang.pluralBold(R.string.xOtherUsernames, collectibleCount) : "")); // TODO multi-username support
           }
+        } else if (itemId == R.id.btn_tgx101NameColor) {
+          TdApi.User me = tdlib.myUser();
+          int id = me != null ? me.accentColorId : -1;
+          view.setData(id >= 0 && id < TGX101_COLOR_NAMES.length ? TGX101_COLOR_EMOJI[id] + " " + Lang.getString(TGX101_COLOR_NAMES[id]) : Lang.getString(R.string.Tgx101NameColorOther));
         } else if (itemId == R.id.btn_peer_id) {
           view.setData(Strings.buildCounter(tdlib.myUserId(true)));
         } else if (itemId == R.id.btn_phone) {
@@ -614,6 +618,11 @@ public class SettingsController extends ViewController<Void> implements
     }
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(ListItem.TYPE_INFO_MULTILINE, R.id.btn_bio, R.drawable.baseline_info_24, R.string.UserBio).setContentStrings(R.string.LoadingInformation, R.string.BioNone));
+    if (tdlib.hasPremium()) {
+      // TGx101: name colour (Premium; the official apps' «Name colour» with the seven basic colours)
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+      items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_tgx101NameColor, R.drawable.baseline_palette_24, R.string.Tgx101NameColor));
+    }
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
 
     TdApi.SuggestedAction[] actions = tdlib.getSuggestedActions();
@@ -1144,6 +1153,32 @@ public class SettingsController extends ViewController<Void> implements
     }
   }
 
+  private static final String[] TGX101_COLOR_EMOJI = {"🔴", "🟠", "🟣", "🟢", "🩵", "🔵", "🩷"};
+  private static final int[] TGX101_COLOR_NAMES = {R.string.Tgx101ColorRed, R.string.Tgx101ColorOrange, R.string.Tgx101ColorViolet, R.string.Tgx101ColorGreen, R.string.Tgx101ColorCyan, R.string.Tgx101ColorBlue, R.string.Tgx101ColorPink};
+
+  private void tgx101PickNameColor () {
+    TdApi.User me = tdlib.myUser();
+    int current = me != null ? me.accentColorId : -1;
+    int[] ids = new int[TGX101_COLOR_NAMES.length];
+    String[] names = new String[ids.length];
+    for (int i = 0; i < ids.length; i++) {
+      ids[i] = i + 1;
+      names[i] = TGX101_COLOR_EMOJI[i] + "  " + Lang.getString(TGX101_COLOR_NAMES[i]) + (i == current ? "  ✓" : "");
+    }
+    showOptions(Lang.getString(R.string.Tgx101NameColorHint), ids, names, null, null, (itemView, optionId) -> {
+      int colorId = optionId - 1;
+      long emoji = me != null ? me.backgroundCustomEmojiId : 0;
+      tdlib.send(new TdApi.SetAccentColor(colorId, emoji), (ok, error) -> runOnUiThreadOptional(() -> {
+        if (error != null) {
+          UI.showError(error);
+        } else {
+          adapter.updateValuedSettingById(R.id.btn_tgx101NameColor);
+        }
+      }));
+      return true;
+    });
+  }
+
   @Override
   public void onClick (View v) {
     cancelSupportOpen();
@@ -1151,6 +1186,10 @@ public class SettingsController extends ViewController<Void> implements
       return;
     }
     final int viewId = v.getId();
+    if (viewId == R.id.btn_tgx101NameColor) {
+      tgx101PickNameColor();
+      return;
+    }
     if (viewId == R.id.btn_bio) {
       EditBioController c = new EditBioController(context, tdlib);
       c.setArguments(new EditBioController.Arguments(about != null ? about.text : "", 0));
