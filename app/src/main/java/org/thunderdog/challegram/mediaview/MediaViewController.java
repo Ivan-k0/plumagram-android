@@ -3210,6 +3210,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       if (commit) tgx101CloseGuide(); // TGx101: Back closes the gestures guide first
       return true;
     }
+    if (tgx101SpeedPopup != null) {
+      if (commit) tgx101CloseSpeedPopup();
+      return true;
+    }
     if (tgx101SettingsView != null) {
       if (commit) {
         if (tgx101SettingsPage != PAGE_MAIN) {
@@ -3689,6 +3693,77 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   // a title with ✕, rows with values (a tap opens the list) and switches (toggle in place). Back or a tap aside closes.
 
   private @Nullable View tgx101SettingsView;
+
+  // TGx101: the speed chip opens a short list of speeds right above it (not the whole settings panel, user 2026-10-03)
+  private @Nullable View tgx101SpeedPopup;
+
+  private void tgx101ShowSpeedPopup (View anchor) {
+    if (tgx101SpeedPopup != null) {
+      tgx101CloseSpeedPopup();
+      return;
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("player: speed list opened");
+    android.widget.FrameLayout wrap = new android.widget.FrameLayout(context);
+    wrap.setOnClickListener(v -> tgx101CloseSpeedPopup());
+    androidx.core.view.ViewCompat.setTranslationZ(wrap, Screen.dp(30f));
+    LinearLayout list = new LinearLayout(context);
+    list.setOrientation(LinearLayout.VERTICAL);
+    list.setClickable(true);
+    android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+    bg.setColor(0xf0161c22);
+    bg.setCornerRadius(Screen.dp(16f));
+    list.setBackground(bg);
+    list.setPadding(0, Screen.dp(6f), 0, Screen.dp(6f));
+    float current = Settings.instance().tgx101PlayerSpeed();
+    for (int i = TGX101_SPEEDS.length - 1; i >= 0; i--) { // fastest on top, like a scale
+      float speed = TGX101_SPEEDS[i];
+      android.widget.TextView row = new android.widget.TextView(context);
+      row.setText((speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed)) + "×");
+      row.setGravity(Gravity.CENTER);
+      row.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 15f);
+      row.setTypeface(speed == current ? Fonts.getRobotoMedium() : Fonts.getRobotoRegular());
+      row.setTextColor(speed == current ? 0xff5fb3ff : 0xffffffff);
+      org.thunderdog.challegram.support.RippleSupport.setTransparentWhiteSelector(row);
+      row.setOnClickListener(v -> {
+        org.thunderdog.challegram.Tgx101Diag.mark("player: speed " + speed + "×");
+        Settings.instance().setTgx101PlayerSpeed(speed);
+        mediaView.tgx101SetSpeed(speed);
+        if (videoSliderView != null) videoSliderView.setTgx101Speed(speed);
+        tgx101CloseSpeedPopup();
+      });
+      list.addView(row, new LinearLayout.LayoutParams(Screen.dp(84f), Screen.dp(42f)));
+    }
+    int[] anchorPos = new int[2], contentPos = new int[2];
+    anchor.getLocationInWindow(anchorPos);
+    contentView.getLocationInWindow(contentPos);
+    int width = Screen.dp(84f);
+    android.widget.FrameLayout.LayoutParams params = new android.widget.FrameLayout.LayoutParams(width, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.LEFT | Gravity.BOTTOM);
+    int left = anchorPos[0] - contentPos[0] + anchor.getWidth() / 2 - width / 2;
+    params.leftMargin = Math.max(Screen.dp(8f), Math.min(left, contentView.getWidth() - width - Screen.dp(8f)));
+    params.bottomMargin = contentView.getHeight() - (anchorPos[1] - contentPos[1]) + Screen.dp(4f);
+    wrap.addView(list, params);
+    // a light pop from the chip
+    list.setAlpha(0f);
+    list.setScaleX(.9f);
+    list.setScaleY(.9f);
+    list.post(() -> {
+      list.setPivotX(list.getWidth() / 2f);
+      list.setPivotY(list.getHeight());
+      list.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(140).setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR).start();
+    });
+    tgx101SpeedPopup = wrap;
+    contentView.addView(wrap);
+  }
+
+  private void tgx101CloseSpeedPopup () {
+    View popup = tgx101SpeedPopup;
+    if (popup == null) return;
+    tgx101SpeedPopup = null;
+    View list = ((ViewGroup) popup).getChildAt(0);
+    popup.setClickable(false);
+    list.animate().cancel();
+    list.animate().alpha(0f).scaleX(.9f).scaleY(.9f).setDuration(110).withEndAction(() -> contentView.removeView(popup)).start();
+  }
   private @Nullable LinearLayout tgx101SettingsRows;
   private @Nullable android.widget.TextView tgx101SettingsTitle;
   private @Nullable View tgx101SettingsBack;
@@ -5919,7 +5994,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           }
         });
         videoSliderView.setSliderListener(this);
-        videoSliderView.tgx101EnableCapsule(v -> tgx101OpenSettingsPage(PAGE_SPEED), v -> tgx101SetLocked(!tgx101Locked()), v -> tgx101ShowPlayerSettings());
+        videoSliderView.tgx101EnableCapsule(this::tgx101ShowSpeedPopup, v -> tgx101SetLocked(!tgx101Locked()), v -> tgx101ShowPlayerSettings());
         tgx101AddRotateButton();
         videoSliderView.tgx101OnConfigurationChanged = this::tgx101OnOrientationChanged;
         videoSliderView.setTgx101Speed(Settings.instance().tgx101PlayerSpeed());

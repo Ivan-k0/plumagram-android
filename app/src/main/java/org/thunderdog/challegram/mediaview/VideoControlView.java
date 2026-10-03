@@ -158,7 +158,73 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
   }
 
   public void setSliderListener (SliderView.Listener listener) {
-    sliderView.setListener(listener);
+    // TGx101: while the slider is dragged, the time under the finger is shown above the thumb
+    sliderView.setListener(new SliderView.Listener() {
+      @Override
+      public void onSetStateChanged (SliderView view, boolean isSetting) {
+        listener.onSetStateChanged(view, isSetting);
+        tgx101ShowSeekBubble(isSetting);
+      }
+
+      @Override
+      public void onValueChanged (SliderView view, float factor) {
+        listener.onValueChanged(view, factor);
+        tgx101UpdateSeekBubble(factor);
+      }
+
+      @Override
+      public boolean allowSliderChanges (SliderView view) {
+        return listener.allowSliderChanges(view);
+      }
+    });
+  }
+
+  private @Nullable TextView seekBubble;
+
+  /** TGx101: the chapter title at a moment of the video (from the caption's timestamps), shown under the time */
+  public interface ChapterTitle {
+    @Nullable String titleAt (long ms);
+  }
+
+  public @Nullable ChapterTitle tgx101ChapterTitle;
+
+  private void tgx101ShowSeekBubble (boolean show) {
+    if (show && seekBubble == null) {
+      seekBubble = new NoScrollTextView(getContext());
+      seekBubble.setTextColor(0xffffffff);
+      seekBubble.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14f);
+      seekBubble.setTypeface(Fonts.getRobotoMedium());
+      seekBubble.setGravity(Gravity.CENTER);
+      seekBubble.setMaxLines(2);
+      seekBubble.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      seekBubble.setMaxWidth(Screen.dp(220f));
+      seekBubble.setPadding(Screen.dp(10f), Screen.dp(5f), Screen.dp(10f), Screen.dp(5f));
+      android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+      bg.setColor(0xe6161c22);
+      bg.setCornerRadius(Screen.dp(12f));
+      seekBubble.setBackground(bg);
+      seekBubble.setAlpha(0f);
+      FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.LEFT | Gravity.BOTTOM);
+      params.bottomMargin = Screen.dp(58f);
+      addView(seekBubble, params);
+    }
+    if (seekBubble != null) {
+      if (show) tgx101UpdateSeekBubble(sliderView.getValue());
+      seekBubble.animate().cancel();
+      seekBubble.animate().alpha(show ? 1f : 0f).setDuration(show ? 100 : 160).start();
+    }
+  }
+
+  private void tgx101UpdateSeekBubble (float factor) {
+    if (seekBubble == null || totalDurationMs <= 0) return;
+    long ms = (long) (MathUtils.clamp(factor) * totalDurationMs);
+    String text = Strings.buildDuration(Math.round(ms / 1000.0));
+    String chapter = tgx101ChapterTitle != null ? tgx101ChapterTitle.titleAt(ms) : null;
+    seekBubble.setText(chapter != null ? text + "\n" + chapter : text);
+    seekBubble.measure(MeasureSpec.makeMeasureSpec(Screen.dp(220f), MeasureSpec.AT_MOST), MeasureSpec.UNSPECIFIED);
+    int width = seekBubble.getMeasuredWidth();
+    float x = sliderView.getLeft() + sliderView.getTranslationX() + sliderView.tgx101ThumbX() - width / 2f;
+    seekBubble.setTranslationX(Math.max(Screen.dp(8f), Math.min(x, getWidth() - width - Screen.dp(8f))));
   }
 
   public void setInnerAlpha (float alpha) {

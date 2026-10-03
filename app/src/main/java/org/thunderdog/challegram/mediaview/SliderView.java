@@ -394,6 +394,11 @@ public class SliderView extends View implements FactorAnimator.Target {
     return getPaddingTop() + (getMeasuredHeight() - getPaddingBottom() - getPaddingTop()) / 2;
   }
 
+  /** TGx101: x of the thumb in this view (the seek time bubble follows it) */
+  public int tgx101ThumbX () {
+    return findCenterX();
+  }
+
   private int findCenterX () {
     int left = getTotalPaddingLeft();
     int right = getMeasuredWidth() - getTotalPaddingRight();
