@@ -6823,7 +6823,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   private int tgx101FlashColor () {
     // dark themes: lighter + bluish; light themes: a visible blue tint (a white wash was invisible there, user 2026-10-04)
     boolean dark = Theme.isDark();
-    return ColorUtils.alphaColor(highlightFactor * (dark ? .2f : .22f), dark ? ColorUtils.fromToArgb(0xffffffff, Theme.getColor(ColorId.textLink), .5f) : Theme.getColor(ColorId.textLink));
+    // user 2026-10-04: a light blue tint visible on any theme (dark themes need more)
+    return ColorUtils.alphaColor(highlightFactor * (dark ? .32f : .24f), dark ? ColorUtils.fromToArgb(0xff7fc4ff, Theme.getColor(ColorId.textLink), .3f) : ColorUtils.fromToArgb(0xff5fb3ff, Theme.getColor(ColorId.textLink), .4f));
   }
 
   public void drawHighlight (View view, Canvas c) {
