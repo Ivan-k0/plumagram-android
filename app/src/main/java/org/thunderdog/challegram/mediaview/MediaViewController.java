@@ -1460,7 +1460,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   private int tgx101CaptionCollapsedHeight () {
-    return Text.getLineHeight(TGMessage.getTextStyleProvider(), true) * 2 + Screen.dp(28f);
+    return Text.getLineHeight(TGMessage.getTextStyleProvider(), true) * 2 + Screen.dp(16f); // top padding + 2 lines (no third line peeking)
   }
 
   private int tgx101CaptionExpandedHeight () {
@@ -4313,6 +4313,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   private boolean listenCloseBySlide;
+  private boolean tgx101ListenZoomSwipe;
+  private long tgx101ZoomSwipeArmedAt;
   private boolean inSlideMode;
 
   private MediaItem slideItem;
@@ -5829,6 +5831,32 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         }
         if (mode == MODE_SECRET || inCaption || (disallowIntercept && e.getAction() != MotionEvent.ACTION_DOWN)) {
           return super.onInterceptTouchEvent(e);
+        }
+        // TGx101: a zoomed photo at its top edge: the first swipe down only shows / hides the controls (a safety step),
+        // a second one within 4 s closes the photo (user 2026-10-03)
+        if (e.getAction() == MotionEvent.ACTION_DOWN) {
+          MediaCellView cell = mediaView.getBaseCell();
+          tgx101ListenZoomSwipe = canCloseBySlide() && pipFactor == 0f && cell != null && cell.tgx101ZoomedAtTop() && e.getPointerCount() == 1;
+        } else if (e.getAction() == MotionEvent.ACTION_MOVE && tgx101ListenZoomSwipe) {
+          float dy = e.getY() - startY, dx = Math.abs(e.getX() - startX);
+          if (dy >= Screen.getTouchSlopBig() && dx < Screen.getTouchSlop() * 1.65f) {
+            tgx101ListenZoomSwipe = false;
+            long now = android.os.SystemClock.uptimeMillis();
+            if (now - tgx101ZoomSwipeArmedAt < 4000) {
+              tgx101ZoomSwipeArmedAt = 0;
+              org.thunderdog.challegram.Tgx101Diag.mark("viewer: zoomed photo closed by the second swipe");
+              mediaView.dropPreview(MediaView.DIRECTION_AUTO, 0f);
+              slideStartX = e.getX();
+              slideStartY = e.getY();
+              setInSlideMode(e.getX(), e.getY());
+              return true;
+            }
+            tgx101ZoomSwipeArmedAt = now;
+            org.thunderdog.challegram.Tgx101Diag.mark("viewer: zoomed photo, first swipe down = tap");
+            mediaView.onMediaClick(e.getX(), e.getY());
+          } else if (Math.abs(dy) >= Screen.getTouchSlopBig() || dx >= Screen.getTouchSlopBig()) {
+            tgx101ListenZoomSwipe = false; // a pan
+          }
         }
         switch (e.getAction()) {
           case MotionEvent.ACTION_DOWN: {

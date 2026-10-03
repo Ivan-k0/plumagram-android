@@ -1807,6 +1807,15 @@ public class MediaCellView extends ViewGroup implements
     rect.bottom = getMeasuredHeight(); // receiver.getBottom();
   }
 
+  /** TGx101: zoomed in and the picture's top edge is on screen (dragging down can't move it any further) */
+  public boolean tgx101ZoomedAtTop () {
+    if (subsamplingModeEnabled && subsamplingImageView.isReady() && isZoomed()) {
+      android.graphics.PointF topLeft = subsamplingImageView.viewToSourceCoord(0, 0);
+      return topLeft != null && topLeft.y <= 1f;
+    }
+    return false;
+  }
+
   public boolean isZoomed () {
     if (subsamplingModeEnabled && subsamplingImageView.isReady()) {
       float scale = subsamplingImageView.getScale();
