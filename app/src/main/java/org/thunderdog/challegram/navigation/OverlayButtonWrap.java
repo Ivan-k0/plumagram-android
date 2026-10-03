@@ -158,15 +158,19 @@ public class OverlayButtonWrap extends FrameLayoutFix implements View.OnClickLis
         return !(e.getAction() == MotionEvent.ACTION_DOWN && getAlpha() == 0f) && super.onTouchEvent(e);
       }
     };
-    text.setTextColor(Theme.textDecentColor());
-    parent.addThemeTextDecentColorListener(text);
-    RippleSupport.setRectBackground(text, 3f, 4f, ColorId.filling);
-    parent.addThemeInvalidateListener(text);
-    text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
-    text.setTypeface(Fonts.getRobotoBold());
+    // TGx101 (variant В, user 2026-10-04): labels as dark capsules with a thin brand-blue outline
+    text.setTextColor(Theme.getColor(ColorId.text));
+    parent.addThemeTextColorListener(text, ColorId.text);
+    android.graphics.drawable.GradientDrawable capsule = new android.graphics.drawable.GradientDrawable();
+    capsule.setColor(Theme.getColor(ColorId.filling));
+    capsule.setCornerRadius(Screen.dp(20f));
+    capsule.setStroke(Math.max(1, Screen.dp(1f)), me.vkryl.core.ColorUtils.alphaColor(.6f, Theme.getColor(ColorId.textLink)));
+    text.setBackground(new android.graphics.drawable.InsetDrawable(capsule, padding));
+    text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f);
+    text.setTypeface(Fonts.getRobotoMedium());
     text.setSingleLine(true);
     text.setEllipsize(TextUtils.TruncateAt.END);
-    text.setPadding(Screen.dp(8f) + padding, Screen.dp(2.5f) + padding, Screen.dp(8f) + padding, padding);
+    text.setPadding(Screen.dp(12f) + padding, Screen.dp(2f) + padding, Screen.dp(12f) + padding, padding);
     text.setOnClickListener(this);
     return text;
   }

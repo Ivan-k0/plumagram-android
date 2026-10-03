@@ -243,18 +243,18 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         R.drawable.baseline_bullhorn_24,
         R.drawable.baseline_group_24,
         R.drawable.baseline_person_24
-      }, new int[]{
+      }, new int[]{ // TGx101 (variant В): one brand colour instead of red / orange / yellow / green
         ColorId.circleButtonRegular,
-        ColorId.circleButtonNewSecret,
-        ColorId.circleButtonNewChannel,
-        ColorId.circleButtonNewGroup,
-        ColorId.circleButtonNewChat
+        ColorId.circleButtonRegular,
+        ColorId.circleButtonRegular,
+        ColorId.circleButtonRegular,
+        ColorId.circleButtonRegular
       }, new int[] {
         ColorId.circleButtonRegularIcon,
-        ColorId.circleButtonNewSecretIcon,
-        ColorId.circleButtonNewChannelIcon,
-        ColorId.circleButtonNewGroupIcon,
-        ColorId.circleButtonNewChatIcon
+        ColorId.circleButtonRegularIcon,
+        ColorId.circleButtonRegularIcon,
+        ColorId.circleButtonRegularIcon,
+        ColorId.circleButtonRegularIcon
       }, new int[]{
         R.string.NewSecretChat,
         R.string.NewChannel,
