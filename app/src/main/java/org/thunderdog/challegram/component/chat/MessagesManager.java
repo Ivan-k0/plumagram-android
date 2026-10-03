@@ -1013,9 +1013,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
 
   private boolean useReactionBubblesValue;
   private boolean checkReactionBubbles () {
-    if (tdlib.isUserChat(loader.getChatId())) {
-      return false;
-    }
+    // TGx101: private chats follow «Big reactions in chats» like groups (they always had small ones in the footer)
 
     if (loader.isChannel() && Settings.instance().getBigReactionsInChannels()) {
       return true;

@@ -171,8 +171,24 @@ public class WallpaperView extends View implements ThemeChangeListener, ChatStyl
     }
   }
 
+  // TGx101: the wallpaper set for this chat (by you or, with «for both», by the other person) wins over the global one
+
+  private boolean tgx101ChatBackground;
+
+  public void tgx101SetChatBackground (@androidx.annotation.Nullable TdApi.ChatBackground background) {
+    if (inSetupMode) return;
+    if (background != null && background.background != null) {
+      tgx101ChatBackground = true;
+      setWallpaper(new TGBackground(tdlib, background.background), true);
+    } else if (tgx101ChatBackground) {
+      tgx101ChatBackground = false;
+      setWallpaper(tdlib.settings().getWallpaper(Theme.getWallpaperIdentifier()), true);
+    }
+  }
+
   @Override
   public void onChatWallpaperChanged (Tdlib tdlib, TGBackground wallpaper, int usageIdentifier) {
+    if (tgx101ChatBackground) return;
     if (this.tdlib == tdlib && usageIdentifier == Theme.getWallpaperIdentifier()) {
       if (inSelfBlurMode) {
         wallpaper = TGBackground.newBlurredWallpaper(tdlib, wallpaper, selfBlurValue);

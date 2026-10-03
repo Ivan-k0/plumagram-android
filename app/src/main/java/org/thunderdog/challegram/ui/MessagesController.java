@@ -11354,8 +11354,20 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   // Updates (new)
 
+  @Override
+  public void onChatBackgroundChanged (long chatId, @Nullable TdApi.ChatBackground background) {
+    runOnUiThreadOptional(() -> {
+      if (chat != null && chat.id == chatId && wallpaperView != null) {
+        wallpaperView.tgx101SetChatBackground(background); // TGx101
+      }
+    });
+  }
+
   public void subscribeToUpdates (long chatId) {
     tdlib.listeners().subscribeToChatUpdates(chatId, this);
+    if (wallpaperView != null && chat != null && chat.id == chatId) {
+      wallpaperView.tgx101SetChatBackground(chat.background); // TGx101: the chat's own wallpaper
+    }
     tdlib.singleUnreadReactionsManager().subscribeToUnreadSingleReactionUpdates(chatId, this);
     if (chatId != getHeaderChatId()) {
       tdlib.listeners().subscribeToChatUpdates(getHeaderChatId(), this);
