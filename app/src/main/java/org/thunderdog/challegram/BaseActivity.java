@@ -985,6 +985,47 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     }
   }
 
+  private String tgx101LastWindowState;
+
+  /**
+   * TGx101 diagnostics: fullscreen mode, system UI flags, status bar / keyboard insets and the content height — logged
+   * when they change (status bar gone + keyboard over the text after the media viewer, 2026-10-03).
+   */
+  public void tgx101LogWindowState (String why, boolean always) {
+    if (!BuildConfig.TGX101_DIAG) {
+      return;
+    }
+    try {
+      Window w = getWindow();
+      View decor = w.getDecorView();
+      StringBuilder b = new StringBuilder("window: fullscreen ").append(isFullscreen)
+        .append(" flags 0x").append(Integer.toHexString(fullScreenFlags))
+        .append(" views ").append(fullScreenViews != null ? fullScreenViews.size() : 0).append('/').append(noFullScreenViews != null ? noFullScreenViews.size() : 0)
+        .append(", FLAG_FULLSCREEN ").append((w.getAttributes().flags & WindowManager.LayoutParams.FLAG_FULLSCREEN) != 0)
+        .append(", ui 0x").append(Integer.toHexString(decor.getSystemUiVisibility()))
+        .append(", lock ").append(tgx101ImmersiveLock);
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        android.view.WindowInsets insets = decor.getRootWindowInsets();
+        if (insets != null) {
+          b.append(", status bar ").append(insets.isVisible(android.view.WindowInsets.Type.statusBars()) ? "shown " : "hidden ")
+            .append(insets.getInsets(android.view.WindowInsets.Type.statusBars()).top)
+            .append(", ime ").append(insets.isVisible(android.view.WindowInsets.Type.ime()) ? "shown " : "hidden ")
+            .append(insets.getInsets(android.view.WindowInsets.Type.ime()).bottom);
+        }
+      }
+      View content = findViewById(android.R.id.content);
+      b.append(", content ").append(content != null ? content.getHeight() : -1).append(" of ").append(decor.getHeight());
+      if (statusBar != null) {
+        b.append(", network bar ").append(statusBar.getVisibility() == View.VISIBLE ? "visible" : "gone");
+      }
+      String state = b.toString();
+      if (always || !state.equals(tgx101LastWindowState)) {
+        tgx101LastWindowState = state;
+        Tgx101Diag.mark(state + " (" + why + ")");
+      }
+    } catch (Throwable ignored) { }
+  }
+
   private String tgx101GestureNav () {
     try {
       int mode = android.provider.Settings.Secure.getInt(getContentResolver(), "navigation_mode", -1);
@@ -1031,6 +1072,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
         setWindowFlags(isFullscreen ? WindowManager.LayoutParams.FLAG_FULLSCREEN : 0, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         int uiVisibility = computeUiVisibility();
         setWindowDecorSystemUiVisibility(uiVisibility, true);
+        tgx101LogWindowState("fullscreen " + isFullscreen, true); // TGx101: diagnostics builds only
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && !isFullscreen && (Config.CUTOUT_ENABLED || cutoutIgnored)) {
           Window w = getWindow();
           WindowManager.LayoutParams params = w.getAttributes();
@@ -1586,6 +1628,9 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     updatePopupBackPriority();
     if (statusBar != null) {
       statusBar.updateVisible();
+    }
+    if (BuildConfig.TGX101_DIAG) {
+      getWindow().getDecorView().postDelayed(() -> tgx101LogWindowState("keyboard " + (visible ? "shown" : "hidden"), true), 300); // insets settled
     }
   }
 

@@ -3512,6 +3512,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     onFocusStateChanged();
     notifyFocusChanged(true);
     org.thunderdog.challegram.Tgx101DiagHooks.onControllerFocus(this, true); // TGx101: diagnostics builds only
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) context.tgx101LogWindowState("screen", false); // only when it changed
     context.addKeyEventListener(this);
   }
 
