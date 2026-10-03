@@ -992,6 +992,10 @@ public class MediaView extends FrameLayoutFix {
         removeCallbacks(gLongPress);
         int state = gState;
         gState = G_NONE;
+        if (state == G_ARMED || state == G_BRIGHTNESS || state == G_VOLUME) {
+          // the viewer keeps its own copy of the flag; without this, swipe-to-close stayed off after a hold
+          if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+        }
         if (state == G_PENDING || state == G_NONE) return false;
         if (state == G_ARMED) {
           postDelayed(gHideHud, 300); // held and let go without moving: nothing else happens
