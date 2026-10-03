@@ -940,6 +940,7 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
         if (navigation.isEmpty()) {
           initMainController(null, null, null);
         }
+        tgx101CloseMediaViewer(); // TGx101: a screenshot of a playing video shared back into the app showed the video again
         // TGx101: something shared into the app over an open chat — unfocus its input before the window comes back,
         // otherwise Android restores the keyboard for a moment (it flashed) before the chat picker
         // (clearing the focus alone isn't enough: Android hands it straight back to the chat's input), so the window

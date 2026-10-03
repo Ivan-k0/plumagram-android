@@ -2669,6 +2669,18 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     }
   }
 
+  /** TGx101: closes an open media viewer (something was shared into the app while a video played: its picker opened under the viewer) */
+  public void tgx101CloseMediaViewer () {
+    for (int i = windows.size() - 1; i >= 0; i--) {
+      PopupLayout window = windows.get(i);
+      if (window.getBoundController() instanceof org.thunderdog.challegram.mediaview.MediaViewController && window.isBoundWindowShowing()) {
+        Tgx101Diag.mark("share: media viewer closed for the chat picker");
+        window.hideWindow(false);
+      }
+    }
+    setWindowDecorSystemUiVisibility(computeUiVisibility(), true); // the viewer's dimmed navigation goes away too
+  }
+
   public boolean dismissLastOpenWindow (boolean byKeyPress, boolean byBackPress, boolean byHeaderBackPress, boolean commit) {
     final int size = windows.size();
     for (int i = size - 1; i >= 0; i--) {
