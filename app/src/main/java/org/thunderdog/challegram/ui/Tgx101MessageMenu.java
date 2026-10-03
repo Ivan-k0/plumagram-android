@@ -143,11 +143,9 @@ public final class Tgx101MessageMenu {
   private static List<ViewController.OptionItem> pendingMore = new ArrayList<>();
   private static final java.util.HashSet<Integer> shownIds = new java.util.HashSet<>();
 
-  /** For the «More…» list: the user's moved actions (taken once) */
+  /** For the «More…» list: the user's moved actions of the menu shown last (kept: «More…» can be opened again after «Back») */
   public static List<ViewController.OptionItem> takePendingMore () {
-    List<ViewController.OptionItem> result = pendingMore;
-    pendingMore = new ArrayList<>();
-    return result;
+    return Settings.instance().useTgx101MessageMenu() ? new ArrayList<>(pendingMore) : new ArrayList<>();
   }
 
   public static boolean isShownInMenu (int id) {
