@@ -558,6 +558,77 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
     avatarReceiver.setBounds(left, getAvatarTop(chatListMode), left + getAvatarSize(chatListMode), getAvatarTop(chatListMode) + getAvatarSize(chatListMode));
   }
 
+  // TGx101: stories as rings on the avatar («rings» mode) — a tap on the avatar opens them, a long press the menu
+
+  private static final android.graphics.Paint tgx101RingPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
+  private void tgx101DrawStoryRing (Canvas c) {
+    if (chat == null || chat.isArchive()) return;
+    TdApi.ChatActiveStories stories = org.thunderdog.challegram.ui.Tgx101Stories.ringStories(tdlib, chat.getChatId());
+    if (stories == null) return;
+    boolean unread = org.thunderdog.challegram.ui.Tgx101Stories.hasUnread(stories);
+    tgx101RingPaint.setStyle(android.graphics.Paint.Style.STROKE);
+    tgx101RingPaint.setStrokeWidth(Screen.dp(unread ? 2.5f : 1.5f));
+    tgx101RingPaint.setColor(unread ? 0xff3fa9f5 : 0x80808a94);
+    float radius = avatarReceiver.getWidth() / 2f + Screen.dp(3f);
+    c.drawCircle(avatarReceiver.centerX(), avatarReceiver.centerY(), radius, tgx101RingPaint);
+  }
+
+  private boolean tgx101AvatarTouch, tgx101AvatarLongPressed;
+  private float tgx101DownX, tgx101DownY;
+  private final Runnable tgx101AvatarLongPress = () -> {
+    tgx101AvatarLongPressed = true;
+    performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+    org.thunderdog.challegram.ui.Tgx101Stories.Handler h = org.thunderdog.challegram.ui.Tgx101Stories.handler.get();
+    if (h != null && chat != null) h.showStoriesMenu(chat.getChatId());
+  };
+
+  @Override
+  public boolean onTouchEvent (android.view.MotionEvent e) {
+    switch (e.getActionMasked()) {
+      case android.view.MotionEvent.ACTION_DOWN: {
+        tgx101AvatarTouch = false;
+        if (chat != null && !chat.isArchive() && org.thunderdog.challegram.ui.Tgx101Stories.ringStories(tdlib, chat.getChatId()) != null) {
+          float r = avatarReceiver.getWidth() / 2f + Screen.dp(6f);
+          float dx = e.getX() - avatarReceiver.centerX(), dy = e.getY() - avatarReceiver.centerY();
+          if (dx * dx + dy * dy <= r * r) {
+            tgx101AvatarTouch = true;
+            tgx101AvatarLongPressed = false;
+            tgx101DownX = e.getX();
+            tgx101DownY = e.getY();
+            postDelayed(tgx101AvatarLongPress, android.view.ViewConfiguration.getLongPressTimeout());
+            return true;
+          }
+        }
+        break;
+      }
+      case android.view.MotionEvent.ACTION_MOVE: {
+        if (tgx101AvatarTouch) {
+          if (Math.abs(e.getX() - tgx101DownX) > Screen.getTouchSlop() || Math.abs(e.getY() - tgx101DownY) > Screen.getTouchSlop()) {
+            removeCallbacks(tgx101AvatarLongPress);
+            tgx101AvatarTouch = false;
+          }
+          return true;
+        }
+        break;
+      }
+      case android.view.MotionEvent.ACTION_UP:
+      case android.view.MotionEvent.ACTION_CANCEL: {
+        if (tgx101AvatarTouch) {
+          removeCallbacks(tgx101AvatarLongPress);
+          tgx101AvatarTouch = false;
+          if (e.getActionMasked() == android.view.MotionEvent.ACTION_UP && !tgx101AvatarLongPressed) {
+            org.thunderdog.challegram.ui.Tgx101Stories.Handler h = org.thunderdog.challegram.ui.Tgx101Stories.handler.get();
+            if (h != null && chat != null) h.openStoriesOf(chat.getChatId());
+          }
+          return true;
+        }
+        break;
+      }
+    }
+    return super.onTouchEvent(e);
+  }
+
   public TGChat getChat () {
     return chat;
   }
@@ -761,6 +832,7 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
       avatarReceiver.drawPlaceholder(c);
     }
     avatarReceiver.draw(c);
+    tgx101DrawStoryRing(c);
 
     DrawAlgorithms.drawIcon(c, avatarReceiver, 315f, chat.getScheduleAnimator().getFloatValue(), Theme.fillingColor(), getSparseDrawable(R.drawable.baseline_watch_later_10, ColorId.badgeMuted), PorterDuffPaint.get(ColorId.badgeMuted, chat.getScheduleAnimator().getFloatValue()));
     DrawAlgorithms.drawSimplestCheckBox(c, avatarReceiver, isSelected.getFloatValue());

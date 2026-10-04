@@ -22,6 +22,36 @@ public final class Tgx101Stories {
 
   private static final String PREFS = "tgx101_stories";
   private static final String KEY_LESS = "less";
+  private static final String KEY_MODE = "mode";
+
+  /** 0 — strip above the chat list, 1 — rings on the chat list avatars (user 2026-10-04, «на выбор») */
+  public static final int MODE_STRIP = 0, MODE_RINGS = 1;
+
+  public static int mode () {
+    return prefs().getInt(KEY_MODE, MODE_STRIP);
+  }
+
+  public static void setMode (int mode) {
+    prefs().edit().putInt(KEY_MODE, mode).apply();
+  }
+
+  /** The chat list currently on screen: avatars in «rings» mode open stories through it */
+  public interface Handler {
+    void openStoriesOf (long chatId);
+    void showStoriesMenu (long chatId);
+  }
+
+  public static java.lang.ref.WeakReference<Handler> handler = new java.lang.ref.WeakReference<>(null);
+
+  /** Active stories of this chat for the avatar ring: null — none */
+  @Nullable
+  public static TdApi.ChatActiveStories ringStories (Tdlib tdlib, long chatId) {
+    if (mode() != MODE_RINGS) return null;
+    TdApi.ChatActiveStories stories = tdlib.getActiveStories(chatId, false, null);
+    if (stories == null || stories.stories == null || stories.stories.length == 0 || stories.list == null) return null;
+    if (stories.list.getConstructor() != TdApi.StoryListMain.CONSTRUCTOR) return null;
+    return stories;
+  }
 
   private static SharedPreferences prefs () {
     return UI.getAppContext().getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE);

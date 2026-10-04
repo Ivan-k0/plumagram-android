@@ -1178,9 +1178,13 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
       @Override
       public void onStripVisibilityChanged (boolean hasItems) {
-        tgx101LayoutStoriesStrip(hasItems);
+        tgx101LayoutStoriesStrip(hasItems && Tgx101Stories.mode() == Tgx101Stories.MODE_STRIP);
+        if (Tgx101Stories.mode() == Tgx101Stories.MODE_RINGS) {
+          tgx101InvalidateRings();
+        }
       }
     });
+    Tgx101Stories.handler = new java.lang.ref.WeakReference<>(tgx101StoriesHandler);
     tgx101StoriesStrip.setVisibility(View.GONE);
     contentView.addView(tgx101StoriesStrip, FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, tgx101StripHeight, Gravity.TOP));
     chatsView.addOnScrollListener(new RecyclerView.OnScrollListener() {
@@ -1214,22 +1218,69 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     tgx101StoriesStrip.setAlpha(1f - Math.min(1f, offset / (float) tgx101StripHeight) * .6f);
   }
 
+  private final Tgx101Stories.Handler tgx101StoriesHandler = new Tgx101Stories.Handler() {
+    @Override
+    public void openStoriesOf (long chatId) {
+      if (tgx101StoriesStrip == null) return;
+      java.util.List<TdApi.ChatActiveStories> ordered = tgx101StoriesStrip.ordered();
+      int index = -1;
+      for (int i = 0; i < ordered.size(); i++) {
+        if (ordered.get(i).chatId == chatId) { index = i; break; }
+      }
+      if (index == -1) {
+        TdApi.ChatActiveStories single = tdlib.getActiveStories(chatId, false, null);
+        if (single == null) return;
+        ordered = java.util.Collections.singletonList(single);
+        index = 0;
+      }
+      org.thunderdog.challegram.Tgx101Diag.mark("stories: open from avatar " + index);
+      Tgx101StoryViewer viewer = new Tgx101StoryViewer(context(), tdlib, new java.util.ArrayList<>(ordered), index);
+      viewer.setOnClosed(() -> { if (tgx101StoriesStrip != null) tgx101StoriesStrip.refresh(); });
+      viewer.show();
+    }
+
+    @Override
+    public void showStoriesMenu (long chatId) {
+      TdApi.ChatActiveStories stories = tdlib.getActiveStories(chatId, false, null);
+      if (stories != null) tgx101ShowStoryMenu(stories);
+    }
+  };
+
+  private void tgx101InvalidateRings () {
+    for (int i = 0; i < chatsView.getChildCount(); i++) {
+      chatsView.getChildAt(i).invalidate();
+    }
+  }
+
+  @Override
+  public void onFocus () {
+    super.onFocus();
+    if (tgx101StoriesStrip != null) {
+      Tgx101Stories.handler = new java.lang.ref.WeakReference<>(tgx101StoriesHandler);
+      tgx101LayoutStoriesStrip(tgx101StoriesStrip.hasItems() && Tgx101Stories.mode() == Tgx101Stories.MODE_STRIP);
+      tgx101InvalidateRings();
+    }
+  }
+
   private void tgx101ShowStoryMenu (TdApi.ChatActiveStories stories) {
     final long chatId = stories.chatId;
     final boolean less = Tgx101Stories.isShownLess(chatId);
     final boolean notify = Tgx101Stories.notifiesNewStories(tdlib, chatId);
     TdApi.Chat chat = tdlib.chat(chatId);
     showOptions(chat != null ? chat.title : null,
-      new int[] {R.id.btn_tgx101StoryHide, R.id.btn_tgx101StoryLess, R.id.btn_tgx101StoryNotify},
+      new int[] {R.id.btn_tgx101StoryProfile, R.id.btn_tgx101StoryHide, R.id.btn_tgx101StoryLess, R.id.btn_tgx101StoryNotify},
       new String[] {
+        Lang.getString(R.string.Tgx101StoryProfile),
         Lang.getString(R.string.Tgx101StoryHide),
         Lang.getString(less ? R.string.Tgx101StoryShowNormally : R.string.Tgx101StoryShowLess),
         Lang.getString(notify ? R.string.Tgx101StoryNotifyOff : R.string.Tgx101StoryNotifyOn)
       },
       null,
-      new int[] {R.drawable.baseline_eye_off_24, R.drawable.baseline_arrow_downward_24, notify ? R.drawable.baseline_notifications_off_24 : R.drawable.baseline_notifications_24},
+      new int[] {R.drawable.baseline_person_24, R.drawable.baseline_eye_off_24, R.drawable.baseline_arrow_downward_24, notify ? R.drawable.baseline_notifications_off_24 : R.drawable.baseline_notifications_24},
       (itemView, id) -> {
-        if (id == R.id.btn_tgx101StoryHide) {
+        if (id == R.id.btn_tgx101StoryProfile) {
+          tdlib.ui().openChatProfile(this, chatId, null, null);
+        } else if (id == R.id.btn_tgx101StoryHide) {
           Tgx101Stories.setHidden(tdlib, chatId, true);
           org.thunderdog.challegram.Tgx101Diag.mark("stories: hide " + chatId);
         } else if (id == R.id.btn_tgx101StoryLess) {

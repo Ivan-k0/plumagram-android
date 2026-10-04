@@ -237,6 +237,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().isRingRampEnabled(), isUpdate);
         } else if (itemId == R.id.btn_tgx101CameraInAttach) {
           view.getToggler().setRadioEnabled(Settings.instance().isCameraInAttach(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101StoriesMode) {
+          view.setData(Tgx101Stories.mode() == Tgx101Stories.MODE_RINGS ? R.string.Tgx101StoriesModeRings : R.string.Tgx101StoriesModeStrip);
         } else if (itemId == R.id.btn_tgx101NextChannelSwipe) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101NextChannelSwipe(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideChannelReactions) {
@@ -390,6 +392,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_bigEmojiSize, 0, R.string.BigEmojiSize),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Filters, 0, R.string.Tgx101Filters),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101StoriesMode, 0, R.string.Tgx101StoriesMode),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideChannelReactions, 0, R.string.Tgx101HideChannelReactions),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -785,6 +789,18 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setCallPattern(toggleResult ? Settings.CALL_PATTERN_PAPER_PLANES : Settings.CALL_PATTERN_NONE); // the view was already toggled above
     } else if (id == R.id.btn_tgx101RingRamp) {
       Settings.instance().setRingRampEnabled(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101StoriesMode) {
+      int current = Tgx101Stories.mode();
+      showOptions(Lang.getString(R.string.Tgx101StoriesMode), new int[] {1, 2},
+        new String[] {
+          Lang.getString(R.string.Tgx101StoriesModeStrip) + (current == Tgx101Stories.MODE_STRIP ? "  ✓" : ""),
+          Lang.getString(R.string.Tgx101StoriesModeRings) + (current == Tgx101Stories.MODE_RINGS ? "  ✓" : "")
+        }, null, null, (itemView, optionId) -> {
+          Tgx101Stories.setMode(optionId == 2 ? Tgx101Stories.MODE_RINGS : Tgx101Stories.MODE_STRIP);
+          adapter.updateValuedSettingById(R.id.btn_tgx101StoriesMode);
+          UI.showToast(R.string.Tgx101StoriesModeRestart, android.widget.Toast.LENGTH_SHORT);
+          return true;
+        });
     } else if (id == R.id.btn_tgx101NextChannelSwipe) {
       Settings.instance().setTgx101NextChannelSwipe(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101HideChannelReactions) {

@@ -89,6 +89,10 @@ public class Tgx101StoriesStrip extends HorizontalScrollView implements SortedLi
     storyList.getList(null, items -> UI.post(() -> setItems(items)));
   }
 
+  public List<TdApi.ChatActiveStories> ordered () {
+    return ordered;
+  }
+
   public boolean hasItems () {
     return !ordered.isEmpty();
   }

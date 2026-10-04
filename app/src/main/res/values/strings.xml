@@ -6281,6 +6281,11 @@
   <string name="Tgx101StoryNotifyOnDone">You will be notified about new stories</string>
   <string name="Tgx101StoryNotifyOffDone">No notifications about new stories</string>
   <string name="Tgx101ScheduledDone">Message scheduled</string>
+  <string name="Tgx101StoryProfile">View profile</string>
+  <string name="Tgx101StoriesMode">Stories</string>
+  <string name="Tgx101StoriesModeStrip">Strip above chats</string>
+  <string name="Tgx101StoriesModeRings">Rings on avatars</string>
+  <string name="Tgx101StoriesModeRestart">Applies to the chat list after you go back to it</string>
   <string name="Tgx101TestSection">Testing</string>
   <string name="Tgx101FakeNoPremium">As without Premium (test)</string>
   <string name="Tgx101FakeNoPremiumHint">Test builds only. The app shows everything as for an account without Premium; the server still knows the account has it. Restart the app after switching.</string>

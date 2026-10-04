@@ -1566,6 +1566,8 @@
   <item name="btn_tgx101StoryHide" type="id"/>
   <item name="btn_tgx101StoryLess" type="id"/>
   <item name="btn_tgx101StoryNotify" type="id"/>
+  <item name="btn_tgx101StoryProfile" type="id"/>
+  <item name="btn_tgx101StoriesMode" type="id"/>
   <item name="btn_tgx101FloatingInput" type="id"/>
   <item name="btn_tgx101NewCallScreen" type="id"/>
   <item name="btn_tgx101QuickReply1" type="id"/>
