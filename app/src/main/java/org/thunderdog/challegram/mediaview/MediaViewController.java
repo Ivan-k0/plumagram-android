@@ -9344,6 +9344,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   public void send (View view, TdApi.MessageSendOptions initialSendOptions, boolean disableMarkdown, boolean asFiles) {
+    try {
+      tgx101Send(view, initialSendOptions, disableMarkdown, asFiles);
+    } finally {
+      org.thunderdog.challegram.filegen.PhotoGenerationInfo.tgx101HdOverride = null; // the choice is for this send only
+    }
+  }
+
+  private void tgx101Send (View view, TdApi.MessageSendOptions initialSendOptions, boolean disableMarkdown, boolean asFiles) {
     if (sendDelegate == null) {
       return;
     }
@@ -10073,6 +10081,20 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           );
         }
         if (sendDelegate != null && !inForceEditMode()) {
+          // TGx101 (user 2026-10-04): photo quality for this send, right on the preview
+          Boolean hdOverride = org.thunderdog.challegram.filegen.PhotoGenerationInfo.tgx101HdOverride;
+          hapticItems.add(0,
+            new HapticMenuHelper.MenuItem(R.id.btn_tgx101SendHd, Lang.getString(R.string.Tgx101SendHd), R.drawable.baseline_image_24)
+              .setIsCheckbox(true, hdOverride != null ? hdOverride : org.thunderdog.challegram.filegen.PhotoGenerationInfo.tgx101HdDefault())
+              .setOnClickListener((view, parentView, item) -> {
+                if (view.getId() == R.id.btn_tgx101SendHd) {
+                  org.thunderdog.challegram.filegen.PhotoGenerationInfo.tgx101HdOverride = item.isCheckboxSelected;
+                  org.thunderdog.challegram.Tgx101Diag.mark("send media: HD " + item.isCheckboxSelected);
+                  return true;
+                }
+                return false;
+              })
+          );
           // TGx101 (user 2026-10-04): caption above or below the media, as in the official clients
           hapticItems.add(0,
             new HapticMenuHelper.MenuItem(R.id.btn_tgx101CaptionAbove, Lang.getString(R.string.Tgx101CaptionAbove), R.drawable.baseline_file_caption_24)

@@ -51,7 +51,15 @@ public class PhotoGenerationInfo extends GenerationInfo {
   // 0 (SD/default) if the user hasn't enabled HD photo sending, HD_RESOLUTION_LIMIT otherwise.
   // Use this wherever an outgoing *chat message* photo (not an avatar/chat photo) is generated.
   public static int outgoingPhotoResolutionLimit () {
-    return Settings.instance().getNewSetting(Settings.SETTING_FLAG_SEND_PHOTOS_IN_HD) ? HD_RESOLUTION_LIMIT : 0;
+    Boolean hd = tgx101HdOverride;
+    return (hd != null ? hd : tgx101HdDefault()) ? HD_RESOLUTION_LIMIT : 0;
+  }
+
+  /** TGx101 (user 2026-10-04): SD / HD chosen right on the photo preview for this send; null = the setting */
+  public static volatile Boolean tgx101HdOverride;
+
+  public static boolean tgx101HdDefault () {
+    return Settings.instance().getNewSetting(Settings.SETTING_FLAG_SEND_PHOTOS_IN_HD);
   }
 
   private int rotation; // 0, 90, 180 or 270
