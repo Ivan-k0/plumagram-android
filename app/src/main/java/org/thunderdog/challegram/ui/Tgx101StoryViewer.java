@@ -64,6 +64,7 @@ public class Tgx101StoryViewer extends Dialog {
   private final TextView heartView;
 
   private @Nullable TdApi.Story story;
+  private final android.widget.ProgressBar spinner;
   private long startedAt, pausedAt, duration = PHOTO_DURATION, pausedTotal;
   private boolean paused, loading;
   private int openedStoryId;
@@ -99,6 +100,11 @@ public class Tgx101StoryViewer extends Dialog {
     FrameLayout.LayoutParams videoParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER);
     root.addView(videoView, videoParams);
     videoView.setVisibility(View.GONE);
+
+    // TGx101 (user 2026-10-04): a soft spinner while the story loads, then it fades in instead of popping up
+    spinner = new android.widget.ProgressBar(context);
+    spinner.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(0xccffffff));
+    root.addView(spinner, new FrameLayout.LayoutParams(Screen.dp(36f), Screen.dp(36f), Gravity.CENTER));
 
     // top gradient for readability
     View shade = new View(context);
@@ -299,7 +305,10 @@ public class Tgx101StoryViewer extends Dialog {
     TdApi.File file = Tgx101Stories.bestFile(story.content);
     boolean isVideo = story.content instanceof TdApi.StoryContentVideo;
     duration = isVideo ? Math.max(1000L, (long) (((TdApi.StoryContentVideo) story.content).video.duration * 1000)) : PHOTO_DURATION;
-    imageView.setImageDrawable(null);
+    imageView.animate().cancel();
+    imageView.setAlpha(0f);
+    videoView.setAlpha(0f);
+    spinner.setVisibility(View.VISIBLE);
     videoView.setVisibility(View.GONE);
     if (file == null) {
       showStory(storyIndex + 1);
@@ -317,11 +326,13 @@ public class Tgx101StoryViewer extends Dialog {
           return;
         }
         loading = false;
+        spinner.setVisibility(View.GONE);
         if (isVideo) {
           videoView.setVisibility(View.VISIBLE);
           videoView.setVideoPath(path);
           videoView.setOnPreparedListener(mp -> {
             duration = Math.max(1000L, mp.getDuration());
+            videoView.animate().alpha(1f).setDuration(220).start();
             if (!paused) mp.start();
             startTimer();
           });
@@ -333,6 +344,7 @@ public class Tgx101StoryViewer extends Dialog {
           });
         } else {
           imageView.setImageBitmap(bitmap);
+          imageView.animate().alpha(1f).setDuration(220).start();
           startTimer();
         }
       });

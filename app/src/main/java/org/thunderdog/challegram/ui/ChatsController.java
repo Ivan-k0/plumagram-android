@@ -1189,6 +1189,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
         tgx101SyncStoriesStrip();
       }
     });
+    chatsView.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> chatsView.post(this::tgx101SyncStoriesStrip));
   }
 
   private void tgx101LayoutStoriesStrip (boolean hasItems) {
@@ -1202,6 +1203,11 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   /** The strip rides on top of the list: its offset is how far the list has scrolled past its top padding */
   private void tgx101SyncStoriesStrip () {
     if (tgx101StoriesStrip == null || tgx101StoriesStrip.getVisibility() != View.VISIBLE) return;
+    // something (search, insets) may reset the list padding: the strip then covered the first chats (user's video 21:08)
+    if (chatsView.getPaddingTop() != tgx101StripHeight) {
+      org.thunderdog.challegram.Tgx101Diag.mark("stories strip: list padding restored (was " + chatsView.getPaddingTop() + ")");
+      chatsView.setPadding(chatsView.getPaddingLeft(), tgx101StripHeight, chatsView.getPaddingRight(), chatsView.getPaddingBottom());
+    }
     int offset = chatsView.computeVerticalScrollOffset();
     float y = -Math.min(offset, tgx101StripHeight);
     tgx101StoriesStrip.setTranslationY(y);
