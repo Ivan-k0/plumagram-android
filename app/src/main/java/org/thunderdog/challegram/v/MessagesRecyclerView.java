@@ -267,8 +267,100 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
   private boolean tgx101NextTracking, tgx101NextPast;
   private float tgx101NextDownY;
 
+  // TGx101 (user 2026-10-04, «как в галерее iPhone»): in select mode a drag that starts sideways selects (or
+  // unselects, if the first message was selected) every message the finger passes; near the edges the list scrolls
+  private boolean tgx101DragSelect, tgx101DragTracking, tgx101DragTarget;
+  private float tgx101DragDownX, tgx101DragDownY, tgx101DragLastY;
+  private int tgx101DragStartPos = -1;
+  private final Runnable tgx101AutoScroll = new Runnable() {
+    @Override
+    public void run () {
+      if (!tgx101DragSelect) return;
+      int edge = Screen.dp(72f);
+      int dy = tgx101DragLastY < edge ? -Screen.dp(12f) : tgx101DragLastY > getHeight() - edge ? Screen.dp(12f) : 0;
+      if (dy != 0) {
+        scrollBy(0, dy);
+        tgx101DragApply(tgx101DragLastY);
+      }
+      postDelayed(this, 16);
+    }
+  };
+
+  private int tgx101PositionAt (float y) {
+    View child = findChildViewUnder(getWidth() / 2f, y);
+    return child != null ? getChildAdapterPosition(child) : -1;
+  }
+
+  private void tgx101DragApply (float y) {
+    int end = tgx101PositionAt(y);
+    if (end == -1 || tgx101DragStartPos == -1) return;
+    int from = Math.min(end, tgx101DragStartPos), to = Math.max(end, tgx101DragStartPos);
+    for (int i = 0; i < getChildCount(); i++) {
+      View child = getChildAt(i);
+      int pos = getChildAdapterPosition(child);
+      if (pos < from || pos > to || !(child instanceof org.thunderdog.challegram.component.chat.MessageView)) continue;
+      org.thunderdog.challegram.data.TGMessage msg = ((org.thunderdog.challegram.component.chat.MessageView) child).getMessage();
+      if (msg == null || !msg.canBeSelected() || msg.isCompletelySelected() == tgx101DragTarget) continue;
+      manager.controller().selectAllMessages(msg, -1, -1);
+    }
+  }
+
   @Override
   public boolean dispatchTouchEvent (MotionEvent e) {
+    if (manager != null && manager.controller().inSelectMode()) {
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN: {
+          tgx101DragSelect = false;
+          tgx101DragTracking = true;
+          tgx101DragDownX = e.getX();
+          tgx101DragDownY = e.getY();
+          tgx101DragStartPos = tgx101PositionAt(e.getY());
+          break;
+        }
+        case MotionEvent.ACTION_MOVE: {
+          if (tgx101DragSelect) {
+            tgx101DragLastY = e.getY();
+            tgx101DragApply(e.getY());
+            return true;
+          }
+          if (tgx101DragTracking) {
+            float dx = Math.abs(e.getX() - tgx101DragDownX), dy = Math.abs(e.getY() - tgx101DragDownY);
+            if (dy > Screen.getTouchSlop() && dy > dx) {
+              tgx101DragTracking = false; // an ordinary scroll
+            } else if (dx > Screen.getTouchSlop() * 1.5f && dx > dy * 1.5f && tgx101DragStartPos != -1) {
+              View child = findChildViewUnder(getWidth() / 2f, tgx101DragDownY);
+              org.thunderdog.challegram.data.TGMessage msg = child instanceof org.thunderdog.challegram.component.chat.MessageView ? ((org.thunderdog.challegram.component.chat.MessageView) child).getMessage() : null;
+              if (msg != null && msg.canBeSelected()) {
+                tgx101DragSelect = true;
+                tgx101DragTarget = !msg.isCompletelySelected();
+                tgx101DragLastY = e.getY();
+                org.thunderdog.challegram.Tgx101Diag.mark("select: drag " + (tgx101DragTarget ? "select" : "unselect"));
+                performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+                MotionEvent cancel = MotionEvent.obtain(e);
+                cancel.setAction(MotionEvent.ACTION_CANCEL);
+                super.dispatchTouchEvent(cancel);
+                cancel.recycle();
+                tgx101DragApply(e.getY());
+                post(tgx101AutoScroll);
+                return true;
+              }
+              tgx101DragTracking = false;
+            }
+          }
+          break;
+        }
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL: {
+          tgx101DragTracking = false;
+          if (tgx101DragSelect) {
+            tgx101DragSelect = false;
+            removeCallbacks(tgx101AutoScroll);
+            return true;
+          }
+          break;
+        }
+      }
+    }
     if (manager != null) {
       switch (e.getActionMasked()) {
         case MotionEvent.ACTION_DOWN:
