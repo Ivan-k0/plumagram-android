@@ -237,6 +237,7 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
     settings.setJavaScriptEnabled(true);
     settings.setDomStorageEnabled(true);
     settings.setMediaPlaybackRequiresUserGesture(false);
+    settings.setGeolocationEnabled(true); // TGx101: mini apps asking for the location (user's report from a Poco, 2026-10-04)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
     }
@@ -256,6 +257,21 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
       @Override
       public void onProgressChanged (WebView view, int newProgress) {
         headerCell.animateProgress(newProgress / 100f);
+      }
+
+      @Override
+      public void onGeolocationPermissionsShowPrompt (String origin, android.webkit.GeolocationPermissions.Callback callback) {
+        // the page's navigator.geolocation: ask the system permission once, then let the page have the location
+        Tgx101Diag.mark("mini app: page asks for the location");
+        if (tgx101HasLocationPermission()) {
+          callback.invoke(origin, true, false);
+          return;
+        }
+        context().requestLocationPermission(false, false, () -> callback.invoke(origin, false, false), (code, permissions, grantResults, grantCount) -> {
+          boolean granted = grantCount > 0;
+          Tgx101Diag.mark("mini app: location permission " + (granted ? "granted" : "denied"));
+          callback.invoke(origin, granted, false);
+        });
       }
     });
     webView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -414,6 +430,30 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
         case "web_app_read_text_from_clipboard":
           sendEvent("clipboard_text_received", new JSONObject().put("req_id", data.optString("req_id")));
           break;
+        case "web_app_check_location": {
+          // Telegram.WebApp.LocationManager: is the location available and allowed
+          JSONObject result = new JSONObject();
+          result.put("available", true);
+          result.put("access_requested", tgx101HasLocationPermission());
+          result.put("access_granted", tgx101HasLocationPermission());
+          sendEvent("location_checked", result);
+          break;
+        }
+        case "web_app_request_location": {
+          if (!tgx101HasLocationPermission()) {
+            context().requestLocationPermission(false, false, () -> sendEvent("location_requested", new JSONObject()), (code, permissions, grantResults, grantCount) -> {
+              if (grantCount > 0) tgx101SendLocation(); else sendEvent("location_requested", new JSONObject());
+            });
+          } else {
+            tgx101SendLocation();
+          }
+          break;
+        }
+        case "web_app_open_location_settings": {
+          android.content.Intent intent = new android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.fromParts("package", context().getPackageName(), null));
+          context().startActivity(intent);
+          break;
+        }
         case "web_app_trigger_haptic_feedback":
           if (webView != null) webView.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP);
           break;
@@ -422,6 +462,75 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
       }
     } catch (Throwable t) {
       Tgx101Diag.mark("mini app: event " + type + " failed " + t.getClass().getSimpleName());
+    }
+  }
+
+  private boolean tgx101HasLocationPermission () {
+    return android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M
+      || context().checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+      || context().checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+  }
+
+  /** LocationManager.getLocation: one fix from the system (GPS or network), then «location_requested» with it */
+  @android.annotation.SuppressLint("MissingPermission")
+  private void tgx101SendLocation () {
+    android.location.LocationManager lm = (android.location.LocationManager) context().getSystemService(android.content.Context.LOCATION_SERVICE);
+    android.location.Location last = null;
+    if (lm != null) {
+      for (String provider : lm.getProviders(true)) {
+        android.location.Location l = lm.getLastKnownLocation(provider);
+        if (l != null && (last == null || l.getTime() > last.getTime())) last = l;
+      }
+    }
+    if (last != null && System.currentTimeMillis() - last.getTime() < 2 * 60 * 1000L) {
+      tgx101SendLocationResult(last);
+      return;
+    }
+    if (lm == null) {
+      sendEvent("location_requested", new JSONObject());
+      return;
+    }
+    final android.location.Location fallback = last;
+    String provider = lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) ? android.location.LocationManager.GPS_PROVIDER : android.location.LocationManager.NETWORK_PROVIDER;
+    final boolean[] done = {false};
+    android.location.LocationListener listener = new android.location.LocationListener() {
+      @Override public void onLocationChanged (android.location.Location location) {
+        if (done[0]) return;
+        done[0] = true;
+        lm.removeUpdates(this);
+        tgx101SendLocationResult(location);
+      }
+      @Override public void onStatusChanged (String p, int status, android.os.Bundle extras) { }
+      @Override public void onProviderEnabled (String p) { }
+      @Override public void onProviderDisabled (String p) { }
+    };
+    try {
+      lm.requestLocationUpdates(provider, 0, 0, listener, android.os.Looper.getMainLooper());
+    } catch (Throwable t) {
+      Tgx101Diag.mark("mini app: location request failed " + t.getClass().getSimpleName());
+    }
+    UI.post(() -> {
+      if (done[0]) return;
+      done[0] = true;
+      lm.removeUpdates(listener);
+      if (fallback != null) tgx101SendLocationResult(fallback); else sendEvent("location_requested", new JSONObject());
+    }, 15000);
+  }
+
+  private void tgx101SendLocationResult (android.location.Location location) {
+    try {
+      JSONObject result = new JSONObject();
+      result.put("available", true);
+      result.put("latitude", location.getLatitude());
+      result.put("longitude", location.getLongitude());
+      if (location.hasAltitude()) result.put("altitude", location.getAltitude());
+      if (location.hasBearing()) result.put("course", location.getBearing());
+      if (location.hasSpeed()) result.put("speed", location.getSpeed());
+      if (location.hasAccuracy()) result.put("horizontal_accuracy", location.getAccuracy());
+      Tgx101Diag.mark("mini app: location sent");
+      sendEvent("location_requested", result);
+    } catch (Throwable t) {
+      Tgx101Diag.mark("mini app: location result failed " + t.getClass().getSimpleName());
     }
   }
 
