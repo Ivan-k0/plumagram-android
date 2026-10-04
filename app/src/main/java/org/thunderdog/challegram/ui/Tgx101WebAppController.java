@@ -63,6 +63,12 @@ import me.vkryl.android.widget.FrameLayoutFix;
  * the bot, custom bot methods. Payments and phone / write access requests are declined.
  */
 public class Tgx101WebAppController extends ViewController<Tgx101WebAppController.Args> implements Menu, MoreDelegate {
+  // TGx101 (user 2026-10-04): a mini app closes only by its ✕ — a swipe right closed it by accident
+  @Override
+  protected boolean swipeNavigationEnabled () {
+    return false;
+  }
+
   public static class Args {
     public final String title;
     public final String url;

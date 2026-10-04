@@ -836,6 +836,10 @@ public class ForceTouchView extends FrameLayoutFix implements
 
         final int rectTop = startY - (int) ((float) diffY * factor);
 
+        // TGx101 (user 2026-10-04): the hint over the first / last button ran past the screen edge — keep it inside
+        int edge = Screen.dp(4f);
+        int half = width / 2 + paddingHorizontal;
+        centerX = Math.max(edge + half, Math.min(parent.getMeasuredWidth() - edge - half, centerX));
         RectF rectF = Paints.getRectF();
         rectF.set(centerX - width / 2 - paddingHorizontal, rectTop, centerX + width / 2 + paddingHorizontal, rectTop + rectHeight);
 

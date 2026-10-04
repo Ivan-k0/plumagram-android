@@ -4397,6 +4397,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
+  private boolean tgx101KeepKeyboardGoingBack () {
+    if (!areScheduled || !getKeyboardState() || navigationController() == null || !navigationController().isAnimatingBackward()) return false;
+    ViewController<?> below = previousStackItem();
+    return below instanceof MessagesController && ((MessagesController) below).getChatId() == getChatId() && !((MessagesController) below).areScheduled;
+  }
+
   @Override
   public void onBlur () {
     saveDraft();
@@ -4410,6 +4416,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     if (preventHideKeyboard) {
       preventHideKeyboard = false;
+    } else if (tgx101KeepKeyboardGoingBack()) {
+      // TGx101 (user's Vivo video 21:01): back from «Scheduled» with the keyboard up hid it and the chat below opened it
+      // again — the screen jumped twice; the chat below keeps its input focused, so the keyboard just stays
+      org.thunderdog.challegram.Tgx101Diag.mark("scheduled: back with the keyboard kept");
     } else {
       hideSoftwareKeyboard();
     }
