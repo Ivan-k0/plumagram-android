@@ -5820,19 +5820,54 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
       // TGx101 (user 2026-10-04): a zoomed photo pans as usual; once its top edge is on screen the same drag down
       // turns into pull-to-close (the photo follows the finger, the chat shows through, short pulls spring back)
-      private boolean tgx101ZoomTracking, tgx101ZoomPull, tgx101ZoomStartedAtTop;
+      private boolean tgx101ZoomTracking, tgx101ZoomPull, tgx101ZoomStartedAtTop, tgx101ZoomPast;
+      private android.widget.TextView tgx101PullHint;
+
+      private void tgx101ShowPullHint (boolean show) {
+        if (show && tgx101PullHint == null) {
+          tgx101PullHint = new android.widget.TextView(getContext());
+          tgx101PullHint.setText(Lang.getString(R.string.Tgx101ReleaseToClose));
+          tgx101PullHint.setTextColor(0xffffffff);
+          tgx101PullHint.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14f);
+          tgx101PullHint.setPadding(Screen.dp(14f), Screen.dp(7f), Screen.dp(14f), Screen.dp(7f));
+          android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+          bg.setColor(0xcc161c22);
+          bg.setCornerRadius(Screen.dp(18f));
+          tgx101PullHint.setBackground(bg);
+          FrameLayoutFix.LayoutParams lp = FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.TOP);
+          lp.topMargin = Screen.dp(96f);
+          tgx101PullHint.setAlpha(0f);
+          addView(tgx101PullHint, lp);
+        }
+        if (tgx101PullHint != null) tgx101PullHint.animate().alpha(show ? 1f : 0f).setDuration(120).start();
+      }
       private float tgx101ZoomTopY = Float.NaN;
 
       @Override
       public boolean dispatchTouchEvent (MotionEvent e) {
         tgx101TouchActivity(e); // TGx101: the controls hide 4 s after the last touch
         if (tgx101ZoomPull) {
-          if (e.getActionMasked() == MotionEvent.ACTION_UP || e.getActionMasked() == MotionEvent.ACTION_CANCEL) {
-            org.thunderdog.challegram.Tgx101Diag.mark("viewer: zoomed pull released at " + Math.round(lastSlideY) + " px, in slide " + inSlideMode);
+          int action = e.getActionMasked();
+          if (action == MotionEvent.ACTION_MOVE) {
+            // В2: resistance — the photo moves at 75 % of the finger; the close point is 28 % of the screen
+            float raw = Math.max(0f, e.getY() - slideStartY);
+            setSlide(0f, raw * .75f, slideStartX, true, true);
+            boolean past = lastSlideY >= getMeasuredHeight() * .28f;
+            if (past != tgx101ZoomPast) {
+              tgx101ZoomPast = past;
+              if (past) performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS, android.view.HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
+              tgx101ShowPullHint(past);
+            }
+            return true;
           }
-          onTouchEvent(e);
-          if (e.getActionMasked() == MotionEvent.ACTION_UP || e.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+          if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+            boolean apply = action == MotionEvent.ACTION_UP && tgx101ZoomPast;
+            org.thunderdog.challegram.Tgx101Diag.mark("viewer: zoomed pull released at " + Math.round(lastSlideY) + " px → " + (apply ? "closed" : "back"));
             tgx101ZoomPull = false;
+            tgx101ZoomPast = false;
+            tgx101ShowPullHint(false);
+            dropSlideMode(0f, apply ? 1f : 0f, apply);
+            return true;
           }
           return true;
         }

@@ -416,6 +416,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101WebAppReload, "Перезагрузить");
     RU.put(R.string.Tgx101WebAppNoPayments, "Оплата внутри мини-приложений пока не поддерживается");
     RU.put(R.string.Tgx101WebAppClose, "Закрыть");
+    RU.put(R.string.Tgx101ReleaseToClose, "Отпустите, чтобы закрыть");
     RU.put(R.string.Tgx101TestSection, "Тесты");
     RU.put(R.string.Tgx101FakeNoPremium, "Как без Премиума (тест)");
     RU.put(R.string.Tgx101FakeNoPremiumHint, "Только в тестовых сборках. Приложение показывает всё как для аккаунта без Премиума; сервер по-прежнему знает, что Премиум есть. После переключения перезапустите приложение.");
