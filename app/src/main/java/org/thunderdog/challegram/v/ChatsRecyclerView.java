@@ -100,7 +100,7 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
   // threshold it turns blue with one short vibration. Search opens only when the finger is released past
   // the threshold; pulling back or releasing earlier cancels.
   private static final float PULL_THRESHOLD_DP = 96f, PULL_SLOP_DP = 10f;
-  private boolean pullToSearchTracking, pullToSearchActive, pullToSearchReady;
+  private boolean pullToSearchTracking, pullToSearchActive, pullToSearchReady, tgx101PullConsumed;
   private float pullToSearchStartX, pullToSearchStartY, pullDistance;
   private android.animation.ValueAnimator pullReturnAnimator;
   private final android.graphics.Paint pullPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
@@ -117,6 +117,7 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
         break;
       }
       case MotionEvent.ACTION_MOVE: {
+        if (tgx101PullConsumed) return true;
         if (pullToSearchActive) {
           setPullDistance(Math.max(0f, e.getY() - pullToSearchStartY));
           return true; // the list stays still while pulling
@@ -131,6 +132,17 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
         float dy = e.getY() - pullToSearchStartY;
         if (dy < -Screen.dp(8f) || dx > Screen.dp(24f)) {
           pullToSearchTracking = false;
+        } else if (dy >= Screen.dp(PULL_SLOP_DP) && dy > dx * 2f && controller != null && controller.tgx101StoriesFolded()) {
+          // TGx101: the first pull unfolds the stories, the next one is search (like the official app)
+          pullToSearchTracking = false;
+          tgx101PullConsumed = true;
+          MotionEvent cancel = MotionEvent.obtain(e);
+          cancel.setAction(MotionEvent.ACTION_CANCEL);
+          super.dispatchTouchEvent(cancel);
+          cancel.recycle();
+          performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+          controller.tgx101SetStripExpanded(true, true);
+          return true;
         } else if (dy >= Screen.dp(PULL_SLOP_DP) && dy > dx * 2f) {
           // the pull starts: the list doesn't get this gesture any more (no tap, no long press)
           pullToSearchTracking = false;
@@ -148,6 +160,10 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
       case MotionEvent.ACTION_UP:
       case MotionEvent.ACTION_CANCEL: {
         pullToSearchTracking = false;
+        if (tgx101PullConsumed) {
+          tgx101PullConsumed = false;
+          return true;
+        }
         if (pullToSearchActive) {
           pullToSearchActive = false;
           boolean open = e.getActionMasked() == MotionEvent.ACTION_UP && pullToSearchReady && controller != null && controller.canOpenSearchByPull();
@@ -197,7 +213,8 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
     float radius = Screen.dp(20f);
     float cx = getWidth() / 2f;
     // slides down from above the top edge, slower than the finger
-    float cy = -radius + Math.min(pullDistance, threshold * 1.15f) * .62f;
+    // below the stories strip (it covered the circle — «пропала анимация поиска», user 2026-10-04)
+    float cy = getPaddingTop() - radius + Math.min(pullDistance, threshold * 1.15f) * .62f;
     float alpha = Math.min(1f, pullDistance / Screen.dp(24f));
     boolean ready = pullToSearchReady && pullToSearchActive || pullDistance >= threshold;
     int accent = org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.fillingPositive);

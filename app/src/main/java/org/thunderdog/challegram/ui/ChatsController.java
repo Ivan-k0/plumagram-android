@@ -1152,6 +1152,13 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
   private org.thunderdog.challegram.widget.Tgx101StoriesStrip tgx101StoriesStrip;
   private int tgx101StripHeight;
+  // user 2026-10-04 «как на офе»: at the top the stories sit folded into a thin row of miniatures; the first pull
+  // down unfolds them, the second pull opens search; scrolling the list away folds them again
+  private int tgx101StripFullHeight, tgx101StripMiniHeight;
+  private boolean tgx101StripExpanded;
+  private float tgx101StripExpand; // 0 folded … 1 unfolded
+  private android.animation.ValueAnimator tgx101StripAnimator;
+  private android.widget.LinearLayout tgx101StripMini;
 
   private void tgx101AddStoriesStrip (Context context) {
     // every folder tab gets the strip (user's Vivo has no «All chats» tab, 2026-10-04), not the archive, pickers, previews
@@ -1161,7 +1168,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       org.thunderdog.challegram.Tgx101Diag.mark("stories strip: not here (list " + listType + ", filter " + (filter != null) + ", picker " + (pickerDelegate != null) + ")");
       return;
     }
-    tgx101StripHeight = Screen.dp(org.thunderdog.challegram.widget.Tgx101StoriesStrip.HEIGHT_DP);
+    tgx101StripFullHeight = Screen.dp(org.thunderdog.challegram.widget.Tgx101StoriesStrip.HEIGHT_DP);
+    tgx101StripMiniHeight = Screen.dp(44f);
+    tgx101StripHeight = tgx101StripMiniHeight;
     tgx101StoriesStrip = new org.thunderdog.challegram.widget.Tgx101StoriesStrip(context, tdlib, new org.thunderdog.challegram.widget.Tgx101StoriesStrip.Callback() {
       @Override
       public void onStoryClick (java.util.List<TdApi.ChatActiveStories> ordered, int index) {
@@ -1186,7 +1195,15 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     });
     Tgx101Stories.handler = new java.lang.ref.WeakReference<>(tgx101StoriesHandler);
     tgx101StoriesStrip.setVisibility(View.GONE);
-    contentView.addView(tgx101StoriesStrip, FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, tgx101StripHeight, Gravity.TOP));
+    contentView.addView(tgx101StoriesStrip, FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, tgx101StripFullHeight, Gravity.TOP));
+    tgx101StripMini = new android.widget.LinearLayout(context);
+    tgx101StripMini.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    tgx101StripMini.setGravity(Gravity.CENTER_VERTICAL);
+    tgx101StripMini.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
+    ViewSupport.setThemedBackground(tgx101StripMini, ColorId.filling, this);
+    tgx101StripMini.setVisibility(View.GONE);
+    tgx101StripMini.setOnClickListener(v -> tgx101SetStripExpanded(true, true));
+    contentView.addView(tgx101StripMini, FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, tgx101StripMiniHeight, Gravity.TOP));
     chatsView.addOnScrollListener(new RecyclerView.OnScrollListener() {
       @Override
       public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
@@ -1199,9 +1216,81 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   private void tgx101LayoutStoriesStrip (boolean hasItems) {
     if (tgx101StoriesStrip == null) return;
     tgx101StoriesStrip.setVisibility(hasItems ? View.VISIBLE : View.GONE);
+    tgx101StripMini.setVisibility(hasItems ? View.VISIBLE : View.GONE);
+    if (hasItems) tgx101FillMini();
     chatsView.setClipToPadding(false);
-    chatsView.setPadding(chatsView.getPaddingLeft(), hasItems ? tgx101StripHeight : 0, chatsView.getPaddingRight(), chatsView.getPaddingBottom());
+    tgx101ApplyStripHeight();
+  }
+
+  /** Up to 5 overlapping avatars with rings + «Stories · N» */
+  private void tgx101FillMini () {
+    tgx101StripMini.removeAllViews();
+    java.util.List<TdApi.ChatActiveStories> ordered = tgx101StoriesStrip.ordered();
+    int count = Math.min(5, ordered.size());
+    for (int i = 0; i < count; i++) {
+      android.widget.FrameLayout ringWrap = new android.widget.FrameLayout(context()) {
+        private final android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        { setWillNotDraw(false); p.setStyle(android.graphics.Paint.Style.STROKE); }
+        @Override
+        protected void dispatchDraw (android.graphics.Canvas c) {
+          super.dispatchDraw(c);
+          p.setStrokeWidth(Screen.dp(2f));
+          p.setColor(Theme.fillingColor());
+          c.drawCircle(getWidth() / 2f, getHeight() / 2f, getWidth() / 2f - Screen.dp(1f), p);
+          p.setStrokeWidth(Screen.dp(1.5f));
+          p.setColor(0xff3fa9f5);
+          c.drawCircle(getWidth() / 2f, getHeight() / 2f, getWidth() / 2f - Screen.dp(.75f), p);
+        }
+      };
+      org.thunderdog.challegram.widget.AvatarView avatar = new org.thunderdog.challegram.widget.AvatarView(context());
+      avatar.setChat(tdlib, tdlib.chat(ordered.get(i).chatId));
+      ringWrap.addView(avatar, new android.widget.FrameLayout.LayoutParams(Screen.dp(26f), Screen.dp(26f), Gravity.CENTER));
+      android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(Screen.dp(30f), Screen.dp(30f));
+      if (i > 0) lp.leftMargin = -Screen.dp(10f);
+      tgx101StripMini.addView(ringWrap, lp);
+    }
+    android.widget.TextView label = new android.widget.TextView(context());
+    label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14f);
+    label.setTextColor(Theme.textAccentColor());
+    label.setText(Lang.getString(R.string.Tgx101StoriesCount, ordered.size()));
+    android.widget.LinearLayout.LayoutParams labelParams = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    labelParams.leftMargin = Screen.dp(10f);
+    tgx101StripMini.addView(label, labelParams);
+  }
+
+  private void tgx101ApplyStripHeight () {
+    tgx101StripHeight = Math.round(tgx101StripMiniHeight + (tgx101StripFullHeight - tgx101StripMiniHeight) * tgx101StripExpand);
+    boolean visible = tgx101StoriesStrip != null && tgx101StoriesStrip.getVisibility() == View.VISIBLE;
+    if (chatsView.getPaddingTop() != (visible ? tgx101StripHeight : 0)) {
+      chatsView.setPadding(chatsView.getPaddingLeft(), visible ? tgx101StripHeight : 0, chatsView.getPaddingRight(), chatsView.getPaddingBottom());
+    }
     tgx101SyncStoriesStrip();
+  }
+
+  public boolean tgx101StoriesFolded () {
+    return tgx101StoriesStrip != null && tgx101StoriesStrip.getVisibility() == View.VISIBLE && !tgx101StripExpanded;
+  }
+
+  public void tgx101SetStripExpanded (boolean expanded, boolean animated) {
+    if (tgx101StripExpanded == expanded) return;
+    tgx101StripExpanded = expanded;
+    org.thunderdog.challegram.Tgx101Diag.mark("stories strip: " + (expanded ? "unfolded" : "folded"));
+    if (tgx101StripAnimator != null) tgx101StripAnimator.cancel();
+    float target = expanded ? 1f : 0f;
+    if (!animated) {
+      tgx101StripExpand = target;
+      tgx101ApplyStripHeight();
+      return;
+    }
+    tgx101StripAnimator = android.animation.ValueAnimator.ofFloat(tgx101StripExpand, target);
+    tgx101StripAnimator.setDuration(240);
+    tgx101StripAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator());
+    tgx101StripAnimator.addUpdateListener(a -> {
+      tgx101StripExpand = (float) a.getAnimatedValue();
+      tgx101ApplyStripHeight();
+      if (expanded) chatsView.scrollToPosition(0);
+    });
+    tgx101StripAnimator.start();
   }
 
   /** The strip rides on top of the list: its offset is how far the list has scrolled past its top padding */
@@ -1213,9 +1302,20 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       chatsView.setPadding(chatsView.getPaddingLeft(), tgx101StripHeight, chatsView.getPaddingRight(), chatsView.getPaddingBottom());
     }
     int offset = chatsView.computeVerticalScrollOffset();
+    // scrolled away from the top: fold quietly (it is off screen)
+    if (tgx101StripExpanded && offset > tgx101StripHeight && (tgx101StripAnimator == null || !tgx101StripAnimator.isRunning())) {
+      tgx101StripExpanded = false;
+      tgx101StripExpand = 0f;
+      tgx101ApplyStripHeight();
+      return;
+    }
     float y = -Math.min(offset, tgx101StripHeight);
-    tgx101StoriesStrip.setTranslationY(y);
-    tgx101StoriesStrip.setAlpha(1f - Math.min(1f, offset / (float) tgx101StripHeight) * .6f);
+    // the full strip slides down from behind the folded row while unfolding
+    tgx101StoriesStrip.setTranslationY(y - (tgx101StripFullHeight - tgx101StripHeight));
+    tgx101StoriesStrip.setAlpha(tgx101StripExpand);
+    tgx101StripMini.setTranslationY(y);
+    tgx101StripMini.setAlpha(1f - tgx101StripExpand);
+    tgx101StripMini.setVisibility(tgx101StripExpand >= 1f ? View.INVISIBLE : View.VISIBLE);
   }
 
   private final Tgx101Stories.Handler tgx101StoriesHandler = new Tgx101Stories.Handler() {

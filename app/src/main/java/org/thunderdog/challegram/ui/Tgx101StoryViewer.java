@@ -220,7 +220,13 @@ public class Tgx101StoryViewer extends Dialog {
     Window window = getWindow();
     if (window != null) {
       window.setBackgroundDrawable(new ColorDrawable(Color.BLACK));
-      window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+      // user 2026-10-04: typing a reply relaid the video (it glitched) — pan the window instead of resizing it
+      window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+      if (sBrightness >= 0f && android.os.SystemClock.uptimeMillis() - sBrightnessAt < BRIGHTNESS_KEEP_MS) {
+        WindowManager.LayoutParams wl = window.getAttributes();
+        wl.screenBrightness = sBrightness;
+        window.setAttributes(wl);
+      }
       window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
     }
     setOnDismissListener(d -> {
@@ -542,20 +548,51 @@ public class Tgx101StoryViewer extends Dialog {
 
   // Gestures
 
+  // Brightness / volume (user 2026-10-04): hold → pause with a light vibration, then move up / down — left half
+  // brightness, right half volume. The brightness stays for the next stories and resets after a while.
+  private static float sBrightness = -1f;
+  private static long sBrightnessAt;
+  private static final long BRIGHTNESS_KEEP_MS = 10 * 60 * 1000L;
+
   private final class GestureHandler implements View.OnTouchListener {
-    private float downX, downY;
+    private float downX, downY, adjustStartY, startBrightness;
+    private int startVolume;
     private long downTime;
-    private boolean moved, holding;
+    private boolean moved, holding, adjusting;
 
     private final Runnable hold = () -> {
       holding = true;
       setPaused(true);
+      root.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
     };
+
+    private void adjust (View v, float y) {
+      float delta = (adjustStartY - y) / (v.getHeight() * .6f);
+      if (downX < v.getWidth() / 2f) {
+        Window window = getWindow();
+        if (window == null) return;
+        float value = Math.max(.02f, Math.min(1f, startBrightness + delta));
+        WindowManager.LayoutParams wl = window.getAttributes();
+        wl.screenBrightness = value;
+        window.setAttributes(wl);
+        sBrightness = value;
+        sBrightnessAt = SystemClock.uptimeMillis();
+        showLevel("☀ " + Math.round(value * 100) + " %");
+      } else {
+        android.media.AudioManager am = (android.media.AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+        if (am == null) return;
+        int max = am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC);
+        int value = Math.max(0, Math.min(max, startVolume + Math.round(delta * max)));
+        am.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, value, 0);
+        showLevel("🔊 " + Math.round(value * 100f / max) + " %");
+      }
+    }
 
     @Override
     public boolean onTouch (View v, MotionEvent e) {
       switch (e.getActionMasked()) {
         case MotionEvent.ACTION_DOWN:
+          adjusting = false;
           Tgx101Diag.mark("story: touch down " + Math.round(e.getX()) + "," + Math.round(e.getY()));
           downX = e.getX();
           downY = e.getY();
@@ -565,6 +602,19 @@ public class Tgx101StoryViewer extends Dialog {
           return true;
         case MotionEvent.ACTION_MOVE: {
           float dx = e.getX() - downX, dy = e.getY() - downY;
+          if (holding) {
+            if (!adjusting && Math.abs(dy) > Screen.getTouchSlop()) {
+              adjusting = true;
+              adjustStartY = e.getY();
+              Window window = getWindow();
+              float current = window != null ? window.getAttributes().screenBrightness : -1f;
+              startBrightness = current >= 0f ? current : .5f;
+              android.media.AudioManager am = (android.media.AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+              startVolume = am != null ? am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) : 0;
+            }
+            if (adjusting) adjust(v, e.getY());
+            return true;
+          }
           if (!moved && Math.hypot(dx, dy) > Screen.getTouchSlop()) {
             moved = true;
             root.removeCallbacks(hold);
@@ -581,6 +631,8 @@ public class Tgx101StoryViewer extends Dialog {
           float dx = e.getX() - downX, dy = e.getY() - downY;
           if (holding) {
             holding = false;
+            adjusting = false;
+            hideLevel();
             setPaused(false);
             return true;
           }
@@ -604,6 +656,24 @@ public class Tgx101StoryViewer extends Dialog {
       }
       return false;
     }
+  }
+
+  private @Nullable TextView levelView;
+
+  private void showLevel (String text) {
+    if (levelView == null) {
+      levelView = text(getContext(), 15f, Color.WHITE);
+      levelView.setPadding(Screen.dp(14f), Screen.dp(8f), Screen.dp(14f), Screen.dp(8f));
+      levelView.setBackground(tgx101Capsule());
+      root.addView(levelView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.TOP));
+      ((FrameLayout.LayoutParams) levelView.getLayoutParams()).topMargin = Screen.dp(90f);
+    }
+    levelView.setText(text);
+    levelView.setVisibility(View.VISIBLE);
+  }
+
+  private void hideLevel () {
+    if (levelView != null) levelView.setVisibility(View.GONE);
   }
 
   // Progress bars

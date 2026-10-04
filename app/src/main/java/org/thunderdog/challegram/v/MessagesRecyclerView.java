@@ -305,8 +305,46 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
     }
   }
 
+  private boolean tgx101DownInSelect, tgx101LongPressDrag;
+
   @Override
   public boolean dispatchTouchEvent (MotionEvent e) {
+    // user's Vivo video 23:14: they drag straight down the left checkbox column, or keep the finger after the long
+    // press that started selecting — both should select, not only a sideways start
+    if (manager != null && e.getActionMasked() == MotionEvent.ACTION_DOWN) {
+      tgx101DownInSelect = manager.controller().inSelectMode();
+      tgx101LongPressDrag = false;
+      tgx101DragDownX = e.getX();
+      tgx101DragDownY = e.getY();
+      tgx101DragStartPos = tgx101PositionAt(e.getY());
+    }
+    if (manager != null && !tgx101DownInSelect && !tgx101DragSelect && e.getActionMasked() == MotionEvent.ACTION_MOVE
+      && manager.controller().inSelectMode() && Math.abs(e.getY() - tgx101DragDownY) > Screen.getTouchSlop() * 2 && tgx101DragStartPos != -1) {
+      // the long press has just opened select mode under this finger: continue as a drag selection
+      tgx101DragSelect = true;
+      tgx101DragTarget = true;
+      tgx101DragLastY = e.getY();
+      org.thunderdog.challegram.Tgx101Diag.mark("select: drag after long press");
+      MotionEvent cancel = MotionEvent.obtain(e);
+      cancel.setAction(MotionEvent.ACTION_CANCEL);
+      super.dispatchTouchEvent(cancel);
+      cancel.recycle();
+      tgx101DragApply(e.getY());
+      post(tgx101AutoScroll);
+      return true;
+    }
+    if (manager != null && tgx101DragSelect && !tgx101DownInSelect) {
+      if (e.getActionMasked() == MotionEvent.ACTION_MOVE) {
+        tgx101DragLastY = e.getY();
+        tgx101DragApply(e.getY());
+        return true;
+      }
+      if (e.getActionMasked() == MotionEvent.ACTION_UP || e.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+        tgx101DragSelect = false;
+        removeCallbacks(tgx101AutoScroll);
+        return true;
+      }
+    }
     if (manager != null && manager.controller().inSelectMode()) {
       switch (e.getActionMasked()) {
         case MotionEvent.ACTION_DOWN: {
@@ -325,9 +363,10 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
           }
           if (tgx101DragTracking) {
             float dx = Math.abs(e.getX() - tgx101DragDownX), dy = Math.abs(e.getY() - tgx101DragDownY);
-            if (dy > Screen.getTouchSlop() && dy > dx) {
+            boolean inCheckColumn = tgx101DragDownX < Screen.dp(56f) || tgx101DragDownX > getWidth() - Screen.dp(40f);
+            if (dy > Screen.getTouchSlop() && dy > dx && !inCheckColumn) {
               tgx101DragTracking = false; // an ordinary scroll
-            } else if (dx > Screen.getTouchSlop() * 1.5f && dx > dy * 1.5f && tgx101DragStartPos != -1) {
+            } else if ((inCheckColumn && dy > Screen.getTouchSlop()) || (dx > Screen.getTouchSlop() * 1.5f && dx > dy * 1.5f) && tgx101DragStartPos != -1) {
               View child = findChildViewUnder(getWidth() / 2f, tgx101DragDownY);
               org.thunderdog.challegram.data.TGMessage msg = child instanceof org.thunderdog.challegram.component.chat.MessageView ? ((org.thunderdog.challegram.component.chat.MessageView) child).getMessage() : null;
               if (msg != null && msg.canBeSelected()) {
