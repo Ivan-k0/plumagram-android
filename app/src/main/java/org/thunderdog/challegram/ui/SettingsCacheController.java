@@ -508,8 +508,15 @@ public class SettingsCacheController extends RecyclerViewController<SettingsData
         });
       }
     } else if (viewId == R.id.btn_keepMedia) {
-      showOptions(new int[] {R.id.btn_keepMedia_3days, R.id.btn_keepMedia_1week, R.id.btn_keepMedia_1month, R.id.btn_keepMedia_forever}, new String[] {Lang.plural(R.string.xDays, 3), Lang.plural(R.string.xWeeks, 1), Lang.plural(R.string.xMonths, 1), Lang.getString(R.string.KeepMediaForever)}, (itemView, id) -> {
-        if (id == R.id.btn_keepMedia_3days) {
+      // TGx101 (4PDA nyan_ame 2026-10-04): shorter steps — two views of a picture-heavy chat filled half a gigabyte
+      showOptions(new int[] {R.id.btn_tgx101KeepMedia1h, R.id.btn_tgx101KeepMedia6h, R.id.btn_tgx101KeepMedia1d, R.id.btn_keepMedia_3days, R.id.btn_keepMedia_1week, R.id.btn_keepMedia_1month, R.id.btn_keepMedia_forever}, new String[] {Lang.plural(R.string.xHours, 1), Lang.plural(R.string.xHours, 6), Lang.plural(R.string.xDays, 1), Lang.plural(R.string.xDays, 3), Lang.plural(R.string.xWeeks, 1), Lang.plural(R.string.xMonths, 1), Lang.getString(R.string.KeepMediaForever)}, (itemView, id) -> {
+        if (id == R.id.btn_tgx101KeepMedia1h) {
+          setKeepMedia(60 * 60, true);
+        } else if (id == R.id.btn_tgx101KeepMedia6h) {
+          setKeepMedia(60 * 60 * 6, true);
+        } else if (id == R.id.btn_tgx101KeepMedia1d) {
+          setKeepMedia(60 * 60 * 24, true);
+        } else if (id == R.id.btn_keepMedia_3days) {
           setKeepMedia(60 * 60 * 24 * 3, true);
         } else if (id == R.id.btn_keepMedia_1week) {
           setKeepMedia(60 * 60 * 24 * 7, true);

@@ -1571,6 +1571,9 @@
   <item name="btn_tgx101StoriesFolders" type="id"/>
   <item name="btn_tgx101StoriesFoldersAll" type="id"/>
   <item name="btn_tgx101StoriesFoldersNone" type="id"/>
+  <item name="btn_tgx101KeepMedia1h" type="id"/>
+  <item name="btn_tgx101KeepMedia6h" type="id"/>
+  <item name="btn_tgx101KeepMedia1d" type="id"/>
   <item name="btn_tgx101FloatingInput" type="id"/>
   <item name="btn_tgx101NewCallScreen" type="id"/>
   <item name="btn_tgx101QuickReply1" type="id"/>
