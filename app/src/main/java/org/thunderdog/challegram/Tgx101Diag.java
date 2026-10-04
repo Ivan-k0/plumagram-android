@@ -145,12 +145,43 @@ public final class Tgx101Diag {
     }
   }
 
+  /** Diagnostics builds only: `adb shell am broadcast -a com.plumagram.app.DIAG_STORY --es user durov` opens that chat's
+   * active stories in the story viewer (to test the viewer on an account whose strip is empty). DUMP-protected. */
+  private static void registerStoryOpener (Application app) {
+    android.content.BroadcastReceiver receiver = new android.content.BroadcastReceiver() {
+      @Override
+      public void onReceive (android.content.Context context, android.content.Intent intent) {
+        String user = intent.getStringExtra("user");
+        if (user == null) return;
+        org.thunderdog.challegram.telegram.Tdlib tdlib = org.thunderdog.challegram.telegram.TdlibManager.instance().current();
+        tdlib.send(new org.drinkless.tdlib.TdApi.SearchPublicChat(user), (chat, error) -> {
+          if (chat == null) { mark("diag story: no chat " + user); return; }
+          tdlib.send(new org.drinkless.tdlib.TdApi.GetChatActiveStories(chat.id), (stories, error2) -> {
+            int count = stories != null && stories.stories != null ? stories.stories.length : -1;
+            mark("diag story: " + user + " has " + count + " active stories");
+            if (count <= 0) return;
+            Activity activity = topActivity.get();
+            if (activity == null) return;
+            activity.runOnUiThread(() -> new org.thunderdog.challegram.ui.Tgx101StoryViewer(activity, tdlib, java.util.Collections.singletonList(stories), 0, intent.getBooleanExtra("first", false)).show());
+          });
+        });
+      }
+    };
+    android.content.IntentFilter filter = new android.content.IntentFilter(app.getPackageName() + ".DIAG_STORY");
+    if (android.os.Build.VERSION.SDK_INT >= 33) {
+      app.registerReceiver(receiver, filter, android.Manifest.permission.DUMP, null, android.content.Context.RECEIVER_EXPORTED);
+    } else {
+      app.registerReceiver(receiver, filter, android.Manifest.permission.DUMP, null);
+    }
+  }
+
   /** Lifecycle, screen, memory and UI stall tracking. Called from Application.onCreate. */
   public static void attach (Application app) {
     if (!BuildConfig.TGX101_DIAG || writer == null) {
       return;
     }
     registerTextInput(app);
+    registerStoryOpener(app);
     app.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
       private int resumed;
       @Override public void onActivityCreated (Activity a, Bundle state) { mark("activity " + a.getClass().getSimpleName() + " created" + (state != null ? " (restored)" : "")); }

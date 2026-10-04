@@ -10697,7 +10697,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
               }
               onDone.runWithBool(sentFunctionsCount[0] == expectedCount);
               if (!areScheduled && isSchedule && isFocused()) {
-                viewScheduledMessages(true);
+                // TGx101 (user's Vivo recording 2026-10-04): jumping into «Scheduled messages» while the date sheet was
+                // still closing and the keyboard coming back made the screen flash; stay in the chat, like the
+                // official apps — the scheduled messages button in the input shows them
+                org.thunderdog.challegram.Tgx101Diag.mark("scheduled: sent, staying in the chat");
+                UI.showToast(R.string.Tgx101ScheduledDone, android.widget.Toast.LENGTH_SHORT);
               }
             });
           } else {

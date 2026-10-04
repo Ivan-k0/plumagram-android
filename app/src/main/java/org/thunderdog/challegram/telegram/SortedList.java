@@ -224,6 +224,11 @@ public abstract class SortedList<T extends TdApi.Object> implements Comparator<T
     loadAtLeast(filter, initialChunkSize, onLoadInitialChunk);
   }
 
+  /** TGx101: stop listening (the stories strip is destroyed with its chat list) */
+  public void removeListener (@NonNull ListListener<T> listener) {
+    listeners.remove(listener);
+  }
+
   public void loadAtLeast (@Nullable Filter<T> filter, int minimumCount, @Nullable Runnable after) {
     loadAtLeast(filter, minimumCount, minimumCount, after);
   }

@@ -1563,6 +1563,9 @@
   <item name="btn_tgx101NextChannelSwipe" type="id"/>
   <item name="btn_tgx101CaptionAbove" type="id"/>
   <item name="btn_tgx101SendHd" type="id"/>
+  <item name="btn_tgx101StoryHide" type="id"/>
+  <item name="btn_tgx101StoryLess" type="id"/>
+  <item name="btn_tgx101StoryNotify" type="id"/>
   <item name="btn_tgx101FloatingInput" type="id"/>
   <item name="btn_tgx101NewCallScreen" type="id"/>
   <item name="btn_tgx101QuickReply1" type="id"/>

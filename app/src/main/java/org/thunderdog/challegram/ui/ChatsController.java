@@ -746,6 +746,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
     initializationTime = SystemClock.uptimeMillis();
 
+    tgx101AddStoriesStrip(context);
     return contentView;
   }
 
@@ -1144,6 +1145,92 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   @Override
   public int getBackButton () {
     return isBaseController() ? BackHeaderButton.TYPE_MENU : BackHeaderButton.TYPE_BACK;
+  }
+
+  // TGx101 (user 2026-10-04, variant В1): stories strip above the main chat list; it scrolls away with the list
+  // (it follows the first item, so it hides and comes back «красиво и легко») and is gone when there are no stories
+
+  private org.thunderdog.challegram.widget.Tgx101StoriesStrip tgx101StoriesStrip;
+  private int tgx101StripHeight;
+
+  private void tgx101AddStoriesStrip (Context context) {
+    if (!isBaseController() || filter != null || chatList().getConstructor() != TdApi.ChatListMain.CONSTRUCTOR || isInForceTouchMode() || pickerDelegate != null) {
+      return;
+    }
+    tgx101StripHeight = Screen.dp(org.thunderdog.challegram.widget.Tgx101StoriesStrip.HEIGHT_DP);
+    tgx101StoriesStrip = new org.thunderdog.challegram.widget.Tgx101StoriesStrip(context, tdlib, new org.thunderdog.challegram.widget.Tgx101StoriesStrip.Callback() {
+      @Override
+      public void onStoryClick (java.util.List<TdApi.ChatActiveStories> ordered, int index) {
+        org.thunderdog.challegram.Tgx101Diag.mark("stories: open " + index + " of " + ordered.size());
+        Tgx101StoryViewer viewer = new Tgx101StoryViewer(context(), tdlib, new java.util.ArrayList<>(ordered), index);
+        viewer.setOnClosed(() -> { if (tgx101StoriesStrip != null) tgx101StoriesStrip.refresh(); });
+        viewer.show();
+      }
+
+      @Override
+      public void onStoryLongClick (View view, TdApi.ChatActiveStories stories) {
+        tgx101ShowStoryMenu(stories);
+      }
+
+      @Override
+      public void onStripVisibilityChanged (boolean hasItems) {
+        tgx101LayoutStoriesStrip(hasItems);
+      }
+    });
+    tgx101StoriesStrip.setVisibility(View.GONE);
+    contentView.addView(tgx101StoriesStrip, FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, tgx101StripHeight, Gravity.TOP));
+    chatsView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+      @Override
+      public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
+        tgx101SyncStoriesStrip();
+      }
+    });
+  }
+
+  private void tgx101LayoutStoriesStrip (boolean hasItems) {
+    if (tgx101StoriesStrip == null) return;
+    tgx101StoriesStrip.setVisibility(hasItems ? View.VISIBLE : View.GONE);
+    chatsView.setClipToPadding(false);
+    chatsView.setPadding(chatsView.getPaddingLeft(), hasItems ? tgx101StripHeight : 0, chatsView.getPaddingRight(), chatsView.getPaddingBottom());
+    tgx101SyncStoriesStrip();
+  }
+
+  /** The strip rides on top of the list: its offset is how far the list has scrolled past its top padding */
+  private void tgx101SyncStoriesStrip () {
+    if (tgx101StoriesStrip == null || tgx101StoriesStrip.getVisibility() != View.VISIBLE) return;
+    int offset = chatsView.computeVerticalScrollOffset();
+    float y = -Math.min(offset, tgx101StripHeight);
+    tgx101StoriesStrip.setTranslationY(y);
+    tgx101StoriesStrip.setAlpha(1f - Math.min(1f, offset / (float) tgx101StripHeight) * .6f);
+  }
+
+  private void tgx101ShowStoryMenu (TdApi.ChatActiveStories stories) {
+    final long chatId = stories.chatId;
+    final boolean less = Tgx101Stories.isShownLess(chatId);
+    final boolean notify = Tgx101Stories.notifiesNewStories(tdlib, chatId);
+    TdApi.Chat chat = tdlib.chat(chatId);
+    showOptions(chat != null ? chat.title : null,
+      new int[] {R.id.btn_tgx101StoryHide, R.id.btn_tgx101StoryLess, R.id.btn_tgx101StoryNotify},
+      new String[] {
+        Lang.getString(R.string.Tgx101StoryHide),
+        Lang.getString(less ? R.string.Tgx101StoryShowNormally : R.string.Tgx101StoryShowLess),
+        Lang.getString(notify ? R.string.Tgx101StoryNotifyOff : R.string.Tgx101StoryNotifyOn)
+      },
+      null,
+      new int[] {R.drawable.baseline_eye_off_24, R.drawable.baseline_arrow_downward_24, notify ? R.drawable.baseline_notifications_off_24 : R.drawable.baseline_notifications_24},
+      (itemView, id) -> {
+        if (id == R.id.btn_tgx101StoryHide) {
+          Tgx101Stories.setHidden(tdlib, chatId, true);
+          org.thunderdog.challegram.Tgx101Diag.mark("stories: hide " + chatId);
+        } else if (id == R.id.btn_tgx101StoryLess) {
+          Tgx101Stories.setShownLess(chatId, !less);
+          if (tgx101StoriesStrip != null) tgx101StoriesStrip.refresh();
+        } else if (id == R.id.btn_tgx101StoryNotify) {
+          Tgx101Stories.setNotifyNewStories(tdlib, chatId, !notify);
+          UI.showToast(!notify ? R.string.Tgx101StoryNotifyOnDone : R.string.Tgx101StoryNotifyOffDone, android.widget.Toast.LENGTH_SHORT);
+        }
+        return true;
+      });
   }
 
   private boolean isBaseController () {
@@ -2758,6 +2845,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   @Override
   public void destroy () {
     super.destroy();
+    if (tgx101StoriesStrip != null) {
+      tgx101StoriesStrip.destroy();
+    }
     if (liveLocationHelper != null) {
       liveLocationHelper.destroy();
     }
