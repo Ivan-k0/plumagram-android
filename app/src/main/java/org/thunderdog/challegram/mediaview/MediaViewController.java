@@ -10315,7 +10315,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     captionDoneButton.setColorFilter(0xffffffff);
     captionDoneButton.setAlpha(0f);
     captionDoneButton.setEnabled(false);
-    captionDoneButton.setLayoutParams(FrameLayoutFix.newParams(Screen.dp(55f), Screen.dp(52f), Gravity.RIGHT | Gravity.BOTTOM));
+    FrameLayoutFix.LayoutParams doneParams = FrameLayoutFix.newParams(Screen.dp(55f), Screen.dp(52f), Gravity.RIGHT | Gravity.BOTTOM);
+    doneParams.rightMargin = Screen.dp(8f);
+    doneParams.bottomMargin = Screen.dp(6f);
+    captionDoneButton.setLayoutParams(doneParams);
 
     captionEmojiButton = new ImageView(context());
     captionEmojiButton.setId(R.id.btn_caption_emoji);
@@ -10325,7 +10328,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     captionEmojiButton.setColorFilter(0xffffffff);
     captionEmojiButton.setAlpha(0f);
     captionEmojiButton.setEnabled(false);
-    captionEmojiButton.setLayoutParams(FrameLayoutFix.newParams(Screen.dp(55f), Screen.dp(52f), Gravity.LEFT | Gravity.BOTTOM));
+    FrameLayoutFix.LayoutParams emojiParams = FrameLayoutFix.newParams(Screen.dp(55f), Screen.dp(52f), Gravity.LEFT | Gravity.BOTTOM);
+    emojiParams.leftMargin = Screen.dp(8f);
+    emojiParams.bottomMargin = Screen.dp(6f);
+    captionEmojiButton.setLayoutParams(emojiParams);
 
     LinearLayout captionWrapView = new LinearLayout(context) {
       @Override
@@ -10351,9 +10357,18 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       }
     };
     captionWrapView.setOrientation(LinearLayout.VERTICAL);
-    captionWrapView.setBackgroundColor(Theme.getColor(ColorId.transparentEditor));
+    // TGx101 (user 2026-10-04, variant 3): the caption field is a dark glass capsule — readable on any photo,
+    // grows upwards with the text (a full-width translucent strip merged with bright photos)
+    android.graphics.drawable.GradientDrawable capsule = new android.graphics.drawable.GradientDrawable();
+    capsule.setColor(0xb3141a20);
+    capsule.setCornerRadius(Screen.dp(24f));
+    capsule.setStroke(Screen.dp(.5f), 0x33ffffff);
+    captionWrapView.setBackground(capsule);
     captionWrapView.addView(captionView);
-    captionWrapView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
+    FrameLayoutFix.LayoutParams capsuleParams = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+    capsuleParams.leftMargin = capsuleParams.rightMargin = Screen.dp(8f);
+    capsuleParams.bottomMargin = Screen.dp(6f);
+    captionWrapView.setLayoutParams(capsuleParams);
     this.captionWrapView = captionWrapView;
 
     if (!inProfilePhotoEditMode) {
