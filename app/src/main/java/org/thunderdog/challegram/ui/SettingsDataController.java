@@ -237,6 +237,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().isRingRampEnabled(), isUpdate);
         } else if (itemId == R.id.btn_tgx101CameraInAttach) {
           view.getToggler().setRadioEnabled(Settings.instance().isCameraInAttach(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101StoriesFolders) {
+          view.setData(tgx101StoriesFoldersValue());
         } else if (itemId == R.id.btn_tgx101StoriesMode) {
           view.setData(Tgx101Stories.mode() == Tgx101Stories.MODE_RINGS ? R.string.Tgx101StoriesModeRings : R.string.Tgx101StoriesModeStrip);
         } else if (itemId == R.id.btn_tgx101NextChannelSwipe) {
@@ -394,6 +396,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Filters, 0, R.string.Tgx101Filters),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101StoriesMode, 0, R.string.Tgx101StoriesMode),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101StoriesFolders, 0, R.string.Tgx101StoriesFolders),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideChannelReactions, 0, R.string.Tgx101HideChannelReactions),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -701,6 +705,50 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     }
   }
 
+  private String tgx101StoriesFoldersValue () {
+    java.util.Set<Integer> chosen = Tgx101Stories.folders();
+    if (chosen.isEmpty()) return Lang.getString(R.string.Tgx101StoriesFoldersAll);
+    if (chosen.contains(Tgx101Stories.FOLDERS_NONE)) return Lang.getString(R.string.Tgx101StoriesFoldersNone);
+    StringBuilder b = new StringBuilder();
+    for (TdApi.ChatFolderInfo info : tdlib.chatFolders()) {
+      if (chosen.contains(info.id)) {
+        if (b.length() > 0) b.append(", ");
+        b.append(info.name != null && info.name.text != null ? info.name.text.text : "");
+      }
+    }
+    return b.length() > 0 ? b.toString() : Lang.getString(R.string.Tgx101StoriesFoldersAll);
+  }
+
+  /** Stories from which folders: «All chats», any number of folders, or «None» */
+  private void tgx101ChooseStoriesFolders () {
+    TdApi.ChatFolderInfo[] folders = tdlib.chatFolders();
+    java.util.Set<Integer> chosen = Tgx101Stories.folders();
+    java.util.List<ListItem> items = new java.util.ArrayList<>();
+    items.add(new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_tgx101StoriesFoldersAll, 0, R.string.Tgx101StoriesFoldersAll, chosen.isEmpty()));
+    for (TdApi.ChatFolderInfo info : folders) {
+      String name = info.name != null && info.name.text != null ? info.name.text.text : ("#" + info.id);
+      items.add(new ListItem(ListItem.TYPE_CHECKBOX_OPTION, info.id + 1000000, 0, name, chosen.contains(info.id)));
+    }
+    items.add(new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_tgx101StoriesFoldersNone, 0, R.string.Tgx101StoriesFoldersNone, chosen.contains(Tgx101Stories.FOLDERS_NONE)));
+    showSettings(new SettingsWrapBuilder(R.id.btn_tgx101StoriesFolders)
+      .addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.Tgx101StoriesFoldersHint))
+      .setRawItems(items.toArray(new ListItem[0]))
+      .setSaveStr(R.string.Done)
+      .setIntDelegate((id, result) -> {
+        java.util.Set<Integer> next = new java.util.HashSet<>();
+        if (result.get(R.id.btn_tgx101StoriesFoldersNone) != 0) {
+          next.add(Tgx101Stories.FOLDERS_NONE);
+        } else if (result.get(R.id.btn_tgx101StoriesFoldersAll) == 0) {
+          for (TdApi.ChatFolderInfo info : folders) {
+            if (result.get(info.id + 1000000) != 0) next.add(info.id);
+          }
+        }
+        Tgx101Stories.setFolders(next);
+        adapter.updateValuedSettingById(R.id.btn_tgx101StoriesFolders);
+        org.thunderdog.challegram.Tgx101Diag.mark("stories: folders " + next);
+      }));
+  }
+
   @Override
   public void onClick (View v) {
     final int id = v.getId();
@@ -789,6 +837,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setCallPattern(toggleResult ? Settings.CALL_PATTERN_PAPER_PLANES : Settings.CALL_PATTERN_NONE); // the view was already toggled above
     } else if (id == R.id.btn_tgx101RingRamp) {
       Settings.instance().setRingRampEnabled(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101StoriesFolders) {
+      tgx101ChooseStoriesFolders();
     } else if (id == R.id.btn_tgx101StoriesMode) {
       int current = Tgx101Stories.mode();
       showOptions(Lang.getString(R.string.Tgx101StoriesMode), new int[] {1, 2},

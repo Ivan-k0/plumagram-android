@@ -50,6 +50,7 @@ public final class Tgx101Stories {
     TdApi.ChatActiveStories stories = tdlib.getActiveStories(chatId, false, null);
     if (stories == null || stories.stories == null || stories.stories.length == 0 || stories.list == null) return null;
     if (stories.list.getConstructor() != TdApi.StoryListMain.CONSTRUCTOR) return null;
+    if (!passesFolders(tdlib, chatId, folders())) return null;
     return stories;
   }
 
@@ -73,9 +74,47 @@ public final class Tgx101Stories {
     return stories.stories[stories.stories.length - 1].storyId > stories.maxReadStoryId;
   }
 
+  // Folders filter (user 2026-10-04): show stories only of chats in the chosen folders; empty set = all chats
+
+  private static final String KEY_FOLDERS = "folders";
+
+  public static Set<Integer> folders () {
+    Set<Integer> result = new HashSet<>();
+    for (String s : prefs().getStringSet(KEY_FOLDERS, Collections.emptySet())) {
+      try { result.add(Integer.parseInt(s)); } catch (NumberFormatException ignored) { }
+    }
+    return result;
+  }
+
+  public static void setFolders (Set<Integer> ids) {
+    Set<String> set = new HashSet<>();
+    for (int id : ids) set.add(Integer.toString(id));
+    prefs().edit().putStringSet(KEY_FOLDERS, set).apply();
+  }
+
+  /** -1 in the set means «no stories at all» */
+  public static final int FOLDERS_NONE = -1;
+
+  public static boolean passesFolders (Tdlib tdlib, long chatId, Set<Integer> folders) {
+    if (folders.isEmpty()) return true;
+    if (folders.contains(FOLDERS_NONE)) return false;
+    TdApi.Chat chat = tdlib.chat(chatId);
+    if (chat == null || chat.positions == null) return false;
+    for (TdApi.ChatPosition position : chat.positions) {
+      if (position.list instanceof TdApi.ChatListFolder && folders.contains(((TdApi.ChatListFolder) position.list).chatFolderId)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Strip order: contacts first, then the rest; inside each group unseen before seen, then Telegram's order; «show less» last */
   public static List<TdApi.ChatActiveStories> order (Tdlib tdlib, List<TdApi.ChatActiveStories> source) {
-    List<TdApi.ChatActiveStories> list = new ArrayList<>(source);
+    Set<Integer> folders = folders();
+    List<TdApi.ChatActiveStories> list = new ArrayList<>();
+    for (TdApi.ChatActiveStories s : source) {
+      if (s.chatId == tdlib.selfChatId() || passesFolders(tdlib, s.chatId, folders)) list.add(s);
+    }
     final long selfChatId = tdlib.selfChatId();
     Collections.sort(list, (a, b) -> {
       int ga = group(tdlib, a, selfChatId), gb = group(tdlib, b, selfChatId);
