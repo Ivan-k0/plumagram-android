@@ -624,6 +624,17 @@ public class TGMessageMedia extends TGMessage {
     if (tgx101HighlightedChildId() != 0) {
       mosaicWrapper.tgx101DrawItemHighlight(c, tgx101HighlightedChildId(), tgx101ItemFlashColor()); // TGx101: only that item flashes
     }
+    if (tgx101HasMenuZone()) {
+      // ⋮ on a soft dark pill in the top right corner of the photo / video
+      float dotsX = startX + mosaicWrapper.getWidth() - Screen.dp(14f);
+      float dotsY = startY + Screen.dp(12f);
+      RectF pill = Paints.getRectF();
+      pill.set(dotsX - Screen.dp(8f), dotsY - Screen.dp(6f), dotsX + Screen.dp(8f), dotsY + Screen.dp(16f));
+      c.drawRoundRect(pill, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(0x55000000));
+      for (int d = 0; d < 3; d++) {
+        c.drawCircle(dotsX, dotsY + Screen.dp(5f) * d, Screen.dp(1.6f), Paints.fillingPaint(0xffffffff));
+      }
+    }
     if (clipped) {
       ViewSupport.restoreClipPath(c, saveCount);
     }
@@ -873,6 +884,18 @@ public class TGMessageMedia extends TGMessage {
     int cellRight = cellLeft + mosaicWrapper.getWidth();
     int cellBottom = cellTop + mosaicWrapper.getHeight();
 
+    // TGx101 (user 2026-10-04): like documents — the right quarter of a single photo / video (with ⋮) opens the
+    // message menu instead of the viewer
+    if (e.getAction() == MotionEvent.ACTION_DOWN) {
+      tgx101MenuZoneTouch = tgx101HasMenuZone() && e.getX() >= cellLeft + (cellRight - cellLeft) * .75f && e.getX() <= cellRight && e.getY() >= cellTop && e.getY() <= cellBottom;
+    }
+    if (tgx101MenuZoneTouch) {
+      if (e.getAction() == MotionEvent.ACTION_UP || e.getAction() == MotionEvent.ACTION_CANCEL) {
+        tgx101MenuZoneTouch = false;
+      }
+      return false;
+    }
+
     if (wrapper != null && wrapper.onTouchEvent(view, e)) {
       return true;
     }
@@ -920,6 +943,12 @@ public class TGMessageMedia extends TGMessage {
     }
 
     return mosaicWrapper.onTouchEvent(view, e);
+  }
+
+  private boolean tgx101MenuZoneTouch;
+
+  private boolean tgx101HasMenuZone () {
+    return useBubbles() && mosaicWrapper != null && mosaicWrapper.getSingularItem() != null && !isHot() && !isSponsoredMessage();
   }
 
   @Override
