@@ -1154,7 +1154,11 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   private int tgx101StripHeight;
 
   private void tgx101AddStoriesStrip (Context context) {
-    if (!isBaseController() || filter != null || chatList().getConstructor() != TdApi.ChatListMain.CONSTRUCTOR || isInForceTouchMode() || pickerDelegate != null) {
+    // every folder tab gets the strip (user's Vivo has no «All chats» tab, 2026-10-04), not the archive, pickers, previews
+    int listType = chatList().getConstructor();
+    boolean folderOrMain = listType == TdApi.ChatListMain.CONSTRUCTOR || listType == TdApi.ChatListFolder.CONSTRUCTOR;
+    if (filter != null || !folderOrMain || isInForceTouchMode() || pickerDelegate != null) {
+      org.thunderdog.challegram.Tgx101Diag.mark("stories strip: not here (list " + listType + ", filter " + (filter != null) + ", picker " + (pickerDelegate != null) + ")");
       return;
     }
     tgx101StripHeight = Screen.dp(org.thunderdog.challegram.widget.Tgx101StoriesStrip.HEIGHT_DP);
