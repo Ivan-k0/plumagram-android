@@ -997,6 +997,32 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   @Override
   public boolean launchHideAnimation (PopupLayout popup, FactorAnimator ignored) {
+    // TGx101: the viewer turned the screen — turn it back first, then fly to the thumbnail in the chat's own
+    // orientation (otherwise the chat shows relaid across the full width during the closing animation)
+    if (tgx101OrientationSet && !tgx101WaitingRotationBack && context.getResources().getConfiguration().orientation != tgx101OpenOrientation) {
+      tgx101WaitingRotationBack = true;
+      tgx101OrientationSet = false;
+      org.thunderdog.challegram.Tgx101Diag.mark("viewer: close — turning the screen back first");
+      context.setOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+      final long startedAt = android.os.SystemClock.uptimeMillis();
+      Runnable check = new Runnable() {
+        @Override
+        public void run () {
+          boolean back = context.getResources().getConfiguration().orientation == tgx101OpenOrientation
+            && (contentView.getMeasuredWidth() < contentView.getMeasuredHeight()) == (tgx101OpenOrientation == android.content.res.Configuration.ORIENTATION_PORTRAIT);
+          if (back || android.os.SystemClock.uptimeMillis() - startedAt > 1200) {
+            contentView.post(() -> {
+              if (!launchHideAnimation(popup, ignored)) popupView.onCustomHideAnimationComplete();
+            });
+          } else {
+            contentView.postDelayed(this, 50);
+          }
+        }
+      };
+      contentView.postDelayed(check, 50);
+      return true;
+    }
+    tgx101WaitingRotationBack = false;
     MediaViewThumbLocation location;
 
     if (forceAnimationType != -1) {
@@ -1273,6 +1299,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   @Override
   public void onPopupCompletelyShown (PopupLayout popup) {
+    if (!tgx101OrientationSet) tgx101ApplyOrientation(); // no reveal animation (e.g. fade): apply here
     if (inProfilePhotoEditMode()) {
       UI.post(() -> openCrop(true));
     }
@@ -1301,6 +1328,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           }
           onHide();
         } else if (finalFactor == 1f) {
+          tgx101ApplyOrientation();
           context().getRootView().forceHideKeyboard();
           popupView.onCustomShowComplete();
           mediaView.setDisableAnimations(false);
@@ -9135,9 +9163,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   public void open () {
     getValue();
+    tgx101OpenOrientation = context.getResources().getConfiguration().orientation;
     popupView.showAnimatedPopupView(contentView, this);
-    tgx101ApplyOrientation();
+    // the viewer's own orientation is applied once the opening animation ends (user 2026-10-04): turning the
+    // whole screen at once relaid the chat behind the growing photo across the full width
   }
+
+  private int tgx101OpenOrientation;
+  private boolean tgx101WaitingRotationBack;
 
   // TGx101: the viewer's own screen orientation (player settings) and the manual rotation
 
