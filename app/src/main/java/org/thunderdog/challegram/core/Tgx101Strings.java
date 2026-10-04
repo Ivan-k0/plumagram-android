@@ -421,7 +421,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101FilterHideFully, "Скрывать полностью");
     RU.put(R.string.Tgx101FilterHideFullyHint, "Без полоски «Скрыто фильтром»: такие сообщения совсем не показываются в чате. Ничего не удаляется: поиск их находит.");
     RU.put(R.string.Tgx101HideChannelReactions, "Скрывать реакции под постами каналов");
-    RU.put(R.string.Tgx101NextChannelSwipe, "Свайп вверх в конце канала — следующий непрочитанный");
+    RU.put(R.string.Tgx101NextChannelSwipe, "Свайп к следующему каналу");
     RU.put(R.string.Tgx101NextChannelPull, "↑ Дальше: %1$s");
     RU.put(R.string.Tgx101NextChannelRelease, "Отпустите — откроется %1$s");
     RU.put(R.string.Tgx101NextChannelNone, "Непрочитанных каналов нет");
