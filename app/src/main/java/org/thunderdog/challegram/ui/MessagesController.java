@@ -1937,8 +1937,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       hint.setBackground(bg);
       RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
       params.addRule(RelativeLayout.CENTER_HORIZONTAL);
-      params.addRule(RelativeLayout.ABOVE, R.id.msg_bottom);
-      params.bottomMargin = Screen.dp(16f);
+      params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+      params.bottomMargin = Screen.dp(112f); // above the input / «Mute» bar
       params.leftMargin = params.rightMargin = Screen.dp(24f);
       hint.setLayoutParams(params);
       hint.setAlpha(0f);

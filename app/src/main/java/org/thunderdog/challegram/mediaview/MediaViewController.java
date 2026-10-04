@@ -10102,6 +10102,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
               .setOnClickListener((view, parentView, item) -> {
                 if (view.getId() == R.id.btn_tgx101CaptionAbove) {
                   sendDelegate.onShowCaptionAboveMediaStateChanged(item.isCheckboxSelected);
+                  // the gallery sends each item with its own flag — set it on every item in the viewer
+                  for (int i = 0; i < stack.getCurrentSize(); i++) {
+                    MediaItem mediaItem = stack.get(i);
+                    if (mediaItem != null) mediaItem.setShowCaptionAboveMedia(item.isCheckboxSelected);
+                  }
                   org.thunderdog.challegram.Tgx101Diag.mark("send media: caption above " + item.isCheckboxSelected);
                   return true;
                 }

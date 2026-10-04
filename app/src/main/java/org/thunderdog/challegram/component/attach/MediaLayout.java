@@ -1325,7 +1325,7 @@ public class MediaLayout extends FrameLayoutFix implements
         ImageGalleryFile[] result = new ImageGalleryFile[galleryFiles.size()];
         galleryFiles.toArray(result);
         Settings.instance().setNeedGroupMedia(needGroupMedia);
-        boolean showCaptionAboveMedia = false;
+        boolean showCaptionAboveMedia = this.showCaptionAboveMedia; // TGx101: from the send menu (was always false)
         boolean hasSpoiler = allowSpoiler && needSpoiler;
         target.sendPhotosAndVideosCompressed(result, needGroupMedia, options, disableMarkdown, asFiles, showCaptionAboveMedia, hasSpoiler);
       }
