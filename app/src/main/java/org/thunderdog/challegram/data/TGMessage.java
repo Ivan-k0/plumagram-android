@@ -365,7 +365,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     this.msg = msg;
     this.sponsoredMessage = sponsoredMessage;
     this.flags |= BitwiseUtils.optional(FLAG_BELOW_ALL_MESSAGES, isBelowAllMessages);
-    this.messageReactions = new TGReactions(this, tdlib, msg.interactionInfo != null && !tgx101HideReactions(msg) ? msg.interactionInfo.reactions : null, new TGReactions.MessageReactionsDelegate() {
+    this.messageReactions = new TGReactions(this, tdlib, msg.interactionInfo != null ? tgx101VisibleReactions(msg, msg.interactionInfo.reactions) : null, new TGReactions.MessageReactionsDelegate() {
       @Override
       public void onClick (View v, TGReactions.MessageReactionEntry entry) {
         boolean hasReaction = messageReactions.hasReaction(entry.getReactionType());
@@ -5927,8 +5927,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     shareCounter.setCount(interactionInfo != null ? interactionInfo.forwardCount : 0, animated);
     isPinned.showHide(isPinned(), animated);
 
-    if (tgx101NoInteractions || tgx101HideReactions(msg)) {
+    if (tgx101NoInteractions) {
       messageReactions.setReactions((TdApi.MessageReactions) null);
+    } else if (combinedMessages == null && tgx101HideReactions(msg)) {
+      messageReactions.setReactions(interactionInfo != null ? tgx101VisibleReactions(msg, interactionInfo.reactions) : null);
     } else if (combinedMessages != null) {
       messageReactions.setReactions(combinedMessages);
     } else {
@@ -8732,6 +8734,17 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   /** TGx101 (4PDA request 2026-10-04): MagiX → «Hide reactions under channel posts» */
   private static boolean tgx101HideReactions (TdApi.Message msg) {
     return msg != null && msg.isChannelPost && org.thunderdog.challegram.unsorted.Settings.instance().tgx101HideChannelReactions();
+  }
+
+  /** With the setting on only paid ⭐ reactions stay (user 2026-10-04: stars must always remain) */
+  private static @Nullable TdApi.MessageReactions tgx101VisibleReactions (TdApi.Message msg, @Nullable TdApi.MessageReactions reactions) {
+    if (reactions == null || reactions.reactions == null || !tgx101HideReactions(msg)) return reactions;
+    java.util.List<TdApi.MessageReaction> paid = new java.util.ArrayList<>();
+    for (TdApi.MessageReaction reaction : reactions.reactions) {
+      if (reaction.type.getConstructor() == TdApi.ReactionTypePaid.CONSTRUCTOR) paid.add(reaction);
+    }
+    if (paid.isEmpty()) return null;
+    return new TdApi.MessageReactions(paid.toArray(new TdApi.MessageReaction[0]), reactions.areTags, reactions.paidReactors, reactions.canGetAddedReactions);
   }
 
   public final boolean useReactionBubbles () {
