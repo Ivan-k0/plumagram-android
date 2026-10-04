@@ -153,9 +153,21 @@ public class Tgx101StoryViewer extends Dialog {
     root.addView(header, headerParams);
 
     captionView = text(context, 15f, Color.WHITE);
-    captionView.setShadowLayer(Screen.dp(3f), 0, 0, 0xaa000000);
-    captionView.setPadding(Screen.dp(16f), 0, Screen.dp(16f), 0);
+    captionView.setOnClickListener(v -> setCaptionExpanded(!captionExpanded));
+    captionView.setOnTouchListener(new View.OnTouchListener() {
+      private float downY;
+      @Override
+      public boolean onTouch (View v, MotionEvent e) {
+        if (e.getActionMasked() == MotionEvent.ACTION_DOWN) downY = e.getY();
+        if (e.getActionMasked() == MotionEvent.ACTION_UP && captionExpanded && e.getY() - downY > Screen.dp(40f)) {
+          setCaptionExpanded(false); // swipe down folds the text
+          return true;
+        }
+        return false;
+      }
+    });
     FrameLayout.LayoutParams captionParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+    captionParams.leftMargin = captionParams.rightMargin = Screen.dp(10f);
     captionParams.bottomMargin = Screen.dp(72f);
     root.addView(captionView, captionParams);
 
@@ -295,8 +307,7 @@ public class Tgx101StoryViewer extends Dialog {
     openedStoryId = story.id;
     tdlib.send(new TdApi.OpenStory(story.posterChatId, story.id), (ok, error) -> { });
     timeView.setText(Lang.getRelativeTimestamp(story.date, java.util.concurrent.TimeUnit.SECONDS));
-    captionView.setText(story.caption != null ? story.caption.text : "");
-    captionView.setVisibility(story.caption != null && story.caption.text != null && !story.caption.text.isEmpty() ? View.VISIBLE : View.GONE);
+    tgx101SetCaption(story.caption != null ? story.caption.text : "");
     replyView.setVisibility(story.canBeReplied ? View.VISIBLE : View.INVISIBLE);
     heartView.setText(story.chosenReactionType != null ? "♥" : "♡");
     heartView.setTextColor(story.chosenReactionType != null ? 0xffff4d6d : Color.WHITE);
@@ -349,6 +360,73 @@ public class Tgx101StoryViewer extends Dialog {
         }
       });
     });
+  }
+
+  // Caption (user 2026-10-04): 2 lines with «more» at the bottom; a tap opens the whole text on a dark backdrop,
+  // a swipe down (or a tap) folds it back with a light animation
+
+  private String captionText = "";
+  private boolean captionExpanded;
+
+  private void tgx101SetCaption (String text) {
+    captionText = text != null ? text.trim() : "";
+    captionExpanded = false;
+    captionView.setVisibility(captionText.isEmpty() ? View.GONE : View.VISIBLE);
+    applyCaption(false);
+  }
+
+  private void applyCaption (boolean animate) {
+    if (captionText.isEmpty()) return;
+    if (captionExpanded) {
+      captionView.setMaxLines(Integer.MAX_VALUE);
+      captionView.setEllipsize(null);
+      captionView.setText(captionText);
+      captionView.setBackground(tgx101Capsule());
+      captionView.setPadding(Screen.dp(16f), Screen.dp(12f), Screen.dp(16f), Screen.dp(12f));
+    } else {
+      captionView.setMaxLines(2);
+      captionView.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      captionView.setBackground(tgx101Capsule());
+      captionView.setPadding(Screen.dp(16f), Screen.dp(10f), Screen.dp(16f), Screen.dp(10f));
+      android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder(captionText);
+      captionView.setText(b);
+      captionView.post(() -> {
+        android.text.Layout layout = captionView.getLayout();
+        if (!captionExpanded && layout != null && (layout.getLineCount() > 2 || (layout.getLineCount() == 2 && layout.getEllipsisCount(1) > 0))) {
+          // cut the second line and add «… ещё» in the accent colour
+          int end = layout.getLineEnd(1);
+          String more = "… " + Lang.getString(R.string.Tgx101StoryMore);
+          int cut = Math.max(layout.getLineStart(1), end - more.length() - 2);
+          android.text.SpannableStringBuilder sb = new android.text.SpannableStringBuilder(captionText.substring(0, cut).trim());
+          int start = sb.length();
+          sb.append(more);
+          sb.setSpan(new android.text.style.ForegroundColorSpan(0xff8fd0ff), start, sb.length(), 0);
+          sb.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start + 2, sb.length(), 0);
+          captionView.setText(sb);
+        }
+      });
+    }
+    if (animate) {
+      captionView.setAlpha(.4f);
+      captionView.setTranslationY(captionExpanded ? Screen.dp(24f) : -Screen.dp(12f));
+      captionView.animate().alpha(1f).translationY(0f).setDuration(200).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+    }
+  }
+
+  /** The same dark glass capsule as the «Add a caption» field (user 2026-10-04) */
+  private static GradientDrawable tgx101Capsule () {
+    GradientDrawable capsule = new GradientDrawable();
+    capsule.setColor(0xb3141a20);
+    capsule.setCornerRadius(Screen.dp(20f));
+    capsule.setStroke(Screen.dp(.5f), 0x33ffffff);
+    return capsule;
+  }
+
+  private void setCaptionExpanded (boolean expanded) {
+    if (captionExpanded == expanded || captionText.isEmpty()) return;
+    captionExpanded = expanded;
+    setPaused(expanded);
+    applyCaption(true);
   }
 
   @Nullable

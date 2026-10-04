@@ -449,6 +449,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101StoriesFoldersAll, "Все чаты");
     RU.put(R.string.Tgx101StoriesFoldersNone, "Никакие");
     RU.put(R.string.Tgx101StoriesFoldersHint, "Показывать истории только чатов из выбранных папок. «Никакие» убирает ленту и кольца.");
+    RU.put(R.string.Tgx101StoryMore, "ещё");
     RU.put(R.string.Tgx101TestSection, "Тесты");
     RU.put(R.string.Tgx101FakeNoPremium, "Как без Премиума (тест)");
     RU.put(R.string.Tgx101FakeNoPremiumHint, "Только в тестовых сборках. Приложение показывает всё как для аккаунта без Премиума; сервер по-прежнему знает, что Премиум есть. После переключения перезапустите приложение.");

@@ -6290,6 +6290,7 @@
   <string name="Tgx101StoriesFoldersAll">All chats</string>
   <string name="Tgx101StoriesFoldersNone">None</string>
   <string name="Tgx101StoriesFoldersHint">Show stories only of chats in these folders. «None» hides the strip and rings.</string>
+  <string name="Tgx101StoryMore">more</string>
   <string name="Tgx101TestSection">Testing</string>
   <string name="Tgx101FakeNoPremium">As without Premium (test)</string>
   <string name="Tgx101FakeNoPremiumHint">Test builds only. The app shows everything as for an account without Premium; the server still knows the account has it. Restart the app after switching.</string>
