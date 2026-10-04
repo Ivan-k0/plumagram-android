@@ -263,6 +263,25 @@ public class MediaCellViewDetector implements FactorAnimator.Target {
     return false;
   }
 
+  /** TGx101: zoomed and the picture's top edge is on screen (it can't be dragged further down) */
+  public boolean tgx101AtTopEdge () {
+    if (zoom <= 1f) return false;
+    callback.getZoomDisplayRect(displayRect);
+    final int displayWidth = displayRect.width(), displayHeight = displayRect.height();
+    if (displayWidth == 0 || displayHeight == 0) return false;
+    android.graphics.RectF rect = new android.graphics.RectF(mediaRect);
+    android.graphics.Matrix m = new android.graphics.Matrix();
+    m.preScale(zoom, zoom, pivotX * displayWidth, pivotY * displayHeight);
+    m.postTranslate(positionX * displayWidth, positionY * displayHeight);
+    m.mapRect(rect);
+    android.graphics.RectF center = new android.graphics.RectF(mediaRect);
+    m.reset();
+    m.preScale(zoom, zoom, .5f * displayWidth, .5f * displayHeight);
+    m.mapRect(center);
+    float maxTop = Math.max(0, center.top);
+    return rect.top >= maxTop - 1f;
+  }
+
   private void normalizePosition () {
     float zoom = Math.max(1f, Math.min(MAX_ZOOM, this.zoom));
 

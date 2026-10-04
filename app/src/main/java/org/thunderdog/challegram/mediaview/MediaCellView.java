@@ -1814,6 +1814,9 @@ public class MediaCellView extends ViewGroup implements
       android.graphics.PointF topLeft = subsamplingImageView.viewToSourceCoord(0, 0);
       return topLeft != null && topLeft.y <= 1f;
     }
+    if (!subsamplingModeEnabled && detector != null && isZoomed()) {
+      return detector.tgx101AtTopEdge();
+    }
     return false;
   }
 

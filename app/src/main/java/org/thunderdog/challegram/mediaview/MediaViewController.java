@@ -4330,8 +4330,6 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   private boolean listenCloseBySlide;
-  private boolean tgx101ListenZoomSwipe;
-  private long tgx101ZoomSwipeArmedAt;
   private boolean inSlideMode;
 
   private MediaItem slideItem;
@@ -5788,12 +5786,6 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
     flingDetector = new FlingDetector(context, this);
     contentView = new FrameLayoutFix(context) {
-      @Override
-      public boolean dispatchTouchEvent (MotionEvent e) {
-        tgx101TouchActivity(e); // TGx101: the controls hide 4 s after the last touch
-        return super.dispatchTouchEvent(e);
-      }
-
       private int lastWidth, lastHeight;
 
       @Override
@@ -5826,6 +5818,66 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         }
       }
 
+      // TGx101 (user 2026-10-04): a zoomed photo pans as usual; once its top edge is on screen the same drag down
+      // turns into pull-to-close (the photo follows the finger, the chat shows through, short pulls spring back)
+      private boolean tgx101ZoomTracking, tgx101ZoomPull, tgx101ZoomStartedAtTop;
+      private float tgx101ZoomTopY = Float.NaN;
+
+      @Override
+      public boolean dispatchTouchEvent (MotionEvent e) {
+        tgx101TouchActivity(e); // TGx101: the controls hide 4 s after the last touch
+        if (tgx101ZoomPull) {
+          if (e.getActionMasked() == MotionEvent.ACTION_UP || e.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+            org.thunderdog.challegram.Tgx101Diag.mark("viewer: zoomed pull released at " + Math.round(lastSlideY) + " px, in slide " + inSlideMode);
+          }
+          onTouchEvent(e);
+          if (e.getActionMasked() == MotionEvent.ACTION_UP || e.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+            tgx101ZoomPull = false;
+          }
+          return true;
+        }
+        switch (e.getActionMasked()) {
+          case MotionEvent.ACTION_DOWN: {
+            // safety (user 2026-10-04): only a drag that STARTS with the top edge already on screen pulls to close;
+            // a drag that pans the photo up to its edge just stops there
+            MediaCellView downCell = mediaView.getBaseCell();
+            tgx101ZoomStartedAtTop = downCell != null && downCell.tgx101ZoomedAtTop();
+          }
+            tgx101ZoomTracking = mode != MODE_SECRET && (mode != MODE_GALLERY || currentSection == SECTION_CAPTION) && !inCaption && pipFactor == 0f && mediaView.isZoomed() && !tgx101Locked();
+            tgx101ZoomTopY = Float.NaN;
+            break;
+          case MotionEvent.ACTION_POINTER_DOWN:
+            tgx101ZoomTracking = false;
+            break;
+          case MotionEvent.ACTION_MOVE: {
+            if (!tgx101ZoomTracking || e.getPointerCount() != 1) break;
+            MediaCellView cell = mediaView.getBaseCell();
+            if (cell != null && tgx101ZoomStartedAtTop && cell.tgx101ZoomedAtTop()) {
+              if (Float.isNaN(tgx101ZoomTopY) || e.getY() < tgx101ZoomTopY) {
+                tgx101ZoomTopY = e.getY();
+              } else if (e.getY() - tgx101ZoomTopY > Screen.getTouchSlop()) {
+                org.thunderdog.challegram.Tgx101Diag.mark("viewer: zoomed photo pulled down to close");
+                MotionEvent cancel = MotionEvent.obtain(e);
+                cancel.setAction(MotionEvent.ACTION_CANCEL);
+                super.dispatchTouchEvent(cancel);
+                cancel.recycle();
+                slideStartX = e.getX();
+                slideStartY = tgx101ZoomTopY;
+                setInSlideMode(e.getX(), tgx101ZoomTopY);
+                tgx101ZoomPull = true;
+                tgx101ZoomTracking = false;
+                onTouchEvent(e);
+                return true;
+              }
+            } else {
+              tgx101ZoomTopY = Float.NaN;
+            }
+            break;
+          }
+        }
+        return super.dispatchTouchEvent(e);
+      }
+
       private float startX, startY, diffX, diffY;
       private float slideStartY;
       private float slideStartX;
@@ -5848,32 +5900,6 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         }
         if (mode == MODE_SECRET || inCaption || (disallowIntercept && e.getAction() != MotionEvent.ACTION_DOWN)) {
           return super.onInterceptTouchEvent(e);
-        }
-        // TGx101: a zoomed photo at its top edge: the first swipe down only shows / hides the controls (a safety step),
-        // a second one within 4 s closes the photo (user 2026-10-03)
-        if (e.getAction() == MotionEvent.ACTION_DOWN) {
-          MediaCellView cell = mediaView.getBaseCell();
-          tgx101ListenZoomSwipe = canCloseBySlide() && pipFactor == 0f && cell != null && cell.tgx101ZoomedAtTop() && e.getPointerCount() == 1;
-        } else if (e.getAction() == MotionEvent.ACTION_MOVE && tgx101ListenZoomSwipe) {
-          float dy = e.getY() - startY, dx = Math.abs(e.getX() - startX);
-          if (dy >= Screen.getTouchSlopBig() && dx < Screen.getTouchSlop() * 1.65f) {
-            tgx101ListenZoomSwipe = false;
-            long now = android.os.SystemClock.uptimeMillis();
-            if (now - tgx101ZoomSwipeArmedAt < 4000) {
-              tgx101ZoomSwipeArmedAt = 0;
-              org.thunderdog.challegram.Tgx101Diag.mark("viewer: zoomed photo closed by the second swipe");
-              mediaView.dropPreview(MediaView.DIRECTION_AUTO, 0f);
-              slideStartX = e.getX();
-              slideStartY = e.getY();
-              setInSlideMode(e.getX(), e.getY());
-              return true;
-            }
-            tgx101ZoomSwipeArmedAt = now;
-            org.thunderdog.challegram.Tgx101Diag.mark("viewer: zoomed photo, first swipe down = tap");
-            mediaView.onMediaClick(e.getX(), e.getY());
-          } else if (Math.abs(dy) >= Screen.getTouchSlopBig() || dx >= Screen.getTouchSlopBig()) {
-            tgx101ListenZoomSwipe = false; // a pan
-          }
         }
         switch (e.getAction()) {
           case MotionEvent.ACTION_DOWN: {
