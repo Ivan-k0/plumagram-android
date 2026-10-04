@@ -215,9 +215,9 @@ public class MediaBottomGalleryController extends MediaBottomBaseController<Medi
 
     int options = inSingleMediaMode() ? MediaGalleryAdapter.OPTION_NEVER_SELECTABLE :
       MediaGalleryAdapter.OPTION_SELECTABLE | MediaGalleryAdapter.OPTION_ALWAYS_SELECTABLE;
-    /*if (U.deviceHasAnyCamera(context)) {
+    if (!inSingleMediaMode() && mediaLayout.tgx101CanUseCamera()) {
       options |= MediaGalleryAdapter.OPTION_CAMERA_AVAILABLE;
-    }*/
+    }
     adapter = new MediaGalleryAdapter(context(), recyclerView, manager, this, options);
     setLayoutManager(manager);
     setAdapter(adapter);
@@ -466,13 +466,8 @@ public class MediaBottomGalleryController extends MediaBottomBaseController<Medi
 
   @Override
   public void onCameraRequested () {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-      if (context().checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-        context().requestCameraPermission();
-        return;
-      }
-    }
-    mediaLayout.openCamera();
+    org.thunderdog.challegram.Tgx101Diag.mark("attach: camera tile");
+    mediaLayout.tgx101OpenCamera();
   }
 
   @Override

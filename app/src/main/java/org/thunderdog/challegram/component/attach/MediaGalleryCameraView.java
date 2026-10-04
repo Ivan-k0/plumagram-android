@@ -38,18 +38,9 @@ public class MediaGalleryCameraView extends FrameLayoutFix implements Destroyabl
     super(context);
     setId(R.id.btn_camera);
     setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-    setBackgroundColor(0xff000000);
+    setBackgroundColor(0xff1c2733); // TGx101: a placeholder tile, no live preview (light on battery)
 
-    FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.RIGHT | Gravity.TOP);
-    params.topMargin = Screen.dp(6f);
-    params.rightMargin = Screen.dp(6f);
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      textureView = new TextureView(context);
-      textureView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-      textureView.setSurfaceTextureListener(this);
-      addView(textureView);
-    }
+    FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(Screen.dp(36f), Screen.dp(36f), Gravity.CENTER);
 
     ImageView imageView = new ImageView(context);
     imageView.setScaleType(ImageView.ScaleType.CENTER);

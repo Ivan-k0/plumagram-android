@@ -64,7 +64,9 @@ public class MediaGalleryAdapter extends RecyclerView.Adapter<MediaGalleryAdapte
     this.isSelectable = (options & OPTION_SELECTABLE) != 0;
     this.isAlwaysSelectable = isSelectable && (options & OPTION_ALWAYS_SELECTABLE) != 0;
     this.needCounter = (options & OPTION_NEED_COUNTER) != 0;
-    this.cameraAvailable = false; // (options & OPTION_CAMERA_AVAILABLE) != 0 && (!Config.CUSTOM_CAMERA_ENABLED || (options & OPTION_NEED_CAMERA) != 0);
+    // TGx101 (user 2026-10-04 «в скрепке нет камеры»): the first tile of the gallery opens the camera — a plain
+    // placeholder without a live preview, like the official app but lighter
+    this.cameraAvailable = (options & OPTION_CAMERA_AVAILABLE) != 0;
     this.showCamera = cameraAvailable && (options & OPTION_NEED_CAMERA) != 0;
     this.isNeverSelectable = (options & OPTION_NEVER_SELECTABLE) != 0;
     this.selected = new ArrayList<>();

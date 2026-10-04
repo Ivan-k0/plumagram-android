@@ -1366,6 +1366,17 @@ public class MediaLayout extends FrameLayoutFix implements
     });
   }
 
+  /** TGx101: the gallery's camera tile — the same in-app camera as the «Camera» attach button */
+  public boolean tgx101CanUseCamera () {
+    return target != null && mode == MODE_DEFAULT && U.deviceHasAnyCamera(getContext());
+  }
+
+  public void tgx101OpenCamera () {
+    if (target == null) return;
+    hide(false);
+    target.tgx101OpenCameraFromAttach();
+  }
+
   public void openCamera () {
     hide(false);
     UI.openCameraDelayed(UI.getContext(getContext()));
