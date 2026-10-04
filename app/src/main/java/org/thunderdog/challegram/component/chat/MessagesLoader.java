@@ -1396,6 +1396,24 @@ public class MessagesLoader implements Client.ResultHandler {
     if (Log.isEnabled(Log.TAG_MESSAGES_LOADER)) {
       Log.v(Log.TAG_MESSAGES_LOADER, "Processing %d messages...", messages.length);
     }
+    // TGx101 (Ubeavis, 4PDA): inside a forum topic messages of other topics slipped in — the album completion
+    // above loads the neighbours with GetChatHistory over the whole forum; keep only this topic's messages
+    TdApi.MessageTopic tgx101Topic = getMessageTopicId();
+    if (tgx101Topic != null && tgx101Topic.getConstructor() == TdApi.MessageTopicForum.CONSTRUCTOR && messages.length > 0) {
+      int kept = 0;
+      for (TdApi.Message message : messages) {
+        if (tgx.td.Td.matchesTopic(message.topicId, tgx101Topic)) kept++;
+      }
+      if (kept != messages.length) {
+        org.thunderdog.challegram.Tgx101Diag.mark("topic: dropped " + (messages.length - kept) + " message(s) of other topics from a loaded page");
+        TdApi.Message[] filtered = new TdApi.Message[kept];
+        int i = 0;
+        for (TdApi.Message message : messages) {
+          if (tgx.td.Td.matchesTopic(message.topicId, tgx101Topic)) filtered[i++] = message;
+        }
+        messages = filtered;
+      }
+    }
 
     final ArrayList<TGMessage> items = new ArrayList<>(messages.length);
 

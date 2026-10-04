@@ -65,6 +65,8 @@ public class VideoCameraCapturer {
   private SurfaceTextureHelper textureHelper;
   private long nativePtr;
   private boolean capturing;
+  private boolean destroyed;
+  private int generation;
 
   @Keep
   public VideoCameraCapturer () {
@@ -80,7 +82,21 @@ public class VideoCameraCapturer {
   /** Called again with a new pointer when the camera is switched. */
   @Keep
   public void init (long ptr, boolean useFrontCamera) {
+    // TGx101 (Huawei KOB2 crash 2026-10-03, SIGSEGV in libtgcallsjni on this thread): the native capturer behind ptr
+    // may be gone by the time the posted block runs — take its observer now, while the caller keeps it alive,
+    // and drop the start if onDestroy came in between
+    final CapturerObserver observer = nativeGetJavaVideoCapturerObserver(ptr);
+    final int generation;
+    synchronized (this) {
+      generation = ++this.generation;
+    }
     handler.post(() -> {
+      synchronized (this) {
+        if (destroyed || generation != this.generation) {
+          android.util.Log.i("TGx101Video", "camera init skipped ptr=" + ptr + " (destroyed " + destroyed + ")");
+          return;
+        }
+      }
       android.util.Log.i("TGx101Video", "camera init ptr=" + ptr + " front=" + useFrontCamera + " (previous " + nativePtr + ")");
       release();
       nativePtr = ptr;
@@ -109,7 +125,7 @@ public class VideoCameraCapturer {
         @Override public void onCameraClosed () { android.util.Log.i("TGx101Video", "camera closed"); }
       });
       textureHelper = SurfaceTextureHelper.create("TGx101CameraTexture", Tgx101Video.eglContext());
-      capturer.initialize(textureHelper, context, nativeGetJavaVideoCapturerObserver(ptr));
+      capturer.initialize(textureHelper, context, observer);
     });
   }
 
@@ -133,6 +149,10 @@ public class VideoCameraCapturer {
 
   @Keep
   public void onDestroy () {
+    synchronized (this) {
+      destroyed = true;
+      generation++;
+    }
     handler.post(() -> {
       release();
       if (current == this) current = null;

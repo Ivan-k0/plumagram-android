@@ -17,7 +17,7 @@ add_library(tgcalls STATIC
 
   "${TGCALLS_DIR}/tgcalls/platform/android/AndroidContext.cpp"
   "${TGCALLS_DIR}/tgcalls/platform/android/AndroidInterface.cpp"
-  "${TGCALLS_DIR}/tgcalls/platform/android/VideoCameraCapturer.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tgx101/VideoCameraCapturer.cpp" # TGx101: armv7 fix, original in tgcalls
   "${TGCALLS_DIR}/tgcalls/platform/android/VideoCapturerInterfaceImpl.cpp"
 
   "${TGCALLS_DIR}/tgcalls/Manager.cpp"
