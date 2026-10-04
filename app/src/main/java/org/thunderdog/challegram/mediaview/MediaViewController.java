@@ -997,6 +997,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   @Override
   public boolean launchHideAnimation (PopupLayout popup, FactorAnimator ignored) {
+    tgx101FullscreenDeferred = false;
+    if (tgx101LandscapeWindow()) {
+      // the status bar comes back while the viewer still covers the chat, not after it is gone
+      setFullScreen(false);
+    }
     MediaViewThumbLocation location;
 
     if (forceAnimationType != -1) {
@@ -1288,6 +1293,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private static final boolean SET_FULLSCREEN_ON_OPEN = true;
 
+  private boolean tgx101FullscreenDeferred;
+
+  private boolean tgx101LandscapeWindow () {
+    return context.getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+  }
+
   @Override
   public void onFactorChangeFinished (int id, float finalFactor, FactorAnimator callee) {
     switch (id) {
@@ -1301,6 +1312,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           }
           onHide();
         } else if (finalFactor == 1f) {
+          if (tgx101FullscreenDeferred) {
+            tgx101FullscreenDeferred = false;
+            setFullScreen(true);
+          }
           context().getRootView().forceHideKeyboard();
           popupView.onCustomShowComplete();
           mediaView.setDisableAnimations(false);
@@ -5734,7 +5749,13 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     context().closeOtherPips();
 
     if (SET_FULLSCREEN_ON_OPEN) {
-      setFullScreen(true);
+      if (tgx101LandscapeWindow()) {
+        // TGx101 (user 2026-10-04): in landscape the status bar going away relays the chat (it jumped up and
+        // stretched before the photo even started to grow) — go fullscreen once the viewer covers it
+        tgx101FullscreenDeferred = true;
+      } else {
+        setFullScreen(true);
+      }
     }
 
     restorePipFactors();
