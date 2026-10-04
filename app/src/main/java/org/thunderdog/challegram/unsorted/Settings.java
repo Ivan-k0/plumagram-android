@@ -3484,6 +3484,17 @@ public class Settings {
   }
 
   // TGx101: the camera button leaves the message input for the attach (paperclip) menu, in place of «Inline bot»
+  private static final String KEY_TGX101_NEXT_CHANNEL_SWIPE = "tgx101_next_channel_swipe";
+
+  /** TGx101: a pull up at the end of a channel opens the next unread channel (on by default, as in official apps) */
+  public boolean tgx101NextChannelSwipe () {
+    return pmc.getBoolean(KEY_TGX101_NEXT_CHANNEL_SWIPE, true);
+  }
+
+  public void setTgx101NextChannelSwipe (boolean value) {
+    pmc.putBoolean(KEY_TGX101_NEXT_CHANNEL_SWIPE, value);
+  }
+
   private static final String KEY_TGX101_HIDE_CHANNEL_REACTIONS = "tgx101_hide_channel_reactions";
 
   /** TGx101: no reaction row under channel posts (off by default) */

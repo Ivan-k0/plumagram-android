@@ -1938,6 +1938,11 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
 
   // Updates
 
+  /** TGx101: no newer messages left to load (the list is at the real end of the chat) */
+  public boolean tgx101CanLoadBottom () {
+    return loader.canLoadBottom();
+  }
+
   private void updateNewMessage (TGMessage message) {
     switch (loader.getSpecialMode()) {
       case MessagesLoader.SPECIAL_MODE_RESTRICTED:

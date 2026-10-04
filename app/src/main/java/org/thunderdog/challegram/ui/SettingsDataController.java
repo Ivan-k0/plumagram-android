@@ -237,6 +237,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().isRingRampEnabled(), isUpdate);
         } else if (itemId == R.id.btn_tgx101CameraInAttach) {
           view.getToggler().setRadioEnabled(Settings.instance().isCameraInAttach(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101NextChannelSwipe) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101NextChannelSwipe(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideChannelReactions) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideChannelReactions(), isUpdate);
         } else if (itemId == R.id.btn_tgx101ZoomPullClose) {
@@ -390,6 +392,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Filters, 0, R.string.Tgx101Filters),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideChannelReactions, 0, R.string.Tgx101HideChannelReactions),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NextChannelSwipe, 0, R.string.Tgx101NextChannelSwipe),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_pullToSearch, 0, R.string.PullToSearch),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -781,6 +785,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setCallPattern(toggleResult ? Settings.CALL_PATTERN_PAPER_PLANES : Settings.CALL_PATTERN_NONE); // the view was already toggled above
     } else if (id == R.id.btn_tgx101RingRamp) {
       Settings.instance().setRingRampEnabled(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101NextChannelSwipe) {
+      Settings.instance().setTgx101NextChannelSwipe(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101HideChannelReactions) {
       Settings.instance().setTgx101HideChannelReactions(toggleResult); // the view was already toggled above; chats opened afterwards
     } else if (id == R.id.btn_tgx101ZoomPullClose) {

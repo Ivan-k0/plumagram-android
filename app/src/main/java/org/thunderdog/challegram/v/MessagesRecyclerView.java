@@ -263,6 +263,54 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
     return topOffset;
   }
 
+  // TGx101 (4PDA request 2026-10-04): at the very end of a channel, a pull up leads to the next unread channel
+  private boolean tgx101NextTracking, tgx101NextPast;
+  private float tgx101NextDownY;
+
+  @Override
+  public boolean dispatchTouchEvent (MotionEvent e) {
+    if (manager != null) {
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+          tgx101NextTracking = org.thunderdog.challegram.unsorted.Settings.instance().tgx101NextChannelSwipe()
+            && manager.controller().isChannel() && !manager.tgx101CanLoadBottom() && !canScrollVertically(1)
+            && !manager.controller().inPreviewMode();
+          tgx101NextPast = false;
+          tgx101NextDownY = e.getY();
+          if (tgx101NextTracking) manager.controller().tgx101PrepareNextChannel();
+          break;
+        case MotionEvent.ACTION_MOVE:
+          if (tgx101NextTracking) {
+            if (canScrollVertically(1)) { // the list moved away from the end
+              tgx101NextTracking = false;
+              manager.controller().tgx101ShowNextChannel(0f, false);
+              break;
+            }
+            float pull = tgx101NextDownY - e.getY();
+            float progress = Math.max(0f, Math.min(1f, pull / Screen.dp(110f)));
+            boolean past = progress >= 1f;
+            if (past && !tgx101NextPast) {
+              performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS, android.view.HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
+            }
+            tgx101NextPast = past;
+            manager.controller().tgx101ShowNextChannel(progress, past);
+          }
+          break;
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL:
+          if (tgx101NextTracking) {
+            boolean open = tgx101NextPast && e.getActionMasked() == MotionEvent.ACTION_UP;
+            tgx101NextTracking = false;
+            tgx101NextPast = false;
+            manager.controller().tgx101ShowNextChannel(0f, false);
+            if (open) manager.controller().tgx101OpenNextChannel();
+          }
+          break;
+      }
+    }
+    return super.dispatchTouchEvent(e);
+  }
+
   @Override
   public boolean onInterceptTouchEvent (MotionEvent e) {
     boolean res = super.onInterceptTouchEvent(e);

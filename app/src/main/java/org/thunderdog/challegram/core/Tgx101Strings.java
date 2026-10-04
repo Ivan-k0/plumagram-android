@@ -421,6 +421,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101FilterHideFully, "Скрывать полностью");
     RU.put(R.string.Tgx101FilterHideFullyHint, "Без полоски «Скрыто фильтром»: такие сообщения совсем не показываются в чате. Ничего не удаляется: поиск их находит.");
     RU.put(R.string.Tgx101HideChannelReactions, "Скрывать реакции под постами каналов");
+    RU.put(R.string.Tgx101NextChannelSwipe, "Свайп вверх в конце канала — следующий непрочитанный");
+    RU.put(R.string.Tgx101NextChannelPull, "↑ Дальше: %1$s");
+    RU.put(R.string.Tgx101NextChannelRelease, "Отпустите — откроется %1$s");
+    RU.put(R.string.Tgx101NextChannelNone, "Непрочитанных каналов нет");
     RU.put(R.string.Tgx101TestSection, "Тесты");
     RU.put(R.string.Tgx101FakeNoPremium, "Как без Премиума (тест)");
     RU.put(R.string.Tgx101FakeNoPremiumHint, "Только в тестовых сборках. Приложение показывает всё как для аккаунта без Премиума; сервер по-прежнему знает, что Премиум есть. После переключения перезапустите приложение.");

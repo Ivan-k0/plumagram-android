@@ -1896,6 +1896,73 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return tdlib.isChannel(getChatId());
   }
 
+  // TGx101: pull up at the end of a channel → the next unread channel (official clients do the same)
+
+  private @Nullable TdApi.Chat tgx101NextChannel;
+  private @Nullable android.widget.TextView tgx101NextChannelHint;
+
+  public void tgx101PrepareNextChannel () {
+    final long currentChatId = getChatId();
+    tdlib.send(new TdApi.GetChats(new TdApi.ChatListMain(), 200), (chats, error) -> {
+      TdApi.Chat next = null;
+      if (chats != null) {
+        for (long chatId : chats.chatIds) {
+          if (chatId == currentChatId) continue;
+          TdApi.Chat chat = tdlib.chat(chatId);
+          if (chat != null && chat.unreadCount > 0 && tdlib.isChannel(chatId)) {
+            next = chat;
+            break;
+          }
+        }
+      }
+      final TdApi.Chat result = next;
+      runOnUiThreadOptional(() -> tgx101NextChannel = result);
+    });
+  }
+
+  public void tgx101ShowNextChannel (float progress, boolean ready) {
+    if (progress <= 0f) {
+      if (tgx101NextChannelHint != null) tgx101NextChannelHint.animate().alpha(0f).translationY(Screen.dp(24f)).setDuration(150).start();
+      return;
+    }
+    if (tgx101NextChannelHint == null) {
+      android.widget.TextView hint = new android.widget.TextView(context());
+      hint.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14f);
+      hint.setTextColor(0xffffffff);
+      hint.setGravity(Gravity.CENTER);
+      hint.setMaxLines(2);
+      hint.setPadding(Screen.dp(16f), Screen.dp(9f), Screen.dp(16f), Screen.dp(9f));
+      android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+      bg.setCornerRadius(Screen.dp(20f));
+      hint.setBackground(bg);
+      RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      params.addRule(RelativeLayout.CENTER_HORIZONTAL);
+      params.addRule(RelativeLayout.ABOVE, R.id.msg_bottom);
+      params.bottomMargin = Screen.dp(16f);
+      params.leftMargin = params.rightMargin = Screen.dp(24f);
+      hint.setLayoutParams(params);
+      hint.setAlpha(0f);
+      contentView.addView(hint);
+      tgx101NextChannelHint = hint;
+    }
+    android.widget.TextView hint = tgx101NextChannelHint;
+    TdApi.Chat next = tgx101NextChannel;
+    String text = next == null ? Lang.getString(R.string.Tgx101NextChannelNone)
+      : Lang.getString(ready ? R.string.Tgx101NextChannelRelease : R.string.Tgx101NextChannelPull, next.title);
+    hint.setText(text);
+    ((android.graphics.drawable.GradientDrawable) hint.getBackground()).setColor(ready && next != null ? Theme.getColor(ColorId.fillingPositive) : 0xd0161c22);
+    hint.animate().cancel();
+    hint.setAlpha(Math.min(1f, progress * 1.6f));
+    hint.setTranslationY((1f - progress) * Screen.dp(24f));
+  }
+
+  public void tgx101OpenNextChannel () {
+    TdApi.Chat next = tgx101NextChannel;
+    if (next == null) return;
+    org.thunderdog.challegram.Tgx101Diag.mark("chat: pull up → next unread channel");
+    tdlib.ui().openChat(this, next, new TdlibUi.ChatOpenParameters().keepStack().removeDuplicates());
+  }
+
   public boolean comparePrivateUserId (long userId) {
     return userId != 0 && ChatId.toUserId(getChatId()) == userId;
   }
