@@ -621,9 +621,7 @@ public class TGMessageMedia extends TGMessage {
     final int textTop = tgx101CaptionAbove() ? startY + Screen.dp(TEXT_MARGIN) : startY + mosaicWrapper.getHeight() + Screen.dp(TEXT_MARGIN);
     startY += tgx101MediaOffset();
     mosaicWrapper.draw(view, c, startX, startY, complexReceiver, useFullWidth());
-    if (tgx101HighlightedChildId() != 0) {
-      mosaicWrapper.tgx101DrawItemHighlight(c, tgx101HighlightedChildId(), tgx101ItemFlashColor()); // TGx101: only that item flashes
-    }
+    // TGx101 (user 2026-10-04): no item flash — the wave beside the message marks the jump
     if (tgx101HasMenuZone()) {
       // ⋮ on a soft dark pill in the top right corner of the photo / video
       float dotsX = startX + mosaicWrapper.getWidth() - Screen.dp(14f);

@@ -2079,10 +2079,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       drawContent(view, c, pContentX, pContentY, pContentMaxWidth);
     }
 
-    if (highlightFactor != 0f && hasBubble && tgx101HighlightedChildId == 0) {
-      // TGx101: the jump flash over the bubble and its content
-      drawBubble(c, Paints.fillingPaint(tgx101FlashColor()), false, 0);
-    }
+    // TGx101 (user 2026-10-04, variant В): no bubble flash any more — the jump is shown by the wave in drawHighlight
 
     if (hasBubble) {
       if (needBubbleCornerFix()) {
@@ -6829,15 +6826,42 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return ColorUtils.alphaColor(highlightFactor * (dark ? .32f : .24f), dark ? ColorUtils.fromToArgb(0xff7fc4ff, Theme.getColor(ColorId.textLink), .3f) : ColorUtils.fromToArgb(0xff5fb3ff, Theme.getColor(ColorId.textLink), .4f));
   }
 
+  // TGx101 «wave» (user 2026-10-04, variant В): two light-blue drops run from the bubble across the empty space to
+  // the screen edge and melt (~0.9 s); text, photos and albums alike, nothing covers the message itself
+  private static final long TGX101_WAVE_DURATION = 1000L;
+  private long tgx101WaveStart;
+
   public void drawHighlight (View view, Canvas c) {
-    if (highlightFactor == 0f) return;
-    if (tgx101HighlightedChildId != 0) {
-      return; // the album flashes only the item (TGMessageMedia)
+    if (highlightFactor == 0f || tgx101WaveStart == 0) return;
+    long elapsed = android.os.SystemClock.uptimeMillis() - tgx101WaveStart;
+    if (elapsed >= TGX101_WAVE_DURATION + 250) {
+      return;
     }
-    if (useBubbles()) {
-      return; // TGx101 (user 2026-10-04): the whole bubble flashes, drawn over it in draw(); no row fill
+    boolean toRight = !(useBubbles() && isOutgoingBubble());
+    float top = useBubbles() ? bubblePathRect.top : findTopEdge();
+    float bottom = useBubbles() ? bubblePathRect.bottom : findBottomEdge();
+    if (bottom <= top) { top = findTopEdge(); bottom = findBottomEdge(); }
+    float from = useBubbles() ? (toRight ? bubblePathRect.right : bubblePathRect.left) : Screen.dp(8f);
+    float to = toRight ? view.getMeasuredWidth() - Screen.dp(6f) : Screen.dp(6f);
+    float cy = (top + bottom) / 2f;
+    float h = Math.min(Screen.dp(26f), Math.max(Screen.dp(12f), (bottom - top) * .45f));
+    boolean dark = Theme.isDark();
+    int base = dark ? 0xff6fbcff : 0xff2f8ae0;
+    RectF r = Paints.getRectF();
+    for (int i = 0; i < 2; i++) {
+      float t = (elapsed - i * 160L) / (float) TGX101_WAVE_DURATION;
+      if (t <= 0f || t >= 1f) continue;
+      float ease = t * (2f - t) * .85f + t * .15f; // gentle ease-out, keeps moving to the edge
+      float x = from + (to - from) * ease;
+      float w = Screen.dp(i == 0 ? 34f : 22f) * (1f - t * .5f);
+      float fade = 1f - t;
+      float alpha = (i == 0 ? .6f : .36f) * fade * fade;
+      float left = toRight ? x - w : x, right = toRight ? x : x + w;
+      if (toRight ? right <= from : left >= from) continue;
+      r.set(left, cy - h / 2f, right, cy + h / 2f);
+      c.drawRoundRect(r, h / 2f, h / 2f, Paints.fillingPaint(ColorUtils.alphaColor(alpha, base)));
     }
-    c.drawRect(0, findTopEdge(), view.getMeasuredWidth(), findBottomEdge(), Paints.fillingPaint(getSelectionColor(highlightFactor)));
+    view.postInvalidateOnAnimation();
   }
 
   /** For the album item flash */
@@ -6847,6 +6871,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   public void highlight (boolean revoke) {
     cancelHighlightRevoke();
+    tgx101WaveStart = android.os.SystemClock.uptimeMillis();
     setHighlight(1f);
     if (revoke) {
       revokeHighlight();
