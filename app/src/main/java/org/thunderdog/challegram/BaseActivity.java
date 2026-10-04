@@ -1067,7 +1067,11 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       if (this.isFullscreen != isFullscreen) {
         this.isFullscreen = isFullscreen;
         this.hideNavigation = BitwiseUtils.hasFlag(fullScreenFlags, FULLSCREEN_FLAG_HIDE_NAVIGATION);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && isFullscreen && (Config.CUTOUT_ENABLED || BitwiseUtils.hasFlag(fullScreenFlags, FULLSCREEN_FLAG_CAMERA))) {
+        // TGx101 (user's Vivo recording 2026-10-04): in landscape the camera cutout sits on the left edge — switching
+        // the window into it relaid the whole chat sideways (a black strip came and went, the photo jumped while
+        // opening); the viewer has its own window over the cutout anyway, so keep the activity window as it is
+        boolean tgx101Landscape = getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && isFullscreen && !(tgx101Landscape && !BitwiseUtils.hasFlag(fullScreenFlags, FULLSCREEN_FLAG_CAMERA)) && (Config.CUTOUT_ENABLED || BitwiseUtils.hasFlag(fullScreenFlags, FULLSCREEN_FLAG_CAMERA))) {
           cutoutIgnored = true;
           Window w = getWindow();
           WindowManager.LayoutParams params = w.getAttributes();

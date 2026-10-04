@@ -4352,7 +4352,15 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private void setInSlideMode (float x, float y) {
     slideItem = stack.getCurrent();
     inSlideMode = true;
+    if (tgx101LandscapeWindow() && !tgx101FullscreenDeferred) {
+      // TGx101 (user's Vivo recording 2026-10-04): in landscape the chat behind showed without the status bar while
+      // the photo was pulled down, then jumped once it closed — bring the status bar back as the pull starts
+      tgx101SlideLeftFullscreen = true;
+      setFullScreen(false);
+    }
   }
+
+  private boolean tgx101SlideLeftFullscreen;
 
   private int measureBottomWrapHeight () {
     int height = (int) ((float) Screen.dp(56f) * videoFactor);
@@ -4457,6 +4465,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private void dropSlideMode (float velocityX, float velocityY, boolean apply) {
     inSlideMode = false;
+    if (tgx101SlideLeftFullscreen) {
+      tgx101SlideLeftFullscreen = false;
+      if (!apply) setFullScreen(true); // the photo springs back: fullscreen again
+    }
 
     fromSlideX = lastSlideX;
     fromSlideY = lastSlideY;
