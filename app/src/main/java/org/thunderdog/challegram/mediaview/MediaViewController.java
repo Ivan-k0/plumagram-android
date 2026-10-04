@@ -3673,6 +3673,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   // The controls hide by themselves 4 s after the last touch — while a video plays, and always under the lock.
   // The count starts when the finger is lifted: a held lock (its 2 s ring) never loses its controls.
   private final Runnable tgx101HideLockedControls = () -> {
+    if (isDestroyed() || this.popupView == null || !this.popupView.isBoundWindowShowing()) return; // the viewer is closed already
     if (headerVisible.getValue() && tgx101CanAutoHide() && !tgx101GuideOpen()) {
       org.thunderdog.challegram.Tgx101Diag.mark("player: controls hidden after 4 s");
       toggleHeaderVisibility();

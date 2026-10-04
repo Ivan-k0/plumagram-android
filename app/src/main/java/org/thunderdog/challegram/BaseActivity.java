@@ -1100,6 +1100,12 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   }
 
   public void addHideNavigationView (ViewController<?> viewController) {
+    if (fullScreenViews == null || !fullScreenViews.contains(viewController)) {
+      // TGx101: the player's 4-second auto-hide fired after the viewer was closed and put the whole app into
+      // fullscreen (no status bar, keyboard over the input; Vivo log 2026-10-04 01:33:55, flags 0x10, views 0/0)
+      Tgx101Diag.mark("window: hide-navigation ignored — " + viewController.getClass().getSimpleName() + " is not fullscreen");
+      return;
+    }
     if (!hideNavigationViews.contains(viewController)) {
       hideNavigationViews.add(viewController);
       setFullScreenFlag(FULLSCREEN_FLAG_HIDE_NAVIGATION, true);
