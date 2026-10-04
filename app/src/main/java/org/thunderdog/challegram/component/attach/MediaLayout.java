@@ -1644,12 +1644,14 @@ public class MediaLayout extends FrameLayoutFix implements
     }
   }
 
+  private boolean showCaptionAboveMedia; // TGx101: set from the send menu of the media viewer
+
   public boolean showCaptionAboveMedia () {
-    return false; // TODO
+    return showCaptionAboveMedia;
   }
 
   public void setShowCaptionAboveMedia (boolean showCaptionAboveMedia) {
-    // TODO
+    this.showCaptionAboveMedia = showCaptionAboveMedia;
   }
 
   private @Nullable TdApi.Chat getTargetChat () {

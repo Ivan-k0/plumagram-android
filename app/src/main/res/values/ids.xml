@@ -1561,6 +1561,7 @@
   <item name="btn_tgx101FilterHideFully" type="id"/>
   <item name="btn_tgx101HideChannelReactions" type="id"/>
   <item name="btn_tgx101NextChannelSwipe" type="id"/>
+  <item name="btn_tgx101CaptionAbove" type="id"/>
   <item name="btn_tgx101FloatingInput" type="id"/>
   <item name="btn_tgx101NewCallScreen" type="id"/>
   <item name="btn_tgx101QuickReply1" type="id"/>

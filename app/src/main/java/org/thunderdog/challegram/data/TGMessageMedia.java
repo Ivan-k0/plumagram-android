@@ -582,7 +582,7 @@ public class TGMessageMedia extends TGMessage {
 
   @Override
   protected int getBottomLineContentWidth () {
-    return wrapper != null && Lang.rtl() == wrapper.getLastLineIsRtl() ? wrapper.getLastLineWidth() + (xBubblePaddingSmall + xBubblePadding) * 2 : BOTTOM_LINE_EXPAND_HEIGHT;
+    return wrapper != null && !tgx101CaptionAbove() && Lang.rtl() == wrapper.getLastLineIsRtl() ? wrapper.getLastLineWidth() + (xBubblePaddingSmall + xBubblePadding) * 2 : BOTTOM_LINE_EXPAND_HEIGHT;
   }
 
   /*@Override
@@ -592,7 +592,7 @@ public class TGMessageMedia extends TGMessage {
 
   @Override
   protected boolean drawBubbleTimeOverContent () {
-    return wrapper == null && !hasFooter();
+    return (wrapper == null || tgx101CaptionAbove()) && !hasFooter();
   }
 
   @Override
@@ -600,10 +600,26 @@ public class TGMessageMedia extends TGMessage {
     return false;
   }
 
+  /** TGx101: the sender put the caption above the media (official clients: «Move caption up») */
+  private boolean tgx101CaptionAbove () {
+    if (wrapper == null) return false;
+    if (captionMessageId != 0 && captionMessageId != msg.id) {
+      TdApi.Message captionMessage = getMessage(captionMessageId);
+      if (captionMessage != null) return Td.showCaptionAboveMedia(captionMessage.content);
+    }
+    return Td.showCaptionAboveMedia(msg.content);
+  }
+
+  private int tgx101MediaOffset () {
+    return tgx101CaptionAbove() ? Screen.dp(TEXT_MARGIN) + wrapper.getHeight() + Screen.dp(TEXT_MARGIN) : 0;
+  }
+
   @Override
   protected void drawContent (MessageView view, Canvas c, int startX, int startY, int maxWidth, ComplexReceiver complexReceiver) {
     final boolean clipped = useBubbles() && !useForward();
     final int saveCount = clipped ? ViewSupport.clipPath(c, getBubbleClipPath()) : Integer.MIN_VALUE;
+    final int textTop = tgx101CaptionAbove() ? startY + Screen.dp(TEXT_MARGIN) : startY + mosaicWrapper.getHeight() + Screen.dp(TEXT_MARGIN);
+    startY += tgx101MediaOffset();
     mosaicWrapper.draw(view, c, startX, startY, complexReceiver, useFullWidth());
     if (tgx101HighlightedChildId() != 0) {
       mosaicWrapper.tgx101DrawItemHighlight(c, tgx101HighlightedChildId(), tgx101ItemFlashColor()); // TGx101: only that item flashes
@@ -655,7 +671,7 @@ public class TGMessageMedia extends TGMessage {
 
     if (wrapper != null) {
       float alpha = getTranslationLoadingAlphaValue();
-      wrapper.draw(c, getTextX(view, wrapper, false), getTextX(view, wrapper, true), Config.MOVE_BUBBLE_TIME_RTL_TO_LEFT ? 0 : getBubbleTimePartWidth(), startY + mosaicWrapper.getHeight() + Screen.dp(TEXT_MARGIN), null, alpha, view.getTextMediaReceiver());
+      wrapper.draw(c, getTextX(view, wrapper, false), getTextX(view, wrapper, true), Config.MOVE_BUBBLE_TIME_RTL_TO_LEFT || tgx101CaptionAbove() ? 0 : getBubbleTimePartWidth(), textTop, null, alpha, view.getTextMediaReceiver());
     }
   }
 
@@ -701,7 +717,7 @@ public class TGMessageMedia extends TGMessage {
     }
 
     int cellLeft = getContentX();
-    int cellTop = getContentY();
+    int cellTop = getContentY() + tgx101MediaOffset();
     int cellRight = cellLeft + mediaWrapper.getCellWidth();
     int cellBottom = cellTop + mediaWrapper.getCellHeight();
 
@@ -836,6 +852,9 @@ public class TGMessageMedia extends TGMessage {
   @Override
   protected int getContentHeight () {
     int mosaicHeight = mosaicWrapper != null ? mosaicWrapper.getHeight() : 0;
+    if (tgx101CaptionAbove()) {
+      return mosaicHeight + tgx101MediaOffset(); // the media closes the bubble, the time sits over it
+    }
     return wrapper == null ?
       mosaicHeight :
       mosaicHeight + wrapper.getHeight() + Screen.dp(TEXT_MARGIN) + (useBubbles() && !useForward() ? Screen.dp(TEXT_MARGIN) - getBubbleContentPadding() : 0);
@@ -850,7 +869,7 @@ public class TGMessageMedia extends TGMessage {
     }
 
     int cellLeft = getContentX();
-    int cellTop = getContentY();
+    int cellTop = getContentY() + tgx101MediaOffset();
     int cellRight = cellLeft + mosaicWrapper.getWidth();
     int cellBottom = cellTop + mosaicWrapper.getHeight();
 
@@ -909,7 +928,7 @@ public class TGMessageMedia extends TGMessage {
       return false;
     }
     int cellLeft = getContentX();
-    int cellTop = getContentY();
+    int cellTop = getContentY() + tgx101MediaOffset();
     int cellRight = cellLeft + mosaicWrapper.getWidth();
     int cellBottom = cellTop + mosaicWrapper.getHeight();
 

@@ -425,6 +425,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101NextChannelPull, "↑ Дальше: %1$s");
     RU.put(R.string.Tgx101NextChannelRelease, "Отпустите — откроется %1$s");
     RU.put(R.string.Tgx101NextChannelNone, "Непрочитанных каналов нет");
+    RU.put(R.string.Tgx101CaptionAbove, "Текст над медиа");
     RU.put(R.string.Tgx101TestSection, "Тесты");
     RU.put(R.string.Tgx101FakeNoPremium, "Как без Премиума (тест)");
     RU.put(R.string.Tgx101FakeNoPremiumHint, "Только в тестовых сборках. Приложение показывает всё как для аккаунта без Премиума; сервер по-прежнему знает, что Премиум есть. После переключения перезапустите приложение.");

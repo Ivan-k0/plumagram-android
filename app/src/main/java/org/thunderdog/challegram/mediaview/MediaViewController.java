@@ -10072,6 +10072,21 @@ public class MediaViewController extends ViewController<MediaViewController.Args
               })
           );
         }
+        if (sendDelegate != null && !inForceEditMode()) {
+          // TGx101 (user 2026-10-04): caption above or below the media, as in the official clients
+          hapticItems.add(0,
+            new HapticMenuHelper.MenuItem(R.id.btn_tgx101CaptionAbove, Lang.getString(R.string.Tgx101CaptionAbove), R.drawable.baseline_file_caption_24)
+              .setIsCheckbox(true, sendDelegate.showCaptionAboveMedia())
+              .setOnClickListener((view, parentView, item) -> {
+                if (view.getId() == R.id.btn_tgx101CaptionAbove) {
+                  sendDelegate.onShowCaptionAboveMediaStateChanged(item.isCheckboxSelected);
+                  org.thunderdog.challegram.Tgx101Diag.mark("send media: caption above " + item.isCheckboxSelected);
+                  return true;
+                }
+                return false;
+              })
+          );
+        }
         if (inForceEditMode()) {
           final MediaItem oldItem = forceEditModeOld_arguments != null && forceEditModeOld_arguments.stack != null ?
             forceEditModeOld_arguments.stack.getCurrent() : null;
