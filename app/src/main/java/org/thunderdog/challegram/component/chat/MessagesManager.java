@@ -1948,6 +1948,9 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     if (!Td.matchesTopic(message.getMessageTopicId(), topicId)) {
       return;
     }
+    if (org.thunderdog.challegram.data.Tgx101MessageFilters.isEnabled() && org.thunderdog.challegram.data.Tgx101MessageFilters.hiddenFully(this, message.getMessage())) {
+      return; // TGx101: «Hide completely» filter
+    }
     ThreadInfo messageThread = loader.getMessageThread();
     if (messageThread != null) {
       messageThread.updateNewMessage(message);

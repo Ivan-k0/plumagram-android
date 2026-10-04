@@ -418,6 +418,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101WebAppClose, "Закрыть");
     RU.put(R.string.Tgx101ReleaseToClose, "Отпустите, чтобы закрыть");
     RU.put(R.string.Tgx101ZoomPullClose, "Свайп вниз закрывает зум фото");
+    RU.put(R.string.Tgx101FilterHideFully, "Скрывать полностью");
+    RU.put(R.string.Tgx101FilterHideFullyHint, "Без полоски «Скрыто фильтром»: такие сообщения совсем не показываются в чате. Ничего не удаляется: поиск их находит.");
+    RU.put(R.string.Tgx101HideChannelReactions, "Скрывать реакции под постами каналов");
     RU.put(R.string.Tgx101TestSection, "Тесты");
     RU.put(R.string.Tgx101FakeNoPremium, "Как без Премиума (тест)");
     RU.put(R.string.Tgx101FakeNoPremiumHint, "Только в тестовых сборках. Приложение показывает всё как для аккаунта без Премиума; сервер по-прежнему знает, что Премиум есть. После переключения перезапустите приложение.");

@@ -44,6 +44,8 @@ public final class Tgx101MessageFilters {
   public static final class Rule {
     public String text = "";
     public boolean regex, matchCase, wholeWord, checkAuthor;
+    /** No «Hidden by filter» strip: the message is left out of the chat entirely (4PDA request 2026-10-04) */
+    public boolean hideFully;
     public int scope = SCOPE_ALL;
     public long chatId;
     public String chatTitle;
@@ -129,6 +131,7 @@ public final class Tgx101MessageFilters {
         rule.matchCase = o.optBoolean("case");
         rule.wholeWord = o.optBoolean("word");
         rule.checkAuthor = o.optBoolean("author");
+        rule.hideFully = o.optBoolean("hide");
         rule.scope = o.optInt("scope", SCOPE_ALL);
         rule.chatId = o.optLong("chat");
         rule.chatTitle = o.optString("title", null);
@@ -152,6 +155,7 @@ public final class Tgx101MessageFilters {
         o.put("case", rule.matchCase);
         o.put("word", rule.wholeWord);
         o.put("author", rule.checkAuthor);
+        o.put("hide", rule.hideFully);
         o.put("scope", rule.scope);
         if (rule.scope == SCOPE_CHAT) {
           o.put("chat", rule.chatId);
@@ -255,6 +259,14 @@ public final class Tgx101MessageFilters {
 
   /** Strip in place of a hidden message, or null when the message isn't filtered */
   @Nullable
+  /** A message the user hid with «Hide completely»: not shown at all, not even as a strip */
+  public static boolean hiddenFully (MessagesManager manager, TdApi.Message msg) {
+    if (manager.controller().isInForceTouchMode()) return false;
+    org.thunderdog.challegram.telegram.Tdlib tdlib = manager.controller().tdlib();
+    Rule rule = match(tdlib, msg, tdlib.chat(msg.chatId));
+    return rule != null && rule.hideFully;
+  }
+
   static TGMessage placeholder (MessagesManager manager, TdApi.Message msg, @Nullable TdApi.Chat chat) {
     if (manager.controller().isInForceTouchMode()) {
       return null; // previews show the message itself

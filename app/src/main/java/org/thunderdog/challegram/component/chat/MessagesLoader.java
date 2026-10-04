@@ -1404,12 +1404,31 @@ public class MessagesLoader implements Client.ResultHandler {
       for (TdApi.Message message : messages) {
         if (tgx.td.Td.matchesTopic(message.topicId, tgx101Topic)) kept++;
       }
-      if (kept != messages.length) {
+      if (kept > 0 && kept != messages.length) {
         org.thunderdog.challegram.Tgx101Diag.mark("topic: dropped " + (messages.length - kept) + " message(s) of other topics from a loaded page");
         TdApi.Message[] filtered = new TdApi.Message[kept];
         int i = 0;
         for (TdApi.Message message : messages) {
           if (tgx.td.Td.matchesTopic(message.topicId, tgx101Topic)) filtered[i++] = message;
+        }
+        messages = filtered;
+      }
+    }
+
+    // TGx101: filters with «Hide completely» leave their messages out (a page is never emptied: an empty page means
+    // the end of the history to the loader, so then the strips stay)
+    if (messages.length > 0 && org.thunderdog.challegram.data.Tgx101MessageFilters.isEnabled()) {
+      int kept = 0;
+      boolean[] drop = new boolean[messages.length];
+      for (int i = 0; i < messages.length; i++) {
+        drop[i] = org.thunderdog.challegram.data.Tgx101MessageFilters.hiddenFully(manager, messages[i]);
+        if (!drop[i]) kept++;
+      }
+      if (kept > 0 && kept < messages.length) {
+        TdApi.Message[] filtered = new TdApi.Message[kept];
+        int j = 0;
+        for (int i = 0; i < messages.length; i++) {
+          if (!drop[i]) filtered[j++] = messages[i];
         }
         messages = filtered;
       }

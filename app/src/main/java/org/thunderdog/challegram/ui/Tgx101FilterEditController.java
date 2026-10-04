@@ -95,6 +95,8 @@ public class Tgx101FilterEditController extends RecyclerViewController<Integer> 
           view.getToggler().setRadioEnabled(rule.wholeWord, isUpdate);
         } else if (id == R.id.btn_tgx101FilterAuthor) {
           view.getToggler().setRadioEnabled(rule.checkAuthor, isUpdate);
+        } else if (id == R.id.btn_tgx101FilterHideFully) {
+          view.getToggler().setRadioEnabled(rule.hideFully, isUpdate);
         } else if (id == R.id.btn_tgx101FilterScope) {
           view.setData(Tgx101FiltersController.scopeName(rule));
         }
@@ -122,6 +124,11 @@ public class Tgx101FilterEditController extends RecyclerViewController<Integer> 
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101FilterCheckHint));
 
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101FilterHideFully, 0, R.string.Tgx101FilterHideFully));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101FilterHideFullyHint));
+
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101FilterDelete, R.drawable.baseline_delete_24, R.string.Tgx101FilterDelete).setTextColorId(ColorId.textNegative));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     adapter.setItems(items, false);
@@ -143,11 +150,12 @@ public class Tgx101FilterEditController extends RecyclerViewController<Integer> 
         adapter.updateValuedSettingById(R.id.btn_tgx101FilterText);
         return true;
       }, true));
-    } else if (id == R.id.btn_tgx101FilterRegex || id == R.id.btn_tgx101FilterCase || id == R.id.btn_tgx101FilterWholeWord || id == R.id.btn_tgx101FilterAuthor) {
+    } else if (id == R.id.btn_tgx101FilterRegex || id == R.id.btn_tgx101FilterCase || id == R.id.btn_tgx101FilterWholeWord || id == R.id.btn_tgx101FilterAuthor || id == R.id.btn_tgx101FilterHideFully) {
       boolean value = adapter.toggleView(v);
       if (id == R.id.btn_tgx101FilterRegex) rule.regex = value;
       else if (id == R.id.btn_tgx101FilterCase) rule.matchCase = value;
       else if (id == R.id.btn_tgx101FilterWholeWord) rule.wholeWord = value;
+      else if (id == R.id.btn_tgx101FilterHideFully) rule.hideFully = value;
       else rule.checkAuthor = value;
       rule.invalidate();
       store(rule);

@@ -365,7 +365,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     this.msg = msg;
     this.sponsoredMessage = sponsoredMessage;
     this.flags |= BitwiseUtils.optional(FLAG_BELOW_ALL_MESSAGES, isBelowAllMessages);
-    this.messageReactions = new TGReactions(this, tdlib, msg.interactionInfo != null ? msg.interactionInfo.reactions : null, new TGReactions.MessageReactionsDelegate() {
+    this.messageReactions = new TGReactions(this, tdlib, msg.interactionInfo != null && !tgx101HideReactions(msg) ? msg.interactionInfo.reactions : null, new TGReactions.MessageReactionsDelegate() {
       @Override
       public void onClick (View v, TGReactions.MessageReactionEntry entry) {
         boolean hasReaction = messageReactions.hasReaction(entry.getReactionType());
@@ -5927,7 +5927,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     shareCounter.setCount(interactionInfo != null ? interactionInfo.forwardCount : 0, animated);
     isPinned.showHide(isPinned(), animated);
 
-    if (tgx101NoInteractions) {
+    if (tgx101NoInteractions || tgx101HideReactions(msg)) {
       messageReactions.setReactions((TdApi.MessageReactions) null);
     } else if (combinedMessages != null) {
       messageReactions.setReactions(combinedMessages);
@@ -8727,6 +8727,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   public final boolean useBubbles () {
     return manager().useBubbles();
+  }
+
+  /** TGx101 (4PDA request 2026-10-04): MagiX → «Hide reactions under channel posts» */
+  private static boolean tgx101HideReactions (TdApi.Message msg) {
+    return msg != null && msg.isChannelPost && org.thunderdog.challegram.unsorted.Settings.instance().tgx101HideChannelReactions();
   }
 
   public final boolean useReactionBubbles () {
