@@ -5822,8 +5822,6 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       // turns into pull-to-close (the photo follows the finger, the chat shows through, short pulls spring back)
       private boolean tgx101ZoomTracking, tgx101ZoomPull, tgx101ZoomStartedAtTop, tgx101ZoomPast;
       private android.widget.TextView tgx101PullHint;
-      private float tgx101PullLastY, tgx101PullVelocity;
-      private long tgx101PullLastTime;
 
       private void tgx101ShowPullHint (boolean show) {
         if (show && tgx101PullHint == null) {
@@ -5854,12 +5852,6 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             // В2: light resistance (85 % of the finger); the close point is 12 % of the screen, so a drag
             // started below the middle still reaches it (user 2026-10-04: 28 % was out of reach there)
             float raw = Math.max(0f, e.getY() - slideStartY);
-            long now = android.os.SystemClock.uptimeMillis();
-            if (tgx101PullLastTime != 0 && now > tgx101PullLastTime) {
-              tgx101PullVelocity = (e.getY() - tgx101PullLastY) / (now - tgx101PullLastTime); // px per ms
-            }
-            tgx101PullLastY = e.getY();
-            tgx101PullLastTime = now;
             setSlide(0f, raw * .85f, slideStartX, true, true);
             boolean past = lastSlideY >= getMeasuredHeight() * .12f;
             if (past != tgx101ZoomPast) {
@@ -5870,11 +5862,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             return true;
           }
           if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
-            // a quick flick down also closes, even before the close point
-            boolean flick = tgx101PullVelocity > Screen.dp(.6f) && lastSlideY >= Screen.dp(40f);
-            boolean apply = action == MotionEvent.ACTION_UP && (tgx101ZoomPast || flick);
-            tgx101PullLastTime = 0;
-            tgx101PullVelocity = 0f;
+            // only past the close point (vibration + hint): a flick does not close (user 2026-10-04: «нет страховки»)
+            boolean apply = action == MotionEvent.ACTION_UP && tgx101ZoomPast;
             org.thunderdog.challegram.Tgx101Diag.mark("viewer: zoomed pull released at " + Math.round(lastSlideY) + " px → " + (apply ? "closed" : "back"));
             tgx101ZoomPull = false;
             tgx101ZoomPast = false;
