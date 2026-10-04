@@ -5843,7 +5843,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         }
         if (tgx101PullHint != null) tgx101PullHint.animate().alpha(show ? 1f : 0f).setDuration(120).start();
       }
-      private float tgx101ZoomTopY = Float.NaN;
+      private float tgx101ZoomTopY = Float.NaN, tgx101ZoomTopX;
 
       @Override
       public boolean dispatchTouchEvent (MotionEvent e) {
@@ -5903,7 +5903,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             if (cell != null && tgx101ZoomStartedAtTop && cell.tgx101ZoomedAtTop()) {
               if (Float.isNaN(tgx101ZoomTopY) || e.getY() < tgx101ZoomTopY) {
                 tgx101ZoomTopY = e.getY();
-              } else if (e.getY() - tgx101ZoomTopY > Screen.getTouchSlop()) {
+                tgx101ZoomTopX = e.getX();
+              } else if (Math.abs(e.getX() - tgx101ZoomTopX) > Screen.getTouchSlop() && Math.abs(e.getX() - tgx101ZoomTopX) >= e.getY() - tgx101ZoomTopY) {
+                // a sideways pan with some downward drift: not a pull, stop watching this drag
+                tgx101ZoomTracking = false;
+              } else if (e.getY() - tgx101ZoomTopY > Screen.getTouchSlop() * 2 && e.getY() - tgx101ZoomTopY > Math.abs(e.getX() - tgx101ZoomTopX) * 2) {
                 org.thunderdog.challegram.Tgx101Diag.mark("viewer: zoomed photo pulled down to close");
                 MotionEvent cancel = MotionEvent.obtain(e);
                 cancel.setAction(MotionEvent.ACTION_CANCEL);
