@@ -78,6 +78,7 @@ public final class Tgx101MessageFilters {
       rule.matchCase = matchCase;
       rule.wholeWord = wholeWord;
       rule.checkAuthor = checkAuthor;
+      rule.hideFully = hideFully;
       rule.scope = scope;
       rule.chatId = chatId;
       rule.chatTitle = chatTitle;
