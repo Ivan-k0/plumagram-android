@@ -5853,7 +5853,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             // started below the middle still reaches it (user 2026-10-04: 28 % was out of reach there)
             float raw = Math.max(0f, e.getY() - slideStartY);
             setSlide(0f, raw * .85f, slideStartX, true, true);
-            boolean past = lastSlideY >= getMeasuredHeight() * .12f;
+            // a wide photo leaves little room above and below it — its warning comes sooner (user 2026-10-04)
+            boolean wide = slideItem != null && slideItem.getWidth() > slideItem.getHeight();
+            boolean past = lastSlideY >= getMeasuredHeight() * (wide ? .07f : .12f);
             if (past != tgx101ZoomPast) {
               tgx101ZoomPast = past;
               if (past) performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS, android.view.HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
@@ -5880,7 +5882,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             MediaCellView downCell = mediaView.getBaseCell();
             tgx101ZoomStartedAtTop = downCell != null && downCell.tgx101ZoomedAtTop();
           }
-            tgx101ZoomTracking = mode != MODE_SECRET && (mode != MODE_GALLERY || currentSection == SECTION_CAPTION) && !inCaption && pipFactor == 0f && mediaView.isZoomed() && !tgx101Locked();
+            tgx101ZoomTracking = Settings.instance().tgx101ZoomPullClose() && mode != MODE_SECRET && (mode != MODE_GALLERY || currentSection == SECTION_CAPTION) && !inCaption && pipFactor == 0f && mediaView.isZoomed() && !tgx101Locked();
             tgx101ZoomTopY = Float.NaN;
             break;
           case MotionEvent.ACTION_POINTER_DOWN:

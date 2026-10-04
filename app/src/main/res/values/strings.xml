@@ -6258,6 +6258,7 @@
   <string name="Tgx101WebAppNoPayments">Payments inside mini apps aren\'t supported yet</string>
   <string name="Tgx101WebAppClose">Close</string>
   <string name="Tgx101ReleaseToClose">Release to close</string>
+  <string name="Tgx101ZoomPullClose">Pull down closes a zoomed photo</string>
   <string name="Tgx101TestSection">Testing</string>
   <string name="Tgx101FakeNoPremium">As without Premium (test)</string>
   <string name="Tgx101FakeNoPremiumHint">Test builds only. The app shows everything as for an account without Premium; the server still knows the account has it. Restart the app after switching.</string>

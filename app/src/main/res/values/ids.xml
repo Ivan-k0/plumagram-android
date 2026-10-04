@@ -1557,6 +1557,7 @@
   <item name="btn_tgx101TapMode" type="id"/>
   <item name="btn_tgx101VoiceQueue" type="id"/>
   <item name="btn_tgx101CameraInAttach" type="id"/>
+  <item name="btn_tgx101ZoomPullClose" type="id"/>
   <item name="btn_tgx101FloatingInput" type="id"/>
   <item name="btn_tgx101NewCallScreen" type="id"/>
   <item name="btn_tgx101QuickReply1" type="id"/>

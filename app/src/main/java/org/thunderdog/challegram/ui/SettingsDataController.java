@@ -237,6 +237,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().isRingRampEnabled(), isUpdate);
         } else if (itemId == R.id.btn_tgx101CameraInAttach) {
           view.getToggler().setRadioEnabled(Settings.instance().isCameraInAttach(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101ZoomPullClose) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101ZoomPullClose(), isUpdate);
         } else if (itemId == R.id.btn_tgx101VoiceQueue) {
           view.setData(Settings.instance().skipOwnVoiceInQueue() ? R.string.Tgx101VoiceQueueSkipOwn : R.string.Tgx101VoiceQueueAll);
         } else if (itemId == R.id.btn_tgx101TapMode) {
@@ -333,6 +335,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101VoiceQueue, 0, R.string.Tgx101VoiceQueue),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CameraInAttach, 0, R.string.Tgx101CameraInAttach),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101ZoomPullClose, 0, R.string.Tgx101ZoomPullClose),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.SendPhotosInHD).setLongId(Settings.SETTING_FLAG_SEND_PHOTOS_IN_HD),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -773,6 +777,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setCallPattern(toggleResult ? Settings.CALL_PATTERN_PAPER_PLANES : Settings.CALL_PATTERN_NONE); // the view was already toggled above
     } else if (id == R.id.btn_tgx101RingRamp) {
       Settings.instance().setRingRampEnabled(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101ZoomPullClose) {
+      Settings.instance().setTgx101ZoomPullClose(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101CameraInAttach) {
       Settings.instance().setCameraInAttach(toggleResult); // the view was already toggled above; applies to chats opened afterwards
     } else if (id == R.id.btn_tgx101VoiceQueue) {

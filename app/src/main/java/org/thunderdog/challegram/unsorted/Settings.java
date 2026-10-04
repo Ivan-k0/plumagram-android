@@ -3484,6 +3484,17 @@ public class Settings {
   }
 
   // TGx101: the camera button leaves the message input for the attach (paperclip) menu, in place of «Inline bot»
+  private static final String KEY_TGX101_ZOOM_PULL_CLOSE = "tgx101_zoom_pull_close";
+
+  /** TGx101: a zoomed photo can be pulled down from its top edge to close (on by default) */
+  public boolean tgx101ZoomPullClose () {
+    return pmc.getBoolean(KEY_TGX101_ZOOM_PULL_CLOSE, true);
+  }
+
+  public void setTgx101ZoomPullClose (boolean value) {
+    pmc.putBoolean(KEY_TGX101_ZOOM_PULL_CLOSE, value);
+  }
+
   private static final String KEY_TGX101_CAMERA_IN_ATTACH = "tgx101_camera_in_attach";
 
   public boolean isCameraInAttach () {
