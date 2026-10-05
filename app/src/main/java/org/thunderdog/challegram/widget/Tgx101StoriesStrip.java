@@ -66,6 +66,17 @@ public class Tgx101StoriesStrip extends HorizontalScrollView implements SortedLi
     storyList.removeListener(this);
   }
 
+  // TGx101 (user 2026-10-05, variant 1): a thin full-width line under the expanded strip separates it from the chats
+  private final Paint tgx101LinePaint = new Paint();
+
+  @Override
+  public void draw (@NonNull Canvas c) {
+    super.draw(c);
+    tgx101LinePaint.setColor(Theme.separatorColor());
+    float h = Math.max(1f, Screen.dp(.5f));
+    c.drawRect(getScrollX(), getHeight() - h, getScrollX() + getWidth(), getHeight(), tgx101LinePaint);
+  }
+
   @Override
   public void onListChanged (SortedList<TdApi.ChatActiveStories> list) {
     list.getList(null, items -> UI.post(() -> setItems(items)));
