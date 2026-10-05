@@ -583,6 +583,10 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       return true;
     }
 
+    // TGx101 (user 2026-10-06): with «Долгое нажатие: меню» (iOS mode) the long press opens the menu, so a single tap
+    // doesn't duplicate it; failed messages keep the tap (their long press doesn't open the menu)
+    final boolean tapMenu = !Settings.instance().tgx101LongPressMenu() || msg.isNotSent() || msg.isEventLog();
+
     /*if (ChatId.isMultiChat(msg.getChatId()) && !msg.isChannel()) {
       TdApi.ChatMemberStatus myStatus = msg.tdlib().chatStatus(msg.getChatId());
       if (myStatus != null && TD.isAdmin(myStatus)) {
@@ -603,7 +607,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     if (Settings.instance().getTapMode() != Settings.TAP_MODE_STOCK && msg.tgx101CanTryDoubleTapReaction()) {
       if (doubleTapArmed) {
         doubleTapArmed = false;
-        return msg.tgx101SetFirstQuickReaction() || onMessageClickImpl(x, y, null);
+        return msg.tgx101SetFirstQuickReaction() || (tapMenu && onMessageClickImpl(x, y, null));
       }
       if (pendingMenuTap != null) {
         pendingMenuTap.cancel();
@@ -616,7 +620,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
         public void act () {
           pendingMenuTap = null;
           pendingMenuMessage = null;
-          if (msg == tappedMessage && !msg.isDestroyed()) {
+          if (tapMenu && msg == tappedMessage && !msg.isDestroyed()) {
             onMessageClickImpl(x, y, null);
           }
         }
@@ -624,7 +628,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       postDelayed(pendingMenuTap, android.view.ViewConfiguration.getDoubleTapTimeout()); // 300 ms on most phones
       return true;
     }
-    return onMessageClickImpl(x, y, null);
+    return tapMenu && onMessageClickImpl(x, y, null);
   }
 
   private boolean doubleTapArmed;
