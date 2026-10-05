@@ -176,6 +176,7 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
     menuItem.setId(id);
     menuItem.setOnClickListener(listener);
     menuItem.setText(title);
+    org.thunderdog.challegram.unsorted.Settings.tgx101StyleRow(menuItem, 16f);
     Drawable drawable = icon != 0 ? Drawables.get(getResources(), icon) : null;
     menuItem.setGravity(Gravity.CENTER_VERTICAL | Lang.gravity());
     menuItem.setVisibility(View.VISIBLE);

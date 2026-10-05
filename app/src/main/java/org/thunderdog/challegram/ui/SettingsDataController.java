@@ -265,6 +265,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideChannelReactions(), isUpdate);
         } else if (itemId == R.id.btn_tgx101ZoomPullClose) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101ZoomPullClose(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101UiText) {
+          view.setData(Settings.instance().tgx101UiTextSize() + "%");
+        } else if (itemId == R.id.btn_tgx101UiBold) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101UiBold(), isUpdate);
         } else if (itemId == R.id.btn_tgx101Snooze) {
           int minutes = Settings.instance().tgx101SnoozeMinutes();
           view.setData(minutes > 0 ? Lang.getString(R.string.Tgx101SnoozeMinutes, minutes) : Lang.getString(R.string.Tgx101SnoozeOff));
@@ -379,6 +383,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         // TGx101: text size and weight
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101TextSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101UiText, 0, R.string.Tgx101UiText),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101UiBold, 0, R.string.Tgx101UiBold),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101ChatListTextSize, 0, R.string.Tgx101ChatListTextSize),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101Font, 0, R.string.Tgx101Font),
@@ -823,7 +831,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101VoiceQueue || id == R.id.btn_tgx101CameraInAttach || id == R.id.btn_tgx101ZoomPullClose || id == R.id.btn_roundVideoQuality
       || id == R.id.btn_roundStabilization) return 4;
     if (id == R.id.btn_tgx101Snooze || id == R.id.btn_tgx101NotificationPlane) return 5;
-    if (id == R.id.btn_tgx101ChatListTextSize || id == R.id.btn_tgx101Font || id == R.id.btn_tgx101TextWeight || id == R.id.btn_chatFontSize || id == R.id.btn_bigEmojiSize) return 6;
+    if (id == R.id.btn_tgx101UiText || id == R.id.btn_tgx101UiBold || id == R.id.btn_tgx101ChatListTextSize || id == R.id.btn_tgx101Font || id == R.id.btn_tgx101TextWeight || id == R.id.btn_chatFontSize || id == R.id.btn_bigEmojiSize) return 6;
     if (id == R.id.btn_tgx101CallBar || id == R.id.btn_tgx101NewCallScreen || id == R.id.btn_tgx101CallPhoto || id == R.id.btn_tgx101CallPattern
       || id == R.id.btn_tgx101RingRamp || id == R.id.btn_tgx101RingRampTime) return 7;
     if (id == R.id.btn_tgx101TranslateOnDevice || id == R.id.btn_tgx101TranslateModels || id == R.id.btn_tgx101SpeechModel || id == R.id.btn_tgx101FakeNoPremium) return 8;
@@ -1018,6 +1026,22 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         .setIntDelegate((resultId, result) -> {
           Settings.instance().setSkipOwnVoiceInQueue(result.get(R.id.btn_tgx101VoiceQueue) == 2);
           adapter.updateValuedSettingById(R.id.btn_tgx101VoiceQueue);
+        }));
+    } else if (id == R.id.btn_tgx101UiBold) {
+      Settings.instance().setTgx101UiBold(toggleResult); // the view was already toggled above; menus opened afterwards
+    } else if (id == R.id.btn_tgx101UiText) {
+      int current = Settings.instance().tgx101UiTextSize();
+      int[] values = {100, 115, 130, 145, 160};
+      ListItem[] items = new ListItem[values.length];
+      for (int i = 0; i < values.length; i++) {
+        items[i] = new ListItem(ListItem.TYPE_RADIO_OPTION, i + 1, 0, values[i] + "%", R.id.btn_tgx101UiText, values[i] == current);
+      }
+      showSettings(new SettingsWrapBuilder(R.id.btn_tgx101UiText)
+        .setRawItems(items)
+        .setIntDelegate((resultId, result) -> {
+          int index = result.get(R.id.btn_tgx101UiText) - 1;
+          if (index >= 0 && index < values.length) Settings.instance().setTgx101UiTextSize(values[index]);
+          adapter.updateValuedSettingById(R.id.btn_tgx101UiText);
         }));
     } else if (id == R.id.btn_tgx101Snooze) {
       int current = Settings.instance().tgx101SnoozeMinutes();

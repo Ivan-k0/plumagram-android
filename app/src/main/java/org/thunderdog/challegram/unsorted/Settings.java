@@ -3506,6 +3506,50 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_HIDE_CHANNEL_REACTIONS, value);
   }
 
+  private static final String KEY_TGX101_UI_TEXT = "tgx101_ui_text";
+  private static final String KEY_TGX101_UI_BOLD = "tgx101_ui_bold";
+
+  /** TGx101 (user 2026-10-05, low vision): «Large interface» — text size of menus, lists, popups, 100–160 % */
+  public int tgx101UiTextSize () {
+    int v = pmc.getInt(KEY_TGX101_UI_TEXT, 100);
+    return v >= 100 && v <= 160 ? v : 100;
+  }
+
+  public void setTgx101UiTextSize (int v) {
+    pmc.putInt(KEY_TGX101_UI_TEXT, v);
+  }
+
+  public boolean tgx101UiBold () {
+    return pmc.getBoolean(KEY_TGX101_UI_BOLD, false);
+  }
+
+  public void setTgx101UiBold (boolean v) {
+    pmc.putBoolean(KEY_TGX101_UI_BOLD, v);
+  }
+
+  /** Our size × the system font size slider (the app's dp text ignored it), capped so nothing explodes */
+  public static float tgx101UiScale () {
+    float system = 1f;
+    try { system = org.thunderdog.challegram.tool.UI.getAppContext().getResources().getConfiguration().fontScale; } catch (Throwable ignored) { }
+    return Math.min(2f, instance().tgx101UiTextSize() / 100f * Math.max(1f, system));
+  }
+
+  /** Text of a menu / list row: scaled size, bolder if chosen, one line that scrolls (marquee) when it doesn't fit */
+  public static void tgx101StyleRow (android.widget.TextView view, float baseDp) {
+    float scale = tgx101UiScale();
+    view.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, baseDp * scale);
+    if (instance().tgx101UiBold()) {
+      view.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+    }
+    if (scale > 1f) {
+      view.setSingleLine(true);
+      view.setEllipsize(android.text.TextUtils.TruncateAt.MARQUEE);
+      view.setMarqueeRepeatLimit(1);
+      view.setHorizontalFadingEdgeEnabled(true);
+      view.postDelayed(() -> view.setSelected(true), 1000); // starts after a second, as in the mockup
+    }
+  }
+
   private static final String KEY_TGX101_SNOOZE_MINUTES = "tgx101_snooze_minutes";
 
   /** TGx101 (user 2026-10-05): «Snooze» in a message notification mutes that chat for this many minutes; 0 = no button */

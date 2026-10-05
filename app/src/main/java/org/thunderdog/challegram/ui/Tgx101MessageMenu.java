@@ -600,6 +600,7 @@ public final class Tgx101MessageMenu {
     int textColorId = isDelete ? ColorId.textNegative : OptionsLayoutColor.text(item);
     row.setTextColor(Theme.getColor(textColorId));
     row.setText(shortName(item));
+    Settings.tgx101StyleRow(row, 15f);
     if (item.icon != 0) {
       Drawable icon = Drawables.get(context.getResources(), item.icon);
       if (icon != null) {

@@ -180,6 +180,7 @@ public class OptionsLayout extends LinearLayout implements Animated, RootFrameLa
     text.setOnClickListener(onClickListener);
     text.setSingleLine(true);
     text.setEllipsize(TextUtils.TruncateAt.END);
+    org.thunderdog.challegram.unsorted.Settings.tgx101StyleRow(text, 16f);
     text.setGravity(Lang.rtl() ? Gravity.RIGHT | Gravity.CENTER_VERTICAL : Gravity.LEFT | Gravity.CENTER_VERTICAL);
     text.setPadding(Screen.dp(17f), Screen.dp(1f), Screen.dp(17f), 0);
     text.setCompoundDrawablePadding(Screen.dp(18f));
