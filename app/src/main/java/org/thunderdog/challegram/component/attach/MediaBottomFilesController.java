@@ -164,6 +164,9 @@ public class MediaBottomFilesController extends MediaBottomBaseController<Void> 
     });
     try {
       context.startActivityForResult(intent, Intents.ACTIVITY_RESULT_FILES);
+      // TGx101 (user's log 2026-10-05 18:31): the attach menu stayed open behind the system picker and closed only
+      // after returning — a visible blink. It goes away right now, while the picker covers the screen.
+      UI.post(() -> mediaLayout.forceHide(), 300);
     } catch (ActivityNotFoundException e) {
       UI.showToast(R.string.NoFilePicker, Toast.LENGTH_SHORT);
       Log.i(e);
