@@ -953,6 +953,11 @@ public class TGMessageMedia extends TGMessage {
 
   private boolean tgx101MenuZoneTouch;
 
+  @Override
+  protected int[] tgx101ItemBounds (long messageId) {
+    return mosaicWrapper != null ? mosaicWrapper.tgx101ItemVerticalBounds(messageId) : null;
+  }
+
   /** Incoming photos (on the left) keep ⋮ and the menu quarter on their left side */
   private boolean tgx101MenuLeft () {
     return !isOutgoingBubble();

@@ -6852,6 +6852,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (bottom <= top) { top = findTopEdge(); bottom = findBottomEdge(); }
     float from = useBubbles() ? (toRight ? bubblePathRect.right : bubblePathRect.left) : Screen.dp(8f);
     float to = toRight ? view.getMeasuredWidth() - Screen.dp(6f) : Screen.dp(6f);
+    // album: the wave runs at the level of the photo the reply was to (user 2026-10-05 17:29)
+    int[] item = tgx101HighlightedChildId != 0 ? tgx101ItemBounds(tgx101HighlightedChildId) : null;
+    if (item != null) { top = item[0]; bottom = item[1]; }
     float cy = (top + bottom) / 2f;
     float h = Math.min(Screen.dp(26f), Math.max(Screen.dp(12f), (bottom - top) * .45f));
     boolean dark = Theme.isDark();
@@ -6871,6 +6874,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       c.drawRoundRect(r, h / 2f, h / 2f, Paints.fillingPaint(ColorUtils.alphaColor(alpha, base)));
     }
     view.postInvalidateOnAnimation();
+  }
+
+  /** Vertical bounds of an album item, in view coordinates; overridden by media messages */
+  protected @androidx.annotation.Nullable int[] tgx101ItemBounds (long messageId) {
+    return null;
   }
 
   /** For the album item flash */

@@ -1107,6 +1107,18 @@ public class MosaicWrapper implements FactorAnimator.Target, ComplexReceiver.Key
     }
   }
 
+  /** TGx101: vertical bounds of one album item (for the jump wave at the level of that photo); null — not here */
+  public @androidx.annotation.Nullable int[] tgx101ItemVerticalBounds (long messageId) {
+    if (mosaicItems == null) return null;
+    for (MosaicItemInfo info : mosaicItems) {
+      if (info.target.getSourceMessageId() == messageId) {
+        int top = lastStartY + info.y;
+        return new int[] {top, top + info.target.getCellHeight()};
+      }
+    }
+    return null;
+  }
+
   public MediaViewThumbLocation getMediaThumbLocation (long messageId, View view, int viewTop, int viewBottom, int top) {
     MosaicItemInfo info = findItemInfoByMessageId(messageId);
     if (info == null) {
