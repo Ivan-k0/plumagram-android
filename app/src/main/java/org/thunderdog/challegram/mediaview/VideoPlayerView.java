@@ -132,6 +132,60 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
   }
 
   /** TGx101: the player settings' «Repeat» switched while a video plays */
+  // TGx101 (user 2026-10-05): subtitles — the video's own text tracks (mkv / mp4) or an external .srt file
+
+  /** Where the current cues go (the viewer's subtitle line); null text — nothing to show */
+  public static @Nullable me.vkryl.core.lambda.RunnableData<CharSequence> tgx101CueSink;
+
+  @Override
+  public void onCues (@NonNull androidx.media3.common.text.CueGroup cueGroup) {
+    if (tgx101CueSink == null) return;
+    StringBuilder b = new StringBuilder();
+    for (androidx.media3.common.text.Cue cue : cueGroup.cues) {
+      if (cue.text == null) continue;
+      if (b.length() > 0) b.append('\n');
+      b.append(cue.text);
+    }
+    tgx101CueSink.runWithData(b.length() > 0 && org.thunderdog.challegram.unsorted.Settings.instance().tgx101Subtitles() ? b : null);
+  }
+
+  /** The subtitle setting changed: pick (or drop) a text track */
+  public void tgx101ApplySubtitles () {
+    if (player == null) return;
+    boolean on = org.thunderdog.challegram.unsorted.Settings.instance().tgx101Subtitles();
+    player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
+      .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !on)
+      .setPreferredTextLanguages("ru", "uk", "en")
+      .setSelectUndeterminedTextLanguage(true)
+      .build());
+    if (!on && tgx101CueSink != null) tgx101CueSink.runWithData(null);
+  }
+
+  /** An external subtitle file: merged with the playing video, the position kept */
+  public boolean tgx101LoadSubtitles (android.net.Uri uri, String name) {
+    if (player == null || mediaSource == null) return false;
+    String lower = name != null ? name.toLowerCase(java.util.Locale.ROOT) : "";
+    String mime = lower.endsWith(".vtt") ? androidx.media3.common.MimeTypes.TEXT_VTT : lower.endsWith(".ass") || lower.endsWith(".ssa") ? androidx.media3.common.MimeTypes.TEXT_SSA : androidx.media3.common.MimeTypes.APPLICATION_SUBRIP;
+    androidx.media3.common.MediaItem.SubtitleConfiguration config = new androidx.media3.common.MediaItem.SubtitleConfiguration.Builder(uri)
+      .setMimeType(mime)
+      .setLanguage("und")
+      .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+      .build();
+    MediaSource subtitles = new androidx.media3.exoplayer.source.SingleSampleMediaSource.Factory(new androidx.media3.datasource.DefaultDataSource.Factory(context))
+      .createMediaSource(config, C.TIME_UNSET);
+    long position = player.getCurrentPosition();
+    boolean playing = player.getPlayWhenReady();
+    MediaSource merged = new androidx.media3.exoplayer.source.MergingMediaSource(mediaSource, subtitles);
+    this.mediaSource = merged;
+    player.setMediaSource(merged, position);
+    player.prepare();
+    player.setPlayWhenReady(playing);
+    org.thunderdog.challegram.unsorted.Settings.instance().setTgx101Subtitles(true);
+    tgx101ApplySubtitles();
+    org.thunderdog.challegram.Tgx101Diag.mark("player: subtitles file loaded (" + mime + ")");
+    return true;
+  }
+
   public void tgx101ApplyLooping () {
     setLooping(forceLooping || org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerLoop() || (currentItem != null && (currentItem.isSecret() || currentItem.isGifType())));
   }
@@ -219,6 +273,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     if (player == null) {
       this.player = U.newExoPlayer(context, preferExtensions);
       this.player.addListener(this);
+      tgx101ApplySubtitles();
       checkMuted();
       this.player.setVideoTextureView(renderView);
 

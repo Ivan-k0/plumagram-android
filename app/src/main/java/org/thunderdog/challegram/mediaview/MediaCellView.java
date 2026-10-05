@@ -1502,6 +1502,14 @@ public class MediaCellView extends ViewGroup implements
     if (isSeekableVideo()) playerView.playPause();
   }
 
+  public void tgx101ApplySubtitles () {
+    if (playerView != null) playerView.tgx101ApplySubtitles();
+  }
+
+  public boolean tgx101LoadSubtitles (android.net.Uri uri, String name) {
+    return playerView != null && playerView.tgx101LoadSubtitles(uri, name);
+  }
+
   public void tgx101ApplyLooping () {
     if (playerView != null) playerView.tgx101ApplyLooping();
   }

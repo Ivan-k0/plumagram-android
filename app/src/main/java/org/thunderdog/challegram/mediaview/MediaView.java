@@ -872,6 +872,14 @@ public class MediaView extends FrameLayoutFix {
     if (baseCell != null) baseCell.tgx101PlayPause();
   }
 
+  public void tgx101ApplySubtitles () {
+    if (baseCell != null) baseCell.tgx101ApplySubtitles();
+  }
+
+  public boolean tgx101LoadSubtitles (android.net.Uri uri, String name) {
+    return baseCell != null && baseCell.tgx101LoadSubtitles(uri, name);
+  }
+
   public void tgx101ApplyLooping () {
     if (baseCell != null) baseCell.tgx101ApplyLooping();
   }

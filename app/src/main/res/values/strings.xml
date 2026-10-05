@@ -6284,7 +6284,12 @@
   <string name="Tgx101SectionDataHint">Traffic, data saver, proxy, auto-download</string>
   <string name="Tgx101ChipBlock">Block</string>
   <string name="Tgx101ChipAddContact">Add contact</string>
+  <string name="Tgx101LongPressMenu">Long press: menu, slide to an item (like iOS)</string>
   <string name="Tgx101MenuAtFinger">Message menu opens at the finger</string>
+  <string name="Tgx101MenuSelectAlways">«Select» always stays in the menu — drag to move it</string>
+  <string name="Tgx101Subtitles">Subtitles</string>
+  <string name="Tgx101SubtitlesFile">Subtitles from a file (.srt)</string>
+  <string name="Tgx101SubtitlesFailed">Can\'t load subtitles</string>
   <string name="Tgx101UiText">Large interface (menus, lists)</string>
   <string name="Tgx101UiBold">Bolder interface text</string>
   <string name="Tgx101SnoozeOff">No button</string>

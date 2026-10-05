@@ -424,7 +424,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SnoozeSetting, "«Тихо» в уведомлениях");
     RU.put(R.string.Tgx101SnoozeOff, "Без кнопки");
     RU.put(R.string.Tgx101UiText, "Крупный интерфейс (меню, списки)");
+    RU.put(R.string.Tgx101Subtitles, "Субтитры");
+    RU.put(R.string.Tgx101MenuSelectAlways, "«Выбрать» всегда остаётся в меню — перетащите, чтобы переместить");
+    RU.put(R.string.Tgx101SubtitlesFile, "Субтитры из файла (.srt)");
+    RU.put(R.string.Tgx101SubtitlesFailed, "Не удалось загрузить субтитры");
     RU.put(R.string.Tgx101MenuAtFinger, "Меню сообщения открывается у пальца");
+    RU.put(R.string.Tgx101LongPressMenu, "Долгое нажатие: меню, выбор не отпуская палец (как iOS)");
     RU.put(R.string.Tgx101UiBold, "Жирнее текст интерфейса");
     RU.put(R.string.Tgx101ChipBlock, "Блок");
     RU.put(R.string.Tgx101ChipAddContact, "В контакты");

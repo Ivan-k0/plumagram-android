@@ -3291,6 +3291,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   private FrameLayoutFix contentView;
+  private android.widget.TextView tgx101SubtitleView;
   private MediaView mediaView;
   private FillingSpace bottomSpace;
   private FrameLayoutFix pipControlsWrap;
@@ -3922,6 +3923,31 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private int tgx101SettingsPage = PAGE_MAIN;
 
   /** The panel shows a list on its own page instead of a separate full-screen menu */
+  private static final int TGX101_PICK_SUBTITLES = 0x5ab7;
+
+  /** An .srt / .vtt / .ass file from the phone, merged with the playing video */
+  private void tgx101PickSubtitles () {
+    android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT);
+    intent.addCategory(android.content.Intent.CATEGORY_OPENABLE);
+    intent.setType("*/*");
+    context().putActivityResultHandler(TGX101_PICK_SUBTITLES, (requestCode, resultCode, data) -> {
+      if (resultCode != android.app.Activity.RESULT_OK || data == null || data.getData() == null) return;
+      android.net.Uri uri = data.getData();
+      String name = uri.getLastPathSegment();
+      try (android.database.Cursor cursor = context().getContentResolver().query(uri, new String[] {android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+        if (cursor != null && cursor.moveToFirst()) name = cursor.getString(0);
+      } catch (Throwable ignored) { }
+      if (!mediaView.tgx101LoadSubtitles(uri, name)) {
+        UI.showToast(R.string.Tgx101SubtitlesFailed, android.widget.Toast.LENGTH_SHORT);
+      }
+    });
+    try {
+      context().startActivityForResult(intent, TGX101_PICK_SUBTITLES);
+    } catch (Throwable t) {
+      UI.showToast(R.string.Tgx101SubtitlesFailed, android.widget.Toast.LENGTH_SHORT);
+    }
+  }
+
   private void tgx101OpenSettingsPage (int page) {
     if (tgx101SettingsView == null) {
       tgx101ShowPlayerSettings();
@@ -4198,6 +4224,13 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       org.thunderdog.challegram.Tgx101Diag.mark("player settings: pause music " + settings.tgx101PlayerPauseMusic());
       tgx101RefreshSettings();
     });
+    tgx101SettingsRow(rows, R.drawable.baseline_file_caption_24, Lang.getString(R.string.Tgx101Subtitles), null, settings.tgx101Subtitles() ? 1 : 0, () -> {
+      settings.setTgx101Subtitles(!settings.tgx101Subtitles());
+      org.thunderdog.challegram.Tgx101Diag.mark("player settings: subtitles " + settings.tgx101Subtitles());
+      mediaView.tgx101ApplySubtitles();
+      tgx101RefreshSettings();
+    });
+    tgx101SettingsRow(rows, R.drawable.baseline_insert_drive_file_24, Lang.getString(R.string.Tgx101SubtitlesFile), "", -1, this::tgx101PickSubtitles);
     tgx101SettingsRow(rows, R.drawable.baseline_timer_16, Lang.getString(R.string.Tgx101PlayerSleep), tgx101SleepAt > 0 ? Lang.getString(R.string.Tgx101Minutes, (int) Math.max(1, (tgx101SleepAt - android.os.SystemClock.uptimeMillis() + 59999) / 60000)) : off, -1, () -> tgx101OpenSettingsPage(PAGE_SLEEP));
     tgx101SettingsRow(rows, R.drawable.baseline_screen_rotation_24, Lang.getString(R.string.Tgx101Orientation), Lang.getString(settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_AUTO ? R.string.Tgx101OrientationAutoShort : settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_PORTRAIT ? R.string.Tgx101OrientationPortraitShort : R.string.Tgx101OrientationSystemShort), -1, () -> tgx101OpenSettingsPage(PAGE_ORIENTATION));
   }
@@ -6123,6 +6156,27 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     stack.setCallback(this);
     mediaView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     contentView.addView(mediaView);
+    // TGx101: the subtitle line, over the picture near the bottom
+    tgx101SubtitleView = new android.widget.TextView(context);
+    tgx101SubtitleView.setTextColor(0xffffffff);
+    tgx101SubtitleView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 17f);
+    tgx101SubtitleView.setGravity(Gravity.CENTER);
+    tgx101SubtitleView.setShadowLayer(Screen.dp(3f), 0, Screen.dp(1f), 0xff000000);
+    tgx101SubtitleView.setPadding(Screen.dp(10f), Screen.dp(3f), Screen.dp(10f), Screen.dp(3f));
+    android.graphics.drawable.GradientDrawable subBg = new android.graphics.drawable.GradientDrawable();
+    subBg.setColor(0x88000000);
+    subBg.setCornerRadius(Screen.dp(6f));
+    tgx101SubtitleView.setBackground(subBg);
+    tgx101SubtitleView.setVisibility(View.GONE);
+    FrameLayoutFix.LayoutParams subParams = FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+    subParams.bottomMargin = Screen.dp(120f);
+    subParams.leftMargin = subParams.rightMargin = Screen.dp(16f);
+    contentView.addView(tgx101SubtitleView, subParams);
+    VideoPlayerView.tgx101CueSink = text -> {
+      if (tgx101SubtitleView == null) return;
+      tgx101SubtitleView.setText(text);
+      tgx101SubtitleView.setVisibility(text != null ? View.VISIBLE : View.GONE);
+    };
 
     if (needHeader()) {
       headerCell = new DoubleHeaderView(context);
@@ -6495,6 +6549,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   @Override
   public void destroy () {
     super.destroy();
+    VideoPlayerView.tgx101CueSink = null;
     if (tgx101OrientationSet) {
       context.setOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED); // TGx101: the app's own orientation back
       tgx101OrientationSet = false;

@@ -78,20 +78,22 @@ public final class Tgx101MessageMenu {
     R.id.btn_tgx101FilterSimilar,
     R.id.btn_tgx101EditorWindow,
     R.id.btn_messageViewList,
-    R.id.btn_messageReplies
+    R.id.btn_messageReplies,
+    R.id.btn_messageSelect, // TGx101 (user 2026-10-05): «Select» and «Delete» are ordered like the rest
+    R.id.btn_messageDelete
   };
   public static final int[] ORDERABLE_NAMES = {
     R.string.Reply, R.string.Copy, R.string.edit, R.string.Share, R.string.MessagePin,
     R.string.Tgx101MenuSelectText, R.string.Translate, R.string.CopyLink, R.string.Save, R.string.MessageReport,
     R.string.Tgx101FilterSimilar, R.string.Tgx101MenuEditorOwn, R.string.Tgx101MenuMessagesFrom,
-    R.string.Tgx101MenuThread
+    R.string.Tgx101MenuThread, R.string.Select, R.string.Delete
   };
   public static final int[] ORDERABLE_ICONS = {
     R.drawable.baseline_reply_24, R.drawable.baseline_content_copy_24, R.drawable.baseline_edit_24,
     R.drawable.baseline_forward_24, R.drawable.deproko_baseline_pin_24, R.drawable.baseline_format_quote_close_24,
     R.drawable.baseline_translate_24, R.drawable.baseline_link_24, R.drawable.baseline_file_download_24,
     R.drawable.baseline_report_24, R.drawable.baseline_filter_variant_remove_24, R.drawable.baseline_format_text_24,
-    R.drawable.baseline_person_24, R.drawable.outline_forum_24
+    R.drawable.baseline_person_24, R.drawable.outline_forum_24, R.drawable.baseline_playlist_add_check_24, R.drawable.baseline_delete_24
   };
 
   private static int orderKey (int id) {
@@ -150,6 +152,12 @@ public final class Tgx101MessageMenu {
 
   public static boolean isShownInMenu (int id) {
     return shownIds.contains(id);
+  }
+
+  /** Like rank(), but «More…» sits right above «Select» */
+  private static int sortRank (int[] order, int id) {
+    if (id == R.id.btn_messageMore) return rank(order, R.id.btn_messageSelect) * 2 - 1;
+    return rank(order, id) * 2;
   }
 
   private static int rank (int[] order, int id) {
@@ -220,6 +228,61 @@ public final class Tgx101MessageMenu {
     } catch (Throwable ignored) { }
   }
 
+  // TGx101 (user 2026-10-05, «как iOS»): the menu opened by a long press follows the same finger — slide to an item
+  // and lift the finger to run it
+
+  private static java.lang.ref.WeakReference<Host> dragHost = new java.lang.ref.WeakReference<>(null);
+  public static boolean dragArmed;
+  private static View dragRow;
+  private static boolean dragMoved;
+  private static float dragStartX, dragStartY;
+
+  public static boolean dragActive () {
+    return dragArmed && dragHost.get() != null;
+  }
+
+  /** The finger of the long press moved / lifted; true — consumed */
+  public static boolean drag (float rawX, float rawY, int action) {
+    Host host = dragHost.get();
+    if (!dragArmed || host == null || host.dismissing) {
+      dragArmed = false;
+      return false;
+    }
+    if (dragStartX < 0) dragStartX = rawX;
+    if (!dragMoved && Math.hypot(rawX - dragStartX, rawY - dragStartY) > Screen.dp(12f)) dragMoved = true;
+    View hit = null;
+    for (View row : host.mainRows) {
+      if (row.getVisibility() != View.VISIBLE) continue;
+      int[] loc = new int[2];
+      row.getLocationOnScreen(loc);
+      if (rawX >= loc[0] && rawX <= loc[0] + row.getWidth() && rawY >= loc[1] && rawY <= loc[1] + row.getHeight()) {
+        hit = row;
+        break;
+      }
+    }
+    if (hit != dragRow) {
+      if (dragRow != null) dragRow.setPressed(false);
+      dragRow = hit;
+      if (hit != null) {
+        hit.setPressed(true);
+        hit.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
+      }
+    }
+    if (action == android.view.MotionEvent.ACTION_UP || action == android.view.MotionEvent.ACTION_CANCEL) {
+      dragArmed = false;
+      View row = dragRow;
+      dragRow = null;
+      if (row != null) {
+        row.setPressed(false);
+        if (dragMoved && action == android.view.MotionEvent.ACTION_UP) {
+          org.thunderdog.challegram.Tgx101Diag.mark("menu: item picked by sliding");
+          row.performClick();
+        }
+      }
+    }
+    return true;
+  }
+
   /** Where the finger touched the message (raw screen Y) — the menu opens next to it (user 2026-10-05, variant 1) */
   public static float lastTouchRawY = -1;
   public static long lastTouchAt;
@@ -232,6 +295,11 @@ public final class Tgx101MessageMenu {
     host.moreLoader = moreLoader;
     PopupLayout popup = new PopupLayout(context);
     host.popup = popup;
+    dragHost = new java.lang.ref.WeakReference<>(host);
+    dragRow = null;
+    dragMoved = false;
+    dragStartX = -1;
+    dragStartY = lastTouchRawY;
     popup.init(true);
     popup.setNeedRootInsets();
     popup.setOverlayStatusBar(true);
@@ -413,8 +481,8 @@ public final class Tgx101MessageMenu {
     if (options.items != null) {
       for (ViewController.OptionItem item : options.items) {
         if (item == null || item.id == 0) continue;
-        if (item.id == R.id.btn_messageDelete) {
-          deleteItem = item;
+        if (item.id == R.id.btn_messageDelete && isHidden(item.id)) {
+          // TGx101: «Delete» removed from the menu by the user (still in «More…» of the select mode)
         } else if (item.id == R.id.btn_messageMore) {
           moreItem = item;
         } else if (isHidden(item.id)) {
@@ -437,11 +505,12 @@ public final class Tgx101MessageMenu {
     if (moreItem != null) {
       sorted.add(moreItem); // «More…» stays last, above «Delete»
     }
-    // TGx101 (user 2026-10-05): «Select» is always in the menu, at the bottom (can't be hidden) — long press opens
-    // the menu now, so selecting several messages starts here
+    // TGx101 (user 2026-10-05): «Select» is always in the menu (can't be hidden or moved to «More…»), in its place in
+    // the user's order — by default at the bottom, above «Delete»
     if (message.canBeSelected() && !c.inSelectMode()) {
       sorted.add(new ViewController.OptionItem(R.id.btn_messageSelect, Lang.getString(R.string.Select), ViewController.OptionColor.NORMAL, R.drawable.baseline_playlist_add_check_24));
     }
+    java.util.Collections.sort(sorted, (a, b) -> Integer.compare(sortRank(order, a.id), sortRank(order, b.id)));
     shownIds.clear();
     for (ViewController.OptionItem item : sorted) shownIds.add(item.id);
 
@@ -449,7 +518,7 @@ public final class Tgx101MessageMenu {
     list.setOrientation(LinearLayout.VERTICAL);
     host.list = list;
     for (ViewController.OptionItem item : sorted) {
-      View row = row(context, host, item, delegate, false);
+      View row = row(context, host, item, delegate, item.id == R.id.btn_messageDelete);
       host.mainRows.add(row);
       list.addView(row);
     }
@@ -463,17 +532,6 @@ public final class Tgx101MessageMenu {
     scroll.setVerticalScrollBarEnabled(false);
     scroll.addView(list);
     card.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-    if (deleteItem != null) {
-      if (!sorted.isEmpty()) {
-        View divider = divider(context);
-        host.bottomViews.add(divider);
-        card.addView(divider);
-      }
-      View deleteRow = row(context, host, deleteItem, delegate, true);
-      host.bottomViews.add(deleteRow);
-      card.addView(deleteRow);
-    }
-
     // A short scale-in from the corner
     column.setPivotX(leftHand ? 0 : pillWidth + cardEdgeGap - overhang);
     column.setAlpha(0f);
@@ -627,7 +685,8 @@ public final class Tgx101MessageMenu {
     row.setGravity(Gravity.CENTER_VERTICAL | (Lang.rtl() ? Gravity.RIGHT : Gravity.LEFT));
     row.setPadding(Screen.dp(16f), 0, Screen.dp(16f), 0);
     row.setCompoundDrawablePadding(Screen.dp(14f));
-    int textColorId = isDelete ? ColorId.textNegative : OptionsLayoutColor.text(item);
+    // TGx101 (user 2026-10-05): «Delete» — red icon, the word in the normal text colour; «Select» — icon in the brand blue
+    int textColorId = isDelete ? ColorId.text : OptionsLayoutColor.text(item);
     row.setTextColor(Theme.getColor(textColorId));
     row.setText(shortName(item));
     Settings.tgx101StyleRow(row, 15f);
@@ -635,7 +694,7 @@ public final class Tgx101MessageMenu {
       Drawable icon = Drawables.get(context.getResources(), item.icon);
       if (icon != null) {
         icon = icon.mutate();
-        icon.setColorFilter(Paints.getColorFilter(Theme.getColor(isDelete ? ColorId.iconNegative : ColorId.icon)));
+        icon.setColorFilter(Paints.getColorFilter(isDelete ? Theme.getColor(ColorId.iconNegative) : item.id == R.id.btn_messageSelect ? Theme.chatSendButtonColor() : Theme.getColor(ColorId.icon)));
         int size = Screen.dp(21f);
         icon.setBounds(0, 0, size, size);
         if (Lang.rtl()) {

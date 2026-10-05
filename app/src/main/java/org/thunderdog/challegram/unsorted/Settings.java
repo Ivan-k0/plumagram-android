@@ -3506,6 +3506,28 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_HIDE_CHANNEL_REACTIONS, value);
   }
 
+  private static final String KEY_TGX101_SUBTITLES = "tgx101_subtitles";
+
+  /** TGx101: show subtitles in the video player (the video's own tracks or a loaded file) */
+  public boolean tgx101Subtitles () {
+    return pmc.getBoolean(KEY_TGX101_SUBTITLES, true);
+  }
+
+  public void setTgx101Subtitles (boolean v) {
+    pmc.putBoolean(KEY_TGX101_SUBTITLES, v);
+  }
+
+  private static final String KEY_TGX101_LONG_PRESS_MENU = "tgx101_long_press_menu";
+
+  /** TGx101: long press opens the message menu (iOS-like, slide to an item) instead of selecting the message */
+  public boolean tgx101LongPressMenu () {
+    return pmc.getBoolean(KEY_TGX101_LONG_PRESS_MENU, false);
+  }
+
+  public void setTgx101LongPressMenu (boolean v) {
+    pmc.putBoolean(KEY_TGX101_LONG_PRESS_MENU, v);
+  }
+
   private static final String KEY_TGX101_MENU_AT_FINGER = "tgx101_menu_at_finger";
 
   /** TGx101: the message menu opens at the finger (on) or at the bottom of the screen (off) */

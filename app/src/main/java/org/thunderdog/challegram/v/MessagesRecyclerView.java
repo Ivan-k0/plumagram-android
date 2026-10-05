@@ -309,6 +309,16 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
 
   @Override
   public boolean dispatchTouchEvent (MotionEvent e) {
+    if (e.getActionMasked() != MotionEvent.ACTION_DOWN && org.thunderdog.challegram.ui.Tgx101MessageMenu.dragActive()
+      && org.thunderdog.challegram.ui.Tgx101MessageMenu.drag(e.getRawX(), e.getRawY(), e.getActionMasked())) {
+      if (e.getActionMasked() == MotionEvent.ACTION_UP) {
+        MotionEvent cancel = MotionEvent.obtain(e);
+        cancel.setAction(MotionEvent.ACTION_CANCEL);
+        super.dispatchTouchEvent(cancel); // the message under the finger does not get a tap
+        cancel.recycle();
+      }
+      return true;
+    }
     // user's Vivo video 23:14: they drag straight down the left checkbox column, or keep the finger after the long
     // press that started selecting — both should select, not only a sideways start
     if (manager != null && e.getActionMasked() == MotionEvent.ACTION_DOWN) {

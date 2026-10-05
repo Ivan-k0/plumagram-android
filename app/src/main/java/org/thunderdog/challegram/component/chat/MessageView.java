@@ -1497,6 +1497,17 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     if (m.inSelectMode() && m.isMessageSelected(msg.getChatId(), msg.getId(), msg) && m.tgx101OpenSelectText(msg, this, touchX, touchY)) {
       return true;
     }
+    if (Settings.instance().tgx101LongPressMenu() && !m.inSelectMode()) {
+      // TGx101 (user 2026-10-05, «как iOS», optional): a long press opens the menu; the same finger can slide to an item
+      int[] loc = new int[2];
+      getLocationOnScreen(loc);
+      org.thunderdog.challegram.ui.Tgx101MessageMenu.dragArmed = true;
+      if (onMessageClickImpl(touchX, touchY, null)) {
+        performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+        return true;
+      }
+      org.thunderdog.challegram.ui.Tgx101MessageMenu.dragArmed = false;
+    }
     if (msg.canBeSelected()) {
       selectMessage(m, msg, touchX, touchY);
       return true;
