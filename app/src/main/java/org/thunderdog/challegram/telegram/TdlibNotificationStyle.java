@@ -652,7 +652,7 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
       styleIntent(Intents.ACTION_MESSAGE_SNOOZE, snoozeIntent, tdlib, group, needReplyToMessage, allMessageIds, allUserIds);
       try {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(UI.getAppContext(), notificationId, snoozeIntent, Intents.mutabilityFlags(true));
-        tgx101SnoozeAction = new NotificationCompat.Action.Builder(R.drawable.baseline_notifications_paused_24, Lang.getString(R.string.Tgx101SnoozeAction, tgx101SnoozeMinutes), pendingIntent)
+        tgx101SnoozeAction = new NotificationCompat.Action.Builder(R.drawable.baseline_notifications_paused_24, Lang.getString(R.string.Tgx101SnoozeAction, tgx101SnoozeMinutes % 60 == 0 ? Lang.getString(R.string.Tgx101SnoozeHours, tgx101SnoozeMinutes / 60) : Lang.getString(R.string.Tgx101SnoozeMins, tgx101SnoozeMinutes)), pendingIntent)
           .setShowsUserInterface(false)
           .build();
       } catch (Throwable t) {

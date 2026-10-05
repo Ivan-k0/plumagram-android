@@ -418,8 +418,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101WebAppClose, "Закрыть");
     RU.put(R.string.Tgx101ReleaseToClose, "Отпустите, чтобы закрыть");
     RU.put(R.string.Tgx101ZoomPullClose, "Свайп вниз закрывает зум фото");
-    RU.put(R.string.Tgx101SnoozeAction, "Отложить %1$d мин");
-    RU.put(R.string.Tgx101SnoozeSetting, "«Отложить» в уведомлениях");
+    RU.put(R.string.Tgx101SnoozeAction, "Тихо %1$s");
+    RU.put(R.string.Tgx101SnoozeMins, "%1$dм");
+    RU.put(R.string.Tgx101SnoozeHours, "%1$dч");
+    RU.put(R.string.Tgx101SnoozeSetting, "«Тихо» в уведомлениях");
     RU.put(R.string.Tgx101SnoozeOff, "Без кнопки");
     RU.put(R.string.Tgx101SnoozedToast, "Без звука и всплывающих %1$d мин");
     RU.put(R.string.Tgx101SnoozeMinutes, "%1$d мин");
