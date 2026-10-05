@@ -444,6 +444,12 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
 
   @Override
   public boolean onInterceptTouchEvent (MotionEvent e) {
+    if (e.getActionMasked() == MotionEvent.ACTION_DOWN && getScrollState() == SCROLL_STATE_SETTLING) {
+      // TGx101 (user 2026-10-05): a touch on a still-flinging list caught the gesture for the list
+      // (requestDisallowInterceptTouchEvent) — the swipe back to the chat list did not work while scrolling.
+      // Stop the fling first: the list then treats it as a fresh touch and the back swipe can take it
+      stopScroll();
+    }
     boolean res = super.onInterceptTouchEvent(e);
     if (scrollFactor > 0f && e.getAction() == MotionEvent.ACTION_DOWN && isInsideDate(e.getX(), e.getY())) {
       return true;
