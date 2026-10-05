@@ -866,7 +866,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
         // TGx101 (user 2026-10-06): «Save» — a copy to Saved Messages, like the swipe action
         if (!m.isSecretChat() && !msg.tdlib().isSelfChat(msg.getChatId())) {
           ids.append(R.id.btn_tgx101SaveFavorite);
-          strings.append(R.string.Tgx101SwipeSave);
+          strings.append(R.string.Tgx101SaveFavorite);
           icons.append(R.drawable.baseline_bookmark_24);
         }
       }
@@ -987,7 +987,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       if (!msg.isTranslated() && msg.tgx101SelectableText() != null) {
         ids.append(R.id.btn_tgx101SelectInPlace);
         strings.append(R.string.Tgx101SelectInPlace);
-        icons.append(R.drawable.tgx101_text_select_24);
+        icons.append(R.drawable.tgx101_select_all_24);
       }
 
       // TGx101: «Select text» left the menu: a second long press on the selected message opens it

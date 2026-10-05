@@ -6293,8 +6293,9 @@
   <string name="Tgx101SwipeSave">Save</string>
   <string name="Tgx101SwipeSaved">Saved to Saved Messages</string>
   <string name="Tgx101Haptics">Vibration of PlumaGram features</string>
+  <string name="Tgx101SaveFavorite">To Saved Messages</string>
   <string name="Tgx101SelectInPlace">Select text</string>
-  <string name="Tgx101MenuSectionMenu">In the menu (5–9 items with Select)</string>
+  <string name="Tgx101MenuSectionMenu">In the menu: 5 to 9 items</string>
   <string name="Tgx101MenuTooMany">The menu holds at most %1$d items — move one to More first</string>
   <string name="Tgx101MenuTooFew">At least %1$d items stay in the menu</string>
   <string name="Tgx101MenuSectionMore">In More</string>

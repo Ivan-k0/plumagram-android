@@ -87,13 +87,13 @@ public final class Tgx101MessageMenu {
     R.id.btn_messageDelete // TGx101 (user 2026-10-05): «Delete» is ordered like the rest; «Select» is always last
   };
   public static final int[] ORDERABLE_NAMES = {
-    R.string.Reply, R.string.Copy, R.string.Tgx101SelectInPlace, R.string.edit, R.string.Share, R.string.Tgx101SwipeSave, R.string.MessagePin,
+    R.string.Reply, R.string.Copy, R.string.Tgx101SelectInPlace, R.string.edit, R.string.Share, R.string.Tgx101SaveFavorite, R.string.MessagePin,
     R.string.Tgx101MenuSelectText, R.string.Translate, R.string.CopyLink, R.string.Save, R.string.MessageReport,
     R.string.Tgx101FilterSimilar, R.string.Tgx101MenuEditorOwn, R.string.Tgx101MenuMessagesFrom,
     R.string.Tgx101MenuThread, R.string.Tgx101MenuToOriginal, R.string.DeleteFromCache, R.string.MoreMessageOptions, R.string.Delete
   };
   public static final int[] ORDERABLE_ICONS = {
-    R.drawable.baseline_reply_24, R.drawable.baseline_content_copy_24, R.drawable.tgx101_text_select_24, R.drawable.baseline_edit_24,
+    R.drawable.baseline_reply_24, R.drawable.baseline_content_copy_24, R.drawable.tgx101_select_all_24, R.drawable.baseline_edit_24,
     R.drawable.baseline_forward_24, R.drawable.baseline_bookmark_24, R.drawable.deproko_baseline_pin_24, R.drawable.baseline_format_quote_close_24,
     R.drawable.baseline_translate_24, R.drawable.baseline_link_24, R.drawable.baseline_file_download_24,
     R.drawable.baseline_report_24, R.drawable.baseline_filter_variant_remove_24, R.drawable.baseline_format_text_24,
@@ -788,9 +788,11 @@ public final class Tgx101MessageMenu {
     RippleSupport.setTransparentSelector(row);
     row.setOnClickListener(v -> {
       if (item.id == R.id.btn_tgx101SelectInPlace && host.selectInPlace != null) {
+        // close the menu at once, then select: the menu closing later took the selection down with it
         if (host.dismissing) return;
-        dismiss(host);
-        host.selectInPlace.run();
+        host.dismissing = true;
+        host.popup.hideWindow(false);
+        UI.post(host.selectInPlace, 120);
         return;
       }
       if (item.id == R.id.btn_messageMore && host.moreLoader != null) {
