@@ -467,6 +467,11 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   @Override
   public void onCreate (Bundle savedInstanceState) {
     UI.setContext(this);
+    // TGx101 (user 2026-10-05): no task snapshot — the last screen of the app blinked during the Vivo unlock
+    // animation although the app was in the background; Recents shows a plain card (more private too)
+    if (Build.VERSION.SDK_INT >= 33) {
+      setRecentsScreenshotEnabled(false);
+    }
 
     AppState.initApplication();
     AppState.ensureReady();
@@ -1202,6 +1207,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   @Override
   public void onPause () {
+    tgx101NotePause();
     blockFocus();
     setActivityState(UI.State.PAUSED);
     if (camera != null) {
@@ -1249,9 +1255,36 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     }
   };
 
+  // TGx101 (user 2026-10-05): after the phone was locked for 2+ minutes the app comes back without the keyboard
+  // that was open (Android restores it and the chat jumps); a quick lock/unlock keeps it
+  private long tgx101PausedLockedAt;
+
+  private void tgx101NotePause () {
+    android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+    android.app.KeyguardManager km = (android.app.KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+    boolean locked = (pm != null && !pm.isInteractive()) || (km != null && km.isKeyguardLocked());
+    tgx101PausedLockedAt = locked ? android.os.SystemClock.elapsedRealtime() : 0;
+  }
+
+  private void tgx101CheckKeyboardAfterLock () {
+    if (tgx101PausedLockedAt == 0) return;
+    long idle = android.os.SystemClock.elapsedRealtime() - tgx101PausedLockedAt;
+    tgx101PausedLockedAt = 0;
+    if (idle < 2 * 60 * 1000L) return;
+    org.thunderdog.challegram.Tgx101Diag.mark("keyboard: hidden after lock (" + idle / 1000 + " s)");
+    Runnable hide = () -> {
+      View focus = getCurrentFocus();
+      android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+      if (imm != null) imm.hideSoftInputFromWindow((focus != null ? focus : getWindow().getDecorView()).getWindowToken(), 0);
+    };
+    getWindow().getDecorView().post(hide);
+    getWindow().getDecorView().postDelayed(hide, 350);
+  }
+
   @Override
   public void onResume () {
     tgx101CheckHideNavigation(); // TGx101: never come back stuck without the status bar
+    tgx101CheckKeyboardAfterLock();
     boolean lockBefore = isPasscodeShowing;
     UI.setContext(this);
     setActivityState(UI.State.RESUMED);

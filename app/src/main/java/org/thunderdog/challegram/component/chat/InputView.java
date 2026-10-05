@@ -984,19 +984,18 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   }
 
   private int tgx101LastSelStart = -1, tgx101LastSelEnd = -1;
-  private long tgx101LastIgnoredTap;
   private boolean tgx101IgnoringGesture, tgx101Moved;
   private float tgx101DownX, tgx101DownY;
 
   /** Returns true when the event is swallowed by the safety tap */
   private boolean tgx101SafetyTap (MotionEvent e) {
-    // TGx101: with text selected (new editing system) touches on the text don't drop it: a finger moved over
-    // the text is ignored (Android would put the cursor there), and only a second short tap within 2 s moves the cursor
+    // TGx101 (user 2026-10-05, iOS-like): with text selected (new editing system) a finger moved over the text is
+    // ignored; a tap on the selection or within ~5 mm around it keeps it; a tap farther away puts the cursor there
+    // at once (the old variant needed a second tap within 2 s)
     int action = e.getActionMasked();
     if (action == MotionEvent.ACTION_DOWN) {
       tgx101IgnoringGesture = false;
       if (hasSelection() && org.thunderdog.challegram.unsorted.Settings.instance().useTgx101TextEditor() && getLayout() != null) {
-        // anywhere on the text, inside the selection too (a tap there would drop it as well)
         tgx101IgnoringGesture = true;
         tgx101DownX = e.getX();
         tgx101DownY = e.getY();
@@ -1013,19 +1012,35 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     } else if (action == MotionEvent.ACTION_UP) {
       tgx101IgnoringGesture = false;
       if (!tgx101Moved) {
-        long now = android.os.SystemClock.uptimeMillis();
-        if (now - tgx101LastIgnoredTap < 2000) {
-          setSelection(Math.max(0, Math.min(length(), getOffsetForPosition(e.getX(), e.getY())))); // the second tap: the cursor goes there
-          tgx101LastIgnoredTap = 0;
+        if (tgx101NearSelection(e.getX(), e.getY())) {
+          org.thunderdog.challegram.Tgx101Diag.mark("input: tap near the selection kept it");
         } else {
-          tgx101LastIgnoredTap = now;
-          org.thunderdog.challegram.Tgx101Diag.mark("input: first tap on the selected text ignored");
+          setSelection(Math.max(0, Math.min(length(), getOffsetForPosition(e.getX(), e.getY()))));
+          org.thunderdog.challegram.Tgx101Diag.mark("input: tap away from the selection, cursor placed");
         }
       }
     } else if (action == MotionEvent.ACTION_CANCEL) {
       tgx101IgnoringGesture = false;
     }
     return true;
+  }
+
+  /** The selected text plus a ~5 mm margin (30dp) around it, in view coordinates */
+  private boolean tgx101NearSelection (float x, float y) {
+    android.text.Layout layout = getLayout();
+    int start = Math.min(getSelectionStart(), getSelectionEnd()), end = Math.max(getSelectionStart(), getSelectionEnd());
+    if (layout == null || start == end) return false;
+    float m = Screen.dp(30f);
+    float lx = x - getTotalPaddingLeft() + getScrollX(), ly = y - getTotalPaddingTop() + getScrollY();
+    int startLine = layout.getLineForOffset(start), endLine = layout.getLineForOffset(end);
+    if (ly < layout.getLineTop(startLine) - m || ly > layout.getLineBottom(endLine) + m) return false;
+    int line = Math.max(startLine, Math.min(endLine, layout.getLineForVertical((int) ly)));
+    float left = line == startLine ? layout.getPrimaryHorizontal(start) : layout.getLineLeft(line);
+    float right = line == endLine ? layout.getPrimaryHorizontal(end) : layout.getLineRight(line);
+    if (startLine != endLine && ly < layout.getLineTop(startLine)) {
+      left = layout.getPrimaryHorizontal(start); right = layout.getLineRight(startLine);
+    }
+    return lx >= Math.min(left, right) - m && lx <= Math.max(left, right) + m;
   }
 
   @Override

@@ -1164,7 +1164,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     // every folder tab gets the strip (user's Vivo has no «All chats» tab, 2026-10-04), not the archive, pickers, previews
     int listType = chatList().getConstructor();
     boolean folderOrMain = listType == TdApi.ChatListMain.CONSTRUCTOR || listType == TdApi.ChatListFolder.CONSTRUCTOR;
-    if (filter != null || !folderOrMain || isInForceTouchMode() || pickerDelegate != null) {
+    // TGx101 (user 2026-10-05 «истории должны отображаться во всех папках»): the built-in tabs (Channels, Groups,
+    // Bots, Unread…) are the main list with a ChatFilter — they get the strip too
+    if (!folderOrMain || isInForceTouchMode() || pickerDelegate != null) {
       org.thunderdog.challegram.Tgx101Diag.mark("stories strip: not here (list " + listType + ", filter " + (filter != null) + ", picker " + (pickerDelegate != null) + ")");
       return;
     }
