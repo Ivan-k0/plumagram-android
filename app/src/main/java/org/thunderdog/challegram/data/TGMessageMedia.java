@@ -976,7 +976,9 @@ public class TGMessageMedia extends TGMessage {
   }
 
   private boolean tgx101HasMenuZone () {
-    return useBubbles() && mosaicWrapper != null && mosaicWrapper.getSingularItem() != null && !isHot() && !isSponsoredMessage();
+    // user 2026-10-06 (variant Б): with «Long press: menu» (iOS mode) no ⋮ / menu quarter — a tap opens the photo,
+    // the menu is a long press
+    return !org.thunderdog.challegram.unsorted.Settings.instance().tgx101LongPressMenu() && useBubbles() && mosaicWrapper != null && mosaicWrapper.getSingularItem() != null && !isHot() && !isSponsoredMessage();
   }
 
   @Override
