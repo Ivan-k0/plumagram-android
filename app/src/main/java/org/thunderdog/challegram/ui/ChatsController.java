@@ -1377,6 +1377,13 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   @Override
   public void onFocus () {
     super.onFocus();
+    // TGx101 (user's log 2026-10-05 15:46): swiped back from a chat with the keyboard up (after scheduling a message,
+    // the chat stays open) — the keyboard hung over the chat list; the list has no input, so it goes
+    if (filter == null && pickerDelegate == null && getKeyboardState()) {
+      org.thunderdog.challegram.Tgx101Diag.mark("chats: keyboard left over from a chat — hidden");
+      android.view.View focused = context().getCurrentFocus();
+      org.thunderdog.challegram.tool.Keyboard.hide(focused != null ? focused : chatsView);
+    }
     if (tgx101StoriesStrip != null) {
       Tgx101Stories.handler = new java.lang.ref.WeakReference<>(tgx101StoriesHandler);
       // the list may have been empty at app start (chats not loaded) — ask again, the callback lays it out

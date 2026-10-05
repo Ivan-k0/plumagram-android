@@ -3159,6 +3159,14 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     return (flags & FLAG_KEYBOARD_STATE) != 0;
   }
 
+  /** TGx101: the «keep the keyboard» request is for one blur (opening scheduled messages); once the controller is
+   * focused again it is dropped — left set, a later swipe back to the chat list kept the keyboard over the list */
+  protected final void tgx101DropPreventHideKeyboard () {
+    if ((flags & FLAG_PREVENT_KEYBOARD_HIDE) != 0) {
+      setFlags(this.flags & ~FLAG_PREVENT_KEYBOARD_HIDE);
+    }
+  }
+
   protected final void preventHideKeyboardOnBlur () {
     setFlags(this.flags | FLAG_PREVENT_KEYBOARD_HIDE);
   }
