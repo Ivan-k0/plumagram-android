@@ -434,10 +434,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ProxyPin, "Закрепить вверху");
     RU.put(R.string.Tgx101ProxyRename, "Переименовать");
     RU.put(R.string.Tgx101ProxyName, "Название");
-    RU.put(R.string.Tgx101SwipeActions, "Действия свайпом: ответ, ↑ переслать / сохранить, ↓ копировать / удалить");
+    RU.put(R.string.Tgx101SwipeActions, "Действия свайпом: столбик под пальцем (пункты — в «Пунктах меню сообщения»)");
     RU.put(R.string.Tgx101SwipeSave, "Сохранить");
     RU.put(R.string.Tgx101SwipeSaved, "Сохранено в Избранное");
     RU.put(R.string.Tgx101Haptics, "Вибрация функций PlumaGram (меню, выделение, жесты)");
+    RU.put(R.string.Tgx101SwipeMenuSection, "Свайп по сообщению");
+    RU.put(R.string.Tgx101SwipeMenuHint, "Сверху вниз, как в столбике: свайп влево — «Ответить», ведёте палец вверх или вниз — остальные. «Ответить» скрыть нельзя.");
     RU.put(R.string.Tgx101LongPressMenu, "Долгое нажатие: меню, выбор не отпуская палец (как iOS)");
     RU.put(R.string.Tgx101UiBold, "Жирнее текст интерфейса");
     RU.put(R.string.Tgx101ChipBlock, "Блок");

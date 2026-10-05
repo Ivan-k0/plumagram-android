@@ -7219,7 +7219,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       int offset = Screen.dp(32) - shrinkSize;
       int positionOffset = -(int) (verticalFactor * offset);
 
-      int startY = topContentEdge + (bottomContentEdge - topContentEdge) / 2 + positionOffset;
+      int centerY = topContentEdge + (bottomContentEdge - topContentEdge) / 2;
+      if (!isLeft && Settings.instance().tgx101SwipeActions()) {
+        // TGx101 (user 2026-10-06): the column stands under the finger, «Reply» at the point the swipe started
+        centerY = (int) MathUtils.clamp(mInitialTouchY, topContentEdge, bottomContentEdge);
+      }
+      int startY = centerY + positionOffset;
       float cx = translation > 0f ? translation / 2 : view.getMeasuredWidth() + translation / 2;
       for (int a = 0; a < actions.size(); a++) {
         SwipeQuickAction action = actions.get(a);
@@ -7227,6 +7232,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         float cy = startY + offset * a;
         float closenessToBorder = 1f - MathUtils.clamp(Math.min(cy - topContentEdge, bottomContentEdge - cy) / Screen.dp(12));
         float maxAlpha = Math.max(positionFactor, 1f - closenessToBorder);
+        // TGx101 (user 2026-10-06): at most 5 icons at a time — the picked one and two on each side, the rest fade in
+        // as the finger moves to them
+        float distance = Math.abs(verticalFactor - a);
+        if (distance > 3f) continue;
+        if (distance > 2f) maxAlpha *= 3f - distance;
         float ncx = cx + shrinkSize * (1f - positionFactor);
         Drawable icon = (!action.isQuickReaction || nextSetReactionAnimation == null) ? action.icon : null;
         drawTranslateRound(c, ncx, cy, readyFactor, maxAlpha, positionFactor, icon);
@@ -9119,6 +9129,16 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return Drawables.get(UI.getResources(), res);
   }
 
+  private boolean tgx101HasText () {
+    TdApi.FormattedText text = Td.textOrCaption(getNewestMessage().content);
+    return text != null && !StringUtils.isEmpty(text.text);
+  }
+
+  /** TGx101: a swipe action that does what the same item of the message menu does */
+  private SwipeQuickAction tgx101SwipeAction (int icon, int menuId) {
+    return new SwipeQuickAction("", tgx101Icon(icon), () -> messagesController().tgx101RunMessageAction(this, menuId), true, false);
+  }
+
   private long[] getAllMessageIds () {
     TdApi.Message[] all = getAllMessages();
     long[] ids = new long[all.length];
@@ -9159,7 +9179,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       rightActions.add(replyButton);
     }
 
-    if (Settings.instance().needUseQuickTranslation()) {
+    // TGx101 (user 2026-10-06): with the swipe actions on, the column is the user's 9 actions only
+    final boolean tgx101Swipe = replyButton != null && Settings.instance().tgx101SwipeActions();
+    if (!tgx101Swipe && Settings.instance().needUseQuickTranslation()) {
       if (isTranslated()) {
         rightActions.add(new SwipeQuickAction(translateStopText, iQuickStopTranslate, () -> {
           stopTranslated();
@@ -9194,7 +9216,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           }
         }, false, true);
 
-        if (!swipeReactions) {
+        if (!swipeReactions || tgx101Swipe) {
           continue;
         }
         if (isOdd) {
@@ -9208,30 +9230,59 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
 
 
-    // TGx101 (user 2026-10-05, exteraGram variant 1): a column on the right — «Reply» in the middle (a plain swipe),
-    // moving the finger up: Forward, Save; down: Copy, Delete. Works with «double tap — like» too.
-    if (replyButton != null && Settings.instance().tgx101SwipeActions()) {
-      if (canBeForwarded() && !messagesController().isSecretChat()) {
-        rightQuickDefaultPosition++;
-        rightActions.add(0, new SwipeQuickAction(Lang.getString(R.string.Tgx101SwipeSave), tgx101Icon(R.drawable.baseline_bookmark_24), () ->
-          tdlib.send(new TdApi.ForwardMessages(tdlib.selfChatId(), null, msg.chatId, getAllMessageIds(), null, false, false), (result, error) -> {
-            if (error == null) UI.showToast(R.string.Tgx101SwipeSaved, android.widget.Toast.LENGTH_SHORT);
-          }), true, false));
-        rightQuickDefaultPosition++;
-        rightActions.add(0, new SwipeQuickAction(shareText, iQuickShare, () -> messagesController().shareMessages(getAllMessages(), false), true, false));
+    // TGx101 (user 2026-10-05, exteraGram variant 1; 2026-10-06: 9 actions, order and visibility in MagiX): a column
+    // on the right with «Reply» on a plain swipe; moving the finger up or down picks the others. Icons only.
+    if (tgx101Swipe) {
+      final boolean isSent = !isNotSent();
+      final SwipeQuickAction reply = replyButton;
+      rightActions.clear();
+      for (String entry : org.thunderdog.challegram.ui.Tgx101BarOrder.getOrder(org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_SWIPE)) {
+        if (entry.startsWith("-")) continue;
+        SwipeQuickAction action = null;
+        switch (entry) {
+          case org.thunderdog.challegram.ui.Tgx101BarOrder.SWIPE_REPLY:
+            action = reply;
+            break;
+          case org.thunderdog.challegram.ui.Tgx101BarOrder.SWIPE_FORWARD:
+            if (isSent && canBeForwarded() && !messagesController().isSecretChat()) action = tgx101SwipeAction(R.drawable.baseline_forward_24, R.id.btn_messageShare);
+            break;
+          case org.thunderdog.challegram.ui.Tgx101BarOrder.SWIPE_SAVE:
+            if (isSent && canBeForwarded() && !messagesController().isSecretChat()) {
+              action = new SwipeQuickAction(Lang.getString(R.string.Tgx101SwipeSave), tgx101Icon(R.drawable.baseline_bookmark_24), () ->
+                tdlib.send(new TdApi.ForwardMessages(tdlib.selfChatId(), null, msg.chatId, getAllMessageIds(), null, false, false), (result, error) -> {
+                  if (error == null) UI.showToast(R.string.Tgx101SwipeSaved, android.widget.Toast.LENGTH_SHORT);
+                }), true, false);
+            }
+            break;
+          case org.thunderdog.challegram.ui.Tgx101BarOrder.SWIPE_COPY:
+            if (canBeSaved() && tgx101HasText()) action = tgx101SwipeAction(R.drawable.baseline_content_copy_24, R.id.btn_messageCopy);
+            break;
+          case org.thunderdog.challegram.ui.Tgx101BarOrder.SWIPE_PIN:
+            if (isSent && canBePinned() && messagesController().canPinAnyMessage(true)) {
+              boolean pinned = getPinnedMessageCount() > 0;
+              action = tgx101SwipeAction(pinned ? R.drawable.deproko_baseline_pin_undo_24 : R.drawable.deproko_baseline_pin_24, pinned ? R.id.btn_messageUnpin : R.id.btn_messagePin);
+            }
+            break;
+          case org.thunderdog.challegram.ui.Tgx101BarOrder.SWIPE_TRANSLATE:
+            if (isTranslated()) {
+              action = tgx101SwipeAction(R.drawable.baseline_translate_off_24, R.id.btn_chatTranslateOff);
+            } else if (isTranslatable() && translationStyleMode() != Settings.TRANSLATE_MODE_NONE) {
+              action = tgx101SwipeAction(R.drawable.baseline_translate_24, R.id.btn_chatTranslate);
+            }
+            break;
+          case org.thunderdog.challegram.ui.Tgx101BarOrder.SWIPE_EDIT:
+            if (isSent && canEditText()) action = tgx101SwipeAction(R.drawable.baseline_edit_24, R.id.btn_messageEdit);
+            break;
+          case org.thunderdog.challegram.ui.Tgx101BarOrder.SWIPE_SELECT:
+            if (canBeSelected()) action = tgx101SwipeAction(R.drawable.baseline_playlist_add_check_24, R.id.btn_messageSelect);
+            break;
+          case org.thunderdog.challegram.ui.Tgx101BarOrder.SWIPE_DELETE:
+            if (canBeDeletedForSomebody()) action = tgx101SwipeAction(R.drawable.baseline_delete_24, R.id.btn_messageDelete);
+            break;
+        }
+        if (action != null) rightActions.add(action);
       }
-      int replyAt = rightActions.indexOf(replyButton);
-      int insert = replyAt + 1;
-      if (canBeSaved()) {
-        rightActions.add(insert++, new SwipeQuickAction(Lang.getString(R.string.Copy), tgx101Icon(R.drawable.baseline_content_copy_24), () -> {
-          TdApi.FormattedText text = Td.textOrCaption(getNewestMessage().content);
-          if (text != null && !StringUtils.isEmpty(text.text)) UI.copyText(TD.toCharSequence(text), R.string.CopiedText);
-        }, true, false));
-      }
-      if (canBeDeletedForSomebody()) {
-        rightActions.add(insert, new SwipeQuickAction(Lang.getString(R.string.Delete), tgx101Icon(R.drawable.baseline_delete_24), () ->
-          tdlib.ui().showDeleteOptions(messagesController(), getAllMessagesAndProperties(), null), true, false));
-      }
+      rightQuickDefaultPosition = Math.max(0, rightActions.indexOf(reply));
     }
 
     if (canShare) {

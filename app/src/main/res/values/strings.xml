@@ -6289,10 +6289,12 @@
   <string name="Tgx101ProxyPin">Pin to the top</string>
   <string name="Tgx101ProxyRename">Rename</string>
   <string name="Tgx101ProxyName">Name</string>
-  <string name="Tgx101SwipeActions">Swipe actions: reply, ↑ forward / save, ↓ copy / delete</string>
+  <string name="Tgx101SwipeActions">Swipe actions: a column under the finger (actions in Message menu items)</string>
   <string name="Tgx101SwipeSave">Save</string>
   <string name="Tgx101SwipeSaved">Saved to Saved Messages</string>
   <string name="Tgx101Haptics">Vibration of PlumaGram features</string>
+  <string name="Tgx101SwipeMenuSection">Swipe on a message</string>
+  <string name="Tgx101SwipeMenuHint">Top to bottom, as in the column: a plain swipe left replies, moving the finger up or down picks the others. Reply can't be hidden.</string>
   <string name="Tgx101LongPressMenu">Long press: menu, slide to an item (like iOS)</string>
   <string name="Tgx101MenuAtFinger">Message menu opens at the finger</string>
   <string name="Tgx101MenuSelectAlways">«Select» always stays in the menu — drag to move it</string>

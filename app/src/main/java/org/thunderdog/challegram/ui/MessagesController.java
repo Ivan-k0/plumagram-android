@@ -6105,6 +6105,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   @SuppressWarnings("unchecked")
+  /** TGx101: runs a message menu action without the menu (the swipe actions) */
+  public boolean tgx101RunMessageAction (TGMessage message, int id) {
+    return newMessageOptionDelegate(message, null, null).onOptionItemPressed(null, id);
+  }
+
   private OptionDelegate newMessageOptionDelegate (final TGMessage selectedMessage, final TdApi.ChatMember selectedMessageSender, final Object selectedMessageTag) {
     return (itemView, id) -> {
       if (id == R.id.btn_cancel) {

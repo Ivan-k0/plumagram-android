@@ -26,15 +26,47 @@ import java.util.List;
 public final class Tgx101BarOrder {
   private Tgx101BarOrder () { }
 
-  public static final int BAR_MESSAGE = 0, BAR_INPUT = 1;
+  public static final int BAR_MESSAGE = 0, BAR_INPUT = 1, BAR_SWIPE = 2;
 
   public static final String QUOTE = "quote", COPY = "copy", SELECT_ALL = "selectAll", EDITOR = "editor",
     CUT = "cut", PASTE = "paste", APPS = "apps";
 
+  // TGx101 (user 2026-10-06): the swipe actions column, top to bottom; «Reply» is the plain swipe and can't be hidden
+  public static final String SWIPE_PIN = "pin", SWIPE_TRANSLATE = "translate", SWIPE_SAVE = "save", SWIPE_FORWARD = "forward",
+    SWIPE_REPLY = "reply", SWIPE_COPY = "copy", SWIPE_EDIT = "edit", SWIPE_SELECT = "select", SWIPE_DELETE = "delete";
   static final String[][] KEYS = {
     {QUOTE, COPY, SELECT_ALL, EDITOR, APPS},
-    {CUT, COPY, PASTE, SELECT_ALL, APPS}
+    {CUT, COPY, PASTE, SELECT_ALL, APPS},
+    {SWIPE_PIN, SWIPE_TRANSLATE, SWIPE_SAVE, SWIPE_FORWARD, SWIPE_REPLY, SWIPE_COPY, SWIPE_EDIT, SWIPE_SELECT, SWIPE_DELETE}
   };
+
+  static int swipeNameOf (String key) {
+    switch (key) {
+      case SWIPE_PIN: return R.string.MessagePin;
+      case SWIPE_TRANSLATE: return R.string.Translate;
+      case SWIPE_SAVE: return R.string.Tgx101SwipeSave;
+      case SWIPE_FORWARD: return R.string.Share;
+      case SWIPE_REPLY: return R.string.Reply;
+      case SWIPE_COPY: return R.string.Copy;
+      case SWIPE_EDIT: return R.string.edit;
+      case SWIPE_SELECT: return R.string.Select;
+      case SWIPE_DELETE: default: return R.string.Delete;
+    }
+  }
+
+  static int swipeIconOf (String key) {
+    switch (key) {
+      case SWIPE_PIN: return R.drawable.deproko_baseline_pin_24;
+      case SWIPE_TRANSLATE: return R.drawable.baseline_translate_24;
+      case SWIPE_SAVE: return R.drawable.baseline_bookmark_24;
+      case SWIPE_FORWARD: return R.drawable.baseline_forward_24;
+      case SWIPE_REPLY: return R.drawable.baseline_reply_24;
+      case SWIPE_COPY: return R.drawable.baseline_content_copy_24;
+      case SWIPE_EDIT: return R.drawable.baseline_edit_24;
+      case SWIPE_SELECT: return R.drawable.baseline_playlist_add_check_24;
+      case SWIPE_DELETE: default: return R.drawable.baseline_delete_24;
+    }
+  }
 
   static int nameOf (String key) {
     switch (key) {

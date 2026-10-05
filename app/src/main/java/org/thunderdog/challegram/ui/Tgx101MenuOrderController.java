@@ -54,6 +54,10 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
           boolean hidden = position < order.length && Tgx101MessageMenu.isHidden(order[position]);
           boolean inMore = position < order.length && Tgx101MessageMenu.isInMore(order[position]);
           view.setData(hidden ? Lang.getString(R.string.Tgx101FormatHidden) : inMore ? Lang.getString(R.string.Tgx101MenuInMore) : Integer.toString(position + 1));
+        } else if (item.getId() == R.id.btn_tgx101BarItem) {
+          int position = (int) item.getLongId();
+          List<String> swipe = Tgx101BarOrder.getOrder(Tgx101BarOrder.BAR_SWIPE);
+          view.setData(position < swipe.size() && swipe.get(position).startsWith("-") ? Lang.getString(R.string.Tgx101FormatHidden) : Integer.toString(position + 1));
         }
       }
     };
@@ -82,6 +86,17 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     }
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101MessageMenuOrderHint));
+    // TGx101 (user 2026-10-06): the swipe actions column, top to bottom
+    items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101SwipeMenuSection));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    List<String> swipe = Tgx101BarOrder.getOrder(Tgx101BarOrder.BAR_SWIPE);
+    for (int i = 0; i < swipe.size(); i++) {
+      String key = swipe.get(i).startsWith("-") ? swipe.get(i).substring(1) : swipe.get(i);
+      if (i > 0) items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101BarItem, Tgx101BarOrder.swipeIconOf(key), Tgx101BarOrder.swipeNameOf(key)).setLongId(i));
+    }
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SwipeMenuHint));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MenuOrderReset, R.drawable.baseline_undo_24, R.string.Tgx101MessageMenuOrderReset));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
@@ -105,7 +120,12 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
       Settings.instance().setTgx101MessageMenuOrder(null);
       Settings.instance().setTgx101MessageMenuHidden(null);
       Settings.instance().setTgx101MessageMenuMore(null);
+      Tgx101BarOrder.setOrder(Tgx101BarOrder.BAR_SWIPE, null);
       rebuild();
+      return;
+    }
+    if (id == R.id.btn_tgx101BarItem) {
+      showSwipeOptions((ListItem) v.getTag());
       return;
     }
     if (id != R.id.btn_tgx101MenuAction) {
@@ -181,5 +201,48 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
       Settings.instance().setTgx101MessageMenuOrder(result);
       rebuild();
     }
+  }
+
+  /** Show / hide / move one action of the swipe column; «Reply» (the plain swipe) can only be moved */
+  private void showSwipeOptions (ListItem item) {
+    final int position = (int) item.getLongId();
+    final List<String> order = Tgx101BarOrder.getOrder(Tgx101BarOrder.BAR_SWIPE);
+    if (position >= order.size()) return;
+    final String entry = order.get(position);
+    final boolean hidden = entry.startsWith("-");
+    final boolean canHide = !Tgx101BarOrder.SWIPE_REPLY.equals(entry);
+    ArrayList<Integer> ids = new ArrayList<>(), icons = new ArrayList<>();
+    ArrayList<String> names = new ArrayList<>();
+    if (canHide) {
+      ids.add(R.id.btn_tgx101FormatToggle);
+      names.add(Lang.getString(hidden ? R.string.Tgx101FormatShow : R.string.Tgx101FormatHide));
+      icons.add(hidden ? R.drawable.baseline_visibility_24 : R.drawable.baseline_eye_off_24);
+    }
+    int[] moveIds = {R.id.btn_moveToTop, R.id.btn_moveUp, R.id.btn_moveDown, R.id.btn_moveToBottom};
+    int[] moveNames = {R.string.Tgx101MoveToTop, R.string.Tgx101MoveUp, R.string.Tgx101MoveDown, R.string.Tgx101MoveToBottom};
+    int[] moveIcons = {R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_downward_24, R.drawable.baseline_arrow_downward_24};
+    for (int i = 0; i < moveIds.length; i++) {
+      ids.add(moveIds[i]);
+      names.add(Lang.getString(moveNames[i]));
+      icons.add(moveIcons[i]);
+    }
+    showOptions(item.getString(), toArray(ids), names.toArray(new String[0]), null, toArray(icons), (itemView, optionId) -> {
+      List<String> list = new ArrayList<>(order);
+      if (optionId == R.id.btn_tgx101FormatToggle) {
+        list.set(position, hidden ? entry.substring(1) : "-" + entry);
+      } else {
+        int target;
+        if (optionId == R.id.btn_moveToTop) target = 0;
+        else if (optionId == R.id.btn_moveUp) target = Math.max(0, position - 1);
+        else if (optionId == R.id.btn_moveDown) target = Math.min(list.size() - 1, position + 1);
+        else if (optionId == R.id.btn_moveToBottom) target = list.size() - 1;
+        else return true;
+        list.remove(position);
+        list.add(target, entry);
+      }
+      Tgx101BarOrder.setOrder(Tgx101BarOrder.BAR_SWIPE, list);
+      rebuild();
+      return true;
+    });
   }
 }
