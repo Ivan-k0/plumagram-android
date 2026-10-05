@@ -1817,6 +1817,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
   @Override
   public void onRecordStateChanged (boolean isRecording) {
     setInputBlockFlag(FLAG_INPUT_RECORDING, isRecording);
+    // TGx101 (user 2026-10-05): the recording bar is 49dp high, our input row is taller (gap, several lines) — the
+    // typed text showed above / through it; hide the text while recording
+    if (inputView != null) {
+      inputView.animate().alpha(isRecording ? 0f : 1f).setDuration(120).start();
+    }
   }
 
   public MessagesManager getManager () {

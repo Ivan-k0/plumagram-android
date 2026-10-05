@@ -311,8 +311,13 @@ public class RecordDurationView extends View {
 
   private static void initSizes () {
     circleRadius = Screen.dp(5f) - 1;
-    circleCenterX = Screen.dp(66f);
     textLeft = Screen.dp(5f);
+    // TGx101 (user 2026-10-05): the red dot right after the digits with a gap — it touched the last digit
+    TextPaint paint = tgx101TimerPaint(0xff000000);
+    float digit = 0;
+    for (int i = 0; i < 10; i++) digit = Math.max(digit, U.measureText(String.valueOf(i), paint));
+    float textWidth = digit * 5 + U.measureText(":", paint) + U.measureText(",", paint);
+    circleCenterX = (int) (textLeft + textWidth + Screen.dp(9f) + circleRadius);
     textOffset = Screen.dp(5f);
     textShift = Screen.dp(17f);
   }

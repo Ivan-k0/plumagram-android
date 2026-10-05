@@ -617,7 +617,9 @@ public class RecordAudioVideoController implements
     float actualX = Math.max(-Screen.dp(SLIDE_DISTANCE), getActualTranslateX());
     float closeFactor = MathUtils.clamp(-actualX / (float) Screen.dp(SLIDE_DISTANCE));
 
-    float slideAlpha = (1f - releaseFactor) * (1f - closeFactor);
+    // TGx101 (user's screenshot 2026-10-05): a call stopped the recording into the preview without «release» —
+    // «Slide left to cancel» stayed on top of the waveform; it goes with the preview too
+    float slideAlpha = (1f - releaseFactor) * (1f - closeFactor) * (1f - this.editFactor);
     slideHintView.setAlpha(slideAlpha);
     cornerView.setAlpha(slideAlpha);
 

@@ -198,7 +198,7 @@ public class RecordLockView extends View {
     }
 
     if (collapseFactor < 1f) {
-      float arrowAlpha = 1f - Math.min(1f, collapseFactor / .25f); // gone before the capsule reaches the lock
+      float arrowAlpha = (1f - Math.min(1f, collapseFactor / .25f)) * (1f - editFactor); // gone before the capsule reaches the lock; none in the preview
       if (arrowAlpha > 0f) {
         DrawAlgorithms.drawDirection(c, cx, bottomCy, ColorUtils.alphaColor(arrowAlpha, grayColor), Gravity.TOP);
       }
