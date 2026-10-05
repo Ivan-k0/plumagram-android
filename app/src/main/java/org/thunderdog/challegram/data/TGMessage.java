@@ -1831,6 +1831,31 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (highlightFactor != 0f) {
       drawHighlight(view, c);
     }
+    if (translation == 0f && tgx101HasSideMenuDot()) {
+      tgx101DrawSideMenuDot(view, c);
+    }
+  }
+
+  // TGx101 (user 2026-10-06, like the official app + a hint): photos / videos / files keep their tap (open), and the
+  // message menu is a tap in the empty space beside the bubble — a small «⋯» sits there, by the bubble's bottom.
+  // Not in the iOS long-press mode (there the long press is the menu)
+
+  /** Photos, videos, files: a «⋯» beside the bubble */
+  protected boolean tgx101HasSideMenuDot () {
+    return false;
+  }
+
+  private void tgx101DrawSideMenuDot (MessageView view, Canvas c) {
+    if (!useBubbles() || Settings.instance().tgx101LongPressMenu() || isSponsoredMessage() || isEventLog()) return;
+    int radius = Screen.dp(12f);
+    float cx = isOutgoingBubble() ? getActualLeftContentEdge() - Screen.dp(20f) : getActualRightContentEdge() + Screen.dp(20f);
+    if (cx - radius < 0 || cx + radius > view.getMeasuredWidth()) return;
+    float cy = bottomContentEdge - Screen.dp(14f);
+    c.drawCircle(cx, cy, radius, Paints.fillingPaint(ColorUtils.alphaColor(.8f, getBubbleButtonBackgroundColor())));
+    int dotColor = getBubbleButtonTextColor();
+    for (int d = -1; d <= 1; d++) {
+      c.drawCircle(cx + Screen.dp(4.5f) * d, cy, Screen.dp(1.6f), Paints.fillingPaint(dotColor));
+    }
   }
 
   public static int getDateHeight (boolean useBubbles) {

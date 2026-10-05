@@ -640,15 +640,6 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
       }
       int contentStartY = Math.round(rectF.top + entry.getSpacingStart());
       entry.item.component.draw(view, c, startX, contentStartY, previewReceiver, imageReceiver, backgroundColor, useBubbles() ? ColorUtils.compositeColor(contentReplaceColor, pressColor) : contentReplaceColor, entry.getVisibility(), entry.item.getCheckFactor());
-      if (entry.item.component.isDocument() && !org.thunderdog.challegram.unsorted.Settings.instance().tgx101LongPressMenu()) {
-        // TGx101: ⋮ in the top right corner (not in the iOS long-press mode, user 2026-10-06) — the right quarter of the card opens the message menu
-        float dotsX = startX + getContentWidth() - Screen.dp(4f);
-        float dotsY = contentStartY + Screen.dp(8f);
-        Paint dotPaint = Paints.fillingPaint(ColorUtils.alphaColor(entry.getVisibility() * alpha, getDecentColor()));
-        for (int d = 0; d < 3; d++) {
-          c.drawCircle(dotsX, dotsY + Screen.dp(5f) * d, Screen.dp(1.6f), dotPaint);
-        }
-      }
       for (ListAnimator.Entry<TextWrapper> caption : entry.item.caption) {
         int right = useBubbles() ? startX + getContentWidth() : startX + Math.max(entry.item.component.getWidth(), caption.item.getWidth());
         caption.item.draw(c, startX, right, 0, contentStartY + entry.item.component.getHeight() + Screen.dp(TEXT_MARGIN), null, entry.getVisibility() * caption.getVisibility() * alpha, view.getTextMediaReceiver());
@@ -787,15 +778,16 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
 
   // Touch
 
+  @Override
+  protected boolean tgx101HasSideMenuDot () {
+    return !filesList.isEmpty() && filesList.get(0).component.isDocument();
+  }
+
   private boolean tgx101MenuZoneTouch;
 
-  /** TGx101: the right quarter of a document card (with ⋮) opens the message menu instead of the file */
+  /** TGx101: no menu zone on the card any more (user 2026-10-06) — the menu is the «⋯» beside the bubble */
   private boolean isInMenuZone (float x) {
-    if (filesList.isEmpty() || !filesList.get(0).component.isDocument()) return false;
-    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101LongPressMenu()) return false; // iOS mode: long press = menu
-    int contentWidth = getContentWidth();
-    int left = getContentX();
-    return x >= left + contentWidth * .75f && x <= left + contentWidth + Screen.dp(12f);
+    return false;
   }
 
   @Override
