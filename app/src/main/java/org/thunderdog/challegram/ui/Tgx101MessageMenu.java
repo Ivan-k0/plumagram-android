@@ -382,10 +382,6 @@ public final class Tgx101MessageMenu {
       }
       return false;
     });
-    // TGx101 (user 2026-10-06, variant 1): the message stays sharp above the blur, the menu goes above or below it
-    final android.graphics.Rect liftScreen = new android.graphics.Rect(); // the visible part of the message, on screen
-    final android.graphics.Rect listScreen = new android.graphics.Rect(); // the messages list, on screen
-    final ImageView lift = liftedMessage(c, message, liftScreen, listScreen);
     final float firstX = lastTouchRawX, firstY = lastTouchRawY;
     host.selectInPlace = () -> {
       View messageView = message.findCurrentView();
@@ -398,13 +394,9 @@ public final class Tgx101MessageMenu {
       org.thunderdog.challegram.Tgx101Diag.mark("select: «Select» in the menu");
       c.tgx101OpenSelectText(message, (org.thunderdog.challegram.component.chat.MessageView) messageView, firstX - location[0], firstY - location[1]);
     };
-    if (lift != null) {
-      root.addView(lift, new FrameLayout.LayoutParams(liftScreen.width(), liftScreen.height()));
-    }
     root.setOnLongClickListener(v -> {
       View messageView = message.findCurrentView();
       if (!(messageView instanceof org.thunderdog.challegram.component.chat.MessageView)) return false;
-      if (lift != null && !liftVisibleContains(lift, down[0], down[1])) return false; // not on the visible message
       int[] location = new int[2];
       messageView.getLocationOnScreen(location);
       float x = down[0] - location[0], y = down[1] - location[1];
@@ -431,16 +423,7 @@ public final class Tgx101MessageMenu {
       Gravity.BOTTOM | (leftHand ? Gravity.LEFT : Gravity.RIGHT));
     columnParams.setMargins(Screen.dp(12f), Screen.dp(12f), Screen.dp(12f), (keyboardHeight > 0 ? Screen.dp(12f) + keyboardHeight : Screen.dp(68f) + navigationInset)); // above the message input or the keyboard
     column.setLayoutParams(columnParams);
-    if (lift != null) {
-      final float touchY = lastTouchRawY >= 0 && android.os.SystemClock.uptimeMillis() - lastTouchAt < 3000 ? lastTouchRawY : liftScreen.centerY();
-      column.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-        @Override
-        public void onLayoutChange (View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
-          v.removeOnLayoutChangeListener(this);
-          placeNextToMessage(root, v, host.scroll, lift, liftScreen, listScreen, touchY, true);
-        }
-      });
-    } else if (Settings.instance().tgx101MenuAtFinger() && lastTouchRawY >= 0 && android.os.SystemClock.uptimeMillis() - lastTouchAt < 3000) {
+    if (Settings.instance().tgx101MenuAtFinger() && lastTouchRawY >= 0 && android.os.SystemClock.uptimeMillis() - lastTouchAt < 3000) {
       // variant 1: the menu opens at the finger — its top a little above the touch, kept inside the screen with
       // margins from the top and the bottom edges
       final float touchY = lastTouchRawY;
@@ -731,98 +714,6 @@ public final class Tgx101MessageMenu {
       int[] t = src; src = dst; dst = t;
     }
     bitmap.setPixels(src, 0, w, 0, 0, w, h);
-  }
-
-  /** A sharp copy of the visible part of the message, placed over the blur where the message is */
-  private static @Nullable ImageView liftedMessage (MessagesController c, TGMessage message, android.graphics.Rect outMessage, android.graphics.Rect outList) {
-    try {
-      View view = message.findCurrentView();
-      View list = c.getMessagesView();
-      if (view == null || list == null || view.getWidth() <= 0 || view.getHeight() <= 0) return null;
-      int[] loc = new int[2];
-      list.getLocationOnScreen(loc);
-      outList.set(loc[0], loc[1], loc[0] + list.getWidth(), loc[1] + list.getHeight());
-      view.getLocationOnScreen(loc);
-      outMessage.set(loc[0], loc[1], loc[0] + view.getWidth(), loc[1] + view.getHeight());
-      if (!outMessage.intersect(outList) || outMessage.height() < Screen.dp(8f)) return null;
-      android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(outMessage.width(), outMessage.height(), android.graphics.Bitmap.Config.ARGB_8888);
-      android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
-      canvas.translate(loc[0] - outMessage.left, loc[1] - outMessage.top);
-      view.draw(canvas);
-      ImageView image = new ImageView(c.context());
-      image.setImageBitmap(bitmap);
-      image.setScaleType(ImageView.ScaleType.FIT_XY);
-      image.setClickable(false);
-      image.setLongClickable(false);
-      return image;
-    } catch (Throwable t) {
-      org.thunderdog.challegram.Tgx101Diag.mark("menu: lift failed — " + t.getClass().getSimpleName());
-      return null;
-    }
-  }
-
-  private static boolean liftVisibleContains (ImageView lift, float rawX, float rawY) {
-    int[] loc = new int[2];
-    lift.getLocationOnScreen(loc);
-    android.graphics.Rect clip = lift.getClipBounds();
-    float x = rawX - loc[0], y = rawY - loc[1];
-    if (clip != null) return clip.contains((int) x, (int) y);
-    return x >= 0 && y >= 0 && x <= lift.getWidth() && y <= lift.getHeight();
-  }
-
-  /** The menu above or below the message without covering it; a message too tall for that is cut where the menu is */
-  private static void placeNextToMessage (View root, View column, @Nullable View scroll, ImageView lift, android.graphics.Rect message, android.graphics.Rect list, float touchY, boolean canShrink) {
-    int[] rootLoc = new int[2];
-    root.getLocationOnScreen(rootLoc);
-    int gap = Screen.dp(8f);
-    int msgTop = message.top - rootLoc[1], msgBottom = message.bottom - rootLoc[1];
-    int areaTop = Math.max(list.top - rootLoc[1], Screen.getStatusBarHeight()) + gap;
-    int areaBottom = Math.min(list.bottom - rootLoc[1], column.getBottom()) - gap;
-    lift.setTranslationX(message.left - rootLoc[0]);
-    lift.setTranslationY(msgTop);
-    int h = column.getHeight();
-    int top;
-    android.graphics.Rect clip = null;
-    String where;
-    if (h <= areaBottom - msgBottom - gap) {
-      top = msgBottom + gap;
-      where = "below";
-    } else if (h <= msgTop - areaTop - gap) {
-      top = msgTop - gap - h;
-      where = "above";
-    } else if (canShrink && scroll != null && msgBottom - msgTop <= (areaBottom - areaTop) / 2) {
-      // a short message: the actions get shorter (they scroll) so that the menu fits beside the whole message
-      int space = Math.max(areaBottom - msgBottom, msgTop - areaTop) - gap;
-      int shrunk = scroll.getHeight() - (h - space);
-      if (shrunk >= Screen.dp(48f) * 3) {
-        ViewGroup.LayoutParams params = scroll.getLayoutParams();
-        params.height = shrunk;
-        scroll.setLayoutParams(params);
-        column.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-          @Override
-          public void onLayoutChange (View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
-            v.removeOnLayoutChangeListener(this);
-            placeNextToMessage(root, column, scroll, lift, message, list, touchY, false);
-          }
-        });
-        org.thunderdog.challegram.Tgx101Diag.mark("menu: actions shortened to " + shrunk + " to fit beside the message");
-        return;
-      }
-      placeNextToMessage(root, column, scroll, lift, message, list, touchY, false);
-      return;
-    } else if (touchY - rootLoc[1] < (areaTop + areaBottom) / 2f) {
-      // the finger is high: the menu at the bottom, the message cut above it
-      top = Math.max(areaTop, areaBottom - h);
-      clip = new android.graphics.Rect(0, 0, lift.getWidth(), Math.max(0, top - gap - msgTop));
-      where = "bottom, message cut";
-    } else {
-      top = areaTop;
-      clip = new android.graphics.Rect(0, Math.max(0, top + h + gap - msgTop), lift.getWidth(), lift.getHeight());
-      where = "top, message cut";
-    }
-    if (clip != null) lift.setClipBounds(clip);
-    column.setTranslationY(top - column.getTop());
-    org.thunderdog.challegram.Tgx101Diag.mark("menu: " + where + " (menu " + h + ", message " + msgTop + ".." + msgBottom + ", area " + areaTop + ".." + areaBottom + ")");
   }
 
   private static Drawable blurredBackground (MessagesController c) {
