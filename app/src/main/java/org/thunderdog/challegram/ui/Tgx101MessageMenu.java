@@ -79,22 +79,24 @@ public final class Tgx101MessageMenu {
     R.id.btn_tgx101EditorWindow,
     R.id.btn_messageViewList,
     R.id.btn_messageReplies,
-    R.id.btn_messageDelete, // TGx101 (user 2026-10-05): «Delete» is ordered like the rest; «Select» is always last
     R.id.btn_messageShowSource, // «To the original» / «Clear cache» (user's video 22:42): orderable, can go to «More…» / be hidden
-    R.id.btn_deleteFile
+    R.id.btn_deleteFile,
+    R.id.btn_messageMore, // user 2026-10-06: «More…» is ordered too, by default third from the end: More, Delete, Select
+    R.id.btn_messageDelete // TGx101 (user 2026-10-05): «Delete» is ordered like the rest; «Select» is always last
   };
   public static final int[] ORDERABLE_NAMES = {
     R.string.Reply, R.string.Copy, R.string.edit, R.string.Share, R.string.MessagePin,
     R.string.Tgx101MenuSelectText, R.string.Translate, R.string.CopyLink, R.string.Save, R.string.MessageReport,
     R.string.Tgx101FilterSimilar, R.string.Tgx101MenuEditorOwn, R.string.Tgx101MenuMessagesFrom,
-    R.string.Tgx101MenuThread, R.string.Delete, R.string.Tgx101MenuToOriginal, R.string.DeleteFromCache
+    R.string.Tgx101MenuThread, R.string.Tgx101MenuToOriginal, R.string.DeleteFromCache, R.string.MoreMessageOptions, R.string.Delete
   };
   public static final int[] ORDERABLE_ICONS = {
     R.drawable.baseline_reply_24, R.drawable.baseline_content_copy_24, R.drawable.baseline_edit_24,
     R.drawable.baseline_forward_24, R.drawable.deproko_baseline_pin_24, R.drawable.baseline_format_quote_close_24,
     R.drawable.baseline_translate_24, R.drawable.baseline_link_24, R.drawable.baseline_file_download_24,
     R.drawable.baseline_report_24, R.drawable.baseline_filter_variant_remove_24, R.drawable.baseline_format_text_24,
-    R.drawable.baseline_person_24, R.drawable.outline_forum_24, R.drawable.baseline_delete_24, R.drawable.baseline_forum_24, R.drawable.templarian_baseline_broom_24
+    R.drawable.baseline_person_24, R.drawable.outline_forum_24, R.drawable.baseline_forum_24, R.drawable.templarian_baseline_broom_24,
+    R.drawable.baseline_more_horiz_24, R.drawable.baseline_delete_24
   };
 
   private static int orderKey (int id) {
@@ -114,9 +116,15 @@ public final class Tgx101MessageMenu {
         }
       }
     }
+    // actions added in later versions go above «Delete» (where the default order has them), not under it
     for (int known : ORDERABLE_IDS) {
       if (!result.contains(known)) {
-        result.add(known);
+        int deleteAt = result.indexOf(R.id.btn_messageDelete);
+        if (deleteAt != -1 && known != R.id.btn_messageDelete) {
+          result.add(deleteAt, known);
+        } else {
+          result.add(known);
+        }
       }
     }
     int[] out = new int[result.size()];
@@ -153,12 +161,6 @@ public final class Tgx101MessageMenu {
 
   public static boolean isShownInMenu (int id) {
     return shownIds.contains(id);
-  }
-
-  /** Like rank(), but «More…» goes after the ordered items */
-  private static int sortRank (int[] order, int id) {
-    if (id == R.id.btn_messageMore) return Integer.MAX_VALUE - 1;
-    return rank(order, id) * 2;
   }
 
   private static int rank (int[] order, int id) {
@@ -266,7 +268,7 @@ public final class Tgx101MessageMenu {
       dragRow = hit;
       if (hit != null) {
         hit.setPressed(true);
-        hit.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
+        if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101Haptics()) hit.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
       }
     }
     if (action == android.view.MotionEvent.ACTION_UP || action == android.view.MotionEvent.ACTION_CANCEL) {
@@ -504,11 +506,10 @@ public final class Tgx101MessageMenu {
       moreItem = new ViewController.OptionItem(R.id.btn_messageMore, Lang.getString(R.string.MoreMessageOptions), ViewController.OptionColor.NORMAL, R.drawable.baseline_more_horiz_24);
     }
     if (moreItem != null) {
-      sorted.add(moreItem); // «More…» stays last, above «Delete»
+      sorted.add(moreItem);
     }
-    // TGx101 (user 2026-10-05): «Select» is always in the menu (can't be hidden or moved to «More…»), in its place in
-    // the user's order — by default at the bottom, above «Delete»
-    java.util.Collections.sort(sorted, (a, b) -> Integer.compare(sortRank(order, a.id), sortRank(order, b.id)));
+    // «More…» in its place in the user's order (by default above «Delete»)
+    java.util.Collections.sort(sorted, (a, b) -> Integer.compare(rank(order, a.id), rank(order, b.id)));
     // user 2026-10-05 22:42: «Select» always at the very bottom, under a line
     final boolean addSelect = message.canBeSelected() && !c.inSelectMode();
     shownIds.clear();

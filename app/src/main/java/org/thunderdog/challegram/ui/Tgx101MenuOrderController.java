@@ -117,6 +117,19 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     final boolean hidden = Tgx101MessageMenu.isHidden(order[position]);
     final boolean inMore = Tgx101MessageMenu.isInMore(order[position]);
     String mark = "  ✓";
+    if (order[position] == R.id.btn_messageMore) {
+      // «More…» itself can only be moved (it shows up only when something is moved into it)
+      showOptions(item.getString(),
+        new int[] {R.id.btn_moveToTop, R.id.btn_moveUp, R.id.btn_moveDown, R.id.btn_moveToBottom},
+        new String[] {Lang.getString(R.string.Tgx101MoveToTop), Lang.getString(R.string.Tgx101MoveUp), Lang.getString(R.string.Tgx101MoveDown), Lang.getString(R.string.Tgx101MoveToBottom)},
+        null,
+        new int[] {R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_downward_24, R.drawable.baseline_arrow_downward_24},
+        (itemView, optionId) -> {
+          moveTo(order, position, optionId);
+          return true;
+        });
+      return;
+    }
     showOptions(item.getString(),
       new int[] {R.id.btn_tgx101MenuShow, R.id.btn_tgx101MenuToMore, R.id.btn_tgx101MenuHide, R.id.btn_moveToTop, R.id.btn_moveUp, R.id.btn_moveDown, R.id.btn_moveToBottom},
       new String[] {
@@ -140,29 +153,33 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
           rebuild();
           return true;
         }
-        int target;
-        if (optionId == R.id.btn_moveToTop) {
-          target = 0;
-        } else if (optionId == R.id.btn_moveUp) {
-          target = Math.max(0, position - 1);
-        } else if (optionId == R.id.btn_moveDown) {
-          target = Math.min(order.length - 1, position + 1);
-        } else if (optionId == R.id.btn_moveToBottom) {
-          target = order.length - 1;
-        } else {
-          return true;
-        }
-        if (target != position) {
-          ArrayList<Integer> list = new ArrayList<>();
-          for (int x : order) list.add(x);
-          int moved = list.remove(position);
-          list.add(target, moved);
-          int[] result = new int[list.size()];
-          for (int i = 0; i < result.length; i++) result[i] = list.get(i);
-          Settings.instance().setTgx101MessageMenuOrder(result);
-          rebuild();
-        }
+        moveTo(order, position, optionId);
         return true;
       });
+  }
+
+  private void moveTo (int[] order, int position, int optionId) {
+    int target;
+    if (optionId == R.id.btn_moveToTop) {
+      target = 0;
+    } else if (optionId == R.id.btn_moveUp) {
+      target = Math.max(0, position - 1);
+    } else if (optionId == R.id.btn_moveDown) {
+      target = Math.min(order.length - 1, position + 1);
+    } else if (optionId == R.id.btn_moveToBottom) {
+      target = order.length - 1;
+    } else {
+      return;
+    }
+    if (target != position) {
+      ArrayList<Integer> list = new ArrayList<>();
+      for (int x : order) list.add(x);
+      int moved = list.remove(position);
+      list.add(target, moved);
+      int[] result = new int[list.size()];
+      for (int i = 0; i < result.length; i++) result[i] = list.get(i);
+      Settings.instance().setTgx101MessageMenuOrder(result);
+      rebuild();
+    }
   }
 }
