@@ -195,7 +195,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MessageMenuHandRight, "Правую");
     RU.put(R.string.Tgx101MessageMenuHandLeft, "Левую");
     RU.put(R.string.Tgx101MessageMenuOrder, "Пункты меню сообщения");
-    RU.put(R.string.Tgx101MessageMenuOrderHint, "Нажмите на пункт, чтобы передвинуть его, скрыть или перенести в «Ещё…» (там же, где «Удалить из кэша»). Пункты, которых нет у сообщения, пропускаются. «Ещё» тоже можно передвинуть, «Выбрать» всегда в самом низу.");
+    RU.put(R.string.Tgx101MessageMenuOrderHint, "Нажмите на пункт, чтобы передвинуть его внутри раздела, перенести в меню, в «Ещё» или скрыть. Пункты, которых нет у сообщения, пропускаются. «Ещё» тоже можно передвинуть, «Выбрать» всегда в самом низу.");
     RU.put(R.string.Tgx101MessageMenuOrderReset, "Вернуть порядок по умолчанию");
     RU.put(R.string.Tgx101MoveToTop, "В самый верх");
     RU.put(R.string.Tgx101MoveUp, "Выше");
@@ -438,6 +438,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SwipeSave, "Сохранить");
     RU.put(R.string.Tgx101SwipeSaved, "Сохранено в Избранное");
     RU.put(R.string.Tgx101Haptics, "Вибрация функций PlumaGram (меню, выделение, жесты)");
+    RU.put(R.string.Tgx101MenuSectionMenu, "В меню (видно до 7, остальные прокручиваются)");
+    RU.put(R.string.Tgx101MenuSectionMore, "В «Ещё»");
+    RU.put(R.string.Tgx101MenuSectionHidden, "Скрытые");
     RU.put(R.string.Tgx101SwipeMenuSection, "Свайп по сообщению");
     RU.put(R.string.Tgx101SwipeMenuHint, "Сверху вниз, как в столбике: свайп влево — «Ответить», ведёте палец вверх или вниз — остальные. «Ответить» скрыть нельзя.");
     RU.put(R.string.Tgx101LongPressMenu, "Долгое нажатие: меню, выбор не отпуская палец (как iOS)");

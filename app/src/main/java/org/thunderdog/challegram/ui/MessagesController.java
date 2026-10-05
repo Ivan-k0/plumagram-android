@@ -6392,6 +6392,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
         TdApi.MessageProperties properties = selectedMessage.lastMessageProperties(editingMessage.id);
         editMessage(new MessageWithProperties(editingMessage, properties));
         return true;
+      } else if (id == R.id.btn_tgx101SaveFavorite) {
+        TdApi.Message[] all = selectedMessage.getAllMessages();
+        long[] messageIds = new long[all.length];
+        for (int i = 0; i < all.length; i++) messageIds[i] = all[i].id;
+        tdlib.send(new TdApi.ForwardMessages(tdlib.selfChatId(), null, selectedMessage.getChatId(), messageIds, null, false, false), (result, error) -> {
+          if (error == null) UI.showToast(R.string.Tgx101SwipeSaved, android.widget.Toast.LENGTH_SHORT);
+          else UI.showError(error);
+        });
+        return true;
       } else if (id == R.id.btn_messageShare) {
         cancelSheduledKeyboardOpeningAndHideAllKeyboards();
         if (selectedMessage.canBeForwarded()) {

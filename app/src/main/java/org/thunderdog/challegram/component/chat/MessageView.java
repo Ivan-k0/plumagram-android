@@ -863,6 +863,12 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
         ids.append(R.id.btn_messageShare);
         strings.append(R.string.Share);
         icons.append(R.drawable.baseline_forward_24);
+        // TGx101 (user 2026-10-06): «Save» — a copy to Saved Messages, like the swipe action
+        if (!m.isSecretChat() && !msg.tdlib().isSelfChat(msg.getChatId())) {
+          ids.append(R.id.btn_tgx101SaveFavorite);
+          strings.append(R.string.Tgx101SwipeSave);
+          icons.append(R.drawable.baseline_bookmark_24);
+        }
       }
     }
 

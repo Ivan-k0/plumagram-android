@@ -53,7 +53,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
           int[] order = Tgx101MessageMenu.getOrder();
           boolean hidden = position < order.length && Tgx101MessageMenu.isHidden(order[position]);
           boolean inMore = position < order.length && Tgx101MessageMenu.isInMore(order[position]);
-          view.setData(hidden ? Lang.getString(R.string.Tgx101FormatHidden) : inMore ? Lang.getString(R.string.Tgx101MenuInMore) : Integer.toString(position + 1));
+          view.setData(hidden || inMore ? "" : Integer.toString(numberInSection(order, position) + 1));
         } else if (item.getId() == R.id.btn_tgx101BarItem) {
           int position = (int) item.getLongId();
           List<String> swipe = Tgx101BarOrder.getOrder(Tgx101BarOrder.BAR_SWIPE);
@@ -72,19 +72,49 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     return -1;
   }
 
+  // TGx101 (user 2026-10-06): the list is split into «In the menu», «In More…» and «Hidden»; each keeps its own order
+  private static final int SECTION_MENU = 0, SECTION_MORE = 1, SECTION_HIDDEN = 2;
+
+  private static int sectionOf (int id) {
+    if (Tgx101MessageMenu.isHidden(id)) return SECTION_HIDDEN;
+    if (Tgx101MessageMenu.isInMore(id)) return SECTION_MORE;
+    return SECTION_MENU;
+  }
+
+  private static int numberInSection (int[] order, int position) {
+    int section = sectionOf(order[position]), n = 0;
+    for (int i = 0; i < position; i++) if (sectionOf(order[i]) == section) n++;
+    return n;
+  }
+
   private List<ListItem> buildItems () {
     int[] order = Tgx101MessageMenu.getOrder();
     List<ListItem> items = new ArrayList<>();
     items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
-    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-    for (int i = 0; i < order.length; i++) {
-      int known = indexOf(Tgx101MessageMenu.ORDERABLE_IDS, order[i]);
-      if (i > 0) {
-        items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+    int[] headers = {R.string.Tgx101MenuSectionMenu, R.string.Tgx101MenuSectionMore, R.string.Tgx101MenuSectionHidden};
+    for (int section = SECTION_MENU; section <= SECTION_HIDDEN; section++) {
+      boolean any = false;
+      for (int i = 0; i < order.length; i++) {
+        if (sectionOf(order[i]) != section) continue;
+        if (!any) {
+          items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, headers[section]));
+          items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+          any = true;
+        } else {
+          items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+        }
+        int known = indexOf(Tgx101MessageMenu.ORDERABLE_IDS, order[i]);
+        items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101MenuAction, Tgx101MessageMenu.ORDERABLE_ICONS[known], Tgx101MessageMenu.ORDERABLE_NAMES[known]).setLongId(i));
       }
-      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101MenuAction, Tgx101MessageMenu.ORDERABLE_ICONS[known], Tgx101MessageMenu.ORDERABLE_NAMES[known]).setLongId(i));
+      if (section == SECTION_MENU) {
+        // «Select» is always the last item, under a line
+        items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+        items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101MenuSelectFixed, R.drawable.baseline_playlist_add_check_24, R.string.Select));
+      }
+      if (any || section == SECTION_MENU) {
+        items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+      }
     }
-    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101MessageMenuOrderHint));
     // TGx101 (user 2026-10-06): the swipe actions column, top to bottom
     items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101SwipeMenuSection));
@@ -128,6 +158,9 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
       showSwipeOptions((ListItem) v.getTag());
       return;
     }
+    if (id == R.id.btn_tgx101MenuSelectFixed) {
+      return; // «Select» can't be moved or hidden
+    }
     if (id != R.id.btn_tgx101MenuAction) {
       return;
     }
@@ -165,7 +198,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
           Integer key = order[position];
           ArrayList<Integer> hiddenIds = new ArrayList<>(), moreIds = new ArrayList<>();
           for (int x : Settings.instance().getTgx101MessageMenuHidden()) if (x != key) hiddenIds.add(x);
-          for (int x : Settings.instance().getTgx101MessageMenuMore()) if (x != key) moreIds.add(x);
+          for (int x : Tgx101MessageMenu.moreIds()) if (x != key) moreIds.add(x);
           if (optionId == R.id.btn_tgx101MenuHide) hiddenIds.add(key);
           if (optionId == R.id.btn_tgx101MenuToMore) moreIds.add(key);
           Settings.instance().setTgx101MessageMenuHidden(toArray(hiddenIds));
@@ -179,29 +212,33 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
   }
 
   private void moveTo (int[] order, int position, int optionId) {
-    int target;
+    // the neighbours are the items of the same section («In the menu», «In More…», «Hidden»)
+    int section = sectionOf(order[position]);
+    ArrayList<Integer> same = new ArrayList<>();
+    for (int i = 0; i < order.length; i++) if (sectionOf(order[i]) == section) same.add(i);
+    int at = same.indexOf(position);
+    int targetAt;
     if (optionId == R.id.btn_moveToTop) {
-      target = 0;
+      targetAt = 0;
     } else if (optionId == R.id.btn_moveUp) {
-      target = Math.max(0, position - 1);
+      targetAt = Math.max(0, at - 1);
     } else if (optionId == R.id.btn_moveDown) {
-      target = Math.min(order.length - 1, position + 1);
+      targetAt = Math.min(same.size() - 1, at + 1);
     } else if (optionId == R.id.btn_moveToBottom) {
-      target = order.length - 1;
+      targetAt = same.size() - 1;
     } else {
       return;
     }
-    if (target != position) {
-      ArrayList<Integer> list = new ArrayList<>();
-      for (int x : order) list.add(x);
-      int moved = list.remove(position);
-      list.add(target, moved);
-      int[] result = new int[list.size()];
-      for (int i = 0; i < result.length; i++) result[i] = list.get(i);
-      Settings.instance().setTgx101MessageMenuOrder(result);
-      rebuild();
-    }
+    if (targetAt == at) return;
+    int target = same.get(targetAt);
+    ArrayList<Integer> list = new ArrayList<>();
+    for (int x : order) list.add(x);
+    int moved = list.remove(position);
+    list.add(target, moved);
+    Settings.instance().setTgx101MessageMenuOrder(toArray(list));
+    rebuild();
   }
+
 
   /** Show / hide / move one action of the swipe column; «Reply» (the plain swipe) can only be moved */
   private void showSwipeOptions (ListItem item) {

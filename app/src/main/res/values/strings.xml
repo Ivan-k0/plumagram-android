@@ -6293,6 +6293,9 @@
   <string name="Tgx101SwipeSave">Save</string>
   <string name="Tgx101SwipeSaved">Saved to Saved Messages</string>
   <string name="Tgx101Haptics">Vibration of PlumaGram features</string>
+  <string name="Tgx101MenuSectionMenu">In the menu (up to 7 visible, the rest scroll)</string>
+  <string name="Tgx101MenuSectionMore">In More</string>
+  <string name="Tgx101MenuSectionHidden">Hidden</string>
   <string name="Tgx101SwipeMenuSection">Swipe on a message</string>
   <string name="Tgx101SwipeMenuHint">Top to bottom, as in the column: a plain swipe left replies, moving the finger up or down picks the others. Reply cannot be hidden.</string>
   <string name="Tgx101LongPressMenu">Long press: menu, slide to an item (like iOS)</string>

@@ -67,8 +67,9 @@ public final class Tgx101MessageMenu {
   public static final int[] ORDERABLE_IDS = {
     R.id.btn_messageReply,
     R.id.btn_messageCopy,
-    R.id.btn_messageEdit,
     R.id.btn_messageShare,
+    R.id.btn_tgx101SaveFavorite, // user 2026-10-06: «Save» to Saved Messages
+    R.id.btn_messageEdit,
     R.id.btn_messagePin,
     R.id.btn_messageSelectText,
     R.id.btn_chatTranslate,
@@ -85,19 +86,43 @@ public final class Tgx101MessageMenu {
     R.id.btn_messageDelete // TGx101 (user 2026-10-05): «Delete» is ordered like the rest; «Select» is always last
   };
   public static final int[] ORDERABLE_NAMES = {
-    R.string.Reply, R.string.Copy, R.string.edit, R.string.Share, R.string.MessagePin,
+    R.string.Reply, R.string.Copy, R.string.Share, R.string.Tgx101SwipeSave, R.string.edit, R.string.MessagePin,
     R.string.Tgx101MenuSelectText, R.string.Translate, R.string.CopyLink, R.string.Save, R.string.MessageReport,
     R.string.Tgx101FilterSimilar, R.string.Tgx101MenuEditorOwn, R.string.Tgx101MenuMessagesFrom,
     R.string.Tgx101MenuThread, R.string.Tgx101MenuToOriginal, R.string.DeleteFromCache, R.string.MoreMessageOptions, R.string.Delete
   };
   public static final int[] ORDERABLE_ICONS = {
-    R.drawable.baseline_reply_24, R.drawable.baseline_content_copy_24, R.drawable.baseline_edit_24,
-    R.drawable.baseline_forward_24, R.drawable.deproko_baseline_pin_24, R.drawable.baseline_format_quote_close_24,
+    R.drawable.baseline_reply_24, R.drawable.baseline_content_copy_24, R.drawable.baseline_forward_24,
+    R.drawable.baseline_bookmark_24, R.drawable.baseline_edit_24, R.drawable.deproko_baseline_pin_24, R.drawable.baseline_format_quote_close_24,
     R.drawable.baseline_translate_24, R.drawable.baseline_link_24, R.drawable.baseline_file_download_24,
     R.drawable.baseline_report_24, R.drawable.baseline_filter_variant_remove_24, R.drawable.baseline_format_text_24,
     R.drawable.baseline_person_24, R.drawable.outline_forum_24, R.drawable.baseline_forum_24, R.drawable.templarian_baseline_broom_24,
     R.drawable.baseline_more_horiz_24, R.drawable.baseline_delete_24
   };
+
+  /** user 2026-10-06: a light menu by default — these stay in it, everything else orderable goes under «More…» */
+  public static final int[] DEFAULT_SHOWN = {
+    R.id.btn_messageReply, R.id.btn_messageCopy, R.id.btn_messageShare, R.id.btn_tgx101SaveFavorite,
+    R.id.btn_messageMore, R.id.btn_messageDelete
+  };
+
+  /** At most this many rows are visible at once, the rest scroll (user 2026-10-06) */
+  public static final int MAX_VISIBLE_ROWS = 7;
+
+  /** The «More…» list in effect (the user's, or the default one) */
+  public static int[] moreIds () {
+    int[] saved = Settings.instance().getTgx101MessageMenuMore();
+    if (saved != null) return saved;
+    ArrayList<Integer> result = new ArrayList<>();
+    for (int id : ORDERABLE_IDS) {
+      boolean shown = false;
+      for (int s : DEFAULT_SHOWN) if (s == id) shown = true;
+      if (!shown) result.add(id);
+    }
+    int[] out = new int[result.size()];
+    for (int i = 0; i < out.length; i++) out[i] = result.get(i);
+    return out;
+  }
 
   private static int orderKey (int id) {
     return id == R.id.btn_messageUnpin ? R.id.btn_messagePin : id;
@@ -144,7 +169,7 @@ public final class Tgx101MessageMenu {
   /** Moved under «More…» in Settings → MagiX → message menu */
   public static boolean isInMore (int id) {
     int key = orderKey(id);
-    for (int more : Settings.instance().getTgx101MessageMenuMore()) {
+    for (int more : moreIds()) {
       if (more == key) return true;
     }
     return false;

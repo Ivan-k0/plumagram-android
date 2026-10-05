@@ -3184,11 +3184,11 @@ public class Settings {
   /** TGx101: message menu actions moved under «More…» (resource names stored, like the order) */
   private static final String KEY_TGX101_MESSAGE_MENU_MORE_REPLIES = "tgx101_message_menu_more_replies";
 
-  /** By default «View in topic / thread» sits under «More…» (user 2026-10-03); "none" = the user emptied «More…» */
-  public int[] getTgx101MessageMenuMore () {
+  /** null — the default «More…» list (Tgx101MessageMenu.DEFAULT_SHOWN decides, user 2026-10-06); "none" = the user emptied «More…» */
+  public @androidx.annotation.Nullable int[] getTgx101MessageMenuMore () {
     String saved = pmc.getString(KEY_TGX101_MESSAGE_MENU_MORE, null);
     if (saved == null) {
-      return new int[] {org.thunderdog.challegram.R.id.btn_messageReplies};
+      return null;
     }
     if (!pmc.getBoolean(KEY_TGX101_MESSAGE_MENU_MORE_REPLIES, false)) {
       // a «More…» list saved before the item existed: the item joins it once
