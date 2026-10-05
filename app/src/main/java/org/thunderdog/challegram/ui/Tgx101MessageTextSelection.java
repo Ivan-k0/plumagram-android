@@ -70,23 +70,22 @@ public final class Tgx101MessageTextSelection {
 
   /** Returns false when this message can't be selected in place (then the caller uses the quote window) */
   public static boolean show (MessagesController controller, Tdlib tdlib, MessageView view, TGMessage msg, float touchX, float touchY, Runnable onClose) {
-    if (!(msg instanceof TGMessageText)) return fail("not a text message: " + msg.getClass().getSimpleName());
-    Text text = ((TGMessageText) msg).tgx101SelectableText();
-    TdApi.Message message = msg.getNewestMessage();
+    Text text = msg.tgx101SelectableText(); // text, or a caption under media / files (user 2026-10-06)
+    TdApi.Message message = msg.tgx101SelectableMessage();
     TdApi.FormattedText formatted = Td.textOrCaption(message.content);
-    if (text == null) return fail("link preview above the text");
+    if (text == null) return fail(msg instanceof TGMessageText ? "link preview above the text" : "no text or caption: " + msg.getClass().getSimpleName());
     if (formatted == null || formatted.text.isEmpty() || text.getText() == null || text.getText().isEmpty()) return fail("no text");
     if (msg.isTranslated()) return fail("translated");
     int offset = text.tgx101OffsetAt(touchX, touchY);
     if (offset < 0) return fail("no offset at " + Math.round(touchX) + "," + Math.round(touchY));
-    new Session(controller, tdlib, (TGMessageText) msg, text, formatted, message, onClose).start(offset);
+    new Session(controller, tdlib, msg, text, formatted, message, onClose).start(offset);
     return true;
   }
 
   private static final class Session {
     private final MessagesController controller;
     private final Tdlib tdlib;
-    private final TGMessageText msg;
+    private final TGMessage msg;
     private final Text text;
     private final TdApi.FormattedText formatted;
     private final TdApi.Message message;
@@ -99,7 +98,7 @@ public final class Tgx101MessageTextSelection {
     private int start, end;
     private boolean closed;
 
-    Session (MessagesController controller, Tdlib tdlib, TGMessageText msg, Text text, TdApi.FormattedText formatted, TdApi.Message message, Runnable onClose) {
+    Session (MessagesController controller, Tdlib tdlib, TGMessage msg, Text text, TdApi.FormattedText formatted, TdApi.Message message, Runnable onClose) {
       this.controller = controller;
       this.tdlib = tdlib;
       this.msg = msg;

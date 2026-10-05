@@ -6818,6 +6818,16 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return highlightFactor;
   }
 
+  /** TGx101: the text the in-bubble selection works on (text, or a caption) — null when there is none */
+  public @Nullable org.thunderdog.challegram.util.text.Text tgx101SelectableText () {
+    return null;
+  }
+
+  /** TGx101: the message whose text / caption tgx101SelectableText() shows */
+  public TdApi.Message tgx101SelectableMessage () {
+    return getNewestMessage();
+  }
+
   /** TGx101: what a jump centers on — the album item the reply was to, or the message without its date / padding */
   public int[] tgx101FocusBounds () {
     int[] item = tgx101HighlightedChildId != 0 ? tgx101ItemBounds(tgx101HighlightedChildId) : null;

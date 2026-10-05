@@ -97,6 +97,10 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
       updateCaption(false);
     }
 
+    @Nullable org.thunderdog.challegram.util.text.Text tgx101CaptionText () {
+      return captionWrapper != null ? captionWrapper.getCurrent() : null;
+    }
+
     public boolean hasTextMedia () {
       return captionWrapper != null && captionWrapper.hasMedia();
     }
@@ -246,6 +250,27 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
       this.needBottomLineExpand.set(needExpandHeight() ? 1f : 0f);
     }
   }
+  // TGx101 (user 2026-10-06): the in-bubble selection works on a file's caption (the last captioned file of a group)
+  private @Nullable CaptionedFile tgx101CaptionedFile () {
+    for (int i = filesList.size() - 1; i >= 0; i--) {
+      if (filesList.get(i).tgx101CaptionText() != null) return filesList.get(i);
+    }
+    return null;
+  }
+
+  @Override
+  public @Nullable org.thunderdog.challegram.util.text.Text tgx101SelectableText () {
+    CaptionedFile file = tgx101CaptionedFile();
+    return file != null ? file.tgx101CaptionText() : null;
+  }
+
+  @Override
+  public TdApi.Message tgx101SelectableMessage () {
+    CaptionedFile file = tgx101CaptionedFile();
+    TdApi.Message message = file != null ? getMessage(file.messageId) : null;
+    return message != null ? message : getNewestMessage();
+  }
+
   private final List<CaptionedFile> filesList = new ArrayList<>();
   private final ListAnimator<CaptionedFile> files = new ListAnimator<>(animator -> {
     if (rebuildContentDimensions()) {

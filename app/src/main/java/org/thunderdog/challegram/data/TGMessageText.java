@@ -628,6 +628,7 @@ public class TGMessageText extends TGMessage {
   }
 
   /** TGx101: the text the bubble draws, for the in-bubble selection; null with a link preview above the text */
+  @Override
   public @androidx.annotation.Nullable org.thunderdog.challegram.util.text.Text tgx101SelectableText () {
     if (linkPreview != null && linkPreviewAboveText.getFloatValue() != 0f) return null;
     org.thunderdog.challegram.util.text.Text result = null;

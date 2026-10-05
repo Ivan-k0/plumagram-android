@@ -336,6 +336,18 @@ public class TGMessageMedia extends TGMessage {
   private TdApi.FormattedText caption;
   private long captionMessageId;
 
+  // TGx101 (user 2026-10-06): the in-bubble selection works on captions too
+  @Override
+  public @Nullable org.thunderdog.challegram.util.text.Text tgx101SelectableText () {
+    return wrapper != null ? wrapper.getCurrent() : null;
+  }
+
+  @Override
+  public TdApi.Message tgx101SelectableMessage () {
+    TdApi.Message message = getMessage(getCaptionMessageId());
+    return message != null ? message : getNewestMessage();
+  }
+
   public long getCaptionMessageId () {
     return captionMessageId;
   }
