@@ -147,8 +147,10 @@ public class SelectTextForQuoteDialog {
     TdApi.Message newestMessage = message.getNewestMessage();
     message.getMessageProperties(newestMessage.id, properties -> {
       if (properties == null) {
+        org.thunderdog.challegram.Tgx101Diag.mark("quote: no message properties — reply not shown");
         return;
       }
+      org.thunderdog.challegram.Tgx101Diag.mark("quote: reply with " + (finalQuote != null ? "a quote of " + finalQuote.text.text.length() + " chars" : "the whole message"));
       controller.runOnUiThreadOptional(() ->
         controller.showReply(new MessageWithProperties(newestMessage, properties), finalQuote, 0, "", true, true)
       );

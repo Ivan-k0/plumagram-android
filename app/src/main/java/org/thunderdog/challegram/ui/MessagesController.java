@@ -332,6 +332,18 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private BotHelper botHelper;
 
   private @Nullable InputView inputView;
+
+  /** TGx101: while our in-bubble text selection is shown the input's system popup («Paste / Clipboard») and its
+   * cursor handle are hidden (user's video 2026-10-05 18:01) */
+  public void tgx101SetInputQuiet (boolean quiet) {
+    if (inputView == null) return;
+    inputView.setCursorVisible(!quiet);
+    if (quiet) {
+      inputView.cancelLongPress();
+      int pos = inputView.getSelectionEnd();
+      if (pos >= 0 && inputView.hasFocus()) inputView.setSelection(pos); // drops the insertion popup
+    }
+  }
   private final ClickHelper inputViewDisabledClickHelper = new ClickHelper(new ClickHelper.Delegate() {
     @Override
     public boolean needClickAt (View view, float x, float y) {

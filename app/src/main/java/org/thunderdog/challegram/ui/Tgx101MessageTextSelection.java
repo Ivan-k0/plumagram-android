@@ -134,6 +134,7 @@ public final class Tgx101MessageTextSelection {
 
     void start (int offset) {
       int[] word = wordAt(offset);
+      controller.tgx101SetInputQuiet(true);
       setSelection(word[0], word[1]);
       if (list != null) list.addOnScrollListener(follow);
       popup.setDismissListener(p -> close("dismissed"));
@@ -152,6 +153,7 @@ public final class Tgx101MessageTextSelection {
       bar.dismiss();
       if (list != null) list.removeOnScrollListener(follow);
       if (!popup.isWindowHidden()) popup.hideWindow(true);
+      controller.tgx101SetInputQuiet(false);
       if (onClose != null) onClose.run();
     }
 
