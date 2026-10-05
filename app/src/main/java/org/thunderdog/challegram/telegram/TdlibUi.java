@@ -5969,7 +5969,9 @@ public class TdlibUi extends Handler {
           icons.append(hasNotifications ? R.drawable.baseline_notifications_off_24 : R.drawable.baseline_notifications_24);
         }
 
-        if (!hasSelect && position != null) {
+        // TGx101 (user 2026-10-05): the chat preview shows «Pin» where «Archive» was; «Archive» stays under «⋮»
+        // (the select mode it opens has it)
+        if (position != null) {
           boolean localPinned = !position.isPinned && Tgx101LocalPins.isPinned(tdlib, chatList, chat.id);
           if (localPinned) {
             // TGx101: pinned on this phone only
@@ -5997,7 +5999,7 @@ public class TdlibUi extends Handler {
         strings.append(canRead ? R.string.MarkAsRead : R.string.MarkAsUnread);
         icons.append(canRead ? Config.ICON_MARK_AS_READ : Config.ICON_MARK_AS_UNREAD);
 
-        if (tdlib.canArchiveOrUnarchiveChat(chat)) {
+        if (!hasSelect && tdlib.canArchiveOrUnarchiveChat(chat)) {
           boolean isArchived = tdlib.chatArchived(chat);
           ids.append(R.id.btn_archiveUnarchiveChat);
           strings.append(isArchived ? R.string.Unarchive : R.string.Archive);

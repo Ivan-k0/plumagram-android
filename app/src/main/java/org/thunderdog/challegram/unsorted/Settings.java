@@ -3506,6 +3506,17 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_HIDE_CHANNEL_REACTIONS, value);
   }
 
+  private static final String KEY_TGX101_SNOOZE_MINUTES = "tgx101_snooze_minutes";
+
+  /** TGx101 (user 2026-10-05): «Snooze» in a message notification mutes that chat for this many minutes; 0 = no button */
+  public int tgx101SnoozeMinutes () {
+    return pmc.getInt(KEY_TGX101_SNOOZE_MINUTES, 30);
+  }
+
+  public void setTgx101SnoozeMinutes (int minutes) {
+    pmc.putInt(KEY_TGX101_SNOOZE_MINUTES, minutes);
+  }
+
   private static final String KEY_TGX101_ZOOM_PULL_CLOSE = "tgx101_zoom_pull_close";
 
   /** TGx101: a zoomed photo can be pulled down from its top edge to close (on by default) */

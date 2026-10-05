@@ -188,6 +188,26 @@ public class TdlibNotificationExtras {
     setMuteFor(tdlib, 0);
   }
 
+  /** TGx101 (user 2026-10-05): «Snooze» — for the minutes chosen in MagiX new notifications of this chat still come
+   * to the shade, but without sound, vibration and the pop-up (the chat is not muted) */
+  public void tgx101Snooze (Tdlib tdlib) {
+    int minutes = org.thunderdog.challegram.unsorted.Settings.instance().tgx101SnoozeMinutes();
+    tgx101SetSnoozed(tdlib.id(), chatId, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(Math.max(1, minutes)));
+    UI.showToast(Lang.getString(org.thunderdog.challegram.R.string.Tgx101SnoozedToast, minutes), android.widget.Toast.LENGTH_SHORT);
+  }
+
+  private static android.content.SharedPreferences tgx101SnoozePrefs () {
+    return UI.getAppContext().getSharedPreferences("tgx101_snooze", android.content.Context.MODE_PRIVATE);
+  }
+
+  public static void tgx101SetSnoozed (int accountId, long chatId, long untilMillis) {
+    tgx101SnoozePrefs().edit().putLong(accountId + "_" + chatId, untilMillis).apply();
+  }
+
+  public static boolean tgx101IsSnoozed (int accountId, long chatId) {
+    return tgx101SnoozePrefs().getLong(accountId + "_" + chatId, 0) > System.currentTimeMillis();
+  }
+
   public void mute (Tdlib tdlib) {
     int muteFor = (int) TimeUnit.HOURS.toSeconds(1);
     setMuteFor(tdlib, muteFor);

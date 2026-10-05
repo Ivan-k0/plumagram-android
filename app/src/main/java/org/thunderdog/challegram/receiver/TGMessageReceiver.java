@@ -41,6 +41,9 @@ public class TGMessageReceiver extends BroadcastReceiver {
       case Intents.ACTION_MESSAGE_UNMUTE:
         externalActionId = TdlibManager.ExternalAction.UNMUTE;
         break;
+      case Intents.ACTION_MESSAGE_SNOOZE:
+        externalActionId = TdlibManager.ExternalAction.SNOOZE;
+        break;
       default:
         return;
     }

@@ -644,6 +644,22 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
       builder.setSubText(Lang.getNotificationCategory(category));
     }
 
+    NotificationCompat.Action tgx101SnoozeAction = null;
+    int tgx101SnoozeMinutes = org.thunderdog.challegram.unsorted.Settings.instance().tgx101SnoozeMinutes();
+    if (tgx101SnoozeMinutes > 0) {
+      // TGx101 (user 2026-10-05): a third button «Snooze N min» — mutes this chat for N minutes
+      Intent snoozeIntent = new Intent(UI.getAppContext(), TGMessageReceiver.class);
+      styleIntent(Intents.ACTION_MESSAGE_SNOOZE, snoozeIntent, tdlib, group, needReplyToMessage, allMessageIds, allUserIds);
+      try {
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(UI.getAppContext(), notificationId, snoozeIntent, Intents.mutabilityFlags(true));
+        tgx101SnoozeAction = new NotificationCompat.Action.Builder(R.drawable.baseline_notifications_paused_24, Lang.getString(R.string.Tgx101SnoozeAction, tgx101SnoozeMinutes), pendingIntent)
+          .setShowsUserInterface(false)
+          .build();
+      } catch (Throwable t) {
+        Log.e("Unable to create snooze intent", t);
+      }
+    }
+
     if (!Passcode.instance().isLocked()) {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
         if (muteAction != null)
@@ -655,12 +671,17 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
         builder.addAction(replyAction);
       if (readAction != null)
         builder.addAction(readAction);
+      if (tgx101SnoozeAction != null)
+        builder.addAction(tgx101SnoozeAction);
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       builder.extend(new NotificationCompat.CarExtender());
     }
 
     styleNotification(tdlib, builder, chatId, chat, allowPreview);
+    if (TdlibNotificationExtras.tgx101IsSnoozed(tdlib.id(), chatId)) {
+      builder.setSilent(true); // TGx101: snoozed — into the shade without sound, vibration and the pop-up
+    }
 
     boolean hasIcon = false;
     // TGx101: the conversation style already shows the sender's (private chat) or the chat's (group, channel)

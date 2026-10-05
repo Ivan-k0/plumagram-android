@@ -6258,6 +6258,11 @@
   <string name="Tgx101WebAppNoPayments">Payments inside mini apps aren\'t supported yet</string>
   <string name="Tgx101WebAppClose">Close</string>
   <string name="Tgx101ReleaseToClose">Release to close</string>
+  <string name="Tgx101SnoozeAction">Snooze %1$d min</string>
+  <string name="Tgx101SnoozeSetting">«Snooze» in notifications</string>
+  <string name="Tgx101SnoozeOff">No button</string>
+  <string name="Tgx101SnoozedToast">Silent for %1$d min</string>
+  <string name="Tgx101SnoozeMinutes">%1$d min</string>
   <string name="Tgx101ZoomPullClose">Pull down closes a zoomed photo</string>
   <string name="Tgx101FilterHideFully">Hide completely</string>
   <string name="Tgx101FilterHideFullyHint">No «Hidden by filter» strip: such messages are not shown in the chat at all. Nothing is deleted: search still finds them.</string>

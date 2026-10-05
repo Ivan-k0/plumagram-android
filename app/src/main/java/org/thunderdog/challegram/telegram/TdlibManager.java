@@ -142,14 +142,16 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
     ExternalAction.MARK_ALL_AS_HIDDEN,
     ExternalAction.MARK_AS_READ,
     ExternalAction.MUTE,
-    ExternalAction.UNMUTE
+    ExternalAction.UNMUTE,
+    ExternalAction.SNOOZE
   })
   public @interface ExternalAction {
     int MARK_AS_HIDDEN = 0,
       MARK_ALL_AS_HIDDEN = 1,
       MARK_AS_READ = 2,
       MUTE = 3,
-      UNMUTE = 4;
+      UNMUTE = 4,
+      SNOOZE = 5;
   }
 
   private interface NotificationTask {
@@ -201,6 +203,9 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
           break;
         case ExternalAction.UNMUTE:
           extras.unmute(tdlib);
+          break;
+        case ExternalAction.SNOOZE:
+          extras.tgx101Snooze(tdlib);
           break;
       }
       tdlib.notifications().releaseTdlibReference(onDone);

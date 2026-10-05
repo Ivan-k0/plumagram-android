@@ -418,6 +418,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101WebAppClose, "Закрыть");
     RU.put(R.string.Tgx101ReleaseToClose, "Отпустите, чтобы закрыть");
     RU.put(R.string.Tgx101ZoomPullClose, "Свайп вниз закрывает зум фото");
+    RU.put(R.string.Tgx101SnoozeAction, "Отложить %1$d мин");
+    RU.put(R.string.Tgx101SnoozeSetting, "«Отложить» в уведомлениях");
+    RU.put(R.string.Tgx101SnoozeOff, "Без кнопки");
+    RU.put(R.string.Tgx101SnoozedToast, "Без звука и всплывающих %1$d мин");
+    RU.put(R.string.Tgx101SnoozeMinutes, "%1$d мин");
     RU.put(R.string.Tgx101FilterHideFully, "Скрывать полностью");
     RU.put(R.string.Tgx101FilterHideFullyHint, "Без полоски «Скрыто фильтром»: такие сообщения совсем не показываются в чате. Ничего не удаляется: поиск их находит.");
     RU.put(R.string.Tgx101HideChannelReactions, "Скрывать реакции под постами каналов");

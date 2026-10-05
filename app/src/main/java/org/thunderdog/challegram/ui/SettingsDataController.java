@@ -247,6 +247,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideChannelReactions(), isUpdate);
         } else if (itemId == R.id.btn_tgx101ZoomPullClose) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101ZoomPullClose(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101Snooze) {
+          int minutes = Settings.instance().tgx101SnoozeMinutes();
+          view.setData(minutes > 0 ? Lang.getString(R.string.Tgx101SnoozeMinutes, minutes) : Lang.getString(R.string.Tgx101SnoozeOff));
         } else if (itemId == R.id.btn_tgx101VoiceQueue) {
           view.setData(Settings.instance().skipOwnVoiceInQueue() ? R.string.Tgx101VoiceQueueSkipOwn : R.string.Tgx101VoiceQueueAll);
         } else if (itemId == R.id.btn_tgx101TapMode) {
@@ -345,6 +348,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CameraInAttach, 0, R.string.Tgx101CameraInAttach),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101ZoomPullClose, 0, R.string.Tgx101ZoomPullClose),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Snooze, 0, R.string.Tgx101SnoozeSetting),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.SendPhotosInHD).setLongId(Settings.SETTING_FLAG_SEND_PHOTOS_IN_HD),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -869,6 +874,20 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         .setIntDelegate((resultId, result) -> {
           Settings.instance().setSkipOwnVoiceInQueue(result.get(R.id.btn_tgx101VoiceQueue) == 2);
           adapter.updateValuedSettingById(R.id.btn_tgx101VoiceQueue);
+        }));
+    } else if (id == R.id.btn_tgx101Snooze) {
+      int current = Settings.instance().tgx101SnoozeMinutes();
+      int[] values = {5, 10, 30, 60, 180, 0};
+      ListItem[] items = new ListItem[values.length];
+      for (int i = 0; i < values.length; i++) {
+        items[i] = new ListItem(ListItem.TYPE_RADIO_OPTION, i + 1, 0, values[i] > 0 ? Lang.getString(R.string.Tgx101SnoozeMinutes, values[i]) : Lang.getString(R.string.Tgx101SnoozeOff), R.id.btn_tgx101Snooze, values[i] == current);
+      }
+      showSettings(new SettingsWrapBuilder(R.id.btn_tgx101Snooze)
+        .setRawItems(items)
+        .setIntDelegate((resultId, result) -> {
+          int index = result.get(R.id.btn_tgx101Snooze) - 1;
+          if (index >= 0 && index < values.length) Settings.instance().setTgx101SnoozeMinutes(values[index]);
+          adapter.updateValuedSettingById(R.id.btn_tgx101Snooze);
         }));
     } else if (id == R.id.btn_tgx101TapMode) {
       showTapModes();
