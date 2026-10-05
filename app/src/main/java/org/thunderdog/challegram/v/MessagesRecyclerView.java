@@ -397,7 +397,9 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
               org.thunderdog.challegram.data.TGMessage msg = child instanceof org.thunderdog.challegram.component.chat.MessageView ? ((org.thunderdog.challegram.component.chat.MessageView) child).getMessage() : null;
               if (msg != null && msg.canBeSelected()) {
                 tgx101DragSelect = true;
-                tgx101DragTarget = true; // user 2026-10-05: starting on a selected message continues the selection
+                // user 2026-10-06 («как в галерее айфона»): the first message decides — unselected → the drag
+                // selects, selected → the drag unselects, whatever the previous drag did
+                tgx101DragTarget = !msg.isCompletelySelected();
                 tgx101DragTouched.clear();
                 tgx101DragLastY = e.getY();
                 org.thunderdog.challegram.Tgx101Diag.mark("select: drag " + (tgx101DragTarget ? "select" : "unselect"));
