@@ -771,6 +771,15 @@ public class RecordAudioVideoController implements
     ViewController<?> c = UI.getCurrentStackItem(context);
     if (c instanceof MessagesController) {
       View view = ((MessagesController) c).getBottomWrap();
+      // TGx101 (user 2026-10-05): our input row is taller than the 49dp recording bar — its lower part stayed visible
+      // under the bar as a grey strip. The bar now has the row's height (without the bottom gap below it).
+      int rowHeight = view.getHeight() - view.getPaddingBottom();
+      ViewGroup.LayoutParams lp = inputOverlayView.getLayoutParams();
+      int want = Math.max(Screen.dp(49f), rowHeight);
+      if (lp != null && lp.height != want) {
+        lp.height = want;
+        inputOverlayView.setLayoutParams(lp);
+      }
       setOverallTranslation((Views.getLocationInWindow(view)[1] - Views.getLocationInWindow(rootLayout)[1]) - voiceVideoButtonView.getTop());
     }
   }

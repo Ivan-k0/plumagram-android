@@ -1821,11 +1821,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     setInputBlockFlag(FLAG_INPUT_RECORDING, isRecording);
     // TGx101 (user 2026-10-05): the recording bar is 49dp high, our input row is taller (gap, several lines) — the
     // typed text showed above / through it; hide the text while recording
-    // the whole input row goes: it is taller than the 49dp recording bar, its top showed as a grey strip above the
-    // bar (user's screenshot 2026-10-05 17:23)
-    if (bottomWrap != null) {
-      bottomWrap.animate().alpha(isRecording ? 0f : 1f).setDuration(120).start();
-    }
+    // (user 2026-10-05 17:59: nothing is hidden while recording — the recording bar covers the whole input row instead,
+    // see RecordAudioVideoController.updatePositions)
     // the round «scroll down» button stuck out from under the lock capsule (user's video 2026-10-05 14:17)
     tgx101Recording = isRecording;
     if (scrollToBottomButtonWrap != null) {
