@@ -636,7 +636,7 @@ public class SettingView extends FrameLayoutFix implements FactorAnimator.Target
         pDataTop = pTop;
       }
       if (displayItemName != null) {
-        setDisplayItemName(displayItemName, availWidth, Paints.getTextPaint16(), 16f);
+        setDisplayItemName(displayItemName, availWidth, Paints.getTextPaint16(), 16f * org.thunderdog.challegram.unsorted.Settings.tgx101RowScale());
       }
     }
 

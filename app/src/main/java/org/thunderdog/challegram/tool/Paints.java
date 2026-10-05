@@ -1023,7 +1023,7 @@ public class Paints {
           textPaint16 = newTextPaint(Fonts.getRobotoRegular());
       }
     }
-    return sizePaint(textPaint16, 16f);
+    return sizePaint(textPaint16, 16f * org.thunderdog.challegram.unsorted.Settings.tgx101RowScale()); // TGx101: large interface
   }
 
   public static TextPaint getTextPaint15 () {

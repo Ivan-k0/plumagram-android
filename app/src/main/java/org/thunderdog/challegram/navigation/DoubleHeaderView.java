@@ -75,7 +75,7 @@ public class DoubleHeaderView extends FrameLayoutFix implements RtlCheckListener
     };
     titleView.setScrollDisabled(true);
     titleView.setTextColor(Theme.headerTextColor());
-    titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18f);
+    titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18f * Math.min(1.15f, org.thunderdog.challegram.unsorted.Settings.tgx101RowScale())); // TGx101: two-line header has little room
     titleView.setTypeface(Fonts.getRobotoMedium());
     titleView.setSingleLine(true);
     titleView.setEllipsize(TextUtils.TruncateAt.END);

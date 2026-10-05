@@ -3517,6 +3517,17 @@ public class Settings {
 
   public void setTgx101UiTextSize (int v) {
     pmc.putInt(KEY_TGX101_UI_TEXT, v);
+    tgx101RowScale = -1f;
+  }
+
+  private static float tgx101RowScale = -1f;
+
+  /** Text of settings rows (fixed-height rows: capped at 130 %), cached — read on every draw */
+  public static float tgx101RowScale () {
+    if (tgx101RowScale < 0f) {
+      tgx101RowScale = Math.min(1.3f, tgx101UiScale());
+    }
+    return tgx101RowScale;
   }
 
   public boolean tgx101UiBold () {

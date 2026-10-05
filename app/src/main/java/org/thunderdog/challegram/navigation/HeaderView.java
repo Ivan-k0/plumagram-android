@@ -919,7 +919,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     text.setGravity(Gravity.LEFT);
     text.setSingleLine();
     text.setEllipsize(TextUtils.TruncateAt.END);
-    text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 19f);
+    text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 19f * org.thunderdog.challegram.unsorted.Settings.tgx101RowScale()); // TGx101: large interface
     text.setTextColor(0xffffffff);
     text.setLayoutParams(params);
     return text;
