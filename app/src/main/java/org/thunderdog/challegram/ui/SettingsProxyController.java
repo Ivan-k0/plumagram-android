@@ -704,6 +704,17 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
     icons.append(R.drawable.baseline_edit_24);
     colors.append(OptionColor.NORMAL);
 
+    // TGx101 (user 2026-10-05, from exteraGram): pin to the top, rename
+    ids.append(R.id.btn_tgx101ProxyPin);
+    strings.append(R.string.Tgx101ProxyPin);
+    icons.append(R.drawable.deproko_baseline_pin_24);
+    colors.append(OptionColor.NORMAL);
+
+    ids.append(R.id.btn_tgx101ProxyRename);
+    strings.append(R.string.Tgx101ProxyRename);
+    icons.append(R.drawable.baseline_format_text_24);
+    colors.append(OptionColor.NORMAL);
+
     if (proxy.proxy.type.getConstructor() != TdApi.ProxyTypeHttp.CONSTRUCTOR) {
       ids.append(R.id.btn_share);
       strings.append(R.string.Share);
@@ -740,6 +751,17 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
             UI.copyText(url, R.string.CopiedLink);
           }
         });
+      } else if (id == R.id.btn_tgx101ProxyPin) {
+        int from = proxies.indexOf(proxy);
+        if (from > 0) {
+          moveProxy(from, 0);
+          saveProxiesOrder();
+        }
+      } else if (id == R.id.btn_tgx101ProxyRename) {
+        openInputAlert(Lang.getString(R.string.Tgx101ProxyRename), Lang.getString(R.string.Tgx101ProxyName), R.string.Done, R.string.Cancel, proxy.description != null ? proxy.description : "", (inputView, result) -> {
+          Settings.instance().addOrUpdateProxy(proxy.proxy, result, false, proxy.id);
+          return true;
+        }, true);
       } else if (id == R.id.btn_proxyShowQr) {
         Tgx101Proxies.showQr(this, proxy);
       } else if (id == R.id.btn_editProxy) {
