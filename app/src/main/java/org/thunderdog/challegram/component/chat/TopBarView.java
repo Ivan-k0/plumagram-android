@@ -126,6 +126,46 @@ public class TopBarView extends FrameLayoutFix {
     }
   }
 
+  // TGx101 (user 2026-10-05, variant 1): «Block» / «Add contact» as two short chips with icons in normal case,
+  // centered — the capitalised full-width labels were cut («ЗАБЛОКИРОВА…», «ДОБАВИТЬ КОНТА…»)
+
+  private static boolean tgx101Chip (Item item) {
+    return item.id == R.id.btn_addContact || (item.id == R.id.btn_reportChat && item.stringRes == R.string.BlockContact);
+  }
+
+  private View tgx101NewChip (Item item, int textColorId) {
+    boolean block = item.id == R.id.btn_reportChat;
+    int color = Theme.getColor(textColorId);
+    TextView chip = new TextView(getContext());
+    chip.setId(item.id);
+    chip.setText(Lang.getString(block ? R.string.Tgx101ChipBlock : R.string.Tgx101ChipAddContact));
+    chip.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 13f);
+    chip.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+    chip.setTextColor(color);
+    chip.setSingleLine(true);
+    chip.setGravity(Gravity.CENTER);
+    android.graphics.drawable.Drawable icon = androidx.core.content.ContextCompat.getDrawable(getContext(), block ? R.drawable.baseline_block_18 : R.drawable.baseline_person_add_24);
+    if (icon != null) {
+      icon = icon.mutate();
+      int size = Screen.dp(16f);
+      icon.setBounds(0, 0, size, size);
+      icon.setColorFilter(new android.graphics.PorterDuffColorFilter(color, android.graphics.PorterDuff.Mode.SRC_IN));
+      chip.setCompoundDrawables(icon, null, null, null);
+      chip.setCompoundDrawablePadding(Screen.dp(5f));
+    }
+    chip.setPadding(Screen.dp(10f), 0, Screen.dp(12f), 0);
+    android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+    bg.setColor(me.vkryl.core.ColorUtils.alphaColor(.12f, color));
+    bg.setCornerRadius(Screen.dp(14f));
+    chip.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(me.vkryl.core.ColorUtils.alphaColor(.2f, color)), bg, null));
+    chip.setOnClickListener(item.onClickListener);
+    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(28f));
+    params.gravity = Gravity.CENTER_VERTICAL;
+    params.leftMargin = params.rightMargin = Screen.dp(4f);
+    chip.setLayoutParams(params);
+    return chip;
+  }
+
   public void setItems (Item... items) {
     for (int i = 0; i < actionsList.getChildCount(); i++) {
       View view = actionsList.getChildAt(i);
@@ -134,7 +174,12 @@ public class TopBarView extends FrameLayoutFix {
       }
     }
     actionsList.removeAllViews();
-    if (items.length > 1) {
+    boolean tgx101AllChips = items.length > 0;
+    for (Item item : items) if (!tgx101Chip(item)) tgx101AllChips = false;
+    actionsList.setGravity(tgx101AllChips ? Gravity.CENTER : Gravity.NO_GRAVITY);
+    if (tgx101AllChips) {
+      // chips only: centered, no spacers
+    } else if (items.length > 1) {
       View offsetView = new View(getContext());
       offsetView.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, .75f));
       actionsList.addView(offsetView);
@@ -145,6 +190,10 @@ public class TopBarView extends FrameLayoutFix {
         canDismiss = true;
       }
       int textColorId = item.isNegative ? ColorId.textNegative : ColorId.textNeutral;
+      if (tgx101Chip(item)) {
+        actionsList.addView(tgx101NewChip(item, textColorId));
+        continue;
+      }
       TextView button = Views.newTextView(getContext(), 15f, Theme.getColor(textColorId), Gravity.CENTER, Views.TEXT_FLAG_BOLD | Views.TEXT_FLAG_HORIZONTAL_PADDING);
       button.setId(item.id);
       if (themeProvider != null) {
@@ -159,7 +208,7 @@ public class TopBarView extends FrameLayoutFix {
       button.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT, 2f));
       actionsList.addView(button);
     }
-    if (items.length > 1) {
+    if (items.length > 1 && !tgx101AllChips) {
       View offsetView = new View(getContext());
       offsetView.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, .75f));
       actionsList.addView(offsetView);

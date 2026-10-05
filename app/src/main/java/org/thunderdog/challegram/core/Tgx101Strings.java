@@ -423,6 +423,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SnoozeHours, "%1$dч");
     RU.put(R.string.Tgx101SnoozeSetting, "«Тихо» в уведомлениях");
     RU.put(R.string.Tgx101SnoozeOff, "Без кнопки");
+    RU.put(R.string.Tgx101ChipBlock, "Блок");
+    RU.put(R.string.Tgx101ChipAddContact, "В контакты");
     RU.put(R.string.Tgx101SectionChatList, "Список чатов");
     RU.put(R.string.Tgx101SectionChatListHint, "Фильтры, поиск свайпом, поле ввода");
     RU.put(R.string.Tgx101SectionStories, "Истории");
