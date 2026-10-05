@@ -220,6 +220,10 @@ public final class Tgx101MessageMenu {
     } catch (Throwable ignored) { }
   }
 
+  /** Where the finger touched the message (raw screen Y) — the menu opens next to it (user 2026-10-05, variant 1) */
+  public static float lastTouchRawY = -1;
+  public static long lastTouchAt;
+
   public static PopupLayout show (MessagesController c, TGMessage message, ViewController.Options options, OptionDelegate delegate,
                                   boolean readDatePending, @Nullable MoreLoader moreLoader, Runnable onExpandReactions, Runnable onDismissPrepare, Runnable onDismiss) {
     Context context = c.context();
@@ -291,6 +295,27 @@ public final class Tgx101MessageMenu {
       Gravity.BOTTOM | (leftHand ? Gravity.LEFT : Gravity.RIGHT));
     columnParams.setMargins(Screen.dp(12f), Screen.dp(12f), Screen.dp(12f), (keyboardHeight > 0 ? Screen.dp(12f) + keyboardHeight : Screen.dp(68f) + navigationInset)); // above the message input or the keyboard
     column.setLayoutParams(columnParams);
+    if (Settings.instance().tgx101MenuAtFinger() && lastTouchRawY >= 0 && android.os.SystemClock.uptimeMillis() - lastTouchAt < 3000) {
+      // variant 1: the menu opens at the finger — its top a little above the touch, kept inside the screen with
+      // margins from the top and the bottom edges
+      final float touchY = lastTouchRawY;
+      final int bottomLimit = columnParams.bottomMargin;
+      column.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+        @Override
+        public void onLayoutChange (View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
+          v.removeOnLayoutChangeListener(this);
+          int[] loc = new int[2];
+          root.getLocationOnScreen(loc);
+          int screenH = root.getHeight();
+          int h = v.getHeight();
+          int minTop = Screen.getStatusBarHeight() + Screen.dp(24f);
+          int maxTop = screenH - bottomLimit - h;
+          int wantTop = (int) (touchY - loc[1]) - Screen.dp(64f);
+          int top = Math.max(minTop, Math.min(maxTop, wantTop));
+          v.setTranslationY(top - v.getTop());
+        }
+      });
+    }
     column.setOnClickListener(v -> dismiss(host)); // the free strip beside the card closes the menu; the pill and the card consume their own taps
     root.addView(column);
     host.content = column;
@@ -411,6 +436,11 @@ public final class Tgx101MessageMenu {
     }
     if (moreItem != null) {
       sorted.add(moreItem); // «More…» stays last, above «Delete»
+    }
+    // TGx101 (user 2026-10-05): «Select» is always in the menu, at the bottom (can't be hidden) — long press opens
+    // the menu now, so selecting several messages starts here
+    if (message.canBeSelected() && !c.inSelectMode()) {
+      sorted.add(new ViewController.OptionItem(R.id.btn_messageSelect, Lang.getString(R.string.Select), ViewController.OptionColor.NORMAL, R.drawable.baseline_playlist_add_check_24));
     }
     shownIds.clear();
     for (ViewController.OptionItem item : sorted) shownIds.add(item.id);

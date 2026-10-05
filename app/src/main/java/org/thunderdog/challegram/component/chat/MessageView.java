@@ -1633,6 +1633,10 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
 
   @Override
   public boolean onTouchEvent (MotionEvent e) {
+    if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
+      org.thunderdog.challegram.ui.Tgx101MessageMenu.lastTouchRawY = e.getRawY();
+      org.thunderdog.challegram.ui.Tgx101MessageMenu.lastTouchAt = android.os.SystemClock.uptimeMillis();
+    }
     if (msg == null) {
       return false;
     }

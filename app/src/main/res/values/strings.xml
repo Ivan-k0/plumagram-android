@@ -6284,6 +6284,7 @@
   <string name="Tgx101SectionDataHint">Traffic, data saver, proxy, auto-download</string>
   <string name="Tgx101ChipBlock">Block</string>
   <string name="Tgx101ChipAddContact">Add contact</string>
+  <string name="Tgx101MenuAtFinger">Message menu opens at the finger</string>
   <string name="Tgx101UiText">Large interface (menus, lists)</string>
   <string name="Tgx101UiBold">Bolder interface text</string>
   <string name="Tgx101SnoozeOff">No button</string>

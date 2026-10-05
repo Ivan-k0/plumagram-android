@@ -3506,6 +3506,17 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_HIDE_CHANNEL_REACTIONS, value);
   }
 
+  private static final String KEY_TGX101_MENU_AT_FINGER = "tgx101_menu_at_finger";
+
+  /** TGx101: the message menu opens at the finger (on) or at the bottom of the screen (off) */
+  public boolean tgx101MenuAtFinger () {
+    return pmc.getBoolean(KEY_TGX101_MENU_AT_FINGER, true);
+  }
+
+  public void setTgx101MenuAtFinger (boolean v) {
+    pmc.putBoolean(KEY_TGX101_MENU_AT_FINGER, v);
+  }
+
   private static final String KEY_TGX101_UI_TEXT = "tgx101_ui_text";
   private static final String KEY_TGX101_UI_BOLD = "tgx101_ui_bold";
 

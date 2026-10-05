@@ -1560,6 +1560,7 @@
   <item name="btn_tgx101ZoomPullClose" type="id"/>
   <item name="btn_tgx101Snooze" type="id"/>
   <item name="btn_tgx101UiText" type="id"/>
+  <item name="btn_tgx101MenuAtFinger" type="id"/>
   <item name="btn_tgx101UiBold" type="id"/>
   <item name="btn_tgx101SectionChatList" type="id"/>
   <item name="btn_tgx101SectionStories" type="id"/>

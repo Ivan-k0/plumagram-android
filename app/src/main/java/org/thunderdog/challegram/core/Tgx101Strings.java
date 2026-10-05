@@ -424,6 +424,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SnoozeSetting, "«Тихо» в уведомлениях");
     RU.put(R.string.Tgx101SnoozeOff, "Без кнопки");
     RU.put(R.string.Tgx101UiText, "Крупный интерфейс (меню, списки)");
+    RU.put(R.string.Tgx101MenuAtFinger, "Меню сообщения открывается у пальца");
     RU.put(R.string.Tgx101UiBold, "Жирнее текст интерфейса");
     RU.put(R.string.Tgx101ChipBlock, "Блок");
     RU.put(R.string.Tgx101ChipAddContact, "В контакты");
