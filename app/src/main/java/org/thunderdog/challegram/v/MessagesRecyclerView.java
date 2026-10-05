@@ -450,7 +450,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
             float progress = Math.max(0f, Math.min(1f, pull / Screen.dp(110f)));
             boolean past = progress >= 1f;
             if (past && !tgx101NextPast) {
-              performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS, android.view.HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
+              if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101Haptics()) performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS, android.view.HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
             }
             tgx101NextPast = past;
             manager.controller().tgx101ShowNextChannel(progress, past);

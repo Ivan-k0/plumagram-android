@@ -843,7 +843,7 @@ public class MediaView extends FrameLayoutFix {
     if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true); // no swipe-to-close now
     cancelChildren();
     showHud(leftHalf ? "☀ ↕" : "🔊 ↕", null);
-    performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
+    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101Haptics()) performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK, android.view.HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
   };
   private final Runnable gHideHud = () -> {
     gHudAlpha = 0f;

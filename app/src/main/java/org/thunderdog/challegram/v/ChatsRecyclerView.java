@@ -140,7 +140,7 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
           cancel.setAction(MotionEvent.ACTION_CANCEL);
           super.dispatchTouchEvent(cancel);
           cancel.recycle();
-          performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+          if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101Haptics()) performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
           controller.tgx101SetStripExpanded(true, true);
           return true;
         } else if (dy >= Screen.dp(PULL_SLOP_DP) && dy > dx * 2f) {
@@ -184,7 +184,7 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
     boolean ready = distance >= Screen.dp(PULL_THRESHOLD_DP);
     if (ready != pullToSearchReady) {
       pullToSearchReady = ready;
-      if (ready) {
+      if (ready && org.thunderdog.challegram.unsorted.Settings.instance().tgx101Haptics()) {
         performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
       }
     }

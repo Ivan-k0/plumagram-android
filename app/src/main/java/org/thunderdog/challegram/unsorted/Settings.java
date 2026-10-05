@@ -3539,6 +3539,17 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_LONG_PRESS_MENU, v);
   }
 
+  // TGx101 (user 2026-10-06): the vibrations of the mod's own features can be turned off
+  private static final String KEY_TGX101_HAPTICS = "tgx101_haptics";
+
+  public boolean tgx101Haptics () {
+    return pmc.getBoolean(KEY_TGX101_HAPTICS, true);
+  }
+
+  public void setTgx101Haptics (boolean v) {
+    pmc.putBoolean(KEY_TGX101_HAPTICS, v);
+  }
+
   private static final String KEY_TGX101_MENU_AT_FINGER = "tgx101_menu_at_finger";
 
   /** TGx101: the message menu opens at the finger (on) or at the bottom of the screen (off) */

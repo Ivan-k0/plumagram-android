@@ -578,7 +578,7 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
   private float tgx101DownX, tgx101DownY;
   private final Runnable tgx101AvatarLongPress = () -> {
     tgx101AvatarLongPressed = true;
-    performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101Haptics()) performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
     org.thunderdog.challegram.ui.Tgx101Stories.Handler h = org.thunderdog.challegram.ui.Tgx101Stories.handler.get();
     if (h != null && chat != null) h.showStoriesMenu(chat.getChatId());
   };

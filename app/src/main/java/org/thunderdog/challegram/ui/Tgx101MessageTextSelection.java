@@ -420,7 +420,7 @@ public final class Tgx101MessageTextSelection {
       if (start != session.start || end != session.end) {
         session.setSelection(start, end);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-          performHapticFeedback(HapticFeedbackConstants.TEXT_HANDLE_MOVE);
+          if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101Haptics()) performHapticFeedback(HapticFeedbackConstants.TEXT_HANDLE_MOVE);
         }
       }
       session.bar.onSelectionChanging(); // hidden while dragging (the magnifier), back above the selection after

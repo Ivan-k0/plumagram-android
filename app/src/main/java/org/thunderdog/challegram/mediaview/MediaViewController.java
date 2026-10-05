@@ -5924,7 +5924,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             boolean past = lastSlideY >= getMeasuredHeight() * (wide ? .07f : .12f);
             if (past != tgx101ZoomPast) {
               tgx101ZoomPast = past;
-              if (past) performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS, android.view.HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
+              if (past && org.thunderdog.challegram.unsorted.Settings.instance().tgx101Haptics()) performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS, android.view.HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
               tgx101ShowPullHint(past);
             }
             return true;

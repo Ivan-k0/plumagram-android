@@ -6037,7 +6037,7 @@
   <string name="Tgx101MessageMenuHandRight">Right hand</string>
   <string name="Tgx101MessageMenuHandLeft">Left hand</string>
   <string name="Tgx101MessageMenuOrder">Message menu actions</string>
-  <string name="Tgx101MessageMenuOrderHint">Tap an action to move or hide it. Actions a message does not have are skipped. Delete and the other actions stay as they are: Delete is always at the bottom.</string>
+  <string name="Tgx101MessageMenuOrderHint">Tap an action to move or hide it. Actions a message does not have are skipped. More can be moved too; Select is always at the very bottom.</string>
   <string name="Tgx101MessageMenuOrderReset">Reset order</string>
   <string name="Tgx101MoveToTop">Move to top</string>
   <string name="Tgx101MoveUp">Move up</string>
@@ -6292,6 +6292,7 @@
   <string name="Tgx101SwipeActions">Swipe actions: reply, ↑ forward / save, ↓ copy / delete</string>
   <string name="Tgx101SwipeSave">Save</string>
   <string name="Tgx101SwipeSaved">Saved to Saved Messages</string>
+  <string name="Tgx101Haptics">Vibration of PlumaGram features</string>
   <string name="Tgx101LongPressMenu">Long press: menu, slide to an item (like iOS)</string>
   <string name="Tgx101MenuAtFinger">Message menu opens at the finger</string>
   <string name="Tgx101MenuSelectAlways">«Select» always stays in the menu — drag to move it</string>

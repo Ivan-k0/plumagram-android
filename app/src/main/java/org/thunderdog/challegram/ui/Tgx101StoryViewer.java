@@ -589,7 +589,7 @@ public class Tgx101StoryViewer extends Dialog {
     private final Runnable hold = () -> {
       holding = true;
       setPaused(true);
-      root.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+      if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101Haptics()) root.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
     };
 
     private void adjust (View v, float y) {
