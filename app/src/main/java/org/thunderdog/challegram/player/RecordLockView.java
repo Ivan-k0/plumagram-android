@@ -143,7 +143,9 @@ public class RecordLockView extends View {
     int radius = Screen.dp(BUTTON_SIZE) / 2;
     c.drawRoundRect(rectF, radius, radius, Paints.fillingPaint(fillingColor));
 
-    int bottomCy = (int) rectF.bottom - radius;
+    // TGx101 (user 2026-10-05, variant 1): the arrow sits at the very bottom of the capsule, the lock at its top —
+    // they overlapped while the capsule collapsed under the finger
+    int bottomCy = (int) rectF.bottom - Screen.dp(13f);
 
     int cx = viewWidth / 2;
     int cy = Screen.dp(BUTTON_SIZE) / 2;
@@ -155,7 +157,7 @@ public class RecordLockView extends View {
 
     int width = (int) (Screen.dp(6f) + Screen.dp(2f) * (1f - sendFactor));
     int height = (int) (Screen.dp(6f) + Screen.dp(1f) * (mode == MODE_DEFAULT ? (1f - sendFactor) : 1f));
-    int dy = (int) (Screen.dp(BUTTON_SIZE) / 3f * (1f - collapseFactor));
+    int dy = (int) (Screen.dp(BUTTON_SIZE) / 4.5f * (1f - collapseFactor));
     rectF.set(cx - width, cy - height + dy + totalDy, cx + width, cy + height + dy + totalDy);
 
     final float r = Screen.dp(2) * (1f - sendFactor);
@@ -196,7 +198,10 @@ public class RecordLockView extends View {
     }
 
     if (collapseFactor < 1f) {
-      DrawAlgorithms.drawDirection(c, cx, bottomCy, ColorUtils.alphaColor(1f - (collapseFactor >= .5f ? 1f : collapseFactor / .5f), grayColor), Gravity.TOP);
+      float arrowAlpha = 1f - Math.min(1f, collapseFactor / .25f); // gone before the capsule reaches the lock
+      if (arrowAlpha > 0f) {
+        DrawAlgorithms.drawDirection(c, cx, bottomCy, ColorUtils.alphaColor(arrowAlpha, grayColor), Gravity.TOP);
+      }
     }
   }
 

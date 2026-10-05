@@ -115,13 +115,32 @@ public class RecordDurationView extends View {
   private Cell[] cells;
   private float[] widths;
 
+  // TGx101 (user 2026-10-05): the timer gets its own medium Roboto with equal-width digits — the app's (custom) font
+  // spread the digits apart and the number jumped while counting
+  private static TextPaint tgx101Paint;
+
+  static TextPaint tgx101TimerPaint (int color) {
+    if (tgx101Paint == null) {
+      tgx101Paint = new TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG | android.graphics.Paint.SUBPIXEL_TEXT_FLAG);
+      tgx101Paint.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+        tgx101Paint.setFontFeatureSettings("tnum");
+      }
+    }
+    tgx101Paint.setTextSize(org.thunderdog.challegram.tool.Screen.dp(15f));
+    tgx101Paint.setColor(color);
+    return tgx101Paint;
+  }
+
   private void buildCells () {
-    TextPaint textPaint = Paints.getRegularTextPaint(15f);
+    TextPaint textPaint = tgx101TimerPaint(0xff000000);
     if (widths == null) {
       widths = new float[10];
+      float max = 0;
       for (int i = 0; i < widths.length; i++) {
-        widths[i] = U.measureText(String.valueOf(i), textPaint);
+        max = Math.max(max, U.measureText(String.valueOf(i), textPaint));
       }
+      java.util.Arrays.fill(widths, max); // tabular: every digit takes the same width
     }
     cells = new Cell[7];
     cells[0] = new Cell(0);
@@ -224,7 +243,7 @@ public class RecordDurationView extends View {
     public Cell (String str) {
       this.number = -1;
       this.str = str;
-      this.width = U.measureText(str, Paints.getRegularTextPaint(15f));
+      this.width = U.measureText(str, tgx101TimerPaint(0xff000000));
     }
 
     public void reset (int number) {
@@ -266,7 +285,7 @@ public class RecordDurationView extends View {
     }
 
     public void draw (Canvas c, float x, float y, int alpha) {
-      TextPaint textPaint = Paints.getRegularTextPaint(15f, ColorUtils.color(alpha, Theme.textAccentColor()));
+      TextPaint textPaint = tgx101TimerPaint(ColorUtils.color(alpha, Theme.textAccentColor()));
       if (factor == 0f || number == next) {
         if (number != 0 || !noZero) {
           c.drawText(str, x, y, textPaint);
