@@ -112,8 +112,9 @@ public final class Tgx101MessageMenu {
     return id != R.id.btn_tgx101SelectInPlace && id != R.id.btn_messageMore;
   }
 
-  /** At most this many rows are visible at once, the rest scroll (user 2026-10-06) */
-  public static final int MAX_VISIBLE_ROWS = 7;
+  /** user 2026-10-06: the menu keeps 5–9 items (with «Select»), the user decides; the rest under «More…» or hidden.
+   *  Only a menu over the limit (an old setup, or the app's own extra items) scrolls. */
+  public static final int MIN_MENU_ITEMS = 5, MAX_MENU_ITEMS = 9, MAX_VISIBLE_ROWS = MAX_MENU_ITEMS;
 
   /** The «More…» list in effect (the user's, or the default one) */
   public static int[] moreIds () {

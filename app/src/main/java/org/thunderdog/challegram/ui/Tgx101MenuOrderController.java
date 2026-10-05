@@ -19,6 +19,7 @@ import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.component.base.SettingView;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.telegram.Tdlib;
+import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.v.CustomRecyclerView;
 
@@ -79,6 +80,29 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     if (Tgx101MessageMenu.isHidden(id)) return SECTION_HIDDEN;
     if (Tgx101MessageMenu.isInMore(id)) return SECTION_MORE;
     return SECTION_MENU;
+  }
+
+  /** Items in the menu itself, «Select» included */
+  private static int menuCount (int[] order) {
+    int n = 1;
+    for (int id : order) if (sectionOf(id) == SECTION_MENU) n++;
+    return n;
+  }
+
+  /** user 2026-10-06: 5–9 items stay in the menu */
+  private boolean checkMenuCount (int[] order, int position, boolean toMenu) {
+    boolean inMenu = sectionOf(order[position]) == SECTION_MENU;
+    if (toMenu == inMenu) return true;
+    int count = menuCount(order);
+    if (toMenu && count >= Tgx101MessageMenu.MAX_MENU_ITEMS) {
+      UI.showToast(Lang.getString(R.string.Tgx101MenuTooMany, Tgx101MessageMenu.MAX_MENU_ITEMS), android.widget.Toast.LENGTH_SHORT);
+      return false;
+    }
+    if (!toMenu && count <= Tgx101MessageMenu.MIN_MENU_ITEMS) {
+      UI.showToast(Lang.getString(R.string.Tgx101MenuTooFew, Tgx101MessageMenu.MIN_MENU_ITEMS), android.widget.Toast.LENGTH_SHORT);
+      return false;
+    }
+    return true;
   }
 
   private static int numberInSection (int[] order, int position) {
@@ -180,6 +204,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
         new int[] {R.drawable.baseline_visibility_24, R.drawable.baseline_more_horiz_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_downward_24, R.drawable.baseline_arrow_downward_24},
         (itemView, optionId) -> {
           if (optionId == R.id.btn_tgx101MenuShow || optionId == R.id.btn_tgx101MenuToMore) {
+            if (!checkMenuCount(order, position, optionId == R.id.btn_tgx101MenuShow)) return true;
             int key = order[position];
             ArrayList<Integer> moreIds = new ArrayList<>();
             for (int x : Tgx101MessageMenu.moreIds()) if (x != key) moreIds.add(x);
@@ -217,6 +242,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
       new int[] {R.drawable.baseline_visibility_24, R.drawable.baseline_more_horiz_24, R.drawable.baseline_eye_off_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_downward_24, R.drawable.baseline_arrow_downward_24},
       (itemView, optionId) -> {
         if (optionId == R.id.btn_tgx101MenuShow || optionId == R.id.btn_tgx101MenuToMore || optionId == R.id.btn_tgx101MenuHide) {
+          if (!checkMenuCount(order, position, optionId == R.id.btn_tgx101MenuShow)) return true;
           // where this action goes: the menu itself, under «More…», or nowhere
           Integer key = order[position];
           ArrayList<Integer> hiddenIds = new ArrayList<>(), moreIds = new ArrayList<>();
