@@ -1271,14 +1271,29 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     long idle = android.os.SystemClock.elapsedRealtime() - tgx101PausedLockedAt;
     tgx101PausedLockedAt = 0;
     if (idle < 2 * 60 * 1000L) return;
-    org.thunderdog.challegram.Tgx101Diag.mark("keyboard: hidden after lock (" + idle / 1000 + " s)");
-    Runnable hide = () -> {
-      View focus = getCurrentFocus();
-      android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-      if (imm != null) imm.hideSoftInputFromWindow((focus != null ? focus : getWindow().getDecorView()).getWindowToken(), 0);
-    };
-    getWindow().getDecorView().post(hide);
-    getWindow().getDecorView().postDelayed(hide, 350);
+    // the activity resumes still behind the lock screen; Android shows the keyboard once the window gets focus after
+    // unlocking — hide it then (first check on Xiaomi: hiding at resume came too early)
+    tgx101HideKeyboardOnFocus = true;
+    org.thunderdog.challegram.Tgx101Diag.mark("keyboard: will hide after lock (" + idle / 1000 + " s)");
+  }
+
+  private boolean tgx101HideKeyboardOnFocus;
+
+  @Override
+  public void onWindowFocusChanged (boolean hasFocus) {
+    super.onWindowFocusChanged(hasFocus);
+    if (hasFocus && tgx101HideKeyboardOnFocus) {
+      tgx101HideKeyboardOnFocus = false;
+      Runnable hide = () -> {
+        View focus = getCurrentFocus();
+        android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        if (imm != null) imm.hideSoftInputFromWindow((focus != null ? focus : getWindow().getDecorView()).getWindowToken(), 0);
+      };
+      org.thunderdog.challegram.Tgx101Diag.mark("keyboard: hidden after lock");
+      getWindow().getDecorView().post(hide);
+      getWindow().getDecorView().postDelayed(hide, 300);
+      getWindow().getDecorView().postDelayed(hide, 700);
+    }
   }
 
   @Override
