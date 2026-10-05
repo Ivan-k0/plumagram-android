@@ -2079,7 +2079,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       drawContent(view, c, pContentX, pContentY, pContentMaxWidth);
     }
 
-    // TGx101 (user 2026-10-04, variant В): no bubble flash any more — the jump is shown by the wave in drawHighlight
+    // TGx101: the jump flash over the bubble and its content — together with the wave in drawHighlight
+    // (user 2026-10-05: «верни подсвечивание сообщения при переходе + к волне»)
+    if (highlightFactor != 0f && hasBubble && tgx101HighlightedChildId == 0) {
+      drawBubble(c, Paints.fillingPaint(tgx101FlashColor()), false, 0);
+    }
 
     if (hasBubble) {
       if (needBubbleCornerFix()) {

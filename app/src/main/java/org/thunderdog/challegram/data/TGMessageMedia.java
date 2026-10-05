@@ -621,12 +621,15 @@ public class TGMessageMedia extends TGMessage {
     final int textTop = tgx101CaptionAbove() ? startY + Screen.dp(TEXT_MARGIN) : startY + mosaicWrapper.getHeight() + Screen.dp(TEXT_MARGIN);
     startY += tgx101MediaOffset();
     mosaicWrapper.draw(view, c, startX, startY, complexReceiver, useFullWidth());
-    // TGx101 (user 2026-10-04): no item flash — the wave beside the message marks the jump
+    if (tgx101HighlightedChildId() != 0) {
+      mosaicWrapper.tgx101DrawItemHighlight(c, tgx101HighlightedChildId(), tgx101ItemFlashColor()); // TGx101: only that album item flashes
+    }
     if (tgx101HasMenuZone()) {
       // ⋮ on a soft dark pill in the top corner of the photo / video: right for own messages, left for incoming
       // ones (user 2026-10-05: the right side of a left photo is under the thumb)
       float dotsX = tgx101MenuLeft() ? startX + Screen.dp(14f) : startX + mosaicWrapper.getWidth() - Screen.dp(14f);
-      float dotsY = startY + Screen.dp(12f);
+      // incoming: bottom left — the top left corner holds the video's duration / download badge
+      float dotsY = tgx101MenuLeft() ? startY + mosaicWrapper.getHeight() - Screen.dp(28f) : startY + Screen.dp(12f);
       RectF pill = Paints.getRectF();
       pill.set(dotsX - Screen.dp(8f), dotsY - Screen.dp(6f), dotsX + Screen.dp(8f), dotsY + Screen.dp(16f));
       c.drawRoundRect(pill, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(0x55000000));
@@ -888,7 +891,9 @@ public class TGMessageMedia extends TGMessage {
     if (e.getAction() == MotionEvent.ACTION_DOWN) {
       float zoneWidth = (cellRight - cellLeft) * .25f;
       boolean inZone = tgx101MenuLeft() ? e.getX() >= cellLeft && e.getX() <= cellLeft + zoneWidth : e.getX() >= cellRight - zoneWidth && e.getX() <= cellRight;
-      tgx101MenuZoneTouch = tgx101HasMenuZone() && inZone && e.getY() >= cellTop && e.getY() <= cellBottom;
+      // the top of the left zone stays with the video's download / duration badge (user's video 2026-10-05)
+      int zoneTop = tgx101MenuLeft() ? cellTop + Screen.dp(52f) : cellTop;
+      tgx101MenuZoneTouch = tgx101HasMenuZone() && inZone && e.getY() >= zoneTop && e.getY() <= cellBottom;
     }
     if (tgx101MenuZoneTouch) {
       if (e.getAction() == MotionEvent.ACTION_UP || e.getAction() == MotionEvent.ACTION_CANCEL) {
