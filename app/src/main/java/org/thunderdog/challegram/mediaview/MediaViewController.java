@@ -6169,13 +6169,17 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     tgx101SubtitleView.setBackground(subBg);
     tgx101SubtitleView.setVisibility(View.GONE);
     FrameLayoutFix.LayoutParams subParams = FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-    subParams.bottomMargin = Screen.dp(120f);
+    subParams.bottomMargin = Screen.dp(170f); // above the caption and the player bar
     subParams.leftMargin = subParams.rightMargin = Screen.dp(16f);
     contentView.addView(tgx101SubtitleView, subParams);
     VideoPlayerView.tgx101CueSink = text -> {
       if (tgx101SubtitleView == null) return;
       tgx101SubtitleView.setText(text);
       tgx101SubtitleView.setVisibility(text != null ? View.VISIBLE : View.GONE);
+      if (text != null) {
+        tgx101SubtitleView.bringToFront(); // above the caption and the player bar
+        org.thunderdog.challegram.Tgx101Diag.mark("player: subtitle shown");
+      }
     };
 
     if (needHeader()) {

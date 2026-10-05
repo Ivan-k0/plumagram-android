@@ -161,28 +161,79 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     if (!on && tgx101CueSink != null) tgx101CueSink.runWithData(null);
   }
 
-  /** An external subtitle file: merged with the playing video, the position kept */
+  // An external subtitle file is parsed here (SRT / VTT timings) and shown by the playback position — no extra media
+  // source (merging it with the playing video failed at runtime on some videos)
+  private final java.util.ArrayList<long[]> tgx101SubTimes = new java.util.ArrayList<>();
+  private final java.util.ArrayList<String> tgx101SubTexts = new java.util.ArrayList<>();
+  private String tgx101SubShown;
+
+  private final Runnable tgx101SubTick = new Runnable() {
+    @Override
+    public void run () {
+      if (player == null || tgx101SubTimes.isEmpty()) return;
+      long pos = player.getCurrentPosition();
+      String text = null;
+      for (int i = 0; i < tgx101SubTimes.size(); i++) {
+        long[] t = tgx101SubTimes.get(i);
+        if (pos >= t[0] && pos <= t[1]) { text = tgx101SubTexts.get(i); break; }
+      }
+      if (!org.thunderdog.challegram.unsorted.Settings.instance().tgx101Subtitles()) text = null;
+      if (!StringUtils.equalsOrBothEmpty(text, tgx101SubShown)) {
+        tgx101SubShown = text;
+        if (tgx101CueSink != null) tgx101CueSink.runWithData(text);
+      }
+      seekHandler.postDelayed(this, 150);
+    }
+  };
+
+  private static long tgx101ParseTime (String t) {
+    // 00:01:02,345 or 01:02.345
+    t = t.trim().replace(',', '.');
+    String[] parts = t.split(":");
+    double seconds = 0;
+    for (String part : parts) seconds = seconds * 60 + Double.parseDouble(part.trim());
+    return (long) (seconds * 1000);
+  }
+
   public boolean tgx101LoadSubtitles (android.net.Uri uri, String name) {
-    if (player == null || mediaSource == null) return false;
-    String lower = name != null ? name.toLowerCase(java.util.Locale.ROOT) : "";
-    String mime = lower.endsWith(".vtt") ? androidx.media3.common.MimeTypes.TEXT_VTT : lower.endsWith(".ass") || lower.endsWith(".ssa") ? androidx.media3.common.MimeTypes.TEXT_SSA : androidx.media3.common.MimeTypes.APPLICATION_SUBRIP;
-    androidx.media3.common.MediaItem.SubtitleConfiguration config = new androidx.media3.common.MediaItem.SubtitleConfiguration.Builder(uri)
-      .setMimeType(mime)
-      .setLanguage("und")
-      .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
-      .build();
-    MediaSource subtitles = new androidx.media3.exoplayer.source.SingleSampleMediaSource.Factory(new androidx.media3.datasource.DefaultDataSource.Factory(context))
-      .createMediaSource(config, C.TIME_UNSET);
-    long position = player.getCurrentPosition();
-    boolean playing = player.getPlayWhenReady();
-    MediaSource merged = new androidx.media3.exoplayer.source.MergingMediaSource(mediaSource, subtitles);
-    this.mediaSource = merged;
-    player.setMediaSource(merged, position);
-    player.prepare();
-    player.setPlayWhenReady(playing);
+    if (player == null) return false;
+    tgx101SubTimes.clear();
+    tgx101SubTexts.clear();
+    try (java.io.InputStream in = context.getContentResolver().openInputStream(uri)) {
+      if (in == null) return false;
+      java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8));
+      String line;
+      long[] time = null;
+      StringBuilder text = new StringBuilder();
+      while ((line = reader.readLine()) != null) {
+        line = line.replace("\uFEFF", "");
+        int arrow = line.indexOf("-->");
+        if (arrow != -1) {
+          if (time != null && text.length() > 0) { tgx101SubTimes.add(time); tgx101SubTexts.add(text.toString().trim()); }
+          String end = line.substring(arrow + 3).trim();
+          int space = end.indexOf(' ');
+          if (space != -1) end = end.substring(0, space);
+          time = new long[] {tgx101ParseTime(line.substring(0, arrow)), tgx101ParseTime(end)};
+          text.setLength(0);
+        } else if (line.trim().isEmpty()) {
+          if (time != null && text.length() > 0) { tgx101SubTimes.add(time); tgx101SubTexts.add(text.toString().trim()); }
+          time = null;
+          text.setLength(0);
+        } else if (time != null) {
+          if (text.length() > 0) text.append('\n');
+          text.append(line.replaceAll("<[^>]+>", "").replaceAll("\\{[^}]*\\}", ""));
+        }
+      }
+      if (time != null && text.length() > 0) { tgx101SubTimes.add(time); tgx101SubTexts.add(text.toString().trim()); }
+    } catch (Throwable t) {
+      org.thunderdog.challegram.Tgx101Diag.mark("player: subtitles file failed " + t.getClass().getSimpleName());
+      return false;
+    }
+    if (tgx101SubTimes.isEmpty()) return false;
     org.thunderdog.challegram.unsorted.Settings.instance().setTgx101Subtitles(true);
-    tgx101ApplySubtitles();
-    org.thunderdog.challegram.Tgx101Diag.mark("player: subtitles file loaded (" + mime + ")");
+    seekHandler.removeCallbacks(tgx101SubTick);
+    seekHandler.post(tgx101SubTick);
+    org.thunderdog.challegram.Tgx101Diag.mark("player: subtitles file loaded, " + tgx101SubTimes.size() + " lines");
     return true;
   }
 
