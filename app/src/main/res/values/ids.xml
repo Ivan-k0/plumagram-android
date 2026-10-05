@@ -1564,6 +1564,7 @@
   <item name="btn_tgx101LongPressMenu" type="id"/>
   <item name="btn_tgx101Haptics" type="id"/>
   <item name="btn_tgx101SaveFavorite" type="id"/>
+  <item name="btn_tgx101SelectInPlace" type="id"/>
   <item name="btn_tgx101MenuSelectFixed" type="id"/>
   <item name="btn_tgx101SwipeActions" type="id"/>
   <item name="btn_tgx101ProxyPin" type="id"/>

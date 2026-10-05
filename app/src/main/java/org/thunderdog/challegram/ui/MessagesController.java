@@ -6392,6 +6392,17 @@ public class MessagesController extends ViewController<MessagesController.Argume
         TdApi.MessageProperties properties = selectedMessage.lastMessageProperties(editingMessage.id);
         editMessage(new MessageWithProperties(editingMessage, properties));
         return true;
+      } else if (id == R.id.btn_tgx101SelectInPlace) {
+        View view = selectedMessage.findCurrentView();
+        if (view instanceof org.thunderdog.challegram.component.chat.MessageView) {
+          int[] loc = new int[2];
+          view.getLocationOnScreen(loc);
+          tgx101OpenSelectText(selectedMessage, (org.thunderdog.challegram.component.chat.MessageView) view,
+            Tgx101MessageMenu.lastTouchRawX - loc[0], Tgx101MessageMenu.lastTouchRawY - loc[1]);
+        } else {
+          tgx101OpenSelectText(selectedMessage);
+        }
+        return true;
       } else if (id == R.id.btn_tgx101SaveFavorite) {
         TdApi.Message[] all = selectedMessage.getAllMessages();
         long[] messageIds = new long[all.length];

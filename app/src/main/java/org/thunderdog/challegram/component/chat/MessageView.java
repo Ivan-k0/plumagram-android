@@ -983,6 +983,13 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       }
       icons.append(R.drawable.baseline_content_copy_24);
 
+      // TGx101 (user 2026-10-06): «Select» text — the in-bubble selection from the point the finger first touched
+      if (!msg.isTranslated() && msg.tgx101SelectableText() != null) {
+        ids.append(R.id.btn_tgx101SelectInPlace);
+        strings.append(R.string.Tgx101SelectInPlace);
+        icons.append(R.drawable.tgx101_text_select_24);
+      }
+
       // TGx101: «Select text» left the menu: a second long press on the selected message opens it
       // TGx101: «Цитировать» on others' messages opens the quote window (select a part, copy, reply with it)
       if (!msg.isOutgoing() && !msg.isTranslated()) {
@@ -1655,6 +1662,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
   public boolean onTouchEvent (MotionEvent e) {
     if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
       org.thunderdog.challegram.ui.Tgx101MessageMenu.lastTouchRawY = e.getRawY();
+      org.thunderdog.challegram.ui.Tgx101MessageMenu.lastTouchRawX = e.getRawX();
       org.thunderdog.challegram.ui.Tgx101MessageMenu.lastTouchAt = android.os.SystemClock.uptimeMillis();
     }
     if (msg == null) {

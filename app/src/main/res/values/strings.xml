@@ -6293,6 +6293,7 @@
   <string name="Tgx101SwipeSave">Save</string>
   <string name="Tgx101SwipeSaved">Saved to Saved Messages</string>
   <string name="Tgx101Haptics">Vibration of PlumaGram features</string>
+  <string name="Tgx101SelectInPlace">Select text</string>
   <string name="Tgx101MenuSectionMenu">In the menu (up to 7 visible, the rest scroll)</string>
   <string name="Tgx101MenuSectionMore">In More</string>
   <string name="Tgx101MenuSectionHidden">Hidden</string>

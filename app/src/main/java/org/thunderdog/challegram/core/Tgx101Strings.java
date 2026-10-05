@@ -438,6 +438,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SwipeSave, "Сохранить");
     RU.put(R.string.Tgx101SwipeSaved, "Сохранено в Избранное");
     RU.put(R.string.Tgx101Haptics, "Вибрация функций PlumaGram (меню, выделение, жесты)");
+    RU.put(R.string.Tgx101SelectInPlace, "Выделить");
     RU.put(R.string.Tgx101MenuSectionMenu, "В меню (видно до 7, остальные прокручиваются)");
     RU.put(R.string.Tgx101MenuSectionMore, "В «Ещё»");
     RU.put(R.string.Tgx101MenuSectionHidden, "Скрытые");

@@ -170,6 +170,29 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     final boolean hidden = Tgx101MessageMenu.isHidden(order[position]);
     final boolean inMore = Tgx101MessageMenu.isInMore(order[position]);
     String mark = "  ✓";
+    if (order[position] == R.id.btn_tgx101SelectInPlace) {
+      // «Select» text can't be hidden: in the menu or under «More…», and moved
+      showOptions(item.getString(),
+        new int[] {R.id.btn_tgx101MenuShow, R.id.btn_tgx101MenuToMore, R.id.btn_moveToTop, R.id.btn_moveUp, R.id.btn_moveDown, R.id.btn_moveToBottom},
+        new String[] {Lang.getString(R.string.Tgx101MenuShowInMenu) + (!inMore ? mark : ""), Lang.getString(R.string.Tgx101MenuMoveToMore) + (inMore ? mark : ""),
+          Lang.getString(R.string.Tgx101MoveToTop), Lang.getString(R.string.Tgx101MoveUp), Lang.getString(R.string.Tgx101MoveDown), Lang.getString(R.string.Tgx101MoveToBottom)},
+        null,
+        new int[] {R.drawable.baseline_visibility_24, R.drawable.baseline_more_horiz_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_downward_24, R.drawable.baseline_arrow_downward_24},
+        (itemView, optionId) -> {
+          if (optionId == R.id.btn_tgx101MenuShow || optionId == R.id.btn_tgx101MenuToMore) {
+            int key = order[position];
+            ArrayList<Integer> moreIds = new ArrayList<>();
+            for (int x : Tgx101MessageMenu.moreIds()) if (x != key) moreIds.add(x);
+            if (optionId == R.id.btn_tgx101MenuToMore) moreIds.add(key);
+            Settings.instance().setTgx101MessageMenuMore(toArray(moreIds));
+            rebuild();
+            return true;
+          }
+          moveTo(order, position, optionId);
+          return true;
+        });
+      return;
+    }
     if (order[position] == R.id.btn_messageMore) {
       // «More…» itself can only be moved (it shows up only when something is moved into it)
       showOptions(item.getString(),

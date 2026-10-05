@@ -67,9 +67,10 @@ public final class Tgx101MessageMenu {
   public static final int[] ORDERABLE_IDS = {
     R.id.btn_messageReply,
     R.id.btn_messageCopy,
+    R.id.btn_tgx101SelectInPlace, // user 2026-10-06: «Select» text in the bubble; can't be hidden
+    R.id.btn_messageEdit,
     R.id.btn_messageShare,
     R.id.btn_tgx101SaveFavorite, // user 2026-10-06: «Save» to Saved Messages
-    R.id.btn_messageEdit,
     R.id.btn_messagePin,
     R.id.btn_messageSelectText,
     R.id.btn_chatTranslate,
@@ -86,14 +87,14 @@ public final class Tgx101MessageMenu {
     R.id.btn_messageDelete // TGx101 (user 2026-10-05): «Delete» is ordered like the rest; «Select» is always last
   };
   public static final int[] ORDERABLE_NAMES = {
-    R.string.Reply, R.string.Copy, R.string.Share, R.string.Tgx101SwipeSave, R.string.edit, R.string.MessagePin,
+    R.string.Reply, R.string.Copy, R.string.Tgx101SelectInPlace, R.string.edit, R.string.Share, R.string.Tgx101SwipeSave, R.string.MessagePin,
     R.string.Tgx101MenuSelectText, R.string.Translate, R.string.CopyLink, R.string.Save, R.string.MessageReport,
     R.string.Tgx101FilterSimilar, R.string.Tgx101MenuEditorOwn, R.string.Tgx101MenuMessagesFrom,
     R.string.Tgx101MenuThread, R.string.Tgx101MenuToOriginal, R.string.DeleteFromCache, R.string.MoreMessageOptions, R.string.Delete
   };
   public static final int[] ORDERABLE_ICONS = {
-    R.drawable.baseline_reply_24, R.drawable.baseline_content_copy_24, R.drawable.baseline_forward_24,
-    R.drawable.baseline_bookmark_24, R.drawable.baseline_edit_24, R.drawable.deproko_baseline_pin_24, R.drawable.baseline_format_quote_close_24,
+    R.drawable.baseline_reply_24, R.drawable.baseline_content_copy_24, R.drawable.tgx101_text_select_24, R.drawable.baseline_edit_24,
+    R.drawable.baseline_forward_24, R.drawable.baseline_bookmark_24, R.drawable.deproko_baseline_pin_24, R.drawable.baseline_format_quote_close_24,
     R.drawable.baseline_translate_24, R.drawable.baseline_link_24, R.drawable.baseline_file_download_24,
     R.drawable.baseline_report_24, R.drawable.baseline_filter_variant_remove_24, R.drawable.baseline_format_text_24,
     R.drawable.baseline_person_24, R.drawable.outline_forum_24, R.drawable.baseline_forum_24, R.drawable.templarian_baseline_broom_24,
@@ -102,9 +103,14 @@ public final class Tgx101MessageMenu {
 
   /** user 2026-10-06: a light menu by default — these stay in it, everything else orderable goes under «More…» */
   public static final int[] DEFAULT_SHOWN = {
-    R.id.btn_messageReply, R.id.btn_messageCopy, R.id.btn_messageShare, R.id.btn_tgx101SaveFavorite,
-    R.id.btn_messageMore, R.id.btn_messageDelete
+    R.id.btn_messageReply, R.id.btn_messageCopy, R.id.btn_tgx101SelectInPlace, R.id.btn_messageEdit, R.id.btn_messageShare,
+    R.id.btn_tgx101SaveFavorite, R.id.btn_messageMore, R.id.btn_messageDelete
   };
+
+  /** Can't be hidden (they can still be moved, and «Select text» can go under «More…») */
+  public static boolean canHide (int id) {
+    return id != R.id.btn_tgx101SelectInPlace && id != R.id.btn_messageMore;
+  }
 
   /** At most this many rows are visible at once, the rest scroll (user 2026-10-06) */
   public static final int MAX_VISIBLE_ROWS = 7;
@@ -159,6 +165,7 @@ public final class Tgx101MessageMenu {
 
   /** Hidden in Settings → MagiX → message menu (Pin hides Unpin too) */
   public static boolean isHidden (int id) {
+    if (!canHide(id)) return false;
     int key = orderKey(id);
     for (int hidden : Settings.instance().getTgx101MessageMenuHidden()) {
       if (hidden == key) return true;
@@ -212,6 +219,7 @@ public final class Tgx101MessageMenu {
     @Nullable MoreLoader moreLoader;
     LinearLayout list; // the card's actions
     android.widget.ScrollView scroll; // the actions scroll when there are more than MAX_VISIBLE_ROWS
+    @Nullable Runnable selectInPlace; // «Select» text: the in-bubble selection where the finger first touched
     final List<View> mainRows = new ArrayList<>();
     final List<View> bottomViews = new ArrayList<>(); // «Delete» and its divider: hidden inside «More…»
     boolean moreShown, moreLoading;
@@ -323,7 +331,7 @@ public final class Tgx101MessageMenu {
   }
 
   /** Where the finger touched the message (raw screen Y) — the menu opens next to it (user 2026-10-05, variant 1) */
-  public static float lastTouchRawY = -1;
+  public static float lastTouchRawY = -1, lastTouchRawX = -1;
   public static long lastTouchAt;
 
   public static PopupLayout show (MessagesController c, TGMessage message, ViewController.Options options, OptionDelegate delegate,
@@ -377,6 +385,18 @@ public final class Tgx101MessageMenu {
     final android.graphics.Rect liftScreen = new android.graphics.Rect(); // the visible part of the message, on screen
     final android.graphics.Rect listScreen = new android.graphics.Rect(); // the messages list, on screen
     final ImageView lift = liftedMessage(c, message, liftScreen, listScreen);
+    final float firstX = lastTouchRawX, firstY = lastTouchRawY;
+    host.selectInPlace = () -> {
+      View messageView = message.findCurrentView();
+      if (!(messageView instanceof org.thunderdog.challegram.component.chat.MessageView)) {
+        c.tgx101OpenSelectText(message);
+        return;
+      }
+      int[] location = new int[2];
+      messageView.getLocationOnScreen(location);
+      org.thunderdog.challegram.Tgx101Diag.mark("select: «Select» in the menu");
+      c.tgx101OpenSelectText(message, (org.thunderdog.challegram.component.chat.MessageView) messageView, firstX - location[0], firstY - location[1]);
+    };
     if (lift != null) {
       root.addView(lift, new FrameLayout.LayoutParams(liftScreen.width(), liftScreen.height()));
     }
@@ -875,6 +895,12 @@ public final class Tgx101MessageMenu {
     Views.setClickable(row);
     RippleSupport.setTransparentSelector(row);
     row.setOnClickListener(v -> {
+      if (item.id == R.id.btn_tgx101SelectInPlace && host.selectInPlace != null) {
+        if (host.dismissing) return;
+        dismiss(host);
+        host.selectInPlace.run();
+        return;
+      }
       if (item.id == R.id.btn_messageMore && host.moreLoader != null) {
         showMore(context, host); // inside this card: the dimmed screen behind stays as it is
         return;
