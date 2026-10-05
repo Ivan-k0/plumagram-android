@@ -1507,8 +1507,10 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       Runnable open = () -> {
         final TdlibContext context = new TdlibContext(this, tdlib);
         final TdlibUi.ChatOpenParameters params = new TdlibUi.ChatOpenParameters().onDone(tdlib::decrementUiReferenceCount);
-        if (specificMessageId != 0)
+        if (specificMessageId != 0) {
+          org.thunderdog.challegram.component.chat.MessagesManager.tgx101SkipFlashOnce(specificMessageId); // TGx101: no flash from a notification
           params.highlightMessage(new MessageId(chatId, specificMessageId));
+        }
         tdlib.ui().openChat(context, chatId, params);
       };
       // TGx101: from a notification with the app already running, open the chat right away, before the

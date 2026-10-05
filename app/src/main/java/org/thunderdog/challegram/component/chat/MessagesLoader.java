@@ -1674,6 +1674,9 @@ public class MessagesLoader implements Client.ResultHandler {
         }
         case MessagesManager.HIGHLIGHT_MODE_NORMAL:
         case MessagesManager.HIGHLIGHT_MODE_NORMAL_NEXT: {
+          if (scrollMessageId != null && MessagesManager.tgx101SkipFlash(scrollMessageId.getMessageId())) {
+            break; // TGx101: opened from a notification — no flash
+          }
           if (scrollMessageId != null) scrollItem.tgx101SetHighlightedChild(scrollMessageId.getMessageId()); // TGx101: album item
           scrollItem.highlight(false);
           break;

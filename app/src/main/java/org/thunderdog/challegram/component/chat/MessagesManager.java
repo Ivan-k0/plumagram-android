@@ -2742,6 +2742,18 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
   public static final int HIGHLIGHT_MODE_WITHOUT_HIGHLIGHT = -2;
   public static final int HIGHLIGHT_MODE_START  = -1;
   public static final int HIGHLIGHT_MODE_NONE   = 0;
+  // TGx101 (user 2026-10-05): a message opened from a system notification is not flashed (only reply jumps are)
+  private static long tgx101NoFlashMessageId, tgx101NoFlashUntil;
+
+  public static void tgx101SkipFlashOnce (long messageId) {
+    tgx101NoFlashMessageId = messageId;
+    tgx101NoFlashUntil = android.os.SystemClock.uptimeMillis() + 5000;
+  }
+
+  public static boolean tgx101SkipFlash (long messageId) {
+    return messageId != 0 && messageId == tgx101NoFlashMessageId && android.os.SystemClock.uptimeMillis() < tgx101NoFlashUntil;
+  }
+
   public static final int HIGHLIGHT_MODE_NORMAL = 1;
   public static final int HIGHLIGHT_MODE_UNREAD = 2;
   public static final int HIGHLIGHT_MODE_POSITION_RESTORE = 3;
@@ -3224,8 +3236,11 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         index--;
       }
       TGMessage msg = adapter.getMessage(index);
-      msg.tgx101SetHighlightedChild(messageId.getMessageId()); // TGx101: the album item the reply was to
-      msg.highlight(true);
+      // TGx101 (user 2026-10-05): only jumps to a message flash it — not the arrow to the first unread, not a notification
+      if ((highlightMode == HIGHLIGHT_MODE_NORMAL || highlightMode == HIGHLIGHT_MODE_NORMAL_NEXT) && !tgx101SkipFlash(messageId.getMessageId())) {
+        msg.tgx101SetHighlightedChild(messageId.getMessageId()); // TGx101: the album item the reply was to
+        msg.highlight(true);
+      }
       scrollToMessage(index, msg, highlightMode, allowSmooth, false);
     }
   }
