@@ -176,7 +176,11 @@ public class RecordLockView extends View {
       }
 
       if (editFactor > 0f) {
-        Drawables.drawCentered(c, mode == MODE_VIDEO ? drawableRound : drawableVoice, rectF.centerX(), rectF.centerY(), PorterDuffPaint.get(ColorId.icon, alpha));
+        // TGx101 (user 2026-10-05): paused — a clear «continue recording» button: a filled accent circle with a white
+        // mic (the grey mic on white was not read as a button)
+        int accent = Theme.chatSendButtonColor();
+        c.drawCircle(rectF.centerX(), rectF.centerY(), Screen.dp(15f) * alpha, Paints.fillingPaint(ColorUtils.alphaColor(alpha, accent)));
+        Drawables.drawCentered(c, mode == MODE_VIDEO ? drawableRound : drawableVoice, rectF.centerX(), rectF.centerY(), PorterDuffPaint.get(ColorId.fillingPositiveContent, alpha));
       }
     }
 
