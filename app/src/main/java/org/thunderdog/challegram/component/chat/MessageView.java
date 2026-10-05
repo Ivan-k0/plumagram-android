@@ -983,8 +983,9 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       }
       icons.append(R.drawable.baseline_content_copy_24);
 
-      // TGx101 (user 2026-10-06): «Select» text — the in-bubble selection from the point the finger first touched
-      if (!msg.isTranslated() && msg.tgx101SelectableText() != null) {
+      // TGx101 (user 2026-10-06): «Select» text — the in-bubble selection from the point the finger first touched.
+      // Only with «Long press: menu» (iOS mode): otherwise a second long press selects text, the item isn't needed
+      if (Settings.instance().tgx101LongPressMenu() && !msg.isTranslated() && msg.tgx101SelectableText() != null) {
         ids.append(R.id.btn_tgx101SelectInPlace);
         strings.append(R.string.Tgx101SelectInPlace);
         icons.append(R.drawable.tgx101_select_all_24);
