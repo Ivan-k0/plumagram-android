@@ -1223,9 +1223,16 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   }
 
   /** Up to 5 overlapping avatars with rings + «Stories · N» */
+  private String tgx101MiniKey = "";
+
   private void tgx101FillMini () {
-    tgx101StripMini.removeAllViews();
     java.util.List<TdApi.ChatActiveStories> ordered = tgx101StoriesStrip.ordered();
+    // same five chats and count — keep the avatars (rebuilding on every focus blinked, user 2026-10-05)
+    StringBuilder key = new StringBuilder().append(ordered.size()).append('|');
+    for (int i = 0; i < Math.min(5, ordered.size()); i++) key.append(ordered.get(i).chatId).append(',');
+    if (key.toString().equals(tgx101MiniKey) && tgx101StripMini.getChildCount() > 0) return;
+    tgx101MiniKey = key.toString();
+    tgx101StripMini.removeAllViews();
     int count = Math.min(5, ordered.size());
     for (int i = 0; i < count; i++) {
       android.widget.FrameLayout ringWrap = new android.widget.FrameLayout(context()) {

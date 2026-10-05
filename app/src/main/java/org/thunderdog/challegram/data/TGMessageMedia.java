@@ -623,8 +623,9 @@ public class TGMessageMedia extends TGMessage {
     mosaicWrapper.draw(view, c, startX, startY, complexReceiver, useFullWidth());
     // TGx101 (user 2026-10-04): no item flash — the wave beside the message marks the jump
     if (tgx101HasMenuZone()) {
-      // ⋮ on a soft dark pill in the top right corner of the photo / video
-      float dotsX = startX + mosaicWrapper.getWidth() - Screen.dp(14f);
+      // ⋮ on a soft dark pill in the top corner of the photo / video: right for own messages, left for incoming
+      // ones (user 2026-10-05: the right side of a left photo is under the thumb)
+      float dotsX = tgx101MenuLeft() ? startX + Screen.dp(14f) : startX + mosaicWrapper.getWidth() - Screen.dp(14f);
       float dotsY = startY + Screen.dp(12f);
       RectF pill = Paints.getRectF();
       pill.set(dotsX - Screen.dp(8f), dotsY - Screen.dp(6f), dotsX + Screen.dp(8f), dotsY + Screen.dp(16f));
@@ -885,7 +886,9 @@ public class TGMessageMedia extends TGMessage {
     // TGx101 (user 2026-10-04): like documents — the right quarter of a single photo / video (with ⋮) opens the
     // message menu instead of the viewer
     if (e.getAction() == MotionEvent.ACTION_DOWN) {
-      tgx101MenuZoneTouch = tgx101HasMenuZone() && e.getX() >= cellLeft + (cellRight - cellLeft) * .75f && e.getX() <= cellRight && e.getY() >= cellTop && e.getY() <= cellBottom;
+      float zoneWidth = (cellRight - cellLeft) * .25f;
+      boolean inZone = tgx101MenuLeft() ? e.getX() >= cellLeft && e.getX() <= cellLeft + zoneWidth : e.getX() >= cellRight - zoneWidth && e.getX() <= cellRight;
+      tgx101MenuZoneTouch = tgx101HasMenuZone() && inZone && e.getY() >= cellTop && e.getY() <= cellBottom;
     }
     if (tgx101MenuZoneTouch) {
       if (e.getAction() == MotionEvent.ACTION_UP || e.getAction() == MotionEvent.ACTION_CANCEL) {
@@ -944,6 +947,11 @@ public class TGMessageMedia extends TGMessage {
   }
 
   private boolean tgx101MenuZoneTouch;
+
+  /** Incoming photos (on the left) keep ⋮ and the menu quarter on their left side */
+  private boolean tgx101MenuLeft () {
+    return !isOutgoingBubble();
+  }
 
   private boolean tgx101HasMenuZone () {
     return useBubbles() && mosaicWrapper != null && mosaicWrapper.getSingularItem() != null && !isHot() && !isSponsoredMessage();

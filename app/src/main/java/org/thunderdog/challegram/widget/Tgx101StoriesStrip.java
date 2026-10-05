@@ -76,13 +76,33 @@ public class Tgx101StoriesStrip extends HorizontalScrollView implements SortedLi
     for (TdApi.ChatActiveStories s : items) {
       if (s.stories != null && s.stories.length > 0) filtered.add(s);
     }
-    ordered = Tgx101Stories.order(tdlib, filtered);
+    List<TdApi.ChatActiveStories> newOrdered = Tgx101Stories.order(tdlib, filtered);
+    // TGx101 (user 2026-10-05 «истории мигают при каждом показе»): the same chats in the same order with the
+    // same read state — keep the views, rebuilding reloads every avatar and blinks
+    String key = tgx101Key(newOrdered);
+    if (key.equals(builtKey) && row.getChildCount() == newOrdered.size()) {
+      ordered = newOrdered;
+      callback.onStripVisibilityChanged(!ordered.isEmpty());
+      return;
+    }
+    builtKey = key;
+    ordered = newOrdered;
     org.thunderdog.challegram.Tgx101Diag.mark("stories strip: " + ordered.size() + " chat(s) with stories (list " + items.size() + ", total " + storyList.totalCount() + ")");
     row.removeAllViews();
     for (int i = 0; i < ordered.size(); i++) {
       row.addView(newItem(ordered.get(i), i));
     }
     callback.onStripVisibilityChanged(!ordered.isEmpty());
+  }
+
+  private String builtKey = "";
+
+  private static String tgx101Key (List<TdApi.ChatActiveStories> list) {
+    StringBuilder b = new StringBuilder();
+    for (TdApi.ChatActiveStories st : list) {
+      b.append(st.chatId).append(':').append(st.maxReadStoryId).append(':').append(st.stories.length).append(',');
+    }
+    return b.toString();
   }
 
   public void refresh () {
