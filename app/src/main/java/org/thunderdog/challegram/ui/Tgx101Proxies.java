@@ -302,22 +302,56 @@ public final class Tgx101Proxies {
       return;
     }
     // Give the new network a moment to settle before checking it.
-    UI.post(() -> {
-      if (!shouldReturnDirect()) {
-        return;
+    UI.post(() -> checkDirect("network changed"), 3000);
+  }
+
+  // TGx101 (user 2026-10-06, like exteraGram's proxy auto-off): not only after a network change — also when the app
+  // comes back and every 10 minutes while it is open (a VPN turned on, the block lifted). Turning the proxy back on
+  // when the direct connection stops working is «Switch automatically» (Tdlib.resolveConnectionIssues)
+  private static final long CHECK_INTERVAL_MS = 10 * 60 * 1000L;
+  private static final long RESUME_MIN_GAP_MS = 60 * 1000L;
+  private static long lastCheckAt;
+
+  private static final Runnable periodicCheck = new Runnable() {
+    @Override
+    public void run () {
+      checkDirect("periodic");
+      UI.post(this, CHECK_INTERVAL_MS);
+    }
+  };
+
+  public static void onAppResumed () {
+    UI.removePendingRunnable(periodicCheck);
+    if (!shouldReturnDirect()) {
+      return;
+    }
+    if (android.os.SystemClock.uptimeMillis() - lastCheckAt > RESUME_MIN_GAP_MS) {
+      UI.post(() -> checkDirect("app resumed"), 2000);
+    }
+    UI.post(periodicCheck, CHECK_INTERVAL_MS);
+  }
+
+  public static void onAppPaused () {
+    UI.removePendingRunnable(periodicCheck);
+  }
+
+  private static void checkDirect (String reason) {
+    if (!shouldReturnDirect()) {
+      return;
+    }
+    lastCheckAt = android.os.SystemClock.uptimeMillis();
+    Tdlib tdlib = TdlibManager.instance().current();
+    Settings.Proxy direct = Settings.Proxy.noProxy(false);
+    tdlib.pingProxy(direct, pingMs -> {
+      org.thunderdog.challegram.Tgx101Diag.mark("proxy: direct check (" + reason + ") → " + (pingMs >= 0 ? pingMs + " ms, proxy off" : "no direct connection"));
+      if (pingMs >= 0) {
+        UI.post(() -> {
+          if (shouldReturnDirect()) {
+            Settings.instance().disableProxy();
+          }
+        });
       }
-      Tdlib tdlib = TdlibManager.instance().current();
-      Settings.Proxy direct = Settings.Proxy.noProxy(false);
-      tdlib.pingProxy(direct, pingMs -> {
-        if (pingMs >= 0) {
-          UI.post(() -> {
-            if (shouldReturnDirect()) {
-              Settings.instance().disableProxy();
-            }
-          });
-        }
-      });
-    }, 3000);
+    });
   }
 
   private static boolean shouldReturnDirect () {

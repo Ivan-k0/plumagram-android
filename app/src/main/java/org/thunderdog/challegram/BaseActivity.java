@@ -1205,6 +1205,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   @Override
   public void onPause () {
     tgx101NotePause();
+    org.thunderdog.challegram.ui.Tgx101Proxies.onAppPaused();
     blockFocus();
     setActivityState(UI.State.PAUSED);
     if (camera != null) {
@@ -1305,6 +1306,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   @Override
   public void onResume () {
     tgx101CheckHideNavigation(); // TGx101: never come back stuck without the status bar
+    org.thunderdog.challegram.ui.Tgx101Proxies.onAppResumed(); // TGx101: back to the direct connection when it works
     // tgx101CheckKeyboardAfterLock(); — off for now (user 2026-10-05 16:51)
     boolean lockBefore = isPasscodeShowing;
     UI.setContext(this);
