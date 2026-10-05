@@ -552,6 +552,9 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     if (msg == null /*|| msg instanceof TGMessageBotInfo*/) {
       return false;
     }
+    if (getParent() instanceof org.thunderdog.challegram.v.MessagesRecyclerView && ((org.thunderdog.challegram.v.MessagesRecyclerView) getParent()).tgx101StoppedFling()) {
+      return true; // TGx101: the tap that stopped scrolling is not a tap on the message
+    }
     MessagesController m = msg.messagesController();
     if (!m.isFocused() && !m.getParentOrSelf().isFocused()) {
       return false;

@@ -442,6 +442,13 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
     return super.dispatchTouchEvent(e);
   }
 
+  private boolean tgx101StoppedFling;
+
+  /** True for the touch that stopped a fling: message views don't treat it as a tap */
+  public boolean tgx101StoppedFling () {
+    return tgx101StoppedFling;
+  }
+
   @Override
   public boolean onInterceptTouchEvent (MotionEvent e) {
     if (e.getActionMasked() == MotionEvent.ACTION_DOWN && getScrollState() == SCROLL_STATE_SETTLING) {
@@ -449,6 +456,9 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
       // (requestDisallowInterceptTouchEvent) — the swipe back to the chat list did not work while scrolling.
       // Stop the fling first: the list then treats it as a fresh touch and the back swipe can take it
       stopScroll();
+      tgx101StoppedFling = true; // this touch only stops the list — not a tap on a message (user 2026-10-05 19:54)
+    } else if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
+      tgx101StoppedFling = false;
     }
     boolean res = super.onInterceptTouchEvent(e);
     if (scrollFactor > 0f && e.getAction() == MotionEvent.ACTION_DOWN && isInsideDate(e.getX(), e.getY())) {
