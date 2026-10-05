@@ -217,6 +217,11 @@ public class Tgx101StoryViewer extends Dialog {
       return insets;
     });
     setContentView(root);
+    // the status bar is shown now (black): keep the header below it
+    root.setOnApplyWindowInsetsListener((v, insets) -> {
+      v.setPadding(0, insets.getSystemWindowInsetTop(), 0, insets.getStableInsetBottom());
+      return insets;
+    });
     Window window = getWindow();
     if (window != null) {
       window.setBackgroundDrawable(new ColorDrawable(Color.BLACK));
@@ -229,6 +234,9 @@ public class Tgx101StoryViewer extends Dialog {
       }
       window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
       // user 2026-10-05: content is on screen — black status and navigation bars with light icons, not the app colour
+      // the fullscreen theme left the status bar to the activity (its blue header showed, user's Vivo video 14:05):
+      // this window draws its own bars
+      window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN | WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
       window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
       window.setStatusBarColor(Color.BLACK);
       window.setNavigationBarColor(Color.BLACK);
