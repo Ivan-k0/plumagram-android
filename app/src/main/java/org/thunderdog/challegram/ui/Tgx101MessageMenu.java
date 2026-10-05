@@ -79,20 +79,22 @@ public final class Tgx101MessageMenu {
     R.id.btn_tgx101EditorWindow,
     R.id.btn_messageViewList,
     R.id.btn_messageReplies,
-    R.id.btn_messageDelete // TGx101 (user 2026-10-05): «Delete» is ordered like the rest; «Select» is always last
+    R.id.btn_messageDelete, // TGx101 (user 2026-10-05): «Delete» is ordered like the rest; «Select» is always last
+    R.id.btn_messageShowSource, // «To the original» / «Clear cache» (user's video 22:42): orderable, can go to «More…» / be hidden
+    R.id.btn_deleteFile
   };
   public static final int[] ORDERABLE_NAMES = {
     R.string.Reply, R.string.Copy, R.string.edit, R.string.Share, R.string.MessagePin,
     R.string.Tgx101MenuSelectText, R.string.Translate, R.string.CopyLink, R.string.Save, R.string.MessageReport,
     R.string.Tgx101FilterSimilar, R.string.Tgx101MenuEditorOwn, R.string.Tgx101MenuMessagesFrom,
-    R.string.Tgx101MenuThread, R.string.Delete
+    R.string.Tgx101MenuThread, R.string.Delete, R.string.Tgx101MenuToOriginal, R.string.DeleteFromCache
   };
   public static final int[] ORDERABLE_ICONS = {
     R.drawable.baseline_reply_24, R.drawable.baseline_content_copy_24, R.drawable.baseline_edit_24,
     R.drawable.baseline_forward_24, R.drawable.deproko_baseline_pin_24, R.drawable.baseline_format_quote_close_24,
     R.drawable.baseline_translate_24, R.drawable.baseline_link_24, R.drawable.baseline_file_download_24,
     R.drawable.baseline_report_24, R.drawable.baseline_filter_variant_remove_24, R.drawable.baseline_format_text_24,
-    R.drawable.baseline_person_24, R.drawable.outline_forum_24, R.drawable.baseline_delete_24
+    R.drawable.baseline_person_24, R.drawable.outline_forum_24, R.drawable.baseline_delete_24, R.drawable.baseline_forum_24, R.drawable.templarian_baseline_broom_24
   };
 
   private static int orderKey (int id) {
