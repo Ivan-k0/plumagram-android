@@ -7136,6 +7136,43 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (showKeyboard) {
       Keyboard.show(inputView);
     }
+    if (byUser) {
+      tgx101KeepVisible(msg.message.id);
+    }
+  }
+
+  /** TGx101 (user's Vivo video 2026-10-05 «само скроллит вниз»): a reply opens the keyboard and the reply bar; the
+   * list keeps its bottom, so the replied message slid off the top — scroll it back into view once they are open */
+  private void tgx101KeepVisible (long messageId) {
+    final int[] tries = {0};
+    Runnable check = new Runnable() {
+      @Override
+      public void run () {
+        if (isDestroyed() || messagesView == null) return;
+        for (int i = 0; i < messagesView.getChildCount(); i++) {
+          View child = messagesView.getChildAt(i);
+          if (child instanceof org.thunderdog.challegram.component.chat.MessageView) {
+            TGMessage m = ((org.thunderdog.challegram.component.chat.MessageView) child).getMessage();
+            if (m != null && m.getMessage(messageId) != null) {
+              int top = child.getTop(), limit = Screen.dp(8f);
+              if (top < limit) {
+                org.thunderdog.challegram.Tgx101Diag.mark("reply: kept the message in view (" + top + ")");
+                messagesView.smoothScrollBy(0, top - limit);
+              }
+              return;
+            }
+          }
+        }
+        // the message went off the top completely (it is no longer a child): bring it to the edge, then check again
+        int index = manager.getAdapter().indexOfMessageContainer(messageId);
+        if (index != -1 && tries[0] == 0) {
+          org.thunderdog.challegram.Tgx101Diag.mark("reply: message off screen, scrolling back");
+          manager.getLayoutManager().scrollToPosition(index);
+        }
+        if (++tries[0] < 3) messagesView.postDelayed(this, 120);
+      }
+    };
+    messagesView.postDelayed(check, 380);
   }
 
   private void updateReplyBarVisibility (boolean animated) {

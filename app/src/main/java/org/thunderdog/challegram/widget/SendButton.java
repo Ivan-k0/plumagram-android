@@ -180,7 +180,9 @@ public class SendButton extends View implements FactorAnimator.Target, TooltipOv
       }
       final float editScaleFactor = editFactor * sendScale;
       if (editScaleFactor != 0f) {
-        final int color = ColorUtils.color((int) (255f * editScaleFactor), ColorUtils.fromToArgb(Theme.iconLightColor(), Theme.chatSendButtonColor(), activeFactor));
+        // TGx101 (user 2026-10-05, variant 1): «save edit» is a filled circle with a white check, like «send» —
+        // the thin grey check got lost; the circle is grey until the text changed, then the send colour
+        final int color = ColorUtils.color((int) (255f * editScaleFactor), 0xffffffff);
 
         c.save();
 
@@ -188,12 +190,13 @@ public class SendButton extends View implements FactorAnimator.Target, TooltipOv
           final float scale = Config.DEFAULT_ICON_SWITCH_SCALE + (1f - Config.DEFAULT_ICON_SWITCH_SCALE) * editScaleFactor;
           c.scale(scale, scale, cx, cy);
         }
+        c.drawCircle(cx, cy, Screen.dp(17f), Paints.fillingPaint(ColorUtils.color((int) (255f * editScaleFactor), ColorUtils.fromToArgb(Theme.iconLightColor(), Theme.chatSendButtonColor(), activeFactor))));
 
         final int lineSize = Screen.dp(2f);
-        final int line1Width = Screen.dp(17f);
-        final int line2Height = Screen.dp(6.5f);
+        final int line1Width = Screen.dp(14f);
+        final int line2Height = Screen.dp(5.5f);
 
-        c.translate(Screen.dp(2f), 0);
+        c.translate(Screen.dp(1.5f), Screen.dp(-1f));
         c.rotate(-45f, cx, cy);
 
         final int left = cx - line1Width / 2;
@@ -203,7 +206,7 @@ public class SendButton extends View implements FactorAnimator.Target, TooltipOv
         final int right2 = cx - line1Width / 2 + lineSize;
         final int bottom1 = cy + lineSize / 2;
 
-        if (activeFactor == 1f || activeFactor == 0f) {
+        if (true) {
           c.drawRect(left, top1, right1, bottom1, Paints.fillingPaint(color));
           c.drawRect(left, top2, right2, cy, Paints.fillingPaint(color));
         } else {

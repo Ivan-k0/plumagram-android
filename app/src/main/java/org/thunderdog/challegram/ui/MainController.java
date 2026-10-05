@@ -803,6 +803,11 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   protected void onLeaveSearchMode () {
     super.onLeaveSearchMode();
     composeWrap.showIfWasHidden();
+    // TGx101 (user 2026-10-05 «тёмная фантомная полоса после поиска»): the stories row is laid out again after search
+    ViewController<?> current = getCurrentPagerItem();
+    if (current instanceof ChatsController) {
+      ((ChatsController) current).tgx101RelayoutStories();
+    }
   }
 
   /*@Override

@@ -1267,6 +1267,17 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     tgx101SyncStoriesStrip();
   }
 
+  public void tgx101RelayoutStories () {
+    if (tgx101StoriesStrip == null) return;
+    org.thunderdog.challegram.Tgx101Diag.mark("stories strip: relayout after search");
+    tgx101StripExpanded = false;
+    tgx101StripExpand = 0f;
+    chatsView.post(() -> {
+      tgx101LayoutStoriesStrip(tgx101StoriesStrip.hasItems() && Tgx101Stories.mode() == Tgx101Stories.MODE_STRIP);
+      chatsView.scrollToPosition(0);
+    });
+  }
+
   public boolean tgx101StoriesFolded () {
     return tgx101StoriesStrip != null && tgx101StoriesStrip.getVisibility() == View.VISIBLE && !tgx101StripExpanded;
   }
@@ -1316,6 +1327,8 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     tgx101StripMini.setTranslationY(y);
     tgx101StripMini.setAlpha(1f - tgx101StripExpand);
     tgx101StripMini.setVisibility(tgx101StripExpand >= 1f ? View.INVISIBLE : View.VISIBLE);
+    tgx101StripMini.bringToFront();
+    tgx101StoriesStrip.bringToFront();
   }
 
   private final Tgx101Stories.Handler tgx101StoriesHandler = new Tgx101Stories.Handler() {
@@ -1357,6 +1370,8 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     super.onFocus();
     if (tgx101StoriesStrip != null) {
       Tgx101Stories.handler = new java.lang.ref.WeakReference<>(tgx101StoriesHandler);
+      // the list may have been empty at app start (chats not loaded) — ask again, the callback lays it out
+      tgx101StoriesStrip.refresh();
       tgx101LayoutStoriesStrip(tgx101StoriesStrip.hasItems() && Tgx101Stories.mode() == Tgx101Stories.MODE_STRIP);
       tgx101InvalidateRings();
     }

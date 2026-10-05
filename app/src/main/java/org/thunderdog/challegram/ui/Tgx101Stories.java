@@ -99,7 +99,7 @@ public final class Tgx101Stories {
     if (folders.isEmpty()) return true;
     if (folders.contains(FOLDERS_NONE)) return false;
     TdApi.Chat chat = tdlib.chat(chatId);
-    if (chat == null || chat.positions == null) return false;
+    if (chat == null || chat.positions == null) return true; // not loaded yet: keep it (it was dropped at app start)
     for (TdApi.ChatPosition position : chat.positions) {
       if (position.list instanceof TdApi.ChatListFolder && folders.contains(((TdApi.ChatListFolder) position.list).chatFolderId)) {
         return true;
