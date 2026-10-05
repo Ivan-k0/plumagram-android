@@ -845,34 +845,42 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       adapter.setItems(out.toArray(new ListItem[0]), false);
       return;
     }
-    // walk the blocks: HEADER, SHADOW_TOP, items / separators, SHADOW_BOTTOM, optional DESCRIPTION
+    // walk the blocks: HEADER, SHADOW_TOP, items / separators (a description may sit inside), SHADOW_BOTTOM, description
     ListItem header = null;
     List<ListItem> kept = new java.util.ArrayList<>();
-    boolean keptBefore = false;
+    int blockCount = 0;
+    boolean afterKeptBlock = false;
     for (int i = 0; i < all.size(); i++) {
       ListItem item = all.get(i);
       int type = item.getViewType();
       if (type == ListItem.TYPE_HEADER) {
         header = item;
         kept.clear();
+        blockCount = 0;
+        afterKeptBlock = false;
+      } else if (type == ListItem.TYPE_SHADOW_TOP) {
+        afterKeptBlock = false;
       } else if (type == ListItem.TYPE_SHADOW_BOTTOM) {
-        keptBefore = !kept.isEmpty();
-        if (keptBefore) {
-          if (header != null) out.add(header);
+        if (!kept.isEmpty()) {
+          // the old header only when most of its block came along (a lone «Quiet» is not «Recording and photos»)
+          if (header != null && kept.size() * 2 >= blockCount) out.add(header);
           out.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
           for (int k = 0; k < kept.size(); k++) {
             if (k > 0) out.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
             out.add(kept.get(k));
           }
           out.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+          afterKeptBlock = kept.size() == blockCount; // its description only when the whole block is here
         }
         header = null;
         kept.clear();
+        blockCount = 0;
       } else if (type == ListItem.TYPE_DESCRIPTION) {
-        if (keptBefore) out.add(item);
-        keptBefore = false;
-      } else if (type != ListItem.TYPE_SHADOW_TOP && type != ListItem.TYPE_SEPARATOR_FULL && type != ListItem.TYPE_SEPARATOR
+        if (afterKeptBlock && i > 0 && all.get(i - 1).getViewType() == ListItem.TYPE_SHADOW_BOTTOM) out.add(item);
+        afterKeptBlock = false;
+      } else if (type != ListItem.TYPE_SEPARATOR_FULL && type != ListItem.TYPE_SEPARATOR
         && type != ListItem.TYPE_EMPTY_OFFSET_SMALL && type != ListItem.TYPE_EMPTY_OFFSET && item.getId() != 0) {
+        blockCount++;
         if (tgx101SectionOf(item) == tgx101Section) kept.add(item);
       }
     }
