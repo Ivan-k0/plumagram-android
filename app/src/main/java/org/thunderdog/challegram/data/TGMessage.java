@@ -6818,6 +6818,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return highlightFactor;
   }
 
+  /** TGx101: what a jump centers on — the album item the reply was to, or the message without its date / padding */
+  public int[] tgx101FocusBounds () {
+    int[] item = tgx101HighlightedChildId != 0 ? tgx101ItemBounds(tgx101HighlightedChildId) : null;
+    return item != null ? item : new int[] {findTopEdge(), findBottomEdge()};
+  }
+
   public void tgx101SetHighlightedChild (long messageId) {
     tgx101HighlightedChildId = combinedMessages != null && combinedMessages.size() > 1 && getMessage(messageId) != null ? messageId : 0;
   }

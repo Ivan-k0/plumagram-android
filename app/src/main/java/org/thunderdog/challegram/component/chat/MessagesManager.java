@@ -3166,12 +3166,19 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       height -= offset;
     }
 
-    if (highlightMode == HIGHLIGHT_MODE_UNREAD || highlightMode == HIGHLIGHT_MODE_UNREAD_NEXT || fullHeight + scrollMessage.findTopEdge() >= height) {
+    // TGx101 (user 2026-10-05 19:20): a jump centers the message itself (without its date / padding) — or the album
+    // item the reply was to — so the wave runs across the middle of the screen; a tall message still starts at its top
+    int[] focus = scrollMessage.tgx101FocusBounds();
+    boolean tallFocus = focus[1] - focus[0] >= height;
+    if (highlightMode == HIGHLIGHT_MODE_UNREAD || highlightMode == HIGHLIGHT_MODE_UNREAD_NEXT || (tallFocus && fullHeight + scrollMessage.findTopEdge() >= height)) {
       scrollToPositionWithOffset(index, height - fullHeight, smooth, isPlayingRoundMessage);
       wasScrollByUser = false;
     } else {
-      scrollToPositionWithOffset(index, height / 2 - fullHeight / 2 + scrollMessage.findTopEdge(), smooth, isPlayingRoundMessage);
+      // the list is reversed: the offset is from the bottom of the list to the bottom of the item
+      int focusCenterFromBottom = fullHeight - (focus[0] + focus[1]) / 2;
+      scrollToPositionWithOffset(index, height / 2 - focusCenterFromBottom, smooth, isPlayingRoundMessage);
     }
+    org.thunderdog.challegram.Tgx101Diag.mark("jump: center item " + focus[0] + ".." + focus[1] + " of " + fullHeight + ", list " + height);
 
     // scrollToPositionWithOffsetImpl(index, 0);
 
