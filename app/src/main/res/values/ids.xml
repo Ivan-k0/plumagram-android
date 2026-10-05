@@ -1559,6 +1559,16 @@
   <item name="btn_tgx101CameraInAttach" type="id"/>
   <item name="btn_tgx101ZoomPullClose" type="id"/>
   <item name="btn_tgx101Snooze" type="id"/>
+  <item name="btn_tgx101SectionChatList" type="id"/>
+  <item name="btn_tgx101SectionStories" type="id"/>
+  <item name="btn_tgx101SectionMessages" type="id"/>
+  <item name="btn_tgx101SectionChannels" type="id"/>
+  <item name="btn_tgx101SectionMedia" type="id"/>
+  <item name="btn_tgx101SectionNotifications" type="id"/>
+  <item name="btn_tgx101SectionText" type="id"/>
+  <item name="btn_tgx101SectionCalls" type="id"/>
+  <item name="btn_tgx101SectionTranslate" type="id"/>
+  <item name="btn_tgx101SectionData" type="id"/>
   <item name="btn_tgx101FilterHideFully" type="id"/>
   <item name="btn_tgx101HideChannelReactions" type="id"/>
   <item name="btn_tgx101NextChannelSwipe" type="id"/>

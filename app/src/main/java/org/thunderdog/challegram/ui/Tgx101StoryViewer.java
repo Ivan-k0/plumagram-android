@@ -228,6 +228,16 @@ public class Tgx101StoryViewer extends Dialog {
         window.setAttributes(wl);
       }
       window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+      // user 2026-10-05: content is on screen — black status and navigation bars with light icons, not the app colour
+      window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+      window.setStatusBarColor(Color.BLACK);
+      window.setNavigationBarColor(Color.BLACK);
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+        View decor = window.getDecorView();
+        int flags = decor.getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) flags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+        decor.setSystemUiVisibility(flags);
+      }
     }
     setOnDismissListener(d -> {
       Tgx101Diag.mark("story viewer: closed");

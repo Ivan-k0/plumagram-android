@@ -53,6 +53,13 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   public static class Args {
     public int mode;
     public Object data;
+    /** TGx101 (user 2026-10-05): MagiX split into sections; -1 — the list of sections */
+    public int tgx101Section = -1;
+
+    public Args setTgx101Section (int section) {
+      this.tgx101Section = section;
+      return this;
+    }
 
     public Args (int mode) {
       this.mode = mode;
@@ -72,6 +79,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   public void setArguments (Args args) {
     super.setArguments(args);
     this.mode = args.mode;
+    this.tgx101Section = args.tgx101Section;
     switch (mode) {
       case MODE_STATISTICS: {
         networkStats = (TGNetworkStats) args.data;
@@ -81,6 +89,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   }
 
   private int mode;
+  private int tgx101Section = -1;
 
   private static final int MODE_NONE = 0;
   private static final int MODE_STATISTICS = 1;
@@ -94,6 +103,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
 
   @Override
   public CharSequence getName () {
+    if (mode == MODE_TGX101 && tgx101Section >= 0 && tgx101Section < TGX101_SECTION_TITLES.length) {
+      return Lang.getString(TGX101_SECTION_TITLES[tgx101Section]);
+    }
     return Lang.getString(mode == MODE_STATISTICS ? R.string.NetworkUsage : mode == MODE_TGX101 ? R.string.Tgx101Settings : R.string.DataSettings);
   }
 
@@ -101,6 +113,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   public boolean saveInstanceState (Bundle outState, String keyPrefix) {
     super.saveInstanceState(outState, keyPrefix);
     outState.putInt(keyPrefix + "mode", mode);
+    outState.putInt(keyPrefix + "tgx101Section", tgx101Section);
     if (mode == MODE_NONE) {
       outState.putBoolean(keyPrefix + "advanced", adapter.indexOfViewById(R.id.btn_showAdvanced) == -1);
     }
@@ -115,7 +128,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     int mode = in.getInt(keyPrefix + "mode", MODE_NONE);
     forceOpenAdvanced = mode == MODE_NONE && in.getBoolean(keyPrefix + "advanced", false);
     if (mode != MODE_NONE) {
-      setArguments(new Args(mode));
+      setArguments(new Args(mode).setTgx101Section(in.getInt(keyPrefix + "tgx101Section", -1)));
     }
     return true;
   }
@@ -156,6 +169,11 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
             }
             return false;
           });
+        }
+        int tgx101SectionIndex = tgx101SectionIndex(itemId);
+        if (tgx101SectionIndex != -1) {
+          view.setData(Lang.getString(TGX101_SECTION_HINTS[tgx101SectionIndex]));
+          return;
         }
         if (itemId == R.id.btn_dataSaver) {
           final boolean isEnabled = !tdlib.files().isDataSaverEventuallyEnabled();
@@ -537,6 +555,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         adapter.notifyDataSetChanged();
       }
     }
+    if (mode == MODE_TGX101) {
+      tgx101ApplySection();
+    }
     if (forceOpenAdvanced) {
       List<ListItem> items = adapter.getItems();
       int index = adapter.indexOfViewById(R.id.btn_showAdvanced);
@@ -754,10 +775,125 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       }));
   }
 
+  // TGx101 MagiX sections (user 2026-10-05, approved mockup ~/Desktop/TGX/Макеты/MagiX)
+
+  private static final int[] TGX101_SECTION_IDS = {
+    R.id.btn_tgx101SectionChatList, R.id.btn_tgx101SectionStories, R.id.btn_tgx101SectionMessages, R.id.btn_tgx101SectionChannels,
+    R.id.btn_tgx101SectionMedia, R.id.btn_tgx101SectionNotifications, R.id.btn_tgx101SectionText, R.id.btn_tgx101SectionCalls,
+    R.id.btn_tgx101SectionTranslate, R.id.btn_tgx101SectionData
+  };
+  private static final int[] TGX101_SECTION_TITLES = {
+    R.string.Tgx101SectionChatList, R.string.Tgx101SectionStories, R.string.Tgx101SectionMessages, R.string.Tgx101SectionChannels,
+    R.string.Tgx101SectionMedia, R.string.Tgx101SectionNotifications, R.string.Tgx101SectionText, R.string.Tgx101SectionCalls,
+    R.string.Tgx101SectionTranslate, R.string.Tgx101SectionData
+  };
+  private static final int[] TGX101_SECTION_HINTS = {
+    R.string.Tgx101SectionChatListHint, R.string.Tgx101SectionStoriesHint, R.string.Tgx101SectionMessagesHint, R.string.Tgx101SectionChannelsHint,
+    R.string.Tgx101SectionMediaHint, R.string.Tgx101SectionNotificationsHint, R.string.Tgx101SectionTextHint, R.string.Tgx101SectionCallsHint,
+    R.string.Tgx101SectionTranslateHint, R.string.Tgx101SectionDataHint
+  };
+  private static final int[] TGX101_SECTION_ICONS = {
+    R.drawable.baseline_forum_24, R.drawable.baseline_history_24, R.drawable.baseline_chat_bubble_24, R.drawable.baseline_bullhorn_24,
+    R.drawable.baseline_camera_alt_24, R.drawable.baseline_notifications_24, R.drawable.baseline_format_text_24, R.drawable.baseline_call_24,
+    R.drawable.baseline_translate_24, R.drawable.baseline_data_usage_24
+  };
+
+  private static int tgx101SectionIndex (int id) {
+    for (int i = 0; i < TGX101_SECTION_IDS.length; i++) {
+      if (TGX101_SECTION_IDS[i] == id) return i;
+    }
+    return -1;
+  }
+
+  /** Which section a MagiX setting goes to; the last one (data) also gets anything not listed */
+  private static int tgx101SectionOf (ListItem item) {
+    int id = item.getId();
+    if (id == R.id.btn_toggleNewSetting) {
+      long flag = item.getLongId();
+      if (flag == Settings.SETTING_FLAG_PAUSE_MEDIA_ON_RECORD || flag == Settings.SETTING_FLAG_SEND_PHOTOS_IN_HD) return 4;
+      return 9;
+    }
+    if (id == R.id.btn_tgx101Filters || id == R.id.btn_pullToSearch || id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap) return 0;
+    if (id == R.id.btn_tgx101StoriesMode || id == R.id.btn_tgx101StoriesFolders) return 1;
+    if (id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101TextEditor || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuOrder
+      || id == R.id.btn_tgx101TapMode || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101QuickReply1 || id == R.id.btn_tgx101QuickReply2
+      || id == R.id.btn_tgx101QuickReply3 || id == R.id.btn_tgx101QuickReply4 || id == R.id.btn_tgx101QuickReply5) return 2;
+    if (id == R.id.btn_tgx101HideChannelReactions || id == R.id.btn_tgx101NextChannelSwipe || id == R.id.btn_showDiscussButton || id == R.id.btn_showCommentsButton
+      || id == R.id.btn_showChannelMuteButton || id == R.id.btn_hideSubscribeLink || id == R.id.btn_separateChannelPosts) return 3;
+    if (id == R.id.btn_tgx101VoiceQueue || id == R.id.btn_tgx101CameraInAttach || id == R.id.btn_tgx101ZoomPullClose || id == R.id.btn_roundVideoQuality
+      || id == R.id.btn_roundStabilization) return 4;
+    if (id == R.id.btn_tgx101Snooze || id == R.id.btn_tgx101NotificationPlane) return 5;
+    if (id == R.id.btn_tgx101ChatListTextSize || id == R.id.btn_tgx101Font || id == R.id.btn_tgx101TextWeight || id == R.id.btn_chatFontSize || id == R.id.btn_bigEmojiSize) return 6;
+    if (id == R.id.btn_tgx101CallBar || id == R.id.btn_tgx101NewCallScreen || id == R.id.btn_tgx101CallPhoto || id == R.id.btn_tgx101CallPattern
+      || id == R.id.btn_tgx101RingRamp || id == R.id.btn_tgx101RingRampTime) return 7;
+    if (id == R.id.btn_tgx101TranslateOnDevice || id == R.id.btn_tgx101TranslateModels || id == R.id.btn_tgx101SpeechModel || id == R.id.btn_tgx101FakeNoPremium) return 8;
+    return 9;
+  }
+
+  /** The full MagiX list was built; keep the section list (root) or this section's settings, grouped under their old headers */
+  private void tgx101ApplySection () {
+    List<ListItem> all = new java.util.ArrayList<>(adapter.getItems());
+    List<ListItem> out = new java.util.ArrayList<>();
+    out.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
+    if (tgx101Section < 0) {
+      out.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+      for (int i = 0; i < TGX101_SECTION_IDS.length; i++) {
+        if (i > 0) out.add(new ListItem(ListItem.TYPE_SEPARATOR));
+        out.add(new ListItem(ListItem.TYPE_VALUED_SETTING, TGX101_SECTION_IDS[i], TGX101_SECTION_ICONS[i], TGX101_SECTION_TITLES[i]));
+      }
+      out.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+      adapter.setItems(out.toArray(new ListItem[0]), false);
+      return;
+    }
+    // walk the blocks: HEADER, SHADOW_TOP, items / separators, SHADOW_BOTTOM, optional DESCRIPTION
+    ListItem header = null;
+    List<ListItem> kept = new java.util.ArrayList<>();
+    boolean keptBefore = false;
+    for (int i = 0; i < all.size(); i++) {
+      ListItem item = all.get(i);
+      int type = item.getViewType();
+      if (type == ListItem.TYPE_HEADER) {
+        header = item;
+        kept.clear();
+      } else if (type == ListItem.TYPE_SHADOW_BOTTOM) {
+        keptBefore = !kept.isEmpty();
+        if (keptBefore) {
+          if (header != null) out.add(header);
+          out.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+          for (int k = 0; k < kept.size(); k++) {
+            if (k > 0) out.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+            out.add(kept.get(k));
+          }
+          out.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+        }
+        header = null;
+        kept.clear();
+      } else if (type == ListItem.TYPE_DESCRIPTION) {
+        if (keptBefore) out.add(item);
+        keptBefore = false;
+      } else if (type != ListItem.TYPE_SHADOW_TOP && type != ListItem.TYPE_SEPARATOR_FULL && type != ListItem.TYPE_SEPARATOR
+        && type != ListItem.TYPE_EMPTY_OFFSET_SMALL && type != ListItem.TYPE_EMPTY_OFFSET && item.getId() != 0) {
+        if (tgx101SectionOf(item) == tgx101Section) kept.add(item);
+      }
+    }
+    adapter.setItems(out.toArray(new ListItem[0]), false);
+  }
+
   @Override
   public void onClick (View v) {
     final int id = v.getId();
     final boolean toggleResult = adapter.toggleView(v);
+    int tgx101SectionIndex = tgx101SectionIndex(id);
+    if (tgx101SectionIndex != -1) {
+      if (tgx101SectionIndex == TGX101_SECTION_IDS.length - 1) {
+        navigateTo(new SettingsDataController(context, tdlib)); // Telegram X's own «Data and storage»
+        return;
+      }
+      SettingsDataController c = new SettingsDataController(context, tdlib);
+      c.setArguments(new Args(MODE_TGX101).setTgx101Section(tgx101SectionIndex));
+      navigateTo(c);
+      return;
+    }
 
 
     if (id == R.id.btn_resetNetworkStats) {
