@@ -1398,6 +1398,35 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     final boolean less = Tgx101Stories.isShownLess(chatId);
     final boolean notify = Tgx101Stories.notifiesNewStories(tdlib, chatId);
     TdApi.Chat chat = tdlib.chat(chatId);
+    // TGx101 (user 2026-10-05): incognito can be started before opening — «Watch incognito» (Premium)
+    if (tdlib.hasPremium()) {
+      showOptions(chat != null ? chat.title : null,
+        new int[] {R.id.btn_tgx101StoryIncognito, R.id.btn_tgx101StoryProfile, R.id.btn_tgx101StoryHide, R.id.btn_tgx101StoryLess, R.id.btn_tgx101StoryNotify},
+        new String[] {
+          Lang.getString(R.string.Tgx101StoryWatchIncognito),
+          Lang.getString(R.string.Tgx101StoryProfile),
+          Lang.getString(R.string.Tgx101StoryHide),
+          Lang.getString(less ? R.string.Tgx101StoryShowNormally : R.string.Tgx101StoryShowLess),
+          Lang.getString(notify ? R.string.Tgx101StoryNotifyOff : R.string.Tgx101StoryNotifyOn)
+        },
+        null,
+        new int[] {R.drawable.infanf_baseline_incognito_24, R.drawable.baseline_person_24, R.drawable.baseline_eye_off_24, R.drawable.baseline_arrow_downward_24, notify ? R.drawable.baseline_notifications_off_24 : R.drawable.baseline_notifications_24},
+        (itemView, id) -> {
+          if (id == R.id.btn_tgx101StoryIncognito) {
+            tdlib.send(new TdApi.ActivateStoryStealthMode(), (ok, error) -> UI.post(() -> {
+              if (error != null) {
+                UI.showError(error);
+              } else {
+                org.thunderdog.challegram.Tgx101Diag.mark("stories: incognito before opening");
+                tgx101StoriesHandler.openStoriesOf(chatId);
+              }
+            }));
+            return true;
+          }
+          return tgx101OnStoryMenu(id, chatId, less, notify);
+        });
+      return;
+    }
     showOptions(chat != null ? chat.title : null,
       new int[] {R.id.btn_tgx101StoryProfile, R.id.btn_tgx101StoryHide, R.id.btn_tgx101StoryLess, R.id.btn_tgx101StoryNotify},
       new String[] {
@@ -1408,7 +1437,12 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       },
       null,
       new int[] {R.drawable.baseline_person_24, R.drawable.baseline_eye_off_24, R.drawable.baseline_arrow_downward_24, notify ? R.drawable.baseline_notifications_off_24 : R.drawable.baseline_notifications_24},
-      (itemView, id) -> {
+      (itemView, id) -> tgx101OnStoryMenu(id, chatId, less, notify));
+  }
+
+  private boolean tgx101OnStoryMenu (int id, long chatId, boolean less, boolean notify) {
+    {
+      {
         if (id == R.id.btn_tgx101StoryProfile) {
           tdlib.ui().openChatProfile(this, chatId, null, null);
         } else if (id == R.id.btn_tgx101StoryHide) {
@@ -1422,7 +1456,8 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
           UI.showToast(!notify ? R.string.Tgx101StoryNotifyOnDone : R.string.Tgx101StoryNotifyOffDone, android.widget.Toast.LENGTH_SHORT);
         }
         return true;
-      });
+      }
+    }
   }
 
   private boolean isBaseController () {

@@ -429,6 +429,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SubtitlesFile, "Субтитры из файла (.srt)");
     RU.put(R.string.Tgx101SubtitlesFailed, "Не удалось загрузить субтитры");
     RU.put(R.string.Tgx101MenuAtFinger, "Меню сообщения открывается у пальца");
+    RU.put(R.string.Tgx101StoryWatchIncognito, "Смотреть инкогнито");
+    RU.put(R.string.Tgx101StoryIncognitoActive, "Инкогнито вкл.");
     RU.put(R.string.Tgx101ProxyPin, "Закрепить вверху");
     RU.put(R.string.Tgx101ProxyRename, "Переименовать");
     RU.put(R.string.Tgx101ProxyName, "Название");

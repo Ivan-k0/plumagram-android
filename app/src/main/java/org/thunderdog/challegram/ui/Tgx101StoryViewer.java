@@ -551,6 +551,13 @@ public class Tgx101StoryViewer extends Dialog {
   private void updateIncognito () {
     boolean premium = tdlib.hasPremium();
     incognitoView.setVisibility(premium ? View.VISIBLE : View.GONE);
+    // highlighted top right while incognito is on (user 2026-10-05)
+    boolean on = premium && tdlib.tgx101StoryStealthActive();
+    android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+    bg.setCornerRadius(Screen.dp(16f));
+    bg.setColor(on ? 0xff3fa9f5 : 0x55000000);
+    incognitoView.setBackground(bg);
+    incognitoView.setText(Lang.getString(on ? R.string.Tgx101StoryIncognitoActive : R.string.Tgx101StoryIncognito));
   }
 
   private void activateIncognito () {
@@ -559,6 +566,7 @@ public class Tgx101StoryViewer extends Dialog {
         UI.showError(error);
       } else {
         Tgx101Diag.mark("story: incognito on");
+        UI.post(this::updateIncognito, 500);
         UI.showToast(R.string.Tgx101StoryIncognitoOn, android.widget.Toast.LENGTH_LONG);
       }
     }));

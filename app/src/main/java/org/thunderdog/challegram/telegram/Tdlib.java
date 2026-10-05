@@ -471,6 +471,11 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
 
   private int storyStealthModeActiveUntilDate, storyStealthModeCooldownUntilDate;
 
+  /** TGx101: Premium incognito for stories is on right now */
+  public boolean tgx101StoryStealthActive () {
+    return storyStealthModeActiveUntilDate > currentTime(java.util.concurrent.TimeUnit.SECONDS);
+  }
+
   private String languagePackId;
   private String suggestedLanguagePackId;
   private TdApi.LanguagePackInfo suggestedLanguagePackInfo;

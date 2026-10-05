@@ -6284,6 +6284,8 @@
   <string name="Tgx101SectionDataHint">Traffic, data saver, proxy, auto-download</string>
   <string name="Tgx101ChipBlock">Block</string>
   <string name="Tgx101ChipAddContact">Add contact</string>
+  <string name="Tgx101StoryWatchIncognito">Watch incognito</string>
+  <string name="Tgx101StoryIncognitoActive">Incognito on</string>
   <string name="Tgx101ProxyPin">Pin to the top</string>
   <string name="Tgx101ProxyRename">Rename</string>
   <string name="Tgx101ProxyName">Name</string>

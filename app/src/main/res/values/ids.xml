@@ -1564,6 +1564,7 @@
   <item name="btn_tgx101LongPressMenu" type="id"/>
   <item name="btn_tgx101SwipeActions" type="id"/>
   <item name="btn_tgx101ProxyPin" type="id"/>
+  <item name="btn_tgx101StoryIncognito" type="id"/>
   <item name="btn_tgx101ProxyRename" type="id"/>
   <item name="btn_tgx101UiBold" type="id"/>
   <item name="btn_tgx101SectionChatList" type="id"/>
