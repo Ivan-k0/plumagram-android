@@ -3517,6 +3517,17 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_SUBTITLES, v);
   }
 
+  private static final String KEY_TGX101_SWIPE_ACTIONS = "tgx101_swipe_actions";
+
+  /** TGx101: swipe on a message — Reply in the middle, Forward / Save above, Copy / Delete below */
+  public boolean tgx101SwipeActions () {
+    return pmc.getBoolean(KEY_TGX101_SWIPE_ACTIONS, true);
+  }
+
+  public void setTgx101SwipeActions (boolean v) {
+    pmc.putBoolean(KEY_TGX101_SWIPE_ACTIONS, v);
+  }
+
   private static final String KEY_TGX101_LONG_PRESS_MENU = "tgx101_long_press_menu";
 
   /** TGx101: long press opens the message menu (iOS-like, slide to an item) instead of selecting the message */

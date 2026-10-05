@@ -9115,6 +9115,17 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
   }
 
+  private static Drawable tgx101Icon (int res) {
+    return Drawables.get(UI.getResources(), res);
+  }
+
+  private long[] getAllMessageIds () {
+    TdApi.Message[] all = getAllMessages();
+    long[] ids = new long[all.length];
+    for (int i = 0; i < all.length; i++) ids[i] = all[i].id;
+    return ids;
+  }
+
   private boolean canSendReaction (TdApi.ReactionType reactionType) {
     return canBeReacted() && !tdlib.isSelfChat(msg.chatId) && Td.isAvailable(messageAvailableReactions, reactionType);
   }
@@ -9196,6 +9207,32 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
 
 
+
+    // TGx101 (user 2026-10-05, exteraGram variant 1): a column on the right — «Reply» in the middle (a plain swipe),
+    // moving the finger up: Forward, Save; down: Copy, Delete. Works with «double tap — like» too.
+    if (replyButton != null && Settings.instance().tgx101SwipeActions()) {
+      if (canBeForwarded() && !messagesController().isSecretChat()) {
+        rightQuickDefaultPosition++;
+        rightActions.add(0, new SwipeQuickAction(Lang.getString(R.string.Tgx101SwipeSave), tgx101Icon(R.drawable.baseline_bookmark_24), () ->
+          tdlib.send(new TdApi.ForwardMessages(tdlib.selfChatId(), null, msg.chatId, getAllMessageIds(), null, false, false), (result, error) -> {
+            if (error == null) UI.showToast(R.string.Tgx101SwipeSaved, android.widget.Toast.LENGTH_SHORT);
+          }), true, false));
+        rightQuickDefaultPosition++;
+        rightActions.add(0, new SwipeQuickAction(shareText, iQuickShare, () -> messagesController().shareMessages(getAllMessages(), false), true, false));
+      }
+      int replyAt = rightActions.indexOf(replyButton);
+      int insert = replyAt + 1;
+      if (canBeSaved()) {
+        rightActions.add(insert++, new SwipeQuickAction(Lang.getString(R.string.Copy), tgx101Icon(R.drawable.baseline_content_copy_24), () -> {
+          TdApi.FormattedText text = Td.textOrCaption(getNewestMessage().content);
+          if (text != null && !StringUtils.isEmpty(text.text)) UI.copyText(TD.toCharSequence(text), R.string.CopiedText);
+        }, true, false));
+      }
+      if (canBeDeletedForSomebody()) {
+        rightActions.add(insert, new SwipeQuickAction(Lang.getString(R.string.Delete), tgx101Icon(R.drawable.baseline_delete_24), () ->
+          tdlib.ui().showDeleteOptions(messagesController(), getAllMessagesAndProperties(), null), true, false));
+      }
+    }
 
     if (canShare) {
       leftActions.add(new SwipeQuickAction(shareText, iQuickShare, () -> {

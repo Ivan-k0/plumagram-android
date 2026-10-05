@@ -265,6 +265,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideChannelReactions(), isUpdate);
         } else if (itemId == R.id.btn_tgx101ZoomPullClose) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101ZoomPullClose(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101SwipeActions) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101SwipeActions(), isUpdate);
         } else if (itemId == R.id.btn_tgx101LongPressMenu) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101LongPressMenu(), isUpdate);
         } else if (itemId == R.id.btn_tgx101MenuAtFinger) {
@@ -414,6 +416,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MenuAtFinger, 0, R.string.Tgx101MenuAtFinger),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101LongPressMenu, 0, R.string.Tgx101LongPressMenu),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SwipeActions, 0, R.string.Tgx101SwipeActions),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MessageMenuOrder, 0, R.string.Tgx101MessageMenuOrder),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -831,7 +835,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     }
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_pullToSearch || id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap) return 0;
     if (id == R.id.btn_tgx101StoriesMode || id == R.id.btn_tgx101StoriesFolders) return 1;
-    if (id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101TextEditor || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuOrder
+    if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101TextEditor || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuOrder
       || id == R.id.btn_tgx101TapMode || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101QuickReply1 || id == R.id.btn_tgx101QuickReply2
       || id == R.id.btn_tgx101QuickReply3 || id == R.id.btn_tgx101QuickReply4 || id == R.id.btn_tgx101QuickReply5) return 2;
     if (id == R.id.btn_tgx101HideChannelReactions || id == R.id.btn_tgx101NextChannelSwipe || id == R.id.btn_showDiscussButton || id == R.id.btn_showCommentsButton
@@ -1035,6 +1039,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           Settings.instance().setSkipOwnVoiceInQueue(result.get(R.id.btn_tgx101VoiceQueue) == 2);
           adapter.updateValuedSettingById(R.id.btn_tgx101VoiceQueue);
         }));
+    } else if (id == R.id.btn_tgx101SwipeActions) {
+      Settings.instance().setTgx101SwipeActions(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101LongPressMenu) {
       Settings.instance().setTgx101LongPressMenu(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101MenuAtFinger) {

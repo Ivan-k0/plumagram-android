@@ -429,6 +429,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SubtitlesFile, "Субтитры из файла (.srt)");
     RU.put(R.string.Tgx101SubtitlesFailed, "Не удалось загрузить субтитры");
     RU.put(R.string.Tgx101MenuAtFinger, "Меню сообщения открывается у пальца");
+    RU.put(R.string.Tgx101SwipeActions, "Действия свайпом: ответ, ↑ переслать / сохранить, ↓ копировать / удалить");
+    RU.put(R.string.Tgx101SwipeSave, "Сохранить");
+    RU.put(R.string.Tgx101SwipeSaved, "Сохранено в Избранное");
     RU.put(R.string.Tgx101LongPressMenu, "Долгое нажатие: меню, выбор не отпуская палец (как iOS)");
     RU.put(R.string.Tgx101UiBold, "Жирнее текст интерфейса");
     RU.put(R.string.Tgx101ChipBlock, "Блок");

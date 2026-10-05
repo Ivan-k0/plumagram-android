@@ -6284,6 +6284,9 @@
   <string name="Tgx101SectionDataHint">Traffic, data saver, proxy, auto-download</string>
   <string name="Tgx101ChipBlock">Block</string>
   <string name="Tgx101ChipAddContact">Add contact</string>
+  <string name="Tgx101SwipeActions">Swipe actions: reply, ↑ forward / save, ↓ copy / delete</string>
+  <string name="Tgx101SwipeSave">Save</string>
+  <string name="Tgx101SwipeSaved">Saved to Saved Messages</string>
   <string name="Tgx101LongPressMenu">Long press: menu, slide to an item (like iOS)</string>
   <string name="Tgx101MenuAtFinger">Message menu opens at the finger</string>
   <string name="Tgx101MenuSelectAlways">«Select» always stays in the menu — drag to move it</string>
