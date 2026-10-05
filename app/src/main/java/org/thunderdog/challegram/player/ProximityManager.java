@@ -142,6 +142,10 @@ public class ProximityManager implements Settings.RaiseToSpeakListener, SensorEv
   private void checkProximitySensorEnabled () {
     boolean proximitySensorEnabled = needProximitySensor && (!uiPaused || inRaiseMode) && !isWiredHeadsetOn;
     if (this.proximitySensorEnabled != proximitySensorEnabled) {
+      // TGx101 diagnostics (user 2026-10-05: «не сработал динамик приближения» on Vivo)
+      org.thunderdog.challegram.Tgx101Diag.mark("proximity: sensor " + (proximitySensorEnabled ? "on" : "off") + " (mode " + earpieceMode + ", need " + needProximitySensor + ", uiPaused " + uiPaused + ", wired " + isWiredHeadsetOn + ")");
+    }
+    if (this.proximitySensorEnabled != proximitySensorEnabled) {
       if (proximitySensorEnabled) {
         if (!registerProximitySensor()) {
           return;
@@ -172,8 +176,10 @@ public class ProximityManager implements Settings.RaiseToSpeakListener, SensorEv
       return false;
     if (proximitySensor == null)
       proximitySensor = manager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
-    if (proximitySensor == null)
+    if (proximitySensor == null) {
+      org.thunderdog.challegram.Tgx101Diag.mark("proximity: no sensor on this phone");
       return false;
+    }
     if (proximityWakeLock == null) {
       PowerManager powerManager = (PowerManager) UI.getContext().getSystemService(Context.POWER_SERVICE);
       if (powerManager != null) {
@@ -276,6 +282,7 @@ public class ProximityManager implements Settings.RaiseToSpeakListener, SensorEv
       float value = e.values[0];
       boolean isNearToSensor = playbackObject != null && value < 5.0f && value < proximitySensor.getMaximumRange();
       if (this.isNearToProximitySensor != isNearToSensor) {
+        org.thunderdog.challegram.Tgx101Diag.mark("proximity: " + (isNearToSensor ? "near" : "far") + " value " + value + " max " + proximitySensor.getMaximumRange());
         this.isNearToProximitySensor = isNearToSensor;
         checkRaiseMode();
       }

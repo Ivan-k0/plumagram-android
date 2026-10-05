@@ -193,6 +193,7 @@ public class TdlibNotificationExtras {
   public void tgx101Snooze (Tdlib tdlib) {
     int minutes = org.thunderdog.challegram.unsorted.Settings.instance().tgx101SnoozeMinutes();
     tgx101SetSnoozed(tdlib.id(), chatId, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(Math.max(1, minutes)));
+    hide(tdlib); // user 2026-10-05: the notification goes away after «Quiet»
     UI.showToast(Lang.getString(org.thunderdog.challegram.R.string.Tgx101SnoozedToast, minutes), android.widget.Toast.LENGTH_SHORT);
   }
 

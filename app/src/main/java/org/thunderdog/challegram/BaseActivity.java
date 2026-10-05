@@ -1305,7 +1305,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   @Override
   public void onResume () {
     tgx101CheckHideNavigation(); // TGx101: never come back stuck without the status bar
-    tgx101CheckKeyboardAfterLock();
+    // tgx101CheckKeyboardAfterLock(); — off for now (user 2026-10-05 16:51)
     boolean lockBefore = isPasscodeShowing;
     UI.setContext(this);
     setActivityState(UI.State.RESUMED);

@@ -6837,6 +6837,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   public void drawHighlight (View view, Canvas c) {
     if (highlightFactor == 0f || tgx101WaveStart == 0) return;
+    if (tgx101WaveStart < 0) {
+      // the wave starts when the message is actually drawn — a message loaded off screen (a reply to a photo far
+      // above, user 2026-10-05) had its wave over before it scrolled in, only the flash was left
+      tgx101WaveStart = android.os.SystemClock.uptimeMillis();
+    }
     long elapsed = android.os.SystemClock.uptimeMillis() - tgx101WaveStart;
     if (elapsed >= TGX101_WAVE_DURATION + 250) {
       return;
@@ -6875,7 +6880,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   public void highlight (boolean revoke) {
     cancelHighlightRevoke();
-    tgx101WaveStart = android.os.SystemClock.uptimeMillis();
+    tgx101WaveStart = -1; // set on the first draw
     setHighlight(1f);
     if (revoke) {
       revokeHighlight();
