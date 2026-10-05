@@ -291,17 +291,32 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
     return child != null ? getChildAdapterPosition(child) : -1;
   }
 
+  // TGx101 (user 2026-10-05 22:42): the drag works both ways — moving the finger back undoes what it selected beyond
+  // the finger; messages keep their state from before the drag outside the range
+  private final android.util.LongSparseArray<org.thunderdog.challegram.data.TGMessage> tgx101DragTouched = new android.util.LongSparseArray<>();
+
   private void tgx101DragApply (float y) {
     int end = tgx101PositionAt(y);
     if (end == -1 || tgx101DragStartPos == -1) return;
     int from = Math.min(end, tgx101DragStartPos), to = Math.max(end, tgx101DragStartPos);
     for (int i = 0; i < getChildCount(); i++) {
       View child = getChildAt(i);
+      if (!(child instanceof org.thunderdog.challegram.component.chat.MessageView)) continue;
       int pos = getChildAdapterPosition(child);
-      if (pos < from || pos > to || !(child instanceof org.thunderdog.challegram.component.chat.MessageView)) continue;
       org.thunderdog.challegram.data.TGMessage msg = ((org.thunderdog.challegram.component.chat.MessageView) child).getMessage();
-      if (msg == null || !msg.canBeSelected() || msg.isCompletelySelected() == tgx101DragTarget) continue;
-      manager.controller().selectAllMessages(msg, -1, -1);
+      if (msg == null || !msg.canBeSelected()) continue;
+      boolean inRange = pos >= from && pos <= to;
+      long key = msg.getId();
+      if (inRange) {
+        if (msg.isCompletelySelected() != tgx101DragTarget) {
+          if (tgx101DragTouched.get(key) == null) tgx101DragTouched.put(key, msg);
+          manager.controller().selectAllMessages(msg, -1, -1);
+        }
+      } else if (tgx101DragTouched.get(key) != null) {
+        // left the range: back to how it was before this drag
+        if (msg.isCompletelySelected() == tgx101DragTarget) manager.controller().selectAllMessages(msg, -1, -1);
+        tgx101DragTouched.remove(key);
+      }
     }
   }
 
@@ -333,6 +348,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
       // the long press has just opened select mode under this finger: continue as a drag selection
       tgx101DragSelect = true;
       tgx101DragTarget = true;
+      tgx101DragTouched.clear();
       tgx101DragLastY = e.getY();
       org.thunderdog.challegram.Tgx101Diag.mark("select: drag after long press");
       MotionEvent cancel = MotionEvent.obtain(e);
@@ -381,10 +397,11 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
               org.thunderdog.challegram.data.TGMessage msg = child instanceof org.thunderdog.challegram.component.chat.MessageView ? ((org.thunderdog.challegram.component.chat.MessageView) child).getMessage() : null;
               if (msg != null && msg.canBeSelected()) {
                 tgx101DragSelect = true;
-                tgx101DragTarget = !msg.isCompletelySelected();
+                tgx101DragTarget = true; // user 2026-10-05: starting on a selected message continues the selection
+                tgx101DragTouched.clear();
                 tgx101DragLastY = e.getY();
                 org.thunderdog.challegram.Tgx101Diag.mark("select: drag " + (tgx101DragTarget ? "select" : "unselect"));
-                performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+                // no second vibration here (user 2026-10-05: the long press already vibrated once)
                 MotionEvent cancel = MotionEvent.obtain(e);
                 cancel.setAction(MotionEvent.ACTION_CANCEL);
                 super.dispatchTouchEvent(cancel);

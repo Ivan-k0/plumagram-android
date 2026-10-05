@@ -114,11 +114,6 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     ListItem item = (ListItem) v.getTag();
     final int position = (int) item.getLongId();
     final int[] order = Tgx101MessageMenu.getOrder();
-    if (order[position] == R.id.btn_messageSelect) {
-      // TGx101 (user 2026-10-05): «Select» always stays in the menu — only its place can change (drag)
-      org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101MenuSelectAlways, android.widget.Toast.LENGTH_SHORT);
-      return;
-    }
     final boolean hidden = Tgx101MessageMenu.isHidden(order[position]);
     final boolean inMore = Tgx101MessageMenu.isInMore(order[position]);
     String mark = "  ✓";

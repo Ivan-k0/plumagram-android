@@ -1503,8 +1503,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       getLocationOnScreen(loc);
       org.thunderdog.challegram.ui.Tgx101MessageMenu.dragArmed = true;
       if (onMessageClickImpl(touchX, touchY, null)) {
-        performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
-        return true;
+        return true; // the long press itself vibrates once
       }
       org.thunderdog.challegram.ui.Tgx101MessageMenu.dragArmed = false;
     }

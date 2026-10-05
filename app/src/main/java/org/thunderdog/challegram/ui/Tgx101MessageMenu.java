@@ -79,21 +79,20 @@ public final class Tgx101MessageMenu {
     R.id.btn_tgx101EditorWindow,
     R.id.btn_messageViewList,
     R.id.btn_messageReplies,
-    R.id.btn_messageSelect, // TGx101 (user 2026-10-05): «Select» and «Delete» are ordered like the rest
-    R.id.btn_messageDelete
+    R.id.btn_messageDelete // TGx101 (user 2026-10-05): «Delete» is ordered like the rest; «Select» is always last
   };
   public static final int[] ORDERABLE_NAMES = {
     R.string.Reply, R.string.Copy, R.string.edit, R.string.Share, R.string.MessagePin,
     R.string.Tgx101MenuSelectText, R.string.Translate, R.string.CopyLink, R.string.Save, R.string.MessageReport,
     R.string.Tgx101FilterSimilar, R.string.Tgx101MenuEditorOwn, R.string.Tgx101MenuMessagesFrom,
-    R.string.Tgx101MenuThread, R.string.Select, R.string.Delete
+    R.string.Tgx101MenuThread, R.string.Delete
   };
   public static final int[] ORDERABLE_ICONS = {
     R.drawable.baseline_reply_24, R.drawable.baseline_content_copy_24, R.drawable.baseline_edit_24,
     R.drawable.baseline_forward_24, R.drawable.deproko_baseline_pin_24, R.drawable.baseline_format_quote_close_24,
     R.drawable.baseline_translate_24, R.drawable.baseline_link_24, R.drawable.baseline_file_download_24,
     R.drawable.baseline_report_24, R.drawable.baseline_filter_variant_remove_24, R.drawable.baseline_format_text_24,
-    R.drawable.baseline_person_24, R.drawable.outline_forum_24, R.drawable.baseline_playlist_add_check_24, R.drawable.baseline_delete_24
+    R.drawable.baseline_person_24, R.drawable.outline_forum_24, R.drawable.baseline_delete_24
   };
 
   private static int orderKey (int id) {
@@ -154,9 +153,9 @@ public final class Tgx101MessageMenu {
     return shownIds.contains(id);
   }
 
-  /** Like rank(), but «More…» sits right above «Select» */
+  /** Like rank(), but «More…» goes after the ordered items */
   private static int sortRank (int[] order, int id) {
-    if (id == R.id.btn_messageMore) return rank(order, R.id.btn_messageSelect) * 2 - 1;
+    if (id == R.id.btn_messageMore) return Integer.MAX_VALUE - 1;
     return rank(order, id) * 2;
   }
 
@@ -507,10 +506,9 @@ public final class Tgx101MessageMenu {
     }
     // TGx101 (user 2026-10-05): «Select» is always in the menu (can't be hidden or moved to «More…»), in its place in
     // the user's order — by default at the bottom, above «Delete»
-    if (message.canBeSelected() && !c.inSelectMode()) {
-      sorted.add(new ViewController.OptionItem(R.id.btn_messageSelect, Lang.getString(R.string.Select), ViewController.OptionColor.NORMAL, R.drawable.baseline_playlist_add_check_24));
-    }
     java.util.Collections.sort(sorted, (a, b) -> Integer.compare(sortRank(order, a.id), sortRank(order, b.id)));
+    // user 2026-10-05 22:42: «Select» always at the very bottom, under a line
+    final boolean addSelect = message.canBeSelected() && !c.inSelectMode();
     shownIds.clear();
     for (ViewController.OptionItem item : sorted) shownIds.add(item.id);
 
@@ -519,6 +517,12 @@ public final class Tgx101MessageMenu {
     host.list = list;
     for (ViewController.OptionItem item : sorted) {
       View row = row(context, host, item, delegate, item.id == R.id.btn_messageDelete);
+      host.mainRows.add(row);
+      list.addView(row);
+    }
+    if (addSelect) {
+      list.addView(divider(context));
+      View row = row(context, host, new ViewController.OptionItem(R.id.btn_messageSelect, Lang.getString(R.string.Select), ViewController.OptionColor.NORMAL, R.drawable.baseline_playlist_add_check_24), delegate, false);
       host.mainRows.add(row);
       list.addView(row);
     }
