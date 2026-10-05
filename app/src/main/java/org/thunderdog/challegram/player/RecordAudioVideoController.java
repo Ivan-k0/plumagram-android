@@ -926,6 +926,7 @@ public class RecordAudioVideoController implements
       tdlib.context().player().setPauseReason(TGPlayerController.PAUSE_REASON_RECORD_AUDIO_VIDEO, false);
     }
     ExternalAudioFocus.instance().setActive(ExternalAudioFocus.REASON_RECORD, isRecording);
+    if (isRecording) tgx101WatchCalls(); // TGx101: an incoming phone call pauses the recording
 
     final int size = recordListeners.size();
     for (int i = size - 1; i >= 0; i--) {
@@ -970,6 +971,28 @@ public class RecordAudioVideoController implements
     float scale = .6f + .4f * factor;
     muteIcon.setScaleX(scale);
     muteIcon.setScaleY(scale);
+  }
+
+  // TGx101 (user 2026-10-05): a phone call during a voice recording — Android silences the mic for us and the
+  // recording kept running «frozen» until swiped away. Like the official app, the call pauses it into the preview.
+  private final Runnable tgx101CallWatch = new Runnable() {
+    @Override
+    public void run () {
+      if (recordMode != RECORD_MODE_AUDIO && recordMode != RECORD_MODE_VIDEO) return;
+      android.media.AudioManager am = (android.media.AudioManager) UI.getAppContext().getSystemService(android.content.Context.AUDIO_SERVICE);
+      int mode = am != null ? am.getMode() : android.media.AudioManager.MODE_NORMAL;
+      if (mode == android.media.AudioManager.MODE_RINGTONE || mode == android.media.AudioManager.MODE_IN_CALL || mode == android.media.AudioManager.MODE_IN_COMMUNICATION) {
+        org.thunderdog.challegram.Tgx101Diag.mark("record: phone call (audio mode " + mode + ") — paused into the preview");
+        finishRecording(true);
+        return;
+      }
+      UI.post(this, 400);
+    }
+  };
+
+  private void tgx101WatchCalls () {
+    UI.removePendingRunnable(tgx101CallWatch);
+    UI.post(tgx101CallWatch, 400);
   }
 
   private void setEditFactor (float factor) {
