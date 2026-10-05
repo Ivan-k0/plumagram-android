@@ -467,11 +467,8 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   @Override
   public void onCreate (Bundle savedInstanceState) {
     UI.setContext(this);
-    // TGx101 (user 2026-10-05): no task snapshot — the last screen of the app blinked during the Vivo unlock
-    // animation although the app was in the background; Recents shows a plain card (more private too)
-    if (Build.VERSION.SDK_INT >= 33) {
-      setRecentsScreenshotEnabled(false);
-    }
+    // TGx101: no setRecentsScreenshotEnabled(false) — without the snapshot Android showed a splash screen on every
+    // return to the app (user 2026-10-05: «сплэш — кошмар»)
 
     AppState.initApplication();
     AppState.ensureReady();
@@ -1274,16 +1271,25 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     // the activity resumes still behind the lock screen; Android shows the keyboard once the window gets focus after
     // unlocking — hide it then (first check on Xiaomi: hiding at resume came too early)
     tgx101HideKeyboardOnFocus = true;
-    org.thunderdog.challegram.Tgx101Diag.mark("keyboard: will hide after lock (" + idle / 1000 + " s)");
+    // keep Android from showing it at all (hiding after it appeared made it jump, user 2026-10-05): the window comes
+    // back with «always hidden» and without a focused field; the normal mode returns once it has focus
+    tgx101SavedSoftInput = getWindow().getAttributes().softInputMode;
+    getWindow().setSoftInputMode((tgx101SavedSoftInput & ~android.view.WindowManager.LayoutParams.SOFT_INPUT_MASK_STATE) | android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+    View focused = getCurrentFocus();
+    if (focused != null) focused.clearFocus();
+    org.thunderdog.challegram.Tgx101Diag.mark("keyboard: kept hidden after lock (" + idle / 1000 + " s)");
   }
 
   private boolean tgx101HideKeyboardOnFocus;
+  private int tgx101SavedSoftInput;
 
   @Override
   public void onWindowFocusChanged (boolean hasFocus) {
     super.onWindowFocusChanged(hasFocus);
     if (hasFocus && tgx101HideKeyboardOnFocus) {
       tgx101HideKeyboardOnFocus = false;
+      final int saved = tgx101SavedSoftInput;
+      getWindow().getDecorView().postDelayed(() -> getWindow().setSoftInputMode(saved), 800);
       Runnable hide = () -> {
         View focus = getCurrentFocus();
         android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);

@@ -1814,6 +1814,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     context().getRecordAudioVideoController().removeRecordStateListener(this);
   }
 
+  private boolean tgx101Recording;
+
   @Override
   public void onRecordStateChanged (boolean isRecording) {
     setInputBlockFlag(FLAG_INPUT_RECORDING, isRecording);
@@ -1821,6 +1823,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // typed text showed above / through it; hide the text while recording
     if (inputView != null) {
       inputView.animate().alpha(isRecording ? 0f : 1f).setDuration(120).start();
+    }
+    // the round «scroll down» button stuck out from under the lock capsule (user's video 2026-10-05 14:17)
+    tgx101Recording = isRecording;
+    if (scrollToBottomButtonWrap != null) {
+      scrollToBottomButtonWrap.setAlpha(isRecording ? 0f : MathUtils.clamp(scrollToBottomVisible.getFloatValue()));
     }
   }
 
@@ -9225,7 +9232,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public void onFactorChanged (int id, float factor, float fraction, FactorAnimator callee) {
     switch (id) {
       case ANIMATOR_SCROLL_TO_BOTTOM: {
-        scrollToBottomButtonWrap.setAlpha(MathUtils.clamp(factor));
+        scrollToBottomButtonWrap.setAlpha(tgx101Recording ? 0f : MathUtils.clamp(factor));
         checkScrollButtonOffsets();
         break;
       }

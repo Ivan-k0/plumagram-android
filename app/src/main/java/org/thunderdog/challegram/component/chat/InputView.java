@@ -985,7 +985,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
 
   private int tgx101LastSelStart = -1, tgx101LastSelEnd = -1;
   private boolean tgx101IgnoringGesture, tgx101Moved;
-  private float tgx101DownX, tgx101DownY;
+  private float tgx101DownX, tgx101DownY, tgx101LastMoveY;
 
   /** Returns true when the event is swallowed by the safety tap */
   private boolean tgx101SafetyTap (MotionEvent e) {
@@ -1006,8 +1006,16 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     }
     if (!tgx101IgnoringGesture) return false;
     if (action == MotionEvent.ACTION_MOVE) {
-      if (Math.hypot(e.getX() - tgx101DownX, e.getY() - tgx101DownY) > android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop()) {
+      if (!tgx101Moved && Math.hypot(e.getX() - tgx101DownX, e.getY() - tgx101DownY) > android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop()) {
         tgx101Moved = true;
+        tgx101LastMoveY = e.getY();
+      }
+      if (tgx101Moved && Math.abs(e.getY() - tgx101DownY) > Math.abs(e.getX() - tgx101DownX)) {
+        // user 2026-10-05: a vertical swipe over the selected text scrolls the field (the selection stays)
+        int range = getLayout() != null ? Math.max(0, getLayout().getHeight() - (getHeight() - getTotalPaddingTop() - getTotalPaddingBottom())) : 0;
+        int target = (int) Math.max(0, Math.min(range, getScrollY() + (tgx101LastMoveY - e.getY())));
+        scrollTo(getScrollX(), target);
+        tgx101LastMoveY = e.getY();
       }
     } else if (action == MotionEvent.ACTION_UP) {
       tgx101IgnoringGesture = false;
