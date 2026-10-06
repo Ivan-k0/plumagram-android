@@ -742,7 +742,9 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     int active = Theme.getColor(outgoing ? ColorId.bubbleOut_waveformActive : ColorId.waveformActive);
     int inactive = Theme.getColor(outgoing ? ColorId.bubbleOut_waveformInactive : ColorId.waveformInactive);
     float radius = Screen.dp(TRANSCRIBE_BUTTON_SIZE / 2f);
-    c.drawCircle(cx, cy, radius, Paints.fillingPaint(ColorUtils.alphaColor(alpha, shown ? active : inactive)));
+    // user 2026-10-06 18:46 «кнопка перевод в текст не читается» (dark themes: inactive ≈ active) — a light tint of the
+    // waveform colour under a full-colour «A», like the bars themselves on the bubble
+    c.drawCircle(cx, cy, radius, Paints.fillingPaint(ColorUtils.alphaColor(alpha * (shown ? 1f : (Theme.isDark() ? .24f : .16f)), active)));
     String label = result != null && result.state == Tgx101Transcription.STATE_PENDING ? "…" : "A";
     android.text.TextPaint paint = Paints.getBoldPaint15(false, ColorUtils.alphaColor(alpha, shown ? Theme.getColor(outgoing ? ColorId.bubbleOut_background : (context.useBubbles() ? ColorId.bubbleIn_background : ColorId.filling)) : active));
     float textWidth = paint.measureText(label);
