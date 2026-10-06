@@ -1659,6 +1659,8 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     return false;
   }
 
+  private boolean tgx101SwallowTouch;
+
   @Override
   public boolean onTouchEvent (MotionEvent e) {
     if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
@@ -1680,6 +1682,18 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     }
     if (UI.getContext(getContext()).getRecordAudioVideoController().isOpen()) {
       return false;
+    }
+    // TGx101 (user 2026-10-06 09:53): the touch that stops a fling only stops it — no link, photo, file, button or
+    // menu under the finger; a drag that follows still scrolls (the list intercepts it)
+    if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
+      tgx101SwallowTouch = getParent() instanceof org.thunderdog.challegram.v.MessagesRecyclerView
+        && ((org.thunderdog.challegram.v.MessagesRecyclerView) getParent()).tgx101StoppedFling();
+    }
+    if (tgx101SwallowTouch) {
+      if (e.getActionMasked() == MotionEvent.ACTION_UP || e.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+        tgx101SwallowTouch = false;
+      }
+      return true;
     }
     switch (e.getAction()) {
       case MotionEvent.ACTION_DOWN: {
