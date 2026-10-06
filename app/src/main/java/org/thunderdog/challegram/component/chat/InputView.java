@@ -1073,6 +1073,12 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     if (tgx101LastSelStart != tgx101LastSelEnd && selStart == selEnd && tgx101LastSelStart >= 0) {
       org.thunderdog.challegram.Tgx101Diag.mark("input selection collapsed " + tgx101LastSelStart + "-" + tgx101LastSelEnd + " → " + selStart + " (len " + length() + ", lines " + getLineCount() + ")");
     }
+    // TGx101 diagnostics (user 2026-10-07: the cursor handle jumps to the end): every cursor move with its line
+    if (selStart == selEnd && tgx101LastSelStart == tgx101LastSelEnd && selStart != tgx101LastSelStart && getLayout() != null) {
+      android.text.Layout l = getLayout();
+      int line = l.getLineForOffset(Math.min(selStart, length()));
+      org.thunderdog.challegram.Tgx101Diag.mark("input cursor " + tgx101LastSelStart + " → " + selStart + " (line " + (line + 1) + "/" + getLineCount() + ", len " + length() + ", line ends at " + l.getLineEnd(line) + ")");
+    }
     tgx101LastSelStart = selStart;
     tgx101LastSelEnd = selEnd;
     if (tgx101SelectionBar != null && tgx101SelectionBar.isShowing()) {
