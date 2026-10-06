@@ -6300,6 +6300,8 @@
   <string name="Tgx101HideAllReactions">Hide reactions in all chats</string>
   <string name="Tgx101HideInputCamera">Hide the camera button (it moves to the attachment screen)</string>
   <string name="Tgx101HideInputCommands">Hide the bot commands «/» button</string>
+  <string name="Tgx101NavCapsule">Bottom menu instead of the side menu</string>
+  <string name="Tgx101AppliesAfterRestart">Restart the app to apply</string>
   <string name="Tgx101HideInputEmoji">Hide the emoji / stickers button</string>
   <string name="Tgx101RearRounds">Video messages start with the main camera</string>
   <string name="Tgx101HidePhone">Hide my phone number in the side menu</string>

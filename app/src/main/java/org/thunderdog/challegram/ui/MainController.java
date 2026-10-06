@@ -181,6 +181,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   private FrameLayoutFix mainWrap;
   private FrameLayoutFix pagerWrap;
   private OverlayButtonWrap composeWrap;
+  private org.thunderdog.challegram.widget.Tgx101NavCapsule tgx101Capsule;
 
   @Override
   protected View onCreateView (Context context) {
@@ -262,6 +263,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         R.string.NewChat
       }, false);
     composeWrap.setCallback(this);
+    tgx101AddCapsule(context, contentView);
     contentView.addView(composeWrap);
 
     makeStartupChecks();
@@ -797,12 +799,14 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   protected void onEnterSearchMode () {
     super.onEnterSearchMode();
     composeWrap.forceHide();
+    if (tgx101Capsule != null) tgx101Capsule.setVisibility(View.GONE);
   }
 
   @Override
   protected void onLeaveSearchMode () {
     super.onLeaveSearchMode();
     composeWrap.showIfWasHidden();
+    if (tgx101Capsule != null) tgx101Capsule.setVisibility(View.VISIBLE);
     // TGx101 (user 2026-10-05 «тёмная фантомная полоса после поиска»): the stories row is laid out again after search
     ViewController<?> current = getCurrentPagerItem();
     if (current instanceof ChatsController) {
@@ -1016,9 +1020,72 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     checkComposeWrapPaddings();
   }
 
+  // TGx101 (user 2026-10-06 «с пилюлей без подписей»): floating bottom navigation instead of the side menu button
+  private void tgx101AddCapsule (Context context, FrameLayoutFix contentView) {
+    if (!Settings.instance().tgx101NavCapsule())
+      return;
+    tgx101Capsule = new org.thunderdog.challegram.widget.Tgx101NavCapsule(context);
+    tgx101Capsule.setCallback(new org.thunderdog.challegram.widget.Tgx101NavCapsule.Callback() {
+      @Override
+      public void onTabClick (int tab) {
+        if (tab == org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_CHATS) {
+          if (getViewPager().getCurrentItem() != 0) {
+            getViewPager().setCurrentItem(0, true);
+          }
+          return;
+        }
+        tgx101Capsule.setSelectedTab(tab, true);
+        tgx101Capsule.postDelayed(() -> tgx101OpenTab(tab), 150);
+      }
+
+      @Override
+      public boolean onTabLongClick (int tab) {
+        if (tab == org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_SETTINGS && context().getDrawer() != null) {
+          context().getDrawer().open(); // accounts, Saved Messages, proxy — still one hold away
+          return true;
+        }
+        return false;
+      }
+    });
+    addThemeInvalidateListener(tgx101Capsule);
+    contentView.addView(tgx101Capsule, FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
+  }
+
+  private void tgx101OpenTab (int tab) {
+    if (isDestroyed())
+      return;
+    switch (tab) {
+      case org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_CONTACTS:
+        tdlib.contacts().startSyncIfNeeded(context, true, () -> {
+          PeopleController c = new PeopleController(context, tdlib);
+          c.setNeedSearch();
+          navigateTo(c);
+        });
+        break;
+      case org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_CALLS:
+        navigateTo(new CallListController(context, tdlib));
+        break;
+      case org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_SETTINGS:
+        navigateTo(new SettingsController(context, tdlib));
+        break;
+    }
+  }
+
+  /** TGx101: chat lists keep their last rows above the capsule */
+  public static int tgx101CapsuleSpace () {
+    return Settings.instance().tgx101NavCapsule() ? Screen.dp(org.thunderdog.challegram.widget.Tgx101NavCapsule.HEIGHT_DP + org.thunderdog.challegram.widget.Tgx101NavCapsule.MARGIN_DP * 2) : 0;
+  }
+
   private void checkComposeWrapPaddings () {
+    if (tgx101Capsule != null) {
+      int capsulePadding = (displayTabsAtBottom() ? getHeaderHeight() : 0) + extraBottomInsetWithoutIme;
+      if (tgx101Capsule.getPaddingBottom() != capsulePadding) {
+        tgx101Capsule.setPadding(0, 0, 0, capsulePadding);
+        tgx101Capsule.requestLayout();
+      }
+    }
     if (composeWrap != null) {
-      int paddingBottom = (displayTabsAtBottom() ? getHeaderHeight() : 0) + extraBottomInsetWithoutIme;
+      int paddingBottom = (displayTabsAtBottom() ? getHeaderHeight() : 0) + extraBottomInsetWithoutIme + (tgx101Capsule != null ? Screen.dp(org.thunderdog.challegram.widget.Tgx101NavCapsule.HEIGHT_DP + org.thunderdog.challegram.widget.Tgx101NavCapsule.MARGIN_DP) : 0);
       composeWrap.setPadding(composeWrap.getPaddingLeft(), composeWrap.getPaddingTop(), composeWrap.getPaddingRight(), paddingBottom);
       composeWrap.setClipToPadding(paddingBottom == 0);
     }
@@ -1056,11 +1123,12 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       if (Passcode.instance().isEnabled()) {
         menuWidth += Screen.dp(48f);
       }
+      int backWidth = Settings.instance().tgx101NavCapsule() ? 0 : Screen.dp(44f); // TGx101: no ☰ with the capsule
       if (Lang.rtl()) {
         paddingLeft = menuWidth;
-        paddingRight = Screen.dp(44f);
+        paddingRight = backWidth;
       } else {
-        paddingLeft = Screen.dp(44f);
+        paddingLeft = backWidth;
         paddingRight = menuWidth;
       }
     }
@@ -1303,6 +1371,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   @Override
   public void onFocus () {
     super.onFocus();
+    if (tgx101Capsule != null) tgx101Capsule.setSelectedTab(org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_CHATS, false);
     // FIXME check tdlib.isUnauthorized()
     tdlib.context().changePreferredAccountId(tdlib.id(), TdlibManager.SWITCH_REASON_NAVIGATION);
     if (UI.TEST_MODE == UI.TEST_MODE_USER) {
@@ -1376,7 +1445,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
 
   @Override
   protected int getBackButton () {
-    return BackHeaderButton.TYPE_MENU;
+    return Settings.instance().tgx101NavCapsule() ? BackHeaderButton.TYPE_NONE : BackHeaderButton.TYPE_MENU; // TGx101: the capsule replaces ☰
   }
 
   @Override

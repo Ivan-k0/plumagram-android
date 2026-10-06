@@ -603,6 +603,10 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
     adapter = chatsView.initWithController(this, this);
     chatsView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    if (parentController != null && MainController.tgx101CapsuleSpace() > 0) { // TGx101: last chats scroll above the bottom capsule
+      chatsView.setClipToPadding(false);
+      Views.setPaddingBottom(chatsView, MainController.tgx101CapsuleSpace());
+    }
     if (filter != null)
       chatsView.setTotalRes(filter.getTotalStringRes());
     tdlib.ui().attachViewportToRecyclerView(chatsViewport, chatsView);

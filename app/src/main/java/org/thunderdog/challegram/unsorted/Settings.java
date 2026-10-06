@@ -3534,6 +3534,11 @@ public class Settings {
   public boolean tgx101HideInputEmoji () { return pmc.getBoolean(KEY_TGX101_HIDE_INPUT_EMOJI, false); }
   public void setTgx101HideInputEmoji (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_INPUT_EMOJI, v); }
 
+  // TGx101 (user 2026-10-06, mockup «Капсула» B): bottom navigation capsule instead of the side menu button
+  private static final String KEY_TGX101_NAV_CAPSULE = "tgx101_nav_capsule";
+  public boolean tgx101NavCapsule () { return pmc.getBoolean(KEY_TGX101_NAV_CAPSULE, true); }
+  public void setTgx101NavCapsule (boolean v) { pmc.putBoolean(KEY_TGX101_NAV_CAPSULE, v); }
+
   /** TGx101: no reaction row under channel posts (off by default) */
   public boolean tgx101HideChannelReactions () {
     return pmc.getBoolean(KEY_TGX101_HIDE_CHANNEL_REACTIONS, false);
