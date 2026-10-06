@@ -113,21 +113,39 @@ public final class Tgx101MessageMenu {
     R.id.btn_messageMore, R.id.btn_messageDelete
   };
 
-  /** Which menu (and settings) a message uses: media / files, or text */
+  /** user 2026-10-06 12:04: voice and video messages have their own menu — «Save to music», transcription in «More…» */
+  public static final int[] DEFAULT_SHOWN_VOICE = {
+    R.id.btn_messageReply, R.id.btn_saveFile, R.id.btn_messageShare, R.id.btn_tgx101SaveFavorite,
+    R.id.btn_messageMore, R.id.btn_messageDelete
+  };
+
+  /** Which menu (and settings) a message uses: text, media / files, or voice / video messages */
+  public static int menuProfileOf (TGMessage message) {
+    TdApi.MessageContent content = message.getMessage().content;
+    int type = content != null ? content.getConstructor() : 0;
+    if (type == TdApi.MessageVoiceNote.CONSTRUCTOR || type == TdApi.MessageVideoNote.CONSTRUCTOR) return Settings.TGX101_MENU_VOICE;
+    if (message instanceof org.thunderdog.challegram.data.TGMessageMedia || message instanceof org.thunderdog.challegram.data.TGMessageFile
+      || message instanceof org.thunderdog.challegram.data.TGMessageVideo) return Settings.TGX101_MENU_MEDIA;
+    return Settings.TGX101_MENU_TEXT;
+  }
+
   public static boolean isMediaMessage (TGMessage message) {
-    return message instanceof org.thunderdog.challegram.data.TGMessageMedia || message instanceof org.thunderdog.challegram.data.TGMessageFile
-      || message instanceof org.thunderdog.challegram.data.TGMessageVideo;
+    return menuProfileOf(message) != Settings.TGX101_MENU_TEXT;
   }
 
   private static int[] defaultShown () {
-    return Settings.instance().isTgx101MenuMediaProfile() ? DEFAULT_SHOWN_MEDIA : DEFAULT_SHOWN;
+    switch (Settings.instance().getTgx101MenuProfile()) {
+      case Settings.TGX101_MENU_MEDIA: return DEFAULT_SHOWN_MEDIA;
+      case Settings.TGX101_MENU_VOICE: return DEFAULT_SHOWN_VOICE;
+      default: return DEFAULT_SHOWN;
+    }
   }
 
   /** The default order of the current profile: its shown items first (More and Delete last), the rest in between */
   private static int[] defaultOrder () {
     if (!Settings.instance().isTgx101MenuMediaProfile()) return ORDERABLE_IDS;
     ArrayList<Integer> result = new ArrayList<>();
-    for (int id : DEFAULT_SHOWN_MEDIA) if (id != R.id.btn_messageMore && id != R.id.btn_messageDelete) result.add(id);
+    for (int id : defaultShown()) if (id != R.id.btn_messageMore && id != R.id.btn_messageDelete) result.add(id);
     for (int id : ORDERABLE_IDS) if (!result.contains(id) && id != R.id.btn_messageMore && id != R.id.btn_messageDelete) result.add(id);
     result.add(R.id.btn_messageMore);
     result.add(R.id.btn_messageDelete);
@@ -250,6 +268,7 @@ public final class Tgx101MessageMenu {
     @Nullable MoreLoader moreLoader;
     LinearLayout list; // the card's actions
     android.widget.ScrollView scroll; // the actions scroll when there are more than MAX_VISIBLE_ROWS
+    @Nullable Drawable background; // the blurred screen behind the menu, faded in and out
     @Nullable Runnable selectInPlace; // «Select» text: the in-bubble selection where the finger first touched
     final List<View> mainRows = new ArrayList<>();
     @Nullable ViewGroup reactions; // the reactions pill: sliding the finger there picks a reaction too (user 2026-10-06)
@@ -431,7 +450,7 @@ public final class Tgx101MessageMenu {
                                   boolean readDatePending, @Nullable MoreLoader moreLoader, Runnable onExpandReactions, Runnable onDismissPrepare, Runnable onDismiss) {
     Context context = c.context();
     tgx101LogTextShape(message);
-    Settings.instance().setTgx101MenuMediaProfile(isMediaMessage(message)); // text and media have separate menus
+    Settings.instance().setTgx101MenuProfile(menuProfileOf(message)); // text, media and voice have separate menus
     Host host = new Host();
     host.moreLoader = moreLoader;
     PopupLayout popup = new PopupLayout(context);
@@ -462,7 +481,16 @@ public final class Tgx101MessageMenu {
     int cardEdgeGap = Math.max(overhang, Math.min(Screen.dp(52f), maxCardWidth - cardWidth + overhang));
 
     FrameLayout root = new FrameLayout(context);
-    root.setBackground(blurredBackground(c));
+    // TGx101 (user 2026-10-06 12:05 «блюр слишком резко»): the blurred background fades in / out with the menu
+    final Drawable background = blurredBackground(c);
+    background.setAlpha(0);
+    root.setBackground(background);
+    host.background = background;
+    android.animation.ValueAnimator fadeIn = android.animation.ValueAnimator.ofInt(0, 255);
+    fadeIn.setDuration(220);
+    fadeIn.setInterpolator(new android.view.animation.DecelerateInterpolator());
+    fadeIn.addUpdateListener(a -> background.setAlpha((int) a.getAnimatedValue()));
+    fadeIn.start();
     root.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     root.setOnClickListener(v -> dismiss(host));
     // TGx101: a long press on the message itself (under the blurred menu) closes the menu and selects the word under
@@ -712,7 +740,7 @@ public final class Tgx101MessageMenu {
     column.setScaleY(.92f);
     column.post(() -> {
       column.setPivotY(column.getHeight());
-      column.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(150).start();
+      column.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(200).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
     });
 
     popup.setDismissListener(new PopupLayout.DismissListener() {
@@ -737,7 +765,25 @@ public final class Tgx101MessageMenu {
       return;
     }
     host.dismissing = true;
-    if (host.content != null) {
+    final Drawable background = host.background;
+    if (background != null) {
+      // the blur melts away together with the menu instead of vanishing in one frame
+      android.animation.ValueAnimator fadeOut = android.animation.ValueAnimator.ofInt(255, 0);
+      fadeOut.setDuration(180);
+      fadeOut.setInterpolator(new android.view.animation.AccelerateInterpolator());
+      fadeOut.addUpdateListener(a -> background.setAlpha((int) a.getAnimatedValue()));
+      fadeOut.addListener(new android.animation.AnimatorListenerAdapter() {
+        @Override
+        public void onAnimationEnd (android.animation.Animator animation) {
+          host.popup.hideWindow(false);
+        }
+      });
+      if (host.content != null) {
+        host.content.animate().cancel();
+        host.content.animate().alpha(0f).scaleX(.96f).scaleY(.96f).setDuration(150).start();
+      }
+      fadeOut.start();
+    } else if (host.content != null) {
       host.content.animate().cancel();
       host.content.animate().alpha(0f).setDuration(90).withEndAction(() -> host.popup.hideWindow(false)).start();
     } else {

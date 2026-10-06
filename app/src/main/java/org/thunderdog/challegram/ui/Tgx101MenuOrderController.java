@@ -29,10 +29,10 @@ import java.util.List;
 /** TGx101: order of the actions in the compact message menu. "Delete" is always last. */
 public class Tgx101MenuOrderController extends RecyclerViewController<Void> implements View.OnClickListener {
   private SettingsAdapter adapter;
-  private boolean editMedia; // user 2026-10-06: the text menu or the media / files menu is being set up
+  private int editProfile = Settings.TGX101_MENU_TEXT; // user 2026-10-06: which menu is being set up
 
   private void applyProfile () {
-    Settings.instance().setTgx101MenuMediaProfile(editMedia);
+    Settings.instance().setTgx101MenuProfile(editProfile);
   }
 
   public Tgx101MenuOrderController (Context context, Tdlib tdlib) {
@@ -56,7 +56,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
         applyProfile();
         if (item.getId() == R.id.btn_tgx101MenuProfile) {
-          view.setData(Lang.getString(editMedia ? R.string.Tgx101MenuProfileMedia : R.string.Tgx101MenuProfileText));
+          view.setData(Lang.getString(editProfile == Settings.TGX101_MENU_MEDIA ? R.string.Tgx101MenuProfileMedia : editProfile == Settings.TGX101_MENU_VOICE ? R.string.Tgx101MenuProfileVoice : R.string.Tgx101MenuProfileText));
         } else if (item.getId() == R.id.btn_tgx101MenuAction) {
           int position = (int) item.getLongId();
           int[] order = Tgx101MessageMenu.getOrder();
@@ -185,8 +185,17 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     int id = v.getId();
     applyProfile();
     if (id == R.id.btn_tgx101MenuProfile) {
-      editMedia = !editMedia;
-      rebuild();
+      // three menus: pick which one to set up
+      showOptions(Lang.getString(R.string.Tgx101MenuProfile),
+        new int[] {R.id.btn_tgx101MenuProfileText, R.id.btn_tgx101MenuProfileMedia, R.id.btn_tgx101MenuProfileVoice},
+        new String[] {Lang.getString(R.string.Tgx101MenuProfileText), Lang.getString(R.string.Tgx101MenuProfileMedia), Lang.getString(R.string.Tgx101MenuProfileVoice)},
+        null,
+        new int[] {R.drawable.baseline_format_text_24, R.drawable.baseline_image_24, R.drawable.baseline_mic_24},
+        (itemView, optionId) -> {
+          editProfile = optionId == R.id.btn_tgx101MenuProfileMedia ? Settings.TGX101_MENU_MEDIA : optionId == R.id.btn_tgx101MenuProfileVoice ? Settings.TGX101_MENU_VOICE : Settings.TGX101_MENU_TEXT;
+          rebuild();
+          return true;
+        });
       return;
     }
     if (id == R.id.btn_tgx101MenuOrderReset) {

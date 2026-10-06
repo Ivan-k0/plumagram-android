@@ -3119,18 +3119,24 @@ public class Settings {
 
   // TGx101 (user 2026-10-06): separate message menus for text and for media / files — the menu and its settings
   // screen pick the profile, the order / More / hidden keys get a «_media» suffix for media
-  private boolean tgx101MenuMediaProfile;
+  // 0 text, 1 photos / videos / files, 2 voice and video messages (user 2026-10-06 12:04)
+  public static final int TGX101_MENU_TEXT = 0, TGX101_MENU_MEDIA = 1, TGX101_MENU_VOICE = 2;
+  private int tgx101MenuProfile;
 
-  public void setTgx101MenuMediaProfile (boolean media) {
-    this.tgx101MenuMediaProfile = media;
+  public void setTgx101MenuProfile (int profile) {
+    this.tgx101MenuProfile = profile;
+  }
+
+  public int getTgx101MenuProfile () {
+    return tgx101MenuProfile;
   }
 
   public boolean isTgx101MenuMediaProfile () {
-    return tgx101MenuMediaProfile;
+    return tgx101MenuProfile != TGX101_MENU_TEXT;
   }
 
   private String tgx101MenuKey (String key) {
-    return tgx101MenuMediaProfile ? key + "_media" : key;
+    return tgx101MenuProfile == TGX101_MENU_MEDIA ? key + "_media" : tgx101MenuProfile == TGX101_MENU_VOICE ? key + "_voice" : key;
   }
   private static final String KEY_TGX101_FORMAT_MENU = "tgx101_format_menu";
 
