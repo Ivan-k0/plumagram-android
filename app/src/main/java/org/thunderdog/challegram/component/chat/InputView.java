@@ -445,6 +445,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   private Tgx101SelectionBar tgx101SelectionBar;
   private long tgx101LastCursorAt;
   private int tgx101LineVotes, tgx101VoteLine = -1;
+  private boolean tgx101Holding;
   private int tgx101LastLength = -1;
   boolean tgx101LinkOpen; // the bar's link field has the focus for a moment
 
@@ -1101,16 +1102,19 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
       if (newLine != oldLine && Math.abs(newLine - oldLine) == 1 && Math.abs(selStart - tgx101LastSelStart) > 1) {
         tgx101LineVotes = tgx101VoteLine == newLine ? tgx101LineVotes + 1 : 1;
         tgx101VoteLine = newLine;
-        if (tgx101LineVotes < 3) {
+        if (tgx101LineVotes < 2) { // one stray step is held; the second in a row goes to the new line
           int held = l.getOffsetForHorizontal(oldLine, l.getPrimaryHorizontal(selStart));
           if (held >= l.getLineEnd(oldLine) && oldLine < l.getLineCount() - 1) held = l.getLineEnd(oldLine) - 1; // not onto the next line's start
-          org.thunderdog.challegram.Tgx101Diag.mark("input cursor: line slip " + tgx101LastSelStart + " → " + selStart + " held at " + held + " (" + tgx101LineVotes + "/3)");
+          org.thunderdog.challegram.Tgx101Diag.mark("input cursor: line slip " + tgx101LastSelStart + " → " + selStart + " held at " + held + " (" + tgx101LineVotes + "/2)");
           tgx101LastCursorAt = android.os.SystemClock.uptimeMillis();
+          tgx101Holding = true;
           setSelection(Math.max(0, Math.min(length(), held)));
+          tgx101Holding = false;
           return;
         }
-      } else if (newLine == oldLine) {
-        tgx101LineVotes = 0;
+      } else if (newLine == oldLine && !tgx101Holding && Math.abs(selStart - tgx101LastSelStart) > 0 && tgx101LineVotes > 0
+        && android.os.SystemClock.uptimeMillis() - tgx101LastCursorAt > 250) {
+        tgx101LineVotes = 0; // the finger really stayed on this line for a while
       }
     }
     if (selStart == selEnd) {
