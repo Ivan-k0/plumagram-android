@@ -534,7 +534,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   }
 
   public int getHeight () {
-    return getDocHeight() + tgx101TitleExtraHeight();
+    return (tgx101TwoRowVoice() ? Screen.dp(TGX101_VOICE_HEIGHT) : getDocHeight()) + tgx101TitleExtraHeight();
   }
 
   // TGx101: room for ⋮ to the right of a document's name; extra height when the name takes two lines
@@ -584,7 +584,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       switch (event.getAction()) {
         case MotionEvent.ACTION_DOWN: {
           transcribeCaught = false;
-          float bx = transcribeButtonCenterX(startX), by = tgx101TwoRowVoice() ? startY + Screen.dp(17f) : startY + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS);
+          float bx = transcribeButtonCenterX(startX), by = tgx101TwoRowVoice() ? startY + Screen.dp(TGX101_VOICE_WAVE_CY) : startY + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS);
           float touchRadius = Screen.dp(TRANSCRIBE_BUTTON_SIZE / 2f + 8f);
           if (Math.abs(x - bx) <= touchRadius && Math.abs(y - by) <= touchRadius) {
             transcribeCaught = true;
@@ -710,6 +710,10 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     return hasTranscribeButton();
   }
 
+  // TGx101 (user 2026-10-06 «всё должно быть оцентровано, как в официальном Telegram»): a lower block, so the bubble time
+  // (drawn about 4 dp above the block's bottom) shares the duration's row, and the 38 dp button is centred on both rows
+  private static final float TGX101_VOICE_HEIGHT = 43f, TGX101_VOICE_WAVE_CY = 13f;
+
   /** Play button size: 38 dp in the two-row voice layout (mockup «Голосовое-кнопка-плей»), the stock 50 dp otherwise */
   private int tgx101PlaySize () {
     return tgx101TwoRowVoice() ? Screen.dp(38f) : getPreviewSize();
@@ -814,7 +818,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
     progress.setRequestedAlpha(alpha);
     if (tgx101TwoRowVoice()) { // TGx101 (user 2026-10-06 «голосовое 38»): a smaller play button, centred on the two rows
-      int top = startY + (getDocHeight() - tgx101PlaySize()) / 2;
+      int top = startY + (Screen.dp(TGX101_VOICE_HEIGHT) - tgx101PlaySize()) / 2;
       progress.setBounds(startX, top, startX + tgx101PlaySize(), top + tgx101PlaySize());
     } else {
       progress.setBounds(startX, startY, startX + previewSize, startY + previewSize);
@@ -856,7 +860,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       int waveformLeft = startX + tgx101PlaySize() + getPreviewOffset();
       int cy = startY + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS);
       final boolean twoRows = tgx101TwoRowVoice();
-      int waveCy = twoRows ? startY + Screen.dp(17f) : cy;
+      int waveCy = twoRows ? startY + Screen.dp(TGX101_VOICE_WAVE_CY) : cy;
       waveform.draw(c, seek, waveformLeft, waveCy, isPlaying && TD.isSelfDestructTypeImmediately(message));
       boolean align = context.isOutgoingBubble();
       if (unreadFactor != 0f) {
@@ -870,7 +874,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
         if (twoRows) {
           // after the duration, on the bottom row
           x = waveformLeft + sizeWidth + Screen.dp(6f) + innerRadius;
-          y = startY + Screen.dp(43f);
+          y = startY + Screen.dp(TGX101_VOICE_HEIGHT - 4f);
         }
 
         // c.drawCircle(x, y, outerRadius * unreadFactor, Paints.fillingPaint(context.getContentReplaceColor()));
@@ -879,7 +883,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       if (trimmedSubtitle != null) {
         if (twoRows) {
           // on the bubble time's baseline (user's screenshot 14:44: the duration sat higher than the time)
-          trimmedSubtitle.draw(c, waveformLeft, waveformLeft + trimmedSubtitle.getWidth(), 0, startY + Screen.dp(35f), null, alpha);
+          trimmedSubtitle.draw(c, waveformLeft, waveformLeft + trimmedSubtitle.getWidth(), 0, startY + Screen.dp(TGX101_VOICE_HEIGHT - 12f), null, alpha);
         } else {
           int textX = startX + previewSize + getPreviewOffset() + waveform.getWidth() + Screen.dp(12f);
           trimmedSubtitle.draw(c, textX, textX + trimmedSubtitle.getWidth(), 0, startY + Screen.dp(18f), null, alpha);
