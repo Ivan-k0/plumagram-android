@@ -127,8 +127,13 @@ public class Tgx101NavCapsule extends View {
   private void animateLine (float to) {
     if (lineAnimator != null) lineAnimator.cancel();
     if (lineFactor == to) return;
+    if (to > 0f) { // user 2026-10-06 21:43: «должна появляться быстрее» — at once on touch
+      lineFactor = to;
+      invalidate();
+      return;
+    }
     lineAnimator = ValueAnimator.ofFloat(lineFactor, to);
-    lineAnimator.setDuration(to > 0f ? 120 : 380);
+    lineAnimator.setDuration(250);
     lineAnimator.addUpdateListener(a -> {
       lineFactor = (float) a.getAnimatedValue();
       invalidate();
@@ -139,7 +144,7 @@ public class Tgx101NavCapsule extends View {
   private void showLine (boolean autoHide) {
     removeCallbacks(hideLine);
     animateLine(1f);
-    if (autoHide) postDelayed(hideLine, 600);
+    if (autoHide) postDelayed(hideLine, 350);
   }
 
   private void layoutCapsuleRect (RectF out) {
