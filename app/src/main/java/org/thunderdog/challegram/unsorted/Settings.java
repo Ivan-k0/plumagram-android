@@ -3519,6 +3519,21 @@ public class Settings {
 
   private static final String KEY_TGX101_HIDE_CHANNEL_REACTIONS = "tgx101_hide_channel_reactions";
 
+  // TGx101 (4PDA request from DeepDusky 2026-10-06, like moeGramX): hide reactions everywhere, hide input-row buttons
+  private static final String KEY_TGX101_HIDE_ALL_REACTIONS = "tgx101_hide_all_reactions";
+  private static final String KEY_TGX101_HIDE_INPUT_CAMERA = "tgx101_hide_input_camera";
+  private static final String KEY_TGX101_HIDE_INPUT_COMMANDS = "tgx101_hide_input_commands";
+  private static final String KEY_TGX101_HIDE_INPUT_EMOJI = "tgx101_hide_input_emoji";
+
+  public boolean tgx101HideAllReactions () { return pmc.getBoolean(KEY_TGX101_HIDE_ALL_REACTIONS, false); }
+  public void setTgx101HideAllReactions (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_ALL_REACTIONS, v); }
+  public boolean tgx101HideInputCamera () { return pmc.getBoolean(KEY_TGX101_HIDE_INPUT_CAMERA, false); }
+  public void setTgx101HideInputCamera (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_INPUT_CAMERA, v); }
+  public boolean tgx101HideInputCommands () { return pmc.getBoolean(KEY_TGX101_HIDE_INPUT_COMMANDS, false); }
+  public void setTgx101HideInputCommands (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_INPUT_COMMANDS, v); }
+  public boolean tgx101HideInputEmoji () { return pmc.getBoolean(KEY_TGX101_HIDE_INPUT_EMOJI, false); }
+  public void setTgx101HideInputEmoji (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_INPUT_EMOJI, v); }
+
   /** TGx101: no reaction row under channel posts (off by default) */
   public boolean tgx101HideChannelReactions () {
     return pmc.getBoolean(KEY_TGX101_HIDE_CHANNEL_REACTIONS, false);

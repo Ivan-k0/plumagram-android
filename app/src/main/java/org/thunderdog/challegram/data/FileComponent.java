@@ -358,7 +358,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       buildTitles(maxWidth - (getPreviewSize() + getPreviewOffset()));
     }
     if (waveform != null) {
-      waveform.layout(Math.min(Screen.dp(420f), Math.min(TGMessage.getEstimatedContentMaxWidth(), maxWidth) - Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS) * 2 - getPreviewOffset() - (int) sizeWidth - Screen.dp(12f) - transcribeButtonSpace()));
+      waveform.layout(Math.min(Screen.dp(420f), Math.min(TGMessage.getEstimatedContentMaxWidth(), maxWidth) - Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS) * 2 - getPreviewOffset() - tgx101SideDurationWidth() - transcribeButtonSpace()));
     }
   }
 
@@ -526,7 +526,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   public int getWidth () {
     int contentWidth = getPreviewSize() + getPreviewOffset();
     if (waveform != null) {
-      contentWidth += waveform.getWidth() + sizeWidth + Screen.dp(12f) + transcribeButtonSpace();
+      contentWidth += waveform.getWidth() + tgx101SideDurationWidth() + transcribeButtonSpace();
     } else {
       contentWidth += Math.max(getTitleWidth(), sizeWidth) + Screen.dp(doc != null ? TGX101_DOTS_SPACE : 6f);
     }
@@ -704,6 +704,17 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   private static final float TRANSCRIBE_BUTTON_SIZE = 28f;
   private boolean transcribeCaught;
 
+  /** TGx101 (user 2026-10-06, variant 2): a voice message in two even rows — the waveform on top, the duration (and
+   *  the unread dot) under it on the left, the time on the right of the same row; «A» centred next to the play button */
+  private boolean tgx101TwoRowVoice () {
+    return hasTranscribeButton();
+  }
+
+  /** Width the duration takes in the side column (moved under the waveform in the two-row layout) */
+  private int tgx101SideDurationWidth () {
+    return tgx101TwoRowVoice() ? 0 : (int) sizeWidth + Screen.dp(12f);
+  }
+
   private boolean hasTranscribeButton () {
     return waveform != null && message != null && context instanceof TGMessageFile && message.content instanceof TdApi.MessageVoiceNote;
   }
@@ -713,7 +724,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   }
 
   private float transcribeButtonCenterX (int startX) {
-    return startX + getPreviewSize() + getPreviewOffset() + waveform.getWidth() + Screen.dp(12f) + sizeWidth + Screen.dp(8f) + Screen.dp(TRANSCRIBE_BUTTON_SIZE / 2f);
+    return startX + getPreviewSize() + getPreviewOffset() + waveform.getWidth() + tgx101SideDurationWidth() + Screen.dp(8f) + Screen.dp(TRANSCRIBE_BUTTON_SIZE / 2f);
   }
 
   private void drawTranscribeButton (Canvas c, float cx, float cy, boolean outgoing, float alpha) {
@@ -834,7 +845,9 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       }
       int waveformLeft = startX + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS) * 2 + getPreviewOffset();
       int cy = startY + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS);
-      waveform.draw(c, seek, waveformLeft, cy, isPlaying && TD.isSelfDestructTypeImmediately(message));
+      final boolean twoRows = tgx101TwoRowVoice();
+      int waveCy = twoRows ? startY + Screen.dp(17f) : cy;
+      waveform.draw(c, seek, waveformLeft, waveCy, isPlaying && TD.isSelfDestructTypeImmediately(message));
       boolean align = context.isOutgoingBubble();
       if (unreadFactor != 0f) {
         int cx = startX + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS);
@@ -844,13 +857,22 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
         double radians = Math.toRadians(45f);
         float x = cx + (float) ((double) fileRadius * Math.sin(radians)) + Screen.dp(22f);
         float y = cy + (float) ((double) fileRadius * Math.cos(radians));
+        if (twoRows) {
+          // after the duration, on the bottom row
+          x = waveformLeft + sizeWidth + Screen.dp(6f) + innerRadius;
+          y = startY + Screen.dp(39f);
+        }
 
         // c.drawCircle(x, y, outerRadius * unreadFactor, Paints.fillingPaint(context.getContentReplaceColor()));
         c.drawCircle(x, y, innerRadius * unreadFactor, Paints.fillingPaint(ColorUtils.alphaColor(unreadFactor, Theme.getColor(align ? ColorId.bubbleOut_waveformActive : ColorId.waveformActive))));
       }
       if (trimmedSubtitle != null) {
-        int textX = startX + previewSize + getPreviewOffset() + waveform.getWidth() + Screen.dp(12f);
-        trimmedSubtitle.draw(c, textX, textX + trimmedSubtitle.getWidth(), 0, startY + Screen.dp(18f), null, alpha);
+        if (twoRows) {
+          trimmedSubtitle.draw(c, waveformLeft, waveformLeft + trimmedSubtitle.getWidth(), 0, startY + Screen.dp(31f), null, alpha);
+        } else {
+          int textX = startX + previewSize + getPreviewOffset() + waveform.getWidth() + Screen.dp(12f);
+          trimmedSubtitle.draw(c, textX, textX + trimmedSubtitle.getWidth(), 0, startY + Screen.dp(18f), null, alpha);
+        }
       }
       if (hasTranscribeButton()) {
         drawTranscribeButton(c, transcribeButtonCenterX(startX), cy, align, alpha);
@@ -871,6 +893,10 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   }
 
   public int getLastLineWidth () {
+    if (waveform != null && tgx101TwoRowVoice()) {
+      // the bottom row is only «0:04 ●» under the waveform — the bubble time fits on it, to the right
+      return getPreviewSize() + getPreviewOffset() + (int) sizeWidth + Screen.dp(14f);
+    }
     return waveform != null ? TGMessage.BOTTOM_LINE_KEEP_WIDTH : (int) sizeWidth + getPreviewSize() + getPreviewOffset();
   }
 

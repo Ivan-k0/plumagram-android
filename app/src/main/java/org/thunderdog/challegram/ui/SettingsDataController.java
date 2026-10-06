@@ -261,6 +261,18 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(Tgx101Stories.mode() == Tgx101Stories.MODE_RINGS ? R.string.Tgx101StoriesModeRings : R.string.Tgx101StoriesModeStrip);
         } else if (itemId == R.id.btn_tgx101NextChannelSwipe) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101NextChannelSwipe(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101HideAllReactions) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101HideAllReactions(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101HideInputCamera) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101HideInputCamera(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101HideInputCommands) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101HideInputCommands(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101HideInputEmoji) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101HideInputEmoji(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101RearRounds) {
+          view.getToggler().setRadioEnabled(Settings.instance().startRoundWithRear(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101HidePhone) {
+          view.getToggler().setRadioEnabled(Settings.instance().needHidePhoneNumber(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideChannelReactions) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideChannelReactions(), isUpdate);
         } else if (itemId == R.id.btn_tgx101ZoomPullClose) {
@@ -448,11 +460,23 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideChannelReactions, 0, R.string.Tgx101HideChannelReactions),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideAllReactions, 0, R.string.Tgx101HideAllReactions),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NextChannelSwipe, 0, R.string.Tgx101NextChannelSwipe),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_pullToSearch, 0, R.string.PullToSearch),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101FloatingInput, 0, R.string.Tgx101FloatingInput),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideInputCamera, 0, R.string.Tgx101HideInputCamera),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideInputCommands, 0, R.string.Tgx101HideInputCommands),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideInputEmoji, 0, R.string.Tgx101HideInputEmoji),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101RearRounds, 0, R.string.Tgx101RearRounds),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HidePhone, 0, R.string.Tgx101HidePhone),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101BottomGap, 0, R.string.Tgx101BottomGap),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -843,7 +867,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101TextEditor || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuOrder
       || id == R.id.btn_tgx101TapMode || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101QuickReply1 || id == R.id.btn_tgx101QuickReply2
       || id == R.id.btn_tgx101QuickReply3 || id == R.id.btn_tgx101QuickReply4 || id == R.id.btn_tgx101QuickReply5) return 2;
-    if (id == R.id.btn_tgx101HideChannelReactions || id == R.id.btn_tgx101NextChannelSwipe || id == R.id.btn_showDiscussButton || id == R.id.btn_showCommentsButton
+    if (id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101HidePhone) return 0;
+    if (id == R.id.btn_tgx101RearRounds) return 4;
+    if (id == R.id.btn_tgx101HideAllReactions || id == R.id.btn_tgx101HideChannelReactions || id == R.id.btn_tgx101NextChannelSwipe || id == R.id.btn_showDiscussButton || id == R.id.btn_showCommentsButton
       || id == R.id.btn_showChannelMuteButton || id == R.id.btn_hideSubscribeLink || id == R.id.btn_separateChannelPosts) return 3;
     if (id == R.id.btn_tgx101VoiceQueue || id == R.id.btn_tgx101CameraInAttach || id == R.id.btn_tgx101ZoomPullClose || id == R.id.btn_roundVideoQuality
       || id == R.id.btn_roundStabilization) return 4;
@@ -1027,6 +1053,18 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         });
     } else if (id == R.id.btn_tgx101NextChannelSwipe) {
       Settings.instance().setTgx101NextChannelSwipe(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101HideAllReactions) {
+      Settings.instance().setTgx101HideAllReactions(toggleResult);
+    } else if (id == R.id.btn_tgx101HideInputCamera) {
+      Settings.instance().setTgx101HideInputCamera(toggleResult);
+    } else if (id == R.id.btn_tgx101HideInputCommands) {
+      Settings.instance().setTgx101HideInputCommands(toggleResult);
+    } else if (id == R.id.btn_tgx101HideInputEmoji) {
+      Settings.instance().setTgx101HideInputEmoji(toggleResult);
+    } else if (id == R.id.btn_tgx101RearRounds) {
+      Settings.instance().setStartRoundWithRear(toggleResult);
+    } else if (id == R.id.btn_tgx101HidePhone) {
+      Settings.instance().setHidePhoneNumber(toggleResult);
     } else if (id == R.id.btn_tgx101HideChannelReactions) {
       Settings.instance().setTgx101HideChannelReactions(toggleResult); // the view was already toggled above; chats opened afterwards
     } else if (id == R.id.btn_tgx101ZoomPullClose) {

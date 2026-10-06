@@ -320,7 +320,7 @@ public class DrawerHeaderView extends View implements Destroyable, GlobalAccount
       if (account.hasUserInfo()) {
         name = account.getName();
         if (Settings.instance().needHidePhoneNumber()) {
-          phone = Strings.replaceNumbers(Strings.formatPhone(account.getPhoneNumber()));
+          phone = ""; // TGx101 (like moeGramX): MagiX → hide the phone number — nothing under the name
         } else {
           phone = Strings.formatPhone(account.getPhoneNumber());
         }

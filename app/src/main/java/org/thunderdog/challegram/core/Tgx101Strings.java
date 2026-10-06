@@ -442,6 +442,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101Downloading, "Скачиваю…");
     RU.put(R.string.Tgx101DownloadFailed, "Не удалось скачать файл");
     RU.put(R.string.Tgx101AllEmoji, "Все смайлы…");
+    RU.put(R.string.Tgx101HideAllReactions, "Скрывать реакции во всех чатах");
+    RU.put(R.string.Tgx101HideInputCamera, "Скрыть кнопку камеры (переедет в окно вложений)");
+    RU.put(R.string.Tgx101HideInputCommands, "Скрыть кнопку команд ботов «/»");
+    RU.put(R.string.Tgx101HideInputEmoji, "Скрыть кнопку смайлов и стикеров");
+    RU.put(R.string.Tgx101RearRounds, "Кружки — начинать с основной камеры");
+    RU.put(R.string.Tgx101HidePhone, "Скрыть мой номер в боковом меню");
     RU.put(R.string.Tgx101MenuProfile, "Меню для");
     RU.put(R.string.Tgx101MenuProfileText, "Текста");
     RU.put(R.string.Tgx101MenuProfileMedia, "Фото, видео, файлов");

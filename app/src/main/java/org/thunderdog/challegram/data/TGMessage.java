@@ -8801,7 +8801,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   /** TGx101 (4PDA request 2026-10-04): MagiX → «Hide reactions under channel posts» */
   private static boolean tgx101HideReactions (TdApi.Message msg) {
-    return msg != null && msg.isChannelPost && org.thunderdog.challegram.unsorted.Settings.instance().tgx101HideChannelReactions();
+    if (msg == null) return false;
+    org.thunderdog.challegram.unsorted.Settings s = org.thunderdog.challegram.unsorted.Settings.instance();
+    return s.tgx101HideAllReactions() || (msg.isChannelPost && s.tgx101HideChannelReactions());
   }
 
   /** With the setting on only paid ⭐ reactions stay (user 2026-10-04: stars must always remain) */

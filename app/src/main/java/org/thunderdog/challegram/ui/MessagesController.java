@@ -3549,7 +3549,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (replyBarView != null) {
         replyBarView.setVisibility(View.VISIBLE);
       }
-      emojiButton.setVisibility(View.VISIBLE);
+      emojiButton.setVisibility(Settings.instance().tgx101HideInputEmoji() ? View.GONE : View.VISIBLE); // TGx101: MagiX
       if (notEmpty) {
         attachButtons.setVisibility(View.INVISIBLE);
         sendButton.setVisibility(View.VISIBLE);
@@ -8243,6 +8243,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   public void updateCommandButton (boolean isVisible) {
+    if (Settings.instance().tgx101HideInputCommands()) isVisible = false; // TGx101: MagiX → hide the «/» button
     boolean ok = setCameraVisible(!isVisible || !ChatId.isUserChat(getChatId()));
     if (commandButton.setVisible(isVisible) || ok) {
       attachButtons.updatePivot();
@@ -8250,6 +8251,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private void updateCommandButton (int resource) {
+    if (Settings.instance().tgx101HideInputCommands()) resource = 0; // TGx101: MagiX → hide the «/» button
     if (resource == 0) {
       if (commandButton.setVisible(false)) {
         attachButtons.updatePivot();
@@ -10586,7 +10588,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private void displayEmojiButton () {
-    emojiButton.setVisibility(View.VISIBLE);
+    emojiButton.setVisibility(Settings.instance().tgx101HideInputEmoji() ? View.GONE : View.VISIBLE); // TGx101: MagiX
     emojiButton.setOnClickListener(this);
   }
 
@@ -12821,7 +12823,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   public boolean isCameraButtonVisibleOnAttachPanel () {
-    return !canSelectSender();
+    // TGx101: «hide the camera button» moves it into the attachment screen, like moeGramX
+    return !canSelectSender() && !Settings.instance().tgx101HideInputCamera();
   }
 
   public HapticMenuHelper.MenuItem createHapticSenderItem (int id, TdApi.MessageSender sender, boolean useUsername, boolean isLocked) {
