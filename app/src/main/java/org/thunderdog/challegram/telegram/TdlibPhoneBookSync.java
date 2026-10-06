@@ -57,6 +57,9 @@ public class TdlibPhoneBookSync {
   // Must match app/src/main/res/xml/contacts_datakind.xml's android:mimeType.
   // Also must match the VIEW intent filter on MainActivity in AndroidManifest.xml.
   public static final String MIME_OPEN_CHAT = "vnd.android.cursor.item/vnd.com.tgx101.app.contact";
+  // TGx101 (user 2026-10-06, like other messengers in the phone's contact card): voice and video call rows
+  public static final String MIME_VOICE_CALL = "vnd.android.cursor.item/vnd.com.tgx101.app.call";
+  public static final String MIME_VIDEO_CALL = "vnd.android.cursor.item/vnd.com.tgx101.app.video";
   private static final int CHUNK_SIZE = 100; // contacts per applyBatch call, well under provider limits
 
   private static TdlibPhoneBookSync instance;
@@ -270,9 +273,21 @@ public class TdlibPhoneBookSync {
     builder.withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, rawContactOpIndex);
     builder.withValue(ContactsContract.Data.MIMETYPE, MIME_OPEN_CHAT);
     builder.withValue(ContactsContract.Data.DATA1, String.valueOf(user.id));
-    builder.withValue(ContactsContract.Data.DATA2, "Telegram");
-    builder.withValue(ContactsContract.Data.DATA3, "Open chat");
+    builder.withValue(ContactsContract.Data.DATA2, "PlumaGram");
+    builder.withValue(ContactsContract.Data.DATA3, rowLabel(org.thunderdog.challegram.R.string.Tgx101ContactMessage, user));
     ops.add(builder.build());
+
+    // TGx101: «Audio call» and «Video call» rows next to «Message», as other messengers do
+    String[][] calls = {{MIME_VOICE_CALL, "call"}, {MIME_VIDEO_CALL, "video"}};
+    for (String[] call : calls) {
+      builder = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI);
+      builder.withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, rawContactOpIndex);
+      builder.withValue(ContactsContract.Data.MIMETYPE, call[0]);
+      builder.withValue(ContactsContract.Data.DATA1, String.valueOf(user.id));
+      builder.withValue(ContactsContract.Data.DATA2, "PlumaGram");
+      builder.withValue(ContactsContract.Data.DATA3, rowLabel(call[1].equals("call") ? org.thunderdog.challegram.R.string.Tgx101ContactVoiceCall : org.thunderdog.challegram.R.string.Tgx101ContactVideoCall, user));
+      ops.add(builder.build());
+    }
   }
 
   private void upsertOne (Context context, TdApi.User user) {
@@ -309,8 +324,15 @@ public class TdlibPhoneBookSync {
    * in the list, then deletes any raw contact (by SYNC2 user id) that isn't in it.
    */
   /** Name + phone: a contact is rewritten only when this changes */
+  /** «Message +380…» / «Audio call +380…» / «Video call +380…» */
+  private static String rowLabel (int res, TdApi.User user) {
+    String label = org.thunderdog.challegram.core.Lang.getString(res);
+    return TextUtils.isEmpty(user.phoneNumber) ? label : label + " +" + user.phoneNumber;
+  }
+
   private static String fingerprint (TdApi.User user) {
-    return (user.firstName != null ? user.firstName : "") + "\u0001" + (user.lastName != null ? user.lastName : "") + "\u0001" + (user.phoneNumber != null ? user.phoneNumber : "");
+    // «2» — the row set (message + audio + video call, 2026-10-06): old contacts are rewritten once with the new rows
+    return "2\u0001" + (user.firstName != null ? user.firstName : "") + "\u0001" + (user.lastName != null ? user.lastName : "") + "\u0001" + (user.phoneNumber != null ? user.phoneNumber : "");
   }
 
   private void writeExactSet (Context context, List<TdApi.User> users) {

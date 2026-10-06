@@ -6303,6 +6303,9 @@
   <string name="Tgx101HideInputEmoji">Hide the emoji / stickers button</string>
   <string name="Tgx101RearRounds">Video messages start with the main camera</string>
   <string name="Tgx101HidePhone">Hide my phone number in the side menu</string>
+  <string name="Tgx101ContactMessage">Message</string>
+  <string name="Tgx101ContactVoiceCall">Audio call</string>
+  <string name="Tgx101ContactVideoCall">Video call</string>
   <string name="Tgx101MenuProfile">Menu for</string>
   <string name="Tgx101MenuProfileText">Text</string>
   <string name="Tgx101MenuProfileMedia">Photos, videos, files</string>

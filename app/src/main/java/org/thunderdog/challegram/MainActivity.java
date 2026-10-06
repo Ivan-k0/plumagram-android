@@ -805,7 +805,9 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
 
     // "Open chat" row of a synced Telegram contact, tapped in a dialer or contacts app
 
-    if (Intent.ACTION_VIEW.equals(action) && TdlibPhoneBookSync.MIME_OPEN_CHAT.equals(intent.getType()) && intent.getData() != null) {
+    final String tgx101ContactType = intent.getType();
+    final boolean tgx101Call = TdlibPhoneBookSync.MIME_VOICE_CALL.equals(tgx101ContactType), tgx101Video = TdlibPhoneBookSync.MIME_VIDEO_CALL.equals(tgx101ContactType);
+    if (Intent.ACTION_VIEW.equals(action) && (TdlibPhoneBookSync.MIME_OPEN_CHAT.equals(tgx101ContactType) || tgx101Call || tgx101Video) && intent.getData() != null) {
       long userId = 0;
       try (android.database.Cursor cursor = getContentResolver().query(intent.getData(),
         new String[] {android.provider.ContactsContract.Data.DATA1}, null, null, null)) {
@@ -819,6 +821,23 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       int accountId = TdlibManager.instance().currentAccount().id;
       if (userId != 0) {
         openMessagesController(accountId, ChatId.fromUserId(userId), 0);
+        if (tgx101Call || tgx101Video) {
+          // TGx101: «Audio call» / «Video call» rows of the phone's contact card — open the chat, then call
+          final long callUserId = userId;
+          handler.postDelayed(() -> {
+            org.thunderdog.challegram.navigation.ViewController<?> c = navigation != null ? navigation.getCurrentStackItem() : null;
+            if (c == null) return;
+            Runnable call = () -> {
+              if (tgx101Video) org.thunderdog.challegram.voip.Tgx101Video.requestVideoCall(callUserId);
+              c.tdlib().context().calls().makeCall(c, callUserId, null, false);
+            };
+            if (tgx101Video && !org.thunderdog.challegram.voip.Tgx101Video.hasCameraPermission()) {
+              requestCustomPermissions(new String[] {android.Manifest.permission.CAMERA}, (code, permissions, grantResults, grantCount) -> call.run());
+            } else {
+              call.run();
+            }
+          }, 600);
+        }
         return true;
       }
       return false;

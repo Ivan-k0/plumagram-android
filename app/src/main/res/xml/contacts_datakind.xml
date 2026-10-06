@@ -5,4 +5,12 @@
     android:summaryColumn="data2"
     android:detailColumn="data3"
     android:detailSocialSummary="true" />
+  <ContactsDataKind android:icon="@mipmap/app_launcher_round"
+    android:mimeType="vnd.android.cursor.item/vnd.com.tgx101.app.call"
+    android:summaryColumn="data2"
+    android:detailColumn="data3" />
+  <ContactsDataKind android:icon="@mipmap/app_launcher_round"
+    android:mimeType="vnd.android.cursor.item/vnd.com.tgx101.app.video"
+    android:summaryColumn="data2"
+    android:detailColumn="data3" />
 </ContactsAccountType>
