@@ -1084,7 +1084,7 @@ public class TGCallService extends Service implements
     }
     UI.post(() -> {
       PowerManager power = (PowerManager) getSystemService(POWER_SERVICE);
-      if (ongoingCallNotification == null || tgx101LockRepostDone || (power != null && power.isInteractive())) {
+      if (ongoingCallNotification == null || tgx101LockRepostDone || (power != null && org.thunderdog.challegram.Tgx101Diag.isInteractive(power))) {
         return;
       }
       tgx101LockRepostDone = true;

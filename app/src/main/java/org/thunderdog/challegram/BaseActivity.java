@@ -1260,7 +1260,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   private void tgx101NotePause () {
     android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
     android.app.KeyguardManager km = (android.app.KeyguardManager) getSystemService(KEYGUARD_SERVICE);
-    boolean locked = (pm != null && !pm.isInteractive()) || (km != null && km.isKeyguardLocked());
+    boolean locked = (pm != null && !Tgx101Diag.isInteractive(pm)) || (km != null && km.isKeyguardLocked());
     tgx101PausedLockedAt = locked ? android.os.SystemClock.elapsedRealtime() : 0;
   }
 

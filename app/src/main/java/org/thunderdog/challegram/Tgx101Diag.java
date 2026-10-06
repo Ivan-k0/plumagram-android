@@ -352,7 +352,7 @@ public final class Tgx101Diag {
       android.app.KeyguardManager keyguard = (android.app.KeyguardManager) a.getSystemService(Context.KEYGUARD_SERVICE);
       android.os.PowerManager power = (android.os.PowerManager) a.getSystemService(Context.POWER_SERVICE);
       b.append(keyguard != null && keyguard.isKeyguardLocked() ? "locked" : "unlocked");
-      b.append(power != null && power.isInteractive() ? ", screen on" : ", screen off");
+      b.append(power != null && isInteractive(power) ? ", screen on" : ", screen off");
       b.append(a.hasWindowFocus() ? ", focus" : ", no focus");
       android.view.Display display = a.getWindowManager().getDefaultDisplay();
       b.append(", rotation ").append(display.getRotation() * 90);
@@ -665,5 +665,13 @@ public final class Tgx101Diag {
     } catch (Throwable t) {
       mark("System log unavailable: " + t);
     }
+  }
+
+  /** TGx101: PowerManager.isInteractive() exists from Android 4.4W (API 20) — on Android 4.1–4.4 it crashed
+   *  (NoSuchMethodError in onPause, user's log 2026-10-06); older systems have isScreenOn() */
+  @SuppressWarnings("deprecation")
+  public static boolean isInteractive (@androidx.annotation.Nullable android.os.PowerManager pm) {
+    if (pm == null) return true;
+    return android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT_WATCH ? pm.isInteractive() : pm.isScreenOn();
   }
 }

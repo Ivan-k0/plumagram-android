@@ -64,7 +64,7 @@ final class Tgx101CallPopup {
     }
     PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
     KeyguardManager km = (KeyguardManager) context.getSystemService(Context.KEYGUARD_SERVICE);
-    boolean interactive = pm != null && pm.isInteractive();
+    boolean interactive = pm != null && org.thunderdog.challegram.Tgx101Diag.isInteractive(pm);
     boolean locked = km != null && km.isKeyguardLocked();
     return interactive && !locked;
   }
