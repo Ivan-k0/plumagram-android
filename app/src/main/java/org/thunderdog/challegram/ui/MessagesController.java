@@ -5219,6 +5219,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private boolean tgx101MenuAfterKeyboard;
 
+  /** user 2026-10-06 20:16: «у меня нормально выглядит с клавиатурой» — keep it whenever the menu fits above it */
+  private boolean tgx101MenuFitsAboveKeyboard (Options options) {
+    int items = options != null && options.items != null ? Math.min(options.items.length, Tgx101MessageMenu.MAX_MENU_ITEMS) + 1 : 6;
+    int needed = Screen.dp(48f) * items + Screen.dp(56f + 24f + 16f); // rows + reactions + paddings
+    android.graphics.Rect visible = new android.graphics.Rect();
+    context.getWindow().getDecorView().getWindowVisibleDisplayFrame(visible);
+    int available = visible.height() - Screen.dp(56f); // without the header
+    return needed <= available;
+  }
+
   // TGx101: compact message menu; "⌄" in its reactions opens the stock sheet with all reactions
   private PopupLayout showTgx101MessageMenu (Options options, TGMessage message, OptionDelegate delegate, boolean readDatePending) {
     if (isMessageOptionsVisible) {
@@ -5226,7 +5236,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     // user 2026-10-06 20:05: with the keyboard open the menu didn't fit («даже „Удалить“ не влезла»). Like the official
     // app: the keyboard closes first, the menu opens once the chat has its full height
-    if (context.isKeyboardVisible() && inputView != null && !tgx101MenuAfterKeyboard) {
+    if (context.isKeyboardVisible() && inputView != null && !tgx101MenuAfterKeyboard && !tgx101MenuFitsAboveKeyboard(options)) {
       tgx101MenuAfterKeyboard = true;
       Keyboard.hide(inputView);
       UI.post(() -> {
