@@ -699,20 +699,38 @@ public class TGCallService extends Service implements
         default:
           throw new UnsupportedOperationException();
       }
+      List<android.media.AudioDeviceInfo> devices = am.getAvailableCommunicationDevices();
       if (filter != null) {
-        List<android.media.AudioDeviceInfo> devices = am.getAvailableCommunicationDevices();
+        // TGx101 (user 2026-10-06 11:43, car over Bluetooth: «меня не слышали»): a Bluetooth headset with a microphone
+        // (SCO / LE headset) comes before a media-only device, whatever order the system lists them in
+        int bestRank = Integer.MAX_VALUE;
         for (android.media.AudioDeviceInfo device : devices) {
-          if (filter.accept(device)) {
+          if (!filter.accept(device)) continue;
+          int type = device.getType();
+          int rank = type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO ? 0 : type == android.media.AudioDeviceInfo.TYPE_BLE_HEADSET ? 1 : 2;
+          if (rank < bestRank) {
+            bestRank = rank;
             selectedAudioDevice = device;
-            break;
           }
         }
       }
+      boolean ok;
       if (selectedAudioDevice != null) {
-        am.setCommunicationDevice(selectedAudioDevice);
+        ok = am.setCommunicationDevice(selectedAudioDevice);
       } else {
         am.clearCommunicationDevice();
+        ok = true;
       }
+      // TGx101: what the system offered, what was picked and what it actually uses (the car case was invisible in logs)
+      StringBuilder list = new StringBuilder();
+      for (android.media.AudioDeviceInfo device : devices) {
+        if (list.length() > 0) list.append(", ");
+        list.append(device.getType()).append(':').append(device.getProductName());
+      }
+      android.media.AudioDeviceInfo now = am.getCommunicationDevice();
+      org.thunderdog.challegram.Tgx101Diag.mark("call audio: mode " + mode + ", available [" + list + "], picked " +
+        (selectedAudioDevice != null ? selectedAudioDevice.getType() + ":" + selectedAudioDevice.getProductName() : "none (cleared)") +
+        ", set " + ok + ", now " + (now != null ? now.getType() + ":" + now.getProductName() : "null") + ", audio mode " + am.getMode() + ", mic muted " + am.isMicrophoneMute());
     } else {
       switch (mode) {
         case CallSettings.SPEAKER_MODE_BLUETOOTH: {
