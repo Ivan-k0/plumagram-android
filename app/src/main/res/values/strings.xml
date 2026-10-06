@@ -6294,6 +6294,7 @@
   <string name="Tgx101SwipeSaved">Saved to Saved Messages</string>
   <string name="Tgx101Haptics">Vibration of PlumaGram features</string>
   <string name="Tgx101SaveFavorite">To Saved Messages</string>
+  <string name="Tgx101AllEmoji">All emoji…</string>
   <string name="Tgx101MenuProfile">Menu for</string>
   <string name="Tgx101MenuProfileText">Text</string>
   <string name="Tgx101MenuProfileMedia">Photos, videos, files</string>

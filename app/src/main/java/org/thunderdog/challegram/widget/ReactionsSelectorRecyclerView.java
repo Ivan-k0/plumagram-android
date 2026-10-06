@@ -39,6 +39,11 @@ public class ReactionsSelectorRecyclerView extends RecyclerView {
   private ReactionsAdapter adapter;
 
   public ReactionsSelectorRecyclerView (@NonNull Context context, MessageOptionsPagerController.State state) {
+    this(context, state, 0);
+  }
+
+  /** TGx101 (user 2026-10-06, variant 1): gridColumns > 0 — all reactions as a vertical grid of still pictures (light) */
+  public ReactionsSelectorRecyclerView (@NonNull Context context, MessageOptionsPagerController.State state, int gridColumns) {
     super(context);
     this.state = state;
     this.gradientDrawableRight = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{ 0, lastColor = Theme.backgroundColor() });
@@ -61,8 +66,13 @@ public class ReactionsSelectorRecyclerView extends RecyclerView {
       }
     });
 
-    setLayoutManager(linearLayoutManager);
-    setAdapter(adapter = new ReactionsAdapter(getContext(), state));
+    if (gridColumns > 0) {
+      setLayoutManager(new androidx.recyclerview.widget.GridLayoutManager(getContext(), gridColumns));
+      setHasFixedSize(false);
+    } else {
+      setLayoutManager(linearLayoutManager);
+    }
+    setAdapter(adapter = new ReactionsAdapter(getContext(), state, gridColumns > 0));
   }
 
   public void setNeedDrawBorderGradient (boolean needDrawBorderGradient) {
@@ -133,10 +143,15 @@ public class ReactionsSelectorRecyclerView extends RecyclerView {
     }
 
     public void setReaction (TGReaction reaction, TdApi.MessageReaction messageReaction, boolean useCounter) {
+      setReaction(reaction, messageReaction, useCounter, false);
+    }
+
+    public void setReaction (TGReaction reaction, TdApi.MessageReaction messageReaction, boolean useCounter, boolean still) {
       this.useCounter = useCounter;
       this.chosen = messageReaction.isChosen;
-      this.centerAnimationSicker = reaction.newCenterAnimationSicker();
-      this.playAnimation();
+      // TGx101: the grid shows still pictures (no dozens of animations at once — the old picker lagged)
+      this.centerAnimationSicker = still ? reaction.staticCenterAnimationSicker() : reaction.newCenterAnimationSicker();
+      if (!still) this.playAnimation();
       stickerView.setSticker(centerAnimationSicker);
       if (useCounter) {
         counter.setCount(messageReaction.totalCount, !messageReaction.isChosen, false);
@@ -196,8 +211,10 @@ public class ReactionsSelectorRecyclerView extends RecyclerView {
     private final TGMessage message;
     private final TdApi.AvailableReaction[] reactions;
     private final MessageOptionsPagerController.State state;
+    private final boolean still;
 
-    ReactionsAdapter (Context context, MessageOptionsPagerController.State state) {
+    ReactionsAdapter (Context context, MessageOptionsPagerController.State state, boolean still) {
+      this.still = still;
       this.context = context;
       this.tdlib = state.tdlib;
       this.message = state.message;
@@ -220,7 +237,7 @@ public class ReactionsSelectorRecyclerView extends RecyclerView {
       if (reaction == null) return;
 
       final boolean needUseCounter = (message.isChannel() || !message.canGetAddedReactions()) && !message.useReactionBubbles();
-      view.setReaction(reaction, tdReaction, needUseCounter);
+      view.setReaction(reaction, tdReaction, needUseCounter && !still, still);
       view.setOnClickListener((v) -> {
         state.onReactionClickListener.onReactionClick(v, reaction, false);
       });
@@ -238,7 +255,7 @@ public class ReactionsSelectorRecyclerView extends RecyclerView {
     @Override
     public void onViewAttachedToWindow (ReactionHolder holder) {
       ((ReactionView) holder.itemView).stickerView.attach();
-      ((ReactionView) holder.itemView).playAnimation();
+      if (!still) ((ReactionView) holder.itemView).playAnimation();
     }
 
     @Override

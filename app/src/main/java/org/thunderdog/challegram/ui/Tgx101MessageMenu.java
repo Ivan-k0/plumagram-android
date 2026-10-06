@@ -252,6 +252,13 @@ public final class Tgx101MessageMenu {
     @Nullable Runnable selectInPlace; // «Select» text: the in-bubble selection where the finger first touched
     final List<View> mainRows = new ArrayList<>();
     @Nullable ViewGroup reactions; // the reactions pill: sliding the finger there picks a reaction too (user 2026-10-06)
+    // all reactions (user 2026-10-06, variants 1 + 5): ⌄ unfolds a grid of still pictures right under the pill and
+    // hides the actions; ⌃ folds it back. In the iOS slide, holding the finger on ⌄ unfolds it too
+    @Nullable View card, expandView;
+    @Nullable LinearLayout grid;
+    @Nullable ViewGroup gridReactions;
+    @Nullable LinearLayout column;
+    @Nullable Runnable hoverExpand;
     final List<View> bottomViews = new ArrayList<>(); // «Delete» and its divider: hidden inside «More…»
     boolean moreShown, moreLoading;
     TextView readDateView;
@@ -330,13 +337,43 @@ public final class Tgx101MessageMenu {
     }
     View hit = null;
     for (View row : host.mainRows) {
-      if (row.getVisibility() != View.VISIBLE) continue;
+      if (!row.isShown()) continue; // also skips the actions hidden behind the reactions grid
       int[] loc = new int[2];
       row.getLocationOnScreen(loc);
       if (rawX >= loc[0] && rawX <= loc[0] + row.getWidth() && rawY >= loc[1] && rawY <= loc[1] + row.getHeight()) {
         hit = row;
         break;
       }
+    }
+    if (hit == null && host.gridReactions != null && host.grid != null && host.grid.getVisibility() == View.VISIBLE) {
+      for (int i = 0; i < host.gridReactions.getChildCount(); i++) {
+        View child = host.gridReactions.getChildAt(i);
+        int[] loc = new int[2];
+        child.getLocationOnScreen(loc);
+        if (rawX >= loc[0] && rawX <= loc[0] + child.getWidth() && rawY >= loc[1] && rawY <= loc[1] + child.getHeight()) {
+          hit = child;
+          break;
+        }
+      }
+    }
+    // variant 5: the finger rests on ⌄ → the grid unfolds under it, the slide goes on to a reaction there
+    boolean onExpand = false;
+    if (hit == null && host.expandView != null && (host.grid == null || host.grid.getVisibility() != View.VISIBLE)) {
+      int[] loc = new int[2];
+      host.expandView.getLocationOnScreen(loc);
+      int pad = Screen.dp(8f);
+      onExpand = rawX >= loc[0] - pad && rawX <= loc[0] + host.expandView.getWidth() + pad && rawY >= loc[1] - pad && rawY <= loc[1] + host.expandView.getHeight() + pad;
+    }
+    if (onExpand && host.hoverExpand == null) {
+      final Host h = host;
+      host.hoverExpand = () -> {
+        h.hoverExpand = null;
+        if (h.expandView != null && !h.dismissing) h.expandView.performClick();
+      };
+      host.expandView.postDelayed(host.hoverExpand, 350);
+    } else if (!onExpand && host.hoverExpand != null && host.expandView != null) {
+      host.expandView.removeCallbacks(host.hoverExpand);
+      host.hoverExpand = null;
     }
     if (hit == null && host.reactions != null) {
       for (int i = 0; i < host.reactions.getChildCount(); i++) {
@@ -352,12 +389,12 @@ public final class Tgx101MessageMenu {
     if (hit != dragRow) {
       if (dragRow != null) {
         dragRow.setPressed(false);
-        if (dragRow.getParent() == host.reactions) dragRow.animate().scaleX(1f).scaleY(1f).setDuration(100).start();
+        if (dragRow.getParent() == host.reactions || dragRow.getParent() == host.gridReactions) dragRow.animate().scaleX(1f).scaleY(1f).setDuration(100).start();
       }
       dragRow = hit;
       if (hit != null) {
         hit.setPressed(true);
-        if (hit.getParent() == host.reactions) hit.animate().scaleX(1.3f).scaleY(1.3f).setDuration(100).start(); // the reaction under the finger grows
+        if (hit.getParent() == host.reactions || hit.getParent() == host.gridReactions) hit.animate().scaleX(1.3f).scaleY(1.3f).setDuration(100).start(); // the reaction under the finger grows
         if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101Haptics()) hit.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
       }
     }
@@ -367,7 +404,7 @@ public final class Tgx101MessageMenu {
       dragRow = null;
       if (row != null) {
         row.setPressed(false);
-        if (row.getParent() == host.reactions) {
+        if (row.getParent() == host.reactions || row.getParent() == host.gridReactions) {
           row.setScaleX(1f);
           row.setScaleY(1f);
         }
@@ -524,10 +561,8 @@ public final class Tgx101MessageMenu {
         }
         expand.setScaleType(ImageView.ScaleType.CENTER);
         expand.setBackground(rounded(Theme.getColor(ColorId.background), Screen.dp(16f)));
-        expand.setOnClickListener(v -> {
-          dismiss(host);
-          onExpandReactions.run();
-        });
+        host.expandView = expand;
+        expand.setOnClickListener(v -> toggleReactionsGrid(context, host, state, onExpandReactions));
         LinearLayout.LayoutParams expandParams = new LinearLayout.LayoutParams(Screen.dp(32f), Screen.dp(32f));
         expandParams.rightMargin = Screen.dp(10f);
         expandParams.leftMargin = Screen.dp(2f);
@@ -557,6 +592,8 @@ public final class Tgx101MessageMenu {
       cardParams.rightMargin = cardEdgeGap;
     }
     column.addView(card, cardParams);
+    host.card = card;
+    host.column = column;
 
     // Header: read time (filled in later if it arrives after the menu is shown), or the message info
     TextView header = new TextView(context);
@@ -765,6 +802,48 @@ public final class Tgx101MessageMenu {
       int[] t = src; src = dst; dst = t;
     }
     bitmap.setPixels(src, 0, w, 0, 0, w, h);
+  }
+
+  /** ⌄ / ⌃: the grid of all reactions in place of the actions (no new window, still pictures, a short height change) */
+  private static void toggleReactionsGrid (Context context, Host host, MessageOptionsPagerController.State state, Runnable onExpandReactions) {
+    if (host.column == null || host.card == null) return;
+    boolean show = host.grid == null || host.grid.getVisibility() != View.VISIBLE;
+    if (show && host.grid == null) {
+      LinearLayout grid = new LinearLayout(context);
+      grid.setOrientation(LinearLayout.VERTICAL);
+      grid.setBackground(rounded(Theme.getColor(ColorId.filling), Screen.dp(16f)));
+      elevate(grid, Screen.dp(16f));
+      grid.setClickable(true);
+      ReactionsSelectorRecyclerView all = new ReactionsSelectorRecyclerView(context, state, 6);
+      all.setNeedDrawBorderGradient(false);
+      all.setVerticalScrollBarEnabled(false);
+      host.gridReactions = all;
+      grid.addView(all, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.min(Screen.dp(40f) * 5 + Screen.dp(14f), Math.round(Screen.currentHeight() * .4f))));
+      // the full picker (custom emoji packs) stays one tap away
+      TextView more = new TextView(context);
+      more.setText(Lang.getString(R.string.Tgx101AllEmoji));
+      more.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f);
+      more.setTextColor(Theme.getColor(ColorId.textLink));
+      more.setGravity(Gravity.CENTER);
+      more.setPadding(0, Screen.dp(10f), 0, Screen.dp(12f));
+      Views.setClickable(more);
+      RippleSupport.setTransparentSelector(more);
+      more.setOnClickListener(v -> {
+        dismiss(host);
+        if (onExpandReactions != null) onExpandReactions.run();
+      });
+      grid.addView(more, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+      LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(host.card.getLayoutParams());
+      host.column.addView(grid, host.column.indexOfChild(host.card), params);
+      host.grid = grid;
+    }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+      android.transition.TransitionManager.beginDelayedTransition(host.column, new android.transition.ChangeBounds().setDuration(150));
+    }
+    host.grid.setVisibility(show ? View.VISIBLE : View.GONE);
+    host.card.setVisibility(show ? View.GONE : View.VISIBLE);
+    if (host.expandView != null) host.expandView.animate().rotation(show ? 180f : 0f).setDuration(150).start();
+    org.thunderdog.challegram.Tgx101Diag.mark("menu: all reactions " + (show ? "unfolded" : "folded"));
   }
 
   private static Drawable blurredBackground (MessagesController c) {

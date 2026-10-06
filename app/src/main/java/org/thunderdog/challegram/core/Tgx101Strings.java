@@ -439,6 +439,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SwipeSaved, "Сохранено в Избранное");
     RU.put(R.string.Tgx101Haptics, "Вибрация функций PlumaGram (меню, выделение, жесты)");
     RU.put(R.string.Tgx101SaveFavorite, "В Избранное");
+    RU.put(R.string.Tgx101AllEmoji, "Все смайлы…");
     RU.put(R.string.Tgx101MenuProfile, "Меню для");
     RU.put(R.string.Tgx101MenuProfileText, "Текста");
     RU.put(R.string.Tgx101MenuProfileMedia, "Фото, видео, файлов");
