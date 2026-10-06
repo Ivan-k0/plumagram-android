@@ -1321,7 +1321,17 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       org.thunderdog.challegram.Tgx101Diag.mark("stories strip: list padding restored (was " + chatsView.getPaddingTop() + ")");
       chatsView.setPadding(chatsView.getPaddingLeft(), tgx101StripHeight, chatsView.getPaddingRight(), chatsView.getPaddingBottom());
     }
-    int offset = chatsView.computeVerticalScrollOffset();
+    // TGx101 (user's video 2026-10-06 12:00 «поломались истории»): computeVerticalScrollOffset() is an estimate from
+    // the average row height — after scrolling down and back it was off, the strip stayed hidden over an empty band.
+    // The exact offset: how far the first row has moved up from under the strip; any other first row = scrolled away
+    int offset;
+    RecyclerView.LayoutManager lm = chatsView.getLayoutManager();
+    View first = lm != null ? lm.findViewByPosition(0) : null;
+    if (first != null) {
+      offset = Math.max(0, chatsView.getPaddingTop() - first.getTop());
+    } else {
+      offset = Integer.MAX_VALUE / 2;
+    }
     // scrolled away from the top: fold quietly (it is off screen)
     if (tgx101StripExpanded && offset > tgx101StripHeight && (tgx101StripAnimator == null || !tgx101StripAnimator.isRunning())) {
       tgx101StripExpanded = false;
