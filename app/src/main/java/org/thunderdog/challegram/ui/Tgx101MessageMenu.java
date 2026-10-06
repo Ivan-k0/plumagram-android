@@ -697,7 +697,9 @@ public final class Tgx101MessageMenu {
     java.util.Collections.sort(sorted, (a, b) -> Integer.compare(rank(order, a.id), rank(order, b.id)));
     // user 2026-10-05 22:42: «Select» always at the very bottom, under a line
     // user 2026-10-06 19:58: in the normal mode a long press already selects — no «Select» in the menu there
-    boolean addSelect = false; // no «Select» row in either mode (iOS mode: 18:20; normal mode: 19:58)
+    // user 2026-10-06 19:58 «должна быть только на iOS стиле», 2026-10-07: in the iOS mode «Select» is the required last row
+    // (a long press opens the menu there, so it's the only way to select messages); the normal mode selects by long press
+    boolean addSelect = message.canBeSelected() && !c.inSelectMode() && Settings.instance().tgx101LongPressMenu();
     // user 2026-10-06 18:20: in the iOS mode «Select» is not in the menu — its bottom place goes to «Delete»
     // (unless the user hid it), otherwise to «More…»
     ViewController.OptionItem bottomItem = null;
