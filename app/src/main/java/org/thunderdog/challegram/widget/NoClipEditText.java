@@ -109,6 +109,15 @@ public class NoClipEditText extends EmojiEditText {
       super.onDraw(c);
       return;
     }
+    // TGx101 (user 2026-10-07 «ползунок следует за пальцем, а не за лупой»): with nothing scrolled the trick changes nothing
+    // on screen, but inside super.onDraw the cursor handle read a zero top padding and was placed off the text — then the
+    // finger on it mapped to another line. Draw normally then.
+    try {
+      if (mScrollYField.getInt(this) == 0) {
+        super.onDraw(c);
+        return;
+      }
+    } catch (Throwable ignored) { }
     int topPadding = getExtendedPaddingTop();
     scrollY = Integer.MAX_VALUE;
     try {

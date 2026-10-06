@@ -1099,7 +1099,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     if (selStart == selEnd && tgx101LastSelStart == tgx101LastSelEnd && selStart != tgx101LastSelStart && getLayout() != null) {
       android.text.Layout l = getLayout();
       int line = l.getLineForOffset(Math.min(selStart, length()));
-      org.thunderdog.challegram.Tgx101Diag.mark("input cursor " + tgx101LastSelStart + " → " + selStart + " (line " + (line + 1) + "/" + getLineCount() + ", len " + length() + ", line ends at " + l.getLineEnd(line) + ")");
+      org.thunderdog.challegram.Tgx101Diag.mark("input cursor " + tgx101LastSelStart + " → " + selStart + " (line " + (line + 1) + "/" + getLineCount() + ", len " + length() + ", line ends at " + l.getLineEnd(line) + ", scroll " + getScrollY() + ", pad " + getExtendedPaddingTop() + ")");
     }
     tgx101LastSelStart = selStart;
     tgx101LastSelEnd = selEnd;
