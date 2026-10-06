@@ -39,6 +39,7 @@ import org.thunderdog.challegram.theme.ColorState;
 import org.thunderdog.challegram.theme.ThemeChangeListener;
 import org.thunderdog.challegram.theme.ThemeListenerList;
 import org.thunderdog.challegram.theme.ThemeManager;
+import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.tool.Views;
 import org.thunderdog.challegram.unsorted.Settings;
@@ -594,6 +595,35 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     }
   }
 
+  // TGx101 (user 2026-10-06 21:2x, variant C): switching the capsule tabs — the old screen blurs and fades out, the new
+  // one comes out of the blur, 180 ms (the blur needs Android 12+, older ones just dissolve)
+  private boolean tgx101BlurFade;
+
+  public void setTgx101BlurFade (boolean blurFade) {
+    this.tgx101BlurFade = blurFade;
+  }
+
+  private void tgx101ApplyBlurFade (float factor) {
+    // factor 1 → the right screen is hidden; the left one fades out as the right comes in, and the other way round
+    if (leftWrap != null) leftWrap.setAlpha(factor);
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+      float max = Screen.dp(6f);
+      tgx101Blur(rightWrap, max * factor);
+      tgx101Blur(leftWrap, max * (1f - factor));
+    }
+  }
+
+  private static void tgx101Blur (View view, float radius) {
+    if (view == null || android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) return;
+    view.setRenderEffect(radius < .5f ? null : android.graphics.RenderEffect.createBlurEffect(radius, radius, android.graphics.Shader.TileMode.CLAMP));
+  }
+
+  private void tgx101ClearBlurFade () {
+    if (leftWrap != null) leftWrap.setAlpha(1f);
+    tgx101Blur(leftWrap, 0f);
+    tgx101Blur(rightWrap, 0f);
+  }
+
   /** TGx101: where the running transition goes when {@code blurred} loses focus (the bottom capsule stays put between tabs) */
   public @Nullable ViewController<?> tgx101TransitionTarget (ViewController<?> blurred) {
     if (blurred == currentLeft) return currentRight;
@@ -933,6 +963,9 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
         direction = TRANSLATION_FADE;
       }
     }
+    if (tgx101BlurFade) {
+      direction = TRANSLATION_FADE; // capsule tabs: «Back to chats» dissolves too instead of sliding
+    }
 
     int rebase = 0;
 
@@ -989,6 +1022,10 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     final boolean[] isDone = new boolean[1];
     Runnable onDone = () -> {
       setFactor(forward ? 0f : 1f);
+      if (tgx101BlurFade) {
+        tgx101BlurFade = false;
+        tgx101ClearBlurFade();
+      }
       isDone[0] = true;
       if (forward) {
         removeFadeView();
@@ -1406,6 +1443,9 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       case TRANSLATION_FADE: {
         headerView.setTranslation(factor);
         rightWrap.setAlpha(1f - factor);
+        if (tgx101BlurFade) {
+          tgx101ApplyBlurFade(factor);
+        }
 
         break;
       }

@@ -1305,8 +1305,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     tgx101Switching = true;
     if (tab != Tgx101NavCapsule.TAB_CHATS) tgx101SetFabHidden(true);
     if (tab == Tgx101NavCapsule.TAB_CHATS) {
+      navigation.setTgx101BlurFade(true);
       tgx101ApplyCapsulePadding(tab);
-      navigation.navigateBack();
+      if (!navigation.navigateBack()) navigation.setTgx101BlurFade(false);
       return;
     }
     tgx101OpenTab(tab); // user 2026-10-06: «переход на контакты слишком долгий» — no delay, a quick fade instead of a slide
@@ -1337,8 +1338,10 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     c.addFocusListener(tgx101TabFocus);
     NavigationController navigation = context().navigation();
     if (navigation != null && !navigation.isAnimating()) {
-      navigation.setControllerAnimated(c, false, true); // [chats, tab]: fade, the previous tab screen goes away
+      navigation.setTgx101BlurFade(true);
+      navigation.setControllerAnimated(c, false, true); // [chats, tab]: blur dissolve (variant C), the previous tab screen goes away
     } else {
+      if (navigation != null) navigation.setTgx101BlurFade(false);
       tgx101Switching = false;
       ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : null;
       Integer currentTab = current != null ? tgx101TabRoots.get(current) : null;

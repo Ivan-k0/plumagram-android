@@ -405,11 +405,7 @@ public class Tgx101NavCapsule extends View {
     for (int i = 0; i < icons.length; i++) {
       float f = Math.max(0f, 1f - Math.abs(selected - i));
       float icx = tabCenterX(i);
-      if (f > 0f) {
-        int glow = ColorUtils.alphaColor((dark ? .35f : .28f) * f, active);
-        glowPaint.setShader(new android.graphics.RadialGradient(icx, cy + Screen.dp(3f), Screen.dp(17f), glow, glow & 0x00ffffff, android.graphics.Shader.TileMode.CLAMP));
-        c.drawCircle(icx, cy + Screen.dp(3f), Screen.dp(17f), glowPaint);
-      }
+      // user 2026-10-06 21:2x: no shadow / glow under the selected icon
       float scale = i == popTab ? 1f + .16f * (float) Math.sin(Math.PI * popFactor) : 1f;
       int color = ColorUtils.fromToArgb(inactive, active, f);
       if (scale != 1f) {
