@@ -443,6 +443,8 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   }
 
   private Tgx101SelectionBar tgx101SelectionBar;
+  private long tgx101LastCursorAt;
+  private int tgx101LastLength = -1;
   boolean tgx101LinkOpen; // the bar's link field has the focus for a moment
 
   // TGx101: undo («Отменить» in the selection bar) for any change of the text — typing, deleting, pasting, styles,
@@ -1072,6 +1074,26 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     // TGx101 diagnostics: a selection that collapses to a cursor while handles are dragged (positions only)
     if (tgx101LastSelStart != tgx101LastSelEnd && selStart == selEnd && tgx101LastSelStart >= 0) {
       org.thunderdog.challegram.Tgx101Diag.mark("input selection collapsed " + tgx101LastSelStart + "-" + tgx101LastSelEnd + " → " + selStart + " (len " + length() + ", lines " + getLineCount() + ")");
+    }
+    // TGx101 (user 2026-10-07 00:55 log «ползунок перескакивает в конец»): a soft-wrapped line «ends» at the first offset of
+    // the next one, so dragging the cursor handle to the right edge went 38 → 39 (next line start) → 53 (its end, the end
+    // of the text). Same text, a quick move from a wrap boundary to the end of the next line: stay at the end of this line
+    if (selStart == selEnd && tgx101LastSelStart == tgx101LastSelEnd && getLayout() != null && length() == tgx101LastLength
+      && android.os.SystemClock.uptimeMillis() - tgx101LastCursorAt < 700) {
+      android.text.Layout l = getLayout();
+      int newLine = l.getLineForOffset(Math.min(selStart, length()));
+      int prev = tgx101LastSelStart;
+      if (newLine > 0 && prev == l.getLineStart(newLine) && selStart == l.getLineEnd(newLine) && selStart - prev > 1) {
+        int back = prev > 0 && Character.isWhitespace(getText().charAt(prev - 1)) ? prev - 1 : prev;
+        org.thunderdog.challegram.Tgx101Diag.mark("input cursor: wrap jump " + prev + " → " + selStart + " held at " + back);
+        tgx101LastCursorAt = android.os.SystemClock.uptimeMillis();
+        setSelection(back);
+        return;
+      }
+    }
+    if (selStart == selEnd) {
+      tgx101LastCursorAt = android.os.SystemClock.uptimeMillis();
+      tgx101LastLength = length();
     }
     // TGx101 diagnostics (user 2026-10-07: the cursor handle jumps to the end): every cursor move with its line
     if (selStart == selEnd && tgx101LastSelStart == tgx101LastSelEnd && selStart != tgx101LastSelStart && getLayout() != null) {

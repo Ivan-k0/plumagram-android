@@ -120,7 +120,7 @@ public class Tgx101NavCapsule extends View {
       scrollAnimator.cancel();
       scrollAnimator = null;
     }
-    float f = Math.max(0f, Math.min(1.1f, factor));
+    float f = Math.max(0f, Math.min(1f, factor)); // ✎ overshoots; the capsule doesn't bounce
     if (f > 0f && menuIds != null) return;
     if (scrollHide != f) {
       scrollHide = f;

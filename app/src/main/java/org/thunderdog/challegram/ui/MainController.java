@@ -1102,13 +1102,15 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   // user 2026-10-06 (Xiaomi): «звонки спускаются вниз» — this screen gets the navigation bar inset only while it is shown,
   // so the capsule keeps the last one it saw on every tab
   private int tgx101NavInset;
-  private boolean tgx101FabHidden;
+  private boolean tgx101FabHidden, tgx101FabTabAnim;
 
   private void tgx101SetFabHidden (boolean hide) {
     if (composeWrap == null || tgx101FabHidden == hide)
       return;
     tgx101FabHidden = hide;
+    tgx101FabTabAnim = true;
     if (hide) composeWrap.hide(); else if (!inSearchMode()) composeWrap.show();
+    if (!hide && tgx101Capsule != null) tgx101Capsule.setScrollHideFactor(0f); // the capsule itself stays put
   }
 
   private void tgx101ApplyCapsulePadding (int tab) {
@@ -1150,7 +1152,13 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     });
     addThemeInvalidateListener(tgx101Capsule);
     composeWrap.setTgx101HideListener(factor -> {
-      if (tgx101Capsule != null && !tgx101FabHidden && !inSearchMode()) tgx101Capsule.setScrollHideFactor(factor); // not when ✎ is put away for another tab
+      // not while ✎ is put away for another tab or brought back from it (user 2026-10-07 00:54 video: on the way back to
+      // Chats ✎ played its show animation and the capsule jumped down and up with it)
+      if (tgx101FabTabAnim) {
+        if (factor <= 0f || factor >= 1f) tgx101FabTabAnim = false;
+        return;
+      }
+      if (tgx101Capsule != null && !tgx101FabHidden && !inSearchMode()) tgx101Capsule.setScrollHideFactor(factor);
     });
     tgx101TabRoots.put(this, Tgx101NavCapsule.TAB_CHATS);
     addFocusListener(tgx101TabFocus);
