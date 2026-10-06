@@ -7194,13 +7194,21 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   /** TGx101 (user's Vivo video 2026-10-05 «само скроллит вниз»): a reply opens the keyboard and the reply bar; the
-   * list keeps its bottom, so the replied message slid off the top — scroll it back into view once they are open */
+   * list keeps its bottom, so the replied message slid off the top. 2026-10-06 (video 11:40 «подпрыгиваний быть не
+   * должно»): it was scrolled back afterwards — up, then down. Now, while the keyboard and the bar open, every frame
+   * is corrected before it is drawn, so the message never leaves the screen and nothing jumps */
   private void tgx101KeepVisible (long messageId) {
-    final int[] tries = {0};
-    Runnable check = new Runnable() {
+    if (messagesView == null) return;
+    final android.view.ViewTreeObserver observer = messagesView.getViewTreeObserver();
+    final long until = android.os.SystemClock.uptimeMillis() + 900; // the keyboard and the reply bar are open by then
+    final int[] logged = {0};
+    observer.addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
       @Override
-      public void run () {
-        if (isDestroyed() || messagesView == null) return;
+      public boolean onPreDraw () {
+        if (isDestroyed() || messagesView == null || android.os.SystemClock.uptimeMillis() > until) {
+          if (messagesView != null) messagesView.getViewTreeObserver().removeOnPreDrawListener(this);
+          return true;
+        }
         for (int i = 0; i < messagesView.getChildCount(); i++) {
           View child = messagesView.getChildAt(i);
           if (child instanceof org.thunderdog.challegram.component.chat.MessageView) {
@@ -7208,23 +7216,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
             if (m != null && m.getMessage(messageId) != null) {
               int top = child.getTop(), limit = Screen.dp(8f);
               if (top < limit) {
-                org.thunderdog.challegram.Tgx101Diag.mark("reply: kept the message in view (" + top + ")");
-                messagesView.smoothScrollBy(0, top - limit);
+                messagesView.scrollBy(0, top - limit); // before this frame is drawn: no visible jump
+                if (logged[0]++ == 0) org.thunderdog.challegram.Tgx101Diag.mark("reply: kept the message in view (" + top + "), frame by frame");
               }
-              return;
+              return true;
             }
           }
         }
-        // the message went off the top completely (it is no longer a child): bring it to the edge, then check again
-        int index = manager.getAdapter().indexOfMessageContainer(messageId);
-        if (index != -1 && tries[0] == 0) {
-          org.thunderdog.challegram.Tgx101Diag.mark("reply: message off screen, scrolling back");
-          manager.getLayoutManager().scrollToPosition(index);
-        }
-        if (++tries[0] < 3) messagesView.postDelayed(this, 120);
+        return true;
       }
-    };
-    messagesView.postDelayed(check, 380);
+    });
   }
 
   private void updateReplyBarVisibility (boolean animated) {
