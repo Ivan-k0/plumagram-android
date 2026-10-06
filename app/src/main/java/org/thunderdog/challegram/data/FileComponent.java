@@ -584,7 +584,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       switch (event.getAction()) {
         case MotionEvent.ACTION_DOWN: {
           transcribeCaught = false;
-          float bx = transcribeButtonCenterX(startX), by = startY + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS);
+          float bx = transcribeButtonCenterX(startX), by = tgx101TwoRowVoice() ? startY + Screen.dp(17f) : startY + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS);
           float touchRadius = Screen.dp(TRANSCRIBE_BUTTON_SIZE / 2f + 8f);
           if (Math.abs(x - bx) <= touchRadius && Math.abs(y - by) <= touchRadius) {
             transcribeCaught = true;
@@ -860,7 +860,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
         if (twoRows) {
           // after the duration, on the bottom row
           x = waveformLeft + sizeWidth + Screen.dp(6f) + innerRadius;
-          y = startY + Screen.dp(39f);
+          y = startY + Screen.dp(43f);
         }
 
         // c.drawCircle(x, y, outerRadius * unreadFactor, Paints.fillingPaint(context.getContentReplaceColor()));
@@ -868,14 +868,16 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       }
       if (trimmedSubtitle != null) {
         if (twoRows) {
-          trimmedSubtitle.draw(c, waveformLeft, waveformLeft + trimmedSubtitle.getWidth(), 0, startY + Screen.dp(31f), null, alpha);
+          // on the bubble time's baseline (user's screenshot 14:44: the duration sat higher than the time)
+          trimmedSubtitle.draw(c, waveformLeft, waveformLeft + trimmedSubtitle.getWidth(), 0, startY + Screen.dp(35f), null, alpha);
         } else {
           int textX = startX + previewSize + getPreviewOffset() + waveform.getWidth() + Screen.dp(12f);
           trimmedSubtitle.draw(c, textX, textX + trimmedSubtitle.getWidth(), 0, startY + Screen.dp(18f), null, alpha);
         }
       }
       if (hasTranscribeButton()) {
-        drawTranscribeButton(c, transcribeButtonCenterX(startX), cy, align, alpha);
+        // two rows: «A» on the waveform's line, so the bubble time sits right under it on the duration's line
+        drawTranscribeButton(c, transcribeButtonCenterX(startX), twoRows ? waveCy : cy, align, alpha);
       }
     }
   }
