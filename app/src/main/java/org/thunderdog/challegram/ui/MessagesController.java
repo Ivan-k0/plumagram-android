@@ -5217,9 +5217,22 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private boolean isMessageOptionsVisible;
 
+  private boolean tgx101MenuAfterKeyboard;
+
   // TGx101: compact message menu; "⌄" in its reactions opens the stock sheet with all reactions
   private PopupLayout showTgx101MessageMenu (Options options, TGMessage message, OptionDelegate delegate, boolean readDatePending) {
     if (isMessageOptionsVisible) {
+      return null;
+    }
+    // user 2026-10-06 20:05: with the keyboard open the menu didn't fit («даже „Удалить“ не влезла»). Like the official
+    // app: the keyboard closes first, the menu opens once the chat has its full height
+    if (context.isKeyboardVisible() && inputView != null && !tgx101MenuAfterKeyboard) {
+      tgx101MenuAfterKeyboard = true;
+      Keyboard.hide(inputView);
+      UI.post(() -> {
+        tgx101MenuAfterKeyboard = false;
+        if (!isDestroyed()) showTgx101MessageMenu(options, message, delegate, readDatePending);
+      }, 260);
       return null;
     }
     isMessageOptionsVisible = true;
@@ -5238,7 +5251,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         optimizeEmojiLayoutForOptionsWindow(false);
         isMessageOptionsVisible = false;
       });
-    // The keyboard stays open under the menu: no switch to the emoji panel and back
+    // The keyboard (closed above) is not brought back after the menu
     needShowKeyboardAfterHideMessageOptions = false;
     needShowEmojiKeyboardAfterHideMessageOptions = false;
     return popup;

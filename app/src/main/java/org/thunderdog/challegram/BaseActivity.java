@@ -1204,6 +1204,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   @Override
   public void onPause () {
+    tgx101KeyboardAtPause = isKeyboardVisible;
     tgx101NotePause();
     org.thunderdog.challegram.ui.Tgx101Proxies.onAppPaused();
     blockFocus();
@@ -1256,19 +1257,23 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   // TGx101 (user 2026-10-05): after the phone was locked for 2+ minutes the app comes back without the keyboard
   // that was open (Android restores it and the chat jumps); a quick lock/unlock keeps it
   private long tgx101PausedLockedAt;
+  private boolean tgx101PausedWhileLocked;
 
   private void tgx101NotePause () {
     android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
     android.app.KeyguardManager km = (android.app.KeyguardManager) getSystemService(KEYGUARD_SERVICE);
     boolean locked = (pm != null && !Tgx101Diag.isInteractive(pm)) || (km != null && km.isKeyguardLocked());
-    tgx101PausedLockedAt = locked ? android.os.SystemClock.elapsedRealtime() : 0;
+    // user 2026-10-06 19:37 («мигнуло всё приложение после разблокировки»): also when the app went to the background
+    // unlocked and came back later — Android reopened the keyboard ~0.2 s after the first frame and the chat jumped
+    tgx101PausedLockedAt = android.os.SystemClock.elapsedRealtime();
+    tgx101PausedWhileLocked = locked;
   }
 
   private void tgx101CheckKeyboardAfterLock () {
     if (tgx101PausedLockedAt == 0) return;
     long idle = android.os.SystemClock.elapsedRealtime() - tgx101PausedLockedAt;
     tgx101PausedLockedAt = 0;
-    if (idle < 2 * 60 * 1000L) return;
+    if (idle < (tgx101PausedWhileLocked ? 2 * 60 * 1000L : 60 * 1000L)) return;
     // the activity resumes still behind the lock screen; Android shows the keyboard once the window gets focus after
     // unlocking — hide it then (first check on Xiaomi: hiding at resume came too early)
     tgx101HideKeyboardOnFocus = true;
@@ -1308,6 +1313,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     tgx101CheckHideNavigation(); // TGx101: never come back stuck without the status bar
     org.thunderdog.challegram.ui.Tgx101Proxies.onAppResumed(); // TGx101: back to the direct connection when it works
     // tgx101CheckKeyboardAfterLock(); — off for now (user 2026-10-05 16:51)
+    tgx101HoldDrawForKeyboard();
     boolean lockBefore = isPasscodeShowing;
     UI.setContext(this);
     setActivityState(UI.State.RESUMED);
@@ -1701,8 +1707,39 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     return isKeyboardVisible;
   }
 
+  // TGx101 (user 2026-10-06 19:37 «мигнуло всё приложение после разблокировки», «скрывать клавиатуру — не выход»):
+  // coming back to a chat whose keyboard was open, the first frame was drawn full height and the chat jumped when the
+  // keyboard returned ~0.2 s later. Like the official app keeps the keyboard's room, we simply don't draw until the
+  // keyboard is back (the previous screen stays meanwhile), at most 450 ms.
+  private boolean tgx101KeyboardAtPause, tgx101HoldingDraw;
+  private final android.view.ViewTreeObserver.OnPreDrawListener tgx101HoldDraw = () -> !tgx101HoldingDraw;
+
+  private void tgx101HoldDrawForKeyboard () {
+    if (!tgx101KeyboardAtPause || tgx101HoldingDraw)
+      return;
+    tgx101KeyboardAtPause = false;
+    View decor = getWindow().getDecorView();
+    tgx101HoldingDraw = true;
+    decor.getViewTreeObserver().addOnPreDrawListener(tgx101HoldDraw);
+    decor.postDelayed(this::tgx101ReleaseDraw, 450);
+    Tgx101Diag.mark("keyboard: holding the first frames until it is back");
+  }
+
+  private void tgx101ReleaseDraw () {
+    if (!tgx101HoldingDraw)
+      return;
+    tgx101HoldingDraw = false;
+    View decor = getWindow().getDecorView();
+    decor.getViewTreeObserver().removeOnPreDrawListener(tgx101HoldDraw);
+    decor.invalidate();
+  }
+
   @Override
   public void onKeyboardStateChanged (boolean visible) {
+    if (visible && tgx101HoldingDraw) {
+      // one more layout pass with the keyboard's room, then draw
+      getWindow().getDecorView().postDelayed(this::tgx101ReleaseDraw, 32);
+    }
     navigation.onKeyboardStateChanged(visible);
     Tgx101DiagHooks.onKeyboard(visible); // TGx101: diagnostics builds only
     this.isKeyboardVisible = visible;

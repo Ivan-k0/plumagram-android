@@ -696,12 +696,13 @@ public final class Tgx101MessageMenu {
     // «More…» in its place in the user's order (by default above «Delete»)
     java.util.Collections.sort(sorted, (a, b) -> Integer.compare(rank(order, a.id), rank(order, b.id)));
     // user 2026-10-05 22:42: «Select» always at the very bottom, under a line
-    boolean addSelect = message.canBeSelected() && !c.inSelectMode();
+    // user 2026-10-06 19:58: in the normal mode a long press already selects — no «Select» in the menu there
+    boolean addSelect = false; // no «Select» row in either mode (iOS mode: 18:20; normal mode: 19:58)
     // user 2026-10-06 18:20: in the iOS mode «Select» is not in the menu — its bottom place goes to «Delete»
     // (unless the user hid it), otherwise to «More…»
     ViewController.OptionItem bottomItem = null;
-    if (addSelect && Settings.instance().tgx101LongPressMenu()) {
-      addSelect = false;
+    // user 2026-10-06 20:04: «the last button is always set apart by a line, as before, whatever it is»
+    {
       for (ViewController.OptionItem item : sorted) {
         if (item.id == R.id.btn_messageDelete) bottomItem = item;
       }
