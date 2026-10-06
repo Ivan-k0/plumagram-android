@@ -8,6 +8,21 @@ Base: Telegram X 0.29.0.1814. Package name: `com.plumagram.app`. License: GPLv3,
 * Moving the changes onto a new Telegram X version: [docs/TGx101_UPDATE.md](docs/TGx101_UPDATE.md)
 * The changes are the commits on the `tgx101` branch on top of Telegram X 0.29.0.1814 (upstream commit `9291ce1`).
 
+### Screenshots
+
+<p>
+<img src="images/screenshots/01-capsule.jpg" width="200" alt="Bottom menu capsule">
+<img src="images/screenshots/05-slide.jpg" width="200" alt="Slide along the capsule">
+<img src="images/screenshots/02-hold-settings.jpg" width="200" alt="Hold «Settings»">
+<img src="images/screenshots/03-hold-contacts.jpg" width="200" alt="Hold «Contacts»">
+</p>
+<p>
+<img src="images/screenshots/04-hold-calls.jpg" width="200" alt="Hold «Calls»: quick calls">
+<img src="images/screenshots/06-magix.jpg" width="200" alt="MagiX settings">
+<img src="images/screenshots/07-magix-chat-list.jpg" width="200" alt="MagiX → Chat list">
+</p>
+<p><img src="images/screenshots/08-voice.jpg" width="410" alt="Voice messages"></p>
+
 To build it, follow the Telegram X instructions below. In `local.properties` set your own
 `telegram.api_id` / `telegram.api_hash`, `app.id=com.plumagram.app` and `app.name=PlumaGram`, and use
 your own keystore and Firebase project (`app/google-services.json`) for push notifications.
