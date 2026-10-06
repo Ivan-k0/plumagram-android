@@ -6300,6 +6300,10 @@
   <string name="Tgx101HideAllReactions">Hide reactions in all chats</string>
   <string name="Tgx101HideInputCamera">Hide the camera button (it moves to the attachment screen)</string>
   <string name="Tgx101HideInputCommands">Hide the bot commands «/» button</string>
+  <string name="Tgx101CapsuleMenu">Hold «Settings» menu</string>
+  <string name="Tgx101CapsuleMenuHint">Hold «Settings» on the bottom menu and slide to an item. At least two items.</string>
+  <string name="Tgx101CapsuleMenuMin">Keep at least two items</string>
+  <string name="Tgx101MyProfile">My profile</string>
   <string name="Tgx101NavCapsule">Bottom menu instead of the side menu</string>
   <string name="Tgx101AppliesAfterRestart">Restart the app to apply</string>
   <string name="Tgx101HideInputEmoji">Hide the emoji / stickers button</string>

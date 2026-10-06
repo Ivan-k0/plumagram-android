@@ -3538,6 +3538,10 @@ public class Settings {
   private static final String KEY_TGX101_NAV_CAPSULE = "tgx101_nav_capsule";
   public boolean tgx101NavCapsule () { return pmc.getBoolean(KEY_TGX101_NAV_CAPSULE, true); }
   public void setTgx101NavCapsule (boolean v) { pmc.putBoolean(KEY_TGX101_NAV_CAPSULE, v); }
+  // Hold menu of the capsule's «Settings»: bit i = MainController.TGX101_CAPSULE_MENU_TITLES[i] shown (at least 2)
+  private static final String KEY_TGX101_CAPSULE_MENU = "tgx101_capsule_menu";
+  public int tgx101CapsuleMenu () { return pmc.getInt(KEY_TGX101_CAPSULE_MENU, 0x1F); }
+  public void setTgx101CapsuleMenu (int mask) { pmc.putInt(KEY_TGX101_CAPSULE_MENU, mask); }
 
   /** TGx101: no reaction row under channel posts (off by default) */
   public boolean tgx101HideChannelReactions () {

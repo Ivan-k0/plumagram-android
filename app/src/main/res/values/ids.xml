@@ -1571,6 +1571,7 @@
   <item name="btn_tgx101HideInputCommands" type="id"/>
   <item name="btn_tgx101HideInputEmoji" type="id"/>
   <item name="btn_tgx101NavCapsule" type="id"/>
+  <item name="btn_tgx101CapsuleMenu" type="id"/>
   <item name="btn_tgx101RearRounds" type="id"/>
   <item name="btn_tgx101HidePhone" type="id"/>
   <item name="btn_tgx101MenuProfileText" type="id"/>

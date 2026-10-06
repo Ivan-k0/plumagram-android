@@ -78,6 +78,7 @@ import org.thunderdog.challegram.filegen.PhotoGenerationInfo;
 import org.thunderdog.challegram.filegen.VideoGenerationInfo;
 import org.thunderdog.challegram.loader.ImageReader;
 import org.thunderdog.challegram.navigation.BackHeaderButton;
+import org.thunderdog.challegram.widget.Tgx101NavCapsule;
 import org.thunderdog.challegram.navigation.HeaderView;
 import org.thunderdog.challegram.navigation.Menu;
 import org.thunderdog.challegram.navigation.MenuMoreWrap;
@@ -799,14 +800,14 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   protected void onEnterSearchMode () {
     super.onEnterSearchMode();
     composeWrap.forceHide();
-    if (tgx101Capsule != null) tgx101Capsule.setVisibility(View.GONE);
+    if (tgx101Capsule != null) { tgx101Capsule.closeMenu(); tgx101ShowCapsule(false); }
   }
 
   @Override
   protected void onLeaveSearchMode () {
     super.onLeaveSearchMode();
     composeWrap.showIfWasHidden();
-    if (tgx101Capsule != null) tgx101Capsule.setVisibility(View.VISIBLE);
+    if (tgx101Capsule != null && isFocused()) tgx101ShowCapsule(true);
     // TGx101 (user 2026-10-05 «тёмная фантомная полоса после поиска»): the stories row is laid out again after search
     ViewController<?> current = getCurrentPagerItem();
     if (current instanceof ChatsController) {
@@ -1020,55 +1021,227 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     checkComposeWrapPaddings();
   }
 
-  // TGx101 (user 2026-10-06 «с пилюлей без подписей»): floating bottom navigation instead of the side menu button
+  // TGx101 (user 2026-10-06 «с пилюлей без подписей», «капсула по всем кнопкам»): floating bottom navigation instead of the side menu button.
+  // It lives over the whole navigation (not inside this screen), so it stays on Contacts, Calls and Settings too;
+  // tab screens replace each other instead of piling up, Back from any of them returns to the chats.
+  private final java.util.WeakHashMap<ViewController<?>, Integer> tgx101TabRoots = new java.util.WeakHashMap<>();
+  private boolean tgx101Switching;
+  private android.animation.ValueAnimator tgx101CapsuleFade;
+
+  private final FocusStateListener tgx101TabFocus = (c, isFocused) -> {
+    if (tgx101Capsule == null || isDestroyed())
+      return;
+    Integer tab = tgx101TabRoots.get(c);
+    if (tab == null)
+      return;
+    if (isFocused) {
+      tgx101Switching = false;
+      tgx101Capsule.setSelectedTab(tab, false);
+      tgx101ApplyCapsulePadding(tab);
+      tgx101ShowCapsule(!inSearchMode() || tab != Tgx101NavCapsule.TAB_CHATS);
+      // the previous tab screen (under this one) is no longer needed
+      NavigationController navigation = context().navigation();
+      if (navigation != null && c != this) {
+        for (ViewController<?> other : new java.util.ArrayList<>(tgx101TabRoots.keySet())) {
+          if (other != null && other != this && other != c && !other.isDestroyed() && navigation.getStack().indexOf(other) != -1) {
+            navigation.getStack().destroy(other);
+          }
+        }
+      }
+    } else if (!tgx101Switching) {
+      tgx101Capsule.closeMenu();
+      tgx101ShowCapsule(false);
+    }
+  };
+
+  private void tgx101ShowCapsule (boolean show) {
+    if (tgx101CapsuleFade != null) {
+      tgx101CapsuleFade.cancel();
+      tgx101CapsuleFade = null;
+    }
+    float to = show ? 1f : 0f;
+    if (show && tgx101Capsule.getVisibility() != View.VISIBLE) {
+      tgx101Capsule.setAlpha(0f);
+      tgx101Capsule.setVisibility(View.VISIBLE);
+    }
+    if (tgx101Capsule.getAlpha() == to) {
+      if (!show) tgx101Capsule.setVisibility(View.GONE);
+      return;
+    }
+    tgx101CapsuleFade = android.animation.ValueAnimator.ofFloat(tgx101Capsule.getAlpha(), to);
+    tgx101CapsuleFade.setDuration(show ? 150 : 100);
+    tgx101CapsuleFade.addUpdateListener(a -> tgx101Capsule.setAlpha((float) a.getAnimatedValue()));
+    tgx101CapsuleFade.addListener(new android.animation.AnimatorListenerAdapter() {
+      private boolean cancelled;
+      @Override public void onAnimationCancel (android.animation.Animator animation) { cancelled = true; }
+      @Override public void onAnimationEnd (android.animation.Animator animation) {
+        if (!cancelled && !show) tgx101Capsule.setVisibility(View.GONE);
+      }
+    });
+    tgx101CapsuleFade.start();
+  }
+
+  private void tgx101ApplyCapsulePadding (int tab) {
+    int capsulePadding = (tab == Tgx101NavCapsule.TAB_CHATS && displayTabsAtBottom() ? getHeaderHeight() : 0) + extraBottomInsetWithoutIme;
+    if (tgx101Capsule.getPaddingBottom() != capsulePadding) {
+      tgx101Capsule.setPadding(0, 0, 0, capsulePadding);
+      tgx101Capsule.invalidate();
+    }
+  }
+
   private void tgx101AddCapsule (Context context, FrameLayoutFix contentView) {
     if (!Settings.instance().tgx101NavCapsule())
       return;
-    tgx101Capsule = new org.thunderdog.challegram.widget.Tgx101NavCapsule(context);
-    tgx101Capsule.setCallback(new org.thunderdog.challegram.widget.Tgx101NavCapsule.Callback() {
+    NavigationController navigation = context().navigation();
+    if (navigation == null)
+      return;
+    tgx101Capsule = new Tgx101NavCapsule(context);
+    tgx101Capsule.setCallback(new Tgx101NavCapsule.Callback() {
       @Override
       public void onTabClick (int tab) {
-        if (tab == org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_CHATS) {
-          if (getViewPager().getCurrentItem() != 0) {
-            getViewPager().setCurrentItem(0, true);
-          }
-          return;
-        }
-        tgx101Capsule.setSelectedTab(tab, true);
-        tgx101Capsule.postDelayed(() -> tgx101OpenTab(tab), 150);
+        tgx101OnTabClick(tab);
       }
 
       @Override
       public boolean onTabLongClick (int tab) {
-        if (tab == org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_SETTINGS && context().getDrawer() != null) {
-          context().getDrawer().open(); // accounts, Saved Messages, proxy — still one hold away
-          return true;
+        if (tab != Tgx101NavCapsule.TAB_SETTINGS)
+          return false;
+        int mask = Settings.instance().tgx101CapsuleMenu();
+        java.util.List<Integer> ids = new java.util.ArrayList<>();
+        for (int i = 0; i < TGX101_CAPSULE_MENU_ICONS.length; i++) {
+          if ((mask & (1 << i)) != 0) ids.add(i);
         }
-        return false;
+        int[] outIds = new int[ids.size()], outIcons = new int[ids.size()];
+        String[] outTitles = new String[ids.size()];
+        for (int k = 0; k < ids.size(); k++) {
+          int i = ids.get(k);
+          outIds[k] = i;
+          outIcons[k] = TGX101_CAPSULE_MENU_ICONS[i];
+          outTitles[k] = Lang.getString(TGX101_CAPSULE_MENU_TITLES[i]);
+        }
+        tgx101Capsule.openMenu(outIds, outIcons, outTitles);
+        return true;
+      }
+
+      @Override
+      public void onMenuItem (int id) {
+        tgx101OnCapsuleMenuItem(id);
       }
     });
     addThemeInvalidateListener(tgx101Capsule);
-    contentView.addView(tgx101Capsule, FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
+    tgx101TabRoots.put(this, Tgx101NavCapsule.TAB_CHATS);
+    addFocusListener(tgx101TabFocus);
+    navigation.addViewUnderHeader(tgx101Capsule);
+    tgx101Capsule.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+  }
+
+  /** Hold menu of «Settings»: the order here is the order of the bits in {@link Settings#tgx101CapsuleMenu()} */
+  public static final int[] TGX101_CAPSULE_MENU_ICONS = {
+    R.drawable.baseline_bookmark_24, R.drawable.baseline_format_list_bulleted_type_24, R.drawable.baseline_brightness_2_24,
+    R.drawable.baseline_account_circle_24, R.drawable.baseline_stars_24
+  };
+  public static final int[] TGX101_CAPSULE_MENU_TITLES = {
+    R.string.SavedMessages, R.string.Tgx101SavedByChats, R.string.NightMode, R.string.Tgx101MyProfile, R.string.Tgx101Settings
+  };
+
+  private void tgx101OnCapsuleMenuItem (int id) {
+    if (isDestroyed())
+      return;
+    NavigationController navigation = context().navigation();
+    ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : this;
+    if (current == null) current = this;
+    switch (id) {
+      case 0: {
+        long myUserId = tdlib.myUserId();
+        if (myUserId != 0) {
+          tdlib.ui().openChat(current, ChatId.fromUserId(myUserId), null);
+        }
+        break;
+      }
+      case 1:
+        current.navigateTo(new Tgx101SavedTopicsController(context, tdlib));
+        break;
+      case 2:
+        org.thunderdog.challegram.theme.ThemeManager.instance().toggleNightMode();
+        break;
+      case 3: {
+        long myUserId = tdlib.myUserId();
+        if (myUserId != 0) {
+          tdlib.ui().openPrivateProfile(current, myUserId, null);
+        }
+        break;
+      }
+      case 4: {
+        SettingsDataController c = new SettingsDataController(context, tdlib);
+        c.setArguments(new SettingsDataController.Args(SettingsDataController.MODE_TGX101));
+        current.navigateTo(c);
+        break;
+      }
+    }
+  }
+
+  private void tgx101OnTabClick (int tab) {
+    NavigationController navigation = context().navigation();
+    if (navigation == null || navigation.isAnimating())
+      return;
+    ViewController<?> current = navigation.getCurrentStackItem();
+    Integer currentTab = current != null ? tgx101TabRoots.get(current) : null;
+    if (currentTab == null)
+      return;
+    if (currentTab == tab) {
+      if (tab == Tgx101NavCapsule.TAB_CHATS && getViewPager().getCurrentItem() != 0) {
+        getViewPager().setCurrentItem(0, true);
+      }
+      return;
+    }
+    tgx101Capsule.setSelectedTab(tab, true);
+    tgx101Switching = true;
+    if (tab == Tgx101NavCapsule.TAB_CHATS) {
+      tgx101ApplyCapsulePadding(tab);
+      navigation.navigateBack();
+      return;
+    }
+    tgx101Capsule.postDelayed(() -> tgx101OpenTab(tab), 150);
   }
 
   private void tgx101OpenTab (int tab) {
     if (isDestroyed())
       return;
     switch (tab) {
-      case org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_CONTACTS:
+      case Tgx101NavCapsule.TAB_CONTACTS:
         tdlib.contacts().startSyncIfNeeded(context, true, () -> {
           PeopleController c = new PeopleController(context, tdlib);
           c.setNeedSearch();
-          navigateTo(c);
+          tgx101PushTab(c, tab);
         });
         break;
-      case org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_CALLS:
-        navigateTo(new CallListController(context, tdlib));
+      case Tgx101NavCapsule.TAB_CALLS:
+        tgx101PushTab(new CallListController(context, tdlib), tab);
         break;
-      case org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_SETTINGS:
-        navigateTo(new SettingsController(context, tdlib));
+      case Tgx101NavCapsule.TAB_SETTINGS:
+        tgx101PushTab(new SettingsController(context, tdlib), tab);
         break;
     }
+  }
+
+  private void tgx101PushTab (ViewController<?> c, int tab) {
+    tgx101TabRoots.put(c, tab);
+    c.addFocusListener(tgx101TabFocus);
+    NavigationController navigation = context().navigation();
+    if (navigation == null || !navigation.navigateTo(c)) {
+      tgx101Switching = false;
+      ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : null;
+      Integer currentTab = current != null ? tgx101TabRoots.get(current) : null;
+      tgx101Capsule.setSelectedTab(currentTab != null ? currentTab : Tgx101NavCapsule.TAB_CHATS, true);
+    }
+  }
+
+  public boolean tgx101CloseCapsuleMenu () {
+    if (tgx101Capsule != null && tgx101Capsule.isMenuOpen()) {
+      tgx101Capsule.closeMenu();
+      return true;
+    }
+    return false;
   }
 
   /** TGx101: chat lists keep their last rows above the capsule */
@@ -1078,11 +1251,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
 
   private void checkComposeWrapPaddings () {
     if (tgx101Capsule != null) {
-      int capsulePadding = (displayTabsAtBottom() ? getHeaderHeight() : 0) + extraBottomInsetWithoutIme;
-      if (tgx101Capsule.getPaddingBottom() != capsulePadding) {
-        tgx101Capsule.setPadding(0, 0, 0, capsulePadding);
-        tgx101Capsule.requestLayout();
-      }
+      NavigationController navigation = context().navigation();
+      Integer tab = navigation != null && navigation.getCurrentStackItem() != null ? tgx101TabRoots.get(navigation.getCurrentStackItem()) : null;
+      tgx101ApplyCapsulePadding(tab != null ? tab : Tgx101NavCapsule.TAB_CHATS);
     }
     if (composeWrap != null) {
       int paddingBottom = (displayTabsAtBottom() ? getHeaderHeight() : 0) + extraBottomInsetWithoutIme + (tgx101Capsule != null ? Screen.dp(org.thunderdog.challegram.widget.Tgx101NavCapsule.HEIGHT_DP + org.thunderdog.challegram.widget.Tgx101NavCapsule.MARGIN_DP) : 0);
@@ -1195,6 +1366,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   @Override
   public void destroy () {
     super.destroy();
+    if (tgx101Capsule != null && tgx101Capsule.getParent() instanceof ViewGroup) {
+      ((ViewGroup) tgx101Capsule.getParent()).removeView(tgx101Capsule); // the capsule sits in the navigation, not in this screen
+    }
     tdlib.listeners().removeOptionListener(this);
     context().appUpdater().removeListener(this);
     tdlib.context().global().removeCountersListener(this);
@@ -1371,7 +1545,6 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   @Override
   public void onFocus () {
     super.onFocus();
-    if (tgx101Capsule != null) tgx101Capsule.setSelectedTab(org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_CHATS, false);
     // FIXME check tdlib.isUnauthorized()
     tdlib.context().changePreferredAccountId(tdlib.id(), TdlibManager.SWITCH_REASON_NAVIGATION);
     if (UI.TEST_MODE == UI.TEST_MODE_USER) {
@@ -1999,6 +2172,10 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
 
   @Override
   public boolean performOnBackPressed (boolean fromTop, boolean commit) {
+    if (tgx101Capsule != null && tgx101Capsule.isMenuOpen()) {
+      if (commit) tgx101Capsule.closeMenu();
+      return true;
+    }
     if (composeWrap != null && composeWrap.isShowing()) {
       if (commit) {
         composeWrap.close();

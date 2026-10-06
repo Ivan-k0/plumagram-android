@@ -445,6 +445,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101HideAllReactions, "Скрывать реакции во всех чатах");
     RU.put(R.string.Tgx101HideInputCamera, "Скрыть кнопку камеры (переедет в окно вложений)");
     RU.put(R.string.Tgx101HideInputCommands, "Скрыть кнопку команд ботов «/»");
+    RU.put(R.string.Tgx101CapsuleMenu, "Меню удержания «Настроек»");
+    RU.put(R.string.Tgx101CapsuleMenuHint, "Удерживайте «Настройки» в нижнем меню и ведите палец к пункту. Не меньше двух пунктов.");
+    RU.put(R.string.Tgx101CapsuleMenuMin, "Оставьте хотя бы два пункта");
+    RU.put(R.string.Tgx101MyProfile, "Профиль");
     RU.put(R.string.Tgx101NavCapsule, "Нижнее меню вместо бокового");
     RU.put(R.string.Tgx101AppliesAfterRestart, "Применится после перезапуска приложения");
     RU.put(R.string.Tgx101HideInputEmoji, "Скрыть кнопку смайлов и стикеров");
