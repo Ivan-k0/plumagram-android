@@ -7202,6 +7202,21 @@ public class MessagesController extends ViewController<MessagesController.Argume
     final android.view.ViewTreeObserver observer = messagesView.getViewTreeObserver();
     final long until = android.os.SystemClock.uptimeMillis() + 900; // the keyboard and the reply bar are open by then
     final int[] logged = {0};
+    // where the message is now (before the keyboard / bar move anything): it must not go higher than that. A message
+    // whose top is already above the screen is not pulled down to it (logs 11:51: −585 / −1116 px jumps)
+    int initialTop = Integer.MAX_VALUE;
+    for (int i = 0; i < messagesView.getChildCount(); i++) {
+      View child = messagesView.getChildAt(i);
+      if (child instanceof org.thunderdog.challegram.component.chat.MessageView) {
+        TGMessage m = ((org.thunderdog.challegram.component.chat.MessageView) child).getMessage();
+        if (m != null && m.getMessage(messageId) != null) {
+          initialTop = child.getTop();
+          break;
+        }
+      }
+    }
+    if (initialTop == Integer.MAX_VALUE) return; // not on the screen: nothing to keep
+    final int allowedTop = Math.min(Screen.dp(8f), initialTop);
     observer.addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
       @Override
       public boolean onPreDraw () {
@@ -7214,7 +7229,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           if (child instanceof org.thunderdog.challegram.component.chat.MessageView) {
             TGMessage m = ((org.thunderdog.challegram.component.chat.MessageView) child).getMessage();
             if (m != null && m.getMessage(messageId) != null) {
-              int top = child.getTop(), limit = Screen.dp(8f);
+              int top = child.getTop(), limit = allowedTop;
               if (top < limit) {
                 messagesView.scrollBy(0, top - limit); // before this frame is drawn: no visible jump
                 if (logged[0]++ == 0) org.thunderdog.challegram.Tgx101Diag.mark("reply: kept the message in view (" + top + "), frame by frame");
