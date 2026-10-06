@@ -1037,7 +1037,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     if (isFocused) {
       tgx101Switching = false;
       tgx101Capsule.setSelectedTab(tab, false);
-      tgx101Capsule.setScrollHidden(false);
+      tgx101Capsule.setScrollHidden(tab == Tgx101NavCapsule.TAB_CHATS && composeWrap != null && composeWrap.isHiddenByScroll());
       tgx101ApplyCapsulePadding(tab);
       // ✎ belongs to the chats only — it showed through under Contacts / Calls / Settings
       tgx101SetFabHidden(tab != Tgx101NavCapsule.TAB_CHATS);
@@ -1061,6 +1061,11 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       tgx101ShowCapsule(false);
     }
   };
+
+  // user 2026-10-07 (video 22:11): on a hard fling ✎ hid but the capsule stayed — on the chats screen it simply mirrors ✎
+  private void tgx101SyncCapsuleWithFab () {
+    // the capsule follows ✎'s own animation (OverlayButtonWrap → setScrollHideFactor), nothing to do here
+  }
 
   private void tgx101ShowCapsule (boolean show) {
     if (tgx101CapsuleFade != null) {
@@ -1144,6 +1149,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       }
     });
     addThemeInvalidateListener(tgx101Capsule);
+    composeWrap.setTgx101HideListener(factor -> {
+      if (tgx101Capsule != null && !tgx101FabHidden && !inSearchMode()) tgx101Capsule.setScrollHideFactor(factor); // not when ✎ is put away for another tab
+    });
     tgx101TabRoots.put(this, Tgx101NavCapsule.TAB_CHATS);
     addFocusListener(tgx101TabFocus);
     navigation.addViewUnderHeader(tgx101Capsule);
@@ -1781,7 +1789,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   public boolean showComposeWrap (ViewController<?> controller) {
     if (!inSearchMode() && (controller == null || getCurrentPagerItem() == controller)) {
       composeWrap.show();
-      if (tgx101Capsule != null) tgx101Capsule.setScrollHidden(false);
+      tgx101SyncCapsuleWithFab();
       return true;
     }
     return false;
@@ -1793,7 +1801,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         if (Config.CHAT_FOLDERS_HIDE_BOTTOM_BAR_ON_SCROLL) {
           showBottomBar();
         }
-        if (tgx101Capsule != null) tgx101Capsule.setScrollHidden(false);
+        tgx101SyncCapsuleWithFab();
         return showComposeWrap(null);
       } else {
         if (getCurrentPagerItemId() == MAIN_PAGER_ITEM_ID) {
@@ -1803,7 +1811,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
           }
         }
         composeWrap.hide();
-        if (tgx101Capsule != null) tgx101Capsule.setScrollHidden(true);
+        tgx101SyncCapsuleWithFab();
         if (Config.CHAT_FOLDERS_HIDE_BOTTOM_BAR_ON_SCROLL) {
           hideBottomBar();
         }

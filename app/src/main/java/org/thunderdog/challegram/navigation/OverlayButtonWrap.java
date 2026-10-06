@@ -312,6 +312,18 @@ public class OverlayButtonWrap extends FrameLayoutFix implements View.OnClickLis
   }
 
   private boolean hidden;
+
+  private me.vkryl.core.lambda.RunnableFloat tgx101HideListener;
+
+  /** TGx101: the bottom capsule moves together with ✎ (same factor, same curve) */
+  public void setTgx101HideListener (me.vkryl.core.lambda.RunnableFloat listener) {
+    this.tgx101HideListener = listener;
+  }
+
+  /** TGx101: the bottom capsule follows ✎ on the chats screen */
+  public boolean isHiddenByScroll () {
+    return hidden && !forceHidden;
+  }
   private float hideFactor;
   private FactorAnimator hideAnimator;
 
@@ -319,6 +331,7 @@ public class OverlayButtonWrap extends FrameLayoutFix implements View.OnClickLis
     factor = Anim.anticipateRange(factor);
     if (this.hideFactor != factor) {
       this.hideFactor = factor;
+      if (tgx101HideListener != null && !forceHidden) tgx101HideListener.runWithFloat(factor);
       if (USE_DECELERATE) {
         float scale = .6f + .4f * (1f - factor);
         mainButton.setScaleX(scale);

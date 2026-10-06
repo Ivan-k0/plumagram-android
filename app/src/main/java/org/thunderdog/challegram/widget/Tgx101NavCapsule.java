@@ -114,6 +114,20 @@ public class Tgx101NavCapsule extends View {
     scrollAnimator.start();
   }
 
+  /** Follows ✎ frame by frame (its factor may overshoot a little — the curve is the same) */
+  public void setScrollHideFactor (float factor) {
+    if (scrollAnimator != null) {
+      scrollAnimator.cancel();
+      scrollAnimator = null;
+    }
+    float f = Math.max(0f, Math.min(1.1f, factor));
+    if (f > 0f && menuIds != null) return;
+    if (scrollHide != f) {
+      scrollHide = f;
+      invalidate();
+    }
+  }
+
   private float scrollHideOffset () {
     return scrollHide * (Screen.dp(HEIGHT_DP + MARGIN_DP + 12f) + getPaddingBottom());
   }

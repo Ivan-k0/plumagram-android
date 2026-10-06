@@ -124,6 +124,10 @@ public class NoClipEditText extends EmojiEditText {
     try {
       super.onDraw(c);
     } catch (Throwable ignored) {  }
+    // TGx101 (user 2026-10-06 23:44 «ползунок перепрыгивает в конец»): the one-shot padding override must not outlive this
+    // draw — the cursor handle read 0 padding afterwards and landed a line lower
+    ignoreTopCount = 0;
+    ignoreBottomCount = 0;
     if (scrollY != Integer.MAX_VALUE && scrollY != 0) {
       try {
         mScrollYField.set(this, scrollY);

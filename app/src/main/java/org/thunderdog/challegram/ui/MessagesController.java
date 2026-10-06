@@ -3050,6 +3050,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     closeCommandsKeyboard(false);
 
     if (previewSearchSender == null) {
+      org.thunderdog.challegram.data.Tgx101BlockedSenders.refresh(tdlib, false); // TGx101: «Hide messages from blocked»
       manager.openChat(chat, messageThread, messageTopicId, previewSearchFilter, this, areScheduled, !inPreviewMode && !isInForceTouchMode());
     }
 
@@ -13207,6 +13208,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private void onSetSearchFilteredShowMode (boolean inSearchMode) {
     // Reopen chat if needed
     if (!inSearchMode && searchMessagesFilterMode) {
+      org.thunderdog.challegram.data.Tgx101BlockedSenders.refresh(tdlib, false); // TGx101: «Hide messages from blocked»
       manager.openChat(chat, messageThread, messageTopicId, previewSearchFilter, this, areScheduled, !inPreviewMode && !isInForceTouchMode());
     } else if (inSearchMode && !searchMessagesFilterMode) {
       applyQueryForManagerInFilteredShowMode(getLastMessageSearchQuery());

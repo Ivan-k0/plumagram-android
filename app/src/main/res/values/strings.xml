@@ -6310,6 +6310,7 @@
   <string name="Tgx101QuickCallsAdded">%1$s added to quick calls</string>
   <string name="Tgx101SyncContacts">Sync contacts</string>
   <string name="Tgx101SyncContactsDone">Contacts are being synced</string>
+  <string name="Tgx101HideBlocked">Hide messages from blocked users</string>
   <string name="Tgx101WsProxy">Connect through WebSocket (like Telegram Web)</string>
   <string name="Tgx101WsProxyHint">Telegram traffic goes the way the web version connects. Can help where Telegram is slowed down. Adds the «WebSocket» proxy and turns it on.</string>
   <string name="Tgx101WsProxyOn">WebSocket connection is on</string>

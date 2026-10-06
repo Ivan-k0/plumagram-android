@@ -8554,6 +8554,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       }
       chat.blockList = update.blockList;
     }
+    org.thunderdog.challegram.data.Tgx101BlockedSenders.onBlockListChanged(update.chatId, update.blockList);
 
     listeners.updateChatBlockList(update);
   }

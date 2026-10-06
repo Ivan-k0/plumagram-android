@@ -332,6 +332,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().bottomGapEnabled(), isUpdate);
         } else if (itemId == R.id.btn_tgx101NotificationPlane) {
           view.getToggler().setRadioEnabled(Settings.instance().useTgx101NotificationPlane(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101HideBlocked) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101HideBlocked(), isUpdate);
         } else if (itemId == R.id.btn_tgx101Filters) {
           int count = org.thunderdog.challegram.data.Tgx101MessageFilters.getRules().size();
           view.setData(count == 0 || !org.thunderdog.challegram.data.Tgx101MessageFilters.isEnabled() ? Lang.getString(R.string.Tgx101FiltersOff) : Integer.toString(count));
@@ -463,6 +465,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_bigEmojiSize, 0, R.string.BigEmojiSize),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Filters, 0, R.string.Tgx101Filters),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideBlocked, 0, R.string.Tgx101HideBlocked),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101StoriesMode, 0, R.string.Tgx101StoriesMode),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -915,7 +919,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       if (flag == Settings.SETTING_FLAG_KEEP_ALIVE_CONNECTION) return 5; // user 2026-10-06: looked for it under «Notifications»
       return 9;
     }
-    if (id == R.id.btn_tgx101Filters || id == R.id.btn_pullToSearch || id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap) return 0;
+    if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked || id == R.id.btn_pullToSearch || id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap) return 0;
     if (id == R.id.btn_tgx101StoriesMode || id == R.id.btn_tgx101StoriesFolders) return 1;
     if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101MenuHidesKeyboard || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101TextEditor || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuOrder
       || id == R.id.btn_tgx101TapMode || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101QuickReply1 || id == R.id.btn_tgx101QuickReply2
@@ -1150,6 +1154,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101LongPressMenu(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101Haptics) {
       Settings.instance().setTgx101Haptics(toggleResult);
+    } else if (id == R.id.btn_tgx101HideBlocked) {
+      Settings.instance().setTgx101HideBlocked(toggleResult);
+      org.thunderdog.challegram.data.Tgx101BlockedSenders.refresh(tdlib, true);
     } else if (id == R.id.btn_tgx101MenuHidesKeyboard) {
       Settings.instance().setTgx101MenuHidesKeyboard(toggleResult);
     } else if (id == R.id.btn_tgx101MenuAtFinger) {

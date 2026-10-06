@@ -3989,6 +3989,11 @@ public class Settings {
     }
   }
 
+  // TGx101 (user 2026-10-06 23:56, like AyuGram): messages from blocked users are not shown
+  private static final String KEY_TGX101_HIDE_BLOCKED = "tgx101_hide_blocked";
+  public boolean tgx101HideBlocked () { return pmc.getBoolean(KEY_TGX101_HIDE_BLOCKED, false); }
+  public void setTgx101HideBlocked (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_BLOCKED, v); }
+
   public boolean tgx101MessageFiltersEnabled () {
     return pmc.getBoolean(KEY_TGX101_MESSAGE_FILTERS_ON, true);
   }

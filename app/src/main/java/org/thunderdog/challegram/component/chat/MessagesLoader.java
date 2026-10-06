@@ -1417,7 +1417,7 @@ public class MessagesLoader implements Client.ResultHandler {
 
     // TGx101: filters with «Hide completely» leave their messages out (a page is never emptied: an empty page means
     // the end of the history to the loader, so then the strips stay)
-    if (messages.length > 0 && org.thunderdog.challegram.data.Tgx101MessageFilters.isEnabled()) {
+    if (messages.length > 0 && org.thunderdog.challegram.data.Tgx101MessageFilters.anyHiding()) {
       int kept = 0;
       boolean[] drop = new boolean[messages.length];
       for (int i = 0; i < messages.length; i++) {
