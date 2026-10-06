@@ -1077,46 +1077,6 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     if (tgx101LastSelStart != tgx101LastSelEnd && selStart == selEnd && tgx101LastSelStart >= 0) {
       org.thunderdog.challegram.Tgx101Diag.mark("input selection collapsed " + tgx101LastSelStart + "-" + tgx101LastSelEnd + " → " + selStart + " (len " + length() + ", lines " + getLineCount() + ")");
     }
-    // TGx101 (user 2026-10-07 00:55 log «ползунок перескакивает в конец»): a soft-wrapped line «ends» at the first offset of
-    // the next one, so dragging the cursor handle to the right edge went 38 → 39 (next line start) → 53 (its end, the end
-    // of the text). Same text, a quick move from a wrap boundary to the end of the next line: stay at the end of this line
-    if (selStart == selEnd && tgx101LastSelStart == tgx101LastSelEnd && getLayout() != null && length() == tgx101LastLength
-      && android.os.SystemClock.uptimeMillis() - tgx101LastCursorAt < 700) {
-      android.text.Layout l = getLayout();
-      int newLine = l.getLineForOffset(Math.min(selStart, length()));
-      int prev = tgx101LastSelStart;
-      if (newLine > 0 && prev == l.getLineStart(newLine) && selStart == l.getLineEnd(newLine) && selStart - prev > 1) {
-        int back = prev > 0 && Character.isWhitespace(getText().charAt(prev - 1)) ? prev - 1 : prev;
-        org.thunderdog.challegram.Tgx101Diag.mark("input cursor: wrap jump " + prev + " → " + selStart + " held at " + back);
-        tgx101LastCursorAt = android.os.SystemClock.uptimeMillis();
-        setSelection(back);
-        return;
-      }
-    }
-    // TGx101 (user's log 2026-10-07 01:13: 24 → 47, 25 → 48 — the finger moving sideways along line 2 slipped onto line 3
-    // for one step): while the cursor handle is dragged, a change of line needs 3 steps in a row on the new line
-    if (selStart == selEnd && tgx101LastSelStart == tgx101LastSelEnd && getLayout() != null && length() == tgx101LastLength
-      && android.os.SystemClock.uptimeMillis() - tgx101LastCursorAt < 1500 && tgx101LastSelStart >= 0 && tgx101LastSelStart <= length()) {
-      android.text.Layout l = getLayout();
-      int oldLine = l.getLineForOffset(tgx101LastSelStart), newLine = l.getLineForOffset(selStart);
-      if (newLine != oldLine && Math.abs(newLine - oldLine) == 1 && Math.abs(selStart - tgx101LastSelStart) > 1) {
-        tgx101LineVotes = tgx101VoteLine == newLine ? tgx101LineVotes + 1 : 1;
-        tgx101VoteLine = newLine;
-        if (tgx101LineVotes < 2) { // one stray step is held; the second in a row goes to the new line
-          int held = l.getOffsetForHorizontal(oldLine, l.getPrimaryHorizontal(selStart));
-          if (held >= l.getLineEnd(oldLine) && oldLine < l.getLineCount() - 1) held = l.getLineEnd(oldLine) - 1; // not onto the next line's start
-          org.thunderdog.challegram.Tgx101Diag.mark("input cursor: line slip " + tgx101LastSelStart + " → " + selStart + " held at " + held + " (" + tgx101LineVotes + "/2)");
-          tgx101LastCursorAt = android.os.SystemClock.uptimeMillis();
-          tgx101Holding = true;
-          setSelection(Math.max(0, Math.min(length(), held)));
-          tgx101Holding = false;
-          return;
-        }
-      } else if (newLine == oldLine && !tgx101Holding && Math.abs(selStart - tgx101LastSelStart) > 0 && tgx101LineVotes > 0
-        && android.os.SystemClock.uptimeMillis() - tgx101LastCursorAt > 250) {
-        tgx101LineVotes = 0; // the finger really stayed on this line for a while
-      }
-    }
     if (selStart == selEnd) {
       tgx101LastCursorAt = android.os.SystemClock.uptimeMillis();
       tgx101LastLength = length();
