@@ -29,6 +29,11 @@ import java.util.List;
 /** TGx101: order of the actions in the compact message menu. "Delete" is always last. */
 public class Tgx101MenuOrderController extends RecyclerViewController<Void> implements View.OnClickListener {
   private SettingsAdapter adapter;
+  private boolean editMedia; // user 2026-10-06: the text menu or the media / files menu is being set up
+
+  private void applyProfile () {
+    Settings.instance().setTgx101MenuMediaProfile(editMedia);
+  }
 
   public Tgx101MenuOrderController (Context context, Tdlib tdlib) {
     super(context, tdlib);
@@ -49,7 +54,10 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     adapter = new SettingsAdapter(this) {
       @Override
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
-        if (item.getId() == R.id.btn_tgx101MenuAction) {
+        applyProfile();
+        if (item.getId() == R.id.btn_tgx101MenuProfile) {
+          view.setData(Lang.getString(editMedia ? R.string.Tgx101MenuProfileMedia : R.string.Tgx101MenuProfileText));
+        } else if (item.getId() == R.id.btn_tgx101MenuAction) {
           int position = (int) item.getLongId();
           int[] order = Tgx101MessageMenu.getOrder();
           boolean hidden = position < order.length && Tgx101MessageMenu.isHidden(order[position]);
@@ -112,9 +120,14 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
   }
 
   private List<ListItem> buildItems () {
+    applyProfile();
     int[] order = Tgx101MessageMenu.getOrder();
     List<ListItem> items = new ArrayList<>();
     items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101MenuProfile, R.drawable.baseline_swap_horiz_24, R.string.Tgx101MenuProfile));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101MenuProfileHint));
     int[] headers = {R.string.Tgx101MenuSectionMenu, R.string.Tgx101MenuSectionMore, R.string.Tgx101MenuSectionHidden};
     for (int section = SECTION_MENU; section <= SECTION_HIDDEN; section++) {
       boolean any = false;
@@ -170,6 +183,12 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
   @Override
   public void onClick (View v) {
     int id = v.getId();
+    applyProfile();
+    if (id == R.id.btn_tgx101MenuProfile) {
+      editMedia = !editMedia;
+      rebuild();
+      return;
+    }
     if (id == R.id.btn_tgx101MenuOrderReset) {
       Settings.instance().setTgx101MessageMenuOrder(null);
       Settings.instance().setTgx101MessageMenuHidden(null);

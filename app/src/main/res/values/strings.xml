@@ -6294,6 +6294,10 @@
   <string name="Tgx101SwipeSaved">Saved to Saved Messages</string>
   <string name="Tgx101Haptics">Vibration of PlumaGram features</string>
   <string name="Tgx101SaveFavorite">To Saved Messages</string>
+  <string name="Tgx101MenuProfile">Menu for</string>
+  <string name="Tgx101MenuProfileText">Text</string>
+  <string name="Tgx101MenuProfileMedia">Photos, videos, files</string>
+  <string name="Tgx101MenuProfileHint">Text messages and media / files have separate menus. Tap to switch which one you set up.</string>
   <string name="Tgx101SelectInPlace">Select text</string>
   <string name="Tgx101MenuSectionMenu">In the menu: 5 to 9 items</string>
   <string name="Tgx101MenuTooMany">The menu holds at most %1$d items — move one to More first</string>

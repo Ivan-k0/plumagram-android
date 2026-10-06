@@ -3116,6 +3116,22 @@ public class Settings {
   private static final String KEY_TGX101_MESSAGE_MENU = "tgx101_message_menu";
   private static final String KEY_TGX101_MESSAGE_MENU_LEFT = "tgx101_message_menu_left";
   private static final String KEY_TGX101_MESSAGE_MENU_ORDER = "tgx101_message_menu_order";
+
+  // TGx101 (user 2026-10-06): separate message menus for text and for media / files — the menu and its settings
+  // screen pick the profile, the order / More / hidden keys get a «_media» suffix for media
+  private boolean tgx101MenuMediaProfile;
+
+  public void setTgx101MenuMediaProfile (boolean media) {
+    this.tgx101MenuMediaProfile = media;
+  }
+
+  public boolean isTgx101MenuMediaProfile () {
+    return tgx101MenuMediaProfile;
+  }
+
+  private String tgx101MenuKey (String key) {
+    return tgx101MenuMediaProfile ? key + "_media" : key;
+  }
   private static final String KEY_TGX101_FORMAT_MENU = "tgx101_format_menu";
 
   /** TGx101: formatting items of the text selection menu in the user's order; hidden ones are negative ids */
@@ -3186,16 +3202,16 @@ public class Settings {
 
   /** null — the default «More…» list (Tgx101MessageMenu.DEFAULT_SHOWN decides, user 2026-10-06); "none" = the user emptied «More…» */
   public @androidx.annotation.Nullable int[] getTgx101MessageMenuMore () {
-    String saved = pmc.getString(KEY_TGX101_MESSAGE_MENU_MORE, null);
+    String saved = pmc.getString(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_MORE), null);
     if (saved == null) {
       return null;
     }
     if (!pmc.getBoolean(KEY_TGX101_MESSAGE_MENU_MORE_REPLIES, false)) {
       // a «More…» list saved before the item existed: the item joins it once
       pmc.putBoolean(KEY_TGX101_MESSAGE_MENU_MORE_REPLIES, true);
-      if (!saved.contains("btn_messageReplies") && !String.valueOf(pmc.getString(KEY_TGX101_MESSAGE_MENU_HIDDEN, "")).contains("btn_messageReplies")) {
+      if (!saved.contains("btn_messageReplies") && !String.valueOf(pmc.getString(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_HIDDEN), "")).contains("btn_messageReplies")) {
         saved = saved.isEmpty() || saved.equals("none") ? "btn_messageReplies" : saved + ",btn_messageReplies";
-        pmc.putString(KEY_TGX101_MESSAGE_MENU_MORE, saved);
+        pmc.putString(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_MORE), saved);
       }
     }
     if (saved.isEmpty() || saved.equals("none")) {
@@ -3215,11 +3231,11 @@ public class Settings {
   public void setTgx101MessageMenuMore (int[] ids) {
     pmc.putBoolean(KEY_TGX101_MESSAGE_MENU_MORE_REPLIES, true);
     if (ids == null) {
-      pmc.remove(KEY_TGX101_MESSAGE_MENU_MORE); // reset: the default list
+      pmc.remove(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_MORE)); // reset: the default list
       return;
     }
     if (ids.length == 0) {
-      pmc.putString(KEY_TGX101_MESSAGE_MENU_MORE, "none");
+      pmc.putString(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_MORE), "none");
       return;
     }
     android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
@@ -3228,12 +3244,12 @@ public class Settings {
       if (b.length() > 0) b.append(',');
       b.append(res.getResourceEntryName(id));
     }
-    pmc.putString(KEY_TGX101_MESSAGE_MENU_MORE, b.toString());
+    pmc.putString(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_MORE), b.toString());
   }
 
   /** TGx101: message menu actions the user hid (resource names stored, like the order) */
   public int[] getTgx101MessageMenuHidden () {
-    String saved = pmc.getString(KEY_TGX101_MESSAGE_MENU_HIDDEN, null);
+    String saved = pmc.getString(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_HIDDEN), null);
     if (saved == null || saved.isEmpty()) {
       return new int[0];
     }
@@ -3250,7 +3266,7 @@ public class Settings {
 
   public void setTgx101MessageMenuHidden (int[] ids) {
     if (ids == null || ids.length == 0) {
-      pmc.remove(KEY_TGX101_MESSAGE_MENU_HIDDEN);
+      pmc.remove(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_HIDDEN));
       return;
     }
     android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
@@ -3259,13 +3275,13 @@ public class Settings {
       if (b.length() > 0) b.append(',');
       b.append(res.getResourceEntryName(id));
     }
-    pmc.putString(KEY_TGX101_MESSAGE_MENU_HIDDEN, b.toString());
+    pmc.putString(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_HIDDEN), b.toString());
   }
 
   /** Resource ids in the saved order; names are stored so the order survives app updates */
   @androidx.annotation.Nullable
   public int[] getTgx101MessageMenuOrder () {
-    String saved = pmc.getString(KEY_TGX101_MESSAGE_MENU_ORDER, null);
+    String saved = pmc.getString(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_ORDER), null);
     if (saved == null || saved.isEmpty()) {
       return null;
     }
@@ -3285,7 +3301,7 @@ public class Settings {
 
   public void setTgx101MessageMenuOrder (@androidx.annotation.Nullable int[] ids) {
     if (ids == null) {
-      pmc.remove(KEY_TGX101_MESSAGE_MENU_ORDER);
+      pmc.remove(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_ORDER));
       return;
     }
     android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
@@ -3294,7 +3310,7 @@ public class Settings {
       if (b.length() > 0) b.append(',');
       b.append(res.getResourceEntryName(id));
     }
-    pmc.putString(KEY_TGX101_MESSAGE_MENU_ORDER, b.toString());
+    pmc.putString(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_ORDER), b.toString());
   }
 
   // TGx101: chat list text size (percent of the stock size) and text weight

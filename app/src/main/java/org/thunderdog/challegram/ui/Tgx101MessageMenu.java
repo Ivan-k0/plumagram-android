@@ -107,6 +107,35 @@ public final class Tgx101MessageMenu {
     R.id.btn_tgx101SaveFavorite, R.id.btn_messageMore, R.id.btn_messageDelete
   };
 
+  /** user 2026-10-06: photos, videos and files have their own menu — «Save» always there, «Copy» / «Select» not */
+  public static final int[] DEFAULT_SHOWN_MEDIA = {
+    R.id.btn_messageReply, R.id.btn_saveFile, R.id.btn_messageShare, R.id.btn_tgx101SaveFavorite, R.id.btn_messageEdit,
+    R.id.btn_messageMore, R.id.btn_messageDelete
+  };
+
+  /** Which menu (and settings) a message uses: media / files, or text */
+  public static boolean isMediaMessage (TGMessage message) {
+    return message instanceof org.thunderdog.challegram.data.TGMessageMedia || message instanceof org.thunderdog.challegram.data.TGMessageFile
+      || message instanceof org.thunderdog.challegram.data.TGMessageVideo;
+  }
+
+  private static int[] defaultShown () {
+    return Settings.instance().isTgx101MenuMediaProfile() ? DEFAULT_SHOWN_MEDIA : DEFAULT_SHOWN;
+  }
+
+  /** The default order of the current profile: its shown items first (More and Delete last), the rest in between */
+  private static int[] defaultOrder () {
+    if (!Settings.instance().isTgx101MenuMediaProfile()) return ORDERABLE_IDS;
+    ArrayList<Integer> result = new ArrayList<>();
+    for (int id : DEFAULT_SHOWN_MEDIA) if (id != R.id.btn_messageMore && id != R.id.btn_messageDelete) result.add(id);
+    for (int id : ORDERABLE_IDS) if (!result.contains(id) && id != R.id.btn_messageMore && id != R.id.btn_messageDelete) result.add(id);
+    result.add(R.id.btn_messageMore);
+    result.add(R.id.btn_messageDelete);
+    int[] out = new int[result.size()];
+    for (int i = 0; i < out.length; i++) out[i] = result.get(i);
+    return out;
+  }
+
   /** Can't be hidden (they can still be moved, and «Select text» can go under «More…») */
   public static boolean canHide (int id) {
     return id != R.id.btn_tgx101SelectInPlace && id != R.id.btn_messageMore;
@@ -123,7 +152,7 @@ public final class Tgx101MessageMenu {
     ArrayList<Integer> result = new ArrayList<>();
     for (int id : ORDERABLE_IDS) {
       boolean shown = false;
-      for (int s : DEFAULT_SHOWN) if (s == id) shown = true;
+      for (int s : defaultShown()) if (s == id) shown = true;
       if (!shown) result.add(id);
     }
     int[] out = new int[result.size()];
@@ -149,7 +178,7 @@ public final class Tgx101MessageMenu {
       }
     }
     // actions added in later versions go above «Delete» (where the default order has them), not under it
-    for (int known : ORDERABLE_IDS) {
+    for (int known : defaultOrder()) {
       if (!result.contains(known)) {
         int deleteAt = result.indexOf(R.id.btn_messageDelete);
         if (deleteAt != -1 && known != R.id.btn_messageDelete) {
@@ -359,6 +388,7 @@ public final class Tgx101MessageMenu {
                                   boolean readDatePending, @Nullable MoreLoader moreLoader, Runnable onExpandReactions, Runnable onDismissPrepare, Runnable onDismiss) {
     Context context = c.context();
     tgx101LogTextShape(message);
+    Settings.instance().setTgx101MenuMediaProfile(isMediaMessage(message)); // text and media have separate menus
     Host host = new Host();
     host.moreLoader = moreLoader;
     PopupLayout popup = new PopupLayout(context);
