@@ -6312,6 +6312,7 @@
   <string name="Tgx101SyncContactsDone">Contacts are being synced</string>
   <string name="Tgx101WsProxy">Connect through WebSocket (like Telegram Web)</string>
   <string name="Tgx101WsProxyHint">Telegram traffic goes the way the web version connects. Can help where Telegram is slowed down. Adds the «WebSocket» proxy and turns it on.</string>
+  <string name="Tgx101WsProxyOn">WebSocket connection is on</string>
   <string name="Tgx101WsProxyName">WebSocket (Telegram Web)</string>
   <string name="Tgx101MenuHidesKeyboard">Close the keyboard when the message menu does not fit</string>
   <string name="Tgx101CapsuleMenu">Hold «Settings» menu</string>

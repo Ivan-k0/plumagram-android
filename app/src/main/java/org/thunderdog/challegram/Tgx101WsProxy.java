@@ -42,6 +42,33 @@ public final class Tgx101WsProxy {
     return server != null && !server.isClosed();
   }
 
+  /** The switch on the «Proxy» screen: adds «WebSocket (Telegram Web)» and turns it on, or turns it off */
+  public static void setEnabled (boolean enabled) {
+    org.thunderdog.challegram.unsorted.Settings settings = org.thunderdog.challegram.unsorted.Settings.instance();
+    settings.setTgx101WsProxy(enabled);
+    org.drinkless.tdlib.TdApi.Proxy ws = new org.drinkless.tdlib.TdApi.Proxy(HOST, PORT, new org.drinkless.tdlib.TdApi.ProxyTypeSocks5("", ""));
+    if (enabled) {
+      start();
+      settings.addOrUpdateProxy(ws, org.thunderdog.challegram.core.Lang.getString(R.string.Tgx101WsProxyName), true);
+    } else {
+      int current = settings.getEffectiveProxyId();
+      org.thunderdog.challegram.unsorted.Settings.Proxy p = current != org.thunderdog.challegram.unsorted.Settings.PROXY_ID_NONE ? settings.getProxyConfig(current) : null;
+      if (p != null && p.proxy != null && HOST.equals(p.proxy.server) && p.proxy.port == PORT) {
+        settings.disableProxy();
+      }
+      stop();
+    }
+  }
+
+  /** Never throws: the setting can't be read this early on some starts */
+  public static void startIfEnabled () {
+    try {
+      if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101WsProxy()) start();
+    } catch (Throwable t) {
+      android.util.Log.w("tgx", "ws proxy start", t);
+    }
+  }
+
   public static synchronized void start () {
     if (isRunning()) return;
     try {

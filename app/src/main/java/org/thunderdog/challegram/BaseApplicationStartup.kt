@@ -38,10 +38,6 @@ object BaseApplicationStartup {
 
     // TGx101: OpenStreetMap tiles require an identifying user agent
     org.osmdroid.config.Configuration.getInstance().userAgentValue = application.packageName
-    // TGx101: the local WebSocket proxy for TDLib (MagiX → «Data and network»)
-    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101WsProxy()) {
-      org.thunderdog.challegram.Tgx101WsProxy.start()
-    }
 
     PushManagerBridge.initialize(
       scope,
@@ -71,6 +67,10 @@ object BaseApplicationStartup {
       if (deviceTokenRetriever !is FirebaseDeviceTokenRetriever) {
         FirebaseMessaging.getInstance().isAutoInitEnabled = false
       }
+    }
+    // TGx101: the local WebSocket proxy for TDLib (MagiX → «Data and network»), once startup is done
+    android.os.Handler(android.os.Looper.getMainLooper()).post {
+      org.thunderdog.challegram.Tgx101WsProxy.startIfEnabled()
     }
   }
 }

@@ -456,7 +456,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SyncContacts, "Синхронизировать контакты");
     RU.put(R.string.Tgx101SyncContactsDone, "Контакты синхронизируются");
     RU.put(R.string.Tgx101WsProxy, "Подключение через WebSocket (как веб-Telegram)");
-    RU.put(R.string.Tgx101WsProxyHint, "Трафик Telegram идёт так же, как у веб-версии. Может помочь там, где Telegram замедляют. Добавляет прокси «WebSocket» и включает его.");
+    RU.put(R.string.Tgx101WsProxyHint, "Трафик Telegram идёт так же, как у веб-версии. Может помочь там, где Telegram замедляют. Включает прокси «WebSocket (веб-Telegram)» в списке ниже.");
+    RU.put(R.string.Tgx101WsProxyOn, "Подключение через WebSocket включено");
     RU.put(R.string.Tgx101WsProxyName, "WebSocket (веб-Telegram)");
     RU.put(R.string.Tgx101MenuHidesKeyboard, "Закрывать клавиатуру, если меню сообщения не помещается");
     RU.put(R.string.Tgx101CapsuleMenu, "Меню удержания «Настроек»");

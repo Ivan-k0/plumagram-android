@@ -4751,8 +4751,15 @@ public class TdlibUi extends Handler {
     ids.append(R.id.btn_pasteProxies);
     strings.append(R.string.ProxyPaste);
 
+    // TGx101 (4PDA request): Telegram through WebSocket like the web version
+    ids.append(R.id.btn_tgx101WsProxy);
+    strings.append(R.string.Tgx101WsProxy);
+
     OptionDelegate callback = (itemView, id) -> {
-      if (id == R.id.btn_pasteProxies) {
+      if (id == R.id.btn_tgx101WsProxy) {
+        org.thunderdog.challegram.Tgx101WsProxy.setEnabled(true);
+        UI.showToast(R.string.Tgx101WsProxyOn, android.widget.Toast.LENGTH_SHORT);
+      } else if (id == R.id.btn_pasteProxies) {
         org.thunderdog.challegram.ui.Tgx101Proxies.pasteFromClipboard(c);
       } else if (id == R.id.btn_proxySocks5) {
         EditProxyController e = new EditProxyController(context.context(), context.tdlib());

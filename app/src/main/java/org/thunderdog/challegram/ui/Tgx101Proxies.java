@@ -321,6 +321,7 @@ public final class Tgx101Proxies {
   };
 
   public static void onAppResumed () {
+    org.thunderdog.challegram.Tgx101WsProxy.startIfEnabled(); // TGx101: WebSocket connection, if on
     UI.removePendingRunnable(periodicCheck);
     if (!shouldReturnDirect()) {
       return;

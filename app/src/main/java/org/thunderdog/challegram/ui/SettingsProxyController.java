@@ -467,6 +467,11 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_addProxy, 0, R.string.ProxyAdd)); // TODO design: icon
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.ProxyInfo));
+    // TGx101 (4PDA request): Telegram through WebSocket like the web version
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101WsProxy, 0, R.string.Tgx101WsProxy));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101WsProxyHint));
 
     hasProxyAutoSwitchSettings = !proxies.isEmpty();
     if (hasProxyAutoSwitchSettings) {
@@ -493,7 +498,9 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
       @Override
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
         final int itemId = item.getId();
-        if (itemId == R.id.btn_proxyAutoSwitch) {
+        if (itemId == R.id.btn_tgx101WsProxy) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101WsProxy(), isUpdate);
+        } else if (itemId == R.id.btn_proxyAutoSwitch) {
           view.getToggler().setRadioEnabled(Settings.instance().checkProxySetting(Settings.PROXY_FLAG_SWITCH_AUTOMATICALLY), isUpdate);
         } else if (itemId == R.id.btn_hideProxySponsor) {
           view.getToggler().setRadioEnabled(Settings.instance().hideProxySponsor(), isUpdate);
@@ -646,6 +653,8 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
       Settings.instance().setHideProxySponsor(adapter.toggleView(v));
     } else if (viewId == R.id.btn_proxyReturnDirect) {
       Settings.instance().setProxySetting(Tgx101Proxies.PROXY_FLAG_RETURN_DIRECT, adapter.toggleView(v));
+    } else if (viewId == R.id.btn_tgx101WsProxy) {
+      org.thunderdog.challegram.Tgx101WsProxy.setEnabled(adapter.toggleView(v));
     } else if (viewId == R.id.btn_addProxy) {
       tdlib.ui().addNewProxy(this, false);
     } else if (viewId == R.id.btn_proxy) {
