@@ -105,7 +105,7 @@ public class Tgx101NavCapsule extends View {
     if (scrollHide == to) return;
     if (hide && menuIds != null) return; // not while its menu is open
     scrollAnimator = ValueAnimator.ofFloat(scrollHide, to);
-    scrollAnimator.setDuration(hide ? 180 : 220); // same pace as ✎ (it hides in 180 ms)
+    scrollAnimator.setDuration(180); // user 2026-10-06 22:1x: comes back as fast as it hides
     scrollAnimator.setInterpolator(new DecelerateInterpolator());
     scrollAnimator.addUpdateListener(a -> {
       scrollHide = (float) a.getAnimatedValue();

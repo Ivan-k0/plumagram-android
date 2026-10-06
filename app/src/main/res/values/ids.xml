@@ -1573,6 +1573,7 @@
   <item name="btn_tgx101NavCapsule" type="id"/>
   <item name="btn_tgx101CapsuleMenu" type="id"/>
   <item name="btn_tgx101MenuHidesKeyboard" type="id"/>
+  <item name="btn_tgx101WsProxy" type="id"/>
   <item name="btn_tgx101ContactsMenu" type="id"/>
   <item name="btn_tgx101QuickCalls" type="id"/>
   <item name="btn_tgx101RearRounds" type="id"/>

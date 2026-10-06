@@ -38,6 +38,10 @@ object BaseApplicationStartup {
 
     // TGx101: OpenStreetMap tiles require an identifying user agent
     org.osmdroid.config.Configuration.getInstance().userAgentValue = application.packageName
+    // TGx101: the local WebSocket proxy for TDLib (MagiX → «Data and network»)
+    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101WsProxy()) {
+      org.thunderdog.challegram.Tgx101WsProxy.start()
+    }
 
     PushManagerBridge.initialize(
       scope,

@@ -308,6 +308,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().useNewCallScreen(), isUpdate);
         } else if (quickReplyIndex(itemId) != -1) {
           view.setData(Settings.instance().getQuickReply(quickReplyIndex(itemId)));
+        } else if (itemId == R.id.btn_tgx101WsProxy) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101WsProxy(), isUpdate);
         } else if (itemId == R.id.btn_tgx101TranslateOnDevice) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101TranslateOnDevice(), isUpdate);
         } else if (itemId == R.id.btn_tgx101SpeechModel) {
@@ -501,6 +503,11 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NotificationPlane, 0, R.string.Tgx101NotificationPlane),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.PullToSearchHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101WsProxy, 0, R.string.Tgx101WsProxy),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101WsProxyHint),
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101TranslateSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
@@ -1150,6 +1157,20 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101LongPressMenu(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101Haptics) {
       Settings.instance().setTgx101Haptics(toggleResult);
+    } else if (id == R.id.btn_tgx101WsProxy) {
+      Settings.instance().setTgx101WsProxy(toggleResult);
+      TdApi.Proxy ws = new TdApi.Proxy(org.thunderdog.challegram.Tgx101WsProxy.HOST, org.thunderdog.challegram.Tgx101WsProxy.PORT, new TdApi.ProxyTypeSocks5("", ""));
+      if (toggleResult) {
+        org.thunderdog.challegram.Tgx101WsProxy.start();
+        Settings.instance().addOrUpdateProxy(ws, Lang.getString(R.string.Tgx101WsProxyName), true);
+      } else {
+        int current = Settings.instance().getEffectiveProxyId();
+        Settings.Proxy p = current != Settings.PROXY_ID_NONE ? Settings.instance().getProxyConfig(current) : null;
+        if (p != null && p.proxy != null && org.thunderdog.challegram.Tgx101WsProxy.HOST.equals(p.proxy.server) && p.proxy.port == org.thunderdog.challegram.Tgx101WsProxy.PORT) {
+          Settings.instance().disableProxy();
+        }
+        org.thunderdog.challegram.Tgx101WsProxy.stop();
+      }
     } else if (id == R.id.btn_tgx101MenuHidesKeyboard) {
       Settings.instance().setTgx101MenuHidesKeyboard(toggleResult);
     } else if (id == R.id.btn_tgx101MenuAtFinger) {

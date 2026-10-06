@@ -3538,6 +3538,11 @@ public class Settings {
   private static final String KEY_TGX101_NAV_CAPSULE = "tgx101_nav_capsule";
   public boolean tgx101NavCapsule () { return pmc.getBoolean(KEY_TGX101_NAV_CAPSULE, true); }
   public void setTgx101NavCapsule (boolean v) { pmc.putBoolean(KEY_TGX101_NAV_CAPSULE, v); }
+  // TGx101 (4PDA request, user 2026-10-06 «делай вебсокет»): Telegram through WebSocket like the web version
+  private static final String KEY_TGX101_WS_PROXY = "tgx101_ws_proxy";
+  public boolean tgx101WsProxy () { return pmc.getBoolean(KEY_TGX101_WS_PROXY, false); }
+  public void setTgx101WsProxy (boolean v) { pmc.putBoolean(KEY_TGX101_WS_PROXY, v); }
+
   private static final String KEY_TGX101_CAPSULE_COLLAPSED = "tgx101_capsule_collapsed";
   public boolean tgx101CapsuleCollapsed () { return pmc.getBoolean(KEY_TGX101_CAPSULE_COLLAPSED, false); }
   public void setTgx101CapsuleCollapsed (boolean v) { pmc.putBoolean(KEY_TGX101_CAPSULE_COLLAPSED, v); }

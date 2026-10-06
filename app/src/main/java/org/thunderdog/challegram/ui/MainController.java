@@ -1077,7 +1077,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       return;
     }
     tgx101CapsuleFade = android.animation.ValueAnimator.ofFloat(tgx101Capsule.getAlpha(), to);
-    tgx101CapsuleFade.setDuration(show ? 240 : 180); // user 2026-10-06: softer than a blink
+    tgx101CapsuleFade.setDuration(180); // user 2026-10-06: appears as fast as it hides
     tgx101CapsuleFade.setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f));
     tgx101CapsuleFade.addUpdateListener(a -> {
       float f = (float) a.getAnimatedValue();
