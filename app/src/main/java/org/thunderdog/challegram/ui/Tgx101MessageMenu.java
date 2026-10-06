@@ -161,6 +161,7 @@ public final class Tgx101MessageMenu {
   }
 
   private static int orderKey (int id) {
+    if (id == R.id.btn_tgx101DownloadSave) return R.id.btn_saveFile; // «Save» before the file is downloaded
     return id == R.id.btn_messageUnpin ? R.id.btn_messagePin : id;
   }
 

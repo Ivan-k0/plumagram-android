@@ -1566,6 +1566,7 @@
   <item name="btn_tgx101SaveFavorite" type="id"/>
   <item name="btn_tgx101SelectInPlace" type="id"/>
   <item name="btn_tgx101MenuProfile" type="id"/>
+  <item name="btn_tgx101DownloadSave" type="id"/>
   <item name="btn_tgx101MenuSelectFixed" type="id"/>
   <item name="btn_tgx101SwipeActions" type="id"/>
   <item name="btn_tgx101ProxyPin" type="id"/>

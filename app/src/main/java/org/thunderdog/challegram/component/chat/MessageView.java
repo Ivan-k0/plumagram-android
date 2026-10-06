@@ -1042,6 +1042,13 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
           }
         }
       }
+      if (downloadedFiles.isEmpty() && msg.canBeSaved() && Tgx101MessageMenuHelper.hasSavableFile(allMessages)) {
+        // TGx101 (user 2026-10-06): «Save» is always there for photos / videos / files — not downloaded yet, it
+        // downloads first and then saves
+        ids.append(R.id.btn_tgx101DownloadSave);
+        strings.append(R.string.Save);
+        icons.append(R.drawable.baseline_file_download_24);
+      }
       if (!downloadedFiles.isEmpty()) {
         tag = downloadedFiles;
 
@@ -1800,5 +1807,22 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       }
     }
     return false;
+  }
+
+  /** TGx101: helpers for the message menu */
+  static final class Tgx101MessageMenuHelper {
+    static boolean hasSavableFile (TdApi.Message[] messages) {
+      for (TdApi.Message message : messages) {
+        switch (message.content.getConstructor()) {
+          case TdApi.MessagePhoto.CONSTRUCTOR:
+          case TdApi.MessageVideo.CONSTRUCTOR:
+          case TdApi.MessageAnimation.CONSTRUCTOR:
+          case TdApi.MessageDocument.CONSTRUCTOR:
+          case TdApi.MessageAudio.CONSTRUCTOR:
+            if (TD.getFile(message) != null) return true;
+        }
+      }
+      return false;
+    }
   }
 }

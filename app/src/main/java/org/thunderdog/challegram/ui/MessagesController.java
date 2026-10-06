@@ -6392,6 +6392,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
         TdApi.MessageProperties properties = selectedMessage.lastMessageProperties(editingMessage.id);
         editMessage(new MessageWithProperties(editingMessage, properties));
         return true;
+      } else if (id == R.id.btn_tgx101DownloadSave) {
+        tgx101DownloadAndSave(selectedMessage);
+        return true;
       } else if (id == R.id.btn_tgx101SelectInPlace) {
         View view = selectedMessage.findCurrentView();
         if (view instanceof org.thunderdog.challegram.component.chat.MessageView) {
@@ -8739,6 +8742,43 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
       return true;
     });
+  }
+
+  // TGx101 (user 2026-10-06): «Save» on a photo / video / file that isn't downloaded yet — download, then save as usual
+  private void tgx101DownloadAndSave (TGMessage message) {
+    TdApi.Message[] all = message.getAllMessages();
+    java.util.List<Integer> fileIds = new java.util.ArrayList<>();
+    for (TdApi.Message m : all) {
+      TdApi.File file = TD.getFile(m);
+      if (file != null) fileIds.add(file.id);
+    }
+    if (fileIds.isEmpty()) return;
+    UI.showToast(R.string.Tgx101Downloading, android.widget.Toast.LENGTH_SHORT);
+    final long chatId = message.getChatId();
+    final long[] messageIds = new long[all.length];
+    for (int i = 0; i < all.length; i++) messageIds[i] = all[i].id;
+    final java.util.concurrent.atomic.AtomicInteger left = new java.util.concurrent.atomic.AtomicInteger(fileIds.size());
+    final java.util.concurrent.atomic.AtomicBoolean failed = new java.util.concurrent.atomic.AtomicBoolean();
+    for (int fileId : fileIds) {
+      tdlib.send(new TdApi.DownloadFile(fileId, 32, 0, 0, true), (file, error) -> {
+        if (error != null || file == null || !file.local.isDownloadingCompleted) failed.set(true);
+        if (left.decrementAndGet() > 0) return;
+        if (failed.get()) {
+          UI.showToast(R.string.Tgx101DownloadFailed, android.widget.Toast.LENGTH_SHORT);
+          return;
+        }
+        // fresh copies of the messages carry the downloaded files
+        tdlib.send(new TdApi.GetMessages(chatId, messageIds), (messages, error2) -> {
+          if (messages == null) return;
+          java.util.List<TdApi.Message> list = new java.util.ArrayList<>();
+          for (TdApi.Message m : messages.messages) if (m != null) list.add(m);
+          java.util.List<TD.DownloadedFile> files = TD.getDownloadedFiles(tdlib, list.toArray(new TdApi.Message[0]));
+          runOnUiThreadOptional(() -> {
+            if (!files.isEmpty()) TD.saveFiles(context(), files);
+          });
+        });
+      });
+    }
   }
 
   // TGx101: «More…» items for the compact menu, shown inside it (the screen behind stays dimmed, no second window)
