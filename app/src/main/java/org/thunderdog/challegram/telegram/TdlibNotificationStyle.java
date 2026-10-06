@@ -669,10 +669,11 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
       }
       if (replyAction != null)
         builder.addAction(replyAction);
-      if (readAction != null)
-        builder.addAction(readAction);
+      // TGx101 (user 2026-10-06): «Quiet» before «Mark as read»
       if (tgx101SnoozeAction != null)
         builder.addAction(tgx101SnoozeAction);
+      if (readAction != null)
+        builder.addAction(readAction);
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       builder.extend(new NotificationCompat.CarExtender());
