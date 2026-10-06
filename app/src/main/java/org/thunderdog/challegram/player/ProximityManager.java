@@ -229,6 +229,7 @@ public class ProximityManager implements Settings.RaiseToSpeakListener, SensorEv
   }
 
   private boolean unregisterProximitySensor () {
+    isNearToProximitySensor = false; // TGx101: a fresh value comes with the next registration
     SensorManager manager = (SensorManager) UI.getContext().getSystemService(Context.SENSOR_SERVICE);
     if (manager == null)
       return false;
@@ -280,7 +281,11 @@ public class ProximityManager implements Settings.RaiseToSpeakListener, SensorEv
       return;
     if (e.sensor == proximitySensor) {
       float value = e.values[0];
-      boolean isNearToSensor = playbackObject != null && value < 5.0f && value < proximitySensor.getMaximumRange();
+      // TGx101 (Vivo log 2026-10-06 10:26): raising the phone flips the orientation, the sensor is re-registered and
+      // its first value («0» = near) came while the player was briefly not set — it was stored as «far», and the sensor
+      // sends nothing new while the distance stays the same, so the voice message stayed on the loud speaker.
+      // Keep the distance itself; whether something plays is checked when choosing the earpiece
+      boolean isNearToSensor = value < 5.0f && value < proximitySensor.getMaximumRange();
       if (this.isNearToProximitySensor != isNearToSensor) {
         org.thunderdog.challegram.Tgx101Diag.mark("proximity: " + (isNearToSensor ? "near" : "far") + " value " + value + " max " + proximitySensor.getMaximumRange());
         this.isNearToProximitySensor = isNearToSensor;
