@@ -1038,6 +1038,8 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       tgx101Switching = false;
       tgx101Capsule.setSelectedTab(tab, false);
       tgx101ApplyCapsulePadding(tab);
+      // ✎ belongs to the chats only — it showed through under Contacts / Calls / Settings
+      tgx101SetFabHidden(tab != Tgx101NavCapsule.TAB_CHATS);
       tgx101ShowCapsule(!inSearchMode() || tab != Tgx101NavCapsule.TAB_CHATS);
       // the previous tab screen (under this one) is no longer needed
       NavigationController navigation = context().navigation();
@@ -1091,8 +1093,21 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     tgx101CapsuleFade.start();
   }
 
+  // user 2026-10-06 (Xiaomi): «звонки спускаются вниз» — this screen gets the navigation bar inset only while it is shown,
+  // so the capsule keeps the last one it saw on every tab
+  private int tgx101NavInset;
+  private boolean tgx101FabHidden;
+
+  private void tgx101SetFabHidden (boolean hide) {
+    if (composeWrap == null || tgx101FabHidden == hide)
+      return;
+    tgx101FabHidden = hide;
+    if (hide) composeWrap.hide(); else if (!inSearchMode()) composeWrap.show();
+  }
+
   private void tgx101ApplyCapsulePadding (int tab) {
-    int capsulePadding = (tab == Tgx101NavCapsule.TAB_CHATS && displayTabsAtBottom() ? getHeaderHeight() : 0) + extraBottomInsetWithoutIme;
+    if (extraBottomInsetWithoutIme > 0) tgx101NavInset = extraBottomInsetWithoutIme;
+    int capsulePadding = (tab == Tgx101NavCapsule.TAB_CHATS && displayTabsAtBottom() ? getHeaderHeight() : 0) + tgx101NavInset;
     if (tgx101Capsule.getPaddingBottom() != capsulePadding) {
       tgx101Capsule.setPadding(0, 0, 0, capsulePadding);
       tgx101Capsule.invalidate();
@@ -1288,6 +1303,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     }
     tgx101Capsule.setSelectedTab(tab, true);
     tgx101Switching = true;
+    if (tab != Tgx101NavCapsule.TAB_CHATS) tgx101SetFabHidden(true);
     if (tab == Tgx101NavCapsule.TAB_CHATS) {
       tgx101ApplyCapsulePadding(tab);
       navigation.navigateBack();
