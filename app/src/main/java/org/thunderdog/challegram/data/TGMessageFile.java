@@ -640,6 +640,15 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
       }
       int contentStartY = Math.round(rectF.top + entry.getSpacingStart());
       entry.item.component.draw(view, c, startX, contentStartY, previewReceiver, imageReceiver, backgroundColor, useBubbles() ? ColorUtils.compositeColor(contentReplaceColor, pressColor) : contentReplaceColor, entry.getVisibility(), entry.item.getCheckFactor());
+      if (entry.item.component.isDocument() && tgx101HasMenuDots()) {
+        // TGx101: ⋮ in the top right corner of the card — a finger-sized area around it opens the message menu
+        float dotsX = startX + getContentWidth() - Screen.dp(4f);
+        float dotsY = contentStartY + Screen.dp(8f);
+        Paint dotPaint = Paints.fillingPaint(ColorUtils.alphaColor(entry.getVisibility() * alpha, getDecentColor()));
+        for (int d = 0; d < 3; d++) {
+          c.drawCircle(dotsX, dotsY + Screen.dp(5f) * d, Screen.dp(1.6f), dotPaint);
+        }
+      }
       for (ListAnimator.Entry<TextWrapper> caption : entry.item.caption) {
         int right = useBubbles() ? startX + getContentWidth() : startX + Math.max(entry.item.component.getWidth(), caption.item.getWidth());
         caption.item.draw(c, startX, right, 0, contentStartY + entry.item.component.getHeight() + Screen.dp(TEXT_MARGIN), null, entry.getVisibility() * caption.getVisibility() * alpha, view.getTextMediaReceiver());
@@ -778,22 +787,27 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
 
   // Touch
 
-  @Override
-  protected boolean tgx101HasSideMenuDot () {
-    return !filesList.isEmpty() && filesList.get(0).component.isDocument();
-  }
 
   private boolean tgx101MenuZoneTouch;
 
-  /** TGx101: no menu zone on the card any more (user 2026-10-06) — the menu is the «⋯» beside the bubble */
-  private boolean isInMenuZone (float x) {
-    return false;
+  /** TGx101 (user 2026-10-06): ⋮ on document cards in the normal mode (the iOS long-press mode uses the long press) */
+  private boolean tgx101HasMenuDots () {
+    return !org.thunderdog.challegram.unsorted.Settings.instance().tgx101LongPressMenu();
+  }
+
+  /** TGx101: a finger-sized area around the ⋮ (top right of the first card) opens the message menu, the rest opens the file */
+  private boolean isInMenuZone (float x, float y) {
+    if (filesList.isEmpty() || !filesList.get(0).component.isDocument() || !tgx101HasMenuDots()) return false;
+    int zone = Screen.dp(48f);
+    int right = getContentX() + getContentWidth() + Screen.dp(12f);
+    int top = getContentY();
+    return x >= right - zone - Screen.dp(12f) && x <= right && y >= top - Screen.dp(8f) && y <= top + zone;
   }
 
   @Override
   public boolean onTouchEvent (MessageView view, MotionEvent e) {
     if (e.getAction() == MotionEvent.ACTION_DOWN) {
-      tgx101MenuZoneTouch = isInMenuZone(e.getX());
+      tgx101MenuZoneTouch = isInMenuZone(e.getX(), e.getY());
     }
     if (tgx101MenuZoneTouch) {
       boolean menuRes = super.onTouchEvent(view, e);

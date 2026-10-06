@@ -637,11 +637,9 @@ public class TGMessageMedia extends TGMessage {
       mosaicWrapper.tgx101DrawItemHighlight(c, tgx101HighlightedChildId(), tgx101ItemFlashColor()); // TGx101: only that album item flashes
     }
     if (tgx101HasMenuZone()) {
-      // ⋮ on a soft dark pill in the top corner of the photo / video: right for own messages, left for incoming
-      // ones (user 2026-10-05: the right side of a left photo is under the thumb)
-      float dotsX = tgx101MenuLeft() ? startX + Screen.dp(14f) : startX + mosaicWrapper.getWidth() - Screen.dp(14f);
-      // incoming: bottom left — the top left corner holds the video's duration / download badge
-      float dotsY = tgx101MenuLeft() ? startY + mosaicWrapper.getHeight() - Screen.dp(28f) : startY + Screen.dp(12f);
+      // ⋮ on a soft dark pill in the top right corner of the photo / video, own and incoming alike (user 2026-10-06)
+      float dotsX = startX + mosaicWrapper.getWidth() - Screen.dp(14f);
+      float dotsY = startY + Screen.dp(12f);
       RectF pill = Paints.getRectF();
       pill.set(dotsX - Screen.dp(8f), dotsY - Screen.dp(6f), dotsX + Screen.dp(8f), dotsY + Screen.dp(16f));
       c.drawRoundRect(pill, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(0x55000000));
@@ -898,14 +896,11 @@ public class TGMessageMedia extends TGMessage {
     int cellRight = cellLeft + mosaicWrapper.getWidth();
     int cellBottom = cellTop + mosaicWrapper.getHeight();
 
-    // TGx101 (user 2026-10-04): like documents — the right quarter of a single photo / video (with ⋮) opens the
-    // message menu instead of the viewer
+    // TGx101 (user 2026-10-06): a finger-sized area around the ⋮ in the top right corner opens the message menu;
+    // the rest of the photo / video opens it
     if (e.getAction() == MotionEvent.ACTION_DOWN) {
-      float zoneWidth = (cellRight - cellLeft) * .25f;
-      boolean inZone = tgx101MenuLeft() ? e.getX() >= cellLeft && e.getX() <= cellLeft + zoneWidth : e.getX() >= cellRight - zoneWidth && e.getX() <= cellRight;
-      // the top of the left zone stays with the video's download / duration badge (user's video 2026-10-05)
-      int zoneTop = tgx101MenuLeft() ? cellTop + Screen.dp(52f) : cellTop;
-      tgx101MenuZoneTouch = tgx101HasMenuZone() && inZone && e.getY() >= zoneTop && e.getY() <= cellBottom;
+      int zone = Screen.dp(48f);
+      tgx101MenuZoneTouch = tgx101HasMenuZone() && e.getX() >= cellRight - zone && e.getX() <= cellRight && e.getY() >= cellTop && e.getY() <= cellTop + zone;
     }
     if (tgx101MenuZoneTouch) {
       if (e.getAction() == MotionEvent.ACTION_UP || e.getAction() == MotionEvent.ACTION_CANCEL) {
@@ -970,20 +965,11 @@ public class TGMessageMedia extends TGMessage {
     return mosaicWrapper != null ? mosaicWrapper.tgx101ItemVerticalBounds(messageId) : null;
   }
 
-  /** Incoming photos (on the left) keep ⋮ and the menu quarter on their left side */
-  private boolean tgx101MenuLeft () {
-    return !isOutgoingBubble();
-  }
-
-  // user 2026-10-06: no ⋮ / menu quarter on the photo any more — the whole photo opens it, the menu is the «⋯» beside
-  // the bubble (normal mode) or a long press (iOS mode)
+  // user 2026-10-06: ⋮ in the top right corner of a single photo / video (normal mode); in the iOS long-press mode
+  // the long press is the menu and the whole photo opens it
   private boolean tgx101HasMenuZone () {
-    return false;
-  }
-
-  @Override
-  protected boolean tgx101HasSideMenuDot () {
-    return useBubbles() && mosaicWrapper != null && !isHot() && !isSponsoredMessage(); // albums too
+    return !org.thunderdog.challegram.unsorted.Settings.instance().tgx101LongPressMenu() && useBubbles() && mosaicWrapper != null
+      && mosaicWrapper.getSingularItem() != null && !isHot() && !isSponsoredMessage();
   }
 
   @Override
