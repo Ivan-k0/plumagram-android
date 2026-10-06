@@ -23,7 +23,7 @@ import me.vkryl.core.ColorUtils;
 
 /**
  * TGx101: floating bottom navigation capsule over the chat list (mockup «Капсула», variant B without labels):
- * white ~92 % capsule with a soft shadow, the selected tab sits on a tinted «pill» that slides to the tapped tab.
+ * white ~92 % capsule with a soft shadow; the selected icon lights up, a line under it slides along the bottom edge (animation variant A).
  */
 public class Tgx101NavCapsule extends View {
   public static final int TAB_CHATS = 0, TAB_CONTACTS = 1, TAB_CALLS = 2, TAB_SETTINGS = 3;
@@ -47,6 +47,11 @@ public class Tgx101NavCapsule extends View {
   private final Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final RectF rect = new RectF();
+  private final android.graphics.Path outline = new android.graphics.Path(), line = new android.graphics.Path();
+  private final android.graphics.PathMeasure outlineMeasure = new android.graphics.PathMeasure();
+  private final Paint linePaint = new Paint(Paint.ANTI_ALIAS_FLAG), glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+  private int popTab = -1;
+  private float popFactor;
   private Callback callback;
   private float selected = TAB_CHATS; // animated position of the pill
   private ValueAnimator animator;
@@ -64,6 +69,8 @@ public class Tgx101NavCapsule extends View {
     for (int i = 0; i < ICONS.length; i++) {
       icons[i] = Drawables.get(getResources(), ICONS[i]);
     }
+    linePaint.setStyle(Paint.Style.STROKE);
+    linePaint.setStrokeCap(Paint.Cap.ROUND);
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
       setLayerType(LAYER_TYPE_SOFTWARE, null); // setShadowLayer on older Android
     }
@@ -105,14 +112,19 @@ public class Tgx101NavCapsule extends View {
     }
     if (!animated) {
       selected = tab;
+      popTab = -1;
       invalidate();
       return;
     }
-    animator = ValueAnimator.ofFloat(selected, tab);
-    animator.setDuration(180);
-    animator.setInterpolator(new DecelerateInterpolator());
+    final float from = selected;
+    popTab = tab;
+    animator = ValueAnimator.ofFloat(0f, 1f);
+    animator.setDuration(380);
     animator.addUpdateListener(a -> {
-      selected = (float) a.getAnimatedValue();
+      float t = (float) a.getAnimatedValue();
+      float e = 1f - (float) Math.pow(1f - Math.min(1f, t / .9f), 3); // ease-out cubic
+      selected = from + (tab - from) * e;
+      popFactor = Math.min(1f, t * 1.2f);
       invalidate();
     });
     animator.start();
@@ -318,21 +330,51 @@ public class Tgx101NavCapsule extends View {
     shadowPaint.setShadowLayer(Screen.dp(10f), 0, Screen.dp(3f), ColorUtils.alphaColor(dark ? .5f : .18f, 0xff000000));
     c.drawRoundRect(rect, r, r, shadowPaint);
 
-    // the pill behind the selected tab
+    // variant A (user 2026-10-06 «нижнее меню первый вариант»): the selected icon lights up in the accent colour with a soft
+    // shadow and a small hop; a line along the bottom edge slides under it and rounds the corner at the edge tabs
     int active = Theme.getColor(ColorId.iconActive);
-    float cx = tabCenterX(selected);
-    float pw = Math.min(tabWidth() - Screen.dp(8f), Screen.dp(64f)) / 2f;
-    float ph = Screen.dp(22f);
     float cy = top + h / 2f;
-    fillPaint.setColor(ColorUtils.alphaColor(dark ? .22f : .13f, active));
-    rect.set(cx - pw, cy - ph, cx + pw, cy + ph);
-    c.drawRoundRect(rect, ph, ph, fillPaint);
+    float left = padding(), right = getMeasuredWidth() - padding(), bottom = top + h;
+    float straight = right - left - 2 * r;
+    outline.reset();
+    outline.moveTo(left + r, top);
+    outline.lineTo(right - r, top);
+    rect.set(right - 2 * r, top, right, bottom);
+    outline.arcTo(rect, -90f, 180f, false);
+    outline.lineTo(left + r, bottom);
+    rect.set(left, top, left + 2 * r, bottom);
+    outline.arcTo(rect, 90f, 180f, false);
+    outline.close();
+    outlineMeasure.setPath(outline, false);
+    float edge0 = Math.max(0f, 1f - selected), edge3 = Math.max(0f, 1f - Math.abs(selected - (ICONS.length - 1)));
+    float len = Screen.dp(36f) + Screen.dp(16f) * (edge0 + edge3);
+    float x = tabCenterX(selected) - Screen.dp(10f) * edge0 + Screen.dp(10f) * edge3;
+    float sCenter = straight + (float) Math.PI * r + (right - r - x); // distance along the outline, clockwise from the top-left
+    line.reset();
+    outlineMeasure.getSegment(sCenter - len / 2f, sCenter + len / 2f, line, true);
+    linePaint.setColor(active);
+    linePaint.setStrokeWidth(Screen.dp(3f));
+    c.drawPath(line, linePaint);
 
     int inactive = Theme.getColor(ColorId.icon);
     for (int i = 0; i < icons.length; i++) {
       float f = Math.max(0f, 1f - Math.abs(selected - i));
+      float icx = tabCenterX(i);
+      if (f > 0f) {
+        int glow = ColorUtils.alphaColor((dark ? .35f : .28f) * f, active);
+        glowPaint.setShader(new android.graphics.RadialGradient(icx, cy + Screen.dp(3f), Screen.dp(17f), glow, glow & 0x00ffffff, android.graphics.Shader.TileMode.CLAMP));
+        c.drawCircle(icx, cy + Screen.dp(3f), Screen.dp(17f), glowPaint);
+      }
+      float scale = i == popTab ? 1f + .16f * (float) Math.sin(Math.PI * popFactor) : 1f;
       int color = ColorUtils.fromToArgb(inactive, active, f);
-      Drawables.drawCentered(c, icons[i], tabCenterX(i), cy, Paints.getPorterDuffPaint(color));
+      if (scale != 1f) {
+        c.save();
+        c.scale(scale, scale, icx, cy);
+      }
+      Drawables.drawCentered(c, icons[i], icx, cy, Paints.getPorterDuffPaint(color));
+      if (scale != 1f) {
+        c.restore();
+      }
     }
 
     if (menuIds != null && menuFactor > 0f) {

@@ -358,7 +358,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       buildTitles(maxWidth - (getPreviewSize() + getPreviewOffset()));
     }
     if (waveform != null) {
-      waveform.layout(Math.min(Screen.dp(420f), Math.min(TGMessage.getEstimatedContentMaxWidth(), maxWidth) - Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS) * 2 - getPreviewOffset() - tgx101SideDurationWidth() - transcribeButtonSpace()));
+      waveform.layout(Math.min(Screen.dp(420f), Math.min(TGMessage.getEstimatedContentMaxWidth(), maxWidth) - tgx101PlaySize() - getPreviewOffset() - tgx101SideDurationWidth() - transcribeButtonSpace()));
     }
   }
 
@@ -490,7 +490,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   private int lastMaxWidth;
 
   private void layoutSize () {
-    int maxWidth = lastMaxWidth - getPreviewOffset() - getPreviewSize();
+    int maxWidth = lastMaxWidth - getPreviewOffset() - tgx101PlaySize();
     if (maxWidth <= 0) {
       return;
     }
@@ -524,7 +524,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   }
 
   public int getWidth () {
-    int contentWidth = getPreviewSize() + getPreviewOffset();
+    int contentWidth = tgx101PlaySize() + getPreviewOffset();
     if (waveform != null) {
       contentWidth += waveform.getWidth() + tgx101SideDurationWidth() + transcribeButtonSpace();
     } else {
@@ -617,7 +617,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
         clearTouch();
         if (waveform != null && isPlaying && playDuration > 0 && playPosition >= 0) {
           int radius = Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS);
-          int waveformLeft = startX + radius * 2 + getPreviewOffset();
+          int waveformLeft = startX + tgx101PlaySize() + getPreviewOffset();
           int cy = startY + radius;
           if (y >= cy - radius && y <= cy + radius && x >= waveformLeft && x <= waveformLeft + waveform.getWidth()) {
             seekStartX = startX;
@@ -633,10 +633,10 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
           return false;
         }
         float bound = progress.getRadius() * 1.6f;
-        float cx = startX + progress.getRadius();
-        float cy = startY + progress.getRadius();
+        float cx = progress.centerX();
+        float cy = progress.centerY();
 
-        if (x >= cx - bound && x <= startX + getPreviewSize() + getPreviewOffset() + Math.max(getTitleWidth(), sizeWidth) + bound && y >= cy - bound && y <= cy + bound) {
+        if (x >= cx - bound && x <= startX + tgx101PlaySize() + getPreviewOffset() + Math.max(getTitleWidth(), sizeWidth) + bound && y >= cy - bound && y <= cy + bound) {
           loadCaught = true;
         }
         return loadCaught;
@@ -650,7 +650,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
             seekStartX = x;
           }
           if (isSeeking) {
-            int waveformLeft = startX + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS) * 2 + getPreviewOffset();
+            int waveformLeft = startX + tgx101PlaySize() + getPreviewOffset();
             int waveformWidth = waveform.getWidth();
             float seek = MathUtils.clamp((x - waveformLeft) / (float) waveformWidth);
             boolean needInvalidate = desiredSeek == -1 || (int) ((float) waveformWidth * seek) != (int) ((float) waveformWidth * desiredSeek);
@@ -710,6 +710,11 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     return hasTranscribeButton();
   }
 
+  /** Play button size: 38 dp in the two-row voice layout (mockup «Голосовое-кнопка-плей»), the stock 50 dp otherwise */
+  private int tgx101PlaySize () {
+    return tgx101TwoRowVoice() ? Screen.dp(38f) : getPreviewSize();
+  }
+
   /** Width the duration takes in the side column (moved under the waveform in the two-row layout) */
   private int tgx101SideDurationWidth () {
     return tgx101TwoRowVoice() ? 0 : (int) sizeWidth + Screen.dp(12f);
@@ -724,7 +729,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   }
 
   private float transcribeButtonCenterX (int startX) {
-    return startX + getPreviewSize() + getPreviewOffset() + waveform.getWidth() + tgx101SideDurationWidth() + Screen.dp(8f) + Screen.dp(TRANSCRIBE_BUTTON_SIZE / 2f);
+    return startX + tgx101PlaySize() + getPreviewOffset() + waveform.getWidth() + tgx101SideDurationWidth() + Screen.dp(8f) + Screen.dp(TRANSCRIBE_BUTTON_SIZE / 2f);
   }
 
   private void drawTranscribeButton (Canvas c, float cx, float cy, boolean outgoing, float alpha) {
@@ -808,7 +813,12 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     }
 
     progress.setRequestedAlpha(alpha);
-    progress.setBounds(startX, startY, startX + previewSize, startY + previewSize);
+    if (tgx101TwoRowVoice()) { // TGx101 (user 2026-10-06 «голосовое 38»): a smaller play button, centred on the two rows
+      int top = startY + (getDocHeight() - tgx101PlaySize()) / 2;
+      progress.setBounds(startX, top, startX + tgx101PlaySize(), top + tgx101PlaySize());
+    } else {
+      progress.setBounds(startX, startY, startX + previewSize, startY + previewSize);
+    }
     progress.draw(view, c);
 
     if (checkFactor != 0f) {
@@ -843,7 +853,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       } else { // Chat Preview
         seek = .68f;
       }
-      int waveformLeft = startX + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS) * 2 + getPreviewOffset();
+      int waveformLeft = startX + tgx101PlaySize() + getPreviewOffset();
       int cy = startY + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS);
       final boolean twoRows = tgx101TwoRowVoice();
       int waveCy = twoRows ? startY + Screen.dp(17f) : cy;
@@ -897,7 +907,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   public int getLastLineWidth () {
     if (waveform != null && tgx101TwoRowVoice()) {
       // the bottom row is only «0:04 ●» under the waveform — the bubble time fits on it, to the right
-      return getPreviewSize() + getPreviewOffset() + (int) sizeWidth + Screen.dp(14f);
+      return tgx101PlaySize() + getPreviewOffset() + (int) sizeWidth + Screen.dp(14f);
     }
     return waveform != null ? TGMessage.BOTTOM_LINE_KEEP_WIDTH : (int) sizeWidth + getPreviewSize() + getPreviewOffset();
   }
