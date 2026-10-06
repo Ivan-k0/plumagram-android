@@ -105,7 +105,7 @@ public class Tgx101NavCapsule extends View {
     if (scrollHide == to) return;
     if (hide && menuIds != null) return; // not while its menu is open
     scrollAnimator = ValueAnimator.ofFloat(scrollHide, to);
-    scrollAnimator.setDuration(hide ? 200 : 240);
+    scrollAnimator.setDuration(hide ? 180 : 220); // same pace as ✎ (it hides in 180 ms)
     scrollAnimator.setInterpolator(new DecelerateInterpolator());
     scrollAnimator.addUpdateListener(a -> {
       scrollHide = (float) a.getAnimatedValue();
@@ -288,7 +288,7 @@ public class Tgx101NavCapsule extends View {
       menuAnimator.cancel();
     }
     menuAnimator = ValueAnimator.ofFloat(menuFactor, to);
-    menuAnimator.setDuration(to == 1f ? 260 : 200); // user 2026-10-06: «рывки появления и исчезновения слишком резкие»
+    menuAnimator.setDuration(to == 1f ? 150 : 140); // user 2026-10-06 22:0x: «окошко меню должно вылазить резче, ускорь»
     menuAnimator.setInterpolator(to == 1f ? androidx.core.view.animation.PathInterpolatorCompat.create(.2f, .9f, .3f, 1f) : androidx.core.view.animation.PathInterpolatorCompat.create(.4f, 0f, .6f, 1f));
     menuAnimator.addUpdateListener(a -> {
       menuFactor = (float) a.getAnimatedValue();

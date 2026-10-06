@@ -597,7 +597,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
 
   // TGx101 (user 2026-10-06 21:2x, variant C): switching the capsule tabs — the old screen blurs and fades out, the new
   // one comes out of the blur, 180 ms (the blur needs Android 12+, older ones just dissolve)
-  private boolean tgx101BlurFade;
+  private boolean tgx101BlurFade, tgx101BlurForward;
 
   public void setTgx101BlurFade (boolean blurFade) {
     this.tgx101BlurFade = blurFade;
@@ -607,9 +607,14 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     // factor 1 → the right screen is hidden; the left one fades out as the right comes in, and the other way round
     if (leftWrap != null) leftWrap.setAlpha(factor);
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+      // only the screen that goes away blurs: blurring the new one too made its first frame expensive (Contacts with
+      // 1 265 rows: 146 ms on a Vivo, user 2026-10-06 21:4x «зависание на 12 секунде»)
       float max = Screen.dp(6f);
-      tgx101Blur(rightWrap, max * factor);
-      tgx101Blur(leftWrap, max * (1f - factor));
+      if (tgx101BlurForward) {
+        tgx101Blur(leftWrap, max * (1f - factor));
+      } else {
+        tgx101Blur(rightWrap, max * factor);
+      }
     }
   }
 
@@ -966,6 +971,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     if (tgx101BlurFade) {
       direction = TRANSLATION_FADE; // capsule tabs: «Back to chats» dissolves too instead of sliding
     }
+    tgx101BlurForward = forward;
 
     int rebase = 0;
 
