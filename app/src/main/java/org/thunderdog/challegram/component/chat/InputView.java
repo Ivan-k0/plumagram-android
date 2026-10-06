@@ -354,7 +354,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
         updateMenuVisibility(menu);
         org.thunderdog.challegram.Tgx101Diag.mark("input selection mode prepared " + getSelectionStart() + "-" + getSelectionEnd());
         // TGx101: own fixed-width selection bar instead of the system floating toolbar (Android 6+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && actionModeVisibility && Config.USE_CUSTOM_INPUT_STYLING && org.thunderdog.challegram.unsorted.Settings.instance().useTgx101TextEditor()) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && actionModeVisibility && Config.USE_CUSTOM_INPUT_STYLING && tgx101UseOwnEditor()) {
           if (tgx101SelectionBar == null) tgx101SelectionBar = new Tgx101SelectionBar(InputView.this, true, null);
           tgx101SelectionBar.update(menu);
         }
@@ -374,7 +374,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
         }
         if (tgx101SelectionBar != null) {
           // TGx101: a style / link / quote changes the text and Android ends its selection mode — the bar stays where it is
-          if (hasSelection() && (isFocused() || tgx101LinkOpen) && org.thunderdog.challegram.unsorted.Settings.instance().useTgx101TextEditor()) {
+          if (hasSelection() && (isFocused() || tgx101LinkOpen) && tgx101UseOwnEditor()) {
             org.thunderdog.challegram.Tgx101Diag.mark("input selection bar kept");
           } else {
             tgx101SelectionBar.dismiss();
@@ -987,6 +987,18 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   private boolean tgx101IgnoringGesture, tgx101Moved;
   private float tgx101DownX, tgx101DownY, tgx101LastMoveY;
 
+  // TGx101 (user 2026-10-06): the media caption keeps the stock editor (the formatting panel in place of the emoji
+  // button when text is selected); our selection bar / safety tap are for the chat input only
+  private boolean tgx101StockEditor;
+
+  public void setTgx101StockEditor (boolean stock) {
+    this.tgx101StockEditor = stock;
+  }
+
+  private boolean tgx101UseOwnEditor () {
+    return !tgx101StockEditor && org.thunderdog.challegram.unsorted.Settings.instance().useTgx101TextEditor();
+  }
+
   /** Returns true when the event is swallowed by the safety tap */
   private boolean tgx101SafetyTap (MotionEvent e) {
     // TGx101 (user 2026-10-05, iOS-like): with text selected (new editing system) a finger moved over the text is
@@ -995,7 +1007,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     int action = e.getActionMasked();
     if (action == MotionEvent.ACTION_DOWN) {
       tgx101IgnoringGesture = false;
-      if (hasSelection() && org.thunderdog.challegram.unsorted.Settings.instance().useTgx101TextEditor() && getLayout() != null) {
+      if (hasSelection() && tgx101UseOwnEditor() && getLayout() != null) {
         tgx101IgnoringGesture = true;
         tgx101DownX = e.getX();
         tgx101DownY = e.getY();

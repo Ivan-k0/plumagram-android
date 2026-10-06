@@ -9778,9 +9778,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   @Override
   public void onInputSelectionExistChanged (InputView v, boolean hasSelection) {
-    // TGx101 (user 2026-10-05 «штатный редактор появляется вместо смайла»): with our text editor the old
-    // formatting panel no longer replaces the emoji button / keyboard, same as in the chat input
-    textInputHasSelection = hasSelection && !Settings.instance().useTgx101TextEditor();
+    // TGx101 (user 2026-10-06, photo 09:09): the caption keeps the stock formatting panel in place of the emoji button
+    textInputHasSelection = hasSelection;
     if (!emojiShown) {
       captionEmojiButton.setImageResource(getTargetIcon());
     }
@@ -10315,6 +10314,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         contentView.requestDisallowInterceptTouchEvent(isDown);
       }
     };
+    captionView.setTgx101StockEditor(true); // TGx101: the stock editor in the caption, not ours
     if (chat != null) {
       captionView.setNoPersonalizedLearning(Settings.instance().needsIncognitoMode(chat));
     }
