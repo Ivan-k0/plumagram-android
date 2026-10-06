@@ -9740,7 +9740,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void updateFloatingListPadding () {
     if (!floatingInput || messagesView == null || bottomWrap == null) return;
-    int padding = bottomWrap.getVisibility() == View.VISIBLE ? bottomWrap.getHeight() : 0;
+    // user 2026-10-07 00:08 «нижняя полоса наезжает на текст»: the capsule is lifted above the navigation bar, so the
+    // room is everything from its top edge down, not just its height
+    int padding = 0;
+    if (bottomWrap.getVisibility() == View.VISIBLE) {
+      int[] list = new int[2], capsule = new int[2];
+      messagesView.getLocationInWindow(list);
+      bottomWrap.getLocationInWindow(capsule);
+      int fromTop = list[1] + messagesView.getHeight() - capsule[1];
+      padding = Math.max(bottomWrap.getHeight(), fromTop) + Screen.dp(4f);
+    }
     if (messagesView.getPaddingBottom() != padding) {
       // At the newest message? Stay there, otherwise it ends up under the capsule until the next layout
       boolean atBottom = !messagesView.canScrollVertically(1);
