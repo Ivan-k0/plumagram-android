@@ -86,7 +86,7 @@ public final class Tgx101WsProxy {
     if (client == null) {
       client = new OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS)
-        .pingInterval(25, TimeUnit.SECONDS)
+        // no WebSocket pings: kwsN closed the connection right after the first one (EOF at 25 s); TDLib keeps it alive itself
         .connectTimeout(15, TimeUnit.SECONDS)
         .build();
     }
@@ -168,6 +168,7 @@ public final class Tgx101WsProxy {
   }
 
   private static void bridge (Socket socket, InputStream in, OutputStream out, byte[] init, String url) {
+    Tgx101Diag.mark("ws proxy: → " + url);
     Request request = new Request.Builder().url(url).header("Sec-WebSocket-Protocol", "binary").build();
     final Object lock = new Object();
     final boolean[] open = {false};
