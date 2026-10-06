@@ -222,6 +222,7 @@ public final class Tgx101MessageMenu {
     android.widget.ScrollView scroll; // the actions scroll when there are more than MAX_VISIBLE_ROWS
     @Nullable Runnable selectInPlace; // «Select» text: the in-bubble selection where the finger first touched
     final List<View> mainRows = new ArrayList<>();
+    @Nullable ViewGroup reactions; // the reactions pill: sliding the finger there picks a reaction too (user 2026-10-06)
     final List<View> bottomViews = new ArrayList<>(); // «Delete» and its divider: hidden inside «More…»
     boolean moreShown, moreLoading;
     TextView readDateView;
@@ -308,11 +309,26 @@ public final class Tgx101MessageMenu {
         break;
       }
     }
+    if (hit == null && host.reactions != null) {
+      for (int i = 0; i < host.reactions.getChildCount(); i++) {
+        View child = host.reactions.getChildAt(i);
+        int[] loc = new int[2];
+        child.getLocationOnScreen(loc);
+        if (rawX >= loc[0] && rawX <= loc[0] + child.getWidth() && rawY >= loc[1] - Screen.dp(8f) && rawY <= loc[1] + child.getHeight() + Screen.dp(8f)) {
+          hit = child;
+          break;
+        }
+      }
+    }
     if (hit != dragRow) {
-      if (dragRow != null) dragRow.setPressed(false);
+      if (dragRow != null) {
+        dragRow.setPressed(false);
+        if (dragRow.getParent() == host.reactions) dragRow.animate().scaleX(1f).scaleY(1f).setDuration(100).start();
+      }
       dragRow = hit;
       if (hit != null) {
         hit.setPressed(true);
+        if (hit.getParent() == host.reactions) hit.animate().scaleX(1.3f).scaleY(1.3f).setDuration(100).start(); // the reaction under the finger grows
         if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101Haptics()) hit.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
       }
     }
@@ -322,6 +338,10 @@ public final class Tgx101MessageMenu {
       dragRow = null;
       if (row != null) {
         row.setPressed(false);
+        if (row.getParent() == host.reactions) {
+          row.setScaleX(1f);
+          row.setScaleY(1f);
+        }
         if (dragMoved && action == android.view.MotionEvent.ACTION_UP) {
           org.thunderdog.challegram.Tgx101Diag.mark("menu: item picked by sliding");
           row.performClick();
@@ -457,6 +477,7 @@ public final class Tgx101MessageMenu {
       elevate(pill, Screen.dp(26f));
       MessageOptionsPagerController.State state = new MessageOptionsPagerController.State(message, options, (v, reaction, isLongClick) -> onReaction(c, host, message, v, reaction, isLongClick));
       ReactionsSelectorRecyclerView reactions = new ReactionsSelectorRecyclerView(context, state);
+      host.reactions = reactions;
       reactions.setNeedDrawBorderGradient(false);
       boolean canExpand = state.needShowReactionsPopupPicker && onExpandReactions != null;
       // Whole reactions only: the one that would be cut under the ⌄ button is left out (still reachable by scrolling or ⌄)
