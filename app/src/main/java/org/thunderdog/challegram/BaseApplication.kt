@@ -21,17 +21,27 @@ import tgx.flavor.TgxApplication
 class BaseApplication : TgxApplication(), Configuration.Provider {
   override fun attachBaseContext(base: Context) {
     super.attachBaseContext(base)
-    Tgx101Diag.start(base) // TGx101: only in diagnostics builds
+    diag("start", Context::class.java, base) // TGx101: only in diagnostics builds
   }
 
   override fun onCreate() {
-    Tgx101Diag.mark("Application.onCreate …")
+    diag("mark", String::class.java, "Application.onCreate …")
     super.onCreate()
-    Tgx101Diag.mark("Application.onCreate: base ready")
-    Tgx101Diag.attach(this) // TGx101: lifecycle, screen and UI stall log (diagnostics builds only)
+    diag("mark", String::class.java, "Application.onCreate: base ready")
+    diag("attach", android.app.Application::class.java, this) // TGx101: lifecycle, screen and UI stall log (diagnostics builds only)
     // TGx101: startup lives in BaseApplicationStartup and is called by name. On Android 4 this class is
     // verified before MultiDex adds the secondary dex files, so it must not reference the rest of the app.
     Class.forName(javaClass.name + "Startup").getMethod("onCreate", android.app.Application::class.java).invoke(null, this)
+  }
+
+  /** TGx101 (BlackBerry Z30, Android 4.3, 2026-10-06: NoClassDefFoundError at start): Tgx101Diag is called by name too —
+   *  a direct reference failed verification whenever the class landed outside the main dex. */
+  private fun diag(method: String, type: Class<*>, arg: Any) {
+    try {
+      Class.forName("org.thunderdog.challegram.Tgx101Diag").getMethod(method, type).invoke(null, arg)
+    } catch (t: Throwable) {
+      android.util.Log.w("tgx", "diag $method", t)
+    }
   }
 
   override val workManagerConfiguration: Configuration
