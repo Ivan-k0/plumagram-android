@@ -527,8 +527,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.BackgroundConnection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.KeepAliveConnectionSetting).setLongId(Settings.SETTING_FLAG_KEEP_ALIVE_CONNECTION),
-        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.KeepAliveConnectionHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.KeepAliveConnectionHint), // after the block: shown in the section
       };
     } else {
       rawItems = new ListItem[] {
@@ -835,6 +835,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_toggleNewSetting) {
       long flag = item.getLongId();
       if (flag == Settings.SETTING_FLAG_PAUSE_MEDIA_ON_RECORD || flag == Settings.SETTING_FLAG_SEND_PHOTOS_IN_HD) return 4;
+      if (flag == Settings.SETTING_FLAG_KEEP_ALIVE_CONNECTION) return 5; // user 2026-10-06: looked for it under «Notifications»
       return 9;
     }
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_pullToSearch || id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap) return 0;
