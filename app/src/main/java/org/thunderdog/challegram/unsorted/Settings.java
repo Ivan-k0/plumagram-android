@@ -3619,6 +3619,11 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_HAPTICS, v);
   }
 
+  // TGx101 (user 2026-10-06 20:42 «не убирай клавиатуру, или дай на выбор»): off — the keyboard stays under the menu
+  private static final String KEY_TGX101_MENU_HIDES_KEYBOARD = "tgx101_menu_hides_keyboard";
+  public boolean tgx101MenuHidesKeyboard () { return pmc.getBoolean(KEY_TGX101_MENU_HIDES_KEYBOARD, false); }
+  public void setTgx101MenuHidesKeyboard (boolean v) { pmc.putBoolean(KEY_TGX101_MENU_HIDES_KEYBOARD, v); }
+
   private static final String KEY_TGX101_MENU_AT_FINGER = "tgx101_menu_at_finger";
 
   /** TGx101: the message menu opens at the finger (on) or at the bottom of the screen (off) */

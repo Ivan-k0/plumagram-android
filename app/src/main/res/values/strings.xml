@@ -6310,6 +6310,7 @@
   <string name="Tgx101QuickCallsAdded">%1$s added to quick calls</string>
   <string name="Tgx101SyncContacts">Sync contacts</string>
   <string name="Tgx101SyncContactsDone">Contacts are being synced</string>
+  <string name="Tgx101MenuHidesKeyboard">Close the keyboard when the message menu does not fit</string>
   <string name="Tgx101CapsuleMenu">Hold «Settings» menu</string>
   <string name="Tgx101CapsuleMenuHint">Hold the button on the bottom menu and slide to an item. At least two items.</string>
   <string name="Tgx101CapsuleMenuMin">Keep at least two items</string>

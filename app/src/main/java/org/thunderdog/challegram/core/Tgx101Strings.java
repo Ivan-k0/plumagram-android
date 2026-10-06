@@ -455,6 +455,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101QuickCallsAdded, "%1$s — в быстрых звонках");
     RU.put(R.string.Tgx101SyncContacts, "Синхронизировать контакты");
     RU.put(R.string.Tgx101SyncContactsDone, "Контакты синхронизируются");
+    RU.put(R.string.Tgx101MenuHidesKeyboard, "Закрывать клавиатуру, если меню сообщения не помещается");
     RU.put(R.string.Tgx101CapsuleMenu, "Меню удержания «Настроек»");
     RU.put(R.string.Tgx101CapsuleMenuHint, "Удерживайте кнопку в нижнем меню и ведите палец к пункту. Не меньше двух пунктов.");
     RU.put(R.string.Tgx101CapsuleMenuMin, "Оставьте хотя бы два пункта");

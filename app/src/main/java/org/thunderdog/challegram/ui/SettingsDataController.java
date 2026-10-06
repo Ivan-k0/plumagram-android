@@ -287,6 +287,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101SwipeActions(), isUpdate);
         } else if (itemId == R.id.btn_tgx101LongPressMenu) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101LongPressMenu(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101MenuHidesKeyboard) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101MenuHidesKeyboard(), isUpdate);
         } else if (itemId == R.id.btn_tgx101Haptics) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101Haptics(), isUpdate);
         } else if (itemId == R.id.btn_tgx101MenuAtFinger) {
@@ -440,6 +442,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SwipeActions, 0, R.string.Tgx101SwipeActions),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101Haptics, 0, R.string.Tgx101Haptics),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MenuHidesKeyboard, 0, R.string.Tgx101MenuHidesKeyboard),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MessageMenuOrder, 0, R.string.Tgx101MessageMenuOrder),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -913,7 +917,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     }
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_pullToSearch || id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap) return 0;
     if (id == R.id.btn_tgx101StoriesMode || id == R.id.btn_tgx101StoriesFolders) return 1;
-    if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101TextEditor || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuOrder
+    if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101MenuHidesKeyboard || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101TextEditor || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuOrder
       || id == R.id.btn_tgx101TapMode || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101QuickReply1 || id == R.id.btn_tgx101QuickReply2
       || id == R.id.btn_tgx101QuickReply3 || id == R.id.btn_tgx101QuickReply4 || id == R.id.btn_tgx101QuickReply5) return 2;
     if (id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101ContactsMenu || id == R.id.btn_tgx101QuickCalls) return 0;
@@ -1146,6 +1150,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101LongPressMenu(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101Haptics) {
       Settings.instance().setTgx101Haptics(toggleResult);
+    } else if (id == R.id.btn_tgx101MenuHidesKeyboard) {
+      Settings.instance().setTgx101MenuHidesKeyboard(toggleResult);
     } else if (id == R.id.btn_tgx101MenuAtFinger) {
       Settings.instance().setTgx101MenuAtFinger(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101UiBold) {

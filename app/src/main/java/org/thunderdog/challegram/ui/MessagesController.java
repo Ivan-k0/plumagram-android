@@ -5236,7 +5236,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     // user 2026-10-06 20:05: with the keyboard open the menu didn't fit («даже „Удалить“ не влезла»). Like the official
     // app: the keyboard closes first, the menu opens once the chat has its full height
-    if (context.isKeyboardVisible() && inputView != null && !tgx101MenuAfterKeyboard && !tgx101MenuFitsAboveKeyboard(options)) {
+    if (context.isKeyboardVisible() && inputView != null && !tgx101MenuAfterKeyboard && Settings.instance().tgx101MenuHidesKeyboard() && !tgx101MenuFitsAboveKeyboard(options)) {
       tgx101MenuAfterKeyboard = true;
       Keyboard.hide(inputView);
       UI.post(() -> {
