@@ -1664,6 +1664,13 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   @Override
   public void onFocus () {
     super.onFocus();
+    // TGx101 (user's log 2026-10-06 23:29): swiped back from a chat with the keyboard up — the chats page itself doesn't
+    // get focus here, so the main screen hides it (the list has no input)
+    if (!inSearchMode() && context.isKeyboardVisible()) {
+      android.view.View focused = context.getCurrentFocus();
+      org.thunderdog.challegram.tool.Keyboard.hide(focused != null ? focused : getValue());
+      org.thunderdog.challegram.Tgx101Diag.mark("main: keyboard left over from a chat — hidden");
+    }
     // FIXME check tdlib.isUnauthorized()
     tdlib.context().changePreferredAccountId(tdlib.id(), TdlibManager.SWITCH_REASON_NAVIGATION);
     if (UI.TEST_MODE == UI.TEST_MODE_USER) {
