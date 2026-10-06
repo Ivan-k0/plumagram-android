@@ -172,9 +172,15 @@ public class KeepAliveService extends Service {
         manager.createNotificationChannel(channel);
       }
     }
+    // TGx101 (user 2026-10-06 14:11): as small as Android allows — no text, an invisible icon, silent, no badge;
+    // the system still requires a notification for a background service, so it can't vanish completely
     Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-      .setSmallIcon(R.drawable.baseline_sync_white_24)
-      .setContentTitle(Lang.getString(R.string.KeepAliveNotification))
+      .setSmallIcon(R.drawable.tgx101_transparent_24)
+      .setContentTitle(null)
+      .setContentText(null)
+      .setSilent(true)
+      .setLocalOnly(true)
+      .setVisibility(NotificationCompat.VISIBILITY_SECRET)
       .setPriority(NotificationCompat.PRIORITY_MIN)
       .setCategory(NotificationCompat.CATEGORY_SERVICE)
       .setShowWhen(false)
