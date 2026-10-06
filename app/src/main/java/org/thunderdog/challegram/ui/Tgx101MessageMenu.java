@@ -696,8 +696,24 @@ public final class Tgx101MessageMenu {
     // «More…» in its place in the user's order (by default above «Delete»)
     java.util.Collections.sort(sorted, (a, b) -> Integer.compare(rank(order, a.id), rank(order, b.id)));
     // user 2026-10-05 22:42: «Select» always at the very bottom, under a line
-    final boolean addSelect = message.canBeSelected() && !c.inSelectMode();
+    boolean addSelect = message.canBeSelected() && !c.inSelectMode();
+    // user 2026-10-06 18:20: in the iOS mode «Select» is not in the menu — its bottom place goes to «Delete»
+    // (unless the user hid it), otherwise to «More…»
+    ViewController.OptionItem bottomItem = null;
+    if (addSelect && Settings.instance().tgx101LongPressMenu()) {
+      addSelect = false;
+      for (ViewController.OptionItem item : sorted) {
+        if (item.id == R.id.btn_messageDelete) bottomItem = item;
+      }
+      if (bottomItem == null) {
+        for (ViewController.OptionItem item : sorted) {
+          if (item.id == R.id.btn_messageMore) bottomItem = item;
+        }
+      }
+      if (bottomItem != null) sorted.remove(bottomItem);
+    }
     shownIds.clear();
+    if (bottomItem != null) shownIds.add(bottomItem.id);
     for (ViewController.OptionItem item : sorted) shownIds.add(item.id);
 
     LinearLayout list = new LinearLayout(context);
@@ -705,6 +721,12 @@ public final class Tgx101MessageMenu {
     host.list = list;
     for (ViewController.OptionItem item : sorted) {
       View row = row(context, host, item, delegate, item.id == R.id.btn_messageDelete);
+      host.mainRows.add(row);
+      list.addView(row);
+    }
+    if (bottomItem != null) {
+      list.addView(divider(context));
+      View row = row(context, host, bottomItem, delegate, bottomItem.id == R.id.btn_messageDelete);
       host.mainRows.add(row);
       list.addView(row);
     }

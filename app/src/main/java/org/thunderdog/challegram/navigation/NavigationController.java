@@ -594,6 +594,13 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     }
   }
 
+  /** TGx101: where the running transition goes when {@code blurred} loses focus (the bottom capsule stays put between tabs) */
+  public @Nullable ViewController<?> tgx101TransitionTarget (ViewController<?> blurred) {
+    if (blurred == currentLeft) return currentRight;
+    if (blurred == currentRight) return currentLeft;
+    return null;
+  }
+
   public final boolean navigateTo (ViewController<?> controller) {
     if (!isAnimating && getStackSize() > 0 && controller != null && !isCurrentControllerAnimating()) {
       isAnimating = true;

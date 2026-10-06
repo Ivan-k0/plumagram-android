@@ -712,11 +712,11 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
   // TGx101 (user 2026-10-06 «всё должно быть оцентровано, как в официальном Telegram»): a lower block, so the bubble time
   // (drawn about 4 dp above the block's bottom) shares the duration's row, and the 38 dp button is centred on both rows
-  private static final float TGX101_VOICE_HEIGHT = 43f, TGX101_VOICE_WAVE_CY = 13f;
+  private static final float TGX101_VOICE_HEIGHT = 40f, TGX101_VOICE_WAVE_CY = 10f; // measured on the 0.1.487 screenshot: the bubble adds ~7 dp above and ~14 dp under the time
 
   /** Play button size: 38 dp in the two-row voice layout (mockup «Голосовое-кнопка-плей»), the stock 50 dp otherwise */
   private int tgx101PlaySize () {
-    return tgx101TwoRowVoice() ? Screen.dp(38f) : getPreviewSize();
+    return tgx101TwoRowVoice() ? Screen.dp(42f) : getPreviewSize(); // user: «кнопку плэй можешь увеличить назад»
   }
 
   /** Width the duration takes in the side column (moved under the waveform in the two-row layout) */
@@ -818,7 +818,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
     progress.setRequestedAlpha(alpha);
     if (tgx101TwoRowVoice()) { // TGx101 (user 2026-10-06 «голосовое 38»): a smaller play button, centred on the two rows
-      int top = startY + (Screen.dp(TGX101_VOICE_HEIGHT) - tgx101PlaySize()) / 2;
+      int top = startY + (Screen.dp(TGX101_VOICE_HEIGHT + 1f) - tgx101PlaySize()) / 2; // centred on the whole bubble, not only on the block
       progress.setBounds(startX, top, startX + tgx101PlaySize(), top + tgx101PlaySize());
     } else {
       progress.setBounds(startX, startY, startX + previewSize, startY + previewSize);

@@ -1049,6 +1049,11 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         }
       }
     } else if (!tgx101Switching) {
+      // user 2026-10-06 18:18: between Chats / Contacts / Calls / Settings the capsule stays still, it hides only over other screens
+      NavigationController navigation = context().navigation();
+      ViewController<?> target = navigation != null ? navigation.tgx101TransitionTarget(c) : null;
+      if (target != null && tgx101TabRoots.containsKey(target))
+        return;
       tgx101Capsule.closeMenu();
       tgx101ShowCapsule(false);
     }
@@ -1200,7 +1205,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       long[] userIds = Tgx101QuickCalls.userIds(tdlib);
       int i = id - TGX101_MENU_CALLS;
       if (i < userIds.length) {
-        tdlib.context().calls().makeCall(current, userIds[i], null);
+        tdlib.context().calls().makeCall(current, userIds[i], null, false); // user: «звонок происходит моментально»
       }
       return;
     }
