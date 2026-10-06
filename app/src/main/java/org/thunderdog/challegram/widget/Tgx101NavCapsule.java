@@ -34,6 +34,7 @@ public class Tgx101NavCapsule extends View {
     void onTabClick (int tab);
     default boolean onTabLongClick (int tab) { return false; }
     default void onMenuItem (int id) { }
+    default void onCollapsedChanged (boolean collapsed) { }
   }
 
   private static final int[] ICONS = {
@@ -61,6 +62,93 @@ public class Tgx101NavCapsule extends View {
   private float downX;
   private int dragNearest = -1;
   private int currentTab = TAB_CHATS;
+
+  // user 2026-10-06 21:3x «добавь функцию сворачивания нижнего меню»: swipe down → a small bar at the bottom, tap or swipe
+  // up on it → the capsule again (remembered between launches)
+  private boolean collapsed = org.thunderdog.challegram.unsorted.Settings.instance().tgx101CapsuleCollapsed();
+  private float collapseFactor = collapsed ? 1f : 0f;
+  private ValueAnimator collapseAnimator;
+  private boolean verticalDrag;
+  private float downY;
+
+  public boolean isCollapsed () {
+    return collapsed;
+  }
+
+  public void setCollapsed (boolean collapse) {
+    if (collapsed == collapse) return;
+    collapsed = collapse;
+    org.thunderdog.challegram.unsorted.Settings.instance().setTgx101CapsuleCollapsed(collapse);
+    if (collapseAnimator != null) collapseAnimator.cancel();
+    collapseAnimator = ValueAnimator.ofFloat(collapseFactor, collapse ? 1f : 0f);
+    collapseAnimator.setDuration(collapse ? 220 : 260);
+    collapseAnimator.setInterpolator(androidx.core.view.animation.PathInterpolatorCompat.create(.2f, .9f, .3f, 1f));
+    collapseAnimator.addUpdateListener(a -> {
+      collapseFactor = (float) a.getAnimatedValue();
+      invalidate();
+    });
+    collapseAnimator.start();
+    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+    if (callback != null) callback.onCollapsedChanged(collapse);
+  }
+
+  private final RectF handleRect = new RectF();
+
+  // user 2026-10-06 21:5x «должна уходить и заходить одновременно с ручкой»: scrolling the chats down hides the capsule
+  // together with ✎, scrolling up brings both back
+  private float scrollHide;
+  private ValueAnimator scrollAnimator;
+
+  public void setScrollHidden (boolean hide) {
+    float to = hide ? 1f : 0f;
+    if (scrollAnimator != null) scrollAnimator.cancel();
+    if (scrollHide == to) return;
+    if (hide && menuIds != null) return; // not while its menu is open
+    scrollAnimator = ValueAnimator.ofFloat(scrollHide, to);
+    scrollAnimator.setDuration(hide ? 200 : 240);
+    scrollAnimator.setInterpolator(new DecelerateInterpolator());
+    scrollAnimator.addUpdateListener(a -> {
+      scrollHide = (float) a.getAnimatedValue();
+      invalidate();
+    });
+    scrollAnimator.start();
+  }
+
+  private float scrollHideOffset () {
+    return scrollHide * (Screen.dp(HEIGHT_DP + MARGIN_DP + 12f) + getPaddingBottom());
+  }
+
+  // user 2026-10-06 21:4x «полоса под кнопкой тоже пусть исчезает, пока её не трогаешь»: the line shows up on touch,
+  // slide and tab change, and fades out ~0.6 s after the capsule is left alone
+  private float lineFactor;
+  private ValueAnimator lineAnimator;
+  private final Runnable hideLine = () -> animateLine(0f);
+
+  private void animateLine (float to) {
+    if (lineAnimator != null) lineAnimator.cancel();
+    if (lineFactor == to) return;
+    lineAnimator = ValueAnimator.ofFloat(lineFactor, to);
+    lineAnimator.setDuration(to > 0f ? 120 : 380);
+    lineAnimator.addUpdateListener(a -> {
+      lineFactor = (float) a.getAnimatedValue();
+      invalidate();
+    });
+    lineAnimator.start();
+  }
+
+  private void showLine (boolean autoHide) {
+    removeCallbacks(hideLine);
+    animateLine(1f);
+    if (autoHide) postDelayed(hideLine, 600);
+  }
+
+  private void layoutCapsuleRect (RectF out) {
+    float top = capsuleTop(), h = Screen.dp(HEIGHT_DP);
+    float l = padding(), r = getMeasuredWidth() - padding(), b = top + h;
+    float hw = Screen.dp(36f), hh = Screen.dp(10f), cx = getMeasuredWidth() / 2f, hb = b - Screen.dp(2f);
+    float f = collapseFactor;
+    out.set(l + (cx - hw - l) * f, top + (hb - hh - top) * f, r + (cx + hw - r) * f, b + (hb - b) * f);
+  }
   private final Runnable longPress = () -> {
     if (pressedTab != -1 && callback != null && callback.onTabLongClick(pressedTab)) {
       longPressed = true;
@@ -101,6 +189,7 @@ public class Tgx101NavCapsule extends View {
   }
 
   private int tabAt (float x, float y) {
+    if (collapsed) return -1;
     float top = capsuleTop();
     if (y < top || y > top + Screen.dp(HEIGHT_DP) || x < padding() || x > getMeasuredWidth() - padding())
       return -1;
@@ -123,6 +212,7 @@ public class Tgx101NavCapsule extends View {
     }
     final float from = selected;
     popTab = tab;
+    showLine(true);
     animator = ValueAnimator.ofFloat(0f, 1f);
     animator.setDuration(380);
     animator.addUpdateListener(a -> {
@@ -279,6 +369,22 @@ public class Tgx101NavCapsule extends View {
       }
       return true;
     }
+    if (scrollHide > .5f && menuIds == null) {
+      return false; // hidden by scrolling: the list under it gets the touches
+    }
+    if (collapsed) {
+      layoutCapsuleRect(handleRect);
+      handleRect.inset(-Screen.dp(40f), -Screen.dp(22f)); // a comfortable target around the small bar
+      switch (e.getAction()) {
+        case MotionEvent.ACTION_DOWN:
+          downY = y;
+          return handleRect.contains(x, y);
+        case MotionEvent.ACTION_UP:
+          setCollapsed(false); // tap or swipe up on the bar
+          return true;
+      }
+      return true;
+    }
     switch (e.getAction()) {
       case MotionEvent.ACTION_DOWN: {
         pressedTab = tabAt(x, y);
@@ -286,7 +392,10 @@ public class Tgx101NavCapsule extends View {
           return false; // chats under the transparent area stay touchable
         longPressed = false;
         dragging = false;
+        verticalDrag = false;
         downX = x;
+        downY = y;
+        showLine(false);
         postDelayed(longPress, 450);
         return true;
       }
@@ -295,6 +404,12 @@ public class Tgx101NavCapsule extends View {
           if (menuIds != null) setMenuHighlight(menuItemAt(x, y)); // slide to an item without lifting the finger
           return true;
         }
+        if (pressedTab != -1 && !dragging && !verticalDrag && y - downY > Screen.getTouchSlop() && y - downY > Math.abs(x - downX)) {
+          verticalDrag = true; // swipe down: collapse
+          removeCallbacks(longPress);
+          if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+        }
+        if (verticalDrag) return true;
         if (pressedTab != -1 && !dragging && Math.abs(x - downX) > Screen.getTouchSlop()) {
           // user 2026-10-06: slide along the capsule, the line follows the finger, the tab opens on release
           dragging = true;
@@ -323,6 +438,12 @@ public class Tgx101NavCapsule extends View {
         removeCallbacks(longPress);
         int tab = pressedTab;
         pressedTab = -1;
+        showLine(true);
+        if (verticalDrag) {
+          verticalDrag = false;
+          if (y - downY > Screen.dp(16f)) setCollapsed(true);
+          return true;
+        }
         if (longPressed) {
           longPressed = false;
           if (menuIds != null && menuHighlight != -1) {
@@ -346,6 +467,7 @@ public class Tgx101NavCapsule extends View {
       case MotionEvent.ACTION_CANCEL: {
         removeCallbacks(longPress);
         pressedTab = -1;
+        showLine(true);
         if (dragging) {
           dragging = false;
           dragNearest = -1;
@@ -364,16 +486,41 @@ public class Tgx101NavCapsule extends View {
 
   @Override
   protected void onDraw (Canvas c) {
+    float hideOffset = scrollHideOffset();
+    if (hideOffset > 0f) {
+      int save = c.save();
+      c.translate(0, hideOffset);
+      drawCapsule(c);
+      c.restoreToCount(save);
+      return;
+    }
+    drawCapsule(c);
+  }
+
+  private void drawCapsule (Canvas c) {
     float top = capsuleTop();
     float h = Screen.dp(HEIGHT_DP);
     float r = h / 2f;
-    rect.set(padding(), top, getMeasuredWidth() - padding(), top + h);
-
     int filling = Theme.getColor(ColorId.filling);
     boolean dark = Theme.isDark();
     shadowPaint.setColor(ColorUtils.alphaColor(dark ? .94f : .92f, filling));
     shadowPaint.setShadowLayer(Screen.dp(10f), 0, Screen.dp(3f), ColorUtils.alphaColor(dark ? .5f : .18f, 0xff000000));
-    c.drawRoundRect(rect, r, r, shadowPaint);
+    layoutCapsuleRect(rect);
+    if (collapseFactor > 0f) {
+      // the collapsed bar takes the accent colour so it is seen on a white list
+      shadowPaint.setColor(ColorUtils.fromToArgb(shadowPaint.getColor(), ColorUtils.alphaColor(.85f, Theme.getColor(ColorId.iconActive)), collapseFactor));
+    }
+    float cr = rect.height() / 2f;
+    c.drawRoundRect(rect, cr, cr, shadowPaint);
+    int contentSave = -1;
+    if (collapseFactor > 0f) {
+      if (collapseFactor >= 1f) {
+        drawMenuIfOpen(c, dark, filling);
+        return;
+      }
+      contentSave = c.saveLayerAlpha(0, 0, getMeasuredWidth(), getMeasuredHeight(), (int) (255 * (1f - collapseFactor)));
+    }
+    rect.set(padding(), top, getMeasuredWidth() - padding(), top + h);
 
     // variant A (user 2026-10-06 «нижнее меню первый вариант»): the selected icon lights up in the accent colour with a soft
     // shadow and a small hop; a line along the bottom edge slides under it and rounds the corner at the edge tabs
@@ -397,9 +544,11 @@ public class Tgx101NavCapsule extends View {
     float sCenter = straight + (float) Math.PI * r + (right - r - x); // distance along the outline, clockwise from the top-left
     line.reset();
     outlineMeasure.getSegment(sCenter - len / 2f, sCenter + len / 2f, line, true);
-    linePaint.setColor(active);
-    linePaint.setStrokeWidth(Screen.dp(3f));
-    c.drawPath(line, linePaint);
+    if (lineFactor > 0f) {
+      linePaint.setColor(ColorUtils.alphaColor(lineFactor, active));
+      linePaint.setStrokeWidth(Screen.dp(3f));
+      c.drawPath(line, linePaint);
+    }
 
     int inactive = Theme.getColor(ColorId.icon);
     for (int i = 0; i < icons.length; i++) {
@@ -417,6 +566,14 @@ public class Tgx101NavCapsule extends View {
         c.restore();
       }
     }
+    if (contentSave != -1) {
+      c.restoreToCount(contentSave);
+    }
+    drawMenuIfOpen(c, dark, filling);
+  }
+
+  private void drawMenuIfOpen (Canvas c, boolean dark, int filling) {
+    int active = Theme.getColor(ColorId.iconActive), inactive = Theme.getColor(ColorId.icon);
 
     if (menuIds != null && menuFactor > 0f) {
       layoutMenu();

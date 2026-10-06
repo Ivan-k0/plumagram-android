@@ -1037,6 +1037,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     if (isFocused) {
       tgx101Switching = false;
       tgx101Capsule.setSelectedTab(tab, false);
+      tgx101Capsule.setScrollHidden(false);
       tgx101ApplyCapsulePadding(tab);
       // ✎ belongs to the chats only — it showed through under Contacts / Calls / Settings
       tgx101SetFabHidden(tab != Tgx101NavCapsule.TAB_CHATS);
@@ -1135,6 +1136,11 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       @Override
       public void onMenuItem (int id) {
         tgx101OnCapsuleMenuItem(id);
+      }
+
+      @Override
+      public void onCollapsedChanged (boolean collapsed) {
+        checkComposeWrapPaddings(); // ✎ goes down with the collapsed capsule
       }
     });
     addThemeInvalidateListener(tgx101Capsule);
@@ -1369,7 +1375,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       tgx101ApplyCapsulePadding(tab != null ? tab : Tgx101NavCapsule.TAB_CHATS);
     }
     if (composeWrap != null) {
-      int paddingBottom = (displayTabsAtBottom() ? getHeaderHeight() : 0) + extraBottomInsetWithoutIme + (tgx101Capsule != null ? Screen.dp(org.thunderdog.challegram.widget.Tgx101NavCapsule.HEIGHT_DP + org.thunderdog.challegram.widget.Tgx101NavCapsule.MARGIN_DP) : 0);
+      int paddingBottom = (displayTabsAtBottom() ? getHeaderHeight() : 0) + extraBottomInsetWithoutIme + (tgx101Capsule != null && !tgx101Capsule.isCollapsed() ? Screen.dp(org.thunderdog.challegram.widget.Tgx101NavCapsule.HEIGHT_DP + org.thunderdog.challegram.widget.Tgx101NavCapsule.MARGIN_DP) : 0);
       composeWrap.setPadding(composeWrap.getPaddingLeft(), composeWrap.getPaddingTop(), composeWrap.getPaddingRight(), paddingBottom);
       composeWrap.setClipToPadding(paddingBottom == 0);
     }
@@ -1768,6 +1774,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   public boolean showComposeWrap (ViewController<?> controller) {
     if (!inSearchMode() && (controller == null || getCurrentPagerItem() == controller)) {
       composeWrap.show();
+      if (tgx101Capsule != null) tgx101Capsule.setScrollHidden(false);
       return true;
     }
     return false;
@@ -1779,6 +1786,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         if (Config.CHAT_FOLDERS_HIDE_BOTTOM_BAR_ON_SCROLL) {
           showBottomBar();
         }
+        if (tgx101Capsule != null) tgx101Capsule.setScrollHidden(false);
         return showComposeWrap(null);
       } else {
         if (getCurrentPagerItemId() == MAIN_PAGER_ITEM_ID) {
@@ -1788,6 +1796,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
           }
         }
         composeWrap.hide();
+        if (tgx101Capsule != null) tgx101Capsule.setScrollHidden(true);
         if (Config.CHAT_FOLDERS_HIDE_BOTTOM_BAR_ON_SCROLL) {
           hideBottomBar();
         }
