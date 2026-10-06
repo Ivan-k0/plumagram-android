@@ -712,11 +712,11 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
   // TGx101 (user 2026-10-06 «всё должно быть оцентровано, как в официальном Telegram»): a lower block, so the bubble time
   // (drawn about 4 dp above the block's bottom) shares the duration's row, and the 38 dp button is centred on both rows
-  private static final float TGX101_VOICE_HEIGHT = 40f, TGX101_VOICE_WAVE_CY = 10f; // measured on the 0.1.487 screenshot: the bubble adds ~7 dp above and ~14 dp under the time
+  private static final float TGX101_VOICE_HEIGHT = 51f, TGX101_VOICE_WAVE_CY = 15f; // user 2026-10-06 18:32: «Официальный с круглой А» (mockup variant 4) // measured on the 0.1.487 screenshot: the bubble adds ~7 dp above and ~14 dp under the time
 
   /** Play button size: 38 dp in the two-row voice layout (mockup «Голосовое-кнопка-плей»), the stock 50 dp otherwise */
   private int tgx101PlaySize () {
-    return tgx101TwoRowVoice() ? Screen.dp(42f) : getPreviewSize(); // user: «кнопку плэй можешь увеличить назад»
+    return tgx101TwoRowVoice() ? Screen.dp(46f) : getPreviewSize(); // user: «кнопку плэй можешь увеличить назад», mockup «Официальный с круглой А»
   }
 
   /** Width the duration takes in the side column (moved under the waveform in the two-row layout) */
