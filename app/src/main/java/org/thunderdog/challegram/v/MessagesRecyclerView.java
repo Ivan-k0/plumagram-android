@@ -322,8 +322,14 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
 
   private boolean tgx101DownInSelect, tgx101LongPressDrag;
 
+  /** TGx101: a finger is on the message list right now (the menu opened by any long press can follow it) */
+  public static boolean tgx101FingerDown;
+
   @Override
   public boolean dispatchTouchEvent (MotionEvent e) {
+    int tgx101Action = e.getActionMasked();
+    if (tgx101Action == MotionEvent.ACTION_DOWN) tgx101FingerDown = true;
+    else if (tgx101Action == MotionEvent.ACTION_UP || tgx101Action == MotionEvent.ACTION_CANCEL) tgx101FingerDown = false;
     if (e.getActionMasked() != MotionEvent.ACTION_DOWN && org.thunderdog.challegram.ui.Tgx101MessageMenu.dragActive()
       && org.thunderdog.challegram.ui.Tgx101MessageMenu.drag(e.getRawX(), e.getRawY(), e.getActionMasked())) {
       if (e.getActionMasked() == MotionEvent.ACTION_UP) {

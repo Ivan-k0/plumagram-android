@@ -456,6 +456,12 @@ public final class Tgx101MessageMenu {
     PopupLayout popup = new PopupLayout(context);
     host.popup = popup;
     dragHost = new java.lang.ref.WeakReference<>(host);
+    // TGx101 (user 2026-10-06 12:09, voice message with a transcription): the menu can be opened by another long-press
+    // path (text inside the bubble) that didn't arm the slide — arm it whenever the finger is still down in iOS mode
+    if (!dragArmed && Settings.instance().tgx101LongPressMenu() && org.thunderdog.challegram.v.MessagesRecyclerView.tgx101FingerDown) {
+      dragArmed = true;
+      org.thunderdog.challegram.Tgx101Diag.mark("menu: slide armed (finger still down)");
+    }
     dragRow = null;
     dragMoved = false;
     dragStartX = -1;
