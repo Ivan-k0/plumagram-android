@@ -399,25 +399,21 @@ public final class Tgx101MessageMenu {
     if (hit != dragRow) {
       if (dragRow != null) {
         dragRow.setPressed(false);
-        if (dragRow.getParent() == host.reactions || dragRow.getParent() == host.gridReactions) dragRow.animate().scaleX(1f).scaleY(1f).setDuration(100).start();
       }
       dragRow = hit;
       if (hit != null) {
         hit.setPressed(true);
-        if (hit.getParent() == host.reactions || hit.getParent() == host.gridReactions) hit.animate().scaleX(1.3f).scaleY(1.3f).setDuration(100).start(); // the reaction under the finger grows
         if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101Haptics()) hit.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
       }
     }
+    magnifyReactions(host.reactions, rawX, rawY, true, action);
+    magnifyReactions(host.gridReactions, rawX, rawY, false, action);
     if (action == android.view.MotionEvent.ACTION_UP || action == android.view.MotionEvent.ACTION_CANCEL) {
       dragArmed = false;
       View row = dragRow;
       dragRow = null;
       if (row != null) {
         row.setPressed(false);
-        if (row.getParent() == host.reactions || row.getParent() == host.gridReactions) {
-          row.setScaleX(1f);
-          row.setScaleY(1f);
-        }
         if (dragMoved && action == android.view.MotionEvent.ACTION_UP) {
           org.thunderdog.challegram.Tgx101Diag.mark("menu: item picked by sliding");
           row.performClick();
@@ -812,6 +808,38 @@ public final class Tgx101MessageMenu {
       int[] t = src; src = dst; dst = t;
     }
     bitmap.setPixels(src, 0, w, 0, 0, w, h);
+  }
+
+  /** TGx101 (user's videos 11:36 / 11:40: «плавнее, бесшовно, без подпрыгиваний»): while the finger slides over the
+   *  reactions they grow smoothly with the distance to the finger, like a dock — no per-item jumps */
+  private static void magnifyReactions (@Nullable ViewGroup group, float rawX, float rawY, boolean row, int action) {
+    if (group == null || !group.isShown()) return;
+    int[] g = new int[2];
+    group.getLocationOnScreen(g);
+    boolean over = action != android.view.MotionEvent.ACTION_UP && action != android.view.MotionEvent.ACTION_CANCEL
+      && rawY >= g[1] - Screen.dp(24f) && rawY <= g[1] + group.getHeight() + Screen.dp(24f)
+      && rawX >= g[0] - Screen.dp(12f) && rawX <= g[0] + group.getWidth() + Screen.dp(12f);
+    for (int i = 0; i < group.getChildCount(); i++) {
+      View child = group.getChildAt(i);
+      float scale = 1f;
+      if (over) {
+        int[] c = new int[2];
+        child.getLocationOnScreen(c);
+        float cx = c[0] + child.getWidth() / 2f, cy = c[1] + child.getHeight() / 2f;
+        float d = row ? Math.abs(rawX - cx) / child.getWidth() : (float) Math.hypot(rawX - cx, rawY - cy) / child.getWidth();
+        float k = Math.max(0f, 1f - d / 1.5f); // neighbours grow a little too
+        scale = 1f + .28f * k * k * (3f - 2f * k); // smoothstep: no kink, no jump
+      }
+      child.setPivotX(child.getWidth() / 2f);
+      child.setPivotY(child.getHeight() / 2f);
+      if (over) {
+        child.animate().cancel();
+        child.setScaleX(scale);
+        child.setScaleY(scale);
+      } else if (child.getScaleX() != 1f) {
+        child.animate().scaleX(1f).scaleY(1f).setDuration(120).start();
+      }
+    }
   }
 
   /** ⌄ / ⌃: the grid of all reactions in place of the actions (no new window, still pictures, a short height change) */
