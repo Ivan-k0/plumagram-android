@@ -1069,8 +1069,13 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       return;
     }
     tgx101CapsuleFade = android.animation.ValueAnimator.ofFloat(tgx101Capsule.getAlpha(), to);
-    tgx101CapsuleFade.setDuration(show ? 150 : 100);
-    tgx101CapsuleFade.addUpdateListener(a -> tgx101Capsule.setAlpha((float) a.getAnimatedValue()));
+    tgx101CapsuleFade.setDuration(show ? 240 : 180); // user 2026-10-06: softer than a blink
+    tgx101CapsuleFade.setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f));
+    tgx101CapsuleFade.addUpdateListener(a -> {
+      float f = (float) a.getAnimatedValue();
+      tgx101Capsule.setAlpha(f);
+      tgx101Capsule.setTranslationY(Screen.dp(24f) * (1f - f));
+    });
     tgx101CapsuleFade.addListener(new android.animation.AnimatorListenerAdapter() {
       private boolean cancelled;
       @Override public void onAnimationCancel (android.animation.Animator animation) { cancelled = true; }
@@ -1182,13 +1187,14 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
 
   private void tgx101OnTabClick (int tab) {
     NavigationController navigation = context().navigation();
-    if (navigation == null || navigation.isAnimating())
-      return;
-    ViewController<?> current = navigation.getCurrentStackItem();
+    ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : null;
     Integer currentTab = current != null ? tgx101TabRoots.get(current) : null;
-    if (currentTab == null)
+    if (navigation == null || navigation.isAnimating() || currentTab == null) {
+      tgx101Capsule.setSelectedTab(currentTab != null ? currentTab : Tgx101NavCapsule.TAB_CHATS, true); // a slide that led nowhere snaps back
       return;
+    }
     if (currentTab == tab) {
+      tgx101Capsule.setSelectedTab(tab, true);
       if (tab == Tgx101NavCapsule.TAB_CHATS && getViewPager().getCurrentItem() != 0) {
         getViewPager().setCurrentItem(0, true);
       }
@@ -1201,7 +1207,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       navigation.navigateBack();
       return;
     }
-    tgx101Capsule.postDelayed(() -> tgx101OpenTab(tab), 150);
+    tgx101OpenTab(tab); // user 2026-10-06: «переход на контакты слишком долгий» — no delay, a quick fade instead of a slide
   }
 
   private void tgx101OpenTab (int tab) {
@@ -1228,7 +1234,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     tgx101TabRoots.put(c, tab);
     c.addFocusListener(tgx101TabFocus);
     NavigationController navigation = context().navigation();
-    if (navigation == null || !navigation.navigateTo(c)) {
+    if (navigation != null && !navigation.isAnimating()) {
+      navigation.setControllerAnimated(c, false, true); // [chats, tab]: fade, the previous tab screen goes away
+    } else {
       tgx101Switching = false;
       ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : null;
       Integer currentTab = current != null ? tgx101TabRoots.get(current) : null;
@@ -1623,7 +1631,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
 
   @Override
   protected boolean useDrawer () {
-    return true;
+    return !Settings.instance().tgx101NavCapsule(); // user 2026-10-06: with the capsule the side menu is not needed
   }
 
   @Override

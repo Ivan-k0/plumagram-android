@@ -57,6 +57,10 @@ public class Tgx101NavCapsule extends View {
   private ValueAnimator animator;
   private int pressedTab = -1;
   private boolean longPressed;
+  private boolean dragging;
+  private float downX;
+  private int dragNearest = -1;
+  private int currentTab = TAB_CHATS;
   private final Runnable longPress = () -> {
     if (pressedTab != -1 && callback != null && callback.onTabLongClick(pressedTab)) {
       longPressed = true;
@@ -106,6 +110,7 @@ public class Tgx101NavCapsule extends View {
 
   /** Slides the pill; the screen behind the tab opens right after (see MainController). */
   public void setSelectedTab (int tab, boolean animated) {
+    currentTab = tab;
     if (animator != null) {
       animator.cancel();
       animator = null;
@@ -178,8 +183,8 @@ public class Tgx101NavCapsule extends View {
       menuAnimator.cancel();
     }
     menuAnimator = ValueAnimator.ofFloat(menuFactor, to);
-    menuAnimator.setDuration(to == 1f ? 170 : 130);
-    menuAnimator.setInterpolator(new DecelerateInterpolator());
+    menuAnimator.setDuration(to == 1f ? 260 : 200); // user 2026-10-06: «рывки появления и исчезновения слишком резкие»
+    menuAnimator.setInterpolator(to == 1f ? androidx.core.view.animation.PathInterpolatorCompat.create(.2f, .9f, .3f, 1f) : androidx.core.view.animation.PathInterpolatorCompat.create(.4f, 0f, .6f, 1f));
     menuAnimator.addUpdateListener(a -> {
       menuFactor = (float) a.getAnimatedValue();
       invalidate();
@@ -270,6 +275,8 @@ public class Tgx101NavCapsule extends View {
         if (pressedTab == -1)
           return false; // chats under the transparent area stay touchable
         longPressed = false;
+        dragging = false;
+        downX = x;
         postDelayed(longPress, 450);
         return true;
       }
@@ -278,9 +285,27 @@ public class Tgx101NavCapsule extends View {
           if (menuIds != null) setMenuHighlight(menuItemAt(x, y)); // slide to an item without lifting the finger
           return true;
         }
-        if (pressedTab != -1 && tabAt(x, y) != pressedTab) {
+        if (pressedTab != -1 && !dragging && Math.abs(x - downX) > Screen.getTouchSlop()) {
+          // user 2026-10-06: slide along the capsule, the line follows the finger, the tab opens on release
+          dragging = true;
           removeCallbacks(longPress);
-          pressedTab = -1;
+          if (animator != null) {
+            animator.cancel();
+            animator = null;
+          }
+          if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+        }
+        if (dragging) {
+          float tab = (x - padding() - Screen.dp(6f)) / tabWidth() - .5f;
+          tab = Math.max(0f, Math.min(ICONS.length - 1, tab));
+          int near = Math.round(tab);
+          if (near != dragNearest) {
+            dragNearest = near;
+            performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
+          }
+          popTab = -1;
+          selected = tab;
+          invalidate();
         }
         return true;
       }
@@ -297,6 +322,11 @@ public class Tgx101NavCapsule extends View {
           }
           return true;
         }
+        if (dragging) {
+          dragging = false;
+          dragNearest = -1;
+          tab = Math.round(selected);
+        }
         if (tab != -1 && callback != null) {
           playSoundEffect(android.view.SoundEffectConstants.CLICK);
           callback.onTabClick(tab);
@@ -306,6 +336,11 @@ public class Tgx101NavCapsule extends View {
       case MotionEvent.ACTION_CANCEL: {
         removeCallbacks(longPress);
         pressedTab = -1;
+        if (dragging) {
+          dragging = false;
+          dragNearest = -1;
+          setSelectedTab(currentTab, true);
+        }
         if (longPressed) {
           longPressed = false;
           menuTracking = false;
@@ -380,9 +415,9 @@ public class Tgx101NavCapsule extends View {
     if (menuIds != null && menuFactor > 0f) {
       layoutMenu();
       int alpha = (int) (255 * Math.min(1f, menuFactor));
-      float scale = .85f + .15f * menuFactor;
+      float scale = .7f + .3f * menuFactor;
       c.save();
-      c.scale(scale, scale, menuRect.right - Screen.dp(24f), menuRect.bottom);
+      c.scale(scale, scale, tabCenterX(TAB_SETTINGS), menuRect.bottom + Screen.dp(8f)); // grows out of «Settings»
       float mr = Screen.dp(16f);
       shadowPaint.setColor(ColorUtils.alphaColor(menuFactor * (dark ? .98f : .97f), filling));
       shadowPaint.setShadowLayer(Screen.dp(12f), 0, Screen.dp(4f), ColorUtils.alphaColor(menuFactor * (dark ? .5f : .2f), 0xff000000));
