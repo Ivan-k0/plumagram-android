@@ -141,6 +141,9 @@ public class Tgx101NavCapsule extends View {
   private String[] menuTitles;
   private Drawable[] menuDrawables;
   private float menuFactor;
+  private String[] menuLetters;
+  private int[] menuColors;
+  private final android.text.TextPaint lettersPaint = new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
   private ValueAnimator menuAnimator;
   private int menuHighlight = -1;
   private boolean menuTracking; // the finger that opened the menu (or touched it) is still down
@@ -154,12 +157,19 @@ public class Tgx101NavCapsule extends View {
   }
 
   public void openMenu (int[] ids, int[] icons, String[] titles) {
+    openMenu(ids, icons, titles, null, null);
+  }
+
+  /** icons[i] == 0 → a round «avatar» with letters[i] on colors[i] (quick call contacts) */
+  public void openMenu (int[] ids, int[] icons, String[] titles, String[] letters, int[] colors) {
     menuIds = ids;
     menuIcons = icons;
     menuTitles = titles;
+    menuLetters = letters;
+    menuColors = colors;
     menuDrawables = new Drawable[icons.length];
     for (int i = 0; i < icons.length; i++) {
-      menuDrawables[i] = Drawables.get(getResources(), icons[i]);
+      menuDrawables[i] = icons[i] != 0 ? Drawables.get(getResources(), icons[i]) : null;
     }
     menuHighlight = -1;
     menuTracking = true;
@@ -436,7 +446,18 @@ public class Tgx101NavCapsule extends View {
         Paint ip = Paints.getPorterDuffPaint(iconColor);
         int oldAlpha = ip.getAlpha();
         ip.setAlpha(alpha);
-        Drawables.drawCentered(c, menuDrawables[k], menuRect.left + Screen.dp(16f + 12f), rowCy, ip);
+        float iconCx = menuRect.left + Screen.dp(16f + 12f);
+        if (menuDrawables[k] != null) {
+          Drawables.drawCentered(c, menuDrawables[k], iconCx, rowCy, ip);
+        } else if (menuLetters != null && menuColors != null) {
+          fillPaint.setColor(ColorUtils.alphaColor(menuFactor, menuColors[k]));
+          c.drawCircle(iconCx, rowCy, Screen.dp(15f), fillPaint);
+          lettersPaint.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+          lettersPaint.setTextSize(Screen.dp(12f));
+          lettersPaint.setColor(ColorUtils.alphaColor(menuFactor, 0xffffffff));
+          String l = menuLetters[k] != null ? menuLetters[k] : "";
+          c.drawText(l, iconCx - lettersPaint.measureText(l) / 2f, rowCy + Screen.dp(4.5f), lettersPaint);
+        }
         ip.setAlpha(oldAlpha);
         textPaint.setColor(ColorUtils.alphaColor(menuFactor, textColor));
         c.drawText(menuTitles[k], menuRect.left + Screen.dp(16f + 24f + 16f), rowCy + Screen.dp(5.5f), textPaint);

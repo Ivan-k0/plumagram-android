@@ -268,7 +268,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         } else if (itemId == R.id.btn_tgx101HideInputCommands) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideInputCommands(), isUpdate);
         } else if (itemId == R.id.btn_tgx101CapsuleMenu) {
-          view.setData(tgx101CapsuleMenuValue());
+          view.setData(tgx101MaskValue(Settings.instance().tgx101CapsuleMenu(), MainController.TGX101_CAPSULE_MENU_TITLES));
+        } else if (itemId == R.id.btn_tgx101ContactsMenu) {
+          view.setData(tgx101MaskValue(Settings.instance().tgx101ContactsMenu(), MainController.TGX101_CONTACTS_MENU_TITLES));
         } else if (itemId == R.id.btn_tgx101NavCapsule) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101NavCapsule(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideInputEmoji) {
@@ -475,6 +477,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NavCapsule, 0, R.string.Tgx101NavCapsule),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101CapsuleMenu, 0, R.string.Tgx101CapsuleMenu),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101ContactsMenu, 0, R.string.Tgx101ContactsMenu),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101QuickCalls, 0, R.string.Tgx101QuickCalls),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideInputCamera, 0, R.string.Tgx101HideInputCamera),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -801,26 +807,24 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     return b.length() > 0 ? b.toString() : Lang.getString(R.string.Tgx101StoriesFoldersAll);
   }
 
-  private static String tgx101CapsuleMenuValue () {
-    int mask = Settings.instance().tgx101CapsuleMenu();
+  private static String tgx101MaskValue (int mask, int[] titles) {
     StringBuilder b = new StringBuilder();
-    for (int i = 0; i < MainController.TGX101_CAPSULE_MENU_TITLES.length; i++) {
+    for (int i = 0; i < titles.length; i++) {
       if ((mask & (1 << i)) != 0) {
         if (b.length() > 0) b.append(", ");
-        b.append(Lang.getString(MainController.TGX101_CAPSULE_MENU_TITLES[i]));
+        b.append(Lang.getString(titles[i]));
       }
     }
     return b.toString();
   }
 
-  /** TGx101: items of the hold menu on the capsule's «Settings»; at least two stay on */
-  private void tgx101ChooseCapsuleMenu () {
-    int mask = Settings.instance().tgx101CapsuleMenu();
-    ListItem[] items = new ListItem[MainController.TGX101_CAPSULE_MENU_TITLES.length];
+  /** TGx101: items of a capsule hold menu («Settings» or «Contacts»); at least two stay on */
+  private void tgx101ChooseHoldMenu (int settingId, int[] titles, int mask, me.vkryl.core.lambda.RunnableInt save) {
+    ListItem[] items = new ListItem[titles.length];
     for (int i = 0; i < items.length; i++) {
-      items[i] = new ListItem(ListItem.TYPE_CHECKBOX_OPTION, 2000000 + i, 0, MainController.TGX101_CAPSULE_MENU_TITLES[i], (mask & (1 << i)) != 0);
+      items[i] = new ListItem(ListItem.TYPE_CHECKBOX_OPTION, 2000000 + i, 0, titles[i], (mask & (1 << i)) != 0);
     }
-    showSettings(new SettingsWrapBuilder(R.id.btn_tgx101CapsuleMenu)
+    showSettings(new SettingsWrapBuilder(settingId)
       .addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.Tgx101CapsuleMenuHint))
       .setRawItems(items)
       .setSaveStr(R.string.Done)
@@ -833,8 +837,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           UI.showToast(R.string.Tgx101CapsuleMenuMin, android.widget.Toast.LENGTH_SHORT);
           return;
         }
-        Settings.instance().setTgx101CapsuleMenu(next);
-        adapter.updateValuedSettingById(R.id.btn_tgx101CapsuleMenu);
+        save.runWithInt(next);
+        adapter.updateValuedSettingById(settingId);
       }));
   }
 
@@ -912,7 +916,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101TextEditor || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuOrder
       || id == R.id.btn_tgx101TapMode || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101QuickReply1 || id == R.id.btn_tgx101QuickReply2
       || id == R.id.btn_tgx101QuickReply3 || id == R.id.btn_tgx101QuickReply4 || id == R.id.btn_tgx101QuickReply5) return 2;
-    if (id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101CapsuleMenu) return 0;
+    if (id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101ContactsMenu || id == R.id.btn_tgx101QuickCalls) return 0;
     if (id == R.id.btn_tgx101RearRounds) return 4;
     if (id == R.id.btn_tgx101HideAllReactions || id == R.id.btn_tgx101HideChannelReactions || id == R.id.btn_tgx101NextChannelSwipe || id == R.id.btn_showDiscussButton || id == R.id.btn_showCommentsButton
       || id == R.id.btn_showChannelMuteButton || id == R.id.btn_hideSubscribeLink || id == R.id.btn_separateChannelPosts) return 3;
@@ -1083,7 +1087,11 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     } else if (id == R.id.btn_tgx101RingRamp) {
       Settings.instance().setRingRampEnabled(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101CapsuleMenu) {
-      tgx101ChooseCapsuleMenu();
+      tgx101ChooseHoldMenu(id, MainController.TGX101_CAPSULE_MENU_TITLES, Settings.instance().tgx101CapsuleMenu(), mask -> Settings.instance().setTgx101CapsuleMenu(mask));
+    } else if (id == R.id.btn_tgx101ContactsMenu) {
+      tgx101ChooseHoldMenu(id, MainController.TGX101_CONTACTS_MENU_TITLES, Settings.instance().tgx101ContactsMenu(), mask -> Settings.instance().setTgx101ContactsMenu(mask));
+    } else if (id == R.id.btn_tgx101QuickCalls) {
+      Tgx101QuickCalls.openEditor(this, tdlib);
     } else if (id == R.id.btn_tgx101StoriesFolders) {
       tgx101ChooseStoriesFolders();
     } else if (id == R.id.btn_tgx101StoriesMode) {

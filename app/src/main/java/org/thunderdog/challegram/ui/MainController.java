@@ -1109,23 +1109,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
 
       @Override
       public boolean onTabLongClick (int tab) {
-        if (tab != Tgx101NavCapsule.TAB_SETTINGS)
-          return false;
-        int mask = Settings.instance().tgx101CapsuleMenu();
-        java.util.List<Integer> ids = new java.util.ArrayList<>();
-        for (int i = 0; i < TGX101_CAPSULE_MENU_ICONS.length; i++) {
-          if ((mask & (1 << i)) != 0) ids.add(i);
-        }
-        int[] outIds = new int[ids.size()], outIcons = new int[ids.size()];
-        String[] outTitles = new String[ids.size()];
-        for (int k = 0; k < ids.size(); k++) {
-          int i = ids.get(k);
-          outIds[k] = i;
-          outIcons[k] = TGX101_CAPSULE_MENU_ICONS[i];
-          outTitles[k] = Lang.getString(TGX101_CAPSULE_MENU_TITLES[i]);
-        }
-        tgx101Capsule.openMenu(outIds, outIcons, outTitles);
-        return true;
+        return tgx101OpenHoldMenu(tab);
       }
 
       @Override
@@ -1149,12 +1133,109 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     R.string.SavedMessages, R.string.Tgx101SavedByChats, R.string.NightMode, R.string.Tgx101MyProfile, R.string.Tgx101Settings
   };
 
+  // Hold menus of «Contacts» (user 2026-10-06: «как настройки, с возможностью добавлять кнопки») and «Calls» (5 quick contacts)
+  public static final int[] TGX101_CONTACTS_MENU_ICONS = {
+    R.drawable.baseline_person_add_24, R.drawable.baseline_group_24, R.drawable.baseline_bullhorn_24,
+    R.drawable.baseline_lock_24, R.drawable.baseline_share_24, R.drawable.baseline_sync_24
+  };
+  public static final int[] TGX101_CONTACTS_MENU_TITLES = {
+    R.string.AddContact, R.string.NewGroup, R.string.NewChannel, R.string.NewSecretChat, R.string.InviteFriends, R.string.Tgx101SyncContacts
+  };
+  private static final int TGX101_MENU_CONTACTS = 100, TGX101_MENU_CALLS = 200, TGX101_MENU_CALLS_EDIT = 299;
+
+  private boolean tgx101OpenHoldMenu (int tab) {
+    int[] icons, titles;
+    int mask, base;
+    if (tab == Tgx101NavCapsule.TAB_SETTINGS) {
+      icons = TGX101_CAPSULE_MENU_ICONS; titles = TGX101_CAPSULE_MENU_TITLES; mask = Settings.instance().tgx101CapsuleMenu(); base = 0;
+    } else if (tab == Tgx101NavCapsule.TAB_CONTACTS) {
+      icons = TGX101_CONTACTS_MENU_ICONS; titles = TGX101_CONTACTS_MENU_TITLES; mask = Settings.instance().tgx101ContactsMenu(); base = TGX101_MENU_CONTACTS;
+    } else if (tab == Tgx101NavCapsule.TAB_CALLS) {
+      long[] userIds = Tgx101QuickCalls.userIds(tdlib);
+      int n = userIds.length;
+      int[] ids = new int[n + 1], outIcons = new int[n + 1], colors = new int[n + 1];
+      String[] names = new String[n + 1], letters = new String[n + 1];
+      for (int i = 0; i < n; i++) {
+        TdApi.User user = tdlib.cache().user(userIds[i]);
+        ids[i] = TGX101_MENU_CALLS + i;
+        names[i] = TD.getUserName(userIds[i], user);
+        letters[i] = user != null ? TD.getLetters(user).text : "?";
+        colors[i] = tdlib.cache().userAccentColor(userIds[i]).getPrimaryColor();
+      }
+      ids[n] = TGX101_MENU_CALLS_EDIT;
+      outIcons[n] = R.drawable.baseline_edit_24;
+      names[n] = Lang.getString(n == 0 ? R.string.Tgx101QuickCallsAdd : R.string.Tgx101QuickCallsEdit);
+      tgx101Capsule.openMenu(ids, outIcons, names, letters, colors);
+      return true;
+    } else {
+      return false;
+    }
+    java.util.List<Integer> on = new java.util.ArrayList<>();
+    for (int i = 0; i < icons.length; i++) {
+      if ((mask & (1 << i)) != 0) on.add(i);
+    }
+    int[] outIds = new int[on.size()], outIcons = new int[on.size()];
+    String[] outTitles = new String[on.size()];
+    for (int k = 0; k < on.size(); k++) {
+      int i = on.get(k);
+      outIds[k] = base + i;
+      outIcons[k] = icons[i];
+      outTitles[k] = Lang.getString(titles[i]);
+    }
+    tgx101Capsule.openMenu(outIds, outIcons, outTitles);
+    return true;
+  }
+
   private void tgx101OnCapsuleMenuItem (int id) {
     if (isDestroyed())
       return;
     NavigationController navigation = context().navigation();
     ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : this;
     if (current == null) current = this;
+    if (id == TGX101_MENU_CALLS_EDIT) {
+      Tgx101QuickCalls.openEditor(current, tdlib);
+      return;
+    }
+    if (id >= TGX101_MENU_CALLS && id < TGX101_MENU_CALLS + 5) {
+      long[] userIds = Tgx101QuickCalls.userIds(tdlib);
+      int i = id - TGX101_MENU_CALLS;
+      if (i < userIds.length) {
+        tdlib.context().calls().makeCall(current, userIds[i], null);
+      }
+      return;
+    }
+    if (id >= TGX101_MENU_CONTACTS) {
+      switch (id - TGX101_MENU_CONTACTS) {
+        case 0: {
+          PhoneController c = new PhoneController(context, tdlib);
+          c.setMode(PhoneController.MODE_ADD_CONTACT);
+          current.navigateTo(c);
+          break;
+        }
+        case 1: {
+          ContactsController c = new ContactsController(context, tdlib);
+          c.initWithMode(ContactsController.MODE_NEW_GROUP);
+          current.navigateTo(c);
+          break;
+        }
+        case 2:
+          current.navigateTo(new CreateChannelController(context, tdlib));
+          break;
+        case 3: {
+          ContactsController c = new ContactsController(context, tdlib);
+          c.initWithMode(ContactsController.MODE_NEW_SECRET_CHAT);
+          current.navigateTo(c);
+          break;
+        }
+        case 4:
+          tdlib.cache().getInviteText(text -> UI.post(() -> org.thunderdog.challegram.tool.Intents.shareText(text.text)));
+          break;
+        case 5:
+          tdlib.contacts().startSyncIfNeeded(context, true, () -> UI.showToast(R.string.Tgx101SyncContactsDone, android.widget.Toast.LENGTH_SHORT));
+          break;
+      }
+      return;
+    }
     switch (id) {
       case 0: {
         long myUserId = tdlib.myUserId();

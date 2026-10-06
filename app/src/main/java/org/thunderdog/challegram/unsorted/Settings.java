@@ -3542,6 +3542,29 @@ public class Settings {
   private static final String KEY_TGX101_CAPSULE_MENU = "tgx101_capsule_menu";
   public int tgx101CapsuleMenu () { return pmc.getInt(KEY_TGX101_CAPSULE_MENU, 0x1F); }
   public void setTgx101CapsuleMenu (int mask) { pmc.putInt(KEY_TGX101_CAPSULE_MENU, mask); }
+  // Hold menu of «Contacts»: bit i = MainController.TGX101_CONTACTS_MENU_TITLES[i] (sync is off by default)
+  private static final String KEY_TGX101_CONTACTS_MENU = "tgx101_contacts_menu";
+  public int tgx101ContactsMenu () { return pmc.getInt(KEY_TGX101_CONTACTS_MENU, 0x1F); }
+  public void setTgx101ContactsMenu (int mask) { pmc.putInt(KEY_TGX101_CONTACTS_MENU, mask); }
+  // Quick call contacts (hold «Calls»), user ids; empty = the most called people
+  private static final String KEY_TGX101_QUICK_CALLS = "tgx101_quick_calls";
+  public long[] tgx101QuickCalls () {
+    String raw = pmc.getString(KEY_TGX101_QUICK_CALLS, "");
+    if (raw == null || raw.isEmpty()) return new long[0];
+    String[] parts = raw.split(",");
+    java.util.List<Long> out = new java.util.ArrayList<>();
+    for (String part : parts) {
+      try { out.add(Long.parseLong(part.trim())); } catch (NumberFormatException ignored) { }
+    }
+    long[] result = new long[out.size()];
+    for (int i = 0; i < result.length; i++) result[i] = out.get(i);
+    return result;
+  }
+  public void setTgx101QuickCalls (long[] userIds) {
+    StringBuilder b = new StringBuilder();
+    for (long id : userIds) { if (b.length() > 0) b.append(','); b.append(id); }
+    pmc.putString(KEY_TGX101_QUICK_CALLS, b.toString());
+  }
 
   /** TGx101: no reaction row under channel posts (off by default) */
   public boolean tgx101HideChannelReactions () {
