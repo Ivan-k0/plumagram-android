@@ -8749,6 +8749,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
     final long chatId = selectedMessage.getChatId();
     RunnableData<TdApi.ChatMember> build = (member) -> {
       Object tag = MessageView.fillMessageOptions(this, selectedMessage, member, ids, icons, strings, true);
+      if (tag == null) {
+        // TGx101 (user 2026-10-06 10:50, log): «Save» moved under «More…» got no downloaded files (the More list is
+        // built with isMore = true, which skips them) and silently did nothing — take them from the full list
+        tag = MessageView.fillMessageOptions(this, selectedMessage, member, new IntList(4), new IntList(4), new StringList(4), false);
+      }
       tgx101AddMoreActions(ids, icons, strings);
       java.util.List<OptionItem> items = new java.util.ArrayList<>();
       int[] idArray = ids.get(), iconArray = icons.get();
