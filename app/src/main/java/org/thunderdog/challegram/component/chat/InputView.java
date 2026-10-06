@@ -444,6 +444,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
 
   private Tgx101SelectionBar tgx101SelectionBar;
   private long tgx101LastCursorAt;
+  private int tgx101LineVotes, tgx101VoteLine = -1;
   private int tgx101LastLength = -1;
   boolean tgx101LinkOpen; // the bar's link field has the focus for a moment
 
@@ -1089,6 +1090,27 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
         tgx101LastCursorAt = android.os.SystemClock.uptimeMillis();
         setSelection(back);
         return;
+      }
+    }
+    // TGx101 (user's log 2026-10-07 01:13: 24 → 47, 25 → 48 — the finger moving sideways along line 2 slipped onto line 3
+    // for one step): while the cursor handle is dragged, a change of line needs 3 steps in a row on the new line
+    if (selStart == selEnd && tgx101LastSelStart == tgx101LastSelEnd && getLayout() != null && length() == tgx101LastLength
+      && android.os.SystemClock.uptimeMillis() - tgx101LastCursorAt < 1500 && tgx101LastSelStart >= 0 && tgx101LastSelStart <= length()) {
+      android.text.Layout l = getLayout();
+      int oldLine = l.getLineForOffset(tgx101LastSelStart), newLine = l.getLineForOffset(selStart);
+      if (newLine != oldLine && Math.abs(newLine - oldLine) == 1 && Math.abs(selStart - tgx101LastSelStart) > 1) {
+        tgx101LineVotes = tgx101VoteLine == newLine ? tgx101LineVotes + 1 : 1;
+        tgx101VoteLine = newLine;
+        if (tgx101LineVotes < 3) {
+          int held = l.getOffsetForHorizontal(oldLine, l.getPrimaryHorizontal(selStart));
+          if (held >= l.getLineEnd(oldLine) && oldLine < l.getLineCount() - 1) held = l.getLineEnd(oldLine) - 1; // not onto the next line's start
+          org.thunderdog.challegram.Tgx101Diag.mark("input cursor: line slip " + tgx101LastSelStart + " → " + selStart + " held at " + held + " (" + tgx101LineVotes + "/3)");
+          tgx101LastCursorAt = android.os.SystemClock.uptimeMillis();
+          setSelection(Math.max(0, Math.min(length(), held)));
+          return;
+        }
+      } else if (newLine == oldLine) {
+        tgx101LineVotes = 0;
       }
     }
     if (selStart == selEnd) {
