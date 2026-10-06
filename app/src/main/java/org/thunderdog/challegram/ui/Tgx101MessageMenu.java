@@ -376,8 +376,17 @@ public final class Tgx101MessageMenu {
       host.expandView.removeCallbacks(host.hoverExpand);
       host.hoverExpand = null;
     }
-    if (hit == null && host.reactions != null) {
-      for (int i = 0; i < host.reactions.getChildCount(); i++) {
+    if (hit == null && !onExpand && host.reactions != null) {
+      // only inside the visible part of the row: a reaction half hidden under ⌄ must not light up (user 2026-10-06 11:26)
+      int[] rv = new int[2];
+      host.reactions.getLocationOnScreen(rv);
+      int visibleRight = rv[0] + host.reactions.getWidth();
+      if (host.expandView != null) {
+        int[] ex = new int[2];
+        host.expandView.getLocationOnScreen(ex);
+        visibleRight = Math.min(visibleRight, ex[0] - Screen.dp(8f));
+      }
+      for (int i = 0; i < host.reactions.getChildCount() && rawX >= rv[0] && rawX <= visibleRight; i++) {
         View child = host.reactions.getChildAt(i);
         int[] loc = new int[2];
         child.getLocationOnScreen(loc);
@@ -834,15 +843,30 @@ public final class Tgx101MessageMenu {
         if (onExpandReactions != null) onExpandReactions.run();
       });
       grid.addView(more, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-      LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(host.card.getLayoutParams());
+      // the same width and margins as the actions card — the grid takes exactly its place (user's video 11:17)
+      LinearLayout.LayoutParams params = new LinearLayout.LayoutParams((LinearLayout.LayoutParams) host.card.getLayoutParams());
       host.column.addView(grid, host.column.indexOfChild(host.card), params);
       host.grid = grid;
     }
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-      android.transition.TransitionManager.beginDelayedTransition(host.column, new android.transition.ChangeBounds().setDuration(150));
-    }
+    // the reactions row stays where it is: the column is pinned to the bottom, so a taller / shorter block under the
+    // row moved the whole menu — keep the column's top in place instead
+    final View column = host.column;
+    final int topBefore = column.getTop() + Math.round(column.getTranslationY());
     host.grid.setVisibility(show ? View.VISIBLE : View.GONE);
     host.card.setVisibility(show ? View.GONE : View.VISIBLE);
+    column.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+      @Override
+      public void onLayoutChange (View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
+        v.removeOnLayoutChangeListener(this);
+        int translation = topBefore - v.getTop();
+        int overflow = v.getBottom() + translation - (((View) v.getParent()).getHeight() - Screen.dp(12f));
+        if (overflow > 0) translation -= overflow; // only when the grid would go off the screen does the row move up
+        v.setTranslationY(translation);
+      }
+    });
+    View block = show ? host.grid : host.card;
+    block.setAlpha(0f);
+    block.animate().alpha(1f).setDuration(120).start();
     if (host.expandView != null) host.expandView.animate().rotation(show ? 180f : 0f).setDuration(150).start();
     org.thunderdog.challegram.Tgx101Diag.mark("menu: all reactions " + (show ? "unfolded" : "folded"));
   }
