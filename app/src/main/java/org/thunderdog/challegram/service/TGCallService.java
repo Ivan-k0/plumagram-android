@@ -846,11 +846,28 @@ public class TGCallService extends Service implements
         final int startMode = isBluetoothHeadsetConnected() ? CallSettings.SPEAKER_MODE_BLUETOOTH : CallSettings.SPEAKER_MODE_EARPIECE;
         UI.post(() -> {
           if (isConfigured && startSettings.getSpeakerMode() != CallSettings.SPEAKER_MODE_SPEAKER) {
+            boolean same = startSettings.getSpeakerMode() == startMode;
             lastAudioMode = startMode;
             startSettings.setSpeakerMode(startMode);
+            if (same) {
+              // TGx101 (Vivo 0.1.522, 2026-10-07 13:26: no «setAudioMode» in the log): the setting already matched, so no
+              // change event came and the route was never applied — apply it here
+              setAudioMode(startMode);
+            }
           }
         });
+      } else if (startSettings == null) {
+        UI.post(() -> {
+          if (isConfigured) setAudioMode(isBluetoothHeadsetConnected() ? CallSettings.SPEAKER_MODE_BLUETOOTH : CallSettings.SPEAKER_MODE_EARPIECE);
+        });
       }
+      // TGx101 (user 2026-10-07 13:29 «звук через разговорный динамик тихий, а настраивается громкость громкого динамика»):
+      // the volume keys change the call volume while the call goes on
+      UI.post(() -> {
+        org.thunderdog.challegram.BaseActivity activity = UI.getUiContext();
+        if (activity != null && isConfigured) activity.setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
+      });
+      org.thunderdog.challegram.Tgx101Diag.mark("call audio: configured, mode " + am.getMode() + ", voice volume " + am.getStreamVolume(AudioManager.STREAM_VOICE_CALL) + "/" + am.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL) + ", settings " + (startSettings != null ? startSettings.getSpeakerMode() : -1));
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
 
       } else {
@@ -873,6 +890,10 @@ public class TGCallService extends Service implements
       isConfigured = false;
 
       Log.i(Log.TAG_VOIP, "Unconfiguring device from call...");
+      UI.post(() -> {
+        org.thunderdog.challegram.BaseActivity activity = UI.getUiContext();
+        if (activity != null && !isConfigured) activity.setVolumeControlStream(AudioManager.USE_DEFAULT_STREAM_TYPE);
+      });
 
       am.setMode(AudioManager.MODE_NORMAL);
       tgx101ModeNormalSet = true;
@@ -892,6 +913,10 @@ public class TGCallService extends Service implements
   @Override
   public void onAudioFocusChange (int focusChange) {
     haveAudioFocus = focusChange == AudioManager.AUDIOFOCUS_GAIN;
+    if (isConfigured) {
+      AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
+      org.thunderdog.challegram.Tgx101Diag.mark("call audio: focus " + focusChange + ", mode " + am.getMode());
+    }
     Log.i(Log.TAG_VOIP, "onAudioFocusChange, focusChange: %d, haveAudioFocus: %b", focusChange, haveAudioFocus);
   }
 

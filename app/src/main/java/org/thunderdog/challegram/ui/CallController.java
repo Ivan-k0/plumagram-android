@@ -1529,6 +1529,14 @@ public class CallController extends ViewController<CallController.Arguments> imp
   @Override
   public void onFocus () {
     super.onFocus();
+    // TGx101 (Vivo 0.1.522, 2026-10-07 13:25: «во время входящего клавиатура налезла на звонок»): the chat's input kept the
+    // focus and the system brought its keyboard back over the call screen — take the focus away and hide it
+    android.view.View focused = context().getCurrentFocus();
+    if (focused != null) {
+      focused.clearFocus();
+      org.thunderdog.challegram.tool.Keyboard.hide(focused);
+    }
+    context().getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN | (context().getWindow().getAttributes().softInputMode & android.view.WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST));
     if (!oneShot) {
       destroyStackItemByIdExcludingLast(R.id.controller_call);
       ViewController<?> c = previousStackItem();
@@ -1538,6 +1546,12 @@ public class CallController extends ViewController<CallController.Arguments> imp
       oneShot = true;
     }
     tdlib.context().calls().acknowledgeCurrentCall(call.id);
+  }
+
+  @Override
+  public void onBlur () {
+    super.onBlur();
+    context().getWindow().setSoftInputMode(org.thunderdog.challegram.config.Config.DEFAULT_WINDOW_PARAMS); // TGx101: back to normal after the call screen
   }
 
   @Override
