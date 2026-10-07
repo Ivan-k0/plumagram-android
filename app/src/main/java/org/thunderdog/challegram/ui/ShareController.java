@@ -14,6 +14,8 @@
  */
 package org.thunderdog.challegram.ui;
 
+import android.os.Build;
+
 import android.animation.Animator;
 import android.content.Context;
 import android.content.Intent;
@@ -2297,7 +2299,13 @@ public class ShareController extends TelegramViewController<ShareController.Args
         recyclerView.setPadding(0, 0, 0, tgx101InsetBottom + tgx101SearchExtraPadding);
       }
       org.thunderdog.challegram.Tgx101Diag.mark("share search: rise " + top + "px, scrollable " + range + "px, extra room " + tgx101SearchExtraPadding + "px");
-      smoothScrollBy(top);
+      // user 2026-10-07 «окно должно выезжать вместе с клавиатурой, как в официальном»: the keyboard opens right away and
+      // the sheet rises frame by frame with its animation (Android 11+); otherwise — the old own animation
+      if (tgx101RideIme(top, true)) {
+        Keyboard.show(getSearchHeaderView(headerView).editView());
+      } else {
+        smoothScrollBy(top);
+      }
     } else {
       setAutoScrollFinished(true);
     }
@@ -2327,6 +2335,85 @@ public class ShareController extends TelegramViewController<ShareController.Args
 
   private int tgx101SearchExtraPadding, tgx101InsetBottom;
 
+  // TGx101: the sheet follows the keyboard animation (like Telegram's ShareAlert / AdjustPanLayoutHelper)
+  private int tgx101ImeTotal, tgx101ImeDone;
+  private boolean tgx101ImeActive, tgx101ImeShowing;
+  private @Nullable Object tgx101ImeAnimation;
+  private boolean tgx101ImeCallbackSet;
+
+  /** Scrolls the sheet by {@code by} in step with the keyboard showing / hiding; false — no keyboard animation to ride */
+  private boolean tgx101RideIme (int by, boolean showing) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || popupLayout == null || by == 0) return false;
+    android.view.WindowInsets now = popupLayout.getRootWindowInsets();
+    boolean imeVisible = now != null && now.isVisible(android.view.WindowInsets.Type.ime());
+    if (imeVisible == showing) return false; // the keyboard is already where it's going — nothing will animate
+    tgx101EnsureImeCallback();
+    tgx101ImeTotal = by;
+    tgx101ImeDone = 0;
+    tgx101ImeShowing = showing;
+    tgx101ImeActive = true;
+    tgx101ImeAnimation = null;
+    setAutoScrollFinished(false);
+    final int token = ++tgx101ImeToken;
+    popupLayout.postDelayed(() -> {
+      // no keyboard animation started (keyboard refused, hardware keyboard) — finish with the own animation
+      if (token == tgx101ImeToken && tgx101ImeActive && tgx101ImeAnimation == null) {
+        tgx101ImeActive = false;
+        int rest = tgx101ImeTotal - tgx101ImeDone;
+        org.thunderdog.challegram.Tgx101Diag.mark("share: no keyboard animation, own scroll " + rest + "px");
+        if (rest != 0) smoothScrollBy(rest); else setAutoScrollFinished(true);
+      }
+    }, 250);
+    return true;
+  }
+
+  private int tgx101ImeToken;
+
+  private void tgx101ImeStep (float fraction) {
+    int target = Math.round(tgx101ImeTotal * Math.max(0f, Math.min(1f, fraction)));
+    int delta = target - tgx101ImeDone;
+    if (delta != 0) {
+      recyclerView.scrollBy(0, delta);
+      tgx101ImeDone = target;
+    }
+  }
+
+  @android.annotation.TargetApi(Build.VERSION_CODES.R)
+  private void tgx101EnsureImeCallback () {
+    if (tgx101ImeCallbackSet) return;
+    tgx101ImeCallbackSet = true;
+    popupLayout.setWindowInsetsAnimationCallback(new android.view.WindowInsetsAnimation.Callback(android.view.WindowInsetsAnimation.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
+      @NonNull
+      @Override
+      public android.view.WindowInsetsAnimation.Bounds onStart (@NonNull android.view.WindowInsetsAnimation animation, @NonNull android.view.WindowInsetsAnimation.Bounds bounds) {
+        if (tgx101ImeActive && tgx101ImeAnimation == null && (animation.getTypeMask() & android.view.WindowInsets.Type.ime()) != 0) {
+          tgx101ImeAnimation = animation;
+          org.thunderdog.challegram.Tgx101Diag.mark("share: riding the keyboard " + (tgx101ImeShowing ? "up" : "down") + ", " + animation.getDurationMillis() + " ms, " + tgx101ImeTotal + "px");
+        }
+        return bounds;
+      }
+
+      @NonNull
+      @Override
+      public android.view.WindowInsets onProgress (@NonNull android.view.WindowInsets insets, @NonNull java.util.List<android.view.WindowInsetsAnimation> running) {
+        if (tgx101ImeActive && tgx101ImeAnimation != null && running.contains((android.view.WindowInsetsAnimation) tgx101ImeAnimation)) {
+          tgx101ImeStep(((android.view.WindowInsetsAnimation) tgx101ImeAnimation).getInterpolatedFraction());
+        }
+        return insets;
+      }
+
+      @Override
+      public void onEnd (@NonNull android.view.WindowInsetsAnimation animation) {
+        if (animation == tgx101ImeAnimation) {
+          tgx101ImeStep(1f);
+          tgx101ImeActive = false;
+          tgx101ImeAnimation = null;
+          setAutoScrollFinished(true);
+        }
+      }
+    });
+  }
+
   @Override
   protected void onLeaveSearchMode () {
     super.onLeaveSearchMode();
@@ -2355,7 +2442,10 @@ public class ShareController extends TelegramViewController<ShareController.Args
         recyclerView.scrollBy(0, viewTop - Screen.dp(VERTICAL_PADDING_SIZE));
       }
     }
-    autoScroll(top - contentOffset);
+    // closing the search: the sheet goes down together with the keyboard
+    if (!tgx101RideIme(top - contentOffset, false)) {
+      autoScroll(top - contentOffset);
+    }
   }
 
   private void autoScroll (int by) {
