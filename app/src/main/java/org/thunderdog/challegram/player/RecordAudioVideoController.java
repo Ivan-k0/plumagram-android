@@ -162,7 +162,7 @@ public class RecordAudioVideoController implements
       return;
     }
 
-    this.inputOverlayView.setBackgroundColor(Theme.fillingColor());
+    tgx101UpdateOverlayBackground();
     this.slideHintView.setTextColor(Theme.textDecentColor());
     this.cancelView.setTextColor(Theme.getColor(ColorId.textNeutral));
     this.videoPlaceholderView.setBackgroundColor(Theme.fillingColor());
@@ -776,8 +776,17 @@ public class RecordAudioVideoController implements
       int rowHeight = view.getHeight() - view.getPaddingBottom();
       ViewGroup.LayoutParams lp = inputOverlayView.getLayoutParams();
       int want = Math.max(Screen.dp(49f), rowHeight);
-      if (lp != null && lp.height != want) {
+      // TGx101 (user 2026-10-07 19:14, mockup «Запись-голосового» 1): with the floating field the bar is the same capsule —
+      // side gaps and bubble corners — instead of a full-width strip over the bottom
+      boolean floating = ((MessagesController) c).tgx101FloatingInput();
+      int side = floating ? Screen.dp(10f) : 0;
+      if (tgx101OverlayFloating != floating) {
+        tgx101OverlayFloating = floating;
+        tgx101UpdateOverlayBackground();
+      }
+      if (lp != null && (lp.height != want || ((ViewGroup.MarginLayoutParams) lp).leftMargin != side)) {
         lp.height = want;
+        ((ViewGroup.MarginLayoutParams) lp).leftMargin = ((ViewGroup.MarginLayoutParams) lp).rightMargin = side;
         inputOverlayView.setLayoutParams(lp);
       }
       setOverallTranslation((Views.getLocationInWindow(view)[1] - Views.getLocationInWindow(rootLayout)[1]) - voiceVideoButtonView.getTop());
@@ -785,6 +794,21 @@ public class RecordAudioVideoController implements
   }
 
   private int overallTranslation;
+  private boolean tgx101OverlayFloating;
+
+  private void tgx101UpdateOverlayBackground () {
+    if (inputOverlayView == null) return;
+    if (tgx101OverlayFloating) {
+      android.graphics.drawable.GradientDrawable d = new android.graphics.drawable.GradientDrawable();
+      d.setCornerRadius(Screen.dp(18f));
+      d.setColor(Theme.fillingColor());
+      d.setStroke(Math.max(1, Screen.dp(.5f)), Theme.separatorColor());
+      inputOverlayView.setBackground(d);
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) inputOverlayView.setClipToOutline(true);
+    } else {
+      inputOverlayView.setBackgroundColor(Theme.fillingColor());
+    }
+  }
 
   private void setOverallTranslation (int translation) {
     if (this.overallTranslation != translation) {
@@ -1542,6 +1566,12 @@ public class RecordAudioVideoController implements
       prepareVideoRecording();
     }
     setRecordMode(mode, true);
+    // TGx101 (user 2026-10-07 16:19 «снять с паузы никак нельзя, только жестом назад»): resumed from the preview (after a
+    // phone call or the pause button) there's no finger on the button — it came back as «hold, slide left to cancel» and
+    // could only be left with Back. A resumed recording is a locked (hands-free) one: send, pause and delete work.
+    setReleased(true, true);
+    lockView.setCollapseFactor(1f);
+    org.thunderdog.challegram.Tgx101Diag.mark("record: resumed (locked)");
   }
 
   private MessagesController findMessagesController () {

@@ -9777,6 +9777,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private static final float FLOATING_INPUT_ALPHA_BLUR = .65f, FLOATING_INPUT_ALPHA_NO_BLUR = .9f, FLOATING_INPUT_BLUR_DP = 14f;
   private boolean floatingInput;
 
+  /** TGx101: the recording bar takes the floating field's shape (mockup «Запись-голосового» 1) */
+  public boolean tgx101FloatingInput () {
+    return floatingInput;
+  }
+
   private void updateFloatingListPadding () {
     if (!floatingInput || messagesView == null || bottomWrap == null) return;
     // user 2026-10-07 00:08 «нижняя полоса наезжает на текст»: the capsule is lifted above the navigation bar, so the
