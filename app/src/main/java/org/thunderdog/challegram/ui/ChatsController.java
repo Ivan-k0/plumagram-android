@@ -1163,6 +1163,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   private float tgx101StripExpand; // 0 folded … 1 unfolded
   private android.animation.ValueAnimator tgx101StripAnimator;
   private android.widget.LinearLayout tgx101StripMini;
+  // TGx101 (user 2026-10-07 «почему прыгают чаты когда я возвращаюсь», video 19:41): the strip came ~2.5 s after the list
+  // and pushed it down — when it was there last time, its room is kept from the start
+  private static boolean tgx101StripHadItems;
 
   private void tgx101AddStoriesStrip (Context context) {
     // every folder tab gets the strip (user's Vivo has no «All chats» tab, 2026-10-04), not the archive, pickers, previews
@@ -1193,6 +1196,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
       @Override
       public void onStripVisibilityChanged (boolean hasItems) {
+        tgx101StripHadItems = hasItems;
         tgx101LayoutStoriesStrip(hasItems && Tgx101Stories.mode() == Tgx101Stories.MODE_STRIP);
         if (Tgx101Stories.mode() == Tgx101Stories.MODE_RINGS) {
           tgx101InvalidateRings();
@@ -1217,6 +1221,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       }
     });
     chatsView.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> chatsView.post(this::tgx101SyncStoriesStrip));
+    if (tgx101StripHadItems && Tgx101Stories.mode() == Tgx101Stories.MODE_STRIP && !tgx101StoriesStrip.hasItems()) {
+      tgx101LayoutStoriesStrip(true); // the room right away; the circles come with the stories
+    }
   }
 
   private void tgx101LayoutStoriesStrip (boolean hasItems) {
