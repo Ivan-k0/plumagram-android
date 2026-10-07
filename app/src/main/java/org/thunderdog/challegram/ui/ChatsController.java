@@ -1166,6 +1166,8 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   // TGx101 (user 2026-10-07 «почему прыгают чаты когда я возвращаюсь», video 19:41): the strip came ~2.5 s after the list
   // and pushed it down — when it was there last time, its room is kept from the start
   private static boolean tgx101StripHadItems;
+  private static int tgx101StripLastCount;
+  private long tgx101StripCreated;
 
   private void tgx101AddStoriesStrip (Context context) {
     // every folder tab gets the strip (user's Vivo has no «All chats» tab, 2026-10-04), not the archive, pickers, previews
@@ -1196,7 +1198,11 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
       @Override
       public void onStripVisibilityChanged (boolean hasItems) {
+        if (!hasItems && tgx101StripHadItems && android.os.SystemClock.uptimeMillis() - tgx101StripCreated < 3000) {
+          return; // the first answers may be empty while the stories load — keep the placeholders a little
+        }
         tgx101StripHadItems = hasItems;
+        if (hasItems) tgx101StripLastCount = tgx101StoriesStrip.ordered().size();
         tgx101LayoutStoriesStrip(hasItems && Tgx101Stories.mode() == Tgx101Stories.MODE_STRIP);
         if (Tgx101Stories.mode() == Tgx101Stories.MODE_RINGS) {
           tgx101InvalidateRings();
@@ -1221,8 +1227,10 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       }
     });
     chatsView.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> chatsView.post(this::tgx101SyncStoriesStrip));
+    tgx101StripCreated = android.os.SystemClock.uptimeMillis();
     if (tgx101StripHadItems && Tgx101Stories.mode() == Tgx101Stories.MODE_STRIP && !tgx101StoriesStrip.hasItems()) {
-      tgx101LayoutStoriesStrip(true); // the room right away; the circles come with the stories
+      tgx101StoriesStrip.showPlaceholders(Math.max(1, tgx101StripLastCount));
+      tgx101LayoutStoriesStrip(true); // the room and empty circles right away; the stories take their places
     }
   }
 
@@ -1241,12 +1249,13 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   private void tgx101FillMini () {
     java.util.List<TdApi.ChatActiveStories> ordered = tgx101StoriesStrip.ordered();
     // same five chats and count — keep the avatars (rebuilding on every focus blinked, user 2026-10-05)
-    StringBuilder key = new StringBuilder().append(ordered.size()).append('|');
+    StringBuilder key = new StringBuilder();
     for (int i = 0; i < Math.min(5, ordered.size()); i++) key.append(ordered.get(i).chatId).append(',');
     if (key.toString().equals(tgx101MiniKey) && tgx101StripMini.getChildCount() > 0) return;
     tgx101MiniKey = key.toString();
     tgx101StripMini.removeAllViews();
-    int count = Math.min(5, ordered.size());
+    // placeholders: grey circles where the avatars will be (user 2026-10-07 23:08)
+    int count = ordered.isEmpty() ? Math.min(5, Math.max(1, tgx101StripLastCount)) : Math.min(5, ordered.size());
     for (int i = 0; i < count; i++) {
       android.widget.FrameLayout ringWrap = new android.widget.FrameLayout(context()) {
         private final android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
@@ -1262,20 +1271,23 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
           c.drawCircle(getWidth() / 2f, getHeight() / 2f, getWidth() / 2f - Screen.dp(.75f), p);
         }
       };
-      org.thunderdog.challegram.widget.AvatarView avatar = new org.thunderdog.challegram.widget.AvatarView(context());
-      avatar.setChat(tdlib, tdlib.chat(ordered.get(i).chatId));
-      ringWrap.addView(avatar, new android.widget.FrameLayout.LayoutParams(Screen.dp(26f), Screen.dp(26f), Gravity.CENTER));
+      if (i < ordered.size()) {
+        org.thunderdog.challegram.widget.AvatarView avatar = new org.thunderdog.challegram.widget.AvatarView(context());
+        avatar.setChat(tdlib, tdlib.chat(ordered.get(i).chatId));
+        ringWrap.addView(avatar, new android.widget.FrameLayout.LayoutParams(Screen.dp(26f), Screen.dp(26f), Gravity.CENTER));
+      } else {
+        View empty = new View(context());
+        android.graphics.drawable.GradientDrawable dot = new android.graphics.drawable.GradientDrawable();
+        dot.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        dot.setColor(Theme.getColor(ColorId.placeholder));
+        empty.setBackground(dot);
+        ringWrap.addView(empty, new android.widget.FrameLayout.LayoutParams(Screen.dp(26f), Screen.dp(26f), Gravity.CENTER));
+      }
       android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(Screen.dp(30f), Screen.dp(30f));
       if (i > 0) lp.leftMargin = -Screen.dp(10f);
       tgx101StripMini.addView(ringWrap, lp);
     }
-    android.widget.TextView label = new android.widget.TextView(context());
-    label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14f);
-    label.setTextColor(Theme.textAccentColor());
-    label.setText(Lang.getString(R.string.Tgx101StoriesCount, ordered.size()));
-    android.widget.LinearLayout.LayoutParams labelParams = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    labelParams.leftMargin = Screen.dp(10f);
-    tgx101StripMini.addView(label, labelParams);
+    // user 2026-10-07 23:08: «слова „Истории · 11“ убери вообще» — the avatars alone
   }
 
   private void tgx101ApplyStripHeight () {

@@ -19,6 +19,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.drinkless.tdlib.TdApi;
 import org.thunderdog.challegram.telegram.SortedList;
@@ -59,7 +60,50 @@ public class Tgx101StoriesStrip extends HorizontalScrollView implements SortedLi
     addView(row, new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
     setBackgroundColor(Theme.fillingColor());
     storyList = tdlib.getStoryList(new TdApi.StoryListMain());
-    storyList.initializeList(null, this, list -> UI.post(() -> setItems(list)), 50, null);
+    storyList.initializeList(null, this, list -> UI.post(() -> scheduleItems(list)), 50, null);
+  }
+
+  // TGx101 (user 2026-10-07 23:08 «истории всё равно прыгают… сделай заглушку с пустыми кружками»): the list arrives in a
+  // burst (75 rebuilds in a second on 0.1.553) — take the last one after a short pause; until then empty circles hold the place
+  private @Nullable List<TdApi.ChatActiveStories> pendingItems;
+  private final Runnable applyPending = () -> {
+    List<TdApi.ChatActiveStories> items = pendingItems;
+    pendingItems = null;
+    if (items != null) setItems(items);
+  };
+
+  private void scheduleItems (List<TdApi.ChatActiveStories> items) {
+    pendingItems = items;
+    removeCallbacks(applyPending);
+    postDelayed(applyPending, builtKey.isEmpty() || builtKey.equals(PLACEHOLDER_KEY) ? 60 : 150);
+  }
+
+  private static final String PLACEHOLDER_KEY = "placeholder";
+
+  /** Empty circles in place of the stories that were here last time, until the real ones load */
+  public void showPlaceholders (int count) {
+    if (row.getChildCount() > 0 || count <= 0) return;
+    builtKey = PLACEHOLDER_KEY;
+    for (int i = 0; i < count; i++) {
+      LinearLayout item = new LinearLayout(getContext());
+      item.setOrientation(LinearLayout.VERTICAL);
+      item.setGravity(Gravity.CENTER_HORIZONTAL);
+      item.setLayoutParams(new LinearLayout.LayoutParams(Screen.dp(66f), ViewGroup.LayoutParams.MATCH_PARENT));
+      View circle = new View(getContext()) {
+        private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        @Override
+        protected void onDraw (@NonNull Canvas c) {
+          p.setColor(org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.placeholder));
+          c.drawCircle(getWidth() / 2f, getHeight() / 2f, Screen.dp(26f), p);
+        }
+      };
+      item.addView(circle, new LinearLayout.LayoutParams(Screen.dp(60f), Screen.dp(60f)));
+      row.addView(item);
+    }
+  }
+
+  public boolean showsPlaceholders () {
+    return PLACEHOLDER_KEY.equals(builtKey);
   }
 
   public void destroy () {
@@ -79,7 +123,7 @@ public class Tgx101StoriesStrip extends HorizontalScrollView implements SortedLi
 
   @Override
   public void onListChanged (SortedList<TdApi.ChatActiveStories> list) {
-    list.getList(null, items -> UI.post(() -> setItems(items)));
+    list.getList(null, items -> UI.post(() -> scheduleItems(items)));
   }
 
   private void setItems (List<TdApi.ChatActiveStories> items) {
@@ -117,7 +161,7 @@ public class Tgx101StoriesStrip extends HorizontalScrollView implements SortedLi
   }
 
   public void refresh () {
-    storyList.getList(null, items -> UI.post(() -> setItems(items)));
+    storyList.getList(null, items -> UI.post(() -> scheduleItems(items)));
   }
 
   public List<TdApi.ChatActiveStories> ordered () {
