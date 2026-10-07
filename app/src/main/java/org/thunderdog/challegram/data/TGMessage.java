@@ -8368,7 +8368,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         return ChatEventUtil.newMessage(context, msg, (TdApiExt.MessageChatEvent) content);
       }
 
-      final boolean allowNonBubbleEmoji = Settings.instance().useBigEmoji();
+      // TGx101 (user 2026-10-07 20:51 / 23:56, official screenshot): a reply made of emoji only lost its bubble — big emoji
+      // and the quote as a loose blue box. With a reply it stays a normal message, like official Telegram
+      final boolean allowNonBubbleEmoji = Settings.instance().useBigEmoji() && msg.replyTo == null;
       // TGx101: with Big Emoji off an emoji message stays plain text, even if it has an animated version
       final boolean allowAnimatedEmoji = allowNonBubbleEmoji && !Settings.instance().getNewSetting(Settings.SETTING_FLAG_NO_ANIMATED_EMOJI);
       final MessageEditMediaPending pendingMedia = tdlib.getPendingMessageMedia(msg.chatId, msg.id);
