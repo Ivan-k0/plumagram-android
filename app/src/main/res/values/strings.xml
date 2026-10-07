@@ -6321,6 +6321,7 @@
   <string name="Tgx101CapsuleMenuMin">Keep at least two items</string>
   <string name="Tgx101MyProfile">My profile</string>
   <string name="Tgx101NavCapsule">Bottom menu instead of the side menu</string>
+  <string name="Tgx101CapsuleScrollHide">Hide the bottom menu while scrolling</string>
   <string name="Tgx101AppliesAfterRestart">Restart the app to apply</string>
   <string name="Tgx101HideInputEmoji">Hide the emoji / stickers button</string>
   <string name="Tgx101RearRounds">Video messages start with the main camera</string>

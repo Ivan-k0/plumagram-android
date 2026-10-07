@@ -129,7 +129,7 @@ public class Tgx101NavCapsule extends View {
   }
 
   private float scrollHideOffset () {
-    return scrollHide * (Screen.dp(HEIGHT_DP + MARGIN_DP + 12f) + getPaddingBottom());
+    return scrollHide * ((Screen.dp(HEIGHT_DP + 12f) + marginPx()) + getPaddingBottom());
   }
 
   // user 2026-10-06 21:4x «полоса под кнопкой тоже пусть исчезает, пока её не трогаешь»: the line shows up on touch,
@@ -204,8 +204,14 @@ public class Tgx101NavCapsule extends View {
     return padding() + Screen.dp(6f) + tabWidth() * (tab + .5f);
   }
 
+  // user 2026-10-07 22:46 «опусти его на ту же высоту, как и поле ввода, если отступ выключен»: without the bottom gap the
+  // capsule stands 8 dp above the edge, like the floating message field
+  private int marginPx () {
+    return Screen.dp(org.thunderdog.challegram.unsorted.Settings.instance().needBottomGap() ? MARGIN_DP : 8f);
+  }
+
   private float capsuleTop () {
-    return getMeasuredHeight() - getPaddingBottom() - Screen.dp(MARGIN_DP) - Screen.dp(HEIGHT_DP);
+    return getMeasuredHeight() - getPaddingBottom() - marginPx() - Screen.dp(HEIGHT_DP);
   }
 
   private int tabAt (float x, float y) {

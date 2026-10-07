@@ -3536,6 +3536,9 @@ public class Settings {
 
   // TGx101 (user 2026-10-06, mockup «Капсула» B): bottom navigation capsule instead of the side menu button
   private static final String KEY_TGX101_NAV_CAPSULE = "tgx101_nav_capsule";
+  private static final String KEY_TGX101_CAPSULE_SCROLL_HIDE = "tgx101_capsule_scroll_hide";
+  public boolean tgx101CapsuleScrollHide () { return pmc.getBoolean(KEY_TGX101_CAPSULE_SCROLL_HIDE, true); }
+  public void setTgx101CapsuleScrollHide (boolean v) { pmc.putBoolean(KEY_TGX101_CAPSULE_SCROLL_HIDE, v); }
   public boolean tgx101NavCapsule () { return pmc.getBoolean(KEY_TGX101_NAV_CAPSULE, true); }
   public void setTgx101NavCapsule (boolean v) { pmc.putBoolean(KEY_TGX101_NAV_CAPSULE, v); }
   // TGx101 (4PDA request, user 2026-10-06 «делай вебсокет»): Telegram through WebSocket like the web version
