@@ -1060,7 +1060,7 @@ public class TGCallService extends Service implements
           builder.setUsesChronometer(true);
           builder.setWhen(System.currentTimeMillis() - callDuration);
           // TGx101 (user 2026-10-07 15:40 «что за дубль имени?»): the card already shows the name from the Person — the status here
-          builder.setContentText(Lang.getString(call != null && call.isVideo ? R.string.Tgx101VideoCall : R.string.Call));
+          builder.setContentText(Lang.getString(call != null && call.isVideo ? R.string.Tgx101VideoCall : R.string.Tgx101CallOngoing)); // not R.string.Call: in Russian that's the verb «Позвонить»
         } else {
           builder.setContentText(Lang.getString(call != null && call.isVideo ? R.string.Tgx101OutgoingVideoCall : R.string.OutgoingCall));
         }
