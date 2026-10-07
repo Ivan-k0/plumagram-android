@@ -1228,7 +1228,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
     if (useBubbles()) {
       pRealContentX = computeBubbleLeft();
-      pRealContentMaxWidth = width - (Device.NEED_BIGGER_BUBBLE_OFFSETS ? xBubbleLeft2 : xBubbleLeft1) - computeBubbleLeft() - (Screen.dp(isThreadHeader() || tgx101Feed() ? 8f : 56f));
+      pRealContentMaxWidth = width - (Device.NEED_BIGGER_BUBBLE_OFFSETS ? xBubbleLeft2 : xBubbleLeft1) - computeBubbleLeft() - (Screen.dp(isThreadHeader() ? 8f : tgx101Feed() ? 16f : 56f));
 
       if (useForward()) {
         pRealContentX += Screen.dp(11f);
