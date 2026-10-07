@@ -266,6 +266,11 @@ public class TGCallService extends Service implements
         return;
       }
 
+      if (Intents.ACTION_SILENCE_CALL.equals(action)) { // TGx101: «Mute» in the incoming call notification
+        silenceRinging();
+        return;
+      }
+
       if (Intents.ACTION_TOGGLE_CALL_SPEAKER.equals(action)) { // TGx101: speaker button in the call notification
         CallSettings settings = getCallSettings();
         if (settings != null) {
@@ -1253,6 +1258,8 @@ public class TGCallService extends Service implements
         Bitmap photo = user != null ? TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true) : null;
         builder.setStyle(Notification.CallStyle.forIncomingCall(tgx101Caller(user, photo), declinePendingIntent, answerPendingIntent).setIsVideo(call != null && call.isVideo));
         builder.setContentText(Lang.getString(call != null && call.isVideo ? R.string.Tgx101IncomingVideoCall : R.string.IncomingCall)); // TGx101: not the name twice
+        // TGx101 (user 2026-10-07 15:44 «добавь ещё справа выкл звук»): mute the ringing without answering
+        builder.addAction(new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(this, R.drawable.baseline_volume_off_24_white), Lang.getString(R.string.Tgx101CallSilence), tgx101SilencePendingIntent()).build());
       } else {
         builder.addAction(R.drawable.round_call_end_24_white, endTitle, declinePendingIntent);
         CharSequence answerTitle = Lang.getString(R.string.AnswerCall);
@@ -1261,6 +1268,7 @@ public class TGCallService extends Service implements
           ((SpannableString) answerTitle).setSpan(new ForegroundColorSpan(Theme.getColor(ColorId.circleButtonPositive)), 0, answerTitle.length(), 0);
         }
         builder.addAction(R.drawable.round_call_24_white, answerTitle, answerPendingIntent);
+        builder.addAction(R.drawable.baseline_volume_off_24_white, Lang.getString(R.string.Tgx101CallSilence), tgx101SilencePendingIntent()); // TGx101
       }
       builder.setPriority(Notification.PRIORITY_MAX);
     }
@@ -1426,6 +1434,13 @@ public class TGCallService extends Service implements
   }
 
   /** TGx101: «Без звука» on the incoming call screen — mutes our ringtone and vibration, the call keeps ringing for the caller */
+  private PendingIntent tgx101SilencePendingIntent () {
+    Intent intent = new Intent();
+    Intents.secureIntent(intent, false);
+    intent.setAction(Intents.ACTION_SILENCE_CALL);
+    return PendingIntent.getBroadcast(this, 2, intent, PendingIntent.FLAG_UPDATE_CURRENT | Intents.mutabilityFlags(false));
+  }
+
   public void silenceRinging () {
     if (ringtonePlayer != null) {
       try {

@@ -6572,4 +6572,5 @@
   <string name="Tgx101ForegroundNotifShow">Show as usual</string>
   <string name="Tgx101ForegroundNotifQuiet">Quietly, no pop-up</string>
   <string name="Tgx101ForegroundNotifHide">Don\'t show</string>
+  <string name="Tgx101CallSilence">Mute</string>
 </resources>

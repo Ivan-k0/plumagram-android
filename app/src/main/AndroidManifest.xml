@@ -363,6 +363,7 @@
         <action android:name="${applicationId}.DECLINE_CALL" />
         <action android:name="${applicationId}.ANSWER_CALL" />
         <action android:name="${applicationId}.TOGGLE_CALL_SPEAKER" />
+        <action android:name="${applicationId}.SILENCE_CALL" />
       </intent-filter>
     </receiver>
 
