@@ -943,6 +943,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       }
     }
 
+    if (tgx101Feed() && !isOutgoing()) {
+      width = Math.max(width, pRealContentMaxWidth); // a card across the whole width
+    }
     return width; //  + getBubblePaddingLeft() + getBubblePaddingRight();
   }
 
@@ -1225,7 +1228,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
     if (useBubbles()) {
       pRealContentX = computeBubbleLeft();
-      pRealContentMaxWidth = width - (Device.NEED_BIGGER_BUBBLE_OFFSETS ? xBubbleLeft2 : xBubbleLeft1) - computeBubbleLeft() - (Screen.dp(isThreadHeader() ? 8f : 56f));
+      pRealContentMaxWidth = width - (Device.NEED_BIGGER_BUBBLE_OFFSETS ? xBubbleLeft2 : xBubbleLeft1) - computeBubbleLeft() - (Screen.dp(isThreadHeader() || tgx101Feed() ? 8f : 56f));
 
       if (useForward()) {
         pRealContentX += Screen.dp(11f);
@@ -1544,7 +1547,14 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return needName(true);
   }
 
+  /** TGx101: a channel in the plain mode, drawn as a feed of full-width cards */
+  public final boolean tgx101Feed () {
+    return manager != null && manager.tgx101FeedCards();
+  }
+
   private boolean needName (boolean allowVia) {
+    if (tgx101Feed() && useBubble() && !separateReplyFromBubble())
+      return true; // the card shows whose post it is, like a feed
     if (!useBubbles() ||
       (useBubble() && ((msg.viaBotUserId != 0 && !useForward() && allowVia) ||
       ((flags & FLAG_SELF_CHAT) != 0 && !isOutgoing())))) {

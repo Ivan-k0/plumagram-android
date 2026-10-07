@@ -9800,6 +9800,24 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return insets.getInsets(android.view.WindowInsets.Type.ime() | android.view.WindowInsets.Type.systemBars()).bottom;
   }
 
+  private int tgx101LastImeHeight;
+
+  private boolean tgx101ImeMoving () {
+    return tgx101ImeRiding || (tgx101ImeGlide != null && tgx101ImeGlide.isRunning());
+  }
+  private android.animation.ValueAnimator tgx101ImeGlide;
+
+  private void tgx101GlideIme (int delta) {
+    org.thunderdog.challegram.Tgx101Diag.mark("keyboard: size changed by " + delta + "px without animation — gliding");
+    if (tgx101ImeGlide != null) tgx101ImeGlide.cancel();
+    tgx101ImeGlide = android.animation.ValueAnimator.ofFloat(tgx101ImeShift + delta, 0f);
+    tgx101ImeGlide.setDuration(200);
+    tgx101ImeGlide.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+    tgx101ImeGlide.addUpdateListener(a -> tgx101SetImeShift((float) a.getAnimatedValue()));
+    tgx101SetImeShift(tgx101ImeShift + delta);
+    tgx101ImeGlide.start();
+  }
+
   private void tgx101SetImeShift (float shift) {
     if (tgx101ImeShift == shift) return;
     tgx101ImeShift = shift;
@@ -9886,7 +9904,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     long now = android.os.SystemClock.uptimeMillis();
     boolean following = now - tgx101LastPaddingChange < 150;
     tgx101LastPaddingChange = now;
-    if (tgx101ImeRiding) return; // the keyboard animation moves the list itself
+    if (tgx101ImeMoving()) return; // the keyboard animation moves the list itself
     // the field animates its own height (a new line): the padding already follows it frame by frame — a glide on every
     // step made it jerky (Vivo 00:02:58, six steps in 40 ms)
     if (following) return;
@@ -9930,7 +9948,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // frame or two while text is rewritten (T9 suggestion: two lines shorter; Enter: one line too tall) and the list jumped
     // there and back. A new padding applies once it holds for 40 ms; with the keyboard moving — at once (the ride covers it)
     int current = messagesView.getPaddingBottom();
-    if (padding != current && current != 0 && !tgx101ImeRiding && !tgx101ShrinkConfirmed) {
+    if (padding != current && current != 0 && !tgx101ImeMoving() && !tgx101ShrinkConfirmed) {
       if (!tgx101ShrinkPending || tgx101PendingPadding != padding) {
         tgx101PendingPadding = padding;
         tgx101ShrinkPending = true;
@@ -10098,7 +10116,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (floatingInput && !emojiShown && !commandsShown) {
         height += Screen.dp(FLOATING_INPUT_BOTTOM); // TGx101: the capsule floats above the edge (or the keyboard)
       }
+      int previous = bottomWrap.getPaddingBottom();
       Views.setPaddingBottom(bottomWrap, height);
+      // TGx101 (Vivo 0.1.564 00:25 «поле ввода улетело вверх»): the keyboard grows once more after it has opened (the
+      // suggestion strip) without an animation — the field jumped 50 dp. Such a late change glides like the keyboard did
+      if (floatingInput && !tgx101ImeRiding && previous > 0 && height != previous && extraBottomInset > extraBottomInsetWithoutIme && tgx101LastImeHeight > 0) {
+        tgx101GlideIme(height - previous);
+      }
+      tgx101LastImeHeight = extraBottomInset > extraBottomInsetWithoutIme ? height : 0;
       if (bottomSpace.setLayoutHeight(height, false)) {
         onMessagesFrameChanged();
       }

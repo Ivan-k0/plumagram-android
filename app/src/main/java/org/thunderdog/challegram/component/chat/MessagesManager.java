@@ -1008,7 +1008,14 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
 
   public boolean useBubbles () {
     TdlibSettingsManager settings = controller().tdlib().settings();
-    return (loader.isChannel() ? !settings.forcePlainModeInChannels() : settings.useBubbles()) || controller.inWallpaperMode();
+    // TGx101: channels in the plain mode are a feed of cards — drawn as full-width bubbles (see tgx101FeedCards)
+    return (loader.isChannel() ? true : settings.useBubbles()) || controller.inWallpaperMode();
+  }
+
+  /** TGx101 (user 2026-10-08, mockup «Лента-каналов» variant Б): «Bubbles in channels» off — each post is a card across
+   *  the whole width: the channel's name on top, media inside with its own corners, the text, reactions, views and time */
+  public boolean tgx101FeedCards () {
+    return loader.isChannel() && controller().tdlib().settings().forcePlainModeInChannels() && !controller.inWallpaperMode();
   }
 
   private boolean useReactionBubblesValue;
