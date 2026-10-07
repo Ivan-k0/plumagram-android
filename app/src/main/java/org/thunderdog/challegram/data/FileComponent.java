@@ -713,7 +713,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
   // TGx101 (user 2026-10-06 «всё должно быть оцентровано, как в официальном Telegram»): a lower block, so the bubble time
   // (drawn about 4 dp above the block's bottom) shares the duration's row, and the 38 dp button is centred on both rows
-  private static final float TGX101_VOICE_HEIGHT = 51f, TGX101_VOICE_WAVE_CY = 15f; // user 2026-10-06 18:32: «Официальный с круглой А» (mockup variant 4) // measured on the 0.1.487 screenshot: the bubble adds ~7 dp above and ~14 dp under the time
+  private static final float TGX101_VOICE_HEIGHT = 51f, TGX101_VOICE_WAVE_CY = 15f, TGX101_VOICE_BARS_SHIFT = 11f; // user 2026-10-06 18:32: «Официальный с круглой А» (mockup variant 4) // measured on the 0.1.487 screenshot: the bubble adds ~7 dp above and ~14 dp under the time
 
   /** Play button size: 38 dp in the two-row voice layout (mockup «Голосовое-кнопка-плей»), the stock 50 dp otherwise */
   private int tgx101PlaySize () {
@@ -867,7 +867,10 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       int cy = startY + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS);
       final boolean twoRows = tgx101TwoRowVoice();
       int waveCy = twoRows ? startY + Screen.dp(TGX101_VOICE_WAVE_CY) : cy;
-      waveform.draw(c, seek, waveformLeft, waveCy, isPlaying && TD.isSelfDestructTypeImmediately(message));
+      // user 2026-10-07 20:10 «секунды нужно подтянуть к полосе, выглядит куцо»: the Web-style bars stand on a line,
+      // so they go lower — right above the duration — while «A» stays at the top right
+      int barsCy = twoRows ? waveCy + Screen.dp(TGX101_VOICE_BARS_SHIFT) : waveCy;
+      waveform.draw(c, seek, waveformLeft, barsCy, isPlaying && TD.isSelfDestructTypeImmediately(message));
       boolean align = context.isOutgoingBubble();
       if (unreadFactor != 0f) {
         int cx = startX + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS);

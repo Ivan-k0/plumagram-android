@@ -69,7 +69,7 @@ public class Waveform {
     return webStyle ? Screen.dp(2f) + Screen.dp(2f) : width + spacing;
   }
 
-  private static final float WEB_MIN_HEIGHT = 2f, WEB_MAX_HEIGHT = 20f;
+  private static final float WEB_MIN_HEIGHT = 3f, WEB_MAX_HEIGHT = 20f;
 
   public Waveform (byte[] data, int mode, boolean isOutBubble) {
     if (minimumHeight == 0) {
