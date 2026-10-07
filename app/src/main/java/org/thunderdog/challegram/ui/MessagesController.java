@@ -1546,6 +1546,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     contentView.addView(bottomSpace);
     contentView.addView(bottomWrap);
     updateBottomWrapOffset(); // TGx101: apply the bottom gap right away, insets may have arrived before bottomWrap existed
+    if (floatingInput && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      tgx101RideKeyboard(contentView);
+    }
     if (!floatingInput) {
       contentView.addView(messagesView);
     }
@@ -7771,10 +7774,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     float offset = -getAttachedFilesOffset();
     final float keyboardOffset = -getKeyboardOffset();
     tgx101ListBaseY = y + offset + keyboardOffset;
-    messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift);
-    bottomShadowView.setTranslationY(y + offset + keyboardOffset);
+    messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift + tgx101ImeShift);
+    bottomShadowView.setTranslationY(y + offset + keyboardOffset + tgx101ImeShift);
     if (replyBarView != null) {
-      replyBarView.setTranslationY(y + keyboardOffset);
+      replyBarView.setTranslationY(y + keyboardOffset + tgx101ImeShift);
       if (floatingInput) {
         // TGx101: hidden behind the see-through capsule while there's no reply (it would show through)
         replyBarView.setAlpha(MathUtils.clamp(-y / (float) Screen.dp(48f)));
@@ -9777,11 +9780,76 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private void onKeyboardLayoutTranslation (float translationY) {
+    tgx101EmojiTranslation = translationY;
     updateButtonsY();
     updateReplyView();
     if (bottomWrap != null) {
-      bottomWrap.setTranslationY(translationY);
+      bottomWrap.setTranslationY(translationY + tgx101ImeShift);
     }
+  }
+
+  // TGx101 (user 2026-10-07 23:10 «тот же движок, что в „Поделиться“ — в чатах, группах»): the field and the messages ride
+  // the keyboard animation frame by frame (Android 11+). The layout is already in the end state while the keyboard moves,
+  // so everything is drawn shifted by what the keyboard still has to travel
+  private float tgx101ImeShift, tgx101EmojiTranslation;
+  private boolean tgx101ImeRiding;
+  private int tgx101ImeEnd;
+
+  private static int tgx101BottomInset (@Nullable android.view.WindowInsets insets) {
+    if (insets == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return 0;
+    return insets.getInsets(android.view.WindowInsets.Type.ime() | android.view.WindowInsets.Type.systemBars()).bottom;
+  }
+
+  private void tgx101SetImeShift (float shift) {
+    if (tgx101ImeShift == shift) return;
+    tgx101ImeShift = shift;
+    if (bottomWrap != null) bottomWrap.setTranslationY(tgx101EmojiTranslation + shift);
+    updateReplyView();
+  }
+
+  @android.annotation.TargetApi(Build.VERSION_CODES.R)
+  private void tgx101RideKeyboard (View view) {
+    view.setWindowInsetsAnimationCallback(new android.view.WindowInsetsAnimation.Callback(android.view.WindowInsetsAnimation.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
+      private @Nullable android.view.WindowInsetsAnimation ime;
+
+      @Override
+      public void onPrepare (@NonNull android.view.WindowInsetsAnimation animation) {
+        if ((animation.getTypeMask() & android.view.WindowInsets.Type.ime()) != 0 && floatingInput && !isDestroyed()) {
+          ime = animation;
+          tgx101ImeRiding = true;
+          tgx101ShrinkConfirmed = true; // the keyboard's padding change applies at once — the shift covers it
+        }
+      }
+
+      @NonNull
+      @Override
+      public android.view.WindowInsetsAnimation.Bounds onStart (@NonNull android.view.WindowInsetsAnimation animation, @NonNull android.view.WindowInsetsAnimation.Bounds bounds) {
+        if (animation == ime) {
+          tgx101ImeEnd = tgx101BottomInset(view.getRootWindowInsets());
+          org.thunderdog.challegram.Tgx101Diag.mark("keyboard ride: to " + tgx101ImeEnd + "px, " + animation.getDurationMillis() + " ms");
+        }
+        return bounds;
+      }
+
+      @NonNull
+      @Override
+      public android.view.WindowInsets onProgress (@NonNull android.view.WindowInsets insets, @NonNull java.util.List<android.view.WindowInsetsAnimation> running) {
+        if (ime != null && running.contains(ime)) {
+          tgx101SetImeShift(tgx101ImeEnd - tgx101BottomInset(insets));
+        }
+        return insets;
+      }
+
+      @Override
+      public void onEnd (@NonNull android.view.WindowInsetsAnimation animation) {
+        if (animation == ime) {
+          ime = null;
+          tgx101ImeRiding = false;
+          tgx101ShrinkConfirmed = false;
+          tgx101SetImeShift(0f);
+        }
+      }
+    });
   }
 
   // TGx101: floating message field — a rounded capsule with a shadow; the bottom padding (gap) stays transparent
@@ -9805,6 +9873,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private android.animation.ValueAnimator tgx101GlideAnimator;
 
   private void tgx101GlideList (int delta) {
+    if (tgx101ImeRiding) return; // the keyboard animation moves the list itself
     if (Math.abs(delta) < Screen.dp(2f) || !messagesView.isShown() || !messagesView.isLaidOut()) return;
     float from = tgx101PaddingShift + delta;
     if (tgx101GlideAnimator != null) tgx101GlideAnimator.cancel();
@@ -9813,10 +9882,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     tgx101GlideAnimator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
     tgx101GlideAnimator.addUpdateListener(a -> {
       tgx101PaddingShift = (float) a.getAnimatedValue();
-      messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift);
+      messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift + tgx101ImeShift);
     });
     tgx101PaddingShift = from;
-    messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift);
+    messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift + tgx101ImeShift);
     tgx101GlideAnimator.start();
   }
 
