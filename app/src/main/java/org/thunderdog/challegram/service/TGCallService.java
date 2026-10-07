@@ -1004,8 +1004,9 @@ public class TGCallService extends Service implements
       NotificationManager m = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
       cleanupChannels(m);
       // final String channelId = "call_" + call.id + "_" + System.currentTimeMillis();
-      // TGx101: DEFAULT (still silent) so the call stays visible on the lock screen
-      android.app.NotificationChannel channel = new android.app.NotificationChannel(callChannelId, Lang.getString(R.string.NotificationChannelOutgoingCall), NotificationManager.IMPORTANCE_HIGH);
+      // TGx101: DEFAULT (still silent) so the call stays visible on the lock screen. Not HIGH: that made the ongoing call
+      // pop up at the top of the screen during the call (user 2026-10-07 14:57 «во время звонка вверху всё равно всплывает»)
+      android.app.NotificationChannel channel = new android.app.NotificationChannel(callChannelId, Lang.getString(R.string.NotificationChannelOutgoingCall), NotificationManager.IMPORTANCE_DEFAULT);
       channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
       channel.enableVibration(false);
       channel.enableLights(false);
