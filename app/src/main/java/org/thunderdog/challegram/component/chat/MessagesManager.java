@@ -2750,6 +2750,19 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     tgx101NoFlashUntil = android.os.SystemClock.uptimeMillis() + 5000;
   }
 
+  // user 2026-10-07 11:0x «выделение волной происходит только когда переходишь к ответу, больше ни в каких случаях»:
+  // the flash + wave is allowed only for the message a reply quote was tapped for (search, links, pinned — no flash)
+  private static long tgx101ReplyJumpMessageId, tgx101ReplyJumpUntil;
+
+  public static void tgx101AllowFlashOnce (long messageId) {
+    tgx101ReplyJumpMessageId = messageId;
+    tgx101ReplyJumpUntil = android.os.SystemClock.uptimeMillis() + 5000;
+  }
+
+  public static boolean tgx101FlashAllowed (long messageId) {
+    return messageId != 0 && messageId == tgx101ReplyJumpMessageId && android.os.SystemClock.uptimeMillis() < tgx101ReplyJumpUntil && !tgx101SkipFlash(messageId);
+  }
+
   public static boolean tgx101SkipFlash (long messageId) {
     return messageId != 0 && messageId == tgx101NoFlashMessageId && android.os.SystemClock.uptimeMillis() < tgx101NoFlashUntil;
   }
@@ -3244,7 +3257,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       }
       TGMessage msg = adapter.getMessage(index);
       // TGx101 (user 2026-10-05): only jumps to a message flash it — not the arrow to the first unread, not a notification
-      if ((highlightMode == HIGHLIGHT_MODE_NORMAL || highlightMode == HIGHLIGHT_MODE_NORMAL_NEXT) && !tgx101SkipFlash(messageId.getMessageId())) {
+      if ((highlightMode == HIGHLIGHT_MODE_NORMAL || highlightMode == HIGHLIGHT_MODE_NORMAL_NEXT) && tgx101FlashAllowed(messageId.getMessageId())) {
         msg.tgx101SetHighlightedChild(messageId.getMessageId()); // TGx101: the album item the reply was to
         msg.highlight(true);
       }

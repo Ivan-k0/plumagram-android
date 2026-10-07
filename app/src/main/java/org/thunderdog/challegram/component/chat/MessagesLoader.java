@@ -1674,8 +1674,8 @@ public class MessagesLoader implements Client.ResultHandler {
         }
         case MessagesManager.HIGHLIGHT_MODE_NORMAL:
         case MessagesManager.HIGHLIGHT_MODE_NORMAL_NEXT: {
-          if (scrollMessageId != null && MessagesManager.tgx101SkipFlash(scrollMessageId.getMessageId())) {
-            break; // TGx101: opened from a notification — no flash
+          if (scrollMessageId == null || !MessagesManager.tgx101FlashAllowed(scrollMessageId.getMessageId())) {
+            break; // TGx101: only a jump to a reply flashes (not a notification, search, link or pinned message)
           }
           if (scrollMessageId != null) scrollItem.tgx101SetHighlightedChild(scrollMessageId.getMessageId()); // TGx101: album item
           scrollItem.highlight(false);

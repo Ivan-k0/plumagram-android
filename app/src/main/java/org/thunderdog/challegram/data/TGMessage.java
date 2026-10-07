@@ -3005,6 +3005,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
               } else if (isScheduled()) {
                 tdlib.ui().openMessage(controller(), replyToMessage.chatId, new MessageId(replyToMessage), openParameters());
               } else {
+                org.thunderdog.challegram.component.chat.MessagesManager.tgx101AllowFlashOnce(replyToMessage.messageId); // TGx101: the only flash + wave
                 highlightOtherMessage(new MessageId(replyToMessage));
               }
             }
@@ -5298,16 +5299,13 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
     if (canMarkAsViewed()) {
       flags |= FLAG_VIEWED;
-      if (msg.containsUnreadMention) {
-        highlight(true);
-      }
+      // TGx101 (user 2026-10-07): no flash on a seen mention — only a jump to a reply flashes
       result = true;
     }
     if (containsUnreadReactions() && !BitwiseUtils.hasFlag(flags, FLAG_IGNORE_REACTIONS_VIEW)) {
       flags |= FLAG_IGNORE_REACTIONS_VIEW;
 
-      highlightUnreadReactions();
-      highlight(true);
+      highlightUnreadReactions(); // TGx101 (user 2026-10-07): the reaction plays, the bubble itself doesn't flash
       tdlib.ui().postDelayed(() -> {
         flags = BitwiseUtils.setFlag(flags, FLAG_IGNORE_REACTIONS_VIEW, false);
       }, 500L);
