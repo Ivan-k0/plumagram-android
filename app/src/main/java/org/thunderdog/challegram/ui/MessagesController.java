@@ -9782,6 +9782,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return floatingInput;
   }
 
+  private boolean tgx101ShrinkPending, tgx101ShrinkConfirmed;
+
   private void updateFloatingListPadding () {
     if (!floatingInput || messagesView == null || bottomWrap == null) return;
     // user 2026-10-07 00:08 «нижняя полоса наезжает на текст»: the capsule is lifted above the navigation bar, so the
@@ -9793,6 +9795,21 @@ public class MessagesController extends ViewController<MessagesController.Argume
       bottomWrap.getLocationInWindow(capsule);
       int fromTop = list[1] + messagesView.getHeight() - capsule[1];
       padding = Math.max(bottomWrap.getHeight(), fromTop) + Screen.dp(4f);
+    }
+    // TGx101 (Vivo 0.1.545, 19:38:16 «после применения экран прыгнул»): Yandex keyboard rewrites the whole field when a
+    // suggestion is applied — for one frame the field was two lines shorter (padding 1680 → 1490 → 1680) and the list
+    // jumped. Growing applies at once (the field must not cover a message); shrinking waits and applies only if it stays.
+    if (padding < messagesView.getPaddingBottom() && !tgx101ShrinkConfirmed) {
+      if (!tgx101ShrinkPending) {
+        tgx101ShrinkPending = true;
+        messagesView.postDelayed(() -> {
+          tgx101ShrinkPending = false;
+          tgx101ShrinkConfirmed = true;
+          updateFloatingListPadding();
+          tgx101ShrinkConfirmed = false;
+        }, 120);
+      }
+      return;
     }
     if (messagesView.getPaddingBottom() != padding) {
       // At the newest message? Stay there, otherwise it ends up under the capsule until the next layout
