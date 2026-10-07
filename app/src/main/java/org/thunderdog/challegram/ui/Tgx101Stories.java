@@ -55,7 +55,7 @@ public final class Tgx101Stories {
   }
 
   private static SharedPreferences prefs () {
-    return UI.getAppContext().getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE);
+    return org.thunderdog.challegram.unsorted.AppContext.get().getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE);
   }
 
   /** «Show less»: the chat always goes to the end of the strip (local, this phone only) */

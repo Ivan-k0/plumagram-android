@@ -146,7 +146,7 @@ public final class Tgx101Video {
   }
 
   public static boolean hasCameraPermission () {
-    return Build.VERSION.SDK_INT < Build.VERSION_CODES.M || ContextCompat.checkSelfPermission(UI.getAppContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+    return Build.VERSION.SDK_INT < Build.VERSION_CODES.M || ContextCompat.checkSelfPermission(org.thunderdog.challegram.unsorted.AppContext.get(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
   }
 
   public static void setCameraEnabled (boolean enabled) {

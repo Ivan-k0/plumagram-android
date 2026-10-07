@@ -121,7 +121,7 @@ public final class Tgx101WebProxy {
       return;
     }
     carrierProxyId = proxyId;
-    carrier = new Tgx101WebCarrier(UI.getAppContext(), address.host, address.path, address.secret, LOCAL_PORT, state -> {
+    carrier = new Tgx101WebCarrier(org.thunderdog.challegram.unsorted.AppContext.get(), address.host, address.path, address.secret, LOCAL_PORT, state -> {
       if (state == Tgx101WebCarrier.STATE_UNSUPPORTED) {
         UI.showToast(R.string.Tgx101WebProxyUnsupported, Toast.LENGTH_LONG);
       }

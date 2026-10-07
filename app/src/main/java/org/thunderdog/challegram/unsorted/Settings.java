@@ -838,12 +838,12 @@ public class Settings {
   private final ScheduleHandler handler = new ScheduleHandler(this);
 
   public File getDirectory () {
-    File pmcDir = new File(UI.getAppContext().getFilesDir(), "pmc");
+    File pmcDir = new File(AppContext.get().getFilesDir(), "pmc");
     return new File(pmcDir, "db");
   }
 
   private Settings () {
-    File pmcDir = new File(UI.getAppContext().getFilesDir(), "pmc");
+    File pmcDir = new File(AppContext.get().getFilesDir(), "pmc");
     boolean didNotExist = !pmcDir.exists();
     if (Config.ENABLE_BASELINE_PROFILE_HOOKS && didNotExist) {
       if (SessionSnapshot.restoreSnapshot()) {
@@ -2049,7 +2049,7 @@ public class Settings {
         break;
       }
       case VERSION_32: {
-        File zoomTables = new File(UI.getAppContext().getFilesDir(), "ZoomTables.data");
+        File zoomTables = new File(AppContext.get().getFilesDir(), "ZoomTables.data");
         if (zoomTables.exists() && !zoomTables.delete()) {
 
         }
@@ -2349,7 +2349,7 @@ public class Settings {
   private void migratePrefsToPmc () {
     // Main
 
-    SharedPreferences main = UI.getAppContext().getSharedPreferences(STORAGE_MAIN, Context.MODE_PRIVATE);
+    SharedPreferences main = AppContext.get().getSharedPreferences(STORAGE_MAIN, Context.MODE_PRIVATE);
     Log.load(main);
 
     final int settingsVersion = main.getInt(KEY_VERSION, 0);
@@ -2483,7 +2483,7 @@ public class Settings {
     SharedPreferences bots = null;
     File botsPrefs = U.sharedPreferencesFile(STORAGE_BOTS);
     if (botsPrefs != null) {
-      bots = UI.getAppContext().getSharedPreferences(STORAGE_BOTS, Context.MODE_PRIVATE);
+      bots = AppContext.get().getSharedPreferences(STORAGE_BOTS, Context.MODE_PRIVATE);
       editor = movePreferences(bots, pmc, editor, null);
     }
 
@@ -2492,13 +2492,13 @@ public class Settings {
     SharedPreferences keyboard = null;
     File keyboardPrefs = U.sharedPreferencesFile(STORAGE_KEYBOARD);
     if (keyboardPrefs != null) {
-      keyboard = UI.getAppContext().getSharedPreferences(STORAGE_KEYBOARD, Context.MODE_PRIVATE);
+      keyboard = AppContext.get().getSharedPreferences(STORAGE_KEYBOARD, Context.MODE_PRIVATE);
       editor = movePreferences(keyboard, pmc, editor, "keyboard_");
     }
 
     // Emoji
 
-    SharedPreferences emoji = UI.getAppContext().getSharedPreferences(STORAGE_EMOJI, Context.MODE_PRIVATE);
+    SharedPreferences emoji = AppContext.get().getSharedPreferences(STORAGE_EMOJI, Context.MODE_PRIVATE);
     Map<String, ?> allEmoji = emoji.getAll();
     if (allEmoji != null && !allEmoji.isEmpty()) {
       if (editor == null) {
@@ -2631,7 +2631,7 @@ public class Settings {
 
   @Deprecated
   public static File getProxyConfigFile () {
-    return new File(UI.getAppContext().getFilesDir(), /*debug ? "tdlib_proxy_debug.bin" :*/ "tdlib_proxy.bin");
+    return new File(AppContext.get().getFilesDir(), /*debug ? "tdlib_proxy_debug.bin" :*/ "tdlib_proxy.bin");
   }
 
   @Deprecated
@@ -3144,11 +3144,11 @@ public class Settings {
   public @androidx.annotation.Nullable int[] getTgx101FormatMenu () {
     String saved = pmc.getString(KEY_TGX101_FORMAT_MENU, null);
     if (saved == null || saved.isEmpty()) return null;
-    android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
+    android.content.res.Resources res = org.thunderdog.challegram.unsorted.AppContext.get().getResources();
     java.util.ArrayList<Integer> ids = new java.util.ArrayList<>();
     for (String name : saved.split(",")) {
       boolean hidden = name.startsWith("-");
-      int id = res.getIdentifier(hidden ? name.substring(1) : name, "id", org.thunderdog.challegram.tool.UI.getAppContext().getPackageName());
+      int id = res.getIdentifier(hidden ? name.substring(1) : name, "id", org.thunderdog.challegram.unsorted.AppContext.get().getPackageName());
       if (id != 0) ids.add(hidden ? -id : id);
     }
     int[] result = new int[ids.size()];
@@ -3161,7 +3161,7 @@ public class Settings {
       pmc.remove(KEY_TGX101_FORMAT_MENU);
       return;
     }
-    android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
+    android.content.res.Resources res = org.thunderdog.challegram.unsorted.AppContext.get().getResources();
     StringBuilder b = new StringBuilder();
     for (int id : ids) {
       if (b.length() > 0) b.append(',');
@@ -3223,10 +3223,10 @@ public class Settings {
     if (saved.isEmpty() || saved.equals("none")) {
       return new int[0];
     }
-    android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
+    android.content.res.Resources res = org.thunderdog.challegram.unsorted.AppContext.get().getResources();
     java.util.ArrayList<Integer> ids = new java.util.ArrayList<>();
     for (String name : saved.split(",")) {
-      int id = res.getIdentifier(name, "id", org.thunderdog.challegram.tool.UI.getAppContext().getPackageName());
+      int id = res.getIdentifier(name, "id", org.thunderdog.challegram.unsorted.AppContext.get().getPackageName());
       if (id != 0) ids.add(id);
     }
     int[] result = new int[ids.size()];
@@ -3244,7 +3244,7 @@ public class Settings {
       pmc.putString(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_MORE), "none");
       return;
     }
-    android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
+    android.content.res.Resources res = org.thunderdog.challegram.unsorted.AppContext.get().getResources();
     StringBuilder b = new StringBuilder();
     for (int id : ids) {
       if (b.length() > 0) b.append(',');
@@ -3259,10 +3259,10 @@ public class Settings {
     if (saved == null || saved.isEmpty()) {
       return new int[0];
     }
-    android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
+    android.content.res.Resources res = org.thunderdog.challegram.unsorted.AppContext.get().getResources();
     java.util.ArrayList<Integer> ids = new java.util.ArrayList<>();
     for (String name : saved.split(",")) {
-      int id = res.getIdentifier(name, "id", org.thunderdog.challegram.tool.UI.getAppContext().getPackageName());
+      int id = res.getIdentifier(name, "id", org.thunderdog.challegram.unsorted.AppContext.get().getPackageName());
       if (id != 0) ids.add(id);
     }
     int[] result = new int[ids.size()];
@@ -3275,7 +3275,7 @@ public class Settings {
       pmc.remove(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_HIDDEN));
       return;
     }
-    android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
+    android.content.res.Resources res = org.thunderdog.challegram.unsorted.AppContext.get().getResources();
     StringBuilder b = new StringBuilder();
     for (int id : ids) {
       if (b.length() > 0) b.append(',');
@@ -3291,11 +3291,11 @@ public class Settings {
     if (saved == null || saved.isEmpty()) {
       return null;
     }
-    android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
+    android.content.res.Resources res = org.thunderdog.challegram.unsorted.AppContext.get().getResources();
     String[] names = saved.split(",");
     java.util.ArrayList<Integer> ids = new java.util.ArrayList<>();
     for (String name : names) {
-      int id = res.getIdentifier(name, "id", org.thunderdog.challegram.tool.UI.getAppContext().getPackageName());
+      int id = res.getIdentifier(name, "id", org.thunderdog.challegram.unsorted.AppContext.get().getPackageName());
       if (id != 0) {
         ids.add(id);
       }
@@ -3310,7 +3310,7 @@ public class Settings {
       pmc.remove(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_ORDER));
       return;
     }
-    android.content.res.Resources res = org.thunderdog.challegram.tool.UI.getAppContext().getResources();
+    android.content.res.Resources res = org.thunderdog.challegram.unsorted.AppContext.get().getResources();
     StringBuilder b = new StringBuilder();
     for (int id : ids) {
       if (b.length() > 0) b.append(',');
@@ -3678,7 +3678,7 @@ public class Settings {
   /** Our size × the system font size slider (the app's dp text ignored it), capped so nothing explodes */
   public static float tgx101UiScale () {
     float system = 1f;
-    try { system = org.thunderdog.challegram.tool.UI.getAppContext().getResources().getConfiguration().fontScale; } catch (Throwable ignored) { }
+    try { system = org.thunderdog.challegram.unsorted.AppContext.get().getResources().getConfiguration().fontScale; } catch (Throwable ignored) { }
     return Math.min(2f, instance().tgx101UiTextSize() / 100f * Math.max(1f, system));
   }
 
@@ -4046,7 +4046,7 @@ public class Settings {
     }
     boolean result = false;
     try {
-      android.content.ContentResolver cr = org.thunderdog.challegram.tool.UI.getAppContext().getContentResolver();
+      android.content.ContentResolver cr = org.thunderdog.challegram.unsorted.AppContext.get().getContentResolver();
       result = org.thunderdog.challegram.tool.Screen.isGesturalNavigationEnabled(org.thunderdog.challegram.tool.UI.getResources()) ||
         android.provider.Settings.Secure.getInt(cr, "navigation_mode", 0) == 2 ||
         android.provider.Settings.Secure.getInt(cr, "navigation_gesture_on", 0) != 0 ||        // Vivo
@@ -4247,7 +4247,7 @@ public class Settings {
       int nightMode = pmc.getInt(KEY_NIGHT_MODE, NIGHT_MODE_DEFAULT);
       if (nightMode == NIGHT_MODE_AUTO) {
         try {
-          SensorManager sensorManager = (SensorManager) UI.getAppContext().getSystemService(Context.SENSOR_SERVICE);
+          SensorManager sensorManager = (SensorManager) AppContext.get().getSystemService(Context.SENSOR_SERVICE);
           if (sensorManager != null) {
             if (sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT) == null) {
               Log.e("Disabling night mode, because light sensor is unavailable");

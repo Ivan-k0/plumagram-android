@@ -198,7 +198,7 @@ public class TdlibNotificationExtras {
   }
 
   private static android.content.SharedPreferences tgx101SnoozePrefs () {
-    return UI.getAppContext().getSharedPreferences("tgx101_snooze", android.content.Context.MODE_PRIVATE);
+    return org.thunderdog.challegram.unsorted.AppContext.get().getSharedPreferences("tgx101_snooze", android.content.Context.MODE_PRIVATE);
   }
 
   public static void tgx101SetSnoozed (int accountId, long chatId, long untilMillis) {

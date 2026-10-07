@@ -64,7 +64,7 @@ public class ExternalAudioFocus implements AudioManager.OnAudioFocusChangeListen
     if (needFocus == isHeld) {
       return;
     }
-    AudioManager am = (AudioManager) UI.getAppContext().getSystemService(Context.AUDIO_SERVICE);
+    AudioManager am = (AudioManager) org.thunderdog.challegram.unsorted.AppContext.get().getSystemService(Context.AUDIO_SERVICE);
     if (am == null) {
       return;
     }

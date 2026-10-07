@@ -19,6 +19,7 @@ add_library(tgcalls STATIC
   "${TGCALLS_DIR}/tgcalls/platform/android/AndroidInterface.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tgx101/VideoCameraCapturer.cpp" # TGx101: armv7 fix, original in tgcalls
   "${TGCALLS_DIR}/tgcalls/platform/android/VideoCapturerInterfaceImpl.cpp"
+  "${TGCALLS_DIR}/tgcalls/group/StreamingAudioRendererTest.cpp"
 
   "${TGCALLS_DIR}/tgcalls/Manager.cpp"
   "${TGCALLS_DIR}/tgcalls/MediaManager.cpp"
@@ -56,6 +57,7 @@ add_library(tgcalls STATIC
   "${TGCALLS_DIR}/tgcalls/v2/ContentNegotiation.cpp"
   "${TGCALLS_DIR}/tgcalls/v2/DirectNetworkingImpl.cpp"
   "${TGCALLS_DIR}/tgcalls/v2/ExternalSignalingConnection.cpp"
+  "${TGCALLS_DIR}/tgcalls/v2/MtProtoIceTransport.cpp"
   "${TGCALLS_DIR}/tgcalls/v2/InstanceV2Impl.cpp"
   "${TGCALLS_DIR}/tgcalls/v2/InstanceV2CompatImpl.cpp"
   "${TGCALLS_DIR}/tgcalls/v2/InstanceV2ReferenceImpl.cpp"

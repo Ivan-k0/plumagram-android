@@ -2616,7 +2616,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   /** TGx101: the shared file's own name (content:// URIs hide it in the path) */
   private static @Nullable String tgx101DisplayName (Uri uri) {
     if (!"content".equals(uri.getScheme())) return null;
-    try (android.database.Cursor c = UI.getAppContext().getContentResolver().query(uri, new String[] {android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+    try (android.database.Cursor c = org.thunderdog.challegram.unsorted.AppContext.get().getContentResolver().query(uri, new String[] {android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
       if (c != null && c.moveToFirst()) return c.getString(0);
     } catch (Throwable ignored) { }
     return null;

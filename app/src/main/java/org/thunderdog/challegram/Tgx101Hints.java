@@ -34,7 +34,7 @@ public final class Tgx101Hints {
 
   /** Counts one more show and returns whether the hint may be shown this time. */
   public static boolean take (String key) {
-    SharedPreferences prefs = UI.getAppContext().getSharedPreferences("tgx101_hints", Context.MODE_PRIVATE);
+    SharedPreferences prefs = org.thunderdog.challegram.unsorted.AppContext.get().getSharedPreferences("tgx101_hints", Context.MODE_PRIVATE);
     int shown = prefs.getInt(key, 0);
     if (shown >= MAX_SHOWS) {
       return false;

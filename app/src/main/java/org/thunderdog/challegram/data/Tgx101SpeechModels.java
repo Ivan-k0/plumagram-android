@@ -116,7 +116,7 @@ public final class Tgx101SpeechModels {
   }
 
   public static File dir (Model model) {
-    return new File(new File(UI.getAppContext().getFilesDir(), "speech"), model.id);
+    return new File(new File(org.thunderdog.challegram.unsorted.AppContext.get().getFilesDir(), "speech"), model.id);
   }
 
   public static boolean isDownloaded (Model model) {

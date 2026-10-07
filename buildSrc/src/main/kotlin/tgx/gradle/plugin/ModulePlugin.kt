@@ -15,6 +15,7 @@ import org.gradle.kotlin.dsl.*
 import tgx.gradle.findExtraFolders
 import tgx.gradle.ndkVersionMajor
 import tgx.gradle.ndkVersionToMinSdk
+import tgx.gradle.requireFile
 import tgx.gradle.source.AppBuildVersionSource
 import tgx.gradle.source.KeystoreSource
 import java.io.File
@@ -62,7 +63,7 @@ open class ModulePlugin : Plugin<Project> {
           "-Xlint:-overloads",
           "-Xlint:-overrides",
           "-Xlint:-this-escape",
-          // "-Xlint:-dangling-doc-comments",
+          "-Xlint:-dangling-doc-comments",
 
           // TODO: fix deprecation warnings by migrating to newer APIs.
           "-Xlint:-deprecation",
@@ -207,6 +208,8 @@ open class ModulePlugin : Plugin<Project> {
                 isJniDebuggable = true
                 isMinifyEnabled = false
 
+                multiDexKeepProguard = requireFile(project.layout.projectDirectory.file("multidex-rules.pro").asFile)
+
                 ndk.debugSymbolLevel = "full"
 
                 if (config.forceOptimize) {
@@ -225,6 +228,8 @@ open class ModulePlugin : Plugin<Project> {
 
                 isMinifyEnabled = !config.doNotObfuscate
                 isShrinkResources = !config.doNotObfuscate
+
+                multiDexKeepProguard = requireFile(project.layout.projectDirectory.file("multidex-rules.pro").asFile)
 
                 ndk.debugSymbolLevel = "full"
 

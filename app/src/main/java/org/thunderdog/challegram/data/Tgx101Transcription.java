@@ -102,7 +102,7 @@ public final class Tgx101Transcription {
   }
 
   private static SharedPreferences prefs () {
-    return UI.getAppContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    return org.thunderdog.challegram.unsorted.AppContext.get().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
   }
 
   /** Current state for a message, or null if it was never transcribed. */
@@ -366,7 +366,7 @@ public final class Tgx101Transcription {
 
     void recognizeOnDevice () {
       if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
-        Context c = UI.getAppContext();
+        Context c = org.thunderdog.challegram.unsorted.AppContext.get();
         boolean available = SpeechRecognizer.isRecognitionAvailable(c);
         boolean onDevice = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && SpeechRecognizer.isOnDeviceRecognitionAvailable(c);
         android.content.ComponentName service = null;
@@ -381,7 +381,7 @@ public final class Tgx101Transcription {
         recognizeWithModel(model);
         return;
       }
-      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !SpeechRecognizer.isRecognitionAvailable(UI.getAppContext())) {
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !SpeechRecognizer.isRecognitionAvailable(org.thunderdog.challegram.unsorted.AppContext.get())) {
         fail(Lang.getString(Tgx101SpeechModels.isSupported() ? R.string.Tgx101SpeechModelMissing : R.string.TranscriptionUnavailable));
         return;
       }
@@ -409,7 +409,7 @@ public final class Tgx101Transcription {
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     void startRecognizer (byte[] pcm) {
-      Context context = UI.getAppContext();
+      Context context = org.thunderdog.challegram.unsorted.AppContext.get();
       final SpeechRecognizer recognizer = SpeechRecognizer.isOnDeviceRecognitionAvailable(context) ?
         SpeechRecognizer.createOnDeviceSpeechRecognizer(context) :
         SpeechRecognizer.createSpeechRecognizer(context);

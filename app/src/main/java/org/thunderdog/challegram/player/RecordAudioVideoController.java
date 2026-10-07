@@ -988,7 +988,7 @@ public class RecordAudioVideoController implements
     @Override
     public void run () {
       if (recordMode != RECORD_MODE_AUDIO && recordMode != RECORD_MODE_VIDEO) return;
-      android.media.AudioManager am = (android.media.AudioManager) UI.getAppContext().getSystemService(android.content.Context.AUDIO_SERVICE);
+      android.media.AudioManager am = (android.media.AudioManager) org.thunderdog.challegram.unsorted.AppContext.get().getSystemService(android.content.Context.AUDIO_SERVICE);
       int mode = am != null ? am.getMode() : android.media.AudioManager.MODE_NORMAL;
       if (mode == android.media.AudioManager.MODE_RINGTONE || mode == android.media.AudioManager.MODE_IN_CALL || mode == android.media.AudioManager.MODE_IN_COMMUNICATION) {
         org.thunderdog.challegram.Tgx101Diag.mark("record: phone call (audio mode " + mode + ") — paused into the preview");

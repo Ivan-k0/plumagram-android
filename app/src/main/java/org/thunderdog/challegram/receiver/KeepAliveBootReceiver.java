@@ -25,7 +25,7 @@ public class KeepAliveBootReceiver extends BroadcastReceiver {
   public void onReceive (Context context, Intent intent) {
     String action = intent != null ? intent.getAction() : null;
     if (Intent.ACTION_BOOT_COMPLETED.equals(action) || Intent.ACTION_MY_PACKAGE_REPLACED.equals(action)) {
-      UI.initApp(context.getApplicationContext());
+      org.thunderdog.challegram.unsorted.AppContext.init(context.getApplicationContext());
       KeepAliveService.sync(context);
     }
   }

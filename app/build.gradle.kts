@@ -7,7 +7,7 @@ import com.android.build.api.variant.impl.VariantOutputImpl
 import com.android.build.gradle.tasks.ExternalNativeBuildTask
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
 import tgx.gradle.*
-import tgx.gradle.source.GitVersionSource
+import tgx.gradle.source.GitInformationSource
 import tgx.gradle.task.*
 import java.util.*
 
@@ -27,6 +27,33 @@ val appliedNdkVersion = if (useLegacyNdk) {
   config.build.primaryNdkVersion
 }
 val ndkMinSdkVersion = appliedNdkVersion.ndkVersionToMinSdk()
+
+val validateGitSetupTask = tasks.register<ValidateGitSetupTask>("validateGitSetup") {
+  group = "Setup"
+  description = "Ensures git modules and LFS objects are fetched correctly"
+
+  mainDir.set(layout.projectDirectory.dir(".."))
+  gitmodulesFile.set(layout.projectDirectory.file("../.gitmodules"))
+  submoduleMarkers.from(providers.fileContents(
+    layout.projectDirectory.file("../.gitmodules")
+  ).asText.map { gitmodules ->
+    Regex("""^\s*path\s*=\s*(.+)$""", RegexOption.MULTILINE)
+      .findAll(gitmodules).map { it.groupValues[1].trim() }.map { "../$it/.git" }.toList()
+  })
+  lfsFiles.from(
+    layout.projectDirectory.dir(
+      "../tdlib/src/main/libs"
+    ).asFileTree.matching {
+      include("*/*/*.so")
+    },
+    layout.projectDirectory.dir(
+      "../tdlib/openssl"
+    ).asFileTree.matching {
+      include("*/*/lib/libcryptox.so")
+      include("*/*/lib/libsslx.so")
+    }
+  )
+}
 
 val generateThemes = tasks.register<GenerateThemesTask>("generateThemes") {
   group = "Setup"
@@ -136,6 +163,7 @@ val patchJetpackMediaTasks = Sdk.VARIANTS.values.associateBy({ it.jetpackMediaFl
     outputDir.set(layout.buildDirectory.dir(
       "generated/tgx/androidx-media/${variant.jetpackMediaFlavor}"
     ))
+    dependsOn(validateGitSetupTask)
   }
 }
 
@@ -150,6 +178,7 @@ val patchOpusTask = tasks.register<PatchOpusTask>(
 ) {
   group = "Setup"
   description = "Creates a patched copy of opus"
+  msys2Dir.set(msys2Directory(config.msys2Dir))
   inputDir.set(layout.projectDirectory.dir(
     "jni/third_party/opus"
   ))
@@ -165,6 +194,7 @@ val patchOpusTask = tasks.register<PatchOpusTask>(
   outputDir.set(layout.buildDirectory.dir(
     "generated/tgx/opus"
   ))
+  dependsOn(validateGitSetupTask)
 }
 
 val buildLibvpxTasks = Sdk.VARIANTS.values.filter {
@@ -183,7 +213,7 @@ val buildLibvpxTasks = Sdk.VARIANTS.values.filter {
       description = "Builds libvpx for ${sdkVariant.flavor}, $abiVariant flavor"
       // System
       sdkDir.set(File(config.sdkDir))
-      // sdkDir.fileValue(File(config.sdkDir))
+      msys2Dir.set(msys2Directory(config.msys2Dir))
       ndkVersion.set(android.ndkVersion)
       hostTag.set(findHostTag())
       // Input
@@ -209,6 +239,7 @@ val buildLibvpxTasks = Sdk.VARIANTS.values.filter {
       outputDir.set(layout.buildDirectory.dir(
         "generated/tgx/libvpx/${sdkVariant.flavor}/${abiVariant.toAbiFilter()}"
       ))
+      dependsOn(validateGitSetupTask)
     })
   }
 }.toMap()
@@ -234,7 +265,8 @@ val buildFfmpegTasks = Sdk.VARIANTS.values.filter {
       group = "Setup"
       description = "Builds FFmpeg for ${sdkVariant.flavor}, $abiVariant flavor"
       // System
-      sdkDir.fileValue(File(config.sdkDir))
+      sdkDir.set(File(config.sdkDir))
+      msys2Dir.set(msys2Directory(config.msys2Dir))
       ndkVersion.set(android.ndkVersion)
       hostTag.set(findHostTag())
       // Input
@@ -261,7 +293,7 @@ val buildFfmpegTasks = Sdk.VARIANTS.values.filter {
       outputDir.set(layout.buildDirectory.dir(
         "generated/tgx/ffmpeg/${sdkVariant.flavor}/${abiVariant.toAbiFilter()}"
       ))
-      dependsOn(buildLibvpxTasks[key] ?: error("libvpx task not found for $key"))
+      dependsOn(validateGitSetupTask, buildLibvpxTasks[key] ?: error("libvpx task not found for $key"))
     }
     Pair(key, task)
   }
@@ -383,7 +415,7 @@ android {
 
     buildConfigString("TDLIB_VERSION", tdlibVersion)
 
-    val tgxGitVersionProvider = providers.of(GitVersionSource::class) {
+    val tgxGitVersionProvider = providers.of(GitInformationSource::class) {
       parameters.module = layout.projectDirectory
     }
     val tgxGit = tgxGitVersionProvider.get()
@@ -422,7 +454,7 @@ android {
 
     // OpenSSL version
 
-    val openSslGit = providers.of(GitVersionSource::class) {
+    val openSslGit = providers.of(GitInformationSource::class) {
       parameters.module = layout.projectDirectory.dir("../tdlib/source/openssl")
     }.get()
     buildConfigString("OPENSSL_COMMIT", openSslGit.commitHashShort)
@@ -430,7 +462,7 @@ android {
 
     // WebRTC version
 
-    val webrtcGit = providers.of(GitVersionSource::class) {
+    val webrtcGit = providers.of(GitInformationSource::class) {
       parameters.module = layout.projectDirectory.dir("jni/tgvoip/third_party/webrtc")
     }.get()
     buildConfigString("WEBRTC_COMMIT", webrtcGit.commitHashShort)
@@ -438,7 +470,7 @@ android {
 
     // tgcalls version
 
-    val tgcallsGit = providers.of(GitVersionSource::class) {
+    val tgcallsGit = providers.of(GitInformationSource::class) {
       parameters.module = layout.projectDirectory.dir("jni/tgvoip/third_party/tgcalls")
     }.get()
     buildConfigString("TGCALLS_COMMIT", tgcallsGit.commitHashShort)
@@ -446,7 +478,7 @@ android {
 
     // FFmpeg version
 
-    val ffmpegGit = providers.of(GitVersionSource::class) {
+    val ffmpegGit = providers.of(GitInformationSource::class) {
       parameters.module = layout.projectDirectory.dir("jni/third_party/ffmpeg")
     }.get()
     buildConfigString("FFMPEG_COMMIT", ffmpegGit.commitHashShort)
@@ -454,7 +486,7 @@ android {
 
     // WebP version
 
-    val webpGit = providers.of(GitVersionSource::class) {
+    val webpGit = providers.of(GitInformationSource::class) {
       parameters.module = layout.projectDirectory.dir("jni/third_party/webp")
     }.get()
     buildConfigString("WEBP_COMMIT", webpGit.commitHashShort)
@@ -552,7 +584,7 @@ android {
             "-DCMAKE_C_FLAGS=-D_LARGEFILE_SOURCE=1 ${flags.joinToString(" ")}",
             "-DCMAKE_CXX_FLAGS=-std=c++17 ${flags.joinToString(" ")}",
             "-DTGX_FLAVOR=${variant.flavor}",
-            "-DTGX_ROOT_DIR=${project.isolated.rootProject.projectDirectory.asFile.absolutePath}",
+            "-DTGX_ROOT_DIR=${project.isolated.rootProject.projectDirectory.asFile.absoluteFile.invariantSeparatorsPath}",
             "-DFFMPEG_LIBS=${Config.FFMPEG_LIBS.joinToString(";")}"
           )
 
@@ -570,7 +602,7 @@ android {
               "generated/tgx/ffmpeg/${variant.flavor}"
             )
           ).map {
-            "-D${it.key}=${it.value.get().asFile.absolutePath}"
+            "-D${it.key}=${it.value.get().asFile.absoluteFile.invariantSeparatorsPath}"
           }.toTypedArray()
           arguments(*dirs)
         }
@@ -709,7 +741,7 @@ android {
         })
         dependsOn(*nativeBuildTasks.toTypedArray())
       }
-      variant.lifecycleTasks.registerPreBuild(buildNativeTask)
+      variant.lifecycleTasks.registerPreBuild(validateGitSetupTask, buildNativeTask)
       buildNativeTasks["${sdkVariant.flavor}${abiVariant.flavor.uppercaseFirstChar()}"] = buildNativeTask
 
       variant.sources.res?.apply {
@@ -906,7 +938,10 @@ afterEvaluate {
     require(buildNativeTask != null) {
       "Could not find buildNativeTask for $variantName (${this.variantName})"
     }
-    dependsOn(buildNativeTask)
+    dependsOn(validateGitSetupTask, buildNativeTask)
+  }
+  tasks.named("preBuild") {
+    dependsOn(validateGitSetupTask)
   }
 }
 
@@ -956,6 +991,7 @@ dependencies {
   flavorImplementation(
     libs.androidx.work.runtime.legacy,
     libs.androidx.work.runtime.lollipop,
+    libs.androidx.work.runtime.marshmallow,
     libs.androidx.work.runtime.latest
   )
   flavorImplementation(
@@ -992,11 +1028,13 @@ dependencies {
   flavorImplementation(
     libs.google.play.services.base.legacy,
     libs.google.play.services.base.lollipop,
+    libs.google.play.services.base.marshmallow,
     libs.google.play.services.base.latest
   )
   flavorImplementation(
     libs.google.play.services.basement.legacy,
     libs.google.play.services.basement.lollipop,
+    libs.google.play.services.basement.marshmallow,
     libs.google.play.services.basement.latest
   )
   flavorImplementation(

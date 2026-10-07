@@ -45,6 +45,7 @@ import org.thunderdog.challegram.theme.Theme;
 import org.thunderdog.challegram.tool.Intents;
 import org.thunderdog.challegram.tool.Strings;
 import org.thunderdog.challegram.tool.UI;
+import org.thunderdog.challegram.unsorted.AppContext;
 import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.util.RateLimiter;
 import org.thunderdog.challegram.util.text.Letters;
@@ -407,7 +408,7 @@ public class TdlibContactManager implements CleanupStartupDelegate {
   @TdlibThread
   void notifyContactStatusChanged (long userId, boolean isContact) {
     checkRegisteredCount();
-    TdlibPhoneBookSync.instance().onContactStatusChanged(UI.getAppContext(), tdlib, userId, isContact);
+    TdlibPhoneBookSync.instance().onContactStatusChanged(org.thunderdog.challegram.unsorted.AppContext.get(), tdlib, userId, isContact);
   }
 
   private Client.ResultHandler newHandler () {
@@ -632,7 +633,7 @@ public class TdlibContactManager implements CleanupStartupDelegate {
       text = null;
     }
     SyncContactsService.startForegroundTask(
-      UI.getAppContext(),
+      AppContext.get(),
       Lang.getString(R.string.SyncContactsProgress),
       text,
       U.getOtherNotificationChannel(), 0,
@@ -649,7 +650,7 @@ public class TdlibContactManager implements CleanupStartupDelegate {
       if (Config.FOREGROUND_CONTACTS_SYNC_DEMO) {
         UI.post(() -> {
           SyncContactsService.stopForegroundTask(
-            UI.getAppContext(),
+            AppContext.get(),
             0,
             tdlib.accountId()
           );
@@ -657,7 +658,7 @@ public class TdlibContactManager implements CleanupStartupDelegate {
         }, 3000L);
       } else {
         boolean result = SyncContactsService.stopForegroundTask(
-          UI.getAppContext(),
+          AppContext.get(),
           0,
           tdlib.accountId()
         );
@@ -925,7 +926,7 @@ public class TdlibContactManager implements CleanupStartupDelegate {
 
   private boolean hasChanges () {
     Cursor c = null;
-    Context context = UI.getAppContext();
+    Context context = AppContext.get();
     ContentResolver resolver = context.getContentResolver();
     boolean ok = false;
     try {
@@ -981,7 +982,7 @@ public class TdlibContactManager implements CleanupStartupDelegate {
   private void importContactsImpl (CancellableRunnable cancellationSignal, RunnableBool after) {
     Cursor c = null;
     int count;
-    Context context = UI.getAppContext();
+    Context context = AppContext.get();
     TdApi.ImportedContact[] result = null;
     long maxModificationDate = 0;
     try {

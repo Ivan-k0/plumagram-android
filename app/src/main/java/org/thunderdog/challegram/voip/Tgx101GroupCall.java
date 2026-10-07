@@ -106,7 +106,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
         onGroupCallUpdated(result);
       }
     }));
-    Context context = UI.getAppContext();
+    Context context = org.thunderdog.challegram.unsorted.AppContext.get();
     // WebRTC needs ContextUtils set before the audio device is created; otherwise it's done only by TGCallService
     VoIP.initialize(context);
     File log = new File(context.getCacheDir(), "tgx101_voice_chat.log");
@@ -346,7 +346,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
     if (current == this) {
       current = null;
     }
-    Tgx101GroupCallService.stop(UI.getAppContext());
+    Tgx101GroupCallService.stop(org.thunderdog.challegram.unsorted.AppContext.get());
   }
 
   // Audio: communication mode while the voice chat is open, speaker by default
@@ -355,7 +355,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
   private boolean previousSpeaker;
 
   private static @Nullable AudioManager audioManager () {
-    return (AudioManager) UI.getAppContext().getSystemService(Context.AUDIO_SERVICE);
+    return (AudioManager) org.thunderdog.challegram.unsorted.AppContext.get().getSystemService(Context.AUDIO_SERVICE);
   }
 
   private void setupAudio (boolean active) {

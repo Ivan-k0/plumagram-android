@@ -61,7 +61,7 @@ public class RoundStabilizer implements SensorEventListener {
   private final Object historyLock = new Object();
 
   public RoundStabilizer () {
-    Context context = UI.getAppContext();
+    Context context = org.thunderdog.challegram.unsorted.AppContext.get();
     sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
     gyroscope = sensorManager != null ? sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) : null;
   }
@@ -70,7 +70,7 @@ public class RoundStabilizer implements SensorEventListener {
     if (started || gyroscope == null) {
       return;
     }
-    WindowManager windowManager = (WindowManager) UI.getAppContext().getSystemService(Context.WINDOW_SERVICE);
+    WindowManager windowManager = (WindowManager) org.thunderdog.challegram.unsorted.AppContext.get().getSystemService(Context.WINDOW_SERVICE);
     isPortrait = windowManager == null || windowManager.getDefaultDisplay().getRotation() == Surface.ROTATION_0;
     angleX = angleY = angleZ = 0;
     lastTimestampNs = 0;

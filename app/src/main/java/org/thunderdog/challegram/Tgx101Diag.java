@@ -256,7 +256,7 @@ public final class Tgx101Diag {
       return "";
     }
     try {
-      android.net.ConnectivityManager cm = (android.net.ConnectivityManager) org.thunderdog.challegram.tool.UI.getAppContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+      android.net.ConnectivityManager cm = (android.net.ConnectivityManager) org.thunderdog.challegram.unsorted.AppContext.get().getSystemService(Context.CONNECTIVITY_SERVICE);
       android.net.NetworkInfo info = cm != null ? cm.getActiveNetworkInfo() : null;
       if (info == null || !info.isConnected()) {
         return "none";

@@ -120,7 +120,7 @@ public class KeepAliveService extends Service {
   @Override
   public void onCreate () {
     super.onCreate();
-    UI.initApp(getApplicationContext());
+    org.thunderdog.challegram.unsorted.AppContext.init(getApplicationContext());
   }
 
   @Override

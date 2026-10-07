@@ -101,7 +101,7 @@ public class VideoCameraCapturer {
       release();
       nativePtr = ptr;
       current = this;
-      Context context = UI.getAppContext();
+      Context context = org.thunderdog.challegram.unsorted.AppContext.get();
       CameraEnumerator enumerator = Camera2Enumerator.isSupported(context) ? new Camera2Enumerator(context) : new Camera1Enumerator(true);
       String device = null;
       for (String name : enumerator.getDeviceNames()) {

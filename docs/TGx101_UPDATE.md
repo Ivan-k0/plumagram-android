@@ -4,7 +4,7 @@
 Чтобы перенести их на новую версию, коммиты «пересаживаются» (`rebase`) на новый тег,
 конфликты разбираются по одному, затем идёт сборка и проверка по списку ниже.
 
-Текущая основа: **Telegram X 0.29.0.1814** (коммит `9291ce1` «Version bump to `1814`»; тега на GitHub пока нет).
+Текущая основа: **Telegram X 0.29.0.1816** (тег `v0.29.0.1816`, коммит `51a2ba25`). Переход с 1814 сделан слиянием (`git merge`), а не rebase: ветка `tgx101` публичная, rebase потребовал бы force-push.
 Основа записана в трёх местах, при переходе менять все три:
 - здесь (и `OLD=` в разделе 2);
 - первая строка `MOD_CHANGES.md` («Основа: …») + строка «Основа обновлена до …» в разделе «Прочее»;
@@ -28,7 +28,7 @@ git log --oneline origin/main -- version.properties | head -3   # или ком�
 
 ```sh
 NEW=v0.29.1.1820            # новый тег Telegram X (или хеш коммита «Version bump»)
-OLD=9291ce1                 # текущая основа (0.29.0.1814)
+OLD=v0.29.0.1816             # текущая основа (0.29.0.1816)
 git rebase --onto $NEW $OLD main
 git submodule update --init --recursive   # обязательно сразу после rebase
 ```
@@ -122,7 +122,7 @@ git submodule update --init --recursive   # обязательно сразу п
 ## 3. Сборка
 
 ```sh
-export JAVA_HOME=/opt/homebrew/opt/openjdk@21 ANDROID_HOME=~/Library/Android/sdk
+export JAVA_HOME=/opt/homebrew/opt/openjdk@25 ANDROID_HOME=~/Library/Android/sdk
 export ANDROID_SDK_ROOT=$ANDROID_HOME PATH="$JAVA_HOME/bin:$PATH"
 ./gradlew :app:assembleLatestUniversalRelease
 ```
