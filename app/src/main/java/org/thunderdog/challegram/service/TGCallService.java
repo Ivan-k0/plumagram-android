@@ -266,6 +266,14 @@ public class TGCallService extends Service implements
         return;
       }
 
+      if (Intents.ACTION_TOGGLE_CALL_MIC.equals(action)) { // TGx101: «Mute» in the ongoing call notification
+        CallSettings settings = getCallSettings();
+        if (settings != null) {
+          settings.setMicMuted(!settings.isMicMuted());
+        }
+        return;
+      }
+
       if (Intents.ACTION_SILENCE_CALL.equals(action)) { // TGx101: «Mute» in the incoming call notification
         silenceRinging();
         return;
@@ -1055,6 +1063,13 @@ public class TGCallService extends Service implements
         Bitmap photo = TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true);
         builder.setStyle(Notification.CallStyle.forOngoingCall(tgx101Caller(user, photo), endPendingIntent));
         builder.addAction(new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(this, R.drawable.baseline_volume_up_24_white), speakerTitle, speakerPendingIntent).build());
+        // TGx101 (user 2026-10-07 15:44/15:56 «добавь ещё справа выкл звук», «кнопки нет без звука»): mute my microphone, on the right
+        Intent micIntent = new Intent();
+        Intents.secureIntent(micIntent, false);
+        micIntent.setAction(Intents.ACTION_TOGGLE_CALL_MIC);
+        PendingIntent micPendingIntent = PendingIntent.getBroadcast(this, 3, micIntent, PendingIntent.FLAG_UPDATE_CURRENT | Intents.mutabilityFlags(false));
+        boolean micMuted = speakerSettings != null && speakerSettings.isMicMuted();
+        builder.addAction(new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(this, micMuted ? R.drawable.baseline_mic_24 : R.drawable.baseline_mic_off_24), Lang.getString(micMuted ? R.string.Tgx101CallMicOn : R.string.Tgx101CallMicOff), micPendingIntent).build());
         long callDuration = getCallDuration();
         if (callDuration > 0) {
           builder.setUsesChronometer(true);

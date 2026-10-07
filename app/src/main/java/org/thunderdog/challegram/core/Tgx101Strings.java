@@ -224,7 +224,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101VideoNoCamera, "Для видео нужен доступ к камере");
     RU.put(R.string.Tgx101VideoCallBranding, "Видеозвонок Telegram");
     RU.put(R.string.Tgx101ForegroundNotif, "Когда приложение открыто");
-    RU.put(R.string.Tgx101CallOngoing, "Звонок"); // the noun: Telegram's «Call» is translated as the verb «Позвонить»
+    RU.put(R.string.Tgx101CallOngoing, "Звонок");
+    RU.put(R.string.Tgx101CallMicOff, "Выкл. звук");
+    RU.put(R.string.Tgx101CallMicOn, "Вкл. звук"); // the noun: Telegram's «Call» is translated as the verb «Позвонить»
     RU.put(R.string.Tgx101ForegroundNotifShow, "Показывать как обычно");
     RU.put(R.string.Tgx101ForegroundNotifQuiet, "Тихо, без всплывания");
     RU.put(R.string.Tgx101ForegroundNotifHide, "Не показывать");

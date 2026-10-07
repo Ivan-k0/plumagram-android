@@ -91,6 +91,7 @@ public class Intents {
   public static final String ACTION_DECLINE_CALL = PACKAGE_NAME + ".DECLINE_CALL";
   public static final String ACTION_ANSWER_CALL = PACKAGE_NAME + ".ANSWER_CALL";
   public static final String ACTION_TOGGLE_CALL_SPEAKER = PACKAGE_NAME + ".TOGGLE_CALL_SPEAKER"; // TGx101
+  public static final String ACTION_TOGGLE_CALL_MIC = PACKAGE_NAME + ".TOGGLE_CALL_MIC"; // TGx101: «Mute» in the ongoing call notification
   public static final String ACTION_SILENCE_CALL = PACKAGE_NAME + ".SILENCE_CALL"; // TGx101: «Mute» in the incoming call notification
 
   public static final String ACTION_OPEN_LOGS = PACKAGE_NAME + ".OPEN_LOGS";
