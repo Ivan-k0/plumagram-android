@@ -784,6 +784,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // own layout (keyboard hides, reply bar, the list resized later), so check the room before every frame
       android.view.ViewTreeObserver.OnPreDrawListener paddingCheck = () -> {
         updateFloatingListPadding();
+        syncFloatingReplyBar();
         return true;
       };
       bottomWrap.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
@@ -9790,7 +9791,22 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   /** 0 — no reply bar above the floating input, 1 — the reply bar is fully out and joins it into one capsule */
   private float floatingReplyFactor () {
-    return replyBarView != null && replyBarView.getVisibility() == View.VISIBLE ? replyBarView.getAlpha() : 0f;
+    return replyBarView != null && replyBarView.getVisibility() == View.VISIBLE ? MathUtils.clamp(getReplyOffset() / (float) Screen.dp(48f)) : 0f;
+  }
+
+  // user 2026-10-07 11:10 (Xiaomi, «рандомно, не в первый раз»): the closed reply bar sometimes stayed opaque behind the
+  // capsule (the last updateReplyView didn't come) and its square corners showed around it — keep it in sync every frame
+  private void syncFloatingReplyBar () {
+    if (!floatingInput || replyBarView == null || bottomWrap == null) return;
+    float alpha = floatingReplyFactor();
+    if (replyBarView.getAlpha() != alpha) {
+      org.thunderdog.challegram.Tgx101Diag.mark("floating input: reply bar alpha " + replyBarView.getAlpha() + " → " + alpha);
+      replyBarView.setAlpha(alpha);
+      bottomWrap.invalidate();
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        bottomWrap.invalidateOutline();
+      }
+    }
   }
 
   private void applyFloatingInputShape (View view) {
