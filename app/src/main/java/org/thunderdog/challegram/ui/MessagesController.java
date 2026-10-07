@@ -635,6 +635,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private void updateMessagesViewInset () {
+    if (floatingInput && bottomWrap != null && bottomWrap.getVisibility() == View.VISIBLE) {
+      // TGx101 (Vivo 0.1.551 diag, share sheet «желе»): this reset the list padding to 0 on every keyboard show / hide,
+      // then the floating input put its own padding back — two relayouts of the chat (16–22 ms frames). The floating
+      // input owns the padding while it's shown
+      updateFloatingListPadding();
+      return;
+    }
     int inset = bottomWrap != null && bottomWrap.getVisibility() == View.VISIBLE ? 0 : extraBottomInset;
     int appliedInset = Views.getAppliedBottomInset(messagesView);
     if (inset != appliedInset) {
