@@ -248,6 +248,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
     initSubtitle();
     this.waveform = new Waveform(voice.waveform, Waveform.MODE_BITMAP, context.isOutgoingBubble());
+    this.waveform.setWebStyle(true);
     this.unreadFactor = playPauseFile != context.getMessage() || context.isContentRead() ? 0f : 1f;
 
     this.progress = new FileProgressComponent(context.context(), context.tdlib(), TdlibFilesManager.DOWNLOAD_FLAG_VOICE, false,message != null ? message.chatId : context.getChatId(), message != null ? message.id : context.getId());
@@ -701,7 +702,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
   // TGx101: "A" button next to a voice message, starts the background transcription or hides/shows it
 
-  private static final float TRANSCRIBE_BUTTON_SIZE = 28f;
+  private static final float TRANSCRIBE_BUTTON_SIZE = 30f, TRANSCRIBE_BUTTON_HEIGHT = 28f; // a rounded square, like Telegram Web
   private boolean transcribeCaught;
 
   /** TGx101 (user 2026-10-06, variant 2): a voice message in two even rows — the waveform on top, the duration (and
@@ -741,10 +742,13 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     boolean shown = result != null && !result.collapsed && result.state != Tgx101Transcription.STATE_ERROR;
     int active = Theme.getColor(outgoing ? ColorId.bubbleOut_waveformActive : ColorId.waveformActive);
     int inactive = Theme.getColor(outgoing ? ColorId.bubbleOut_waveformInactive : ColorId.waveformInactive);
-    float radius = Screen.dp(TRANSCRIBE_BUTTON_SIZE / 2f);
+    float halfW = Screen.dp(TRANSCRIBE_BUTTON_SIZE / 2f), halfH = Screen.dp(TRANSCRIBE_BUTTON_HEIGHT / 2f);
     // user 2026-10-06 18:46 «кнопка перевод в текст не читается» (dark themes: inactive ≈ active) — a light tint of the
     // waveform colour under a full-colour «A», like the bars themselves on the bubble
-    c.drawCircle(cx, cy, radius, Paints.fillingPaint(ColorUtils.alphaColor(alpha * (shown ? 1f : (Theme.isDark() ? .24f : .16f)), active)));
+    // user 2026-10-07 (mockup «Голосовое-как-Web» А, «в кнопке расшифровки убери стрелку»): a rounded square with a lone «A»
+    android.graphics.RectF r = Paints.getRectF();
+    r.set(cx - halfW, cy - halfH, cx + halfW, cy + halfH);
+    c.drawRoundRect(r, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(ColorUtils.alphaColor(alpha * (shown ? 1f : (Theme.isDark() ? .24f : .16f)), active)));
     String label = result != null && result.state == Tgx101Transcription.STATE_PENDING ? "…" : "A";
     android.text.TextPaint paint = Paints.getBoldPaint15(false, ColorUtils.alphaColor(alpha, shown ? Theme.getColor(outgoing ? ColorId.bubbleOut_background : (context.useBubbles() ? ColorId.bubbleIn_background : ColorId.filling)) : active));
     float textWidth = paint.measureText(label);

@@ -48,6 +48,29 @@ public class Waveform {
   private int mode;
   private boolean isOutBubble;
 
+  // TGx101 (user 2026-10-07, mockup «Голосовое-как-Web», variant А): voice bubbles get Telegram Web's waveform —
+  // thin rounded bars standing on one line, taller than the stock ones
+  private boolean webStyle;
+
+  public void setWebStyle (boolean webStyle) {
+    if (this.webStyle != webStyle) {
+      this.webStyle = webStyle;
+      if (lastTotalWidth != 0) {
+        layout(lastTotalWidth, true);
+      }
+    }
+  }
+
+  private int barWidth () {
+    return webStyle ? Screen.dp(2f) : width;
+  }
+
+  private int barStep () {
+    return webStyle ? Screen.dp(2f) + Screen.dp(2f) : width + spacing;
+  }
+
+  private static final float WEB_MIN_HEIGHT = 2f, WEB_MAX_HEIGHT = 20f;
+
   public Waveform (byte[] data, int mode, boolean isOutBubble) {
     if (minimumHeight == 0) {
       minimumHeight = Screen.dpf(1.5f);
@@ -125,14 +148,14 @@ public class Waveform {
       return;
     }
 
-    int numSamples = (int) ((float) totalWidth / (width + spacing));
+    int numSamples = (int) ((float) totalWidth / barStep());
 
     if (chunks != null && chunks.length == numSamples && !force) {
       return;
     }
 
     lastTotalWidth = totalWidth;
-    currentWidth = numSamples * (width + spacing) - spacing;
+    currentWidth = numSamples * barStep() - (barStep() - barWidth());
 
     int available;
     if (chunks == null) {
@@ -171,6 +194,7 @@ public class Waveform {
     }
     int cx = 0;
     int centerY = (int) ((float) currentHeight * .5f);
+    float webBase = centerY + Screen.dp(WEB_MAX_HEIGHT) / 2f;
     for (int i = 0; i < numSamples; i++) {
       int peakSample = adjustedSamples[i];
       float heightDiff = maxSample == 0 ? 0f : maxHeightDiff * ((float) (peakSample) / (float) (maxSample));
@@ -182,8 +206,14 @@ public class Waveform {
         chunk.heightDiff = heightDiff;
       }
       if (inactiveCanvas != null) {
-        chunk.draw(inactiveCanvas, cx, centerY, paint);
-        cx += width + spacing;
+        if (webStyle) {
+          float h = Screen.dp(WEB_MIN_HEIGHT) + (Screen.dp(WEB_MAX_HEIGHT) - Screen.dp(WEB_MIN_HEIGHT)) * (maxSample == 0 ? 0f : (float) peakSample / (float) maxSample);
+          rect.set(cx, webBase - h, cx + barWidth(), webBase);
+          inactiveCanvas.drawRoundRect(rect, barWidth() / 2f, barWidth() / 2f, paint);
+        } else {
+          chunk.draw(inactiveCanvas, cx, centerY, paint);
+        }
+        cx += barStep();
       }
     }
 
