@@ -787,6 +787,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
         syncFloatingReplyBar();
         return true;
       };
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        // the blur under the field follows the list (variant В); not every frame — only when the list moves
+        messagesView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+          @Override
+          public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
+            if (bottomWrap != null) bottomWrap.invalidate();
+          }
+        });
+      }
       bottomWrap.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
         @Override
         public void onViewAttachedToWindow (@NonNull View v) {
@@ -9762,7 +9771,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   // TGx101: floating message field — a rounded capsule with a shadow; the bottom padding (gap) stays transparent
 
-  private static final float FLOATING_INPUT_SIDE = 10f, FLOATING_INPUT_BOTTOM = 8f, FLOATING_INPUT_RADIUS = 24f, FLOATING_INPUT_ALPHA = 1f; // see-through (.85) was tried: file icons and messages under it showed through, user rejected
+  private static final float FLOATING_INPUT_SIDE = 10f, FLOATING_INPUT_BOTTOM = 8f, FLOATING_INPUT_RADIUS = 18f, FLOATING_INPUT_ALPHA = 1f; // see-through (.85) was tried: file icons and messages under it showed through, user rejected
+  // TGx101 (user 2026-10-07 19:05, mockup «Поле-ввода-углы» variant В): corners like a message bubble (18), 65 % over a blur of
+  // what's under the field on Android 12+; without the blur (older Android) the text under it would show through, so 90 % there
+  private static final float FLOATING_INPUT_ALPHA_BLUR = .65f, FLOATING_INPUT_ALPHA_NO_BLUR = .9f, FLOATING_INPUT_BLUR_DP = 14f;
   private boolean floatingInput;
 
   private void updateFloatingListPadding () {
@@ -9834,6 +9846,46 @@ public class MessagesController extends ViewController<MessagesController.Argume
       private final android.graphics.RectF rect = new android.graphics.RectF();
       private final android.graphics.Path path = new android.graphics.Path();
       private final float[] radii = new float[8];
+      private final int[] loc = new int[2], contentLoc = new int[2];
+      private Object blurNode; // android.graphics.RenderNode on Android 12+
+
+      /** Draws the wallpaper and messages under the field, blurred, clipped to the field. False — no blur here. */
+      private boolean drawBlurBehind (Canvas c) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !c.isHardwareAccelerated() || messagesView == null || wallpaperView == null)
+          return false;
+        int w = (int) rect.width(), h = (int) rect.height();
+        if (w <= 0 || h <= 0)
+          return false;
+        android.graphics.RenderNode node = (android.graphics.RenderNode) blurNode;
+        if (node == null) {
+          node = new android.graphics.RenderNode("tgx101InputBlur");
+          float r = Screen.dp(FLOATING_INPUT_BLUR_DP);
+          node.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(r, r, android.graphics.Shader.TileMode.CLAMP));
+          blurNode = node;
+        }
+        node.setPosition(0, 0, w, h);
+        view.getLocationInWindow(loc);
+        float fieldX = loc[0] + rect.left, fieldY = loc[1] + rect.top;
+        android.graphics.RecordingCanvas rc = node.beginRecording(w, h);
+        try {
+          for (View under : new View[] {wallpaperView, messagesView}) {
+            if (under.getVisibility() != View.VISIBLE || under.getWidth() == 0) continue;
+            under.getLocationInWindow(contentLoc);
+            int save = rc.save();
+            rc.translate(contentLoc[0] - fieldX, contentLoc[1] - fieldY);
+            under.draw(rc);
+            rc.restoreToCount(save);
+          }
+        } finally {
+          node.endRecording();
+        }
+        int save = c.save();
+        c.clipPath(path);
+        c.translate(rect.left, rect.top);
+        c.drawRenderNode(node);
+        c.restoreToCount(save);
+        return true;
+      }
 
       @Override
       public void draw (@NonNull Canvas c) {
@@ -9845,8 +9897,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
         radii[4] = radii[5] = radii[6] = radii[7] = radius;
         path.reset();
         path.addRoundRect(rect, radii, android.graphics.Path.Direction.CW);
-        // «Frosted» capsule: the filling at ~85 %, messages under it show through slightly (no blur: zero cost)
-        c.drawPath(path, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(FLOATING_INPUT_ALPHA, Theme.fillingColor())));
+        boolean blurred = drawBlurBehind(c);
+        c.drawPath(path, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(blurred ? FLOATING_INPUT_ALPHA_BLUR : FLOATING_INPUT_ALPHA_NO_BLUR, Theme.fillingColor())));
         // No elevation (it would lift the capsule above the input buttons and the recording overlay): a hairline instead
         float half = Math.max(1, Screen.dp(.5f)) / 2f;
         rect.inset(half, half);
