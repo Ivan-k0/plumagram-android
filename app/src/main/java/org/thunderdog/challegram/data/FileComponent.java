@@ -748,9 +748,12 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     // user 2026-10-07 (mockup «Голосовое-как-Web» А, «в кнопке расшифровки убери стрелку»): a rounded square with a lone «A»
     android.graphics.RectF r = Paints.getRectF();
     r.set(cx - halfW, cy - halfH, cx + halfW, cy + halfH);
-    c.drawRoundRect(r, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(ColorUtils.alphaColor(alpha * (shown ? 1f : (Theme.isDark() ? .24f : .16f)), active)));
+    c.drawRoundRect(r, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(ColorUtils.alphaColor(alpha * (shown ? 1f : (Theme.isDark() ? .3f : .18f)), active)));
     String label = result != null && result.state == Tgx101Transcription.STATE_PENDING ? "…" : "A";
-    android.text.TextPaint paint = Paints.getBoldPaint15(false, ColorUtils.alphaColor(alpha, shown ? Theme.getColor(outgoing ? ColorId.bubbleOut_background : (context.useBubbles() ? ColorId.bubbleIn_background : ColorId.filling)) : active));
+    // user 2026-10-07 20:16 «буквы А нужно слегка выделить, не читаются»: the letter leans towards the message text colour
+    int textColor = Theme.getColor(outgoing ? ColorId.bubbleOut_text : (context.useBubbles() ? ColorId.bubbleIn_text : ColorId.text));
+    int letter = ColorUtils.fromToArgb(active, textColor, .65f);
+    android.text.TextPaint paint = Paints.getBoldPaint15(false, ColorUtils.alphaColor(alpha, shown ? Theme.getColor(outgoing ? ColorId.bubbleOut_background : (context.useBubbles() ? ColorId.bubbleIn_background : ColorId.filling)) : letter));
     float textWidth = paint.measureText(label);
     c.drawText(label, cx - textWidth / 2f, cy + Screen.dp(5.5f), paint);
   }

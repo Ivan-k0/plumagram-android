@@ -2289,6 +2289,14 @@ public class ShareController extends TelegramViewController<ShareController.Args
       // TGx101 (user 2026-10-07 16:59 «поиск в окне поделиться открывается рывками»): the sheet started to rise only after the
       // search list had appeared inside the half-open sheet, together with the keyboard — rise right away instead
       awaitingChatSearchOpen = 0;
+      // user 2026-10-07 20:16 «меню открывается с поддёргиваниями» (video: the sheet stopped ~25 dp short, then jumped up
+      // once the keyboard gave the list room): a short chat list can't scroll the whole way — lend it the missing room
+      int range = recyclerView.computeVerticalScrollRange() - recyclerView.computeVerticalScrollExtent() - recyclerView.computeVerticalScrollOffset();
+      tgx101SearchExtraPadding = Math.max(0, top - range);
+      if (tgx101SearchExtraPadding > 0) {
+        recyclerView.setPadding(0, 0, 0, tgx101InsetBottom + tgx101SearchExtraPadding);
+      }
+      org.thunderdog.challegram.Tgx101Diag.mark("share search: rise " + top + "px, scrollable " + range + "px, extra room " + tgx101SearchExtraPadding + "px");
       smoothScrollBy(top);
     } else {
       setAutoScrollFinished(true);
@@ -2317,9 +2325,15 @@ public class ShareController extends TelegramViewController<ShareController.Args
   private boolean awaitLayout;
   private int awaitScrollBy;
 
+  private int tgx101SearchExtraPadding, tgx101InsetBottom;
+
   @Override
   protected void onLeaveSearchMode () {
     super.onLeaveSearchMode();
+    if (tgx101SearchExtraPadding != 0) {
+      tgx101SearchExtraPadding = 0;
+      recyclerView.setPadding(0, 0, 0, tgx101InsetBottom);
+    }
     if (preventAutoScroll) {
       preventAutoScroll = false;
       setAutoScrollFinished(true);
@@ -2478,7 +2492,8 @@ public class ShareController extends TelegramViewController<ShareController.Args
   public void dispatchSystemInsets (View parentView, ViewGroup.MarginLayoutParams originalParams, Rect legacyInsets, Rect insets, Rect insetsWithoutIme, Rect systemInsets, Rect systemInsetsWithoutIme, boolean fitsSystemWindows) {
     super.dispatchSystemInsets(parentView, originalParams, legacyInsets, insets, insetsWithoutIme, systemInsets, systemInsetsWithoutIme, fitsSystemWindows);
     originalParams.bottomMargin = 0;
-    recyclerView.setPadding(0, 0, 0, insets.bottom);
+    tgx101InsetBottom = insets.bottom;
+    recyclerView.setPadding(0, 0, 0, insets.bottom + tgx101SearchExtraPadding);
     setBottomInset(insets.bottom, insetsWithoutIme.bottom);
   }
 
