@@ -5,7 +5,7 @@
 # "--no-android4" to skip only Android 4.1–4.4.
 set -u
 cd "$(dirname "$0")/../.."
-export JAVA_HOME=${JAVA_HOME:-/opt/homebrew/opt/openjdk@25} ANDROID_HOME=${ANDROID_HOME:-$HOME/Library/Android/sdk}
+export JAVA_HOME=/opt/homebrew/opt/openjdk@25 ANDROID_HOME=${ANDROID_HOME:-$HOME/Library/Android/sdk}
 export ANDROID_SDK_ROOT=$ANDROID_HOME PATH="$JAVA_HOME/bin:$PATH"
 VER=0.1.$(git rev-list --count --author=188923247+Ivan-k0@users.noreply.github.com HEAD)
 OUT=${TGX101_OUT:-$HOME/Desktop/TGX/Версии}/PlumaGram-$VER
