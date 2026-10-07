@@ -157,6 +157,10 @@ public class TGMessageCall extends TGMessage {
             return false;
           }
           performClickSoundFeedback();
+          if (callRaw.isVideo) {
+            // TGx101 (user 2026-10-07 14:42 «был видеозвонок, а пришёл аудио»): calling back from a video call bubble is a video call
+            org.thunderdog.challegram.voip.Tgx101Video.requestVideoCall(userId);
+          }
           tdlib.context().calls().makeCall(controller(), userId, null);
           return true;
         }
