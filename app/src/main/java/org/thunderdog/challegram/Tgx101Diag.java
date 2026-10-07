@@ -61,8 +61,10 @@ import java.util.Locale;
 public final class Tgx101Diag {
   private Tgx101Diag () { }
 
-  private static final String FILE_NAME = "PlumaGram-diagnostics.txt";
-  private static final String OLD_FILE_NAME = "PlumaGram-diagnostics-old.txt";
+  // the test build (-Ptgx101Test, «PlumaGram Т») installs next to the main app — its own log file
+  private static final String FILE_PREFIX = "com.plumagram.app".equals(BuildConfig.APPLICATION_ID) ? "PlumaGram" : "PlumaGram-T";
+  private static final String FILE_NAME = FILE_PREFIX + "-diagnostics.txt";
+  private static final String OLD_FILE_NAME = FILE_PREFIX + "-diagnostics-old.txt";
   private static final long MAX_SIZE = 8L * 1024 * 1024;
   private static final long STALL_MS = 100, STALL_STACK_MS = 80;
 

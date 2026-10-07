@@ -128,11 +128,18 @@ val generateExceptions = tasks.register<GenerateExceptionsTask>("updateException
     "generated/tgx/exceptions/java"
   ))
 }
+// TGx101 test builds (-Ptgx101Test=true, user 2026-10-07 «тестовые версии … чтобы ставились отдельно с буквой Т»):
+// the old TGx101 package (it is in google-services.json, so push works), «PlumaGram Т», an icon with «Т» —
+// installs next to the public com.plumagram.app with its own data
+val tgx101Test = providers.gradleProperty("tgx101Test").map { it.toBoolean() }.getOrElse(false)
+val tgx101AppId = if (tgx101Test) "com.tgx101.app" else config.applicationId
+val tgx101AppName = if (tgx101Test) config.applicationName + " Т" else config.applicationName
+
 val validateApiTokens = tasks.register<ValidateApiTokensTask>("validateApiTokens") {
   group = "Setup"
   description = "Validates some API tokens to make sure they work properly and won't cause problems"
   applicationId.set(
-    config.applicationId
+    tgx101AppId
   )
   // A builder's own Firebase config in src/release (kept out of git) wins over the upstream one.
   googleServicesJson.set(layout.projectDirectory.file(
@@ -349,15 +356,15 @@ android {
   }
 
   defaultConfig {
-    applicationId = config.applicationId
+    applicationId = tgx101AppId
     targetSdk = config.build.targetSdkVersion
     multiDexEnabled = true
 
     // TGx101: the displayed name comes from app.name (PlumaGram)
-    resValue("string", "AppName", config.applicationName)
-    resValue("string", "account_type", "${config.applicationId}.sync.account")
-    resValue("string", "content_authority", "${config.applicationId}.sync.provider")
-    resValue("string", "contacts_account_type", "${config.applicationId}.contacts")
+    resValue("string", "AppName", tgx101AppName)
+    resValue("string", "account_type", "${tgx101AppId}.sync.account")
+    resValue("string", "content_authority", "${tgx101AppId}.sync.provider")
+    resValue("string", "contacts_account_type", "${tgx101AppId}.contacts")
 
     buildConfigString("PROJECT_NAME", config.applicationName)
     buildConfigString("SAFETYNET_API_KEY", config.safetyNetToken)
@@ -511,6 +518,11 @@ android {
     // TODO: Exclude in FOSS variant
     kotlin.directories += "src/google/main/java"
     java.directories += "src/google/main/java"
+  }
+  if (tgx101Test) {
+    sourceSets.getByName("release") {
+      res.directories += "src/tgx101Test/res" // the launcher icon with «Т» over the main one
+    }
   }
 
   lint {
