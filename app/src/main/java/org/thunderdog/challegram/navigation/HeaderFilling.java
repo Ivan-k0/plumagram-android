@@ -1073,7 +1073,12 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     iconPaint.setAlpha(0xff);
 
     float textAlpha = ((float) 0xe0 / (float) 0xff) * (callFlashFactor <= .5f ? 1f - (callFlashFactor / .5f) : (callFlashFactor - .5f) / .5f);
-    drawOngoingText(c, playerTop, rectWidth, playerBottom, textLeft, TextColorSets.WHITE, 1f, textAlpha);
+    // TGx101 (user 2026-10-07 15:31 «по центру имя нужно отображать»): name and timer centred in the bar, never over the icons
+    int textWidth = getTitleWidth() + (trimmedSubtitle != null ? trimmedSubtitle.getWidth() : 0);
+    int rightLimit = width - Screen.dp(12f) - micIcon.getMinimumWidth() - Screen.dp(8f);
+    int centeredLeft = (int) ((rectWidth - textWidth) / 2f);
+    int callTextLeft = Math.max(textLeft, Math.min(centeredLeft, rightLimit - textWidth));
+    drawOngoingText(c, playerTop, rectWidth, playerBottom, callTextLeft, TextColorSets.WHITE, 1f, textAlpha);
   }
 
   // Show/hide ongoing bar
