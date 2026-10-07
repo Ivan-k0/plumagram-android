@@ -873,7 +873,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           public void getOutline (View v, android.graphics.Outline outline) {
             // user 2026-10-07 10:55: one capsule with the input — rounded on top only, the input's top edge goes straight
             float radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), v.getHeight() / 2f);
-            outline.setRoundRect(0, 0, v.getWidth(), (int) (v.getHeight() + radius), radius);
+            outline.setRoundRect(0, (int) (-radius * floatingAttachedFactor()), v.getWidth(), (int) (v.getHeight() + radius), radius);
           }
         });
         replyBarView.setClipToOutline(true);
@@ -9794,10 +9794,30 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return replyBarView != null && replyBarView.getVisibility() == View.VISIBLE ? MathUtils.clamp(getReplyOffset() / (float) Screen.dp(48f)) : 0f;
   }
 
+  /** Attached files shown above the floating input (they are the top of the capsule then) */
+  private float floatingAttachedFactor () {
+    return attachedFiles != null && !needHideAttachedFiles() ? MathUtils.clamp(attachedFiles.getVisibleFactor()) : 0f;
+  }
+
+  private float floatingJoinFactor () {
+    return Math.max(floatingReplyFactor(), floatingAttachedFactor());
+  }
+
   // user 2026-10-07 11:10 (Xiaomi, «рандомно, не в первый раз»): the closed reply bar sometimes stayed opaque behind the
   // capsule (the last updateReplyView didn't come) and its square corners showed around it — keep it in sync every frame
+  private float lastFloatingJoin = -1f;
+
   private void syncFloatingReplyBar () {
     if (!floatingInput || replyBarView == null || bottomWrap == null) return;
+    float join = floatingJoinFactor();
+    if (join != lastFloatingJoin) {
+      lastFloatingJoin = join;
+      bottomWrap.invalidate();
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        bottomWrap.invalidateOutline();
+        replyBarView.invalidateOutline();
+      }
+    }
     float alpha = floatingReplyFactor();
     if (replyBarView.getAlpha() != alpha) {
       org.thunderdog.challegram.Tgx101Diag.mark("floating input: reply bar alpha " + replyBarView.getAlpha() + " → " + alpha);
@@ -9820,7 +9840,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         android.graphics.Rect bounds = getBounds();
         rect.set(bounds.left, bounds.top, bounds.right, bounds.bottom - view.getPaddingBottom());
         float radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), rect.height() / 2f);
-        float top = radius * (1f - floatingReplyFactor()); // the reply bar above makes one capsule with it: square top corners
+        float top = radius * (1f - floatingJoinFactor()); // the reply bar / attached files above make one capsule with it: square top corners
         radii[0] = radii[1] = radii[2] = radii[3] = top;
         radii[4] = radii[5] = radii[6] = radii[7] = radius;
         path.reset();
@@ -9854,7 +9874,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           int bottom = v.getHeight() - v.getPaddingBottom();
           float radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), bottom / 2f);
           // with the reply bar the top corners go above the view, so the clip's top edge is straight
-          outline.setRoundRect(0, (int) (-radius * floatingReplyFactor()), v.getWidth(), Math.max(1, bottom), radius);
+          outline.setRoundRect(0, (int) (-radius * floatingJoinFactor()), v.getWidth(), Math.max(1, bottom), radius);
         }
       });
       view.setClipToOutline(true); // reply / edit bars inside get the rounded corners too
@@ -13908,6 +13928,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
           }
         }
       };
+      if (floatingInput) { // user 2026-10-07 11:47 «А должно быть так»: the attached file is one capsule with the input, like a reply
+        attachedFiles.tgx101SetCapsule(Screen.dp(FLOATING_INPUT_SIDE), Screen.dp(FLOATING_INPUT_RADIUS));
+      }
       attachedFilesAnimator = new CustomItemAnimator(AnimatorUtils.DECELERATE_INTERPOLATOR, 150L);
       attachedFiles.getRecyclerView().setItemAnimator(null);
       attachedFiles.setListener(new InlineResultsWrap.PickListener() {});

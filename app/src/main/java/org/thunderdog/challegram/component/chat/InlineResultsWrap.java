@@ -206,7 +206,21 @@ public class InlineResultsWrap extends FrameLayoutFix implements View.OnClickLis
       public void draw (Canvas c) {
         int top = detectRecyclerTopEdge();
         int width = getMeasuredWidth();
-        c.drawRect(0, top, width, getMeasuredHeight(), Paints.fillingPaint(adapter.useDarkMode() ? Theme.getColor(ColorId.filling, ThemeId.NIGHT_BLACK) : Theme.fillingColor()));
+        android.graphics.Paint fill = Paints.fillingPaint(adapter.useDarkMode() ? Theme.getColor(ColorId.filling, ThemeId.NIGHT_BLACK) : Theme.fillingColor());
+        if (tgx101CapsuleRadius > 0) {
+          // TGx101: the top of the floating input capsule — rounded on top, the input below goes on straight
+          float r = Math.min(tgx101CapsuleRadius, (getMeasuredHeight() - top) / 2f);
+          tgx101Radii[0] = tgx101Radii[1] = tgx101Radii[2] = tgx101Radii[3] = r;
+          tgx101Path.reset();
+          tgx101Path.addRoundRect(new android.graphics.RectF(0, top, width, getMeasuredHeight()), tgx101Radii, android.graphics.Path.Direction.CW);
+          c.save();
+          c.clipPath(tgx101Path);
+          c.drawPath(tgx101Path, fill);
+          super.draw(c);
+          c.restore();
+          return;
+        }
+        c.drawRect(0, top, width, getMeasuredHeight(), fill);
 
         super.draw(c);
       }
@@ -268,6 +282,19 @@ public class InlineResultsWrap extends FrameLayoutFix implements View.OnClickLis
     themeProvider.addThemeInvalidateListener(shadowView);
 
     TGLegacyManager.instance().addEmojiListener(this);
+  }
+
+  // TGx101: attached files above the floating input capsule — same side gaps, rounded top, no shadow line
+  private int tgx101CapsuleRadius;
+  private final android.graphics.Path tgx101Path = new android.graphics.Path();
+  private final float[] tgx101Radii = new float[8];
+
+  public void tgx101SetCapsule (int sideMargin, int radius) {
+    tgx101CapsuleRadius = radius;
+    ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) recyclerView.getLayoutParams();
+    params.leftMargin = params.rightMargin = sideMargin;
+    recyclerView.setLayoutParams(params);
+    shadowView.setVisibility(View.GONE);
   }
 
   public boolean areItemsVisible () {

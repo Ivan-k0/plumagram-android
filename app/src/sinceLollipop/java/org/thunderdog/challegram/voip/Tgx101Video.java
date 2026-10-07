@@ -43,6 +43,8 @@ public final class Tgx101Video {
   /** Forwards frames to whatever renderer the call screen currently shows. */
   public static final class ProxySink implements VideoSink {
     private volatile @Nullable VideoSink target;
+    volatile long lastFrameTime; // elapsedRealtime of the last frame, 0 — none yet
+    volatile int frameWidth, frameHeight;
 
     public void setTarget (@Nullable VideoSink target) {
       this.target = target;
@@ -50,6 +52,13 @@ public final class Tgx101Video {
 
     @Override
     public void onFrame (VideoFrame frame) {
+      boolean first = lastFrameTime == 0;
+      lastFrameTime = android.os.SystemClock.elapsedRealtime();
+      frameWidth = frame.getRotatedWidth();
+      frameHeight = frame.getRotatedHeight();
+      if (first && this == remoteSink) {
+        UI.post(Tgx101Video::checkRemoteFrames);
+      }
       VideoSink sink = target;
       if (sink != null) {
         sink.onFrame(frame);
@@ -103,6 +112,9 @@ public final class Tgx101Video {
   static void onInstanceCreated (long ptr, TdApi.Call call) {
     instancePtr = ptr;
     remoteActive = false;
+    remoteStateActive = false;
+    remoteSink.lastFrameTime = 0;
+    UI.post(Tgx101Video::checkRemoteFrames);
     nativeSetRemoteSink(ptr, remoteSink);
     if (call.isVideo && hasCameraPermission()) {
       UI.post(() -> setCameraEnabled(true));
@@ -121,7 +133,36 @@ public final class Tgx101Video {
   }
 
   static void onRemoteVideoState (int videoState) {
-    UI.post(() -> setRemoteActive(videoState == VideoState.ACTIVE));
+    org.thunderdog.challegram.Tgx101Diag.mark("video: remote media state " + videoState);
+    UI.post(() -> {
+      remoteStateActive = videoState == VideoState.ACTIVE;
+      updateRemoteActive();
+    });
+  }
+
+  // user 2026-10-07 11:47 (Xiaomi, TGX 1816 tgcalls): «видео собеседника не было, он меня видел» — the remote media state
+  // can stay silent, so frames coming in also count as «the other side's camera is on»; none for 2 s — it is off
+  private static boolean remoteStateActive;
+  private static final long REMOTE_FRAME_TIMEOUT = 2000;
+
+  private static void checkRemoteFrames () {
+    if (instancePtr == 0) return;
+    updateRemoteActive();
+    UI.post(Tgx101Video::checkRemoteFrames, 500);
+  }
+
+  private static boolean remoteFramesRecent () {
+    long last = remoteSink.lastFrameTime;
+    return last != 0 && android.os.SystemClock.elapsedRealtime() - last < REMOTE_FRAME_TIMEOUT;
+  }
+
+  private static void updateRemoteActive () {
+    boolean frames = remoteFramesRecent();
+    boolean active = instancePtr != 0 && (remoteStateActive || frames);
+    if (active != remoteActive) {
+      org.thunderdog.challegram.Tgx101Diag.mark("video: remote " + (active ? "shown" : "hidden") + " (state " + remoteStateActive + ", frames " + frames + (frames ? " " + remoteSink.frameWidth + "x" + remoteSink.frameHeight : "") + ")");
+    }
+    setRemoteActive(active);
   }
 
   private static void setRemoteActive (boolean active) {
