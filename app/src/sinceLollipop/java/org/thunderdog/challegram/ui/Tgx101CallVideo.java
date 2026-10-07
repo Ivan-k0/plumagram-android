@@ -100,7 +100,9 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
     remoteView = new SurfaceViewRenderer(controller.context());
     remoteView.init(Tgx101Video.eglContext(), null);
     remoteView.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL);
-    remoteView.setEnableHardwareScaler(true);
+    // TGx101 (user 2026-10-07 «мигает периодически экран», logcat 14:40:17/34/52): with the hardware scaler the surface was
+    // resized to every new incoming resolution (176x320 → 240x480 → 352x640 as the quality ramps up) and the screen blinked
+    remoteView.setEnableHardwareScaler(false);
     remoteView.setVisibility(View.GONE);
     contentView.addView(remoteView, index, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
