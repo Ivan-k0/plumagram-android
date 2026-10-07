@@ -1731,7 +1731,11 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   }
 
   private boolean tgx101SystemOpensFromNotification () {
-    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && android.os.SystemClock.uptimeMillis() - tgx101NotificationOpenTime < 2000;
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || android.os.SystemClock.uptimeMillis() - tgx101NotificationOpenTime >= 2000)
+      return false;
+    // Over the lock screen the system doesn't play its expand (Vivo 16:51, «из уведомления в чат „Долги“ анимации не было»)
+    android.app.KeyguardManager km = (android.app.KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+    return km == null || !km.isKeyguardLocked();
   }
 
   private void tgx101PlayEnter () {

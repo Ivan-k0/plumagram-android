@@ -2286,7 +2286,10 @@ public class ShareController extends TelegramViewController<ShareController.Args
     super.onEnterSearchMode();
     final int top = getTopEdge();
     if (top > 0) {
-      awaitingChatSearchOpen = top;
+      // TGx101 (user 2026-10-07 16:59 «поиск в окне поделиться открывается рывками»): the sheet started to rise only after the
+      // search list had appeared inside the half-open sheet, together with the keyboard — rise right away instead
+      awaitingChatSearchOpen = 0;
+      smoothScrollBy(top);
     } else {
       setAutoScrollFinished(true);
     }
