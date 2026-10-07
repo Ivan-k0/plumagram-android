@@ -2536,6 +2536,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return useBubbles() && !isOutgoingBubble() && !headerDisabled() ? (int) (Screen.dp(28f) * selectableFactor) : 0;
   }
 
+  /** TGx101: how far the content is drawn to the right of the view (the selection-mode checkbox room) */
+  public final int tgx101ContentShiftX () {
+    return getSelectableContentOffset(manager.getSelectableFactor()) * (Lang.rtl() ? -1 : 1);
+  }
+
   public final void drawOverlay (MessageView view, Canvas c) {
     int contentOffset = getSelectableContentOffset(manager.getSelectableFactor());
     MessageViewGroup parentViewGroup = view.getParentMessageViewGroup();

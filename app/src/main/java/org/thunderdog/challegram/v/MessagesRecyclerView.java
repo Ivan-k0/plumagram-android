@@ -42,6 +42,29 @@ import me.vkryl.android.animator.FactorAnimator;
 import me.vkryl.core.MathUtils;
 
 public class MessagesRecyclerView extends RecyclerView implements FactorAnimator.Target {
+  // TGx101 diag (2026-10-07 «желе» in the share sheet): the floating-input padding is found at 0 before every change —
+  // log who resets it
+  @Override
+  public void setPadding (int left, int top, int right, int bottom) {
+    if (bottom != getPaddingBottom() && bottom == 0 && getPaddingBottom() != 0) {
+      StackTraceElement[] st = new Throwable().getStackTrace();
+      StringBuilder b = new StringBuilder("chat list padding reset " + getPaddingBottom() + " → 0 by");
+      for (int i = 1; i < Math.min(st.length, 7); i++) b.append(' ').append(st[i].getClassName().replaceAll(".*\\.", "")).append('.').append(st[i].getMethodName()).append(':').append(st[i].getLineNumber());
+      org.thunderdog.challegram.Tgx101Diag.mark(b.toString());
+    }
+    super.setPadding(left, top, right, bottom);
+    tgx101LastBottom = bottom;
+  }
+
+  private int tgx101LastBottom;
+
+  private void tgx101CheckSilentReset (String where) {
+    if (tgx101LastBottom != 0 && getPaddingBottom() != tgx101LastBottom) {
+      org.thunderdog.challegram.Tgx101Diag.mark("chat list padding changed without setPadding " + tgx101LastBottom + " → " + getPaddingBottom() + " (" + where + ", fitsSystemWindows " + getFitsSystemWindows() + ")");
+      tgx101LastBottom = getPaddingBottom();
+    }
+  }
+
   public static final long ITEM_ANIMATOR_DURATION = Config.DEBUG_REACTIONS_ANIMATIONS ? 1400l : 140L;
 
   private MessagesManager manager;
@@ -78,6 +101,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
 
   @Override
   protected void onMeasure (int widthSpec, int heightSpec) {
+    tgx101CheckSilentReset("measure");
     super.onMeasure(widthSpec, heightSpec);
     if (manager != null) {
       int width = getMeasuredWidth();

@@ -286,7 +286,8 @@ public final class Tgx101MessageTextSelection {
       if (view == null || !session.text.tgx101HasSelection()) return;
       getLocationOnScreen(location);
       view.getLocationOnScreen(viewLocation);
-      float ox = viewLocation[0] - location[0], oy = viewLocation[1] - location[1];
+      // user 2026-10-07 20:29 «ручки не на том месте»: with messages selected the bubble sits 28 dp to the right (checkboxes)
+      float ox = viewLocation[0] - location[0] + session.msg.tgx101ContentShiftX(), oy = viewLocation[1] - location[1];
       float[] a = session.text.tgx101LocateOffset(session.start, false);
       float[] b = session.text.tgx101LocateOffset(session.end, true);
       if (a == null || b == null) return;
@@ -392,7 +393,7 @@ public final class Tgx101MessageTextSelection {
       if (view == null) return;
       getLocationOnScreen(location);
       view.getLocationOnScreen(viewLocation);
-      float vx = x + location[0] - viewLocation[0], vy = y + location[1] - viewLocation[1];
+      float vx = x + location[0] - viewLocation[0] - session.msg.tgx101ContentShiftX(), vy = y + location[1] - viewLocation[1];
       int offset = session.text.tgx101OffsetAt(vx, vy);
       if (offset < 0) return;
       int start = session.start, end = session.end;
@@ -423,7 +424,7 @@ public final class Tgx101MessageTextSelection {
         }
       }
       session.bar.onSelectionChanging(); // hidden while dragging (the magnifier), back above the selection after
-      showMagnifier(view, vx);
+      showMagnifier(view, vx + session.msg.tgx101ContentShiftX());
     }
 
     private void showMagnifier (View view, float xInView) {
