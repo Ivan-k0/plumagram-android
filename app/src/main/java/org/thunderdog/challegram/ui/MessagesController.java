@@ -1546,7 +1546,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     contentView.addView(bottomSpace);
     contentView.addView(bottomWrap);
     updateBottomWrapOffset(); // TGx101: apply the bottom gap right away, insets may have arrived before bottomWrap existed
-    if (floatingInput && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+    if (TGX101_CHAT_KEYBOARD_ENGINE && floatingInput && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
       tgx101RideKeyboard(contentView);
     }
     if (!floatingInput) {
@@ -9900,7 +9900,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private long tgx101LastPaddingChange;
 
+  // TGx101 (user 2026-10-08 00:3x «таких рывков даже в официальном нет… может, твой движок тут неуместен — верни как в стоке»):
+  // the keyboard ride, the list glide and the late-keyboard glide fought each other — off in chats, as before
+  private static final boolean TGX101_CHAT_KEYBOARD_ENGINE = false;
+
   private void tgx101GlideList (int delta) {
+    if (!TGX101_CHAT_KEYBOARD_ENGINE) return;
     long now = android.os.SystemClock.uptimeMillis();
     boolean following = now - tgx101LastPaddingChange < 150;
     tgx101LastPaddingChange = now;
@@ -9948,12 +9953,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // frame or two while text is rewritten (T9 suggestion: two lines shorter; Enter: one line too tall) and the list jumped
     // there and back. A new padding applies once it holds for 40 ms; with the keyboard moving — at once (the ride covers it)
     int current = messagesView.getPaddingBottom();
-    if (padding != current && current != 0 && !tgx101ImeMoving() && !tgx101ShrinkConfirmed) {
-      if (!tgx101ShrinkPending || tgx101PendingPadding != padding) {
-        tgx101PendingPadding = padding;
+    if (padding < current && !tgx101ShrinkConfirmed) {
+      if (!tgx101ShrinkPending) {
         tgx101ShrinkPending = true;
-        messagesView.removeCallbacks(tgx101ApplyPending);
-        messagesView.postDelayed(tgx101ApplyPending, 40);
+        messagesView.postDelayed(tgx101ApplyPending, 120);
       }
       return;
     }
@@ -10120,7 +10123,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       Views.setPaddingBottom(bottomWrap, height);
       // TGx101 (Vivo 0.1.564 00:25 «поле ввода улетело вверх»): the keyboard grows once more after it has opened (the
       // suggestion strip) without an animation — the field jumped 50 dp. Such a late change glides like the keyboard did
-      if (floatingInput && !tgx101ImeRiding && previous > 0 && height != previous && extraBottomInset > extraBottomInsetWithoutIme && tgx101LastImeHeight > 0) {
+      if (TGX101_CHAT_KEYBOARD_ENGINE && floatingInput && !tgx101ImeRiding && previous > 0 && height != previous && extraBottomInset > extraBottomInsetWithoutIme && tgx101LastImeHeight > 0) {
         tgx101GlideIme(height - previous);
       }
       tgx101LastImeHeight = extraBottomInset > extraBottomInsetWithoutIme ? height : 0;
