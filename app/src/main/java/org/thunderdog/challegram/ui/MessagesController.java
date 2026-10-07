@@ -7763,7 +7763,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     float y = -getReplyOffset();
     float offset = -getAttachedFilesOffset();
     final float keyboardOffset = -getKeyboardOffset();
-    messagesView.setTranslationY(y + offset + keyboardOffset);
+    tgx101ListBaseY = y + offset + keyboardOffset;
+    messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift);
     bottomShadowView.setTranslationY(y + offset + keyboardOffset);
     if (replyBarView != null) {
       replyBarView.setTranslationY(y + keyboardOffset);
@@ -9791,6 +9792,27 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private boolean tgx101ShrinkPending, tgx101ShrinkConfirmed;
 
+  // TGx101 (user 2026-10-07 22:47 «смещение чата, когда увеличивается поле ввода, слишком резкое — плавно, как в exteraGram»):
+  // the new padding moves the messages at once; they're drawn where they were and glide to the new place
+  private float tgx101ListBaseY, tgx101PaddingShift;
+  private android.animation.ValueAnimator tgx101GlideAnimator;
+
+  private void tgx101GlideList (int delta) {
+    if (Math.abs(delta) < Screen.dp(2f) || !messagesView.isShown() || !messagesView.isLaidOut()) return;
+    float from = tgx101PaddingShift + delta;
+    if (tgx101GlideAnimator != null) tgx101GlideAnimator.cancel();
+    tgx101GlideAnimator = android.animation.ValueAnimator.ofFloat(from, 0f);
+    tgx101GlideAnimator.setDuration(220);
+    tgx101GlideAnimator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+    tgx101GlideAnimator.addUpdateListener(a -> {
+      tgx101PaddingShift = (float) a.getAnimatedValue();
+      messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift);
+    });
+    tgx101PaddingShift = from;
+    messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift);
+    tgx101GlideAnimator.start();
+  }
+
   private void updateFloatingListPadding () {
     if (!floatingInput || messagesView == null || bottomWrap == null) return;
     // TGx101 (Vivo 0.1.552, share sheet still twitching): a window over the chat (share sheet with its own keyboard) made
@@ -9832,7 +9854,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       boolean atBottom = !messagesView.canScrollVertically(1);
       org.thunderdog.challegram.Tgx101Diag.mark("floating input: list padding " + messagesView.getPaddingBottom() + " → " + padding + (atBottom ? " (at bottom)" : ""));
       messagesView.setClipToPadding(false);
+      int delta = padding - messagesView.getPaddingBottom();
       messagesView.setPadding(messagesView.getPaddingLeft(), messagesView.getPaddingTop(), messagesView.getPaddingRight(), padding);
+      tgx101GlideList(delta);
       if (atBottom) {
         messagesView.post(() -> messagesView.scrollToPosition(0)); // reverse layout: 0 is the newest message
       }
