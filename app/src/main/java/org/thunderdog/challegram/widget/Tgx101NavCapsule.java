@@ -156,6 +156,7 @@ public class Tgx101NavCapsule extends View {
   }
 
   private void showLine (boolean autoHide) {
+    if (true) return; // user 2026-10-07 «убрать эту полоску гуляющую по меню, она мешает»: no line, the lit icon shows the tab
     removeCallbacks(hideLine);
     animateLine(1f);
     if (autoHide) postDelayed(hideLine, 350);
