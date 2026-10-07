@@ -721,6 +721,9 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     super.onNewIntent(intent);
     Tgx101DiagHooks.onNewIntent(intent); // TGx101
     String action = intent != null ? intent.getAction() : null;
+    if (action != null && action.startsWith(Intents.ACTION_OPEN_CHAT)) {
+      tgx101NotificationOpenTime = android.os.SystemClock.uptimeMillis(); // TGx101: the system plays its open-from-notification animation
+    }
     if (!StringUtils.isEmpty(action)) {
       handleIntent(action, intent, false);
     }

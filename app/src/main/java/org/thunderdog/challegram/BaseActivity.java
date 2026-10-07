@@ -1314,6 +1314,9 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     org.thunderdog.challegram.ui.Tgx101Proxies.onAppResumed(); // TGx101: back to the direct connection when it works
     // tgx101CheckKeyboardAfterLock(); — off for now (user 2026-10-05 16:51)
     tgx101HoldDrawForKeyboard();
+    if (!tgx101HoldingDraw) {
+      tgx101PlayEnter();
+    }
     boolean lockBefore = isPasscodeShowing;
     UI.setContext(this);
     setActivityState(UI.State.RESUMED);
@@ -1714,7 +1717,46 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   private boolean tgx101KeyboardAtPause, tgx101HoldingDraw;
   private final android.view.ViewTreeObserver.OnPreDrawListener tgx101HoldDraw = () -> !tgx101HoldingDraw;
 
+  // TGx101 (user 2026-10-07 «плавные анимации раскрытия приложения», mockup variants А + Б): coming back to the app.
+  // А — opened from a notification on Android 12+: the system expands the notification into the window, so nothing
+  // may hold the first frame. Б — every other return (another app, lock screen, older Android): the window fades in
+  // from 92 % to full size in 220 ms.
+  private boolean tgx101EnterPending;
+  protected long tgx101NotificationOpenTime;
+
+  @Override
+  protected void onRestart () {
+    super.onRestart();
+    tgx101EnterPending = true;
+  }
+
+  private boolean tgx101SystemOpensFromNotification () {
+    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && android.os.SystemClock.uptimeMillis() - tgx101NotificationOpenTime < 2000;
+  }
+
+  private void tgx101PlayEnter () {
+    if (!tgx101EnterPending)
+      return;
+    tgx101EnterPending = false;
+    if (tgx101SystemOpensFromNotification()) {
+      Tgx101Diag.mark("open animation: system (from notification)");
+      return;
+    }
+    View content = findViewById(android.R.id.content);
+    if (content == null)
+      return;
+    content.animate().cancel();
+    content.setScaleX(.92f);
+    content.setScaleY(.92f);
+    content.setAlpha(0f);
+    content.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(220).setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f)).start();
+    Tgx101Diag.mark("open animation: fade in");
+  }
+
   private void tgx101HoldDrawForKeyboard () {
+    if (tgx101SystemOpensFromNotification()) {
+      tgx101KeyboardAtPause = false; // А: the system animation needs the first frame right away
+    }
     if (!tgx101KeyboardAtPause || tgx101HoldingDraw)
       return;
     tgx101KeyboardAtPause = false;
@@ -1732,6 +1774,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     View decor = getWindow().getDecorView();
     decor.getViewTreeObserver().removeOnPreDrawListener(tgx101HoldDraw);
     decor.invalidate();
+    tgx101PlayEnter(); // Б starts once the held frames are let through
   }
 
   @Override
