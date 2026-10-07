@@ -777,9 +777,22 @@ public class MessagesController extends ViewController<MessagesController.Argume
         updateButtonsY();
       }
 
+      int tgx101LastContent = -1, tgx101LastPad = -1;
+
       @Override
       protected void onLayout (boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
+        int content = (b - t) - getPaddingBottom(), pad = getPaddingBottom();
+        if (floatingInput && TGX101_CHAT_KEYBOARD_ENGINE && isAttachedToWindow() && getVisibility() == View.VISIBLE) {
+          if (tgx101LastContent > 0 && content != tgx101LastContent && Math.abs(content - tgx101LastContent) < Screen.dp(400f)) {
+            tgx101GlideGrowth(content - tgx101LastContent); // the field grew / shrank: its top glides
+          }
+          if (tgx101LastPad >= 0 && pad != tgx101LastPad && !tgx101ImeRiding && extraBottomInset > extraBottomInsetWithoutIme) {
+            tgx101GlideIme(pad - tgx101LastPad); // the keyboard changed size without an animation (suggestion strip)
+          }
+        }
+        tgx101LastContent = content;
+        tgx101LastPad = pad;
         updateButtonsY();
         updateFloatingListPadding();
       }
@@ -790,9 +803,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // user 2026-10-07 09:49/10:00 (Xiaomi, 0.1.507): the capsule still covered the last message — it moves without its
       // own layout (keyboard hides, reply bar, the list resized later), so check the room before every frame
       android.view.ViewTreeObserver.OnPreDrawListener paddingCheck = () -> {
+        tgx101PaddingChanged = false;
         updateFloatingListPadding();
         syncFloatingReplyBar();
-        return true;
+        // while the field moves, the list's room changes every frame: lay it out before drawing, so they move together
+        return !(tgx101PaddingChanged && tgx101ImeMoving());
       };
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         // the blur under the field follows the list (variant В); not every frame — only when the list moves
@@ -7774,10 +7789,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     float offset = -getAttachedFilesOffset();
     final float keyboardOffset = -getKeyboardOffset();
     tgx101ListBaseY = y + offset + keyboardOffset;
-    messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift + tgx101ImeShift);
-    bottomShadowView.setTranslationY(y + offset + keyboardOffset + tgx101ImeShift);
+    messagesView.setTranslationY(tgx101ListBaseY);
+    bottomShadowView.setTranslationY(y + offset + keyboardOffset + tgx101FieldShift());
     if (replyBarView != null) {
-      replyBarView.setTranslationY(y + keyboardOffset + tgx101ImeShift);
+      replyBarView.setTranslationY(y + keyboardOffset + tgx101FieldShift());
       if (floatingInput) {
         // TGx101: hidden behind the see-through capsule while there's no reply (it would show through)
         replyBarView.setAlpha(MathUtils.clamp(-y / (float) Screen.dp(48f)));
@@ -9784,7 +9799,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     updateButtonsY();
     updateReplyView();
     if (bottomWrap != null) {
-      bottomWrap.setTranslationY(translationY + tgx101ImeShift);
+      bottomWrap.setTranslationY(translationY + tgx101FieldShift());
     }
   }
 
@@ -9793,7 +9808,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // so everything is drawn shifted by what the keyboard still has to travel
   private float tgx101ImeShift, tgx101EmojiTranslation;
   private boolean tgx101ImeRiding;
-  private int tgx101ImeEnd;
+  private int tgx101ImeEnd, tgx101ImeStart;
+  private boolean tgx101PaddingChanged;
 
   private static int tgx101BottomInset (@Nullable android.view.WindowInsets insets) {
     if (insets == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return 0;
@@ -9803,7 +9819,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private int tgx101LastImeHeight;
 
   private boolean tgx101ImeMoving () {
-    return tgx101ImeRiding || (tgx101ImeGlide != null && tgx101ImeGlide.isRunning());
+    return tgx101ImeRiding || (tgx101ImeGlide != null && tgx101ImeGlide.isRunning()) || (tgx101GrowGlide != null && tgx101GrowGlide.isRunning());
   }
   private android.animation.ValueAnimator tgx101ImeGlide;
 
@@ -9821,8 +9837,39 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private void tgx101SetImeShift (float shift) {
     if (tgx101ImeShift == shift) return;
     tgx101ImeShift = shift;
-    if (bottomWrap != null) bottomWrap.setTranslationY(tgx101EmojiTranslation + shift);
+    tgx101ApplyFieldShift();
+  }
+
+  // TGx101 chat motion (user 2026-10-08 01:0x «делай движок как полагается», like exteraGram / official): ONE rule — the
+  // field (with the reply bar) is drawn where it was and glides / rides the keyboard to its new place, and the list's
+  // bottom room follows the field's drawn edge every frame (updateFloatingListPadding reads its position on screen). Nothing
+  // else moves the list: no list translation, no separate glides, no waiting.
+  private float tgx101GrowShift;
+  private android.animation.ValueAnimator tgx101GrowGlide;
+
+  private float tgx101FieldShift () {
+    return tgx101ImeShift + tgx101GrowShift;
+  }
+
+  private void tgx101ApplyFieldShift () {
+    if (bottomWrap != null) bottomWrap.setTranslationY(tgx101EmojiTranslation + tgx101FieldShift());
     updateReplyView();
+  }
+
+  /** The field's own height changed by {@code delta} (a new line, attachments, reply…): its top glides there */
+  private void tgx101GlideGrowth (int delta) {
+    if (tgx101GrowGlide != null) tgx101GrowGlide.cancel();
+    float from = tgx101GrowShift + delta; // drawn where its top was
+    tgx101GrowGlide = android.animation.ValueAnimator.ofFloat(from, 0f);
+    tgx101GrowGlide.setDuration(180);
+    tgx101GrowGlide.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+    tgx101GrowGlide.addUpdateListener(a -> {
+      tgx101GrowShift = (float) a.getAnimatedValue();
+      tgx101ApplyFieldShift();
+    });
+    tgx101GrowShift = from;
+    tgx101ApplyFieldShift();
+    tgx101GrowGlide.start();
   }
 
   @android.annotation.TargetApi(Build.VERSION_CODES.R)
@@ -9836,6 +9883,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         if ((animation.getTypeMask() & android.view.WindowInsets.Type.ime()) != 0 && floatingInput && !isDestroyed()) {
           ime = animation;
           tgx101ImeRiding = true;
+          tgx101ImeStart = tgx101BottomInset(view.getRootWindowInsets());
           tgx101ShrinkConfirmed = true; // the keyboard's padding change applies at once — the shift covers it
         }
       }
@@ -9845,6 +9893,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       public android.view.WindowInsetsAnimation.Bounds onStart (@NonNull android.view.WindowInsetsAnimation animation, @NonNull android.view.WindowInsetsAnimation.Bounds bounds) {
         if (animation == ime) {
           tgx101ImeEnd = tgx101BottomInset(view.getRootWindowInsets());
+          tgx101SetImeShift(tgx101ImeEnd - tgx101ImeStart); // the first frame already in place, before any progress
           org.thunderdog.challegram.Tgx101Diag.mark("keyboard ride: to " + tgx101ImeEnd + "px, " + animation.getDurationMillis() + " ms");
         }
         return bounds;
@@ -9910,10 +9959,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   // TGx101 (user 2026-10-08 00:3x «таких рывков даже в официальном нет… может, твой движок тут неуместен — верни как в стоке»):
   // the keyboard ride, the list glide and the late-keyboard glide fought each other — off in chats, as before
-  private static final boolean TGX101_CHAT_KEYBOARD_ENGINE = false;
+  private static final boolean TGX101_CHAT_KEYBOARD_ENGINE = true;
 
   private void tgx101GlideList (int delta) {
-    if (!TGX101_CHAT_KEYBOARD_ENGINE) return;
+    if (true) return; // replaced by the chat motion: the list follows the field's drawn edge
     long now = android.os.SystemClock.uptimeMillis();
     boolean following = now - tgx101LastPaddingChange < 150;
     tgx101LastPaddingChange = now;
@@ -9961,7 +10010,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // frame or two while text is rewritten (T9 suggestion: two lines shorter; Enter: one line too tall) and the list jumped
     // there and back. A new padding applies once it holds for 40 ms; with the keyboard moving — at once (the ride covers it)
     int current = messagesView.getPaddingBottom();
-    if (padding < current && !tgx101ShrinkConfirmed) {
+    if (padding < current && !tgx101ShrinkConfirmed && !tgx101ImeMoving()) {
       if (!tgx101ShrinkPending) {
         tgx101ShrinkPending = true;
         messagesView.postDelayed(tgx101ApplyPending, 120);
@@ -9975,8 +10024,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       messagesView.setClipToPadding(false);
       int delta = padding - messagesView.getPaddingBottom();
       messagesView.setPadding(messagesView.getPaddingLeft(), messagesView.getPaddingTop(), messagesView.getPaddingRight(), padding);
+      tgx101PaddingChanged = true;
       tgx101GlideList(delta);
-      if (atBottom) {
+      if (atBottom && !tgx101ImeMoving()) {
         messagesView.post(() -> messagesView.scrollToPosition(0)); // reverse layout: 0 is the newest message
       }
     }
@@ -10132,7 +10182,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       Views.setPaddingBottom(bottomWrap, height);
       // TGx101 (Vivo 0.1.564 00:25 «поле ввода улетело вверх»): the keyboard grows once more after it has opened (the
       // suggestion strip) without an animation — the field jumped 50 dp. Such a late change glides like the keyboard did
-      if (TGX101_CHAT_KEYBOARD_ENGINE && floatingInput && !tgx101ImeRiding && previous > 0 && height != previous && extraBottomInset > extraBottomInsetWithoutIme && tgx101LastImeHeight > 0) {
+      if (false && floatingInput && !tgx101ImeRiding && previous > 0 && height != previous && extraBottomInset > extraBottomInsetWithoutIme && tgx101LastImeHeight > 0) {
         tgx101GlideIme(height - previous);
       }
       tgx101LastImeHeight = extraBottomInset > extraBottomInsetWithoutIme ? height : 0;
