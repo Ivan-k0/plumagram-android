@@ -1117,7 +1117,19 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   /** TGx101: the bottom menu for the seamless menu → message field transition */
   @Override
   public @Nullable View tgx101BottomCapsule () {
-    return tgx101Capsule != null && tgx101Capsule.getVisibility() == View.VISIBLE && !inSearchMode() ? tgx101Capsule : null;
+    if (tgx101Capsule == null || inSearchMode()) return null;
+    if (tgx101Capsule.tgx101OnMorphBack == null) {
+      tgx101Capsule.tgx101OnMorphBack = () -> {
+        if (tgx101CapsuleFade != null) {
+          tgx101CapsuleFade.cancel();
+          tgx101CapsuleFade = null;
+        }
+        tgx101Capsule.setVisibility(View.VISIBLE);
+        tgx101Capsule.setAlpha(1f);
+        tgx101Capsule.setTranslationY(0f);
+      };
+    }
+    return tgx101Capsule;
   }
 
   private void tgx101ApplyCapsulePadding (int tab) {

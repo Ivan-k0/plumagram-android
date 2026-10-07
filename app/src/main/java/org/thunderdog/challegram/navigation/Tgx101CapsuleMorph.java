@@ -48,7 +48,7 @@ public class Tgx101CapsuleMorph extends View {
   /** Called on every step of a horizontal transition. {@code chatShown}: 0 — the list, 1 — the chat */
   public void update (@Nullable ViewController<?> left, @Nullable ViewController<?> right, float chatShown) {
     if (active && (chatShown <= 0f || chatShown >= 1f)) {
-      finish();
+      finishAt(chatShown);
       return;
     }
     if (!active) {
@@ -60,7 +60,8 @@ public class Tgx101CapsuleMorph extends View {
       menuLocal.set(menuRect);
       chat = (MessagesController) right;
       active = true;
-      takeMenuShot(left.getValue().getTranslationX());
+      org.thunderdog.challegram.Tgx101Diag.mark("menu morph: start at " + Math.round(chatShown * 100) + " %, menu " + Math.round(menuRect.width()) + "x" + Math.round(menuRect.height()));
+      takeMenuShot(0f); // the menu lives over all screens, not inside the list
     }
     if (field == null || fieldShot == null) {
       takeFieldShot();
@@ -69,7 +70,7 @@ public class Tgx101CapsuleMorph extends View {
     removeCallbacks(this::finish);
     removeCallbacks(safety);
     postDelayed(safety, 600); // a transition that stopped without reaching its end
-    if (menu != null) menu.setAlpha(0f);
+    // the real menu fades away / in by itself under this one; the field is hidden until the end
     if (field != null) field.setAlpha(0f);
     setVisibility(VISIBLE);
     invalidate();
@@ -77,9 +78,15 @@ public class Tgx101CapsuleMorph extends View {
 
   /** The transition is over (either way): the real capsule / field are back */
   public void finish () {
+    finishAt(shown);
+  }
+
+  private void finishAt (float chatShown) {
     if (!active) return;
     active = false;
-    if (menu != null) menu.setAlpha(1f);
+    org.thunderdog.challegram.Tgx101Diag.mark("menu morph: end on the " + (chatShown < .5f ? "list" : "chat") + (fieldShot == null ? " (no field snapshot)" : ""));
+    // back on the list: the real menu must be there at once (it would fade in only after the slide — the seam)
+    if (menu != null && chatShown < .5f && menu.tgx101OnMorphBack != null) menu.tgx101OnMorphBack.run();
     if (field != null) field.setAlpha(1f);
     menu = null;
     field = null;
@@ -100,7 +107,8 @@ public class Tgx101CapsuleMorph extends View {
       menuShot = b;
       menu.getLocationInWindow(loc);
       getLocationInWindow(own);
-      menuRect.offset(loc[0] - own[0] - listShift, loc[1] - own[1]); // where it stands without the list's parallax
+      // where it stands without the list's parallax and without its own hide animation (slides 24 dp down as it fades)
+      menuRect.offset(loc[0] - own[0] - listShift - menu.getTranslationX(), loc[1] - own[1] - menu.getTranslationY());
     } catch (Throwable ignored) {
       menu.tgx101IconsOnly = false;
     }

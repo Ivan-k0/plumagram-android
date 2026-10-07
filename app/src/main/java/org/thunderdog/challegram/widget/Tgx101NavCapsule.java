@@ -591,9 +591,13 @@ public class Tgx101NavCapsule extends View {
   public boolean tgx101IconsOnly;
 
   /** The capsule's rectangle in this view's coordinates, or false while collapsed / hidden */
+  /** Set by the chat list: show the menu at once, without its fade (the transition overlay just drew it) */
+  public Runnable tgx101OnMorphBack;
+
   public boolean tgx101CapsuleRect (RectF out) {
-    if (collapseFactor > 0f || getVisibility() != View.VISIBLE || getWidth() == 0) return false;
-    float top = capsuleTop() + scrollHideOffset();
+    // hidden or not: it hides itself as the chat opens and shows after it closes — the overlay stands in for it meanwhile
+    if (collapseFactor > 0f || getWidth() == 0) return false;
+    float top = capsuleTop();
     out.set(padding(), top, getMeasuredWidth() - padding(), top + Screen.dp(HEIGHT_DP));
     return scrollHide == 0f;
   }
