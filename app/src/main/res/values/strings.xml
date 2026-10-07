@@ -6568,4 +6568,8 @@
   <string name="Tgx101IncomingVideoCallBranding">Incoming Telegram Video Call</string>
   <string name="Tgx101IncomingVideoCall">Incoming Video Call</string>
   <string name="Tgx101OutgoingVideoCall">Outgoing Video Call</string>
+  <string name="Tgx101ForegroundNotif">When the app is open</string>
+  <string name="Tgx101ForegroundNotifShow">Show as usual</string>
+  <string name="Tgx101ForegroundNotifQuiet">Quietly, no pop-up</string>
+  <string name="Tgx101ForegroundNotifHide">Don\'t show</string>
 </resources>

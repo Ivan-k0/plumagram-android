@@ -297,6 +297,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(Settings.instance().tgx101UiTextSize() + "%");
         } else if (itemId == R.id.btn_tgx101UiBold) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101UiBold(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101ForegroundNotif) {
+          view.setData(FOREGROUND_NOTIF_NAMES[Math.max(0, Math.min(2, Settings.instance().tgx101ForegroundNotifMode()))]);
         } else if (itemId == R.id.btn_tgx101Snooze) {
           int minutes = Settings.instance().tgx101SnoozeMinutes();
           view.setData(minutes > 0 ? Lang.getString(R.string.Tgx101SnoozeMinutes, minutes) : Lang.getString(R.string.Tgx101SnoozeOff));
@@ -503,6 +505,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101BottomGap, 0, R.string.Tgx101BottomGap),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NotificationPlane, 0, R.string.Tgx101NotificationPlane),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101ForegroundNotif, 0, R.string.Tgx101ForegroundNotif),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.PullToSearchHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
@@ -882,6 +886,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
 
   // TGx101 MagiX sections (user 2026-10-05, approved mockup ~/Desktop/TGX/Макеты/MagiX)
 
+  // TGx101: MagiX → Notifications → «When the app is open», in Settings.TGX101_FOREGROUND_NOTIF_* order
+  private static final int[] FOREGROUND_NOTIF_NAMES = {R.string.Tgx101ForegroundNotifShow, R.string.Tgx101ForegroundNotifQuiet, R.string.Tgx101ForegroundNotifHide};
+
   private static final int[] TGX101_SECTION_IDS = {
     R.id.btn_tgx101SectionChatList, R.id.btn_tgx101SectionStories, R.id.btn_tgx101SectionMessages, R.id.btn_tgx101SectionChannels,
     R.id.btn_tgx101SectionMedia, R.id.btn_tgx101SectionNotifications, R.id.btn_tgx101SectionText, R.id.btn_tgx101SectionCalls,
@@ -930,7 +937,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       || id == R.id.btn_showChannelMuteButton || id == R.id.btn_hideSubscribeLink || id == R.id.btn_separateChannelPosts) return 3;
     if (id == R.id.btn_tgx101VoiceQueue || id == R.id.btn_tgx101CameraInAttach || id == R.id.btn_tgx101ZoomPullClose || id == R.id.btn_roundVideoQuality
       || id == R.id.btn_roundStabilization) return 4;
-    if (id == R.id.btn_tgx101Snooze || id == R.id.btn_tgx101NotificationPlane) return 5;
+    if (id == R.id.btn_tgx101Snooze || id == R.id.btn_tgx101NotificationPlane || id == R.id.btn_tgx101ForegroundNotif) return 5;
     if (id == R.id.btn_tgx101UiText || id == R.id.btn_tgx101UiBold || id == R.id.btn_tgx101ChatListTextSize || id == R.id.btn_tgx101Font || id == R.id.btn_tgx101TextWeight || id == R.id.btn_chatFontSize || id == R.id.btn_bigEmojiSize) return 6;
     if (id == R.id.btn_tgx101CallBar || id == R.id.btn_tgx101NewCallScreen || id == R.id.btn_tgx101CallPhoto || id == R.id.btn_tgx101CallPattern
       || id == R.id.btn_tgx101RingRamp || id == R.id.btn_tgx101RingRampTime) return 7;
@@ -1176,6 +1183,19 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           int index = result.get(R.id.btn_tgx101UiText) - 1;
           if (index >= 0 && index < values.length) Settings.instance().setTgx101UiTextSize(values[index]);
           adapter.updateValuedSettingById(R.id.btn_tgx101UiText);
+        }));
+    } else if (id == R.id.btn_tgx101ForegroundNotif) {
+      int current = Settings.instance().tgx101ForegroundNotifMode();
+      ListItem[] items = new ListItem[FOREGROUND_NOTIF_NAMES.length];
+      for (int i = 0; i < items.length; i++) {
+        items[i] = new ListItem(ListItem.TYPE_RADIO_OPTION, i + 1, 0, FOREGROUND_NOTIF_NAMES[i], R.id.btn_tgx101ForegroundNotif, i == current);
+      }
+      showSettings(new SettingsWrapBuilder(R.id.btn_tgx101ForegroundNotif)
+        .setRawItems(items)
+        .setIntDelegate((resultId, result) -> {
+          int index = result.get(R.id.btn_tgx101ForegroundNotif) - 1;
+          if (index >= 0 && index < FOREGROUND_NOTIF_NAMES.length) Settings.instance().setTgx101ForegroundNotifMode(index);
+          adapter.updateValuedSettingById(R.id.btn_tgx101ForegroundNotif);
         }));
     } else if (id == R.id.btn_tgx101Snooze) {
       int current = Settings.instance().tgx101SnoozeMinutes();

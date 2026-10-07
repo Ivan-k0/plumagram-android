@@ -223,6 +223,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101VideoWaitCall, "Камеру можно включить, когда собеседник ответит");
     RU.put(R.string.Tgx101VideoNoCamera, "Для видео нужен доступ к камере");
     RU.put(R.string.Tgx101VideoCallBranding, "Видеозвонок Telegram");
+    RU.put(R.string.Tgx101ForegroundNotif, "Когда приложение открыто");
+    RU.put(R.string.Tgx101ForegroundNotifShow, "Показывать как обычно");
+    RU.put(R.string.Tgx101ForegroundNotifQuiet, "Тихо, без всплывания");
+    RU.put(R.string.Tgx101ForegroundNotifHide, "Не показывать");
     RU.put(R.string.Tgx101IncomingVideoCallBranding, "Входящий видеозвонок Telegram");
     RU.put(R.string.Tgx101IncomingVideoCall, "Входящий видеозвонок");
     RU.put(R.string.Tgx101OutgoingVideoCall, "Исходящий видеозвонок");

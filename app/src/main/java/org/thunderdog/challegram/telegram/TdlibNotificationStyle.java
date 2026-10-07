@@ -216,6 +216,11 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
     return false;
   }
 
+  /** TGx101: MagiX → Notifications → «When the app is open»; SHOW while the app is in the background */
+  private static int tgx101ForegroundMode () {
+    return org.thunderdog.challegram.tool.UI.isResumed() ? org.thunderdog.challegram.unsorted.Settings.instance().tgx101ForegroundNotifMode() : org.thunderdog.challegram.unsorted.Settings.TGX101_FOREGROUND_NOTIF_SHOW;
+  }
+
   private static void styleNotification (Tdlib tdlib, NotificationCompat.Builder builder, long chatId, @Nullable TdApi.Chat chat, boolean allowPreview) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       builder.setCategory(NotificationCompat.CATEGORY_MESSAGE);
@@ -682,6 +687,8 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
     styleNotification(tdlib, builder, chatId, chat, allowPreview);
     if (TdlibNotificationExtras.tgx101IsSnoozed(tdlib.id(), chatId)) {
       builder.setSilent(true); // TGx101: snoozed — into the shade without sound, vibration and the pop-up
+    } else if (tgx101ForegroundMode() == org.thunderdog.challegram.unsorted.Settings.TGX101_FOREGROUND_NOTIF_QUIET) {
+      builder.setSilent(true); // TGx101: the app is open — into the shade quietly, no pop-up
     }
 
     boolean hasIcon = false;
@@ -745,8 +752,13 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
       try {
         if (Config.TEST_NOTIFICATION_PROBLEM_RESOLUTION)
           throw new RuntimeException();
-        manager.notify(helper.tag(category), notificationId, notification);
-        org.thunderdog.challegram.Tgx101DiagHooks.onNotificationShown(notificationId, group.getChatId(), "category " + category); // TGx101
+        if (tgx101ForegroundMode() == org.thunderdog.challegram.unsorted.Settings.TGX101_FOREGROUND_NOTIF_HIDE) {
+          // TGx101: MagiX → Notifications → «When the app is open» → «Don't show»
+          org.thunderdog.challegram.Tgx101Diag.mark("notification hidden: app is open (chat " + group.getChatId() + ")");
+        } else {
+          manager.notify(helper.tag(category), notificationId, notification);
+          org.thunderdog.challegram.Tgx101DiagHooks.onNotificationShown(notificationId, group.getChatId(), "category " + category); // TGx101
+        }
         state = DISPLAY_STATE_OK;
       } catch (Throwable t) {
         Log.e("Cannot display notification", t);

@@ -3709,6 +3709,18 @@ public class Settings {
     pmc.putInt(KEY_TGX101_SNOOZE_MINUTES, minutes);
   }
 
+  private static final String KEY_TGX101_FOREGROUND_NOTIF = "tgx101_foreground_notif";
+  public static final int TGX101_FOREGROUND_NOTIF_SHOW = 0, TGX101_FOREGROUND_NOTIF_QUIET = 1, TGX101_FOREGROUND_NOTIF_HIDE = 2;
+
+  /** TGx101 (user 2026-10-07 «как убрать всплывающие уведомления когда приложение открыто?»): message notifications while the app is on screen */
+  public int tgx101ForegroundNotifMode () {
+    return pmc.getInt(KEY_TGX101_FOREGROUND_NOTIF, TGX101_FOREGROUND_NOTIF_SHOW);
+  }
+
+  public void setTgx101ForegroundNotifMode (int mode) {
+    pmc.putInt(KEY_TGX101_FOREGROUND_NOTIF, mode);
+  }
+
   private static final String KEY_TGX101_ZOOM_PULL_CLOSE = "tgx101_zoom_pull_close";
 
   /** TGx101: a zoomed photo can be pulled down from its top edge to close (on by default) */
