@@ -946,10 +946,12 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
       if (StringUtils.isEmpty(title)) {
         trimmedTitle = null;
       } else {
+        // TGx101 (user 2026-10-07 22:43 «их что-то обрезает», MagiX text size up): with a bigger text the bold title is drawn
+        // wider than it was measured and the clip cut its last letters; it's single-line and ellipsized anyway
         trimmedTitle = new Text.Builder(title, avail, getTitleStyleProvider(listMode), isSecretChat() ? TextColorSets.Regular.SECURE : TextColorSets.Regular.NORMAL)
           .singleLine()
           .allBold()
-          .clipTextArea()
+          .clipTextArea(listTextScale <= 1f)
           .build();
       }
     }
