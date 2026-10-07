@@ -2582,6 +2582,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
         super.onCustomShowComplete();
         if (!isDestroyed()) {
           recyclerView.invalidateItemDecorations();
+          tgx101WarmUpChatSearch();
         }
       }
     };

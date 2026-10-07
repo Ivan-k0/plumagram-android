@@ -6365,7 +6365,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   public int getSelectionColor (float factor) {
     final boolean useBubbles = useBubbles();
     if (useBubbles) {
-      return ColorUtils.alphaColor(factor, ColorUtils.fromToArgb(Theme.getColor(ColorId.bubble_messageSelection), Theme.getColor(ColorId.bubble_messageSelectionNoWallpaper), manager.controller().wallpaper().getBackgroundTransparency()));
+      // TGx101 (user 2026-10-08 «смотри, с какой интенсивностью выделяется в exteraGram — более прозрачно, менее тёмный»)
+      return ColorUtils.alphaColor(factor * .55f, ColorUtils.fromToArgb(Theme.getColor(ColorId.bubble_messageSelection), Theme.getColor(ColorId.bubble_messageSelectionNoWallpaper), manager.controller().wallpaper().getBackgroundTransparency()));
     } else {
       // manager.controller().wallpaper().getOverlayColor(ColorId.chatTransparentColor)
       final int color = Theme.chatSelectionColor();

@@ -1087,6 +1087,14 @@ public abstract class TelegramViewController<T> extends ViewController<T> {
 
   protected void onChatSearchOpenStarted () { }
 
+  /** TGx101 (user 2026-10-08 «первое нажатие с лагами»): the first search open attached the adapter and waited for the
+   *  search list's first layout before the animation — attach it beforehand, while the list is still transparent */
+  protected final void tgx101WarmUpChatSearch () {
+    if (chatSearchView != null && chatSearchView.getAdapter() == null && chatSearchAdapter != null) {
+      chatSearchView.setAdapter(chatSearchAdapter);
+    }
+  }
+
   @Override
   @CallSuper
   protected void applySearchTransformFactor (float factor, boolean isOpening) {

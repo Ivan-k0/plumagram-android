@@ -9867,6 +9867,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private boolean tgx101ShrinkPending, tgx101ShrinkConfirmed;
+  private int tgx101PendingPadding;
+  private final Runnable tgx101ApplyPending = () -> {
+    tgx101ShrinkPending = false;
+    tgx101ShrinkConfirmed = true;
+    updateFloatingListPadding(); // measured again: applies only what the field still is
+    tgx101ShrinkConfirmed = false;
+  };
 
   // TGx101 (user 2026-10-07 22:47 «смещение чата, когда увеличивается поле ввода, слишком резкое — плавно, как в exteraGram»):
   // the new padding moves the messages at once; they're drawn where they were and glide to the new place
@@ -9919,18 +9926,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
       padding = Math.max(bottomWrap.getHeight(), fromTop) + Screen.dp(4f);
     }
-    // TGx101 (Vivo 0.1.545, 19:38:16 «после применения экран прыгнул»): Yandex keyboard rewrites the whole field when a
-    // suggestion is applied — for one frame the field was two lines shorter (padding 1680 → 1490 → 1680) and the list
-    // jumped. Growing applies at once (the field must not cover a message); shrinking waits and applies only if it stays.
-    if (padding < messagesView.getPaddingBottom() && !tgx101ShrinkConfirmed) {
-      if (!tgx101ShrinkPending) {
+    // TGx101 (Vivo 0.1.545 19:38 «после применения экран прыгнул»; 0.1.564 00:17 — a new line): the field changes size for a
+    // frame or two while text is rewritten (T9 suggestion: two lines shorter; Enter: one line too tall) and the list jumped
+    // there and back. A new padding applies once it holds for 40 ms; with the keyboard moving — at once (the ride covers it)
+    int current = messagesView.getPaddingBottom();
+    if (padding != current && current != 0 && !tgx101ImeRiding && !tgx101ShrinkConfirmed) {
+      if (!tgx101ShrinkPending || tgx101PendingPadding != padding) {
+        tgx101PendingPadding = padding;
         tgx101ShrinkPending = true;
-        messagesView.postDelayed(() -> {
-          tgx101ShrinkPending = false;
-          tgx101ShrinkConfirmed = true;
-          updateFloatingListPadding();
-          tgx101ShrinkConfirmed = false;
-        }, 120);
+        messagesView.removeCallbacks(tgx101ApplyPending);
+        messagesView.postDelayed(tgx101ApplyPending, 40);
       }
       return;
     }
