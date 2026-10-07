@@ -38,12 +38,18 @@ public final class Tgx101WsProxy {
 
   private Tgx101WsProxy () { }
 
+  /** OkHttp needs Android 5+: on Android 4 it throws in its static init (BlackBerry Z30, 0.1.514, 2026-10-07) */
+  public static boolean isSupported () {
+    return android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP;
+  }
+
   public static synchronized boolean isRunning () {
     return server != null && !server.isClosed();
   }
 
   /** The switch on the «Proxy» screen: adds «WebSocket (Telegram Web)» and turns it on, or turns it off */
   public static void setEnabled (boolean enabled) {
+    if (!isSupported()) return;
     org.thunderdog.challegram.unsorted.Settings settings = org.thunderdog.challegram.unsorted.Settings.instance();
     settings.setTgx101WsProxy(enabled);
     org.drinkless.tdlib.TdApi.Proxy ws = new org.drinkless.tdlib.TdApi.Proxy(HOST, PORT, new org.drinkless.tdlib.TdApi.ProxyTypeSocks5("", ""));
@@ -70,7 +76,7 @@ public final class Tgx101WsProxy {
   }
 
   public static synchronized void start () {
-    if (isRunning()) return;
+    if (!isSupported() || isRunning()) return;
     try {
       server = new ServerSocket(PORT, 64, InetAddress.getByName(HOST));
     } catch (IOException e) {

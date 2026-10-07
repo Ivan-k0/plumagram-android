@@ -408,6 +408,9 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
 
   // TGx101: + "Return to direct connection" and "Hide proxy sponsor" toggles (was 4 items)
   private static final int AUTO_SWITCH_ITEM_COUNT = 8;
+  // TGx101: the WebSocket block above the list (4 rows). The fixed positions below didn't count it, so every proxy cell
+  // lookup was 4 rows off and threw «index: 17, proxyIndex: 21» (crash on the Proxy screen, 2026-10-07)
+  private static final int WS_ITEM_COUNT = org.thunderdog.challegram.Tgx101WsProxy.isSupported() ? 4 : 0;
 
   private static ListItem[] newAutoSwitchItems () {
     return new ListItem[] {
@@ -467,11 +470,13 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_addProxy, 0, R.string.ProxyAdd)); // TODO design: icon
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.ProxyInfo));
-    // TGx101 (4PDA request): Telegram through WebSocket like the web version
-    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101WsProxy, 0, R.string.Tgx101WsProxy));
-    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
-    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101WsProxyHint));
+    // TGx101 (4PDA request): Telegram through WebSocket like the web version (Android 5+, see WS_ITEM_COUNT)
+    if (WS_ITEM_COUNT > 0) {
+      items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+      items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101WsProxy, 0, R.string.Tgx101WsProxy));
+      items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+      items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101WsProxyHint));
+    }
 
     hasProxyAutoSwitchSettings = !proxies.isEmpty();
     if (hasProxyAutoSwitchSettings) {
@@ -842,7 +847,7 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
   }
 
   private int cellIndexToProxyIndex (int cellIndex) {
-    int headerItemCount = 7;
+    int headerItemCount = 7 + WS_ITEM_COUNT;
     if (hasProxyAutoSwitchSettings) {
       headerItemCount += AUTO_SWITCH_ITEM_COUNT;
     }
@@ -857,7 +862,7 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
   }
 
   private int indexOfProxyCellByProxyIndex (int proxyIndex, int proxyId) {
-    int headerItemCount = 7;
+    int headerItemCount = 7 + WS_ITEM_COUNT;
     if (hasProxyAutoSwitchSettings) {
       headerItemCount += AUTO_SWITCH_ITEM_COUNT;
     }
@@ -869,7 +874,7 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
 
   private int indexOfProxy (int proxyId) {
     if (proxyId == Settings.PROXY_ID_NONE) {
-      return 5 + (hasProxyAutoSwitchSettings ? AUTO_SWITCH_ITEM_COUNT : 0); // adapter.indexOfViewById(R.id.btn_noProxy);
+      return 5 + WS_ITEM_COUNT + (hasProxyAutoSwitchSettings ? AUTO_SWITCH_ITEM_COUNT : 0); // adapter.indexOfViewById(R.id.btn_noProxy);
     } else {
       return adapter.indexOfViewByLongId(proxyId);
     }

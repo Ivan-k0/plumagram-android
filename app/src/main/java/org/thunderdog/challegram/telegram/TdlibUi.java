@@ -4752,8 +4752,10 @@ public class TdlibUi extends Handler {
     strings.append(R.string.ProxyPaste);
 
     // TGx101 (4PDA request): Telegram through WebSocket like the web version
-    ids.append(R.id.btn_tgx101WsProxy);
-    strings.append(R.string.Tgx101WsProxy);
+    if (org.thunderdog.challegram.Tgx101WsProxy.isSupported()) {
+      ids.append(R.id.btn_tgx101WsProxy);
+      strings.append(R.string.Tgx101WsProxy);
+    }
 
     OptionDelegate callback = (itemView, id) -> {
       if (id == R.id.btn_tgx101WsProxy) {
