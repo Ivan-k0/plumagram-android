@@ -224,7 +224,6 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101VideoNoCamera, "Для видео нужен доступ к камере");
     RU.put(R.string.Tgx101VideoCallBranding, "Видеозвонок Telegram");
     RU.put(R.string.Tgx101ForegroundNotif, "Когда приложение открыто");
-    RU.put(R.string.Tgx101CallSilence, "Без звука");
     RU.put(R.string.Tgx101ForegroundNotifShow, "Показывать как обычно");
     RU.put(R.string.Tgx101ForegroundNotifQuiet, "Тихо, без всплывания");
     RU.put(R.string.Tgx101ForegroundNotifHide, "Не показывать");
