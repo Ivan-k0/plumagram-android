@@ -396,6 +396,10 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
 
     rootView.addView(headerView);
 
+    tgx101Morph = new Tgx101CapsuleMorph(context);
+    tgx101Morph.setVisibility(View.GONE);
+    rootView.addView(tgx101Morph, new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+
     floatingButton = new FloatingButton(context);
     floatingButton.setOnClickListener(v -> {
       ViewController<?> c = processor.getStack().getCurrent();
@@ -1428,6 +1432,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   }
 
   private float translationFactor;
+  private Tgx101CapsuleMorph tgx101Morph;
 
   public void setFactor (float factor) {
     if (this.translationFactor == factor) return;
@@ -1457,6 +1462,9 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       }
       case TRANSLATION_HORIZONTAL: {
         headerView.setTranslation(factor);
+        if (tgx101Morph != null && !needRtl()) {
+          tgx101Morph.update(currentLeft, currentRight, 1f - factor);
+        }
         factor = 1f - factor;
 
         float px2 = factor * currentPrevWidth;

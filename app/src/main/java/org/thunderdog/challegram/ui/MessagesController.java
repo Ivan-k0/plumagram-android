@@ -9878,6 +9878,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // what's under the field on Android 12+; without the blur (older Android) the text under it would show through, so 90 % there
   private static final float FLOATING_INPUT_ALPHA_BLUR = .65f, FLOATING_INPUT_ALPHA_NO_BLUR = .9f, FLOATING_INPUT_BLUR_DP = 14f;
   private boolean floatingInput;
+  /** TGx101: the menu → field transition snapshot draws the field's contents without its capsule */
+  public boolean tgx101NoFieldShape;
+
+  /** The floating field (with the reply bar) for the menu → field transition, or null */
+  @Override
+  public @Nullable View tgx101BottomCapsule () {
+    return floatingInput && bottomWrap != null && bottomWrap.getVisibility() == View.VISIBLE && !emojiShown && !commandsShown ? bottomWrap : null;
+  }
 
   /** TGx101: the recording bar takes the floating field's shape (mockup «Запись-голосового» 1) */
   public boolean tgx101FloatingInput () {
@@ -10070,6 +10078,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         radii[4] = radii[5] = radii[6] = radii[7] = radius;
         path.reset();
         path.addRoundRect(rect, radii, android.graphics.Path.Direction.CW);
+        if (tgx101NoFieldShape) return; // menu → field transition snapshot: the overlay draws the capsule
         boolean blurred = drawBlurBehind(c);
         c.drawPath(path, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(blurred ? FLOATING_INPUT_ALPHA_BLUR : FLOATING_INPUT_ALPHA_NO_BLUR, Theme.fillingColor())));
         // No elevation (it would lift the capsule above the input buttons and the recording overlay): a hairline instead

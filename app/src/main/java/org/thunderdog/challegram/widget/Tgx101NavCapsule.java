@@ -587,6 +587,17 @@ public class Tgx101NavCapsule extends View {
     drawCapsule(c);
   }
 
+  /** TGx101: draw only the icons (no capsule background) — for the menu → message field transition snapshot */
+  public boolean tgx101IconsOnly;
+
+  /** The capsule's rectangle in this view's coordinates, or false while collapsed / hidden */
+  public boolean tgx101CapsuleRect (RectF out) {
+    if (collapseFactor > 0f || getVisibility() != View.VISIBLE || getWidth() == 0) return false;
+    float top = capsuleTop() + scrollHideOffset();
+    out.set(padding(), top, getMeasuredWidth() - padding(), top + Screen.dp(HEIGHT_DP));
+    return scrollHide == 0f;
+  }
+
   private void drawCapsule (Canvas c) {
     float top = capsuleTop();
     float h = Screen.dp(HEIGHT_DP);
@@ -604,7 +615,9 @@ public class Tgx101NavCapsule extends View {
     float cr = Math.min(rect.height() / 2f, Screen.dp(CORNER_DP));
     // user 2026-10-08 «прозрачность меню делай как в чатах поле ввода»: on Android 12+ the chats under it, blurred, through
     // a 65 % filling with a hairline (no shadow, like the field); 90 % without the blur
-    if (collapseFactor < 1f && drawBlurBehind(c, rect, cr)) {
+    if (tgx101IconsOnly) {
+      // a snapshot for the menu → field transition: the morph overlay draws the capsule itself
+    } else if (collapseFactor < 1f && drawBlurBehind(c, rect, cr)) {
       blurFill.setColor(ColorUtils.fromToArgb(ColorUtils.alphaColor(.65f, filling), shadowPaint.getColor(), collapseFactor));
       c.drawRoundRect(rect, cr, cr, blurFill);
       float half = Math.max(1, Screen.dp(.5f)) / 2f;

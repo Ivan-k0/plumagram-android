@@ -1114,6 +1114,12 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     if (!hide && tgx101Capsule != null) tgx101Capsule.setScrollHideFactor(0f); // the capsule itself stays put
   }
 
+  /** TGx101: the bottom menu for the seamless menu → message field transition */
+  @Override
+  public @Nullable View tgx101BottomCapsule () {
+    return tgx101Capsule != null && tgx101Capsule.getVisibility() == View.VISIBLE && !inSearchMode() ? tgx101Capsule : null;
+  }
+
   private void tgx101ApplyCapsulePadding (int tab) {
     if (extraBottomInsetWithoutIme > 0) tgx101NavInset = extraBottomInsetWithoutIme;
     int capsulePadding = (tab == Tgx101NavCapsule.TAB_CHATS && displayTabsAtBottom() ? getHeaderHeight() : 0) + tgx101NavInset;

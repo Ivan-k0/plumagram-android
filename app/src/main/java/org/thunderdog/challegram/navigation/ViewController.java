@@ -3868,6 +3868,11 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     // Override
   }
 
+  /** TGx101: the floating capsule at the bottom of this screen (bottom menu / message field) for the seamless transition */
+  public @Nullable View tgx101BottomCapsule () {
+    return null;
+  }
+
   protected void onTranslationChanged (float newTranslationX) {
     // Override
   }
