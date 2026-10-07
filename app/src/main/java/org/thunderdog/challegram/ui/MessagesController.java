@@ -7222,6 +7222,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   public void showReply (MessageWithProperties msg, @Nullable TdApi.InputTextQuote quote, int checklistTaskId, String pollOptionId, boolean byUser, boolean showKeyboard) {
+    // TGx101 diag (user 2026-10-07 22:52 «я не свайпал сообщения на ответ, а ответ уже был»): who opened the reply bar
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+      StackTraceElement[] st = new Throwable().getStackTrace();
+      StringBuilder b = new StringBuilder("reply bar: shown (byUser " + byUser + ") by");
+      for (int i = 1; i < Math.min(st.length, 6); i++) b.append(' ').append(st[i].getMethodName()).append(':').append(st[i].getLineNumber());
+      org.thunderdog.challegram.Tgx101Diag.mark(b.toString());
+    }
     if (inPreviewMode || isInForceTouchMode()) {
       return;
     }
