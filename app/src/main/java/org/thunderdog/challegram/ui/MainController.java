@@ -229,6 +229,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     UI.setSoftInputMode(UI.getContext(context), Config.DEFAULT_WINDOW_PARAMS);
 
     composeWrap = new OverlayButtonWrap(context);
+    composeWrap.tgx101SetMainButtonSize(48f);
     checkComposeWrapPaddings();
     composeWrap.initWithList(this,
       ColorId.circleButtonActive,

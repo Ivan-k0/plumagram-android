@@ -28,7 +28,7 @@ import me.vkryl.core.ColorUtils;
 public class Tgx101NavCapsule extends View {
   public static final int TAB_CHATS = 0, TAB_CONTACTS = 1, TAB_CALLS = 2, TAB_SETTINGS = 3;
 
-  public static final float HEIGHT_DP = 58f, MARGIN_DP = 14f;
+  public static final float HEIGHT_DP = 58f, MARGIN_DP = 14f, CORNER_DP = 18f;
 
   public interface Callback {
     void onTabClick (int tab);
@@ -48,6 +48,70 @@ public class Tgx101NavCapsule extends View {
   private final Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final RectF rect = new RectF();
+  private final RectF hairRect = new RectF();
+  private final Paint blurFill = new Paint(Paint.ANTI_ALIAS_FLAG);
+  private final android.graphics.Path blurClip = new android.graphics.Path();
+  private final int[] blurLoc = new int[2], blurUnderLoc = new int[2];
+  private Object blurNode; // android.graphics.RenderNode on Android 12+
+
+  /** Draws what's under the capsule (the views below it in the parent), blurred, clipped to it. False — no blur here. */
+  private boolean drawBlurBehind (Canvas c, RectF r, float radius) {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S || !c.isHardwareAccelerated() || !(getParent() instanceof android.view.ViewGroup))
+      return false;
+    int w = (int) r.width(), h = (int) r.height();
+    if (w <= 0 || h <= 0) return false;
+    android.view.ViewGroup parent = (android.view.ViewGroup) getParent();
+    int index = parent.indexOfChild(this);
+    android.graphics.RenderNode node = (android.graphics.RenderNode) blurNode;
+    if (node == null) {
+      node = new android.graphics.RenderNode("tgx101CapsuleBlur");
+      float b = Screen.dp(14f);
+      node.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(b, b, android.graphics.Shader.TileMode.CLAMP));
+      blurNode = node;
+    }
+    node.setPosition(0, 0, w, h);
+    getLocationInWindow(blurLoc);
+    float x = blurLoc[0] + r.left, y = blurLoc[1] + r.top;
+    android.graphics.RecordingCanvas rc = node.beginRecording(w, h);
+    try {
+      for (int i = 0; i < index; i++) {
+        View under = parent.getChildAt(i);
+        if (under == null || under.getVisibility() != View.VISIBLE || under.getWidth() == 0 || under.getAlpha() == 0f) continue;
+        under.getLocationInWindow(blurUnderLoc);
+        int save = rc.save();
+        rc.translate(blurUnderLoc[0] - x, blurUnderLoc[1] - y);
+        under.draw(rc);
+        rc.restoreToCount(save);
+      }
+    } finally {
+      node.endRecording();
+    }
+    blurClip.reset();
+    blurClip.addRoundRect(r, radius, radius, android.graphics.Path.Direction.CW);
+    int save = c.save();
+    c.clipPath(blurClip);
+    c.translate(r.left, r.top);
+    c.drawRenderNode(node);
+    c.restoreToCount(save);
+    return true;
+  }
+
+  // the blur follows the list under it: redraw when anything scrolls (no redraw loop — only on scroll)
+  private final android.view.ViewTreeObserver.OnScrollChangedListener blurScroll = () -> {
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S && Tgx101NavCapsule.this.collapseFactor < 1f) invalidate();
+  };
+
+  @Override
+  protected void onAttachedToWindow () {
+    super.onAttachedToWindow();
+    getViewTreeObserver().addOnScrollChangedListener(blurScroll);
+  }
+
+  @Override
+  protected void onDetachedFromWindow () {
+    getViewTreeObserver().removeOnScrollChangedListener(blurScroll);
+    super.onDetachedFromWindow();
+  }
   private final android.graphics.Path outline = new android.graphics.Path(), line = new android.graphics.Path();
   private final android.graphics.PathMeasure outlineMeasure = new android.graphics.PathMeasure();
   private final Paint linePaint = new Paint(Paint.ANTI_ALIAS_FLAG), glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -526,7 +590,8 @@ public class Tgx101NavCapsule extends View {
   private void drawCapsule (Canvas c) {
     float top = capsuleTop();
     float h = Screen.dp(HEIGHT_DP);
-    float r = h / 2f;
+    // user 2026-10-07 22:46 / 10-08 «меню не исправил углы?»: the corners of the floating message field (18 dp), not a pill
+    float r = Math.min(h / 2f, Screen.dp(CORNER_DP));
     int filling = Theme.getColor(ColorId.filling);
     boolean dark = Theme.isDark();
     shadowPaint.setColor(ColorUtils.alphaColor(dark ? .94f : .92f, filling));
@@ -536,8 +601,19 @@ public class Tgx101NavCapsule extends View {
       // the collapsed bar takes the accent colour so it is seen on a white list
       shadowPaint.setColor(ColorUtils.fromToArgb(shadowPaint.getColor(), ColorUtils.alphaColor(.85f, Theme.getColor(ColorId.iconActive)), collapseFactor));
     }
-    float cr = rect.height() / 2f;
-    c.drawRoundRect(rect, cr, cr, shadowPaint);
+    float cr = Math.min(rect.height() / 2f, Screen.dp(CORNER_DP));
+    // user 2026-10-08 «прозрачность меню делай как в чатах поле ввода»: on Android 12+ the chats under it, blurred, through
+    // a 65 % filling with a hairline (no shadow, like the field); 90 % without the blur
+    if (collapseFactor < 1f && drawBlurBehind(c, rect, cr)) {
+      blurFill.setColor(ColorUtils.fromToArgb(ColorUtils.alphaColor(.65f, filling), shadowPaint.getColor(), collapseFactor));
+      c.drawRoundRect(rect, cr, cr, blurFill);
+      float half = Math.max(1, Screen.dp(.5f)) / 2f;
+      hairRect.set(rect.left + half, rect.top + half, rect.right - half, rect.bottom - half);
+      c.drawRoundRect(hairRect, cr, cr, Paints.strokeSeparatorPaint(Theme.separatorColor()));
+    } else {
+      if (collapseFactor < 1f) shadowPaint.setColor(ColorUtils.fromToArgb(ColorUtils.alphaColor(.9f, filling), shadowPaint.getColor(), collapseFactor));
+      c.drawRoundRect(rect, cr, cr, shadowPaint);
+    }
     int contentSave = -1;
     if (collapseFactor > 0f) {
       if (collapseFactor >= 1f) {
@@ -557,17 +633,23 @@ public class Tgx101NavCapsule extends View {
     outline.reset();
     outline.moveTo(left + r, top);
     outline.lineTo(right - r, top);
-    rect.set(right - 2 * r, top, right, bottom);
-    outline.arcTo(rect, -90f, 180f, false);
+    rect.set(right - 2 * r, top, right, top + 2 * r);
+    outline.arcTo(rect, -90f, 90f, false);
+    outline.lineTo(right, bottom - r);
+    rect.set(right - 2 * r, bottom - 2 * r, right, bottom);
+    outline.arcTo(rect, 0f, 90f, false);
     outline.lineTo(left + r, bottom);
-    rect.set(left, top, left + 2 * r, bottom);
-    outline.arcTo(rect, 90f, 180f, false);
+    rect.set(left, bottom - 2 * r, left + 2 * r, bottom);
+    outline.arcTo(rect, 90f, 90f, false);
+    outline.lineTo(left, top + r);
+    rect.set(left, top, left + 2 * r, top + 2 * r);
+    outline.arcTo(rect, 180f, 90f, false);
     outline.close();
     outlineMeasure.setPath(outline, false);
     float edge0 = Math.max(0f, 1f - selected), edge3 = Math.max(0f, 1f - Math.abs(selected - (ICONS.length - 1)));
     float len = Screen.dp(36f) + Screen.dp(16f) * (edge0 + edge3);
     float x = tabCenterX(selected) - Screen.dp(10f) * edge0 + Screen.dp(10f) * edge3;
-    float sCenter = straight + (float) Math.PI * r + (right - r - x); // distance along the outline, clockwise from the top-left
+    float sCenter = straight + (float) Math.PI * r + (h - 2 * r) + (right - r - x); // distance along the outline, clockwise from the top-left
     line.reset();
     outlineMeasure.getSegment(sCenter - len / 2f, sCenter + len / 2f, line, true);
     if (lineFactor > 0f) {

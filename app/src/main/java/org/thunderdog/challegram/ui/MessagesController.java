@@ -9809,6 +9809,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @android.annotation.TargetApi(Build.VERSION_CODES.R)
   private void tgx101RideKeyboard (View view) {
+    org.thunderdog.challegram.Tgx101Diag.mark("keyboard ride: attached to the chat");
     view.setWindowInsetsAnimationCallback(new android.view.WindowInsetsAnimation.Callback(android.view.WindowInsetsAnimation.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
       private @Nullable android.view.WindowInsetsAnimation ime;
 
@@ -9872,8 +9873,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private float tgx101ListBaseY, tgx101PaddingShift;
   private android.animation.ValueAnimator tgx101GlideAnimator;
 
+  private long tgx101LastPaddingChange;
+
   private void tgx101GlideList (int delta) {
+    long now = android.os.SystemClock.uptimeMillis();
+    boolean following = now - tgx101LastPaddingChange < 150;
+    tgx101LastPaddingChange = now;
     if (tgx101ImeRiding) return; // the keyboard animation moves the list itself
+    // the field animates its own height (a new line): the padding already follows it frame by frame — a glide on every
+    // step made it jerky (Vivo 00:02:58, six steps in 40 ms)
+    if (following) return;
     if (Math.abs(delta) < Screen.dp(2f) || !messagesView.isShown() || !messagesView.isLaidOut()) return;
     float from = tgx101PaddingShift + delta;
     if (tgx101GlideAnimator != null) tgx101GlideAnimator.cancel();

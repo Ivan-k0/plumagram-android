@@ -557,6 +557,21 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     }
 
     setContentView(rootView);
+    // TGx101 diag (2026-10-08, keyboard ride didn't start on Vivo): does the window get keyboard animations at all
+    if (BuildConfig.TGX101_DIAG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      getWindow().getDecorView().setWindowInsetsAnimationCallback(new android.view.WindowInsetsAnimation.Callback(android.view.WindowInsetsAnimation.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
+        @Override
+        public void onPrepare (@androidx.annotation.NonNull android.view.WindowInsetsAnimation animation) {
+          Tgx101Diag.mark("window insets animation: prepare, types " + animation.getTypeMask() + ", " + animation.getDurationMillis() + " ms");
+        }
+
+        @androidx.annotation.NonNull
+        @Override
+        public android.view.WindowInsets onProgress (@androidx.annotation.NonNull android.view.WindowInsets insets, @androidx.annotation.NonNull java.util.List<android.view.WindowInsetsAnimation> running) {
+          return insets;
+        }
+      });
+    }
 
     ThemeManager.instance().addThemeListener(this);
     checkAutoNightMode();

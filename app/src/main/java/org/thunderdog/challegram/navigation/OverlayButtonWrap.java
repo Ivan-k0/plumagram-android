@@ -59,6 +59,12 @@ public class OverlayButtonWrap extends FrameLayoutFix implements View.OnClickLis
 
   private Callback callback;
   private CircleButton mainButton;
+  private float tgx101MainSize = 56f;
+
+  /** TGx101 (user 2026-10-08 «кнопку „карандашик“ в общих чатах уменьши»): call before init */
+  public void tgx101SetMainButtonSize (float dp) {
+    tgx101MainSize = dp;
+  }
   // private int rowsCount;
   private final FactorAnimator animator;
 
@@ -100,13 +106,13 @@ public class OverlayButtonWrap extends FrameLayoutFix implements View.OnClickLis
     FrameLayoutFix.LayoutParams params;
 
     int padding = Screen.dp(4f);
-    params = FrameLayoutFix.newParams(Screen.dp(56f) + padding * 2, Screen.dp(56f) + padding * 2, Lang.rtl() ? Gravity.LEFT | Gravity.BOTTOM : Gravity.RIGHT | Gravity.BOTTOM);
-    params.rightMargin = params.leftMargin = params.bottomMargin = Screen.dp(16f) - padding;
+    params = FrameLayoutFix.newParams(Screen.dp(tgx101MainSize) + padding * 2, Screen.dp(tgx101MainSize) + padding * 2, Lang.rtl() ? Gravity.LEFT | Gravity.BOTTOM : Gravity.RIGHT | Gravity.BOTTOM);
+    params.rightMargin = params.leftMargin = params.bottomMargin = Screen.dp(16f + (56f - tgx101MainSize) / 2f) - padding; // same centre
 
     CircleButton button;
 
     button = new CircleButton(getContext());
-    button.init(resource, 56f, 4f, circleColorId, iconColorId);
+    button.init(resource, tgx101MainSize, 4f, circleColorId, iconColorId);
     button.setCrossColorId(overlayColorId, overlayIconColorId);
     button.setId(id);
     button.setOnClickListener(this);

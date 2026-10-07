@@ -1040,7 +1040,10 @@ public class ShareController extends TelegramViewController<ShareController.Args
         checkHeaderPosition();
         if (awaitLayout) {
           awaitLayout = false;
-          autoScroll(awaitScrollBy);
+          // closing the search with a scrolled list: the keyboard is already going down — join it
+          if (!tgx101RideIme(awaitScrollBy, false)) {
+            autoScroll(awaitScrollBy);
+          }
         }
         launchExpansionAnimation();
       }
@@ -2344,15 +2347,23 @@ public class ShareController extends TelegramViewController<ShareController.Args
   /** Scrolls the sheet by {@code by} in step with the keyboard showing / hiding; false — no keyboard animation to ride */
   private boolean tgx101RideIme (int by, boolean showing) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || popupLayout == null || by == 0) return false;
+    tgx101EnsureImeCallback();
+    android.view.WindowInsetsAnimation running = (android.view.WindowInsetsAnimation) tgx101RunningIme;
     android.view.WindowInsets now = popupLayout.getRootWindowInsets();
     boolean imeVisible = now != null && now.isVisible(android.view.WindowInsets.Type.ime());
-    if (imeVisible == showing) return false; // the keyboard is already where it's going — nothing will animate
-    tgx101EnsureImeCallback();
+    if (running == null && imeVisible == showing) return false; // the keyboard is already where it's going — nothing will animate
     tgx101ImeTotal = by;
     tgx101ImeDone = 0;
     tgx101ImeShowing = showing;
     tgx101ImeActive = true;
     tgx101ImeAnimation = null;
+    tgx101ImeFrom = 0f;
+    if (running != null && tgx101RunningImeShowing == showing) {
+      // the keyboard is already on its way: ride the rest of its animation
+      tgx101ImeAnimation = running;
+      tgx101ImeFrom = running.getInterpolatedFraction();
+      org.thunderdog.challegram.Tgx101Diag.mark("share: joining the keyboard " + (showing ? "up" : "down") + " at " + Math.round(tgx101ImeFrom * 100) + " %, " + by + "px");
+    }
     setAutoScrollFinished(false);
     final int token = ++tgx101ImeToken;
     popupLayout.postDelayed(() -> {
@@ -2369,7 +2380,12 @@ public class ShareController extends TelegramViewController<ShareController.Args
 
   private int tgx101ImeToken;
 
+  private float tgx101ImeFrom;
+  private @Nullable Object tgx101RunningIme; // the keyboard animation in progress, if any
+  private boolean tgx101RunningImeShowing;
+
   private void tgx101ImeStep (float fraction) {
+    if (tgx101ImeFrom > 0f) fraction = tgx101ImeFrom >= 1f ? 1f : (fraction - tgx101ImeFrom) / (1f - tgx101ImeFrom);
     int target = Math.round(tgx101ImeTotal * Math.max(0f, Math.min(1f, fraction)));
     int delta = target - tgx101ImeDone;
     if (delta != 0) {
@@ -2386,6 +2402,11 @@ public class ShareController extends TelegramViewController<ShareController.Args
       @NonNull
       @Override
       public android.view.WindowInsetsAnimation.Bounds onStart (@NonNull android.view.WindowInsetsAnimation animation, @NonNull android.view.WindowInsetsAnimation.Bounds bounds) {
+        if ((animation.getTypeMask() & android.view.WindowInsets.Type.ime()) != 0) {
+          tgx101RunningIme = animation;
+          android.view.WindowInsets end = popupLayout.getRootWindowInsets();
+          tgx101RunningImeShowing = end != null && end.isVisible(android.view.WindowInsets.Type.ime());
+        }
         if (tgx101ImeActive && tgx101ImeAnimation == null && (animation.getTypeMask() & android.view.WindowInsets.Type.ime()) != 0) {
           tgx101ImeAnimation = animation;
           org.thunderdog.challegram.Tgx101Diag.mark("share: riding the keyboard " + (tgx101ImeShowing ? "up" : "down") + ", " + animation.getDurationMillis() + " ms, " + tgx101ImeTotal + "px");
@@ -2404,6 +2425,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
 
       @Override
       public void onEnd (@NonNull android.view.WindowInsetsAnimation animation) {
+        if (animation == tgx101RunningIme) tgx101RunningIme = null;
         if (animation == tgx101ImeAnimation) {
           tgx101ImeStep(1f);
           tgx101ImeActive = false;
