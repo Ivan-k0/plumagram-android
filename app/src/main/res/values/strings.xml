@@ -6564,4 +6564,8 @@
   <string name="Tgx101BarInputSection">Message input — top row</string>
   <string name="Tgx101BarFormatSection">Message input — formatting</string>
   <string name="Tgx101BarHint">Tap an item to move or hide it. «In a message» is the bar over text selected in a message; the input bars appear when text is selected in the message field.</string>
+  <string name="Tgx101VideoCallBranding">Telegram Video Call</string>
+  <string name="Tgx101IncomingVideoCallBranding">Incoming Telegram Video Call</string>
+  <string name="Tgx101IncomingVideoCall">Incoming Video Call</string>
+  <string name="Tgx101OutgoingVideoCall">Outgoing Video Call</string>
 </resources>

@@ -996,7 +996,7 @@ public class TGCallService extends Service implements
     }
 
     builder
-      .setContentTitle(Lang.getString(R.string.OutgoingCall))
+      .setContentTitle(Lang.getString(call != null && call.isVideo ? R.string.Tgx101OutgoingVideoCall : R.string.OutgoingCall))
       .setContentText(TD.getUserName(user))
       .setSmallIcon(CALL_ICON_RES)
       .setContentIntent(PendingIntent.getActivity(UI.getContext(), 0, Intents.valueOfCall(), PendingIntent.FLAG_UPDATE_CURRENT | Intents.mutabilityFlags(false))); // TGx101: not one-shot — the call chip / card can be tapped again
@@ -1029,7 +1029,7 @@ public class TGCallService extends Service implements
           builder.setUsesChronometer(true);
           builder.setWhen(System.currentTimeMillis() - callDuration);
         } else {
-          builder.setContentText(Lang.getString(R.string.OutgoingCall));
+          builder.setContentText(Lang.getString(call != null && call.isVideo ? R.string.Tgx101OutgoingVideoCall : R.string.OutgoingCall));
         }
       } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
         // Own layout: firmwares like Vivo draw CallStyle buttons as plain text without icons
@@ -1039,7 +1039,7 @@ public class TGCallService extends Service implements
         long base = android.os.SystemClock.elapsedRealtime() - (callDuration > 0 ? callDuration : 0);
         views.setChronometer(R.id.tgx101_call_timer, base, null, callDuration > 0);
         if (callDuration <= 0) {
-          views.setTextViewText(R.id.tgx101_call_timer, Lang.getString(R.string.OutgoingCall));
+          views.setTextViewText(R.id.tgx101_call_timer, Lang.getString(call != null && call.isVideo ? R.string.Tgx101OutgoingVideoCall : R.string.OutgoingCall));
         }
         Bitmap photo = TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true);
         if (photo != null) {
@@ -1196,7 +1196,7 @@ public class TGCallService extends Service implements
     }
 
     builder
-      .setContentTitle(Lang.getString(R.string.CallBrandingIncoming))
+      .setContentTitle(Lang.getString(call != null && call.isVideo ? R.string.Tgx101IncomingVideoCallBranding : R.string.CallBrandingIncoming)) // TGx101 (user 2026-10-07): «уведомление … что это именно видеозвонок»
       .setContentText(TD.getUserName(user))
       .setSmallIcon(CALL_ICON_RES)
       .setContentIntent(PendingIntent.getActivity(UI.getContext(), 0, Intents.valueOfCall(), PendingIntent.FLAG_UPDATE_CURRENT | Intents.mutabilityFlags(false))); // TGx101: not one-shot — the call chip / card can be tapped again
@@ -1223,7 +1223,7 @@ public class TGCallService extends Service implements
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         // TGx101: Android 12+ system incoming call card — shown as a pop-up over an unlocked phone too
         Bitmap photo = user != null ? TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true) : null;
-        builder.setStyle(Notification.CallStyle.forIncomingCall(tgx101Caller(user, photo), declinePendingIntent, answerPendingIntent));
+        builder.setStyle(Notification.CallStyle.forIncomingCall(tgx101Caller(user, photo), declinePendingIntent, answerPendingIntent).setIsVideo(call != null && call.isVideo));
       } else {
         builder.addAction(R.drawable.round_call_end_24_white, endTitle, declinePendingIntent);
         CharSequence answerTitle = Lang.getString(R.string.AnswerCall);

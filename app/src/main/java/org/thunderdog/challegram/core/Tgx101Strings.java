@@ -222,6 +222,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101VideoCall, "Видеозвонок");
     RU.put(R.string.Tgx101VideoWaitCall, "Камеру можно включить, когда собеседник ответит");
     RU.put(R.string.Tgx101VideoNoCamera, "Для видео нужен доступ к камере");
+    RU.put(R.string.Tgx101VideoCallBranding, "Видеозвонок Telegram");
+    RU.put(R.string.Tgx101IncomingVideoCallBranding, "Входящий видеозвонок Telegram");
+    RU.put(R.string.Tgx101IncomingVideoCall, "Входящий видеозвонок");
+    RU.put(R.string.Tgx101OutgoingVideoCall, "Исходящий видеозвонок");
     RU.put(R.string.Tgx101WebProxyAdd, "Добавить WEB-прокси");
     RU.put(R.string.Tgx101WebProxyAddHint, "Для провайдера WEB-прокси выглядит как обычный сайт: трафик Telegram идёт по HTTPS через сайт прокси. Введите адрес (site.com или site.com/путь) и секрет от владельца прокси.");
     RU.put(R.string.Tgx101WebProxyAddress, "Адрес, например proxy.example.com");

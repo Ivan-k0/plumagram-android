@@ -2769,7 +2769,7 @@ public class TD {
       case TdApi.CallStatePending.CONSTRUCTOR:
         TdApi.CallStatePending state = (TdApi.CallStatePending) call.state;
         if (!call.isOutgoing) {
-          return Lang.getString(R.string.IncomingCall);
+          return Lang.getString(call.isVideo ? R.string.Tgx101IncomingVideoCall : R.string.IncomingCall); // TGx101: say it's a video call
         } else if (!state.isCreated) {
           return Lang.getString(R.string.VoipConnecting);
         } else if (!state.isReceived) {

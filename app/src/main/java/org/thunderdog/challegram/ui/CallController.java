@@ -593,7 +593,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
     Views.setSimpleShadow(brandView);
     brandView.setEllipsize(TextUtils.TruncateAt.END);
     brandView.setLayoutParams(lp);
-    brandView.setText(Lang.uppercase(Lang.getString(R.string.VoipBranding)));
+    brandView.setText(Lang.uppercase(Lang.getString(call != null && call.isVideo ? R.string.Tgx101VideoCallBranding : R.string.VoipBranding))); // TGx101 (user 2026-10-07): a video call says so
     if (Log.checkLogLevel(Log.LEVEL_INFO) || BuildConfig.EXPERIMENTAL) {
       brandView.setOnClickListener(new View.OnClickListener() {
         @Override
