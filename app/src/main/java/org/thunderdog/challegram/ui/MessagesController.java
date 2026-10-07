@@ -780,6 +780,23 @@ public class MessagesController extends ViewController<MessagesController.Argume
     bottomWrap.setId(R.id.msg_bottom);
     if (floatingInput) {
       applyFloatingInputShape(bottomWrap);
+      // user 2026-10-07 09:49/10:00 (Xiaomi, 0.1.507): the capsule still covered the last message — it moves without its
+      // own layout (keyboard hides, reply bar, the list resized later), so check the room before every frame
+      android.view.ViewTreeObserver.OnPreDrawListener paddingCheck = () -> {
+        updateFloatingListPadding();
+        return true;
+      };
+      bottomWrap.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+        @Override
+        public void onViewAttachedToWindow (@NonNull View v) {
+          v.getViewTreeObserver().addOnPreDrawListener(paddingCheck);
+        }
+
+        @Override
+        public void onViewDetachedFromWindow (@NonNull View v) {
+          v.getViewTreeObserver().removeOnPreDrawListener(paddingCheck);
+        }
+      });
     }
     bottomWrap.setOrientation(LinearLayout.VERTICAL);
     bottomWrap.setMinimumHeight(Screen.dp(49f));
@@ -9754,6 +9771,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (messagesView.getPaddingBottom() != padding) {
       // At the newest message? Stay there, otherwise it ends up under the capsule until the next layout
       boolean atBottom = !messagesView.canScrollVertically(1);
+      org.thunderdog.challegram.Tgx101Diag.mark("floating input: list padding " + messagesView.getPaddingBottom() + " → " + padding + (atBottom ? " (at bottom)" : ""));
       messagesView.setClipToPadding(false);
       messagesView.setPadding(messagesView.getPaddingLeft(), messagesView.getPaddingTop(), messagesView.getPaddingRight(), padding);
       if (atBottom) {
