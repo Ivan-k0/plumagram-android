@@ -417,12 +417,26 @@ public class CallController extends ViewController<CallController.Arguments> imp
         return false;
       }
 
+      // TGx101 (user 2026-10-07 13:38, mockup variant Б): a video call — a small camera badge at the bottom right of the photo
+      private final Drawable videoIcon = isCircle && call.isVideo ? Drawables.get(getResources(), R.drawable.baseline_videocam_24) : null;
+
       @Override
       protected void onDraw (Canvas c) {
         super.onDraw(c);
         if (topShadow != null) {
           Drawables.setAlpha(topShadow, (int) (255f * lastHeaderFactor * .5f));
           topShadow.draw(c);
+        }
+        if (videoIcon != null && getMeasuredWidth() > 0) {
+          float size = Math.min(getMeasuredWidth(), getMeasuredHeight());
+          float r = size / 2f, cx = getMeasuredWidth() / 2f + r * .7071f, cy = r + r * .7071f;
+          float badge = Math.max(Screen.dp(20f), size * .12f);
+          c.drawCircle(cx, cy, badge + Screen.dp(3f), Paints.fillingPaint(0xff16212c));
+          c.drawCircle(cx, cy, badge, Paints.fillingPaint(0xff3f8ae0));
+          int half = (int) (badge * .62f);
+          videoIcon.setBounds((int) cx - half, (int) cy - half, (int) cx + half, (int) cy + half);
+          videoIcon.setColorFilter(new android.graphics.PorterDuffColorFilter(0xffffffff, android.graphics.PorterDuff.Mode.SRC_IN));
+          videoIcon.draw(c);
         }
       }
     };
