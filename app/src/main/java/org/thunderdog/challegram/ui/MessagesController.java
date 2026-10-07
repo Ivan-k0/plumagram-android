@@ -870,7 +870,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
         replyBarView.setOutlineProvider(new android.view.ViewOutlineProvider() {
           @Override
           public void getOutline (View v, android.graphics.Outline outline) {
-            outline.setRoundRect(0, 0, v.getWidth(), v.getHeight(), Math.min(Screen.dp(FLOATING_INPUT_RADIUS), v.getHeight() / 2f));
+            // user 2026-10-07 10:55: one capsule with the input — rounded on top only, the input's top edge goes straight
+            float radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), v.getHeight() / 2f);
+            outline.setRoundRect(0, 0, v.getWidth(), (int) (v.getHeight() + radius), radius);
           }
         });
         replyBarView.setClipToOutline(true);
@@ -7751,6 +7753,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (floatingInput) {
         // TGx101: hidden behind the see-through capsule while there's no reply (it would show through)
         replyBarView.setAlpha(MathUtils.clamp(-y / (float) Screen.dp(48f)));
+        if (bottomWrap != null) {
+          bottomWrap.invalidate(); // its top corners follow the reply bar
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            bottomWrap.invalidateOutline();
+          }
+        }
       }
     }
     checkScrollButtonOffsets();
@@ -9780,21 +9788,35 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
+  /** 0 — no reply bar above the floating input, 1 — the reply bar is fully out and joins it into one capsule */
+  private float floatingReplyFactor () {
+    return replyBarView != null && replyBarView.getVisibility() == View.VISIBLE ? replyBarView.getAlpha() : 0f;
+  }
+
   private void applyFloatingInputShape (View view) {
     view.setBackground(new android.graphics.drawable.Drawable() {
       private final android.graphics.RectF rect = new android.graphics.RectF();
+      private final android.graphics.Path path = new android.graphics.Path();
+      private final float[] radii = new float[8];
 
       @Override
       public void draw (@NonNull Canvas c) {
         android.graphics.Rect bounds = getBounds();
         rect.set(bounds.left, bounds.top, bounds.right, bounds.bottom - view.getPaddingBottom());
         float radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), rect.height() / 2f);
+        float top = radius * (1f - floatingReplyFactor()); // the reply bar above makes one capsule with it: square top corners
+        radii[0] = radii[1] = radii[2] = radii[3] = top;
+        radii[4] = radii[5] = radii[6] = radii[7] = radius;
+        path.reset();
+        path.addRoundRect(rect, radii, android.graphics.Path.Direction.CW);
         // «Frosted» capsule: the filling at ~85 %, messages under it show through slightly (no blur: zero cost)
-        c.drawRoundRect(rect, radius, radius, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(FLOATING_INPUT_ALPHA, Theme.fillingColor())));
+        c.drawPath(path, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(FLOATING_INPUT_ALPHA, Theme.fillingColor())));
         // No elevation (it would lift the capsule above the input buttons and the recording overlay): a hairline instead
         float half = Math.max(1, Screen.dp(.5f)) / 2f;
         rect.inset(half, half);
-        c.drawRoundRect(rect, radius, radius, Paints.strokeSeparatorPaint(Theme.separatorColor()));
+        path.reset();
+        path.addRoundRect(rect, radii, android.graphics.Path.Direction.CW);
+        c.drawPath(path, Paints.strokeSeparatorPaint(Theme.separatorColor()));
       }
 
       @Override
@@ -9815,7 +9837,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
         public void getOutline (View v, android.graphics.Outline outline) {
           int bottom = v.getHeight() - v.getPaddingBottom();
           float radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), bottom / 2f);
-          outline.setRoundRect(0, 0, v.getWidth(), Math.max(1, bottom), radius);
+          // with the reply bar the top corners go above the view, so the clip's top edge is straight
+          outline.setRoundRect(0, (int) (-radius * floatingReplyFactor()), v.getWidth(), Math.max(1, bottom), radius);
         }
       });
       view.setClipToOutline(true); // reply / edit bars inside get the rounded corners too
