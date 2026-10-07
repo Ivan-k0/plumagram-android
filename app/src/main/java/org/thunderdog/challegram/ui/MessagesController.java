@@ -9804,6 +9804,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       messagesView.getLocationInWindow(list);
       bottomWrap.getLocationInWindow(capsule);
       int fromTop = list[1] + messagesView.getHeight() - capsule[1];
+      // user 2026-10-07 22:57 «вспышки вместо анимаций»: while the chat slides in, the capsule isn't placed yet and was
+      // measured near the top (padding 2848 px for 150 ms) — the chat came in empty, then the messages popped in. Even with
+      // the keyboard up the capsule sits in the lower part, so a position above the list's upper third is not real yet
+      if (!bottomWrap.isLaidOut() || bottomWrap.getHeight() == 0 || fromTop > messagesView.getHeight() * 2 / 3) {
+        fromTop = messagesView.getPaddingBottom() > 0 ? messagesView.getPaddingBottom() - Screen.dp(4f) : bottomWrap.getHeight();
+      }
       padding = Math.max(bottomWrap.getHeight(), fromTop) + Screen.dp(4f);
     }
     // TGx101 (Vivo 0.1.545, 19:38:16 «после применения экран прыгнул»): Yandex keyboard rewrites the whole field when a

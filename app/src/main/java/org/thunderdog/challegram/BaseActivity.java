@@ -1746,15 +1746,9 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       Tgx101Diag.mark("open animation: system (from notification)");
       return;
     }
-    View content = findViewById(android.R.id.content);
-    if (content == null)
-      return;
-    content.animate().cancel();
-    content.setScaleX(.92f);
-    content.setScaleY(.92f);
-    content.setAlpha(0f);
-    content.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(220).setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f)).start();
-    Tgx101Diag.mark("open animation: fade in");
+    // user 2026-10-07 23:00 «когда мы успели поломать нормальные анимации на эти вспышки? верни как было»: the own fade
+    // (Б) ran on top of the system's open animation — the window showed twice, ghosted. The system animation alone, as before
+    Tgx101Diag.mark("open animation: system");
   }
 
   private void tgx101HoldDrawForKeyboard () {
