@@ -1054,6 +1054,8 @@ public class TGCallService extends Service implements
         if (callDuration > 0) {
           builder.setUsesChronometer(true);
           builder.setWhen(System.currentTimeMillis() - callDuration);
+          // TGx101 (user 2026-10-07 15:40 «что за дубль имени?»): the card already shows the name from the Person — the status here
+          builder.setContentText(Lang.getString(call != null && call.isVideo ? R.string.Tgx101VideoCall : R.string.Call));
         } else {
           builder.setContentText(Lang.getString(call != null && call.isVideo ? R.string.Tgx101OutgoingVideoCall : R.string.OutgoingCall));
         }
@@ -1250,6 +1252,7 @@ public class TGCallService extends Service implements
         // TGx101: Android 12+ system incoming call card — shown as a pop-up over an unlocked phone too
         Bitmap photo = user != null ? TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true) : null;
         builder.setStyle(Notification.CallStyle.forIncomingCall(tgx101Caller(user, photo), declinePendingIntent, answerPendingIntent).setIsVideo(call != null && call.isVideo));
+        builder.setContentText(Lang.getString(call != null && call.isVideo ? R.string.Tgx101IncomingVideoCall : R.string.IncomingCall)); // TGx101: not the name twice
       } else {
         builder.addAction(R.drawable.round_call_end_24_white, endTitle, declinePendingIntent);
         CharSequence answerTitle = Lang.getString(R.string.AnswerCall);
