@@ -1309,8 +1309,21 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   private void tgx101ApplyStripHeight () {
     tgx101StripHeight = Math.round(tgx101StripMiniHeight + (tgx101StripFullHeight - tgx101StripMiniHeight) * tgx101StripExpand);
     boolean visible = tgx101StoriesStrip != null && tgx101StoriesStrip.getVisibility() == View.VISIBLE;
-    if (chatsView.getPaddingTop() != (visible ? tgx101StripHeight : 0)) {
-      chatsView.setPadding(chatsView.getPaddingLeft(), visible ? tgx101StripHeight : 0, chatsView.getPaddingRight(), chatsView.getPaddingBottom());
+    int newPadding = visible ? tgx101StripHeight : 0;
+    if (chatsView.getPaddingTop() != newPadding) {
+      // user video 2026-10-08 22:01 «список прыгает… и так постоянно, в каналах тоже»: the strip folding away off screen (or
+      // laid out again on coming back to a folder) changed the list's top padding — scrolled down, every chat jumped by
+      // the difference. Away from the top the first visible chat now stays where it is
+      RecyclerView.LayoutManager lm = chatsView.getLayoutManager();
+      androidx.recyclerview.widget.LinearLayoutManager llm = lm instanceof androidx.recyclerview.widget.LinearLayoutManager ? (androidx.recyclerview.widget.LinearLayoutManager) lm : null;
+      int pos = llm != null ? llm.findFirstVisibleItemPosition() : RecyclerView.NO_POSITION;
+      View firstView = pos != RecyclerView.NO_POSITION ? llm.findViewByPosition(pos) : null;
+      boolean keep = firstView != null && !(pos == 0 && firstView.getTop() >= chatsView.getPaddingTop() - Screen.dp(4f)) && (tgx101StripAnimator == null || !tgx101StripAnimator.isRunning());
+      int top = firstView != null ? firstView.getTop() : 0;
+      chatsView.setPadding(chatsView.getPaddingLeft(), newPadding, chatsView.getPaddingRight(), chatsView.getPaddingBottom());
+      if (keep) {
+        llm.scrollToPositionWithOffset(pos, top - newPadding);
+      }
     }
     tgx101SyncStoriesStrip();
   }
