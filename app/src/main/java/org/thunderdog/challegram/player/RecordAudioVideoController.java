@@ -659,7 +659,17 @@ public class RecordAudioVideoController implements
 
     // TGx101 (user 2026-10-08 12:42 «красная кнопка слишком близко к стрелке — подвинь „← Отмена“ ближе к центру»): in test
     // builds the hint with its arrow stands 36 dp further left
-    float hintShift = org.thunderdog.challegram.BuildConfig.TGX101_TEST ? -Screen.dp(36f) : 0f;
+    float hintShift = 0f;
+    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST && slideHintView.getMeasuredWidth() > 0 && recordBackground != null) {
+      // the hint's right end stays 28 dp left of the red button, but never past the capsule's middle
+      int[] hint = new int[2], btn = new int[2];
+      slideHintView.getLocationOnScreen(hint);
+      recordBackground.getLocationOnScreen(btn);
+      float hintRight = hint[0] - slideHintView.getTranslationX() + slideHintView.getMeasuredWidth();
+      float btnLeft = btn[0] + recordBackground.getMeasuredWidth() * .5f - Screen.dp(40f);
+      hintShift = Math.min(0f, btnLeft - Screen.dp(28f) - hintRight);
+      hintShift = Math.max(hintShift, -slideHintView.getLeft() + Screen.dp(96f) - (slideHintView.getMeasuredWidth() / 2f));
+    }
     float cornerX = -slideHintView.getMeasuredWidth() / 2 + actualX + hintShift - cornerView.getMeasuredWidth();
     slideHintView.setTranslationX(actualX + hintShift);
     cornerView.setTranslationX(cornerX);
