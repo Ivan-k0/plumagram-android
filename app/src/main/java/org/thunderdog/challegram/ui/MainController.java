@@ -963,6 +963,23 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     return true;
   }
 
+  // TGx101 (user 2026-10-08 15:36 «полоса прокрутки прыгает при переключении папок… не оставалась слева»): while folders
+  // slide, no page shows its scrollbar; it comes back on the page that settled, at its own place, as in exteraGram
+  @Override
+  protected void tgx101OnPageScrollState (int state) {
+    boolean idle = state == androidx.viewpager.widget.ViewPager.SCROLL_STATE_IDLE;
+    for (int i = 0; i < getPagerItemCount(); i++) {
+      ViewController<?> c = getCachedControllerForPosition(i);
+      if (c instanceof ChatsController) {
+        androidx.recyclerview.widget.RecyclerView list = ((ChatsController) c).provideRecyclerView();
+        if (list != null && list.isVerticalScrollBarEnabled() != idle) {
+          list.setVerticalScrollBarEnabled(idle);
+          list.invalidate();
+        }
+      }
+    }
+  }
+
   @Override
   public void onPageScrolled (int position, int actualPosition, float actualPositionOffset, int actualPositionOffsetPixels) {
     super.onPageScrolled(position, actualPosition, actualPositionOffset, actualPositionOffsetPixels);

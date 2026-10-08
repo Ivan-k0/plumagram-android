@@ -667,7 +667,7 @@ public class RecordAudioVideoController implements
       recordBackground.getLocationOnScreen(btn);
       float hintRight = hint[0] - slideHintView.getTranslationX() + slideHintView.getMeasuredWidth();
       float btnLeft = btn[0] + recordBackground.getMeasuredWidth() * .5f - Screen.dp(40f);
-      hintShift = Math.min(0f, btnLeft - Screen.dp(28f) - hintRight);
+      hintShift = Math.min(0f, btnLeft - Screen.dp(16f) - hintRight /* 16:06 «слова со стрелкой слегка вправо» */);
       hintShift = Math.max(hintShift, -slideHintView.getLeft() + Screen.dp(96f) - (slideHintView.getMeasuredWidth() / 2f));
     }
     float cornerX = -slideHintView.getMeasuredWidth() / 2 + actualX + hintShift - cornerView.getMeasuredWidth();
@@ -803,6 +803,18 @@ public class RecordAudioVideoController implements
       if (dlp instanceof ViewGroup.MarginLayoutParams && ((ViewGroup.MarginLayoutParams) dlp).leftMargin != durationLeft) {
         ((ViewGroup.MarginLayoutParams) dlp).leftMargin = durationLeft;
         durationView.setLayoutParams(dlp);
+      }
+      // user 2026-10-08 16:06 «запись не помещается в окне ввода… отцентруй красный круг со стрелкой»: the button and the
+      // timer were 49 dp high at the bottom while the bar is taller — the blue circle sat low and off the screen edge,
+      // the red dot under the hint's line. Both now take the bar's height; the button stands over the capsule's mic.
+      for (View v : new View[] {voiceVideoButtonView, durationView}) {
+        ViewGroup.MarginLayoutParams vlp = v != null && v.getLayoutParams() instanceof ViewGroup.MarginLayoutParams ? (ViewGroup.MarginLayoutParams) v.getLayoutParams() : null;
+        int right = v == voiceVideoButtonView ? side : vlp != null ? vlp.rightMargin : 0;
+        if (vlp != null && (vlp.height != want || vlp.rightMargin != right)) {
+          vlp.height = want;
+          vlp.rightMargin = right;
+          v.setLayoutParams(vlp);
+        }
       }
       if (lp != null && (lp.height != want || ((ViewGroup.MarginLayoutParams) lp).leftMargin != side)) {
         lp.height = want;

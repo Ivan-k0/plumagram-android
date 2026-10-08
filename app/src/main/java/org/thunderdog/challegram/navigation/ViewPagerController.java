@@ -447,6 +447,7 @@ public abstract class ViewPagerController<T> extends TelegramViewController<T> i
   @Override
   public final void onPageScrollStateChanged (int state) {
     scrollState = state;
+    tgx101OnPageScrollState(state);
     if (state != ViewPager.SCROLL_STATE_SETTLING && headerCell != null) {
       headerCell.getTopView().resetFromTo();
     }
@@ -684,6 +685,8 @@ public abstract class ViewPagerController<T> extends TelegramViewController<T> i
   }
 
   private @Nullable List<ViewPagerTopView.Item> cachedPagerSectionItems;
+
+  protected void tgx101OnPageScrollState (int state) { }
 
   protected abstract int getPagerItemCount ();
   protected long getPagerItemId (int position) {
