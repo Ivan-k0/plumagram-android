@@ -8514,7 +8514,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private float prevButtonsY;
 
   private void updateButtonsY () {
-    float y = bottomWrap.getTop() + (inputView != null ? inputView.getBottom() : Screen.dp(49f)) - Screen.dp(49f) - getKeyboardOffset();
+    // TGx101: the buttons go with the field while it rides / glides (0.1.571 08:28: the field moved, they stayed)
+    float y = bottomWrap.getTop() + (inputView != null ? inputView.getBottom() : Screen.dp(49f)) - Screen.dp(49f) - getKeyboardOffset() + tgx101FieldShift();
 
     sendButton.setTranslationY(y);
     emojiButton.setTranslationY(y);
@@ -9854,6 +9855,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private void tgx101ApplyFieldShift () {
     if (bottomWrap != null) bottomWrap.setTranslationY(tgx101EmojiTranslation + tgx101FieldShift());
     updateReplyView();
+    if (bottomWrap != null) updateButtonsY();
+    if (tgx101FieldShift() == 0f) {
+      org.thunderdog.challegram.Tgx101Diag.mark("chat motion: field in place (top " + (bottomWrap != null ? bottomWrap.getTop() : -1) + ", translation " + (bottomWrap != null ? bottomWrap.getTranslationY() : 0) + ")");
+    }
   }
 
   /** The field's own height changed by {@code delta} (a new line, attachments, reply…): its top glides there */
