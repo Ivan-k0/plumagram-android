@@ -967,13 +967,27 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   // slide, no page shows its scrollbar; it comes back on the page that settled, at its own place, as in exteraGram
   @Override
   protected void tgx101OnPageScrollState (int state) {
-    boolean idle = state == androidx.viewpager.widget.ViewPager.SCROLL_STATE_IDLE;
+    // 16:3x «полоса должна появляться только после свайпа по чату. после переключения папки её не должно быть»:
+    // a list gets its scrollbar back only when the finger drags that list (a page shown again awakens it otherwise)
+    if (state == androidx.viewpager.widget.ViewPager.SCROLL_STATE_IDLE) return;
     for (int i = 0; i < getPagerItemCount(); i++) {
       ViewController<?> c = getCachedControllerForPosition(i);
       if (c instanceof ChatsController) {
         androidx.recyclerview.widget.RecyclerView list = ((ChatsController) c).provideRecyclerView();
-        if (list != null && list.isVerticalScrollBarEnabled() != idle) {
-          list.setVerticalScrollBarEnabled(idle);
+        if (list == null) continue;
+        if (list.getTag(R.id.tgx101_scrollbar_watch) == null) {
+          list.setTag(R.id.tgx101_scrollbar_watch, Boolean.TRUE);
+          list.addOnScrollListener(new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged (@NonNull androidx.recyclerview.widget.RecyclerView rv, int newState) {
+              if (newState == androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_DRAGGING && !rv.isVerticalScrollBarEnabled()) {
+                rv.setVerticalScrollBarEnabled(true);
+              }
+            }
+          });
+        }
+        if (list.isVerticalScrollBarEnabled()) {
+          list.setVerticalScrollBarEnabled(false);
           list.invalidate();
         }
       }
