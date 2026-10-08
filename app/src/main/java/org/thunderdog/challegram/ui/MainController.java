@@ -267,6 +267,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     composeWrap.setCallback(this);
     tgx101AddCapsule(context, contentView);
     contentView.addView(composeWrap);
+    if (Settings.instance().tgx101HideCompose()) {
+      composeWrap.setVisibility(View.GONE); // user 2026-10-08: the ✎ button can be hidden (MagiX → Нижнее меню)
+    }
 
     makeStartupChecks();
 

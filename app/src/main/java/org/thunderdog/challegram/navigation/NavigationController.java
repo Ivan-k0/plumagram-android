@@ -1587,7 +1587,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     org.thunderdog.challegram.Tgx101Diag.mark("system back: started, swipe nav " + swipeNavigationEnabled() + ", animating " + isAnimating + ", top " + (getCurrentStackItem() != null ? getCurrentStackItem().getClass().getSimpleName() : "?"));
     if (swipeNavigationEnabled()) {
       if (openPreviewImpl(backEvent.getTouchY(), false, backEvent.getSwipeEdge() == BackEventCompat.EDGE_RIGHT ? PredictiveGesture.BACK_FROM_RIGHT_EDGE : PredictiveGesture.BACK_FROM_LEFT_EDGE)) {
-        setFactor(tgx101BackPreview(backEvent.getProgress()));
+        setFactor(tgx101BackPreview(backEvent));
         org.thunderdog.challegram.Tgx101Diag.mark("system back: preview opened, mode " + translationMode + ", left " + (currentLeft != null ? currentLeft.getClass().getSimpleName() : "?"));
         return true;
       }
@@ -1599,15 +1599,19 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   @Override
   public void onSystemBackProgressed (@NonNull BackEventCompat backEvent) {
     if (isAnimating) {
-      setFactor(tgx101BackPreview(backEvent.getProgress()));
+      setFactor(tgx101BackPreview(backEvent));
     }
   }
 
   /** TGx101: the system gesture's progress jumps to 1 within ~80 ms on Vivo — the screen was already gone when the finger
    *  lifted and the back looked like no animation. The gesture shows up to a third of the slide, the release animates the rest */
-  private static float tgx101BackPreview (float progress) {
-    if (Float.isNaN(progress)) return 0f;
-    return MathUtils.clamp(progress) * .33f;
+  // user 2026-10-08 «системный жест должен работать так же, как свайп назад»: the screen follows the finger itself (its x),
+  // like the in-app swipe — Vivo's progress value jumped to 1 within ~80 ms
+  private float tgx101BackPreview (@NonNull BackEventCompat e) {
+    float x = e.getTouchX();
+    if (Float.isNaN(x) || currentWidth <= 0) return Float.isNaN(e.getProgress()) ? 0f : MathUtils.clamp(e.getProgress());
+    float dx = e.getSwipeEdge() == BackEventCompat.EDGE_RIGHT ? currentWidth - x : x;
+    return MathUtils.clamp(dx / currentWidth);
   }
 
   @Override

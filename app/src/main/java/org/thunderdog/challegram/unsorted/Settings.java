@@ -3527,6 +3527,9 @@ public class Settings {
   private static final String KEY_TGX101_HIDE_INPUT_CAMERA = "tgx101_hide_input_camera";
   private static final String KEY_TGX101_HIDE_INPUT_COMMANDS = "tgx101_hide_input_commands";
   private static final String KEY_TGX101_HIDE_INPUT_EMOJI = "tgx101_hide_input_emoji";
+  private static final String KEY_TGX101_HIDE_COMPOSE = "tgx101_hide_compose";
+  public boolean tgx101HideCompose () { return pmc.getBoolean(KEY_TGX101_HIDE_COMPOSE, false); }
+  public void setTgx101HideCompose (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_COMPOSE, v); }
 
   public boolean tgx101HideAllReactions () { return pmc.getBoolean(KEY_TGX101_HIDE_ALL_REACTIONS, false); }
   public void setTgx101HideAllReactions (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_ALL_REACTIONS, v); }

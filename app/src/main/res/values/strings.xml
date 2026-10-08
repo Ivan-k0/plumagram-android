@@ -6322,6 +6322,7 @@
   <string name="Tgx101MyProfile">My profile</string>
   <string name="Tgx101NavCapsule">Bottom menu instead of the side menu</string>
   <string name="Tgx101SectionBottomMenu">Bottom menu</string>
+  <string name="Tgx101HideCompose">Hide the ✎ (new message) button</string>
   <string name="Tgx101SectionInputButtons">Buttons by the message field</string>
   <string name="Tgx101SectionInputButtonsHint">Hide the buttons you don\'t use: camera, bot commands, emoji.</string>
   <string name="Tgx101SectionOther">Other</string>
