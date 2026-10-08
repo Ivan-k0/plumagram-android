@@ -4302,6 +4302,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   public void onFocus () {
+    tgx101ResetMotion("focus");
     super.onFocus();
     tgx101DropPreventHideKeyboard();
     updateBottomWrapOffset(); // TGx101
@@ -4492,6 +4493,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   public void onBlur () {
+    tgx101ResetMotion("blur");
     saveDraft();
     if (inputView != null) {
       inputView.tgx101DismissSelectionBar();
@@ -9857,6 +9859,21 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // else moves the list: no list translation, no separate glides, no waiting.
   private float tgx101GrowShift;
   private android.animation.ValueAnimator tgx101GrowGlide;
+
+  /** Leaving / coming back mid-animation (10:59: back swipe while the keyboard was closing) left the field shifted —
+   *  the keyboard animation's end never came. Every screen change starts from rest */
+  private void tgx101ResetMotion (String why) {
+    if (tgx101ImeShift == 0f && tgx101GrowShift == 0f && !tgx101ImeRiding) return;
+    org.thunderdog.challegram.Tgx101Diag.mark("chat motion: reset on " + why + " (ime " + tgx101ImeShift + ", grow " + tgx101GrowShift + ", riding " + tgx101ImeRiding + ")");
+    if (tgx101ImeGlide != null) tgx101ImeGlide.cancel();
+    if (tgx101GrowGlide != null) tgx101GrowGlide.cancel();
+    tgx101ImeRiding = false;
+    tgx101ImeStarted = true;
+    tgx101ShrinkConfirmed = false;
+    tgx101GrowShift = 0f;
+    tgx101ImeShift = 0f;
+    tgx101ApplyFieldShift();
+  }
 
   private float tgx101FieldShift () {
     return tgx101ImeShift + tgx101GrowShift;
