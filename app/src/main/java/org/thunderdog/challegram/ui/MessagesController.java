@@ -803,16 +803,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // user 2026-10-07 09:49/10:00 (Xiaomi, 0.1.507): the capsule still covered the last message — it moves without its
       // own layout (keyboard hides, reply bar, the list resized later), so check the room before every frame
       android.view.ViewTreeObserver.OnPreDrawListener paddingCheck = () -> {
-        // 0.1.572 08:38: on keyboard open the room jumped 251 → 1395 before the ride started — hold that frame (max 3)
-        if (tgx101ImeRiding && !tgx101ImeStarted && tgx101HeldFrames < 3) {
-          tgx101HeldFrames++;
-          return false;
-        }
+        // Never cancel a frame: on Android 11+ the keyboard itself is moved by the app's frames — cancelled frames froze
+        // its slide and it popped up at once (adb test 10:54: exteraGram slides, PlumaGram Т didn't)
         tgx101PaddingChanged = false;
         updateFloatingListPadding();
         syncFloatingReplyBar();
-        // while the field moves, the list's room changes every frame: lay it out before drawing, so they move together
-        return !(tgx101PaddingChanged && tgx101ImeMoving());
+        return true;
       };
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         // the blur under the field follows the list (variant В); not every frame — only when the list moves
