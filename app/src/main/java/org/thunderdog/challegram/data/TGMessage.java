@@ -2118,15 +2118,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       float top = bubblePathRect.bottom, bottom = top + Screen.dp(TGX101_JOURNAL_STRIPE);
       // user 2026-10-08 23:4x «цвет разделения давай серый»: neutral grey, not a see-through black (it turned brown on warm wallpapers)
       c.drawRect(0, top, view.getMeasuredWidth(), bottom, Paints.fillingPaint(Theme.isDark() ? 0xff0d1319 : 0xffe4e7eb));
-      String title = tdlib.chatTitle(msg.chatId);
-      if (!StringUtils.isEmpty(title)) {
-        // user 2026-10-08 23:33 «выдели имя канала, чтобы служило разделителем — жирнее и светлее»
-        android.text.TextPaint p = Paints.getMediumTextPaint(12.5f, Theme.isDark() ? 0xebe8edf2 : 0xff5a6570, false);
-        float maxW = view.getMeasuredWidth() - Screen.dp(48f);
-        CharSequence t = android.text.TextUtils.ellipsize(title, p, maxW, android.text.TextUtils.TruncateAt.END);
-        float w = p.measureText(t, 0, t.length());
-        c.drawText(t, 0, t.length(), (view.getMeasuredWidth() - w) / 2f, (top + bottom) / 2f + Screen.dp(4f), p);
-      }
+      // the channel's photo on the left instead of its name
+      if (avatarReceiver.needPlaceholder()) avatarReceiver.drawPlaceholder(c);
+      avatarReceiver.draw(c);
     }
     if (highlightFactor != 0f && hasBubble && tgx101HighlightedChildId == 0 && tgx101QuoteText == null) {
       drawBubble(c, Paints.fillingPaint(tgx101FlashColor()), false, 0);
@@ -3292,6 +3286,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   private boolean hasAvatar;
 
   private void layoutAvatar () {
+    if (tgx101Journal() && !isOutgoing()) {
+      hasAvatar = true; // «Journal»: the channel's photo on the stripe
+      return;
+    }
     if (useBubbles() && !needAvatar()) {
       hasAvatar = false;
       return;
@@ -4309,6 +4307,14 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   // Image receivers
 
   public final void layoutAvatar (MessageView view, AvatarReceiver receiver) {
+    if (tgx101Journal() && !isOutgoing()) {
+      // user 2026-10-08 23:5x «вместо названия — иконка канала слева, как в официальном; иконка маленькая»
+      int size = Screen.dp(22f), stripe = Screen.dp(TGX101_JOURNAL_STRIPE);
+      int top = bottomContentEdge + (stripe - size) / 2, left = Screen.dp(12f);
+      if (Lang.rtl()) left = view.getMeasuredWidth() - left - size;
+      receiver.setBounds(left, top, left + size, top + size);
+      return;
+    }
     int left, top, size;
     if (useBubbles()) {
       left = xBubbleAvatarLeft;
