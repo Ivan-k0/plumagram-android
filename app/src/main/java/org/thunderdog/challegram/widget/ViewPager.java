@@ -27,10 +27,37 @@ import me.vkryl.core.MathUtils;
 public class ViewPager extends androidx.viewpager.widget.ViewPager {
   public ViewPager (Context context) {
     super(context);
+    tgx101FastSettle(context);
   }
 
   public ViewPager (Context context, AttributeSet attrs) {
     super(context, attrs);
+    tgx101FastSettle(context);
+  }
+
+  // TGx101 (user 2026-10-08 22:38 «в exteraGram свайп между папками плавнее и быстрее»): frame-by-frame the release took
+  // ~550 ms here and ~370 ms there — androidx ViewPager settles slowly (up to 600 ms). The settle now takes 120–260 ms by
+  // the distance left, with the same quintic ease-out
+  private static final android.view.animation.Interpolator TGX101_SETTLE = t -> {
+    t -= 1.0f;
+    return t * t * t * t * t + 1.0f;
+  };
+
+  private void tgx101FastSettle (Context context) {
+    try {
+      java.lang.reflect.Field field = androidx.viewpager.widget.ViewPager.class.getDeclaredField("mScroller");
+      field.setAccessible(true);
+      field.set(this, new android.widget.Scroller(context, TGX101_SETTLE) {
+        @Override
+        public void startScroll (int startX, int startY, int dx, int dy, int duration) {
+          int width = Math.max(1, getWidth());
+          int fast = Math.round(120 + 140 * Math.min(1f, Math.abs(dx) / (float) width));
+          super.startScroll(startX, startY, dx, dy, Math.min(duration, fast));
+        }
+      });
+    } catch (Throwable t) {
+      Log.w(t);
+    }
   }
 
   private boolean oneShot;
