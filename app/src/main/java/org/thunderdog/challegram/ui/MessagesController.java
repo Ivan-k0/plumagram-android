@@ -799,7 +799,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     };
     bottomWrap.setId(R.id.msg_bottom);
     if (floatingInput) {
-      applyFloatingInputShape(bottomWrap);
+      applyFloatingInputShape(bottomWrap, false);
       // user 2026-10-07 09:49/10:00 (Xiaomi, 0.1.507): the capsule still covered the last message — it moves without its
       // own layout (keyboard hides, reply bar, the list resized later), so check the room before every frame
       android.view.ViewTreeObserver.OnPreDrawListener paddingCheck = () -> {
@@ -820,6 +820,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           @Override
           public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
             if (bottomWrap != null) bottomWrap.invalidate();
+            if (replyBarView != null && replyBarView.getAlpha() > 0f) replyBarView.invalidate(); // its blur follows the list too
           }
         });
       }
@@ -896,7 +897,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
 
       replyBarView = new ReplyBarView(context(), tdlib);
-      ViewSupport.setThemedBackground(replyBarView, ColorId.filling, this);
+      if (floatingInput) {
+        // user 2026-10-08 10:01 «это должно краситься в цвет поля ввода во всех случаях»: the same see-through, blurred filling
+        applyFloatingInputShape(replyBarView, true);
+      } else {
+        ViewSupport.setThemedBackground(replyBarView, ColorId.filling, this);
+      }
       replyBarView.setId(R.id.msg_bottomReply);
       replyBarView.setAnimationsDisabled(true);
       replyBarView.initWithCallback(this, this);
@@ -10095,7 +10101,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
-  private void applyFloatingInputShape (View view) {
+  /** The field's filling: a bit denser in a light theme — over a bright photo the words and buttons were lost (10:00) */
+  private static float tgx101FieldAlpha (boolean blurred) {
+    return blurred ? (Theme.isDark() ? .74f : .86f) : FLOATING_INPUT_ALPHA_NO_BLUR;
+  }
+
+  private void applyFloatingInputShape (View view, boolean replyBar) {
     view.setBackground(new android.graphics.drawable.Drawable() {
       private final android.graphics.RectF rect = new android.graphics.RectF();
       private final android.graphics.Path path = new android.graphics.Path();
@@ -10144,16 +10155,26 @@ public class MessagesController extends ViewController<MessagesController.Argume
       @Override
       public void draw (@NonNull Canvas c) {
         android.graphics.Rect bounds = getBounds();
-        rect.set(bounds.left, bounds.top, bounds.right, bounds.bottom - view.getPaddingBottom());
-        float radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), rect.height() / 2f);
-        float top = radius * (1f - floatingJoinFactor()); // the reply bar / attached files above make one capsule with it: square top corners
-        radii[0] = radii[1] = radii[2] = radii[3] = top;
-        radii[4] = radii[5] = radii[6] = radii[7] = radius;
+        float radius;
+        if (replyBar) {
+          // the reply bar on top of the field: rounded on top, straight where it meets the field
+          rect.set(bounds.left, bounds.top, bounds.right, bounds.bottom);
+          radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), rect.height() / 2f);
+          radii[0] = radii[1] = radii[2] = radii[3] = radius;
+          radii[4] = radii[5] = radii[6] = radii[7] = 0;
+        } else {
+          rect.set(bounds.left, bounds.top, bounds.right, bounds.bottom - view.getPaddingBottom());
+          radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), rect.height() / 2f);
+          float top = radius * (1f - floatingJoinFactor()); // the reply bar / attached files above make one capsule with it: square top corners
+          radii[0] = radii[1] = radii[2] = radii[3] = top;
+          radii[4] = radii[5] = radii[6] = radii[7] = radius;
+        }
         path.reset();
         path.addRoundRect(rect, radii, android.graphics.Path.Direction.CW);
-        if (tgx101NoFieldShape) return; // menu → field transition snapshot: the overlay draws the capsule
+        if (tgx101NoFieldShape && !replyBar) return; // menu → field transition snapshot: the overlay draws the capsule
         boolean blurred = drawBlurBehind(c);
-        c.drawPath(path, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(blurred ? FLOATING_INPUT_ALPHA_BLUR : FLOATING_INPUT_ALPHA_NO_BLUR, Theme.fillingColor())));
+        c.drawPath(path, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(tgx101FieldAlpha(blurred), Theme.fillingColor())));
+        if (replyBar) return; // no hairline across the join with the field
         // No elevation (it would lift the capsule above the input buttons and the recording overlay): a hairline instead
         float half = Math.max(1, Screen.dp(.5f)) / 2f;
         rect.inset(half, half);
