@@ -2115,11 +2115,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (hasBubble && tgx101Journal() && !isOutgoing()) {
       // «Journal»: a dark stripe under each post with the channel's name in the middle
       float top = bubblePathRect.bottom, bottom = top + Screen.dp(TGX101_JOURNAL_STRIPE);
-      c.drawRect(0, top, view.getMeasuredWidth(), bottom, Paints.fillingPaint(ColorUtils.alphaColor(Theme.isDark() ? .45f : .12f, 0xff000000)));
+      // user 2026-10-08 23:4x «цвет разделения давай серый»: neutral grey, not a see-through black (it turned brown on warm wallpapers)
+      c.drawRect(0, top, view.getMeasuredWidth(), bottom, Paints.fillingPaint(Theme.isDark() ? 0xff0d1319 : 0xffe4e7eb));
       String title = tdlib.chatTitle(msg.chatId);
       if (!StringUtils.isEmpty(title)) {
         // user 2026-10-08 23:33 «выдели имя канала, чтобы служило разделителем — жирнее и светлее»
-        android.text.TextPaint p = Paints.getMediumTextPaint(12.5f, ColorUtils.alphaColor(.92f, Theme.getColor(ColorId.text)), false);
+        android.text.TextPaint p = Paints.getMediumTextPaint(12.5f, Theme.isDark() ? 0xebe8edf2 : 0xff5a6570, false);
         float maxW = view.getMeasuredWidth() - Screen.dp(48f);
         CharSequence t = android.text.TextUtils.ellipsize(title, p, maxW, android.text.TextUtils.TruncateAt.END);
         float w = p.measureText(t, 0, t.length());
