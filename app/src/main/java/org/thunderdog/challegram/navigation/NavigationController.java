@@ -1435,6 +1435,12 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   private Tgx101CapsuleMorph tgx101Morph;
 
   public void setFactor (float factor) {
+    // TGx101 (Vivo, user 2026-10-08 «экран чернеет / назад без анимации»): a quick system back gesture reports NaN progress
+    // — the screens were moved to NaN (nothing drawn: black) and the closing slide had nothing to animate
+    if (Float.isNaN(factor)) {
+      org.thunderdog.challegram.Tgx101Diag.mark("navigation: NaN factor ignored");
+      return;
+    }
     if (this.translationFactor == factor) return;
 
     factor = MathUtils.clamp(factor);
@@ -1578,11 +1584,14 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
 
   @Override
   public boolean onSystemBackStarted (@NonNull BackEventCompat backEvent) {
+    org.thunderdog.challegram.Tgx101Diag.mark("system back: started, swipe nav " + swipeNavigationEnabled() + ", animating " + isAnimating + ", top " + (getCurrentStackItem() != null ? getCurrentStackItem().getClass().getSimpleName() : "?"));
     if (swipeNavigationEnabled()) {
       if (openPreviewImpl(backEvent.getTouchY(), false, backEvent.getSwipeEdge() == BackEventCompat.EDGE_RIGHT ? PredictiveGesture.BACK_FROM_RIGHT_EDGE : PredictiveGesture.BACK_FROM_LEFT_EDGE)) {
-        setFactor(backEvent.getProgress());
+        setFactor(tgx101BackPreview(backEvent.getProgress()));
+        org.thunderdog.challegram.Tgx101Diag.mark("system back: preview opened, mode " + translationMode + ", left " + (currentLeft != null ? currentLeft.getClass().getSimpleName() : "?"));
         return true;
       }
+      org.thunderdog.challegram.Tgx101Diag.mark("system back: preview NOT opened");
     }
     return false;
   }
@@ -1590,12 +1599,20 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   @Override
   public void onSystemBackProgressed (@NonNull BackEventCompat backEvent) {
     if (isAnimating) {
-      setFactor(backEvent.getProgress());
+      setFactor(tgx101BackPreview(backEvent.getProgress()));
     }
+  }
+
+  /** TGx101: the system gesture's progress jumps to 1 within ~80 ms on Vivo — the screen was already gone when the finger
+   *  lifted and the back looked like no animation. The gesture shows up to a third of the slide, the release animates the rest */
+  private static float tgx101BackPreview (float progress) {
+    if (Float.isNaN(progress)) return 0f;
+    return MathUtils.clamp(progress) * .33f;
   }
 
   @Override
   public void onSystemBackCancelled () {
+    org.thunderdog.challegram.Tgx101Diag.mark("system back: cancelled at " + translationFactor);
     if (isAnimating) {
       closePreview(0f);
     }
@@ -1603,6 +1620,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
 
   @Override
   public boolean onSystemBackPressed () {
+    org.thunderdog.challegram.Tgx101Diag.mark("system back: pressed at " + translationFactor + ", animating " + isAnimating);
     if (isAnimating) {
       applyPreview(0f);
       return true;
