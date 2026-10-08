@@ -2524,6 +2524,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (chat != null) {
         tdlib.ui().toggleMute(this, chat.id, false, null);
       }
+    } else if (id == R.id.btn_tgx101ChatNotifications) {
+      if (chat != null) {
+        SettingsNotificationController c = new SettingsNotificationController(context, tdlib);
+        c.setArguments(new SettingsNotificationController.Args(chat.id));
+        navigateTo(c);
+      }
     }
   }
 
@@ -4808,6 +4814,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if ((!tdlib.isChannel(chat.id) || (status != null && !TD.isLeft(status))) && !tdlib.isSelfChat(chat.id)) {
       ids.append(R.id.btn_mute);
       strings.append(tdlib.chatNotificationsEnabled(chat.id) ? R.string.Mute : R.string.Unmute);
+      // TGx101 (user 2026-10-08 23:5x): this chat's own notification settings (sound, vibration, LED, priority) from ⋮
+      ids.append(R.id.btn_tgx101ChatNotifications);
+      strings.append(R.string.Notifications);
     }
 
     if (tdlib.canReportChatSpam(chat.id)) {

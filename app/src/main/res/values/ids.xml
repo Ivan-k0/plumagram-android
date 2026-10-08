@@ -1665,6 +1665,7 @@
   <item name="btn_tgx101HideCompose" type="id"/>
   <item name="btn_tgx101HideJoin" type="id"/>
   <item name="btn_tgx101ChannelStyle" type="id"/>
+  <item name="btn_tgx101ChatNotifications" type="id"/>
   <item name="btn_tgx101ChannelStyleBubbles" type="id"/>
   <item name="btn_tgx101ChannelStyleBlocks" type="id"/>
   <item name="btn_tgx101ChannelStyleJournal" type="id"/>

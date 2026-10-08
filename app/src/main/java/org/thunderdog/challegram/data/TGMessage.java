@@ -1404,6 +1404,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   private int getBubbleViewPaddingTop () {
+    if (tgx101Journal() && !isOutgoing()) return 0; // the post starts right under the stripe (no chat background between)
     return useBubble() ? ((flags & FLAG_HEADER_ENABLED) != 0 ? xBubbleViewPadding : xBubbleViewPaddingSmall) : xBubbleViewPadding;
   }
 

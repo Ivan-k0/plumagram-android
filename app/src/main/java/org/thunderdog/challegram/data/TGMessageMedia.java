@@ -481,6 +481,8 @@ public class TGMessageMedia extends TGMessage {
 
   @Override
   protected int getBubbleContentPadding () {
+    // «Journal» (23:47 zoomed screenshot: the video started 8 px from the edge, white above it): media touches the edges
+    if (tgx101Journal() && !isOutgoing()) return 0;
     return xBubblePaddingSmall;
   }
 
