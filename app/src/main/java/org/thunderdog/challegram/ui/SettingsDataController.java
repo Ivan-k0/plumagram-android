@@ -617,7 +617,21 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
 
       };
     }
-    this.adapter.setItems(rawItems, false);
+    ListItem[] shown = rawItems;
+    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) {
+      // test builds (user 2026-10-08 11:2x): no side menu, the message field is always the capsule — their switches go
+      java.util.List<ListItem> kept = new java.util.ArrayList<>();
+      for (int i = 0; i < rawItems.length; i++) {
+        int id = rawItems[i].getId();
+        if (id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101NavCapsule) {
+          if (i + 1 < rawItems.length && rawItems[i + 1].getViewType() == ListItem.TYPE_SEPARATOR_FULL) i++; // its separator too
+          continue;
+        }
+        kept.add(rawItems[i]);
+      }
+      shown = kept.toArray(new ListItem[0]);
+    }
+    this.adapter.setItems(shown, false);
     if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
       // TGx101: test switches, diagnostics builds only — own section above «Translation»
       int at = adapter.indexOfViewById(R.id.btn_tgx101TranslateOnDevice);

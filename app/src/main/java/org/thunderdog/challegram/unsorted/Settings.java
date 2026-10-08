@@ -3498,6 +3498,7 @@ public class Settings {
   private static final String KEY_TGX101_FLOATING_INPUT = "tgx101_floating_input";
 
   public boolean useFloatingInput () {
+    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) return true; // test builds: the capsule only (user 2026-10-08)
     return pmc.getBoolean(KEY_TGX101_FLOATING_INPUT, false); // user 2026-09-30: classic (variant 1) by default, the capsule stays an option
   }
 
@@ -3539,7 +3540,10 @@ public class Settings {
   private static final String KEY_TGX101_CAPSULE_SCROLL_HIDE = "tgx101_capsule_scroll_hide";
   public boolean tgx101CapsuleScrollHide () { return pmc.getBoolean(KEY_TGX101_CAPSULE_SCROLL_HIDE, true); }
   public void setTgx101CapsuleScrollHide (boolean v) { pmc.putBoolean(KEY_TGX101_CAPSULE_SCROLL_HIDE, v); }
-  public boolean tgx101NavCapsule () { return pmc.getBoolean(KEY_TGX101_NAV_CAPSULE, true); }
+  public boolean tgx101NavCapsule () {
+    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) return true; // test builds: no side menu at all (user 2026-10-08)
+    return pmc.getBoolean(KEY_TGX101_NAV_CAPSULE, true);
+  }
   public void setTgx101NavCapsule (boolean v) { pmc.putBoolean(KEY_TGX101_NAV_CAPSULE, v); }
   // TGx101 (4PDA request, user 2026-10-06 «делай вебсокет»): Telegram through WebSocket like the web version
   private static final String KEY_TGX101_WS_PROXY = "tgx101_ws_proxy";
