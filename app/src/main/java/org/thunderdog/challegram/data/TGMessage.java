@@ -2091,7 +2091,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
     // TGx101: the jump flash over the bubble and its content — together with the wave in drawHighlight
     // (user 2026-10-05: «верни подсвечивание сообщения при переходе + к волне»)
-    if (highlightFactor != 0f && hasBubble && tgx101HighlightedChildId == 0) {
+    if (highlightFactor != 0f && hasBubble && tgx101HighlightedChildId == 0 && tgx101QuoteText == null) {
       drawBubble(c, Paints.fillingPaint(tgx101FlashColor()), false, 0);
     }
 
@@ -3021,6 +3021,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
                 tdlib.ui().openMessage(controller(), replyToMessage.chatId, new MessageId(replyToMessage), openParameters());
               } else {
                 org.thunderdog.challegram.component.chat.MessagesManager.tgx101AllowFlashOnce(replyToMessage.messageId); // TGx101: the only flash + wave
+                // a reply to a quote highlights only the quoted words (user 2026-10-08 19:56, like the official app)
+                org.thunderdog.challegram.component.chat.MessagesManager.tgx101SetQuoteJump(replyToMessage.messageId,
+                  !Td.isEmpty(replyToMessage.quote) ? replyToMessage.quote.text.text : null, !Td.isEmpty(replyToMessage.quote) ? replyToMessage.quote.position : -1);
                 highlightOtherMessage(new MessageId(replyToMessage));
               }
             }
@@ -6824,6 +6827,21 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   private long tgx101HighlightedChildId;
 
+  // TGx101 (user 2026-10-08 19:56 «при переходе на цитату — подсвечивается только это слово и волна, всё сообщение не
+  // нужно»): the quoted words of the message a quote-reply was tapped for
+  protected @Nullable String tgx101QuoteText;
+  protected int tgx101QuotePosition;
+
+  public void tgx101SetHighlightedQuote (@Nullable String text, int position) {
+    tgx101QuoteText = StringUtils.isEmpty(text) ? null : text;
+    tgx101QuotePosition = position;
+  }
+
+  /** Draws the quoted words' highlight with its wave; false — this message can't (the whole-bubble flash is used) */
+  protected boolean tgx101DrawQuoteHighlight (Canvas c, float factor, long elapsed) {
+    return false;
+  }
+
   protected final long tgx101HighlightedChildId () {
     return highlightFactor > 0f ? tgx101HighlightedChildId : 0;
   }
@@ -6873,6 +6891,13 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       tgx101WaveStart = android.os.SystemClock.uptimeMillis();
     }
     long elapsed = android.os.SystemClock.uptimeMillis() - tgx101WaveStart;
+    if (tgx101QuoteText != null) {
+      if (tgx101DrawQuoteHighlight(c, highlightFactor, elapsed)) {
+        if (elapsed < 1400) view.postInvalidateOnAnimation();
+        return;
+      }
+      tgx101QuoteText = null; // not found in the text: the usual flash + wave
+    }
     if (elapsed >= TGX101_WAVE_DURATION + 250) {
       return;
     }

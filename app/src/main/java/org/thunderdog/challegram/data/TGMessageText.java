@@ -35,6 +35,8 @@ import org.thunderdog.challegram.loader.gif.GifReceiver;
 import org.thunderdog.challegram.mediaview.MediaViewThumbLocation;
 import org.thunderdog.challegram.theme.ColorId;
 import org.thunderdog.challegram.tool.Screen;
+import org.thunderdog.challegram.tool.Paints;
+import org.thunderdog.challegram.theme.Theme;
 import org.thunderdog.challegram.tool.Strings;
 import org.thunderdog.challegram.tool.Views;
 import org.thunderdog.challegram.unsorted.Settings;
@@ -321,6 +323,48 @@ public class TGMessageText extends TGMessage {
   }
 
   private TextWrapper effectiveWrapper;
+
+  private final java.util.ArrayList<android.graphics.RectF> tgx101QuoteRects = new java.util.ArrayList<>();
+
+  @Override
+  protected boolean tgx101DrawQuoteHighlight (Canvas c, float factor, long elapsed) {
+    org.thunderdog.challegram.util.text.Text text = effectiveWrapper != null ? effectiveWrapper.getCurrent() : null;
+    String quote = tgx101QuoteText;
+    String all = text != null ? text.getText() : null;
+    if (all == null || quote == null) return false;
+    int from = tgx101QuotePosition >= 0 && tgx101QuotePosition + quote.length() <= all.length() && all.startsWith(quote, tgx101QuotePosition) ? tgx101QuotePosition : all.indexOf(quote);
+    if (from < 0) return false;
+    tgx101QuoteRects.clear();
+    text.tgx101RangeRects(from, from + quote.length(), tgx101QuoteRects);
+    if (tgx101QuoteRects.isEmpty()) return false;
+    boolean dark = Theme.isDark();
+    int base = dark ? 0xff6fbcff : 0xff2f8ae0;
+    float pad = Screen.dp(2f), r = Screen.dp(5f);
+    // the words: a soft tint while the highlight lasts
+    for (android.graphics.RectF rect : tgx101QuoteRects) {
+      android.graphics.RectF rr = Paints.getRectF();
+      rr.set(rect.left - pad, rect.top, rect.right + pad, rect.bottom);
+      c.drawRoundRect(rr, r, r, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(factor * (dark ? .30f : .22f), base)));
+    }
+    // the wave: a brighter band runs once over the quoted words, line by line (~0.9 s)
+    float total = 0f;
+    for (android.graphics.RectF rect : tgx101QuoteRects) total += rect.width();
+    float t = Math.min(1f, elapsed / 900f);
+    if (t < 1f && total > 0f) {
+      float pos = total * (t * (2f - t)), band = Screen.dp(28f), passed = 0f;
+      for (android.graphics.RectF rect : tgx101QuoteRects) {
+        float x = rect.left + (pos - passed);
+        float left = Math.max(rect.left - pad, x - band), right = Math.min(rect.right + pad, x);
+        if (right > left) {
+          android.graphics.RectF rr = Paints.getRectF();
+          rr.set(left, rect.top, right, rect.bottom);
+          c.drawRoundRect(rr, r, r, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(.35f * (1f - t), base)));
+        }
+        passed += rect.width();
+      }
+    }
+    return true;
+  }
 
   private static final int MAX_WEB_PAGE_MEDIA_COUNT = Integer.MAX_VALUE / 4;
   private long textMediaKeyOffset;

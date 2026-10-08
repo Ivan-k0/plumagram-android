@@ -2125,6 +2125,25 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
     return getLineHeight(true);
   }
 
+  /** TGx101 (user 2026-10-08 19:56 «при переходе на цитату подсвечивать только слова, как в официальном»): where the
+   *  characters [from, to) of this text were drawn the last time, one rect per text part, in view coordinates */
+  public void tgx101RangeRects (int from, int to, java.util.List<android.graphics.RectF> out) {
+    if (parts == null || from >= to) return;
+    for (TextPart part : parts) {
+      if (part.getLine() != originalText && (originalText == null || !originalText.equals(part.getLine()))) continue;
+      int s = Math.max(from, part.getStart()), e = Math.min(to, part.getEnd());
+      if (s >= e) continue;
+      TextPaint paint = getTextPaint(part.getEntity());
+      String line = part.getLine();
+      float before = s > part.getStart() ? U.measureText(line, part.getStart(), s, paint) : 0f;
+      float width = U.measureText(line, s, e, paint);
+      float x = part.makeX(lastStartX, lastEndX, lastEndXBottomPadding);
+      if (part.isRtl()) x += part.getWidth() - before - width; else x += before;
+      float top = lastStartY + part.getY();
+      out.add(new android.graphics.RectF(x, top, x + width, top + getLineHeight(part.getLineIndex())));
+    }
+  }
+
   public void toRect (Rect outRect) {
     outRect.set(lastStartX, lastStartY, lastStartX + getWidth(), lastStartY + getHeight());
   }

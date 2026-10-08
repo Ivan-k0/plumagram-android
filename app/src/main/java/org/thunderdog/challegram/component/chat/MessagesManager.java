@@ -2766,6 +2766,16 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     tgx101ReplyJumpUntil = android.os.SystemClock.uptimeMillis() + 5000;
   }
 
+  private static long tgx101QuoteMessageId;
+  private static String tgx101QuoteText;
+  private static int tgx101QuotePosition;
+
+  public static void tgx101SetQuoteJump (long messageId, @Nullable String text, int position) {
+    tgx101QuoteMessageId = text != null ? messageId : 0;
+    tgx101QuoteText = text;
+    tgx101QuotePosition = position;
+  }
+
   public static boolean tgx101FlashAllowed (long messageId) {
     return messageId != 0 && messageId == tgx101ReplyJumpMessageId && android.os.SystemClock.uptimeMillis() < tgx101ReplyJumpUntil && !tgx101SkipFlash(messageId);
   }
@@ -3279,6 +3289,9 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       // TGx101 (user 2026-10-05): only jumps to a message flash it — not the arrow to the first unread, not a notification
       if ((highlightMode == HIGHLIGHT_MODE_NORMAL || highlightMode == HIGHLIGHT_MODE_NORMAL_NEXT) && tgx101FlashAllowed(messageId.getMessageId())) {
         msg.tgx101SetHighlightedChild(messageId.getMessageId()); // TGx101: the album item the reply was to
+        boolean quote = tgx101QuoteMessageId != 0 && tgx101QuoteMessageId == messageId.getMessageId();
+        msg.tgx101SetHighlightedQuote(quote ? tgx101QuoteText : null, tgx101QuotePosition);
+        tgx101QuoteMessageId = 0;
         msg.highlight(true);
       }
       scrollToMessage(index, msg, highlightMode, allowSmooth, false);
