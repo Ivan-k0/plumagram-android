@@ -10046,7 +10046,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       int[] list = new int[2], capsule = new int[2];
       messagesView.getLocationInWindow(list);
       bottomWrap.getLocationInWindow(capsule);
-      int fromTop = list[1] + messagesView.getHeight() - capsule[1];
+      // the list's own translation (the reply bar / attached files lift it, animated) is not room: counting it too made the
+      // padding shrink while the reply bar slid in and grow back as it closed — the chat jumped twice (user 2026-10-08 11:18)
+      int fromTop = list[1] - Math.round(messagesView.getTranslationY()) + messagesView.getHeight() - capsule[1];
       // user 2026-10-07 22:57 «вспышки вместо анимаций»: while the chat slides in, the capsule isn't placed yet and was
       // measured near the top (padding 2848 px for 150 ms) — the chat came in empty, then the messages popped in. Even with
       // the keyboard up the capsule sits in the lower part, so a position above the list's upper third is not real yet
