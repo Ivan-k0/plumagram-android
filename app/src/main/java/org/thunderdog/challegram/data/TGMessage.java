@@ -879,7 +879,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   // Layout
 
   private int computeBubbleLeft () {
-    if (tgx101Journal() && !isOutgoing()) return Screen.dp(6f); // «Journal»: equal gaps on both sides
+    if (tgx101Journal() && !isOutgoing()) return Screen.dp(6f); // «Journal»: the text's equal gaps on both sides
     final int x;
     if (needAvatar() && !isOutgoing()) {
       x = xBubbleLeft1 + Screen.dp(40f);
@@ -2080,7 +2080,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         drawBubble(c, Paints.fillingPaint(Utils.alphaColor((1f - lineFactor) * .2f, 0xff000000)), false);
         c.restore();
       }*/
-      if (lineFactor != 1f) {
+      if (lineFactor != 1f && !(tgx101Journal() && !isOutgoing())) {
         drawBubbleShadow(c, 1f - lineFactor);
       }
       if (lineFactor != 0f) {
@@ -3933,8 +3933,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       if (tgx101Journal) {
         // «Journal» (user 2026-10-08 23:xx «как в классике, фото на всю ширину с лёгкими скруглениями, по центру»): the post
         // spans the screen with equal small gaps, lightly rounded
-        leftContentEdge = Screen.dp(6f);
-        rightContentEdge = width - Screen.dp(6f);
+        // 23:35 «у нас блок в блоке, нижнего быть не должно»: no card inside the screen — the post is the whole row
+        leftContentEdge = 0;
+        rightContentEdge = width;
       }
 
       if (needBubble) {
@@ -3944,7 +3945,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           dr = mr = bubbleWidth / 2;
           topContentEdge = bottomContentEdge - bubbleWidth;
         } else if (tgx101Journal) {
-          dr = mr = Screen.dp(8f);
+          dr = mr = 0;
         } else {
           dr = bubbleDefaultRadius;
           mr = bubbleMergeRadius;
