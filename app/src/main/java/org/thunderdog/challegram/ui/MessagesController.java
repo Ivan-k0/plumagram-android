@@ -9873,6 +9873,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     tgx101GrowShift = 0f;
     tgx101ImeShift = 0f;
     tgx101ApplyFieldShift();
+    // and the list's room at once — waiting the usual 120 ms made the messages jump as the chat came back (11:06:00)
+    tgx101ShrinkConfirmed = true;
+    updateFloatingListPadding();
+    tgx101ShrinkConfirmed = false;
   }
 
   private float tgx101FieldShift () {
