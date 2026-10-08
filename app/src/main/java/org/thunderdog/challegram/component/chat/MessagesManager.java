@@ -2841,14 +2841,23 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     return -1;
   }
 
+  private long tgx101MentionsSentAt;
+
   public void scrollToNextMention () {
+    org.thunderdog.challegram.Tgx101Diag.mark("mention button: closest " + (closestMentions != null ? closestMentions.size() : -1) + ", request pending " + (mentionsHandler != null) + ", last viewed " + lastViewedMentionMessageId);
     if (closestMentions != null && !closestMentions.isEmpty()) {
       TdApi.Message message = closestMentions.remove(0);
       highlightMessage(new MessageId(message.chatId, message.id), HIGHLIGHT_MODE_NORMAL, null, true);
       return;
     }
-    if (mentionsHandler != null) {
+    // TGx101 (user 2026-10-08 19:18 «кнопка @ не сработала», five taps, nothing): a request that never came back blocked
+    // every next tap — after 3 s a new tap asks again
+    if (mentionsHandler != null && android.os.SystemClock.uptimeMillis() - tgx101MentionsSentAt < 3000) {
       return;
+    }
+    if (mentionsHandler != null) {
+      mentionsHandler.cancel();
+      mentionsHandler = null;
     }
     final long fromMessageId;
     if (lastViewedMentionMessageId != 0) {
@@ -2868,7 +2877,10 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       public void processResult (final TdApi.Object object) {
         if (object.getConstructor() == TdApi.FoundChatMessages.CONSTRUCTOR) {
           TdApi.FoundChatMessages messages = (TdApi.FoundChatMessages) object;
-          if (messages.totalCount > 0 && messages.messages.length == 0 && isRetry.getAndSet(true)) {
+          org.thunderdog.challegram.Tgx101Diag.mark("mention button: found " + messages.messages.length + " of " + messages.totalCount + (isRetry.get() ? " (retry)" : ""));
+          // TGx101: nothing after the top loaded message (the mention is older, or the list was scrolled) — look again
+          // from the newest one instead of doing nothing
+          if (messages.messages.length == 0 && !isRetry.getAndSet(true)) {
             tdlib.client().send(new TdApi.SearchChatMessages(chatId, topicId, null, null, 0, 0, 10, new TdApi.SearchMessagesFilterUnreadMention()), this);
           } else {
             setMentions(this, messages, isRetry.get() ? 0 : fromMessageId);
@@ -2878,6 +2890,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         }
       }
     };
+    tgx101MentionsSentAt = android.os.SystemClock.uptimeMillis();
     tdlib.client().send(new TdApi.SearchChatMessages(chatId, topicId, null, null, fromMessageId, -9, 10, new TdApi.SearchMessagesFilterUnreadMention()), mentionsHandler);
   }
 
