@@ -879,7 +879,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   // Layout
 
   private int computeBubbleLeft () {
-    if (tgx101Journal() && !isOutgoing()) return Screen.dp(6f); // «Journal»: the text's equal gaps on both sides
+    if (tgx101Journal() && !isOutgoing()) return tgx101JournalEdgeToEdge() ? 0 : Screen.dp(6f); // «Journal»: equal gaps; photos edge to edge
     final int x;
     if (needAvatar() && !isOutgoing()) {
       x = xBubbleLeft1 + Screen.dp(40f);
@@ -1561,6 +1561,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   private static final float TGX101_JOURNAL_STRIPE = 28f;
+
+  /** «Journal» (user 2026-10-08 23:39 «растяни фото на всю»): media posts go from screen edge to screen edge */
+  protected boolean tgx101JournalEdgeToEdge () {
+    return false;
+  }
 
   public final boolean tgx101Journal () {
     return manager != null && manager.tgx101Journal();

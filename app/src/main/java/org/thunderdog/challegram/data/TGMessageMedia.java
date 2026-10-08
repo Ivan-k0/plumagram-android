@@ -223,6 +223,11 @@ public class TGMessageMedia extends TGMessage {
   private static final float MAX_RATIO_GIF = 1.08f;
 
   @Override
+  protected boolean tgx101JournalEdgeToEdge () {
+    return true;
+  }
+
+  @Override
   protected boolean preferFullWidth () {
     return UI.isPortrait() && !UI.isTablet() && isChannel() && !isEventLog() && !Td.isAnimation(msg.content) && (!mosaicWrapper.isSingular() || mosaicWrapper.getAspectRatio() >= (mosaicWrapper.getSingularItem().isGif() ? MIN_RATIO_GIF : MIN_RATIO));
   }
