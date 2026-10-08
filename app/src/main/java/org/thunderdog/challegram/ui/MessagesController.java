@@ -9725,6 +9725,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // boolean commandsShown = this.commandsShown;
       if (visible && !getKeyboardState()) {
         if (emojiShown) {
+          // TGx101 (user 2026-10-08 21:45, gfxinfo: no frames for 1005 ms after «⌨»): the emoji panel holds drawing until
+          // it hears the keyboard is up — it was closed first, never heard it and held on to its 1 s timeout
+          if (emojiKeyboardFrameLayout != null) emojiKeyboardFrameLayout.onKeyboardStateChanged(true);
           closeEmojiKeyboard(true);
         }
         if (commandsShown) {
@@ -9968,6 +9971,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
             org.thunderdog.challegram.Tgx101Diag.mark("keyboard ride: progress " + Math.round(ime.getInterpolatedFraction() * 100) + " %, inset " + tgx101BottomInset(insets));
           }
           tgx101SetImeShift(tgx101ImeEnd - tgx101BottomInset(insets));
+          // user 2026-10-08 21:45 «не могу свернуть смайлы кнопкой клавиатуры»: emoji → keyboard the field doesn't move (the
+          // shift stays 0), nothing was redrawn and the keyboard's own animation stood at 21 % for a second (no app
+          // frames, gfxinfo). A frame on every step keeps it going
+          view.postInvalidateOnAnimation();
         }
         return insets;
       }

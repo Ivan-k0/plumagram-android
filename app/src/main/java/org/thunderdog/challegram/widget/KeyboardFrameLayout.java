@@ -119,8 +119,10 @@ public class KeyboardFrameLayout extends FrameLayoutFix implements ViewTreeObser
 
   public void onKeyboardStateChanged (boolean visible) {
     if (keyboardState == STATE_AWAITING_SHOW && visible) {
-      framesDropped = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? 45 : 55;
-      awaitStartTime = android.os.SystemClock.uptimeMillis() - (long) framesDropped * 1000 / 60; // TGx101
+      // TGx101: the keyboard is up — draw again at once: holding ~250 ms more held the keyboard's own slide too (it
+      // popped in without its animation)
+      keyboardState = STATE_NONE;
+      framesDropped = 0;
     } else if (keyboardState == STATE_AWAITING_HIDE && !visible) {
       keyboardState = STATE_NONE;
     }
