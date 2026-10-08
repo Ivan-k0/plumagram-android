@@ -2045,7 +2045,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     TdApi.Chat next = tgx101NextChannel;
     if (next == null) return;
     org.thunderdog.challegram.Tgx101Diag.mark("chat: pull up → next unread channel");
-    tdlib.ui().openChat(this, next, new TdlibUi.ChatOpenParameters().keepStack().removeDuplicates());
+    TdlibUi.ChatOpenParameters params = new TdlibUi.ChatOpenParameters().removeDuplicates();
+    if (!Settings.instance().tgx101NextChannelBackToList()) params.keepStack(); // otherwise it replaces this channel
+    tdlib.ui().openChat(this, next, params);
   }
 
   public boolean comparePrivateUserId (long userId) {

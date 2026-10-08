@@ -1604,6 +1604,7 @@
   <item name="btn_tgx101FilterHideFully" type="id"/>
   <item name="btn_tgx101HideChannelReactions" type="id"/>
   <item name="btn_tgx101NextChannelSwipe" type="id"/>
+  <item name="btn_tgx101NextChannelBackToList" type="id"/>
   <item name="btn_tgx101CaptionAbove" type="id"/>
   <item name="btn_tgx101SendHd" type="id"/>
   <item name="btn_tgx101StoryHide" type="id"/>

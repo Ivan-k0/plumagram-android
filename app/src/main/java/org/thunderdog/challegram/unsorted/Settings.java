@@ -3519,6 +3519,12 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_NEXT_CHANNEL_SWIPE, value);
   }
 
+  // 4PDA 2026-10-08 17:40 «"назад" листает прочитанные каналы в обратном порядке… (опционально) вернуть»: the next channel
+  // replaces the current one, so «Back» goes straight to the chat list
+  private static final String KEY_TGX101_NEXT_CHANNEL_BACK_TO_LIST = "tgx101_next_channel_back_to_list";
+  public boolean tgx101NextChannelBackToList () { return pmc.getBoolean(KEY_TGX101_NEXT_CHANNEL_BACK_TO_LIST, false); }
+  public void setTgx101NextChannelBackToList (boolean v) { pmc.putBoolean(KEY_TGX101_NEXT_CHANNEL_BACK_TO_LIST, v); }
+
   private static final String KEY_TGX101_HIDE_CHANNEL_REACTIONS = "tgx101_hide_channel_reactions";
 
   // TGx101 (4PDA request from DeepDusky 2026-10-06, like moeGramX): hide reactions everywhere, hide input-row buttons
