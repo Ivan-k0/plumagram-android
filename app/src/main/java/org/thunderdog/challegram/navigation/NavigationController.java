@@ -1354,7 +1354,6 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   private static final int FINISH_PREVIEW_FORCE = 3;
 
   private void finishTransaction (int mode) {
-    tgx101ResetCard();
     completeNextLayout();
 
     preventLayout();
@@ -1433,67 +1432,6 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   }
 
   private float translationFactor;
-
-  // TGx101 (user 2026-10-08, exteraGram): the system back gesture shrinks the chat into a card over the dimmed list (the list
-  // and its bottom menu stay still); released, the card fades away. Test builds
-  private boolean tgx101CardBack;
-  private static final float TGX101_CARD_PREVIEW = .33f;
-
-  private void tgx101ApplyCard (float f) { // f: 0 — the chat in place, 1 — gone
-    View card = rightWrap;
-    float g = MathUtils.clamp(f / TGX101_CARD_PREVIEW); // the gesture part
-    float fade = f <= TGX101_CARD_PREVIEW ? 0f : MathUtils.clamp((f - TGX101_CARD_PREVIEW) / (1f - TGX101_CARD_PREVIEW));
-    float scale = 1f - .1f * g - .04f * fade;
-    card.setPivotX(currentWidth * .5f);
-    card.setPivotY(currentHeight * .5f);
-    card.setScaleX(scale);
-    card.setScaleY(scale);
-    card.setTranslationX(Screen.dp(24f) * g);
-    card.setAlpha(1f - fade);
-    tgx101CardRadius = Screen.dp(28f) * g;
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-      if (card.getOutlineProvider() != tgx101CardOutline) {
-        card.setOutlineProvider(tgx101CardOutline);
-      }
-      card.setClipToOutline(g > 0f);
-      card.invalidateOutline();
-    }
-    if (leftWrap != null) leftWrap.setTranslationX(0f);
-    currentLeft.onTranslationChanged(0f);
-    if (USE_PREVIEW_FADE && !currentLeft.usePopupMode()) {
-      fadeView.setAlpha((1f - f) * PREVIEW_FADE_CHANGE_FACTOR);
-    }
-    if (DROP_SHADOW_ENABLED) shadowView.setAlpha(0f);
-    if (currentLeft instanceof org.thunderdog.challegram.ui.MainController) {
-      // the menu is drawn over the screens: the card covers it from its left edge; once the card fades it's all there
-      float cardLeft = currentWidth * (1f - scale) / 2f + Screen.dp(24f) * g;
-      ((org.thunderdog.challegram.ui.MainController) currentLeft).tgx101FollowSlide(0f, fade > 0f ? currentWidth : cardLeft, f);
-    }
-  }
-
-  private float tgx101CardRadius;
-  private final android.view.ViewOutlineProvider tgx101CardOutline = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP ? new android.view.ViewOutlineProvider() {
-    @Override
-    public void getOutline (View view, android.graphics.Outline outline) {
-      outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), tgx101CardRadius);
-    }
-  } : null;
-
-  private void tgx101ResetCard () {
-    if (!tgx101CardBack) return;
-    tgx101CardBack = false;
-    for (View v : new View[] {rightWrap, leftWrap}) {
-      if (v == null) continue;
-      v.setScaleX(1f);
-      v.setScaleY(1f);
-      v.setAlpha(1f);
-      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP && v.getOutlineProvider() == tgx101CardOutline) {
-        v.setClipToOutline(false);
-        v.setOutlineProvider(android.view.ViewOutlineProvider.BACKGROUND);
-      }
-    }
-    if (DROP_SHADOW_ENABLED) shadowView.setAlpha(1f);
-  }
   private Tgx101CapsuleMorph tgx101Morph;
 
   public void setFactor (float factor) {
@@ -1538,11 +1476,6 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
         factor = 1f - factor;
 
         float px2 = factor * currentPrevWidth;
-
-        if (tgx101CardBack && currentRight != null) {
-          tgx101ApplyCard(1f - factor);
-          break;
-        }
 
         if (needRtl()) {
           rightWrap.setTranslationX(-px);
@@ -1653,13 +1586,11 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   public boolean onSystemBackStarted (@NonNull BackEventCompat backEvent) {
     org.thunderdog.challegram.Tgx101Diag.mark("system back: started, swipe nav " + swipeNavigationEnabled() + ", animating " + isAnimating + ", top " + (getCurrentStackItem() != null ? getCurrentStackItem().getClass().getSimpleName() : "?"));
     if (swipeNavigationEnabled()) {
-      tgx101CardBack = org.thunderdog.challegram.BuildConfig.TGX101_TEST && !needRtl();
       if (openPreviewImpl(backEvent.getTouchY(), false, backEvent.getSwipeEdge() == BackEventCompat.EDGE_RIGHT ? PredictiveGesture.BACK_FROM_RIGHT_EDGE : PredictiveGesture.BACK_FROM_LEFT_EDGE)) {
         setFactor(tgx101BackPreview(backEvent.getProgress()));
         org.thunderdog.challegram.Tgx101Diag.mark("system back: preview opened, mode " + translationMode + ", left " + (currentLeft != null ? currentLeft.getClass().getSimpleName() : "?"));
         return true;
       }
-      tgx101CardBack = false;
       org.thunderdog.challegram.Tgx101Diag.mark("system back: preview NOT opened");
     }
     return false;
