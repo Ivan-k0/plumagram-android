@@ -1053,6 +1053,11 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         }
       }
     } else if (!tgx101Switching) {
+      if (org.thunderdog.challegram.BuildConfig.TGX101_TEST && c == this) {
+        // test builds: no fade — the menu stays under the sliding chat (tgx101FollowSlide) and goes once it's covered
+        tgx101Capsule.closeMenu();
+        return;
+      }
       // user 2026-10-06 18:18: between Chats / Contacts / Calls / Settings the capsule stays still, it hides only over other screens
       NavigationController navigation = context().navigation();
       ViewController<?> target = navigation != null ? navigation.tgx101TransitionTarget(c) : null;
@@ -1112,6 +1117,32 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     tgx101FabTabAnim = true;
     if (hide) composeWrap.hide(); else if (!inSearchMode()) composeWrap.show();
     if (!hide && tgx101Capsule != null) tgx101Capsule.setScrollHideFactor(0f); // the capsule itself stays put
+  }
+
+  /** TGx101 test builds (exteraGram-like): a screen slides over the chat list. {@code listShift} — the list's own parallax,
+   *  {@code coverX} — the sliding screen's left edge; {@code covered} 1 — fully covered (gone), 0 — the list is back */
+  public void tgx101FollowSlide (float listShift, float coverX, float covered) {
+    if (tgx101Capsule == null || inSearchMode()) return;
+    if (tgx101CapsuleFade != null) {
+      tgx101CapsuleFade.cancel();
+      tgx101CapsuleFade = null;
+    }
+    if (covered >= 1f) {
+      tgx101Capsule.setVisibility(View.GONE);
+      tgx101Capsule.tgx101SetCoveredFrom(Float.NaN);
+      tgx101Capsule.setTranslationX(0f);
+      return;
+    }
+    tgx101Capsule.setVisibility(View.VISIBLE);
+    tgx101Capsule.setAlpha(1f);
+    tgx101Capsule.setTranslationY(0f);
+    if (covered <= 0f) {
+      tgx101Capsule.setTranslationX(0f);
+      tgx101Capsule.tgx101SetCoveredFrom(Float.NaN);
+    } else {
+      tgx101Capsule.setTranslationX(listShift);
+      tgx101Capsule.tgx101SetCoveredFrom(coverX);
+    }
   }
 
   /** TGx101: the bottom menu for the seamless menu → message field transition */

@@ -605,6 +605,30 @@ public class Tgx101NavCapsule extends View {
     return scrollHide == 0f;
   }
 
+  // TGx101 (user 2026-10-08 10:44, exteraGram video «просто и понятно»): the menu belongs to the chat list — while a
+  // chat slides over the list, the menu stays with the list and the chat's edge covers it
+  private float tgx101CoverX = Float.NaN;
+
+  /** The x (in screen pixels) where a sliding screen starts covering the menu, NaN — nothing covers it */
+  public void tgx101SetCoveredFrom (float x) {
+    if (Float.isNaN(x) ? !Float.isNaN(tgx101CoverX) : x != tgx101CoverX) {
+      tgx101CoverX = x;
+      invalidate();
+    }
+  }
+
+  @Override
+  public void draw (@androidx.annotation.NonNull Canvas c) {
+    if (Float.isNaN(tgx101CoverX)) {
+      super.draw(c);
+      return;
+    }
+    int save = c.save();
+    c.clipRect(0, 0, Math.max(0f, tgx101CoverX - getLeft() - getTranslationX()), getHeight());
+    super.draw(c);
+    c.restoreToCount(save);
+  }
+
   private void drawCapsule (Canvas c) {
     float top = capsuleTop();
     float h = Screen.dp(HEIGHT_DP);
