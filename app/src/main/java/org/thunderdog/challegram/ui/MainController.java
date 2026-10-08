@@ -1139,6 +1139,16 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   };
   private final Runnable tgx101HideIfCoveredAgain = () -> tgx101HideIfCovered.run();
 
+  /** Called after every finished transition: the menu is only for the tab screens (15:48 log: it stayed over a chat) */
+  public void tgx101SyncCapsuleAfterTransition (@Nullable ViewController<?> current) {
+    if (tgx101Capsule == null || isDestroyed()) return;
+    if (current != null && !tgx101TabRoots.containsKey(current)) {
+      tgx101Capsule.setVisibility(View.GONE);
+      tgx101Capsule.tgx101SetCoveredFrom(Float.NaN);
+      tgx101Capsule.setTranslationX(0f);
+    }
+  }
+
   /** TGx101 test builds (exteraGram-like): a screen slides over the chat list. {@code listShift} — the list's own parallax,
    *  {@code coverX} — the sliding screen's left edge; {@code covered} 1 — fully covered (gone), 0 — the list is back */
   public void tgx101FollowSlide (float listShift, float coverX, float covered) {

@@ -3180,7 +3180,6 @@ public class Settings {
   }
 
   public boolean isTgx101MessageMenuLeftHand () {
-    if (true /* user 2026-10-08: all test changes go to the release */) return false; // test builds: right hand only (user 2026-10-08)
     return pmc.getBoolean(KEY_TGX101_MESSAGE_MENU_LEFT, false);
   }
 

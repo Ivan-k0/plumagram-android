@@ -1018,7 +1018,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   private static ListItem[] tgx101TestItems (ListItem[] raw) {
     java.util.Set<Integer> gone = new java.util.HashSet<>(java.util.Arrays.asList(
       R.id.btn_tgx101FloatingInput, // capsule only (the side menu is back as an option — hotfix 0.1.591)
-      R.id.btn_tgx101TextEditor, R.id.btn_tgx101MessageMenuHand, R.id.btn_tgx101MenuAtFinger, // always on / right hand
+      R.id.btn_tgx101TextEditor, R.id.btn_tgx101MenuAtFinger, // always on (the hand choice is back — user 2026-10-08 15:40)
       R.id.btn_tgx101MenuHidesKeyboard)); // the keyboard never closes for the menu
     if (true /* all T changes in the release (user 2026-10-08) */) {
       gone.add(R.id.btn_tgx101NewCallScreen); // always on in test builds (user 2026-10-08)

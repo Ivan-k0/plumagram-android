@@ -1354,6 +1354,14 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   private static final int FINISH_PREVIEW_FORCE = 3;
 
   private void finishTransaction (int mode) {
+    rootView.post(() -> {
+      ViewController<?> cur = getCurrentStackItem();
+      for (ViewController<?> c : getStack().getAll()) {
+        if (c instanceof org.thunderdog.challegram.ui.MainController) {
+          ((org.thunderdog.challegram.ui.MainController) c).tgx101SyncCapsuleAfterTransition(cur);
+        }
+      }
+    });
     completeNextLayout();
 
     preventLayout();
