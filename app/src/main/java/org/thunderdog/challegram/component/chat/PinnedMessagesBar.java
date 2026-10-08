@@ -271,8 +271,18 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
     return animationsDisabled;
   }
 
+  // TGx101: inside the floating field's reply bar — see-through, the bar under it draws the field's blurred filling
+  private boolean tgx101Transparent;
+
+  public void tgx101SetTransparent () {
+    tgx101Transparent = true;
+    setBackground(null);
+    recyclerView.setBackground(null);
+  }
+
   @Override
   protected void onDraw (Canvas c) {
+    if (tgx101Transparent) return;
     c.drawRect(0, getRecyclerHeight(), getMeasuredWidth(), getMeasuredHeight(), Paints.fillingPaint(Theme.fillingColor()));
   }
 

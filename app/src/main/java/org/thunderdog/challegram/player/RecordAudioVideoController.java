@@ -784,6 +784,13 @@ public class RecordAudioVideoController implements
         tgx101OverlayFloating = floating;
         tgx101UpdateOverlayBackground();
       }
+      // user 2026-10-08 10:3x «во время записи время слишком смещено влево поля ввода — смести правее»: inside the capsule
+      ViewGroup.LayoutParams dlp = durationView != null ? durationView.getLayoutParams() : null;
+      int durationLeft = floating ? side + Screen.dp(10f) : 0;
+      if (dlp instanceof ViewGroup.MarginLayoutParams && ((ViewGroup.MarginLayoutParams) dlp).leftMargin != durationLeft) {
+        ((ViewGroup.MarginLayoutParams) dlp).leftMargin = durationLeft;
+        durationView.setLayoutParams(dlp);
+      }
       if (lp != null && (lp.height != want || ((ViewGroup.MarginLayoutParams) lp).leftMargin != side)) {
         lp.height = want;
         ((ViewGroup.MarginLayoutParams) lp).leftMargin = ((ViewGroup.MarginLayoutParams) lp).rightMargin = side;

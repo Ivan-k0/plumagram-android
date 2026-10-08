@@ -51,6 +51,11 @@ import tgx.td.Td;
 import tgx.td.data.MessageWithProperties;
 
 public class ReplyBarView extends FrameLayoutFix implements View.OnClickListener, Destroyable {
+  /** TGx101: the floating field's reply bar — the bar's own background (the field's blurred filling) shows through */
+  public void tgx101SetTransparent () {
+    if (pinnedMessagesBar != null) pinnedMessagesBar.tgx101SetTransparent();
+  }
+
   protected final Tdlib tdlib;
   private Callback callback;
 

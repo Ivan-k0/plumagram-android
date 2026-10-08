@@ -1038,7 +1038,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     if (isFocused) {
       tgx101Switching = false;
       tgx101Capsule.setSelectedTab(tab, false);
-      tgx101Capsule.setScrollHidden(tab == Tgx101NavCapsule.TAB_CHATS && composeWrap != null && composeWrap.isHiddenByScroll() && Settings.instance().tgx101CapsuleScrollHide());
+      tgx101Capsule.setScrollHidden(false); // never hides on scroll (user 2026-10-08)
       tgx101ApplyCapsulePadding(tab);
       // ✎ belongs to the chats only — it showed through under Contacts / Calls / Settings
       tgx101SetFabHidden(tab != Tgx101NavCapsule.TAB_CHATS);
@@ -1177,7 +1177,8 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         if (factor <= 0f || factor >= 1f) tgx101FabTabAnim = false;
         return;
       }
-      if (tgx101Capsule != null && !tgx101FabHidden && !inSearchMode() && Settings.instance().tgx101CapsuleScrollHide()) tgx101Capsule.setScrollHideFactor(factor);
+      // user 2026-10-08 10:3x «меню уезжать не должно при свайпах (никогда)»: the capsule stays, only ✎ hides
+      // if (tgx101Capsule != null && !tgx101FabHidden && !inSearchMode()) tgx101Capsule.setScrollHideFactor(factor);
     });
     tgx101TabRoots.put(this, Tgx101NavCapsule.TAB_CHATS);
     addFocusListener(tgx101TabFocus);

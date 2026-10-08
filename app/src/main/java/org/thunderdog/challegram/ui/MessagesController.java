@@ -906,6 +906,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       replyBarView.setId(R.id.msg_bottomReply);
       replyBarView.setAnimationsDisabled(true);
       replyBarView.initWithCallback(this, this);
+      if (floatingInput) replyBarView.tgx101SetTransparent();
       replyBarView.setOnClickListener(this);
       replyBarView.setLayoutParams(params);
       if (floatingInput && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {

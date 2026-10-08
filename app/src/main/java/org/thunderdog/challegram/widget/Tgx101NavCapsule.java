@@ -270,8 +270,11 @@ public class Tgx101NavCapsule extends View {
 
   // user 2026-10-07 22:46 «опусти его на ту же высоту, как и поле ввода, если отступ выключен»: without the bottom gap the
   // capsule stands 8 dp above the edge, like the floating message field
+  // user 2026-10-08 10:3x «если человек поднимает поле ввода нашей опцией, то и меню поднимается вместе с полем»: the same
+  // lift as the floating field — the bottom gap's part above the navigation bar plus 8 dp
   private int marginPx () {
-    return Screen.dp(org.thunderdog.challegram.unsorted.Settings.instance().needBottomGap() ? MARGIN_DP : 8f);
+    int gap = org.thunderdog.challegram.unsorted.Settings.instance().needBottomGap() ? Math.max(0, Screen.dp(16f) - getPaddingBottom()) : 0;
+    return gap + Screen.dp(8f);
   }
 
   private float capsuleTop () {
