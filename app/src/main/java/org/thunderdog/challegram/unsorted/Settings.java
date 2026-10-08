@@ -3543,7 +3543,6 @@ public class Settings {
   public boolean tgx101CapsuleScrollHide () { return pmc.getBoolean(KEY_TGX101_CAPSULE_SCROLL_HIDE, true); }
   public void setTgx101CapsuleScrollHide (boolean v) { pmc.putBoolean(KEY_TGX101_CAPSULE_SCROLL_HIDE, v); }
   public boolean tgx101NavCapsule () {
-    if (true /* user 2026-10-08: all test changes go to the release */) return true; // test builds: no side menu at all (user 2026-10-08)
     return pmc.getBoolean(KEY_TGX101_NAV_CAPSULE, true);
   }
   public void setTgx101NavCapsule (boolean v) { pmc.putBoolean(KEY_TGX101_NAV_CAPSULE, v); }

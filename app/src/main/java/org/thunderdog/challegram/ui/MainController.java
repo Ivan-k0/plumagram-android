@@ -1054,8 +1054,11 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       }
     } else if (!tgx101Switching) {
       if (c == this) { // user 2026-10-08: in the release too
-        // test builds: no fade — the menu stays under the sliding chat (tgx101FollowSlide) and goes once it's covered
+        // no fade — the menu stays under the sliding chat (tgx101FollowSlide) and goes once it's covered. If no slide
+        // takes it away (animations off, a chat opened from elsewhere — 4PDA video 08.10 14:09: the menu stayed over chats),
+        // it goes anyway
         tgx101Capsule.closeMenu();
+        tgx101Capsule.postDelayed(MainController.this.tgx101HideIfCovered, 500);
         return;
       }
       // user 2026-10-06 18:18: between Chats / Contacts / Calls / Settings the capsule stays still, it hides only over other screens
@@ -1118,6 +1121,20 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     if (hide) composeWrap.hide(); else if (!inSearchMode()) composeWrap.show();
     if (!hide && tgx101Capsule != null) tgx101Capsule.setScrollHideFactor(0f); // the capsule itself stays put
   }
+
+  private final Runnable tgx101HideIfCovered = () -> {
+    if (tgx101Capsule != null && !isDestroyed() && !isFocused() && !inSearchMode()) {
+      NavigationController navigation = context().navigation();
+      if (navigation == null || !navigation.isAnimating()) {
+        tgx101Capsule.setVisibility(View.GONE);
+        tgx101Capsule.tgx101SetCoveredFrom(Float.NaN);
+        tgx101Capsule.setTranslationX(0f);
+      } else {
+        tgx101Capsule.postDelayed(this.tgx101HideIfCoveredAgain, 300);
+      }
+    }
+  };
+  private final Runnable tgx101HideIfCoveredAgain = () -> tgx101HideIfCovered.run();
 
   /** TGx101 test builds (exteraGram-like): a screen slides over the chat list. {@code listShift} — the list's own parallax,
    *  {@code coverX} — the sliding screen's left edge; {@code covered} 1 — fully covered (gone), 0 — the list is back */
@@ -1220,10 +1237,10 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   /** Hold menu of «Settings»: the order here is the order of the bits in {@link Settings#tgx101CapsuleMenu()} */
   public static final int[] TGX101_CAPSULE_MENU_ICONS = {
     R.drawable.baseline_bookmark_24, R.drawable.baseline_format_list_bulleted_type_24, R.drawable.baseline_brightness_2_24,
-    R.drawable.baseline_account_circle_24, R.drawable.baseline_stars_24
+    R.drawable.baseline_account_circle_24, R.drawable.baseline_stars_24, R.drawable.baseline_security_24
   };
   public static final int[] TGX101_CAPSULE_MENU_TITLES = {
-    R.string.SavedMessages, R.string.Tgx101SavedByChats, R.string.NightMode, R.string.Tgx101MyProfile, R.string.Tgx101Settings
+    R.string.SavedMessages, R.string.Tgx101SavedByChats, R.string.NightMode, R.string.Tgx101MyProfile, R.string.Tgx101Settings, R.string.Proxy
   };
 
   // Hold menus of «Contacts» (user 2026-10-06: «как настройки, с возможностью добавлять кнопки») and «Calls» (5 quick contacts)
@@ -1356,6 +1373,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         current.navigateTo(c);
         break;
       }
+      case 5: // user 2026-10-08 hotfix: proxies on the «Settings» hold
+        tdlib.ui().openProxySettings(current, false);
+        break;
     }
   }
 

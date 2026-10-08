@@ -1014,7 +1014,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
    *  list section is split into labelled groups */
   private static ListItem[] tgx101TestItems (ListItem[] raw) {
     java.util.Set<Integer> gone = new java.util.HashSet<>(java.util.Arrays.asList(
-      R.id.btn_tgx101FloatingInput, R.id.btn_tgx101NavCapsule, // capsule only, no side menu
+      R.id.btn_tgx101FloatingInput, // capsule only (the side menu is back as an option — hotfix 0.1.591)
       R.id.btn_tgx101TextEditor, R.id.btn_tgx101MessageMenuHand, R.id.btn_tgx101MenuAtFinger, // always on / right hand
       R.id.btn_tgx101MenuHidesKeyboard)); // the keyboard never closes for the menu
     int[] bottomMenu = {R.id.btn_tgx101CapsuleMenu, R.id.btn_tgx101ContactsMenu, R.id.btn_tgx101QuickCalls, R.id.btn_tgx101BottomGap};
