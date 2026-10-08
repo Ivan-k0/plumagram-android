@@ -1053,7 +1053,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         }
       }
     } else if (!tgx101Switching) {
-      if (org.thunderdog.challegram.BuildConfig.TGX101_TEST && c == this) {
+      if (c == this) { // user 2026-10-08: in the release too
         // test builds: no fade — the menu stays under the sliding chat (tgx101FollowSlide) and goes once it's covered
         tgx101Capsule.closeMenu();
         return;

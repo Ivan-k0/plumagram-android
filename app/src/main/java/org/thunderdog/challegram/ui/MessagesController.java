@@ -10007,7 +10007,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   // TGx101 (user 2026-10-08 00:3x «таких рывков даже в официальном нет… может, твой движок тут неуместен — верни как в стоке»):
   // the keyboard ride, the list glide and the late-keyboard glide fought each other — off in chats, as before
-  private static final boolean TGX101_CHAT_KEYBOARD_ENGINE = org.thunderdog.challegram.BuildConfig.TGX101_TEST; // test builds only
+  private static final boolean TGX101_CHAT_KEYBOARD_ENGINE = true; // user 2026-10-08 «релиз не так плавно, как тестовая» — on everywhere; // test builds only
 
   private void tgx101GlideList (int delta) {
     if (true) return; // replaced by the chat motion: the list follows the field's drawn edge

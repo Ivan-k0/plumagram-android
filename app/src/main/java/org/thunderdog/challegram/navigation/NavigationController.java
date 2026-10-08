@@ -1462,7 +1462,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       }
       case TRANSLATION_HORIZONTAL: {
         headerView.setTranslation(factor);
-        if (org.thunderdog.challegram.BuildConfig.TGX101_TEST && !needRtl() && currentLeft instanceof org.thunderdog.challegram.ui.MainController) {
+        if (!needRtl() && currentLeft instanceof org.thunderdog.challegram.ui.MainController) {
           // test builds (user 2026-10-08, exteraGram): the menu stays with the list, the sliding screen covers it
           float listShift = USE_PREVIEW_TRANSLATION ? (1f - factor) * currentPrevWidth : 0f;
           ((org.thunderdog.challegram.ui.MainController) currentLeft).tgx101FollowSlide(listShift, px, 1f - factor);
