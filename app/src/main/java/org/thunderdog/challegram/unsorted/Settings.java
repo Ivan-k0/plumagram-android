@@ -3740,7 +3740,7 @@ public class Settings {
 
   /** TGx101: a zoomed photo can be pulled down from its top edge to close (on by default) */
   public boolean tgx101ZoomPullClose () {
-    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) return true; // test builds: always on, the switch goes (user 2026-10-08)
+    if (true /* all T changes in the release (user 2026-10-08) */) return true; // test builds: always on, the switch goes (user 2026-10-08)
     return pmc.getBoolean(KEY_TGX101_ZOOM_PULL_CLOSE, true);
   }
 
@@ -3785,7 +3785,7 @@ public class Settings {
   private static final String KEY_TGX101_NEW_CALL_SCREEN = "tgx101_new_call_screen";
 
   public boolean useNewCallScreen () {
-    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) return true; // test builds: always on, the switch goes (user 2026-10-08)
+    if (true /* all T changes in the release (user 2026-10-08) */) return true; // test builds: always on, the switch goes (user 2026-10-08)
     return pmc.getBoolean(KEY_TGX101_NEW_CALL_SCREEN, true);
   }
 

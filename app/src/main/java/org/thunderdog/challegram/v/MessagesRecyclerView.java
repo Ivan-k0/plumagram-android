@@ -106,7 +106,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
     // rotation (media viewer in landscape) re-lays every message at another width and the place was lost. Keep the message
     // at the bottom edge where it was
     int newWidth = MeasureSpec.getSize(widthSpec);
-    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST && prevWidth != 0 && newWidth != prevWidth && getLayoutManager() instanceof androidx.recyclerview.widget.LinearLayoutManager) {
+    if (true /* all T changes in the release (user 2026-10-08) */ && prevWidth != 0 && newWidth != prevWidth && getLayoutManager() instanceof androidx.recyclerview.widget.LinearLayoutManager) {
       androidx.recyclerview.widget.LinearLayoutManager llm = (androidx.recyclerview.widget.LinearLayoutManager) getLayoutManager();
       int pos = llm.findFirstVisibleItemPosition();
       View anchor = pos != NO_POSITION ? llm.findViewByPosition(pos) : null;

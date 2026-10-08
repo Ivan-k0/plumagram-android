@@ -476,7 +476,7 @@ public final class Tgx101MessageMenu {
     popup.init(true);
     // TGx101 (user 2026-10-08, exteraGram video 10:45 7,5 s): with the keyboard up the menu opens at the finger and covers the
     // keyboard instead of squeezing above it — a window of its own, over the keyboard (test builds)
-    boolean tgx101OverKeyboard = org.thunderdog.challegram.BuildConfig.TGX101_TEST && Settings.instance().tgx101MenuAtFinger() && tgx101KeyboardHeight(c) > 0;
+    boolean tgx101OverKeyboard = true /* all T changes in the release (user 2026-10-08) */ && Settings.instance().tgx101MenuAtFinger() && tgx101KeyboardHeight(c) > 0;
     if (!tgx101OverKeyboard) {
       popup.setNeedRootInsets();
     } else {

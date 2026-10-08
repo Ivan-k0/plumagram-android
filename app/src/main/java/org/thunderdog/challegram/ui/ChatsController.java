@@ -1245,7 +1245,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     if (hasItems) tgx101FillMini();
     chatsView.setClipToPadding(false);
     tgx101ApplyStripHeight();
-    if (appearing && atTop && org.thunderdog.challegram.BuildConfig.TGX101_TEST) {
+    if (appearing && atTop && true /* all T changes in the release (user 2026-10-08) */) {
       chatsView.scrollToPosition(0);
     }
   }
