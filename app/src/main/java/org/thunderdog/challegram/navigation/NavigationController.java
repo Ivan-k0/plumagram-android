@@ -1462,7 +1462,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       }
       case TRANSLATION_HORIZONTAL: {
         headerView.setTranslation(factor);
-        if (tgx101Morph != null && !needRtl()) {
+        if (tgx101Morph != null && !needRtl() && org.thunderdog.challegram.BuildConfig.TGX101_TEST) { // test builds only
           tgx101Morph.update(currentLeft, currentRight, 1f - factor);
         }
         factor = 1f - factor;

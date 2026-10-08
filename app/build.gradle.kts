@@ -384,6 +384,9 @@ android {
 
     buildConfigField("boolean", "EXPERIMENTAL", config.isExperimentalBuild.toString())
     buildConfigField("boolean", "TGX101_DIAG", (project.findProperty("tgx101Diag") == "true").toString()) // TGx101: startup diagnostics build
+    // TGx101 (user 2026-10-08 09:1x «вернул бы как было… эти правки — на тестовую, релиз без них, нужны тесты»): the chat
+    // motion engine and the menu ↔ field transition live only in the test builds («PlumaGram Т»)
+    buildConfigField("boolean", "TGX101_TEST", tgx101Test.toString())
 
     buildConfigInt("TARGET_SDK_INT", config.build.targetSdkVersion)
 
