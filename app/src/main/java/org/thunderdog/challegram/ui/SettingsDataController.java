@@ -618,7 +618,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       };
     }
     ListItem[] shown = rawItems;
-    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) {
+    if (true /* user 2026-10-08: all test changes go to the release */) {
       shown = tgx101TestItems(rawItems);
     }
     this.adapter.setItems(shown, false);

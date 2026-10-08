@@ -3180,7 +3180,7 @@ public class Settings {
   }
 
   public boolean isTgx101MessageMenuLeftHand () {
-    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) return false; // test builds: right hand only (user 2026-10-08)
+    if (true /* user 2026-10-08: all test changes go to the release */) return false; // test builds: right hand only (user 2026-10-08)
     return pmc.getBoolean(KEY_TGX101_MESSAGE_MENU_LEFT, false);
   }
 
@@ -3351,7 +3351,7 @@ public class Settings {
 
   /** TGx101: «Изменить» opens the message text window (formatting buttons) instead of editing in the input field */
   public boolean useTgx101TextEditor () {
-    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) return true; // test builds: always on (user 2026-10-08)
+    if (true /* user 2026-10-08: all test changes go to the release */) return true; // test builds: always on (user 2026-10-08)
     return pmc.getBoolean(KEY_TGX101_TEXT_EDITOR, true);
   }
 
@@ -3500,7 +3500,7 @@ public class Settings {
   private static final String KEY_TGX101_FLOATING_INPUT = "tgx101_floating_input";
 
   public boolean useFloatingInput () {
-    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) return true; // test builds: the capsule only (user 2026-10-08)
+    if (true /* user 2026-10-08: all test changes go to the release */) return true; // test builds: the capsule only (user 2026-10-08)
     return pmc.getBoolean(KEY_TGX101_FLOATING_INPUT, false); // user 2026-09-30: classic (variant 1) by default, the capsule stays an option
   }
 
@@ -3543,7 +3543,7 @@ public class Settings {
   public boolean tgx101CapsuleScrollHide () { return pmc.getBoolean(KEY_TGX101_CAPSULE_SCROLL_HIDE, true); }
   public void setTgx101CapsuleScrollHide (boolean v) { pmc.putBoolean(KEY_TGX101_CAPSULE_SCROLL_HIDE, v); }
   public boolean tgx101NavCapsule () {
-    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) return true; // test builds: no side menu at all (user 2026-10-08)
+    if (true /* user 2026-10-08: all test changes go to the release */) return true; // test builds: no side menu at all (user 2026-10-08)
     return pmc.getBoolean(KEY_TGX101_NAV_CAPSULE, true);
   }
   public void setTgx101NavCapsule (boolean v) { pmc.putBoolean(KEY_TGX101_NAV_CAPSULE, v); }
@@ -3639,7 +3639,7 @@ public class Settings {
   // TGx101 (user 2026-10-06 20:42 «не убирай клавиатуру, или дай на выбор»): off — the keyboard stays under the menu
   private static final String KEY_TGX101_MENU_HIDES_KEYBOARD = "tgx101_menu_hides_keyboard";
   public boolean tgx101MenuHidesKeyboard () {
-    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) return false; // test builds: the keyboard stays (user 2026-10-08)
+    if (true /* user 2026-10-08: all test changes go to the release */) return false; // test builds: the keyboard stays (user 2026-10-08)
     return pmc.getBoolean(KEY_TGX101_MENU_HIDES_KEYBOARD, false);
   }
   public void setTgx101MenuHidesKeyboard (boolean v) { pmc.putBoolean(KEY_TGX101_MENU_HIDES_KEYBOARD, v); }
@@ -3648,7 +3648,7 @@ public class Settings {
 
   /** TGx101: the message menu opens at the finger (on) or at the bottom of the screen (off) */
   public boolean tgx101MenuAtFinger () {
-    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) return true; // test builds: always on (user 2026-10-08)
+    if (true /* user 2026-10-08: all test changes go to the release */) return true; // test builds: always on (user 2026-10-08)
     return pmc.getBoolean(KEY_TGX101_MENU_AT_FINGER, true);
   }
 
