@@ -657,8 +657,11 @@ public class RecordAudioVideoController implements
     float actualX = Math.max(-Screen.dp(SLIDE_DISTANCE), getActualTranslateX());
     float closeFactor = MathUtils.clamp(-actualX / (float) Screen.dp(SLIDE_DISTANCE));
 
-    float cornerX = -slideHintView.getMeasuredWidth() / 2 + actualX - cornerView.getMeasuredWidth();
-    slideHintView.setTranslationX(actualX);
+    // TGx101 (user 2026-10-08 12:42 «красная кнопка слишком близко к стрелке — подвинь „← Отмена“ ближе к центру»): in test
+    // builds the hint with its arrow stands 36 dp further left
+    float hintShift = org.thunderdog.challegram.BuildConfig.TGX101_TEST ? -Screen.dp(36f) : 0f;
+    float cornerX = -slideHintView.getMeasuredWidth() / 2 + actualX + hintShift - cornerView.getMeasuredWidth();
+    slideHintView.setTranslationX(actualX + hintShift);
     cornerView.setTranslationX(cornerX);
     updateMiddle();
     cornerX += cornerView.getLeft();

@@ -446,6 +446,13 @@ public final class Tgx101MessageMenu {
   public static float lastTouchRawY = -1, lastTouchRawX = -1;
   public static long lastTouchAt;
 
+  private static int tgx101KeyboardHeight (MessagesController c) {
+    if (!Settings.instance().useEdgeToEdge()) return 0;
+    android.graphics.Rect all = c.context().getRootView().getSystemInsets();
+    android.graphics.Rect withoutIme = c.context().getRootView().getSystemInsetsWithoutIme();
+    return all != null && withoutIme != null ? Math.max(0, all.bottom - withoutIme.bottom) : 0;
+  }
+
   public static PopupLayout show (MessagesController c, TGMessage message, ViewController.Options options, OptionDelegate delegate,
                                   boolean readDatePending, @Nullable MoreLoader moreLoader, Runnable onExpandReactions, Runnable onDismissPrepare, Runnable onDismiss) {
     Context context = c.context();
@@ -467,7 +474,14 @@ public final class Tgx101MessageMenu {
     dragStartX = -1;
     dragStartY = lastTouchRawY;
     popup.init(true);
-    popup.setNeedRootInsets();
+    // TGx101 (user 2026-10-08, exteraGram video 10:45 7,5 s): with the keyboard up the menu opens at the finger and covers the
+    // keyboard instead of squeezing above it — a window of its own, over the keyboard (test builds)
+    boolean tgx101OverKeyboard = org.thunderdog.challegram.BuildConfig.TGX101_TEST && Settings.instance().tgx101MenuAtFinger() && tgx101KeyboardHeight(c) > 0;
+    if (!tgx101OverKeyboard) {
+      popup.setNeedRootInsets();
+    } else {
+      org.thunderdog.challegram.Tgx101Diag.mark("menu: over the keyboard (own window)");
+    }
     popup.setOverlayStatusBar(true);
 
     boolean leftHand = Settings.instance().isTgx101MessageMenuLeftHand();
@@ -548,7 +562,7 @@ public final class Tgx101MessageMenu {
     }
     FrameLayout.LayoutParams columnParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
       Gravity.BOTTOM | (leftHand ? Gravity.LEFT : Gravity.RIGHT));
-    columnParams.setMargins(Screen.dp(12f), Screen.dp(12f), Screen.dp(12f), (keyboardHeight > 0 ? Screen.dp(12f) + keyboardHeight : Screen.dp(68f) + navigationInset)); // above the message input or the keyboard
+    columnParams.setMargins(Screen.dp(12f), Screen.dp(12f), Screen.dp(12f), (keyboardHeight > 0 ? (tgx101OverKeyboard ? Screen.dp(12f) + navigationInset : Screen.dp(12f) + keyboardHeight) : Screen.dp(68f) + navigationInset)); // above the message input or the keyboard (or over it)
     column.setLayoutParams(columnParams);
     if (Settings.instance().tgx101MenuAtFinger() && lastTouchRawY >= 0 && android.os.SystemClock.uptimeMillis() - lastTouchAt < 3000) {
       // variant 1: the menu opens at the finger — its top a little above the touch, kept inside the screen with

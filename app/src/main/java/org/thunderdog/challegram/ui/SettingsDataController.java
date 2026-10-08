@@ -1017,6 +1017,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       R.id.btn_tgx101FloatingInput, // capsule only (the side menu is back as an option — hotfix 0.1.591)
       R.id.btn_tgx101TextEditor, R.id.btn_tgx101MessageMenuHand, R.id.btn_tgx101MenuAtFinger, // always on / right hand
       R.id.btn_tgx101MenuHidesKeyboard)); // the keyboard never closes for the menu
+    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) {
+      gone.add(R.id.btn_tgx101NewCallScreen); // always on in test builds (user 2026-10-08)
+      gone.add(R.id.btn_tgx101ZoomPullClose);
+    }
     int[] bottomMenu = {R.id.btn_tgx101CapsuleMenu, R.id.btn_tgx101ContactsMenu, R.id.btn_tgx101QuickCalls, R.id.btn_tgx101BottomGap};
     int[] inputButtons = {R.id.btn_tgx101HideInputCamera, R.id.btn_tgx101HideInputCommands, R.id.btn_tgx101HideInputEmoji};
     int[] other = {R.id.btn_tgx101RearRounds, R.id.btn_tgx101HidePhone, R.id.btn_tgx101NotificationPlane, R.id.btn_tgx101ForegroundNotif};

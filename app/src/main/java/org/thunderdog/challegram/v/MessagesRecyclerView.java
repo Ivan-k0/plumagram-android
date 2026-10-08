@@ -102,6 +102,20 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
   @Override
   protected void onMeasure (int widthSpec, int heightSpec) {
     tgx101CheckSilentReset("measure");
+    // TGx101 (user 2026-10-08 00:44 «вернулся в чат — он спустился вниз рывком, а должен остаться на том же месте»): a
+    // rotation (media viewer in landscape) re-lays every message at another width and the place was lost. Keep the message
+    // at the bottom edge where it was
+    int newWidth = MeasureSpec.getSize(widthSpec);
+    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST && prevWidth != 0 && newWidth != prevWidth && getLayoutManager() instanceof androidx.recyclerview.widget.LinearLayoutManager) {
+      androidx.recyclerview.widget.LinearLayoutManager llm = (androidx.recyclerview.widget.LinearLayoutManager) getLayoutManager();
+      int pos = llm.findFirstVisibleItemPosition();
+      View anchor = pos != NO_POSITION ? llm.findViewByPosition(pos) : null;
+      if (anchor != null && pos > 0) {
+        int offset = getHeight() - getPaddingBottom() - anchor.getBottom();
+        llm.scrollToPositionWithOffset(pos, offset);
+        org.thunderdog.challegram.Tgx101Diag.mark("chat list: width " + prevWidth + " → " + newWidth + ", keeping message #" + pos + " at " + offset + "px");
+      }
+    }
     super.onMeasure(widthSpec, heightSpec);
     if (manager != null) {
       int width = getMeasuredWidth();

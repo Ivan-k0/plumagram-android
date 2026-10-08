@@ -1236,11 +1236,27 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
   private void tgx101LayoutStoriesStrip (boolean hasItems) {
     if (tgx101StoriesStrip == null) return;
+    // TGx101 (user 2026-10-08 «после выгрузки в „Каналах“ историй вверху не видно — приходится свайпать выше»): the strip
+    // came after the list had been laid out, and the list stayed where it was — under the strip. At the top, stay at the top
+    boolean appearing = hasItems && tgx101StoriesStrip.getVisibility() != View.VISIBLE;
+    boolean atTop = !chatsView.canScrollVertically(-1) || tgx101FirstVisibleIsTop();
     tgx101StoriesStrip.setVisibility(hasItems ? View.VISIBLE : View.GONE);
     tgx101StripMini.setVisibility(hasItems ? View.VISIBLE : View.GONE);
     if (hasItems) tgx101FillMini();
     chatsView.setClipToPadding(false);
     tgx101ApplyStripHeight();
+    if (appearing && atTop && org.thunderdog.challegram.BuildConfig.TGX101_TEST) {
+      chatsView.scrollToPosition(0);
+    }
+  }
+
+  private boolean tgx101FirstVisibleIsTop () {
+    RecyclerView.LayoutManager lm = chatsView.getLayoutManager();
+    if (!(lm instanceof androidx.recyclerview.widget.LinearLayoutManager)) return false;
+    androidx.recyclerview.widget.LinearLayoutManager llm = (androidx.recyclerview.widget.LinearLayoutManager) lm;
+    if (llm.findFirstVisibleItemPosition() != 0) return false;
+    View first = llm.findViewByPosition(0);
+    return first != null && first.getTop() >= chatsView.getPaddingTop() - Screen.dp(4f);
   }
 
   /** Up to 5 overlapping avatars with rings + «Stories · N» */
