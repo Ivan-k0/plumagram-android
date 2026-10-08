@@ -6325,6 +6325,11 @@
   <string name="Tgx101HideCompose">Hide the ✎ (new message) button</string>
   <string name="Tgx101WebAppLocationAsk">Allow %1$s to know your location?</string>
   <string name="Tgx101WebAppLocationAllow">Allow</string>
+  <string name="Tgx101ChannelStyle">Channels</string>
+  <string name="Tgx101ChannelStyleBubbles">Bubbles</string>
+  <string name="Tgx101ChannelStyleBlocks">Blocks</string>
+  <string name="Tgx101ChannelStyleJournal">Journal</string>
+  <string name="Tgx101ChannelStyleClassic">No blocks — classic</string>
   <string name="Tgx101HideJoin">Hide the «Join» button in channels and groups</string>
   <string name="Tgx101SectionInputButtons">Buttons by the message field</string>
   <string name="Tgx101SectionInputButtonsHint">Hide the buttons you don\'t use: camera, bot commands, emoji.</string>

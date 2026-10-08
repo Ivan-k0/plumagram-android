@@ -1552,7 +1552,13 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return manager != null && manager.tgx101FeedCards();
   }
 
+  public final boolean tgx101Journal () {
+    return manager != null && manager.tgx101Journal();
+  }
+
   private boolean needName (boolean allowVia) {
+    if (tgx101Journal())
+      return false; // «Journal»: the channel is in the header, posts carry no name
     if (tgx101Feed() && useBubble() && !separateReplyFromBubble())
       return true; // the card shows whose post it is, like a feed
     if (!useBubbles() ||
@@ -2091,6 +2097,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
     // TGx101: the jump flash over the bubble and its content — together with the wave in drawHighlight
     // (user 2026-10-05: «верни подсвечивание сообщения при переходе + к волне»)
+    if (hasBubble && tgx101Journal() && !isOutgoing()) {
+      // «Journal»: a thin dark stripe under each post (mockup «Каналы-без-блоков-В»)
+      c.drawRect(0, bubblePathRect.bottom, view.getMeasuredWidth(), bubblePathRect.bottom + Screen.dp(6f), Paints.fillingPaint(ColorUtils.alphaColor(Theme.isDark() ? .45f : .12f, 0xff000000)));
+    }
     if (highlightFactor != 0f && hasBubble && tgx101HighlightedChildId == 0 && tgx101QuoteText == null) {
       drawBubble(c, Paints.fillingPaint(tgx101FlashColor()), false, 0);
     }
@@ -3899,6 +3909,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         leftContentEdge += translateBy;
         rightContentEdge += translateBy;
       }
+      boolean tgx101Journal = tgx101Journal() && !isOutgoing();
+      if (tgx101Journal) {
+        // «Journal»: the post spans the screen edge to edge, square
+        leftContentEdge = 0;
+        rightContentEdge = width;
+      }
 
       if (needBubble) {
         final boolean circleBubble = useCircleBubble();
@@ -3906,6 +3922,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         if (circleBubble) {
           dr = mr = bubbleWidth / 2;
           topContentEdge = bottomContentEdge - bubbleWidth;
+        } else if (tgx101Journal) {
+          dr = mr = 0;
         } else {
           dr = bubbleDefaultRadius;
           mr = bubbleMergeRadius;

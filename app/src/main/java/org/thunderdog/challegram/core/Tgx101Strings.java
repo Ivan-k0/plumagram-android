@@ -481,6 +481,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101HideCompose, "Скрыть кнопку ✎ (новое сообщение)");
     RU.put(R.string.Tgx101WebAppLocationAsk, "Разрешить «%1$s» знать ваше местоположение?");
     RU.put(R.string.Tgx101WebAppLocationAllow, "Разрешить");
+    RU.put(R.string.Tgx101ChannelStyle, "Вид каналов");
+    RU.put(R.string.Tgx101ChannelStyleBubbles, "Пузыри");
+    RU.put(R.string.Tgx101ChannelStyleBlocks, "Блоки");
+    RU.put(R.string.Tgx101ChannelStyleJournal, "Журнал");
+    RU.put(R.string.Tgx101ChannelStyleClassic, "Без блоков — классика");
     RU.put(R.string.Tgx101HideJoin, "Скрыть кнопку «Подписаться» в каналах и группах");
     RU.put(R.string.Tgx101SectionInputButtons, "Кнопки у поля ввода");
     RU.put(R.string.Tgx101SectionInputButtonsHint, "Скройте кнопки, которыми не пользуетесь: камера, команды ботов, смайлики.");

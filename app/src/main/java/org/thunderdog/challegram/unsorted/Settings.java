@@ -3536,6 +3536,13 @@ public class Settings {
   public boolean tgx101HideCompose () { return pmc.getBoolean(KEY_TGX101_HIDE_COMPOSE, false); }
   public void setTgx101HideCompose (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_COMPOSE, v); }
   // 4PDA 2026-10-08 16:42 «спрятать нижнюю широкую кнопку „подписаться“/„отправить запрос“»: joining stays in the profile ⋮
+  // user 2026-10-08 23:xx: channels without bubbles have three looks — «Blocks» (the full-width cards), «Journal» (mockup
+  // «Каналы-без-блоков-В»: no name, centred text, a thin dark stripe between posts) and «Classic» (stock Telegram X)
+  public static final int TGX101_CHANNEL_BLOCKS = 0, TGX101_CHANNEL_JOURNAL = 1, TGX101_CHANNEL_CLASSIC = 2;
+  private static final String KEY_TGX101_CHANNEL_PLAIN_STYLE = "tgx101_channel_plain_style";
+  public int tgx101ChannelPlainStyle () { return pmc.getInt(KEY_TGX101_CHANNEL_PLAIN_STYLE, TGX101_CHANNEL_BLOCKS); }
+  public void setTgx101ChannelPlainStyle (int style) { pmc.putInt(KEY_TGX101_CHANNEL_PLAIN_STYLE, style); }
+
   // security audit 2026-10-06 #1: bots whose mini apps the user allowed to know the location
   private static final String KEY_TGX101_WEBAPP_LOCATION_BOTS = "tgx101_webapp_location_bots";
   public boolean tgx101WebAppLocationAllowed (long botUserId) {

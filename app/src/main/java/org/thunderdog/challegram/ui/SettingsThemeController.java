@@ -216,6 +216,8 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
           v.getToggler().setRadioEnabled(Settings.instance().useSystemFonts(), isUpdate);
         } else if (itemId == R.id.btn_secret_batmanTransitions) {
           v.getToggler().setRadioEnabled(Settings.instance().getNewSetting(Settings.SETTING_FLAG_BATMAN_POLL_TRANSITIONS), isUpdate);
+        } else if (itemId == R.id.btn_tgx101ChannelStyle) {
+          v.setData(tgx101ChannelStyleName());
         } else if (itemId == R.id.btn_chatListStyle) {
           switch (Settings.instance().getChatListMode()) {
             case Settings.CHAT_MODE_3LINE_BIG:
@@ -385,7 +387,8 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
 
       items.add(new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.theme_chat_classic, 0, R.string.ChatStyleBubbles, R.id.theme_chat, chatStyle == ThemeManager.CHAT_STYLE_BUBBLES));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-      items.add(new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_forcePlainChannels, 0, R.string.ChatStyleBubblesChannel, R.id.btn_forcePlainChannels, !tdlib.settings().forcePlainModeInChannels()));
+      // TGx101 (user 2026-10-08): channels — bubbles, «Blocks», «Journal» or the classic look without bubbles
+      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101ChannelStyle, 0, R.string.Tgx101ChannelStyle));
 
       if (!tdlib.account().isDebug()) {
         if (BuildConfig.DEBUG) {
@@ -1194,6 +1197,8 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
       Settings.instance().setRestrictContent(!adapter.toggleView(v));
     } else if (viewId == R.id.btn_secret_batmanTransitions) {
       Settings.instance().setNewSetting(Settings.SETTING_FLAG_BATMAN_POLL_TRANSITIONS, adapter.toggleView(v));
+    } else if (viewId == R.id.btn_tgx101ChannelStyle) {
+      tgx101ShowChannelStyles();
     } else if (viewId == R.id.btn_chatListStyle) {
       showChatListOptions();
     } else if (viewId == R.id.btn_instantViewMode) {
@@ -1681,6 +1686,34 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
         tdlib.ui().postDelayed(() -> getRecyclerView().setItemAnimator(animator), 100);
       }
     }
+  }
+
+  private int tgx101ChannelStyleName () {
+    if (!tdlib.settings().forcePlainModeInChannels()) return R.string.Tgx101ChannelStyleBubbles;
+    switch (Settings.instance().tgx101ChannelPlainStyle()) {
+      case Settings.TGX101_CHANNEL_JOURNAL: return R.string.Tgx101ChannelStyleJournal;
+      case Settings.TGX101_CHANNEL_CLASSIC: return R.string.Tgx101ChannelStyleClassic;
+      default: return R.string.Tgx101ChannelStyleBlocks;
+    }
+  }
+
+  private void tgx101ShowChannelStyles () {
+    int current = tgx101ChannelStyleName();
+    showSettings(new SettingsWrapBuilder(R.id.btn_tgx101ChannelStyle).setRawItems(new ListItem[] {
+      new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101ChannelStyleBubbles, 0, R.string.Tgx101ChannelStyleBubbles, R.id.btn_tgx101ChannelStyle, current == R.string.Tgx101ChannelStyleBubbles),
+      new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101ChannelStyleBlocks, 0, R.string.Tgx101ChannelStyleBlocks, R.id.btn_tgx101ChannelStyle, current == R.string.Tgx101ChannelStyleBlocks),
+      new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101ChannelStyleJournal, 0, R.string.Tgx101ChannelStyleJournal, R.id.btn_tgx101ChannelStyle, current == R.string.Tgx101ChannelStyleJournal),
+      new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101ChannelStyleClassic, 0, R.string.Tgx101ChannelStyleClassic, R.id.btn_tgx101ChannelStyle, current == R.string.Tgx101ChannelStyleClassic),
+    }).setIntDelegate((id, result) -> {
+      int picked = result.get(R.id.btn_tgx101ChannelStyle);
+      if (picked == R.id.btn_tgx101ChannelStyleBubbles) {
+        tdlib.settings().setForcePlainModeInChannels(false);
+      } else {
+        Settings.instance().setTgx101ChannelPlainStyle(picked == R.id.btn_tgx101ChannelStyleJournal ? Settings.TGX101_CHANNEL_JOURNAL : picked == R.id.btn_tgx101ChannelStyleClassic ? Settings.TGX101_CHANNEL_CLASSIC : Settings.TGX101_CHANNEL_BLOCKS);
+        tdlib.settings().setForcePlainModeInChannels(true);
+      }
+      adapter.updateValuedSettingById(R.id.btn_tgx101ChannelStyle);
+    }).setAllowResize(false));
   }
 
   private void showChatListOptions () {

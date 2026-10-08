@@ -1009,13 +1009,18 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
   public boolean useBubbles () {
     TdlibSettingsManager settings = controller().tdlib().settings();
     // TGx101: channels in the plain mode are a feed of cards — drawn as full-width bubbles (see tgx101FeedCards)
-    return (loader.isChannel() ? true : settings.useBubbles()) || controller.inWallpaperMode();
+    return (loader.isChannel() ? (!settings.forcePlainModeInChannels() || Settings.instance().tgx101ChannelPlainStyle() != Settings.TGX101_CHANNEL_CLASSIC) : settings.useBubbles()) || controller.inWallpaperMode();
+  }
+
+  /** TGx101: «Journal» look of a channel without bubbles (a card per post across the screen, no name, centred text) */
+  public boolean tgx101Journal () {
+    return tgx101FeedCards() && Settings.instance().tgx101ChannelPlainStyle() == Settings.TGX101_CHANNEL_JOURNAL;
   }
 
   /** TGx101 (user 2026-10-08, mockup «Лента-каналов» variant Б): «Bubbles in channels» off — each post is a card across
    *  the whole width: the channel's name on top, media inside with its own corners, the text, reactions, views and time */
   public boolean tgx101FeedCards () {
-    return loader.isChannel() && controller().tdlib().settings().forcePlainModeInChannels() && !controller.inWallpaperMode();
+    return loader.isChannel() && controller().tdlib().settings().forcePlainModeInChannels() && !controller.inWallpaperMode() && Settings.instance().tgx101ChannelPlainStyle() != Settings.TGX101_CHANNEL_CLASSIC;
   }
 
   private boolean useReactionBubblesValue;
