@@ -9848,6 +9848,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private void tgx101SetImeShift (float shift) {
+    // 11:13 (adb video): leaving the chat with the keyboard open, its close animation kept running after the blur and left
+    // the field shifted by −161 px — the list's room stayed 161 px too big and the messages dropped as the chat came back.
+    // Off screen nothing rides
+    if (!isFocused()) shift = 0f;
     if (tgx101ImeShift == shift) return;
     tgx101ImeShift = shift;
     tgx101ApplyFieldShift();
