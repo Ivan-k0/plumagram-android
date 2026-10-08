@@ -9814,7 +9814,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // so everything is drawn shifted by what the keyboard still has to travel
   private float tgx101ImeShift, tgx101EmojiTranslation;
   private boolean tgx101ImeRiding;
-  private int tgx101ImeEnd, tgx101ImeStart, tgx101HeldFrames;
+  private int tgx101ImeEnd, tgx101ImeStart, tgx101HeldFrames, tgx101ProgressLogs;
   /** Between onPrepare and onStart the layout is already in the end state, but the shift isn't known yet */
   private boolean tgx101ImeStarted = true;
   private boolean tgx101PaddingChanged;
@@ -9909,7 +9909,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
           tgx101ImeEnd = tgx101BottomInset(view.getRootWindowInsets());
           tgx101SetImeShift(tgx101ImeEnd - tgx101ImeStart); // the first frame already in place, before any progress
           tgx101ImeStarted = true;
-          org.thunderdog.challegram.Tgx101Diag.mark("keyboard ride: to " + tgx101ImeEnd + "px, " + animation.getDurationMillis() + " ms");
+          org.thunderdog.challegram.Tgx101Diag.mark("keyboard ride: from " + tgx101ImeStart + " to " + tgx101ImeEnd + "px, " + animation.getDurationMillis() + " ms, bounds " + bounds.getLowerBound().bottom + "…" + bounds.getUpperBound().bottom);
+          tgx101ProgressLogs = 0;
         }
         return bounds;
       }
@@ -9918,6 +9919,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
       @Override
       public android.view.WindowInsets onProgress (@NonNull android.view.WindowInsets insets, @NonNull java.util.List<android.view.WindowInsetsAnimation> running) {
         if (ime != null && running.contains(ime)) {
+          if (tgx101ProgressLogs < 4) {
+            tgx101ProgressLogs++;
+            org.thunderdog.challegram.Tgx101Diag.mark("keyboard ride: progress " + Math.round(ime.getInterpolatedFraction() * 100) + " %, inset " + tgx101BottomInset(insets));
+          }
           tgx101SetImeShift(tgx101ImeEnd - tgx101BottomInset(insets));
         }
         return insets;
@@ -10019,7 +10024,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (!bottomWrap.isLaidOut() || bottomWrap.getHeight() == 0 || fromTop > messagesView.getHeight() * 2 / 3) {
         fromTop = messagesView.getPaddingBottom() > 0 ? messagesView.getPaddingBottom() - Screen.dp(4f) : bottomWrap.getHeight();
       }
-      padding = Math.max(bottomWrap.getHeight(), fromTop) + Screen.dp(4f);
+      // the floor is the field itself, not its keyboard room below (0.1.573 09:00: with the keyboard the floor was the
+      // whole 1391 px, so the room never followed the field down while it rode the keyboard — the list jumped at once)
+      padding = Math.max(bottomWrap.getHeight() - bottomWrap.getPaddingBottom(), fromTop) + Screen.dp(4f);
     }
     // TGx101 (Vivo 0.1.545 19:38 «после применения экран прыгнул»; 0.1.564 00:17 — a new line): the field changes size for a
     // frame or two while text is rewritten (T9 suggestion: two lines shorter; Enter: one line too tall) and the list jumped
