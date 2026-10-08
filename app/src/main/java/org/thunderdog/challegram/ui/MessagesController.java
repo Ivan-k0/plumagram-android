@@ -784,9 +784,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
         super.onLayout(changed, l, t, r, b);
         int content = (b - t) - getPaddingBottom(), pad = getPaddingBottom();
         if (floatingInput && TGX101_CHAT_KEYBOARD_ENGINE && isAttachedToWindow() && getVisibility() == View.VISIBLE) {
-          if (tgx101LastContent > 0 && content != tgx101LastContent && Math.abs(content - tgx101LastContent) < Screen.dp(400f)) {
-            tgx101GlideGrowth(content - tgx101LastContent); // the field grew / shrank: its top glides
-          }
+          // user video 2026-10-08 21:33 «прыгающие стрелка и смайлы»: the glide moved the whole field — on every new line the
+          // field with its buttons dropped ~90 px and slid back up. Like stock TGX now: the bottom (and the buttons) stay,
+          // the field just grows at the top
+          // if (tgx101LastContent > 0 && content != tgx101LastContent && Math.abs(content - tgx101LastContent) < Screen.dp(400f)) {
+          //   tgx101GlideGrowth(content - tgx101LastContent);
+          // }
           if (tgx101LastPad >= 0 && pad != tgx101LastPad && !tgx101ImeRiding && extraBottomInset > extraBottomInsetWithoutIme) {
             tgx101GlideIme(pad - tgx101LastPad); // the keyboard changed size without an animation (suggestion strip)
           }
