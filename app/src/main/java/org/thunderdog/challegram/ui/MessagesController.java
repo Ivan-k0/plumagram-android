@@ -4814,7 +4814,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       ids.append(R.id.btn_setPasscode);
       strings.append(R.string.PasscodeTitle);
     }
-    tdlib.ui().addDeleteChatOptions(getChatId(), ids, strings, !tdlib.isChannel(chat.id), false);
+    // TGx101: with the «Join» bar hidden (MagiX), joining a channel / group is in this ⋮ menu (user 2026-10-08 18:0x)
+    tdlib.ui().addDeleteChatOptions(getChatId(), ids, strings, !tdlib.isChannel(chat.id), Settings.instance().tgx101HideJoinButton());
 
     if (!messagesHidden) {
       if (ChatId.isUserChat(chat.id)) {
