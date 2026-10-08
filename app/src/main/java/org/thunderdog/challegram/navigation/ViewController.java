@@ -1919,9 +1919,37 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
 
     @Override
     public void onApplyMarginInsets (View child, LayoutParams params, Rect legacyInsets, Rect insets, Rect insetsWithoutIme) {
+      if (OptionsLayout.TGX101_CARD) {
+        // TGx101 (mockup «Окна», variant А): a floating card with side and bottom gaps
+        int gap = Screen.dp(OptionsLayout.TGX101_CARD_GAP);
+        Views.setMargins(params, insets.left + gap, 0, insets.right + gap, insetsWithoutIme.bottom + gap);
+        setBottomInset(0);
+        return;
+      }
       Views.setMargins(params, insets.left, 0, insets.right, 0);
       setBottomInset(insetsWithoutIme.bottom);
     }
+
+    @Override
+    protected void onLayout (boolean changed, int left, int top, int right, int bottom) {
+      super.onLayout(changed, left, top, right, bottom);
+      if (OptionsLayout.TGX101_CARD && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && recyclerView != null) {
+        if (getOutlineProvider() != tgx101Outline) {
+          setOutlineProvider(tgx101Outline);
+          setClipToOutline(true);
+        } else {
+          invalidateOutline();
+        }
+      }
+    }
+
+    private final android.view.ViewOutlineProvider tgx101Outline = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ? new android.view.ViewOutlineProvider() {
+      @Override
+      public void getOutline (View view, android.graphics.Outline outline) {
+        int top = recyclerView != null ? Math.max(0, recyclerView.getTop()) : 0;
+        outline.setRoundRect(0, top, view.getWidth(), view.getHeight(), Screen.dp(OptionsLayout.TGX101_CARD_RADIUS));
+      }
+    } : null;
 
     private int bottomInset;
 
@@ -2145,16 +2173,32 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         TextView button = new NoScrollTextView(context);
 
         int colorId = i == 1 ? b.saveColorId : b.cancelColorId;
-        button.setTextColor(Theme.getColor(colorId));
-        addThemeTextColorListener(button, colorId);
+        button.setTextColor(Theme.getColor(OptionsLayout.TGX101_CARD && i == 0 ? ColorId.text : colorId));
+        if (!OptionsLayout.TGX101_CARD) addThemeTextColorListener(button, colorId);
         button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
         button.setOnClickListener(onClickListener);
-        button.setBackgroundResource(R.drawable.bg_btn_header);
+        if (!OptionsLayout.TGX101_CARD) button.setBackgroundResource(R.drawable.bg_btn_header);
         button.setGravity(Gravity.CENTER);
         button.setPadding(Screen.dp(16f), 0, Screen.dp(16f), 0);
 
         CharSequence text;
-        if (i == 0) {
+        if (OptionsLayout.TGX101_CARD) {
+          // TGx101 (mockup «Окна», variant А): two pills — «Cancel» grey, the action filled with its colour
+          int gap = Screen.dp(OptionsLayout.TGX101_CARD_GAP);
+          int width = (Screen.currentWidth() - gap * 2 - gap * 3) / 2;
+          android.graphics.drawable.GradientDrawable pill = new android.graphics.drawable.GradientDrawable();
+          pill.setCornerRadius(Screen.dp(21f));
+          pill.setColor(i == 1 ? Theme.getColor(colorId) : me.vkryl.core.ColorUtils.alphaColor(.07f, Theme.getColor(ColorId.text)));
+          button.setBackground(pill);
+          if (i == 1) button.setTextColor(0xffffffff);
+          FrameLayoutFix.LayoutParams lp = FrameLayoutFix.newParams(width, Screen.dp(42f), ((i == 0) != Lang.rtl() ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM);
+          lp.leftMargin = lp.rightMargin = gap + gap / 2;
+          lp.bottomMargin = gap;
+          button.setLayoutParams(lp);
+          button.setText(text = i == 0 ? b.cancelStr : b.saveStr);
+          if (i == 0) settings.cancelButton = button; else settings.doneButton = button;
+          button.setId(i == 0 ? R.id.btn_cancel : R.id.btn_save);
+        } else if (i == 0) {
           button.setId(R.id.btn_cancel);
           button.setText(text = Lang.uppercase(b.cancelStr));
           button.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(55f), (Lang.rtl() ? Gravity.RIGHT : Gravity.LEFT) | Gravity.BOTTOM));
@@ -2167,7 +2211,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         }
         Views.updateMediumTypeface(button, text);
 
-        Views.setClickable(button);
+        if (!OptionsLayout.TGX101_CARD) Views.setClickable(button);
         footerView.addView(button);
       }
     }
@@ -2192,6 +2236,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
       params.bottomMargin = Screen.dp(56f) + extraBottomInsetWithoutIme;
       shadowView = SeparatorView.simpleSeparator(context, params, true);
       shadowView.setAlignBottom();
+      if (OptionsLayout.TGX101_CARD) shadowView.setAlpha(0f); // the pills need no line above them
       addThemeInvalidateListener(shadowView);
       settingsLayout.addView(shadowView);
     }
@@ -2579,7 +2624,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         }
       };
     }
-    int totalHeight = shadowView.getLayoutParams().height + optionsWrap.getTextHeight() + extraBottomInsetWithoutIme;
+    int totalHeight = shadowView.getLayoutParams().height + optionsWrap.getTextHeight() + extraBottomInsetWithoutIme + (OptionsLayout.TGX101_CARD ? Screen.dp(OptionsLayout.TGX101_CARD_GAP) : 0);
     int index = 0;
     for (OptionItem item : options.items) {
       if (item == OptionItem.SEPARATOR) {

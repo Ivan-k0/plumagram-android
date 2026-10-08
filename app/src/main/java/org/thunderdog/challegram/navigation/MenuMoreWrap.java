@@ -128,7 +128,7 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
     } else {
       drawable = ViewSupport.getDrawableFilter(getContext(), R.drawable.bg_popup_fixed, new PorterDuffColorFilter(Theme.headerFloatBackgroundColor(), PorterDuff.Mode.MULTIPLY));
     }
-    ViewUtils.setBackground(this, drawable);
+    ViewUtils.setBackground(this, OptionsLayout.TGX101_CARD ? tgx101RoundBackground(drawable) : drawable);
 
     if (themeProvider != null && forcedTheme == null) {
       themeProvider.addThemeSpecialFilterListener(drawable, ColorId.overlayFilling);
@@ -139,6 +139,46 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
     setLayerType(LAYER_TYPE_HARDWARE, Views.getLayerPaint());
     setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | (Lang.rtl() ? Gravity.LEFT : Gravity.RIGHT)));
   }
+
+  /** TGx101 (mockup «Окна», variant А): the dropdown is a rounded card like the message field; the old 9-patch only gives
+   *  the shadow room (its padding) */
+  private Drawable tgx101RoundBackground (Drawable ninePatch) {
+    final android.graphics.Rect pad = new android.graphics.Rect();
+    ninePatch.getPadding(pad);
+    return new Drawable() {
+      private final android.graphics.RectF rect = new android.graphics.RectF();
+
+      @Override
+      public boolean getPadding (@androidx.annotation.NonNull android.graphics.Rect padding) {
+        padding.set(pad);
+        return true;
+      }
+
+      @Override
+      public void draw (@androidx.annotation.NonNull android.graphics.Canvas c) {
+        android.graphics.Rect b = getBounds();
+        float r = Screen.dp(TGX101_RADIUS);
+        // a soft shadow in the 9-patch's room: a few faint, growing outlines
+        for (int i = 3; i >= 1; i--) {
+          float g = Screen.dp(i * 1.5f);
+          rect.set(b.left + pad.left - g, b.top + pad.top - g * .5f, b.right - pad.right + g, b.bottom - pad.bottom + g * 1.5f);
+          c.drawRoundRect(rect, r + g, r + g, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(.035f, 0xff000000)));
+        }
+        rect.set(b.left + pad.left, b.top + pad.top, b.right - pad.right, b.bottom - pad.bottom);
+        int color = forcedTheme != null ? forcedTheme.getColor(ColorId.overlayFilling) : Theme.headerFloatBackgroundColor();
+        c.drawRoundRect(rect, r, r, Paints.fillingPaint(color));
+        float half = Math.max(1, Screen.dp(.5f)) / 2f;
+        rect.inset(half, half);
+        c.drawRoundRect(rect, r, r, Paints.strokeSmallPaint(me.vkryl.core.ColorUtils.alphaColor(.08f, 0xff000000)));
+      }
+
+      @Override public void setAlpha (int alpha) { }
+      @Override public void setColorFilter (@Nullable android.graphics.ColorFilter colorFilter) { }
+      @Override @SuppressWarnings("deprecation") public int getOpacity () { return android.graphics.PixelFormat.TRANSLUCENT; }
+    };
+  }
+
+  private static final float TGX101_RADIUS = 18f;
 
   public void setRightNumber (int number) {
     setTranslationX(-Screen.dp(49f) * number);

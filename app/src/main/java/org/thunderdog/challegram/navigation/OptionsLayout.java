@@ -85,12 +85,24 @@ public class OptionsLayout extends LinearLayout implements Animated, RootFrameLa
     addView(textView);
 
     ViewUtils.setBackground(this, new Drawable() {
+      private final android.graphics.RectF rect = new android.graphics.RectF();
       @Override
       public void draw (@NonNull Canvas c) {
         View view = getChildAt(0);
         int height = view != null ? view.getMeasuredHeight() : 0;
+        int color = forcedTheme != null ? forcedTheme.getColor(ColorId.filling) : Theme.getColor(ColorId.filling);
+        if (TGX101_CARD) {
+          // TGx101 (user 2026-10-08, mockup «Окна» variant А): a floating card like the message field — side gaps, round corners
+          rect.set(0, height, getMeasuredWidth(), getMeasuredHeight() - getPaddingBottom());
+          float r = Screen.dp(TGX101_CARD_RADIUS);
+          c.drawRoundRect(rect, r, r, Paints.fillingPaint(color));
+          float half = Math.max(1, Screen.dp(.5f)) / 2f;
+          rect.inset(half, half);
+          c.drawRoundRect(rect, r, r, Paints.strokeSmallPaint(me.vkryl.core.ColorUtils.alphaColor(.08f, 0xff000000)));
+          return;
+        }
         if (height > 0)
-          c.drawRect(0, height, getMeasuredWidth(), getMeasuredHeight(), Paints.fillingPaint(forcedTheme != null ? forcedTheme.getColor(ColorId.filling) : Theme.getColor(ColorId.filling)));
+          c.drawRect(0, height, getMeasuredWidth(), getMeasuredHeight(), Paints.fillingPaint(color));
       }
 
       @Override
@@ -117,11 +129,32 @@ public class OptionsLayout extends LinearLayout implements Animated, RootFrameLa
     }
   }
 
+  /** TGx101: sheets are floating cards (variant А of the «Окна» mockup) */
+  public static final boolean TGX101_CARD = true;
+  public static final float TGX101_CARD_RADIUS = 22f, TGX101_CARD_GAP = 8f;
+
   @Override
   public void onApplyMarginInsets (View child, FrameLayout.LayoutParams params, Rect legacyInsets, Rect insets, Rect insetsWithoutIme) {
-    Views.setMargins(params, insets.left, 0, insets.right, 0);
-    Views.setPaddingBottom(this, insetsWithoutIme.bottom);
+    int gap = TGX101_CARD ? Screen.dp(TGX101_CARD_GAP) : 0;
+    Views.setMargins(params, insets.left + gap, 0, insets.right + gap, 0);
+    Views.setPaddingBottom(this, insetsWithoutIme.bottom + gap);
   }
+
+  @Override
+  public void onViewAdded (View child) {
+    super.onViewAdded(child);
+    // the top shadow of the old full-width sheet: a floating card has its own edge
+    if (TGX101_CARD && child instanceof org.thunderdog.challegram.widget.ShadowView && indexOfChild(child) == 0) child.setAlpha(0f);
+  }
+
+  private final android.view.ViewOutlineProvider tgx101Outline = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP ? new android.view.ViewOutlineProvider() {
+    @Override
+    public void getOutline (View view, android.graphics.Outline outline) {
+      View first = getChildAt(0);
+      int top = first != null ? first.getMeasuredHeight() : 0;
+      outline.setRoundRect(0, top, view.getWidth(), view.getHeight() - view.getPaddingBottom(), Screen.dp(TGX101_CARD_RADIUS));
+    }
+  } : null;
 
   @Override
   protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
@@ -339,6 +372,14 @@ public class OptionsLayout extends LinearLayout implements Animated, RootFrameLa
   @Override
   protected void onLayout (boolean changed, int l, int t, int r, int b) {
     super.onLayout(changed, l, t, r, b);
+    if (TGX101_CARD && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+      if (getOutlineProvider() != tgx101Outline) {
+        setOutlineProvider(tgx101Outline);
+        setClipToOutline(true);
+      } else {
+        invalidateOutline();
+      }
+    }
     if (pendingAction != null) {
       pendingAction.run();
       pendingAction = null;
