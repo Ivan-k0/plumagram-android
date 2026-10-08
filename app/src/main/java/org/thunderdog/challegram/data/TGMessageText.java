@@ -289,7 +289,6 @@ public class TGMessageText extends TGMessage {
           .setClickCallback(clickCallback());
       }
       wrapper.addTextFlags(Text.FLAG_BIG_EMOJI);
-      if (tgx101Journal()) wrapper.addTextFlags(Text.FLAG_ALIGN_CENTER); // «Journal»: the text in the middle
       if (useBubbles()) {
         wrapper.addTextFlags(Text.FLAG_ADJUST_TO_CURRENT_WIDTH);
       }
@@ -554,7 +553,6 @@ public class TGMessageText extends TGMessage {
   // Text without any trash
 
   private int getStartXRtl (TextWrapper wrapper, int startX, int maxWidth) {
-    if (tgx101Journal()) return startX + maxWidth; // centred lines need the right edge too
     return useBubbles() ? (Config.MOVE_BUBBLE_TIME_RTL_TO_LEFT || wrapper.getLineCount() > 1 ? getActualRightContentEdge() - getBubbleContentPadding() : startX) : startX + maxWidth;
   }
 

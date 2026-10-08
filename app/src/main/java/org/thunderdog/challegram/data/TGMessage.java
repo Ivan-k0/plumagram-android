@@ -1402,6 +1402,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   private int getBubbleViewPaddingBottom () {
+    if (tgx101Journal() && !isOutgoing()) return Screen.dp(TGX101_JOURNAL_STRIPE); // the stripe with the channel's name
     return useBubble() ? (isBottomMessage() || (inlineKeyboard != null && !inlineKeyboard.isEmpty()) ? xBubbleViewPadding : xBubbleViewPaddingSmall) : xBubbleViewPadding;
   }
 
@@ -1551,6 +1552,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   public final boolean tgx101Feed () {
     return manager != null && manager.tgx101FeedCards();
   }
+
+  private static final float TGX101_JOURNAL_STRIPE = 24f;
 
   public final boolean tgx101Journal () {
     return manager != null && manager.tgx101Journal();
@@ -2098,8 +2101,17 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     // TGx101: the jump flash over the bubble and its content — together with the wave in drawHighlight
     // (user 2026-10-05: «верни подсвечивание сообщения при переходе + к волне»)
     if (hasBubble && tgx101Journal() && !isOutgoing()) {
-      // «Journal»: a thin dark stripe under each post (mockup «Каналы-без-блоков-В»)
-      c.drawRect(0, bubblePathRect.bottom, view.getMeasuredWidth(), bubblePathRect.bottom + Screen.dp(6f), Paints.fillingPaint(ColorUtils.alphaColor(Theme.isDark() ? .45f : .12f, 0xff000000)));
+      // «Journal»: a dark stripe under each post with the channel's name in the middle
+      float top = bubblePathRect.bottom, bottom = top + Screen.dp(TGX101_JOURNAL_STRIPE);
+      c.drawRect(0, top, view.getMeasuredWidth(), bottom, Paints.fillingPaint(ColorUtils.alphaColor(Theme.isDark() ? .45f : .12f, 0xff000000)));
+      String title = tdlib.chatTitle(msg.chatId);
+      if (!StringUtils.isEmpty(title)) {
+        android.text.TextPaint p = Paints.getRegularTextPaint(11f, ColorUtils.alphaColor(.7f, Theme.getColor(ColorId.textLight)));
+        float maxW = view.getMeasuredWidth() - Screen.dp(48f);
+        CharSequence t = android.text.TextUtils.ellipsize(title, p, maxW, android.text.TextUtils.TruncateAt.END);
+        float w = p.measureText(t, 0, t.length());
+        c.drawText(t, 0, t.length(), (view.getMeasuredWidth() - w) / 2f, (top + bottom) / 2f + Screen.dp(4f), p);
+      }
     }
     if (highlightFactor != 0f && hasBubble && tgx101HighlightedChildId == 0 && tgx101QuoteText == null) {
       drawBubble(c, Paints.fillingPaint(tgx101FlashColor()), false, 0);
@@ -3911,9 +3923,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       }
       boolean tgx101Journal = tgx101Journal() && !isOutgoing();
       if (tgx101Journal) {
-        // «Journal»: the post spans the screen edge to edge, square
-        leftContentEdge = 0;
-        rightContentEdge = width;
+        // «Journal» (user 2026-10-08 23:xx «как в классике, фото на всю ширину с лёгкими скруглениями, по центру»): the post
+        // spans the screen with equal small gaps, lightly rounded
+        leftContentEdge = Screen.dp(6f);
+        rightContentEdge = width - Screen.dp(6f);
       }
 
       if (needBubble) {
@@ -3923,7 +3936,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           dr = mr = bubbleWidth / 2;
           topContentEdge = bottomContentEdge - bubbleWidth;
         } else if (tgx101Journal) {
-          dr = mr = 0;
+          dr = mr = Screen.dp(8f);
         } else {
           dr = bubbleDefaultRadius;
           mr = bubbleMergeRadius;
