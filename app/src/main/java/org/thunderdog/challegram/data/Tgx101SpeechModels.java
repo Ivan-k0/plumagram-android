@@ -46,8 +46,10 @@ public final class Tgx101SpeechModels {
     public final String repository; // huggingface.co/csukuangfj/<repository>
     public final String[] files;
     public final long[] sizes; // bytes, to check the download and show progress
+    public final String[] sha256; // security audit 2026-10-06 #5: the files must be exactly these (mirror and Hugging Face alike)
 
-    Model (String id, int nameRes, int kind, String repository, String[] files, long[] sizes) {
+    Model (String id, int nameRes, int kind, String repository, String[] files, long[] sizes, String[] sha256) {
+      this.sha256 = sha256;
       this.id = id;
       this.nameRes = nameRes;
       this.kind = kind;
@@ -66,12 +68,20 @@ public final class Tgx101SpeechModels {
   public static final Model LIGHT = new Model("ru-light", R.string.Tgx101SpeechModelLight, KIND_ONLINE_TRANSDUCER,
     "sherpa-onnx-streaming-zipformer-small-ru-vosk-int8-2025-08-16",
     new String[] {"encoder.int8.onnx", "decoder.onnx", "joiner.int8.onnx", "tokens.txt"},
-    new long[] {26214060, 2093080, 259417, 6388});
+    new long[] {26214060, 2093080, 259417, 6388},
+    new String[] {
+      "e0db705e94ec35d803b1df4f40cda23d064e1142977c80ab288430b109777a9d",
+      "89b3088a9e20e1ef7f2e85ce1a3478afe6a9c4ac57369cabcc4beb8e95328ea0",
+      "b55784b071ab7512eab4c7c44e4f5478284ef33c83562cc6a249b972515a31e5",
+      "93bbbc0bae6b78c0bbb743d4aa9fded3bb5ff3aac5f0200e3a769a5a05e0fdf6"});
 
   public static final Model ACCURATE = new Model("ru-gigaam", R.string.Tgx101SpeechModelAccurate, KIND_OFFLINE_NEMO_CTC,
     "sherpa-onnx-nemo-ctc-punct-giga-am-v3-russian-2025-12-16",
     new String[] {"model.int8.onnx", "tokens.txt"},
-    new long[] {224893661, 2007});
+    new long[] {224893661, 2007},
+    new String[] {
+      "d5fea8df94263c285e54b21e5774b707c707192d3bdbeffd7b1eb07fb6743b35",
+      "142de7570b3de5b3035ce111a89c228e80e6085273731d944093ddf24fa539cd"});
 
   public static final Model[] ALL = {LIGHT, ACCURATE};
 
@@ -206,10 +216,11 @@ public final class Tgx101SpeechModels {
             }
           }
           if (!fetched) throw lastError != null ? lastError : new IOException("no source");
-          if (part.length() != model.sizes[i] || !part.renameTo(file)) {
+          if (part.length() != model.sizes[i] || !model.sha256[i].equals(sha256(part)) || !part.renameTo(file)) {
             //noinspection ResultOfMethodCallIgnored
             part.delete();
-            throw new IOException("size mismatch: " + model.files[i]);
+            Tgx101Diag.mark("speech model " + model.id + ": " + model.files[i] + " failed the size / SHA-256 check");
+            throw new IOException("checksum mismatch: " + model.files[i]);
           }
         }
         ok = true;
@@ -219,6 +230,20 @@ public final class Tgx101SpeechModels {
       }
       finishDownload(model, ok);
     }, "SpeechModelDownload").start();
+  }
+
+  private static String sha256 (File file) throws IOException {
+    try (InputStream in = new java.io.FileInputStream(file)) {
+      java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+      byte[] buffer = new byte[64 * 1024];
+      int read;
+      while ((read = in.read(buffer)) != -1) digest.update(buffer, 0, read);
+      StringBuilder hex = new StringBuilder();
+      for (byte b : digest.digest()) hex.append(String.format("%02x", b));
+      return hex.toString();
+    } catch (java.security.NoSuchAlgorithmException e) {
+      throw new IOException(e);
+    }
   }
 
   private static long fetch (Model model, String address, File part, long done, long total) throws IOException {

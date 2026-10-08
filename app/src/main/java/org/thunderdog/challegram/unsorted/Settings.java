@@ -3536,6 +3536,17 @@ public class Settings {
   public boolean tgx101HideCompose () { return pmc.getBoolean(KEY_TGX101_HIDE_COMPOSE, false); }
   public void setTgx101HideCompose (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_COMPOSE, v); }
   // 4PDA 2026-10-08 16:42 «спрятать нижнюю широкую кнопку „подписаться“/„отправить запрос“»: joining stays in the profile ⋮
+  // security audit 2026-10-06 #1: bots whose mini apps the user allowed to know the location
+  private static final String KEY_TGX101_WEBAPP_LOCATION_BOTS = "tgx101_webapp_location_bots";
+  public boolean tgx101WebAppLocationAllowed (long botUserId) {
+    String list = pmc.getString(KEY_TGX101_WEBAPP_LOCATION_BOTS, "");
+    return list != null && ("," + list + ",").contains("," + botUserId + ",");
+  }
+  public void setTgx101WebAppLocationAllowed (long botUserId) {
+    if (tgx101WebAppLocationAllowed(botUserId)) return;
+    String list = pmc.getString(KEY_TGX101_WEBAPP_LOCATION_BOTS, "");
+    pmc.putString(KEY_TGX101_WEBAPP_LOCATION_BOTS, list == null || list.isEmpty() ? String.valueOf(botUserId) : list + "," + botUserId);
+  }
   private static final String KEY_TGX101_HIDE_JOIN = "tgx101_hide_join";
   public boolean tgx101HideJoinButton () { return pmc.getBoolean(KEY_TGX101_HIDE_JOIN, false); }
   public void setTgx101HideJoinButton (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_JOIN, v); }

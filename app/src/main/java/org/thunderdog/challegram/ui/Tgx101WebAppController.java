@@ -40,6 +40,7 @@ import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.Tgx101Diag;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.data.TD;
+import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.navigation.BackHeaderButton;
 import org.thunderdog.challegram.navigation.DoubleHeaderView;
 import org.thunderdog.challegram.navigation.HeaderView;
@@ -238,6 +239,15 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
     settings.setDomStorageEnabled(true);
     settings.setMediaPlaybackRequiresUserGesture(false);
     settings.setGeolocationEnabled(true); // TGx101: mini apps asking for the location (user's report from a Poco, 2026-10-04)
+    // security audit 2026-10-06 #4: a mini app has no business reading the phone's files (on by default up to Android 10)
+    settings.setAllowFileAccess(false);
+    settings.setAllowContentAccess(false);
+    tgx101Origin = tgx101OriginOf(getArgumentsStrict().url);
+    // #3: links open only right after the user touched the page
+    webView.setOnTouchListener((v, e) -> {
+      tgx101LastTouch = android.os.SystemClock.uptimeMillis();
+      return false;
+    });
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
     }
@@ -263,6 +273,17 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
       public void onGeolocationPermissionsShowPrompt (String origin, android.webkit.GeolocationPermissions.Callback callback) {
         // the page's navigator.geolocation: ask the system permission once, then let the page have the location
         Tgx101Diag.mark("mini app: page asks for the location");
+        // security audit #1: the bot's page gets the location only after the user allowed this bot (asked once per bot)
+        tgx101WithLocationConsent(allowed -> {
+          if (!allowed) {
+            callback.invoke(origin, false, false);
+            return;
+          }
+          tgx101AskSystemLocation(origin, callback);
+        });
+      }
+
+      private void tgx101AskSystemLocation (String origin, android.webkit.GeolocationPermissions.Callback callback) {
         if (tgx101HasLocationPermission()) {
           callback.invoke(origin, true, false);
           return;
@@ -321,7 +342,14 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
     @JavascriptInterface
     public void postEvent (String eventType, String eventData) {
       UI.post(() -> {
-        if (!closed) onEvent(eventType, eventData);
+        if (closed || webView == null) return;
+        // security audit #2: the bridge answers only the mini app's own site, not a page it navigated to
+        String current = tgx101OriginOf(webView.getUrl());
+        if (tgx101Origin != null && current != null && !tgx101Origin.equals(current)) {
+          Tgx101Diag.mark("mini app: event " + eventType + " from another site ignored");
+          return;
+        }
+        onEvent(eventType, eventData);
       });
     }
   }
@@ -385,9 +413,18 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
         case "web_app_setup_settings_button":
           settingsButtonVisible = data.optBoolean("is_visible");
           break;
-        case "web_app_open_link":
-          Intents.openUri(data.optString("url"));
+        case "web_app_open_link": {
+          // security audit #3: only web links, and only right after a touch (no silent openings of any app)
+          String link = data.optString("url");
+          String scheme = android.net.Uri.parse(link).getScheme();
+          boolean web = "https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme);
+          if (web && android.os.SystemClock.uptimeMillis() - tgx101LastTouch < 5000) {
+            Intents.openUri(link);
+          } else {
+            Tgx101Diag.mark("mini app: open_link refused (" + (web ? "no touch" : "scheme " + scheme) + ")");
+          }
           break;
+        }
         case "web_app_open_tg_link":
           openTelegramLink("https://t.me" + data.optString("path_full"));
           break;
@@ -434,19 +471,16 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
           // Telegram.WebApp.LocationManager: is the location available and allowed
           JSONObject result = new JSONObject();
           result.put("available", true);
-          result.put("access_requested", tgx101HasLocationPermission());
-          result.put("access_granted", tgx101HasLocationPermission());
+          boolean consent = Settings.instance().tgx101WebAppLocationAllowed(getArgumentsStrict().botUserId);
+          result.put("access_requested", consent);
+          result.put("access_granted", consent && tgx101HasLocationPermission());
           sendEvent("location_checked", result);
           break;
         }
         case "web_app_request_location": {
-          if (!tgx101HasLocationPermission()) {
-            context().requestLocationPermission(false, false, () -> sendEvent("location_requested", new JSONObject()), (code, permissions, grantResults, grantCount) -> {
-              if (grantCount > 0) tgx101SendLocation(); else sendEvent("location_requested", new JSONObject());
-            });
-          } else {
-            tgx101SendLocation();
-          }
+          tgx101WithLocationConsent(allowed -> {
+            if (allowed) tgx101RequestLocationAfterConsent(); else sendEvent("location_requested", new JSONObject());
+          });
           break;
         }
         case "web_app_open_location_settings": {
@@ -462,6 +496,45 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
       }
     } catch (Throwable t) {
       Tgx101Diag.mark("mini app: event " + type + " failed " + t.getClass().getSimpleName());
+    }
+  }
+
+  private @Nullable String tgx101Origin;
+  private long tgx101LastTouch;
+
+  private static @Nullable String tgx101OriginOf (@Nullable String url) {
+    if (url == null) return null;
+    android.net.Uri uri = android.net.Uri.parse(url);
+    if (uri.getScheme() == null || uri.getHost() == null) return null;
+    return uri.getScheme().toLowerCase(java.util.Locale.ROOT) + "://" + uri.getHost().toLowerCase(java.util.Locale.ROOT) + (uri.getPort() != -1 ? ":" + uri.getPort() : "");
+  }
+
+  /** Security audit #1: asks once per bot «Allow X to know your location?», remembers «Allow» */
+  private void tgx101WithLocationConsent (me.vkryl.core.lambda.RunnableBool after) {
+    long botId = getArgumentsStrict().botUserId;
+    if (Settings.instance().tgx101WebAppLocationAllowed(botId)) {
+      after.runWithBool(true);
+      return;
+    }
+    String bot = TD.getUserName(botId, tdlib.cache().user(botId));
+    final boolean[] answered = {false};
+    showOptions(Lang.getString(R.string.Tgx101WebAppLocationAsk, bot), new int[] {R.id.btn_done, R.id.btn_cancel}, new String[] {Lang.getString(R.string.Tgx101WebAppLocationAllow), Lang.getString(R.string.Cancel)}, new int[] {OptionColor.BLUE, OptionColor.NORMAL}, new int[] {R.drawable.baseline_location_on_24, R.drawable.baseline_cancel_24}, (v, id) -> {
+      answered[0] = true;
+      boolean allow = id == R.id.btn_done;
+      if (allow) Settings.instance().setTgx101WebAppLocationAllowed(botId);
+      Tgx101Diag.mark("mini app: location for the bot " + (allow ? "allowed" : "refused"));
+      after.runWithBool(allow);
+      return true;
+    });
+  }
+
+  private void tgx101RequestLocationAfterConsent () {
+    if (!tgx101HasLocationPermission()) {
+      context().requestLocationPermission(false, false, () -> sendEvent("location_requested", new JSONObject()), (code, permissions, grantResults, grantCount) -> {
+        if (grantCount > 0) tgx101SendLocation(); else sendEvent("location_requested", new JSONObject());
+      });
+    } else {
+      tgx101SendLocation();
     }
   }
 
