@@ -1280,6 +1280,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     });
     tgx101TabRoots.put(this, Tgx101NavCapsule.TAB_CHATS);
     addFocusListener(tgx101TabFocus);
+    Tgx101QuickCalls.refreshTop(tdlib); // the «Calls» hold menu has its contacts at once
     navigation.addViewUnderHeader(tgx101Capsule);
     // user 2026-10-08 17:38 «меню опять наехало на чаты»: a cold start from a notification opens the chat straight away —
     // no transition, no blur, so nothing hid the menu. Before any frame: outside a transition, over a non-tab screen
@@ -1317,6 +1318,8 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   };
   private static final int TGX101_MENU_CONTACTS = 100, TGX101_MENU_CALLS = 200, TGX101_MENU_CALLS_EDIT = 299;
 
+  private boolean tgx101CallsFetched;
+
   private boolean tgx101OpenHoldMenu (int tab) {
     int[] icons, titles;
     int mask, base;
@@ -1325,6 +1328,13 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     } else if (tab == Tgx101NavCapsule.TAB_CONTACTS) {
       icons = TGX101_CONTACTS_MENU_ICONS; titles = TGX101_CONTACTS_MENU_TITLES; mask = Settings.instance().tgx101ContactsMenu(); base = TGX101_MENU_CONTACTS;
     } else if (tab == Tgx101NavCapsule.TAB_CALLS) {
+      if (Tgx101QuickCalls.needsFetch() && !tgx101CallsFetched) {
+        Tgx101QuickCalls.refreshTop(tdlib, () -> {
+          tgx101CallsFetched = true; // no calls at all: the menu still opens, with «Add»
+          if (!isDestroyed()) tgx101OpenHoldMenu(tab);
+        });
+        return true;
+      }
       long[] userIds = Tgx101QuickCalls.userIds(tdlib);
       int n = userIds.length;
       int[] ids = new int[n + 1], outIcons = new int[n + 1], colors = new int[n + 1];

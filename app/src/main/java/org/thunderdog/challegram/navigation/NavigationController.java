@@ -1597,6 +1597,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
 
   @Override
   public boolean onSystemBackStarted (@NonNull BackEventCompat backEvent) {
+    tgx101BackStartX = Float.NaN;
     org.thunderdog.challegram.Tgx101Diag.mark("system back: started, swipe nav " + swipeNavigationEnabled() + ", animating " + isAnimating + ", top " + (getCurrentStackItem() != null ? getCurrentStackItem().getClass().getSimpleName() : "?"));
     if (swipeNavigationEnabled()) {
       if (openPreviewImpl(backEvent.getTouchY(), false, backEvent.getSwipeEdge() == BackEventCompat.EDGE_RIGHT ? PredictiveGesture.BACK_FROM_RIGHT_EDGE : PredictiveGesture.BACK_FROM_LEFT_EDGE)) {
@@ -1620,11 +1621,20 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
    *  lifted and the back looked like no animation. The gesture shows up to a third of the slide, the release animates the rest */
   // user 2026-10-08 «системный жест должен работать так же, как свайп назад»: the screen follows the finger itself (its x),
   // like the in-app swipe — Vivo's progress value jumped to 1 within ~80 ms
+  // user 2026-10-08 20:03 «опять поломалась анимация системного жеста»: on 0.1.610 every gesture was at 98–100 % within
+  // 40 ms — the edge Vivo reports doesn't match the finger's x, so «width − x» gave a full slide at once. Now the distance
+  // from where the finger started, whatever edge is reported
+  private float tgx101BackStartX = Float.NaN;
+
   private float tgx101BackPreview (@NonNull BackEventCompat e) {
     float x = e.getTouchX();
-    if (Float.isNaN(x) || currentWidth <= 0) return Float.isNaN(e.getProgress()) ? 0f : MathUtils.clamp(e.getProgress());
-    float dx = e.getSwipeEdge() == BackEventCompat.EDGE_RIGHT ? currentWidth - x : x;
-    return MathUtils.clamp(dx / currentWidth);
+    if (Float.isNaN(x) || currentWidth <= 0) return Float.isNaN(e.getProgress()) ? 0f : MathUtils.clamp(e.getProgress()) / 3f;
+    if (Float.isNaN(tgx101BackStartX)) {
+      tgx101BackStartX = x;
+      org.thunderdog.challegram.Tgx101Diag.mark("system back: finger at " + Math.round(x) + " of " + currentWidth + ", edge " + (e.getSwipeEdge() == BackEventCompat.EDGE_RIGHT ? "right" : "left") + ", progress " + e.getProgress());
+    }
+    // never more than two thirds while the finger is down: if the reported x jumps too, the release still slides the rest
+    return Math.min(.66f, MathUtils.clamp(Math.abs(x - tgx101BackStartX) / currentWidth));
   }
 
   @Override

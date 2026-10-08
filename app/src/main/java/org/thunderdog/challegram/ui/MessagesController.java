@@ -9862,6 +9862,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // the field shifted by −161 px — the list's room stayed 161 px too big and the messages dropped as the chat came back.
     // Off screen nothing rides
     if (!isFocused()) shift = 0f;
+    // user video 2026-10-08 20:16 «прыжки»: keyboard ↔ emoji panel — the panel takes the keyboard's place in the layout, so
+    // the field stays where it is; riding the keyboard as well threw it to the top of the screen for a frame
+    if (emojiShown || android.os.SystemClock.uptimeMillis() - tgx101EmojiToggledAt < 450) shift = 0f;
     if (tgx101ImeShift == shift) return;
     tgx101ImeShift = shift;
     tgx101ApplyFieldShift();
@@ -10085,7 +10088,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // frame or two while text is rewritten (T9 suggestion: two lines shorter; Enter: one line too tall) and the list jumped
     // there and back. A new padding applies once it holds for 40 ms; with the keyboard moving — at once (the ride covers it)
     int current = messagesView.getPaddingBottom();
-    if (padding < current && !tgx101ShrinkConfirmed && !tgx101ImeMoving()) {
+    // …but a field emptied by sending (video 20:16, second jump) shrinks for good: the list follows at once, not 120 ms late
+    boolean tgx101Cleared = inputView != null && inputView.getText() != null && inputView.getText().length() == 0;
+    if (padding < current && !tgx101ShrinkConfirmed && !tgx101ImeMoving() && !tgx101Cleared) {
       if (!tgx101ShrinkPending) {
         tgx101ShrinkPending = true;
         messagesView.postDelayed(tgx101ApplyPending, 120);
@@ -10347,9 +10352,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     notifyChoosingEmoji(type, emojiShown);
   }
 
+  private long tgx101EmojiToggledAt;
+
   private void setEmojiShown (boolean emojiShown, boolean animated) {
     if (this.emojiShown != emojiShown) {
       this.emojiShown = emojiShown;
+      tgx101EmojiToggledAt = android.os.SystemClock.uptimeMillis();
+      tgx101SetImeShift(0f);
       if (emojiShown) {
         hideSoftwareKeyboard();
       }

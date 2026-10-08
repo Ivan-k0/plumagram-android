@@ -32,10 +32,23 @@ public final class Tgx101QuickCalls {
     return chosen.length > 0 ? chosen : topCalls;
   }
 
+  /** True when the menu has nothing to show yet: the most called contacts are still being fetched */
+  public static boolean needsFetch () {
+    return Settings.instance().tgx101QuickCalls().length == 0 && topCalls.length == 0;
+  }
+
   public static void refreshTop (Tdlib tdlib) {
+    refreshTop(tdlib, null);
+  }
+
+  // user 2026-10-08 20:54 «зажал кнопку звонков и ничего не показалось, спустя 3 секунды появились»: the list was fetched
+  // only on the first hold — now also when the menu is created, and a hold with nothing yet waits for it
+  public static void refreshTop (Tdlib tdlib, @androidx.annotation.Nullable Runnable after) {
     tdlib.send(new TdApi.GetTopChats(new TdApi.TopChatCategoryCalls(), MAX), (chats, error) -> {
-      if (chats == null)
+      if (chats == null) {
+        if (after != null) tdlib.ui().post(after);
         return;
+      }
       List<Long> users = new ArrayList<>();
       for (long chatId : chats.chatIds) {
         long userId = ChatId.toUserId(chatId);
@@ -44,6 +57,7 @@ public final class Tgx101QuickCalls {
       long[] out = new long[users.size()];
       for (int i = 0; i < out.length; i++) out[i] = users.get(i);
       topCalls = out;
+      if (after != null) tdlib.ui().post(after);
     });
   }
 
