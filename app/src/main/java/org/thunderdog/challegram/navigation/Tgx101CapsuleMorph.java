@@ -160,11 +160,12 @@ public class Tgx101CapsuleMorph extends View {
     float w = rect.width();
     // the menu icons leave to the left (the snapshot is the whole capsule view: its capsule lands on the drawn one)
     // user 2026-10-08 10:26 «поменяем на А или добавим к текущей, чтобы ещё плавнее»: Б + А — they slide and dissolve
-    bitmapPaint.setAlpha(Math.round(255 * Math.max(0f, 1f - p * 1.6f)));
+    // one after the other, never both at once (user 2026-10-08: «текст в плашке меню налазит один на другой»)
+    bitmapPaint.setAlpha(Math.round(255 * Math.max(0f, 1f - p / .45f)));
     c.drawBitmap(menuShot, rect.left - p * w * .5f - menuLocal.left, rect.centerY() - menuLocal.centerY(), bitmapPaint);
     // the field's contents come in from the right
     if (haveField) {
-      bitmapPaint.setAlpha(Math.round(255 * Math.max(0f, (p - .3f) / .7f)));
+      bitmapPaint.setAlpha(Math.round(255 * Math.max(0f, Math.min(1f, (p - .55f) / .45f))));
       c.drawBitmap(fieldShot, rect.left + (1f - p) * w * .5f, rect.centerY() - fieldShot.getHeight() / 2f, bitmapPaint);
       bitmapPaint.setAlpha(255);
     }
