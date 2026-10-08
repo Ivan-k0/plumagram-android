@@ -803,6 +803,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // user 2026-10-07 09:49/10:00 (Xiaomi, 0.1.507): the capsule still covered the last message — it moves without its
       // own layout (keyboard hides, reply bar, the list resized later), so check the room before every frame
       android.view.ViewTreeObserver.OnPreDrawListener paddingCheck = () -> {
+        // 0.1.572 08:38: on keyboard open the room jumped 251 → 1395 before the ride started — hold that frame (max 3)
+        if (tgx101ImeRiding && !tgx101ImeStarted && tgx101HeldFrames < 3) {
+          tgx101HeldFrames++;
+          return false;
+        }
         tgx101PaddingChanged = false;
         updateFloatingListPadding();
         syncFloatingReplyBar();
@@ -9809,7 +9814,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // so everything is drawn shifted by what the keyboard still has to travel
   private float tgx101ImeShift, tgx101EmojiTranslation;
   private boolean tgx101ImeRiding;
-  private int tgx101ImeEnd, tgx101ImeStart;
+  private int tgx101ImeEnd, tgx101ImeStart, tgx101HeldFrames;
+  /** Between onPrepare and onStart the layout is already in the end state, but the shift isn't known yet */
+  private boolean tgx101ImeStarted = true;
   private boolean tgx101PaddingChanged;
 
   private static int tgx101BottomInset (@Nullable android.view.WindowInsets insets) {
@@ -9889,6 +9896,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
           ime = animation;
           tgx101ImeRiding = true;
           tgx101ImeStart = tgx101BottomInset(view.getRootWindowInsets());
+          tgx101ImeStarted = false;
+          tgx101HeldFrames = 0;
           tgx101ShrinkConfirmed = true; // the keyboard's padding change applies at once — the shift covers it
         }
       }
@@ -9899,6 +9908,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         if (animation == ime) {
           tgx101ImeEnd = tgx101BottomInset(view.getRootWindowInsets());
           tgx101SetImeShift(tgx101ImeEnd - tgx101ImeStart); // the first frame already in place, before any progress
+          tgx101ImeStarted = true;
           org.thunderdog.challegram.Tgx101Diag.mark("keyboard ride: to " + tgx101ImeEnd + "px, " + animation.getDurationMillis() + " ms");
         }
         return bounds;
