@@ -117,7 +117,7 @@ public class Tgx101CapsuleMorph extends View {
   private void takeFieldShot () {
     if (chat == null) return;
     View f = chat.tgx101BottomCapsule();
-    if (f == null || !f.isLaidOut() || f.getWidth() == 0 || f.getHeight() - f.getPaddingBottom() <= 0) return;
+    if (f == null || !androidx.core.view.ViewCompat.isLaidOut(f) || f.getWidth() == 0 || f.getHeight() - f.getPaddingBottom() <= 0) return;
     try {
       int h = f.getHeight() - f.getPaddingBottom();
       Bitmap b = Bitmap.createBitmap(f.getWidth(), h, Bitmap.Config.ARGB_8888);

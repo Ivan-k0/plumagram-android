@@ -10018,7 +10018,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // the field animates its own height (a new line): the padding already follows it frame by frame — a glide on every
     // step made it jerky (Vivo 00:02:58, six steps in 40 ms)
     if (following) return;
-    if (Math.abs(delta) < Screen.dp(2f) || !messagesView.isShown() || !messagesView.isLaidOut()) return;
+    if (Math.abs(delta) < Screen.dp(2f) || !messagesView.isShown() || !androidx.core.view.ViewCompat.isLaidOut(messagesView)) return;
     float from = tgx101PaddingShift + delta;
     if (tgx101GlideAnimator != null) tgx101GlideAnimator.cancel();
     tgx101GlideAnimator = android.animation.ValueAnimator.ofFloat(from, 0f);
@@ -10052,12 +10052,24 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // user 2026-10-07 22:57 «вспышки вместо анимаций»: while the chat slides in, the capsule isn't placed yet and was
       // measured near the top (padding 2848 px for 150 ms) — the chat came in empty, then the messages popped in. Even with
       // the keyboard up the capsule sits in the lower part, so a position above the list's upper third is not real yet
-      if (!bottomWrap.isLaidOut() || bottomWrap.getHeight() == 0 || fromTop > messagesView.getHeight() * 2 / 3) {
+      if (!androidx.core.view.ViewCompat.isLaidOut(bottomWrap) || bottomWrap.getHeight() == 0 || fromTop > messagesView.getHeight() * 2 / 3) {
         fromTop = messagesView.getPaddingBottom() > 0 ? messagesView.getPaddingBottom() - Screen.dp(4f) : bottomWrap.getHeight();
       }
       // the floor is the field itself, not its keyboard room below (0.1.573 09:00: with the keyboard the floor was the
       // whole 1391 px, so the room never followed the field down while it rode the keyboard — the list jumped at once)
       padding = Math.max(bottomWrap.getHeight() - bottomWrap.getPaddingBottom(), fromTop) + Screen.dp(4f);
+    } else {
+      // user 2026-10-08 17:25 (three-button navigation, a channel without the bottom bar): the last post went under the
+      // navigation buttons — without the capsule the room is the part of the list behind the navigation bar
+      androidx.core.view.WindowInsetsCompat insets = androidx.core.view.ViewCompat.getRootWindowInsets(messagesView);
+      int nav = insets != null ? insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom : 0;
+      if (nav > 0) {
+        int[] list = new int[2];
+        messagesView.getLocationInWindow(list);
+        int listBottom = list[1] - Math.round(messagesView.getTranslationY()) + messagesView.getHeight();
+        int behind = listBottom - (messagesView.getRootView().getHeight() - nav);
+        if (behind > 0) padding = behind + Screen.dp(4f);
+      }
     }
     // TGx101 (Vivo 0.1.545 19:38 «после применения экран прыгнул»; 0.1.564 00:17 — a new line): the field changes size for a
     // frame or two while text is rewritten (T9 suggestion: two lines shorter; Enter: one line too tall) and the list jumped
