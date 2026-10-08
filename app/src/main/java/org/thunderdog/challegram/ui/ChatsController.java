@@ -508,6 +508,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     });
     Views.applyBottomInset(chatsView, extraBottomInset);
     chatsView.setItemAnimator(null);
+    if (filter == null && pickerDelegate == null) setAnimatorFlag(ANIMATOR_FLAG_TGX101_MOVES, true);
     if (isInForceTouchMode()) {
       chatsView.setVerticalScrollBarEnabled(false);
     }
@@ -588,6 +589,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
         dragFrom = dragTo = -1;
         chatsView.setItemAnimator(null);
         setAnimatorFlag(ANIMATOR_FLAG_DRAGGING, false);
+        if (animatorFlags != 0 && chatsAnimator != null) chatsView.setItemAnimator(chatsAnimator); // TGx101: the moves keep sliding
         if (viewHolder.getItemViewType() == ChatsAdapter.VIEW_TYPE_CHAT) {
           ((ChatView) viewHolder.itemView).setIsDragging(false);
         }
@@ -969,6 +971,10 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
   private static final int ANIMATOR_FLAG_DRAGGING = 1;
   private static final int ANIMATOR_FLAG_LOCATION = 1 << 1;
+  // TGx101 (user video 2026-10-08 22:28 «список прыгает… и так постоянно»): with no item animator a chat that got a new
+  // message jumped to the top in one frame and every row below moved down a whole row at once. Moves slide now, like the
+  // official app; content changes stay instant (no cross-fade blinking on every new message)
+  private static final int ANIMATOR_FLAG_TGX101_MOVES = 1 << 2;
 
   private int animatorFlags;
 
@@ -994,6 +1000,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
                 }
               }
             };
+            chatsAnimator.setSupportsChangeAnimations(false);
           }
           chatsView.setItemAnimator(chatsAnimator);
         } else {
