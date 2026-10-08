@@ -10007,6 +10007,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void updateFloatingListPadding () {
     if (!floatingInput || messagesView == null || bottomWrap == null) return;
+    if (tgx101ImeRiding && !tgx101ImeStarted) return; // the end-state layout before the ride starts: not real yet
     // TGx101 (Vivo 0.1.552, share sheet still twitching): a window over the chat (share sheet with its own keyboard) made
     // the chat under it relayout for that keyboard (16–17 ms frame while the sheet rose); it catches up once it's closed
     if (context().getCurrentPopupWindow() != null) return;
