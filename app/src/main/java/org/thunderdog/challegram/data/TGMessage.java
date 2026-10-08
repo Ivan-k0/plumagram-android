@@ -879,6 +879,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   // Layout
 
   private int computeBubbleLeft () {
+    if (tgx101Journal() && !isOutgoing()) return Screen.dp(6f); // «Journal»: equal gaps on both sides
     final int x;
     if (needAvatar() && !isOutgoing()) {
       x = xBubbleLeft1 + Screen.dp(40f);
@@ -1229,6 +1230,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (useBubbles()) {
       pRealContentX = computeBubbleLeft();
       pRealContentMaxWidth = width - (Device.NEED_BIGGER_BUBBLE_OFFSETS ? xBubbleLeft2 : xBubbleLeft1) - computeBubbleLeft() - (Screen.dp(isThreadHeader() ? 8f : tgx101Feed() ? 16f : 56f));
+      if (tgx101Journal() && !isOutgoing()) {
+        // user 2026-10-08 23:31 «текст в журнале не по центру»: the text block takes the card's whole inner width,
+        // so the gaps on the left and on the right are the same
+        pRealContentMaxWidth = width - computeBubbleLeft() * 2;
+      }
 
       if (useForward()) {
         pRealContentX += Screen.dp(11f);
@@ -1461,7 +1467,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   protected final boolean useFullWidth () {
-    return !useForward() && !useBubbles() && preferFullWidth() && !isEventLog();
+    // TGx101 «Journal»: media across the whole post, like the classic look (user 2026-10-08 23:29 «фото на всю ширину»)
+    return !useForward() && (!useBubbles() || (tgx101Journal() && !isOutgoing())) && preferFullWidth() && !isEventLog();
   }
 
   protected boolean preferFullWidth () {
@@ -1553,7 +1560,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return manager != null && manager.tgx101FeedCards();
   }
 
-  private static final float TGX101_JOURNAL_STRIPE = 24f;
+  private static final float TGX101_JOURNAL_STRIPE = 28f;
 
   public final boolean tgx101Journal () {
     return manager != null && manager.tgx101Journal();
@@ -2106,7 +2113,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       c.drawRect(0, top, view.getMeasuredWidth(), bottom, Paints.fillingPaint(ColorUtils.alphaColor(Theme.isDark() ? .45f : .12f, 0xff000000)));
       String title = tdlib.chatTitle(msg.chatId);
       if (!StringUtils.isEmpty(title)) {
-        android.text.TextPaint p = Paints.getRegularTextPaint(11f, ColorUtils.alphaColor(.7f, Theme.getColor(ColorId.textLight)));
+        // user 2026-10-08 23:33 «выдели имя канала, чтобы служило разделителем — жирнее и светлее»
+        android.text.TextPaint p = Paints.getMediumTextPaint(12.5f, ColorUtils.alphaColor(.92f, Theme.getColor(ColorId.text)), false);
         float maxW = view.getMeasuredWidth() - Screen.dp(48f);
         CharSequence t = android.text.TextUtils.ellipsize(title, p, maxW, android.text.TextUtils.TruncateAt.END);
         float w = p.measureText(t, 0, t.length());
