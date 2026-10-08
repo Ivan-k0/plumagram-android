@@ -610,6 +610,11 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   private void tgx101ApplyBlurFade (float factor) {
     // factor 1 → the right screen is hidden; the left one fades out as the right comes in, and the other way round
     if (leftWrap != null) leftWrap.setAlpha(factor);
+    // the bottom menu blurs these screens: it must redraw with them on every frame, not only on scroll (video 18:49 —
+    // after «Contacts → Chats» it kept the empty picture taken when the chats were still invisible)
+    for (ViewController<?> c : getStack().getAll()) {
+      if (c instanceof org.thunderdog.challegram.ui.MainController) ((org.thunderdog.challegram.ui.MainController) c).tgx101InvalidateCapsule();
+    }
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
       // only the screen that goes away blurs: blurring the new one too made its first frame expensive (Contacts with
       // 1 265 rows: 146 ms on a Vivo, user 2026-10-06 21:4x «зависание на 12 секунде»)

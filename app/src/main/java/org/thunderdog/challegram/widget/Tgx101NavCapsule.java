@@ -78,7 +78,10 @@ public class Tgx101NavCapsule extends View {
         View under = parent.getChildAt(i);
         if (under == null || under.getVisibility() != View.VISIBLE || under.getWidth() == 0 || under.getAlpha() == 0f) continue;
         under.getLocationInWindow(blurUnderLoc);
-        int save = rc.save();
+        // View.draw ignores the view's own alpha: a screen fading in / out between tabs (user video 2026-10-08 18:49) was
+        // taken at full strength — the menu showed the gone Contacts, or nothing of the chats coming back
+        float alpha = under.getAlpha();
+        int save = alpha < 1f ? rc.saveLayerAlpha(null, Math.round(alpha * 255)) : rc.save();
         rc.translate(blurUnderLoc[0] - x, blurUnderLoc[1] - y);
         under.draw(rc);
         rc.restoreToCount(save);

@@ -1170,6 +1170,10 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   };
   private final Runnable tgx101HideIfCoveredAgain = () -> tgx101HideIfCovered.run();
 
+  public void tgx101InvalidateCapsule () {
+    if (tgx101Capsule != null && tgx101Capsule.getVisibility() == View.VISIBLE) tgx101Capsule.invalidate();
+  }
+
   /** Called after every finished transition: the menu is only for the tab screens (15:48 log: it stayed over a chat) */
   public void tgx101SyncCapsuleAfterTransition (@Nullable ViewController<?> current) {
     if (tgx101Capsule == null || isDestroyed()) return;
