@@ -1157,7 +1157,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       tgx101Capsule.setTranslationX(0f);
       tgx101Capsule.tgx101SetCoveredFrom(Float.NaN);
     } else {
-      tgx101Capsule.setTranslationX(listShift);
+      // user 2026-10-08 «нижнее меню смотри»: like exteraGram the menu stays still while the list's parallax moves —
+      // only the chat's edge covers / uncovers it
+      tgx101Capsule.setTranslationX(0f);
       tgx101Capsule.tgx101SetCoveredFrom(coverX);
     }
   }
