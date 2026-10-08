@@ -1277,6 +1277,20 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     tgx101TabRoots.put(this, Tgx101NavCapsule.TAB_CHATS);
     addFocusListener(tgx101TabFocus);
     navigation.addViewUnderHeader(tgx101Capsule);
+    // user 2026-10-08 17:38 «меню опять наехало на чаты»: a cold start from a notification opens the chat straight away —
+    // no transition, no blur, so nothing hid the menu. Before any frame: outside a transition, over a non-tab screen
+    // the menu is gone
+    tgx101Capsule.getViewTreeObserver().addOnPreDrawListener(() -> {
+      if (tgx101Capsule.getVisibility() == View.VISIBLE && !tgx101Capsule.tgx101IsCovered() && !navigation.isAnimating() && !isDestroyed()) {
+        ViewController<?> current = navigation.getCurrentStackItem();
+        if (current != null && !tgx101TabRoots.containsKey(current)) {
+          tgx101Capsule.setVisibility(View.GONE);
+          tgx101Capsule.setTranslationX(0f);
+          org.thunderdog.challegram.Tgx101Diag.mark("bottom menu: hidden over " + current.getClass().getSimpleName());
+        }
+      }
+      return true;
+    });
     tgx101Capsule.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
   }
 

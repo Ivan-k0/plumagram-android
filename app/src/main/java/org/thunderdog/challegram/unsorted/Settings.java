@@ -3529,6 +3529,10 @@ public class Settings {
   private static final String KEY_TGX101_HIDE_COMPOSE = "tgx101_hide_compose";
   public boolean tgx101HideCompose () { return pmc.getBoolean(KEY_TGX101_HIDE_COMPOSE, false); }
   public void setTgx101HideCompose (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_COMPOSE, v); }
+  // 4PDA 2026-10-08 16:42 «спрятать нижнюю широкую кнопку „подписаться“/„отправить запрос“»: joining stays in the profile ⋮
+  private static final String KEY_TGX101_HIDE_JOIN = "tgx101_hide_join";
+  public boolean tgx101HideJoinButton () { return pmc.getBoolean(KEY_TGX101_HIDE_JOIN, false); }
+  public void setTgx101HideJoinButton (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_JOIN, v); }
 
   public boolean tgx101HideAllReactions () { return pmc.getBoolean(KEY_TGX101_HIDE_ALL_REACTIONS, false); }
   public void setTgx101HideAllReactions (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_ALL_REACTIONS, v); }

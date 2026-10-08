@@ -275,6 +275,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101NavCapsule(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideCompose) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideCompose(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101HideJoin) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101HideJoinButton(), isUpdate);
         } else if (itemId == R.id.btn_tgx101CapsuleScrollHide) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101CapsuleScrollHide(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideInputEmoji) {
@@ -940,7 +942,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101MenuHidesKeyboard || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101TextEditor || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuOrder
       || id == R.id.btn_tgx101TapMode || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101QuickReply1 || id == R.id.btn_tgx101QuickReply2
       || id == R.id.btn_tgx101QuickReply3 || id == R.id.btn_tgx101QuickReply4 || id == R.id.btn_tgx101QuickReply5) return 2;
-    if (id == R.id.btn_tgx101HideCompose) return 0;
+    if (id == R.id.btn_tgx101HideCompose || id == R.id.btn_tgx101HideJoin) return 0;
     if (id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101CapsuleScrollHide || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101ContactsMenu || id == R.id.btn_tgx101QuickCalls) return 0;
     if (id == R.id.btn_tgx101RearRounds) return 4;
     if (id == R.id.btn_tgx101HideAllReactions || id == R.id.btn_tgx101HideChannelReactions || id == R.id.btn_tgx101NextChannelSwipe || id == R.id.btn_showDiscussButton || id == R.id.btn_showCommentsButton
@@ -1026,9 +1028,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     }
     int[] bottomMenu = {R.id.btn_tgx101CapsuleMenu, R.id.btn_tgx101ContactsMenu, R.id.btn_tgx101QuickCalls, R.id.btn_tgx101BottomGap, R.id.btn_tgx101HideCompose};
     int[] inputButtons = {R.id.btn_tgx101HideInputCamera, R.id.btn_tgx101HideInputCommands, R.id.btn_tgx101HideInputEmoji};
-    int[] other = {R.id.btn_tgx101RearRounds, R.id.btn_tgx101HidePhone, R.id.btn_tgx101NotificationPlane, R.id.btn_tgx101ForegroundNotif};
+    int[] other = {R.id.btn_tgx101HideJoin, R.id.btn_tgx101RearRounds, R.id.btn_tgx101HidePhone, R.id.btn_tgx101NotificationPlane, R.id.btn_tgx101ForegroundNotif};
     java.util.Map<Integer, ListItem> byId = new java.util.HashMap<>();
     byId.put(R.id.btn_tgx101HideCompose, new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideCompose, 0, R.string.Tgx101HideCompose));
+    byId.put(R.id.btn_tgx101HideJoin, new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideJoin, 0, R.string.Tgx101HideJoin));
     for (ListItem item : raw) if (item.getId() != 0) byId.put(item.getId(), item);
     java.util.Set<Integer> moved = new java.util.HashSet<>();
     for (int[] g : new int[][] {bottomMenu, inputButtons, other}) for (int id : g) moved.add(id);
@@ -1205,6 +1208,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101HideInputCamera(toggleResult);
     } else if (id == R.id.btn_tgx101HideInputCommands) {
       Settings.instance().setTgx101HideInputCommands(toggleResult);
+    } else if (id == R.id.btn_tgx101HideJoin) {
+      Settings.instance().setTgx101HideJoinButton(toggleResult); // 4PDA 2026-10-08: applies from the next opened chat
     } else if (id == R.id.btn_tgx101HideCompose) {
       Settings.instance().setTgx101HideCompose(toggleResult); // user 2026-10-08 «дай возможность убирать синий карандаш»
       UI.showToast(R.string.Tgx101AppliesAfterRestart, android.widget.Toast.LENGTH_SHORT);

@@ -609,6 +609,10 @@ public class Tgx101NavCapsule extends View {
   // chat slides over the list, the menu stays with the list and the chat's edge covers it
   private float tgx101CoverX = Float.NaN;
 
+  public boolean tgx101IsCovered () {
+    return !Float.isNaN(tgx101CoverX);
+  }
+
   /** The x (in screen pixels) where a sliding screen starts covering the menu, NaN — nothing covers it */
   public void tgx101SetCoveredFrom (float x) {
     if (Float.isNaN(x) ? !Float.isNaN(tgx101CoverX) : x != tgx101CoverX) {

@@ -3437,7 +3437,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tdlib.isChannel(chat.id) && status != null && !TD.isAdmin(status)) {
       setInputVisible(false, false);
       if (TD.isLeft(status)) {
-        showBottomButton(BOTTOM_ACTION_FOLLOW, 0, isUpdate);
+        if (Settings.instance().tgx101HideJoinButton()) hideBottomBar(isUpdate); // TGx101: joining from the profile
+        else showBottomButton(BOTTOM_ACTION_FOLLOW, 0, isUpdate);
       } else {
         TdApi.SupergroupFullInfo info = tdlib.cache().supergroupFull(ChatId.toSupergroupId(chat.id));
         if (info != null && info.linkedChatId != 0 && Settings.instance().showDiscussButton()) {
@@ -6750,6 +6751,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   public void showActionJoinChatButton () {
+    if (Settings.instance().tgx101HideJoinButton()) { // TGx101: no wide «Join» / «Request to join» bar, joining from the profile
+      hideActionButton();
+      setInputVisible(false, false);
+      hideBottomBar(false);
+      return;
+    }
     TdApi.Supergroup supergroup = tdlib.chatToSupergroup(getChatId());
     if (supergroup != null && supergroup.joinByRequest && !TD.isAdmin(supergroup.status)) {
       showActionButton(supergroup.isChannel ? R.string.RequestJoinChannel : R.string.RequestJoinGroup, ACTION_JOIN_CHAT);

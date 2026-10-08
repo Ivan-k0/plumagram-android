@@ -479,6 +479,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101NavCapsule, "Нижнее меню вместо бокового");
     RU.put(R.string.Tgx101SectionBottomMenu, "Нижнее меню");
     RU.put(R.string.Tgx101HideCompose, "Скрыть кнопку ✎ (новое сообщение)");
+    RU.put(R.string.Tgx101HideJoin, "Скрыть кнопку «Подписаться» в каналах и группах");
     RU.put(R.string.Tgx101SectionInputButtons, "Кнопки у поля ввода");
     RU.put(R.string.Tgx101SectionInputButtonsHint, "Скройте кнопки, которыми не пользуетесь: камера, команды ботов, смайлики.");
     RU.put(R.string.Tgx101SectionOther, "Прочее");
