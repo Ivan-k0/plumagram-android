@@ -619,17 +619,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     }
     ListItem[] shown = rawItems;
     if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) {
-      // test builds (user 2026-10-08 11:2x): no side menu, the message field is always the capsule — their switches go
-      java.util.List<ListItem> kept = new java.util.ArrayList<>();
-      for (int i = 0; i < rawItems.length; i++) {
-        int id = rawItems[i].getId();
-        if (id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101NavCapsule) {
-          if (i + 1 < rawItems.length && rawItems[i + 1].getViewType() == ListItem.TYPE_SEPARATOR_FULL) i++; // its separator too
-          continue;
-        }
-        kept.add(rawItems[i]);
-      }
-      shown = kept.toArray(new ListItem[0]);
+      shown = tgx101TestItems(rawItems);
     }
     this.adapter.setItems(shown, false);
     if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
@@ -1017,6 +1007,67 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       }
     }
     adapter.setItems(out.toArray(new ListItem[0]), false);
+  }
+
+
+  /** TGx101 test builds (user 2026-10-08 11:3x «приведи MagiX в порядок»): settings that are fixed now go, the long chat
+   *  list section is split into labelled groups */
+  private static ListItem[] tgx101TestItems (ListItem[] raw) {
+    java.util.Set<Integer> gone = new java.util.HashSet<>(java.util.Arrays.asList(
+      R.id.btn_tgx101FloatingInput, R.id.btn_tgx101NavCapsule, // capsule only, no side menu
+      R.id.btn_tgx101TextEditor, R.id.btn_tgx101MessageMenuHand, R.id.btn_tgx101MenuAtFinger, // always on / right hand
+      R.id.btn_tgx101MenuHidesKeyboard)); // the keyboard never closes for the menu
+    int[] bottomMenu = {R.id.btn_tgx101CapsuleMenu, R.id.btn_tgx101ContactsMenu, R.id.btn_tgx101QuickCalls, R.id.btn_tgx101BottomGap};
+    int[] inputButtons = {R.id.btn_tgx101HideInputCamera, R.id.btn_tgx101HideInputCommands, R.id.btn_tgx101HideInputEmoji};
+    int[] other = {R.id.btn_tgx101RearRounds, R.id.btn_tgx101HidePhone, R.id.btn_tgx101NotificationPlane, R.id.btn_tgx101ForegroundNotif};
+    java.util.Map<Integer, ListItem> byId = new java.util.HashMap<>();
+    for (ListItem item : raw) if (item.getId() != 0) byId.put(item.getId(), item);
+    java.util.Set<Integer> moved = new java.util.HashSet<>();
+    for (int[] g : new int[][] {bottomMenu, inputButtons, other}) for (int id : g) moved.add(id);
+    java.util.List<ListItem> out = new java.util.ArrayList<>();
+    for (int i = 0; i < raw.length; i++) {
+      ListItem item = raw[i];
+      int id = item.getId();
+      if (gone.contains(id) || moved.contains(id)) {
+        if (i + 1 < raw.length && raw[i + 1].getViewType() == ListItem.TYPE_SEPARATOR_FULL) i++;
+        continue;
+      }
+      // the bottom gap moved out: the chat list section's hint keeps only its pull-to-search part
+      if (item.getViewType() == ListItem.TYPE_SEPARATOR_FULL && i + 1 < raw.length && raw[i + 1].getViewType() == ListItem.TYPE_DESCRIPTION && !out.isEmpty() && out.get(out.size() - 1).getViewType() == ListItem.TYPE_SEPARATOR_FULL) {
+        continue;
+      }
+      out.add(item);
+      if (item.getViewType() == ListItem.TYPE_SHADOW_BOTTOM && i > 0 && tgx101SectionHas(raw, i, R.id.btn_pullToSearch)) {
+        tgx101AddGroup(out, byId, R.string.Tgx101SectionBottomMenu, bottomMenu, 0);
+        tgx101AddGroup(out, byId, R.string.Tgx101SectionInputButtons, inputButtons, R.string.Tgx101SectionInputButtonsHint);
+        tgx101AddGroup(out, byId, R.string.Tgx101SectionOther, other, 0);
+      }
+    }
+    // no separator right before a section's end
+    for (int i = out.size() - 2; i >= 0; i--) {
+      if (out.get(i).getViewType() == ListItem.TYPE_SEPARATOR_FULL && (out.get(i + 1).getViewType() == ListItem.TYPE_SHADOW_BOTTOM || out.get(i + 1).getViewType() == ListItem.TYPE_DESCRIPTION)) out.remove(i);
+    }
+    return out.toArray(new ListItem[0]);
+  }
+
+  private static boolean tgx101SectionHas (ListItem[] raw, int shadowBottom, int id) {
+    for (int i = shadowBottom - 1; i >= 0 && raw[i].getViewType() != ListItem.TYPE_SHADOW_TOP; i--) if (raw[i].getId() == id) return true;
+    return false;
+  }
+
+  private static void tgx101AddGroup (java.util.List<ListItem> out, java.util.Map<Integer, ListItem> byId, int title, int[] ids, int hint) {
+    out.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, title));
+    out.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    boolean first = true;
+    for (int id : ids) {
+      ListItem item = byId.get(id);
+      if (item == null) continue;
+      if (!first) out.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+      out.add(item);
+      first = false;
+    }
+    out.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    if (hint != 0) out.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, hint));
   }
 
   @Override

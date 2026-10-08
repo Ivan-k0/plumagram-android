@@ -3180,6 +3180,7 @@ public class Settings {
   }
 
   public boolean isTgx101MessageMenuLeftHand () {
+    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) return false; // test builds: right hand only (user 2026-10-08)
     return pmc.getBoolean(KEY_TGX101_MESSAGE_MENU_LEFT, false);
   }
 
@@ -3350,6 +3351,7 @@ public class Settings {
 
   /** TGx101: «Изменить» opens the message text window (formatting buttons) instead of editing in the input field */
   public boolean useTgx101TextEditor () {
+    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) return true; // test builds: always on (user 2026-10-08)
     return pmc.getBoolean(KEY_TGX101_TEXT_EDITOR, true);
   }
 
@@ -3636,13 +3638,17 @@ public class Settings {
 
   // TGx101 (user 2026-10-06 20:42 «не убирай клавиатуру, или дай на выбор»): off — the keyboard stays under the menu
   private static final String KEY_TGX101_MENU_HIDES_KEYBOARD = "tgx101_menu_hides_keyboard";
-  public boolean tgx101MenuHidesKeyboard () { return pmc.getBoolean(KEY_TGX101_MENU_HIDES_KEYBOARD, false); }
+  public boolean tgx101MenuHidesKeyboard () {
+    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) return false; // test builds: the keyboard stays (user 2026-10-08)
+    return pmc.getBoolean(KEY_TGX101_MENU_HIDES_KEYBOARD, false);
+  }
   public void setTgx101MenuHidesKeyboard (boolean v) { pmc.putBoolean(KEY_TGX101_MENU_HIDES_KEYBOARD, v); }
 
   private static final String KEY_TGX101_MENU_AT_FINGER = "tgx101_menu_at_finger";
 
   /** TGx101: the message menu opens at the finger (on) or at the bottom of the screen (off) */
   public boolean tgx101MenuAtFinger () {
+    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) return true; // test builds: always on (user 2026-10-08)
     return pmc.getBoolean(KEY_TGX101_MENU_AT_FINGER, true);
   }
 
