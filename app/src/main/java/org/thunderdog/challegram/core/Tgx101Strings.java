@@ -482,6 +482,13 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101WebAppLocationAsk, "Разрешить «%1$s» знать ваше местоположение?");
     RU.put(R.string.Tgx101WebAppLocationAllow, "Разрешить");
     RU.put(R.string.Tgx101ChannelStyle, "Вид каналов");
+    RU.put(R.string.Tgx101JournalLines, "Полоски между постами (Журнал)");
+    RU.put(R.string.Tgx101LinesGrey, "Серые");
+    RU.put(R.string.Tgx101LinesAccent, "Цвет темы");
+    RU.put(R.string.Tgx101LinesBlue, "Синие");
+    RU.put(R.string.Tgx101LinesGreen, "Зелёные");
+    RU.put(R.string.Tgx101LinesOrange, "Оранжевые");
+    RU.put(R.string.Tgx101LinesRainbow, "Красная · жёлтая · синяя");
     RU.put(R.string.Tgx101ChannelStyleBubbles, "Пузыри");
     RU.put(R.string.Tgx101ChannelStyleBlocks, "Блоки");
     RU.put(R.string.Tgx101ChannelStyleJournal, "Журнал");

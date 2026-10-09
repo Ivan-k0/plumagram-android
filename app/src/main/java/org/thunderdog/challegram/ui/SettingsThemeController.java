@@ -216,6 +216,8 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
           v.getToggler().setRadioEnabled(Settings.instance().useSystemFonts(), isUpdate);
         } else if (itemId == R.id.btn_secret_batmanTransitions) {
           v.getToggler().setRadioEnabled(Settings.instance().getNewSetting(Settings.SETTING_FLAG_BATMAN_POLL_TRANSITIONS), isUpdate);
+        } else if (itemId == R.id.btn_tgx101JournalLines) {
+          v.setData(TGX101_LINE_NAMES[Math.max(0, Math.min(TGX101_LINE_NAMES.length - 1, Settings.instance().tgx101JournalLines()))]);
         } else if (itemId == R.id.btn_tgx101ChannelStyle) {
           v.setData(tgx101ChannelStyleName());
         } else if (itemId == R.id.btn_chatListStyle) {
@@ -389,6 +391,8 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
       // TGx101 (user 2026-10-08): channels — bubbles, «Blocks», «Journal» or the classic look without bubbles
       items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101ChannelStyle, 0, R.string.Tgx101ChannelStyle));
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101JournalLines, 0, R.string.Tgx101JournalLines));
 
       if (!tdlib.account().isDebug()) {
         if (BuildConfig.DEBUG) {
@@ -1197,6 +1201,15 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
       Settings.instance().setRestrictContent(!adapter.toggleView(v));
     } else if (viewId == R.id.btn_secret_batmanTransitions) {
       Settings.instance().setNewSetting(Settings.SETTING_FLAG_BATMAN_POLL_TRANSITIONS, adapter.toggleView(v));
+    } else if (viewId == R.id.btn_tgx101JournalLines) {
+      int cur = Settings.instance().tgx101JournalLines();
+      ListItem[] opts = new ListItem[TGX101_LINE_NAMES.length];
+      for (int i = 0; i < opts.length; i++) opts[i] = new ListItem(ListItem.TYPE_RADIO_OPTION, TGX101_LINE_IDS[i], 0, TGX101_LINE_NAMES[i], R.id.btn_tgx101JournalLines, cur == i);
+      showSettings(new SettingsWrapBuilder(R.id.btn_tgx101JournalLines).setRawItems(opts).setIntDelegate((id, result) -> {
+        int picked = result.get(R.id.btn_tgx101JournalLines);
+        for (int i = 0; i < TGX101_LINE_IDS.length; i++) if (TGX101_LINE_IDS[i] == picked) Settings.instance().setTgx101JournalLines(i);
+        adapter.updateValuedSettingById(R.id.btn_tgx101JournalLines);
+      }).setAllowResize(false));
     } else if (viewId == R.id.btn_tgx101ChannelStyle) {
       tgx101ShowChannelStyles();
     } else if (viewId == R.id.btn_chatListStyle) {
@@ -1687,6 +1700,9 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
       }
     }
   }
+
+  private static final int[] TGX101_LINE_NAMES = {R.string.Tgx101LinesGrey, R.string.Tgx101LinesAccent, R.string.Tgx101LinesBlue, R.string.Tgx101LinesGreen, R.string.Tgx101LinesOrange, R.string.Tgx101LinesRainbow};
+  private static final int[] TGX101_LINE_IDS = {R.id.btn_tgx101Lines0, R.id.btn_tgx101Lines1, R.id.btn_tgx101Lines2, R.id.btn_tgx101Lines3, R.id.btn_tgx101Lines4, R.id.btn_tgx101Lines5};
 
   private int tgx101ChannelStyleName () {
     if (!tdlib.settings().forcePlainModeInChannels()) return R.string.Tgx101ChannelStyleBubbles;

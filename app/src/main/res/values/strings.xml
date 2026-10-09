@@ -6326,6 +6326,13 @@
   <string name="Tgx101WebAppLocationAsk">Allow %1$s to know your location?</string>
   <string name="Tgx101WebAppLocationAllow">Allow</string>
   <string name="Tgx101ChannelStyle">Channels</string>
+  <string name="Tgx101JournalLines">Lines between posts (Journal)</string>
+  <string name="Tgx101LinesGrey">Grey</string>
+  <string name="Tgx101LinesAccent">Theme accent</string>
+  <string name="Tgx101LinesBlue">Blue</string>
+  <string name="Tgx101LinesGreen">Green</string>
+  <string name="Tgx101LinesOrange">Orange</string>
+  <string name="Tgx101LinesRainbow">Red · yellow · blue</string>
   <string name="Tgx101ChannelStyleBubbles">Bubbles</string>
   <string name="Tgx101ChannelStyleBlocks">Blocks</string>
   <string name="Tgx101ChannelStyleJournal">Journal</string>

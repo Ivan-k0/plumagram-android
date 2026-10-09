@@ -1666,6 +1666,13 @@
   <item name="btn_tgx101HideJoin" type="id"/>
   <item name="btn_tgx101ChannelStyle" type="id"/>
   <item name="btn_tgx101ChatNotifications" type="id"/>
+  <item name="btn_tgx101JournalLines" type="id"/>
+  <item name="btn_tgx101Lines0" type="id"/>
+  <item name="btn_tgx101Lines1" type="id"/>
+  <item name="btn_tgx101Lines2" type="id"/>
+  <item name="btn_tgx101Lines3" type="id"/>
+  <item name="btn_tgx101Lines4" type="id"/>
+  <item name="btn_tgx101Lines5" type="id"/>
   <item name="btn_tgx101ChannelStyleBubbles" type="id"/>
   <item name="btn_tgx101ChannelStyleBlocks" type="id"/>
   <item name="btn_tgx101ChannelStyleJournal" type="id"/>

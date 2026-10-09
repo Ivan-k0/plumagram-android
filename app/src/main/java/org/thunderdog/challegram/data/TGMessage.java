@@ -1561,7 +1561,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return manager != null && manager.tgx101FeedCards();
   }
 
-  private static final float TGX101_JOURNAL_STRIPE = 28f;
+  private static final float TGX101_JOURNAL_STRIPE = 30f, TGX101_JOURNAL_LINE = 3f, TGX101_JOURNAL_LINE_GAP = 3f;
+
+  /** 15 % taller than the three lines together */
+  private static int tgx101JournalIconSize () {
+    return Math.round(Screen.dp(TGX101_JOURNAL_LINE * 3 + TGX101_JOURNAL_LINE_GAP * 2) * 1.15f);
+  }
 
   /** «Journal» (user 2026-10-08 23:39 «растяни фото на всю»): media posts go from screen edge to screen edge */
   protected boolean tgx101JournalEdgeToEdge () {
@@ -2116,9 +2121,20 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (hasBubble && tgx101Journal() && !isOutgoing()) {
       // «Journal»: a dark stripe under each post with the channel's name in the middle
       float top = bubblePathRect.bottom, bottom = top + Screen.dp(TGX101_JOURNAL_STRIPE);
-      // user 2026-10-08 23:4x «цвет разделения давай серый»: neutral grey, not a see-through black (it turned brown on warm wallpapers)
-      c.drawRect(0, top, view.getMeasuredWidth(), bottom, Paints.fillingPaint(Theme.isDark() ? 0xff0d1319 : 0xffe4e7eb));
-      // the channel's photo on the left instead of its name
+      // user 2026-10-09 00:25 «разделение бесшовным, между постами 3 полужирные полоски (цвет настраивается), иконка канала
+      // на 15 % больше полосок»: the gap has the post's own colour; three bold lines right of the channel's photo
+      c.drawRect(0, top, view.getMeasuredWidth(), bottom, Paints.fillingPaint(Theme.getColor(ColorId.bubbleIn_background)));
+      int[] colors = Settings.instance().tgx101JournalLineColors(Theme.isDark(), Theme.getColor(ColorId.textLink));
+      float line = Screen.dp(TGX101_JOURNAL_LINE), gap = Screen.dp(TGX101_JOURNAL_LINE_GAP);
+      float block = line * 3 + gap * 2, y = (top + bottom) / 2f - block / 2f;
+      float x0 = Screen.dp(12f) + tgx101JournalIconSize() + Screen.dp(10f), x1 = view.getMeasuredWidth() - Screen.dp(12f);
+      android.graphics.RectF lr = Paints.getRectF();
+      for (int i = 0; i < 3; i++) {
+        lr.set(x0, y, x1, y + line);
+        c.drawRoundRect(lr, line / 2f, line / 2f, Paints.fillingPaint(colors[i]));
+        y += line + gap;
+      }
+      // the channel's photo on the left
       if (avatarReceiver.needPlaceholder()) avatarReceiver.drawPlaceholder(c);
       avatarReceiver.draw(c);
     }
@@ -4309,7 +4325,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   public final void layoutAvatar (MessageView view, AvatarReceiver receiver) {
     if (tgx101Journal() && !isOutgoing()) {
       // user 2026-10-08 23:5x «вместо названия — иконка канала слева, как в официальном; иконка маленькая»
-      int size = Screen.dp(22f), stripe = Screen.dp(TGX101_JOURNAL_STRIPE);
+      // 2026-10-09 «иконку чуть увеличь, чтобы выступала за линию, но не касалась реакций и текста поста»: it rises above
+      // the stripe into its own post's empty bottom margin (the next post below is drawn over anything lower)
+      int size = tgx101JournalIconSize(), stripe = Screen.dp(TGX101_JOURNAL_STRIPE);
       int top = bottomContentEdge + (stripe - size) / 2, left = Screen.dp(12f);
       if (Lang.rtl()) left = view.getMeasuredWidth() - left - size;
       receiver.setBounds(left, top, left + size, top + size);
