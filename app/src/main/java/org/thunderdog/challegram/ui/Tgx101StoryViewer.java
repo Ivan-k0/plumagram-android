@@ -103,7 +103,7 @@ public class Tgx101StoryViewer extends Dialog {
 
     // TGx101 (user 2026-10-04): a soft spinner while the story loads, then it fades in instead of popping up
     spinner = new android.widget.ProgressBar(context);
-    spinner.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(0xccffffff));
+    if (android.os.Build.VERSION.SDK_INT >= 21) spinner.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(0xccffffff));
     root.addView(spinner, new FrameLayout.LayoutParams(Screen.dp(36f), Screen.dp(36f), Gravity.CENTER));
 
     // top gradient for readability
@@ -209,7 +209,7 @@ public class Tgx101StoryViewer extends Dialog {
 
     root.setOnTouchListener(new GestureHandler());
     // keep the reply field and ♡ above the system navigation bar
-    root.setOnApplyWindowInsetsListener((v, insets) -> {
+    if (android.os.Build.VERSION.SDK_INT >= 21) root.setOnApplyWindowInsetsListener((v, insets) -> {
       bottomParams.bottomMargin = Screen.dp(16f) + insets.getSystemWindowInsetBottom();
       bottom.setLayoutParams(bottomParams);
       captionParams.bottomMargin = Screen.dp(72f) + insets.getSystemWindowInsetBottom();
@@ -218,7 +218,7 @@ public class Tgx101StoryViewer extends Dialog {
     });
     setContentView(root);
     // the status bar is shown now (black): keep the header below it
-    root.setOnApplyWindowInsetsListener((v, insets) -> {
+    if (android.os.Build.VERSION.SDK_INT >= 21) root.setOnApplyWindowInsetsListener((v, insets) -> {
       v.setPadding(0, insets.getSystemWindowInsetTop(), 0, insets.getStableInsetBottom());
       return insets;
     });
@@ -238,8 +238,10 @@ public class Tgx101StoryViewer extends Dialog {
       // this window draws its own bars
       window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN | WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
       window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-      window.setStatusBarColor(Color.BLACK);
-      window.setNavigationBarColor(Color.BLACK);
+      if (android.os.Build.VERSION.SDK_INT >= 21) {
+        window.setStatusBarColor(Color.BLACK);
+        window.setNavigationBarColor(Color.BLACK);
+      }
       if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
         View decor = window.getDecorView();
         int flags = decor.getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;

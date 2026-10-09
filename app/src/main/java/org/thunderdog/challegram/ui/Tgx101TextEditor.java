@@ -418,7 +418,7 @@ public final class Tgx101TextEditor {
       int bottomInset = Math.max(0, location[1] + wrap.getHeight() - frame.bottom);
       // the keyboard's own height incl. its suggestion row: some keyboards (Vivo) first report it with the row, then
       // without it, and the card slid down over the suggestions
-      android.view.WindowInsets insets = wrap.getRootWindowInsets();
+      android.view.WindowInsets insets = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R ? wrap.getRootWindowInsets() : null;
       if (insets != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
         boolean imeVisible = insets.isVisible(android.view.WindowInsets.Type.ime());
         int ime = insets.getInsets(android.view.WindowInsets.Type.ime()).bottom;
@@ -445,7 +445,7 @@ public final class Tgx101TextEditor {
     popup.setDismissListener(p -> {
       if (onDismiss != null) onDismiss.run();
       // the keyboard goes back to the chat input if it had it
-      if (previousFocus != null && previousFocus.isAttachedToWindow() && previousFocus instanceof android.widget.EditText) {
+      if (previousFocus != null && androidx.core.view.ViewCompat.isAttachedToWindow(previousFocus) && previousFocus instanceof android.widget.EditText) {
         previousFocus.requestFocus();
       } else {
         View focus = activity.getCurrentFocus();

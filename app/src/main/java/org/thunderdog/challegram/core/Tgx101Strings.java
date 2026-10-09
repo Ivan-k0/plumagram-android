@@ -482,6 +482,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101WebAppLocationAsk, "Разрешить «%1$s» знать ваше местоположение?");
     RU.put(R.string.Tgx101WebAppLocationAllow, "Разрешить");
     RU.put(R.string.Tgx101ChannelStyle, "Вид каналов");
+    RU.put(R.string.Tgx101TranslateEngine, "Сервис перевода");
+    RU.put(R.string.Tgx101TranslateTelegram, "Telegram");
+    RU.put(R.string.Tgx101TranslateDevice, "На устройстве (без интернета)");
+    RU.put(R.string.Tgx101TranslateGoogle, "Google (онлайн)");
+    RU.put(R.string.Tgx101TranslateGoogleWarning, "Переводимый текст будет отправляться на сервер Google. Если Google не ответит, сработает перевод Telegram.");
     RU.put(R.string.Tgx101JournalLines, "Полоски между постами (Журнал)");
     RU.put(R.string.Tgx101LinesGrey, "Серые");
     RU.put(R.string.Tgx101LinesAccent, "Цвет темы");

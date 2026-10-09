@@ -2025,6 +2025,13 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       return;
     }
 
+    // TGx101 «Journal» (user 2026-10-09 «щель, где дата — фон белым»): the date and «New messages» stand on the posts' own
+    // colour, not on a band of chat background across the feed
+    final boolean tgx101JournalHeader = tgx101Journal() && !isOutgoing() && (flags & (FLAG_SHOW_DATE | FLAG_SHOW_BADGE)) != 0;
+    if (tgx101JournalHeader) {
+      c.drawRect(0, 0, viewWidth, computeBubbleTop(), Paints.fillingPaint(Theme.getColor(ColorId.bubbleIn_background)));
+    }
+
     // "Unread messages" / "Discussion started" badge
     if ((flags & FLAG_SHOW_BADGE) != 0) {
       int top = 0;
@@ -2037,7 +2044,16 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         ShadowView.drawTopShadow(c, 0, width, top, shadow);
         ShadowView.drawBottomShadow(c, 0, width, bottom, shadow);
       }
-      c.drawRect(0, top, width, bottom, Paints.fillingPaint(getUnreadSeparatorBackgroundColor()));
+      if (tgx101JournalHeader) {
+        // a hairline across instead of the grey bar
+        float y = (top + bottom) / 2f;
+        c.drawLine(Screen.dp(12f), y, width - Screen.dp(12f), y, Paints.strokeSmallPaint(Theme.separatorColor()));
+        int pad = Screen.dp(10f);
+        float w = U.measureText(uBadge.text, getBadgePaint(uBadge.needFakeBold));
+        c.drawRect(pBadgeX - pad, top, pBadgeX + w + pad + (isFirstUnread() ? Screen.dp(20f) : 0), bottom, Paints.fillingPaint(Theme.getColor(ColorId.bubbleIn_background)));
+      } else {
+        c.drawRect(0, top, width, bottom, Paints.fillingPaint(getUnreadSeparatorBackgroundColor()));
+      }
       TextPaint mBadge = getBadgePaint(uBadge.needFakeBold);
       int color = getUnreadSeparatorContentColor();
       mBadge.setColor(color);
@@ -2127,10 +2143,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       int[] colors = Settings.instance().tgx101JournalLineColors(Theme.isDark(), Theme.getColor(ColorId.textLink));
       float line = Screen.dp(TGX101_JOURNAL_LINE), gap = Screen.dp(TGX101_JOURNAL_LINE_GAP);
       float block = line * 3 + gap * 2, y = (top + bottom) / 2f - block / 2f;
-      float x0 = Screen.dp(12f) + tgx101JournalIconSize() + Screen.dp(10f), x1 = view.getMeasuredWidth() - Screen.dp(12f);
+      // 2026-10-09 «полосы короче, можно лесенкой»: three short lines stepping down in length next to the photo
+      float x0 = Screen.dp(12f) + tgx101JournalIconSize() + Screen.dp(10f);
+      final float[] lengths = {48f, 32f, 16f};
       android.graphics.RectF lr = Paints.getRectF();
       for (int i = 0; i < 3; i++) {
-        lr.set(x0, y, x1, y + line);
+        lr.set(x0, y, x0 + Screen.dp(lengths[i]), y + line);
         c.drawRoundRect(lr, line / 2f, line / 2f, Paints.fillingPaint(colors[i]));
         y += line + gap;
       }

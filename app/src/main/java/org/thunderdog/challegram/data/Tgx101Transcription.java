@@ -374,7 +374,7 @@ public final class Tgx101Transcription {
           String s = android.provider.Settings.Secure.getString(c.getContentResolver(), "voice_recognition_service");
           service = s != null ? android.content.ComponentName.unflattenFromString(s) : null;
         } catch (Throwable ignored) { }
-        org.thunderdog.challegram.Tgx101Diag.mark("transcription: on device, sdk " + Build.VERSION.SDK_INT + ", recognizer " + available + ", on-device " + onDevice + ", service " + (service != null ? service.getPackageName() : "none") + ", language " + Locale.getDefault().toLanguageTag());
+        org.thunderdog.challegram.Tgx101Diag.mark("transcription: on device, sdk " + Build.VERSION.SDK_INT + ", recognizer " + available + ", on-device " + onDevice + ", service " + (service != null ? service.getPackageName() : "none") + ", language " + (Build.VERSION.SDK_INT >= 21 ? Locale.getDefault().toLanguageTag() : Locale.getDefault().toString()));
       }
       Tgx101SpeechModels.Model model = Tgx101SpeechModels.active();
       if (model != null) {

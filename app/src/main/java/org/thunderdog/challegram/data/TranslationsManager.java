@@ -121,7 +121,26 @@ public final class TranslationsManager {
   }
 
   private void requestTranslationImpl (TdApi.FormattedText originalText, String toLanguage, Client.ResultHandler callback) {
-    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101TranslateOnDevice()) {
+    int engine = org.thunderdog.challegram.unsorted.Settings.instance().tgx101TranslateEngine();
+    if (engine == org.thunderdog.challegram.unsorted.Settings.TGX101_TRANSLATE_GOOGLE) {
+      // TGx101: Google online; if it doesn't answer — Telegram, then the phone
+      org.thunderdog.challegram.util.Tgx101GoogleTranslator.translate(originalText, toLanguage, result -> {
+        if (result != null && !result.text.isEmpty()) {
+          callback.onResult(result);
+        } else {
+          tdlib.client().send(new TdApi.TranslateText(originalText, toLanguage, TdConstants.TEXT_FORMAT_NEUTRAL), object -> {
+            if (object instanceof TdApi.FormattedText) {
+              callback.onResult(object);
+            } else {
+              org.thunderdog.challegram.util.Tgx101OnDeviceTranslator.translate(originalText.text, toLanguage, local ->
+                callback.onResult(local != null ? new TdApi.FormattedText(local, new TdApi.TextEntity[0]) : object));
+            }
+          });
+        }
+      });
+      return;
+    }
+    if (engine == org.thunderdog.challegram.unsorted.Settings.TGX101_TRANSLATE_DEVICE) {
       // TGx101: Google ML Kit on the phone; anything it can't do goes to Telegram's translation as before
       org.thunderdog.challegram.util.Tgx101OnDeviceTranslator.translate(originalText.text, toLanguage, result -> {
         if (result != null) {

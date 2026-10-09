@@ -671,7 +671,8 @@ public class Tgx101NavCapsule extends View {
         drawMenuIfOpen(c, dark, filling);
         return;
       }
-      contentSave = c.saveLayerAlpha(0, 0, getMeasuredWidth(), getMeasuredHeight(), (int) (255 * (1f - collapseFactor)));
+      //noinspection deprecation — the flags overload exists since API 1 (Android 4.x has no 5-argument one)
+      contentSave = c.saveLayerAlpha(0, 0, getMeasuredWidth(), getMeasuredHeight(), (int) (255 * (1f - collapseFactor)), Canvas.ALL_SAVE_FLAG);
     }
     rect.set(padding(), top, getMeasuredWidth() - padding(), top + h);
 

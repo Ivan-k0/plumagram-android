@@ -377,7 +377,7 @@ public final class Tgx101Diag {
         final android.view.View decor = a.getWindow().getDecorView();
         if (!focusWatched.containsKey(a)) {
           focusWatched.put(a, Boolean.TRUE);
-          decor.getViewTreeObserver().addOnWindowFocusChangeListener(hasFocus ->
+          if (android.os.Build.VERSION.SDK_INT >= 18) decor.getViewTreeObserver().addOnWindowFocusChangeListener(hasFocus ->
             mark("window focus " + (hasFocus ? "gained" : "lost") + " +" + (SystemClock.uptimeMillis() - startedAt) + " ms after start"));
         }
         decor.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {

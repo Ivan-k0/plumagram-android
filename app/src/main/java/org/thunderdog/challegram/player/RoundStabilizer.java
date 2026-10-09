@@ -158,7 +158,7 @@ public class RoundStabilizer implements SensorEventListener {
   // Camera frame timestamps are either CLOCK_BOOTTIME (same as sensor events) or
   // CLOCK_MONOTONIC depending on the device; bring monotonic ones to boot time.
   private static long toSensorClock (long frameTimestampNs) {
-    long boot = android.os.SystemClock.elapsedRealtimeNanos();
+    long boot = android.os.Build.VERSION.SDK_INT >= 17 ? android.os.SystemClock.elapsedRealtimeNanos() : android.os.SystemClock.elapsedRealtime() * 1_000_000L;
     long mono = System.nanoTime();
     if (frameTimestampNs <= 0) {
       return boot;

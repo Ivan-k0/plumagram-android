@@ -128,7 +128,7 @@ public final class Tgx101MessageTextSelection {
 
     private @Nullable View currentView () {
       View view = msg.findCurrentView();
-      return view != null && view.isAttachedToWindow() ? view : null;
+      return view != null && androidx.core.view.ViewCompat.isAttachedToWindow(view) ? view : null;
     }
 
     void start (int offset) {

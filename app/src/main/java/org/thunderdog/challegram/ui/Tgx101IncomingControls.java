@@ -332,7 +332,7 @@ public class Tgx101IncomingControls extends FrameLayout {
         paint.setAlpha((int) (255 * (.3f + .7f * glow)));
         c.drawText("›", step * i + step / 2f + Screen.dp(2f) * glow, baseline, paint);
       }
-      if (!answered && isAttachedToWindow() && getWindowVisibility() == View.VISIBLE) {
+      if (!answered && androidx.core.view.ViewCompat.isAttachedToWindow(this) && getWindowVisibility() == View.VISIBLE) {
         postInvalidateOnAnimation();
       }
     }

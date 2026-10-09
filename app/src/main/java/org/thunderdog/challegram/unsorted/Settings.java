@@ -3916,6 +3916,17 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_TRANSLATE_ON_DEVICE, value);
   }
 
+  // user 2026-10-09: the translation service — Telegram, on the phone (ML Kit) or Google online
+  public static final int TGX101_TRANSLATE_TELEGRAM = 0, TGX101_TRANSLATE_DEVICE = 1, TGX101_TRANSLATE_GOOGLE = 2;
+  private static final String KEY_TGX101_TRANSLATE_ENGINE = "tgx101_translate_engine";
+  public int tgx101TranslateEngine () {
+    return pmc.getInt(KEY_TGX101_TRANSLATE_ENGINE, tgx101TranslateOnDevice() ? TGX101_TRANSLATE_DEVICE : TGX101_TRANSLATE_TELEGRAM);
+  }
+  public void setTgx101TranslateEngine (int engine) {
+    pmc.putInt(KEY_TGX101_TRANSLATE_ENGINE, engine);
+    setTgx101TranslateOnDevice(engine == TGX101_TRANSLATE_DEVICE);
+  }
+
   private static final String KEY_TGX101_SPEECH_MODEL = "tgx101_speech_model";
 
   /** TGx101: id of the own speech recognition model (Tgx101SpeechModels), null = none */
@@ -4122,8 +4133,8 @@ public class Settings {
       result = org.thunderdog.challegram.tool.Screen.isGesturalNavigationEnabled(org.thunderdog.challegram.tool.UI.getResources()) ||
         android.provider.Settings.Secure.getInt(cr, "navigation_mode", 0) == 2 ||
         android.provider.Settings.Secure.getInt(cr, "navigation_gesture_on", 0) != 0 ||        // Vivo
-        android.provider.Settings.Global.getInt(cr, "force_fsg_nav_bar", 0) != 0 ||            // Xiaomi
-        android.provider.Settings.Global.getInt(cr, "navigation_bar_gesture_while_hidden", 0) != 0 || // Samsung
+        (android.os.Build.VERSION.SDK_INT >= 17 && android.provider.Settings.Global.getInt(cr, "force_fsg_nav_bar", 0) != 0) ||            // Xiaomi
+        (android.os.Build.VERSION.SDK_INT >= 17 && android.provider.Settings.Global.getInt(cr, "navigation_bar_gesture_while_hidden", 0) != 0) || // Samsung
         android.provider.Settings.Secure.getInt(cr, "secure_gesture_navigation", 0) != 0;      // Huawei
     } catch (Throwable ignored) { }
     gestureNavigation = result;

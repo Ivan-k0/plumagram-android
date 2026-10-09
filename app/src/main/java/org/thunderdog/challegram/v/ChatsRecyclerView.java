@@ -234,7 +234,8 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
       pullPaint.setColor(me.vkryl.core.ColorUtils.alphaColor(alpha * .25f, accent));
       c.drawCircle(cx, cy, ringRadius, pullPaint);
       pullPaint.setColor(me.vkryl.core.ColorUtils.alphaColor(alpha, accent));
-      c.drawArc(cx - ringRadius, cy - ringRadius, cx + ringRadius, cy + ringRadius, -90f, 360f * progress, false, pullPaint);
+      android.graphics.RectF arc = new android.graphics.RectF(cx - ringRadius, cy - ringRadius, cx + ringRadius, cy + ringRadius); // API 16 overload (Android 4.x)
+      c.drawArc(arc, -90f, 360f * progress, false, pullPaint);
     }
     // magnifier
     if (pullIcon == null) {

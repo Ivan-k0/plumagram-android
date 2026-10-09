@@ -783,7 +783,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       protected void onLayout (boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
         int content = (b - t) - getPaddingBottom(), pad = getPaddingBottom();
-        if (floatingInput && TGX101_CHAT_KEYBOARD_ENGINE && isAttachedToWindow() && getVisibility() == View.VISIBLE) {
+        if (floatingInput && TGX101_CHAT_KEYBOARD_ENGINE && androidx.core.view.ViewCompat.isAttachedToWindow(this) && getVisibility() == View.VISIBLE) {
           // user video 2026-10-08 21:33 «прыгающие стрелка и смайлы»: the glide moved the whole field — on every new line the
           // field with its buttons dropped ~90 px and slid back up. Like stock TGX now: the bottom (and the buttons) stay,
           // the field just grows at the top

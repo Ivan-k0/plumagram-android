@@ -626,6 +626,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   @Override
   public void onClick (MediaView mediaView, float x, float y) {
+    // TGx101 (user 2026-10-09, video 00:27): before sending, typing a caption — a tap on the photo or on its selection
+    // circle keeps the keyboard (it closed and the caption had to be reopened); «Done» / back still close it
+    if (mode == MODE_GALLERY && inCaption) {
+      return;
+    }
     closeCaption();
   }
 

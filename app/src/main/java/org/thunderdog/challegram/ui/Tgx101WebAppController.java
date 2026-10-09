@@ -237,7 +237,7 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
     WebSettings settings = webView.getSettings();
     settings.setJavaScriptEnabled(true);
     settings.setDomStorageEnabled(true);
-    settings.setMediaPlaybackRequiresUserGesture(false);
+    if (Build.VERSION.SDK_INT >= 17) settings.setMediaPlaybackRequiresUserGesture(false);
     settings.setGeolocationEnabled(true); // TGx101: mini apps asking for the location (user's report from a Poco, 2026-10-04)
     // security audit 2026-10-06 #4: a mini app has no business reading the phone's files (on by default up to Android 10)
     settings.setAllowFileAccess(false);
@@ -357,7 +357,7 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
   private void sendEvent (String type, @Nullable JSONObject data) {
     if (webView == null || closed) return;
     String js = "window.Telegram && window.Telegram.WebView && window.Telegram.WebView.receiveEvent(" + JSONObject.quote(type) + ", " + (data != null ? data.toString() : "null") + ");";
-    webView.evaluateJavascript(js, null);
+    if (Build.VERSION.SDK_INT >= 19) webView.evaluateJavascript(js, null); else webView.loadUrl("javascript:" + js);
   }
 
   private static String hex (int color) {
@@ -659,7 +659,7 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
       };
       if (i == 0) b.setPositiveButton(text, listener); else if (i == 1) b.setNegativeButton(text, listener); else b.setNeutralButton(text, listener);
     }
-    b.setOnDismissListener(dialog -> {
+    if (Build.VERSION.SDK_INT >= 17) b.setOnDismissListener(dialog -> {
       if (!answered[0]) sendEvent("popup_closed", new JSONObject());
     });
     showAlert(b);

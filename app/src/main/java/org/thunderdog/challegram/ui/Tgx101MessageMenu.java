@@ -268,6 +268,7 @@ public final class Tgx101MessageMenu {
     @Nullable MoreLoader moreLoader;
     LinearLayout list; // the card's actions
     android.widget.ScrollView scroll; // the actions scroll when there are more than MAX_VISIBLE_ROWS
+    @Nullable View selectRow;
     @Nullable Drawable background; // the blurred screen behind the menu, faded in and out
     @Nullable Runnable selectInPlace; // «Select» text: the in-bubble selection where the finger first touched
     final List<View> mainRows = new ArrayList<>();
@@ -562,7 +563,8 @@ public final class Tgx101MessageMenu {
     }
     FrameLayout.LayoutParams columnParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
       Gravity.BOTTOM | (leftHand ? Gravity.LEFT : Gravity.RIGHT));
-    columnParams.setMargins(Screen.dp(12f), Screen.dp(12f), Screen.dp(12f), (keyboardHeight > 0 ? (tgx101OverKeyboard ? Screen.dp(12f) + navigationInset : Screen.dp(12f) + keyboardHeight) : Screen.dp(68f) + navigationInset)); // above the message input or the keyboard (or over it)
+    // user 2026-10-09: 24 dp from the screen's edges (12 looked glued to them on small phones)
+    columnParams.setMargins(Screen.dp(12f), Screen.dp(24f), Screen.dp(12f), (keyboardHeight > 0 ? (tgx101OverKeyboard ? Screen.dp(24f) + navigationInset : Screen.dp(24f) + keyboardHeight) : Screen.dp(68f) + navigationInset)); // above the message input or the keyboard (or over it)
     column.setLayoutParams(columnParams);
     if (Settings.instance().tgx101MenuAtFinger() && lastTouchRawY >= 0 && android.os.SystemClock.uptimeMillis() - lastTouchAt < 3000) {
       // variant 1: the menu opens at the finger — its top a little above the touch, kept inside the screen with
@@ -751,6 +753,7 @@ public final class Tgx101MessageMenu {
       list.addView(divider(context));
       View row = row(context, host, new ViewController.OptionItem(R.id.btn_messageSelect, Lang.getString(R.string.Select), ViewController.OptionColor.NORMAL, R.drawable.baseline_playlist_add_check_24), delegate, false);
       host.mainRows.add(row);
+      host.selectRow = row; // 2026-10-09: «Select» doesn't count toward the 9 rows
       list.addView(row);
     }
     ScrollView scroll = new ScrollView(context) {
@@ -760,14 +763,15 @@ public final class Tgx101MessageMenu {
           super.onMeasure(widthMeasureSpec, heightMeasureSpec); // shortened to fit beside the message
           return;
         }
-        int maxHeight = (int) (Screen.currentHeight() * 0.55f);
+        // user 2026-10-09 (small phone, «Удалить» cut with free room below): no 55 % cap — as tall as the screen allows
+        int maxHeight = MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.AT_MOST ? MeasureSpec.getSize(heightMeasureSpec) : Screen.currentHeight();
         super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(maxHeight, MeasureSpec.AT_MOST));
         // user 2026-10-06: a light menu — at most MAX_VISIBLE_ROWS rows at once, the rest scroll
         int rows = 0, limit = 0;
         for (int i = 0; i < list.getChildCount() && rows < MAX_VISIBLE_ROWS; i++) {
           View child = list.getChildAt(i);
           limit += child.getMeasuredHeight();
-          if (host.mainRows.contains(child)) rows++;
+          if (host.mainRows.contains(child) && child != host.selectRow) rows++;
         }
         if (rows == MAX_VISIBLE_ROWS && limit < getMeasuredHeight()) {
           setMeasuredDimension(getMeasuredWidth(), limit + Screen.dp(18f)); // a peek of the next row says «scroll»
@@ -963,7 +967,11 @@ public final class Tgx101MessageMenu {
       });
       grid.addView(more, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
       // the same width and margins as the actions card — the grid takes exactly its place (user's video 11:17)
-      LinearLayout.LayoutParams params = new LinearLayout.LayoutParams((LinearLayout.LayoutParams) host.card.getLayoutParams());
+      LinearLayout.LayoutParams params = new LinearLayout.LayoutParams((ViewGroup.MarginLayoutParams) host.card.getLayoutParams()); // API 16 constructor
+      if (host.card.getLayoutParams() instanceof LinearLayout.LayoutParams) {
+        params.gravity = ((LinearLayout.LayoutParams) host.card.getLayoutParams()).gravity;
+        params.weight = ((LinearLayout.LayoutParams) host.card.getLayoutParams()).weight;
+      }
       host.column.addView(grid, host.column.indexOfChild(host.card), params);
       host.grid = grid;
     }

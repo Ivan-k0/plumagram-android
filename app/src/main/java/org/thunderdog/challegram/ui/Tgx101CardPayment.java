@@ -398,7 +398,7 @@ public final class Tgx101CardPayment {
         }
       }
     }
-    cookies.flush();
+    if (android.os.Build.VERSION.SDK_INT >= 21) cookies.flush();
   }
 
   // Confirm and send

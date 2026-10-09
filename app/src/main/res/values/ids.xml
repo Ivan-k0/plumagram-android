@@ -1667,6 +1667,9 @@
   <item name="btn_tgx101ChannelStyle" type="id"/>
   <item name="btn_tgx101ChatNotifications" type="id"/>
   <item name="btn_tgx101JournalLines" type="id"/>
+  <item name="btn_tgx101TranslateTelegram" type="id"/>
+  <item name="btn_tgx101TranslateDevice" type="id"/>
+  <item name="btn_tgx101TranslateGoogle" type="id"/>
   <item name="btn_tgx101Lines0" type="id"/>
   <item name="btn_tgx101Lines1" type="id"/>
   <item name="btn_tgx101Lines2" type="id"/>

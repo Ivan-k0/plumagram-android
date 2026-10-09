@@ -319,7 +319,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         } else if (quickReplyIndex(itemId) != -1) {
           view.setData(Settings.instance().getQuickReply(quickReplyIndex(itemId)));
         } else if (itemId == R.id.btn_tgx101TranslateOnDevice) {
-          view.getToggler().setRadioEnabled(Settings.instance().tgx101TranslateOnDevice(), isUpdate);
+          int e = Settings.instance().tgx101TranslateEngine();
+          view.setData(e == Settings.TGX101_TRANSLATE_GOOGLE ? R.string.Tgx101TranslateGoogle : e == Settings.TGX101_TRANSLATE_DEVICE ? R.string.Tgx101TranslateDevice : R.string.Tgx101TranslateTelegram);
         } else if (itemId == R.id.btn_tgx101SpeechModel) {
           view.setData(tgx101SpeechModelStatus());
         } else if (itemId == R.id.btn_tgx101FakeNoPremium) {
@@ -521,7 +522,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101TranslateSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101TranslateOnDevice, 0, R.string.Tgx101TranslateOnDevice),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101TranslateOnDevice, 0, R.string.Tgx101TranslateEngine),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101TranslateModels, 0, R.string.Tgx101TranslateModels),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101TranslateOnDeviceHint),
@@ -1313,7 +1314,21 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         return true;
       }, true);
     } else if (id == R.id.btn_tgx101TranslateOnDevice) {
-      Settings.instance().setTgx101TranslateOnDevice(toggleResult); // the view was already toggled above
+      int cur = Settings.instance().tgx101TranslateEngine();
+      showSettings(new SettingsWrapBuilder(R.id.btn_tgx101TranslateOnDevice).setRawItems(new ListItem[] {
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101TranslateTelegram, 0, R.string.Tgx101TranslateTelegram, R.id.btn_tgx101TranslateOnDevice, cur == Settings.TGX101_TRANSLATE_TELEGRAM),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101TranslateDevice, 0, R.string.Tgx101TranslateDevice, R.id.btn_tgx101TranslateOnDevice, cur == Settings.TGX101_TRANSLATE_DEVICE),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101TranslateGoogle, 0, R.string.Tgx101TranslateGoogle, R.id.btn_tgx101TranslateOnDevice, cur == Settings.TGX101_TRANSLATE_GOOGLE),
+      }).setIntDelegate((sid, result) -> {
+        int picked = result.get(R.id.btn_tgx101TranslateOnDevice);
+        int engine = picked == R.id.btn_tgx101TranslateGoogle ? Settings.TGX101_TRANSLATE_GOOGLE : picked == R.id.btn_tgx101TranslateDevice ? Settings.TGX101_TRANSLATE_DEVICE : Settings.TGX101_TRANSLATE_TELEGRAM;
+        if (engine == Settings.TGX101_TRANSLATE_GOOGLE && cur != engine) {
+          // one warning: the message text goes to Google's server
+          showOptions(Lang.getString(R.string.Tgx101TranslateGoogleWarning), new int[] {R.id.btn_done}, new String[] {Lang.getString(R.string.OK)}, null, null, null);
+        }
+        Settings.instance().setTgx101TranslateEngine(engine);
+        adapter.updateValuedSettingById(R.id.btn_tgx101TranslateOnDevice);
+      }).setAllowResize(false));
     } else if (id == R.id.btn_tgx101SpeechModel) {
       showTgx101SpeechModels();
     } else if (id == R.id.btn_tgx101TranslateModels) {

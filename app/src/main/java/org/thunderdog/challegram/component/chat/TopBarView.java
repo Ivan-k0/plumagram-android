@@ -157,7 +157,11 @@ public class TopBarView extends FrameLayoutFix {
     android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
     bg.setColor(me.vkryl.core.ColorUtils.alphaColor(.12f, color));
     bg.setCornerRadius(Screen.dp(14f));
-    chip.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(me.vkryl.core.ColorUtils.alphaColor(.2f, color)), bg, null));
+    if (android.os.Build.VERSION.SDK_INT >= 21) {
+      chip.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(me.vkryl.core.ColorUtils.alphaColor(.2f, color)), bg, null));
+    } else {
+      chip.setBackgroundDrawable(bg); // Android 4.x: no ripple
+    }
     chip.setOnClickListener(item.onClickListener);
     LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(28f));
     params.gravity = Gravity.CENTER_VERTICAL;
