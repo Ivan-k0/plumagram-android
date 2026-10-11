@@ -188,6 +188,16 @@ public class SharedMediaController extends SharedBaseController<MediaItem> imple
   private static final float TGX101_FILTER_HEIGHT = 46f;
   private boolean tgx101MediaTabKnown, tgx101MediaTab;
 
+  /** The profile keeps the list's first ~header under its tab strip (it hid the first month header): the row is that
+   *  much taller and its chips sit at the bottom, below the tabs (phone check 11.10 19:17 — the chips were covered) */
+  private static int tgx101FilterHiddenPart () {
+    return SettingHolder.measureHeightForType(ListItem.TYPE_SHADOW_TOP) + SettingHolder.measureHeightForType(ListItem.TYPE_HEADER);
+  }
+
+  private static int tgx101FilterRowHeight () {
+    return tgx101FilterHiddenPart() + Screen.dp(TGX101_FILTER_HEIGHT);
+  }
+
   private boolean tgx101MediaTab () {
     if (!tgx101MediaTabKnown) {
       tgx101MediaTabKnown = true;
@@ -297,8 +307,8 @@ public class SharedMediaController extends SharedBaseController<MediaItem> imple
     android.widget.LinearLayout row = new android.widget.LinearLayout(parent.getContext());
     row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
     row.setGravity(android.view.Gravity.CENTER_VERTICAL);
-    row.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
-    row.setLayoutParams(new androidx.recyclerview.widget.RecyclerView.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(TGX101_FILTER_HEIGHT)));
+    row.setPadding(Screen.dp(12f), tgx101FilterHiddenPart(), Screen.dp(12f), 0);
+    row.setLayoutParams(new androidx.recyclerview.widget.RecyclerView.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, tgx101FilterRowHeight()));
     int[] labels = {R.string.Tgx101MediaAll, R.string.Tgx101MediaPhotos, R.string.Tgx101MediaVideos};
     for (int i = 0; i < labels.length; i++) {
       final int mode = i;
@@ -408,7 +418,7 @@ public class SharedMediaController extends SharedBaseController<MediaItem> imple
           break;
         }
         case ListItem.TYPE_CUSTOM_SINGLE: { // TGx101: the media filter row
-          scrollY += Screen.dp(TGX101_FILTER_HEIGHT);
+          scrollY += tgx101FilterRowHeight();
           break;
         }
         case ListItem.TYPE_SMART_EMPTY:
