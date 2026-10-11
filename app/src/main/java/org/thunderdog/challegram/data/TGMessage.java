@@ -9342,7 +9342,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
 
     final String[] quickReactions = Settings.instance().getQuickReactions(tdlib);
-    final boolean swipeReactions = Settings.instance().getTapMode() != Settings.TAP_MODE_DOUBLE; // TGx101: «Double tap — like»: swipe only replies
+    final boolean swipeReactions = Settings.instance().tgx101SwipeReactions(); // TGx101: off — the swipe only replies
     for (int a = 0; a < quickReactions.length; a++) {
       final String reactionString = quickReactions[a];
       TdApi.ReactionType reactionType = TD.toReactionType(reactionString);
@@ -9427,6 +9427,38 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           case org.thunderdog.challegram.ui.Tgx101BarOrder.SWIPE_DELETE:
             if (canBeDeletedForSomebody()) action = tgx101SwipeAction(R.drawable.baseline_delete_24, R.id.btn_messageDelete);
             break;
+          case org.thunderdog.challegram.ui.Tgx101BarOrder.SWIPE_REACTION:
+            // TGx101 (user 2026-10-11): reaction №1, the same as the double tap
+            if (!isSponsoredMessage() && !isEventLog() && !tdlib.isSelfChat(msg.chatId)) {
+              final String[] quick = Settings.instance().getQuickReactions(tdlib);
+              final TGReaction first = quick != null && quick.length > 0 ? tdlib.getReaction(TD.toReactionType(quick[0])) : null;
+              Drawable icon;
+              if (first != null) {
+                TGReaction.ReactionDrawable drawable = new TGReaction.ReactionDrawable(first, Screen.dp(48), Screen.dp(48));
+                drawable.setComplexReceiver(currentComplexReceiver);
+                icon = drawable;
+              } else {
+                icon = tgx101Icon(R.drawable.baseline_favorite_24);
+              }
+              action = new SwipeQuickAction(first != null ? first.getTitle() : "", icon, this::tgx101SetFirstQuickReaction, false, first != null);
+            }
+            break;
+          case org.thunderdog.challegram.ui.Tgx101BarOrder.SWIPE_DELETE_ALL:
+            if (canBeDeletedForSomebody()) {
+              action = new SwipeQuickAction("", tgx101Icon(R.drawable.baseline_delete_forever_24), () -> messagesController().tgx101ConfirmDeleteForAll(this), true, false);
+            }
+            break;
+          case org.thunderdog.challegram.ui.Tgx101BarOrder.SWIPE_LINK:
+            if (isSent && tdlib.canCopyPostLink(msg)) action = tgx101SwipeAction(R.drawable.baseline_link_24, R.id.btn_messageCopyLink);
+            break;
+          case org.thunderdog.challegram.ui.Tgx101BarOrder.SWIPE_SAVE_FILE:
+            if (isSent && canBeSaved() && org.thunderdog.challegram.component.chat.MessageView.Tgx101MessageMenuHelper.hasSavableFile(getAllMessages())) {
+              action = tgx101SwipeAction(R.drawable.baseline_file_download_24, R.id.btn_tgx101DownloadSave);
+            }
+            break;
+          case org.thunderdog.challegram.ui.Tgx101BarOrder.SWIPE_REPORT:
+            if (canBeReported()) action = tgx101SwipeAction(R.drawable.baseline_report_24, R.id.btn_messageReport);
+            break;
         }
         if (action != null) rightActions.add(action);
       }
@@ -9445,6 +9477,46 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   /** TGx101: the message's available reactions are loaded lazily (by the menu); a double tap starts loading them on the first tap */
   public boolean tgx101CanTryDoubleTapReaction () {
     return !isSponsoredMessage() && !isEventLog();
+  }
+
+  /** TGx101: whether a double tap with this action means anything for this message (otherwise a tap opens the menu at once) */
+  public boolean tgx101CanDoubleTap (int action) {
+    if (isSponsoredMessage() || isEventLog()) {
+      return false;
+    }
+    switch (action) {
+      case Settings.DOUBLE_TAP_REACTION:
+        return true;
+      case Settings.DOUBLE_TAP_TRANSLATE:
+        return isTranslated() || (isTranslatable() && translationStyleMode() != Settings.TRANSLATE_MODE_NONE);
+      case Settings.DOUBLE_TAP_SAVE:
+        return !isNotSent() && canBeForwarded() && !messagesController().isSecretChat();
+      case Settings.DOUBLE_TAP_DELETE_ALL:
+        return canBeDeletedForSomebody();
+    }
+    return false;
+  }
+
+  public boolean tgx101OnDoubleTap (int action) {
+    switch (action) {
+      case Settings.DOUBLE_TAP_REACTION:
+        return tgx101SetFirstQuickReaction();
+      case Settings.DOUBLE_TAP_TRANSLATE:
+        org.thunderdog.challegram.Tgx101Diag.mark("double tap: translate " + (isTranslated() ? "off" : "on"));
+        return messagesController().tgx101RunMessageAction(this, isTranslated() ? R.id.btn_chatTranslateOff : R.id.btn_chatTranslate);
+      case Settings.DOUBLE_TAP_SAVE:
+        org.thunderdog.challegram.Tgx101Diag.mark("double tap: save to Saved Messages");
+        return messagesController().tgx101RunMessageAction(this, R.id.btn_tgx101SaveFavorite);
+      case Settings.DOUBLE_TAP_DELETE_ALL:
+        org.thunderdog.challegram.Tgx101Diag.mark("double tap: delete, asking");
+        messagesController().tgx101ConfirmDeleteForAll(this);
+        return true;
+    }
+    return false;
+  }
+
+  public boolean tgx101CanDeleteForAll () {
+    return lastMessageProperties().canBeDeletedForAllUsers;
   }
 
   public void tgx101PrefetchAvailableReactions () {

@@ -6214,6 +6214,31 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return newMessageOptionDelegate(message, null, null).onOptionItemPressed(null, id);
   }
 
+  /** TGx101 (user 2026-10-11): «Delete for everyone» from a double tap or the swipe — always asks first; where it
+   * can't be deleted for everyone, asks to delete it for me */
+  public void tgx101ConfirmDeleteForAll (TGMessage message) {
+    if (!message.canBeDeletedForSomebody()) {
+      return;
+    }
+    final boolean forAll = message.tgx101CanDeleteForAll();
+    final long chatId = message.getChatId();
+    final TdApi.Message[] all = message.getAllMessages();
+    final long[] messageIds = new long[all.length];
+    for (int i = 0; i < all.length; i++) messageIds[i] = all[i].id;
+    showOptions(Lang.getString(forAll ? R.string.Tgx101DeleteForAllInfo : R.string.Tgx101DeleteForMeInfo),
+      new int[] {R.id.btn_done, R.id.btn_cancel},
+      new String[] {Lang.getString(forAll ? R.string.Tgx101DeleteForAll : R.string.Tgx101DeleteForMe), Lang.getString(R.string.Cancel)},
+      new int[] {OptionColor.RED, OptionColor.NORMAL},
+      new int[] {R.drawable.baseline_delete_forever_24, R.drawable.baseline_cancel_24},
+      (itemView, id) -> {
+        if (id == R.id.btn_done) {
+          org.thunderdog.challegram.Tgx101Diag.mark("delete: " + messageIds.length + " message(s), for all " + forAll);
+          tdlib.deleteMessages(chatId, messageIds, forAll);
+        }
+        return true;
+      });
+  }
+
   private OptionDelegate newMessageOptionDelegate (final TGMessage selectedMessage, final TdApi.ChatMember selectedMessageSender, final Object selectedMessageTag) {
     return (itemView, id) -> {
       if (id == R.id.btn_cancel) {

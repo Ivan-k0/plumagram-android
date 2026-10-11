@@ -1682,4 +1682,21 @@
   <item name="btn_tgx101ChannelStyleClassic" type="id"/>
   <item name="btn_messageOpenInBrowser" type="id"/>
   <item name="btn_messageOpenRich" type="id"/>
+  <item name="btn_tgx101Gestures" type="id"/>
+  <item name="controller_tgx101Gestures" type="id"/>
+  <item name="btn_tgx101DoubleTapOff" type="id"/>
+  <item name="btn_tgx101DoubleTapReaction" type="id"/>
+  <item name="btn_tgx101DoubleTapTranslate" type="id"/>
+  <item name="btn_tgx101DoubleTapSave" type="id"/>
+  <item name="btn_tgx101DoubleTapDelete" type="id"/>
+  <item name="btn_tgx101DoubleTapGroup" type="id"/>
+  <item name="btn_tgx101SwipeReactions" type="id"/>
+  <item name="btn_tgx101SwipeOrder" type="id"/>
+  <item name="btn_tgx101LongPressSelect" type="id"/>
+  <item name="btn_tgx101LongPressMenuOpen" type="id"/>
+  <item name="btn_tgx101LongPressGroup" type="id"/>
+  <item name="btn_tgx101DragSection" type="id"/>
+  <item name="btn_tgx101DragEmpty" type="id"/>
+  <item name="btn_tgx101SwipeItem" type="id"/>
+  <item name="btn_tgx101OrderPreview" type="id"/>
 </resources>

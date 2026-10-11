@@ -3824,6 +3824,35 @@ public class Settings {
     pmc.putInt(KEY_TGX101_TAP_MODE, mode);
   }
 
+  // TGx101 (user 2026-10-11): what a double tap does — replaces the three tap modes (the old mode is read until the
+  // new setting is saved); quick reactions in the swipe are a switch of their own
+  public static final int DOUBLE_TAP_OFF = 0, DOUBLE_TAP_REACTION = 1, DOUBLE_TAP_TRANSLATE = 2, DOUBLE_TAP_SAVE = 3, DOUBLE_TAP_DELETE_ALL = 4;
+  private static final String KEY_TGX101_DOUBLE_TAP_ACTION = "tgx101_double_tap_action";
+  private static final String KEY_TGX101_SWIPE_REACTIONS = "tgx101_swipe_reactions";
+
+  public int tgx101DoubleTapAction () {
+    if (pmc.contains(KEY_TGX101_DOUBLE_TAP_ACTION)) {
+      return pmc.getInt(KEY_TGX101_DOUBLE_TAP_ACTION, DOUBLE_TAP_OFF);
+    }
+    return getTapMode() == TAP_MODE_STOCK ? DOUBLE_TAP_OFF : DOUBLE_TAP_REACTION;
+  }
+
+  public void setTgx101DoubleTapAction (int action) {
+    pmc.putInt(KEY_TGX101_DOUBLE_TAP_ACTION, action);
+  }
+
+  /** Quick reactions in the swipe too (stock and «Double tap and swipe»); «Double tap — like» left only replies there */
+  public boolean tgx101SwipeReactions () {
+    if (pmc.contains(KEY_TGX101_SWIPE_REACTIONS)) {
+      return pmc.getBoolean(KEY_TGX101_SWIPE_REACTIONS, true);
+    }
+    return getTapMode() != TAP_MODE_DOUBLE;
+  }
+
+  public void setTgx101SwipeReactions (boolean v) {
+    pmc.putBoolean(KEY_TGX101_SWIPE_REACTIONS, v);
+  }
+
   // TGx101: new call screen (card with 2×3 labelled buttons, TruePhone-style incoming call); off = the previous one
   private static final String KEY_TGX101_NEW_CALL_SCREEN = "tgx101_new_call_screen";
 

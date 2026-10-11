@@ -604,16 +604,20 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     }*/
     // TGx101: double tap sets reaction №1; the menu opens after the double-tap timeout (only when the option is on)
     // TGx101: canBeReacted() is false until the menu has loaded the message's reactions, so it's not checked here
-    if (Settings.instance().getTapMode() != Settings.TAP_MODE_STOCK && msg.tgx101CanTryDoubleTapReaction()) {
+    // TGx101 (user 2026-10-11): the double tap can also translate, save to Saved Messages or delete for everyone
+    final int doubleTapAction = Settings.instance().tgx101DoubleTapAction();
+    if (doubleTapAction != Settings.DOUBLE_TAP_OFF && msg.tgx101CanDoubleTap(doubleTapAction)) {
       if (doubleTapArmed) {
         doubleTapArmed = false;
-        return msg.tgx101SetFirstQuickReaction() || (tapMenu && onMessageClickImpl(x, y, null));
+        return msg.tgx101OnDoubleTap(doubleTapAction) || (tapMenu && onMessageClickImpl(x, y, null));
       }
       if (pendingMenuTap != null) {
         pendingMenuTap.cancel();
       }
       final TGMessage tappedMessage = msg;
-      tappedMessage.tgx101PrefetchAvailableReactions(); // arrives during the double-tap wait
+      if (doubleTapAction == Settings.DOUBLE_TAP_REACTION) {
+        tappedMessage.tgx101PrefetchAvailableReactions(); // arrives during the double-tap wait
+      }
       pendingMenuMessage = tappedMessage;
       pendingMenuTap = new CancellableRunnable() {
         @Override
@@ -1810,8 +1814,8 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
   }
 
   /** TGx101: helpers for the message menu */
-  static final class Tgx101MessageMenuHelper {
-    static boolean hasSavableFile (TdApi.Message[] messages) {
+  public static final class Tgx101MessageMenuHelper {
+    public static boolean hasSavableFile (TdApi.Message[] messages) {
       for (TdApi.Message message : messages) {
         switch (message.content.getConstructor()) {
           case TdApi.MessagePhoto.CONSTRUCTOR:

@@ -34,13 +34,18 @@ public final class Tgx101BarOrder {
   // TGx101 (user 2026-10-06): the swipe actions column, top to bottom; «Reply» is the plain swipe and can't be hidden
   public static final String SWIPE_PIN = "pin", SWIPE_TRANSLATE = "translate", SWIPE_SAVE = "save", SWIPE_FORWARD = "forward",
     SWIPE_REPLY = "reply", SWIPE_COPY = "copy", SWIPE_EDIT = "edit", SWIPE_SELECT = "select", SWIPE_DELETE = "delete";
+  // TGx101 (user 2026-10-11): more actions for the column, off until switched on
+  public static final String SWIPE_REACTION = "reaction", SWIPE_DELETE_ALL = "deleteAll", SWIPE_LINK = "link",
+    SWIPE_SAVE_FILE = "saveFile", SWIPE_REPORT = "report";
+  private static final String[] SWIPE_OFF_BY_DEFAULT = {SWIPE_REACTION, SWIPE_DELETE_ALL, SWIPE_LINK, SWIPE_SAVE_FILE, SWIPE_REPORT};
   static final String[][] KEYS = {
     {QUOTE, COPY, SELECT_ALL, EDITOR, APPS},
     {CUT, COPY, PASTE, SELECT_ALL, APPS},
-    {SWIPE_PIN, SWIPE_TRANSLATE, SWIPE_SAVE, SWIPE_FORWARD, SWIPE_REPLY, SWIPE_COPY, SWIPE_EDIT, SWIPE_SELECT, SWIPE_DELETE}
+    {SWIPE_PIN, SWIPE_TRANSLATE, SWIPE_SAVE, SWIPE_FORWARD, SWIPE_REPLY, SWIPE_COPY, SWIPE_EDIT, SWIPE_SELECT, SWIPE_DELETE,
+      SWIPE_REACTION, SWIPE_DELETE_ALL, SWIPE_LINK, SWIPE_SAVE_FILE, SWIPE_REPORT}
   };
 
-  static int swipeNameOf (String key) {
+  public static int swipeNameOf (String key) {
     switch (key) {
       case SWIPE_PIN: return R.string.MessagePin;
       case SWIPE_TRANSLATE: return R.string.Translate;
@@ -50,11 +55,16 @@ public final class Tgx101BarOrder {
       case SWIPE_COPY: return R.string.Copy;
       case SWIPE_EDIT: return R.string.edit;
       case SWIPE_SELECT: return R.string.Select;
+      case SWIPE_REACTION: return R.string.Tgx101SwipeReaction;
+      case SWIPE_DELETE_ALL: return R.string.Tgx101DeleteForAll;
+      case SWIPE_LINK: return R.string.CopyLink;
+      case SWIPE_SAVE_FILE: return R.string.Tgx101SwipeSaveFile;
+      case SWIPE_REPORT: return R.string.MessageReport;
       case SWIPE_DELETE: default: return R.string.Delete;
     }
   }
 
-  static int swipeIconOf (String key) {
+  public static int swipeIconOf (String key) {
     switch (key) {
       case SWIPE_PIN: return R.drawable.deproko_baseline_pin_24;
       case SWIPE_TRANSLATE: return R.drawable.baseline_translate_24;
@@ -64,11 +74,16 @@ public final class Tgx101BarOrder {
       case SWIPE_COPY: return R.drawable.baseline_content_copy_24;
       case SWIPE_EDIT: return R.drawable.baseline_edit_24;
       case SWIPE_SELECT: return R.drawable.baseline_playlist_add_check_24;
+      case SWIPE_REACTION: return R.drawable.baseline_favorite_24;
+      case SWIPE_DELETE_ALL: return R.drawable.baseline_delete_forever_24;
+      case SWIPE_LINK: return R.drawable.baseline_link_24;
+      case SWIPE_SAVE_FILE: return R.drawable.baseline_file_download_24;
+      case SWIPE_REPORT: return R.drawable.baseline_report_24;
       case SWIPE_DELETE: default: return R.drawable.baseline_delete_24;
     }
   }
 
-  static int nameOf (String key) {
+  public static int nameOf (String key) {
     switch (key) {
       case QUOTE: return R.string.Tgx101EditorQuote;
       case COPY: return R.string.Copy;
@@ -80,7 +95,7 @@ public final class Tgx101BarOrder {
     }
   }
 
-  static int iconOf (String key) {
+  public static int iconOf (String key) {
     switch (key) {
       case QUOTE: return R.drawable.baseline_format_quote_close_24;
       case COPY: return R.drawable.baseline_content_copy_24;
@@ -106,13 +121,13 @@ public final class Tgx101BarOrder {
     }
     for (String key : KEYS[bar]) {
       if (!result.contains(key) && !result.contains("-" + key)) {
-        result.add(key);
+        result.add(bar == BAR_SWIPE && indexOf(SWIPE_OFF_BY_DEFAULT, key) != -1 ? "-" + key : key);
       }
     }
     return result;
   }
 
-  static void setOrder (int bar, List<String> order) {
+  public static void setOrder (int bar, List<String> order) {
     Settings.instance().setTgx101BarOrder(bar, order != null ? android.text.TextUtils.join(",", order) : null);
   }
 

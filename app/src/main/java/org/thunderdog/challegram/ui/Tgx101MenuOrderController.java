@@ -13,11 +13,22 @@
 package org.thunderdog.challegram.ui;
 
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.RectF;
+import android.text.TextPaint;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+
+import androidx.recyclerview.widget.RecyclerView;
 
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.component.base.SettingView;
 import org.thunderdog.challegram.core.Lang;
+import org.thunderdog.challegram.theme.ColorId;
+import org.thunderdog.challegram.theme.Theme;
+import org.thunderdog.challegram.tool.Paints;
+import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.unsorted.Settings;
@@ -27,8 +38,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** TGx101: order of the actions in the compact message menu. "Delete" is always last. */
-public class Tgx101MenuOrderController extends RecyclerViewController<Void> implements View.OnClickListener {
+public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101MenuOrderController.Args> implements View.OnClickListener, Tgx101DragOrder.Callback {
+  // TGx101 (user 2026-10-11): the message menu and the swipe column are set up on screens of their own
+  public static final int MODE_MENU = 0, MODE_SWIPE = 1;
+
+  public static class Args {
+    final int mode;
+
+    public Args (int mode) {
+      this.mode = mode;
+    }
+  }
+
+  private static final int CUSTOM_PREVIEW = 0, CUSTOM_TABS = 1;
+
   private SettingsAdapter adapter;
+  private Tgx101OrderPreviewView preview;
   private int editProfile = Settings.TGX101_MENU_TEXT; // user 2026-10-06: which menu is being set up
 
   private void applyProfile () {
@@ -39,6 +64,11 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     super(context, tdlib);
   }
 
+  private int mode () {
+    Args args = getArguments();
+    return args != null ? args.mode : MODE_MENU;
+  }
+
   @Override
   public int getId () {
     return R.id.controller_tgx101MenuOrder;
@@ -46,7 +76,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
 
   @Override
   public CharSequence getName () {
-    return Lang.getString(R.string.Tgx101MessageMenuOrder);
+    return Lang.getString(mode() == MODE_SWIPE ? R.string.Tgx101SwipeMenuSection : R.string.Tgx101MessageMenuOrder);
   }
 
   @Override
@@ -54,24 +84,40 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     adapter = new SettingsAdapter(this) {
       @Override
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
-        applyProfile();
-        if (item.getId() == R.id.btn_tgx101MenuProfile) {
-          view.setData(Lang.getString(editProfile == Settings.TGX101_MENU_MEDIA ? R.string.Tgx101MenuProfileMedia : editProfile == Settings.TGX101_MENU_VOICE ? R.string.Tgx101MenuProfileVoice : R.string.Tgx101MenuProfileText));
-        } else if (item.getId() == R.id.btn_tgx101MenuAction) {
-          int position = (int) item.getLongId();
-          int[] order = Tgx101MessageMenu.getOrder();
-          boolean hidden = position < order.length && Tgx101MessageMenu.isHidden(order[position]);
-          boolean inMore = position < order.length && Tgx101MessageMenu.isInMore(order[position]);
-          view.setData(hidden || inMore ? "" : Integer.toString(numberInSection(order, position) + 1));
-        } else if (item.getId() == R.id.btn_tgx101BarItem) {
-          int position = (int) item.getLongId();
-          List<String> swipe = Tgx101BarOrder.getOrder(Tgx101BarOrder.BAR_SWIPE);
-          view.setData(position < swipe.size() && swipe.get(position).startsWith("-") ? Lang.getString(R.string.Tgx101FormatHidden) : Integer.toString(position + 1));
+        if (item.getId() == R.id.btn_tgx101MenuAction) {
+          view.setData("≡"); // the handle: drag from here
+        } else if (item.getId() == R.id.btn_tgx101SwipeItem) {
+          String entry = (String) item.getData();
+          view.getToggler().setRadioEnabled(!entry.startsWith("-"), isUpdate);
+        }
+      }
+
+      @Override
+      protected SettingHolder initCustom (ViewGroup parent, int customViewType) {
+        View view;
+        if (customViewType == CUSTOM_TABS) {
+          view = new ProfileTabs(context);
+        } else {
+          preview = new Tgx101OrderPreviewView(context);
+          view = preview;
+        }
+        view.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return new SettingHolder(view);
+      }
+
+      @Override
+      protected void modifyCustom (SettingHolder holder, int position, ListItem item, int customViewType, View view, boolean isUpdate) {
+        if (customViewType == CUSTOM_PREVIEW) {
+          preview = (Tgx101OrderPreviewView) view;
+          updatePreview();
+        } else {
+          view.invalidate();
         }
       }
     };
     adapter.setItems(buildItems(), false);
     recyclerView.setAdapter(adapter);
+    Tgx101DragOrder.attach(recyclerView, adapter, this);
   }
 
   private static int indexOf (int[] ids, int id) {
@@ -113,57 +159,73 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     return true;
   }
 
-  private static int numberInSection (int[] order, int position) {
-    int section = sectionOf(order[position]), n = 0;
-    for (int i = 0; i < position; i++) if (sectionOf(order[i]) == section) n++;
-    return n;
+  private List<ListItem> buildItems () {
+    return mode() == MODE_SWIPE ? buildSwipeItems() : buildMenuItems();
   }
 
-  private List<ListItem> buildItems () {
+  private static void addSection (List<ListItem> items, CharSequence title, List<ListItem> rows) {
+    items.add(new ListItem(ListItem.TYPE_HEADER, R.id.btn_tgx101DragSection, 0, title));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    if (rows.isEmpty()) {
+      items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101DragEmpty, 0, R.string.Tgx101DragHere));
+    } else {
+      items.addAll(rows);
+    }
+  }
+
+  private List<ListItem> buildMenuItems () {
     applyProfile();
     int[] order = Tgx101MessageMenu.getOrder();
     List<ListItem> items = new ArrayList<>();
     items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
-    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-    items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101MenuProfile, R.drawable.baseline_swap_horiz_24, R.string.Tgx101MenuProfile));
-    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
-    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101MenuProfileHint));
+    items.add(new ListItem(ListItem.TYPE_CUSTOM - CUSTOM_TABS));
+    items.add(new ListItem(ListItem.TYPE_CUSTOM - CUSTOM_PREVIEW));
     int[] headers = {R.string.Tgx101MenuSectionMenu, R.string.Tgx101MenuSectionMore, R.string.Tgx101MenuSectionHidden};
     for (int section = SECTION_MENU; section <= SECTION_HIDDEN; section++) {
-      boolean any = false;
+      List<ListItem> rows = new ArrayList<>();
       for (int i = 0; i < order.length; i++) {
         if (sectionOf(order[i]) != section) continue;
-        if (!any) {
-          items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, headers[section]));
-          items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-          any = true;
-        } else {
-          items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-        }
         int known = indexOf(Tgx101MessageMenu.ORDERABLE_IDS, order[i]);
-        items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101MenuAction, Tgx101MessageMenu.ORDERABLE_ICONS[known], Tgx101MessageMenu.ORDERABLE_NAMES[known]).setLongId(i));
+        rows.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101MenuAction, Tgx101MessageMenu.ORDERABLE_ICONS[known], Tgx101MessageMenu.ORDERABLE_NAMES[known]).setLongId(i).setData(order[i]));
       }
+      CharSequence title = Lang.getString(headers[section]);
+      if (section == SECTION_MENU) {
+        title = title + " · " + Lang.getString(R.string.Tgx101MenuCountOf, menuCount(order), Tgx101MessageMenu.MAX_MENU_ITEMS);
+      }
+      addSection(items, title, rows);
       if (section == SECTION_MENU) {
         // «Select» is always the last item, under a line
         items.add(new ListItem(ListItem.TYPE_SEPARATOR));
         items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101MenuSelectFixed, R.drawable.baseline_playlist_add_check_24, R.string.Select));
       }
-      if (any || section == SECTION_MENU) {
-        items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
-      }
+      items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     }
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101DragHint));
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101MessageMenuOrderHint));
-    // TGx101 (user 2026-10-06): the swipe actions column, top to bottom
-    items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101SwipeMenuSection));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-    List<String> swipe = Tgx101BarOrder.getOrder(Tgx101BarOrder.BAR_SWIPE);
-    for (int i = 0; i < swipe.size(); i++) {
-      String key = swipe.get(i).startsWith("-") ? swipe.get(i).substring(1) : swipe.get(i);
-      if (i > 0) items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101BarItem, Tgx101BarOrder.swipeIconOf(key), Tgx101BarOrder.swipeNameOf(key)).setLongId(i));
-    }
+    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MenuOrderReset, R.drawable.baseline_undo_24, R.string.Tgx101MessageMenuOrderReset));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
-    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SwipeMenuHint));
+    return items;
+  }
+
+  // TGx101 (user 2026-10-06; 2026-10-11 own screen): the swipe actions column, top to bottom, and the ones switched off
+  private List<ListItem> buildSwipeItems () {
+    List<String> swipe = Tgx101BarOrder.getOrder(Tgx101BarOrder.BAR_SWIPE);
+    List<ListItem> items = new ArrayList<>();
+    items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
+    items.add(new ListItem(ListItem.TYPE_CUSTOM - CUSTOM_PREVIEW));
+    for (int section = 0; section < 2; section++) {
+      List<ListItem> rows = new ArrayList<>();
+      for (String entry : swipe) {
+        boolean hidden = entry.startsWith("-");
+        if (hidden != (section == 1)) continue;
+        String key = hidden ? entry.substring(1) : entry;
+        rows.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SwipeItem, Tgx101BarOrder.swipeIconOf(key), Tgx101BarOrder.swipeNameOf(key)).setData(entry));
+      }
+      addSection(items, Lang.getString(section == 0 ? R.string.Tgx101SwipeSectionOn : R.string.Tgx101SwipeSectionOff), rows);
+      items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    }
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SwipeOrderHint));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MenuOrderReset, R.drawable.baseline_undo_24, R.string.Tgx101MessageMenuOrderReset));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
@@ -172,6 +234,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
 
   private void rebuild () {
     adapter.setItems(buildItems(), false);
+    updatePreview();
   }
 
   private static int[] toArray (List<Integer> list) {
@@ -180,34 +243,197 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     return result;
   }
 
+  // Dragging
+
+  @Override
+  public boolean canDrag (ListItem item) {
+    return item.getId() == (mode() == MODE_SWIPE ? R.id.btn_tgx101SwipeItem : R.id.btn_tgx101MenuAction);
+  }
+
+  private static String keyOf (ListItem item) {
+    String entry = (String) item.getData();
+    return entry.startsWith("-") ? entry.substring(1) : entry;
+  }
+
+  /** The preview follows the list as it is now — also in the middle of a drag */
+  private void updatePreview () {
+    if (preview == null || adapter == null) {
+      return;
+    }
+    List<List<ListItem>> sections = Tgx101DragOrder.sections(adapter.getItems(), this);
+    List<Tgx101OrderPreviewView.Entry> entries = new ArrayList<>();
+    if (mode() == MODE_SWIPE) {
+      if (!sections.isEmpty()) {
+        for (ListItem row : sections.get(0)) {
+          String key = keyOf(row);
+          boolean reply = Tgx101BarOrder.SWIPE_REPLY.equals(key);
+          boolean red = Tgx101BarOrder.SWIPE_DELETE.equals(key) || Tgx101BarOrder.SWIPE_DELETE_ALL.equals(key);
+          entries.add(new Tgx101OrderPreviewView.Entry(Tgx101BarOrder.swipeIconOf(key), null, red, reply));
+        }
+      }
+      preview.setColumn(entries, false);
+    } else {
+      if (!sections.isEmpty()) {
+        for (ListItem row : sections.get(0)) {
+          int id = (Integer) row.getData();
+          int known = indexOf(Tgx101MessageMenu.ORDERABLE_IDS, id);
+          entries.add(new Tgx101OrderPreviewView.Entry(Tgx101MessageMenu.ORDERABLE_ICONS[known], Lang.getString(Tgx101MessageMenu.ORDERABLE_NAMES[known]), id == R.id.btn_messageDelete, false));
+        }
+      }
+      preview.setMenu(entries, new Tgx101OrderPreviewView.Entry(R.drawable.baseline_playlist_add_check_24, Lang.getString(R.string.Select), false, false));
+    }
+  }
+
+  @Override
+  public void onOrderChanged (boolean finished) {
+    if (!finished) {
+      updatePreview();
+      return;
+    }
+    List<List<ListItem>> sections = Tgx101DragOrder.sections(adapter.getItems(), this);
+    if (mode() == MODE_SWIPE) {
+      List<String> list = new ArrayList<>();
+      for (int section = 0; section < sections.size(); section++) {
+        for (ListItem row : sections.get(section)) {
+          String key = keyOf(row);
+          if (section > 0 && Tgx101BarOrder.SWIPE_REPLY.equals(key)) {
+            UI.showToast(R.string.Tgx101SwipeReplyStays, android.widget.Toast.LENGTH_SHORT);
+            rebuild();
+            return;
+          }
+          list.add(section > 0 ? "-" + key : key);
+        }
+      }
+      Tgx101BarOrder.setOrder(Tgx101BarOrder.BAR_SWIPE, list);
+      org.thunderdog.challegram.Tgx101Diag.mark("order: swipe column saved, " + list.size() + " entries");
+      rebuild();
+      return;
+    }
+    applyProfile();
+    List<Integer> menu = new ArrayList<>(), more = new ArrayList<>(), hidden = new ArrayList<>();
+    List<List<Integer>> lists = new ArrayList<>();
+    lists.add(menu);
+    lists.add(more);
+    lists.add(hidden);
+    for (int section = 0; section < sections.size() && section < lists.size(); section++) {
+      for (ListItem row : sections.get(section)) lists.get(section).add((Integer) row.getData());
+    }
+    int count = menu.size() + 1; // «Select»
+    if (count > Tgx101MessageMenu.MAX_MENU_ITEMS) {
+      UI.showToast(Lang.getString(R.string.Tgx101MenuTooMany, Tgx101MessageMenu.MAX_MENU_ITEMS), android.widget.Toast.LENGTH_SHORT);
+      rebuild();
+      return;
+    }
+    if (count < Tgx101MessageMenu.MIN_MENU_ITEMS) {
+      UI.showToast(Lang.getString(R.string.Tgx101MenuTooFew, Tgx101MessageMenu.MIN_MENU_ITEMS), android.widget.Toast.LENGTH_SHORT);
+      rebuild();
+      return;
+    }
+    if (hidden.contains(R.id.btn_tgx101SelectInPlace)) {
+      UI.showToast(R.string.Tgx101SelectCantHide, android.widget.Toast.LENGTH_SHORT);
+      rebuild();
+      return;
+    }
+    if (!menu.contains(R.id.btn_messageMore)) {
+      UI.showToast(R.string.Tgx101MoreStaysInMenu, android.widget.Toast.LENGTH_SHORT);
+      rebuild();
+      return;
+    }
+    List<Integer> order = new ArrayList<>(menu);
+    order.addAll(more);
+    order.addAll(hidden);
+    Settings.instance().setTgx101MessageMenuOrder(toArray(order));
+    Settings.instance().setTgx101MessageMenuMore(toArray(more));
+    Settings.instance().setTgx101MessageMenuHidden(toArray(hidden));
+    org.thunderdog.challegram.Tgx101Diag.mark("order: menu " + editProfile + " saved, " + menu.size() + " in the menu, " + more.size() + " in More, " + hidden.size() + " hidden");
+    rebuild();
+  }
+
+  /** Text / Media / Voice: which of the three menus is set up */
+  private class ProfileTabs extends View {
+    private final int[] profiles = {Settings.TGX101_MENU_TEXT, Settings.TGX101_MENU_MEDIA, Settings.TGX101_MENU_VOICE};
+    private final int[] names = {R.string.Tgx101MenuProfileText, R.string.Tgx101MenuProfileMedia, R.string.Tgx101MenuProfileVoice};
+    private final RectF rect = new RectF();
+
+    ProfileTabs (Context context) {
+      super(context);
+    }
+
+    @Override
+    protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
+      setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), Screen.dp(52f));
+    }
+
+    @Override
+    protected void onDraw (Canvas c) {
+      int width = getMeasuredWidth();
+      c.drawColor(Theme.fillingColor());
+      float left = Screen.dp(12f), top = Screen.dp(8f), right = width - Screen.dp(12f), bottom = Screen.dp(44f);
+      rect.set(left, top, right, bottom);
+      c.drawRoundRect(rect, Screen.dp(10f), Screen.dp(10f), Paints.fillingPaint(Theme.backgroundColor()));
+      float tab = (right - left) / profiles.length;
+      for (int i = 0; i < profiles.length; i++) {
+        boolean selected = profiles[i] == editProfile;
+        if (selected) {
+          rect.set(left + tab * i + Screen.dp(3f), top + Screen.dp(3f), left + tab * (i + 1) - Screen.dp(3f), bottom - Screen.dp(3f));
+          c.drawRoundRect(rect, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(Theme.getColor(ColorId.iconActive)));
+        }
+        TextPaint paint = Paints.getMediumTextPaint(13f, selected ? 0xffffffff : Theme.getColor(ColorId.textLight), false);
+        String name = Lang.getString(names[i]);
+        c.drawText(name, left + tab * i + (tab - paint.measureText(name)) / 2, (top + bottom) / 2 + Screen.dp(4.5f), paint);
+      }
+    }
+
+    @Override
+    public boolean onTouchEvent (MotionEvent e) {
+      if (e.getAction() == MotionEvent.ACTION_DOWN) {
+        return true;
+      }
+      if (e.getAction() == MotionEvent.ACTION_UP) {
+        float left = Screen.dp(12f), tab = (getMeasuredWidth() - Screen.dp(24f)) / (float) profiles.length;
+        int index = (int) ((e.getX() - left) / tab);
+        if (index >= 0 && index < profiles.length && profiles[index] != editProfile) {
+          editProfile = profiles[index];
+          invalidate();
+          rebuild();
+        }
+        return true;
+      }
+      return super.onTouchEvent(e);
+    }
+  }
+
   @Override
   public void onClick (View v) {
     int id = v.getId();
     applyProfile();
-    if (id == R.id.btn_tgx101MenuProfile) {
-      // three menus: pick which one to set up
-      showOptions(Lang.getString(R.string.Tgx101MenuProfile),
-        new int[] {R.id.btn_tgx101MenuProfileText, R.id.btn_tgx101MenuProfileMedia, R.id.btn_tgx101MenuProfileVoice},
-        new String[] {Lang.getString(R.string.Tgx101MenuProfileText), Lang.getString(R.string.Tgx101MenuProfileMedia), Lang.getString(R.string.Tgx101MenuProfileVoice)},
-        null,
-        new int[] {R.drawable.baseline_format_text_24, R.drawable.baseline_image_24, R.drawable.baseline_mic_24},
-        (itemView, optionId) -> {
-          editProfile = optionId == R.id.btn_tgx101MenuProfileMedia ? Settings.TGX101_MENU_MEDIA : optionId == R.id.btn_tgx101MenuProfileVoice ? Settings.TGX101_MENU_VOICE : Settings.TGX101_MENU_TEXT;
-          rebuild();
-          return true;
-        });
-      return;
-    }
     if (id == R.id.btn_tgx101MenuOrderReset) {
-      Settings.instance().setTgx101MessageMenuOrder(null);
-      Settings.instance().setTgx101MessageMenuHidden(null);
-      Settings.instance().setTgx101MessageMenuMore(null);
-      Tgx101BarOrder.setOrder(Tgx101BarOrder.BAR_SWIPE, null);
+      if (mode() == MODE_SWIPE) {
+        Tgx101BarOrder.setOrder(Tgx101BarOrder.BAR_SWIPE, null);
+      } else {
+        Settings.instance().setTgx101MessageMenuOrder(null);
+        Settings.instance().setTgx101MessageMenuHidden(null);
+        Settings.instance().setTgx101MessageMenuMore(null);
+      }
       rebuild();
       return;
     }
-    if (id == R.id.btn_tgx101BarItem) {
-      showSwipeOptions((ListItem) v.getTag());
+    if (id == R.id.btn_tgx101SwipeItem) {
+      // the switch: shown in the column or not («Reply» is the plain swipe and stays)
+      ListItem item = (ListItem) v.getTag();
+      String entry = (String) item.getData();
+      if (Tgx101BarOrder.SWIPE_REPLY.equals(entry)) {
+        UI.showToast(R.string.Tgx101SwipeReplyStays, android.widget.Toast.LENGTH_SHORT);
+        adapter.updateValuedSettingById(R.id.btn_tgx101SwipeItem);
+        return;
+      }
+      List<String> list = new ArrayList<>(Tgx101BarOrder.getOrder(Tgx101BarOrder.BAR_SWIPE));
+      int index = list.indexOf(entry);
+      if (index != -1) {
+        list.set(index, entry.startsWith("-") ? entry.substring(1) : "-" + entry);
+        Tgx101BarOrder.setOrder(Tgx101BarOrder.BAR_SWIPE, list);
+      }
+      rebuild();
       return;
     }
     if (id == R.id.btn_tgx101MenuSelectFixed) {
@@ -314,49 +540,5 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Void> impl
     list.add(target, moved);
     Settings.instance().setTgx101MessageMenuOrder(toArray(list));
     rebuild();
-  }
-
-
-  /** Show / hide / move one action of the swipe column; «Reply» (the plain swipe) can only be moved */
-  private void showSwipeOptions (ListItem item) {
-    final int position = (int) item.getLongId();
-    final List<String> order = Tgx101BarOrder.getOrder(Tgx101BarOrder.BAR_SWIPE);
-    if (position >= order.size()) return;
-    final String entry = order.get(position);
-    final boolean hidden = entry.startsWith("-");
-    final boolean canHide = !Tgx101BarOrder.SWIPE_REPLY.equals(entry);
-    ArrayList<Integer> ids = new ArrayList<>(), icons = new ArrayList<>();
-    ArrayList<String> names = new ArrayList<>();
-    if (canHide) {
-      ids.add(R.id.btn_tgx101FormatToggle);
-      names.add(Lang.getString(hidden ? R.string.Tgx101FormatShow : R.string.Tgx101FormatHide));
-      icons.add(hidden ? R.drawable.baseline_visibility_24 : R.drawable.baseline_eye_off_24);
-    }
-    int[] moveIds = {R.id.btn_moveToTop, R.id.btn_moveUp, R.id.btn_moveDown, R.id.btn_moveToBottom};
-    int[] moveNames = {R.string.Tgx101MoveToTop, R.string.Tgx101MoveUp, R.string.Tgx101MoveDown, R.string.Tgx101MoveToBottom};
-    int[] moveIcons = {R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_arrow_downward_24, R.drawable.baseline_arrow_downward_24};
-    for (int i = 0; i < moveIds.length; i++) {
-      ids.add(moveIds[i]);
-      names.add(Lang.getString(moveNames[i]));
-      icons.add(moveIcons[i]);
-    }
-    showOptions(item.getString(), toArray(ids), names.toArray(new String[0]), null, toArray(icons), (itemView, optionId) -> {
-      List<String> list = new ArrayList<>(order);
-      if (optionId == R.id.btn_tgx101FormatToggle) {
-        list.set(position, hidden ? entry.substring(1) : "-" + entry);
-      } else {
-        int target;
-        if (optionId == R.id.btn_moveToTop) target = 0;
-        else if (optionId == R.id.btn_moveUp) target = Math.max(0, position - 1);
-        else if (optionId == R.id.btn_moveDown) target = Math.min(list.size() - 1, position + 1);
-        else if (optionId == R.id.btn_moveToBottom) target = list.size() - 1;
-        else return true;
-        list.remove(position);
-        list.add(target, entry);
-      }
-      Tgx101BarOrder.setOrder(Tgx101BarOrder.BAR_SWIPE, list);
-      rebuild();
-      return true;
-    });
   }
 }
