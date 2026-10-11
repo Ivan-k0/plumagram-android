@@ -820,6 +820,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
             if (bottomWrap != null) bottomWrap.invalidate();
             if (replyBarView != null && replyBarView.getAlpha() > 0f) replyBarView.invalidate(); // its blur follows the list too
+            if (scrollToBottomButtonWrap != null && scrollToBottomButtonWrap.getAlpha() > 0f && scrollToBottomButton != null) scrollToBottomButton.invalidate(); // and the arrow's
           }
         });
       }
@@ -1114,6 +1115,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     });
     addThemeInvalidateListener(scrollToBottomButton);
     scrollToBottomButton.init(R.drawable.baseline_arrow_downward_24, 48f, 4f, ColorId.circleButtonChat, ColorId.circleButtonChatIcon);
+    if (floatingInput) {
+      applyFloatingCircleShape(scrollToBottomButton, 48f);
+    }
     scrollToBottomButton.setLayoutParams(fparams);
     scrollToBottomButtonWrap.addView(scrollToBottomButton);
 
@@ -10413,50 +10417,103 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return blurred ? (Theme.isDark() ? .74f : .86f) : FLOATING_INPUT_ALPHA_NO_BLUR;
   }
 
+  /** TGx101: the wallpaper and messages under a floating control, blurred (Android 12+) — the field, its reply bar, the arrow */
+  private final class FloatingBlur {
+    private final int[] loc = new int[2], contentLoc = new int[2];
+    private Object node; // android.graphics.RenderNode on Android 12+
+
+    /** Draws what's under {@code rect} of {@code view}, blurred and clipped to {@code clip}. False — no blur here. */
+    boolean draw (Canvas c, View view, android.graphics.RectF rect, android.graphics.Path clip) {
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !c.isHardwareAccelerated() || messagesView == null || wallpaperView == null)
+        return false;
+      int w = (int) rect.width(), h = (int) rect.height();
+      if (w <= 0 || h <= 0)
+        return false;
+      android.graphics.RenderNode node = (android.graphics.RenderNode) this.node;
+      if (node == null) {
+        node = new android.graphics.RenderNode("tgx101InputBlur");
+        float r = Screen.dp(FLOATING_INPUT_BLUR_DP);
+        node.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(r, r, android.graphics.Shader.TileMode.CLAMP));
+        this.node = node;
+      }
+      node.setPosition(0, 0, w, h);
+      view.getLocationInWindow(loc);
+      float fieldX = loc[0] + rect.left, fieldY = loc[1] + rect.top;
+      android.graphics.RecordingCanvas rc = node.beginRecording(w, h);
+      try {
+        for (View under : new View[] {wallpaperView, messagesView}) {
+          if (under.getVisibility() != View.VISIBLE || under.getWidth() == 0) continue;
+          under.getLocationInWindow(contentLoc);
+          int save = rc.save();
+          rc.translate(contentLoc[0] - fieldX, contentLoc[1] - fieldY);
+          under.draw(rc);
+          rc.restoreToCount(save);
+        }
+      } finally {
+        node.endRecording();
+      }
+      int save = c.save();
+      c.clipPath(clip);
+      c.translate(rect.left, rect.top);
+      c.drawRenderNode(node);
+      c.restoreToCount(save);
+      return true;
+    }
+  }
+
+  // TGx101 (user 11.10 21:33): the scroll-down arrow in the field's see-through colour (blur + the same filling and
+  // hairline instead of the solid circle with a shadow); the arrow keeps its icon colour, readable on that filling
+  private void applyFloatingCircleShape (View view, float sizeDp) {
+    final FloatingBlur blur = new FloatingBlur();
+    android.graphics.drawable.Drawable shape = new android.graphics.drawable.Drawable() {
+      private final android.graphics.RectF rect = new android.graphics.RectF();
+      private final android.graphics.Path path = new android.graphics.Path();
+
+      @Override
+      public void draw (@NonNull Canvas c) {
+        android.graphics.Rect bounds = getBounds();
+        float radius = Screen.dp(sizeDp) / 2f;
+        rect.set(bounds.centerX() - radius, bounds.centerY() - radius, bounds.centerX() + radius, bounds.centerY() + radius);
+        path.reset();
+        path.addCircle(rect.centerX(), rect.centerY(), radius, android.graphics.Path.Direction.CW);
+        boolean blurred = blur.draw(c, view, rect, path);
+        c.drawCircle(rect.centerX(), rect.centerY(), radius, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(tgx101FieldAlpha(blurred), Theme.fillingColor())));
+        float half = Math.max(1, Screen.dp(.5f)) / 2f;
+        c.drawCircle(rect.centerX(), rect.centerY(), radius - half, Paints.strokeSeparatorPaint(Theme.separatorColor()));
+      }
+
+      @Override
+      public void setAlpha (int alpha) { }
+
+      @Override
+      public void setColorFilter (@Nullable android.graphics.ColorFilter colorFilter) { }
+
+      @Override
+      public int getOpacity () {
+        return android.graphics.PixelFormat.TRANSLUCENT;
+      }
+    };
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+      android.graphics.drawable.ShapeDrawable mask = new android.graphics.drawable.ShapeDrawable(new android.graphics.drawable.shapes.OvalShape());
+      int inset = (int) ((Screen.dp(sizeDp + 8f) - Screen.dp(sizeDp)) / 2f);
+      view.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(me.vkryl.core.ColorUtils.alphaColor(.12f, Theme.getColor(ColorId.text))), shape,
+        new android.graphics.drawable.InsetDrawable(mask, inset)));
+    } else {
+      view.setBackground(shape);
+    }
+    addThemeInvalidateListener(view);
+  }
+
   private void applyFloatingInputShape (View view, boolean replyBar) {
+    final FloatingBlur blur = new FloatingBlur();
     view.setBackground(new android.graphics.drawable.Drawable() {
       private final android.graphics.RectF rect = new android.graphics.RectF();
       private final android.graphics.Path path = new android.graphics.Path();
       private final float[] radii = new float[8];
-      private final int[] loc = new int[2], contentLoc = new int[2];
-      private Object blurNode; // android.graphics.RenderNode on Android 12+
 
       /** Draws the wallpaper and messages under the field, blurred, clipped to the field. False — no blur here. */
       private boolean drawBlurBehind (Canvas c) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !c.isHardwareAccelerated() || messagesView == null || wallpaperView == null)
-          return false;
-        int w = (int) rect.width(), h = (int) rect.height();
-        if (w <= 0 || h <= 0)
-          return false;
-        android.graphics.RenderNode node = (android.graphics.RenderNode) blurNode;
-        if (node == null) {
-          node = new android.graphics.RenderNode("tgx101InputBlur");
-          float r = Screen.dp(FLOATING_INPUT_BLUR_DP);
-          node.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(r, r, android.graphics.Shader.TileMode.CLAMP));
-          blurNode = node;
-        }
-        node.setPosition(0, 0, w, h);
-        view.getLocationInWindow(loc);
-        float fieldX = loc[0] + rect.left, fieldY = loc[1] + rect.top;
-        android.graphics.RecordingCanvas rc = node.beginRecording(w, h);
-        try {
-          for (View under : new View[] {wallpaperView, messagesView}) {
-            if (under.getVisibility() != View.VISIBLE || under.getWidth() == 0) continue;
-            under.getLocationInWindow(contentLoc);
-            int save = rc.save();
-            rc.translate(contentLoc[0] - fieldX, contentLoc[1] - fieldY);
-            under.draw(rc);
-            rc.restoreToCount(save);
-          }
-        } finally {
-          node.endRecording();
-        }
-        int save = c.save();
-        c.clipPath(path);
-        c.translate(rect.left, rect.top);
-        c.drawRenderNode(node);
-        c.restoreToCount(save);
-        return true;
+        return blur.draw(c, view, rect, path);
       }
 
       @Override
