@@ -142,6 +142,13 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         }
         if (newState == RecyclerView.SCROLL_STATE_IDLE) {
           saveScrollPosition();
+          if (tgx101AutoScrolling) {
+            tgx101AutoScrolling = false;
+            tgx101ScrollDistance = 0;
+            checkScrollToBottomButton();
+          }
+        } else if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
+          tgx101AutoScrolling = false; // the finger takes over
         }
         ((MessagesRecyclerView) recyclerView).setIsScrolling(newState != RecyclerView.SCROLL_STATE_IDLE);
       }
@@ -466,7 +473,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
   private int tgx101ScrollDistance;
 
   private void tgx101TrackScrollDirection (int dy) {
-    if (dy == 0) {
+    if (dy == 0 || tgx101AutoScrolling) {
       return;
     }
     if ((dy > 0) != (tgx101ScrollDistance > 0)) {
@@ -921,10 +928,48 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     stopScroll();
     if (loader.canLoadBottom()) {
       loadFromStart();
-    } else {
+    } else if (!tgx101SmoothScrollToBottom()) {
       scrollToBottom(true);
     }
     wasScrollByUser = false;
+  }
+
+  // TGx101 (user 11.10): the arrow scrolls down smoothly instead of jumping. Near the end — one decelerating scroll;
+  // far away — the list is put 1.5 screens above the end at once and scrolls the rest, like the official app.
+  // The arrow hides at once and doesn't come back while this runs.
+  private boolean tgx101AutoScrolling;
+
+  private boolean tgx101SmoothScrollToBottom () {
+    RecyclerView list = controller.getMessagesView();
+    if (list == null || adapter.getMessageCount() == 0 || (adapter.getBottomMessage() != null && adapter.getBottomMessage().isSponsoredMessage()))
+      return false;
+    int first = manager.findFirstVisibleItemPosition();
+    View firstView = first != -1 ? manager.findViewByPosition(first) : null;
+    if (firstView == null)
+      return false;
+    int visibleBottom = list.getHeight() - list.getPaddingBottom();
+    long distance = firstView.getBottom() - visibleBottom;
+    for (int i = 0; i < first; i++) {
+      TGMessage msg = adapter.getMessage(i);
+      if (msg != null) distance += msg.getHeight();
+    }
+    if (distance <= 0)
+      return true;
+    int run = (int) Math.min(distance, (long) (getRecyclerHeight() * 1.5f));
+    tgx101AutoScrolling = true;
+    tgx101ScrollingDown = false;
+    checkScrollToBottomButton();
+    android.view.animation.Interpolator interpolator = new android.view.animation.DecelerateInterpolator(1.6f);
+    int duration = (int) Math.min(420, Math.max(220, 220 + run / (float) Math.max(1, getRecyclerHeight()) * 140));
+    if (distance > run) {
+      // reversed list: a negative offset puts the newest message that far below the visible end
+      manager.scrollToPositionWithOffset(0, -run);
+      list.post(() -> list.smoothScrollBy(0, run, interpolator, duration));
+    } else {
+      list.smoothScrollBy(0, run, interpolator, duration);
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("arrow: smooth scroll " + distance + " px, run " + run + " px, " + duration + " ms");
+    return true;
   }
 
   public TGMessage findTopMessage () {
@@ -3244,6 +3289,13 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     final int offset = 0; // controller.isPinnedMessageVisible() ? controller.getPinnedMessageHeight() : 0;
     final int width = getRecyclerWidth();
     int height = getTargetHeight();
+    // TGx101 (user 11.10): the list spans the whole screen and the floating field + keyboard are its bottom padding,
+    // while the offset below counts from that padding — so the middle is taken of the part actually seen (header →
+    // field). With the full height a jump with the keyboard open put the message up under the header.
+    int bottomPadding = controller.getMessagesView() != null ? controller.getMessagesView().getPaddingBottom() : 0;
+    if (bottomPadding > 0 && height - bottomPadding > Screen.dp(120f)) {
+      height -= bottomPadding;
+    }
 
     scrollMessage.buildLayout(width);
     int fullHeight = scrollMessage.getHeight();
@@ -3269,7 +3321,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       int focusCenterFromBottom = fullHeight - (focus[0] + focus[1]) / 2;
       scrollToPositionWithOffset(index, height / 2 - focusCenterFromBottom, smooth, isPlayingRoundMessage);
     }
-    org.thunderdog.challegram.Tgx101Diag.mark("jump: center item " + focus[0] + ".." + focus[1] + " of " + fullHeight + ", list " + height);
+    org.thunderdog.challegram.Tgx101Diag.mark("jump: center item " + focus[0] + ".." + focus[1] + " of " + fullHeight + ", list " + height + " (padding " + bottomPadding + ")");
 
     // scrollToPositionWithOffsetImpl(index, 0);
 
