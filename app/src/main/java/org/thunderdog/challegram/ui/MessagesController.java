@@ -10181,6 +10181,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private android.animation.ValueAnimator tgx101RevealAnimator;
 
   private void tgx101RevealGrowth (int delta) {
+    // a shrinking field draws its top above its own bounds while it comes down — the container must not cut it off (it
+    // showed the chat through that strip and tore the reply bar off the field for a moment, user 2026-10-11)
+    if (delta < 0 && bottomWrap != null && bottomWrap.getParent() instanceof ViewGroup && ((ViewGroup) bottomWrap.getParent()).getClipChildren()) {
+      ((ViewGroup) bottomWrap.getParent()).setClipChildren(false);
+    }
     if (tgx101RevealAnimator != null) tgx101RevealAnimator.cancel();
     float from = tgx101TopReveal + delta;
     tgx101RevealAnimator = android.animation.ValueAnimator.ofFloat(from, 0f);
