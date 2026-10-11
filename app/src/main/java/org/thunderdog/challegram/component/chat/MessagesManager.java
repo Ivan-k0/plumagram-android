@@ -159,6 +159,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
           controller.onFirstChatScroll();
         }
         controller.context().reactionsOverlayManager().addOffset(0, -dy);
+        tgx101TrackScrollDirection(dy);
       }
     };
 
@@ -458,18 +459,41 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     checkScrollToBottomButton();
   }
 
+  // TGx101 (user 11.10): the scroll-down arrow shows up only while scrolling down towards the newest messages
+  // (dy > 0 in the reversed list) and hides again when scrolling up into the history; a short dead zone keeps
+  // finger jitter from blinking it. The «return» arrow after a jump to a quote is not affected.
+  private boolean tgx101ScrollingDown;
+  private int tgx101ScrollDistance;
+
+  private void tgx101TrackScrollDirection (int dy) {
+    if (dy == 0) {
+      return;
+    }
+    if ((dy > 0) != (tgx101ScrollDistance > 0)) {
+      tgx101ScrollDistance = 0;
+    }
+    tgx101ScrollDistance += dy;
+    if (Math.abs(tgx101ScrollDistance) >= Screen.dp(24f)) {
+      boolean down = tgx101ScrollDistance > 0;
+      if (tgx101ScrollingDown != down) {
+        tgx101ScrollingDown = down;
+        checkScrollToBottomButton();
+      }
+    }
+  }
+
   private String tgx101LastArrowReason;
 
   public void checkScrollToBottomButton () {
     if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
       // TGx101: why the scroll-down arrow is shown (it appeared at the bottom of a chat with nothing below)
-      String reason = getActiveMessageCount() == 0 ? "no messages" : "scrolled " + lastScrollToBottomVisible + ", canLoadBottom " + loader.canLoadBottom() + ", return " + hasReturnMessage();
+      String reason = getActiveMessageCount() == 0 ? "no messages" : "scrolled " + lastScrollToBottomVisible + ", down " + tgx101ScrollingDown + ", canLoadBottom " + loader.canLoadBottom() + ", return " + hasReturnMessage();
       if (!reason.equals(tgx101LastArrowReason)) {
         tgx101LastArrowReason = reason;
         org.thunderdog.challegram.Tgx101Diag.mark("chat arrow: " + reason);
       }
     }
-    controller.setScrollToBottomVisible(getActiveMessageCount() > 0 && (lastScrollToBottomVisible || loader.canLoadBottom() || hasReturnMessage()), isReturnAbove());
+    controller.setScrollToBottomVisible(getActiveMessageCount() > 0 && ((tgx101ScrollingDown && (lastScrollToBottomVisible || loader.canLoadBottom())) || hasReturnMessage()), isReturnAbove());
   }
 
   public void checkMessageThreadHeaderPreview (int last) {
@@ -561,6 +585,8 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     tdlib.settings().removePinnedMessageDismissListener(this);
     highlightMessageId = null;
     hasScrolled = false;
+    tgx101ScrollingDown = false;
+    tgx101ScrollDistance = 0;
     lastViewedMentionMessageId = 0;
     lastViewedReactionMessageId = 0;
     chatAdmins = null;
