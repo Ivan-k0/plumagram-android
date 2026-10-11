@@ -163,20 +163,46 @@ public final class Tgx101Stories {
     });
   }
 
+  // TGx101 (user 2026-10-12 «истории грузятся долго, в оффе мгновенно»): not the biggest file — a photo just big enough
+  // for the screen, and the lighter alternative video when there is one (still at least 480p)
   @Nullable
   public static TdApi.File bestFile (TdApi.StoryContent content) {
     if (content instanceof TdApi.StoryContentPhoto) {
       TdApi.Photo photo = ((TdApi.StoryContentPhoto) content).photo;
       if (photo == null || photo.sizes == null || photo.sizes.length == 0) return null;
-      TdApi.PhotoSize best = photo.sizes[0];
+      int enough = Math.round(org.thunderdog.challegram.tool.Screen.smallestSide() * .8f);
+      TdApi.PhotoSize largest = photo.sizes[0], fit = null;
       for (TdApi.PhotoSize size : photo.sizes) {
-        if (size.width * size.height > best.width * best.height) best = size;
+        if (size.width * size.height > largest.width * largest.height) largest = size;
+        if (Math.min(size.width, size.height) >= enough && (fit == null || size.width * size.height < fit.width * fit.height)) fit = size;
       }
-      return best.photo;
+      return (fit != null ? fit : largest).photo;
+    }
+    if (content instanceof TdApi.StoryContentVideo) {
+      TdApi.StoryContentVideo v = (TdApi.StoryContentVideo) content;
+      TdApi.StoryVideo video = v.video, alt = v.alternativeVideo;
+      if (alt != null && alt.video != null && Math.min(alt.width, alt.height) >= 480 && (video == null || video.video == null || sizeOf(alt.video) < sizeOf(video.video))) {
+        return alt.video;
+      }
+      return video != null ? video.video : null;
+    }
+    return null;
+  }
+
+  private static long sizeOf (TdApi.File file) {
+    return file.size != 0 ? file.size : file.expectedSize != 0 ? file.expectedSize : Long.MAX_VALUE;
+  }
+
+  /** The blurry inline preview to show at once, before anything is downloaded */
+  @Nullable
+  public static TdApi.Minithumbnail minithumbnail (TdApi.StoryContent content) {
+    if (content instanceof TdApi.StoryContentPhoto) {
+      TdApi.Photo photo = ((TdApi.StoryContentPhoto) content).photo;
+      return photo != null ? photo.minithumbnail : null;
     }
     if (content instanceof TdApi.StoryContentVideo) {
       TdApi.StoryVideo video = ((TdApi.StoryContentVideo) content).video;
-      return video != null ? video.video : null;
+      return video != null ? video.minithumbnail : null;
     }
     return null;
   }

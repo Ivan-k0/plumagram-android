@@ -307,6 +307,7 @@ public class Tgx101StoryViewer extends Dialog {
     }
     storyIndex = index;
     bars.setPosition(index, 0f);
+    tgx101ShowStartedAt = android.os.SystemClock.uptimeMillis();
     TdApi.StoryInfo info = person.stories[index];
     loading = true;
     story = null;
@@ -324,6 +325,40 @@ public class Tgx101StoryViewer extends Dialog {
 
   private void restart () {
     showStory(0);
+  }
+
+  private long tgx101ShowStartedAt;
+  private final java.util.HashSet<Integer> tgx101Prefetched = new java.util.HashSet<>();
+
+  // TGx101: the next two stories of this person and the first one of the next person are downloaded ahead (low priority),
+  // so swiping on shows them at once like in the official app
+  private void tgx101Prefetch () {
+    TdApi.ChatActiveStories person = personIndex < people.size() ? people.get(personIndex) : null;
+    if (person == null) return;
+    for (int i = storyIndex + 1; i <= storyIndex + 2 && i < person.stories.length; i++) {
+      tgx101PrefetchStory(person.chatId, person.stories[i].storyId);
+    }
+    if (personIndex + 1 < people.size()) {
+      TdApi.ChatActiveStories next = people.get(personIndex + 1);
+      if (next.stories.length > 0) {
+        int first = 0;
+        for (int i = 0; i < next.stories.length; i++) {
+          if (next.stories[i].storyId > next.maxReadStoryId) { first = i; break; }
+        }
+        tgx101PrefetchStory(next.chatId, next.stories[first].storyId);
+      }
+    }
+  }
+
+  private void tgx101PrefetchStory (long chatId, int storyId) {
+    if (!tgx101Prefetched.add(storyId ^ (int) chatId)) return;
+    tdlib.send(new TdApi.GetStory(chatId, storyId, false), (result, error) -> {
+      if (result == null) return;
+      TdApi.File file = Tgx101Stories.bestFile(result.content);
+      if (file != null && !file.local.isDownloadingCompleted) {
+        tdlib.send(new TdApi.DownloadFile(file.id, 1, 0, 0, false), (ok, err) -> { });
+      }
+    });
   }
 
   private void present (TdApi.Story story) {
@@ -347,6 +382,18 @@ public class Tgx101StoryViewer extends Dialog {
     videoView.setAlpha(0f);
     spinner.setVisibility(View.VISIBLE);
     videoView.setVisibility(View.GONE);
+    // TGx101: no black screen with a spinner — the blurry inline preview at once, the real picture replaces it
+    TdApi.Minithumbnail mini = Tgx101Stories.minithumbnail(story.content);
+    if (mini != null && mini.data != null) {
+      try {
+        Bitmap preview = BitmapFactory.decodeByteArray(mini.data, 0, mini.data.length);
+        if (preview != null) {
+          imageView.setImageBitmap(preview);
+          imageView.setAlpha(1f);
+        }
+      } catch (Throwable ignored) { }
+    }
+    tgx101Prefetch();
     if (file == null) {
       showStory(storyIndex + 1);
       return;
@@ -364,12 +411,17 @@ public class Tgx101StoryViewer extends Dialog {
         }
         loading = false;
         spinner.setVisibility(View.GONE);
+        Tgx101Diag.mark("story: shown in " + (android.os.SystemClock.uptimeMillis() - tgx101ShowStartedAt) + " ms (" + (isVideo ? "video" : "photo") + ", " + (downloaded.size / 1024) + " KB)");
         if (isVideo) {
           videoView.setVisibility(View.VISIBLE);
           videoView.setVideoPath(path);
           videoView.setOnPreparedListener(mp -> {
             duration = Math.max(1000L, mp.getDuration());
             videoView.animate().alpha(1f).setDuration(220).start();
+            mp.setOnInfoListener((player, what, extra) -> {
+              if (what == android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) imageView.animate().alpha(0f).setDuration(120).start(); // the preview under the video goes
+              return false;
+            });
             if (!paused) mp.start();
             startTimer();
           });
@@ -380,8 +432,9 @@ public class Tgx101StoryViewer extends Dialog {
             return true;
           });
         } else {
+          boolean hadPreview = imageView.getAlpha() > 0f;
           imageView.setImageBitmap(bitmap);
-          imageView.animate().alpha(1f).setDuration(220).start();
+          if (!hadPreview) imageView.animate().alpha(1f).setDuration(220).start();
           startTimer();
         }
       });
