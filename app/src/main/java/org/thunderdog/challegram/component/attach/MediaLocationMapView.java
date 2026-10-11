@@ -251,6 +251,8 @@ public class MediaLocationMapView extends FrameLayoutFix implements View.OnClick
 
   private void onMapTouchDown () {
     getParent().getParent().requestDisallowInterceptTouchEvent(true);
+    cancelCameraAnimation(); // otherwise the running animation looks like the user dragging the map
+
     if (mapView != null) {
       IGeoPoint c = mapView.getMapCenter();
       touchLatitude = c.getLatitude();
@@ -380,6 +382,7 @@ public class MediaLocationMapView extends FrameLayoutFix implements View.OnClick
   public void onDestroyMap () {
     if ((flags & FLAG_DESTROYED) == 0) {
       flags |= FLAG_DESTROYED;
+      cancelCameraAnimation();
       try {
         if (myLocationOverlay != null) {
           myLocationOverlay.disableMyLocation();
@@ -496,7 +499,11 @@ public class MediaLocationMapView extends FrameLayoutFix implements View.OnClick
   }
 
   private void positionMarker (Location location, double zoomLevel) {
-    positionMarkerInternal(location, zoomLevel);
+    positionMarker(location, zoomLevel, true);
+  }
+
+  private void positionMarker (Location location, double zoomLevel, boolean moveCamera) {
+    positionMarkerInternal(location, zoomLevel, moveCamera);
     setShowMyLocationButton(userForcedLocation);
     if (callback != null) {
       callback.onLocationUpdate(location, userForcedLocation, lastMyLocation != null, userMovingLocation || userForcedLocation, false);
@@ -615,31 +622,101 @@ public class MediaLocationMapView extends FrameLayoutFix implements View.OnClick
     positionMarker(location, zoomLevel);
   }
 
-  private void positionMarkerInternal (Location location, double zoomLevel) {
+  private void positionMarkerInternal (Location location, double zoomLevel, boolean moveCamera) {
     if (location == null) {
       return;
     }
 
     currentLocation = location;
 
-    if (userMovingLocation || mapView == null) {
+    if (userMovingLocation || mapView == null || !moveCamera) {
       return;
     }
 
-    IMapController controller = mapView.getController();
     GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
 
     if (didFirstMove) {
       if (userForcedLocation || !ignoreMyLocation) {
-        controller.animateTo(geoPoint, zoomLevel, null);
+        animateCamera(geoPoint, zoomLevel);
       } else {
-        controller.animateTo(geoPoint);
+        animateCamera(geoPoint, Double.NaN);
       }
     } else {
       didFirstMove = true;
+      cancelCameraAnimation();
+      IMapController controller = mapView.getController();
       controller.setCenter(geoPoint);
-      controller.setZoom(zoomLevel);
+      if (!Double.isNaN(zoomLevel)) {
+        controller.setZoom(zoomLevel);
+      }
     }
+  }
+
+  // Own camera animation: osmdroid's animateTo() doesn't cancel the previous animator when called again,
+  // so a few GPS fixes in a row left several animators fighting over the center and zoom every frame.
+
+  private @Nullable ValueAnimator cameraAnimator;
+
+  private void cancelCameraAnimation () {
+    if (cameraAnimator != null) {
+      ValueAnimator animator = cameraAnimator;
+      cameraAnimator = null;
+      animator.cancel();
+    }
+  }
+
+  private void animateCamera (GeoPoint toPoint, double toZoom) { // toZoom NaN keeps the current zoom
+    cancelCameraAnimation();
+    if (mapView == null) {
+      return;
+    }
+    final IMapController controller = mapView.getController();
+    final IGeoPoint fromPoint = mapView.getMapCenter();
+    final double fromLat = fromPoint.getLatitude();
+    final double fromLng = fromPoint.getLongitude();
+    final double fromZoom = mapView.getZoomLevelDouble();
+    final double latDiff = toPoint.getLatitude() - fromLat;
+    double lngDiff = toPoint.getLongitude() - fromLng;
+    if (lngDiff > 180.0) {
+      lngDiff -= 360.0;
+    } else if (lngDiff < -180.0) {
+      lngDiff += 360.0;
+    }
+    final double finalLngDiff = lngDiff;
+    final double zoomDiff = Double.isNaN(toZoom) ? 0.0 : toZoom - fromZoom;
+    if (latDiff == 0.0 && finalLngDiff == 0.0 && zoomDiff == 0.0) {
+      return;
+    }
+
+    final ValueAnimator animator = AnimatorUtils.simpleValueAnimator();
+    animator.setDuration(zoomDiff != 0.0 ? 420L : 320L);
+    animator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+    animator.addUpdateListener(animation -> {
+      if (cameraAnimator != animation || mapView == null) {
+        return;
+      }
+      double factor = AnimatorUtils.getFraction(animation);
+      if (zoomDiff != 0.0) {
+        controller.setZoom(fromZoom + zoomDiff * factor);
+      }
+      double lng = fromLng + finalLngDiff * factor;
+      if (lng > 180.0) {
+        lng -= 360.0;
+      } else if (lng < -180.0) {
+        lng += 360.0;
+      }
+      controller.setCenter(new GeoPoint(fromLat + latDiff * factor, lng));
+    });
+    animator.addListener(new AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd (Animator animation) {
+        if (cameraAnimator == animation) {
+          cameraAnimator = null;
+        }
+      }
+    });
+    cameraAnimator = animator;
+    animator.start();
   }
 
   public Location getCurrentLocation () {
@@ -692,14 +769,20 @@ public class MediaLocationMapView extends FrameLayoutFix implements View.OnClick
   private void setIgnoreMyLocation (boolean ignoreMyLocation, boolean force) {
     if (this.ignoreMyLocation != ignoreMyLocation || force) {
       this.ignoreMyLocation = ignoreMyLocation;
+      followedMyLocation = null;
       if (!ignoreMyLocation && lastMyLocation != null) {
         cancelLocationUpdate();
         clearForcedLocation();
         positionMarker(lastMyLocation);
+        followedMyLocation = lastMyLocation;
         saveLastLocation();
       }
     }
   }
+
+  // The fix the camera was last moved to while following «my location»: null until the first one,
+  // which also sets the zoom; later fixes keep the zoom (the user's pinch too) and only move the center.
+  private @Nullable Location followedMyLocation;
 
   private void onMyLocationChange (Location location) {
     lastMyLocation = location;
@@ -708,7 +791,14 @@ public class MediaLocationMapView extends FrameLayoutFix implements View.OnClick
     }
     if (!ignoreMyLocation) {
       setShowMyLocationButton(false);
-      positionMarker(location);
+      float moved = followedMyLocation != null ? location.distanceTo(followedMyLocation) : -1f;
+      // GPS jitter inside the fix's accuracy doesn't move the camera: only the accuracy line updates
+      boolean moveCamera = followedMyLocation == null || moved >= Math.max(3f, Math.min(location.hasAccuracy() ? location.getAccuracy() : 15f, 15f));
+      org.thunderdog.challegram.Tgx101Diag.mark("location fix " + location.getProvider() + " ±" + Math.round(location.getAccuracy()) + " m, moved " + (moved < 0 ? "—" : Math.round(moved) + " m") + ", camera " + (moveCamera ? (followedMyLocation == null ? "centers and zooms" : "follows") : "stays"));
+      positionMarker(location, followedMyLocation == null ? defaultZoomLevel() : Double.NaN, moveCamera);
+      if (moveCamera) {
+        followedMyLocation = location;
+      }
       saveLastLocation();
     }
   }
