@@ -720,6 +720,7 @@ final class Tgx101Strings {
     RU.put(R.string.RichMessageOpenFull, "Открыть пост полностью ›");
     RU.put(R.string.RichMessageOpenFailed, "Не удалось загрузить пост: %1$s");
     RU.put(R.string.RichMessageOpenUnsupported, "В посте есть элементы, которые просмотрщик пока не умеет показывать");
+    RU.put(R.string.Tgx101DoubleTapWhich, "Какая реакция");
     RU.put(R.string.Tgx101InputSendAs, "Отправить как…");
     RU.put(R.string.Tgx101InputBotCommands, "Команды бота");
     RU.put(R.string.Tgx101InputBotKeyboard, "Клавиатура бота");
@@ -744,7 +745,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101DoubleTapSection, "Двойной тап");
     RU.put(R.string.Tgx101DoubleTapOff, "Выключен");
     RU.put(R.string.Tgx101DoubleTapReaction, "Реакция №1");
-    RU.put(R.string.Tgx101DoubleTapReactionHint, "Первая из быстрых реакций");
+    RU.put(R.string.Tgx101DoubleTapReactionHint, "Первая из быстрых реакций — выбирается в «Какая реакция» ниже (или Настройки → Стикеры и эмодзи → Быстрая реакция)");
     RU.put(R.string.Tgx101DoubleTapTranslate, "Перевести");
     RU.put(R.string.Tgx101DoubleTapTranslateHint, "Второй двойной тап — вернуть оригинал");
     RU.put(R.string.Tgx101DoubleTapSave, "В избранное");

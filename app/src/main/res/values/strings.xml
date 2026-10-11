@@ -6612,7 +6612,7 @@
   <string name="Tgx101DoubleTapSection">Double tap</string>
   <string name="Tgx101DoubleTapOff">Off</string>
   <string name="Tgx101DoubleTapReaction">Reaction №1</string>
-  <string name="Tgx101DoubleTapReactionHint">The first of the quick reactions</string>
+  <string name="Tgx101DoubleTapReactionHint">The first of the quick reactions — «Which reaction» below (also Settings → Stickers and Emoji → Quick Reaction)</string>
   <string name="Tgx101DoubleTapTranslate">Translate</string>
   <string name="Tgx101DoubleTapTranslateHint">A second double tap shows the original</string>
   <string name="Tgx101DoubleTapSave">To Saved Messages</string>
@@ -6663,4 +6663,5 @@
   <string name="Tgx101InputSound">Send with sound</string>
   <string name="Tgx101InputScheduled">Scheduled messages</string>
   <string name="Tgx101InputCamera">Camera</string>
+  <string name="Tgx101DoubleTapWhich">Which reaction</string>
 </resources>

@@ -71,6 +71,20 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
     return Lang.getString(R.string.Tgx101DoubleTapOff);
   }
 
+  /** «👍» — reaction №1 of the quick reactions (Settings → Stickers and Emoji → Quick Reaction) */
+  private String firstQuickReactionName () {
+    String[] quick = Settings.instance().getQuickReactions(tdlib);
+    if (quick == null || quick.length == 0) {
+      return Lang.getString(R.string.QuickReactionDisabled);
+    }
+    org.drinkless.tdlib.TdApi.ReactionType type = org.thunderdog.challegram.data.TD.toReactionType(quick[0]);
+    if (type instanceof org.drinkless.tdlib.TdApi.ReactionTypeEmoji) {
+      return ((org.drinkless.tdlib.TdApi.ReactionTypeEmoji) type).emoji;
+    }
+    org.thunderdog.challegram.data.TGReaction reaction = tdlib.getReaction(type);
+    return reaction != null ? reaction.getTitle() : quick[0];
+  }
+
   private static int shownSwipeActions () {
     int count = 0;
     for (String entry : Tgx101BarOrder.getOrder(Tgx101BarOrder.BAR_SWIPE)) {
@@ -89,6 +103,8 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
           view.getToggler().setRadioEnabled(Settings.instance().tgx101SwipeReactions(), isUpdate);
         } else if (id == R.id.btn_tgx101SwipeActions) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101SwipeActions(), isUpdate);
+        } else if (id == R.id.btn_tgx101DoubleTapWhich) {
+          view.setData(firstQuickReactionName());
         } else if (id == R.id.btn_tgx101SwipeOrder) {
           view.setData(Settings.instance().tgx101SwipeActions() ? Lang.getString(R.string.Tgx101SwipeColumnCount, shownSwipeActions()) : Lang.getString(R.string.Tgx101SwipeColumnOff));
         }
@@ -130,6 +146,9 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
       if (i > 0) items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
       items.add(new ListItem(ListItem.TYPE_RADIO_OPTION, DOUBLE_TAP_IDS[i], 0, DOUBLE_TAP_NAMES[i], R.id.btn_tgx101DoubleTapGroup, DOUBLE_TAP_ACTIONS[i] == doubleTap));
     }
+    // user 2026-10-11 «что за реакция номер один? как выбрать?»: which one it is, and the way to change it, right here
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101DoubleTapWhich, 0, R.string.Tgx101DoubleTapWhich));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SwipeReactions, 0, R.string.Tgx101SwipeReactionsToggle));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
@@ -187,6 +206,7 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
     super.onFocus();
     if (adapter != null) {
       adapter.updateValuedSettingById(R.id.btn_tgx101SwipeOrder);
+      adapter.updateValuedSettingById(R.id.btn_tgx101DoubleTapWhich); // back from the quick reaction choice
       updatePreview(); // back from the column setup
     }
   }
@@ -201,6 +221,12 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
         org.thunderdog.challegram.Tgx101Diag.mark("settings: double tap → " + DOUBLE_TAP_ACTIONS[i]);
         return;
       }
+    }
+    if (id == R.id.btn_tgx101DoubleTapWhich) {
+      EditEnabledReactionsController c = new EditEnabledReactionsController(context, tdlib);
+      c.setArguments(new EditEnabledReactionsController.Args(null, EditEnabledReactionsController.TYPE_QUICK_REACTION));
+      navigateTo(c);
+      return;
     }
     if (id == R.id.btn_tgx101SwipeReactions) {
       Settings.instance().setTgx101SwipeReactions(adapter.toggleView(v));
