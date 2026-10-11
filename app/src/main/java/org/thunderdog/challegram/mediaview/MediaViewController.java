@@ -1181,6 +1181,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         }
         setCommonFactor(factor * tgx101RevealAlphaScale); // TGx101: after a swipe the dimming fades on from where the swipe left it
         setHeaderAlpha(MathUtils.clamp(factor));
+        if (mode == MODE_MESSAGES || mode == MODE_SIMPLE) {
+          tgx101HeaderRevealAlpha = MathUtils.clamp((factor - .5f) / .5f);
+          updateHeaderAlpha();
+        }
         switch (mode) {
           case MODE_GALLERY: {
             float alpha = Math.max(0f, Math.min(1f, factor));
@@ -2193,8 +2197,13 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
   }
 
+  // TGx101 (user 2026-10-12 «желе верхнего текста и кнопок при сворачивании»): the viewer's header used to stay whole
+  // until the window was gone — over the chat's own header and sliding down as the status bar came back. It now fades
+  // out in the first half of the shrink into the post (and in during the opening)
+  private float tgx101HeaderRevealAlpha = 1f;
+
   private void updateHeaderAlpha () {
-    float alpha = MathUtils.clamp(headerVisible.getFloatValue() * (1f - pipFactor));
+    float alpha = MathUtils.clamp(headerVisible.getFloatValue() * (1f - pipFactor)) * tgx101HeaderRevealAlpha;
     if (headerView != null) {
       headerView.setAlpha(alpha);
     }
@@ -6249,8 +6258,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
       headerView = new HeaderView(context);
       final boolean tgx101SoftHeader = mode == MODE_MESSAGES || mode == MODE_SIMPLE;
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && (mode == MODE_MESSAGES || mode == MODE_SIMPLE) && !Config.DISABLE_VIEWER_ELEVATION && !tgx101SoftHeader) {
-        headerView.setElevation(Screen.dp(3f));
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && (mode == MODE_MESSAGES || mode == MODE_SIMPLE) && !Config.DISABLE_VIEWER_ELEVATION) {
+        headerView.setElevation(Screen.dp(3f)); // keeps the header above the photo
+        if (tgx101SoftHeader) headerView.setOutlineProvider(null); // …without the shadow of a dark bar
       }
       attachHeaderViewWithoutNavigation(headerView);
       headerView.initWithSingleController(this, useEdgeToEdge() || ((SET_FULLSCREEN_ON_OPEN || canRunFullscreen()) && !Config.CUTOUT_ENABLED));
