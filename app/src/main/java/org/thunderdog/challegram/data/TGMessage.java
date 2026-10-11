@@ -1350,6 +1350,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   private int measureKeyboardLeft () {
+    if (tgx101JournalButtons()) return getActualLeftContentEdge() + Screen.dp(TGX101_JOURNAL_BUTTONS_INSET);
     return useBubbles() ? alignBubbleRight() ? getActualRightContentEdge() - inlineKeyboard.getWidth() : getActualLeftContentEdge() : pRealContentX;
   }
 
@@ -1432,6 +1433,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       int height = bottomContentEdge + getPaddingBottom() + extraPadding;
       if (inlineKeyboard != null && !inlineKeyboard.isEmpty()) {
         height += inlineKeyboard.getHeight() + TGInlineKeyboard.getButtonSpacing();
+        if (tgx101JournalButtons()) height += TGInlineKeyboard.getButtonSpacing(); // the same gap under the buttons
       }
       if (useReactionBubbles()) {
         if (useMediaBubbleReactions()) {
@@ -1563,10 +1565,21 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   private static final float TGX101_JOURNAL_STRIPE = 30f, TGX101_JOURNAL_LINE = 3f, TGX101_JOURNAL_LINE_GAP = 3f;
 
-  /** 15 % taller than the three lines together */
+  /** user 2026-10-11 «увеличь аватарку канала на разделении постов»: 24 dp (was 15 % taller than the three lines, ~17 dp) */
   private static int tgx101JournalIconSize () {
-    return Math.round(Screen.dp(TGX101_JOURNAL_LINE * 3 + TGX101_JOURNAL_LINE_GAP * 2) * 1.15f);
+    return Screen.dp(24f);
   }
+
+  private boolean tgx101JournalButtons () {
+    return tgx101Journal() && !isOutgoing() && inlineKeyboard != null && !inlineKeyboard.isEmpty();
+  }
+
+  /** user 2026-10-11 (screenshot 16:49): in «Journal» the link buttons stay inside the post, the stripe goes under them */
+  private int tgx101JournalButtonsHeight () {
+    return tgx101JournalButtons() ? inlineKeyboard.getHeight() + TGInlineKeyboard.getButtonSpacing() * 2 : 0;
+  }
+
+  private static final float TGX101_JOURNAL_BUTTONS_INSET = 10f;
 
   /** «Journal» (user 2026-10-08 23:39 «растяни фото на всю»): media posts go from screen edge to screen edge */
   protected boolean tgx101JournalEdgeToEdge () {
@@ -1929,14 +1942,17 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   public final int getBubbleButtonBackgroundColor () {
+    if (tgx101Journal() && !isOutgoing()) return ColorUtils.compositeColor(Theme.getColor(ColorId.bubbleIn_background), ColorUtils.alphaColor(.10f, Theme.getColor(ColorId.textLink))); // «Journal»: a light link-coloured button
     return manager.getOverlayColor(ColorId.NONE, ColorId.bubble_button, ColorId.bubble_button_noWallpaper, PropertyId.WALLPAPER_OVERRIDE_BUTTON);
   }
 
   public final int getBubbleButtonRippleColor () {
+    if (tgx101Journal() && !isOutgoing()) return ColorUtils.alphaColor(.18f, Theme.getColor(ColorId.textLink));
     return manager.getOverlayColor(ColorId.NONE, ColorId.bubble_buttonRipple, ColorId.bubble_buttonRipple_noWallpaper, PropertyId.WALLPAPER_OVERRIDE_BUTTON);
   }
 
   public final int getBubbleButtonTextColor () {
+    if (tgx101Journal() && !isOutgoing()) return Theme.getColor(ColorId.textLink);
     return manager.getColor(ColorId.NONE, ColorId.bubble_buttonText, ColorId.bubble_buttonText_noWallpaper, PropertyId.WALLPAPER_OVERRIDE_BUTTON);
   }
 
@@ -2136,7 +2152,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     // (user 2026-10-05: «верни подсвечивание сообщения при переходе + к волне»)
     if (hasBubble && tgx101Journal() && !isOutgoing()) {
       // «Journal»: a dark stripe under each post with the channel's name in the middle
-      float top = bubblePathRect.bottom, bottom = top + Screen.dp(TGX101_JOURNAL_STRIPE);
+      // the link buttons are part of the post: its colour goes on under them and the stripe comes after
+      float buttons = tgx101JournalButtonsHeight();
+      if (buttons > 0) {
+        c.drawRect(0, bubblePathRect.bottom, view.getMeasuredWidth(), bubblePathRect.bottom + buttons, Paints.fillingPaint(Theme.getColor(ColorId.bubbleIn_background)));
+      }
+      float top = bubblePathRect.bottom + buttons, bottom = top + Screen.dp(TGX101_JOURNAL_STRIPE);
       // user 2026-10-09 00:25 «разделение бесшовным, между постами 3 полужирные полоски (цвет настраивается), иконка канала
       // на 15 % больше полосок»: the gap has the post's own colour; three bold lines right of the channel's photo
       c.drawRect(0, top, view.getMeasuredWidth(), bottom, Paints.fillingPaint(Theme.getColor(ColorId.bubbleIn_background)));
@@ -3271,6 +3292,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       if (useBubbles() && useBubble()) {
         int width = getActualRightContentEdge() - getActualLeftContentEdge();
         int maxWidth = pRealContentMaxWidth + getBubblePaddingLeft() + getBubblePaddingRight();
+        if (tgx101Journal() && !isOutgoing()) {
+          // «Journal»: the buttons fill the post's width with a margin on each side, like its text
+          width = maxWidth = width - Screen.dp(TGX101_JOURNAL_BUTTONS_INSET) * 2;
+        }
         inlineKeyboard.set(replyMarkupMessage.id, (TdApi.ReplyMarkupInlineKeyboard) replyMarkupMessage.replyMarkup, width, maxWidth);
       } else {
         inlineKeyboard.set(replyMarkupMessage.id, (TdApi.ReplyMarkupInlineKeyboard) replyMarkupMessage.replyMarkup, getContentWidth(), pRealContentMaxWidth);
@@ -4346,7 +4371,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       // 2026-10-09 «иконку чуть увеличь, чтобы выступала за линию, но не касалась реакций и текста поста»: it rises above
       // the stripe into its own post's empty bottom margin (the next post below is drawn over anything lower)
       int size = tgx101JournalIconSize(), stripe = Screen.dp(TGX101_JOURNAL_STRIPE);
-      int top = bottomContentEdge + (stripe - size) / 2, left = Screen.dp(12f);
+      int top = bottomContentEdge + tgx101JournalButtonsHeight() + (stripe - size) / 2, left = Screen.dp(12f);
       if (Lang.rtl()) left = view.getMeasuredWidth() - left - size;
       receiver.setBounds(left, top, left + size, top + size);
       return;

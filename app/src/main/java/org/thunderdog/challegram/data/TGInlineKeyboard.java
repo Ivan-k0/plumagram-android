@@ -524,7 +524,7 @@ public class TGInlineKeyboard {
     public void draw (MessageView view, Canvas c, int cx, int cy, int buttonWidth, int buttonHeight, int strokePadding, RectF rounder, int row, int column) {
       final int right = cx + buttonWidth;
       final int bottom = cy + buttonHeight;
-      final int radius = Screen.dp(context.context.useBubbles() && isCustom ? Theme.getBubbleMergeRadius() : 6f);
+      final int radius = Screen.dp(context.context.useBubbles() && isCustom ? Theme.getBubbleMergeRadius() : context.context.tgx101Journal() && !context.context.isOutgoing() ? 10f : 6f); // TGx101: «Journal» buttons rounder
 
       rounder.left = cx + strokePadding; rounder.right = right - strokePadding;
       rounder.top = cy + strokePadding; rounder.bottom = bottom - strokePadding;
