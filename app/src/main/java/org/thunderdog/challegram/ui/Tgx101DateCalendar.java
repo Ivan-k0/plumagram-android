@@ -103,12 +103,67 @@ public final class Tgx101DateCalendar {
     popup.init(true);
     popup.setNeedFullScreen(true);
     int height = Math.round(Screen.currentHeight() * .72f);
+    final Runnable[] afterHide = new Runnable[1];
     Card card = new Card(context, tdlib, chatId, topicId, focusDate, filter, mediaOnly, firstButton, day -> {
+      // TGx101 (user 2026-10-12 «плавной анимации сворачивания нет»): the jump runs once the card has gone down,
+      // so the chat's rebuild doesn't eat the animation
+      afterHide[0] = () -> callback.onDatePicked(day);
       popup.hideWindow(true);
-      callback.onDatePicked(day);
     }, () -> popup.hideWindow(true));
     card.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, height, Gravity.BOTTOM));
-    popup.showSimplePopupView(card, height);
+    popup.showAnimatedPopupView(card, new PopupLayout.AnimatedPopupProvider() {
+      private android.animation.ValueAnimator animator;
+      private float factor;
+
+      private float distance () {
+        return (card.getHeight() > 0 ? card.getHeight() : height) + Screen.dp(OptionsLayout.TGX101_CARD_GAP) + Screen.dp(48f);
+      }
+
+      private void apply (float f) {
+        factor = f;
+        card.setTranslationY(distance() * (1f - f));
+        popup.setRevealFactor(f);
+      }
+
+      private void run (float to, long duration, android.animation.TimeInterpolator interpolator, Runnable end) {
+        if (animator != null) animator.cancel();
+        animator = android.animation.ValueAnimator.ofFloat(factor, to);
+        animator.setDuration(duration);
+        animator.setInterpolator(interpolator);
+        animator.addUpdateListener(a -> apply((float) a.getAnimatedValue()));
+        animator.addListener(new android.animation.AnimatorListenerAdapter() {
+          @Override
+          public void onAnimationEnd (android.animation.Animator animation) {
+            end.run();
+          }
+        });
+        animator.start();
+      }
+
+      @Override
+      public void prepareShowAnimation () {
+        card.setTranslationY(height * 2);
+      }
+
+      @Override
+      public void launchShowAnimation (PopupLayout p) {
+        apply(0f);
+        run(1f, 340, new android.view.animation.DecelerateInterpolator(2.2f), p::onCustomShowComplete);
+      }
+
+      @Override
+      public boolean launchHideAnimation (PopupLayout p, me.vkryl.android.animator.FactorAnimator originalAnimator) {
+        run(0f, 300, new androidx.interpolator.view.animation.FastOutSlowInInterpolator(), () -> {
+          p.onCustomHideAnimationComplete();
+          if (afterHide[0] != null) {
+            Runnable r = afterHide[0];
+            afterHide[0] = null;
+            r.run();
+          }
+        });
+        return true;
+      }
+    });
     Tgx101Diag.mark("calendar: opened for chat " + chatId);
   }
 

@@ -13321,7 +13321,38 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (chat == null || isSecretChat()) return;
     Tgx101DateCalendar.show(this, tdlib, chat.id, getMessageTopicId(), focusDate, dayStart -> {
       if (dayStart == 0) jumpToDate(0);
-      else jumpToDate(dayStart);
+      else tgx101JumpToDay(dayStart);
+    });
+  }
+
+  // TGx101 (user 2026-10-12 «переход по дате из чата не работает»): jumpToDate asks for the last message before midnight
+  // (the day before) and relies on «highlight the next one», which our jump lost — the chat stood on the previous day.
+  // Find the day's first message itself: the last one before the day, then the one right after it
+  private void tgx101JumpToDay (int dayStart) {
+    final long chatId = getChatId();
+    final int dayEnd = dayStart + 24 * 60 * 60;
+    setSearchInProgress(true, true);
+    tdlib.client().send(new TdApi.GetChatMessageByDate(chatId, dayStart), before -> {
+      if (!(before instanceof TdApi.Message)) {
+        tdlib.ui().post(() -> { setSearchInProgress(false, true); jumpToDate(0); }); // before the chat began — its start
+        return;
+      }
+      final TdApi.Message last = (TdApi.Message) before;
+      tdlib.client().send(new TdApi.GetChatHistory(chatId, last.id, -2, 3, false), result -> {
+        TdApi.Message first = null;
+        if (result instanceof TdApi.Messages && ((TdApi.Messages) result).messages != null) {
+          for (TdApi.Message m : ((TdApi.Messages) result).messages) {
+            if (m.id > last.id && (first == null || m.id < first.id)) first = m;
+          }
+        }
+        final TdApi.Message target = first != null && first.date < dayEnd ? first : first != null ? first : last; // an empty day — the next message there is
+        org.thunderdog.challegram.Tgx101Diag.mark("calendar: day " + dayStart + " → message " + target.id + (first == null ? " (nothing after)" : first.date >= dayEnd ? " (empty day, next one)" : ""));
+        tdlib.ui().post(() -> {
+          if (isDestroyed()) return;
+          setSearchInProgress(false, true);
+          manager.highlightMessage(new MessageId(target.chatId, target.id), MessagesManager.HIGHLIGHT_MODE_NORMAL, null, true);
+        });
+      });
     });
   }
 
