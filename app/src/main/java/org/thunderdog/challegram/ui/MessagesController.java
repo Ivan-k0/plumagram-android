@@ -597,6 +597,36 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return !isInForceTouchMode();
   }
 
+  private @Nullable View tgx101KeyboardFiller;
+
+  private void tgx101UpdateKeyboardFiller () {
+    if (tgx101KeyboardFiller == null) return;
+    boolean held = inputView != null && context().tgx101IsKeyboardHeld(inputView);
+    int imeHeight = Math.max(0, extraBottomInset - extraBottomInsetWithoutIme);
+    boolean show = held && imeHeight > 0;
+    if (show) {
+      ViewGroup.LayoutParams params = tgx101KeyboardFiller.getLayoutParams();
+      if (params.height != imeHeight) {
+        params.height = imeHeight;
+        tgx101KeyboardFiller.setLayoutParams(params);
+      }
+      tgx101KeyboardFiller.setBackgroundColor(Theme.fillingColor());
+    }
+    int visibility = show ? View.VISIBLE : View.GONE;
+    if (tgx101KeyboardFiller.getVisibility() != visibility) {
+      tgx101KeyboardFiller.setVisibility(visibility);
+      if (!show) return;
+      // keep checking while it stands: the hold ends on its own (keyboard back or not) without a layout of its own
+      tgx101KeyboardFiller.postDelayed(new Runnable() {
+        @Override
+        public void run () {
+          tgx101UpdateKeyboardFiller();
+          if (tgx101KeyboardFiller != null && tgx101KeyboardFiller.getVisibility() == View.VISIBLE) tgx101KeyboardFiller.postDelayed(this, 120);
+        }
+      }, 120);
+    }
+  }
+
   @Override
   protected boolean tgx101HoldBottomInset (int newExtraBottomInset) {
     return floatingInput && inputView != null && context().tgx101IsKeyboardHeld(inputView);
@@ -819,6 +849,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         tgx101PaddingChanged = false;
         updateFloatingListPadding();
         syncFloatingReplyBar();
+        tgx101UpdateKeyboardFiller();
         return true;
       };
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -1640,6 +1671,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     contentView.addView(bottomSpace);
     contentView.addView(bottomWrap);
+    if (floatingInput) {
+      // TGx101 (user video 2026-10-11 23:46): while the keyboard comes back after the attach menu, its place showed the
+      // chat under the held field — a plain panel stands there until the keyboard slides over it
+      tgx101KeyboardFiller = new View(context);
+      tgx101KeyboardFiller.setVisibility(View.GONE);
+      RelativeLayout.LayoutParams fillerParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0);
+      fillerParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+      tgx101KeyboardFiller.setLayoutParams(fillerParams);
+      contentView.addView(tgx101KeyboardFiller);
+    }
     updateBottomWrapOffset(); // TGx101: apply the bottom gap right away, insets may have arrived before bottomWrap existed
     if (TGX101_CHAT_KEYBOARD_ENGINE && floatingInput && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
       tgx101RideKeyboard(contentView);
