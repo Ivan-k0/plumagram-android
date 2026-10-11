@@ -110,11 +110,38 @@ public class Tgx101StoriesStrip extends HorizontalScrollView implements SortedLi
     storyList.removeListener(this);
   }
 
+  /** TGx101 (user 2026-10-11, screenshot 11:11): the colours were taken once — after a switch to the night theme the
+   * strip stayed white over the dark chat list. Repainted from the chat list's theme change */
+  private int tgx101FillColor;
+
+  public void tgx101ApplyTheme () {
+    tgx101FillColor = Theme.fillingColor();
+    setBackgroundColor(tgx101FillColor);
+    for (int i = 0; i < row.getChildCount(); i++) {
+      View item = row.getChildAt(i);
+      if (item instanceof ViewGroup) {
+        ViewGroup group = (ViewGroup) item;
+        for (int j = 0; j < group.getChildCount(); j++) {
+          View child = group.getChildAt(j);
+          if (child instanceof TextView) {
+            ((TextView) child).setTextColor(Theme.textAccentColor());
+          }
+          child.invalidate();
+        }
+      }
+    }
+    invalidate();
+  }
+
   // TGx101 (user 2026-10-05, variant 1): a thin full-width line under the expanded strip separates it from the chats
   private final Paint tgx101LinePaint = new Paint();
 
   @Override
   public void draw (@NonNull Canvas c) {
+    if (tgx101FillColor != Theme.fillingColor()) { // the theme changed under the strip: repaint once
+      tgx101FillColor = Theme.fillingColor();
+      post(this::tgx101ApplyTheme);
+    }
     super.draw(c);
     tgx101LinePaint.setColor(Theme.separatorColor());
     float h = Math.max(1f, Screen.dp(.5f));

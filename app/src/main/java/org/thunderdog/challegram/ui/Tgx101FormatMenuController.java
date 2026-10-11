@@ -102,9 +102,6 @@ public class Tgx101FormatMenuController extends RecyclerViewController<Void> imp
     adapter = new SettingsAdapter(this) {
       @Override
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
-        if (item.getId() == R.id.btn_tgx101BarItem || item.getId() == R.id.btn_tgx101MenuAction) {
-          view.setData("≡"); // the handle: drag from here
-        }
       }
 
       @Override
@@ -159,7 +156,7 @@ public class Tgx101FormatMenuController extends RecyclerViewController<Void> imp
       for (String entry : Tgx101BarOrder.getOrder(bar)) {
         boolean off = entry.startsWith("-");
         String key = off ? entry.substring(1) : entry;
-        (off ? hidden : shown).add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101BarItem, Tgx101BarOrder.iconOf(key), Tgx101BarOrder.nameOf(key)).setLongId(bar).setData(entry));
+        (off ? hidden : shown).add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101BarItem, Tgx101BarOrder.iconOf(key), Tgx101BarOrder.nameOf(key)).setLongId(bar).setData(entry));
       }
       addGroup(items, bar == Tgx101BarOrder.BAR_MESSAGE ? GROUP_MESSAGE : GROUP_INPUT, shown, hidden);
     }
@@ -167,7 +164,7 @@ public class Tgx101FormatMenuController extends RecyclerViewController<Void> imp
     List<ListItem> shown = new ArrayList<>(), hidden = new ArrayList<>();
     for (int id : getOrder()) {
       int known = indexOf(IDS, Math.abs(id));
-      (id < 0 ? hidden : shown).add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101MenuAction, ICONS[known], NAMES[known]).setLongId(GROUP_FORMAT).setData(id));
+      (id < 0 ? hidden : shown).add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MenuAction, ICONS[known], NAMES[known]).setLongId(GROUP_FORMAT).setData(id));
     }
     addGroup(items, GROUP_FORMAT, shown, hidden);
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101FormatMenuHint));

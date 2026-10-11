@@ -6652,4 +6652,8 @@
   <string name="Tgx101TranslateChatTo">Translate to %1$s</string>
   <string name="Tgx101TranslateOtherLanguage">Translate to another language…</string>
   <string name="Tgx101TranslateBarHide">Hide the bar</string>
+  <string name="Tgx101MenuTabText">Text</string>
+  <string name="Tgx101MenuTabMedia">Media</string>
+  <string name="Tgx101MenuTabVoice">Voice</string>
+  <string name="Tgx101MenuSectionMenuShort">In the menu</string>
 </resources>

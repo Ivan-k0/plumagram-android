@@ -91,11 +91,11 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
     boolean notifyChanged = hasSuggestedChats() && chatIds.length > 0 && !Arrays.equals(suggestedChatIds, chatIds);
     this.suggestedChatIds = chatIds;
     if (notifyInserted) {
-      notifyItemInserted(0);
+      tgx101NotifyInserted(0);
     } else if (notifyRemoved) {
-      notifyItemRemoved(0);
+      tgx101NotifyRemoved(0);
     } else if (notifyChanged) {
-      notifyItemChanged(0);
+      tgx101NotifyChanged(0);
     }
   }
 
@@ -125,7 +125,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
         notifyChatAppeared(-1, getItemPositionByChatIndex(ARCHIVE_INDEX));
       } else {
         chats.remove(ARCHIVE_INDEX);
-        notifyItemRemoved(getItemPositionByChatIndex(ARCHIVE_INDEX));
+        tgx101NotifyRemoved(getItemPositionByChatIndex(ARCHIVE_INDEX));
       }
       invalidateAttachedItemDecorations();
     }
@@ -300,7 +300,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
 
   public void updateInfo () {
     if (hasChats()) {
-      notifyItemChanged(getInfoItemPosition());
+      tgx101NotifyChanged(getInfoItemPosition());
     }
   }
 
@@ -396,9 +396,9 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
     }
     if (addedItemCount > 0) {
       int positionStart = getItemPositionByChatIndex(atIndex);
-      notifyItemRangeInserted(positionStart, addedItemCount);
+      tgx101NotifyRangeInserted(positionStart, addedItemCount);
       if (firstAddedItem != null && lastChat != null && lastChat.isPinnedOrSpecial() != firstAddedItem.isPinnedOrSpecial()) {
-        notifyItemChanged(positionStart - 1);
+        tgx101NotifyChanged(positionStart - 1);
       }
     }
   }
@@ -669,8 +669,8 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
         needShadowDecoration(nextChat, removedChat);
 
       removedChat.updateChatPosition(chat.id, changeInfo.position, changeInfo.sourceChanged(), changeInfo.pinStateChanged());
-      notifyItemRemoved(getItemPositionByChatIndex(chatIndex));
-      notifyItemChanged(getInfoItemPosition());
+      tgx101NotifyRemoved(getItemPositionByChatIndex(chatIndex));
+      tgx101NotifyChanged(getInfoItemPosition());
       context.checkListState();
       return invalidateDecorations || needShadowDecoration(prevChat, nextChat) ? ORDER_INVALIDATE_DECORATIONS : 0;
     }
@@ -715,7 +715,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
     int flags = changeInfo.metadataChanged() ? ORDER_INVALIDATE_DECORATIONS : 0;
     addChat(index, newChat);
     notifyChatAppeared(-1, getItemPositionByChatIndex(index));
-    notifyItemChanged(getInfoItemPosition());
+    tgx101NotifyChanged(getInfoItemPosition());
     context.checkListState();
     return flags;
   }
@@ -785,9 +785,9 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
       offset = 0;
     }
     if (fromPosition == -1) {
-      notifyItemInserted(toPosition);
+      tgx101NotifyInserted(toPosition);
     } else {
-      notifyItemMoved(fromPosition, toPosition);
+      tgx101NotifyMoved(fromPosition, toPosition);
     }
     if (firstItem != -1) {
       layoutManager.scrollToPositionWithOffset(firstItem, offset);
@@ -795,14 +795,67 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
   }
 
   public void notifyAllChanged () {
-    notifyItemRangeChanged(0, getItemCount());
+    tgx101NotifyRangeChanged(0, getItemCount());
   }
 
   public void notifyLastItemChanged () {
     int itemCount = getItemCount();
     if (itemCount > 0) {
-      notifyItemChanged(itemCount - 1);
+      tgx101NotifyChanged(itemCount - 1);
     }
+  }
+
+  // TGx101 (user 2026-10-10 logs: 12:39 3.3 s freeze, 21:30 5.5 s → «not responding»): a folder page that isn't on screen
+  // gets no layout, so every chat move / change of its list piled up in RecyclerView's queue (thousands), and the swipe
+  // to it processed them one by one on the main thread. Past a few dozen queued changes the list is refreshed once
+  // instead; the queue is dropped at that refresh.
+  private static final int TGX101_MAX_QUEUED_CHANGES = 40;
+  private int tgx101Queued;
+  private boolean tgx101FullRefreshQueued;
+
+  private boolean tgx101Coalesce () {
+    RecyclerView recyclerView = attachedToRecyclers != null && attachedToRecyclers.size() == 1 ? attachedToRecyclers.get(0) : null;
+    if (recyclerView == null) {
+      return false;
+    }
+    if (!recyclerView.hasPendingAdapterUpdates()) {
+      tgx101Queued = 0; // laid out since: the queue is empty
+      tgx101FullRefreshQueued = false;
+    }
+    if (tgx101FullRefreshQueued) {
+      return true; // the whole list is redrawn at the next layout anyway
+    }
+    if (++tgx101Queued > TGX101_MAX_QUEUED_CHANGES && !recyclerView.isComputingLayout()) {
+      tgx101FullRefreshQueued = true;
+      org.thunderdog.challegram.Tgx101Diag.mark("chat list: " + tgx101Queued + " changes queued without a layout → one full refresh");
+      notifyDataSetChanged();
+      return true;
+    }
+    return false;
+  }
+
+  private void tgx101NotifyInserted (int position) {
+    if (!tgx101Coalesce()) notifyItemInserted(position);
+  }
+
+  private void tgx101NotifyRemoved (int position) {
+    if (!tgx101Coalesce()) notifyItemRemoved(position);
+  }
+
+  private void tgx101NotifyChanged (int position) {
+    if (!tgx101Coalesce()) notifyItemChanged(position);
+  }
+
+  private void tgx101NotifyRangeInserted (int positionStart, int itemCount) {
+    if (!tgx101Coalesce()) notifyItemRangeInserted(positionStart, itemCount);
+  }
+
+  private void tgx101NotifyMoved (int fromPosition, int toPosition) {
+    if (!tgx101Coalesce()) notifyItemMoved(fromPosition, toPosition);
+  }
+
+  private void tgx101NotifyRangeChanged (int positionStart, int itemCount) {
+    if (!tgx101Coalesce()) notifyItemRangeChanged(positionStart, itemCount);
   }
 
   // Search mode

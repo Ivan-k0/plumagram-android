@@ -2448,6 +2448,14 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   }
 
   @Override
+  public void onThemeColorsChanged (boolean areTemp, org.thunderdog.challegram.theme.ColorState state) {
+    super.onThemeColorsChanged(areTemp, state);
+    if (tgx101StoriesStrip != null) {
+      tgx101StoriesStrip.tgx101ApplyTheme(); // TGx101: the strip took its colours once
+    }
+  }
+
+  @Override
   public void handleLanguagePackEvent (int event, int arg1) {
     updateNetworkStatus(tdlib.connectionState());
     if (chatsView != null) {

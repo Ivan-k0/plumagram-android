@@ -225,6 +225,7 @@ public abstract class ViewPagerController<T> extends TelegramViewController<T> i
         }
       }
       headerCell.getTopView().setOnItemClickListener(this);
+      headerCell.getTopView().tgx101SetNoPressHighlight(tgx101InstantTabSwitch());
       headerCell.getTopView().setItems(sections);
       addThemeInvalidateListener(headerCell.getTopView());
     }
@@ -448,7 +449,7 @@ public abstract class ViewPagerController<T> extends TelegramViewController<T> i
   public final void onPageScrollStateChanged (int state) {
     scrollState = state;
     if (state == ViewPager.SCROLL_STATE_DRAGGING && tgx101TabAnimator != null) {
-      tgx101TabAnimator.cancel(); // a swipe takes over the indicator
+      tgx101TabAnimator.cancel(); // a swipe takes over the indicator (cancel ends it: the tabs are settled)
     }
     tgx101OnPageScrollState(state);
     if (state != ViewPager.SCROLL_STATE_SETTLING && headerCell != null) {
@@ -751,6 +752,16 @@ public abstract class ViewPagerController<T> extends TelegramViewController<T> i
 
   private android.animation.ValueAnimator tgx101TabAnimator;
 
+  /** user 2026-10-11 (0.1.635 test): the «from → to» state of the tabs stayed after the slide — each tab's touch area
+   * kept the in-between widths, so taps hit the neighbour or the open folder. Cleared, and the tabs laid out again */
+  private void tgx101SettleTabs (ViewPagerTopView topView) {
+    int current = pager.getCurrentItem();
+    topView.resetFromTo();
+    topView.setSelectionFactor(current + .001f); // a different value, so it is laid out again for sure
+    topView.setSelectionFactor(current);
+    topView.requestLayout();
+  }
+
   private void tgx101SwitchTab (int index) {
     ViewPagerTopView topView = headerCell.getTopView();
     android.animation.ValueAnimator previous = tgx101TabAnimator;
@@ -771,7 +782,7 @@ public abstract class ViewPagerController<T> extends TelegramViewController<T> i
       public void onAnimationEnd (android.animation.Animator a) {
         if (tgx101TabAnimator == animator) {
           tgx101TabAnimator = null;
-          topView.setSelectionFactor(pager.getCurrentItem());
+          tgx101SettleTabs(topView);
         }
       }
     });

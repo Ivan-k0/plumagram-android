@@ -465,7 +465,7 @@ public class ViewPagerTopView extends FrameLayoutFix implements RtlCheckListener
       int childCount = getChildCount();
       for (int index = 0; index < childCount; index++) {
         View childView = getChildAt(index);
-        if (childView instanceof BackgroundView) {
+        if (childView instanceof BackgroundView && !tgx101NoPressHighlight) {
           if (useDark) {
             RippleSupport.setTransparentBlackSelector(childView);
           } else {
@@ -489,9 +489,32 @@ public class ViewPagerTopView extends FrameLayoutFix implements RtlCheckListener
     this.slideOffDirection = slideOffDirection;
   }
 
+  // TGx101 (user 2026-10-11 «анимацию нажатия на папку убираем вовсе»): the folder tabs don't light up on a tap
+  private boolean tgx101NoPressHighlight;
+
+  public void tgx101SetNoPressHighlight (boolean noHighlight) {
+    if (this.tgx101NoPressHighlight != noHighlight) {
+      this.tgx101NoPressHighlight = noHighlight;
+      for (int index = 0; index < getChildCount(); index++) {
+        View childView = getChildAt(index);
+        if (childView instanceof BackgroundView) {
+          if (noHighlight) {
+            childView.setBackground(null);
+          } else if (isDark) {
+            RippleSupport.setTransparentBlackSelector(childView);
+          } else {
+            RippleSupport.setTransparentWhiteSelector(childView);
+          }
+        }
+      }
+    }
+  }
+
   private BackgroundView newBackgroundView (int i) {
     BackgroundView backgroundView = new BackgroundView(getContext());
-    if (isDark) {
+    if (tgx101NoPressHighlight) {
+      // no selector
+    } else if (isDark) {
       RippleSupport.setTransparentBlackSelector(backgroundView);
     } else {
       RippleSupport.setTransparentWhiteSelector(backgroundView);

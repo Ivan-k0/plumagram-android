@@ -84,9 +84,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
     adapter = new SettingsAdapter(this) {
       @Override
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
-        if (item.getId() == R.id.btn_tgx101MenuAction) {
-          view.setData("≡"); // the handle: drag from here
-        } else if (item.getId() == R.id.btn_tgx101SwipeItem) {
+        if (item.getId() == R.id.btn_tgx101SwipeItem) {
           String entry = (String) item.getData();
           view.getToggler().setRadioEnabled(!entry.startsWith("-"), isUpdate);
         }
@@ -186,11 +184,12 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
       for (int i = 0; i < order.length; i++) {
         if (sectionOf(order[i]) != section) continue;
         int known = indexOf(Tgx101MessageMenu.ORDERABLE_IDS, order[i]);
-        rows.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101MenuAction, Tgx101MessageMenu.ORDERABLE_ICONS[known], Tgx101MessageMenu.ORDERABLE_NAMES[known]).setLongId(i).setData(order[i]));
+        rows.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MenuAction, Tgx101MessageMenu.ORDERABLE_ICONS[known], Tgx101MessageMenu.ORDERABLE_NAMES[known]).setLongId(i).setData(order[i]));
       }
       CharSequence title = Lang.getString(headers[section]);
       if (section == SECTION_MENU) {
-        title = title + " · " + Lang.getString(R.string.Tgx101MenuCountOf, menuCount(order), Tgx101MessageMenu.MAX_MENU_ITEMS);
+        // «In the menu · 9 of 9» (the long «In the menu: 5 to 9 items · 9 of 9» said it twice)
+        title = Lang.getString(R.string.Tgx101MenuSectionMenuShort) + " · " + Lang.getString(R.string.Tgx101MenuCountOf, menuCount(order), Tgx101MessageMenu.MAX_MENU_ITEMS);
       }
       addSection(items, title, rows);
       if (section == SECTION_MENU) {
@@ -352,7 +351,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
   /** Text / Media / Voice: which of the three menus is set up */
   private class ProfileTabs extends View {
     private final int[] profiles = {Settings.TGX101_MENU_TEXT, Settings.TGX101_MENU_MEDIA, Settings.TGX101_MENU_VOICE};
-    private final int[] names = {R.string.Tgx101MenuProfileText, R.string.Tgx101MenuProfileMedia, R.string.Tgx101MenuProfileVoice};
+    private final int[] names = {R.string.Tgx101MenuTabText, R.string.Tgx101MenuTabMedia, R.string.Tgx101MenuTabVoice}; // short: the long ones overlapped (0.1.635)
     private final RectF rect = new RectF();
 
     ProfileTabs (Context context) {
@@ -379,8 +378,8 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
           c.drawRoundRect(rect, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(Theme.getColor(ColorId.iconActive)));
         }
         TextPaint paint = Paints.getMediumTextPaint(13f, selected ? 0xffffffff : Theme.getColor(ColorId.textLight), false);
-        String name = Lang.getString(names[i]);
-        c.drawText(name, left + tab * i + (tab - paint.measureText(name)) / 2, (top + bottom) / 2 + Screen.dp(4.5f), paint);
+        CharSequence name = android.text.TextUtils.ellipsize(Lang.getString(names[i]), paint, tab - Screen.dp(12f), android.text.TextUtils.TruncateAt.END);
+        c.drawText(name, 0, name.length(), left + tab * i + (tab - paint.measureText(name, 0, name.length())) / 2, (top + bottom) / 2 + Screen.dp(4.5f), paint);
       }
     }
 

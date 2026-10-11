@@ -720,6 +720,10 @@ final class Tgx101Strings {
     RU.put(R.string.RichMessageOpenFull, "Открыть пост полностью ›");
     RU.put(R.string.RichMessageOpenFailed, "Не удалось загрузить пост: %1$s");
     RU.put(R.string.RichMessageOpenUnsupported, "В посте есть элементы, которые просмотрщик пока не умеет показывать");
+    RU.put(R.string.Tgx101MenuTabText, "Текст");
+    RU.put(R.string.Tgx101MenuTabMedia, "Медиа");
+    RU.put(R.string.Tgx101MenuTabVoice, "Голосовые");
+    RU.put(R.string.Tgx101MenuSectionMenuShort, "В меню");
     RU.put(R.string.Tgx101TranslateChatTo, "Перевести на %1$s");
     RU.put(R.string.Tgx101TranslateOtherLanguage, "Перевести на другой язык…");
     RU.put(R.string.Tgx101TranslateBarHide, "Скрыть плашку");

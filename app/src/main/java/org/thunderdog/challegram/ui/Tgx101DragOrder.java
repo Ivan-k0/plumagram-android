@@ -189,6 +189,17 @@ public final class Tgx101DragOrder {
       int height = Math.max(1, Screen.dp(.5f));
       int offset = Screen.dp(72f);
       boolean rtl = Lang.rtl();
+      // the «≡» handle at the end of rows without a switch, on the name's line (0.1.635: data text fell under the name)
+      android.graphics.drawable.Drawable handle = org.thunderdog.challegram.tool.Drawables.get(parent.getResources(), R.drawable.baseline_drag_handle_24);
+      for (int i = 0; i < parent.getChildCount(); i++) {
+        View child = parent.getChildAt(i);
+        int adapterPosition = parent.getChildAdapterPosition(child);
+        if (handle != null && adapterPosition >= 0 && adapterPosition < items.size() && callback.canDrag(items.get(adapterPosition)) && items.get(adapterPosition).getViewType() != ListItem.TYPE_RADIO_SETTING) {
+          float cx = rtl ? child.getLeft() + Screen.dp(28f) : child.getRight() - Screen.dp(28f);
+          float cy = child.getTop() + child.getTranslationY() + child.getHeight() / 2f;
+          org.thunderdog.challegram.tool.Drawables.drawCentered(c, handle, cx, cy, Paints.getPorterDuffPaint(Theme.iconColor()));
+        }
+      }
       for (int i = 0; i < parent.getChildCount(); i++) {
         View child = parent.getChildAt(i);
         int position = parent.getChildAdapterPosition(child);
