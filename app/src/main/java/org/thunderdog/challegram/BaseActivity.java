@@ -2757,6 +2757,13 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     if (window.needDismissOtherPopUps()) {
       hideContextualPopups(false);
     }
+    // TGx101 (user 2026-10-11 «клавиатура сворачивается даже когда просто нажимаешь на скрепку и возвращаешься назад»): a
+    // window over the chat (attach menu, media viewer…) that takes the keyboard away gives it back when the last one closes
+    if (windows.isEmpty() && isKeyboardVisible && getCurrentFocus() instanceof org.thunderdog.challegram.component.chat.InputView) {
+      tgx101RestoreInput = new java.lang.ref.WeakReference<>(getCurrentFocus());
+    } else if (windows.isEmpty()) {
+      tgx101RestoreInput = null;
+    }
     windows.add(window);
     UI.post(this::updatePopupBackPriority);
     Tgx101DiagHooks.onPopup(window, window.getBoundController() != null ? window.getBoundController() : window.getBoundView(), true); // TGx101
@@ -2791,7 +2798,23 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     }
     notifyBackPressAvailabilityChanged();
     checkDisallowScreenshots();
+    if (windows.isEmpty() && tgx101RestoreInput != null) {
+      final View input = tgx101RestoreInput.get();
+      tgx101RestoreInput = null;
+      if (input != null && !isKeyboardVisible) {
+        // a beat for the window focus to come back to the activity, then the keyboard slides up (its own animation)
+        UI.post(() -> {
+          if (windows.isEmpty() && !isKeyboardVisible && androidx.core.view.ViewCompat.isAttachedToWindow(input) && input.isShown()) {
+            Tgx101Diag.mark("keyboard: given back after a window over the chat");
+            input.requestFocus();
+            org.thunderdog.challegram.tool.Keyboard.show(input);
+          }
+        }, 80);
+      }
+    }
   }
+
+  private @Nullable java.lang.ref.WeakReference<View> tgx101RestoreInput;
 
   public @Nullable ViewController<?> getCurrentlyOpenWindowedViewController () {
     PopupLayout popupLayout = getCurrentPopupWindow();

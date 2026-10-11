@@ -794,6 +794,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
             tgx101GlideIme(pad - tgx101LastPad); // the keyboard changed size without an animation (suggestion strip)
           }
         }
+        if (floatingInput && tgx101LastContent > 0 && content > tgx101LastContent && content - tgx101LastContent < Screen.dp(400f) && !tgx101ImeRiding && getVisibility() == View.VISIBLE) {
+          tgx101RevealGrowth(content - tgx101LastContent);
+        }
         tgx101LastContent = content;
         tgx101LastPad = pad;
         updateButtonsY();
@@ -7909,10 +7912,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     float offset = -getAttachedFilesOffset();
     final float keyboardOffset = -getKeyboardOffset();
     tgx101ListBaseY = y + offset + keyboardOffset;
-    messagesView.setTranslationY(tgx101ListBaseY);
-    bottomShadowView.setTranslationY(y + offset + keyboardOffset + tgx101FieldShift());
+    messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift);
+    bottomShadowView.setTranslationY(y + offset + keyboardOffset + tgx101FieldShift() + tgx101TopReveal);
     if (replyBarView != null) {
-      replyBarView.setTranslationY(y + keyboardOffset + tgx101FieldShift());
+      replyBarView.setTranslationY(y + keyboardOffset + tgx101FieldShift() + tgx101TopReveal);
       if (floatingInput) {
         // TGx101: hidden behind the see-through capsule while there's no reply (it would show through)
         replyBarView.setAlpha(MathUtils.clamp(-y / (float) Screen.dp(48f)));
@@ -10165,6 +10168,35 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
+  // TGx101 (user 2026-10-11 «чат должен плавно двигаться вслед за полосой ввода»): a new line grows the field at the TOP
+  // only — the capsule's top edge (drawn and clipped) starts where it was and rises to its new place in 160 ms, the
+  // buttons and the bottom stay; the reply bar and the list's bottom room follow that drawn edge every frame. (The old
+  // glide moved the whole field with its buttons down and back up — user 2026-10-08 21:33 «прыгающие стрелка и смайлы».)
+  private float tgx101TopReveal;
+  private android.animation.ValueAnimator tgx101RevealAnimator;
+
+  private void tgx101RevealGrowth (int delta) {
+    if (tgx101RevealAnimator != null) tgx101RevealAnimator.cancel();
+    float from = tgx101TopReveal + delta;
+    tgx101RevealAnimator = android.animation.ValueAnimator.ofFloat(from, 0f);
+    tgx101RevealAnimator.setDuration(160);
+    tgx101RevealAnimator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+    tgx101RevealAnimator.addUpdateListener(a -> tgx101SetTopReveal((float) a.getAnimatedValue()));
+    tgx101SetTopReveal(from);
+    tgx101RevealAnimator.start();
+  }
+
+  private void tgx101SetTopReveal (float reveal) {
+    if (tgx101TopReveal == reveal) return;
+    tgx101TopReveal = reveal;
+    if (bottomWrap != null) {
+      bottomWrap.invalidate();
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) bottomWrap.invalidateOutline();
+    }
+    updateReplyView();
+    updateFloatingListPadding();
+  }
+
   /** The field's own height changed by {@code delta} (a new line, attachments, reply…): its top glides there */
   private void tgx101GlideGrowth (int delta) {
     if (tgx101GrowGlide != null) tgx101GrowGlide.cancel();
@@ -10283,7 +10315,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private static final boolean TGX101_CHAT_KEYBOARD_ENGINE = true; // user 2026-10-08 «релиз не так плавно, как тестовая» — on everywhere; // test builds only
 
   private void tgx101GlideList (int delta) {
-    if (true) return; // replaced by the chat motion: the list follows the field's drawn edge
+    // TGx101 (11.10): only a shrinking field (a line erased, the reply bar gone) — growth follows the field's drawn top
+    if (delta >= 0 || tgx101TopReveal != 0f) return;
     long now = android.os.SystemClock.uptimeMillis();
     boolean following = now - tgx101LastPaddingChange < 150;
     tgx101LastPaddingChange = now;
@@ -10299,10 +10332,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     tgx101GlideAnimator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
     tgx101GlideAnimator.addUpdateListener(a -> {
       tgx101PaddingShift = (float) a.getAnimatedValue();
-      messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift + tgx101ImeShift);
+      messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift);
     });
     tgx101PaddingShift = from;
-    messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift + tgx101ImeShift);
+    messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift);
     tgx101GlideAnimator.start();
   }
 
@@ -10321,7 +10354,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       bottomWrap.getLocationInWindow(capsule);
       // the list's own translation (the reply bar / attached files lift it, animated) is not room: counting it too made the
       // padding shrink while the reply bar slid in and grow back as it closed — the chat jumped twice (user 2026-10-08 11:18)
-      int fromTop = list[1] - Math.round(messagesView.getTranslationY()) + messagesView.getHeight() - capsule[1];
+      int fromTop = list[1] - Math.round(messagesView.getTranslationY() - tgx101PaddingShift) + messagesView.getHeight() - (capsule[1] + Math.round(Math.max(0f, tgx101TopReveal)));
       // user 2026-10-07 22:57 «вспышки вместо анимаций»: while the chat slides in, the capsule isn't placed yet and was
       // measured near the top (padding 2848 px for 150 ms) — the chat came in empty, then the messages popped in. Even with
       // the keyboard up the capsule sits in the lower part, so a position above the list's upper third is not real yet
@@ -10527,7 +10560,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           radii[0] = radii[1] = radii[2] = radii[3] = radius;
           radii[4] = radii[5] = radii[6] = radii[7] = 0;
         } else {
-          rect.set(bounds.left, bounds.top, bounds.right, bounds.bottom - view.getPaddingBottom());
+          rect.set(bounds.left, bounds.top + Math.max(0f, tgx101TopReveal), bounds.right, bounds.bottom - view.getPaddingBottom());
           radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), rect.height() / 2f);
           float top = radius * (1f - floatingJoinFactor()); // the reply bar / attached files above make one capsule with it: square top corners
           radii[0] = radii[1] = radii[2] = radii[3] = top;
@@ -10566,7 +10599,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
           int bottom = v.getHeight() - v.getPaddingBottom();
           float radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), bottom / 2f);
           // with the reply bar the top corners go above the view, so the clip's top edge is straight
-          outline.setRoundRect(0, (int) (-radius * floatingJoinFactor()), v.getWidth(), Math.max(1, bottom), radius);
+          int revealTop = v == bottomWrap ? Math.round(Math.max(0f, tgx101TopReveal)) : 0; // a growing field's top rises in
+          outline.setRoundRect(0, (int) (-radius * floatingJoinFactor()) + revealTop, v.getWidth(), Math.max(1, bottom), radius);
         }
       });
       view.setClipToOutline(true); // reply / edit bars inside get the rounded corners too
