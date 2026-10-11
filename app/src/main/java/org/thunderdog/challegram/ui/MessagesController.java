@@ -598,6 +598,101 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private @Nullable View tgx101KeyboardFiller;
+  private @Nullable org.thunderdog.challegram.component.chat.Tgx101DeleteEffect tgx101DeleteEffect;
+
+  /** TGx101: a message view about to leave the list turns to pixel dust (user 2026-10-12 «как пыль в оффе, но пиксельная») */
+  public void tgx101ExplodeMessage (@Nullable View messageView) {
+    if (tgx101DeleteEffect != null && messageView != null && isFocused()) {
+      tgx101CaptureGapClose();
+      tgx101DeleteEffect.explode(messageView, tgx101BubbleOutline(messageView));
+    } else if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+      org.thunderdog.challegram.Tgx101Diag.mark("delete effect: skipped (" + (messageView == null ? "not on screen" : !isFocused() ? "chat not focused" : "no layer") + ")");
+    }
+  }
+
+  private static @Nullable TGMessage tgx101MessageOf (View view) {
+    if (view instanceof MessageView) return ((MessageView) view).getMessage();
+    if (view instanceof MessageViewGroup) return ((MessageViewGroup) view).getMessage();
+    return null;
+  }
+
+  /** The bubble's outline in the row view's coordinates — the dust takes exactly the message, not the whole row (selection highlight, empty side) */
+  private static @Nullable android.graphics.Path tgx101BubbleOutline (View view) {
+    TGMessage msg = tgx101MessageOf(view);
+    android.graphics.Path bubble = msg != null ? msg.getBubblePath() : null;
+    if (bubble == null) return null;
+    android.graphics.Path copy;
+    synchronized (bubble) {
+      copy = new android.graphics.Path(bubble);
+    }
+    if (view instanceof MessageViewGroup) {
+      View inner = ((MessageViewGroup) view).getMessageView();
+      if (inner != null) copy.offset(inner.getLeft(), inner.getTop());
+    }
+    return copy;
+  }
+
+  // TGx101 (user 2026-10-12 «подстраивание сообщений должно быть плавным и бесшовным»): the chat list has no item animator,
+  // so the messages around a deleted one jumped into its place. Remember where every row stood before the removal, and
+  // after the list has laid out again let each one glide from its old place to the new one (bubble merges included)
+  private @Nullable java.util.IdentityHashMap<TGMessage, Integer> tgx101GapTops;
+  private static final long TGX101_GAP_CLOSE_DURATION = 320;
+
+  private void tgx101CaptureGapClose () {
+    if (tgx101GapTops != null || messagesView == null) return;
+    tgx101GapTops = new java.util.IdentityHashMap<>();
+    for (int i = 0; i < messagesView.getChildCount(); i++) {
+      View child = messagesView.getChildAt(i);
+      TGMessage msg = tgx101MessageOf(child);
+      if (msg != null) tgx101GapTops.put(msg, Math.round(child.getTop() + child.getTranslationY()));
+    }
+    messagesView.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+      @Override
+      public boolean onPreDraw () {
+        if (messagesView.isLayoutRequested()) return true; // the removal hasn't been laid out yet
+        messagesView.getViewTreeObserver().removeOnPreDrawListener(this);
+        tgx101ApplyGapClose();
+        return true;
+      }
+    });
+  }
+
+  private void tgx101ApplyGapClose () {
+    java.util.IdentityHashMap<TGMessage, Integer> tops = tgx101GapTops;
+    tgx101GapTops = null;
+    if (tops == null || messagesView == null) return;
+    int n = messagesView.getChildCount();
+    float[] deltas = new float[n];
+    boolean[] known = new boolean[n];
+    float last = Float.NaN;
+    for (int i = 0; i < n; i++) {
+      View child = messagesView.getChildAt(i);
+      TGMessage msg = tgx101MessageOf(child);
+      Integer was = msg != null ? tops.get(msg) : null;
+      if (was != null) {
+        deltas[i] = was - child.getTop();
+        known[i] = true;
+        last = deltas[i];
+      } else if (!Float.isNaN(last)) {
+        deltas[i] = last; // came into view in the freed space — moves with its neighbour
+      }
+    }
+    // rows before the first known one take its shift
+    float first = Float.NaN;
+    for (int i = 0; i < n; i++) if (known[i]) { first = deltas[i]; break; }
+    if (Float.isNaN(first)) return;
+    for (int i = 0; i < n && !known[i]; i++) deltas[i] = first;
+    int moved = 0;
+    for (int i = 0; i < n; i++) {
+      if (deltas[i] == 0f) continue;
+      View child = messagesView.getChildAt(i);
+      child.animate().cancel();
+      child.setTranslationY(deltas[i]);
+      child.animate().translationY(0f).setDuration(TGX101_GAP_CLOSE_DURATION).setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR).start();
+      moved++;
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("delete effect: gap closes, " + moved + " rows glide");
+  }
 
   private void tgx101UpdateKeyboardFiller () {
     if (tgx101KeyboardFiller == null) return;
@@ -1665,6 +1760,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     if (floatingInput) {
       contentView.addView(messagesView); // TGx101: the list goes first, the floating capsule lies over it
+      tgx101DeleteEffect = new org.thunderdog.challegram.component.chat.Tgx101DeleteEffect(context);
+      tgx101DeleteEffect.setVisibility(View.INVISIBLE); // laid out (it needs its size), drawn only while cubes fall
+      tgx101DeleteEffect.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      contentView.addView(tgx101DeleteEffect); // the deleted message's dust flies over the list, under the field
+      messagesView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+        @Override
+        public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
+          if (tgx101DeleteEffect != null) tgx101DeleteEffect.onListScrolled(dy); // the dust stays with the chat while it scrolls (as in exteraGram)
+        }
+      });
     }
     if (!inPreviewMode) {
       contentView.addView(replyBarView);
@@ -2626,6 +2731,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else if (id == R.id.btn_attachFromMenu) {
       hideBottomHint();
       openPendingAttachmentPicker();
+    } else if (id == R.id.btn_tgx101JumpToDate) {
+      TGMessage bottom = manager.findBottomMessage();
+      tgx101OpenCalendar(bottom != null ? bottom.getDate() : 0);
     } else if (id == R.id.btn_search) {
       if (manager.isReadyToSearch()) {
         openSearchMode();
@@ -4911,6 +5019,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (!manager.isTotallyEmpty() && (Config.USE_SECRET_SEARCH || !isSecretChat()) && !messagesHidden) {
       ids.append(R.id.btn_search);
       strings.append(R.string.Search);
+    }
+
+    if (!manager.isTotallyEmpty() && !isSecretChat() && !messagesHidden && !areScheduledOnly()) {
+      ids.append(R.id.btn_tgx101JumpToDate); // TGx101: our calendar of months with media previews (mockup «Поиск-по-дате»)
+      strings.append(R.string.Tgx101JumpToDate);
     }
 
     if (tdlib.isSelfChat(chat.id) && getMessageTopicId() == null) {
@@ -10525,6 +10638,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return blurred ? (Theme.isDark() ? .74f : .86f) : FLOATING_INPUT_ALPHA_NO_BLUR;
   }
 
+  /** A software snapshot of the chat (the blurred background under a menu) can't blur: on Android 12+ it keeps the
+   *  blurred look's density instead of the dense 90 % — the reply bar came out darker than the field there (log 12.10) */
+  private static float tgx101FieldAlpha (boolean blurred, Canvas c) {
+    if (!blurred && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !c.isHardwareAccelerated()) {
+      return tgx101FieldAlpha(true);
+    }
+    return tgx101FieldAlpha(blurred);
+  }
+
   /** TGx101: the wallpaper and messages under a floating control, blurred (Android 12+) — the field, its reply bar, the arrow */
   private final class FloatingBlur {
     private final int[] loc = new int[2], contentLoc = new int[2];
@@ -10595,7 +10717,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         path.reset();
         path.addCircle(rect.centerX(), rect.centerY(), radius, android.graphics.Path.Direction.CW);
         boolean blurred = blur.draw(c, view, rect, path);
-        c.drawCircle(rect.centerX(), rect.centerY(), radius, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(tgx101FieldAlpha(blurred), Theme.fillingColor())));
+        c.drawCircle(rect.centerX(), rect.centerY(), radius, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(tgx101FieldAlpha(blurred, c), Theme.fillingColor())));
         float half = Math.max(1, Screen.dp(.5f)) / 2f;
         c.drawCircle(rect.centerX(), rect.centerY(), radius - half, Paints.strokeSeparatorPaint(Theme.separatorColor()));
       }
@@ -10655,7 +10777,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         path.addRoundRect(rect, radii, android.graphics.Path.Direction.CW);
         if (tgx101NoFieldShape && !replyBar) return; // menu → field transition snapshot: the overlay draws the capsule
         boolean blurred = drawBlurBehind(c);
-        c.drawPath(path, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(tgx101FieldAlpha(blurred), Theme.fillingColor())));
+        c.drawPath(path, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(tgx101FieldAlpha(blurred, c), Theme.fillingColor())));
         if (replyBar) return; // no hairline across the join with the field
         // No elevation (it would lift the capsule above the input buttons and the recording overlay): a hairline instead
         float half = Math.max(1, Screen.dp(.5f)) / 2f;
@@ -12580,6 +12702,21 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   @Override
+  public void tgx101OnMediaFocused (int index, MediaItem item) {
+    if (!needTabs() || pagerScrollPosition == MediaTabsAdapter.POSITION_MESSAGES) {
+      int i = manager.getAdapter().findMessageByMediaItem(item);
+      if (i != -1) {
+        manager.tgx101KeepMessageInView(i);
+      }
+    } else {
+      SharedBaseController<?> c = pagerContentAdapter != null ? pagerContentAdapter.cachedItems.get(pagerScrollPosition) : null;
+      if (c instanceof MediaViewDelegate) {
+        ((MediaViewDelegate) c).tgx101OnMediaFocused(index, item);
+      }
+    }
+  }
+
+  @Override
   public void setMediaItemVisible (int index, MediaItem item, boolean isVisible) {
     if (!needTabs() || pagerScrollPosition == MediaTabsAdapter.POSITION_MESSAGES) {
       int i = manager.getAdapter().findMessageByMediaItem(item);
@@ -13148,8 +13285,21 @@ public class MessagesController extends ViewController<MessagesController.Argume
     jumpToDateRequest = null;
   }
 
+  /** TGx101: «Go to date» — our calendar; a picked day jumps to its first message, «To the first message» — to the start */
+  public void tgx101OpenCalendar (int focusDate) {
+    if (chat == null || isSecretChat()) return;
+    Tgx101DateCalendar.show(this, tdlib, chat.id, getMessageTopicId(), focusDate, dayStart -> {
+      if (dayStart == 0) jumpToDate(0);
+      else jumpToDate(dayStart);
+    });
+  }
+
   private void jumpToDate () {
     TGMessage msg = manager.findBottomMessage();
+    if (!isSecretChat()) { // TGx101: our calendar instead of the system date picker
+      tgx101OpenCalendar(msg != null ? msg.getDate() : 0);
+      return;
+    }
 
     long currentTime = msg != null ? msg.getDate() * 1000l : System.currentTimeMillis();
     Calendar c = Calendar.getInstance();

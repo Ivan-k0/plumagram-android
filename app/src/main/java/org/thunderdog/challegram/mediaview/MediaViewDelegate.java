@@ -19,4 +19,7 @@ import org.thunderdog.challegram.mediaview.data.MediaItem;
 public interface MediaViewDelegate {
   MediaViewThumbLocation getTargetLocation (int indexInStack, MediaItem item); // null if item is not presented on screen
   void setMediaItemVisible (int index, MediaItem item, boolean isVisible); // called when opening and closing photo viewer
+  /** TGx101 (user 2026-10-12): the viewer paged to {@code item} — the source quietly brings it on screen behind the
+   *  viewer, so closing goes back into that post / cell and the place where the user stopped */
+  default void tgx101OnMediaFocused (int index, MediaItem item) { }
 }

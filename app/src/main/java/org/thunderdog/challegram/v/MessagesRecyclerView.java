@@ -607,7 +607,9 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
 
   private boolean onDateClick () {
     if (jumpToBeginningOfTheDay != 0) {
-      manager.controller().jumpToBeginningOfTheDay(jumpToBeginningOfTheDay);
+      // TGx101 (mockup «Поиск-по-дате»): the date pill opens the calendar at its month instead of jumping to the day's start
+      if (manager.controller().isSecretChat()) manager.controller().jumpToBeginningOfTheDay(jumpToBeginningOfTheDay);
+      else manager.controller().tgx101OpenCalendar(jumpToBeginningOfTheDay);
       return true;
     }
     return false;

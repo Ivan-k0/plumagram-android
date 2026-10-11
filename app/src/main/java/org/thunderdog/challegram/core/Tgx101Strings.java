@@ -408,6 +408,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101LocalUnpin, "Открепить (на телефоне)");
     RU.put(R.string.Tgx101LocalPinned, "Закреплено на этом телефоне: лимит закреплённых чатов Telegram исчерпан, на других устройствах чат не будет закреплён");
     RU.put(R.string.Tgx101SavedByChats, "Избранное по чатам");
+    RU.put(R.string.Tgx101JumpToDate, "Перейти к дате");
+    RU.put(R.string.Tgx101Calendar, "Календарь");
+    RU.put(R.string.Tgx101CalendarFirstMessage, "К первому сообщению");
     RU.put(R.string.Tgx101SavedMyNotes, "Мои заметки");
     RU.put(R.string.Tgx101SavedAuthorHidden, "Скрытый отправитель");
     RU.put(R.string.Tgx101TranslateModels, "Словари на телефоне");

@@ -1647,6 +1647,17 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
   }
 
   @Override
+  public void tgx101OnMediaFocused (int index, MediaItem item) {
+    if (recyclerView == null || adapter == null) return;
+    int i = adapter.indexOfViewByLongId(item.getSourceMessageId());
+    if (i == -1) return;
+    LinearLayoutManager manager = (LinearLayoutManager) recyclerView.getLayoutManager();
+    View view = manager.findViewByPosition(i);
+    if (view != null && view.getTop() >= 0 && view.getBottom() <= recyclerView.getMeasuredHeight()) return; // already seen
+    manager.scrollToPositionWithOffset(i, recyclerView.getMeasuredHeight() / 3);
+  }
+
+  @Override
   public MediaViewThumbLocation getTargetLocation (int indexInStack, MediaItem item) {
     int i = adapter.indexOfViewByLongId(item.getSourceMessageId());
     if (i == -1) {

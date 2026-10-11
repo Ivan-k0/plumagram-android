@@ -283,7 +283,12 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
       if (player != null) {
         player.setVideoTextureView(null);
         Views.removeFromParent(targetView);
-        player.release();
+        // TGx101: release() blocks the main thread for ~120 ms (it waits for the playback thread) — done right as the
+        // viewer starts its close animation it ate the whole shrink into the post. Silence it now, release once it's over
+        final ExoPlayer released = player;
+        released.setPlayWhenReady(false);
+        released.setVolume(0f);
+        UI.post(released::release, 400);
         player = null;
       }
       setLongStreamingAlertHandler(false);

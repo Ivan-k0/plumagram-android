@@ -1068,10 +1068,13 @@ public class MediaCellView extends ViewGroup implements
       float clipVertical = Math.max(targetHeight * scale - height, 0) / 2f / scale;
 
       final float clipFactor = MathUtils.clamp(1f - revealFactor);
-      float clipTop = (float) (thumb.clipTop + this.clipVertical) * clipFactor;
-      float clipBottom = (float) (thumb.clipBottom + this.clipVertical) * clipFactor;
-      float clipLeft = (float) (thumb.clipLeft + this.clipHorizontal) * clipFactor;
-      float clipRight = (float) (thumb.clipRight + this.clipHorizontal) * clipFactor;
+      // TGx101 (user's recording 2026-10-12 01:27, «превью уходит как-то сдвоено»): the overflow this.clipVertical /
+      // clipHorizontal already shrinks with the reveal — scaling it by the factor again cut off only (1-f)² of it, so
+      // halfway the photo stuck out of its frame by a quarter of the overflow and snapped into the thumbnail at the end
+      float clipTop = thumb.clipTop * clipFactor + this.clipVertical;
+      float clipBottom = thumb.clipBottom * clipFactor + this.clipVertical;
+      float clipLeft = thumb.clipLeft * clipFactor + this.clipHorizontal;
+      float clipRight = thumb.clipRight * clipFactor + this.clipHorizontal;
 
       subsamplingImageView.setClipping(
         targetWidth, targetHeight,
@@ -1951,10 +1954,11 @@ public class MediaCellView extends ViewGroup implements
       final boolean savedClip = thumb != null && clipFactor < 1f;
       int savedRoundedClip = Integer.MIN_VALUE;
       if (savedClip) {
-        int clipTop = (int) ((float) (thumb.clipTop + clipVertical) * (1f - clipFactor));
-        int clipBottom = (int) ((float) (thumb.clipBottom + clipVertical) * (1f - clipFactor));
-        int clipLeft = (int) ((float) (thumb.clipLeft + clipHorizontal) * (1f - clipFactor));
-        int clipRight = (int) ((float) (thumb.clipRight + clipHorizontal) * (1f - clipFactor));
+        // TGx101: the overflow (clipVertical / clipHorizontal) is already scaled by the reveal — cut it off whole
+        int clipTop = (int) (thumb.clipTop * (1f - clipFactor)) + clipVertical;
+        int clipBottom = (int) (thumb.clipBottom * (1f - clipFactor)) + clipVertical;
+        int clipLeft = (int) (thumb.clipLeft * (1f - clipFactor)) + clipHorizontal;
+        int clipRight = (int) (thumb.clipRight * (1f - clipFactor)) + clipHorizontal;
 
         c.save();
         c.clipRect(receiver.getLeft() + clipLeft, receiver.getTop() + clipTop, receiver.getRight() - clipRight, receiver.getBottom() - clipBottom);
@@ -1985,6 +1989,8 @@ public class MediaCellView extends ViewGroup implements
           float clipHeight = Math.min(targetHeight, receiver.getHeight());
 
           rectF.set(receiver.centerX() - clipWidth / 2f, receiver.centerY() - clipHeight / 2f, receiver.centerX() + clipWidth / 2f, receiver.centerY() + clipHeight / 2f);
+          // TGx101: round the corners of the visible frame, not of the whole photo that sticks out under the clip
+          rectF.intersect(receiver.getLeft() + clipLeft, receiver.getTop() + clipTop, receiver.getRight() - clipRight, receiver.getBottom() - clipBottom);
           DrawAlgorithms.buildPath(clipPath, rectF, topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius);
           savedRoundedClip = ViewSupport.clipPath(c, clipPath);
         }

@@ -1003,8 +1003,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   @Override
   public boolean launchHideAnimation (PopupLayout popup, FactorAnimator ignored) {
     tgx101FullscreenDeferred = false;
-    if (tgx101LandscapeWindow()) {
-      // the status bar comes back while the viewer still covers the chat, not after it is gone
+    if (tgx101LandscapeWindow() || mode == MODE_MESSAGES || mode == MODE_SIMPLE) {
+      // the status bar comes back while the viewer still covers the chat, not after it is gone (in portrait too —
+      // user 2026-10-12: it flashed in once the photo had already landed in its post)
       setFullScreen(false);
     }
     MediaViewThumbLocation location;
@@ -1061,8 +1062,13 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     if (animationType == ANIMATION_TYPE_SECRET_CLOSE) {
       revealAnimator.setStartDelay(revealAnimator.getFactor() == 0f ? 0l : 70l);
     } else if (revealAnimationType != ANIMATION_TYPE_PIP_CLOSE) {
-      revealAnimator.setStartDelay(100);
+      // TGx101: after a swipe the photo is already moving under the finger — it goes into its post at once, no pause
+      revealAnimator.setStartDelay(tgx101SlideReveal ? 0 : 100);
     }
+    if (tgx101SlideReveal && animationType == ANIMATION_TYPE_REVEAL) {
+      revealAnimator.setDuration(TGX101_SLIDE_REVEAL_DURATION);
+    }
+    tgx101SlideReveal = false;
     revealAnimator.animateTo(0f);
 
     return true;
@@ -1173,7 +1179,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             break;
           }
         }
-        setCommonFactor(factor);
+        setCommonFactor(factor * tgx101RevealAlphaScale); // TGx101: after a swipe the dimming fades on from where the swipe left it
         setHeaderAlpha(MathUtils.clamp(factor));
         switch (mode) {
           case MODE_GALLERY: {
@@ -1710,6 +1716,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
         updateHeaderButtons();
         onMediaStackChanged(itemCountChanged);
+        if (delegate != null && currentItem != null && !itemCountChanged) {
+          delegate.tgx101OnMediaFocused(index, currentItem);
+        }
 
         loadMoreIfNeeded();
 
@@ -4523,6 +4532,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       slideAnimator.forceFactor(0f);
     }
 
+    if (apply && tgx101RevealFromSlide()) {
+      return;
+    }
+
     if (apply) {
       double direction = Math.atan2(velocityY, velocityX);
 
@@ -4554,6 +4567,39 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
 
     slideAnimator.animateTo(1f);
+  }
+
+  // TGx101 (user 2026-10-12, «анимация как в exteraGram», frame-by-frame 00:33): a swipe down no longer throws the photo off
+  // the screen and fades — when its post (cell) is on screen, the photo goes from where the finger let it go straight
+  // into it: the drag offset and tilt ease out while the usual reveal shrinks it into the thumbnail, and the dimming
+  // keeps fading from the level the swipe left it at
+  private float tgx101RevealAlphaScale = 1f;
+  private boolean tgx101SlideReveal;
+  // exteraGram's glide frame by frame (user's recording 01:07): no pause, one smooth move a bit longer than a tap-close,
+  // the drag offset and the shrink on the same curve so the photo doesn't sit still and then jump into the post
+  private static final long TGX101_SLIDE_REVEAL_DURATION = 260;
+
+  private boolean tgx101RevealFromSlide () {
+    if (mode != MODE_MESSAGES && mode != MODE_SIMPLE) return false;
+    MediaViewThumbLocation target = getCurrentTargetLocation();
+    if (target == null) return false;
+    final float fromX = mediaView.getTranslationX(), fromY = mediaView.getTranslationY(), fromRotation = mediaView.getRotation();
+    tgx101RevealAlphaScale = MathUtils.clamp(1f - dismissFactor);
+    android.animation.ValueAnimator back = android.animation.ValueAnimator.ofFloat(1f, 0f);
+    back.setDuration(TGX101_SLIDE_REVEAL_DURATION);
+    back.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+    back.addUpdateListener(a -> {
+      float f = (float) a.getAnimatedValue();
+      mediaView.setTranslationX(fromX * f);
+      mediaView.setTranslationY(fromY * f);
+      mediaView.setRotation(fromRotation * f);
+    });
+    back.start();
+    lastSlideX = lastSlideY = 0f;
+    tgx101SlideReveal = true;
+    org.thunderdog.challegram.Tgx101Diag.mark("media viewer: swipe closes into the post (dim " + tgx101RevealAlphaScale + ", animator scale " + android.provider.Settings.Global.getFloat(context().getContentResolver(), android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) + ")");
+    close();
+    return true;
   }
 
   private void setSlideFactor (float factor) {
@@ -6202,12 +6248,19 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       onMediaStackChanged(false);
 
       headerView = new HeaderView(context);
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && (mode == MODE_MESSAGES || mode == MODE_SIMPLE) && !Config.DISABLE_VIEWER_ELEVATION) {
+      final boolean tgx101SoftHeader = mode == MODE_MESSAGES || mode == MODE_SIMPLE;
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && (mode == MODE_MESSAGES || mode == MODE_SIMPLE) && !Config.DISABLE_VIEWER_ELEVATION && !tgx101SoftHeader) {
         headerView.setElevation(Screen.dp(3f));
       }
       attachHeaderViewWithoutNavigation(headerView);
       headerView.initWithSingleController(this, useEdgeToEdge() || ((SET_FULLSCREEN_ON_OPEN || canRunFullscreen()) && !Config.CUTOUT_ENABLED));
       headerView.getFilling().setShadowAlpha(0f);
+      if (tgx101SoftHeader) {
+        // TGx101 (user 2026-10-12: «превью у медиа вверху не чёрным, а прозрачным — сворачивание будет лучше выглядеть»):
+        // no dark bar with a shadow over the top of the photo — a soft gradient only for the title and buttons to read on
+        headerView.setBackground(new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+          new int[] {0x8c000000, 0x40000000, 0x00000000}));
+      }
       int leftMargin = Screen.dp(68f);
       int rightMargin = measureButtonsPadding();
       Views.setMargins((FrameLayout.LayoutParams) headerCell.getLayoutParams(), Lang.rtl() ? rightMargin : leftMargin, headerView.getEffectiveTopOffset(), Lang.rtl() ? leftMargin : rightMargin, 0);

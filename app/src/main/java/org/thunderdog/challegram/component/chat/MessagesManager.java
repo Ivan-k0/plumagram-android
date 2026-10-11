@@ -2481,6 +2481,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
             }
           }
           case TGMessage.REMOVE_COMPLETELY: {
+            controller.tgx101ExplodeMessage(manager.findViewByPosition(index)); // TGx101: cubes, before it leaves
             TGMessage removed = adapter.removeItem(index);
             if (controller.unselectMessage(messageId, removed)) {
               selectedCount--;
@@ -3346,6 +3347,22 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       scrollToPositionWithOffsetImpl(index, (int) ((float) height * .5f - itemHeight));
     }
     context.showScrollButton(animateScrollButton);*/
+  }
+
+  /** TGx101: the media viewer paged to this message — behind it the chat brings the message to the middle of what's
+   *  seen (no animation, nothing visible moves), so closing the viewer goes back into that post */
+  public void tgx101KeepMessageInView (int index) {
+    RecyclerView list = controller.getMessagesView();
+    TGMessage msg = adapter.getMessage(index);
+    if (list == null || msg == null) return;
+    int visibleTop = controller.getTopOffset(), visibleBottom = list.getHeight() - list.getPaddingBottom();
+    View view = manager.findViewByPosition(index);
+    if (view != null && view.getTop() >= visibleTop && view.getBottom() <= visibleBottom) return; // already on screen
+    msg.buildLayout(getRecyclerWidth());
+    int height = Math.max(1, visibleBottom - visibleTop);
+    int offset = Math.max(0, (height - msg.getHeight()) / 2); // reversed list: from the bottom of the visible part
+    stopScroll();
+    scrollToPositionWithOffsetImpl(index, offset);
   }
 
   public boolean isAtVeryBottom () {
