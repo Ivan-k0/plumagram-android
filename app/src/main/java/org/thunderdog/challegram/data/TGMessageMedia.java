@@ -505,6 +505,12 @@ public class TGMessageMedia extends TGMessage {
       } else {
         maxHeight = (int) ((float) origMaxWidth * .85f);
       }
+    } else if (tgx101Journal() && !isOutgoing()) {
+      // TGx101 (user 2026-10-11, screenshot 11:07): «Journal» media that can't go edge to edge (a repost, a GIF) take the
+      // post's whole inner width, as tall as edge-to-edge photos may be — the bubble size (screen − 56 dp, 1.24× tall)
+      // left a narrow picture pressed to the left
+      maxWidth = origMaxWidth;
+      maxHeight = (int) ((float) origMaxWidth * MAX_RATIO);
     } else {
       maxWidth = getSmallestMaxContentWidth();
       maxHeight = getSmallestMaxContentHeight();
