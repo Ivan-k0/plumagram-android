@@ -447,6 +447,9 @@ public abstract class ViewPagerController<T> extends TelegramViewController<T> i
   @Override
   public final void onPageScrollStateChanged (int state) {
     scrollState = state;
+    if (state == ViewPager.SCROLL_STATE_DRAGGING && tgx101TabAnimator != null) {
+      tgx101TabAnimator.cancel(); // a swipe takes over the indicator
+    }
     tgx101OnPageScrollState(state);
     if (state != ViewPager.SCROLL_STATE_SETTLING && headerCell != null) {
       headerCell.getTopView().resetFromTo();
@@ -480,7 +483,7 @@ public abstract class ViewPagerController<T> extends TelegramViewController<T> i
   @Override
   public void onPageScrolled (int position, float positionOffset, int positionOffsetPixels) {
     positionOffset = ViewPager.clampPositionOffset(positionOffset);
-    if (headerCell != null) {
+    if (headerCell != null && tgx101TabAnimator == null) {
       headerCell.getTopView().setSelectionFactor((float) position + positionOffset);
     }
     onPageScrolled(adapter.reversePosition(position), position, positionOffset, positionOffsetPixels);
@@ -731,8 +734,49 @@ public abstract class ViewPagerController<T> extends TelegramViewController<T> i
         ((ScrollToTopDelegate) c).onScrollToTopRequested();
       }
     } else if (pager.isPagingEnabled()) {
-      setCurrentPagerPosition(index, true);
+      if (tgx101InstantTabSwitch() && headerCell != null) {
+        tgx101SwitchTab(index);
+      } else {
+        setCurrentPagerPosition(index, true);
+      }
     }
+  }
+
+  // TGx101 (user 2026-10-11): a tap on a folder switches to it at once — no paging through the folders between —
+  // and only the indicator under the tabs slides to the tapped folder
+
+  protected boolean tgx101InstantTabSwitch () {
+    return false;
+  }
+
+  private android.animation.ValueAnimator tgx101TabAnimator;
+
+  private void tgx101SwitchTab (int index) {
+    ViewPagerTopView topView = headerCell.getTopView();
+    android.animation.ValueAnimator previous = tgx101TabAnimator;
+    tgx101TabAnimator = null; // a second tap goes on from where the indicator is, no jump to the first target
+    if (previous != null) {
+      previous.cancel();
+    }
+    float from = topView.getSelectionFactor();
+    topView.setFromTo(pager.getCurrentItem(), index);
+    android.animation.ValueAnimator animator = android.animation.ValueAnimator.ofFloat(from, index);
+    tgx101TabAnimator = animator;
+    pager.setCurrentItem(index, false);
+    animator.setDuration(220);
+    animator.setInterpolator(me.vkryl.android.AnimatorUtils.DECELERATE_INTERPOLATOR);
+    animator.addUpdateListener(a -> topView.setSelectionFactor((float) a.getAnimatedValue()));
+    animator.addListener(new android.animation.AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd (android.animation.Animator a) {
+        if (tgx101TabAnimator == animator) {
+          tgx101TabAnimator = null;
+          topView.setSelectionFactor(pager.getCurrentItem());
+        }
+      }
+    });
+    org.thunderdog.challegram.Tgx101Diag.mark("tabs: tap → page " + index + " at once, indicator slides from " + from);
+    animator.start();
   }
 
   @Override

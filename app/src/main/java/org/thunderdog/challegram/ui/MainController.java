@@ -995,6 +995,11 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   }
 
   @Override
+  protected boolean tgx101InstantTabSwitch () {
+    return true; // folders: a tap switches at once, the indicator slides (user 2026-10-11)
+  }
+
+  @Override
   public void onPageScrolled (int position, int actualPosition, float actualPositionOffset, int actualPositionOffsetPixels) {
     super.onPageScrolled(position, actualPosition, actualPositionOffset, actualPositionOffsetPixels);
     if (Config.CHAT_FOLDERS_HIDE_BOTTOM_BAR_ON_SCROLL && displayTabsAtBottom()) {
