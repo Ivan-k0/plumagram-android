@@ -88,13 +88,22 @@ public final class Tgx101DateCalendar {
   }
 
   public static void show (ViewController<?> controller, Tdlib tdlib, long chatId, @Nullable TdApi.MessageTopic topicId, int focusDate, Callback callback) {
+    show(controller, tdlib, chatId, topicId, focusDate, new TdApi.SearchMessagesFilterPhotoAndVideo(), false, org.thunderdog.challegram.R.string.Tgx101CalendarFirstMessage, callback);
+  }
+
+  /**
+   * {@code mediaOnly} (profile «Media», user mockup part 4): only the days with media of {@code filter} can be picked,
+   * the rest are pale; {@code firstButton} — the label of the «to the very beginning» button
+   */
+  public static void show (ViewController<?> controller, Tdlib tdlib, long chatId, @Nullable TdApi.MessageTopic topicId, int focusDate,
+                           TdApi.SearchMessagesFilter filter, boolean mediaOnly, int firstButton, Callback callback) {
     Context context = controller.context();
     PopupLayout popup = new PopupLayout(context);
     popup.setTag(controller);
     popup.init(true);
     popup.setNeedFullScreen(true);
     int height = Math.round(Screen.currentHeight() * .72f);
-    Card card = new Card(context, tdlib, chatId, topicId, focusDate, day -> {
+    Card card = new Card(context, tdlib, chatId, topicId, focusDate, filter, mediaOnly, firstButton, day -> {
       popup.hideWindow(true);
       callback.onDatePicked(day);
     }, () -> popup.hideWindow(true));
@@ -117,11 +126,15 @@ public final class Tgx101DateCalendar {
     private long nextFromMessageId = 0;
     private boolean loading, loadedAll;
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final TdApi.SearchMessagesFilter filter;
+    private final boolean mediaOnly;
     private final RectF rect = new RectF();
     private final int firstDayOfWeek;
 
-    Card (Context context, Tdlib tdlib, long chatId, @Nullable TdApi.MessageTopic topicId, int focusDate, Callback callback, Runnable cancel) {
+    Card (Context context, Tdlib tdlib, long chatId, @Nullable TdApi.MessageTopic topicId, int focusDate, TdApi.SearchMessagesFilter filter, boolean mediaOnly, int firstButton, Callback callback, Runnable cancel) {
       super(context);
+      this.filter = filter;
+      this.mediaOnly = mediaOnly;
       this.tdlib = tdlib;
       this.chatId = chatId;
       this.topicId = topicId;
@@ -219,7 +232,7 @@ public final class Tgx101DateCalendar {
         b.setSingleLine(true);
         b.setEllipsize(TextUtils.TruncateAt.END);
         b.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
-        b.setText(Lang.getString(i == 0 ? org.thunderdog.challegram.R.string.Cancel : org.thunderdog.challegram.R.string.Tgx101CalendarFirstMessage));
+        b.setText(Lang.getString(i == 0 ? org.thunderdog.challegram.R.string.Cancel : firstButton));
         b.setOnClickListener(i == 0 ? v -> cancel.run() : v -> callback.onDatePicked(0));
         android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
         if (i == 1) lp.leftMargin = Screen.dp(BUTTON_BETWEEN);
@@ -323,11 +336,17 @@ public final class Tgx101DateCalendar {
 
     private int oldestLoadedKey;
 
+    /** Future days, days before the chat began, and — in «Media» — days known to have no media of the filter */
+    private boolean isDisabled (int k, @Nullable Day day) {
+      if (k > todayKey || (firstKey != 0 && k < firstKey)) return true;
+      return mediaOnly && day == null && (loadedAll || (oldestLoadedKey != 0 && k >= oldestLoadedKey));
+    }
+
     private void loadPage () {
       if (loading || loadedAll) return;
       loading = true;
       final long from = nextFromMessageId;
-      tdlib.client().send(new TdApi.GetChatMessageCalendar(chatId, topicId, new TdApi.SearchMessagesFilterPhotoAndVideo(), from), result -> {
+      tdlib.client().send(new TdApi.GetChatMessageCalendar(chatId, topicId, filter, from), result -> {
         if (!(result instanceof TdApi.MessageCalendar)) {
           UI.post(() -> { loading = false; loadedAll = true; });
           Tgx101Diag.mark("calendar: no media calendar (" + (result instanceof TdApi.Error ? ((TdApi.Error) result).message : result.getClass().getSimpleName()) + ")");
@@ -490,7 +509,7 @@ public final class Tgx101DateCalendar {
           cell.set(left + inset, top + inset, left + size - inset, top + size - inset);
           int k = key(year, month, d);
           Day day = days.get(k);
-          boolean disabled = k > todayKey || (firstKey != 0 && k < firstKey);
+          boolean disabled = isDisabled(k, day);
           String num = Integer.toString(d);
           float ty = cell.centerY() + Screen.dp(5f);
           if (day != null && day.bitmap != null && !disabled) {
@@ -551,7 +570,7 @@ public final class Tgx101DateCalendar {
             int d = row * 7 + col - offset + 1;
             if (d < 1 || d > daysInMonth) return true;
             int k = key(year, month, d);
-            if (k > todayKey || (firstKey != 0 && k < firstKey)) return true;
+            if (isDisabled(k, days.get(k))) return true;
             Calendar c = Calendar.getInstance();
             c.clear();
             c.set(year, month, d, 0, 0, 0);

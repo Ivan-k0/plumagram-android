@@ -570,6 +570,47 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
 
   protected void tgx101SetCustom (ListItem item, SettingHolder holder) { }
 
+  // TGx101 (mockup «Поиск-по-дате», part 4): the calendar in «Media» — load pages until the picked day is in the list,
+  // then bring its first media into view; 0 — the very first (oldest) media
+  private int tgx101TargetDate = -1;
+
+  protected int tgx101DateOf (T item) {
+    return 0;
+  }
+
+  public final void tgx101ScrollToDate (int dayEnd) {
+    tgx101TargetDate = dayEnd;
+    org.thunderdog.challegram.Tgx101Diag.mark("media calendar: go to " + dayEnd);
+    tgx101CheckTargetDate();
+  }
+
+  private void tgx101CheckTargetDate () {
+    if (tgx101TargetDate < 0 || isSearching() || adapter == null || recyclerView == null) return;
+    ArrayList<T> list = data;
+    T found = null;
+    if (list != null && tgx101TargetDate > 0) {
+      for (T item : list) {
+        if (tgx101DateOf(item) < tgx101TargetDate) { found = item; break; }
+      }
+    }
+    if (found == null) {
+      if (canLoadMoreData) {
+        if (!isLoading) {
+          long offset = getCurrentOffset(-1);
+          if (offset != -1) loadMessages(null, offset, 100);
+        }
+        return;
+      }
+      if (list == null || list.isEmpty()) { tgx101TargetDate = -1; return; }
+      found = list.get(list.size() - 1); // older than everything there is — the oldest one
+    }
+    tgx101TargetDate = -1;
+    int i = adapter.indexOfViewByLongId(found.getSourceMessageId());
+    if (i != -1) {
+      ((LinearLayoutManager) recyclerView.getLayoutManager()).scrollToPositionWithOffset(i, recyclerView.getMeasuredHeight() / 4);
+    }
+  }
+
   protected final void tgx101Reload () {
     tgx101Generation++;
     if (searchTask != null) {
@@ -855,6 +896,7 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
     } else {
       setCanLoadMore(false, true);
     }
+    UI.post(this::tgx101CheckTargetDate); // TGx101: a calendar jump waits for its page
   }
 
   private int buildFlags () {

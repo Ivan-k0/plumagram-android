@@ -12716,7 +12716,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
             TGMessage msg = manager.getAdapter().getMessage(i);
             // FIXME state with FOLLOW
             int offset = (int) messagesView.getTranslationY();
-            return msg.getMediaThumbLocation(item.getSourceMessageId(), view, view.getTop() - getTopOffset(), messagesView.getBottom() - view.getBottom(), view.getTop() + HeaderView.getSize(true) + offset);
+            // TGx101 (user 2026-10-12: «медиа близко к полю ввода — сворачивание налазит на поле и выглядит рвано»): with the
+            // floating field the list runs on under it — the photo must land clipped at the field's top edge, not over it
+            int hiddenBottom = tgx101FloatingInput() ? messagesView.getPaddingBottom() : 0;
+            return msg.getMediaThumbLocation(item.getSourceMessageId(), view, view.getTop() - getTopOffset(), messagesView.getBottom() - hiddenBottom - view.getBottom(), view.getTop() + HeaderView.getSize(true) + offset);
           }
         }
       }

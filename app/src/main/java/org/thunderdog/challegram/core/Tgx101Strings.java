@@ -427,6 +427,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ProxyIsOff, "Прокси выключен");
     RU.put(R.string.Tgx101Calendar, "Календарь");
     RU.put(R.string.Tgx101CalendarFirstMessage, "К первому сообщению");
+    RU.put(R.string.Tgx101CalendarFirstPhoto, "К первому фото");
+    RU.put(R.string.Tgx101CalendarFirstVideo, "К первому видео");
+    RU.put(R.string.Tgx101CalendarFirstMedia, "К первому медиа");
     RU.put(R.string.Tgx101SavedMyNotes, "Мои заметки");
     RU.put(R.string.Tgx101SavedAuthorHidden, "Скрытый отправитель");
     RU.put(R.string.Tgx101TranslateModels, "Словари на телефоне");

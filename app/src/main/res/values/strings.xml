@@ -6257,6 +6257,9 @@
   <string name="Tgx101ProxyIsOff">Proxy is off</string>
   <string name="Tgx101Calendar">Calendar</string>
   <string name="Tgx101CalendarFirstMessage">To the first message</string>
+  <string name="Tgx101CalendarFirstPhoto">To the first photo</string>
+  <string name="Tgx101CalendarFirstVideo">To the first video</string>
+  <string name="Tgx101CalendarFirstMedia">To the first media</string>
   <string name="Tgx101SavedMyNotes">My notes</string>
   <string name="Tgx101SavedAuthorHidden">Hidden sender</string>
   <string name="Tgx101TranslateModels">Dictionaries on the phone</string>

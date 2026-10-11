@@ -329,7 +329,18 @@ public class SharedMediaController extends SharedBaseController<MediaItem> imple
     android.widget.TextView columns = new android.widget.TextView(parent.getContext());
     columns.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 12.5f);
     columns.setLayoutParams(new android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.WRAP_CONTENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
+    columns.setTag("columns");
     row.addView(columns);
+    // TGx101 (mockup «Поиск-по-дате», part 4): the calendar of this filter's media, right of the filter
+    android.widget.ImageView calendar = new android.widget.ImageView(parent.getContext());
+    calendar.setTag("calendar");
+    calendar.setImageResource(R.drawable.baseline_date_range_24);
+    calendar.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+    android.widget.LinearLayout.LayoutParams cp = new android.widget.LinearLayout.LayoutParams(Screen.dp(38f), Screen.dp(38f));
+    cp.leftMargin = Screen.dp(6f);
+    calendar.setLayoutParams(cp);
+    calendar.setOnClickListener(v -> tgx101OpenCalendar());
+    row.addView(calendar);
     return new SettingHolder(row);
   }
 
@@ -348,9 +359,28 @@ public class SharedMediaController extends SharedBaseController<MediaItem> imple
       chip.setBackground(bg);
       chip.setTextColor(i == mode ? 0xffffffff : text);
     }
-    android.widget.TextView columns = (android.widget.TextView) row.getChildAt(row.getChildCount() - 1);
+    android.widget.TextView columns = row.findViewWithTag("columns");
     columns.setTextColor(org.thunderdog.challegram.theme.Theme.getColor(ColorId.textLight));
     columns.setText("▦ " + spanCount);
+    android.widget.ImageView calendar = row.findViewWithTag("calendar");
+    calendar.setColorFilter(org.thunderdog.challegram.theme.Theme.getColor(ColorId.icon));
+    android.graphics.drawable.GradientDrawable cbg = new android.graphics.drawable.GradientDrawable();
+    cbg.setCornerRadius(Screen.dp(12f));
+    cbg.setColor(me.vkryl.core.ColorUtils.alphaColor(.07f, text));
+    calendar.setBackground(cbg);
+  }
+
+  private void tgx101OpenCalendar () {
+    int mode = tgx101FilterMode();
+    int first = mode == 1 ? R.string.Tgx101CalendarFirstPhoto : mode == 2 ? R.string.Tgx101CalendarFirstVideo : R.string.Tgx101CalendarFirstMedia;
+    Tgx101DateCalendar.show(this, tdlib, chatId, topicId, 0, provideSearchFilter(), true, first, dayStart -> {
+      tgx101ScrollToDate(dayStart == 0 ? 0 : dayStart + 24 * 60 * 60);
+    });
+  }
+
+  @Override
+  protected int tgx101DateOf (MediaItem item) {
+    return item.getSourceDate();
   }
 
   private void tgx101SetFilterMode (int mode) {
