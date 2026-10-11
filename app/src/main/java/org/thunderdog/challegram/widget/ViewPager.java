@@ -81,8 +81,48 @@ public class ViewPager extends androidx.viewpager.widget.ViewPager {
     }
   }
 
+  // TGx101 (user 2026-10-11): no page flips from a pinch — once a second finger is down the gesture never pages (an
+  // already started drag snaps back). «Strict» pagers (the profile's Media / Files / … tabs, where flips by mistake were
+  // frequent) also need a clearly sideways move: two touch slops and twice the vertical distance; a gesture that went
+  // vertical first stays a scroll.
+  private boolean tgx101MultiTouch, tgx101Vertical, tgx101Strict;
+  private float tgx101DownX, tgx101DownY;
+
+  public void setStrictPaging (boolean strict) {
+    this.tgx101Strict = strict;
+  }
+
   @Override
   public boolean onInterceptTouchEvent (MotionEvent ev) {
+    switch (ev.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN:
+        tgx101MultiTouch = tgx101Vertical = false;
+        tgx101DownX = ev.getX();
+        tgx101DownY = ev.getY();
+        break;
+      case MotionEvent.ACTION_POINTER_DOWN:
+        tgx101MultiTouch = true;
+        break;
+      case MotionEvent.ACTION_MOVE:
+        if (tgx101Strict && !tgx101MultiTouch) {
+          float dx = Math.abs(ev.getX() - tgx101DownX), dy = Math.abs(ev.getY() - tgx101DownY);
+          int slop = android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop();
+          if (tgx101Vertical) {
+            return false;
+          }
+          if (dy > slop && dy * 2f > dx) {
+            tgx101Vertical = true;
+            return false;
+          }
+          if (dx < slop * 2 || dx < dy * 2f) {
+            return false;
+          }
+        }
+        break;
+    }
+    if (tgx101MultiTouch) {
+      return false;
+    }
     try {
       return pagingEnabled && super.onInterceptTouchEvent(ev);
     } catch (Throwable ignored) {
@@ -102,6 +142,23 @@ public class ViewPager extends androidx.viewpager.widget.ViewPager {
 
   @Override
   public boolean onTouchEvent (MotionEvent ev) {
+    int action = ev.getActionMasked();
+    if (action == MotionEvent.ACTION_DOWN) {
+      tgx101MultiTouch = false;
+    } else if (action == MotionEvent.ACTION_POINTER_DOWN && !tgx101MultiTouch) {
+      tgx101MultiTouch = true;
+      // a second finger during a page drag: the page goes back where it was
+      MotionEvent cancel = MotionEvent.obtain(ev);
+      cancel.setAction(MotionEvent.ACTION_CANCEL);
+      try {
+        super.onTouchEvent(cancel);
+      } catch (Throwable ignored) { }
+      cancel.recycle();
+      return true;
+    }
+    if (tgx101MultiTouch) {
+      return true; // the rest of this gesture is swallowed
+    }
     return pagingEnabled && super.onTouchEvent(ev);
   }
 

@@ -1574,6 +1574,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
 
     // ViewPager with shared media
     pager = new RtlViewPager(context);
+    pager.setStrictPaging(true); // TGx101 (11.10): Media / Files / … tabs flipped by mistake — a clearly sideways move only
     pager.setOverScrollMode(View.OVER_SCROLL_NEVER);
     pager.addOnPageChangeListener(this);
     pager.setAdapter(pagerAdapter = new ViewControllerPagerAdapter(this));
