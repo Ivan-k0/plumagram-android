@@ -10082,7 +10082,27 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
     mediaView.setOffsets(0, 0, 0, 0, 0); // Screen.dp(56f)
     editWrap = new FrameLayoutFix(context);
-    editWrap.setBackgroundColor(Theme.getColor(ColorId.transparentEditor));
+    // TGx101 (user 11.10 21:47): the tool bar was see-through over a see-through photo or the keyboard and its icons
+    // got lost — a dense dark bar with a hairline on top
+    editWrap.setBackground(new android.graphics.drawable.Drawable() {
+      @Override
+      public void draw (@NonNull Canvas c) {
+        android.graphics.Rect b = getBounds();
+        c.drawRect(b, Paints.fillingPaint(0xf0121619));
+        c.drawRect(b.left, b.top, b.right, b.top + Math.max(1, Screen.dp(.5f)), Paints.fillingPaint(0x26ffffff));
+      }
+
+      @Override
+      public void setAlpha (int alpha) { }
+
+      @Override
+      public void setColorFilter (@Nullable android.graphics.ColorFilter colorFilter) { }
+
+      @Override
+      public int getOpacity () {
+        return android.graphics.PixelFormat.TRANSLUCENT;
+      }
+    });
     editWrap.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(56f), Gravity.BOTTOM));
     Views.setBottomMargin(editWrap, controlsMargin);
 
@@ -10379,6 +10399,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     captionDoneButton.setScaleType(ImageView.ScaleType.CENTER);
     captionDoneButton.setImageResource(R.drawable.baseline_check_24);
     captionDoneButton.setColorFilter(0xffffffff);
+    // TGx101 (user 11.10, screenshot 21:47): the ✓ got lost on the glass capsule — a filled bubble under it with the
+    // corner of the new buttons and the field (14 dp on 40 dp)
+    android.graphics.drawable.GradientDrawable doneBubble = new android.graphics.drawable.GradientDrawable();
+    doneBubble.setColor(getForcedTheme().getColor(ColorId.circleButtonRegular));
+    doneBubble.setCornerRadius(Screen.dp(14f));
+    captionDoneButton.setBackground(new android.graphics.drawable.InsetDrawable(doneBubble, (Screen.dp(55f) - Screen.dp(40f)) / 2, (Screen.dp(52f) - Screen.dp(40f)) / 2, (Screen.dp(55f) - Screen.dp(40f)) / 2, (Screen.dp(52f) - Screen.dp(40f)) / 2));
     captionDoneButton.setAlpha(0f);
     captionDoneButton.setEnabled(false);
     FrameLayoutFix.LayoutParams doneParams = FrameLayoutFix.newParams(Screen.dp(55f), Screen.dp(52f), Gravity.RIGHT | Gravity.BOTTOM);
@@ -10426,7 +10452,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     // TGx101 (user 2026-10-04, variant 3): the caption field is a dark glass capsule — readable on any photo,
     // grows upwards with the text (a full-width translucent strip merged with bright photos)
     android.graphics.drawable.GradientDrawable capsule = new android.graphics.drawable.GradientDrawable();
-    capsule.setColor(0xb3141a20);
+    capsule.setColor(0xe6141a20); // TGx101 (11.10): denser — over a see-through photo or the keyboard the words got lost at 70 %
     capsule.setCornerRadius(Screen.dp(24f));
     capsule.setStroke(Screen.dp(.5f), 0x33ffffff);
     captionWrapView.setBackground(capsule);
