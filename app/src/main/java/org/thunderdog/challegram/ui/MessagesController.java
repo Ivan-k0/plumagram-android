@@ -7432,7 +7432,19 @@ public class MessagesController extends ViewController<MessagesController.Argume
     collapsePinnedMessagesBar(true);
     // TODO show keyboard properly
     if (reply == null || reply.message.message.id != msg.message.id || reply.message.message.chatId != msg.message.chatId || !Td.equalsTo(reply.quote, quote) || reply.checklistTaskId != checklistTaskId || !StringUtils.equalsOrBothEmpty(reply.pollOptionId, pollOptionId)) {
-      setReplyInfo(new ReplyInfo(tdlib, msg, quote, checklistTaskId, pollOptionId), true);
+      final ReplyInfo newReply = new ReplyInfo(tdlib, msg, quote, checklistTaskId, pollOptionId);
+      // TGx101 (user 2026-10-12 «раскрытие клавиатуры во время ответа должно быть плавным»): the reply bar slid in
+      // ~35 ms before the keyboard started (two pushes). With the keyboard closed the bar now starts with the keyboard's
+      // own animation (or after 150 ms if it never comes), so the field, the bar and the chat rise as one
+      if (showKeyboard && floatingInput && !context().isKeyboardVisible() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        tgx101PendingReply = () -> {
+          setReplyInfo(newReply, true);
+          if (byUser) saveDraft(); // the draft keeps the reply too
+        };
+        messagesView.postDelayed(tgx101PendingReplyFallback, 150);
+      } else {
+        setReplyInfo(newReply, true);
+      }
 
       if (byUser) {
         inputView.setTextChangedSinceChatOpened(true);
@@ -7445,6 +7457,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (byUser) {
       tgx101KeepVisible(msg.message.id);
     }
+  }
+
+  private @Nullable Runnable tgx101PendingReply;
+  private final Runnable tgx101PendingReplyFallback = this::tgx101RunPendingReply;
+
+  private void tgx101RunPendingReply () {
+    Runnable r = tgx101PendingReply;
+    tgx101PendingReply = null;
+    if (messagesView != null) messagesView.removeCallbacks(tgx101PendingReplyFallback);
+    if (r != null && !isDestroyed()) r.run();
   }
 
   /** TGx101 (user's Vivo video 2026-10-05 «само скроллит вниз»): a reply opens the keyboard and the reply bar; the
@@ -10289,6 +10311,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           tgx101ImeEnd = tgx101BottomInset(view.getRootWindowInsets());
           tgx101SetImeShift(tgx101ImeEnd - tgx101ImeStart); // the first frame already in place, before any progress
           tgx101ImeStarted = true;
+          tgx101RunPendingReply(); // a reply waiting for the keyboard slides in with it
           org.thunderdog.challegram.Tgx101Diag.mark("keyboard ride: from " + tgx101ImeStart + " to " + tgx101ImeEnd + "px, " + animation.getDurationMillis() + " ms, bounds " + bounds.getLowerBound().bottom + "…" + bounds.getUpperBound().bottom);
           tgx101ProgressLogs = 0;
         }

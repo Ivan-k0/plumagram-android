@@ -149,6 +149,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
           }
         } else if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
           tgx101AutoScrolling = false; // the finger takes over
+          tgx101UserScrolledSinceJump = true;
         }
         ((MessagesRecyclerView) recyclerView).setIsScrolling(newState != RecyclerView.SCROLL_STATE_IDLE);
       }
@@ -457,7 +458,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     lastScrollToBottomVisible = isVisible;
     // TGx101: back at the very bottom by hand after jumping to a quoted / pinned message — the «return» arrow is
     // no longer needed (it stayed over the last message although there was nothing below)
-    if (!isVisible && first == 0 && hasReturnMessage() && !loader.canLoadBottom()) {
+    if (!isVisible && first == 0 && hasReturnMessage() && !loader.canLoadBottom() && tgx101UserScrolledSinceJump) { // TGx101: by hand only — on the jump's own first frame the list was still at the bottom and the arrow vanished at once
       View bottomView = manager.findViewByPosition(0);
       if (bottomView != null && bottomView.getBottom() <= getRecyclerHeight()) {
         revokeReturnMessages();
@@ -938,6 +939,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
   // far away — the list is put 1.5 screens above the end at once and scrolls the rest, like the official app.
   // The arrow hides at once and doesn't come back while this runs.
   private boolean tgx101AutoScrolling;
+  private boolean tgx101UserScrolledSinceJump = true;
 
   private boolean tgx101SmoothScrollToBottom () {
     RecyclerView list = controller.getMessagesView();
@@ -3221,8 +3223,19 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
 
     if (smooth) {
       int scrollBy = calculateScrollBy(index, offset, useRoundVideoScrollFix);
-      if (Math.abs(scrollBy) < controller.getMessagesView().getMeasuredHeight() * (useRoundVideoScrollFix ? 1.5f : 1f)) {
-        controller.getMessagesView().smoothScrollBy(0, scrollBy);
+      RecyclerView list = controller.getMessagesView();
+      int screen = list.getMeasuredHeight();
+      android.view.animation.Interpolator interpolator = new android.view.animation.DecelerateInterpolator(1.6f);
+      if (Math.abs(scrollBy) < screen * (useRoundVideoScrollFix ? 1.5f : 1f)) {
+        list.smoothScrollBy(0, scrollBy, interpolator, (int) Math.min(420, Math.max(220, 220 + Math.abs(scrollBy) / (float) Math.max(1, screen) * 160)));
+      } else if (!useRoundVideoScrollFix && screen > 0) {
+        // TGx101 (user 2026-10-12 «рывка при переходе быть не должно, так же плавно, как по стрелке»): a far message —
+        // the list is put 1.5 screens before it and scrolls the rest (reversed list: the offset counts from the bottom,
+        // a scroll by dy raises the message by dy)
+        final int dy = scrollBy > 0 ? (int) (screen * 1.5f) : -(int) (screen * 1.5f);
+        tgx101AutoScrolling = true;
+        scrollToPositionWithOffsetImpl(index, offset - dy);
+        list.post(() -> list.smoothScrollBy(0, dy, interpolator, 400));
       } else {
         scrollToPositionWithOffsetImpl(index, offset);
       }
@@ -3373,6 +3386,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
 
     this.highlightMessageId = messageId;
     this.highlightMode = highlightMode;
+    tgx101UserScrolledSinceJump = false;
     if (!Arrays.equals(this.returnToMessageIds, returnToMessageIds)) {
       this.returnToMessageIds = returnToMessageIds;
       saveScrollPosition();
