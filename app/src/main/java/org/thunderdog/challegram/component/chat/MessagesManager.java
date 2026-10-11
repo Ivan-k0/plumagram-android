@@ -1789,6 +1789,23 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     }
   }
 
+  // TGx101 (user 2026-10-11): the list is reversed, so a voice message growing with its transcription grows upwards —
+  // its start went under the header and the text was read from the end. Brings the message's top back under the header
+  public void tgx101ShowMessageTop (long chatId, long messageId, int topEdge) {
+    RecyclerView list = controller.getMessagesView();
+    View view = findMessageView(chatId, messageId);
+    int topOffset = controller.getTopOffset();
+    if (view == null || list == null || list.getScrollState() != RecyclerView.SCROLL_STATE_IDLE || view.getBottom() <= topOffset) {
+      return; // scrolled away, or the user is scrolling
+    }
+    int visibleTop = topOffset + Screen.dp(8f);
+    int top = view.getTop() + topEdge;
+    if (top < visibleTop) {
+      org.thunderdog.challegram.Tgx101Diag.mark("transcription: message top shown, scroll " + (top - visibleTop) + " px");
+      list.smoothScrollBy(0, top - visibleTop);
+    }
+  }
+
   public View findMessageView (long chatId, long messageId) {
     if (loader.getChatId() == chatId) {
       int i = adapter.indexOfMessageContainer(messageId);

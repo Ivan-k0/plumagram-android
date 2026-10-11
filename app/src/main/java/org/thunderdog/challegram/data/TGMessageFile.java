@@ -38,6 +38,7 @@ import org.thunderdog.challegram.theme.Theme;
 import org.thunderdog.challegram.tool.DrawAlgorithms;
 import org.thunderdog.challegram.tool.Paints;
 import org.thunderdog.challegram.tool.Screen;
+import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.tool.Views;
 import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.util.text.Highlight;
@@ -986,13 +987,26 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
     if (changed) {
       rebuildAndUpdateContent();
       invalidateTextMediaReceiver();
+      if (messageId == tgx101FollowTopId) {
+        // the text grows upwards: once the height animation is over, the message's start goes back under the header
+        TdApi.Message fileMessage = getMessage(messageId);
+        if (fileMessage == null || Tgx101Transcription.doneText(tdlib, fileMessage) != null) {
+          tgx101FollowTopId = 0;
+        }
+        UI.post(() -> {
+          if (!isDestroyed()) manager().tgx101ShowMessageTop(chatId, messageId, findTopEdge());
+        }, TEXT_CROSS_FADE_DURATION_MS + 50);
+      }
     }
     invalidate(); // the "A" button state
   }
 
+  private long tgx101FollowTopId; // TGx101: the voice message whose transcription the user just opened
+
   public void onTranscribeButtonClick (long messageId) {
     TdApi.Message message = getMessage(messageId);
     if (message != null) {
+      tgx101FollowTopId = messageId;
       Tgx101Transcription.toggle(tdlib, message, isSecretChat());
     }
   }
