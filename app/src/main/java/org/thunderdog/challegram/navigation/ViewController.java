@@ -1200,7 +1200,33 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
   protected int extraBottomInset;
   protected int extraBottomInsetWithoutIme;
 
+  // TGx101: a smaller bottom inset can be held back while the keyboard is only away for a window over the screen
+  protected boolean tgx101HoldBottomInset (int newExtraBottomInset) {
+    return false;
+  }
+
+  private int tgx101PendingInset = -1, tgx101PendingInsetWithoutIme;
+
+  private void tgx101CheckHeldInset () {
+    if (tgx101PendingInset == -1 || isDestroyed()) return;
+    if (tgx101HoldBottomInset(tgx101PendingInset)) {
+      UI.post(this::tgx101CheckHeldInset, 150);
+      return;
+    }
+    int inset = tgx101PendingInset, withoutIme = tgx101PendingInsetWithoutIme;
+    tgx101PendingInset = -1;
+    setBottomInset(inset, withoutIme);
+  }
+
   public final void setBottomInset (int extraBottomInset, int extraBottomInsetWithoutIme) {
+    if (extraBottomInset < this.extraBottomInset && tgx101HoldBottomInset(extraBottomInset)) {
+      boolean scheduled = tgx101PendingInset != -1;
+      tgx101PendingInset = extraBottomInset;
+      tgx101PendingInsetWithoutIme = extraBottomInsetWithoutIme;
+      if (!scheduled) UI.post(this::tgx101CheckHeldInset, 150);
+      return;
+    }
+    tgx101PendingInset = -1;
     if (this.extraBottomInset != extraBottomInset || this.extraBottomInsetWithoutIme != extraBottomInsetWithoutIme) {
       this.extraBottomInset = extraBottomInset;
       this.extraBottomInsetWithoutIme = extraBottomInsetWithoutIme;

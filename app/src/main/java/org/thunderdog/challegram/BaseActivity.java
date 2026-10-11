@@ -2802,6 +2802,8 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       final View input = tgx101RestoreInput.get();
       tgx101RestoreInput = null;
       if (input != null && !isKeyboardVisible) {
+        tgx101HeldInput = new java.lang.ref.WeakReference<>(input);
+        tgx101HeldUntil = android.os.SystemClock.uptimeMillis() + 700;
         // a beat for the window focus to come back to the activity, then the keyboard slides up (its own animation)
         UI.post(() -> {
           if (windows.isEmpty() && !isKeyboardVisible && androidx.core.view.ViewCompat.isAttachedToWindow(input) && input.isShown()) {
@@ -2815,6 +2817,16 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   }
 
   private @Nullable java.lang.ref.WeakReference<View> tgx101RestoreInput;
+  private @Nullable java.lang.ref.WeakReference<View> tgx101HeldInput;
+  private long tgx101HeldUntil;
+
+  /** TGx101: the keyboard of {@code input} is only away for a window over the chat (and is coming back) — the chat keeps
+   *  its keyboard-up layout meanwhile, so nothing behind the window drops and rises again */
+  public boolean tgx101IsKeyboardHeld (@Nullable View input) {
+    if (input == null) return false;
+    if (!windows.isEmpty() && tgx101RestoreInput != null && tgx101RestoreInput.get() == input) return true;
+    return tgx101HeldInput != null && tgx101HeldInput.get() == input && android.os.SystemClock.uptimeMillis() < tgx101HeldUntil;
+  }
 
   public @Nullable ViewController<?> getCurrentlyOpenWindowedViewController () {
     PopupLayout popupLayout = getCurrentPopupWindow();

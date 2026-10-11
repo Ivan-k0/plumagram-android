@@ -598,6 +598,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   @Override
+  protected boolean tgx101HoldBottomInset (int newExtraBottomInset) {
+    return floatingInput && inputView != null && context().tgx101IsKeyboardHeld(inputView);
+  }
+
+  @Override
   protected void onBottomInsetChanged (int extraBottomInset, int extraBottomInsetWithoutIme, boolean isImeInset) {
     super.onBottomInsetChanged(extraBottomInset, extraBottomInsetWithoutIme, isImeInset);
     if (emojiKeyboardFrameLayout != null) {
@@ -794,7 +799,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
             tgx101GlideIme(pad - tgx101LastPad); // the keyboard changed size without an animation (suggestion strip)
           }
         }
-        if (floatingInput && tgx101LastContent > 0 && content > tgx101LastContent && content - tgx101LastContent < Screen.dp(400f) && !tgx101ImeRiding && getVisibility() == View.VISIBLE) {
+        if (floatingInput && tgx101LastContent > 0 && content != tgx101LastContent && Math.abs(content - tgx101LastContent) < Screen.dp(400f) && !tgx101ImeRiding && getVisibility() == View.VISIBLE) {
           tgx101RevealGrowth(content - tgx101LastContent);
         }
         tgx101LastContent = content;
@@ -10221,7 +10226,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
       @Override
       public void onPrepare (@NonNull android.view.WindowInsetsAnimation animation) {
-        if ((animation.getTypeMask() & android.view.WindowInsets.Type.ime()) != 0 && floatingInput && !isDestroyed()) {
+        if ((animation.getTypeMask() & android.view.WindowInsets.Type.ime()) != 0 && floatingInput && !isDestroyed() && !context().tgx101IsKeyboardHeld(inputView)) {
           ime = animation;
           tgx101ImeRiding = true;
           tgx101ImeStart = tgx101BottomInset(view.getRootWindowInsets());
@@ -10316,7 +10321,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void tgx101GlideList (int delta) {
     // TGx101 (11.10): only a shrinking field (a line erased, the reply bar gone) — growth follows the field's drawn top
-    if (delta >= 0 || tgx101TopReveal != 0f) return;
+    if (delta >= 0 || tgx101TopReveal != 0f || (tgx101RevealAnimator != null && tgx101RevealAnimator.isRunning())) return;
     long now = android.os.SystemClock.uptimeMillis();
     boolean following = now - tgx101LastPaddingChange < 150;
     tgx101LastPaddingChange = now;
@@ -10354,7 +10359,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       bottomWrap.getLocationInWindow(capsule);
       // the list's own translation (the reply bar / attached files lift it, animated) is not room: counting it too made the
       // padding shrink while the reply bar slid in and grow back as it closed — the chat jumped twice (user 2026-10-08 11:18)
-      int fromTop = list[1] - Math.round(messagesView.getTranslationY() - tgx101PaddingShift) + messagesView.getHeight() - (capsule[1] + Math.round(Math.max(0f, tgx101TopReveal)));
+      int fromTop = list[1] - Math.round(messagesView.getTranslationY() - tgx101PaddingShift) + messagesView.getHeight() - (capsule[1] + Math.round(tgx101TopReveal));
       // user 2026-10-07 22:57 «вспышки вместо анимаций»: while the chat slides in, the capsule isn't placed yet and was
       // measured near the top (padding 2848 px for 150 ms) — the chat came in empty, then the messages popped in. Even with
       // the keyboard up the capsule sits in the lower part, so a position above the list's upper third is not real yet
@@ -10383,7 +10388,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     int current = messagesView.getPaddingBottom();
     // …but a field emptied by sending (video 20:16, second jump) shrinks for good: the list follows at once, not 120 ms late
     boolean tgx101Cleared = inputView != null && inputView.getText() != null && inputView.getText().length() == 0;
-    if (padding < current && !tgx101ShrinkConfirmed && !tgx101ImeMoving() && !tgx101Cleared) {
+    boolean tgx101Revealing = tgx101RevealAnimator != null && tgx101RevealAnimator.isRunning(); // the field's top glides down: follow it
+    if (padding < current && !tgx101ShrinkConfirmed && !tgx101ImeMoving() && !tgx101Cleared && !tgx101Revealing) {
       if (!tgx101ShrinkPending) {
         tgx101ShrinkPending = true;
         messagesView.postDelayed(tgx101ApplyPending, 120);
@@ -10456,12 +10462,22 @@ public class MessagesController extends ViewController<MessagesController.Argume
     private Object node; // android.graphics.RenderNode on Android 12+
 
     /** Draws what's under {@code rect} of {@code view}, blurred and clipped to {@code clip}. False — no blur here. */
+    private String lastReason;
+
+    private void note (View view, String reason) {
+      if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && !reason.equals(lastReason)) {
+        lastReason = reason;
+        org.thunderdog.challegram.Tgx101Diag.mark("field blur: " + (view == replyBarView ? "reply bar" : view == bottomWrap ? "field" : "other") + " " + reason + " (alpha " + view.getAlpha() + ", layer " + view.getLayerType() + ")");
+      }
+    }
+
     boolean draw (Canvas c, View view, android.graphics.RectF rect, android.graphics.Path clip) {
-      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !c.isHardwareAccelerated() || messagesView == null || wallpaperView == null)
-        return false;
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) { note(view, "off: Android < 12"); return false; }
+      if (!c.isHardwareAccelerated()) { note(view, "off: software canvas"); return false; }
+      if (messagesView == null || wallpaperView == null) { note(view, "off: no content"); return false; }
       int w = (int) rect.width(), h = (int) rect.height();
-      if (w <= 0 || h <= 0)
-        return false;
+      if (w <= 0 || h <= 0) { note(view, "off: empty " + w + "x" + h); return false; }
+      note(view, "on " + w + "x" + h + (wallpaperView.getVisibility() != View.VISIBLE ? ", no wallpaper" : ""));
       android.graphics.RenderNode node = (android.graphics.RenderNode) this.node;
       if (node == null) {
         node = new android.graphics.RenderNode("tgx101InputBlur");
@@ -10560,7 +10576,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           radii[0] = radii[1] = radii[2] = radii[3] = radius;
           radii[4] = radii[5] = radii[6] = radii[7] = 0;
         } else {
-          rect.set(bounds.left, bounds.top + Math.max(0f, tgx101TopReveal), bounds.right, bounds.bottom - view.getPaddingBottom());
+          rect.set(bounds.left, bounds.top + tgx101TopReveal, bounds.right, bounds.bottom - view.getPaddingBottom()); // < 0: a shrinking field's top comes down
           radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), rect.height() / 2f);
           float top = radius * (1f - floatingJoinFactor()); // the reply bar / attached files above make one capsule with it: square top corners
           radii[0] = radii[1] = radii[2] = radii[3] = top;
@@ -10599,7 +10615,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           int bottom = v.getHeight() - v.getPaddingBottom();
           float radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), bottom / 2f);
           // with the reply bar the top corners go above the view, so the clip's top edge is straight
-          int revealTop = v == bottomWrap ? Math.round(Math.max(0f, tgx101TopReveal)) : 0; // a growing field's top rises in
+          int revealTop = v == bottomWrap ? Math.round(tgx101TopReveal) : 0; // a growing field's top rises, a shrinking one comes down
           outline.setRoundRect(0, (int) (-radius * floatingJoinFactor()) + revealTop, v.getWidth(), Math.max(1, bottom), radius);
         }
       });
