@@ -782,6 +782,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101BarHiddenSection, "Скрыты");
     RU.put(R.string.Tgx101GesturesSummaryOff, "Двойной тап: выключен");
     RU.put(R.string.Tgx101GesturesSummary, "Двойной тап: %1$s");
+    RU.put(R.string.Tgx101MediaAll, "Все");
+    RU.put(R.string.Tgx101MediaPhotos, "Фото");
+    RU.put(R.string.Tgx101MediaVideos, "Видео");
+    RU.put(R.string.Tgx101MediaColumns, "Столбцов: %1$d");
   }
 
   /** Russian text for a mod string when the app language is Russian, otherwise null. */

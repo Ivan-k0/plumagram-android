@@ -69,6 +69,9 @@ public class SharedMediaController extends SharedBaseController<MediaItem> imple
 
   @Override
   public CharSequence getName () {
+    if (tgx101MediaTab()) {
+      return Lang.getString(R.string.TabMedia);
+    }
     switch (provideSearchFilter().getConstructor()) {
       case TdApi.SearchMessagesFilterPhotoAndVideo.CONSTRUCTOR:
         return Lang.getString(R.string.TabMedia);
@@ -87,6 +90,9 @@ public class SharedMediaController extends SharedBaseController<MediaItem> imple
   @DrawableRes
   @Override
   public int getIcon () {
+    if (tgx101MediaTab()) {
+      return R.drawable.baseline_image_24;
+    }
     switch (provideSearchFilter().getConstructor()) {
       case TdApi.SearchMessagesFilterPhotoAndVideo.CONSTRUCTOR:
         return R.drawable.baseline_image_24;
@@ -120,7 +126,7 @@ public class SharedMediaController extends SharedBaseController<MediaItem> imple
   @Override
   protected void onCreateView (final Context context, final MediaRecyclerView recyclerView, final SettingsAdapter adapter) {
     recyclerView.setMeasureCallback((recyclerView1, width, height) -> {
-      final int newSpanCount = calculateSpanCount(width, height);
+      final int newSpanCount = tgx101SpanCount(width, height);
       if (spanCount != newSpanCount) {
         spanCount = newSpanCount;
         decoration.setSpanCount(spanCount);
@@ -147,7 +153,8 @@ public class SharedMediaController extends SharedBaseController<MediaItem> imple
     };
     lookup.setSpanIndexCacheEnabled(true);
 
-    spanCount = calculateSpanCount(Screen.currentWidth(), Screen.currentHeight());
+    spanCount = tgx101SpanCount(Screen.currentWidth(), Screen.currentHeight());
+    tgx101AttachPinch(recyclerView);
     decoration = new GridSpacingItemDecoration(spanCount, Screen.dp(3f), false, true, true);
     decoration.setNeedDraw(true, ListItem.TYPE_SMALL_MEDIA);
     decoration.setDrawColorId(ColorId.filling);
@@ -172,6 +179,180 @@ public class SharedMediaController extends SharedBaseController<MediaItem> imple
     int maxItemCount = Math.max(5, Screen.widestSide() / minWidth);
     int itemWidth = Screen.widestSide() / maxItemCount;
     return Screen.calculateLoadingItems(itemWidth, 18);
+  }
+
+  // TGx101 (user 2026-10-11, mockup «Медиа-сетка» approved): the grid is resized with a pinch — spread the fingers for
+  // bigger previews (down to 2 columns), pinch for more (up to 5); the choice is remembered. The setting is the columns
+  // on a ~360 dp wide phone, wider screens (landscape, tablets) get proportionally more. Above the grid of the «Media»
+  // tab — «All / Photos / Videos», a Telegram search by type (nothing extra is loaded).
+  private static final float TGX101_FILTER_HEIGHT = 46f;
+  private boolean tgx101MediaTabKnown, tgx101MediaTab;
+
+  private boolean tgx101MediaTab () {
+    if (!tgx101MediaTabKnown) {
+      tgx101MediaTabKnown = true;
+      tgx101MediaTab = filter == null || filter.getConstructor() == TdApi.SearchMessagesFilterPhotoAndVideo.CONSTRUCTOR;
+    }
+    return tgx101MediaTab;
+  }
+
+  private static int tgx101SpanCount (int width, int height) {
+    if (width <= 0) {
+      return calculateSpanCount(width, height);
+    }
+    float widthDp = width / Screen.density();
+    int columns = Settings.instance().tgx101MediaColumns();
+    return Math.max(Settings.TGX101_MEDIA_COLUMNS_MIN, Math.round(widthDp * columns / 360f));
+  }
+
+  private void tgx101ApplyColumns (int columns) {
+    Settings.instance().setTgx101MediaColumns(columns);
+    if (recyclerView == null) return;
+    int newSpanCount = tgx101SpanCount(recyclerView.getMeasuredWidth(), recyclerView.getMeasuredHeight());
+    if (newSpanCount != spanCount) {
+      spanCount = newSpanCount;
+      decoration.setSpanCount(spanCount);
+      ((GridLayoutManager) recyclerView.getLayoutManager()).setSpanCount(spanCount);
+      recyclerView.invalidateItemDecorations();
+      // the grid re-lays out under the fingers: a short fade instead of a hard jump
+      recyclerView.setAlpha(.55f);
+      recyclerView.animate().alpha(1f).setDuration(180).start();
+      recyclerView.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
+      org.thunderdog.challegram.Tgx101Diag.mark("media grid: " + columns + " columns (" + spanCount + " on this screen)");
+    }
+    int filterIndex = adapter != null ? adapter.indexOfViewByType(ListItem.TYPE_CUSTOM_SINGLE) : -1;
+    if (filterIndex != -1) adapter.notifyItemChanged(filterIndex);
+  }
+
+  private void tgx101AttachPinch (MediaRecyclerView list) {
+    final android.view.ScaleGestureDetector detector = new android.view.ScaleGestureDetector(list.getContext(), new android.view.ScaleGestureDetector.SimpleOnScaleGestureListener() {
+      private float accumulated;
+
+      @Override
+      public boolean onScaleBegin (android.view.ScaleGestureDetector d) {
+        accumulated = 1f;
+        list.stopScroll();
+        if (list.getParent() != null) list.getParent().requestDisallowInterceptTouchEvent(true);
+        list.setPivotX(d.getFocusX());
+        list.setPivotY(d.getFocusY());
+        return true;
+      }
+
+      @Override
+      public boolean onScale (android.view.ScaleGestureDetector d) {
+        accumulated *= d.getScaleFactor();
+        float feedback = Math.max(.88f, Math.min(1.12f, accumulated));
+        list.setScaleX(feedback);
+        list.setScaleY(feedback);
+        int columns = Settings.instance().tgx101MediaColumns();
+        if (accumulated > 1.22f && columns > Settings.TGX101_MEDIA_COLUMNS_MIN) {
+          tgx101ApplyColumns(columns - 1);
+          accumulated = 1f;
+        } else if (accumulated < .82f && columns < Settings.TGX101_MEDIA_COLUMNS_MAX) {
+          tgx101ApplyColumns(columns + 1);
+          accumulated = 1f;
+        }
+        return true;
+      }
+
+      @Override
+      public void onScaleEnd (android.view.ScaleGestureDetector d) {
+        list.animate().scaleX(1f).scaleY(1f).setDuration(160).start();
+      }
+    });
+    list.addOnItemTouchListener(new androidx.recyclerview.widget.RecyclerView.OnItemTouchListener() {
+      @Override
+      public boolean onInterceptTouchEvent (@androidx.annotation.NonNull androidx.recyclerview.widget.RecyclerView rv, @androidx.annotation.NonNull MotionEvent e) {
+        detector.onTouchEvent(e);
+        return detector.isInProgress() || e.getPointerCount() > 1;
+      }
+
+      @Override
+      public void onTouchEvent (@androidx.annotation.NonNull androidx.recyclerview.widget.RecyclerView rv, @androidx.annotation.NonNull MotionEvent e) {
+        detector.onTouchEvent(e);
+      }
+
+      @Override
+      public void onRequestDisallowInterceptTouchEvent (boolean disallowIntercept) { }
+    });
+  }
+
+  @Override
+  protected void tgx101AddHeaderItems (ArrayList<ListItem> items) {
+    if (tgx101MediaTab()) {
+      items.add(new ListItem(ListItem.TYPE_CUSTOM_SINGLE));
+    }
+  }
+
+  private int tgx101FilterMode () {
+    switch (provideSearchFilter().getConstructor()) {
+      case TdApi.SearchMessagesFilterPhoto.CONSTRUCTOR: return 1;
+      case TdApi.SearchMessagesFilterVideo.CONSTRUCTOR: return 2;
+    }
+    return 0;
+  }
+
+  @Override
+  protected SettingHolder tgx101InitCustom (android.view.ViewGroup parent) {
+    android.widget.LinearLayout row = new android.widget.LinearLayout(parent.getContext());
+    row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    row.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
+    row.setLayoutParams(new androidx.recyclerview.widget.RecyclerView.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(TGX101_FILTER_HEIGHT)));
+    int[] labels = {R.string.Tgx101MediaAll, R.string.Tgx101MediaPhotos, R.string.Tgx101MediaVideos};
+    for (int i = 0; i < labels.length; i++) {
+      final int mode = i;
+      android.widget.TextView chip = new android.widget.TextView(parent.getContext());
+      chip.setText(Lang.getString(labels[i]));
+      chip.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 13.5f);
+      chip.setGravity(android.view.Gravity.CENTER);
+      chip.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);
+      android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(30f));
+      if (i > 0) lp.leftMargin = Screen.dp(6f);
+      chip.setLayoutParams(lp);
+      chip.setOnClickListener(v -> tgx101SetFilterMode(mode));
+      row.addView(chip);
+    }
+    android.view.View space = new android.view.View(parent.getContext());
+    space.setLayoutParams(new android.widget.LinearLayout.LayoutParams(0, 1, 1f));
+    row.addView(space);
+    android.widget.TextView columns = new android.widget.TextView(parent.getContext());
+    columns.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+    columns.setLayoutParams(new android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.WRAP_CONTENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
+    row.addView(columns);
+    return new SettingHolder(row);
+  }
+
+  @Override
+  protected void tgx101SetCustom (ListItem item, SettingHolder holder) {
+    android.widget.LinearLayout row = (android.widget.LinearLayout) holder.itemView;
+    row.setBackgroundColor(org.thunderdog.challegram.theme.Theme.fillingColor());
+    int mode = tgx101FilterMode();
+    int accent = org.thunderdog.challegram.theme.Theme.getColor(ColorId.circleButtonRegular);
+    int text = org.thunderdog.challegram.theme.Theme.getColor(ColorId.text);
+    for (int i = 0; i < 3; i++) {
+      android.widget.TextView chip = (android.widget.TextView) row.getChildAt(i);
+      android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+      bg.setCornerRadius(Screen.dp(15f));
+      bg.setColor(i == mode ? accent : me.vkryl.core.ColorUtils.alphaColor(.07f, text));
+      chip.setBackground(bg);
+      chip.setTextColor(i == mode ? 0xffffffff : text);
+    }
+    android.widget.TextView columns = (android.widget.TextView) row.getChildAt(row.getChildCount() - 1);
+    columns.setTextColor(org.thunderdog.challegram.theme.Theme.getColor(ColorId.textLight));
+    columns.setText("▦ " + spanCount);
+  }
+
+  private void tgx101SetFilterMode (int mode) {
+    if (mode == tgx101FilterMode()) return;
+    tgx101MediaTab(); // remember it's the «Media» tab before the filter changes
+    switch (mode) {
+      case 1: filter = new TdApi.SearchMessagesFilterPhoto(); break;
+      case 2: filter = new TdApi.SearchMessagesFilterVideo(); break;
+      default: filter = new TdApi.SearchMessagesFilterPhotoAndVideo(); break;
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("media filter: " + mode);
+    tgx101Reload();
   }
 
   private static int calculateSpanCount (int width, int height) {
@@ -224,6 +405,10 @@ public class SharedMediaController extends SharedBaseController<MediaItem> imple
         }
         case ListItem.TYPE_SHADOW_BOTTOM: {
           scrollY += Screen.dp(3f) + SettingHolder.measureHeightForType(ListItem.TYPE_SHADOW_BOTTOM);
+          break;
+        }
+        case ListItem.TYPE_CUSTOM_SINGLE: { // TGx101: the media filter row
+          scrollY += Screen.dp(TGX101_FILTER_HEIGHT);
           break;
         }
         case ListItem.TYPE_SMART_EMPTY:

@@ -6664,4 +6664,8 @@
   <string name="Tgx101InputScheduled">Scheduled messages</string>
   <string name="Tgx101InputCamera">Camera</string>
   <string name="Tgx101DoubleTapWhich">Which reaction</string>
+  <string name="Tgx101MediaAll">All</string>
+  <string name="Tgx101MediaPhotos">Photos</string>
+  <string name="Tgx101MediaVideos">Videos</string>
+  <string name="Tgx101MediaColumns">%1$d columns</string>
 </resources>

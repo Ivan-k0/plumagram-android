@@ -203,6 +203,16 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
       protected void modifyChatView (ListItem item, SmallChatView chatView, @Nullable CheckBoxView checkBox, boolean isUpdate) {
         modifyChatViewIfNeeded(item, chatView, checkBox, isUpdate);
       }
+
+      @Override
+      protected SettingHolder initCustom (ViewGroup parent) {
+        return tgx101InitCustom(parent);
+      }
+
+      @Override
+      protected void setCustom (ListItem item, SettingHolder holder, int position) {
+        tgx101SetCustom(item, holder);
+      }
     };
     if (probablyHasEmoji()) {
       TGLegacyManager.instance().addEmojiListener(adapter);
@@ -540,7 +550,41 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
     if (function == null) {
       return;
     }
-    tdlib.client().send(function, object -> processData(query, offset, object, limit));
+    final int generation = tgx101Generation;
+    tdlib.client().send(function, object -> {
+      if (generation == tgx101Generation) { // TGx101: an answer for the previous filter is dropped
+        processData(query, offset, object, limit);
+      }
+    });
+  }
+
+  // TGx101 (user 2026-10-11, mockup «Медиа-сетка»): a row above the list (the media filter) and a reload with
+  // another search filter. The row is a TYPE_CUSTOM_SINGLE item at the very top; the rest of the list is unchanged.
+  private volatile int tgx101Generation;
+
+  protected void tgx101AddHeaderItems (ArrayList<ListItem> items) { }
+
+  protected SettingHolder tgx101InitCustom (ViewGroup parent) {
+    throw new RuntimeException("Stub!");
+  }
+
+  protected void tgx101SetCustom (ListItem item, SettingHolder holder) { }
+
+  protected final void tgx101Reload () {
+    tgx101Generation++;
+    if (searchTask != null) {
+      searchTask.cancel();
+      searchTask = null;
+    }
+    isLoading = false;
+    currentQuery = null;
+    data = null;
+    searchData = null;
+    nextSecretSearchOffset = null;
+    setCanLoadMore(false, false);
+    setInMediaSelectMode(false);
+    buildCells();
+    loadInitialChunk();
   }
 
   private void loadMessages (final String query, final long fromMessageId, final int limit) {
@@ -873,6 +917,7 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
   protected final void buildCells () {
     ArrayList<ListItem> items = new ArrayList<>();
     ArrayList<T> target = isSearching() ? searchData : data;
+    tgx101AddHeaderItems(items);
 
     if (isAlwaysEmpty() || (target != null && target.isEmpty())) {
       if (adapter.getItems().size() == 1 && adapter.getItems().get(0).getViewType() == ListItem.TYPE_SMART_EMPTY) {

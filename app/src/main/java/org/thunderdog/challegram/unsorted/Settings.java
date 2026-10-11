@@ -3956,6 +3956,17 @@ public class Settings {
     setTgx101TranslateOnDevice(engine == TGX101_TRANSLATE_DEVICE);
   }
 
+  // user 2026-10-11 (mockup «Медиа-сетка» approved): the profile media grid is resized with a pinch — columns on a
+  // ~360 dp wide phone (2…5); wider screens (landscape, tablets) get proportionally more
+  private static final String KEY_TGX101_MEDIA_COLUMNS = "tgx101_media_columns";
+  public static final int TGX101_MEDIA_COLUMNS_MIN = 2, TGX101_MEDIA_COLUMNS_MAX = 5;
+  public int tgx101MediaColumns () {
+    return Math.max(TGX101_MEDIA_COLUMNS_MIN, Math.min(TGX101_MEDIA_COLUMNS_MAX, pmc.getInt(KEY_TGX101_MEDIA_COLUMNS, 3)));
+  }
+  public void setTgx101MediaColumns (int columns) {
+    pmc.putInt(KEY_TGX101_MEDIA_COLUMNS, columns);
+  }
+
   private static final String KEY_TGX101_SPEECH_MODEL = "tgx101_speech_model";
 
   /** TGx101: id of the own speech recognition model (Tgx101SpeechModels), null = none */
