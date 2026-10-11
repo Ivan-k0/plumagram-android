@@ -2177,16 +2177,17 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       if (avatarReceiver.needPlaceholder()) avatarReceiver.drawPlaceholder(c);
       avatarReceiver.draw(c);
     }
-    if (highlightFactor != 0f && hasBubble && tgx101HighlightedChildId == 0 && tgx101QuoteText == null) {
-      drawBubble(c, Paints.fillingPaint(tgx101FlashColor()), false, 0);
-    }
-
     if (hasBubble) {
       if (needBubbleCornerFix()) {
         int padding = getBubbleContentPadding();
         drawCornerFixes(c, this, 1f,
           bubblePathRect.left + padding, bubblePathRect.top + padding, bubblePathRect.right - padding, bubblePathRect.bottom - padding,
           topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius);
+      }
+      // the flash goes after the corner fixes: they repaint the frame around a photo in the bubble colour and left
+      // white edges in the highlight (video 10.10 13:00, «по краям пустоты»)
+      if (highlightFactor != 0f && tgx101HighlightedChildId == 0 && tgx101QuoteText == null) {
+        drawBubble(c, Paints.fillingPaint(tgx101FlashColor()), false, 0);
       }
       if (commentButton.isVisible() && commentButton.isInline()) {
         int left = leftContentEdge;
