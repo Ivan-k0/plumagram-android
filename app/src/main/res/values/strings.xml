@@ -6656,4 +6656,11 @@
   <string name="Tgx101MenuTabMedia">Media</string>
   <string name="Tgx101MenuTabVoice">Voice</string>
   <string name="Tgx101MenuSectionMenuShort">In the menu</string>
+  <string name="Tgx101InputSendAs">Send as…</string>
+  <string name="Tgx101InputBotCommands">Bot commands</string>
+  <string name="Tgx101InputBotKeyboard">Bot keyboard</string>
+  <string name="Tgx101InputSilent">Send without sound</string>
+  <string name="Tgx101InputSound">Send with sound</string>
+  <string name="Tgx101InputScheduled">Scheduled messages</string>
+  <string name="Tgx101InputCamera">Camera</string>
 </resources>

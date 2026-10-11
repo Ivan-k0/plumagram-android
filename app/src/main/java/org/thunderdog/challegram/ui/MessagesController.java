@@ -1257,7 +1257,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(49f));
     params.addRule(RelativeLayout.ALIGN_PARENT_TOP);
 
-    messageSenderButton = new MessageSenderButton(context, this);
+    messageSenderButton = new MessageSenderButton(context, this) {
+      @Override
+      public void setVisibility (int visibility) {
+        super.setVisibility(tgx101InputVisibility(this, visibility));
+        tgx101CheckInputCollapse();
+      }
+    };
     messageSenderButton.setLayoutParams(params);
     messageSenderButton.setDelegate(new MessageSenderButton.Delegate() {
       @Override
@@ -1287,7 +1293,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
 
     lp = new LinearLayout.LayoutParams(Screen.dp(ATTACH_BUTTONS_WIDTH), Screen.dp(49f));
-    cameraButton = new CameraAccessImageView(context, this);
+    cameraButton = new CameraAccessImageView(context, this) {
+      @Override
+      public void setVisibility (int visibility) {
+        super.setVisibility(tgx101InputVisibility(this, visibility));
+        tgx101CheckInputCollapse();
+      }
+    };
     cameraButton.setId(R.id.btn_camera);
     cameraButton.setScaleType(ImageView.ScaleType.CENTER);
     cameraButton.setImageResource(R.drawable.deproko_baseline_camera_26);
@@ -1298,7 +1310,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     if (!areScheduled /*&& isSelfChat()*/) {
       lp = new LinearLayout.LayoutParams(Screen.dp(ATTACH_BUTTONS_WIDTH), Screen.dp(49f));
-      scheduleButton = new CameraAccessImageView(context, this);
+      scheduleButton = new CameraAccessImageView(context, this) {
+        @Override
+        public void setVisibility (int visibility) {
+          super.setVisibility(tgx101InputVisibility(this, visibility));
+          tgx101CheckInputCollapse();
+        }
+      };
       scheduleButton.setId(R.id.btn_viewScheduled);
       scheduleButton.setScaleType(ImageView.ScaleType.CENTER);
       scheduleButton.setImageResource(R.drawable.baseline_date_range_24);
@@ -1310,7 +1328,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     lp = new LinearLayout.LayoutParams(Screen.dp(ATTACH_BUTTONS_WIDTH), Screen.dp(49f));
 
-    commandButton = new InvisibleImageView(context);
+    commandButton = new InvisibleImageView(context) {
+      @Override
+      public void setVisibility (int visibility) {
+        super.setVisibility(tgx101InputVisibility(this, visibility));
+        tgx101CheckInputCollapse();
+      }
+    };
     commandButton.setId(R.id.msg_command);
     commandButton.setColorFilter(Theme.iconColor());
     addThemeFilterListener(commandButton, ColorId.icon);
@@ -1324,7 +1348,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (Config.NEED_SILENT_BROADCAST) {
       lp = new LinearLayout.LayoutParams(Screen.dp(ATTACH_BUTTONS_WIDTH), Screen.dp(49f));
 
-      silentButton = new SilentButton(context);
+      silentButton = new SilentButton(context) {
+        @Override
+        public void setVisibility (int visibility) {
+          super.setVisibility(tgx101InputVisibility(this, visibility));
+          tgx101CheckInputCollapse();
+        }
+      };
       silentButton.setId(R.id.btn_silent);
       silentButton.setOnClickListener(this);
       silentButton.setLayoutParams(lp);
@@ -1351,8 +1381,29 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (cameraButton != null && !Settings.instance().isCameraInAttach()) { // TGx101: the camera can live in the attach menu instead
       attachButtons.addView(cameraButton);
     }
+    tgx101InputMore = new ImageView(context);
+    tgx101InputMore.setId(R.id.btn_tgx101InputMore);
+    tgx101InputMore.setScaleType(ImageView.ScaleType.CENTER);
+    tgx101InputMore.setImageResource(R.drawable.baseline_more_horiz_24);
+    tgx101InputMore.setColorFilter(Theme.iconColor());
+    addThemeFilterListener(tgx101InputMore, ColorId.icon);
+    tgx101InputMore.setLayoutParams(new LinearLayout.LayoutParams(Screen.dp(ATTACH_BUTTONS_WIDTH), Screen.dp(49f)));
+    tgx101InputMore.setVisibility(View.GONE);
+    Views.setClickable(tgx101InputMore);
+    tgx101InputMore.setBackgroundResource(R.drawable.bg_btn_header);
+    tgx101InputMoreMenu = new HapticMenuHelper(view -> tgx101InputMoreItems(), (view, parentView, item) -> tgx101OnInputMoreItem(item.id), getThemeListeners(), null);
+    tgx101InputMore.setOnClickListener(v -> {
+      org.thunderdog.challegram.Tgx101Diag.mark("input ⋯: menu opened");
+      tgx101InputMoreMenu.openMenu(v);
+    });
+    attachButtons.addView(tgx101InputMore);
     attachButtons.addView(mediaButton);
     attachButtons.addView(recordButton);
+    // what each button wants right now (its own code keeps setting it; while collapsed it's GONE on screen)
+    for (View v : new View[] {messageSenderButton, commandButton, silentButton, scheduleButton, cameraButton}) {
+      if (v != null) tgx101InputWanted.put(v, v.getVisibility());
+    }
+    tgx101CheckInputCollapse();
     attachButtons.updatePivot();
 
     params = new RelativeLayout.LayoutParams(Screen.dp(55f), Screen.dp(49f));
@@ -8849,7 +8900,94 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // Silent mode
 
   public int getHorizontalInputPadding () {
-    return attachButtons.getVisibleChildrenWidth() + (canSelectSender() ? Screen.dp(47) : 0);
+    return attachButtons.getVisibleChildrenWidth() + (canSelectSender() && !tgx101InputCollapsed ? Screen.dp(47) : 0);
+  }
+
+  // TGx101 (user 2026-10-11, approved mockup «Поле-ввода-кнопки», variant А): when more than one button besides the
+  // clip and the microphone wants to be in the input (send as, bot commands / keyboard, silent, scheduled, camera), they
+  // all go into one «⋯» with a drop-down menu — the field had shrunk to «Комм…». One such button stays as it is.
+
+  private ImageView tgx101InputMore;
+  private HapticMenuHelper tgx101InputMoreMenu;
+  private final java.util.Map<View, Integer> tgx101InputWanted = new java.util.LinkedHashMap<>();
+  private boolean tgx101InputCollapsed, tgx101InputApplying;
+
+  private int tgx101InputVisibility (View view, int wanted) {
+    if (!tgx101InputApplying) {
+      tgx101InputWanted.put(view, wanted);
+    }
+    return tgx101InputCollapsed ? View.GONE : wanted;
+  }
+
+  private boolean tgx101InputWants (View view) {
+    Integer wanted = view != null ? tgx101InputWanted.get(view) : null;
+    return wanted != null && wanted == View.VISIBLE;
+  }
+
+  private void tgx101CheckInputCollapse () {
+    if (tgx101InputApplying || tgx101InputMore == null) {
+      return;
+    }
+    int count = 0;
+    for (Integer wanted : tgx101InputWanted.values()) {
+      if (wanted == View.VISIBLE) count++;
+    }
+    boolean collapse = count >= 2;
+    if (collapse == tgx101InputCollapsed) {
+      return;
+    }
+    tgx101InputCollapsed = collapse;
+    tgx101InputApplying = true;
+    for (java.util.Map.Entry<View, Integer> entry : tgx101InputWanted.entrySet()) {
+      entry.getKey().setVisibility(entry.getValue()); // through the override: GONE while collapsed, the wanted state after
+    }
+    tgx101InputApplying = false;
+    tgx101InputMore.setVisibility(collapse ? View.VISIBLE : View.GONE);
+    attachButtons.updatePivot();
+    attachButtons.requestLayout();
+    if (messageSenderButton != null) {
+      messageSenderButton.checkPosition();
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("input ⋯: " + (collapse ? count + " buttons in one" : "buttons back"));
+  }
+
+  private List<HapticMenuHelper.MenuItem> tgx101InputMoreItems () {
+    List<HapticMenuHelper.MenuItem> items = new ArrayList<>();
+    if (tgx101InputWants(messageSenderButton) && canSelectSender()) {
+      items.add(new HapticMenuHelper.MenuItem(R.id.btn_tgx101InputSendAs, Lang.getString(R.string.Tgx101InputSendAs), R.drawable.baseline_account_circle_24));
+    }
+    if (tgx101InputWants(commandButton)) {
+      boolean commands = lastCmdResource == R.drawable.deproko_baseline_bots_command_26;
+      items.add(new HapticMenuHelper.MenuItem(R.id.msg_command, Lang.getString(commands ? R.string.Tgx101InputBotCommands : R.string.Tgx101InputBotKeyboard), lastCmdResource != 0 ? lastCmdResource : R.drawable.deproko_baseline_bots_command_26));
+    }
+    if (silentButton != null && tgx101InputWants(silentButton)) {
+      boolean silent = silentButton.getIsSilent();
+      items.add(new HapticMenuHelper.MenuItem(R.id.btn_silent, Lang.getString(silent ? R.string.Tgx101InputSound : R.string.Tgx101InputSilent), silent ? R.drawable.baseline_notifications_24 : R.drawable.baseline_notifications_off_24));
+    }
+    if (tgx101InputWants(scheduleButton)) {
+      items.add(new HapticMenuHelper.MenuItem(R.id.btn_viewScheduled, Lang.getString(R.string.Tgx101InputScheduled), R.drawable.baseline_date_range_24));
+    }
+    if (tgx101InputWants(cameraButton)) {
+      items.add(new HapticMenuHelper.MenuItem(R.id.btn_camera, Lang.getString(R.string.Tgx101InputCamera), R.drawable.deproko_baseline_camera_26));
+    }
+    hideCursorsForInputView();
+    return items;
+  }
+
+  private boolean tgx101OnInputMoreItem (int id) {
+    org.thunderdog.challegram.Tgx101Diag.mark("input ⋯: item " + Lang.getResourceEntryName(id));
+    if (id == R.id.btn_tgx101InputSendAs) {
+      openSetSenderPopup();
+    } else if (id == R.id.msg_command && commandButton != null) {
+      onClick(commandButton);
+    } else if (id == R.id.btn_silent && silentButton != null) {
+      onClick(silentButton);
+    } else if (id == R.id.btn_viewScheduled && scheduleButton != null) {
+      onClick(scheduleButton);
+    } else if (id == R.id.btn_camera && cameraButton != null) {
+      onClick(cameraButton);
+    }
+    return true;
   }
 
   private void updateSilentButton (boolean visible) {

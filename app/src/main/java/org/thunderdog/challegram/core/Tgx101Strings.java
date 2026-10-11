@@ -720,6 +720,13 @@ final class Tgx101Strings {
     RU.put(R.string.RichMessageOpenFull, "Открыть пост полностью ›");
     RU.put(R.string.RichMessageOpenFailed, "Не удалось загрузить пост: %1$s");
     RU.put(R.string.RichMessageOpenUnsupported, "В посте есть элементы, которые просмотрщик пока не умеет показывать");
+    RU.put(R.string.Tgx101InputSendAs, "Отправить как…");
+    RU.put(R.string.Tgx101InputBotCommands, "Команды бота");
+    RU.put(R.string.Tgx101InputBotKeyboard, "Клавиатура бота");
+    RU.put(R.string.Tgx101InputSilent, "Без звука");
+    RU.put(R.string.Tgx101InputSound, "Со звуком");
+    RU.put(R.string.Tgx101InputScheduled, "Отложенные");
+    RU.put(R.string.Tgx101InputCamera, "Камера");
     RU.put(R.string.Tgx101MenuTabText, "Текст");
     RU.put(R.string.Tgx101MenuTabMedia, "Медиа");
     RU.put(R.string.Tgx101MenuTabVoice, "Голосовые");
