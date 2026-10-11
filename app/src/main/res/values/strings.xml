@@ -6649,4 +6649,7 @@
   <string name="Tgx101BarHiddenSection">Hidden</string>
   <string name="Tgx101GesturesSummaryOff">Double tap: off</string>
   <string name="Tgx101GesturesSummary">Double tap: %1$s</string>
+  <string name="Tgx101TranslateChatTo">Translate to %1$s</string>
+  <string name="Tgx101TranslateOtherLanguage">Translate to another language…</string>
+  <string name="Tgx101TranslateBarHide">Hide the bar</string>
 </resources>

@@ -956,6 +956,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
     actionView.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, actionBarHeight));
     actionView.addThemeListeners(this);
 
+    tgx101TranslateBar = new org.thunderdog.challegram.component.chat.Tgx101TranslateBarView(context, this);
+    tgx101TranslateBar.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(40f)));
+    tgx101TranslateBar.setOnBarClickListener(v -> tgx101ToggleChatTranslation(true));
+    tgx101TranslateBar.setOnMoreClickListener(v -> tgx101ShowTranslateBarOptions());
+
     int requestsViewHeight = Screen.dp(48f);
     requestsView = new JoinRequestsView(context, tdlib);
     requestsView.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, requestsViewHeight));
@@ -1039,6 +1044,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       requestsItem = new CollapseListView.ViewItem(requestsView, requestsViewHeight),
       liveLocationItem = new CollapseListView.ViewItem(liveLocationView, liveLocationHeight),
       actionItem = new CollapseListView.ViewItem(actionView, actionBarHeight),
+      tgx101TranslateItem = new CollapseListView.ViewItem(tgx101TranslateBar, Screen.dp(40f)),
       toastAlertItem
     }, this);
 
@@ -2512,7 +2518,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else if (id == R.id.btn_tgx101VoiceChatStart) {
       Tgx101GroupCallController.start(this, chat.id);
     } else if (id == R.id.btn_translateWholeChat) {
-      manager.setWholeChatTranslateLanguage(manager.getWholeChatTranslateLanguage() != null ? null : Lang.getDefaultLanguageToTranslateV2(null));
+      tgx101ToggleChatTranslation(false);
     } else if (id == R.id.btn_attachFromMenu) {
       hideBottomHint();
       openPendingAttachmentPicker();
@@ -3110,6 +3116,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     if (!inPreviewMode && !isInForceTouchMode()) {
       checkActionBar();
+      tgx101TranslateBarOffered = tgx101TranslateBarHidden = false; // per chat opening
+      tgx101CheckTranslateBar(false);
       checkJoinRequests(chat.pendingJoinRequests);
       checkCanSendMessagesToUser(true);
     }
@@ -9181,6 +9189,72 @@ public class MessagesController extends ViewController<MessagesController.Argume
   @Override
   public void onApplyVisibility (LiveLocationHelper helper, boolean isVisible, float visibilityFactor, boolean finished) {
     topBar.forceItemVisibility(liveLocationItem, isVisible, visibilityFactor);
+  }
+
+  // TGx101 (user 2026-10-11, approved mockup «Перевод-чата»): the translated chat's bar — «Show original», then
+  // «Translate to …» in the same chat; ⋮ — another language or hide it. Never offered on its own.
+
+  private org.thunderdog.challegram.component.chat.Tgx101TranslateBarView tgx101TranslateBar;
+  private CollapseListView.Item tgx101TranslateItem;
+  private boolean tgx101TranslateBarOffered, tgx101TranslateBarHidden;
+  private String tgx101LastChatTranslateLanguage;
+
+  private void tgx101ToggleChatTranslation (boolean fromBar) {
+    String current = manager.getWholeChatTranslateLanguage();
+    if (current != null) {
+      tgx101LastChatTranslateLanguage = current;
+      manager.setWholeChatTranslateLanguage(null);
+      tgx101TranslateBarOffered = fromBar; // from the bar it stays, offering to translate back
+    } else {
+      manager.setWholeChatTranslateLanguage(tgx101LastChatTranslateLanguage != null ? tgx101LastChatTranslateLanguage : Lang.getDefaultLanguageToTranslateV2(null));
+      tgx101TranslateBarHidden = false;
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("chat translation: " + (current != null ? "off" : "on") + (fromBar ? " (bar)" : " (menu)"));
+    tgx101CheckTranslateBar(true);
+  }
+
+  private void tgx101CheckTranslateBar (boolean animated) {
+    if (tgx101TranslateBar == null || tgx101TranslateItem == null) {
+      return;
+    }
+    String language = manager.getWholeChatTranslateLanguage();
+    boolean visible = needActionBar() && !tgx101TranslateBarHidden && (language != null || tgx101TranslateBarOffered);
+    if (visible) {
+      if (language != null) {
+        tgx101TranslateBar.setText(Lang.getString(R.string.TranslateWholeChatOff));
+      } else {
+        String target = tgx101LastChatTranslateLanguage != null ? tgx101LastChatTranslateLanguage : Lang.getDefaultLanguageToTranslateV2(null);
+        String name = Lang.getLanguageName(target, target);
+        tgx101TranslateBar.setText(Lang.getString(R.string.Tgx101TranslateChatTo, name != null ? name.toLowerCase() : ""));
+      }
+    }
+    topBar.setItemVisible(tgx101TranslateItem, visible, animated && isFocused());
+  }
+
+  private void tgx101ShowTranslateBarOptions () {
+    showOptions(null,
+      new int[] {R.id.btn_tgx101TranslateOtherLanguage, R.id.btn_tgx101TranslateBarHide},
+      new String[] {Lang.getString(R.string.Tgx101TranslateOtherLanguage), Lang.getString(R.string.Tgx101TranslateBarHide)},
+      null,
+      new int[] {R.drawable.baseline_translate_24, R.drawable.baseline_close_24},
+      (itemView, optionId) -> {
+        if (optionId == R.id.btn_tgx101TranslateOtherLanguage) {
+          String current = manager.getWholeChatTranslateLanguage();
+          TranslationControllerV2.LanguageSelectorPopup popup = new TranslationControllerV2.LanguageSelectorPopup(context, this, language -> {
+            tgx101LastChatTranslateLanguage = language;
+            manager.setWholeChatTranslateLanguage(language);
+            tgx101TranslateBarHidden = false;
+            org.thunderdog.challegram.Tgx101Diag.mark("chat translation: language " + language);
+            tgx101CheckTranslateBar(true);
+          }, current != null ? current : tgx101LastChatTranslateLanguage, null);
+          popup.show();
+        } else if (optionId == R.id.btn_tgx101TranslateBarHide) {
+          // the bar goes, the translation stays (⋮ of the chat → «Show original»)
+          tgx101TranslateBarHidden = true;
+          tgx101CheckTranslateBar(true);
+        }
+        return true;
+      });
   }
 
   // Action bar

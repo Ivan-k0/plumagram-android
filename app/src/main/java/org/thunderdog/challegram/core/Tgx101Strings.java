@@ -720,6 +720,9 @@ final class Tgx101Strings {
     RU.put(R.string.RichMessageOpenFull, "Открыть пост полностью ›");
     RU.put(R.string.RichMessageOpenFailed, "Не удалось загрузить пост: %1$s");
     RU.put(R.string.RichMessageOpenUnsupported, "В посте есть элементы, которые просмотрщик пока не умеет показывать");
+    RU.put(R.string.Tgx101TranslateChatTo, "Перевести на %1$s");
+    RU.put(R.string.Tgx101TranslateOtherLanguage, "Перевести на другой язык…");
+    RU.put(R.string.Tgx101TranslateBarHide, "Скрыть плашку");
     RU.put(R.string.Tgx101DeleteForAll, "Удалить у всех");
     RU.put(R.string.Tgx101DeleteForMe, "Удалить у меня");
     RU.put(R.string.Tgx101DeleteForAllInfo, "Удалить у всех? Сообщение удалится у вас и у всех в чате. Отменить будет нельзя.");
