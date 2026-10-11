@@ -534,7 +534,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
       tgx101StoppedFling = false;
     }
     boolean res = super.onInterceptTouchEvent(e);
-    if (scrollFactor > 0f && e.getAction() == MotionEvent.ACTION_DOWN && isInsideDate(e.getX(), e.getY())) {
+    if (e.getAction() == MotionEvent.ACTION_DOWN && isInsideDate(e.getX(), e.getY())) {
       return true;
     }
     return res;
@@ -549,7 +549,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
       case MotionEvent.ACTION_DOWN: {
         float x = e.getX();
         float y = e.getY();
-        if (listeningClick = scrollFactor > 0f && isInsideDate(x, y)) {
+        if (listeningClick = isInsideDate(x, y)) {
           listenClickX = x;
           listenClickY = y;
         }
@@ -587,6 +587,20 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
     if (manager.controller().inPreviewMode()) {
       return false;
     }
+    // TGx101 (user 2026-10-12 «при нажатии на дату в самом чате не открывается календарь»): every date pill on screen
+    // can be tapped — the ones between days too, not only the top one while scrolling
+    int pillHeight = Screen.dp(26f), hitBound = Screen.dp(4f), hitCx = getMeasuredWidth() / 2;
+    for (int i = itemDecoration.tgx101Hits.size() - 1; i >= 0; i--) {
+      Object[] hit = itemDecoration.tgx101Hits.get(i);
+      TGMessage m = (TGMessage) hit[0];
+      int top = (Integer) hit[1];
+      int cyHit = top + Screen.dp(manager.useBubbles() ? 5f : 8f) + pillHeight / 2;
+      int half = m.getDateWidth() / 2 + m.getDatePadding() + hitBound;
+      if (x >= hitCx - half && x < hitCx + half && y >= cyHit - pillHeight / 2f - hitBound && y < cyHit + pillHeight / 2f + hitBound) {
+        jumpToBeginningOfTheDay = m.getDate();
+        return true;
+      }
+    }
     if (itemDecoration.lastMessage == null || itemDecoration.lastAlpha == 0f) {
       return false;
     }
@@ -619,9 +633,15 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
     protected TGMessage lastMessage;
     protected int lastTop;
     protected float lastAlpha;
+    protected final java.util.ArrayList<Object[]> tgx101Hits = new java.util.ArrayList<>(); // {message with the date, pill top}
+
+    private void tgx101Hit (TGMessage msg, int top, float alpha) {
+      if (alpha > .1f) tgx101Hits.add(new Object[] {msg, top});
+    }
 
     @Override
     public void onDrawOver (Canvas c, RecyclerView parent, State state) {
+      tgx101Hits.clear();
       this.lastMessage = null;
       this.lastTop = 0;
       this.lastAlpha = 0f;
@@ -684,6 +704,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
             float alpha = isLast ? scrollFactor : 1f;
             float drawAlpha = detachFactor == 1f ? alpha : 1f;
             if (msg.drawDate(c, centerX, top, detachFactor, drawAlpha)) {
+              tgx101Hit(msg, top, drawAlpha);
               hasDrawn = true;
               lastTop = top;
               lastMessage = msg;
@@ -695,6 +716,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
               if (tag != null) {
                 TGMessage tagMsg = (TGMessage) tag;
                 if (!tagMsg.isDestroyed() && tagMsg.drawDate(c, centerX, top, 1f, alpha)) {
+                  tgx101Hit(tagMsg, top, alpha);
                   hasDrawn = true;
                   lastTop = top;
                   lastMessage = tagMsg;
@@ -706,6 +728,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
               for (int j = position + 1; j < adapter.getMessageCount(); j++) {
                 TGMessage olderMessage = adapter.getMessage(j);
                 if (olderMessage != null && olderMessage.drawDate(c, centerX, top, 1f, alpha)) {
+                  tgx101Hit(olderMessage, top, alpha);
                   msg.setTag(olderMessage);
                   hasDrawn = true;
                   lastTop = top;
