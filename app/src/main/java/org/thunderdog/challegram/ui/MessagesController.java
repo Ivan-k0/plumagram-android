@@ -2731,6 +2731,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else if (id == R.id.btn_attachFromMenu) {
       hideBottomHint();
       openPendingAttachmentPicker();
+    } else if (id == R.id.btn_tgx101ChatProxy) {
+      tgx101ShowChatProxy();
     } else if (id == R.id.btn_tgx101JumpToDate) {
       TGMessage bottom = manager.findBottomMessage();
       tgx101OpenCalendar(bottom != null ? bottom.getDate() : 0);
@@ -5134,7 +5136,33 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
 
     appendAttachMoreItem(ids, strings);
+    // TGx101 (user 2026-10-12): «Proxy» right in the chat (switched on in MagiX → «Chat ⋮ menu items»), and the user's order
+    ids.append(R.id.btn_tgx101ChatProxy);
+    strings.append(R.string.Proxy);
+    Tgx101BarOrder.applyToChatMenu(ids, strings);
     showMore(ids.get(), strings.get(), 0);
+  }
+
+  // TGx101: the ⋮ «Proxy» — switch it on/off at once, or open the list of proxies
+  private void tgx101ShowChatProxy () {
+    boolean available = Settings.instance().getAvailableProxyCount() > 0;
+    boolean enabled = Settings.instance().getEffectiveProxyId() != Settings.PROXY_ID_NONE;
+    if (!available) {
+      tdlib.ui().openProxySettings(this, false);
+      return;
+    }
+    showOptions(null, new int[] {R.id.btn_tgx101ChatProxyToggle, R.id.btn_proxy},
+      new String[] {Lang.getString(enabled ? R.string.Tgx101ProxyOff : R.string.Tgx101ProxyOn), Lang.getString(R.string.Tgx101ProxyList)},
+      new int[] {enabled ? OptionColor.RED : OptionColor.NORMAL, OptionColor.NORMAL},
+      new int[] {R.drawable.baseline_security_24, R.drawable.baseline_settings_24}, (v, optionId) -> {
+        if (optionId == R.id.btn_tgx101ChatProxyToggle) {
+          boolean on = Settings.instance().toggleProxySetting(Settings.PROXY_FLAG_ENABLED);
+          UI.showToast(on ? R.string.Tgx101ProxyIsOn : R.string.Tgx101ProxyIsOff, android.widget.Toast.LENGTH_SHORT);
+        } else if (optionId == R.id.btn_proxy) {
+          tdlib.ui().openProxySettings(this, false);
+        }
+        return true;
+      });
   }
 
   // Saved Messages tags: reactions in Saved Messages work as tags. Pick one to see only the

@@ -40,7 +40,7 @@ import java.util.List;
 /** TGx101: order of the actions in the compact message menu. "Delete" is always last. */
 public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101MenuOrderController.Args> implements View.OnClickListener, Tgx101DragOrder.Callback {
   // TGx101 (user 2026-10-11): the message menu and the swipe column are set up on screens of their own
-  public static final int MODE_MENU = 0, MODE_SWIPE = 1;
+  public static final int MODE_MENU = 0, MODE_SWIPE = 1, MODE_DRAWER = 2, MODE_CHAT_MENU = 3;
 
   public static class Args {
     final int mode;
@@ -76,7 +76,12 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
 
   @Override
   public CharSequence getName () {
-    return Lang.getString(mode() == MODE_SWIPE ? R.string.Tgx101SwipeMenuSection : R.string.Tgx101MessageMenuOrder);
+    switch (mode()) {
+      case MODE_SWIPE: return Lang.getString(R.string.Tgx101SwipeMenuSection);
+      case MODE_DRAWER: return Lang.getString(R.string.Tgx101DrawerOrder);
+      case MODE_CHAT_MENU: return Lang.getString(R.string.Tgx101ChatMenuOrder);
+      default: return Lang.getString(R.string.Tgx101MessageMenuOrder);
+    }
   }
 
   @Override
@@ -158,7 +163,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
   }
 
   private List<ListItem> buildItems () {
-    return mode() == MODE_SWIPE ? buildSwipeItems() : buildMenuItems();
+    return mode() != MODE_MENU ? buildSwipeItems() : buildMenuItems();
   }
 
   private static void addSection (List<ListItem> items, CharSequence title, List<ListItem> rows) {
@@ -209,22 +214,23 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
 
   // TGx101 (user 2026-10-06; 2026-10-11 own screen): the swipe actions column, top to bottom, and the ones switched off
   private List<ListItem> buildSwipeItems () {
-    List<String> swipe = Tgx101BarOrder.getOrder(Tgx101BarOrder.BAR_SWIPE);
+    List<String> swipe = Tgx101BarOrder.getOrder(bar());
     List<ListItem> items = new ArrayList<>();
     items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
-    items.add(new ListItem(ListItem.TYPE_CUSTOM - CUSTOM_PREVIEW));
+    if (mode() == MODE_SWIPE) items.add(new ListItem(ListItem.TYPE_CUSTOM - CUSTOM_PREVIEW));
     for (int section = 0; section < 2; section++) {
       List<ListItem> rows = new ArrayList<>();
       for (String entry : swipe) {
         boolean hidden = entry.startsWith("-");
         if (hidden != (section == 1)) continue;
         String key = hidden ? entry.substring(1) : entry;
-        rows.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SwipeItem, Tgx101BarOrder.swipeIconOf(key), Tgx101BarOrder.swipeNameOf(key)).setData(entry));
+        rows.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SwipeItem, iconOf(key), nameOf(key)).setData(entry));
       }
-      addSection(items, Lang.getString(section == 0 ? R.string.Tgx101SwipeSectionOn : R.string.Tgx101SwipeSectionOff), rows);
+      int title = section == 1 ? R.string.Tgx101SwipeSectionOff : mode() == MODE_SWIPE ? R.string.Tgx101SwipeSectionOn : R.string.Tgx101BarSectionOn;
+      addSection(items, Lang.getString(title), rows);
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     }
-    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SwipeOrderHint));
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, mode() == MODE_SWIPE ? R.string.Tgx101SwipeOrderHint : mode() == MODE_DRAWER ? R.string.Tgx101DrawerOrderHint : R.string.Tgx101ChatMenuOrderHint));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MenuOrderReset, R.drawable.baseline_undo_24, R.string.Tgx101MessageMenuOrderReset));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
@@ -234,6 +240,44 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
   private void rebuild () {
     adapter.setItems(buildItems(), false);
     updatePreview();
+    if (mode() == MODE_DRAWER && context().getDrawer() != null) context().getDrawer().tgx101RebuildMenu(); // the drawer follows at once
+  }
+
+  private int bar () {
+    switch (mode()) {
+      case MODE_DRAWER: return Tgx101BarOrder.BAR_DRAWER;
+      case MODE_CHAT_MENU: return Tgx101BarOrder.BAR_CHAT_MENU;
+      default: return Tgx101BarOrder.BAR_SWIPE;
+    }
+  }
+
+  private int nameOf (String key) {
+    switch (mode()) {
+      case MODE_DRAWER: return Tgx101BarOrder.drawerNameOf(key);
+      case MODE_CHAT_MENU: return Tgx101BarOrder.chatNameOf(key);
+      default: return Tgx101BarOrder.swipeNameOf(key);
+    }
+  }
+
+  private int iconOf (String key) {
+    switch (mode()) {
+      case MODE_DRAWER: return Tgx101BarOrder.drawerIconOf(key);
+      case MODE_CHAT_MENU: return Tgx101BarOrder.chatIconOf(key);
+      default: return Tgx101BarOrder.swipeIconOf(key);
+    }
+  }
+
+  /** The entry that can't be switched off: «Reply» of the swipe column, «Settings» of the drawer */
+  private @androidx.annotation.Nullable String fixedKey () {
+    switch (mode()) {
+      case MODE_SWIPE: return Tgx101BarOrder.SWIPE_REPLY;
+      case MODE_DRAWER: return Tgx101BarOrder.DRAWER_SETTINGS;
+      default: return null;
+    }
+  }
+
+  private int fixedHint () {
+    return mode() == MODE_DRAWER ? R.string.Tgx101DrawerSettingsStays : R.string.Tgx101SwipeReplyStays;
   }
 
   private static int[] toArray (List<Integer> list) {
@@ -246,7 +290,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
 
   @Override
   public boolean canDrag (ListItem item) {
-    return item.getId() == (mode() == MODE_SWIPE ? R.id.btn_tgx101SwipeItem : R.id.btn_tgx101MenuAction);
+    return item.getId() == (mode() != MODE_MENU ? R.id.btn_tgx101SwipeItem : R.id.btn_tgx101MenuAction);
   }
 
   private static String keyOf (ListItem item) {
@@ -261,6 +305,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
     }
     List<List<ListItem>> sections = Tgx101DragOrder.sections(adapter.getItems(), this);
     List<Tgx101OrderPreviewView.Entry> entries = new ArrayList<>();
+    if (mode() == MODE_DRAWER || mode() == MODE_CHAT_MENU) return;
     if (mode() == MODE_SWIPE) {
       if (!sections.isEmpty()) {
         for (ListItem row : sections.get(0)) {
@@ -290,21 +335,21 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
       return;
     }
     List<List<ListItem>> sections = Tgx101DragOrder.sections(adapter.getItems(), this);
-    if (mode() == MODE_SWIPE) {
+    if (mode() != MODE_MENU) {
       List<String> list = new ArrayList<>();
       for (int section = 0; section < sections.size(); section++) {
         for (ListItem row : sections.get(section)) {
           String key = keyOf(row);
-          if (section > 0 && Tgx101BarOrder.SWIPE_REPLY.equals(key)) {
-            UI.showToast(R.string.Tgx101SwipeReplyStays, android.widget.Toast.LENGTH_SHORT);
+          if (section > 0 && key.equals(fixedKey())) {
+            UI.showToast(fixedHint(), android.widget.Toast.LENGTH_SHORT);
             rebuild();
             return;
           }
           list.add(section > 0 ? "-" + key : key);
         }
       }
-      Tgx101BarOrder.setOrder(Tgx101BarOrder.BAR_SWIPE, list);
-      org.thunderdog.challegram.Tgx101Diag.mark("order: swipe column saved, " + list.size() + " entries");
+      Tgx101BarOrder.setOrder(bar(), list);
+      org.thunderdog.challegram.Tgx101Diag.mark("order: bar " + bar() + " saved, " + list.size() + " entries");
       rebuild();
       return;
     }
@@ -407,8 +452,8 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
     int id = v.getId();
     applyProfile();
     if (id == R.id.btn_tgx101MenuOrderReset) {
-      if (mode() == MODE_SWIPE) {
-        Tgx101BarOrder.setOrder(Tgx101BarOrder.BAR_SWIPE, null);
+      if (mode() != MODE_MENU) {
+        Tgx101BarOrder.setOrder(bar(), null);
       } else {
         Settings.instance().setTgx101MessageMenuOrder(null);
         Settings.instance().setTgx101MessageMenuHidden(null);
@@ -421,16 +466,16 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
       // the switch: shown in the column or not («Reply» is the plain swipe and stays)
       ListItem item = (ListItem) v.getTag();
       String entry = (String) item.getData();
-      if (Tgx101BarOrder.SWIPE_REPLY.equals(entry)) {
-        UI.showToast(R.string.Tgx101SwipeReplyStays, android.widget.Toast.LENGTH_SHORT);
+      if (entry.equals(fixedKey())) {
+        UI.showToast(fixedHint(), android.widget.Toast.LENGTH_SHORT);
         adapter.updateValuedSettingById(R.id.btn_tgx101SwipeItem);
         return;
       }
-      List<String> list = new ArrayList<>(Tgx101BarOrder.getOrder(Tgx101BarOrder.BAR_SWIPE));
+      List<String> list = new ArrayList<>(Tgx101BarOrder.getOrder(bar()));
       int index = list.indexOf(entry);
       if (index != -1) {
         list.set(index, entry.startsWith("-") ? entry.substring(1) : "-" + entry);
-        Tgx101BarOrder.setOrder(Tgx101BarOrder.BAR_SWIPE, list);
+        Tgx101BarOrder.setOrder(bar(), list);
       }
       rebuild();
       return;

@@ -26,7 +26,17 @@ import java.util.List;
 public final class Tgx101BarOrder {
   private Tgx101BarOrder () { }
 
-  public static final int BAR_MESSAGE = 0, BAR_INPUT = 1, BAR_SWIPE = 2;
+  public static final int BAR_MESSAGE = 0, BAR_INPUT = 1, BAR_SWIPE = 2, BAR_DRAWER = 3, BAR_CHAT_MENU = 4;
+
+  // TGx101 (user 2026-10-12 00:15): the side drawer is editable — order and which items are shown
+  public static final String DRAWER_CONTACTS = "contacts", DRAWER_CALLS = "calls", DRAWER_SAVED = "saved", DRAWER_SAVED_BY_CHATS = "savedByChats",
+    DRAWER_SETTINGS = "settings", DRAWER_PROXY = "proxy", DRAWER_NIGHT = "night";
+  // TGx101 (user 2026-10-12): the chat's ⋮ menu is editable too, with «Proxy» to add (off until switched on)
+  public static final String CHAT_CALL = "call", CHAT_VIDEO_CALL = "videoCall", CHAT_SEARCH = "search", CHAT_DATE = "date",
+    CHAT_SAVED_BY_CHATS = "savedByChats", CHAT_BACKGROUND = "background", CHAT_MUTE = "mute", CHAT_NOTIFICATIONS = "notifications",
+    CHAT_TRANSLATE = "translate", CHAT_PINNED = "pinned", CHAT_LINKED = "linked", CHAT_SCHEDULED = "scheduled", CHAT_VOICE_CHAT = "voiceChat",
+    CHAT_TOPICS = "topics", CHAT_REPORT = "report", CHAT_PASSCODE = "passcode", CHAT_PROXY = "proxy", CHAT_OTHER = "other";
+  private static final String[] CHAT_OFF_BY_DEFAULT = {CHAT_PROXY};
 
   public static final String QUOTE = "quote", COPY = "copy", SELECT_ALL = "selectAll", EDITOR = "editor",
     CUT = "cut", PASTE = "paste", APPS = "apps";
@@ -42,8 +52,134 @@ public final class Tgx101BarOrder {
     {QUOTE, COPY, SELECT_ALL, EDITOR, APPS},
     {CUT, COPY, PASTE, SELECT_ALL, APPS},
     {SWIPE_PIN, SWIPE_TRANSLATE, SWIPE_SAVE, SWIPE_FORWARD, SWIPE_REPLY, SWIPE_COPY, SWIPE_EDIT, SWIPE_SELECT, SWIPE_DELETE,
-      SWIPE_REACTION, SWIPE_DELETE_ALL, SWIPE_LINK, SWIPE_SAVE_FILE, SWIPE_REPORT}
+      SWIPE_REACTION, SWIPE_DELETE_ALL, SWIPE_LINK, SWIPE_SAVE_FILE, SWIPE_REPORT},
+    {DRAWER_CONTACTS, DRAWER_CALLS, DRAWER_SAVED, DRAWER_SAVED_BY_CHATS, DRAWER_SETTINGS, DRAWER_PROXY, DRAWER_NIGHT},
+    {CHAT_CALL, CHAT_VIDEO_CALL, CHAT_SEARCH, CHAT_DATE, CHAT_SAVED_BY_CHATS, CHAT_BACKGROUND, CHAT_MUTE, CHAT_NOTIFICATIONS, CHAT_TRANSLATE,
+      CHAT_PINNED, CHAT_LINKED, CHAT_SCHEDULED, CHAT_VOICE_CHAT, CHAT_TOPICS, CHAT_REPORT, CHAT_PASSCODE, CHAT_OTHER, CHAT_PROXY}
   };
+
+  public static int drawerIdOf (String key) {
+    switch (key) {
+      case DRAWER_CONTACTS: return R.id.btn_contacts;
+      case DRAWER_CALLS: return R.id.btn_calls;
+      case DRAWER_SAVED: return R.id.btn_savedMessages;
+      case DRAWER_SAVED_BY_CHATS: return R.id.btn_tgx101SavedByChats;
+      case DRAWER_SETTINGS: return R.id.btn_settings;
+      case DRAWER_PROXY: return R.id.btn_proxy;
+      case DRAWER_NIGHT: default: return R.id.btn_night;
+    }
+  }
+
+  public static int drawerNameOf (String key) {
+    switch (key) {
+      case DRAWER_CONTACTS: return R.string.Contacts;
+      case DRAWER_CALLS: return R.string.Calls;
+      case DRAWER_SAVED: return R.string.SavedMessages;
+      case DRAWER_SAVED_BY_CHATS: return R.string.Tgx101SavedByChats;
+      case DRAWER_SETTINGS: return R.string.Settings;
+      case DRAWER_PROXY: return R.string.Proxy;
+      case DRAWER_NIGHT: default: return R.string.NightMode;
+    }
+  }
+
+  public static int drawerIconOf (String key) {
+    switch (key) {
+      case DRAWER_CONTACTS: return R.drawable.baseline_perm_contact_calendar_24;
+      case DRAWER_CALLS: return R.drawable.baseline_call_24;
+      case DRAWER_SAVED: return R.drawable.baseline_bookmark_24;
+      case DRAWER_SAVED_BY_CHATS: return R.drawable.baseline_format_list_bulleted_type_24;
+      case DRAWER_SETTINGS: return R.drawable.baseline_settings_24;
+      case DRAWER_PROXY: return R.drawable.baseline_security_24;
+      case DRAWER_NIGHT: default: return R.drawable.baseline_brightness_2_24;
+    }
+  }
+
+  /** The ⋮ menu entry an item id belongs to; ids it doesn't know (delete, leave, bot commands…) are «other» */
+  public static String chatKeyOf (int id) {
+    if (id == R.id.btn_phone_call) return CHAT_CALL;
+    if (id == R.id.btn_tgx101VideoCall) return CHAT_VIDEO_CALL;
+    if (id == R.id.btn_search) return CHAT_SEARCH;
+    if (id == R.id.btn_tgx101JumpToDate) return CHAT_DATE;
+    if (id == R.id.btn_tgx101SavedByChats) return CHAT_SAVED_BY_CHATS;
+    if (id == R.id.btn_tgx101ChatBackground) return CHAT_BACKGROUND;
+    if (id == R.id.btn_mute) return CHAT_MUTE;
+    if (id == R.id.btn_tgx101ChatNotifications) return CHAT_NOTIFICATIONS;
+    if (id == R.id.btn_translateWholeChat) return CHAT_TRANSLATE;
+    if (id == R.id.btn_showPinnedMessage) return CHAT_PINNED;
+    if (id == R.id.btn_openLinkedChat || id == R.id.btn_openDirectMessages) return CHAT_LINKED;
+    if (id == R.id.btn_viewScheduled) return CHAT_SCHEDULED;
+    if (id == R.id.btn_tgx101VoiceChat || id == R.id.btn_tgx101VoiceChatStart) return CHAT_VOICE_CHAT;
+    if (id == R.id.btn_tgx101ShowTopics) return CHAT_TOPICS;
+    if (id == R.id.btn_reportChat) return CHAT_REPORT;
+    if (id == R.id.btn_setPasscode) return CHAT_PASSCODE;
+    if (id == R.id.btn_tgx101ChatProxy) return CHAT_PROXY;
+    return CHAT_OTHER;
+  }
+
+  public static int chatNameOf (String key) {
+    switch (key) {
+      case CHAT_CALL: return R.string.Call;
+      case CHAT_VIDEO_CALL: return R.string.Tgx101VideoCall;
+      case CHAT_SEARCH: return R.string.Search;
+      case CHAT_DATE: return R.string.Tgx101JumpToDate;
+      case CHAT_SAVED_BY_CHATS: return R.string.Tgx101SavedByChats;
+      case CHAT_BACKGROUND: return R.string.Tgx101ChatBackground;
+      case CHAT_MUTE: return R.string.Tgx101ChatMenuMute;
+      case CHAT_NOTIFICATIONS: return R.string.Notifications;
+      case CHAT_TRANSLATE: return R.string.Tgx101ChatMenuTranslate;
+      case CHAT_PINNED: return R.string.PinnedMessage;
+      case CHAT_LINKED: return R.string.Tgx101ChatMenuLinked;
+      case CHAT_SCHEDULED: return R.string.ScheduledMessages;
+      case CHAT_VOICE_CHAT: return R.string.Tgx101ChatMenuVoiceChat;
+      case CHAT_TOPICS: return R.string.Tgx101TopicsShow;
+      case CHAT_REPORT: return R.string.Report;
+      case CHAT_PASSCODE: return R.string.PasscodeTitle;
+      case CHAT_PROXY: return R.string.Proxy;
+      case CHAT_OTHER: default: return R.string.Tgx101ChatMenuOther;
+    }
+  }
+
+  public static int chatIconOf (String key) {
+    switch (key) {
+      case CHAT_CALL: return R.drawable.baseline_call_24;
+      case CHAT_VIDEO_CALL: return R.drawable.baseline_videocam_24;
+      case CHAT_SEARCH: return R.drawable.baseline_search_24;
+      case CHAT_DATE: return R.drawable.baseline_date_range_24;
+      case CHAT_SAVED_BY_CHATS: return R.drawable.baseline_format_list_bulleted_type_24;
+      case CHAT_BACKGROUND: return R.drawable.baseline_image_24;
+      case CHAT_MUTE: return R.drawable.baseline_notifications_off_24;
+      case CHAT_NOTIFICATIONS: return R.drawable.baseline_notifications_24;
+      case CHAT_TRANSLATE: return R.drawable.baseline_translate_24;
+      case CHAT_PINNED: return R.drawable.deproko_baseline_pin_24;
+      case CHAT_LINKED: return R.drawable.baseline_forum_24;
+      case CHAT_SCHEDULED: return R.drawable.baseline_date_range_24;
+      case CHAT_VOICE_CHAT: return R.drawable.baseline_mic_24;
+      case CHAT_TOPICS: return R.drawable.baseline_format_list_bulleted_type_24;
+      case CHAT_REPORT: return R.drawable.baseline_report_24;
+      case CHAT_PASSCODE: return R.drawable.baseline_lock_24;
+      case CHAT_PROXY: return R.drawable.baseline_security_24;
+      case CHAT_OTHER: default: return R.drawable.baseline_more_horiz_24;
+    }
+  }
+
+  /** Sorts the ⋮ menu's (id, title) pairs into the user's order and drops the hidden entries */
+  public static void applyToChatMenu (me.vkryl.core.collection.IntList ids, org.thunderdog.challegram.util.StringList strings) {
+    List<String> order = getOrder(BAR_CHAT_MENU);
+    int n = ids.size();
+    int[] srcIds = ids.get();
+    String[] srcStrings = strings.get();
+    ids.clear();
+    strings.clear();
+    for (String entry : order) {
+      if (entry.startsWith("-")) continue;
+      for (int i = 0; i < n; i++) {
+        if (chatKeyOf(srcIds[i]).equals(entry)) {
+          ids.append(srcIds[i]);
+          strings.append(srcStrings[i]);
+        }
+      }
+    }
+  }
 
   public static int swipeNameOf (String key) {
     switch (key) {
@@ -121,7 +257,8 @@ public final class Tgx101BarOrder {
     }
     for (String key : KEYS[bar]) {
       if (!result.contains(key) && !result.contains("-" + key)) {
-        result.add(bar == BAR_SWIPE && indexOf(SWIPE_OFF_BY_DEFAULT, key) != -1 ? "-" + key : key);
+        boolean off = (bar == BAR_SWIPE && indexOf(SWIPE_OFF_BY_DEFAULT, key) != -1) || (bar == BAR_CHAT_MENU && indexOf(CHAT_OFF_BY_DEFAULT, key) != -1);
+        result.add(off ? "-" + key : key);
       }
     }
     return result;

@@ -281,23 +281,10 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
       headerView.getExpanderView().setExpanded(true, false);
     }
 
-    items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_contacts, R.drawable.baseline_perm_contact_calendar_24, R.string.Contacts));
-    if (Settings.instance().chatFoldersEnabled()) {
-      items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_calls, R.drawable.baseline_call_24, R.string.Calls));
-    }
-    items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_savedMessages, R.drawable.baseline_bookmark_24, R.string.SavedMessages));
-    items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_tgx101SavedByChats, R.drawable.baseline_format_list_bulleted_type_24, R.string.Tgx101SavedByChats)); // TGx101
     this.settingsClickBait = getSettingsClickBait();
-    items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_settings, R.drawable.baseline_settings_24, R.string.Settings));
     // TGx101: no "Invite Friends" and "Help" items in the drawer.
-
     this.proxyAvailable = Settings.instance().getAvailableProxyCount() > 0;
-    if (proxyAvailable) {
-      proxyItem.setSelected(Settings.instance().getEffectiveProxyId() != Settings.PROXY_ID_NONE);
-      items.add(proxyItem);
-    }
-    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-    items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM_WITH_RADIO, R.id.btn_night, R.drawable.baseline_brightness_2_24, R.string.NightMode, R.id.btn_night, Theme.isDark()));
+    tgx101MenuCount = tgx101BuildMenu(items);
     if (Test.NEED_CLICK) {
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
       items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_reportBug, R.drawable.baseline_bug_report_24, Test.CLICK_NAME, false));
@@ -784,7 +771,7 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
       adapter.getItems().addAll(1, items);
       adapter.notifyItemRangeInserted(1, items.size());
     } else {
-      int count = adapter.indexOfViewById(R.id.btn_contacts) - 1;
+      int count = adapter.indexOfViewById(R.id.btn_addAccount) + 1; // TGx101: the menu's first item may be any (user's order)
       adapter.removeRange(1, count);
     }
   }
@@ -942,14 +929,51 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
   public void onProxyAvailabilityChanged (boolean isAvailable) {
     if (this.proxyAvailable != isAvailable) {
       this.proxyAvailable = isAvailable;
-      if (isAvailable) {
-        int i = adapter.indexOfViewByIdReverse(R.id.btn_settings);
-        adapter.addItem(i + 1, proxyItem);
-      } else {
-        int i = adapter.indexOfViewById(R.id.btn_proxy);
-        adapter.removeItem(i);
-      }
+      tgx101RebuildMenu(); // the proxy item takes its place in the user's order
     }
+  }
+
+  // TGx101 (user 2026-10-12 00:15, «это меню должно быть редактируемым»): the menu items go in the user's order
+  // (MagiX → «Side menu items»: drag to reorder, switch off what isn't needed); night mode keeps its line above it
+  private int tgx101MenuCount;
+
+  private int tgx101BuildMenu (List<ListItem> items) {
+    int start = items.size();
+    for (String entry : org.thunderdog.challegram.ui.Tgx101BarOrder.getOrder(org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_DRAWER)) {
+      if (entry.startsWith("-")) continue;
+      switch (entry) {
+        case org.thunderdog.challegram.ui.Tgx101BarOrder.DRAWER_CALLS:
+          if (!Settings.instance().chatFoldersEnabled()) continue;
+          break;
+        case org.thunderdog.challegram.ui.Tgx101BarOrder.DRAWER_PROXY:
+          if (!proxyAvailable) continue;
+          proxyItem.setSelected(Settings.instance().getEffectiveProxyId() != Settings.PROXY_ID_NONE);
+          items.add(proxyItem);
+          continue;
+        case org.thunderdog.challegram.ui.Tgx101BarOrder.DRAWER_NIGHT:
+          if (items.size() > start) items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+          items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM_WITH_RADIO, R.id.btn_night, R.drawable.baseline_brightness_2_24, R.string.NightMode, R.id.btn_night, Theme.isDark()));
+          continue;
+      }
+      items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, org.thunderdog.challegram.ui.Tgx101BarOrder.drawerIdOf(entry), org.thunderdog.challegram.ui.Tgx101BarOrder.drawerIconOf(entry), org.thunderdog.challegram.ui.Tgx101BarOrder.drawerNameOf(entry)));
+    }
+    return items.size() - start;
+  }
+
+  private int tgx101MenuStart () {
+    if (!showingAccounts) return 1;
+    int addAccount = adapter.indexOfViewById(R.id.btn_addAccount);
+    return addAccount != -1 ? addAccount + 2 : 1; // after «Add account» and its line
+  }
+
+  public void tgx101RebuildMenu () {
+    if (adapter == null) return;
+    int start = tgx101MenuStart();
+    if (tgx101MenuCount > 0) adapter.removeRange(start, tgx101MenuCount);
+    List<ListItem> menu = new ArrayList<>();
+    tgx101MenuCount = tgx101BuildMenu(menu);
+    adapter.getItems().addAll(start, menu);
+    adapter.notifyItemRangeInserted(start, menu.size());
   }
 
   @Override
