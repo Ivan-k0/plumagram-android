@@ -477,7 +477,11 @@ public class MediaBottomGalleryController extends MediaBottomBaseController<Medi
 
   @Override
   public void onPhotoOrVideoSelected (int selectedCount, ImageFile image, int selectionIndex) {
-    hideSoftwareKeyboard();
+    // TGx101 (user 2026-10-11): the selection circle in the viewer comes here too — while its caption is being typed
+    // the keyboard stays (hiding it here closed the caption); a tick in the grid still hides it
+    if (tgx101Viewer == null || tgx101Viewer.isDestroyed() || !tgx101Viewer.isInCaption()) {
+      hideSoftwareKeyboard();
+    }
     mediaLayout.setCounter(selectedCount);
   }
 
@@ -578,6 +582,8 @@ public class MediaBottomGalleryController extends MediaBottomBaseController<Medi
     adapter.clearSelectedImages((GridLayoutManager) getLayoutManager());
   }
 
+  private MediaViewController tgx101Viewer;
+
   @Override
   public boolean onPhotoOrVideoOpenRequested (ImageFile fromFile) {
     if (fromFile instanceof ImageGalleryFile && currentBucket != null) {
@@ -594,6 +600,7 @@ public class MediaBottomGalleryController extends MediaBottomBaseController<Medi
           .setFlag(MediaViewController.Args.FLAG_DISALLOW_MULTI_SELECTION_MEDIA, mediaLayout.inSingleMediaMode())
       ));
       controller.open();
+      tgx101Viewer = controller;
 
       return true;
     }
