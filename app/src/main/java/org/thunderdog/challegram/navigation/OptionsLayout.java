@@ -131,7 +131,7 @@ public class OptionsLayout extends LinearLayout implements Animated, RootFrameLa
 
   /** TGx101: sheets are floating cards (variant А of the «Окна» mockup) */
   public static final boolean TGX101_CARD = true;
-  public static final float TGX101_CARD_RADIUS = 22f, TGX101_CARD_GAP = 8f;
+  public static final float TGX101_CARD_RADIUS = 18f, TGX101_CARD_GAP = 8f;
 
   @Override
   public void onApplyMarginInsets (View child, FrameLayout.LayoutParams params, Rect legacyInsets, Rect insets, Rect insetsWithoutIme) {

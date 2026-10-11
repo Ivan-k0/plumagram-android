@@ -1912,6 +1912,15 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     showSettings(new SettingsWrapBuilder(id).setRawItems(rawItems).setIntDelegate(delegate).setAllowResize(allowResize));
   }
 
+  // TGx101 (user 11.10 18:36): buttons of the option windows — a bit smaller than the old 42 dp pills, the corner of
+  // the input capsule and menus (18 dp on a ~48 dp capsule ≈ 14 dp on 40 dp), even gaps from the card edges
+  private static final float TGX101_BUTTON_HEIGHT = 40f, TGX101_BUTTON_RADIUS = 14f, TGX101_BUTTON_SIDE = 16f,
+    TGX101_BUTTON_TOP = 12f, TGX101_BUTTON_BOTTOM = 16f, TGX101_BUTTON_BETWEEN = 10f;
+
+  private static int tgx101FooterHeight () {
+    return OptionsLayout.TGX101_CARD ? Screen.dp(TGX101_BUTTON_TOP + TGX101_BUTTON_HEIGHT + TGX101_BUTTON_BOTTOM) : Screen.dp(56f);
+  }
+
   private static class SettingsWrapLayout extends FrameLayoutFix implements RootFrameLayout.MarginModifier {
     public SettingsWrapLayout (@NonNull Context context) {
       super(context);
@@ -1920,9 +1929,16 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     @Override
     public void onApplyMarginInsets (View child, LayoutParams params, Rect legacyInsets, Rect insets, Rect insetsWithoutIme) {
       if (OptionsLayout.TGX101_CARD) {
-        // TGx101 (mockup «Окна», variant А): a floating card with side and bottom gaps
+        // TGx101 (mockup «Окна», variant А): a floating card with side and bottom gaps.
+        // The popup root drops a bottom inset no taller than the navigation bar, so the card sat on the
+        // gesture bar and looked cut off (screenshot 11.10 18:36): the navigation bar is a lower bound.
         int gap = Screen.dp(OptionsLayout.TGX101_CARD_GAP);
-        Views.setMargins(params, insets.left + gap, 0, insets.right + gap, insetsWithoutIme.bottom + gap);
+        int bottom = insetsWithoutIme.bottom;
+        androidx.core.view.WindowInsetsCompat rootInsets = androidx.core.view.ViewCompat.getRootWindowInsets(this);
+        if (rootInsets != null) {
+          bottom = Math.max(bottom, rootInsets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom);
+        }
+        Views.setMargins(params, insets.left + gap, 0, insets.right + gap, bottom + gap);
         setBottomInset(0);
         return;
       }
@@ -1957,11 +1973,11 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
       if (this.bottomInset != extraBottomInsetWithoutIme) {
         this.bottomInset = extraBottomInsetWithoutIme;
         if (footerView != null) {
-          footerView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(56f) + extraBottomInsetWithoutIme, Gravity.BOTTOM));
+          footerView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, tgx101FooterHeight() + extraBottomInsetWithoutIme, Gravity.BOTTOM));
           Views.setPaddingBottom(footerView, extraBottomInsetWithoutIme);
         }
         Views.applyBottomInset(recyclerView, footerView == null ? extraBottomInsetWithoutIme : 0);
-        Views.setBottomMargin(shadowView, Screen.dp(56f) + extraBottomInsetWithoutIme);
+        Views.setBottomMargin(shadowView, tgx101FooterHeight() + extraBottomInsetWithoutIme);
       }
     }
 
@@ -2055,7 +2071,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
 
           if (position == 0) {
             int contentHeight = settings.adapter.measureHeight(-1);
-            int controlsHeight = context.getRootView().getSystemInsetsWithoutIme().bottom + (b.disableFooter ? 0 : Screen.dp(56f));
+            int controlsHeight = context.getRootView().getSystemInsetsWithoutIme().bottom + (b.disableFooter ? 0 : tgx101FooterHeight()) + (OptionsLayout.TGX101_CARD ? Screen.dp(OptionsLayout.TGX101_CARD_GAP) : 0); // TGx101: the card floats above the bottom gap — without it the last row was cut off
             outRect.top = Math.max((Screen.currentHeight() - controlsHeight) / 2, Screen.currentHeight() - contentHeight - controlsHeight);
           } else {
             outRect.top = 0;
@@ -2074,7 +2090,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
       if (firstPosition == 0) {
         View view = manager.findViewByPosition(0);
         if (view != null) {
-          return Math.min(Screen.currentHeight(), Math.min(settingsLayout.getMeasuredHeight() - view.getTop(), settings.adapter.measureHeight(-1)) + Screen.dp(56f) + extraBottomInsetWithoutIme);
+          return Math.min(Screen.currentHeight(), Math.min(settingsLayout.getMeasuredHeight() - view.getTop(), settings.adapter.measureHeight(-1)) + tgx101FooterHeight() + extraBottomInsetWithoutIme);
         }
       }
       return Screen.currentHeight();
@@ -2166,8 +2182,20 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         }
       };
       ViewSupport.setThemedBackground(footerView, ColorId.filling, this);
-      footerView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(56f) + extraBottomInsetWithoutIme, Gravity.BOTTOM));
+      footerView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, tgx101FooterHeight() + extraBottomInsetWithoutIme, Gravity.BOTTOM));
       Views.setPaddingBottom(footerView, extraBottomInsetWithoutIme);
+
+      android.widget.LinearLayout buttonRow = null;
+      if (OptionsLayout.TGX101_CARD) {
+        // TGx101: «Cancel» and the action share the row equally, with even gaps around and between them
+        buttonRow = new android.widget.LinearLayout(context);
+        buttonRow.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        FrameLayoutFix.LayoutParams rowParams = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(TGX101_BUTTON_HEIGHT), Gravity.BOTTOM);
+        rowParams.leftMargin = rowParams.rightMargin = Screen.dp(TGX101_BUTTON_SIDE);
+        rowParams.bottomMargin = Screen.dp(TGX101_BUTTON_BOTTOM);
+        buttonRow.setLayoutParams(rowParams);
+        footerView.addView(buttonRow);
+      }
 
       for (int i = 0; i < 2; i++) {
         TextView button = new NoScrollTextView(context);
@@ -2175,7 +2203,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         int colorId = i == 1 ? b.saveColorId : b.cancelColorId;
         button.setTextColor(Theme.getColor(OptionsLayout.TGX101_CARD && i == 0 ? ColorId.text : colorId));
         if (!OptionsLayout.TGX101_CARD) addThemeTextColorListener(button, colorId);
-        button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
+        button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, OptionsLayout.TGX101_CARD ? 15f : 16f);
         button.setOnClickListener(onClickListener);
         if (!OptionsLayout.TGX101_CARD) button.setBackgroundResource(R.drawable.bg_btn_header);
         button.setGravity(Gravity.CENTER);
@@ -2183,18 +2211,15 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
 
         CharSequence text;
         if (OptionsLayout.TGX101_CARD) {
-          // TGx101 (mockup «Окна», variant А): two pills — «Cancel» grey, the action filled with its colour
-          int gap = Screen.dp(OptionsLayout.TGX101_CARD_GAP);
-          int width = (Screen.currentWidth() - gap * 2 - gap * 3) / 2;
+          // TGx101 (mockup «Окна», variant А; reworked 11.10): «Cancel» grey, the action filled with its colour
           android.graphics.drawable.GradientDrawable pill = new android.graphics.drawable.GradientDrawable();
-          pill.setCornerRadius(Screen.dp(21f));
+          pill.setCornerRadius(Screen.dp(TGX101_BUTTON_RADIUS));
           pill.setColor(i == 1 ? Theme.getColor(colorId) : me.vkryl.core.ColorUtils.alphaColor(.07f, Theme.getColor(ColorId.text)));
           button.setBackground(pill);
           if (i == 1) button.setTextColor(0xffffffff);
-          FrameLayoutFix.LayoutParams lp = FrameLayoutFix.newParams(width, Screen.dp(42f), ((i == 0) != Lang.rtl() ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM);
-          lp.leftMargin = lp.rightMargin = gap + gap / 2;
-          lp.bottomMargin = gap;
-          button.setLayoutParams(lp);
+          button.setSingleLine(true);
+          button.setEllipsize(android.text.TextUtils.TruncateAt.END);
+          button.setLayoutParams(new android.widget.LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
           button.setText(text = i == 0 ? b.cancelStr : b.saveStr);
           if (i == 0) settings.cancelButton = button; else settings.doneButton = button;
           button.setId(i == 0 ? R.id.btn_cancel : R.id.btn_save);
@@ -2212,12 +2237,19 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         Views.updateMediumTypeface(button, text);
 
         if (!OptionsLayout.TGX101_CARD) Views.setClickable(button);
-        footerView.addView(button);
+        if (buttonRow != null) {
+          buttonRow.addView(button, Lang.rtl() ? 0 : buttonRow.getChildCount()); // «Cancel» on the leading side
+        } else {
+          footerView.addView(button);
+        }
+      }
+      if (buttonRow != null && buttonRow.getChildCount() == 2) {
+        ((android.widget.LinearLayout.LayoutParams) buttonRow.getChildAt(1).getLayoutParams()).leftMargin = Screen.dp(TGX101_BUTTON_BETWEEN);
       }
     }
 
     FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
-    params.bottomMargin = footerView != null ? Screen.dp(56f) + extraBottomInsetWithoutIme : 0;
+    params.bottomMargin = footerView != null ? tgx101FooterHeight() + extraBottomInsetWithoutIme : 0;
 
     Views.applyBottomInset(recyclerView, footerView == null ? extraBottomInsetWithoutIme : 0);
     recyclerView.setAdapter(settings.adapter);
@@ -2233,7 +2265,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
 
     if (footerView != null) {
       params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(1f), Gravity.BOTTOM);
-      params.bottomMargin = Screen.dp(56f) + extraBottomInsetWithoutIme;
+      params.bottomMargin = tgx101FooterHeight() + extraBottomInsetWithoutIme;
       shadowView = SeparatorView.simpleSeparator(context, params, true);
       shadowView.setAlignBottom();
       if (OptionsLayout.TGX101_CARD) shadowView.setAlpha(0f); // the pills need no line above them
@@ -2244,15 +2276,15 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     settingsLayout.setBottomInsetTargets(recyclerView, footerView, shadowView, extraBottomInset);
 
     final int height = settings.adapter.measureHeight(-1);
-    final int desiredHeight = height + (footerView != null ? Screen.dp(56f) : 0) + extraBottomInsetWithoutIme;
+    final int desiredHeight = height + (footerView != null ? tgx101FooterHeight() : 0) + extraBottomInsetWithoutIme;
     final int popupHeight = Math.min(Screen.currentHeight(), desiredHeight);
 
     if (desiredHeight > Screen.currentActualHeight() && checkedIndex != -1) {
       int viewHeight = SettingHolder.measureHeightForType(items.get(checkedIndex).getViewType());
-      ((LinearLayoutManager) recyclerView.getLayoutManager()).scrollToPositionWithOffset(checkedIndex, (Screen.currentActualHeight() - Screen.dp(56f)) / 2 - viewHeight / 2);
+      ((LinearLayoutManager) recyclerView.getLayoutManager()).scrollToPositionWithOffset(checkedIndex, (Screen.currentActualHeight() - tgx101FooterHeight()) / 2 - viewHeight / 2);
     }
     popupLayout.addThemeListeners(this);
-    popupLayout.showSimplePopupView(settingsLayout, Math.min(Screen.currentHeight() / 2 + Screen.dp(56f), popupHeight));
+    popupLayout.showSimplePopupView(settingsLayout, Math.min(Screen.currentHeight() / 2 + tgx101FooterHeight(), popupHeight));
 
     onCreatePopupLayout(popupLayout);
     return settings;
