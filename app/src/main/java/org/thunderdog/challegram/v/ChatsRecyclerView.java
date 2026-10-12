@@ -105,6 +105,7 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
   private android.animation.ValueAnimator pullReturnAnimator;
   private final android.graphics.Paint pullPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
   private android.graphics.drawable.Drawable pullIcon;
+  private boolean pullIconStories;
 
   @Override
   public boolean dispatchTouchEvent (MotionEvent e) {
@@ -238,8 +239,10 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
       c.drawArc(arc, -90f, 360f * progress, false, pullPaint);
     }
     // magnifier
-    if (pullIcon == null) {
-      pullIcon = org.thunderdog.challegram.tool.Drawables.get(getResources(), org.thunderdog.challegram.R.drawable.baseline_search_24);
+    boolean stories = controller != null && controller.tgx101PullOpensStories();
+    if (pullIcon == null || pullIconStories != stories) {
+      pullIconStories = stories;
+      pullIcon = org.thunderdog.challegram.tool.Drawables.get(getResources(), stories ? org.thunderdog.challegram.R.drawable.baseline_camera_alt_24 : org.thunderdog.challegram.R.drawable.baseline_search_24);
       if (pullIcon != null) pullIcon = pullIcon.mutate();
     }
     if (pullIcon != null) {

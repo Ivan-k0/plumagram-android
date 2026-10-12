@@ -524,6 +524,13 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101StoryDeleteDraftQuestion, "Удалить этот черновик?");
     RU.put(R.string.Tgx101StoryFromGallery, "Фото из галереи");
     RU.put(R.string.Tgx101StoryDraftsCount, "Черновики · %1$d");
+    RU.put(R.string.Tgx101PullAction, "Свайп вниз в списке чатов");
+    RU.put(R.string.Tgx101PullSearch, "Поиск");
+    RU.put(R.string.Tgx101PullStories, "Истории");
+    RU.put(R.string.Tgx101PullNothing, "Ничего");
+    RU.put(R.string.Tgx101PullNoStories, "Сейчас нет историй");
+    RU.put(R.string.Tgx101SectionChannelsAds, "Каналы и реклама");
+    RU.put(R.string.Tgx101SectionChannelsHint, "Рекламные посты в каналах не показываются; кнопку «Вступить» тоже можно скрыть.");
     RU.put(R.string.Tgx101SearchHoldProxy, "Удержание поиска в чатах — прокси");
     RU.put(R.string.Tgx101UnofficialTitle, "Неофициальная сборка");
     RU.put(R.string.Tgx101UnofficialText, "Этот PlumaGram подписан не автором, а кем-то другим — его могли изменить как угодно. Официальная версия — на 4PDA и в канале @plumagram.");

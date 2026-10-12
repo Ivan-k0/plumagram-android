@@ -331,6 +331,10 @@ public final class Tgx101StoryEditor extends Dialog {
     rail.addView(labeledIcon(context, R.drawable.baseline_zoom_out_map_24, R.string.Tgx101ToolFit, v -> { pushUndo(); fitPhoto(); schedulePreview(); canvasView.invalidate(); }));
     rail.addView(labeledIcon(context, R.drawable.baseline_palette_24, R.string.Tgx101ToolBackground, v -> { pushUndo(); background = (background + 1) % 3; schedulePreview(); canvasView.invalidate(); toastBackground(); }));
     rail.addView(labeledIcon(context, R.drawable.baseline_visibility_24, R.string.Tgx101ToolPreview, v -> setPreview(!previewMode)));
+    // TGx101 (user's photo 2026-10-12 13:50 «ничего не читается и налазит текст»): the tools sit on one dark glass
+    // panel, so their names read on any photo
+    rail.setBackground(glassBackground(26f));
+    rail.setPadding(0, Screen.dp(8f), 0, 0);
     FrameLayout.LayoutParams railParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.RIGHT | Gravity.TOP);
     railParams.topMargin = Screen.dp(66f);
     railParams.rightMargin = Screen.dp(6f);
@@ -1923,9 +1927,12 @@ public final class Tgx101StoryEditor extends Dialog {
         int layer = c.saveLayerAlpha(0, 0, getWidth(), getHeight(), Math.round(255 * (1f - previewFactor)));
         c.drawLine(frame.left, top, frame.right, top, dash);
         c.drawLine(frame.left, bottom, frame.right, bottom, dash);
-        label.setTextAlign(Paint.Align.RIGHT);
-        c.drawText(Lang.getString(R.string.Tgx101StoryZoneHeader), frame.right - Screen.dp(8f), top - Screen.dp(5f), label);
-        c.drawText(Lang.getString(R.string.Tgx101StoryZoneReply), frame.right - Screen.dp(8f), bottom - Screen.dp(5f), label);
+        // on the left, away from the tool panel on the right; a soft shadow keeps them readable on light photos
+        label.setTextAlign(Paint.Align.LEFT);
+        label.setShadowLayer(Screen.dp(3f), 0, 0, 0xcc000000);
+        c.drawText(Lang.getString(R.string.Tgx101StoryZoneHeader), frame.left + Screen.dp(10f), top - Screen.dp(5f), label);
+        c.drawText(Lang.getString(R.string.Tgx101StoryZoneReply), frame.left + Screen.dp(10f), bottom - Screen.dp(5f), label);
+        label.clearShadowLayer();
         c.restoreToCount(layer);
       }
       if (snapX) c.drawLine(frame.centerX(), frame.top, frame.centerX(), frame.bottom, guide);

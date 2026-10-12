@@ -802,7 +802,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   // Other
 
   private void checkCaptionButtonsY () {
-    final float offset = keyboardFrameLayout != null && keyboardFrameLayout.getVisibility() == View.VISIBLE && keyboardFrameLayout.getParent() != null ? keyboardFrameLayout.getMeasuredHeight() : 0;
+    float offset = keyboardFrameLayout != null && keyboardFrameLayout.getVisibility() == View.VISIBLE && keyboardFrameLayout.getParent() != null ? keyboardFrameLayout.getMeasuredHeight() : 0;
+    // TGx101 (user's photo 2026-10-12 13:59 «сделай отступ между клавиатурой и полем ввода»): the capsule's bottom
+    // edge went under the keyboard, so its text and smiley looked set too high — it now floats 8 dp above it
+    if (offset > 0 || getKeyboardState()) offset += Screen.dp(8f);
     captionEmojiButton.setTranslationY(-offset);
     captionDoneButton.setTranslationY(-offset);
     captionWrapView.setTranslationY(-offset);
@@ -993,6 +996,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       }
       setInCaption(visible || emojiShown);
       mediaView.layoutCells();
+      if (captionWrapView != null) checkCaptionButtonsY();
       return res;
     }
     return super.onKeyboardStateChanged(visible);
@@ -10476,7 +10480,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     // TGx101 (user 11.10, screenshot 21:47): the ✓ got lost on the glass capsule — a filled bubble under it with the
     // corner of the new buttons and the field (14 dp on 40 dp)
     android.graphics.drawable.GradientDrawable doneBubble = new android.graphics.drawable.GradientDrawable();
-    doneBubble.setColor(getForcedTheme().getColor(ColorId.circleButtonRegular));
+    doneBubble.setColor(0xff2f6aa3); // TGx101 (user 2026-10-12 «покрась фон стрелки в фирменный тёмный синий»)
     doneBubble.setCornerRadius(Screen.dp(14f));
     captionDoneButton.setBackground(new android.graphics.drawable.InsetDrawable(doneBubble, (Screen.dp(55f) - Screen.dp(40f)) / 2, (Screen.dp(52f) - Screen.dp(40f)) / 2, (Screen.dp(55f) - Screen.dp(40f)) / 2, (Screen.dp(52f) - Screen.dp(40f)) / 2));
     captionDoneButton.setAlpha(0f);

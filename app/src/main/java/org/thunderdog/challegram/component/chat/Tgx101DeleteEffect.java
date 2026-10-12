@@ -42,7 +42,7 @@ import java.util.ArrayList;
 public final class Tgx101DeleteEffect extends View {
   private static final float SWEEP = .45f, JITTER = .12f, LIFE_MIN = .55f, LIFE_RANGE = .4f, FLASH = .16f;
   private static final float END = SWEEP + JITTER + LIFE_MIN + LIFE_RANGE;
-  private static final float PIXEL_DP = 1.25f;
+  private static final float PIXEL_DP = 2f; // TGx101 (user 2026-10-12 14:00 «блоки чуть крупнее»): was 1.25
   private static final int MAX_PARTICLES_FAST = 12000, MAX_PARTICLES_SLOW = 2000;
   private static final long MAX_SNAPSHOT = 1_500_000L;
   private static final int BATCH = 8000; // 4 vertices each — stays under the 16-bit index limit

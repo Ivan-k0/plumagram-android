@@ -3138,6 +3138,12 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
       return false;
     }
 
+    if (pressedQuote != null && e.getAction() == MotionEvent.ACTION_UP && pendingQuotePress != null) {
+      // TGx101: a quick tap — the ripple starts now, together with the release
+      Runnable press = pendingQuotePress;
+      if (pendingQuotePressView != null) pendingQuotePressView.removeCallbacks(press);
+      press.run();
+    }
     if (pressedQuote != null && e.getAction() != MotionEvent.ACTION_DOWN && pendingQuotePress == null) {
       pressedQuote.onTouchEvent(view, e);
     }
@@ -3165,7 +3171,9 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
                 }
                 down.recycle();
               };
-              view.postDelayed(pendingQuotePress, android.view.ViewConfiguration.getTapTimeout());
+              // TGx101 (user's video 2026-10-12 14:17 «ложные мигания… когда пролистываешь цитаты»): with the 100 ms tap
+              // timeout a slow scroll (the finger rests a moment first) still started the ripple — it waits longer now
+              view.postDelayed(pendingQuotePress, 260);
               if ((textFlags & FLAG_CUSTOM_LONG_PRESS) != 0) {
                 scheduleLongPress(view, callback);
               } else {

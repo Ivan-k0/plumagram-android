@@ -3328,6 +3328,18 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     int[] focus = scrollMessage.tgx101FocusBounds();
     boolean tallFocus = focus[1] - focus[0] >= height;
     if (highlightMode == HIGHLIGHT_MODE_UNREAD || highlightMode == HIGHLIGHT_MODE_UNREAD_NEXT || (tallFocus && fullHeight + scrollMessage.findTopEdge() >= height)) {
+      // TGx101 (user's video 2026-10-12 14:51 «подпрыгивания в каналах»): the chat opens already showing this post,
+      // then the jump to it (once the history arrived, mid-animation) nudged it by a few pixels. Nearly there — stay
+      RecyclerView list = controller.getMessagesView();
+      View shown = list != null && !smooth ? manager.findViewByPosition(index) : null;
+      if (shown != null) {
+        int current = list.getHeight() - list.getPaddingBottom() - shown.getBottom();
+        if (Math.abs(current - (height - fullHeight)) < Screen.dp(48f)) {
+          org.thunderdog.challegram.Tgx101Diag.mark("jump: unread post already in place (" + (current - (height - fullHeight)) + " px off) — no nudge");
+          wasScrollByUser = false;
+          return;
+        }
+      }
       scrollToPositionWithOffset(index, height - fullHeight, smooth, isPlayingRoundMessage);
       wasScrollByUser = false;
     } else {

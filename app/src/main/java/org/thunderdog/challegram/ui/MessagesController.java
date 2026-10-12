@@ -7242,6 +7242,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (messagesHidden) {
       isVisible = false;
     }
+    // TGx101 (user's video 2026-10-12 14:06 «во время печати стрелка прыгает… можно её вообще убирать во время набора»):
+    // while something is being typed the arrow rode up and down with the growing field — it waits until the field is empty
+    if (isVisible && inputView != null && inputView.getText() != null && inputView.getText().length() > 0 && getKeyboardState()) {
+      isVisible = false;
+    }
     scrollToBottomVisible.setValue(isVisible, animated);
     scrollToBottomReverse.setValue(isReverse, animated && scrollToBottomVisible.getFloatValue() > 0f);
     checkExtraPadding();
@@ -10148,6 +10153,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   @Override
   public boolean onKeyboardStateChanged (boolean visible) {
     updateBottomWrapOffset(); // TGx101: the 16dp gap under the input bar depends on the keyboard
+    if (manager != null) UI.post(() -> { if (manager != null) manager.checkScrollToBottomButton(); }); // the arrow is back once the keyboard is down
     if (isEventLog()) {
       bottomWrap.setVisibility(visible ? View.INVISIBLE : View.VISIBLE);
       bottomSpace.setVisibility(visible ? View.INVISIBLE : View.VISIBLE);
@@ -11047,6 +11053,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   public void onInputTextChange (CharSequence charSequence, boolean byUserAction) {
+    if (manager != null && (charSequence == null || charSequence.length() <= 1)) {
+      manager.checkScrollToBottomButton(); // TGx101: the arrow hides with the first letter and comes back with an empty field
+    }
     if (sendMenu != null) {
       sendMenu.hideMenu();
     }

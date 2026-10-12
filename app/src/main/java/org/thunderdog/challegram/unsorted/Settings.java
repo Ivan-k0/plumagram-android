@@ -3462,6 +3462,18 @@ public class Settings {
     pmc.putBoolean(KEY_PULL_TO_SEARCH, enabled);
   }
 
+  // TGx101 (user 2026-10-12 14:54 «выбирать что будет вызываться по свайпу вниз в чатах»): search / stories / nothing
+  public static final int TGX101_PULL_SEARCH = 0, TGX101_PULL_STORIES = 1, TGX101_PULL_NOTHING = 2;
+
+  public int tgx101PullAction () {
+    return pmc.getInt("tgx101_pull_action", isPullToSearchEnabled() ? TGX101_PULL_SEARCH : TGX101_PULL_NOTHING);
+  }
+
+  public void setTgx101PullAction (int action) {
+    pmc.putInt("tgx101_pull_action", action);
+    setPullToSearchEnabled(action != TGX101_PULL_NOTHING);
+  }
+
   // TGx101: status bar icon of message notifications — PlumaGram bird (default) or the Telegram plane
   private static final String KEY_TGX101_NOTIFICATION_PLANE = "tgx101_notification_plane";
 

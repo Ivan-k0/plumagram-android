@@ -196,9 +196,31 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   }
 
   public void openSearchByPull () {
+    if (Settings.instance().tgx101PullAction() == Settings.TGX101_PULL_STORIES) {
+      // the first chat with unseen stories (else the first one) in the strip
+      if (tgx101StoriesStrip != null) {
+        java.util.List<TdApi.ChatActiveStories> ordered = tgx101StoriesStrip.ordered();
+        TdApi.ChatActiveStories pick = null;
+        for (TdApi.ChatActiveStories s : ordered) {
+          if (s.stories.length > 0 && s.stories[s.stories.length - 1].storyId > s.maxReadStoryId) { pick = s; break; }
+        }
+        if (pick == null && !ordered.isEmpty()) pick = ordered.get(0);
+        if (pick != null) {
+          org.thunderdog.challegram.Tgx101Diag.mark("chats: pull down → stories");
+          tgx101StoriesHandler.openStoriesOf(pick.chatId);
+          return;
+        }
+      }
+      UI.showToast(R.string.Tgx101PullNoStories, android.widget.Toast.LENGTH_SHORT);
+      return;
+    }
     if (parentController != null) {
       parentController.onMenuItemPressed(R.id.menu_btn_search, null);
     }
+  }
+
+  public boolean tgx101PullOpensStories () {
+    return Settings.instance().tgx101PullAction() == Settings.TGX101_PULL_STORIES;
   }
 
   public interface PickerDelegate {
@@ -1241,6 +1263,11 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
         tgx101SyncStoriesStrip();
       }
+
+      @Override
+      public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
+        if (newState == RecyclerView.SCROLL_STATE_IDLE) tgx101SyncStoriesStrip(); // a padding change put off during the fling
+      }
     });
     chatsView.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> chatsView.post(this::tgx101SyncStoriesStrip));
     tgx101StripCreated = android.os.SystemClock.uptimeMillis();
@@ -1401,6 +1428,12 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     View first = lm != null ? lm.findViewByPosition(0) : null;
     if (first != null) {
       offset = Math.max(0, chatsView.getPaddingTop() - first.getTop());
+    } else if (chatsView.isLayoutRequested() && chatsView.canScrollVertically(-1)) {
+      // TGx101 (user's video 2026-10-12 13:56 «фантомные появления при переходе на папку»): swiping between folders
+      // relays the list out — a scrolled list without its first row showed the strip at the top for a frame. Scrolled
+      // down it stays hidden; the next layout syncs it again
+      offset = Integer.MAX_VALUE / 2;
+      chatsView.post(this::tgx101SyncStoriesStrip);
     } else if (!chatsView.canScrollVertically(-1) || chatsView.isLayoutRequested()) {
       // TGx101 (user's screenshot 2026-10-12 10:35 «после выхода из истории появляется залитая плашка»): right after the
       // story viewer closed the list wasn't laid out yet — no first row, so the folded row was slid up behind the header
@@ -1412,7 +1445,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       // TGx101 (user's screenshot 2026-10-12 12:56 «опять фантомная плашка»): scrolled far down the strip is gone, but the
       // list kept its top padding for it — rows recycled out of that band left it empty (white with the strip's line).
       // Away from the top there's no padding; it comes back (with the strip) when the first row is near again
-      if (chatsView.getPaddingTop() != 0) {
+      // TGx101 (user's video 2026-10-12 15:22 «первый свайп, когда чаты вверху, не работает»): taking the padding off
+      // re-positions the list, which stopped the fling that had just scrolled the strip away — it waits until the list rests
+      if (chatsView.getPaddingTop() != 0 && chatsView.getScrollState() == RecyclerView.SCROLL_STATE_IDLE) {
         org.thunderdog.challegram.Tgx101Diag.mark("stories strip: scrolled away, list padding off");
         tgx101SetListPaddingKeepingPlace(0);
       }

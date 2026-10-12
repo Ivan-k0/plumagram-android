@@ -362,7 +362,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           int count = org.thunderdog.challegram.data.Tgx101MessageFilters.getRules().size();
           view.setData(count == 0 || !org.thunderdog.challegram.data.Tgx101MessageFilters.isEnabled() ? Lang.getString(R.string.Tgx101FiltersOff) : Integer.toString(count));
         } else if (itemId == R.id.btn_pullToSearch) {
-          view.getToggler().setRadioEnabled(Settings.instance().isPullToSearchEnabled(), isUpdate);
+          int action = Settings.instance().tgx101PullAction();
+          view.setData(action == Settings.TGX101_PULL_STORIES ? R.string.Tgx101PullStories : action == Settings.TGX101_PULL_NOTHING ? R.string.Tgx101PullNothing : R.string.Tgx101PullSearch);
         } else if (itemId == R.id.btn_roundStabilization) {
           view.setData(roundStabilizationName(Settings.instance().getRoundStabilizationMode()));
         } else if (itemId == R.id.btn_roundVideoQuality) {
@@ -500,7 +501,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NextChannelSwipe, 0, R.string.Tgx101NextChannelSwipe),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_pullToSearch, 0, R.string.PullToSearch),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_pullToSearch, 0, R.string.Tgx101PullAction),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101FloatingInput, 0, R.string.Tgx101FloatingInput),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1047,14 +1048,16 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     }
     int[] bottomMenu = {R.id.btn_tgx101CapsuleMenu, R.id.btn_tgx101ContactsMenu, R.id.btn_tgx101QuickCalls, R.id.btn_tgx101BottomGap, R.id.btn_tgx101HideCompose};
     int[] inputButtons = {R.id.btn_tgx101HideInputCamera, R.id.btn_tgx101HideInputCommands, R.id.btn_tgx101HideInputEmoji};
-    int[] other = {R.id.btn_tgx101HideJoin, R.id.btn_tgx101HideSponsored, R.id.btn_tgx101RearRounds, R.id.btn_tgx101HidePhone, R.id.btn_tgx101NotificationPlane, R.id.btn_tgx101ForegroundNotif};
+    // TGx101 (user 2026-10-12 14:52 «не видно где выключатель рекламы»): channel switches get their own section
+    int[] channels = {R.id.btn_tgx101HideSponsored, R.id.btn_tgx101HideJoin};
+    int[] other = {R.id.btn_tgx101RearRounds, R.id.btn_tgx101HidePhone, R.id.btn_tgx101NotificationPlane, R.id.btn_tgx101ForegroundNotif};
     java.util.Map<Integer, ListItem> byId = new java.util.HashMap<>();
     byId.put(R.id.btn_tgx101HideCompose, new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideCompose, 0, R.string.Tgx101HideCompose));
     byId.put(R.id.btn_tgx101HideJoin, new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideJoin, 0, R.string.Tgx101HideJoin));
     byId.put(R.id.btn_tgx101HideSponsored, new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideSponsored, 0, R.string.Tgx101HideSponsored));
     for (ListItem item : raw) if (item.getId() != 0) byId.put(item.getId(), item);
     java.util.Set<Integer> moved = new java.util.HashSet<>();
-    for (int[] g : new int[][] {bottomMenu, inputButtons, other}) for (int id : g) moved.add(id);
+    for (int[] g : new int[][] {bottomMenu, inputButtons, channels, other}) for (int id : g) moved.add(id);
     java.util.List<ListItem> out = new java.util.ArrayList<>();
     for (int i = 0; i < raw.length; i++) {
       ListItem item = raw[i];
@@ -1071,6 +1074,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       if (item.getViewType() == ListItem.TYPE_SHADOW_BOTTOM && i > 0 && tgx101SectionHas(raw, i, R.id.btn_pullToSearch)) {
         tgx101AddGroup(out, byId, R.string.Tgx101SectionBottomMenu, bottomMenu, 0);
         tgx101AddGroup(out, byId, R.string.Tgx101SectionInputButtons, inputButtons, R.string.Tgx101SectionInputButtonsHint);
+        tgx101AddGroup(out, byId, R.string.Tgx101SectionChannelsAds, channels, R.string.Tgx101SectionChannelsHint);
         tgx101AddGroup(out, byId, R.string.Tgx101SectionOther, other, 0);
       }
     }
@@ -1191,7 +1195,15 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     } else if (id == R.id.btn_tgx101Filters) {
       navigateTo(new Tgx101FiltersController(context, tdlib));
     } else if (id == R.id.btn_pullToSearch) {
-      Settings.instance().setPullToSearchEnabled(toggleResult); // the view was already toggled above
+      // TGx101 (user 2026-10-12 14:54): what a pull down at the top of the chat list does
+      showOptions(Lang.getString(R.string.Tgx101PullAction), new int[] {R.id.btn_search, R.id.btn_tgx101NewStory, R.id.btn_disabled},
+        new String[] {Lang.getString(R.string.Tgx101PullSearch), Lang.getString(R.string.Tgx101PullStories), Lang.getString(R.string.Tgx101PullNothing)},
+        null, new int[] {R.drawable.baseline_search_24, R.drawable.baseline_camera_alt_24, R.drawable.baseline_block_24}, (optionView, optionId) -> {
+          int action = optionId == R.id.btn_tgx101NewStory ? Settings.TGX101_PULL_STORIES : optionId == R.id.btn_disabled ? Settings.TGX101_PULL_NOTHING : Settings.TGX101_PULL_SEARCH;
+          Settings.instance().setTgx101PullAction(action);
+          adapter.updateValuedSettingById(R.id.btn_pullToSearch);
+          return true;
+        });
     } else if (id == R.id.btn_showDiscussButton) {
       Settings.instance().setShowDiscussButton(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101CallPhoto) {
