@@ -1,5 +1,5 @@
 Copyright 2016 The Merriweather Project Authors (https://github.com/EbenSorkin/Merriweather)
-File: Story-mw_bold.ttf (Merriweather Bold, as bundled by the official Telegram Android app)
+Files: Story-mw_bold.ttf (Merriweather Bold, as bundled by the official Telegram Android app), Merriweather-Regular.ttf (Google Fonts)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

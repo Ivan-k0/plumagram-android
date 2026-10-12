@@ -201,6 +201,14 @@ public class Fonts {
     if (font == Settings.APP_FONT_PT_SERIF) {
       return loadFont(weight >= 560 ? "fonts/StoryPTSerif-Bold.ttf" : "fonts/StoryPTSerif-Regular.ttf", () -> Typeface.SERIF);
     }
+    // TGx101 (user 2026-10-12 «шрифты для системы тоже»): the story fonts of the official app for the whole app too
+    if (font == Settings.APP_FONT_MERRIWEATHER) {
+      return loadFont(weight >= 560 ? "fonts/Story-mw_bold.ttf" : "fonts/Merriweather-Regular.ttf", () -> Typeface.SERIF);
+    }
+    if (font == Settings.APP_FONT_CONDENSED) {
+      if (weight >= 560) return loadFont("fonts/Story-rcondensedbold.ttf", () -> Typeface.create("sans-serif-condensed", Typeface.BOLD));
+      return Typeface.create("sans-serif-condensed", Typeface.NORMAL);
+    }
     return null;
   }
 

@@ -384,7 +384,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(textWeightName(Settings.instance().getTextWeight()));
         } else if (itemId == R.id.btn_tgx101Font) {
           int appFont = Settings.instance().getAppFont();
-          view.setData(appFont == Settings.APP_FONT_SYSTEM ? R.string.Tgx101FontSystem : appFont == Settings.APP_FONT_ROBOTO ? R.string.Tgx101FontRoboto : appFont == Settings.APP_FONT_MONTSERRAT ? R.string.Tgx101FontMontserrat : appFont == Settings.APP_FONT_PT_SERIF ? R.string.Tgx101FontPtSerif : R.string.Tgx101FontManrope);
+          view.setData(appFont == Settings.APP_FONT_SYSTEM ? R.string.Tgx101FontSystem : appFont == Settings.APP_FONT_ROBOTO ? R.string.Tgx101FontRoboto : appFont == Settings.APP_FONT_MONTSERRAT ? R.string.Tgx101FontMontserrat : appFont == Settings.APP_FONT_PT_SERIF ? R.string.Tgx101FontPtSerif : appFont == Settings.APP_FONT_MERRIWEATHER ? R.string.Tgx101FontMerriweather : appFont == Settings.APP_FONT_CONDENSED ? R.string.Tgx101FontCondensed : R.string.Tgx101FontManrope);
         } else if (itemId == R.id.btn_toggleNewSetting) {
           updateSettingView(view, item, isUpdate);
         }
@@ -1436,6 +1436,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101FontRoboto, 0, R.string.Tgx101FontRoboto, id, appFont == Settings.APP_FONT_ROBOTO),
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101FontMontserrat, 0, R.string.Tgx101FontMontserrat, id, appFont == Settings.APP_FONT_MONTSERRAT),
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101FontPtSerif, 0, R.string.Tgx101FontPtSerif, id, appFont == Settings.APP_FONT_PT_SERIF),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101FontMerriweather, 0, R.string.Tgx101FontMerriweather, id, appFont == Settings.APP_FONT_MERRIWEATHER),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101FontCondensed, 0, R.string.Tgx101FontCondensed, id, appFont == Settings.APP_FONT_CONDENSED),
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101FontSystem, 0, R.string.Tgx101FontSystem, id, appFont == Settings.APP_FONT_SYSTEM)
       }).setIntDelegate(this));
     } else if (id == R.id.btn_chatFontSize) {
@@ -1630,7 +1632,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     } else if (id == R.id.btn_tgx101Font) {
       int res = result.get(R.id.btn_tgx101Font);
       int appFont = res == R.id.btn_tgx101FontSystem ? Settings.APP_FONT_SYSTEM : res == R.id.btn_tgx101FontRoboto ? Settings.APP_FONT_ROBOTO
-        : res == R.id.btn_tgx101FontMontserrat ? Settings.APP_FONT_MONTSERRAT : res == R.id.btn_tgx101FontPtSerif ? Settings.APP_FONT_PT_SERIF : Settings.APP_FONT_MANROPE;
+        : res == R.id.btn_tgx101FontMontserrat ? Settings.APP_FONT_MONTSERRAT : res == R.id.btn_tgx101FontPtSerif ? Settings.APP_FONT_PT_SERIF
+        : res == R.id.btn_tgx101FontMerriweather ? Settings.APP_FONT_MERRIWEATHER : res == R.id.btn_tgx101FontCondensed ? Settings.APP_FONT_CONDENSED : Settings.APP_FONT_MANROPE;
       if (appFont != Settings.instance().getAppFont()) {
         Settings.instance().setAppFont(appFont);
         adapter.updateValuedSettingById(R.id.btn_tgx101Font);
