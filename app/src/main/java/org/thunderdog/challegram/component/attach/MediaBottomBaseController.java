@@ -610,6 +610,12 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
   }
 
   public boolean handleFling (boolean toUp) {
+    return handleFling(toUp, 0f);
+  }
+
+  /** TGx101 (user 2026-10-12 «второй режим лишний»): a flick up opens the sheet AND keeps scrolling the grid with
+   *  the rest of the flick — one gesture, no «expanded but not yet scrolling» stop */
+  public boolean handleFling (boolean toUp, float velocityY) {
     if (isMoving) {
       isMoving = false;
       useBottomBarChange = false;
@@ -620,6 +626,10 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
       if (toUp) {
         if (canExpandHeight()) {
           animateCurrentHeight(getMaxHeight(), false);
+          if (velocityY < 0f && recyclerView != null) {
+            final int v = Math.round(-velocityY * .7f);
+            recyclerView.post(() -> recyclerView.fling(0, v));
+          }
         } else {
           animateCurrentHeight(startHeight, true);
         }

@@ -227,6 +227,6 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
 
   @Override
   public boolean onFling (MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-    return Math.abs(velocityY) > Screen.dp(140, 1f) && base.handleFling(velocityY < 0); // TGx101: a light flick is enough
+    return Math.abs(velocityY) > Screen.dp(140, 1f) && base.handleFling(velocityY < 0, velocityY); // TGx101: a light flick is enough
   }
 }
