@@ -310,23 +310,65 @@ public final class Tgx101StoryEditor extends Dialog {
     setContentView(root);
     Window window = getWindow();
     if (window != null) {
-      window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+      if (Build.VERSION.SDK_INT >= 30) {
+        // TGx101 (user's video 2026-10-12 «прыгает клавиатура при вводе текста»): the window isn't resized at all — the
+        // panels ride up with the keyboard frame by frame (the system's keyboard animation), like the chat's field
+        window.setDecorFitsSystemWindows(false);
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
+      } else {
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+      }
       window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
     }
-    // TGx101 (user 2026-10-12 «убрал клавиатуру, хочу продолжить писать — редактор текста перекрыт клавиатурой»): a full-screen
-    // dialog isn't resized by the keyboard — the panels rise by its height themselves (window insets, or the visible frame)
     androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
-      setImeHeight(insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom);
+      int imeBottom = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom;
+      if (Build.VERSION.SDK_INT >= 30) imeBottom = Math.max(0, imeBottom - insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom);
+      if (!imeAnimating) setImeHeight(imeBottom);
+      if (Build.VERSION.SDK_INT >= 30) {
+        // edge to edge now: keep the top bar under the status bar and the bottom over the navigation bar
+        androidx.core.graphics.Insets bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars());
+        if (root.getPaddingTop() != bars.top || root.getPaddingBottom() != bars.bottom) root.setPadding(0, bars.top, 0, bars.bottom);
+      }
       return insets;
     });
-    root.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
-      if (root.getHeight() > maxRootHeight) maxRootHeight = root.getHeight();
-      applyImeLift();
-      android.graphics.Rect r = new android.graphics.Rect();
-      root.getWindowVisibleDisplayFrame(r);
-      int hidden = root.getRootView().getHeight() - r.bottom;
-      if (hidden > Screen.dp(120f) || imeHeight == 0 || hidden < imeHeight) setImeHeight(Math.max(0, hidden > Screen.dp(120f) ? hidden : 0));
+    androidx.core.view.ViewCompat.setWindowInsetsAnimationCallback(root, new androidx.core.view.WindowInsetsAnimationCompat.Callback(androidx.core.view.WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_STOP) {
+      @Override
+      public void onPrepare (@NonNull androidx.core.view.WindowInsetsAnimationCompat animation) {
+        if ((animation.getTypeMask() & androidx.core.view.WindowInsetsCompat.Type.ime()) != 0) imeAnimating = true;
+      }
+
+      @NonNull
+      @Override
+      public androidx.core.view.WindowInsetsCompat onProgress (@NonNull androidx.core.view.WindowInsetsCompat insets, @NonNull java.util.List<androidx.core.view.WindowInsetsAnimationCompat> running) {
+        int ime = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom;
+        int nav = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom;
+        setImeHeight(Math.max(0, ime - nav)); // the root is already padded above the navigation bar
+        return insets;
+      }
+
+      @Override
+      public void onEnd (@NonNull androidx.core.view.WindowInsetsAnimationCompat animation) {
+        if ((animation.getTypeMask() & androidx.core.view.WindowInsetsCompat.Type.ime()) == 0) return;
+        imeAnimating = false;
+        androidx.core.view.WindowInsetsCompat now = androidx.core.view.ViewCompat.getRootWindowInsets(root);
+        if (now != null) {
+          int ime = now.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom;
+          int nav = now.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom;
+          setImeHeight(Math.max(0, ime - nav));
+        }
+      }
     });
+    if (Build.VERSION.SDK_INT < 30) {
+      // older systems: the window may or may not resize — measure what the keyboard took
+      root.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+        if (root.getHeight() > maxRootHeight) maxRootHeight = root.getHeight();
+        applyImeLift();
+        android.graphics.Rect r = new android.graphics.Rect();
+        root.getWindowVisibleDisplayFrame(r);
+        int hidden = root.getRootView().getHeight() - r.bottom;
+        if (hidden > Screen.dp(120f) || imeHeight == 0 || hidden < imeHeight) setImeHeight(Math.max(0, hidden > Screen.dp(120f) ? hidden : 0));
+      });
+    }
     updateUndoButtons();
     root.setAlpha(0f);
     root.setScaleX(.96f);
@@ -336,6 +378,7 @@ public final class Tgx101StoryEditor extends Dialog {
   }
 
   private int maxRootHeight, appliedLift = -1;
+  private boolean imeAnimating;
 
   private void setImeHeight (int height) {
     if (imeHeight == height) return;
