@@ -1401,23 +1401,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
         super.setVisibility(tgx101InputVisibility(this, visibility));
         tgx101CheckInputCollapse();
       }
-
-      // TGx101 (user's video 2026-10-12 20:12: «Отложенные» and «Команды бота» stuck in ⋯ of every chat): while the
-      // buttons are folded into ⋯ they are GONE on screen, so «hide» compared with GONE and did nothing — the
-      // wanted state stayed «visible» from the previous chat. Visible / not is what this chat wants
-      @Override
-      public boolean setVisible (boolean visible) {
-        if (tgx101WantedVisible(this) != visible) {
-          setVisibility(visible ? VISIBLE : INVISIBLE);
-          return true;
-        }
-        return false;
-      }
-
-      @Override
-      public boolean isVisible () {
-        return tgx101WantedVisible(this);
-      }
     };
     messageSenderButton.setLayoutParams(params);
     messageSenderButton.setDelegate(new MessageSenderButton.Delegate() {
