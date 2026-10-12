@@ -809,8 +809,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     // TGx101 (user's screenshot 2026-10-12 19:04 «стрелка и смайл не на месте»): the 52 dp buttons sat on the capsule's
     // bottom while a one-line capsule is taller — they go to the middle of the (last) line
     float emojiShift = 0f, doneShift = 0f;
-    if (captionView != null && captionView.getLineHeight() > 0 && captionWrapView.getHeight() > 0) {
-      int oneLine = captionView.getLineHeight() + captionView.getPaddingTop() + captionView.getPaddingBottom();
+    if (captionView instanceof android.widget.TextView && ((android.widget.TextView) captionView).getLineHeight() > 0 && captionWrapView.getHeight() > 0) {
+      int oneLine = ((android.widget.TextView) captionView).getLineHeight() + captionView.getPaddingTop() + captionView.getPaddingBottom();
       float lineCenter = captionWrapView.getBottom() - oneLine / 2f; // the capsule's bottom margin differs for videos
       if (captionEmojiButton.getHeight() > 0) emojiShift = lineCenter - (captionEmojiButton.getTop() + captionEmojiButton.getHeight() / 2f);
       if (captionDoneButton.getHeight() > 0) doneShift = lineCenter - (captionDoneButton.getTop() + captionDoneButton.getHeight() / 2f);

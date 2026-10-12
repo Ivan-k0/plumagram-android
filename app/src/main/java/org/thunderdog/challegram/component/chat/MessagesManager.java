@@ -2725,12 +2725,32 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     return !(inSpecialMode() || readMessagesDisabled());
   }
 
+  private boolean tgx101SavePosted;
+
+  private void tgx101SaveScrollPositionLater () {
+    RecyclerView view = controller.getMessagesView();
+    if (view != null && (view.isLayoutRequested() || view.hasPendingAdapterUpdates())) {
+      if (!tgx101SavePosted) { tgx101SavePosted = true; view.postDelayed(() -> { tgx101SavePosted = false; tgx101SaveScrollPositionLater(); }, 50); }
+      return;
+    }
+    saveScrollPosition();
+  }
+
   private void saveScrollPosition () {
     if (!canRead()) {
       return;
     }
 
     if (!isFocused) {
+      return;
+    }
+
+    // TGx101 (user's video + log 2026-10-12 19:07 «при каждом заходе в канал посты меняются»): right after the restore,
+    // history pages arriving above/below saved the position 10–15 times from a list not laid out yet (stale first
+    // item) — every visit then opened 20–30 posts further. Only a laid-out list is saved
+    RecyclerView tgx101View = controller.getMessagesView();
+    if (tgx101View != null && (tgx101View.isLayoutRequested() || tgx101View.hasPendingAdapterUpdates() || tgx101View.isComputingLayout())) {
+      tgx101View.post(this::tgx101SaveScrollPositionLater);
       return;
     }
 
