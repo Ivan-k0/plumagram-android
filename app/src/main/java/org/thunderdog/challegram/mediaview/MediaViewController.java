@@ -806,8 +806,17 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     // TGx101 (user's photo 2026-10-12 13:59 «сделай отступ между клавиатурой и полем ввода»): the capsule's bottom
     // edge went under the keyboard, so its text and smiley looked set too high — it now floats 8 dp above it
     if (offset > 0 || getKeyboardState()) offset += Screen.dp(8f);
-    captionEmojiButton.setTranslationY(-offset);
-    captionDoneButton.setTranslationY(-offset);
+    // TGx101 (user's screenshot 2026-10-12 19:04 «стрелка и смайл не на месте»): the 52 dp buttons sat on the capsule's
+    // bottom while a one-line capsule is taller — they go to the middle of the (last) line
+    float emojiShift = 0f, doneShift = 0f;
+    if (captionView != null && captionView.getLineHeight() > 0 && captionWrapView.getHeight() > 0) {
+      int oneLine = captionView.getLineHeight() + captionView.getPaddingTop() + captionView.getPaddingBottom();
+      float lineCenter = captionWrapView.getBottom() - oneLine / 2f; // the capsule's bottom margin differs for videos
+      if (captionEmojiButton.getHeight() > 0) emojiShift = lineCenter - (captionEmojiButton.getTop() + captionEmojiButton.getHeight() / 2f);
+      if (captionDoneButton.getHeight() > 0) doneShift = lineCenter - (captionDoneButton.getTop() + captionDoneButton.getHeight() / 2f);
+    }
+    captionEmojiButton.setTranslationY(-offset + emojiShift);
+    captionDoneButton.setTranslationY(-offset + doneShift);
     captionWrapView.setTranslationY(-offset);
     if (inlineResultsView != null) {
       inlineResultsView.updatePosition(true);
@@ -3556,7 +3565,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       this.needVideoMargin = needMargin;
       float y = (needMargin ? 0 : (float) -Screen.dp(56f) * videoFactor * (inCaption ? 0f : 1f)) + (thumbsFactor * Screen.dp(THUMBS_PADDING));
       captionWrapView.setTranslationY(y);
-      Views.setBottomMargin(captionWrapView, (needVideoMargin ? Screen.dp(56f) : 0));
+      Views.setBottomMargin(captionWrapView, (needVideoMargin ? Screen.dp(56f) : Screen.dp(6f))); // TGx101: keep the capsule's own 6 dp
     }
   }
 
