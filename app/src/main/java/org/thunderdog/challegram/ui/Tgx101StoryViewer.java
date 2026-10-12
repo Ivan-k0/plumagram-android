@@ -196,12 +196,23 @@ public class Tgx101StoryViewer extends Dialog {
       return false;
     });
     bottom.addView(replyView, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-    heartView = text(context, 26f, Color.WHITE);
-    heartView.setText("♡");
-    heartView.setPadding(Screen.dp(14f), 0, Screen.dp(6f), 0);
-    heartView.setOnClickListener(v -> toggleHeart());
-    heartView.setOnLongClickListener(v -> { showReactionPicker(); return true; }); // TGx101: any reaction, as in the official app
-    bottom.addView(heartView);
+    // TGx101 (user 2026-10-12): a button of a fixed size — the reply field no longer moves when the reaction changes;
+    // the empty one is a proper outlined heart, not a thin «♡» glyph
+    heartButton = new FrameLayout(context);
+    heartIcon = new android.widget.ImageView(context);
+    heartIcon.setImageResource(R.drawable.tgx101_heart_outline_24);
+    heartIcon.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+    heartButton.addView(heartIcon, new FrameLayout.LayoutParams(Screen.dp(28f), Screen.dp(28f), Gravity.CENTER));
+    heartView = text(context, 24f, Color.WHITE);
+    heartView.setGravity(Gravity.CENTER);
+    heartView.setIncludeFontPadding(false);
+    heartView.setVisibility(View.GONE);
+    heartButton.addView(heartView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER));
+    heartButton.setOnClickListener(v -> toggleHeart());
+    heartButton.setOnLongClickListener(v -> { showReactionPicker(); return true; }); // any reaction, as in the official app
+    LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(Screen.dp(48f), Screen.dp(48f));
+    hp.leftMargin = Screen.dp(6f);
+    bottom.addView(heartButton, hp);
     FrameLayout.LayoutParams bottomParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
     bottomParams.leftMargin = Screen.dp(12f);
     bottomParams.rightMargin = Screen.dp(10f);
@@ -618,18 +629,16 @@ public class Tgx101StoryViewer extends Dialog {
     return "❤️";
   }
 
+  private FrameLayout heartButton;
+  private android.widget.ImageView heartIcon;
+
   private void showChosenReaction (@Nullable TdApi.ReactionType reaction) {
-    if (reaction == null) {
-      heartView.setText("♡");
-      heartView.setTextColor(Color.WHITE);
-      heartView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26f);
-    } else {
-      heartView.setText(reactionText(reaction));
-      heartView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22f);
-    }
-    heartView.setScaleX(.6f);
-    heartView.setScaleY(.6f);
-    heartView.animate().scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(new android.view.animation.OvershootInterpolator(3f)).start();
+    heartIcon.setVisibility(reaction == null ? View.VISIBLE : View.GONE);
+    heartView.setVisibility(reaction == null ? View.GONE : View.VISIBLE);
+    if (reaction != null) heartView.setText(reactionText(reaction));
+    heartButton.setScaleX(.6f);
+    heartButton.setScaleY(.6f);
+    heartButton.animate().scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(new android.view.animation.OvershootInterpolator(3f)).start();
   }
 
   /** The chosen reaction flies up big in the middle and melts */
