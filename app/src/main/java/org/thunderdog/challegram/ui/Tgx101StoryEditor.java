@@ -84,14 +84,15 @@ public final class Tgx101StoryEditor extends Dialog {
   private static final float TOP_ZONE = .11f, BOTTOM_ZONE = .10f; // what the viewer's header and reply field cover
   private static final int REQUEST_PICK = 7101;
   private static final int BG_BLUR = 0, BG_GRADIENT = 1, BG_BLACK = 2;
-  // TGx101 (user 2026-10-12 «шрифты как в официальном клиенте или exteraGram»): the official set — Roboto, Italic, Serif,
-  // Typewriter, a heavy display face, Courier — with free look-alikes where theirs aren't free (MW Bold → Montserrat
-  // ExtraBold, Courier New → Cousine, serif → PT Serif), all with Cyrillic; plus our handwritten Caveat. Licences next to them
-  private static final String[] FONT_ASSETS = {"fonts/Roboto-Medium.ttf", "fonts/Roboto-Italic.ttf", "fonts/StoryPTSerif-Bold.ttf", "fonts/RobotoMono-Regular.ttf", "fonts/StoryMontserrat.ttf", "fonts/StoryCousine-Bold.ttf", "fonts/Caveat.ttf"};
-  private static final String[] FONT_WEIGHTS = {null, null, null, null, "'wght' 800", null, "'wght' 650"};
-  private static final String[] FONT_NAMES = {"Roboto", "Italic", "Serif", "Typewriter", "Bold", "Courier", null /* «handwritten», translated */};
-  private static final int[] FALLBACK_STYLES = {Typeface.BOLD, Typeface.ITALIC, Typeface.BOLD, Typeface.NORMAL, Typeface.BOLD, Typeface.BOLD, Typeface.BOLD};
-  private static final String[] FALLBACK_FAMILIES = {"sans-serif-medium", "sans-serif", "serif", "monospace", "sans-serif-black", "monospace", "serif"};
+  // TGx101 (user 2026-10-12 «шрифт как в оф клиенте или экстере… проверь ещё раз»): the official app's own story fonts,
+  // taken from its repository (Roboto Medium / Medium Italic / Condensed Bold / Mono — Apache 2.0, Merriweather Bold — OFL;
+  // Serif is the system serif in bold, as there), in its order; then ours: Montserrat, Courier-like Cousine, handwritten Caveat
+  private static final String[] FONT_ASSETS = {"fonts/Roboto-Medium.ttf", "fonts/Story-rmediumitalic.ttf", null, "fonts/Story-rcondensedbold.ttf", "fonts/RobotoMono-Regular.ttf", "fonts/Story-mw_bold.ttf", "fonts/StoryMontserrat.ttf", "fonts/StoryCousine-Bold.ttf", "fonts/Caveat.ttf"};
+  private static final String[] FONT_WEIGHTS = {null, null, null, null, null, null, "'wght' 800", null, "'wght' 650"};
+  private static final String[] FONT_NAMES = {"Roboto", "Italic", "Serif", "Condensed", "Mono", "Merriweather", "Montserrat", "Courier", null /* «handwritten», translated */};
+  private static final int[] FALLBACK_STYLES = {Typeface.BOLD, Typeface.ITALIC, Typeface.BOLD, Typeface.BOLD, Typeface.NORMAL, Typeface.BOLD, Typeface.BOLD, Typeface.BOLD, Typeface.BOLD};
+  private static final String[] FALLBACK_FAMILIES = {"sans-serif-medium", "sans-serif", "serif", "sans-serif-condensed", "monospace", "serif", "sans-serif-black", "monospace", "serif"};
+  private static final int FONT_DISPLAY = 6; // Montserrat ExtraBold — the clock and link stickers
   private static final Typeface[] TYPEFACES = new Typeface[FONT_ASSETS.length];
 
   private static Typeface typefaceOf (int font) {
@@ -100,7 +101,9 @@ public final class Tgx101StoryEditor extends Dialog {
     Typeface t = null;
     try {
       android.content.res.AssetManager assets = UI.getContext().getAssets();
-      if (FONT_WEIGHTS[font] != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      if (FONT_ASSETS[font] == null) {
+        t = null; // the system face below
+      } else if (FONT_WEIGHTS[font] != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         t = new Typeface.Builder(assets, FONT_ASSETS[font]).setFontVariationSettings(FONT_WEIGHTS[font]).build();
       } else {
         t = Typeface.createFromAsset(assets, FONT_ASSETS[font]);
@@ -1433,7 +1436,7 @@ public final class Tgx101StoryEditor extends Dialog {
     layer.clock = 1;
     layer.clockTime = System.currentTimeMillis();
     layer.text = clockText(1, layer.clockTime);
-    layer.font = 4; // Montserrat ExtraBold
+    layer.font = FONT_DISPLAY;
     layer.style = STYLE_PLATE;
     layer.color = 0xffffffff;
     layer.size = 120f;
@@ -1507,7 +1510,7 @@ public final class Tgx101StoryEditor extends Dialog {
       TextLayer layer = new TextLayer();
       layer.url = url;
       layer.text = "🔗 " + host.toUpperCase(Lang.locale());
-      layer.font = 4;
+      layer.font = FONT_DISPLAY;
       layer.style = STYLE_PLATE;
       layer.color = LINK_COLORS[0];
       layer.size = 64f;

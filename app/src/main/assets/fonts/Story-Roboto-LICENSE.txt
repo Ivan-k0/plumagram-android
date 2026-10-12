@@ -1,0 +1,3 @@
+Roboto Medium Italic, Roboto Condensed Bold — Copyright 2011 Google Inc.
+Files: Story-rmediumitalic.ttf, Story-rcondensedbold.ttf (as bundled by the official Telegram Android app)
+Licensed under the Apache License, Version 2.0: https://www.apache.org/licenses/LICENSE-2.0
