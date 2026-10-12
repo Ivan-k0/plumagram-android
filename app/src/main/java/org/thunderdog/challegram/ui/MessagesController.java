@@ -1401,6 +1401,23 @@ public class MessagesController extends ViewController<MessagesController.Argume
         super.setVisibility(tgx101InputVisibility(this, visibility));
         tgx101CheckInputCollapse();
       }
+
+      // TGx101 (user's video 2026-10-12 20:12: «Отложенные» and «Команды бота» stuck in ⋯ of every chat): while the
+      // buttons are folded into ⋯ they are GONE on screen, so «hide» compared with GONE and did nothing — the
+      // wanted state stayed «visible» from the previous chat. Visible / not is what this chat wants
+      @Override
+      public boolean setVisible (boolean visible) {
+        if (tgx101WantedVisible(this) != visible) {
+          setVisibility(visible ? VISIBLE : INVISIBLE);
+          return true;
+        }
+        return false;
+      }
+
+      @Override
+      public boolean isVisible () {
+        return tgx101WantedVisible(this);
+      }
     };
     messageSenderButton.setLayoutParams(params);
     messageSenderButton.setDelegate(new MessageSenderButton.Delegate() {
@@ -1437,6 +1454,23 @@ public class MessagesController extends ViewController<MessagesController.Argume
         super.setVisibility(tgx101InputVisibility(this, visibility));
         tgx101CheckInputCollapse();
       }
+
+      // TGx101 (user's video 2026-10-12 20:12: «Отложенные» and «Команды бота» stuck in ⋯ of every chat): while the
+      // buttons are folded into ⋯ they are GONE on screen, so «hide» compared with GONE and did nothing — the
+      // wanted state stayed «visible» from the previous chat. Visible / not is what this chat wants
+      @Override
+      public boolean setVisible (boolean visible) {
+        if (tgx101WantedVisible(this) != visible) {
+          setVisibility(visible ? VISIBLE : INVISIBLE);
+          return true;
+        }
+        return false;
+      }
+
+      @Override
+      public boolean isVisible () {
+        return tgx101WantedVisible(this);
+      }
     };
     cameraButton.setId(R.id.btn_camera);
     cameraButton.setScaleType(ImageView.ScaleType.CENTER);
@@ -1472,6 +1506,23 @@ public class MessagesController extends ViewController<MessagesController.Argume
         super.setVisibility(tgx101InputVisibility(this, visibility));
         tgx101CheckInputCollapse();
       }
+
+      // TGx101 (user's video 2026-10-12 20:12: «Отложенные» and «Команды бота» stuck in ⋯ of every chat): while the
+      // buttons are folded into ⋯ they are GONE on screen, so «hide» compared with GONE and did nothing — the
+      // wanted state stayed «visible» from the previous chat. Visible / not is what this chat wants
+      @Override
+      public boolean setVisible (boolean visible) {
+        if (tgx101WantedVisible(this) != visible) {
+          setVisibility(visible ? VISIBLE : INVISIBLE);
+          return true;
+        }
+        return false;
+      }
+
+      @Override
+      public boolean isVisible () {
+        return tgx101WantedVisible(this);
+      }
     };
     commandButton.setId(R.id.msg_command);
     commandButton.setColorFilter(Theme.iconColor());
@@ -1491,6 +1542,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
         public void setVisibility (int visibility) {
           super.setVisibility(tgx101InputVisibility(this, visibility));
           tgx101CheckInputCollapse();
+        }
+
+        @Override
+        public boolean setVisible (boolean visible) {
+          if (tgx101WantedVisible(this) != visible) { // the same ⋯ fix as for the other buttons
+            setVisibility(visible ? VISIBLE : INVISIBLE);
+            return true;
+          }
+          return false;
         }
       };
       silentButton.setId(R.id.btn_silent);
@@ -9122,6 +9182,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tgx101InputWanted.put(view, wanted);
     }
     return tgx101InputCollapsed ? View.GONE : wanted;
+  }
+
+  private boolean tgx101WantedVisible (View view) {
+    Integer wanted = tgx101InputWanted.get(view);
+    return wanted != null ? wanted == View.VISIBLE : view.getVisibility() == View.VISIBLE;
   }
 
   private boolean tgx101InputWants (View view) {
