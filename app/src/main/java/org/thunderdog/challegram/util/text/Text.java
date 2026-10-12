@@ -1645,6 +1645,13 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
     if (width > maxWidth) {
       int currentEnd;
 
+      // TGx101 (user's screenshot 2026-10-12 20:41 «Усо / в / ершенствовуй»): a word longer than a whole line used to
+      // glue its head to the end of the current line and then broke after a single letter. Like Android's own layout,
+      // such a word starts on a new line and fills it to the end; only the rest goes further
+      if (currentX > 0 && !isChild && !isFullyMonospace && maxLineCount == -1) {
+        newLineOrEllipsis(out, in, start, end, entity);
+      }
+
       float availWidth = maxWidth - currentX;
       float totalWidth = 0;
       boolean done = false;
@@ -1693,9 +1700,9 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
         }
         if (availWidth - charWidth < 0) {
           if (currentX > 0 && currentEnd == start && availWidth + currentX - charWidth >= 0) {
+            // TGx101: the rest of a long word goes to a new line and keeps filling it (it stopped after one letter)
+            newLineOrEllipsis(out, in, start, end, entity);
             availWidth = maxWidth;
-            done = true;
-            // charWidth = 0; // FIXME?
           } else {
             break;
           }
@@ -1704,10 +1711,6 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
         currentEnd += charCount;
         availWidth -= charWidth;
         totalWidth += charWidth;
-      }
-
-      if (done) {
-        newLineOrEllipsis(out, in, start, currentEnd, entity);
       }
 
       if (currentEnd == start) {
