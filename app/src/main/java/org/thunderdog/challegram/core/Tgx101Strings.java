@@ -409,6 +409,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101LocalPinned, "Закреплено на этом телефоне: лимит закреплённых чатов Telegram исчерпан, на других устройствах чат не будет закреплён");
     RU.put(R.string.Tgx101SavedByChats, "Избранное по чатам");
     RU.put(R.string.Tgx101JumpToDate, "Перейти к дате");
+    RU.put(R.string.Tgx101StorySelected, "Выбранные");
+    RU.put(R.string.Tgx101StorySelectedTitle, "Кто увидит историю");
+    RU.put(R.string.Tgx101StoryNoContacts, "Нет контактов для выбора");
     RU.put(R.string.Tgx101NewStory, "Новая история");
     RU.put(R.string.Tgx101StoryNoPhoto, "Не удалось открыть фото");
     RU.put(R.string.Tgx101StoryMaxQuality, "макс.");

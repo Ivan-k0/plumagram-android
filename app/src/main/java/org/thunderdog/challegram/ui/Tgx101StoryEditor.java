@@ -84,7 +84,26 @@ public final class Tgx101StoryEditor extends Dialog {
   private static final float TOP_ZONE = .11f, BOTTOM_ZONE = .10f; // what the viewer's header and reply field cover
   private static final int REQUEST_PICK = 7101;
   private static final int BG_BLUR = 0, BG_GRADIENT = 1, BG_BLACK = 2;
-  private static final String[] FONT_FAMILIES = {"sans-serif", "sans-serif-black", "sans-serif-condensed", "serif", "monospace", "cursive"};
+  private static final String[] FONT_FAMILIES = {"sans-serif", "sans-serif-black", "sans-serif-condensed", "serif", "monospace", null /* Caveat from assets */};
+  private static final Typeface[] TYPEFACES = new Typeface[6];
+
+  /** The system families, and Caveat (OFL, assets/fonts) for the handwritten one — «cursive» was plain Roboto on many phones */
+  private static Typeface typefaceOf (int font) {
+    if (TYPEFACES[font] != null) return TYPEFACES[font];
+    Typeface t = null;
+    if (FONT_FAMILIES[font] == null) {
+      try {
+        android.content.res.AssetManager assets = UI.getContext().getAssets();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+          t = new Typeface.Builder(assets, "fonts/Caveat.ttf").setFontVariationSettings("'wght' 650").build();
+        } else {
+          t = Typeface.createFromAsset(assets, "fonts/Caveat.ttf");
+        }
+      } catch (Throwable ignored) { }
+    }
+    if (t == null) t = Typeface.create(FONT_FAMILIES[font] != null ? FONT_FAMILIES[font] : "serif", FONT_STYLES[font]);
+    return TYPEFACES[font] = t;
+  }
   private static final int[] FONT_STYLES = {Typeface.BOLD, Typeface.NORMAL, Typeface.BOLD, Typeface.BOLD, Typeface.BOLD, Typeface.BOLD};
   private static final int STYLE_PLAIN = 0, STYLE_PLATE = 1, STYLE_OUTLINE = 2, STYLE_NEON = 3;
   private static final int[] PALETTE = {0xffffffff, 0xff111111, 0xffff5c5c, 0xffffb84d, 0xffffe066, 0xff5cd685, 0xff4dabf7, 0xff9775fa, 0xffff8fc7};
@@ -199,7 +218,9 @@ public final class Tgx101StoryEditor extends Dialog {
   private final TextView undoButton, redoButton;
   private final EditText captionView;
   private boolean previewMode;
-  private @Nullable View textPanel, publishSheet;
+  private @Nullable View textPanel, publishSheet, confirmCard, textSheet;
+  private View topBar, railBar, bottomBar;
+  private int imeHeight;
 
   private Tgx101StoryEditor (BaseActivity activity, Tdlib tdlib, Bitmap photo) {
     super(activity, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
@@ -235,6 +256,7 @@ public final class Tgx101StoryEditor extends Dialog {
     badge.setBackground(glassBackground(12f));
     top.addView(badge);
     root.addView(top, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP));
+    topBar = top;
 
     // right rail: text, fit, background, preview
     LinearLayout rail = new LinearLayout(context);
@@ -247,13 +269,14 @@ public final class Tgx101StoryEditor extends Dialog {
     railParams.topMargin = Screen.dp(70f);
     railParams.rightMargin = Screen.dp(10f);
     root.addView(rail, railParams);
+    railBar = rail;
 
     // bottom: caption + next
     LinearLayout bottom = new LinearLayout(context);
     bottom.setGravity(Gravity.CENTER_VERTICAL);
     bottom.setPadding(Screen.dp(8f), 0, Screen.dp(8f), Screen.dp(8f));
     captionView = new EditText(context);
-    captionView.setHint(R.string.Tgx101StoryCaptionHint);
+    captionView.setHint(Lang.getString(R.string.Tgx101StoryCaptionHint));
     captionView.setHintTextColor(0xff9fb0c2);
     captionView.setTextColor(0xffffffff);
     captionView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f);
@@ -266,6 +289,7 @@ public final class Tgx101StoryEditor extends Dialog {
     nextParams.leftMargin = Screen.dp(8f);
     bottom.addView(next, nextParams);
     root.addView(bottom, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
+    bottomBar = bottom;
 
     setContentView(root);
     Window window = getWindow();
@@ -273,12 +297,88 @@ public final class Tgx101StoryEditor extends Dialog {
       window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
       window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
     }
+    // TGx101 (user 2026-10-12 «убрал клавиатуру, хочу продолжить писать — редактор текста перекрыт клавиатурой»): a full-screen
+    // dialog isn't resized by the keyboard — the panels rise by its height themselves (window insets, or the visible frame)
+    androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+      setImeHeight(insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom);
+      return insets;
+    });
+    root.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+      android.graphics.Rect r = new android.graphics.Rect();
+      root.getWindowVisibleDisplayFrame(r);
+      int hidden = root.getRootView().getHeight() - r.bottom;
+      if (hidden > Screen.dp(120f) || imeHeight == 0 || hidden < imeHeight) setImeHeight(Math.max(0, hidden > Screen.dp(120f) ? hidden : 0));
+    });
     updateUndoButtons();
     Tgx101Diag.mark("story editor: opened, photo " + photo.getWidth() + "x" + photo.getHeight());
   }
 
+  private void setImeHeight (int height) {
+    if (imeHeight == height) return;
+    imeHeight = height;
+    if (bottomBar != null) bottomBar.setTranslationY(-height);
+    if (textSheet != null) textSheet.setTranslationY(-height);
+  }
+
+  /** Our confirm card (instead of a system dialog): message, grey «cancel», the action — red when it destroys */
+  private void showConfirm (String message, String cancel, String action, boolean danger, Runnable onAction) {
+    if (confirmCard != null) return;
+    Context context = getContext();
+    FrameLayout dim = new FrameLayout(context);
+    dim.setBackgroundColor(0x80000000);
+    dim.setOnClickListener(v -> closeConfirm());
+    LinearLayout card = new LinearLayout(context);
+    card.setOrientation(LinearLayout.VERTICAL);
+    card.setClickable(true);
+    card.setBackground(cardBackground());
+    card.setPadding(Screen.dp(16f), Screen.dp(18f), Screen.dp(16f), Screen.dp(16f));
+    TextView text = new TextView(context);
+    text.setText(message);
+    text.setTextColor(0xffe9eef4);
+    text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
+    card.addView(text);
+    LinearLayout buttons = new LinearLayout(context);
+    buttons.setPadding(0, Screen.dp(16f), 0, 0);
+    buttons.addView(pill(context, cancel, false, v -> closeConfirm()), new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f));
+    TextView act = pill(context, action, true, v -> { closeConfirm(); onAction.run(); });
+    if (danger) {
+      GradientDrawable red = new GradientDrawable();
+      red.setColor(0xffe5534b);
+      red.setCornerRadius(Screen.dp(14f));
+      act.setBackground(red);
+    }
+    LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f);
+    ap.leftMargin = Screen.dp(10f);
+    buttons.addView(act, ap);
+    card.addView(buttons);
+    FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+    cp.leftMargin = cp.rightMargin = cp.bottomMargin = Screen.dp(8f);
+    dim.addView(card, cp);
+    root.addView(dim, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    confirmCard = dim;
+    card.setTranslationY(Screen.dp(240f));
+    card.animate().translationY(0f).setDuration(260).setInterpolator(new android.view.animation.DecelerateInterpolator(2f)).start();
+    dim.setAlpha(0f);
+    dim.animate().alpha(1f).setDuration(180).start();
+  }
+
+  private void closeConfirm () {
+    View card = confirmCard;
+    if (card == null) return;
+    confirmCard = null;
+    card.animate().alpha(0f).setDuration(160).withEndAction(() -> root.removeView(card)).start();
+  }
+
+  private void setChromeVisible (boolean visible) {
+    int v = visible ? View.VISIBLE : View.INVISIBLE;
+    if (topBar != null) topBar.setVisibility(v);
+    if (railBar != null) railBar.setVisibility(v);
+    if (bottomBar != null) bottomBar.setVisibility(v);
+  }
+
   @Override
   public void onBackPressed () {
+    if (confirmCard != null) { closeConfirm(); return; }
     if (publishSheet != null) { closePublish(); return; }
     if (textPanel != null) { finishTextEdit(true); return; }
     if (previewMode) { setPreview(false); return; }
@@ -287,11 +387,7 @@ public final class Tgx101StoryEditor extends Dialog {
 
   private void confirmClose () {
     if (undo.isEmpty() && texts.isEmpty()) { dismiss(); return; }
-    new android.app.AlertDialog.Builder(getContext(), org.thunderdog.challegram.theme.Theme.dialogTheme())
-      .setMessage(R.string.Tgx101StoryDiscard)
-      .setPositiveButton(R.string.Tgx101StoryDiscardYes, (d, w) -> dismiss())
-      .setNegativeButton(R.string.Cancel, null)
-      .show();
+    showConfirm(Lang.getString(R.string.Tgx101StoryDiscard), Lang.getString(R.string.Cancel), Lang.getString(R.string.Tgx101StoryDiscardYes), true, this::dismiss);
   }
 
   // ── backgrounds and photo fit ──────────────────────────────────────────────────────────
@@ -361,7 +457,7 @@ public final class Tgx101StoryEditor extends Dialog {
   }
 
   private StaticLayout layoutOf (TextLayer t) {
-    textPaint.setTypeface(Typeface.create(FONT_FAMILIES[t.font], FONT_STYLES[t.font]));
+    textPaint.setTypeface(typefaceOf(t.font));
     textPaint.setTextSize(t.size);
     String text = t.text.isEmpty() ? " " : t.text;
     int width = (int) Math.ceil(Math.min(W * .86f / Math.max(.2f, t.scale), maxLineWidth(text) + 2));
@@ -734,6 +830,7 @@ public final class Tgx101StoryEditor extends Dialog {
     }
     editing = layer;
     canvasView.invalidate();
+    setChromeVisible(false); // the editor's own buttons (the blue «Next») showed through under the text panel
     Context context = getContext();
 
     FrameLayout panel = new FrameLayout(context);
@@ -793,7 +890,7 @@ public final class Tgx101StoryEditor extends Dialog {
     for (int i = 0; i < names.length; i++) {
       final int font = i;
       TextView chip = chip(context, names[i], i == layer.font, v -> { edited.font = font; lastFont = font; applyFieldStyle(); refreshChips((ViewGroup) v.getParent(), font); });
-      chip.setTypeface(Typeface.create(FONT_FAMILIES[i], FONT_STYLES[i]));
+      chip.setTypeface(typefaceOf(i));
       chip.setTag(i);
       LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(34f));
       cp.rightMargin = Screen.dp(6f);
@@ -802,14 +899,21 @@ public final class Tgx101StoryEditor extends Dialog {
     fontScroll.addView(fonts);
     sheet.addView(fontScroll);
 
+    // the eyedropper first and always whole; the colours scroll beside it (it was cut off on narrow screens)
+    LinearLayout colorRow = new LinearLayout(context);
+    colorRow.setGravity(Gravity.CENTER_VERTICAL);
+    colorRow.setPadding(Screen.dp(12f), Screen.dp(10f), 0, Screen.dp(4f));
+    HorizontalScrollView colorScroll = new HorizontalScrollView(context);
+    colorScroll.setHorizontalScrollBarEnabled(false);
     LinearLayout colors = new LinearLayout(context);
     colors.setGravity(Gravity.CENTER_VERTICAL);
-    colors.setPadding(Screen.dp(12f), Screen.dp(10f), Screen.dp(12f), Screen.dp(4f));
+    colors.setPadding(Screen.dp(4f), Screen.dp(4f), Screen.dp(12f), Screen.dp(4f));
     for (int color : PALETTE) {
       View dot = colorDot(context, color, color == layer.color);
       dot.setOnClickListener(v -> { edited.color = color; lastColor = color; applyFieldStyle(); refreshDots(colors, color); });
       colors.addView(dot, dotParams());
     }
+    colorScroll.addView(colors);
     TextView pipette = new TextView(context);
     pipette.setText("⊙");
     pipette.setGravity(Gravity.CENTER);
@@ -820,8 +924,11 @@ public final class Tgx101StoryEditor extends Dialog {
     pd.setStroke(Screen.dp(2f), 0x66ffffff, Screen.dp(3f), Screen.dp(2f));
     pipette.setBackground(pd);
     pipette.setOnClickListener(v -> startEyedropper(colors));
-    colors.addView(pipette, dotParams());
-    sheet.addView(colors);
+    LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(Screen.dp(30f), Screen.dp(30f));
+    pp.rightMargin = Screen.dp(6f);
+    colorRow.addView(pipette, pp);
+    colorRow.addView(colorScroll, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+    sheet.addView(colorRow);
 
     LinearLayout styles = new LinearLayout(context);
     styles.setPadding(Screen.dp(12f), Screen.dp(6f), Screen.dp(12f), 0);
@@ -847,6 +954,8 @@ public final class Tgx101StoryEditor extends Dialog {
     FrameLayout.LayoutParams sheetParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
     sheetParams.leftMargin = sheetParams.rightMargin = sheetParams.bottomMargin = Screen.dp(8f);
     panel.addView(sheet, sheetParams);
+    textSheet = sheet;
+    sheet.setTranslationY(-imeHeight);
 
     root.addView(panel, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     textPanel = panel;
@@ -866,7 +975,7 @@ public final class Tgx101StoryEditor extends Dialog {
     EditText field = editField;
     TextLayer t = editing;
     if (field == null || t == null) return;
-    field.setTypeface(Typeface.create(FONT_FAMILIES[t.font], FONT_STYLES[t.font]));
+    field.setTypeface(typefaceOf(t.font));
     float px = t.size * canvasView.scale * t.scale;
     field.setTextSize(TypedValue.COMPLEX_UNIT_PX, Math.max(Screen.dp(14f), px));
     field.setGravity(t.align == 0 ? Gravity.LEFT : t.align == 2 ? Gravity.RIGHT : Gravity.CENTER_HORIZONTAL);
@@ -947,6 +1056,8 @@ public final class Tgx101StoryEditor extends Dialog {
     hideKeyboard();
     if (textPanel != null) root.removeView(textPanel);
     textPanel = null;
+    textSheet = null;
+    setChromeVisible(true);
     updateUndoButtons();
     canvasView.invalidate();
   }
@@ -1004,11 +1115,7 @@ public final class Tgx101StoryEditor extends Dialog {
     if (preview) {
       List<TextLayer> covered = coveredLayers();
       if (!covered.isEmpty()) {
-        new android.app.AlertDialog.Builder(getContext(), org.thunderdog.challegram.theme.Theme.dialogTheme())
-          .setMessage(R.string.Tgx101StoryCovered)
-          .setPositiveButton(R.string.Tgx101StoryMoveIn, (d, w) -> { moveIntoSafeZone(covered); setPreview(true); })
-          .setNegativeButton(R.string.Tgx101StoryLeave, null)
-          .show();
+        showConfirm(Lang.getString(R.string.Tgx101StoryCovered), Lang.getString(R.string.Tgx101StoryLeave), Lang.getString(R.string.Tgx101StoryMoveIn), false, () -> { moveIntoSafeZone(covered); canvasView.invalidate(); });
       }
     }
   }
@@ -1077,7 +1184,7 @@ public final class Tgx101StoryEditor extends Dialog {
     card.addView(grab, gp);
 
     TextView title = new TextView(context);
-    title.setText(R.string.Tgx101StoryPublishTitle);
+    title.setText(Lang.getString(R.string.Tgx101StoryPublishTitle));
     title.setTextColor(0xffffffff);
     title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
     title.setTypeface(Typeface.DEFAULT_BOLD);
@@ -1085,14 +1192,23 @@ public final class Tgx101StoryEditor extends Dialog {
     card.addView(title);
 
     LinearLayout who = chipRow(context);
-    int[] whoNames = {R.string.Tgx101StoryEveryone, R.string.Tgx101StoryContacts, R.string.Tgx101StoryCloseFriends};
+    int[] whoNames = {R.string.Tgx101StoryEveryone, R.string.Tgx101StoryContacts, R.string.Tgx101StoryCloseFriends, R.string.Tgx101StorySelected};
     for (int i = 0; i < whoNames.length; i++) {
       final int value = i;
-      TextView c = chip(context, Lang.getString(whoNames[i]), i == privacy, v -> { privacy = value; refreshChips((ViewGroup) v.getParent(), value); });
+      String label = Lang.getString(whoNames[i]);
+      if (i == 3 && !selectedUsers.isEmpty()) label += " · " + selectedUsers.size();
+      TextView c = chip(context, label, i == privacy, v -> {
+        if (value == 3) { pickUsers((TextView) v); return; }
+        privacy = value;
+        refreshChips((ViewGroup) v.getParent(), value);
+      });
       c.setTag(i);
       who.addView(c, chipParams());
     }
-    card.addView(who);
+    HorizontalScrollView whoScroll = new HorizontalScrollView(context);
+    whoScroll.setHorizontalScrollBarEnabled(false);
+    whoScroll.addView(who);
+    card.addView(whoScroll);
 
     LinearLayout periods = chipRow(context);
     int[] hours = {6, 12, 24, 48};
@@ -1117,7 +1233,7 @@ public final class Tgx101StoryEditor extends Dialog {
     card.addView(switchRow(context, R.string.Tgx101StoryProtect, protect, on -> protect = on));
 
     TextView quality = new TextView(context);
-    quality.setText(R.string.Tgx101StoryQualityNote);
+    quality.setText(Lang.getString(R.string.Tgx101StoryQualityNote));
     quality.setTextColor(0xffcfe3f6);
     quality.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12f);
     quality.setPadding(Screen.dp(12f), Screen.dp(9f), Screen.dp(12f), Screen.dp(9f));
@@ -1157,6 +1273,80 @@ public final class Tgx101StoryEditor extends Dialog {
   }
 
   private boolean publishing;
+  private final ArrayList<Long> selectedUsers = new ArrayList<>();
+
+  private static long[] toArray (List<Long> list) {
+    long[] a = new long[list.size()];
+    for (int i = 0; i < a.length; i++) a[i] = list.get(i);
+    return a;
+  }
+
+  /** «Selected…»: a card with the contacts to tick (user 2026-10-12 «дай постить для выбранных, чтобы тестировать») */
+  private void pickUsers (TextView chipView) {
+    tdlib.send(new TdApi.GetContacts(), (users, error) -> UI.post(() -> {
+      if (users == null || users.userIds.length == 0) { UI.showToast(R.string.Tgx101StoryNoContacts, Toast.LENGTH_SHORT); return; }
+      Context context = getContext();
+      FrameLayout dim = new FrameLayout(context);
+      dim.setBackgroundColor(0x80000000);
+      LinearLayout card = new LinearLayout(context);
+      card.setOrientation(LinearLayout.VERTICAL);
+      card.setClickable(true);
+      card.setBackground(cardBackground());
+      card.setPadding(0, Screen.dp(14f), 0, Screen.dp(12f));
+      TextView title = new TextView(context);
+      title.setText(Lang.getString(R.string.Tgx101StorySelectedTitle));
+      title.setTextColor(0xffffffff);
+      title.setTypeface(Typeface.DEFAULT_BOLD);
+      title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
+      title.setPadding(Screen.dp(16f), 0, Screen.dp(16f), Screen.dp(8f));
+      card.addView(title);
+      android.widget.ScrollView scroll = new android.widget.ScrollView(context);
+      LinearLayout list = new LinearLayout(context);
+      list.setOrientation(LinearLayout.VERTICAL);
+      final ArrayList<Long> chosen = new ArrayList<>(selectedUsers);
+      for (long userId : users.userIds) {
+        LinearLayout row = new LinearLayout(context);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(Screen.dp(16f), Screen.dp(10f), Screen.dp(16f), Screen.dp(10f));
+        TextView name = new TextView(context);
+        name.setText(tdlib.cache().userDisplayName(userId, false, false));
+        name.setTextColor(0xffe9eef4);
+        name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
+        row.addView(name, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        android.widget.CheckBox box = new android.widget.CheckBox(context);
+        box.setChecked(chosen.contains(userId));
+        box.setClickable(false);
+        row.addView(box);
+        row.setOnClickListener(v -> {
+          if (chosen.contains(userId)) chosen.remove(userId); else chosen.add(userId);
+          box.setChecked(chosen.contains(userId));
+        });
+        list.addView(row);
+      }
+      scroll.addView(list);
+      card.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.min(Screen.dp(56f) * users.userIds.length, Math.round(root.getHeight() * .55f))));
+      LinearLayout buttons = new LinearLayout(context);
+      buttons.setPadding(Screen.dp(16f), Screen.dp(12f), Screen.dp(16f), 0);
+      buttons.addView(pill(context, Lang.getString(R.string.Cancel), false, v -> root.removeView(dim)), new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f));
+      LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f);
+      dp.leftMargin = Screen.dp(10f);
+      buttons.addView(pill(context, Lang.getString(R.string.Tgx101StoryDone), true, v -> {
+        root.removeView(dim);
+        selectedUsers.clear();
+        selectedUsers.addAll(chosen);
+        if (selectedUsers.isEmpty()) return;
+        privacy = 3;
+        chipView.setText(Lang.getString(R.string.Tgx101StorySelected) + " · " + selectedUsers.size());
+        refreshChips((ViewGroup) chipView.getParent(), 3);
+      }), dp);
+      card.addView(buttons);
+      FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+      cp.leftMargin = cp.rightMargin = cp.bottomMargin = Screen.dp(8f);
+      dim.addView(card, cp);
+      dim.setOnClickListener(v -> root.removeView(dim));
+      root.addView(dim, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }));
+  }
 
   private void publish () {
     if (publishing) return;
@@ -1195,7 +1385,8 @@ public final class Tgx101StoryEditor extends Dialog {
           UI.showToast(R.string.Tgx101StoryFailed, Toast.LENGTH_LONG);
           return;
         }
-        TdApi.StoryPrivacySettings privacySettings = privacyChoice == 1 ? new TdApi.StoryPrivacySettingsContacts(new long[0])
+        TdApi.StoryPrivacySettings privacySettings = privacyChoice == 3 ? new TdApi.StoryPrivacySettingsSelectedUsers(toArray(selectedUsers))
+          : privacyChoice == 1 ? new TdApi.StoryPrivacySettingsContacts(new long[0])
           : privacyChoice == 2 ? new TdApi.StoryPrivacySettingsCloseFriends()
           : new TdApi.StoryPrivacySettingsEveryone(new long[0]);
         TdApi.InputStoryContent content = new TdApi.InputStoryContentPhoto(new TdApi.InputFileLocal(result.getAbsolutePath()), new int[0]);
@@ -1319,7 +1510,7 @@ public final class Tgx101StoryEditor extends Dialog {
     row.setGravity(Gravity.CENTER_VERTICAL);
     row.setPadding(Screen.dp(16f), Screen.dp(10f), Screen.dp(16f), Screen.dp(4f));
     TextView t = new TextView(context);
-    t.setText(title);
+    t.setText(Lang.getString(title));
     t.setTextColor(0xffe9eef4);
     t.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f);
     row.addView(t, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));

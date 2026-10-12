@@ -1194,7 +1194,10 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       public void onStoryClick (java.util.List<TdApi.ChatActiveStories> ordered, int index) {
         org.thunderdog.challegram.Tgx101Diag.mark("stories: open " + index + " of " + ordered.size());
         Tgx101StoryViewer viewer = new Tgx101StoryViewer(context(), tdlib, new java.util.ArrayList<>(ordered), index);
-        viewer.setOnClosed(() -> { if (tgx101StoriesStrip != null) tgx101StoriesStrip.refresh(); });
+        viewer.setOnClosed(() -> {
+          if (tgx101StoriesStrip != null) tgx101StoriesStrip.refresh();
+          chatsView.post(ChatsController.this::tgx101SyncStoriesStrip); // after the list's layout, not before it
+        });
         viewer.show();
       }
 
@@ -1393,6 +1396,12 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     View first = lm != null ? lm.findViewByPosition(0) : null;
     if (first != null) {
       offset = Math.max(0, chatsView.getPaddingTop() - first.getTop());
+    } else if (!chatsView.canScrollVertically(-1) || chatsView.isLayoutRequested()) {
+      // TGx101 (user's screenshot 2026-10-12 10:35 «после выхода из истории появляется залитая плашка»): right after the
+      // story viewer closed the list wasn't laid out yet — no first row, so the folded row was slid up behind the header
+      // and its room stayed an empty band. At the top (or before layout) it stays; the next layout syncs it again
+      offset = 0;
+      chatsView.post(this::tgx101SyncStoriesStrip);
     } else {
       offset = Integer.MAX_VALUE / 2;
     }
@@ -1431,7 +1440,10 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       }
       org.thunderdog.challegram.Tgx101Diag.mark("stories: open from avatar " + index);
       Tgx101StoryViewer viewer = new Tgx101StoryViewer(context(), tdlib, new java.util.ArrayList<>(ordered), index);
-      viewer.setOnClosed(() -> { if (tgx101StoriesStrip != null) tgx101StoriesStrip.refresh(); });
+      viewer.setOnClosed(() -> {
+        if (tgx101StoriesStrip != null) tgx101StoriesStrip.refresh();
+        chatsView.post(ChatsController.this::tgx101SyncStoriesStrip);
+      });
       viewer.show();
     }
 
