@@ -443,22 +443,18 @@ public class Tgx101StoryViewer extends Dialog {
     TdApi.File file = Tgx101Stories.bestFile(story.content);
     boolean isVideo = story.content instanceof TdApi.StoryContentVideo;
     duration = isVideo ? Math.max(1000L, (long) (((TdApi.StoryContentVideo) story.content).video.duration * 1000)) : PHOTO_DURATION;
+    // TGx101 (user 2026-10-12 «превью нужно убрать, как в экстере»): no blurry preview while switching — the previous
+    // picture stays until the next one is ready and is swapped at once; only a slow load turns to black with a spinner
     imageView.animate().cancel();
-    imageView.setAlpha(0f);
     videoView.setAlpha(0f);
-    spinner.setVisibility(View.VISIBLE);
     videoView.setVisibility(View.GONE);
-    // TGx101: no black screen with a spinner — the blurry inline preview at once, the real picture replaces it
-    TdApi.Minithumbnail mini = Tgx101Stories.minithumbnail(story.content);
-    if (mini != null && mini.data != null) {
-      try {
-        Bitmap preview = BitmapFactory.decodeByteArray(mini.data, 0, mini.data.length);
-        if (preview != null) {
-          imageView.setImageBitmap(preview);
-          imageView.setAlpha(1f);
-        }
-      } catch (Throwable ignored) { }
-    }
+    spinner.setVisibility(View.GONE);
+    final int waitingStoryId = story.id;
+    UI.post(() -> {
+      if (this.story == null || this.story.id != waitingStoryId || !loading) return;
+      imageView.animate().alpha(0f).setDuration(120).start();
+      spinner.setVisibility(View.VISIBLE);
+    }, 350);
     tgx101Prefetch();
     if (file == null) {
       showStory(storyIndex + 1);
@@ -498,9 +494,9 @@ public class Tgx101StoryViewer extends Dialog {
             return true;
           });
         } else {
-          boolean hadPreview = imageView.getAlpha() > 0f;
+          imageView.animate().cancel();
           imageView.setImageBitmap(bitmap);
-          if (!hadPreview) imageView.animate().alpha(1f).setDuration(220).start();
+          imageView.setAlpha(1f);
           startTimer();
         }
       });
