@@ -501,6 +501,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101StoryFailed, "Не удалось подготовить историю");
     RU.put(R.string.Tgx101StoryPosted, "История опубликована");
     RU.put(R.string.Tgx101HideSponsored, "Скрывать рекламу в каналах");
+    RU.put(R.string.Tgx101SearchHoldProxy, "Удержание поиска в чатах — прокси");
     RU.put(R.string.Tgx101UnofficialTitle, "Неофициальная сборка");
     RU.put(R.string.Tgx101UnofficialText, "Этот PlumaGram подписан не автором, а кем-то другим — его могли изменить как угодно. Официальная версия — на 4PDA и в канале @plumagram.");
     RU.put(R.string.Tgx101UnofficialOk, "Понятно");

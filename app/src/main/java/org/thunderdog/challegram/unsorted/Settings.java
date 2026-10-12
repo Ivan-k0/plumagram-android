@@ -3579,6 +3579,9 @@ public class Settings {
   public void setTgx101StoryProfiles (String json, int current) { pmc.putString("tgx101_story_profiles", json); pmc.putInt("tgx101_story_profile", current); }
   public boolean tgx101HideSponsored () { return pmc.getBoolean(KEY_TGX101_HIDE_SPONSORED, false); }
   public void setTgx101HideSponsored (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_SPONSORED, v); }
+  // TGx101 (user 2026-10-12): holding the search button in the chat list opens the proxy options
+  public boolean tgx101SearchHoldProxy () { return pmc.getBoolean("tgx101_search_hold_proxy", false); }
+  public void setTgx101SearchHoldProxy (boolean v) { pmc.putBoolean("tgx101_search_hold_proxy", v); }
   public void setTgx101HideJoinButton (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_JOIN, v); }
 
   public boolean tgx101HideAllReactions () { return pmc.getBoolean(KEY_TGX101_HIDE_ALL_REACTIONS, false); }

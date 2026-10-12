@@ -289,6 +289,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideJoinButton(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideSponsored) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideSponsored(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101SearchHoldProxy) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101SearchHoldProxy(), isUpdate);
         } else if (itemId == R.id.btn_tgx101CapsuleScrollHide) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101CapsuleScrollHide(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideInputEmoji) {
@@ -505,6 +507,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NavCapsule, 0, R.string.Tgx101NavCapsule),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101DrawerOrder, 0, R.string.Tgx101DrawerOrder),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SearchHoldProxy, 0, R.string.Tgx101SearchHoldProxy),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
 
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101CapsuleMenu, 0, R.string.Tgx101CapsuleMenu),
@@ -958,7 +962,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       || id == R.id.btn_tgx101TapMode || id == R.id.btn_tgx101Gestures || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101QuickReply1 || id == R.id.btn_tgx101QuickReply2
       || id == R.id.btn_tgx101QuickReply3 || id == R.id.btn_tgx101QuickReply4 || id == R.id.btn_tgx101QuickReply5) return 2;
     if (id == R.id.btn_tgx101HideCompose || id == R.id.btn_tgx101HideJoin || id == R.id.btn_tgx101HideSponsored) return 0;
-    if (id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101CapsuleScrollHide || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101ContactsMenu || id == R.id.btn_tgx101QuickCalls) return 0;
+    if (id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101SearchHoldProxy || id == R.id.btn_tgx101CapsuleScrollHide || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101ContactsMenu || id == R.id.btn_tgx101QuickCalls) return 0;
     if (id == R.id.btn_tgx101RearRounds) return 4;
     if (id == R.id.btn_tgx101HideAllReactions || id == R.id.btn_tgx101HideChannelReactions || id == R.id.btn_tgx101NextChannelSwipe || id == R.id.btn_tgx101NextChannelBackToList || id == R.id.btn_showDiscussButton || id == R.id.btn_showCommentsButton
       || id == R.id.btn_showChannelMuteButton || id == R.id.btn_hideSubscribeLink || id == R.id.btn_separateChannelPosts) return 3;
@@ -1226,6 +1230,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101HideInputCamera(toggleResult);
     } else if (id == R.id.btn_tgx101HideInputCommands) {
       Settings.instance().setTgx101HideInputCommands(toggleResult);
+    } else if (id == R.id.btn_tgx101SearchHoldProxy) {
+      Settings.instance().setTgx101SearchHoldProxy(toggleResult); // user 2026-10-12: hold the chat list search → proxy
     } else if (id == R.id.btn_tgx101HideSponsored) {
       Settings.instance().setTgx101HideSponsored(toggleResult); // applies from the next opened channel
     } else if (id == R.id.btn_tgx101HideJoin) {

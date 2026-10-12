@@ -2435,7 +2435,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   public void fillMenuItems (int id, HeaderView header, LinearLayout menu) {
     if (id == R.id.menu_main) {
       header.addLockButton(menu);
-      header.addSearchButton(menu, this);
+      Tgx101ProxyQuick.bindSearchHold(this, header.addSearchButton(menu, this), header);
     } else if (id == R.id.menu_clear) {
       header.addClearButton(menu, getSearchHeaderIconColorId(), getSearchBackButtonResource());
     } else {

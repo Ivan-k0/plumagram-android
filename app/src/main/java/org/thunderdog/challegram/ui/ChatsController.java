@@ -1608,10 +1608,10 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       if (isBaseController()) {
         header.addLockButton(menu);
       }
-      header.addSearchButton(menu, this);
+      Tgx101ProxyQuick.bindSearchHold(this, header.addSearchButton(menu, this), header);
     } else if (id == R.id.menu_archive) {
       header.addButton(menu, R.id.menu_btn_settings, R.drawable.baseline_settings_24, 49f, this, getHeaderIconColorId());
-      header.addSearchButton(menu, this);
+      Tgx101ProxyQuick.bindSearchHold(this, header.addSearchButton(menu, this), header);
     } else if (id == R.id.menu_search) {
       header.addSearchButton(menu, this);
     } else if (id == R.id.menu_clear) {

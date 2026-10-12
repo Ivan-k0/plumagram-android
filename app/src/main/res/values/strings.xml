@@ -6333,6 +6333,7 @@
   <string name="Tgx101StoryFailed">Couldn\'t prepare the story</string>
   <string name="Tgx101StoryPosted">Story published</string>
   <string name="Tgx101HideSponsored">Hide sponsored messages in channels</string>
+  <string name="Tgx101SearchHoldProxy">Hold search in the chat list: proxy</string>
   <string name="Tgx101UnofficialTitle">Unofficial build</string>
   <string name="Tgx101UnofficialText">This PlumaGram is signed by somebody else, not by its author. It may be changed in any way. The official version is on 4PDA and in the @plumagram channel.</string>
   <string name="Tgx101UnofficialOk">Got it</string>
