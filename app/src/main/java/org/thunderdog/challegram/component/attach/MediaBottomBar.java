@@ -553,12 +553,24 @@ public class MediaBottomBar extends FrameLayoutFix implements GestureDetector.On
 
   }
 
+  /** TGx101 (user 2026-10-12 «убери свайп по скрепке — он вызывает камеру»): the section change comes from a swipe */
+  private boolean tgx101Fling;
+
+  public boolean tgx101IsFling () {
+    return tgx101Fling;
+  }
+
   private boolean handleFling (boolean left) {
     if (items == null || items.length == 0 || overlayFactor != 0f) {
       return false;
     }
     int toIndex = left ? Math.max(0, index - 1) : Math.min(index + 1, items.length - 1);
-    return toIndex != index && setSelectedIndex(toIndex);
+    tgx101Fling = true;
+    try {
+      return toIndex != index && setSelectedIndex(toIndex);
+    } finally {
+      tgx101Fling = false;
+    }
   }
 
   @Override

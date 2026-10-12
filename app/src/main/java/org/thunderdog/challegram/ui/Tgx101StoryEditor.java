@@ -338,8 +338,8 @@ public final class Tgx101StoryEditor extends Dialog {
     // panel, so their names read on any photo
     rail.setBackground(glassBackground(26f));
     rail.setPadding(0, Screen.dp(8f), 0, 0);
-    FrameLayout.LayoutParams railParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.RIGHT | Gravity.TOP);
-    railParams.topMargin = Screen.dp(66f);
+    // user's screenshot 2026-10-12 20:06 «редактор нужно отцентровать, сейчас он высоковато»: in the middle of the height
+    FrameLayout.LayoutParams railParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.RIGHT | Gravity.CENTER_VERTICAL);
     railParams.rightMargin = Screen.dp(6f);
     root.addView(rail, railParams);
     railBar = rail;

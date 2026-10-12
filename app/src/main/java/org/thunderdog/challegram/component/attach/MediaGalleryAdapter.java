@@ -259,6 +259,29 @@ public class MediaGalleryAdapter extends RecyclerView.Adapter<MediaGalleryAdapte
     }
   }
 
+  private final java.util.HashMap<Integer, String> tgx101Months = new java.util.HashMap<>();
+
+  /** TGx101: the month the photo at this position was taken («Октябрь 2026») for the fast scroller */
+  public @androidx.annotation.Nullable String tgx101LabelAt (int position) {
+    int index = showCamera ? position - 1 : position;
+    if (images == null || index < 0 || index >= images.size()) return null;
+    ImageFile f = images.get(index);
+    if (!(f instanceof org.thunderdog.challegram.loader.ImageGalleryFile)) return null;
+    long time = ((org.thunderdog.challegram.loader.ImageGalleryFile) f).getDateTaken();
+    if (time <= 0) return null;
+    if (time < 100000000000L) time *= 1000; // seconds → ms
+    java.util.Calendar cal = java.util.Calendar.getInstance();
+    cal.setTimeInMillis(time);
+    int key = cal.get(java.util.Calendar.YEAR) * 12 + cal.get(java.util.Calendar.MONTH);
+    String s = tgx101Months.get(key);
+    if (s == null) {
+      s = new java.text.SimpleDateFormat("LLLL yyyy", org.thunderdog.challegram.core.Lang.locale()).format(cal.getTime());
+      if (!s.isEmpty()) s = s.substring(0, 1).toUpperCase(org.thunderdog.challegram.core.Lang.locale()) + s.substring(1);
+      tgx101Months.put(key, s);
+    }
+    return s;
+  }
+
   @Override
   public int getItemCount () {
     return (images != null && !images.isEmpty() ? images.size() + (needCounter ? 1 : 0) : 0) + (showCamera ? 1 : 0);

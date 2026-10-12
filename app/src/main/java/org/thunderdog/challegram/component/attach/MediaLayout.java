@@ -716,6 +716,7 @@ public class MediaLayout extends FrameLayoutFix implements
       }
       case 4: {
         if (tgx101Camera) {
+          if (bottomBar != null && bottomBar.tgx101IsFling()) return false; // a swipe never opens the camera, only a tap
           hide(false);
           target.tgx101OpenCameraFromAttach();
           return false;

@@ -222,6 +222,7 @@ public class MediaBottomGalleryController extends MediaBottomBaseController<Medi
     setLayoutManager(manager);
     setAdapter(adapter);
     addItemDecoration(decoration);
+    org.thunderdog.challegram.widget.Tgx101FastScroller.attach(recyclerView, adapter::tgx101LabelAt); // TGx101: month handle on the right
 
     if (galleryLoaded) {
       if (gallery == null/* && !U.deviceHasAnyCamera(context)*/) {

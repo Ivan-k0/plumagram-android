@@ -559,8 +559,9 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
         animatingHeight = false;
       }
     });
-    heightAnimator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
-    heightAnimator.setDuration(fast ? 150l : MediaLayout.REVEAL_DURATION);
+    // TGx101: a soft settle like a spring at the end (the sheet glides into place instead of stopping short)
+    heightAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator(2.2f));
+    heightAnimator.setDuration(fast ? 180l : 300l);
     heightAnimator.start();
   }
 
@@ -618,7 +619,7 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
       mediaLayout.prepareHeader();
       if (toUp) {
         if (canExpandHeight()) {
-          animateCurrentHeight(getMaxHeight(), true);
+          animateCurrentHeight(getMaxHeight(), false);
         } else {
           animateCurrentHeight(startHeight, true);
         }
@@ -651,8 +652,9 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
         barChangeFromHeight = currentHeight;
         barChangeHeightDiff = -currentHeight;
         mediaLayout.hideBottomBarAndDismiss();
-      } else if (expandFactor >= .35f && isHeightIncreasing) {
-        animateCurrentHeight(getMaxHeight(), true);
+      } else if (expandFactor >= .08f && isHeightIncreasing && canExpandHeight()) {
+        // TGx101 (user 2026-10-12 «нужно два свайпа, чтобы её вытащить — нужен один обычный»): any real pull up opens it
+        animateCurrentHeight(getMaxHeight(), false);
       } else {
         animateCurrentHeight(startHeight, false);
       }
