@@ -6,5 +6,6 @@
   <external-path name="files" path="." />
   <external-path name="miui" path="MIUI/ringtone/" />
   <files-path name="ringtones" path="ringtones/" />
+  <files-path name="updates" path="updates/" />
 
 </paths>

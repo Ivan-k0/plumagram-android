@@ -94,7 +94,7 @@ import me.vkryl.core.collection.IntList;
 import me.vkryl.core.lambda.CancellableRunnable;
 import tgx.td.ChatId;
 
-public class DrawerController extends ViewController<Void> implements View.OnClickListener, Settings.ProxyChangeListener, GlobalAccountListener, GlobalCountersListener, BaseView.CustomControllerProvider, BaseView.ActionListProvider, View.OnLongClickListener, TdlibSettingsManager.NotificationProblemListener, TdlibOptionListener, SessionListener, GlobalTokenStateListener, SystemBackEventListener {
+public class DrawerController extends ViewController<Void> implements View.OnClickListener, Settings.ProxyChangeListener, GlobalAccountListener, GlobalCountersListener, BaseView.CustomControllerProvider, BaseView.ActionListProvider, View.OnLongClickListener, TdlibSettingsManager.NotificationProblemListener, TdlibOptionListener, SessionListener, GlobalTokenStateListener, SystemBackEventListener, org.thunderdog.challegram.service.Tgx101Updates.Listener {
   private int currentWidth, shadowWidth;
 
   private boolean isVisible;
@@ -515,6 +515,7 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
     touchHelper.attachToRecyclerView(recyclerView);
 
     Settings.instance().addProxyListener(this);
+    org.thunderdog.challegram.service.Tgx101Updates.addListener(this);
     TdlibManager.instance().global().addAccountListener(this);
     TdlibManager.instance().global().addCountersListener(this);
     TdlibManager.instance().global().addTokenStateListener(this);
@@ -530,6 +531,7 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
   public void destroy () {
     super.destroy();
     Settings.instance().removeProxyListener(this);
+    org.thunderdog.challegram.service.Tgx101Updates.removeListener(this);
     TdlibManager.instance().global().removeAccountListener(this);
     TdlibManager.instance().global().removeCountersListener(this);
     TdlibManager.instance().global().removeTokenStateListener(this);
@@ -834,6 +836,13 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
         needAnimationDelay = true;
         account.context().changePreferredAccountId(account.id, TdlibManager.SWITCH_REASON_USER_CLICK);
       }
+    } else if (viewId == R.id.btn_tgx101Update) {
+      if (org.thunderdog.challegram.service.Tgx101Updates.state() == org.thunderdog.challegram.service.Tgx101Updates.STATE_AVAILABLE) {
+        ViewController<?> c = context.navigation().getCurrentStackItem();
+        close(0f, () -> { if (c != null) org.thunderdog.challegram.service.Tgx101Updates.onRowClick(c); });
+      } else {
+        org.thunderdog.challegram.service.Tgx101Updates.install(context);
+      }
     } else if (viewId == R.id.btn_tgx101NewStory) {
       close(0f, () -> org.thunderdog.challegram.ui.Tgx101StoryEditor.pickAndOpen(context, context.currentTdlib()));
     } else if (viewId == R.id.btn_contacts) {
@@ -959,7 +968,37 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
       }
       items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, org.thunderdog.challegram.ui.Tgx101BarOrder.drawerIdOf(entry), org.thunderdog.challegram.ui.Tgx101BarOrder.drawerIconOf(entry), org.thunderdog.challegram.ui.Tgx101BarOrder.drawerNameOf(entry)));
     }
+    // TGx101 (user 2026-10-12): a newer release sits at the very bottom — «Обновить PlumaGram · 0.1.N» → progress → «Установить»
+    org.thunderdog.challegram.service.Tgx101Updates.restore(context);
+    tgx101UpdateShown = tgx101HasUpdateRow();
+    if (tgx101UpdateShown) {
+      if (items.size() > start) items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+      items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_tgx101Update, R.drawable.baseline_system_update_24, org.thunderdog.challegram.service.Tgx101Updates.rowTitle()));
+    }
     return items.size() - start;
+  }
+
+  private boolean tgx101UpdateShown;
+
+  private static boolean tgx101HasUpdateRow () {
+    int state = org.thunderdog.challegram.service.Tgx101Updates.state();
+    return org.thunderdog.challegram.service.Tgx101Updates.release() != null
+      && (state == org.thunderdog.challegram.service.Tgx101Updates.STATE_AVAILABLE
+      || state == org.thunderdog.challegram.service.Tgx101Updates.STATE_DOWNLOADING
+      || state == org.thunderdog.challegram.service.Tgx101Updates.STATE_READY);
+  }
+
+  @Override
+  public void onTgx101UpdateStateChanged () {
+    if (adapter == null || org.thunderdog.challegram.service.Tgx101Updates.state() == org.thunderdog.challegram.service.Tgx101Updates.STATE_CHECKING) return;
+    if (tgx101HasUpdateRow() != tgx101UpdateShown) {
+      tgx101RebuildMenu();
+      return;
+    }
+    int index = adapter.indexOfViewById(R.id.btn_tgx101Update);
+    if (index != -1 && adapter.getItems().get(index).setStringIfChanged(org.thunderdog.challegram.service.Tgx101Updates.rowTitle())) {
+      adapter.notifyItemChanged(index);
+    }
   }
 
   private int tgx101MenuStart () {

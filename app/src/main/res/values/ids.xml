@@ -1670,6 +1670,9 @@
   <item name="controller_tgx101Stars" type="id"/>
   <item name="btn_importChat" type="id"/>
   <item name="btn_tgx101CheckUpdates" type="id"/>
+  <item name="btn_tgx101Update" type="id"/>
+  <item name="btn_tgx101UpdateNow" type="id"/>
+  <item name="btn_tgx101UpdatePage" type="id"/>
   <item name="btn_tgx101BottomGap" type="id"/>
   <item name="btn_tgx101CapsuleScrollHide" type="id"/>
   <item name="btn_tgx101HideCompose" type="id"/>

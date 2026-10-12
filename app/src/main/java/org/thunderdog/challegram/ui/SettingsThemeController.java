@@ -79,7 +79,7 @@ import me.vkryl.core.MathUtils;
 import me.vkryl.core.StringUtils;
 import me.vkryl.core.collection.IntList;
 
-public class SettingsThemeController extends RecyclerViewController<SettingsThemeController.Args> implements View.OnClickListener, ViewController.SettingsIntDelegate, SliderWrapView.RealTimeChangeListener, View.OnLongClickListener, AppUpdater.Listener {
+public class SettingsThemeController extends RecyclerViewController<SettingsThemeController.Args> implements View.OnClickListener, ViewController.SettingsIntDelegate, SliderWrapView.RealTimeChangeListener, View.OnLongClickListener, AppUpdater.Listener, org.thunderdog.challegram.service.Tgx101Updates.Listener {
   public SettingsThemeController (Context context, Tdlib tdlib) {
     super(context, tdlib);
   }
@@ -133,6 +133,12 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
     super.destroy();
     cancelLocationRequest();
     context().appUpdater().removeListener(this);
+    org.thunderdog.challegram.service.Tgx101Updates.removeListener(this);
+  }
+
+  @Override
+  public void onTgx101UpdateStateChanged () {
+    if (adapter != null) adapter.updateValuedSettingById(R.id.btn_tgx101UpdateNow);
   }
 
   private void cancelLocationRequest () {
@@ -319,6 +325,11 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
           v.getToggler().setRadioEnabled(Settings.instance().needSendByEnter(), isUpdate);
         } else if (itemId == R.id.btn_tgx101CheckUpdates) {
           v.getToggler().setRadioEnabled(org.thunderdog.challegram.service.Tgx101Updates.isEnabled(context()), isUpdate);
+        } else if (itemId == R.id.btn_tgx101UpdateNow) {
+          int st = org.thunderdog.challegram.service.Tgx101Updates.state();
+          boolean has = org.thunderdog.challegram.service.Tgx101Updates.release() != null && st != org.thunderdog.challegram.service.Tgx101Updates.STATE_NONE;
+          v.setName(has ? org.thunderdog.challegram.service.Tgx101Updates.rowTitle() : Lang.getString(R.string.Tgx101UpdateCheckNow));
+          v.setEnabledAnimated(st != org.thunderdog.challegram.service.Tgx101Updates.STATE_CHECKING && st != org.thunderdog.challegram.service.Tgx101Updates.STATE_DOWNLOADING, isUpdate);
         } else if (itemId == R.id.btn_toggleNewSetting) {
           updateSettingView(v, item, isUpdate);
         } else if (itemId == R.id.btn_updateAutomatically) {
@@ -542,9 +553,13 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
           new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101Updates),
           new ListItem(ListItem.TYPE_SHADOW_TOP),
           new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CheckUpdates, 0, R.string.Tgx101CheckUpdates),
+          new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+          new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101UpdateNow, R.drawable.baseline_system_update_24, R.string.Tgx101UpdateCheckNow),
           new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
           new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101CheckUpdatesHint)
         ));
+        org.thunderdog.challegram.service.Tgx101Updates.restore(context());
+        org.thunderdog.challegram.service.Tgx101Updates.addListener(this);
       } else if (AppInstallationUtil.isAppSideLoaded(AppContext.get())) {
         items.addAll(Arrays.asList(
           new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.InAppUpdates),
@@ -1240,6 +1255,14 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
       Settings.instance().setNeedHideChatKeyboardOnScroll(adapter.toggleView(v));
     } else if (viewId == R.id.btn_sendByEnter) {
       Settings.instance().setNeedSendByEnter(adapter.toggleView(v));
+    } else if (viewId == R.id.btn_tgx101UpdateNow) {
+      int st = org.thunderdog.challegram.service.Tgx101Updates.state();
+      if (st == org.thunderdog.challegram.service.Tgx101Updates.STATE_AVAILABLE || st == org.thunderdog.challegram.service.Tgx101Updates.STATE_READY) {
+        if (st == org.thunderdog.challegram.service.Tgx101Updates.STATE_READY) org.thunderdog.challegram.service.Tgx101Updates.install(context());
+        else org.thunderdog.challegram.service.Tgx101Updates.onRowClick(this);
+      } else if (st == org.thunderdog.challegram.service.Tgx101Updates.STATE_NONE) {
+        org.thunderdog.challegram.service.Tgx101Updates.checkNow(context());
+      }
     } else if (viewId == R.id.btn_tgx101CheckUpdates) {
       org.thunderdog.challegram.service.Tgx101Updates.setEnabled(context(), adapter.toggleView(v));
     } else if (viewId == R.id.btn_toggleNewSetting) {
