@@ -409,6 +409,14 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101LocalPinned, "Закреплено на этом телефоне: лимит закреплённых чатов Telegram исчерпан, на других устройствах чат не будет закреплён");
     RU.put(R.string.Tgx101SavedByChats, "Избранное по чатам");
     RU.put(R.string.Tgx101JumpToDate, "Перейти к дате");
+    RU.put(R.string.Tgx101StoryAudienceAll, "Все пользователи Telegram");
+    RU.put(R.string.Tgx101StoryAudienceContacts, "Все ваши контакты");
+    RU.put(R.string.Tgx101StoryExcept, "кроме");
+    RU.put(R.string.Tgx101StoryPeople, "чел.");
+    RU.put(R.string.Tgx101StoryEditList, "изменить список");
+    RU.put(R.string.Tgx101StoryChoosePeople, "Выбрать людей");
+    RU.put(R.string.Tgx101StoryExceptTitle, "Скрыть историю от");
+    RU.put(R.string.Tgx101StorySearchPeople, "Поиск");
     RU.put(R.string.Tgx101StorySelected, "Выбранные");
     RU.put(R.string.Tgx101StorySelectedTitle, "Кто увидит историю");
     RU.put(R.string.Tgx101StoryNoContacts, "Нет контактов для выбора");
@@ -437,7 +445,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101StoryLimitPeriod, "Лимит историй пока исчерпан — попробуйте позже");
     RU.put(R.string.Tgx101StoryPublishTitle, "Опубликовать историю");
     RU.put(R.string.Tgx101StoryEveryone, "Все");
-    RU.put(R.string.Tgx101StoryContacts, "Контакты");
+    RU.put(R.string.Tgx101StoryContacts, "Мои контакты");
     RU.put(R.string.Tgx101StoryCloseFriends, "Близкие друзья");
     RU.put(R.string.Tgx101StoryHours, "ч");
     RU.put(R.string.Tgx101StoryPeriodPremium, "6, 12 и 48 часов — с Telegram Premium");

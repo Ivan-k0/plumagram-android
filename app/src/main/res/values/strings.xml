@@ -6239,6 +6239,14 @@
   <string name="Tgx101LocalPinned">Pinned on this phone: Telegram\'s pinned-chat limit is reached, other devices won\'t show it</string>
   <string name="Tgx101SavedByChats">Saved by chats</string>
   <string name="Tgx101JumpToDate">Go to date</string>
+  <string name="Tgx101StoryAudienceAll">Everyone on Telegram</string>
+  <string name="Tgx101StoryAudienceContacts">All your contacts</string>
+  <string name="Tgx101StoryExcept">except</string>
+  <string name="Tgx101StoryPeople">people</string>
+  <string name="Tgx101StoryEditList">edit list</string>
+  <string name="Tgx101StoryChoosePeople">Choose people</string>
+  <string name="Tgx101StoryExceptTitle">Hide the story from</string>
+  <string name="Tgx101StorySearchPeople">Search</string>
   <string name="Tgx101StorySelected">Selected</string>
   <string name="Tgx101StorySelectedTitle">Who will see the story</string>
   <string name="Tgx101StoryNoContacts">No contacts to choose from</string>

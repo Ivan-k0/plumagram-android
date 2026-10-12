@@ -318,6 +318,7 @@ public final class Tgx101StoryEditor extends Dialog {
     imeHeight = height;
     if (bottomBar != null) bottomBar.setTranslationY(-height);
     if (textSheet != null) textSheet.setTranslationY(-height);
+    if (textSheetForIme != null && textSheetForIme.getParent() != null) textSheetForIme.setTranslationY(-height);
   }
 
   /** Our confirm card (instead of a system dialog): message, grey «cancel», the action — red when it destroys */
@@ -1191,24 +1192,12 @@ public final class Tgx101StoryEditor extends Dialog {
     title.setPadding(Screen.dp(16f), 0, Screen.dp(16f), Screen.dp(8f));
     card.addView(title);
 
-    LinearLayout who = chipRow(context);
-    int[] whoNames = {R.string.Tgx101StoryEveryone, R.string.Tgx101StoryContacts, R.string.Tgx101StoryCloseFriends, R.string.Tgx101StorySelected};
-    for (int i = 0; i < whoNames.length; i++) {
-      final int value = i;
-      String label = Lang.getString(whoNames[i]);
-      if (i == 3 && !selectedUsers.isEmpty()) label += " · " + selectedUsers.size();
-      TextView c = chip(context, label, i == privacy, v -> {
-        if (value == 3) { pickUsers((TextView) v); return; }
-        privacy = value;
-        refreshChips((ViewGroup) v.getParent(), value);
-      });
-      c.setTag(i);
-      who.addView(c, chipParams());
-    }
-    HorizontalScrollView whoScroll = new HorizontalScrollView(context);
-    whoScroll.setHorizontalScrollBarEnabled(false);
-    whoScroll.addView(who);
-    card.addView(whoScroll);
+    // TGx101 (user 2026-10-12 «возьми этот функционал из оф телеги»): who sees it — as in the official app: everyone /
+    // contacts (both with «except…»), close friends (their list is edited and saved to Telegram), selected people
+    audienceList = new LinearLayout(context);
+    audienceList.setOrientation(LinearLayout.VERTICAL);
+    buildAudience();
+    card.addView(audienceList);
 
     LinearLayout periods = chipRow(context);
     int[] hours = {6, 12, 24, 48};
@@ -1281,10 +1270,117 @@ public final class Tgx101StoryEditor extends Dialog {
     return a;
   }
 
-  /** «Selected…»: a card with the contacts to tick (user 2026-10-12 «дай постить для выбранных, чтобы тестировать») */
-  private void pickUsers (TextView chipView) {
+  private final ArrayList<Long> exceptEveryone = new ArrayList<>(), exceptContacts = new ArrayList<>();
+  private int closeFriendsCount = -1;
+  private @Nullable LinearLayout audienceList;
+
+  private void buildAudience () {
+    LinearLayout list = audienceList;
+    if (list == null) return;
+    list.removeAllViews();
+    if (closeFriendsCount < 0) {
+      closeFriendsCount = 0;
+      tdlib.send(new TdApi.GetCloseFriends(), (users, error) -> UI.post(() -> {
+        if (users != null) { closeFriendsCount = users.userIds.length; buildAudience(); }
+      }));
+    }
+    for (int i = 0; i < 4; i++) list.addView(audienceRow(i));
+  }
+
+  private String audienceSubtitle (int value) {
+    switch (value) {
+      case 0: return exceptEveryone.isEmpty() ? Lang.getString(R.string.Tgx101StoryAudienceAll) : Lang.getString(R.string.Tgx101StoryExcept) + " " + exceptEveryone.size() + " " + Lang.getString(R.string.Tgx101StoryPeople);
+      case 1: return exceptContacts.isEmpty() ? Lang.getString(R.string.Tgx101StoryAudienceContacts) : Lang.getString(R.string.Tgx101StoryExcept) + " " + exceptContacts.size() + " " + Lang.getString(R.string.Tgx101StoryPeople);
+      case 2: return closeFriendsCount > 0 ? closeFriendsCount + " " + Lang.getString(R.string.Tgx101StoryPeople) + " · " + Lang.getString(R.string.Tgx101StoryEditList) : Lang.getString(R.string.Tgx101StoryChoosePeople);
+      default: return selectedUsers.isEmpty() ? Lang.getString(R.string.Tgx101StoryChoosePeople) : selectedUsers.size() + " " + Lang.getString(R.string.Tgx101StoryPeople);
+    }
+  }
+
+  private View audienceRow (int value) {
+    Context context = getContext();
+    int[] titles = {R.string.Tgx101StoryEveryone, R.string.Tgx101StoryContacts, R.string.Tgx101StoryCloseFriends, R.string.Tgx101StorySelected};
+    LinearLayout row = new LinearLayout(context);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setPadding(Screen.dp(16f), Screen.dp(8f), Screen.dp(8f), Screen.dp(8f));
+    View radio = new View(context);
+    GradientDrawable r = new GradientDrawable();
+    r.setShape(GradientDrawable.OVAL);
+    if (privacy == value) { r.setColor(0xff3d8fd8); r.setStroke(Screen.dp(5f), 0xff1d2733); } else r.setStroke(Screen.dp(2f), 0x66ffffff);
+    radio.setBackground(r);
+    if (privacy == value) {
+      FrameLayout ring = new FrameLayout(context);
+      GradientDrawable outer = new GradientDrawable();
+      outer.setShape(GradientDrawable.OVAL);
+      outer.setStroke(Screen.dp(2f), 0xff3d8fd8);
+      ring.setBackground(outer);
+      ring.addView(radio, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      row.addView(ring, new LinearLayout.LayoutParams(Screen.dp(20f), Screen.dp(20f)));
+    } else {
+      row.addView(radio, new LinearLayout.LayoutParams(Screen.dp(20f), Screen.dp(20f)));
+    }
+    LinearLayout texts = new LinearLayout(context);
+    texts.setOrientation(LinearLayout.VERTICAL);
+    texts.setPadding(Screen.dp(14f), 0, Screen.dp(8f), 0);
+    TextView title = new TextView(context);
+    title.setText(Lang.getString(titles[value]));
+    title.setTextColor(0xffe9eef4);
+    title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
+    texts.addView(title);
+    TextView sub = new TextView(context);
+    sub.setText(audienceSubtitle(value));
+    sub.setTextColor(0xff8a9bb0);
+    sub.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+    texts.addView(sub);
+    row.addView(texts, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+    TextView edit = new TextView(context);
+    edit.setText("›");
+    edit.setGravity(Gravity.CENTER);
+    edit.setTextColor(0xff8a9bb0);
+    edit.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22f);
+    edit.setOnClickListener(v -> editAudience(value));
+    row.addView(edit, new LinearLayout.LayoutParams(Screen.dp(40f), Screen.dp(40f)));
+    row.setOnClickListener(v -> {
+      if ((value == 3 && selectedUsers.isEmpty()) || (value == 2 && closeFriendsCount == 0)) { editAudience(value); return; }
+      privacy = value;
+      buildAudience();
+    });
+    return row;
+  }
+
+  private void editAudience (int value) {
+    switch (value) {
+      case 0:
+        pickUsers(Lang.getString(R.string.Tgx101StoryExceptTitle), exceptEveryone, ids -> { exceptEveryone.clear(); exceptEveryone.addAll(ids); privacy = 0; buildAudience(); });
+        break;
+      case 1:
+        pickUsers(Lang.getString(R.string.Tgx101StoryExceptTitle), exceptContacts, ids -> { exceptContacts.clear(); exceptContacts.addAll(ids); privacy = 1; buildAudience(); });
+        break;
+      case 2:
+        tdlib.send(new TdApi.GetCloseFriends(), (users, error) -> UI.post(() -> {
+          ArrayList<Long> current = new ArrayList<>();
+          if (users != null) for (long id : users.userIds) current.add(id);
+          pickUsers(Lang.getString(R.string.Tgx101StoryCloseFriends), current, ids -> tdlib.send(new TdApi.SetCloseFriends(toArray(ids)), (ok, err) -> UI.post(() -> {
+            if (err != null) { UI.showError(err); return; }
+            closeFriendsCount = ids.size();
+            if (!ids.isEmpty()) privacy = 2;
+            buildAudience();
+          })));
+        }));
+        break;
+      default:
+        pickUsers(Lang.getString(R.string.Tgx101StorySelectedTitle), selectedUsers, ids -> { selectedUsers.clear(); selectedUsers.addAll(ids); if (!ids.isEmpty()) privacy = 3; buildAudience(); });
+    }
+  }
+
+  private interface IdsCallback { void onIds (List<Long> ids); }
+
+  /** A card with the contacts to tick, a search field on top (by name) — the same picker for every list */
+  private void pickUsers (String titleText, List<Long> initial, IdsCallback done) {
     tdlib.send(new TdApi.GetContacts(), (users, error) -> UI.post(() -> {
-      if (users == null || users.userIds.length == 0) { UI.showToast(R.string.Tgx101StoryNoContacts, Toast.LENGTH_SHORT); return; }
+      ArrayList<Long> ids = new ArrayList<>();
+      if (users != null) for (long id : users.userIds) ids.add(id);
+      for (long id : initial) if (!ids.contains(id)) ids.add(0, id); // ticked non-contacts stay on the list
+      if (ids.isEmpty()) { UI.showToast(R.string.Tgx101StoryNoContacts, Toast.LENGTH_SHORT); return; }
       Context context = getContext();
       FrameLayout dim = new FrameLayout(context);
       dim.setBackgroundColor(0x80000000);
@@ -1294,22 +1390,40 @@ public final class Tgx101StoryEditor extends Dialog {
       card.setBackground(cardBackground());
       card.setPadding(0, Screen.dp(14f), 0, Screen.dp(12f));
       TextView title = new TextView(context);
-      title.setText(Lang.getString(R.string.Tgx101StorySelectedTitle));
+      title.setText(titleText);
       title.setTextColor(0xffffffff);
       title.setTypeface(Typeface.DEFAULT_BOLD);
       title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
       title.setPadding(Screen.dp(16f), 0, Screen.dp(16f), Screen.dp(8f));
       card.addView(title);
+      EditText search = new EditText(context);
+      search.setHint(Lang.getString(R.string.Tgx101StorySearchPeople));
+      search.setHintTextColor(0xff8a9bb0);
+      search.setTextColor(0xffffffff);
+      search.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14.5f);
+      search.setSingleLine(true);
+      search.setPadding(Screen.dp(14f), Screen.dp(9f), Screen.dp(14f), Screen.dp(9f));
+      GradientDrawable sb = new GradientDrawable();
+      sb.setColor(0x12ffffff);
+      sb.setCornerRadius(Screen.dp(14f));
+      search.setBackground(sb);
+      LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      sp.leftMargin = sp.rightMargin = Screen.dp(12f);
+      sp.bottomMargin = Screen.dp(6f);
+      card.addView(search, sp);
       android.widget.ScrollView scroll = new android.widget.ScrollView(context);
       LinearLayout list = new LinearLayout(context);
       list.setOrientation(LinearLayout.VERTICAL);
-      final ArrayList<Long> chosen = new ArrayList<>(selectedUsers);
-      for (long userId : users.userIds) {
+      final ArrayList<Long> chosen = new ArrayList<>(initial);
+      final ArrayList<View> rows = new ArrayList<>();
+      final ArrayList<String> names = new ArrayList<>();
+      for (long userId : ids) {
         LinearLayout row = new LinearLayout(context);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(Screen.dp(16f), Screen.dp(10f), Screen.dp(16f), Screen.dp(10f));
+        String nameText = tdlib.cache().userDisplayName(userId, false, false);
         TextView name = new TextView(context);
-        name.setText(tdlib.cache().userDisplayName(userId, false, false));
+        name.setText(nameText);
         name.setTextColor(0xffe9eef4);
         name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
         row.addView(name, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -1322,31 +1436,37 @@ public final class Tgx101StoryEditor extends Dialog {
           box.setChecked(chosen.contains(userId));
         });
         list.addView(row);
+        rows.add(row);
+        names.add(nameText.toLowerCase(java.util.Locale.ROOT));
       }
+      search.addTextChangedListener(new TextWatcher() {
+        @Override public void beforeTextChanged (CharSequence s, int a, int b, int c) { }
+        @Override public void onTextChanged (CharSequence s, int a, int b, int c) { }
+        @Override public void afterTextChanged (Editable s) {
+          String q = s.toString().trim().toLowerCase(java.util.Locale.ROOT);
+          for (int i = 0; i < rows.size(); i++) rows.get(i).setVisibility(q.isEmpty() || names.get(i).contains(q) ? View.VISIBLE : View.GONE);
+        }
+      });
       scroll.addView(list);
-      card.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.min(Screen.dp(56f) * users.userIds.length, Math.round(root.getHeight() * .55f))));
+      card.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.min(Screen.dp(56f) * ids.size(), Math.round(root.getHeight() * .5f))));
       LinearLayout buttons = new LinearLayout(context);
       buttons.setPadding(Screen.dp(16f), Screen.dp(12f), Screen.dp(16f), 0);
-      buttons.addView(pill(context, Lang.getString(R.string.Cancel), false, v -> root.removeView(dim)), new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f));
+      buttons.addView(pill(context, Lang.getString(R.string.Cancel), false, v -> { hideKeyboard(); root.removeView(dim); }), new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f));
       LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f);
       dp.leftMargin = Screen.dp(10f);
-      buttons.addView(pill(context, Lang.getString(R.string.Tgx101StoryDone), true, v -> {
-        root.removeView(dim);
-        selectedUsers.clear();
-        selectedUsers.addAll(chosen);
-        if (selectedUsers.isEmpty()) return;
-        privacy = 3;
-        chipView.setText(Lang.getString(R.string.Tgx101StorySelected) + " · " + selectedUsers.size());
-        refreshChips((ViewGroup) chipView.getParent(), 3);
-      }), dp);
+      buttons.addView(pill(context, Lang.getString(R.string.Tgx101StoryDone), true, v -> { hideKeyboard(); root.removeView(dim); done.onIds(chosen); }), dp);
       card.addView(buttons);
       FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
       cp.leftMargin = cp.rightMargin = cp.bottomMargin = Screen.dp(8f);
       dim.addView(card, cp);
-      dim.setOnClickListener(v -> root.removeView(dim));
+      dim.setOnClickListener(v -> { hideKeyboard(); root.removeView(dim); });
       root.addView(dim, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      textSheetForIme = card;
+      card.setTranslationY(-imeHeight);
     }));
   }
+
+  private @Nullable View textSheetForIme;
 
   private void publish () {
     if (publishing) return;
@@ -1386,9 +1506,9 @@ public final class Tgx101StoryEditor extends Dialog {
           return;
         }
         TdApi.StoryPrivacySettings privacySettings = privacyChoice == 3 ? new TdApi.StoryPrivacySettingsSelectedUsers(toArray(selectedUsers))
-          : privacyChoice == 1 ? new TdApi.StoryPrivacySettingsContacts(new long[0])
+          : privacyChoice == 1 ? new TdApi.StoryPrivacySettingsContacts(toArray(exceptContacts))
           : privacyChoice == 2 ? new TdApi.StoryPrivacySettingsCloseFriends()
-          : new TdApi.StoryPrivacySettingsEveryone(new long[0]);
+          : new TdApi.StoryPrivacySettingsEveryone(toArray(exceptEveryone));
         TdApi.InputStoryContent content = new TdApi.InputStoryContentPhoto(new TdApi.InputFileLocal(result.getAbsolutePath()), new int[0]);
         TdApi.FormattedText text = caption.isEmpty() ? null : new TdApi.FormattedText(caption, new TdApi.TextEntity[0]);
         tdlib.send(new TdApi.PostStory(tdlib.selfChatId(), content, null, text, privacySettings, new int[0], activePeriod, null, postToProfile, protectContent), (story, error) -> UI.post(() -> {
