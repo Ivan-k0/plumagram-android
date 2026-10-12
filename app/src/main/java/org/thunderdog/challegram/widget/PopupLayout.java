@@ -826,6 +826,13 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     if (animator == null) {
       animator = new FactorAnimator(REVEAL_ANIMATOR, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 180l, factor);
     }
+    // TGx101 (user's video 2026-10-12 20:19 «сама анимация появления окна»): a sheet comes in softly — longer, easing
+    // out — and leaves quicker, speeding up, instead of the same short 180 ms both ways
+    if (animationType == ANIMATION_TYPE_SIMPLE) {
+      boolean in = toFactor > factor;
+      animator.setInterpolator(in ? new android.view.animation.DecelerateInterpolator(2.4f) : new android.view.animation.AccelerateInterpolator(1.4f));
+      animator.setDuration(in ? 300l : 200l);
+    }
     if (toFactor == 1f && needRevealStartDelay) {
       animator.setStartDelay(MenuMoreWrap.REVEAL_DURATION);
     } else {
@@ -884,6 +891,13 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
           View view = getContentChild();
           if (view != null) {
             view.setTranslationY(currentHeight * (1f - factor));
+            // TGx101: the sheet shows itself at once and grows the last few percent, anchored to its bottom
+            view.setAlpha(Math.min(1f, factor * 2.5f));
+            float scale = .96f + .04f * factor;
+            view.setPivotX(view.getWidth() / 2f);
+            view.setPivotY(view.getHeight());
+            view.setScaleX(scale);
+            view.setScaleY(scale);
           }
           break;
         }
