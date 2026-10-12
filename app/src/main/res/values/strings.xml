@@ -6365,6 +6365,11 @@
   <string name="Tgx101SectionChannelsAdsHint">Sponsored posts are not shown in channels; the «Join» button can be hidden too.</string>
   <string name="Tgx101FontMerriweather">Merriweather</string>
   <string name="Tgx101FontCondensed">Roboto Condensed</string>
+  <string name="Tgx101HapticStrength">Vibration strength</string>
+  <string name="Tgx101HapticOff">Off</string>
+  <string name="Tgx101HapticLight">Light</string>
+  <string name="Tgx101HapticNormal">Normal</string>
+  <string name="Tgx101HapticStrong">Strong</string>
   <string name="Tgx101SearchHoldProxy">Hold search in the chat list: proxy</string>
   <string name="Tgx101UnofficialTitle">Unofficial build</string>
   <string name="Tgx101UnofficialText">This PlumaGram is signed by somebody else, not by its author. It may be changed in any way. The official version is on 4PDA and in the @plumagram channel.</string>

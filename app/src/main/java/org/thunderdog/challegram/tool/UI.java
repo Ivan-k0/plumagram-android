@@ -390,8 +390,8 @@ public class UI {
   }
 
   public static void forceVibrateError (View view) {
-    forceVibrate(view, true);
-    forceVibrate(view, true);
+    Tgx101Haptics.play(Tgx101Haptics.ERROR); // TGx101: one recognisable «wrong» buzz
+    if (!Settings.instance().tgx101Haptics()) return;
   }
 
   public static void forceVibrate (View view, boolean isMain) {
@@ -728,6 +728,7 @@ public class UI {
   }
 
   public static void copyText (CharSequence text, @StringRes int toast) {
+    Tgx101Haptics.play(Tgx101Haptics.CLICK); // TGx101: copied
     getAppHandler().copyText(text, toast);
   }
 

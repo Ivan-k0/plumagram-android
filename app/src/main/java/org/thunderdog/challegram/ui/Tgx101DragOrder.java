@@ -111,6 +111,7 @@ public final class Tgx101DragOrder {
           return false;
         }
         adapter.moveItem(from, to, true);
+        org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
         moved[0] = true;
         callback.onOrderChanged(false);
         return true;

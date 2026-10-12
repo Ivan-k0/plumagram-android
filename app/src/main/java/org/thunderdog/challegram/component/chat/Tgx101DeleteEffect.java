@@ -81,6 +81,7 @@ public final class Tgx101DeleteEffect extends View {
    * {@code outline} (the bubble, in the view's coordinates) limits the dust to the message itself.
    */
   public void explode (View source, @Nullable Path outline) {
+    org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK); // TGx101: deleted
     if (source == null || source.getWidth() <= 0 || source.getHeight() <= 0 || !source.isShown() || getWidth() == 0) {
       Tgx101Diag.mark("delete effect: no snapshot (view " + (source == null ? "null" : source.getWidth() + "x" + source.getHeight() + (source.isShown() ? "" : " hidden")) + ", layer " + getWidth() + ")");
       return;

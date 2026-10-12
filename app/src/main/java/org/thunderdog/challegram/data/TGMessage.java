@@ -7225,7 +7225,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   private static final int ANIMATOR_QUICK_VERTICAL_RIGHT = -7;
 
   public void vibrate () {
-    UI.hapticVibrate(findCurrentView(), true);
+    // TGx101 (user 2026-10-12): the swipe-reply threshold, a quick action and a set reaction — through the motor itself
+    org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK);
   }
 
   private float quickRightReadyFactor, quickLeftReadyFactor;

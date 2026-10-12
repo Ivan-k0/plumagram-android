@@ -293,6 +293,7 @@ public class SliderWrapView extends LinearLayout implements SliderView.Listener,
     int newIndex = indexForValue(factor);
     if (valueIndex != newIndex) {
       valueIndex = newIndex;
+      org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK); // TGx101: a notch
       if (nameView != null) {
         nameView.setValue(values != null ? values[newIndex] : Integer.toString(newIndex));
       }

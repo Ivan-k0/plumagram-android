@@ -2075,7 +2075,7 @@ public final class Tgx101StoryEditor extends Dialog {
           boolean tap = !moved && SystemClock.uptimeMillis() - downTime < 350 && e.getActionMasked() == MotionEvent.ACTION_UP;
           if (target != null && overBin) {
             popOut(target);
-            if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101Haptics()) performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+            org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK);
           }
           if (!moved && !undo.isEmpty()) {
             undo.remove(undo.size() - 1); // nothing changed — no undo step
@@ -2704,7 +2704,12 @@ public final class Tgx101StoryEditor extends Dialog {
         lastTap = now;
       }
       float pad = Screen.dp(9f);
+      float old = value;
       value = Math.max(0f, Math.min(1f, (e.getX() - pad) / Math.max(1f, getWidth() - 2 * pad)));
+      // TGx101: a tick on every tenth and when passing the neutral point
+      if ((int) (old * 10) != (int) (value * 10) || ((old - neutral) * (value - neutral) < 0f)) {
+        org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
+      }
       callback.onValue(value);
       invalidate();
       return true;

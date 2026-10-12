@@ -571,6 +571,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
       @Override
       public boolean onMove (@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+        org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK); // TGx101: a pinned chat takes a new place
         int fromPosition = viewHolder.getBindingAdapterPosition();
         int toPosition = target.getBindingAdapterPosition();
 

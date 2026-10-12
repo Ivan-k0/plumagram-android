@@ -925,6 +925,7 @@ public class SettingsFoldersController extends RecyclerViewController<Void> impl
 
     @Override
     public boolean onMove (@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder source, @NonNull RecyclerView.ViewHolder target) {
+      org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
       int sourcePosition = source.getAbsoluteAdapterPosition();
       int targetPosition = target.getAbsoluteAdapterPosition();
       if (sourcePosition == RecyclerView.NO_POSITION || targetPosition == RecyclerView.NO_POSITION) {

@@ -767,6 +767,7 @@ public class RecordAudioVideoController implements
   private void setReleased (boolean isReleased, boolean animated) {
     if (this.isReleased != isReleased) {
       this.isReleased = isReleased;
+      if (isReleased && animated) org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK); // TGx101: locked hands-free
       releaseAnimator.setValue(isReleased, animated);
     }
   }
@@ -1270,7 +1271,7 @@ public class RecordAudioVideoController implements
     }
 
     if (closeMode == CLOSE_MODE_CANCEL) {
-      UI.forceVibrate(voiceVideoButtonView, true, true);
+      org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.HEAVY); // TGx101: thrown away
       if (showPrompt) {
         Settings.instance().notifyRecordAudioVideoError();
       }
@@ -1554,6 +1555,7 @@ public class RecordAudioVideoController implements
 
   private void startRecordingImpl (int mode) {
     this.currentRecording = mode;
+    org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.HEAVY); // TGx101: recording starts
     switch (mode) {
       case RECORD_MODE_AUDIO:
         if (tdlib != null) {

@@ -533,6 +533,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SectionChannelsAdsHint, "Рекламные посты в каналах не показываются; кнопку «Вступить» тоже можно скрыть.");
     RU.put(R.string.Tgx101FontMerriweather, "Merriweather");
     RU.put(R.string.Tgx101FontCondensed, "Roboto Condensed");
+    RU.put(R.string.Tgx101HapticStrength, "Сила вибрации");
+    RU.put(R.string.Tgx101HapticOff, "Выключена");
+    RU.put(R.string.Tgx101HapticLight, "Лёгкая");
+    RU.put(R.string.Tgx101HapticNormal, "Обычная");
+    RU.put(R.string.Tgx101HapticStrong, "Сильная");
     RU.put(R.string.Tgx101SearchHoldProxy, "Удержание поиска в чатах — прокси");
     RU.put(R.string.Tgx101UnofficialTitle, "Неофициальная сборка");
     RU.put(R.string.Tgx101UnofficialText, "Этот PlumaGram подписан не автором, а кем-то другим — его могли изменить как угодно. Официальная версия — на 4PDA и в канале @plumagram.");

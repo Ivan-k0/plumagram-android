@@ -310,7 +310,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         } else if (itemId == R.id.btn_tgx101MenuHidesKeyboard) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101MenuHidesKeyboard(), isUpdate);
         } else if (itemId == R.id.btn_tgx101Haptics) {
-          view.getToggler().setRadioEnabled(Settings.instance().tgx101Haptics(), isUpdate);
+          // TGx101 (user 2026-10-12 «не дублируй»): one row — off or how strong
+          int st = Settings.instance().tgx101HapticStrength();
+          view.setData(!Settings.instance().tgx101Haptics() ? R.string.Tgx101HapticOff : st == 0 ? R.string.Tgx101HapticLight : st == 2 ? R.string.Tgx101HapticStrong : R.string.Tgx101HapticNormal);
         } else if (itemId == R.id.btn_tgx101MenuAtFinger) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101MenuAtFinger(), isUpdate);
         } else if (itemId == R.id.btn_tgx101UiText) {
@@ -467,7 +469,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         // TGx101 (user 2026-10-11): long press, swipe and double tap are on the «Message gestures» screen
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Gestures, 0, R.string.Tgx101Gestures),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101Haptics, 0, R.string.Tgx101Haptics),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Haptics, 0, R.string.Tgx101Haptics),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MenuHidesKeyboard, 0, R.string.Tgx101MenuHidesKeyboard),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1284,7 +1286,15 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     } else if (id == R.id.btn_tgx101LongPressMenu) {
       Settings.instance().setTgx101LongPressMenu(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101Haptics) {
-      Settings.instance().setTgx101Haptics(toggleResult);
+      showOptions(Lang.getString(R.string.Tgx101Haptics), new int[] {R.id.btn_disabled, R.id.btn_tgx101HapticLight, R.id.btn_tgx101HapticNormal, R.id.btn_tgx101HapticStrong},
+        new String[] {Lang.getString(R.string.Tgx101HapticOff), Lang.getString(R.string.Tgx101HapticLight), Lang.getString(R.string.Tgx101HapticNormal), Lang.getString(R.string.Tgx101HapticStrong)}, null, null, (optionView, optionId) -> {
+          boolean on = optionId != R.id.btn_disabled;
+          Settings.instance().setTgx101Haptics(on);
+          if (on) Settings.instance().setTgx101HapticStrength(optionId == R.id.btn_tgx101HapticLight ? 0 : optionId == R.id.btn_tgx101HapticStrong ? 2 : 1);
+          adapter.updateValuedSettingById(R.id.btn_tgx101Haptics);
+          org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK); // feel it at once
+          return true;
+        });
     } else if (id == R.id.btn_tgx101HideBlocked) {
       Settings.instance().setTgx101HideBlocked(toggleResult);
       org.thunderdog.challegram.data.Tgx101BlockedSenders.refresh(tdlib, true);

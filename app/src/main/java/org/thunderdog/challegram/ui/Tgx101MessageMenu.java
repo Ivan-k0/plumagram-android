@@ -423,7 +423,7 @@ public final class Tgx101MessageMenu {
       dragRow = hit;
       if (hit != null) {
         hit.setPressed(true);
-        if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101Haptics()) hit.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
+        org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
       }
     }
     magnifyReactions(host.reactions, rawX, rawY, true, action);

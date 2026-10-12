@@ -3703,6 +3703,15 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_HAPTICS, v);
   }
 
+  /** TGx101 (user 2026-10-12): vibration strength — 0 light, 1 normal, 2 strong */
+  public int tgx101HapticStrength () {
+    return pmc.getInt("tgx101_haptic_strength", 1);
+  }
+
+  public void setTgx101HapticStrength (int strength) {
+    pmc.putInt("tgx101_haptic_strength", strength);
+  }
+
   // TGx101 (user 2026-10-06 20:42 «не убирай клавиатуру, или дай на выбор»): off — the keyboard stays under the menu
   private static final String KEY_TGX101_MENU_HIDES_KEYBOARD = "tgx101_menu_hides_keyboard";
   public boolean tgx101MenuHidesKeyboard () {
