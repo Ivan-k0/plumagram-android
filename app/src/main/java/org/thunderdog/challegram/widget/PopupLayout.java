@@ -854,6 +854,11 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
 
   private BackgroundView backgroundView;
 
+  /** TGx101 (user 2026-10-12 «затухания очень резкие и отвлекают», variant 1): sheets dim the screen about a third as much */
+  private float tgx101DimScale () {
+    return animationType == ANIMATION_TYPE_SIMPLE ? .35f : 1f;
+  }
+
   private class BackgroundView extends View {
     public BackgroundView (Context context) {
       super(context);
@@ -864,14 +869,14 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     public void draw (Canvas c) {
       super.draw(c);
       if (useStatusBar) {
-        final int color = ColorUtils.color((int) (255f * .3f), 0);
+        final int color = ColorUtils.color((int) (255f * .3f * tgx101DimScale()), 0);
         c.drawRect(0, 0, getMeasuredWidth(), HeaderView.getTopOffset(), Paints.fillingPaint(color));
       }
     }
 
     @Override
     protected void onDraw (Canvas c) {
-      final int color = ColorUtils.color((int) (255f * (Theme.getPopupOverlayAlpha())), 0);
+      final int color = ColorUtils.color((int) (255f * (Theme.getPopupOverlayAlpha()) * tgx101DimScale()), 0);
       int offset = HeaderView.getTopOffset();
       if (useStatusBar && offset != 0) {
         c.drawRect(0, offset, getMeasuredWidth(), getMeasuredHeight(), Paints.fillingPaint(color));
