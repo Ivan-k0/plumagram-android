@@ -194,6 +194,7 @@ public final class Tgx101StoryEditor extends Dialog {
     // TGx101: a reaction sticker (suggested reaction area) — not baked into the photo, Telegram apps draw it themselves
     @Nullable String reaction, reactionType;
     boolean dark, flipped;
+    float appear = 1f; // pop-in / melt-away animation, not part of the saved state
 
     TextLayer copy () {
       TextLayer t = new TextLayer();
@@ -227,7 +228,7 @@ public final class Tgx101StoryEditor extends Dialog {
 
   private final FrameLayout root;
   private final CanvasView canvasView;
-  private final TextView undoButton, redoButton;
+  private final View undoButton, redoButton;
   private final EditText captionView;
   private boolean previewMode;
   private @Nullable View textPanel, publishSheet, confirmCard, textSheet;
@@ -253,11 +254,11 @@ public final class Tgx101StoryEditor extends Dialog {
     LinearLayout top = new LinearLayout(context);
     top.setGravity(Gravity.CENTER_VERTICAL);
     top.setPadding(Screen.dp(12f), Screen.dp(12f), Screen.dp(12f), 0);
-    top.addView(glass(context, "✕", v -> confirmClose()), squareParams(36f, 0));
-    undoButton = glass(context, "↶", v -> undo());
-    top.addView(undoButton, squareParams(36f, 8f));
-    redoButton = glass(context, "↷", v -> redo());
-    top.addView(redoButton, squareParams(36f, 8f));
+    top.addView(iconButton(context, R.drawable.baseline_close_24, null, v -> confirmClose(), false), squareParams(40f, 0));
+    undoButton = iconButton(context, R.drawable.baseline_undo_24, null, v -> undo(), false);
+    top.addView(undoButton, squareParams(40f, 8f));
+    redoButton = iconButton(context, R.drawable.baseline_undo_24, null, v -> redo(), true);
+    top.addView(redoButton, squareParams(40f, 8f));
     View space = new View(context);
     top.addView(space, new LinearLayout.LayoutParams(0, 1, 1f));
     TextView badge = new TextView(context);
@@ -273,15 +274,16 @@ public final class Tgx101StoryEditor extends Dialog {
     // right rail: text, fit, background, preview
     LinearLayout rail = new LinearLayout(context);
     rail.setOrientation(LinearLayout.VERTICAL);
-    rail.addView(glass(context, "Аа", v -> editText(null)), squareParams(44f, 0));
-    rail.addView(glass(context, "😊", v -> pickReaction()), squareParams(44f, 8f, true));
-    rail.addView(glass(context, "◑", v -> openFilters()), squareParams(44f, 8f, true));
-    rail.addView(glass(context, "⤢", v -> { pushUndo(); fitPhoto(); schedulePreview(); canvasView.invalidate(); }), squareParams(44f, 8f, true));
-    rail.addView(glass(context, "◐", v -> { pushUndo(); background = (background + 1) % 3; schedulePreview(); canvasView.invalidate(); toastBackground(); }), squareParams(44f, 8f, true));
-    rail.addView(glass(context, "👁", v -> setPreview(!previewMode)), squareParams(44f, 8f, true));
+    // TGx101 (user 2026-10-12 «иконки мелкие и непонятные»): proper icons with a word under each
+    rail.addView(labeledIcon(context, R.drawable.baseline_format_text_24, R.string.Tgx101ToolText, v -> editText(null)));
+    rail.addView(labeledIcon(context, R.drawable.baseline_emoticon_outline_24, R.string.Tgx101ToolReaction, v -> pickReaction()));
+    rail.addView(labeledIcon(context, R.drawable.tgx101_photo_filter_24, R.string.Tgx101ToolFilters, v -> openFilters()));
+    rail.addView(labeledIcon(context, R.drawable.baseline_zoom_out_map_24, R.string.Tgx101ToolFit, v -> { pushUndo(); fitPhoto(); schedulePreview(); canvasView.invalidate(); }));
+    rail.addView(labeledIcon(context, R.drawable.baseline_palette_24, R.string.Tgx101ToolBackground, v -> { pushUndo(); background = (background + 1) % 3; schedulePreview(); canvasView.invalidate(); toastBackground(); }));
+    rail.addView(labeledIcon(context, R.drawable.baseline_visibility_24, R.string.Tgx101ToolPreview, v -> setPreview(!previewMode)));
     FrameLayout.LayoutParams railParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.RIGHT | Gravity.TOP);
-    railParams.topMargin = Screen.dp(70f);
-    railParams.rightMargin = Screen.dp(10f);
+    railParams.topMargin = Screen.dp(66f);
+    railParams.rightMargin = Screen.dp(6f);
     root.addView(rail, railParams);
     railBar = rail;
 
@@ -326,6 +328,10 @@ public final class Tgx101StoryEditor extends Dialog {
       if (hidden > Screen.dp(120f) || imeHeight == 0 || hidden < imeHeight) setImeHeight(Math.max(0, hidden > Screen.dp(120f) ? hidden : 0));
     });
     updateUndoButtons();
+    root.setAlpha(0f);
+    root.setScaleX(.96f);
+    root.setScaleY(.96f);
+    root.post(() -> root.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(new android.view.animation.DecelerateInterpolator(2f)).start());
     Tgx101Diag.mark("story editor: opened, photo " + photo.getWidth() + "x" + photo.getHeight());
   }
 
@@ -405,14 +411,74 @@ public final class Tgx101StoryEditor extends Dialog {
     View card = confirmCard;
     if (card == null) return;
     confirmCard = null;
-    card.animate().alpha(0f).setDuration(160).withEndAction(() -> root.removeView(card)).start();
+    hideOverlay(card);
   }
 
   private void setChromeVisible (boolean visible) {
-    int v = visible ? View.VISIBLE : View.INVISIBLE;
-    if (topBar != null) topBar.setVisibility(v);
-    if (railBar != null) railBar.setVisibility(v);
-    if (bottomBar != null) bottomBar.setVisibility(v);
+    for (View v : new View[] {topBar, railBar, bottomBar}) {
+      if (v == null) continue;
+      v.animate().cancel();
+      if (visible) {
+        v.setVisibility(View.VISIBLE);
+        v.animate().alpha(1f).setDuration(180).start();
+      } else {
+        v.animate().alpha(0f).setDuration(140).withEndAction(() -> v.setVisibility(View.INVISIBLE)).start();
+      }
+    }
+  }
+
+  // ── one way for every window to come and go (user 2026-10-12 «анимации появления и ухода любых окон») ──────────
+
+  private static boolean isBottom (View child) {
+    ViewGroup.LayoutParams lp = child.getLayoutParams();
+    return lp instanceof FrameLayout.LayoutParams && (((FrameLayout.LayoutParams) lp).gravity & Gravity.BOTTOM) == Gravity.BOTTOM;
+  }
+
+  private static boolean isTop (View child) {
+    ViewGroup.LayoutParams lp = child.getLayoutParams();
+    return lp instanceof FrameLayout.LayoutParams && (((FrameLayout.LayoutParams) lp).gravity & Gravity.VERTICAL_GRAVITY_MASK) == Gravity.TOP && lp.height == ViewGroup.LayoutParams.WRAP_CONTENT;
+  }
+
+  /** The dim fades in, the card slides up from the bottom (or down from the top) */
+  private void animateIn (View overlay) {
+    overlay.setAlpha(0f);
+    overlay.animate().alpha(1f).setDuration(200).start();
+    if (!(overlay instanceof ViewGroup)) return;
+    ViewGroup g = (ViewGroup) overlay;
+    for (int i = 0; i < g.getChildCount(); i++) {
+      View child = g.getChildAt(i);
+      float from = isBottom(child) ? Screen.dp(220f) : isTop(child) ? -Screen.dp(36f) : 0f;
+      if (from == 0f) continue;
+      child.setTranslationY(from);
+      child.animate().translationY(0f).setDuration(280).setInterpolator(new android.view.animation.DecelerateInterpolator(2.2f)).start();
+    }
+  }
+
+  /** The card slides away, the dim fades, then the window is gone */
+  private void hideOverlay (@Nullable View overlay) {
+    if (overlay == null || overlay.getTag() == "closing") return;
+    overlay.setTag("closing");
+    overlay.setEnabled(false);
+    if (overlay instanceof ViewGroup) {
+      ViewGroup g = (ViewGroup) overlay;
+      for (int i = 0; i < g.getChildCount(); i++) {
+        View child = g.getChildAt(i);
+        float to = isBottom(child) ? Screen.dp(240f) : isTop(child) ? -Screen.dp(40f) : 0f;
+        if (to != 0f) child.animate().translationY(to).setDuration(220).setInterpolator(new android.view.animation.AccelerateInterpolator(1.6f)).start();
+      }
+    }
+    overlay.animate().alpha(0f).setDuration(220).withEndAction(() -> root.removeView(overlay)).start();
+  }
+
+  private boolean dismissing;
+
+  @Override
+  public void dismiss () {
+    if (dismissing || !isShowing()) { if (!dismissing) super.dismiss(); return; }
+    dismissing = true;
+    hideKeyboard();
+    root.animate().alpha(0f).scaleX(.96f).scaleY(.96f).translationY(Screen.dp(24f)).setDuration(220)
+      .setInterpolator(new android.view.animation.AccelerateInterpolator(1.4f)).withEndAction(super::dismiss).start();
   }
 
   @Override
@@ -608,7 +674,7 @@ public final class Tgx101StoryEditor extends Dialog {
     int save = c.save();
     c.translate(t.cx, t.cy);
     c.rotate(t.rotation);
-    c.scale(t.scale, t.scale);
+    c.scale(t.scale * t.appear, t.scale * t.appear);
     if (t.style == STYLE_PLATE) {
       boxOf(t, layout, rect);
       fill.setShader(null);
@@ -689,8 +755,29 @@ public final class Tgx101StoryEditor extends Dialog {
     int save = c.save();
     c.translate(t.cx, t.cy);
     c.rotate(t.rotation);
-    drawReactionBubble(c, 0, 0, REACTION_SIZE * t.scale, t.reaction, t.dark, t.flipped, 0);
+    drawReactionBubble(c, 0, 0, REACTION_SIZE * t.scale * t.appear, t.reaction, t.dark, t.flipped, 0);
     c.restoreToCount(save);
+  }
+
+  /** A new layer pops in with a little overshoot */
+  private void popIn (TextLayer t) {
+    android.animation.ValueAnimator a = android.animation.ValueAnimator.ofFloat(.2f, 1f);
+    a.setDuration(320);
+    a.setInterpolator(new android.view.animation.OvershootInterpolator(2.2f));
+    a.addUpdateListener(an -> { t.appear = (float) an.getAnimatedValue(); canvasView.invalidate(); });
+    a.start();
+  }
+
+  /** A layer thrown into the bin shrinks and melts, then it's gone */
+  private void popOut (TextLayer t) {
+    android.animation.ValueAnimator a = android.animation.ValueAnimator.ofFloat(t.appear, 0f);
+    a.setDuration(200);
+    a.setInterpolator(new android.view.animation.AccelerateInterpolator(1.5f));
+    a.addUpdateListener(an -> { t.appear = (float) an.getAnimatedValue(); canvasView.invalidate(); });
+    a.addListener(new android.animation.AnimatorListenerAdapter() {
+      @Override public void onAnimationEnd (android.animation.Animator animation) { texts.remove(t); canvasView.invalidate(); }
+    });
+    a.start();
   }
 
   private int reactionCount () {
@@ -715,7 +802,7 @@ public final class Tgx101StoryEditor extends Dialog {
       Context context = getContext();
       FrameLayout dim = new FrameLayout(context);
       dim.setBackgroundColor(0x66000000);
-      dim.setOnClickListener(v -> root.removeView(dim));
+      dim.setOnClickListener(v -> hideOverlay(dim));
       LinearLayout card = new LinearLayout(context);
       card.setOrientation(LinearLayout.VERTICAL);
       card.setClickable(true);
@@ -742,7 +829,7 @@ public final class Tgx101StoryEditor extends Dialog {
         v.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26f);
         v.setGravity(Gravity.CENTER);
         v.setOnClickListener(x -> {
-          root.removeView(dim);
+          hideOverlay(dim);
           pushUndo();
           TextLayer layer = new TextLayer();
           layer.reaction = "❤".equals(e) ? "❤️" : e;
@@ -750,7 +837,7 @@ public final class Tgx101StoryEditor extends Dialog {
           layer.cx = W * (.3f + .1f * reactionCount());
           layer.cy = H * .62f;
           texts.add(layer);
-          canvasView.invalidate();
+          popIn(layer);
         });
         android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams();
         lp.width = Screen.dp(42f);
@@ -762,6 +849,7 @@ public final class Tgx101StoryEditor extends Dialog {
       cp.leftMargin = cp.rightMargin = cp.bottomMargin = Screen.dp(8f);
       dim.addView(card, cp);
       root.addView(dim, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      animateIn(dim);
     }));
   }
 
@@ -899,14 +987,20 @@ public final class Tgx101StoryEditor extends Dialog {
       drawStory(c);
       c.restoreToCount(save);
       float top = frame.top + frame.height() * TOP_ZONE, bottom = frame.bottom - frame.height() * BOTTOM_ZONE;
-      if (previewMode) {
+      if (previewFactor > 0f) {
+        // the viewer's chrome fades in over the story (and out) instead of popping
+        int layer = c.saveLayerAlpha(0, 0, getWidth(), getHeight(), Math.round(255 * previewFactor));
         drawViewerChrome(c, top, bottom);
-      } else {
+        c.restoreToCount(layer);
+      }
+      if (previewFactor < 1f) {
+        int layer = c.saveLayerAlpha(0, 0, getWidth(), getHeight(), Math.round(255 * (1f - previewFactor)));
         c.drawLine(frame.left, top, frame.right, top, dash);
         c.drawLine(frame.left, bottom, frame.right, bottom, dash);
         label.setTextAlign(Paint.Align.RIGHT);
         c.drawText(Lang.getString(R.string.Tgx101StoryZoneHeader), frame.right - Screen.dp(8f), top - Screen.dp(5f), label);
         c.drawText(Lang.getString(R.string.Tgx101StoryZoneReply), frame.right - Screen.dp(8f), bottom - Screen.dp(5f), label);
+        c.restoreToCount(layer);
       }
       if (snapX) c.drawLine(frame.centerX(), frame.top, frame.centerX(), frame.bottom, guide);
       if (snapY) c.drawLine(frame.left, frame.centerY(), frame.right, frame.centerY(), guide);
@@ -1040,7 +1134,7 @@ public final class Tgx101StoryEditor extends Dialog {
         case MotionEvent.ACTION_CANCEL: {
           boolean tap = !moved && SystemClock.uptimeMillis() - downTime < 350 && e.getActionMasked() == MotionEvent.ACTION_UP;
           if (target != null && overBin) {
-            texts.remove(target);
+            popOut(target);
             if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101Haptics()) performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
           }
           if (!moved && !undo.isEmpty()) {
@@ -1226,6 +1320,7 @@ public final class Tgx101StoryEditor extends Dialog {
     sheet.setTranslationY(-imeLift());
 
     root.addView(panel, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    animateIn(panel);
     textPanel = panel;
     field.requestFocus();
     field.postDelayed(() -> {
@@ -1315,6 +1410,7 @@ public final class Tgx101StoryEditor extends Dialog {
         texts.remove(t);
       } else {
         lastSize = t.size;
+        if (editingOriginal == null) popIn(t); // a new text appears on the story
       }
     }
     editing = null;
@@ -1322,7 +1418,7 @@ public final class Tgx101StoryEditor extends Dialog {
     editField = null;
     eyedropper = null;
     hideKeyboard();
-    if (textPanel != null) root.removeView(textPanel);
+    if (textPanel != null) hideOverlay(textPanel);
     textPanel = null;
     textSheet = null;
     setChromeVisible(true);
@@ -1447,7 +1543,7 @@ public final class Tgx101StoryEditor extends Dialog {
     View panel = filtersPanel;
     if (panel == null) return;
     filtersPanel = null;
-    root.removeView(panel);
+    hideOverlay(panel);
     setChromeVisible(true);
     updateUndoButtons();
   }
@@ -1666,8 +1762,17 @@ public final class Tgx101StoryEditor extends Dialog {
 
   // ── preview «how they'll see it» ───────────────────────────────────────────────────────
 
+  private float previewFactor;
+  private @Nullable android.animation.ValueAnimator previewAnimator;
+
   private void setPreview (boolean preview) {
     previewMode = preview;
+    if (previewAnimator != null) previewAnimator.cancel();
+    previewAnimator = android.animation.ValueAnimator.ofFloat(previewFactor, preview ? 1f : 0f);
+    previewAnimator.setDuration(220);
+    previewAnimator.addUpdateListener(a -> { previewFactor = (float) a.getAnimatedValue(); canvasView.invalidate(); });
+    previewAnimator.start();
+    setChromeVisible(!preview);
     canvasView.invalidate();
     if (preview) {
       List<TextLayer> covered = coveredLayers();
@@ -1960,16 +2065,17 @@ public final class Tgx101StoryEditor extends Dialog {
     card.addView(field);
     LinearLayout buttons = new LinearLayout(context);
     buttons.setPadding(0, Screen.dp(14f), 0, 0);
-    buttons.addView(pill(context, Lang.getString(R.string.Cancel), false, v -> { hideKeyboard(); root.removeView(dim); }), new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f));
+    buttons.addView(pill(context, Lang.getString(R.string.Cancel), false, v -> { hideKeyboard(); hideOverlay(dim); }), new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f));
     LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f);
     dp.leftMargin = Screen.dp(10f);
-    buttons.addView(pill(context, Lang.getString(R.string.Tgx101StoryDone), true, v -> { hideKeyboard(); root.removeView(dim); onDone.run(); }), dp);
+    buttons.addView(pill(context, Lang.getString(R.string.Tgx101StoryDone), true, v -> { hideKeyboard(); hideOverlay(dim); onDone.run(); }), dp);
     card.addView(buttons);
     FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP);
     cp.leftMargin = cp.rightMargin = Screen.dp(8f);
     cp.topMargin = Screen.dp(40f);
     dim.addView(card, cp);
     root.addView(dim, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    animateIn(dim);
     field.requestFocus();
     field.postDelayed(() -> {
       InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -1981,7 +2087,7 @@ public final class Tgx101StoryEditor extends Dialog {
     View sheet = publishSheet;
     if (sheet == null) return;
     publishSheet = null;
-    sheet.animate().alpha(0f).setDuration(180).withEndAction(() -> root.removeView(sheet)).start();
+    hideOverlay(sheet);
   }
 
   private boolean publishing;
@@ -2185,18 +2291,19 @@ public final class Tgx101StoryEditor extends Dialog {
       card.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, pickerListHeight()));
       LinearLayout buttons = new LinearLayout(context);
       buttons.setPadding(Screen.dp(16f), Screen.dp(12f), Screen.dp(16f), 0);
-      buttons.addView(pill(context, Lang.getString(R.string.Cancel), false, v -> { hideKeyboard(); root.removeView(dim); }), new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f));
+      buttons.addView(pill(context, Lang.getString(R.string.Cancel), false, v -> { hideKeyboard(); hideOverlay(dim); }), new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f));
       LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f);
       dp.leftMargin = Screen.dp(10f);
-      buttons.addView(pill(context, Lang.getString(R.string.Tgx101StoryDone), true, v -> { hideKeyboard(); root.removeView(dim); done.onIds(chosen); }), dp);
+      buttons.addView(pill(context, Lang.getString(R.string.Tgx101StoryDone), true, v -> { hideKeyboard(); hideOverlay(dim); done.onIds(chosen); }), dp);
       card.addView(buttons);
       // at the top: the keyboard opened for the search pushed a bottom card off the screen (user's video 10:49)
       FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP);
       cp.leftMargin = cp.rightMargin = Screen.dp(8f);
       cp.topMargin = Screen.dp(36f);
       dim.addView(card, cp);
-      dim.setOnClickListener(v -> { hideKeyboard(); root.removeView(dim); });
+      dim.setOnClickListener(v -> { hideKeyboard(); hideOverlay(dim); });
       root.addView(dim, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      animateIn(dim);
     }));
   }
 
@@ -2298,6 +2405,59 @@ public final class Tgx101StoryEditor extends Dialog {
     return d;
   }
 
+  /** A round glass button with a white icon (mirrored — redo from the undo icon) */
+  private static View iconButton (Context context, int icon, @Nullable String description, View.OnClickListener click, boolean mirror) {
+    FrameLayout f = new FrameLayout(context);
+    GradientDrawable bg = new GradientDrawable();
+    bg.setShape(GradientDrawable.OVAL);
+    bg.setColor(0x9e0f141a);
+    bg.setStroke(Math.max(1, Screen.dp(.5f)), 0x1affffff);
+    f.setBackground(bg);
+    android.widget.ImageView i = new android.widget.ImageView(context);
+    i.setImageResource(icon);
+    i.setColorFilter(0xffffffff);
+    if (mirror) i.setScaleX(-1f);
+    f.addView(i, new FrameLayout.LayoutParams(Screen.dp(22f), Screen.dp(22f), Gravity.CENTER));
+    f.setOnClickListener(click);
+    if (description != null) f.setContentDescription(description);
+    pressFeedback(f);
+    return f;
+  }
+
+  /** A rail tool: the icon in a glass circle and its name under it */
+  private static View labeledIcon (Context context, int icon, int label, View.OnClickListener click) {
+    LinearLayout box = new LinearLayout(context);
+    box.setOrientation(LinearLayout.VERTICAL);
+    box.setGravity(Gravity.CENTER_HORIZONTAL);
+    box.setPadding(0, 0, 0, Screen.dp(8f));
+    View b = iconButton(context, icon, Lang.getString(label), click, false);
+    box.addView(b, new LinearLayout.LayoutParams(Screen.dp(46f), Screen.dp(46f)));
+    TextView t = new TextView(context);
+    t.setText(Lang.getString(label));
+    t.setTextColor(0xffffffff);
+    t.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10.5f);
+    t.setShadowLayer(Screen.dp(3f), 0, 0, 0xcc000000);
+    t.setGravity(Gravity.CENTER);
+    t.setSingleLine(true);
+    LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(Screen.dp(64f), ViewGroup.LayoutParams.WRAP_CONTENT);
+    tp.topMargin = Screen.dp(3f);
+    box.addView(t, tp);
+    box.setOnClickListener(click);
+    return box;
+  }
+
+  /** Buttons give in a little under the finger */
+  private static void pressFeedback (View v) {
+    v.setOnTouchListener((view, e) -> {
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN: view.animate().scaleX(.88f).scaleY(.88f).setDuration(90).start(); break;
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL: view.animate().scaleX(1f).scaleY(1f).setDuration(160).setInterpolator(new android.view.animation.OvershootInterpolator(2f)).start(); break;
+      }
+      return false;
+    });
+  }
+
   private static TextView glass (Context context, String text, View.OnClickListener click) {
     TextView v = new TextView(context);
     v.setText(text);
@@ -2323,6 +2483,7 @@ public final class Tgx101StoryEditor extends Dialog {
     d.setCornerRadius(Screen.dp(14f));
     v.setBackground(d);
     v.setOnClickListener(click);
+    pressFeedback(v);
     return v;
   }
 

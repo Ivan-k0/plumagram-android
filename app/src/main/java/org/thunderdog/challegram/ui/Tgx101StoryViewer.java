@@ -922,7 +922,9 @@ public class Tgx101StoryViewer extends Dialog {
     View p = reactionPicker;
     if (p == null) return;
     reactionPicker = null;
-    root.removeView(p);
+    View row = p instanceof ViewGroup && ((ViewGroup) p).getChildCount() > 0 ? ((ViewGroup) p).getChildAt(0) : null;
+    if (row != null) row.animate().translationY(Screen.dp(16f)).alpha(0f).setDuration(160).withEndAction(() -> root.removeView(p)).start();
+    else root.removeView(p);
     setPaused(false);
   }
 
