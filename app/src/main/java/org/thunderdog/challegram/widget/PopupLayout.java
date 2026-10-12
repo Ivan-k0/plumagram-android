@@ -830,8 +830,10 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     // out — and leaves quicker, speeding up, instead of the same short 180 ms both ways
     if (animationType == ANIMATION_TYPE_SIMPLE) {
       boolean in = toFactor > factor;
-      animator.setInterpolator(in ? new android.view.animation.DecelerateInterpolator(2.4f) : new android.view.animation.AccelerateInterpolator(1.4f));
-      animator.setDuration(in ? 300l : 200l);
+      // exactly the official app's BottomSheet: in — 400 ms «ease out quint», out — 180 ms «ease out»
+      animator.setInterpolator(in ? androidx.core.view.animation.PathInterpolatorCompat.create(.23f, 1f, .32f, 1f)
+        : androidx.core.view.animation.PathInterpolatorCompat.create(0f, 0f, .58f, 1f));
+      animator.setDuration(in ? 400l : 180l);
     }
     if (toFactor == 1f && needRevealStartDelay) {
       animator.setStartDelay(MenuMoreWrap.REVEAL_DURATION);
@@ -854,10 +856,6 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
 
   private BackgroundView backgroundView;
 
-  /** TGx101 (user 2026-10-12 «затухания очень резкие и отвлекают», variant 1): sheets dim the screen about a third as much */
-  private float tgx101DimScale () {
-    return animationType == ANIMATION_TYPE_SIMPLE ? .35f : 1f;
-  }
 
   private class BackgroundView extends View {
     public BackgroundView (Context context) {
@@ -869,14 +867,15 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     public void draw (Canvas c) {
       super.draw(c);
       if (useStatusBar) {
-        final int color = ColorUtils.color((int) (255f * .3f * tgx101DimScale()), 0);
+        final int color = ColorUtils.color(animationType == ANIMATION_TYPE_SIMPLE ? 0 : (int) (255f * .3f), 0);
         c.drawRect(0, 0, getMeasuredWidth(), HeaderView.getTopOffset(), Paints.fillingPaint(color));
       }
     }
 
     @Override
     protected void onDraw (Canvas c) {
-      final int color = ColorUtils.color((int) (255f * (Theme.getPopupOverlayAlpha()) * tgx101DimScale()), 0);
+      // TGx101: sheets dim like the official app's — 20 % black in any theme; other popups keep the theme's dim
+      final int color = ColorUtils.color(animationType == ANIMATION_TYPE_SIMPLE ? 51 : (int) (255f * (Theme.getPopupOverlayAlpha())), 0);
       int offset = HeaderView.getTopOffset();
       if (useStatusBar && offset != 0) {
         c.drawRect(0, offset, getMeasuredWidth(), getMeasuredHeight(), Paints.fillingPaint(color));
@@ -897,12 +896,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
           if (view != null) {
             view.setTranslationY(currentHeight * (1f - factor));
             // TGx101: the sheet shows itself at once and grows the last few percent, anchored to its bottom
-            view.setAlpha(Math.min(1f, factor * 2.5f));
-            float scale = .96f + .04f * factor;
-            view.setPivotX(view.getWidth() / 2f);
-            view.setPivotY(view.getHeight());
-            view.setScaleX(scale);
-            view.setScaleY(scale);
+            // (the official sheet only slides — no fade or growth)
           }
           break;
         }
