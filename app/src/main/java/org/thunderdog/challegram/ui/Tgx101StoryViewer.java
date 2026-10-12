@@ -200,6 +200,7 @@ public class Tgx101StoryViewer extends Dialog {
     heartView.setText("♡");
     heartView.setPadding(Screen.dp(14f), 0, Screen.dp(6f), 0);
     heartView.setOnClickListener(v -> toggleHeart());
+    heartView.setOnLongClickListener(v -> { showReactionPicker(); return true; }); // TGx101: any reaction, as in the official app
     bottom.addView(heartView);
     FrameLayout.LayoutParams bottomParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
     bottomParams.leftMargin = Screen.dp(12f);
@@ -370,8 +371,7 @@ public class Tgx101StoryViewer extends Dialog {
     timeView.setText(Lang.getRelativeTimestamp(story.date, java.util.concurrent.TimeUnit.SECONDS));
     tgx101SetCaption(story.caption != null ? story.caption.text : "");
     replyView.setVisibility(story.canBeReplied ? View.VISIBLE : View.INVISIBLE);
-    heartView.setText(story.chosenReactionType != null ? "♥" : "♡");
-    heartView.setTextColor(story.chosenReactionType != null ? 0xffff4d6d : Color.WHITE);
+    showChosenReaction(story.chosenReactionType);
     updateIncognito();
 
     TdApi.File file = Tgx101Stories.bestFile(story.content);
@@ -585,20 +585,127 @@ public class Tgx101StoryViewer extends Dialog {
     Keyboard.hide(replyView);
   }
 
+  // TGx101 (user 2026-10-12 «реакцию переделай как в официальном»): a tap — ❤️ with a big heart bursting in the middle,
+  // again — off; a hold — the row of reactions to choose any; the button shows the reaction chosen
+
   private void toggleHeart () {
     TdApi.Story story = this.story;
     if (story == null) return;
-    boolean set = story.chosenReactionType == null;
-    TdApi.ReactionType reaction = set ? new TdApi.ReactionTypeEmoji("❤") : null;
+    setReaction(story.chosenReactionType == null ? new TdApi.ReactionTypeEmoji("❤") : null);
+  }
+
+  private void setReaction (@Nullable TdApi.ReactionType reaction) {
+    TdApi.Story story = this.story;
+    if (story == null) return;
+    TdApi.ReactionType previous = story.chosenReactionType;
+    story.chosenReactionType = reaction;
+    showChosenReaction(reaction);
+    if (reaction != null) burst(reactionText(reaction));
     tdlib.send(new TdApi.SetStoryReaction(story.posterChatId, story.id, reaction, true), (ok, error) -> UI.post(() -> {
       if (error != null) {
+        story.chosenReactionType = previous;
+        showChosenReaction(previous);
         UI.showError(error);
-        return;
       }
-      story.chosenReactionType = reaction;
-      heartView.setText(set ? "♥" : "♡");
-      heartView.setTextColor(set ? 0xffff4d6d : Color.WHITE);
     }));
+  }
+
+  private static String reactionText (@Nullable TdApi.ReactionType reaction) {
+    if (reaction instanceof TdApi.ReactionTypeEmoji) {
+      String e = ((TdApi.ReactionTypeEmoji) reaction).emoji;
+      return "❤".equals(e) ? "❤️" : e;
+    }
+    return "❤️";
+  }
+
+  private void showChosenReaction (@Nullable TdApi.ReactionType reaction) {
+    if (reaction == null) {
+      heartView.setText("♡");
+      heartView.setTextColor(Color.WHITE);
+      heartView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26f);
+    } else {
+      heartView.setText(reactionText(reaction));
+      heartView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22f);
+    }
+    heartView.setScaleX(.6f);
+    heartView.setScaleY(.6f);
+    heartView.animate().scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(new android.view.animation.OvershootInterpolator(3f)).start();
+  }
+
+  /** The chosen reaction flies up big in the middle and melts */
+  private void burst (String emoji) {
+    TextView big = new TextView(getContext());
+    big.setText(emoji);
+    big.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 110f);
+    big.setGravity(Gravity.CENTER);
+    root.addView(big, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+    big.setScaleX(.3f);
+    big.setScaleY(.3f);
+    big.setAlpha(0f);
+    big.animate().scaleX(1.1f).scaleY(1.1f).alpha(1f).setDuration(240).setInterpolator(new android.view.animation.OvershootInterpolator(2f))
+      .withEndAction(() -> big.animate().translationY(-Screen.dp(120f)).alpha(0f).scaleX(.8f).scaleY(.8f).setStartDelay(200).setDuration(420)
+        .withEndAction(() -> root.removeView(big)).start()).start();
+  }
+
+  private @Nullable View reactionPicker;
+
+  private void showReactionPicker () {
+    TdApi.Story story = this.story;
+    if (story == null || reactionPicker != null) return;
+    setPaused(true);
+    tdlib.send(new TdApi.GetStoryAvailableReactions(8), (reactions, error) -> UI.post(() -> {
+      java.util.ArrayList<TdApi.ReactionType> types = new java.util.ArrayList<>();
+      if (reactions != null) {
+        for (TdApi.AvailableReaction[] group : new TdApi.AvailableReaction[][] {reactions.topReactions, reactions.recentReactions, reactions.popularReactions}) {
+          if (group == null) continue;
+          for (TdApi.AvailableReaction r : group) {
+            if (r.type instanceof TdApi.ReactionTypeEmoji && types.size() < 24) {
+              boolean dup = false;
+              for (TdApi.ReactionType t : types) dup |= ((TdApi.ReactionTypeEmoji) t).emoji.equals(((TdApi.ReactionTypeEmoji) r.type).emoji);
+              if (!dup) types.add(r.type);
+            }
+          }
+        }
+      }
+      if (types.isEmpty()) for (String e : new String[] {"❤", "👍", "🔥", "😂", "😮", "😢", "🎉", "👏"}) types.add(new TdApi.ReactionTypeEmoji(e));
+      android.widget.HorizontalScrollView scroll = new android.widget.HorizontalScrollView(getContext());
+      scroll.setHorizontalScrollBarEnabled(false);
+      LinearLayout row = new LinearLayout(getContext());
+      row.setPadding(Screen.dp(8f), Screen.dp(4f), Screen.dp(8f), Screen.dp(4f));
+      for (TdApi.ReactionType type : types) {
+        TextView e = new TextView(getContext());
+        e.setText(reactionText(type));
+        e.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 28f);
+        e.setGravity(Gravity.CENTER);
+        e.setPadding(Screen.dp(6f), 0, Screen.dp(6f), 0);
+        e.setOnClickListener(v -> { hideReactionPicker(); setReaction(type); });
+        row.addView(e, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(52f)));
+      }
+      scroll.addView(row);
+      GradientDrawable bg = new GradientDrawable();
+      bg.setColor(0xe61d2733);
+      bg.setCornerRadius(Screen.dp(26f));
+      scroll.setBackground(bg);
+      FrameLayout dim = new FrameLayout(getContext());
+      dim.setOnClickListener(v -> hideReactionPicker());
+      FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(60f), Gravity.BOTTOM);
+      lp.leftMargin = lp.rightMargin = Screen.dp(12f);
+      lp.bottomMargin = Screen.dp(76f);
+      dim.addView(scroll, lp);
+      root.addView(dim, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      reactionPicker = dim;
+      scroll.setTranslationY(Screen.dp(20f));
+      scroll.setAlpha(0f);
+      scroll.animate().translationY(0f).alpha(1f).setDuration(200).start();
+    }));
+  }
+
+  private void hideReactionPicker () {
+    View p = reactionPicker;
+    if (p == null) return;
+    reactionPicker = null;
+    root.removeView(p);
+    setPaused(false);
   }
 
   // Premium incognito: Telegram hides your views for the last 5 and the next 25 minutes

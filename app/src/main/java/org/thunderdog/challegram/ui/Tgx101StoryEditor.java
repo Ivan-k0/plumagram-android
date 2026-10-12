@@ -304,6 +304,8 @@ public final class Tgx101StoryEditor extends Dialog {
       return insets;
     });
     root.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+      if (root.getHeight() > maxRootHeight) maxRootHeight = root.getHeight();
+      applyImeLift();
       android.graphics.Rect r = new android.graphics.Rect();
       root.getWindowVisibleDisplayFrame(r);
       int hidden = root.getRootView().getHeight() - r.bottom;
@@ -313,11 +315,29 @@ public final class Tgx101StoryEditor extends Dialog {
     Tgx101Diag.mark("story editor: opened, photo " + photo.getWidth() + "x" + photo.getHeight());
   }
 
+  private int maxRootHeight, appliedLift = -1;
+
   private void setImeHeight (int height) {
     if (imeHeight == height) return;
     imeHeight = height;
-    if (bottomBar != null) bottomBar.setTranslationY(-height);
-    if (textSheet != null) textSheet.setTranslationY(-height);
+    applyImeLift();
+  }
+
+  /**
+   * On some phones the window itself shrinks above the keyboard, on others it doesn't — lift the panels only by the part
+   * of the keyboard the window didn't make room for (user's video 2026-10-12: the caption field flew to mid-screen, lifted twice)
+   */
+  private int imeLift () {
+    int resized = Math.max(0, maxRootHeight - root.getHeight());
+    return Math.max(0, imeHeight - resized);
+  }
+
+  private void applyImeLift () {
+    int lift = imeLift();
+    if (lift == appliedLift) return;
+    appliedLift = lift;
+    if (bottomBar != null) bottomBar.setTranslationY(-lift);
+    if (textSheet != null) textSheet.setTranslationY(-lift);
     if (pickerScroll != null && pickerScroll.getParent() != null) {
       ViewGroup.LayoutParams lp = pickerScroll.getLayoutParams();
       lp.height = pickerListHeight();
@@ -960,7 +980,7 @@ public final class Tgx101StoryEditor extends Dialog {
     sheetParams.leftMargin = sheetParams.rightMargin = sheetParams.bottomMargin = Screen.dp(8f);
     panel.addView(sheet, sheetParams);
     textSheet = sheet;
-    sheet.setTranslationY(-imeHeight);
+    sheet.setTranslationY(-imeLift());
 
     root.addView(panel, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     textPanel = panel;
@@ -1654,7 +1674,7 @@ public final class Tgx101StoryEditor extends Dialog {
   /** The picker's list takes what's left between the top and the keyboard (or half the screen without it) */
   private int pickerListHeight () {
     int full = Screen.dp(56f) * Math.max(1, pickerRows);
-    int room = imeHeight > 0 ? root.getHeight() - imeHeight - Screen.dp(36f + 170f) : Math.round(root.getHeight() * .55f);
+    int room = imeHeight > 0 ? root.getHeight() - imeLift() - Screen.dp(36f + 170f) : Math.round(root.getHeight() * .55f);
     return Math.max(Screen.dp(112f), Math.min(full, room));
   }
 
