@@ -1182,7 +1182,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         setCommonFactor(factor * tgx101RevealAlphaScale); // TGx101: after a swipe the dimming fades on from where the swipe left it
         setHeaderAlpha(MathUtils.clamp(factor));
         if (mode == MODE_MESSAGES || mode == MODE_SIMPLE) {
-          tgx101HeaderRevealAlpha = MathUtils.clamp((factor - .5f) / .5f);
+          tgx101HeaderRevealAlpha = MathUtils.clamp((factor - .75f) / .25f); // gone in the first quarter — before the photo
           updateHeaderAlpha();
         }
         switch (mode) {
@@ -2200,10 +2200,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   // TGx101 (user 2026-10-12 «желе верхнего текста и кнопок при сворачивании»): the viewer's header used to stay whole
   // until the window was gone — over the chat's own header and sliding down as the status bar came back. It now fades
   // out in the first half of the shrink into the post (and in during the opening)
-  private float tgx101HeaderRevealAlpha = 1f;
+  private float tgx101HeaderRevealAlpha = 1f, tgx101HeaderDragAlpha = 1f;
 
   private void updateHeaderAlpha () {
-    float alpha = MathUtils.clamp(headerVisible.getFloatValue() * (1f - pipFactor)) * tgx101HeaderRevealAlpha;
+    float alpha = MathUtils.clamp(headerVisible.getFloatValue() * (1f - pipFactor)) * tgx101HeaderRevealAlpha * tgx101HeaderDragAlpha;
     if (headerView != null) {
       headerView.setAlpha(alpha);
     }
@@ -4438,7 +4438,15 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       setCommonFactor(1f - dismissFactor);
 
       if (headerView != null) {
-        headerView.setTranslationY(-headerView.getSize() * Math.max(dismissFactor, getForceEditModeVisibility()));
+        if (mode == MODE_MESSAGES || mode == MODE_SIMPLE) {
+          // TGx101 (user 2026-10-12 «желе вверху во время свайпа; в exteraGram шапка прячется чуть быстрее фото»):
+          // the header melts away with the pull instead of riding up under the status bar
+          tgx101HeaderDragAlpha = MathUtils.clamp(1f - dismissFactor * 2.5f);
+          headerView.setTranslationY(-headerView.getSize() * .25f * dismissFactor);
+          updateHeaderAlpha();
+        } else {
+          headerView.setTranslationY(-headerView.getSize() * Math.max(dismissFactor, getForceEditModeVisibility()));
+        }
       }
 
       if (mode == MODE_GALLERY) {
@@ -4590,6 +4598,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private boolean tgx101RevealFromSlide () {
     if (mode != MODE_MESSAGES && mode != MODE_SIMPLE) return false;
+    // a zoomed photo pulled down (MagiX «swipe down closes zoom»): the shrink into the post never finished on a zoomed
+    // cell and the viewer hung on screen (user 2026-10-12) — it flies off and fades as before
+    if (mediaView.isZoomed()) return false;
     MediaViewThumbLocation target = getCurrentTargetLocation();
     if (target == null) return false;
     final float fromX = mediaView.getTranslationX(), fromY = mediaView.getTranslationY(), fromRotation = mediaView.getRotation();
