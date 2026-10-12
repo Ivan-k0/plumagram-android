@@ -77,9 +77,7 @@ public class Tgx101StoryViewer extends Dialog {
     this.onClosed = onClosed;
   }
 
-  // TGx101 (user 2026-10-12 «анимацию сворачивания сделай плавнее, или чтобы уезжала в иконку той самой истории»):
-  // the story grows out of the person's circle in the strip and shrinks back into it (rounding into a circle); with no
-  // circle on screen — a soft shrink down and fade instead of a cut
+  // TGx101: where the person's circle is (kept for later use; the open/close animation is a calm fade now)
 
   public interface TargetProvider {
     /** The on-screen bounds of this chat's story circle, or null */
@@ -88,78 +86,18 @@ public class Tgx101StoryViewer extends Dialog {
 
   private @Nullable TargetProvider targetProvider;
   private boolean closing;
-  private float cornerRadius;
 
   public void setTargetProvider (@Nullable TargetProvider provider) {
     this.targetProvider = provider;
   }
 
-  private @Nullable android.graphics.Rect currentTarget () {
-    if (targetProvider == null || personIndex < 0 || personIndex >= people.size()) return null;
-    android.graphics.Rect r = targetProvider.targetFor(people.get(personIndex).chatId);
-    if (r == null || r.width() <= 0) return null;
-    int[] own = new int[2];
-    root.getLocationOnScreen(own);
-    r.offset(-own[0] + Math.round(root.getTranslationX()), -own[1] + Math.round(root.getTranslationY()));
-    return r;
-  }
-
-  private void applyCorner (float radius) {
-    cornerRadius = radius;
-    if (android.os.Build.VERSION.SDK_INT < 21) return;
-    if (root.getOutlineProvider() == null || !(root.getTag() instanceof String)) {
-      root.setTag("tgx101-round");
-      root.setOutlineProvider(new android.view.ViewOutlineProvider() {
-        @Override
-        public void getOutline (View view, android.graphics.Outline outline) {
-          outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), cornerRadius);
-        }
-      });
-      root.setClipToOutline(true);
-    }
-    root.invalidateOutline();
-  }
-
-  /** The transform that puts the whole viewer onto the target circle */
-  private float[] transformTo (android.graphics.Rect target) {
-    float w = root.getWidth(), h = root.getHeight();
-    float scale = target.width() / Math.max(1f, w);
-    root.setPivotX(w / 2f);
-    root.setPivotY(h / 2f);
-    return new float[] {scale, target.centerX() - w / 2f, target.centerY() - h / 2f};
-  }
+  // TGx101 (user's video 2026-10-12 12:31 «лучше без анимаций, чем такие»): the grow-from / shrink-into-the-circle jumped
+  // (an offset rounded box, then a jump into place). Calm instead: a quick fade in; a quick fade out; after a swipe down
+  // the story goes on down with the finger and fades
 
   private void animateOpen () {
-    root.post(() -> {
-      android.graphics.Rect target = currentTarget();
-      if (target == null) {
-        root.setAlpha(0f);
-        root.setScaleX(.92f);
-        root.setScaleY(.92f);
-        root.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(220).setInterpolator(new android.view.animation.DecelerateInterpolator(2f)).start();
-        return;
-      }
-      float[] t = transformTo(target);
-      float startRadius = root.getWidth() / 2f;
-      root.setScaleX(t[0]); root.setScaleY(t[0]);
-      root.setTranslationX(t[1]); root.setTranslationY(t[2]);
-      applyCorner(startRadius);
-      android.animation.ValueAnimator a = android.animation.ValueAnimator.ofFloat(0f, 1f);
-      a.setDuration(300);
-      a.setInterpolator(new android.view.animation.DecelerateInterpolator(2.2f));
-      a.addUpdateListener(an -> {
-        float f = (float) an.getAnimatedValue();
-        float s = t[0] + (1f - t[0]) * f;
-        root.setScaleX(s); root.setScaleY(s);
-        root.setTranslationX(t[1] * (1f - f));
-        root.setTranslationY(t[2] * (1f - f));
-        applyCorner(startRadius * (1f - f));
-      });
-      a.addListener(new android.animation.AnimatorListenerAdapter() {
-        @Override public void onAnimationEnd (android.animation.Animator animation) { applyCorner(0f); }
-      });
-      a.start();
-    });
+    root.setAlpha(0f);
+    root.animate().alpha(1f).setDuration(140).start();
   }
 
   @Override
@@ -170,37 +108,21 @@ public class Tgx101StoryViewer extends Dialog {
     }
     closing = true;
     setPaused(true);
-    android.graphics.Rect target = currentTarget();
     Window window = getWindow();
     if (window != null && android.os.Build.VERSION.SDK_INT >= 21) {
       window.setStatusBarColor(Color.TRANSPARENT);
       window.setNavigationBarColor(Color.TRANSPARENT);
     }
-    if (target == null) {
-      root.animate().alpha(0f).scaleX(.9f).scaleY(.9f).translationY(root.getTranslationY() + Screen.dp(60f)).setDuration(240)
-        .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator()).withEndAction(super::dismiss).start();
-      return;
-    }
-    float[] t = transformTo(target);
-    float fromScale = root.getScaleX(), fromX = root.getTranslationX(), fromY = root.getTranslationY(), fromAlpha = root.getAlpha();
-    float endRadius = root.getWidth() / 2f;
-    android.animation.ValueAnimator a = android.animation.ValueAnimator.ofFloat(0f, 1f);
-    a.setDuration(320);
-    a.setInterpolator(new androidx.interpolator.view.animation.FastOutSlowInInterpolator());
-    a.addUpdateListener(an -> {
-      float f = (float) an.getAnimatedValue();
-      float s = fromScale + (t[0] - fromScale) * f;
-      root.setScaleX(s); root.setScaleY(s);
-      root.setTranslationX(fromX + (t[1] - fromX) * f);
-      root.setTranslationY(fromY + (t[2] - fromY) * f);
-      applyCorner(endRadius * Math.min(1f, f * 1.4f));
-      root.setAlpha(fromAlpha + (1f - fromAlpha) * Math.min(1f, f * 2f) - (f > .85f ? (f - .85f) / .15f : 0f));
-    });
-    a.addListener(new android.animation.AnimatorListenerAdapter() {
-      @Override public void onAnimationEnd (android.animation.Animator animation) { Tgx101StoryViewer.super.dismiss(); }
-    });
-    a.start();
+    boolean swiped = root.getTranslationY() > Screen.dp(24f);
+    root.animate()
+      .translationY(swiped ? root.getHeight() * .6f : root.getTranslationY())
+      .alpha(0f)
+      .setDuration(swiped ? 200 : 140)
+      .setInterpolator(new android.view.animation.AccelerateInterpolator(1.2f))
+      .withEndAction(super::dismiss)
+      .start();
   }
+
 
   public Tgx101StoryViewer (Context context, Tdlib tdlib, List<TdApi.ChatActiveStories> people, int personIndex) {
     this(context, tdlib, people, personIndex, false);
