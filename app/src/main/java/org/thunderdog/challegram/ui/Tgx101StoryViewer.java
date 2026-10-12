@@ -101,6 +101,10 @@ public class Tgx101StoryViewer extends Dialog {
     root.addView(videoView, videoParams);
     videoView.setVisibility(View.GONE);
 
+    // TGx101: reaction stickers (suggested reaction areas) — apps draw them over the media themselves
+    areasView = new AreasView(context);
+    root.addView(areasView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
     // TGx101 (user 2026-10-04): a soft spinner while the story loads, then it fades in instead of popping up
     spinner = new android.widget.ProgressBar(context);
     if (android.os.Build.VERSION.SDK_INT >= 21) spinner.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(0xccffffff));
@@ -383,6 +387,7 @@ public class Tgx101StoryViewer extends Dialog {
     tgx101SetCaption(story.caption != null ? story.caption.text : "");
     replyView.setVisibility(story.canBeReplied ? View.VISIBLE : View.INVISIBLE);
     showChosenReaction(story.chosenReactionType);
+    areasView.setStory(story);
     updateIncognito();
 
     TdApi.File file = Tgx101Stories.bestFile(story.content);
@@ -627,6 +632,82 @@ public class Tgx101StoryViewer extends Dialog {
       return "❤".equals(e) ? "❤️" : e;
     }
     return "❤️";
+  }
+
+  private AreasView areasView;
+
+  /** Draws the story's reaction stickers where the author put them and reacts on a tap */
+  private final class AreasView extends View {
+    private @Nullable TdApi.Story shown;
+    private final android.graphics.RectF media = new android.graphics.RectF();
+
+    AreasView (Context context) {
+      super(context);
+    }
+
+    void setStory (TdApi.Story story) {
+      shown = story;
+      invalidate();
+    }
+
+    private boolean hasAreas () {
+      return shown != null && shown.areas != null && shown.areas.length > 0;
+    }
+
+    /** Where the 9:16 media is on screen (fit, centred) */
+    private void measureMedia () {
+      float w = getWidth(), h = getHeight();
+      float mw = 9f, mh = 16f;
+      if (shown != null && shown.content instanceof TdApi.StoryContentPhoto) {
+        TdApi.PhotoSize[] sizes = ((TdApi.StoryContentPhoto) shown.content).photo.sizes;
+        if (sizes != null && sizes.length > 0) { mw = sizes[sizes.length - 1].width; mh = sizes[sizes.length - 1].height; }
+      } else if (shown != null && shown.content instanceof TdApi.StoryContentVideo) {
+        TdApi.StoryVideo v = ((TdApi.StoryContentVideo) shown.content).video;
+        if (v != null && v.width > 0) { mw = v.width; mh = v.height; }
+      }
+      float scale = Math.min(w / mw, h / mh);
+      float dw = mw * scale, dh = mh * scale;
+      media.set((w - dw) / 2f, (h - dh) / 2f, (w + dw) / 2f, (h + dh) / 2f);
+    }
+
+    @Override
+    protected void onDraw (Canvas c) {
+      if (!hasAreas()) return;
+      measureMedia();
+      for (TdApi.StoryArea area : shown.areas) {
+        if (!(area.type instanceof TdApi.StoryAreaTypeSuggestedReaction)) continue;
+        TdApi.StoryAreaTypeSuggestedReaction r = (TdApi.StoryAreaTypeSuggestedReaction) area.type;
+        float cx = media.left + media.width() * (float) area.position.xPercentage / 100f;
+        float cy = media.top + media.height() * (float) area.position.yPercentage / 100f;
+        float size = media.width() * (float) area.position.widthPercentage / 100f;
+        int save = c.save();
+        c.rotate((float) area.position.rotationAngle, cx, cy);
+        Tgx101StoryEditor.drawReactionBubble(c, cx, cy, size, reactionText(r.reactionType), r.isDark, r.isFlipped, r.totalCount);
+        c.restoreToCount(save);
+      }
+    }
+
+    @Override
+    public boolean onTouchEvent (MotionEvent e) {
+      if (!hasAreas()) return false;
+      measureMedia();
+      for (TdApi.StoryArea area : shown.areas) {
+        if (!(area.type instanceof TdApi.StoryAreaTypeSuggestedReaction)) continue;
+        float cx = media.left + media.width() * (float) area.position.xPercentage / 100f;
+        float cy = media.top + media.height() * (float) area.position.yPercentage / 100f;
+        float half = media.width() * (float) area.position.widthPercentage / 200f;
+        if (Math.abs(e.getX() - cx) <= half && Math.abs(e.getY() - cy) <= half) {
+          if (e.getActionMasked() == MotionEvent.ACTION_UP) {
+            TdApi.StoryAreaTypeSuggestedReaction r = (TdApi.StoryAreaTypeSuggestedReaction) area.type;
+            boolean same = shown.chosenReactionType != null && reactionText(shown.chosenReactionType).equals(reactionText(r.reactionType));
+            if (!same) { r.totalCount++; setReaction(r.reactionType); }
+            invalidate();
+          }
+          return true;
+        }
+      }
+      return false;
+    }
   }
 
   private FrameLayout heartButton;

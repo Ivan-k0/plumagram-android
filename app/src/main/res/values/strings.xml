@@ -6239,6 +6239,9 @@
   <string name="Tgx101LocalPinned">Pinned on this phone: Telegram\'s pinned-chat limit is reached, other devices won\'t show it</string>
   <string name="Tgx101SavedByChats">Saved by chats</string>
   <string name="Tgx101JumpToDate">Go to date</string>
+  <string name="Tgx101StoryReactionTitle">Reaction sticker</string>
+  <string name="Tgx101StoryReactionHint">Viewers tap it to react. Tap the sticker on the story to switch light / dark and its tail.</string>
+  <string name="Tgx101StoryReactionLimit">Up to 5 reactions on a story</string>
   <string name="Tgx101StoryEveryoneExcept">Everyone except…</string>
   <string name="Tgx101StoryAudienceProfile">Profile</string>
   <string name="Tgx101StoryProfileHint">Settings are saved in the chosen profile · hold to rename</string>

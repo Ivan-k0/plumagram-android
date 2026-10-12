@@ -186,11 +186,15 @@ public final class Tgx101StoryEditor extends Dialog {
     String text = "";
     int font, color = 0xffffffff, style = STYLE_PLATE, align = 1; // 0 left, 1 centre, 2 right
     float size = 92f, cx = W / 2f, cy = H * .42f, scale = 1f, rotation;
+    // TGx101: a reaction sticker (suggested reaction area) — not baked into the photo, Telegram apps draw it themselves
+    @Nullable String reaction, reactionType;
+    boolean dark, flipped;
 
     TextLayer copy () {
       TextLayer t = new TextLayer();
       t.text = text; t.font = font; t.color = color; t.style = style; t.align = align;
       t.size = size; t.cx = cx; t.cy = cy; t.scale = scale; t.rotation = rotation;
+      t.reaction = reaction; t.reactionType = reactionType; t.dark = dark; t.flipped = flipped;
       return t;
     }
   }
@@ -262,6 +266,7 @@ public final class Tgx101StoryEditor extends Dialog {
     LinearLayout rail = new LinearLayout(context);
     rail.setOrientation(LinearLayout.VERTICAL);
     rail.addView(glass(context, "Аа", v -> editText(null)), squareParams(44f, 0));
+    rail.addView(glass(context, "😊", v -> pickReaction()), squareParams(44f, 8f, true));
     rail.addView(glass(context, "⤢", v -> { pushUndo(); fitPhoto(); canvasView.invalidate(); }), squareParams(44f, 8f, true));
     rail.addView(glass(context, "◐", v -> { pushUndo(); background = (background + 1) % 3; canvasView.invalidate(); toastBackground(); }), squareParams(44f, 8f, true));
     rail.addView(glass(context, "👁", v -> setPreview(!previewMode)), squareParams(44f, 8f, true));
@@ -477,6 +482,10 @@ public final class Tgx101StoryEditor extends Dialog {
     c.drawBitmap(photo, photoMatrix, bitmapPaint);
     for (TextLayer t : texts) {
       if (t == editing) continue;
+      if (t.reaction != null) {
+        if (!exporting) drawReactionLayer(c, t);
+        continue;
+      }
       drawText(c, t);
     }
   }
@@ -554,8 +563,138 @@ public final class Tgx101StoryEditor extends Dialog {
     c.restoreToCount(save);
   }
 
+  // ── reaction stickers ─────────────────────────────────────────────────────────────────
+
+  private static final float REACTION_SIZE = 230f; // story px at scale 1
+  private boolean exporting;
+  private static final Paint bubblePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+  private static final TextPaint bubbleText = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+
+  /**
+   * The reaction bubble as Telegram apps show it: a round bubble with a little tail, the emoji inside, the count under it.
+   * Shared with the story viewer, which draws the areas of the stories it shows.
+   */
+  public static void drawReactionBubble (Canvas c, float cx, float cy, float size, String emoji, boolean dark, boolean flipped, int count) {
+    float r = size / 2f;
+    bubblePaint.setColor(dark ? 0xcc000000 : 0xffffffff);
+    bubblePaint.setShadowLayer(size * .06f, 0, size * .02f, 0x40000000);
+    c.drawCircle(cx, cy, r, bubblePaint);
+    bubblePaint.clearShadowLayer();
+    float dir = flipped ? 1f : -1f;
+    c.drawCircle(cx + dir * r * .72f, cy + r * .78f, r * .17f, bubblePaint);
+    c.drawCircle(cx + dir * r * .98f, cy + r * 1.06f, r * .09f, bubblePaint);
+    bubbleText.setTextAlign(Paint.Align.CENTER);
+    bubbleText.setColor(0xff000000);
+    bubbleText.setTextSize(size * (count > 0 ? .42f : .5f));
+    Paint.FontMetrics fm = bubbleText.getFontMetrics();
+    float ey = count > 0 ? cy - size * .04f : cy - (fm.ascent + fm.descent) / 2f;
+    c.drawText(emoji, cx, ey, bubbleText);
+    if (count > 0) {
+      bubbleText.setTextSize(size * .17f);
+      bubbleText.setFakeBoldText(true);
+      bubbleText.setColor(dark ? 0xffffffff : 0xff000000);
+      c.drawText(count >= 1000 ? (count / 100) / 10f + "K" : String.valueOf(count), cx, cy + size * .32f, bubbleText);
+      bubbleText.setFakeBoldText(false);
+    }
+  }
+
+  private void drawReactionLayer (Canvas c, TextLayer t) {
+    int save = c.save();
+    c.translate(t.cx, t.cy);
+    c.rotate(t.rotation);
+    drawReactionBubble(c, 0, 0, REACTION_SIZE * t.scale, t.reaction, t.dark, t.flipped, 0);
+    c.restoreToCount(save);
+  }
+
+  private int reactionCount () {
+    int n = 0;
+    for (TextLayer t : texts) if (t.reaction != null) n++;
+    return n;
+  }
+
+  private void pickReaction () {
+    if (reactionCount() >= 5) { UI.showToast(R.string.Tgx101StoryReactionLimit, Toast.LENGTH_SHORT); return; }
+    tdlib.send(new TdApi.GetStoryAvailableReactions(8), (reactions, error) -> UI.post(() -> {
+      ArrayList<String> emoji = new ArrayList<>();
+      if (reactions != null) {
+        for (TdApi.AvailableReaction[] group : new TdApi.AvailableReaction[][] {reactions.topReactions, reactions.recentReactions, reactions.popularReactions}) {
+          if (group == null) continue;
+          for (TdApi.AvailableReaction r : group) {
+            if (r.type instanceof TdApi.ReactionTypeEmoji && !emoji.contains(((TdApi.ReactionTypeEmoji) r.type).emoji) && emoji.size() < 32) emoji.add(((TdApi.ReactionTypeEmoji) r.type).emoji);
+          }
+        }
+      }
+      if (emoji.isEmpty()) for (String e : new String[] {"❤", "👍", "🔥", "😂", "😮", "😢", "🎉", "👏", "🤩", "🙏"}) emoji.add(e);
+      Context context = getContext();
+      FrameLayout dim = new FrameLayout(context);
+      dim.setBackgroundColor(0x66000000);
+      dim.setOnClickListener(v -> root.removeView(dim));
+      LinearLayout card = new LinearLayout(context);
+      card.setOrientation(LinearLayout.VERTICAL);
+      card.setClickable(true);
+      card.setBackground(cardBackground());
+      card.setPadding(Screen.dp(12f), Screen.dp(14f), Screen.dp(12f), Screen.dp(12f));
+      TextView title = new TextView(context);
+      title.setText(Lang.getString(R.string.Tgx101StoryReactionTitle));
+      title.setTextColor(0xffffffff);
+      title.setTypeface(Typeface.DEFAULT_BOLD);
+      title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
+      title.setPadding(Screen.dp(4f), 0, 0, Screen.dp(4f));
+      card.addView(title);
+      TextView hint = new TextView(context);
+      hint.setText(Lang.getString(R.string.Tgx101StoryReactionHint));
+      hint.setTextColor(0xff8a9bb0);
+      hint.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+      hint.setPadding(Screen.dp(4f), 0, 0, Screen.dp(8f));
+      card.addView(hint);
+      android.widget.GridLayout grid = new android.widget.GridLayout(context);
+      grid.setColumnCount(8);
+      for (String e : emoji) {
+        TextView v = new TextView(context);
+        v.setText("❤".equals(e) ? "❤️" : e);
+        v.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26f);
+        v.setGravity(Gravity.CENTER);
+        v.setOnClickListener(x -> {
+          root.removeView(dim);
+          pushUndo();
+          TextLayer layer = new TextLayer();
+          layer.reaction = "❤".equals(e) ? "❤️" : e;
+          layer.reactionType = e;
+          layer.cx = W * (.3f + .1f * reactionCount());
+          layer.cy = H * .62f;
+          texts.add(layer);
+          canvasView.invalidate();
+        });
+        android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams();
+        lp.width = Screen.dp(42f);
+        lp.height = Screen.dp(46f);
+        grid.addView(v, lp);
+      }
+      card.addView(grid);
+      FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+      cp.leftMargin = cp.rightMargin = cp.bottomMargin = Screen.dp(8f);
+      dim.addView(card, cp);
+      root.addView(dim, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }));
+  }
+
+  private @Nullable TdApi.InputStoryAreas reactionAreas () {
+    ArrayList<TdApi.InputStoryArea> areas = new ArrayList<>();
+    for (TextLayer t : texts) {
+      if (t.reaction == null) continue;
+      double size = REACTION_SIZE * t.scale;
+      TdApi.StoryAreaPosition p = new TdApi.StoryAreaPosition(t.cx * 100.0 / W, t.cy * 100.0 / H, size * 100.0 / W, size * 100.0 / H, t.rotation, 50);
+      areas.add(new TdApi.InputStoryArea(p, new TdApi.InputStoryAreaTypeSuggestedReaction(new TdApi.ReactionTypeEmoji(t.reactionType), t.dark, t.flipped)));
+    }
+    return areas.isEmpty() ? null : new TdApi.InputStoryAreas(areas.toArray(new TdApi.InputStoryArea[0]));
+  }
+
   /** Corners of the layer on the story in story coordinates — for hit tests and the zone warning */
   private RectF storyBoundsOf (TextLayer t) {
+    if (t.reaction != null) {
+      float half = REACTION_SIZE * t.scale / 2f;
+      return new RectF(t.cx - half, t.cy - half, t.cx + half, t.cy + half * 1.25f);
+    }
     StaticLayout layout = layoutOf(t);
     RectF box = new RectF();
     boxOf(t, layout, box);
@@ -812,7 +951,13 @@ public final class Tgx101StoryEditor extends Dialog {
             undo.remove(undo.size() - 1); // nothing changed — no undo step
           }
           if (tap && target != null) {
-            editText(target);
+            if (target.reaction != null) {
+              pushUndo();
+              // a tap on a reaction: light → dark → light flipped → dark flipped
+              if (!target.dark) target.dark = true; else { target.dark = false; target.flipped = !target.flipped; }
+            } else {
+              editText(target);
+            }
           }
           draggingText = overBin = snapX = snapY = false;
           target = null;
@@ -1690,7 +1835,12 @@ public final class Tgx101StoryEditor extends Dialog {
       long started = SystemClock.uptimeMillis();
       try {
         Bitmap out = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
-        drawStory(new Canvas(out));
+        exporting = true;
+        try {
+          drawStory(new Canvas(out));
+        } finally {
+          exporting = false;
+        }
         File dir = new File(getContext().getCacheDir(), "stories");
         if (!dir.exists()) dir.mkdirs();
         file = new File(dir, "story_" + System.currentTimeMillis() + ".jpg");
@@ -1722,7 +1872,7 @@ public final class Tgx101StoryEditor extends Dialog {
           : new TdApi.StoryPrivacySettingsEveryone(toArray(exceptEveryone));
         TdApi.InputStoryContent content = new TdApi.InputStoryContentPhoto(new TdApi.InputFileLocal(result.getAbsolutePath()), new int[0]);
         TdApi.FormattedText text = caption.isEmpty() ? null : new TdApi.FormattedText(caption, new TdApi.TextEntity[0]);
-        tdlib.send(new TdApi.PostStory(tdlib.selfChatId(), content, null, text, privacySettings, new int[0], activePeriod, null, postToProfile, protectContent), (story, error) -> UI.post(() -> {
+        tdlib.send(new TdApi.PostStory(tdlib.selfChatId(), content, reactionAreas(), text, privacySettings, new int[0], activePeriod, null, postToProfile, protectContent), (story, error) -> UI.post(() -> {
           publishing = false;
           if (error != null) {
             Tgx101Diag.mark("story editor: post failed " + error.message);
