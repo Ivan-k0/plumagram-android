@@ -232,7 +232,9 @@ public class Config {
     return false;
   }
 
-  public static final boolean REQUEST_BACKGROUND_LOCATION = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R;
+  // TGx101 (Play Protect, user 2026-10-12): no ACCESS_BACKGROUND_LOCATION — live location runs in a «location» foreground
+  // service started from the screen, which only needs the while-in-use permission
+  public static final boolean REQUEST_BACKGROUND_LOCATION = false;
 
   public static final boolean DISABLE_VIEWER_ELEVATION = false;
 

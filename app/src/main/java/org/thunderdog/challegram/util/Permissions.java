@@ -15,6 +15,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
+import org.thunderdog.challegram.config.Config;
 import org.thunderdog.challegram.BaseActivity;
 import org.thunderdog.challegram.tool.Intents;
 
@@ -337,7 +338,7 @@ public class Permissions {
   public boolean shouldShowBackgroundLocationRationale () {
     // Build.VERSION_CODES.Q: permission introduced, but automatically granted after request
     // Build.VERSION_CODES.R+: proper permission request prompt required
-    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && shouldShowPermissionRationale(Manifest.permission.ACCESS_BACKGROUND_LOCATION);
+    return Config.REQUEST_BACKGROUND_LOCATION && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && shouldShowPermissionRationale(Manifest.permission.ACCESS_BACKGROUND_LOCATION);
   }
 
   // can
@@ -372,6 +373,9 @@ public class Permissions {
   }
 
   public boolean canAccessLocationInBackground () {
+    if (!Config.REQUEST_BACKGROUND_LOCATION) {
+      return canAccessLocation();
+    }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
       return checkPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION);
     } else {
