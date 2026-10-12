@@ -6239,6 +6239,8 @@
   <string name="Tgx101LocalPinned">Pinned on this phone: Telegram\'s pinned-chat limit is reached, other devices won\'t show it</string>
   <string name="Tgx101SavedByChats">Saved by chats</string>
   <string name="Tgx101JumpToDate">Go to date</string>
+  <string name="Tgx101FontMontserrat">Montserrat</string>
+  <string name="Tgx101FontPtSerif">PT Serif</string>
   <string name="Tgx101NewStoryShort">New</string>
   <string name="Tgx101StoryReactionTitle">Reaction sticker</string>
   <string name="Tgx101StoryReactionHint">Viewers tap it to react. Tap the sticker on the story to switch light / dark and its tail.</string>

@@ -1194,6 +1194,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       public void onStoryClick (java.util.List<TdApi.ChatActiveStories> ordered, int index) {
         org.thunderdog.challegram.Tgx101Diag.mark("stories: open " + index + " of " + ordered.size());
         Tgx101StoryViewer viewer = new Tgx101StoryViewer(context(), tdlib, new java.util.ArrayList<>(ordered), index);
+        viewer.setTargetProvider(storyChatId -> tgx101StoriesStrip != null ? tgx101StoriesStrip.circleOf(storyChatId) : null);
         viewer.setOnClosed(() -> {
           if (tgx101StoriesStrip != null) tgx101StoriesStrip.refresh();
           chatsView.post(ChatsController.this::tgx101SyncStoriesStrip); // after the list's layout, not before it
@@ -1440,6 +1441,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       }
       org.thunderdog.challegram.Tgx101Diag.mark("stories: open from avatar " + index);
       Tgx101StoryViewer viewer = new Tgx101StoryViewer(context(), tdlib, new java.util.ArrayList<>(ordered), index);
+        viewer.setTargetProvider(storyChatId -> tgx101StoriesStrip != null ? tgx101StoriesStrip.circleOf(storyChatId) : null);
       viewer.setOnClosed(() -> {
         if (tgx101StoriesStrip != null) tgx101StoriesStrip.refresh();
         chatsView.post(ChatsController.this::tgx101SyncStoriesStrip);

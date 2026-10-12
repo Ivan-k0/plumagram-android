@@ -176,7 +176,44 @@ public class Fonts {
     return Settings.instance().useRobotoFont() ? "fonts/Roboto-" + robotoWeight + ".ttf" : "fonts/Manrope-" + manropeWeight + ".ttf";
   }
 
+  // TGx101 (user 2026-10-12 «шрифты нужно добавить и в систему»): the story fonts as app fonts too — Montserrat (a variable
+  // font: every weight from one file) and PT Serif (Regular / Bold); weights follow MagiX «Толщина текста»
+  private static final android.util.SparseArray<Typeface> tgx101Variable = new android.util.SparseArray<>();
+
+  @Nullable
+  private static Typeface tgx101AppFont (int weight) {
+    int font = Settings.instance().getAppFont();
+    if (font == Settings.APP_FONT_MONTSERRAT) {
+      synchronized (tgx101Variable) {
+        Typeface t = tgx101Variable.get(weight);
+        if (t == null) {
+          try {
+            AssetManager assets = UI.getContext().getResources().getAssets();
+            t = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
+              ? new Typeface.Builder(assets, "fonts/StoryMontserrat.ttf").setFontVariationSettings("'wght' " + weight).build()
+              : Typeface.createFromAsset(assets, "fonts/StoryMontserrat.ttf");
+          } catch (Throwable ignored) { }
+          if (t != null) tgx101Variable.put(weight, t);
+        }
+        return t;
+      }
+    }
+    if (font == Settings.APP_FONT_PT_SERIF) {
+      return loadFont(weight >= 560 ? "fonts/StoryPTSerif-Bold.ttf" : "fonts/StoryPTSerif-Regular.ttf", () -> Typeface.SERIF);
+    }
+    return null;
+  }
+
+  private static int tgx101TextWeight (int normal, int slightly, int semibold) {
+    int w = Settings.instance().getTextWeight();
+    return w == Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER ? slightly : w == Settings.TEXT_WEIGHT_SEMIBOLD ? semibold : normal;
+  }
+
   public static Typeface getRobotoRegular () {
+    if (robotoRegular == null) {
+      Typeface custom = tgx101AppFont(tgx101TextWeight(400, 450, 500));
+      if (custom != null) return robotoRegular = custom;
+    }
     if (robotoRegular == null) {
       Typeface weighted = weightedRegular();
       if (weighted != null) {
@@ -198,6 +235,10 @@ public class Fonts {
     if (Settings.instance().getTextWeight() == Settings.TEXT_WEIGHT_NORMAL) {
       return getRobotoRegular();
     }
+    if (robotoRegularStock == null) {
+      Typeface custom = tgx101AppFont(400);
+      if (custom != null) return robotoRegularStock = custom;
+    }
     if (robotoRegularStock == null && Settings.instance().useSystemFont()) {
       return robotoRegularStock = systemFont(400);
     }
@@ -207,6 +248,10 @@ public class Fonts {
   }
 
   public static Typeface getRobotoBold () {
+    if (robotoBold == null) {
+      Typeface custom = tgx101AppFont(700);
+      if (custom != null) return robotoBold = custom;
+    }
     if (robotoBold == null && Settings.instance().useSystemFont()) {
       return robotoBold = systemFont(700);
     }
@@ -220,6 +265,10 @@ public class Fonts {
   }
 
   public static Typeface getRobotoMedium () {
+    if (robotoMedium == null) {
+      Typeface custom = tgx101AppFont(tgx101TextWeight(600, 600, 650));
+      if (custom != null) return robotoMedium = custom;
+    }
     if (robotoMedium == null) {
       Typeface weighted = weightedMedium();
       if (weighted != null) {

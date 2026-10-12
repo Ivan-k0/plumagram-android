@@ -202,6 +202,22 @@ public class Tgx101StoriesStrip extends HorizontalScrollView implements SortedLi
     return !ordered.isEmpty();
   }
 
+  /** TGx101: where this chat's circle is on screen (the story viewer opens from it and closes into it), or null */
+  public @Nullable android.graphics.Rect circleOf (long chatId) {
+    if (getVisibility() != VISIBLE || getAlpha() < .5f || !isShown()) return null;
+    for (int i = 0; i < row.getChildCount(); i++) {
+      View item = row.getChildAt(i);
+      if (!Long.valueOf(chatId).equals(item.getTag()) || !(item instanceof ViewGroup) || ((ViewGroup) item).getChildCount() == 0) continue;
+      View ring = ((ViewGroup) item).getChildAt(0);
+      int[] l = new int[2];
+      ring.getLocationOnScreen(l);
+      android.graphics.Rect r = new android.graphics.Rect(l[0], l[1], l[0] + ring.getWidth(), l[1] + ring.getHeight());
+      if (r.right < 0 || r.left > getResources().getDisplayMetrics().widthPixels) return null; // scrolled out of view
+      return r;
+    }
+    return null;
+  }
+
   /** «+ New»: our own avatar with a plus — opens the story editor */
   private View newAddItem () {
     Context context = getContext();
@@ -269,6 +285,7 @@ public class Tgx101StoriesStrip extends HorizontalScrollView implements SortedLi
     nameParams.topMargin = Screen.dp(3f);
     item.addView(name, nameParams);
 
+    item.setTag(stories.chatId);
     item.setOnClickListener(v -> callback.onStoryClick(ordered, index));
     item.setOnLongClickListener(v -> {
       callback.onStoryLongClick(v, stories);
