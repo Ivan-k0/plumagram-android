@@ -409,6 +409,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101LocalPinned, "Закреплено на этом телефоне: лимит закреплённых чатов Telegram исчерпан, на других устройствах чат не будет закреплён");
     RU.put(R.string.Tgx101SavedByChats, "Избранное по чатам");
     RU.put(R.string.Tgx101JumpToDate, "Перейти к дате");
+    RU.put(R.string.Tgx101StoryEveryoneExcept, "Все, кроме…");
+    RU.put(R.string.Tgx101StoryAudienceProfile, "Профиль");
+    RU.put(R.string.Tgx101StoryProfileHint, "Настройки сохраняются в выбранном профиле · удерживайте, чтобы переименовать");
+    RU.put(R.string.Tgx101StoryProfileRename, "Название профиля");
     RU.put(R.string.Tgx101StoryAudienceAll, "Все пользователи Telegram");
     RU.put(R.string.Tgx101StoryAudienceContacts, "Все ваши контакты");
     RU.put(R.string.Tgx101StoryExcept, "кроме");

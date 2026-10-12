@@ -3573,6 +3573,10 @@ public class Settings {
   private static final String KEY_TGX101_HIDE_JOIN = "tgx101_hide_join";
   public boolean tgx101HideJoinButton () { return pmc.getBoolean(KEY_TGX101_HIDE_JOIN, false); }
   private static final String KEY_TGX101_HIDE_SPONSORED = "tgx101_hide_sponsored";
+  // TGx101 (user 2026-10-12): story audience profiles (JSON array) and the one used last
+  public @androidx.annotation.Nullable String tgx101StoryProfiles () { return pmc.getString("tgx101_story_profiles", null); }
+  public int tgx101StoryProfile () { return pmc.getInt("tgx101_story_profile", 0); }
+  public void setTgx101StoryProfiles (String json, int current) { pmc.putString("tgx101_story_profiles", json); pmc.putInt("tgx101_story_profile", current); }
   public boolean tgx101HideSponsored () { return pmc.getBoolean(KEY_TGX101_HIDE_SPONSORED, false); }
   public void setTgx101HideSponsored (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_SPONSORED, v); }
   public void setTgx101HideJoinButton (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_JOIN, v); }
