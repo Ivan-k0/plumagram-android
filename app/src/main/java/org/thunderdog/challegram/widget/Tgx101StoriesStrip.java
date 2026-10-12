@@ -232,7 +232,7 @@ public class Tgx101StoriesStrip extends HorizontalScrollView implements SortedLi
     name.setTextColor(Theme.textAccentColor());
     name.setSingleLine(true);
     name.setGravity(Gravity.CENTER);
-    name.setText(org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101NewStory));
+    name.setText(org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101NewStoryShort)); // «Новая история» didn't fit under the circle
     LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     nameParams.topMargin = Screen.dp(3f);
     item.addView(name, nameParams);

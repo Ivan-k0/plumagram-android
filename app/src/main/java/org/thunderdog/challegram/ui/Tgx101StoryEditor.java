@@ -84,27 +84,32 @@ public final class Tgx101StoryEditor extends Dialog {
   private static final float TOP_ZONE = .11f, BOTTOM_ZONE = .10f; // what the viewer's header and reply field cover
   private static final int REQUEST_PICK = 7101;
   private static final int BG_BLUR = 0, BG_GRADIENT = 1, BG_BLACK = 2;
-  private static final String[] FONT_FAMILIES = {"sans-serif", "sans-serif-black", "sans-serif-condensed", "serif", "monospace", null /* Caveat from assets */};
-  private static final Typeface[] TYPEFACES = new Typeface[6];
+  // TGx101 (user 2026-10-12 «шрифты как в официальном клиенте или exteraGram»): the official set — Roboto, Italic, Serif,
+  // Typewriter, a heavy display face, Courier — with free look-alikes where theirs aren't free (MW Bold → Montserrat
+  // ExtraBold, Courier New → Cousine, serif → PT Serif), all with Cyrillic; plus our handwritten Caveat. Licences next to them
+  private static final String[] FONT_ASSETS = {"fonts/Roboto-Medium.ttf", "fonts/Roboto-Italic.ttf", "fonts/StoryPTSerif-Bold.ttf", "fonts/RobotoMono-Regular.ttf", "fonts/StoryMontserrat.ttf", "fonts/StoryCousine-Bold.ttf", "fonts/Caveat.ttf"};
+  private static final String[] FONT_WEIGHTS = {null, null, null, null, "'wght' 800", null, "'wght' 650"};
+  private static final String[] FONT_NAMES = {"Roboto", "Italic", "Serif", "Typewriter", "Bold", "Courier", null /* «handwritten», translated */};
+  private static final int[] FALLBACK_STYLES = {Typeface.BOLD, Typeface.ITALIC, Typeface.BOLD, Typeface.NORMAL, Typeface.BOLD, Typeface.BOLD, Typeface.BOLD};
+  private static final String[] FALLBACK_FAMILIES = {"sans-serif-medium", "sans-serif", "serif", "monospace", "sans-serif-black", "monospace", "serif"};
+  private static final Typeface[] TYPEFACES = new Typeface[FONT_ASSETS.length];
 
-  /** The system families, and Caveat (OFL, assets/fonts) for the handwritten one — «cursive» was plain Roboto on many phones */
   private static Typeface typefaceOf (int font) {
+    if (font < 0 || font >= FONT_ASSETS.length) font = 0;
     if (TYPEFACES[font] != null) return TYPEFACES[font];
     Typeface t = null;
-    if (FONT_FAMILIES[font] == null) {
-      try {
-        android.content.res.AssetManager assets = UI.getContext().getAssets();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-          t = new Typeface.Builder(assets, "fonts/Caveat.ttf").setFontVariationSettings("'wght' 650").build();
-        } else {
-          t = Typeface.createFromAsset(assets, "fonts/Caveat.ttf");
-        }
-      } catch (Throwable ignored) { }
-    }
-    if (t == null) t = Typeface.create(FONT_FAMILIES[font] != null ? FONT_FAMILIES[font] : "serif", FONT_STYLES[font]);
+    try {
+      android.content.res.AssetManager assets = UI.getContext().getAssets();
+      if (FONT_WEIGHTS[font] != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        t = new Typeface.Builder(assets, FONT_ASSETS[font]).setFontVariationSettings(FONT_WEIGHTS[font]).build();
+      } else {
+        t = Typeface.createFromAsset(assets, FONT_ASSETS[font]);
+      }
+    } catch (Throwable ignored) { }
+    if (t == null) t = Typeface.create(FALLBACK_FAMILIES[font], FALLBACK_STYLES[font]);
     return TYPEFACES[font] = t;
   }
-  private static final int[] FONT_STYLES = {Typeface.BOLD, Typeface.NORMAL, Typeface.BOLD, Typeface.BOLD, Typeface.BOLD, Typeface.BOLD};
+
   private static final int STYLE_PLAIN = 0, STYLE_PLATE = 1, STYLE_OUTLINE = 2, STYLE_NEON = 3;
   private static final int[] PALETTE = {0xffffffff, 0xff111111, 0xffff5c5c, 0xffffb84d, 0xffffe066, 0xff5cd685, 0xff4dabf7, 0xff9775fa, 0xffff8fc7};
 
@@ -1056,7 +1061,8 @@ public final class Tgx101StoryEditor extends Dialog {
     fontScroll.setHorizontalScrollBarEnabled(false);
     LinearLayout fonts = new LinearLayout(context);
     fonts.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
-    String[] names = {"Roboto", "Black", "Condensed", "Serif", "Mono", Lang.getString(R.string.Tgx101StoryFontHand)};
+    String[] names = new String[FONT_ASSETS.length];
+    for (int i = 0; i < names.length; i++) names[i] = FONT_NAMES[i] != null ? FONT_NAMES[i] : Lang.getString(R.string.Tgx101StoryFontHand);
     for (int i = 0; i < names.length; i++) {
       final int font = i;
       TextView chip = chip(context, names[i], i == layer.font, v -> { edited.font = font; lastFont = font; applyFieldStyle(); refreshChips((ViewGroup) v.getParent(), font); });

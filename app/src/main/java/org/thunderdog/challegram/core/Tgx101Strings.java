@@ -409,6 +409,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101LocalPinned, "Закреплено на этом телефоне: лимит закреплённых чатов Telegram исчерпан, на других устройствах чат не будет закреплён");
     RU.put(R.string.Tgx101SavedByChats, "Избранное по чатам");
     RU.put(R.string.Tgx101JumpToDate, "Перейти к дате");
+    RU.put(R.string.Tgx101NewStoryShort, "Новая");
     RU.put(R.string.Tgx101StoryReactionTitle, "Реакция на истории");
     RU.put(R.string.Tgx101StoryReactionHint, "Зрители нажимают на неё, чтобы отреагировать. Нажмите на стикер на истории — светлый / тёмный и сторона хвостика.");
     RU.put(R.string.Tgx101StoryReactionLimit, "На истории — до 5 реакций");
