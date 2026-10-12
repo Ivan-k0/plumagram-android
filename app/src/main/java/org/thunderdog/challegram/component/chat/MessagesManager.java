@@ -477,6 +477,9 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     if (dy == 0 || tgx101AutoScrolling) {
       return;
     }
+    if (controller.getMessagesView() != null && controller.getMessagesView().getScrollState() == RecyclerView.SCROLL_STATE_DRAGGING) {
+      controller.tgx101OnUserScroll();
+    }
     if ((dy > 0) != (tgx101ScrollDistance > 0)) {
       tgx101ScrollDistance = 0;
     }

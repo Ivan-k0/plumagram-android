@@ -7244,7 +7244,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     // TGx101 (user's video 2026-10-12 14:06 «во время печати стрелка прыгает… можно её вообще убирать во время набора»):
     // while something is being typed the arrow rode up and down with the growing field — it waits until the field is empty
-    if (isVisible && inputView != null && inputView.getText() != null && inputView.getText().length() > 0 && getKeyboardState()) {
+    // user 2026-10-12 18:5x: only while typing — scrolling the chat brings the arrow back the usual way
+    if (isVisible && tgx101TypingHidesArrow && inputView != null && inputView.getText() != null && inputView.getText().length() > 0 && getKeyboardState()) {
       isVisible = false;
     }
     scrollToBottomVisible.setValue(isVisible, animated);
@@ -11052,9 +11053,22 @@ public class MessagesController extends ViewController<MessagesController.Argume
     setInputInlineBot(0, "@" + tdlib.getAnimationSearchBotUsername());
   }
 
+  private boolean tgx101TypingHidesArrow;
+
+  /** TGx101: the finger scrolled the chat — the arrow is allowed again even with text in the field */
+  public void tgx101OnUserScroll () {
+    if (tgx101TypingHidesArrow) {
+      tgx101TypingHidesArrow = false;
+      if (manager != null) manager.checkScrollToBottomButton();
+    }
+  }
+
   public void onInputTextChange (CharSequence charSequence, boolean byUserAction) {
-    if (manager != null && (charSequence == null || charSequence.length() <= 1)) {
-      manager.checkScrollToBottomButton(); // TGx101: the arrow hides with the first letter and comes back with an empty field
+    if (byUserAction && charSequence != null && charSequence.length() > 0 && !tgx101TypingHidesArrow) {
+      tgx101TypingHidesArrow = true;
+      if (manager != null) manager.checkScrollToBottomButton(); // TGx101: typing hides the arrow
+    } else if (manager != null && (charSequence == null || charSequence.length() == 0)) {
+      manager.checkScrollToBottomButton(); // and an empty field brings it back
     }
     if (sendMenu != null) {
       sendMenu.hideMenu();
