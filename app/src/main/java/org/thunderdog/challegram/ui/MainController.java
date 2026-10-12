@@ -1211,6 +1211,10 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   /** TGx101 test builds (exteraGram-like): a screen slides over the chat list. {@code listShift} — the list's own parallax,
    *  {@code coverX} — the sliding screen's left edge; {@code covered} 1 — fully covered (gone), 0 — the list is back */
   public void tgx101FollowSlide (float listShift, float coverX, float covered) {
+    tgx101FollowSlide(listShift, coverX, covered, false);
+  }
+
+  public void tgx101FollowSlide (float listShift, float coverX, float covered, boolean fromRightEdge) {
     if (tgx101Capsule == null || inSearchMode()) return;
     if (tgx101CapsuleFade != null) {
       tgx101CapsuleFade.cancel();
@@ -1232,7 +1236,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       // user 2026-10-08 «нижнее меню смотри»: like exteraGram the menu stays still while the list's parallax moves —
       // only the chat's edge covers / uncovers it
       tgx101Capsule.setTranslationX(0f);
-      tgx101Capsule.tgx101SetCoveredFrom(coverX);
+      tgx101Capsule.tgx101SetCoveredFrom(coverX, fromRightEdge);
     }
   }
 

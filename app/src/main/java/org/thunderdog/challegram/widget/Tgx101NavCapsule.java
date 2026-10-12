@@ -618,8 +618,17 @@ public class Tgx101NavCapsule extends View {
 
   /** The x (in screen pixels) where a sliding screen starts covering the menu, NaN — nothing covers it */
   public void tgx101SetCoveredFrom (float x) {
-    if (Float.isNaN(x) ? !Float.isNaN(tgx101CoverX) : x != tgx101CoverX) {
+    tgx101SetCoveredFrom(x, false);
+  }
+
+  private boolean tgx101CoverFromLeft;
+
+  /** {@code fromLeft} — the sliding screen covers everything to the LEFT of x (back gesture from the right edge: the
+   *  chat leaves to the left and uncovers the menu from the right) */
+  public void tgx101SetCoveredFrom (float x, boolean fromLeft) {
+    if ((Float.isNaN(x) ? !Float.isNaN(tgx101CoverX) : x != tgx101CoverX) || fromLeft != tgx101CoverFromLeft) {
       tgx101CoverX = x;
+      tgx101CoverFromLeft = fromLeft;
       invalidate();
     }
   }
@@ -631,7 +640,12 @@ public class Tgx101NavCapsule extends View {
       return;
     }
     int save = c.save();
-    c.clipRect(0, 0, Math.max(0f, tgx101CoverX - getLeft() - getTranslationX()), getHeight());
+    float edge = tgx101CoverX - getLeft() - getTranslationX();
+    if (tgx101CoverFromLeft) {
+      c.clipRect(Math.min(getWidth(), Math.max(0f, edge)), 0, getWidth(), getHeight());
+    } else {
+      c.clipRect(0, 0, Math.max(0f, edge), getHeight());
+    }
     super.draw(c);
     c.restoreToCount(save);
   }
