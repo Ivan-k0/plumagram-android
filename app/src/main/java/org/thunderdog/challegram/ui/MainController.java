@@ -1129,6 +1129,25 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       if (!show) tgx101Capsule.setVisibility(View.GONE);
       return;
     }
+    if (show && tgx101Capsule.getWidth() > 0) {
+      // TGx101 (user's video 2026-10-12 19:21 «нижнее меню должно выезжать как после свайпа, плавно сбоку»): coming back
+      // with the back button the menu is uncovered from the left, as if the chat slid away to the right — like the swipe
+      final float width = tgx101Capsule.getWidth();
+      tgx101Capsule.setAlpha(1f);
+      tgx101Capsule.setTranslationY(0f);
+      tgx101Capsule.setTranslationX(0f);
+      tgx101Capsule.tgx101SetCoveredFrom(0f);
+      tgx101CapsuleFade = android.animation.ValueAnimator.ofFloat(0f, 1f);
+      tgx101CapsuleFade.setDuration(300);
+      tgx101CapsuleFade.setInterpolator(new android.view.animation.DecelerateInterpolator(1.8f));
+      tgx101CapsuleFade.addUpdateListener(a -> tgx101Capsule.tgx101SetCoveredFrom(width * (float) a.getAnimatedValue()));
+      tgx101CapsuleFade.addListener(new android.animation.AnimatorListenerAdapter() {
+        @Override public void onAnimationEnd (android.animation.Animator animation) { tgx101Capsule.tgx101SetCoveredFrom(Float.NaN); }
+        @Override public void onAnimationCancel (android.animation.Animator animation) { tgx101Capsule.tgx101SetCoveredFrom(Float.NaN); }
+      });
+      tgx101CapsuleFade.start();
+      return;
+    }
     tgx101CapsuleFade = android.animation.ValueAnimator.ofFloat(tgx101Capsule.getAlpha(), to);
     tgx101CapsuleFade.setDuration(180); // user 2026-10-06: appears as fast as it hides
     tgx101CapsuleFade.setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f));
