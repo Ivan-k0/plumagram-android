@@ -181,7 +181,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101RingRampHint, "За сколько секунд мелодия входящего звонка вырастает от тихой до полной громкости.");
     RU.put(R.string.Tgx101Font, "Шрифт");
     RU.put(R.string.Tgx101FontSystem, "Системный (как в настройках телефона)");
-    RU.put(R.string.Tgx101FontRoboto, "Roboto (как в Telegram и exteraGram)");
+    RU.put(R.string.Tgx101FontRoboto, "Roboto");
     RU.put(R.string.Tgx101FontHint, "Меняется только начертание; размер и толщина текста остаются как настроены. Применится после перезапуска приложения.");
     RU.put(R.string.Tgx101FontRestart, "Перезапустите приложение, чтобы применить шрифт");
     RU.put(R.string.Tgx101TextWeightNormal, "Обычная");
@@ -531,8 +531,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PullNoStories, "Сейчас нет историй");
     RU.put(R.string.Tgx101SectionChannelsAds, "Каналы и реклама");
     RU.put(R.string.Tgx101SectionChannelsAdsHint, "Рекламные посты в каналах не показываются; кнопку «Вступить» тоже можно скрыть.");
-    RU.put(R.string.Tgx101FontMerriweather, "Merriweather (шрифт историй Telegram)");
-    RU.put(R.string.Tgx101FontCondensed, "Roboto Condensed (шрифт историй Telegram)");
+    RU.put(R.string.Tgx101FontMerriweather, "Merriweather");
+    RU.put(R.string.Tgx101FontCondensed, "Roboto Condensed");
     RU.put(R.string.Tgx101SearchHoldProxy, "Удержание поиска в чатах — прокси");
     RU.put(R.string.Tgx101UnofficialTitle, "Неофициальная сборка");
     RU.put(R.string.Tgx101UnofficialText, "Этот PlumaGram подписан не автором, а кем-то другим — его могли изменить как угодно. Официальная версия — на 4PDA и в канале @plumagram.");
