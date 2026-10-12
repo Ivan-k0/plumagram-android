@@ -208,6 +208,9 @@ public final class Tgx101StoryEditor extends Dialog {
     final float[] photo = new float[9];
     int background;
     final ArrayList<TextLayer> texts = new ArrayList<>();
+    int filter;
+    float strength;
+    final int[] adjust = new int[Tgx101StoryFilters.ADJ_COUNT];
   }
 
   private final Tdlib tdlib;
@@ -272,8 +275,9 @@ public final class Tgx101StoryEditor extends Dialog {
     rail.setOrientation(LinearLayout.VERTICAL);
     rail.addView(glass(context, "Аа", v -> editText(null)), squareParams(44f, 0));
     rail.addView(glass(context, "😊", v -> pickReaction()), squareParams(44f, 8f, true));
-    rail.addView(glass(context, "⤢", v -> { pushUndo(); fitPhoto(); canvasView.invalidate(); }), squareParams(44f, 8f, true));
-    rail.addView(glass(context, "◐", v -> { pushUndo(); background = (background + 1) % 3; canvasView.invalidate(); toastBackground(); }), squareParams(44f, 8f, true));
+    rail.addView(glass(context, "◑", v -> openFilters()), squareParams(44f, 8f, true));
+    rail.addView(glass(context, "⤢", v -> { pushUndo(); fitPhoto(); schedulePreview(); canvasView.invalidate(); }), squareParams(44f, 8f, true));
+    rail.addView(glass(context, "◐", v -> { pushUndo(); background = (background + 1) % 3; schedulePreview(); canvasView.invalidate(); toastBackground(); }), squareParams(44f, 8f, true));
     rail.addView(glass(context, "👁", v -> setPreview(!previewMode)), squareParams(44f, 8f, true));
     FrameLayout.LayoutParams railParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.RIGHT | Gravity.TOP);
     railParams.topMargin = Screen.dp(70f);
@@ -414,6 +418,7 @@ public final class Tgx101StoryEditor extends Dialog {
   @Override
   public void onBackPressed () {
     if (confirmCard != null) { closeConfirm(); return; }
+    if (filtersPanel != null) { closeFilters(); return; }
     if (publishSheet != null) { closePublish(); return; }
     if (textPanel != null) { finishTextEdit(true); return; }
     if (previewMode) { setPreview(false); return; }
@@ -463,7 +468,57 @@ public final class Tgx101StoryEditor extends Dialog {
   private final TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
   private final RectF rect = new RectF();
 
-  private void drawStory (Canvas c) {
+  // ── filters (mockup «Истории-фильтры», all approved) ──────────────────────────────────────
+
+  private int filter = Tgx101StoryFilters.ORIGINAL;
+  private float strength = 1f;
+  private final int[] adjust = new int[Tgx101StoryFilters.ADJ_COUNT];
+  private @Nullable Bitmap filteredPreview; // the filtered photo + background at a third of the size
+  private int previewGeneration;
+  private boolean photoGesture;
+  private static final int PREVIEW_DIV = 3;
+
+  private boolean filtered () {
+    return !Tgx101StoryFilters.isIdentity(filter, strength, adjust);
+  }
+
+  private int[] duoColors () {
+    return new int[] {gradient[1], gradient[0]}; // dark → light, from the photo's own palette
+  }
+
+  /** Recomputes the filtered preview off the main thread (a fresh one replaces an outdated one) */
+  private void schedulePreview () {
+    final int generation = ++previewGeneration;
+    if (!filtered()) {
+      filteredPreview = null;
+      canvasView.invalidate();
+      return;
+    }
+    final Bitmap base;
+    try {
+      base = Bitmap.createBitmap(W / PREVIEW_DIV, H / PREVIEW_DIV, Bitmap.Config.ARGB_8888);
+    } catch (Throwable t) {
+      return;
+    }
+    Canvas c = new Canvas(base);
+    c.scale(1f / PREVIEW_DIV, 1f / PREVIEW_DIV);
+    drawBase(c);
+    final int f = filter;
+    final float st = strength;
+    final int[] adj = adjust.clone();
+    final int[] duo = duoColors();
+    new Thread(() -> {
+      Tgx101StoryFilters.apply(base, f, st, adj, duo);
+      UI.post(() -> {
+        if (generation != previewGeneration) { base.recycle(); return; }
+        filteredPreview = base;
+        canvasView.invalidate();
+      });
+    }, "story-filter").start();
+  }
+
+  /** Background + photo: what filters apply to (text and stickers stay clean) */
+  private void drawBase (Canvas c) {
     switch (background) {
       case BG_BLUR:
         if (blurred != null) {
@@ -485,6 +540,22 @@ public final class Tgx101StoryEditor extends Dialog {
         c.drawRect(0, 0, W, H, fill);
     }
     c.drawBitmap(photo, photoMatrix, bitmapPaint);
+  }
+
+  private void drawStory (Canvas c) {
+    if (exporting && filtered()) {
+      Bitmap base = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
+      drawBase(new Canvas(base));
+      Tgx101StoryFilters.apply(base, filter, strength, adjust, duoColors());
+      c.drawBitmap(base, 0, 0, null);
+      base.recycle();
+    } else if (!exporting && filtered() && filteredPreview != null && !photoGesture) {
+      rect.set(0, 0, W, H);
+      c.drawBitmap(filteredPreview, null, rect, bitmapPaint);
+    } else {
+      drawBase(c);
+    }
+    if (filter == Tgx101StoryFilters.VHS && strength > .3f) drawVhsLabels(c);
     for (TextLayer t : texts) {
       if (t == editing) continue;
       if (t.reaction != null) {
@@ -493,6 +564,17 @@ public final class Tgx101StoryEditor extends Dialog {
       }
       drawText(c, t);
     }
+  }
+
+  private void drawVhsLabels (Canvas c) {
+    TextPaint p = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+    p.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
+    p.setTextSize(W * .055f);
+    p.setColor(0xffffffff);
+    p.setShadowLayer(4, 0, 0, 0xaa000000);
+    c.drawText("▶ PLAY", W * .06f, H * .07f + p.getTextSize(), p);
+    String date = new java.text.SimpleDateFormat("dd MMM yyyy", Lang.locale()).format(new java.util.Date()).toUpperCase(Lang.locale()).replace(".", "");
+    c.drawText(date, W * .06f, H * .95f, p);
   }
 
   private StaticLayout layoutOf (TextLayer t) {
@@ -727,6 +809,9 @@ public final class Tgx101StoryEditor extends Dialog {
     photoMatrix.getValues(s.photo);
     s.background = background;
     for (TextLayer t : texts) s.texts.add(t.copy());
+    s.filter = filter;
+    s.strength = strength;
+    System.arraycopy(adjust, 0, s.adjust, 0, adjust.length);
     return s;
   }
 
@@ -735,6 +820,10 @@ public final class Tgx101StoryEditor extends Dialog {
     background = s.background;
     texts.clear();
     for (TextLayer t : s.texts) texts.add(t.copy());
+    filter = s.filter;
+    strength = s.strength;
+    System.arraycopy(s.adjust, 0, adjust, 0, adjust.length);
+    schedulePreview();
     canvasView.invalidate();
   }
 
@@ -913,6 +1002,7 @@ public final class Tgx101StoryEditor extends Dialog {
               target.rotation += da;
               if (Math.abs(target.rotation % 90) < 3) target.rotation -= target.rotation % 90; // snap to straight
             } else {
+              photoGesture = true; // live and unfiltered while the fingers move it, the filter comes back on release
               photoMatrix.postScale(ds, ds, mx, my);
               photoMatrix.postRotate(da, mx, my);
             }
@@ -938,6 +1028,7 @@ public final class Tgx101StoryEditor extends Dialog {
             if (snapY) target.cy = H / 2f;
             overBin = Math.hypot(e.getX() - frame.centerX(), e.getY() - (frame.bottom - Screen.dp(60f))) < Screen.dp(40f);
           } else {
+            photoGesture = true;
             photoMatrix.postTranslate(dx, dy);
           }
           invalidate();
@@ -965,6 +1056,7 @@ public final class Tgx101StoryEditor extends Dialog {
             }
           }
           draggingText = overBin = snapX = snapY = false;
+          if (photoGesture) { photoGesture = false; schedulePreview(); }
           target = null;
           updateUndoButtons();
           invalidate();
@@ -1277,6 +1369,295 @@ public final class Tgx101StoryEditor extends Dialog {
     public boolean onTouchEvent (MotionEvent e) {
       float h = getHeight() - Screen.dp(16f);
       value = Math.max(0f, Math.min(1f, 1f - (e.getY() - Screen.dp(8f)) / h));
+      callback.onValue(value);
+      invalidate();
+      return true;
+    }
+  }
+
+  // ── filters panel ──────────────────────────────────────────────────────────────────────
+
+  private static final int[] FILTER_NAMES = {R.string.Tgx101FilterOriginal, R.string.Tgx101FilterVivid, R.string.Tgx101FilterWarm, R.string.Tgx101FilterCold,
+    R.string.Tgx101FilterBw, R.string.Tgx101FilterNoir, R.string.Tgx101FilterFilm, R.string.Tgx101FilterCinema, R.string.Tgx101FilterMatte,
+    R.string.Tgx101FilterVhs, R.string.Tgx101FilterPixel, R.string.Tgx101FilterComic, R.string.Tgx101FilterDuotone, R.string.Tgx101FilterGlitch,
+    R.string.Tgx101FilterLeak, R.string.Tgx101FilterSketch, R.string.Tgx101FilterNeon, R.string.Tgx101FilterDream};
+  private static final int[] ADJUST_NAMES = {R.string.Tgx101AdjBrightness, R.string.Tgx101AdjContrast, R.string.Tgx101AdjSaturation, R.string.Tgx101AdjWarmth,
+    R.string.Tgx101AdjShadows, R.string.Tgx101AdjHighlights, R.string.Tgx101AdjVignette, R.string.Tgx101AdjGrain};
+  private static final String[] ADJUST_ICONS = {"☀", "◐", "🎨", "🌡", "▼", "▲", "◎", "✦"};
+
+  private @Nullable View filtersPanel;
+  private int adjustSelected = Tgx101StoryFilters.ADJ_CONTRAST;
+
+  private void openFilters () {
+    if (filtersPanel != null) return;
+    pushUndo();
+    final State before = undo.get(undo.size() - 1);
+    setChromeVisible(false);
+    Context context = getContext();
+    FrameLayout panel = new FrameLayout(context);
+    panel.setClickable(false);
+
+    LinearLayout top = new LinearLayout(context);
+    top.setGravity(Gravity.CENTER_VERTICAL);
+    top.setPadding(Screen.dp(12f), Screen.dp(12f), Screen.dp(12f), 0);
+    top.addView(glass(context, "✕", v -> { restore(before); undo.remove(before); closeFilters(); }), squareParams(36f, 0));
+    View sp = new View(context);
+    top.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
+    top.addView(pill(context, Lang.getString(R.string.Tgx101StoryDone), true, v -> {
+      if (before.filter == filter && before.strength == strength && java.util.Arrays.equals(before.adjust, adjust)) undo.remove(before);
+      closeFilters();
+    }), new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(36f)));
+    panel.addView(top, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP));
+
+    LinearLayout card = new LinearLayout(context);
+    card.setOrientation(LinearLayout.VERTICAL);
+    card.setClickable(true);
+    card.setBackground(cardBackground());
+    card.setPadding(0, Screen.dp(10f), 0, Screen.dp(12f));
+    LinearLayout tabs = chipRow(context);
+    FrameLayout content = new FrameLayout(context);
+    TextView tabFilters = chip(context, Lang.getString(R.string.Tgx101FiltersTab), true, null);
+    TextView tabAdjust = chip(context, Lang.getString(R.string.Tgx101AdjustTab), false, null);
+    tabFilters.setTag(0);
+    tabAdjust.setTag(1);
+    tabs.addView(tabFilters, chipParams());
+    tabs.addView(tabAdjust, chipParams());
+    card.addView(tabs);
+    LinearLayout.LayoutParams contentParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    contentParams.topMargin = Screen.dp(8f);
+    card.addView(content, contentParams);
+    View filtersView = buildFiltersTab(context);
+    View adjustView = buildAdjustTab(context);
+    content.addView(filtersView);
+    content.addView(adjustView);
+    adjustView.setVisibility(View.GONE);
+    tabFilters.setOnClickListener(v -> { filtersView.setVisibility(View.VISIBLE); adjustView.setVisibility(View.GONE); refreshChips(tabs, 0); });
+    tabAdjust.setOnClickListener(v -> { filtersView.setVisibility(View.GONE); adjustView.setVisibility(View.VISIBLE); refreshChips(tabs, 1); });
+
+    FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+    cp.leftMargin = cp.rightMargin = cp.bottomMargin = Screen.dp(8f);
+    panel.addView(card, cp);
+    root.addView(panel, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    filtersPanel = panel;
+    card.setTranslationY(Screen.dp(300f));
+    card.animate().translationY(0f).setDuration(260).setInterpolator(new android.view.animation.DecelerateInterpolator(2f)).start();
+  }
+
+  private void closeFilters () {
+    View panel = filtersPanel;
+    if (panel == null) return;
+    filtersPanel = null;
+    root.removeView(panel);
+    setChromeVisible(true);
+    updateUndoButtons();
+  }
+
+  private View buildFiltersTab (Context context) {
+    LinearLayout box = new LinearLayout(context);
+    box.setOrientation(LinearLayout.VERTICAL);
+    LinearLayout strengthRow = new LinearLayout(context);
+    strengthRow.setGravity(Gravity.CENTER_VERTICAL);
+    strengthRow.setPadding(Screen.dp(14f), 0, Screen.dp(14f), Screen.dp(6f));
+    TextView label = new TextView(context);
+    label.setText(Lang.getString(R.string.Tgx101FilterStrength));
+    label.setTextColor(0xffc9d5e2);
+    label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+    strengthRow.addView(label);
+    TextView value = new TextView(context);
+    value.setTextColor(0xffc9d5e2);
+    value.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+    value.setText(Math.round(strength * 100) + " %");
+    HSlider slider = new HSlider(context, strength, 1f, f -> {
+      strength = f;
+      value.setText(Math.round(f * 100) + " %");
+      schedulePreview();
+    });
+    LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(0, Screen.dp(28f), 1f);
+    sp.leftMargin = sp.rightMargin = Screen.dp(10f);
+    strengthRow.addView(slider, sp);
+    strengthRow.addView(value, new LinearLayout.LayoutParams(Screen.dp(42f), ViewGroup.LayoutParams.WRAP_CONTENT));
+    box.addView(strengthRow);
+
+    HorizontalScrollView scroll = new HorizontalScrollView(context);
+    scroll.setHorizontalScrollBarEnabled(false);
+    LinearLayout strip = new LinearLayout(context);
+    strip.setPadding(Screen.dp(10f), 0, Screen.dp(10f), 0);
+    android.widget.ImageView[] thumbs = new android.widget.ImageView[Tgx101StoryFilters.COUNT];
+    for (int i = 0; i < Tgx101StoryFilters.COUNT; i++) {
+      final int index = i;
+      LinearLayout item = new LinearLayout(context);
+      item.setOrientation(LinearLayout.VERTICAL);
+      item.setGravity(Gravity.CENTER_HORIZONTAL);
+      item.setTag(i);
+      android.widget.ImageView thumb = new android.widget.ImageView(context);
+      thumb.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+      thumb.setBackground(thumbFrame(i == filter));
+      thumb.setPadding(Screen.dp(2.5f), Screen.dp(2.5f), Screen.dp(2.5f), Screen.dp(2.5f));
+      if (Build.VERSION.SDK_INT >= 21) thumb.setClipToOutline(true);
+      thumbs[i] = thumb;
+      item.addView(thumb, new LinearLayout.LayoutParams(Screen.dp(64f), Screen.dp(64f)));
+      TextView name = new TextView(context);
+      name.setText(Lang.getString(FILTER_NAMES[i]));
+      name.setTextColor(0xffc9d5e2);
+      name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11f);
+      name.setGravity(Gravity.CENTER);
+      name.setSingleLine(true);
+      item.addView(name, new LinearLayout.LayoutParams(Screen.dp(68f), ViewGroup.LayoutParams.WRAP_CONTENT));
+      item.setOnClickListener(v -> {
+        filter = index;
+        if (strength == 0f) strength = 1f;
+        for (int k = 0; k < thumbs.length; k++) thumbs[k].setBackground(thumbFrame(k == filter));
+        schedulePreview();
+      });
+      LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      ip.rightMargin = Screen.dp(4f);
+      strip.addView(item, ip);
+    }
+    scroll.addView(strip);
+    box.addView(scroll);
+    // live thumbnails: the middle of the story through every filter
+    final int size = Screen.dp(64f);
+    final Bitmap source;
+    try {
+      source = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+      Canvas c = new Canvas(source);
+      float k = size / (W * .62f);
+      c.scale(k, k);
+      c.translate(-W * .19f, -H * .5f + W * .31f);
+      drawBase(c);
+    } catch (Throwable t) {
+      return box;
+    }
+    final int[] duo = duoColors();
+    new Thread(() -> {
+      for (int i = 0; i < Tgx101StoryFilters.COUNT; i++) {
+        Bitmap b = source.copy(Bitmap.Config.ARGB_8888, true);
+        Tgx101StoryFilters.apply(b, i, 1f, new int[Tgx101StoryFilters.ADJ_COUNT], duo);
+        final int index = i;
+        UI.post(() -> thumbs[index].setImageBitmap(b));
+      }
+    }, "story-thumbs").start();
+    return box;
+  }
+
+  private static GradientDrawable thumbFrame (boolean selected) {
+    GradientDrawable d = new GradientDrawable();
+    d.setCornerRadius(Screen.dp(12f));
+    d.setColor(0);
+    if (selected) d.setStroke(Screen.dp(2f), 0xff3d8fd8);
+    return d;
+  }
+
+  private View buildAdjustTab (Context context) {
+    LinearLayout box = new LinearLayout(context);
+    box.setOrientation(LinearLayout.VERTICAL);
+    android.widget.GridLayout grid = new android.widget.GridLayout(context);
+    grid.setColumnCount(4);
+    grid.setPadding(Screen.dp(10f), 0, Screen.dp(10f), 0);
+    TextView[] tiles = new TextView[Tgx101StoryFilters.ADJ_COUNT];
+    LinearLayout sliderRow = new LinearLayout(context);
+    sliderRow.setGravity(Gravity.CENTER_VERTICAL);
+    sliderRow.setPadding(Screen.dp(14f), Screen.dp(8f), Screen.dp(14f), 0);
+    TextView name = new TextView(context);
+    name.setTextColor(0xffc9d5e2);
+    name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+    TextView value = new TextView(context);
+    value.setTextColor(0xffc9d5e2);
+    value.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+    value.setGravity(Gravity.RIGHT);
+    final HSlider[] sliderRef = new HSlider[1];
+    Runnable refresh = () -> {
+      boolean bipolar = adjustSelected < Tgx101StoryFilters.ADJ_VIGNETTE;
+      int v = adjust[adjustSelected];
+      name.setText(Lang.getString(ADJUST_NAMES[adjustSelected]));
+      value.setText((v > 0 && bipolar ? "+" : "") + v);
+      sliderRef[0].set(bipolar ? (v + 100) / 200f : v / 100f, bipolar ? .5f : 0f);
+      for (int k = 0; k < tiles.length; k++) tiles[k].setBackground(tileBackground(k == adjustSelected, adjust[k] != 0));
+    };
+    HSlider slider = new HSlider(context, .5f, .5f, f -> {
+      boolean bipolar = adjustSelected < Tgx101StoryFilters.ADJ_VIGNETTE;
+      int v = bipolar ? Math.round(f * 200f - 100f) : Math.round(f * 100f);
+      adjust[adjustSelected] = v;
+      value.setText((v > 0 && bipolar ? "+" : "") + v);
+      for (int k = 0; k < tiles.length; k++) tiles[k].setBackground(tileBackground(k == adjustSelected, adjust[k] != 0));
+      schedulePreview();
+    });
+    sliderRef[0] = slider;
+    for (int i = 0; i < Tgx101StoryFilters.ADJ_COUNT; i++) {
+      final int index = i;
+      TextView t = new TextView(context);
+      t.setText(ADJUST_ICONS[i] + "\n" + Lang.getString(ADJUST_NAMES[i]));
+      t.setGravity(Gravity.CENTER);
+      t.setTextColor(0xffe9eef4);
+      t.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11f);
+      t.setOnClickListener(v -> { adjustSelected = index; refresh.run(); });
+      tiles[i] = t;
+      android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams();
+      lp.width = 0;
+      lp.height = Screen.dp(56f);
+      lp.columnSpec = android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f);
+      lp.setMargins(Screen.dp(3f), Screen.dp(3f), Screen.dp(3f), Screen.dp(3f));
+      grid.addView(t, lp);
+    }
+    box.addView(grid);
+    sliderRow.addView(name, new LinearLayout.LayoutParams(Screen.dp(84f), ViewGroup.LayoutParams.WRAP_CONTENT));
+    sliderRow.addView(slider, new LinearLayout.LayoutParams(0, Screen.dp(28f), 1f));
+    sliderRow.addView(value, new LinearLayout.LayoutParams(Screen.dp(40f), ViewGroup.LayoutParams.WRAP_CONTENT));
+    box.addView(sliderRow);
+    refresh.run();
+    return box;
+  }
+
+  private static GradientDrawable tileBackground (boolean selected, boolean changed) {
+    GradientDrawable d = new GradientDrawable();
+    d.setCornerRadius(Screen.dp(12f));
+    d.setColor(changed ? 0x2a3d8fd8 : 0x0fffffff);
+    if (selected) d.setStroke(Screen.dp(2f), 0xff3d8fd8);
+    return d;
+  }
+
+  /** A horizontal slider; a double tap puts it back to its neutral point */
+  private static final class HSlider extends View {
+    private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final FloatCallback callback;
+    private float value, neutral;
+    private long lastTap;
+
+    HSlider (Context context, float value, float neutral, FloatCallback callback) {
+      super(context);
+      this.value = value;
+      this.neutral = neutral;
+      this.callback = callback;
+    }
+
+    void set (float value, float neutral) {
+      this.value = Math.max(0f, Math.min(1f, value));
+      this.neutral = neutral;
+      invalidate();
+    }
+
+    @Override
+    protected void onDraw (@NonNull Canvas c) {
+      float h = getHeight(), w = getWidth(), pad = Screen.dp(9f), y = h / 2f;
+      p.setColor(0x1fffffff);
+      c.drawRoundRect(pad, y - Screen.dp(2f), w - pad, y + Screen.dp(2f), Screen.dp(2f), Screen.dp(2f), p);
+      p.setColor(0xff3d8fd8);
+      float nx = pad + (w - 2 * pad) * neutral, vx = pad + (w - 2 * pad) * value;
+      c.drawRoundRect(Math.min(nx, vx), y - Screen.dp(2f), Math.max(nx, vx), y + Screen.dp(2f), Screen.dp(2f), Screen.dp(2f), p);
+      p.setColor(0xffffffff);
+      c.drawCircle(vx, y, Screen.dp(8f), p);
+    }
+
+    @Override
+    public boolean onTouchEvent (MotionEvent e) {
+      if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
+        getParent().requestDisallowInterceptTouchEvent(true);
+        long now = SystemClock.uptimeMillis();
+        if (now - lastTap < 300) { value = neutral; callback.onValue(value); invalidate(); lastTap = 0; return true; }
+        lastTap = now;
+      }
+      float pad = Screen.dp(9f);
+      value = Math.max(0f, Math.min(1f, (e.getX() - pad) / Math.max(1f, getWidth() - 2 * pad)));
       callback.onValue(value);
       invalidate();
       return true;
