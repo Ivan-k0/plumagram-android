@@ -999,8 +999,24 @@ public final class Tgx101MessageMenu {
   }
 
   private static Drawable blurredBackground (MessagesController c) {
+    // TGx101 (user 2026-10-12 20:56, variant 3): no blur by default — the same plain dim as the sheets that open from
+    // the menu (the blur then turning into a dim was what jarred); with MagiX «Blur» on, both blur
+    if (!org.thunderdog.challegram.unsorted.Settings.instance().tgx101MenuBlur()) {
+      return new android.graphics.drawable.ColorDrawable(0x4d000000);
+    }
+    android.graphics.Bitmap bitmap = blurredScreen(c.context(), 0x40000000);
+    if (bitmap != null) {
+      android.graphics.drawable.BitmapDrawable drawable = new android.graphics.drawable.BitmapDrawable(c.context().getResources(), bitmap);
+      drawable.setFilterBitmap(true);
+      return drawable;
+    }
+    return new android.graphics.drawable.ColorDrawable(0x59000000);
+  }
+
+  /** The window as it is now, small and blurred, with a dim over it; null if it can't be taken */
+  public static @Nullable android.graphics.Bitmap blurredScreen (android.app.Activity activity, int dim) {
     try {
-      View source = c.context().getWindow().getDecorView();
+      View source = activity.getWindow().getDecorView();
       int width = source.getWidth(), height = source.getHeight();
       if (width > 0 && height > 0) {
         final float scale = 1f / 8f;
@@ -1010,13 +1026,11 @@ public final class Tgx101MessageMenu {
         source.draw(canvas);
         boxBlur(bitmap, 3);
         boxBlur(bitmap, 3);
-        new android.graphics.Canvas(bitmap).drawColor(0x40000000);
-        android.graphics.drawable.BitmapDrawable drawable = new android.graphics.drawable.BitmapDrawable(c.context().getResources(), bitmap);
-        drawable.setFilterBitmap(true);
-        return drawable;
+        new android.graphics.Canvas(bitmap).drawColor(dim);
+        return bitmap;
       }
     } catch (Throwable ignored) { }
-    return new android.graphics.drawable.ColorDrawable(0x59000000);
+    return null;
   }
 
   private static void setHeader (Host host, ViewController.OptionItem item) {

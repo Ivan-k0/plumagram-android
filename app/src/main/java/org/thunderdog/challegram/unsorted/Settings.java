@@ -3703,6 +3703,16 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_HAPTICS, v);
   }
 
+  /** TGx101 (user 2026-10-12, variant 3): blur behind the message menu and the bottom sheets — off: a plain dim, as in
+   *  the official app */
+  public boolean tgx101MenuBlur () {
+    return pmc.getBoolean("tgx101_menu_blur", false);
+  }
+
+  public void setTgx101MenuBlur (boolean v) {
+    pmc.putBoolean("tgx101_menu_blur", v);
+  }
+
   /** TGx101 (user 2026-10-12): vibration strength — 0 light, 1 normal, 2 strong */
   public int tgx101HapticStrength () {
     return pmc.getInt("tgx101_haptic_strength", 1);

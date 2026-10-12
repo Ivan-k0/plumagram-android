@@ -516,6 +516,10 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     }
 
     animationType = ANIMATION_TYPE_SIMPLE;
+    // TGx101 (variant 3): with MagiX «Blur» on, a sheet blurs the screen behind it like the message menu does
+    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101MenuBlur() && getContext() instanceof android.app.Activity && backgroundView != null) {
+      backgroundView.tgx101Blur = org.thunderdog.challegram.ui.Tgx101MessageMenu.blurredScreen((android.app.Activity) getContext(), 0x26000000);
+    }
     view.setTranslationY(currentHeight = height);
     addView(boundView = view);
     ((BaseActivity) getContext()).showPopupWindow(this);
@@ -858,6 +862,10 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
 
 
   private class BackgroundView extends View {
+    @Nullable android.graphics.Bitmap tgx101Blur;
+    private final android.graphics.Rect tgx101Dst = new android.graphics.Rect();
+    private final android.graphics.Paint tgx101BlurPaint = new android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG);
+
     public BackgroundView (Context context) {
       super(context);
       setAlpha(0f);
@@ -874,6 +882,11 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
 
     @Override
     protected void onDraw (Canvas c) {
+      if (tgx101Blur != null && animationType == ANIMATION_TYPE_SIMPLE) {
+        tgx101Dst.set(0, 0, getMeasuredWidth(), getMeasuredHeight());
+        c.drawBitmap(tgx101Blur, null, tgx101Dst, tgx101BlurPaint);
+        return; // the dim is already in the picture
+      }
       // TGx101: sheets dim like the official app's — 20 % black in any theme; other popups keep the theme's dim
       final int color = ColorUtils.color(animationType == ANIMATION_TYPE_SIMPLE ? 51 : (int) (255f * (Theme.getPopupOverlayAlpha())), 0);
       int offset = HeaderView.getTopOffset();

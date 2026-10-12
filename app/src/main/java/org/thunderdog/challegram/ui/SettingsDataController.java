@@ -309,6 +309,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101LongPressMenu(), isUpdate);
         } else if (itemId == R.id.btn_tgx101MenuHidesKeyboard) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101MenuHidesKeyboard(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101MenuBlur) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101MenuBlur(), isUpdate);
         } else if (itemId == R.id.btn_tgx101Haptics) {
           // TGx101 (user 2026-10-12 «не дублируй»): one row — off or how strong
           int st = Settings.instance().tgx101HapticStrength();
@@ -470,6 +472,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Gestures, 0, R.string.Tgx101Gestures),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Haptics, 0, R.string.Tgx101Haptics),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MenuBlur, 0, R.string.Tgx101MenuBlur),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MenuHidesKeyboard, 0, R.string.Tgx101MenuHidesKeyboard),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -961,7 +965,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked || id == R.id.btn_pullToSearch || id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap) return 0;
     if (id == R.id.btn_tgx101StoriesMode || id == R.id.btn_tgx101StoriesFolders) return 1;
     if (id == R.id.btn_tgx101ChatMenuOrder) return 2;
-    if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101MenuHidesKeyboard || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101TextEditor || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuOrder
+    if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101MenuBlur || id == R.id.btn_tgx101MenuHidesKeyboard || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101TextEditor || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuOrder
       || id == R.id.btn_tgx101TapMode || id == R.id.btn_tgx101Gestures || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101QuickReply1 || id == R.id.btn_tgx101QuickReply2
       || id == R.id.btn_tgx101QuickReply3 || id == R.id.btn_tgx101QuickReply4 || id == R.id.btn_tgx101QuickReply5) return 2;
     if (id == R.id.btn_tgx101HideCompose || id == R.id.btn_tgx101HideJoin || id == R.id.btn_tgx101HideSponsored) return 0;
@@ -1285,6 +1289,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101SwipeActions(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101LongPressMenu) {
       Settings.instance().setTgx101LongPressMenu(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101MenuBlur) {
+      Settings.instance().setTgx101MenuBlur(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101Haptics) {
       showOptions(Lang.getString(R.string.Tgx101Haptics), new int[] {R.id.btn_disabled, R.id.btn_tgx101HapticLight, R.id.btn_tgx101HapticNormal, R.id.btn_tgx101HapticStrong},
         new String[] {Lang.getString(R.string.Tgx101HapticOff), Lang.getString(R.string.Tgx101HapticLight), Lang.getString(R.string.Tgx101HapticNormal), Lang.getString(R.string.Tgx101HapticStrong)}, null, null, (optionView, optionId) -> {

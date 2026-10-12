@@ -1509,6 +1509,7 @@
   <item name="btn_tgx101ChatProxy" type="id"/>
   <item name="btn_tgx101HideSponsored" type="id"/>
   <item name="btn_tgx101SearchHoldProxy" type="id"/>
+  <item name="btn_tgx101MenuBlur" type="id"/>
   <item name="btn_tgx101HapticStrength" type="id"/>
   <item name="btn_tgx101HapticLight" type="id"/>
   <item name="btn_tgx101HapticNormal" type="id"/>
