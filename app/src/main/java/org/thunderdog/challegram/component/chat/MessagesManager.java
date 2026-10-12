@@ -2725,6 +2725,47 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     return !(inSpecialMode() || readMessagesDisabled());
   }
 
+  // TGx101 (user's log 2026-10-12 19:11 «каналы всё равно прыгают»): the restore scrolls to an INDEX, and newer
+  // posts loaded right after it (before the layout) were inserted below — the index then meant a newer post, the
+  // channel opened further down and that was saved. For a moment after the restore, every insert re-aims at the post
+  private long tgx101RestoreMessageId;
+  private int tgx101RestoreOffset;
+  private long tgx101RestoreUntil;
+  private boolean tgx101RestoreObserver;
+
+  private void tgx101HoldRestore (long messageId, int offset) {
+    tgx101RestoreMessageId = messageId;
+    tgx101RestoreOffset = offset;
+    tgx101RestoreUntil = android.os.SystemClock.uptimeMillis() + 1500;
+    if (!tgx101RestoreObserver) {
+      tgx101RestoreObserver = true;
+      adapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
+        @Override
+        public void onItemRangeInserted (int positionStart, int itemCount) {
+          tgx101ReaimRestore();
+        }
+
+        @Override
+        public void onItemRangeRemoved (int positionStart, int itemCount) {
+          tgx101ReaimRestore();
+        }
+      });
+    }
+  }
+
+  private void tgx101ReaimRestore () {
+    if (tgx101RestoreMessageId == 0) return;
+    RecyclerView list = controller.getMessagesView();
+    if (android.os.SystemClock.uptimeMillis() > tgx101RestoreUntil || (list != null && list.getScrollState() == RecyclerView.SCROLL_STATE_DRAGGING)) {
+      tgx101RestoreMessageId = 0;
+      return;
+    }
+    int index = adapter.indexOfMessageContainer(tgx101RestoreMessageId);
+    if (index != -1) {
+      manager.scrollToPositionWithOffset(index, tgx101RestoreOffset);
+    }
+  }
+
   private boolean tgx101SavePosted;
 
   private void tgx101SaveScrollPositionLater () {
@@ -3321,6 +3362,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       Settings.SavedMessageId messageId = Settings.instance().getScrollMessageId(accountId, loader.getChatId(), loader.getMessageTopicId());
       int offset = messageId != null ? messageId.offsetPixels - scrollMessage.getExtraPadding() : 0;
       this.returnToMessageIds = messageId != null ? messageId.returnToMessageIds : null;
+      tgx101HoldRestore(scrollMessage.getId(), offset);
       RecyclerView tgx101List = controller.getMessagesView();
       org.thunderdog.challegram.Tgx101Diag.mark("scroll restored: msg " + (scrollMessage.getBiggestId() >> 20) + " index " + index + " offset " + offset + ", list padding " + (tgx101List != null ? tgx101List.getPaddingBottom() : -1) + ", height " + (tgx101List != null ? tgx101List.getHeight() : -1));
       scrollToPositionWithOffset(index, offset, false);
