@@ -2825,6 +2825,9 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         chatId, topicId,
         savedMessageId
       );
+      // TGx101 diag (user's video 2026-10-12 19:01 «при каждом заходе в канал посты меняются»)
+      RecyclerView tgx101List = controller.getMessagesView();
+      org.thunderdog.challegram.Tgx101Diag.mark("scroll saved: msg " + (scrollMessageId >> 20) + " offset " + scrollOffsetInPixels + " readFully " + readFully + ", list padding " + (tgx101List != null ? tgx101List.getPaddingBottom() : -1) + ", height " + (tgx101List != null ? tgx101List.getHeight() : -1) + ", first " + firstVisibleItemPosition + ", overlay " + overlayHeight);
 
       if (pinnedMessages != null && chatId == scrollMessageChatId) {
         pinnedMessages.ensureMessageAvailability(scrollMessageId);
@@ -3298,6 +3301,8 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       Settings.SavedMessageId messageId = Settings.instance().getScrollMessageId(accountId, loader.getChatId(), loader.getMessageTopicId());
       int offset = messageId != null ? messageId.offsetPixels - scrollMessage.getExtraPadding() : 0;
       this.returnToMessageIds = messageId != null ? messageId.returnToMessageIds : null;
+      RecyclerView tgx101List = controller.getMessagesView();
+      org.thunderdog.challegram.Tgx101Diag.mark("scroll restored: msg " + (scrollMessage.getBiggestId() >> 20) + " index " + index + " offset " + offset + ", list padding " + (tgx101List != null ? tgx101List.getPaddingBottom() : -1) + ", height " + (tgx101List != null ? tgx101List.getHeight() : -1));
       scrollToPositionWithOffset(index, offset, false);
       checkScrollToBottomButton();
       return;
