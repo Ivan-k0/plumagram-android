@@ -1074,7 +1074,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       if (item.getViewType() == ListItem.TYPE_SHADOW_BOTTOM && i > 0 && tgx101SectionHas(raw, i, R.id.btn_pullToSearch)) {
         tgx101AddGroup(out, byId, R.string.Tgx101SectionBottomMenu, bottomMenu, 0);
         tgx101AddGroup(out, byId, R.string.Tgx101SectionInputButtons, inputButtons, R.string.Tgx101SectionInputButtonsHint);
-        tgx101AddGroup(out, byId, R.string.Tgx101SectionChannelsAds, channels, R.string.Tgx101SectionChannelsHint);
+        tgx101AddGroup(out, byId, R.string.Tgx101SectionChannelsAds, channels, R.string.Tgx101SectionChannelsAdsHint);
         tgx101AddGroup(out, byId, R.string.Tgx101SectionOther, other, 0);
       }
     }
