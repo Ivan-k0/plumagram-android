@@ -9826,6 +9826,10 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       Collections.addAll(activeEmojiReactions, update.emojis);
       this.activeEmojiReactions = activeEmojiReactions;
     }
+    // TGx101 (user's video 2026-10-12 13:24 «при переходе в канал прыжок контента»): right after a launch the reactions
+    // weren't loaded yet — a post opened with the ⭐ alone, then the rest arrived, the post grew and the chat jumped.
+    // All active reactions are loaded up front, so posts open with their reactions in place
+    ensureReactionsAvailable(new TdApi.ChatAvailableReactionsAll(0), null); // one batched request
   }
 
   @TdlibThread
