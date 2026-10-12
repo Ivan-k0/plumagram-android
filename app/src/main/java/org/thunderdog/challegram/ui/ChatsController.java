@@ -1325,7 +1325,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   private void tgx101ApplyStripHeight () {
     tgx101StripHeight = Math.round(tgx101StripMiniHeight + (tgx101StripFullHeight - tgx101StripMiniHeight) * tgx101StripExpand);
     boolean visible = tgx101StoriesStrip != null && tgx101StoriesStrip.getVisibility() == View.VISIBLE;
-    int newPadding = visible ? tgx101StripHeight : 0;
+    RecyclerView.LayoutManager plm = chatsView.getLayoutManager();
+    boolean scrolledAway = plm != null && plm.findViewByPosition(0) == null && chatsView.canScrollVertically(-1);
+    int newPadding = visible && !scrolledAway ? tgx101StripHeight : 0; // no padding for a strip that's scrolled far away
     if (chatsView.getPaddingTop() != newPadding) {
       // user video 2026-10-08 22:01 «список прыгает… и так постоянно, в каналах тоже»: the strip folding away off screen (or
       // laid out again on coming back to a folder) changed the list's top padding — scrolled down, every chat jumped by
@@ -1384,10 +1386,12 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   /** The strip rides on top of the list: its offset is how far the list has scrolled past its top padding */
   private void tgx101SyncStoriesStrip () {
     if (tgx101StoriesStrip == null || tgx101StoriesStrip.getVisibility() != View.VISIBLE) return;
+    RecyclerView.LayoutManager slm = chatsView.getLayoutManager();
+    boolean topRowShown = slm != null && slm.findViewByPosition(0) != null;
     // something (search, insets) may reset the list padding: the strip then covered the first chats (user's video 21:08)
-    if (chatsView.getPaddingTop() != tgx101StripHeight) {
+    if (chatsView.getPaddingTop() != tgx101StripHeight && (topRowShown || !chatsView.canScrollVertically(-1))) {
       org.thunderdog.challegram.Tgx101Diag.mark("stories strip: list padding restored (was " + chatsView.getPaddingTop() + ")");
-      chatsView.setPadding(chatsView.getPaddingLeft(), tgx101StripHeight, chatsView.getPaddingRight(), chatsView.getPaddingBottom());
+      tgx101SetListPaddingKeepingPlace(tgx101StripHeight);
     }
     // TGx101 (user's video 2026-10-06 12:00 «поломались истории»): computeVerticalScrollOffset() is an estimate from
     // the average row height — after scrolling down and back it was off, the strip stayed hidden over an empty band.
@@ -1405,6 +1409,13 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       chatsView.post(this::tgx101SyncStoriesStrip);
     } else {
       offset = Integer.MAX_VALUE / 2;
+      // TGx101 (user's screenshot 2026-10-12 12:56 «опять фантомная плашка»): scrolled far down the strip is gone, but the
+      // list kept its top padding for it — rows recycled out of that band left it empty (white with the strip's line).
+      // Away from the top there's no padding; it comes back (with the strip) when the first row is near again
+      if (chatsView.getPaddingTop() != 0) {
+        org.thunderdog.challegram.Tgx101Diag.mark("stories strip: scrolled away, list padding off");
+        tgx101SetListPaddingKeepingPlace(0);
+      }
     }
     // scrolled away from the top: fold quietly (it is off screen)
     if (tgx101StripExpanded && offset > tgx101StripHeight && (tgx101StripAnimator == null || !tgx101StripAnimator.isRunning())) {
@@ -1422,6 +1433,19 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     tgx101StripMini.setVisibility(tgx101StripExpand >= 1f ? View.INVISIBLE : View.VISIBLE);
     tgx101StripMini.bringToFront();
     tgx101StoriesStrip.bringToFront();
+  }
+
+  /** Changes the list's top padding so that the rows on screen stay exactly where they are */
+  private void tgx101SetListPaddingKeepingPlace (int padding) {
+    RecyclerView.LayoutManager lm = chatsView.getLayoutManager();
+    androidx.recyclerview.widget.LinearLayoutManager llm = lm instanceof androidx.recyclerview.widget.LinearLayoutManager ? (androidx.recyclerview.widget.LinearLayoutManager) lm : null;
+    int pos = llm != null ? llm.findFirstVisibleItemPosition() : RecyclerView.NO_POSITION;
+    View firstView = pos != RecyclerView.NO_POSITION ? llm.findViewByPosition(pos) : null;
+    int top = firstView != null ? firstView.getTop() : 0;
+    chatsView.setPadding(chatsView.getPaddingLeft(), padding, chatsView.getPaddingRight(), chatsView.getPaddingBottom());
+    if (firstView != null && !(pos == 0 && padding > 0 && !chatsView.canScrollVertically(-1))) {
+      llm.scrollToPositionWithOffset(pos, top - padding);
+    }
   }
 
   private final Tgx101Stories.Handler tgx101StoriesHandler = new Tgx101Stories.Handler() {
