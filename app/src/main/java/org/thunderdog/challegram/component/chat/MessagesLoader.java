@@ -116,6 +116,8 @@ public class MessagesLoader implements Client.ResultHandler {
   private long contextId;
 
   private boolean canShowSponsoredMessage (long chatId) {
+    // TGx101 (user 2026-10-12): sponsored messages in channels can be switched off in MagiX (shown by default)
+    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101HideSponsored()) return false;
     return tdlib.isChannel(chatId) && !manager.controller().isInForceTouchMode() && !manager.controller().inPreviewMode() && !manager.controller().areScheduledOnly() && !manager.controller().arePinnedMessages();
   }
 

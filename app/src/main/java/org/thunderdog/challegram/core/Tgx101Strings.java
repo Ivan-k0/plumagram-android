@@ -409,6 +409,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101LocalPinned, "Закреплено на этом телефоне: лимит закреплённых чатов Telegram исчерпан, на других устройствах чат не будет закреплён");
     RU.put(R.string.Tgx101SavedByChats, "Избранное по чатам");
     RU.put(R.string.Tgx101JumpToDate, "Перейти к дате");
+    RU.put(R.string.Tgx101HideSponsored, "Скрывать рекламу в каналах");
+    RU.put(R.string.Tgx101UnofficialTitle, "Неофициальная сборка");
+    RU.put(R.string.Tgx101UnofficialText, "Этот PlumaGram подписан не автором, а кем-то другим — его могли изменить как угодно. Официальная версия — на 4PDA и в канале @plumagram.");
+    RU.put(R.string.Tgx101UnofficialOk, "Понятно");
+    RU.put(R.string.Tgx101UnofficialGet, "Официальная версия");
     RU.put(R.string.Tgx101ChatMenuMute, "Вкл./выкл. уведомления");
     RU.put(R.string.Tgx101ChatMenuTranslate, "Перевести чат");
     RU.put(R.string.Tgx101ChatMenuLinked, "Связанный чат / канал");

@@ -6239,6 +6239,11 @@
   <string name="Tgx101LocalPinned">Pinned on this phone: Telegram\'s pinned-chat limit is reached, other devices won\'t show it</string>
   <string name="Tgx101SavedByChats">Saved by chats</string>
   <string name="Tgx101JumpToDate">Go to date</string>
+  <string name="Tgx101HideSponsored">Hide sponsored messages in channels</string>
+  <string name="Tgx101UnofficialTitle">Unofficial build</string>
+  <string name="Tgx101UnofficialText">This PlumaGram is signed by somebody else, not by its author. It may be changed in any way. The official version is on 4PDA and in the @plumagram channel.</string>
+  <string name="Tgx101UnofficialOk">Got it</string>
+  <string name="Tgx101UnofficialGet">Official version</string>
   <string name="Tgx101ChatMenuMute">Mute / Unmute</string>
   <string name="Tgx101ChatMenuTranslate">Translate chat</string>
   <string name="Tgx101ChatMenuLinked">Linked chat / channel</string>
