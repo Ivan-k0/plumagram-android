@@ -110,13 +110,29 @@ public final class Tgx101StoryEditor extends Dialog {
     return TYPEFACES[font] = t;
   }
 
-  private static final int STYLE_PLAIN = 0, STYLE_PLATE = 1, STYLE_OUTLINE = 2, STYLE_NEON = 3;
+  private static final int STYLE_PLAIN = 0, STYLE_PLATE = 1, STYLE_OUTLINE = 2, STYLE_NEON = 3, STYLE_EMOJI = 4;
   private static final int[] PALETTE = {0xffffffff, 0xff111111, 0xffff5c5c, 0xffffb84d, 0xffffe066, 0xff5cd685, 0xff4dabf7, 0xff9775fa, 0xffff8fc7};
 
   // ── entry ──────────────────────────────────────────────────────────────────────────────
 
-  /** Picks a photo from the gallery and opens the editor with it */
+  /** Picks a photo from the gallery and opens the editor with it; with drafts saved, asks first: a new photo or a draft */
   public static void pickAndOpen (BaseActivity activity, Tdlib tdlib) {
+    int drafts = listDrafts(activity).size();
+    org.thunderdog.challegram.navigation.ViewController<?> c = activity.navigation() != null ? activity.navigation().getCurrentStackItem() : null;
+    if (drafts > 0 && c != null) {
+      c.showOptions(null, new int[] {R.id.btn_tgx101StoryNewPhoto, R.id.btn_tgx101StoryDrafts},
+        new String[] {Lang.getString(R.string.Tgx101StoryFromGallery), Lang.getString(R.string.Tgx101StoryDraftsCount, drafts)},
+        null, new int[] {R.drawable.baseline_image_24, R.drawable.baseline_history_24}, (v, id) -> {
+          if (id == R.id.btn_tgx101StoryNewPhoto) pickPhoto(activity, tdlib);
+          else showDrafts(activity, tdlib);
+          return true;
+        });
+      return;
+    }
+    pickPhoto(activity, tdlib);
+  }
+
+  private static void pickPhoto (BaseActivity activity, Tdlib tdlib) {
     Intent intent;
     if (Build.VERSION.SDK_INT >= 33) {
       intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
@@ -194,6 +210,15 @@ public final class Tgx101StoryEditor extends Dialog {
     // TGx101: a reaction sticker (suggested reaction area) — not baked into the photo, Telegram apps draw it themselves
     @Nullable String reaction, reactionType;
     boolean dark, flipped;
+    // TGx101 (mockup «Истории-публикация» 6): stickers — an emoji, the time/date (baked in), the weather (an area Telegram
+    // apps draw themselves, like reactions) and a link (baked-in plate + a tappable area, Telegram Premium)
+    boolean emoji;
+    int clock; // 0 — not a clock; 1 time, 2 date, 3 weekday + time
+    long clockTime;
+    @Nullable String weatherEmoji;
+    float temperature;
+    int weatherColor;
+    @Nullable String url;
     float appear = 1f; // pop-in / melt-away animation, not part of the saved state
 
     TextLayer copy () {
@@ -201,14 +226,37 @@ public final class Tgx101StoryEditor extends Dialog {
       t.text = text; t.font = font; t.color = color; t.style = style; t.align = align;
       t.size = size; t.cx = cx; t.cy = cy; t.scale = scale; t.rotation = rotation;
       t.reaction = reaction; t.reactionType = reactionType; t.dark = dark; t.flipped = flipped;
+      t.emoji = emoji; t.clock = clock; t.clockTime = clockTime;
+      t.weatherEmoji = weatherEmoji; t.temperature = temperature; t.weatherColor = weatherColor; t.url = url;
       return t;
     }
+
+    boolean isText () {
+      return reaction == null && weatherEmoji == null && !emoji && clock == 0 && url == null;
+    }
   }
+
+  /** A finished line of the drawing tool, in story coordinates */
+  private static final class Stroke {
+    final float[] points;
+    final int color, brush;
+    final float width;
+
+    Stroke (float[] points, int color, float width, int brush) {
+      this.points = points;
+      this.color = color;
+      this.width = width;
+      this.brush = brush;
+    }
+  }
+
+  private static final int BRUSH_PEN = 0, BRUSH_MARKER = 1, BRUSH_NEON = 2, BRUSH_ARROW = 3, BRUSH_ERASER = 4;
 
   private static final class State {
     final float[] photo = new float[9];
     int background;
     final ArrayList<TextLayer> texts = new ArrayList<>();
+    final ArrayList<Stroke> strokes = new ArrayList<>();
     int filter;
     float strength;
     final int[] adjust = new int[Tgx101StoryFilters.ADJ_COUNT];
@@ -220,6 +268,7 @@ public final class Tgx101StoryEditor extends Dialog {
   private final Matrix photoMatrix = new Matrix();
   private int background = BG_BLUR;
   private final ArrayList<TextLayer> texts = new ArrayList<>();
+  private final ArrayList<Stroke> strokes = new ArrayList<>();
   private final ArrayList<State> undo = new ArrayList<>(), redo = new ArrayList<>();
   private Bitmap blurred;
   private int[] gradient = {0xff2b2d42, 0xff0e1116};
@@ -276,7 +325,8 @@ public final class Tgx101StoryEditor extends Dialog {
     rail.setOrientation(LinearLayout.VERTICAL);
     // TGx101 (user 2026-10-12 «иконки мелкие и непонятные»): proper icons with a word under each
     rail.addView(labeledIcon(context, R.drawable.baseline_format_text_24, R.string.Tgx101ToolText, v -> editText(null)));
-    rail.addView(labeledIcon(context, R.drawable.baseline_emoticon_outline_24, R.string.Tgx101ToolReaction, v -> pickReaction()));
+    rail.addView(labeledIcon(context, R.drawable.baseline_brush_24, R.string.Tgx101ToolDraw, v -> openDraw()));
+    rail.addView(labeledIcon(context, R.drawable.baseline_emoticon_outline_24, R.string.Tgx101ToolStickers, v -> openStickers()));
     rail.addView(labeledIcon(context, R.drawable.tgx101_photo_filter_24, R.string.Tgx101ToolFilters, v -> openFilters()));
     rail.addView(labeledIcon(context, R.drawable.baseline_zoom_out_map_24, R.string.Tgx101ToolFit, v -> { pushUndo(); fitPhoto(); schedulePreview(); canvasView.invalidate(); }));
     rail.addView(labeledIcon(context, R.drawable.baseline_palette_24, R.string.Tgx101ToolBackground, v -> { pushUndo(); background = (background + 1) % 3; schedulePreview(); canvasView.invalidate(); toastBackground(); }));
@@ -528,6 +578,7 @@ public final class Tgx101StoryEditor extends Dialog {
   public void onBackPressed () {
     if (confirmCard != null) { closeConfirm(); return; }
     if (filtersPanel != null) { closeFilters(); return; }
+    if (drawPanel != null) { closeDraw(); return; }
     if (publishSheet != null) { closePublish(); return; }
     if (textPanel != null) { finishTextEdit(true); return; }
     if (previewMode) { setPreview(false); return; }
@@ -535,8 +586,8 @@ public final class Tgx101StoryEditor extends Dialog {
   }
 
   private void confirmClose () {
-    if (undo.isEmpty() && texts.isEmpty()) { dismiss(); return; }
-    showConfirm(Lang.getString(R.string.Tgx101StoryDiscard), Lang.getString(R.string.Cancel), Lang.getString(R.string.Tgx101StoryDiscardYes), true, this::dismiss);
+    if (undo.isEmpty() && texts.isEmpty() && strokes.isEmpty() && draftDir == null) { dismiss(); return; }
+    showCloseChoice();
   }
 
   // ── backgrounds and photo fit ──────────────────────────────────────────────────────────
@@ -665,10 +716,15 @@ public final class Tgx101StoryEditor extends Dialog {
       drawBase(c);
     }
     if (filter == Tgx101StoryFilters.VHS && strength > .3f) drawVhsLabels(c);
+    drawStrokes(c);
     for (TextLayer t : texts) {
       if (t == editing) continue;
       if (t.reaction != null) {
         if (!exporting) drawReactionLayer(c, t);
+        continue;
+      }
+      if (t.weatherEmoji != null) {
+        if (!exporting) drawWeatherLayer(c, t);
         continue;
       }
       drawText(c, t);
@@ -707,7 +763,7 @@ public final class Tgx101StoryEditor extends Dialog {
 
   /** The layer's box in its own (unrotated, unscaled) coordinates around its centre */
   private void boxOf (TextLayer t, StaticLayout layout, RectF out) {
-    float pad = t.style == STYLE_PLATE ? t.size * .32f : t.size * .12f;
+    float pad = t.style == STYLE_PLATE ? t.size * .32f : t.style == STYLE_EMOJI ? t.size * .04f : t.size * .12f;
     float w = layout.getWidth() + pad * 2, h = layout.getHeight() + pad * 2;
     out.set(-w / 2f, -h / 2f, w / 2f, h / 2f);
   }
@@ -740,6 +796,10 @@ public final class Tgx101StoryEditor extends Dialog {
         textPaint.setColor(t.color);
         layout.draw(c);
         textPaint.setStyle(Paint.Style.FILL);
+        break;
+      case STYLE_EMOJI:
+        textPaint.setColor(0xff000000);
+        layout.draw(c);
         break;
       case STYLE_NEON:
         textPaint.setColor(t.color);
@@ -899,6 +959,21 @@ public final class Tgx101StoryEditor extends Dialog {
   private @Nullable TdApi.InputStoryAreas reactionAreas () {
     ArrayList<TdApi.InputStoryArea> areas = new ArrayList<>();
     for (TextLayer t : texts) {
+      if (t.weatherEmoji != null) {
+        double w = weatherWidth(t.weatherEmoji, t.temperature, WEATHER_HEIGHT) * t.scale, h = WEATHER_HEIGHT * t.scale;
+        TdApi.StoryAreaPosition p = new TdApi.StoryAreaPosition(t.cx * 100.0 / W, t.cy * 100.0 / H, w * 100.0 / W, h * 100.0 / H, t.rotation, 30);
+        areas.add(new TdApi.InputStoryArea(p, new TdApi.InputStoryAreaTypeWeather(t.temperature, t.weatherEmoji, t.weatherColor)));
+        continue;
+      }
+      if (t.url != null) {
+        StaticLayout layout = layoutOf(t);
+        RectF box = new RectF();
+        boxOf(t, layout, box);
+        double w = box.width() * t.scale, h = box.height() * t.scale;
+        TdApi.StoryAreaPosition p = new TdApi.StoryAreaPosition(t.cx * 100.0 / W, t.cy * 100.0 / H, w * 100.0 / W, h * 100.0 / H, t.rotation, 25);
+        areas.add(new TdApi.InputStoryArea(p, new TdApi.InputStoryAreaTypeLink(t.url)));
+        continue;
+      }
       if (t.reaction == null) continue;
       double size = REACTION_SIZE * t.scale;
       TdApi.StoryAreaPosition p = new TdApi.StoryAreaPosition(t.cx * 100.0 / W, t.cy * 100.0 / H, size * 100.0 / W, size * 100.0 / H, t.rotation, 50);
@@ -912,6 +987,10 @@ public final class Tgx101StoryEditor extends Dialog {
     if (t.reaction != null) {
       float half = REACTION_SIZE * t.scale / 2f;
       return new RectF(t.cx - half, t.cy - half, t.cx + half, t.cy + half * 1.25f);
+    }
+    if (t.weatherEmoji != null) {
+      float w = weatherWidth(t.weatherEmoji, t.temperature, WEATHER_HEIGHT) * t.scale / 2f, h = WEATHER_HEIGHT * t.scale / 2f;
+      return new RectF(t.cx - w, t.cy - h, t.cx + w, t.cy + h);
     }
     StaticLayout layout = layoutOf(t);
     RectF box = new RectF();
@@ -933,6 +1012,807 @@ public final class Tgx101StoryEditor extends Dialog {
     return null;
   }
 
+  // ── drawing (mockup «Истории-публикация» 2: ✎) ───────────────────────────────────────────
+
+  private @Nullable View drawPanel;
+  private int brush = BRUSH_PEN, brushColor = 0xffffffff;
+  private float brushWidth = 18f;
+  private @Nullable float[] livePoints;
+  private int liveCount;
+  private final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+  private final Path strokePath = new Path();
+
+  private static Path pathOf (float[] pts, int count, Path out) {
+    out.reset();
+    if (count < 1) return out;
+    out.moveTo(pts[0], pts[1]);
+    if (count == 1) { out.lineTo(pts[0] + .1f, pts[1] + .1f); return out; }
+    for (int i = 2; i < count * 2 - 2; i += 2) {
+      float mx = (pts[i] + pts[i + 2]) / 2f, my = (pts[i + 1] + pts[i + 3]) / 2f;
+      out.quadTo(pts[i], pts[i + 1], mx, my);
+    }
+    out.lineTo(pts[count * 2 - 2], pts[count * 2 - 1]);
+    return out;
+  }
+
+  private void drawStrokes (Canvas c) {
+    boolean live = livePoints != null && liveCount > 0;
+    if (strokes.isEmpty() && !live) return;
+    boolean erasing = brush == BRUSH_ERASER && live;
+    for (Stroke s : strokes) if (s.brush == BRUSH_ERASER) { erasing = true; break; }
+    // the eraser only takes away lines, so the lines get their own layer when there is one
+    int save = erasing ? c.saveLayer(0, 0, W, H, null) : c.save();
+    for (Stroke s : strokes) drawStroke(c, s.points, s.points.length / 2, s.color, s.width, s.brush);
+    if (live) drawStroke(c, livePoints, liveCount, brushColor, brushWidth, brush);
+    c.restoreToCount(save);
+  }
+
+  private void drawStroke (Canvas c, float[] pts, int count, int color, float width, int kind) {
+    Paint p = strokePaint;
+    p.reset();
+    p.setAntiAlias(true);
+    p.setStyle(Paint.Style.STROKE);
+    p.setStrokeCap(Paint.Cap.ROUND);
+    p.setStrokeJoin(Paint.Join.ROUND);
+    Path path = pathOf(pts, count, strokePath);
+    switch (kind) {
+      case BRUSH_ERASER:
+        p.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.CLEAR));
+        p.setStrokeWidth(width * 1.6f);
+        c.drawPath(path, p);
+        break;
+      case BRUSH_MARKER:
+        p.setColor((color & 0x00ffffff) | 0x80000000);
+        p.setStrokeWidth(width * 2.2f);
+        p.setStrokeCap(Paint.Cap.SQUARE);
+        c.drawPath(path, p);
+        break;
+      case BRUSH_NEON:
+        p.setColor(color);
+        p.setStrokeWidth(width);
+        p.setMaskFilter(new android.graphics.BlurMaskFilter(width * 1.2f, android.graphics.BlurMaskFilter.Blur.NORMAL));
+        c.drawPath(path, p);
+        p.setMaskFilter(null);
+        p.setColor(0xffffffff);
+        p.setStrokeWidth(width * .38f);
+        c.drawPath(path, p);
+        break;
+      default:
+        p.setColor(color);
+        p.setStrokeWidth(width);
+        c.drawPath(path, p);
+        if (kind == BRUSH_ARROW && count >= 2) {
+          // the head points along the last bit of the line
+          int last = count - 1, from = Math.max(0, last - 6);
+          float ex = pts[last * 2], ey = pts[last * 2 + 1];
+          double a = Math.atan2(ey - pts[from * 2 + 1], ex - pts[from * 2]);
+          float len = Math.max(40f, width * 3.2f);
+          path.reset();
+          path.moveTo((float) (ex - len * Math.cos(a - .5)), (float) (ey - len * Math.sin(a - .5)));
+          path.lineTo(ex, ey);
+          path.lineTo((float) (ex - len * Math.cos(a + .5)), (float) (ey - len * Math.sin(a + .5)));
+          c.drawPath(path, p);
+        }
+    }
+  }
+
+  private void onDrawTouch (MotionEvent e, float x, float y) {
+    switch (e.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN:
+        livePoints = new float[256];
+        liveCount = 0;
+        addLivePoint(x, y);
+        break;
+      case MotionEvent.ACTION_MOVE:
+        if (livePoints == null || e.getPointerCount() > 1) return;
+        for (int h = 0; h < e.getHistorySize(); h++) addLivePoint(canvasView.toStoryX(e.getHistoricalX(h)), canvasView.toStoryY(e.getHistoricalY(h)));
+        addLivePoint(x, y);
+        break;
+      case MotionEvent.ACTION_POINTER_DOWN:
+      case MotionEvent.ACTION_CANCEL:
+        livePoints = null; // a second finger — not a line
+        liveCount = 0;
+        break;
+      case MotionEvent.ACTION_UP:
+        if (livePoints != null && liveCount > 0) {
+          pushUndo();
+          strokes.add(new Stroke(java.util.Arrays.copyOf(livePoints, liveCount * 2), brushColor, brushWidth, brush));
+          updateUndoButtons();
+        }
+        livePoints = null;
+        liveCount = 0;
+        break;
+    }
+    canvasView.invalidate();
+  }
+
+  private void addLivePoint (float x, float y) {
+    if (livePoints == null) return;
+    if (liveCount > 0) {
+      float px = livePoints[liveCount * 2 - 2], py = livePoints[liveCount * 2 - 1];
+      if (Math.hypot(x - px, y - py) < 3f) return;
+    }
+    if (liveCount * 2 + 2 > livePoints.length) livePoints = java.util.Arrays.copyOf(livePoints, livePoints.length * 2);
+    livePoints[liveCount * 2] = x;
+    livePoints[liveCount * 2 + 1] = y;
+    liveCount++;
+  }
+
+  private void openDraw () {
+    if (drawPanel != null) return;
+    final State before = snapshot();
+    final int undoBefore = undo.size();
+    setChromeVisible(false);
+    Context context = getContext();
+    FrameLayout panel = new FrameLayout(context);
+
+    LinearLayout top = new LinearLayout(context);
+    top.setGravity(Gravity.CENTER_VERTICAL);
+    top.setPadding(Screen.dp(12f), Screen.dp(12f), Screen.dp(12f), 0);
+    top.addView(glass(context, "✕", v -> {
+      // cancel: back to how it was, without the steps made while drawing
+      restore(before);
+      while (undo.size() > undoBefore) undo.remove(undo.size() - 1);
+      closeDraw();
+    }), squareParams(36f, 0));
+    top.addView(iconButton(context, R.drawable.baseline_undo_24, null, v -> {
+      if (!strokes.isEmpty()) { pushUndo(); strokes.remove(strokes.size() - 1); canvasView.invalidate(); }
+    }, false), squareParams(36f, 8f));
+    View sp = new View(context);
+    top.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
+    top.addView(pill(context, Lang.getString(R.string.Tgx101StoryDone), true, v -> closeDraw()), new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(36f)));
+    panel.addView(top, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP));
+
+    LinearLayout card = new LinearLayout(context);
+    card.setOrientation(LinearLayout.VERTICAL);
+    card.setClickable(true);
+    card.setBackground(cardBackground());
+    card.setPadding(0, Screen.dp(10f), 0, Screen.dp(12f));
+
+    LinearLayout brushes = chipRow(context);
+    int[] names = {R.string.Tgx101BrushPen, R.string.Tgx101BrushMarker, R.string.Tgx101BrushNeon, R.string.Tgx101BrushArrow, R.string.Tgx101BrushEraser};
+    String[] icons = {"✎ ", "▍ ", "✦ ", "➚ ", "⌫ "};
+    for (int i = 0; i < names.length; i++) {
+      final int index = i;
+      TextView chip = chip(context, icons[i] + Lang.getString(names[i]), i == brush, null);
+      chip.setTag(i);
+      chip.setOnClickListener(v -> { brush = index; refreshChips(brushes, index); });
+      brushes.addView(chip, chipParams());
+    }
+    HorizontalScrollView brushScroll = new HorizontalScrollView(context);
+    brushScroll.setHorizontalScrollBarEnabled(false);
+    brushScroll.addView(brushes);
+    card.addView(brushScroll);
+
+    LinearLayout colors = chipRow(context);
+    colors.setGravity(Gravity.CENTER_VERTICAL);
+    colors.setPadding(Screen.dp(14f), Screen.dp(12f), Screen.dp(14f), 0);
+    for (int color : PALETTE) {
+      View dot = colorDot(context, color, color == brushColor);
+      dot.setOnClickListener(v -> {
+        brushColor = color;
+        if (brush == BRUSH_ERASER) { brush = BRUSH_PEN; refreshChips(brushes, brush); }
+        refreshDots(colors, color);
+      });
+      colors.addView(dot, dotParams());
+    }
+    card.addView(colors);
+
+    LinearLayout sizeRow = new LinearLayout(context);
+    sizeRow.setGravity(Gravity.CENTER_VERTICAL);
+    sizeRow.setPadding(Screen.dp(14f), Screen.dp(10f), Screen.dp(14f), 0);
+    TextView label = new TextView(context);
+    label.setText(Lang.getString(R.string.Tgx101BrushSize));
+    label.setTextColor(0xffc9d5e2);
+    label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+    sizeRow.addView(label);
+    HSlider size = new HSlider(context, (brushWidth - 6f) / 74f, (18f - 6f) / 74f, f -> brushWidth = 6f + f * 74f);
+    LinearLayout.LayoutParams sp2 = new LinearLayout.LayoutParams(0, Screen.dp(28f), 1f);
+    sp2.leftMargin = Screen.dp(10f);
+    sizeRow.addView(size, sp2);
+    card.addView(sizeRow);
+
+    FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+    cp.leftMargin = cp.rightMargin = cp.bottomMargin = Screen.dp(8f);
+    panel.addView(card, cp);
+    // the panel lets the finger through to the canvas everywhere except its own bars
+    root.addView(panel, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    drawPanel = panel;
+    animateIn(panel);
+    Tgx101Diag.mark("story editor: draw opened (" + strokes.size() + " lines)");
+  }
+
+  private void closeDraw () {
+    View panel = drawPanel;
+    if (panel == null) return;
+    drawPanel = null;
+    livePoints = null;
+    hideOverlay(panel);
+    setChromeVisible(true);
+    updateUndoButtons();
+    canvasView.invalidate();
+  }
+
+  // ── stickers: emoji, time, weather, link, reaction (mockup 6) ───────────────────────────
+
+  private static final float WEATHER_HEIGHT = 150f;
+  private static final int[] WEATHER_COLORS = {0xffffffff, 0xff1c1c1e, 0xff3d8fd8, 0xffffb84d};
+  private static final int[] LINK_COLORS = {0xffffffff, 0xff1c1c1e, 0xff3d8fd8};
+  private static final String[] WEATHER_EMOJI = {"☀️", "🌤", "⛅", "☁️", "🌦", "🌧", "⛈", "🌨", "❄️", "🌫", "🌙", "🌈"};
+  private static final String[] STICKER_EMOJI = {
+    "😀", "😂", "🥹", "😍", "🥰", "😘", "😎", "🤩", "🥳", "😇", "🤔", "🫡", "😴", "😭", "😱", "🤯",
+    "😡", "🤬", "🥶", "🥵", "🤡", "👻", "💀", "👽", "🤖", "🙈", "🙉", "🙊", "❤️", "🧡", "💛", "💚",
+    "💙", "💜", "🖤", "🤍", "💔", "💯", "🔥", "✨", "⭐", "🌟", "⚡", "💥", "🎉", "🎊", "🎁", "🎈",
+    "👍", "👎", "👏", "🙌", "🙏", "🤝", "💪", "✌️", "🤞", "👌", "🫶", "👀", "🌹", "🌸", "🌻", "🍀",
+    "☕", "🍕", "🍔", "🍰", "🍾", "🥂", "🍻", "⚽", "🏀", "🎮", "🎧", "🎵", "📸", "✈️", "🚗", "🏖",
+    "🌍", "🌙", "☀️", "🌈", "❄️", "🐶", "🐱", "🦊", "🐼", "🦄", "🐳", "🦋", "📍", "⏰", "💡", "✅"
+  };
+
+  private static int nextOf (int[] values, int current) {
+    for (int i = 0; i < values.length; i++) if (values[i] == current) return values[(i + 1) % values.length];
+    return values[0];
+  }
+
+  private static String clockText (int format, long time) {
+    java.util.Date d = new java.util.Date(time);
+    switch (format) {
+      case 2: return new java.text.SimpleDateFormat("d MMMM", Lang.locale()).format(d);
+      case 3: {
+        String day = new java.text.SimpleDateFormat("EEEE", Lang.locale()).format(d);
+        day = day.isEmpty() ? day : day.substring(0, 1).toUpperCase(Lang.locale()) + day.substring(1);
+        return day + "\n" + new java.text.SimpleDateFormat("HH:mm", Lang.locale()).format(d);
+      }
+      default: return new java.text.SimpleDateFormat("HH:mm", Lang.locale()).format(d);
+    }
+  }
+
+  private static final TextPaint weatherText = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+
+  private static String temperatureText (double t) {
+    long v = Math.round(t);
+    return (v > 0 ? "+" : "") + v + "°C";
+  }
+
+  static float weatherWidth (String emoji, double temperature, float height) {
+    weatherText.setTextSize(height * .5f);
+    float w = weatherText.measureText(emoji);
+    weatherText.setFakeBoldText(true);
+    w += weatherText.measureText(temperatureText(temperature));
+    weatherText.setFakeBoldText(false);
+    return w + height * .62f;
+  }
+
+  /** The weather sticker as Telegram apps show the weather area: a rounded plate with the emoji and the temperature */
+  public static void drawWeather (Canvas c, float cx, float cy, float height, String emoji, double temperature, int background) {
+    float w = weatherWidth(emoji, temperature, height);
+    float l = cx - w / 2f, t = cy - height / 2f;
+    bubblePaint.setColor(background | 0xff000000);
+    bubblePaint.setShadowLayer(height * .08f, 0, height * .03f, 0x40000000);
+    c.drawRoundRect(l, t, l + w, t + height, height * .3f, height * .3f, bubblePaint);
+    bubblePaint.clearShadowLayer();
+    weatherText.setTextSize(height * .5f);
+    weatherText.setTextAlign(Paint.Align.LEFT);
+    Paint.FontMetrics fm = weatherText.getFontMetrics();
+    float baseline = cy - (fm.ascent + fm.descent) / 2f;
+    float x = l + height * .26f;
+    weatherText.setColor(0xff000000);
+    c.drawText(emoji, x, baseline, weatherText);
+    x += weatherText.measureText(emoji) + height * .1f;
+    weatherText.setFakeBoldText(true);
+    weatherText.setColor(isLight(background) ? 0xff111111 : 0xffffffff);
+    c.drawText(temperatureText(temperature), x, baseline, weatherText);
+    weatherText.setFakeBoldText(false);
+  }
+
+  private void drawWeatherLayer (Canvas c, TextLayer t) {
+    int save = c.save();
+    c.translate(t.cx, t.cy);
+    c.rotate(t.rotation);
+    drawWeather(c, 0, 0, WEATHER_HEIGHT * t.scale * t.appear, t.weatherEmoji, t.temperature, t.weatherColor);
+    c.restoreToCount(save);
+  }
+
+  private int weatherCount () {
+    int n = 0;
+    for (TextLayer t : texts) if (t.weatherEmoji != null) n++;
+    return n;
+  }
+
+  private void addLayer (TextLayer layer) {
+    pushUndo();
+    texts.add(layer);
+    popIn(layer);
+    updateUndoButtons();
+  }
+
+  private TextView sheetTitle (Context context, int title) {
+    TextView t = new TextView(context);
+    t.setText(Lang.getString(title));
+    t.setTextColor(0xffffffff);
+    t.setTypeface(Typeface.DEFAULT_BOLD);
+    t.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
+    t.setPadding(Screen.dp(4f), 0, 0, Screen.dp(10f));
+    return t;
+  }
+
+  /** A dimmed window with a card at the bottom; returns the card */
+  private LinearLayout bottomSheet (FrameLayout dim) {
+    Context context = getContext();
+    dim.setBackgroundColor(0x66000000);
+    dim.setOnClickListener(v -> hideOverlay(dim));
+    LinearLayout card = new LinearLayout(context);
+    card.setOrientation(LinearLayout.VERTICAL);
+    card.setClickable(true);
+    card.setBackground(cardBackground());
+    card.setPadding(Screen.dp(12f), Screen.dp(14f), Screen.dp(12f), Screen.dp(12f));
+    FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+    cp.leftMargin = cp.rightMargin = cp.bottomMargin = Screen.dp(8f);
+    dim.addView(card, cp);
+    return card;
+  }
+
+  private void showSheet (FrameLayout dim) {
+    root.addView(dim, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    animateIn(dim);
+  }
+
+  private void openStickers () {
+    Context context = getContext();
+    FrameLayout dim = new FrameLayout(context);
+    LinearLayout card = bottomSheet(dim);
+    card.addView(sheetTitle(context, R.string.Tgx101ToolStickers));
+
+    // the tappable ones first, as in the mockup: time, weather, link, reaction
+    LinearLayout tiles = new LinearLayout(context);
+    String[] tileIcons = {"🕒", "☀️", "🔗", "❤️"};
+    int[] tileNames = {R.string.Tgx101StickerTime, R.string.Tgx101StickerWeather, R.string.Tgx101StickerLink, R.string.Tgx101ToolReaction};
+    for (int i = 0; i < tileIcons.length; i++) {
+      final int index = i;
+      TextView tile = new TextView(context);
+      tile.setText(tileIcons[i] + "\n" + Lang.getString(tileNames[i]));
+      tile.setGravity(Gravity.CENTER);
+      tile.setTextColor(0xffe9eef4);
+      tile.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12f);
+      tile.setBackground(tileBackground(false, false));
+      tile.setOnClickListener(v -> {
+        hideOverlay(dim);
+        switch (index) {
+          case 0: addClock(); break;
+          case 1: openWeather(); break;
+          case 2: askLink(); break;
+          default: pickReaction(); break;
+        }
+      });
+      pressFeedback(tile);
+      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, Screen.dp(62f), 1f);
+      lp.leftMargin = lp.rightMargin = Screen.dp(3f);
+      tiles.addView(tile, lp);
+    }
+    card.addView(tiles);
+
+    TextView emojiTitle = new TextView(context);
+    emojiTitle.setText(Lang.getString(R.string.Tgx101StickerEmoji));
+    emojiTitle.setTextColor(0xff8a9bb0);
+    emojiTitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+    emojiTitle.setPadding(Screen.dp(4f), Screen.dp(12f), 0, Screen.dp(4f));
+    card.addView(emojiTitle);
+    android.widget.ScrollView scroll = new android.widget.ScrollView(context);
+    android.widget.GridLayout grid = new android.widget.GridLayout(context);
+    grid.setColumnCount(8);
+    for (String e : STICKER_EMOJI) {
+      TextView v = new TextView(context);
+      v.setText(e);
+      v.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 27f);
+      v.setGravity(Gravity.CENTER);
+      v.setOnClickListener(x -> {
+        hideOverlay(dim);
+        TextLayer layer = new TextLayer();
+        layer.emoji = true;
+        layer.text = e;
+        layer.style = STYLE_EMOJI;
+        layer.size = 220f;
+        layer.cy = H * .5f;
+        addLayer(layer);
+      });
+      android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams();
+      lp.width = Screen.dp(42f);
+      lp.height = Screen.dp(46f);
+      grid.addView(v, lp);
+    }
+    scroll.addView(grid);
+    card.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(46f * 4)));
+    showSheet(dim);
+  }
+
+  private void addClock () {
+    TextLayer layer = new TextLayer();
+    layer.clock = 1;
+    layer.clockTime = System.currentTimeMillis();
+    layer.text = clockText(1, layer.clockTime);
+    layer.font = 4; // Montserrat ExtraBold
+    layer.style = STYLE_PLATE;
+    layer.color = 0xffffffff;
+    layer.size = 120f;
+    layer.cy = H * .3f;
+    addLayer(layer);
+  }
+
+  /** Weather: the sky and the temperature are picked by hand (nothing is sent anywhere to find them out) */
+  private void openWeather () {
+    if (weatherCount() >= 3) { UI.showToast(R.string.Tgx101StickerWeatherLimit, Toast.LENGTH_SHORT); return; }
+    Context context = getContext();
+    final String[] sky = {WEATHER_EMOJI[0]};
+    final float[] temp = {18f};
+    FrameLayout dim = new FrameLayout(context);
+    LinearLayout card = bottomSheet(dim);
+    card.addView(sheetTitle(context, R.string.Tgx101StickerWeather));
+    TextView preview = new TextView(context);
+    preview.setTextColor(0xffffffff);
+    preview.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 30f);
+    preview.setTypeface(Typeface.DEFAULT_BOLD);
+    preview.setGravity(Gravity.CENTER);
+    Runnable refresh = () -> preview.setText(sky[0] + " " + temperatureText(temp[0]));
+    refresh.run();
+    card.addView(preview);
+    android.widget.GridLayout grid = new android.widget.GridLayout(context);
+    grid.setColumnCount(6);
+    for (String e : WEATHER_EMOJI) {
+      TextView v = new TextView(context);
+      v.setText(e);
+      v.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26f);
+      v.setGravity(Gravity.CENTER);
+      v.setOnClickListener(x -> { sky[0] = e; refresh.run(); });
+      android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams();
+      lp.width = 0;
+      lp.height = Screen.dp(46f);
+      lp.columnSpec = android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f);
+      grid.addView(v, lp);
+    }
+    card.addView(grid);
+    HSlider slider = new HSlider(context, (temp[0] + 40f) / 85f, 40f / 85f, f -> { temp[0] = Math.round(f * 85f - 40f); refresh.run(); });
+    card.addView(slider, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(32f)));
+    LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(42f));
+    dp.topMargin = Screen.dp(8f);
+    card.addView(pill(context, Lang.getString(R.string.Tgx101StoryDone), true, v -> {
+      hideOverlay(dim);
+      TextLayer layer = new TextLayer();
+      layer.weatherEmoji = sky[0];
+      layer.temperature = temp[0];
+      layer.weatherColor = WEATHER_COLORS[0];
+      layer.cy = H * .26f;
+      addLayer(layer);
+    }), dp);
+    showSheet(dim);
+  }
+
+  /** A link sticker: Telegram lets only Premium users put link areas on stories */
+  private void askLink () {
+    if (!tdlib.hasPremium()) { UI.showToast(R.string.Tgx101StickerLinkPremium, Toast.LENGTH_LONG); return; }
+    EditText field = new EditText(getContext());
+    field.setHint("https://");
+    field.setHintTextColor(0xff8a9bb0);
+    field.setTextColor(0xffffffff);
+    field.setSingleLine(true);
+    field.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
+    showInputCard(Lang.getString(R.string.Tgx101StickerLink), field, () -> {
+      String url = field.getText().toString().trim();
+      if (url.isEmpty()) return;
+      if (!url.matches("(?i)^(https?|tg)://.*")) url = "https://" + url;
+      android.net.Uri uri = android.net.Uri.parse(url);
+      String host = uri.getHost() != null ? uri.getHost().replaceFirst("^www\\.", "") : url;
+      TextLayer layer = new TextLayer();
+      layer.url = url;
+      layer.text = "🔗 " + host.toUpperCase(Lang.locale());
+      layer.font = 4;
+      layer.style = STYLE_PLATE;
+      layer.color = LINK_COLORS[0];
+      layer.size = 64f;
+      layer.cy = H * .7f;
+      addLayer(layer);
+    });
+  }
+
+  // ── drafts (mockup «Истории-публикация» 1: «Черновики · N») ─────────────────────────────
+
+  private @Nullable File draftDir; // set when the editor was opened from a draft: saving overwrites it, posting removes it
+
+  private static File draftsRoot (Context context) {
+    return new File(context.getFilesDir(), "story_drafts");
+  }
+
+  /** Drafts, newest first */
+  private static List<File> listDrafts (Context context) {
+    List<File> list = new ArrayList<>();
+    File[] dirs = draftsRoot(context).listFiles();
+    if (dirs == null) return list;
+    for (File d : dirs) {
+      if (new File(d, "state.json").exists() && new File(d, "photo.jpg").exists()) list.add(d);
+    }
+    java.util.Collections.sort(list, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+    return list;
+  }
+
+  private static void deleteDraft (@Nullable File dir) {
+    if (dir == null) return;
+    File[] files = dir.listFiles();
+    if (files != null) for (File f : files) //noinspection ResultOfMethodCallIgnored
+      f.delete();
+    //noinspection ResultOfMethodCallIgnored
+    dir.delete();
+  }
+
+  private org.json.JSONObject stateJson () throws org.json.JSONException {
+    org.json.JSONObject o = new org.json.JSONObject();
+    float[] m = new float[9];
+    photoMatrix.getValues(m);
+    org.json.JSONArray matrix = new org.json.JSONArray();
+    for (float v : m) matrix.put((double) v);
+    o.put("matrix", matrix);
+    o.put("background", background);
+    o.put("filter", filter);
+    o.put("strength", (double) strength);
+    org.json.JSONArray adj = new org.json.JSONArray();
+    for (int v : adjust) adj.put(v);
+    o.put("adjust", adj);
+    o.put("caption", captionView.getText().toString());
+    org.json.JSONArray layers = new org.json.JSONArray();
+    for (TextLayer t : texts) {
+      org.json.JSONObject l = new org.json.JSONObject();
+      l.put("text", t.text).put("font", t.font).put("color", t.color).put("style", t.style).put("align", t.align)
+        .put("size", (double) t.size).put("cx", (double) t.cx).put("cy", (double) t.cy).put("scale", (double) t.scale).put("rotation", (double) t.rotation)
+        .put("dark", t.dark).put("flipped", t.flipped).put("emoji", t.emoji).put("clock", t.clock).put("clockTime", t.clockTime)
+        .put("temperature", (double) t.temperature).put("weatherColor", t.weatherColor);
+      if (t.reaction != null) l.put("reaction", t.reaction).put("reactionType", t.reactionType);
+      if (t.weatherEmoji != null) l.put("weatherEmoji", t.weatherEmoji);
+      if (t.url != null) l.put("url", t.url);
+      layers.put(l);
+    }
+    o.put("layers", layers);
+    org.json.JSONArray lines = new org.json.JSONArray();
+    for (Stroke s : strokes) {
+      org.json.JSONArray pts = new org.json.JSONArray();
+      for (float v : s.points) pts.put(Math.round(v * 10) / 10.0);
+      lines.put(new org.json.JSONObject().put("color", s.color).put("width", (double) s.width).put("brush", s.brush).put("points", pts));
+    }
+    o.put("strokes", lines);
+    return o;
+  }
+
+  private void applyDraft (org.json.JSONObject o) {
+    org.json.JSONArray matrix = o.optJSONArray("matrix");
+    if (matrix != null && matrix.length() == 9) {
+      float[] m = new float[9];
+      for (int i = 0; i < 9; i++) m[i] = (float) matrix.optDouble(i);
+      photoMatrix.setValues(m);
+    }
+    background = o.optInt("background", background);
+    filter = o.optInt("filter", filter);
+    strength = (float) o.optDouble("strength", strength);
+    org.json.JSONArray adj = o.optJSONArray("adjust");
+    if (adj != null) for (int i = 0; i < Math.min(adj.length(), adjust.length); i++) adjust[i] = adj.optInt(i);
+    captionView.setText(o.optString("caption", ""));
+    org.json.JSONArray layers = o.optJSONArray("layers");
+    if (layers != null) for (int i = 0; i < layers.length(); i++) {
+      org.json.JSONObject l = layers.optJSONObject(i);
+      if (l == null) continue;
+      TextLayer t = new TextLayer();
+      t.text = l.optString("text", ""); t.font = l.optInt("font"); t.color = l.optInt("color", 0xffffffff); t.style = l.optInt("style"); t.align = l.optInt("align", 1);
+      t.size = (float) l.optDouble("size", 92); t.cx = (float) l.optDouble("cx", W / 2f); t.cy = (float) l.optDouble("cy", H / 2f);
+      t.scale = (float) l.optDouble("scale", 1); t.rotation = (float) l.optDouble("rotation", 0);
+      t.dark = l.optBoolean("dark"); t.flipped = l.optBoolean("flipped"); t.emoji = l.optBoolean("emoji");
+      t.clock = l.optInt("clock"); t.clockTime = l.optLong("clockTime");
+      t.temperature = (float) l.optDouble("temperature", 0); t.weatherColor = l.optInt("weatherColor", 0xffffffff);
+      t.reaction = l.has("reaction") ? l.optString("reaction") : null;
+      t.reactionType = l.has("reactionType") ? l.optString("reactionType") : null;
+      t.weatherEmoji = l.has("weatherEmoji") ? l.optString("weatherEmoji") : null;
+      t.url = l.has("url") ? l.optString("url") : null;
+      texts.add(t);
+    }
+    org.json.JSONArray lines = o.optJSONArray("strokes");
+    if (lines != null) for (int i = 0; i < lines.length(); i++) {
+      org.json.JSONObject l = lines.optJSONObject(i);
+      org.json.JSONArray pts = l != null ? l.optJSONArray("points") : null;
+      if (pts == null || pts.length() < 2) continue;
+      float[] points = new float[pts.length() - pts.length() % 2];
+      for (int k = 0; k < points.length; k++) points[k] = (float) pts.optDouble(k);
+      strokes.add(new Stroke(points, l.optInt("color", 0xffffffff), (float) l.optDouble("width", 18), l.optInt("brush")));
+    }
+    schedulePreview();
+    canvasView.invalidate();
+  }
+
+  /** Writes the photo, the state and a small picture for the drafts list, then closes */
+  private void saveDraftAndClose () {
+    final org.json.JSONObject state;
+    try {
+      state = stateJson();
+    } catch (Throwable t) {
+      dismiss();
+      return;
+    }
+    final Bitmap thumb = Bitmap.createBitmap(W / 4, H / 4, Bitmap.Config.ARGB_8888);
+    Canvas c = new Canvas(thumb);
+    c.scale(.25f, .25f);
+    exporting = true;
+    try {
+      drawStory(c);
+    } finally {
+      exporting = false;
+    }
+    final File dir = draftDir != null ? draftDir : new File(draftsRoot(getContext()), String.valueOf(System.currentTimeMillis()));
+    final boolean photoSaved = draftDir != null && new File(dir, "photo.jpg").exists();
+    new Thread(() -> {
+      try {
+        if (!dir.exists() && !dir.mkdirs()) throw new IllegalStateException("no dir");
+        if (!photoSaved) {
+          try (FileOutputStream os = new FileOutputStream(new File(dir, "photo.jpg"))) {
+            photo.compress(Bitmap.CompressFormat.JPEG, 95, os);
+          }
+        }
+        try (FileOutputStream os = new FileOutputStream(new File(dir, "thumb.jpg"))) {
+          thumb.compress(Bitmap.CompressFormat.JPEG, 85, os);
+        }
+        try (FileOutputStream os = new FileOutputStream(new File(dir, "state.json"))) {
+          os.write(state.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+        //noinspection ResultOfMethodCallIgnored
+        dir.setLastModified(System.currentTimeMillis());
+        Tgx101Diag.mark("story editor: draft saved, " + texts.size() + " layers, " + strokes.size() + " lines");
+        UI.showToast(R.string.Tgx101StoryDraftSaved, Toast.LENGTH_SHORT);
+      } catch (Throwable t) {
+        Tgx101Diag.mark("story editor: draft save failed " + t.getClass().getSimpleName());
+        UI.showToast(R.string.Tgx101StoryFailed, Toast.LENGTH_SHORT);
+      }
+      thumb.recycle();
+    }, "story-draft").start();
+    dismiss();
+  }
+
+  /** Close with changes: save as a draft, throw away, or stay */
+  private void showCloseChoice () {
+    if (confirmCard != null) return;
+    Context context = getContext();
+    FrameLayout dim = new FrameLayout(context);
+    dim.setBackgroundColor(0x80000000);
+    dim.setOnClickListener(v -> closeConfirm());
+    LinearLayout card = new LinearLayout(context);
+    card.setOrientation(LinearLayout.VERTICAL);
+    card.setClickable(true);
+    card.setBackground(cardBackground());
+    card.setPadding(Screen.dp(16f), Screen.dp(18f), Screen.dp(16f), Screen.dp(16f));
+    TextView text = new TextView(context);
+    text.setText(Lang.getString(R.string.Tgx101StoryCloseQuestion));
+    text.setTextColor(0xffe9eef4);
+    text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
+    card.addView(text);
+    LinearLayout.LayoutParams first = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(42f));
+    first.topMargin = Screen.dp(16f);
+    card.addView(pill(context, Lang.getString(R.string.Tgx101StorySaveDraft), true, v -> { closeConfirm(); saveDraftAndClose(); }), first);
+    TextView discard = pill(context, Lang.getString(draftDir != null ? R.string.Tgx101StoryDeleteDraft : R.string.Tgx101StoryDiscardYes), true, v -> {
+      closeConfirm();
+      if (draftDir != null) deleteDraft(draftDir);
+      dismiss();
+    });
+    GradientDrawable red = new GradientDrawable();
+    red.setColor(0xffe5534b);
+    red.setCornerRadius(Screen.dp(14f));
+    discard.setBackground(red);
+    LinearLayout.LayoutParams next = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(42f));
+    next.topMargin = Screen.dp(8f);
+    card.addView(discard, next);
+    LinearLayout.LayoutParams last = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(42f));
+    last.topMargin = Screen.dp(8f);
+    card.addView(pill(context, Lang.getString(R.string.Cancel), false, v -> closeConfirm()), last);
+    FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+    cp.leftMargin = cp.rightMargin = cp.bottomMargin = Screen.dp(8f);
+    dim.addView(card, cp);
+    root.addView(dim, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    confirmCard = dim;
+    animateIn(dim);
+  }
+
+  private static void openDraft (BaseActivity activity, Tdlib tdlib, File dir) {
+    new Thread(() -> {
+      Bitmap bitmap = null;
+      org.json.JSONObject state = null;
+      try {
+        bitmap = BitmapFactory.decodeFile(new File(dir, "photo.jpg").getPath());
+        byte[] bytes = java.nio.file.Files.readAllBytes(new File(dir, "state.json").toPath());
+        state = new org.json.JSONObject(new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
+      } catch (Throwable t) {
+        Tgx101Diag.mark("story editor: draft read failed " + t.getClass().getSimpleName());
+      }
+      final Bitmap b = bitmap;
+      final org.json.JSONObject s = state;
+      UI.post(() -> {
+        if (b == null || s == null) { UI.showToast(R.string.Tgx101StoryFailed, Toast.LENGTH_SHORT); return; }
+        Tgx101StoryEditor editor = new Tgx101StoryEditor(activity, tdlib, b);
+        editor.draftDir = dir;
+        editor.applyDraft(s);
+        editor.show();
+      });
+    }, "story-draft-open").start();
+  }
+
+  /** The drafts as 9:16 tiles: a tap opens one, a long press deletes it */
+  private static void showDrafts (BaseActivity activity, Tdlib tdlib) {
+    List<File> drafts = listDrafts(activity);
+    android.app.Dialog dialog = new android.app.Dialog(activity, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+    FrameLayout rootView = new FrameLayout(activity);
+    rootView.setBackgroundColor(0xff0e1116);
+    LinearLayout column = new LinearLayout(activity);
+    column.setOrientation(LinearLayout.VERTICAL);
+    LinearLayout top = new LinearLayout(activity);
+    top.setGravity(Gravity.CENTER_VERTICAL);
+    top.setPadding(Screen.dp(12f), Screen.dp(12f), Screen.dp(12f), Screen.dp(8f));
+    top.addView(iconButton(activity, R.drawable.baseline_close_24, null, v -> dialog.dismiss(), false), squareParams(40f, 0));
+    TextView title = new TextView(activity);
+    title.setText(Lang.getString(R.string.Tgx101StoryDrafts));
+    title.setTextColor(0xffffffff);
+    title.setTypeface(Typeface.DEFAULT_BOLD);
+    title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18f);
+    LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+    tp.leftMargin = Screen.dp(12f);
+    top.addView(title, tp);
+    column.addView(top);
+    TextView hint = new TextView(activity);
+    hint.setText(Lang.getString(R.string.Tgx101StoryDraftsHint));
+    hint.setTextColor(0xff8a9bb0);
+    hint.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+    hint.setPadding(Screen.dp(16f), 0, Screen.dp(16f), Screen.dp(8f));
+    column.addView(hint);
+    android.widget.ScrollView scroll = new android.widget.ScrollView(activity);
+    android.widget.GridLayout grid = new android.widget.GridLayout(activity);
+    grid.setColumnCount(3);
+    grid.setPadding(Screen.dp(8f), 0, Screen.dp(8f), Screen.dp(16f));
+    int tileW = (Screen.currentWidth() - Screen.dp(16f)) / 3 - Screen.dp(6f);
+    java.text.DateFormat format = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT, Lang.locale());
+    for (File dir : drafts) {
+      FrameLayout tile = new FrameLayout(activity);
+      android.widget.ImageView image = new android.widget.ImageView(activity);
+      image.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+      image.setBackground(thumbFrame(false));
+      if (Build.VERSION.SDK_INT >= 21) image.setClipToOutline(true);
+      File thumb = new File(dir, "thumb.jpg");
+      if (thumb.exists()) image.setImageBitmap(BitmapFactory.decodeFile(thumb.getPath()));
+      tile.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      TextView date = new TextView(activity);
+      date.setText(format.format(new java.util.Date(dir.lastModified())));
+      date.setTextColor(0xffffffff);
+      date.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10.5f);
+      date.setShadowLayer(Screen.dp(3f), 0, 0, 0xcc000000);
+      date.setPadding(Screen.dp(6f), 0, Screen.dp(6f), Screen.dp(5f));
+      tile.addView(date, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.LEFT));
+      tile.setOnClickListener(v -> { dialog.dismiss(); openDraft(activity, tdlib, dir); });
+      tile.setOnLongClickListener(v -> {
+        new android.app.AlertDialog.Builder(activity, org.thunderdog.challegram.theme.Theme.dialogTheme())
+          .setMessage(Lang.getString(R.string.Tgx101StoryDeleteDraftQuestion))
+          .setNegativeButton(Lang.getString(R.string.Cancel), null)
+          .setPositiveButton(Lang.getString(R.string.Tgx101StoryDeleteDraft), (d, w) -> {
+            deleteDraft(dir);
+            tile.animate().alpha(0f).scaleX(.8f).scaleY(.8f).setDuration(180).withEndAction(() -> grid.removeView(tile)).start();
+          })
+          .show();
+        return true;
+      });
+      pressFeedback(tile);
+      android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams();
+      lp.width = tileW;
+      lp.height = tileW * 16 / 9;
+      lp.setMargins(Screen.dp(3f), Screen.dp(3f), Screen.dp(3f), Screen.dp(3f));
+      grid.addView(tile, lp);
+    }
+    scroll.addView(grid);
+    column.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+    rootView.addView(column, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    dialog.setContentView(rootView);
+    if (dialog.getWindow() != null) dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+    rootView.setAlpha(0f);
+    rootView.setTranslationY(Screen.dp(24f));
+    dialog.show();
+    rootView.animate().alpha(1f).translationY(0f).setDuration(240).setInterpolator(new android.view.animation.DecelerateInterpolator(2f)).start();
+  }
+
   // ── undo / redo ────────────────────────────────────────────────────────────────────────
 
   private State snapshot () {
@@ -940,6 +1820,7 @@ public final class Tgx101StoryEditor extends Dialog {
     photoMatrix.getValues(s.photo);
     s.background = background;
     for (TextLayer t : texts) s.texts.add(t.copy());
+    s.strokes.addAll(strokes);
     s.filter = filter;
     s.strength = strength;
     System.arraycopy(adjust, 0, s.adjust, 0, adjust.length);
@@ -951,6 +1832,8 @@ public final class Tgx101StoryEditor extends Dialog {
     background = s.background;
     texts.clear();
     for (TextLayer t : s.texts) texts.add(t.copy());
+    strokes.clear();
+    strokes.addAll(s.strokes);
     filter = s.filter;
     strength = s.strength;
     System.arraycopy(s.adjust, 0, adjust, 0, adjust.length);
@@ -1107,6 +1990,10 @@ public final class Tgx101StoryEditor extends Dialog {
         if (e.getActionMasked() == MotionEvent.ACTION_UP) pickColorAt(toStoryX(e.getX()), toStoryY(e.getY()));
         return true;
       }
+      if (drawPanel != null) {
+        onDrawTouch(e, toStoryX(e.getX()), toStoryY(e.getY()));
+        return true;
+      }
       switch (e.getActionMasked()) {
         case MotionEvent.ACTION_DOWN:
           target = layerAt(toStoryX(e.getX()), toStoryY(e.getY()));
@@ -1188,7 +2075,18 @@ public final class Tgx101StoryEditor extends Dialog {
               pushUndo();
               // a tap on a reaction: light → dark → light flipped → dark flipped
               if (!target.dark) target.dark = true; else { target.dark = false; target.flipped = !target.flipped; }
-            } else {
+            } else if (target.weatherEmoji != null) {
+              pushUndo();
+              target.weatherColor = nextOf(WEATHER_COLORS, target.weatherColor); // white → dark → blue → photo colour
+            } else if (target.clock != 0) {
+              pushUndo();
+              // time → date → weekday + time; then the look: plate → dark plate → outline
+              if (target.clock < 3) target.clock++; else { target.clock = 1; target.color = target.color == 0xffffffff ? 0xff111111 : 0xffffffff; }
+              target.text = clockText(target.clock, target.clockTime);
+            } else if (target.url != null) {
+              pushUndo();
+              target.color = nextOf(LINK_COLORS, target.color);
+            } else if (!target.emoji) {
               editText(target);
             }
           }
@@ -2418,6 +3316,7 @@ public final class Tgx101StoryEditor extends Dialog {
           }
           Tgx101Diag.mark("story editor: posted (privacy " + privacyChoice + ", " + (activePeriod / 3600) + " h, profile " + postToProfile + ", protect " + protectContent + ")");
           UI.showToast(R.string.Tgx101StoryPosted, Toast.LENGTH_SHORT);
+          deleteDraft(draftDir); // posted — the draft has done its job
           dismiss();
         }));
       });

@@ -725,6 +725,18 @@ public class Tgx101StoryViewer extends Dialog {
       if (!hasAreas()) return;
       measureMedia();
       for (TdApi.StoryArea area : shown.areas) {
+        if (area.type instanceof TdApi.StoryAreaTypeWeather) {
+          // the weather sticker is drawn by the apps, like reactions
+          TdApi.StoryAreaTypeWeather w = (TdApi.StoryAreaTypeWeather) area.type;
+          float wx = media.left + media.width() * (float) area.position.xPercentage / 100f;
+          float wy = media.top + media.height() * (float) area.position.yPercentage / 100f;
+          float wh = media.height() * (float) area.position.heightPercentage / 100f;
+          int ws = c.save();
+          c.rotate((float) area.position.rotationAngle, wx, wy);
+          Tgx101StoryEditor.drawWeather(c, wx, wy, wh, w.emoji, w.temperature, w.backgroundColor);
+          c.restoreToCount(ws);
+          continue;
+        }
         if (!(area.type instanceof TdApi.StoryAreaTypeSuggestedReaction)) continue;
         TdApi.StoryAreaTypeSuggestedReaction r = (TdApi.StoryAreaTypeSuggestedReaction) area.type;
         float cx = media.left + media.width() * (float) area.position.xPercentage / 100f;
@@ -742,6 +754,17 @@ public class Tgx101StoryViewer extends Dialog {
       if (!hasAreas()) return false;
       measureMedia();
       for (TdApi.StoryArea area : shown.areas) {
+        if (area.type instanceof TdApi.StoryAreaTypeLink || area.type instanceof TdApi.StoryAreaTypeLocation || area.type instanceof TdApi.StoryAreaTypeVenue) {
+          // a link / place sticker baked into the picture: its area opens it
+          float ax = media.left + media.width() * (float) area.position.xPercentage / 100f;
+          float ay = media.top + media.height() * (float) area.position.yPercentage / 100f;
+          float hw = media.width() * (float) area.position.widthPercentage / 200f, hh = media.height() * (float) area.position.heightPercentage / 200f;
+          if (Math.abs(e.getX() - ax) <= hw && Math.abs(e.getY() - ay) <= hh) {
+            if (e.getActionMasked() == MotionEvent.ACTION_UP) openArea(area.type);
+            return true;
+          }
+          continue;
+        }
         if (!(area.type instanceof TdApi.StoryAreaTypeSuggestedReaction)) continue;
         float cx = media.left + media.width() * (float) area.position.xPercentage / 100f;
         float cy = media.top + media.height() * (float) area.position.yPercentage / 100f;
@@ -758,6 +781,29 @@ public class Tgx101StoryViewer extends Dialog {
       }
       return false;
     }
+  }
+
+  private void openArea (TdApi.StoryAreaType type) {
+    String url = null;
+    if (type instanceof TdApi.StoryAreaTypeLink) {
+      url = ((TdApi.StoryAreaTypeLink) type).url;
+    } else {
+      TdApi.Location l = type instanceof TdApi.StoryAreaTypeLocation ? ((TdApi.StoryAreaTypeLocation) type).location
+        : ((TdApi.StoryAreaTypeVenue) type).venue.location;
+      url = "geo:" + l.latitude + "," + l.longitude + "?q=" + l.latitude + "," + l.longitude;
+    }
+    Tgx101Diag.mark("story: area opened " + type.getClass().getSimpleName());
+    final String target = url;
+    dismiss();
+    UI.post(() -> {
+      if (target.startsWith("geo:")) {
+        try {
+          getContext().startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(target)).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (Throwable ignored) { }
+      } else {
+        UI.openUrl(target);
+      }
+    }, 160);
   }
 
   private FrameLayout heartButton;
