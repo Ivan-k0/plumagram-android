@@ -38,6 +38,8 @@ public class Tgx101StoriesStrip extends HorizontalScrollView implements SortedLi
     void onStoryClick (List<TdApi.ChatActiveStories> ordered, int index);
     void onStoryLongClick (View view, TdApi.ChatActiveStories stories);
     void onStripVisibilityChanged (boolean hasItems);
+    /** TGx101 (mockup «Истории-публикация»): «+» — a new story */
+    default void onAddStoryClick () { }
   }
 
   public static final float HEIGHT_DP = 94f;
@@ -162,7 +164,7 @@ public class Tgx101StoriesStrip extends HorizontalScrollView implements SortedLi
     // TGx101 (user 2026-10-05 «истории мигают при каждом показе»): the same chats in the same order with the
     // same read state — keep the views, rebuilding reloads every avatar and blinks
     String key = tgx101Key(newOrdered);
-    if (key.equals(builtKey) && row.getChildCount() == newOrdered.size()) {
+    if (key.equals(builtKey) && row.getChildCount() == newOrdered.size() + 1) {
       ordered = newOrdered;
       callback.onStripVisibilityChanged(!ordered.isEmpty());
       return;
@@ -171,6 +173,7 @@ public class Tgx101StoriesStrip extends HorizontalScrollView implements SortedLi
     ordered = newOrdered;
     org.thunderdog.challegram.Tgx101Diag.mark("stories strip: " + ordered.size() + " chat(s) with stories (list " + items.size() + ", total " + storyList.totalCount() + ")");
     row.removeAllViews();
+    row.addView(newAddItem());
     for (int i = 0; i < ordered.size(); i++) {
       row.addView(newItem(ordered.get(i), i));
     }
@@ -197,6 +200,45 @@ public class Tgx101StoriesStrip extends HorizontalScrollView implements SortedLi
 
   public boolean hasItems () {
     return !ordered.isEmpty();
+  }
+
+  /** «+ New»: our own avatar with a plus — opens the story editor */
+  private View newAddItem () {
+    Context context = getContext();
+    LinearLayout item = new LinearLayout(context);
+    item.setOrientation(LinearLayout.VERTICAL);
+    item.setGravity(Gravity.CENTER_HORIZONTAL);
+    item.setLayoutParams(new LinearLayout.LayoutParams(Screen.dp(66f), ViewGroup.LayoutParams.MATCH_PARENT));
+    FrameLayout ring = new FrameLayout(context);
+    AvatarView avatar = new AvatarView(context);
+    avatar.setChat(tdlib, tdlib.chat(tdlib.selfChatId()));
+    ring.addView(avatar, new FrameLayout.LayoutParams(Screen.dp(52f), Screen.dp(52f), Gravity.CENTER));
+    TextView plus = new TextView(context);
+    plus.setText("+");
+    plus.setGravity(Gravity.CENTER);
+    plus.setTextColor(0xffffffff);
+    plus.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
+    plus.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+    android.graphics.drawable.GradientDrawable badge = new android.graphics.drawable.GradientDrawable();
+    badge.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+    badge.setColor(0xff3d8fd8);
+    badge.setStroke(Screen.dp(2f), tgx101FillColor != 0 ? tgx101FillColor : Theme.fillingColor());
+    plus.setBackground(badge);
+    plus.setPadding(0, 0, 0, Screen.dp(1f));
+    ring.addView(plus, new FrameLayout.LayoutParams(Screen.dp(20f), Screen.dp(20f), Gravity.RIGHT | Gravity.BOTTOM));
+    item.addView(ring, new LinearLayout.LayoutParams(Screen.dp(60f), Screen.dp(60f)));
+    TextView name = new TextView(context);
+    name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11f);
+    name.setTextColor(Theme.textAccentColor());
+    name.setSingleLine(true);
+    name.setGravity(Gravity.CENTER);
+    name.setText(org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101NewStory));
+    LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    nameParams.topMargin = Screen.dp(3f);
+    item.addView(name, nameParams);
+    item.setOnClickListener(v -> callback.onAddStoryClick());
+    item.setBackgroundResource(org.thunderdog.challegram.R.drawable.bg_btn_header);
+    return item;
   }
 
   private View newItem (TdApi.ChatActiveStories stories, int index) {

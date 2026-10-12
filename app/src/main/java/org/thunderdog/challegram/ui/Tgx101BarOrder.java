@@ -30,7 +30,7 @@ public final class Tgx101BarOrder {
 
   // TGx101 (user 2026-10-12 00:15): the side drawer is editable — order and which items are shown
   public static final String DRAWER_CONTACTS = "contacts", DRAWER_CALLS = "calls", DRAWER_SAVED = "saved", DRAWER_SAVED_BY_CHATS = "savedByChats",
-    DRAWER_SETTINGS = "settings", DRAWER_PROXY = "proxy", DRAWER_NIGHT = "night";
+    DRAWER_SETTINGS = "settings", DRAWER_PROXY = "proxy", DRAWER_NIGHT = "night", DRAWER_STORY = "story";
   // TGx101 (user 2026-10-12): the chat's ⋮ menu is editable too, with «Proxy» to add (off until switched on)
   public static final String CHAT_CALL = "call", CHAT_VIDEO_CALL = "videoCall", CHAT_SEARCH = "search", CHAT_DATE = "date",
     CHAT_SAVED_BY_CHATS = "savedByChats", CHAT_BACKGROUND = "background", CHAT_MUTE = "mute", CHAT_NOTIFICATIONS = "notifications",
@@ -53,13 +53,14 @@ public final class Tgx101BarOrder {
     {CUT, COPY, PASTE, SELECT_ALL, APPS},
     {SWIPE_PIN, SWIPE_TRANSLATE, SWIPE_SAVE, SWIPE_FORWARD, SWIPE_REPLY, SWIPE_COPY, SWIPE_EDIT, SWIPE_SELECT, SWIPE_DELETE,
       SWIPE_REACTION, SWIPE_DELETE_ALL, SWIPE_LINK, SWIPE_SAVE_FILE, SWIPE_REPORT},
-    {DRAWER_CONTACTS, DRAWER_CALLS, DRAWER_SAVED, DRAWER_SAVED_BY_CHATS, DRAWER_SETTINGS, DRAWER_PROXY, DRAWER_NIGHT},
+    {DRAWER_STORY, DRAWER_CONTACTS, DRAWER_CALLS, DRAWER_SAVED, DRAWER_SAVED_BY_CHATS, DRAWER_SETTINGS, DRAWER_PROXY, DRAWER_NIGHT},
     {CHAT_CALL, CHAT_VIDEO_CALL, CHAT_SEARCH, CHAT_DATE, CHAT_SAVED_BY_CHATS, CHAT_BACKGROUND, CHAT_MUTE, CHAT_NOTIFICATIONS, CHAT_TRANSLATE,
       CHAT_PINNED, CHAT_LINKED, CHAT_SCHEDULED, CHAT_VOICE_CHAT, CHAT_TOPICS, CHAT_REPORT, CHAT_PASSCODE, CHAT_OTHER, CHAT_PROXY}
   };
 
   public static int drawerIdOf (String key) {
     switch (key) {
+      case DRAWER_STORY: return R.id.btn_tgx101NewStory;
       case DRAWER_CONTACTS: return R.id.btn_contacts;
       case DRAWER_CALLS: return R.id.btn_calls;
       case DRAWER_SAVED: return R.id.btn_savedMessages;
@@ -72,6 +73,7 @@ public final class Tgx101BarOrder {
 
   public static int drawerNameOf (String key) {
     switch (key) {
+      case DRAWER_STORY: return R.string.Tgx101NewStory;
       case DRAWER_CONTACTS: return R.string.Contacts;
       case DRAWER_CALLS: return R.string.Calls;
       case DRAWER_SAVED: return R.string.SavedMessages;
@@ -84,6 +86,7 @@ public final class Tgx101BarOrder {
 
   public static int drawerIconOf (String key) {
     switch (key) {
+      case DRAWER_STORY: return R.drawable.baseline_camera_alt_24;
       case DRAWER_CONTACTS: return R.drawable.baseline_perm_contact_calendar_24;
       case DRAWER_CALLS: return R.drawable.baseline_call_24;
       case DRAWER_SAVED: return R.drawable.baseline_bookmark_24;

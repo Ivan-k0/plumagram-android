@@ -1508,6 +1508,7 @@
   <item name="btn_tgx101JumpToDate" type="id"/>
   <item name="btn_tgx101ChatProxy" type="id"/>
   <item name="btn_tgx101HideSponsored" type="id"/>
+  <item name="btn_tgx101NewStory" type="id"/>
   <item name="btn_tgx101ChatProxyToggle" type="id"/>
   <item name="btn_tgx101DrawerOrder" type="id"/>
   <item name="btn_tgx101ChatMenuOrder" type="id"/>

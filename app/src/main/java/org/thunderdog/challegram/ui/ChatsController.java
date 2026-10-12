@@ -1204,6 +1204,11 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       }
 
       @Override
+      public void onAddStoryClick () {
+        Tgx101StoryEditor.pickAndOpen(context(), tdlib);
+      }
+
+      @Override
       public void onStripVisibilityChanged (boolean hasItems) {
         if (!hasItems && tgx101StripHadItems && android.os.SystemClock.uptimeMillis() - tgx101StripCreated < 3000) {
           return; // the first answers may be empty while the stories load — keep the placeholders a little
