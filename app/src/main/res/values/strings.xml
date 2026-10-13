@@ -6073,6 +6073,10 @@
   <string name="Tgx101WebProxyInvalid">This WEB proxy address or secret is not valid</string>
   <string name="Tgx101WebProxyUnsupported">WEB proxies need Android 5.0+ with an up-to-date Android System WebView</string>
   <string name="Tgx101VoiceChat">Voice chat</string>
+  <string name="Tgx101VoiceChatBarJoin">Join</string>
+  <string name="Tgx101VoiceChatBarReturn">Return</string>
+  <string name="Tgx101VoiceChatBarNobody">No one here yet</string>
+  <string name="Tgx101VoiceChatBarLoading">Going on now</string>
   <string name="Tgx101VoiceChatJoin">Join voice chat</string>
   <string name="Tgx101VoiceChatStart">Start voice chat</string>
   <string name="Tgx101VoiceChatLeave">Leave</string>

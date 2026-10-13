@@ -908,6 +908,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101TranslateBarHide, "Скрыть плашку");
     RU.put(R.string.Tgx101DeleteForAll, "Удалить у всех");
     RU.put(R.string.Tgx101ShowAllChats, "Показать «Все чаты»");
+    RU.put(R.string.Tgx101VoiceChatBarJoin, "Присоединиться");
+    RU.put(R.string.Tgx101VoiceChatBarReturn, "Вернуться");
+    RU.put(R.string.Tgx101VoiceChatBarNobody, "Пока никого нет");
+    RU.put(R.string.Tgx101VoiceChatBarLoading, "Идёт сейчас");
     RU.put(R.string.Tgx101DeleteForMe, "Удалить у меня");
     RU.put(R.string.Tgx101DeleteForAllInfo, "Удалить у всех? Сообщение удалится у вас и у всех в чате. Отменить будет нельзя.");
     RU.put(R.string.Tgx101DeleteForMeInfo, "Это сообщение нельзя удалить у всех. Удалить его у вас?");

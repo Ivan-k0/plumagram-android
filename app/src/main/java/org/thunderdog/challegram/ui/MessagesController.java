@@ -1173,8 +1173,29 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
     };
 
+    // TGx101: the voice chat bar (step 1 of group calls) — «Voice chat · N participants · Join», as in the official app
+    tgx101VoiceBar = new org.thunderdog.challegram.component.chat.Tgx101VoiceChatBar(context, tdlib, new org.thunderdog.challegram.component.chat.Tgx101VoiceChatBar.Callback() {
+      @Override
+      public void onVoiceChatBarClick (long chatId, int groupCallId) {
+        org.thunderdog.challegram.voip.Tgx101GroupCall current = org.thunderdog.challegram.voip.Tgx101GroupCall.current();
+        if (current != null && current.chatId == chatId && current.groupCallId == groupCallId) {
+          Tgx101GroupCallController.open(context);
+        } else {
+          Tgx101GroupCallController.join(MessagesController.this, chatId, groupCallId, null);
+        }
+      }
+
+      @Override
+      public void onVoiceChatBarVisibilityChanged (boolean visible) {
+        if (topBar != null && tgx101VoiceItem != null) topBar.setItemVisible(tgx101VoiceItem, visible, isFocused());
+      }
+    });
+    tgx101VoiceBar.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(org.thunderdog.challegram.component.chat.Tgx101VoiceChatBar.HEIGHT)));
+    addThemeInvalidateListener(tgx101VoiceBar);
+    tgx101VoiceItem = new CollapseListView.ViewItem(tgx101VoiceBar, Screen.dp(org.thunderdog.challegram.component.chat.Tgx101VoiceChatBar.HEIGHT));
+
     topBar.initWithList(new CollapseListView.Item[] {
-      // TODO voice chat bar
+      tgx101VoiceItem,
       pinnedMessagesItem,
       requestsItem = new CollapseListView.ViewItem(requestsView, requestsViewHeight),
       liveLocationItem = new CollapseListView.ViewItem(liveLocationView, liveLocationHeight),
@@ -3384,6 +3405,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tgx101TranslateBarOffered = tgx101TranslateBarHidden = false; // per chat opening
       tgx101CheckTranslateBar(false);
       checkJoinRequests(chat.pendingJoinRequests);
+      if (tgx101VoiceBar != null) tgx101VoiceBar.setVideoChat(chat.id, messageThread == null ? chat.videoChat : null);
       checkCanSendMessagesToUser(true);
     }
     if (inputView != null) {
@@ -4952,6 +4974,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     forceHideToast();
 
     pinnedMessagesBar.performDestroy();
+    if (tgx101VoiceBar != null) tgx101VoiceBar.performDestroy();
 
     if (requestsView != null) {
       requestsView.performDestroy();
@@ -7557,6 +7580,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private JoinRequestsView requestsView;
   private CollapseListView.Item requestsItem;
+  private org.thunderdog.challegram.component.chat.Tgx101VoiceChatBar tgx101VoiceBar;
+  private CollapseListView.Item tgx101VoiceItem;
 
   public @Nullable ReplyInfo getCurrentReplyId () {
     if (reply != null) {
@@ -12953,6 +12978,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
     runOnUiThreadOptional(() -> {
       if (getChatId() == chatId && chat != null) {
         checkJoinRequests(chat.pendingJoinRequests);
+      }
+    });
+  }
+
+  @Override
+  public void onChatVideoChatChanged (long chatId, TdApi.VideoChat videoChat) {
+    runOnUiThreadOptional(() -> {
+      if (getChatId() == chatId && tgx101VoiceBar != null && messageThread == null && !inPreviewMode && !isInForceTouchMode()) {
+        tgx101VoiceBar.setVideoChat(chatId, videoChat);
       }
     });
   }
