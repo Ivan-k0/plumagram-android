@@ -176,6 +176,10 @@ public final class Tgx101SelectionBar {
     if (window != null) {
       try { window.dismiss(); } catch (Throwable ignored) { }
       window = null;
+      if (content != null) {
+        content.animate().cancel();
+        content.setAlpha(1f);
+      }
     }
     menu = null;
   }
@@ -342,9 +346,15 @@ public final class Tgx101SelectionBar {
       card.addView(icons, iconsParams);
     }
 
-    content = new FrameLayout(context);
-    content.setClipChildren(false);
-    content.setClipToPadding(false);
+    // TGx101: a showing PopupWindow ignores setContentView — the bar refreshes inside the content it is showing, otherwise
+    // the new items (and the fade for the magnifier) went to a view nobody saw
+    if (content == null || window == null) {
+      content = new FrameLayout(context);
+      content.setClipChildren(false);
+      content.setClipToPadding(false);
+    } else {
+      content.removeAllViews();
+    }
     FrameLayout.LayoutParams cardParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     content.addView(card, cardParams);
     tail = new TailView(context, panel);
