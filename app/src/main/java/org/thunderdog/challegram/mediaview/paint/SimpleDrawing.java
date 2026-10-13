@@ -123,6 +123,66 @@ public class SimpleDrawing {
 
   private CustomPath path;
 
+  // TGx101 (user 2026-10-13, editor mockup: «фигура с белыми точками»): a drawn shape can be moved, resized, turned
+  // (rectangle / oval, around its centre) and filled. Saved in the type byte's high nibble (unused by shapes) + a float.
+  private static final int SHAPE_FILLED = 1, SHAPE_ROTATED = 2;
+  private float rotation;
+  private boolean filled;
+
+  public int getType () {
+    return type;
+  }
+
+  public boolean isEditableShape () {
+    return isTwoPointShape(type);
+  }
+
+  public boolean canRotate () {
+    return (type == TYPE_RECTANGLE || type == TYPE_ELLIPSE) && canvasRotation == 0f;
+  }
+
+  public boolean canFill () {
+    return type == TYPE_RECTANGLE || type == TYPE_ELLIPSE;
+  }
+
+  public float getX1 () { return x1; }
+  public float getY1 () { return y1; }
+  public float getX2 () { return x2; }
+  public float getY2 () { return y2; }
+  public float getRotation () { return rotation; }
+  public boolean isFilled () { return filled; }
+  public float getStrokeRadius () { return strokeRadius; }
+
+  /** Relative (0..1) points of the shape */
+  public void setPoints (float x1, float y1, float x2, float y2) {
+    if (this.x1 != x1 || this.y1 != y1 || this.x2 != x2 || this.y2 != y2) {
+      this.x1 = x1; this.y1 = y1; this.x2 = x2; this.y2 = y2;
+      invalidate(true);
+    }
+  }
+
+  public void setRotation (float rotation) {
+    if (this.rotation != rotation) {
+      this.rotation = rotation;
+      invalidate(true);
+    }
+  }
+
+  public void setFilled (boolean filled) {
+    if (canFill() && this.filled != filled) {
+      this.filled = filled;
+      invalidate(false);
+    }
+  }
+
+  private int shapeFlags () {
+    return (filled ? SHAPE_FILLED : 0) | (rotation != 0f ? SHAPE_ROTATED : 0);
+  }
+
+  private int savedNibble () {
+    return isTwoPointShape(type) ? shapeFlags() : style;
+  }
+
   private ArrayList<ChangeListener> changeListeners;
 
   public SimpleDrawing (int type) {
@@ -370,7 +430,7 @@ public class SimpleDrawing {
       (type == TYPE_FILLING || (b.canvasWidth == canvasWidth && b.canvasHeight == canvasHeight) || (b.canvasWidth / b.canvasHeight) == (canvasWidth / canvasHeight)) && // checking only for aspect ratio, since result will be the same
       (!needsCanvasRotation(type) || b.canvasRotation == canvasRotation) &&
       b.x1 == x1 && b.x2 == x2 &&
-      b.y1 == y1 && b.y2 == y2 && (type != TYPE_PATH || b.path.compare(path));
+      b.y1 == y1 && b.y2 == y2 && b.rotation == rotation && b.filled == filled && (type != TYPE_PATH || b.path.compare(path));
   }
 
   public void setBrushParameters (int color, float strokeRadius) {
@@ -449,8 +509,14 @@ public class SimpleDrawing {
           c.save();
           c.rotate(-canvasRotation, left, top);
         }
+        if (rotation != 0f) {
+          if (!saved) c.save();
+          c.rotate(rotation, rectF.centerX(), rectF.centerY());
+        }
+        if (filled) paint.setStyle(Paint.Style.FILL_AND_STROKE);
         c.drawOval(rectF, paint);
-        if (saved) {
+        paint.setStyle(Paint.Style.STROKE);
+        if (saved || rotation != 0f) {
           c.restore();
         }
         break;
@@ -468,8 +534,14 @@ public class SimpleDrawing {
           c.rotate(-canvasRotation, left, top);
         }
         // float radius = dp(2f, width, height);
+        if (rotation != 0f) {
+          if (!saved) c.save();
+          c.rotate(rotation, rectF.centerX(), rectF.centerY());
+        }
+        if (filled) paint.setStyle(Paint.Style.FILL_AND_STROKE);
         c.drawRect(rectF, paint);
-        if (saved) {
+        paint.setStyle(Paint.Style.STROKE);
+        if (saved || rotation != 0f) {
           c.restore();
         }
         break;
@@ -626,7 +698,7 @@ public class SimpleDrawing {
   // Blob
 
   public void save (RandomAccessFile file) throws IOException {
-    file.writeByte((byte) (type | (style << 4)));
+    file.writeByte((byte) (type | (savedNibble() << 4)));
 
     Blob.writeVarint(file, canvasWidth);
     Blob.writeVarint(file, canvasHeight);
@@ -644,7 +716,7 @@ public class SimpleDrawing {
   }
 
   public void save (Blob blob) {
-    blob.writeByte((byte) (type | (style << 4)));
+    blob.writeByte((byte) (type | (savedNibble() << 4)));
 
     blob.writeVarint(canvasWidth);
     blob.writeVarint(canvasHeight);
@@ -671,6 +743,7 @@ public class SimpleDrawing {
         file.writeFloat(x2);
         file.writeFloat(y1);
         file.writeFloat(y2);
+        if (rotation != 0f) file.writeFloat(rotation);
         break;
       case TYPE_PATH: {
         path.saveData(file);
@@ -689,6 +762,7 @@ public class SimpleDrawing {
         blob.writeFloat(x2);
         blob.writeFloat(y1);
         blob.writeFloat(y2);
+        if (rotation != 0f) blob.writeFloat(rotation);
         break;
       }
       case TYPE_PATH: {
@@ -708,7 +782,7 @@ public class SimpleDrawing {
       case TYPE_RECTANGLE:
       case TYPE_ELLIPSE:
       case TYPE_LINE: {
-        return 8 * 4;
+        return 8 * 4 + (rotation != 0f ? 4 : 0);
       }
       case TYPE_PATH: {
         return path.getEstimatedOutputSize();
@@ -739,9 +813,18 @@ public class SimpleDrawing {
 
     SimpleDrawing drawing = new SimpleDrawing(type, canvasWidth, canvasHeight, canvasScale, canvasRotation);
     drawing.setBrushParameters(color, strokeRadius);
-    drawing.style = style;
+    int shapeFlags = 0;
+    if (isTwoPointShape(type)) {
+      shapeFlags = style;
+      drawing.filled = (shapeFlags & SHAPE_FILLED) != 0;
+    } else {
+      drawing.style = style;
+    }
 
     restorePositionData(file, drawing);
+    if ((shapeFlags & SHAPE_ROTATED) != 0) {
+      drawing.rotation = file.readFloat();
+    }
 
     return drawing;
   }
@@ -768,9 +851,18 @@ public class SimpleDrawing {
 
     SimpleDrawing drawing = new SimpleDrawing(type, canvasWidth, canvasHeight, canvasScale, canvasRotation);
     drawing.setBrushParameters(color, strokeRadius);
-    drawing.style = style;
+    int shapeFlags = 0;
+    if (isTwoPointShape(type)) {
+      shapeFlags = style;
+      drawing.filled = (shapeFlags & SHAPE_FILLED) != 0;
+    } else {
+      drawing.style = style;
+    }
 
     restorePositionData(blob, drawing);
+    if ((shapeFlags & SHAPE_ROTATED) != 0) {
+      drawing.rotation = blob.readFloat();
+    }
 
     return drawing;
   }

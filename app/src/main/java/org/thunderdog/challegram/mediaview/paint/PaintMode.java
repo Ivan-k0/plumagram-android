@@ -28,6 +28,7 @@ public class PaintMode {
   public static int brushStyle = SimpleDrawing.STYLE_PEN;
   /** Pixel blur strength 1…5 */
   public static int mosaicStrength = 3;
+  public static boolean shapeFill; // TGx101: rectangles and ovals filled with the colour
 
   public static final int FREE_MOVEMENT = 100;
 

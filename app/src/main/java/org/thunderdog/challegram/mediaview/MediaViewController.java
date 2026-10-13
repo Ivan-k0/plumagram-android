@@ -7381,6 +7381,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           tgx101PaintTools.setListener(new org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView.Listener() {
             @Override
             public void onToolSelected (int tool, int paintMode, int brushStyle) {
+              if (paintView != null) paintView.getContentWrap().deselectShape();
               PaintMode.brushStyle = brushStyle;
               setPaintType(paintMode, true);
               tgx101RestoreToolSize(tool);
@@ -7391,9 +7392,19 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
             @Override
             public void onShapePickerRequested (View anchor) {
-              showOptions(Lang.getString(R.string.Tgx101PaintShape), new int[] {R.id.paint_mode_rect, R.id.btn_tgx101PaintEllipse, R.id.btn_tgx101PaintLine, R.id.paint_mode_arrow},
-                new String[] {Lang.getString(R.string.PaintModeRect), Lang.getString(R.string.Tgx101PaintEllipse), Lang.getString(R.string.Tgx101PaintLine), Lang.getString(R.string.PaintModeArrow)},
-                null, new int[] {R.drawable.baseline_crop_square_24, R.drawable.tgx101_baseline_oval_24, R.drawable.tgx101_baseline_line_24, R.drawable.baseline_arrow_upward_24}, (itemView, id) -> {
+              showOptions(Lang.getString(R.string.Tgx101PaintShape), new int[] {R.id.paint_mode_rect, R.id.btn_tgx101PaintEllipse, R.id.btn_tgx101PaintLine, R.id.paint_mode_arrow, R.id.btn_tgx101PaintFill},
+                new String[] {Lang.getString(R.string.PaintModeRect), Lang.getString(R.string.Tgx101PaintEllipse), Lang.getString(R.string.Tgx101PaintLine), Lang.getString(R.string.PaintModeArrow), Lang.getString(PaintMode.shapeFill ? R.string.Tgx101PaintFillOff : R.string.Tgx101PaintFillOn)},
+                null, new int[] {R.drawable.baseline_crop_square_24, R.drawable.tgx101_baseline_oval_24, R.drawable.tgx101_baseline_line_24, R.drawable.baseline_arrow_upward_24, R.drawable.baseline_format_color_fill_24}, (itemView, id) -> {
+                  if (id == R.id.btn_tgx101PaintFill) {
+                    // TGx101: rectangles and ovals filled with the colour — the next ones and the one picked now
+                    PaintMode.shapeFill = !PaintMode.shapeFill;
+                    org.thunderdog.challegram.mediaview.paint.SimpleDrawing picked = paintView != null ? paintView.getContentWrap().getSelectedShape() : null;
+                    if (picked != null) {
+                      picked.setFilled(PaintMode.shapeFill);
+                      currentPaintState.notifySimpleDrawingChanged();
+                    }
+                    return true;
+                  }
                   int mode;
                   if (id == R.id.btn_tgx101PaintEllipse) mode = PaintMode.ELLIPSE;
                   else if (id == R.id.btn_tgx101PaintLine) mode = PaintMode.LINE;
@@ -8349,11 +8360,17 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
     if (paintView != null) {
       paintView.getContentWrap().setBrushParameters(v.getBrushColor(), v.getBrushRadius(getBrushScale()));
+      org.thunderdog.challegram.mediaview.paint.SimpleDrawing shape = paintView.getContentWrap().getSelectedShape();
+      if (shape != null && !tgx101ApplyingToolSize) {
+        shape.setBrushParameters(v.getBrushColor(), v.getBrushRadius(getBrushScale())); // the picked shape takes the new colour / thickness
+        currentPaintState.notifySimpleDrawingChanged();
+      }
     }
   }
 
   private boolean undoAllPaintActions () {
     if (paintView != null && !paintView.getContentWrap().isBusy()) {
+      paintView.getContentWrap().deselectShape();
       currentPaintState.undoAllActions();
       return true;
     }
@@ -8362,6 +8379,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private void undoLastPaintAction () {
     if (paintView != null && !paintView.getContentWrap().isBusy()) {
+      paintView.getContentWrap().deselectShape();
       currentPaintState.undoLastAction();
     }
   }
@@ -8702,6 +8720,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
     mediaView.getBaseCell().getDetector().preparePositionReset();
 
+    if (fromSection == SECTION_PAINT && paintView != null) {
+      paintView.getContentWrap().deselectShape(); // TGx101: no shape dots outside the brush
+    }
     prepareSectionToHide(fromSection);
     prepareSectionToShow(section);
 

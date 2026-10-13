@@ -377,6 +377,10 @@ public class PaintState {
     notifySimpleDrawingChanged();
   }
 
+  public boolean contains (SimpleDrawing drawing) {
+    return drawingsList != null && drawingsList.contains(drawing);
+  }
+
   public void trackSimpleDrawingAction (SimpleDrawing drawing) {
     trackAction(new PaintAction(PaintAction.SIMPLE_DRAWING, drawing));
   }

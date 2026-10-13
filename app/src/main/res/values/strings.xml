@@ -6789,6 +6789,8 @@
   <string name="Tgx101PaintStrength">Strength</string>
   <string name="Tgx101PaintEraser">Eraser</string>
   <string name="Tgx101PaintEllipse">Oval</string>
+  <string name="Tgx101PaintFillOn">Fill shapes</string>
+  <string name="Tgx101PaintFillOff">Outline only</string>
   <string name="Tgx101PaintLine">Line</string>
   <string name="Tgx101ShowAllChats">Show All chats</string>
   <string name="Tgx101DeleteForAll">Delete for everyone</string>

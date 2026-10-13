@@ -1506,6 +1506,7 @@
   <item name="btn_tgx101SavedTopic" type="id"/>
   <item name="btn_tgx101PaintEllipse" type="id"/>
   <item name="btn_tgx101PaintLine" type="id"/>
+  <item name="btn_tgx101PaintFill" type="id"/>
   <item name="btn_tgx101SavedByChats" type="id"/>
   <item name="btn_tgx101JumpToDate" type="id"/>
   <item name="btn_tgx101ChatProxy" type="id"/>

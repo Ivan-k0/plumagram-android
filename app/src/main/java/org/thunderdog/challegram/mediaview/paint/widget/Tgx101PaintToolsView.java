@@ -79,7 +79,7 @@ public class Tgx101PaintToolsView extends View {
         int i = indexAt(e.getX());
         if (i == TOOL_SHAPE && listener != null) {
           performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
-          select(TOOL_SHAPE, true);
+          if (selected != TOOL_SHAPE) select(TOOL_SHAPE, true); // already the shape: the shape just drawn stays picked (for «Fill»)
           listener.onShapePickerRequested(Tgx101PaintToolsView.this);
         }
       }

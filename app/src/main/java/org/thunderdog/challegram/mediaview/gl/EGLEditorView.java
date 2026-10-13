@@ -37,9 +37,11 @@ import org.thunderdog.challegram.mediaview.paint.PaintState;
 import org.thunderdog.challegram.mediaview.paint.SimpleDrawing;
 import org.thunderdog.challegram.mediaview.paint.widget.SimpleDrawingView;
 import org.thunderdog.challegram.tool.Paints;
+import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.tool.UI;
 
 import me.vkryl.android.widget.FrameLayoutFix;
+import me.vkryl.core.MathUtils;
 
 public class EGLEditorView extends ViewGroup {
   private SimpleDrawingView paintView;
@@ -531,6 +533,10 @@ public class EGLEditorView extends ViewGroup {
         needZoomCancel = false;
       }
 
+      if (tgx101HandleShapeTouch(e)) {
+        return true;
+      }
+
       if (action != MotionEvent.ACTION_DOWN && effectiveMode == PaintMode.NONE) {
         return false;
       }
@@ -602,7 +608,9 @@ public class EGLEditorView extends ViewGroup {
         default:
           return false;
       }
+      deselectShape();
       SimpleDrawing drawing = new SimpleDrawing(type, canvasWidth, canvasHeight, 1f, parent.sourceCropState != null ? parent.sourceCropState.getDegreesAroundCenter() : 0f);
+      if (PaintMode.shapeFill) drawing.setFilled(true); // rectangles and ovals only
       if (type == SimpleDrawing.TYPE_PATH) drawing.setStyle(PaintMode.brushStyle); // TGx101: pen / marker / pencil / neon / arrow / eraser
       drawing.startDrawing(e);
       // a pixel blur keeps its strength where a colour would be
@@ -636,6 +644,7 @@ public class EGLEditorView extends ViewGroup {
         case PaintMode.PATH: {
           if (currentSimpleDrawing.completeDrawing(e, byPinch)) {
             state.trackSimpleDrawingAction(currentSimpleDrawing);
+            tgx101SelectIfShape(currentSimpleDrawing);
           } else {
             state.removeSimpleDrawing(currentSimpleDrawing);
           }
@@ -648,6 +657,241 @@ public class EGLEditorView extends ViewGroup {
 
     public boolean isBusy () {
       return effectiveMode != PaintMode.NONE;
+    }
+
+    // TGx101 (user 2026-10-13, editor mockup: «появляется фигура с белыми точками»): the shape just drawn stays picked —
+    // white dots on its corners (resize), a dot over it to turn it (rectangle, oval), dots on the ends of a line or an
+    // arrow; drag inside to move it. Touching anywhere else lets it go and draws as usual. Only the shape drawn now —
+    // the shapes of an earlier pass are shared with the state the editor can go back to.
+    private static final int HANDLE_NONE = -1, HANDLE_MOVE = 0, HANDLE_CORNER = 1, HANDLE_END1 = 5, HANDLE_END2 = 6, HANDLE_ROTATE = 7;
+    private SimpleDrawing selectedShape;
+    private int shapeHandle = HANDLE_NONE;
+    private float shapeDownX, shapeDownY, shapeAnchorX, shapeAnchorY;
+    private float shapeX1, shapeY1, shapeX2, shapeY2;
+    private final android.graphics.Paint handlePaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+    private final android.graphics.Paint framePaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+    private final float[] pts = new float[2];
+
+    public interface ShapeSelectionListener {
+      void onShapeSelectionChanged (@Nullable SimpleDrawing shape);
+    }
+
+    private ShapeSelectionListener shapeSelectionListener;
+
+    public void setShapeSelectionListener (ShapeSelectionListener listener) {
+      this.shapeSelectionListener = listener;
+    }
+
+    public @Nullable SimpleDrawing getSelectedShape () {
+      return selectedShape;
+    }
+
+    public void deselectShape () {
+      if (selectedShape != null) {
+        selectedShape = null;
+        shapeHandle = HANDLE_NONE;
+        invalidate();
+        if (shapeSelectionListener != null) shapeSelectionListener.onShapeSelectionChanged(null);
+      }
+    }
+
+    private void tgx101SelectIfShape (SimpleDrawing drawing) {
+      if (!drawing.isEditableShape()) return;
+      float w = getMeasuredWidth(), h = getMeasuredHeight();
+      float dx = Math.abs(drawing.getX2() - drawing.getX1()) * w, dy = Math.abs(drawing.getY2() - drawing.getY1()) * h;
+      if (Math.max(dx, dy) < Screen.dp(12f)) return; // a tap, not a shape
+      selectedShape = drawing;
+      shapeHandle = HANDLE_NONE;
+      invalidate();
+      if (shapeSelectionListener != null) shapeSelectionListener.onShapeSelectionChanged(drawing);
+    }
+
+    private boolean isShapeStillThere () {
+      if (selectedShape == null) return false;
+      if (state == null || !state.contains(selectedShape)) {
+        deselectShape(); // undone / cleared
+        return false;
+      }
+      return true;
+    }
+
+    // Geometry in this view's pixels: the unturned box, its centre and the turn around it
+
+    private float cx () { return (selectedShape.getX1() + selectedShape.getX2()) / 2f * getMeasuredWidth(); }
+    private float cy () { return (selectedShape.getY1() + selectedShape.getY2()) / 2f * getMeasuredHeight(); }
+    private float hw () { return Math.abs(selectedShape.getX2() - selectedShape.getX1()) / 2f * getMeasuredWidth(); }
+    private float hh () { return Math.abs(selectedShape.getY2() - selectedShape.getY1()) / 2f * getMeasuredHeight(); }
+
+    /** A point of the shape's own frame (from its centre, unturned) on the screen → pts */
+    private void toWorld (float lx, float ly) {
+      double a = Math.toRadians(selectedShape.getRotation());
+      float cos = (float) Math.cos(a), sin = (float) Math.sin(a);
+      pts[0] = cx() + lx * cos - ly * sin;
+      pts[1] = cy() + lx * sin + ly * cos;
+    }
+
+    /** A screen point → the shape's own frame → pts */
+    private void toLocal (float x, float y) {
+      double a = Math.toRadians(-selectedShape.getRotation());
+      float cos = (float) Math.cos(a), sin = (float) Math.sin(a);
+      float dx = x - cx(), dy = y - cy();
+      pts[0] = dx * cos - dy * sin;
+      pts[1] = dx * sin + dy * cos;
+    }
+
+    private static final float[][] CORNERS = {{-1, -1}, {1, -1}, {1, 1}, {-1, 1}};
+
+    private float rotateHandleOffset () {
+      return hh() + Screen.dp(30f);
+    }
+
+    private int findHandle (float x, float y) {
+      float slop = Screen.dp(24f);
+      SimpleDrawing shape = selectedShape;
+      float w = getMeasuredWidth(), h = getMeasuredHeight();
+      if (shape.getType() == SimpleDrawing.TYPE_LINE || shape.getType() == SimpleDrawing.TYPE_ARROW) {
+        float x1 = shape.getX1() * w, y1 = shape.getY1() * h, x2 = shape.getX2() * w, y2 = shape.getY2() * h;
+        if (MathUtils.distance(x, y, x2, y2) <= slop) return HANDLE_END2;
+        if (MathUtils.distance(x, y, x1, y1) <= slop) return HANDLE_END1;
+        // near the line itself: move
+        float len2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+        float t = len2 == 0 ? 0 : Math.max(0, Math.min(1, ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / len2));
+        float px = x1 + t * (x2 - x1), py = y1 + t * (y2 - y1);
+        return MathUtils.distance(x, y, px, py) <= slop ? HANDLE_MOVE : HANDLE_NONE;
+      }
+      if (shape.canRotate()) {
+        toWorld(0, -rotateHandleOffset());
+        if (MathUtils.distance(x, y, pts[0], pts[1]) <= slop) return HANDLE_ROTATE;
+      }
+      float hw = hw(), hh = hh();
+      for (int i = 0; i < 4; i++) {
+        toWorld(CORNERS[i][0] * hw, CORNERS[i][1] * hh);
+        if (MathUtils.distance(x, y, pts[0], pts[1]) <= slop) return HANDLE_CORNER + i;
+      }
+      toLocal(x, y);
+      return Math.abs(pts[0]) <= hw + slop / 2f && Math.abs(pts[1]) <= hh + slop / 2f ? HANDLE_MOVE : HANDLE_NONE;
+    }
+
+    private boolean tgx101HandleShapeTouch (MotionEvent e) {
+      int action = e.getActionMasked();
+      if (action == MotionEvent.ACTION_DOWN) {
+        shapeHandle = HANDLE_NONE;
+        if (!paintingEnabled || !isShapeStillThere() || e.getPointerCount() > 1) return false;
+        int handle = findHandle(e.getX(), e.getY());
+        if (handle == HANDLE_NONE) {
+          deselectShape(); // and draw as usual
+          return false;
+        }
+        shapeHandle = handle;
+        shapeDownX = e.getX();
+        shapeDownY = e.getY();
+        shapeX1 = selectedShape.getX1(); shapeY1 = selectedShape.getY1();
+        shapeX2 = selectedShape.getX2(); shapeY2 = selectedShape.getY2();
+        if (handle >= HANDLE_CORNER && handle < HANDLE_CORNER + 4) {
+          int opposite = (handle - HANDLE_CORNER + 2) % 4;
+          toWorld(CORNERS[opposite][0] * hw(), CORNERS[opposite][1] * hh());
+          shapeAnchorX = pts[0];
+          shapeAnchorY = pts[1];
+        }
+        if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+        setEffectiveMode(paintingMode); // the controls step aside as while drawing
+        invalidate();
+        return true;
+      }
+      if (shapeHandle == HANDLE_NONE) return false;
+      if (action == MotionEvent.ACTION_POINTER_DOWN) {
+        return true; // a second finger doesn't zoom in the middle of an edit
+      }
+      float w = getMeasuredWidth(), h = getMeasuredHeight();
+      if (w == 0 || h == 0) return true;
+      float x = e.getX(), y = e.getY();
+      switch (action) {
+        case MotionEvent.ACTION_MOVE: {
+          SimpleDrawing shape = selectedShape;
+          if (shape == null) break;
+          switch (shapeHandle) {
+            case HANDLE_MOVE: {
+              float dx = (x - shapeDownX) / w, dy = (y - shapeDownY) / h;
+              shape.setPoints(shapeX1 + dx, shapeY1 + dy, shapeX2 + dx, shapeY2 + dy);
+              break;
+            }
+            case HANDLE_END1:
+              shape.setPoints(x / w, y / h, shapeX2, shapeY2);
+              break;
+            case HANDLE_END2:
+              shape.setPoints(shapeX1, shapeY1, x / w, y / h);
+              break;
+            case HANDLE_ROTATE: {
+              float deg = (float) Math.toDegrees(Math.atan2(y - cy(), x - cx())) + 90f;
+              deg = ((deg % 360f) + 360f) % 360f;
+              float snap = Math.round(deg / 45f) * 45f;
+              if (Math.abs(deg - snap) < 4f) deg = snap; // straight and diagonal stick a little
+              if (deg >= 360f) deg -= 360f;
+              shape.setRotation(deg);
+              break;
+            }
+            default: { // a corner: the opposite corner stays where it is
+              float ncx = (x + shapeAnchorX) / 2f, ncy = (y + shapeAnchorY) / 2f;
+              double a = Math.toRadians(-shape.getRotation());
+              float cos = (float) Math.cos(a), sin = (float) Math.sin(a);
+              float vx = x - shapeAnchorX, vy = y - shapeAnchorY;
+              float lw = Math.abs(vx * cos - vy * sin) / 2f, lh = Math.abs(vx * sin + vy * cos) / 2f;
+              shape.setPoints((ncx - lw) / w, (ncy - lh) / h, (ncx + lw) / w, (ncy + lh) / h);
+              break;
+            }
+          }
+          invalidate();
+          break;
+        }
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL: {
+          shapeHandle = HANDLE_NONE;
+          setEffectiveMode(PaintMode.NONE);
+          if (state != null) state.notifySimpleDrawingChanged();
+          invalidate();
+          break;
+        }
+      }
+      return true;
+    }
+
+    @Override
+    protected void dispatchDraw (android.graphics.Canvas c) {
+      super.dispatchDraw(c);
+      if (selectedShape == null) return;
+      float w = getMeasuredWidth(), h = getMeasuredHeight();
+      float r = Screen.dp(7f);
+      handlePaint.setStyle(android.graphics.Paint.Style.FILL);
+      handlePaint.setColor(0xffffffff);
+      handlePaint.setShadowLayer(Screen.dp(2f), 0, Screen.dp(.5f), 0x80000000);
+      framePaint.setStyle(android.graphics.Paint.Style.STROKE);
+      framePaint.setStrokeWidth(Screen.dp(1f));
+      framePaint.setColor(0xccffffff);
+      framePaint.setPathEffect(new android.graphics.DashPathEffect(new float[] {Screen.dp(4f), Screen.dp(3f)}, 0));
+      SimpleDrawing shape = selectedShape;
+      if (shape.getType() == SimpleDrawing.TYPE_LINE || shape.getType() == SimpleDrawing.TYPE_ARROW) {
+        c.drawCircle(shape.getX1() * w, shape.getY1() * h, r, handlePaint);
+        c.drawCircle(shape.getX2() * w, shape.getY2() * h, r, handlePaint);
+        return;
+      }
+      c.save();
+      c.rotate(shape.getRotation(), cx(), cy());
+      float hw = hw(), hh = hh(), x0 = cx(), y0 = cy();
+      c.drawRect(x0 - hw, y0 - hh, x0 + hw, y0 + hh, framePaint);
+      for (float[] k : CORNERS) {
+        c.drawCircle(x0 + k[0] * hw, y0 + k[1] * hh, r, handlePaint);
+      }
+      if (shape.canRotate()) {
+        framePaint.setPathEffect(null);
+        c.drawLine(x0, y0 - hh, x0, y0 - rotateHandleOffset() + r, framePaint);
+        c.drawCircle(x0, y0 - rotateHandleOffset(), r, handlePaint);
+        // the turn arrow inside the dot
+        framePaint.setColor(0xff3d8fd8);
+        framePaint.setStrokeWidth(Screen.dp(1.5f));
+        android.graphics.RectF arc = new android.graphics.RectF(x0 - r * .55f, y0 - rotateHandleOffset() - r * .55f, x0 + r * .55f, y0 - rotateHandleOffset() + r * .55f);
+        c.drawArc(arc, -60f, 270f, false, framePaint);
+      }
+      c.restore();
     }
 
     private boolean scheduled;
