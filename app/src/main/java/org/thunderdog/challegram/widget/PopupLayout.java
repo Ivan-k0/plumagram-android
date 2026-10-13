@@ -516,17 +516,21 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     }
 
     animationType = ANIMATION_TYPE_SIMPLE;
-    // TGx101: a sheet opened from the message menu takes over the menu's dim / blur (see tgx101HandOffDim)
-    View ghost = tgx101Ghost != null ? tgx101Ghost.get() : null;
-    if (ghost != null && !tgx101GhostClaimed && ghost.getParent() != null) {
-      tgx101GhostClaimed = true;
-      tgx101OwnGhost = ghost;
-      if (backgroundView != null && ghost.getBackground() instanceof org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable) {
-        backgroundView.tgx101Blur = ((org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable) ghost.getBackground()).copy(); // the very same picture
+    // TGx101: a sheet opened from the message menu takes over the menu's dim / blur (see tgx101HandOff)
+    PopupLayout from = tgx101HandoffFrom != null ? tgx101HandoffFrom.get() : null;
+    boolean blurOn = org.thunderdog.challegram.unsorted.Settings.instance().tgx101MenuBlur();
+    if (from != null && !tgx101HandoffClaimed && !from.isDismissed) {
+      tgx101HandoffClaimed = true;
+      tgx101From = from;
+      if (backgroundView != null && from.tgx101Background instanceof org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable) {
+        backgroundView.tgx101Blur = ((org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable) from.tgx101Background).copy(); // the very same picture
       }
+      tgx101SystemBlur = from.tgx101SystemBlur && !needRootInsets;
+    } else if (blurOn && !needRootInsets && tgx101SystemBlurAvailable(getContext())) {
+      tgx101SystemBlur = true; // a window of its own: the system blurs everything behind it, the keyboard too
     } else
     // TGx101 (variant 3): with MagiX «Blur» on, a sheet blurs the screen behind it like the message menu does
-    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101MenuBlur() && getContext() instanceof android.app.Activity && backgroundView != null) {
+    if (blurOn && getContext() instanceof android.app.Activity && backgroundView != null) {
       android.graphics.Bitmap blur = org.thunderdog.challegram.ui.Tgx101MessageMenu.blurredScreen((android.app.Activity) getContext(), 0x26000000);
       backgroundView.tgx101Blur = blur != null ? new org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable(blur, org.thunderdog.challegram.ui.Tgx101MessageMenu.imeHeight((android.app.Activity) getContext()), 0x26000000) : null;
     }
@@ -539,68 +543,110 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     return boundView;
   }
 
-  // TGx101 (user 2026-10-12 21:10 «что с размытием что без такого быть не должно. Переход должен быть бесшовный»): a
-  // menu action that opens a sheet («Delete?», «Share») closed the menu with its dim at once and the sheet then dimmed
-  // the screen again from zero — a flash of the bare chat in between. Now the menu leaves its dim / blur behind as a
-  // layer over the chat: a sheet opened right away melts it into its own dim; with no sheet it fades out by itself
-  private static @Nullable java.lang.ref.WeakReference<View> tgx101Ghost;
-  private static boolean tgx101GhostClaimed;
-  private @Nullable View tgx101OwnGhost;
+  // TGx101 (user 2026-10-12 21:10 «что с размытием что без такого быть не должно. Переход должен быть бесшовный»; video
+  // 2026-10-13 12:15 «ты не убрал мигание»): a menu action that opens a sheet («Delete?», «Share») closed the menu with
+  // its dim at once and the sheet dimmed the screen again from zero. Now the menu window stays (its card hidden) until the
+  // sheet comes: its dim / blur melts into the sheet's, then it goes. With no sheet it fades out by itself
+  private static @Nullable java.lang.ref.WeakReference<PopupLayout> tgx101HandoffFrom;
+  private static boolean tgx101HandoffClaimed;
+  private @Nullable PopupLayout tgx101From;
+  /** What dims the screen behind this popup (the message menu sets it), for the sheet that takes over */
+  public @Nullable android.graphics.drawable.Drawable tgx101Background;
 
-  public static void tgx101HandOffDim (Context context, @Nullable android.graphics.drawable.Drawable menuBackground) {
-    tgx101RemoveGhost(tgx101Ghost != null ? tgx101Ghost.get() : null);
-    if (menuBackground == null || menuBackground.getAlpha() == 0) {
-      return;
-    }
-    BaseActivity activity = UI.getContext(context);
-    View ghost = new View(activity);
-    if (menuBackground instanceof org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable) {
-      ghost.setBackground(((org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable) menuBackground).copy());
-    } else {
-      ghost.setBackgroundColor(org.thunderdog.challegram.ui.Tgx101MessageMenu.MENU_DIM);
-    }
-    ghost.setAlpha(menuBackground.getAlpha() / 255f);
-    ghost.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-    activity.addToRoot(ghost, true);
-    tgx101Ghost = new java.lang.ref.WeakReference<>(ghost);
-    tgx101GhostClaimed = false;
+  public static void tgx101HandOff (PopupLayout menu) {
+    tgx101HandoffFrom = new java.lang.ref.WeakReference<>(menu);
+    tgx101HandoffClaimed = false;
   }
 
-  /** After the menu action ran: no sheet took the dim — it fades out like the menu's own */
+  /** After the menu action ran: no sheet took over — the menu's dim fades out and the menu goes */
   public static void tgx101ReleaseDim () {
-    View ghost = tgx101Ghost != null ? tgx101Ghost.get() : null;
-    if (ghost == null || tgx101GhostClaimed) {
+    PopupLayout menu = tgx101HandoffFrom != null ? tgx101HandoffFrom.get() : null;
+    if (menu == null || tgx101HandoffClaimed) {
       return;
     }
-    tgx101Ghost = null;
-    ghost.animate().alpha(0f).setDuration(180).setInterpolator(new android.view.animation.AccelerateInterpolator())
-      .withEndAction(() -> tgx101RemoveGhost(ghost)).start();
+    tgx101HandoffFrom = null;
+    android.animation.ValueAnimator fade = android.animation.ValueAnimator.ofFloat(1f, 0f);
+    fade.setDuration(180);
+    fade.setInterpolator(new android.view.animation.AccelerateInterpolator());
+    fade.addUpdateListener(a -> menu.tgx101SetDimFactor((float) a.getAnimatedValue()));
+    fade.addListener(new AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd (Animator animation) {
+        menu.hideWindow(false);
+      }
+    });
+    fade.start();
   }
 
-  private static void tgx101RemoveGhost (@Nullable View ghost) {
-    if (ghost == null) {
-      return;
+  /** 0…1: how much of the menu's dim / blur is still there */
+  public void tgx101SetDimFactor (float factor) {
+    if (tgx101Background != null) {
+      tgx101Background.setAlpha(Math.round(255 * factor));
     }
-    if (tgx101Ghost != null && tgx101Ghost.get() == ghost) {
-      tgx101Ghost = null;
-    }
-    ghost.animate().cancel();
-    if (ghost.getParent() != null) {
-      UI.getContext(ghost.getContext()).removeFromRoot(ghost);
-    }
+    tgx101SetBlurFactor(factor);
   }
 
-  private void tgx101UpdateGhost (float factor) {
-    if (tgx101OwnGhost == null) {
+  private void tgx101UpdateHandoff (float factor) {
+    if (tgx101From == null) {
       return;
     }
     if (factor >= 1f) {
-      tgx101RemoveGhost(tgx101OwnGhost);
-      tgx101OwnGhost = null;
+      PopupLayout from = tgx101From;
+      tgx101From = null;
+      if (tgx101HandoffFrom != null && tgx101HandoffFrom.get() == from) tgx101HandoffFrom = null;
+      from.hideWindow(false);
     } else if (backgroundView != null && backgroundView.tgx101Blur == null) {
-      // the menu's 30 % melts into the sheet's 20 % — the darkness only goes down, never through zero
-      tgx101OwnGhost.setAlpha(Math.min(tgx101OwnGhost.getAlpha(), 1f - factor));
-    } // blur: the sheet fades in the same picture over it, the layer goes once it is fully covered
+      // the menu's dim melts into the sheet's — the darkness only goes down, never through zero
+      from().tgx101SetDimFactor(1f - factor);
+    } // the same blurred picture: the sheet fades it in over the menu's, the menu goes once it is fully covered
+  }
+
+  private PopupLayout from () {
+    return tgx101From;
+  }
+
+  // System blur behind a window of its own (Android 12+): the only way to blur the keyboard as well — a picture of the
+  // window can't have it (user 2026-10-13 «клавиатура должна быть заблюрена как и чат»)
+  private boolean tgx101SystemBlur;
+  private int tgx101LastBlurRadius = -1;
+
+  public static boolean tgx101SystemBlurAvailable (Context context) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false;
+    WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+    return wm != null && wm.isCrossWindowBlurEnabled();
+  }
+
+  public void tgx101SetSystemBlur (boolean systemBlur) {
+    this.tgx101SystemBlur = systemBlur;
+  }
+
+  public boolean tgx101HasSystemBlur () {
+    return tgx101SystemBlur;
+  }
+
+  /** 0…1: the system blur behind this window follows its dim */
+  public void tgx101SetBlurFactor (float factor) {
+    if (!tgx101SystemBlur || Build.VERSION.SDK_INT < Build.VERSION_CODES.S || window == null || !window.isShowing()) {
+      return;
+    }
+    int radius = Math.round(Screen.dp(18f) * Math.max(0f, Math.min(1f, factor)));
+    if (radius == tgx101LastBlurRadius) {
+      return;
+    }
+    tgx101LastBlurRadius = radius;
+    try {
+      View rootView = window.getContentView().getRootView();
+      WindowManager.LayoutParams lp = (WindowManager.LayoutParams) rootView.getLayoutParams();
+      if (radius > 0) {
+        lp.flags |= WindowManager.LayoutParams.FLAG_BLUR_BEHIND;
+      } else {
+        lp.flags &= ~WindowManager.LayoutParams.FLAG_BLUR_BEHIND;
+      }
+      lp.setBlurBehindRadius(radius);
+      UI.getContext(getContext()).getWindowManager().updateViewLayout(rootView, lp);
+    } catch (Throwable t) {
+      Log.e("TGx101 blur behind", t);
+    }
   }
 
   public void showMoreView (MenuMoreWrapAbstract menuWrap) {
@@ -716,9 +762,10 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     }
 
     isHidden = true;
-    if (tgx101OwnGhost != null) { // closed before it finished coming in: the menu's dim goes with it
-      tgx101RemoveGhost(tgx101OwnGhost);
-      tgx101OwnGhost = null;
+    if (tgx101From != null) { // closed before it finished coming in: the menu goes with it
+      PopupLayout from = tgx101From;
+      tgx101From = null;
+      from.hideWindow(false);
     }
 
     if (animated) {
@@ -991,7 +1038,10 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
         }
       }
       backgroundView.setAlpha(factor);
-      tgx101UpdateGhost(factor);
+      if (animationType == ANIMATION_TYPE_SIMPLE) {
+        tgx101SetBlurFactor(factor);
+      }
+      tgx101UpdateHandoff(factor);
     }
   }
 

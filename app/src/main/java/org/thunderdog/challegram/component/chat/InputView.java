@@ -246,6 +246,10 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
       setCustomInsertionActionModeCallback(new ActionMode.Callback() {
         @Override
         public boolean onCreateActionMode (ActionMode actionMode, Menu menu) {
+          if (android.os.SystemClock.uptimeMillis() < tgx101NoCursorMenuUntil) {
+            org.thunderdog.challegram.Tgx101Diag.mark("input: system insertion menu skipped — the tap only brought the keyboard back");
+            return false;
+          }
           currentActionMode = actionMode;
           tgx101LogActionMode("insertion");
           return true;
@@ -1025,7 +1029,30 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     }
   }
 
+  // TGx101 (user's log 2026-10-13 12:17:30 «фантомные появления ручек и системных выбрать, скопировать»): a tap on the
+  // field while the keyboard is away (emoji panel open) only brings the keyboard back — Android took it for a tap on the
+  // cursor and showed its handle with «Select / Select all». Like the official app: that tap shows neither
+  private long tgx101NoCursorMenuUntil;
+
+  private boolean tgx101ImeVisible () {
+    androidx.core.view.WindowInsetsCompat insets = androidx.core.view.ViewCompat.getRootWindowInsets(this);
+    return insets != null && insets.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime());
+  }
+
+  private void tgx101HideInsertionHandle () {
+    // turning the cursor off and on hides the insertion handle (and its menu) without touching focus or the keyboard
+    setCursorVisible(false);
+    setCursorVisible(true);
+  }
+
   private boolean tgx101SafetyTap (MotionEvent e) {
+    if (e.getActionMasked() == MotionEvent.ACTION_DOWN && !tgx101ImeVisible() && !hasSelection()) {
+      tgx101NoCursorMenuUntil = android.os.SystemClock.uptimeMillis() + 700;
+    }
+    if (e.getActionMasked() == MotionEvent.ACTION_UP && android.os.SystemClock.uptimeMillis() < tgx101NoCursorMenuUntil) {
+      post(this::tgx101HideInsertionHandle);
+      postDelayed(this::tgx101HideInsertionHandle, 150);
+    }
     if (e.getActionMasked() == MotionEvent.ACTION_DOWN || e.getActionMasked() == MotionEvent.ACTION_UP) {
       tgx101LastTouchAt = android.os.SystemClock.uptimeMillis();
       org.thunderdog.challegram.Tgx101Diag.mark("input: touch " + (e.getActionMasked() == MotionEvent.ACTION_DOWN ? "down" : "up") + " at " + Math.round(e.getX()) + "," + Math.round(e.getY()) + " (field " + getWidth() + "x" + getHeight() + ")");

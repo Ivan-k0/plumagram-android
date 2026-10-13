@@ -1965,6 +1965,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
           bottom = Math.max(bottom, rootInsets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom);
         }
         Views.setMargins(params, insets.left + gap, 0, insets.right + gap, bottom + gap + OptionsLayout.tgx101CardLift());
+        org.thunderdog.challegram.Tgx101Diag.mark("settings card: margins applied, bottom " + params.bottomMargin + " (nav " + bottom + ", lift " + OptionsLayout.tgx101CardLift() + ")");
         setBottomInset(0);
         return;
       }
@@ -1989,7 +1990,9 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     private final android.view.ViewOutlineProvider tgx101Outline = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ? new android.view.ViewOutlineProvider() {
       @Override
       public void getOutline (View view, android.graphics.Outline outline) {
-        outline.setRoundRect(0, tgx101CardTop(), view.getWidth(), view.getHeight(), Screen.dp(OptionsLayout.TGX101_CARD_RADIUS));
+        int top = tgx101CardTop();
+        outline.setRoundRect(0, top, view.getWidth(), view.getHeight(), Screen.dp(OptionsLayout.TGX101_CARD_RADIUS));
+        org.thunderdog.challegram.Tgx101Diag.mark("settings card: outline top " + top + " of " + view.getWidth() + "x" + view.getHeight() + ", list top " + (recyclerView != null ? recyclerView.getTop() : -1) + ", clip " + getClipToOutline());
       }
     } : null;
 

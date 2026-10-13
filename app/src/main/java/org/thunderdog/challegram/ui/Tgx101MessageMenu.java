@@ -502,15 +502,22 @@ public final class Tgx101MessageMenu {
     int cardEdgeGap = Math.max(overhang, Math.min(Screen.dp(52f), maxCardWidth - cardWidth + overhang));
 
     FrameLayout root = new FrameLayout(context);
-    // TGx101 (user 2026-10-06 12:05 «блюр слишком резко»): the blurred background fades in / out with the menu
-    final Drawable background = blurredBackground(c);
+    // TGx101 (user 2026-10-06 12:05 «блюр слишком резко»): the blurred background fades in / out with the menu.
+    // Over the keyboard (a window of its own) the system blurs what's behind, the keyboard too (user 2026-10-13)
+    final boolean systemBlur = tgx101OverKeyboard && Settings.instance().tgx101MenuBlur() && PopupLayout.tgx101SystemBlurAvailable(context);
+    popup.tgx101SetSystemBlur(systemBlur);
+    final Drawable background = systemBlur ? new android.graphics.drawable.ColorDrawable(0x33000000) : blurredBackground(c);
+    popup.tgx101Background = background;
     background.setAlpha(0);
     root.setBackground(background);
     host.background = background;
     android.animation.ValueAnimator fadeIn = android.animation.ValueAnimator.ofInt(0, 255);
     fadeIn.setDuration(220);
     fadeIn.setInterpolator(new android.view.animation.DecelerateInterpolator());
-    fadeIn.addUpdateListener(a -> background.setAlpha((int) a.getAnimatedValue()));
+    fadeIn.addUpdateListener(a -> {
+      background.setAlpha((int) a.getAnimatedValue());
+      popup.tgx101SetBlurFactor((int) a.getAnimatedValue() / 255f);
+    });
     fadeIn.start();
     root.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     root.setOnClickListener(v -> dismiss(host));
@@ -820,7 +827,10 @@ public final class Tgx101MessageMenu {
       android.animation.ValueAnimator fadeOut = android.animation.ValueAnimator.ofInt(255, 0);
       fadeOut.setDuration(180);
       fadeOut.setInterpolator(new android.view.animation.AccelerateInterpolator());
-      fadeOut.addUpdateListener(a -> background.setAlpha((int) a.getAnimatedValue()));
+      fadeOut.addUpdateListener(a -> {
+        background.setAlpha((int) a.getAnimatedValue());
+        host.popup.tgx101SetBlurFactor((int) a.getAnimatedValue() / 255f);
+      });
       fadeOut.addListener(new android.animation.AnimatorListenerAdapter() {
         @Override
         public void onAnimationEnd (android.animation.Animator animation) {
@@ -1163,9 +1173,13 @@ public final class Tgx101MessageMenu {
       // menu used to take down with it
       if (host.dismissing) return;
       host.dismissing = true;
-      // the dim stays: a sheet opened by the action takes it over, otherwise it fades out (user 2026-10-12 21:10)
-      PopupLayout.tgx101HandOffDim(context, host.background);
-      host.popup.hideWindow(false);
+      // the dim stays: the menu window (its card hidden at once) waits for a sheet opened by the action, which takes the
+      // dim over and then closes it; with no sheet it fades out (user 2026-10-12 21:10, 2026-10-13 12:15)
+      if (host.content != null) {
+        host.content.animate().cancel();
+        host.content.setVisibility(View.INVISIBLE);
+      }
+      PopupLayout.tgx101HandOff(host.popup);
       UI.post(() -> {
         delegate.onOptionItemPressed(v, v.getId());
         PopupLayout.tgx101ReleaseDim();
