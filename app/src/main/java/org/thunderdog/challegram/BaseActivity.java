@@ -1297,7 +1297,6 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   // TGx101 (user 2026-10-13 23:20, the rule): while the screen stays on the keyboard always comes back (another app,
   // the shade — however long); if the screen went off for more than 5 s it doesn't come back, the field sits at the
   // bottom. The screen's off / on moments come from the system; nothing runs in the background.
-  private static final long TGX101_SCREEN_OFF_KEEP = 5000;
   private long tgx101ScreenOffAt, tgx101ScreenOnAt;
   private boolean tgx101KeyboardRestoreBlocked;
   private final BroadcastReceiver tgx101ScreenReceiver = new BroadcastReceiver() {
