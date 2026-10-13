@@ -882,7 +882,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (tgx101Journal() && !isOutgoing()) return tgx101JournalEdgeToEdge() ? 0 : Screen.dp(6f); // «Journal»: equal gaps; photos edge to edge
     final int x;
     if (needAvatar() && !isOutgoing()) {
-      x = xBubbleLeft1 + Screen.dp(40f);
+      x = Screen.dp(8f) + Screen.dp(40f); // TGx101: beside an avatar the gap stays as it was (the edge gap grew to 12 dp)
     } else {
       x = Device.NEED_BIGGER_BUBBLE_OFFSETS ? xBubbleLeft2 : xBubbleLeft1;
     }
@@ -1258,7 +1258,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
     if (useBubbles()) {
       pRealContentX = computeBubbleLeft();
-      pRealContentMaxWidth = width - (Device.NEED_BIGGER_BUBBLE_OFFSETS ? xBubbleLeft2 : xBubbleLeft1) - computeBubbleLeft() - (Screen.dp(isThreadHeader() ? 8f : tgx101Feed() ? 16f : 56f));
+      pRealContentMaxWidth = width - (Device.NEED_BIGGER_BUBBLE_OFFSETS ? xBubbleLeft2 : xBubbleLeft1) - computeBubbleLeft() - (Screen.dp(isThreadHeader() ? 8f : tgx101Feed() ? 16f : 34f)); // TGx101: was 56 — bubbles as wide as exteraGram's
       if (tgx101Journal() && !isOutgoing()) {
         // user 2026-10-08 23:31 «текст в журнале не по центру»: the text block takes the card's whole inner width,
         // so the gaps on the left and on the right are the same
@@ -8304,14 +8304,16 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     xDatePadding = Screen.dp(40f);
     xDateTop = Screen.dp(26f);
 
-    xBubblePadding = Screen.dp(8f);
+    // TGx101 (user 2026-10-14, «Рома» side by side with exteraGram): its bubbles start 12 dp from the screen edge (ours 8),
+    // reach ~15 dp wider and keep ~14 dp inside (ours 11) — matched to it
+    xBubblePadding = Screen.dp(10f);
     xReactionBubblePadding = Screen.dp(10f);
     xReactionBubblePaddingTop = Screen.dp(9f);
     xReactionBubblePaddingBottom = Screen.dp(10f);
     xBubblePaddingSmall = Screen.dp(2f);
     xBubbleAvatarRadius = Screen.dp(BUBBLE_AVATAR_RADIUS);
-    xBubbleLeft1 = Screen.dp(8f);
-    xBubbleLeft2 = Screen.dp(9f);
+    xBubbleLeft1 = Screen.dp(12f);
+    xBubbleLeft2 = Screen.dp(12f);
     xBubbleAvatarLeft = Screen.dp(6f);
 
     xBubbleViewPadding = Screen.dp(3f);

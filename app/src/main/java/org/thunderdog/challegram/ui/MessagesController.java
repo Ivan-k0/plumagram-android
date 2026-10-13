@@ -10612,9 +10612,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   // TGx101: floating message field — a rounded capsule with a shadow; the bottom padding (gap) stays transparent
 
-  // user 2026-10-14 «поле ввода стыкуется с медиа… давай наоборот чуть уже, чем было»: its side edge was exactly the
-  // media's (10 dp) — 14 dp now, the field sits a little inside the media's edges
-  private static final float FLOATING_INPUT_SIDE = 14f, FLOATING_INPUT_BOTTOM = 8f, FLOATING_INPUT_RADIUS = 18f, FLOATING_INPUT_ALPHA = 1f; // see-through (.85) was tried: file icons and messages under it showed through, user rejected
+  // user 2026-10-14 («поле ввода стыкуется с медиа»; then «подгони поле тоже» to exteraGram): bubbles start 12 dp from
+  // the edge now, the field 8 dp — it reaches 4 dp past them, as in exteraGram
+  private static final float FLOATING_INPUT_SIDE = 8f, FLOATING_INPUT_BOTTOM = 8f, FLOATING_INPUT_RADIUS = 18f, FLOATING_INPUT_ALPHA = 1f; // see-through (.85) was tried: file icons and messages under it showed through, user rejected
   // TGx101 (user 2026-10-07 19:05, mockup «Поле-ввода-углы» variant В): corners like a message bubble (18), 65 % over a blur of
   // what's under the field on Android 12+; without the blur (older Android) the text under it would show through, so 90 % there
   private static final float FLOATING_INPUT_ALPHA_BLUR = .65f, FLOATING_INPUT_ALPHA_NO_BLUR = .9f, FLOATING_INPUT_BLUR_DP = 14f;
