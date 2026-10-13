@@ -1882,6 +1882,12 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   }
 
   private boolean tgx101EnterAfterScreenOff, tgx101RisePending;
+  private boolean tgx101Rising;
+
+  /** The window is scaling in after unlocking — on-screen positions of views are not their real ones */
+  public boolean tgx101IsRising () {
+    return tgx101Rising;
+  }
   private final Runnable tgx101RiseRunnable = this::tgx101Rise;
   private boolean tgx101RiseAfterKeyboard;
   private long tgx101KeyboardGoneAt;
@@ -1914,7 +1920,10 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     content.removeCallbacks(tgx101RiseRunnable);
     content.setPivotX(content.getWidth() / 2f);
     content.setPivotY(content.getHeight() / 2f);
+    tgx101Rising = true;
+    content.postDelayed(() -> tgx101Rising = false, 600); // never stuck if the animation is cut short
     content.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(240)
+      .withEndAction(() -> tgx101Rising = false)
       .setInterpolator(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ? new android.view.animation.PathInterpolator(.05f, .7f, .1f, 1f) : AnimatorUtils.DECELERATE_INTERPOLATOR)
       .start();
     Tgx101Diag.mark("open animation: own rise after unlock");
