@@ -8076,6 +8076,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     paintView.getContentWrap().setBrushParameters(colorPreviewView.getBrushColor(), colorPreviewView.getBrushRadius(getBrushScale()));
 
     paintView.reset(paintingItem.getSourceGalleryFile(), paintingWidth, paintingHeight, null, null, currentPaintState);
+    // TGx101: the pixel blur takes its squares from the photo on screen (the paint editor gets no bitmap of its own)
+    if (mediaView.getBaseReceiver() instanceof ImageReceiver) {
+      Bitmap shown = ((ImageReceiver) mediaView.getBaseReceiver()).getCurrentBitmap();
+      paintView.setMosaicSource(shown != null && !shown.isRecycled() ? shown : null);
+    }
     boolean changed = paintingItem.setPaintState(null, false);
 
     mediaView.getBaseCell().addView(paintView);

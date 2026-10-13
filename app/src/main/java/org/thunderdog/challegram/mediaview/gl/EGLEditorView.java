@@ -178,7 +178,7 @@ public class EGLEditorView extends ViewGroup {
         }
       }
       paintView = new SimpleDrawingView(getContext());
-      paintView.setMosaicSource(sourceBitmap); // TGx101: mosaic strokes take their squares from the photo
+      if (sourceBitmap != null) paintView.setMosaicSource(sourceBitmap); // TGx101: mosaic strokes take their squares from the photo
       paintView.setLayoutParams(FrameLayoutFix.newParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
       contentWrap.addView(paintView);
       contentWrap.setPaintingState(paintState);
@@ -380,6 +380,11 @@ public class EGLEditorView extends ViewGroup {
 
   private int sourceWidth, sourceHeight, sourceRotation;
 
+  /** TGx101: the photo under the drawings for mosaic strokes */
+  public void setMosaicSource (@Nullable Bitmap bitmap) {
+    if (paintView != null) paintView.setMosaicSource(bitmap);
+  }
+
   public void reset (ImageGalleryFile imageFile, int sourceWidth, int sourceHeight, @Nullable Bitmap bitmap, @Nullable FiltersState filtersState, @Nullable PaintState paintState) {
     this.sourceWidth = sourceWidth;
     this.sourceHeight = sourceHeight;
@@ -390,7 +395,7 @@ public class EGLEditorView extends ViewGroup {
       return;
     }
     this.sourceBitmap = bitmap;
-    if (paintView != null) paintView.setMosaicSource(bitmap);
+    if (paintView != null && bitmap != null) paintView.setMosaicSource(bitmap);
     this.currentFiltersState = filtersState;
     this.currentPaintState = paintState;
     this.currentFile = imageFile;
