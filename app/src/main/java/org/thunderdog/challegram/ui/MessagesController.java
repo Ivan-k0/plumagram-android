@@ -10991,6 +10991,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tgx101SetImeShift(0f);
       if (emojiShown) {
         hideSoftwareKeyboard();
+        if (inputView != null) inputView.tgx101HideCursorControls();
       }
       updateEmojiStatus();
       setTextFormattingLayoutVisible(textInputHasSelection);
