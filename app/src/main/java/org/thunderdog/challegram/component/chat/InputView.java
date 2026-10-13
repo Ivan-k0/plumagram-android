@@ -1045,6 +1045,29 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     setCursorVisible(true);
   }
 
+  // TGx101 (user's video 2026-10-13 12:33, 7,2 s «ручки прыгают по чату»): switching emoji ↔ keyboard, the layout under the
+  // field changes for a frame or two while the field itself stays where it is (the panel is as tall as the keyboard) —
+  // the cursor handle and its menu read that frame's position and flashed over the chat, a keyboard height higher. For the
+  // switch the field reports the place it really has on screen
+  private final int[] tgx101FrozenLocation = new int[2];
+  private long tgx101FrozenUntil;
+
+  public void tgx101FreezeLocation (long durationMs) {
+    if (!isAttachedToWindow()) return;
+    super.getLocationInWindow(tgx101FrozenLocation);
+    tgx101FrozenUntil = android.os.SystemClock.uptimeMillis() + durationMs;
+  }
+
+  @Override
+  public void getLocationInWindow (int[] outLocation) {
+    if (android.os.SystemClock.uptimeMillis() < tgx101FrozenUntil) {
+      outLocation[0] = tgx101FrozenLocation[0];
+      outLocation[1] = tgx101FrozenLocation[1];
+      return;
+    }
+    super.getLocationInWindow(outLocation);
+  }
+
   private boolean tgx101SafetyTap (MotionEvent e) {
     if (e.getActionMasked() == MotionEvent.ACTION_DOWN && !tgx101ImeVisible() && !hasSelection()) {
       tgx101NoCursorMenuUntil = android.os.SystemClock.uptimeMillis() + 700;
