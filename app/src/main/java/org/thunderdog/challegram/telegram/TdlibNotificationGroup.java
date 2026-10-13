@@ -121,8 +121,9 @@ public class TdlibNotificationGroup implements Iterable<TdlibNotification> {
   }
 
   public long findTargetMessageId () {
-    if (!isMention())
-      return 0;
+    // TGx101 (user 2026-10-13 «переход через любое уведомление должен вести к этому сообщению; если уведомлений от
+    // одного чата много — к первому непрочитанному»): not only mentions — the oldest message still notified about
+    // (read ones leave the notification) is the first unread one
     for (TdlibNotification notification : this) {
       long messageId = notification.findMessageId();
       if (messageId != 0)

@@ -472,6 +472,9 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
     AppState.initApplication();
     AppState.ensureReady();
+    Tgx101Diag.mark(savedInstanceState != null ? "start: restored after the system closed the app" : "start: cold");
+    tgx101RegisterScreenReceiver();
+    tgx101RestoredFade = savedInstanceState != null;
 
     RecaptchaProviderRegistry.setApplication(this.getApplication());
 
@@ -1281,14 +1284,79 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     // user 2026-10-06 19:37 («мигнуло всё приложение после разблокировки»): also when the app went to the background
     // unlocked and came back later — Android reopened the keyboard ~0.2 s after the first frame and the chat jumped
     tgx101PausedLockedAt = android.os.SystemClock.elapsedRealtime();
+    tgx101PausedAtForScreen = tgx101PausedLockedAt;
     tgx101PausedWhileLocked = locked;
+  }
+
+  private long tgx101PausedAtForScreen;
+
+  // TGx101 (user 2026-10-13 23:20, the rule): while the screen stays on the keyboard always comes back (another app,
+  // the shade — however long); if the screen went off for more than 5 s it doesn't come back, the field sits at the
+  // bottom. The screen's off / on moments come from the system; nothing runs in the background.
+  private static final long TGX101_SCREEN_OFF_KEEP = 5000;
+  private long tgx101ScreenOffAt, tgx101ScreenOnAt;
+  private boolean tgx101KeyboardRestoreBlocked;
+  private final BroadcastReceiver tgx101ScreenReceiver = new BroadcastReceiver() {
+    @Override
+    public void onReceive (Context context, Intent intent) {
+      String action = intent != null ? intent.getAction() : null;
+      long now = android.os.SystemClock.elapsedRealtime();
+      if (Intent.ACTION_SCREEN_OFF.equals(action)) {
+        tgx101ScreenOffAt = now;
+        Tgx101Diag.mark("screen off");
+      } else if (Intent.ACTION_SCREEN_ON.equals(action)) {
+        tgx101ScreenOnAt = now;
+        Tgx101Diag.mark("screen on" + (tgx101ScreenOffAt != 0 ? " after " + (now - tgx101ScreenOffAt) + " ms" : ""));
+      }
+    }
+  };
+
+  private void tgx101RegisterScreenReceiver () {
+    try {
+      IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
+      filter.addAction(Intent.ACTION_SCREEN_ON);
+      registerReceiver(tgx101ScreenReceiver, filter);
+    } catch (Throwable t) {
+      Log.w(t);
+    }
+  }
+
+  /** The chat's own «bring the keyboard back on resume» must not run this time */
+  // TGx101 (user 2026-10-13, п.4): the app comes back after the system closed it — the screen is built anew; it fades
+  // in over the window's background (180 ms) instead of popping up at once
+  private boolean tgx101RestoredFade;
+
+  private void tgx101FadeInRestored () {
+    if (!tgx101RestoredFade) return;
+    tgx101RestoredFade = false;
+    View content = findViewById(android.R.id.content);
+    if (content == null) return;
+    content.setAlpha(0f);
+    content.animate().alpha(1f).setDuration(180).setStartDelay(16).setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR).start();
+    Tgx101Diag.mark("start: restored screen fades in");
+  }
+
+  public boolean tgx101KeyboardRestoreBlocked () {
+    return tgx101KeyboardRestoreBlocked;
   }
 
   private void tgx101CheckKeyboardAfterLock () {
     if (tgx101PausedLockedAt == 0) return;
-    long idle = android.os.SystemClock.elapsedRealtime() - tgx101PausedLockedAt;
+    long now = android.os.SystemClock.elapsedRealtime();
+    long idle = now - tgx101PausedLockedAt;
     tgx101PausedLockedAt = 0;
-    if (idle < (tgx101PausedWhileLocked ? 2 * 60 * 1000L : 60 * 1000L)) return;
+    boolean keyboard = tgx101KeyboardAtPause;
+    // the screen went off while we were away (or right as we left) — for how long
+    boolean screenWentOff = tgx101ScreenOffAt != 0 && tgx101ScreenOffAt >= tgx101PausedAtForScreen - 1000;
+    long offFor = !screenWentOff ? 0 : (tgx101ScreenOnAt > tgx101ScreenOffAt ? tgx101ScreenOnAt : now) - tgx101ScreenOffAt;
+    Tgx101Diag.mark("resume: away " + idle + " ms, screen " + (screenWentOff ? "off " + offFor + " ms" : "stayed on") + ", keyboard at pause " + (keyboard ? "open" : "closed"));
+    if (!keyboard || !screenWentOff || offFor <= TGX101_SCREEN_OFF_KEEP) {
+      if (keyboard) Tgx101Diag.mark("keyboard: comes back");
+      return;
+    }
+    tgx101KeyboardAtPause = false; // nothing to wait for: no held frames
+    tgx101KeyboardRestoreBlocked = true;
+    getWindow().getDecorView().post(() -> tgx101KeyboardRestoreBlocked = false);
     // the activity resumes still behind the lock screen; Android shows the keyboard once the window gets focus after
     // unlocking — hide it then (first check on Xiaomi: hiding at resume came too early)
     tgx101HideKeyboardOnFocus = true;
@@ -1298,7 +1366,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     getWindow().setSoftInputMode((tgx101SavedSoftInput & ~android.view.WindowManager.LayoutParams.SOFT_INPUT_MASK_STATE) | android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     View focused = getCurrentFocus();
     if (focused != null) focused.clearFocus();
-    org.thunderdog.challegram.Tgx101Diag.mark("keyboard: kept hidden after lock (" + idle / 1000 + " s)");
+    org.thunderdog.challegram.Tgx101Diag.mark("keyboard: kept hidden (screen was off " + offFor / 1000 + " s)");
   }
 
   private boolean tgx101HideKeyboardOnFocus;
@@ -1327,7 +1395,8 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   public void onResume () {
     tgx101CheckHideNavigation(); // TGx101: never come back stuck without the status bar
     org.thunderdog.challegram.ui.Tgx101Proxies.onAppResumed(); // TGx101: back to the direct connection when it works
-    // tgx101CheckKeyboardAfterLock(); — off for now (user 2026-10-05 16:51)
+    tgx101CheckKeyboardAfterLock(); // TGx101: back on with the screen rule (user 2026-10-13)
+    tgx101FadeInRestored();
     tgx101HoldDrawForKeyboard();
     if (!tgx101HoldingDraw) {
       tgx101PlayEnter();
@@ -1408,6 +1477,9 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   @Override
   public void onDestroy () {
+    try {
+      unregisterReceiver(tgx101ScreenReceiver);
+    } catch (Throwable ignored) { }
     try {
       super.onDestroy();
     } catch (Throwable t) {

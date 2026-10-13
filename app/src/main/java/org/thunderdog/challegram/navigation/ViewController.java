@@ -3399,7 +3399,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
   @CallSuper
   public void onActivityResume () {
     if (lockFocusView != null && lockFocusView.isEnabled() && isPaused() && (flags & FLAG_KEYBOARD_SHOWN) == 0 && navigationController != null && !navigationController.isAnimating()) {
-      if (((flags & FLAG_LOCK_ALWAYS) != 0 || (flags & FLAG_KEYBOARD_STATE) != 0) && !context.isPasscodeShowing() && !context.isWindowPopupShowing()) {
+      if (((flags & FLAG_LOCK_ALWAYS) != 0 || (flags & FLAG_KEYBOARD_STATE) != 0) && !context.isPasscodeShowing() && !context.isWindowPopupShowing() && !context.tgx101KeyboardRestoreBlocked()) {
         setFlags(flags | FLAG_KEYBOARD_SHOWN);
         UI.showKeyboardDelayed(lockFocusView);
       } else {
