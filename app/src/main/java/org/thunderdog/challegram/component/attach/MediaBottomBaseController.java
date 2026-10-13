@@ -613,8 +613,7 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     return handleFling(toUp, 0f);
   }
 
-  /** TGx101 (user 2026-10-12 «второй режим лишний»): a flick up opens the sheet AND keeps scrolling the grid with
-   *  the rest of the flick — one gesture, no «expanded but not yet scrolling» stop */
+  /** TGx101 (user 2026-10-12 «второй режим лишний»): a flick up opens the sheet in one gesture; the grid itself stays put */
   public boolean handleFling (boolean toUp, float velocityY) {
     if (isMoving) {
       isMoving = false;
@@ -625,11 +624,9 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
       mediaLayout.prepareHeader();
       if (toUp) {
         if (canExpandHeight()) {
+          // (user 2026-10-12 21:56, exteraGram video «убери этот сдвиг вовсе»): the grid stays where it was — the rest of
+          // the flick no longer scrolls it on, the sheet only opens
           animateCurrentHeight(getMaxHeight(), false);
-          if (velocityY < 0f && recyclerView != null) {
-            final int v = Math.round(-velocityY * .7f);
-            recyclerView.post(() -> recyclerView.fling(0, v));
-          }
         } else {
           animateCurrentHeight(startHeight, true);
         }
