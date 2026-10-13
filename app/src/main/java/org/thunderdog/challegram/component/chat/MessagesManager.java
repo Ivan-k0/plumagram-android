@@ -2753,6 +2753,11 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     }
   }
 
+  /** A saved position was just restored and is still being held while pages load in around it */
+  public boolean tgx101IsRestoringPosition () {
+    return tgx101RestoreMessageId != 0 && android.os.SystemClock.uptimeMillis() <= tgx101RestoreUntil;
+  }
+
   private void tgx101ReaimRestore () {
     if (tgx101RestoreMessageId == 0) return;
     RecyclerView list = controller.getMessagesView();

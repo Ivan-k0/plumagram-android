@@ -10646,7 +10646,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     if (messagesView.getPaddingBottom() != padding) {
       // At the newest message? Stay there, otherwise it ends up under the capsule until the next layout
-      boolean atBottom = !messagesView.canScrollVertically(1);
+      // TGx101 (user's log 2026-10-13 11:34, «Не повредит, Одесса» drifted ~18 posts per visit): an empty list, or one
+      // not on screen yet, is not «at the newest» — the post below then ran on attach, after the position restore, and
+      // threw the channel to the bottom of the loaded page, which was saved as the new place
+      boolean atBottom = androidx.core.view.ViewCompat.isAttachedToWindow(messagesView) && messagesView.getAdapter() != null && messagesView.getAdapter().getItemCount() > 0
+        && !messagesView.canScrollVertically(1);
       org.thunderdog.challegram.Tgx101Diag.mark("floating input: list padding " + messagesView.getPaddingBottom() + " → " + padding + (atBottom ? " (at bottom)" : ""));
       messagesView.setClipToPadding(false);
       int delta = padding - messagesView.getPaddingBottom();
@@ -10654,7 +10658,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tgx101PaddingChanged = true;
       tgx101GlideList(delta);
       if (atBottom && !tgx101ImeMoving()) {
-        messagesView.post(() -> messagesView.scrollToPosition(0)); // reverse layout: 0 is the newest message
+        messagesView.post(() -> {
+          if (manager == null || !manager.tgx101IsRestoringPosition()) messagesView.scrollToPosition(0); // reverse layout: 0 is the newest message
+        });
       }
     }
   }
