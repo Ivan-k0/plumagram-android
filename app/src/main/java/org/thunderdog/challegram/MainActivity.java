@@ -1533,8 +1533,12 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
    * the window resumes (test 01:22: the old chat asked for its keyboard back on resume and it rose over the new chat).
    * The old chat's keyboard goes now and comes back when that chat is shown again.
    */
+  private int tgx101OldFieldTop;
+
   private boolean tgx101PrepareForChat (long chatId) {
     ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : null;
+    MessagesController shown = current instanceof MessagesController ? (MessagesController) current : getMessagesController(account.tdlib(), false);
+    tgx101OldFieldTop = shown != null && current != null && shown.getChatId() == current.getChatId() ? shown.tgx101FieldTopInWindow() : 0; // before the keyboard starts leaving
     long currentChatId = current != null ? current.getChatId() : 0; // (Saved Messages is a pager around its chat)
     Tgx101Diag.mark("notification → chat " + chatId + " over " + (current != null ? current.getClass().getSimpleName() + " of chat " + currentChatId : "nothing"));
     if (currentChatId == 0 || currentChatId == chatId) {
@@ -1616,9 +1620,21 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       try {
         final android.graphics.Bitmap shot = android.graphics.Bitmap.createBitmap(decor.getWidth() / 2, decor.getHeight() / 2, android.graphics.Bitmap.Config.ARGB_8888);
         android.view.PixelCopy.request(getWindow(), shot, result -> {
+          int background = org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.chatBackground);
           android.graphics.drawable.Drawable cover = result == android.view.PixelCopy.SUCCESS ?
             new android.graphics.drawable.BitmapDrawable(getResources(), shot) :
-            new android.graphics.drawable.ColorDrawable(org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.chatBackground));
+            new android.graphics.drawable.ColorDrawable(background);
+          // user 2026-10-14 «часть клавиатуры и поле ввода зависли в воздухе»: the picture is taken while the keyboard is
+          // leaving — the field still raised, the keyboard (another window) not in it. From the field's top down the
+          // picture is plain background; the keyboard slides away over it
+          final int fieldTop = tgx101OldFieldTop;
+          tgx101OldFieldTop = 0;
+          if (result == android.view.PixelCopy.SUCCESS && fieldTop > 0 && fieldTop < decor.getHeight()) {
+            android.graphics.drawable.ColorDrawable bottom = new android.graphics.drawable.ColorDrawable(background);
+            android.graphics.drawable.LayerDrawable layered = new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[] {cover, bottom});
+            layered.setLayerInset(1, 0, fieldTop, 0, 0);
+            cover = layered;
+          }
           Tgx101Diag.mark("notification → chat: cover " + (result == android.view.PixelCopy.SUCCESS ? "the old screen" : "background"));
           tgx101RunCover(decor, cover, chatId, open);
         }, handler);

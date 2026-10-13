@@ -4704,6 +4704,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // tdlib.context().changePreferredAccountId(tdlib.id(), TdlibManager.SWITCH_REASON_CHAT_FOCUS);
   }
 
+  /** TGx101: the top of the message field in the window (0 — none), for a notification's picture of this chat */
+  public int tgx101FieldTopInWindow () {
+    if (bottomWrap == null || bottomWrap.getVisibility() != View.VISIBLE || bottomWrap.getHeight() == 0) return 0;
+    int[] loc = new int[2];
+    bottomWrap.getLocationInWindow(loc);
+    return loc[1];
+  }
+
   /** TGx101: the chat has its messages laid out — a notification's cover can go */
   public boolean tgx101ReadyToShow () {
     return manager.getAdapter().getMessageCount() > 0;
