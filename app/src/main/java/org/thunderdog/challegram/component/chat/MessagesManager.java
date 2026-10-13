@@ -2082,9 +2082,18 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       boolean scrollToBottom = (message.isSending() || (atBottom && (!message.isOld() || message.isChatMember()))) && !message.isSponsoredMessage();
       // message.mergeWith(bottomMessage, true);
       if (scrollToBottom) {
+        // TGx101 (user 2026-10-13, two videos: exteraGram vs ours): the chat at the bottom jumped up by the new message
+        // in one frame — it glides there now, as the field does when a line is added
+        View oldBottomView = atBottom ? manager.findViewByPosition(0) : null;
+        TGMessage oldBottom = oldBottomView != null ? adapter.getMessage(0) : null;
+        int oldBottomTop = oldBottomView != null ? oldBottomView.getTop() : 0;
         boolean hasScrolled = adapter.addMessage(message, false, scrollToBottom);
-        if (!hasScrolled)
+        if (!hasScrolled) {
           scrollToBottom(false);
+          if (oldBottom != null) {
+            tgx101GlideToNewMessage(oldBottom.getId(), oldBottomTop);
+          }
+        }
         if (message.isSending()) {
           revokeReturnMessages();
         }
@@ -2113,6 +2122,36 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     } else if (message.isSending()) {
       loadFromStart();
     }
+  }
+
+  /**
+   * The list has just jumped to show a new message at the bottom: before that frame is drawn it's put back where it
+   * was and glides up by the same distance (160 ms, fast then soft — as exteraGram). Skipped while the keyboard rides
+   * or a saved position is being held; nothing changes on old Android except the curve.
+   */
+  private void tgx101GlideToNewMessage (long anchorId, int anchorTop) {
+    final RecyclerView list = controller.getMessagesView();
+    if (list == null || !list.isAttachedToWindow() || tgx101IsRestoringPosition() || controller.tgx101IsKeyboardRiding()) {
+      return;
+    }
+    list.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+      @Override
+      public boolean onPreDraw () {
+        list.getViewTreeObserver().removeOnPreDrawListener(this);
+        int index = adapter.indexOfMessageContainer(anchorId);
+        View view = index != -1 ? manager.findViewByPosition(index) : null;
+        if (view == null) return true;
+        int delta = anchorTop - view.getTop(); // how far the old bottom message jumped up
+        if (delta <= 0 || delta > list.getHeight()) return true;
+        list.stopScroll();
+        list.scrollBy(0, -delta); // back where it was (a scroll by dy raises the messages by dy)
+        android.view.animation.Interpolator curve = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP ?
+          new android.view.animation.PathInterpolator(.2f, 0f, 0f, 1f) : new android.view.animation.DecelerateInterpolator(1.5f);
+        list.smoothScrollBy(0, delta, curve, 160);
+        org.thunderdog.challegram.Tgx101Diag.mark("new message: chat glides up " + delta + " px");
+        return false;
+      }
+    });
   }
 
   private int getExtraScrollSpacing () {

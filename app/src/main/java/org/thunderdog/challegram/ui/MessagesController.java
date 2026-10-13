@@ -4712,6 +4712,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return loc[1];
   }
 
+  /** TGx101: the keyboard is sliding and the chat rides it */
+  public boolean tgx101IsKeyboardRiding () {
+    return tgx101ImeRiding;
+  }
+
   /** TGx101: the chat has its messages laid out — a notification's cover can go */
   public boolean tgx101ReadyToShow () {
     return manager.getAdapter().getMessageCount() > 0;
