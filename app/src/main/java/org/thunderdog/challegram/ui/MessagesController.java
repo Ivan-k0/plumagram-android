@@ -10810,10 +10810,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
         node.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(r, r, android.graphics.Shader.TileMode.CLAMP));
         this.node = node;
       }
-      node.setPosition(0, 0, w, h);
+      // user 2026-10-14 («эффект зеркала на поле — выглядит хорошо, если бы так было всегда»): the blur takes what's around
+      // the field too (a margin of two radii), not the edges of what's under it stretched — a light message near the
+      // field lights its edge up softly, like frosted glass
+      int m = (int) (Screen.dp(FLOATING_INPUT_BLUR_DP) * 2);
+      node.setPosition(0, 0, w + m * 2, h + m * 2);
       view.getLocationInWindow(loc);
-      float fieldX = loc[0] + rect.left, fieldY = loc[1] + rect.top;
-      android.graphics.RecordingCanvas rc = node.beginRecording(w, h);
+      float fieldX = loc[0] + rect.left - m, fieldY = loc[1] + rect.top - m;
+      android.graphics.RecordingCanvas rc = node.beginRecording(w + m * 2, h + m * 2);
       try {
         for (View under : new View[] {wallpaperView, messagesView}) {
           if (under.getVisibility() != View.VISIBLE || under.getWidth() == 0) continue;
@@ -10828,7 +10832,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
       int save = c.save();
       c.clipPath(clip);
-      c.translate(rect.left, rect.top);
+      c.translate(rect.left - m, rect.top - m);
       c.drawRenderNode(node);
       c.restoreToCount(save);
       return true;
