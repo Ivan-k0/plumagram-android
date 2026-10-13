@@ -1179,7 +1179,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       public void onVoiceChatBarClick (long chatId, int groupCallId) {
         org.thunderdog.challegram.voip.Tgx101GroupCall current = org.thunderdog.challegram.voip.Tgx101GroupCall.current();
         if (current != null && current.chatId == chatId && current.groupCallId == groupCallId) {
-          Tgx101GroupCallController.open(context);
+          Tgx101GroupCallController.open(context());
         } else {
           Tgx101GroupCallController.join(MessagesController.this, chatId, groupCallId, null);
         }
