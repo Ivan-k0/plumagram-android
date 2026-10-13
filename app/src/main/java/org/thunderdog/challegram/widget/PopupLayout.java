@@ -556,7 +556,12 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
   public static void tgx101HandOff (PopupLayout menu) {
     tgx101HandoffFrom = new java.lang.ref.WeakReference<>(menu);
     tgx101HandoffClaimed = false;
+    menu.tgx101HandingOff = true;
   }
+
+  /** The menu only waits under the next sheet to hand its dim over — it must not block that sheet (user 2026-10-13 12:27
+   *  «плавающего меню удалить нет вовсе»: the sheet was dropped as «the activity is busy with an animating window») */
+  public boolean tgx101HandingOff;
 
   /** After the menu action ran: no sheet took over — the menu's dim fades out and the menu goes */
   public static void tgx101ReleaseDim () {

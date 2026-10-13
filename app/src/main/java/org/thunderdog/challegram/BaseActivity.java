@@ -2774,7 +2774,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   public boolean hasAnimatingWindow () {
     for (PopupLayout window : windows) {
-      if (!window.hadCompletelyShown()) {
+      if (!window.hadCompletelyShown() && !window.tgx101HandingOff) {
         return true;
       }
     }
