@@ -1224,10 +1224,6 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   public void onPause () {
     tgx101KeyboardAtPause = isKeyboardVisible;
     tgx101NotePause();
-    android.os.PowerManager tgx101Pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
-    if (tgx101Pm != null && !Tgx101Diag.isInteractive(tgx101Pm)) {
-      tgx101HideNowForDark(); // the screen is going dark: the earliest moment, focus is still ours
-    }
     org.thunderdog.challegram.ui.Tgx101Proxies.onAppPaused();
     blockFocus();
     setActivityState(UI.State.PAUSED);
@@ -1307,26 +1303,12 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       if (Intent.ACTION_SCREEN_OFF.equals(action)) {
         tgx101ScreenOffAt = now;
         Tgx101Diag.mark("screen off");
-        tgx101HideNowForDark();
       } else if (Intent.ACTION_SCREEN_ON.equals(action)) {
         tgx101ScreenOnAt = now;
         Tgx101Diag.mark("screen on" + (tgx101ScreenOffAt != 0 ? " after " + (now - tgx101ScreenOffAt) + " ms" : ""));
       }
     }
   };
-
-  /** The screen goes dark: the keyboard goes now, while the window still has focus (5 s later the system refused) —
-   *  after unlocking there's nothing left to slide down */
-  private void tgx101HideNowForDark () {
-    if (!isKeyboardVisible) return;
-    View focus = getCurrentFocus();
-    android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-    boolean done = false;
-    try {
-      if (imm != null) done = imm.hideSoftInputFromWindow((focus != null ? focus : getWindow().getDecorView()).getWindowToken(), 0);
-    } catch (Throwable ignored) { }
-    Tgx101Diag.mark("keyboard: let go as the screen goes dark (" + (done ? "done" : "system kept it") + ")");
-  }
 
   private void tgx101RegisterScreenReceiver () {
     try {
@@ -1368,26 +1350,9 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     long offFor = !screenWentOff ? 0 : (tgx101ScreenOnAt > tgx101ScreenOffAt ? tgx101ScreenOnAt : now) - tgx101ScreenOffAt;
     tgx101EnterAfterScreenOff = false; // user 2026-10-14: the own rise after unlocking is off — on vivo the lock screen vanishes in one frame and the app is already there (it only blinked)
     Tgx101Diag.mark("resume: away " + idle + " ms, screen " + (screenWentOff ? "off " + offFor + " ms" : "stayed on") + ", keyboard at pause " + (keyboard ? "open" : "closed"));
-    // user 2026-10-14 01:00 «после разблокировки сразу прячем и не показываем уже никогда, условие 5 секунд убираем»
-    if (!keyboard || !screenWentOff) {
-      if (keyboard) Tgx101Diag.mark("keyboard: comes back");
-      return;
-    }
-    tgx101KeyboardAtPause = false; // nothing to wait for: no held frames
-    tgx101RiseAfterKeyboard = true;
-    tgx101KeyboardGoneAt = android.os.SystemClock.uptimeMillis(); // if it's already gone, no wait beyond 300 ms
-    tgx101KeyboardRestoreBlocked = true;
-    getWindow().getDecorView().post(() -> tgx101KeyboardRestoreBlocked = false);
-    // the activity resumes still behind the lock screen; Android shows the keyboard once the window gets focus after
-    // unlocking — hide it then (first check on Xiaomi: hiding at resume came too early)
-    tgx101HideKeyboardOnFocus = true;
-    // keep Android from showing it at all (hiding after it appeared made it jump, user 2026-10-05): the window comes
-    // back with «always hidden» and without a focused field; the normal mode returns once it has focus
-    tgx101SavedSoftInput = getWindow().getAttributes().softInputMode;
-    getWindow().setSoftInputMode((tgx101SavedSoftInput & ~android.view.WindowManager.LayoutParams.SOFT_INPUT_MASK_STATE) | android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
-    View focused = getCurrentFocus();
-    if (focused != null) focused.clearFocus();
-    org.thunderdog.challegram.Tgx101Diag.mark("keyboard: kept hidden (screen was off " + offFor / 1000 + " s)");
+    // user 2026-10-14 01:10 «возвращай как было: клавиатуру показываем так долго, как возможно, даже после
+    // разблокировки» — the keyboard always comes back (held frames keep the chat from jumping); only the log stays
+    if (keyboard) Tgx101Diag.mark("keyboard: comes back");
   }
 
   private boolean tgx101HideKeyboardOnFocus;
