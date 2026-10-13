@@ -1320,6 +1320,51 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     }
   }
 
+  // TGx101 (user 2026-10-14, «как в оф. клиенте, но лучше»): a notification opens ANOTHER chat — the keyboard belonged
+  // to the old one: it goes right away (no held frames waiting for it, not restored on resume, the window stops asking
+  // for it), so it never slides down over the new chat. Returns whether it was open (the old chat gets it back later).
+  private boolean tgx101Visible;
+
+  @Override
+  protected void onStart () {
+    super.onStart();
+    tgx101Visible = true;
+  }
+
+  @Override
+  protected void onStop () {
+    super.onStop();
+    tgx101Visible = false;
+  }
+
+  /** The window is on screen (started), even if paused for a moment by a notification tap */
+  public boolean tgx101IsVisible () {
+    return tgx101Visible;
+  }
+
+  public boolean tgx101TakeKeyboardForOtherChat () {
+    boolean wasOpen = tgx101KeyboardAtPause || isKeyboardVisible;
+    tgx101KeyboardAtPause = false;
+    tgx101KeyboardRestoreBlocked = true;
+    getWindow().getDecorView().postDelayed(() -> tgx101KeyboardRestoreBlocked = false, 1500);
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      try {
+        android.view.WindowInsetsController c = getWindow().getInsetsController();
+        if (c != null) c.hide(android.view.WindowInsets.Type.ime());
+      } catch (Throwable t) {
+        Log.w(t);
+      }
+    }
+    View focus = getCurrentFocus();
+    android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+    try {
+      if (imm != null) imm.hideSoftInputFromWindow((focus != null ? focus : getWindow().getDecorView()).getWindowToken(), 0);
+    } catch (Throwable ignored) { }
+    if (focus != null) focus.clearFocus();
+    Tgx101Diag.mark("notification → another chat: the old chat's keyboard goes (" + (wasOpen ? "was open, comes back on return" : "was closed") + ")");
+    return wasOpen;
+  }
+
   /** The chat's own «bring the keyboard back on resume» must not run this time */
   // TGx101 (user 2026-10-13, п.4): the app comes back after the system closed it — the screen is built anew; it fades
   // in over the window's background (180 ms) instead of popping up at once

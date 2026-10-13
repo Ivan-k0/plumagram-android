@@ -4704,6 +4704,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // tdlib.context().changePreferredAccountId(tdlib.id(), TdlibManager.SWITCH_REASON_CHAT_FOCUS);
   }
 
+  /** TGx101: the chat has its messages laid out — a notification's cover can go */
+  public boolean tgx101ReadyToShow () {
+    return manager.getAdapter().getMessageCount() > 0;
+  }
+
+  /** TGx101: a notification took this chat's keyboard away — it comes back when the chat is shown again */
+  public void tgx101ReopenKeyboardOnReturn () {
+    openKeyboard = true;
+  }
+
   private void resetOnFocus () {
     if (resetOnFocus && navigationController() != null) {
       clearResetOnFocus();

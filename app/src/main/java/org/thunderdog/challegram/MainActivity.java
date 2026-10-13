@@ -1535,13 +1535,21 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
           org.thunderdog.challegram.component.chat.MessagesManager.tgx101SkipFlashOnce(specificMessageId); // TGx101: no flash from a notification
           params.highlightMessage(new MessageId(chatId, specificMessageId));
         }
+        // TGx101 (user 2026-10-14): into ANOTHER chat — the old one stays under it (Back returns there, as in the
+        // official app) and its keyboard goes now, coming back when that chat is shown again
+        ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : null;
+        if (current instanceof MessagesController && ((MessagesController) current).getChatId() != chatId) {
+          params.keepStack();
+          if (tgx101TakeKeyboardForOtherChat()) {
+            ((MessagesController) current).tgx101ReopenKeyboardOnReturn();
+          }
+        }
         tdlib.ui().openChat(context, chatId, params);
       };
       // TGx101: from a notification with the app already running, open the chat right away, before the
       // window is shown again; posting it showed the previous screen for a moment first (a flash)
       if (UI.inUiThread() && navigation != null && !navigation.isEmpty()) {
-        tgx101CoverUntilChatShown(chatId);
-        open.run();
+        tgx101CoverUntilChatShown(chatId, open);
       } else {
         handler.post(open);
       }
@@ -1571,22 +1579,48 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
    * switching flashed for a moment. The window is covered with the chat background until the new chat is in
    * place, then the cover fades out.
    */
-  private void tgx101CoverUntilChatShown (long chatId) {
-    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) return;
+  private void tgx101CoverUntilChatShown (long chatId, Runnable open) {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) {
+      open.run();
+      return;
+    }
     final View decor = getWindow().getDecorView();
-    final android.graphics.drawable.ColorDrawable cover = new android.graphics.drawable.ColorDrawable(org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.chatBackground));
+    // TGx101 (user 2026-10-14, a soft change): the app was on screen (a tap in the shade) — the cover is a picture of
+    // what was there, and it melts into the new chat; otherwise nobody saw the old chat — the plain background
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && tgx101IsVisible() && decor.getWidth() > 0 && decor.getHeight() > 0) {
+      try {
+        final android.graphics.Bitmap shot = android.graphics.Bitmap.createBitmap(decor.getWidth() / 2, decor.getHeight() / 2, android.graphics.Bitmap.Config.ARGB_8888);
+        android.view.PixelCopy.request(getWindow(), shot, result -> {
+          android.graphics.drawable.Drawable cover = result == android.view.PixelCopy.SUCCESS ?
+            new android.graphics.drawable.BitmapDrawable(getResources(), shot) :
+            new android.graphics.drawable.ColorDrawable(org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.chatBackground));
+          Tgx101Diag.mark("notification → chat: cover " + (result == android.view.PixelCopy.SUCCESS ? "the old screen" : "background"));
+          tgx101RunCover(decor, cover, chatId, open);
+        }, handler);
+        return;
+      } catch (Throwable t) {
+        Log.w(t);
+      }
+    }
+    tgx101RunCover(decor, new android.graphics.drawable.ColorDrawable(org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.chatBackground)), chatId, open);
+  }
+
+  private void tgx101RunCover (View decor, android.graphics.drawable.Drawable cover, long chatId, Runnable open) {
     decor.setForeground(cover);
+    open.run();
     final long startTime = android.os.SystemClock.uptimeMillis();
     final Runnable[] check = new Runnable[1];
     check[0] = () -> {
       ViewController<?> current = navigation.getCurrentStackItem();
-      boolean ready = !navigation.isAnimating() && current instanceof MessagesController && ((MessagesController) current).getChatId() == chatId;
+      // …and the new chat already has its messages in place (it showed empty, then filled in)
+      boolean ready = !navigation.isAnimating() && current instanceof MessagesController && ((MessagesController) current).getChatId() == chatId && ((MessagesController) current).tgx101ReadyToShow();
       if (!ready && android.os.SystemClock.uptimeMillis() - startTime < 1500) {
         decor.postOnAnimation(check[0]);
         return;
       }
       android.animation.ValueAnimator fade = android.animation.ValueAnimator.ofInt(255, 0);
-      fade.setDuration(140);
+      fade.setDuration(150);
+      Tgx101Diag.mark("notification → chat shown after " + (android.os.SystemClock.uptimeMillis() - startTime) + " ms" + (ready ? "" : " (gave up waiting)"));
       fade.addUpdateListener(a -> cover.setAlpha((int) a.getAnimatedValue()));
       fade.addListener(new android.animation.AnimatorListenerAdapter() {
         @Override
