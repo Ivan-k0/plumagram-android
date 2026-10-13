@@ -179,6 +179,9 @@ public final class Tgx101SelectionBar {
       if (content != null) {
         content.animate().cancel();
         content.setAlpha(1f);
+        content.setScaleX(1f);
+        content.setScaleY(1f);
+        content.setTranslationY(0f);
       }
     }
     menu = null;
@@ -219,12 +222,24 @@ public final class Tgx101SelectionBar {
   // and comes back once the finger is lifted. Only handles — a swipe over the selected text leaves it alone.
   private static final long HANDLE_HIDE_DELAY = 250, HANDLE_FADE = 160;
   private boolean handleDragging;
+  // user 2026-10-13 23:45 «сделай современно плавной»: Material 3 motion — away: a slight shrink towards the field
+  // with the emphasized-accelerate curve; back: it grows from 96 % and settles with the emphasized-decelerate curve
+  private static final long HANDLE_BACK = 280;
+  private static final android.view.animation.Interpolator AWAY = new android.view.animation.PathInterpolator(.3f, 0f, .8f, .15f);
+  private static final android.view.animation.Interpolator BACK = new android.view.animation.PathInterpolator(.05f, .7f, .1f, 1f);
+
+  private void pivotAtBottom () {
+    content.setPivotX(content.getWidth() / 2f);
+    content.setPivotY(content.getHeight());
+  }
+
   private final Runnable fadeForHandle = () -> {
     if (!handleDragging || content == null || window == null) return;
     hiddenWhileDragging = true;
     org.thunderdog.challegram.Tgx101Diag.mark("select: bar fades for the handle (magnifier)");
     content.animate().cancel();
-    content.animate().alpha(0f).setDuration(HANDLE_FADE).start();
+    pivotAtBottom();
+    content.animate().alpha(0f).scaleX(.96f).scaleY(.96f).translationY(Screen.dp(4f)).setInterpolator(AWAY).setDuration(HANDLE_FADE).start();
   };
 
   /** A selection handle started (or keeps) moving */
@@ -246,7 +261,8 @@ public final class Tgx101SelectionBar {
       if (content != null && window != null) {
         reposition();
         content.animate().cancel();
-        content.animate().alpha(1f).setDuration(HANDLE_FADE).start();
+        pivotAtBottom();
+        content.animate().alpha(1f).scaleX(1f).scaleY(1f).translationY(0f).setInterpolator(BACK).setDuration(HANDLE_BACK).start();
       }
     }
   }
