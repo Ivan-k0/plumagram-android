@@ -907,6 +907,15 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101TranslateOtherLanguage, "Перевести на другой язык…");
     RU.put(R.string.Tgx101TranslateBarHide, "Скрыть плашку");
     RU.put(R.string.Tgx101DeleteForAll, "Удалить у всех");
+    RU.put(R.string.Tgx101PaintPen, "Ручка");
+    RU.put(R.string.Tgx101PaintMarker, "Флом.");
+    RU.put(R.string.Tgx101PaintPencil, "Каранд.");
+    RU.put(R.string.Tgx101PaintNeon, "Неон");
+    RU.put(R.string.Tgx101PaintArrow, "Стрелка");
+    RU.put(R.string.Tgx101PaintShape, "Фигура");
+    RU.put(R.string.Tgx101PaintEraser, "Ластик");
+    RU.put(R.string.Tgx101PaintEllipse, "Овал");
+    RU.put(R.string.Tgx101PaintLine, "Линия");
     RU.put(R.string.Tgx101ShowAllChats, "Показать «Все чаты»");
     RU.put(R.string.Tgx101VoiceChatBarJoin, "Присоединиться");
     RU.put(R.string.Tgx101VoiceChatBarReturn, "Вернуться");

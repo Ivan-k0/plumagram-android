@@ -3379,6 +3379,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private ShadowView colorToneShadow;
   private ImageView undoButton;
   private EditButton paintTypeButton;
+  private org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView tgx101PaintTools;
   private ColorPreviewView colorPreviewView;
 
   private static final float COUNTER_SCALE = .7f;
@@ -7349,6 +7350,41 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           backgroundView.setLayoutParams(params);
           paintControlsWrap.addView(backgroundView);
 
+          // TGx101 (user 2026-10-13, editor mockup variant Б): the tools row over the colour strip — five brushes, a shape
+          // (hold to pick which), an eraser
+          params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(52f), Gravity.BOTTOM);
+          params.bottomMargin = Screen.dp(12f) + padding * 2 + Screen.dp(4f);
+          params.leftMargin = params.rightMargin = Screen.dp(8f);
+          tgx101PaintTools = new org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView(context(), new String[] {
+            Lang.getString(R.string.Tgx101PaintPen), Lang.getString(R.string.Tgx101PaintMarker), Lang.getString(R.string.Tgx101PaintPencil),
+            Lang.getString(R.string.Tgx101PaintNeon), Lang.getString(R.string.Tgx101PaintArrow), Lang.getString(R.string.Tgx101PaintShape),
+            Lang.getString(R.string.Tgx101PaintEraser)
+          });
+          tgx101PaintTools.setLayoutParams(params);
+          tgx101PaintTools.setListener(new org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView.Listener() {
+            @Override
+            public void onToolSelected (int tool, int paintMode, int brushStyle) {
+              PaintMode.brushStyle = brushStyle;
+              setPaintType(paintMode, true);
+            }
+
+            @Override
+            public void onShapePickerRequested (View anchor) {
+              showOptions(Lang.getString(R.string.Tgx101PaintShape), new int[] {R.id.paint_mode_rect, R.id.btn_tgx101PaintEllipse, R.id.btn_tgx101PaintLine, R.id.paint_mode_arrow},
+                new String[] {Lang.getString(R.string.PaintModeRect), Lang.getString(R.string.Tgx101PaintEllipse), Lang.getString(R.string.Tgx101PaintLine), Lang.getString(R.string.PaintModeArrow)},
+                null, new int[] {R.drawable.baseline_crop_square_24, R.drawable.tgx101_baseline_oval_24, R.drawable.tgx101_baseline_line_24, R.drawable.baseline_arrow_upward_24}, (itemView, id) -> {
+                  int mode;
+                  if (id == R.id.btn_tgx101PaintEllipse) mode = PaintMode.ELLIPSE;
+                  else if (id == R.id.btn_tgx101PaintLine) mode = PaintMode.LINE;
+                  else if (id == R.id.paint_mode_arrow) mode = PaintMode.ARROW;
+                  else mode = PaintMode.RECTANGLE;
+                  tgx101PaintTools.setShapeMode(mode);
+                  return true;
+                }, getForcedTheme());
+            }
+          });
+          paintControlsWrap.addView(tgx101PaintTools);
+
           params = FrameLayoutFix.newParams(Screen.dp(56f), Screen.dp(48f), Gravity.LEFT | Gravity.BOTTOM);
           undoButton = new ImageView(context());
           undoButton.setId(R.id.paint_undo);
@@ -8096,9 +8132,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       case PaintMode.FREE_MOVEMENT:
         return R.drawable.baseline_zoom_out_map_24;
       case PaintMode.ARROW:
-        return R.drawable.baseline_arrow_upward_24;
       case PaintMode.RECTANGLE:
-        return R.drawable.baseline_crop_3_2_24;
+      case PaintMode.ELLIPSE:
+      case PaintMode.LINE:
+        return R.drawable.baseline_adjust_24; // drawing — the button switches to «move / zoom»
     }
     return R.drawable.baseline_bubble_chart_24;
   }
@@ -8220,6 +8257,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   @Override
   public void onBrushChanged (ColorPreviewView v) {
+    if (tgx101PaintTools != null) tgx101PaintTools.setBrushColor(v.getBrushColor());
     if (paintView != null) {
       paintView.getContentWrap().setBrushParameters(v.getBrushColor(), v.getBrushRadius(getBrushScale()));
     }
@@ -9262,7 +9300,13 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         }
       }
     } else if (viewId == R.id.btn_paintType) {
-      showPaintTypes();
+      // TGx101: every way of drawing is in the tools row now — this button moves / zooms the photo, and back
+      if (paintType == PaintMode.FREE_MOVEMENT) {
+        PaintMode.brushStyle = org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView.styleOf(tgx101PaintTools.getSelected());
+        setPaintType(tgx101PaintTools.modeOf(tgx101PaintTools.getSelected()), true);
+      } else {
+        setPaintType(PaintMode.FREE_MOVEMENT, true);
+      }
     } else if (viewId == R.id.paint_undo) {
       undoLastPaintAction();
     }

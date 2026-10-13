@@ -6779,6 +6779,15 @@
   <string name="Tgx101CallOngoing">Call</string>
   <string name="Tgx101CallMicOff">Mute</string>
   <string name="Tgx101CallMicOn">Unmute</string>
+  <string name="Tgx101PaintPen">Pen</string>
+  <string name="Tgx101PaintMarker">Marker</string>
+  <string name="Tgx101PaintPencil">Pencil</string>
+  <string name="Tgx101PaintNeon">Neon</string>
+  <string name="Tgx101PaintArrow">Arrow</string>
+  <string name="Tgx101PaintShape">Shape</string>
+  <string name="Tgx101PaintEraser">Eraser</string>
+  <string name="Tgx101PaintEllipse">Oval</string>
+  <string name="Tgx101PaintLine">Line</string>
   <string name="Tgx101ShowAllChats">Show All chats</string>
   <string name="Tgx101DeleteForAll">Delete for everyone</string>
   <string name="Tgx101DeleteForMe">Delete for me</string>
