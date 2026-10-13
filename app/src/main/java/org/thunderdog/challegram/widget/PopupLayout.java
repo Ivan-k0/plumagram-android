@@ -526,6 +526,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
         backgroundView.tgx101Blur = ((org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable) from.tgx101Background).copy(); // the very same picture
       }
       tgx101SystemBlur = from.tgx101SystemBlur && !needRootInsets;
+      tgx101BlurFromMenu = tgx101SystemBlur; // the menu is blurred already: the sheet takes the full blur at once
     } else if (blurOn && !needRootInsets && tgx101SystemBlurAvailable(getContext())) {
       tgx101SystemBlur = true; // a window of its own: the system blurs everything behind it, the keyboard too
     } else
@@ -602,7 +603,8 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
       from.hideWindow(false);
     } else if (backgroundView != null && backgroundView.tgx101Blur == null) {
       // the menu's dim melts into the sheet's — the darkness only goes down, never through zero
-      from().tgx101SetDimFactor(1f - factor);
+      if (from().tgx101Background != null) from().tgx101Background.setAlpha(Math.round(255 * (1f - factor)));
+      if (!tgx101BlurFromMenu) from().tgx101SetBlurFactor(1f - factor);
     } // the same blurred picture: the sheet fades it in over the menu's, the menu goes once it is fully covered
   }
 
@@ -612,7 +614,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
 
   // System blur behind a window of its own (Android 12+): the only way to blur the keyboard as well — a picture of the
   // window can't have it (user 2026-10-13 «клавиатура должна быть заблюрена как и чат»)
-  private boolean tgx101SystemBlur;
+  private boolean tgx101SystemBlur, tgx101BlurFromMenu;
   private int tgx101LastBlurRadius = -1;
 
   public static boolean tgx101SystemBlurAvailable (Context context) {
@@ -634,7 +636,9 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     if (!tgx101SystemBlur || Build.VERSION.SDK_INT < Build.VERSION_CODES.S || window == null || !window.isShowing()) {
       return;
     }
-    int radius = Math.round(Screen.dp(18f) * Math.max(0f, Math.min(1f, factor)));
+    // a few steps, not every frame: each change relayouts the window (user 2026-10-13 «стало подлагивать»)
+    float f = Math.max(0f, Math.min(1f, factor));
+    int radius = Math.round(Screen.dp(18f) * (f >= 1f ? 1f : (float) Math.ceil(f * 3f) / 3f));
     if (radius == tgx101LastBlurRadius) {
       return;
     }
@@ -649,6 +653,9 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
       }
       lp.setBlurBehindRadius(radius);
       UI.getContext(getContext()).getWindowManager().updateViewLayout(rootView, lp);
+      if (radius > 0 && tgx101BlurFromMenu && tgx101From != null) {
+        tgx101From.tgx101SetBlurFactor(0f); // the sheet blurs now: the menu's blur goes in the same frame (no double blur, no dip)
+      }
     } catch (Throwable t) {
       Log.e("TGx101 blur behind", t);
     }
@@ -1044,7 +1051,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
       }
       backgroundView.setAlpha(factor);
       if (animationType == ANIMATION_TYPE_SIMPLE) {
-        tgx101SetBlurFactor(factor);
+        tgx101SetBlurFactor(tgx101BlurFromMenu && tgx101From != null ? 1f : factor);
       }
       tgx101UpdateHandoff(factor);
     }

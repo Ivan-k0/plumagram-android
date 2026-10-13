@@ -1187,6 +1187,11 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   }
 
   public void setActionModeVisibility (boolean actionModeVisibility) {
+    // TGx101 (user's video 2026-10-13 12:40 «мигание системных»): every emoji ↔ keyboard switch rebuilt the open
+    // «Paste / Select» menu — it vanished for a few frames and came back. Only a real change rebuilds it
+    if (this.actionModeVisibility == actionModeVisibility) {
+      return;
+    }
     this.actionModeVisibility = actionModeVisibility;
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       setShowSoftInputOnFocus(actionModeVisibility);

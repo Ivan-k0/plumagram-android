@@ -1992,7 +1992,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
       public void getOutline (View view, android.graphics.Outline outline) {
         int top = tgx101CardTop();
         outline.setRoundRect(0, top, view.getWidth(), view.getHeight(), Screen.dp(OptionsLayout.TGX101_CARD_RADIUS));
-        org.thunderdog.challegram.Tgx101Diag.mark("settings card: outline top " + top + " of " + view.getWidth() + "x" + view.getHeight() + ", list top " + (recyclerView != null ? recyclerView.getTop() : -1) + ", clip " + getClipToOutline());
+        org.thunderdog.challegram.Tgx101Diag.mark("settings card: outline top " + top + " of " + view.getWidth() + "x" + view.getHeight() + ", list top " + (recyclerView != null ? recyclerView.getTop() : -1) + ", first rows " + tgx101FirstRows() + ", clip " + getClipToOutline());
       }
     } : null;
 
@@ -2001,11 +2001,32 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     private int tgx101LastCardTop = -1;
     private boolean tgx101CardWatch;
 
+    private String tgx101FirstRows () {
+      StringBuilder b = new StringBuilder();
+      RecyclerView.LayoutManager manager = recyclerView != null ? recyclerView.getLayoutManager() : null;
+      for (int position = 0; manager != null && position < 3; position++) {
+        View view = manager.findViewByPosition(position);
+        if (view == null) break;
+        b.append(view.getClass().getSimpleName()).append('@').append(view.getTop()).append('+').append(view.getHeight()).append(' ');
+      }
+      return b.toString();
+    }
+
     private int tgx101CardTop () {
       if (recyclerView == null) return 0;
       int top = recyclerView.getTop();
       RecyclerView.LayoutManager manager = recyclerView.getLayoutManager();
-      View first = manager != null ? manager.findViewByPosition(0) : null;
+      View first = null;
+      // the list may start with a see-through shadow strip (user's video 2026-10-13 12:45: the corners were still cut
+      // flat a few dp above the card) — the card's top is the first real row
+      for (int position = 0; manager != null && position < 3; position++) {
+        View view = manager.findViewByPosition(position);
+        if (view == null) break;
+        if (!(view instanceof org.thunderdog.challegram.widget.ShadowView) && !(view instanceof org.thunderdog.challegram.widget.SeparatorView)) {
+          first = view;
+          break;
+        }
+      }
       if (first != null) {
         top += Math.round(first.getTop() + first.getTranslationY());
       }
