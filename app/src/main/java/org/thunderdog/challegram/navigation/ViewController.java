@@ -1964,7 +1964,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         if (rootInsets != null) {
           bottom = Math.max(bottom, rootInsets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom);
         }
-        Views.setMargins(params, insets.left + gap, 0, insets.right + gap, bottom + gap);
+        Views.setMargins(params, insets.left + gap, 0, insets.right + gap, bottom + gap + OptionsLayout.tgx101CardLift());
         setBottomInset(0);
         return;
       }
@@ -1979,6 +1979,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         if (getOutlineProvider() != tgx101Outline) {
           setOutlineProvider(tgx101Outline);
           setClipToOutline(true);
+          tgx101CardWatch = true;
         } else {
           invalidateOutline();
         }
@@ -1988,10 +1989,37 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     private final android.view.ViewOutlineProvider tgx101Outline = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ? new android.view.ViewOutlineProvider() {
       @Override
       public void getOutline (View view, android.graphics.Outline outline) {
-        int top = recyclerView != null ? Math.max(0, recyclerView.getTop()) : 0;
-        outline.setRoundRect(0, top, view.getWidth(), view.getHeight(), Screen.dp(OptionsLayout.TGX101_CARD_RADIUS));
+        outline.setRoundRect(0, tgx101CardTop(), view.getWidth(), view.getHeight(), Screen.dp(OptionsLayout.TGX101_CARD_RADIUS));
       }
     } : null;
+
+    // TGx101 (user's screenshot 2026-10-13 11:39 «кривая плашка сверху»): the rounded clip followed the list's top, but
+    // the card's white starts at its first row, a few dp lower — the round corners were cut flat. The clip follows the row
+    private int tgx101LastCardTop = -1;
+    private boolean tgx101CardWatch;
+
+    private int tgx101CardTop () {
+      if (recyclerView == null) return 0;
+      int top = recyclerView.getTop();
+      RecyclerView.LayoutManager manager = recyclerView.getLayoutManager();
+      View first = manager != null ? manager.findViewByPosition(0) : null;
+      if (first != null) {
+        top += Math.round(first.getTop() + first.getTranslationY());
+      }
+      return Math.max(0, top);
+    }
+
+    @Override
+    protected void dispatchDraw (android.graphics.Canvas canvas) {
+      if (tgx101CardWatch && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        int top = tgx101CardTop();
+        if (top != tgx101LastCardTop) { // the card comes in / scrolls: the clip moves with its top row
+          tgx101LastCardTop = top;
+          invalidateOutline();
+        }
+      }
+      super.dispatchDraw(canvas);
+    }
 
     private int bottomInset;
 
@@ -2097,7 +2125,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
 
           if (position == 0) {
             int contentHeight = settings.adapter.measureHeight(-1);
-            int controlsHeight = context.getRootView().getSystemInsetsWithoutIme().bottom + (b.disableFooter ? 0 : tgx101FooterHeight()) + (OptionsLayout.TGX101_CARD ? Screen.dp(OptionsLayout.TGX101_CARD_GAP) : 0); // TGx101: the card floats above the bottom gap — without it the last row was cut off
+            int controlsHeight = context.getRootView().getSystemInsetsWithoutIme().bottom + (b.disableFooter ? 0 : tgx101FooterHeight()) + (OptionsLayout.TGX101_CARD ? Screen.dp(OptionsLayout.TGX101_CARD_GAP) + OptionsLayout.tgx101CardLift() : 0); // TGx101: the card floats above the bottom gap — without it the last row was cut off
             outRect.top = Math.max((Screen.currentHeight() - controlsHeight) / 2, Screen.currentHeight() - contentHeight - controlsHeight);
           } else {
             outRect.top = 0;
@@ -2682,7 +2710,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         }
       };
     }
-    int totalHeight = shadowView.getLayoutParams().height + optionsWrap.getTextHeight() + extraBottomInsetWithoutIme + (OptionsLayout.TGX101_CARD ? Screen.dp(OptionsLayout.TGX101_CARD_GAP) : 0);
+    int totalHeight = shadowView.getLayoutParams().height + optionsWrap.getTextHeight() + extraBottomInsetWithoutIme + (OptionsLayout.TGX101_CARD ? Screen.dp(OptionsLayout.TGX101_CARD_GAP) + OptionsLayout.tgx101CardLift() : 0);
     int index = 0;
     for (OptionItem item : options.items) {
       if (item == OptionItem.SEPARATOR) {

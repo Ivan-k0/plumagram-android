@@ -133,11 +133,17 @@ public class OptionsLayout extends LinearLayout implements Animated, RootFrameLa
   public static final boolean TGX101_CARD = true;
   public static final float TGX101_CARD_RADIUS = 18f, TGX101_CARD_GAP = 8f;
 
+  /** TGx101 (user 2026-10-13 11:42 «подними подобные сообщения выше, ближе к большому пальцу», like exteraGram): the
+   *  cards float a tenth of the screen above the bottom, so «Cancel / Delete» sit under the thumb, not at the very edge */
+  public static int tgx101CardLift () {
+    return TGX101_CARD ? Math.round(Screen.currentHeight() * .10f) : 0;
+  }
+
   @Override
   public void onApplyMarginInsets (View child, FrameLayout.LayoutParams params, Rect legacyInsets, Rect insets, Rect insetsWithoutIme) {
     int gap = TGX101_CARD ? Screen.dp(TGX101_CARD_GAP) : 0;
     Views.setMargins(params, insets.left + gap, 0, insets.right + gap, 0);
-    Views.setPaddingBottom(this, insetsWithoutIme.bottom + gap);
+    Views.setPaddingBottom(this, insetsWithoutIme.bottom + gap + tgx101CardLift());
   }
 
   @Override
