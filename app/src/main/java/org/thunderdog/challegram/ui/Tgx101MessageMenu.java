@@ -1009,11 +1009,72 @@ public final class Tgx101MessageMenu {
     }
     android.graphics.Bitmap bitmap = blurredScreen(c.context(), 0x40000000);
     if (bitmap != null) {
-      android.graphics.drawable.BitmapDrawable drawable = new android.graphics.drawable.BitmapDrawable(c.context().getResources(), bitmap);
-      drawable.setFilterBitmap(true);
-      return drawable;
+      return new BlurDrawable(bitmap, imeHeight(c.context()), 0x40000000);
     }
     return new android.graphics.drawable.ColorDrawable(0x59000000);
+  }
+
+  /** Height of the keyboard on screen now (0 when it's closed) */
+  public static int imeHeight (android.app.Activity activity) {
+    androidx.core.view.WindowInsetsCompat insets = androidx.core.view.ViewCompat.getRootWindowInsets(activity.getWindow().getDecorView());
+    return insets != null && insets.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime()) ? insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom : 0;
+  }
+
+  /** TGx101 (user's video 2026-10-13 11:57 «при появлении подтверждения прыгает весь чат»): a picture of the window can't
+   *  have the keyboard in it (it's another window) — laid over everything, the keyboard vanished and the chat seemed to
+   *  drop, then came back. The blurred picture covers only the part above the keyboard; over the keyboard, the same dim */
+  public static final class BlurDrawable extends Drawable {
+    public final android.graphics.Bitmap bitmap;
+    public final int imeHeight, dim;
+    private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG);
+    private final android.graphics.Paint dimPaint = new android.graphics.Paint();
+    private final android.graphics.Rect src = new android.graphics.Rect(), dst = new android.graphics.Rect();
+    private int alpha = 255;
+
+    public BlurDrawable (android.graphics.Bitmap bitmap, int imeHeight, int dim) {
+      this.bitmap = bitmap;
+      this.imeHeight = imeHeight;
+      this.dim = dim;
+    }
+
+    public BlurDrawable copy () {
+      return new BlurDrawable(bitmap, imeHeight, dim);
+    }
+
+    @Override
+    public void draw (@androidx.annotation.NonNull android.graphics.Canvas c) {
+      android.graphics.Rect b = getBounds();
+      int ime = Math.max(0, Math.min(imeHeight, b.height()));
+      int top = b.height() - ime;
+      src.set(0, 0, bitmap.getWidth(), Math.max(1, Math.round(bitmap.getHeight() * (top / (float) Math.max(1, b.height())))));
+      dst.set(b.left, b.top, b.right, b.top + top);
+      paint.setAlpha(alpha);
+      c.drawBitmap(bitmap, src, dst, paint);
+      if (ime > 0) {
+        dimPaint.setColor(me.vkryl.core.ColorUtils.alphaColor((android.graphics.Color.alpha(dim) / 255f) * (alpha / 255f), 0xff000000));
+        c.drawRect(b.left, b.top + top, b.right, b.bottom, dimPaint);
+      }
+    }
+
+    @Override
+    public void setAlpha (int alpha) {
+      this.alpha = alpha;
+      invalidateSelf();
+    }
+
+    @Override
+    public int getAlpha () {
+      return alpha;
+    }
+
+    @Override
+    public void setColorFilter (@Nullable android.graphics.ColorFilter colorFilter) { }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public int getOpacity () {
+      return android.graphics.PixelFormat.TRANSLUCENT;
+    }
   }
 
   /** The window as it is now, small and blurred, with a dim over it; null if it can't be taken */

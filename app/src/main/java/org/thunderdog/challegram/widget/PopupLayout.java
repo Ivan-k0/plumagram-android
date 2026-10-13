@@ -521,13 +521,14 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     if (ghost != null && !tgx101GhostClaimed && ghost.getParent() != null) {
       tgx101GhostClaimed = true;
       tgx101OwnGhost = ghost;
-      if (backgroundView != null && ghost.getBackground() instanceof android.graphics.drawable.BitmapDrawable) {
-        backgroundView.tgx101Blur = ((android.graphics.drawable.BitmapDrawable) ghost.getBackground()).getBitmap(); // the very same picture
+      if (backgroundView != null && ghost.getBackground() instanceof org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable) {
+        backgroundView.tgx101Blur = ((org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable) ghost.getBackground()).copy(); // the very same picture
       }
     } else
     // TGx101 (variant 3): with MagiX «Blur» on, a sheet blurs the screen behind it like the message menu does
     if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101MenuBlur() && getContext() instanceof android.app.Activity && backgroundView != null) {
-      backgroundView.tgx101Blur = org.thunderdog.challegram.ui.Tgx101MessageMenu.blurredScreen((android.app.Activity) getContext(), 0x26000000);
+      android.graphics.Bitmap blur = org.thunderdog.challegram.ui.Tgx101MessageMenu.blurredScreen((android.app.Activity) getContext(), 0x26000000);
+      backgroundView.tgx101Blur = blur != null ? new org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable(blur, org.thunderdog.challegram.ui.Tgx101MessageMenu.imeHeight((android.app.Activity) getContext()), 0x26000000) : null;
     }
     view.setTranslationY(currentHeight = height);
     addView(boundView = view);
@@ -553,10 +554,8 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     }
     BaseActivity activity = UI.getContext(context);
     View ghost = new View(activity);
-    if (menuBackground instanceof android.graphics.drawable.BitmapDrawable) {
-      android.graphics.drawable.BitmapDrawable blur = new android.graphics.drawable.BitmapDrawable(activity.getResources(), ((android.graphics.drawable.BitmapDrawable) menuBackground).getBitmap());
-      blur.setFilterBitmap(true);
-      ghost.setBackground(blur);
+    if (menuBackground instanceof org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable) {
+      ghost.setBackground(((org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable) menuBackground).copy());
     } else {
       ghost.setBackgroundColor(org.thunderdog.challegram.ui.Tgx101MessageMenu.MENU_DIM);
     }
@@ -941,9 +940,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
 
 
   private class BackgroundView extends View {
-    @Nullable android.graphics.Bitmap tgx101Blur;
-    private final android.graphics.Rect tgx101Dst = new android.graphics.Rect();
-    private final android.graphics.Paint tgx101BlurPaint = new android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG);
+    @Nullable org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable tgx101Blur;
 
     public BackgroundView (Context context) {
       super(context);
@@ -962,8 +959,8 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     @Override
     protected void onDraw (Canvas c) {
       if (tgx101Blur != null && animationType == ANIMATION_TYPE_SIMPLE) {
-        tgx101Dst.set(0, 0, getMeasuredWidth(), getMeasuredHeight());
-        c.drawBitmap(tgx101Blur, null, tgx101Dst, tgx101BlurPaint);
+        tgx101Blur.setBounds(0, 0, getMeasuredWidth(), getMeasuredHeight());
+        tgx101Blur.draw(c);
         return; // the dim is already in the picture
       }
       // TGx101: sheets dim like the official app's — 20 % black in any theme; other popups keep the theme's dim

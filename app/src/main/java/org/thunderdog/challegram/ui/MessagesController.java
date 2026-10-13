@@ -10896,8 +10896,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (Settings.instance().needBottomGap() && !emojiShown && !commandsShown && extraBottomInset <= extraBottomInsetWithoutIme) {
         height += Math.max(0, Screen.dp(16f) - extraBottomInset);
       }
-      if (floatingInput && !emojiShown && !commandsShown) {
-        height += Screen.dp(FLOATING_INPUT_BOTTOM); // TGx101: the capsule floats above the edge (or the keyboard)
+      if (floatingInput && !commandsShown) {
+        // TGx101: the capsule floats above the edge (or the keyboard). Above the emoji panel too (user's video
+        // 2026-10-13 12:02 «сдвиг чата при нажатии на смайлы»): without this gap the field and the chat dropped 9 dp on
+        // every switch keyboard ↔ emoji — the panel is as tall as the keyboard, the gap above it must match as well
+        height += Screen.dp(FLOATING_INPUT_BOTTOM);
       }
       int previous = bottomWrap.getPaddingBottom();
       Views.setPaddingBottom(bottomWrap, height);
@@ -10984,6 +10987,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (this.emojiShown != emojiShown) {
       this.emojiShown = emojiShown;
       tgx101EmojiToggledAt = android.os.SystemClock.uptimeMillis();
+      org.thunderdog.challegram.Tgx101Diag.mark("emoji panel " + (emojiShown ? "shown" : "hidden") + ": saved keyboard " + org.thunderdog.challegram.tool.Keyboard.getSize() + ", ime inset " + extraBottomInset + " (without ime " + extraBottomInsetWithoutIme + "), field pad " + (bottomWrap != null ? bottomWrap.getPaddingBottom() : -1));
       tgx101SetImeShift(0f);
       if (emojiShown) {
         hideSoftwareKeyboard();

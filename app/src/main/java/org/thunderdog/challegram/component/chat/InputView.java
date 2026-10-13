@@ -247,6 +247,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
         @Override
         public boolean onCreateActionMode (ActionMode actionMode, Menu menu) {
           currentActionMode = actionMode;
+          tgx101LogActionMode("insertion");
           return true;
         }
 
@@ -274,6 +275,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
       @Override
       public boolean onCreateActionMode (ActionMode mode, Menu menu) {
         currentActionMode = mode;
+        tgx101LogActionMode("selection");
         if (!Config.USE_CUSTOM_INPUT_STYLING) {
           return true;
         }
@@ -1004,7 +1006,30 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   }
 
   /** Returns true when the event is swallowed by the safety tap */
+  /** TGx101 diagnostics (user's video 2026-10-13 11:53: the cursor handle and «Select / Select all» show up by themselves
+   *  while switching emoji ↔ keyboard): who opened the system text menu */
+  private void tgx101LogActionMode (String kind) {
+    StackTraceElement[] st = new Throwable().getStackTrace();
+    StringBuilder b = new StringBuilder("input: system " + kind + " menu shown (focus " + hasFocus() + ", window focus " + hasWindowFocus() + ", sel " + getSelectionStart() + "-" + getSelectionEnd() + ", last touch " + (android.os.SystemClock.uptimeMillis() - tgx101LastTouchAt) + " ms ago) by");
+    for (int i = 2; i < Math.min(st.length, 14); i++) b.append(' ').append(st[i].getClassName().replaceAll(".*\\.", "")).append('.').append(st[i].getMethodName()).append(':').append(st[i].getLineNumber());
+    org.thunderdog.challegram.Tgx101Diag.mark(b.toString());
+  }
+
+  private long tgx101LastTouchAt;
+
+  @Override
+  protected void onSizeChanged (int w, int h, int oldw, int oldh) {
+    super.onSizeChanged(w, h, oldw, oldh);
+    if (w != oldw && oldw > 0) { // TGx101 diagnostics (video 11:53: «Баб / ба» — the field narrow for a moment)
+      org.thunderdog.challegram.Tgx101Diag.mark("input: width " + oldw + " → " + w + " (height " + h + ", padding " + getPaddingLeft() + "/" + getPaddingRight() + ")");
+    }
+  }
+
   private boolean tgx101SafetyTap (MotionEvent e) {
+    if (e.getActionMasked() == MotionEvent.ACTION_DOWN || e.getActionMasked() == MotionEvent.ACTION_UP) {
+      tgx101LastTouchAt = android.os.SystemClock.uptimeMillis();
+      org.thunderdog.challegram.Tgx101Diag.mark("input: touch " + (e.getActionMasked() == MotionEvent.ACTION_DOWN ? "down" : "up") + " at " + Math.round(e.getX()) + "," + Math.round(e.getY()) + " (field " + getWidth() + "x" + getHeight() + ")");
+    }
     // TGx101 (user 2026-10-05, iOS-like): with text selected (new editing system) a finger moved over the text is
     // ignored; a tap on the selection or within ~5 mm around it keeps it; a tap farther away puts the cursor there
     // at once (the old variant needed a second tap within 2 s)
