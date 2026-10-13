@@ -152,6 +152,7 @@ public class SimpleDrawing {
   public float getRotation () { return rotation; }
   public boolean isFilled () { return filled; }
   public float getStrokeRadius () { return strokeRadius; }
+  public int getColor () { return color; }
 
   /** Relative (0..1) points of the shape */
   public void setPoints (float x1, float y1, float x2, float y2) {

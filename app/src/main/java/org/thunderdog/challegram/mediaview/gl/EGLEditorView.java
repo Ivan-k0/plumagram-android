@@ -855,37 +855,58 @@ public class EGLEditorView extends ViewGroup {
       return true;
     }
 
+    // user 2026-10-14 («контур белый — на белом его не видно, у линии контура нет вовсе»): the outline is the shape's own
+    // colour, thinner and half see-through, dashed — around rectangles and ovals and, along the line, around a line or an
+    // arrow; the white dots get a thin dark ring so they read on white too
+    private void drawHandle (android.graphics.Canvas c, float x, float y, float r) {
+      c.drawCircle(x, y, r, handlePaint);
+      ringPaint.setStyle(android.graphics.Paint.Style.STROKE);
+      ringPaint.setStrokeWidth(Screen.dp(1f));
+      ringPaint.setColor(0x59000000);
+      c.drawCircle(x, y, r, ringPaint);
+    }
+
+    private final android.graphics.Paint ringPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
     @Override
     protected void dispatchDraw (android.graphics.Canvas c) {
       super.dispatchDraw(c);
       if (selectedShape == null) return;
       float w = getMeasuredWidth(), h = getMeasuredHeight();
       float r = Screen.dp(7f);
+      SimpleDrawing shape = selectedShape;
+      int color = shape.getColor();
       handlePaint.setStyle(android.graphics.Paint.Style.FILL);
       handlePaint.setColor(0xffffffff);
       handlePaint.setShadowLayer(Screen.dp(2f), 0, Screen.dp(.5f), 0x80000000);
       framePaint.setStyle(android.graphics.Paint.Style.STROKE);
-      framePaint.setStrokeWidth(Screen.dp(1f));
-      framePaint.setColor(0xccffffff);
-      framePaint.setPathEffect(new android.graphics.DashPathEffect(new float[] {Screen.dp(4f), Screen.dp(3f)}, 0));
-      SimpleDrawing shape = selectedShape;
+      framePaint.setStrokeWidth(Screen.dp(1.25f));
+      framePaint.setColor(me.vkryl.core.ColorUtils.alphaColor(.6f, color | 0xff000000));
+      framePaint.setPathEffect(new android.graphics.DashPathEffect(new float[] {Screen.dp(5f), Screen.dp(4f)}, 0));
+      float pad = shape.getStrokeRadius() > 0 ? Screen.dp(shape.getStrokeRadius()) / 2f + Screen.dp(6f) : Screen.dp(8f);
       if (shape.getType() == SimpleDrawing.TYPE_LINE || shape.getType() == SimpleDrawing.TYPE_ARROW) {
-        c.drawCircle(shape.getX1() * w, shape.getY1() * h, r, handlePaint);
-        c.drawCircle(shape.getX2() * w, shape.getY2() * h, r, handlePaint);
+        float x1 = shape.getX1() * w, y1 = shape.getY1() * h, x2 = shape.getX2() * w, y2 = shape.getY2() * h;
+        float len = (float) Math.hypot(x2 - x1, y2 - y1);
+        c.save();
+        c.rotate((float) Math.toDegrees(Math.atan2(y2 - y1, x2 - x1)), x1, y1);
+        c.drawRoundRect(x1 - pad, y1 - pad, x1 + len + pad, y1 + pad, pad, pad, framePaint);
+        c.restore();
+        drawHandle(c, x1, y1, r);
+        drawHandle(c, x2, y2, r);
         return;
       }
       c.save();
       c.rotate(shape.getRotation(), cx(), cy());
       float hw = hw(), hh = hh(), x0 = cx(), y0 = cy();
-      c.drawRect(x0 - hw, y0 - hh, x0 + hw, y0 + hh, framePaint);
+      float inset = shape.getStrokeRadius() > 0 ? Screen.dp(shape.getStrokeRadius()) / 2f + Screen.dp(4f) : Screen.dp(4f);
+      c.drawRect(x0 - hw - inset, y0 - hh - inset, x0 + hw + inset, y0 + hh + inset, framePaint);
       for (float[] k : CORNERS) {
-        c.drawCircle(x0 + k[0] * hw, y0 + k[1] * hh, r, handlePaint);
+        drawHandle(c, x0 + k[0] * hw, y0 + k[1] * hh, r);
       }
       if (shape.canRotate()) {
         framePaint.setPathEffect(null);
-        c.drawLine(x0, y0 - hh, x0, y0 - rotateHandleOffset() + r, framePaint);
-        c.drawCircle(x0, y0 - rotateHandleOffset(), r, handlePaint);
-        // the turn arrow inside the dot
+        c.drawLine(x0, y0 - hh - inset, x0, y0 - rotateHandleOffset() + r, framePaint);
+        drawHandle(c, x0, y0 - rotateHandleOffset(), r);
         framePaint.setColor(0xff3d8fd8);
         framePaint.setStrokeWidth(Screen.dp(1.5f));
         android.graphics.RectF arc = new android.graphics.RectF(x0 - r * .55f, y0 - rotateHandleOffset() - r * .55f, x0 + r * .55f, y0 - rotateHandleOffset() + r * .55f);
