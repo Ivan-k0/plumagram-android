@@ -3318,10 +3318,16 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
           int pre = tgx101PreJumpIndex(index, scrollBy < 0, (int) (screen * 1.5f));
           if (pre != index) {
             org.thunderdog.challegram.Tgx101Diag.mark("jump: far (" + scrollBy + " px), stand on item " + pre + " for " + index + ", then glide");
+            // the stand-in goes to the far side of the screen, so the glide runs the full 1.5 screens like before (user
+            // 2026-10-13 «анимация по стрелке не вернулась» — on the near side only ~half a screen was left to glide)
+            TGMessage preMessage = adapter.getMessage(pre);
+            int preHeight = preMessage != null ? preMessage.getHeight() : 0;
             if (scrollBy < 0) {
-              scrollToPositionWithOffsetImpl(pre, 0); // an older message: stand on a newer one at the bottom
+              // an older message above: the newer stand-in at the top, the message 1.5 screens above it
+              scrollToPositionWithOffsetImpl(pre, Math.max(0, list.getHeight() - list.getPaddingBottom() - preHeight));
             } else {
-              scrollToPositionWithOffsetImpl(pre, Math.max(0, list.getHeight() - list.getPaddingBottom() - Screen.dp(120f))); // a newer one: an older one at the top
+              // a newer message below (the arrow): the older stand-in at the bottom, the message 1.5 screens below it
+              scrollToPositionWithOffsetImpl(pre, 0);
             }
           }
         } else {
