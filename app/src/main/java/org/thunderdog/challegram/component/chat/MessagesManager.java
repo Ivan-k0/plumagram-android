@@ -958,22 +958,22 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       TGMessage msg = adapter.getMessage(i);
       if (msg != null) distance += msg.getHeight();
     }
-    if (distance <= 0)
-      return true;
-    int run = (int) Math.min(distance, (long) (getRecyclerHeight() * 1.5f));
+    if (distance <= 0) {
+      // (user's log 2026-10-13 14:47 «стрелка не сработала с первого раза»): the heights said «already at the end» while
+      // the list wasn't — the arrow did nothing. Now it still goes to the newest message
+      org.thunderdog.challegram.Tgx101Diag.mark("arrow: counted " + distance + " px to the end (first " + first + ") — going to the newest anyway");
+      if (first == 0 && firstView.getBottom() <= visibleBottom) {
+        scrollToPositionWithOffsetImpl(0, 0);
+        return true;
+      }
+    }
     tgx101AutoScrolling = true;
     tgx101ScrollingDown = false;
     checkScrollToBottomButton();
-    android.view.animation.Interpolator interpolator = new android.view.animation.DecelerateInterpolator(1.6f);
-    int duration = (int) Math.min(420, Math.max(220, 220 + run / (float) Math.max(1, getRecyclerHeight()) * 140));
-    if (distance > run) {
-      // reversed list: a negative offset puts the newest message that far below the visible end
-      manager.scrollToPositionWithOffset(0, -run);
-      list.post(() -> list.smoothScrollBy(0, run, interpolator, duration));
-    } else {
-      list.smoothScrollBy(0, run, interpolator, duration);
-    }
-    org.thunderdog.challegram.Tgx101Diag.mark("arrow: smooth scroll " + distance + " px, run " + run + " px, " + duration + " ms");
+    org.thunderdog.challegram.Tgx101Diag.mark("arrow: to the newest, " + distance + " px");
+    // the same way as a jump to a quote: far — stand on a real message ~1.5 screens before, then one smooth scroll that
+    // stops the newest message exactly at the end (an offset outside the list wasn't kept and the scroll missed)
+    scrollToPositionWithOffset(0, 0, true, false);
     return true;
   }
 

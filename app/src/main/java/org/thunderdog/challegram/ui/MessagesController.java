@@ -3556,6 +3556,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void scrollToUnreadOrStartMessage () {
     int anchorMode = MessagesManager.getAnchorHighlightMode(tdlib.id(), chat, messageThread);
+    org.thunderdog.challegram.Tgx101Diag.mark("arrow: pressed (return " + manager.hasReturnMessage() + ", anchor " + anchorMode + ")");
     if (!manager.hasReturnMessage()) {
       if (!inPreviewMode && !isInForceTouchMode() && anchorMode == MessagesManager.HIGHLIGHT_MODE_UNREAD) {
         MessageId messageId = MessagesManager.getAnchorMessageId(tdlib.id(), chat, messageThread, anchorMode);
