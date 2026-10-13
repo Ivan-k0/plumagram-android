@@ -998,11 +998,14 @@ public final class Tgx101MessageMenu {
     org.thunderdog.challegram.Tgx101Diag.mark("menu: all reactions " + (show ? "unfolded" : "folded"));
   }
 
+  /** The plain dim behind the menu — 30 % black, as in the official app */
+  public static final int MENU_DIM = 0x4d000000;
+
   private static Drawable blurredBackground (MessagesController c) {
     // TGx101 (user 2026-10-12 20:56, variant 3): no blur by default — the same plain dim as the sheets that open from
     // the menu (the blur then turning into a dim was what jarred); with MagiX «Blur» on, both blur
     if (!org.thunderdog.challegram.unsorted.Settings.instance().tgx101MenuBlur()) {
-      return new android.graphics.drawable.ColorDrawable(0x4d000000);
+      return new android.graphics.drawable.ColorDrawable(MENU_DIM);
     }
     android.graphics.Bitmap bitmap = blurredScreen(c.context(), 0x40000000);
     if (bitmap != null) {
@@ -1099,8 +1102,13 @@ public final class Tgx101MessageMenu {
       // menu used to take down with it
       if (host.dismissing) return;
       host.dismissing = true;
+      // the dim stays: a sheet opened by the action takes it over, otherwise it fades out (user 2026-10-12 21:10)
+      PopupLayout.tgx101HandOffDim(context, host.background);
       host.popup.hideWindow(false);
-      UI.post(() -> delegate.onOptionItemPressed(v, v.getId()));
+      UI.post(() -> {
+        delegate.onOptionItemPressed(v, v.getId());
+        PopupLayout.tgx101ReleaseDim();
+      });
     });
     return row;
   }

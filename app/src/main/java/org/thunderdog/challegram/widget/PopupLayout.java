@@ -516,6 +516,15 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     }
 
     animationType = ANIMATION_TYPE_SIMPLE;
+    // TGx101: a sheet opened from the message menu takes over the menu's dim / blur (see tgx101HandOffDim)
+    View ghost = tgx101Ghost != null ? tgx101Ghost.get() : null;
+    if (ghost != null && !tgx101GhostClaimed && ghost.getParent() != null) {
+      tgx101GhostClaimed = true;
+      tgx101OwnGhost = ghost;
+      if (backgroundView != null && ghost.getBackground() instanceof android.graphics.drawable.BitmapDrawable) {
+        backgroundView.tgx101Blur = ((android.graphics.drawable.BitmapDrawable) ghost.getBackground()).getBitmap(); // the very same picture
+      }
+    } else
     // TGx101 (variant 3): with MagiX «Blur» on, a sheet blurs the screen behind it like the message menu does
     if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101MenuBlur() && getContext() instanceof android.app.Activity && backgroundView != null) {
       backgroundView.tgx101Blur = org.thunderdog.challegram.ui.Tgx101MessageMenu.blurredScreen((android.app.Activity) getContext(), 0x26000000);
@@ -527,6 +536,72 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
 
   public View getBoundView () {
     return boundView;
+  }
+
+  // TGx101 (user 2026-10-12 21:10 «что с размытием что без такого быть не должно. Переход должен быть бесшовный»): a
+  // menu action that opens a sheet («Delete?», «Share») closed the menu with its dim at once and the sheet then dimmed
+  // the screen again from zero — a flash of the bare chat in between. Now the menu leaves its dim / blur behind as a
+  // layer over the chat: a sheet opened right away melts it into its own dim; with no sheet it fades out by itself
+  private static @Nullable java.lang.ref.WeakReference<View> tgx101Ghost;
+  private static boolean tgx101GhostClaimed;
+  private @Nullable View tgx101OwnGhost;
+
+  public static void tgx101HandOffDim (Context context, @Nullable android.graphics.drawable.Drawable menuBackground) {
+    tgx101RemoveGhost(tgx101Ghost != null ? tgx101Ghost.get() : null);
+    if (menuBackground == null || menuBackground.getAlpha() == 0) {
+      return;
+    }
+    BaseActivity activity = UI.getContext(context);
+    View ghost = new View(activity);
+    if (menuBackground instanceof android.graphics.drawable.BitmapDrawable) {
+      android.graphics.drawable.BitmapDrawable blur = new android.graphics.drawable.BitmapDrawable(activity.getResources(), ((android.graphics.drawable.BitmapDrawable) menuBackground).getBitmap());
+      blur.setFilterBitmap(true);
+      ghost.setBackground(blur);
+    } else {
+      ghost.setBackgroundColor(org.thunderdog.challegram.ui.Tgx101MessageMenu.MENU_DIM);
+    }
+    ghost.setAlpha(menuBackground.getAlpha() / 255f);
+    ghost.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    activity.addToRoot(ghost, true);
+    tgx101Ghost = new java.lang.ref.WeakReference<>(ghost);
+    tgx101GhostClaimed = false;
+  }
+
+  /** After the menu action ran: no sheet took the dim — it fades out like the menu's own */
+  public static void tgx101ReleaseDim () {
+    View ghost = tgx101Ghost != null ? tgx101Ghost.get() : null;
+    if (ghost == null || tgx101GhostClaimed) {
+      return;
+    }
+    tgx101Ghost = null;
+    ghost.animate().alpha(0f).setDuration(180).setInterpolator(new android.view.animation.AccelerateInterpolator())
+      .withEndAction(() -> tgx101RemoveGhost(ghost)).start();
+  }
+
+  private static void tgx101RemoveGhost (@Nullable View ghost) {
+    if (ghost == null) {
+      return;
+    }
+    if (tgx101Ghost != null && tgx101Ghost.get() == ghost) {
+      tgx101Ghost = null;
+    }
+    ghost.animate().cancel();
+    if (ghost.getParent() != null) {
+      UI.getContext(ghost.getContext()).removeFromRoot(ghost);
+    }
+  }
+
+  private void tgx101UpdateGhost (float factor) {
+    if (tgx101OwnGhost == null) {
+      return;
+    }
+    if (factor >= 1f) {
+      tgx101RemoveGhost(tgx101OwnGhost);
+      tgx101OwnGhost = null;
+    } else if (backgroundView != null && backgroundView.tgx101Blur == null) {
+      // the menu's 30 % melts into the sheet's 20 % — the darkness only goes down, never through zero
+      tgx101OwnGhost.setAlpha(Math.min(tgx101OwnGhost.getAlpha(), 1f - factor));
+    } // blur: the sheet fades in the same picture over it, the layer goes once it is fully covered
   }
 
   public void showMoreView (MenuMoreWrapAbstract menuWrap) {
@@ -642,6 +717,10 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     }
 
     isHidden = true;
+    if (tgx101OwnGhost != null) { // closed before it finished coming in: the menu's dim goes with it
+      tgx101RemoveGhost(tgx101OwnGhost);
+      tgx101OwnGhost = null;
+    }
 
     if (animated) {
       launchHideAnimation();
@@ -915,6 +994,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
         }
       }
       backgroundView.setAlpha(factor);
+      tgx101UpdateGhost(factor);
     }
   }
 
