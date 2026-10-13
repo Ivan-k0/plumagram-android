@@ -7487,8 +7487,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           colorPickerView.setDirection(colorDirectionView);
         }
 
-        setPaintType(PaintMode.restore(), false);
+        if (tgx101PaintTools != null) { // TGx101: the tool picked in the row stays picked
+          PaintMode.brushStyle = org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView.styleOf(tgx101PaintTools.getSelected());
+          setPaintType(tgx101PaintTools.modeOf(tgx101PaintTools.getSelected()), false);
+        } else {
+          setPaintType(PaintMode.restore(), false);
+        }
         checkCanUndo();
+        tgx101ToneHintCounted = false; // a new opening of the brush
         colorPreviewView.reset(true);
 
         bottomWrap.addView(paintControlsWrap);
@@ -8070,6 +8076,25 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     showDefaultBrushHint();
   }
 
+  // TGx101 (user 2026-10-13 «эту навязчивую „удерживайте палец“ показывай всего два раза, не больше — она лезет
+  // постоянно»): the hint is shown in two openings of the brush at most, then it's done for good
+  private static final String TGX101_TONE_HINT_KEY = "tgx101_tone_hint_shown";
+  private boolean tgx101ToneHintCounted;
+
+  private boolean tgx101CountToneHint () {
+    if (tgx101ToneHintCounted) {
+      return true; // already counted for this opening
+    }
+    int shown = Settings.instance().pmc().getInt(TGX101_TONE_HINT_KEY, 0);
+    if (shown >= 2) {
+      Settings.instance().markTutorialAsComplete(Settings.TUTORIAL_BRUSH_COLOR_TONE);
+      return false;
+    }
+    Settings.instance().pmc().putInt(TGX101_TONE_HINT_KEY, shown + 1);
+    tgx101ToneHintCounted = true;
+    return true;
+  }
+
   public void showDefaultBrushHint () {
     if (paintView != null && paintView.isEditorVisible() && !paintView.getContentWrap().hasEffectiveDrawing()) {
       CharSequence text;
@@ -8084,7 +8109,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           Strings.getColorRepresentation(Settings.COLOR_FORMAT_HSL, hue, hsv[1], hsv[2], color, true) + "\n" +
           Lang.getStringBold(R.string.BrushSize, U.formatFloat(colorPreviewView.getBrushRadius(1f), false));
         textFlags = Text.FLAG_ALIGN_CENTER;
-      } else if (Settings.instance().needTutorial(Settings.TUTORIAL_BRUSH_COLOR_TONE)) {
+      } else if (Settings.instance().needTutorial(Settings.TUTORIAL_BRUSH_COLOR_TONE) && tgx101CountToneHint()) {
         text = Lang.getString(R.string.HoldToTone);
       } else {
         text = null;
@@ -8096,7 +8121,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           }
           brushToneHint.show();
         } else {
-          brushToneHint = context().tooltipManager().builder(colorPreviewView).preventHideOnTouch(true).color(context().tooltipManager().overrideColorProvider(getForcedTheme())).show(context().tooltipManager().newContent(tdlib, text, textFlags));
+          // TGx101: the hint goes above the tools row (it sat right on it)
+          brushToneHint = context().tooltipManager().builder(colorPreviewView).preventHideOnTouch(true).color(context().tooltipManager().overrideColorProvider(getForcedTheme()))
+            .locate((targetView, outRect) -> { if (tgx101PaintTools != null) outRect.top -= Screen.dp(56f); })
+            .show(context().tooltipManager().newContent(tdlib, text, textFlags));
         }
         return;
       }
