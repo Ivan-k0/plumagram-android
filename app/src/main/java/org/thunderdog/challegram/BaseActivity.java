@@ -1304,11 +1304,29 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       if (Intent.ACTION_SCREEN_OFF.equals(action)) {
         tgx101ScreenOffAt = now;
         Tgx101Diag.mark("screen off");
+        View decor = getWindow().getDecorView();
+        decor.removeCallbacks(tgx101HideWhileDark);
+        if (isKeyboardVisible) decor.postDelayed(tgx101HideWhileDark, TGX101_SCREEN_OFF_KEEP + 100);
       } else if (Intent.ACTION_SCREEN_ON.equals(action)) {
         tgx101ScreenOnAt = now;
+        getWindow().getDecorView().removeCallbacks(tgx101HideWhileDark);
         Tgx101Diag.mark("screen on" + (tgx101ScreenOffAt != 0 ? " after " + (now - tgx101ScreenOffAt) + " ms" : ""));
       }
     }
+  };
+
+  // user 2026-10-14 «опускание чата из-за того, что клавиатура сама съезжает — можно пропустить?»: Android keeps the
+  // keyboard shown across the dark screen and drops it only after unlocking (285 ms, the chat sliding down). Once the
+  // screen has been dark for 5 s the keyboard is let go right there, while nobody sees it
+  private final Runnable tgx101HideWhileDark = () -> {
+    if (tgx101ScreenOnAt > tgx101ScreenOffAt) return; // the screen is back on — the 5 s rule keeps it
+    View focus = getCurrentFocus();
+    android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+    boolean done = false;
+    try {
+      if (imm != null) done = imm.hideSoftInputFromWindow((focus != null ? focus : getWindow().getDecorView()).getWindowToken(), 0);
+    } catch (Throwable ignored) { }
+    Tgx101Diag.mark("keyboard: let go while the screen is dark (" + (done ? "done" : "system kept it") + ")");
   };
 
   private void tgx101RegisterScreenReceiver () {
@@ -1356,6 +1374,8 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       return;
     }
     tgx101KeyboardAtPause = false; // nothing to wait for: no held frames
+    tgx101RiseAfterKeyboard = true;
+    tgx101KeyboardGoneAt = android.os.SystemClock.uptimeMillis(); // if it's already gone, no wait beyond 300 ms
     tgx101KeyboardRestoreBlocked = true;
     getWindow().getDecorView().post(() -> tgx101KeyboardRestoreBlocked = false);
     // the activity resumes still behind the lock screen; Android shows the keyboard once the window gets focus after
@@ -1863,6 +1883,8 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   private boolean tgx101EnterAfterScreenOff, tgx101RisePending;
   private final Runnable tgx101RiseRunnable = this::tgx101Rise;
+  private boolean tgx101RiseAfterKeyboard;
+  private long tgx101KeyboardGoneAt;
 
   private long tgx101RiseWaitStart;
 
@@ -1878,12 +1900,15 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     android.app.KeyguardManager km = (android.app.KeyguardManager) getSystemService(KEYGUARD_SERVICE);
     long now = android.os.SystemClock.uptimeMillis();
     if (tgx101RiseWaitStart == 0) tgx101RiseWaitStart = now;
-    if (km != null && km.isKeyguardLocked() && now - tgx101RiseWaitStart < 3000) {
+    // …and, when the keyboard isn't coming back, until it has left (its slide down plays while we're still invisible)
+    boolean imeLeaving = tgx101RiseAfterKeyboard && (isKeyboardVisible || now - tgx101KeyboardGoneAt < 300);
+    if (((km != null && km.isKeyguardLocked()) || imeLeaving) && now - tgx101RiseWaitStart < 3000) {
       content.removeCallbacks(tgx101RiseRunnable);
       content.postDelayed(tgx101RiseRunnable, 16);
       return;
     }
-    Tgx101Diag.mark("open animation: lock gone after " + (now - tgx101RiseWaitStart) + " ms");
+    Tgx101Diag.mark("open animation: lock gone" + (tgx101RiseAfterKeyboard ? " and keyboard down" : "") + " after " + (now - tgx101RiseWaitStart) + " ms");
+    tgx101RiseAfterKeyboard = false;
     tgx101RiseWaitStart = 0;
     tgx101RisePending = false;
     content.removeCallbacks(tgx101RiseRunnable);
@@ -1921,6 +1946,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   @Override
   public void onKeyboardStateChanged (boolean visible) {
+    if (!visible) tgx101KeyboardGoneAt = android.os.SystemClock.uptimeMillis();
     if (visible && tgx101HoldingDraw) {
       // one more layout pass with the keyboard's room, then draw
       getWindow().getDecorView().postDelayed(this::tgx101ReleaseDraw, 32);
