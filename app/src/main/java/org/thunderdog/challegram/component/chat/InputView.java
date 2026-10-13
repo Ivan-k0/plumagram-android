@@ -1045,16 +1045,6 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     setCursorVisible(true);
   }
 
-  /** The keyboard goes away (emoji panel): the cursor handle and its «Paste / Select» menu go with it, as in the official
-   *  app (user's video 2026-10-13 12:26 — they stayed hanging over the emoji panel). A real selection is kept */
-  public void tgx101HideCursorControls () {
-    if (hasSelection()) return;
-    if (currentActionMode != null) {
-      currentActionMode.finish();
-    }
-    tgx101HideInsertionHandle();
-  }
-
   private boolean tgx101SafetyTap (MotionEvent e) {
     if (e.getActionMasked() == MotionEvent.ACTION_DOWN && !tgx101ImeVisible() && !hasSelection()) {
       tgx101NoCursorMenuUntil = android.os.SystemClock.uptimeMillis() + 700;
