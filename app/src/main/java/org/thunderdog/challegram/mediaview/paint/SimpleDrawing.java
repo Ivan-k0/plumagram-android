@@ -41,6 +41,29 @@ public class SimpleDrawing {
   public static final int TYPE_ARROW = 1;
   public static final int TYPE_RECTANGLE = 2;
   public static final int TYPE_FILLING = 3;
+  // TGx101 (user 2026-10-13, editor mockup variant Б): an oval and a straight line among the shapes
+  public static final int TYPE_ELLIPSE = 4;
+  public static final int TYPE_LINE = 5;
+
+  // TGx101: brush kinds of a TYPE_PATH stroke (kept in the high half of the saved type byte — old saves read as PEN)
+  public static final int STYLE_PEN = 0, STYLE_MARKER = 1, STYLE_PENCIL = 2, STYLE_NEON = 3, STYLE_FREE_ARROW = 4, STYLE_ERASER = 5;
+  private int style = STYLE_PEN;
+
+  public void setStyle (int style) {
+    this.style = style;
+  }
+
+  public int getStyle () {
+    return style;
+  }
+
+  public boolean isEraser () {
+    return type == TYPE_PATH && style == STYLE_ERASER;
+  }
+
+  private static boolean isTwoPointShape (int type) {
+    return type == TYPE_ARROW || type == TYPE_RECTANGLE || type == TYPE_ELLIPSE || type == TYPE_LINE;
+  }
 
   private final int type;
 
@@ -106,7 +129,9 @@ public class SimpleDrawing {
     float y = getRelativeY(e.getY());
     switch (type) {
       case TYPE_ARROW:
-      case TYPE_RECTANGLE: {
+      case TYPE_RECTANGLE:
+      case TYPE_ELLIPSE:
+      case TYPE_LINE: {
         if (this.x2 != x || this.y2 != y) {
           this.x2 = x;
           this.y2 = y;
@@ -124,7 +149,9 @@ public class SimpleDrawing {
   public boolean completeDrawing (MotionEvent e, boolean byPinch) { // touchUp
     switch (type) {
       case TYPE_ARROW:
-      case TYPE_RECTANGLE: {
+      case TYPE_RECTANGLE:
+      case TYPE_ELLIPSE:
+      case TYPE_LINE: {
         return !byPinch || (x1 == x2 && y1 == y2);
       }
       case TYPE_PATH: {
@@ -257,6 +284,7 @@ public class SimpleDrawing {
   private static boolean needsCanvasRotation (int type) {
     switch (type) {
       case TYPE_RECTANGLE:
+      case TYPE_ELLIPSE:
         return true;
     }
     return false;
@@ -291,6 +319,7 @@ public class SimpleDrawing {
   public boolean compare (SimpleDrawing b) {
     return b != null &&
       b.type == type &&
+      b.style == style &&
       b.color == color &&
       (!needsStrokeRadius(type) || b.strokeRadius == strokeRadius) &&
       (type == TYPE_FILLING || (b.canvasWidth == canvasWidth && b.canvasHeight == canvasHeight) || (b.canvasWidth / b.canvasHeight) == (canvasWidth / canvasHeight)) && // checking only for aspect ratio, since result will be the same
@@ -359,8 +388,32 @@ public class SimpleDrawing {
     }
     paint.setStrokeWidth(strokeSize);
     paint.setColor(color);
+    // TGx101: a shared paint — every stroke starts from the plain pen
+    paint.setXfermode(null);
+    paint.setMaskFilter(null);
+    paint.setPathEffect(null);
+    paint.setStrokeCap(Paint.Cap.ROUND);
+    paint.setStrokeJoin(Paint.Join.ROUND);
 
     switch (type) {
+      case TYPE_ELLIPSE: {
+        RectF rectF = Paints.getRectF();
+        rectF.set(left, top, right, bottom);
+        final boolean saved = canvasRotation != 0f;
+        if (saved) {
+          c.save();
+          c.rotate(-canvasRotation, left, top);
+        }
+        c.drawOval(rectF, paint);
+        if (saved) {
+          c.restore();
+        }
+        break;
+      }
+      case TYPE_LINE: {
+        c.drawLine(x1, y1, x2, y2, paint);
+        break;
+      }
       case TYPE_RECTANGLE: {
         RectF rectF = Paints.getRectF();
         rectF.set(left, top, right, bottom);
@@ -428,8 +481,73 @@ public class SimpleDrawing {
         if (viewLeft != 0 || viewTop != 0) {
           c.translate(viewLeft, viewTop);
         }
-        c.drawPath(path.getPath(width, height), paint);
+        android.graphics.Path p = path.getPath(width, height);
+        drawStyledPath(c, p, paint, strokeSize, width, height);
         c.restore();
+        break;
+      }
+    }
+  }
+
+  /** TGx101: the five brushes and the eraser (user 2026-10-13, editor mockup variant Б) */
+  private void drawStyledPath (Canvas c, android.graphics.Path p, Paint paint, float strokeSize, int width, int height) {
+    switch (style) {
+      case STYLE_MARKER: {
+        // wide, see-through, flat tip — like a highlighter
+        paint.setStrokeWidth(strokeSize * 2.4f);
+        paint.setStrokeCap(Paint.Cap.SQUARE);
+        paint.setColor(me.vkryl.core.ColorUtils.alphaColor(.5f, color));
+        c.drawPath(p, paint);
+        break;
+      }
+      case STYLE_PENCIL: {
+        // thin and grainy
+        paint.setStrokeWidth(Math.max(1f, strokeSize * .6f));
+        paint.setColor(me.vkryl.core.ColorUtils.alphaColor(.85f, color));
+        paint.setPathEffect(new android.graphics.DiscretePathEffect(dp(1.6f, width, height), dp(.45f, width, height)));
+        c.drawPath(p, paint);
+        break;
+      }
+      case STYLE_NEON: {
+        // a glow in the colour with a light core
+        paint.setStrokeWidth(strokeSize * 1.6f);
+        paint.setMaskFilter(new android.graphics.BlurMaskFilter(Math.max(1f, strokeSize * 1.4f), android.graphics.BlurMaskFilter.Blur.NORMAL));
+        c.drawPath(p, paint);
+        paint.setMaskFilter(null);
+        paint.setStrokeWidth(Math.max(1f, strokeSize * .55f));
+        paint.setColor(me.vkryl.core.ColorUtils.fromToArgb(color, 0xffffffff, .7f));
+        c.drawPath(p, paint);
+        break;
+      }
+      case STYLE_FREE_ARROW: {
+        // a free line with a head where the finger left
+        c.drawPath(p, paint);
+        android.graphics.PathMeasure measure = new android.graphics.PathMeasure(p, false);
+        float length = measure.getLength();
+        if (length > strokeSize) {
+          float[] end = new float[2], tan = new float[2];
+          measure.getPosTan(length, end, tan);
+          float[] back = new float[2];
+          measure.getPosTan(Math.max(0, length - Math.max(strokeSize * 3f, dp(12f, width, height))), back, null);
+          double angle = Math.atan2(end[1] - back[1], end[0] - back[0]);
+          float head = Math.min(length * .5f, Math.max(strokeSize * 3f, dp(16f, width, height)));
+          for (int side = -1; side <= 1; side += 2) {
+            double a = angle + Math.PI - side * Math.toRadians(32);
+            c.drawLine(end[0], end[1], end[0] + (float) (Math.cos(a) * head), end[1] + (float) (Math.sin(a) * head), paint);
+          }
+        }
+        break;
+      }
+      case STYLE_ERASER: {
+        // clears what was drawn below it (the drawings sit on a layer of their own, the photo stays)
+        paint.setStrokeWidth(strokeSize * 1.5f);
+        paint.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.CLEAR));
+        c.drawPath(p, paint);
+        paint.setXfermode(null);
+        break;
+      }
+      default: {
+        c.drawPath(p, paint);
         break;
       }
     }
@@ -438,7 +556,7 @@ public class SimpleDrawing {
   // Blob
 
   public void save (RandomAccessFile file) throws IOException {
-    file.writeByte((byte) type);
+    file.writeByte((byte) (type | (style << 4)));
 
     Blob.writeVarint(file, canvasWidth);
     Blob.writeVarint(file, canvasHeight);
@@ -456,7 +574,7 @@ public class SimpleDrawing {
   }
 
   public void save (Blob blob) {
-    blob.writeByte((byte) type);
+    blob.writeByte((byte) (type | (style << 4)));
 
     blob.writeVarint(canvasWidth);
     blob.writeVarint(canvasHeight);
@@ -477,6 +595,8 @@ public class SimpleDrawing {
     switch (type) {
       case TYPE_ARROW:
       case TYPE_RECTANGLE:
+      case TYPE_ELLIPSE:
+      case TYPE_LINE:
         file.writeFloat(x1);
         file.writeFloat(x2);
         file.writeFloat(y1);
@@ -492,7 +612,9 @@ public class SimpleDrawing {
   private void savePositionData (Blob blob) {
     switch (type) {
       case TYPE_ARROW:
-      case TYPE_RECTANGLE: {
+      case TYPE_RECTANGLE:
+      case TYPE_ELLIPSE:
+      case TYPE_LINE: {
         blob.writeFloat(x1);
         blob.writeFloat(x2);
         blob.writeFloat(y1);
@@ -513,7 +635,9 @@ public class SimpleDrawing {
   private int getEstimatedPositionSaveSize () {
     switch (type) {
       case TYPE_ARROW:
-      case TYPE_RECTANGLE: {
+      case TYPE_RECTANGLE:
+      case TYPE_ELLIPSE:
+      case TYPE_LINE: {
         return 8 * 4;
       }
       case TYPE_PATH: {
@@ -524,7 +648,8 @@ public class SimpleDrawing {
   }
 
   public static SimpleDrawing restore (RandomAccessFile file) throws IOException {
-    int type = file.read();
+    int rawType = file.read() & 0xff;
+    int type = rawType & 0x0f, style = rawType >> 4;
 
     int canvasWidth = Blob.readVarint(file);
     int canvasHeight = Blob.readVarint(file);
@@ -544,6 +669,7 @@ public class SimpleDrawing {
 
     SimpleDrawing drawing = new SimpleDrawing(type, canvasWidth, canvasHeight, canvasScale, canvasRotation);
     drawing.setBrushParameters(color, strokeRadius);
+    drawing.style = style;
 
     restorePositionData(file, drawing);
 
@@ -551,7 +677,8 @@ public class SimpleDrawing {
   }
 
   public static SimpleDrawing restore (Blob blob) {
-    int type = blob.readByte();
+    int rawType = blob.readByte() & 0xff;
+    int type = rawType & 0x0f, style = rawType >> 4;
 
     int canvasWidth = blob.readVarint();
     int canvasHeight = blob.readVarint();
@@ -571,6 +698,7 @@ public class SimpleDrawing {
 
     SimpleDrawing drawing = new SimpleDrawing(type, canvasWidth, canvasHeight, canvasScale, canvasRotation);
     drawing.setBrushParameters(color, strokeRadius);
+    drawing.style = style;
 
     restorePositionData(blob, drawing);
 
@@ -580,7 +708,9 @@ public class SimpleDrawing {
   private static void restorePositionData (RandomAccessFile file, SimpleDrawing out) throws IOException {
     switch (out.type) {
       case TYPE_ARROW:
-      case TYPE_RECTANGLE: {
+      case TYPE_RECTANGLE:
+      case TYPE_ELLIPSE:
+      case TYPE_LINE: {
         out.x1 = file.readFloat();
         out.x2 = file.readFloat();
         out.y1 = file.readFloat();
@@ -597,7 +727,9 @@ public class SimpleDrawing {
   private static void restorePositionData (Blob blob, SimpleDrawing out) {
     switch (out.type) {
       case TYPE_ARROW:
-      case TYPE_RECTANGLE: {
+      case TYPE_RECTANGLE:
+      case TYPE_ELLIPSE:
+      case TYPE_LINE: {
         out.x1 = blob.readFloat();
         out.x2 = blob.readFloat();
         out.y1 = blob.readFloat();

@@ -583,6 +583,12 @@ public class EGLEditorView extends ViewGroup {
         case PaintMode.RECTANGLE:
           type = SimpleDrawing.TYPE_RECTANGLE;
           break;
+        case PaintMode.ELLIPSE:
+          type = SimpleDrawing.TYPE_ELLIPSE;
+          break;
+        case PaintMode.LINE:
+          type = SimpleDrawing.TYPE_LINE;
+          break;
         case PaintMode.PATH:
           type = SimpleDrawing.TYPE_PATH;
           break;
@@ -590,6 +596,7 @@ public class EGLEditorView extends ViewGroup {
           return false;
       }
       SimpleDrawing drawing = new SimpleDrawing(type, canvasWidth, canvasHeight, 1f, parent.sourceCropState != null ? parent.sourceCropState.getDegreesAroundCenter() : 0f);
+      if (type == SimpleDrawing.TYPE_PATH) drawing.setStyle(PaintMode.brushStyle); // TGx101: pen / marker / pencil / neon / arrow / eraser
       drawing.startDrawing(e);
       drawing.setBrushParameters(brushColor, brushRadius);
       state.addSimpleDrawing(drawing);
@@ -602,6 +609,8 @@ public class EGLEditorView extends ViewGroup {
       switch (mode) {
         case PaintMode.ARROW:
         case PaintMode.RECTANGLE:
+        case PaintMode.ELLIPSE:
+        case PaintMode.LINE:
         case PaintMode.PATH: {
           currentSimpleDrawing.moveDrawing(e, allowHistory);
           return true;
@@ -614,6 +623,8 @@ public class EGLEditorView extends ViewGroup {
       switch (mode) {
         case PaintMode.ARROW:
         case PaintMode.RECTANGLE:
+        case PaintMode.ELLIPSE:
+        case PaintMode.LINE:
         case PaintMode.PATH: {
           if (currentSimpleDrawing.completeDrawing(e, byPinch)) {
             state.trackSimpleDrawingAction(currentSimpleDrawing);

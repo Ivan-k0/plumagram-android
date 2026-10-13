@@ -10489,8 +10489,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tgx101RevealAnimator != null) tgx101RevealAnimator.cancel();
     float from = tgx101TopReveal + delta;
     tgx101RevealAnimator = android.animation.ValueAnimator.ofFloat(from, 0f);
-    tgx101RevealAnimator.setDuration(160);
-    tgx101RevealAnimator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+    // TGx101 (user 2026-10-13 «ход поля ввода намного резче, чем в exteraGram — у нас резко, там плавно»): 160 ms with a
+    // strong deceleration put most of the move into the first frames — the field and the chat behind it jumped. Like the
+    // official app: longer, with a soft start and a soft stop (the chat follows the same curve)
+    tgx101RevealAnimator.setDuration(250);
+    tgx101RevealAnimator.setInterpolator(androidx.core.view.animation.PathInterpolatorCompat.create(.25f, .1f, .25f, 1f));
     tgx101RevealAnimator.addUpdateListener(a -> tgx101SetTopReveal((float) a.getAnimatedValue()));
     tgx101SetTopReveal(from);
     tgx101RevealAnimator.start();

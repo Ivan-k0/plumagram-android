@@ -20,6 +20,12 @@ public class PaintMode {
   public static final int PATH = 1;
   public static final int ARROW = 2;
   public static final int RECTANGLE = 3;
+  // TGx101 (editor mockup variant Б): more shapes, and the brush kind of a free stroke
+  public static final int ELLIPSE = 4;
+  public static final int LINE = 5;
+
+  /** The kind of a free stroke (SimpleDrawing.STYLE_*): pen, marker, pencil, neon, free arrow, eraser */
+  public static int brushStyle = SimpleDrawing.STYLE_PEN;
 
   public static final int FREE_MOVEMENT = 100;
 
@@ -45,6 +51,8 @@ public class PaintMode {
       case PATH:
       case ARROW:
       case RECTANGLE:
+      case ELLIPSE:
+      case LINE:
         return mode;
     }
     return PATH;

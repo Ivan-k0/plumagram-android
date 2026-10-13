@@ -442,8 +442,20 @@ public class PaintState {
 
   public void draw (Canvas c, final int x, final int y, final int viewWidth, final int viewHeight) {
     if (drawingsList != null && !drawingsList.isEmpty()) {
+      // TGx101: with an eraser stroke the drawings go on a layer of their own — it clears them, not the photo
+      boolean hasEraser = false;
+      for (SimpleDrawing drawing : drawingsList) {
+        if (drawing.isEraser()) {
+          hasEraser = true;
+          break;
+        }
+      }
+      int saveCount = hasEraser ? c.saveLayer(x, y, x + viewWidth, y + viewHeight, null) : -1;
       for (SimpleDrawing drawing : drawingsList) {
         drawing.draw(c, x, y, x + viewWidth, y + viewHeight);
+      }
+      if (saveCount != -1) {
+        c.restoreToCount(saveCount);
       }
     }
   }
