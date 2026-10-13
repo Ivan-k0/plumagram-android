@@ -6309,8 +6309,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       if (tgx101SoftHeader) {
         // TGx101 (user 2026-10-12: «превью у медиа вверху не чёрным, а прозрачным — сворачивание будет лучше выглядеть»):
         // no dark bar with a shadow over the top of the photo — a soft gradient only for the title and buttons to read on
-        headerView.setBackground(new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-          new int[] {0x8c000000, 0x40000000, 0x00000000}));
+        // user 2026-10-13 23:57 «прозрачный фон не подходит — кисточка и цифры не читаются»: a real dark plate (80 %),
+        // still see-through enough for the collapse
+        headerView.setBackgroundColor(0xcc000000);
       }
       int leftMargin = Screen.dp(68f);
       int rightMargin = measureButtonsPadding();
@@ -7548,7 +7549,6 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           setPaintType(PaintMode.restore(), false);
         }
         checkCanUndo();
-        tgx101ToneHintCounted = false; // a new opening of the brush
         tgx101ApplyingToolSize = true; // the reset is not the user's choice of thickness
         colorPreviewView.reset(true);
         tgx101ApplyingToolSize = false;
@@ -8140,25 +8140,6 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     showDefaultBrushHint();
   }
 
-  // TGx101 (user 2026-10-13 «эту навязчивую „удерживайте палец“ показывай всего два раза, не больше — она лезет
-  // постоянно»): the hint is shown in two openings of the brush at most, then it's done for good
-  private static final String TGX101_TONE_HINT_KEY = "tgx101_tone_hint_shown";
-  private boolean tgx101ToneHintCounted;
-
-  private boolean tgx101CountToneHint () {
-    if (tgx101ToneHintCounted) {
-      return true; // already counted for this opening
-    }
-    int shown = Settings.instance().pmc().getInt(TGX101_TONE_HINT_KEY, 0);
-    if (shown >= 2) {
-      Settings.instance().markTutorialAsComplete(Settings.TUTORIAL_BRUSH_COLOR_TONE);
-      return false;
-    }
-    Settings.instance().pmc().putInt(TGX101_TONE_HINT_KEY, shown + 1);
-    tgx101ToneHintCounted = true;
-    return true;
-  }
-
   public void showDefaultBrushHint () {
     if (paintView != null && paintView.isEditorVisible() && !paintView.getContentWrap().hasEffectiveDrawing()) {
       CharSequence text;
@@ -8173,9 +8154,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           Strings.getColorRepresentation(Settings.COLOR_FORMAT_HSL, hue, hsv[1], hsv[2], color, true) + "\n" +
           Lang.getStringBold(R.string.BrushSize, U.formatFloat(colorPreviewView.getBrushRadius(1f), false));
         textFlags = Text.FLAG_ALIGN_CENTER;
-      } else if (Settings.instance().needTutorial(Settings.TUTORIAL_BRUSH_COLOR_TONE) && tgx101CountToneHint()) {
-        text = Lang.getString(R.string.HoldToTone);
-      } else {
+      } else { // TGx101 (user 2026-10-13 23:57 «убери эти подсказки»): no «Hold for black, white…» hint at all
         text = null;
       }
       if (!StringUtils.isEmpty(text)) {
