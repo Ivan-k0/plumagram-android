@@ -718,6 +718,11 @@ public class TdlibMessageViewer {
     }
 
     public boolean needRestrictScreenshots () {
+      // TGx101 (user 2026-10-13 «не могу делать запись экрана … в списке всех чатов», «делай как в тг»): like the
+      // official app, a protected chat's preview in the chat list doesn't forbid screenshots — only the chat itself does
+      if (messageSource.getConstructor() == TdApi.MessageSourceChatList.CONSTRUCTOR) {
+        return false;
+      }
       return state.needRestrictScreenshots && !needIgnore();
     }
 
