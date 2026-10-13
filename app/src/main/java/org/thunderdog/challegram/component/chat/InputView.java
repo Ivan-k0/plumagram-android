@@ -382,6 +382,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
           currentActionMode = null;
         }
         if (tgx101SelectionBar != null) {
+          tgx101SelectionBar.onHandleReleased(); // never left invisible
           // TGx101: a style / link / quote changes the text and Android ends its selection mode — the bar stays where it is
           if (hasSelection() && (isFocused() || tgx101LinkOpen) && tgx101UseOwnEditor()) {
             org.thunderdog.challegram.Tgx101Diag.mark("input selection bar kept");
@@ -2103,6 +2104,72 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   }
 
   // Android-related workarounds
+
+  // TGx101 (user 2026-10-13 20:30, the magnifier under the selection bar): Android hides its floating toolbar with
+  // hide(-1) while the selection is dragged and brings it back with hide(0) after the finger is lifted. Its selection
+  // handles are separate windows, so a drag that doesn't come through this view is a handle — the bar steps aside then.
+  private boolean tgx101InTouch;
+
+  @Override
+  public boolean dispatchTouchEvent (MotionEvent event) {
+    int action = event.getActionMasked();
+    if (action == MotionEvent.ACTION_DOWN) {
+      tgx101InTouch = true;
+    } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+      tgx101InTouch = false;
+    }
+    return super.dispatchTouchEvent(event);
+  }
+
+  @Override
+  public ActionMode startActionMode (ActionMode.Callback callback, int type) {
+    ActionMode mode = super.startActionMode(callback, type);
+    if (mode == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.M || type != ActionMode.TYPE_FLOATING) {
+      return mode;
+    }
+    return new Tgx101HandleWatchingMode(mode);
+  }
+
+  @androidx.annotation.RequiresApi(Build.VERSION_CODES.M)
+  private final class Tgx101HandleWatchingMode extends ActionMode {
+    private final ActionMode mode;
+
+    Tgx101HandleWatchingMode (ActionMode mode) {
+      this.mode = mode;
+      setType(mode.getType());
+    }
+
+    @Override
+    public void hide (long duration) {
+      mode.hide(duration);
+      if (tgx101SelectionBar == null || !tgx101SelectionBar.isShowing()) return;
+      if (duration != 0) {
+        if (!tgx101InTouch && hasSelection()) tgx101SelectionBar.onHandleDragging();
+      } else {
+        tgx101SelectionBar.onHandleReleased();
+      }
+    }
+
+    @Override public void setTitle (CharSequence title) { mode.setTitle(title); }
+    @Override public void setTitle (int resId) { mode.setTitle(resId); }
+    @Override public void setSubtitle (CharSequence subtitle) { mode.setSubtitle(subtitle); }
+    @Override public void setSubtitle (int resId) { mode.setSubtitle(resId); }
+    @Override public void setCustomView (View view) { mode.setCustomView(view); }
+    @Override public void invalidate () { mode.invalidate(); }
+    @Override public void invalidateContentRect () { mode.invalidateContentRect(); }
+    @Override public void finish () { mode.finish(); }
+    @Override public Menu getMenu () { return mode.getMenu(); }
+    @Override public CharSequence getTitle () { return mode.getTitle(); }
+    @Override public CharSequence getSubtitle () { return mode.getSubtitle(); }
+    @Override public View getCustomView () { return mode.getCustomView(); }
+    @Override public MenuInflater getMenuInflater () { return mode.getMenuInflater(); }
+    @Override public void setTitleOptionalHint (boolean titleOptional) { mode.setTitleOptionalHint(titleOptional); }
+    @Override public boolean getTitleOptionalHint () { return mode.getTitleOptionalHint(); }
+    @Override public boolean isTitleOptional () { return mode.isTitleOptional(); }
+    @Override public void setTag (Object tag) { mode.setTag(tag); }
+    @Override public Object getTag () { return mode.getTag(); }
+    @Override public void onWindowFocusChanged (boolean hasWindowFocus) { mode.onWindowFocusChanged(hasWindowFocus); }
+  }
 
   @Override
   public boolean onTouchEvent (MotionEvent event) {

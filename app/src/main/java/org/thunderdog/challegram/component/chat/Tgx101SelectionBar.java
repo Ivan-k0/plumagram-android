@@ -170,7 +170,9 @@ public final class Tgx101SelectionBar {
 
   public void dismiss () {
     view.removeCallbacks(showAfterDrag);
+    view.removeCallbacks(fadeForHandle);
     hiddenWhileDragging = false;
+    handleDragging = false;
     if (window != null) {
       try { window.dismiss(); } catch (Throwable ignored) { }
       window = null;
@@ -206,6 +208,43 @@ public final class Tgx101SelectionBar {
     }
     view.removeCallbacks(showAfterDrag);
     view.postDelayed(showAfterDrag, 900);
+  }
+
+  // TGx101 (user 2026-10-13 20:30, «лупу не видно, когда включается редактор»): in the message input the bar sits right
+  // where the system magnifier shows. While a selection handle is dragged it fades away a moment after the drag starts
+  // and comes back once the finger is lifted. Only handles — a swipe over the selected text leaves it alone.
+  private static final long HANDLE_HIDE_DELAY = 250, HANDLE_FADE = 160;
+  private boolean handleDragging;
+  private final Runnable fadeForHandle = () -> {
+    if (!handleDragging || content == null || window == null) return;
+    hiddenWhileDragging = true;
+    org.thunderdog.challegram.Tgx101Diag.mark("select: bar fades for the handle (magnifier)");
+    content.animate().cancel();
+    content.animate().alpha(0f).setDuration(HANDLE_FADE).start();
+  };
+
+  /** A selection handle started (or keeps) moving */
+  public void onHandleDragging () {
+    if (handleDragging || content == null || window == null) return;
+    handleDragging = true;
+    view.removeCallbacks(showAfterDrag);
+    view.postDelayed(fadeForHandle, HANDLE_HIDE_DELAY);
+  }
+
+  /** The handle was let go */
+  public void onHandleReleased () {
+    if (!handleDragging) return;
+    handleDragging = false;
+    view.removeCallbacks(fadeForHandle);
+    if (hiddenWhileDragging) {
+      hiddenWhileDragging = false;
+      org.thunderdog.challegram.Tgx101Diag.mark("select: bar back after the handle");
+      if (content != null && window != null) {
+        reposition();
+        content.animate().cancel();
+        content.animate().alpha(1f).setDuration(HANDLE_FADE).start();
+      }
+    }
   }
 
   /** The drag is over (the in-bubble handles know it): the bar comes back right away */
