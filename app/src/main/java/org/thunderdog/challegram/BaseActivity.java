@@ -1224,6 +1224,10 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   public void onPause () {
     tgx101KeyboardAtPause = isKeyboardVisible;
     tgx101NotePause();
+    android.os.PowerManager tgx101Pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+    if (tgx101Pm != null && !Tgx101Diag.isInteractive(tgx101Pm)) {
+      tgx101HideNowForDark(); // the screen is going dark: the earliest moment, focus is still ours
+    }
     org.thunderdog.challegram.ui.Tgx101Proxies.onAppPaused();
     blockFocus();
     setActivityState(UI.State.PAUSED);
@@ -1304,30 +1308,26 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       if (Intent.ACTION_SCREEN_OFF.equals(action)) {
         tgx101ScreenOffAt = now;
         Tgx101Diag.mark("screen off");
-        View decor = getWindow().getDecorView();
-        decor.removeCallbacks(tgx101HideWhileDark);
-        if (isKeyboardVisible) decor.postDelayed(tgx101HideWhileDark, TGX101_SCREEN_OFF_KEEP + 100);
+        tgx101HideNowForDark();
       } else if (Intent.ACTION_SCREEN_ON.equals(action)) {
         tgx101ScreenOnAt = now;
-        getWindow().getDecorView().removeCallbacks(tgx101HideWhileDark);
         Tgx101Diag.mark("screen on" + (tgx101ScreenOffAt != 0 ? " after " + (now - tgx101ScreenOffAt) + " ms" : ""));
       }
     }
   };
 
-  // user 2026-10-14 «опускание чата из-за того, что клавиатура сама съезжает — можно пропустить?»: Android keeps the
-  // keyboard shown across the dark screen and drops it only after unlocking (285 ms, the chat sliding down). Once the
-  // screen has been dark for 5 s the keyboard is let go right there, while nobody sees it
-  private final Runnable tgx101HideWhileDark = () -> {
-    if (tgx101ScreenOnAt > tgx101ScreenOffAt) return; // the screen is back on — the 5 s rule keeps it
+  /** The screen goes dark: the keyboard goes now, while the window still has focus (5 s later the system refused) —
+   *  after unlocking there's nothing left to slide down */
+  private void tgx101HideNowForDark () {
+    if (!isKeyboardVisible) return;
     View focus = getCurrentFocus();
     android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
     boolean done = false;
     try {
       if (imm != null) done = imm.hideSoftInputFromWindow((focus != null ? focus : getWindow().getDecorView()).getWindowToken(), 0);
     } catch (Throwable ignored) { }
-    Tgx101Diag.mark("keyboard: let go while the screen is dark (" + (done ? "done" : "system kept it") + ")");
-  };
+    Tgx101Diag.mark("keyboard: let go as the screen goes dark (" + (done ? "done" : "system kept it") + ")");
+  }
 
   private void tgx101RegisterScreenReceiver () {
     try {
@@ -1367,9 +1367,10 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     // the screen went off while we were away (or right as we left) — for how long
     boolean screenWentOff = tgx101ScreenOffAt != 0 && tgx101ScreenOffAt >= tgx101PausedAtForScreen - 1000;
     long offFor = !screenWentOff ? 0 : (tgx101ScreenOnAt > tgx101ScreenOffAt ? tgx101ScreenOnAt : now) - tgx101ScreenOffAt;
-    tgx101EnterAfterScreenOff = screenWentOff;
+    tgx101EnterAfterScreenOff = false; // user 2026-10-14: the own rise after unlocking is off — on vivo the lock screen vanishes in one frame and the app is already there (it only blinked)
     Tgx101Diag.mark("resume: away " + idle + " ms, screen " + (screenWentOff ? "off " + offFor + " ms" : "stayed on") + ", keyboard at pause " + (keyboard ? "open" : "closed"));
-    if (!keyboard || !screenWentOff || offFor <= TGX101_SCREEN_OFF_KEEP) {
+    // user 2026-10-14 01:00 «после разблокировки сразу прячем и не показываем уже никогда, условие 5 секунд убираем»
+    if (!keyboard || !screenWentOff) {
       if (keyboard) Tgx101Diag.mark("keyboard: comes back");
       return;
     }
