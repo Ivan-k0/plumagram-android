@@ -2537,6 +2537,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
       toggleEmojiKeyboard();
     } else if (viewId == R.id.msg_attach) {
       hideBottomHint();
+      if (isEditingMessage() && editContext != null) {
+        // TGx101 (4PDA report 2026-10-12 21:22, user 2026-10-13 «как в exteraGram или официальном»): while editing, the
+        // paper clip replaces the message's photo / video / file instead of sending a new message
+        if (tgx101CanReplaceMedia(editContext.message)) {
+          onMessageMediaReplaceRequested(replyBarView, editContext.message);
+        }
+        return;
+      }
       openMediaView(false, false);
     } else if (viewId == R.id.msg_send) {
       if (!leaveInlineMode()) {
@@ -8482,11 +8490,33 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void resetEditState () {
     editContext = null;
+    tgx101UpdateAttachForEdit();
     if (inputView != null) {
       inputView.resetState();
       setInputBlockFlag(FLAG_INPUT_EDITING, false);
     }
     sendButton.forceState(false, false);
+  }
+
+  /** Media that Telegram lets an edit replace (a text message can't get a file added) */
+  private static boolean tgx101CanReplaceMedia (@Nullable TdApi.Message message) {
+    if (message == null || message.content == null) return false;
+    switch (message.content.getConstructor()) {
+      case TdApi.MessagePhoto.CONSTRUCTOR:
+      case TdApi.MessageVideo.CONSTRUCTOR:
+      case TdApi.MessageDocument.CONSTRUCTOR:
+      case TdApi.MessageAudio.CONSTRUCTOR:
+      case TdApi.MessageAnimation.CONSTRUCTOR:
+        return true;
+    }
+    return false;
+  }
+
+  /** While editing, the paper clip is there only for a message whose media can be replaced (as in the official app) */
+  private void tgx101UpdateAttachForEdit () {
+    if (mediaButton == null) return;
+    boolean hide = isEditingMessage() && editContext != null && !tgx101CanReplaceMedia(editContext.message);
+    mediaButton.setVisibility(hide ? View.GONE : View.VISIBLE);
   }
 
   private void editMessage (@NonNull MessageWithProperties m) {
@@ -8507,6 +8537,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
 
     this.editContext = new MessageInputContext(this, tdlib, msg, properties);
+    tgx101UpdateAttachForEdit();
     TdApi.FormattedText text = Td.textOrCaption(msg.content);
     setInEditMode(true, text.text);
     checkAttachedFiles(true);
@@ -8534,6 +8565,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     setInEditMode(false, "");
     editContext = null;
+    tgx101UpdateAttachForEdit();
     checkAttachedFiles(true);
     if (inputView != null) {
       updateSendButton(inputView.getInput(), true);
