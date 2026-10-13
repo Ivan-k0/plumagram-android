@@ -1849,10 +1849,11 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
         content.setScaleX(.96f);
         content.setScaleY(.96f);
         tgx101RisePending = true;
+        tgx101RiseWaitStart = 0;
         if (hasWindowFocus()) {
           tgx101Rise();
         } else {
-          content.postDelayed(this::tgx101Rise, 1500); // never left invisible
+          content.postDelayed(tgx101RiseRunnable, 1500); // never left invisible
         }
         return;
       }
@@ -1861,12 +1862,31 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   }
 
   private boolean tgx101EnterAfterScreenOff, tgx101RisePending;
+  private final Runnable tgx101RiseRunnable = this::tgx101Rise;
+
+  private long tgx101RiseWaitStart;
 
   private void tgx101Rise () {
     if (!tgx101RisePending) return;
-    tgx101RisePending = false;
     View content = findViewById(android.R.id.content);
-    if (content == null) return;
+    if (content == null) {
+      tgx101RisePending = false;
+      return;
+    }
+    // log 00:28:44: the window gets focus while the lock screen is still sliding away — the rise played under it.
+    // Wait (frame by frame, 3 s at most) until the system says the lock is really gone
+    android.app.KeyguardManager km = (android.app.KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+    long now = android.os.SystemClock.uptimeMillis();
+    if (tgx101RiseWaitStart == 0) tgx101RiseWaitStart = now;
+    if (km != null && km.isKeyguardLocked() && now - tgx101RiseWaitStart < 3000) {
+      content.removeCallbacks(tgx101RiseRunnable);
+      content.postDelayed(tgx101RiseRunnable, 16);
+      return;
+    }
+    Tgx101Diag.mark("open animation: lock gone after " + (now - tgx101RiseWaitStart) + " ms");
+    tgx101RiseWaitStart = 0;
+    tgx101RisePending = false;
+    content.removeCallbacks(tgx101RiseRunnable);
     content.setPivotX(content.getWidth() / 2f);
     content.setPivotY(content.getHeight() / 2f);
     content.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(240)
