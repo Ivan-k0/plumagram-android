@@ -1636,6 +1636,7 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
             cover = layered;
           }
           Tgx101Diag.mark("notification → chat: cover " + (result == android.view.PixelCopy.SUCCESS ? "the old screen" : "background"));
+          tgx101CoverCut = true; // user 2026-10-14 «переход делай как у оф., проще»: the picture goes at once, no melting
           tgx101RunCover(decor, cover, chatId, open);
         }, handler);
         return;
@@ -1646,7 +1647,11 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     tgx101RunCover(decor, new android.graphics.drawable.ColorDrawable(org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.chatBackground)), chatId, open);
   }
 
+  private boolean tgx101CoverCut;
+
   private void tgx101RunCover (View decor, android.graphics.drawable.Drawable cover, long chatId, Runnable open) {
+    final boolean cut = tgx101CoverCut;
+    tgx101CoverCut = false;
     decor.setForeground(cover);
     open.run();
     final long startTime = android.os.SystemClock.uptimeMillis();
@@ -1655,12 +1660,12 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       ViewController<?> current = navigation.getCurrentStackItem();
       // …and the new chat already has its messages in place (it showed empty, then filled in)
       boolean ready = !navigation.isAnimating() && current instanceof MessagesController && ((MessagesController) current).getChatId() == chatId && ((MessagesController) current).tgx101ReadyToShow();
-      if (!ready && android.os.SystemClock.uptimeMillis() - startTime < 1500) {
+      if (!ready && android.os.SystemClock.uptimeMillis() - startTime < 600) { // a slow phone doesn't hang on the old picture
         decor.postOnAnimation(check[0]);
         return;
       }
       android.animation.ValueAnimator fade = android.animation.ValueAnimator.ofInt(255, 0);
-      fade.setDuration(150);
+      fade.setDuration(cut ? 0 : 150);
       Tgx101Diag.mark("notification → chat shown after " + (android.os.SystemClock.uptimeMillis() - startTime) + " ms" + (ready ? "" : " (gave up waiting)"));
       fade.addUpdateListener(a -> cover.setAlpha((int) a.getAnimatedValue()));
       fade.addListener(new android.animation.AnimatorListenerAdapter() {
