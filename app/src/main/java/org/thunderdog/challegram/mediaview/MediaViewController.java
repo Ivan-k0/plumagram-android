@@ -3381,6 +3381,22 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private EditButton paintTypeButton;
   private org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView tgx101PaintTools;
   private org.thunderdog.challegram.mediaview.paint.widget.Tgx101StrengthView tgx101Strength;
+  private org.thunderdog.challegram.mediaview.paint.widget.Tgx101SizeWedgeView tgx101SizeWedge;
+  // TGx101: each tool keeps its own thickness while the editor is open (-1: not set yet — the default)
+  private final float[] tgx101ToolSizes = {-1f, -1f, -1f, -1f, -1f, -1f, -1f, -1f};
+  private boolean tgx101ApplyingToolSize;
+
+  private void tgx101RestoreToolSize (int tool) {
+    if (colorPreviewView == null) return;
+    float size = tgx101ToolSizes[tool];
+    if (size < 0f) {
+      size = tool == org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView.TOOL_MARKER || tool == org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView.TOOL_ERASER || tool == org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView.TOOL_MOSAIC ? .5f : .25f;
+    }
+    tgx101ApplyingToolSize = true;
+    colorPreviewView.setRadiusFactor(size);
+    tgx101ApplyingToolSize = false;
+    if (tgx101SizeWedge != null) tgx101SizeWedge.setFactor(size);
+  }
   private ColorPreviewView colorPreviewView;
 
   private static final float COUNTER_SCALE = .7f;
@@ -7367,6 +7383,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             public void onToolSelected (int tool, int paintMode, int brushStyle) {
               PaintMode.brushStyle = brushStyle;
               setPaintType(paintMode, true);
+              tgx101RestoreToolSize(tool);
               if (tgx101Strength != null) {
                 tgx101Strength.setVisibility(tool == org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView.TOOL_MOSAIC ? View.VISIBLE : View.GONE);
               }
@@ -7399,6 +7416,16 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           tgx101Strength.setListener(strength -> PaintMode.mosaicStrength = strength);
           tgx101Strength.setVisibility(View.GONE);
           paintControlsWrap.addView(tgx101Strength);
+
+          // TGx101 (mockup variant Б): the thickness wedge on the left edge, each tool remembers its own
+          params = FrameLayoutFix.newParams(Screen.dp(120f), Screen.dp(280f), Gravity.LEFT | Gravity.CENTER_VERTICAL);
+          params.bottomMargin = Screen.dp(56f);
+          tgx101SizeWedge = new org.thunderdog.challegram.mediaview.paint.widget.Tgx101SizeWedgeView(context());
+          tgx101SizeWedge.setLayoutParams(params);
+          tgx101SizeWedge.setListener(factor -> {
+            if (colorPreviewView != null) colorPreviewView.setRadiusFactor(factor);
+          });
+          paintControlsWrap.addView(tgx101SizeWedge);
 
           params = FrameLayoutFix.newParams(Screen.dp(56f), Screen.dp(48f), Gravity.LEFT | Gravity.BOTTOM);
           undoButton = new ImageView(context());
@@ -7511,7 +7538,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         }
         checkCanUndo();
         tgx101ToneHintCounted = false; // a new opening of the brush
+        tgx101ApplyingToolSize = true; // the reset is not the user's choice of thickness
         colorPreviewView.reset(true);
+        tgx101ApplyingToolSize = false;
+        if (tgx101PaintTools != null) {
+          tgx101RestoreToolSize(tgx101PaintTools.getSelected());
+        }
 
         bottomWrap.addView(paintControlsWrap);
 
@@ -8307,6 +8339,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   @Override
   public void onBrushChanged (ColorPreviewView v) {
     if (tgx101PaintTools != null) tgx101PaintTools.setBrushColor(v.getBrushColor());
+    if (tgx101SizeWedge != null) {
+      float radius = v.getBrushRadius(1f);
+      tgx101SizeWedge.setFactor((radius - 4f) / 16f); // also when the size is set by dragging the colour up
+      tgx101SizeWedge.setPreview(Screen.dp(radius), v.getBrushColor());
+      if (!tgx101ApplyingToolSize && tgx101PaintTools != null) {
+        tgx101ToolSizes[tgx101PaintTools.getSelected()] = (radius - 4f) / 16f;
+      }
+    }
     if (paintView != null) {
       paintView.getContentWrap().setBrushParameters(v.getBrushColor(), v.getBrushRadius(getBrushScale()));
     }
