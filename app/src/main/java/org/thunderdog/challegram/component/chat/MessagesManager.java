@@ -3287,50 +3287,6 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     return 0;
   }
 
-  // TGx101 (user's video 2026-10-13 13:03 «открывает не то место: сообщение в самом низу, где поле ввода, а должно быть по
-  // центру»; log: after the jump the list ended at the newest message). The glide to a message was computed from heights
-  // that could change while it ran (pages loading, media building) — when it stops, the message is checked and brought
-  // exactly where it was aimed; if it isn't on screen at all, it's put there at once
-  private RecyclerView.OnScrollListener tgx101LandingListener;
-
-  private void tgx101EnsureLanded (final int index, final int offset) {
-    final RecyclerView list = controller.getMessagesView();
-    if (list == null) return;
-    if (tgx101LandingListener != null) list.removeOnScrollListener(tgx101LandingListener);
-    final TGMessage target = adapter.getMessage(index);
-    final long targetId = target != null ? target.getId() : 0;
-    final long until = android.os.SystemClock.uptimeMillis() + 2500;
-    tgx101LandingListener = new RecyclerView.OnScrollListener() {
-      @Override
-      public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
-        if (newState == RecyclerView.SCROLL_STATE_DRAGGING || android.os.SystemClock.uptimeMillis() > until) {
-          recyclerView.removeOnScrollListener(this);
-          if (tgx101LandingListener == this) tgx101LandingListener = null;
-          return;
-        }
-        if (newState != RecyclerView.SCROLL_STATE_IDLE) return;
-        recyclerView.removeOnScrollListener(this);
-        if (tgx101LandingListener == this) tgx101LandingListener = null;
-        int i = targetId != 0 ? adapter.indexOfMessageContainer(targetId) : index;
-        if (i == -1) return;
-        View view = manager.findViewByPosition(i);
-        if (view == null) {
-          org.thunderdog.challegram.Tgx101Diag.mark("jump: landed away from the message — put it in place");
-          scrollToPositionWithOffsetImpl(i, offset);
-          return;
-        }
-        // reversed list: the offset is from the bottom of the list (above its padding) to the bottom of the item
-        int current = recyclerView.getHeight() - recyclerView.getPaddingBottom() - view.getBottom();
-        int miss = offset - current;
-        if (Math.abs(miss) > Screen.dp(24f)) {
-          org.thunderdog.challegram.Tgx101Diag.mark("jump: landed " + miss + " px off — correcting");
-          recyclerView.smoothScrollBy(0, miss, new android.view.animation.DecelerateInterpolator(1.6f), 220); // a scroll by dy raises the message by dy
-        }
-      }
-    };
-    list.addOnScrollListener(tgx101LandingListener);
-  }
-
   private void scrollToPositionWithOffset (final int index, final int offset, boolean smooth) {
     scrollToPositionWithOffset(index, offset, smooth, false);
   }
@@ -3343,20 +3299,48 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       RecyclerView list = controller.getMessagesView();
       int screen = list.getMeasuredHeight();
       android.view.animation.Interpolator interpolator = new android.view.animation.DecelerateInterpolator(1.6f);
-      if (Math.abs(scrollBy) < screen * (useRoundVideoScrollFix ? 1.5f : 1f)) {
-        org.thunderdog.challegram.Tgx101Diag.mark("jump: near (" + scrollBy + " px), glide");
-        list.smoothScrollBy(0, scrollBy, interpolator, (int) Math.min(420, Math.max(220, 220 + Math.abs(scrollBy) / (float) Math.max(1, screen) * 160)));
-        if (!useRoundVideoScrollFix) tgx101EnsureLanded(index, offset);
-      } else if (!useRoundVideoScrollFix && screen > 0) {
-        // TGx101 (user 2026-10-12 «рывка при переходе быть не должно, так же плавно, как по стрелке»): a far message —
-        // the list is put 1.5 screens before it and scrolls the rest (reversed list: the offset counts from the bottom,
-        // a scroll by dy raises the message by dy)
-        final int dy = scrollBy > 0 ? (int) (screen * 1.5f) : -(int) (screen * 1.5f);
+      if (useRoundVideoScrollFix) {
+        if (Math.abs(scrollBy) < screen * 1.5f) {
+          list.smoothScrollBy(0, scrollBy, interpolator, (int) Math.min(420, Math.max(220, 220 + Math.abs(scrollBy) / (float) Math.max(1, screen) * 160)));
+        } else {
+          scrollToPositionWithOffsetImpl(index, offset);
+        }
+      } else if (screen > 0) {
+        // TGx101 (user's video + log 2026-10-13 14:45 «при переходе по цитате весь чат прыгает, при возврате по стрелке
+        // лагает»): the far jump put the list at an offset 1.5 screens outside of it — the layout didn't keep that, the
+        // glide missed and a correction (or a snap) followed. Now: a far message — the list stands at once on a real
+        // message about 1.5 screens before it, then one smooth scroll finds the message and stops it exactly at its place
         tgx101AutoScrolling = true;
-        org.thunderdog.challegram.Tgx101Diag.mark("jump: far (" + scrollBy + " px), put " + dy + " px before, then glide");
-        scrollToPositionWithOffsetImpl(index, offset - dy);
-        list.post(() -> list.smoothScrollBy(0, dy, interpolator, 400));
-        tgx101EnsureLanded(index, offset);
+        if (Math.abs(scrollBy) > screen * 1.5f) {
+          int pre = tgx101PreJumpIndex(index, scrollBy < 0, (int) (screen * 1.5f));
+          if (pre != index) {
+            org.thunderdog.challegram.Tgx101Diag.mark("jump: far (" + scrollBy + " px), stand on item " + pre + " for " + index + ", then glide");
+            if (scrollBy < 0) {
+              scrollToPositionWithOffsetImpl(pre, 0); // an older message: stand on a newer one at the bottom
+            } else {
+              scrollToPositionWithOffsetImpl(pre, Math.max(0, list.getHeight() - list.getPaddingBottom() - Screen.dp(120f))); // a newer one: an older one at the top
+            }
+          }
+        } else {
+          org.thunderdog.challegram.Tgx101Diag.mark("jump: near (" + scrollBy + " px), glide");
+        }
+        final int target = index;
+        list.post(() -> {
+          androidx.recyclerview.widget.LinearSmoothScroller scroller = new androidx.recyclerview.widget.LinearSmoothScroller(list.getContext()) {
+            @Override
+            protected void onTargetFound (@NonNull View targetView, @NonNull RecyclerView.State state, @NonNull Action action) {
+              // reversed list: the offset is from the bottom of the list (above its padding) to the bottom of the item;
+              // a scroll by dy raises the message by dy
+              int current = list.getHeight() - list.getPaddingBottom() - targetView.getBottom();
+              int dy = offset - current;
+              int time = (int) Math.min(420, Math.max(200, 200 + Math.abs(dy) / (float) Math.max(1, screen) * 180));
+              action.update(0, dy, time, interpolator);
+            }
+
+          };
+          scroller.setTargetPosition(target);
+          manager.startSmoothScroll(scroller);
+        });
       } else {
         scrollToPositionWithOffsetImpl(index, offset);
       }
@@ -3364,6 +3348,24 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       scrollToPositionWithOffsetImpl(index, offset);
     }
   }
+
+  /** The message about {@code distance} px from {@code index} on the side the list comes from */
+  private int tgx101PreJumpIndex (int index, boolean targetIsOlder, int distance) {
+    int width = getRecyclerWidth();
+    int sum = 0, i = index;
+    int count = adapter.getMessageCount();
+    while (sum < distance) {
+      int next = targetIsOlder ? i - 1 : i + 1; // reversed adapter: lower index = newer message
+      if (next < 0 || next >= count) break;
+      i = next;
+      TGMessage message = adapter.getMessage(i);
+      if (message == null) break;
+      message.buildLayout(width);
+      sum += message.getHeight();
+    }
+    return i;
+  }
+
 
   private void scrollToHistoryStart () {
     int messageCount = adapter.getMessageCount();
