@@ -3248,14 +3248,17 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
   private int calculateScrollBy (int index, int offset, boolean useRoundVideoScrollFix) {
     int firstVisibleItemPosition = manager.findFirstVisibleItemPosition();
 
+    // TGx101: the list's bottom padding (the floating field, the keyboard) isn't part of what's seen — the offsets count
+    // from above it; without this every glide ended a field height off and needed a second, correcting scroll
+    int visibleHeight = manager.getHeight() - manager.getPaddingBottom();
     long totalScrollBottom = 0;
     View view = manager.findViewByPosition(firstVisibleItemPosition);
     if (view != null) {
-      totalScrollBottom = view.getBottom() - manager.getHeight();
+      totalScrollBottom = view.getBottom() - visibleHeight;
     }
 
     long desiredScrollBottom = -offset;
-    long maxScrollBottom = -manager.getHeight();
+    long maxScrollBottom = -visibleHeight;
 
     int i = 0;
     int messageCount = adapter.getMessageCount();
@@ -3325,21 +3328,13 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
           org.thunderdog.challegram.Tgx101Diag.mark("jump: near (" + scrollBy + " px), glide");
         }
         final int target = index;
+        // the list is laid out on the real message by now: the distance left is exact, and the scroll is the one with the
+        // nice deceleration (user 2026-10-13 «почему ушла красивая анимация прокручивания по стрелке?»)
         list.post(() -> {
-          androidx.recyclerview.widget.LinearSmoothScroller scroller = new androidx.recyclerview.widget.LinearSmoothScroller(list.getContext()) {
-            @Override
-            protected void onTargetFound (@NonNull View targetView, @NonNull RecyclerView.State state, @NonNull Action action) {
-              // reversed list: the offset is from the bottom of the list (above its padding) to the bottom of the item;
-              // a scroll by dy raises the message by dy
-              int current = list.getHeight() - list.getPaddingBottom() - targetView.getBottom();
-              int dy = offset - current;
-              int time = (int) Math.min(420, Math.max(200, 200 + Math.abs(dy) / (float) Math.max(1, screen) * 180));
-              action.update(0, dy, time, interpolator);
-            }
-
-          };
-          scroller.setTargetPosition(target);
-          manager.startSmoothScroll(scroller);
+          int by = calculateScrollBy(target, offset, false);
+          int duration = (int) Math.min(420, Math.max(220, 220 + Math.abs(by) / (float) Math.max(1, screen) * 140));
+          if (by != 0) list.smoothScrollBy(0, by, interpolator, duration);
+          tgx101CheckLanding(target, offset);
         });
       } else {
         scrollToPositionWithOffsetImpl(index, offset);
@@ -3347,6 +3342,37 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     } else {
       scrollToPositionWithOffsetImpl(index, offset);
     }
+  }
+
+  /** When the scroll stops: a message that ended more than a little off its place is brought there softly */
+  private void tgx101CheckLanding (final int index, final int offset) {
+    final RecyclerView list = controller.getMessagesView();
+    if (list == null) return;
+    final TGMessage targetMessage = adapter.getMessage(index);
+    final long targetId = targetMessage != null ? targetMessage.getId() : 0;
+    list.addOnScrollListener(new RecyclerView.OnScrollListener() {
+      @Override
+      public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
+        if (newState == RecyclerView.SCROLL_STATE_SETTLING) return;
+        recyclerView.removeOnScrollListener(this);
+        if (newState != RecyclerView.SCROLL_STATE_IDLE) return; // the finger took over
+        int i = targetId != 0 ? adapter.indexOfMessageContainer(targetId) : index;
+        View view = i != -1 ? manager.findViewByPosition(i) : null;
+        if (view == null) {
+          if (i != -1) {
+            org.thunderdog.challegram.Tgx101Diag.mark("jump: landed away from the message — put it in place");
+            scrollToPositionWithOffsetImpl(i, offset);
+          }
+          return;
+        }
+        int current = recyclerView.getHeight() - recyclerView.getPaddingBottom() - view.getBottom();
+        int miss = offset - current;
+        if (Math.abs(miss) > Screen.dp(24f)) {
+          org.thunderdog.challegram.Tgx101Diag.mark("jump: landed " + miss + " px off — correcting");
+          recyclerView.smoothScrollBy(0, miss, new android.view.animation.DecelerateInterpolator(1.6f), 200); // a scroll by dy raises the message by dy
+        }
+      }
+    });
   }
 
   /** The message about {@code distance} px from {@code index} on the side the list comes from */
