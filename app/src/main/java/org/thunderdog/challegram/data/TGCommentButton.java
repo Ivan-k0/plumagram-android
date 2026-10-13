@@ -282,14 +282,7 @@ public final class TGCommentButton implements FactorAnimator.Target, TextColorSe
 
   @Override public void onClickAt (View view, float x, float y) {
     if (context.isRepliesChat()) {
-      TdApi.MessageForwardInfo forwardInfo = context.msg.forwardInfo;
-      MessageId replyToMessageId = MessageId.valueOf(context.msg.replyTo);
-      if (forwardInfo != null && forwardInfo.source != null && forwardInfo.source.chatId != 0 && forwardInfo.source.messageId != 0) {
-        MessageId replyMessageId = new MessageId(forwardInfo.source);
-        context.openMessageThread(replyMessageId, replyToMessageId);
-      } else if (replyToMessageId != null) {
-        context.openMessageThread(replyToMessageId);
-      }
+      context.tgx101OpenRepliesSource(); // TGx101: comments → their thread, a group reply → the group at the message
     } else {
       context.openMessageThread();
     }

@@ -6775,6 +6775,7 @@
   <string name="Tgx101CallOngoing">Call</string>
   <string name="Tgx101CallMicOff">Mute</string>
   <string name="Tgx101CallMicOn">Unmute</string>
+  <string name="Tgx101ShowAllChats">Show All chats</string>
   <string name="Tgx101DeleteForAll">Delete for everyone</string>
   <string name="Tgx101DeleteForMe">Delete for me</string>
   <string name="Tgx101DeleteForAllInfo">Delete for everyone? The message will be deleted for you and for everyone in the chat. This can\'t be undone.</string>

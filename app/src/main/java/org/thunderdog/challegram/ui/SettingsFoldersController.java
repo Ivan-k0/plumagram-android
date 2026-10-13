@@ -80,6 +80,7 @@ import me.vkryl.core.ObjectUtils;
 import me.vkryl.core.collection.IntList;
 import me.vkryl.core.lambda.RunnableBool;
 import tgx.td.ChatPosition;
+import org.thunderdog.challegram.config.Config;
 import tgx.td.Td;
 
 public class SettingsFoldersController extends RecyclerViewController<Void> implements View.OnClickListener, View.OnLongClickListener, ChatFoldersListener, TdlibSettingsManager.ChatListPositionListener {
@@ -401,6 +402,20 @@ public class SettingsFoldersController extends RecyclerViewController<Void> impl
       }
     } else if (v.getId() == R.id.chatFolder) {
       ListItem item = (ListItem) v.getTag();
+      if (isMainChatFolder(item) && !Config.RESTRICT_HIDING_MAIN_LIST) {
+        // TGx101 (user 2026-10-13): «All chats» can be hidden from the folder strip — and brought back here
+        boolean shown = tdlib.settings().isChatListEnabled(ChatPosition.CHAT_LIST_MAIN);
+        showOptions(Lang.getString(R.string.CategoryMain), new int[] {R.id.btn_hideFolder, R.id.btn_cancel},
+          new String[] {Lang.getString(shown ? R.string.HideAllChats : R.string.Tgx101ShowAllChats), Lang.getString(R.string.Cancel)},
+          null, new int[] {shown ? R.drawable.baseline_eye_off_24 : R.drawable.baseline_visibility_24, R.drawable.baseline_cancel_24}, (optionView, optionId) -> {
+            if (optionId == R.id.btn_hideFolder) {
+              tdlib.settings().setChatListEnabled(ChatPosition.CHAT_LIST_MAIN, !shown);
+              adapter.notifyItemChanged(adapter.indexOfView(item));
+            }
+            return true;
+          });
+        return;
+      }
       if (isMainChatFolder(item) || isArchiveChatFolder(item)) {
         showTooltip(v, Lang.getString(R.string.HoldAndDragToReorder), View::getDrawingRect);
         return;

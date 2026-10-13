@@ -1070,6 +1070,35 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     });
   }
 
+  /** TGx101 (4PDA report 2026-10-12 21:22 «нажал на сообщение в „Ответах“ — открывает случайное место или конец чата»):
+   *  every message from the Replies chat was opened as a comment thread. That fits comments under a channel post; a
+   *  reply in an ordinary group has no such thread, and the chat opened somewhere else. Like the official app: comments
+   *  open their thread, a reply in a group opens that group at the message, highlighted */
+  public final void tgx101OpenRepliesSource () {
+    if (!Td.hasMessageSource(msg.forwardInfo)) {
+      MessageId replyToMessageId = Td.toMessageId(msg.replyTo);
+      if (replyToMessageId != null) openMessageThread(replyToMessageId);
+      return;
+    }
+    final TdApi.ForwardSource source = msg.forwardInfo.source;
+    final MessageId sourceId = new MessageId(source);
+    final MessageId replyToMessageId = Td.toMessageId(msg.replyTo);
+    tdlib.client().send(new TdApi.GetMessageThread(source.chatId, source.messageId), result -> runOnUiThreadOptional(() -> {
+      boolean comments = false;
+      if (result.getConstructor() == TdApi.MessageThreadInfo.CONSTRUCTOR) {
+        TdApi.MessageThreadInfo thread = (TdApi.MessageThreadInfo) result;
+        TdApi.Message root = thread.messages != null && thread.messages.length > 0 ? thread.messages[thread.messages.length - 1] : null;
+        comments = root != null && tdlib.isChannelAutoForward(root);
+      }
+      org.thunderdog.challegram.Tgx101Diag.mark("replies: open " + (comments ? "comments thread" : "the chat at the message") + " (chat " + source.chatId + ")");
+      if (comments) {
+        openMessageThread(sourceId, replyToMessageId);
+      } else {
+        tdlib.ui().openMessage(controller(), source.chatId, sourceId, openParameters());
+      }
+    }));
+  }
+
   public final void openMessageThread (@NonNull MessageId highlightMessageId) {
     openMessageThread(highlightMessageId, null);
   }
@@ -5590,9 +5619,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   public final void openSourceMessage () {
     if (Td.hasMessageSource(msg.forwardInfo)) {
       if (isRepliesChat()) {
-        MessageId replyMessageId = new MessageId(msg.forwardInfo.source);
-        MessageId replyToMessageId = Td.toMessageId(msg.replyTo);
-        openMessageThread(replyMessageId, replyToMessageId);
+        tgx101OpenRepliesSource();
       } else {
         tdlib.ui().openMessage(controller(), msg.forwardInfo.source.chatId, new MessageId(msg.forwardInfo.source), openParameters());
       }
