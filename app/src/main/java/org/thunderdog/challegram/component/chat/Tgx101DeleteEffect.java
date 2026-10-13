@@ -80,8 +80,16 @@ public final class Tgx101DeleteEffect extends View {
    * Takes a snapshot of {@code source} (a message view about to be removed) and turns it to dust where it stands.
    * {@code outline} (the bubble, in the view's coordinates) limits the dust to the message itself.
    */
+  private static long lastHapticAt;
+
   public void explode (View source, @Nullable Path outline) {
-    org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK); // TGx101: deleted
+    // TGx101: deleted — one tap for the whole batch (user 2026-10-13 «при удалении нескольких сообщений виброотклик должен
+    // быть одинарный»): messages removed together turn to dust within a few frames, only the first one vibrates
+    long now = SystemClock.uptimeMillis();
+    if (now - lastHapticAt > 300) {
+      org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK);
+    }
+    lastHapticAt = now;
     if (source == null || source.getWidth() <= 0 || source.getHeight() <= 0 || !source.isShown() || getWidth() == 0) {
       Tgx101Diag.mark("delete effect: no snapshot (view " + (source == null ? "null" : source.getWidth() + "x" + source.getHeight() + (source.isShown() ? "" : " hidden")) + ", layer " + getWidth() + ")");
       return;
