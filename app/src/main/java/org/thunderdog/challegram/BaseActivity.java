@@ -1349,6 +1349,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     // the screen went off while we were away (or right as we left) — for how long
     boolean screenWentOff = tgx101ScreenOffAt != 0 && tgx101ScreenOffAt >= tgx101PausedAtForScreen - 1000;
     long offFor = !screenWentOff ? 0 : (tgx101ScreenOnAt > tgx101ScreenOffAt ? tgx101ScreenOnAt : now) - tgx101ScreenOffAt;
+    tgx101EnterAfterScreenOff = screenWentOff;
     Tgx101Diag.mark("resume: away " + idle + " ms, screen " + (screenWentOff ? "off " + offFor + " ms" : "stayed on") + ", keyboard at pause " + (keyboard ? "open" : "closed"));
     if (!keyboard || !screenWentOff || offFor <= TGX101_SCREEN_OFF_KEEP) {
       if (keyboard) Tgx101Diag.mark("keyboard: comes back");
@@ -1375,6 +1376,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   @Override
   public void onWindowFocusChanged (boolean hasFocus) {
     super.onWindowFocusChanged(hasFocus);
+    if (hasFocus) tgx101Rise();
     if (hasFocus && tgx101HideKeyboardOnFocus) {
       tgx101HideKeyboardOnFocus = false;
       final int saved = tgx101SavedSoftInput;
@@ -1835,7 +1837,42 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     }
     // user 2026-10-07 23:00 «когда мы успели поломать нормальные анимации на эти вспышки? верни как было»: the own fade
     // (Б) ran on top of the system's open animation — the window showed twice, ghosted. The system animation alone, as before
+    if (tgx101EnterAfterScreenOff) {
+      // user 2026-10-14 («после разблокировки никакой анимации — приложение просто появилось»; variant 2): the lock
+      // screen plays nothing over us, so the app rises itself — from 96 % and transparent to full in 240 ms, once
+      // the lock screen is gone (the window gets focus), not while it still covers us
+      tgx101EnterAfterScreenOff = false;
+      View content = findViewById(android.R.id.content);
+      if (content != null) {
+        content.animate().cancel();
+        content.setAlpha(0f);
+        content.setScaleX(.96f);
+        content.setScaleY(.96f);
+        tgx101RisePending = true;
+        if (hasWindowFocus()) {
+          tgx101Rise();
+        } else {
+          content.postDelayed(this::tgx101Rise, 1500); // never left invisible
+        }
+        return;
+      }
+    }
     Tgx101Diag.mark("open animation: system");
+  }
+
+  private boolean tgx101EnterAfterScreenOff, tgx101RisePending;
+
+  private void tgx101Rise () {
+    if (!tgx101RisePending) return;
+    tgx101RisePending = false;
+    View content = findViewById(android.R.id.content);
+    if (content == null) return;
+    content.setPivotX(content.getWidth() / 2f);
+    content.setPivotY(content.getHeight() / 2f);
+    content.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(240)
+      .setInterpolator(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ? new android.view.animation.PathInterpolator(.05f, .7f, .1f, 1f) : AnimatorUtils.DECELERATE_INTERPOLATOR)
+      .start();
+    Tgx101Diag.mark("open animation: own rise after unlock");
   }
 
   private void tgx101HoldDrawForKeyboard () {
