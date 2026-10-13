@@ -914,6 +914,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PaintArrow, "Стрелка");
     RU.put(R.string.Tgx101PaintShape, "Фигура");
     RU.put(R.string.Tgx101PaintEraser, "Ластик");
+    RU.put(R.string.Tgx101PaintMosaic, "Размыт.");
+    RU.put(R.string.Tgx101PaintStrength, "Сила");
     RU.put(R.string.Tgx101PaintEllipse, "Овал");
     RU.put(R.string.Tgx101PaintLine, "Линия");
     RU.put(R.string.Tgx101ShowAllChats, "Показать «Все чаты»");

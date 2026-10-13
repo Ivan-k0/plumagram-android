@@ -1256,7 +1256,7 @@ public class ImageReceiver implements Watcher, ValueAnimator.AnimatorUpdateListe
 
             drawBitmap(c, bitmap, 0, 0, needMirrorHorizontally, needMirrorVertically, paint);
             if (paintState != null) {
-              paintState.draw(c, 0, 0, bitmap.getWidth(), bitmap.getHeight());
+              paintState.draw(c, 0, 0, bitmap.getWidth(), bitmap.getHeight(), bitmap, null); // TGx101: the photo for mosaic strokes
             }
           } else {
             drawBitmap(c, bitmap, bitmapRect, rect, needMirrorHorizontally, needMirrorVertically, paint);

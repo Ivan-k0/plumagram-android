@@ -46,7 +46,7 @@ public class SimpleDrawing {
   public static final int TYPE_LINE = 5;
 
   // TGx101: brush kinds of a TYPE_PATH stroke (kept in the high half of the saved type byte — old saves read as PEN)
-  public static final int STYLE_PEN = 0, STYLE_MARKER = 1, STYLE_PENCIL = 2, STYLE_NEON = 3, STYLE_FREE_ARROW = 4, STYLE_ERASER = 5;
+  public static final int STYLE_PEN = 0, STYLE_MARKER = 1, STYLE_PENCIL = 2, STYLE_NEON = 3, STYLE_FREE_ARROW = 4, STYLE_ERASER = 5, STYLE_MOSAIC = 6;
   private int style = STYLE_PEN;
 
   public void setStyle (int style) {
@@ -55,6 +55,51 @@ public class SimpleDrawing {
 
   public int getStyle () {
     return style;
+  }
+
+  // TGx101 (user 2026-10-13 «пиксельное размытие со степенью размытия»): a mosaic stroke paints the photo under it in big
+  // squares. The photo comes from whoever draws (preview / export) through this per-thread context
+  public static final class MosaicSource {
+    final android.graphics.Bitmap source;
+    final android.graphics.Matrix sourceToCanvas;
+    final android.util.SparseArray<android.graphics.Bitmap> small = new android.util.SparseArray<>();
+
+    public MosaicSource (android.graphics.Bitmap source, @androidx.annotation.Nullable android.graphics.Matrix sourceToCanvas) {
+      this.source = source;
+      this.sourceToCanvas = sourceToCanvas != null ? sourceToCanvas : new android.graphics.Matrix();
+    }
+
+    android.graphics.Bitmap small (int blocksAcross) {
+      android.graphics.Bitmap b = small.get(blocksAcross);
+      if (b == null && source != null && !source.isRecycled()) {
+        int w = Math.max(1, blocksAcross);
+        int h = Math.max(1, Math.round(blocksAcross * source.getHeight() / (float) Math.max(1, source.getWidth())));
+        b = android.graphics.Bitmap.createScaledBitmap(source, w, h, true); // averaged colours of each square
+        small.put(blocksAcross, b);
+      }
+      return b;
+    }
+  }
+
+  public static final ThreadLocal<MosaicSource> mosaicSource = new ThreadLocal<>();
+
+  /** Mosaic strength 1…5 (bigger squares), kept in the colour field — a mosaic has no colour */
+  public static int mosaicStrength (int colorField) {
+    return colorField >= 1 && colorField <= 5 ? colorField : 3;
+  }
+
+  private static int mosaicBlocksAcross (int strength) {
+    switch (strength) {
+      case 1: return 90;
+      case 2: return 60;
+      case 4: return 26;
+      case 5: return 16;
+    }
+    return 40;
+  }
+
+  public boolean isMosaic () {
+    return type == TYPE_PATH && style == STYLE_MOSAIC;
   }
 
   public boolean isEraser () {
@@ -482,12 +527,16 @@ public class SimpleDrawing {
           c.translate(viewLeft, viewTop);
         }
         android.graphics.Path p = path.getPath(width, height);
+        viewLeftForShader = viewLeft;
+        viewTopForShader = viewTop;
         drawStyledPath(c, p, paint, strokeSize, width, height);
         c.restore();
         break;
       }
     }
   }
+
+  private int viewLeftForShader, viewTopForShader;
 
   /** TGx101: the five brushes and the eraser (user 2026-10-13, editor mockup variant Б) */
   private void drawStyledPath (Canvas c, android.graphics.Path p, Paint paint, float strokeSize, int width, int height) {
@@ -536,6 +585,27 @@ public class SimpleDrawing {
             c.drawLine(end[0], end[1], end[0] + (float) (Math.cos(a) * head), end[1] + (float) (Math.sin(a) * head), paint);
           }
         }
+        break;
+      }
+      case STYLE_MOSAIC: {
+        MosaicSource ms = mosaicSource.get();
+        android.graphics.Bitmap small = ms != null ? ms.small(mosaicBlocksAcross(mosaicStrength(color))) : null;
+        if (small == null) {
+          break; // nothing to take the squares from
+        }
+        android.graphics.BitmapShader shader = new android.graphics.BitmapShader(small, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP);
+        android.graphics.Matrix m = new android.graphics.Matrix();
+        m.setScale(ms.source.getWidth() / (float) small.getWidth(), ms.source.getHeight() / (float) small.getHeight());
+        m.postConcat(ms.sourceToCanvas);
+        m.postTranslate(-viewLeftForShader, -viewTopForShader); // the path is drawn translated by the view's left / top
+        shader.setLocalMatrix(m);
+        paint.setColor(0xffffffff);
+        paint.setShader(shader);
+        paint.setFilterBitmap(false); // hard square edges
+        paint.setStrokeWidth(strokeSize * 2.4f);
+        c.drawPath(p, paint);
+        paint.setShader(null);
+        paint.setFilterBitmap(true);
         break;
       }
       case STYLE_ERASER: {

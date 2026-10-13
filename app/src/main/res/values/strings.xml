@@ -6785,6 +6785,8 @@
   <string name="Tgx101PaintNeon">Neon</string>
   <string name="Tgx101PaintArrow">Arrow</string>
   <string name="Tgx101PaintShape">Shape</string>
+  <string name="Tgx101PaintMosaic">Blur</string>
+  <string name="Tgx101PaintStrength">Strength</string>
   <string name="Tgx101PaintEraser">Eraser</string>
   <string name="Tgx101PaintEllipse">Oval</string>
   <string name="Tgx101PaintLine">Line</string>

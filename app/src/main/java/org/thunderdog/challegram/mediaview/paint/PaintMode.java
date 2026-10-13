@@ -26,6 +26,8 @@ public class PaintMode {
 
   /** The kind of a free stroke (SimpleDrawing.STYLE_*): pen, marker, pencil, neon, free arrow, eraser */
   public static int brushStyle = SimpleDrawing.STYLE_PEN;
+  /** Pixel blur strength 1…5 */
+  public static int mosaicStrength = 3;
 
   public static final int FREE_MOVEMENT = 100;
 

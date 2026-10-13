@@ -178,6 +178,7 @@ public class EGLEditorView extends ViewGroup {
         }
       }
       paintView = new SimpleDrawingView(getContext());
+      paintView.setMosaicSource(sourceBitmap); // TGx101: mosaic strokes take their squares from the photo
       paintView.setLayoutParams(FrameLayoutFix.newParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
       contentWrap.addView(paintView);
       contentWrap.setPaintingState(paintState);
@@ -389,6 +390,7 @@ public class EGLEditorView extends ViewGroup {
       return;
     }
     this.sourceBitmap = bitmap;
+    if (paintView != null) paintView.setMosaicSource(bitmap);
     this.currentFiltersState = filtersState;
     this.currentPaintState = paintState;
     this.currentFile = imageFile;
@@ -569,7 +571,7 @@ public class EGLEditorView extends ViewGroup {
         this.brushColor = brushColor;
         this.brushRadius = brushRadius;
         if (currentSimpleDrawing != null) {
-          currentSimpleDrawing.setBrushParameters(brushColor, brushRadius);
+          currentSimpleDrawing.setBrushParameters(currentSimpleDrawing.isMosaic() ? PaintMode.mosaicStrength : brushColor, brushRadius);
         }
       }
     }
@@ -598,7 +600,8 @@ public class EGLEditorView extends ViewGroup {
       SimpleDrawing drawing = new SimpleDrawing(type, canvasWidth, canvasHeight, 1f, parent.sourceCropState != null ? parent.sourceCropState.getDegreesAroundCenter() : 0f);
       if (type == SimpleDrawing.TYPE_PATH) drawing.setStyle(PaintMode.brushStyle); // TGx101: pen / marker / pencil / neon / arrow / eraser
       drawing.startDrawing(e);
-      drawing.setBrushParameters(brushColor, brushRadius);
+      // a pixel blur keeps its strength where a colour would be
+      drawing.setBrushParameters(drawing.isMosaic() ? PaintMode.mosaicStrength : brushColor, brushRadius);
       state.addSimpleDrawing(drawing);
       drawing.addChangeListener(this);
       currentSimpleDrawing = drawing;

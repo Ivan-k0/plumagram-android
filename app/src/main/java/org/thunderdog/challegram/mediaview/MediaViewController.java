@@ -3380,6 +3380,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private ImageView undoButton;
   private EditButton paintTypeButton;
   private org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView tgx101PaintTools;
+  private org.thunderdog.challegram.mediaview.paint.widget.Tgx101StrengthView tgx101Strength;
   private ColorPreviewView colorPreviewView;
 
   private static final float COUNTER_SCALE = .7f;
@@ -7358,7 +7359,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           tgx101PaintTools = new org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView(context(), new String[] {
             Lang.getString(R.string.Tgx101PaintPen), Lang.getString(R.string.Tgx101PaintMarker), Lang.getString(R.string.Tgx101PaintPencil),
             Lang.getString(R.string.Tgx101PaintNeon), Lang.getString(R.string.Tgx101PaintArrow), Lang.getString(R.string.Tgx101PaintShape),
-            Lang.getString(R.string.Tgx101PaintEraser)
+            Lang.getString(R.string.Tgx101PaintMosaic), Lang.getString(R.string.Tgx101PaintEraser)
           });
           tgx101PaintTools.setLayoutParams(params);
           tgx101PaintTools.setListener(new org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView.Listener() {
@@ -7366,6 +7367,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             public void onToolSelected (int tool, int paintMode, int brushStyle) {
               PaintMode.brushStyle = brushStyle;
               setPaintType(paintMode, true);
+              if (tgx101Strength != null) {
+                tgx101Strength.setVisibility(tool == org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView.TOOL_MOSAIC ? View.VISIBLE : View.GONE);
+              }
             }
 
             @Override
@@ -7384,6 +7388,17 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             }
           });
           paintControlsWrap.addView(tgx101PaintTools);
+
+          // the pixel blur strength, over the tools row while «Blur» is picked
+          params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(36f), Gravity.BOTTOM);
+          params.bottomMargin = Screen.dp(12f) + padding * 2 + Screen.dp(4f) + Screen.dp(56f);
+          params.leftMargin = params.rightMargin = Screen.dp(8f);
+          tgx101Strength = new org.thunderdog.challegram.mediaview.paint.widget.Tgx101StrengthView(context(), Lang.getString(R.string.Tgx101PaintStrength));
+          tgx101Strength.setLayoutParams(params);
+          tgx101Strength.setStrength(PaintMode.mosaicStrength);
+          tgx101Strength.setListener(strength -> PaintMode.mosaicStrength = strength);
+          tgx101Strength.setVisibility(View.GONE);
+          paintControlsWrap.addView(tgx101Strength);
 
           params = FrameLayoutFix.newParams(Screen.dp(56f), Screen.dp(48f), Gravity.LEFT | Gravity.BOTTOM);
           undoButton = new ImageView(context());
@@ -7490,6 +7505,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         if (tgx101PaintTools != null) { // TGx101: the tool picked in the row stays picked
           PaintMode.brushStyle = org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView.styleOf(tgx101PaintTools.getSelected());
           setPaintType(tgx101PaintTools.modeOf(tgx101PaintTools.getSelected()), false);
+          tgx101Strength.setVisibility(tgx101PaintTools.getSelected() == org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView.TOOL_MOSAIC ? View.VISIBLE : View.GONE);
         } else {
           setPaintType(PaintMode.restore(), false);
         }

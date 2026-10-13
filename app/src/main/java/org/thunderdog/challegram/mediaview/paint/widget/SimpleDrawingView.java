@@ -27,6 +27,14 @@ public class SimpleDrawingView extends View implements PaintState.SimpleDrawingC
     super(context);
   }
 
+  private android.graphics.Bitmap tgx101Source; // TGx101: the photo under the drawings (mosaic strokes)
+  private final android.graphics.Matrix tgx101SourceMatrix = new android.graphics.Matrix();
+
+  public void setMosaicSource (android.graphics.Bitmap source) {
+    this.tgx101Source = source;
+    invalidate();
+  }
+
   public void setPaintState (PaintState state) {
     if (this.state != null) {
       this.state.removeSimpleDrawingChangeListener(this);
@@ -48,7 +56,12 @@ public class SimpleDrawingView extends View implements PaintState.SimpleDrawingC
   @Override
   protected void onDraw (Canvas c) {
     if (state != null) {
-      state.draw(c, 0, 0, getMeasuredWidth(), getMeasuredHeight());
+      if (tgx101Source != null && !tgx101Source.isRecycled()) {
+        tgx101SourceMatrix.setScale(getMeasuredWidth() / (float) tgx101Source.getWidth(), getMeasuredHeight() / (float) tgx101Source.getHeight());
+        state.draw(c, 0, 0, getMeasuredWidth(), getMeasuredHeight(), tgx101Source, tgx101SourceMatrix);
+      } else {
+        state.draw(c, 0, 0, getMeasuredWidth(), getMeasuredHeight());
+      }
     }
   }
 }

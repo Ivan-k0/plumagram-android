@@ -247,6 +247,8 @@ public class PhotoGenerationInfo extends GenerationInfo {
     }
   }
 
+  private android.graphics.Bitmap tgx101PaintSource; // TGx101: the photo under the drawings, for mosaic strokes
+
   private void drawPaintState (Canvas c, int bitmapWidth, int bitmapHeight) {
     if (paintState != null) {
       if (regionDecoderState == REGION_OK) {
@@ -258,9 +260,9 @@ public class PhotoGenerationInfo extends GenerationInfo {
         int left = (int) ((float) regionRect.left * scaleX);
         int top = (int) ((float) regionRect.top * scaleY);
 
-        paintState.draw(c, -left, -top, baseWidth, baseHeight);
+        paintState.draw(c, -left, -top, baseWidth, baseHeight, tgx101PaintSource, null);
       } else {
-        paintState.draw(c, 0,0, bitmapWidth, bitmapHeight);
+        paintState.draw(c, 0,0, bitmapWidth, bitmapHeight, tgx101PaintSource, null);
       }
     }
   }
@@ -330,7 +332,9 @@ public class PhotoGenerationInfo extends GenerationInfo {
           needMirrorVertical = false;
         }
         if (paintState != null) {
+          tgx101PaintSource = source;
           drawPaintState(c, source.getWidth(), source.getHeight());
+          tgx101PaintSource = null;
           drawingComplete = true;
         }
         source.recycle();
@@ -360,7 +364,9 @@ public class PhotoGenerationInfo extends GenerationInfo {
         needMirrorHorizontal = false;
         needMirrorVertical = false;
       }
+      tgx101PaintSource = source;
       drawPaintState(c, source.getWidth(), source.getHeight());
+      tgx101PaintSource = null;
       source.recycle();
       source = altered;
       U.recycle(c);

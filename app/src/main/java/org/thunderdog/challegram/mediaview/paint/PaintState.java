@@ -440,6 +440,27 @@ public class PaintState {
 
   // Drawing
 
+  /** TGx101: draws with the photo under the drawings at hand, for mosaic strokes ({@code sourceToCanvas}: null = the
+   *  photo lies at 0, 0 of the canvas at its own size) */
+  public void draw (Canvas c, final int x, final int y, final int viewWidth, final int viewHeight, @androidx.annotation.Nullable android.graphics.Bitmap source, @androidx.annotation.Nullable android.graphics.Matrix sourceToCanvas) {
+    SimpleDrawing.MosaicSource previous = SimpleDrawing.mosaicSource.get();
+    SimpleDrawing.mosaicSource.set(source != null && hasMosaic() ? new SimpleDrawing.MosaicSource(source, sourceToCanvas) : null);
+    try {
+      draw(c, x, y, viewWidth, viewHeight);
+    } finally {
+      SimpleDrawing.mosaicSource.set(previous);
+    }
+  }
+
+  public boolean hasMosaic () {
+    if (drawingsList != null) {
+      for (SimpleDrawing drawing : drawingsList) {
+        if (drawing.isMosaic()) return true;
+      }
+    }
+    return false;
+  }
+
   public void draw (Canvas c, final int x, final int y, final int viewWidth, final int viewHeight) {
     if (drawingsList != null && !drawingsList.isEmpty()) {
       // TGx101: with an eraser stroke the drawings go on a layer of their own — it clears them, not the photo

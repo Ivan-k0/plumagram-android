@@ -33,8 +33,8 @@ import org.thunderdog.challegram.tool.Screen;
  * (hold to pick which), an eraser. Each cell draws a small sample of what it does.
  */
 public class Tgx101PaintToolsView extends View {
-  public static final int TOOL_PEN = 0, TOOL_MARKER = 1, TOOL_PENCIL = 2, TOOL_NEON = 3, TOOL_FREE_ARROW = 4, TOOL_SHAPE = 5, TOOL_ERASER = 6;
-  private static final int COUNT = 7;
+  public static final int TOOL_PEN = 0, TOOL_MARKER = 1, TOOL_PENCIL = 2, TOOL_NEON = 3, TOOL_FREE_ARROW = 4, TOOL_SHAPE = 5, TOOL_MOSAIC = 6, TOOL_ERASER = 7;
+  private static final int COUNT = 8;
 
   public interface Listener {
     void onToolSelected (int tool, int paintMode, int brushStyle);
@@ -60,7 +60,7 @@ public class Tgx101PaintToolsView extends View {
     paint.setStrokeCap(Paint.Cap.ROUND);
     paint.setStrokeJoin(Paint.Join.ROUND);
     text.setTypeface(Fonts.getRobotoRegular());
-    text.setTextSize(Screen.dp(9.5f));
+    text.setTextSize(Screen.dp(9f));
     text.setTextAlign(Paint.Align.CENTER);
     detector = new GestureDetector(context, new GestureDetector.SimpleOnGestureListener() {
       @Override
@@ -129,6 +129,7 @@ public class Tgx101PaintToolsView extends View {
       case TOOL_PENCIL: return SimpleDrawing.STYLE_PENCIL;
       case TOOL_NEON: return SimpleDrawing.STYLE_NEON;
       case TOOL_FREE_ARROW: return SimpleDrawing.STYLE_FREE_ARROW;
+      case TOOL_MOSAIC: return SimpleDrawing.STYLE_MOSAIC;
       case TOOL_ERASER: return SimpleDrawing.STYLE_ERASER;
     }
     return SimpleDrawing.STYLE_PEN;
@@ -157,7 +158,7 @@ public class Tgx101PaintToolsView extends View {
 
   private void drawSample (Canvas c, int tool, float cx, float cy) {
     float w = Screen.dp(11f), s = Screen.dp(5f);
-    int sample = tool == selected && tool != TOOL_ERASER ? color : 0xffffffff;
+    int sample = tool == selected && tool != TOOL_ERASER && tool != TOOL_MOSAIC ? color : 0xffffffff;
     paint.setXfermode(null);
     paint.setMaskFilter(null);
     paint.setPathEffect(null);
@@ -220,6 +221,18 @@ public class Tgx101PaintToolsView extends View {
         // the small corner mark: hold for more shapes
         fill.setColor(0x99ffffff);
         c.drawCircle(cx + r * 1.9f, cy + r * 1.1f, Screen.dp(1.6f), fill);
+        break;
+      }
+      case TOOL_MOSAIC: {
+        // a small grid of squares in shades
+        float q = Screen.dp(4.5f);
+        int[] shades = {0xffffffff, 0x99ffffff, 0xccffffff, 0x66ffffff, 0xddffffff, 0x88ffffff, 0xbbffffff, 0x55ffffff, 0xeeffffff};
+        for (int yy = 0; yy < 3; yy++) {
+          for (int xx = 0; xx < 3; xx++) {
+            fill.setColor(shades[yy * 3 + xx]);
+            c.drawRect(cx - q * 1.5f + xx * q, cy - q * 1.5f + yy * q, cx - q * 1.5f + (xx + 1) * q - 1, cy - q * 1.5f + (yy + 1) * q - 1, fill);
+          }
+        }
         break;
       }
       case TOOL_ERASER: {
