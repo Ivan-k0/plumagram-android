@@ -886,7 +886,7 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       long messageId = intent.getLongExtra("message_id", 0);
       Tgx101Diag.mark("notification opens chat " + chatId + (messageId != 0 ? " at message " + messageId : " (its own position)"));
       if (accountId != TdlibAccount.NO_ID && chatId != 0) {
-        openMessagesController(accountId, chatId, messageId);
+        openMessagesController(accountId, chatId, messageId, tgx101PrepareForChat(chatId));
         return true;
       } else {
         Log.e("Cannot open chat, no information found: %s", intent);
@@ -1525,6 +1525,30 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
   }
 
   private void openMessagesController (int accountId, long chatId, long specificMessageId) {
+    openMessagesController(accountId, chatId, specificMessageId, false);
+  }
+
+  /**
+   * TGx101 (user 2026-10-14): a notification into ANOTHER chat than the one on screen — decided right at the tap, before
+   * the window resumes (test 01:22: the old chat asked for its keyboard back on resume and it rose over the new chat).
+   * The old chat's keyboard goes now and comes back when that chat is shown again.
+   */
+  private boolean tgx101PrepareForChat (long chatId) {
+    ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : null;
+    long currentChatId = current != null ? current.getChatId() : 0; // (Saved Messages is a pager around its chat)
+    Tgx101Diag.mark("notification → chat " + chatId + " over " + (current != null ? current.getClass().getSimpleName() + " of chat " + currentChatId : "nothing"));
+    if (currentChatId == 0 || currentChatId == chatId) {
+      return false;
+    }
+    boolean hadKeyboard = tgx101TakeKeyboardForOtherChat();
+    MessagesController chatScreen = current instanceof MessagesController ? (MessagesController) current : getMessagesController(account.tdlib(), false);
+    if (hadKeyboard && chatScreen != null && chatScreen.getChatId() == currentChatId) {
+      chatScreen.tgx101ReopenKeyboardOnReturn();
+    }
+    return true;
+  }
+
+  private void openMessagesController (int accountId, long chatId, long specificMessageId, boolean intoAnotherChat) {
     final Tdlib tdlib = TdlibManager.instanceForAccountId(accountId).account(accountId).tdlib();
     tdlib.awaitInitialization(() -> {
       tdlib.incrementUiReferenceCount();
@@ -1535,14 +1559,8 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
           org.thunderdog.challegram.component.chat.MessagesManager.tgx101SkipFlashOnce(specificMessageId); // TGx101: no flash from a notification
           params.highlightMessage(new MessageId(chatId, specificMessageId));
         }
-        // TGx101 (user 2026-10-14): into ANOTHER chat — the old one stays under it (Back returns there, as in the
-        // official app) and its keyboard goes now, coming back when that chat is shown again
-        ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : null;
-        if (current instanceof MessagesController && ((MessagesController) current).getChatId() != chatId) {
-          params.keepStack();
-          if (tgx101TakeKeyboardForOtherChat()) {
-            ((MessagesController) current).tgx101ReopenKeyboardOnReturn();
-          }
+        if (intoAnotherChat) {
+          params.keepStack(); // TGx101: the old chat stays under it — Back returns there, as in the official app
         }
         tdlib.ui().openChat(context, chatId, params);
       };
@@ -1551,7 +1569,14 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       if (UI.inUiThread() && navigation != null && !navigation.isEmpty()) {
         tgx101CoverUntilChatShown(chatId, open);
       } else {
-        handler.post(open);
+        // test 01:19: the account's callback comes off the main thread — the cover never ran and the new chat slid in
+        handler.post(() -> {
+          if (navigation != null && !navigation.isEmpty()) {
+            tgx101CoverUntilChatShown(chatId, open);
+          } else {
+            open.run();
+          }
+        });
       }
     });
   }
