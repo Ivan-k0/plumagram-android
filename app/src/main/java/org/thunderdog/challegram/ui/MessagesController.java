@@ -10502,6 +10502,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private void tgx101SetTopReveal (float reveal) {
     if (tgx101TopReveal == reveal) return;
     tgx101TopReveal = reveal;
+    if (inputView != null) inputView.tgx101SetContentShift(reveal); // the text rides with the field's top
     if (bottomWrap != null) {
       bottomWrap.invalidate();
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) bottomWrap.invalidateOutline();

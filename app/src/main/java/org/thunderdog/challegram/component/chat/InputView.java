@@ -1746,6 +1746,30 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     }
   }
 
+  // TGx101 (user 2026-10-13 «буквы внутри поля ввода не должны прыгать, а плавно двигаться, как в exteraGram»): when a
+  // new line grows the field, its top glides up — the text now glides with it instead of jumping a line up at once
+  // (the new line slides in from the bottom edge, clipped by the field)
+  private float tgx101ContentShift;
+
+  public void tgx101SetContentShift (float shift) {
+    if (tgx101ContentShift != shift) {
+      tgx101ContentShift = shift;
+      invalidate();
+    }
+  }
+
+  @Override
+  public void draw (Canvas c) {
+    if (tgx101ContentShift != 0f) {
+      int saved = c.save();
+      c.translate(0, tgx101ContentShift);
+      super.draw(c);
+      c.restoreToCount(saved);
+    } else {
+      super.draw(c);
+    }
+  }
+
   @Override
   protected void onDraw (Canvas c) {
     final int x = getPaddingLeft() + Screen.dp(placeholderIcon != null ? 20 : 0);
