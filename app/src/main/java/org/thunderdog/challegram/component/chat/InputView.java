@@ -1052,10 +1052,27 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   private final int[] tgx101FrozenLocation = new int[2];
   private long tgx101FrozenUntil;
 
+  private final android.graphics.Rect tgx101FrozenVisible = new android.graphics.Rect();
+  private final android.graphics.Point tgx101FrozenOffset = new android.graphics.Point();
+  private boolean tgx101FrozenVisibleOk;
+
   public void tgx101FreezeLocation (long durationMs) {
     if (!isAttachedToWindow()) return;
     super.getLocationInWindow(tgx101FrozenLocation);
+    tgx101FrozenVisibleOk = super.getGlobalVisibleRect(tgx101FrozenVisible, tgx101FrozenOffset);
     tgx101FrozenUntil = android.os.SystemClock.uptimeMillis() + durationMs;
+  }
+
+  // (user's video 2026-10-13 13:02: the «Paste / Select» menu still vanished for one frame as the keyboard came back —
+  // for that frame the field seemed partly off screen, so the system hid the menu as «out of bounds»)
+  @Override
+  public boolean getGlobalVisibleRect (android.graphics.Rect r, android.graphics.Point globalOffset) {
+    if (android.os.SystemClock.uptimeMillis() < tgx101FrozenUntil) {
+      r.set(tgx101FrozenVisible);
+      if (globalOffset != null) globalOffset.set(tgx101FrozenOffset.x, tgx101FrozenOffset.y);
+      return tgx101FrozenVisibleOk;
+    }
+    return super.getGlobalVisibleRect(r, globalOffset);
   }
 
   @Override
