@@ -866,9 +866,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     messagesManager.setManager(manager);
 
     messagesView = (MessagesRecyclerView) Views.inflate(context(), R.layout.recycler_messages, contentView);
-    if (isInForceTouchMode()) {
-      messagesView.setVerticalScrollBarEnabled(false);
-    }
+    // TGx101 (user 2026-10-14 «полоса скролла как будто съедает часть экрана, у экстеры такого нет»): no scroll bar in chats
+    messagesView.setVerticalScrollBarEnabled(false);
     addThemeInvalidateListener(messagesView);
     messagesView.setId(R.id.msg_list);
     messagesView.setManager(manager);
