@@ -2087,6 +2087,18 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         View oldBottomView = atBottom ? manager.findViewByPosition(0) : null;
         TGMessage oldBottom = oldBottomView != null ? adapter.getMessage(0) : null;
         int oldBottomTop = oldBottomView != null ? oldBottomView.getTop() : 0;
+        // TGx101 (user 2026-10-14 13:55 / 20:2x, on the phone: sent while scrolled up — the chat jumped to the end in one
+        // frame): it goes down to the new message the way the arrow does — a glide, from 1.5 screens away if it's far
+        RecyclerView tgx101List = controller.getMessagesView();
+        if (!atBottom && message.isSending() && tgx101List != null && tgx101List.isAttachedToWindow() && !tgx101IsRestoringPosition()) {
+          adapter.addMessage(message, false, false);
+          tgx101List.post(() -> {
+            if (!tgx101SmoothScrollToBottom()) scrollToBottom(false);
+          });
+          org.thunderdog.challegram.Tgx101Diag.mark("sent while scrolled up: glides down like the arrow");
+          revokeReturnMessages();
+          return;
+        }
         boolean hasScrolled = adapter.addMessage(message, false, scrollToBottom);
         if (!hasScrolled) {
           scrollToBottom(false);
