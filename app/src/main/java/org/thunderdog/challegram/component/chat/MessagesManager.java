@@ -3377,9 +3377,11 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         // nice deceleration (user 2026-10-13 «почему ушла красивая анимация прокручивания по стрелке?»)
         list.post(() -> {
           int by = calculateScrollBy(target, offset, false);
-          int duration = (int) Math.min(420, Math.max(220, 220 + Math.abs(by) / (float) Math.max(1, screen) * 140));
-          if (by != 0) list.smoothScrollBy(0, by, interpolator, duration);
-          tgx101CheckLanding(target, offset);
+          // TGx101 (user video 2026-10-14 13:54, exteraGram beside us: «у них плавно — у нас рывками»): 3600 px in 0.4 s
+          // with a decelerating start shot ~500 px a frame. Now as in Telegram: (distance / screen + 1) × 200 ms, soft start
+          int duration = (int) Math.min(900, Math.max(260, (Math.abs(by) / (float) Math.max(1, screen) + 1f) * 200f));
+          if (by != 0) list.smoothScrollBy(0, by, TGX101_GLIDE, duration);
+          tgx101CheckLanding(target, offset, by, duration);
         });
       } else {
         scrollToPositionWithOffsetImpl(index, offset);
@@ -3390,12 +3392,45 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
   }
 
   /** When the scroll stops: a message that ended more than a little off its place is brought there softly */
-  private void tgx101CheckLanding (final int index, final int offset) {
+  private static final android.view.animation.PathInterpolator TGX101_GLIDE = new android.view.animation.PathInterpolator(.25f, .1f, .25f, 1f);
+
+  /** The rest of {@link #TGX101_GLIDE} from {@code from} on, stretched to 0…1: a glide re-aimed midway keeps its pace */
+  private static android.view.animation.Interpolator tgx101GlideTail (float from) {
+    final float base = TGX101_GLIDE.getInterpolation(from);
+    final float span = Math.max(.0001f, 1f - base);
+    return x -> (TGX101_GLIDE.getInterpolation(from + x * (1f - from)) - base) / span;
+  }
+
+  private void tgx101CheckLanding (final int index, final int offset, final int plannedBy, final int duration) {
     final RecyclerView list = controller.getMessagesView();
     if (list == null) return;
     final TGMessage targetMessage = adapter.getMessage(index);
     final long targetId = targetMessage != null ? targetMessage.getId() : 0;
+    final long startTime = android.os.SystemClock.uptimeMillis();
     list.addOnScrollListener(new RecyclerView.OnScrollListener() {
+      private boolean reAimed = plannedBy == 0;
+
+      @Override
+      public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
+        // the heights ahead were guesses: once the message itself is on screen, the rest of the way is known exactly —
+        // the glide is re-aimed there and then, so it doesn't stop off its place and jerk a second time (log 13:54:41,
+        // «landed 491 px off — correcting»)
+        if (reAimed || recyclerView.getScrollState() != RecyclerView.SCROLL_STATE_SETTLING) return;
+        int i = targetId != 0 ? adapter.indexOfMessageContainer(targetId) : index;
+        View view = i != -1 ? manager.findViewByPosition(i) : null;
+        if (view == null) return;
+        reAimed = true;
+        long elapsed = android.os.SystemClock.uptimeMillis() - startTime;
+        int left = (int) (duration - elapsed);
+        if (left < 60) return;
+        float t = elapsed / (float) duration;
+        int exact = offset - (recyclerView.getHeight() - recyclerView.getPaddingBottom() - view.getBottom());
+        int planned = Math.round(plannedBy * (1f - TGX101_GLIDE.getInterpolation(t)));
+        if (Math.abs(exact - planned) <= Screen.dp(8f)) return;
+        org.thunderdog.challegram.Tgx101Diag.mark("jump: re-aimed on sight, " + planned + " → " + exact + " px left");
+        recyclerView.smoothScrollBy(0, exact, tgx101GlideTail(t), left);
+      }
+
       @Override
       public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
         if (newState == RecyclerView.SCROLL_STATE_SETTLING) return;
@@ -3412,7 +3447,8 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         }
         int current = recyclerView.getHeight() - recyclerView.getPaddingBottom() - view.getBottom();
         int miss = offset - current;
-        if (Math.abs(miss) > Screen.dp(24f)) {
+        // the newest message can't go above the end of the list: nothing to correct there
+        if (Math.abs(miss) > Screen.dp(24f) && recyclerView.canScrollVertically(miss > 0 ? 1 : -1)) {
           org.thunderdog.challegram.Tgx101Diag.mark("jump: landed " + miss + " px off — correcting");
           recyclerView.smoothScrollBy(0, miss, new android.view.animation.DecelerateInterpolator(1.6f), 200); // a scroll by dy raises the message by dy
         }
