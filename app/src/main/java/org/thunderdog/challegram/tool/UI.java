@@ -633,6 +633,10 @@ public class UI {
       RootDrawable d = new RootDrawable(a);
       w.setBackgroundDrawable(d);
       a.setRootDrawable(d);
+      // TGx101 (on the phone 2026-10-14 16:17–19:49: a black strip over the header in the whole app): the Holo theme doesn't
+      // ask to draw the bars' backgrounds, and without it the system lays its own black under the status bar — the app's
+      // transparent colour then counts for nothing. Asked for explicitly, as the official app's theme does
+      w.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
       w.setStatusBarColor(0);
     }
   }
