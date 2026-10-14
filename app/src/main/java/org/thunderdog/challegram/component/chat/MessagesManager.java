@@ -3433,6 +3433,10 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         }
         int planned = Math.round(plannedBy * (1f - TGX101_GLIDE.getInterpolation(t)));
         if (Math.abs(exact - planned) <= Screen.dp(8f)) return;
+        // a longer way than counted gets its time too (14:22: 801 px planned, 1154 left, squeezed into 0.25 s — it shot)
+        float done = Math.abs(plannedBy) * TGX101_GLIDE.getInterpolation(t);
+        int want = (int) Math.min(900, ((done + Math.abs(exact)) / (float) Math.max(1, recyclerView.getHeight()) + 1f) * 200f);
+        left = Math.max(left, want - (int) elapsed);
         org.thunderdog.challegram.Tgx101Diag.mark("jump: re-aimed on sight, " + planned + " → " + exact + " px left");
         recyclerView.smoothScrollBy(0, exact, tgx101GlideTail(t), left);
       }
