@@ -475,6 +475,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     Tgx101Diag.mark(savedInstanceState != null ? "start: restored after the system closed the app" : "start: cold");
     tgx101RegisterScreenReceiver();
     tgx101RestoredFade = savedInstanceState != null;
+    tgx101SetupSplashExit();
 
     RecaptchaProviderRegistry.setApplication(this.getApplication());
 
@@ -1370,9 +1371,42 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   // in over the window's background (180 ms) instead of popping up at once
   private boolean tgx101RestoredFade;
 
+  /** A screen is on the stack, not moving, and a chat has its first page of messages laid out */
+  private boolean tgx101FirstScreenReady () {
+    ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : null;
+    return current != null && !navigation.isAnimating() && (!(current instanceof org.thunderdog.challegram.ui.MessagesController) || ((org.thunderdog.challegram.ui.MessagesController) current).tgx101FullyShown());
+  }
+
+  // TGx101 (user 2026-10-14, as in exteraGram): on Android 12+ the system splash (theme: phone's light / dark, a quiet grey
+  // bird) stays until the first screen is ready (≤ 0.7 s), then fades into the app in 200 ms instead of vanishing at once
+  private void tgx101SetupSplashExit () {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return;
+    try {
+      getSplashScreen().setOnExitAnimationListener(splashView -> {
+        final long until = android.os.SystemClock.uptimeMillis() + 700;
+        splashView.postOnAnimation(new Runnable() {
+          @Override
+          public void run () {
+            boolean ready = tgx101FirstScreenReady();
+            if (!ready && android.os.SystemClock.uptimeMillis() < until) {
+              splashView.postOnAnimation(this);
+              return;
+            }
+            Tgx101Diag.mark("splash: fades out" + (ready ? "" : " (the screen isn't ready in 0.7 s)"));
+            splashView.animate().alpha(0f).setDuration(200).setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR).withEndAction(splashView::remove).start();
+          }
+        });
+      });
+    } catch (Throwable t) {
+      Tgx101Diag.mark("splash: no exit animation (" + t.getClass().getSimpleName() + ")");
+    }
+  }
+
   private void tgx101FadeInRestored () {
     if (!tgx101RestoredFade) return;
     tgx101RestoredFade = false;
+    // Android 12+: the system splash covers the restore and leaves only once the screen is ready (tgx101SetupSplashExit)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) return;
     View content = findViewById(android.R.id.content);
     if (content == null) return;
     content.setAlpha(0f);
@@ -1389,8 +1423,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       public void run () {
         // (14:31: checked before the chat was even put on the stack — «ready» at once over an empty screen) — a screen
         // must be there, not moving, and a chat must have its first page of messages laid out
-        ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : null;
-        boolean ready = current != null && !navigation.isAnimating() && (!(current instanceof org.thunderdog.challegram.ui.MessagesController) || ((org.thunderdog.challegram.ui.MessagesController) current).tgx101FullyShown());
+        boolean ready = tgx101FirstScreenReady();
         boolean late = android.os.SystemClock.uptimeMillis() >= until;
         if (!ready && !late) {
           content.postOnAnimation(this);

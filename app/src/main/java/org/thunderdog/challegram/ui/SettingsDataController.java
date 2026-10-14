@@ -19,6 +19,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.util.SparseIntArray;
 import android.view.View;
+import android.view.ViewGroup;
 
 import androidx.annotation.IdRes;
 import androidx.annotation.Nullable;
@@ -165,6 +166,23 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   protected void onCreateView (Context context, CustomRecyclerView recyclerView) {
     org.thunderdog.challegram.data.Tgx101SpeechModels.addListener(tgx101SpeechListener);
     this.adapter = new SettingsAdapter(this) {
+      // TGx101 (user 2026-10-14): the app icon is picked from the icons themselves, as in Telegram
+      @Override
+      protected SettingHolder initCustom (ViewGroup parent, int customViewType) {
+        if (customViewType == TGX101_APP_ICON_PICKER) {
+          return new SettingHolder(new Tgx101AppIconPicker(context));
+        }
+        return super.initCustom(parent, customViewType);
+      }
+
+      @Override
+      protected void modifyCustom (SettingHolder holder, int position, ListItem item, int customViewType, View view, boolean isUpdate) {
+        if (view instanceof Tgx101AppIconPicker) {
+          ((Tgx101AppIconPicker) view).updateColors();
+          ((Tgx101AppIconPicker) view).update();
+        }
+      }
+
       @Override
       public void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
         final int itemId = item.getId();
@@ -542,7 +560,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101BottomGap, 0, R.string.Tgx101BottomGap),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101AppIcon, 0, R.string.Tgx101AppIcon),
+        new ListItem(ListItem.TYPE_CUSTOM - TGX101_APP_ICON_PICKER, R.id.btn_tgx101AppIcon),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NotificationPlane, 0, R.string.Tgx101NotificationPlane),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -932,6 +950,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
 
   // TGx101: MagiX → Notifications → «When the app is open», in Settings.TGX101_FOREGROUND_NOTIF_* order
   private static final int[] FOREGROUND_NOTIF_NAMES = {R.string.Tgx101ForegroundNotifShow, R.string.Tgx101ForegroundNotifQuiet, R.string.Tgx101ForegroundNotifHide};
+
+  private static final int TGX101_APP_ICON_PICKER = 1;
 
   private static final int[] TGX101_SECTION_IDS = {
     R.id.btn_tgx101SectionChatList, R.id.btn_tgx101SectionStories, R.id.btn_tgx101SectionMessages, R.id.btn_tgx101SectionChannels,

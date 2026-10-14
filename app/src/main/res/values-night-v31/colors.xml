@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- TGx101: splash, dark phone theme -->
+  <color name="tgx101_splash_bg">#ff1c1f24</color>
+  <color name="tgx101_splash_body">#ff565e68</color>
+  <color name="tgx101_splash_fold">#ff68717c</color>
+  <color name="tgx101_splash_deep">#ff7d8691</color>
+</resources>

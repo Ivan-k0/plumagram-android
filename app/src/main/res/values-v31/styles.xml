@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- TGx101 (user 2026-10-14, as in exteraGram): the Android 12+ splash follows the phone's light / dark theme with a
+       quiet grey bird in the middle («Без подложки 5»); it fades into the app once the first screen is ready -->
+  <style name="AppTheme" parent="android:Theme.Holo.Light.NoActionBar">
+    <item name="android:windowContentOverlay">@null</item>
+    <item name="android:windowActionBarOverlay">true</item>
+    <item name="android:windowSplashScreenBackground">@color/tgx101_splash_bg</item>
+    <item name="android:windowSplashScreenAnimatedIcon">@drawable/tgx101_splash_icon</item>
+  </style>
+
+  <style name="AppTheme.Dark" parent="android:Theme.Holo.NoActionBar">
+    <item name="android:windowContentOverlay">@null</item>
+    <item name="android:windowActionBarOverlay">true</item>
+  </style>
+
+  <style name="DialogTheme" parent="@android:style/Theme.Holo.Light.Dialog">
+    <item name="android:textColorLink">#ff039be5</item>
+    <item name="android:windowBackground">@drawable/transparent</item>
+  </style>
+  <style name="DialogThemeDark" parent="@android:style/Theme.Holo.Dialog">
+    <item name="android:textColorLink">#ff039be5</item>
+    <item name="android:windowBackground">@drawable/transparent</item>
+  </style>
+
+  <style name="TransparentTheme" parent="@style/AppTheme">
+    <item name="android:windowIsTranslucent">true</item>
+    <item name="android:windowBackground">@android:color/transparent</item>
+    <item name="android:windowContentOverlay">@null</item>
+    <item name="android:windowCloseOnTouchOutside">false</item>
+    <item name="android:colorBackgroundCacheHint">@null</item>
+    <item name="android:windowNoTitle">true</item>
+    <item name="android:windowIsFloating">true</item>
+    <item name="android:backgroundDimEnabled">false</item>
+    <item name="android:windowAnimationStyle">@null</item>
+    <item name="android:windowActionBar">false</item>
+  </style>
+</resources>
