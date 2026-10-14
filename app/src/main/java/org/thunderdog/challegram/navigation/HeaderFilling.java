@@ -427,6 +427,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       if (current != null) {
         current.drawTransform(c, width, (int) fillingBottom);
       }
+      tgx101MatchStatusIcons(radiusFactor >= .5f && radiusColor != 0 && fillFactor == 1f && hideFactor == 0f ? radiusColor : color);
     }
     /*if (needStatusBar) {
       final int offset = getTopOffset();
@@ -434,6 +435,20 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
         c.drawRect(0, 0, width, offset, Paints.fillingPaint(Theme.getColor(ColorId.statusBar)));
       }
     }*/
+  }
+
+  // TGx101 (user 2026-10-14 14:0x «строка состояния так и появилась»): the status bar is transparent edge to edge, the
+  // header paints under it — the search header turns white there and the white icons vanished. Their tone follows what
+  // is painted under them now (the bar colour itself is always transparent, so following it changed nothing)
+  private int tgx101IconsColor;
+
+  private void tgx101MatchStatusIcons (int color) {
+    if (color == tgx101IconsColor || android.graphics.Color.alpha(color) < 200) return;
+    tgx101IconsColor = color;
+    headerView.post(() -> {
+      android.view.Window window = org.thunderdog.challegram.tool.UI.getWindow();
+      if (window != null && tgx101IconsColor == color) HeaderView.tgx101MatchStatusIcons(window, color);
+    });
   }
 
   private void invalidate () {
