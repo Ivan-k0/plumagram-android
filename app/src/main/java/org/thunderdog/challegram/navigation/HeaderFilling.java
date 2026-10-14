@@ -78,7 +78,7 @@ import me.vkryl.core.StringUtils;
 import me.vkryl.core.lambda.Destroyable;
 import tgx.td.Td;
 
-public class HeaderFilling extends Drawable implements TGLegacyAudioManager.PlayListener, FactorAnimator.Target, CallManager.CurrentCallListener, TdlibCache.CallStateChangeListener, Runnable, TGPlayerController.TrackChangeListener, TGPlayerController.TrackListener, ClickHelper.Delegate, Destroyable, TGLegacyManager.EmojiLoadListener {
+public class HeaderFilling extends Drawable implements TGLegacyAudioManager.PlayListener, FactorAnimator.Target, CallManager.CurrentCallListener, TdlibCache.CallStateChangeListener, Runnable, TGPlayerController.TrackChangeListener, TGPlayerController.TrackListener, ClickHelper.Delegate, Destroyable, TGLegacyManager.EmojiLoadListener, org.thunderdog.challegram.voip.Tgx101GroupCall.GlobalListener {
   private HeaderView headerView; // Header that holds the filling
   private final @Nullable NavigationController navigationController;
 
@@ -189,6 +189,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
   @Override
   public void performDestroy () {
     TGLegacyManager.instance().removeEmojiListener(this);
+    org.thunderdog.challegram.voip.Tgx101GroupCall.removeGlobalListener(this);
   }
 
   // Component stuff
@@ -790,6 +791,50 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
   private void initCallListeners () {
     TdlibManager.instance().calls().addCurrentCallListener(this);
     setCall(TdlibManager.instance().calls().getCurrentCallTdlib(), TdlibManager.instance().calls().getCurrentCall(), true);
+    org.thunderdog.challegram.voip.Tgx101GroupCall.addGlobalListener(this);
+    onCurrentGroupCallUpdated(org.thunderdog.challegram.voip.Tgx101GroupCall.active());
+  }
+
+  // TGx101 (user 2026-10-14, voice chats step 2): «you're in a voice chat» — the call bar under the header while the
+  // voice chat's own screen is closed (that screen is a popup, the bar is hidden there): tap — back to it, the
+  // microphone on the right, leave on the left. A 1:1 call keeps the bar when both run
+
+  private @Nullable org.thunderdog.challegram.voip.Tgx101GroupCall groupCall;
+
+  private boolean showsGroupCall () {
+    return call == null && groupCall != null;
+  }
+
+  @Override
+  public void onCurrentGroupCallUpdated (@Nullable org.thunderdog.challegram.voip.Tgx101GroupCall groupCall) {
+    boolean was = this.groupCall != null;
+    this.groupCall = groupCall;
+    if (call != null) return;
+    boolean show = groupCall != null && org.thunderdog.challegram.unsorted.Settings.instance().showTgx101CallBar();
+    if (was != (groupCall != null)) {
+      org.thunderdog.challegram.Tgx101Diag.mark("voice chat bar: " + (groupCall != null ? "shown" : "gone"));
+    }
+    setShowOngoingSection(SECTION_CALL, show, true, false);
+  }
+
+  private void buildGroupCall () {
+    org.thunderdog.challegram.voip.Tgx101GroupCall gc = groupCall;
+    if (gc == null) return;
+    String status;
+    TdApi.GroupCall info = gc.getGroupCall();
+    if (gc.getState() == org.thunderdog.challegram.voip.Tgx101GroupCall.STATE_CONNECTING) {
+      status = Lang.getString(R.string.Tgx101VoiceChatBarLoading);
+    } else if (info != null) {
+      status = Lang.plural(R.string.xMembers, info.participantCount);
+    } else {
+      status = Lang.getString(R.string.Tgx101VoiceChat);
+    }
+    setText(gc.getTitle(), "  " + status, textLeft * 2);
+    setCallMuted(gc.isMuted(), isOngoingBarVisible());
+    setCallActive(true, true, null);
+    setCallIncoming(false, isOngoingBarVisible());
+    setCallFlashing(false);
+    setCallIsLooping(false);
   }
 
   @Override
@@ -833,6 +878,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
 
   private void buildCall () {
     if (call == null) {
+      buildGroupCall();
       return;
     }
     TdApi.User user = callTdlib.cache().user(call.userId);
@@ -866,14 +912,14 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     }
     if (call != null || oldCall == null || force) {
       this.call = call;
-      setShowOngoingSection(SECTION_CALL, call != null && org.thunderdog.challegram.unsorted.Settings.instance().showTgx101CallBar(), false, force); // TGx101: can be turned off
+      setShowOngoingSection(SECTION_CALL, (call != null || groupCall != null) && org.thunderdog.challegram.unsorted.Settings.instance().showTgx101CallBar(), false, force); // TGx101: can be turned off
     } else {
       UI.post(() -> {
         if (HeaderFilling.this.callTdlib != null && HeaderFilling.this.callTdlib.id() == oldTdlib.id() &&
           HeaderFilling.this.call != null && oldCall.id == HeaderFilling.this.call.id) {
           HeaderFilling.this.call = null;
           HeaderFilling.this.callTdlib = null;
-          setShowOngoingSection(SECTION_CALL, false, false, false);
+          setShowOngoingSection(SECTION_CALL, groupCall != null && org.thunderdog.challegram.unsorted.Settings.instance().showTgx101CallBar(), true, false);
         }
       }, isOngoingBarVisible() ? 2000 : 0);
     }
@@ -1036,6 +1082,13 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
   }
 
   private void toggleCallMute () {
+    if (showsGroupCall()) {
+      if (!groupCall.toggleMuted()) {
+        UI.showToast(R.string.Tgx101VoiceChatMutedByAdmin, android.widget.Toast.LENGTH_SHORT);
+      }
+      setCallMuted(groupCall.isMuted(), true);
+      return;
+    }
     if (call != null) {
       CallSettings settings = callTdlib.cache().getCallSettings(call.id);
       if (settings == null) {
@@ -1047,6 +1100,10 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
   }
 
   private void openCall () {
+    if (showsGroupCall() && headerView != null) {
+      org.thunderdog.challegram.ui.Tgx101GroupCallController.open(UI.getContext(headerView.getContext()));
+      return;
+    }
     TdlibManager.instance().calls().openCurrentCall();
   }
 
@@ -1379,7 +1436,10 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       // Do nothing
     } else*/
    performSoundFeedback();
-   if (BitwiseUtils.hasFlag(ongoingSections, SECTION_CALL)) {
+   if (BitwiseUtils.hasFlag(ongoingSections, SECTION_CALL) && showsGroupCall()) {
+      org.thunderdog.challegram.Tgx101Diag.mark("voice chat bar: leave");
+      groupCall.leave();
+    } else if (BitwiseUtils.hasFlag(ongoingSections, SECTION_CALL)) {
       if (isCallActive) {
         if (call != null && headerView != null) {
           if (isCallPendingIncoming) {

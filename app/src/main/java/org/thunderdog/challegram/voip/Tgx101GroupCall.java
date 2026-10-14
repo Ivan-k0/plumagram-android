@@ -53,6 +53,33 @@ public final class Tgx101GroupCall implements GroupCallListener {
 
   public static final int STATE_CONNECTING = 0, STATE_CONNECTED = 1, STATE_ENDED = 2;
 
+  /** TGx101 (user 2026-10-14, step 2): the whole app learns about the running voice chat — the bar under the header */
+  public interface GlobalListener {
+    void onCurrentGroupCallUpdated (@Nullable Tgx101GroupCall call);
+  }
+
+  private static final ReferenceList<GlobalListener> globalListeners = new ReferenceList<>(true);
+
+  public static void addGlobalListener (GlobalListener listener) {
+    globalListeners.add(listener);
+  }
+
+  public static void removeGlobalListener (GlobalListener listener) {
+    globalListeners.remove(listener);
+  }
+
+  /** The running voice chat (not ended), or null */
+  public static @Nullable Tgx101GroupCall active () {
+    return current != null && current.state != STATE_ENDED ? current : null;
+  }
+
+  private static void notifyGlobal () {
+    UI.post(() -> {
+      Tgx101GroupCall call = active();
+      for (GlobalListener listener : globalListeners) listener.onCurrentGroupCallUpdated(call);
+    });
+  }
+
   private static @Nullable Tgx101GroupCall current;
 
   public static @Nullable Tgx101GroupCall current () {
@@ -96,10 +123,12 @@ public final class Tgx101GroupCall implements GroupCallListener {
     Tgx101GroupCall call = new Tgx101GroupCall(tdlib, chatId, groupCallId, inviteHash);
     current = call;
     call.start();
+    notifyGlobal();
     return call;
   }
 
   private void start () {
+    org.thunderdog.challegram.Tgx101Diag.mark("voice chat: join chat " + chatId + " call " + groupCallId + (inviteHash.isEmpty() ? "" : " by link"));
     tdlib.listeners().subscribeForGlobalUpdates(this);
     tdlib.send(new TdApi.GetGroupCall(groupCallId), (result, error) -> UI.post(() -> {
       if (result != null) {
@@ -185,6 +214,9 @@ public final class Tgx101GroupCall implements GroupCallListener {
     if (groupCall.id != groupCallId) return;
     UI.post(() -> {
       if (state == STATE_ENDED) return;
+      if (this.groupCall == null || this.groupCall.participantCount != groupCall.participantCount || this.groupCall.needRejoin != groupCall.needRejoin) {
+        org.thunderdog.challegram.Tgx101Diag.mark("voice chat: " + groupCall.participantCount + " participants" + (groupCall.needRejoin ? ", rejoin needed" : "") + (groupCall.isActive ? "" : ", ended by the chat"));
+      }
       this.groupCall = groupCall;
       if (!groupCall.isActive) {
         UI.showToast(R.string.Tgx101VoiceChatEnded, Toast.LENGTH_SHORT);
@@ -195,6 +227,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
         requestJoin();
       }
       for (Listener listener : listeners) listener.onGroupCallStateChanged(this);
+    notifyGlobal();
     });
   }
 
@@ -216,6 +249,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
         }
       }
       for (Listener listener : listeners) listener.onGroupCallParticipantsChanged(this);
+      notifyGlobal();
     });
   }
 
@@ -276,6 +310,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
   }
 
   private void applyMuted (boolean muted) {
+    org.thunderdog.challegram.Tgx101Diag.mark("voice chat: microphone " + (muted ? "off" : "on"));
     this.muted = muted;
     if (ptr != 0) {
       nativeSetMuted(ptr, muted);
@@ -287,6 +322,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
     TdApi.MessageSender me = new TdApi.MessageSenderUser(tdlib.myUserId());
     tdlib.send(new TdApi.ToggleGroupCallParticipantIsMuted(groupCallId, me, muted), (ok, error) -> { });
     for (Listener listener : listeners) listener.onGroupCallStateChanged(this);
+    notifyGlobal();
   }
 
   public void toggleSpeaker () {
@@ -296,9 +332,11 @@ public final class Tgx101GroupCall implements GroupCallListener {
       audio.setSpeakerphoneOn(speaker);
     }
     for (Listener listener : listeners) listener.onGroupCallStateChanged(this);
+    notifyGlobal();
   }
 
   public void leave () {
+    if (state != STATE_ENDED) org.thunderdog.challegram.Tgx101Diag.mark("voice chat: leave");
     if (state == STATE_ENDED) return;
     tdlib.send(new TdApi.LeaveGroupCall(groupCallId), (ok, error) -> { });
     end();
@@ -306,6 +344,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
 
   /** Ends the voice chat for everyone (admins). */
   public void endForAll () {
+    if (state != STATE_ENDED) org.thunderdog.challegram.Tgx101Diag.mark("voice chat: end for everyone");
     if (state == STATE_ENDED) return;
     tdlib.send(new TdApi.EndGroupCall(groupCallId), (ok, error) -> { });
     end();
@@ -322,14 +361,17 @@ public final class Tgx101GroupCall implements GroupCallListener {
   // End
 
   private void fail (String message) {
+    org.thunderdog.challegram.Tgx101Diag.mark("voice chat: failed — " + message);
     UI.showToast(message, Toast.LENGTH_LONG);
     leave();
   }
 
   private void setState (int state) {
     if (this.state != state) {
+      org.thunderdog.challegram.Tgx101Diag.mark("voice chat: " + (state == STATE_CONNECTED ? "connected" : state == STATE_ENDED ? "ended" : "connecting"));
       this.state = state;
       for (Listener listener : listeners) listener.onGroupCallStateChanged(this);
+    notifyGlobal();
     }
   }
 
@@ -346,6 +388,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
     if (current == this) {
       current = null;
     }
+    notifyGlobal();
     Tgx101GroupCallService.stop(org.thunderdog.challegram.unsorted.AppContext.get());
   }
 
