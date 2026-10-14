@@ -1137,6 +1137,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     };
     pinnedMessagesBar.setAnimationsDisabled(true);
     pinnedMessagesBar.initialize(this);
+    if (Settings.instance().useFloatingInput()) {
+      tgx101FloatPinnedBar(pinnedMessagesBar);
+    }
     pinnedMessagesBar.setMessageListener(new PinnedMessagesBar.MessageListener() {
       @Override
       public void onMessageClick (PinnedMessagesBar view, TdApi.Message message, TdApi.InputTextQuote quote) {
@@ -7615,7 +7618,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public @Nullable ReplyInfo obtainReplyTo () {
     if (reply != null) {
       ReplyInfo replyTo = getCurrentReplyId();
-      closeReply(true, false);
+      // TGx101 (user 2026-10-14 11:32, exteraGram vs ours «что это за прыжки»): the reply bar was dropped in one frame as
+      // the message went — now it slides away together with the new message gliding up
+      closeReply(true, true);
       return replyTo;
     }
     return null;
@@ -10900,6 +10905,51 @@ public class MessagesController extends ViewController<MessagesController.Argume
       view.setBackground(shape);
     }
     addThemeInvalidateListener(view);
+  }
+
+  /**
+   * TGx101 (user 2026-10-14 10:02 «сообщение-цитата не красится в цвет поля ввода», exteraGram side by side): the pinned
+   * message bar under the header is a floating capsule like the message field — same filling and blur, rounded, the
+   * field's side gap — instead of a white strip across the screen
+   */
+  private void tgx101FloatPinnedBar (PinnedMessagesBar bar) {
+    final FloatingBlur blur = new FloatingBlur();
+    final int side = Screen.dp(FLOATING_INPUT_SIDE), vertical = Screen.dp(3f);
+    bar.tgx101SetTransparent();
+    bar.setPadding(side, 0, side, 0);
+    bar.setBackground(new android.graphics.drawable.Drawable() {
+      private final android.graphics.RectF rect = new android.graphics.RectF();
+      private final android.graphics.Path path = new android.graphics.Path();
+
+      @Override
+      public void draw (@NonNull Canvas c) {
+        android.graphics.Rect bounds = getBounds();
+        rect.set(bounds.left + side, bounds.top + vertical, bounds.right - side, bounds.bottom - vertical);
+        if (rect.height() <= 0) return;
+        float radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), rect.height() / 2f);
+        path.reset();
+        path.addRoundRect(rect, radius, radius, android.graphics.Path.Direction.CW);
+        boolean blurred = blur.draw(c, bar, rect, path);
+        c.drawPath(path, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(tgx101FieldAlpha(blurred, c), Theme.fillingColor())));
+        float half = Math.max(1, Screen.dp(.5f)) / 2f;
+        rect.inset(half, half);
+        path.reset();
+        path.addRoundRect(rect, radius, radius, android.graphics.Path.Direction.CW);
+        c.drawPath(path, Paints.strokeSeparatorPaint(Theme.separatorColor()));
+      }
+
+      @Override
+      public void setAlpha (int alpha) { }
+
+      @Override
+      public void setColorFilter (@Nullable android.graphics.ColorFilter colorFilter) { }
+
+      @Override
+      public int getOpacity () {
+        return android.graphics.PixelFormat.TRANSLUCENT;
+      }
+    });
+    addThemeInvalidateListener(bar);
   }
 
   private void applyFloatingInputShape (View view, boolean replyBar) {

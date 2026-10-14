@@ -1397,8 +1397,33 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     Tgx101Diag.mark("resume: away " + idle + " ms, screen " + (screenWentOff ? "off " + offFor + " ms" : "stayed on") + ", keyboard at pause " + (keyboard ? "open" : "closed"));
     // user 2026-10-14 01:10 «возвращай как было: клавиатуру показываем так долго, как возможно, даже после
     // разблокировки» — the keyboard always comes back (held frames keep the chat from jumping); only the log stays
-    if (keyboard) Tgx101Diag.mark("keyboard: comes back");
+    if (keyboard) {
+      Tgx101Diag.mark("keyboard: comes back");
+      tgx101ExpectKeyboardUntil = android.os.SystemClock.uptimeMillis() + 1500;
+    }
   }
+
+  // TGx101 (log 2026-10-14 10:00:43 «клавиатура уехала сама после возврата»): back after half a second the chat asked for
+  // its keyboard before the window had focus (it came 0.48 s later, with a notification) and Android ignored the request.
+  // Like the official app, ask again once the window has focus — every 100 ms for up to 1.5 s — until it's up
+  private long tgx101ExpectKeyboardUntil;
+  private final Runnable tgx101AskKeyboardAgain = new Runnable() {
+    @Override
+    public void run () {
+      if (isKeyboardVisible || android.os.SystemClock.uptimeMillis() > tgx101ExpectKeyboardUntil || !hasWindowFocus()) {
+        tgx101ExpectKeyboardUntil = 0;
+        return;
+      }
+      ViewController<?> c = navigation != null ? navigation.getCurrentStackItem() : null;
+      View field = c != null ? c.getLockFocusView() : null;
+      if (field != null && field.isShown() && field.isEnabled()) {
+        field.requestFocus();
+        org.thunderdog.challegram.tool.Keyboard.show(field);
+        Tgx101Diag.mark("keyboard: asked again after focus");
+      }
+      getWindow().getDecorView().postDelayed(this, 100);
+    }
+  };
 
   private boolean tgx101HideKeyboardOnFocus;
   private int tgx101SavedSoftInput;
@@ -1407,6 +1432,10 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   public void onWindowFocusChanged (boolean hasFocus) {
     super.onWindowFocusChanged(hasFocus);
     if (hasFocus) tgx101Rise();
+    if (hasFocus && tgx101ExpectKeyboardUntil != 0 && !isKeyboardVisible) {
+      getWindow().getDecorView().removeCallbacks(tgx101AskKeyboardAgain);
+      getWindow().getDecorView().postDelayed(tgx101AskKeyboardAgain, 120);
+    }
     if (hasFocus && tgx101HideKeyboardOnFocus) {
       tgx101HideKeyboardOnFocus = false;
       final int saved = tgx101SavedSoftInput;

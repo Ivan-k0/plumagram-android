@@ -1694,6 +1694,27 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
   @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
   private static void setStatusBarColor (Window window, int color) {
     window.setStatusBarColor(color);
+    tgx101MatchStatusIcons(window, color);
+  }
+
+  // TGx101 (user 2026-10-14 11:41, ⋮ → «Поиск»: «строка состояния должна быть видна»): the search header turns light and the
+  // status bar with it, but its icons stayed white — invisible. Over a light bar the icons go dark, back to the theme after
+  @SuppressWarnings("deprecation")
+  private static void tgx101MatchStatusIcons (Window window, int color) {
+    if (android.graphics.Color.alpha(color) < 200 || Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return;
+    int r = android.graphics.Color.red(color), g = android.graphics.Color.green(color), b = android.graphics.Color.blue(color);
+    boolean lightBar = (0.299f * r + 0.587f * g + 0.114f * b) / 255f > 0.7f;
+    boolean darkIcons = lightBar || Theme.needLightStatusBar();
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      android.view.WindowInsetsController c = window.getInsetsController();
+      if (c != null) {
+        c.setSystemBarsAppearance(darkIcons ? android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS : 0, android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);
+      }
+    }
+    View decor = window.getDecorView();
+    int visibility = decor.getSystemUiVisibility();
+    int updated = darkIcons ? visibility | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR : visibility & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+    if (updated != visibility) decor.setSystemUiVisibility(updated);
   }
 
   void applyPreview (ViewController<?> current) {
