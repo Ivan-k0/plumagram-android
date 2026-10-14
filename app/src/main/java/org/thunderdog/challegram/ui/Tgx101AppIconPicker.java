@@ -129,7 +129,7 @@ public class Tgx101AppIconPicker extends LinearLayout {
       frame.setLayoutParams(new LinearLayout.LayoutParams(size, size));
 
       icon = new View(context);
-      Drawable d = context.getResources().getDrawable(iconRes, null);
+      Drawable d = androidx.core.content.ContextCompat.getDrawable(context, iconRes);
       icon.setBackground(d);
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
         icon.setOutlineProvider(new ViewOutlineProvider() {
