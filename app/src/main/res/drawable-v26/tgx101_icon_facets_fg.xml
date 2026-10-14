@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TGx101: alternative app icon «Rainbow facets» (user 2026-10-14: blue neck, no red-like cut there) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+  <path android:fillColor="#43A047" android:pathData="M85.56,46.97 L78.18,44.83 L72.94,39.95 L66.86,40.30 L60.31,45.66 L59.84,45.66 L52.33,31.85 L38.99,23.51 L38.04,23.15 L39.59,29.70 L39.47,30.66 L37.80,30.18 L25.06,24.82 L26.13,27.20 L42.92,57.10 L43.40,58.53 L23.03,83.66 L22.32,84.85 L66.86,60.43 L67.58,58.64 L71.03,46.26 L71.51,45.78 L73.17,45.78 L73.17,46.62 L71.98,50.67 L72.22,51.62 L83.54,54.60 L83.89,54.24 L85.68,47.57 Z"/>
+  <path android:fillColor="#E53935" android:pathData="M43.28,58.88 L22.44,84.61 L40.90,74.48 Z"/>
+  <path android:fillColor="#1E5BC6" android:pathData="M84.85,46.85 L78.18,44.95 L73.17,40.18 L72.22,39.95 L66.62,40.54 L58.53,47.09 L58.17,47.81 L66.98,59.95 L72.46,41.49 L73.17,41.85 L73.41,45.54 L71.98,51.14 L72.46,51.62 L83.54,54.48 L85.20,49.12 L85.32,47.69 L79.13,50.31 L78.42,50.31 L78.18,49.59 L81.63,48.52 L84.73,47.21 Z"/>
+  <path android:fillColor="#FB8C00" android:pathData="M25.18,24.94 L43.52,57.93 L48.52,34.83 Z"/>
+  <path android:fillColor="#29B6F6" android:pathData="M48.52,34.71 L48.64,35.54 L43.52,58.41 L66.74,60.31 L67.10,59.95 L66.51,59.72 L58.29,48.28 L58.41,47.09 L57.45,47.09 Z"/>
+  <path android:fillColor="#FDD835" android:pathData="M40.90,74.72 L67.10,60.07 L65.20,60.31 L43.64,58.53 L43.40,58.17 L43.40,59.00 L42.92,59.12 L43.40,59.24 L43.40,60.43 Z"/>
+  <path android:fillColor="#1E5BC6" android:pathData="M72.94,41.26 L72.58,41.38 L71.27,45.90 L73.17,45.66 Z"/>
+  <path android:fillColor="#43A047" android:pathData="M38.04,23.27 L39.71,30.06 L39.59,30.78 L48.52,34.59 L57.81,47.33 L59.84,45.90 L52.45,32.09 L40.30,24.34 Z"/>
+  <path android:fillColor="#1E5BC6" android:pathData="M72.22,39.80 L73.30,40.10 L73.55,45.70 L71.20,46.00 Z"/>
+  <path android:fillColor="#8E24AA" android:pathData="M73.40,44.90 L78.18,44.83 L85.60,46.97 L83.89,54.30 L72.22,51.62 L71.98,50.67 L73.17,46.62 Z"/>
+  <path android:fillColor="#FFFFFF" android:pathData="M85.56,47.81 L84.49,46.62 L84.49,47.33 L78.77,49.59 L79.13,49.71 L79.13,50.19 L84.85,47.69 L85.32,47.69 L85.44,48.28 Z"/>
+  <path android:fillColor="#FFFFFF" android:pathData="M75.08,45.54 L78.53,50.19 L84.97,47.57 L85.44,47.57 L85.56,47.93 L85.44,47.09 L84.61,46.62 L84.61,47.33 L78.65,49.59 L75.91,46.02 Z"/>
+</vector>

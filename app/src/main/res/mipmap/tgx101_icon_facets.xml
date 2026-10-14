@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TGx101: before Android 8 alternative icons aren't offered — the standard one -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+  <item android:drawable="@mipmap/app_launcher" />
+</layer-list>

@@ -417,10 +417,7 @@
       android:launchMode="singleTask"
       android:windowSoftInputMode="stateUnchanged|adjustPan"
       android:exported="true">
-      <intent-filter android:label="@string/AppName">
-        <action android:name="android.intent.action.MAIN" />
-        <category android:name="android.intent.category.LAUNCHER" />
-      </intent-filter>
+      <!-- TGx101: the launcher entry is one of the .Tgx101Icon* aliases below (the app icon is chosen in MagiX → Icon) -->
 
       <!-- "Open chat" row that phone book sync writes for Telegram contacts (dialers, contacts apps) -->
       <intent-filter>
@@ -490,6 +487,86 @@
         <data android:scheme="tg" />
       </intent-filter>
     </activity>
+
+    <!-- TGx101 (user 2026-10-14): app icons to choose from; exactly one is enabled. The standard one by default -->
+    <activity-alias
+      android:name=".Tgx101IconDefault"
+      android:targetActivity=".MainActivity"
+      android:icon="@mipmap/app_launcher"
+      android:roundIcon="@mipmap/app_launcher_round"
+      android:label="@string/AppName"
+      android:enabled="true"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias
+      android:name=".Tgx101IconPaper"
+      android:targetActivity=".MainActivity"
+      android:icon="@mipmap/tgx101_icon_paper"
+      android:roundIcon="@mipmap/tgx101_icon_paper"
+      android:label="@string/AppName"
+      android:enabled="false"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias
+      android:name=".Tgx101IconGraphite"
+      android:targetActivity=".MainActivity"
+      android:icon="@mipmap/tgx101_icon_graphite"
+      android:roundIcon="@mipmap/tgx101_icon_graphite"
+      android:label="@string/AppName"
+      android:enabled="false"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias
+      android:name=".Tgx101IconOled"
+      android:targetActivity=".MainActivity"
+      android:icon="@mipmap/tgx101_icon_oled"
+      android:roundIcon="@mipmap/tgx101_icon_oled"
+      android:label="@string/AppName"
+      android:enabled="false"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias
+      android:name=".Tgx101IconFacets"
+      android:targetActivity=".MainActivity"
+      android:icon="@mipmap/tgx101_icon_facets"
+      android:roundIcon="@mipmap/tgx101_icon_facets"
+      android:label="@string/AppName"
+      android:enabled="false"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias
+      android:name=".Tgx101IconRainbow"
+      android:targetActivity=".MainActivity"
+      android:icon="@mipmap/tgx101_icon_rainbow"
+      android:roundIcon="@mipmap/tgx101_icon_rainbow"
+      android:label="@string/AppName"
+      android:enabled="false"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
 
     <provider
       android:name=".FileProvider"

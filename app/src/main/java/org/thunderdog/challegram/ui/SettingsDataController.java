@@ -323,6 +323,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101UiBold(), isUpdate);
         } else if (itemId == R.id.btn_tgx101InputFontScale) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101InputFollowsFontScale(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101AppIcon) {
+          view.setData(org.thunderdog.challegram.tool.Tgx101AppIcon.isAvailable() ? Lang.getString(org.thunderdog.challegram.tool.Tgx101AppIcon.NAMES[org.thunderdog.challegram.tool.Tgx101AppIcon.current(context)]) : Lang.getString(R.string.Tgx101AppIconOld));
         } else if (itemId == R.id.btn_tgx101ForegroundNotif) {
           view.setData(FOREGROUND_NOTIF_NAMES[Math.max(0, Math.min(2, Settings.instance().tgx101ForegroundNotifMode()))]);
         } else if (itemId == R.id.btn_tgx101Snooze) {
@@ -539,6 +541,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HidePhone, 0, R.string.Tgx101HidePhone),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101BottomGap, 0, R.string.Tgx101BottomGap),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101AppIcon, 0, R.string.Tgx101AppIcon),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NotificationPlane, 0, R.string.Tgx101NotificationPlane),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -932,22 +936,22 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   private static final int[] TGX101_SECTION_IDS = {
     R.id.btn_tgx101SectionChatList, R.id.btn_tgx101SectionStories, R.id.btn_tgx101SectionMessages, R.id.btn_tgx101SectionChannels,
     R.id.btn_tgx101SectionMedia, R.id.btn_tgx101SectionNotifications, R.id.btn_tgx101SectionText, R.id.btn_tgx101SectionCalls,
-    R.id.btn_tgx101SectionTranslate, R.id.btn_tgx101SectionData
+    R.id.btn_tgx101SectionTranslate, R.id.btn_tgx101SectionIcon, R.id.btn_tgx101SectionData
   };
   private static final int[] TGX101_SECTION_TITLES = {
     R.string.Tgx101SectionChatList, R.string.Tgx101SectionStories, R.string.Tgx101SectionMessages, R.string.Tgx101SectionChannels,
     R.string.Tgx101SectionMedia, R.string.Tgx101SectionNotifications, R.string.Tgx101SectionText, R.string.Tgx101SectionCalls,
-    R.string.Tgx101SectionTranslate, R.string.Tgx101SectionData
+    R.string.Tgx101SectionTranslate, R.string.Tgx101SectionIcon, R.string.Tgx101SectionData
   };
   private static final int[] TGX101_SECTION_HINTS = {
     R.string.Tgx101SectionChatListHint, R.string.Tgx101SectionStoriesHint, R.string.Tgx101SectionMessagesHint, R.string.Tgx101SectionChannelsHint,
     R.string.Tgx101SectionMediaHint, R.string.Tgx101SectionNotificationsHint, R.string.Tgx101SectionTextHint, R.string.Tgx101SectionCallsHint,
-    R.string.Tgx101SectionTranslateHint, R.string.Tgx101SectionDataHint
+    R.string.Tgx101SectionTranslateHint, R.string.Tgx101SectionIconHint, R.string.Tgx101SectionDataHint
   };
   private static final int[] TGX101_SECTION_ICONS = {
     R.drawable.baseline_forum_24, R.drawable.baseline_history_24, R.drawable.baseline_chat_bubble_24, R.drawable.baseline_bullhorn_24,
     R.drawable.baseline_camera_alt_24, R.drawable.baseline_notifications_24, R.drawable.baseline_format_text_24, R.drawable.baseline_call_24,
-    R.drawable.baseline_translate_24, R.drawable.baseline_data_usage_24
+    R.drawable.baseline_translate_24, R.drawable.baseline_palette_24, R.drawable.baseline_data_usage_24
   };
 
   private static int tgx101SectionIndex (int id) {
@@ -964,7 +968,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       long flag = item.getLongId();
       if (flag == Settings.SETTING_FLAG_PAUSE_MEDIA_ON_RECORD || flag == Settings.SETTING_FLAG_SEND_PHOTOS_IN_HD) return 4;
       if (flag == Settings.SETTING_FLAG_KEEP_ALIVE_CONNECTION) return 5; // user 2026-10-06: looked for it under «Notifications»
-      return 9;
+      return 10;
     }
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked || id == R.id.btn_pullToSearch || id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap) return 0;
     if (id == R.id.btn_tgx101StoriesMode || id == R.id.btn_tgx101StoriesFolders) return 1;
@@ -979,12 +983,13 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       || id == R.id.btn_showChannelMuteButton || id == R.id.btn_hideSubscribeLink || id == R.id.btn_separateChannelPosts) return 3;
     if (id == R.id.btn_tgx101VoiceQueue || id == R.id.btn_tgx101CameraInAttach || id == R.id.btn_tgx101ZoomPullClose || id == R.id.btn_roundVideoQuality
       || id == R.id.btn_roundStabilization) return 4;
-    if (id == R.id.btn_tgx101Snooze || id == R.id.btn_tgx101NotificationPlane || id == R.id.btn_tgx101ForegroundNotif) return 5;
+    if (id == R.id.btn_tgx101Snooze || id == R.id.btn_tgx101ForegroundNotif) return 5;
+    if (id == R.id.btn_tgx101AppIcon || id == R.id.btn_tgx101NotificationPlane) return 9; // user 2026-10-14: the plane icon goes with the app icon
     if (id == R.id.btn_tgx101UiText || id == R.id.btn_tgx101UiBold || id == R.id.btn_tgx101ChatListTextSize || id == R.id.btn_tgx101Font || id == R.id.btn_tgx101InputFontScale || id == R.id.btn_tgx101TextWeight || id == R.id.btn_chatFontSize || id == R.id.btn_bigEmojiSize) return 6;
     if (id == R.id.btn_tgx101CallBar || id == R.id.btn_tgx101NewCallScreen || id == R.id.btn_tgx101CallPhoto || id == R.id.btn_tgx101CallPattern
       || id == R.id.btn_tgx101RingRamp || id == R.id.btn_tgx101RingRampTime) return 7;
     if (id == R.id.btn_tgx101TranslateOnDevice || id == R.id.btn_tgx101TranslateModels || id == R.id.btn_tgx101SpeechModel || id == R.id.btn_tgx101FakeNoPremium) return 8;
-    return 9;
+    return 10;
   }
 
   /** The full MagiX list was built; keep the section list (root) or this section's settings, grouped under their old headers */
@@ -1329,6 +1334,29 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           int index = result.get(R.id.btn_tgx101UiText) - 1;
           if (index >= 0 && index < values.length) Settings.instance().setTgx101UiTextSize(values[index]);
           adapter.updateValuedSettingById(R.id.btn_tgx101UiText);
+        }));
+    } else if (id == R.id.btn_tgx101AppIcon) {
+      if (!org.thunderdog.challegram.tool.Tgx101AppIcon.isAvailable()) {
+        UI.showToast(R.string.Tgx101AppIconOld, android.widget.Toast.LENGTH_SHORT);
+        return;
+      }
+      int[] names = org.thunderdog.challegram.tool.Tgx101AppIcon.NAMES;
+      int current = org.thunderdog.challegram.tool.Tgx101AppIcon.current(context);
+      ListItem[] items = new ListItem[names.length];
+      for (int i = 0; i < items.length; i++) {
+        items[i] = new ListItem(ListItem.TYPE_RADIO_OPTION, i + 1, 0, names[i], R.id.btn_tgx101AppIcon, i == current);
+      }
+      showSettings(new SettingsWrapBuilder(R.id.btn_tgx101AppIcon)
+        .addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.Tgx101AppIconHint))
+        .setRawItems(items)
+        .setIntDelegate((resultId, result) -> {
+          int index = result.get(R.id.btn_tgx101AppIcon) - 1;
+          if (index >= 0 && index != org.thunderdog.challegram.tool.Tgx101AppIcon.current(context)) {
+            org.thunderdog.challegram.tool.Tgx101AppIcon.apply(context, index);
+            org.thunderdog.challegram.Tgx101Diag.mark("app icon: " + index);
+            UI.showToast(R.string.Tgx101AppIconChanged, android.widget.Toast.LENGTH_LONG);
+          }
+          adapter.updateValuedSettingById(R.id.btn_tgx101AppIcon);
         }));
     } else if (id == R.id.btn_tgx101ForegroundNotif) {
       int current = Settings.instance().tgx101ForegroundNotifMode();

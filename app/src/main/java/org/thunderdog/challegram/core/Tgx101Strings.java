@@ -704,6 +704,18 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SectionCallsHint, "Экран звонка, фото, вибрация, нарастание");
     RU.put(R.string.Tgx101SectionTranslate, "Перевод и речь");
     RU.put(R.string.Tgx101SectionTranslateHint, "Перевод на устройстве, распознавание");
+    RU.put(R.string.Tgx101SectionIcon, "Иконка");
+    RU.put(R.string.Tgx101SectionIconHint, "Иконка на рабочем столе, значок в уведомлениях");
+    RU.put(R.string.Tgx101AppIcon, "Иконка приложения");
+    RU.put(R.string.Tgx101AppIconDefault, "Стандартная");
+    RU.put(R.string.Tgx101AppIconPaper, "Бумага");
+    RU.put(R.string.Tgx101AppIconGraphite, "Графит");
+    RU.put(R.string.Tgx101AppIconOled, "Чёрная (AMOLED)");
+    RU.put(R.string.Tgx101AppIconFacets, "Радужные грани");
+    RU.put(R.string.Tgx101AppIconRainbow, "Радуга на чёрном");
+    RU.put(R.string.Tgx101AppIconHint, "Иконка меняется на рабочем столе, в списке приложений и в недавних. В настройках телефона остаётся стандартная — Android не даёт приложению менять её там. Некоторые рабочие столы при смене убирают иконку с экрана: верните её из списка приложений.");
+    RU.put(R.string.Tgx101AppIconChanged, "Иконка изменена. Рабочему столу может понадобиться несколько секунд");
+    RU.put(R.string.Tgx101AppIconOld, "Нужен Android 8 или новее");
     RU.put(R.string.Tgx101SectionData, "Данные и сеть");
     RU.put(R.string.Tgx101SectionDataHint, "Трафик, экономия, прокси, автозагрузка");
     RU.put(R.string.Tgx101SnoozedToast, "Без звука и всплывающих %1$d мин");
