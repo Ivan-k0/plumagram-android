@@ -6216,7 +6216,7 @@
   <string name="Tgx101SuggestedPostDeclined">The suggested post was declined</string>
   <string name="Tgx101SuggestedPostPaid">The suggested post was paid for</string>
   <string name="Tgx101SuggestedPostRefunded">The payment for the suggested post was refunded</string>
-  <string name="Tgx101StoryMessage">📖 A story (opens in the official app for now)</string>
+  <string name="Tgx101StoryMessage">📖 A story</string>
   <string name="Tgx101DefaultAutoDelete">Auto-delete in new chats</string>
   <string name="Tgx101DefaultAutoDeleteHint">Messages in chats you start from now on are deleted for everyone after this time. Existing chats don\'t change.</string>
   <string name="Tgx101AutoDeleteOff">Off</string>
@@ -6457,6 +6457,9 @@
   <string name="Tgx101AppIconHint">The icon changes on the home screen, in the app list and in recent apps. The phone\'s settings keep the standard icon — Android doesn\'t let an app change it there. Some launchers move the icon off the home screen when it changes: add it back from the app list.</string>
   <string name="Tgx101AppIconChanged">Icon changed. The launcher may take a few seconds to update it</string>
   <string name="Tgx101AppIconOld">Needs Android 8 or newer</string>
+  <string name="Tgx101StoryOpen">open</string>
+  <string name="Tgx101StoryUnavailable">The story is unavailable: deleted or hidden</string>
+  <string name="Tgx101CallAddPeople">Add people</string>
   <string name="Tgx101SectionData">Data and network</string>
   <string name="Tgx101SectionDataHint">Traffic, data saver, proxy, auto-download</string>
   <string name="Tgx101ChipBlock">Block</string>

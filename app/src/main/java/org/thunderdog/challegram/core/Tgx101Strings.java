@@ -382,7 +382,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SuggestedPostDeclined, "Предложенный пост отклонён");
     RU.put(R.string.Tgx101SuggestedPostPaid, "Предложенный пост оплачен");
     RU.put(R.string.Tgx101SuggestedPostRefunded, "Оплата предложенного поста возвращена");
-    RU.put(R.string.Tgx101StoryMessage, "📖 История (пока открывается в официальном приложении)");
+    RU.put(R.string.Tgx101StoryMessage, "📖 История");
+    RU.put(R.string.Tgx101StoryOpen, "открыть");
+    RU.put(R.string.Tgx101StoryUnavailable, "История недоступна: удалена или скрыта");
     RU.put(R.string.Tgx101DefaultAutoDelete, "Автоудаление в новых чатах");
     RU.put(R.string.Tgx101DefaultAutoDeleteHint, "Сообщения в чатах, которые вы начнёте с этого момента, будут удаляться у всех через это время. Уже существующие чаты не меняются.");
     RU.put(R.string.Tgx101AutoDeleteOff, "Выключено");
@@ -716,6 +718,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AppIconHint, "Иконка меняется на рабочем столе, в списке приложений и в недавних. В настройках телефона остаётся стандартная — Android не даёт приложению менять её там. Некоторые рабочие столы при смене убирают иконку с экрана: верните её из списка приложений.");
     RU.put(R.string.Tgx101AppIconChanged, "Иконка изменена. Рабочему столу может понадобиться несколько секунд");
     RU.put(R.string.Tgx101AppIconOld, "Нужен Android 8 или новее");
+    RU.put(R.string.Tgx101CallAddPeople, "Добавить участника");
     RU.put(R.string.Tgx101SectionData, "Данные и сеть");
     RU.put(R.string.Tgx101SectionDataHint, "Трафик, экономия, прокси, автозагрузка");
     RU.put(R.string.Tgx101SnoozedToast, "Без звука и всплывающих %1$d мин");

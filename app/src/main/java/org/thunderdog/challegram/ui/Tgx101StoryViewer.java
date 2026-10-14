@@ -124,6 +124,26 @@ public class Tgx101StoryViewer extends Dialog {
   }
 
 
+  /**
+   * TGx101 (user 2026-10-14: a story reposted to a channel and t.me/…/s/… links «не поддерживаются»): one story by its
+   * poster and id — a forwarded story, a story link
+   */
+  public static void openSingle (Context context, Tdlib tdlib, long chatId, int storyId) {
+    org.thunderdog.challegram.Tgx101Diag.mark("story: open single " + chatId + "/" + storyId);
+    tdlib.send(new TdApi.GetStory(chatId, storyId, false), (story, error) -> UI.post(() -> {
+      if (error != null || story == null) {
+        org.thunderdog.challegram.Tgx101Diag.mark("story: unavailable — " + (error != null ? error.message : "null"));
+        UI.showToast(R.string.Tgx101StoryUnavailable, android.widget.Toast.LENGTH_SHORT);
+        return;
+      }
+      TdApi.StoryInfo info = new TdApi.StoryInfo(story.id, story.date, false, false);
+      TdApi.ChatActiveStories person = new TdApi.ChatActiveStories(chatId, null, 0, false, 0, new TdApi.StoryInfo[] {info});
+      java.util.List<TdApi.ChatActiveStories> people = new java.util.ArrayList<>();
+      people.add(person);
+      new Tgx101StoryViewer(context, tdlib, people, 0, true).show();
+    }));
+  }
+
   public Tgx101StoryViewer (Context context, Tdlib tdlib, List<TdApi.ChatActiveStories> people, int personIndex) {
     this(context, tdlib, people, personIndex, false);
   }

@@ -3319,6 +3319,15 @@ public class TdlibUi extends Handler {
   }
   
   public void openUrl (final TdlibDelegate context, final String url, @Nullable UrlOpenParameters options, @Nullable RunnableBool after) {
+    // TGx101: a story reposted into a chat — its in-app link (TGMessage, MessageStory)
+    if (url != null && url.startsWith("tgx101story:")) {
+      String[] parts = url.substring("tgx101story:".length()).split("/");
+      try {
+        org.thunderdog.challegram.ui.Tgx101StoryViewer.openSingle(context.context(), tdlib, Long.parseLong(parts[0]), Integer.parseInt(parts[1]));
+      } catch (Throwable ignored) { }
+      if (after != null) after.runWithBool(true);
+      return;
+    }
     // TGx101: WEB proxy links (tg://webproxy, t.me/webproxy)
     ViewController<?> webProxyContext = context instanceof ViewController<?> ? (ViewController<?>) context : context.context().navigation().getCurrentStackItem();
     if (org.thunderdog.challegram.proxy.Tgx101WebProxy.tryOpenLink(webProxyContext, url)) {
@@ -4234,9 +4243,25 @@ public class TdlibUi extends Handler {
         break;
       }
 
-      case TdApi.InternalLinkTypeStory.CONSTRUCTOR:
+      case TdApi.InternalLinkTypeStory.CONSTRUCTOR: {
+        // TGx101 (user 2026-10-14 «ссылка не поддерживается»): story links fell through into the mini app case below
+        TdApi.InternalLinkTypeStory story = (TdApi.InternalLinkTypeStory) linkType;
+        tdlib.send(new TdApi.SearchPublicChat(story.storyPosterUsername), (chat, error) -> UI.post(() -> {
+          if (chat != null) {
+            org.thunderdog.challegram.ui.Tgx101StoryViewer.openSingle(context.context(), tdlib, chat.id, story.storyId);
+          } else {
+            UI.showToast(R.string.Tgx101StoryUnavailable, android.widget.Toast.LENGTH_SHORT);
+          }
+        }));
+        if (after != null) after.runWithBool(true);
+        break;
+      }
       case TdApi.InternalLinkTypeLiveStory.CONSTRUCTOR:
-      case TdApi.InternalLinkTypeStoryAlbum.CONSTRUCTOR:
+      case TdApi.InternalLinkTypeStoryAlbum.CONSTRUCTOR: {
+        // not here yet: the browser (it offers the official app) instead of a crash into the mini app case
+        openExternalUrl(context, originalUrl != null ? originalUrl : "", openParameters, after);
+        break;
+      }
 
       case TdApi.InternalLinkTypeWebApp.CONSTRUCTOR: {
         // TGx101: mini apps open inside the app

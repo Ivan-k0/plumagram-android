@@ -25,6 +25,7 @@
 #include "bridge.h"
 
 #include <sdk/android/native_api/jni/jvm.h>
+#include <rtc_base/time_utils.h>
 #include <tgcalls/StaticThreads.h>
 #include <tgcalls/group/GroupInstanceCustomImpl.h>
 #include <tgcalls/platform/PlatformInterface.h>
@@ -100,14 +101,74 @@ public:
   int32_t EnableBuiltInAGC (bool) override { return -1; }
 };
 
+// TGx101 (conference calls, user 2026-10-14 «добавить участника из окна звонка»): a group call not bound to a chat is
+// end-to-end encrypted. tgcalls asks for every audio frame to be encrypted / decrypted; TDLib does it on the device
+// (encryptGroupCallData / decryptGroupCallData) — the Java side runs the request and waits for it.
+// Decrypting needs the sender's user id: a participant's SSRC is matched to the user once the participants are known;
+// until then tgcalls' request for that SSRC waits (≤ 5 s).
+struct PendingDescriptions {
+  std::vector<uint32_t> ssrcs;
+  std::function<void(std::vector<tgcalls::MediaChannelDescription> &&)> callback;
+  int64_t requestedAt;
+};
+
+struct GroupConference {
+  std::mutex mutex;
+  std::vector<PendingDescriptions> pending;
+};
+
 struct GroupContext {
   std::unique_ptr<tgcalls::GroupInstanceCustomImpl> instance;
   std::shared_ptr<GroupJava> java;
+  std::shared_ptr<GroupConference> conference;
 };
+
+int64_t userIdForSsrc (const std::shared_ptr<GroupJava> &java, uint32_t ssrc) {
+  int64_t userId = 0;
+  java->run([ssrc, &userId](JNIEnv *env, jobject obj, jclass clazz) {
+    userId = (int64_t) env->CallLongMethod(obj, env->GetMethodID(clazz, "onNativeUserIdForSsrc", "(I)J"), (jint) ssrc);
+  });
+  return userId;
+}
+
+// Answers what can be answered: every SSRC whose user is known, or all of them after 5 s
+void resolvePending (const std::shared_ptr<GroupJava> &java, const std::shared_ptr<GroupConference> &conference, bool force) {
+  std::vector<PendingDescriptions> ready;
+  {
+    std::lock_guard<std::mutex> lock(conference->mutex);
+    int64_t now = rtc::TimeMillis();
+    for (auto it = conference->pending.begin(); it != conference->pending.end(); ) {
+      bool known = true;
+      for (uint32_t ssrc : it->ssrcs) {
+        if (userIdForSsrc(java, ssrc) == 0) {
+          known = false;
+          break;
+        }
+      }
+      if (known || force || now - it->requestedAt > 5000) {
+        ready.push_back(std::move(*it));
+        it = conference->pending.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
+  for (auto &request : ready) {
+    std::vector<tgcalls::MediaChannelDescription> descriptions;
+    for (uint32_t ssrc : request.ssrcs) {
+      tgcalls::MediaChannelDescription description;
+      description.type = tgcalls::MediaChannelDescription::Type::Audio;
+      description.audioSsrc = ssrc;
+      description.userId = userIdForSsrc(java, ssrc);
+      descriptions.push_back(description);
+    }
+    request.callback(std::move(descriptions));
+  }
+}
 
 }
 
-JNI_OBJECT_FUNC(jlong, voip_Tgx101GroupCall, nativeCreate, jstring jLogPath, jboolean jMuted) {
+JNI_OBJECT_FUNC(jlong, voip_Tgx101GroupCall, nativeCreate, jstring jLogPath, jboolean jMuted, jboolean jConference) {
   if (!tgcalls::initialize(env)) {
     return 0;
   }
@@ -145,7 +206,35 @@ JNI_OBJECT_FUNC(jlong, voip_Tgx101GroupCall, nativeCreate, jstring jLogPath, jbo
       env->DeleteLocalRef(jVoice);
     });
   };
-  descriptor.requestMediaChannelDescriptions = [](std::vector<uint32_t> const &ssrcs, std::function<void(std::vector<tgcalls::MediaChannelDescription> &&)> callback) -> std::shared_ptr<tgcalls::RequestMediaChannelDescriptionTask> {
+  bool isConference = jConference == JNI_TRUE;
+  auto conference = isConference ? std::make_shared<GroupConference>() : nullptr;
+  if (isConference) {
+    descriptor.isConference = true;
+    descriptor.e2eEncryptDecrypt = [java](std::vector<uint8_t> const &data, int64_t userId, bool encrypt, int32_t unencryptedPrefixSize) -> std::vector<uint8_t> {
+      std::vector<uint8_t> result;
+      java->run([&](JNIEnv *env, jobject obj, jclass clazz) {
+        jbyteArray jData = env->NewByteArray((jsize) data.size());
+        env->SetByteArrayRegion(jData, 0, (jsize) data.size(), (const jbyte *) data.data());
+        auto jResult = (jbyteArray) env->CallObjectMethod(obj, env->GetMethodID(clazz, "onNativeE2e", "([BJZI)[B"), jData, (jlong) userId, (jboolean) encrypt, (jint) unencryptedPrefixSize);
+        env->DeleteLocalRef(jData);
+        if (jResult != nullptr) {
+          jsize size = env->GetArrayLength(jResult);
+          result.resize((size_t) size);
+          env->GetByteArrayRegion(jResult, 0, size, (jbyte *) result.data());
+          env->DeleteLocalRef(jResult);
+        }
+      });
+      return result;
+    };
+    descriptor.requestMediaChannelDescriptions = [java, conference](std::vector<uint32_t> const &ssrcs, std::function<void(std::vector<tgcalls::MediaChannelDescription> &&)> callback) -> std::shared_ptr<tgcalls::RequestMediaChannelDescriptionTask> {
+      {
+        std::lock_guard<std::mutex> lock(conference->mutex);
+        conference->pending.push_back(PendingDescriptions {ssrcs, std::move(callback), rtc::TimeMillis()});
+      }
+      resolvePending(java, conference, false);
+      return std::make_shared<ImmediateDescriptionTask>();
+    };
+  } else descriptor.requestMediaChannelDescriptions = [](std::vector<uint32_t> const &ssrcs, std::function<void(std::vector<tgcalls::MediaChannelDescription> &&)> callback) -> std::shared_ptr<tgcalls::RequestMediaChannelDescriptionTask> {
     std::vector<tgcalls::MediaChannelDescription> descriptions;
     for (uint32_t ssrc : ssrcs) {
       tgcalls::MediaChannelDescription description;
@@ -167,6 +256,7 @@ JNI_OBJECT_FUNC(jlong, voip_Tgx101GroupCall, nativeCreate, jstring jLogPath, jbo
 
   auto *context = new GroupContext;
   context->java = java;
+  context->conference = conference;
   context->instance = std::make_unique<tgcalls::GroupInstanceCustomImpl>(std::move(descriptor));
   context->instance->setIsMuted(jMuted == JNI_TRUE);
   return jni::ptr_to_jlong(context);
@@ -197,6 +287,14 @@ JNI_OBJECT_FUNC(void, voip_Tgx101GroupCall, nativeSetJoinResponse, jlong ptr, js
   }
   context->instance->setConnectionMode(tgcalls::GroupConnectionMode::GroupConnectionModeRtc, true, false);
   context->instance->setJoinResponsePayload(jni::from_jstring(env, jPayload));
+}
+
+// The participants changed: SSRC requests that waited for their users are answered now (or once 5 s are over)
+JNI_OBJECT_FUNC(void, voip_Tgx101GroupCall, nativeParticipantsChanged, jlong ptr) {
+  auto context = jni::jlong_to_ptr<GroupContext *>(ptr);
+  if (context != nullptr && context->conference != nullptr) {
+    resolvePending(context->java, context->conference, false);
+  }
 }
 
 JNI_OBJECT_FUNC(void, voip_Tgx101GroupCall, nativeSetMuted, jlong ptr, jboolean jMuted) {

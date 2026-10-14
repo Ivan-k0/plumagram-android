@@ -88,7 +88,10 @@ public final class Tgx101GroupCall implements GroupCallListener {
 
   public final Tdlib tdlib;
   public final long chatId;
-  public final int groupCallId;
+  public volatile int groupCallId; // a conference gets its id once it is created
+  /** A group call not bound to a chat (a 1:1 call grown into a group one): end-to-end encrypted */
+  public final boolean isConference;
+  private final long[] inviteUserIds;
   private final String inviteHash;
 
   private long ptr;
@@ -103,9 +106,15 @@ public final class Tgx101GroupCall implements GroupCallListener {
   private final ReferenceList<Listener> listeners = new ReferenceList<>(true);
 
   private Tgx101GroupCall (Tdlib tdlib, long chatId, int groupCallId, @Nullable String inviteHash) {
+    this(tdlib, chatId, groupCallId, inviteHash, false, null);
+  }
+
+  private Tgx101GroupCall (Tdlib tdlib, long chatId, int groupCallId, @Nullable String inviteHash, boolean isConference, @Nullable long[] inviteUserIds) {
     this.tdlib = tdlib;
     this.chatId = chatId;
     this.groupCallId = groupCallId;
+    this.isConference = isConference;
+    this.inviteUserIds = inviteUserIds != null ? inviteUserIds : new long[0];
     this.inviteHash = inviteHash != null ? inviteHash : "";
   }
 
@@ -127,19 +136,37 @@ public final class Tgx101GroupCall implements GroupCallListener {
     return call;
   }
 
+  /**
+   * TGx101 (user 2026-10-14 «добавить участника из окна звонка»): a new group call not bound to a chat — created and
+   * joined at once, then the given people are invited (as in Telegram: a 1:1 call grows into a group call)
+   */
+  @UiThread
+  public static Tgx101GroupCall startConference (Tdlib tdlib, long[] inviteUserIds) {
+    if (current != null) {
+      current.leave();
+    }
+    Tgx101GroupCall call = new Tgx101GroupCall(tdlib, 0, 0, null, true, inviteUserIds);
+    current = call;
+    call.start();
+    notifyGlobal();
+    return call;
+  }
+
   private void start () {
     org.thunderdog.challegram.Tgx101Diag.mark("voice chat: join chat " + chatId + " call " + groupCallId + (inviteHash.isEmpty() ? "" : " by link"));
     tdlib.listeners().subscribeForGlobalUpdates(this);
-    tdlib.send(new TdApi.GetGroupCall(groupCallId), (result, error) -> UI.post(() -> {
-      if (result != null) {
-        onGroupCallUpdated(result);
-      }
-    }));
+    if (groupCallId != 0) {
+      tdlib.send(new TdApi.GetGroupCall(groupCallId), (result, error) -> UI.post(() -> {
+        if (result != null) {
+          onGroupCallUpdated(result);
+        }
+      }));
+    }
     Context context = org.thunderdog.challegram.unsorted.AppContext.get();
     // WebRTC needs ContextUtils set before the audio device is created; otherwise it's done only by TGCallService
     VoIP.initialize(context);
     File log = new File(context.getCacheDir(), "tgx101_voice_chat.log");
-    ptr = nativeCreate(log.getPath(), muted);
+    ptr = nativeCreate(log.getPath(), muted, isConference);
     if (ptr == 0) {
       fail(Lang.getString(R.string.Tgx101VoiceChatFailed, "tgcalls"));
       return;
@@ -164,6 +191,10 @@ public final class Tgx101GroupCall implements GroupCallListener {
       if (state == STATE_ENDED || ptr == 0) return;
       mySsrc = ssrc;
       TdApi.GroupCallJoinParameters parameters = new TdApi.GroupCallJoinParameters(ssrc, json, muted, false);
+      if (isConference) {
+        joinConference(parameters);
+        return;
+      }
       tdlib.send(new TdApi.JoinVideoChat(groupCallId, null, parameters, inviteHash), (response, error) -> UI.post(() -> {
         joinRequested = false;
         if (state == STATE_ENDED || ptr == 0) return;
@@ -175,6 +206,71 @@ public final class Tgx101GroupCall implements GroupCallListener {
         tdlib.send(new TdApi.LoadGroupCallParticipants(groupCallId, 100), (ok, loadError) -> { });
       }));
     });
+  }
+
+  private void joinConference (TdApi.GroupCallJoinParameters parameters) {
+    if (groupCallId != 0) {
+      // a created conference asked to rejoin: TDLib keeps it by id only through a link or a message — leave it to the user
+      joinRequested = false;
+      return;
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("conference: creating, inviting " + inviteUserIds.length);
+    tdlib.send(new TdApi.CreateGroupCall(parameters), (info, error) -> UI.post(() -> {
+      joinRequested = false;
+      if (state == STATE_ENDED || ptr == 0) return;
+      if (error != null) {
+        fail(Lang.getString(R.string.Tgx101VoiceChatFailed, TD.toErrorString(error)));
+        return;
+      }
+      groupCallId = info.groupCallId;
+      org.thunderdog.challegram.Tgx101Diag.mark("conference: created, call " + groupCallId);
+      nativeSetJoinResponse(ptr, info.joinPayload);
+      tdlib.send(new TdApi.GetGroupCall(groupCallId), (result, getError) -> UI.post(() -> {
+        if (result != null) onGroupCallUpdated(result);
+      }));
+      tdlib.send(new TdApi.LoadGroupCallParticipants(groupCallId, 100), (ok, loadError) -> { });
+      for (long userId : inviteUserIds) {
+        tdlib.send(new TdApi.InviteGroupCallParticipant(groupCallId, userId, false), (result, inviteError) -> {
+          org.thunderdog.challegram.Tgx101Diag.mark("conference: invite " + userId + (inviteError != null ? " failed — " + TD.toErrorString(inviteError) : " sent"));
+        });
+      }
+      for (Listener listener : listeners) listener.onGroupCallStateChanged(this);
+      notifyGlobal();
+    }));
+  }
+
+  // End-to-end encryption of a conference: tgcalls hands every frame here (its own threads) and waits for the answer
+
+  private final java.util.concurrent.ConcurrentHashMap<Integer, Long> ssrcUsers = new java.util.concurrent.ConcurrentHashMap<>();
+  private volatile int e2eFailures;
+
+  @Keep
+  private byte[] onNativeE2e (byte[] data, long userId, boolean encrypt, int unencryptedPrefixSize) {
+    int callId = groupCallId;
+    if (callId == 0 || state == STATE_ENDED) return null;
+    TdApi.Function<TdApi.Data> function = encrypt ?
+      new TdApi.EncryptGroupCallData(callId, new TdApi.GroupCallDataChannelMain(), data, unencryptedPrefixSize) :
+      new TdApi.DecryptGroupCallData(callId, new TdApi.MessageSenderUser(userId), new TdApi.GroupCallDataChannelMain(), data);
+    final byte[][] result = new byte[1][];
+    final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+    tdlib.client().send(function, object -> {
+      if (object instanceof TdApi.Data) {
+        result[0] = ((TdApi.Data) object).data;
+      } else if (object instanceof TdApi.Error && e2eFailures++ % 200 == 0) {
+        org.thunderdog.challegram.Tgx101Diag.mark("conference: " + (encrypt ? "encrypt" : "decrypt from " + userId) + " failed — " + ((TdApi.Error) object).message + " (" + e2eFailures + ")");
+      }
+      latch.countDown();
+    });
+    try {
+      latch.await(250, java.util.concurrent.TimeUnit.MILLISECONDS);
+    } catch (InterruptedException ignored) { }
+    return result[0];
+  }
+
+  @Keep
+  private long onNativeUserIdForSsrc (int ssrc) {
+    Long userId = ssrcUsers.get(ssrc);
+    return userId != null ? userId : 0;
   }
 
   @Keep
@@ -241,6 +337,10 @@ public final class Tgx101GroupCall implements GroupCallListener {
         participants.remove(key);
       } else {
         participants.put(key, participant);
+      }
+      if (participant.participantId instanceof TdApi.MessageSenderUser && participant.audioSourceId != 0) {
+        ssrcUsers.put(participant.audioSourceId, ((TdApi.MessageSenderUser) participant.participantId).userId);
+        if (isConference && ptr != 0) nativeParticipantsChanged(ptr);
       }
       if (participant.isCurrentUser) {
         boolean forcedMute = participant.isMutedForAllUsers && !participant.canUnmuteSelf;
@@ -421,7 +521,8 @@ public final class Tgx101GroupCall implements GroupCallListener {
 
   // Native
 
-  private native long nativeCreate (String logPath, boolean muted);
+  private native long nativeCreate (String logPath, boolean muted, boolean conference);
+  private native void nativeParticipantsChanged (long ptr);
   private native void nativeEmitJoinPayload (long ptr);
   private native void nativeSetJoinResponse (long ptr, String payload);
   private native void nativeSetMuted (long ptr, boolean muted);

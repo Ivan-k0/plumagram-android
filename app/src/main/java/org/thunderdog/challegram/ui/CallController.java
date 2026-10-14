@@ -31,6 +31,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.OvershootInterpolator;
+import android.os.Build;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
@@ -693,6 +694,25 @@ public class CallController extends ViewController<CallController.Arguments> imp
     emojiViewSmall.setId(R.id.btn_emoji);
     contentView.addView(emojiViewSmall);
 
+    // TGx101 (user 2026-10-14 «групповой звонок из окна самого звонка, слева вверху — справа качество видео и связи»): add
+    // people — the call grows into a group call, as in Telegram; the encryption emoji move right of the button
+    if (newScreen && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+      tgx101AddPeopleButton = new ImageView(context);
+      tgx101AddPeopleButton.setImageResource(R.drawable.baseline_person_add_24);
+      tgx101AddPeopleButton.setColorFilter(0xffffffff);
+      tgx101AddPeopleButton.setScaleType(ImageView.ScaleType.CENTER);
+      tgx101AddPeopleButton.setContentDescription(Lang.getString(R.string.Tgx101CallAddPeople));
+      FrameLayoutFix.LayoutParams addParams = FrameLayoutFix.newParams(Screen.dp(48f), Screen.dp(48f), Gravity.LEFT | Gravity.TOP);
+      addParams.topMargin = Screen.getStatusBarHeight() + Screen.dp(2f);
+      addParams.leftMargin = Screen.dp(6f);
+      tgx101AddPeopleButton.setLayoutParams(addParams);
+      tgx101AddPeopleButton.setBackgroundResource(R.drawable.bg_btn_header_light);
+      tgx101AddPeopleButton.setOnClickListener(v -> tgx101AddPeople());
+      tgx101AddPeopleButton.setVisibility(View.GONE);
+      contentView.addView(tgx101AddPeopleButton);
+      ((ViewGroup.MarginLayoutParams) emojiViewSmall.getLayoutParams()).leftMargin = Screen.dp(48f);
+    }
+
     emojiViewBig = new EmojiTextView(context);
     emojiViewBig.setScrollDisabled(true);
     emojiViewBig.setSingleLine(true);
@@ -1335,7 +1355,43 @@ public class CallController extends ViewController<CallController.Arguments> imp
 
   private long callDuration;
 
+  private @Nullable ImageView tgx101AddPeopleButton;
+
+  private void tgx101UpdateAddPeople () {
+    if (tgx101AddPeopleButton == null) return;
+    boolean ready = call != null && call.state.getConstructor() == TdApi.CallStateReady.CONSTRUCTOR;
+    tgx101AddPeopleButton.setVisibility(ready ? View.VISIBLE : View.GONE);
+  }
+
+  private void tgx101AddPeople () {
+    if (call == null || call.state.getConstructor() != TdApi.CallStateReady.CONSTRUCTOR) return;
+    final long peerUserId = call.userId;
+    final int callId = call.id;
+    org.thunderdog.challegram.Tgx101Diag.mark("call: add people pressed");
+    ContactsController c = new ContactsController(context, tdlib);
+    c.setArguments(new ContactsController.Args(new org.thunderdog.challegram.util.SenderPickerDelegate() {
+      @Override
+      public boolean onSenderPick (ContactsController picker, View view, TdApi.MessageSender senderId) {
+        if (!(senderId instanceof TdApi.MessageSenderUser)) return false;
+        long userId = ((TdApi.MessageSenderUser) senderId).userId;
+        if (userId == peerUserId || userId == tdlib.myUserId()) return false;
+        org.thunderdog.challegram.Tgx101Diag.mark("call: grows into a group call with " + userId);
+        org.thunderdog.challegram.voip.Tgx101GroupCall.startConference(tdlib, new long[] {peerUserId, userId});
+        tdlib.context().calls().hangUp(tdlib, callId);
+        UI.post(() -> Tgx101GroupCallController.open(context), 300);
+        return true;
+      }
+
+      @Override
+      public String getUserPickTitle () {
+        return Lang.getString(R.string.Tgx101CallAddPeople);
+      }
+    }));
+    navigateTo(c);
+  }
+
   private void updateCallState () {
+    tgx101UpdateAddPeople();
     updateLoop();
     String str;
     callDuration = tdlib.context().calls().getCallDuration(tdlib, call.id);

@@ -8872,7 +8872,15 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         case TdApi.MessageChecklist.CONSTRUCTOR:
           return new TGMessageText(context, msg, tgx101ChecklistText(((TdApi.MessageChecklist) content).list));
         case TdApi.MessageStory.CONSTRUCTOR:
-          return new TGMessageText(context, msg, new TdApi.FormattedText(Lang.getString(R.string.Tgx101StoryMessage), null));
+        {
+          // TGx101 (user 2026-10-14): the reposted story opens in the app's own story viewer
+          TdApi.MessageStory story = (TdApi.MessageStory) content;
+          String text = Lang.getString(R.string.Tgx101StoryMessage);
+          String link = Lang.getString(R.string.Tgx101StoryOpen);
+          String full = text + " · " + link;
+          TdApi.TextEntity entity = new TdApi.TextEntity(full.length() - link.length(), link.length(), new TdApi.TextEntityTypeTextUrl("tgx101story:" + story.storyPosterChatId + "/" + story.storyId));
+          return new TGMessageText(context, msg, new TdApi.FormattedText(full, new TdApi.TextEntity[] {entity}));
+        }
 
         case TdApi.MessagePaymentSuccessfulBot.CONSTRUCTOR:
           break;
