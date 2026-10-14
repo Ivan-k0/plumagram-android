@@ -6,6 +6,11 @@
     <item name="android:windowContentOverlay">@null</item>
     <item name="android:windowActionBarOverlay">true</item>
     <item name="android:windowSplashScreenBackground">@color/tgx101_splash</item>
+    <!-- …and the bars around the still empty screen until the app sets its own (they came black) -->
+    <item name="android:statusBarColor">@color/tgx101_splash</item>
+    <item name="android:navigationBarColor">@color/tgx101_splash</item>
+    <item name="android:windowLightStatusBar">@bool/tgx101_splash_light</item>
+    <item name="android:windowLightNavigationBar">@bool/tgx101_splash_light</item>
   </style>
 
   <style name="AppTheme.Dark" parent="android:Theme.Holo.NoActionBar">
