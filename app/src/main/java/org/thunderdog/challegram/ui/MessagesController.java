@@ -11323,6 +11323,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     float bottom = bottomWrap.getMeasuredHeight();
     if (!excludeTranslation) {
       bottom += getReplyOffset();
+      // TGx101 (user 2026-10-14 10:03 «с такими вложениями плавности при вводе уже нет»): the attached files sat on the
+      // field's real top, which jumps a line at once, while the drawn top glides — they follow the drawn top now
+      bottom -= tgx101TopReveal + tgx101FieldShift();
     }
     bottom += getKeyboardOffset();
     bottom -= extraBottomInset;
