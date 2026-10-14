@@ -112,7 +112,7 @@ public class Tgx101AppIconPicker extends LinearLayout {
       setOrientation(VERTICAL);
       setGravity(Gravity.CENTER_HORIZONTAL);
       setPadding(Screen.dp(6f), Screen.dp(4f), Screen.dp(6f), Screen.dp(4f));
-      setLayoutParams(new LinearLayout.LayoutParams(Screen.dp(84f), ViewGroup.LayoutParams.WRAP_CONTENT));
+      setLayoutParams(new LinearLayout.LayoutParams(Screen.dp(96f), ViewGroup.LayoutParams.WRAP_CONTENT));
 
       frame = new FrameLayout(context) {
         @Override
@@ -151,6 +151,11 @@ public class Tgx101AppIconPicker extends LinearLayout {
       label.setTypeface(Fonts.getRobotoRegular());
       label.setGravity(Gravity.CENTER_HORIZONTAL);
       label.setMaxLines(2);
+      // (user's screenshot 20:35: «Стандартна / я») — lines break between words only, never inside one
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        label.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+        label.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
+      }
       label.setText(name);
       label.setPadding(0, Screen.dp(6f), 0, 0);
       addView(label);
@@ -165,6 +170,7 @@ public class Tgx101AppIconPicker extends LinearLayout {
         frame.invalidate();
       }
       label.setTypeface(checked ? Fonts.getRobotoMedium() : Fonts.getRobotoRegular());
+      label.setTextColor(checked ? Theme.getColor(ColorId.checkActive) : Theme.textAccentColor());
     }
 
     @Override
