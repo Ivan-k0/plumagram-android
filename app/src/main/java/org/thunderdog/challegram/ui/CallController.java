@@ -710,7 +710,6 @@ public class CallController extends ViewController<CallController.Arguments> imp
       tgx101AddPeopleButton.setOnClickListener(v -> tgx101AddPeople());
       tgx101AddPeopleButton.setVisibility(View.GONE);
       contentView.addView(tgx101AddPeopleButton);
-      ((ViewGroup.MarginLayoutParams) emojiViewSmall.getLayoutParams()).leftMargin = Screen.dp(48f);
     }
 
     emojiViewBig = new EmojiTextView(context);
@@ -1564,8 +1563,13 @@ public class CallController extends ViewController<CallController.Arguments> imp
     final int startLeft = emojiUnderName ? (parentWidth - viewWidthSmall) / 2 : parentWidth - viewWidthSmall;
     final int startTop = emojiUnderName ? nameView.getBottom() + Screen.dp(2f) - emojiViewSmall.getPaddingTop() : Screen.dp(42f) - emojiViewSmall.getPaddingTop();
     if (emojiUnderName) {
-      // The emoji row's place is reserved from the start, so answering a call doesn't move the timer or the photo
-      int shift = Screen.dp(TGX101_EMOJI_ROW);
+      // The emoji row's place is reserved from the start, so answering a call doesn't move the timer or the photo.
+      // TGx101 (user 2026-10-14 21:06 screenshot: «секунды ниже — с таким же отступом, как между именем и смайлами; и
+      // когда имя в две строки»): the timer sits under the emoji row with the same gap the row has under the name
+      int emojiTextTop = startTop + emojiViewSmall.getPaddingTop();
+      int emojiTextBottom = startTop + viewHeightSmall - emojiViewSmall.getPaddingBottom();
+      int gap = Math.max(Screen.dp(2f), emojiTextTop - nameView.getBottom());
+      int shift = stateView.getTop() > 0 ? emojiTextBottom + gap - stateView.getTop() - nameExtraHeight : Screen.dp(TGX101_EMOJI_ROW);
       if (shift != tgx101EmojiShift) {
         tgx101EmojiShift = shift;
         applyTgx101Shifts();
