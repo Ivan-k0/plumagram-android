@@ -12924,6 +12924,17 @@ public class MessagesController extends ViewController<MessagesController.Argume
             // TGx101 (user 2026-10-12: «медиа близко к полю ввода — сворачивание налазит на поле и выглядит рвано»): with the
             // floating field the list runs on under it — the photo must land clipped at the field's top edge, not over it
             int hiddenBottom = tgx101FloatingInput() ? messagesView.getPaddingBottom() : 0;
+            // TGx101 (user video 2026-10-14 13:42): with the keyboard up the field rides on its own translation and the
+            // list padding doesn't cover it — the photo flew out over the field; clip at the field's drawn top on screen
+            if (tgx101FloatingInput()) {
+              int fieldTop = tgx101FieldTopInWindow();
+              if (fieldTop > 0) {
+                int[] listLoc = new int[2];
+                messagesView.getLocationInWindow(listLoc);
+                int visibleTop = fieldTop + Math.round(tgx101TopReveal - Math.max(0f, getReplyOffset()));
+                hiddenBottom = Math.max(hiddenBottom, listLoc[1] + messagesView.getHeight() - visibleTop);
+              }
+            }
             return msg.getMediaThumbLocation(item.getSourceMessageId(), view, view.getTop() - getTopOffset(), messagesView.getBottom() - hiddenBottom - view.getBottom(), view.getTop() + HeaderView.getSize(true) + offset);
           }
         }
