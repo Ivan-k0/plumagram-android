@@ -3024,6 +3024,14 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   private @Nullable java.lang.ref.WeakReference<View> tgx101HeldInput;
   private long tgx101HeldUntil;
 
+  /** TGx101: the user switched the keyboard themselves (emoji panel…) — the hold after a window over the chat is over */
+  public void tgx101ReleaseKeyboardHold () {
+    if (tgx101HeldInput != null) {
+      tgx101HeldInput = null;
+      Tgx101Diag.mark("keyboard: hold released by the user");
+    }
+  }
+
   /** TGx101: the keyboard of {@code input} is only away for a window over the chat (and is coming back) — the chat keeps
    *  its keyboard-up layout meanwhile, so nothing behind the window drops and rises again */
   public boolean tgx101IsKeyboardHeld (@Nullable View input) {

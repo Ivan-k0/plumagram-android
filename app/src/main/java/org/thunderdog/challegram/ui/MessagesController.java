@@ -11128,6 +11128,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (this.emojiShown != emojiShown) {
       this.emojiShown = emojiShown;
       tgx101EmojiToggledAt = android.os.SystemClock.uptimeMillis();
+      // TGx101 (user video 2026-10-14 13:57): emoji tapped while the keyboard was still coming back after the attach menu —
+      // the held keyboard room stayed under the panel, the chat flew up a keyboard height and slid back 0.5 s later
+      context().tgx101ReleaseKeyboardHold();
       if (inputView != null && floatingInput) inputView.tgx101FreezeLocation(450); // the field stays put: so do its cursor handles
       org.thunderdog.challegram.Tgx101Diag.mark("emoji panel " + (emojiShown ? "shown" : "hidden") + ": saved keyboard " + org.thunderdog.challegram.tool.Keyboard.getSize() + ", ime inset " + extraBottomInset + " (without ime " + extraBottomInsetWithoutIme + "), field pad " + (bottomWrap != null ? bottomWrap.getPaddingBottom() : -1));
       tgx101SetImeShift(0f);
