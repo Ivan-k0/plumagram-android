@@ -1380,7 +1380,14 @@ public class CallController extends ViewController<CallController.Arguments> imp
         org.thunderdog.challegram.Tgx101Diag.mark("call: grows into a group call with " + userId);
         org.thunderdog.challegram.voip.Tgx101GroupCall.startConference(tdlib, new long[] {peerUserId, userId});
         tdlib.context().calls().hangUp(tdlib, callId);
-        UI.post(() -> Tgx101GroupCallController.open(context), 300);
+        UI.post(() -> {
+          Tgx101GroupCallController.open(context);
+          // (user 2026-10-14 21:25: after leaving the group call the ended 1:1 call screen was still there, its red
+          // button did nothing) — the old call screen and the contact picker leave the stack
+          org.thunderdog.challegram.navigation.NavigationStack stack = context.navigation().getStack();
+          stack.destroyAllById(R.id.controller_contacts);
+          stack.destroyAllById(R.id.controller_call);
+        }, 300);
         return true;
       }
 
