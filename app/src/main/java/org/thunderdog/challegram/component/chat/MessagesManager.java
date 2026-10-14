@@ -3425,6 +3425,12 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         if (left < 60) return;
         float t = elapsed / (float) duration;
         int exact = offset - (recyclerView.getHeight() - recyclerView.getPaddingBottom() - view.getBottom());
+        // the newest message can't be centred: the list ends under it. Aimed past the end, the glide ran into it at full
+        // speed and broke off (on the phone 14:18: the arrow, +500 px asked beyond the end, 0.2 s and a hard stop)
+        View newest = manager.findViewByPosition(0);
+        if (exact > 0 && newest != null) {
+          exact = Math.min(exact, Math.max(0, newest.getBottom() - (recyclerView.getHeight() - recyclerView.getPaddingBottom())));
+        }
         int planned = Math.round(plannedBy * (1f - TGX101_GLIDE.getInterpolation(t)));
         if (Math.abs(exact - planned) <= Screen.dp(8f)) return;
         org.thunderdog.challegram.Tgx101Diag.mark("jump: re-aimed on sight, " + planned + " → " + exact + " px left");
