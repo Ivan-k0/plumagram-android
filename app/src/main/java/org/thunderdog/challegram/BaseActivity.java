@@ -1382,8 +1382,10 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     content.postOnAnimation(new Runnable() {
       @Override
       public void run () {
+        // (14:31: checked before the chat was even put on the stack — «ready» at once over an empty screen) — a screen
+        // must be there, not moving, and a chat must have its first page of messages laid out
         ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : null;
-        boolean ready = !(current instanceof org.thunderdog.challegram.ui.MessagesController) || ((org.thunderdog.challegram.ui.MessagesController) current).tgx101ReadyToShow();
+        boolean ready = current != null && !navigation.isAnimating() && (!(current instanceof org.thunderdog.challegram.ui.MessagesController) || ((org.thunderdog.challegram.ui.MessagesController) current).tgx101FullyShown());
         boolean late = android.os.SystemClock.uptimeMillis() >= until;
         if (!ready && !late) {
           content.postOnAnimation(this);

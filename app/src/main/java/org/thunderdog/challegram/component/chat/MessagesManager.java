@@ -3280,6 +3280,12 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     }
   }
 
+  /** TGx101: the first page of messages is in and laid out (not just the chat's last message shown while it loads) */
+  public boolean tgx101FirstPageShown () {
+    RecyclerView list = controller.getMessagesView();
+    return adapter.getMessageCount() > 0 && !loader.isLoading() && list != null && list.getChildCount() > 0 && !list.isLayoutRequested();
+  }
+
   private int calculateScrollBy (int index, int offset) {
     return calculateScrollBy(index, offset, false);
   }

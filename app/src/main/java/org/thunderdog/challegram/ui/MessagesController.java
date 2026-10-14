@@ -4724,6 +4724,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return manager.getAdapter().getMessageCount() > 0;
   }
 
+  /** TGx101: the chat looks finished — its first page of messages laid out where it will stay */
+  public boolean tgx101FullyShown () {
+    return manager.tgx101FirstPageShown();
+  }
+
   private void resetOnFocus () {
     if (resetOnFocus && navigationController() != null) {
       clearResetOnFocus();
