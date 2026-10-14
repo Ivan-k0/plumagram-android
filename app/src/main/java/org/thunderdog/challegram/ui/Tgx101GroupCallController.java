@@ -77,6 +77,25 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
     }
   }
 
+  /** TGx101: joins a group call someone invited us to (their invite message), asking for the microphone if needed */
+  public static void joinConference (@NonNull ViewController<?> c, long chatId, long messageId) {
+    Runnable act = () -> {
+      Tgx101GroupCall.joinConference(c.tdlib(), chatId, messageId);
+      open(c.context());
+    };
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && ContextCompat.checkSelfPermission(c.context(), Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+      c.context().requestMicPermissionForCall((code, permissions, grantResults, grantCount) -> {
+        if (grantCount == permissions.length) {
+          act.run();
+        } else {
+          UI.showToast(R.string.Tgx101VoiceChatNoMic, Toast.LENGTH_LONG);
+        }
+      });
+    } else {
+      act.run();
+    }
+  }
+
   /** Whether the current user may start a voice chat in this group or channel. */
   public static boolean canStart (Tdlib tdlib, @Nullable TdApi.Chat chat) {
     if (chat == null || chat.type.getConstructor() == TdApi.ChatTypePrivate.CONSTRUCTOR || chat.type.getConstructor() == TdApi.ChatTypeSecret.CONSTRUCTOR) {

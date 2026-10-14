@@ -329,6 +329,8 @@ public class CallController extends ViewController<CallController.Arguments> imp
     Views.setPaddingBottom(buttonWrap, extraBottomInset);
     Views.setLayoutHeight(buttonWrap, Screen.dp(76f) + extraBottomInset);
     Views.setPaddingBottom(callControlsLayout, extraBottomInset);
+    if (callVideo != null) callVideo.setBottomInset(extraBottomInset);
+    if (incomingControls != null) Views.setPaddingBottom(incomingControls, extraBottomInset);
   }
 
   @Override
@@ -782,7 +784,8 @@ public class CallController extends ViewController<CallController.Arguments> imp
     callControlsLayout.setCallback(this);
     callControlsLayout.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     contentView.addView(callControlsLayout);
-    callVideo.setOriginalControls(buttonWrap, callControlsLayout); // TGx101: replaced by one panel during outgoing and active calls
+    callVideo.setOriginalControls(buttonWrap, callControlsLayout);
+    callVideo.setBottomInset(extraBottomInset); // TGx101: replaced by one panel during outgoing and active calls
     if (newScreen) {
       incomingControls = new Tgx101IncomingControls(context, newIncomingCallback());
       Views.setPaddingBottom(incomingControls, extraBottomInset);

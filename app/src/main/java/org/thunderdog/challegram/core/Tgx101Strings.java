@@ -373,8 +373,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101GramsSent, "%1$s отправил(а) Grams");
     RU.put(R.string.Tgx101GramsSent_outgoing, "Вы отправили Grams");
     RU.put(R.string.Tgx101StakeDice, "🎲 Кубик со ставкой: выпало %1$s");
-    RU.put(R.string.Tgx101GroupCallActive, "%1$s приглашает в групповой звонок");
-    RU.put(R.string.Tgx101GroupCallActive_outgoing, "Идёт групповой звонок");
+    RU.put(R.string.Tgx101GroupCallActive, "%1$s приглашает в групповой звонок — нажмите, чтобы присоединиться");
+    RU.put(R.string.Tgx101GroupCallActive_outgoing, "Идёт групповой звонок — нажмите, чтобы вернуться");
     RU.put(R.string.Tgx101GroupCallMissed, "Пропущенный групповой звонок");
     RU.put(R.string.Tgx101GroupCallEnded, "Групповой звонок%1$s");
     RU.put(R.string.Tgx101SuggestedPostApproved, "Предложенный пост одобрен");

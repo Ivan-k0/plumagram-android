@@ -337,6 +337,17 @@ public final class TGMessageService extends TGMessageServiceImpl {
 
   public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageGroupCall call) {
     super(context, msg);
+    // TGx101 (user 2026-10-14): an invite to a running group call — a tap joins it
+    if (call.isActive) {
+      setOnClickListener(() -> {
+        org.thunderdog.challegram.voip.Tgx101GroupCall running = org.thunderdog.challegram.voip.Tgx101GroupCall.active();
+        if (running != null && running.isConference) {
+          org.thunderdog.challegram.ui.Tgx101GroupCallController.open(context());
+        } else {
+          org.thunderdog.challegram.ui.Tgx101GroupCallController.joinConference(messagesController(), msg.chatId, msg.id);
+        }
+      });
+    }
     setTextCreator(() -> {
       if (call.isActive) {
         return msg.isOutgoing ? getText(R.string.Tgx101GroupCallActive_outgoing) : getText(R.string.Tgx101GroupCallActive, new SenderArgument(sender, isUserChat()));

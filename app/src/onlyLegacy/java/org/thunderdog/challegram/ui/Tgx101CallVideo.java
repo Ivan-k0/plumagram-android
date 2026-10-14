@@ -36,6 +36,7 @@ final class Tgx101CallVideo {
 
   Tgx101CallVideo (ViewController<?> controller, FrameLayout contentView, int index, Host host, View... hideWhenRemoteVideo) { }
 
+  void setBottomInset (int inset) { }
   void setOriginalControls (View... views) { }
   void onCallStateChanged (TdApi.Call call) { }
   void updateControls () { }

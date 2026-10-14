@@ -6207,8 +6207,8 @@
   <string name="Tgx101GramsSent">%1$s sent Grams</string>
   <string name="Tgx101GramsSent_outgoing">You sent Grams</string>
   <string name="Tgx101StakeDice">🎲 Dice with a stake: %1$s</string>
-  <string name="Tgx101GroupCallActive">%1$s invites you to a group call</string>
-  <string name="Tgx101GroupCallActive_outgoing">Group call in progress</string>
+  <string name="Tgx101GroupCallActive">%1$s invites you to a group call — tap to join</string>
+  <string name="Tgx101GroupCallActive_outgoing">Group call in progress — tap to return</string>
   <string name="Tgx101GroupCallMissed">Missed group call</string>
   <string name="Tgx101GroupCallEnded">Group call%1$s</string>
   <string name="Tgx101SuggestedPostApproved">The suggested post was approved</string>

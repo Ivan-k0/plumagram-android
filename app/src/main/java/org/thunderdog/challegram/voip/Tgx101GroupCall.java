@@ -92,6 +92,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
   /** A group call not bound to a chat (a 1:1 call grown into a group one): end-to-end encrypted */
   public final boolean isConference;
   private final long[] inviteUserIds;
+  private @Nullable TdApi.InputGroupCall joinInput; // a conference joined by its invite message
   private final String inviteHash;
 
   private long ptr;
@@ -146,6 +147,20 @@ public final class Tgx101GroupCall implements GroupCallListener {
       current.leave();
     }
     Tgx101GroupCall call = new Tgx101GroupCall(tdlib, 0, 0, null, true, inviteUserIds);
+    current = call;
+    call.start();
+    notifyGlobal();
+    return call;
+  }
+
+  /** TGx101: joins a conference someone invited us to (the invite message in a private chat) */
+  @UiThread
+  public static Tgx101GroupCall joinConference (Tdlib tdlib, long chatId, long messageId) {
+    if (current != null) {
+      current.leave();
+    }
+    Tgx101GroupCall call = new Tgx101GroupCall(tdlib, 0, 0, null, true, null);
+    call.joinInput = new TdApi.InputGroupCallMessage(chatId, messageId);
     current = call;
     call.start();
     notifyGlobal();
@@ -214,8 +229,13 @@ public final class Tgx101GroupCall implements GroupCallListener {
       joinRequested = false;
       return;
     }
-    org.thunderdog.challegram.Tgx101Diag.mark("conference: creating, inviting " + inviteUserIds.length);
-    tdlib.send(new TdApi.CreateGroupCall(parameters), (info, error) -> UI.post(() -> {
+    if (joinInput != null) {
+      org.thunderdog.challegram.Tgx101Diag.mark("conference: joining by invite");
+    } else {
+      org.thunderdog.challegram.Tgx101Diag.mark("conference: creating, inviting " + inviteUserIds.length);
+    }
+    TdApi.Function<TdApi.GroupCallInfo> request = joinInput != null ? new TdApi.JoinGroupCall(joinInput, parameters) : new TdApi.CreateGroupCall(parameters);
+    tdlib.send(request, (info, error) -> UI.post(() -> {
       joinRequested = false;
       if (state == STATE_ENDED || ptr == 0) return;
       if (error != null) {
@@ -223,7 +243,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
         return;
       }
       groupCallId = info.groupCallId;
-      org.thunderdog.challegram.Tgx101Diag.mark("conference: created, call " + groupCallId);
+      org.thunderdog.challegram.Tgx101Diag.mark("conference: " + (joinInput != null ? "joined" : "created") + ", call " + groupCallId);
       nativeSetJoinResponse(ptr, info.joinPayload);
       tdlib.send(new TdApi.GetGroupCall(groupCallId), (result, getError) -> UI.post(() -> {
         if (result != null) onGroupCallUpdated(result);

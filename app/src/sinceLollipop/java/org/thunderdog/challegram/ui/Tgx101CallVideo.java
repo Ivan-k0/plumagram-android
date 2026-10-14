@@ -243,6 +243,24 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
   }
 
   /** The original controls (bottom buttons, call controls layer) hidden while the panel is shown. */
+  // TGx101 (user's Xiaomi screenshot 2026-10-14 21:15, three-button navigation): the panel sat on the system buttons —
+  // its fixed gap from the bottom didn't count the navigation bar. It keeps that gap above the bar now (gestures: as before)
+  private int bottomInset;
+
+  void setBottomInset (int inset) {
+    if (bottomInset == inset) return;
+    bottomInset = inset;
+    if (panel != null && panel.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+      ((ViewGroup.MarginLayoutParams) panel.getLayoutParams()).bottomMargin = Math.max(Screen.dp(card ? 26f : 28f), inset + Screen.dp(12f));
+      panel.requestLayout();
+    }
+    if (localWrap != null && localWrap.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+      int above = card ? Screen.dp(62f + 14f) : Screen.dp(68f + 14f);
+      ((ViewGroup.MarginLayoutParams) localWrap.getLayoutParams()).bottomMargin = Math.max(Screen.dp(card ? 26f : 28f), inset + Screen.dp(12f)) + above;
+      localWrap.requestLayout();
+    }
+  }
+
   void setOriginalControls (View... views) {
     this.originalControls = views;
   }
