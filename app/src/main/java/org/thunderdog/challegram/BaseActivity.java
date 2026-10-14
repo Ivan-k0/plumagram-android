@@ -1376,8 +1376,23 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     View content = findViewById(android.R.id.content);
     if (content == null) return;
     content.setAlpha(0f);
-    content.animate().alpha(1f).setDuration(180).setStartDelay(16).setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR).start();
-    Tgx101Diag.mark("start: restored screen fades in");
+    // TGx101 (on the phone 2026-10-14 14:27): the fade ran over a chat still loading its messages — 0.4 s of an empty
+    // screen, then the chat popped in at once. Now the screen stays hidden until the chat has its messages (≤ 0.7 s)
+    final long until = android.os.SystemClock.uptimeMillis() + 700;
+    content.postOnAnimation(new Runnable() {
+      @Override
+      public void run () {
+        ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : null;
+        boolean ready = !(current instanceof org.thunderdog.challegram.ui.MessagesController) || ((org.thunderdog.challegram.ui.MessagesController) current).tgx101ReadyToShow();
+        boolean late = android.os.SystemClock.uptimeMillis() >= until;
+        if (!ready && !late) {
+          content.postOnAnimation(this);
+          return;
+        }
+        Tgx101Diag.mark("start: restored screen fades in" + (ready ? "" : " (the chat isn't ready in 0.7 s)"));
+        content.animate().alpha(1f).setDuration(180).setStartDelay(ready ? 32 : 0).setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR).start();
+      }
+    });
   }
 
   public boolean tgx101KeyboardRestoreBlocked () {
