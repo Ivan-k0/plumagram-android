@@ -1376,6 +1376,11 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     View content = findViewById(android.R.id.content);
     if (content == null) return;
     content.setAlpha(0f);
+    // the window itself is transparent: with the screen hidden the status bar strip came black (14:41) — the theme's
+    // background stands under it until the screen is in
+    final View decor = getWindow().getDecorView();
+    final android.graphics.drawable.Drawable decorBackground = decor.getBackground();
+    decor.setBackgroundColor(Theme.backgroundColor());
     // TGx101 (on the phone 2026-10-14 14:27): the fade ran over a chat still loading its messages — 0.4 s of an empty
     // screen, then the chat popped in at once. Now the screen stays hidden until the chat has its messages (≤ 0.7 s)
     final long until = android.os.SystemClock.uptimeMillis() + 700;
@@ -1392,7 +1397,8 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
           return;
         }
         Tgx101Diag.mark("start: restored screen fades in" + (ready ? "" : " (the chat isn't ready in 0.7 s)"));
-        content.animate().alpha(1f).setDuration(180).setStartDelay(ready ? 32 : 0).setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR).start();
+        content.animate().alpha(1f).setDuration(180).setStartDelay(ready ? 32 : 0).setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR)
+          .withEndAction(() -> decor.setBackground(decorBackground)).start();
       }
     });
   }
