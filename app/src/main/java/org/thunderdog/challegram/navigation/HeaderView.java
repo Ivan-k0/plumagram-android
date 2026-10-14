@@ -1704,8 +1704,10 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     if (android.graphics.Color.alpha(color) < 200 || Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return;
     int r = android.graphics.Color.red(color), g = android.graphics.Color.green(color), b = android.graphics.Color.blue(color);
     boolean lightBar = (0.299f * r + 0.587f * g + 0.114f * b) / 255f > 0.7f;
-    boolean darkIcons = lightBar || Theme.needLightStatusBar();
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+    // by the bar itself only (the theme's default could put dark icons on a dark bar); the same way as UI.setLightSystemBars:
+    // the insets controller only edge to edge — mixing it with the old flags made them stick
+    boolean darkIcons = lightBar;
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && org.thunderdog.challegram.unsorted.Settings.instance().useEdgeToEdge()) {
       android.view.WindowInsetsController c = window.getInsetsController();
       if (c != null) {
         c.setSystemBarsAppearance(darkIcons ? android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS : 0, android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);

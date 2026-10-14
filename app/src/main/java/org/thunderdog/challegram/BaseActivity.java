@@ -1410,7 +1410,8 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   private final Runnable tgx101AskKeyboardAgain = new Runnable() {
     @Override
     public void run () {
-      if (isKeyboardVisible || android.os.SystemClock.uptimeMillis() > tgx101ExpectKeyboardUntil || !hasWindowFocus()) {
+      // (not over a pop-up or the passcode: the chat's field must not take the keyboard from them)
+      if (isKeyboardVisible || android.os.SystemClock.uptimeMillis() > tgx101ExpectKeyboardUntil || !hasWindowFocus() || isWindowPopupShowing() || isPasscodeShowing()) {
         tgx101ExpectKeyboardUntil = 0;
         return;
       }

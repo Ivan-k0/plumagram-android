@@ -193,7 +193,7 @@ public class Fonts {
             AssetManager assets = UI.getContext().getResources().getAssets();
             t = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
               ? new Typeface.Builder(assets, file).setFontVariationSettings("'wght' " + weight).build()
-              : Typeface.createFromAsset(assets, file);
+              : Typeface.create(Typeface.createFromAsset(assets, file), weight >= 600 ? Typeface.BOLD : Typeface.NORMAL); // Android < 8: one weight in the file — bold made by the system
           } catch (Throwable ignored) { }
           if (t != null) tgx101Variable.put(weight, t);
         }
