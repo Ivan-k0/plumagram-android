@@ -34,7 +34,9 @@ import org.thunderdog.challegram.tool.Screen;
  */
 public class Tgx101PaintToolsView extends View {
   public static final int TOOL_PEN = 0, TOOL_MARKER = 1, TOOL_PENCIL = 2, TOOL_NEON = 3, TOOL_FREE_ARROW = 4, TOOL_SHAPE = 5, TOOL_MOSAIC = 6, TOOL_ERASER = 7;
-  private static final int COUNT = 8;
+  // user 2026-10-14 09:16 «убрать карандаш» (and room for the rest): the row shows these, in this order
+  private static final int[] SHOWN = {TOOL_PEN, TOOL_MARKER, TOOL_NEON, TOOL_FREE_ARROW, TOOL_SHAPE, TOOL_MOSAIC, TOOL_ERASER};
+  private static final int COUNT = SHOWN.length;
 
   public interface Listener {
     void onToolSelected (int tool, int paintMode, int brushStyle);
@@ -108,7 +110,7 @@ public class Tgx101PaintToolsView extends View {
 
   private int indexAt (float x) {
     float cell = getWidth() / (float) COUNT;
-    return Math.max(0, Math.min(COUNT - 1, (int) (x / cell)));
+    return SHOWN[Math.max(0, Math.min(COUNT - 1, (int) (x / cell)))];
   }
 
   public void select (int tool, boolean notify) {
@@ -144,8 +146,9 @@ public class Tgx101PaintToolsView extends View {
   protected void onDraw (@NonNull Canvas c) {
     float cell = getWidth() / (float) COUNT;
     float h = getHeight();
-    for (int i = 0; i < COUNT; i++) {
-      float left = i * cell;
+    for (int k = 0; k < COUNT; k++) {
+      int i = SHOWN[k];
+      float left = k * cell;
       rect.set(left + Screen.dp(3f), Screen.dp(2f), left + cell - Screen.dp(3f), h - Screen.dp(2f));
       fill.setColor(i == selected ? 0xff3d8fd8 : 0x33ffffff);
       c.drawRoundRect(rect, Screen.dp(12f), Screen.dp(12f), fill);

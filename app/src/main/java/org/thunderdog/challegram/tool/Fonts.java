@@ -183,15 +183,17 @@ public class Fonts {
   @Nullable
   private static Typeface tgx101AppFont (int weight) {
     int font = Settings.instance().getAppFont();
-    if (font == Settings.APP_FONT_MONTSERRAT) {
+    // TGx101 (user 2026-10-14 «San Francisco»; Apple's licence keeps SF on Apple devices — Inter, its free look-alike, OFL)
+    if (font == Settings.APP_FONT_MONTSERRAT || font == Settings.APP_FONT_INTER) {
+      final String file = font == Settings.APP_FONT_INTER ? "fonts/Inter.ttf" : "fonts/StoryMontserrat.ttf";
       synchronized (tgx101Variable) {
         Typeface t = tgx101Variable.get(weight);
         if (t == null) {
           try {
             AssetManager assets = UI.getContext().getResources().getAssets();
             t = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
-              ? new Typeface.Builder(assets, "fonts/StoryMontserrat.ttf").setFontVariationSettings("'wght' " + weight).build()
-              : Typeface.createFromAsset(assets, "fonts/StoryMontserrat.ttf");
+              ? new Typeface.Builder(assets, file).setFontVariationSettings("'wght' " + weight).build()
+              : Typeface.createFromAsset(assets, file);
           } catch (Throwable ignored) { }
           if (t != null) tgx101Variable.put(weight, t);
         }

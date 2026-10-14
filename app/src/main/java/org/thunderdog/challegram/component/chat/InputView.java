@@ -212,10 +212,12 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     // TGx101 (user 2026-10-13, exteraGram video: «там в поле помещается намного больше символов и сам рост поля при
     // следующем абзаце намного меньше»): like the official app the field is 18 dp whatever the system font scale (on
     // 1.12 it was 20 dp here) — more fits in a line, each new line grows the field less and the chat jumps less
-    this.paint.setTextSize(Screen.dp(18f));
+    // (user 2026-10-14: or, if chosen in Settings → Data → «Text in the message field follows the phone font size», sp as before)
+    final boolean tgx101Sp = org.thunderdog.challegram.unsorted.Settings.instance().tgx101InputFollowsFontScale();
+    this.paint.setTextSize(tgx101Sp ? Screen.sp(18f) : Screen.dp(18f));
     setGravity(Lang.gravity() | Gravity.TOP);
     setTypeface(Fonts.getRobotoRegularStock());
-    setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18f);
+    setTextSize(tgx101Sp ? TypedValue.COMPLEX_UNIT_SP : TypedValue.COMPLEX_UNIT_DIP, 18f);
     final int verticalPadding = Screen.dp(12f);
     if (Lang.rtl()) {
       setPadding(Screen.dp(55f), verticalPadding, Screen.dp(60f), verticalPadding);

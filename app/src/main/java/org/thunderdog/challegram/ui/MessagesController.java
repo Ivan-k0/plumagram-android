@@ -4721,11 +4721,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return manager.getAdapter().getMessageCount() > 0;
   }
 
-  /** TGx101: a notification took this chat's keyboard away — it comes back when the chat is shown again */
-  public void tgx101ReopenKeyboardOnReturn () {
-    openKeyboard = true;
-  }
-
   private void resetOnFocus () {
     if (resetOnFocus && navigationController() != null) {
       clearResetOnFocus();

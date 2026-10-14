@@ -886,7 +886,8 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       long messageId = intent.getLongExtra("message_id", 0);
       Tgx101Diag.mark("notification opens chat " + chatId + (messageId != 0 ? " at message " + messageId : " (its own position)"));
       if (accountId != TdlibAccount.NO_ID && chatId != 0) {
-        openMessagesController(accountId, chatId, messageId, tgx101PrepareForChat(chatId));
+        tgx101PrepareForChat(chatId);
+        openMessagesController(accountId, chatId, messageId);
         return true;
       } else {
         Log.e("Cannot open chat, no information found: %s", intent);
@@ -1524,10 +1525,6 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     }
   }
 
-  private void openMessagesController (int accountId, long chatId, long specificMessageId) {
-    openMessagesController(accountId, chatId, specificMessageId, false);
-  }
-
   /**
    * TGx101 (user 2026-10-14): a notification into ANOTHER chat than the one on screen — decided right at the tap, before
    * the window resumes (test 01:22: the old chat asked for its keyboard back on resume and it rose over the new chat).
@@ -1544,15 +1541,11 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     if (currentChatId == 0 || currentChatId == chatId) {
       return false;
     }
-    boolean hadKeyboard = tgx101TakeKeyboardForOtherChat();
-    MessagesController chatScreen = current instanceof MessagesController ? (MessagesController) current : getMessagesController(account.tdlib(), false);
-    if (hadKeyboard && chatScreen != null && chatScreen.getChatId() == currentChatId) {
-      chatScreen.tgx101ReopenKeyboardOnReturn();
-    }
+    tgx101TakeKeyboardForOtherChat(); // the old chat is closed (Back → chat list), its keyboard just goes
     return true;
   }
 
-  private void openMessagesController (int accountId, long chatId, long specificMessageId, boolean intoAnotherChat) {
+  private void openMessagesController (int accountId, long chatId, long specificMessageId) {
     final Tdlib tdlib = TdlibManager.instanceForAccountId(accountId).account(accountId).tdlib();
     tdlib.awaitInitialization(() -> {
       tdlib.incrementUiReferenceCount();
@@ -1563,9 +1556,7 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
           org.thunderdog.challegram.component.chat.MessagesManager.tgx101SkipFlashOnce(specificMessageId); // TGx101: no flash from a notification
           params.highlightMessage(new MessageId(chatId, specificMessageId));
         }
-        if (intoAnotherChat) {
-          params.keepStack(); // TGx101: the old chat stays under it — Back returns there, as in the official app
-        }
+        // (user 2026-10-14 12:12: Back goes to the chat list, as in exteraGram — the old chat isn't kept under the new one)
         tdlib.ui().openChat(context, chatId, params);
       };
       // TGx101: from a notification with the app already running, open the chat right away, before the

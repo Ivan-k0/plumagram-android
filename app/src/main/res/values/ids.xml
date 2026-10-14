@@ -1519,6 +1519,8 @@
   <item name="btn_tgx101HapticStrong" type="id"/>
   <item name="btn_tgx101FontMerriweather" type="id"/>
   <item name="btn_tgx101FontCondensed" type="id"/>
+  <item name="btn_tgx101FontInter" type="id"/>
+  <item name="btn_tgx101InputFontScale" type="id"/>
   <item name="btn_tgx101StoryNewPhoto" type="id"/>
   <item name="btn_tgx101StoryDrafts" type="id"/>
   <item name="btn_tgx101NewStory" type="id"/>

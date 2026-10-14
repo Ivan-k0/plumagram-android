@@ -533,6 +533,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SectionChannelsAdsHint, "Рекламные посты в каналах не показываются; кнопку «Вступить» тоже можно скрыть.");
     RU.put(R.string.Tgx101FontMerriweather, "Merriweather");
     RU.put(R.string.Tgx101FontCondensed, "Roboto Condensed");
+    RU.put(R.string.Tgx101FontInter, "Inter (как San Francisco)");
+    RU.put(R.string.Tgx101InputFontScale, "Текст в поле ввода — по размеру шрифта телефона");
     RU.put(R.string.Tgx101HapticStrength, "Сила вибрации");
     RU.put(R.string.Tgx101HapticOff, "Выключена");
     RU.put(R.string.Tgx101HapticLight, "Лёгкая");

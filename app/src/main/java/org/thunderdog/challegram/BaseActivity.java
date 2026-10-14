@@ -1361,7 +1361,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       if (imm != null) imm.hideSoftInputFromWindow((focus != null ? focus : getWindow().getDecorView()).getWindowToken(), 0);
     } catch (Throwable ignored) { }
     if (focus != null) focus.clearFocus();
-    Tgx101Diag.mark("notification → another chat: the old chat's keyboard goes (" + (wasOpen ? "was open, comes back on return" : "was closed") + ")");
+    Tgx101Diag.mark("notification → another chat: the old chat's keyboard goes (" + (wasOpen ? "was open" : "was closed") + ")");
     return wasOpen;
   }
 

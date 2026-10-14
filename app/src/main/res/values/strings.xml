@@ -6369,6 +6369,8 @@
   <string name="Tgx101SectionChannelsAdsHint">Sponsored posts are not shown in channels; the «Join» button can be hidden too.</string>
   <string name="Tgx101FontMerriweather">Merriweather</string>
   <string name="Tgx101FontCondensed">Roboto Condensed</string>
+  <string name="Tgx101FontInter">Inter (like San Francisco)</string>
+  <string name="Tgx101InputFontScale">Message field text follows the phone font size</string>
   <string name="Tgx101HapticStrength">Vibration strength</string>
   <string name="Tgx101HapticOff">Off</string>
   <string name="Tgx101HapticLight">Light</string>

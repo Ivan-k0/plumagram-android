@@ -3358,16 +3358,28 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_TEXT_EDITOR, use);
   }
   private static final String KEY_TGX101_APP_FONT = "tgx101_app_font";
-  public static final int APP_FONT_MANROPE = 0, APP_FONT_ROBOTO = 1, APP_FONT_SYSTEM = 2, APP_FONT_MONTSERRAT = 3, APP_FONT_PT_SERIF = 4, APP_FONT_MERRIWEATHER = 5, APP_FONT_CONDENSED = 6;
+  public static final int APP_FONT_MANROPE = 0, APP_FONT_ROBOTO = 1, APP_FONT_SYSTEM = 2, APP_FONT_MONTSERRAT = 3, APP_FONT_PT_SERIF = 4, APP_FONT_MERRIWEATHER = 5, APP_FONT_CONDENSED = 6, APP_FONT_INTER = 7;
   private int _appFont = -1;
 
   /** TGx101: Manrope, the stock Roboto or the phone's system font (only the typeface; size and weight settings stay). Applies after a restart. */
   public int getAppFont () {
     if (_appFont < 0) {
       int font = pmc.getInt(KEY_TGX101_APP_FONT, pmc.getBoolean(KEY_TGX101_FONT_ROBOTO, false) ? APP_FONT_ROBOTO : APP_FONT_MANROPE);
-      _appFont = font >= APP_FONT_MANROPE && font <= APP_FONT_CONDENSED ? font : APP_FONT_MANROPE;
+      _appFont = font >= APP_FONT_MANROPE && font <= APP_FONT_INTER ? font : APP_FONT_MANROPE;
     }
     return _appFont;
+  }
+
+  // TGx101 (user 2026-10-14 12:16 «дать возможность увеличивать печатный текст в поле, как было раньше, но отключаемо»):
+  // the message field follows the phone's font scale (sp) — off by default: 18 dp like the official app / exteraGram
+  private static final String KEY_TGX101_INPUT_FOLLOWS_FONT_SCALE = "tgx101_input_sp";
+
+  public boolean tgx101InputFollowsFontScale () {
+    return pmc.getBoolean(KEY_TGX101_INPUT_FOLLOWS_FONT_SCALE, false);
+  }
+
+  public void setTgx101InputFollowsFontScale (boolean value) {
+    pmc.putBoolean(KEY_TGX101_INPUT_FOLLOWS_FONT_SCALE, value);
   }
 
   public void setAppFont (int font) {
