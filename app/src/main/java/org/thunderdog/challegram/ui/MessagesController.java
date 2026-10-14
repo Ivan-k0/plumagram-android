@@ -10698,7 +10698,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // user 2026-10-07 22:57 «вспышки вместо анимаций»: while the chat slides in, the capsule isn't placed yet and was
       // measured near the top (padding 2848 px for 150 ms) — the chat came in empty, then the messages popped in. Even with
       // the keyboard up the capsule sits in the lower part, so a position above the list's upper third is not real yet
-      if (!androidx.core.view.ViewCompat.isLaidOut(bottomWrap) || bottomWrap.getHeight() == 0 || fromTop > messagesView.getHeight() * 2 / 3) {
+      // TGx101 (user video 2026-10-14 13:42 «фото должно быть НАД полем ввода, а оно перемещается само вниз»): a tall field
+      // (14+ lines) over the keyboard really does reach above that third — the room was refused and stayed without the
+      // keyboard, the last messages sank under the field. The unplaced capsule's BOTTOM is up there too; judge by it
+      int listTop = list[1] - Math.round(messagesView.getTranslationY() - tgx101PaddingShift);
+      int capsuleBottom = capsule[1] + bottomWrap.getHeight() - listTop;
+      if (!androidx.core.view.ViewCompat.isLaidOut(bottomWrap) || bottomWrap.getHeight() == 0 || capsuleBottom < messagesView.getHeight() / 3) {
         fromTop = messagesView.getPaddingBottom() > 0 ? messagesView.getPaddingBottom() - Screen.dp(4f) : bottomWrap.getHeight();
       }
       // the floor is the field itself, not its keyboard room below (0.1.573 09:00: with the keyboard the floor was the
