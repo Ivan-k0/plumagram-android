@@ -106,6 +106,13 @@ public class ContactsController extends TelegramViewController<ContactsControlle
     UserPickerMultiDelegate multiDelegate;
     boolean useGlobalSearch;
     int globalSearchFlags;
+    boolean tgx101FocusSearch;
+
+    /** TGx101 (user 2026-10-14, «добавить участника» in a call): the search field takes the keyboard right away */
+    public Args tgx101FocusSearch () {
+      this.tgx101FocusSearch = true;
+      return this;
+    }
 
     public Args (SenderPickerDelegate delegate) {
       this.delegate = delegate;
@@ -1048,10 +1055,17 @@ public class ContactsController extends TelegramViewController<ContactsControlle
   @Override
   public void onFocus () {
     super.onFocus();
+    if (getArguments() != null && getArguments().tgx101FocusSearch && searchView != null && !tgx101SearchFocused) {
+      tgx101SearchFocused = true;
+      searchView.requestFocus();
+      Keyboard.show(searchView);
+    }
     if (mode == MODE_CHANNEL_MEMBERS && stackSize() == 3 && stackItemAt(1) instanceof CreateChannelLinkController) {
       destroyStackItemAt(1);
     }
   }
+
+  private boolean tgx101SearchFocused;
 
   @Override
   public void onBlur () {

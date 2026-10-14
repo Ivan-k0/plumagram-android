@@ -1385,7 +1385,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
       public String getUserPickTitle () {
         return Lang.getString(R.string.Tgx101CallAddPeople);
       }
-    }));
+    }).tgx101FocusSearch());
     navigateTo(c);
   }
 
