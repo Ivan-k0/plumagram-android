@@ -6459,6 +6459,9 @@
   <string name="Tgx101AppIconOld">Needs Android 8 or newer</string>
   <string name="Tgx101StoryOpen">open</string>
   <string name="Tgx101StoryUnavailable">The story is unavailable: deleted or hidden</string>
+  <string name="Tgx101GroupCallPreview">Group call</string>
+  <string name="Tgx101GroupCallPreviewIncoming">Incoming group call</string>
+  <string name="Tgx101GroupCallPreviewOutgoing">Outgoing group call</string>
   <string name="Tgx101CallAddPeople">Add people</string>
   <string name="Tgx101SectionData">Data and network</string>
   <string name="Tgx101SectionDataHint">Traffic, data saver, proxy, auto-download</string>

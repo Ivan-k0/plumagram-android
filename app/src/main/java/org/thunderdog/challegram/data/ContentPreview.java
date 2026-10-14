@@ -315,6 +315,13 @@ public class ContentPreview {
         alternativeText = ((TdApi.MessageDice) message.content).emoji;
         arg1 = ((TdApi.MessageDice) message.content).value;
         break;
+      case TdApi.MessageGroupCall.CONSTRUCTOR: {
+        // TGx101 (user's screenshot 2026-10-14 21:33: «Сообщение не поддерживается» in the chat list): group call invites
+        TdApi.MessageGroupCall groupCall = (TdApi.MessageGroupCall) message.content;
+        arg1 = groupCall.isActive ? 1 : groupCall.wasMissed ? 2 : 0;
+        arg2 = groupCall.duration;
+        break;
+      }
       case TdApi.MessageCall.CONSTRUCTOR: {
         switch (((TdApi.MessageCall) message.content).discardReason.getConstructor()) {
           case TdApi.CallDiscardReasonDeclined.CONSTRUCTOR:
@@ -749,7 +756,6 @@ public class ContentPreview {
       case TdApi.MessageUpgradedGiftPurchaseOfferRejected.CONSTRUCTOR:
       case TdApi.MessageStakeDice.CONSTRUCTOR:
       case TdApi.MessageVideoChatStarted.CONSTRUCTOR:
-      case TdApi.MessageGroupCall.CONSTRUCTOR:
       case TdApi.MessagePaidMessagesRefunded.CONSTRUCTOR:
       case TdApi.MessagePaidMessagePriceChanged.CONSTRUCTOR:
 
@@ -1496,6 +1502,15 @@ public class ContentPreview {
               return new ContentPreview(EMOJI_CALL, isOutgoing ? R.string.OutgoingCall : R.string.IncomingCall);
             }
         }
+      case TdApi.MessageGroupCall.CONSTRUCTOR:
+        if (arg1 == 1) {
+          return new ContentPreview(EMOJI_CALL, isOutgoing ? R.string.Tgx101GroupCallPreviewOutgoing : R.string.Tgx101GroupCallPreviewIncoming);
+        } else if (arg1 == 2) {
+          return new ContentPreview(EMOJI_CALL_MISSED, R.string.Tgx101GroupCallMissed);
+        } else if (arg2 > 0) {
+          return new ContentPreview(EMOJI_CALL, 0, Lang.getString(R.string.ChatContentCallWithDuration, Lang.getString(R.string.Tgx101GroupCallPreview), Lang.getDurationFull((int) arg2)), true);
+        }
+        return new ContentPreview(EMOJI_CALL, R.string.Tgx101GroupCallPreview);
       case TdApi.MessageChatUpgradeFrom.CONSTRUCTOR:
       case TdApi.MessageChatUpgradeTo.CONSTRUCTOR:
         return new ContentPreview(EMOJI_GROUP, R.string.GroupUpgraded);
@@ -1613,7 +1628,6 @@ public class ContentPreview {
       case TdApi.MessageChecklist.CONSTRUCTOR:
       case TdApi.MessageChecklistTasksDone.CONSTRUCTOR:
       case TdApi.MessageChecklistTasksAdded.CONSTRUCTOR:
-      case TdApi.MessageGroupCall.CONSTRUCTOR:
       case TdApi.MessagePaidMessagesRefunded.CONSTRUCTOR:
       case TdApi.MessagePaidMessagePriceChanged.CONSTRUCTOR:
       case TdApi.MessageSuggestedPostApprovalFailed.CONSTRUCTOR:

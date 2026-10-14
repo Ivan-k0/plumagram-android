@@ -718,6 +718,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AppIconHint, "Иконка меняется на рабочем столе, в списке приложений и в недавних. В настройках телефона остаётся стандартная — Android не даёт приложению менять её там. Некоторые рабочие столы при смене убирают иконку с экрана: верните её из списка приложений.");
     RU.put(R.string.Tgx101AppIconChanged, "Иконка изменена. Рабочему столу может понадобиться несколько секунд");
     RU.put(R.string.Tgx101AppIconOld, "Нужен Android 8 или новее");
+    RU.put(R.string.Tgx101GroupCallPreview, "Групповой звонок");
+    RU.put(R.string.Tgx101GroupCallPreviewIncoming, "Входящий групповой звонок");
+    RU.put(R.string.Tgx101GroupCallPreviewOutgoing, "Исходящий групповой звонок");
     RU.put(R.string.Tgx101CallAddPeople, "Добавить участника");
     RU.put(R.string.Tgx101SectionData, "Данные и сеть");
     RU.put(R.string.Tgx101SectionDataHint, "Трафик, экономия, прокси, автозагрузка");
