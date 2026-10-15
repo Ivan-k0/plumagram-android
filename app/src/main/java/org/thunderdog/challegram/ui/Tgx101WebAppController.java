@@ -133,6 +133,22 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
         return;
       }
       long targetChatId = chatId != 0 ? chatId : chat.id;
+      // Security review 2026-10-15: a link alone (from any chat or app) must not launch a bot's page — ask once per bot
+      if (!Settings.instance().tgx101WebAppOpenAllowed(botUserId)) {
+        UI.post(() -> {
+          ViewController<?> c = context.context().navigation().getCurrentStackItem();
+          if (c == null) return;
+          String bot = TD.getUserName(botUserId, tdlib.cache().user(botUserId));
+          c.showOptions(Lang.getString(R.string.Tgx101WebAppOpenAsk, bot), new int[] {R.id.btn_done, R.id.btn_cancel}, new String[] {Lang.getString(R.string.Tgx101WebAppOpen), Lang.getString(R.string.Cancel)}, new int[] {OptionColor.BLUE, OptionColor.NORMAL}, new int[] {R.drawable.baseline_open_in_browser_24, R.drawable.baseline_cancel_24}, (v, id) -> {
+            if (id == R.id.btn_done) {
+              Settings.instance().setTgx101WebAppOpenAllowed(botUserId);
+              openLink(context, chatId, botUsername, webAppShortName, startParameter);
+            }
+            return true;
+          });
+        });
+        return;
+      }
       if (webAppShortName != null && !webAppShortName.isEmpty()) {
         tdlib.send(new TdApi.GetWebAppLinkUrl(targetChatId, botUserId, webAppShortName, startParameter, false, openParameters()), (url, urlError) -> UI.post(() -> {
           if (url == null) {
@@ -251,7 +267,31 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
     }
-    webView.addJavascriptInterface(new Bridge(), "TelegramWebviewProxy");
+    // Security review 2026-10-15: a JavaScript interface is visible to every frame (an iframe of another site could
+    // drive the bridge). Where the WebView can, the bridge is an origin-scoped message listener that answers only the
+    // mini app's own site in the main frame; the old interface stays for old WebViews (checked by the main frame URL)
+    if (tgx101Origin != null && Build.VERSION.SDK_INT >= 21
+      && androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.WEB_MESSAGE_LISTENER)
+      && androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)) {
+      java.util.Set<String> origins = java.util.Collections.singleton(tgx101Origin);
+      androidx.webkit.WebViewCompat.addWebMessageListener(webView, "tgx101Bridge", origins, (view, message, sourceOrigin, isMainFrame, replyProxy) -> {
+        if (closed || !isMainFrame) {
+          Tgx101Diag.mark("mini app: event from a frame ignored");
+          return;
+        }
+        try {
+          JSONArray a = new JSONArray(message.getData());
+          onEvent(a.getString(0), a.isNull(1) ? null : a.getString(1));
+        } catch (Throwable t) {
+          Tgx101Diag.mark("mini app: bad bridge message");
+        }
+      });
+      androidx.webkit.WebViewCompat.addDocumentStartJavaScript(webView,
+        "window.TelegramWebviewProxy={postEvent:function(t,d){tgx101Bridge.postMessage(JSON.stringify([String(t),d==null?null:String(d)]));}};",
+        origins);
+    } else {
+      webView.addJavascriptInterface(new Bridge(), "TelegramWebviewProxy");
+    }
     webView.setWebViewClient(new WebViewClient() {
       @Override
       public boolean shouldOverrideUrlLoading (WebView view, WebResourceRequest request) {
@@ -345,7 +385,7 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
         if (closed || webView == null) return;
         // security audit #2: the bridge answers only the mini app's own site, not a page it navigated to
         String current = tgx101OriginOf(webView.getUrl());
-        if (tgx101Origin != null && current != null && !tgx101Origin.equals(current)) {
+        if (tgx101Origin == null || current == null || !tgx101Origin.equals(current)) { // no URL yet / about:blank / data: — not the mini app
           Tgx101Diag.mark("mini app: event " + eventType + " from another site ignored");
           return;
         }
@@ -425,9 +465,17 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
           }
           break;
         }
-        case "web_app_open_tg_link":
-          openTelegramLink("https://t.me" + data.optString("path_full"));
+        case "web_app_open_tg_link": {
+          // «https://t.me» + «@evil.com/…» would be a link to another host: only a path on t.me itself
+          String path = data.optString("path_full");
+          android.net.Uri link = android.net.Uri.parse("https://t.me" + path);
+          if (path.startsWith("/") && !path.startsWith("//") && "t.me".equals(link.getHost())) {
+            openTelegramLink(link.toString());
+          } else {
+            Tgx101Diag.mark("mini app: open_tg_link refused");
+          }
           break;
+        }
         case "web_app_open_popup":
           showPopup(data);
           break;

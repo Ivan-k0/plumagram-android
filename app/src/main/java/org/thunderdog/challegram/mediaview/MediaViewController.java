@@ -6664,6 +6664,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   public void destroy () {
     super.destroy();
     VideoPlayerView.tgx101CueSink = null;
+    if (tgx101Locked()) {
+      // TGx101: closed under the child lock — the immersive system bars lock is the activity's, give it back
+      contentView.removeCallbacks(tgx101HideLockedControls);
+      tgx101LockView = null;
+      context.setTgx101ImmersiveLock(false);
+    }
     if (tgx101OrientationSet) {
       context.setOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED); // TGx101: the app's own orientation back
       tgx101OrientationSet = false;

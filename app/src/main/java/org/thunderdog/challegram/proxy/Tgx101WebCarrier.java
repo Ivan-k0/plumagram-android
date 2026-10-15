@@ -91,7 +91,9 @@ final class Tgx101WebCarrier {
 
   private volatile boolean active;
   private volatile int state = STATE_STOPPED;
-  private ServerSocket server;
+  private volatile ServerSocket server;
+  /** Bumped by start() / stop(): an accept loop of an older run (a retry after «port taken») ends instead of binding again */
+  private volatile int acceptGeneration;
 
   // Carrier (main thread)
   private @Nullable WebView webView;
@@ -149,15 +151,18 @@ final class Tgx101WebCarrier {
       return; // fails closed: TDLib keeps trying the local port and nothing leaves directly
     }
     setState(STATE_CONNECTING);
-    new Thread(this::acceptLoop, "TGx101WebAccept").start();
+    final int gen = ++acceptGeneration;
+    new Thread(() -> acceptLoop(gen), "TGx101WebAccept").start();
     main.post(this::createWebView);
   }
 
   void stop () {
     if (!active) return;
     active = false;
+    acceptGeneration++;
     try {
-      if (server != null) server.close();
+      ServerSocket s = server;
+      if (s != null) s.close();
     } catch (IOException ignored) { }
     closeAllStreams();
     main.post(() -> {
@@ -180,23 +185,32 @@ final class Tgx101WebCarrier {
 
   // Local listener: TDLib's MTProxy connections
 
-  private void acceptLoop () {
+  private void acceptLoop (final int gen) {
     try {
-      server = new ServerSocket(port, 50, InetAddress.getByName("127.0.0.1"));
-      while (active) {
-        Socket socket = server.accept();
+      ServerSocket ss = new ServerSocket();
+      ss.setReuseAddress(true); // the previous run's socket may still be in TIME_WAIT
+      ss.bind(new java.net.InetSocketAddress(InetAddress.getByName("127.0.0.1"), port), 50);
+      synchronized (lock) {
+        if (!active || gen != acceptGeneration) { // stopped (or restarted) while binding: stop() saw no socket to close
+          ss.close();
+          return;
+        }
+        server = ss;
+      }
+      while (active && gen == acceptGeneration) {
+        Socket socket = ss.accept();
         socket.setTcpNoDelay(true);
-        if (!active) {
+        if (!active || gen != acceptGeneration) {
           socket.close();
           break;
         }
         openStream(socket);
       }
     } catch (IOException e) {
-      if (active) {
-        // Port taken: retry shortly
+      if (active && gen == acceptGeneration) {
+        // Port taken: retry shortly (only this run — a stop / start in between has its own loop)
         main.postDelayed(() -> {
-          if (active) new Thread(this::acceptLoop, "TGx101WebAccept").start();
+          if (active && gen == acceptGeneration) new Thread(() -> acceptLoop(gen), "TGx101WebAccept").start();
         }, 3000);
       }
     }
@@ -282,6 +296,11 @@ final class Tgx101WebCarrier {
     try {
       stream.socket.close();
     } catch (IOException ignored) { }
+    // One downlink thread per stream: without this every closed connection kept its idle thread for good
+    synchronized (downlinkExecutors) {
+      java.util.concurrent.ExecutorService executor = downlinkExecutors.remove(stream.id);
+      if (executor != null) executor.shutdown();
+    }
     if (notifyRelay && stream.opened) {
       main.post(() -> send(frame(T_CLOSE, stream.id, null, 0, 0)));
     }
@@ -415,7 +434,9 @@ final class Tgx101WebCarrier {
   private void writeDownlink (Stream stream, byte[] data, int offset, int length) {
     byte[] copy = new byte[length];
     System.arraycopy(data, offset, copy, 0, length);
-    downlinkExecutor(stream).execute(() -> {
+    java.util.concurrent.ExecutorService executor = downlinkExecutor(stream);
+    if (executor == null) return; // the stream is closed
+    executor.execute(() -> {
       try {
         OutputStream out = stream.socket.getOutputStream();
         out.write(copy);
@@ -436,10 +457,13 @@ final class Tgx101WebCarrier {
 
   private final Map<Integer, java.util.concurrent.ExecutorService> downlinkExecutors = new HashMap<>();
 
-  private java.util.concurrent.ExecutorService downlinkExecutor (Stream stream) {
+  private @Nullable java.util.concurrent.ExecutorService downlinkExecutor (Stream stream) {
     synchronized (downlinkExecutors) {
       java.util.concurrent.ExecutorService executor = downlinkExecutors.get(stream.id);
       if (executor == null) {
+        synchronized (lock) {
+          if (stream.closed) return null; // closeStream() already dropped this stream's thread — don't start a new one
+        }
         executor = java.util.concurrent.Executors.newSingleThreadExecutor();
         downlinkExecutors.put(stream.id, executor);
       }

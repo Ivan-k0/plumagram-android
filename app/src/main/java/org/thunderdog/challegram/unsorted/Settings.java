@@ -3605,6 +3605,17 @@ public class Settings {
     String list = pmc.getString(KEY_TGX101_WEBAPP_LOCATION_BOTS, "");
     pmc.putString(KEY_TGX101_WEBAPP_LOCATION_BOTS, list == null || list.isEmpty() ? String.valueOf(botUserId) : list + "," + botUserId);
   }
+  private static final String KEY_TGX101_WEBAPP_OPEN_BOTS = "tgx101_webapp_open_bots";
+  /** A mini app opened by a link was confirmed for this bot once («Open»), like in the official app */
+  public boolean tgx101WebAppOpenAllowed (long botUserId) {
+    String list = pmc.getString(KEY_TGX101_WEBAPP_OPEN_BOTS, "");
+    return list != null && ("," + list + ",").contains("," + botUserId + ",");
+  }
+  public void setTgx101WebAppOpenAllowed (long botUserId) {
+    if (tgx101WebAppOpenAllowed(botUserId)) return;
+    String list = pmc.getString(KEY_TGX101_WEBAPP_OPEN_BOTS, "");
+    pmc.putString(KEY_TGX101_WEBAPP_OPEN_BOTS, list == null || list.isEmpty() ? String.valueOf(botUserId) : list + "," + botUserId);
+  }
   private static final String KEY_TGX101_HIDE_JOIN = "tgx101_hide_join";
   public boolean tgx101HideJoinButton () { return pmc.getBoolean(KEY_TGX101_HIDE_JOIN, false); }
   private static final String KEY_TGX101_HIDE_SPONSORED = "tgx101_hide_sponsored";

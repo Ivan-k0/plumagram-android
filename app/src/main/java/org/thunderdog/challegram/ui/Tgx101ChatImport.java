@@ -123,63 +123,65 @@ public final class Tgx101ChatImport {
         return false;
       }
 
-      File dir = new File(c.context().getCacheDir(), "tgx101_import/" + System.currentTimeMillis());
+      File root = new File(c.context().getCacheDir(), "tgx101_import");
+      deleteStale(root); // imports cancelled in the chat picker / confirmation left their copies behind
+      File dir = new File(root, String.valueOf(System.currentTimeMillis()));
       if (!dir.mkdirs()) {
         return false;
       }
-      File messageFile = null;
-      List<File> attached = new ArrayList<>();
-      if (zipUri != null) {
-        long total = 0;
-        try (InputStream in = cr.openInputStream(zipUri); ZipInputStream zip = new ZipInputStream(in)) {
-          ZipEntry entry;
-          while ((entry = zip.getNextEntry()) != null) {
-            if (entry.isDirectory()) {
-              continue;
+      boolean offered = false;
+      try {
+        File messageFile = null;
+        List<File> attached = new ArrayList<>();
+        if (zipUri != null) {
+          long total = 0;
+          try (InputStream in = cr.openInputStream(zipUri); ZipInputStream zip = new ZipInputStream(in)) {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+              if (entry.isDirectory()) {
+                continue;
+              }
+              String name = new File(entry.getName()).getName();
+              if (name.isEmpty() || name.startsWith(".")) {
+                continue;
+              }
+              File out = new File(dir, name);
+              total += copy(zip, out, MAX_TOTAL_BYTES - total); // stops at the limit: a small zip may unpack to gigabytes
+              if (name.toLowerCase(Locale.ROOT).endsWith(".txt") && messageFile == null) {
+                messageFile = out;
+              } else {
+                attached.add(out);
+              }
             }
-            String name = new File(entry.getName()).getName();
-            if (name.isEmpty() || name.startsWith(".")) {
-              continue;
-            }
+          }
+        } else {
+          long total = 0;
+          for (Uri uri : uris) {
+            String name = displayName(cr, uri);
             File out = new File(dir, name);
-            total += copy(zip, out);
-            if (total > MAX_TOTAL_BYTES) {
-              return false;
+            try (InputStream in = cr.openInputStream(uri)) {
+              if (in == null) {
+                return false;
+              }
+              total += copy(in, out, MAX_TOTAL_BYTES - total);
             }
-            if (name.toLowerCase(Locale.ROOT).endsWith(".txt") && messageFile == null) {
+            if (uri.equals(textUri)) {
               messageFile = out;
             } else {
               attached.add(out);
             }
           }
         }
-      } else {
-        long total = 0;
-        for (Uri uri : uris) {
-          String name = displayName(cr, uri);
-          File out = new File(dir, name);
-          try (InputStream in = cr.openInputStream(uri)) {
-            if (in == null) {
-              return false;
-            }
-            total += copy(in, out);
-          }
-          if (total > MAX_TOTAL_BYTES) {
-            return false;
-          }
-          if (uri.equals(textUri)) {
-            messageFile = out;
-          } else {
-            attached.add(out);
-          }
+        if (messageFile == null) {
+          return false;
         }
+        final File finalMessageFile = messageFile;
+        UI.post(() -> offer(c, tdlib, type, finalMessageFile, attached, fallback));
+        offered = true;
+        return true;
+      } finally {
+        if (!offered) deleteDir(dir);
       }
-      if (messageFile == null) {
-        return false;
-      }
-      final File finalMessageFile = messageFile;
-      UI.post(() -> offer(c, tdlib, type, finalMessageFile, attached, fallback));
-      return true;
     } catch (Throwable t) {
       return false;
     }
@@ -223,17 +225,41 @@ public final class Tgx101ChatImport {
     return name.replaceAll("[\\\\/:*?\"<>|]", "_");
   }
 
-  private static long copy (InputStream in, File out) throws Exception {
+  private static long copy (InputStream in, File out, long limit) throws Exception {
     long total = 0;
     byte[] buffer = new byte[64 * 1024];
     try (OutputStream os = new FileOutputStream(out)) {
       int n;
       while ((n = in.read(buffer)) != -1) {
-        os.write(buffer, 0, n);
         total += n;
+        if (total > limit) throw new IllegalStateException("import is over " + MAX_TOTAL_BYTES + " bytes");
+        os.write(buffer, 0, n);
       }
     }
     return total;
+  }
+
+  private static void deleteDir (@androidx.annotation.Nullable File dir) {
+    File[] files = dir != null ? dir.listFiles() : null;
+    if (files != null) {
+      for (File f : files) {
+        if (f.isDirectory()) deleteDir(f);
+        //noinspection ResultOfMethodCallIgnored
+        else f.delete();
+      }
+    }
+    //noinspection ResultOfMethodCallIgnored
+    if (dir != null) dir.delete();
+  }
+
+  /** Copies older than a day: an import still uploading is never that old */
+  private static void deleteStale (File root) {
+    File[] dirs = root.listFiles();
+    if (dirs == null) return;
+    long now = System.currentTimeMillis();
+    for (File d : dirs) {
+      if (now - d.lastModified() > 24L * 60 * 60 * 1000) deleteDir(d);
+    }
   }
 
   /** First 100 lines. Doesn't close the stream (it may be a zip entry). */
@@ -353,6 +379,7 @@ public final class Tgx101ChatImport {
       if (dialog != null) {
         dialog.dismiss();
       }
+      deleteDir(messageFile.getParentFile()); // TDLib has read (or given up on) the copies
       if (error != null) {
         UI.showToast(Lang.getString(R.string.ChatImportFailed, TD.toErrorString(error)), Toast.LENGTH_LONG);
       } else {

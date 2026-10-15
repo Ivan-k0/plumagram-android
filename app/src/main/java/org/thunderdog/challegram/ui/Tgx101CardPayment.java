@@ -201,6 +201,16 @@ public final class Tgx101CardPayment {
     @Nullable String run () throws Exception;
   }
 
+  /** Parsed, not matched as text: «https://evil.com/?x=.smart-glocal.com/cds/v1/tokenize/card» ends the same way */
+  private static boolean tgx101IsGlocalTokenizeUrl (@Nullable String url) {
+    if (StringUtils.isEmpty(url)) return false;
+    android.net.Uri uri = android.net.Uri.parse(url);
+    String host = uri.getHost();
+    return "https".equals(uri.getScheme()) && host != null && host.endsWith(".smart-glocal.com")
+      && uri.getUserInfo() == null && uri.getPort() == -1 && uri.getQuery() == null && uri.getFragment() == null
+      && "/cds/v1/tokenize/card".equals(uri.getPath());
+  }
+
   private static void tokenize (ViewController<?> c, TokenRequest request, RunnableData<String> after) {
     UI.showToast(R.string.Tgx101CardProcessing, Toast.LENGTH_SHORT);
     new Thread(() -> {
@@ -254,7 +264,7 @@ public final class Tgx101CardPayment {
 
   private static String smartGlocalToken (TdApi.PaymentProviderSmartGlocal provider, boolean isTest, Card card) throws Exception {
     String url = provider.tokenizeUrl;
-    if (StringUtils.isEmpty(url) || !(url.startsWith("https://") && url.endsWith(".smart-glocal.com/cds/v1/tokenize/card"))) {
+    if (!tgx101IsGlocalTokenizeUrl(url)) { // card numbers go only to Smart Glocal's own host
       url = isTest ? "https://tgb-playground.smart-glocal.com/cds/v1/tokenize/card" : "https://tgb.smart-glocal.com/cds/v1/tokenize/card";
     }
     JSONObject cardObject = new JSONObject();

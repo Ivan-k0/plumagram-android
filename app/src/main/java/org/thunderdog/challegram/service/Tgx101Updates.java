@@ -415,7 +415,8 @@ public final class Tgx101Updates {
       long installedCode = androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(installed);
       if (archiveCode <= installedCode) return "version " + archiveCode + " <= " + installedCode;
       String a = certOf(archive), b = certOf(installed);
-      if (a != null && b != null && !a.equals(b)) return "signed by another key";
+      if (a == null || b == null) return "signature unknown"; // unreadable is not «ours»: the release page opens instead
+      if (!a.equals(b)) return "signed by another key";
       return null;
     } catch (Throwable t) {
       return t.getClass().getSimpleName();
@@ -457,6 +458,15 @@ public final class Tgx101Updates {
       Uri uri = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
         ? FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", apk)
         : Uri.fromFile(apk);
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+        // Android 4–6: the installer reads the file itself — a file in the app's private folder is closed to it
+        //noinspection ResultOfMethodCallIgnored
+        apk.setReadable(true, false);
+        for (File dir = apk.getParentFile(); dir != null && !dir.equals(context.getFilesDir().getParentFile()); dir = dir.getParentFile()) {
+          //noinspection ResultOfMethodCallIgnored
+          dir.setExecutable(true, false);
+        }
+      }
       Intent intent = new Intent(Intent.ACTION_VIEW)
         .setDataAndType(uri, "application/vnd.android.package-archive")
         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);

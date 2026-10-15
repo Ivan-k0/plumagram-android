@@ -102,7 +102,19 @@ public final class Tgx101WsProxy {
       while (!s.isClosed()) {
         try {
           Socket socket = s.accept();
-          p.execute(() -> handle(socket));
+          // Any app on the phone can reach a local port: cap the connections (TDLib uses a handful)
+          if (CONNECTIONS.incrementAndGet() > MAX_CONNECTIONS) {
+            CONNECTIONS.decrementAndGet();
+            closeQuietly(socket);
+            continue;
+          }
+          p.execute(() -> {
+            try {
+              handle(socket);
+            } finally {
+              CONNECTIONS.decrementAndGet();
+            }
+          });
         } catch (IOException ignored) {
           break;
         }
@@ -120,9 +132,13 @@ public final class Tgx101WsProxy {
     pool = null;
   }
 
+  private static final int MAX_CONNECTIONS = 32;
+  private static final java.util.concurrent.atomic.AtomicInteger CONNECTIONS = new java.util.concurrent.atomic.AtomicInteger();
+
   private static void handle (Socket socket) {
     try {
       socket.setTcpNoDelay(true);
+      socket.setSoTimeout(15000); // the SOCKS greeting and TDLib's init come at once — a silent client is dropped
       DataInputStream in = new DataInputStream(socket.getInputStream());
       OutputStream out = socket.getOutputStream();
       // SOCKS5 greeting: no authentication
@@ -159,6 +175,7 @@ public final class Tgx101WsProxy {
       // TDLib's obfuscated init: the data center is in the decrypted bytes 60–61
       byte[] init = new byte[64];
       in.readFully(init);
+      socket.setSoTimeout(0); // the bridge itself may stay idle for long (TDLib keeps it alive)
       int dc = dcOf(init);
       if (dc == 0) dc = dcByAddress(atyp, address);
       boolean media = dc < 0;

@@ -642,6 +642,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101HideCompose, "Скрыть кнопку ✎ (новое сообщение)");
     RU.put(R.string.Tgx101WebAppLocationAsk, "Разрешить «%1$s» знать ваше местоположение?");
     RU.put(R.string.Tgx101WebAppLocationAllow, "Разрешить");
+    RU.put(R.string.Tgx101WebAppOpenAsk, "Открыть мини-приложение «%1$s»? Оно увидит ваше имя, язык и тему.");
+    RU.put(R.string.Tgx101WebAppOpen, "Открыть");
     RU.put(R.string.Tgx101ChannelStyle, "Вид каналов");
     RU.put(R.string.Tgx101TranslateEngine, "Сервис перевода");
     RU.put(R.string.Tgx101TranslateTelegram, "Telegram");

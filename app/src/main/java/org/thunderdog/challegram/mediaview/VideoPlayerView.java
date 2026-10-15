@@ -276,7 +276,29 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
       Tgx101VideoResume.save(this.currentItem, player.getCurrentPosition(), player.getDuration());
     }
     this.currentItem = mediaItem;
+    // TGx101: an external subtitle file belongs to the video it was picked for — not to the next one
+    if (!tgx101SubTimes.isEmpty() || tgx101SubShown != null) {
+      seekHandler.removeCallbacks(tgx101SubTick);
+      tgx101SubTimes.clear();
+      tgx101SubTexts.clear();
+      tgx101SubShown = null;
+      if (tgx101CueSink != null) tgx101CueSink.runWithData(null);
+    }
     if (isDetached) {
+      // TGx101: the player kept in the background belongs to the old item — closing the viewer (or another item)
+      // while in the background has to release it now, attach() then builds the new one (if any) from the start
+      if (player != null) {
+        player.setVideoTextureView(null);
+        Views.removeFromParent(targetView);
+        player.release();
+        player = null;
+      }
+      detachedItem = mediaItem;
+      savedPosition = 0;
+      if (mediaItem == null) {
+        setLongStreamingAlertHandler(false);
+        setPlaying(false);
+      }
       return;
     }
     if (mediaItem == null) {
