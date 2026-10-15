@@ -585,7 +585,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
         org.thunderdog.challegram.Tgx101Diag.mark("player: back from the background, kept at " + player.getCurrentPosition() / 1000 + " s");
         return;
       }
-      seekToSavedPosition = detachedItem != null;
+      seekToSavedPosition = detachedItem != null && savedPosition > 0; // 0 = nothing saved: the resume position applies
       setVideo(detachedItem);
       detachedItem = null;
     }
