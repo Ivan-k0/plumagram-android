@@ -151,6 +151,9 @@ public final class Tgx101CallConfirmSheet {
     android.widget.FrameLayout.LayoutParams sheetParams = new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
     sheetParams.leftMargin = sheetParams.rightMargin = sheetParams.bottomMargin = Screen.dp(8f);
     wrap.addView(sheet, sheetParams);
+    // a tap outside only closes the sheet — it went through to the chat list under it and opened a chat there
+    wrap.setClickable(true);
+    wrap.setOnClickListener(v -> popup.hideWindow(true));
     avatar.attach();
     popup.setDismissListener(p -> {
       avatar.performDestroy();
