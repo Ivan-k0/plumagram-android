@@ -205,7 +205,9 @@ public class PeopleController extends RecyclerViewController<PeopleController.Ar
       return;
     }
     int adapterPosition = adapter.updateUserViewByLongId(userId, true);
-    if (uiOnly || users.size() == 1) {
+    if (mode == MODE_CONTACTS || uiOnly || users.size() == 1) {
+      // TGx101 (user 2026-10-15 «постоянно прыгает и меняет контакты»): contacts are ordered by how often you talk,
+      // not by «last seen» — a status change only updates the row's text, nobody moves before your eyes
       return;
     }
 
@@ -290,7 +292,7 @@ public class PeopleController extends RecyclerViewController<PeopleController.Ar
       return;
     }
 
-    int newIndex = Collections.binarySearch(users, parsedUser, tdlib.userProviderComparator());
+    int newIndex = Collections.binarySearch(users, parsedUser, mode == MODE_CONTACTS ? tgx101Comparator : tdlib.userProviderComparator());
     if (newIndex >= 0) {
       return;
     }
@@ -481,6 +483,20 @@ public class PeopleController extends RecyclerViewController<PeopleController.Ar
 
   private List<TGUser> users;
 
+  /** user id → place in Telegram's «people you talk to most» rating, taken when the tab opens */
+  private java.util.Map<Long, Integer> tgx101Rank = java.util.Collections.emptyMap();
+
+  private final java.util.Comparator<TGUser> tgx101Comparator = (a, b) -> {
+    Integer ra = tgx101Rank.get(a.getUserId()), rb = tgx101Rank.get(b.getUserId());
+    if (ra != null || rb != null) {
+      if (ra == null) return 1;
+      if (rb == null) return -1;
+      if (!ra.equals(rb)) return ra < rb ? -1 : 1;
+    }
+    int byName = a.getSortingKey().compareToIgnoreCase(b.getSortingKey());
+    return byName != 0 ? byName : Long.compare(a.getUserId(), b.getUserId());
+  };
+
   private void setUsers (ArrayList<TGUser> users) {
     this.users = users;
     buildContactCells();
@@ -541,20 +557,39 @@ public class PeopleController extends RecyclerViewController<PeopleController.Ar
         ArrayList<TdApi.User> rawUsers = tdlib.cache().users(userIds);
         final ArrayList<TGUser> users = new ArrayList<>(userIds.length);
         long myUserId = tdlib.myUserId();
+        java.util.Set<Long> added = new java.util.HashSet<>();
         for (TdApi.User user : rawUsers) {
           if (user.id == myUserId) {
             continue;
           }
           TdApi.User cachedUser = tdlib.cache().user(user.id);
-          if (cachedUser != null) {
-            TGUser parsedUser = new TGUser(tdlib, cachedUser);
-            int i = Collections.binarySearch(users, parsedUser, tdlib.userProviderComparator());
-            if (i < 0) {
-              users.add(i * -1 - 1, parsedUser);
-            }
+          if (cachedUser != null && added.add(cachedUser.id)) {
+            users.add(new TGUser(tdlib, cachedUser));
           }
         }
-        tdlib.ui().post(() -> setUsers(users));
+        if (mode != MODE_CONTACTS) {
+          Collections.sort(users, tdlib.userProviderComparator());
+          tdlib.ui().post(() -> setUsers(users));
+          break;
+        }
+        // TGx101 (user 2026-10-15 «размещать по степени того, с кем я чаще всего общаюсь»): Telegram's own rating of the
+        // people you talk to most (the same one the official app's search shows) goes first, in its order; the rest by name
+        tdlib.send(new TdApi.GetTopChats(new TdApi.TopChatCategoryUsers(), 30), (top, error) -> {
+          java.util.Map<Long, Integer> rank = new java.util.HashMap<>();
+          if (top != null) {
+            for (int i = 0; i < top.chatIds.length; i++) {
+              long userId = tgx.td.ChatId.toUserId(top.chatIds[i]);
+              if (userId != 0 && !rank.containsKey(userId)) rank.put(userId, i);
+            }
+          }
+          org.thunderdog.challegram.Tgx101Diag.mark("contacts: " + users.size() + ", by frequency " + rank.size() + (error != null ? " (top chats: " + error.message + ")" : ""));
+          tdlib.ui().post(() -> {
+            if (isDestroyed()) return;
+            tgx101Rank = rank;
+            Collections.sort(users, tgx101Comparator);
+            setUsers(users);
+          });
+        });
         break;
       }
       case TdApi.Chats.CONSTRUCTOR: {
