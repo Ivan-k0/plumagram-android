@@ -6462,6 +6462,9 @@
   <string name="Tgx101GroupCallPreview">Group call</string>
   <string name="Tgx101GroupCallPreviewIncoming">Incoming group call</string>
   <string name="Tgx101GroupCallPreviewOutgoing">Outgoing group call</string>
+  <string name="Tgx101RingStart">Start the melody at</string>
+  <string name="Tgx101RingStartBeginning">The beginning</string>
+  <string name="Tgx101RingStartHint">Minutes:seconds, e.g. 1:39 (empty — the beginning)</string>
   <string name="Tgx101CallAddPeople">Add people</string>
   <string name="Tgx101SectionData">Data and network</string>
   <string name="Tgx101SectionDataHint">Traffic, data saver, proxy, auto-download</string>

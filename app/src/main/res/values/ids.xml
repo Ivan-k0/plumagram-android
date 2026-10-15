@@ -1627,6 +1627,7 @@
   <item name="btn_tgx101SectionData" type="id"/>
   <item name="btn_tgx101SectionIcon" type="id"/>
   <item name="btn_tgx101AppIcon" type="id"/>
+  <item name="btn_tgx101RingStart" type="id"/>
   <item name="btn_tgx101FilterHideFully" type="id"/>
   <item name="btn_tgx101HideChannelReactions" type="id"/>
   <item name="btn_tgx101NextChannelSwipe" type="id"/>

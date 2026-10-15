@@ -1366,13 +1366,29 @@ public class TGCallService extends Service implements
     if (ramp) {
       ringtonePlayer.setVolume(RING_RAMP_START, RING_RAMP_START);
     }
+    // TGx101: the melody may start further in (the chorus) and loops back to that point, not to its beginning
+    final int startMs = Settings.instance().getTgx101RingStartMs();
     ringtonePlayer.setOnPreparedListener(mediaPlayer -> {
+      if (startMs > 0 && startMs < mediaPlayer.getDuration() - 1000) {
+        mediaPlayer.seekTo(startMs);
+      }
       ringtonePlayer.start();
       if (ramp) {
         startRingRamp(mediaPlayer);
       }
     });
-    ringtonePlayer.setLooping(true);
+    if (startMs > 0) {
+      ringtonePlayer.setLooping(false);
+      ringtonePlayer.setOnCompletionListener(mediaPlayer -> {
+        if (ringtonePlayer != mediaPlayer) return;
+        try {
+          mediaPlayer.seekTo(startMs < mediaPlayer.getDuration() - 1000 ? startMs : 0);
+          mediaPlayer.start();
+        } catch (Throwable ignored) { }
+      });
+    } else {
+      ringtonePlayer.setLooping(true);
+    }
     ringtonePlayer.setAudioStreamType(AudioManager.STREAM_RING);
     try {
       String notificationUri = tdlib.notifications().getCallRingtone(ChatId.fromUserId(user.id));

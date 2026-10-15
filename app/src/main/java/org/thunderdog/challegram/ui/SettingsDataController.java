@@ -243,6 +243,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           // Voice
         } else if (itemId == R.id.btn_tgx101RingRampTime) {
           view.setData(Lang.getString(R.string.Tgx101RingRampSeconds, Settings.instance().getTgx101RingRampSeconds()));
+        } else if (itemId == R.id.btn_tgx101RingStart) {
+          int ms = Settings.instance().getTgx101RingStartMs();
+          view.setData(ms > 0 ? org.thunderdog.challegram.tool.Strings.buildDuration(ms / 1000) : Lang.getString(R.string.Tgx101RingStartBeginning));
         } else if (itemId == R.id.btn_lessDataForCalls) {
           switch (tdlib.files().getVoipDataSavingOption()) {
             case DataSavingOption.ALWAYS:
@@ -607,6 +610,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101RingRamp, 0, R.string.Tgx101RingRamp),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101RingRampTime, 0, R.string.Tgx101RingRampTime),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101RingStart, 0, R.string.Tgx101RingStart),
 
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101CallPatternHint),
@@ -1007,7 +1012,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101AppIcon || id == R.id.btn_tgx101NotificationPlane) return 9; // user 2026-10-14: the plane icon goes with the app icon
     if (id == R.id.btn_tgx101UiText || id == R.id.btn_tgx101UiBold || id == R.id.btn_tgx101ChatListTextSize || id == R.id.btn_tgx101Font || id == R.id.btn_tgx101InputFontScale || id == R.id.btn_tgx101TextWeight || id == R.id.btn_chatFontSize || id == R.id.btn_bigEmojiSize) return 6;
     if (id == R.id.btn_tgx101CallBar || id == R.id.btn_tgx101NewCallScreen || id == R.id.btn_tgx101CallPhoto || id == R.id.btn_tgx101CallPattern
-      || id == R.id.btn_tgx101RingRamp || id == R.id.btn_tgx101RingRampTime) return 7;
+      || id == R.id.btn_tgx101RingRamp || id == R.id.btn_tgx101RingRampTime || id == R.id.btn_tgx101RingStart) return 7;
     if (id == R.id.btn_tgx101TranslateOnDevice || id == R.id.btn_tgx101TranslateModels || id == R.id.btn_tgx101SpeechModel || id == R.id.btn_tgx101FakeNoPremium) return 8;
     return 10;
   }
@@ -1205,6 +1210,29 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       SettingsNetworkStatsController c = new SettingsNetworkStatsController(context, tdlib);
       c.setArguments(new SettingsNetworkStatsController.Args(type, networkStats));
       navigateTo(c);
+    } else if (id == R.id.btn_tgx101RingStart) {
+      int ms = Settings.instance().getTgx101RingStartMs();
+      String current = ms > 0 ? (ms / 60000) + ":" + String.format(java.util.Locale.US, "%02d", (ms / 1000) % 60) : "";
+      openInputAlert(Lang.getString(R.string.Tgx101RingStart), Lang.getString(R.string.Tgx101RingStartHint), R.string.Done, R.string.Cancel, current, (inputView, result) -> {
+        String text = result.trim().replace('.', ':').replace(',', ':');
+        int seconds;
+        try {
+          if (text.isEmpty()) {
+            seconds = 0;
+          } else if (text.contains(":")) {
+            String[] parts = text.split(":");
+            seconds = Integer.parseInt(parts[0].trim()) * 60 + Integer.parseInt(parts[1].trim());
+          } else {
+            seconds = Integer.parseInt(text);
+          }
+        } catch (Throwable t) {
+          return false;
+        }
+        Settings.instance().setTgx101RingStartMs(seconds * 1000);
+        org.thunderdog.challegram.Tgx101Diag.mark("ringtone: starts at " + seconds + " s");
+        adapter.updateValuedSettingById(R.id.btn_tgx101RingStart);
+        return true;
+      }, true);
     } else if (id == R.id.btn_tgx101RingRampTime) {
       int current = Settings.instance().getTgx101RingRampSeconds();
       int[] ids = {R.id.btn_tgx101RingRamp5, R.id.btn_tgx101RingRamp10, R.id.btn_tgx101RingRamp15, R.id.btn_tgx101RingRamp20, R.id.btn_tgx101RingRamp30};

@@ -3339,6 +3339,17 @@ public class Settings {
     pmc.putInt(KEY_TGX101_RING_RAMP_SECONDS, seconds);
   }
 
+  private static final String KEY_TGX101_RING_START_MS = "tgx101_ring_start_ms";
+
+  /** TGx101 (user 2026-10-14 «рингтон с 1:39»): where the incoming call melody starts (and loops back to), ms; 0 — the beginning */
+  public int getTgx101RingStartMs () {
+    return Math.max(0, pmc.getInt(KEY_TGX101_RING_START_MS, 0));
+  }
+
+  public void setTgx101RingStartMs (int ms) {
+    pmc.putInt(KEY_TGX101_RING_START_MS, Math.max(0, ms));
+  }
+
   /** TGx101: the «ongoing call» bar over the chats (the status bar chip also leads back to the call) */
   public boolean showTgx101CallBar () {
     return pmc.getBoolean(KEY_TGX101_CALL_BAR, true);

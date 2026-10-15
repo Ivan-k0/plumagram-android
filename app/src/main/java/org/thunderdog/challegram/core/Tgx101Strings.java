@@ -721,6 +721,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101GroupCallPreview, "Групповой звонок");
     RU.put(R.string.Tgx101GroupCallPreviewIncoming, "Входящий групповой звонок");
     RU.put(R.string.Tgx101GroupCallPreviewOutgoing, "Исходящий групповой звонок");
+    RU.put(R.string.Tgx101RingStart, "Начинать мелодию с");
+    RU.put(R.string.Tgx101RingStartBeginning, "С начала");
+    RU.put(R.string.Tgx101RingStartHint, "Минуты:секунды, например 1:39 (пусто — с начала)");
     RU.put(R.string.Tgx101CallAddPeople, "Добавить участника");
     RU.put(R.string.Tgx101SectionData, "Данные и сеть");
     RU.put(R.string.Tgx101SectionDataHint, "Трафик, экономия, прокси, автозагрузка");
