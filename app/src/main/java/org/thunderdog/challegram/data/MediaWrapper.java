@@ -1265,49 +1265,13 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
       return true;
     }
     if (source != null) {
-      // TGx101 (user 2026-10-14 «двойное нажатие по медиа тоже должно ставить реакцию… или другую функцию; перевод — если
-      // есть подпись»): with a double-tap action set, a tap waits the double-tap timeout — a second tap runs the action,
-      // otherwise the viewer opens (the text bubble works the same way)
-      final TGMessage tapped = source;
-      final int action = org.thunderdog.challegram.unsorted.Settings.instance().tgx101DoubleTapAction();
-      if (action != org.thunderdog.challegram.unsorted.Settings.DOUBLE_TAP_OFF && tapped.tgx101CanDoubleTap(action)) {
-        if (tgx101PendingOpen != null && tgx101PendingSource == tapped) {
-          UI.removePendingRunnable(tgx101PendingOpen);
-          tgx101PendingOpen = null;
-          tgx101PendingSource = null;
-          org.thunderdog.challegram.Tgx101Diag.mark("double tap on media: action " + action);
-          tapped.tgx101OnDoubleTap(action);
-          return true;
-        }
-        if (tgx101PendingOpen != null) {
-          UI.removePendingRunnable(tgx101PendingOpen);
-        }
-        if (action == org.thunderdog.challegram.unsorted.Settings.DOUBLE_TAP_REACTION) {
-          tapped.tgx101PrefetchAvailableReactions();
-        }
-        tgx101PendingSource = tapped;
-        tgx101PendingOpen = () -> {
-          tgx101PendingOpen = null;
-          tgx101PendingSource = null;
-          if (!tapped.isDestroyed()) openViewer(tapped, messageId);
-        };
-        UI.post(tgx101PendingOpen, android.view.ViewConfiguration.getDoubleTapTimeout());
-        return true;
+      if (source instanceof TGMessageMedia) {
+        MediaViewController.openFromMessage((TGMessageMedia) source, messageId);
+      } else if (source instanceof TGMessageText) {
+        MediaViewController.openFromMessage((TGMessageText) source);
       }
-      openViewer(tapped, messageId);
     }
     return true;
-  }
-
-  private static @Nullable Runnable tgx101PendingOpen;
-  private static @Nullable TGMessage tgx101PendingSource;
-
-  private static void openViewer (TGMessage source, long messageId) {
-    if (source instanceof TGMessageMedia) {
-      MediaViewController.openFromMessage((TGMessageMedia) source, messageId);
-    } else if (source instanceof TGMessageText) {
-      MediaViewController.openFromMessage((TGMessageText) source);
-    }
   }
 
   @Override
