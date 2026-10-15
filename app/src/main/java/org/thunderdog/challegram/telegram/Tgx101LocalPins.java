@@ -60,7 +60,14 @@ public final class Tgx101LocalPins {
       b.append(id);
     }
     Settings.instance().pmc().putString(key(tdlib, chatList), b.toString());
-    tdlib.runOnTdlibThread(() -> tdlib.chatList(chatList).tgx101RefreshLocalPin(chatId));
+    // every local pin's place is its index: unpinning one moves all below it — refresh them all, not just this chat
+    // (stale places put two chats on the same order and broke the list's sorting)
+    final List<Long> affected = new ArrayList<>(ids);
+    if (!affected.contains(chatId)) affected.add(0, chatId);
+    tdlib.runOnTdlibThread(() -> {
+      TdlibChatList list = tdlib.chatList(chatList);
+      for (long id : affected) list.tgx101RefreshLocalPin(id);
+    });
   }
 
   /** The order the chat list sorts by: Telegram's one, or the local pin's place right under the pinned chats */

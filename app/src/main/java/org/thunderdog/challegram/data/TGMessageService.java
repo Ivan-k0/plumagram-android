@@ -360,6 +360,14 @@ public final class TGMessageService extends TGMessageServiceImpl {
     });
   }
 
+  /** The group call invite keeps its call in the text creator and the click: a new state (the call ended) has to
+   * rebuild the message — the same content type would otherwise be taken as «nothing to redraw» */
+  @Override
+  protected boolean isSupportedMessageContent (TdApi.Message message, TdApi.MessageContent messageContent) {
+    if (messageContent.getConstructor() == TdApi.MessageGroupCall.CONSTRUCTOR) return false;
+    return super.isSupportedMessageContent(message, messageContent);
+  }
+
   public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageSuggestedPostApproved post) {
     super(context, msg);
     setTextCreator(() -> getText(R.string.Tgx101SuggestedPostApproved));

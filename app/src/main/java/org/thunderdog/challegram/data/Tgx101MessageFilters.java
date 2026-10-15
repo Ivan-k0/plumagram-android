@@ -268,8 +268,8 @@ public final class Tgx101MessageFilters {
   /** A message the user hid with «Hide completely»: not shown at all, not even as a strip */
   public static boolean hiddenFully (MessagesManager manager, TdApi.Message msg) {
     if (manager.controller().isInForceTouchMode()) return false;
-    if (Tgx101BlockedSenders.isBlocked(msg)) return true; // TGx101: «Hide messages from blocked»
     org.thunderdog.challegram.telegram.Tdlib tdlib = manager.controller().tdlib();
+    if (Tgx101BlockedSenders.isBlocked(tdlib, msg)) return true; // TGx101: «Hide messages from blocked»
     Rule rule = match(tdlib, msg, tdlib.chat(msg.chatId));
     return rule != null && rule.hideFully;
   }

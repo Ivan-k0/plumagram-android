@@ -411,7 +411,7 @@ public final class Tgx101TextEditor {
     final android.graphics.Rect frame = new android.graphics.Rect();
     final int[] location = new int[2];
     final int[] maxImeInset = new int[1];
-    wrap.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+    addGlobalLayoutWhileAttached(wrap, () -> {
       if (wrap.getHeight() == 0) return;
       wrap.getWindowVisibleDisplayFrame(frame);
       wrap.getLocationOnScreen(location);
@@ -464,7 +464,7 @@ public final class Tgx101TextEditor {
    */
   private static void fitAboveKeyboard (View root, android.widget.TextView text) {
     final android.graphics.Rect frame = new android.graphics.Rect();
-    root.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+    addGlobalLayoutWhileAttached(root, () -> {
       if (root.getHeight() == 0) return;
       root.getWindowVisibleDisplayFrame(frame);
       int others = root.getHeight() - text.getHeight();
@@ -474,6 +474,23 @@ public final class Tgx101TextEditor {
       if (text.getMaxHeight() != height || text.getMinHeight() != height) {
         text.setMinHeight(height);
         text.setMaxHeight(height);
+      }
+    });
+  }
+
+  /** The card lives in the activity's own window: a global layout listener left there after closing kept the whole card
+   * (and its chat) alive and ran on every layout of the app. Removed when the view leaves the window */
+  private static void addGlobalLayoutWhileAttached (View view, Runnable onLayout) {
+    final android.view.ViewTreeObserver.OnGlobalLayoutListener listener = onLayout::run;
+    view.getViewTreeObserver().addOnGlobalLayoutListener(listener);
+    view.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+      @Override
+      public void onViewAttachedToWindow (View v) { }
+
+      @Override
+      public void onViewDetachedFromWindow (View v) {
+        v.getViewTreeObserver().removeGlobalOnLayoutListener(listener); // still the window's observer here; API 16 name
+        v.removeOnAttachStateChangeListener(this);
       }
     });
   }

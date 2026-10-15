@@ -12,9 +12,19 @@ import java.util.Set;
  * (MagiX → «Chat list» → «Hide messages from blocked»). The blocked list is fetched from Telegram and kept in memory.
  */
 public final class Tgx101BlockedSenders {
-  private static final Set<Long> ids = new HashSet<>();
-  private static long loadedFor;
-  private static long loadedAt;
+  // Per account (review 2026-10-15): one shared set showed account A's blocks in account B, and a block in one
+  // account's update landed in the other's list
+  private static final android.util.SparseArray<Set<Long>> idsByAccount = new android.util.SparseArray<>();
+  private static final java.util.Map<Integer, Long> loadedAt = new java.util.HashMap<>(); // not SparseLongArray: API 18, the Android 4 build is 16
+
+  private static Set<Long> ids (int accountId) {
+    Set<Long> set = idsByAccount.get(accountId);
+    if (set == null) {
+      set = new HashSet<>();
+      idsByAccount.put(accountId, set);
+    }
+    return set;
+  }
 
   private Tgx101BlockedSenders () { }
 
@@ -26,9 +36,11 @@ public final class Tgx101BlockedSenders {
   public static void refresh (Tdlib tdlib, boolean force) {
     if (!isEnabled()) return;
     long now = android.os.SystemClock.uptimeMillis();
-    if (!force && loadedFor == tdlib.id() && now - loadedAt < 60_000L) return;
-    loadedFor = tdlib.id();
-    loadedAt = now;
+    synchronized (idsByAccount) {
+      Long at = loadedAt.get(tdlib.id());
+      if (!force && at != null && now - at < 60_000L) return;
+      loadedAt.put(tdlib.id(), now);
+    }
     load(tdlib, 0, new HashSet<>());
   }
 
@@ -41,7 +53,8 @@ public final class Tgx101BlockedSenders {
       if (result.senders.length == 100 && offset + 100 < result.totalCount) {
         load(tdlib, offset + 100, collected);
       } else {
-        synchronized (ids) {
+        synchronized (idsByAccount) {
+          Set<Long> ids = ids(tdlib.id());
           ids.clear();
           ids.addAll(collected);
         }
@@ -51,9 +64,10 @@ public final class Tgx101BlockedSenders {
   }
 
   /** A block or unblock right now (UpdateChatBlockList) */
-  public static void onBlockListChanged (long chatId, TdApi.BlockList blockList) {
+  public static void onBlockListChanged (Tdlib tdlib, long chatId, TdApi.BlockList blockList) {
     long userId = tgx.td.ChatId.toUserId(chatId); long id = userId != 0 ? userId : chatId;
-    synchronized (ids) {
+    synchronized (idsByAccount) {
+      Set<Long> ids = ids(tdlib.id());
       if (blockList instanceof TdApi.BlockListMain) ids.add(id); else ids.remove(id);
     }
   }
@@ -62,10 +76,11 @@ public final class Tgx101BlockedSenders {
     return sender instanceof TdApi.MessageSenderUser ? ((TdApi.MessageSenderUser) sender).userId : ((TdApi.MessageSenderChat) sender).chatId;
   }
 
-  public static boolean isBlocked (TdApi.Message msg) {
+  public static boolean isBlocked (Tdlib tdlib, TdApi.Message msg) {
     if (msg == null || msg.isOutgoing || msg.senderId == null || !isEnabled()) return false;
-    synchronized (ids) {
-      return !ids.isEmpty() && ids.contains(idOf(msg.senderId));
+    synchronized (idsByAccount) {
+      Set<Long> ids = idsByAccount.get(tdlib.id());
+      return ids != null && !ids.isEmpty() && ids.contains(idOf(msg.senderId));
     }
   }
 }
