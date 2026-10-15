@@ -186,6 +186,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
 
   @Override
   protected View onCreateView (Context context) {
+    org.thunderdog.challegram.data.Tgx101SavedStore.ensureListener(); // TGx101: the «Saved» banner from app start
     initPagerSections();
     return super.onCreateView(context);
   }
@@ -2522,6 +2523,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     this.shareTdlib = tdlib;
     this.shareIntentAction = intentAction;
     this.shareIntent = intent;
+    org.thunderdog.challegram.data.Tgx101SavedStore.markExternalShare(); // what goes to Saved next came from another app
     shareIntentImpl();
   }
 

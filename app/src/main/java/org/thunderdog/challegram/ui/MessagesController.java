@@ -6919,8 +6919,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
         long[] messageIds = new long[all.length];
         for (int i = 0; i < all.length; i++) messageIds[i] = all[i].id;
         tdlib.send(new TdApi.ForwardMessages(tdlib.selfChatId(), null, selectedMessage.getChatId(), messageIds, null, false, false), (result, error) -> {
-          if (error == null) UI.showToast(R.string.Tgx101SwipeSaved, android.widget.Toast.LENGTH_SHORT);
-          else UI.showError(error);
+          if (error != null) UI.showError(error);
+          else if (org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).sheetMode == org.thunderdog.challegram.data.Tgx101SavedStore.SHEET_NEVER) UI.showToast(R.string.Tgx101SwipeSaved, android.widget.Toast.LENGTH_SHORT); // else the «Saved» banner says it
         });
         return true;
       } else if (id == R.id.btn_messageShare) {

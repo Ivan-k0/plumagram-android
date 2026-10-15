@@ -1739,4 +1739,17 @@
   <item name="btn_tgx101InputMore" type="id"/>
   <item name="btn_tgx101InputSendAs" type="id"/>
   <item name="btn_tgx101DoubleTapWhich" type="id"/>
+  <item name="controller_tgx101SavedHome" type="id"/>
+  <item name="controller_tgx101SavedList" type="id"/>
+  <item name="controller_tgx101SavedSettings" type="id"/>
+  <item name="menu_tgx101SavedHome" type="id"/>
+  <item name="menu_btn_tgx101SavedSearch" type="id"/>
+  <item name="menu_btn_tgx101SavedFeed" type="id"/>
+  <item name="menu_btn_tgx101SavedSettings" type="id"/>
+  <item name="tgx101SavedThumb" type="id"/>
+  <item name="btn_tgx101SavedBanner" type="id"/>
+  <item name="btn_tgx101SavedOpen" type="id"/>
+  <item name="btn_tgx101SavedInboxTile" type="id"/>
+  <item name="btn_tgx101SavedShowPinned" type="id"/>
+  <item name="btn_tgx101SavedHashtag" type="id"/>
 </resources>

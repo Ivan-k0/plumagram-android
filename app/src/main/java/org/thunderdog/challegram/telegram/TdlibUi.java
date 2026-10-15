@@ -1979,6 +1979,14 @@ public class TdlibUi extends Handler {
       return this;
     }
 
+    /** TGx101: Saved Messages as the usual chat (the «Feed» button), not the Saved home screen */
+    public boolean tgx101Feed;
+
+    public ChatOpenParameters tgx101Feed () {
+      this.tgx101Feed = true;
+      return this;
+    }
+
     public ChatOpenParameters scheduledOnly () {
       if (this.threadInfo != null) {
         throw new IllegalArgumentException();
@@ -2143,6 +2151,17 @@ public class TdlibUi extends Handler {
   }
 
   public void openChat (final TdlibDelegate context, final @NonNull TdApi.Chat chatFinal, final @Nullable ChatOpenParameters params) {
+    // TGx101 (user 2026-10-15, approved mockups): Saved Messages opens as a storage home screen — unless asked for the
+    // feed itself, a message in it, a saved-from topic, a filter or a draft / share
+    if (chatFinal.id == tdlib.selfChatId() && (params == null || (!params.tgx101Feed && params.highlightMessageId == null
+      && params.messageTopicId == null && params.filter == null && params.searchQuery == null && params.shareItem == null
+      && params.fillDraft == null && params.foundMessage == null && params.threadInfo == null
+      && (params.options & (CHAT_OPTION_SCHEDULED_MESSAGES | CHAT_OPTION_NO_OPEN | CHAT_OPTION_OPEN_PROFILE_IF_DUPLICATE)) == 0))
+      && org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).openMode == org.thunderdog.challegram.data.Tgx101SavedStore.OPEN_HOME
+      && context.context() != null) {
+      org.thunderdog.challegram.ui.Tgx101SavedHomeController.open(context.context(), tdlib);
+      return;
+    }
     if (params != null && params.highlightMessageId != null) {
       params.highlightMessageId = new MessageId(chatFinal.id, params.highlightMessageId.getMessageId(), params.highlightMessageId.getOtherMessageIds());
     }
