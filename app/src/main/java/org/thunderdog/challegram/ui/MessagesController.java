@@ -12691,6 +12691,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     );
 
     final boolean isSecretChat = isSecretChat();
+    // TGx101: SD / HD chosen in the send menu is reset right after send() returns — read it now, not on the media thread
+    final int photoResolutionLimit = PhotoGenerationInfo.outgoingPhotoResolutionLimit();
 
     Media.instance().post(() -> {
       final TdApi.InputMessageContent[] inputContent = new TdApi.InputMessageContent[files.length];
@@ -12740,7 +12742,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           }
         } else {
           int[] size = new int[2];
-          int resolutionLimit = PhotoGenerationInfo.outgoingPhotoResolutionLimit();
+          int resolutionLimit = photoResolutionLimit;
           file.getOutputSize(size, resolutionLimit != 0 ? resolutionLimit : PhotoGenerationInfo.SIZE_LIMIT);
 
           final int width = size[0];

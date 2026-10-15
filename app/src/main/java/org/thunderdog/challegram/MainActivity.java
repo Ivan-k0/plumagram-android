@@ -813,9 +813,18 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     final boolean tgx101Call = TdlibPhoneBookSync.MIME_VOICE_CALL.equals(tgx101ContactType), tgx101Video = TdlibPhoneBookSync.MIME_VIDEO_CALL.equals(tgx101ContactType);
     if (Intent.ACTION_VIEW.equals(action) && (TdlibPhoneBookSync.MIME_OPEN_CHAT.equals(tgx101ContactType) || tgx101Call || tgx101Video) && intent.getData() != null) {
       long userId = 0;
-      try (android.database.Cursor cursor = getContentResolver().query(intent.getData(),
-        new String[] {android.provider.ContactsContract.Data.DATA1}, null, null, null)) {
-        if (cursor != null && cursor.moveToFirst()) {
+      // TGx101: any app may send this intent — read the user id only from a row of the system contacts
+      // provider that has our MIME type and belongs to our sync account (not from an arbitrary provider)
+      final android.net.Uri tgx101Data = intent.getData();
+      if (!android.provider.ContactsContract.AUTHORITY.equals(tgx101Data.getAuthority())) {
+        Log.w("Contact intent from a foreign provider: %s", tgx101Data);
+        return false;
+      }
+      try (android.database.Cursor cursor = getContentResolver().query(tgx101Data,
+        new String[] {android.provider.ContactsContract.Data.DATA1, android.provider.ContactsContract.Data.MIMETYPE, android.provider.ContactsContract.RawContacts.ACCOUNT_TYPE}, null, null, null)) {
+        if (cursor != null && cursor.moveToFirst()
+          && tgx101ContactType.equals(cursor.getString(1))
+          && getString(R.string.contacts_account_type).equals(cursor.getString(2))) {
           userId = StringUtils.parseLong(cursor.getString(0));
         }
       } catch (Throwable t) {
@@ -833,7 +842,8 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
             if (c == null) return;
             Runnable call = () -> {
               if (tgx101Video) org.thunderdog.challegram.voip.Tgx101Video.requestVideoCall(callUserId);
-              c.tdlib().context().calls().makeCall(c, callUserId, null, false);
+              // Always ask: the intent may come from any app, not only a tap in the contact card
+              c.tdlib().context().calls().makeCall(c, callUserId, null, true);
             };
             if (tgx101Video && !org.thunderdog.challegram.voip.Tgx101Video.hasCameraPermission()) {
               requestCustomPermissions(new String[] {android.Manifest.permission.CAMERA}, (code, permissions, grantResults, grantCount) -> call.run());

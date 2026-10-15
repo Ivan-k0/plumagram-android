@@ -993,6 +993,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       long flag = item.getLongId();
       if (flag == Settings.SETTING_FLAG_PAUSE_MEDIA_ON_RECORD || flag == Settings.SETTING_FLAG_SEND_PHOTOS_IN_HD) return 4;
       if (flag == Settings.SETTING_FLAG_KEEP_ALIVE_CONNECTION) return 5; // user 2026-10-06: looked for it under «Notifications»
+      if (flag == Settings.SETTING_FLAG_WRITE_CONTACTS_TO_PHONEBOOK) return 0; // with the other contacts settings: the data section opens Telegram X's own screen, it was unreachable
       return 10;
     }
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked || id == R.id.btn_pullToSearch || id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap) return 0;

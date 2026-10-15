@@ -1906,7 +1906,15 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   @Override
   public boolean dispatchTouchEvent (MotionEvent ev) {
     if (BuildConfig.TGX101_DIAG) { // TGx101: gesture log in diagnostics builds
-      Tgx101DiagHooks.onTouch(ev, navigation != null ? navigation.getCurrentStackItem() : null);
+      Object top = navigation != null ? navigation.getCurrentStackItem() : null;
+      // Never log touches on the passcode / 2FA screens: tap positions on the keypad would reveal the PIN
+      boolean secret = isPasscodeShowing
+        || top instanceof org.thunderdog.challegram.ui.PasscodeController
+        || top instanceof org.thunderdog.challegram.ui.PasscodeSetupController
+        || top instanceof org.thunderdog.challegram.ui.PasswordController;
+      if (!secret) {
+        Tgx101DiagHooks.onTouch(ev, top);
+      }
     }
     return super.dispatchTouchEvent(ev);
   }
