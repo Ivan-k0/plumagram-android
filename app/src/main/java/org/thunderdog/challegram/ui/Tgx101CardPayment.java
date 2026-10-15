@@ -50,7 +50,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 import me.vkryl.core.CurrencyUtils;
@@ -241,7 +240,7 @@ public final class Tgx101CardPayment {
       conn.setRequestProperty("Authorization", "Bearer " + publishableKey);
       conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
       try (OutputStream out = conn.getOutputStream()) {
-        out.write(body.toString().getBytes(StandardCharsets.UTF_8));
+        out.write(body.toString().getBytes(java.nio.charset.Charset.forName("UTF-8")));
       }
       if (conn.getResponseCode() / 100 != 2) {
         return null;
@@ -274,7 +273,7 @@ public final class Tgx101CardPayment {
       conn.setRequestProperty("Content-Type", "application/json");
       conn.setRequestProperty("X-PUBLIC-TOKEN", provider.publicToken);
       try (OutputStream out = conn.getOutputStream()) {
-        out.write(request.toString().getBytes(StandardCharsets.UTF_8));
+        out.write(request.toString().getBytes(java.nio.charset.Charset.forName("UTF-8")));
       }
       if (conn.getResponseCode() / 100 != 2) {
         return null;

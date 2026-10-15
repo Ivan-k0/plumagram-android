@@ -49,7 +49,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
@@ -238,7 +237,7 @@ public final class Tgx101Updates {
 
   private static String readAll (HttpURLConnection connection) throws Exception {
     StringBuilder body = new StringBuilder();
-    try (BufferedReader r = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+    try (BufferedReader r = new BufferedReader(new InputStreamReader(connection.getInputStream(), java.nio.charset.Charset.forName("UTF-8")))) {
       String line;
       while ((line = r.readLine()) != null) {
         body.append(line).append('\n');

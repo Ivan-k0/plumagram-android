@@ -44,7 +44,6 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -240,7 +239,7 @@ public final class Tgx101ChatImport {
   /** First 100 lines. Doesn't close the stream (it may be a zip entry). */
   private static String head (InputStream in) throws Exception {
     StringBuilder b = new StringBuilder();
-    BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+    BufferedReader r = new BufferedReader(new InputStreamReader(in, java.nio.charset.Charset.forName("UTF-8")));
     String line;
     int count = 0;
     while (count < 100 && (line = r.readLine()) != null) {

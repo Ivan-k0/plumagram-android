@@ -4647,7 +4647,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     back.start();
     lastSlideX = lastSlideY = 0f;
     tgx101SlideReveal = true;
-    org.thunderdog.challegram.Tgx101Diag.mark("media viewer: swipe closes into the post (dim " + tgx101RevealAlphaScale + ", animator scale " + android.provider.Settings.Global.getFloat(context().getContentResolver(), android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) + ")");
+    org.thunderdog.challegram.Tgx101Diag.mark("media viewer: swipe closes into the post (dim " + tgx101RevealAlphaScale + ", animator scale " + (android.os.Build.VERSION.SDK_INT >= 17 ? android.provider.Settings.Global.getFloat(context().getContentResolver(), android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) : 1f) + ")");
     close();
     return true;
   }

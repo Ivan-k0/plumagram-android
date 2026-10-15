@@ -201,7 +201,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     tgx101SubTexts.clear();
     try (java.io.InputStream in = context.getContentResolver().openInputStream(uri)) {
       if (in == null) return false;
-      java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8));
+      java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(in, java.nio.charset.Charset.forName("UTF-8")));
       String line;
       long[] time = null;
       StringBuilder text = new StringBuilder();

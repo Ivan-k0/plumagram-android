@@ -225,8 +225,8 @@ public final class Tgx101SelectionBar {
   // user 2026-10-13 23:45 «сделай современно плавной»: Material 3 motion — away: a slight shrink towards the field
   // with the emphasized-accelerate curve; back: it grows from 96 % and settles with the emphasized-decelerate curve
   private static final long HANDLE_BACK = 280;
-  private static final android.view.animation.Interpolator AWAY = new android.view.animation.PathInterpolator(.3f, 0f, .8f, .15f);
-  private static final android.view.animation.Interpolator BACK = new android.view.animation.PathInterpolator(.05f, .7f, .1f, 1f);
+  private static final android.view.animation.Interpolator AWAY = androidx.core.view.animation.PathInterpolatorCompat.create(.3f, 0f, .8f, .15f);
+  private static final android.view.animation.Interpolator BACK = androidx.core.view.animation.PathInterpolatorCompat.create(.05f, .7f, .1f, 1f);
 
   private void pivotAtBottom () {
     content.setPivotX(content.getWidth() / 2f);

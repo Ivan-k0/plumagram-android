@@ -2090,7 +2090,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         // TGx101 (user 2026-10-14 13:55 / 20:2x, on the phone: sent while scrolled up — the chat jumped to the end in one
         // frame): it goes down to the new message the way the arrow does — a glide, from 1.5 screens away if it's far
         RecyclerView tgx101List = controller.getMessagesView();
-        if (!atBottom && message.isSending() && tgx101List != null && tgx101List.isAttachedToWindow() && !tgx101IsRestoringPosition()) {
+        if (!atBottom && message.isSending() && tgx101List != null && androidx.core.view.ViewCompat.isAttachedToWindow(tgx101List) && !tgx101IsRestoringPosition()) {
           adapter.addMessage(message, false, false);
           tgx101List.post(() -> {
             if (!tgx101SmoothScrollToBottom()) scrollToBottom(false);
@@ -2143,7 +2143,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
    */
   private void tgx101GlideToNewMessage (long anchorId, int anchorTop) {
     final RecyclerView list = controller.getMessagesView();
-    if (list == null || !list.isAttachedToWindow() || tgx101IsRestoringPosition() || controller.tgx101IsKeyboardRiding()) {
+    if (list == null || !androidx.core.view.ViewCompat.isAttachedToWindow(list) || tgx101IsRestoringPosition() || controller.tgx101IsKeyboardRiding()) {
       return;
     }
     list.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
@@ -3410,7 +3410,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
   }
 
   /** When the scroll stops: a message that ended more than a little off its place is brought there softly */
-  private static final android.view.animation.PathInterpolator TGX101_GLIDE = new android.view.animation.PathInterpolator(.25f, .1f, .25f, 1f);
+  private static final android.view.animation.Interpolator TGX101_GLIDE = androidx.core.view.animation.PathInterpolatorCompat.create(.25f, .1f, .25f, 1f); // Compat: API 16 builds
 
   /** The rest of {@link #TGX101_GLIDE} from {@code from} on, stretched to 0…1: a glide re-aimed midway keeps its pace */
   private static android.view.animation.Interpolator tgx101GlideTail (float from) {

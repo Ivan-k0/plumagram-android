@@ -43,7 +43,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -247,7 +246,7 @@ public final class Tgx101ChatExport {
         if (!dir.exists() && !dir.mkdirs()) {
           throw new IllegalStateException("Can't create " + dir);
         }
-        try (BufferedWriter w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
+        try (BufferedWriter w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), java.nio.charset.Charset.forName("UTF-8")))) {
           if (format == FORMAT_HTML) {
             writeHtml(w, title);
           } else {

@@ -43,7 +43,6 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -132,7 +131,7 @@ final class Tgx101WebCarrier {
     try {
       Mac mac = Mac.getInstance("HmacSHA256");
       mac.init(new SecretKeySpec(secret, "HmacSHA256"));
-      byte[] digest = mac.doFinal(context.getBytes(StandardCharsets.UTF_8));
+      byte[] digest = mac.doFinal(context.getBytes(java.nio.charset.Charset.forName("UTF-8")));
       String bridge = Base64.encodeToString(digest, Base64.URL_SAFE | Base64.NO_PADDING | Base64.NO_WRAP);
       return "https://" + host + base + "?bridge=" + bridge;
     } catch (Exception e) {

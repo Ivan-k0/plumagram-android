@@ -1063,7 +1063,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   private boolean tgx101FrozenVisibleOk;
 
   public void tgx101FreezeLocation (long durationMs) {
-    if (!isAttachedToWindow()) return;
+    if (!androidx.core.view.ViewCompat.isAttachedToWindow(this)) return;
     super.getLocationInWindow(tgx101FrozenLocation);
     tgx101FrozenVisibleOk = super.getGlobalVisibleRect(tgx101FrozenVisible, tgx101FrozenOffset);
     tgx101FrozenUntil = android.os.SystemClock.uptimeMillis() + durationMs;

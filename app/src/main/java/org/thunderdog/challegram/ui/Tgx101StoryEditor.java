@@ -1295,7 +1295,7 @@ public final class Tgx101StoryEditor extends Dialog {
     float l = cx - w / 2f, t = cy - height / 2f;
     bubblePaint.setColor(background | 0xff000000);
     bubblePaint.setShadowLayer(height * .08f, 0, height * .03f, 0x40000000);
-    c.drawRoundRect(l, t, l + w, t + height, height * .3f, height * .3f, bubblePaint);
+    c.drawRoundRect(new android.graphics.RectF(l, t, l + w, t + height), height * .3f, height * .3f, bubblePaint);
     bubblePaint.clearShadowLayer();
     weatherText.setTextSize(height * .5f);
     weatherText.setTextAlign(Paint.Align.LEFT);
@@ -1660,7 +1660,7 @@ public final class Tgx101StoryEditor extends Dialog {
           thumb.compress(Bitmap.CompressFormat.JPEG, 85, os);
         }
         try (FileOutputStream os = new FileOutputStream(new File(dir, "state.json"))) {
-          os.write(state.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+          os.write(state.toString().getBytes(java.nio.charset.Charset.forName("UTF-8")));
         }
         //noinspection ResultOfMethodCallIgnored
         dir.setLastModified(System.currentTimeMillis());
@@ -1724,8 +1724,8 @@ public final class Tgx101StoryEditor extends Dialog {
       org.json.JSONObject state = null;
       try {
         bitmap = BitmapFactory.decodeFile(new File(dir, "photo.jpg").getPath());
-        byte[] bytes = java.nio.file.Files.readAllBytes(new File(dir, "state.json").toPath());
-        state = new org.json.JSONObject(new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
+        byte[] bytes = org.thunderdog.challegram.U.tgx101ReadFully(new File(dir, "state.json")); // java.nio.file is Android 8+
+        state = new org.json.JSONObject(new String(bytes, java.nio.charset.Charset.forName("UTF-8")));
       } catch (Throwable t) {
         Tgx101Diag.mark("story editor: draft read failed " + t.getClass().getSimpleName());
       }
@@ -1962,7 +1962,7 @@ public final class Tgx101StoryEditor extends Dialog {
       // progress bars, avatar, name, reply field
       float x = frame.left + Screen.dp(8f), y = frame.top + Screen.dp(8f), w = frame.width() - Screen.dp(16f);
       p.setColor(0xffffffff);
-      c.drawRoundRect(x, y, x + w, y + Screen.dp(2.5f), Screen.dp(1.25f), Screen.dp(1.25f), p);
+      c.drawRoundRect(new android.graphics.RectF(x, y, x + w, y + Screen.dp(2.5f)), Screen.dp(1.25f), Screen.dp(1.25f), p);
       p.setColor(0xff3d8fd8);
       c.drawCircle(x + Screen.dp(15f), y + Screen.dp(26f), Screen.dp(15f), p);
       label.setTextAlign(Paint.Align.LEFT);
@@ -1977,7 +1977,7 @@ public final class Tgx101StoryEditor extends Dialog {
       stroke.setStrokeWidth(Screen.dp(1f));
       stroke.setColor(0x99ffffff);
       float ry = frame.bottom - Screen.dp(52f);
-      c.drawRoundRect(frame.left + Screen.dp(8f), ry, frame.right - Screen.dp(8f), ry + Screen.dp(44f), Screen.dp(18f), Screen.dp(18f), stroke);
+      c.drawRoundRect(new android.graphics.RectF(frame.left + Screen.dp(8f), ry, frame.right - Screen.dp(8f), ry + Screen.dp(44f)), Screen.dp(18f), Screen.dp(18f), stroke);
       label.setTextSize(Screen.dp(12.5f));
       c.drawText(Lang.getString(R.string.Tgx101StoryReply), frame.left + Screen.dp(22f), ry + Screen.dp(27f), label);
       label.setTextSize(Screen.dp(10f));
@@ -2687,10 +2687,10 @@ public final class Tgx101StoryEditor extends Dialog {
     protected void onDraw (@NonNull Canvas c) {
       float h = getHeight(), w = getWidth(), pad = Screen.dp(9f), y = h / 2f;
       p.setColor(0x1fffffff);
-      c.drawRoundRect(pad, y - Screen.dp(2f), w - pad, y + Screen.dp(2f), Screen.dp(2f), Screen.dp(2f), p);
+      c.drawRoundRect(new android.graphics.RectF(pad, y - Screen.dp(2f), w - pad, y + Screen.dp(2f)), Screen.dp(2f), Screen.dp(2f), p);
       p.setColor(0xff3d8fd8);
       float nx = pad + (w - 2 * pad) * neutral, vx = pad + (w - 2 * pad) * value;
-      c.drawRoundRect(Math.min(nx, vx), y - Screen.dp(2f), Math.max(nx, vx), y + Screen.dp(2f), Screen.dp(2f), Screen.dp(2f), p);
+      c.drawRoundRect(new android.graphics.RectF(Math.min(nx, vx), y - Screen.dp(2f), Math.max(nx, vx), y + Screen.dp(2f)), Screen.dp(2f), Screen.dp(2f), p);
       p.setColor(0xffffffff);
       c.drawCircle(vx, y, Screen.dp(8f), p);
     }

@@ -207,7 +207,7 @@ public class Tgx101PaintToolsView extends View {
         float r = Screen.dp(8f);
         switch (shapeMode) {
           case PaintMode.ELLIPSE:
-            c.drawOval(cx - r * 1.2f, cy - r * .8f, cx + r * 1.2f, cy + r * .8f, paint);
+            c.drawOval(new android.graphics.RectF(cx - r * 1.2f, cy - r * .8f, cx + r * 1.2f, cy + r * .8f), paint);
             break;
           case PaintMode.LINE:
             c.drawLine(cx - r * 1.2f, cy + r * .7f, cx + r * 1.2f, cy - r * .7f, paint);
@@ -218,7 +218,7 @@ public class Tgx101PaintToolsView extends View {
             c.drawLine(cx + r * 1.2f, cy - r * .7f, cx + r * .7f, cy + r * .2f, paint);
             break;
           default:
-            c.drawRoundRect(cx - r * 1.2f, cy - r * .8f, cx + r * 1.2f, cy + r * .8f, Screen.dp(2f), Screen.dp(2f), paint);
+            c.drawRoundRect(new android.graphics.RectF(cx - r * 1.2f, cy - r * .8f, cx + r * 1.2f, cy + r * .8f), Screen.dp(2f), Screen.dp(2f), paint);
             break;
         }
         // the small corner mark: hold for more shapes
@@ -243,7 +243,7 @@ public class Tgx101PaintToolsView extends View {
         paint.setColor(0xffffffff);
         c.save();
         c.rotate(-35f, cx, cy);
-        c.drawRoundRect(cx - Screen.dp(10f), cy - Screen.dp(5f), cx + Screen.dp(10f), cy + Screen.dp(5f), Screen.dp(2.5f), Screen.dp(2.5f), paint);
+        c.drawRoundRect(new android.graphics.RectF(cx - Screen.dp(10f), cy - Screen.dp(5f), cx + Screen.dp(10f), cy + Screen.dp(5f)), Screen.dp(2.5f), Screen.dp(2.5f), paint);
         c.drawLine(cx - Screen.dp(2f), cy - Screen.dp(5f), cx - Screen.dp(2f), cy + Screen.dp(5f), paint);
         c.restore();
         break;

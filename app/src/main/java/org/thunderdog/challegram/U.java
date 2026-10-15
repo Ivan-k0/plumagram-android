@@ -3692,4 +3692,15 @@ public class U {
     }
     return flavor;
   }
+
+  /** TGx101: a whole file into memory (java.nio.file.Files needs Android 8) */
+  public static byte[] tgx101ReadFully (java.io.File file) throws java.io.IOException {
+    try (java.io.FileInputStream in = new java.io.FileInputStream(file)) {
+      java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream((int) Math.max(32, Math.min(file.length(), 1 << 20)));
+      byte[] buffer = new byte[8192];
+      int read;
+      while ((read = in.read(buffer)) != -1) out.write(buffer, 0, read);
+      return out.toByteArray();
+    }
+  }
 }

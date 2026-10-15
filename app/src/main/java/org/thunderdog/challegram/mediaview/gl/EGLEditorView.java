@@ -889,7 +889,7 @@ public class EGLEditorView extends ViewGroup {
         float len = (float) Math.hypot(x2 - x1, y2 - y1);
         c.save();
         c.rotate((float) Math.toDegrees(Math.atan2(y2 - y1, x2 - x1)), x1, y1);
-        c.drawRoundRect(x1 - pad, y1 - pad, x1 + len + pad, y1 + pad, pad, pad, framePaint);
+        c.drawRoundRect(new android.graphics.RectF(x1 - pad, y1 - pad, x1 + len + pad, y1 + pad), pad, pad, framePaint);
         c.restore();
         drawHandle(c, x1, y1, r);
         drawHandle(c, x2, y2, r);
