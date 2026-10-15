@@ -3632,7 +3632,9 @@ public class Settings {
 
   public boolean tgx101HideAllReactions () { return pmc.getBoolean(KEY_TGX101_HIDE_ALL_REACTIONS, false); }
   public void setTgx101HideAllReactions (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_ALL_REACTIONS, v); }
-  public boolean tgx101HideInputCamera () { return pmc.getBoolean(KEY_TGX101_HIDE_INPUT_CAMERA, false); }
+  // TGx101 (user 2026-10-15 «камеру мы убрали в скрепку — зачем она в поле ввода»): the camera lives in the attachment
+  // screen unless one turns it back on
+  public boolean tgx101HideInputCamera () { return pmc.getBoolean(KEY_TGX101_HIDE_INPUT_CAMERA, true); }
   public void setTgx101HideInputCamera (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_INPUT_CAMERA, v); }
   public boolean tgx101HideInputCommands () { return pmc.getBoolean(KEY_TGX101_HIDE_INPUT_COMMANDS, false); }
   public void setTgx101HideInputCommands (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_INPUT_COMMANDS, v); }

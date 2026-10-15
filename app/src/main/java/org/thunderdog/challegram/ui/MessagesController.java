@@ -1494,6 +1494,21 @@ public class MessagesController extends ViewController<MessagesController.Argume
           super.setVisibility(tgx101InputVisibility(this, visibility));
           tgx101CheckInputCollapse();
         }
+        // TGx101 (test 2026-10-15: «⋯» with «Scheduled» in a chat with none): the same as the command button below —
+        // folded into ⋯ it's GONE on screen, so «hide» compared with GONE and kept wanting to be visible
+        @Override
+        public boolean setVisible (boolean visible) {
+          if (tgx101WantedVisible(this) != visible) {
+            setVisibility(visible ? VISIBLE : INVISIBLE);
+            return true;
+          }
+          return false;
+        }
+
+        @Override
+        public boolean isVisible () {
+          return tgx101WantedVisible(this);
+        }
       };
       scheduleButton.setId(R.id.btn_viewScheduled);
       scheduleButton.setScaleType(ImageView.ScaleType.CENTER);
@@ -1502,6 +1517,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       addThemeFilterListener(scheduleButton, ColorId.icon);
       scheduleButton.setOnClickListener(this);
       scheduleButton.setLayoutParams(lp);
+      scheduleButton.setVisibility(View.INVISIBLE); // shown when the chat turns out to have scheduled messages
     }
 
     lp = new LinearLayout.LayoutParams(Screen.dp(ATTACH_BUTTONS_WIDTH), Screen.dp(49f));
