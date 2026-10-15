@@ -448,12 +448,27 @@ public class PaintState {
    *  photo lies at 0, 0 of the canvas at its own size) */
   public void draw (Canvas c, final int x, final int y, final int viewWidth, final int viewHeight, @androidx.annotation.Nullable android.graphics.Bitmap source, @androidx.annotation.Nullable android.graphics.Matrix sourceToCanvas) {
     SimpleDrawing.MosaicSource previous = SimpleDrawing.mosaicSource.get();
-    SimpleDrawing.mosaicSource.set(source != null && hasMosaic() ? new SimpleDrawing.MosaicSource(source, sourceToCanvas) : null);
+    SimpleDrawing.mosaicSource.set(source != null && hasMosaic() ? mosaicSourceFor(source, sourceToCanvas) : null);
     try {
       draw(c, x, y, viewWidth, viewHeight);
     } finally {
       SimpleDrawing.mosaicSource.set(previous);
     }
+  }
+
+  // The squares are scaled down from the photo once, not on every frame of a stroke (a new source each draw rebuilt them)
+  private @androidx.annotation.Nullable SimpleDrawing.MosaicSource cachedMosaic;
+  private @androidx.annotation.Nullable android.graphics.Bitmap cachedMosaicBitmap;
+  private final android.graphics.Matrix cachedMosaicMatrix = new android.graphics.Matrix();
+
+  private synchronized SimpleDrawing.MosaicSource mosaicSourceFor (android.graphics.Bitmap source, @androidx.annotation.Nullable android.graphics.Matrix sourceToCanvas) {
+    android.graphics.Matrix m = sourceToCanvas != null ? sourceToCanvas : new android.graphics.Matrix();
+    if (cachedMosaic == null || cachedMosaicBitmap != source || !cachedMosaicMatrix.equals(m)) {
+      cachedMosaic = new SimpleDrawing.MosaicSource(source, m);
+      cachedMosaicBitmap = source;
+      cachedMosaicMatrix.set(m);
+    }
+    return cachedMosaic;
   }
 
   public boolean hasMosaic () {

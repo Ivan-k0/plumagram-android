@@ -3352,6 +3352,12 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
   }
 
   private void scrollToPositionWithOffset (final int index, final int offset, boolean smooth, boolean useRoundVideoScrollFix) {
+    if (tgx101LandingListener != null) {
+      // before stopScroll(): its IDLE would let the old jump's listener pull the list back to the old message
+      RecyclerView list = controller.getMessagesView();
+      if (list != null) list.removeOnScrollListener(tgx101LandingListener);
+      tgx101LandingListener = null;
+    }
     stopScroll();
 
     if (smooth) {
@@ -3419,14 +3425,23 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     return x -> (TGX101_GLIDE.getInterpolation(from + x * (1f - from)) - base) / span;
   }
 
+  /** One at a time: a listener left from an earlier jump (or one with nothing to scroll) «corrected» the next scroll
+   * back to its old message */
+  private @Nullable RecyclerView.OnScrollListener tgx101LandingListener;
+
   private void tgx101CheckLanding (final int index, final int offset, final int plannedBy, final int duration) {
     final RecyclerView list = controller.getMessagesView();
     if (list == null) return;
+    if (tgx101LandingListener != null) {
+      list.removeOnScrollListener(tgx101LandingListener);
+      tgx101LandingListener = null;
+    }
+    if (plannedBy == 0) return; // already in place: no scroll will come to end this listener
     final TGMessage targetMessage = adapter.getMessage(index);
     final long targetId = targetMessage != null ? targetMessage.getId() : 0;
     final long startTime = android.os.SystemClock.uptimeMillis();
-    list.addOnScrollListener(new RecyclerView.OnScrollListener() {
-      private boolean reAimed = plannedBy == 0;
+    tgx101LandingListener = new RecyclerView.OnScrollListener() {
+      private boolean reAimed = false;
 
       @Override
       public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
@@ -3463,6 +3478,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
         if (newState == RecyclerView.SCROLL_STATE_SETTLING) return;
         recyclerView.removeOnScrollListener(this);
+        if (tgx101LandingListener == this) tgx101LandingListener = null;
         if (newState != RecyclerView.SCROLL_STATE_IDLE) return; // the finger took over
         int i = targetId != 0 ? adapter.indexOfMessageContainer(targetId) : index;
         View view = i != -1 ? manager.findViewByPosition(i) : null;
@@ -3481,7 +3497,8 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
           recyclerView.smoothScrollBy(0, miss, new android.view.animation.DecelerateInterpolator(1.6f), 200); // a scroll by dy raises the message by dy
         }
       }
-    });
+    };
+    list.addOnScrollListener(tgx101LandingListener);
   }
 
   /** The message about {@code distance} px from {@code index} on the side the list comes from */

@@ -140,6 +140,9 @@ public class Tgx101StoryViewer extends Dialog {
       TdApi.ChatActiveStories person = new TdApi.ChatActiveStories(chatId, null, 0, false, 0, new TdApi.StoryInfo[] {info});
       java.util.List<TdApi.ChatActiveStories> people = new java.util.ArrayList<>();
       people.add(person);
+      // the answer may come after the screen was closed: a dialog on a finished activity crashes
+      android.app.Activity activity = UI.getContext(context);
+      if (activity == null || activity.isFinishing() || (android.os.Build.VERSION.SDK_INT >= 17 && activity.isDestroyed())) return;
       new Tgx101StoryViewer(context, tdlib, people, 0, true).show();
     }));
   }
@@ -481,7 +484,8 @@ public class Tgx101StoryViewer extends Dialog {
       return;
     }
     final int expectStoryId = story.id;
-    tdlib.send(new TdApi.DownloadFile(file.id, 32, 0, 0, true), (downloaded, error) -> {
+    tdlib.send(new TdApi.DownloadFile(file.id, 32, 0, 0, true), (downloaded, error) -> org.thunderdog.challegram.core.Media.instance().post(() -> {
+      // decoded on the media thread: TDLib's callback thread serves every other request meanwhile
       String path = downloaded != null && downloaded.local != null && downloaded.local.isDownloadingCompleted ? downloaded.local.path : null;
       Bitmap bitmap = !isVideo && path != null ? decode(path) : null;
       UI.post(() -> {
@@ -520,7 +524,7 @@ public class Tgx101StoryViewer extends Dialog {
           startTimer();
         }
       });
-    });
+    }));
   }
 
   // Caption (user 2026-10-04): 2 lines with «more» at the bottom; a tap opens the whole text on a dark backdrop,
@@ -597,7 +601,8 @@ public class Tgx101StoryViewer extends Dialog {
     BitmapFactory.decodeFile(path, bounds);
     int sample = 1;
     int max = Math.max(bounds.outWidth, bounds.outHeight);
-    while (max / sample > 2560) sample *= 2;
+    int limit = Math.max(1280, Screen.widestActualSide()); // no more than the screen shows
+    while (max / sample > limit) sample *= 2;
     BitmapFactory.Options options = new BitmapFactory.Options();
     options.inSampleSize = sample;
     return BitmapFactory.decodeFile(path, options);

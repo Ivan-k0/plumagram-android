@@ -248,6 +248,15 @@ public class PhotoGenerationInfo extends GenerationInfo {
   }
 
   private android.graphics.Bitmap tgx101PaintSource; // TGx101: the photo under the drawings, for mosaic strokes
+  private @androidx.annotation.Nullable Matrix tgx101PaintSourceMatrix; // how that photo lies under them (a mirrored crop)
+
+  /** The photo was drawn mirrored under the drawings: mosaic squares have to come from the same mirrored picture */
+  private static @androidx.annotation.Nullable Matrix tgx101MirrorMatrix (boolean horizontal, boolean vertical, int width, int height) {
+    if (!horizontal && !vertical) return null;
+    Matrix m = new Matrix();
+    m.setScale(horizontal ? -1 : 1, vertical ? -1 : 1, width / 2f, height / 2f);
+    return m;
+  }
 
   private void drawPaintState (Canvas c, int bitmapWidth, int bitmapHeight) {
     if (paintState != null) {
@@ -260,9 +269,9 @@ public class PhotoGenerationInfo extends GenerationInfo {
         int left = (int) ((float) regionRect.left * scaleX);
         int top = (int) ((float) regionRect.top * scaleY);
 
-        paintState.draw(c, -left, -top, baseWidth, baseHeight, tgx101PaintSource, null);
+        paintState.draw(c, -left, -top, baseWidth, baseHeight, tgx101PaintSource, tgx101PaintSourceMatrix);
       } else {
-        paintState.draw(c, 0,0, bitmapWidth, bitmapHeight, tgx101PaintSource, null);
+        paintState.draw(c, 0,0, bitmapWidth, bitmapHeight, tgx101PaintSource, tgx101PaintSourceMatrix);
       }
     }
   }
@@ -326,6 +335,7 @@ public class PhotoGenerationInfo extends GenerationInfo {
           c.scale(needMirrorHorizontal ? -1 : 1, needMirrorVertical ? -1 : 1, w / 2f, h / 2f);
         }
         c.drawBitmap(source, 0, 0, null);
+        Matrix mirror = tgx101MirrorMatrix(needMirrorHorizontal, needMirrorVertical, source.getWidth(), source.getHeight());
         if (needMirrorHorizontal || needMirrorVertical) {
           c.restore();
           needMirrorHorizontal = false;
@@ -333,8 +343,10 @@ public class PhotoGenerationInfo extends GenerationInfo {
         }
         if (paintState != null) {
           tgx101PaintSource = source;
+          tgx101PaintSourceMatrix = mirror;
           drawPaintState(c, source.getWidth(), source.getHeight());
           tgx101PaintSource = null;
+          tgx101PaintSourceMatrix = null;
           drawingComplete = true;
         }
         source.recycle();
@@ -359,14 +371,17 @@ public class PhotoGenerationInfo extends GenerationInfo {
         c.scale(needMirrorHorizontal ? -1 : 1, needMirrorVertical ? -1 : 1, source.getWidth() / 2f, source.getHeight() / 2f);
       }
       c.drawBitmap(source, 0, 0, null);
+      Matrix mirror = tgx101MirrorMatrix(needMirrorHorizontal, needMirrorVertical, source.getWidth(), source.getHeight());
       if (needMirrorHorizontal || needMirrorVertical) {
         c.restore();
         needMirrorHorizontal = false;
         needMirrorVertical = false;
       }
       tgx101PaintSource = source;
+      tgx101PaintSourceMatrix = mirror;
       drawPaintState(c, source.getWidth(), source.getHeight());
       tgx101PaintSource = null;
+      tgx101PaintSourceMatrix = null;
       source.recycle();
       source = altered;
       U.recycle(c);

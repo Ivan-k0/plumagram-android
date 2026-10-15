@@ -1685,8 +1685,11 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       return;
     }
     final View decor = getWindow().getDecorView();
-    decor.setForeground(new android.graphics.drawable.ColorDrawable(0xff16212c));
-    final Runnable uncover = () -> decor.setForeground(null);
+    final android.graphics.drawable.Drawable cover = new android.graphics.drawable.ColorDrawable(0xff16212c);
+    decor.setForeground(cover);
+    final Runnable uncover = () -> {
+      if (decor.getForeground() == cover) decor.setForeground(null); // only its own: not a newer cover put up meanwhile
+    };
     callController.addOneShotFocusListener(() -> decor.postOnAnimation(uncover));
     decor.postDelayed(uncover, 1500); // never leave the screen covered
   }

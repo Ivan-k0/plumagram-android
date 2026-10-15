@@ -7749,8 +7749,22 @@ public class MessagesController extends ViewController<MessagesController.Argume
    * list keeps its bottom, so the replied message slid off the top. 2026-10-06 (video 11:40 «подпрыгиваний быть не
    * должно»): it was scrolled back afterwards — up, then down. Now, while the keyboard and the bar open, every frame
    * is corrected before it is drawn, so the message never leaves the screen and nothing jumps */
+  private @Nullable android.view.ViewTreeObserver.OnPreDrawListener tgx101KeepVisibleListener;
+  private final Runnable tgx101KeepVisibleEnd = this::tgx101StopKeepVisible;
+
+  /** Removed by time too: with no frame drawn (app in the background) it stayed, and every reply added one more */
+  private void tgx101StopKeepVisible () {
+    android.view.ViewTreeObserver.OnPreDrawListener l = tgx101KeepVisibleListener;
+    tgx101KeepVisibleListener = null;
+    if (messagesView != null) {
+      messagesView.removeCallbacks(tgx101KeepVisibleEnd);
+      if (l != null) messagesView.getViewTreeObserver().removeOnPreDrawListener(l);
+    }
+  }
+
   private void tgx101KeepVisible (long messageId) {
     if (messagesView == null) return;
+    tgx101StopKeepVisible();
     final android.view.ViewTreeObserver observer = messagesView.getViewTreeObserver();
     final long until = android.os.SystemClock.uptimeMillis() + 900; // the keyboard and the reply bar are open by then
     final int[] logged = {0};
@@ -7769,11 +7783,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     if (initialTop == Integer.MAX_VALUE) return; // not on the screen: nothing to keep
     final int allowedTop = Math.min(Screen.dp(8f), initialTop);
-    observer.addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+    tgx101KeepVisibleListener = new android.view.ViewTreeObserver.OnPreDrawListener() {
       @Override
       public boolean onPreDraw () {
         if (isDestroyed() || messagesView == null || android.os.SystemClock.uptimeMillis() > until) {
-          if (messagesView != null) messagesView.getViewTreeObserver().removeOnPreDrawListener(this);
+          if (tgx101KeepVisibleListener == this) {
+            tgx101StopKeepVisible();
+          } else if (messagesView != null) {
+            messagesView.getViewTreeObserver().removeOnPreDrawListener(this);
+          }
           return true;
         }
         for (int i = 0; i < messagesView.getChildCount(); i++) {
@@ -7792,7 +7810,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
         }
         return true;
       }
-    });
+    };
+    observer.addOnPreDrawListener(tgx101KeepVisibleListener);
+    messagesView.postDelayed(tgx101KeepVisibleEnd, 1000);
   }
 
   private void updateReplyBarVisibility (boolean animated) {

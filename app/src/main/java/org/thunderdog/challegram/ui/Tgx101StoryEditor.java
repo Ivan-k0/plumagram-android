@@ -177,7 +177,7 @@ public final class Tgx101StoryEditor extends Dialog {
         BitmapFactory.decodeStream(in, null, o);
       }
       int sample = 1;
-      while (Math.max(o.outWidth, o.outHeight) / (sample * 2) >= 2560) sample *= 2;
+      while (Math.max(o.outWidth, o.outHeight) / sample > 2560) sample *= 2; // was «/ (sample * 2) >= 2560»: up to 5119 px kept
       o.inJustDecodeBounds = false;
       o.inSampleSize = sample;
       Bitmap b;
@@ -3280,19 +3280,34 @@ public final class Tgx101StoryEditor extends Dialog {
     final int privacyChoice = privacy, activePeriod = period;
     final boolean postToProfile = inProfile, protectContent = protect;
     UI.showToast(R.string.Tgx101StoryPublishing, Toast.LENGTH_SHORT);
+    // Drawn here, on the main thread, like the draft picture: drawn on the render thread it raced the screen's own
+    // drawing over the same layers (and the «exporting» flag); only the JPEG work goes to the background
+    final long started = SystemClock.uptimeMillis();
+    final Bitmap rendered;
+    try {
+      rendered = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
+      exporting = true;
+      try {
+        drawStory(new Canvas(rendered));
+      } finally {
+        exporting = false;
+      }
+    } catch (Throwable t) {
+      Tgx101Diag.mark("story editor: render failed " + t.getClass().getSimpleName());
+      publishing = false;
+      UI.showToast(R.string.Tgx101StoryFailed, Toast.LENGTH_LONG);
+      return;
+    }
+    final File cacheDir = new File(getContext().getCacheDir(), "stories");
     new Thread(() -> {
       File file = null;
-      long started = SystemClock.uptimeMillis();
       try {
-        Bitmap out = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
-        exporting = true;
-        try {
-          drawStory(new Canvas(out));
-        } finally {
-          exporting = false;
-        }
-        File dir = new File(getContext().getCacheDir(), "stories");
+        Bitmap out = rendered;
+        File dir = cacheDir;
         if (!dir.exists()) dir.mkdirs();
+        // earlier stories' JPEGs: TDLib has long uploaded them (a day is far beyond any upload)
+        File[] old = dir.listFiles();
+        if (old != null) for (File f : old) if (System.currentTimeMillis() - f.lastModified() > 24L * 60 * 60 * 1000) f.delete();
         file = new File(dir, "story_" + System.currentTimeMillis() + ".jpg");
         int quality = 97;
         while (true) {
