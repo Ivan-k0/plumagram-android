@@ -6519,6 +6519,7 @@
   <string name="Tgx101WebAppLocationAllow">Allow</string>
   <string name="Tgx101WebAppOpenAsk">Open the mini app of %1$s? It will see your name, language and theme.</string>
   <string name="Tgx101WebAppOpen">Open</string>
+  <string name="Tgx101CallConfirmHint">Swipe down or tap outside to cancel</string>
   <string name="Tgx101ChannelStyle">Channels</string>
   <string name="Tgx101JournalLines">Lines between posts (Journal)</string>
   <string name="Tgx101LinesGrey">Grey</string>

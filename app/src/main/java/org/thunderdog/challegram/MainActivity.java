@@ -840,11 +840,12 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
           handler.postDelayed(() -> {
             org.thunderdog.challegram.navigation.ViewController<?> c = navigation != null ? navigation.getCurrentStackItem() : null;
             if (c == null) return;
-            Runnable call = () -> {
+            // Always ask (the intent may come from any app, not only a tap in the contact card) — in the compact sheet
+            // at the bottom, under the thumb (user 2026-10-15, variant 1)
+            Runnable call = () -> org.thunderdog.challegram.ui.Tgx101CallConfirmSheet.show(c, callUserId, tgx101Video, () -> {
               if (tgx101Video) org.thunderdog.challegram.voip.Tgx101Video.requestVideoCall(callUserId);
-              // Always ask: the intent may come from any app, not only a tap in the contact card
-              c.tdlib().context().calls().makeCall(c, callUserId, null, true);
-            };
+              c.tdlib().context().calls().makeCall(c, callUserId, null, false);
+            });
             if (tgx101Video && !org.thunderdog.challegram.voip.Tgx101Video.hasCameraPermission()) {
               requestCustomPermissions(new String[] {android.Manifest.permission.CAMERA}, (code, permissions, grantResults, grantCount) -> call.run());
             } else {

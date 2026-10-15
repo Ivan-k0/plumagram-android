@@ -490,7 +490,7 @@ public class PaintState {
           break;
         }
       }
-      int saveCount = hasEraser ? c.saveLayer(x, y, x + viewWidth, y + viewHeight, null) : -1;
+      int saveCount = hasEraser ? org.thunderdog.challegram.tool.Tgx101Compat.saveLayer(c, x, y, x + viewWidth, y + viewHeight) : -1; // the 4-float saveLayer is API 21
       for (SimpleDrawing drawing : drawingsList) {
         drawing.draw(c, x, y, x + viewWidth, y + viewHeight);
       }

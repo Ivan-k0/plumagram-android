@@ -300,6 +300,50 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
     return adapter;
   }
 
+  @Override
+  protected void onLayout (boolean changed, int l, int t, int r, int b) {
+    super.onLayout(changed, l, t, r, b);
+    tgx101CheckDuplicates();
+  }
+
+  // TGx101 (users 2026-10-15: «some chats / groups show twice in the list, then it passes»): the adapter's data can't
+  // hold a chat twice (it keeps a set of ids), so a twin is two rows on screen for one chat. Once the animations are
+  // over, two rows of one chat are logged with their positions and the list is redrawn at once
+  private long tgx101LastDuplicateFix;
+  private boolean tgx101DuplicateCheckQueued;
+
+  private void tgx101CheckDuplicates () {
+    if (adapter == null || getChildCount() < 2) return;
+    if (isAnimating()) {
+      if (tgx101DuplicateCheckQueued || getItemAnimator() == null) return;
+      tgx101DuplicateCheckQueued = true;
+      getItemAnimator().isRunning(() -> {
+        tgx101DuplicateCheckQueued = false;
+        post(this::tgx101CheckDuplicates);
+      });
+      return;
+    }
+    java.util.Map<Long, Integer> seen = new java.util.HashMap<>();
+    for (int i = 0; i < getChildCount(); i++) {
+      View child = getChildAt(i);
+      if (!(child instanceof org.thunderdog.challegram.component.dialogs.ChatView)) continue;
+      ViewHolder holder = getChildViewHolder(child);
+      if (holder == null || holder.getAbsoluteAdapterPosition() == NO_POSITION) continue; // leaving the list
+      long chatId = ((org.thunderdog.challegram.component.dialogs.ChatView) child).getChatId();
+      if (chatId == 0) continue;
+      Integer other = seen.put(chatId, holder.getAbsoluteAdapterPosition());
+      if (other != null && other != holder.getAbsoluteAdapterPosition()) {
+        long now = android.os.SystemClock.uptimeMillis();
+        org.thunderdog.challegram.Tgx101Diag.mark("chat list: chat " + chatId + " shown twice (rows " + other + " and " + holder.getAbsoluteAdapterPosition() + ", " + adapter.getItemCount() + " items)" + (now - tgx101LastDuplicateFix < 1000 ? " — again within 1 s" : " — redrawn"));
+        if (now - tgx101LastDuplicateFix >= 1000) {
+          tgx101LastDuplicateFix = now;
+          post(adapter::notifyDataSetChanged); // not inside the layout pass
+        }
+        return;
+      }
+    }
+  }
+
   public void setTotalRes (int totalRes) {
     this.adapter.setTotalRes(totalRes);
   }

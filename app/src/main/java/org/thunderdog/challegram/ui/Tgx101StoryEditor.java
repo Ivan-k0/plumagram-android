@@ -1048,7 +1048,7 @@ public final class Tgx101StoryEditor extends Dialog {
     boolean erasing = brush == BRUSH_ERASER && live;
     for (Stroke s : strokes) if (s.brush == BRUSH_ERASER) { erasing = true; break; }
     // the eraser only takes away lines, so the lines get their own layer when there is one
-    int save = erasing ? c.saveLayer(0, 0, W, H, null) : c.save();
+    int save = erasing ? org.thunderdog.challegram.tool.Tgx101Compat.saveLayer(c, 0, 0, W, H) : c.save();
     for (Stroke s : strokes) drawStroke(c, s.points, s.points.length / 2, s.color, s.width, s.brush);
     if (live) drawStroke(c, livePoints, liveCount, brushColor, brushWidth, brush);
     c.restoreToCount(save);
@@ -1470,9 +1470,8 @@ public final class Tgx101StoryEditor extends Dialog {
       v.setGravity(Gravity.CENTER);
       v.setOnClickListener(x -> { sky[0] = e; refresh.run(); });
       android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams();
-      lp.width = 0;
       lp.height = Screen.dp(46f);
-      lp.columnSpec = android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f);
+      org.thunderdog.challegram.tool.Tgx101Compat.weightedColumn(lp);
       grid.addView(v, lp);
     }
     card.addView(grid);
@@ -1922,12 +1921,12 @@ public final class Tgx101StoryEditor extends Dialog {
       float top = frame.top + frame.height() * TOP_ZONE, bottom = frame.bottom - frame.height() * BOTTOM_ZONE;
       if (previewFactor > 0f) {
         // the viewer's chrome fades in over the story (and out) instead of popping
-        int layer = c.saveLayerAlpha(0, 0, getWidth(), getHeight(), Math.round(255 * previewFactor));
+        int layer = org.thunderdog.challegram.tool.Tgx101Compat.saveLayerAlpha(c, 0, 0, getWidth(), getHeight(), Math.round(255 * previewFactor));
         drawViewerChrome(c, top, bottom);
         c.restoreToCount(layer);
       }
       if (previewFactor < 1f) {
-        int layer = c.saveLayerAlpha(0, 0, getWidth(), getHeight(), Math.round(255 * (1f - previewFactor)));
+        int layer = org.thunderdog.challegram.tool.Tgx101Compat.saveLayerAlpha(c, 0, 0, getWidth(), getHeight(), Math.round(255 * (1f - previewFactor)));
         c.drawLine(frame.left, top, frame.right, top, dash);
         c.drawLine(frame.left, bottom, frame.right, bottom, dash);
         // on the left, away from the tool panel on the right; a soft shadow keeps them readable on light photos
@@ -2640,9 +2639,8 @@ public final class Tgx101StoryEditor extends Dialog {
       t.setOnClickListener(v -> { adjustSelected = index; refresh.run(); });
       tiles[i] = t;
       android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams();
-      lp.width = 0;
       lp.height = Screen.dp(56f);
-      lp.columnSpec = android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f);
+      org.thunderdog.challegram.tool.Tgx101Compat.weightedColumn(lp);
       lp.setMargins(Screen.dp(3f), Screen.dp(3f), Screen.dp(3f), Screen.dp(3f));
       grid.addView(t, lp);
     }
