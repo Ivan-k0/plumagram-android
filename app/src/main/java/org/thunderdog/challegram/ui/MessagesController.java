@@ -2796,6 +2796,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (chat.videoChat != null && chat.videoChat.groupCallId != 0) {
         Tgx101GroupCallController.join(this, chat.id, chat.videoChat.groupCallId, null);
       }
+    } else if (id == R.id.btn_tgx101AutoDelete) {
+      tgx101ShowAutoDelete();
     } else if (id == R.id.btn_tgx101ShowTopics) {
       Tgx101TopicsController.showTopics(this, chat);
     } else if (id == R.id.btn_tgx101VoiceChatStart) {
@@ -4729,6 +4731,40 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return manager.tgx101FirstPageShown();
   }
 
+  private static final int[] TGX101_AUTO_DELETE = {0, 86400, 7 * 86400, 31 * 86400};
+
+  private static String tgx101AutoDeleteName (int seconds) {
+    switch (seconds) {
+      case 0: return Lang.getString(R.string.Tgx101AutoDeleteOff);
+      case 86400: return Lang.getString(R.string.Tgx101AutoDeleteDay);
+      case 7 * 86400: return Lang.getString(R.string.Tgx101AutoDeleteWeek);
+      case 31 * 86400: return Lang.getString(R.string.Tgx101AutoDeleteMonth);
+    }
+    return Lang.getDuration(seconds);
+  }
+
+  private void tgx101ShowAutoDelete () {
+    if (chat == null) return;
+    final long chatId = chat.id;
+    final int current = chat.messageAutoDeleteTime;
+    int[] optionIds = {R.id.btn_tgx101AutoDelete0, R.id.btn_tgx101AutoDelete1, R.id.btn_tgx101AutoDelete2, R.id.btn_tgx101AutoDelete3};
+    String[] titles = new String[optionIds.length];
+    int[] icons = new int[optionIds.length];
+    for (int i = 0; i < optionIds.length; i++) {
+      titles[i] = tgx101AutoDeleteName(TGX101_AUTO_DELETE[i]) + (TGX101_AUTO_DELETE[i] == current ? " ✓" : "");
+      icons[i] = i == 0 ? R.drawable.baseline_cancel_24 : R.drawable.baseline_auto_delete_24;
+    }
+    showOptions(Lang.getString(R.string.Tgx101AutoDeleteInfo), optionIds, titles, null, icons, (itemView, optionId) -> {
+      for (int i = 0; i < optionIds.length; i++) {
+        if (optionIds[i] == optionId && TGX101_AUTO_DELETE[i] != current) {
+          org.thunderdog.challegram.Tgx101Diag.mark("auto-delete: " + TGX101_AUTO_DELETE[i] + " s");
+          tdlib.setChatMessageAutoDeleteTime(chatId, TGX101_AUTO_DELETE[i]);
+        }
+      }
+      return true;
+    });
+  }
+
   private void resetOnFocus () {
     if (resetOnFocus && navigationController() != null) {
       clearResetOnFocus();
@@ -5221,6 +5257,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else if (!areScheduledOnly() && Tgx101GroupCallController.canStart(tdlib, chat)) {
       ids.append(R.id.btn_tgx101VoiceChatStart);
       strings.append(R.string.Tgx101VoiceChatStart);
+    }
+
+    // TGx101 (user 2026-10-15 «дать возможность включать и выключать автоудаление»): right in the chat menu
+    if (!areScheduledOnly() && messageThread == null && !tdlib.isSelfChat(chat.id) && tdlib.canChangeMessageAutoDeleteTime(chat.id)) {
+      ids.append(R.id.btn_tgx101AutoDelete);
+      strings.append(chat.messageAutoDeleteTime != 0 ? Lang.getString(R.string.Tgx101AutoDeleteOn, tgx101AutoDeleteName(chat.messageAutoDeleteTime)) : Lang.getString(R.string.Tgx101AutoDelete));
     }
 
     // TGx101: translate every message of the chat into one language

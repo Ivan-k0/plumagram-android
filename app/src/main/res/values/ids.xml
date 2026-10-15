@@ -1628,6 +1628,11 @@
   <item name="btn_tgx101SectionIcon" type="id"/>
   <item name="btn_tgx101AppIcon" type="id"/>
   <item name="btn_tgx101RingStart" type="id"/>
+  <item name="btn_tgx101AutoDelete" type="id"/>
+  <item name="btn_tgx101AutoDelete0" type="id"/>
+  <item name="btn_tgx101AutoDelete1" type="id"/>
+  <item name="btn_tgx101AutoDelete2" type="id"/>
+  <item name="btn_tgx101AutoDelete3" type="id"/>
   <item name="btn_tgx101FilterHideFully" type="id"/>
   <item name="btn_tgx101HideChannelReactions" type="id"/>
   <item name="btn_tgx101NextChannelSwipe" type="id"/>

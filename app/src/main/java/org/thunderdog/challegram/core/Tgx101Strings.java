@@ -724,6 +724,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101RingStart, "Начинать мелодию с");
     RU.put(R.string.Tgx101RingStartBeginning, "С начала");
     RU.put(R.string.Tgx101RingStartHint, "Минуты:секунды, например 1:39 (пусто — с начала)");
+    RU.put(R.string.Tgx101AutoDelete, "Автоудаление сообщений");
+    RU.put(R.string.Tgx101AutoDeleteOn, "Автоудаление: %1$s");
+    RU.put(R.string.Tgx101AutoDeleteDay, "1 день");
+    RU.put(R.string.Tgx101AutoDeleteWeek, "1 неделя");
+    RU.put(R.string.Tgx101AutoDeleteMonth, "1 месяц");
+    RU.put(R.string.Tgx101AutoDeleteInfo, "Новые сообщения в этом чате будут удаляться у всех через выбранное время");
     RU.put(R.string.Tgx101CallAddPeople, "Добавить участника");
     RU.put(R.string.Tgx101SectionData, "Данные и сеть");
     RU.put(R.string.Tgx101SectionDataHint, "Трафик, экономия, прокси, автозагрузка");

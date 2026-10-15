@@ -6465,6 +6465,12 @@
   <string name="Tgx101RingStart">Start the melody at</string>
   <string name="Tgx101RingStartBeginning">The beginning</string>
   <string name="Tgx101RingStartHint">Minutes:seconds, e.g. 1:39 (empty — the beginning)</string>
+  <string name="Tgx101AutoDelete">Auto-delete messages</string>
+  <string name="Tgx101AutoDeleteOn">Auto-delete: %1$s</string>
+  <string name="Tgx101AutoDeleteDay">1 day</string>
+  <string name="Tgx101AutoDeleteWeek">1 week</string>
+  <string name="Tgx101AutoDeleteMonth">1 month</string>
+  <string name="Tgx101AutoDeleteInfo">New messages in this chat will be deleted for everyone after the chosen time</string>
   <string name="Tgx101CallAddPeople">Add people</string>
   <string name="Tgx101SectionData">Data and network</string>
   <string name="Tgx101SectionDataHint">Traffic, data saver, proxy, auto-download</string>
