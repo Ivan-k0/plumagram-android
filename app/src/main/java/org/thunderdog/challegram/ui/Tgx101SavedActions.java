@@ -328,13 +328,20 @@ public final class Tgx101SavedActions {
     morning.set(Calendar.HOUR_OF_DAY, 9);
     morning.set(Calendar.MINUTE, 0);
     morning.set(Calendar.SECOND, 0);
-    final long[] at = {
+    // «This evening» less than two hours away is almost «in an hour» (test 2026-10-15 at 19:00: 19:59 and 20:00)
+    boolean eveningSoon = evening.getTimeInMillis() - now.getTimeInMillis() < 2 * 3600 * 1000L;
+    final long[] at = eveningSoon ? new long[] {
+      now.getTimeInMillis() / 1000 + 3600,
+      morning.getTimeInMillis() / 1000,
+      now.getTimeInMillis() / 1000 + 7 * 86400
+    } : new long[] {
       now.getTimeInMillis() / 1000 + 3600,
       evening.getTimeInMillis() / 1000,
       morning.getTimeInMillis() / 1000,
       now.getTimeInMillis() / 1000 + 7 * 86400
     };
-    int[] names = {R.string.Tgx101SavedRemindHour, R.string.Tgx101SavedRemindEvening, R.string.Tgx101SavedRemindMorning, R.string.Tgx101SavedRemindWeek};
+    int[] names = eveningSoon ? new int[] {R.string.Tgx101SavedRemindHour, R.string.Tgx101SavedRemindMorning, R.string.Tgx101SavedRemindWeek}
+      : new int[] {R.string.Tgx101SavedRemindHour, R.string.Tgx101SavedRemindEvening, R.string.Tgx101SavedRemindMorning, R.string.Tgx101SavedRemindWeek};
     Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
     h[0] = Tgx101Sheet.show(c, null, body -> {
       body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101SavedRemind)));
@@ -392,20 +399,24 @@ public final class Tgx101SavedActions {
   public static void showSavedBanner (Tdlib tdlib, long[] messageIds, boolean external) {
     if (messageIds == null || messageIds.length == 0) return;
     Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
+    org.thunderdog.challegram.Tgx101Diag.mark("saved banner: " + messageIds.length + " saved" + (external ? " from another app" : "") + ", mode " + store.sheetMode);
     if (store.sheetMode == Tgx101SavedStore.SHEET_NEVER || (store.sheetMode == Tgx101SavedStore.SHEET_EXTERNAL_ONLY && !external)) return;
     UI.post(() -> {
       BaseActivity activity = UI.getUiContext();
       if (activity == null || activity.isFinishing()) return;
       ViewController<?> c = activity.navigation().getCurrentStackItem();
       if (c == null) return;
+      refreshOpenSaved(c);
       Banner.show(activity, c, tdlib, messageIds);
     });
   }
 
   private static final class Banner {
     static void show (BaseActivity activity, ViewController<?> c, Tdlib tdlib, long[] ids) {
-      ViewGroup content = activity.findViewById(android.R.id.content);
+      // the window's top layer: the app draws its own root over the standard content frame (the banner was hidden there)
+      ViewGroup content = (ViewGroup) activity.getWindow().getDecorView();
       if (content == null) return;
+      org.thunderdog.challegram.Tgx101Diag.mark("saved banner: shown for " + ids.length);
       Context context = activity;
       final FrameLayout holder = new FrameLayout(context);
       final LinearLayout card = new LinearLayout(context) {
@@ -450,7 +461,8 @@ public final class Tgx101SavedActions {
         }
       };
       card.setOrientation(LinearLayout.VERTICAL);
-      card.setBackground(Tgx101SavedHomeController.card(0xff17212b, 18f));
+      // dark ink on a light theme; on a dark one a step lighter than the screen, so it doesn't melt into it
+      card.setBackground(Tgx101SavedHomeController.card(Theme.isDark() ? 0xff33414f : 0xff17212b, 18f));
       card.setPadding(Screen.dp(14f), Screen.dp(8f), Screen.dp(14f), Screen.dp(12f));
       if (android.os.Build.VERSION.SDK_INT >= 21) card.setElevation(Screen.dp(6f));
       card.setClickable(true);
@@ -507,7 +519,7 @@ public final class Tgx101SavedActions {
         b.setOnClickListener(v -> {
           close[0].run();
           if (which == 0) {
-            toFolder(c, ids, null);
+            toFolder(c, ids, () -> refreshOpenSaved(c));
           } else if (which == 1) {
             Tgx101SavedKit.byIds(tdlib, toList(ids), messages -> tag(c, messages, null));
           } else {
@@ -529,6 +541,15 @@ public final class Tgx101SavedActions {
       card.setAlpha(0f);
       card.animate().translationY(0f).alpha(1f).setDuration(240).setInterpolator(new android.view.animation.DecelerateInterpolator(1.8f)).start();
       holder.postDelayed(close[0], 4000);
+    }
+  }
+
+  /** An open Saved screen shows what was just saved / filed (test 2026-10-15: the list stayed as it was) */
+  static void refreshOpenSaved (@Nullable ViewController<?> c) {
+    if (c instanceof Tgx101SavedListController) {
+      ((Tgx101SavedListController) c).reloadSoon();
+    } else if (c instanceof Tgx101SavedHomeController) {
+      ((Tgx101SavedHomeController) c).reloadSoon();
     }
   }
 

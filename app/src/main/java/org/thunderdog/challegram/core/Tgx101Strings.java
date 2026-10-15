@@ -747,12 +747,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedOpenSetting, "Открывать как");
     RU.put(R.string.Tgx101SavedOpenHome, "Хранилище");
     RU.put(R.string.Tgx101SavedOpenFeed, "Лента чата");
-    RU.put(R.string.Tgx101SavedInboxTileSetting, "«Входящие» отдельной плиткой");
+    RU.put(R.string.Tgx101SavedInboxTileSetting, "Плитка «Входящие»");
     RU.put(R.string.Tgx101SavedShowPinnedSetting, "Показывать «Закреплённое»");
     RU.put(R.string.Tgx101SavedHomeDesc, "Папки и метки выносятся на главный экран; долгое нажатие на плитку — переименовать или убрать.");
     RU.put(R.string.Tgx101SavedTagsSection, "Метки");
-    RU.put(R.string.Tgx101SavedHashtagSetting, "Писать метку хэштегом в своих сообщениях");
-    RU.put(R.string.Tgx101SavedHashtagDesc, "Выключено: метки хранятся только названием на этом телефоне.");
+    RU.put(R.string.Tgx101SavedHashtagSetting, "Метки хэштегами");
+    RU.put(R.string.Tgx101SavedHashtagDesc, "Включено: в своих сообщениях метка дописывается #хэштегом — её видно на всех устройствах. Выключено: метки хранятся только названием на этом телефоне.");
     RU.put(R.string.Tgx101ChannelStyle, "Вид каналов");
     RU.put(R.string.Tgx101TranslateEngine, "Сервис перевода");
     RU.put(R.string.Tgx101TranslateTelegram, "Telegram");

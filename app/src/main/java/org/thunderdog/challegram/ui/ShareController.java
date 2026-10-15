@@ -3712,11 +3712,11 @@ public class ShareController extends TelegramViewController<ShareController.Args
     }
 
     if (functions.size() == 1) {
-      tdlib.client().send(functions.get(0), tdlib.messageHandler());
+      tdlib.client().send(functions.get(0), org.thunderdog.challegram.data.Tgx101SavedStore.savedAware(tdlib, functions.get(0), tdlib.messageHandler())); // TGx101: the «Saved» banner
     } else {
       tdlib.runOnTdlibThread(() -> {
         for (TdApi.Function<?> function : functions) {
-          tdlib.client().send(function, tdlib.messageHandler());
+          tdlib.client().send(function, org.thunderdog.challegram.data.Tgx101SavedStore.savedAware(tdlib, function, tdlib.messageHandler()));
         }
       });
     }

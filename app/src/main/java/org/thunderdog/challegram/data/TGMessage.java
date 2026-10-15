@@ -9464,6 +9464,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
                 tdlib.send(new TdApi.ForwardMessages(tdlib.selfChatId(), null, msg.chatId, getAllMessageIds(), null, false, false), (result, error) -> {
                   // the «Saved» banner says it (unless it's turned off in the Saved settings)
                   if (error == null && Tgx101SavedStore.get(tdlib).sheetMode == Tgx101SavedStore.SHEET_NEVER) UI.showToast(R.string.Tgx101SwipeSaved, android.widget.Toast.LENGTH_SHORT);
+                  else if (error == null) Tgx101SavedStore.onSavedResult(tdlib, result);
                 }), true, false);
             }
             break;

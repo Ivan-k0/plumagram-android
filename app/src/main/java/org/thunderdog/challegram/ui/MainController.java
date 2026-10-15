@@ -187,6 +187,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   @Override
   protected View onCreateView (Context context) {
     org.thunderdog.challegram.data.Tgx101SavedStore.ensureListener(); // TGx101: the «Saved» banner from app start
+    tdlib.awaitInitialization(() -> org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib)); // subscribes to this account's Saved chat
     initPagerSections();
     return super.onCreateView(context);
   }

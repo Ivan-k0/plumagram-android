@@ -138,6 +138,11 @@ public class Tgx101SavedListController extends ViewController<Void> {
   }
 
   @Override
+  protected int getBackButton () {
+    return org.thunderdog.challegram.navigation.BackHeaderButton.TYPE_BACK;
+  }
+
+  @Override
   public CharSequence getName () {
     switch (mode) {
       case MODE_INBOX: return Lang.getString(R.string.Tgx101SavedInbox);
@@ -692,7 +697,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
     selectionBar.addView(top);
     LinearLayout actions = new LinearLayout(context);
     actions.setOrientation(LinearLayout.HORIZONTAL);
-    actions.setPadding(0, 0, 0, Screen.dp(6f) + Screen.getNavigationBarHeight());
+    actions.setPadding(Screen.dp(6f), 0, Screen.dp(6f), Screen.dp(6f) + Screen.getNavigationBarHeight());
     actions.addView(action(context, R.drawable.baseline_folder_24, R.string.Tgx101SavedToFolder, v -> Tgx101SavedActions.toFolder(this, selectedIds(), this::afterAction)));
     actions.addView(action(context, R.drawable.baseline_label_24, R.string.Tgx101SavedTag, v -> Tgx101SavedActions.tag(this, selectedMessages(), this::afterAction)));
     actions.addView(action(context, R.drawable.baseline_notifications_active_24, R.string.Tgx101SavedRemind, v -> Tgx101SavedActions.remind(this, selectedIds(), this::clearSelection)));
@@ -720,10 +725,12 @@ public class Tgx101SavedListController extends ViewController<Void> {
     i.setImageResource(icon);
     i.setColorFilter(icon == R.drawable.baseline_delete_24 ? Theme.getColor(ColorId.textNegative) : Theme.getColor(ColorId.icon));
     b.addView(i, new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f)));
-    TextView t = Tgx101SavedHomeController.text(context, 12f, icon == R.drawable.baseline_delete_24 ? Theme.getColor(ColorId.textNegative) : Theme.textAccentColor(), false);
+    TextView t = Tgx101SavedHomeController.text(context, 11f, icon == R.drawable.baseline_delete_24 ? Theme.getColor(ColorId.textNegative) : Theme.textAccentColor(), false);
     t.setText(Lang.getString(label));
     t.setSingleLine(true);
-    t.setPadding(0, Screen.dp(4f), 0, 0);
+    t.setEllipsize(TextUtils.TruncateAt.END);
+    t.setGravity(Gravity.CENTER);
+    t.setPadding(Screen.dp(2f), Screen.dp(4f), Screen.dp(2f), 0); // five labels in a row: they keep off the screen edges
     b.addView(t);
     b.setLayoutParams(new LinearLayout.LayoutParams(0, Screen.dp(64f), 1f));
     return b;
@@ -843,8 +850,12 @@ public class Tgx101SavedListController extends ViewController<Void> {
     }
 
     void bind (ViewController<?> c, TdApi.Message m, boolean selected, boolean selecting) {
+      bind(c, m, selected, selecting, null);
+    }
+
+    void bind (ViewController<?> c, TdApi.Message m, boolean selected, boolean selecting, @Nullable String highlight) {
       int kind = Tgx101SavedKit.kindOf(m);
-      title.setText(Tgx101SavedKit.title(m));
+      title.setText(highlighted(Tgx101SavedKit.title(m), highlight));
       meta.setText(Tgx101SavedKit.meta(c.tdlib(), m));
       boolean hasThumb = Tgx101SavedKit.thumbFile(m) != null || Tgx101SavedKit.minithumb(m) != null;
       int color = kind == Tgx101SavedKit.KIND_VOICE ? 0xff2e8a4a : kind == Tgx101SavedKit.KIND_FILE ? 0xffb53c57 : Tgx101SavedHomeController.accent();
@@ -864,6 +875,20 @@ public class Tgx101SavedListController extends ViewController<Void> {
       check.setVisibility(selecting ? View.VISIBLE : View.GONE);
       check.setColorFilter(selected ? Tgx101SavedHomeController.accent() : Theme.separatorColor());
     }
+  }
+
+  /** The searched word marked in a result (mockup 2) */
+  static CharSequence highlighted (String text, @Nullable String query) {
+    if (query == null || query.isEmpty() || text == null) return text;
+    String lower = text.toLowerCase(java.util.Locale.ROOT), q = query.toLowerCase(java.util.Locale.ROOT);
+    int at = lower.indexOf(q);
+    if (at < 0) return text;
+    android.text.SpannableString s = new android.text.SpannableString(text);
+    while (at >= 0) {
+      s.setSpan(new android.text.style.BackgroundColorSpan(Tgx101SavedHomeController.tint(0xfff2c94c, .45f)), at, at + q.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+      at = lower.indexOf(q, at + q.length());
+    }
+    return s;
   }
 
   static final class GridHolder extends RecyclerView.ViewHolder {
@@ -965,13 +990,15 @@ public class Tgx101SavedListController extends ViewController<Void> {
       card.addView(body);
     }
 
+    String highlightQuery;
+
     void bind (ViewController<?> c, TdApi.Message m, boolean selected) {
       boolean hasImage = Tgx101SavedKit.thumbFile(m) != null || Tgx101SavedKit.minithumb(m) != null;
       image.setVisibility(hasImage ? View.VISIBLE : View.GONE);
       if (hasImage) Tgx101SavedKit.loadThumb(c.tdlib(), image, m, Screen.dp(180f));
-      title.setText(Tgx101SavedKit.title(m));
+      title.setText(highlighted(Tgx101SavedKit.title(m), highlightQuery));
       TdApi.LinkPreview p = Tgx101SavedKit.linkPreview(m);
-      String d = p != null && p.description != null ? p.description.text : null;
+      String d = p != null && p.description != null ? Tgx101SavedKit.unescape(p.description.text) : null;
       desc.setVisibility(d != null && !d.isEmpty() ? View.VISIBLE : View.GONE);
       desc.setText(d);
       site.setText(Tgx101SavedKit.meta(c.tdlib(), m));
@@ -1030,9 +1057,10 @@ public class Tgx101SavedListController extends ViewController<Void> {
         }
         ((GridHolder) holder).bind(Tgx101SavedListController.this, m, index, selecting);
       } else if (holder instanceof CardHolder) {
+        ((CardHolder) holder).highlightQuery = mode == MODE_SEARCH ? query : null;
         ((CardHolder) holder).bind(Tgx101SavedListController.this, m, isSelected);
       } else {
-        ((RowHolder) holder).bind(Tgx101SavedListController.this, m, isSelected, selecting);
+        ((RowHolder) holder).bind(Tgx101SavedListController.this, m, isSelected, selecting, mode == MODE_SEARCH ? query : null);
         ((RowHolder) holder).itemView.setBackground(isSelected ? Tgx101SavedHomeController.card(Tgx101SavedHomeController.tint(Tgx101SavedHomeController.accent(), .12f), 12f) : Tgx101SavedHomeController.card(Theme.fillingColor(), 12f));
         RecyclerView.LayoutParams lp = (RecyclerView.LayoutParams) holder.itemView.getLayoutParams();
         lp.setMargins(0, Screen.dp(3f), 0, Screen.dp(3f));
@@ -1064,4 +1092,15 @@ public class Tgx101SavedListController extends ViewController<Void> {
   }
 
   private boolean loadedOnce;
+
+  /** Something was saved / filed while this list is open */
+  void reloadSoon () {
+    if (list == null || isDestroyed() || mode == MODE_SEARCH) return;
+    list.removeCallbacks(reloader);
+    list.postDelayed(reloader, 400); // Telegram has the new message in the history by then
+  }
+
+  private final Runnable reloader = () -> {
+    if (!isDestroyed()) load();
+  };
 }

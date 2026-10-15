@@ -70,6 +70,11 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   }
 
   @Override
+  protected int getBackButton () {
+    return org.thunderdog.challegram.navigation.BackHeaderButton.TYPE_BACK;
+  }
+
+  @Override
   public CharSequence getName () {
     return Lang.getString(R.string.SavedMessages);
   }
@@ -149,6 +154,9 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   protected View onCreateView (Context context) {
     FrameLayout root = new FrameLayout(context);
     root.setBackgroundColor(Theme.backgroundColor());
+    // the note field doesn't take the focus when the screen opens (popups then sat above an expected keyboard)
+    root.setFocusableInTouchMode(true);
+    root.setDescendantFocusability(ViewGroup.FOCUS_BEFORE_DESCENDANTS);
 
     LinearLayout outer = new LinearLayout(context);
     outer.setOrientation(LinearLayout.VERTICAL);
@@ -262,6 +270,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     outer.addView(bar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
     reload();
+    root.requestFocus();
     return root;
   }
 
@@ -272,6 +281,17 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   }
 
   private boolean loadedOnce;
+
+  /** Something was saved / filed while the home screen is open */
+  void reloadSoon () {
+    if (column == null || isDestroyed()) return;
+    column.removeCallbacks(reloader);
+    column.postDelayed(reloader, 400);
+  }
+
+  private final Runnable reloader = () -> {
+    if (!isDestroyed()) reload();
+  };
 
   private void reload () {
     loadedOnce = true;
@@ -445,8 +465,9 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     t.addView(plus, new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f)));
     TextView l = text(context, 13f, accent(), false);
     l.setText(Lang.getString(R.string.Tgx101SavedNew));
+    l.setGravity(Gravity.CENTER);
     l.setPadding(0, Screen.dp(4f), 0, 0);
-    t.addView(l);
+    t.addView(l, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)); // centred under the «+»
     return t;
   }
 
@@ -503,9 +524,11 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     LinearLayout body = new LinearLayout(context);
     body.setOrientation(LinearLayout.VERTICAL);
     body.setPadding(Screen.dp(12f), Screen.dp(8f), Screen.dp(12f), Screen.dp(10f));
-    TextView k = text(context, 12f, Theme.textDecentColor(), false);
-    k.setText(Tgx101SavedKit.kindLabel(kind));
-    body.addView(k);
+    if (!Tgx101SavedKit.kindLabel(kind).equals(Tgx101SavedKit.title(m))) { // «Видео / Видео» for a video with no caption
+      TextView k = text(context, 12f, Theme.textDecentColor(), false);
+      k.setText(Tgx101SavedKit.kindLabel(kind));
+      body.addView(k);
+    }
     TextView t = text(context, 14f, Theme.textAccentColor(), false);
     t.setText(Tgx101SavedKit.title(m));
     t.setMaxLines(c.getChildCount() > 0 ? 1 : 3);
@@ -564,7 +587,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       TdApi.TextEntities found = org.drinkless.tdlib.Client.execute(new TdApi.GetTextEntities(text));
       if (found != null) formatted.entities = found.entities;
     } catch (Throwable ignored) { }
-    Tgx101SavedStore.suppressBanner(3000); // a note typed here needs no «put in folder?» banner
+    Tgx101SavedStore.suppressBanner(15000); // a note typed here needs no «put in folder?» banner
     tdlib.send(new TdApi.SendMessage(tdlib.selfChatId(), null, null, null, null, new TdApi.InputMessageText(formatted, null, false)), (sent, error) -> UI.post(() -> {
       if (error != null) {
         UI.showError(error);

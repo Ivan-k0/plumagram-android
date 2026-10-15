@@ -6993,10 +6993,10 @@
   <string name="Tgx101SavedOpenSetting">Opens as</string>
   <string name="Tgx101SavedOpenHome">Storage</string>
   <string name="Tgx101SavedOpenFeed">Chat feed</string>
-  <string name="Tgx101SavedInboxTileSetting">«Inbox» as a tile</string>
+  <string name="Tgx101SavedInboxTileSetting">«Inbox» tile</string>
   <string name="Tgx101SavedShowPinnedSetting">Show «Pinned»</string>
   <string name="Tgx101SavedHomeDesc">Folders and tags can be moved to the home screen; long-press a tile to rename or remove it.</string>
   <string name="Tgx101SavedTagsSection">Tags</string>
-  <string name="Tgx101SavedHashtagSetting">Write tags as hashtags in my messages</string>
-  <string name="Tgx101SavedHashtagDesc">Off: tags are kept by name on this phone only.</string>
+  <string name="Tgx101SavedHashtagSetting">Tags as hashtags</string>
+  <string name="Tgx101SavedHashtagDesc">On: in your own messages a tag is written as a #hashtag — seen on all devices. Off: tags are kept by name on this phone only.</string>
 </resources>

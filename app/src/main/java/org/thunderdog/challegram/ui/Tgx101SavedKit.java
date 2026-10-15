@@ -118,10 +118,30 @@ public final class Tgx101SavedKit {
     return nl >= 0 ? s.substring(0, nl).trim() : s;
   }
 
+  /** Sites put «&laquo;» and the like into their previews as text (test 2026-10-15): shown decoded */
+  public static String unescape (@Nullable String s) {
+    if (s == null || s.indexOf('&') < 0) return s;
+    s = s.replace("&laquo;", "«").replace("&raquo;", "»").replace("&quot;", "\"").replace("&#39;", "'").replace("&apos;", "'")
+      .replace("&nbsp;", " ").replace("&mdash;", "—").replace("&ndash;", "–").replace("&hellip;", "…").replace("&lt;", "<").replace("&gt;", ">");
+    java.util.regex.Matcher num = java.util.regex.Pattern.compile("&#(\\d{2,6});").matcher(s);
+    StringBuffer b = new StringBuffer();
+    while (num.find()) {
+      int code;
+      try {
+        code = Integer.parseInt(num.group(1));
+      } catch (NumberFormatException e) {
+        code = '?';
+      }
+      num.appendReplacement(b, java.util.regex.Matcher.quoteReplacement(new String(Character.toChars(code))));
+    }
+    num.appendTail(b);
+    return b.toString().replace("&amp;", "&");
+  }
+
   /** The row's main line: link title, file name, the text's first line, or the kind */
   public static String title (TdApi.Message m) {
     TdApi.LinkPreview p = linkPreview(m);
-    if (p != null && p.title != null && !p.title.isEmpty()) return p.title;
+    if (p != null && p.title != null && !p.title.isEmpty()) return unescape(p.title);
     switch (m.content.getConstructor()) {
       case TdApi.MessageDocument.CONSTRUCTOR: {
         String name = ((TdApi.MessageDocument) m.content).document.fileName;

@@ -2648,6 +2648,13 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   }
 
   private void openChat (TdApi.Chat chat) {
+    // TGx101: Saved Messages from the chat list opens as the storage home (its saved scroll position made it look like
+    // a jump to a message, which the general check lets through to the feed); picking a chat to share into stays as is
+    if (pickerDelegate == null && chat.id == tdlib.selfChatId()
+      && org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).openMode == org.thunderdog.challegram.data.Tgx101SavedStore.OPEN_HOME) {
+      Tgx101SavedHomeController.open(context, tdlib);
+      return;
+    }
     int highlightMode;
     Object shareItem = pickerDelegate != null ? pickerDelegate.getShareItem() : null;
     TdlibUi.ChatOpenParameters params;

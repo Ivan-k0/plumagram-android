@@ -106,11 +106,23 @@ public final class Tgx101Sheet {
     // above the keyboard (the sheet sits in the activity's own window)
     final android.graphics.Rect frame = new android.graphics.Rect();
     final int[] location = new int[2];
+    // (test 2026-10-15: the visible-frame guess lifted a sheet with no field ~250 px off the bottom) — Android 11+ asks
+    // the system for the keyboard itself; older ones only lift a sheet that has a focused text field
     final android.view.ViewTreeObserver.OnGlobalLayoutListener ime = () -> {
       if (wrap.getHeight() == 0) return;
-      wrap.getWindowVisibleDisplayFrame(frame);
-      wrap.getLocationOnScreen(location);
-      int bottom = Math.max(0, location[1] + wrap.getHeight() - frame.bottom);
+      int bottom = 0;
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+        android.view.WindowInsets insets = wrap.getRootWindowInsets();
+        if (insets != null && insets.isVisible(android.view.WindowInsets.Type.ime())) {
+          wrap.getLocationOnScreen(location);
+          int imeTop = wrap.getRootView().getHeight() - insets.getInsets(android.view.WindowInsets.Type.ime()).bottom;
+          bottom = Math.max(0, location[1] + wrap.getHeight() - imeTop);
+        }
+      } else if (wrap.findFocus() instanceof android.widget.EditText) {
+        wrap.getWindowVisibleDisplayFrame(frame);
+        wrap.getLocationOnScreen(location);
+        bottom = Math.max(0, location[1] + wrap.getHeight() - frame.bottom);
+      }
       if (wrap.getPaddingBottom() != bottom) wrap.setPadding(0, 0, 0, bottom);
     };
     wrap.getViewTreeObserver().addOnGlobalLayoutListener(ime);

@@ -64,11 +64,13 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
 
   private static final Map<Integer, Tgx101SavedStore> instances = new java.util.HashMap<>();
   private static boolean listenerAdded;
+  @SuppressWarnings("FieldCanBeLocal")
+  private static GlobalMessageListener listener;
 
   public static synchronized Tgx101SavedStore get (Tdlib tdlib) {
     Tgx101SavedStore store = instances.get(tdlib.id());
     if (store == null) {
-      store = new Tgx101SavedStore(tdlib.id());
+      store = new Tgx101SavedStore(tdlib);
       instances.put(tdlib.id(), store);
     }
     ensureListener();
@@ -79,10 +81,17 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   public static synchronized void ensureListener () {
     if (!listenerAdded) {
       listenerAdded = true;
-      TdlibManager.instance().global().addMessageListener(new GlobalMessageListener() {
+      org.thunderdog.challegram.Tgx101Diag.mark("saved store: listening");
+      // the global list keeps listeners by weak reference: without this field the listener was collected at once
+      // (test 2026-10-15: no banner, no id upkeep)
+      TdlibManager.instance().global().addMessageListener(listener = new GlobalMessageListener() {
         @Override
         public void onMessageSendSucceeded (Tdlib tdlib, TdApi.Message message, long oldMessageId) {
-          if (message.chatId == tdlib.selfChatId()) get(tdlib).remap(oldMessageId, message.id);
+          org.thunderdog.challegram.Tgx101Diag.mark("saved store: sent " + message.chatId + "/" + message.id + " (self " + tdlib.selfChatId() + ")");
+          if (message.chatId == tdlib.selfChatId()) {
+            get(tdlib).remap(oldMessageId, message.id);
+            onSavedHere(tdlib, message); // only what this phone sent arrives here — already with its real id
+          }
         }
 
         @Override
@@ -90,15 +99,6 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
           if (chatId == tdlib.selfChatId()) get(tdlib).forget(messageIds);
         }
 
-        @Override
-        public void onNewMessage (Tdlib tdlib, TdApi.Message message) {
-          onSavedHere(tdlib, message);
-        }
-
-        @Override
-        public void onNewMessages (Tdlib tdlib, TdApi.Message[] messages) {
-          for (TdApi.Message m : messages) onSavedHere(tdlib, m);
-        }
       });
     }
   }
@@ -121,9 +121,42 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   private static final List<Long> pendingIds = new ArrayList<>();
   private static Runnable pendingShow;
 
+  /**
+   * TGx101 (test 2026-10-15: a message forwarded to Saved arrives ready, never «sent», so the update listeners can't
+   * tell it was saved here): the places that save — share / forward sheet, swipe «Save», the menu — pass what Telegram
+   * answered here. Several answers in a row (an album, several chats) make one banner.
+   */
+  public static void onSavedResult (Tdlib tdlib, TdApi.Object result) {
+    if (result == null) return;
+    if (result.getConstructor() == TdApi.Message.CONSTRUCTOR) {
+      onSavedHere(tdlib, (TdApi.Message) result);
+    } else if (result.getConstructor() == TdApi.Messages.CONSTRUCTOR) {
+      for (TdApi.Message m : ((TdApi.Messages) result).messages) onSavedHere(tdlib, m);
+    }
+  }
+
+  /** The chat a send / forward request goes to (0 for anything else) */
+  public static long targetChatId (TdApi.Function<?> f) {
+    switch (f.getConstructor()) {
+      case TdApi.SendMessage.CONSTRUCTOR: return ((TdApi.SendMessage) f).chatId;
+      case TdApi.SendMessageAlbum.CONSTRUCTOR: return ((TdApi.SendMessageAlbum) f).chatId;
+      case TdApi.ForwardMessages.CONSTRUCTOR: return ((TdApi.ForwardMessages) f).chatId;
+    }
+    return 0;
+  }
+
+  /** {@code base} for any request; one to Saved Messages also reports what was saved (the banner) */
+  public static org.drinkless.tdlib.Client.ResultHandler savedAware (Tdlib tdlib, TdApi.Function<?> f, org.drinkless.tdlib.Client.ResultHandler base) {
+    if (targetChatId(f) != tdlib.selfChatId() || tdlib.selfChatId() == 0) return base;
+    return object -> {
+      base.onResult(object);
+      onSavedResult(tdlib, object);
+    };
+  }
+
   private static void onSavedHere (Tdlib tdlib, TdApi.Message m) {
+    org.thunderdog.challegram.Tgx101Diag.mark("saved store: saved here " + (m != null ? m.id : 0) + (m != null && m.schedulingState != null ? " scheduled" : ""));
     if (m == null || m.chatId != tdlib.selfChatId() || m.schedulingState != null) return;
-    if (!(m.sendingState instanceof TdApi.MessageSendingStatePending)) return; // sent from another device / history
     long now = android.os.SystemClock.uptimeMillis();
     if (now < suppressUntil) return;
     final boolean external = now - externalShareAt < 120_000L;
@@ -166,9 +199,32 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   public boolean showPinned = true;
   public boolean hashtagOwn = true;
 
-  private Tgx101SavedStore (int accountId) {
-    this.accountId = accountId;
+  /** Kept here: the listener lists hold their listeners weakly */
+  private org.thunderdog.challegram.telegram.MessageListener chatListener;
+
+  private Tgx101SavedStore (Tdlib tdlib) {
+    this.accountId = tdlib.id();
     load();
+    // (test 2026-10-15: the app-wide message listener never got the «sent» update) — the Saved chat's own updates,
+    // the path the chat screens use
+    final long selfChatId = tdlib.selfChatId();
+    if (selfChatId != 0) {
+      chatListener = new org.thunderdog.challegram.telegram.MessageListener() {
+        @Override
+        public void onMessageSendSucceeded (TdApi.Message message, long oldMessageId) {
+          org.thunderdog.challegram.Tgx101Diag.mark("saved store: sent " + message.id);
+          remap(oldMessageId, message.id);
+          onSavedHere(tdlib, message);
+        }
+
+        @Override
+        public void onMessagesDeleted (long chatId, long[] messageIds) {
+          forget(messageIds);
+        }
+      };
+      tdlib.listeners().subscribeToMessageUpdates(selfChatId, chatListener);
+      org.thunderdog.challegram.Tgx101Diag.mark("saved store: listening to " + selfChatId);
+    }
   }
 
   private String key () {
