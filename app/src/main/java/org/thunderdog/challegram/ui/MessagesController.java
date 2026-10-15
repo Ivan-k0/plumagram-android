@@ -4955,6 +4955,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   public void destroy () {
+    UI.removePendingRunnable(tgx101CloseEmojiFallback); // a global post: it would run on the closed chat
     resetSelectableControl();
 
     discardAttachedFiles(false);
