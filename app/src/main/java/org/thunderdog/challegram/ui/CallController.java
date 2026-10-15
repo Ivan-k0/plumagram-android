@@ -1379,6 +1379,8 @@ public class CallController extends ViewController<CallController.Arguments> imp
         if (userId == peerUserId || userId == tdlib.myUserId()) return false;
         org.thunderdog.challegram.Tgx101Diag.mark("call: grows into a group call with " + userId);
         org.thunderdog.challegram.voip.Tgx101GroupCall.startConference(tdlib, new long[] {peerUserId, userId});
+        // (review) the ended call's «close» must not pop whatever is on top by then (the group call screen)
+        tdlib.cache().unsubscribeFromCallUpdates(callId, CallController.this);
         tdlib.context().calls().hangUp(tdlib, callId);
         UI.post(() -> {
           Tgx101GroupCallController.open(context);

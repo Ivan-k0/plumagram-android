@@ -41,6 +41,10 @@ public final class Tgx101Video {
   }
 
   /** Forwards frames to whatever renderer the call screen currently shows. */
+  public static boolean ownsRemote (@Nullable VideoSink view) {
+    return remoteSink.target == view || remoteSink.target == null;
+  }
+
   public static final class ProxySink implements VideoSink {
     private volatile @Nullable VideoSink target;
     volatile long lastFrameTime; // elapsedRealtime of the last frame, 0 — none yet
@@ -48,6 +52,11 @@ public final class Tgx101Video {
 
     public void setTarget (@Nullable VideoSink target) {
       this.target = target;
+    }
+
+    /** TGx101 (review): an old call screen going away clears the target only if it is still its own view */
+    public synchronized void clearTarget (@Nullable VideoSink owner) {
+      if (this.target == owner) this.target = null;
     }
 
     @Override

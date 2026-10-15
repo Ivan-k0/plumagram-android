@@ -47,16 +47,31 @@ struct GroupJava {
     clazz = (jclass) env->NewGlobalRef(env->GetObjectClass(obj));
   }
 
+  // TGx101 (review): the lock only guards taking local references — the Java call itself (a conference's encrypt /
+  // decrypt waits for TDLib) runs unlocked, so frames, audio levels and the UI thread don't queue behind each other
   void run (const std::function<void(JNIEnv *, jobject, jclass)> &act) {
-    std::lock_guard<std::mutex> lock(mutex);
-    if (thiz == nullptr) {
+    JNIEnv *env = webrtc::AttachCurrentThreadIfNeeded();
+    jobject obj;
+    jclass cls;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      if (thiz == nullptr) {
+        return;
+      }
+      obj = env->NewLocalRef(thiz);
+      cls = (jclass) env->NewLocalRef(clazz);
+    }
+    if (obj == nullptr || cls == nullptr) {
+      if (obj != nullptr) env->DeleteLocalRef(obj);
+      if (cls != nullptr) env->DeleteLocalRef(cls);
       return;
     }
-    JNIEnv *env = webrtc::AttachCurrentThreadIfNeeded();
-    act(env, thiz, clazz);
+    act(env, obj, cls);
     if (env->ExceptionCheck()) {
       env->ExceptionClear();
     }
+    env->DeleteLocalRef(obj);
+    env->DeleteLocalRef(cls);
   }
 
   void release (JNIEnv *env) {
@@ -133,25 +148,31 @@ int64_t userIdForSsrc (const std::shared_ptr<GroupJava> &java, uint32_t ssrc) {
 
 // Answers what can be answered: every SSRC whose user is known, or all of them after 5 s
 void resolvePending (const std::shared_ptr<GroupJava> &java, const std::shared_ptr<GroupConference> &conference, bool force) {
-  std::vector<PendingDescriptions> ready;
+  // (review) the user ids are asked from Java with no lock held: the pending list is taken out, checked, the rest put back
+  std::vector<PendingDescriptions> taken;
   {
     std::lock_guard<std::mutex> lock(conference->mutex);
-    int64_t now = rtc::TimeMillis();
-    for (auto it = conference->pending.begin(); it != conference->pending.end(); ) {
-      bool known = true;
-      for (uint32_t ssrc : it->ssrcs) {
-        if (userIdForSsrc(java, ssrc) == 0) {
-          known = false;
-          break;
-        }
-      }
-      if (known || force || now - it->requestedAt > 5000) {
-        ready.push_back(std::move(*it));
-        it = conference->pending.erase(it);
-      } else {
-        ++it;
+    taken.swap(conference->pending);
+  }
+  std::vector<PendingDescriptions> ready, waiting;
+  int64_t now = rtc::TimeMillis();
+  for (auto &request : taken) {
+    bool known = true;
+    for (uint32_t ssrc : request.ssrcs) {
+      if (userIdForSsrc(java, ssrc) == 0) {
+        known = false;
+        break;
       }
     }
+    if (known || force || now - request.requestedAt > 5000) {
+      ready.push_back(std::move(request));
+    } else {
+      waiting.push_back(std::move(request));
+    }
+  }
+  if (!waiting.empty()) {
+    std::lock_guard<std::mutex> lock(conference->mutex);
+    for (auto &request : waiting) conference->pending.push_back(std::move(request));
   }
   for (auto &request : ready) {
     std::vector<tgcalls::MediaChannelDescription> descriptions;

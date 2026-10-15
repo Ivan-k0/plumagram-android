@@ -150,6 +150,18 @@ public final class Tgx101GroupCall implements GroupCallListener {
     current = call;
     call.start();
     notifyGlobal();
+    // (review) the 1:1 call's service resets the audio mode to normal ~5 s after it ends — take the call mode back then
+    UI.post(() -> {
+      if (current == call && call.state != STATE_ENDED) {
+        AudioManager audio = audioManager();
+        if (audio != null) {
+          try {
+            audio.setMode(AudioManager.MODE_IN_COMMUNICATION);
+            audio.setSpeakerphoneOn(call.speaker);
+          } catch (Throwable ignored) { }
+        }
+      }
+    }, 6500);
     return call;
   }
 
@@ -181,7 +193,11 @@ public final class Tgx101GroupCall implements GroupCallListener {
     // WebRTC needs ContextUtils set before the audio device is created; otherwise it's done only by TGCallService
     VoIP.initialize(context);
     File log = new File(context.getCacheDir(), "tgx101_voice_chat.log");
-    ptr = nativeCreate(log.getPath(), muted, isConference);
+    try {
+      ptr = nativeCreate(log.getPath(), muted, isConference);
+    } catch (UnsatisfiedLinkError e) {
+      ptr = 0; // (review) Android 4 builds have no group call module — a message instead of a crash
+    }
     if (ptr == 0) {
       fail(Lang.getString(R.string.Tgx101VoiceChatFailed, "tgcalls"));
       return;
@@ -225,8 +241,23 @@ public final class Tgx101GroupCall implements GroupCallListener {
 
   private void joinConference (TdApi.GroupCallJoinParameters parameters) {
     if (groupCallId != 0) {
-      // a created conference asked to rejoin: TDLib keeps it by id only through a link or a message — leave it to the user
-      joinRequested = false;
+      // (review: a rejoin left the conference silent for good) — join again through its invite link or invite message
+      TdApi.InputGroupCall input = groupCall != null && groupCall.inviteLink != null && !groupCall.inviteLink.isEmpty() ? new TdApi.InputGroupCallLink(groupCall.inviteLink) : joinInput;
+      if (input == null) {
+        joinRequested = false;
+        fail(Lang.getString(R.string.Tgx101VoiceChatFailed, "rejoin"));
+        return;
+      }
+      org.thunderdog.challegram.Tgx101Diag.mark("conference: rejoining");
+      tdlib.send(new TdApi.JoinGroupCall(input, parameters), (info, error) -> UI.post(() -> {
+        joinRequested = false;
+        if (state == STATE_ENDED || ptr == 0) return;
+        if (error != null) {
+          fail(Lang.getString(R.string.Tgx101VoiceChatFailed, TD.toErrorString(error)));
+          return;
+        }
+        nativeSetJoinResponse(ptr, info.joinPayload);
+      }));
       return;
     }
     if (joinInput != null) {
@@ -237,7 +268,11 @@ public final class Tgx101GroupCall implements GroupCallListener {
     TdApi.Function<TdApi.GroupCallInfo> request = joinInput != null ? new TdApi.JoinGroupCall(joinInput, parameters) : new TdApi.CreateGroupCall(parameters);
     tdlib.send(request, (info, error) -> UI.post(() -> {
       joinRequested = false;
-      if (state == STATE_ENDED || ptr == 0) return;
+      if (state == STATE_ENDED || ptr == 0) {
+        // (review) left before the server answered — don't stay a participant of a call nobody runs here
+        if (info != null) tdlib.send(new TdApi.LeaveGroupCall(info.groupCallId), (ok, leaveError) -> { });
+        return;
+      }
       if (error != null) {
         fail(Lang.getString(R.string.Tgx101VoiceChatFailed, TD.toErrorString(error)));
         return;
@@ -287,9 +322,19 @@ public final class Tgx101GroupCall implements GroupCallListener {
     return result[0];
   }
 
+  private volatile boolean ssrcRecheckPosted;
+
   @Keep
   private long onNativeUserIdForSsrc (int ssrc) {
     Long userId = ssrcUsers.get(ssrc);
+    if (userId == null && !ssrcRecheckPosted) {
+      // (review) a waiting SSRC request is answered on the next participant update — or after 5 s, which needs a nudge
+      ssrcRecheckPosted = true;
+      UI.post(() -> {
+        ssrcRecheckPosted = false;
+        if (ptr != 0 && state != STATE_ENDED) nativeParticipantsChanged(ptr);
+      }, 5500);
+    }
     return userId != null ? userId : 0;
   }
 
@@ -526,7 +571,9 @@ public final class Tgx101GroupCall implements GroupCallListener {
     if (audio == null) return;
     try {
       if (active) {
-        previousAudioMode = audio.getMode();
+        int mode = audio.getMode();
+        // (review) a 1:1 call that grew into this one still holds the communication mode — restore the normal one later
+        previousAudioMode = mode == AudioManager.MODE_IN_COMMUNICATION || mode == AudioManager.MODE_IN_CALL ? AudioManager.MODE_NORMAL : mode;
         previousSpeaker = audio.isSpeakerphoneOn();
         audio.setMode(AudioManager.MODE_IN_COMMUNICATION);
         audio.setSpeakerphoneOn(speaker);

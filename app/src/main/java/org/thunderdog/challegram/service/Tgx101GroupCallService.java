@@ -68,6 +68,8 @@ public class Tgx101GroupCallService extends Service {
     }
     Tgx101GroupCall call = Tgx101GroupCall.current();
     if (call == null) {
+      // (review) started with startForegroundService: it must go foreground before stopping, or Android 8+ throws
+      postNotification(Lang.getString(R.string.Tgx101VoiceChat));
       stopSelf();
       return START_NOT_STICKY;
     }

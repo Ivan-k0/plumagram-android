@@ -413,10 +413,13 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
 
   void destroy () {
     UI.removePendingRunnable(speakerForVideoRunnable);
-    setKeepScreenOn(false);
+    // (review: «Message» → back to the call made a new call screen; the old one's destroy blanked its video and let the
+    // screen sleep) — only what still belongs to this screen is let go
+    boolean stillOurs = Tgx101Video.ownsRemote(remoteView);
+    if (stillOurs) setKeepScreenOn(false);
     Tgx101Video.removeListener(this);
-    Tgx101Video.remoteSink.setTarget(null);
-    Tgx101Video.localSink.setTarget(null);
+    Tgx101Video.remoteSink.clearTarget(remoteView);
+    Tgx101Video.localSink.clearTarget(localView);
     remoteView.release();
     localView.release();
   }
