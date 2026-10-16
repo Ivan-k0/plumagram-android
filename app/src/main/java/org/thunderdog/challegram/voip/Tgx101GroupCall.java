@@ -49,6 +49,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
     default void onGroupCallStateChanged (Tgx101GroupCall call) { }
     default void onGroupCallParticipantsChanged (Tgx101GroupCall call) { }
     default void onGroupCallSpeakingChanged (Tgx101GroupCall call) { }
+    default void onGroupCallMessagesChanged (Tgx101GroupCall call) { }
   }
 
   public static final int STATE_CONNECTING = 0, STATE_CONNECTED = 1, STATE_ENDED = 2;
@@ -105,6 +106,11 @@ public final class Tgx101GroupCall implements GroupCallListener {
   private boolean selfSpeaking;
   private long lastSpeakingDispatch;
   private final ReferenceList<Listener> listeners = new ReferenceList<>(true);
+  // TGx101 (approved mockup «Групповой звонок», 2026-10-14): the call's own messages and the protection emojis
+  private final List<TdApi.GroupCallMessage> messages = new ArrayList<>();
+  private int unreadMessages;
+  private @Nullable String[] verificationEmojis;
+  private final long joinedAt = android.os.SystemClock.elapsedRealtime();
 
   private Tgx101GroupCall (Tdlib tdlib, long chatId, int groupCallId, @Nullable String inviteHash) {
     this(tdlib, chatId, groupCallId, inviteHash, false, null);
@@ -416,6 +422,139 @@ public final class Tgx101GroupCall implements GroupCallListener {
       for (Listener listener : listeners) listener.onGroupCallParticipantsChanged(this);
       notifyGlobal();
     });
+  }
+
+  @Override
+  public void onNewGroupCallMessage (int groupCallId, TdApi.GroupCallMessage message) {
+    if (groupCallId != this.groupCallId) return;
+    UI.post(() -> {
+      if (state == STATE_ENDED) return;
+      for (TdApi.GroupCallMessage m : messages) if (m.messageId == message.messageId) return;
+      messages.add(message);
+      if (!(message.senderId instanceof TdApi.MessageSenderUser && ((TdApi.MessageSenderUser) message.senderId).userId == tdlib.myUserId())) unreadMessages++;
+      for (Listener listener : listeners) listener.onGroupCallMessagesChanged(this);
+    });
+  }
+
+  @Override
+  public void onGroupCallMessagesDeleted (int groupCallId, int[] messageIds) {
+    if (groupCallId != this.groupCallId) return;
+    UI.post(() -> {
+      for (int id : messageIds) {
+        for (int i = messages.size() - 1; i >= 0; i--) if (messages.get(i).messageId == id) messages.remove(i);
+      }
+      for (Listener listener : listeners) listener.onGroupCallMessagesChanged(this);
+    });
+  }
+
+  @Override
+  public void onGroupCallVerificationStateChanged (int groupCallId, int generation, String[] emojis) {
+    if (groupCallId != this.groupCallId) return;
+    UI.post(() -> {
+      verificationEmojis = emojis;
+      for (Listener listener : listeners) listener.onGroupCallStateChanged(this);
+    });
+  }
+
+  public List<TdApi.GroupCallMessage> getMessages () {
+    return new ArrayList<>(messages);
+  }
+
+  public int takeUnreadMessages () {
+    int n = unreadMessages;
+    unreadMessages = 0;
+    return n;
+  }
+
+  public int unreadMessages () {
+    return unreadMessages;
+  }
+
+  public @Nullable String[] getVerificationEmojis () {
+    return verificationEmojis;
+  }
+
+  /** seconds since joining, for «12:40» */
+  public long secondsInCall () {
+    return (android.os.SystemClock.elapsedRealtime() - joinedAt) / 1000;
+  }
+
+  public @Nullable TdApi.GroupCallParticipant me () {
+    for (TdApi.GroupCallParticipant p : participants.values()) if (p.isCurrentUser) return p;
+    return null;
+  }
+
+  /** an admin keeps my microphone off */
+  public boolean mutedByAdmin () {
+    TdApi.GroupCallParticipant me = me();
+    return me != null && me.isMutedForAllUsers && !me.canUnmuteSelf;
+  }
+
+  public boolean canSendMessages () {
+    return groupCall != null && groupCall.canSendMessages && (groupCall.areMessagesAllowed || groupCall.canBeManaged);
+  }
+
+  public void sendMessage (String text, @Nullable Runnable failed) {
+    tdlib.send(new TdApi.SendGroupCallMessage(groupCallId, new TdApi.FormattedText(text, new TdApi.TextEntity[0]), 0), (ok, error) -> {
+      if (error != null) UI.post(() -> {
+        UI.showError(error);
+        if (failed != null) failed.run();
+      });
+    });
+  }
+
+  public void setParticipantMuted (TdApi.MessageSender participant, boolean mute) {
+    tdlib.send(new TdApi.ToggleGroupCallParticipantIsMuted(groupCallId, participant, mute), (ok, error) -> {
+      if (error != null) UI.post(() -> UI.showError(error));
+    });
+  }
+
+  /** 1..20000, 10000 = 100 % */
+  public void setParticipantVolume (TdApi.MessageSender participant, int level) {
+    tdlib.send(new TdApi.SetGroupCallParticipantVolumeLevel(groupCallId, participant, level), (ok, error) -> {
+      if (error != null) UI.post(() -> UI.showError(error));
+    });
+  }
+
+  public void setHandRaised (boolean raised) {
+    TdApi.MessageSender me = new TdApi.MessageSenderUser(tdlib.myUserId());
+    tdlib.send(new TdApi.ToggleGroupCallParticipantIsHandRaised(groupCallId, me, raised), (ok, error) -> {
+      if (error != null) UI.post(() -> UI.showError(error));
+    });
+  }
+
+  public void setMuteNewParticipants (boolean mute) {
+    tdlib.send(new TdApi.ToggleVideoChatMuteNewParticipants(groupCallId, mute), (ok, error) -> {
+      if (error != null) UI.post(() -> UI.showError(error));
+    });
+  }
+
+  public void setMessagesAllowed (boolean allowed) {
+    tdlib.send(new TdApi.ToggleGroupCallAreMessagesAllowed(groupCallId, allowed), (ok, error) -> {
+      if (error != null) UI.post(() -> UI.showError(error));
+    });
+  }
+
+  /** removes people from a conference (a voice chat of a group has no such thing — the group's own ban does it) */
+  public void removeFromConference (long userId) {
+    tdlib.send(new TdApi.BanGroupCallParticipants(groupCallId, new long[] {userId}), (ok, error) -> {
+      if (error != null) UI.post(() -> UI.showError(error));
+    });
+  }
+
+  public void inviteLink (me.vkryl.core.lambda.RunnableData<String> after) {
+    if (groupCall != null && groupCall.inviteLink != null && !groupCall.inviteLink.isEmpty()) {
+      after.runWithData(groupCall.inviteLink);
+      return;
+    }
+    if (isConference) {
+      UI.showToast(R.string.Tgx101VoiceChatNoLink, Toast.LENGTH_SHORT);
+      return;
+    }
+    tdlib.send(new TdApi.GetVideoChatInviteLink(groupCallId, false), (link, error) -> UI.post(() -> {
+      if (error != null) UI.showError(error);
+      else after.runWithData(link.url);
+    }));
   }
 
   // Controls
