@@ -1283,7 +1283,15 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   }
 
   private void tgx101ApplyCapsulePadding (int tab) {
-    if (extraBottomInsetWithoutIme > 0) tgx101NavInset = extraBottomInsetWithoutIme;
+    // (user 2026-10-16 «съехала панель»: after the 3-button bar was switched back to gestures the capsule stayed a bar's
+    // height up — a zero inset was never taken). The window's own navigation bar is the truth whenever it is known;
+    // the last inset this screen saw is only for when it isn't
+    androidx.core.view.WindowInsetsCompat rootInsets = tgx101Capsule != null ? androidx.core.view.ViewCompat.getRootWindowInsets(tgx101Capsule) : null;
+    if (rootInsets != null) {
+      tgx101NavInset = rootInsets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom;
+    } else if (extraBottomInsetWithoutIme > 0) {
+      tgx101NavInset = extraBottomInsetWithoutIme;
+    }
     int capsulePadding = (tab == Tgx101NavCapsule.TAB_CHATS && displayTabsAtBottom() ? getHeaderHeight() : 0) + tgx101NavInset;
     if (tgx101Capsule.getPaddingBottom() != capsulePadding) {
       tgx101Capsule.setPadding(0, 0, 0, capsulePadding);
@@ -1298,6 +1306,11 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     if (navigation == null)
       return;
     tgx101Capsule = new Tgx101NavCapsule(context);
+    // the navigation changed (buttons ↔ gestures, rotation): the capsule follows at once, on whatever tab
+    androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(tgx101Capsule, (v, insets) -> {
+      v.post(this::checkComposeWrapPaddings);
+      return insets;
+    });
     tgx101Capsule.setCallback(new Tgx101NavCapsule.Callback() {
       @Override
       public void onTabClick (int tab) {
