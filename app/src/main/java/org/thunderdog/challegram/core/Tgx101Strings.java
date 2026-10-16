@@ -855,7 +855,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedStorageOn, "Хранилище");
     RU.put(R.string.Tgx101SavedSwitchSetting, "Кнопка «Чат ↔ хранилище»");
     RU.put(R.string.Tgx101SavedSwitchReset, "Вернуть кнопку на место");
-    RU.put(R.string.Tgx101SavedStorageDesc, "Кнопку можно перетащить пальцем, удержание — спрятать. Если хранилище выключено, Избранное — обычный чат, как в Telegram. Папки и метки не удаляются: включите снова — всё на месте.");
+    RU.put(R.string.Tgx101SavedStorageDesc, "Удержите кнопку и тащите, чтобы перенести; удержите и отпустите на месте — спрятать. Если хранилище выключено, Избранное — обычный чат, как в Telegram. Папки и метки не удаляются: включите снова — всё на месте.");
     RU.put(R.string.Tgx101SavedSwitchHide, "Спрятать кнопку");
     RU.put(R.string.Tgx101SavedSwitchHidden, "Вернуть кнопку можно в настройках Избранного");
     RU.put(R.string.Tgx101SavedSwitchToStorage, "Открыть хранилище");

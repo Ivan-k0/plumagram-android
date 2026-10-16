@@ -7101,7 +7101,7 @@
   <string name="Tgx101SavedStorageOn">Storage</string>
   <string name="Tgx101SavedSwitchSetting">«Chat ↔ storage» button</string>
   <string name="Tgx101SavedSwitchReset">Put the button back in place</string>
-  <string name="Tgx101SavedStorageDesc">Drag the button with a finger to move it; hold it to hide it. With the storage off, Saved Messages is the usual chat: your folders and tags are kept.</string>
+  <string name="Tgx101SavedStorageDesc">Hold the button and drag it to move it; hold and let go in place to hide it. With the storage off, Saved Messages is the usual chat: your folders and tags are kept.</string>
   <string name="Tgx101SavedSwitchHide">Hide the button</string>
   <string name="Tgx101SavedSwitchHidden">The button is back in Saved Messages settings</string>
   <string name="Tgx101SavedSwitchToStorage">Open the storage</string>
