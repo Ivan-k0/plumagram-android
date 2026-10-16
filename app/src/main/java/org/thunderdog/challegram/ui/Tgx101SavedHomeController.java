@@ -847,6 +847,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     tiles.addView(folders, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
   }
 
+  // (a folder's tag and reactions on its tile were tried and dropped — user 2026-10-17 «метка тоже не нужна»)
   // Mosaic (user 2026-10-17 chose mockup «Ж»): three columns; the biggest folder is a tall tile, the next two are wide,
   // the rest are squares — by how many records each has, packed with no holes. The user's order stays the order
 
