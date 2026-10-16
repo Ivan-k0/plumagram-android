@@ -1753,6 +1753,15 @@
   <item name="btn_tgx101SavedSwitch" type="id"/>
   <item name="btn_tgx101SavedSwitchReset" type="id"/>
   <item name="btn_tgx101SavedSettingsOpen" type="id"/>
+  <item name="controller_tgx101Backup" type="id"/>
+  <item name="btn_tgx101Backup" type="id"/>
+  <item name="btn_tgx101BackupDownloads" type="id"/>
+  <item name="btn_tgx101BackupSaved" type="id"/>
+  <item name="btn_tgx101BackupRestore" type="id"/>
+  <item name="btn_tgx101BackupPartAppearance" type="id"/>
+  <item name="btn_tgx101BackupPartMenus" type="id"/>
+  <item name="btn_tgx101BackupPartOther" type="id"/>
+  <item name="btn_tgx101BackupPartSaved" type="id"/>
   <item name="btn_tgx101SavedInboxTile" type="id"/>
   <item name="btn_tgx101SavedShowPinned" type="id"/>
   <item name="btn_tgx101SavedHashtag" type="id"/>

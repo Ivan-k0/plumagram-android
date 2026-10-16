@@ -1335,6 +1335,11 @@ public class U {
   }
 
   public static void openFile (TdlibDelegate context, String displayName, File file, String mimeType, int viewCount) {
+    // TGx101 (approved mockup «Копия настроек»): a PlumaGram settings file offers to restore the settings
+    if (org.thunderdog.challegram.ui.Tgx101BackupController.isBackupFile(file) || (displayName != null && displayName.toLowerCase(Locale.ROOT).endsWith(".plumagram"))) {
+      org.thunderdog.challegram.ui.Tgx101BackupController.openFile(context.context(), file);
+      return;
+    }
     String extension = getExtension(file.getPath());
     if (StringUtils.isEmpty(mimeType)) {
       mimeType = U.resolveMimeType(file.getPath(), extension);

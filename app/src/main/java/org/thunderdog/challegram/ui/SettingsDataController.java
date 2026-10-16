@@ -170,6 +170,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     super.onFocus();
     if (adapter != null && mode == MODE_TGX101) {
       adapter.updateValuedSettingById(R.id.btn_tgx101Gestures); // TGx101: back from «Message gestures»
+      adapter.updateValuedSettingById(R.id.btn_tgx101Backup); // back from «Settings backup»: when it was last saved
     }
   }
 
@@ -214,6 +215,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
             }
             return false;
           });
+        }
+        if (itemId == R.id.btn_tgx101Backup) {
+          view.setData(Tgx101BackupController.lastBackupText());
+          return;
         }
         int tgx101SectionIndex = tgx101SectionIndex(itemId);
         if (tgx101SectionIndex != -1) {
@@ -1058,6 +1063,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         out.add(new ListItem(ListItem.TYPE_VALUED_SETTING, TGX101_SECTION_IDS[i], TGX101_SECTION_ICONS[i], TGX101_SECTION_TITLES[i]));
       }
       out.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+      // TGx101 (approved mockup «Копия настроек», variant В): the whole app's settings to a file and back
+      out.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+      out.add(new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101Backup, R.drawable.baseline_import_export_24, R.string.Tgx101Backup));
+      out.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
       adapter.setItems(out.toArray(new ListItem[0]), false);
       return;
     }
@@ -1541,6 +1550,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       navigateTo(c);
     } else if (id == R.id.btn_tgx101SavedSettingsOpen) {
       navigateTo(new Tgx101SavedSettingsController(context, tdlib));
+    } else if (id == R.id.btn_tgx101Backup) {
+      navigateTo(new Tgx101BackupController(context, tdlib));
     } else if (id == R.id.btn_tgx101Gestures) {
       navigateTo(new Tgx101GesturesController(context, tdlib));
     } else if (id == R.id.btn_tgx101ChatListTextSize) {
