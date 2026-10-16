@@ -1417,7 +1417,13 @@ public class TGCallService extends Service implements
             // TGx101: like the official app, vibrate unless the phone is on silent; many firmwares
             // (Vivo) keep the system "vibrate when ringing" switch at 0 while vibrating on calls
             AudioManager ringerAudio = (AudioManager) getSystemService(AUDIO_SERVICE);
-            if ((ringerAudio != null && ringerAudio.getRingerMode() != AudioManager.RINGER_MODE_SILENT) || tdlib.notifications().needVibrateWhenRinging()) {
+            // «Only if silent» (as in the official app): the phone is on silent — that's exactly when it vibrates
+            // (test 2026-10-16: the default branch skipped silent, so that setting never vibrated)
+            long callChatId = ChatId.fromUserId(user.id);
+            boolean silentOnly = tdlib.notifications().getCustomCallVibrateModeForChat(callChatId) != TdlibNotificationManager.VIBRATE_MODE_DEFAULT
+              ? tdlib.notifications().getCustomCallVibrateOnlyIfSilentForChat(callChatId)
+              : tdlib.notifications().getCallVibrateOnlyIfSilent();
+            if (silentOnly || (ringerAudio != null && ringerAudio.getRingerMode() != AudioManager.RINGER_MODE_SILENT) || tdlib.notifications().needVibrateWhenRinging()) {
               vibrator.vibrate(TdlibNotificationManager.VIBRATE_CALL_LONG_PATTERN, 0);
             }
             break;
