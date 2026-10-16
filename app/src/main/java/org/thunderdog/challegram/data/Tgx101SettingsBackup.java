@@ -179,9 +179,13 @@ public final class Tgx101SettingsBackup {
     o.put("parts", parts);
     JSONObject values = new JSONObject();
     Set<Integer> accounts = new HashSet<>();
+    int seen = 0;
+    StringBuilder skipped = new StringBuilder(); // diag: names only, to see what the filter leaves out
     for (LevelDB.Entry entry : allEntries(pmc)) {
       String key = entry.key();
+      seen++;
       KeyInfo info = describe(key);
+      if (info == null && skipped.length() < 6000) skipped.append(key, 0, Math.min(key.length(), 40)).append(' ');
       if (info == null || (info.part & parts) == 0) continue;
       if (info.accountId >= 0) {
         if (userIdOf(info.accountId) == 0) continue; // a signed-out slot
@@ -191,6 +195,7 @@ public final class Tgx101SettingsBackup {
       values.put(key, value != null ? Base64.encodeToString(value, Base64.NO_WRAP) : "");
     }
     o.put("values", values);
+    org.thunderdog.challegram.Tgx101Diag.mark("backup: " + seen + " keys in the store, " + values.length() + " taken; left out: " + skipped);
     JSONObject users = new JSONObject();
     for (int id : accounts) users.put(Integer.toString(id), userIdOf(id));
     o.put("accounts", users);
