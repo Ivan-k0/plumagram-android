@@ -147,6 +147,9 @@ public class Tgx101SavedListController extends ViewController<Void> {
   @Override
   public boolean canSlideBackFrom (org.thunderdog.challegram.navigation.NavigationController navigationController, float x, float y) {
     if (!selected.isEmpty()) return false;
+    // (user 2026-10-16 «жест назад — только на странице „Все“; фото, видео и так далее конфликтуют»): there a swipe to
+    // the right goes to the kind before; only «All», the first one, has nothing before it — there it is «back»
+    if ((mode == MODE_KIND || reach) && kindIndex() > 0) return false;
     if (reachBottom != null && reachBottom.isShown()) {
       View nav = navigationController.getValue();
       if (nav != null) {

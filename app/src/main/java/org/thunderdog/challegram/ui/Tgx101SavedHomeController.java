@@ -424,7 +424,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       if (note == null) return false;
       UI.forceVibrate(v, false);
       // over the keyboard at the finger, like the message menu in the chats (approved mockups Е, Е2)
-      Tgx101SendMenu.show(this, v, note, () -> noteField.setText(""), this::afterNoteSaved);
+      Tgx101SendMenu.show(this, v, note, this::sendOff, this::afterNoteSaved); // the same «into the button» there
       return true;
     });
     bar.addView(send, new LinearLayout.LayoutParams(Screen.dp(48f), Screen.dp(48f)));
@@ -1896,11 +1896,64 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   private void saveNote () {
     TdApi.FormattedText note = noteText();
     if (note == null) return;
+    sendOff();
+    Tgx101SavedActions.sendNote(this, note, null, saved -> afterNoteSaved()); // the check on the button says it (no toast)
+  }
+
+  private boolean checkShown;
+
+  /**
+   * TGx101 (approved mockup «Отправка заметки», 3; user 2026-10-16 «текст просто резко исчезает»): the text shrinks into
+   * the send button, the button turns into a check for a moment, then back to what it is for the empty field
+   */
+  private void sendOff () {
+    CharSequence text = noteField.getText() != null ? noteField.getText().toString() : "";
     noteField.setText("");
-    Tgx101SavedActions.sendNote(this, note, null, saved -> {
-      UI.showToast(R.string.Tgx101SavedNoteSaved, android.widget.Toast.LENGTH_SHORT);
-      afterNoteSaved();
-    });
+    if (rootView == null || sendButton == null || text.length() == 0 || org.thunderdog.challegram.unsorted.Settings.instance().needReduceMotion()) {
+      showCheck();
+      return;
+    }
+    int[] rootAt = new int[2], fieldAt = new int[2], sendAt = new int[2];
+    rootView.getLocationInWindow(rootAt);
+    noteField.getLocationInWindow(fieldAt);
+    sendButton.getLocationInWindow(sendAt);
+    TextView flying = text(context, 16f, Theme.textAccentColor(), false);
+    flying.setText(text);
+    flying.setSingleLine(true);
+    flying.setEllipsize(TextUtils.TruncateAt.END);
+    flying.setGravity(Gravity.CENTER_VERTICAL);
+    flying.setPadding(noteField.getPaddingLeft(), 0, noteField.getPaddingRight(), 0);
+    FrameLayout.LayoutParams fp = new FrameLayout.LayoutParams(noteField.getWidth(), noteField.getHeight(), Gravity.TOP | Gravity.LEFT);
+    fp.leftMargin = fieldAt[0] - rootAt[0];
+    fp.topMargin = fieldAt[1] - rootAt[1];
+    rootView.addView(flying, fp);
+    if (android.os.Build.VERSION.SDK_INT >= 21) flying.setElevation(Screen.dp(5f)); // over the field capsule
+    float sendCenter = sendAt[0] - rootAt[0] + sendButton.getWidth() / 2f;
+    float textRight = fp.leftMargin + noteField.getWidth();
+    flying.setPivotX(noteField.getWidth());
+    flying.setPivotY(noteField.getHeight() / 2f);
+    flying.animate().scaleX(.15f).scaleY(.15f).translationX(sendCenter - textRight).alpha(0f).setDuration(280)
+      .setInterpolator(new android.view.animation.AccelerateInterpolator(1.4f))
+      .withEndAction(() -> {
+        rootView.removeView(flying);
+        showCheck();
+      }).start();
+  }
+
+  /** the send button: a check for a moment, a small pulse, then the field's own icon again */
+  private void showCheck () {
+    if (sendButton == null) return;
+    checkShown = true;
+    sendButton.setImageResource(R.drawable.baseline_check_24);
+    sendButton.animate().cancel();
+    sendButton.setScaleX(.8f);
+    sendButton.setScaleY(.8f);
+    sendButton.animate().scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(new android.view.animation.OvershootInterpolator(2.5f)).start();
+    UI.hapticVibrate(sendButton, false);
+    sendButton.postDelayed(() -> {
+      checkShown = false;
+      updateSendIcon();
+    }, 750);
   }
 
   private void afterNoteSaved () {
@@ -1919,7 +1972,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   private TextView recordLabel;
 
   private void updateSendIcon () {
-    if (sendButton == null || recording) return;
+    if (sendButton == null || recording || checkShown) return;
     boolean empty = noteField.getText().toString().trim().isEmpty();
     sendButton.setImageResource(empty ? R.drawable.baseline_mic_24 : R.drawable.baseline_send_24);
   }
