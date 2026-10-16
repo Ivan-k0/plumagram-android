@@ -277,13 +277,30 @@ public class Tgx101SavedListController extends ViewController<Void> {
     buildViewSwitch();
 
     list = new RecyclerView(context) {
+      private boolean downStoppedFling;
+
       @Override
-      public boolean onInterceptTouchEvent (MotionEvent e) {
-        // (user 2026-10-16 «жест назад в папках и метках — во время прокрутки, как в обычных чатах»): a touch on a still
-        // flinging list kept the gesture for the list (it asks the parents not to intercept) — as in the chats, the
-        // fling stops first, so the screen's «back» can take the swipe
-        if (e.getActionMasked() == MotionEvent.ACTION_DOWN && getScrollState() == SCROLL_STATE_SETTLING) stopScroll();
-        return super.onInterceptTouchEvent(e);
+      public boolean dispatchTouchEvent (MotionEvent e) {
+        int action = e.getActionMasked();
+        if (action == MotionEvent.ACTION_DOWN) {
+          // (user 2026-10-16 «жест назад в папках и метках — во время прокрутки, как в обычных чатах»): a touch on a still
+          // flinging list kept the gesture for the list (it asks the parents not to intercept) — as in the chats, the
+          // fling stops first, so the screen's «back» can take the swipe
+          downStoppedFling = getScrollState() == SCROLL_STATE_SETTLING;
+          if (downStoppedFling) stopScroll();
+        }
+        if (downStoppedFling && action == MotionEvent.ACTION_UP && !paging) { // (a sideways page swipe ends as usual)
+          // (user 2026-10-16 «если я свайп останавливаю тапом, то открывается файл»): the tap that stopped the fling only
+          // stops it — the row under the finger gets a cancel, not a click
+          downStoppedFling = false;
+          MotionEvent cancel = MotionEvent.obtain(e);
+          cancel.setAction(MotionEvent.ACTION_CANCEL);
+          boolean result = super.dispatchTouchEvent(cancel);
+          cancel.recycle();
+          return result;
+        }
+        if (action == MotionEvent.ACTION_CANCEL) downStoppedFling = false;
+        return super.dispatchTouchEvent(e);
       }
     };
     list.setClipToPadding(false);
@@ -298,36 +315,98 @@ public class Tgx101SavedListController extends ViewController<Void> {
     list.addOnItemTouchListener(dragSelect);
     list.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
       private float downX, downY;
-      private boolean tracking;
+      private boolean tracking, dragging;
+      private @Nullable android.view.VelocityTracker velocity;
 
       @Override
       public boolean onInterceptTouchEvent (@NonNull RecyclerView rv, @NonNull MotionEvent e) {
         if ((mode != MODE_KIND && !reach) || !selected.isEmpty()) return false;
         switch (e.getActionMasked()) {
           case MotionEvent.ACTION_DOWN: {
-            downX = e.getX();
-            downY = e.getY();
+            downX = e.getRawX(); // raw: the list itself moves under the finger
+            downY = e.getRawY();
             // (user 2026-10-16) rows don't slide here: a sideways swipe anywhere switches the kind
-            tracking = true;
+            tracking = !switching && !paging;
+            dragging = false;
+            if (velocity != null) velocity.recycle();
+            velocity = android.view.VelocityTracker.obtain();
+            track(e);
             break;
           }
           case MotionEvent.ACTION_MOVE: {
-            float dx = e.getX() - downX, dy = e.getY() - downY;
-            // (user 2026-10-16 «жест перелистывания очень чувствительный»): a clear sideways swipe, not 24 dp of a wobble
-            if (tracking && Math.abs(dy) > Screen.dp(24f) && Math.abs(dy) > Math.abs(dx)) tracking = false; // a scroll
-            if (tracking && Math.abs(dx) > Screen.dp(64f) && Math.abs(dx) > Math.abs(dy) * 3f) {
+            track(e);
+            float dx = e.getRawX() - downX, dy = e.getRawY() - downY;
+            // (user 2026-10-16 «жест перелистывания очень чувствительный»): a clear sideways move; a vertical start is a scroll.
+            // (user 2026-10-17 «мягче и бесшовнее, как свайп из чата в список»): the next kind then follows the finger
+            if (tracking && Math.abs(dy) > Screen.dp(14f) && Math.abs(dy) > Math.abs(dx)) tracking = false; // a scroll
+            if (tracking && Math.abs(dx) > Screen.dp(22f) && Math.abs(dx) > Math.abs(dy) * 2.5f) {
               tracking = false;
-              swipeKind(dx);
-              return true;
+              int i = kindIndex() + (dx < 0 ? 1 : -1);
+              if (i >= 0 && i < KIND_ORDER.length && !reach && beginPage(KIND_ORDER[i], dx < 0)) {
+                dragging = true;
+                pageStartX = dx; // the page starts moving from here, without a jump
+                rv.getParent().requestDisallowInterceptTouchEvent(true);
+                return true;
+              }
+              if (reach && swipeKind(dx)) return true;
             }
             break;
           }
+          case MotionEvent.ACTION_UP:
+          case MotionEvent.ACTION_CANCEL:
+            if (velocity != null) {
+              velocity.recycle();
+              velocity = null;
+            }
+            break;
         }
         return false;
       }
 
+      private float pageStartX;
+
+      /** by the screen: the list moves with the finger, so its own coordinates barely change */
+      private void track (MotionEvent e) {
+        if (velocity == null) return;
+        MotionEvent raw = MotionEvent.obtain(e);
+        raw.setLocation(e.getRawX(), e.getRawY());
+        velocity.addMovement(raw);
+        raw.recycle();
+      }
+
       @Override
-      public void onTouchEvent (@NonNull RecyclerView rv, @NonNull MotionEvent e) { }
+      public void onTouchEvent (@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+        if (!dragging) return;
+        track(e);
+        float dx = e.getRawX() - downX - pageStartX;
+        switch (e.getActionMasked()) {
+          case MotionEvent.ACTION_MOVE:
+            dragPage(dx);
+            break;
+          case MotionEvent.ACTION_UP: {
+            float vx = 0f;
+            if (velocity != null) {
+              velocity.computeCurrentVelocity(1000);
+              vx = velocity.getXVelocity();
+            }
+            dragging = false;
+            float w = Math.max(1, list.getWidth());
+            float moved = pageForward ? -dx : dx; // towards the new page
+            float speed = pageForward ? -vx : vx;
+            boolean commit = speed > Screen.dp(500f) || (moved > w * .3f && speed > -Screen.dp(300f));
+            endPage(commit, Math.abs(vx));
+            break;
+          }
+          case MotionEvent.ACTION_CANCEL:
+            dragging = false;
+            endPage(false, 0f);
+            break;
+        }
+        if (e.getActionMasked() != MotionEvent.ACTION_MOVE && velocity != null) {
+          velocity.recycle();
+          velocity = null;
+        }
+      }
 
       @Override
       public void onRequestDisallowInterceptTouchEvent (boolean disallowIntercept) { }
@@ -341,6 +420,10 @@ public class Tgx101SavedListController extends ViewController<Void> {
     applyLayoutManager();
     FrameLayout listBox = new FrameLayout(context);
     listBox.addView(list, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    pageGhost = new ImageView(context); // the kind being left, as a picture, slides off beside the new one
+    pageGhost.setScaleType(ImageView.ScaleType.MATRIX);
+    pageGhost.setVisibility(View.GONE);
+    listBox.addView(pageGhost, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     emptyView = Tgx101SavedHomeController.text(context, 15f, Theme.textDecentColor(), false);
     emptyView.setGravity(Gravity.CENTER);
     emptyView.setPadding(Screen.dp(32f), 0, Screen.dp(32f), 0);
@@ -556,20 +639,199 @@ public class Tgx101SavedListController extends ViewController<Void> {
       beginSwitch(forward, null, this::runSearch);
       return;
     }
-    if (mode != MODE_KIND || newKind == kind || isDestroyed()) return;
+    if (mode != MODE_KIND || newKind == kind || isDestroyed() || paging) return;
     final boolean forward = indexOfKind(newKind) > kindIndex();
+    if (!beginPage(newKind, forward)) return;
+    if (!pageWaiting) {
+      endPage(true, 0f);
+      return;
+    }
+    pageAuto = true; // not loaded yet: it slides in once it's here, or after a short wait with «Loading…»
+    list.postDelayed(() -> {
+      if (paging && pageAuto && !pageCommitted) endPage(true, 0f);
+    }, 400);
+  }
+
+  // Pager (user 2026-10-17 «мягче и бесшовнее, как при свайпе из чата в список чатов; экран мигает на „Фото и видео“»):
+  // the kind being left is a picture that slides off, the new kind is the real list sliding in right beside it — no
+  // fading out and in. Each kind's messages and scroll stay here, and the neighbours are loaded ahead, so the next page
+  // is already full when it comes in
+
+  private final android.util.SparseArray<List<TdApi.Message>> kindCache = new android.util.SparseArray<>();
+  private final android.util.SparseArray<android.os.Parcelable> kindScroll = new android.util.SparseArray<>();
+  private final Set<Integer> kindLoading = new java.util.HashSet<>();
+  private ImageView pageGhost;
+  private @Nullable android.graphics.Bitmap pageBitmap;
+  private boolean paging, pageForward, pageWaiting, pageCommitted, pageAuto;
+  private int pageOldKind;
+  private @Nullable List<TdApi.Message> pageOldLoaded;
+  private @Nullable android.os.Parcelable pageOldScroll;
+
+  /** the old kind becomes a picture, the list takes the new kind and waits beside it */
+  private boolean beginPage (int newKind, boolean forward) {
+    if (paging || switching || mode != MODE_KIND || newKind == kind || isDestroyed() || list.getWidth() == 0) return false;
     clearSelection();
     Tgx101SwipeRow.closeOpen();
-    kind = newKind;
-    paintKindTabs();
-    if (navigationController() != null && navigationController().getHeaderView() != null) {
-      navigationController().getHeaderView().updateTextTitle(getId(), getName());
+    list.stopScroll();
+    android.graphics.Bitmap bitmap = null;
+    try {
+      bitmap = android.graphics.Bitmap.createBitmap(list.getWidth(), list.getHeight(), android.graphics.Bitmap.Config.ARGB_8888);
+      android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
+      canvas.drawColor(Theme.backgroundColor());
+      list.draw(canvas);
+      if (emptyView.getVisibility() == View.VISIBLE) {
+        canvas.translate(emptyView.getLeft() - list.getLeft(), emptyView.getTop() - list.getTop());
+        emptyView.draw(canvas);
+      }
+    } catch (Throwable t) { // no memory for the picture: the old list just isn't drawn sliding off
+      if (bitmap != null) bitmap.recycle();
+      bitmap = null;
     }
-    beginSwitch(forward, () -> {
-      loadPrefs();
-      buildViewSwitch();
-      applyLayoutManager();
-    }, this::load);
+    paging = true;
+    pageCommitted = false;
+    pageForward = forward;
+    pageOldKind = kind;
+    pageOldLoaded = new ArrayList<>(loaded);
+    pageOldScroll = list.getLayoutManager() != null ? list.getLayoutManager().onSaveInstanceState() : null;
+    if (pageOldScroll != null) kindScroll.put(kind, pageOldScroll);
+    kindCache.put(kind, new ArrayList<>(loaded));
+    pageBitmap = bitmap;
+    pageGhost.setImageBitmap(bitmap);
+    pageGhost.setTranslationX(0f);
+    pageGhost.setVisibility(bitmap != null ? View.VISIBLE : View.GONE);
+    list.animate().cancel();
+    list.setAlpha(1f);
+    showKind(newKind);
+    list.setTranslationX(forward ? list.getWidth() : -list.getWidth());
+    emptyView.setTranslationX(list.getTranslationX());
+    pageAuto = false;
+    pageWaiting = kindCache.get(newKind) == null;
+    if (pageWaiting) load(); // it may well come while the finger is still moving
+    return true;
+  }
+
+  /** puts {@code k}'s messages (if they are here) and its scroll into the list */
+  private void showKind (int k) {
+    kind = k;
+    loadPrefs();
+    buildViewSwitch();
+    applyLayoutManager();
+    List<TdApi.Message> cached = kindCache.get(k);
+    loaded.clear();
+    if (cached != null) loaded.addAll(cached);
+    rebuildItems();
+    if (cached == null) emptyView.setVisibility(View.GONE); // no «Nothing here» before it's loaded
+    android.os.Parcelable state = kindScroll.get(k);
+    if (state != null && list.getLayoutManager() != null) list.getLayoutManager().onRestoreInstanceState(state);
+    else list.scrollToPosition(0);
+  }
+
+  private void dragPage (float dx) {
+    if (!paging || pageCommitted) return;
+    float w = list.getWidth();
+    float t = pageForward ? Math.max(-w, Math.min(0f, dx)) : Math.max(0f, Math.min(w, dx));
+    pageGhost.setTranslationX(t);
+    list.setTranslationX(t + (pageForward ? w : -w));
+    emptyView.setTranslationX(list.getTranslationX());
+  }
+
+  /** the finger is up (or a tab was tapped): the new kind comes all the way in, or the old one comes back */
+  private void endPage (boolean commit, float speed) {
+    if (!paging || pageCommitted) return;
+    pageCommitted = true;
+    float w = Math.max(1, list.getWidth());
+    float ghostTo = commit ? (pageForward ? -w : w) : 0f;
+    float listTo = commit ? 0f : (pageForward ? w : -w);
+    float left = Math.abs(list.getTranslationX() - listTo) / w; // the part of the way that is left
+    long duration = (long) Math.max(120, Math.min(300, 300 * left));
+    if (speed > 0) duration = (long) Math.max(120, Math.min(duration, w * left / speed * 1000f * 1.6f)); // a fling keeps its speed
+    android.view.animation.Interpolator curve = new android.view.animation.DecelerateInterpolator(1.6f);
+    if (commit) {
+      paintKindTabs();
+      if (navigationController() != null && navigationController().getHeaderView() != null) {
+        navigationController().getHeaderView().updateTextTitle(getId(), getName());
+      }
+      UI.forceVibrate(list, false);
+    }
+    pageGhost.animate().cancel();
+    pageGhost.animate().translationX(ghostTo).setDuration(duration).setInterpolator(curve).start();
+    emptyView.animate().cancel();
+    emptyView.animate().translationX(listTo).setDuration(duration).setInterpolator(curve).start();
+    list.animate().cancel();
+    list.animate().translationX(listTo).setDuration(duration).setInterpolator(curve).withEndAction(() -> {
+      if (commit) finishPage(); else revertPage();
+    }).start();
+  }
+
+  private void finishPage () {
+    paging = false;
+    dropGhost();
+    pageOldLoaded = null;
+    pageOldScroll = null;
+    list.setTranslationX(0f);
+    emptyView.setTranslationX(0f);
+    if (isDestroyed()) return;
+    if (pageWaiting) { // it came in empty: «Loading…» until it's here
+      emptyView.setText(Lang.getString(R.string.LoadingInformation));
+      emptyView.setVisibility(View.VISIBLE);
+    }
+    load(); // fresh from Telegram; quietly put in if anything changed
+  }
+
+  /** the old kind is put back under its picture, then the picture goes */
+  private void revertPage () {
+    int newKind = kind;
+    android.os.Parcelable state = list.getLayoutManager() != null ? list.getLayoutManager().onSaveInstanceState() : null;
+    if (state != null && kindCache.get(newKind) != null) kindScroll.put(newKind, state);
+    kind = pageOldKind;
+    loadPrefs();
+    buildViewSwitch();
+    applyLayoutManager();
+    loaded.clear();
+    if (pageOldLoaded != null) loaded.addAll(pageOldLoaded);
+    rebuildItems();
+    if (pageOldScroll != null && list.getLayoutManager() != null) list.getLayoutManager().onRestoreInstanceState(pageOldScroll);
+    list.setTranslationX(0f);
+    emptyView.setTranslationX(0f);
+    paging = false;
+    pageWaiting = false;
+    pageOldLoaded = null;
+    pageOldScroll = null;
+    list.post(this::dropGhost); // after the list has drawn the old kind again: no blink between
+  }
+
+  private void dropGhost () {
+    pageGhost.setVisibility(View.GONE);
+    pageGhost.setImageDrawable(null);
+    pageGhost.setTranslationX(0f);
+    if (pageBitmap != null) {
+      pageBitmap.recycle();
+      pageBitmap = null;
+    }
+  }
+
+  /** the kinds next to this one are loaded ahead, so a swipe finds them full */
+  private void preloadNeighbours () {
+    if (mode != MODE_KIND || isDestroyed()) return;
+    int i = kindIndex();
+    for (int j : new int[] {i + 1, i - 1}) {
+      if (j < 0 || j >= KIND_ORDER.length) continue;
+      int k = KIND_ORDER[j];
+      if (kindCache.get(k) != null || kindLoading.contains(k)) continue;
+      kindLoading.add(k);
+      loadKind(k, messages -> {
+        kindLoading.remove(k);
+        if (!isDestroyed() && kindCache.get(k) == null) kindCache.put(k, messages);
+      });
+    }
+  }
+
+  private void loadKind (int k, me.vkryl.core.lambda.RunnableData<List<TdApi.Message>> after) {
+    if (k == -1) {
+      Tgx101SavedKit.history(tdlib, 1000, after);
+    } else {
+      Tgx101SavedKit.search(tdlib, Tgx101SavedHomeController.filterFor(k), null, 1000, after);
+    }
   }
 
   // (user's video 2026-10-16 18:43 «таких остаточных явлений при переключении быть не должно»): the old kind's rows went
@@ -947,13 +1209,27 @@ public class Tgx101SavedListController extends ViewController<Void> {
     }
     Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
     switch (mode) {
-      case MODE_KIND:
-        if (kind == -1) {
-          Tgx101SavedKit.history(tdlib, 1000, this::setLoaded);
-        } else {
-          Tgx101SavedKit.search(tdlib, Tgx101SavedHomeController.filterFor(kind), null, 1000, this::setLoaded);
-        }
+      case MODE_KIND: {
+        final int k = kind;
+        loadKind(k, messages -> {
+          if (isDestroyed()) return;
+          kindCache.put(k, messages);
+          if (k != kind || paging) { // the answer for a kind that is not shown (anymore), or one still sliding in
+            if (paging && k == kind && pageWaiting) {
+              pageWaiting = false;
+              loaded.clear();
+              loaded.addAll(messages);
+              rebuildItems();
+              if (pageAuto && !pageCommitted) endPage(true, 0f);
+            }
+            return;
+          }
+          pageWaiting = false;
+          setLoaded(messages);
+          preloadNeighbours();
+        });
         break;
+      }
       case MODE_INBOX: {
         Set<Long> filed = store.filedIds();
         Tgx101SavedKit.history(tdlib, 1000, messages -> {

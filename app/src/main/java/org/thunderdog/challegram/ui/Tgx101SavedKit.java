@@ -347,7 +347,19 @@ public final class Tgx101SavedKit {
         if (b == null) return;
         thumbs.put(tdlib.id() + ":" + f.id, b);
         UI.post(() -> {
-          if (tag.equals(view.getTag(R.id.tgx101SavedThumb))) view.setImageBitmap(b);
+          if (!tag.equals(view.getTag(R.id.tgx101SavedThumb))) return;
+          // (user 2026-10-17 «экран мигает на „Фото и видео“»): the blurred preview melts into the photo, no pop
+          android.graphics.drawable.Drawable before = view.getDrawable();
+          if (before == null || !view.isShown()) {
+            view.setImageBitmap(b);
+            return;
+          }
+          android.graphics.drawable.TransitionDrawable melt = new android.graphics.drawable.TransitionDrawable(new android.graphics.drawable.Drawable[] {
+            before, new android.graphics.drawable.BitmapDrawable(view.getResources(), b)
+          });
+          melt.setCrossFadeEnabled(true);
+          view.setImageDrawable(melt);
+          melt.startTransition(160);
         });
       });
     });
