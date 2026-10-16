@@ -2160,6 +2160,13 @@ public class TdlibUi extends Handler {
       && org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).opensStorage()
       && context.context() != null) {
       org.thunderdog.challegram.ui.Tgx101SavedHomeController.open(context.context(), tdlib);
+      // the caller waits for «opened» (the side menu closes on it — it stayed open over the storage, user 2026-10-16)
+      if (params != null) {
+        if (params.after != null) {
+          params.after.runWithLong(chatFinal.id);
+        }
+        params.onDone();
+      }
       return;
     }
     if (params != null && params.highlightMessageId != null) {
