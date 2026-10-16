@@ -1286,7 +1286,8 @@ public class CallController extends ViewController<CallController.Arguments> imp
     this.callDuration = 0;
     setCallBarsCount(tdlib.context().calls().getCallBarsCount(tdlib, call.id));
     updateCallStrength();
-    if (TD.isCancelled(call) || TD.isAcceptedOnOtherDevice(call) || TD.isDeclined(call) || (prevIsActive && callEnded) || TD.isMissed(call) || call.state.getConstructor() == TdApi.CallStateHangingUp.CONSTRUCTOR) {
+    boolean upgraded = call.state.getConstructor() == TdApi.CallStateDiscarded.CONSTRUCTOR && ((TdApi.CallStateDiscarded) call.state).reason.getConstructor() == TdApi.CallDiscardReasonUpgradeToGroupCall.CONSTRUCTOR; // TGx101: moved into a conference
+    if (upgraded || TD.isCancelled(call) || TD.isAcceptedOnOtherDevice(call) || TD.isDeclined(call) || (prevIsActive && callEnded) || TD.isMissed(call) || call.state.getConstructor() == TdApi.CallStateHangingUp.CONSTRUCTOR) {
       closeCall();
     } else {
       callControlsLayout.setCall(tdlib, call, navigationController != null);
@@ -1378,10 +1379,10 @@ public class CallController extends ViewController<CallController.Arguments> imp
         long userId = ((TdApi.MessageSenderUser) senderId).userId;
         if (userId == peerUserId || userId == tdlib.myUserId()) return false;
         org.thunderdog.challegram.Tgx101Diag.mark("call: grows into a group call with " + userId);
-        org.thunderdog.challegram.voip.Tgx101GroupCall.startConference(tdlib, new long[] {peerUserId, userId});
+        // the 1:1 call ends once the conference has its link (Tgx101GroupCall.finishUpgrade) — the other side follows it
+        org.thunderdog.challegram.voip.Tgx101GroupCall.startConference(tdlib, new long[] {peerUserId, userId}, callId, peerUserId);
         // (review) the ended call's «close» must not pop whatever is on top by then (the group call screen)
         tdlib.cache().unsubscribeFromCallUpdates(callId, CallController.this);
-        tdlib.context().calls().hangUp(tdlib, callId);
         UI.post(() -> {
           Tgx101GroupCallController.open(context);
           // (user 2026-10-14 21:25: after leaving the group call the ended 1:1 call screen was still there, its red

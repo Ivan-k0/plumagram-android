@@ -7560,6 +7560,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     }
 
     listeners.updateNewMessage(update);
+    if (isUpdate) org.thunderdog.challegram.voip.Tgx101GroupCall.onIncomingInvite(this, update.message); // TGx101
 
     notificationManager.onUpdateNewMessage(update);
 

@@ -207,6 +207,24 @@ public class CallManager implements GlobalCallListener {
     if (call.state.getConstructor() == TdApi.CallStateReady.CONSTRUCTOR) {
       VoIPServerConfig.setConfig(((TdApi.CallStateReady) call.state).config);
     }
+    if (call.state.getConstructor() == TdApi.CallStateDiscarded.CONSTRUCTOR
+      && ((TdApi.CallStateDiscarded) call.state).reason.getConstructor() == TdApi.CallDiscardReasonUpgradeToGroupCall.CONSTRUCTOR) {
+      // TGx101: the other side turned this call into a conference — follow it there
+      String link = ((TdApi.CallDiscardReasonUpgradeToGroupCall) ((TdApi.CallStateDiscarded) call.state).reason).inviteLink;
+      org.thunderdog.challegram.Tgx101Diag.mark("conference: our 1:1 call " + call.id + " was upgraded" + (link == null || link.isEmpty() ? ", no link" : ", following"));
+      if (link != null && !link.isEmpty()) {
+        UI.post(() -> {
+          org.thunderdog.challegram.voip.Tgx101GroupCall current = org.thunderdog.challegram.voip.Tgx101GroupCall.current();
+          if (current != null && current.isConference && current.getState() != org.thunderdog.challegram.voip.Tgx101GroupCall.STATE_ENDED) return; // we started it
+          org.thunderdog.challegram.voip.Tgx101GroupCall.joinConferenceByLink(tdlib, link);
+          org.thunderdog.challegram.BaseActivity activity = UI.getUiContext();
+          if (activity != null) org.thunderdog.challegram.ui.Tgx101GroupCallController.open(activity);
+        });
+      }
+    }
+    if (TD.isFinished(call) && call.state.getConstructor() == TdApi.CallStateDiscarded.CONSTRUCTOR) {
+      org.thunderdog.challegram.voip.Tgx101GroupCall.noteEndedCall(tdlib, call.userId); // TGx101: an invite may follow
+    }
     if (TD.isFinished(call)) {
       setCurrentCall(null, null);
 
@@ -545,6 +563,20 @@ debugCall id:long debug:string = Ok;
 
   public void hangUp (final Tdlib tdlib, final int callId, final boolean isDisconnect, final long connectionId) {
     hangUp(tdlib, callId, isDisconnect, connectionId, null);
+  }
+
+  /** TGx101: ends a 1:1 call that grew into a conference — the link takes the other side there (as in Telegram) */
+  public void tgx101UpgradeToGroupCall (final Tdlib tdlib, final int callId, final String inviteLink) {
+    TdApi.Call call = tdlib.cache().getCall(callId);
+    if (call == null || TD.isFinished(call)) {
+      return;
+    }
+    TGCallService service = TGCallService.currentInstance();
+    long connectionId = service != null ? service.getConnectionId() : 0;
+    int duration = getCallDuration(tdlib, callId);
+    tdlib.client().send(new TdApi.DiscardCall(callId, false, inviteLink, Math.max(0, duration), call.isVideo, connectionId), object -> {
+      org.thunderdog.challegram.Tgx101Diag.mark("conference: 1:1 call " + callId + " upgraded: " + object.getClass().getSimpleName());
+    });
   }
 
   public void hangUp (final Tdlib tdlib, final int callId, final boolean isDisconnect, final long connectionId, final @Nullable Runnable after) {

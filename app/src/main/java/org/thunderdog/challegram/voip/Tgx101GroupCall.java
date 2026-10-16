@@ -94,6 +94,9 @@ public final class Tgx101GroupCall implements GroupCallListener {
   public final boolean isConference;
   private final long[] inviteUserIds;
   private @Nullable TdApi.InputGroupCall joinInput; // a conference joined by its invite message
+  /** the 1:1 call this conference grew from: ended once the conference has its link, so the other side follows it */
+  private int upgradeCallId;
+  private long upgradePeerUserId;
   private final String inviteHash;
 
   private long ptr;
@@ -149,10 +152,22 @@ public final class Tgx101GroupCall implements GroupCallListener {
    */
   @UiThread
   public static Tgx101GroupCall startConference (Tdlib tdlib, long[] inviteUserIds) {
+    return startConference(tdlib, inviteUserIds, 0, 0);
+  }
+
+  /**
+   * (group call logs 2026-10-16: the 1:1 call was hung up first and the conference created after — the other side saw
+   * «call ended» and only an invite to accept; nobody joined) As in Telegram: the conference is created first, then the
+   * 1:1 call ends with the conference's link, and the other side's app moves into it by itself
+   */
+  @UiThread
+  public static Tgx101GroupCall startConference (Tdlib tdlib, long[] inviteUserIds, int upgradeCallId, long upgradePeerUserId) {
     if (current != null) {
       current.leave();
     }
     Tgx101GroupCall call = new Tgx101GroupCall(tdlib, 0, 0, null, true, inviteUserIds);
+    call.upgradeCallId = upgradeCallId;
+    call.upgradePeerUserId = upgradePeerUserId;
     current = call;
     call.start();
     notifyGlobal();
@@ -169,6 +184,70 @@ public final class Tgx101GroupCall implements GroupCallListener {
       }
     }, 6500);
     return call;
+  }
+
+  // (group call logs 2026-10-16 11:35: the official app turned the 1:1 call into a conference — here it ended as «hung up»
+  // and an invite came a second later; the official app follows such an invite by itself) — so do we
+  private static int lastEndedAccountId;
+  private static long lastEndedCallUserId, lastEndedCallTime;
+
+  /** a 1:1 call with this person has just ended */
+  public static void noteEndedCall (Tdlib tdlib, long userId) {
+    lastEndedAccountId = tdlib.id();
+    lastEndedCallUserId = userId;
+    lastEndedCallTime = android.os.SystemClock.elapsedRealtime();
+  }
+
+  /** an invite to a conference came: from the person of the call that has just ended — join it at once */
+  public static void onIncomingInvite (Tdlib tdlib, TdApi.Message message) {
+    if (message.isOutgoing || message.content.getConstructor() != TdApi.MessageGroupCall.CONSTRUCTOR) return;
+    if (!((TdApi.MessageGroupCall) message.content).isActive) return;
+    if (!(message.senderId instanceof TdApi.MessageSenderUser)) return;
+    long userId = ((TdApi.MessageSenderUser) message.senderId).userId;
+    long since = android.os.SystemClock.elapsedRealtime() - lastEndedCallTime;
+    if (lastEndedAccountId != tdlib.id() || userId != lastEndedCallUserId || since > 8000) return;
+    lastEndedCallUserId = 0;
+    UI.post(() -> {
+      if (current != null && current.state != STATE_ENDED) return;
+      org.thunderdog.challegram.Tgx101Diag.mark("conference: our call with " + userId + " moved into a conference " + since + " ms ago — joining");
+      joinConference(tdlib, message.chatId, message.id);
+      org.thunderdog.challegram.BaseActivity activity = UI.getUiContext();
+      if (activity != null) org.thunderdog.challegram.ui.Tgx101GroupCallController.open(activity);
+    });
+  }
+
+  /** TGx101: the other side turned our 1:1 call into a conference — we follow by its link */
+  @UiThread
+  public static Tgx101GroupCall joinConferenceByLink (Tdlib tdlib, String link) {
+    if (current != null) {
+      current.leave();
+    }
+    Tgx101GroupCall call = new Tgx101GroupCall(tdlib, 0, 0, null, true, null);
+    call.joinInput = new TdApi.InputGroupCallLink(link);
+    current = call;
+    call.start();
+    notifyGlobal();
+    return call;
+  }
+
+  /** the 1:1 call ends now: with the link when there is one (the other side follows), else plainly — then they get an invite */
+  private void finishUpgrade (@Nullable String link) {
+    if (upgradeCallId == 0) return;
+    int callId = upgradeCallId;
+    upgradeCallId = 0;
+    org.thunderdog.challegram.Tgx101Diag.mark("conference: 1:1 call " + callId + " ends " + (link != null ? "with the conference link" : "without a link"));
+    if (link != null) {
+      tdlib.context().calls().tgx101UpgradeToGroupCall(tdlib, callId, link);
+    } else {
+      tdlib.context().calls().hangUp(tdlib, callId);
+      if (upgradePeerUserId != 0) inviteUser(upgradePeerUserId);
+    }
+  }
+
+  private void inviteUser (long userId) {
+    tdlib.send(new TdApi.InviteGroupCallParticipant(groupCallId, userId, false), (result, inviteError) -> {
+      org.thunderdog.challegram.Tgx101Diag.mark("conference: invite " + userId + (inviteError != null ? " failed — " + TD.toErrorString(inviteError) : " sent"));
+    });
   }
 
   /** TGx101: joins a conference someone invited us to (the invite message in a private chat) */
@@ -280,6 +359,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
         return;
       }
       if (error != null) {
+        finishUpgrade(null);
         fail(Lang.getString(R.string.Tgx101VoiceChatFailed, TD.toErrorString(error)));
         return;
       }
@@ -288,12 +368,13 @@ public final class Tgx101GroupCall implements GroupCallListener {
       nativeSetJoinResponse(ptr, info.joinPayload);
       tdlib.send(new TdApi.GetGroupCall(groupCallId), (result, getError) -> UI.post(() -> {
         if (result != null) onGroupCallUpdated(result);
+        // the conference's link takes the other side of the 1:1 call along
+        finishUpgrade(result != null && result.inviteLink != null && !result.inviteLink.isEmpty() ? result.inviteLink : null);
       }));
       tdlib.send(new TdApi.LoadGroupCallParticipants(groupCallId, 100), (ok, loadError) -> { });
       for (long userId : inviteUserIds) {
-        tdlib.send(new TdApi.InviteGroupCallParticipant(groupCallId, userId, false), (result, inviteError) -> {
-          org.thunderdog.challegram.Tgx101Diag.mark("conference: invite " + userId + (inviteError != null ? " failed — " + TD.toErrorString(inviteError) : " sent"));
-        });
+        if (userId == upgradePeerUserId && upgradeCallId != 0) continue; // follows by the link
+        inviteUser(userId);
       }
       for (Listener listener : listeners) listener.onGroupCallStateChanged(this);
       notifyGlobal();
