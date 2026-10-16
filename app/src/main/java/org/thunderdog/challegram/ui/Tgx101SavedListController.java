@@ -289,7 +289,8 @@ public class Tgx101SavedListController extends ViewController<Void> {
           downStoppedFling = getScrollState() == SCROLL_STATE_SETTLING;
           if (downStoppedFling) stopScroll();
         }
-        if (downStoppedFling && action == MotionEvent.ACTION_UP && !paging) { // (a sideways page swipe ends as usual)
+        // only a tap: a swipe (a scroll the other way, a page) ends as usual and flings (user 2026-10-17)
+        if (downStoppedFling && action == MotionEvent.ACTION_UP && !paging && getScrollState() != SCROLL_STATE_DRAGGING) {
           // (user 2026-10-16 «если я свайп останавливаю тапом, то открывается файл»): the tap that stopped the fling only
           // stops it — the row under the finger gets a cancel, not a click
           downStoppedFling = false;
