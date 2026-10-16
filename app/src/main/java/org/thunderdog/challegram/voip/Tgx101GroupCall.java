@@ -174,13 +174,14 @@ public final class Tgx101GroupCall implements GroupCallListener {
     // (review) the 1:1 call's service resets the audio mode to normal ~5 s after it ends — take the call mode back then
     UI.post(() -> {
       if (current == call && call.state != STATE_ENDED) {
-        AudioManager audio = audioManager();
-        if (audio != null) {
-          try {
+        final boolean on = call.speaker;
+        Tgx101Audio.run(() -> {
+          AudioManager audio = audioManager();
+          if (audio != null) {
             audio.setMode(AudioManager.MODE_IN_COMMUNICATION);
-            audio.setSpeakerphoneOn(call.speaker);
-          } catch (Throwable ignored) { }
-        }
+            audio.setSpeakerphoneOn(on);
+          }
+        });
       }
     }, 6500);
     return call;
@@ -712,10 +713,11 @@ public final class Tgx101GroupCall implements GroupCallListener {
 
   public void toggleSpeaker () {
     speaker = !speaker;
-    AudioManager audio = audioManager();
-    if (audio != null) {
-      audio.setSpeakerphoneOn(speaker);
-    }
+    final boolean on = speaker;
+    Tgx101Audio.run(() -> {
+      AudioManager audio = audioManager();
+      if (audio != null) audio.setSpeakerphoneOn(on);
+    });
     for (Listener listener : listeners) listener.onGroupCallStateChanged(this);
     notifyGlobal();
   }
@@ -787,6 +789,10 @@ public final class Tgx101GroupCall implements GroupCallListener {
   }
 
   private void setupAudio (boolean active) {
+    Tgx101Audio.run(() -> setupAudioNow(active)); // off the main thread: setMode alone took ~0.9 s on the vivo
+  }
+
+  private void setupAudioNow (boolean active) {
     AudioManager audio = audioManager();
     if (audio == null) return;
     try {

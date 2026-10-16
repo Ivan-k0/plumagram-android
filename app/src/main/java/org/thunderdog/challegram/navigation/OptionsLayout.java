@@ -143,7 +143,16 @@ public class OptionsLayout extends LinearLayout implements Animated, RootFrameLa
   public void onApplyMarginInsets (View child, FrameLayout.LayoutParams params, Rect legacyInsets, Rect insets, Rect insetsWithoutIme) {
     int gap = TGX101_CARD ? Screen.dp(TGX101_CARD_GAP) : 0;
     Views.setMargins(params, insets.left + gap, 0, insets.right + gap, 0);
-    Views.setPaddingBottom(this, insetsWithoutIme.bottom + gap + tgx101CardLift());
+    int bottom = insetsWithoutIme.bottom;
+    if (TGX101_CARD) {
+      // (nav-buttons check 2026-10-16) the popup root may drop a bottom inset no taller than the navigation bar — with
+      // the 3-button bar the card then sat under its buttons. As the «Cancel / Action» card: the bar is the lower bound
+      androidx.core.view.WindowInsetsCompat rootInsets = androidx.core.view.ViewCompat.getRootWindowInsets(this);
+      if (rootInsets != null) {
+        bottom = Math.max(bottom, rootInsets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom);
+      }
+    }
+    Views.setPaddingBottom(this, bottom + gap + tgx101CardLift());
   }
 
   @Override

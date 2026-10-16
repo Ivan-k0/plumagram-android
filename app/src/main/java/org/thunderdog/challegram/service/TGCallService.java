@@ -456,8 +456,12 @@ public class TGCallService extends Service implements
               if (disconnectBt != null) {
                 disconnectBt.runWithBool(true);
               }
-              Log.d(Log.TAG_VOIP, "AudioManager.setMode(AudioManager.MODE_NORMAL) (in onDestroy, delayed)");
-              am.setMode(AudioManager.MODE_NORMAL);
+              // TGx101: not under a group call the 1:1 call grew into (it holds the call mode), and off the main thread
+              org.thunderdog.challegram.voip.Tgx101GroupCall group = org.thunderdog.challegram.voip.Tgx101GroupCall.current();
+              if (group == null || group.getState() == org.thunderdog.challegram.voip.Tgx101GroupCall.STATE_ENDED) {
+                Log.d(Log.TAG_VOIP, "AudioManager.setMode(AudioManager.MODE_NORMAL) (in onDestroy, delayed)");
+                org.thunderdog.challegram.voip.Tgx101Audio.run(() -> am.setMode(AudioManager.MODE_NORMAL));
+              }
             } catch (Throwable ignored) { }
           }
         }, 5000);
@@ -908,7 +912,8 @@ public class TGCallService extends Service implements
         if (activity != null && !isConfigured) activity.setVolumeControlStream(AudioManager.USE_DEFAULT_STREAM_TYPE);
       });
 
-      am.setMode(AudioManager.MODE_NORMAL);
+      // TGx101: off the main thread (~0.9 s on the vivo froze the screen as the call grew into a group one)
+      org.thunderdog.challegram.voip.Tgx101Audio.run(() -> am.setMode(AudioManager.MODE_NORMAL));
       tgx101ModeNormalSet = true;
       // Audio focus changed in the onDestroy
 
