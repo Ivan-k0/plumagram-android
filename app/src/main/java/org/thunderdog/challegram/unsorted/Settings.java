@@ -3741,6 +3741,15 @@ public class Settings {
 
   /** TGx101 (user 2026-10-12, variant 3): blur behind the message menu and the bottom sheets — off: a plain dim, as in
    *  the official app */
+  /** TGx101 (user 2026-10-15/16): on the first chat folder a finger pulled right opens Saved as a storage */
+  public boolean tgx101SwipeToStorage () {
+    return pmc.getBoolean("tgx101_swipe_storage", true);
+  }
+
+  public void setTgx101SwipeToStorage (boolean v) {
+    pmc.putBoolean("tgx101_swipe_storage", v);
+  }
+
   public boolean tgx101MenuBlur () {
     return pmc.getBoolean("tgx101_menu_blur", false);
   }

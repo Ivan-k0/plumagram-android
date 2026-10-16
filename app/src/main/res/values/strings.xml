@@ -6993,6 +6993,9 @@
   <string name="Tgx101ShareUpdate">Update</string>
   <string name="Tgx101ShareStop">Stop sharing</string>
   <string name="Tgx101ShareTileProgress">copying %1$s/%2$s</string>
+  <string name="Tgx101SwipeToStorageSection">Chat list</string>
+  <string name="Tgx101SwipeToStorage">Swipe right on the first folder — Saved</string>
+  <string name="Tgx101SwipeToStorageHint">On the first chat folder pull the finger to the right, where there are no folders: past the vibration Saved opens as a storage.</string>
   <string name="Tgx101SavedNoteSaved">Note saved</string>
   <string name="Tgx101SavedNothing">Nothing here yet.</string>
   <string name="Tgx101SavedOrderAZ">A → Z</string>

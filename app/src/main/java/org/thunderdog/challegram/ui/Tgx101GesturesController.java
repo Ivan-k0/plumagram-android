@@ -99,7 +99,9 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
       @Override
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
         int id = item.getId();
-        if (id == R.id.btn_tgx101SwipeReactions) {
+        if (id == R.id.btn_tgx101SwipeToStorage) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101SwipeToStorage(), isUpdate);
+        } else if (id == R.id.btn_tgx101SwipeReactions) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101SwipeReactions(), isUpdate);
         } else if (id == R.id.btn_tgx101SwipeActions) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101SwipeActions(), isUpdate);
@@ -170,6 +172,12 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
     items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101SwipeOrder, R.drawable.baseline_drag_handle_24, R.string.Tgx101SwipeOrder));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
 
+    items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101SwipeToStorageSection));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SwipeToStorage, R.drawable.baseline_bookmark_24, R.string.Tgx101SwipeToStorage));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SwipeToStorageHint));
+
     final boolean menu = Settings.instance().tgx101LongPressMenu();
     items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101LongPressSection));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
@@ -228,7 +236,9 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
       navigateTo(c);
       return;
     }
-    if (id == R.id.btn_tgx101SwipeReactions) {
+    if (id == R.id.btn_tgx101SwipeToStorage) {
+      Settings.instance().setTgx101SwipeToStorage(adapter.toggleView(v));
+    } else if (id == R.id.btn_tgx101SwipeReactions) {
       Settings.instance().setTgx101SwipeReactions(adapter.toggleView(v));
     } else if (id == R.id.btn_tgx101SwipeActions) {
       Settings.instance().setTgx101SwipeActions(adapter.toggleView(v));

@@ -46,6 +46,25 @@ public class RtlViewPager extends ViewPager implements RtlCheckListener {
   private boolean suppressOnPageChangeListeners;
   private boolean disableRtl;
 
+  /** TGx101: a gesture that goes before the pages (the first folder pulled right → Saved); true — the pager doesn't see it */
+  public interface Tgx101EdgeGesture {
+    boolean onTouch (android.view.MotionEvent e);
+  }
+
+  private Tgx101EdgeGesture tgx101EdgeGesture;
+
+  public void setTgx101EdgeGesture (Tgx101EdgeGesture gesture) {
+    this.tgx101EdgeGesture = gesture;
+  }
+
+  @Override
+  public boolean dispatchTouchEvent (android.view.MotionEvent e) {
+    if (tgx101EdgeGesture != null && tgx101EdgeGesture.onTouch(e)) {
+      return true;
+    }
+    return super.dispatchTouchEvent(e);
+  }
+
   public RtlViewPager(Context context) {
     super(context);
     reverseOnPageChangeListeners = new ArrayMap<>(1);

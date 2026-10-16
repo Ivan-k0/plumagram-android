@@ -747,6 +747,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ShareUpdate, "Обновить");
     RU.put(R.string.Tgx101ShareStop, "Перестать делиться");
     RU.put(R.string.Tgx101ShareTileProgress, "копируется %1$s/%2$s");
+    RU.put(R.string.Tgx101SwipeToStorageSection, "Список чатов");
+    RU.put(R.string.Tgx101SwipeToStorage, "Свайп вправо на первой папке — Избранное");
+    RU.put(R.string.Tgx101SwipeToStorageHint, "На первой папке чатов ведите палец вправо, туда, где папок уже нет: после вибрации откроется Избранное-хранилище.");
     RU.put(R.string.Tgx101SavedNoteSaved, "Заметка сохранена");
     RU.put(R.string.Tgx101SavedNothing, "Здесь пока ничего нет.");
     RU.put(R.string.Tgx101SavedOrderAZ, "А → Я");

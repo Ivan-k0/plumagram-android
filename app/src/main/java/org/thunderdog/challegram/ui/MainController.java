@@ -224,6 +224,23 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     pagerWrap = new FrameLayoutFix(context);
     pagerWrap.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     pagerWrap.addView(pager);
+    // TGx101: the first folder pulled to the right opens Saved as a storage
+    final Tgx101StoragePull storagePull = new Tgx101StoragePull(context, new Tgx101StoragePull.Host() {
+      @Override
+      public boolean canPull () {
+        return getCurrentPagerItemPosition() == 0 && !Lang.rtl() && !inSearchMode() && !inSelectMode();
+      }
+
+      @Override
+      public void open () {
+        org.thunderdog.challegram.Tgx101Diag.mark("storage pull: open Saved");
+        Tgx101SavedHomeController.open(context(), tdlib);
+      }
+    });
+    pagerWrap.addView(storagePull, FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    if (pager instanceof org.thunderdog.challegram.widget.rtl.RtlViewPager) {
+      ((org.thunderdog.challegram.widget.rtl.RtlViewPager) pager).setTgx101EdgeGesture(e -> storagePull.onPagerTouch(pager, e));
+    }
 
     mainWrap = new FrameLayoutFix(context);
     mainWrap.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
