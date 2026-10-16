@@ -6382,7 +6382,12 @@
   <string name="Tgx101FontMerriweather">Merriweather</string>
   <string name="Tgx101FontCondensed">Roboto Condensed</string>
   <string name="Tgx101FontInter">Inter (like San Francisco)</string>
-  <string name="Tgx101InputFontScale">Message field text follows the phone font size</string>
+  <string name="Tgx101InputFontScale">Text size in the message field</string>
+  <string name="Tgx101InputSize18">Standard, as in Telegram</string>
+  <string name="Tgx101InputSize20">Slightly bigger</string>
+  <string name="Tgx101InputSize22">Big</string>
+  <string name="Tgx101InputSize24">Very big</string>
+  <string name="Tgx101InputSize27">Huge</string>
   <string name="Tgx101HapticStrength">Vibration strength</string>
   <string name="Tgx101HapticOff">Off</string>
   <string name="Tgx101HapticLight">Light</string>

@@ -3424,6 +3424,21 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_INPUT_FOLLOWS_FONT_SCALE, value);
   }
 
+  // user 2026-10-17 «увеличение шрифта в поле ввода очень слабо его увеличивает — сделать ещё больше»: following the
+  // phone's scale gave 20 dp at most; now a size is chosen outright. Whoever had «follows» on starts at 21
+  public static final int[] TGX101_INPUT_SIZES = {18, 20, 22, 24, 27};
+  private static final String KEY_TGX101_INPUT_SIZE = "tgx101_input_size";
+
+  public int tgx101InputTextSize () {
+    int size = pmc.getInt(KEY_TGX101_INPUT_SIZE, 0);
+    if (size > 0) return size;
+    return tgx101InputFollowsFontScale() ? 22 : 18;
+  }
+
+  public void setTgx101InputTextSize (int dp) {
+    pmc.putInt(KEY_TGX101_INPUT_SIZE, dp);
+  }
+
   public void setAppFont (int font) {
     pmc.putInt(KEY_TGX101_APP_FONT, font);
     _appFont = font;

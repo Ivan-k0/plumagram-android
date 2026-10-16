@@ -114,7 +114,7 @@ public final class Tgx101SettingsBackup {
       || base.startsWith("settings_font_size") || base.startsWith("settings_big_emoji_size") || base.startsWith("settings_color_format")
       || base.startsWith("settings_chat_list_mode") || base.startsWith("settings_folders_style") || base.startsWith("tgx101_app_font")
       || base.startsWith("tgx101_font_") || base.startsWith("tgx101_text_weight") || base.startsWith("tgx101_chat_list_text_size")
-      || base.startsWith("tgx101_ui_") || base.startsWith("tgx101_input_sp") || base.startsWith("tgx101_channel_plain_style")
+      || base.startsWith("tgx101_ui_") || base.startsWith("tgx101_input_s") || base.startsWith("tgx101_channel_plain_style")
       || base.startsWith("tgx101_app_icon")) {
       return PART_APPEARANCE;
     }

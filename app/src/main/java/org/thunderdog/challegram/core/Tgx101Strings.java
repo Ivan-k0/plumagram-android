@@ -548,7 +548,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101FontMerriweather, "Merriweather");
     RU.put(R.string.Tgx101FontCondensed, "Roboto Condensed");
     RU.put(R.string.Tgx101FontInter, "Inter (как San Francisco)");
-    RU.put(R.string.Tgx101InputFontScale, "Текст в поле ввода — по размеру шрифта телефона");
+    RU.put(R.string.Tgx101InputFontScale, "Размер текста в поле ввода");
+    RU.put(R.string.Tgx101InputSize18, "Обычный, как в Telegram");
+    RU.put(R.string.Tgx101InputSize20, "Чуть крупнее");
+    RU.put(R.string.Tgx101InputSize22, "Крупный");
+    RU.put(R.string.Tgx101InputSize24, "Очень крупный");
+    RU.put(R.string.Tgx101InputSize27, "Огромный");
     RU.put(R.string.Tgx101HapticStrength, "Сила вибрации");
     RU.put(R.string.Tgx101HapticOff, "Выключена");
     RU.put(R.string.Tgx101HapticLight, "Лёгкая");

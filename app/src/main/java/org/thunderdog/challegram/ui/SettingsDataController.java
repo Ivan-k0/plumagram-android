@@ -367,7 +367,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         } else if (itemId == R.id.btn_tgx101UiBold) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101UiBold(), isUpdate);
         } else if (itemId == R.id.btn_tgx101InputFontScale) {
-          view.getToggler().setRadioEnabled(Settings.instance().tgx101InputFollowsFontScale(), isUpdate);
+          view.setData(tgx101InputSizeName(Settings.instance().tgx101InputTextSize()));
         } else if (itemId == R.id.btn_tgx101AppIcon) {
           view.setData(org.thunderdog.challegram.tool.Tgx101AppIcon.isAvailable() ? Lang.getString(org.thunderdog.challegram.tool.Tgx101AppIcon.NAMES[org.thunderdog.challegram.tool.Tgx101AppIcon.current(context)]) : Lang.getString(R.string.Tgx101AppIconOld));
         } else if (itemId == R.id.btn_tgx101ForegroundNotif) {
@@ -502,7 +502,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101Font, 0, R.string.Tgx101Font),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101InputFontScale, 0, R.string.Tgx101InputFontScale),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101InputFontScale, 0, R.string.Tgx101InputFontScale),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101TextWeight, 0, R.string.Tgx101TextWeight),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1393,7 +1393,19 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     } else if (id == R.id.btn_tgx101MenuAtFinger) {
       Settings.instance().setTgx101MenuAtFinger(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101InputFontScale) {
-      Settings.instance().setTgx101InputFollowsFontScale(toggleResult); // the fields of chats opened afterwards
+      int current = Settings.instance().tgx101InputTextSize();
+      int[] values = Settings.TGX101_INPUT_SIZES;
+      ListItem[] items = new ListItem[values.length];
+      for (int i = 0; i < values.length; i++) {
+        items[i] = new ListItem(ListItem.TYPE_RADIO_OPTION, i + 1, 0, tgx101InputSizeName(values[i]), R.id.btn_tgx101InputFontScale, values[i] == current);
+      }
+      showSettings(new SettingsWrapBuilder(R.id.btn_tgx101InputFontScale)
+        .setRawItems(items)
+        .setIntDelegate((resultId, result) -> {
+          int index = result.get(R.id.btn_tgx101InputFontScale) - 1;
+          if (index >= 0 && index < values.length) Settings.instance().setTgx101InputTextSize(values[index]); // the fields of chats opened afterwards
+          adapter.updateValuedSettingById(R.id.btn_tgx101InputFontScale);
+        }));
     } else if (id == R.id.btn_tgx101UiBold) {
       Settings.instance().setTgx101UiBold(toggleResult); // the view was already toggled above; menus opened afterwards
     } else if (id == R.id.btn_tgx101UiText) {
@@ -1954,6 +1966,13 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   }
 
   /** (user 2026-10-17) Cloudflare Whisper: the account ID, then the token; the engine is switched once both are here */
+  private static String tgx101InputSizeName (int dp) {
+    int[] names = {R.string.Tgx101InputSize18, R.string.Tgx101InputSize20, R.string.Tgx101InputSize22, R.string.Tgx101InputSize24, R.string.Tgx101InputSize27};
+    int[] values = Settings.TGX101_INPUT_SIZES;
+    for (int i = 0; i < values.length; i++) if (values[i] == dp) return Lang.getString(names[i]);
+    return String.valueOf(dp);
+  }
+
   private void askTgx101Cloudflare () {
     openInputAlert(Lang.getString(R.string.Tgx101CloudflareAccount), Lang.getString(R.string.Tgx101CloudflareAccountHint), R.string.Done, R.string.Cancel, Settings.instance().tgx101CloudflareAccount(), (inputView, account) -> {
       String id = account.trim();
