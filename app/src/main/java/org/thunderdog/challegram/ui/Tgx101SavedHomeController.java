@@ -514,9 +514,20 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       float top = slideLocation[1] - slideNavLocation[1];
       if (y >= top && y <= top + sideways.getHeight()) return false;
     }
+    if (inFirstFolderRow(y)) return false;
     return super.canSlideBackFrom(navigationController, x, y);
   }
 
+
+  /** (user 2026-10-17 «область, где первый ряд папок — без свайпов, чтобы без ложных»): the first row of folders */
+  private boolean inFirstFolderRow (float y) {
+    if (tiles == null || !tiles.isShown() || tiles.getChildCount() == 0) return false;
+    View first = tiles.getChildAt(0);
+    first.getLocationOnScreen(slideLocation);
+    float top = slideLocation[1] - slideNavLocation[1];
+    int rowHeight = first instanceof MosaicGrid ? ((MosaicGrid) first).firstRowHeight() : Screen.dp(CAPSULE_HEIGHT + 6f);
+    return y >= top - Screen.dp(4f) && y <= top + rowHeight + Screen.dp(4f);
+  }
 
   // (user 2026-10-17 «свайп с главной хранилища в обе стороны; справа налево — список чатов выезжает справа»)
   @Override
@@ -542,7 +553,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       float top = slideLocation[1] - slideNavLocation[1];
       if (y >= top && y <= top + sideways.getHeight()) return false;
     }
-    return true;
+    return !inFirstFolderRow(y);
   }
 
   /** (test 2026-10-16: settings opened with the note's keyboard up kept it over the next screen) */
@@ -984,6 +995,10 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
 
     MosaicGrid (Context context) {
       super(context);
+    }
+
+    int firstRowHeight () {
+      return unit > 0 ? unit : Screen.dp(72f);
     }
 
     @Override
