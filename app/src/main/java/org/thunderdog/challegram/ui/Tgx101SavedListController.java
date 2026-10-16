@@ -1333,9 +1333,22 @@ public class Tgx101SavedListController extends ViewController<Void> {
       finishSwitch();
       return;
     }
+    if (!loaded.isEmpty() && sameIds(loaded, messages)) { // a refresh with nothing new: the rows stay as they are, no relayout under the finger
+      loaded.clear();
+      loaded.addAll(messages);
+      return;
+    }
     loaded.clear();
     loaded.addAll(messages);
     rebuildItems();
+  }
+
+  private static boolean sameIds (List<TdApi.Message> a, List<TdApi.Message> b) {
+    if (a.size() != b.size()) return false;
+    for (int i = 0; i < a.size(); i++) {
+      if (a.get(i).id != b.get(i).id || a.get(i).editDate != b.get(i).editDate) return false;
+    }
+    return true;
   }
 
   private Comparator<TdApi.Message> comparator () {
