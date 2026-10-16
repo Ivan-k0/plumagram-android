@@ -4085,7 +4085,19 @@ public class Settings {
   }
 
   // user 2026-10-17 «распознавание речи — давать выбор: Telegram делает хуже, чем GigaAM»
-  public static final int TGX101_SPEECH_TELEGRAM = 0, TGX101_SPEECH_DEVICE = 1;
+  public static final int TGX101_SPEECH_TELEGRAM = 0, TGX101_SPEECH_DEVICE = 1, TGX101_SPEECH_CLOUDFLARE = 2;
+  private static final String KEY_TGX101_CLOUDFLARE_ACCOUNT = "tgx101_cf_account", KEY_TGX101_CLOUDFLARE_TOKEN = "tgx101_cf_token";
+  /** the user's own Cloudflare account for Whisper on Workers AI (Tgx101Cloudflare) */
+  public String tgx101CloudflareAccount () {
+    return pmc.getString(KEY_TGX101_CLOUDFLARE_ACCOUNT, "");
+  }
+  public String tgx101CloudflareToken () {
+    return pmc.getString(KEY_TGX101_CLOUDFLARE_TOKEN, "");
+  }
+  public void setTgx101Cloudflare (String account, String token) {
+    pmc.putString(KEY_TGX101_CLOUDFLARE_ACCOUNT, account);
+    pmc.putString(KEY_TGX101_CLOUDFLARE_TOKEN, token);
+  }
   private static final String KEY_TGX101_SPEECH_ENGINE = "tgx101_speech_engine";
   public int tgx101SpeechEngine () {
     return pmc.getInt(KEY_TGX101_SPEECH_ENGINE, TGX101_SPEECH_TELEGRAM);

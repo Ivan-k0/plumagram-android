@@ -345,6 +345,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SpeechEngineTelegram, "Telegram, а если не может — телефон");
     RU.put(R.string.Tgx101SpeechEngineDevice, "Телефон — скачанная модель");
     RU.put(R.string.Tgx101SpeechEngineNeedModel, "Сначала скачайте модель. GigaAM распознаёт русскую речь лучше Telegram, со знаками препинания и без интернета.");
+    RU.put(R.string.Tgx101SpeechEngineCloudflare, "Cloudflare — Whisper, свой аккаунт");
+    RU.put(R.string.Tgx101CloudflareAccount, "ID аккаунта Cloudflare");
+    RU.put(R.string.Tgx101CloudflareAccountHint, "dash.cloudflare.com → Workers AI → Use REST API: ID аккаунта");
+    RU.put(R.string.Tgx101CloudflareToken, "API-токен Cloudflare");
+    RU.put(R.string.Tgx101CloudflareTokenHint, "Токен с правом «Workers AI» (там же: Create a Workers AI API Token)");
+    RU.put(R.string.Tgx101CloudflareWarning, "Голосовые будут уходить на распознавание в Cloudflare (из секретных чатов — никогда). Если не получится, распознает Telegram, а потом телефон.");
     RU.put(R.string.Tgx101SpeechModelHint, "Если Telegram не расшифровывает голосовое (нет Премиума, недельные пробные расшифровки закончились), а служба распознавания телефона не справляется, оно распознаётся на телефоне скачанной моделью, без интернета.");
     RU.put(R.string.Tgx101SpeechModelNone, "Выключено");
     RU.put(R.string.Tgx101SpeechModelLight, "Лёгкая, русский (29 МБ)");

@@ -390,7 +390,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         } else if (itemId == R.id.btn_tgx101SpeechModel) {
           view.setData(tgx101SpeechModelStatus());
         } else if (itemId == R.id.btn_tgx101SpeechEngine) {
-          view.setData(Settings.instance().tgx101SpeechEngine() == Settings.TGX101_SPEECH_DEVICE ? R.string.Tgx101SpeechEngineDevice : R.string.Tgx101SpeechEngineTelegram);
+          int se = Settings.instance().tgx101SpeechEngine();
+          view.setData(se == Settings.TGX101_SPEECH_DEVICE ? R.string.Tgx101SpeechEngineDevice : se == Settings.TGX101_SPEECH_CLOUDFLARE ? R.string.Tgx101SpeechEngineCloudflare : R.string.Tgx101SpeechEngineTelegram);
         } else if (itemId == R.id.btn_tgx101FakeNoPremium) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101FakeNoPremium(), isUpdate);
         } else if (itemId == R.id.btn_showChannelMuteButton) {
@@ -1491,9 +1492,14 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       showSettings(new SettingsWrapBuilder(R.id.btn_tgx101SpeechEngine).setRawItems(new ListItem[] {
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101SpeechEngineTelegram, 0, R.string.Tgx101SpeechEngineTelegram, R.id.btn_tgx101SpeechEngine, cur == Settings.TGX101_SPEECH_TELEGRAM),
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101SpeechEngineDevice, 0, R.string.Tgx101SpeechEngineDevice, R.id.btn_tgx101SpeechEngine, cur == Settings.TGX101_SPEECH_DEVICE),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101SpeechEngineCloudflare, 0, R.string.Tgx101SpeechEngineCloudflare, R.id.btn_tgx101SpeechEngine, cur == Settings.TGX101_SPEECH_CLOUDFLARE),
       }).setIntDelegate((sid, result) -> {
         int picked = result.get(R.id.btn_tgx101SpeechEngine);
-        int engine = picked == R.id.btn_tgx101SpeechEngineDevice ? Settings.TGX101_SPEECH_DEVICE : Settings.TGX101_SPEECH_TELEGRAM;
+        int engine = picked == R.id.btn_tgx101SpeechEngineDevice ? Settings.TGX101_SPEECH_DEVICE : picked == R.id.btn_tgx101SpeechEngineCloudflare ? Settings.TGX101_SPEECH_CLOUDFLARE : Settings.TGX101_SPEECH_TELEGRAM;
+        if (engine == Settings.TGX101_SPEECH_CLOUDFLARE) {
+          askTgx101Cloudflare(); // saved once both are typed in
+          return;
+        }
         Settings.instance().setTgx101SpeechEngine(engine);
         adapter.updateValuedSettingById(R.id.btn_tgx101SpeechEngine);
         if (engine == Settings.TGX101_SPEECH_DEVICE && org.thunderdog.challegram.data.Tgx101SpeechModels.active() == null) {
@@ -1945,6 +1951,24 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         return true;
       });
     });
+  }
+
+  /** (user 2026-10-17) Cloudflare Whisper: the account ID, then the token; the engine is switched once both are here */
+  private void askTgx101Cloudflare () {
+    openInputAlert(Lang.getString(R.string.Tgx101CloudflareAccount), Lang.getString(R.string.Tgx101CloudflareAccountHint), R.string.Done, R.string.Cancel, Settings.instance().tgx101CloudflareAccount(), (inputView, account) -> {
+      String id = account.trim();
+      if (!id.matches("[0-9a-fA-F]{16,64}")) return false;
+      UI.post(() -> openInputAlert(Lang.getString(R.string.Tgx101CloudflareToken), Lang.getString(R.string.Tgx101CloudflareTokenHint), R.string.Done, R.string.Cancel, Settings.instance().tgx101CloudflareToken(), (inputView2, token) -> {
+        String t = token.trim();
+        if (t.length() < 20 || t.contains(" ")) return false;
+        Settings.instance().setTgx101Cloudflare(id, t);
+        Settings.instance().setTgx101SpeechEngine(Settings.TGX101_SPEECH_CLOUDFLARE);
+        if (adapter != null) adapter.updateValuedSettingById(R.id.btn_tgx101SpeechEngine);
+        UI.post(() -> showOptions(Lang.getString(R.string.Tgx101CloudflareWarning), new int[] {R.id.btn_done}, new String[] {Lang.getString(R.string.OK)}, null, null, null), 300);
+        return true;
+      }, true), 300);
+      return true;
+    }, true);
   }
 
   private void showTgx101SpeechModels () {

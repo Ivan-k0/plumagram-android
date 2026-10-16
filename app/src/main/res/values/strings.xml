@@ -6179,6 +6179,12 @@
   <string name="Tgx101SpeechEngineTelegram">Telegram, the phone if it can\'t</string>
   <string name="Tgx101SpeechEngineDevice">The phone — the downloaded model</string>
   <string name="Tgx101SpeechEngineNeedModel">Download a model first. GigaAM recognizes Russian better than Telegram, with punctuation, without the internet.</string>
+  <string name="Tgx101SpeechEngineCloudflare">Cloudflare — Whisper, your account</string>
+  <string name="Tgx101CloudflareAccount">Cloudflare account ID</string>
+  <string name="Tgx101CloudflareAccountHint">dash.cloudflare.com → Workers AI → Use REST API: the account ID</string>
+  <string name="Tgx101CloudflareToken">Cloudflare API token</string>
+  <string name="Tgx101CloudflareTokenHint">A token with the «Workers AI» permission (Create a Workers AI API Token there)</string>
+  <string name="Tgx101CloudflareWarning">Voice messages will be sent to Cloudflare to be recognized (never from secret chats). If it fails, Telegram and then the phone recognize them.</string>
   <string name="Tgx101SpeechModelHint">When Telegram doesn\'t transcribe a voice message (no Premium, weekly trial used up) and the phone\'s own speech service can\'t, it is recognized on the phone with the downloaded model, without the internet.</string>
   <string name="Tgx101SpeechModelNone">Off</string>
   <string name="Tgx101SpeechModelLight">Light, Russian (29 MB)</string>

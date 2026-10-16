@@ -186,8 +186,11 @@ public final class Tgx101Transcription {
     }
     Job job = new Job(tdlib, key, message.chatId, message.id, file);
     job.progress(null);
-    boolean phoneFirst = org.thunderdog.challegram.unsorted.Settings.instance().tgx101SpeechEngine() == org.thunderdog.challegram.unsorted.Settings.TGX101_SPEECH_DEVICE && Tgx101SpeechModels.active() != null;
-    if (isSecretChat || phoneFirst) {
+    int engine = org.thunderdog.challegram.unsorted.Settings.instance().tgx101SpeechEngine();
+    boolean phoneFirst = engine == org.thunderdog.challegram.unsorted.Settings.TGX101_SPEECH_DEVICE && Tgx101SpeechModels.active() != null;
+    if (!isSecretChat && engine == org.thunderdog.challegram.unsorted.Settings.TGX101_SPEECH_CLOUDFLARE && Tgx101Cloudflare.isConfigured()) {
+      job.recognizeOnCloudflare(); // never from secret chats: their voice doesn't leave the phone
+    } else if (isSecretChat || phoneFirst) {
       job.recognizeOnDevice(); // secret chats can't use server recognition; or the phone's model was chosen
     } else {
       job.recognizeOnServer();
@@ -362,6 +365,42 @@ public final class Tgx101Transcription {
           });
         }, "VoiceTranscriptionModel").start();
       }));
+    }
+
+    // Cloudflare Workers AI (Whisper), with the user's own account; if it fails — Telegram, then the phone
+
+    void recognizeOnCloudflare () {
+      tdlib.client().send(new TdApi.DownloadFile(file.id, 32, 0, 0, true), result -> {
+        if (!(result instanceof TdApi.File) || !TD.isFileLoaded((TdApi.File) result)) {
+          recognizeOnServerOnly();
+          return;
+        }
+        String path = ((TdApi.File) result).local.path;
+        new Thread(() -> {
+          String text = null;
+          long start = android.os.SystemClock.elapsedRealtime();
+          try {
+            byte[] pcm = decodeToPcm16kMono(path);
+            text = Tgx101Cloudflare.recognize(pcm);
+            org.thunderdog.challegram.Tgx101Diag.mark("transcription: cloudflare, " + (pcm.length / 32000) + " s of audio in " + (android.os.SystemClock.elapsedRealtime() - start) + " ms, " + text.length() + " chars");
+          } catch (Throwable t) {
+            Log.e("Cloudflare speech recognition failed", t);
+            org.thunderdog.challegram.Tgx101Diag.mark("transcription: cloudflare failed " + t.getClass().getSimpleName() + ": " + t.getMessage());
+          }
+          final String recognized = text;
+          UI.post(() -> {
+            if (recognized != null && !recognized.trim().isEmpty()) {
+              finish(recognized.trim());
+            } else {
+              recognizeOnServerOnly();
+            }
+          });
+        }, "VoiceTranscriptionCloudflare").start();
+      });
+    }
+
+    private void recognizeOnServerOnly () {
+      recognizeOnServer(); // Telegram, and the phone after it
     }
 
     // On device
