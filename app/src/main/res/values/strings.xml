@@ -6386,7 +6386,8 @@
   <string name="Tgx101ChatMenuTranslate">Translate chat</string>
   <string name="Tgx101ChatMenuLinked">Linked chat / channel</string>
   <string name="Tgx101ChatMenuVoiceChat">Voice chat</string>
-  <string name="Tgx101ChatMenuOther">Other items (delete, leave, bot…)</string>
+  <string name="Tgx101ChatMenuOther">Other items (clear history, bot…)</string>
+  <string name="Tgx101ChatMenuLeave">Leave / delete the chat</string>
   <string name="Tgx101DrawerOrder">Side menu items</string>
   <string name="Tgx101ChatMenuOrder">Chat ⋮ menu items</string>
   <string name="Tgx101BarSectionOn">In the menu, top to bottom</string>

@@ -35,7 +35,8 @@ public final class Tgx101BarOrder {
   public static final String CHAT_CALL = "call", CHAT_VIDEO_CALL = "videoCall", CHAT_SEARCH = "search", CHAT_DATE = "date",
     CHAT_SAVED_BY_CHATS = "savedByChats", CHAT_BACKGROUND = "background", CHAT_MUTE = "mute", CHAT_NOTIFICATIONS = "notifications",
     CHAT_TRANSLATE = "translate", CHAT_PINNED = "pinned", CHAT_LINKED = "linked", CHAT_SCHEDULED = "scheduled", CHAT_VOICE_CHAT = "voiceChat",
-    CHAT_TOPICS = "topics", CHAT_REPORT = "report", CHAT_PASSCODE = "passcode", CHAT_PROXY = "proxy", CHAT_OTHER = "other";
+    CHAT_TOPICS = "topics", CHAT_REPORT = "report", CHAT_PASSCODE = "passcode", CHAT_PROXY = "proxy", CHAT_OTHER = "other",
+    CHAT_LEAVE = "leave"; // TGx101 (user 2026-10-16): «Leave» / «Delete chat» on its own, not among «the rest»
   private static final String[] CHAT_OFF_BY_DEFAULT = {CHAT_PROXY};
 
   public static final String QUOTE = "quote", COPY = "copy", SELECT_ALL = "selectAll", EDITOR = "editor",
@@ -55,7 +56,7 @@ public final class Tgx101BarOrder {
       SWIPE_REACTION, SWIPE_DELETE_ALL, SWIPE_LINK, SWIPE_SAVE_FILE, SWIPE_REPORT},
     {DRAWER_STORY, DRAWER_CONTACTS, DRAWER_CALLS, DRAWER_SAVED, DRAWER_SAVED_BY_CHATS, DRAWER_SETTINGS, DRAWER_PROXY, DRAWER_NIGHT},
     {CHAT_CALL, CHAT_VIDEO_CALL, CHAT_SEARCH, CHAT_DATE, CHAT_SAVED_BY_CHATS, CHAT_BACKGROUND, CHAT_MUTE, CHAT_NOTIFICATIONS, CHAT_TRANSLATE,
-      CHAT_PINNED, CHAT_LINKED, CHAT_SCHEDULED, CHAT_VOICE_CHAT, CHAT_TOPICS, CHAT_REPORT, CHAT_PASSCODE, CHAT_OTHER, CHAT_PROXY}
+      CHAT_PINNED, CHAT_LINKED, CHAT_SCHEDULED, CHAT_VOICE_CHAT, CHAT_TOPICS, CHAT_REPORT, CHAT_PASSCODE, CHAT_OTHER, CHAT_PROXY, CHAT_LEAVE}
   };
 
   public static int drawerIdOf (String key) {
@@ -116,6 +117,7 @@ public final class Tgx101BarOrder {
     if (id == R.id.btn_reportChat) return CHAT_REPORT;
     if (id == R.id.btn_setPasscode) return CHAT_PASSCODE;
     if (id == R.id.btn_tgx101ChatProxy) return CHAT_PROXY;
+    if (id == R.id.btn_removeChatFromList || id == R.id.btn_removeChatFromListAndStop || id == R.id.btn_removeChatFromListOrClearHistory) return CHAT_LEAVE;
     return CHAT_OTHER;
   }
 
@@ -138,6 +140,7 @@ public final class Tgx101BarOrder {
       case CHAT_REPORT: return R.string.Report;
       case CHAT_PASSCODE: return R.string.PasscodeTitle;
       case CHAT_PROXY: return R.string.Proxy;
+      case CHAT_LEAVE: return R.string.Tgx101ChatMenuLeave;
       case CHAT_OTHER: default: return R.string.Tgx101ChatMenuOther;
     }
   }

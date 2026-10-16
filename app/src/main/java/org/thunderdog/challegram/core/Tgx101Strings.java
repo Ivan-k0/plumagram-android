@@ -552,7 +552,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ChatMenuTranslate, "Перевести чат");
     RU.put(R.string.Tgx101ChatMenuLinked, "Связанный чат / канал");
     RU.put(R.string.Tgx101ChatMenuVoiceChat, "Видеочат");
-    RU.put(R.string.Tgx101ChatMenuOther, "Остальные пункты (удалить, выйти, бот…)");
+    RU.put(R.string.Tgx101ChatMenuOther, "Остальные пункты (очистить историю, бот…)");
+    RU.put(R.string.Tgx101ChatMenuLeave, "Выйти / удалить чат");
     RU.put(R.string.Tgx101DrawerOrder, "Пункты бокового меню");
     RU.put(R.string.Tgx101ChatMenuOrder, "Пункты меню ⋮ в чате");
     RU.put(R.string.Tgx101BarSectionOn, "В меню, сверху вниз");
