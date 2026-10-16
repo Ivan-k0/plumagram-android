@@ -526,7 +526,12 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     first.getLocationOnScreen(slideLocation);
     float top = slideLocation[1] - slideNavLocation[1];
     int rowHeight = first instanceof MosaicGrid ? ((MosaicGrid) first).firstRowHeight() : Screen.dp(CAPSULE_HEIGHT + 6f);
-    return y >= top - Screen.dp(4f) && y <= top + rowHeight + Screen.dp(4f);
+    float from = top - Screen.dp(4f);
+    if (chipsScroll != null && chipsScroll.isShown()) { // (user 2026-10-17) and the space between «All» and the folders
+      chipsScroll.getLocationOnScreen(slideLocation);
+      from = Math.min(from, slideLocation[1] - slideNavLocation[1] + chipsScroll.getHeight());
+    }
+    return y >= from && y <= top + rowHeight + Screen.dp(4f);
   }
 
   // (user 2026-10-17 «свайп с главной хранилища в обе стороны; справа налево — список чатов выезжает справа»)
