@@ -12397,6 +12397,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private boolean openingMediaLayout;
 
+  /** TGx101 (approved mockup Ж): the Saved home's paperclip opens the feed with this menu */
+  public void tgx101OpenAttach () {
+    openMediaView(false, false);
+  }
+
   private void openMediaView (boolean ignorePermissionRequest, boolean noMedia) {
     if (openingMediaLayout) {
       return;

@@ -17,6 +17,7 @@ import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
@@ -62,7 +63,7 @@ import java.util.Set;
  */
 public class Tgx101SavedListController extends ViewController<Void> {
 
-  static final int MODE_KIND = 0, MODE_INBOX = 1, MODE_FOLDER = 2, MODE_TAG = 3, MODE_SEARCH = 4;
+  static final int MODE_KIND = 0, MODE_INBOX = 1, MODE_FOLDER = 2, MODE_TAG = 3, MODE_SEARCH = 4, MODE_REACTION = 5;
   static final int VIEW_LIST = 0, VIEW_GRID = 1, VIEW_CARDS = 2;
   static final int SORT_SAVED = 0, SORT_ORIGINAL = 1, SORT_NAME = 2, SORT_SIZE = 3, SORT_SOURCE = 4, SORT_KIND = 5;
 
@@ -93,6 +94,25 @@ public class Tgx101SavedListController extends ViewController<Void> {
     c.navigateTo(l);
   }
 
+  /** everything marked with this reaction (Telegram's tag or kept here) */
+  public static void openReaction (ViewController<?> c, String emoji) {
+    Tgx101SavedListController l = new Tgx101SavedListController(c.context(), c.tdlib());
+    l.mode = MODE_REACTION;
+    l.reaction = emoji;
+    c.navigateTo(l);
+  }
+
+  /**
+   * TGx101 (approved mockup «Свайп вниз», А–Г): pulled down from the home screen — the search and big kind buttons at
+   * the bottom, under the thumb, and the messages of the kind above them; a sideways swipe goes through the kinds
+   */
+  public static void openSearchReach (ViewController<?> c) {
+    Tgx101SavedListController l = new Tgx101SavedListController(c.context(), c.tdlib());
+    l.mode = MODE_SEARCH;
+    l.reach = true;
+    c.navigateTo(l);
+  }
+
   public static void openSearch (ViewController<?> c) {
     Tgx101SavedListController l = new Tgx101SavedListController(c.context(), c.tdlib());
     l.mode = MODE_SEARCH;
@@ -107,10 +127,18 @@ public class Tgx101SavedListController extends ViewController<Void> {
   private int kind = -1;
   private long folderId;
   private String tag;
+  private String reaction;
+  private boolean reach;
+
+  @Override
+  protected boolean forceFadeMode () {
+    return reach || super.forceFadeMode(); // it comes down from the home screen in place, not from the side
+  }
 
   // search refinements
   private int searchKind = -1;
   private @Nullable String searchTag;
+  private @Nullable String searchReaction;
   private @Nullable String searchSource;
   private int searchPeriodDays;
   private String query = "";
@@ -151,6 +179,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
         return f != null ? f.name : Lang.getString(R.string.Tgx101SavedFolder);
       }
       case MODE_TAG: return "#" + tag;
+      case MODE_REACTION: return reaction;
       case MODE_SEARCH: return Lang.getString(R.string.Tgx101SavedSearchTitle);
     }
     return Tgx101SavedHomeController.kindPlural(kind);
@@ -161,6 +190,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
       case MODE_INBOX: return "inbox";
       case MODE_FOLDER: return "f" + folderId;
       case MODE_TAG: return "t" + tag;
+      case MODE_REACTION: return "r" + reaction;
       case MODE_SEARCH: return "search";
     }
     return "k" + kind;
@@ -198,7 +228,8 @@ public class Tgx101SavedListController extends ViewController<Void> {
     column.setOrientation(LinearLayout.VERTICAL);
     root.addView(column, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-    if (mode == MODE_SEARCH) buildSearchBar(context, column);
+    if (mode == MODE_SEARCH && !reach) buildSearchBar(context, column);
+    if (mode == MODE_KIND) buildKindTabs(context, column);
 
     // count · view switch · sort
     toolbar = new LinearLayout(context);
@@ -223,6 +254,51 @@ public class Tgx101SavedListController extends ViewController<Void> {
     list.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
     adapter = new Adapter();
     list.setAdapter(adapter);
+    // a selection change only redraws the check: no cross-fade of the whole row (the «twitch» seen in chats)
+    if (list.getItemAnimator() instanceof androidx.recyclerview.widget.SimpleItemAnimator) {
+      ((androidx.recyclerview.widget.SimpleItemAnimator) list.getItemAnimator()).setSupportsChangeAnimations(false);
+    }
+    list.addOnItemTouchListener(dragSelect);
+    list.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
+      private float downX, downY;
+      private boolean tracking;
+
+      @Override
+      public boolean onInterceptTouchEvent (@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+        if ((mode != MODE_KIND && !reach) || !selected.isEmpty()) return false;
+        switch (e.getActionMasked()) {
+          case MotionEvent.ACTION_DOWN: {
+            downX = e.getX();
+            downY = e.getY();
+            // (user 2026-10-16) rows don't slide here: a sideways swipe anywhere switches the kind
+            tracking = true;
+            break;
+          }
+          case MotionEvent.ACTION_MOVE: {
+            float dx = e.getX() - downX, dy = e.getY() - downY;
+            if (tracking && Math.abs(dx) > Screen.dp(24f) && Math.abs(dx) > Math.abs(dy) * 2f) {
+              tracking = false;
+              swipeKind(dx);
+              return true;
+            }
+            break;
+          }
+        }
+        return false;
+      }
+
+      @Override
+      public void onTouchEvent (@NonNull RecyclerView rv, @NonNull MotionEvent e) { }
+
+      @Override
+      public void onRequestDisallowInterceptTouchEvent (boolean disallowIntercept) { }
+    });
+    list.addOnScrollListener(new RecyclerView.OnScrollListener() {
+      @Override
+      public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
+        if (newState == RecyclerView.SCROLL_STATE_DRAGGING) Tgx101SwipeRow.closeOpen(); // scrolling closes an open row
+      }
+    });
     applyLayoutManager();
     FrameLayout listBox = new FrameLayout(context);
     listBox.addView(list, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -231,11 +307,43 @@ public class Tgx101SavedListController extends ViewController<Void> {
     emptyView.setPadding(Screen.dp(32f), 0, Screen.dp(32f), 0);
     emptyView.setText(Lang.getString(R.string.LoadingInformation));
     listBox.addView(emptyView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(200f), Gravity.TOP));
+    final java.text.SimpleDateFormat dayFormat = new java.text.SimpleDateFormat("d MMMM yyyy", Lang.locale());
+    listBox.addView(new Tgx101FastScroller(context, list, position -> {
+      if (position < 0 || position >= items.size()) return null;
+      Object o = items.get(position);
+      if (o instanceof String) return (String) o;
+      TdApi.Message m = (TdApi.Message) o;
+      if (sort == SORT_NAME || sort == SORT_SOURCE || sort == SORT_KIND) { // not by date: the first letter / the source
+        String key = sort == SORT_SOURCE ? Tgx101SavedKit.source(tdlib, m) : sort == SORT_KIND ? Tgx101SavedHomeController.kindPlural(Tgx101SavedKit.kindOf(m)) : Tgx101SavedKit.title(m);
+        return sort == SORT_NAME ? (key.isEmpty() ? "" : key.substring(0, 1).toUpperCase(Lang.locale())) : key;
+      }
+      if (sort == SORT_SIZE) return org.thunderdog.challegram.tool.Strings.buildSize(Tgx101SavedKit.size(m));
+      return dayFormat.format(new java.util.Date((sort == SORT_ORIGINAL ? Tgx101SavedKit.originalDate(m) : m.date) * 1000L));
+    }), new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     column.addView(listBox, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+    if (reach) {
+      // under the thumb: the kinds, the other refinements, the field at the very bottom
+      LinearLayout bottom = new LinearLayout(context);
+      bottom.setOrientation(LinearLayout.VERTICAL);
+      bottom.setBackgroundColor(Theme.backgroundColor());
+      bottom.setPadding(0, 0, 0, Screen.dp(10f));
+      buildKindTabs(context, bottom);
+      buildSearchBar(context, bottom);
+      ViewGroup box = (ViewGroup) searchField.getParent();
+      box.removeView(searchField);
+      LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(46f));
+      fp.topMargin = Screen.dp(6f);
+      box.addView(searchField, fp);
+      if (searchChipViews != null) searchChipViews[0].setVisibility(View.GONE); // the kind is the big buttons now
+      column.addView(bottom);
+    }
 
     buildSelectionBar(context, root);
 
-    if (mode == MODE_SEARCH) {
+    if (mode == MODE_SEARCH && reach) {
+      runSearch(); // the kind's messages at once; the keyboard comes when the field is tapped
+      searchField.requestFocus(); // the cursor blinks there: it's clear you can type (user 2026-10-16)
+    } else if (mode == MODE_SEARCH) {
       showSearchHints();
       searchField.requestFocus();
       searchField.postDelayed(() -> org.thunderdog.challegram.tool.Keyboard.show(searchField), 250);
@@ -298,6 +406,116 @@ public class Tgx101SavedListController extends ViewController<Void> {
     list.setLayoutManager(lm);
   }
 
+  // Kinds: tabs and swipes (user 2026-10-15 «свайпы переключают типы»)
+
+  private static final int[] KIND_ORDER = {-1, Tgx101SavedKit.KIND_PHOTO, Tgx101SavedKit.KIND_VIDEO, Tgx101SavedKit.KIND_FILE, Tgx101SavedKit.KIND_LINK, Tgx101SavedKit.KIND_VOICE};
+  private TextView[] kindTabs;
+  private HorizontalScrollView kindTabsScroll;
+
+  private void buildKindTabs (Context context, LinearLayout column) {
+    kindTabsScroll = new HorizontalScrollView(context);
+    kindTabsScroll.setHorizontalScrollBarEnabled(false);
+    LinearLayout row = new LinearLayout(context);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setPadding(Screen.dp(12f), Screen.dp(10f), Screen.dp(8f), Screen.dp(2f));
+    kindTabs = new TextView[KIND_ORDER.length];
+    for (int i = 0; i < KIND_ORDER.length; i++) {
+      final int k = KIND_ORDER[i];
+      TextView t = chip(Tgx101SavedHomeController.kindPlural(k), false, v -> switchKind(k));
+      if (reach) {
+        t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 15f);
+        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) t.getLayoutParams();
+        lp.height = Screen.dp(40f); // big: under the thumb
+      }
+      kindTabs[i] = t;
+      row.addView(t);
+    }
+    kindTabsScroll.addView(row);
+    column.addView(kindTabsScroll);
+    paintKindTabs();
+  }
+
+  private void paintKindTabs () {
+    if (kindTabs == null) return;
+    for (int i = 0; i < KIND_ORDER.length; i++) {
+      setChip(kindTabs[i], Tgx101SavedHomeController.kindPlural(KIND_ORDER[i]), KIND_ORDER[i] == currentKind());
+      if (KIND_ORDER[i] == currentKind()) {
+        final View tab = kindTabs[i];
+        kindTabsScroll.post(() -> kindTabsScroll.smoothScrollTo(Math.max(0, tab.getLeft() - Screen.dp(40f)), 0));
+      }
+    }
+  }
+
+  private int currentKind () {
+    return reach ? searchKind : kind;
+  }
+
+  private int kindIndex () {
+    for (int i = 0; i < KIND_ORDER.length; i++) if (KIND_ORDER[i] == currentKind()) return i;
+    return 0;
+  }
+
+  /** the neighbour kind slides in from the side it was swiped to */
+  private void switchKind (int newKind) {
+    if (reach) {
+      if (newKind == searchKind || isDestroyed()) return;
+      final boolean forward = indexOfKind(newKind) > kindIndex();
+      clearSelection();
+      searchKind = newKind;
+      paintKindTabs();
+      float w = list.getWidth();
+      list.animate().cancel();
+      list.animate().translationX(forward ? -w * .25f : w * .25f).alpha(0f).setDuration(120).withEndAction(() -> {
+        if (isDestroyed()) return;
+        loaded.clear();
+        items.clear();
+        adapter.notifyDataSetChanged();
+        runSearch();
+        list.setTranslationX(forward ? w * .25f : -w * .25f);
+        list.animate().translationX(0f).alpha(1f).setDuration(180).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+      }).start();
+      return;
+    }
+    if (mode != MODE_KIND || newKind == kind || isDestroyed()) return;
+    final boolean forward = indexOfKind(newKind) > kindIndex();
+    clearSelection();
+    Tgx101SwipeRow.closeOpen();
+    kind = newKind;
+    paintKindTabs();
+    if (navigationController() != null && navigationController().getHeaderView() != null) {
+      navigationController().getHeaderView().updateTextTitle(getId(), getName());
+    }
+    float w = list.getWidth();
+    list.animate().cancel();
+    list.animate().translationX(forward ? -w * .25f : w * .25f).alpha(0f).setDuration(120).withEndAction(() -> {
+      if (isDestroyed()) return;
+      loadPrefs();
+      buildViewSwitch();
+      applyLayoutManager();
+      loaded.clear();
+      items.clear();
+      adapter.notifyDataSetChanged();
+      load();
+      list.setTranslationX(forward ? w * .25f : -w * .25f);
+      list.animate().translationX(0f).alpha(1f).setDuration(180).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+    }).start();
+  }
+
+  private static int indexOfKind (int k) {
+    for (int i = 0; i < KIND_ORDER.length; i++) if (KIND_ORDER[i] == k) return i;
+    return 0;
+  }
+
+  /** a sideways swipe on the list (outside the sliding rows) goes to the next / previous kind */
+  private boolean swipeKind (float dx) {
+    if (mode != MODE_KIND && !reach) return false;
+    int i = kindIndex() + (dx < 0 ? 1 : -1);
+    if (i < 0 || i >= KIND_ORDER.length) return false;
+    UI.forceVibrate(list, false);
+    switchKind(KIND_ORDER[i]);
+    return true;
+  }
+
   // Search bar
 
   private void buildSearchBar (Context context, LinearLayout column) {
@@ -306,13 +524,9 @@ public class Tgx101SavedListController extends ViewController<Void> {
     box.setPadding(Screen.dp(12f), Screen.dp(10f), Screen.dp(12f), 0);
     searchField = new EditText(context);
     searchField.setHint(Lang.getString(R.string.Tgx101SavedSearchHint));
-    searchField.setHintTextColor(Theme.textDecentColor());
-    searchField.setTextColor(Theme.textAccentColor());
-    searchField.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16f);
     searchField.setSingleLine(true);
     searchField.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
-    searchField.setBackground(Tgx101SavedHomeController.card(Theme.fillingColor(), 21f));
-    searchField.setPadding(Screen.dp(16f), 0, Screen.dp(16f), 0);
+    Tgx101SavedHomeController.styleField(searchField, false); // the chats' field bubble, like every field in the storage
     box.addView(searchField, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f)));
     HorizontalScrollView chipsScroll = new HorizontalScrollView(context);
     chipsScroll.setHorizontalScrollBarEnabled(false);
@@ -357,13 +571,61 @@ public class Tgx101SavedListController extends ViewController<Void> {
     return c;
   }
 
+  private TextView[] searchChipViews;
+
+  /**
+   * The four filter chips are made once and change in place (test 2026-10-15: rebuilt on every pick, the row jumped
+   * and a pressed chip stayed as a phantom under the closing sheet)
+   */
   private void buildSearchChips () {
     if (searchChips == null) return;
-    searchChips.removeAllViews();
-    searchChips.addView(chip(searchKind == -1 ? Lang.getString(R.string.Tgx101SavedFilterKind) : Lang.getString(R.string.Tgx101SavedFilterKindValue, Tgx101SavedHomeController.kindPlural(searchKind)), searchKind != -1, v -> pickKind()));
-    searchChips.addView(chip(searchTag == null ? Lang.getString(R.string.Tgx101SavedFilterTag) : "#" + searchTag, searchTag != null, v -> pickTag()));
-    searchChips.addView(chip(searchSource == null ? Lang.getString(R.string.Tgx101SavedFilterSource) : searchSource, searchSource != null, v -> pickSource()));
-    searchChips.addView(chip(searchPeriodDays == 0 ? Lang.getString(R.string.Tgx101SavedFilterPeriod) : periodName(searchPeriodDays), searchPeriodDays != 0, v -> pickPeriod()));
+    if (searchChipViews == null) {
+      searchChipViews = new TextView[] {
+        chip("", false, v -> pickFilter(this::pickKind)),
+        chip("", false, v -> pickFilter(this::pickTag)),
+        chip("", false, v -> pickFilter(this::pickSource)),
+        chip("", false, v -> pickFilter(this::pickPeriod)),
+        chip("", false, v -> pickFilter(this::pickReaction))
+      };
+      for (TextView c : searchChipViews) searchChips.addView(c);
+    }
+    setChip(searchChipViews[0], searchKind == -1 ? Lang.getString(R.string.Tgx101SavedFilterKind) : Lang.getString(R.string.Tgx101SavedFilterKindValue, Tgx101SavedHomeController.kindPlural(searchKind)), searchKind != -1);
+    setChip(searchChipViews[1], searchTag == null ? Lang.getString(R.string.Tgx101SavedFilterTag) : "#" + searchTag, searchTag != null);
+    setChip(searchChipViews[2], searchSource == null ? Lang.getString(R.string.Tgx101SavedFilterSource) : searchSource, searchSource != null);
+    setChip(searchChipViews[3], searchPeriodDays == 0 ? Lang.getString(R.string.Tgx101SavedFilterPeriod) : periodName(searchPeriodDays), searchPeriodDays != 0);
+    setChip(searchChipViews[4], searchReaction == null ? Lang.getString(R.string.Tgx101SavedReaction) : searchReaction, searchReaction != null);
+  }
+
+  /** the keyboard goes down first: otherwise it closes under the sheet and everything jumps */
+  private void pickFilter (Runnable pick) {
+    if (searchField != null && searchField.hasFocus()) {
+      searchField.clearFocus();
+      org.thunderdog.challegram.tool.Keyboard.hide(searchField);
+      searchField.postDelayed(pick, 160);
+    } else {
+      pick.run();
+    }
+  }
+
+  private void setChip (TextView c, String label, boolean on) {
+    c.setText(label);
+    c.setTextColor(on ? Theme.fillingColor() : Theme.textAccentColor());
+    // on the pull-down panel the bar itself is the filling colour: the chips stand out on the background colour
+    c.setBackground(Tgx101SavedHomeController.card(on ? Theme.textAccentColor() : Theme.fillingColor(), 17f));
+    c.setPressed(false);
+  }
+
+  /** The chip changes at once; the list after the sheet has gone down, so the closing animation stays smooth */
+  private void applyFilter (Tgx101Sheet.Handle h, boolean search) {
+    h.dismiss();
+    buildSearchChips();
+    if (searchChips != null) {
+      searchChips.postDelayed(() -> {
+        if (isDestroyed()) return;
+        if (search) runSearch();
+        else rebuildItems();
+      }, 240);
+    }
   }
 
   private void pickKind () {
@@ -372,16 +634,12 @@ public class Tgx101SavedListController extends ViewController<Void> {
       body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101SavedFilterKind)));
       body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101SavedEverything), null, searchKind == -1, v -> {
         searchKind = -1;
-        h[0].dismiss();
-        buildSearchChips();
-        runSearch();
+        applyFilter(h[0], true);
       }));
       for (int k : new int[] {Tgx101SavedKit.KIND_PHOTO, Tgx101SavedKit.KIND_VIDEO, Tgx101SavedKit.KIND_FILE, Tgx101SavedKit.KIND_LINK, Tgx101SavedKit.KIND_VOICE}) {
         body.addView(Tgx101Sheet.row(context, 0, 0, Tgx101SavedHomeController.kindPlural(k), null, searchKind == k, v -> {
           searchKind = k;
-          h[0].dismiss();
-          buildSearchChips();
-          runSearch();
+          applyFilter(h[0], true);
         }));
       }
     });
@@ -394,16 +652,12 @@ public class Tgx101SavedListController extends ViewController<Void> {
       body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101SavedFilterTag)));
       body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101SavedAnyTag), null, searchTag == null, v -> {
         searchTag = null;
-        h[0].dismiss();
-        buildSearchChips();
-        runSearch();
+        applyFilter(h[0], true);
       }));
       for (String t : tags) {
         body.addView(Tgx101Sheet.row(context, 0, 0, "#" + t, null, t.equals(searchTag), v -> {
           searchTag = t;
-          h[0].dismiss();
-          buildSearchChips();
-          runSearch();
+          applyFilter(h[0], true);
         }));
       }
     });
@@ -417,20 +671,39 @@ public class Tgx101SavedListController extends ViewController<Void> {
       body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101SavedFilterSource)));
       body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101SavedAnySource), null, searchSource == null, v -> {
         searchSource = null;
-        h[0].dismiss();
-        buildSearchChips();
-        rebuildItems();
+        applyFilter(h[0], false);
       }));
       int n = 0;
       for (String s : sources) {
         if (s.isEmpty() || n++ >= 12) continue;
         body.addView(Tgx101Sheet.row(context, 0, 0, s, null, s.equals(searchSource), v -> {
           searchSource = s;
-          h[0].dismiss();
-          buildSearchChips();
-          rebuildItems();
+          applyFilter(h[0], false);
         }));
       }
+    });
+  }
+
+  private void pickReaction () {
+    Tgx101SavedKit.reactionCounts(tdlib, counts -> {
+      if (isDestroyed()) return;
+      java.util.LinkedHashSet<String> all = new java.util.LinkedHashSet<>(counts.keySet());
+      for (String e : Tgx101SavedKit.QUICK_REACTIONS) all.add(e);
+      Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
+      h[0] = Tgx101Sheet.show(this, null, body -> {
+        body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101SavedReaction)));
+        body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101SavedAnyReaction), null, searchReaction == null, v -> {
+          searchReaction = null;
+          applyFilter(h[0], true);
+        }));
+        for (String e : all) {
+          Integer n = counts.get(e);
+          body.addView(Tgx101Sheet.row(context, 0, 0, e, n != null ? String.valueOf(n) : null, e.equals(searchReaction), v -> {
+            searchReaction = e;
+            applyFilter(h[0], true);
+          }));
+        }
+      });
     });
   }
 
@@ -451,9 +724,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
       for (int d : new int[] {0, 1, 7, 30, 365}) {
         body.addView(Tgx101Sheet.row(context, 0, 0, d == 0 ? Lang.getString(R.string.Tgx101SavedAnyTime) : periodName(d), null, searchPeriodDays == d, v -> {
           searchPeriodDays = d;
-          h[0].dismiss();
-          buildSearchChips();
-          rebuildItems();
+          applyFilter(h[0], false);
         }));
       }
     });
@@ -464,13 +735,32 @@ public class Tgx101SavedListController extends ViewController<Void> {
   private void runSearch () {
     if (mode != MODE_SEARCH || isDestroyed()) return;
     final int gen = ++searchGeneration;
+    if (query.isEmpty() && searchKind == -1 && searchTag == null && searchReaction != null) {
+      emptyView.setText(Lang.getString(R.string.LoadingInformation));
+      emptyView.setVisibility(items.isEmpty() ? View.VISIBLE : emptyView.getVisibility());
+      Tgx101SavedKit.searchReaction(tdlib, searchReaction, messages -> {
+        if (gen == searchGeneration && !isDestroyed()) setLoaded(messages);
+      });
+      return;
+    }
+    if (reach && query.isEmpty() && searchTag == null && searchReaction == null) {
+      // pulled down: nothing typed yet — the chosen kind's messages, newest first
+      me.vkryl.core.lambda.RunnableData<List<TdApi.Message>> browse = messages -> {
+        if (gen == searchGeneration && !isDestroyed()) setLoaded(messages);
+      };
+      if (searchKind == -1) Tgx101SavedKit.history(tdlib, 300, browse);
+      else Tgx101SavedKit.search(tdlib, Tgx101SavedHomeController.filterFor(searchKind), null, 500, browse);
+      return;
+    }
     if (query.isEmpty() && searchKind == -1 && searchTag == null) {
       loaded.clear();
       showSearchHints();
       return;
     }
-    emptyView.setText(Lang.getString(R.string.LoadingInformation));
-    emptyView.setVisibility(View.VISIBLE);
+    if (items.isEmpty()) { // what is shown stays until the new results come (no blink to «Loading» and back)
+      emptyView.setText(Lang.getString(R.string.LoadingInformation));
+      emptyView.setVisibility(View.VISIBLE);
+    }
     String q = query;
     if (searchTag != null) q = (q.isEmpty() ? "" : q + " ") + "#" + searchTag;
     final String finalQuery = q;
@@ -544,6 +834,9 @@ public class Tgx101SavedListController extends ViewController<Void> {
         Tgx101SavedKit.byIds(tdlib, f != null ? new ArrayList<>(f.messageIds) : new ArrayList<>(), this::setLoaded);
         break;
       }
+      case MODE_REACTION:
+        Tgx101SavedKit.searchReaction(tdlib, reaction, this::setLoaded);
+        break;
       case MODE_TAG: {
         List<Long> local = store.localTagged(tag);
         Tgx101SavedKit.search(tdlib, null, "#" + tag, 500, found -> Tgx101SavedKit.byIds(tdlib, local, more -> setLoaded(merge(found, more, ""))));
@@ -587,16 +880,19 @@ public class Tgx101SavedListController extends ViewController<Void> {
       if (mode == MODE_SEARCH) {
         if (searchSource != null && !searchSource.equals(Tgx101SavedKit.source(tdlib, m))) continue;
         if (searchPeriodDays != 0 && m.date < now - searchPeriodDays * 86400) continue;
+        if (searchReaction != null && !Tgx101SavedKit.reactionsOf(tdlib, m).contains(searchReaction)) continue;
       }
       shown.add(m);
     }
     Collections.sort(shown, comparator());
     items.clear();
-    boolean byMonth = viewMode == VIEW_GRID && (sort == SORT_SAVED || sort == SORT_ORIGINAL);
+    // by date: tiles by month; rows and cards by «Today / Yesterday / month» — the rows don't repeat the date
+    boolean byMonth = sort == SORT_SAVED || sort == SORT_ORIGINAL;
     String lastMonth = null;
     for (TdApi.Message m : shown) {
       if (byMonth) {
-        String month = monthOf(sort == SORT_ORIGINAL ? Tgx101SavedKit.originalDate(m) : m.date);
+        int date = sort == SORT_ORIGINAL ? Tgx101SavedKit.originalDate(m) : m.date;
+        String month = viewMode == VIEW_GRID ? monthOf(date) : dayOrMonth(date);
         if (!month.equals(lastMonth)) {
           items.add(month);
           lastMonth = month;
@@ -612,6 +908,16 @@ public class Tgx101SavedListController extends ViewController<Void> {
     } else {
       emptyView.setVisibility(View.GONE);
     }
+  }
+
+  private static String dayOrMonth (int date) {
+    Calendar c = Calendar.getInstance();
+    c.setTimeInMillis(date * 1000L);
+    Calendar today = Calendar.getInstance();
+    if (c.get(Calendar.YEAR) == today.get(Calendar.YEAR) && c.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)) return Lang.getString(R.string.Today);
+    today.add(Calendar.DAY_OF_MONTH, -1);
+    if (c.get(Calendar.YEAR) == today.get(Calendar.YEAR) && c.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)) return Lang.getString(R.string.Yesterday);
+    return monthOf(date);
   }
 
   private static String monthOf (int date) {
@@ -673,15 +979,31 @@ public class Tgx101SavedListController extends ViewController<Void> {
 
   // Selection
 
+  private Tgx101SelectionPanel selectionPanel;
+
+  /** approved mockup «Панель действий при выделении», 3: the count and «All» on top, reactions, capsules */
   private void buildSelectionBar (Context context, FrameLayout root) {
-    selectionBar = new LinearLayout(context);
-    selectionBar.setOrientation(LinearLayout.VERTICAL);
-    selectionBar.setBackgroundColor(Theme.fillingColor());
-    if (android.os.Build.VERSION.SDK_INT >= 21) selectionBar.setElevation(Screen.dp(8f));
+    selectionPanel = new Tgx101SelectionPanel(context, this, new Tgx101SelectionPanel.Host() {
+      @Override
+      public List<TdApi.Message> selectedMessages () {
+        return Tgx101SavedListController.this.selectedMessages();
+      }
+
+      @Override
+      public void afterAction (boolean clear) {
+        if (clear) {
+          Tgx101SavedListController.this.afterAction();
+        } else {
+          if (mode == MODE_REACTION) load();
+          else adapter.notifyItemRangeChanged(0, items.size());
+        }
+      }
+    });
+    selectionBar = selectionPanel;
     LinearLayout top = new LinearLayout(context);
     top.setOrientation(LinearLayout.HORIZONTAL);
     top.setGravity(Gravity.CENTER_VERTICAL);
-    top.setPadding(Screen.dp(4f), 0, Screen.dp(12f), 0);
+    top.setPadding(Screen.dp(4f), 0, Screen.dp(12f), Screen.dp(4f));
     top.addView(iconButton(context, R.drawable.baseline_close_24, Lang.getString(R.string.Cancel), v -> clearSelection()));
     selectionTitle = Tgx101SavedHomeController.text(context, 15f, Theme.textAccentColor(), true);
     top.addView(selectionTitle, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -694,46 +1016,9 @@ public class Tgx101SavedListController extends ViewController<Void> {
       updateSelection();
     });
     top.addView(all);
-    selectionBar.addView(top);
-    LinearLayout actions = new LinearLayout(context);
-    actions.setOrientation(LinearLayout.HORIZONTAL);
-    actions.setPadding(Screen.dp(6f), 0, Screen.dp(6f), Screen.dp(6f) + Screen.getNavigationBarHeight());
-    actions.addView(action(context, R.drawable.baseline_folder_24, R.string.Tgx101SavedToFolder, v -> Tgx101SavedActions.toFolder(this, selectedIds(), this::afterAction)));
-    actions.addView(action(context, R.drawable.baseline_label_24, R.string.Tgx101SavedTag, v -> Tgx101SavedActions.tag(this, selectedMessages(), this::afterAction)));
-    actions.addView(action(context, R.drawable.baseline_notifications_active_24, R.string.Tgx101SavedRemind, v -> Tgx101SavedActions.remind(this, selectedIds(), this::clearSelection)));
-    actions.addView(action(context, R.drawable.baseline_forward_24, R.string.Tgx101SavedForward, v -> {
-      Tgx101SavedActions.forward(this, selectedMessages());
-      clearSelection();
-    }));
-    actions.addView(action(context, R.drawable.baseline_delete_24, R.string.Tgx101SavedDelete, v -> Tgx101SavedActions.delete(this, selectedIds(), () -> {
-      for (long id : selectedIds()) removeLoaded(id);
-      clearSelection();
-    })));
-    selectionBar.addView(actions);
+    selectionBar.addView(top, 0);
     selectionBar.setVisibility(View.GONE);
     root.addView(selectionBar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
-  }
-
-  private View action (Context context, int icon, int label, View.OnClickListener click) {
-    LinearLayout b = new LinearLayout(context);
-    b.setOrientation(LinearLayout.VERTICAL);
-    b.setGravity(Gravity.CENTER);
-    Views.setClickable(b);
-    org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(b);
-    b.setOnClickListener(click);
-    ImageView i = new ImageView(context);
-    i.setImageResource(icon);
-    i.setColorFilter(icon == R.drawable.baseline_delete_24 ? Theme.getColor(ColorId.textNegative) : Theme.getColor(ColorId.icon));
-    b.addView(i, new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f)));
-    TextView t = Tgx101SavedHomeController.text(context, 11f, icon == R.drawable.baseline_delete_24 ? Theme.getColor(ColorId.textNegative) : Theme.textAccentColor(), false);
-    t.setText(Lang.getString(label));
-    t.setSingleLine(true);
-    t.setEllipsize(TextUtils.TruncateAt.END);
-    t.setGravity(Gravity.CENTER);
-    t.setPadding(Screen.dp(2f), Screen.dp(4f), Screen.dp(2f), 0); // five labels in a row: they keep off the screen edges
-    b.addView(t);
-    b.setLayoutParams(new LinearLayout.LayoutParams(0, Screen.dp(64f), 1f));
-    return b;
   }
 
   private long[] selectedIds () {
@@ -764,6 +1049,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
       selectionBar.animate().translationY(selectionBar.getHeight()).setDuration(160).withEndAction(() -> selectionBar.setVisibility(View.GONE)).start();
     }
     selectionTitle.setText(Lang.getString(R.string.Tgx101SavedSelected, selected.size()));
+    if (on) selectionPanel.update();
     adapter.notifyItemRangeChanged(0, items.size(), "select");
   }
 
@@ -775,11 +1061,115 @@ public class Tgx101SavedListController extends ViewController<Void> {
 
   private void afterAction () {
     clearSelection();
-    if (mode == MODE_FOLDER || mode == MODE_INBOX || mode == MODE_TAG) load(); // the action may move things out of this list
+    if (mode == MODE_FOLDER || mode == MODE_INBOX || mode == MODE_TAG || mode == MODE_REACTION) load(); // the action may move things out of this list
   }
 
   private void removeLoaded (long id) {
     for (int i = loaded.size() - 1; i >= 0; i--) if (loaded.get(i).id == id) loaded.remove(i);
+  }
+
+  /**
+   * TGx101 (user 2026-10-15): after a long press the finger selects every item it passes without lifting, in rows,
+   * tiles and cards; near the top or bottom the list scrolls by itself
+   */
+  private final DragSelect dragSelect = new DragSelect();
+
+  private final class DragSelect implements RecyclerView.OnItemTouchListener {
+    private boolean active;
+    private int anchor, last;
+    private boolean selecting;
+    private java.util.Set<Long> before;
+    private float lastX, lastY;
+
+    void begin (int position) {
+      Object o = items.get(position);
+      if (!(o instanceof TdApi.Message)) return;
+      active = true;
+      anchor = last = position;
+      before = new java.util.HashSet<>(selected);
+      long id = ((TdApi.Message) o).id;
+      selecting = !selected.contains(id);
+      if (selecting) selected.add(id); else selected.remove(id);
+      list.getParent().requestDisallowInterceptTouchEvent(true);
+      updateSelection();
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent (@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+      if (active && (e.getActionMasked() == MotionEvent.ACTION_UP || e.getActionMasked() == MotionEvent.ACTION_CANCEL)) {
+        end();
+        return false;
+      }
+      return active;
+    }
+
+    @Override
+    public void onTouchEvent (@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_MOVE:
+          lastX = e.getX();
+          lastY = e.getY();
+          follow();
+          rv.removeCallbacks(scroller);
+          if (scrollStep() != 0) rv.post(scroller);
+          break;
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL:
+          end();
+          break;
+      }
+    }
+
+    @Override
+    public void onRequestDisallowInterceptTouchEvent (boolean disallowIntercept) { }
+
+    private void end () {
+      active = false;
+      list.removeCallbacks(scroller);
+    }
+
+    private void follow () {
+      View child = list.findChildViewUnder(Math.max(0, Math.min(list.getWidth() - 1, lastX)), Math.max(0, Math.min(list.getHeight() - 1, lastY)));
+      if (child == null) return;
+      int position = list.getChildAdapterPosition(child);
+      if (position == RecyclerView.NO_POSITION || position == last) return;
+      last = position;
+      int from = Math.min(anchor, position), to = Math.max(anchor, position);
+      boolean changed = false;
+      for (int i = 0; i < items.size(); i++) {
+        Object o = items.get(i);
+        if (!(o instanceof TdApi.Message)) continue;
+        long id = ((TdApi.Message) o).id;
+        boolean want = i >= from && i <= to ? selecting : before.contains(id);
+        if (want != selected.contains(id)) {
+          changed = true;
+          if (want) selected.add(id); else selected.remove(id);
+        }
+      }
+      if (changed) {
+        UI.forceVibrate(list, false);
+        updateSelection();
+      }
+    }
+
+    private int scrollStep () {
+      float edge = Screen.dp(64f);
+      if (lastY < edge) return -Math.round(Screen.dp(16f) * Math.min(1f, (edge - lastY) / edge));
+      if (lastY > list.getHeight() - edge) return Math.round(Screen.dp(16f) * Math.min(1f, (lastY - (list.getHeight() - edge)) / edge));
+      return 0;
+    }
+
+    private final Runnable scroller = new Runnable() {
+      @Override
+      public void run () {
+        if (!active) return;
+        int step = scrollStep();
+        if (step == 0) return;
+        list.scrollBy(0, step);
+        follow();
+        list.postDelayed(this, 16);
+      }
+    };
   }
 
   @Override
@@ -801,7 +1191,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
     return h.itemView;
   }
 
-  private static int kindIcon (int kind) {
+  static int kindIcon (int kind) {
     switch (kind) {
       case Tgx101SavedKit.KIND_FILE: return R.drawable.baseline_insert_drive_file_24;
       case Tgx101SavedKit.KIND_LINK: return R.drawable.baseline_link_24;
@@ -812,9 +1202,48 @@ public class Tgx101SavedListController extends ViewController<Void> {
     return R.drawable.baseline_chat_bubble_24;
   }
 
+  /** a small rounded label: the tag (crimson) or the folder (its own colour) */
+  static TextView badge (Context context) {
+    TextView b = Tgx101SavedHomeController.text(context, 11f, 0xffffffff, true);
+    b.setSingleLine(true);
+    b.setEllipsize(TextUtils.TruncateAt.END);
+    b.setGravity(Gravity.CENTER_VERTICAL);
+    b.setPadding(Screen.dp(7f), 0, Screen.dp(7f), 0);
+    return b;
+  }
+
+  static void paintBadge (TextView b, @Nullable String text, int color) {
+    if (text == null) {
+      b.setVisibility(View.GONE);
+      return;
+    }
+    b.setVisibility(View.VISIBLE);
+    b.setText(text);
+    b.setTextColor(Theme.isDark() ? lighten(color) : color);
+    b.setBackground(Tgx101SavedHomeController.card(Tgx101SavedHomeController.tint(color, Theme.isDark() ? .30f : .16f), 9f));
+  }
+
+  static final int TAG_COLOR = 0xffb53c57;
+
+  /** the label's colour on a dark theme: halfway to white, readable on its own dark tint */
+  static int lighten (int color) {
+    int r = (color >> 16) & 0xff, g = (color >> 8) & 0xff, b = color & 0xff;
+    return 0xff000000 | ((r + (255 - r) / 2) << 16) | ((g + (255 - g) / 2) << 8) | (b + (255 - b) / 2);
+  }
+
+  /** The folder sign on a thumbnail's corner, in the folder's colour */
+  static ImageView folderSign (Context context) {
+    ImageView f = new ImageView(context);
+    f.setImageResource(R.drawable.baseline_folder_24);
+    f.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+    f.setPadding(Screen.dp(2f), Screen.dp(2f), Screen.dp(2f), Screen.dp(2f));
+    return f;
+  }
+
   static final class RowHolder extends RecyclerView.ViewHolder {
-    final ImageView thumb, check;
-    final TextView title, meta;
+    final ImageView thumb, check, folderSign;
+    final TextView title, meta, tagBadge, folderBadge, reaction;
+    boolean withDate = true;
 
     RowHolder (Context context) {
       super(new LinearLayout(context));
@@ -825,9 +1254,16 @@ public class Tgx101SavedListController extends ViewController<Void> {
       row.setMinimumHeight(Screen.dp(60f));
       Views.setClickable(row);
       org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(row);
+      FrameLayout thumbBox = new FrameLayout(context);
+      thumbBox.setClipChildren(false);
       thumb = new ImageView(context);
       thumb.setScaleType(ImageView.ScaleType.CENTER_CROP);
-      row.addView(thumb, new LinearLayout.LayoutParams(Screen.dp(42f), Screen.dp(42f)));
+      thumbBox.addView(thumb, new FrameLayout.LayoutParams(Screen.dp(42f), Screen.dp(42f)));
+      folderSign = folderSign(context);
+      FrameLayout.LayoutParams fp = new FrameLayout.LayoutParams(Screen.dp(20f), Screen.dp(20f), Gravity.BOTTOM | Gravity.RIGHT);
+      thumbBox.addView(folderSign, fp);
+      row.setClipChildren(false);
+      row.addView(thumbBox, new LinearLayout.LayoutParams(Screen.dp(48f), Screen.dp(48f)));
       LinearLayout texts = new LinearLayout(context);
       texts.setOrientation(LinearLayout.VERTICAL);
       LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
@@ -837,10 +1273,29 @@ public class Tgx101SavedListController extends ViewController<Void> {
       title.setSingleLine(true);
       title.setEllipsize(TextUtils.TruncateAt.END);
       texts.addView(title);
+      LinearLayout metaRow = new LinearLayout(context);
+      metaRow.setOrientation(LinearLayout.HORIZONTAL);
+      metaRow.setGravity(Gravity.CENTER_VERTICAL);
       meta = Tgx101SavedHomeController.text(context, 12f, Theme.textDecentColor(), false);
       meta.setSingleLine(true);
       meta.setEllipsize(TextUtils.TruncateAt.END);
-      texts.addView(meta);
+      metaRow.addView(meta, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+      tagBadge = badge(context);
+      LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(18f));
+      bp.leftMargin = Screen.dp(6f);
+      metaRow.addView(tagBadge, bp);
+      folderBadge = badge(context);
+      LinearLayout.LayoutParams fbp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(18f));
+      fbp.leftMargin = Screen.dp(6f);
+      metaRow.addView(folderBadge, fbp); // the last one: shortened or cut when the line is full
+      LinearLayout.LayoutParams mp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      mp.topMargin = Screen.dp(2f);
+      texts.addView(metaRow, mp);
+      reaction = Tgx101SavedHomeController.text(context, 20f, Theme.textAccentColor(), false);
+      reaction.setGravity(Gravity.CENTER);
+      LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      rp.leftMargin = Screen.dp(8f);
+      row.addView(reaction, rp);
       check = new ImageView(context);
       check.setImageResource(R.drawable.baseline_check_24);
       check.setScaleType(ImageView.ScaleType.CENTER);
@@ -853,10 +1308,26 @@ public class Tgx101SavedListController extends ViewController<Void> {
       bind(c, m, selected, selecting, null);
     }
 
+    /** the ring around the folder sign: the row's own fill */
+    private int itemViewFill () {
+      return Theme.fillingColor();
+    }
+
     void bind (ViewController<?> c, TdApi.Message m, boolean selected, boolean selecting, @Nullable String highlight) {
       int kind = Tgx101SavedKit.kindOf(m);
       title.setText(highlighted(Tgx101SavedKit.title(m), highlight));
-      meta.setText(Tgx101SavedKit.meta(c.tdlib(), m));
+      meta.setText(Tgx101SavedKit.meta(c.tdlib(), m, withDate));
+      Tgx101SavedStore.Folder folder = Tgx101SavedStore.get(c.tdlib()).folderOf(m.id);
+      paintBadge(tagBadge, Tgx101SavedKit.firstTagShort(c.tdlib(), m), TAG_COLOR);
+      paintBadge(folderBadge, folder != null ? folder.name : null, folder != null ? folder.color() : 0);
+      folderSign.setVisibility(folder != null ? View.VISIBLE : View.GONE);
+      if (folder != null) {
+        folderSign.setColorFilter(folder.color());
+        folderSign.setBackground(Tgx101SavedHomeController.card(itemViewFill(), 7f));
+      }
+      List<String> reactions = Tgx101SavedKit.reactionsOf(c.tdlib(), m);
+      reaction.setText(reactions.isEmpty() ? "" : reactions.get(0));
+      reaction.setVisibility(reactions.isEmpty() || selecting ? View.GONE : View.VISIBLE);
       boolean hasThumb = Tgx101SavedKit.thumbFile(m) != null || Tgx101SavedKit.minithumb(m) != null;
       int color = kind == Tgx101SavedKit.KIND_VOICE ? 0xff2e8a4a : kind == Tgx101SavedKit.KIND_FILE ? 0xffb53c57 : Tgx101SavedHomeController.accent();
       thumb.setBackground(Tgx101SavedHomeController.card(Tgx101SavedHomeController.tint(color, .14f), kind == Tgx101SavedKit.KIND_VOICE ? 21f : 10f));
@@ -871,7 +1342,11 @@ public class Tgx101SavedListController extends ViewController<Void> {
         thumb.setImageResource(kindIcon(kind));
         thumb.setColorFilter(color);
       }
-      itemView.setBackground(selected ? Tgx101SavedHomeController.card(Tgx101SavedHomeController.tint(Tgx101SavedHomeController.accent(), .12f), 12f) : null);
+      if (selected) {
+        itemView.setBackground(Tgx101SavedHomeController.card(Tgx101SavedHomeController.tint(Tgx101SavedHomeController.accent(), .12f), 12f));
+      } else {
+        org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(itemView); // keeps the press feedback
+      }
       check.setVisibility(selecting ? View.VISIBLE : View.GONE);
       check.setColorFilter(selected ? Tgx101SavedHomeController.accent() : Theme.separatorColor());
     }
@@ -892,8 +1367,8 @@ public class Tgx101SavedListController extends ViewController<Void> {
   }
 
   static final class GridHolder extends RecyclerView.ViewHolder {
-    final ImageView image;
-    final TextView badge, check;
+    final ImageView image, folderSign;
+    final TextView badge, check, reaction, tagBadge;
 
     GridHolder (Context context) {
       super(new FrameLayout(context));
@@ -910,9 +1385,25 @@ public class Tgx101SavedListController extends ViewController<Void> {
       badge.setTextColor(0xffffffff);
       badge.setBackground(Tgx101SavedHomeController.card(0x80000000, 6f));
       badge.setPadding(Screen.dp(6f), Screen.dp(2f), Screen.dp(6f), Screen.dp(2f));
-      FrameLayout.LayoutParams bp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.LEFT);
-      bp.setMargins(Screen.dp(6f), 0, 0, Screen.dp(6f));
+      FrameLayout.LayoutParams bp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.RIGHT);
+      bp.setMargins(0, 0, Screen.dp(6f), Screen.dp(6f));
       cell.addView(badge, bp);
+      // approved mockup «Метки на записях»: the reaction top right, the folder colour (or the tag) bottom left
+      reaction = new TextView(context);
+      reaction.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16f);
+      if (android.os.Build.VERSION.SDK_INT >= 21) reaction.setElevation(Screen.dp(1f));
+      FrameLayout.LayoutParams rp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.RIGHT);
+      rp.setMargins(0, Screen.dp(4f), Screen.dp(6f), 0);
+      cell.addView(reaction, rp);
+      folderSign = folderSign(context);
+      folderSign.setBackground(Tgx101SavedHomeController.card(0x99000000, 6f));
+      FrameLayout.LayoutParams fp = new FrameLayout.LayoutParams(Screen.dp(20f), Screen.dp(20f), Gravity.BOTTOM | Gravity.LEFT);
+      fp.setMargins(Screen.dp(6f), 0, 0, Screen.dp(6f));
+      cell.addView(folderSign, fp);
+      tagBadge = badge(context);
+      FrameLayout.LayoutParams tp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(18f), Gravity.BOTTOM | Gravity.LEFT);
+      tp.setMargins(Screen.dp(6f), 0, 0, Screen.dp(6f));
+      cell.addView(tagBadge, tp);
       check = new TextView(context);
       check.setGravity(Gravity.CENTER);
       check.setTextColor(0xffffffff);
@@ -942,6 +1433,21 @@ public class Tgx101SavedListController extends ViewController<Void> {
       badge.setVisibility(dur != null ? View.VISIBLE : View.GONE);
       badge.setText(dur);
       check.setVisibility(selecting ? View.VISIBLE : View.GONE);
+      Tgx101SavedStore.Folder folder = Tgx101SavedStore.get(c.tdlib()).folderOf(m.id);
+      folderSign.setVisibility(folder != null ? View.VISIBLE : View.GONE);
+      if (folder != null) folderSign.setColorFilter(folder.color());
+      String tagShort = folder == null ? Tgx101SavedKit.firstTagShort(c.tdlib(), m) : null;
+      if (tagShort != null) {
+        tagBadge.setVisibility(View.VISIBLE);
+        tagBadge.setText(tagShort);
+        tagBadge.setTextColor(0xffffffff);
+        tagBadge.setBackground(Tgx101SavedHomeController.card(0xccb53c57, 9f));
+      } else {
+        tagBadge.setVisibility(View.GONE);
+      }
+      List<String> reactions = Tgx101SavedKit.reactionsOf(c.tdlib(), m);
+      reaction.setText(reactions.isEmpty() ? "" : reactions.get(0));
+      reaction.setVisibility(reactions.isEmpty() || selecting ? View.GONE : View.VISIBLE);
       boolean on = selectedIndex > 0;
       android.graphics.drawable.GradientDrawable ring = new android.graphics.drawable.GradientDrawable();
       ring.setShape(android.graphics.drawable.GradientDrawable.OVAL);
@@ -951,6 +1457,78 @@ public class Tgx101SavedListController extends ViewController<Void> {
       check.setText(on ? String.valueOf(selectedIndex) : "");
       image.setAlpha(on ? .82f : 1f);
     }
+  }
+
+  /** A row or a link card inside a sliding frame (approved mockup «Недавнее» Б — on every list, user 2026-10-15) */
+  final class SwipeHolder extends RecyclerView.ViewHolder {
+    final RecyclerView.ViewHolder inner;
+    final Tgx101SwipeRow swipe;
+    TdApi.Message message;
+
+    SwipeHolder (RecyclerView.ViewHolder inner, float radiusDp) {
+      super(new FrameLayout(inner.itemView.getContext()));
+      this.inner = inner;
+      ViewGroup.LayoutParams innerParams = inner.itemView.getLayoutParams();
+      swipe = new Tgx101SwipeRow(inner.itemView.getContext(), inner.itemView, new Tgx101SwipeRow.Callback() {
+        @Override
+        public void onFolder (boolean longPress) {
+          if (message != null) Tgx101SavedActions.swipeFolder(Tgx101SavedListController.this, message, longPress, Tgx101SavedListController.this::afterSwipe);
+        }
+
+        @Override
+        public void onTag (boolean longPress) {
+          if (message != null) Tgx101SavedActions.swipeTag(Tgx101SavedListController.this, message, longPress, Tgx101SavedListController.this::afterSwipe);
+        }
+
+        @Override
+        public void onMore () {
+          if (message == null) return;
+          Tgx101SavedActions.more(Tgx101SavedListController.this, message, new Tgx101SavedActions.MoreHost() {
+            @Override
+            public void startSelection (TdApi.Message m) {
+              selected.add(m.id);
+              updateSelection();
+            }
+
+            @Override
+            public void changed () {
+              afterSwipe();
+            }
+          });
+        }
+
+        @Override
+        public void onSelect () {
+          if (message != null) toggle(message);
+        }
+      });
+      if (android.os.Build.VERSION.SDK_INT >= 21) { // the sliding layers keep the row's round corners
+        final float radius = Screen.dp(radiusDp);
+        swipe.setOutlineProvider(new android.view.ViewOutlineProvider() {
+          @Override
+          public void getOutline (View view, android.graphics.Outline outline) {
+            outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), radius);
+          }
+        });
+        swipe.setClipToOutline(true);
+      }
+      FrameLayout frame = (FrameLayout) itemView;
+      RecyclerView.LayoutParams lp = new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      if (innerParams instanceof ViewGroup.MarginLayoutParams) {
+        ViewGroup.MarginLayoutParams m = (ViewGroup.MarginLayoutParams) innerParams;
+        lp.setMargins(m.leftMargin, m.topMargin, m.rightMargin, m.bottomMargin);
+      } else {
+        lp.setMargins(0, Screen.dp(3f), 0, Screen.dp(3f));
+      }
+      frame.setLayoutParams(lp);
+      frame.addView(swipe, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    }
+  }
+
+  /** after a swipe button: the list may lose the message (a folder, the inbox) or show it differently */
+  private void afterSwipe () {
+    if (mode == MODE_FOLDER || mode == MODE_INBOX || mode == MODE_TAG || mode == MODE_REACTION) load();
+    else adapter.notifyItemRangeChanged(0, items.size());
   }
 
   static final class CardHolder extends RecyclerView.ViewHolder {
@@ -1026,11 +1604,10 @@ public class Tgx101SavedListController extends ViewController<Void> {
           return new RecyclerView.ViewHolder(t) { };
         }
         case TYPE_GRID: return new GridHolder(parent.getContext());
-        case TYPE_CARD: return new CardHolder(parent.getContext());
+        case TYPE_CARD: return new SwipeHolder(new CardHolder(parent.getContext()), 16f);
       }
       RowHolder h = new RowHolder(parent.getContext());
-      h.itemView.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-      return h;
+      return new SwipeHolder(h, 12f);
     }
 
     @Override
@@ -1056,24 +1633,37 @@ public class Tgx101SavedListController extends ViewController<Void> {
           }
         }
         ((GridHolder) holder).bind(Tgx101SavedListController.this, m, index, selecting);
-      } else if (holder instanceof CardHolder) {
-        ((CardHolder) holder).highlightQuery = mode == MODE_SEARCH ? query : null;
-        ((CardHolder) holder).bind(Tgx101SavedListController.this, m, isSelected);
-      } else {
-        ((RowHolder) holder).bind(Tgx101SavedListController.this, m, isSelected, selecting, mode == MODE_SEARCH ? query : null);
-        ((RowHolder) holder).itemView.setBackground(isSelected ? Tgx101SavedHomeController.card(Tgx101SavedHomeController.tint(Tgx101SavedHomeController.accent(), .12f), 12f) : Tgx101SavedHomeController.card(Theme.fillingColor(), 12f));
-        RecyclerView.LayoutParams lp = (RecyclerView.LayoutParams) holder.itemView.getLayoutParams();
-        lp.setMargins(0, Screen.dp(3f), 0, Screen.dp(3f));
       }
-      holder.itemView.setOnClickListener(v -> {
+      View tap = holder.itemView;
+      if (holder instanceof SwipeHolder) {
+        SwipeHolder sh = (SwipeHolder) holder;
+        sh.message = m;
+        tap = sh.inner.itemView;
+        if (sh.inner instanceof CardHolder) {
+          ((CardHolder) sh.inner).highlightQuery = mode == MODE_SEARCH ? query : null;
+          ((CardHolder) sh.inner).bind(Tgx101SavedListController.this, m, isSelected);
+        } else {
+          boolean dated = sort == SORT_SAVED || sort == SORT_ORIGINAL; // otherwise no day headers: the row keeps its date
+          ((RowHolder) sh.inner).withDate = !dated;
+          ((RowHolder) sh.inner).bind(Tgx101SavedListController.this, m, isSelected, selecting, mode == MODE_SEARCH ? query : null);
+          sh.inner.itemView.setBackground(isSelected ? Tgx101SavedHomeController.card(Tgx101SavedHomeController.tint(Tgx101SavedHomeController.accent(), .12f), 12f) : Tgx101SavedHomeController.card(Theme.fillingColor(), 12f));
+        }
+        sh.swipe.setSwipeEnabled(false); // user 2026-10-16: on the lists a swipe is for the kinds; actions are on a long press
+        Tgx101SavedActions.applySwipeTargets(tdlib, sh.swipe);
+      }
+      final RecyclerView.ViewHolder bound = holder;
+      tap.setOnClickListener(v -> {
         if (!selected.isEmpty()) {
           toggle(m);
         } else {
           Tgx101SavedKit.openInFeed(Tgx101SavedListController.this, m);
         }
       });
-      holder.itemView.setOnLongClickListener(v -> {
-        toggle(m);
+      tap.setOnLongClickListener(v -> {
+        int at = bound.getAdapterPosition();
+        if (at == RecyclerView.NO_POSITION) return false;
+        UI.forceVibrate(v, false);
+        dragSelect.begin(at);
         return true;
       });
     }

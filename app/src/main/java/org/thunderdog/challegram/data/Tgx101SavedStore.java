@@ -192,12 +192,19 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   /** tags shown as tiles on the home screen */
   private final LinkedHashSet<String> homeTags = new LinkedHashSet<>();
   private long nextFolderId = 1;
+  /** reaction (emoji) → message ids marked with it on this phone (Telegram's own reaction tags need Premium) */
+  private final Map<String, LinkedHashSet<Long>> localReactions = new LinkedHashMap<>();
+  /** where the swipe buttons on «Recent» put a message with one tap */
+  public long lastFolderId;
+  public String lastTag;
 
   public int sheetMode = SHEET_ALWAYS;
   public int openMode = OPEN_HOME;
   public boolean inboxTile = true;
   public boolean showPinned = true;
   public boolean hashtagOwn = true;
+  /** words on the selection panel's buttons (off: signs only) */
+  public boolean panelLabels = true;
 
   /** Kept here: the listener lists hold their listeners weakly */
   private org.thunderdog.challegram.telegram.MessageListener chatListener;
@@ -273,6 +280,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       for (Folder f : folders) f.messageIds.remove(id);
       target.messageIds.add(id);
     }
+    lastFolderId = folderId;
     save();
   }
 
@@ -309,6 +317,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   public synchronized void addLocalTag (String tag, long[] messageIds) {
     String t = normalizeTag(tag);
     if (t.isEmpty()) return;
+    lastTag = t;
     LinkedHashSet<Long> set = localTags.get(t);
     if (set == null) {
       set = new LinkedHashSet<>();
@@ -332,6 +341,10 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
 
   public synchronized void rememberTag (String tag) {
     String t = normalizeTag(tag);
+    if (!t.isEmpty() && !t.equals(lastTag)) {
+      lastTag = t;
+      save();
+    }
     if (!t.isEmpty() && !localTags.containsKey(t)) {
       localTags.put(t, new LinkedHashSet<>());
       save();
@@ -353,6 +366,44 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
     return new ArrayList<>(homeTags);
   }
 
+  // Reactions kept on this phone
+
+  /** Marks (or, if all of them have it, unmarks) the messages; true when it was added */
+  public synchronized boolean toggleLocalReaction (String emoji, long[] messageIds) {
+    LinkedHashSet<Long> set = localReactions.get(emoji);
+    if (set == null) {
+      set = new LinkedHashSet<>();
+      localReactions.put(emoji, set);
+    }
+    boolean all = true;
+    for (long id : messageIds) if (!set.contains(id)) all = false;
+    for (long id : messageIds) {
+      if (all) set.remove(id);
+      else set.add(id);
+    }
+    if (set.isEmpty()) localReactions.remove(emoji);
+    save();
+    return !all;
+  }
+
+  public synchronized List<Long> localReacted (String emoji) {
+    LinkedHashSet<Long> set = localReactions.get(emoji);
+    return set != null ? new ArrayList<>(set) : new ArrayList<>();
+  }
+
+  /** emoji → how many messages carry it here */
+  public synchronized LinkedHashMap<String, Integer> localReactionCounts () {
+    LinkedHashMap<String, Integer> out = new LinkedHashMap<>();
+    for (Map.Entry<String, LinkedHashSet<Long>> e : localReactions.entrySet()) out.put(e.getKey(), e.getValue().size());
+    return out;
+  }
+
+  public synchronized List<String> reactionsOf (long messageId) {
+    List<String> out = new ArrayList<>();
+    for (Map.Entry<String, LinkedHashSet<Long>> e : localReactions.entrySet()) if (e.getValue().contains(messageId)) out.add(e.getKey());
+    return out;
+  }
+
   public synchronized List<String> tagsOf (long messageId) {
     List<String> out = new ArrayList<>();
     for (Map.Entry<String, LinkedHashSet<Long>> e : localTags.entrySet()) {
@@ -363,7 +414,29 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
 
   // Message id upkeep
 
+  /** old (sending) id → real id, for what a banner announced before Telegram gave the message its real id */
+  private final LinkedHashMap<Long, Long> recentRemaps = new LinkedHashMap<Long, Long>() {
+    @Override
+    protected boolean removeEldestEntry (Map.Entry<Long, Long> eldest) {
+      return size() > 200;
+    }
+  };
+
+  /** The real ids of these (a banner may hold the ids a message had while it was being sent), without repeats */
+  public synchronized long[] resolve (long[] ids) {
+    LinkedHashSet<Long> out = new LinkedHashSet<>();
+    for (long id : ids) {
+      Long real = recentRemaps.get(id);
+      out.add(real != null ? real : id);
+    }
+    long[] arr = new long[out.size()];
+    int i = 0;
+    for (long id : out) arr[i++] = id;
+    return arr;
+  }
+
   synchronized void remap (long oldId, long newId) {
+    if (oldId != 0 && oldId != newId) recentRemaps.put(oldId, newId);
     boolean changed = false;
     for (Folder f : folders) {
       if (f.messageIds.remove(oldId)) {
@@ -377,6 +450,12 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
         changed = true;
       }
     }
+    for (LinkedHashSet<Long> set : localReactions.values()) {
+      if (set.remove(oldId)) {
+        set.add(newId);
+        changed = true;
+      }
+    }
     if (changed) save();
   }
 
@@ -385,6 +464,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
     for (long id : messageIds) {
       for (Folder f : folders) changed |= f.messageIds.remove(id);
       for (LinkedHashSet<Long> set : localTags.values()) changed |= set.remove(id);
+      for (LinkedHashSet<Long> set : localReactions.values()) changed |= set.remove(id);
     }
     if (changed) save();
   }
@@ -416,6 +496,15 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
         tags.put(e.getKey(), ids);
       }
       o.put("tags", tags);
+      JSONObject reactions = new JSONObject();
+      for (Map.Entry<String, LinkedHashSet<Long>> e : localReactions.entrySet()) {
+        JSONArray ids = new JSONArray();
+        for (long id : e.getValue()) ids.put(id);
+        reactions.put(e.getKey(), ids);
+      }
+      o.put("reactions", reactions);
+      o.put("lastFolder", lastFolderId);
+      if (lastTag != null) o.put("lastTag", lastTag);
       JSONArray home = new JSONArray();
       for (String t : homeTags) home.put(t);
       o.put("homeTags", home);
@@ -424,6 +513,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       o.put("inbox", inboxTile);
       o.put("pinned", showPinned);
       o.put("hashtag", hashtagOwn);
+      o.put("panelLabels", panelLabels);
       Settings.instance().pmc().putString(key(), o.toString());
     } catch (Throwable t) {
       org.thunderdog.challegram.Tgx101Diag.mark("saved store: save failed " + t.getClass().getSimpleName());
@@ -459,6 +549,24 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
           localTags.put(k, set);
         }
       }
+      JSONObject reactions = o.optJSONObject("reactions");
+      if (reactions != null) {
+        java.util.Iterator<String> keys = reactions.keys();
+        while (keys.hasNext()) {
+          String k = keys.next();
+          JSONArray ids = reactions.getJSONArray(k);
+          // «❤️» kept by the first test build is Telegram's «❤»
+          String key = k.replace("\uFE0F", "");
+          LinkedHashSet<Long> set = localReactions.get(key);
+          if (set == null) {
+            set = new LinkedHashSet<>();
+            localReactions.put(key, set);
+          }
+          for (int i = 0; i < ids.length(); i++) set.add(ids.getLong(i));
+        }
+      }
+      lastFolderId = o.optLong("lastFolder", 0);
+      lastTag = o.optString("lastTag", null);
       JSONArray home = o.optJSONArray("homeTags");
       if (home != null) for (int i = 0; i < home.length(); i++) homeTags.add(home.getString(i));
       sheetMode = o.optInt("sheet", SHEET_ALWAYS);
@@ -466,6 +574,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       inboxTile = o.optBoolean("inbox", true);
       showPinned = o.optBoolean("pinned", true);
       hashtagOwn = o.optBoolean("hashtag", true);
+      panelLabels = o.optBoolean("panelLabels", true);
     } catch (Throwable t) {
       org.thunderdog.challegram.Tgx101Diag.mark("saved store: load failed " + t.getClass().getSimpleName());
     }

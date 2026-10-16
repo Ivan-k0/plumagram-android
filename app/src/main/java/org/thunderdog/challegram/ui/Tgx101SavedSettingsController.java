@@ -72,6 +72,8 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
           view.getToggler().setRadioEnabled(s.showPinned, isUpdate);
         } else if (id == R.id.btn_tgx101SavedHashtag) {
           view.getToggler().setRadioEnabled(s.hashtagOwn, isUpdate);
+        } else if (id == R.id.btn_tgx101SavedPanelLabels) {
+          view.getToggler().setRadioEnabled(s.panelLabels, isUpdate);
         }
       }
     };
@@ -98,6 +100,11 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SavedHashtag, 0, R.string.Tgx101SavedHashtagSetting));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SavedHashtagDesc));
+
+    items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101SavedSelectSection));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SavedPanelLabels, 0, R.string.Tgx101SavedPanelLabelsSetting));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     adapter.setItems(items, false);
     recyclerView.setAdapter(adapter);
   }
@@ -131,6 +138,9 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
       s.save();
     } else if (id == R.id.btn_tgx101SavedHashtag) {
       s.hashtagOwn = adapter.toggleView(v);
+      s.save();
+    } else if (id == R.id.btn_tgx101SavedPanelLabels) {
+      s.panelLabels = adapter.toggleView(v);
       s.save();
     }
   }

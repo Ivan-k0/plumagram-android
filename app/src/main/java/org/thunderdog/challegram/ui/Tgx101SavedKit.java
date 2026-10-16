@@ -21,6 +21,7 @@ import androidx.annotation.Nullable;
 import org.drinkless.tdlib.TdApi;
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.core.Lang;
+import org.thunderdog.challegram.data.Tgx101SavedStore;
 import org.thunderdog.challegram.navigation.ViewController;
 import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.telegram.TdlibUi;
@@ -203,6 +204,11 @@ public final class Tgx101SavedKit {
 
   /** «2,4 МБ · from «Сети» · 12:40» */
   public static String meta (Tdlib tdlib, TdApi.Message m) {
+    return meta(tdlib, m, true);
+  }
+
+  /** {@code withDate} false: the lists show the date in their day headers (approved mockup «Метки на записях», 3) */
+  public static String meta (Tdlib tdlib, TdApi.Message m, boolean withDate) {
     StringBuilder b = new StringBuilder();
     int kind = kindOf(m);
     if (kind == KIND_LINK) {
@@ -220,9 +226,32 @@ public final class Tgx101SavedKit {
         b.append(src);
       }
     }
+    if (!withDate) return b.toString();
     if (b.length() > 0) b.append(" · ");
     b.append(Lang.getRelativeTimestamp(m.date, java.util.concurrent.TimeUnit.SECONDS));
     return b.toString();
+  }
+
+  /** The first tag: a #hashtag in the text, else one given by name here; without «#», up to five letters */
+  public static @Nullable String firstTagShort (Tdlib tdlib, TdApi.Message m) {
+    String tag = null;
+    TdApi.FormattedText text = text(m);
+    if (text != null && text.entities != null) {
+      for (TdApi.TextEntity e : text.entities) {
+        if (e.type.getConstructor() == TdApi.TextEntityTypeHashtag.CONSTRUCTOR && e.offset + e.length <= text.text.length()) {
+          tag = text.text.substring(e.offset, e.offset + e.length);
+          break;
+        }
+      }
+    }
+    if (tag == null) {
+      List<String> local = Tgx101SavedStore.get(tdlib).tagsOf(m.id);
+      if (!local.isEmpty()) tag = local.get(0);
+    }
+    if (tag == null) return null;
+    while (tag.startsWith("#")) tag = tag.substring(1);
+    if (tag.isEmpty()) return null;
+    return tag.codePointCount(0, tag.length()) > 5 ? tag.substring(0, tag.offsetByCodePoints(0, 5)) : tag;
   }
 
   public static boolean isOwnEditable (TdApi.Message m) {
@@ -397,6 +426,142 @@ public final class Tgx101SavedKit {
       java.util.Collections.sort(out, (a, b) -> Long.compare(b.id, a.id));
       UI.post(() -> after.runWithData(out));
     });
+  }
+
+  /**
+   * What a «Saved» banner announced, as Telegram has it now. The banner gets the ids a message has while it's being
+   * sent, and the «sent» update doesn't always reach us (test 2026-10-15: the forward to Saved): what isn't found by
+   * id is taken from the newest messages saved since the banner appeared.
+   */
+  public static void resolveSaved (Tdlib tdlib, long[] ids, int sinceDate, RunnableData<List<TdApi.Message>> after) {
+    List<Long> list = new ArrayList<>();
+    for (long id : ids) list.add(id);
+    byIds(tdlib, list, found -> {
+      if (found.size() >= ids.length) {
+        after.runWithData(found);
+        return;
+      }
+      tdlib.send(new TdApi.GetChatHistory(tdlib.selfChatId(), 0, 0, Math.max(20, ids.length * 2), false), (history, error) -> {
+        List<TdApi.Message> out = new ArrayList<>(found);
+        if (history != null) {
+          for (TdApi.Message m : history.messages) {
+            if (out.size() >= ids.length) break;
+            if (m == null || m.date < sinceDate - 10 || m.sendingState != null || m.schedulingState != null) continue;
+            boolean dup = false;
+            for (TdApi.Message o : out) if (o.id == m.id) dup = true;
+            if (!dup) out.add(m);
+          }
+        }
+        java.util.Collections.sort(out, (a, b) -> Long.compare(b.id, a.id));
+        UI.post(() -> after.runWithData(out));
+      });
+    });
+  }
+
+  static long[] idsOf (List<TdApi.Message> messages) {
+    long[] out = new long[messages.size()];
+    for (int i = 0; i < out.length; i++) out[i] = messages.get(i).id;
+    return out;
+  }
+
+  // Reactions as tags (user 2026-10-15 «реакции как в офф. клиенте»)
+
+  /** the quick row; «+» opens the rest */
+  // only Telegram's own reactions (test 2026-10-16: «❤️» with the variation sign and «⭐» were refused); ⚡ stands
+  // for the star of the mockup
+  public static final String[] QUICK_REACTIONS = {"❤", "🔥", "👍", "⚡"};
+  public static final String[] MORE_REACTIONS = {"😁", "🤔", "🎉", "💯", "😢", "🙏", "👎", "😍", "🏆", "💔", "👀", "🤝", "✍", "🆒", "😎", "🤯"};
+
+  /** Telegram's reaction tags in Saved Messages are a Premium feature: without it they are kept on this phone */
+  public static boolean serverReactions (Tdlib tdlib) {
+    return tdlib.hasPremium();
+  }
+
+  /** The reactions this message carries — Telegram's tags and the ones kept here */
+  public static List<String> reactionsOf (Tdlib tdlib, TdApi.Message m) {
+    List<String> out = new ArrayList<>();
+    if (m.interactionInfo != null && m.interactionInfo.reactions != null) {
+      for (TdApi.MessageReaction r : m.interactionInfo.reactions.reactions) {
+        if (r.isChosen && r.type.getConstructor() == TdApi.ReactionTypeEmoji.CONSTRUCTOR) out.add(((TdApi.ReactionTypeEmoji) r.type).emoji);
+      }
+    }
+    for (String e : Tgx101SavedStore.get(tdlib).reactionsOf(m.id)) if (!out.contains(e)) out.add(e);
+    return out;
+  }
+
+  /**
+   * Puts the reaction on all of them; if all already have it, takes it off. {@code done} gets whether it was added.
+   */
+  public static void toggleReaction (Tdlib tdlib, List<TdApi.Message> messages, String emoji, @Nullable RunnableData<Boolean> done) {
+    if (messages.isEmpty()) return;
+    boolean all = true;
+    for (TdApi.Message m : messages) if (!reactionsOf(tdlib, m).contains(emoji)) all = false;
+    final boolean add = !all;
+    if (!serverReactions(tdlib)) {
+      long[] ids = idsOf(messages);
+      Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
+      // the store toggles by its own set: bring it to the wanted state
+      boolean added = store.toggleLocalReaction(emoji, ids);
+      if (added != add) store.toggleLocalReaction(emoji, ids);
+      if (done != null) UI.post(() -> done.runWithData(add));
+      return;
+    }
+    TdApi.ReactionType type = new TdApi.ReactionTypeEmoji(emoji);
+    Tgx101SavedStore localStore = Tgx101SavedStore.get(tdlib);
+    for (TdApi.Message m : messages) {
+      // one kept here goes with the server one (test 2026-10-16: a removal «succeeded» on Telegram, the local stayed)
+      if (!add && localStore.reactionsOf(m.id).contains(emoji)) localStore.toggleLocalReaction(emoji, new long[] {m.id});
+      boolean has = reactionsOf(tdlib, m).contains(emoji);
+      if (add == has) continue;
+      TdApi.Function<TdApi.Ok> f = add ? new TdApi.AddMessageReaction(m.chatId, m.id, type, false, false) : new TdApi.RemoveMessageReaction(m.chatId, m.id, type);
+      tdlib.send(f, (ok, error) -> {
+        if (error != null) {
+          org.thunderdog.challegram.Tgx101Diag.mark("saved reaction: " + error.message);
+          // refused by Telegram: an added one is kept here instead
+          if (add && !localStore.reactionsOf(m.id).contains(emoji)) localStore.toggleLocalReaction(emoji, new long[] {m.id});
+        }
+      });
+    }
+    if (done != null) UI.post(() -> done.runWithData(add));
+  }
+
+  /** emoji → count, Telegram's tags first, then the ones kept here */
+  public static void reactionCounts (Tdlib tdlib, RunnableData<java.util.LinkedHashMap<String, Integer>> after) {
+    java.util.LinkedHashMap<String, Integer> local = Tgx101SavedStore.get(tdlib).localReactionCounts();
+    if (!serverReactions(tdlib)) {
+      UI.post(() -> after.runWithData(local));
+      return;
+    }
+    tdlib.send(new TdApi.GetSavedMessagesTags(0), (tags, error) -> {
+      java.util.LinkedHashMap<String, Integer> out = new java.util.LinkedHashMap<>();
+      if (tags != null) {
+        for (TdApi.SavedMessagesTag t : tags.tags) {
+          if (t.tag.getConstructor() == TdApi.ReactionTypeEmoji.CONSTRUCTOR) out.put(((TdApi.ReactionTypeEmoji) t.tag).emoji, t.count);
+        }
+      }
+      for (java.util.Map.Entry<String, Integer> e : local.entrySet()) {
+        Integer c = out.get(e.getKey());
+        out.put(e.getKey(), (c != null ? c : 0) + e.getValue());
+      }
+      UI.post(() -> after.runWithData(out));
+    });
+  }
+
+  /** Everything marked with this reaction, newest first */
+  public static void searchReaction (Tdlib tdlib, String emoji, RunnableData<List<TdApi.Message>> after) {
+    List<Long> local = Tgx101SavedStore.get(tdlib).localReacted(emoji);
+    if (!serverReactions(tdlib)) {
+      byIds(tdlib, local, after);
+      return;
+    }
+    tdlib.send(new TdApi.SearchSavedMessages(0, new TdApi.ReactionTypeEmoji(emoji), "", 0, 0, 100), (found, error) -> byIds(tdlib, local, more -> {
+      java.util.LinkedHashMap<Long, TdApi.Message> map = new java.util.LinkedHashMap<>();
+      if (found != null) for (TdApi.Message m : found.messages) if (m != null) map.put(m.id, m);
+      for (TdApi.Message m : more) map.put(m.id, m);
+      List<TdApi.Message> out = new ArrayList<>(map.values());
+      java.util.Collections.sort(out, (a, b) -> Long.compare(b.id, a.id));
+      after.runWithData(out);
+    }));
   }
 
   public static void count (Tdlib tdlib, TdApi.SearchMessagesFilter filter, RunnableData<Integer> after) {

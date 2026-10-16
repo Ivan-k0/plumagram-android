@@ -63,11 +63,8 @@ public final class Tgx101SavedActions {
       e.setText(initial);
       e.setSingleLine(true);
       e.setHint(Lang.getString(R.string.Tgx101SavedNameHint));
-      e.setHintTextColor(Theme.textDecentColor());
-      e.setTextColor(Theme.textAccentColor());
       e.setImeOptions(EditorInfo.IME_ACTION_DONE);
-      e.setBackground(Tgx101SavedHomeController.card(Theme.backgroundColor(), 14f));
-      e.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);
+      Tgx101SavedHomeController.styleField(e, true);
       LinearLayout.LayoutParams ep = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(48f));
       ep.setMargins(Screen.dp(16f), 0, Screen.dp(16f), Screen.dp(12f));
       body.addView(e, ep);
@@ -185,7 +182,7 @@ public final class Tgx101SavedActions {
       LinearLayout input = new LinearLayout(context);
       input.setOrientation(LinearLayout.HORIZONTAL);
       input.setGravity(Gravity.CENTER_VERTICAL);
-      input.setBackground(Tgx101SavedHomeController.card(Theme.backgroundColor(), 14f));
+      input.setBackground(Tgx101SavedHomeController.bubble(true));
       input.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);
       TextView hash = Tgx101SavedHomeController.text(context, 18f, Tgx101SavedHomeController.accent(), true);
       hash.setText("#");
@@ -199,6 +196,8 @@ public final class Tgx101SavedActions {
       e.setTextColor(Theme.textAccentColor());
       e.setImeOptions(EditorInfo.IME_ACTION_DONE);
       e.setPadding(Screen.dp(6f), 0, 0, 0);
+      e.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16f);
+      Tgx101SavedHomeController.cursor(e);
       input.addView(e, new LinearLayout.LayoutParams(0, Screen.dp(46f), 1f));
       LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(46f));
       ip.setMargins(Screen.dp(16f), 0, Screen.dp(16f), Screen.dp(8f));
@@ -267,7 +266,7 @@ public final class Tgx101SavedActions {
     }
   }
 
-  private static void applyTag (ViewController<?> c, List<TdApi.Message> messages, String tag, boolean onHome) {
+  static void applyTag (ViewController<?> c, List<TdApi.Message> messages, String tag, boolean onHome) {
     Tdlib tdlib = c.tdlib();
     Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
     store.rememberTag(tag);
@@ -316,6 +315,46 @@ public final class Tgx101SavedActions {
   /** A reminder is Telegram's own: a copy scheduled into Saved Messages at the chosen time */
   public static void remind (ViewController<?> c, long[] messageIds, @Nullable Runnable after) {
     if (messageIds.length == 0) return;
+    pickTime(c, when -> {
+      TdApi.MessageSendOptions options = new TdApi.MessageSendOptions();
+      options.schedulingState = new TdApi.MessageSchedulingStateSendAtDate((int) (long) when, 0);
+      c.tdlib().send(new TdApi.ForwardMessages(c.tdlib().selfChatId(), null, c.tdlib().selfChatId(), messageIds, options, true, false), (r, error) -> UI.post(() -> {
+        if (error != null) {
+          UI.showError(error);
+        } else {
+          UI.showToast(Lang.getString(R.string.Tgx101SavedRemindDone, Lang.getRelativeTimestamp(when, java.util.concurrent.TimeUnit.SECONDS)), android.widget.Toast.LENGTH_SHORT);
+          if (after != null) after.run();
+        }
+      }));
+    });
+  }
+
+  /** In an hour, (this evening), tomorrow morning, in a week — in seconds */
+  static long[] remindTimes () {
+    Calendar now = Calendar.getInstance();
+    Calendar evening = (Calendar) now.clone();
+    evening.set(Calendar.HOUR_OF_DAY, 20);
+    evening.set(Calendar.MINUTE, 0);
+    evening.set(Calendar.SECOND, 0);
+    if (!evening.after(now)) evening.add(Calendar.DAY_OF_MONTH, 1);
+    Calendar morning = (Calendar) now.clone();
+    morning.add(Calendar.DAY_OF_MONTH, 1);
+    morning.set(Calendar.HOUR_OF_DAY, 9);
+    morning.set(Calendar.MINUTE, 0);
+    morning.set(Calendar.SECOND, 0);
+    boolean eveningSoon = evening.getTimeInMillis() - now.getTimeInMillis() < 2 * 3600 * 1000L;
+    long n = now.getTimeInMillis() / 1000;
+    return eveningSoon ? new long[] {n + 3600, morning.getTimeInMillis() / 1000, n + 7 * 86400}
+      : new long[] {n + 3600, evening.getTimeInMillis() / 1000, morning.getTimeInMillis() / 1000, n + 7 * 86400};
+  }
+
+  static int[] remindNames (int count) {
+    return count == 3 ? new int[] {R.string.Tgx101SavedRemindHour, R.string.Tgx101SavedRemindMorning, R.string.Tgx101SavedRemindWeek}
+      : new int[] {R.string.Tgx101SavedRemindHour, R.string.Tgx101SavedRemindEvening, R.string.Tgx101SavedRemindMorning, R.string.Tgx101SavedRemindWeek};
+  }
+
+  /** In an hour, this evening, tomorrow morning, in a week — the time in seconds */
+  static void pickTime (ViewController<?> c, RunnableData<Long> picked) {
     Context context = c.context();
     Calendar now = Calendar.getInstance();
     Calendar evening = (Calendar) now.clone();
@@ -350,19 +389,531 @@ public final class Tgx101SavedActions {
         String value = Lang.getRelativeTimestamp(when, java.util.concurrent.TimeUnit.SECONDS);
         body.addView(Tgx101Sheet.row(context, R.drawable.baseline_schedule_24, 0, Lang.getString(names[i]), value, false, v -> {
           h[0].dismiss();
-          TdApi.MessageSendOptions options = new TdApi.MessageSendOptions();
-          options.schedulingState = new TdApi.MessageSchedulingStateSendAtDate((int) when, 0);
-          c.tdlib().send(new TdApi.ForwardMessages(c.tdlib().selfChatId(), null, c.tdlib().selfChatId(), messageIds, options, true, false), (r, error) -> UI.post(() -> {
-            if (error != null) {
-              UI.showError(error);
-            } else {
-              UI.showToast(Lang.getString(R.string.Tgx101SavedRemindDone, Lang.getRelativeTimestamp(when, java.util.concurrent.TimeUnit.SECONDS)), android.widget.Toast.LENGTH_SHORT);
-              if (after != null) after.run();
-            }
-          }));
+          picked.runWithData(when);
         }));
       }
     });
+  }
+
+  // Note: where to
+
+  /**
+   * TGx101 (user 2026-10-15): holding «Send» under the note field asks where the note goes — straight into a folder,
+   * with a tag, as a reminder, or to another chat
+   */
+  public static void noteDestinations (ViewController<?> c, TdApi.FormattedText note, Runnable picked, Runnable sentHere) {
+    Context context = c.context();
+    Tdlib tdlib = c.tdlib();
+    Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
+    Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
+    h[0] = Tgx101Sheet.show(c, null, body -> {
+      body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101SavedNoteWhere)));
+      // a reaction: the note is saved with it at once
+      LinearLayout reactions = new LinearLayout(context);
+      reactions.setOrientation(LinearLayout.HORIZONTAL);
+      reactions.setPadding(Screen.dp(16f), 0, Screen.dp(16f), Screen.dp(6f));
+      for (String e : Tgx101SavedKit.QUICK_REACTIONS) {
+        TextView b = Tgx101SavedHomeController.text(context, 20f, Theme.textAccentColor(), false);
+        b.setText(e);
+        b.setGravity(Gravity.CENTER);
+        b.setBackground(Tgx101SavedHomeController.card(Theme.backgroundColor(), 20f));
+        Views.setClickable(b);
+        b.setOnClickListener(v -> {
+          h[0].dismiss();
+          picked.run(); // the field is emptied only when the note goes somewhere
+          sendNote(c, note, null, saved -> Tgx101SavedKit.toggleReaction(tdlib, saved, e, added -> sentHere.run()));
+        });
+        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, Screen.dp(42f), 1f);
+        rp.rightMargin = Screen.dp(8f);
+        reactions.addView(b, rp);
+      }
+      body.addView(reactions);
+      for (Tgx101SavedStore.Folder f : store.folders()) {
+        body.addView(Tgx101Sheet.row(context, 0, f.color(), f.name, null, false, v -> {
+          h[0].dismiss();
+          picked.run(); // the field is emptied only when the note goes somewhere
+          sendNote(c, note, null, saved -> {
+            store.putInFolder(f.id, Tgx101SavedKit.idsOf(saved));
+            UI.showToast(Lang.getString(R.string.Tgx101SavedPutDone, f.name), android.widget.Toast.LENGTH_SHORT);
+            sentHere.run();
+          });
+        }));
+      }
+      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_label_24, 0, Lang.getString(R.string.Tgx101SavedNoteWithTag), null, false, v -> {
+        h[0].dismiss();
+          picked.run(); // the field is emptied only when the note goes somewhere
+        sendNote(c, note, null, saved -> {
+          sentHere.run();
+          tag(c, saved, sentHere);
+        });
+      }));
+      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_schedule_24, 0, Lang.getString(R.string.Tgx101SavedNoteRemind), null, false, v -> {
+        h[0].dismiss();
+          picked.run(); // the field is emptied only when the note goes somewhere
+        pickTime(c, when -> {
+          TdApi.MessageSendOptions options = new TdApi.MessageSendOptions();
+          options.schedulingState = new TdApi.MessageSchedulingStateSendAtDate((int) (long) when, 0);
+          sendNote(c, note, options, saved -> UI.showToast(Lang.getString(R.string.Tgx101SavedRemindDone, Lang.getRelativeTimestamp(when, java.util.concurrent.TimeUnit.SECONDS)), android.widget.Toast.LENGTH_SHORT));
+        });
+      }));
+      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_forward_24, 0, Lang.getString(R.string.Tgx101SavedNoteOtherChat), null, false, v -> {
+        h[0].dismiss();
+          picked.run(); // the field is emptied only when the note goes somewhere
+        ShareController share = new ShareController(context, tdlib);
+        share.setArguments(new ShareController.Args(note));
+        share.show();
+      }));
+    });
+  }
+
+  /** Sends the note to Saved; {@code done} gets it with its real id (scheduled ones as Telegram answered) */
+  static void sendNote (ViewController<?> c, TdApi.FormattedText note, @Nullable TdApi.MessageSendOptions options, RunnableData<List<TdApi.Message>> done) {
+    Tdlib tdlib = c.tdlib();
+    Tgx101SavedStore.suppressBanner(15000); // a note typed here needs no «put in folder?» banner
+    final int since = (int) (System.currentTimeMillis() / 1000L) - 5;
+    tdlib.send(new TdApi.SendMessage(tdlib.selfChatId(), null, null, options, null, new TdApi.InputMessageText(note, null, false)), (sent, error) -> UI.post(() -> {
+      if (error != null) {
+        UI.showError(error);
+        return;
+      }
+      if (options != null) {
+        List<TdApi.Message> one = new ArrayList<>();
+        one.add(sent);
+        done.runWithData(one);
+        return;
+      }
+      // the answer has the id the note has while it's being sent: wait for it to arrive, then take the real one
+      tdlib.awaitMessageSent(sent, () -> UI.post(() -> Tgx101SavedKit.resolveSaved(tdlib, new long[] {sent.id}, since, saved -> {
+        if (!saved.isEmpty()) done.runWithData(saved);
+      }), 300));
+    }));
+  }
+
+  // Reactions, «More», organize (approved mockups «Недавнее», А–Г)
+
+  /** ❤️ 🔥 👍 ⭐ + : lit when every one of the messages has it; a tap puts it on all / takes it off */
+  static View reactionRow (ViewController<?> c, List<TdApi.Message> messages, @Nullable Runnable changed) {
+    Context context = c.context();
+    Tdlib tdlib = c.tdlib();
+    LinearLayout row = new LinearLayout(context);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setPadding(Screen.dp(16f), Screen.dp(4f), Screen.dp(16f), Screen.dp(8f));
+    final List<String> shown = new ArrayList<>();
+    for (String e : Tgx101SavedKit.QUICK_REACTIONS) shown.add(e);
+    // a reaction already on them that isn't in the quick row is shown too
+    for (TdApi.Message m : messages) for (String e : Tgx101SavedKit.reactionsOf(tdlib, m)) if (!shown.contains(e) && shown.size() < 6) shown.add(e);
+    final List<TextView> buttons = new ArrayList<>();
+    final Runnable refresh = () -> {
+      for (TextView b : buttons) {
+        String e = (String) b.getTag();
+        boolean all = true;
+        for (TdApi.Message m : messages) if (!Tgx101SavedKit.reactionsOf(tdlib, m).contains(e)) all = false;
+        b.setBackground(Tgx101SavedHomeController.card(all ? Tgx101SavedHomeController.tint(Tgx101SavedHomeController.accent(), .22f) : Theme.backgroundColor(), 20f));
+      }
+    };
+    for (String e : shown) {
+      TextView b = Tgx101SavedHomeController.text(context, 20f, Theme.textAccentColor(), false);
+      b.setText(e);
+      b.setTag(e);
+      b.setGravity(Gravity.CENTER);
+      Views.setClickable(b);
+      b.setOnClickListener(v -> {
+        UI.forceVibrate(v, false);
+        Tgx101SavedKit.toggleReaction(tdlib, messages, e, added -> {
+          markLocally(tdlib, messages, e, added);
+          refresh.run();
+          if (changed != null) changed.run();
+        });
+      });
+      buttons.add(b);
+      LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, Screen.dp(42f), 1f);
+      p.rightMargin = Screen.dp(8f);
+      row.addView(b, p);
+    }
+    TextView more = Tgx101SavedHomeController.text(context, 18f, Theme.textDecentColor(), false);
+    more.setText("+");
+    more.setGravity(Gravity.CENTER);
+    more.setContentDescription(Lang.getString(R.string.Tgx101SavedMoreReactions));
+    more.setBackground(Tgx101SavedHomeController.card(Theme.backgroundColor(), 20f));
+    Views.setClickable(more);
+    more.setOnClickListener(v -> morePicker(c, emoji -> Tgx101SavedKit.toggleReaction(tdlib, messages, emoji, added -> {
+      markLocally(tdlib, messages, emoji, added);
+      UI.showToast(emoji, android.widget.Toast.LENGTH_SHORT);
+      if (changed != null) changed.run();
+    })));
+    row.addView(more, new LinearLayout.LayoutParams(0, Screen.dp(42f), 1f));
+    refresh.run();
+    return row;
+  }
+
+  /** the shown messages get the reaction at once (Telegram's update comes later) */
+  private static void markLocally (Tdlib tdlib, List<TdApi.Message> messages, String emoji, boolean added) {
+    if (!Tgx101SavedKit.serverReactions(tdlib)) return;
+    for (TdApi.Message m : messages) {
+      if (m.interactionInfo == null) m.interactionInfo = new TdApi.MessageInteractionInfo();
+      if (m.interactionInfo.reactions == null) m.interactionInfo.reactions = new TdApi.MessageReactions(new TdApi.MessageReaction[0], true, new TdApi.PaidReactor[0], false);
+      List<TdApi.MessageReaction> list = new ArrayList<>();
+      for (TdApi.MessageReaction r : m.interactionInfo.reactions.reactions) {
+        boolean same = r.type.getConstructor() == TdApi.ReactionTypeEmoji.CONSTRUCTOR && ((TdApi.ReactionTypeEmoji) r.type).emoji.equals(emoji);
+        if (!same) list.add(r);
+      }
+      if (added) list.add(new TdApi.MessageReaction(new TdApi.ReactionTypeEmoji(emoji), 1, true, null, new TdApi.MessageSender[0]));
+      m.interactionInfo.reactions.reactions = list.toArray(new TdApi.MessageReaction[0]);
+    }
+  }
+
+  private static void morePicker (ViewController<?> c, RunnableData<String> picked) {
+    Context context = c.context();
+    Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
+    h[0] = Tgx101Sheet.show(c, null, body -> {
+      body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101SavedReaction)));
+      LinearLayout grid = new LinearLayout(context);
+      grid.setOrientation(LinearLayout.VERTICAL);
+      grid.setPadding(Screen.dp(12f), 0, Screen.dp(12f), Screen.dp(8f));
+      LinearLayout line = null;
+      String[] all = Tgx101SavedKit.MORE_REACTIONS;
+      for (int i = 0; i < all.length; i++) {
+        if (i % 8 == 0) {
+          line = new LinearLayout(context);
+          line.setOrientation(LinearLayout.HORIZONTAL);
+          grid.addView(line);
+        }
+        final String e = all[i];
+        TextView b = Tgx101SavedHomeController.text(context, 24f, Theme.textAccentColor(), false);
+        b.setText(e);
+        b.setGravity(Gravity.CENTER);
+        Views.setClickable(b);
+        org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(b);
+        b.setOnClickListener(v -> {
+          h[0].dismiss();
+          picked.runWithData(e);
+        });
+        line.addView(b, new LinearLayout.LayoutParams(0, Screen.dp(48f), 1f));
+      }
+      body.addView(grid);
+    });
+  }
+
+  // Swipe buttons (one tap: the last folder / tag; hold: the sheet for everything)
+
+  static void swipeFolder (ViewController<?> c, TdApi.Message m, boolean longPress, Runnable changed) {
+    Tgx101SavedStore store = Tgx101SavedStore.get(c.tdlib());
+    Tgx101SavedStore.Folder last = store.folder(store.lastFolderId);
+    List<TdApi.Message> one = new ArrayList<>();
+    one.add(m);
+    if (longPress) {
+      organize(c, one, changed);
+    } else if (last != null) {
+      store.putInFolder(last.id, new long[] {m.id});
+      UI.showToast(Lang.getString(R.string.Tgx101SavedPutDone, last.name), android.widget.Toast.LENGTH_SHORT);
+      changed.run();
+    } else {
+      toFolder(c, new long[] {m.id}, changed);
+    }
+  }
+
+  static void swipeTag (ViewController<?> c, TdApi.Message m, boolean longPress, Runnable changed) {
+    String last = Tgx101SavedStore.get(c.tdlib()).lastTag;
+    List<TdApi.Message> one = new ArrayList<>();
+    one.add(m);
+    if (longPress) {
+      organize(c, one, changed);
+    } else if (last != null && !last.isEmpty()) {
+      applyTag(c, one, last, false);
+      changed.run();
+    } else {
+      tag(c, one, changed);
+    }
+  }
+
+  /** «Работа», «#идеи» on the swipe buttons */
+  static void applySwipeTargets (Tdlib tdlib, Tgx101SwipeRow swipe) {
+    Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
+    Tgx101SavedStore.Folder last = store.folder(store.lastFolderId);
+    swipe.setTargets(last != null ? last.name : null, store.lastTag != null && !store.lastTag.isEmpty() ? store.lastTag : null);
+  }
+
+  /** What «More» on a «Recent» row can do */
+  public interface MoreHost {
+    void startSelection (TdApi.Message m);
+    void changed ();
+  }
+
+  /** Mockup А: the message, the reactions, and the actions in a grid of three */
+  public static void more (ViewController<?> c, TdApi.Message m, MoreHost host) {
+    Context context = c.context();
+    Tdlib tdlib = c.tdlib();
+    List<TdApi.Message> one = new ArrayList<>();
+    one.add(m);
+    long[] ids = {m.id};
+    Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
+    h[0] = Tgx101Sheet.show(c, null, body -> {
+      View preview = Tgx101SavedListController.rowView(c, m, v -> {
+        h[0].dismiss();
+        Tgx101SavedKit.openInFeed(c, m);
+      }, null, false);
+      body.addView(preview);
+      body.addView(reactionRow(c, one, host::changed));
+      String text = Tgx101SavedKit.text(m) != null ? Tgx101SavedKit.text(m).text : "";
+      List<Object[]> actions = new ArrayList<>();
+      actions.add(new Object[] {R.drawable.baseline_folder_24, R.string.Tgx101SavedToFolder, (Runnable) () -> toFolder(c, ids, host::changed)});
+      actions.add(new Object[] {R.drawable.baseline_label_24, R.string.Tgx101SavedTag, (Runnable) () -> tag(c, one, host::changed)});
+      actions.add(new Object[] {R.drawable.baseline_notifications_active_24, R.string.Tgx101SavedRemind, (Runnable) () -> remind(c, ids, null)});
+      if (!text.isEmpty()) {
+        actions.add(new Object[] {R.drawable.baseline_content_copy_24, R.string.Tgx101SavedCopy, (Runnable) () -> UI.copyText(text, R.string.CopiedText)});
+      }
+      actions.add(new Object[] {R.drawable.baseline_forward_24, R.string.Tgx101SavedForward, (Runnable) () -> forward(c, one)});
+      if (!text.isEmpty()) {
+        actions.add(new Object[] {R.drawable.baseline_translate_24, R.string.Tgx101SavedTranslate, (Runnable) () -> translate(c, Tgx101SavedKit.text(m))});
+      }
+      actions.add(new Object[] {R.drawable.baseline_check_circle_24, R.string.Tgx101SavedSelect, (Runnable) () -> host.startSelection(m)});
+      actions.add(new Object[] {R.drawable.baseline_forum_24, R.string.Tgx101SavedInFeed, (Runnable) () -> Tgx101SavedKit.openInFeed(c, m)});
+      actions.add(new Object[] {R.drawable.baseline_delete_24, R.string.Tgx101SavedDelete, (Runnable) () -> delete(c, ids, host::changed)});
+      LinearLayout grid = new LinearLayout(context);
+      grid.setOrientation(LinearLayout.VERTICAL);
+      grid.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
+      LinearLayout line = null;
+      for (int i = 0; i < actions.size(); i++) {
+        if (i % 3 == 0) {
+          line = new LinearLayout(context);
+          line.setOrientation(LinearLayout.HORIZONTAL);
+          grid.addView(line);
+        }
+        Object[] a = actions.get(i);
+        boolean red = (int) a[0] == R.drawable.baseline_delete_24;
+        LinearLayout b = new LinearLayout(context);
+        b.setOrientation(LinearLayout.VERTICAL);
+        b.setGravity(Gravity.CENTER);
+        b.setBackground(Tgx101SavedHomeController.card(Theme.backgroundColor(), 14f));
+        Views.setClickable(b);
+        android.widget.ImageView icon = new android.widget.ImageView(context);
+        icon.setImageResource((int) a[0]);
+        icon.setColorFilter(red ? Theme.getColor(ColorId.textNegative) : Theme.getColor(ColorId.icon));
+        b.addView(icon, new LinearLayout.LayoutParams(Screen.dp(22f), Screen.dp(22f)));
+        TextView t = Tgx101SavedHomeController.text(context, 12f, red ? Theme.getColor(ColorId.textNegative) : Theme.textAccentColor(), false);
+        t.setText(Lang.getString((int) a[1]));
+        t.setSingleLine(true);
+        t.setEllipsize(TextUtils.TruncateAt.END);
+        t.setGravity(Gravity.CENTER);
+        t.setPadding(Screen.dp(4f), Screen.dp(6f), Screen.dp(4f), 0);
+        b.addView(t);
+        final Runnable run = (Runnable) a[2];
+        b.setOnClickListener(v -> {
+          h[0].dismiss();
+          v.postDelayed(run, 200); // after the sheet has gone: the next one rises cleanly
+        });
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, Screen.dp(68f), 1f);
+        p.setMargins(Screen.dp(3f), Screen.dp(3f), Screen.dp(3f), Screen.dp(3f));
+        line.addView(b, p);
+      }
+      for (int i = actions.size() % 3; i != 0 && i < 3; i++) {
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, Screen.dp(68f), 1f);
+        p.setMargins(Screen.dp(3f), Screen.dp(3f), Screen.dp(3f), Screen.dp(3f));
+        line.addView(new View(context), p);
+      }
+      body.addView(grid);
+    });
+  }
+
+  private static void translate (ViewController<?> c, TdApi.FormattedText text) {
+    String to = Lang.locale().getLanguage();
+    c.tdlib().send(new TdApi.TranslateText(text, to, tgx.td.TdConstants.TEXT_FORMAT_NEUTRAL), (result, error) -> UI.post(() -> {
+      if (error != null) {
+        UI.showError(error);
+        return;
+      }
+      Tgx101Sheet.show(c, null, body -> {
+        body.addView(Tgx101Sheet.title(c.context(), Lang.getString(R.string.Tgx101SavedTranslate)));
+        TextView t = Tgx101SavedHomeController.text(c.context(), 15f, Theme.textAccentColor(), false);
+        t.setText(result.text);
+        t.setTextIsSelectable(true);
+        t.setPadding(Screen.dp(20f), 0, Screen.dp(20f), Screen.dp(12f));
+        body.addView(t);
+        body.addView(primaryButton(c.context(), Lang.getString(R.string.Tgx101SavedCopy), v -> UI.copyText(result.text, R.string.CopiedText)));
+      });
+    }));
+  }
+
+  /**
+   * Mockup Г: one sheet for selected messages — one folder, several tags (the ones some of them have are marked),
+   * a reaction
+   */
+  public static void organize (ViewController<?> c, List<TdApi.Message> messages, @Nullable Runnable after) {
+    if (messages.isEmpty()) return;
+    Context context = c.context();
+    Tdlib tdlib = c.tdlib();
+    Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
+    long[] ids = Tgx101SavedKit.idsOf(messages);
+    // the folder all of them are in, if any
+    Tgx101SavedStore.Folder common = store.folderOf(ids[0]);
+    for (long id : ids) if (common != null && store.folderOf(id) != common) common = null;
+    final long[] folderPick = {common != null ? common.id : 0};
+    final long initialFolder = folderPick[0];
+    final java.util.LinkedHashMap<String, Integer> tagCounts = new java.util.LinkedHashMap<>();
+    for (String t : store.knownTags()) tagCounts.put(t, 0);
+    for (TdApi.Message m : messages) {
+      List<String> has = new ArrayList<>(store.tagsOf(m.id));
+      TdApi.FormattedText text = Tgx101SavedKit.text(m);
+      if (text != null && text.entities != null) {
+        for (TdApi.TextEntity e : text.entities) {
+          if (e.type.getConstructor() == TdApi.TextEntityTypeHashtag.CONSTRUCTOR) {
+            String t = Tgx101SavedStore.normalizeTag(text.text.substring(e.offset, e.offset + e.length));
+            if (!has.contains(t)) has.add(t);
+          }
+        }
+      }
+      for (String t : has) {
+        Integer n = tagCounts.get(t);
+        tagCounts.put(t, (n != null ? n : 0) + 1);
+      }
+    }
+    final java.util.LinkedHashSet<String> tagPick = new java.util.LinkedHashSet<>();
+    Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
+    h[0] = Tgx101Sheet.show(c, null, body -> {
+      body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101SavedSelected, messages.size())));
+
+      body.addView(label(context, Lang.getString(R.string.Tgx101SavedOrganizeFolder)));
+      FlowLayout folders = new FlowLayout(context);
+      final List<TextView> folderChips = new ArrayList<>();
+      final Runnable paintFolders = () -> {
+        for (TextView chip : folderChips) paintChip(chip, (long) chip.getTag() == folderPick[0]);
+      };
+      for (Tgx101SavedStore.Folder f : store.folders()) {
+        TextView chip = chip(context, f.name);
+        chip.setTag(f.id);
+        chip.setOnClickListener(v -> {
+          folderPick[0] = folderPick[0] == f.id ? 0 : f.id;
+          paintFolders.run();
+        });
+        folderChips.add(chip);
+        folders.addView(chip);
+      }
+      TextView newFolder = chip(context, "+ " + Lang.getString(R.string.Tgx101SavedNew));
+      paintChip(newFolder, false);
+      newFolder.setOnClickListener(v -> askName(c, Lang.getString(R.string.Tgx101SavedNewFolder), null, name -> {
+        Tgx101SavedStore.Folder f = store.createFolder(name);
+        store.putInFolder(f.id, ids);
+        UI.showToast(Lang.getString(R.string.Tgx101SavedPutDone, f.name), android.widget.Toast.LENGTH_SHORT);
+        h[0].dismiss();
+        if (after != null) after.run();
+      }));
+      folders.addView(newFolder);
+      paintFolders.run();
+      body.addView(folders);
+
+      body.addView(label(context, Lang.getString(R.string.Tgx101SavedOrganizeTags)));
+      FlowLayout tags = new FlowLayout(context);
+      List<String> partial = new ArrayList<>();
+      for (java.util.Map.Entry<String, Integer> e : tagCounts.entrySet()) {
+        final String t = e.getKey();
+        int n = e.getValue();
+        if (n == messages.size()) tagPick.add(t);
+        else if (n > 0) partial.add("#" + t + " — " + n + "/" + messages.size());
+        TextView chip = chip(context, "#" + t);
+        paintChip(chip, tagPick.contains(t));
+        chip.setOnClickListener(v -> {
+          if (!tagPick.remove(t)) tagPick.add(t);
+          paintChip(chip, tagPick.contains(t));
+        });
+        tags.addView(chip);
+      }
+      TextView newTag = chip(context, "+ " + Lang.getString(R.string.Tgx101SavedNew));
+      paintChip(newTag, false);
+      newTag.setOnClickListener(v -> {
+        h[0].dismiss();
+        tag(c, messages, after);
+      });
+      tags.addView(newTag);
+      body.addView(tags);
+      if (!partial.isEmpty()) {
+        TextView hint = Tgx101SavedHomeController.text(context, 12f, Theme.textDecentColor(), false);
+        hint.setText(Lang.getString(R.string.Tgx101SavedOrganizePartial, TextUtils.join(", ", partial)));
+        hint.setPadding(Screen.dp(20f), Screen.dp(2f), Screen.dp(20f), 0);
+        body.addView(hint);
+      }
+
+      body.addView(label(context, Lang.getString(R.string.Tgx101SavedReaction)));
+      body.addView(reactionRow(c, messages, null));
+
+      final java.util.Set<String> tagInitial = new java.util.HashSet<>(tagPick);
+      body.addView(primaryButton(context, Lang.getString(R.string.Done), v -> {
+        h[0].dismiss();
+        if (folderPick[0] != initialFolder) {
+          if (folderPick[0] == 0) store.removeFromFolders(ids);
+          else store.putInFolder(folderPick[0], ids);
+        }
+        for (String t : tagPick) if (!tagInitial.contains(t)) applyTag(c, messages, t, false);
+        if (after != null) after.run();
+      }));
+    });
+  }
+
+  private static TextView label (Context context, String text) {
+    TextView l = Tgx101SavedHomeController.text(context, 12f, Theme.textDecentColor(), true);
+    l.setText(text.toUpperCase(Lang.locale()));
+    if (android.os.Build.VERSION.SDK_INT >= 21) l.setLetterSpacing(.04f);
+    l.setPadding(Screen.dp(20f), Screen.dp(10f), Screen.dp(20f), Screen.dp(6f));
+    return l;
+  }
+
+  private static TextView chip (Context context, String text) {
+    TextView chip = Tgx101SavedHomeController.text(context, 14f, Theme.textAccentColor(), false);
+    chip.setText(text);
+    chip.setGravity(Gravity.CENTER);
+    chip.setSingleLine(true);
+    chip.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);
+    Views.setClickable(chip);
+    chip.setLayoutParams(new ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(36f)));
+    return chip;
+  }
+
+  private static void paintChip (TextView chip, boolean on) {
+    chip.setTextColor(on ? 0xffffffff : Theme.textAccentColor());
+    chip.setBackground(Tgx101SavedHomeController.card(on ? Tgx101SavedHomeController.accent() : Theme.backgroundColor(), 18f));
+  }
+
+  /** Chips that wrap to the next line */
+  static final class FlowLayout extends ViewGroup {
+    FlowLayout (Context context) {
+      super(context);
+      setPadding(Screen.dp(16f), 0, Screen.dp(16f), Screen.dp(4f));
+    }
+
+    @Override
+    protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
+      int width = MeasureSpec.getSize(widthMeasureSpec);
+      int max = width - getPaddingLeft() - getPaddingRight();
+      int x = 0, y = 0, lineHeight = 0, gap = Screen.dp(8f);
+      for (int i = 0; i < getChildCount(); i++) {
+        View child = getChildAt(i);
+        child.measure(MeasureSpec.makeMeasureSpec(max, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(Screen.dp(36f), MeasureSpec.EXACTLY));
+        if (x > 0 && x + child.getMeasuredWidth() > max) {
+          x = 0;
+          y += lineHeight + gap;
+          lineHeight = 0;
+        }
+        x += child.getMeasuredWidth() + gap;
+        lineHeight = Math.max(lineHeight, child.getMeasuredHeight());
+      }
+      setMeasuredDimension(width, getPaddingTop() + y + lineHeight + getPaddingBottom());
+    }
+
+    @Override
+    protected void onLayout (boolean changed, int l, int t, int r, int b) {
+      int max = r - l - getPaddingLeft() - getPaddingRight();
+      int x = 0, y = 0, lineHeight = 0, gap = Screen.dp(8f);
+      for (int i = 0; i < getChildCount(); i++) {
+        View child = getChildAt(i);
+        if (x > 0 && x + child.getMeasuredWidth() > max) {
+          x = 0;
+          y += lineHeight + gap;
+          lineHeight = 0;
+        }
+        child.layout(getPaddingLeft() + x, getPaddingTop() + y, getPaddingLeft() + x + child.getMeasuredWidth(), getPaddingTop() + y + child.getMeasuredHeight());
+        x += child.getMeasuredWidth() + gap;
+        lineHeight = Math.max(lineHeight, child.getMeasuredHeight());
+      }
+    }
   }
 
   // Forward, delete
@@ -499,6 +1050,10 @@ public final class Tgx101SavedActions {
       buttons.setOrientation(LinearLayout.HORIZONTAL);
       buttons.setPadding(0, Screen.dp(12f), 0, 0);
       card.addView(buttons);
+      LinearLayout reactions = new LinearLayout(context);
+      reactions.setOrientation(LinearLayout.HORIZONTAL);
+      reactions.setPadding(0, Screen.dp(8f), 0, 0);
+      card.addView(reactions);
 
       final Runnable[] close = new Runnable[1];
       close[0] = () -> {
@@ -508,6 +1063,7 @@ public final class Tgx101SavedActions {
           .withEndAction(() -> Views.removeFromParent(holder)).start();
       };
       card.setTag(close[0]);
+      final int shownAt = (int) (System.currentTimeMillis() / 1000L) - 5;
       int[] labels = {R.string.Tgx101SavedToFolder, R.string.Tgx101SavedTag, R.string.Tgx101SavedRemind};
       for (int i = 0; i < labels.length; i++) {
         final int which = i;
@@ -518,17 +1074,45 @@ public final class Tgx101SavedActions {
         Views.setClickable(b);
         b.setOnClickListener(v -> {
           close[0].run();
-          if (which == 0) {
-            toFolder(c, ids, () -> refreshOpenSaved(c));
-          } else if (which == 1) {
-            Tgx101SavedKit.byIds(tdlib, toList(ids), messages -> tag(c, messages, null));
-          } else {
-            remind(c, ids, null);
-          }
+          // the banner may have been shown while the messages still had their sending ids (test 2026-10-15:
+          // «Tag» found nothing and did nothing)
+          long[] known = Tgx101SavedStore.get(tdlib).resolve(ids);
+          Tgx101SavedKit.resolveSaved(tdlib, known, shownAt, messages -> {
+            org.thunderdog.challegram.Tgx101Diag.mark("saved banner: button " + which + ", found " + messages.size() + " of " + known.length);
+            if (messages.isEmpty()) return;
+            long[] real = Tgx101SavedKit.idsOf(messages);
+            if (which == 0) {
+              toFolder(c, real, () -> refreshOpenSaved(c));
+            } else if (which == 1) {
+              tag(c, messages, () -> refreshOpenSaved(c));
+            } else {
+              remind(c, real, null);
+            }
+          });
         });
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f);
         if (i > 0) bp.leftMargin = Screen.dp(8f);
         buttons.addView(b, bp);
+      }
+
+      // a reaction straight from the banner (user 2026-10-15: «реакции … при пересылке»)
+      for (String e : Tgx101SavedKit.QUICK_REACTIONS) {
+        TextView b = Tgx101SavedHomeController.text(context, 18f, 0xffffffff, false);
+        b.setText(e);
+        b.setGravity(Gravity.CENTER);
+        b.setBackground(Tgx101SavedHomeController.card(0x1fffffff, 12f));
+        Views.setClickable(b);
+        b.setOnClickListener(v -> {
+          close[0].run();
+          long[] known = Tgx101SavedStore.get(tdlib).resolve(ids);
+          Tgx101SavedKit.resolveSaved(tdlib, known, shownAt, messages -> Tgx101SavedKit.toggleReaction(tdlib, messages, e, added -> {
+            UI.showToast(e, android.widget.Toast.LENGTH_SHORT);
+            refreshOpenSaved(c);
+          }));
+        });
+        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, Screen.dp(36f), 1f);
+        if (reactions.getChildCount() > 0) rp.leftMargin = Screen.dp(8f);
+        reactions.addView(b, rp);
       }
 
       FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);

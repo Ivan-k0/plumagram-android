@@ -26,6 +26,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.view.MotionEvent;
 
 import androidx.annotation.Nullable;
 
@@ -52,7 +53,8 @@ import java.util.List;
  * (photos, files, links, voice) counted by Telegram, folders and tags as tiles, pinned, recent, and a field that
  * saves a note. «Feed» opens the usual chat.
  */
-public class Tgx101SavedHomeController extends ViewController<Void> implements Menu, View.OnClickListener {
+public class Tgx101SavedHomeController extends ViewController<Void> implements Menu, View.OnClickListener,
+  org.thunderdog.challegram.widget.EmojiLayout.Listener, org.thunderdog.challegram.component.chat.EmojiToneHelper.Delegate {
 
   public static void open (BaseActivity context, Tdlib tdlib) {
     ViewController<?> top = context.navigation().getCurrentStackItem();
@@ -114,8 +116,35 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   private LinearLayout tiles;
   private LinearLayout pinnedRow;
   private View pinnedSection;
-  private LinearLayout recentList;
-  private EditText noteField;
+  private DragList recentList;
+  private ScrollView scroll;
+  private HorizontalScrollView chipsScroll, pinnedScroll;
+  private ImageView pullIcon;
+  private LinearLayout selectionTop;
+  private Tgx101SelectionPanel selectionPanel;
+  private TextView selectionTitle;
+  private final java.util.LinkedHashSet<Long> selected = new java.util.LinkedHashSet<>();
+  private final java.util.List<RecentRow> recentRows = new java.util.ArrayList<>();
+
+  /** one «Recent» row: the message, its view and the sliding frame around it */
+  private static final class RecentRow {
+    final TdApi.Message message;
+    final Tgx101SavedListController.RowHolder holder;
+    final Tgx101SwipeRow swipe;
+
+    RecentRow (TdApi.Message message, Tgx101SavedListController.RowHolder holder, Tgx101SwipeRow swipe) {
+      this.message = message;
+      this.holder = holder;
+      this.swipe = swipe;
+    }
+  }
+  private org.thunderdog.challegram.component.chat.InputView noteField;
+  private ImageView emojiButton;
+  private FrameLayout rootView;
+  private LinearLayout outerView;
+  private org.thunderdog.challegram.widget.KeyboardFrameLayout keyboardFrame;
+  private boolean emojiShown, emojiWasKeyboard;
+  private View noteBar;
 
   // Small builders
 
@@ -124,6 +153,36 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     d.setColor(color);
     d.setCornerRadius(Screen.dp(radiusDp));
     return d;
+  }
+
+  /**
+   * TGx101 (user 2026-10-16 «общим стилем везде в хранилище, где нужно вводить текст»): the chats' field — a capsule with
+   * 18 dp corners; on a sheet (itself the filling colour) it takes the background colour so it still shows
+   */
+  static android.graphics.drawable.Drawable bubble (boolean onFilling) {
+    GradientDrawable d = new GradientDrawable();
+    d.setColor(onFilling ? Theme.backgroundColor() : Theme.fillingColor());
+    d.setCornerRadius(Screen.dp(18f));
+    return d;
+  }
+
+  /** a text field in the storage: the bubble, its padding, and an accent cursor that blinks where you can type */
+  static void styleField (EditText e, boolean onFilling) {
+    e.setBackground(bubble(onFilling));
+    e.setPadding(Screen.dp(16f), 0, Screen.dp(16f), 0);
+    e.setTextColor(Theme.textAccentColor());
+    e.setHintTextColor(Theme.textDecentColor());
+    e.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
+    cursor(e);
+  }
+
+  static void cursor (EditText e) {
+    if (android.os.Build.VERSION.SDK_INT >= 29) {
+      GradientDrawable c = new GradientDrawable();
+      c.setColor(accent());
+      c.setSize(Screen.dp(2f), Screen.dp(20f));
+      e.setTextCursorDrawable(c);
+    }
   }
 
   static TextView text (Context context, float sp, int color, boolean medium) {
@@ -162,7 +221,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     outer.setOrientation(LinearLayout.VERTICAL);
     root.addView(outer, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-    ScrollView scroll = new ScrollView(context);
+    scroll = new HomeScroll(context);
     scroll.setFillViewport(true);
     scroll.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
     outer.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
@@ -194,7 +253,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     column.addView(search, searchParams);
 
     // kinds
-    HorizontalScrollView chipsScroll = new HorizontalScrollView(context);
+    chipsScroll = new HorizontalScrollView(context);
     chipsScroll.setHorizontalScrollBarEnabled(false);
     chips = new LinearLayout(context);
     chips.setOrientation(LinearLayout.HORIZONTAL);
@@ -213,7 +272,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     LinearLayout pinnedBox = new LinearLayout(context);
     pinnedBox.setOrientation(LinearLayout.VERTICAL);
     pinnedBox.addView(sectionTitle(context, Lang.getString(R.string.Tgx101SavedPinned)));
-    HorizontalScrollView pinnedScroll = new HorizontalScrollView(context);
+    pinnedScroll = new HorizontalScrollView(context);
     pinnedScroll.setHorizontalScrollBarEnabled(false);
     pinnedRow = new LinearLayout(context);
     pinnedRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -236,42 +295,170 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     all.setOnClickListener(v -> Tgx101SavedListController.openKind(this, -1));
     recentHeader.addView(all);
     column.addView(recentHeader);
-    recentList = new LinearLayout(context);
+    recentList = new DragList(context);
     recentList.setOrientation(LinearLayout.VERTICAL);
     recentList.setBackground(card(Theme.fillingColor(), 14f));
+    if (android.os.Build.VERSION.SDK_INT >= 21) { // the sliding rows keep the card's round corners
+      recentList.setOutlineProvider(new android.view.ViewOutlineProvider() {
+        @Override
+        public void getOutline (View view, android.graphics.Outline outline) {
+          outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), Screen.dp(14f));
+        }
+      });
+      recentList.setClipToOutline(true);
+    }
     LinearLayout.LayoutParams recentParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     recentParams.leftMargin = recentParams.rightMargin = Screen.dp(16f);
     column.addView(recentList, recentParams);
 
     // note field
     LinearLayout bar = new LinearLayout(context);
+    noteBar = bar;
     bar.setOrientation(LinearLayout.HORIZONTAL);
-    bar.setGravity(Gravity.CENTER_VERTICAL);
-    bar.setBackgroundColor(Theme.fillingColor());
-    bar.setPadding(Screen.dp(12f), Screen.dp(8f), Screen.dp(6f), Screen.dp(8f));
-    noteField = new EditText(context);
+    // (user 2026-10-16 «как в чатах»): a floating capsule 8 dp off the edges and the bottom, corners like the chats' field;
+    // the buttons stay at the bottom while the text grows
+    bar.setGravity(Gravity.BOTTOM);
+    bar.setBackground(bubble(false));
+    bar.setPadding(Screen.dp(2f), Screen.dp(2f), Screen.dp(2f), Screen.dp(2f));
+    rootView = root;
+    outerView = outer;
+    // TGx101 (approved mockup Д, user 2026-10-16): the chat's own input — emoji, custom emoji, stickers, GIFs, formatting
+    // on a selection, and the attachment menu
+    emojiButton = new ImageView(context);
+    emojiButton.setImageResource(R.drawable.deproko_baseline_insert_emoticon_26);
+    emojiButton.setColorFilter(Theme.iconColor());
+    emojiButton.setScaleType(ImageView.ScaleType.CENTER);
+    emojiButton.setContentDescription(Lang.getString(R.string.Tgx101SavedEmoji));
+    Views.setClickable(emojiButton);
+    org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(emojiButton, Screen.dp(22f), this);
+    emojiButton.setOnClickListener(v -> {
+      if (emojiShown) closeEmoji(true);
+      else openEmoji();
+    });
+    bar.addView(emojiButton, new LinearLayout.LayoutParams(Screen.dp(44f), Screen.dp(44f)));
+    noteField = new org.thunderdog.challegram.component.chat.InputView(context, tdlib, this);
+    noteField.setInputListener(new org.thunderdog.challegram.component.chat.InputView.InputListener() {
+      @Override
+      public void onInputChanged (org.thunderdog.challegram.component.chat.InputView v, String input) {
+        if (keyboardFrame != null) keyboardFrame.contentView.emojiLayout.onTextChanged(input);
+      }
+
+      @Override
+      public boolean canSearchInline (org.thunderdog.challegram.component.chat.InputView v) {
+        return false;
+      }
+
+      @Override
+      public TdApi.Chat provideInlineSearchChat (org.thunderdog.challegram.component.chat.InputView v) {
+        return null;
+      }
+
+      @Override
+      public long provideInlineSearchChatId (org.thunderdog.challegram.component.chat.InputView v) {
+        return 0;
+      }
+
+      @Override
+      public long provideInlineSearchChatUserId (org.thunderdog.challegram.component.chat.InputView v) {
+        return 0;
+      }
+
+      @Override
+      public void showInlineResults (org.thunderdog.challegram.component.chat.InputView v, java.util.ArrayList<org.thunderdog.challegram.data.InlineResult<?>> items, boolean isContent) { }
+
+      @Override
+      public void addInlineResults (org.thunderdog.challegram.component.chat.InputView v, java.util.ArrayList<org.thunderdog.challegram.data.InlineResult<?>> items) { }
+    });
     noteField.setHint(Lang.getString(R.string.Tgx101SavedNoteHint));
     noteField.setHintTextColor(Theme.textDecentColor());
     noteField.setTextColor(Theme.textAccentColor());
-    noteField.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
-    noteField.setMaxLines(5);
-    noteField.setBackground(card(Theme.backgroundColor(), 20f));
-    noteField.setPadding(Screen.dp(14f), Screen.dp(9f), Screen.dp(14f), Screen.dp(9f));
+    noteField.setHighlightColor(Theme.fillingTextSelectionColor());
+    noteField.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
+    noteField.setSingleLine(false);
+    noteField.setMaxLines(6);
+    noteField.setImeOptions(android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+    noteField.setInputType(noteField.getInputType() | android.view.inputmethod.EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES | android.view.inputmethod.EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE);
+    noteField.setBackground(null); // inside the capsule
+    noteField.setPadding(Screen.dp(4f), Screen.dp(12f), Screen.dp(4f), Screen.dp(12f));
+    cursor(noteField);
+    noteField.setOnClickListener(v -> {
+      if (emojiShown) closeEmoji(true);
+    });
     bar.addView(noteField, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+    ImageView attach = new ImageView(context);
+    attach.setImageResource(R.drawable.deproko_baseline_attach_26);
+    attach.setColorFilter(Theme.iconColor());
+    attach.setScaleType(ImageView.ScaleType.CENTER);
+    attach.setContentDescription(Lang.getString(R.string.Tgx101SavedAttach));
+    Views.setClickable(attach);
+    org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(attach, Screen.dp(22f), this);
+    attach.setOnClickListener(v -> openAttach());
+    bar.addView(attach, new LinearLayout.LayoutParams(Screen.dp(44f), Screen.dp(44f)));
     ImageView send = new ImageView(context);
     send.setImageResource(R.drawable.baseline_send_24);
     send.setColorFilter(accent());
     send.setScaleType(ImageView.ScaleType.CENTER);
     send.setContentDescription(Lang.getString(R.string.Tgx101SavedNoteSave));
     Views.setClickable(send);
-    org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(send);
+    // a round press like the chat's send button (a square showed while held)
+    org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(send, Screen.dp(24f), this);
     send.setOnClickListener(v -> saveNote());
+    send.setOnLongClickListener(v -> {
+      TdApi.FormattedText note = noteText();
+      if (note == null) return false;
+      UI.forceVibrate(v, false);
+      // over the keyboard at the finger, like the message menu in the chats (approved mockups Е, Е2)
+      Tgx101SendMenu.show(this, v, note, () -> noteField.setText(""), this::afterNoteSaved);
+      return true;
+    });
     bar.addView(send, new LinearLayout.LayoutParams(Screen.dp(48f), Screen.dp(48f)));
-    outer.addView(bar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    LinearLayout.LayoutParams barParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    barParams.setMargins(Screen.dp(8f), Screen.dp(6f), Screen.dp(8f), Screen.dp(8f));
+    outer.addView(bar, barParams);
+    buildSelectionBars(context, root, outer);
+
+    // pull down: search (like the chat list)
+    pullIcon = new ImageView(context);
+    pullIcon.setImageResource(R.drawable.baseline_search_24);
+    pullIcon.setColorFilter(0xffffffff);
+    pullIcon.setScaleType(ImageView.ScaleType.CENTER);
+    pullIcon.setBackground(card(accent(), 20f));
+    pullIcon.setAlpha(0f);
+    FrameLayout.LayoutParams pp = new FrameLayout.LayoutParams(Screen.dp(40f), Screen.dp(40f), Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+    pp.topMargin = Screen.dp(8f);
+    root.addView(pullIcon, pp);
 
     reload();
     root.requestFocus();
     return root;
+  }
+
+  private final int[] slideLocation = new int[2];
+  private final int[] slideNavLocation = new int[2];
+
+  /**
+   * TGx101 (user 2026-10-15 «обычный свайп-назад не должен работать»): the home screen is left by the arrow, the
+   * system «back» gesture, or a swipe on the note field — and only while the keyboard is down
+   */
+  @Override
+  public boolean canSlideBackFrom (org.thunderdog.challegram.navigation.NavigationController navigationController, float x, float y) {
+    if (noteBar == null || getKeyboardState()) return false;
+    View nav = navigationController.getValue();
+    if (nav == null) return false;
+    noteBar.getLocationOnScreen(slideLocation);
+    nav.getLocationOnScreen(slideNavLocation);
+    float top = slideLocation[1] - slideNavLocation[1];
+    return y >= top && y <= top + noteBar.getHeight() && super.canSlideBackFrom(navigationController, x, y);
+  }
+
+  /** (test 2026-10-16: settings opened with the note's keyboard up kept it over the next screen) */
+  @Override
+  public void onBlur () {
+    super.onBlur();
+    if (noteField != null) {
+      org.thunderdog.challegram.tool.Keyboard.hide(noteField);
+      noteField.clearFocus();
+    }
   }
 
   @Override
@@ -297,6 +484,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     loadedOnce = true;
     buildChips();
     buildTiles();
+    loadReactions();
     loadPinned();
     loadRecent();
   }
@@ -341,28 +529,102 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     return c;
   }
 
+  /** last counts per account and kind: a returning home screen starts with them instead of empty chips */
+  private static final android.util.SparseArray<int[]> lastCounts = new android.util.SparseArray<>();
+  private final TextView[] kindChips = new TextView[KIND_FILTER_KINDS.length];
+
+  /**
+   * The chips are made once and only change their numbers (test 2026-10-15: rebuilt on every return, they all showed
+   * up for a moment and then vanished — the «phantoms»)
+   */
   private void buildChips () {
-    chips.removeAllViews();
-    chips.addView(chip(Lang.getString(R.string.Tgx101SavedEverything), true, v -> Tgx101SavedListController.openKind(this, -1)));
-    for (int kind : KIND_FILTER_KINDS) {
-      final TextView c = chip(kindPlural(kind), false, v -> Tgx101SavedListController.openKind(this, kind));
-      chips.addView(c);
-      Tgx101SavedKit.count(tdlib, filterFor(kind), count -> {
-        if (isDestroyed()) return;
-        if (count == 0) {
-          c.setVisibility(View.GONE); // nothing of this kind: no empty chip
-        } else if (count > 0) {
-          c.setText(kindPlural(kind) + " " + count);
-        }
+    int[] counts = lastCounts.get(tdlib.id());
+    if (counts == null) {
+      counts = new int[KIND_FILTER_KINDS.length];
+      java.util.Arrays.fill(counts, -1);
+      lastCounts.put(tdlib.id(), counts);
+    }
+    if (chips.getChildCount() == 0) {
+      chips.addView(chip(Lang.getString(R.string.Tgx101SavedEverything), true, v -> Tgx101SavedListController.openKind(this, -1)));
+      for (int i = 0; i < KIND_FILTER_KINDS.length; i++) {
+        final int kind = KIND_FILTER_KINDS[i];
+        TextView c = chip(kindPlural(kind), false, v -> Tgx101SavedListController.openKind(this, kind));
+        kindChips[i] = c;
+        chips.addView(c);
+        applyCount(i, counts[i], false);
+      }
+    }
+    final int[] cache = counts;
+    for (int i = 0; i < KIND_FILTER_KINDS.length; i++) {
+      final int index = i;
+      Tgx101SavedKit.count(tdlib, filterFor(KIND_FILTER_KINDS[i]), count -> {
+        if (isDestroyed() || count < 0 || cache[index] == count) return;
+        boolean wasHidden = cache[index] <= 0;
+        cache[index] = count;
+        applyCount(index, count, wasHidden);
       });
+    }
+  }
+
+  private void applyCount (int index, int count, boolean fadeIn) {
+    TextView c = kindChips[index];
+    if (c == null) return;
+    if (count <= 0) { // nothing of this kind (or not known yet): no chip
+      c.setVisibility(View.GONE);
+      return;
+    }
+    c.setText(kindPlural(KIND_FILTER_KINDS[index]) + " " + count);
+    if (c.getVisibility() != View.VISIBLE) {
+      c.setVisibility(View.VISIBLE);
+      if (fadeIn) {
+        c.setAlpha(0f);
+        c.animate().alpha(1f).setDuration(180).start();
+      }
     }
   }
 
   // Tiles
 
+  private String tilesShown;
+  /** reaction → count (Telegram's tags and the ones kept here), shown as tiles */
+  private java.util.LinkedHashMap<String, Integer> reactionCounts = new java.util.LinkedHashMap<>();
+
+  private void loadReactions () {
+    Tgx101SavedKit.reactionCounts(tdlib, counts -> {
+      if (isDestroyed()) return;
+      reactionCounts = counts;
+      buildTiles();
+    });
+  }
+
+  /** what the tiles show, to rebuild them only when it changed (no flicker on every return) */
+  private String tilesSignature (Tgx101SavedStore store) {
+    StringBuilder b = new StringBuilder().append(store.inboxTile).append('|').append(Theme.getColor(ColorId.filling));
+    for (Tgx101SavedStore.Folder f : store.folders()) if (f.onHome) b.append('|').append(f.id).append(':').append(f.name).append(':').append(f.messageIds.size()).append(':').append(f.color());
+    for (String tag : store.homeTags()) b.append("|#").append(tag);
+    for (java.util.Map.Entry<String, Integer> e : reactionCounts.entrySet()) b.append("|r").append(e.getKey()).append(e.getValue());
+    return b.toString();
+  }
+
   private void buildTiles () {
-    tiles.removeAllViews();
     Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
+    String signature = tilesSignature(store);
+    if (signature.equals(tilesShown)) return;
+    tilesShown = signature;
+    // what's below the tiles stays where it is on screen when a tile row comes or goes (test 2026-10-16: a reaction
+    // tile pushed «Recent» down under the finger)
+    final int heightBefore = tiles.getHeight();
+    if (heightBefore > 0 && scroll != null && scroll.getScrollY() > tiles.getBottom()) {
+      tiles.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+        @Override
+        public void onLayoutChange (View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
+          v.removeOnLayoutChangeListener(this);
+          int delta = (b - t) - heightBefore;
+          if (delta != 0) scroll.scrollBy(0, delta);
+        }
+      });
+    }
+    tiles.removeAllViews();
     java.util.List<View> cells = new java.util.ArrayList<>();
     if (store.inboxTile) {
       cells.add(tile(R.drawable.baseline_archive_24, null, Lang.getString(R.string.Tgx101SavedInbox), Lang.getString(R.string.Tgx101SavedInboxHint), accent(),
@@ -370,7 +632,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     }
     for (Tgx101SavedStore.Folder f : store.folders()) {
       if (!f.onHome) continue;
-      cells.add(tile(R.drawable.baseline_folder_24, null, f.name, String.valueOf(f.messageIds.size()), f.color(),
+      cells.add(folderTile(f, f.name, String.valueOf(f.messageIds.size()), f.color(),
         v -> Tgx101SavedListController.openFolder(this, f.id),
         v -> {
           folderOptions(f);
@@ -390,6 +652,12 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
           });
           return true;
         }));
+    }
+    for (java.util.Map.Entry<String, Integer> e : reactionCounts.entrySet()) {
+      if (e.getValue() <= 0) continue;
+      final String emoji = e.getKey();
+      cells.add(tile(0, emoji, emoji + " " + e.getValue(), Lang.getString(R.string.Tgx101SavedReactionTile), 0xffc0662a,
+        v -> Tgx101SavedListController.openReaction(this, emoji), null));
     }
     cells.add(newTile());
     LinearLayout row = null;
@@ -449,6 +717,68 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     return t;
   }
 
+  /**
+   * A folder (approved mockup «Плитки папок», 3): the tile itself in the folder's colour, the name on top (up to two
+   * lines), and below it the last three things in the folder, small, with «+N» for the rest — «empty» when there's none
+   */
+  private View folderTile (Tgx101SavedStore.Folder f, String name, String sub, int color, View.OnClickListener click, View.OnLongClickListener longClick) {
+    LinearLayout t = new LinearLayout(context);
+    t.setOrientation(LinearLayout.VERTICAL);
+    t.setPadding(Screen.dp(11f), Screen.dp(10f), Screen.dp(10f), Screen.dp(10f));
+    t.setBackground(card(Theme.isDark() ? tint(color, .38f) : tint(color, .20f), 14f));
+    Views.setClickable(t);
+    t.setOnClickListener(click);
+    t.setOnLongClickListener(longClick);
+    int ink = Theme.isDark() ? Tgx101SavedListController.lighten(color) : color;
+    TextView n = text(context, 14f, ink, true);
+    n.setText(name);
+    n.setMaxLines(2);
+    n.setEllipsize(TextUtils.TruncateAt.END);
+    n.setLineSpacing(0, .95f);
+    t.addView(n, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+    LinearLayout previews = new LinearLayout(context);
+    previews.setOrientation(LinearLayout.HORIZONTAL);
+    previews.setGravity(Gravity.CENTER_VERTICAL);
+    t.addView(previews, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(26f)));
+    java.util.List<Long> ids = new java.util.ArrayList<>(f.messageIds);
+    if (ids.isEmpty()) {
+      TextView empty = text(context, 12f, tint(ink, .75f), false);
+      empty.setText(Lang.getString(R.string.Tgx101SavedFolderEmptyShort));
+      previews.addView(empty);
+      return t;
+    }
+    java.util.Collections.sort(ids, java.util.Collections.reverseOrder()); // the newest first
+    final int total = ids.size();
+    Tgx101SavedKit.byIds(tdlib, ids.subList(0, Math.min(3, ids.size())), messages -> {
+      if (isDestroyed()) return;
+      previews.removeAllViews();
+      for (TdApi.Message m : messages) {
+        ImageView p = new ImageView(context);
+        p.setBackground(card(tint(0xff000000, .22f), 6f));
+        if (android.os.Build.VERSION.SDK_INT >= 21) p.setClipToOutline(true);
+        if (Tgx101SavedKit.thumbFile(m) != null || Tgx101SavedKit.minithumb(m) != null) {
+          p.setScaleType(ImageView.ScaleType.CENTER_CROP);
+          Tgx101SavedKit.loadThumb(tdlib, p, m, Screen.dp(26f));
+        } else {
+          p.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+          p.setPadding(Screen.dp(4f), Screen.dp(4f), Screen.dp(4f), Screen.dp(4f));
+          p.setImageResource(Tgx101SavedListController.kindIcon(Tgx101SavedKit.kindOf(m)));
+          p.setColorFilter(ink);
+        }
+        LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f));
+        pp.rightMargin = Screen.dp(3f);
+        previews.addView(p, pp);
+      }
+      if (total > messages.size()) {
+        TextView more = text(context, 11f, ink, true);
+        more.setText("+" + (total - messages.size()));
+        more.setPadding(Screen.dp(2f), 0, 0, 0);
+        previews.addView(more);
+      }
+    });
+    return t;
+  }
+
   private View newTile () {
     LinearLayout t = new LinearLayout(context);
     t.setOrientation(LinearLayout.VERTICAL);
@@ -493,6 +823,8 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
 
   // Pinned and recent
 
+  private String pinnedShown;
+
   private void loadPinned () {
     if (!Tgx101SavedStore.get(tdlib).showPinned) {
       pinnedSection.setVisibility(View.GONE);
@@ -500,8 +832,13 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     }
     Tgx101SavedKit.search(tdlib, new TdApi.SearchMessagesFilterPinned(), null, 12, messages -> {
       if (isDestroyed()) return;
-      pinnedRow.removeAllViews();
-      for (TdApi.Message m : messages) pinnedRow.addView(pinnedCard(m));
+      StringBuilder sig = new StringBuilder();
+      for (TdApi.Message m : messages) sig.append(m.id).append(':').append(m.editDate).append(',');
+      if (!sig.toString().equals(pinnedShown)) {
+        pinnedShown = sig.toString();
+        pinnedRow.removeAllViews();
+        for (TdApi.Message m : messages) pinnedRow.addView(pinnedCard(m));
+      }
       pinnedSection.setVisibility(messages.isEmpty() ? View.GONE : View.VISIBLE);
     });
   }
@@ -549,11 +886,24 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     return c;
   }
 
+  private String recentShown;
+
   private void loadRecent () {
     Tgx101SavedKit.history(tdlib, 12, messages -> {
       if (isDestroyed()) return;
-      recentList.removeAllViews();
       int n = Math.min(12, messages.size());
+      StringBuilder sig = new StringBuilder();
+      for (int i = 0; i < n; i++) {
+        TdApi.Message m = messages.get(i);
+        sig.append(m.id).append(':').append(m.editDate).append(',');
+      }
+      if (sig.toString().equals(recentShown) && recentList.getChildCount() > 0) { // the same: nothing redrawn
+        for (RecentRow r : recentRows) applyTargets(r.swipe); // only the last folder / tag on the buttons
+        return;
+      }
+      recentShown = sig.toString();
+      recentList.removeAllViews();
+      recentRows.clear();
       if (n == 0) {
         TextView empty = text(context, 14f, Theme.textDecentColor(), false);
         empty.setText(Lang.getString(R.string.Tgx101SavedRecentEmpty));
@@ -561,48 +911,583 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
         recentList.addView(empty);
         return;
       }
+      // approved mockup «Время в Недавнем», 1: the rows have no time — «Today», «Yesterday», a date above them
+      String lastDay = null;
       for (int i = 0; i < n; i++) {
-        if (i > 0) {
+        String day = dayLabel(messages.get(i).date);
+        if (!day.equals(lastDay)) {
+          lastDay = day;
+          TextView h = text(context, 12f, Theme.textDecentColor(), true);
+          h.setText(day);
+          h.setPadding(Screen.dp(14f), Screen.dp(i == 0 ? 10f : 12f), Screen.dp(14f), Screen.dp(2f));
+          recentList.addView(h);
+        } else if (i > 0) {
           View sep = new View(context);
           sep.setBackgroundColor(Theme.separatorColor());
           LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, Screen.dp(.5f)));
           sp.leftMargin = Screen.dp(66f);
           recentList.addView(sep, sp);
         }
-        TdApi.Message m = messages.get(i);
-        recentList.addView(Tgx101SavedListController.rowView(this, m, v -> Tgx101SavedKit.openInFeed(this, m), null, false));
+        recentList.addView(recentRow(messages.get(i)));
       }
     });
   }
 
+  private static String dayLabel (int date) {
+    java.util.Calendar c = java.util.Calendar.getInstance();
+    c.setTimeInMillis(date * 1000L);
+    java.util.Calendar today = java.util.Calendar.getInstance();
+    if (c.get(java.util.Calendar.YEAR) == today.get(java.util.Calendar.YEAR) && c.get(java.util.Calendar.DAY_OF_YEAR) == today.get(java.util.Calendar.DAY_OF_YEAR)) return Lang.getString(R.string.Today);
+    today.add(java.util.Calendar.DAY_OF_MONTH, -1);
+    if (c.get(java.util.Calendar.YEAR) == today.get(java.util.Calendar.YEAR) && c.get(java.util.Calendar.DAY_OF_YEAR) == today.get(java.util.Calendar.DAY_OF_YEAR)) return Lang.getString(R.string.Yesterday);
+    boolean thisYear = c.get(java.util.Calendar.YEAR) == java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
+    return new java.text.SimpleDateFormat(thisYear ? "d MMMM" : "d MMMM yyyy", Lang.locale()).format(c.getTime());
+  }
+
+  // «Recent»: swipes and selecting (approved mockup «Недавнее», Б–Г)
+
+  private View recentRow (TdApi.Message m) {
+    Tgx101SavedListController.RowHolder holder = new Tgx101SavedListController.RowHolder(context);
+    holder.withDate = false; // the day is in the header above
+    holder.bind(this, m, selected.contains(m.id), !selected.isEmpty());
+    // opaque underlay: the swipe buttons lie under the row, and a refresh resets the row's own background (test
+    // 2026-10-16 with the keyboard up: the buttons showed through the text)
+    FrameLayout face = new FrameLayout(context);
+    face.setBackgroundColor(Theme.fillingColor());
+    face.addView(holder.itemView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    final RecentRow[] self = new RecentRow[1];
+    Tgx101SwipeRow swipe = new Tgx101SwipeRow(context, face, new Tgx101SwipeRow.Callback() {
+      @Override
+      public void onFolder (boolean longPress) {
+        Tgx101SavedActions.swipeFolder(Tgx101SavedHomeController.this, m, longPress, Tgx101SavedHomeController.this::reloadSoon);
+      }
+
+      @Override
+      public void onTag (boolean longPress) {
+        Tgx101SavedActions.swipeTag(Tgx101SavedHomeController.this, m, longPress, Tgx101SavedHomeController.this::reloadSoon);
+      }
+
+      @Override
+      public void onMore () {
+        Tgx101SavedActions.more(Tgx101SavedHomeController.this, m, new Tgx101SavedActions.MoreHost() {
+          @Override
+          public void startSelection (TdApi.Message message) {
+            selected.add(message.id);
+            updateSelection();
+          }
+
+          @Override
+          public void changed () {
+            reloadSoon();
+          }
+        });
+      }
+
+      @Override
+      public void onSelect () {
+        toggleSelected(m);
+      }
+    });
+    holder.itemView.setOnClickListener(v -> {
+      if (!selected.isEmpty()) toggleSelected(m);
+      else Tgx101SavedKit.openInFeed(this, m);
+    });
+    holder.itemView.setOnLongClickListener(v -> {
+      int index = recentRows.indexOf(self[0]);
+      if (index < 0) return false;
+      UI.forceVibrate(v, false);
+      recentList.beginDrag(index);
+      return true;
+    });
+    self[0] = new RecentRow(m, holder, swipe);
+    recentRows.add(self[0]);
+    applyTargets(swipe);
+    swipe.setSwipeEnabled(selected.isEmpty());
+    return swipe;
+  }
+
+  private void applyTargets (Tgx101SwipeRow swipe) {
+    Tgx101SavedActions.applySwipeTargets(tdlib, swipe);
+  }
+
+  private static java.util.List<TdApi.Message> one (TdApi.Message m) {
+    java.util.List<TdApi.Message> list = new java.util.ArrayList<>();
+    list.add(m);
+    return list;
+  }
+
+  private void toggleSelected (TdApi.Message m) {
+    if (!selected.remove(m.id)) selected.add(m.id);
+    updateSelection();
+  }
+
+  private java.util.List<TdApi.Message> selectedMessages () {
+    java.util.List<TdApi.Message> out = new java.util.ArrayList<>();
+    for (RecentRow r : recentRows) if (selected.contains(r.message.id)) out.add(r.message);
+    return out;
+  }
+
+  private void updateSelection () {
+    boolean on = !selected.isEmpty();
+    for (RecentRow r : recentRows) {
+      r.holder.bind(this, r.message, selected.contains(r.message.id), on);
+      r.swipe.setSwipeEnabled(!on);
+    }
+    selectionTitle.setText(Lang.getString(R.string.Tgx101SavedSelected, selected.size()));
+    if (on) selectionPanel.update();
+    boolean shown = selectionTop.getVisibility() == View.VISIBLE;
+    if (on && !shown) {
+      org.thunderdog.challegram.tool.Keyboard.hide(noteField);
+      selectionTop.setVisibility(View.VISIBLE);
+      // the bar lies over the top of the list: a selected row under it comes down into view
+      for (RecentRow r : recentRows) {
+        if (!selected.contains(r.message.id)) continue;
+        int rowTop = recentList.getTop() + r.swipe.getTop() - scroll.getScrollY();
+        int hidden = Screen.dp(64f) - rowTop;
+        if (hidden > 0) scroll.smoothScrollBy(0, -hidden);
+        break;
+      }
+      selectionTop.setTranslationY(-Screen.dp(64f));
+      selectionTop.animate().translationY(0f).setDuration(200).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+      noteBar.setVisibility(View.GONE);
+      selectionPanel.setVisibility(View.VISIBLE);
+      selectionPanel.setTranslationY(Screen.dp(80f));
+      selectionPanel.animate().translationY(0f).setDuration(200).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+    } else if (!on && shown) {
+      selectionTop.animate().translationY(-selectionTop.getHeight()).setDuration(160).withEndAction(() -> selectionTop.setVisibility(View.GONE)).start();
+      selectionPanel.animate().translationY(selectionPanel.getHeight()).setDuration(160).withEndAction(() -> {
+        selectionPanel.setVisibility(View.GONE);
+        noteBar.setVisibility(View.VISIBLE);
+      }).start();
+    }
+  }
+
+  private void clearSelection () {
+    if (selected.isEmpty()) return;
+    selected.clear();
+    updateSelection();
+  }
+
+  private void afterSelectionAction () {
+    clearSelection();
+    reloadSoon();
+  }
+
+  private void buildSelectionBars (Context context, FrameLayout root, LinearLayout outer) {
+    selectionTop = new LinearLayout(context);
+    selectionTop.setOrientation(LinearLayout.HORIZONTAL);
+    selectionTop.setGravity(Gravity.CENTER_VERTICAL);
+    selectionTop.setBackgroundColor(Theme.fillingColor());
+    selectionTop.setPadding(Screen.dp(4f), 0, Screen.dp(8f), 0);
+    if (android.os.Build.VERSION.SDK_INT >= 21) selectionTop.setElevation(Screen.dp(4f));
+    selectionTop.setClickable(true);
+    ImageView close = new ImageView(context);
+    close.setImageResource(R.drawable.baseline_close_24);
+    close.setColorFilter(Theme.getColor(ColorId.icon));
+    close.setScaleType(ImageView.ScaleType.CENTER);
+    close.setContentDescription(Lang.getString(R.string.Cancel));
+    Views.setClickable(close);
+    org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(close, Screen.dp(24f), this);
+    close.setOnClickListener(v -> clearSelection());
+    selectionTop.addView(close, new LinearLayout.LayoutParams(Screen.dp(48f), Screen.dp(48f)));
+    selectionTitle = text(context, 16f, Theme.textAccentColor(), true);
+    selectionTop.addView(selectionTitle, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+    TextView all = text(context, 14f, accent(), false);
+    all.setText(Lang.getString(R.string.Tgx101SavedSelectAll));
+    all.setPadding(Screen.dp(10f), Screen.dp(12f), Screen.dp(10f), Screen.dp(12f));
+    Views.setClickable(all);
+    all.setOnClickListener(v -> {
+      for (RecentRow r : recentRows) selected.add(r.message.id);
+      updateSelection();
+    });
+    selectionTop.addView(all);
+    selectionTop.setVisibility(View.GONE);
+    root.addView(selectionTop, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(56f), Gravity.TOP));
+
+    selectionPanel = new Tgx101SelectionPanel(context, this, new Tgx101SelectionPanel.Host() {
+      @Override
+      public java.util.List<TdApi.Message> selectedMessages () {
+        return Tgx101SavedHomeController.this.selectedMessages();
+      }
+
+      @Override
+      public void afterAction (boolean clear) {
+        if (clear) afterSelectionAction();
+        else reloadSoon();
+      }
+    });
+    selectionPanel.setPadding(0, Screen.dp(10f), 0, Screen.dp(12f)); // in place of the note field: no system bar under it
+    selectionPanel.setVisibility(View.GONE);
+    outer.addView(selectionPanel, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+  }
+
+  @Override
+  public boolean performOnBackPressed (boolean fromTop, boolean commit) {
+    if (emojiShown) {
+      if (commit) closeEmoji(false); // «back» first closes the emoji panel
+      return true;
+    }
+    if (!selected.isEmpty()) {
+      if (commit) clearSelection(); // «back» first leaves the selection
+      return true;
+    }
+    return super.performOnBackPressed(fromTop, commit);
+  }
+
+  /**
+   * TGx101 (user 2026-10-15): the home screen's own gestures — pulled down at the top it opens the search (a tick when
+   * far enough, like the chat list); a sideways swipe outside the rows and the scrolling strips opens the kinds
+   */
+  private final class HomeScroll extends ScrollView {
+    private float downX, downY;
+    private boolean pulling, swiping, armed;
+    private final int slop;
+    private final android.graphics.Rect hit = new android.graphics.Rect();
+    private final int[] at = new int[2];
+
+    HomeScroll (Context context) {
+      super(context);
+      slop = android.view.ViewConfiguration.get(context).getScaledTouchSlop();
+    }
+
+    @Override
+    protected void onScrollChanged (int l, int t, int oldl, int oldt) {
+      super.onScrollChanged(l, t, oldl, oldt);
+      if (Math.abs(t - oldt) > 2) Tgx101SwipeRow.closeOpen(); // scrolling closes an open row
+    }
+
+    private boolean inside (View v, MotionEvent e) {
+      if (v == null || v.getVisibility() != View.VISIBLE) return false;
+      v.getLocationOnScreen(at);
+      hit.set(at[0], at[1], at[0] + v.getWidth(), at[1] + v.getHeight());
+      return hit.contains((int) e.getRawX(), (int) e.getRawY());
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent (MotionEvent e) {
+      if (!selected.isEmpty()) return super.onInterceptTouchEvent(e);
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+          downX = e.getRawX();
+          downY = e.getRawY();
+          pulling = swiping = armed = false;
+          break;
+        case MotionEvent.ACTION_MOVE: {
+          float dx = e.getRawX() - downX, dy = e.getRawY() - downY;
+          if (getScrollY() == 0 && dy > slop && dy > Math.abs(dx) * 1.5f) {
+            pulling = true;
+            return true;
+          }
+          // (user 2026-10-16) no sideways swipes through the kinds here: the pull-down panel has them
+          break;
+        }
+      }
+      return super.onInterceptTouchEvent(e);
+    }
+
+    @Override
+    public boolean onTouchEvent (MotionEvent e) {
+      if (!pulling && !swiping) return super.onTouchEvent(e);
+      float dx = e.getRawX() - downX, dy = e.getRawY() - downY;
+      float threshold = Screen.dp(72f);
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_MOVE:
+          if (pulling) {
+            float pull = Math.max(0f, dy) * .45f;
+            column.setTranslationY(pull);
+            pullIcon.setAlpha(Math.min(1f, pull / threshold));
+            float sc = .6f + .4f * Math.min(1f, pull / threshold);
+            pullIcon.setScaleX(sc);
+            pullIcon.setScaleY(sc);
+            boolean far = pull >= threshold;
+            if (far != armed) {
+              armed = far;
+              UI.forceVibrate(this, false);
+            }
+          } else {
+            column.setTranslationX(dx * .25f);
+          }
+          return true;
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL: {
+          boolean up = e.getActionMasked() == MotionEvent.ACTION_UP;
+          if (pulling) {
+            if (up && armed) Tgx101SavedListController.openSearchReach(Tgx101SavedHomeController.this);
+            column.animate().translationY(0f).setDuration(220).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+            pullIcon.animate().alpha(0f).setDuration(180).start();
+          } else {
+            column.animate().translationX(0f).setDuration(200).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+            if (up && Math.abs(dx) > Screen.dp(80f)) openKindSwipe(dx < 0);
+          }
+          pulling = swiping = false;
+          return true;
+        }
+      }
+      return true;
+    }
+  }
+
+  /** a swipe left opens the first kind that has something, right — the last; inside, swipes go on through the kinds */
+  private void openKindSwipe (boolean forward) {
+    int[] counts = lastCounts.get(tdlib.id());
+    int pick = -1;
+    for (int i = 0; i < KIND_FILTER_KINDS.length; i++) {
+      int index = forward ? i : KIND_FILTER_KINDS.length - 1 - i;
+      if (counts == null || counts[index] != 0) {
+        pick = KIND_FILTER_KINDS[index];
+        break;
+      }
+    }
+    if (pick != -1) Tgx101SavedListController.openKind(this, pick);
+  }
+
+  /**
+   * The «Recent» card: after a long press the finger selects every row it passes without lifting (user 2026-10-15:
+   * smoother than in chats); near the edges the screen scrolls by itself
+   */
+  private final class DragList extends LinearLayout {
+    private boolean dragging;
+    private int anchor = -1, last = -1;
+    private boolean selecting;
+    private java.util.Set<Long> before;
+    private float lastRawY;
+    private final int[] location = new int[2], scrollLocation = new int[2];
+
+    DragList (Context context) {
+      super(context);
+    }
+
+    void beginDrag (int index) {
+      if (index < 0 || index >= recentRows.size()) return;
+      Tgx101SwipeRow.closeOpen();
+      dragging = true;
+      anchor = last = index;
+      before = new java.util.HashSet<>(selected);
+      long id = recentRows.get(index).message.id;
+      selecting = !selected.contains(id);
+      if (selecting) selected.add(id); else selected.remove(id);
+      getParent().requestDisallowInterceptTouchEvent(true);
+      updateSelection();
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent (MotionEvent e) {
+      return dragging || super.onInterceptTouchEvent(e);
+    }
+
+    @Override
+    public boolean onTouchEvent (MotionEvent e) {
+      if (!dragging) return super.onTouchEvent(e);
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_MOVE:
+          lastRawY = e.getRawY();
+          follow();
+          autoScroll();
+          return true;
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL:
+          dragging = false;
+          removeCallbacks(scroller);
+          getParent().requestDisallowInterceptTouchEvent(false);
+          return true;
+      }
+      return true;
+    }
+
+    private int indexAt (float rawY) {
+      getLocationOnScreen(location);
+      float y = rawY - location[1];
+      int index = -1;
+      for (int i = 0; i < recentRows.size(); i++) {
+        View v = recentRows.get(i).swipe;
+        if (y >= v.getTop()) index = i;
+      }
+      return Math.max(0, index);
+    }
+
+    private void follow () {
+      int index = indexAt(lastRawY);
+      if (index == last) return;
+      last = index;
+      int from = Math.min(anchor, index), to = Math.max(anchor, index);
+      boolean changed = false;
+      for (int i = 0; i < recentRows.size(); i++) {
+        long id = recentRows.get(i).message.id;
+        boolean want = i >= from && i <= to ? selecting : before.contains(id);
+        if (want != selected.contains(id)) {
+          changed = true;
+          if (want) selected.add(id); else selected.remove(id);
+        }
+      }
+      if (changed) {
+        UI.forceVibrate(this, false);
+        updateSelection();
+      }
+    }
+
+    private final Runnable scroller = new Runnable() {
+      @Override
+      public void run () {
+        if (!dragging) return;
+        int step = scrollStep();
+        if (step == 0) return;
+        scroll.scrollBy(0, step);
+        follow();
+        postDelayed(this, 16);
+      }
+    };
+
+    private int scrollStep () {
+      scroll.getLocationOnScreen(scrollLocation);
+      float top = scrollLocation[1], bottom = top + scroll.getHeight(), edge = Screen.dp(64f);
+      if (lastRawY < top + edge) return -Math.round(Screen.dp(14f) * Math.min(1f, (top + edge - lastRawY) / edge));
+      if (lastRawY > bottom - edge) return Math.round(Screen.dp(14f) * Math.min(1f, (lastRawY - (bottom - edge)) / edge));
+      return 0;
+    }
+
+    private void autoScroll () {
+      removeCallbacks(scroller);
+      if (scrollStep() != 0) post(scroller);
+    }
+  }
+
   // Note
 
+  /** The typed note with its formatting and custom emoji (links and #hashtags are found by Telegram), or null */
+  @Nullable
+  private TdApi.FormattedText noteText () {
+    TdApi.FormattedText text = noteField.getOutputText(true);
+    if (text == null || text.text == null || text.text.trim().isEmpty()) return null;
+    return text;
+  }
+
   private void saveNote () {
-    String text = noteField.getText().toString().trim();
-    if (text.isEmpty()) return;
+    TdApi.FormattedText note = noteText();
+    if (note == null) return;
     noteField.setText("");
-    TdApi.FormattedText formatted = new TdApi.FormattedText(text, new TdApi.TextEntity[0]);
-    try {
-      // links and #hashtags in the note become clickable (and searchable) like in a typed message
-      TdApi.TextEntities found = org.drinkless.tdlib.Client.execute(new TdApi.GetTextEntities(text));
-      if (found != null) formatted.entities = found.entities;
-    } catch (Throwable ignored) { }
-    Tgx101SavedStore.suppressBanner(15000); // a note typed here needs no «put in folder?» banner
-    tdlib.send(new TdApi.SendMessage(tdlib.selfChatId(), null, null, null, null, new TdApi.InputMessageText(formatted, null, false)), (sent, error) -> UI.post(() -> {
-      if (error != null) {
-        UI.showError(error);
-        return;
-      }
+    Tgx101SavedActions.sendNote(this, note, null, saved -> {
       UI.showToast(R.string.Tgx101SavedNoteSaved, android.widget.Toast.LENGTH_SHORT);
-      if (!isDestroyed()) {
-        UI.post(this::loadRecent, 300);
-        UI.post(this::buildChips, 300);
-      }
+      afterNoteSaved();
+    });
+  }
+
+  private void afterNoteSaved () {
+    if (isDestroyed()) return;
+    loadRecent();
+    buildChips();
+  }
+
+  // Emoji keyboard (the chat's own, as in the share sheet)
+
+  private void openEmoji () {
+    if (emojiShown) return;
+    if (keyboardFrame == null) {
+      keyboardFrame = new org.thunderdog.challegram.widget.KeyboardFrameLayout(context);
+      keyboardFrame.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+      keyboardFrame.setParentView(outerView, rootView, rootView);
+      keyboardFrame.contentView.emojiLayout.initWithMediasEnabled(this, true, this, this, false);
+      // (test 2026-10-16: crashed — the panel keeps the params its init gave it unless set again, as the share sheet does)
+      keyboardFrame.contentView.emojiLayout.setLayoutParams(me.vkryl.android.widget.FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      outerView.addView(keyboardFrame);
+    }
+    keyboardFrame.setVisible(true);
+    emojiWasKeyboard = getKeyboardState();
+    emojiShown = true;
+    emojiButton.setImageResource(R.drawable.baseline_keyboard_24);
+    if (emojiWasKeyboard) keyboardFrame.hideKeyboard(noteField);
+  }
+
+  private void closeEmoji (boolean showKeyboard) {
+    if (!emojiShown) return;
+    emojiShown = false;
+    if (keyboardFrame != null) {
+      keyboardFrame.setVisible(false);
+      if (showKeyboard) keyboardFrame.showKeyboard(noteField);
+    }
+    emojiButton.setImageResource(R.drawable.deproko_baseline_insert_emoticon_26);
+  }
+
+  @Override
+  public boolean onKeyboardStateChanged (boolean visible) {
+    if (visible && emojiShown) closeEmoji(false); // the system keyboard took its place
+    boolean result = super.onKeyboardStateChanged(visible);
+    if (keyboardFrame != null) keyboardFrame.onKeyboardStateChanged(visible);
+    return result;
+  }
+
+  @Override
+  public void onEnterEmoji (String emoji) {
+    noteField.onEmojiSelected(emoji);
+  }
+
+  @Override
+  public void onEnterCustomEmoji (org.thunderdog.challegram.component.sticker.TGStickerObj sticker) {
+    noteField.onCustomEmojiSelected(sticker);
+  }
+
+  @Override
+  public void onDeleteEmoji () {
+    if (noteField.length() > 0) noteField.dispatchKeyEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_DEL));
+  }
+
+  @Override
+  public boolean isEmojiInputEmpty () {
+    return noteField.getText().length() == 0;
+  }
+
+  @Override
+  public boolean onSendSticker (@Nullable View view, org.thunderdog.challegram.component.sticker.TGStickerObj sticker, TdApi.MessageSendOptions sendOptions) {
+    if (sticker == null || sticker.getSticker() == null) return false;
+    sendContent(new TdApi.InputMessageSticker(new TdApi.InputSticker(new TdApi.InputFileId(sticker.getSticker().sticker.id), null, 0, 0), sticker.getAllEmoji()));
+    return true;
+  }
+
+  @Override
+  public boolean onSendGIF (@Nullable View view, TdApi.Animation animation) {
+    sendContent(new TdApi.InputMessageAnimation(new TdApi.InputAnimation(new TdApi.InputFileId(animation.animation.id), null, null, animation.duration, animation.width, animation.height), null, false, false));
+    return true;
+  }
+
+  @Override
+  public long getOutputChatId () {
+    return tdlib.selfChatId();
+  }
+
+  /** a sticker or a GIF from the panel goes straight into Saved */
+  private void sendContent (TdApi.InputMessageContent content) {
+    Tgx101SavedStore.suppressBanner(15000);
+    tdlib.send(new TdApi.SendMessage(tdlib.selfChatId(), null, null, null, null, content), (sent, error) -> UI.post(() -> {
+      if (error != null) UI.showError(error);
+      else if (!isDestroyed()) UI.post(this::afterNoteSaved, 400);
     }));
+  }
+
+  @Override
+  public int[] displayBaseViewWithAnchor (org.thunderdog.challegram.component.chat.EmojiToneHelper context, View anchorView, View viewToDisplay, int viewWidth, int viewHeight, int horizontalMargin, int horizontalOffset, int verticalOffset) {
+    return org.thunderdog.challegram.component.chat.EmojiToneHelper.defaultDisplay(context, anchorView, viewToDisplay, viewWidth, viewHeight, horizontalMargin, horizontalOffset, verticalOffset, rootView, outerView, keyboardFrame);
+  }
+
+  @Override
+  public void removeView (org.thunderdog.challegram.component.chat.EmojiToneHelper context, View displayedView) {
+    rootView.removeView(displayedView);
+  }
+
+  /** The chat's attachment menu: the Saved feed opens with it (it lives on the chat screen); «back» comes home */
+  private void openAttach () {
+    closeEmoji(false);
+    org.thunderdog.challegram.tool.Keyboard.hide(noteField);
+    Tgx101SavedKit.openInFeed(this, null);
+    UI.post(() -> {
+      ViewController<?> top = context.navigation().getCurrentStackItem();
+      if (top instanceof MessagesController && ((MessagesController) top).getChatId() == tdlib.selfChatId()) {
+        ((MessagesController) top).tgx101OpenAttach();
+      }
+    }, 450);
   }
 
   @Override
   public void destroy () {
     super.destroy();
+    if (noteField != null) noteField.performDestroy();
   }
 }
