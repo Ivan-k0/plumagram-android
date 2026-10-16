@@ -3414,6 +3414,22 @@ public class Settings {
 
   // TGx101 (user 2026-10-14 12:16 «дать возможность увеличивать печатный текст в поле, как было раньше, но отключаемо»):
   // the message field follows the phone's font scale (sp) — off by default: 18 dp like the official app / exteraGram
+  // user 2026-10-17 «перевод всего чата — плашку, и чтобы можно было отменить для этого чата / этого языка»
+  private static final String KEY_TGX101_SUGGEST_CHAT_TRANSLATION = "tgx101_tr_suggest";
+  public boolean tgx101SuggestChatTranslation () {
+    return pmc.getBoolean(KEY_TGX101_SUGGEST_CHAT_TRANSLATION, true);
+  }
+  public void setTgx101SuggestChatTranslation (boolean value) {
+    pmc.putBoolean(KEY_TGX101_SUGGEST_CHAT_TRANSLATION, value);
+  }
+  public boolean tgx101ChatTranslationRefused (int accountId, long chatId) {
+    return pmc.getBoolean("tgx101_tr_no_" + accountId + "_" + chatId, false);
+  }
+  public void setTgx101ChatTranslationRefused (int accountId, long chatId, boolean refused) {
+    if (refused) pmc.putBoolean("tgx101_tr_no_" + accountId + "_" + chatId, true);
+    else pmc.remove("tgx101_tr_no_" + accountId + "_" + chatId);
+  }
+
   private static final String KEY_TGX101_INPUT_FOLLOWS_FONT_SCALE = "tgx101_input_sp";
 
   public boolean tgx101InputFollowsFontScale () {

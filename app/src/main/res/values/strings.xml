@@ -6895,6 +6895,10 @@
   <string name="Tgx101TranslateChatTo">Translate to %1$s</string>
   <string name="Tgx101TranslateOtherLanguage">Translate to another language…</string>
   <string name="Tgx101TranslateBarHide">Hide the bar</string>
+  <string name="Tgx101TranslateNotLanguage">Don\'t translate %1$s</string>
+  <string name="Tgx101TranslateNotChat">Don\'t offer in this chat</string>
+  <string name="Tgx101TranslateUndo">Hidden — tap to bring it back</string>
+  <string name="Tgx101SuggestChatTranslation">Offer to translate chats in other languages</string>
   <string name="Tgx101MenuTabText">Text</string>
   <string name="Tgx101MenuTabMedia">Media</string>
   <string name="Tgx101MenuTabVoice">Voice</string>
@@ -7105,7 +7109,7 @@
   <string name="Tgx101SavedTagExplainHashtag">It\'s added to the message as a hashtag — seen on all your devices and found by Telegram\'s search.</string>
   <string name="Tgx101SavedTagExplainLocal">Forwarded messages can\'t be edited, so they keep the tag by name in PlumaGram on this phone. Your own messages get it as a hashtag.</string>
   <string name="Tgx101SavedTagHint">recipes</string>
-  <string name="Tgx101SavedTagOnHome">Show as a tile on the home screen</string>
+  <string name="Tgx101SavedTagOnHome">Put the tag on the storage home</string>
   <string name="Tgx101SavedTagTile">tag</string>
   <string name="Tgx101SavedTakeOut">Take out of the folder</string>
   <string name="Tgx101SavedToFolder">To folder</string>

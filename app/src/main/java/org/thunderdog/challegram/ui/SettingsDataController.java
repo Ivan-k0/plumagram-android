@@ -392,6 +392,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         } else if (itemId == R.id.btn_tgx101SpeechEngine) {
           int se = Settings.instance().tgx101SpeechEngine();
           view.setData(se == Settings.TGX101_SPEECH_DEVICE ? R.string.Tgx101SpeechEngineDevice : se == Settings.TGX101_SPEECH_CLOUDFLARE ? R.string.Tgx101SpeechEngineCloudflare : R.string.Tgx101SpeechEngineTelegram);
+        } else if (itemId == R.id.btn_tgx101SuggestChatTranslation) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101SuggestChatTranslation(), isUpdate);
         } else if (itemId == R.id.btn_tgx101FakeNoPremium) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101FakeNoPremium(), isUpdate);
         } else if (itemId == R.id.btn_showChannelMuteButton) {
@@ -601,6 +603,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101TranslateSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101TranslateOnDevice, 0, R.string.Tgx101TranslateEngine),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SuggestChatTranslation, 0, R.string.Tgx101SuggestChatTranslation),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101TranslateModels, 0, R.string.Tgx101TranslateModels),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101TranslateOnDeviceHint),
@@ -1036,7 +1040,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101UiText || id == R.id.btn_tgx101UiBold || id == R.id.btn_tgx101ChatListTextSize || id == R.id.btn_tgx101Font || id == R.id.btn_tgx101InputFontScale || id == R.id.btn_tgx101TextWeight || id == R.id.btn_chatFontSize || id == R.id.btn_bigEmojiSize) return 6;
     if (id == R.id.btn_tgx101CallBar || id == R.id.btn_tgx101NewCallScreen || id == R.id.btn_tgx101CallPhoto || id == R.id.btn_tgx101CallPattern
       || id == R.id.btn_tgx101RingRamp || id == R.id.btn_tgx101RingRampTime || id == R.id.btn_tgx101RingStart) return 7;
-    if (id == R.id.btn_tgx101TranslateOnDevice || id == R.id.btn_tgx101TranslateModels || id == R.id.btn_tgx101SpeechModel || id == R.id.btn_tgx101SpeechEngine || id == R.id.btn_tgx101FakeNoPremium) return 8;
+    if (id == R.id.btn_tgx101TranslateOnDevice || id == R.id.btn_tgx101TranslateModels || id == R.id.btn_tgx101SpeechModel || id == R.id.btn_tgx101SpeechEngine || id == R.id.btn_tgx101SuggestChatTranslation || id == R.id.btn_tgx101FakeNoPremium) return 8;
     return 10;
   }
 
@@ -1521,6 +1525,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       }).setAllowResize(false));
     } else if (id == R.id.btn_tgx101TranslateModels) {
       showTgx101TranslateModels();
+    } else if (id == R.id.btn_tgx101SuggestChatTranslation) {
+      Settings.instance().setTgx101SuggestChatTranslation(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101FakeNoPremium) {
       Settings.instance().setTgx101FakeNoPremium(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showChannelMuteButton) {

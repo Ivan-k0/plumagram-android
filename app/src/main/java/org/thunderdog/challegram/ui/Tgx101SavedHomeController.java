@@ -207,6 +207,14 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     return Theme.getColor(ColorId.textLink);
   }
 
+  /** (user 2026-10-17 «„Всё“ — не белым, а в нашем цвете и в нашей капле»): a chosen chip / our capsule — a soft tint of
+   *  the accent with a hairline of it, the words in the accent */
+  static GradientDrawable chosen (float radiusDp) {
+    GradientDrawable d = card(tint(accent(), .18f), radiusDp);
+    d.setStroke(Math.max(1, Screen.dp(1f)), tint(accent(), .45f));
+    return d;
+  }
+
   /** a transparent tint of a colour for icon backgrounds */
   static int tint (int color, float alpha) {
     return (Math.round(alpha * 255) << 24) | (color & 0xffffff);
@@ -295,12 +303,6 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     recentHeader.setOrientation(LinearLayout.HORIZONTAL);
     recentHeader.setGravity(Gravity.BOTTOM);
     recentHeader.addView(sectionTitle(context, Lang.getString(R.string.Tgx101SavedRecent)), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-    TextView all = text(context, 14f, accent(), false);
-    all.setText(Lang.getString(R.string.Tgx101SavedAll));
-    all.setPadding(Screen.dp(16f), Screen.dp(18f), Screen.dp(16f), Screen.dp(8f));
-    Views.setClickable(all);
-    all.setOnClickListener(v -> Tgx101SavedListController.openKind(this, -1));
-    recentHeader.addView(all);
     column.addView(recentHeader);
     recentList = new DragList(context);
     recentList.setOrientation(LinearLayout.VERTICAL);
@@ -317,6 +319,18 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     LinearLayout.LayoutParams recentParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     recentParams.leftMargin = recentParams.rightMargin = Screen.dp(16f);
     column.addView(recentList, recentParams);
+    // (user 2026-10-17, about the end of «Recent»): «All» is at the end of the list, as our capsule
+    TextView all = text(context, 15f, accent(), true);
+    all.setText(Lang.getString(R.string.Tgx101SavedAll));
+    all.setGravity(Gravity.CENTER);
+    all.setPadding(Screen.dp(28f), 0, Screen.dp(28f), 0);
+    all.setBackground(chosen(22f));
+    Views.setClickable(all);
+    all.setOnClickListener(v -> Tgx101SavedListController.openKind(this, -1));
+    LinearLayout.LayoutParams allParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(44f));
+    allParams.gravity = Gravity.CENTER_HORIZONTAL;
+    allParams.topMargin = Screen.dp(12f);
+    column.addView(all, allParams);
 
     // note field
     LinearLayout bar = new LinearLayout(context);
@@ -580,11 +594,11 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   }
 
   private TextView chip (String label, boolean dark, View.OnClickListener click) {
-    TextView c = text(context, 14f, dark ? Theme.fillingColor() : Theme.textAccentColor(), false);
+    TextView c = text(context, 14f, dark ? accent() : Theme.textAccentColor(), dark);
     c.setText(label);
     c.setGravity(Gravity.CENTER);
     c.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);
-    c.setBackground(card(dark ? Theme.textAccentColor() : Theme.fillingColor(), 18f));
+    c.setBackground(dark ? chosen(18f) : card(Theme.fillingColor(), 18f));
     Views.setClickable(c);
     c.setOnClickListener(click);
     LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(36f));
@@ -1713,8 +1727,9 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
           break;
         case MotionEvent.ACTION_MOVE: {
           float dx = e.getRawX() - downX, dy = e.getRawY() - downY;
-          if (getScrollY() == 0 && dy > slop && dy > Math.abs(dx) * 1.5f) {
+          if (getScrollY() <= 0 && dy > slop && dy > Math.abs(dx)) { // (user's video 2026-10-17: a slant start missed it)
             pulling = true;
+            downY = e.getRawY() - slop; // no jump: the pull starts from here
             return true;
           }
           // (user 2026-10-16) no sideways swipes through the kinds here: the pull-down panel has them
@@ -1726,13 +1741,24 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
 
     @Override
     public boolean onTouchEvent (MotionEvent e) {
+      if (!pulling && !swiping && selected.isEmpty() && e.getActionMasked() == MotionEvent.ACTION_MOVE && getScrollY() <= 0) {
+        // the list took the touch first (a child let it go, or the start was slanted) — at the top a pull down is
+        // still the search (user's video 2026-10-17: «свайп поиска срабатывает не всегда»)
+        float ddy = e.getRawY() - downY, ddx = e.getRawX() - downX;
+        if (ddy > slop && ddy > Math.abs(ddx)) {
+          pulling = true;
+          armed = false;
+          downY = e.getRawY() - slop;
+          getParent().requestDisallowInterceptTouchEvent(true);
+        }
+      }
       if (!pulling && !swiping) return super.onTouchEvent(e);
       float dx = e.getRawX() - downX, dy = e.getRawY() - downY;
-      float threshold = Screen.dp(72f);
+      float threshold = Screen.dp(64f);
       switch (e.getActionMasked()) {
         case MotionEvent.ACTION_MOVE:
           if (pulling) {
-            float pull = Math.max(0f, dy) * .45f;
+            float pull = Math.max(0f, dy) * .5f;
             column.setTranslationY(pull);
             pullIcon.setAlpha(Math.min(1f, pull / threshold));
             float sc = .6f + .4f * Math.min(1f, pull / threshold);

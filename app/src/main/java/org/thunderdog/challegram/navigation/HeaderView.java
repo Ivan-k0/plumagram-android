@@ -921,6 +921,16 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     text.setEllipsize(TextUtils.TruncateAt.END);
     text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 19f * org.thunderdog.challegram.unsorted.Settings.tgx101RowScale()); // TGx101: large interface
     text.setTextColor(0xffffffff);
+    // TGx101 (user's screenshot 2026-10-17 «Хранилище смещено вниз — отцентровать по иконкам»): the box was the font's
+    // line with its extra padding from 15 dp down, so with Inter the letters sat ~4 dp below the icons. Now the letters'
+    // own box is centred on the header's middle (28 dp), where the icons are
+    text.setIncludeFontPadding(false);
+    android.graphics.Paint.FontMetrics fm = text.getPaint().getFontMetrics();
+    int box = Screen.dp(26f); // 15 dp from the top + 26 dp = centred on 28 dp
+    if (fm.descent - fm.ascent <= box) {
+      params.height = box;
+      text.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
+    }
     text.setLayoutParams(params);
     return text;
   }
@@ -1553,8 +1563,10 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
         break;
       }
       case MODE_FADE: {
-        title.setAlpha(1f - raptor);
-        preview.setAlpha(raptor);
+        // TGx101 (user 2026-10-17 «без остаточного предыдущего экрана»): the old title is gone before the new one
+        // shows — two titles never sit on top of each other
+        title.setAlpha(Math.max(0f, 1f - raptor / .35f));
+        preview.setAlpha(raptor <= .35f ? 0f : (raptor - .35f) / .65f);
 
         break;
       }

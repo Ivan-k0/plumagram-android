@@ -1124,7 +1124,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     tgx101TranslateBar = new org.thunderdog.challegram.component.chat.Tgx101TranslateBarView(context, this);
     tgx101TranslateBar.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(40f)));
-    tgx101TranslateBar.setOnBarClickListener(v -> tgx101ToggleChatTranslation(true));
+    tgx101TranslateBar.setOnBarClickListener(v -> {
+      if (tgx101TranslateUndo != null) { // «Hidden — tap to bring it back»
+        Runnable undo = tgx101TranslateUndo;
+        tgx101TranslateUndo = null;
+        undo.run();
+        return;
+      }
+      tgx101ToggleChatTranslation(true);
+    });
     tgx101TranslateBar.setOnMoreClickListener(v -> tgx101ShowTranslateBarOptions());
 
     int requestsViewHeight = Screen.dp(48f);
@@ -3459,7 +3467,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (!inPreviewMode && !isInForceTouchMode()) {
       checkActionBar();
       tgx101TranslateBarOffered = tgx101TranslateBarHidden = false; // per chat opening
+      tgx101DetectedLanguage = null;
+      tgx101TranslateUndo = null;
       tgx101CheckTranslateBar(false);
+      tgx101ScheduleTranslationOffer();
       checkJoinRequests(chat.pendingJoinRequests);
       if (tgx101VoiceBar != null) tgx101VoiceBar.setVideoChat(chat.id, messageThread == null ? chat.videoChat : null);
       checkCanSendMessagesToUser(true);
@@ -4275,7 +4286,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         .setVisibility((value = canCopySelectedMessages()) ? View.VISIBLE : View.GONE);
       if (value) totalButtonsCount++;
       // TGx101 (user 2026-10-17): the selected Saved messages go to a folder / get tags at once
-      header.addButton(menu, R.id.menu_btn_tgx101ToStorage, R.drawable.baseline_folder_24, iconColorId, this, Screen.dp(52f))
+      header.addButton(menu, R.id.menu_btn_tgx101ToStorage, R.drawable.tgx101_storage_tiles_24, iconColorId, this, Screen.dp(52f))
         .setVisibility((value = canTgx101StoreSelected()) ? View.VISIBLE : View.GONE);
       if (value) totalButtonsCount++;
       header.addForwardButton(menu, this, iconColorId)
@@ -9826,6 +9837,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else {
       manager.setWholeChatTranslateLanguage(tgx101LastChatTranslateLanguage != null ? tgx101LastChatTranslateLanguage : Lang.getDefaultLanguageToTranslateV2(null));
       tgx101TranslateBarHidden = false;
+      if (chat != null) Settings.instance().setTgx101ChatTranslationRefused(tdlib.id(), chat.id, false); // asked for it: offered again
     }
     org.thunderdog.challegram.Tgx101Diag.mark("chat translation: " + (current != null ? "off" : "on") + (fromBar ? " (bar)" : " (menu)"));
     tgx101CheckTranslateBar(true);
@@ -9838,7 +9850,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     String language = manager.getWholeChatTranslateLanguage();
     boolean visible = needActionBar() && !tgx101TranslateBarHidden && (language != null || tgx101TranslateBarOffered);
     if (visible) {
-      if (language != null) {
+      if (tgx101TranslateUndo != null) {
+        tgx101TranslateBar.setText(Lang.getString(R.string.Tgx101TranslateUndo));
+      } else if (language != null) {
         tgx101TranslateBar.setText(Lang.getString(R.string.TranslateWholeChatOff));
       } else {
         String target = tgx101LastChatTranslateLanguage != null ? tgx101LastChatTranslateLanguage : Lang.getDefaultLanguageToTranslateV2(null);
@@ -9849,13 +9863,134 @@ public class MessagesController extends ViewController<MessagesController.Argume
     topBar.setItemVisible(tgx101TranslateItem, visible, animated && isFocused());
   }
 
+  // TGx101 (user 2026-10-17): offered on its own, as in the official app, when the last messages are in another
+  // language — not that of «Do not translate» (Settings → Language), not refused for this chat. ⋮ of the bar: «Don't
+  // translate <language>», «Don't offer in this chat»; right after either the bar says «Hidden — tap to bring it back»
+  // for a few seconds. Later: the chat's ⋮ → «Translate the whole chat» brings it back for the chat, the languages
+  // come back in Settings → Language → Do not translate, and MagiX turns the offers off altogether
+
+  private String tgx101DetectedLanguage;
+  private @Nullable Runnable tgx101TranslateUndo;
+
+  private void tgx101ScheduleTranslationOffer () {
+    if (chat == null) return;
+    final long chatId = chat.id;
+    UI.post(() -> tgx101OfferTranslation(chatId, 0), 1200);
+  }
+
+  private void tgx101OfferTranslation (long chatId, int attempt) {
+    if (isDestroyed() || chat == null || chat.id != chatId || inPreviewMode || isInForceTouchMode() || messageThread != null) return;
+    if (!Settings.instance().tgx101SuggestChatTranslation() || tdlib.isSelfChat(chatId)) return;
+    if (manager.getWholeChatTranslateLanguage() != null || tgx101TranslateBarOffered || tgx101TranslateBarHidden) return;
+    if (Settings.instance().tgx101ChatTranslationRefused(tdlib.id(), chatId)) return;
+    StringBuilder b = new StringBuilder();
+    org.thunderdog.challegram.component.chat.MessagesAdapter adapter = manager.getAdapter();
+    int taken = 0;
+    for (int i = 0; adapter != null && i < adapter.getMessageCount() && taken < 15 && b.length() < 1000; i++) {
+      TGMessage m = adapter.getMessage(i);
+      if (m == null || m.isOutgoing()) continue;
+      TdApi.FormattedText t = m.getTextToTranslate();
+      if (t == null || t.text == null || t.text.trim().length() < 3) continue;
+      b.append(t.text).append('\n');
+      taken++;
+    }
+    if (b.length() < 24) {
+      if (attempt < 2) UI.post(() -> tgx101OfferTranslation(chatId, attempt + 1), 1500); // not loaded yet
+      return;
+    }
+    org.thunderdog.challegram.util.LanguageDetector.detectLanguage(context, b.toString(), lang -> UI.post(() -> {
+      if (isDestroyed() || chat == null || chat.id != chatId || lang == null || "und".equals(lang)) return;
+      String target = Lang.getDefaultLanguageToTranslateV2(null);
+      if (target != null && (lang.equalsIgnoreCase(target) || target.toLowerCase().startsWith(lang.toLowerCase() + "-"))) return;
+      if (Settings.instance().isNotTranslatableLanguage(lang)) return;
+      if (manager.getWholeChatTranslateLanguage() != null) return;
+      tgx101DetectedLanguage = lang;
+      tgx101TranslateBarOffered = true;
+      org.thunderdog.challegram.Tgx101Diag.mark("chat translation: offered, the chat is in " + lang);
+      tgx101CheckTranslateBar(true);
+    }), null);
+  }
+
+  /** the bar says «Hidden — tap to bring it back» for a while, then goes */
+  private void tgx101HideWithUndo (Runnable undo) {
+    tgx101TranslateBarOffered = true; // the bar stays a few seconds, saying how to bring it back
+    tgx101TranslateBarHidden = false;
+    tgx101TranslateUndo = () -> {
+      undo.run();
+      tgx101TranslateBarHidden = false;
+      tgx101CheckTranslateBar(true);
+    };
+    tgx101CheckTranslateBar(true);
+    final Runnable token = tgx101TranslateUndo;
+    UI.post(() -> {
+      if (tgx101TranslateUndo != token) return;
+      tgx101TranslateUndo = null;
+      tgx101TranslateBarHidden = true;
+      tgx101TranslateBarOffered = false;
+      tgx101CheckTranslateBar(true);
+    }, 4000);
+  }
+
   private void tgx101ShowTranslateBarOptions () {
+    final String source = tgx101DetectedLanguage;
+    final boolean offer = manager.getWholeChatTranslateLanguage() == null;
+    String sourceName = source != null ? Lang.getLanguageName(source, source) : null;
+    IntList optionIds = new IntList(4);
+    StringList optionNames = new StringList(4);
+    IntList optionIcons = new IntList(4);
+    optionIds.append(R.id.btn_tgx101TranslateOtherLanguage);
+    optionNames.append(Lang.getString(R.string.Tgx101TranslateOtherLanguage));
+    optionIcons.append(R.drawable.baseline_translate_24);
+    if (sourceName != null) {
+      optionIds.append(R.id.btn_tgx101TranslateNotLanguage);
+      optionNames.append(Lang.getString(R.string.Tgx101TranslateNotLanguage, sourceName.toLowerCase()));
+      optionIcons.append(R.drawable.baseline_block_24);
+    }
+    if (chat != null) {
+      optionIds.append(R.id.btn_tgx101TranslateNotChat);
+      optionNames.append(Lang.getString(R.string.Tgx101TranslateNotChat));
+      optionIcons.append(R.drawable.baseline_close_24);
+    }
+    if (!offer) {
+      optionIds.append(R.id.btn_tgx101TranslateBarHide);
+      optionNames.append(Lang.getString(R.string.Tgx101TranslateBarHide));
+      optionIcons.append(R.drawable.baseline_eye_off_24);
+    }
     showOptions(null,
-      new int[] {R.id.btn_tgx101TranslateOtherLanguage, R.id.btn_tgx101TranslateBarHide},
-      new String[] {Lang.getString(R.string.Tgx101TranslateOtherLanguage), Lang.getString(R.string.Tgx101TranslateBarHide)},
+      optionIds.get(),
+      optionNames.get(),
       null,
-      new int[] {R.drawable.baseline_translate_24, R.drawable.baseline_close_24},
+      optionIcons.get(),
       (itemView, optionId) -> {
+        if (optionId == R.id.btn_tgx101TranslateNotLanguage && source != null) {
+          final boolean wasList = Settings.instance().getChatDoNotTranslateMode() == Settings.DO_NOT_TRANSLATE_MODE_SELECTED;
+          final String appLanguage = Settings.instance().getLanguage().packInfo.pluralCode;
+          final boolean hadApp = Settings.instance().containsInNotTranslatableLanguageList(appLanguage);
+          if (!wasList) { // «only the app's language» → a list: the app's language and this one
+            Settings.instance().setIsNotTranslatableLanguage(appLanguage, true);
+            Settings.instance().setChatDoNotTranslateMode(Settings.DO_NOT_TRANSLATE_MODE_SELECTED);
+          }
+          Settings.instance().setIsNotTranslatableLanguage(source, true);
+          if (!offer) tgx101ToggleChatTranslation(false);
+          tgx101HideWithUndo(() -> {
+            Settings.instance().setIsNotTranslatableLanguage(source, false);
+            if (!wasList) {
+              if (!hadApp) Settings.instance().setIsNotTranslatableLanguage(appLanguage, false);
+              Settings.instance().setChatDoNotTranslateMode(Settings.DO_NOT_TRANSLATE_MODE_APP_LANG);
+            }
+            tgx101TranslateBarOffered = true;
+          });
+          return true;
+        } else if (optionId == R.id.btn_tgx101TranslateNotChat && chat != null) {
+          final long chatId = chat.id;
+          Settings.instance().setTgx101ChatTranslationRefused(tdlib.id(), chatId, true);
+          if (!offer) tgx101ToggleChatTranslation(false);
+          tgx101HideWithUndo(() -> {
+            Settings.instance().setTgx101ChatTranslationRefused(tdlib.id(), chatId, false);
+            tgx101TranslateBarOffered = true;
+          });
+          return true;
+        }
         if (optionId == R.id.btn_tgx101TranslateOtherLanguage) {
           String current = manager.getWholeChatTranslateLanguage();
           TranslationControllerV2.LanguageSelectorPopup popup = new TranslationControllerV2.LanguageSelectorPopup(context, this, language -> {

@@ -859,7 +859,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedTagExplainHashtag, "Метка допишется в сообщение хэштегом — её видно на всех устройствах, и по ней ищет поиск Telegram.");
     RU.put(R.string.Tgx101SavedTagExplainLocal, "В пересланное сообщение текст не допишешь — ему метка сохранится названием в PlumaGram на этом телефоне. Своим сообщениям она допишется хэштегом.");
     RU.put(R.string.Tgx101SavedTagHint, "рецепты");
-    RU.put(R.string.Tgx101SavedTagOnHome, "Показывать плиткой на главном");
+    RU.put(R.string.Tgx101SavedTagOnHome, "Вынести метку на главную Хранилища");
     RU.put(R.string.Tgx101SavedTagTile, "метка");
     RU.put(R.string.Tgx101SavedTakeOut, "Вынуть из папки");
     RU.put(R.string.Tgx101SavedToFolder, "В папку");
@@ -1222,6 +1222,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101TranslateChatTo, "Перевести на %1$s");
     RU.put(R.string.Tgx101TranslateOtherLanguage, "Перевести на другой язык…");
     RU.put(R.string.Tgx101TranslateBarHide, "Скрыть плашку");
+    RU.put(R.string.Tgx101TranslateNotLanguage, "Не переводить: %1$s");
+    RU.put(R.string.Tgx101TranslateNotChat, "Не предлагать в этом чате");
+    RU.put(R.string.Tgx101TranslateUndo, "Скрыто — нажмите, чтобы вернуть");
+    RU.put(R.string.Tgx101SuggestChatTranslation, "Предлагать перевод чатов на других языках");
     RU.put(R.string.Tgx101DeleteForAll, "Удалить у всех");
     RU.put(R.string.Tgx101PaintPen, "Ручка");
     RU.put(R.string.Tgx101PaintMarker, "Флом.");

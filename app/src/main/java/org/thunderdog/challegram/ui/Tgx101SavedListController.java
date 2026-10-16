@@ -132,12 +132,17 @@ public class Tgx101SavedListController extends ViewController<Void> {
 
   @Override
   protected boolean forceFadeMode () {
-    return reach || super.forceFadeMode(); // it comes down from the home screen in place, not from the side
+    return reach || mode == MODE_KIND || super.forceFadeMode(); // it comes down from the home screen in place, not from the side
   }
 
   @Override
   public boolean tgx101SlideBackInFadeMode () {
-    return reach; // (user 2026-10-16) the search is left by the swipe «back» too
+    return reach || mode == MODE_KIND; // (user 2026-10-16) the search is left by the swipe «back» too
+  }
+
+  @Override
+  public boolean tgx101FadeThrough () {
+    return mode == MODE_KIND; // (user's video 2026-10-17) «All» / a kind opens without the home screen showing through
   }
 
   private final int[] slideLocation = new int[2], slideNavLocation = new int[2];
@@ -1112,11 +1117,11 @@ public class Tgx101SavedListController extends ViewController<Void> {
   }
 
   private TextView chip (String label, boolean on, View.OnClickListener click) {
-    TextView c = Tgx101SavedHomeController.text(context, 13f, on ? Theme.fillingColor() : Theme.textAccentColor(), false);
+    TextView c = Tgx101SavedHomeController.text(context, 13f, on ? Tgx101SavedHomeController.accent() : Theme.textAccentColor(), false);
     c.setText(label);
     c.setGravity(Gravity.CENTER);
     c.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
-    c.setBackground(Tgx101SavedHomeController.card(on ? Theme.textAccentColor() : Theme.fillingColor(), 17f));
+    c.setBackground(on ? Tgx101SavedHomeController.chosen(17f) : Tgx101SavedHomeController.card(Theme.fillingColor(), 17f));
     Views.setClickable(c);
     c.setOnClickListener(click);
     LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(34f));
@@ -1163,9 +1168,10 @@ public class Tgx101SavedListController extends ViewController<Void> {
 
   private void setChip (TextView c, CharSequence label, boolean on) {
     c.setText(label);
-    c.setTextColor(on ? Theme.fillingColor() : Theme.textAccentColor());
-    // on the pull-down panel the bar itself is the filling colour: the chips stand out on the background colour
-    c.setBackground(Tgx101SavedHomeController.card(on ? Theme.textAccentColor() : Theme.fillingColor(), 17f));
+    c.setTextColor(on ? Tgx101SavedHomeController.accent() : Theme.textAccentColor());
+    // on the pull-down panel the bar itself is the filling colour: the chips stand out on the background colour;
+    // the chosen one is our capsule — the accent's tint, not white (user 2026-10-17)
+    c.setBackground(on ? Tgx101SavedHomeController.chosen(17f) : Tgx101SavedHomeController.card(Theme.fillingColor(), 17f));
     c.setPressed(false);
   }
 

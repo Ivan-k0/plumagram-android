@@ -1033,6 +1033,12 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     return false;
   }
 
+  /** TGx101 (user 2026-10-17 «переход во все заметки — плавно, без остаточного предыдущего экрана»): with the fade
+   *  mode, the screen below fades out first and this one fades in after it, growing a little — they never overlap */
+  public boolean tgx101FadeThrough () {
+    return false;
+  }
+
   /** TGx101: a screen that comes in by a fade may still be left by the side swipe «back» (the storage's search) */
   public boolean tgx101SlideBackInFadeMode () {
     return false;

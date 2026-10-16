@@ -1743,6 +1743,9 @@
   <item name="btn_tgx101OrderPreview" type="id"/>
   <item name="btn_tgx101TranslateOtherLanguage" type="id"/>
   <item name="btn_tgx101TranslateBarHide" type="id"/>
+  <item name="btn_tgx101TranslateNotLanguage" type="id"/>
+  <item name="btn_tgx101TranslateNotChat" type="id"/>
+  <item name="btn_tgx101SuggestChatTranslation" type="id"/>
   <item name="btn_tgx101InputMore" type="id"/>
   <item name="btn_tgx101InputSendAs" type="id"/>
   <item name="btn_tgx101DoubleTapWhich" type="id"/>

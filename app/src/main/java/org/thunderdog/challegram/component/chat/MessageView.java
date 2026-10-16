@@ -878,7 +878,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       if (isSent && msg.tdlib().isSelfChat(msg.getChatId()) && m.getMessageTopicId() == null) {
         ids.append(R.id.btn_tgx101ToStorage);
         strings.append(R.string.Tgx101ToStorage);
-        icons.append(R.drawable.baseline_folder_24);
+        icons.append(R.drawable.tgx101_storage_tiles_24);
       }
     }
 

@@ -780,6 +780,11 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     currentRight = right;
     leftWrap = left.getValue();
     rightWrap = right.getValue();
+    leftWrap.setAlpha(1f); // TGx101: a fade-through may have left them faded / shrunk
+    leftWrap.setScaleX(1f);
+    leftWrap.setScaleY(1f);
+    rightWrap.setScaleX(1f);
+    rightWrap.setScaleY(1f);
     translationMode = direction;
     translatingForward = forward;
 
@@ -1472,6 +1477,18 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     switch (translationMode) {
       case TRANSLATION_FADE: {
         headerView.setTranslation(factor);
+        if (currentRight != null && currentRight.tgx101FadeThrough()) {
+          float p = 1f - factor; // 0: the screen below, 1: this one
+          float out = .35f;
+          leftWrap.setAlpha(Math.max(0f, 1f - p / out));
+          float in = p <= out ? 0f : (p - out) / (1f - out);
+          rightWrap.setAlpha(in);
+          float scale = .94f + .06f * in;
+          rightWrap.setScaleX(scale);
+          rightWrap.setScaleY(scale);
+          if (in >= 1f) leftWrap.setAlpha(1f); // done: the one below is hidden anyway, and ready for the way back
+          break;
+        }
         rightWrap.setAlpha(1f - factor);
         if (tgx101BlurFade) {
           tgx101ApplyBlurFade(factor);
