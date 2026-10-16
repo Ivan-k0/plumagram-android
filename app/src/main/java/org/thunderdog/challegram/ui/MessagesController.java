@@ -536,6 +536,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
         public int usualGap () {
           return Screen.dp(76f); // over the «down» arrow's place
         }
+
+        @Override
+        public View passTarget () {
+          return messagesView;
+        }
       });
       contentView.addView(tgx101StorageSwitch, Tgx101StorageSwitch.params(contentView));
       tgx101StorageSwitch.setVisibility(View.GONE);

@@ -440,6 +440,11 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       public int usualGap () {
         return Screen.dp(12f);
       }
+
+      @Override
+      public View passTarget () {
+        return scroll;
+      }
     });
     storageSwitch.setVisibility(View.GONE);
     content.addView(storageSwitch, Tgx101StorageSwitch.params(content));

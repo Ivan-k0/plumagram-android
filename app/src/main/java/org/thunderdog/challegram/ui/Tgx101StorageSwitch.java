@@ -49,6 +49,8 @@ public final class Tgx101StorageSwitch extends View {
     int bottomReserved ();
     /** how far above the input the button sits in its usual place */
     int usualGap ();
+    /** the list under the button: a swipe that starts on the button goes on there */
+    @Nullable View passTarget ();
   }
 
   private final ViewController<?> controller;
@@ -155,16 +157,23 @@ public final class Tgx101StorageSwitch extends View {
     }
   }
 
-  // touch: tap → switch, drag → move, hold → hide
+  // touch (user 2026-10-16 «перемещаться только после удержания … свайп должен продолжаться»): a tap switches; a finger
+  // that moves at once is a swipe — it goes on in the list under the button; held still, the button lifts and follows
+  // the finger, and let go where it was held it offers «Hide the button»
 
   private float downX, downY, startX, startY;
-  private boolean dragging, held, pressed;
+  private boolean dragging, held, pressed, passing;
+  private @Nullable MotionEvent downEvent;
   private final Runnable hold = this::onHold;
 
   private void onHold () {
     held = true;
-    setPressedState(false);
-    UI.forceVibrate(this, false);
+    UI.forceVibrate(this, true);
+    // lifted: a bit bigger, ready to be carried
+    animate().scaleX(1.12f).scaleY(1.12f).setDuration(140).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+  }
+
+  private void showHideMenu () {
     controller.showOptions(null, new int[] {R.id.btn_tgx101SavedSwitch}, new String[] {Lang.getString(R.string.Tgx101SavedSwitchHide)}, (itemView, id) -> {
       Tgx101SavedStore s = store();
       s.switchButton = false;
@@ -182,7 +191,7 @@ public final class Tgx101StorageSwitch extends View {
   }
 
   private boolean isDragging () {
-    return dragging;
+    return dragging || held;
   }
 
   private void setPressedState (boolean on) {
@@ -191,26 +200,72 @@ public final class Tgx101StorageSwitch extends View {
     animate().scaleX(on ? .92f : 1f).scaleY(on ? .92f : 1f).setDuration(120).start();
   }
 
+  private void dropDownEvent () {
+    if (downEvent != null) {
+      downEvent.recycle();
+      downEvent = null;
+    }
+  }
+
   @Override
   public boolean onTouchEvent (MotionEvent e) {
+    if (passing) {
+      View target = host.passTarget();
+      if (target != null) {
+        // the down was handed over where the button then stood: the rest goes from the same place
+        MotionEvent copy = MotionEvent.obtain(e);
+        copy.offsetLocation(passDx, passDy);
+        target.dispatchTouchEvent(copy);
+        copy.recycle();
+      }
+      if (e.getActionMasked() == MotionEvent.ACTION_UP || e.getActionMasked() == MotionEvent.ACTION_CANCEL) passing = false;
+      return true;
+    }
     switch (e.getActionMasked()) {
       case MotionEvent.ACTION_DOWN: {
         downX = e.getRawX();
         downY = e.getRawY();
         startX = getTranslationX();
         startY = getTranslationY();
-        dragging = held = false;
+        dragging = held = passing = false;
+        dropDownEvent();
+        downEvent = MotionEvent.obtain(e);
         setPressedState(true);
         postDelayed(hold, ViewConfiguration.getLongPressTimeout());
-        getParent().requestDisallowInterceptTouchEvent(true);
         return true;
       }
       case MotionEvent.ACTION_MOVE: {
-        if (held) return true;
         float dx = e.getRawX() - downX, dy = e.getRawY() - downY;
-        if (!dragging && Math.hypot(dx, dy) > ViewConfiguration.get(getContext()).getScaledTouchSlop()) {
+        boolean moved = Math.hypot(dx, dy) > ViewConfiguration.get(getContext()).getScaledTouchSlop();
+        if (!held) {
+          if (moved) {
+            // a swipe that started on the button: the list under it takes it
+            removeCallbacks(hold);
+            setPressedState(false);
+            View target = host.passTarget();
+            if (target != null && downEvent != null) {
+              // the list may sit deeper than a sibling (the chat's pager): by window places
+              getLocationInWindow(locSelf);
+              target.getLocationInWindow(locTarget);
+              passDx = locSelf[0] - locTarget[0];
+              passDy = locSelf[1] - locTarget[1];
+              passing = true;
+              MotionEvent down = MotionEvent.obtain(downEvent);
+              down.offsetLocation(passDx, passDy);
+              target.dispatchTouchEvent(down);
+              down.recycle();
+              MotionEvent move = MotionEvent.obtain(e);
+              move.offsetLocation(passDx, passDy);
+              target.dispatchTouchEvent(move);
+              move.recycle();
+            }
+            dropDownEvent();
+          }
+          return true;
+        }
+        if (!dragging && moved) {
           dragging = true;
-          removeCallbacks(hold);
+          getParent().requestDisallowInterceptTouchEvent(true);
         }
         if (dragging) {
           View p = (View) getParent();
@@ -224,8 +279,10 @@ public final class Tgx101StorageSwitch extends View {
       case MotionEvent.ACTION_UP:
       case MotionEvent.ACTION_CANCEL: {
         removeCallbacks(hold);
-        setPressedState(false);
+        dropDownEvent();
         boolean up = e.getActionMasked() == MotionEvent.ACTION_UP;
+        pressed = false;
+        animate().scaleX(1f).scaleY(1f).setDuration(160).start();
         if (dragging) {
           View p = (View) getParent();
           Tgx101SavedStore s = store();
@@ -235,16 +292,21 @@ public final class Tgx101StorageSwitch extends View {
           s.save();
           org.thunderdog.challegram.Tgx101Diag.mark("storage switch: moved to " + (s.switchLeft[where] ? "left" : "right") + " " + Math.round(s.switchY[where] * 100) + "%");
           place(true);
-        } else if (up && !held) {
+        } else if (up && held) {
+          showHideMenu();
+        } else if (up) {
           UI.forceVibrate(this, false);
           go();
         }
-        dragging = false;
+        dragging = held = false;
         return true;
       }
     }
     return true;
   }
+
+  private float passDx, passDy;
+  private final int[] locSelf = new int[2], locTarget = new int[2];
 
   /** to the other side: back if it lies right under this screen, else opened on top */
   private void go () {
