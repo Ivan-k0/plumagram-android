@@ -6996,6 +6996,10 @@
   <string name="Tgx101SwipeToStorageSection">Chat list</string>
   <string name="Tgx101SwipeToStorage">Swipe right on the first folder — Saved</string>
   <string name="Tgx101SwipeToStorageHint">On the first chat folder pull the finger to the right, where there are no folders: past the vibration Saved opens as a storage.</string>
+  <string name="Tgx101SettingsSearch">Search settings</string>
+  <string name="Tgx101SettingsSearchHint">A setting, e.g. «vibration»</string>
+  <string name="Tgx101SettingsSearchEmpty">Type a word: any switch in the settings and MagiX is found, with where it lives.</string>
+  <string name="Tgx101SettingsSearchNothing">Nothing found</string>
   <string name="Tgx101SavedNoteSaved">Note saved</string>
   <string name="Tgx101SavedNothing">Nothing here yet.</string>
   <string name="Tgx101SavedOrderAZ">A → Z</string>

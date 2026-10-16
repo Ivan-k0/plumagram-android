@@ -750,6 +750,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SwipeToStorageSection, "Список чатов");
     RU.put(R.string.Tgx101SwipeToStorage, "Свайп вправо на первой папке — Избранное");
     RU.put(R.string.Tgx101SwipeToStorageHint, "На первой папке чатов ведите палец вправо, туда, где папок уже нет: после вибрации откроется Избранное-хранилище.");
+    RU.put(R.string.Tgx101SettingsSearch, "Поиск по настройкам");
+    RU.put(R.string.Tgx101SettingsSearchHint, "Настройка, например «вибрация»");
+    RU.put(R.string.Tgx101SettingsSearchEmpty, "Введите слово: найдётся любой пункт настроек и MagiX, с тем, где он лежит.");
+    RU.put(R.string.Tgx101SettingsSearchNothing, "Ничего не найдено");
     RU.put(R.string.Tgx101SavedNoteSaved, "Заметка сохранена");
     RU.put(R.string.Tgx101SavedNothing, "Здесь пока ничего нет.");
     RU.put(R.string.Tgx101SavedOrderAZ, "А → Я");

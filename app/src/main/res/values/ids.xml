@@ -1756,4 +1756,5 @@
   <item name="btn_tgx101ShareUpdate" type="id"/>
   <item name="btn_tgx101ShareStop" type="id"/>
   <item name="btn_tgx101SwipeToStorage" type="id"/>
+  <item name="controller_tgx101SettingsSearch" type="id"/>
 </resources>

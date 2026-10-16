@@ -103,6 +103,25 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   }
 
   @Override
+  protected int getMenuId () {
+    return mode == MODE_TGX101 && tgx101Section == -1 ? R.id.menu_search : 0; // MagiX: the settings search
+  }
+
+  @Override
+  public void fillMenuItems (int id, org.thunderdog.challegram.navigation.HeaderView header, android.widget.LinearLayout menu) {
+    if (id == R.id.menu_search) {
+      header.addSearchButton(menu, this);
+    }
+  }
+
+  @Override
+  public void onMenuItemPressed (int id, View view) {
+    if (id == R.id.menu_btn_search) {
+      Tgx101SettingsSearch.open(this);
+    }
+  }
+
+  @Override
   public CharSequence getName () {
     if (mode == MODE_TGX101 && tgx101Section >= 0 && tgx101Section < TGX101_SECTION_TITLES.length) {
       return Lang.getString(TGX101_SECTION_TITLES[tgx101Section]);
@@ -963,6 +982,11 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     R.id.btn_tgx101SectionMedia, R.id.btn_tgx101SectionNotifications, R.id.btn_tgx101SectionText, R.id.btn_tgx101SectionCalls,
     R.id.btn_tgx101SectionTranslate, R.id.btn_tgx101SectionIcon, R.id.btn_tgx101SectionData
   };
+  /** for the settings search: MagiX's sections, the last one being Telegram X's own «Data» */
+  public static int[] tgx101SectionTitles () {
+    return TGX101_SECTION_TITLES.clone();
+  }
+
   private static final int[] TGX101_SECTION_TITLES = {
     R.string.Tgx101SectionChatList, R.string.Tgx101SectionStories, R.string.Tgx101SectionMessages, R.string.Tgx101SectionChannels,
     R.string.Tgx101SectionMedia, R.string.Tgx101SectionNotifications, R.string.Tgx101SectionText, R.string.Tgx101SectionCalls,

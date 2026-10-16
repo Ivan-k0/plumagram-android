@@ -186,6 +186,7 @@ public class SettingsController extends ViewController<Void> implements
   @Override
   public void fillMenuItems (int id, HeaderView header, LinearLayout menu) {
     if (id == R.id.menu_more_settings) {
+      header.addSearchButton(menu, this); // TGx101: the settings search
       header.addMoreButton(menu, this);
     }
   }
@@ -194,6 +195,8 @@ public class SettingsController extends ViewController<Void> implements
   public void onMenuItemPressed (int id, View view) {
     if (id == R.id.menu_btn_more) {
       showMore(new int[] {R.id.more_btn_logout}, new String[] {Lang.getString(R.string.LogOut)}, 0);
+    } else if (id == R.id.menu_btn_search) {
+      Tgx101SettingsSearch.open(this);
     }
   }
 
