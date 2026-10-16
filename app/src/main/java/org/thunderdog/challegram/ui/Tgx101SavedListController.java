@@ -408,7 +408,8 @@ public class Tgx101SavedListController extends ViewController<Void> {
     bar.setPadding(Screen.dp(12f), Screen.dp(9f), Screen.dp(12f), Screen.dp(9f));
     bar.setBackground(Tgx101SavedHomeController.card(Tgx101SavedHomeController.tint(Tgx101SavedHomeController.accent(), .12f), 12.5f));
     Views.setClickable(bar);
-    bar.setOnClickListener(v -> tdlib.ui().openChat(this, chatId, null));
+    // keepStack: «back» from the channel comes back to this folder, not to the chat list (user 2026-10-16 18:46)
+    bar.setOnClickListener(v -> tdlib.ui().openChat(this, chatId, new org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters().keepStack()));
     ImageView icon = new ImageView(context);
     icon.setImageResource(f.shareChannel ? R.drawable.baseline_bullhorn_24 : R.drawable.baseline_group_24);
     icon.setColorFilter(Tgx101SavedHomeController.accent());
