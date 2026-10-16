@@ -2349,13 +2349,28 @@ public class Settings {
    */
   private void tgx101PinOldDefaults (boolean freshInstall) {
     final String marker = "tgx101_defaults_2026_10_16";
-    if (pmc.getBoolean(marker, false)) return;
-    if (!freshInstall) {
-      if (!pmc.contains(KEY_SHOW_CHANNEL_MUTE_BUTTON)) pmc.putBoolean(KEY_SHOW_CHANNEL_MUTE_BUTTON, true);
-      if (!pmc.contains(KEY_TGX101_HIDE_JOIN)) pmc.putBoolean(KEY_TGX101_HIDE_JOIN, false);
-      if (!pmc.contains(KEY_TGX101_HIDE_COMPOSE)) pmc.putBoolean(KEY_TGX101_HIDE_COMPOSE, false);
+    if (!pmc.getBoolean(marker, false)) {
+      if (!freshInstall) {
+        if (!pmc.contains(KEY_SHOW_CHANNEL_MUTE_BUTTON)) pmc.putBoolean(KEY_SHOW_CHANNEL_MUTE_BUTTON, true);
+        if (!pmc.contains(KEY_TGX101_HIDE_JOIN)) pmc.putBoolean(KEY_TGX101_HIDE_JOIN, false);
+        if (!pmc.contains(KEY_TGX101_HIDE_COMPOSE)) pmc.putBoolean(KEY_TGX101_HIDE_COMPOSE, false);
+      }
+      pmc.putBoolean(marker, true);
     }
-    pmc.putBoolean(marker, true);
+    // the second set (user 2026-10-16, MagiX defaults list): the plane, the blur, the rising ring, no gap, no «Discuss» /
+    // comments buttons — again for new installs only
+    final String marker2 = "tgx101_defaults_2026_10_16b";
+    if (!pmc.getBoolean(marker2, false)) {
+      if (!freshInstall) {
+        if (!pmc.contains(KEY_TGX101_NOTIFICATION_PLANE)) pmc.putBoolean(KEY_TGX101_NOTIFICATION_PLANE, false);
+        if (!pmc.contains("tgx101_menu_blur")) pmc.putBoolean("tgx101_menu_blur", false);
+        if (!pmc.contains(KEY_TGX101_RING_RAMP)) pmc.putBoolean(KEY_TGX101_RING_RAMP, false);
+        if (!pmc.contains(KEY_BOTTOM_GAP)) pmc.putBoolean(KEY_BOTTOM_GAP, true);
+        if (!pmc.contains(KEY_SHOW_DISCUSS_BUTTON)) pmc.putBoolean(KEY_SHOW_DISCUSS_BUTTON, true);
+        if (!pmc.contains(KEY_SHOW_COMMENTS_BUTTON)) pmc.putBoolean(KEY_SHOW_COMMENTS_BUTTON, true);
+      }
+      pmc.putBoolean(marker2, true);
+    }
   }
 
   private boolean isFreshAppInstallation () {
@@ -3188,6 +3203,7 @@ public class Settings {
   }
 
   public boolean useTgx101MessageMenu () {
+    if (true) return true; // (user 2026-10-16 «пусть всегда будет активно») — no longer a switch in MagiX
     return pmc.getBoolean(KEY_TGX101_MESSAGE_MENU, true);
   }
 
@@ -3517,7 +3533,7 @@ public class Settings {
   private static final String KEY_TGX101_NOTIFICATION_PLANE = "tgx101_notification_plane";
 
   public boolean useTgx101NotificationPlane () {
-    return pmc.getBoolean(KEY_TGX101_NOTIFICATION_PLANE, false);
+    return pmc.getBoolean(KEY_TGX101_NOTIFICATION_PLANE, true); // new installs: our plane (user 2026-10-16; see tgx101PinOldDefaults)
   }
 
   public void setTgx101NotificationPlane (boolean plane) {
@@ -3534,7 +3550,7 @@ public class Settings {
   private static final String KEY_SHOW_COMMENTS_BUTTON = "settings_show_comments_button";
 
   public boolean showDiscussButton () {
-    return pmc.getBoolean(KEY_SHOW_DISCUSS_BUTTON, true);
+    return pmc.getBoolean(KEY_SHOW_DISCUSS_BUTTON, false); // new installs: off (user 2026-10-16)
   }
 
   public void setShowDiscussButton (boolean show) {
@@ -3767,7 +3783,7 @@ public class Settings {
   }
 
   public boolean tgx101MenuBlur () {
-    return pmc.getBoolean("tgx101_menu_blur", false);
+    return pmc.getBoolean("tgx101_menu_blur", Build.VERSION.SDK_INT >= 31); // new installs: on where the system blur is light (Android 12+)
   }
 
   public void setTgx101MenuBlur (boolean v) {
@@ -3992,7 +4008,7 @@ public class Settings {
   private static final String KEY_TGX101_RING_RAMP = "tgx101_ring_ramp";
 
   public boolean isRingRampEnabled () {
-    return pmc.getBoolean(KEY_TGX101_RING_RAMP, false);
+    return pmc.getBoolean(KEY_TGX101_RING_RAMP, true); // new installs: on (user 2026-10-16)
   }
 
   public void setRingRampEnabled (boolean enabled) {
@@ -4088,7 +4104,7 @@ public class Settings {
 
   /** TGx101 diagnostics builds only: the app acts as if the account had no Premium (UI tests; the server still knows) */
   public boolean tgx101FakeNoPremium () {
-    return org.thunderdog.challegram.BuildConfig.TGX101_DIAG && pmc.getBoolean(KEY_TGX101_FAKE_NO_PREMIUM, false);
+    return false; // (user 2026-10-16) the test switch is gone from MagiX
   }
 
   public void setTgx101FakeNoPremium (boolean value) {
@@ -4238,7 +4254,7 @@ public class Settings {
   }
 
   public boolean showCommentsButton () {
-    return pmc.getBoolean(KEY_SHOW_COMMENTS_BUTTON, true);
+    return pmc.getBoolean(KEY_SHOW_COMMENTS_BUTTON, false); // new installs: off (user 2026-10-16)
   }
 
   public void setShowCommentsButton (boolean show) {
@@ -4249,7 +4265,7 @@ public class Settings {
   private static final String KEY_BOTTOM_GAP = "settings_tgx101_bottom_gap";
 
   public boolean bottomGapEnabled () {
-    return pmc.getBoolean(KEY_BOTTOM_GAP, true);
+    return pmc.getBoolean(KEY_BOTTOM_GAP, false); // new installs: off (user 2026-10-16)
   }
 
   /** The 16dp gap is only for gesture navigation; with navigation buttons it isn't needed. */

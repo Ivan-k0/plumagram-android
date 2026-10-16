@@ -509,15 +509,12 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         // TGx101: compact message menu
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101MessageMenuSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MessageMenu, 0, R.string.Tgx101MessageMenu),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        // (user 2026-10-16) the compact menu and «at the finger» are always on — no switches for them any more
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101TextEditor, 0, R.string.Tgx101TextEditorSetting),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CallBar, 0, R.string.Tgx101CallBarSetting),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101MessageMenuHand, 0, R.string.Tgx101MessageMenuHand),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MenuAtFinger, 0, R.string.Tgx101MenuAtFinger),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         // TGx101 (user 2026-10-11): long press, swipe and double tap are on the «Message gestures» screen
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Gestures, 0, R.string.Tgx101Gestures),
@@ -709,20 +706,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       shown = tgx101TestItems(rawItems);
     }
     this.adapter.setItems(shown, false);
-    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
-      // TGx101: test switches, diagnostics builds only — own section above «Translation»
-      int at = adapter.indexOfViewById(R.id.btn_tgx101TranslateOnDevice);
-      if (at >= 2) {
-        at -= 2; // before the section's header and top shadow
-        List<ListItem> items = adapter.getItems();
-        items.add(at++, new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101TestSection));
-        items.add(at++, new ListItem(ListItem.TYPE_SHADOW_TOP));
-        items.add(at++, new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101FakeNoPremium, 0, R.string.Tgx101FakeNoPremium));
-        items.add(at++, new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101FakeNoPremiumHint));
-        items.add(at, new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
-        adapter.notifyDataSetChanged();
-      }
-    }
+    // (user 2026-10-16 «убрать») no test switches («as without Premium») in MagiX any more
     if (mode == MODE_TGX101) {
       tgx101ApplySection();
     }
