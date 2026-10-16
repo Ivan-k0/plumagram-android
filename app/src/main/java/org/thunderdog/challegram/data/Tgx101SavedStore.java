@@ -42,7 +42,8 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   public static final int SHEET_ALWAYS = 0, SHEET_EXTERNAL_ONLY = 1, SHEET_NEVER = 2;
   public static final int OPEN_HOME = 0, OPEN_FEED = 1;
   /** how the folders look on the storage's home screen (user 2026-10-16: capsules first, the tiles stay to choose) */
-  public static final int VIEW_TILES = 0, VIEW_CAPSULES = 1;
+  public static final int VIEW_TILES = 0, VIEW_CAPSULES = 1, VIEW_MOSAIC = 2; // mosaic: user 2026-10-17, mockup «Ж»
+  public static final int TILE_AUTO = 0, TILE_SMALL = 1, TILE_WIDE = 2, TILE_TALL = 3, TILE_BIG = 4;
 
   /** blue, orange, green, violet, raspberry, teal, olive gold — and since 2026-10-16 (user «да» to 12 colours and a choice):
    *  red, pink, yellow, indigo, grey. The first seven keep their places: a folder's colour is its number here */
@@ -57,6 +58,8 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
     public int colorIndex;
     public final LinkedHashSet<Long> messageIds = new LinkedHashSet<>();
     public boolean onHome = true;
+    /** (user 2026-10-17, mockup «З» in the look of «Ж») the tile's size in the mosaic: auto (by how many records), or chosen */
+    public int tileSize = TILE_AUTO;
     // TGx101 (approved mockup «Поделиться папкой»): the shared copy — a private channel / group, its invite link, what is
     // already copied there (to go on after a break and to add only what's new)
     public long shareChatId;
@@ -248,7 +251,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   public boolean hashtagOwn = true;
   /** words on the selection panel's buttons (off: signs only) */
   public boolean panelLabels = true;
-  public int folderView = VIEW_CAPSULES;
+  public int folderView = VIEW_MOSAIC;
   /** (user 2026-10-16) off: Saved Messages is the usual chat — no storage screen, button or pull to it; the folders stay */
   public boolean storageOn = true;
   /** the round «chat ↔ storage» button (approved mockup 8 А) */
@@ -315,6 +318,14 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
     folders.add(f);
     save();
     return f;
+  }
+
+  public synchronized void setFolderTileSize (long id, int size) {
+    Folder f = folder(id);
+    if (f != null && size >= TILE_AUTO && size <= TILE_BIG) {
+      f.tileSize = size;
+      save();
+    }
   }
 
   public synchronized void setFolderColor (long id, int colorIndex) {
@@ -578,6 +589,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
         j.put("name", f.name);
         j.put("color", f.colorIndex);
         j.put("home", f.onHome);
+        if (f.tileSize != TILE_AUTO) j.put("size", f.tileSize);
         JSONArray ids = new JSONArray();
         for (long id : f.messageIds) ids.put(id);
         j.put("ids", ids);
@@ -623,6 +635,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       o.put("hashtag", hashtagOwn);
       o.put("panelLabels", panelLabels);
       o.put("folderView", folderView);
+      o.put("mosaicOffered", true);
       o.put("palette", FOLDER_COLORS.length);
       o.put("storageOn", storageOn);
       o.put("switchButton", switchButton);
@@ -648,6 +661,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
           JSONObject j = fs.getJSONObject(i);
           Folder f = new Folder(j.getLong("id"), j.optString("name"), j.optInt("color"));
           f.onHome = j.optBoolean("home", true);
+          f.tileSize = Math.max(TILE_AUTO, Math.min(TILE_BIG, j.optInt("size", TILE_AUTO)));
           JSONArray ids = j.optJSONArray("ids");
           if (ids != null) for (int k = 0; k < ids.length(); k++) f.messageIds.add(ids.getLong(k));
           JSONObject sh = j.optJSONObject("share");
@@ -702,7 +716,9 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       showPinned = o.optBoolean("pinned", true);
       hashtagOwn = o.optBoolean("hashtag", true);
       panelLabels = o.optBoolean("panelLabels", true);
-      folderView = o.optInt("folderView", VIEW_CAPSULES) == VIEW_TILES ? VIEW_TILES : VIEW_CAPSULES;
+      int view = o.optInt("folderView", VIEW_MOSAIC);
+      folderView = view == VIEW_TILES ? VIEW_TILES : view == VIEW_CAPSULES ? VIEW_CAPSULES : VIEW_MOSAIC;
+      if (!o.optBoolean("mosaicOffered", false)) folderView = VIEW_MOSAIC; // (user 2026-10-17 chose «Ж») once, for everyone
       if (!o.has("palette")) {
         // saved before the palette grew: the colour each folder had (its number modulo the old 7) stays its colour
         for (Folder f : folders) f.colorIndex = Math.abs(f.colorIndex) % OLD_PALETTE;

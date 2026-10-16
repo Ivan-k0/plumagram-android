@@ -68,7 +68,7 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
         } else if (id == R.id.btn_tgx101SavedOpen) {
           view.setData(Lang.getString(s.openMode == Tgx101SavedStore.OPEN_FEED ? R.string.Tgx101SavedOpenFeed : R.string.Tgx101SavedOpenHome));
         } else if (id == R.id.btn_tgx101SavedFolderView) {
-          view.setData(Lang.getString(s.folderView == Tgx101SavedStore.VIEW_TILES ? R.string.Tgx101SavedFolderViewTiles : R.string.Tgx101SavedFolderViewCapsules));
+          view.setData(Lang.getString(s.folderView == Tgx101SavedStore.VIEW_TILES ? R.string.Tgx101SavedFolderViewTiles : s.folderView == Tgx101SavedStore.VIEW_MOSAIC ? R.string.Tgx101SavedFolderViewMosaic : R.string.Tgx101SavedFolderViewCapsules));
         } else if (id == R.id.btn_tgx101SavedStorageOn) {
           view.getToggler().setRadioEnabled(s.storageOn, isUpdate);
         } else if (id == R.id.btn_tgx101SavedSwitch) {
@@ -151,9 +151,9 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
           return true;
         });
     } else if (id == R.id.btn_tgx101SavedFolderView) {
-      showOptions(Lang.getString(R.string.Tgx101SavedFolderView), new int[] {R.id.btn_done, R.id.btn_edit},
-        new String[] {Lang.getString(R.string.Tgx101SavedFolderViewCapsules), Lang.getString(R.string.Tgx101SavedFolderViewTiles)}, null, null, (itemView, optionId) -> {
-          s.folderView = optionId == R.id.btn_edit ? Tgx101SavedStore.VIEW_TILES : Tgx101SavedStore.VIEW_CAPSULES;
+      showOptions(Lang.getString(R.string.Tgx101SavedFolderView), new int[] {R.id.btn_share, R.id.btn_done, R.id.btn_edit},
+        new String[] {Lang.getString(R.string.Tgx101SavedFolderViewMosaic), Lang.getString(R.string.Tgx101SavedFolderViewCapsules), Lang.getString(R.string.Tgx101SavedFolderViewTiles)}, null, null, (itemView, optionId) -> {
+          s.folderView = optionId == R.id.btn_edit ? Tgx101SavedStore.VIEW_TILES : optionId == R.id.btn_share ? Tgx101SavedStore.VIEW_MOSAIC : Tgx101SavedStore.VIEW_CAPSULES;
           s.save();
           adapter.updateValuedSettingById(R.id.btn_tgx101SavedFolderView);
           return true;

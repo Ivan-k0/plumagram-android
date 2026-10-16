@@ -6178,6 +6178,12 @@
   <string name="Tgx101ToStorage">To the storage…</string>
   <string name="Tgx101SavedRecentMore">More</string>
   <string name="Tgx101SavedFolderTags">Tags for the whole folder</string>
+  <string name="Tgx101SavedFolderSize">Size</string>
+  <string name="Tgx101SavedSizeAuto">Automatic, by the number of records</string>
+  <string name="Tgx101SavedSizeSmall">Small · 1×1</string>
+  <string name="Tgx101SavedSizeWide">Wide · 2×1</string>
+  <string name="Tgx101SavedSizeTall">Tall · 1×2</string>
+  <string name="Tgx101SavedSizeBig">Big · 2×2</string>
   <string name="Tgx101SpeechEngine">Who recognizes speech</string>
   <string name="Tgx101SpeechEngineTelegram">Telegram, the phone if it can\'t</string>
   <string name="Tgx101SpeechEngineDevice">The phone — the downloaded model</string>
@@ -6941,6 +6947,7 @@
   <string name="Tgx101SavedFolderView">Folders look</string>
   <string name="Tgx101SavedFolderViewCapsules">Capsules</string>
   <string name="Tgx101SavedFolderViewTiles">Tiles</string>
+  <string name="Tgx101SavedFolderViewMosaic">Tiles of different sizes</string>
   <string name="Tgx101SavedFolderColor">Colour</string>
   <string name="Tgx101SavedFolderColorHint">The colour changes everywhere the folder shows</string>
   <string name="Tgx101SavedForward">Forward</string>

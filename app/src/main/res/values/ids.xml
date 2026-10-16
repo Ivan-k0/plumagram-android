@@ -1596,6 +1596,7 @@
   <item name="btn_tgx101SaveFavorite" type="id"/>
   <item name="btn_tgx101ToStorage" type="id"/>
   <item name="btn_tgx101SavedFolderTags" type="id"/>
+  <item name="btn_tgx101SavedFolderSize" type="id"/>
   <item name="menu_btn_tgx101ToStorage" type="id"/>
   <item name="btn_tgx101SelectInPlace" type="id"/>
   <item name="btn_tgx101MenuProfile" type="id"/>

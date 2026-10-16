@@ -680,7 +680,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   /** what the tiles show, to rebuild them only when it changed (no flicker on every return) */
   private String tilesSignature (Tgx101SavedStore store) {
     StringBuilder b = new StringBuilder().append(store.inboxTile).append('|').append(store.folderView).append('|').append(Theme.getColor(ColorId.filling));
-    for (Tgx101SavedStore.Folder f : store.folders()) if (f.onHome) b.append('|').append(f.id).append(':').append(f.name).append(':').append(f.messageIds.size()).append(':').append(f.color()).append(':').append(f.shareChatId);
+    for (Tgx101SavedStore.Folder f : store.folders()) if (f.onHome) b.append('|').append(f.id).append(':').append(f.name).append(':').append(f.messageIds.size()).append(':').append(f.color()).append(':').append(f.shareChatId).append(':').append(f.tileSize);
     for (String tag : store.homeTags()) b.append("|#").append(tag);
     for (java.util.Map.Entry<String, Integer> e : reactionCounts.entrySet()) b.append("|r").append(e.getKey()).append(e.getValue());
     return b.toString();
@@ -706,7 +706,11 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     }
     tiles.removeAllViews();
     if (store.folderView == Tgx101SavedStore.VIEW_CAPSULES) {
-      buildCapsules(store);
+      buildCapsules(store, false);
+      return;
+    }
+    if (store.folderView == Tgx101SavedStore.VIEW_MOSAIC) {
+      buildCapsules(store, true);
       return;
     }
     foldersTitle.setText(Lang.getString(R.string.Tgx101SavedFoldersAndTags));
@@ -773,8 +777,17 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   private static final float CAPSULE_HEIGHT = 34f, CAPSULE_RADIUS = 12.5f;
 
   /** folders as capsules one after another, wrapping like tags; then tags and reactions the same way */
-  private void buildCapsules (Tgx101SavedStore store) {
+  private void buildCapsules (Tgx101SavedStore store, boolean mosaic) {
     foldersTitle.setText(Lang.getString(R.string.Tgx101SavedFoldersTitle));
+    if (mosaic) {
+      buildMosaic(store);
+    } else {
+      buildFolderCapsules(store);
+    }
+    buildMarks(store);
+  }
+
+  private void buildFolderCapsules (Tgx101SavedStore store) {
     CapsuleFlow folders = new CapsuleFlow(context);
     folders.setMover(new CapsuleFlow.Mover() {
       @Override
@@ -832,7 +845,189 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     add.setOnClickListener(v -> Tgx101SavedActions.newFolderOrTag(this, this::buildTiles));
     folders.addView(add, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(CAPSULE_HEIGHT)));
     tiles.addView(folders, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+  }
 
+  // Mosaic (user 2026-10-17 chose mockup «Ж»): three columns; the biggest folder is a tall tile, the next two are wide,
+  // the rest are squares — by how many records each has, packed with no holes. The user's order stays the order
+
+  private void buildMosaic (Tgx101SavedStore store) {
+    MosaicGrid grid = new MosaicGrid(context);
+    java.util.List<Tgx101SavedStore.Folder> shown = new java.util.ArrayList<>();
+    for (Tgx101SavedStore.Folder f : store.folders()) if (f.onHome) shown.add(f);
+    java.util.List<Tgx101SavedStore.Folder> byWeight = new java.util.ArrayList<>(shown);
+    java.util.Collections.sort(byWeight, (a, b) -> Integer.compare(b.messageIds.size(), a.messageIds.size()));
+    java.util.Set<Long> tall = new java.util.HashSet<>(), wide = new java.util.HashSet<>();
+    for (Tgx101SavedStore.Folder f : shown) if (f.tileSize != Tgx101SavedStore.TILE_AUTO) byWeight.remove(f); // the chosen ones keep their size
+    if (shown.size() >= 3 && !byWeight.isEmpty() && byWeight.get(0).messageIds.size() > 0) tall.add(byWeight.get(0).id);
+    for (int i = tall.isEmpty() ? 0 : 1, n = 0; i < byWeight.size() && n < 2 && shown.size() >= 2; i++) {
+      Tgx101SavedStore.Folder f = byWeight.get(i);
+      if (f.messageIds.size() == 0) break;
+      wide.add(f.id);
+      n++;
+    }
+    if (store.inboxTile) {
+      grid.addView(mosaicTile(null, Lang.getString(R.string.Tgx101SavedInbox), null, Theme.fillingColor(), Theme.textAccentColor(), false,
+        v -> Tgx101SavedListController.openInbox(this), null), new MosaicGrid.Cell(1, 1));
+    }
+    for (Tgx101SavedStore.Folder f : shown) {
+      int[] copying = Tgx101FolderShare.progressOf(f.id);
+      int count = f.messageIds.size();
+      String number = copying != null ? copying[0] + "/" + copying[1] : String.valueOf(count);
+      boolean isTall = tall.contains(f.id), isWide = wide.contains(f.id);
+      if (f.tileSize != Tgx101SavedStore.TILE_AUTO) { // chosen by the user (mockup «З»)
+        isTall = f.tileSize == Tgx101SavedStore.TILE_TALL || f.tileSize == Tgx101SavedStore.TILE_BIG;
+        isWide = f.tileSize == Tgx101SavedStore.TILE_WIDE || f.tileSize == Tgx101SavedStore.TILE_BIG;
+      }
+      View t = mosaicTile(number, f.name, null,
+        f.color(), 0xffffffff, isTall, v -> Tgx101SavedListController.openFolder(this, f.id), v -> {
+          folderOptions(f);
+          return true;
+        });
+      grid.addView(t, new MosaicGrid.Cell(isWide ? 2 : 1, isTall ? 2 : 1));
+    }
+    TextView add = text(context, 22f, accent(), false);
+    add.setText("+");
+    add.setGravity(Gravity.CENTER);
+    GradientDrawable dashed = new GradientDrawable();
+    dashed.setCornerRadius(Screen.dp(16f));
+    dashed.setStroke(Screen.dp(1.5f), Theme.separatorColor(), Screen.dp(6f), Screen.dp(4f));
+    add.setBackground(dashed);
+    add.setContentDescription(Lang.getString(R.string.Tgx101SavedNew));
+    Views.setClickable(add);
+    add.setOnClickListener(v -> Tgx101SavedActions.newFolderOrTag(this, this::buildTiles));
+    grid.addView(add, new MosaicGrid.Cell(1, 1));
+    tiles.addView(grid, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+  }
+
+  /** a folder in the mosaic: the number on top (big on the tall one), the name at the bottom on up to two lines */
+  private View mosaicTile (@Nullable String number, String name, @Nullable String unit, int background, int textColor, boolean big, View.OnClickListener click, @Nullable View.OnLongClickListener longClick) {
+    LinearLayout t = new LinearLayout(context);
+    t.setOrientation(LinearLayout.VERTICAL);
+    t.setPadding(Screen.dp(12f), Screen.dp(10f), Screen.dp(12f), Screen.dp(10f));
+    t.setBackground(card(background, 16f));
+    Views.setClickable(t);
+    t.setOnClickListener(click);
+    if (longClick != null) t.setOnLongClickListener(longClick);
+    if (number != null) {
+      LinearLayout top = new LinearLayout(context);
+      top.setOrientation(LinearLayout.HORIZONTAL);
+      top.setGravity(Gravity.BOTTOM);
+      TextView k = text(context, big ? 28f : 19f, textColor, true);
+      k.setText(number);
+      k.setSingleLine(true);
+      top.addView(k);
+      if (unit != null && !unit.isEmpty()) {
+        TextView u = text(context, 12f, (textColor & 0x00ffffff) | 0xbb000000, false);
+        u.setText(unit);
+        u.setSingleLine(true);
+        LinearLayout.LayoutParams up = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        up.leftMargin = Screen.dp(5f);
+        up.bottomMargin = Screen.dp(big ? 5f : 3f);
+        top.addView(u, up);
+      }
+      t.addView(top);
+    }
+    t.addView(new View(context), new LinearLayout.LayoutParams(1, 0, 1f));
+    TextView n = text(context, big ? 15f : 13f, textColor, true);
+    n.setText(name);
+    n.setMaxLines(big ? 3 : 2);
+    n.setEllipsize(TextUtils.TruncateAt.END);
+    n.setLineSpacing(0, 1.05f);
+    t.addView(n);
+    return t;
+  }
+
+  /** three columns of cells; a child spans 1–2 columns and 1–2 rows; each goes to the first place it fits */
+  private static final class MosaicGrid extends ViewGroup {
+    static final class Cell extends ViewGroup.LayoutParams {
+      final int cols, rows;
+      int x, y;
+
+      Cell (int cols, int rows) {
+        super(WRAP_CONTENT, WRAP_CONTENT);
+        this.cols = cols;
+        this.rows = rows;
+      }
+    }
+
+    private static final int COLUMNS = 3;
+    private final int gap = Screen.dp(8f);
+    private int column, unit;
+
+    MosaicGrid (Context context) {
+      super(context);
+    }
+
+    @Override
+    protected boolean checkLayoutParams (ViewGroup.LayoutParams p) {
+      return p instanceof Cell;
+    }
+
+    @Override
+    protected ViewGroup.LayoutParams generateDefaultLayoutParams () {
+      return new Cell(1, 1);
+    }
+
+    @Override
+    protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
+      int width = MeasureSpec.getSize(widthMeasureSpec);
+      column = (width - getPaddingLeft() - getPaddingRight() - gap * (COLUMNS - 1)) / COLUMNS;
+      unit = Math.max(Screen.dp(72f), Math.round(column * .72f));
+      java.util.List<boolean[]> taken = new java.util.ArrayList<>();
+      int rowsUsed = 0;
+      for (int i = 0; i < getChildCount(); i++) {
+        View child = getChildAt(i);
+        if (child.getVisibility() == GONE) continue;
+        Cell c = (Cell) child.getLayoutParams();
+        int cols = Math.min(c.cols, COLUMNS);
+        for (int y = 0; ; y++) {
+          boolean placed = false;
+          for (int x = 0; x + cols <= COLUMNS; x++) {
+            if (free(taken, x, y, cols, c.rows)) {
+              for (int dy = 0; dy < c.rows; dy++) {
+                while (taken.size() <= y + dy) taken.add(new boolean[COLUMNS]);
+                for (int dx = 0; dx < cols; dx++) taken.get(y + dy)[x + dx] = true;
+              }
+              c.x = x;
+              c.y = y;
+              placed = true;
+              break;
+            }
+          }
+          if (placed) break;
+        }
+        rowsUsed = Math.max(rowsUsed, c.y + c.rows);
+        int w = cols * column + (cols - 1) * gap, h = c.rows * unit + (c.rows - 1) * gap;
+        child.measure(MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY));
+      }
+      int height = getPaddingTop() + getPaddingBottom() + (rowsUsed > 0 ? rowsUsed * unit + (rowsUsed - 1) * gap : 0);
+      setMeasuredDimension(width, height);
+    }
+
+    private static boolean free (java.util.List<boolean[]> taken, int x, int y, int cols, int rows) {
+      for (int dy = 0; dy < rows; dy++) {
+        if (y + dy >= taken.size()) continue;
+        for (int dx = 0; dx < cols; dx++) if (taken.get(y + dy)[x + dx]) return false;
+      }
+      return true;
+    }
+
+    @Override
+    protected void onLayout (boolean changed, int l, int t, int r, int b) {
+      boolean rtl = Lang.rtl();
+      for (int i = 0; i < getChildCount(); i++) {
+        View child = getChildAt(i);
+        if (child.getVisibility() == GONE) continue;
+        Cell c = (Cell) child.getLayoutParams();
+        int left = getPaddingLeft() + c.x * (column + gap);
+        if (rtl) left = getWidth() - getPaddingRight() - (c.x * (column + gap)) - child.getMeasuredWidth();
+        int top = getPaddingTop() + c.y * (unit + gap);
+        child.layout(left, top, left + child.getMeasuredWidth(), top + child.getMeasuredHeight());
+      }
+    }
+  }
+
+  private void buildMarks (Tgx101SavedStore store) {
     CapsuleFlow marks = new CapsuleFlow(context);
     for (String tag : store.homeTags()) {
       TextView hash = text(context, 14f, 0xffb53c57, true);
@@ -1263,6 +1458,9 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     }
     ids.add(R.id.btn_edit); names.add(Lang.getString(R.string.Tgx101SavedRename)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_edit_24);
     ids.add(R.id.btn_tgx101SavedFolderColor); names.add(Lang.getString(R.string.Tgx101SavedFolderColor)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_palette_24);
+    if (Tgx101SavedStore.get(tdlib).folderView == Tgx101SavedStore.VIEW_MOSAIC) {
+      ids.add(R.id.btn_tgx101SavedFolderSize); names.add(Lang.getString(R.string.Tgx101SavedFolderSize)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.tgx101_storage_tiles_24);
+    }
     if (!f.messageIds.isEmpty()) { // (user 2026-10-17) every record of the folder gets the tags at once
       ids.add(R.id.btn_tgx101SavedFolderTags); names.add(Lang.getString(R.string.Tgx101SavedFolderTags)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_label_24);
     }
@@ -1290,6 +1488,8 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
           });
         } else if (id == R.id.btn_tgx101SavedFolderColor) {
           chooseFolderColor(f);
+        } else if (id == R.id.btn_tgx101SavedFolderSize) {
+          chooseFolderSize(f);
         } else if (id == R.id.btn_tgx101SavedFolderTags) {
           Tgx101SavedKit.byIds(tdlib, new java.util.ArrayList<>(f.messageIds), messages -> {
             if (!isDestroyed() && !messages.isEmpty()) Tgx101SavedActions.tag(this, messages, this::buildTiles);
@@ -1303,6 +1503,25 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
         }
         return true;
       });
+  }
+
+  /** (user 2026-10-17, mockup «З»): the tile's size — automatic by the number of records, or one of four */
+  private void chooseFolderSize (Tgx101SavedStore.Folder f) {
+    int[] sizes = {Tgx101SavedStore.TILE_AUTO, Tgx101SavedStore.TILE_SMALL, Tgx101SavedStore.TILE_WIDE, Tgx101SavedStore.TILE_TALL, Tgx101SavedStore.TILE_BIG};
+    int[] names = {R.string.Tgx101SavedSizeAuto, R.string.Tgx101SavedSizeSmall, R.string.Tgx101SavedSizeWide, R.string.Tgx101SavedSizeTall, R.string.Tgx101SavedSizeBig};
+    int[] optionIds = new int[sizes.length];
+    String[] labels = new String[sizes.length];
+    int[] icons = new int[sizes.length];
+    for (int i = 0; i < sizes.length; i++) {
+      optionIds[i] = i + 1;
+      labels[i] = Lang.getString(names[i]);
+      icons[i] = f.tileSize == sizes[i] ? R.drawable.baseline_check_24 : 0;
+    }
+    showOptions(f.name, optionIds, labels, null, icons, (itemView, id) -> {
+      Tgx101SavedStore.get(tdlib).setFolderTileSize(f.id, sizes[id - 1]);
+      forceTiles();
+      return true;
+    });
   }
 
   /** (user 2026-10-16) twelve colours in two rows; the folder's own is ringed. Its colour lives in one place, so the

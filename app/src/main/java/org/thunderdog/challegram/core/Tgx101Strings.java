@@ -344,6 +344,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ToStorage, "В хранилище…");
     RU.put(R.string.Tgx101SavedRecentMore, "Ещё");
     RU.put(R.string.Tgx101SavedFolderTags, "Метки на всю папку");
+    RU.put(R.string.Tgx101SavedFolderSize, "Размер");
+    RU.put(R.string.Tgx101SavedSizeAuto, "Сам, по числу записей");
+    RU.put(R.string.Tgx101SavedSizeSmall, "Маленький · 1×1");
+    RU.put(R.string.Tgx101SavedSizeWide, "Широкий · 2×1");
+    RU.put(R.string.Tgx101SavedSizeTall, "Высокий · 1×2");
+    RU.put(R.string.Tgx101SavedSizeBig, "Большой · 2×2");
     RU.put(R.string.Tgx101SpeechEngine, "Кто распознаёт речь");
     RU.put(R.string.Tgx101SpeechEngineTelegram, "Telegram, а если не может — телефон");
     RU.put(R.string.Tgx101SpeechEngineDevice, "Телефон — скачанная модель");
@@ -691,6 +697,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedFolderView, "Вид папок");
     RU.put(R.string.Tgx101SavedFolderViewCapsules, "Капсулы");
     RU.put(R.string.Tgx101SavedFolderViewTiles, "Плитки");
+    RU.put(R.string.Tgx101SavedFolderViewMosaic, "Плитки разного размера");
     RU.put(R.string.Tgx101SavedFolderColor, "Цвет");
     RU.put(R.string.Tgx101SavedFolderColorHint, "Цвет сменится везде, где видна папка");
     RU.put(R.string.Tgx101SavedForward, "Переслать");
