@@ -2357,12 +2357,11 @@ public class Settings {
       }
       pmc.putBoolean(marker, true);
     }
-    // the second set (user 2026-10-16, MagiX defaults list): the plane, the blur, the rising ring, no gap, no «Discuss» /
+    // the second set (user 2026-10-16, MagiX defaults list): the blur, the rising ring, no gap, no «Discuss» /
     // comments buttons — again for new installs only
     final String marker2 = "tgx101_defaults_2026_10_16b";
     if (!pmc.getBoolean(marker2, false)) {
       if (!freshInstall) {
-        if (!pmc.contains(KEY_TGX101_NOTIFICATION_PLANE)) pmc.putBoolean(KEY_TGX101_NOTIFICATION_PLANE, false);
         if (!pmc.contains("tgx101_menu_blur")) pmc.putBoolean("tgx101_menu_blur", false);
         if (!pmc.contains(KEY_TGX101_RING_RAMP)) pmc.putBoolean(KEY_TGX101_RING_RAMP, false);
         if (!pmc.contains(KEY_BOTTOM_GAP)) pmc.putBoolean(KEY_BOTTOM_GAP, true);
@@ -3533,7 +3532,7 @@ public class Settings {
   private static final String KEY_TGX101_NOTIFICATION_PLANE = "tgx101_notification_plane";
 
   public boolean useTgx101NotificationPlane () {
-    return pmc.getBoolean(KEY_TGX101_NOTIFICATION_PLANE, true); // new installs: our plane (user 2026-10-16; see tgx101PinOldDefaults)
+    return pmc.getBoolean(KEY_TGX101_NOTIFICATION_PLANE, false); // off: our dove in notifications (user 2026-10-16 «наш значок», «самолётик выключен»)
   }
 
   public void setTgx101NotificationPlane (boolean plane) {
