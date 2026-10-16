@@ -519,6 +519,33 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
+  private org.thunderdog.challegram.ui.Tgx101StorageSwitch tgx101StorageSwitch;
+
+  /** TGx101 (approved mockup 8 А, user 2026-10-16): Saved Messages' round «to the storage» button */
+  private void tgx101UpdateStorageSwitch () {
+    boolean need = contentView != null && chat != null && isSelfChat() && !isInForceTouchMode() && !inPreviewMode()
+      && !areScheduledOnly() && getMessageTopicId() == null && previewMode == PREVIEW_MODE_NONE;
+    if (need && tgx101StorageSwitch == null) {
+      tgx101StorageSwitch = new Tgx101StorageSwitch(context, this, Tgx101StorageSwitch.IN_CHAT, new Tgx101StorageSwitch.Host() {
+        @Override
+        public int bottomReserved () {
+          return bottomWrap != null && bottomWrap.getVisibility() == View.VISIBLE ? Math.max(0, contentView.getHeight() - Math.round(bottomWrap.getTop() + bottomWrap.getTranslationY())) : 0;
+        }
+
+        @Override
+        public int usualGap () {
+          return Screen.dp(76f); // over the «down» arrow's place
+        }
+      });
+      contentView.addView(tgx101StorageSwitch, Tgx101StorageSwitch.params(contentView));
+      tgx101StorageSwitch.setVisibility(View.GONE);
+    }
+    if (tgx101StorageSwitch != null) {
+      if (need) tgx101StorageSwitch.updateVisibility();
+      else tgx101StorageSwitch.setVisibility(View.GONE);
+    }
+  }
+
   public final boolean needTabs () {
     return isSelfChat() && !isInForceTouchMode() && !inPreviewMode() && !areScheduledOnly();
   }
@@ -2719,6 +2746,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
       Tgx101SavedTopicsController.open(this);
       return;
     }
+    if (id == R.id.menu_btn_tgx101SavedSettings) {
+      navigateTo(new Tgx101SavedSettingsController(context, tdlib));
+      return;
+    }
     if (id == R.id.btn_tgx101ChatBackground) {
       tgx101ShowChatBackgroundOptions();
       return;
@@ -4634,6 +4665,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     super.onFocus();
     tgx101DropPreventHideKeyboard();
     updateBottomWrapOffset(); // TGx101
+    tgx101UpdateStorageSwitch();
     if (promptDraftPrefillOnFocus) {
       promptDraftPrefillOnFocus = false;
       fillDraft(this.fillDraft, true);
@@ -5184,6 +5216,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tdlib.isSelfChat(chat.id) && getMessageTopicId() == null) {
       ids.append(R.id.btn_tgx101SavedByChats); // TGx101: Saved Messages grouped by chat
       strings.append(R.string.Tgx101SavedByChats);
+      ids.append(R.id.menu_btn_tgx101SavedSettings); // TGx101: the storage's settings — the only way back to them while the storage is off
+      strings.append(R.string.Tgx101SavedSettings);
     }
 
     if (tdlib.isUserChat(chat.id) && !tdlib.isSelfChat(chat.id) && !tdlib.isBotChat(chat.id) && !isSecretChat()) {
@@ -6936,7 +6970,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         for (int i = 0; i < all.length; i++) messageIds[i] = all[i].id;
         tdlib.send(new TdApi.ForwardMessages(tdlib.selfChatId(), null, selectedMessage.getChatId(), messageIds, null, false, false), (result, error) -> {
           if (error != null) UI.showError(error);
-          else if (org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).sheetMode == org.thunderdog.challegram.data.Tgx101SavedStore.SHEET_NEVER) UI.showToast(R.string.Tgx101SwipeSaved, android.widget.Toast.LENGTH_SHORT); // else the «Saved» banner says it
+          else if (org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).bannerOff()) UI.showToast(R.string.Tgx101SwipeSaved, android.widget.Toast.LENGTH_SHORT); // else the «Saved» banner says it
           else org.thunderdog.challegram.data.Tgx101SavedStore.onSavedResult(tdlib, result);
         });
         return true;

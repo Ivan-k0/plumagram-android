@@ -241,6 +241,23 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   public boolean hashtagOwn = true;
   /** words on the selection panel's buttons (off: signs only) */
   public boolean panelLabels = true;
+  /** (user 2026-10-16) off: Saved Messages is the usual chat — no storage screen, button or pull to it; the folders stay */
+  public boolean storageOn = true;
+  /** the round «chat ↔ storage» button (approved mockup 8 А) */
+  public boolean switchButton = true;
+  /** where the button was put, apart for the chat [0] and the storage [1]: the side and the height (0…1 of the free room, −1: the usual place) */
+  public final boolean[] switchLeft = new boolean[2];
+  public final float[] switchY = {-1f, -1f};
+
+  /** no «Saved» banner after saving: turned off, or the storage itself is */
+  public boolean bannerOff () {
+    return !storageOn || sheetMode == SHEET_NEVER;
+  }
+
+  /** Saved Messages opens as the storage */
+  public boolean opensStorage () {
+    return storageOn && openMode == OPEN_HOME;
+  }
 
   /** Kept here: the listener lists hold their listeners weakly */
   private org.thunderdog.challegram.telegram.MessageListener chatListener;
@@ -565,6 +582,12 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       o.put("pinned", showPinned);
       o.put("hashtag", hashtagOwn);
       o.put("panelLabels", panelLabels);
+      o.put("storageOn", storageOn);
+      o.put("switchButton", switchButton);
+      for (int i = 0; i < 2; i++) {
+        o.put("switchLeft" + i, switchLeft[i]);
+        o.put("switchY" + i, (double) switchY[i]);
+      }
       Settings.instance().pmc().putString(key(), o.toString());
     } catch (Throwable t) {
       org.thunderdog.challegram.Tgx101Diag.mark("saved store: save failed " + t.getClass().getSimpleName());
@@ -637,6 +660,12 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       showPinned = o.optBoolean("pinned", true);
       hashtagOwn = o.optBoolean("hashtag", true);
       panelLabels = o.optBoolean("panelLabels", true);
+      storageOn = o.optBoolean("storageOn", true);
+      switchButton = o.optBoolean("switchButton", true);
+      for (int i = 0; i < 2; i++) {
+        switchLeft[i] = o.optBoolean("switchLeft" + i, false);
+        switchY[i] = (float) o.optDouble("switchY" + i, -1d);
+      }
     } catch (Throwable t) {
       org.thunderdog.challegram.Tgx101Diag.mark("saved store: load failed " + t.getClass().getSimpleName());
     }

@@ -145,6 +145,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   private org.thunderdog.challegram.widget.KeyboardFrameLayout keyboardFrame;
   private boolean emojiShown, emojiWasKeyboard;
   private View noteBar;
+  private Tgx101StorageSwitch storageSwitch;
 
   // Small builders
 
@@ -221,10 +222,13 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     outer.setOrientation(LinearLayout.VERTICAL);
     root.addView(outer, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
+    // (user 2026-10-16 «поле ввода без подложки, как в чатах»): the note capsule lies over the list, which scrolls under it
+    FrameLayout content = new FrameLayout(context);
+    outer.addView(content, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
     scroll = new HomeScroll(context);
     scroll.setFillViewport(true);
     scroll.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
-    outer.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+    content.addView(scroll, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
     column = new LinearLayout(context);
     column.setOrientation(LinearLayout.VERTICAL);
@@ -415,9 +419,31 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       return true;
     });
     bar.addView(send, new LinearLayout.LayoutParams(Screen.dp(48f), Screen.dp(48f)));
-    LinearLayout.LayoutParams barParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    barParams.setMargins(Screen.dp(8f), Screen.dp(6f), Screen.dp(8f), Screen.dp(8f));
-    outer.addView(bar, barParams);
+    FrameLayout.LayoutParams barParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+    barParams.setMargins(Screen.dp(8f), 0, Screen.dp(8f), Screen.dp(8f));
+    content.addView(bar, barParams);
+    // the end of the list stays reachable above the capsule, whatever its height (it grows with the text)
+    bar.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+      int bottom = Screen.dp(16f) + (v.getVisibility() == View.VISIBLE ? b - t + Screen.dp(8f) : 0);
+      if (column.getPaddingBottom() != bottom) {
+        column.setPadding(column.getPaddingLeft(), column.getPaddingTop(), column.getPaddingRight(), bottom);
+      }
+    });
+    if (android.os.Build.VERSION.SDK_INT >= 21) bar.setElevation(Screen.dp(2f));
+    storageSwitch = new Tgx101StorageSwitch(context, this, Tgx101StorageSwitch.IN_STORAGE, new Tgx101StorageSwitch.Host() {
+      @Override
+      public int bottomReserved () {
+        return noteBar.getVisibility() == View.VISIBLE ? noteBar.getHeight() + Screen.dp(8f) : 0;
+      }
+
+      @Override
+      public int usualGap () {
+        return Screen.dp(12f);
+      }
+    });
+    storageSwitch.setVisibility(View.GONE);
+    content.addView(storageSwitch, Tgx101StorageSwitch.params(content));
+    storageSwitch.updateVisibility();
     buildSelectionBars(context, root, outer);
 
     // pull down: search (like the chat list)
@@ -467,6 +493,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   @Override
   public void onFocus () {
     super.onFocus();
+    if (storageSwitch != null) storageSwitch.updateVisibility();
     if (column != null && loadedOnce) reload(); // back from a folder / list / settings: counts and tiles may have changed
   }
 

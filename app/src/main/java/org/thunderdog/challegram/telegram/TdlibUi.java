@@ -2157,7 +2157,7 @@ public class TdlibUi extends Handler {
       && params.messageTopicId == null && params.filter == null && params.searchQuery == null && params.shareItem == null
       && params.fillDraft == null && params.foundMessage == null && params.threadInfo == null
       && (params.options & (CHAT_OPTION_SCHEDULED_MESSAGES | CHAT_OPTION_NO_OPEN | CHAT_OPTION_OPEN_PROFILE_IF_DUPLICATE)) == 0))
-      && org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).openMode == org.thunderdog.challegram.data.Tgx101SavedStore.OPEN_HOME
+      && org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).opensStorage()
       && context.context() != null) {
       org.thunderdog.challegram.ui.Tgx101SavedHomeController.open(context.context(), tdlib);
       return;

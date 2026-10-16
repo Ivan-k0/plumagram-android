@@ -1749,6 +1749,10 @@
   <item name="tgx101SavedThumb" type="id"/>
   <item name="btn_tgx101SavedBanner" type="id"/>
   <item name="btn_tgx101SavedOpen" type="id"/>
+  <item name="btn_tgx101SavedStorageOn" type="id"/>
+  <item name="btn_tgx101SavedSwitch" type="id"/>
+  <item name="btn_tgx101SavedSwitchReset" type="id"/>
+  <item name="btn_tgx101SavedSettingsOpen" type="id"/>
   <item name="btn_tgx101SavedInboxTile" type="id"/>
   <item name="btn_tgx101SavedShowPinned" type="id"/>
   <item name="btn_tgx101SavedHashtag" type="id"/>

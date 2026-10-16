@@ -963,7 +963,7 @@ public final class Tgx101SavedActions {
     if (messageIds == null || messageIds.length == 0) return;
     Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
     org.thunderdog.challegram.Tgx101Diag.mark("saved banner: " + messageIds.length + " saved" + (external ? " from another app" : "") + ", mode " + store.sheetMode);
-    if (store.sheetMode == Tgx101SavedStore.SHEET_NEVER || (store.sheetMode == Tgx101SavedStore.SHEET_EXTERNAL_ONLY && !external)) return;
+    if (store.bannerOff() || (store.sheetMode == Tgx101SavedStore.SHEET_EXTERNAL_ONLY && !external)) return;
     UI.post(() -> {
       BaseActivity activity = UI.getUiContext();
       if (activity == null || activity.isFinishing()) return;

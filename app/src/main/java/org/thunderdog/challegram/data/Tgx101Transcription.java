@@ -606,7 +606,10 @@ public final class Tgx101Transcription {
         if (!inputDone) {
           int inIndex = codec.dequeueInputBuffer(10_000);
           if (inIndex >= 0) {
-            ByteBuffer input = codec.getInputBuffer(inIndex);
+            // Android 4.4 and older have no getInputBuffer(int): the buffer array instead
+            @SuppressWarnings("deprecation")
+            ByteBuffer input = Build.VERSION.SDK_INT >= 21 ? codec.getInputBuffer(inIndex) : codec.getInputBuffers()[inIndex];
+            input.clear();
             int size = extractor.readSampleData(input, 0);
             if (size < 0) {
               codec.queueInputBuffer(inIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
@@ -623,7 +626,8 @@ public final class Tgx101Transcription {
           resampler = new Resampler(outFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE), outFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT));
         } else if (outIndex >= 0) {
           if (info.size > 0) {
-            ByteBuffer output = codec.getOutputBuffer(outIndex);
+            @SuppressWarnings("deprecation")
+            ByteBuffer output = Build.VERSION.SDK_INT >= 21 ? codec.getOutputBuffer(outIndex) : codec.getOutputBuffers()[outIndex];
             output.position(info.offset);
             output.limit(info.offset + info.size);
             resampler.process(output.slice().order(ByteOrder.nativeOrder()), out);

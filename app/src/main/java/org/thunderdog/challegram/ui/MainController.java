@@ -228,7 +228,8 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     final Tgx101StoragePull storagePull = new Tgx101StoragePull(context, new Tgx101StoragePull.Host() {
       @Override
       public boolean canPull () {
-        return getCurrentPagerItemPosition() == 0 && !Lang.rtl() && !inSearchMode() && !inSelectMode();
+        return getCurrentPagerItemPosition() == 0 && !Lang.rtl() && !inSearchMode() && !inSelectMode()
+          && org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).storageOn;
       }
 
       @Override

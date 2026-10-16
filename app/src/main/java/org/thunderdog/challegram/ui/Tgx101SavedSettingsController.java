@@ -20,6 +20,7 @@ import org.thunderdog.challegram.component.base.SettingView;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.data.Tgx101SavedStore;
 import org.thunderdog.challegram.telegram.Tdlib;
+import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.v.CustomRecyclerView;
 
 import java.util.ArrayList;
@@ -66,6 +67,10 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
           view.setData(Lang.getString(sheetName(s.sheetMode)));
         } else if (id == R.id.btn_tgx101SavedOpen) {
           view.setData(Lang.getString(s.openMode == Tgx101SavedStore.OPEN_FEED ? R.string.Tgx101SavedOpenFeed : R.string.Tgx101SavedOpenHome));
+        } else if (id == R.id.btn_tgx101SavedStorageOn) {
+          view.getToggler().setRadioEnabled(s.storageOn, isUpdate);
+        } else if (id == R.id.btn_tgx101SavedSwitch) {
+          view.getToggler().setRadioEnabled(s.switchButton, isUpdate);
         } else if (id == R.id.btn_tgx101SavedInboxTile) {
           view.getToggler().setRadioEnabled(s.inboxTile, isUpdate);
         } else if (id == R.id.btn_tgx101SavedShowPinned) {
@@ -79,6 +84,19 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
     };
     List<ListItem> items = new ArrayList<>();
     items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
+    // (approved mockup 8 Г, user 2026-10-16)
+    items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101SavedStorageSection));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SavedStorageOn, 0, R.string.Tgx101SavedStorageOn));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101SavedOpen, 0, R.string.Tgx101SavedOpenSetting));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SavedSwitch, 0, R.string.Tgx101SavedSwitchSetting));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101SavedSwitchReset, 0, R.string.Tgx101SavedSwitchReset));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SavedStorageDesc));
+
     items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101SavedBannerSection));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101SavedBanner, 0, R.string.Tgx101SavedBannerSetting));
@@ -87,8 +105,6 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
 
     items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101SavedHomeSection));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-    items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101SavedOpen, 0, R.string.Tgx101SavedOpenSetting));
-    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SavedInboxTile, 0, R.string.Tgx101SavedInboxTileSetting));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SavedShowPinned, 0, R.string.Tgx101SavedShowPinnedSetting));
@@ -130,6 +146,19 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
           adapter.updateValuedSettingById(R.id.btn_tgx101SavedOpen);
           return true;
         });
+    } else if (id == R.id.btn_tgx101SavedStorageOn) {
+      s.storageOn = adapter.toggleView(v);
+      s.save();
+    } else if (id == R.id.btn_tgx101SavedSwitch) {
+      s.switchButton = adapter.toggleView(v);
+      s.save();
+    } else if (id == R.id.btn_tgx101SavedSwitchReset) {
+      s.switchButton = true;
+      s.switchLeft[0] = s.switchLeft[1] = false;
+      s.switchY[0] = s.switchY[1] = -1f;
+      s.save();
+      adapter.updateValuedSettingById(R.id.btn_tgx101SavedSwitch);
+      UI.showToast(R.string.Done, android.widget.Toast.LENGTH_SHORT);
     } else if (id == R.id.btn_tgx101SavedInboxTile) {
       s.inboxTile = adapter.toggleView(v);
       s.save();
