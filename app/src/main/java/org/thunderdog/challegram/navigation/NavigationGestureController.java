@@ -281,6 +281,9 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
           approve = diffX <= -Screen.getTouchSlopBig() && Math.abs(diffY) <= Screen.getTouchSlopY();
         } else {
           approve = diffX >= Screen.getTouchSlopBig() && Math.abs(diffY) <= Screen.getTouchSlopY();
+          if (approve && navigation.getCurrentStackItem() != null && !navigation.getCurrentStackItem().tgx101SlideBackForward()) {
+            approve = false; // (user 2026-10-17) this screen is left only right to left
+          }
           if (!approve && diffX <= -Screen.getTouchSlopBig() && Math.abs(diffY) <= Screen.getTouchSlopY()) {
             // TGx101 (user 2026-10-17): a screen that is left both ways — the screen below comes in from the right
             ViewController<?> current = navigation.getCurrentStackItem();

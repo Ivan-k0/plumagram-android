@@ -739,6 +739,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedReactionTile, "реакция");
     RU.put(R.string.Tgx101SavedSelectSection, "Выделение");
     RU.put(R.string.Tgx101SavedPanelLabelsSetting, "Подписи на кнопках");
+    RU.put(R.string.Tgx101SavedBackSwipe, "Свайп назад в чаты");
+    RU.put(R.string.Tgx101SavedBackBoth, "В обе стороны");
+    RU.put(R.string.Tgx101SavedBackRight, "Слева направо");
+    RU.put(R.string.Tgx101SavedBackLeft, "Справа налево");
     RU.put(R.string.Tgx101SendToFolder, "В «%1$s»");
     RU.put(R.string.Tgx101SendToFolderMore, "В папку…");
     RU.put(R.string.Tgx101SendWithTag, "С меткой «%1$s»");

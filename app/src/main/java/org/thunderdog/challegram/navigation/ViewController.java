@@ -1045,6 +1045,11 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     return false;
   }
 
+  /** TGx101: the usual swipe «back» (left to right) — off where the user chose «right to left» only */
+  public boolean tgx101SlideBackForward () {
+    return true;
+  }
+
   public boolean tgx101CanSlideBackReverseFrom (NavigationController navigationController, float x, float y) {
     return canSlideBackFrom(navigationController, x, y);
   }

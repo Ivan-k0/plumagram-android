@@ -6989,6 +6989,10 @@
   <string name="Tgx101SavedReactionTile">reaction</string>
   <string name="Tgx101SavedSelectSection">Selection</string>
   <string name="Tgx101SavedPanelLabelsSetting">Words on the buttons</string>
+  <string name="Tgx101SavedBackSwipe">Swipe back to the chats</string>
+  <string name="Tgx101SavedBackBoth">Either way</string>
+  <string name="Tgx101SavedBackRight">Left to right</string>
+  <string name="Tgx101SavedBackLeft">Right to left</string>
   <string name="Tgx101SendToFolder">To «%1$s»</string>
   <string name="Tgx101SendToFolderMore">To a folder…</string>
   <string name="Tgx101SendWithTag">With the tag «%1$s»</string>

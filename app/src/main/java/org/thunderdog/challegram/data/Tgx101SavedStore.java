@@ -250,7 +250,10 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   public boolean showPinned = true;
   public boolean hashtagOwn = true;
   /** words on the selection panel's buttons (off: signs only) */
-  public boolean panelLabels = true;
+  public boolean panelLabels = false; // (user 2026-10-17 «убери названия действий в меню снизу — только иконки»)
+  /** (user 2026-10-17 «свайп — на выбор, кому как удобно») the home screen's swipe «back»: either way, to the right, to the left */
+  public static final int BACK_BOTH = 0, BACK_RIGHT = 1, BACK_LEFT = 2;
+  public int backSwipe = BACK_BOTH;
   public int folderView = VIEW_MOSAIC;
   /** (user 2026-10-16) off: Saved Messages is the usual chat — no storage screen, button or pull to it; the folders stay */
   public boolean storageOn = true;
@@ -634,6 +637,8 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       o.put("pinned", showPinned);
       o.put("hashtag", hashtagOwn);
       o.put("panelLabels", panelLabels);
+      o.put("labelsOff17", true);
+      o.put("backSwipe", backSwipe);
       o.put("folderView", folderView);
       o.put("mosaicOffered", true);
       o.put("palette", FOLDER_COLORS.length);
@@ -715,7 +720,9 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       inboxTile = o.optBoolean("inbox", true);
       showPinned = o.optBoolean("pinned", true);
       hashtagOwn = o.optBoolean("hashtag", true);
-      panelLabels = o.optBoolean("panelLabels", true);
+      panelLabels = o.optBoolean("panelLabels", false);
+      if (!o.optBoolean("labelsOff17", false)) panelLabels = false; // once, for everyone: icons only
+      backSwipe = Math.max(BACK_BOTH, Math.min(BACK_LEFT, o.optInt("backSwipe", BACK_BOTH)));
       int view = o.optInt("folderView", VIEW_MOSAIC);
       folderView = view == VIEW_TILES ? VIEW_TILES : view == VIEW_CAPSULES ? VIEW_CAPSULES : VIEW_MOSAIC;
       if (!o.optBoolean("mosaicOffered", false)) folderView = VIEW_MOSAIC; // (user 2026-10-17 chose «Ж») once, for everyone
