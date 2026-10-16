@@ -6919,6 +6919,8 @@
   <string name="Tgx101SavedFolderView">Folders look</string>
   <string name="Tgx101SavedFolderViewCapsules">Capsules</string>
   <string name="Tgx101SavedFolderViewTiles">Tiles</string>
+  <string name="Tgx101SavedFolderColor">Colour</string>
+  <string name="Tgx101SavedFolderColorHint">The colour changes everywhere the folder shows</string>
   <string name="Tgx101SavedForward">Forward</string>
   <string name="Tgx101SavedInbox">Inbox</string>
   <string name="Tgx101SavedInboxEmpty">Everything is sorted into folders.</string>

@@ -44,7 +44,12 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   /** how the folders look on the storage's home screen (user 2026-10-16: capsules first, the tiles stay to choose) */
   public static final int VIEW_TILES = 0, VIEW_CAPSULES = 1;
 
-  public static final int[] FOLDER_COLORS = {0xff3f7cad, 0xffc0662a, 0xff2e8a4a, 0xff7c4fb0, 0xffb53c57, 0xff2a8c8c, 0xff8a7a2a};
+  /** blue, orange, green, violet, raspberry, teal, olive gold — and since 2026-10-16 (user «да» to 12 colours and a choice):
+   *  red, pink, yellow, indigo, grey. The first seven keep their places: a folder's colour is its number here */
+  public static final int[] FOLDER_COLORS = {0xff3f7cad, 0xffc0662a, 0xff2e8a4a, 0xff7c4fb0, 0xffb53c57, 0xff2a8c8c, 0xff8a7a2a,
+    0xffd04545, 0xffcc4f96, 0xffc79a14, 0xff4d5fc9, 0xff6c7a87};
+  /** the palette size folders were numbered against before the choice existed: their number was taken modulo this */
+  private static final int OLD_PALETTE = 7;
 
   public static final class Folder {
     public final long id;
@@ -306,10 +311,18 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   }
 
   public synchronized Folder createFolder (String name) {
-    Folder f = new Folder(nextFolderId++, name.trim(), folders.size());
+    Folder f = new Folder(nextFolderId++, name.trim(), folders.size() % FOLDER_COLORS.length);
     folders.add(f);
     save();
     return f;
+  }
+
+  public synchronized void setFolderColor (long id, int colorIndex) {
+    Folder f = folder(id);
+    if (f != null && colorIndex >= 0 && colorIndex < FOLDER_COLORS.length) {
+      f.colorIndex = colorIndex;
+      save();
+    }
   }
 
   public synchronized void renameFolder (long id, String name) {
@@ -586,6 +599,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       o.put("hashtag", hashtagOwn);
       o.put("panelLabels", panelLabels);
       o.put("folderView", folderView);
+      o.put("palette", FOLDER_COLORS.length);
       o.put("storageOn", storageOn);
       o.put("switchButton", switchButton);
       for (int i = 0; i < 2; i++) {
@@ -665,6 +679,10 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       hashtagOwn = o.optBoolean("hashtag", true);
       panelLabels = o.optBoolean("panelLabels", true);
       folderView = o.optInt("folderView", VIEW_CAPSULES) == VIEW_TILES ? VIEW_TILES : VIEW_CAPSULES;
+      if (!o.has("palette")) {
+        // saved before the palette grew: the colour each folder had (its number modulo the old 7) stays its colour
+        for (Folder f : folders) f.colorIndex = Math.abs(f.colorIndex) % OLD_PALETTE;
+      }
       storageOn = o.optBoolean("storageOn", true);
       switchButton = o.optBoolean("switchButton", true);
       for (int i = 0; i < 2; i++) {

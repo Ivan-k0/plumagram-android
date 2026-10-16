@@ -673,6 +673,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedFolderView, "Вид папок");
     RU.put(R.string.Tgx101SavedFolderViewCapsules, "Капсулы");
     RU.put(R.string.Tgx101SavedFolderViewTiles, "Плитки");
+    RU.put(R.string.Tgx101SavedFolderColor, "Цвет");
+    RU.put(R.string.Tgx101SavedFolderColorHint, "Цвет сменится везде, где видна папка");
     RU.put(R.string.Tgx101SavedForward, "Переслать");
     RU.put(R.string.Tgx101SavedInbox, "Входящие");
     RU.put(R.string.Tgx101SavedInboxEmpty, "Всё разложено по папкам.");

@@ -1041,6 +1041,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       ids.add(R.id.btn_share); names.add(Lang.getString(R.string.Tgx101ShareFolder)); colors.add(OptionColor.BLUE); icons.add(R.drawable.baseline_share_24);
     }
     ids.add(R.id.btn_edit); names.add(Lang.getString(R.string.Tgx101SavedRename)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_edit_24);
+    ids.add(R.id.btn_tgx101SavedFolderColor); names.add(Lang.getString(R.string.Tgx101SavedFolderColor)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_palette_24);
     ids.add(R.id.btn_close); names.add(Lang.getString(R.string.Tgx101SavedRemoveFromHome)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_close_24);
     ids.add(R.id.btn_delete); names.add(Lang.getString(R.string.Tgx101SavedDeleteFolder)); colors.add(OptionColor.RED); icons.add(R.drawable.baseline_delete_24);
     int[] idArr = new int[ids.size()], colorArr = new int[ids.size()], iconArr = new int[ids.size()];
@@ -1063,6 +1064,8 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
             store.renameFolder(f.id, name);
             buildTiles();
           });
+        } else if (id == R.id.btn_tgx101SavedFolderColor) {
+          chooseFolderColor(f);
         } else if (id == R.id.btn_close) {
           store.setFolderOnHome(f.id, false);
           buildTiles();
@@ -1072,6 +1075,54 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
         }
         return true;
       });
+  }
+
+  /** (user 2026-10-16) twelve colours in two rows; the folder's own is ringed. Its colour lives in one place, so the
+   *  tiles, capsules, the records' marks, the lists and the «Send» menu all show the new one */
+  private void chooseFolderColor (Tgx101SavedStore.Folder f) {
+    final Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
+    h[0] = Tgx101Sheet.show(this, null, body -> {
+      body.addView(Tgx101Sheet.title(context, f.name));
+      TextView hint = text(context, 13f, Theme.textDecentColor(), false);
+      hint.setText(Lang.getString(R.string.Tgx101SavedFolderColorHint));
+      hint.setPadding(Screen.dp(20f), 0, Screen.dp(20f), Screen.dp(10f));
+      body.addView(hint);
+      int perRow = 6;
+      int[] palette = Tgx101SavedStore.FOLDER_COLORS;
+      for (int start = 0; start < palette.length; start += perRow) {
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(Screen.dp(14f), Screen.dp(4f), Screen.dp(14f), Screen.dp(4f));
+        for (int i = start; i < Math.min(palette.length, start + perRow); i++) {
+          final int index = i;
+          FrameLayout cell = new FrameLayout(context);
+          View dot = new View(context);
+          GradientDrawable d = new GradientDrawable();
+          d.setShape(GradientDrawable.OVAL);
+          d.setColor(palette[i]);
+          if (Math.abs(f.colorIndex) % palette.length == i) d.setStroke(Screen.dp(3f), Theme.fillingColor()); // a gap ring inside the outer one
+          dot.setBackground(d);
+          FrameLayout ringBox = new FrameLayout(context); // a true circle, whatever the cell's width
+          if (Math.abs(f.colorIndex) % palette.length == i) {
+            GradientDrawable ring = new GradientDrawable();
+            ring.setShape(GradientDrawable.OVAL);
+            ring.setStroke(Screen.dp(2f), palette[i]);
+            ringBox.setBackground(ring);
+          }
+          ringBox.addView(dot, new FrameLayout.LayoutParams(Screen.dp(36f), Screen.dp(36f), Gravity.CENTER));
+          cell.addView(ringBox, new FrameLayout.LayoutParams(Screen.dp(44f), Screen.dp(44f), Gravity.CENTER));
+          Views.setClickable(cell);
+          cell.setOnClickListener(v -> {
+            Tgx101SavedStore.get(tdlib).setFolderColor(f.id, index);
+            h[0].dismiss();
+            forceTiles();
+          });
+          LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(0, Screen.dp(46f), 1f);
+          row.addView(cell, cp);
+        }
+        body.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+      }
+    });
   }
 
   private void forceTiles () {
