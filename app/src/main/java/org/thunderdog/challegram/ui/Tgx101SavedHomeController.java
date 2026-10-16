@@ -323,7 +323,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     column.addView(recentList, recentParams);
     // (user 2026-10-17, about the end of «Recent»): «All» is at the end of the list, as our capsule
     TextView all = text(context, 15f, onChosen(), true);
-    all.setText(Lang.getString(R.string.Tgx101SavedAll));
+    all.setText(Lang.getString(R.string.Tgx101SavedRecentMore)); // (user 2026-10-17) «Ещё»
     all.setGravity(Gravity.CENTER);
     all.setPadding(Screen.dp(28f), 0, Screen.dp(28f), 0);
     all.setBackground(chosen(22f));
