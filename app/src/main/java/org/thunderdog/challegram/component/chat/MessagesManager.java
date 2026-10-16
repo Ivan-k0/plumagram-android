@@ -1386,10 +1386,11 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         } else {
           scrollToMessage(scrollPosition, scrollMessage, highlightMode == HIGHLIGHT_MODE_NONE ? HIGHLIGHT_MODE_START : highlightMode, false, false);
         }
-        if (tgx101ResetGlide != 0 && mode == MessagesLoader.MODE_INITIAL) {
-          tgx101GlideIn(tgx101ResetGlide);
+        org.thunderdog.challegram.Tgx101Diag.mark("jump: reloaded (mode " + mode + ", glide " + tgx101ResetGlide + ", repeat " + willRepeat + ")");
+        if (tgx101ResetGlide != 0) {
+          tgx101GlideIn(tgx101ResetGlide); // once: a repeat right after keeps the list where the glide takes it
+          tgx101ResetGlide = 0;
         }
-        tgx101ResetGlide = 0;
         if (!willRepeat) {
           onChatAwaitFinish();
         }
@@ -3439,7 +3440,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         list.scrollBy(0, -distance);
         org.thunderdog.challegram.Tgx101Diag.mark("jump: reloaded, glide in " + distance + " px");
         tgx101AutoScrolling = true;
-        list.smoothScrollBy(0, distance, TGX101_GLIDE, 360);
+        list.smoothScrollBy(0, distance, TGX101_GLIDE, 460);
         return true;
       }
     });
@@ -3736,6 +3737,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         TGMessage bottom = findBottomMessage();
         tgx101ResetGlide = bottom == null ? 0 : messageId.getMessageId() < bottom.getId() ? -1 : 1;
       }
+      org.thunderdog.challegram.Tgx101Diag.mark("jump: not loaded, reload around it (smooth " + allowSmooth + ", mode " + highlightMode + ", glide " + tgx101ResetGlide + ")");
       resetByMessage(messageId, highlightMode);
     } else {
       if ((highlightMode == HIGHLIGHT_MODE_UNREAD_NEXT || highlightMode == HIGHLIGHT_MODE_NORMAL_NEXT) && index > 0) {
