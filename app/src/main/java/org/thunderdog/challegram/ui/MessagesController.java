@@ -11352,7 +11352,85 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
+  // TGx101 (user 2026-10-16 «калькулятор в поле ввода, как на iPhone»): the field holds a sum — its result rides
+  // above the field at the right; a tap writes « = 41» after it (or the answer after a typed «=»), a long press copies it
+
+  private TextView tgx101CalcChip;
+  private String tgx101CalcResult;
+  private final android.view.ViewTreeObserver.OnPreDrawListener tgx101CalcFollow = () -> {
+    tgx101PlaceCalcChip();
+    return true;
+  };
+
+  private void tgx101UpdateCalc (CharSequence text) {
+    String result = org.thunderdog.challegram.tool.Tgx101Calc.evaluate(text);
+    if (result != null && (contentView == null || bottomWrap == null)) result = null;
+    if (result == null) {
+      if (tgx101CalcChip != null && tgx101CalcChip.getVisibility() == View.VISIBLE) {
+        tgx101CalcChip.animate().cancel();
+        tgx101CalcChip.animate().alpha(0f).setDuration(120).withEndAction(() -> tgx101CalcChip.setVisibility(View.GONE)).start();
+        contentView.getViewTreeObserver().removeOnPreDrawListener(tgx101CalcFollow);
+      }
+      tgx101CalcResult = null;
+      return;
+    }
+    tgx101CalcResult = result;
+    if (tgx101CalcChip == null) {
+      tgx101CalcChip = new TextView(context());
+      tgx101CalcChip.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
+      tgx101CalcChip.setTypeface(Fonts.getRobotoMedium());
+      tgx101CalcChip.setTextColor(0xffffffff);
+      tgx101CalcChip.setGravity(Gravity.CENTER);
+      tgx101CalcChip.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);
+      android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+      bg.setColor(Theme.getColor(ColorId.fillingPositive));
+      bg.setCornerRadius(Screen.dp(18f));
+      tgx101CalcChip.setBackground(bg);
+      if (Build.VERSION.SDK_INT >= 21) tgx101CalcChip.setElevation(Screen.dp(3f));
+      Views.setClickable(tgx101CalcChip);
+      tgx101CalcChip.setOnClickListener(v -> {
+        if (inputView == null || tgx101CalcResult == null) return;
+        String now = inputView.getText().toString();
+        String add = now.trim().endsWith("=") ? (now.endsWith(" ") ? "" : " ") + tgx101CalcResult : " = " + tgx101CalcResult;
+        inputView.getText().append(add);
+        inputView.setSelection(inputView.getText().length());
+        org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
+      });
+      tgx101CalcChip.setOnLongClickListener(v -> {
+        if (tgx101CalcResult != null) UI.copyText(tgx101CalcResult, R.string.CopiedText);
+        return true;
+      });
+      RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(36f));
+      lp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+      lp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+      lp.rightMargin = Screen.dp(12f);
+      contentView.addView(tgx101CalcChip, lp);
+      tgx101CalcChip.setVisibility(View.GONE);
+    }
+    tgx101CalcChip.setText("= " + result);
+    if (tgx101CalcChip.getVisibility() != View.VISIBLE) {
+      tgx101CalcChip.setVisibility(View.VISIBLE);
+      tgx101CalcChip.setAlpha(0f);
+      tgx101CalcChip.animate().cancel();
+      tgx101CalcChip.animate().alpha(1f).setDuration(150).start();
+      contentView.getViewTreeObserver().removeOnPreDrawListener(tgx101CalcFollow);
+      contentView.getViewTreeObserver().addOnPreDrawListener(tgx101CalcFollow);
+      tgx101PlaceCalcChip();
+    }
+  }
+
+  /** just above the field, wherever the keyboard or the floating field put it */
+  private void tgx101PlaceCalcChip () {
+    if (tgx101CalcChip == null || tgx101CalcChip.getVisibility() != View.VISIBLE || bottomWrap == null) return;
+    int[] at = new int[2], root = new int[2];
+    bottomWrap.getLocationOnScreen(at);
+    contentView.getLocationOnScreen(root);
+    float y = (at[1] - root[1]) - Screen.dp(8f) - contentView.getHeight();
+    if (tgx101CalcChip.getTranslationY() != y) tgx101CalcChip.setTranslationY(y);
+  }
+
   public void onInputTextChange (CharSequence charSequence, boolean byUserAction) {
+    tgx101UpdateCalc(charSequence);
     if (byUserAction && charSequence != null && charSequence.length() > 0 && !tgx101TypingHidesArrow) {
       tgx101TypingHidesArrow = true;
       if (manager != null) manager.checkScrollToBottomButton(); // TGx101: typing hides the arrow
