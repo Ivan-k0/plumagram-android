@@ -1753,6 +1753,7 @@
   <item name="btn_tgx101SavedSwitch" type="id"/>
   <item name="btn_tgx101SavedSwitchReset" type="id"/>
   <item name="btn_tgx101SavedSettingsOpen" type="id"/>
+  <item name="btn_tgx101SavedFolderView" type="id"/>
   <item name="controller_tgx101Backup" type="id"/>
   <item name="btn_tgx101Backup" type="id"/>
   <item name="btn_tgx101BackupDownloads" type="id"/>

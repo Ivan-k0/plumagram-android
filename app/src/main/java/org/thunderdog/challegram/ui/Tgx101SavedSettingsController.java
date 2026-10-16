@@ -67,6 +67,8 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
           view.setData(Lang.getString(sheetName(s.sheetMode)));
         } else if (id == R.id.btn_tgx101SavedOpen) {
           view.setData(Lang.getString(s.openMode == Tgx101SavedStore.OPEN_FEED ? R.string.Tgx101SavedOpenFeed : R.string.Tgx101SavedOpenHome));
+        } else if (id == R.id.btn_tgx101SavedFolderView) {
+          view.setData(Lang.getString(s.folderView == Tgx101SavedStore.VIEW_TILES ? R.string.Tgx101SavedFolderViewTiles : R.string.Tgx101SavedFolderViewCapsules));
         } else if (id == R.id.btn_tgx101SavedStorageOn) {
           view.getToggler().setRadioEnabled(s.storageOn, isUpdate);
         } else if (id == R.id.btn_tgx101SavedSwitch) {
@@ -105,6 +107,8 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
 
     items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101SavedHomeSection));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101SavedFolderView, 0, R.string.Tgx101SavedFolderView));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SavedInboxTile, 0, R.string.Tgx101SavedInboxTileSetting));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SavedShowPinned, 0, R.string.Tgx101SavedShowPinnedSetting));
@@ -144,6 +148,14 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
           s.openMode = optionId == R.id.btn_edit ? Tgx101SavedStore.OPEN_FEED : Tgx101SavedStore.OPEN_HOME;
           s.save();
           adapter.updateValuedSettingById(R.id.btn_tgx101SavedOpen);
+          return true;
+        });
+    } else if (id == R.id.btn_tgx101SavedFolderView) {
+      showOptions(Lang.getString(R.string.Tgx101SavedFolderView), new int[] {R.id.btn_done, R.id.btn_edit},
+        new String[] {Lang.getString(R.string.Tgx101SavedFolderViewCapsules), Lang.getString(R.string.Tgx101SavedFolderViewTiles)}, null, null, (itemView, optionId) -> {
+          s.folderView = optionId == R.id.btn_edit ? Tgx101SavedStore.VIEW_TILES : Tgx101SavedStore.VIEW_CAPSULES;
+          s.save();
+          adapter.updateValuedSettingById(R.id.btn_tgx101SavedFolderView);
           return true;
         });
     } else if (id == R.id.btn_tgx101SavedStorageOn) {

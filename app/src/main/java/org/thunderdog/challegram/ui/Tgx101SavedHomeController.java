@@ -114,6 +114,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   private LinearLayout column;
   private LinearLayout chips;
   private LinearLayout tiles;
+  private TextView foldersTitle;
   private LinearLayout pinnedRow;
   private View pinnedSection;
   private DragList recentList;
@@ -266,7 +267,8 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     column.addView(chipsScroll);
 
     // folders and tags
-    column.addView(sectionTitle(context, Lang.getString(R.string.Tgx101SavedFoldersAndTags)));
+    foldersTitle = sectionTitle(context, Lang.getString(R.string.Tgx101SavedFoldersAndTags));
+    column.addView(foldersTitle);
     tiles = new LinearLayout(context);
     tiles.setOrientation(LinearLayout.VERTICAL);
     tiles.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
@@ -641,7 +643,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
 
   /** what the tiles show, to rebuild them only when it changed (no flicker on every return) */
   private String tilesSignature (Tgx101SavedStore store) {
-    StringBuilder b = new StringBuilder().append(store.inboxTile).append('|').append(Theme.getColor(ColorId.filling));
+    StringBuilder b = new StringBuilder().append(store.inboxTile).append('|').append(store.folderView).append('|').append(Theme.getColor(ColorId.filling));
     for (Tgx101SavedStore.Folder f : store.folders()) if (f.onHome) b.append('|').append(f.id).append(':').append(f.name).append(':').append(f.messageIds.size()).append(':').append(f.color()).append(':').append(f.shareChatId);
     for (String tag : store.homeTags()) b.append("|#").append(tag);
     for (java.util.Map.Entry<String, Integer> e : reactionCounts.entrySet()) b.append("|r").append(e.getKey()).append(e.getValue());
@@ -667,6 +669,11 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       });
     }
     tiles.removeAllViews();
+    if (store.folderView == Tgx101SavedStore.VIEW_CAPSULES) {
+      buildCapsules(store);
+      return;
+    }
+    foldersTitle.setText(Lang.getString(R.string.Tgx101SavedFoldersAndTags));
     java.util.List<View> cells = new java.util.ArrayList<>();
     if (store.inboxTile) {
       cells.add(tile(R.drawable.baseline_archive_24, null, Lang.getString(R.string.Tgx101SavedInbox), Lang.getString(R.string.Tgx101SavedInboxHint), accent(),
@@ -685,13 +692,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       cells.add(tile(0, "#", tag, Lang.getString(R.string.Tgx101SavedTagTile), 0xffb53c57,
         v -> Tgx101SavedListController.openTag(this, tag),
         v -> {
-          showOptions(null, new int[] {R.id.btn_delete, R.id.btn_cancel}, new String[] {Lang.getString(R.string.Tgx101SavedRemoveFromHome), Lang.getString(R.string.Cancel)}, new int[] {OptionColor.NORMAL, OptionColor.NORMAL}, new int[] {R.drawable.baseline_close_24, R.drawable.baseline_cancel_24}, (itemView, id) -> {
-            if (id == R.id.btn_delete) {
-              Tgx101SavedStore.get(tdlib).setTagOnHome(tag, false);
-              buildTiles();
-            }
-            return true;
-          });
+          tagOptions(tag);
           return true;
         }));
     }
@@ -717,6 +718,175 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, Screen.dp(98f), 1f);
       p.setMargins(Screen.dp(4f), Screen.dp(4f), Screen.dp(4f), Screen.dp(4f));
       row.addView(new View(context), p); // keeps the last row's tiles the same width
+    }
+  }
+
+  private void tagOptions (String tag) {
+    showOptions(null, new int[] {R.id.btn_delete, R.id.btn_cancel}, new String[] {Lang.getString(R.string.Tgx101SavedRemoveFromHome), Lang.getString(R.string.Cancel)}, new int[] {OptionColor.NORMAL, OptionColor.NORMAL}, new int[] {R.drawable.baseline_close_24, R.drawable.baseline_cancel_24}, (itemView, id) -> {
+      if (id == R.id.btn_delete) {
+        Tgx101SavedStore.get(tdlib).setTagOnHome(tag, false);
+        buildTiles();
+      }
+      return true;
+    });
+  }
+
+  // Capsules (approved mockup «Папки Хранилища», 5; user 2026-10-16 «капсулы — под наше фирменное закругление»)
+
+  /** the corner of the chats' field and menus (18 dp on a ~48 dp capsule), on a 34 dp capsule */
+  private static final float CAPSULE_HEIGHT = 34f, CAPSULE_RADIUS = 12.5f;
+
+  /** folders as capsules one after another, wrapping like tags; then tags and reactions the same way */
+  private void buildCapsules (Tgx101SavedStore store) {
+    foldersTitle.setText(Lang.getString(R.string.Tgx101SavedFoldersTitle));
+    CapsuleFlow folders = new CapsuleFlow(context);
+    if (store.inboxTile) {
+      ImageView inbox = new ImageView(context);
+      inbox.setImageResource(R.drawable.baseline_archive_24);
+      inbox.setColorFilter(accent());
+      folders.addView(capsule(inbox, Lang.getString(R.string.Tgx101SavedInbox), null, Theme.fillingColor(),
+        v -> Tgx101SavedListController.openInbox(this), null));
+    }
+    for (Tgx101SavedStore.Folder f : store.folders()) {
+      if (!f.onHome) continue;
+      int color = f.color();
+      View swatch = new View(context);
+      swatch.setBackground(card(color, 3f));
+      int[] copying = Tgx101FolderShare.progressOf(f.id);
+      String count = copying != null ? copying[0] + "/" + copying[1] : String.valueOf(f.messageIds.size()); // copying a shared folder: done/all
+      folders.addView(capsule(swatch, f.isShared() ? f.name + "  ↗" : f.name, count, Theme.isDark() ? tint(color, .30f) : tint(color, .14f),
+        v -> Tgx101SavedListController.openFolder(this, f.id),
+        v -> {
+          folderOptions(f);
+          return true;
+        }));
+    }
+    // «+ New»: a dashed capsule
+    TextView add = text(context, 13.5f, accent(), true);
+    add.setText("+ " + Lang.getString(R.string.Tgx101SavedNew));
+    add.setGravity(Gravity.CENTER_VERTICAL);
+    add.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
+    GradientDrawable dashed = new GradientDrawable();
+    dashed.setCornerRadius(Screen.dp(CAPSULE_RADIUS));
+    dashed.setStroke(Screen.dp(1.5f), Theme.separatorColor(), Screen.dp(6f), Screen.dp(4f));
+    add.setBackground(dashed);
+    Views.setClickable(add);
+    add.setOnClickListener(v -> Tgx101SavedActions.newFolderOrTag(this, this::buildTiles));
+    folders.addView(add, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(CAPSULE_HEIGHT)));
+    tiles.addView(folders, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+    CapsuleFlow marks = new CapsuleFlow(context);
+    for (String tag : store.homeTags()) {
+      TextView hash = text(context, 14f, 0xffb53c57, true);
+      hash.setText("#");
+      marks.addView(capsule(hash, tag, null, Theme.fillingColor(),
+        v -> Tgx101SavedListController.openTag(this, tag),
+        v -> {
+          tagOptions(tag);
+          return true;
+        }));
+    }
+    for (java.util.Map.Entry<String, Integer> e : reactionCounts.entrySet()) {
+      if (e.getValue() <= 0) continue;
+      final String emoji = e.getKey();
+      marks.addView(capsule(null, emoji, String.valueOf(e.getValue()), Theme.fillingColor(),
+        v -> Tgx101SavedListController.openReaction(this, emoji), null));
+    }
+    if (marks.getChildCount() > 0) {
+      TextView title = sectionTitle(context, Lang.getString(R.string.Tgx101SavedTagsAndReactions));
+      title.setPadding(Screen.dp(4f), Screen.dp(14f), Screen.dp(4f), Screen.dp(6f)); // the column is already 12 dp in
+      tiles.addView(title);
+      tiles.addView(marks, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    }
+  }
+
+  /** one capsule: a sign (colour square, «#», an icon), the name, the count; the whole capsule is one press */
+  private View capsule (@Nullable View sign, CharSequence name, @Nullable String count, int background, View.OnClickListener click, @Nullable View.OnLongClickListener longClick) {
+    LinearLayout c = new LinearLayout(context);
+    c.setOrientation(LinearLayout.HORIZONTAL);
+    c.setGravity(Gravity.CENTER_VERTICAL);
+    c.setPadding(Screen.dp(sign != null ? 10f : 12f), 0, Screen.dp(12f), 0);
+    c.setBackground(card(background, CAPSULE_RADIUS));
+    c.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(CAPSULE_HEIGHT)));
+    Views.setClickable(c);
+    c.setOnClickListener(click);
+    if (longClick != null) c.setOnLongClickListener(longClick);
+    if (sign != null) {
+      boolean square = !(sign instanceof TextView) && !(sign instanceof ImageView);
+      LinearLayout.LayoutParams sp = square ? new LinearLayout.LayoutParams(Screen.dp(9f), Screen.dp(9f))
+        : new LinearLayout.LayoutParams(sign instanceof ImageView ? Screen.dp(16f) : ViewGroup.LayoutParams.WRAP_CONTENT, sign instanceof ImageView ? Screen.dp(16f) : ViewGroup.LayoutParams.WRAP_CONTENT);
+      sp.rightMargin = Screen.dp(square ? 7f : 4f);
+      c.addView(sign, sp);
+    }
+    TextView n = text(context, 13.5f, Theme.textAccentColor(), true);
+    n.setText(Tgx101SavedKit.emoji(name));
+    n.setSingleLine(true);
+    n.setEllipsize(TextUtils.TruncateAt.END);
+    n.setMaxWidth(Screen.currentWidth() - Screen.dp(120f)); // a long name ends with «…», the capsule never leaves the screen
+    c.addView(n);
+    if (count != null) {
+      TextView k = text(context, 12f, Theme.textDecentColor(), false);
+      k.setText(count);
+      k.setSingleLine(true);
+      LinearLayout.LayoutParams kp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      kp.leftMargin = Screen.dp(6f);
+      c.addView(k, kp);
+    }
+    return c;
+  }
+
+  /** children one after another, onto the next line when a row is full, with even gaps; right to left in RTL */
+  private static final class CapsuleFlow extends ViewGroup {
+    private final int gap = Screen.dp(6f);
+
+    CapsuleFlow (Context context) {
+      super(context);
+      setPadding(Screen.dp(4f), Screen.dp(4f), Screen.dp(4f), Screen.dp(4f));
+    }
+
+    @Override
+    protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
+      int width = MeasureSpec.getSize(widthMeasureSpec);
+      int inner = width - getPaddingLeft() - getPaddingRight();
+      int x = 0, y = 0, rowHeight = 0;
+      for (int i = 0; i < getChildCount(); i++) {
+        View child = getChildAt(i);
+        if (child.getVisibility() == GONE) continue;
+        ViewGroup.LayoutParams lp = child.getLayoutParams();
+        int hSpec = lp != null && lp.height > 0 ? MeasureSpec.makeMeasureSpec(lp.height, MeasureSpec.EXACTLY) : MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED);
+        child.measure(MeasureSpec.makeMeasureSpec(inner, MeasureSpec.AT_MOST), hSpec);
+        int w = child.getMeasuredWidth(), h = child.getMeasuredHeight();
+        if (x > 0 && x + w > inner) {
+          x = 0;
+          y += rowHeight + gap;
+          rowHeight = 0;
+        }
+        x += w + gap;
+        rowHeight = Math.max(rowHeight, h);
+      }
+      setMeasuredDimension(width, y + rowHeight + getPaddingTop() + getPaddingBottom());
+    }
+
+    @Override
+    protected void onLayout (boolean changed, int l, int t, int r, int b) {
+      int inner = r - l - getPaddingLeft() - getPaddingRight();
+      boolean rtl = Lang.rtl();
+      int x = 0, y = 0, rowHeight = 0;
+      for (int i = 0; i < getChildCount(); i++) {
+        View child = getChildAt(i);
+        if (child.getVisibility() == GONE) continue;
+        int w = child.getMeasuredWidth(), h = child.getMeasuredHeight();
+        if (x > 0 && x + w > inner) {
+          x = 0;
+          y += rowHeight + gap;
+          rowHeight = 0;
+        }
+        int left = rtl ? getPaddingLeft() + inner - x - w : getPaddingLeft() + x;
+        int top = getPaddingTop() + y;
+        child.layout(left, top, left + w, top + h);
+        x += w + gap;
+        rowHeight = Math.max(rowHeight, h);
+      }
     }
   }
 

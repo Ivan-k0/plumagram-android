@@ -6914,6 +6914,11 @@
   <string name="Tgx101SavedFolder">Folder</string>
   <string name="Tgx101SavedFolderEmpty">The folder is empty. Select messages and tap «To folder».</string>
   <string name="Tgx101SavedFoldersAndTags">Folders and tags</string>
+  <string name="Tgx101SavedFoldersTitle">Folders</string>
+  <string name="Tgx101SavedTagsAndReactions">Tags and reactions</string>
+  <string name="Tgx101SavedFolderView">Folders look</string>
+  <string name="Tgx101SavedFolderViewCapsules">Capsules</string>
+  <string name="Tgx101SavedFolderViewTiles">Tiles</string>
   <string name="Tgx101SavedForward">Forward</string>
   <string name="Tgx101SavedInbox">Inbox</string>
   <string name="Tgx101SavedInboxEmpty">Everything is sorted into folders.</string>

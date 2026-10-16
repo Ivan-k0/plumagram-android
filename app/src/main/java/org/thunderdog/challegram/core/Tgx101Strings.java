@@ -668,6 +668,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedFolder, "Папка");
     RU.put(R.string.Tgx101SavedFolderEmpty, "Папка пуста. Выберите сообщения и нажмите «В папку».");
     RU.put(R.string.Tgx101SavedFoldersAndTags, "Папки и метки");
+    RU.put(R.string.Tgx101SavedFoldersTitle, "Папки");
+    RU.put(R.string.Tgx101SavedTagsAndReactions, "Метки и реакции");
+    RU.put(R.string.Tgx101SavedFolderView, "Вид папок");
+    RU.put(R.string.Tgx101SavedFolderViewCapsules, "Капсулы");
+    RU.put(R.string.Tgx101SavedFolderViewTiles, "Плитки");
     RU.put(R.string.Tgx101SavedForward, "Переслать");
     RU.put(R.string.Tgx101SavedInbox, "Входящие");
     RU.put(R.string.Tgx101SavedInboxEmpty, "Всё разложено по папкам.");

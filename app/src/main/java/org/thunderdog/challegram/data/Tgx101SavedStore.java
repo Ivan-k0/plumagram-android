@@ -41,6 +41,8 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
 
   public static final int SHEET_ALWAYS = 0, SHEET_EXTERNAL_ONLY = 1, SHEET_NEVER = 2;
   public static final int OPEN_HOME = 0, OPEN_FEED = 1;
+  /** how the folders look on the storage's home screen (user 2026-10-16: capsules first, the tiles stay to choose) */
+  public static final int VIEW_TILES = 0, VIEW_CAPSULES = 1;
 
   public static final int[] FOLDER_COLORS = {0xff3f7cad, 0xffc0662a, 0xff2e8a4a, 0xff7c4fb0, 0xffb53c57, 0xff2a8c8c, 0xff8a7a2a};
 
@@ -241,6 +243,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   public boolean hashtagOwn = true;
   /** words on the selection panel's buttons (off: signs only) */
   public boolean panelLabels = true;
+  public int folderView = VIEW_CAPSULES;
   /** (user 2026-10-16) off: Saved Messages is the usual chat — no storage screen, button or pull to it; the folders stay */
   public boolean storageOn = true;
   /** the round «chat ↔ storage» button (approved mockup 8 А) */
@@ -582,6 +585,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       o.put("pinned", showPinned);
       o.put("hashtag", hashtagOwn);
       o.put("panelLabels", panelLabels);
+      o.put("folderView", folderView);
       o.put("storageOn", storageOn);
       o.put("switchButton", switchButton);
       for (int i = 0; i < 2; i++) {
@@ -660,6 +664,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       showPinned = o.optBoolean("pinned", true);
       hashtagOwn = o.optBoolean("hashtag", true);
       panelLabels = o.optBoolean("panelLabels", true);
+      folderView = o.optInt("folderView", VIEW_CAPSULES) == VIEW_TILES ? VIEW_TILES : VIEW_CAPSULES;
       storageOn = o.optBoolean("storageOn", true);
       switchButton = o.optBoolean("switchButton", true);
       for (int i = 0; i < 2; i++) {
