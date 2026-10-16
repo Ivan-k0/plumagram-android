@@ -821,7 +821,10 @@ android {
         workingDir(rootDir)
       }.standardOutput.asText.get().trim().toIntOrNull() ?: 0
       require(modBuild in 0..999) { "modBuild out of range: $modBuild" }
-      val modVersion = "0.1"
+      // 0.2 began at mod build 848 (2026-10-16): the shown number is 0.2.<builds since then>; versionCode keeps the full count.
+      val modVersion = "0.2"
+      val modPatch = modBuild - 848
+      require(modPatch >= 0) { "modBuild below the 0.2 start: $modBuild" }
 
       var baseVersionCode: Int? = null
       var baseVersionName: String? = null
@@ -834,7 +837,7 @@ android {
 
         baseVersionName = output.versionName.get()
         // TGx101's own version, shown in the app; the upstream base version stays in ORIGINAL_VERSION_NAME.
-        val modifiedVersionName = "$modVersion.$modBuild${flavorVersionNameSuffix.replace(Regex("-universal(?=-|$)"), "")}"
+        val modifiedVersionName = "$modVersion.$modPatch${flavorVersionNameSuffix.replace(Regex("-universal(?=-|$)"), "")}"
         output.versionName.set(modifiedVersionName)
 
         fileName = "TGx101-$modVersion${flavorVersionNameSuffix.replace(Regex("-universal(?=-|$)"), "")}"
