@@ -1516,7 +1516,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
       date.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 10.5f);
       date.setSingleLine(true);
       info.addView(date);
-      reaction = new TextView(context);
+      reaction = new org.thunderdog.challegram.widget.EmojiTextView(context); // the app's emoji, as in the chats
       reaction.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 12f);
       reaction.setPadding(Screen.dp(4f), 0, 0, 0);
       info.addView(reaction);

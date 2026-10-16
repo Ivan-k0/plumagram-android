@@ -120,25 +120,37 @@ public final class Tgx101StorageSwitch extends View {
 
   /** (user 2026-10-16 «когда открыта клавиатура — плавающая кнопка не нужна») */
   public void setKeyboardShown (boolean visible) {
+    // (user 2026-10-16 again «перестала появляться»: hidden for a keyboard that never really came — a false «shown» at
+    // the start, and the «hidden» never followed) Android 11+ tells for sure whether the keyboard is on screen
+    if (visible && !imeReallyVisible()) visible = false;
     if (keyboardShown != visible) {
       keyboardShown = visible;
+      org.thunderdog.challegram.Tgx101Diag.mark("storage switch: keyboard " + (visible ? "up" : "down"));
       updateVisibility();
     }
   }
 
+  private boolean imeReallyVisible () {
+    if (android.os.Build.VERSION.SDK_INT < 30) return true; // older ones: trust the screen's own keyboard tracking
+    android.view.WindowInsets insets = getRootWindowInsets();
+    return insets == null || insets.isVisible(android.view.WindowInsets.Type.ime());
+  }
+
   /** shown while the storage and the button are on and the keyboard is down; comes and goes smoothly, as in the storage */
   public void updateVisibility () {
+    if (keyboardShown && !imeReallyVisible()) keyboardShown = false; // no keyboard on screen after all
     Tgx101SavedStore s = store();
     boolean show = s.storageOn && s.switchButton && !keyboardShown;
     if (show == shown) return;
+    org.thunderdog.challegram.Tgx101Diag.mark("storage switch: " + (show ? "shown" : "hidden") + " (" + (where == IN_CHAT ? "chat" : "storage") + ", storage " + s.storageOn + ", button " + s.switchButton + ", keyboard " + keyboardShown + ")");
     shown = show;
     if (show) {
       if (getVisibility() != VISIBLE) {
         setVisibility(VISIBLE);
+        place(false); // first in its place, then it fades in there
         setAlpha(0f);
         setScaleX(.7f);
         setScaleY(.7f);
-        place(false);
       }
       animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(220).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).withEndAction(null).start();
     } else {
@@ -175,9 +187,18 @@ public final class Tgx101StorageSwitch extends View {
     if (animated) {
       animate().translationX(x).translationY(y).setDuration(220).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
     } else {
+      // (2026-10-16: the button stayed invisible) cancelling stopped its fade-in at alpha 0 as well — what it was
+      // fading to is set at once
       animate().cancel();
       setTranslationX(x);
       setTranslationY(y);
+      if (shown) {
+        setAlpha(1f);
+        setScaleX(1f);
+        setScaleY(1f);
+      } else if (getVisibility() == VISIBLE) {
+        setVisibility(GONE);
+      }
     }
   }
 
@@ -359,7 +380,14 @@ public final class Tgx101StorageSwitch extends View {
     }
     // (user 2026-10-16 «полупрозрачными, как поле ввода или стрелка»): the chats' «down» arrow — a see-through light circle
     paint.setColor(me.vkryl.core.ColorUtils.alphaColor(.9f, org.thunderdog.challegram.theme.Theme.fillingColor()));
-    c.drawCircle(r, r, r - (android.os.Build.VERSION.SDK_INT < 21 ? Screen.dp(1f) : 0), paint);
+    float body = r - (android.os.Build.VERSION.SDK_INT < 21 ? Screen.dp(1f) : 0);
+    c.drawCircle(r, r, body, paint);
+    // a hairline round it, as the field: it doesn't melt into a dark list
+    paint.setStyle(Paint.Style.STROKE);
+    paint.setStrokeWidth(Math.max(1, Screen.dp(.5f)));
+    paint.setColor(org.thunderdog.challegram.theme.Theme.separatorColor());
+    c.drawCircle(r, r, body - paint.getStrokeWidth() / 2f, paint);
+    paint.setStyle(Paint.Style.FILL);
     final int iconColor = Tgx101SavedHomeController.accent();
     if (where == IN_CHAT) {
       // the storage: four tiles

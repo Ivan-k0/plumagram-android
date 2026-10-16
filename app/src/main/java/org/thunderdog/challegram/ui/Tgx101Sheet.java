@@ -308,7 +308,7 @@ public final class Tgx101Sheet {
       p.rightMargin = Screen.dp(18f);
       row.addView(icon, p);
     }
-    android.widget.TextView label = new android.widget.TextView(context);
+    android.widget.TextView label = new org.thunderdog.challegram.widget.EmojiTextView(context); // reactions in the app's emoji
     label.setText(text);
     label.setTextColor(Theme.textAccentColor());
     label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16f);

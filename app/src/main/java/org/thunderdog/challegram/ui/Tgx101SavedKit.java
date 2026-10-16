@@ -492,7 +492,9 @@ public final class Tgx101SavedKit {
   // for the star of the mockup
   /** (user 2026-10-16 «реакции — в обычном стиле Telegram»): reactions drawn with the app's own emoji, as in the chats, not the phone's font */
   public static CharSequence emoji (@Nullable CharSequence s) {
-    return s == null || s.length() == 0 ? s : org.thunderdog.challegram.emoji.Emoji.instance().replaceEmoji(s);
+    // the storage's texts are EmojiTextViews: they draw the app's emoji themselves and redraw them once loaded
+    // (replaced spans in a plain TextView stayed blank until something redrew it)
+    return s;
   }
 
   public static final String[] QUICK_REACTIONS = {"❤", "🔥", "👍", "⚡"};

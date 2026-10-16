@@ -188,7 +188,8 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   }
 
   static TextView text (Context context, float sp, int color, boolean medium) {
-    TextView v = new TextView(context);
+    // the app's own emoji (as in the chats), redrawn when their pictures are ready — a plain TextView left them blank
+    TextView v = new org.thunderdog.challegram.widget.EmojiTextView(context);
     v.setTextSize(TypedValue.COMPLEX_UNIT_DIP, sp);
     v.setTextColor(color);
     if (medium) v.setTypeface(Fonts.getRobotoMedium());
@@ -324,7 +325,13 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     // (user 2026-10-16 «как в чатах»): a floating capsule 8 dp off the edges and the bottom, corners like the chats' field;
     // the buttons stay at the bottom while the text grows
     bar.setGravity(Gravity.BOTTOM);
-    bar.setBackground(bubble(false));
+    // (user 2026-10-16 «поле ввода в хранилище сливается с фоном»): as the chats' field — the filling colour with a
+    // hairline round it and a soft shadow, so it stands off the list in a dark theme too
+    GradientDrawable barBg = new GradientDrawable();
+    barBg.setColor(Theme.fillingColor());
+    barBg.setCornerRadius(Screen.dp(18f));
+    barBg.setStroke(Math.max(1, Screen.dp(.5f)), Theme.separatorColor());
+    bar.setBackground(barBg);
     bar.setPadding(Screen.dp(2f), Screen.dp(2f), Screen.dp(2f), Screen.dp(2f));
     rootView = root;
     outerView = outer;
@@ -431,7 +438,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
         column.setPadding(column.getPaddingLeft(), column.getPaddingTop(), column.getPaddingRight(), bottom);
       }
     });
-    if (android.os.Build.VERSION.SDK_INT >= 21) bar.setElevation(Screen.dp(2f));
+    if (android.os.Build.VERSION.SDK_INT >= 21) bar.setElevation(Screen.dp(4f));
     storageSwitch = new Tgx101StorageSwitch(context, this, Tgx101StorageSwitch.IN_STORAGE, new Tgx101StorageSwitch.Host() {
       @Override
       public int bottomReserved () {
@@ -781,8 +788,18 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       swatch.setBackground(card(color, 3f));
       int[] copying = Tgx101FolderShare.progressOf(f.id);
       String count = copying != null ? copying[0] + "/" + copying[1] : String.valueOf(f.messageIds.size()); // copying a shared folder: done/all
-      View c = capsule(swatch, f.isShared() ? f.name + "  ↗" : f.name, count, Theme.isDark() ? tint(color, .30f) : tint(color, .14f),
+      View c = capsule(swatch, f.name, count, Theme.isDark() ? tint(color, .30f) : tint(color, .14f),
         v -> Tgx101SavedListController.openFolder(this, f.id), null);
+      if (f.isShared()) {
+        // the «shared» sign: a small icon after the name (a «↗» became an emoji key in the app's emoji)
+        ImageView sharedSign = new ImageView(context);
+        sharedSign.setImageResource(R.drawable.baseline_share_24);
+        sharedSign.setColorFilter(Theme.textDecentColor());
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(Screen.dp(13f), Screen.dp(13f));
+        sp.leftMargin = Screen.dp(5f);
+        LinearLayout row = (LinearLayout) c;
+        row.addView(sharedSign, row.getChildCount() - 1, sp); // before the count
+      }
       c.setTag(f.id); // held: lifted and carried by the flow; held still: the folder's menu
       folders.addView(c);
     }
@@ -844,7 +861,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       c.addView(sign, sp);
     }
     TextView n = text(context, 13.5f, Theme.textAccentColor(), true);
-    n.setText(Tgx101SavedKit.emoji(name));
+    n.setText(name);
     n.setSingleLine(true);
     n.setEllipsize(TextUtils.TruncateAt.END);
     n.setMaxWidth(Screen.currentWidth() - Screen.dp(120f)); // a long name ends with «…», the capsule never leaves the screen
@@ -1152,7 +1169,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       return t;
     }
     if (f.isShared()) { // a small «shared» sign after the name
-      n.setText(name + "  ↗");
+      n.setText(name + "  ⇗"); // «⇗» is no emoji (a «↗» turned into an emoji key)
     }
     java.util.List<Long> ids = new java.util.ArrayList<>(f.messageIds);
     if (ids.isEmpty()) {
