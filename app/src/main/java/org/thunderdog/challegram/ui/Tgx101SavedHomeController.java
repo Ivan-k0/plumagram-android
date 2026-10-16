@@ -321,15 +321,20 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     LinearLayout.LayoutParams recentParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     recentParams.leftMargin = recentParams.rightMargin = Screen.dp(16f);
     column.addView(recentList, recentParams);
-    // (user 2026-10-17, about the end of «Recent»): «All» is at the end of the list, as our capsule
-    TextView all = text(context, 15f, onChosen(), true);
-    all.setText(Lang.getString(R.string.Tgx101SavedRecentMore)); // (user 2026-10-17) «Ещё»
-    all.setGravity(Gravity.CENTER);
-    all.setPadding(Screen.dp(28f), 0, Screen.dp(28f), 0);
-    all.setBackground(chosen(22f));
+    // (user 2026-10-17, about the end of «Recent»): «More» at the end of the list — bold three dots in an outlined
+    // capsule with the message field's corners, no fill
+    ImageView all = new ImageView(context);
+    all.setImageResource(R.drawable.tgx101_dots_bold_24);
+    all.setColorFilter(accent());
+    all.setScaleType(ImageView.ScaleType.CENTER);
+    all.setContentDescription(Lang.getString(R.string.Tgx101SavedRecentMore));
+    GradientDrawable outline = new GradientDrawable();
+    outline.setCornerRadius(Screen.dp(18f)); // the chats' field
+    outline.setStroke(Math.max(1, Screen.dp(1f)), Theme.separatorColor());
+    all.setBackground(outline);
     Views.setClickable(all);
     all.setOnClickListener(v -> Tgx101SavedListController.openKind(this, -1));
-    LinearLayout.LayoutParams allParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(44f));
+    LinearLayout.LayoutParams allParams = new LinearLayout.LayoutParams(Screen.dp(84f), Screen.dp(40f));
     allParams.gravity = Gravity.CENTER_HORIZONTAL;
     allParams.topMargin = Screen.dp(12f);
     column.addView(all, allParams);
