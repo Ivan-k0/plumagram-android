@@ -1198,6 +1198,21 @@ public class TGCallService extends Service implements
 
   private MediaPlayer ringtonePlayer;
   private Vibrator vibrator;
+
+  // TGx101 (as in the official app, 2026-09-16): on Android 13+ a ringing vibration from an app in the
+  // background is dropped unless it is marked as a ringtone one
+  private void ringVibrate (long[] pattern) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      try {
+        vibrator.vibrate(android.os.VibrationEffect.createWaveform(pattern, 0),
+          new android.os.VibrationAttributes.Builder().setUsage(android.os.VibrationAttributes.USAGE_RINGTONE).build());
+        return;
+      } catch (Throwable t) {
+        Log.e(Log.TAG_VOIP, "Ringtone vibration failed", t);
+      }
+    }
+    vibrator.vibrate(pattern, 0);
+  }
   private Notification incomingNotification;
 
   private boolean needShowIncomingNotification;
@@ -1413,10 +1428,10 @@ public class TGCallService extends Service implements
       if (vibrator != null) {
         switch (vibrateMode) {
           case TdlibNotificationManager.VIBRATE_MODE_SHORT:
-            vibrator.vibrate(TdlibNotificationManager.VIBRATE_CALL_SHORT_PATTERN, 0);
+            ringVibrate(TdlibNotificationManager.VIBRATE_CALL_SHORT_PATTERN);
             break;
           case TdlibNotificationManager.VIBRATE_MODE_LONG:
-            vibrator.vibrate(TdlibNotificationManager.VIBRATE_CALL_LONG_PATTERN, 0);
+            ringVibrate(TdlibNotificationManager.VIBRATE_CALL_LONG_PATTERN);
             break;
           default:
             // TGx101: like the official app, vibrate unless the phone is on silent; many firmwares
@@ -1429,7 +1444,7 @@ public class TGCallService extends Service implements
               ? tdlib.notifications().getCustomCallVibrateOnlyIfSilentForChat(callChatId)
               : tdlib.notifications().getCallVibrateOnlyIfSilent();
             if (silentOnly || (ringerAudio != null && ringerAudio.getRingerMode() != AudioManager.RINGER_MODE_SILENT) || tdlib.notifications().needVibrateWhenRinging()) {
-              vibrator.vibrate(TdlibNotificationManager.VIBRATE_CALL_LONG_PATTERN, 0);
+              ringVibrate(TdlibNotificationManager.VIBRATE_CALL_LONG_PATTERN);
             }
             break;
         }
