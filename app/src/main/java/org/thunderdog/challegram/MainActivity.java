@@ -810,7 +810,8 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     // "Open chat" row of a synced Telegram contact, tapped in a dialer or contacts app
 
     final String tgx101ContactType = intent.getType();
-    final boolean tgx101Call = TdlibPhoneBookSync.MIME_VOICE_CALL.equals(tgx101ContactType), tgx101Video = TdlibPhoneBookSync.MIME_VIDEO_CALL.equals(tgx101ContactType);
+    final boolean tgx101Call = TdlibPhoneBookSync.MIME_VOICE_CALL.equals(tgx101ContactType);
+    boolean tgx101Video = TdlibPhoneBookSync.MIME_VIDEO_CALL.equals(tgx101ContactType); // rows written before 0.1.810
     if (Intent.ACTION_VIEW.equals(action) && (TdlibPhoneBookSync.MIME_OPEN_CHAT.equals(tgx101ContactType) || tgx101Call || tgx101Video) && intent.getData() != null) {
       long userId = 0;
       // TGx101: any app may send this intent — read the user id only from a row of the system contacts
@@ -821,11 +822,12 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
         return false;
       }
       try (android.database.Cursor cursor = getContentResolver().query(tgx101Data,
-        new String[] {android.provider.ContactsContract.Data.DATA1, android.provider.ContactsContract.Data.MIMETYPE, android.provider.ContactsContract.RawContacts.ACCOUNT_TYPE}, null, null, null)) {
+        new String[] {android.provider.ContactsContract.Data.DATA1, android.provider.ContactsContract.Data.MIMETYPE, android.provider.ContactsContract.RawContacts.ACCOUNT_TYPE, android.provider.ContactsContract.Data.DATA4}, null, null, null)) {
         if (cursor != null && cursor.moveToFirst()
           && tgx101ContactType.equals(cursor.getString(1))
           && getString(R.string.contacts_account_type).equals(cursor.getString(2))) {
           userId = StringUtils.parseLong(cursor.getString(0));
+          if (tgx101Call && "video".equals(cursor.getString(3))) tgx101Video = true; // the video row has the call's type
         }
       } catch (Throwable t) {
         Log.e("Unable to read contact data: %s", t, intent.getData());
@@ -837,16 +839,17 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
         if (tgx101Call || tgx101Video) {
           // TGx101: «Audio call» / «Video call» rows of the phone's contact card — open the chat, then call
           final long callUserId = userId;
+          final boolean video = tgx101Video;
           handler.postDelayed(() -> {
             org.thunderdog.challegram.navigation.ViewController<?> c = navigation != null ? navigation.getCurrentStackItem() : null;
             if (c == null) return;
             // Always ask (the intent may come from any app, not only a tap in the contact card) — in the compact sheet
             // at the bottom, under the thumb (user 2026-10-15, variant 1)
-            Runnable call = () -> org.thunderdog.challegram.ui.Tgx101CallConfirmSheet.show(c, callUserId, tgx101Video, () -> {
-              if (tgx101Video) org.thunderdog.challegram.voip.Tgx101Video.requestVideoCall(callUserId);
+            Runnable call = () -> org.thunderdog.challegram.ui.Tgx101CallConfirmSheet.show(c, callUserId, video, () -> {
+              if (video) org.thunderdog.challegram.voip.Tgx101Video.requestVideoCall(callUserId);
               c.tdlib().context().calls().makeCall(c, callUserId, null, false);
             });
-            if (tgx101Video && !org.thunderdog.challegram.voip.Tgx101Video.hasCameraPermission()) {
+            if (video && !org.thunderdog.challegram.voip.Tgx101Video.hasCameraPermission()) {
               requestCustomPermissions(new String[] {android.Manifest.permission.CAMERA}, (code, permissions, grantResults, grantCount) -> call.run());
             } else {
               call.run();

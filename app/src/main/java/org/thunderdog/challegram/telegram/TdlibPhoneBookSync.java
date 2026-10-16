@@ -278,11 +278,15 @@ public class TdlibPhoneBookSync {
     ops.add(builder.build());
 
     // TGx101: «Audio call» and «Video call» rows next to «Message», as other messengers do
-    String[][] calls = {{MIME_VOICE_CALL, "call"}, {MIME_VIDEO_CALL, "video"}};
+    // (user 2026-10-16: «Video call» opened vivo's own Health app with its sport-route map) — vivo hands a type nobody
+    // chose «always» for to its system app, which takes any type; the video row has the call's type, which the user had
+    // already set to PlumaGram, and says «video» in DATA4
+    String[][] calls = {{MIME_VOICE_CALL, "call"}, {MIME_VOICE_CALL, "video"}};
     for (String[] call : calls) {
       builder = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI);
       builder.withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, rawContactOpIndex);
       builder.withValue(ContactsContract.Data.MIMETYPE, call[0]);
+      builder.withValue(ContactsContract.Data.DATA4, call[1]);
       builder.withValue(ContactsContract.Data.DATA1, String.valueOf(user.id));
       builder.withValue(ContactsContract.Data.DATA2, "PlumaGram");
       builder.withValue(ContactsContract.Data.DATA3, rowLabel(call[1].equals("call") ? org.thunderdog.challegram.R.string.Tgx101ContactVoiceCall : org.thunderdog.challegram.R.string.Tgx101ContactVideoCall, user));
@@ -331,8 +335,9 @@ public class TdlibPhoneBookSync {
   }
 
   private static String fingerprint (TdApi.User user) {
-    // «2» — the row set (message + audio + video call, 2026-10-06): old contacts are rewritten once with the new rows
-    return "2\u0001" + (user.firstName != null ? user.firstName : "") + "\u0001" + (user.lastName != null ? user.lastName : "") + "\u0001" + (user.phoneNumber != null ? user.phoneNumber : "");
+    // «2» — the row set (message + audio + video call, 2026-10-06); «3» — the video row with the call's type
+    // (2026-10-16): old contacts are rewritten once with the new rows
+    return "3\u0001" + (user.firstName != null ? user.firstName : "") + "\u0001" + (user.lastName != null ? user.lastName : "") + "\u0001" + (user.phoneNumber != null ? user.phoneNumber : "");
   }
 
   private void writeExactSet (Context context, List<TdApi.User> users) {
