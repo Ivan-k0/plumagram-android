@@ -1247,6 +1247,9 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     }
     ids.add(R.id.btn_edit); names.add(Lang.getString(R.string.Tgx101SavedRename)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_edit_24);
     ids.add(R.id.btn_tgx101SavedFolderColor); names.add(Lang.getString(R.string.Tgx101SavedFolderColor)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_palette_24);
+    if (!f.messageIds.isEmpty()) { // (user 2026-10-17) every record of the folder gets the tags at once
+      ids.add(R.id.btn_tgx101SavedFolderTags); names.add(Lang.getString(R.string.Tgx101SavedFolderTags)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_label_24);
+    }
     ids.add(R.id.btn_close); names.add(Lang.getString(R.string.Tgx101SavedRemoveFromHome)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_close_24);
     ids.add(R.id.btn_delete); names.add(Lang.getString(R.string.Tgx101SavedDeleteFolder)); colors.add(OptionColor.RED); icons.add(R.drawable.baseline_delete_24);
     int[] idArr = new int[ids.size()], colorArr = new int[ids.size()], iconArr = new int[ids.size()];
@@ -1271,6 +1274,10 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
           });
         } else if (id == R.id.btn_tgx101SavedFolderColor) {
           chooseFolderColor(f);
+        } else if (id == R.id.btn_tgx101SavedFolderTags) {
+          Tgx101SavedKit.byIds(tdlib, new java.util.ArrayList<>(f.messageIds), messages -> {
+            if (!isDestroyed() && !messages.isEmpty()) Tgx101SavedActions.tag(this, messages, this::buildTiles);
+          });
         } else if (id == R.id.btn_close) {
           store.setFolderOnHome(f.id, false);
           buildTiles();

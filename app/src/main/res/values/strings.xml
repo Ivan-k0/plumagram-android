@@ -6176,6 +6176,7 @@
   <string name="Tgx101SpeechSection">Speech recognition</string>
   <string name="Tgx101SpeechModel">Voice messages to text on the phone</string>
   <string name="Tgx101ToStorage">To the storage…</string>
+  <string name="Tgx101SavedFolderTags">Tags for the whole folder</string>
   <string name="Tgx101SpeechEngine">Who recognizes speech</string>
   <string name="Tgx101SpeechEngineTelegram">Telegram, the phone if it can\'t</string>
   <string name="Tgx101SpeechEngineDevice">The phone — the downloaded model</string>
