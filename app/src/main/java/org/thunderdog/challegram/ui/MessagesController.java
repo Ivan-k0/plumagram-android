@@ -11365,6 +11365,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private void tgx101UpdateCalc (CharSequence text) {
     String result = org.thunderdog.challegram.tool.Tgx101Calc.evaluate(text);
     if (result != null && (contentView == null || bottomWrap == null)) result = null;
+    if (result == null && text != null && tgx101CalcResult != null) {
+      String t = text.toString().trim();
+      // «12*3+» — still typing the sum: the last answer stays (test 2026-10-16: it went away and didn't come back)
+      if (!t.isEmpty() && "+-*/×÷x^(−".indexOf(t.charAt(t.length() - 1)) >= 0 && org.thunderdog.challegram.tool.Tgx101Calc.evaluate(t.substring(0, t.length() - 1)) != null) return;
+    }
     if (result == null) {
       if (tgx101CalcChip != null && tgx101CalcChip.getVisibility() == View.VISIBLE) {
         tgx101CalcChip.animate().cancel();
@@ -11408,10 +11413,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tgx101CalcChip.setVisibility(View.GONE);
     }
     tgx101CalcChip.setText("= " + result);
-    if (tgx101CalcChip.getVisibility() != View.VISIBLE) {
+    tgx101CalcChip.animate().cancel(); // a hide on its way (its end would take the chip away again)
+    if (tgx101CalcChip.getVisibility() != View.VISIBLE || tgx101CalcChip.getAlpha() < 1f) {
+      if (tgx101CalcChip.getVisibility() != View.VISIBLE) tgx101CalcChip.setAlpha(0f);
       tgx101CalcChip.setVisibility(View.VISIBLE);
-      tgx101CalcChip.setAlpha(0f);
-      tgx101CalcChip.animate().cancel();
       tgx101CalcChip.animate().alpha(1f).setDuration(150).start();
       contentView.getViewTreeObserver().removeOnPreDrawListener(tgx101CalcFollow);
       contentView.getViewTreeObserver().addOnPreDrawListener(tgx101CalcFollow);
