@@ -874,6 +874,12 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
           icons.append(R.drawable.baseline_bookmark_24);
         }
       }
+      // TGx101 (user 2026-10-17 «из Избранного — сортировать по хранилищу»): a folder, tags, a reaction for it
+      if (isSent && msg.tdlib().isSelfChat(msg.getChatId()) && m.getMessageTopicId() == null) {
+        ids.append(R.id.btn_tgx101ToStorage);
+        strings.append(R.string.Tgx101ToStorage);
+        icons.append(R.drawable.baseline_folder_24);
+      }
     }
 
     int moreOptions = 0;

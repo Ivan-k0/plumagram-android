@@ -341,6 +341,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101TranslateSection, "Перевод");
     RU.put(R.string.Tgx101SpeechSection, "Распознавание речи");
     RU.put(R.string.Tgx101SpeechModel, "Голосовые в текст на телефоне");
+    RU.put(R.string.Tgx101ToStorage, "В хранилище…");
     RU.put(R.string.Tgx101SpeechEngine, "Кто распознаёт речь");
     RU.put(R.string.Tgx101SpeechEngineTelegram, "Telegram, а если не может — телефон");
     RU.put(R.string.Tgx101SpeechEngineDevice, "Телефон — скачанная модель");

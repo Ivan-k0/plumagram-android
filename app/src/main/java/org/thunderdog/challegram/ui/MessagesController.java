@@ -4274,6 +4274,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
       header.addCopyButton(menu, this, iconColorId)
         .setVisibility((value = canCopySelectedMessages()) ? View.VISIBLE : View.GONE);
       if (value) totalButtonsCount++;
+      // TGx101 (user 2026-10-17): the selected Saved messages go to a folder / get tags at once
+      header.addButton(menu, R.id.menu_btn_tgx101ToStorage, R.drawable.baseline_folder_24, iconColorId, this, Screen.dp(52f))
+        .setVisibility((value = canTgx101StoreSelected()) ? View.VISIBLE : View.GONE);
+      if (value) totalButtonsCount++;
       header.addForwardButton(menu, this, iconColorId)
         .setVisibility((value = canShareSelectedMessages()) ? View.VISIBLE : View.GONE);
       if (value) totalButtonsCount++;
@@ -4407,6 +4411,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
     } else if (id == R.id.menu_btn_viewScheduled) {
       viewScheduledMessages(false);
+    } else if (id == R.id.menu_btn_tgx101ToStorage) {
+      if (selectedMessageIds != null && selectedMessageIds.size() > 0) {
+        java.util.List<TdApi.Message> messages = new java.util.ArrayList<>();
+        for (int i = 0; i < selectedMessageIds.size(); i++) {
+          TdApi.Message message = selectedMessageIds.valueAt(i).getMessage(selectedMessageIds.keyAt(i));
+          if (message != null) messages.add(message);
+        }
+        org.thunderdog.challegram.ui.Tgx101SavedActions.organize(this, messages, () -> finishSelectMode(-1));
+      }
     } else if (id == R.id.menu_btn_copy) {
       if (selectedMessageIds != null) {
         copySelectedMessages();
@@ -6090,6 +6103,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
+  private boolean canTgx101StoreSelected () {
+    return chat != null && tdlib.isSelfChat(chat.id) && getMessageTopicId() == null && !areScheduledOnly() && selectedMessageIds != null && selectedMessageIds.size() > 0;
+  }
+
   public final void updateSelectButtons () {
     if (headerView != null) {
       int totalButtonsCount = 0;
@@ -6103,6 +6120,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       headerView.updateButton(R.id.menu_messageActions, R.id.menu_btn_edit, (value = canEditSelectedMessages()) ? View.VISIBLE : View.GONE, 0);
       if (value) totalButtonsCount++;
       headerView.updateButton(R.id.menu_messageActions, R.id.menu_btn_copy, (value = canCopySelectedMessages()) ? View.VISIBLE : View.GONE, 0);
+      if (value) totalButtonsCount++;
+      headerView.updateButton(R.id.menu_messageActions, R.id.menu_btn_tgx101ToStorage, (value = canTgx101StoreSelected()) ? View.VISIBLE : View.GONE, 0);
       if (value) totalButtonsCount++;
       headerView.updateButton(R.id.menu_messageActions, R.id.menu_btn_retry, (value = canResendSelectedMessages()) ? View.VISIBLE : View.GONE, 0);
       if (value) totalButtonsCount++;
@@ -6969,6 +6988,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
         } else {
           tgx101OpenSelectText(selectedMessage);
         }
+        return true;
+      } else if (id == R.id.btn_tgx101ToStorage) {
+        org.thunderdog.challegram.ui.Tgx101SavedActions.organize(this, java.util.Arrays.asList(selectedMessage.getAllMessages()), null);
         return true;
       } else if (id == R.id.btn_tgx101SaveFavorite) {
         TdApi.Message[] all = selectedMessage.getAllMessages();
