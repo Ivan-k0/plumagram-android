@@ -141,6 +141,32 @@ public final class Tgx101SettingsBackup {
     return 0;
   }
 
+  /**
+   * Every entry of the settings store. (user 2026-10-16 «крашится»: LevelDB refuses an empty prefix — «prefix.empty()»
+   * crashed the app on «Save») The keys are ASCII: one search per first character covers them all
+   */
+  private static Iterable<LevelDB.Entry> allEntries (LevelDB pmc) {
+    return () -> new Iterator<LevelDB.Entry>() {
+      private char next = ' ';
+      private @androidx.annotation.Nullable Iterator<LevelDB.Entry> current;
+
+      @Override
+      public boolean hasNext () {
+        while (current == null || !current.hasNext()) {
+          if (next > '~') return false;
+          current = pmc.find(String.valueOf(next++)).iterator();
+        }
+        return true;
+      }
+
+      @Override
+      public LevelDB.Entry next () {
+        if (!hasNext()) throw new java.util.NoSuchElementException();
+        return current.next();
+      }
+    };
+  }
+
   // Save
 
   /** The settings as the file's text */
@@ -153,7 +179,7 @@ public final class Tgx101SettingsBackup {
     o.put("parts", parts);
     JSONObject values = new JSONObject();
     Set<Integer> accounts = new HashSet<>();
-    for (LevelDB.Entry entry : pmc.find("")) {
+    for (LevelDB.Entry entry : allEntries(pmc)) {
       String key = entry.key();
       KeyInfo info = describe(key);
       if (info == null || (info.part & parts) == 0) continue;
@@ -179,7 +205,7 @@ public final class Tgx101SettingsBackup {
   /** How much of each part is set on this phone now (for the «what goes in» list); Saved: the number of folders */
   public static Map<Integer, Integer> countHere () {
     Map<Integer, Integer> out = new HashMap<>();
-    for (LevelDB.Entry entry : Settings.instance().pmc().find("")) {
+    for (LevelDB.Entry entry : allEntries(Settings.instance().pmc())) {
       KeyInfo info = describe(entry.key());
       if (info == null) continue;
       if (info.accountId >= 0 && userIdOf(info.accountId) == 0) continue;
@@ -345,7 +371,7 @@ public final class Tgx101SettingsBackup {
     // 1. what this phone has for the same parts (and the accounts the file has) goes
     List<String> remove = new ArrayList<>();
     Set<Integer> accountsHere = new HashSet<>(mapping.values());
-    for (LevelDB.Entry entry : pmc.find("")) {
+    for (LevelDB.Entry entry : allEntries(pmc)) {
       String key = entry.key();
       KeyInfo info = describe(key);
       if (info == null || (info.part & b.parts) == 0) continue;

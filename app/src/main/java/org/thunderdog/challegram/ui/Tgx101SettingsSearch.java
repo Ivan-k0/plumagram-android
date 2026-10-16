@@ -118,6 +118,13 @@ public class Tgx101SettingsSearch extends ViewController<Void> {
       return c;
     }));
     list.add(new Screen_(settings + " → " + Lang.getString(R.string.ChatFolders), SettingsFoldersController::new));
+    // MagiX's own first screen: its sections and «Settings backup» (user 2026-10-16 «в поиске это не ищется»)
+    list.add(new Screen_(Lang.getString(R.string.Settings) + " → " + magix, (ctx, tdlib) -> {
+      SettingsDataController c = new SettingsDataController(ctx, tdlib);
+      c.setArguments(new SettingsDataController.Args(SettingsDataController.MODE_TGX101));
+      return c;
+    }));
+    list.add(new Screen_(magix + " → " + Lang.getString(R.string.Tgx101Backup), Tgx101BackupController::new));
     int[] sections = SettingsDataController.tgx101SectionTitles();
     for (int i = 0; i < sections.length - 1; i++) { // the last one is Telegram X's own «Data», indexed above
       final int section = i;
