@@ -4915,6 +4915,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   public void onBlur () {
+    if (tgx101StorageSwitch != null) tgx101StorageSwitch.setKeyboardShown(false); // TGx101: a keyboard closed elsewhere would leave it hidden
     tgx101ResetMotion("blur");
     saveDraft();
     if (inputView != null) {

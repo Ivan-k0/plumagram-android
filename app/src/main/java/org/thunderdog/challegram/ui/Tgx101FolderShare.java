@@ -274,7 +274,7 @@ public final class Tgx101FolderShare {
     synchronized (Tgx101FolderShare.class) {
       progress.put(f.id, new int[] {done, total});
     }
-    notifyProgress(f, done, total, false);
+    notifyProgress(tdlib, f, done, total, false);
     UI.post(() -> refreshHome(tdlib));
   }
 
@@ -286,7 +286,7 @@ public final class Tgx101FolderShare {
     Tgx101SavedStore.Folder f = Tgx101SavedStore.get(tdlib).folder(folderId);
     if (announce && f != null) {
       org.thunderdog.challegram.Tgx101Diag.mark("folder share: done " + done + "/" + total);
-      notifyProgress(f, done, total, true);
+      notifyProgress(tdlib, f, done, total, true);
     }
     UI.post(() -> refreshHome(tdlib));
   }
@@ -297,7 +297,7 @@ public final class Tgx101FolderShare {
     if (top instanceof Tgx101SavedHomeController && top.tdlib() == tdlib) ((Tgx101SavedHomeController) top).refreshShareProgress();
   }
 
-  private static void notifyProgress (Tgx101SavedStore.Folder f, int done, int total, boolean finished) {
+  private static void notifyProgress (Tdlib tdlib, Tgx101SavedStore.Folder f, int done, int total, boolean finished) {
     Context context = UI.getContext();
     if (context == null) return;
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -314,9 +314,25 @@ public final class Tgx101FolderShare {
       .setOngoing(!finished)
       .setAutoCancel(finished);
     if (!finished) b.setProgress(Math.max(1, total), done, false);
+    // (user 2026-10-16 19:35 «либо не нужны, либо должны вести в папку или канал»): a tap opens the shared channel / group
+    if (f.shareChatId != 0) {
+      android.content.Intent open = org.thunderdog.challegram.tool.Intents.valueOfLocalChatId(tdlib.id(), 0, 0);
+      open.putExtra("chat_id", f.shareChatId); // the chat itself (the «local» id is for the message notifications)
+      b.setContentIntent(android.app.PendingIntent.getActivity(context, 7000 + (int) (f.id % 1000), open,
+        android.app.PendingIntent.FLAG_UPDATE_CURRENT | org.thunderdog.challegram.tool.Intents.mutabilityFlags(false)));
+    }
+    final int id = 7000 + (int) (f.id % 1000);
     try {
-      NotificationManagerCompat.from(context).notify(7000 + (int) (f.id % 1000), b.build());
+      NotificationManagerCompat.from(context).notify(id, b.build());
     } catch (SecurityException ignored) { }
+    if (finished) {
+      // «ready» says its word and goes: it doesn't hang in the shade for good
+      UI.post(() -> {
+        try {
+          NotificationManagerCompat.from(context).cancel(id);
+        } catch (Throwable ignored) { }
+      }, 10_000);
+    }
   }
 
   // The link (mockup Г)

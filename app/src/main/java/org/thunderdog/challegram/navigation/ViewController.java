@@ -1033,6 +1033,11 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     return false;
   }
 
+  /** TGx101: a screen that comes in by a fade may still be left by the side swipe «back» (the storage's search) */
+  public boolean tgx101SlideBackInFadeMode () {
+    return false;
+  }
+
   protected boolean forceFastAnimation () {
     if (forceFadeModeOnce) {
       forceFadeModeOnce = false;

@@ -127,13 +127,13 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
   private boolean canSlideBack () {
     int stackSize = navigation.getStackSize();
     ViewController<?> c = navigation.getCurrentStackItem();
-    return navigation.swipeNavigationEnabled() && stackSize > 0 && c != null && c.swipeNavigationEnabled() && !c.forceFadeMode() && !c.inSelectMode() && !c.inCustomMode() && !(stackSize == 1 && c.inSearchMode());
+    return navigation.swipeNavigationEnabled() && stackSize > 0 && c != null && c.swipeNavigationEnabled() && (!c.forceFadeMode() || c.tgx101SlideBackInFadeMode()) && !c.inSelectMode() && !c.inCustomMode() && !(stackSize == 1 && c.inSearchMode());
   }
 
   private boolean canSlideBack (ViewController<?> c, float x, float y) {
     int stackSize = navigation.getStackSize();
     if (navigation.swipeNavigationEnabled() && stackSize > 0 && c != null){
-      if (c.swipeNavigationEnabled() && !c.forceFadeMode() && !c.inSelectMode() && !c.inCustomMode() && !(stackSize == 1 && c.inSearchMode()) && c.canSlideBackFrom(navigation, x, y)) {
+      if (c.swipeNavigationEnabled() && (!c.forceFadeMode() || c.tgx101SlideBackInFadeMode()) && !c.inSelectMode() && !c.inCustomMode() && !(stackSize == 1 && c.inSearchMode()) && c.canSlideBackFrom(navigation, x, y)) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
           RootFrameLayout rootFrameLayout = UI.getContext(navigation.getContext()).getRootView();
           Rect gestureInsets = rootFrameLayout.getSystemGesturesInsets();

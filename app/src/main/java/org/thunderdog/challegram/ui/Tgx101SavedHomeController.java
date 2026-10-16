@@ -478,26 +478,30 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
    */
   @Override
   public boolean canSlideBackFrom (org.thunderdog.challegram.navigation.NavigationController navigationController, float x, float y) {
-    if (noteBar == null || getKeyboardState()) return false;
+    // (user 2026-10-16 18:41 «свайп назад на главной — везде, кроме закреплённых»): anywhere but the «Pinned» row, which
+    // slides sideways itself; never with the keyboard up or while something is selected (that is cleared first)
+    if (getKeyboardState() || !selected.isEmpty()) return false;
     View nav = navigationController.getValue();
     if (nav == null) return false;
-    noteBar.getLocationOnScreen(slideLocation);
     nav.getLocationOnScreen(slideNavLocation);
-    float top = slideLocation[1] - slideNavLocation[1];
-    if (y >= top && y <= top + noteBar.getHeight()) return super.canSlideBackFrom(navigationController, x, y);
-    // (user 2026-10-16 «свайп влево — выход назад в чаты, как из чатов») from the «Recent» rows too, while nothing is selected
-    if (recentList != null && selected.isEmpty() && recentList.isShown()) {
-      recentList.getLocationOnScreen(slideLocation);
-      float listTop = slideLocation[1] - slideNavLocation[1];
-      if (y >= listTop && y <= listTop + recentList.getHeight()) return super.canSlideBackFrom(navigationController, x, y);
+    for (View sideways : new View[] {pinnedSection != null && pinnedSection.getVisibility() == View.VISIBLE ? pinnedScroll : null, chipsScroll}) {
+      if (sideways == null || !sideways.isShown()) continue;
+      if (sideways == chipsScroll && !sideways.canScrollHorizontally(-1)) continue; // the kinds row only when it scrolls back
+      sideways.getLocationOnScreen(slideLocation);
+      float top = slideLocation[1] - slideNavLocation[1];
+      if (y >= top && y <= top + sideways.getHeight()) return false;
     }
-    return false;
+    return super.canSlideBackFrom(navigationController, x, y);
   }
+
 
   /** (test 2026-10-16: settings opened with the note's keyboard up kept it over the next screen) */
   @Override
   public void onBlur () {
     super.onBlur();
+    // (user 2026-10-16 17:50 «перестала появляться плавающая кнопка»): the keyboard closed while another screen was on
+    // top never reached here, the button stayed hidden «for the keyboard» — it forgets the keyboard when the screen goes
+    if (storageSwitch != null) storageSwitch.setKeyboardShown(false);
     if (noteField != null) {
       org.thunderdog.challegram.tool.Keyboard.hide(noteField);
       noteField.clearFocus();
@@ -985,6 +989,35 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
             }
           }
           boolean after = over != null && cx > over.getLeft() + over.getWidth() / 2f;
+          if (over == null) {
+            // (user 2026-10-16 18:37 «в строке есть место ещё для одной папки, но перетащить туда нельзя»): over the
+            // free end of a row — after the row's last folder; before the row's first, past its start
+            View rowLast = null, rowFirst = null;
+            for (int i = 0; i < getChildCount(); i++) {
+              View c = getChildAt(i);
+              if (c == held || !(c.getTag() instanceof Long) || cy < c.getTop() - gap || cy > c.getBottom() + gap) continue;
+              if (rowFirst == null || c.getLeft() < rowFirst.getLeft()) rowFirst = c;
+              if (rowLast == null || c.getRight() > rowLast.getRight()) rowLast = c;
+            }
+            if (rowLast != null && cx > rowLast.getRight()) {
+              over = rowLast;
+              after = true;
+            } else if (rowFirst != null && cx < rowFirst.getLeft()) {
+              over = rowFirst;
+              after = false;
+            }
+            if (over == null) { // below the folders or over «+ New»: to the very end
+              View lastFolder = null;
+              for (int i = getChildCount() - 1; i >= 0 && lastFolder == null; i--) {
+                View c = getChildAt(i);
+                if (c != held && c.getTag() instanceof Long) lastFolder = c;
+              }
+              if (lastFolder != null && cy > lastFolder.getTop()) {
+                over = lastFolder;
+                after = true;
+              }
+            }
+          }
           if (Lang.rtl()) after = !after;
           setTarget(over, after);
           return true;

@@ -760,6 +760,17 @@ public class SettingsController extends ViewController<Void> implements
     processUserFull(tdlib.myUserFull());
 
     this.contentView.setAdapter(adapter);
+    if (MainController.tgx101CapsuleSpace() > 0) {
+      // TGx101 (a 4PDA user's screenshot 2026-10-16 «нижняя панель накладывается на пункт „Канал PlumaGram“»): the last
+      // rows scroll up above the bottom capsule, as the chat list's do
+      this.contentView.addItemDecoration(new RecyclerView.ItemDecoration() {
+        @Override
+        public void getItemOffsets (@androidx.annotation.NonNull android.graphics.Rect outRect, @androidx.annotation.NonNull View view, @androidx.annotation.NonNull RecyclerView parent, @androidx.annotation.NonNull RecyclerView.State state) {
+          int position = parent.getChildAdapterPosition(view);
+          outRect.bottom = position != RecyclerView.NO_POSITION && position == state.getItemCount() - 1 ? MainController.tgx101CapsuleSpace() : 0;
+        }
+      });
+    }
 
     tdlib.cache().addMyUserListener(this);
     setMyUserId(tdlib.myUserId());

@@ -135,6 +135,31 @@ public class Tgx101SavedListController extends ViewController<Void> {
     return reach || super.forceFadeMode(); // it comes down from the home screen in place, not from the side
   }
 
+  @Override
+  public boolean tgx101SlideBackInFadeMode () {
+    return reach; // (user 2026-10-16) the search is left by the swipe «back» too
+  }
+
+  private final int[] slideLocation = new int[2], slideNavLocation = new int[2];
+
+  /** (user 2026-10-16 19:40) never while something is selected — that is cleared first; in the search not over the
+   *  kinds and refinements at the bottom, which slide sideways themselves */
+  @Override
+  public boolean canSlideBackFrom (org.thunderdog.challegram.navigation.NavigationController navigationController, float x, float y) {
+    if (!selected.isEmpty()) return false;
+    if (reachBottom != null && reachBottom.isShown()) {
+      View nav = navigationController.getValue();
+      if (nav != null) {
+        reachBottom.getLocationOnScreen(slideLocation);
+        nav.getLocationOnScreen(slideNavLocation);
+        if (y >= slideLocation[1] - slideNavLocation[1]) return false;
+      }
+    }
+    return super.canSlideBackFrom(navigationController, x, y);
+  }
+
+  private @Nullable View reachBottom;
+
   // search refinements
   private int searchKind = -1;
   private @Nullable String searchTag;
@@ -248,7 +273,16 @@ public class Tgx101SavedListController extends ViewController<Void> {
     column.addView(toolbar);
     buildViewSwitch();
 
-    list = new RecyclerView(context);
+    list = new RecyclerView(context) {
+      @Override
+      public boolean onInterceptTouchEvent (MotionEvent e) {
+        // (user 2026-10-16 «жест назад в папках и метках — во время прокрутки, как в обычных чатах»): a touch on a still
+        // flinging list kept the gesture for the list (it asks the parents not to intercept) — as in the chats, the
+        // fling stops first, so the screen's «back» can take the swipe
+        if (e.getActionMasked() == MotionEvent.ACTION_DOWN && getScrollState() == SCROLL_STATE_SETTLING) stopScroll();
+        return super.onInterceptTouchEvent(e);
+      }
+    };
     list.setClipToPadding(false);
     list.setPadding(Screen.dp(12f), Screen.dp(4f), Screen.dp(12f), Screen.dp(96f));
     list.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
@@ -328,6 +362,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
     if (reach) {
       // under the thumb: the kinds, the other refinements, the field at the very bottom
       LinearLayout bottom = new LinearLayout(context);
+      reachBottom = bottom;
       bottom.setOrientation(LinearLayout.VERTICAL);
       bottom.setBackgroundColor(Theme.backgroundColor());
       bottom.setPadding(0, 0, 0, Screen.dp(10f));
