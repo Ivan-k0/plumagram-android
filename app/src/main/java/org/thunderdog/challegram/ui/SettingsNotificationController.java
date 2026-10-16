@@ -1249,7 +1249,9 @@ public class SettingsNotificationController extends RecyclerViewController<Setti
         // items.add(new SettingItem(SettingItem.TYPE_DESCRIPTION, 0, 0, R.string.UndoAllCustom));
       }
 
-      if (callChatId != 0) {
+      // TGx101 (user 2026-10-16 «я этого вообще не вижу»): the calls' vibration and ringtone, as in the official app's
+      // Notifications → Calls — they were shown only on one person's notification screen
+      if (callChatId != 0 || scope == null) {
         items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.VoiceCalls));
         items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
         items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_calls_vibrate, 0, R.string.Vibrate));
