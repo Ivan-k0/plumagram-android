@@ -1731,12 +1731,14 @@ public class SettingsNotificationController extends RecyclerViewController<Setti
       }
       final int id = v.getId();
 
-      ListItem[] rawItems = new ListItem[Config.VIBRATE_ONLY_IF_SILENT_AVAILABLE ? 5 : 4];
+      // TGx101: a call's vibration is ours, not a notification channel's — «only if silent» works on every Android
+      final boolean silentOption = Config.VIBRATE_ONLY_IF_SILENT_AVAILABLE || viewId == R.id.btn_calls_vibrate || viewId == R.id.btn_customChat_calls_vibrate;
+      ListItem[] rawItems = new ListItem[silentOption ? 5 : 4];
       rawItems[0] = new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_default, 0, R.string.Default, id, currentVibrateOption == TdlibNotificationManager.VIBRATE_MODE_DEFAULT);
       rawItems[1] = new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_disabled, 0, Lang.getString(R.string.VibrateDisabled), id, currentVibrateOption == TdlibNotificationManager.VIBRATE_MODE_DISABLED);
       rawItems[2] = new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_short, 0, R.string.DoubleShort, id, currentVibrateOption == TdlibNotificationManager.VIBRATE_MODE_SHORT);
       rawItems[3] = new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_long, 0, R.string.Long, id, currentVibrateOption == TdlibNotificationManager.VIBRATE_MODE_LONG);
-      if (Config.VIBRATE_ONLY_IF_SILENT_AVAILABLE) {
+      if (silentOption) {
         rawItems[4] = new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_vibrateOnlyIfSilent, 0, R.string.OnlyIfSilent, R.id.btn_vibrateOnlyIfSilent, currentSilentOnly);
       }
 

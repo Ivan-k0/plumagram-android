@@ -1133,10 +1133,8 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
   public void setCustomCallVibrate (long chatId, int mode, boolean vibrateOnlyIfSilent) {
     if (mode == VIBRATE_MODE_DEFAULT) {
       Settings.instance().edit().remove(key(_CUSTOM_CALL_VIBRATE_KEY + chatId)).remove(key(_CUSTOM_CALL_VIBRATE_ONLYSILENT_KEY + chatId)).apply();
-    } else if (Config.VIBRATE_ONLY_IF_SILENT_AVAILABLE) {
+    } else { // TGx101: a call's «only if silent» is kept on every Android (the vibration is ours, not a channel's)
       Settings.instance().edit().putInt(key(_CUSTOM_CALL_VIBRATE_KEY + chatId), mode).putBoolean(key(_CUSTOM_CALL_VIBRATE_ONLYSILENT_KEY + chatId), vibrateOnlyIfSilent).apply();
-    } else {
-      Settings.instance().putInt(key(_CUSTOM_CALL_VIBRATE_KEY + chatId), mode);
     }
   }
 
@@ -1145,7 +1143,7 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
   }
 
   public boolean getCustomCallVibrateOnlyIfSilentForChat (long chatId) {
-    return Config.VIBRATE_ONLY_IF_SILENT_AVAILABLE && Settings.instance().getBoolean(key(_CUSTOM_CALL_VIBRATE_ONLYSILENT_KEY + chatId), false);
+    return Settings.instance().getBoolean(key(_CUSTOM_CALL_VIBRATE_ONLYSILENT_KEY + chatId), false); // TGx101: a call's vibration is ours on every Android
   }
 
   // Channel utils
@@ -1536,7 +1534,7 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
 
   public boolean getCallVibrateOnlyIfSilent () {
     if (_callVibrateOnlyIfSilent == null)
-      _callVibrateOnlyIfSilent = Config.VIBRATE_ONLY_IF_SILENT_AVAILABLE && Settings.instance().getBoolean(key(_CALL_VIBRATE_ONLYSILENT_KEY, tdlib.id()), false);
+      _callVibrateOnlyIfSilent = Settings.instance().getBoolean(key(_CALL_VIBRATE_ONLYSILENT_KEY, tdlib.id()), false);
     return _callVibrateOnlyIfSilent;
   }
 
