@@ -313,7 +313,9 @@ public class Tgx101SavedListController extends ViewController<Void> {
           }
           case MotionEvent.ACTION_MOVE: {
             float dx = e.getX() - downX, dy = e.getY() - downY;
-            if (tracking && Math.abs(dx) > Screen.dp(24f) && Math.abs(dx) > Math.abs(dy) * 2f) {
+            // (user 2026-10-16 «жест перелистывания очень чувствительный»): a clear sideways swipe, not 24 dp of a wobble
+            if (tracking && Math.abs(dy) > Screen.dp(24f) && Math.abs(dy) > Math.abs(dx)) tracking = false; // a scroll
+            if (tracking && Math.abs(dx) > Screen.dp(64f) && Math.abs(dx) > Math.abs(dy) * 3f) {
               tracking = false;
               swipeKind(dx);
               return true;
