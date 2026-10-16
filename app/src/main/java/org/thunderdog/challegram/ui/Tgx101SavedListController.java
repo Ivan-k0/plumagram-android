@@ -559,10 +559,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
         viewMode = m;
         savePrefs();
         buildViewSwitch();
-        list.setAlpha(0f); // the new view fades in instead of popping
-        applyLayoutManager();
-        rebuildItems();
-        list.animate().alpha(1f).setDuration(180).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+        switchView();
       });
       viewSwitch.addView(b, new LinearLayout.LayoutParams(Screen.dp(40f), Screen.dp(34f)));
     }
@@ -734,14 +731,106 @@ public class Tgx101SavedListController extends ViewController<Void> {
     return bitmap;
   }
 
+  /** the list as it is on the screen right now (or drawn again where the screen can't be copied) */
+  private void snapshotList (me.vkryl.core.lambda.RunnableData<android.graphics.Bitmap> after) {
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && context instanceof android.app.Activity && list.getWidth() > 0) {
+      int[] at = new int[2];
+      list.getLocationInWindow(at);
+      android.graphics.Rect rect = new android.graphics.Rect(at[0], at[1], at[0] + list.getWidth(), at[1] + list.getHeight());
+      try {
+        android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(list.getWidth(), list.getHeight(), android.graphics.Bitmap.Config.ARGB_8888);
+        android.view.PixelCopy.request(((android.app.Activity) context).getWindow(), rect, bitmap, result -> {
+          if (result != android.view.PixelCopy.SUCCESS) {
+            bitmap.recycle();
+            after.runWithData(drawnList());
+          } else {
+            after.runWithData(bitmap);
+          }
+        }, new android.os.Handler(android.os.Looper.getMainLooper()));
+        return;
+      } catch (Throwable ignored) { }
+    }
+    after.runWithData(drawnList());
+  }
+
+  private boolean viewSwitching;
+
+  /** (user's video 2026-10-17: the screen went blank and the list jumped to the top) the old view melts into the new
+   *  one, and the new one opens at the same message */
+  private void switchView () {
+    if (viewSwitching || paging) {
+      applyLayoutManager();
+      rebuildItems();
+      return;
+    }
+    viewSwitching = true;
+    list.stopScroll();
+    long anchorId = 0;
+    int anchorTop = 0;
+    for (int i = 0; i < list.getChildCount(); i++) {
+      View child = list.getChildAt(i);
+      int pos = list.getChildAdapterPosition(child);
+      if (pos == RecyclerView.NO_POSITION || pos >= items.size()) continue;
+      if (child.getBottom() <= list.getPaddingTop()) continue; // hidden above
+      for (int j = pos; j < items.size(); j++) {
+        if (items.get(j) instanceof TdApi.Message) {
+          anchorId = ((TdApi.Message) items.get(j)).id;
+          break;
+        }
+      }
+      anchorTop = Math.max(list.getPaddingTop(), child.getTop());
+      break;
+    }
+    final long id = anchorId;
+    final int top = anchorTop;
+    snapshotList(bitmap -> {
+      viewSwitching = false;
+      if (isDestroyed()) {
+        if (bitmap != null) bitmap.recycle();
+        return;
+      }
+      dropGhost();
+      pageBitmap = bitmap;
+      pageGhost.setImageBitmap(bitmap);
+      pageGhost.setAlpha(1f);
+      pageGhost.setVisibility(bitmap != null ? View.VISIBLE : View.GONE);
+      applyLayoutManager();
+      rebuildItems();
+      int at = -1;
+      for (int j = 0; j < items.size() && id != 0; j++) {
+        Object o = items.get(j);
+        if (o instanceof TdApi.Message && ((TdApi.Message) o).id == id) {
+          at = j;
+          break;
+        }
+      }
+      if (at > 0 && list.getLayoutManager() instanceof GridLayoutManager) {
+        ((GridLayoutManager) list.getLayoutManager()).scrollToPositionWithOffset(at, top - list.getPaddingTop());
+      }
+      list.animate().cancel();
+      list.setAlpha(0f);
+      android.view.animation.Interpolator curve = new android.view.animation.DecelerateInterpolator(1.4f);
+      list.animate().alpha(1f).setDuration(220).setInterpolator(curve).withEndAction(null).start();
+      pageGhost.animate().cancel();
+      pageGhost.animate().alpha(0f).setDuration(220).setInterpolator(curve).withEndAction(() -> {
+        if (!paging) dropGhost();
+      }).start();
+    });
+  }
+
   /** the picture is here: it takes the old list's place in the same frame, and the list becomes the new kind */
   private void pageSwap (@Nullable android.graphics.Bitmap bitmap) {
     if (!paging || isDestroyed()) {
       if (bitmap != null) bitmap.recycle();
       return;
     }
+    pageGhost.animate().cancel(); // a view switch still melting
+    list.animate().cancel();
+    list.setAlpha(1f);
+    android.graphics.Bitmap previous = pageBitmap;
     pageBitmap = bitmap;
     pageGhost.setImageBitmap(bitmap);
+    if (previous != null && previous != bitmap) previous.recycle();
     pageGhost.setVisibility(bitmap != null ? View.VISIBLE : View.GONE);
     list.setBackgroundColor(Theme.backgroundColor()); // it comes in over the old one
     showKind(pageNewKind);
