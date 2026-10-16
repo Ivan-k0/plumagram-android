@@ -528,6 +528,15 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     loadedOnce = true;
     buildChips();
     buildTiles();
+    // the folders' counts as Telegram has them: what was deleted elsewhere leaves the folders, then the counts redraw
+    java.util.List<Long> filed = new java.util.ArrayList<>();
+    for (Tgx101SavedStore.Folder f : Tgx101SavedStore.get(tdlib).folders()) filed.addAll(f.messageIds);
+    for (int start = 0; start < filed.size(); start += 100) { // in hundreds, as Telegram hands messages out
+      final java.util.List<Long> part = new java.util.ArrayList<>(filed.subList(start, Math.min(filed.size(), start + 100)));
+      Tgx101SavedKit.byIds(tdlib, part, found -> {
+        if (!isDestroyed() && found.size() < part.size()) buildTiles();
+      });
+    }
     loadReactions();
     loadPinned();
     loadRecent();
@@ -740,6 +749,20 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   private void buildCapsules (Tgx101SavedStore store) {
     foldersTitle.setText(Lang.getString(R.string.Tgx101SavedFoldersTitle));
     CapsuleFlow folders = new CapsuleFlow(context);
+    folders.setMover(new CapsuleFlow.Mover() {
+      @Override
+      public void onHeldStill (long folderId) {
+        Tgx101SavedStore.Folder f = Tgx101SavedStore.get(tdlib).folder(folderId);
+        if (f != null) folderOptions(f);
+      }
+
+      @Override
+      public void onMoved (long folderId, long targetId, boolean after) {
+        Tgx101SavedStore.get(tdlib).moveFolder(folderId, targetId, after);
+        org.thunderdog.challegram.Tgx101Diag.mark("storage: folder " + folderId + " moved " + (after ? "after " : "before ") + targetId);
+        forceTiles();
+      }
+    });
     if (store.inboxTile) {
       ImageView inbox = new ImageView(context);
       inbox.setImageResource(R.drawable.baseline_archive_24);
@@ -754,12 +777,10 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       swatch.setBackground(card(color, 3f));
       int[] copying = Tgx101FolderShare.progressOf(f.id);
       String count = copying != null ? copying[0] + "/" + copying[1] : String.valueOf(f.messageIds.size()); // copying a shared folder: done/all
-      folders.addView(capsule(swatch, f.isShared() ? f.name + "  ↗" : f.name, count, Theme.isDark() ? tint(color, .30f) : tint(color, .14f),
-        v -> Tgx101SavedListController.openFolder(this, f.id),
-        v -> {
-          folderOptions(f);
-          return true;
-        }));
+      View c = capsule(swatch, f.isShared() ? f.name + "  ↗" : f.name, count, Theme.isDark() ? tint(color, .30f) : tint(color, .14f),
+        v -> Tgx101SavedListController.openFolder(this, f.id), null);
+      c.setTag(f.id); // held: lifted and carried by the flow; held still: the folder's menu
+      folders.addView(c);
     }
     // «+ New»: a dashed capsule
     TextView add = text(context, 13.5f, accent(), true);
@@ -839,9 +860,143 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   private static final class CapsuleFlow extends ViewGroup {
     private final int gap = Screen.dp(6f);
 
+    interface Mover {
+      void onHeldStill (long folderId);
+      void onMoved (long folderId, long targetId, boolean after);
+    }
+
+    private @Nullable Mover mover;
+
     CapsuleFlow (Context context) {
       super(context);
       setPadding(Screen.dp(4f), Screen.dp(4f), Screen.dp(4f), Screen.dp(4f));
+      setClipChildren(false);
+    }
+
+    void setMover (Mover mover) {
+      this.mover = mover;
+    }
+
+    // a folder capsule held: it lifts and follows the finger; let go over another folder, it goes there
+
+    private @Nullable View held, target;
+    private boolean holding, moved, targetAfter;
+    private float downX, downY;
+    private final Runnable hold = this::onHold;
+
+    private @Nullable View folderAt (float x, float y) {
+      for (int i = 0; i < getChildCount(); i++) {
+        View c = getChildAt(i);
+        if (c.getTag() instanceof Long && x >= c.getLeft() && x <= c.getRight() && y >= c.getTop() && y <= c.getBottom()) return c;
+      }
+      return null;
+    }
+
+    private void onHold () {
+      if (held == null) return;
+      holding = true;
+      held.setPressed(false);
+      held.cancelLongPress();
+      getParent().requestDisallowInterceptTouchEvent(true);
+      UI.forceVibrate(held, true);
+      held.animate().scaleX(1.08f).scaleY(1.08f).setDuration(140).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+      if (android.os.Build.VERSION.SDK_INT >= 21) held.setElevation(Screen.dp(6f)); // over its neighbours while carried (the children's order is the layout's — no bringToFront)
+    }
+
+    private void setTarget (@Nullable View t, boolean after) {
+      if (t == target && after == targetAfter) return;
+      if (target != null) target.setAlpha(1f);
+      target = t;
+      targetAfter = after;
+      if (target != null) {
+        target.setAlpha(.55f); // where it will go: the capsule it lands next to dims
+        UI.hapticVibrate(target, false);
+      }
+    }
+
+    private void finish (boolean apply) {
+      removeCallbacks(hold);
+      View h = held, t = target;
+      boolean after = targetAfter, wasHolding = holding, wasMoved = moved;
+      held = null;
+      holding = moved = false;
+      setTarget(null, false);
+      if (h == null) return;
+      if (wasHolding) {
+        h.animate().scaleX(1f).scaleY(1f).translationX(0f).translationY(0f).setDuration(160).start();
+        if (android.os.Build.VERSION.SDK_INT >= 21) h.setElevation(0f);
+      }
+      if (!apply || !wasHolding || mover == null) return;
+      long id = (Long) h.getTag();
+      if (wasMoved && t != null) mover.onMoved(id, (Long) t.getTag(), after);
+      else if (!wasMoved) mover.onHeldStill(id);
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent (MotionEvent e) {
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN: {
+          finish(false);
+          downX = e.getX();
+          downY = e.getY();
+          held = folderAt(downX, downY);
+          if (held != null) postDelayed(hold, android.view.ViewConfiguration.getLongPressTimeout());
+          return false;
+        }
+        case MotionEvent.ACTION_MOVE: {
+          if (holding) return true;
+          if (held != null && Math.hypot(e.getX() - downX, e.getY() - downY) > android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop()) {
+            removeCallbacks(hold); // a scroll or a swipe, not a hold
+            held = null;
+          }
+          return false;
+        }
+        case MotionEvent.ACTION_UP: {
+          if (holding) {
+            finish(true); // held and let go in place: the folder's menu
+            return true;
+          }
+          finish(false);
+          return false;
+        }
+        case MotionEvent.ACTION_CANCEL:
+          finish(false);
+          return false;
+      }
+      return false;
+    }
+
+    @Override
+    public boolean onTouchEvent (MotionEvent e) {
+      if (!holding || held == null) return super.onTouchEvent(e);
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_MOVE: {
+          float dx = e.getX() - downX, dy = e.getY() - downY;
+          if (!moved && Math.hypot(dx, dy) > android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop()) moved = true;
+          held.setTranslationX(dx);
+          held.setTranslationY(dy);
+          View over = null;
+          float cx = held.getLeft() + held.getWidth() / 2f + dx, cy = held.getTop() + held.getHeight() / 2f + dy;
+          for (int i = 0; i < getChildCount(); i++) {
+            View c = getChildAt(i);
+            if (c != held && c.getTag() instanceof Long && cy >= c.getTop() - gap && cy <= c.getBottom() + gap && cx >= c.getLeft() && cx <= c.getRight()) {
+              over = c;
+              break;
+            }
+          }
+          boolean after = over != null && cx > over.getLeft() + over.getWidth() / 2f;
+          if (Lang.rtl()) after = !after;
+          setTarget(over, after);
+          return true;
+        }
+        case MotionEvent.ACTION_UP:
+          finish(true);
+          return true;
+        case MotionEvent.ACTION_CANCEL:
+          finish(false);
+          return true;
+      }
+      return true;
     }
 
     @Override

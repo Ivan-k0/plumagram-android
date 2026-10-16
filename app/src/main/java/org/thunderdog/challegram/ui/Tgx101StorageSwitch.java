@@ -107,7 +107,9 @@ public final class Tgx101StorageSwitch extends View {
   }
 
   private final OnLayoutChangeListener parentLayout = (v, l, t, r, b, ol, ot, or, ob) -> {
-    if (!isDragging() && (r - l != or - ol || b - t != ob - ot || getTranslationY() == 0f)) place(false);
+    // (user's video 2026-10-16 16:26) while the keyboard is up the screen is shorter: the button only fades, it isn't
+    // placed for that height (it slid down on the way out) — it comes back where it was once the keyboard goes
+    if (!isDragging() && !isKeyboardShown() && (r - l != or - ol || b - t != ob - ot || getTranslationY() == 0f)) place(false);
   };
 
   private Tgx101SavedStore store () {
@@ -211,6 +213,10 @@ public final class Tgx101StorageSwitch extends View {
       UI.showToast(R.string.Tgx101SavedSwitchHidden, android.widget.Toast.LENGTH_SHORT);
       return true;
     });
+  }
+
+  private boolean isKeyboardShown () {
+    return keyboardShown;
   }
 
   private boolean isDragging () {

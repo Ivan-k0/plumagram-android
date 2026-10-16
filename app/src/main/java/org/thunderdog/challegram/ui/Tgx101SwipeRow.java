@@ -243,6 +243,9 @@ public final class Tgx101SwipeRow extends FrameLayout {
         return true;
       case MotionEvent.ACTION_MOVE: {
         if (!dragging) {
+          // (user 2026-10-16 «свайпа вообще нет»): to the right on a closed row is the screen's «back» — the row doesn't
+          // take the gesture (it used to ask the parents not to intercept, so «back» never saw it)
+          if (!selectEnabled && e.getX() - downX > 0 && !isOpen()) return true;
           if (Math.abs(e.getX() - downX) > touchSlop) beginDrag(e);
           else return true;
         }

@@ -747,6 +747,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ShareSend, "Отправить…");
     RU.put(R.string.Tgx101ShareOpenChannel, "Открыть канал");
     RU.put(R.string.Tgx101ShareOpenGroup, "Открыть группу");
+    RU.put(R.string.Tgx101ShareFolderBanner, "Папка общая: %1$s");
+    RU.put(R.string.Tgx101ShareFolderExtra, "В канале ещё %1$d — убранное из папки остаётся там");
     RU.put(R.string.Tgx101ShareNothingNew, "В папке нет нового");
     RU.put(R.string.Tgx101ShareUpdating, "Добавляю новое: %1$s");
     RU.put(R.string.Tgx101ShareStopAsk, "Перестать делиться?");

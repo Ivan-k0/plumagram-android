@@ -432,6 +432,18 @@ public final class Tgx101SavedKit {
     tdlib.send(new TdApi.GetMessages(tdlib.selfChatId(), arr), (messages, error) -> {
       List<TdApi.Message> out = new ArrayList<>();
       if (messages != null) for (TdApi.Message m : messages.messages) if (m != null) out.add(m);
+      if (messages != null && messages.messages.length == arr.length) {
+        // (user 2026-10-16 «папки пустые, но счётчик не сбросился»): Telegram has no such message any more (deleted on
+        // another device, or while the app was closed) — it leaves the folders, tags and reactions here too
+        List<Long> gone = new ArrayList<>();
+        for (int i = 0; i < arr.length; i++) if (messages.messages[i] == null && (arr[i] & 0xFFFFF) == 0) gone.add(arr[i]);
+        if (!gone.isEmpty()) {
+          long[] g = new long[gone.size()];
+          for (int i = 0; i < g.length; i++) g[i] = gone.get(i);
+          org.thunderdog.challegram.Tgx101Diag.mark("saved store: " + g.length + " gone from Telegram, forgotten here");
+          Tgx101SavedStore.get(tdlib).forgetGone(g);
+        }
+      }
       java.util.Collections.sort(out, (a, b) -> Long.compare(b.id, a.id));
       UI.post(() -> after.runWithData(out));
     });

@@ -320,6 +320,10 @@ public class Tgx101SavedListController extends ViewController<Void> {
       if (sort == SORT_SIZE) return org.thunderdog.challegram.tool.Strings.buildSize(Tgx101SavedKit.size(m));
       return dayFormat.format(new java.util.Date((sort == SORT_ORIGINAL ? Tgx101SavedKit.originalDate(m) : m.date) * 1000L));
     }), new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    if (mode == MODE_FOLDER) {
+      View shareBar = shareBar(context);
+      if (shareBar != null) column.addView(shareBar);
+    }
     column.addView(listBox, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
     if (reach) {
       // under the thumb: the kinds, the other refinements, the field at the very bottom
@@ -351,6 +355,51 @@ public class Tgx101SavedListController extends ViewController<Void> {
       load();
     }
     return root;
+  }
+
+  /**
+   * TGx101 (user 2026-10-16 «внутри вверху нужна стилизованная кнопка — перейти в канал или группу»; «убрал файлы из
+   * папки, а в канале они остались — это нужно помечать»): a shared folder opens with its channel / group a tap away,
+   * and says how many copies are there that the folder no longer has
+   */
+  private @Nullable View shareBar (Context context) {
+    Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
+    Tgx101SavedStore.Folder f = store.folder(folderId);
+    if (f == null || !f.isShared()) return null;
+    final long chatId = f.shareChatId;
+    LinearLayout bar = new LinearLayout(context);
+    bar.setOrientation(LinearLayout.HORIZONTAL);
+    bar.setGravity(Gravity.CENTER_VERTICAL);
+    bar.setPadding(Screen.dp(12f), Screen.dp(9f), Screen.dp(12f), Screen.dp(9f));
+    bar.setBackground(Tgx101SavedHomeController.card(Tgx101SavedHomeController.tint(Tgx101SavedHomeController.accent(), .12f), 12.5f));
+    Views.setClickable(bar);
+    bar.setOnClickListener(v -> tdlib.ui().openChat(this, chatId, null));
+    ImageView icon = new ImageView(context);
+    icon.setImageResource(f.shareChannel ? R.drawable.baseline_bullhorn_24 : R.drawable.baseline_group_24);
+    icon.setColorFilter(Tgx101SavedHomeController.accent());
+    bar.addView(icon, new LinearLayout.LayoutParams(Screen.dp(22f), Screen.dp(22f)));
+    LinearLayout texts = new LinearLayout(context);
+    texts.setOrientation(LinearLayout.VERTICAL);
+    LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+    tp.leftMargin = Screen.dp(10f);
+    bar.addView(texts, tp);
+    TextView title = Tgx101SavedHomeController.text(context, 14f, Tgx101SavedHomeController.accent(), true);
+    title.setText(Lang.getString(f.shareChannel ? R.string.Tgx101ShareOpenChannel : R.string.Tgx101ShareOpenGroup));
+    texts.addView(title);
+    TextView sub = Tgx101SavedHomeController.text(context, 12f, Theme.textDecentColor(), false);
+    int extra = store.sharedNotInFolder(f.id);
+    String name = tdlib.chatTitle(chatId);
+    sub.setText(extra > 0 ? Lang.getString(R.string.Tgx101ShareFolderExtra, extra) : Lang.getString(R.string.Tgx101ShareFolderBanner, name != null && !name.isEmpty() ? name : f.name));
+    sub.setMaxLines(2);
+    texts.addView(sub);
+    ImageView arrow = new ImageView(context);
+    arrow.setImageResource(R.drawable.round_keyboard_arrow_right_24);
+    arrow.setColorFilter(Theme.getColor(ColorId.icon));
+    bar.addView(arrow, new LinearLayout.LayoutParams(Screen.dp(20f), Screen.dp(20f)));
+    LinearLayout box = new LinearLayout(context);
+    box.setPadding(Screen.dp(12f), Screen.dp(8f), Screen.dp(12f), Screen.dp(2f));
+    box.addView(bar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    return box;
   }
 
   private ImageView iconButton (Context context, int icon, String description, View.OnClickListener click) {

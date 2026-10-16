@@ -6993,6 +6993,8 @@
   <string name="Tgx101ShareSend">Send…</string>
   <string name="Tgx101ShareOpenChannel">Open the channel</string>
   <string name="Tgx101ShareOpenGroup">Open the group</string>
+  <string name="Tgx101ShareFolderBanner">The folder is shared: %1$s</string>
+  <string name="Tgx101ShareFolderExtra">In the channel %1$d more — taken out of the folder, they stay there</string>
   <string name="Tgx101ShareNothingNew">Nothing new in the folder</string>
   <string name="Tgx101ShareUpdating">Adding %1$s new</string>
   <string name="Tgx101ShareStopAsk">Stop sharing?</string>

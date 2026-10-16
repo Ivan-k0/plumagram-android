@@ -368,6 +368,16 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
     return folderOf(messageId) != null;
   }
 
+  /** (user 2026-10-16 «перемещения нет»): the folder goes right before / after another one — the order everywhere */
+  public synchronized void moveFolder (long id, long targetId, boolean after) {
+    Folder f = folder(id), target = folder(targetId);
+    if (f == null || target == null || f == target) return;
+    folders.remove(f);
+    int at = folders.indexOf(target);
+    folders.add(after ? at + 1 : at, f);
+    save();
+  }
+
   public synchronized void setFolderOnHome (long id, boolean onHome) {
     Folder f = folder(id);
     if (f != null) {
@@ -528,6 +538,20 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       }
     }
     if (changed) save();
+  }
+
+  /** messages Telegram no longer has (found missing when a list loads) */
+  public void forgetGone (long[] messageIds) {
+    forget(messageIds);
+  }
+
+  /** a shared folder: copied into its channel, then taken out of the folder — the copies stay in the channel */
+  public synchronized int sharedNotInFolder (long folderId) {
+    Folder f = folder(folderId);
+    if (f == null) return 0;
+    int n = 0;
+    for (long id : f.sharedIds) if (!f.messageIds.contains(id)) n++;
+    return n;
   }
 
   synchronized void forget (long[] messageIds) {
