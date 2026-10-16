@@ -931,6 +931,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
 
     stopScroll();
     if (loader.canLoadBottom()) {
+      tgx101ResetGlide = 1; // the newest come in gliding up (not a snap to the end)
       loadFromStart();
     } else if (!tgx101SmoothScrollToBottom()) {
       scrollToBottom(true);
@@ -1385,6 +1386,10 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         } else {
           scrollToMessage(scrollPosition, scrollMessage, highlightMode == HIGHLIGHT_MODE_NONE ? HIGHLIGHT_MODE_START : highlightMode, false, false);
         }
+        if (tgx101ResetGlide != 0 && mode == MessagesLoader.MODE_INITIAL) {
+          tgx101GlideIn(tgx101ResetGlide);
+        }
+        tgx101ResetGlide = 0;
         if (!willRepeat) {
           onChatAwaitFinish();
         }
@@ -3415,6 +3420,31 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     }
   }
 
+  /** -1: the chat reloads around an older message, 1: around a newer one / the end; 0: no glide */
+  private int tgx101ResetGlide;
+
+  /**
+   * The reloaded chat stands where it should; before it's drawn it's moved half a screen back the way it came, and then
+   * glides the rest — one soft scroll instead of a snap
+   */
+  private void tgx101GlideIn (int direction) {
+    final RecyclerView list = controller.getMessagesView();
+    if (list == null || list.getHeight() == 0) return;
+    final int distance = Math.round((list.getHeight() - list.getPaddingBottom()) * .5f) * direction;
+    list.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+      @Override
+      public boolean onPreDraw () {
+        list.getViewTreeObserver().removeOnPreDrawListener(this);
+        // the older messages are above: going there the list ends lower down, so it starts the other side
+        list.scrollBy(0, -distance);
+        org.thunderdog.challegram.Tgx101Diag.mark("jump: reloaded, glide in " + distance + " px");
+        tgx101AutoScrolling = true;
+        list.smoothScrollBy(0, distance, TGX101_GLIDE, 360);
+        return true;
+      }
+    });
+  }
+
   /** When the scroll stops: a message that ended more than a little off its place is brought there softly */
   private static final android.view.animation.Interpolator TGX101_GLIDE = androidx.core.view.animation.PathInterpolatorCompat.create(.25f, .1f, .25f, 1f); // Compat: API 16 builds
 
@@ -3700,6 +3730,12 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     }
     int index = adapter.indexOfMessageContainer(messageId);
     if (index == -1) {
+      // TGx101 (user video 2026-10-16 09:43 «опять резко перескакивает»): a message not loaded yet — the chat reloads
+      // around it; it then glides the last half screen in the way it went instead of standing there at once
+      if (allowSmooth && (highlightMode == HIGHLIGHT_MODE_NORMAL || highlightMode == HIGHLIGHT_MODE_NORMAL_NEXT)) {
+        TGMessage bottom = findBottomMessage();
+        tgx101ResetGlide = bottom == null ? 0 : messageId.getMessageId() < bottom.getId() ? -1 : 1;
+      }
       resetByMessage(messageId, highlightMode);
     } else {
       if ((highlightMode == HIGHLIGHT_MODE_UNREAD_NEXT || highlightMode == HIGHLIGHT_MODE_NORMAL_NEXT) && index > 0) {

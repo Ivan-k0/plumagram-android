@@ -7031,6 +7031,8 @@
   <string name="Tgx101VoiceChatMessageHint">A message to the call…</string>
   <string name="Tgx101VoiceChatNoMessages">No messages yet</string>
   <string name="Tgx101VoiceChatNoLink">This call has no link</string>
+  <string name="Tgx101SavedVoiceCancelHint">‹ slide to cancel</string>
+  <string name="Tgx101SavedVoiceFailed">Couldn’t record</string>
   <string name="Tgx101SavedNoteSaved">Note saved</string>
   <string name="Tgx101SavedNothing">Nothing here yet.</string>
   <string name="Tgx101SavedOrderAZ">A → Z</string>

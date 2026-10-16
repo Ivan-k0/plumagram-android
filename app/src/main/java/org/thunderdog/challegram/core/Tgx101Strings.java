@@ -785,6 +785,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101VoiceChatMessageHint, "Сообщение в звонок…");
     RU.put(R.string.Tgx101VoiceChatNoMessages, "Сообщений пока нет");
     RU.put(R.string.Tgx101VoiceChatNoLink, "У этого звонка нет ссылки");
+    RU.put(R.string.Tgx101SavedVoiceCancelHint, "‹ влево — отмена");
+    RU.put(R.string.Tgx101SavedVoiceFailed, "Не получилось записать");
     RU.put(R.string.Tgx101SavedNoteSaved, "Заметка сохранена");
     RU.put(R.string.Tgx101SavedNothing, "Здесь пока ничего нет.");
     RU.put(R.string.Tgx101SavedOrderAZ, "А → Я");

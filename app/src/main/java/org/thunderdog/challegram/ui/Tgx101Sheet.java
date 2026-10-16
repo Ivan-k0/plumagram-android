@@ -108,6 +108,16 @@ public final class Tgx101Sheet {
     final int[] location = new int[2];
     // (test 2026-10-15: the visible-frame guess lifted a sheet with no field ~250 px off the bottom) — Android 11+ asks
     // the system for the keyboard itself; older ones only lift a sheet that has a focused text field
+    final int[] imeTarget = {-1};
+    final android.animation.ValueAnimator[] imeAnimator = new android.animation.ValueAnimator[1];
+    // a sheet with a text field: the screen under it doesn't pan up for the keyboard (that and the sheet's own rise made
+    // a double jump); the sheet rises by itself. Put back when it closes, and its keyboard goes with it
+    final boolean hasInput = findInput(body) != null;
+    final android.view.Window activityWindow = c.context().getWindow();
+    final int previousSoftInput = activityWindow != null ? activityWindow.getAttributes().softInputMode : 0;
+    if (hasInput && activityWindow != null) {
+      activityWindow.setSoftInputMode((previousSoftInput & ~android.view.WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST) | android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
+    }
     final android.view.ViewTreeObserver.OnGlobalLayoutListener ime = () -> {
       if (wrap.getHeight() == 0) return;
       int bottom = 0;
@@ -123,7 +133,17 @@ public final class Tgx101Sheet {
         wrap.getLocationOnScreen(location);
         bottom = Math.max(0, location[1] + wrap.getHeight() - frame.bottom);
       }
-      if (wrap.getPaddingBottom() != bottom) wrap.setPadding(0, 0, 0, bottom);
+      // (user video 2026-10-16 09:01: the sheet jumped up and slid back while the keyboard came) — no jump: it rides up
+      if (wrap.getPaddingBottom() != bottom && (imeTarget[0] != bottom)) {
+        imeTarget[0] = bottom;
+        if (imeAnimator[0] != null) imeAnimator[0].cancel();
+        android.animation.ValueAnimator a = android.animation.ValueAnimator.ofInt(wrap.getPaddingBottom(), bottom);
+        a.setDuration(200);
+        a.setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f));
+        a.addUpdateListener(v -> wrap.setPadding(0, 0, 0, (int) v.getAnimatedValue()));
+        imeAnimator[0] = a;
+        a.start();
+      }
     };
     wrap.getViewTreeObserver().addOnGlobalLayoutListener(ime);
     wrap.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
@@ -138,11 +158,35 @@ public final class Tgx101Sheet {
     });
 
     popup.setDismissListener(p -> {
+      if (hasInput) {
+        View field = findInput(body);
+        if (field != null) org.thunderdog.challegram.tool.Keyboard.hide(field);
+        if (activityWindow != null) activityWindow.setSoftInputMode(previousSoftInput);
+        // (video 09:07) the focus went on to the screen's own field and its keyboard stayed — the screen keeps none
+        View root = c.getValue();
+        View focused = root != null ? root.findFocus() : null;
+        if (focused instanceof android.widget.EditText) {
+          focused.clearFocus();
+          org.thunderdog.challegram.tool.Keyboard.hide(focused);
+        }
+      }
       if (onDismiss != null) onDismiss.run();
     });
     sheet.measure(View.MeasureSpec.makeMeasureSpec(Screen.currentWidth() - Screen.dp(16f), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(Screen.currentHeight(), View.MeasureSpec.AT_MOST));
     popup.showSimplePopupView(wrap, sheet.getMeasuredHeight() + Screen.dp(8f) + Screen.getNavigationBarHeight());
     return new Handle(popup, body);
+  }
+
+  private static @Nullable android.widget.EditText findInput (View v) {
+    if (v instanceof android.widget.EditText) return (android.widget.EditText) v;
+    if (v instanceof ViewGroup) {
+      ViewGroup g = (ViewGroup) v;
+      for (int i = 0; i < g.getChildCount(); i++) {
+        android.widget.EditText e = findInput(g.getChildAt(i));
+        if (e != null) return e;
+      }
+    }
+    return null;
   }
 
   /** The column that follows the finger */

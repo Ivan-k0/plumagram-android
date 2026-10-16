@@ -1174,6 +1174,14 @@ public class Tgx101SavedListController extends ViewController<Void> {
 
   @Override
   public boolean performOnBackPressed (boolean fromTop, boolean commit) {
+    // (user 2026-10-16 «жест назад должен всегда сначала закрывать клавиатуру») — the keyboard first, then the screen
+    if (searchField != null && getKeyboardState()) {
+      if (commit) {
+        org.thunderdog.challegram.tool.Keyboard.hide(searchField);
+        searchField.clearFocus();
+      }
+      return true;
+    }
     if (!selected.isEmpty()) {
       if (commit) clearSelection(); // «back» first leaves the selection
       return true;
@@ -1327,7 +1335,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
       }
       List<String> reactions = Tgx101SavedKit.reactionsOf(c.tdlib(), m);
       reaction.setText(reactions.isEmpty() ? "" : reactions.get(0));
-      reaction.setVisibility(reactions.isEmpty() || selecting ? View.GONE : View.VISIBLE);
+      reaction.setVisibility(reactions.isEmpty() ? View.GONE : View.VISIBLE); // stays while selecting (user 2026-10-16)
       boolean hasThumb = Tgx101SavedKit.thumbFile(m) != null || Tgx101SavedKit.minithumb(m) != null;
       int color = kind == Tgx101SavedKit.KIND_VOICE ? 0xff2e8a4a : kind == Tgx101SavedKit.KIND_FILE ? 0xffb53c57 : Tgx101SavedHomeController.accent();
       thumb.setBackground(Tgx101SavedHomeController.card(Tgx101SavedHomeController.tint(color, .14f), kind == Tgx101SavedKit.KIND_VOICE ? 21f : 10f));
@@ -1347,8 +1355,8 @@ public class Tgx101SavedListController extends ViewController<Void> {
       } else {
         org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(itemView); // keeps the press feedback
       }
-      check.setVisibility(selecting ? View.VISIBLE : View.GONE);
-      check.setColorFilter(selected ? Tgx101SavedHomeController.accent() : Theme.separatorColor());
+      // (user 2026-10-16) no ticks on rows: a selected row is lit, and its reaction stays in view
+      check.setVisibility(View.GONE);
     }
   }
 

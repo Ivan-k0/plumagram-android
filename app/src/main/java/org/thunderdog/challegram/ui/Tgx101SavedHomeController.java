@@ -341,6 +341,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       @Override
       public void onInputChanged (org.thunderdog.challegram.component.chat.InputView v, String input) {
         if (keyboardFrame != null) keyboardFrame.contentView.emojiLayout.onTextChanged(input);
+        updateSendIcon();
       }
 
       @Override
@@ -395,7 +396,9 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     attach.setOnClickListener(v -> openAttach());
     bar.addView(attach, new LinearLayout.LayoutParams(Screen.dp(44f), Screen.dp(44f)));
     ImageView send = new ImageView(context);
-    send.setImageResource(R.drawable.baseline_send_24);
+    sendButton = send;
+    send.setImageResource(R.drawable.baseline_mic_24); // an empty field: hold to record a voice note (user 2026-10-16)
+    send.setOnTouchListener(this::onVoiceTouch);
     send.setColorFilter(accent());
     send.setScaleType(ImageView.ScaleType.CENTER);
     send.setContentDescription(Lang.getString(R.string.Tgx101SavedNoteSave));
@@ -1178,6 +1181,14 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
 
   @Override
   public boolean performOnBackPressed (boolean fromTop, boolean commit) {
+    // (user 2026-10-16 «жест назад должен всегда сначала закрывать клавиатуру») — the keyboard first, then the screen
+    if (noteField != null && getKeyboardState()) {
+      if (commit) {
+        org.thunderdog.challegram.tool.Keyboard.hide(noteField);
+        noteField.clearFocus();
+      }
+      return true;
+    }
     if (emojiShown) {
       if (commit) closeEmoji(false); // «back» first closes the emoji panel
       return true;
@@ -1430,6 +1441,115 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     if (isDestroyed()) return;
     loadRecent();
     buildChips();
+  }
+
+  // Voice notes (user 2026-10-16 «в поле ввода нет записи голосового»): the field empty — the button is a microphone;
+  // held, it records; released, the voice note goes to Saved; slid left past the hint, it's thrown away
+
+  private ImageView sendButton;
+  private boolean recording, recordCanceled;
+  private float recordDownX;
+  private long recordStart;
+  private TextView recordLabel;
+
+  private void updateSendIcon () {
+    if (sendButton == null || recording) return;
+    boolean empty = noteField.getText().toString().trim().isEmpty();
+    sendButton.setImageResource(empty ? R.drawable.baseline_mic_24 : R.drawable.baseline_send_24);
+  }
+
+  private boolean onVoiceTouch (View v, MotionEvent e) {
+    boolean empty = noteField.getText().toString().trim().isEmpty();
+    if (!empty && !recording) return false; // a typed note: the usual tap / hold
+    switch (e.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN:
+        recordDownX = e.getRawX();
+        if (android.os.Build.VERSION.SDK_INT >= 23 && androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+          context.requestMicPermissionForCall(null);
+          return true;
+        }
+        startRecording();
+        return true;
+      case MotionEvent.ACTION_MOVE:
+        if (recording && !recordCanceled && recordDownX - e.getRawX() > Screen.dp(110f)) {
+          recordCanceled = true;
+          UI.forceVibrate(v, false);
+          stopRecording(false);
+        }
+        return true;
+      case MotionEvent.ACTION_UP:
+      case MotionEvent.ACTION_CANCEL:
+        if (recording) stopRecording(e.getActionMasked() == MotionEvent.ACTION_UP && System.currentTimeMillis() - recordStart > 700);
+        return true;
+    }
+    return true;
+  }
+
+  private void startRecording () {
+    recording = true;
+    recordCanceled = false;
+    recordStart = System.currentTimeMillis();
+    UI.forceVibrate(sendButton, false);
+    sendButton.setColorFilter(0xffe5484d);
+    if (recordLabel == null) {
+      recordLabel = text(context, 15f, Theme.textAccentColor(), false);
+      recordLabel.setGravity(Gravity.CENTER_VERTICAL);
+      recordLabel.setPadding(Screen.dp(4f), 0, Screen.dp(4f), 0);
+      ((ViewGroup) noteField.getParent()).addView(recordLabel, ((ViewGroup) noteField.getParent()).indexOfChild(noteField), new LinearLayout.LayoutParams(0, Screen.dp(44f), 1f));
+    }
+    noteField.setVisibility(View.GONE);
+    recordLabel.setVisibility(View.VISIBLE);
+    recordTicker.run();
+    org.thunderdog.challegram.helper.Recorder.instance().record(tdlib, false, new org.thunderdog.challegram.helper.Recorder.Listener() {
+      @Override
+      public void onAmplitude (float amplitude) { }
+
+      @Override
+      public void onFail () {
+        UI.post(() -> {
+          UI.showToast(R.string.Tgx101SavedVoiceFailed, android.widget.Toast.LENGTH_SHORT);
+          resetRecordingUi();
+        });
+      }
+
+      @Override
+      public void onSave (org.thunderdog.challegram.telegram.Tdlib.Generation generation, int duration, byte[] waveform) {
+        UI.post(() -> {
+          org.thunderdog.challegram.data.TGRecord record = new org.thunderdog.challegram.data.TGRecord(tdlib, generation, duration, waveform);
+          Tgx101SavedStore.suppressBanner(15000);
+          tdlib.send(new TdApi.SendMessage(tdlib.selfChatId(), null, null, null, null,
+            new TdApi.InputMessageVoiceNote(new TdApi.InputVoiceNote(record.toInputFile(), record.getDuration(), record.getWaveform()), null, null)), (sent, error) -> UI.post(() -> {
+            if (error != null) UI.showError(error);
+            else if (!isDestroyed()) UI.post(Tgx101SavedHomeController.this::afterNoteSaved, 600);
+          }));
+        });
+      }
+    });
+  }
+
+  private final Runnable recordTicker = new Runnable() {
+    @Override
+    public void run () {
+      if (!recording || recordLabel == null) return;
+      long sec = (System.currentTimeMillis() - recordStart) / 1000;
+      recordLabel.setText("● " + String.format(java.util.Locale.ROOT, "%d:%02d", sec / 60, sec % 60) + "   " + Lang.getString(R.string.Tgx101SavedVoiceCancelHint));
+      recordLabel.postDelayed(this, 500);
+    }
+  };
+
+  private void stopRecording (boolean send) {
+    if (!recording) return;
+    if (send) org.thunderdog.challegram.helper.Recorder.instance().save(false);
+    else org.thunderdog.challegram.helper.Recorder.instance().cancel();
+    resetRecordingUi();
+  }
+
+  private void resetRecordingUi () {
+    recording = false;
+    if (recordLabel != null) recordLabel.setVisibility(View.GONE);
+    noteField.setVisibility(View.VISIBLE);
+    sendButton.setColorFilter(accent());
+    updateSendIcon();
   }
 
   // Emoji keyboard (the chat's own, as in the share sheet)
