@@ -328,13 +328,23 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     all.setColorFilter(accent());
     all.setScaleType(ImageView.ScaleType.CENTER);
     all.setContentDescription(Lang.getString(R.string.Tgx101SavedRecentMore));
+    // (user 2026-10-17 «контур не видно — сделай современно»): an outlined button as in Material 3 — a clear line in the
+    // accent, a faint tint of it inside, a ripple of it under the finger
     GradientDrawable outline = new GradientDrawable();
-    outline.setCornerRadius(Screen.dp(18f)); // the chats' field
-    outline.setStroke(Math.max(1, Screen.dp(1f)), Theme.separatorColor());
-    all.setBackground(outline);
-    Views.setClickable(all);
+    outline.setCornerRadius(Screen.dp(20f)); // the chats' field
+    outline.setColor(tint(accent(), .06f));
+    outline.setStroke(Screen.dp(1.5f), tint(accent(), .65f));
+    if (android.os.Build.VERSION.SDK_INT >= 21) {
+      GradientDrawable mask = new GradientDrawable();
+      mask.setCornerRadius(Screen.dp(20f));
+      mask.setColor(0xffffffff);
+      all.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(tint(accent(), .22f)), outline, mask));
+    } else {
+      all.setBackground(outline);
+    }
+    all.setClickable(true);
     all.setOnClickListener(v -> Tgx101SavedListController.openKind(this, -1));
-    LinearLayout.LayoutParams allParams = new LinearLayout.LayoutParams(Screen.dp(84f), Screen.dp(40f));
+    LinearLayout.LayoutParams allParams = new LinearLayout.LayoutParams(Screen.dp(96f), Screen.dp(40f));
     allParams.gravity = Gravity.CENTER_HORIZONTAL;
     allParams.topMargin = Screen.dp(12f);
     column.addView(all, allParams);
