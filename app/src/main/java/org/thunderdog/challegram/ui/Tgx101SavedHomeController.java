@@ -229,7 +229,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     outer.addView(content, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
     scroll = new HomeScroll(context);
     scroll.setFillViewport(true);
-    scroll.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+    scroll.setOverScrollMode(View.OVER_SCROLL_NEVER); // (user 2026-10-16 «дёргается при прокрутке до конца»): no Android 12 stretch at the ends — the pull-down is its own
     content.addView(scroll, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
     column = new LinearLayout(context);

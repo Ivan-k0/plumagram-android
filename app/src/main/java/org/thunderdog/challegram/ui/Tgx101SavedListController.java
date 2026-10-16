@@ -285,7 +285,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
     };
     list.setClipToPadding(false);
     list.setPadding(Screen.dp(12f), Screen.dp(4f), Screen.dp(12f), Screen.dp(96f));
-    list.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+    list.setOverScrollMode(View.OVER_SCROLL_NEVER); // (user 2026-10-16 «дёргается при прокрутке до конца», «Видео» top and bottom): no stretch at the ends
     adapter = new Adapter();
     list.setAdapter(adapter);
     // a selection change only redraws the check: no cross-fade of the whole row (the «twitch» seen in chats)
@@ -547,17 +547,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
       clearSelection();
       searchKind = newKind;
       paintKindTabs();
-      float w = list.getWidth();
-      list.animate().cancel();
-      list.animate().translationX(forward ? -w * .25f : w * .25f).alpha(0f).setDuration(120).withEndAction(() -> {
-        if (isDestroyed()) return;
-        loaded.clear();
-        items.clear();
-        adapter.notifyDataSetChanged();
-        runSearch();
-        list.setTranslationX(forward ? w * .25f : -w * .25f);
-        list.animate().translationX(0f).alpha(1f).setDuration(180).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
-      }).start();
+      beginSwitch(forward, null, this::runSearch);
       return;
     }
     if (mode != MODE_KIND || newKind == kind || isDestroyed()) return;
@@ -569,20 +559,71 @@ public class Tgx101SavedListController extends ViewController<Void> {
     if (navigationController() != null && navigationController().getHeaderView() != null) {
       navigationController().getHeaderView().updateTextTitle(getId(), getName());
     }
-    float w = list.getWidth();
-    list.animate().cancel();
-    list.animate().translationX(forward ? -w * .25f : w * .25f).alpha(0f).setDuration(120).withEndAction(() -> {
-      if (isDestroyed()) return;
+    beginSwitch(forward, () -> {
       loadPrefs();
       buildViewSwitch();
       applyLayoutManager();
-      loaded.clear();
-      items.clear();
-      adapter.notifyDataSetChanged();
-      load();
-      list.setTranslationX(forward ? w * .25f : -w * .25f);
-      list.animate().translationX(0f).alpha(1f).setDuration(180).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
-    }).start();
+    }, this::load);
+  }
+
+  // (user's video 2026-10-16 18:43 «таких остаточных явлений при переключении быть не должно»): the old kind's rows went
+  // on showing under the new title, faded, then «Loading…» and the old count flashed before the new list came. Now, as a
+  // pager: the old list slides off right away, the new one is loaded meanwhile and slides in from that side once it's here
+
+  private boolean switching, switchOutDone;
+  private @Nullable List<TdApi.Message> switchArrived;
+  private @Nullable Runnable switchBeforeSwap;
+  private boolean switchForward;
+
+  private void beginSwitch (boolean forward, @Nullable Runnable beforeSwap, Runnable startLoad) {
+    switching = true;
+    switchOutDone = false;
+    switchArrived = null;
+    switchForward = forward;
+    switchBeforeSwap = beforeSwap;
+    emptyView.setVisibility(View.GONE);
+    float w = list.getWidth();
+    list.animate().cancel();
+    list.animate().translationX(forward ? -w * .3f : w * .3f).alpha(0f).setDuration(110)
+      .setInterpolator(new android.view.animation.DecelerateInterpolator(1.2f)).withEndAction(() -> { // it starts moving at once
+        switchOutDone = true;
+        finishSwitch();
+      }).start();
+    startLoad.run();
+    final int token = ++switchToken;
+    list.postDelayed(() -> { // nothing came in time (an error, a lost answer): don't leave the screen empty
+      if (switching && token == switchToken) cancelSwitch();
+    }, 3000);
+  }
+
+  private int switchToken;
+
+  /** no data comes for the switch (hints instead, an error): the list just comes back */
+  private void cancelSwitch () {
+    if (!switching) return;
+    switching = false;
+    switchArrived = null;
+    if (switchBeforeSwap != null) switchBeforeSwap.run();
+    switchBeforeSwap = null;
+    list.animate().cancel();
+    list.animate().translationX(0f).alpha(1f).setDuration(160).withEndAction(null).start();
+  }
+
+  /** both the old list is gone and the new data is here: put it in and slide it in */
+  private void finishSwitch () {
+    if (!switching || !switchOutDone || switchArrived == null || isDestroyed()) return;
+    List<TdApi.Message> messages = switchArrived;
+    switching = false;
+    switchArrived = null;
+    if (switchBeforeSwap != null) switchBeforeSwap.run();
+    switchBeforeSwap = null;
+    loaded.clear();
+    loaded.addAll(messages);
+    rebuildItems();
+    list.scrollToPosition(0);
+    float w = list.getWidth();
+    list.setTranslationX(switchForward ? w * .3f : -w * .3f);
+    list.animate().translationX(0f).alpha(1f).setDuration(200).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).withEndAction(null).start();
   }
 
   private static int indexOfKind (int k) {
@@ -837,6 +878,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
       return;
     }
     if (query.isEmpty() && searchKind == -1 && searchTag == null) {
+      cancelSwitch(); // the hints come instead of results: no list to wait for
       loaded.clear();
       showSearchHints();
       return;
@@ -893,8 +935,10 @@ public class Tgx101SavedListController extends ViewController<Void> {
   // Loading
 
   private void load () {
-    emptyView.setText(Lang.getString(R.string.LoadingInformation));
-    emptyView.setVisibility(View.VISIBLE);
+    if (!switching) { // a kind switch shows no «Loading…» flash in between
+      emptyView.setText(Lang.getString(R.string.LoadingInformation));
+      emptyView.setVisibility(View.VISIBLE);
+    }
     Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
     switch (mode) {
       case MODE_KIND:
@@ -931,6 +975,11 @@ public class Tgx101SavedListController extends ViewController<Void> {
 
   private void setLoaded (List<TdApi.Message> messages) {
     if (isDestroyed()) return;
+    if (switching) { // a kind switch: it comes in once the old list is off
+      switchArrived = messages;
+      finishSwitch();
+      return;
+    }
     loaded.clear();
     loaded.addAll(messages);
     rebuildItems();
