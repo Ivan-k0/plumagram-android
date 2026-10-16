@@ -600,7 +600,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   /** what the tiles show, to rebuild them only when it changed (no flicker on every return) */
   private String tilesSignature (Tgx101SavedStore store) {
     StringBuilder b = new StringBuilder().append(store.inboxTile).append('|').append(Theme.getColor(ColorId.filling));
-    for (Tgx101SavedStore.Folder f : store.folders()) if (f.onHome) b.append('|').append(f.id).append(':').append(f.name).append(':').append(f.messageIds.size()).append(':').append(f.color());
+    for (Tgx101SavedStore.Folder f : store.folders()) if (f.onHome) b.append('|').append(f.id).append(':').append(f.name).append(':').append(f.messageIds.size()).append(':').append(f.color()).append(':').append(f.shareChatId);
     for (String tag : store.homeTags()) b.append("|#").append(tag);
     for (java.util.Map.Entry<String, Integer> e : reactionCounts.entrySet()) b.append("|r").append(e.getKey()).append(e.getValue());
     return b.toString();
@@ -740,6 +740,20 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     previews.setOrientation(LinearLayout.HORIZONTAL);
     previews.setGravity(Gravity.CENTER_VERTICAL);
     t.addView(previews, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(26f)));
+    int[] copying = Tgx101FolderShare.progressOf(f.id);
+    if (copying != null) { // approved mockup «Поделиться папкой», В: the copying on the tile
+      TextView p = text(context, 11f, ink, false);
+      p.setText(Lang.getString(R.string.Tgx101ShareTileProgress, copying[0], copying[1]));
+      previews.addView(p);
+      android.widget.ProgressBar bar = new android.widget.ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal);
+      bar.setMax(Math.max(1, copying[1]));
+      bar.setProgress(copying[0]);
+      t.addView(bar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(4f)));
+      return t;
+    }
+    if (f.isShared()) { // a small «shared» sign after the name
+      n.setText(name + "  ↗");
+    }
     java.util.List<Long> ids = new java.util.ArrayList<>(f.messageIds);
     if (ids.isEmpty()) {
       TextView empty = text(context, 12f, tint(ink, .75f), false);
@@ -802,10 +816,37 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   }
 
   private void folderOptions (Tgx101SavedStore.Folder f) {
-    showOptions(f.name, new int[] {R.id.btn_edit, R.id.btn_close, R.id.btn_delete}, new String[] {Lang.getString(R.string.Tgx101SavedRename), Lang.getString(R.string.Tgx101SavedRemoveFromHome), Lang.getString(R.string.Tgx101SavedDeleteFolder)},
-      new int[] {OptionColor.NORMAL, OptionColor.NORMAL, OptionColor.RED}, new int[] {R.drawable.baseline_edit_24, R.drawable.baseline_close_24, R.drawable.baseline_delete_24}, (itemView, id) -> {
+    // approved mockup «Поделиться папкой»: share it, or — once shared — its link, «Update», «Stop sharing»
+    java.util.List<Integer> ids = new java.util.ArrayList<>();
+    java.util.List<String> names = new java.util.ArrayList<>();
+    java.util.List<Integer> colors = new java.util.ArrayList<>();
+    java.util.List<Integer> icons = new java.util.ArrayList<>();
+    if (f.isShared()) {
+      ids.add(R.id.btn_share); names.add(Lang.getString(R.string.Tgx101ShareLinkItem)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_link_24);
+      ids.add(R.id.btn_tgx101ShareUpdate); names.add(Lang.getString(R.string.Tgx101ShareUpdate)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_sync_24);
+      ids.add(R.id.btn_tgx101ShareStop); names.add(Lang.getString(R.string.Tgx101ShareStop)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_cancel_24);
+    } else {
+      ids.add(R.id.btn_share); names.add(Lang.getString(R.string.Tgx101ShareFolder)); colors.add(OptionColor.BLUE); icons.add(R.drawable.baseline_share_24);
+    }
+    ids.add(R.id.btn_edit); names.add(Lang.getString(R.string.Tgx101SavedRename)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_edit_24);
+    ids.add(R.id.btn_close); names.add(Lang.getString(R.string.Tgx101SavedRemoveFromHome)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_close_24);
+    ids.add(R.id.btn_delete); names.add(Lang.getString(R.string.Tgx101SavedDeleteFolder)); colors.add(OptionColor.RED); icons.add(R.drawable.baseline_delete_24);
+    int[] idArr = new int[ids.size()], colorArr = new int[ids.size()], iconArr = new int[ids.size()];
+    for (int i = 0; i < idArr.length; i++) {
+      idArr[i] = ids.get(i);
+      colorArr[i] = colors.get(i);
+      iconArr[i] = icons.get(i);
+    }
+    showOptions(f.name, idArr, names.toArray(new String[0]), colorArr, iconArr, (itemView, id) -> {
         Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
-        if (id == R.id.btn_edit) {
+        if (id == R.id.btn_share) {
+          if (f.isShared()) Tgx101FolderShare.showLink(this, f);
+          else Tgx101FolderShare.setup(this, f, this::forceTiles);
+        } else if (id == R.id.btn_tgx101ShareUpdate) {
+          Tgx101FolderShare.update(this, f);
+        } else if (id == R.id.btn_tgx101ShareStop) {
+          Tgx101FolderShare.stop(this, f, this::forceTiles);
+        } else if (id == R.id.btn_edit) {
           Tgx101SavedActions.askName(this, Lang.getString(R.string.Tgx101SavedRename), f.name, name -> {
             store.renameFolder(f.id, name);
             buildTiles();
@@ -819,6 +860,17 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
         }
         return true;
       });
+  }
+
+  private void forceTiles () {
+    tilesShown = null;
+    buildTiles();
+  }
+
+  /** the copying of a shared folder moved on: its tile shows «copying 17/48» */
+  void refreshShareProgress () {
+    if (tiles == null || isDestroyed()) return;
+    forceTiles();
   }
 
   // Pinned and recent

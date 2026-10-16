@@ -1753,4 +1753,6 @@
   <item name="btn_tgx101SavedShowPinned" type="id"/>
   <item name="btn_tgx101SavedHashtag" type="id"/>
   <item name="btn_tgx101SavedPanelLabels" type="id"/>
+  <item name="btn_tgx101ShareUpdate" type="id"/>
+  <item name="btn_tgx101ShareStop" type="id"/>
 </resources>

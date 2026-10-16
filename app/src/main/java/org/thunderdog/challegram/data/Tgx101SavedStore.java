@@ -50,6 +50,24 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
     public int colorIndex;
     public final LinkedHashSet<Long> messageIds = new LinkedHashSet<>();
     public boolean onHome = true;
+    // TGx101 (approved mockup «Поделиться папкой»): the shared copy — a private channel / group, its invite link, what is
+    // already copied there (to go on after a break and to add only what's new)
+    public long shareChatId;
+    public String shareLink;
+    public boolean shareChannel = true, shareAuto = true, shareCopies = true, shareApproval;
+    public final LinkedHashSet<Long> sharedIds = new LinkedHashSet<>();
+
+    public boolean isShared () {
+      return shareChatId != 0;
+    }
+
+    /** what is in the folder and not yet in its shared copy, oldest first */
+    public List<Long> unshared () {
+      List<Long> out = new ArrayList<>();
+      for (long id : messageIds) if (!sharedIds.contains(id)) out.add(id);
+      java.util.Collections.sort(out);
+      return out;
+    }
 
     Folder (long id, String name, int colorIndex) {
       this.id = id;
@@ -186,6 +204,24 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   }
 
   private final int accountId;
+  /** set by the folder sharing: a shared folder got something new */
+  public static me.vkryl.core.lambda.RunnableData<long[]> onShareChanged;
+
+  public synchronized void markShared (long folderId, long[] ids) {
+    Folder f = folder(folderId);
+    if (f == null) return;
+    for (long id : ids) f.sharedIds.add(id);
+    save();
+  }
+
+  public synchronized void setShare (long folderId, long chatId, @Nullable String link) {
+    Folder f = folder(folderId);
+    if (f == null) return;
+    f.shareChatId = chatId;
+    f.shareLink = link;
+    if (chatId == 0) f.sharedIds.clear();
+    save();
+  }
   private final List<Folder> folders = new ArrayList<>();
   /** tag name (without #, lower case) → message ids tagged by name on this phone */
   private final Map<String, LinkedHashSet<Long>> localTags = new LinkedHashMap<>();
@@ -282,6 +318,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
     }
     lastFolderId = folderId;
     save();
+    if (target.isShared() && target.shareAuto && onShareChanged != null) onShareChanged.runWithData(new long[] {accountId, folderId}); // «add new from the folder»
   }
 
   public synchronized void removeFromFolders (long[] messageIds) {
@@ -443,6 +480,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
         f.messageIds.add(newId);
         changed = true;
       }
+      if (f.sharedIds.remove(oldId)) f.sharedIds.add(newId);
     }
     for (LinkedHashSet<Long> set : localTags.values()) {
       if (set.remove(oldId)) {
@@ -486,6 +524,19 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
         JSONArray ids = new JSONArray();
         for (long id : f.messageIds) ids.put(id);
         j.put("ids", ids);
+        if (f.shareChatId != 0) {
+          JSONObject sh = new JSONObject();
+          sh.put("chat", f.shareChatId);
+          if (f.shareLink != null) sh.put("link", f.shareLink);
+          sh.put("channel", f.shareChannel);
+          sh.put("auto", f.shareAuto);
+          sh.put("copies", f.shareCopies);
+          sh.put("approval", f.shareApproval);
+          JSONArray done = new JSONArray();
+          for (long id : f.sharedIds) done.put(id);
+          sh.put("done", done);
+          j.put("share", sh);
+        }
         fs.put(j);
       }
       o.put("folders", fs);
@@ -534,6 +585,17 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
           f.onHome = j.optBoolean("home", true);
           JSONArray ids = j.optJSONArray("ids");
           if (ids != null) for (int k = 0; k < ids.length(); k++) f.messageIds.add(ids.getLong(k));
+          JSONObject sh = j.optJSONObject("share");
+          if (sh != null) {
+            f.shareChatId = sh.optLong("chat");
+            f.shareLink = sh.optString("link", null);
+            f.shareChannel = sh.optBoolean("channel", true);
+            f.shareAuto = sh.optBoolean("auto", true);
+            f.shareCopies = sh.optBoolean("copies", true);
+            f.shareApproval = sh.optBoolean("approval", false);
+            JSONArray done = sh.optJSONArray("done");
+            if (done != null) for (int k = 0; k < done.length(); k++) f.sharedIds.add(done.getLong(k));
+          }
           folders.add(f);
           nextFolderId = Math.max(nextFolderId, f.id + 1);
         }
