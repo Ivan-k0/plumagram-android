@@ -419,11 +419,11 @@ public class Tgx101SavedListController extends ViewController<Void> {
     });
     applyLayoutManager();
     FrameLayout listBox = new FrameLayout(context);
-    listBox.addView(list, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-    pageGhost = new ImageView(context); // the kind being left, as a picture, slides off beside the new one
+    pageGhost = new ImageView(context); // the kind being left, as a picture, under the new one coming in
     pageGhost.setScaleType(ImageView.ScaleType.MATRIX);
     pageGhost.setVisibility(View.GONE);
     listBox.addView(pageGhost, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    listBox.addView(list, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     emptyView = Tgx101SavedHomeController.text(context, 15f, Theme.textDecentColor(), false);
     emptyView.setGravity(Gravity.CENTER);
     emptyView.setPadding(Screen.dp(32f), 0, Screen.dp(32f), 0);
@@ -667,48 +667,106 @@ public class Tgx101SavedListController extends ViewController<Void> {
   private @Nullable List<TdApi.Message> pageOldLoaded;
   private @Nullable android.os.Parcelable pageOldScroll;
 
-  /** the old kind becomes a picture, the list takes the new kind and waits beside it */
+  /** the old kind becomes a picture (taken from the screen as it is — drawing the list again lost its pictures and
+   *  some words), then the list takes the new kind and waits beside it */
   private boolean beginPage (int newKind, boolean forward) {
     if (paging || switching || mode != MODE_KIND || newKind == kind || isDestroyed() || list.getWidth() == 0) return false;
     clearSelection();
     Tgx101SwipeRow.closeOpen();
     list.stopScroll();
+    paging = true;
+    pageReady = false;
+    pageCommitted = false;
+    pageEnd = 0;
+    pageDrag = 0f;
+    pageForward = forward;
+    pageNewKind = newKind;
+    pageOldKind = kind;
+    pageOldLoaded = new ArrayList<>(loaded);
+    pageOldScroll = list.getLayoutManager() != null ? list.getLayoutManager().onSaveInstanceState() : null;
+    if (pageOldScroll != null) kindScroll.put(kind, pageOldScroll);
+    kindCache.put(kind, new ArrayList<>(loaded));
+    pageAuto = false;
+    pageWaiting = kindCache.get(newKind) == null;
+    list.animate().cancel();
+    list.setAlpha(1f);
+    final int token = ++pageToken;
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && context instanceof android.app.Activity) {
+      int[] at = new int[2];
+      list.getLocationInWindow(at);
+      android.graphics.Rect rect = new android.graphics.Rect(at[0], at[1], at[0] + list.getWidth(), at[1] + list.getHeight());
+      try {
+        android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(list.getWidth(), list.getHeight(), android.graphics.Bitmap.Config.ARGB_8888);
+        android.view.PixelCopy.request(((android.app.Activity) context).getWindow(), rect, bitmap, result -> {
+          if (token != pageToken || !paging) {
+            bitmap.recycle();
+            return;
+          }
+          if (result != android.view.PixelCopy.SUCCESS) {
+            bitmap.recycle();
+            pageSwap(drawnList());
+          } else {
+            pageSwap(bitmap);
+          }
+        }, new android.os.Handler(android.os.Looper.getMainLooper()));
+        return true;
+      } catch (Throwable ignored) { } // no memory, a surface gone: drawn below
+    }
+    pageSwap(drawnList());
+    return true;
+  }
+
+  private int pageToken, pageNewKind, pageEnd; // pageEnd: 0 — the finger is on, 1 — come in, -1 — come back
+  private boolean pageReady;
+  private float pageDrag, pageSpeed;
+
+  private @Nullable android.graphics.Bitmap drawnList () {
     android.graphics.Bitmap bitmap = null;
     try {
       bitmap = android.graphics.Bitmap.createBitmap(list.getWidth(), list.getHeight(), android.graphics.Bitmap.Config.ARGB_8888);
       android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
       canvas.drawColor(Theme.backgroundColor());
       list.draw(canvas);
-      if (emptyView.getVisibility() == View.VISIBLE) {
-        canvas.translate(emptyView.getLeft() - list.getLeft(), emptyView.getTop() - list.getTop());
-        emptyView.draw(canvas);
-      }
-    } catch (Throwable t) { // no memory for the picture: the old list just isn't drawn sliding off
+    } catch (Throwable t) {
       if (bitmap != null) bitmap.recycle();
       bitmap = null;
     }
-    paging = true;
-    pageCommitted = false;
-    pageForward = forward;
-    pageOldKind = kind;
-    pageOldLoaded = new ArrayList<>(loaded);
-    pageOldScroll = list.getLayoutManager() != null ? list.getLayoutManager().onSaveInstanceState() : null;
-    if (pageOldScroll != null) kindScroll.put(kind, pageOldScroll);
-    kindCache.put(kind, new ArrayList<>(loaded));
+    return bitmap;
+  }
+
+  /** the picture is here: it takes the old list's place in the same frame, and the list becomes the new kind */
+  private void pageSwap (@Nullable android.graphics.Bitmap bitmap) {
+    if (!paging || isDestroyed()) {
+      if (bitmap != null) bitmap.recycle();
+      return;
+    }
     pageBitmap = bitmap;
     pageGhost.setImageBitmap(bitmap);
-    pageGhost.setTranslationX(0f);
     pageGhost.setVisibility(bitmap != null ? View.VISIBLE : View.GONE);
-    list.animate().cancel();
-    list.setAlpha(1f);
-    showKind(newKind);
-    list.setTranslationX(forward ? list.getWidth() : -list.getWidth());
-    emptyView.setTranslationX(list.getTranslationX());
-    pageAuto = false;
-    pageWaiting = kindCache.get(newKind) == null;
+    list.setBackgroundColor(Theme.backgroundColor()); // it comes in over the old one
+    showKind(pageNewKind);
+    pageReady = true;
+    placePage(pageDrag);
     if (pageWaiting) load(); // it may well come while the finger is still moving
-    return true;
+    if (pageEnd != 0) endPage(pageEnd > 0, pageSpeed);
   }
+
+  /** {@code t}: how far the finger went, 0..∓width. The new kind comes in over the old one, which moves a third as
+   *  fast and fades — as a chat slides over the chat list */
+  private void placePage (float t) {
+    float w = Math.max(1, list.getWidth());
+    if (!pageReady) { // the old list still is the list
+      list.setTranslationX(t * PAGE_PARALLAX);
+      return;
+    }
+    float progress = Math.abs(t) / w;
+    pageGhost.setTranslationX(t * PAGE_PARALLAX);
+    pageGhost.setAlpha(1f - PAGE_FADE * progress);
+    list.setTranslationX(t + (pageForward ? w : -w));
+    emptyView.setTranslationX(list.getTranslationX());
+  }
+
+  private static final float PAGE_PARALLAX = .3f, PAGE_FADE = .7f;
 
   /** puts {@code k}'s messages (if they are here) and its scroll into the list */
   private void showKind (int k) {
@@ -729,23 +787,27 @@ public class Tgx101SavedListController extends ViewController<Void> {
   private void dragPage (float dx) {
     if (!paging || pageCommitted) return;
     float w = list.getWidth();
-    float t = pageForward ? Math.max(-w, Math.min(0f, dx)) : Math.max(0f, Math.min(w, dx));
-    pageGhost.setTranslationX(t);
-    list.setTranslationX(t + (pageForward ? w : -w));
-    emptyView.setTranslationX(list.getTranslationX());
+    pageDrag = pageForward ? Math.max(-w, Math.min(0f, dx)) : Math.max(0f, Math.min(w, dx));
+    placePage(pageDrag);
   }
 
-  /** the finger is up (or a tab was tapped): the new kind comes all the way in, or the old one comes back */
+  /** the finger is up (or a tab was tapped): the new kind comes all the way in, or the old one comes back. It goes on
+   *  at the finger's speed — no jerk at the release */
   private void endPage (boolean commit, float speed) {
     if (!paging || pageCommitted) return;
+    if (!pageReady) { // the picture isn't here yet: as soon as it is
+      pageEnd = commit ? 1 : -1;
+      pageSpeed = speed;
+      return;
+    }
     pageCommitted = true;
     float w = Math.max(1, list.getWidth());
-    float ghostTo = commit ? (pageForward ? -w : w) : 0f;
-    float listTo = commit ? 0f : (pageForward ? w : -w);
-    float left = Math.abs(list.getTranslationX() - listTo) / w; // the part of the way that is left
-    long duration = (long) Math.max(120, Math.min(300, 300 * left));
-    if (speed > 0) duration = (long) Math.max(120, Math.min(duration, w * left / speed * 1000f * 1.6f)); // a fling keeps its speed
-    android.view.animation.Interpolator curve = new android.view.animation.DecelerateInterpolator(1.6f);
+    float from = pageDrag, to = commit ? (pageForward ? -w : w) : 0f;
+    float left = Math.abs(to - from);
+    // DecelerateInterpolator(f) starts at 2f × the average speed: the duration that starts at the finger's speed
+    final float f = 1.5f;
+    long duration = speed > Screen.dp(100f) ? (long) (2f * f * left / speed * 1000f) : (long) (320 * left / w);
+    duration = Math.max(140, Math.min(360, duration));
     if (commit) {
       paintKindTabs();
       if (navigationController() != null && navigationController().getHeaderView() != null) {
@@ -753,19 +815,26 @@ public class Tgx101SavedListController extends ViewController<Void> {
       }
       UI.forceVibrate(list, false);
     }
-    pageGhost.animate().cancel();
-    pageGhost.animate().translationX(ghostTo).setDuration(duration).setInterpolator(curve).start();
-    emptyView.animate().cancel();
-    emptyView.animate().translationX(listTo).setDuration(duration).setInterpolator(curve).start();
-    list.animate().cancel();
-    list.animate().translationX(listTo).setDuration(duration).setInterpolator(curve).withEndAction(() -> {
-      if (commit) finishPage(); else revertPage();
-    }).start();
+    android.animation.ValueAnimator va = android.animation.ValueAnimator.ofFloat(from, to);
+    va.setDuration(duration);
+    va.setInterpolator(new android.view.animation.DecelerateInterpolator(f));
+    va.addUpdateListener(an -> {
+      pageDrag = (float) an.getAnimatedValue();
+      placePage(pageDrag);
+    });
+    va.addListener(new android.animation.AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd (android.animation.Animator animation) {
+        if (commit) finishPage(); else revertPage();
+      }
+    });
+    va.start();
   }
 
   private void finishPage () {
     paging = false;
     dropGhost();
+    list.setBackground(null);
     pageOldLoaded = null;
     pageOldScroll = null;
     list.setTranslationX(0f);
@@ -795,6 +864,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
     emptyView.setTranslationX(0f);
     paging = false;
     pageWaiting = false;
+    list.setBackground(null);
     pageOldLoaded = null;
     pageOldScroll = null;
     list.post(this::dropGhost); // after the list has drawn the old kind again: no blink between
@@ -804,6 +874,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
     pageGhost.setVisibility(View.GONE);
     pageGhost.setImageDrawable(null);
     pageGhost.setTranslationX(0f);
+    pageGhost.setAlpha(1f);
     if (pageBitmap != null) {
       pageBitmap.recycle();
       pageBitmap = null;
@@ -1203,7 +1274,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
   // Loading
 
   private void load () {
-    if (!switching) { // a kind switch shows no «Loading…» flash in between
+    if (!switching && !paging && loaded.isEmpty()) { // a kind switch / a refresh of a full list shows no «Loading…» flash
       emptyView.setText(Lang.getString(R.string.LoadingInformation));
       emptyView.setVisibility(View.VISIBLE);
     }
