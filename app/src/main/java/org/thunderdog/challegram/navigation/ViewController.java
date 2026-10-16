@@ -2056,6 +2056,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         }
         Views.applyBottomInset(recyclerView, footerView == null ? extraBottomInsetWithoutIme : 0);
         Views.setBottomMargin(shadowView, tgx101FooterHeight() + extraBottomInsetWithoutIme);
+        if (footerView != null) Views.setBottomMargin(recyclerView, tgx101FooterHeight() + extraBottomInsetWithoutIme); // TGx101: the rows end where the buttons start
       }
     }
 
@@ -2250,6 +2251,11 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     };
     final int checkedIndex = settings.adapter.setItems(items, true);
 
+    // TGx101 (Xiaomi with the 3-button navigation, user's screenshot 2026-10-16 11:45: a see-through strip between the
+    // rows and the buttons): the floating card already stands above the navigation bar — its parts get no extra bottom
+    // inset. They were built with the bar's height, and the card's own reset to 0 was skipped as «nothing changed»
+    final int footerInset = OptionsLayout.TGX101_CARD ? 0 : extraBottomInsetWithoutIme;
+
     FrameLayoutFix footerView = null;
     if (!b.disableFooter) {
        footerView = new FrameLayoutFix(context) {
@@ -2260,8 +2266,8 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         }
       };
       ViewSupport.setThemedBackground(footerView, ColorId.filling, this);
-      footerView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, tgx101FooterHeight() + extraBottomInsetWithoutIme, Gravity.BOTTOM));
-      Views.setPaddingBottom(footerView, extraBottomInsetWithoutIme);
+      footerView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, tgx101FooterHeight() + footerInset, Gravity.BOTTOM));
+      Views.setPaddingBottom(footerView, footerInset);
 
       android.widget.LinearLayout buttonRow = null;
       if (OptionsLayout.TGX101_CARD) {
@@ -2327,9 +2333,9 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     }
 
     FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
-    params.bottomMargin = footerView != null ? tgx101FooterHeight() + extraBottomInsetWithoutIme : 0;
+    params.bottomMargin = footerView != null ? tgx101FooterHeight() + footerInset : 0;
 
-    Views.applyBottomInset(recyclerView, footerView == null ? extraBottomInsetWithoutIme : 0);
+    Views.applyBottomInset(recyclerView, footerView == null ? footerInset : 0);
     recyclerView.setAdapter(settings.adapter);
     recyclerView.setLayoutParams(params);
     addThemeInvalidateListener(recyclerView);
@@ -2343,7 +2349,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
 
     if (footerView != null) {
       params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(1f), Gravity.BOTTOM);
-      params.bottomMargin = tgx101FooterHeight() + extraBottomInsetWithoutIme;
+      params.bottomMargin = tgx101FooterHeight() + footerInset;
       shadowView = SeparatorView.simpleSeparator(context, params, true);
       shadowView.setAlignBottom();
       if (OptionsLayout.TGX101_CARD) shadowView.setAlpha(0f); // the pills need no line above them
