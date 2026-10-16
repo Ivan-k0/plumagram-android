@@ -389,6 +389,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(e == Settings.TGX101_TRANSLATE_GOOGLE ? R.string.Tgx101TranslateGoogle : e == Settings.TGX101_TRANSLATE_DEVICE ? R.string.Tgx101TranslateDevice : R.string.Tgx101TranslateTelegram);
         } else if (itemId == R.id.btn_tgx101SpeechModel) {
           view.setData(tgx101SpeechModelStatus());
+        } else if (itemId == R.id.btn_tgx101SpeechEngine) {
+          view.setData(Settings.instance().tgx101SpeechEngine() == Settings.TGX101_SPEECH_DEVICE ? R.string.Tgx101SpeechEngineDevice : R.string.Tgx101SpeechEngineTelegram);
         } else if (itemId == R.id.btn_tgx101FakeNoPremium) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101FakeNoPremium(), isUpdate);
         } else if (itemId == R.id.btn_showChannelMuteButton) {
@@ -605,6 +607,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101SpeechSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101SpeechEngine, 0, R.string.Tgx101SpeechEngine),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101SpeechModel, 0, R.string.Tgx101SpeechModel),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SpeechModelHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
@@ -1031,7 +1035,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101UiText || id == R.id.btn_tgx101UiBold || id == R.id.btn_tgx101ChatListTextSize || id == R.id.btn_tgx101Font || id == R.id.btn_tgx101InputFontScale || id == R.id.btn_tgx101TextWeight || id == R.id.btn_chatFontSize || id == R.id.btn_bigEmojiSize) return 6;
     if (id == R.id.btn_tgx101CallBar || id == R.id.btn_tgx101NewCallScreen || id == R.id.btn_tgx101CallPhoto || id == R.id.btn_tgx101CallPattern
       || id == R.id.btn_tgx101RingRamp || id == R.id.btn_tgx101RingRampTime || id == R.id.btn_tgx101RingStart) return 7;
-    if (id == R.id.btn_tgx101TranslateOnDevice || id == R.id.btn_tgx101TranslateModels || id == R.id.btn_tgx101SpeechModel || id == R.id.btn_tgx101FakeNoPremium) return 8;
+    if (id == R.id.btn_tgx101TranslateOnDevice || id == R.id.btn_tgx101TranslateModels || id == R.id.btn_tgx101SpeechModel || id == R.id.btn_tgx101SpeechEngine || id == R.id.btn_tgx101FakeNoPremium) return 8;
     return 10;
   }
 
@@ -1482,6 +1486,21 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       }).setAllowResize(false));
     } else if (id == R.id.btn_tgx101SpeechModel) {
       showTgx101SpeechModels();
+    } else if (id == R.id.btn_tgx101SpeechEngine) {
+      int cur = Settings.instance().tgx101SpeechEngine();
+      showSettings(new SettingsWrapBuilder(R.id.btn_tgx101SpeechEngine).setRawItems(new ListItem[] {
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101SpeechEngineTelegram, 0, R.string.Tgx101SpeechEngineTelegram, R.id.btn_tgx101SpeechEngine, cur == Settings.TGX101_SPEECH_TELEGRAM),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101SpeechEngineDevice, 0, R.string.Tgx101SpeechEngineDevice, R.id.btn_tgx101SpeechEngine, cur == Settings.TGX101_SPEECH_DEVICE),
+      }).setIntDelegate((sid, result) -> {
+        int picked = result.get(R.id.btn_tgx101SpeechEngine);
+        int engine = picked == R.id.btn_tgx101SpeechEngineDevice ? Settings.TGX101_SPEECH_DEVICE : Settings.TGX101_SPEECH_TELEGRAM;
+        Settings.instance().setTgx101SpeechEngine(engine);
+        adapter.updateValuedSettingById(R.id.btn_tgx101SpeechEngine);
+        if (engine == Settings.TGX101_SPEECH_DEVICE && org.thunderdog.challegram.data.Tgx101SpeechModels.active() == null) {
+          UI.showToast(R.string.Tgx101SpeechEngineNeedModel, android.widget.Toast.LENGTH_LONG);
+          showTgx101SpeechModels(); // straight to the models: GigaAM is there
+        }
+      }).setAllowResize(false));
     } else if (id == R.id.btn_tgx101TranslateModels) {
       showTgx101TranslateModels();
     } else if (id == R.id.btn_tgx101FakeNoPremium) {

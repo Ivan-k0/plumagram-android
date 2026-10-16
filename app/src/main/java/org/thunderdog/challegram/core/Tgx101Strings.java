@@ -341,6 +341,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101TranslateSection, "Перевод");
     RU.put(R.string.Tgx101SpeechSection, "Распознавание речи");
     RU.put(R.string.Tgx101SpeechModel, "Голосовые в текст на телефоне");
+    RU.put(R.string.Tgx101SpeechEngine, "Кто распознаёт речь");
+    RU.put(R.string.Tgx101SpeechEngineTelegram, "Telegram, а если не может — телефон");
+    RU.put(R.string.Tgx101SpeechEngineDevice, "Телефон — скачанная модель");
+    RU.put(R.string.Tgx101SpeechEngineNeedModel, "Сначала скачайте модель. GigaAM распознаёт русскую речь лучше Telegram, со знаками препинания и без интернета.");
     RU.put(R.string.Tgx101SpeechModelHint, "Если Telegram не расшифровывает голосовое (нет Премиума, недельные пробные расшифровки закончились), а служба распознавания телефона не справляется, оно распознаётся на телефоне скачанной моделью, без интернета.");
     RU.put(R.string.Tgx101SpeechModelNone, "Выключено");
     RU.put(R.string.Tgx101SpeechModelLight, "Лёгкая, русский (29 МБ)");

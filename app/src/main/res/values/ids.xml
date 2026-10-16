@@ -1570,6 +1570,9 @@
   <item name="btn_tgx101GestureSpeed" type="id"/>
   <item name="btn_tgx101TranslateOnDevice" type="id"/>
   <item name="btn_tgx101SpeechModel" type="id"/>
+  <item name="btn_tgx101SpeechEngine" type="id"/>
+  <item name="btn_tgx101SpeechEngineTelegram" type="id"/>
+  <item name="btn_tgx101SpeechEngineDevice" type="id"/>
   <item name="btn_tgx101DefaultAutoDelete" type="id"/>
   <item name="btn_tgx101UserNote" type="id"/>
   <item name="btn_tgx101SharePin" type="id"/>

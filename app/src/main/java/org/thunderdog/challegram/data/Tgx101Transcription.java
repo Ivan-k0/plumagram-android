@@ -53,7 +53,8 @@ import me.vkryl.core.reference.ReferenceList;
  * TGx101: voice and video message transcription that runs in the background, like in the official apps.
  * The result is shown in the message bubble (TGMessageFile / TGMessageVideo), so the chat stays usable.
  *
- * First asks Telegram (RecognizeSpeech: Premium, weekly trial for everyone else, boosted groups). If the
+ * First asks Telegram (RecognizeSpeech: Premium, weekly trial for everyone else, boosted groups) — or, if chosen in
+ * MagiX, goes straight to the downloaded model (GigaAM recognizes Russian better than Telegram). If the
  * server refuses or fails, the message is recognized on the phone with Android's SpeechRecognizer
  * (Android 13+), one message at a time. Finished texts are kept on the device.
  */
@@ -185,8 +186,9 @@ public final class Tgx101Transcription {
     }
     Job job = new Job(tdlib, key, message.chatId, message.id, file);
     job.progress(null);
-    if (isSecretChat) {
-      job.recognizeOnDevice(); // secret chats can't use server recognition
+    boolean phoneFirst = org.thunderdog.challegram.unsorted.Settings.instance().tgx101SpeechEngine() == org.thunderdog.challegram.unsorted.Settings.TGX101_SPEECH_DEVICE && Tgx101SpeechModels.active() != null;
+    if (isSecretChat || phoneFirst) {
+      job.recognizeOnDevice(); // secret chats can't use server recognition; or the phone's model was chosen
     } else {
       job.recognizeOnServer();
     }

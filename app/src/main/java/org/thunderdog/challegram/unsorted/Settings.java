@@ -4084,6 +4084,16 @@ public class Settings {
     pmc.putInt(KEY_TGX101_MEDIA_COLUMNS, columns);
   }
 
+  // user 2026-10-17 «распознавание речи — давать выбор: Telegram делает хуже, чем GigaAM»
+  public static final int TGX101_SPEECH_TELEGRAM = 0, TGX101_SPEECH_DEVICE = 1;
+  private static final String KEY_TGX101_SPEECH_ENGINE = "tgx101_speech_engine";
+  public int tgx101SpeechEngine () {
+    return pmc.getInt(KEY_TGX101_SPEECH_ENGINE, TGX101_SPEECH_TELEGRAM);
+  }
+  public void setTgx101SpeechEngine (int engine) {
+    pmc.putInt(KEY_TGX101_SPEECH_ENGINE, engine);
+  }
+
   private static final String KEY_TGX101_SPEECH_MODEL = "tgx101_speech_model";
 
   /** TGx101: id of the own speech recognition model (Tgx101SpeechModels), null = none */
