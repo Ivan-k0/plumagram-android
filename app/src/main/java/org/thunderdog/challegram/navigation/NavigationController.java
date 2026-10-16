@@ -742,7 +742,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       setLayerType(View.LAYER_TYPE_HARDWARE, left, right);
     }
 
-    boolean forceRtl = false;
+    boolean forceRtl = tgx101ForceRtlOnce;
 
     if (predictiveGestureMode != PredictiveGesture.NONE) {
       if (Settings.instance().needReduceMotion()) {
@@ -1195,6 +1195,14 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     return openPreviewImpl(y, false, PredictiveGesture.NONE);
   }
 
+  /** TGx101: the swipe «back» made right to left — the screen below comes in from the right (as in RTL) */
+  boolean tgx101OpenPreviewReverse (float y) {
+    tgx101ForceRtlOnce = true;
+    boolean opened = openPreviewImpl(y, false, PredictiveGesture.NONE);
+    tgx101ForceRtlOnce = false;
+    return opened;
+  }
+
   public boolean forcePreviewPreviouewItem () {
     return openPreviewImpl(0, true, PredictiveGesture.NONE);
   }
@@ -1203,7 +1211,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     closePreview(0f);
   }
 
-  private boolean forceRtlAnimation;
+  private boolean forceRtlAnimation, tgx101ForceRtlOnce;
 
   private boolean needRtl () {
     return forceRtlAnimation || Lang.rtl();

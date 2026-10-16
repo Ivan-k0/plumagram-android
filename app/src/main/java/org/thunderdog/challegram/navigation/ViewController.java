@@ -1039,6 +1039,16 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     return false;
   }
 
+  /** TGx101 (user 2026-10-17): this screen is left by a swipe to either side — right to left, the screen below comes in
+   *  from the right. Only where {@link #tgx101CanSlideBackReverseFrom} lets it start */
+  public boolean tgx101SlideBackBothWays () {
+    return false;
+  }
+
+  public boolean tgx101CanSlideBackReverseFrom (NavigationController navigationController, float x, float y) {
+    return canSlideBackFrom(navigationController, x, y);
+  }
+
   /** TGx101: a screen that comes in by a fade may still be left by the side swipe «back» (the storage's search) */
   public boolean tgx101SlideBackInFadeMode () {
     return false;

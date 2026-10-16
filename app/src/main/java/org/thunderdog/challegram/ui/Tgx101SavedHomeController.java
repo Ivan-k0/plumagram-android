@@ -518,6 +518,28 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   }
 
 
+  // (user 2026-10-17 «свайп с главной хранилища в обе стороны; справа налево — список чатов выезжает справа»)
+  @Override
+  public boolean tgx101SlideBackBothWays () {
+    return true;
+  }
+
+  @Override
+  public boolean tgx101CanSlideBackReverseFrom (org.thunderdog.challegram.navigation.NavigationController navigationController, float x, float y) {
+    if (getKeyboardState() || !selected.isEmpty()) return false;
+    View nav = navigationController.getValue();
+    if (nav == null) return false;
+    nav.getLocationOnScreen(slideNavLocation);
+    for (View sideways : new View[] {pinnedSection != null && pinnedSection.getVisibility() == View.VISIBLE ? pinnedScroll : null, chipsScroll}) {
+      if (sideways == null || !sideways.isShown()) continue;
+      if (sideways == chipsScroll && !sideways.canScrollHorizontally(1)) continue; // the kinds row only while it scrolls on
+      sideways.getLocationOnScreen(slideLocation);
+      float top = slideLocation[1] - slideNavLocation[1];
+      if (y >= top && y <= top + sideways.getHeight()) return false;
+    }
+    return true;
+  }
+
   /** (test 2026-10-16: settings opened with the note's keyboard up kept it over the next screen) */
   @Override
   public void onBlur () {

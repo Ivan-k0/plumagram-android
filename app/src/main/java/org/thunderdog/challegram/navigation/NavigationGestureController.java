@@ -37,6 +37,7 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
   private boolean isScrolling;
 
   private float startX, startY;
+  private boolean tgx101Reverse; // (user 2026-10-17) the swipe «back» made the other way: right to left
   private int lastScrollX, lastScrollY;
 
   private boolean listenSlidingBack, slidingVertical, slidingBack, slidingDrawer;
@@ -53,6 +54,7 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
     slidingDrawer = false;
     lastScrollX = -1;
     lastScrollY = -1;
+    tgx101Reverse = false;
 
     if (releaseInput && !navigation.isAnimating()) {
       setInputBlocked(false);
@@ -180,7 +182,7 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
       if (slidingVertical) {
         close = lastScrollY < (float) navigation.getValue().getMeasuredHeight() * Size.NAVIGATION_DROP_FACTOR;
       } else {
-        close = lastScrollX < (float) navigation.getValue().getMeasuredWidth() * Size.NAVIGATION_DROP_FACTOR;
+        close = (tgx101Reverse ? -lastScrollX : lastScrollX) < (float) navigation.getValue().getMeasuredWidth() * Size.NAVIGATION_DROP_FACTOR;
       }
 
       if (close) {
@@ -211,7 +213,8 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
       abortUp = true;
 
       if (slidingBack) {
-        if ((velocity < 0 && (!Lang.rtl() || slidingVertical)) || (velocity >= 0 && Lang.rtl() && !slidingVertical)) {
+        boolean rtlSwipe = Lang.rtl() || tgx101Reverse;
+        if ((velocity < 0 && (!rtlSwipe || slidingVertical)) || (velocity >= 0 && rtlSwipe && !slidingVertical)) {
           navigation.closePreview(abs);
         } else {
           navigation.applyPreview(abs);
@@ -278,6 +281,14 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
           approve = diffX <= -Screen.getTouchSlopBig() && Math.abs(diffY) <= Screen.getTouchSlopY();
         } else {
           approve = diffX >= Screen.getTouchSlopBig() && Math.abs(diffY) <= Screen.getTouchSlopY();
+          if (!approve && diffX <= -Screen.getTouchSlopBig() && Math.abs(diffY) <= Screen.getTouchSlopY()) {
+            // TGx101 (user 2026-10-17): a screen that is left both ways — the screen below comes in from the right
+            ViewController<?> current = navigation.getCurrentStackItem();
+            if (current != null && current.tgx101SlideBackBothWays() && current.tgx101CanSlideBackReverseFrom(navigation, startX, startY)) {
+              approve = true;
+              tgx101Reverse = true;
+            }
+          }
         }
 
         if (!approve) {
@@ -298,7 +309,7 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
         setInputBlocked(true);
 
         if (slidingBack) {
-          if (!navigation.openPreview(event.getY())) {
+          if (!(tgx101Reverse ? navigation.tgx101OpenPreviewReverse(event.getY()) : navigation.openPreview(event.getY()))) {
             slidingBack = false;
             listenSlidingBack = false;
             return false;
