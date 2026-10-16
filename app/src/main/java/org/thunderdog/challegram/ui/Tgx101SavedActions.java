@@ -466,6 +466,19 @@ public final class Tgx101SavedActions {
     });
   }
 
+  private static void findSent (Tdlib tdlib, TdApi.Message sent, int since, RunnableData<List<TdApi.Message>> done, int attempt) {
+    UI.post(() -> Tgx101SavedKit.resolveSaved(tdlib, new long[] {sent.id}, since, saved -> {
+      boolean real = !saved.isEmpty() && saved.get(0).sendingState == null && (saved.get(0).id & ((1L << 20) - 1)) == 0;
+      if (real) {
+        done.runWithData(saved);
+      } else if (attempt < 8) {
+        findSent(tdlib, sent, since, done, attempt + 1);
+      } else {
+        org.thunderdog.challegram.Tgx101Diag.mark("saved note: the sent note wasn't found");
+      }
+    }), attempt == 0 ? 400 : 700);
+  }
+
   /** Sends the note to Saved; {@code done} gets it with its real id (scheduled ones as Telegram answered) */
   static void sendNote (ViewController<?> c, TdApi.FormattedText note, @Nullable TdApi.MessageSendOptions options, RunnableData<List<TdApi.Message>> done) {
     Tdlib tdlib = c.tdlib();
@@ -482,10 +495,9 @@ public final class Tgx101SavedActions {
         done.runWithData(one);
         return;
       }
-      // the answer has the id the note has while it's being sent: wait for it to arrive, then take the real one
-      tdlib.awaitMessageSent(sent, () -> UI.post(() -> Tgx101SavedKit.resolveSaved(tdlib, new long[] {sent.id}, since, saved -> {
-        if (!saved.isEmpty()) done.runWithData(saved);
-      }), 300));
+      // the answer has the id the note has while it's being sent; the «sent» update for Saved can come before we start
+      // waiting for it (test 2026-10-16: the note never reached its folder) — the real one is looked up a few times
+      findSent(tdlib, sent, since, done, 0);
     }));
   }
 

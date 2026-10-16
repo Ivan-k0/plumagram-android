@@ -145,7 +145,7 @@ public final class Tgx101FolderShare {
     Views.setClickable(r);
     org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(r);
     r.setOnClickListener(click);
-    TextView mark = Tgx101SavedHomeController.text(context, 18f, Tgx101SavedHomeController.accent(), false);
+    TextView mark = Tgx101SavedHomeController.text(context, 24f, Tgx101SavedHomeController.accent(), false);
     r.addView(mark, new LinearLayout.LayoutParams(Screen.dp(28f), ViewGroup.LayoutParams.WRAP_CONTENT));
     r.setTag(mark);
     LinearLayout texts = new LinearLayout(context);
@@ -324,7 +324,8 @@ public final class Tgx101FolderShare {
   public static void showLink (ViewController<?> c, Tgx101SavedStore.Folder f) {
     Context context = c.context();
     String link = f.shareLink;
-    Tgx101Sheet.show(c, null, body -> {
+    Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
+    h[0] = Tgx101Sheet.show(c, null, body -> {
       body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101ShareReady)));
       TextView sub = Tgx101SavedHomeController.text(context, 13f, Theme.textDecentColor(), false);
       sub.setText(Lang.getString(R.string.Tgx101ShareReadyHint, f.name, f.messageIds.size()));
@@ -370,7 +371,10 @@ public final class Tgx101FolderShare {
       open.setText(Lang.getString(f.shareChannel ? R.string.Tgx101ShareOpenChannel : R.string.Tgx101ShareOpenGroup));
       open.setGravity(Gravity.CENTER);
       Views.setClickable(open);
-      open.setOnClickListener(v -> c.tdlib().ui().openChat(c, f.shareChatId, new org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters().keepStack()));
+      open.setOnClickListener(v -> {
+        h[0].dismiss(); // (test 2026-10-16: the sheet stayed over the opened channel)
+        c.tdlib().ui().openChat(c, f.shareChatId, new org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters().keepStack());
+      });
       LinearLayout.LayoutParams op = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(48f));
       op.topMargin = Screen.dp(4f);
       body.addView(open, op);

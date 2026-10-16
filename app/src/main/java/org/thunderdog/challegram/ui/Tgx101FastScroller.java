@@ -131,7 +131,9 @@ public final class Tgx101FastScroller extends View {
     }
     float top = list.getPaddingTop() + (dragging ? thumbY : scrollFraction() * track());
     drawnTop = top;
-    exclude(Math.round(top) / Screen.dp(8f) * Screen.dp(8f)); // in steps: not a new request every frame
+    // once when it shows (or after a big move while dragging): every new request relayouts the window — the header and
+    // the bottom twitched while scrolling (user 2026-10-16, «Видео»)
+    if (excludedTop == Integer.MIN_VALUE || (dragging && Math.abs(top - excludedTop) > Screen.dp(120f))) exclude(Math.round(top));
     int accent = Tgx101SavedHomeController.accent();
     float w = dragging ? Screen.dp(8f) : Screen.dp(5f);
     float right = getWidth() - Screen.dp(4f);

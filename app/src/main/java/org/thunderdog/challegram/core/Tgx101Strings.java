@@ -723,8 +723,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ShareCopiesHint, "копии, а не пересылка");
     RU.put(R.string.Tgx101ShareApproval, "Вход по одобрению");
     RU.put(R.string.Tgx101ShareApprovalHint, "вы подтверждаете каждого");
-    RU.put(R.string.Tgx101ShareTime, "%1$s записей: копирование займёт около %2$s мин. Оно идёт в фоне.");
-    RU.put(R.string.Tgx101ShareCreate, "Создать ссылку · %1$s записей");
+    RU.put(R.string.Tgx101ShareTime, "Записей: %1$s. Копирование займёт около %2$s мин, оно идёт в фоне.");
+    RU.put(R.string.Tgx101ShareCreate, "Создать ссылку · записей: %1$s");
     RU.put(R.string.Tgx101ShareCreating, "Создаю…");
     RU.put(R.string.Tgx101ShareDescription, "Папка из PlumaGram");
     RU.put(R.string.Tgx101ShareChannel, "Общие папки");
@@ -733,7 +733,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ShareDoneTitle, "«%1$s» готова");
     RU.put(R.string.Tgx101ShareDoneText, "скопировано %1$s из %2$s");
     RU.put(R.string.Tgx101ShareReady, "Папка доступна по ссылке");
-    RU.put(R.string.Tgx101ShareReadyHint, "«%1$s» · %2$s записей · закреплена в чатах");
+    RU.put(R.string.Tgx101ShareReadyHint, "«%1$s» · записей: %2$s · закреплена в чатах");
     RU.put(R.string.Tgx101ShareSend, "Отправить…");
     RU.put(R.string.Tgx101ShareOpenChannel, "Открыть канал");
     RU.put(R.string.Tgx101ShareOpenGroup, "Открыть группу");

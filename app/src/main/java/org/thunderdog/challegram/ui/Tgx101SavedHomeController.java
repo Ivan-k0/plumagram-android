@@ -950,7 +950,10 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
         sig.append(m.id).append(':').append(m.editDate).append(',');
       }
       if (sig.toString().equals(recentShown) && recentList.getChildCount() > 0) { // the same: nothing redrawn
-        for (RecentRow r : recentRows) applyTargets(r.swipe); // only the last folder / tag on the buttons
+        for (RecentRow r : recentRows) {
+          applyTargets(r.swipe); // the last folder / tag on the buttons
+          r.holder.bind(this, r.message, selected.contains(r.message.id), !selected.isEmpty()); // a renamed folder, a new tag
+        }
         return;
       }
       recentShown = sig.toString();
