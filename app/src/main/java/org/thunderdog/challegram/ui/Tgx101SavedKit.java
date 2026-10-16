@@ -197,6 +197,18 @@ public final class Tgx101SavedKit {
     return "";
   }
 
+  /** (user 2026-10-17 «дату на всех заметках — шрифт жирнее»): the meta line with its date in the medium weight */
+  public static CharSequence metaStyled (Tdlib tdlib, TdApi.Message m, boolean withDate) {
+    String text = meta(tdlib, m, withDate);
+    if (!withDate) return text;
+    String date = shortDate(m.date);
+    int at = text.lastIndexOf(date);
+    if (at < 0) return text;
+    android.text.SpannableString s = new android.text.SpannableString(text);
+    s.setSpan(new org.thunderdog.challegram.util.CustomTypefaceSpan(org.thunderdog.challegram.tool.Fonts.getRobotoMedium(), 0), at, at + date.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    return s;
+  }
+
   /** The original date (a forwarded post's own date), else the date it was saved */
   public static int originalDate (TdApi.Message m) {
     return m.forwardInfo != null && m.forwardInfo.date != 0 ? m.forwardInfo.date : m.date;

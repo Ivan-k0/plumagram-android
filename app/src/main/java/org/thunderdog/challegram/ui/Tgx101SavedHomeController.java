@@ -1960,6 +1960,9 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   private final class HomeScroll extends ScrollView {
     private float downX, downY;
     private boolean pulling, swiping, armed;
+    // (user 2026-10-17 «при свайпе по недавним, где нет жеста назад, случайно открываются заметки»): a finger gone sideways
+    // is no press — the rows get a cancel. Not over the rows that slide sideways themselves
+    private boolean sideways, overSideways;
     private final int slop;
     private final android.graphics.Rect hit = new android.graphics.Rect();
     private final int[] at = new int[2];
@@ -1989,7 +1992,8 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
         case MotionEvent.ACTION_DOWN:
           downX = e.getRawX();
           downY = e.getRawY();
-          pulling = swiping = armed = false;
+          pulling = swiping = armed = sideways = false;
+          overSideways = inside(chipsScroll, e) || (pinnedSection != null && pinnedSection.getVisibility() == View.VISIBLE && inside(pinnedScroll, e));
           break;
         case MotionEvent.ACTION_MOVE: {
           float dx = e.getRawX() - downX, dy = e.getRawY() - downY;
@@ -1999,6 +2003,10 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
             return true;
           }
           // (user 2026-10-16) no sideways swipes through the kinds here: the pull-down panel has them
+          if (!overSideways && Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy)) {
+            sideways = true;
+            return true;
+          }
           break;
         }
       }
@@ -2007,6 +2015,10 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
 
     @Override
     public boolean onTouchEvent (MotionEvent e) {
+      if (sideways) { // eaten: nothing opens, nothing scrolls
+        if (e.getActionMasked() == MotionEvent.ACTION_UP || e.getActionMasked() == MotionEvent.ACTION_CANCEL) sideways = false;
+        return true;
+      }
       if (!pulling && !swiping && selected.isEmpty() && e.getActionMasked() == MotionEvent.ACTION_MOVE && getScrollY() <= 0) {
         // the list took the touch first (a child let it go, or the start was slanted) — at the top a pull down is
         // still the search (user's video 2026-10-17: «свайп поиска срабатывает не всегда»)

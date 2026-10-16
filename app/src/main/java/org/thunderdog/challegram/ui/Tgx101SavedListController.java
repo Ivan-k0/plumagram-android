@@ -1919,7 +1919,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
     void bind (ViewController<?> c, TdApi.Message m, boolean selected, boolean selecting, @Nullable String highlight) {
       int kind = Tgx101SavedKit.kindOf(m);
       title.setText(highlighted(Tgx101SavedKit.title(m), highlight));
-      meta.setText(Tgx101SavedKit.meta(c.tdlib(), m, withDate));
+      meta.setText(Tgx101SavedKit.metaStyled(c.tdlib(), m, withDate));
       Tgx101SavedStore.Folder folder = Tgx101SavedStore.get(c.tdlib()).folderOf(m.id);
       paintBadge(tagBadge, Tgx101SavedKit.firstTagShort(c.tdlib(), m), TAG_COLOR);
       paintBadge(folderBadge, folder != null ? folder.name : null, folder != null ? folder.color() : 0);
@@ -2025,6 +2025,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
       info.addView(tag);
       date = new TextView(context);
       date.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 10.5f);
+      date.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium()); // (user 2026-10-17) the date a little bolder
       date.setSingleLine(true);
       info.addView(date);
       reaction = new org.thunderdog.challegram.widget.EmojiTextView(context); // the app's emoji, as in the chats
@@ -2217,7 +2218,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
       String d = p != null && p.description != null ? Tgx101SavedKit.unescape(p.description.text) : null;
       desc.setVisibility(d != null && !d.isEmpty() ? View.VISIBLE : View.GONE);
       desc.setText(d);
-      site.setText(Tgx101SavedKit.meta(c.tdlib(), m));
+      site.setText(Tgx101SavedKit.metaStyled(c.tdlib(), m, true));
       itemView.setBackground(Tgx101SavedHomeController.card(selected ? Tgx101SavedHomeController.tint(Tgx101SavedHomeController.accent(), .14f) : Theme.fillingColor(), 16f));
     }
   }
