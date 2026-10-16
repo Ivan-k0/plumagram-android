@@ -1791,7 +1791,9 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     self[0] = new RecentRow(m, holder, swipe);
     recentRows.add(self[0]);
     applyTargets(swipe);
-    swipe.setSwipeEnabled(selected.isEmpty());
+    // (user 2026-10-17 «убрал бы свайпы на недавних — будут мешать»): the rows don't slide — a swipe either way is the
+    // screen's «back»; a record's actions are by holding it (selection)
+    swipe.setSwipeEnabled(false);
     return swipe;
   }
 
@@ -1820,7 +1822,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     boolean on = !selected.isEmpty();
     for (RecentRow r : recentRows) {
       r.holder.bind(this, r.message, selected.contains(r.message.id), on);
-      r.swipe.setSwipeEnabled(!on);
+      r.swipe.setSwipeEnabled(false);
     }
     selectionTitle.setText(Lang.getString(R.string.Tgx101SavedSelected, selected.size()));
     if (on) selectionPanel.update();
