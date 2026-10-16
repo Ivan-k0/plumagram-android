@@ -207,12 +207,14 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     return Theme.getColor(ColorId.textLink);
   }
 
-  /** (user 2026-10-17 «„Всё“ — не белым, а в нашем цвете и в нашей капле»): a chosen chip / our capsule — a soft tint of
-   *  the accent with a hairline of it, the words in the accent */
+  /** (user 2026-10-17 «„Всё“ — не белым, а в нашем цвете»; «поменяй только цвет, стиль не меняй»): a chosen chip /
+   *  our capsule — the same solid chip, in the accent instead of white, its words in {@link #onChosen()} */
   static GradientDrawable chosen (float radiusDp) {
-    GradientDrawable d = card(tint(accent(), .18f), radiusDp);
-    d.setStroke(Math.max(1, Screen.dp(1f)), tint(accent(), .45f));
-    return d;
+    return card(accent(), radiusDp);
+  }
+
+  static int onChosen () {
+    return 0xffffffff;
   }
 
   /** a transparent tint of a colour for icon backgrounds */
@@ -320,7 +322,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     recentParams.leftMargin = recentParams.rightMargin = Screen.dp(16f);
     column.addView(recentList, recentParams);
     // (user 2026-10-17, about the end of «Recent»): «All» is at the end of the list, as our capsule
-    TextView all = text(context, 15f, accent(), true);
+    TextView all = text(context, 15f, onChosen(), true);
     all.setText(Lang.getString(R.string.Tgx101SavedAll));
     all.setGravity(Gravity.CENTER);
     all.setPadding(Screen.dp(28f), 0, Screen.dp(28f), 0);
@@ -594,7 +596,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   }
 
   private TextView chip (String label, boolean dark, View.OnClickListener click) {
-    TextView c = text(context, 14f, dark ? accent() : Theme.textAccentColor(), dark);
+    TextView c = text(context, 14f, dark ? onChosen() : Theme.textAccentColor(), false);
     c.setText(label);
     c.setGravity(Gravity.CENTER);
     c.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);

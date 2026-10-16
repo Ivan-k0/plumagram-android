@@ -1117,7 +1117,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
   }
 
   private TextView chip (String label, boolean on, View.OnClickListener click) {
-    TextView c = Tgx101SavedHomeController.text(context, 13f, on ? Tgx101SavedHomeController.accent() : Theme.textAccentColor(), false);
+    TextView c = Tgx101SavedHomeController.text(context, 13f, on ? Tgx101SavedHomeController.onChosen() : Theme.textAccentColor(), false);
     c.setText(label);
     c.setGravity(Gravity.CENTER);
     c.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
@@ -1168,7 +1168,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
 
   private void setChip (TextView c, CharSequence label, boolean on) {
     c.setText(label);
-    c.setTextColor(on ? Tgx101SavedHomeController.accent() : Theme.textAccentColor());
+    c.setTextColor(on ? Tgx101SavedHomeController.onChosen() : Theme.textAccentColor());
     // on the pull-down panel the bar itself is the filling colour: the chips stand out on the background colour;
     // the chosen one is our capsule — the accent's tint, not white (user 2026-10-17)
     c.setBackground(on ? Tgx101SavedHomeController.chosen(17f) : Tgx101SavedHomeController.card(Theme.fillingColor(), 17f));
