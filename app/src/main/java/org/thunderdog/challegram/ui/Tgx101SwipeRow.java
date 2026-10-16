@@ -110,6 +110,13 @@ public final class Tgx101SwipeRow extends FrameLayout {
     tagName.setText(tag != null ? "#" + tag + "\n" + toTag : org.thunderdog.challegram.core.Lang.getString(R.string.Tgx101SavedTag));
   }
 
+  private boolean selectEnabled = true;
+
+  /** off (user 2026-10-16 «убираем свайп на недавних — выбор убрать»): a finger to the right is the screen's «back» */
+  public void setSelectEnabled (boolean enabled) {
+    this.selectEnabled = enabled;
+  }
+
   public void setSwipeEnabled (boolean enabled) {
     this.enabled = enabled;
     if (!enabled) close(false);
@@ -205,6 +212,7 @@ public final class Tgx101SwipeRow extends FrameLayout {
       }
       case MotionEvent.ACTION_MOVE: {
         float dx = e.getX() - downX, dy = e.getY() - downY;
+        if (!selectEnabled && dx > 0 && !isOpen()) break; // left to the screen's swipe back
         if (Math.abs(dx) > touchSlop && Math.abs(dx) > Math.abs(dy) * 1.5f) {
           beginDrag(e);
           return true;
@@ -241,6 +249,7 @@ public final class Tgx101SwipeRow extends FrameLayout {
         float tx = startTx + (e.getX() - downX);
         float maxRight = selectThreshold() * 1.25f;
         if (tx > maxRight) tx = maxRight + (tx - maxRight) * .25f; // resists past the selection point
+        if (!selectEnabled) tx = Math.min(0f, tx);
         tx = Math.max(-getWidth(), tx);
         content.setTranslationX(tx);
         layers();
@@ -268,7 +277,7 @@ public final class Tgx101SwipeRow extends FrameLayout {
         actions.setAlpha(1f);
         if (!moved && startTx != 0f) {
           close(true); // a tap on an open row
-        } else if (e.getActionMasked() == MotionEvent.ACTION_UP && tx > selectThreshold()) {
+        } else if (selectEnabled && e.getActionMasked() == MotionEvent.ACTION_UP && tx > selectThreshold()) {
           close(true);
           callback.onSelect();
         } else if (e.getActionMasked() == MotionEvent.ACTION_UP && -tx > fullThreshold()) {

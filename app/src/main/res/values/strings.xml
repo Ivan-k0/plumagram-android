@@ -6412,7 +6412,7 @@
   <string name="Tgx101Megabytes">MB</string>
   <string name="Tgx101TranslateModelDeleted">Dictionary deleted</string>
   <string name="Tgx101TranslateDownloading">Downloading the %1$s dictionary (≈%2$d MB), only once</string>
-  <string name="Tgx101SavedEmpty">Nothing in Saved Messages yet</string>
+  <string name="Tgx101SavedEmpty">Nothing in the Storage yet</string>
   <string name="Tgx101ChatBackground">Chat wallpaper</string>
   <string name="Tgx101ChatBackgroundHint">The wallpaper chosen in Settings → Chat settings is set for this chat only</string>
   <string name="Tgx101ChatBackgroundSelf">Set the current wallpaper for me</string>
@@ -6897,10 +6897,10 @@
   <string name="Tgx101SavedAnyTag">Any tag</string>
   <string name="Tgx101SavedAnyTime">Any time</string>
   <string name="Tgx101SavedBannerHint">Swipe down to skip — it stays in Inbox</string>
-  <string name="Tgx101SavedBannerTitle">Saved to Saved Messages</string>
+  <string name="Tgx101SavedBannerTitle">Saved to the Storage</string>
   <string name="Tgx101SavedCount">Found: %1$s</string>
   <string name="Tgx101SavedDelete">Delete</string>
-  <string name="Tgx101SavedDeleteAsk">Delete the selected (%1$s)? They are deleted from Saved Messages on all your devices.</string>
+  <string name="Tgx101SavedDeleteAsk">Delete the selected (%1$s)? They are deleted from the Storage on all your devices.</string>
   <string name="Tgx101SavedDeleteFolder">Delete folder</string>
   <string name="Tgx101SavedEverything">Everything</string>
   <string name="Tgx101SavedFiles">Files</string>
@@ -6995,7 +6995,7 @@
   <string name="Tgx101ShareStop">Stop sharing</string>
   <string name="Tgx101ShareTileProgress">copying %1$s/%2$s</string>
   <string name="Tgx101SwipeToStorageSection">Chat list</string>
-  <string name="Tgx101SwipeToStorage">Swipe right on the first folder — Saved</string>
+  <string name="Tgx101SwipeToStorage">Swipe right on the first folder — Storage</string>
   <string name="Tgx101SwipeToStorageHint">On the first chat folder pull the finger to the right, where there are no folders: past the vibration Saved opens as a storage.</string>
   <string name="Tgx101SettingsSearch">Search settings</string>
   <string name="Tgx101SettingsSearchHint">A setting, e.g. «vibration»</string>
@@ -7059,7 +7059,7 @@
   <string name="Tgx101SavedRemoveFromHome">Remove from the home screen</string>
   <string name="Tgx101SavedRename">Rename</string>
   <string name="Tgx101SavedSearchEmptyHint">Search by text, captions, file names and links. Refine by type, tag, source and period.</string>
-  <string name="Tgx101SavedSearchHint">Search in Saved Messages</string>
+  <string name="Tgx101SavedSearchHint">Search in the Storage</string>
   <string name="Tgx101SavedSearchTagsHint">Your tags: %1$s</string>
   <string name="Tgx101SavedSearchTitle">Search</string>
   <string name="Tgx101SavedSelectAll">Select all</string>
@@ -7087,7 +7087,7 @@
   <string name="Tgx101SavedViewList">List</string>
   <string name="Tgx101SavedVoiceTitle">Voice message · %1$s</string>
   <string name="Tgx101SavedVoices">Voice</string>
-  <string name="Tgx101SavedSettings">Saved Messages settings</string>
+  <string name="Tgx101SavedSettings">Storage settings</string>
   <string name="Tgx101SavedBannerAlways">Always</string>
   <string name="Tgx101SavedBannerExternal">Only from other apps</string>
   <string name="Tgx101SavedBannerNever">Never</string>
@@ -7115,7 +7115,7 @@
   <string name="Tgx101BackupPartAppearance">Appearance and fonts</string>
   <string name="Tgx101BackupPartMenus">Menus, panels, gestures</string>
   <string name="Tgx101BackupPartOther">Chats, player, calls</string>
-  <string name="Tgx101BackupPartSaved">Saved: folders and tags</string>
+  <string name="Tgx101BackupPartSaved">Storage: folders and tags</string>
   <string name="Tgx101BackupCount">settings: %1$d</string>
   <string name="Tgx101BackupFolders">folders: %1$d</string>
   <string name="Tgx101BackupTags">tags: %1$d</string>
@@ -7132,13 +7132,13 @@
   <string name="Tgx101BackupConfirm">Restore settings?</string>
   <string name="Tgx101BackupConfirmFrom">PlumaGram %1$s · %2$s</string>
   <string name="Tgx101BackupConfirmWarn">Current settings will be replaced. The app will restart.</string>
-  <string name="Tgx101BackupMissingAccount">Saved folders of an account that isn\'t signed in here won\'t come back.</string>
+  <string name="Tgx101BackupMissingAccount">Storage folders of an account that isn\'t signed in here won\'t come back.</string>
   <string name="Tgx101BackupRestoreBtn">Restore</string>
   <string name="Tgx101BackupRestored">Settings restored, restarting…</string>
   <string name="Tgx101BackupRestoreFailed">Couldn\'t restore: %1$s</string>
   <string name="Tgx101SavedStorageDesc">Hold the button and drag it to move it; hold and let go in place to hide it. With the storage off, Saved Messages is the usual chat: your folders and tags are kept.</string>
   <string name="Tgx101SavedSwitchHide">Hide the button</string>
-  <string name="Tgx101SavedSwitchHidden">The button is back in Saved Messages settings</string>
+  <string name="Tgx101SavedSwitchHidden">The button is back in the Storage settings</string>
   <string name="Tgx101SavedSwitchToStorage">Open the storage</string>
   <string name="Tgx101SavedSwitchToChat">Open the chat</string>
   <string name="Tgx101SavedInboxTileSetting">«Inbox» tile</string>

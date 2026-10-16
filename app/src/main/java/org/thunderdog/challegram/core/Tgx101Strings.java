@@ -578,7 +578,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101Megabytes, "МБ");
     RU.put(R.string.Tgx101TranslateModelDeleted, "Словарь удалён");
     RU.put(R.string.Tgx101TranslateDownloading, "Скачивается словарь «%1$s» (≈%2$d МБ), только один раз");
-    RU.put(R.string.Tgx101SavedEmpty, "В Избранном пока ничего нет");
+    RU.put(R.string.Tgx101SavedEmpty, "В Хранилище пока ничего нет");
     RU.put(R.string.Tgx101ChatBackground, "Фон чата");
     RU.put(R.string.Tgx101ChatBackgroundHint, "Фон, выбранный в Настройках → Настройки чатов, ставится только для этого чата");
     RU.put(R.string.Tgx101ChatBackgroundSelf, "Поставить текущий фон для себя");
@@ -651,10 +651,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedAnyTag, "Любая метка");
     RU.put(R.string.Tgx101SavedAnyTime, "За всё время");
     RU.put(R.string.Tgx101SavedBannerHint, "Смахните вниз, чтобы пропустить: останется во «Входящих»");
-    RU.put(R.string.Tgx101SavedBannerTitle, "Сохранено в Избранное");
+    RU.put(R.string.Tgx101SavedBannerTitle, "Сохранено в Хранилище");
     RU.put(R.string.Tgx101SavedCount, "Найдено: %1$s");
     RU.put(R.string.Tgx101SavedDelete, "Удалить");
-    RU.put(R.string.Tgx101SavedDeleteAsk, "Удалить выбранное (%1$s)? Оно удалится из Избранного на всех ваших устройствах.");
+    RU.put(R.string.Tgx101SavedDeleteAsk, "Удалить выбранное (%1$s)? Оно удалится из Хранилища на всех ваших устройствах.");
     RU.put(R.string.Tgx101SavedDeleteFolder, "Удалить папку");
     RU.put(R.string.Tgx101SavedEverything, "Всё");
     RU.put(R.string.Tgx101SavedFiles, "Файлы");
@@ -749,7 +749,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ShareStop, "Перестать делиться");
     RU.put(R.string.Tgx101ShareTileProgress, "копируется %1$s/%2$s");
     RU.put(R.string.Tgx101SwipeToStorageSection, "Список чатов");
-    RU.put(R.string.Tgx101SwipeToStorage, "Свайп вправо на первой папке — Избранное");
+    RU.put(R.string.Tgx101SwipeToStorage, "Свайп вправо на первой папке — Хранилище");
     RU.put(R.string.Tgx101SwipeToStorageHint, "На первой папке чатов ведите палец вправо, туда, где папок уже нет: после вибрации откроется Избранное-хранилище.");
     RU.put(R.string.Tgx101SettingsSearch, "Поиск по настройкам");
     RU.put(R.string.Tgx101SettingsSearchHint, "Настройка, например «вибрация»");
@@ -813,7 +813,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedRemoveFromHome, "Убрать с главного");
     RU.put(R.string.Tgx101SavedRename, "Переименовать");
     RU.put(R.string.Tgx101SavedSearchEmptyHint, "Ищите по тексту, подписям, названиям файлов и ссылкам. Уточняйте по типу, метке, источнику и периоду.");
-    RU.put(R.string.Tgx101SavedSearchHint, "Поиск в Избранном");
+    RU.put(R.string.Tgx101SavedSearchHint, "Поиск в Хранилище");
     RU.put(R.string.Tgx101SavedSearchTagsHint, "Ваши метки: %1$s");
     RU.put(R.string.Tgx101SavedSearchTitle, "Поиск");
     RU.put(R.string.Tgx101SavedSelectAll, "Выбрать все");
@@ -841,7 +841,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedViewList, "Список");
     RU.put(R.string.Tgx101SavedVoiceTitle, "Голосовое · %1$s");
     RU.put(R.string.Tgx101SavedVoices, "Голосовые");
-    RU.put(R.string.Tgx101SavedSettings, "Настройки Избранного");
+    RU.put(R.string.Tgx101SavedSettings, "Настройки Хранилища");
     RU.put(R.string.Tgx101SavedBannerAlways, "Всегда");
     RU.put(R.string.Tgx101SavedBannerExternal, "Только из других приложений");
     RU.put(R.string.Tgx101SavedBannerNever, "Никогда");
@@ -869,7 +869,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101BackupPartAppearance, "Оформление и шрифты");
     RU.put(R.string.Tgx101BackupPartMenus, "Меню, панели, жесты");
     RU.put(R.string.Tgx101BackupPartOther, "Чаты, плеер, звонки");
-    RU.put(R.string.Tgx101BackupPartSaved, "Избранное: папки и метки");
+    RU.put(R.string.Tgx101BackupPartSaved, "Хранилище: папки и метки");
     RU.put(R.string.Tgx101BackupCount, "настроек: %1$d");
     RU.put(R.string.Tgx101BackupFolders, "папок: %1$d");
     RU.put(R.string.Tgx101BackupTags, "меток: %1$d");
@@ -886,13 +886,13 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101BackupConfirm, "Восстановить настройки?");
     RU.put(R.string.Tgx101BackupConfirmFrom, "PlumaGram %1$s · %2$s");
     RU.put(R.string.Tgx101BackupConfirmWarn, "Текущие настройки заменятся. Приложение перезапустится.");
-    RU.put(R.string.Tgx101BackupMissingAccount, "Папки Избранного для аккаунта, которого нет на этом телефоне, не вернутся.");
+    RU.put(R.string.Tgx101BackupMissingAccount, "Папки Хранилища для аккаунта, которого нет на этом телефоне, не вернутся.");
     RU.put(R.string.Tgx101BackupRestoreBtn, "Восстановить");
     RU.put(R.string.Tgx101BackupRestored, "Настройки восстановлены, перезапуск…");
     RU.put(R.string.Tgx101BackupRestoreFailed, "Не удалось восстановить: %1$s");
     RU.put(R.string.Tgx101SavedStorageDesc, "Удержите кнопку и тащите, чтобы перенести; удержите и отпустите на месте — спрятать. Если хранилище выключено, Избранное — обычный чат, как в Telegram. Папки и метки не удаляются: включите снова — всё на месте.");
     RU.put(R.string.Tgx101SavedSwitchHide, "Спрятать кнопку");
-    RU.put(R.string.Tgx101SavedSwitchHidden, "Вернуть кнопку можно в настройках Избранного");
+    RU.put(R.string.Tgx101SavedSwitchHidden, "Вернуть кнопку можно в настройках Хранилища");
     RU.put(R.string.Tgx101SavedSwitchToStorage, "Открыть хранилище");
     RU.put(R.string.Tgx101SavedSwitchToChat, "Открыть чат");
     RU.put(R.string.Tgx101SavedInboxTileSetting, "Плитка «Входящие»");

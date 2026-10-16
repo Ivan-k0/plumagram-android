@@ -228,8 +228,17 @@ public final class Tgx101SavedKit {
     }
     if (!withDate) return b.toString();
     if (b.length() > 0) b.append(" · ");
-    b.append(Lang.getRelativeTimestamp(m.date, java.util.concurrent.TimeUnit.SECONDS));
+    b.append(shortDate(m.date));
     return b.toString();
+  }
+
+  /** (user 2026-10-16 «дату и месяц цифрами»): «16.10», with the year when it isn't this one («16.10.25») */
+  public static String shortDate (int unixTime) {
+    java.util.Calendar c = java.util.Calendar.getInstance();
+    int year = c.get(java.util.Calendar.YEAR);
+    c.setTimeInMillis(unixTime * 1000L);
+    String s = String.format(java.util.Locale.ROOT, "%02d.%02d", c.get(java.util.Calendar.DAY_OF_MONTH), c.get(java.util.Calendar.MONTH) + 1);
+    return c.get(java.util.Calendar.YEAR) == year ? s : s + "." + String.format(java.util.Locale.ROOT, "%02d", c.get(java.util.Calendar.YEAR) % 100);
   }
 
   /** The first tag: a #hashtag in the text, else one given by name here; without «#», up to five letters */
@@ -469,6 +478,11 @@ public final class Tgx101SavedKit {
   /** the quick row; «+» opens the rest */
   // only Telegram's own reactions (test 2026-10-16: «❤️» with the variation sign and «⭐» were refused); ⚡ stands
   // for the star of the mockup
+  /** (user 2026-10-16 «реакции — в обычном стиле Telegram»): reactions drawn with the app's own emoji, as in the chats, not the phone's font */
+  public static CharSequence emoji (@Nullable CharSequence s) {
+    return s == null || s.length() == 0 ? s : org.thunderdog.challegram.emoji.Emoji.instance().replaceEmoji(s);
+  }
+
   public static final String[] QUICK_REACTIONS = {"❤", "🔥", "👍", "⚡"};
   public static final String[] MORE_REACTIONS = {"😁", "🤔", "🎉", "💯", "😢", "🙏", "👎", "😍", "🏆", "💔", "👀", "🤝", "✍", "🆒", "😎", "🤯"};
 

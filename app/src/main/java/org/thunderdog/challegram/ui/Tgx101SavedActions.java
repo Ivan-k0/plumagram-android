@@ -414,7 +414,7 @@ public final class Tgx101SavedActions {
       reactions.setPadding(Screen.dp(16f), 0, Screen.dp(16f), Screen.dp(6f));
       for (String e : Tgx101SavedKit.QUICK_REACTIONS) {
         TextView b = Tgx101SavedHomeController.text(context, 20f, Theme.textAccentColor(), false);
-        b.setText(e);
+        b.setText(Tgx101SavedKit.emoji(e));
         b.setGravity(Gravity.CENTER);
         b.setBackground(Tgx101SavedHomeController.card(Theme.backgroundColor(), 20f));
         Views.setClickable(b);
@@ -525,7 +525,7 @@ public final class Tgx101SavedActions {
     };
     for (String e : shown) {
       TextView b = Tgx101SavedHomeController.text(context, 20f, Theme.textAccentColor(), false);
-      b.setText(e);
+      b.setText(Tgx101SavedKit.emoji(e));
       b.setTag(e);
       b.setGravity(Gravity.CENTER);
       Views.setClickable(b);
@@ -592,7 +592,7 @@ public final class Tgx101SavedActions {
         }
         final String e = all[i];
         TextView b = Tgx101SavedHomeController.text(context, 24f, Theme.textAccentColor(), false);
-        b.setText(e);
+        b.setText(Tgx101SavedKit.emoji(e));
         b.setGravity(Gravity.CENTER);
         Views.setClickable(b);
         org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(b);
@@ -1110,7 +1110,7 @@ public final class Tgx101SavedActions {
       // a reaction straight from the banner (user 2026-10-15: «реакции … при пересылке»)
       for (String e : Tgx101SavedKit.QUICK_REACTIONS) {
         TextView b = Tgx101SavedHomeController.text(context, 18f, 0xffffffff, false);
-        b.setText(e);
+        b.setText(Tgx101SavedKit.emoji(e));
         b.setGravity(Gravity.CENTER);
         b.setBackground(Tgx101SavedHomeController.card(0x1fffffff, 12f));
         Views.setClickable(b);

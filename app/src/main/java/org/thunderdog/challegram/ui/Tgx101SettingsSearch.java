@@ -135,7 +135,7 @@ public class Tgx101SettingsSearch extends ViewController<Void> {
       }));
     }
     list.add(new Screen_(magix + " → " + Lang.getString(R.string.Tgx101Gestures), Tgx101GesturesController::new));
-    list.add(new Screen_(Lang.getString(R.string.SavedMessages) + " → " + Lang.getString(R.string.Settings), Tgx101SavedSettingsController::new));
+    list.add(new Screen_(Lang.getString(R.string.Tgx101SavedOpenHome) + " → " + Lang.getString(R.string.Settings), Tgx101SavedSettingsController::new));
     screens = list;
     return list;
   }

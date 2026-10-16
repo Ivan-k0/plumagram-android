@@ -10439,6 +10439,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         }
       }
       boolean result = super.onKeyboardStateChanged(visible);
+      if (tgx101StorageSwitch != null) tgx101StorageSwitch.setKeyboardShown(visible); // TGx101
       if (emojiShown && emojiKeyboardFrameLayout != null) {
         emojiKeyboardFrameLayout.onKeyboardStateChanged(visible);
       }

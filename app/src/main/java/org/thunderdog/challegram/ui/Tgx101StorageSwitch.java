@@ -71,7 +71,7 @@ public final class Tgx101StorageSwitch extends View {
     this.chatIcon = where == IN_STORAGE ? ContextCompat.getDrawable(context, R.drawable.baseline_forum_24) : null;
     setContentDescription(Lang.getString(where == IN_CHAT ? R.string.Tgx101SavedSwitchToStorage : R.string.Tgx101SavedSwitchToChat));
     if (android.os.Build.VERSION.SDK_INT >= 21) {
-      setElevation(Screen.dp(4f));
+      setElevation(Screen.dp(2f)); // a light shadow, as the arrow
       setOutlineProvider(new android.view.ViewOutlineProvider() {
         @Override
         public void getOutline (View view, android.graphics.Outline outline) {
@@ -114,13 +114,35 @@ public final class Tgx101StorageSwitch extends View {
     return Tgx101SavedStore.get(tdlib);
   }
 
-  /** shown while the storage and the button are on */
+  private boolean keyboardShown, shown;
+
+  /** (user 2026-10-16 «когда открыта клавиатура — плавающая кнопка не нужна») */
+  public void setKeyboardShown (boolean visible) {
+    if (keyboardShown != visible) {
+      keyboardShown = visible;
+      updateVisibility();
+    }
+  }
+
+  /** shown while the storage and the button are on and the keyboard is down; comes and goes smoothly, as in the storage */
   public void updateVisibility () {
     Tgx101SavedStore s = store();
-    boolean show = s.storageOn && s.switchButton;
-    if (show != (getVisibility() == VISIBLE)) {
-      setVisibility(show ? VISIBLE : GONE);
-      if (show) place(false);
+    boolean show = s.storageOn && s.switchButton && !keyboardShown;
+    if (show == shown) return;
+    shown = show;
+    if (show) {
+      if (getVisibility() != VISIBLE) {
+        setVisibility(VISIBLE);
+        setAlpha(0f);
+        setScaleX(.7f);
+        setScaleY(.7f);
+        place(false);
+      }
+      animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(220).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).withEndAction(null).start();
+    } else {
+      animate().alpha(0f).scaleX(.7f).scaleY(.7f).setDuration(160).setInterpolator(new android.view.animation.AccelerateInterpolator()).withEndAction(() -> {
+        if (!shown) setVisibility(GONE);
+      }).start();
     }
   }
 
@@ -179,6 +201,7 @@ public final class Tgx101StorageSwitch extends View {
       s.switchButton = false;
       s.save();
       org.thunderdog.challegram.Tgx101Diag.mark("storage switch: hidden");
+      shown = false;
       animate().alpha(0f).scaleX(.6f).scaleY(.6f).setDuration(160).withEndAction(() -> {
         setVisibility(GONE);
         setAlpha(1f);
@@ -328,11 +351,13 @@ public final class Tgx101StorageSwitch extends View {
       paint.setColor(0x33000000);
       c.drawCircle(r, r + Screen.dp(1.5f), r - Screen.dp(.5f), paint);
     }
-    paint.setColor(Tgx101SavedHomeController.accent());
+    // (user 2026-10-16 «полупрозрачными, как поле ввода или стрелка»): the chats' «down» arrow — a see-through light circle
+    paint.setColor(me.vkryl.core.ColorUtils.alphaColor(.9f, org.thunderdog.challegram.theme.Theme.fillingColor()));
     c.drawCircle(r, r, r - (android.os.Build.VERSION.SDK_INT < 21 ? Screen.dp(1f) : 0), paint);
+    final int iconColor = Tgx101SavedHomeController.accent();
     if (where == IN_CHAT) {
       // the storage: four tiles
-      paint.setColor(0xffffffff);
+      paint.setColor(iconColor);
       float cell = Screen.dp(8f), gap = Screen.dp(3f), corner = Screen.dp(2f);
       float start = r - cell - gap / 2f;
       for (int i = 0; i < 4; i++) {
@@ -343,7 +368,7 @@ public final class Tgx101StorageSwitch extends View {
     } else if (chatIcon != null) {
       int s = Screen.dp(24f);
       int left = Math.round(r - s / 2f);
-      chatIcon.setColorFilter(new PorterDuffColorFilter(0xffffffff, PorterDuff.Mode.SRC_IN));
+      chatIcon.setColorFilter(new PorterDuffColorFilter(iconColor, PorterDuff.Mode.SRC_IN));
       chatIcon.setBounds(left, left, left + s, left + s);
       chatIcon.draw(c);
     }

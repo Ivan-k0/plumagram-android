@@ -593,7 +593,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
     setChip(searchChipViews[1], searchTag == null ? Lang.getString(R.string.Tgx101SavedFilterTag) : "#" + searchTag, searchTag != null);
     setChip(searchChipViews[2], searchSource == null ? Lang.getString(R.string.Tgx101SavedFilterSource) : searchSource, searchSource != null);
     setChip(searchChipViews[3], searchPeriodDays == 0 ? Lang.getString(R.string.Tgx101SavedFilterPeriod) : periodName(searchPeriodDays), searchPeriodDays != 0);
-    setChip(searchChipViews[4], searchReaction == null ? Lang.getString(R.string.Tgx101SavedReaction) : searchReaction, searchReaction != null);
+    setChip(searchChipViews[4], searchReaction == null ? Lang.getString(R.string.Tgx101SavedReaction) : Tgx101SavedKit.emoji(searchReaction), searchReaction != null);
   }
 
   /** the keyboard goes down first: otherwise it closes under the sheet and everything jumps */
@@ -607,7 +607,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
     }
   }
 
-  private void setChip (TextView c, String label, boolean on) {
+  private void setChip (TextView c, CharSequence label, boolean on) {
     c.setText(label);
     c.setTextColor(on ? Theme.fillingColor() : Theme.textAccentColor());
     // on the pull-down panel the bar itself is the filling colour: the chips stand out on the background colour
@@ -698,7 +698,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
         }));
         for (String e : all) {
           Integer n = counts.get(e);
-          body.addView(Tgx101Sheet.row(context, 0, 0, e, n != null ? String.valueOf(n) : null, e.equals(searchReaction), v -> {
+          body.addView(Tgx101Sheet.row(context, 0, 0, Tgx101SavedKit.emoji(e), n != null ? String.valueOf(n) : null, e.equals(searchReaction), v -> {
             searchReaction = e;
             applyFilter(h[0], true);
           }));
@@ -1334,7 +1334,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
         folderSign.setBackground(Tgx101SavedHomeController.card(itemViewFill(), 7f));
       }
       List<String> reactions = Tgx101SavedKit.reactionsOf(c.tdlib(), m);
-      reaction.setText(reactions.isEmpty() ? "" : reactions.get(0));
+      reaction.setText(reactions.isEmpty() ? "" : Tgx101SavedKit.emoji(reactions.get(0)));
       reaction.setVisibility(reactions.isEmpty() ? View.GONE : View.VISIBLE); // stays while selecting (user 2026-10-16)
       boolean hasThumb = Tgx101SavedKit.thumbFile(m) != null || Tgx101SavedKit.minithumb(m) != null;
       int color = kind == Tgx101SavedKit.KIND_VOICE ? 0xff2e8a4a : kind == Tgx101SavedKit.KIND_FILE ? 0xffb53c57 : Tgx101SavedHomeController.accent();
@@ -1375,8 +1375,10 @@ public class Tgx101SavedListController extends ViewController<Void> {
   }
 
   static final class GridHolder extends RecyclerView.ViewHolder {
-    final ImageView image, folderSign;
-    final TextView badge, check, reaction, tagBadge;
+    final ImageView image, kindIcon;
+    final TextView badge, check, text, date, reaction, tag;
+    final View folderDot;
+    final LinearLayout info;
 
     GridHolder (Context context) {
       super(new FrameLayout(context));
@@ -1388,6 +1390,22 @@ public class Tgx101SavedListController extends ViewController<Void> {
       image.setScaleType(ImageView.ScaleType.CENTER_CROP);
       image.setBackgroundColor(Theme.fillingColor());
       cell.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      // (user 2026-10-16 «вместо пустых плашек должен быть виден текст и название файлов»): a tile without a picture
+      // shows a small sign of its kind and its own words — the note, the file's name, the link's title
+      kindIcon = new ImageView(context);
+      kindIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+      FrameLayout.LayoutParams kp = new FrameLayout.LayoutParams(Screen.dp(16f), Screen.dp(16f), Gravity.TOP | Gravity.LEFT);
+      kp.setMargins(Screen.dp(8f), Screen.dp(8f), 0, 0);
+      cell.addView(kindIcon, kp);
+      text = new TextView(context);
+      text.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 12f);
+      text.setTextColor(Theme.textAccentColor());
+      text.setLineSpacing(0, 1.05f);
+      text.setMaxLines(4);
+      text.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      FrameLayout.LayoutParams xp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.LEFT);
+      xp.setMargins(Screen.dp(8f), Screen.dp(28f), Screen.dp(8f), Screen.dp(26f));
+      cell.addView(text, xp);
       badge = new TextView(context);
       badge.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 11f);
       badge.setTextColor(0xffffffff);
@@ -1396,22 +1414,31 @@ public class Tgx101SavedListController extends ViewController<Void> {
       FrameLayout.LayoutParams bp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.RIGHT);
       bp.setMargins(0, 0, Screen.dp(6f), Screen.dp(6f));
       cell.addView(badge, bp);
-      // approved mockup «Метки на записях»: the reaction top right, the folder colour (or the tag) bottom left
+      // bottom left (user 2026-10-16): the folder's colour, the date in digits and the reaction it is marked with
+      info = new LinearLayout(context);
+      info.setOrientation(LinearLayout.HORIZONTAL);
+      info.setGravity(Gravity.CENTER_VERTICAL);
+      info.setPadding(Screen.dp(5f), Screen.dp(2f), Screen.dp(6f), Screen.dp(2f));
+      folderDot = new View(context);
+      LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(Screen.dp(8f), Screen.dp(8f));
+      dp.rightMargin = Screen.dp(4f);
+      info.addView(folderDot, dp);
+      tag = new TextView(context);
+      tag.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 10.5f);
+      tag.setSingleLine(true);
+      tag.setPadding(0, 0, Screen.dp(4f), 0);
+      info.addView(tag);
+      date = new TextView(context);
+      date.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 10.5f);
+      date.setSingleLine(true);
+      info.addView(date);
       reaction = new TextView(context);
-      reaction.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16f);
-      if (android.os.Build.VERSION.SDK_INT >= 21) reaction.setElevation(Screen.dp(1f));
-      FrameLayout.LayoutParams rp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.RIGHT);
-      rp.setMargins(0, Screen.dp(4f), Screen.dp(6f), 0);
-      cell.addView(reaction, rp);
-      folderSign = folderSign(context);
-      folderSign.setBackground(Tgx101SavedHomeController.card(0x99000000, 6f));
-      FrameLayout.LayoutParams fp = new FrameLayout.LayoutParams(Screen.dp(20f), Screen.dp(20f), Gravity.BOTTOM | Gravity.LEFT);
-      fp.setMargins(Screen.dp(6f), 0, 0, Screen.dp(6f));
-      cell.addView(folderSign, fp);
-      tagBadge = badge(context);
-      FrameLayout.LayoutParams tp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(18f), Gravity.BOTTOM | Gravity.LEFT);
-      tp.setMargins(Screen.dp(6f), 0, 0, Screen.dp(6f));
-      cell.addView(tagBadge, tp);
+      reaction.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 12f);
+      reaction.setPadding(Screen.dp(4f), 0, 0, 0);
+      info.addView(reaction);
+      FrameLayout.LayoutParams ip = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.LEFT);
+      ip.setMargins(Screen.dp(4f), 0, 0, Screen.dp(5f));
+      cell.addView(info, ip);
       check = new TextView(context);
       check.setGravity(Gravity.CENTER);
       check.setTextColor(0xffffffff);
@@ -1424,38 +1451,46 @@ public class Tgx101SavedListController extends ViewController<Void> {
 
     void bind (ViewController<?> c, TdApi.Message m, int selectedIndex, boolean selecting) {
       int kind = Tgx101SavedKit.kindOf(m);
-      if (Tgx101SavedKit.thumbFile(m) != null || Tgx101SavedKit.minithumb(m) != null) {
+      boolean picture = Tgx101SavedKit.thumbFile(m) != null || Tgx101SavedKit.minithumb(m) != null;
+      if (picture) {
         image.clearColorFilter();
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
         Tgx101SavedKit.loadThumb(c.tdlib(), image, m, Screen.dp(120f));
+        kindIcon.setVisibility(View.GONE);
+        text.setVisibility(View.GONE);
       } else {
         image.setTag(R.id.tgx101SavedThumb, null);
-        image.setScaleType(ImageView.ScaleType.CENTER);
-        image.setImageResource(kindIcon(kind));
-        image.setColorFilter(Theme.getColor(ColorId.icon));
+        image.setImageDrawable(null);
+        kindIcon.setVisibility(View.VISIBLE);
+        kindIcon.setImageResource(kindIcon(kind));
+        kindIcon.setColorFilter(Tgx101SavedHomeController.accent());
+        String words = Tgx101SavedKit.title(m);
+        text.setVisibility(View.VISIBLE);
+        text.setText(words != null && !words.isEmpty() ? words : Tgx101SavedKit.kindLabel(kind));
       }
       String dur = null;
       if (m.content.getConstructor() == TdApi.MessageVideo.CONSTRUCTOR) dur = org.thunderdog.challegram.tool.Strings.buildDuration(((TdApi.MessageVideo) m.content).video.duration);
       else if (m.content.getConstructor() == TdApi.MessageAnimation.CONSTRUCTOR) dur = "GIF";
-      else if (kind != Tgx101SavedKit.KIND_PHOTO) dur = Tgx101SavedKit.kindLabel(kind);
       badge.setVisibility(dur != null ? View.VISIBLE : View.GONE);
       badge.setText(dur);
       check.setVisibility(selecting ? View.VISIBLE : View.GONE);
+      // the bottom-left line: light text on a dark pill over a picture, quiet grey text on a plain tile
+      int infoColor = picture ? 0xffffffff : Theme.textDecentColor();
+      info.setBackground(picture ? Tgx101SavedHomeController.card(0x80000000, 8f) : null);
       Tgx101SavedStore.Folder folder = Tgx101SavedStore.get(c.tdlib()).folderOf(m.id);
-      folderSign.setVisibility(folder != null ? View.VISIBLE : View.GONE);
-      if (folder != null) folderSign.setColorFilter(folder.color());
+      folderDot.setVisibility(folder != null ? View.VISIBLE : View.GONE);
+      if (folder != null) folderDot.setBackground(Tgx101SavedHomeController.card(folder.color(), 2.5f));
       String tagShort = folder == null ? Tgx101SavedKit.firstTagShort(c.tdlib(), m) : null;
+      tag.setVisibility(tagShort != null ? View.VISIBLE : View.GONE);
       if (tagShort != null) {
-        tagBadge.setVisibility(View.VISIBLE);
-        tagBadge.setText(tagShort);
-        tagBadge.setTextColor(0xffffffff);
-        tagBadge.setBackground(Tgx101SavedHomeController.card(0xccb53c57, 9f));
-      } else {
-        tagBadge.setVisibility(View.GONE);
+        tag.setText(tagShort.startsWith("#") ? tagShort : "#" + tagShort);
+        tag.setTextColor(picture ? 0xffffffff : 0xffb53c57);
       }
+      date.setText(Tgx101SavedKit.shortDate(m.date));
+      date.setTextColor(infoColor);
       List<String> reactions = Tgx101SavedKit.reactionsOf(c.tdlib(), m);
-      reaction.setText(reactions.isEmpty() ? "" : reactions.get(0));
-      reaction.setVisibility(reactions.isEmpty() || selecting ? View.GONE : View.VISIBLE);
+      reaction.setText(reactions.isEmpty() ? "" : Tgx101SavedKit.emoji(reactions.get(0)));
+      reaction.setVisibility(reactions.isEmpty() ? View.GONE : View.VISIBLE);
       boolean on = selectedIndex > 0;
       android.graphics.drawable.GradientDrawable ring = new android.graphics.drawable.GradientDrawable();
       ring.setShape(android.graphics.drawable.GradientDrawable.OVAL);
@@ -1651,8 +1686,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
           ((CardHolder) sh.inner).highlightQuery = mode == MODE_SEARCH ? query : null;
           ((CardHolder) sh.inner).bind(Tgx101SavedListController.this, m, isSelected);
         } else {
-          boolean dated = sort == SORT_SAVED || sort == SORT_ORIGINAL; // otherwise no day headers: the row keeps its date
-          ((RowHolder) sh.inner).withDate = !dated;
+          ((RowHolder) sh.inner).withDate = true; // the date in digits on every row, headers or not (user 2026-10-16)
           ((RowHolder) sh.inner).bind(Tgx101SavedListController.this, m, isSelected, selecting, mode == MODE_SEARCH ? query : null);
           sh.inner.itemView.setBackground(isSelected ? Tgx101SavedHomeController.card(Tgx101SavedHomeController.tint(Tgx101SavedHomeController.accent(), .12f), 12f) : Tgx101SavedHomeController.card(Theme.fillingColor(), 12f));
         }
@@ -1685,6 +1719,15 @@ public class Tgx101SavedListController extends ViewController<Void> {
   @Override
   public void onFocus () {
     super.onFocus();
+    if (reach && searchField != null && !searchField.hasFocus()) {
+      // (user 2026-10-16 «добавь мигающую полосу, как в обычном поле ввода»): asked while the screen was being built,
+      // the focus was lost on the way in — the bottom field takes it once the screen is shown, the keyboard stays down
+      searchField.post(() -> {
+        searchField.setCursorVisible(true);
+        searchField.requestFocus();
+        searchField.setSelection(searchField.length());
+      });
+    }
     if (list != null && mode != MODE_SEARCH && loadedOnce) load(); // back from the feed: messages may have been deleted
     loadedOnce = true;
   }

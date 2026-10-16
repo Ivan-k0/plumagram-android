@@ -166,7 +166,7 @@ public final class Tgx101SendMenu {
     reactions.setPadding(Screen.dp(8f), Screen.dp(2f), Screen.dp(8f), Screen.dp(6f));
     for (String e : Tgx101SavedKit.QUICK_REACTIONS) {
       TextView b = Tgx101SavedHomeController.text(context, 19f, Theme.textAccentColor(), false);
-      b.setText(e);
+      b.setText(Tgx101SavedKit.emoji(e));
       b.setGravity(Gravity.CENTER);
       b.setBackground(Tgx101SavedHomeController.card(Theme.backgroundColor(), 18f));
       Views.setClickable(b);

@@ -78,7 +78,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
 
   @Override
   public CharSequence getName () {
-    return Lang.getString(R.string.SavedMessages);
+    return Lang.getString(R.string.Tgx101SavedOpenHome); // «Storage» (user 2026-10-16 «переименуй его в Хранилище»)
   }
 
   @Override
@@ -482,7 +482,14 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     noteBar.getLocationOnScreen(slideLocation);
     nav.getLocationOnScreen(slideNavLocation);
     float top = slideLocation[1] - slideNavLocation[1];
-    return y >= top && y <= top + noteBar.getHeight() && super.canSlideBackFrom(navigationController, x, y);
+    if (y >= top && y <= top + noteBar.getHeight()) return super.canSlideBackFrom(navigationController, x, y);
+    // (user 2026-10-16 «свайп влево — выход назад в чаты, как из чатов») from the «Recent» rows too, while nothing is selected
+    if (recentList != null && selected.isEmpty() && recentList.isShown()) {
+      recentList.getLocationOnScreen(slideLocation);
+      float listTop = slideLocation[1] - slideNavLocation[1];
+      if (y >= listTop && y <= listTop + recentList.getHeight()) return super.canSlideBackFrom(navigationController, x, y);
+    }
+    return false;
   }
 
   /** (test 2026-10-16: settings opened with the note's keyboard up kept it over the next screen) */
@@ -725,7 +732,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     icon.setBackground(card(tint(color, .16f), glyph != null ? 17f : 10f));
     if (glyph != null) {
       TextView g = text(context, 18f, color, true);
-      g.setText(glyph);
+      g.setText(Tgx101SavedKit.emoji(glyph));
       g.setGravity(Gravity.CENTER);
       icon.addView(g, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     } else {
@@ -738,7 +745,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     }
     t.addView(icon, new LinearLayout.LayoutParams(Screen.dp(34f), Screen.dp(34f)));
     TextView n = text(context, 14f, Theme.textAccentColor(), true);
-    n.setText(name);
+    n.setText(Tgx101SavedKit.emoji(name));
     n.setSingleLine(true);
     n.setEllipsize(TextUtils.TruncateAt.END);
     LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -1038,7 +1045,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
 
   private View recentRow (TdApi.Message m) {
     Tgx101SavedListController.RowHolder holder = new Tgx101SavedListController.RowHolder(context);
-    holder.withDate = false; // the day is in the header above
+    holder.withDate = true; // the day is in the header above, and each row has its date in digits too (user 2026-10-16)
     holder.bind(this, m, selected.contains(m.id), !selected.isEmpty());
     // opaque underlay: the swipe buttons lie under the row, and a refresh resets the row's own background (test
     // 2026-10-16 with the keyboard up: the buttons showed through the text)
@@ -1078,6 +1085,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
         toggleSelected(m);
       }
     });
+    swipe.setSelectEnabled(false); // a finger to the right goes back to the chats (user 2026-10-16); selecting is by holding
     holder.itemView.setOnClickListener(v -> {
       if (!selected.isEmpty()) toggleSelected(m);
       else Tgx101SavedKit.openInFeed(this, m);
@@ -1619,6 +1627,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     if (visible && emojiShown) closeEmoji(false); // the system keyboard took its place
     boolean result = super.onKeyboardStateChanged(visible);
     if (keyboardFrame != null) keyboardFrame.onKeyboardStateChanged(visible);
+    if (storageSwitch != null) storageSwitch.setKeyboardShown(visible); // not needed while typing (user 2026-10-16)
     return result;
   }
 
