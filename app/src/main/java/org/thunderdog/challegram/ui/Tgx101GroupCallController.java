@@ -402,10 +402,19 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
     h[0] = Tgx101Sheet.show(this, null, body -> {
       body.addView(Tgx101Sheet.title(context, p.isCurrentUser ? Lang.getString(R.string.Tgx101VoiceChatYou, name) : name));
       if (p.isCurrentUser) {
-        body.addView(Tgx101Sheet.row(context, 0, 0, "✋  " + Lang.getString(p.isHandRaised ? R.string.Tgx101VoiceChatLowerHand : R.string.Tgx101VoiceChatRaiseHand), null, false, v -> {
-          h[0].dismiss();
-          call.setHandRaised(!p.isHandRaised);
-        }));
+        // (user 2026-10-16 «поднять руку не работает»): as in Telegram, the hand is only for a chat's voice chat where an
+        // admin took the word away — a conference grown from a 1:1 call has no hands; there the own row turns the mic
+        if (!call.isConference && call.mutedByAdmin()) {
+          body.addView(Tgx101Sheet.row(context, 0, 0, "✋  " + Lang.getString(p.isHandRaised ? R.string.Tgx101VoiceChatLowerHand : R.string.Tgx101VoiceChatRaiseHand), null, false, v -> {
+            h[0].dismiss();
+            call.setHandRaised(!p.isHandRaised);
+          }));
+        } else {
+          body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(call.isMuted() ? R.string.Tgx101VoiceChatMicTurnOn : R.string.Tgx101VoiceChatMicTurnOff), null, false, v -> {
+            h[0].dismiss();
+            call.toggleMuted();
+          }));
+        }
         return;
       }
       if (p.canBeMutedForAllUsers || p.canBeUnmutedForAllUsers) {

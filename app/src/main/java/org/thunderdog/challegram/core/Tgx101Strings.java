@@ -250,6 +250,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101VoiceChatSpeaker, "Динамик");
     RU.put(R.string.Tgx101VoiceChatMicOn, "Микрофон включён");
     RU.put(R.string.Tgx101VoiceChatMicOff, "Микрофон выключен");
+    RU.put(R.string.Tgx101VoiceChatMicTurnOn, "Включить микрофон");
+    RU.put(R.string.Tgx101VoiceChatMicTurnOff, "Выключить микрофон");
     RU.put(R.string.Tgx101VoiceChatListening, "слушает");
     RU.put(R.string.Tgx101VoiceChatSpeaking, "говорит");
     RU.put(R.string.Tgx101VoiceChatYou, "%1$s (вы)");

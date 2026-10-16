@@ -902,6 +902,7 @@ public class Settings {
       editor.putInt(KEY_VERSION, version);
       editor.apply();
     }
+    tgx101PinOldDefaults(didNotExist);
     /*if (BuildConfig.DEBUG) {
       int accountNum = TdlibManager.readAccountNum();
       pmc.edit();
@@ -2342,6 +2343,21 @@ public class Settings {
     return false;
   }
 
+  /**
+   * TGx101 (user 2026-10-16 «по умолчанию колокольчики, подписаться, карандаш — отключены для новых пользователей»):
+   * the new defaults are for new installs; who already has the app keeps what they had, written down once here
+   */
+  private void tgx101PinOldDefaults (boolean freshInstall) {
+    final String marker = "tgx101_defaults_2026_10_16";
+    if (pmc.getBoolean(marker, false)) return;
+    if (!freshInstall) {
+      if (!pmc.contains(KEY_SHOW_CHANNEL_MUTE_BUTTON)) pmc.putBoolean(KEY_SHOW_CHANNEL_MUTE_BUTTON, true);
+      if (!pmc.contains(KEY_TGX101_HIDE_JOIN)) pmc.putBoolean(KEY_TGX101_HIDE_JOIN, false);
+      if (!pmc.contains(KEY_TGX101_HIDE_COMPOSE)) pmc.putBoolean(KEY_TGX101_HIDE_COMPOSE, false);
+    }
+    pmc.putBoolean(marker, true);
+  }
+
   private boolean isFreshAppInstallation () {
     return !TdlibManager.getAccountConfigFile().exists() && pmc.getLong(KEY_APP_INSTALLATION_ID, 0) == 0;
   }
@@ -3568,7 +3584,7 @@ public class Settings {
   private static final String KEY_TGX101_HIDE_INPUT_COMMANDS = "tgx101_hide_input_commands";
   private static final String KEY_TGX101_HIDE_INPUT_EMOJI = "tgx101_hide_input_emoji";
   private static final String KEY_TGX101_HIDE_COMPOSE = "tgx101_hide_compose";
-  public boolean tgx101HideCompose () { return pmc.getBoolean(KEY_TGX101_HIDE_COMPOSE, false); }
+  public boolean tgx101HideCompose () { return pmc.getBoolean(KEY_TGX101_HIDE_COMPOSE, true); } // new installs: hidden (see tgx101PinOldDefaults)
   public void setTgx101HideCompose (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_COMPOSE, v); }
   // 4PDA 2026-10-08 16:42 «спрятать нижнюю широкую кнопку „подписаться“/„отправить запрос“»: joining stays in the profile ⋮
   // user 2026-10-08 23:xx: channels without bubbles have three looks — «Blocks» (the full-width cards), «Journal» (mockup
@@ -3617,7 +3633,7 @@ public class Settings {
     pmc.putString(KEY_TGX101_WEBAPP_OPEN_BOTS, list == null || list.isEmpty() ? String.valueOf(botUserId) : list + "," + botUserId);
   }
   private static final String KEY_TGX101_HIDE_JOIN = "tgx101_hide_join";
-  public boolean tgx101HideJoinButton () { return pmc.getBoolean(KEY_TGX101_HIDE_JOIN, false); }
+  public boolean tgx101HideJoinButton () { return pmc.getBoolean(KEY_TGX101_HIDE_JOIN, true); } // new installs: hidden (see tgx101PinOldDefaults)
   private static final String KEY_TGX101_HIDE_SPONSORED = "tgx101_hide_sponsored";
   // TGx101 (user 2026-10-12): story audience profiles (JSON array) and the one used last
   public @androidx.annotation.Nullable String tgx101StoryProfiles () { return pmc.getString("tgx101_story_profiles", null); }
@@ -4214,7 +4230,7 @@ public class Settings {
   private static final String KEY_SHOW_CHANNEL_MUTE_BUTTON = "settings_show_channel_mute_button";
 
   public boolean showChannelMuteButton () {
-    return pmc.getBoolean(KEY_SHOW_CHANNEL_MUTE_BUTTON, true);
+    return pmc.getBoolean(KEY_SHOW_CHANNEL_MUTE_BUTTON, false); // TGx101: new installs without the bell (see tgx101PinOldDefaults)
   }
 
   public void setShowChannelMuteButton (boolean show) {

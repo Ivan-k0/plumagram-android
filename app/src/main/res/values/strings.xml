@@ -6084,6 +6084,8 @@
   <string name="Tgx101VoiceChatSpeaker">Speaker</string>
   <string name="Tgx101VoiceChatMicOn">Microphone on</string>
   <string name="Tgx101VoiceChatMicOff">Microphone off</string>
+  <string name="Tgx101VoiceChatMicTurnOn">Turn the microphone on</string>
+  <string name="Tgx101VoiceChatMicTurnOff">Turn the microphone off</string>
   <string name="Tgx101VoiceChatListening">listening</string>
   <string name="Tgx101VoiceChatSpeaking">speaking</string>
   <string name="Tgx101VoiceChatYou">%1$s (you)</string>

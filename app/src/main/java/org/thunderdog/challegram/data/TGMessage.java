@@ -3896,6 +3896,17 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     throw new RuntimeException();
   }
 
+  /**
+   * TGx101 (user 2026-10-16, the official app's screenshot «чтобы снизу не было много места лишнего»): a forwarded text
+   * keeps the time on its last line when it fits there, as in Telegram — it always went to a line of its own. The forward
+   * draws its content 11 dp in from the bar
+   */
+  private int tgx101ForwardBottomLineWidth () {
+    if (!(this instanceof TGMessageText) || hasFooter()) return BOTTOM_LINE_EXPAND_HEIGHT;
+    int width = getBottomLineContentWidth();
+    return width >= 0 ? width + Screen.dp(11f) : width;
+  }
+
   protected final void buildBubble (boolean force) {
     if (useBubbles()) {
       final boolean needBubble = useBubble();
@@ -3910,7 +3921,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       if (!headerDisabled() && !(drawBubbleTimeOverContent() && !useForward()) && useBubbleTime()) {
         final int bubbleTimePartWidthWithoutPadding = computeBubbleTimePartWidth(false);
         final int bubbleTimePartWidth = computeBubbleTimePartWidth(true);
-        final int bottomLineContentWidth = useForward() ? BOTTOM_LINE_EXPAND_HEIGHT : hasFooter() ? footerText.getLastLineWidth() + Screen.dp(10f) : getBottomLineContentWidth();
+        final int bottomLineContentWidth = useForward() ? tgx101ForwardBottomLineWidth() : hasFooter() ? footerText.getLastLineWidth() + Screen.dp(10f) : getBottomLineContentWidth();
         final boolean allowHorizontalExtend = allowBubbleHorizontalExtend();
 
         final int expandedBubbleWidth = allowHorizontalExtend ? Math.max(bubbleWidth, bubbleTimePartWidthWithoutPadding) : bubbleWidth;
