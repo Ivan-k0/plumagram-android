@@ -1213,6 +1213,66 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
 
   private boolean forceRtlAnimation, tgx101ForceRtlOnce;
 
+  // TGx101 (user 2026-10-18 «открытие хранилища — как выход из чата свайпом»): a forward step that follows the finger.
+  // The new screen is pushed at once and drawn by the factor: 1 — still off screen, 0 — in place; {@code fromLeft} — it
+  // comes from the left (the storage lies left of the chats: its own «back» is right to left)
+  private @Nullable ViewController<?> tgx101DragForward;
+
+  public boolean tgx101StartDragForward (ViewController<?> controller, boolean fromLeft) {
+    if (isAnimating || isEmpty() || controller == null || getStack().getCurrent() == null) return false;
+    hideContextualPopups();
+    setIsAnimating(true);
+    controller.getValue();
+    getStack().push(controller, true);
+    controller.executeAnimationReadyListeners();
+    tgx101ForceRtlOnce = fromLeft;
+    prepareFactorAnimation(getStack().getPrevious(), controller, true, TRANSLATION_HORIZONTAL, PredictiveGesture.NONE);
+    tgx101ForceRtlOnce = false;
+    tgx101DragForward = controller;
+    setFactor(1f);
+    return true;
+  }
+
+  public boolean tgx101IsDraggingForward () {
+    return tgx101DragForward != null;
+  }
+
+  /** 0 — where it started, 1 — the new screen in place */
+  public void tgx101DragForward (float progress) {
+    if (tgx101DragForward != null) setFactor(1f - Math.max(0f, Math.min(1f, progress)));
+  }
+
+  /** let go: the rest of the way (open) or back (the new screen goes and is destroyed) */
+  public void tgx101EndDragForward (boolean open, float velocity) {
+    if (tgx101DragForward == null) return;
+    tgx101DragForward = null;
+    final float start = getFactor(), end = open ? 0f : 1f;
+    final ViewController<?> left = currentLeft, right = currentRight;
+    ValueAnimator animator = AnimatorUtils.simpleValueAnimator();
+    animator.addUpdateListener(animation -> setFactor(start + (end - start) * AnimatorUtils.getFraction(animation)));
+    animator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+    float distance = Math.abs(end - start) * currentWidth;
+    animator.setDuration(calculateDropDuration(distance, velocity, MAXIMUM_DROP_DURATION, MINIMUM_DROP_DURATION));
+    animator.addListener(new AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd (Animator animation) {
+        if (open) {
+          removeFadeView();
+          headerView.applyPreview(getStack().getCurrent());
+          processor.setNextAsCurrent();
+          completeNextLayout();
+          if (Views.HARDWARE_LAYER_ENABLED) {
+            setLayerType(View.LAYER_TYPE_NONE, left, right);
+          }
+          updateHackyViews();
+        } else {
+          finishTransaction(FINISH_NAVIGATION); // the pushed screen leaves the stack, as after a back swipe
+        }
+      }
+    });
+    animator.start();
+  }
+
   private boolean needRtl () {
     return forceRtlAnimation || Lang.rtl();
   }

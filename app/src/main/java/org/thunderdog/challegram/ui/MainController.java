@@ -233,9 +233,25 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       }
 
       @Override
-      public void open () {
-        org.thunderdog.challegram.Tgx101Diag.mark("storage pull: open Saved");
-        Tgx101SavedHomeController.open(context(), tdlib);
+      public boolean startDrag () {
+        NavigationController navigation = context().navigation();
+        if (navigation == null || navigation.isAnimating() || navigation.getCurrentStackItem() != MainController.this) return false;
+        boolean started = navigation.tgx101StartDragForward(new Tgx101SavedHomeController(context(), tdlib), true);
+        org.thunderdog.challegram.Tgx101Diag.mark("storage pull: " + (started ? "follows the finger" : "can't start"));
+        return started;
+      }
+
+      @Override
+      public void drag (float progress) {
+        NavigationController navigation = context().navigation();
+        if (navigation != null) navigation.tgx101DragForward(progress);
+      }
+
+      @Override
+      public void endDrag (boolean open, float velocity) {
+        NavigationController navigation = context().navigation();
+        org.thunderdog.challegram.Tgx101Diag.mark("storage pull: " + (open ? "opened" : "back to the chats"));
+        if (navigation != null) navigation.tgx101EndDragForward(open, velocity);
       }
     });
     pagerWrap.addView(storagePull, FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
