@@ -1664,6 +1664,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (v != null) tgx101InputWanted.put(v, v.getVisibility());
     }
     tgx101CheckInputCollapse();
+    attachButtons.setOnButtonsChanged(() -> {
+      if (inputView != null) inputView.checkPlaceholderWidth();
+    });
     attachButtons.updatePivot();
 
     params = new RelativeLayout.LayoutParams(Screen.dp(55f), Screen.dp(49f));
@@ -3491,7 +3494,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     updateShadowColor();
     if (scheduleButton != null && scheduleButton.setVisible(messageThread == null && tdlib.chatHasScheduled(chat.id))) {
-      commandButton.setTranslationX(scheduleButton.isVisible() ? 0 : scheduleButton.getLayoutParams().width);
       attachButtons.updatePivot();
     }
 
@@ -9490,7 +9492,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void updateSilentButton (boolean visible) {
     if (Config.NEED_SILENT_BROADCAST) {
-      commandButton.setTranslationX(visible ? 0 : silentButton.getLayoutParams().width);
       if (silentButton.setVisible(visible)) {
         attachButtons.updatePivot();
       }
@@ -13517,8 +13518,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     tdlib.ui().post(() -> {
       if (getChatId() == chatId) {
         if (scheduleButton != null && scheduleButton.setVisible(messageThread == null && tdlib.chatHasScheduled(chatId))) {
-          commandButton.setTranslationX(scheduleButton.isVisible() ? 0 : scheduleButton.getLayoutParams().width);
-          attachButtons.updatePivot();
+              attachButtons.updatePivot();
         }
         if (areScheduled && !hasScheduledMessages) {
           forceFastAnimationOnce();

@@ -43,7 +43,38 @@ public class AttachLinearLayout extends LinearLayout {
     return (ev.getAction() == MotionEvent.ACTION_DOWN && !Views.isValid(this)) || super.onInterceptTouchEvent(ev);
   }
 
+  // TGx101 (user 2026-10-17 «вёрстка поплыла», «/» over «Сообщение»): an INVISIBLE button (silent, scheduled…) kept its
+  // place, so the ones left of it stood a button further left than the field's text knew (it counts visible ones only).
+  // The visible buttons are packed to the right instead — no holes, whichever are hidden
+  private void packVisible () {
+    int shift = 0;
+    for (int i = getChildCount() - 1; i >= 0; i--) {
+      View v = getChildAt(i);
+      if (v.getVisibility() == View.GONE) continue;
+      if (v.getVisibility() == View.VISIBLE) {
+        if (v.getTranslationX() != shift) v.setTranslationX(shift);
+      } else {
+        shift += v.getLayoutParams().width;
+      }
+    }
+  }
+
+  @Override
+  protected void onLayout (boolean changed, int l, int t, int r, int b) {
+    super.onLayout(changed, l, t, r, b);
+    packVisible();
+  }
+
+  private Runnable onButtonsChanged;
+
+  /** Called whenever the set of shown buttons may have changed — the field's placeholder re-fits its width */
+  public void setOnButtonsChanged (Runnable onButtonsChanged) {
+    this.onButtonsChanged = onButtonsChanged;
+  }
+
   public void updatePivot () {
+    packVisible();
+    if (onButtonsChanged != null) onButtonsChanged.run();
     int totalWidth = 0;
     int width = 0;
 

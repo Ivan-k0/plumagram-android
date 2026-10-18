@@ -1101,6 +1101,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     if (isFocused) {
       tgx101Switching = false;
       tgx101RefreshCapsuleTabs();
+      if (c != MainController.this && !(c instanceof SettingsController)) tgx101AddCapsuleSpace(c.getValue());
       tgx101Capsule.setSelectedTab(tab, false);
       tgx101Capsule.setScrollHidden(false); // never hides on scroll (user 2026-10-08)
       tgx101ApplyCapsulePadding(tab);
@@ -1643,6 +1644,34 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         }));
         break;
       }
+    }
+  }
+
+  /**
+   * TGx101 (user 2026-10-18, screenshot: the bottom menu over the last contact): every tab's lists end above the capsule,
+   * not only the chats' and the settings' — a space under the last row of each vertical list in the tab's screen
+   */
+  private static void tgx101AddCapsuleSpace (@Nullable View view) {
+    if (view == null || MainController.tgx101CapsuleSpace() == 0) return;
+    if (view instanceof RecyclerView) {
+      RecyclerView list = (RecyclerView) view;
+      RecyclerView.LayoutManager manager = list.getLayoutManager();
+      boolean vertical = !(manager instanceof androidx.recyclerview.widget.LinearLayoutManager) || ((androidx.recyclerview.widget.LinearLayoutManager) manager).getOrientation() == RecyclerView.VERTICAL;
+      if (vertical && list.getTag(R.id.btn_tgx101CapsuleTabs) == null) {
+        list.setTag(R.id.btn_tgx101CapsuleTabs, Boolean.TRUE);
+        list.addItemDecoration(new RecyclerView.ItemDecoration() {
+          @Override
+          public void getItemOffsets (@androidx.annotation.NonNull android.graphics.Rect outRect, @androidx.annotation.NonNull View child, @androidx.annotation.NonNull RecyclerView parent, @androidx.annotation.NonNull RecyclerView.State state) {
+            int position = parent.getChildAdapterPosition(child);
+            outRect.bottom = position != RecyclerView.NO_POSITION && position == state.getItemCount() - 1 ? MainController.tgx101CapsuleSpace() : 0;
+          }
+        });
+      }
+      return;
+    }
+    if (view instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) view;
+      for (int i = 0; i < group.getChildCount(); i++) tgx101AddCapsuleSpace(group.getChildAt(i));
     }
   }
 
