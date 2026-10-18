@@ -259,6 +259,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
 
   @Override
   protected View onCreateView (Context context) {
+    madeStart = android.os.SystemClock.uptimeMillis();
     FrameLayout root = new FrameLayout(context);
     root.setBackgroundColor(Theme.backgroundColor());
     // the note field doesn't take the focus when the screen opens (popups then sat above an expected keyboard)
@@ -537,7 +538,10 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     pp.topMargin = Screen.dp(8f);
     root.addView(pullIcon, pp);
 
+    long t = android.os.SystemClock.uptimeMillis();
     reload();
+    openedAt = android.os.SystemClock.uptimeMillis();
+    org.thunderdog.challegram.Tgx101Diag.mark("storage home: made in " + (openedAt - madeStart) + " ms (first load " + (openedAt - t) + " ms)");
     root.requestFocus();
     return root;
   }
@@ -628,10 +632,21 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   public void onFocus () {
     super.onFocus();
     if (storageSwitch != null) storageSwitch.updateVisibility();
+    if (openedAt != 0) {
+      org.thunderdog.challegram.Tgx101Diag.mark("storage home: on screen " + (android.os.SystemClock.uptimeMillis() - openedAt) + " ms after it was made");
+      openedAt = 0;
+    }
+    if (pendingAfterOpen != null) {
+      Runnable r = pendingAfterOpen;
+      pendingAfterOpen = null;
+      r.run();
+      return; // the first focus: everything else was loaded with the screen
+    }
     if (column != null && loadedOnce) reload(); // back from a folder / list / settings: counts and tiles may have changed
   }
 
   private boolean loadedOnce;
+  private long openedAt, madeStart;
 
   /** Something was saved / filed while the home screen is open */
   void reloadSoon () {
@@ -648,7 +663,26 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     loadedOnce = true;
     buildChips();
     buildTiles();
-    // the folders' counts as Telegram has them: what was deleted elsewhere leaves the folders, then the counts redraw
+    // the folders' counts as Telegram has them: what was deleted elsewhere leaves the folders, then the counts redraw.
+    // (user 2026-10-17 «пролаги при входе в хранилище»: the answers rebuilt every tile while the screen was still sliding
+    // in — log 16:01, frames up to 66 ms) Once the screen stands
+    afterOpen(this::checkFolders);
+    loadReactions();
+    loadPinned();
+    loadRecent();
+  }
+
+  private @Nullable Runnable pendingAfterOpen;
+
+  private void afterOpen (Runnable r) {
+    if (isFocused()) {
+      r.run();
+    } else {
+      pendingAfterOpen = r;
+    }
+  }
+
+  private void checkFolders () {
     java.util.List<Long> filed = new java.util.ArrayList<>();
     for (Tgx101SavedStore.Folder f : Tgx101SavedStore.get(tdlib).folders()) filed.addAll(f.messageIds);
     for (int start = 0; start < filed.size(); start += 100) { // in hundreds, as Telegram hands messages out
@@ -657,9 +691,6 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
         if (!isDestroyed() && found.size() < part.size()) buildTiles();
       });
     }
-    loadReactions();
-    loadPinned();
-    loadRecent();
   }
 
   // Kinds
