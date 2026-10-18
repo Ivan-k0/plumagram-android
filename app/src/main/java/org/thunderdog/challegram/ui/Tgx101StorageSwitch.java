@@ -128,16 +128,24 @@ public final class Tgx101StorageSwitch extends View {
     if (visible && !imeReallyVisible()) visible = false;
     if (keyboardShown != visible) {
       keyboardShown = visible;
-      if (!visible) {
-        // the keyboard went: back to its place once the screen has its full height again
-        post(() -> post(() -> {
-          if (!isDragging() && !keyboardShown) place(false);
-        }));
-      }
       org.thunderdog.challegram.Tgx101Diag.mark("storage switch: keyboard " + (visible ? "up" : "down"));
-      updateVisibility();
+      removeCallbacks(afterKeyboard);
+      if (visible) {
+        updateVisibility();
+      } else {
+        // (test 2026-10-18 in the Saved chat: after the keyboard the button stood a third of the screen higher) the field
+        // rides down with the keyboard for ~300 ms — placed while it was still up, the button took that for the bottom.
+        // It comes back where it belongs once the field is down
+        postDelayed(afterKeyboard, 360);
+      }
     }
   }
+
+  private final Runnable afterKeyboard = () -> {
+    if (keyboardShown || isDragging()) return;
+    if (shown && getVisibility() == VISIBLE && getAlpha() >= 1f) place(false);
+    updateVisibility();
+  };
 
   private boolean imeOnScreen () {
     if (android.os.Build.VERSION.SDK_INT < 30) return keyboardShown;
