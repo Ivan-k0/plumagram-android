@@ -3805,7 +3805,9 @@ public class Settings {
    *  the official app */
   /** TGx101 (user 2026-10-15/16): on the first chat folder a finger pulled right opens Saved as a storage */
   public boolean tgx101SwipeToStorage () {
-    return pmc.getBoolean("tgx101_swipe_storage", true);
+    // (user 2026-10-19 «когда активно боковое меню, по умолчанию свайп открывает меню; хранилище — на выбор»): unless
+    // chosen in MagiX → Gestures, on with the bottom menu and off with the side menu (the swipe opens the side menu)
+    return pmc.getBoolean("tgx101_swipe_storage", tgx101NavCapsule());
   }
 
   public void setTgx101SwipeToStorage (boolean v) {

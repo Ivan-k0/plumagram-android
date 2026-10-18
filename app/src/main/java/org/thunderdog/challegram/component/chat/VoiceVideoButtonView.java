@@ -41,6 +41,16 @@ import me.vkryl.core.lambda.CancellableRunnable;
 import me.vkryl.core.lambda.Destroyable;
 
 public class VoiceVideoButtonView extends View implements FactorAnimator.Target, Settings.VideoModePreferenceListener, Destroyable, TooltipOverlayView.LocationProvider {
+  // TGx101 (user 2026-10-18 voice note «при записи голосового свайп влево должен только отменять запись»): the button sits
+  // at the right edge — with gesture navigation a slide from there was the system's «back». Its area is kept out of it
+  @Override
+  protected void onLayout (boolean changed, int left, int top, int right, int bottom) {
+    super.onLayout(changed, left, top, right, bottom);
+    if (android.os.Build.VERSION.SDK_INT >= 29) {
+      setSystemGestureExclusionRects(java.util.Collections.singletonList(new android.graphics.Rect(0, 0, right - left, bottom - top)));
+    }
+  }
+
   private boolean hasTouchControls;
 
   private final Drawable sendIcon, micIcon, videoIcon, searchIcon;
