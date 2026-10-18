@@ -285,6 +285,11 @@ public final class Tgx101MessageMenu {
     boolean moreShown, moreLoading;
     TextView readDateView;
     View readDateDivider;
+    @Nullable LinearLayout cardMain; // the card's main page
+    @Nullable View reactorsPage; // who reacted, slid in over the main page
+    @Nullable View pill;
+    @Nullable GrowPanel panel; // all reactions, grown around the pill
+    boolean animating;
   }
 
   /** TGx101 diagnostics: what invisible characters / formatting a message has (counts only, never the text) */
@@ -521,7 +526,9 @@ public final class Tgx101MessageMenu {
     });
     fadeIn.start();
     root.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-    root.setOnClickListener(v -> dismiss(host));
+    root.setOnClickListener(v -> {
+      if (host.panel != null) foldPanel(host); else dismiss(host); // user 2026-10-18: a tap anywhere folds the reactions back
+    });
     // TGx101: a long press on the message itself (under the blurred menu) closes the menu and selects the word under
     // the finger — text selection on the second long press instead of the third
     final float[] down = new float[2];
@@ -595,7 +602,9 @@ public final class Tgx101MessageMenu {
         }
       });
     }
-    column.setOnClickListener(v -> dismiss(host)); // the free strip beside the card closes the menu; the pill and the card consume their own taps
+    column.setOnClickListener(v -> {
+      if (host.panel != null) foldPanel(host); else dismiss(host);
+    }); // the free strip beside the card closes the menu; the pill and the card consume their own taps
     root.addView(column);
     host.content = column;
 
@@ -641,11 +650,16 @@ public final class Tgx101MessageMenu {
         pillParams.rightMargin = cardEdgeGap - overhang;
       }
       column.addView(pill, pillParams);
+      host.pill = pill;
     }
 
-    // Card
-    LinearLayout card = new LinearLayout(context);
-    card.setOrientation(LinearLayout.VERTICAL);
+    // Card: its main page (header + actions) and, on «Reactions: N», the page of who reacted sliding in over it
+    // (user 2026-10-18, exteraGram: one card, the pages slide sideways, the card's height follows)
+    MorphCard card = new MorphCard(context);
+    LinearLayout cardMain = new LinearLayout(context);
+    cardMain.setOrientation(LinearLayout.VERTICAL);
+    card.addView(cardMain, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    host.cardMain = cardMain;
     card.setBackground(rounded(Theme.getColor(ColorId.filling), Screen.dp(16f)));
     elevate(card, Screen.dp(16f));
     card.setClickable(true);
@@ -670,9 +684,9 @@ public final class Tgx101MessageMenu {
     header.setCompoundDrawablePadding(Screen.dp(12f));
     header.setPadding(Screen.dp(16f), Screen.dp(10f), Screen.dp(16f), Screen.dp(10f));
     header.setMinHeight(Screen.dp(40f));
-    card.addView(header, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    cardMain.addView(header, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     View headerDivider = divider(context);
-    card.addView(headerDivider);
+    cardMain.addView(headerDivider);
     host.readDateView = header;
     host.readDateDivider = headerDivider;
     if (options.subtitle != null) {
@@ -688,13 +702,10 @@ public final class Tgx101MessageMenu {
 
     // TGx101 (user 2026-10-18 «как в офф телеге»): reactions already on the message — the reaction (or ♥ when there are
     // several kinds), «Reactions: N», up to three faces of who reacted; a tap opens the list of who reacted with a tab per reaction
-    View reacted = reactedRow(context, message, onShowReactors != null ? () -> {
-      dismiss(host);
-      onShowReactors.run();
-    } : null);
+    View reacted = reactedRow(context, message, () -> openReactors(c, host, message));
     if (reacted != null) {
-      card.addView(reacted, 0, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f)));
-      card.addView(divider(context), 1);
+      cardMain.addView(reacted, 0, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f)));
+      cardMain.addView(divider(context), 1);
     }
 
     // Actions in the user's order; "Delete" goes to the bottom
@@ -800,7 +811,7 @@ public final class Tgx101MessageMenu {
     host.scroll = scroll;
     scroll.setVerticalScrollBarEnabled(false);
     scroll.addView(list);
-    card.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    cardMain.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     // A short scale-in from the corner
     column.setPivotX(leftHand ? 0 : pillWidth + cardEdgeGap - overhang);
     column.setAlpha(0f);
@@ -885,8 +896,15 @@ public final class Tgx101MessageMenu {
   private static final class Faces extends View {
     private final java.util.List<org.thunderdog.challegram.loader.AvatarReceiver> receivers = new ArrayList<>();
 
+    private final float sizeDp;
+
     Faces (Context context, org.thunderdog.challegram.telegram.Tdlib tdlib, java.util.List<TdApi.MessageSender> senders) {
+      this(context, tdlib, senders, 22f);
+    }
+
+    Faces (Context context, org.thunderdog.challegram.telegram.Tdlib tdlib, java.util.List<TdApi.MessageSender> senders, float sizeDp) {
       super(context);
+      this.sizeDp = sizeDp;
       for (TdApi.MessageSender sender : senders) {
         org.thunderdog.challegram.loader.AvatarReceiver r = new org.thunderdog.challegram.loader.AvatarReceiver(this);
         if (sender.getConstructor() == TdApi.MessageSenderUser.CONSTRUCTOR) {
@@ -912,7 +930,7 @@ public final class Tgx101MessageMenu {
 
     @Override
     protected void onDraw (android.graphics.Canvas c) {
-      int size = Screen.dp(22f), step = Screen.dp(14f), ring = Screen.dp(2f);
+      int size = Screen.dp(sizeDp), step = Screen.dp(sizeDp * 14f / 22f), ring = Screen.dp(2f);
       int cy = getHeight() / 2;
       android.graphics.Paint ringPaint = org.thunderdog.challegram.tool.Paints.fillingPaint(Theme.getColor(ColorId.filling));
       // the first face on top, as in Telegram: drawn last
@@ -1058,65 +1076,477 @@ public final class Tgx101MessageMenu {
     }
   }
 
-  /** ⌄ / ⌃: the grid of all reactions in place of the actions (no new window, still pictures, a short height change) */
+  /**
+   * ⌄: all reactions (user 2026-10-18, exteraGram recorded frame by frame): the pill's row stays where it is and a panel
+   * grows around it — down, and up when there's no room below — while the actions fade under it. A tap anywhere outside
+   * folds it back the same way; the menu stays open
+   */
   private static void toggleReactionsGrid (Context context, Host host, MessageOptionsPagerController.State state, Runnable onExpandReactions) {
-    if (host.column == null || host.card == null) return;
-    boolean show = host.grid == null || host.grid.getVisibility() != View.VISIBLE;
-    if (show && host.grid == null) {
-      LinearLayout grid = new LinearLayout(context);
-      grid.setOrientation(LinearLayout.VERTICAL);
-      grid.setBackground(rounded(Theme.getColor(ColorId.filling), Screen.dp(16f)));
-      elevate(grid, Screen.dp(16f));
-      grid.setClickable(true);
-      ReactionsSelectorRecyclerView all = new ReactionsSelectorRecyclerView(context, state, 6);
-      all.setNeedDrawBorderGradient(false);
-      all.setVerticalScrollBarEnabled(false);
-      host.gridReactions = all;
-      grid.addView(all, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.min(Screen.dp(40f) * 5 + Screen.dp(14f), Math.round(Screen.currentHeight() * .4f))));
-      // the full picker (custom emoji packs) stays one tap away
-      TextView more = new TextView(context);
-      more.setText(Lang.getString(R.string.Tgx101AllEmoji));
-      more.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f);
-      more.setTextColor(Theme.getColor(ColorId.textLink));
-      more.setGravity(Gravity.CENTER);
-      more.setPadding(0, Screen.dp(10f), 0, Screen.dp(12f));
-      Views.setClickable(more);
-      RippleSupport.setTransparentSelector(more);
-      more.setOnClickListener(v -> {
-        dismiss(host);
-        if (onExpandReactions != null) onExpandReactions.run();
-      });
-      grid.addView(more, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-      // the same width and margins as the actions card — the grid takes exactly its place (user's video 11:17)
-      LinearLayout.LayoutParams params = new LinearLayout.LayoutParams((ViewGroup.MarginLayoutParams) host.card.getLayoutParams()); // API 16 constructor
-      if (host.card.getLayoutParams() instanceof LinearLayout.LayoutParams) {
-        params.gravity = ((LinearLayout.LayoutParams) host.card.getLayoutParams()).gravity;
-        params.weight = ((LinearLayout.LayoutParams) host.card.getLayoutParams()).weight;
-      }
-      host.column.addView(grid, host.column.indexOfChild(host.card), params);
-      host.grid = grid;
+    if (host.panel != null) {
+      foldPanel(host);
+      return;
     }
-    // the reactions row stays where it is: the column is pinned to the bottom, so a taller / shorter block under the
-    // row moved the whole menu — keep the column's top in place instead
-    final View column = host.column;
-    final int topBefore = column.getTop() + Math.round(column.getTranslationY());
-    host.grid.setVisibility(show ? View.VISIBLE : View.GONE);
-    host.card.setVisibility(show ? View.GONE : View.VISIBLE);
-    column.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-      @Override
-      public void onLayoutChange (View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
-        v.removeOnLayoutChangeListener(this);
-        int translation = topBefore - v.getTop();
-        int overflow = v.getBottom() + translation - (((View) v.getParent()).getHeight() - Screen.dp(12f));
-        if (overflow > 0) translation -= overflow; // only when the grid would go off the screen does the row move up
-        v.setTranslationY(translation);
+    if (host.column == null || host.card == null || host.pill == null || host.animating) return;
+    ViewGroup root = (ViewGroup) host.column.getParent();
+    if (root == null) return;
+    LinearLayout grid = new LinearLayout(context);
+    grid.setOrientation(LinearLayout.VERTICAL);
+    ReactionsSelectorRecyclerView all = new ReactionsSelectorRecyclerView(context, state, 6);
+    all.setNeedDrawBorderGradient(false);
+    all.setVerticalScrollBarEnabled(false);
+    host.gridReactions = all;
+    grid.addView(all, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.min(Screen.dp(40f) * 5 + Screen.dp(14f), Math.round(Screen.currentHeight() * .4f))));
+    // the full picker (custom emoji packs) stays one tap away
+    TextView more = new TextView(context);
+    more.setText(Lang.getString(R.string.Tgx101AllEmoji));
+    more.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f);
+    more.setTextColor(Theme.getColor(ColorId.textLink));
+    more.setGravity(Gravity.CENTER);
+    more.setPadding(0, Screen.dp(10f), 0, Screen.dp(12f));
+    Views.setClickable(more);
+    RippleSupport.setTransparentSelector(more);
+    more.setOnClickListener(v -> {
+      dismiss(host);
+      if (onExpandReactions != null) onExpandReactions.run();
+    });
+    grid.addView(more, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    host.grid = grid;
+
+    // where the pill is, in the root's coordinates
+    int[] rootLoc = new int[2], pillLoc = new int[2];
+    root.getLocationInWindow(rootLoc);
+    host.pill.getLocationInWindow(pillLoc);
+    int pillLeft = pillLoc[0] - rootLoc[0], pillTop = pillLoc[1] - rootLoc[1];
+    int width = host.pill.getWidth(), pillHeight = host.pill.getHeight();
+    grid.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+    int full = grid.getMeasuredHeight();
+    // its first row where the pill's row is; up only as much as the bottom edge needs
+    int top = Math.max(Screen.getStatusBarHeight() + Screen.dp(12f), Math.min(pillTop, root.getHeight() - Screen.dp(12f) - full));
+
+    GrowPanel panel = new GrowPanel(context, Screen.dp(26f), Screen.dp(16f));
+    panel.setClickable(true); // taps inside don't fold it
+    panel.addView(grid, new FrameLayout.LayoutParams(width, full));
+    FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(width, full, Gravity.TOP | Gravity.LEFT);
+    params.leftMargin = pillLeft;
+    params.topMargin = top;
+    root.addView(panel, params);
+    panel.setFrom(pillTop - top, pillTop - top + pillHeight);
+    host.panel = panel;
+    animatePanel(host, true, null);
+    if (host.expandView != null) host.expandView.animate().rotation(180f).setDuration(260).start();
+    org.thunderdog.challegram.Tgx101Diag.mark("menu: all reactions unfolded");
+  }
+
+  private static void foldPanel (Host host) {
+    GrowPanel panel = host.panel;
+    if (panel == null || host.animating) return;
+    if (host.expandView != null) host.expandView.animate().rotation(0f).setDuration(240).start();
+    if (host.card != null) host.card.setVisibility(View.VISIBLE);
+    animatePanel(host, false, () -> {
+      if (panel.getParent() instanceof ViewGroup) ((ViewGroup) panel.getParent()).removeView(panel);
+      host.panel = null;
+      host.grid = null;
+      host.gridReactions = null;
+    });
+    org.thunderdog.challegram.Tgx101Diag.mark("menu: all reactions folded");
+  }
+
+  private static final android.view.animation.Interpolator MORPH = androidx.core.view.animation.PathInterpolatorCompat.create(.32f, .72f, 0f, 1f);
+
+  private static void animatePanel (Host host, boolean open, @Nullable Runnable after) {
+    GrowPanel panel = host.panel;
+    View grid = host.grid;
+    if (panel == null || grid == null) return;
+    host.animating = true;
+    android.animation.ValueAnimator a = android.animation.ValueAnimator.ofFloat(open ? 0f : 1f, open ? 1f : 0f);
+    a.setDuration(open ? 300 : 260);
+    a.setInterpolator(MORPH);
+    a.addUpdateListener(anim -> {
+      float f = (float) anim.getAnimatedValue();
+      panel.setFactor(f);
+      // the panel's face takes over from the pill's in the first quarter; the grid comes up a little later
+      panel.setFillAlpha(clamp01(f / .25f));
+      if (host.pill != null) host.pill.setAlpha(1f - clamp01(f / .25f));
+      grid.setAlpha(clamp01((f - .15f) / .55f));
+      if (host.card != null) {
+        float c = 1f - clamp01(f / .5f);
+        host.card.setAlpha(c);
+        host.card.setScaleX(.96f + .04f * c);
+        host.card.setScaleY(.96f + .04f * c);
       }
     });
-    View block = show ? host.grid : host.card;
-    block.setAlpha(0f);
-    block.animate().alpha(1f).setDuration(120).start();
-    if (host.expandView != null) host.expandView.animate().rotation(show ? 180f : 0f).setDuration(150).start();
-    org.thunderdog.challegram.Tgx101Diag.mark("menu: all reactions " + (show ? "unfolded" : "folded"));
+    a.addListener(new android.animation.AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd (android.animation.Animator animation) {
+        host.animating = false;
+        if (open && host.card != null) host.card.setVisibility(View.INVISIBLE); // its rows don't take taps under the panel
+        if (after != null) after.run();
+      }
+    });
+    a.start();
+  }
+
+  private static float clamp01 (float f) {
+    return Math.max(0f, Math.min(1f, f));
+  }
+
+  /** A rounded panel whose visible part grows from a strip (the pill) to its whole height; the children are clipped to it */
+  private static final class GrowPanel extends FrameLayout {
+    private final float fromRadius, toRadius;
+    private final android.graphics.Paint fill = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+    private final android.graphics.Paint edge = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+    private final android.graphics.RectF rect = new android.graphics.RectF();
+    private final android.graphics.Path clip = new android.graphics.Path();
+    private int fromTop, fromBottom;
+    private float factor, fillAlpha = 1f;
+
+    GrowPanel (Context context, float fromRadius, float toRadius) {
+      super(context);
+      this.fromRadius = fromRadius;
+      this.toRadius = toRadius;
+      fill.setColor(Theme.getColor(ColorId.filling));
+      edge.setStyle(android.graphics.Paint.Style.STROKE);
+      edge.setStrokeWidth(Math.max(1, Screen.dp(.5f)));
+      edge.setColor(Theme.getColor(ColorId.separator));
+      setWillNotDraw(false);
+    }
+
+    void setFrom (int top, int bottom) {
+      fromTop = top;
+      fromBottom = bottom;
+    }
+
+    void setFactor (float f) {
+      factor = f;
+      invalidate();
+    }
+
+    void setFillAlpha (float a) {
+      fillAlpha = a;
+      invalidate();
+    }
+
+    private void layoutRect () {
+      float f = factor;
+      rect.set(0, fromTop * (1f - f), getWidth(), fromBottom + (getHeight() - fromBottom) * f);
+    }
+
+    @Override
+    protected void dispatchDraw (android.graphics.Canvas c) {
+      layoutRect();
+      float r = fromRadius + (toRadius - fromRadius) * factor;
+      int baseFill = Theme.getColor(ColorId.filling), baseEdge = Theme.getColor(ColorId.separator);
+      fill.setColor(me.vkryl.core.ColorUtils.alphaColor(fillAlpha, baseFill));
+      edge.setColor(me.vkryl.core.ColorUtils.alphaColor(fillAlpha, baseEdge));
+      c.drawRoundRect(rect, r, r, fill);
+      c.drawRoundRect(rect, r, r, edge);
+      clip.reset();
+      clip.addRoundRect(rect, r, r, android.graphics.Path.Direction.CW);
+      int save = c.save();
+      c.clipPath(clip);
+      super.dispatchDraw(c);
+      c.restoreToCount(save);
+    }
+
+    @Override
+    public boolean dispatchTouchEvent (android.view.MotionEvent e) {
+      layoutRect();
+      if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN && !rect.contains(e.getX(), e.getY())) {
+        return false; // outside the visible part: a tap there folds it (the root takes it)
+      }
+      return super.dispatchTouchEvent(e);
+    }
+  }
+
+  /** The card: while its pages slide, its height goes from one page's to the other's */
+  private static final class MorphCard extends FrameLayout {
+    private int fromHeight = -1, toHeight;
+    private float factor;
+
+    MorphCard (Context context) {
+      super(context);
+    }
+
+    void morph (int from, int to, float f) {
+      fromHeight = from;
+      toHeight = to;
+      factor = f;
+      requestLayout();
+    }
+
+    void stopMorph () {
+      fromHeight = -1;
+      requestLayout();
+    }
+
+    @Override
+    protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
+      super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+      if (fromHeight >= 0) {
+        setMeasuredDimension(getMeasuredWidth(), Math.round(fromHeight + (toHeight - fromHeight) * factor));
+      }
+    }
+  }
+
+  /** Keeps the column's top where it is while the card under the pill changes its height (the column is pinned to the bottom) */
+  private static View.OnLayoutChangeListener pinTop (Host host) {
+    View column = host.column;
+    final int topBefore = column.getTop() + Math.round(column.getTranslationY());
+    View.OnLayoutChangeListener l = (v, l1, t, r, b, ol, ot, or, ob) -> {
+      int translation = topBefore - v.getTop();
+      int overflow = v.getBottom() + translation - (((View) v.getParent()).getHeight() - Screen.dp(12f));
+      if (overflow > 0) translation -= overflow; // off the bottom: then it moves up
+      v.setTranslationY(translation);
+    };
+    column.addOnLayoutChangeListener(l);
+    return l;
+  }
+
+  /** «Reactions: N» → who reacted, in the card itself: the main page goes left, the list comes from the right */
+  private static void openReactors (MessagesController c, Host host, TGMessage message) {
+    if (host.animating || host.reactorsPage != null || !(host.card instanceof MorphCard) || host.cardMain == null) return;
+    host.animating = true;
+    org.thunderdog.challegram.telegram.Tdlib tdlib = message.tdlib();
+    // the list first (it's quick); what's known already if the server is slow
+    final boolean[] shown = {false};
+    Runnable[] show = new Runnable[1];
+    final TdApi.AddedReaction[][] loaded = {null};
+    show[0] = () -> {
+      if (shown[0] || host.dismissing) return;
+      shown[0] = true;
+      slideReactors(c, host, message, loaded[0]);
+    };
+    tdlib.client().send(new TdApi.GetMessageAddedReactions(message.getChatId(), message.getSmallestId(), null, "", 50), result -> {
+      if (result.getConstructor() == TdApi.AddedReactions.CONSTRUCTOR) loaded[0] = ((TdApi.AddedReactions) result).reactions;
+      UI.post(show[0]);
+    });
+    UI.post(show[0], 450);
+  }
+
+  private static void slideReactors (MessagesController c, Host host, TGMessage message, @Nullable TdApi.AddedReaction[] list) {
+    MorphCard card = (MorphCard) host.card;
+    LinearLayout main = host.cardMain;
+    if (list == null) list = recentReactions(message);
+    View page = reactorsPage(c, host, message, list);
+    int width = card.getWidth();
+    card.addView(page, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    page.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+    host.reactorsPage = page;
+    slidePages(host, card.getHeight(), page.getMeasuredHeight(), main, page, true, () -> main.setVisibility(View.GONE));
+    org.thunderdog.challegram.Tgx101Diag.mark("menu: who reacted (" + list.length + ")");
+  }
+
+  private static void closeReactors (Host host) {
+    if (host.animating || host.reactorsPage == null || !(host.card instanceof MorphCard) || host.cardMain == null) return;
+    host.animating = true;
+    MorphCard card = (MorphCard) host.card;
+    LinearLayout main = host.cardMain;
+    View page = host.reactorsPage;
+    main.setVisibility(View.VISIBLE);
+    main.measure(View.MeasureSpec.makeMeasureSpec(card.getWidth(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+    slidePages(host, card.getHeight(), main.getMeasuredHeight(), page, main, false, () -> {
+      card.removeView(page);
+      host.reactorsPage = null;
+    });
+  }
+
+  /** One page leaves (left when going in, right when going back), the other comes; the card's height follows; the pill fades */
+  private static void slidePages (Host host, int fromHeight, int toHeight, View out, View in, boolean forward, Runnable after) {
+    MorphCard card = (MorphCard) host.card;
+    int width = card.getWidth();
+    View.OnLayoutChangeListener pin = pinTop(host);
+    in.setTranslationX(forward ? width : -width);
+    android.animation.ValueAnimator a = android.animation.ValueAnimator.ofFloat(0f, 1f);
+    a.setDuration(340);
+    a.setInterpolator(MORPH);
+    a.addUpdateListener(anim -> {
+      float f = (float) anim.getAnimatedValue();
+      card.morph(fromHeight, toHeight, f);
+      out.setTranslationX((forward ? -width : width) * f);
+      out.setAlpha(1f - .6f * f);
+      in.setTranslationX((forward ? width : -width) * (1f - f));
+      in.setAlpha(.4f + .6f * f);
+      if (host.pill != null) host.pill.setAlpha(forward ? 1f - clamp01(f / .6f) : clamp01((f - .4f) / .6f));
+    });
+    a.addListener(new android.animation.AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd (android.animation.Animator animation) {
+        out.setTranslationX(0f);
+        out.setAlpha(1f);
+        in.setAlpha(1f);
+        if (host.pill != null) host.pill.setVisibility(forward ? View.INVISIBLE : View.VISIBLE);
+        after.run();
+        card.stopMorph();
+        card.post(() -> host.column.removeOnLayoutChangeListener(pin));
+        host.animating = false;
+      }
+    });
+    if (host.pill != null) host.pill.setVisibility(View.VISIBLE);
+    a.start();
+  }
+
+  /** Without the server's list: the recent reactors the message itself carries */
+  private static TdApi.AddedReaction[] recentReactions (TGMessage message) {
+    List<TdApi.AddedReaction> result = new ArrayList<>();
+    org.thunderdog.challegram.data.TGReactions reactions = message.getMessageReactions();
+    if (reactions != null && reactions.getReactions() != null && reactions.getReactions().reactions != null) {
+      for (TdApi.MessageReaction reaction : reactions.getReactions().reactions) {
+        if (reaction.recentSenderIds == null) continue;
+        for (TdApi.MessageSender sender : reaction.recentSenderIds) {
+          result.add(new TdApi.AddedReaction(reaction.type, sender, false, 0));
+        }
+      }
+    }
+    return result.toArray(new TdApi.AddedReaction[0]);
+  }
+
+  /** «← Back», a row of tabs when there are several kinds, then: face, name, ♡ when, the reaction */
+  private static View reactorsPage (MessagesController c, Host host, TGMessage message, TdApi.AddedReaction[] list) {
+    Context context = c.context();
+    LinearLayout page = new LinearLayout(context);
+    page.setOrientation(LinearLayout.VERTICAL);
+    LinearLayout back = new LinearLayout(context);
+    back.setOrientation(LinearLayout.HORIZONTAL);
+    back.setGravity(Gravity.CENTER_VERTICAL);
+    back.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);
+    ImageView arrow = new ImageView(context);
+    arrow.setImageResource(R.drawable.baseline_arrow_back_24);
+    arrow.setColorFilter(Theme.getColor(ColorId.icon));
+    back.addView(arrow, new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f)));
+    TextView backText = new TextView(context);
+    backText.setText(Lang.getString(R.string.Tgx101Back));
+    backText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
+    backText.setTextColor(Theme.getColor(ColorId.text));
+    LinearLayout.LayoutParams backTextParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    backTextParams.leftMargin = Screen.dp(16f);
+    back.addView(backText, backTextParams);
+    Views.setClickable(back);
+    RippleSupport.setTransparentSelector(back);
+    back.setOnClickListener(v -> closeReactors(host)); // user 2026-10-18: out of the list only by the arrow
+    page.addView(back, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f)));
+    page.addView(divider(context));
+
+    LinearLayout rows = new LinearLayout(context);
+    rows.setOrientation(LinearLayout.VERTICAL);
+    // tabs: «All N», then each reaction with its count — as in Telegram, only when there's more than one kind
+    java.util.LinkedHashMap<String, Integer> kinds = new java.util.LinkedHashMap<>();
+    for (TdApi.AddedReaction r : list) {
+      String key = reactionText(r.type);
+      kinds.put(key, (kinds.containsKey(key) ? kinds.get(key) : 0) + 1);
+    }
+    final String[] filter = {null};
+    Runnable[] fill = new Runnable[1];
+    fill[0] = () -> {
+      rows.removeAllViews();
+      for (TdApi.AddedReaction r : list) {
+        if (filter[0] != null && !filter[0].equals(reactionText(r.type))) continue;
+        rows.addView(reactorRow(c, host, message, r));
+      }
+    };
+    if (kinds.size() > 1) {
+      android.widget.HorizontalScrollView tabsScroll = new android.widget.HorizontalScrollView(context);
+      tabsScroll.setHorizontalScrollBarEnabled(false);
+      LinearLayout tabs = new LinearLayout(context);
+      tabs.setOrientation(LinearLayout.HORIZONTAL);
+      tabs.setPadding(Screen.dp(10f), Screen.dp(8f), Screen.dp(10f), Screen.dp(4f));
+      List<TextView> chips = new ArrayList<>();
+      List<String> keys = new ArrayList<>();
+      keys.add(null);
+      keys.addAll(kinds.keySet());
+      for (String key : keys) {
+        TextView chip = new org.thunderdog.challegram.widget.EmojiTextView(context);
+        chip.setText(key == null ? Lang.getString(R.string.Tgx101ReactedAll, list.length) : key + " " + kinds.get(key));
+        chip.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13.5f);
+        chip.setTypeface(Fonts.getRobotoMedium());
+        chip.setPadding(Screen.dp(12f), Screen.dp(5f), Screen.dp(12f), Screen.dp(5f));
+        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cp.rightMargin = Screen.dp(6f);
+        tabs.addView(chip, cp);
+        chips.add(chip);
+        Views.setClickable(chip);
+        chip.setOnClickListener(v -> {
+          filter[0] = key;
+          for (int i = 0; i < chips.size(); i++) styleChip(chips.get(i), chips.get(i) == v);
+          fill[0].run();
+        });
+      }
+      for (int i = 0; i < chips.size(); i++) styleChip(chips.get(i), i == 0);
+      tabsScroll.addView(tabs);
+      page.addView(tabsScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    }
+    fill[0].run();
+    // up to six and a half rows, the rest scroll (a peek says «there's more»)
+    ScrollView scroll = new ScrollView(context) {
+      @Override
+      protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(Screen.dp(52f) * 13 / 2, MeasureSpec.AT_MOST));
+      }
+    };
+    scroll.setVerticalScrollBarEnabled(false);
+    scroll.addView(rows);
+    page.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    page.setPadding(0, 0, 0, Screen.dp(4f));
+    return page;
+  }
+
+  private static void styleChip (TextView chip, boolean chosen) {
+    int accent = Theme.getColor(ColorId.iconActive);
+    chip.setTextColor(chosen ? 0xffffffff : Theme.getColor(ColorId.text));
+    chip.setBackground(roundedFill(chosen ? accent : me.vkryl.core.ColorUtils.alphaColor(.12f, accent), Screen.dp(14f)));
+  }
+
+  private static GradientDrawable roundedFill (int color, float radius) {
+    GradientDrawable drawable = new GradientDrawable();
+    drawable.setColor(color);
+    drawable.setCornerRadius(radius);
+    return drawable;
+  }
+
+  private static String reactionText (TdApi.ReactionType type) {
+    return type.getConstructor() == TdApi.ReactionTypeEmoji.CONSTRUCTOR ? ((TdApi.ReactionTypeEmoji) type).emoji : "❤";
+  }
+
+  private static View reactorRow (MessagesController c, Host host, TGMessage message, TdApi.AddedReaction r) {
+    Context context = c.context();
+    LinearLayout row = new LinearLayout(context);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setPadding(Screen.dp(12f), 0, Screen.dp(14f), 0);
+    List<TdApi.MessageSender> one = new ArrayList<>();
+    one.add(r.senderId);
+    row.addView(new Faces(context, message.tdlib(), one, 34f), new LinearLayout.LayoutParams(Screen.dp(38f), Screen.dp(38f)));
+    LinearLayout texts = new LinearLayout(context);
+    texts.setOrientation(LinearLayout.VERTICAL);
+    TextView name = new org.thunderdog.challegram.widget.EmojiTextView(context);
+    name.setText(message.tdlib().senderName(r.senderId));
+    name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
+    name.setTextColor(Theme.getColor(ColorId.text));
+    name.setSingleLine(true);
+    name.setEllipsize(TextUtils.TruncateAt.END);
+    texts.addView(name);
+    if (r.date != 0) {
+      TextView when = new TextView(context);
+      when.setText("♡ " + Lang.getRelativeTimestamp(r.date, java.util.concurrent.TimeUnit.SECONDS));
+      when.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+      when.setTextColor(Theme.getColor(ColorId.textLight));
+      when.setSingleLine(true);
+      texts.addView(when);
+    }
+    LinearLayout.LayoutParams textsParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+    textsParams.leftMargin = Screen.dp(12f);
+    row.addView(texts, textsParams);
+    TextView emoji = new org.thunderdog.challegram.widget.EmojiTextView(context);
+    emoji.setText(reactionText(r.type));
+    emoji.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 19f);
+    row.addView(emoji);
+    Views.setClickable(row);
+    RippleSupport.setTransparentSelector(row);
+    row.setOnClickListener(v -> {
+      dismiss(host);
+      message.tdlib().ui().openSenderProfile(c, r.senderId, null);
+    });
+    row.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(52f)));
+    return row;
   }
 
   /** The plain dim behind the menu — 30 % black, as in the official app */
