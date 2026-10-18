@@ -3202,7 +3202,7 @@ public class Settings {
   }
 
   public boolean useTgx101MessageMenu () {
-    if (true) return true; // (user 2026-10-16 «пусть всегда будет активно») — no longer a switch in MagiX
+    // (user 2026-10-18 «был выключатель, но его по ошибке ты убрал»): the switch is back — off gives the original full-screen menu
     return pmc.getBoolean(KEY_TGX101_MESSAGE_MENU, true);
   }
 

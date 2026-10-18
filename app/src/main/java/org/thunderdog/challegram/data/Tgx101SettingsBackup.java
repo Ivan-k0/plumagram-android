@@ -146,15 +146,24 @@ public final class Tgx101SettingsBackup {
    * crashed the app on «Save») The keys are ASCII: one search per first character covers them all
    */
   private static Iterable<LevelDB.Entry> allEntries (LevelDB pmc) {
+    // LevelDB's hasNext() itself moves to the next entry, so it is asked once per entry: asked again from next() it
+    // skipped every other key (user 2026-10-16 «копия настроек сохраняет мало ключей») and threw at the last one —
+    // the crash on «Save» (T 0.2.26 log 2026-10-17, NoSuchElementException from a settings click)
     return () -> new Iterator<LevelDB.Entry>() {
       private char next = ' ';
       private @androidx.annotation.Nullable Iterator<LevelDB.Entry> current;
+      private boolean ready; // current stands on an entry not given out yet
 
       @Override
       public boolean hasNext () {
-        while (current == null || !current.hasNext()) {
-          if (next > '~') return false;
-          current = pmc.find(String.valueOf(next++)).iterator();
+        while (!ready) {
+          if (current != null && current.hasNext()) {
+            ready = true;
+          } else if (next > '~') {
+            return false;
+          } else {
+            current = pmc.find(String.valueOf(next++)).iterator();
+          }
         }
         return true;
       }
@@ -162,6 +171,7 @@ public final class Tgx101SettingsBackup {
       @Override
       public LevelDB.Entry next () {
         if (!hasNext()) throw new java.util.NoSuchElementException();
+        ready = false;
         return current.next();
       }
     };

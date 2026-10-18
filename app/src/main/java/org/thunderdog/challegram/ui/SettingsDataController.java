@@ -514,7 +514,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         // TGx101: compact message menu
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101MessageMenuSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
-        // (user 2026-10-16) the compact menu and «at the finger» are always on — no switches for them any more
+        // (user 2026-10-18) the compact menu has its switch back (off — the original full-screen menu); «at the finger» stays always on
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MessageMenu, 0, R.string.Tgx101MessageMenu),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101TextEditor, 0, R.string.Tgx101TextEditorSetting),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CallBar, 0, R.string.Tgx101CallBarSetting),
