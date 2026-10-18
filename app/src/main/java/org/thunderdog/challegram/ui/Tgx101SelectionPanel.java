@@ -71,7 +71,7 @@ public final class Tgx101SelectionPanel extends LinearLayout {
     scroll.setHorizontalScrollBarEnabled(false);
     LinearLayout row = new LinearLayout(context);
     row.setOrientation(HORIZONTAL);
-    row.setPadding(Screen.dp(12f), 0, Screen.dp(4f), 0);
+    row.setPadding(Screen.dp(12f), 0, Screen.dp(labels ? 4f : 12f), 0);
     row.addView(capsule(context, R.drawable.baseline_folder_24, R.string.Tgx101SavedToFolder, true, labels, v -> Tgx101SavedActions.organize(c, host.selectedMessages(), () -> host.afterAction(true))));
     row.addView(capsule(context, R.drawable.baseline_label_24, R.string.Tgx101SavedTag, false, labels, v -> Tgx101SavedActions.organize(c, host.selectedMessages(), () -> host.afterAction(true))));
     row.addView(capsule(context, R.drawable.baseline_notifications_active_24, R.string.Tgx101SavedRemind, false, labels, v -> Tgx101SavedActions.remind(c, Tgx101SavedKit.idsOf(host.selectedMessages()), () -> host.afterAction(true))));
@@ -80,7 +80,21 @@ public final class Tgx101SelectionPanel extends LinearLayout {
       host.afterAction(true);
     }));
     row.addView(capsule(context, R.drawable.baseline_delete_24, R.string.Tgx101SavedDelete, false, false, v -> Tgx101SavedActions.delete(c, Tgx101SavedKit.idsOf(host.selectedMessages()), () -> host.afterAction(true))));
-    scroll.addView(row);
+    if (!labels) {
+      // TGx101 (user 2026-10-17, screenshot «иконки внизу сделай на всю ширину»): icons only — the five share the width
+      scroll.setFillViewport(true);
+      for (int i = 0; i < row.getChildCount(); i++) {
+        View b = row.getChildAt(i);
+        LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) b.getLayoutParams();
+        p.width = 0;
+        p.weight = 1f;
+        p.rightMargin = i == row.getChildCount() - 1 ? 0 : Screen.dp(8f);
+        ((LinearLayout) b).setGravity(Gravity.CENTER);
+      }
+      scroll.addView(row, new HorizontalScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    } else {
+      scroll.addView(row);
+    }
     LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     sp.topMargin = Screen.dp(2f);
     addView(scroll, sp);

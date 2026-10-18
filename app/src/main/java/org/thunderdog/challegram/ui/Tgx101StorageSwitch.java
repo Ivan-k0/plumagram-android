@@ -71,7 +71,8 @@ public final class Tgx101StorageSwitch extends View {
     this.chatIcon = where == IN_STORAGE ? ContextCompat.getDrawable(context, R.drawable.baseline_forum_24) : null;
     setContentDescription(Lang.getString(where == IN_CHAT ? R.string.Tgx101SavedSwitchToStorage : R.string.Tgx101SavedSwitchToChat));
     if (android.os.Build.VERSION.SDK_INT >= 21) {
-      setElevation(Screen.dp(2f)); // a light shadow, as the arrow
+      // (user 2026-10-17 «внутри с какой-то фигурой, должно быть просто прозрачно»): no elevation — its shadow showed
+      // through the see-through circle as a dark shape; the hairline is enough
       setOutlineProvider(new android.view.ViewOutlineProvider() {
         @Override
         public void getOutline (View view, android.graphics.Outline outline) {
@@ -167,8 +168,17 @@ public final class Tgx101StorageSwitch extends View {
 
   private int maxY () {
     View p = (View) getParent();
-    return p == null ? 0 : Math.max(minY(), p.getHeight() - host.bottomReserved() - size - margin);
+    // (user 2026-10-17 «кнопка не возвращается на своё место»): down to its usual place at least — the limit stood above it
+    return p == null ? 0 : Math.max(minY(), Math.max(p.getHeight() - host.bottomReserved() - size - margin, usualY()));
   }
+
+  private int usualY () {
+    View p = (View) getParent();
+    return p == null ? 0 : Math.max(minY(), p.getHeight() - host.bottomReserved() - size - host.usualGap());
+  }
+
+  // (user 2026-10-17 «кнопки должны перемещаться на обоих экранах одинаково»): one place for the chat and the storage
+  private static final int SPOT = IN_CHAT;
 
   private float sideX (boolean left) {
     View p = (View) getParent();
@@ -180,10 +190,10 @@ public final class Tgx101StorageSwitch extends View {
     View p = (View) getParent();
     if (p == null || p.getWidth() == 0) return;
     Tgx101SavedStore s = store();
-    float f = s.switchY[where];
+    float f = s.switchY[SPOT];
     int min = minY(), max = maxY();
-    float y = f < 0f ? Math.max(min, p.getHeight() - host.bottomReserved() - size - host.usualGap()) : min + (max - min) * f;
-    float x = sideX(s.switchLeft[where]);
+    float y = f < 0f ? usualY() : min + (max - min) * f;
+    float x = sideX(s.switchLeft[SPOT]);
     if (animated) {
       animate().translationX(x).translationY(y).setDuration(220).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
     } else {
@@ -336,11 +346,18 @@ public final class Tgx101StorageSwitch extends View {
         if (dragging) {
           View p = (View) getParent();
           Tgx101SavedStore s = store();
-          s.switchLeft[where] = getTranslationX() + size / 2f < p.getWidth() / 2f;
+          boolean left = getTranslationX() + size / 2f < p.getWidth() / 2f;
           int min = minY(), max = maxY();
-          s.switchY[where] = max > min ? (getTranslationY() - min) / (max - min) : 0f;
+          s.switchLeft[SPOT] = left;
+          if (!left && Math.abs(getTranslationY() - usualY()) < Screen.dp(40f)) {
+            s.switchY[SPOT] = -1f; // let go near its usual place: back there exactly
+          } else {
+            s.switchY[SPOT] = max > min ? (getTranslationY() - min) / (max - min) : 0f;
+          }
+          s.switchLeft[1 - SPOT] = s.switchLeft[SPOT];
+          s.switchY[1 - SPOT] = s.switchY[SPOT];
           s.save();
-          org.thunderdog.challegram.Tgx101Diag.mark("storage switch: moved to " + (s.switchLeft[where] ? "left" : "right") + " " + Math.round(s.switchY[where] * 100) + "%");
+          org.thunderdog.challegram.Tgx101Diag.mark("storage switch: moved to " + (left ? "left" : "right") + " " + (s.switchY[SPOT] < 0f ? "usual place" : Math.round(s.switchY[SPOT] * 100) + "%"));
           place(true);
         } else if (up && held) {
           showHideMenu();
