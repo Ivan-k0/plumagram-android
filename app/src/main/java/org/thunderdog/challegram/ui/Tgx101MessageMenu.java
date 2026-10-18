@@ -289,7 +289,7 @@ public final class Tgx101MessageMenu {
     @Nullable View reactorsPage; // who reacted, slid in over the main page
     @Nullable View pill;
     @Nullable GrowPanel panel; // all reactions, grown around the pill
-    boolean animating;
+    boolean animating, pinned;
   }
 
   /** TGx101 diagnostics: what invisible characters / formatting a message has (counts only, never the text) */
@@ -1289,7 +1289,9 @@ public final class Tgx101MessageMenu {
   }
 
   /** Keeps the column's top where it is while the card under the pill changes its height (the column is pinned to the bottom) */
-  private static View.OnLayoutChangeListener pinTop (Host host) {
+  private static void pinTop (Host host) {
+    if (host.pinned) return; // once: from then on the column's top stays where the menu opened, whatever the card's height
+    host.pinned = true;
     View column = host.column;
     final int topBefore = column.getTop() + Math.round(column.getTranslationY());
     View.OnLayoutChangeListener l = (v, l1, t, r, b, ol, ot, or, ob) -> {
@@ -1299,7 +1301,6 @@ public final class Tgx101MessageMenu {
       v.setTranslationY(translation);
     };
     column.addOnLayoutChangeListener(l);
-    return l;
   }
 
   /** «Reactions: N» → who reacted, in the card itself: the main page goes left, the list comes from the right */
@@ -1354,7 +1355,7 @@ public final class Tgx101MessageMenu {
   private static void slidePages (Host host, int fromHeight, int toHeight, View out, View in, boolean forward, Runnable after) {
     MorphCard card = (MorphCard) host.card;
     int width = card.getWidth();
-    View.OnLayoutChangeListener pin = pinTop(host);
+    pinTop(host);
     in.setTranslationX(forward ? width : -width);
     android.animation.ValueAnimator a = android.animation.ValueAnimator.ofFloat(0f, 1f);
     a.setDuration(340);
@@ -1377,7 +1378,6 @@ public final class Tgx101MessageMenu {
         if (host.pill != null) host.pill.setVisibility(forward ? View.INVISIBLE : View.VISIBLE);
         after.run();
         card.stopMorph();
-        card.post(() -> host.column.removeOnLayoutChangeListener(pin));
         host.animating = false;
       }
     });
