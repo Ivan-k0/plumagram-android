@@ -66,6 +66,13 @@ public class InterceptLayout extends FrameLayoutFix implements FactorAnimator.St
 
     final BaseActivity context = ((BaseActivity) getContext());
 
+    // TGx101: a forward step that follows the finger (the storage pulled from the chats) — the finger drives the
+    // transition, it isn't taken away from it
+    NavigationController navigation = context.navigation();
+    if (navigation != null && navigation.tgx101IsDraggingForward()) {
+      return false;
+    }
+
     if (isBlocked() || context.isAnimating(true)) {
       return true;
     }
