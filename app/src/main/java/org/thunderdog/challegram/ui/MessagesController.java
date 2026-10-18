@@ -1922,6 +1922,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     contentView.addView(bottomShadowView);
 
     contentView.addView(topBar);
+    tgx101AddTranslateButton(context);
     contentView.addView(bottomBar);
     contentView.addView(reactionsButtonWrap);
     contentView.addView(mentionButtonWrap);
@@ -2209,6 +2210,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (pagerContentView != null) {
       pagerContentView.setPagingEnabled(false);
     }
+    UI.post(() -> tgx101CheckTranslateBar(true)); // the translation button hides while messages are selected
   }
 
   @Override
@@ -2216,6 +2218,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (pagerContentView != null) {
       pagerContentView.setPagingEnabled(true);
     }
+    UI.post(() -> tgx101CheckTranslateBar(true));
     if (exitOnTransformFinish)
       tdlib.ui().post(this::navigateBack);
   }
@@ -9837,6 +9840,137 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private boolean tgx101TranslateBarOffered, tgx101TranslateBarHidden;
   private String tgx101LastChatTranslateLanguage;
 
+  // TGx101 (approved mockup «Плашка перевода», 3; user 2026-10-18 — the behaviour written out and agreed in the chat)
+  private @Nullable org.thunderdog.challegram.component.chat.Tgx101TranslateButton tgx101TrButton;
+  private @Nullable TextView tgx101TrTip;
+  private @Nullable Runnable tgx101TrTipHide;
+  private boolean tgx101TrWasShown;
+
+  private void tgx101AddTranslateButton (Context context) {
+    if (!Settings.instance().useFloatingInput()) return; // the old bar keeps the old look
+    int size = Screen.dp(org.thunderdog.challegram.component.chat.Tgx101TranslateButton.SIZE_DP);
+    tgx101TrButton = new org.thunderdog.challegram.component.chat.Tgx101TranslateButton(context);
+    RelativeLayout.LayoutParams bp = new RelativeLayout.LayoutParams(size, size);
+    bp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+    bp.addRule(Lang.rtl() ? RelativeLayout.ALIGN_PARENT_LEFT : RelativeLayout.ALIGN_PARENT_RIGHT);
+    bp.leftMargin = bp.rightMargin = Screen.dp(FLOATING_INPUT_SIDE);
+    tgx101TrButton.setLayoutParams(bp);
+    tgx101TrButton.setContentDescription(Lang.getString(R.string.TranslateWholeChat));
+    Views.setClickable(tgx101TrButton);
+    tgx101TrButton.setOnClickListener(v -> {
+      tgx101HideTranslateTip();
+      tgx101ToggleChatTranslation(true);
+    });
+    tgx101TrButton.setOnLongClickListener(v -> {
+      tgx101HideTranslateTip();
+      tgx101ShowTranslateBarOptions();
+      return true;
+    });
+    addThemeInvalidateListener(tgx101TrButton);
+    contentView.addView(tgx101TrButton);
+
+    tgx101TrTip = new TextView(context);
+    tgx101TrTip.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+    tgx101TrTip.setTextColor(0xffffffff);
+    tgx101TrTip.setPadding(Screen.dp(11f), Screen.dp(7f), Screen.dp(11f), Screen.dp(7f));
+    android.graphics.drawable.GradientDrawable tipBg = new android.graphics.drawable.GradientDrawable();
+    tipBg.setColor(0xee1d2733);
+    tipBg.setCornerRadius(Screen.dp(10f));
+    tgx101TrTip.setBackground(tipBg);
+    tgx101TrTip.setMaxWidth(Screen.dp(260f));
+    tgx101TrTip.setVisibility(View.GONE);
+    RelativeLayout.LayoutParams tp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    tp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+    tp.addRule(Lang.rtl() ? RelativeLayout.ALIGN_PARENT_LEFT : RelativeLayout.ALIGN_PARENT_RIGHT);
+    tp.leftMargin = tp.rightMargin = Screen.dp(FLOATING_INPUT_SIDE);
+    tgx101TrTip.setLayoutParams(tp);
+    contentView.addView(tgx101TrTip);
+    if (messagesView != null) {
+      messagesView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+        @Override
+        public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
+          if (dy != 0 && tgx101TrTip != null && tgx101TrTip.getVisibility() == View.VISIBLE && tgx101TrTip.getTag() == null) tgx101HideTranslateTip();
+        }
+      });
+    }
+  }
+
+  /** at the pinned capsule's height when there is one, else right under the header's bars */
+  private void tgx101PlaceTranslateButton () {
+    if (tgx101TrButton == null || topBar == null) return;
+    int size = Screen.dp(org.thunderdog.challegram.component.chat.Tgx101TranslateButton.SIZE_DP);
+    float y;
+    if (pinnedMessagesBar != null && topBar.isVisible(pinnedMessagesItem) && pinnedMessagesBar.getVisibility() == View.VISIBLE) {
+      int h = Math.min(pinnedMessagesBar.getHeight(), Screen.dp(52f));
+      y = topBar.getTop() + pinnedMessagesBar.getTranslationY() + (h - size) / 2f;
+    } else {
+      y = topBar.getTop() + topBar.getTotalVisualHeight() + Screen.dp(6f);
+    }
+    if (tgx101TrButton.getTranslationY() != y) tgx101TrButton.setTranslationY(y);
+    if (tgx101TrTip != null) tgx101TrTip.setTranslationY(y + size + Screen.dp(6f));
+  }
+
+  private void tgx101UpdateTranslateButton (boolean visible, @Nullable String language, boolean animated) {
+    if (tgx101TrButton == null) return;
+    boolean show = visible && tgx101TranslateUndo == null && !inSearchMode() && !inSelectMode();
+    tgx101TrButton.setState(language != null ? org.thunderdog.challegram.component.chat.Tgx101TranslateButton.STATE_ON : org.thunderdog.challegram.component.chat.Tgx101TranslateButton.STATE_OFFER);
+    tgx101PlaceTranslateButton();
+    tgx101TrButton.setShown(show, animated && isFocused());
+    boolean pinned = pinnedMessagesBar != null && topBar.isVisible(pinnedMessagesItem);
+    tgx101SetPinnedRightExtra(show && pinned ? Screen.dp(org.thunderdog.challegram.component.chat.Tgx101TranslateButton.SIZE_DP + 6f) : 0, animated && isFocused());
+    if (tgx101TranslateUndo != null) {
+      // «Hidden · Bring back», a tap brings it back
+      final Runnable undo = tgx101TranslateUndo;
+      tgx101ShowTranslateTip(Lang.getString(R.string.Tgx101TranslateHiddenUndo), 4000, v -> {
+        if (tgx101TranslateUndo == undo) {
+          tgx101TranslateUndo = null;
+          undo.run();
+        }
+      });
+    } else if (show && !tgx101TrWasShown && language == null && chat != null) {
+      // the first time in this chat: «The chat is in English. Translate?» for 3 s
+      String key = "tgx101_tr_tip_" + tdlib.id() + "_" + chat.id;
+      if (!Settings.instance().pmc().getBoolean(key, false)) {
+        Settings.instance().pmc().putBoolean(key, true);
+        String name = tgx101DetectedLanguage != null ? Lang.getLanguageName(tgx101DetectedLanguage, tgx101DetectedLanguage) : null;
+        tgx101ShowTranslateTip(name != null ? Lang.getString(R.string.Tgx101TranslateTipOffer, name.toLowerCase()) : Lang.getString(R.string.Tgx101TranslateTipOfferAny), 3000, null);
+      }
+    } else if (!show && tgx101TrTip != null && tgx101TrTip.getTag() == null) {
+      tgx101HideTranslateTip();
+    }
+    tgx101TrWasShown = show;
+  }
+
+  private void tgx101ShowTranslateTip (String text, long duration, @Nullable View.OnClickListener click) {
+    if (tgx101TrTip == null) return;
+    tgx101TrTip.setText(text);
+    tgx101TrTip.setTag(click != null ? Boolean.TRUE : null); // an «undo» tip doesn't go on scroll
+    tgx101TrTip.setOnClickListener(click != null ? v -> {
+      tgx101HideTranslateTip();
+      click.onClick(v);
+    } : v -> tgx101HideTranslateTip());
+    tgx101PlaceTranslateButton();
+    tgx101TrTip.animate().cancel();
+    if (tgx101TrTip.getVisibility() != View.VISIBLE) {
+      tgx101TrTip.setAlpha(0f);
+      tgx101TrTip.setVisibility(View.VISIBLE);
+    }
+    tgx101TrTip.animate().alpha(1f).setDuration(180).start();
+    if (tgx101TrTipHide != null) tgx101TrTip.removeCallbacks(tgx101TrTipHide);
+    tgx101TrTipHide = this::tgx101HideTranslateTip;
+    tgx101TrTip.postDelayed(tgx101TrTipHide, duration);
+  }
+
+  private void tgx101HideTranslateTip () {
+    if (tgx101TrTip == null || tgx101TrTip.getVisibility() != View.VISIBLE) return;
+    if (tgx101TrTipHide != null) tgx101TrTip.removeCallbacks(tgx101TrTipHide);
+    tgx101TrTip.setTag(null);
+    tgx101TrTip.animate().cancel();
+    tgx101TrTip.animate().alpha(0f).setDuration(200).withEndAction(() -> {
+      if (tgx101TrTip != null && tgx101TrTip.getAlpha() == 0f) tgx101TrTip.setVisibility(View.GONE);
+    }).start();
+  }
+
   private void tgx101ToggleChatTranslation (boolean fromBar) {
     String current = manager.getWholeChatTranslateLanguage();
     if (current != null) {
@@ -9850,6 +9984,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     org.thunderdog.challegram.Tgx101Diag.mark("chat translation: " + (current != null ? "off" : "on") + (fromBar ? " (bar)" : " (menu)"));
     tgx101CheckTranslateBar(true);
+    if (current == null && fromBar && tgx101TrButton != null) {
+      String name = tgx101DetectedLanguage != null ? Lang.getLanguageName(tgx101DetectedLanguage, tgx101DetectedLanguage) : null;
+      tgx101ShowTranslateTip(name != null ? Lang.getString(R.string.Tgx101TranslateTipDone, name.toLowerCase()) : Lang.getString(R.string.Tgx101TranslateTipDoneAny), 2500, null);
+    }
   }
 
   private void tgx101CheckTranslateBar (boolean animated) {
@@ -9858,6 +9996,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     String language = manager.getWholeChatTranslateLanguage();
     boolean visible = needActionBar() && !tgx101TranslateBarHidden && (language != null || tgx101TranslateBarOffered);
+    if (tgx101TrButton != null) {
+      // (approved mockup «Плашка перевода», 3) the round button at the top right; the full-width bar stays unused
+      topBar.setItemVisible(tgx101TranslateItem, false, false);
+      tgx101UpdateTranslateButton(visible, language, animated);
+      return;
+    }
     if (visible) {
       if (tgx101TranslateUndo != null) {
         tgx101TranslateBar.setText(Lang.getString(R.string.Tgx101TranslateUndo));
@@ -11270,6 +11414,30 @@ public class MessagesController extends ViewController<MessagesController.Argume
    * message bar under the header is a floating capsule like the message field — same filling and blur, rounded, the
    * field's side gap — instead of a white strip across the screen
    */
+  // the translation button stands at the right of the pinned capsule: the capsule is that much shorter
+  private int tgx101PinnedRightExtra;
+  private @Nullable android.animation.ValueAnimator tgx101PinnedExtraAnimator;
+
+  private void tgx101SetPinnedRightExtra (int extra, boolean animated) {
+    if (pinnedMessagesBar == null || !Settings.instance().useFloatingInput()) return;
+    if (tgx101PinnedExtraAnimator != null) tgx101PinnedExtraAnimator.cancel();
+    if (!animated) {
+      tgx101PinnedRightExtra = extra;
+      pinnedMessagesBar.setPadding(pinnedMessagesBar.getPaddingLeft(), 0, Screen.dp(FLOATING_INPUT_SIDE) + extra, 0);
+      pinnedMessagesBar.invalidate();
+      return;
+    }
+    tgx101PinnedExtraAnimator = android.animation.ValueAnimator.ofInt(tgx101PinnedRightExtra, extra);
+    tgx101PinnedExtraAnimator.setDuration(240);
+    tgx101PinnedExtraAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f));
+    tgx101PinnedExtraAnimator.addUpdateListener(a -> {
+      tgx101PinnedRightExtra = (int) a.getAnimatedValue();
+      pinnedMessagesBar.setPadding(pinnedMessagesBar.getPaddingLeft(), 0, Screen.dp(FLOATING_INPUT_SIDE) + tgx101PinnedRightExtra, 0);
+      pinnedMessagesBar.invalidate();
+    });
+    tgx101PinnedExtraAnimator.start();
+  }
+
   private void tgx101FloatPinnedBar (PinnedMessagesBar bar) {
     final FloatingBlur blur = new FloatingBlur();
     final int side = Screen.dp(FLOATING_INPUT_SIDE), vertical = Screen.dp(3f);
@@ -11282,7 +11450,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       @Override
       public void draw (@NonNull Canvas c) {
         android.graphics.Rect bounds = getBounds();
-        rect.set(bounds.left + side, bounds.top + vertical, bounds.right - side, bounds.bottom - vertical);
+        rect.set(bounds.left + side, bounds.top + vertical, bounds.right - side - tgx101PinnedRightExtra, bounds.bottom - vertical);
         if (rect.height() <= 0) return;
         float radius = Math.min(Screen.dp(FLOATING_INPUT_RADIUS), rect.height() / 2f);
         path.reset();
@@ -11735,6 +11903,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   public final void onMessagesFrameChanged () {
+    tgx101PlaceTranslateButton();
     context().updateHackyOverlaysPositions();
     manager.onViewportMeasure();
     if (attachedFiles != null && attachedFiles.getParent() != null) {
@@ -14470,6 +14639,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   @Override
   protected void onEnterSearchMode () {
     super.onEnterSearchMode();
+    tgx101CheckTranslateBar(true); // the translation button hides while searching
     checkAttachedFiles(true);
     manager.onPrepareToSearch();
     if (searchByUserViewWrapper != null) {
@@ -14483,6 +14653,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       manager.setHighlightMessageId(searchFromUserMessageId, MessagesManager.HIGHLIGHT_MODE_WITHOUT_HIGHLIGHT);
     }
     onSetSearchFilteredShowMode(false);
+    UI.post(() -> tgx101CheckTranslateBar(true));
     manager.onDestroySearch();
     manager.getAdapter().checkAllMessages();
     searchMedia(null);

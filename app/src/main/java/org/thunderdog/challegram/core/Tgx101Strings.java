@@ -670,6 +670,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ReactedCount, "Реакции: %1$d");
     RU.put(R.string.Tgx101ReactedAll, "Все %1$d");
     RU.put(R.string.Tgx101Back, "Назад");
+    RU.put(R.string.Tgx101TranslateTipOffer, "Язык чата — %1$s. Перевести?");
+    RU.put(R.string.Tgx101TranslateTipOfferAny, "Чат на другом языке. Перевести?");
+    RU.put(R.string.Tgx101TranslateTipDone, "Переведено (%1$s). Нажмите ещё раз — оригинал");
+    RU.put(R.string.Tgx101TranslateTipDoneAny, "Переведено. Нажмите ещё раз — оригинал");
+    RU.put(R.string.Tgx101TranslateHiddenUndo, "Скрыто · Вернуть");
     RU.put(R.string.Tgx101SavedTagRename, "Переименовать метку");
     RU.put(R.string.Tgx101SavedTagRenamed, "Метка теперь %1$s");
     RU.put(R.string.Tgx101SavedTagsBack, "Вернуть на главную");
