@@ -6536,6 +6536,12 @@
   <string name="Tgx101WsProxyName">WebSocket (Telegram Web)</string>
   <string name="Tgx101MenuHidesKeyboard">Close the keyboard when the message menu does not fit</string>
   <string name="Tgx101CapsuleMenu">Hold «Settings» menu</string>
+  <string name="Tgx101CapsuleTabs">Bottom menu tabs</string>
+  <string name="Tgx101CapsuleTabsOn">After «Chats»</string>
+  <string name="Tgx101CapsuleTabsHint">«Chats» always comes first, «Settings» can\'t be switched off. Hold a tab and drag it up, down or into «Off»; the switch shows or hides it. «Profile» shows the active account — hold it to switch accounts.</string>
+  <string name="Tgx101CapsuleTabsMax">At most %1$d tabs after «Chats»</string>
+  <string name="Tgx101CapsuleTabsMin">Keep at least one tab after «Chats»</string>
+  <string name="Tgx101TabProfile">Profile</string>
   <string name="Tgx101CapsuleMenuHint">Hold the button on the bottom menu and slide to an item. At least two items.</string>
   <string name="Tgx101CapsuleMenuMin">Keep at least two items</string>
   <string name="Tgx101MyProfile">My profile</string>

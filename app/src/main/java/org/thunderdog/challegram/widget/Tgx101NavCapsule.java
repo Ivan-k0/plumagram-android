@@ -26,7 +26,7 @@ import me.vkryl.core.ColorUtils;
  * white ~92 % capsule with a soft shadow; the selected icon lights up, a line under it slides along the bottom edge (animation variant A).
  */
 public class Tgx101NavCapsule extends View {
-  public static final int TAB_CHATS = 0, TAB_CONTACTS = 1, TAB_CALLS = 2, TAB_SETTINGS = 3;
+  public static final int TAB_CHATS = 0, TAB_CONTACTS = 1, TAB_CALLS = 2, TAB_SETTINGS = 3, TAB_PROFILE = 4;
 
   public static final float HEIGHT_DP = 58f, MARGIN_DP = 14f, CORNER_DP = 18f;
 
@@ -41,8 +41,47 @@ public class Tgx101NavCapsule extends View {
     R.drawable.baseline_chat_bubble_24,
     R.drawable.baseline_person_24,
     R.drawable.baseline_phone_24,
-    R.drawable.baseline_settings_24
+    R.drawable.baseline_settings_24,
+    R.drawable.baseline_account_circle_24 // «Profile» — drawn as the account's avatar once it's known
   };
+
+  // TGx101 (user 2026-10-18): which tabs stand in the capsule, left to right (Settings → MagiX → «Bottom menu tabs»).
+  // Everything outside speaks of tabs by kind (TAB_*), inside the capsule they are slots 0..tabs.length-1
+  private int[] tabs = {TAB_CHATS, TAB_CONTACTS, TAB_CALLS, TAB_SETTINGS};
+
+  public void setTabs (int[] tabs) {
+    if (java.util.Arrays.equals(this.tabs, tabs)) return;
+    int current = currentTab;
+    this.tabs = tabs;
+    closeMenu();
+    setSelectedTab(slotOf(current) != -1 ? current : TAB_CHATS, false);
+  }
+
+  public boolean hasTab (int tab) {
+    return slotOf(tab) != -1;
+  }
+
+  private int slotOf (int tab) {
+    for (int i = 0; i < tabs.length; i++) {
+      if (tabs[i] == tab) return i;
+    }
+    return -1;
+  }
+
+  // «Profile» (the approved mockup «Вкладка Профиль», 1): the active account's small avatar in a ring — grey, blue when the tab is chosen
+  private final org.thunderdog.challegram.loader.AvatarReceiver profileAvatar = new org.thunderdog.challegram.loader.AvatarReceiver(this);
+  private boolean hasProfileAvatar;
+
+  public void setProfileAccount (org.thunderdog.challegram.telegram.Tdlib tdlib) {
+    long myUserId = tdlib.myUserId();
+    if (myUserId != 0) {
+      profileAvatar.requestUser(tdlib, myUserId, org.thunderdog.challegram.loader.AvatarReceiver.Options.NONE); // follows a new photo
+    } else {
+      profileAvatar.requestAccount(tdlib, tdlib.id(), org.thunderdog.challegram.loader.AvatarReceiver.Options.NONE);
+    }
+    hasProfileAvatar = true;
+    invalidate();
+  }
 
   private final Drawable[] icons = new Drawable[ICONS.length];
   private final Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -108,11 +147,15 @@ public class Tgx101NavCapsule extends View {
   protected void onAttachedToWindow () {
     super.onAttachedToWindow();
     getViewTreeObserver().addOnScrollChangedListener(blurScroll);
+    profileAvatar.attach();
+    if (menuAvatars != null) for (org.thunderdog.challegram.loader.AvatarReceiver r : menuAvatars) if (r != null) r.attach();
   }
 
   @Override
   protected void onDetachedFromWindow () {
     getViewTreeObserver().removeOnScrollChangedListener(blurScroll);
+    profileAvatar.detach();
+    if (menuAvatars != null) for (org.thunderdog.challegram.loader.AvatarReceiver r : menuAvatars) if (r != null) r.detach();
     super.onDetachedFromWindow();
   }
   private final android.graphics.Path outline = new android.graphics.Path(), line = new android.graphics.Path();
@@ -236,8 +279,10 @@ public class Tgx101NavCapsule extends View {
     float f = collapseFactor;
     out.set(l + (cx - hw - l) * f, top + (hb - hh - top) * f, r + (cx + hw - r) * f, b + (hb - b) * f);
   }
+  private int menuSlot = -1; // the tab the hold menu grows out of
   private final Runnable longPress = () -> {
-    if (pressedTab != -1 && callback != null && callback.onTabLongClick(pressedTab)) {
+    if (pressedTab != -1) menuSlot = pressedTab;
+    if (pressedTab != -1 && callback != null && callback.onTabLongClick(tabs[pressedTab])) {
       longPressed = true;
       performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
     }
@@ -264,7 +309,7 @@ public class Tgx101NavCapsule extends View {
   }
 
   private float tabWidth () {
-    return (getMeasuredWidth() - padding() * 2 - Screen.dp(12f)) / ICONS.length;
+    return (getMeasuredWidth() - padding() * 2 - Screen.dp(12f)) / tabs.length;
   }
 
   private float tabCenterX (float tab) {
@@ -290,12 +335,13 @@ public class Tgx101NavCapsule extends View {
     if (y < top || y > top + Screen.dp(HEIGHT_DP) || x < padding() || x > getMeasuredWidth() - padding())
       return -1;
     int tab = (int) ((x - padding() - Screen.dp(6f)) / tabWidth());
-    return Math.max(0, Math.min(ICONS.length - 1, tab));
+    return Math.max(0, Math.min(tabs.length - 1, tab));
   }
 
   /** Slides the pill; the screen behind the tab opens right after (see MainController). */
-  public void setSelectedTab (int tab, boolean animated) {
-    currentTab = tab;
+  public void setSelectedTab (int kind, boolean animated) {
+    currentTab = kind;
+    final int tab = Math.max(0, slotOf(kind)); // a tab that isn't in the capsule (switched off meanwhile): «Chats»
     if (animator != null) {
       animator.cancel();
       animator = null;
@@ -329,6 +375,9 @@ public class Tgx101NavCapsule extends View {
   private float menuFactor;
   private String[] menuLetters;
   private int[] menuColors;
+  private org.thunderdog.challegram.loader.AvatarReceiver[] menuAvatars; // accounts in the «Profile» hold menu
+  private String[] menuBadges; // on the right of a row: the unread count of an account
+  private int menuChecked = -1; // the active account: ✓ on the right
   private final android.text.TextPaint lettersPaint = new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
   private ValueAnimator menuAnimator;
   private int menuHighlight = -1;
@@ -348,6 +397,28 @@ public class Tgx101NavCapsule extends View {
 
   /** icons[i] == 0 → a round «avatar» with letters[i] on colors[i] (quick call contacts) */
   public void openMenu (int[] ids, int[] icons, String[] titles, String[] letters, int[] colors) {
+    openMenu(ids, icons, titles, letters, colors, null, null, null, -1);
+  }
+
+  /** The accounts menu of «Profile»: accountIds[i] != -1 → that account's avatar, badges[i] on the right, ✓ on {@code checked} */
+  public void openAccountMenu (int[] ids, int[] icons, String[] titles, org.thunderdog.challegram.telegram.Tdlib tdlib, int[] accountIds, String[] badges, int checked) {
+    openMenu(ids, icons, titles, null, null, tdlib, accountIds, badges, checked);
+  }
+
+  private void openMenu (int[] ids, int[] icons, String[] titles, String[] letters, int[] colors,
+                         org.thunderdog.challegram.telegram.Tdlib tdlib, int[] accountIds, String[] badges, int checked) {
+    destroyMenuAvatars();
+    if (tdlib != null && accountIds != null) {
+      menuAvatars = new org.thunderdog.challegram.loader.AvatarReceiver[accountIds.length];
+      for (int i = 0; i < accountIds.length; i++) {
+        if (accountIds[i] == -1) continue;
+        menuAvatars[i] = new org.thunderdog.challegram.loader.AvatarReceiver(this);
+        menuAvatars[i].requestAccount(tdlib, accountIds[i], org.thunderdog.challegram.loader.AvatarReceiver.Options.NONE);
+        if (isAttachedToWindow()) menuAvatars[i].attach();
+      }
+    }
+    menuBadges = badges;
+    menuChecked = checked;
     menuIds = ids;
     menuIcons = icons;
     menuTitles = titles;
@@ -370,8 +441,18 @@ public class Tgx101NavCapsule extends View {
     animateMenu(0f, () -> {
       menuIds = null;
       menuDrawables = null;
+      destroyMenuAvatars();
+      menuBadges = null;
+      menuChecked = -1;
       invalidate();
     });
+  }
+
+  private void destroyMenuAvatars () {
+    if (menuAvatars != null) {
+      for (org.thunderdog.challegram.loader.AvatarReceiver r : menuAvatars) if (r != null) r.destroy();
+      menuAvatars = null;
+    }
   }
 
   private void animateMenu (float to, Runnable after) {
@@ -402,7 +483,7 @@ public class Tgx101NavCapsule extends View {
     for (String t : menuTitles) {
       textWidth = Math.max(textWidth, textPaint.measureText(t));
     }
-    float w = Math.min(getMeasuredWidth() - padding() * 2, textWidth + Screen.dp(16f + 24f + 16f + 20f));
+    float w = Math.min(getMeasuredWidth() - padding() * 2, textWidth + Screen.dp(16f + 24f + 16f + 20f) + (menuBadges != null || menuChecked != -1 ? Screen.dp(44f) : 0));
     float h = Screen.dp(MENU_ROW_DP) * menuIds.length + Screen.dp(12f);
     float right = getMeasuredWidth() - padding();
     float bottom = capsuleTop() - Screen.dp(8f);
@@ -518,7 +599,7 @@ public class Tgx101NavCapsule extends View {
         }
         if (dragging) {
           float tab = (x - padding() - Screen.dp(6f)) / tabWidth() - .5f;
-          tab = Math.max(0f, Math.min(ICONS.length - 1, tab));
+          tab = Math.max(0f, Math.min(tabs.length - 1, tab));
           int near = Math.round(tab);
           if (near != dragNearest) {
             dragNearest = near;
@@ -556,7 +637,7 @@ public class Tgx101NavCapsule extends View {
         }
         if (tab != -1 && callback != null) {
           playSoundEffect(android.view.SoundEffectConstants.CLICK);
-          callback.onTabClick(tab);
+          callback.onTabClick(tabs[tab]);
         }
         return true;
       }
@@ -712,7 +793,7 @@ public class Tgx101NavCapsule extends View {
     outline.arcTo(rect, 180f, 90f, false);
     outline.close();
     outlineMeasure.setPath(outline, false);
-    float edge0 = Math.max(0f, 1f - selected), edge3 = Math.max(0f, 1f - Math.abs(selected - (ICONS.length - 1)));
+    float edge0 = Math.max(0f, 1f - selected), edge3 = Math.max(0f, 1f - Math.abs(selected - (tabs.length - 1)));
     float len = Screen.dp(36f) + Screen.dp(16f) * (edge0 + edge3);
     float x = tabCenterX(selected) - Screen.dp(10f) * edge0 + Screen.dp(10f) * edge3;
     float sCenter = straight + (float) Math.PI * r + (h - 2 * r) + (right - r - x); // distance along the outline, clockwise from the top-left
@@ -725,7 +806,7 @@ public class Tgx101NavCapsule extends View {
     }
 
     int inactive = Theme.getColor(ColorId.icon);
-    for (int i = 0; i < icons.length; i++) {
+    for (int i = 0; i < tabs.length; i++) {
       float f = Math.max(0f, 1f - Math.abs(selected - i));
       float icx = tabCenterX(i);
       // user 2026-10-06 21:2x: no shadow / glow under the selected icon
@@ -735,7 +816,16 @@ public class Tgx101NavCapsule extends View {
         c.save();
         c.scale(scale, scale, icx, cy);
       }
-      Drawables.drawCentered(c, icons[i], icx, cy, Paints.getPorterDuffPaint(color));
+      if (tabs[i] == TAB_PROFILE && hasProfileAvatar) {
+        float ar = Screen.dp(12f);
+        profileAvatar.setBounds((int) (icx - ar), (int) (cy - ar), (int) (icx + ar), (int) (cy + ar));
+        if (profileAvatar.needPlaceholder()) profileAvatar.drawPlaceholder(c);
+        profileAvatar.draw(c);
+        Paint ring = Paints.getProgressPaint(color, Screen.dp(2f));
+        c.drawCircle(icx, cy, ar + Screen.dp(3f), ring);
+      } else {
+        Drawables.drawCentered(c, icons[tabs[i]], icx, cy, Paints.getPorterDuffPaint(color));
+      }
       if (scale != 1f) {
         c.restore();
       }
@@ -754,7 +844,7 @@ public class Tgx101NavCapsule extends View {
       int alpha = (int) (255 * Math.min(1f, menuFactor));
       float scale = .7f + .3f * menuFactor;
       c.save();
-      c.scale(scale, scale, tabCenterX(TAB_SETTINGS), menuRect.bottom + Screen.dp(8f)); // grows out of «Settings»
+      c.scale(scale, scale, tabCenterX(menuSlot != -1 ? menuSlot : tabs.length - 1), menuRect.bottom + Screen.dp(8f)); // grows out of its tab
       float mr = Screen.dp(16f);
       shadowPaint.setColor(ColorUtils.alphaColor(menuFactor * (dark ? .98f : .97f), filling));
       shadowPaint.setShadowLayer(Screen.dp(12f), 0, Screen.dp(4f), ColorUtils.alphaColor(menuFactor * (dark ? .5f : .2f), 0xff000000));
@@ -774,7 +864,15 @@ public class Tgx101NavCapsule extends View {
         int oldAlpha = ip.getAlpha();
         ip.setAlpha(alpha);
         float iconCx = menuRect.left + Screen.dp(16f + 12f);
-        if (menuDrawables[k] != null) {
+        if (menuAvatars != null && k < menuAvatars.length && menuAvatars[k] != null) {
+          org.thunderdog.challegram.loader.AvatarReceiver av = menuAvatars[k];
+          int ar = Screen.dp(15f);
+          av.setBounds((int) iconCx - ar, (int) rowCy - ar, (int) iconCx + ar, (int) rowCy + ar);
+          av.setPaintAlpha(Math.min(1f, menuFactor));
+          if (av.needPlaceholder()) av.drawPlaceholder(c);
+          av.draw(c);
+          av.restorePaintAlpha();
+        } else if (menuDrawables[k] != null) {
           Drawables.drawCentered(c, menuDrawables[k], iconCx, rowCy, ip);
         } else if (menuLetters != null && menuColors != null) {
           fillPaint.setColor(ColorUtils.alphaColor(menuFactor, menuColors[k]));
@@ -787,7 +885,35 @@ public class Tgx101NavCapsule extends View {
         }
         ip.setAlpha(oldAlpha);
         textPaint.setColor(ColorUtils.alphaColor(menuFactor, textColor));
-        c.drawText(menuTitles[k], menuRect.left + Screen.dp(16f + 24f + 16f), rowCy + Screen.dp(5.5f), textPaint);
+        float titleRight = menuRect.right - Screen.dp(16f);
+        if (k == menuChecked) {
+          // the active account: a ✓ in the accent colour on the right
+          Paint check = Paints.getProgressPaint(ColorUtils.alphaColor(menuFactor, active), Screen.dp(2f));
+          float cx0 = menuRect.right - Screen.dp(24f);
+          android.graphics.Path p = line;
+          p.reset();
+          p.moveTo(cx0 - Screen.dp(6f), rowCy);
+          p.lineTo(cx0 - Screen.dp(1.5f), rowCy + Screen.dp(4.5f));
+          p.lineTo(cx0 + Screen.dp(6.5f), rowCy - Screen.dp(4.5f));
+          c.drawPath(p, check);
+          titleRight = cx0 - Screen.dp(14f);
+        } else if (menuBadges != null && k < menuBadges.length && menuBadges[k] != null) {
+          // another account's unread count in a small accent pill
+          lettersPaint.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+          lettersPaint.setTextSize(Screen.dp(12f));
+          float tw = lettersPaint.measureText(menuBadges[k]);
+          float bw = Math.max(Screen.dp(22f), tw + Screen.dp(12f)), bh = Screen.dp(20f);
+          float br = menuRect.right - Screen.dp(14f);
+          rect.set(br - bw, rowCy - bh / 2f, br, rowCy + bh / 2f);
+          fillPaint.setColor(ColorUtils.alphaColor(menuFactor, active));
+          c.drawRoundRect(rect, bh / 2f, bh / 2f, fillPaint);
+          lettersPaint.setColor(ColorUtils.alphaColor(menuFactor, 0xffffffff));
+          c.drawText(menuBadges[k], rect.centerX() - tw / 2f, rowCy + Screen.dp(4.2f), lettersPaint);
+          titleRight = rect.left - Screen.dp(8f);
+        }
+        float titleLeft = menuRect.left + Screen.dp(16f + 24f + 16f);
+        CharSequence title = android.text.TextUtils.ellipsize(menuTitles[k], textPaint, Math.max(0f, titleRight - titleLeft), android.text.TextUtils.TruncateAt.END);
+        c.drawText(title, 0, title.length(), titleLeft, rowCy + Screen.dp(5.5f), textPaint);
       }
       c.restore();
     }

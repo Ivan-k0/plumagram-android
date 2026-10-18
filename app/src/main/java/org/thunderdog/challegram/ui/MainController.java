@@ -1100,6 +1100,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       return;
     if (isFocused) {
       tgx101Switching = false;
+      tgx101RefreshCapsuleTabs();
       tgx101Capsule.setSelectedTab(tab, false);
       tgx101Capsule.setScrollHidden(false); // never hides on scroll (user 2026-10-08)
       tgx101ApplyCapsulePadding(tab);
@@ -1344,6 +1345,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       // if (tgx101Capsule != null && !tgx101FabHidden && !inSearchMode()) tgx101Capsule.setScrollHideFactor(factor);
     });
     tgx101TabRoots.put(this, Tgx101NavCapsule.TAB_CHATS);
+    tgx101RefreshCapsuleTabs();
     addFocusListener(tgx101TabFocus);
     Tgx101QuickCalls.refreshTop(tdlib); // the «Calls» hold menu has its contacts at once
     navigation.addViewUnderHeader(tgx101Capsule);
@@ -1385,9 +1387,56 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
 
   private boolean tgx101CallsFetched;
 
+  // TGx101 (user 2026-10-18): the capsule's tabs are the user's (MagiX → «Bottom menu tabs»); «Profile» shows the active account
+  private int tgx101CapsuleVersion = -1;
+
+  private void tgx101RefreshCapsuleTabs () {
+    if (tgx101Capsule == null) return;
+    if (tgx101CapsuleVersion != Tgx101BarOrder.capsuleVersion()) {
+      tgx101CapsuleVersion = Tgx101BarOrder.capsuleVersion();
+      tgx101Capsule.setTabs(Tgx101BarOrder.capsuleTabs());
+    }
+    if (tgx101Capsule.hasTab(Tgx101NavCapsule.TAB_PROFILE)) tgx101Capsule.setProfileAccount(tdlib);
+  }
+
+  private static final int TGX101_MENU_ACCOUNTS = 300, TGX101_MENU_ADD_ACCOUNT = 399;
+  private final java.util.List<org.thunderdog.challegram.telegram.TdlibAccount> tgx101MenuAccounts = new java.util.ArrayList<>();
+
+  /** Hold menu of «Profile» (approved mockup «Вкладка Профиль», 1): the accounts — ✓ on the active one, unread on the others — and «Add account» */
+  private void tgx101OpenAccountsMenu () {
+    java.util.List<org.thunderdog.challegram.telegram.TdlibAccount> accounts = org.thunderdog.challegram.telegram.TdlibManager.instance().getActiveAccounts();
+    int n = Math.min(accounts.size(), TGX101_MENU_ADD_ACCOUNT - TGX101_MENU_ACCOUNTS);
+    tgx101MenuAccounts.clear();
+    int[] ids = new int[n + 1], icons = new int[n + 1], accountIds = new int[n + 1];
+    String[] titles = new String[n + 1], badges = new String[n + 1];
+    int checked = -1;
+    for (int i = 0; i < n; i++) {
+      org.thunderdog.challegram.telegram.TdlibAccount account = accounts.get(i);
+      tgx101MenuAccounts.add(account);
+      ids[i] = TGX101_MENU_ACCOUNTS + i;
+      accountIds[i] = account.id;
+      titles[i] = account.getName();
+      if (account.id == tdlib.id()) {
+        checked = i;
+      } else {
+        int unread = account.getUnreadBadge().getCount();
+        if (unread > 0) badges[i] = unread > 99 ? "99+" : Integer.toString(unread);
+      }
+    }
+    ids[n] = TGX101_MENU_ADD_ACCOUNT;
+    icons[n] = R.drawable.baseline_add_24;
+    accountIds[n] = -1;
+    titles[n] = Lang.getString(R.string.AddAccount);
+    tgx101Capsule.openAccountMenu(ids, icons, titles, tdlib, accountIds, badges, checked);
+  }
+
   private boolean tgx101OpenHoldMenu (int tab) {
     int[] icons, titles;
     int mask, base;
+    if (tab == Tgx101NavCapsule.TAB_PROFILE) {
+      tgx101OpenAccountsMenu();
+      return true;
+    }
     if (tab == Tgx101NavCapsule.TAB_SETTINGS) {
       icons = TGX101_CAPSULE_MENU_ICONS; titles = TGX101_CAPSULE_MENU_TITLES; mask = Settings.instance().tgx101CapsuleMenu(); base = 0;
     } else if (tab == Tgx101NavCapsule.TAB_CONTACTS) {
@@ -1441,6 +1490,21 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     NavigationController navigation = context().navigation();
     ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : this;
     if (current == null) current = this;
+    if (id == TGX101_MENU_ADD_ACCOUNT) {
+      tdlib.ui().addAccount(context(), true, false);
+      return;
+    }
+    if (id >= TGX101_MENU_ACCOUNTS && id < TGX101_MENU_ADD_ACCOUNT) {
+      int i = id - TGX101_MENU_ACCOUNTS;
+      if (i < tgx101MenuAccounts.size()) {
+        org.thunderdog.challegram.telegram.TdlibAccount account = tgx101MenuAccounts.get(i);
+        if (account.id != tdlib.id()) {
+          org.thunderdog.challegram.Tgx101Diag.mark("bottom menu: switch account " + tdlib.id() + " → " + account.id);
+          account.context().changePreferredAccountId(account.id, org.thunderdog.challegram.telegram.TdlibManager.SWITCH_REASON_USER_CLICK);
+        }
+      }
+      return;
+    }
     if (id == TGX101_MENU_CALLS_EDIT) {
       Tgx101QuickCalls.openEditor(current, tdlib);
       return;
@@ -1562,10 +1626,36 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       case Tgx101NavCapsule.TAB_SETTINGS:
         tgx101PushTab(new SettingsController(context, tdlib), tab);
         break;
+      case Tgx101NavCapsule.TAB_PROFILE: {
+        // the own profile, as a tab: the chat with oneself is made first when it isn't known yet
+        long myUserId = tdlib.myUserId();
+        if (myUserId == 0) {
+          tgx101PushTab(null, tab);
+          break;
+        }
+        tdlib.client().send(new TdApi.CreatePrivateChat(myUserId, false), result -> runOnUiThreadOptional(() -> {
+          ProfileController c = null;
+          if (result.getConstructor() == TdApi.Chat.CONSTRUCTOR) {
+            c = new ProfileController(context, tdlib);
+            c.setArguments(new ProfileController.Args(tdlib.objectToChat(result), null, false));
+          }
+          tgx101PushTab(c, tab);
+        }));
+        break;
+      }
     }
   }
 
-  private void tgx101PushTab (ViewController<?> c, int tab) {
+  private void tgx101PushTab (@Nullable ViewController<?> c, int tab) {
+    if (c == null) { // the screen couldn't be made: the pill goes back
+      if (context().navigation() != null) context().navigation().setTgx101BlurFade(false);
+      tgx101Switching = false;
+      NavigationController navigation = context().navigation();
+      ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : null;
+      Integer currentTab = current != null ? tgx101TabRoots.get(current) : null;
+      tgx101Capsule.setSelectedTab(currentTab != null ? currentTab : Tgx101NavCapsule.TAB_CHATS, true);
+      return;
+    }
     tgx101TabRoots.put(c, tab);
     c.addFocusListener(tgx101TabFocus);
     NavigationController navigation = context().navigation();

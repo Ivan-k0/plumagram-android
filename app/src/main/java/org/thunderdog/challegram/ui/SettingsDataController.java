@@ -574,6 +574,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SearchHoldProxy, 0, R.string.Tgx101SearchHoldProxy),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
 
+        new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101CapsuleTabs, 0, R.string.Tgx101CapsuleTabs),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101CapsuleMenu, 0, R.string.Tgx101CapsuleMenu),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101ContactsMenu, 0, R.string.Tgx101ContactsMenu),
@@ -1029,7 +1031,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       || id == R.id.btn_tgx101TapMode || id == R.id.btn_tgx101Gestures || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101QuickReply1 || id == R.id.btn_tgx101QuickReply2
       || id == R.id.btn_tgx101QuickReply3 || id == R.id.btn_tgx101QuickReply4 || id == R.id.btn_tgx101QuickReply5) return 2;
     if (id == R.id.btn_tgx101HideCompose || id == R.id.btn_tgx101HideJoin || id == R.id.btn_tgx101HideSponsored) return 0;
-    if (id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101SearchHoldProxy || id == R.id.btn_tgx101CapsuleScrollHide || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101ContactsMenu || id == R.id.btn_tgx101QuickCalls) return 0;
+    if (id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101SearchHoldProxy || id == R.id.btn_tgx101CapsuleScrollHide || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101CapsuleTabs || id == R.id.btn_tgx101ContactsMenu || id == R.id.btn_tgx101QuickCalls) return 0;
     if (id == R.id.btn_tgx101RearRounds) return 4;
     if (id == R.id.btn_tgx101HideAllReactions || id == R.id.btn_tgx101HideChannelReactions || id == R.id.btn_tgx101NextChannelSwipe || id == R.id.btn_tgx101NextChannelBackToList || id == R.id.btn_showDiscussButton || id == R.id.btn_showCommentsButton
       || id == R.id.btn_showChannelMuteButton || id == R.id.btn_hideSubscribeLink || id == R.id.btn_separateChannelPosts) return 3;
@@ -1571,6 +1573,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       navigateTo(new Tgx101FormatMenuController(context, tdlib));
     } else if (id == R.id.btn_tgx101MessageMenuOrder) {
       navigateTo(new Tgx101MenuOrderController(context, tdlib));
+    } else if (id == R.id.btn_tgx101CapsuleTabs) {
+      Tgx101MenuOrderController c = new Tgx101MenuOrderController(context, tdlib);
+      c.setArguments(new Tgx101MenuOrderController.Args(Tgx101MenuOrderController.MODE_CAPSULE));
+      navigateTo(c);
     } else if (id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101ChatMenuOrder) {
       Tgx101MenuOrderController c = new Tgx101MenuOrderController(context, tdlib);
       c.setArguments(new Tgx101MenuOrderController.Args(id == R.id.btn_tgx101DrawerOrder ? Tgx101MenuOrderController.MODE_DRAWER : Tgx101MenuOrderController.MODE_CHAT_MENU));

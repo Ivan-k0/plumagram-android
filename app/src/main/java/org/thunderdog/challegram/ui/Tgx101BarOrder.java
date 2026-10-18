@@ -26,7 +26,13 @@ import java.util.List;
 public final class Tgx101BarOrder {
   private Tgx101BarOrder () { }
 
-  public static final int BAR_MESSAGE = 0, BAR_INPUT = 1, BAR_SWIPE = 2, BAR_DRAWER = 3, BAR_CHAT_MENU = 4;
+  public static final int BAR_MESSAGE = 0, BAR_INPUT = 1, BAR_SWIPE = 2, BAR_DRAWER = 3, BAR_CHAT_MENU = 4, BAR_CAPSULE = 5;
+
+  // TGx101 (user 2026-10-18 «давай меню дадим настраивать»): the bottom capsule's tabs after «Chats» (always first), up to
+  // three, in the user's order; «Profile» (the active account, hold — switch accounts) is off until switched on
+  public static final String TAB_CONTACTS = "contacts", TAB_CALLS = "calls", TAB_SETTINGS = "settings", TAB_PROFILE = "profile";
+  public static final int CAPSULE_MAX_TABS = 3;
+  private static final String[] CAPSULE_OFF_BY_DEFAULT = {TAB_PROFILE};
 
   // TGx101 (user 2026-10-12 00:15): the side drawer is editable — order and which items are shown
   public static final String DRAWER_CONTACTS = "contacts", DRAWER_CALLS = "calls", DRAWER_SAVED = "saved", DRAWER_SAVED_BY_CHATS = "savedByChats",
@@ -56,8 +62,56 @@ public final class Tgx101BarOrder {
       SWIPE_REACTION, SWIPE_DELETE_ALL, SWIPE_LINK, SWIPE_SAVE_FILE, SWIPE_REPORT},
     {DRAWER_STORY, DRAWER_CONTACTS, DRAWER_CALLS, DRAWER_SAVED, DRAWER_SAVED_BY_CHATS, DRAWER_SETTINGS, DRAWER_PROXY, DRAWER_NIGHT},
     {CHAT_CALL, CHAT_VIDEO_CALL, CHAT_SEARCH, CHAT_DATE, CHAT_SAVED_BY_CHATS, CHAT_BACKGROUND, CHAT_MUTE, CHAT_NOTIFICATIONS, CHAT_TRANSLATE,
-      CHAT_PINNED, CHAT_LINKED, CHAT_SCHEDULED, CHAT_VOICE_CHAT, CHAT_TOPICS, CHAT_REPORT, CHAT_PASSCODE, CHAT_OTHER, CHAT_PROXY, CHAT_LEAVE}
+      CHAT_PINNED, CHAT_LINKED, CHAT_SCHEDULED, CHAT_VOICE_CHAT, CHAT_TOPICS, CHAT_REPORT, CHAT_PASSCODE, CHAT_OTHER, CHAT_PROXY, CHAT_LEAVE},
+    {TAB_CONTACTS, TAB_CALLS, TAB_SETTINGS, TAB_PROFILE}
   };
+
+  public static int tabNameOf (String key) {
+    switch (key) {
+      case TAB_CONTACTS: return R.string.Contacts;
+      case TAB_CALLS: return R.string.Calls;
+      case TAB_PROFILE: return R.string.Tgx101TabProfile;
+      case TAB_SETTINGS: default: return R.string.Settings;
+    }
+  }
+
+  public static int tabIconOf (String key) {
+    switch (key) {
+      case TAB_CONTACTS: return R.drawable.baseline_person_24;
+      case TAB_CALLS: return R.drawable.baseline_phone_24;
+      case TAB_PROFILE: return R.drawable.baseline_account_circle_24;
+      case TAB_SETTINGS: default: return R.drawable.baseline_settings_24;
+    }
+  }
+
+  private static int tabOf (String key) {
+    switch (key) {
+      case TAB_CONTACTS: return org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_CONTACTS;
+      case TAB_CALLS: return org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_CALLS;
+      case TAB_PROFILE: return org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_PROFILE;
+      case TAB_SETTINGS: default: return org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_SETTINGS;
+    }
+  }
+
+  /** The capsule's tabs left to right: «Chats», then the switched-on ones (at most {@link #CAPSULE_MAX_TABS}) */
+  public static int[] capsuleTabs () {
+    List<Integer> tabs = new ArrayList<>();
+    tabs.add(org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_CHATS);
+    for (String entry : getOrder(BAR_CAPSULE)) {
+      if (entry.startsWith("-") || tabs.size() > CAPSULE_MAX_TABS) continue;
+      tabs.add(tabOf(entry));
+    }
+    int[] result = new int[tabs.size()];
+    for (int i = 0; i < result.length; i++) result[i] = tabs.get(i);
+    return result;
+  }
+
+  /** Bumped on every change of the capsule's tabs — the chat list rebuilds its capsule when it sees a new one */
+  private static int capsuleVersion;
+
+  public static int capsuleVersion () {
+    return capsuleVersion;
+  }
 
   public static int drawerIdOf (String key) {
     switch (key) {
@@ -263,7 +317,8 @@ public final class Tgx101BarOrder {
     }
     for (String key : KEYS[bar]) {
       if (!result.contains(key) && !result.contains("-" + key)) {
-        boolean off = (bar == BAR_SWIPE && indexOf(SWIPE_OFF_BY_DEFAULT, key) != -1) || (bar == BAR_CHAT_MENU && indexOf(CHAT_OFF_BY_DEFAULT, key) != -1);
+        boolean off = (bar == BAR_SWIPE && indexOf(SWIPE_OFF_BY_DEFAULT, key) != -1) || (bar == BAR_CHAT_MENU && indexOf(CHAT_OFF_BY_DEFAULT, key) != -1)
+          || (bar == BAR_CAPSULE && indexOf(CAPSULE_OFF_BY_DEFAULT, key) != -1);
         result.add(off ? "-" + key : key);
       }
     }
@@ -272,6 +327,7 @@ public final class Tgx101BarOrder {
 
   public static void setOrder (int bar, List<String> order) {
     Settings.instance().setTgx101BarOrder(bar, order != null ? android.text.TextUtils.join(",", order) : null);
+    if (bar == BAR_CAPSULE) capsuleVersion++;
   }
 
   private static int indexOf (String[] keys, String key) {

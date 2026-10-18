@@ -40,7 +40,7 @@ import java.util.List;
 /** TGx101: order of the actions in the compact message menu. "Delete" is always last. */
 public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101MenuOrderController.Args> implements View.OnClickListener, Tgx101DragOrder.Callback {
   // TGx101 (user 2026-10-11): the message menu and the swipe column are set up on screens of their own
-  public static final int MODE_MENU = 0, MODE_SWIPE = 1, MODE_DRAWER = 2, MODE_CHAT_MENU = 3;
+  public static final int MODE_MENU = 0, MODE_SWIPE = 1, MODE_DRAWER = 2, MODE_CHAT_MENU = 3, MODE_CAPSULE = 4;
 
   public static class Args {
     final int mode;
@@ -80,6 +80,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
       case MODE_SWIPE: return Lang.getString(R.string.Tgx101SwipeMenuSection);
       case MODE_DRAWER: return Lang.getString(R.string.Tgx101DrawerOrder);
       case MODE_CHAT_MENU: return Lang.getString(R.string.Tgx101ChatMenuOrder);
+      case MODE_CAPSULE: return Lang.getString(R.string.Tgx101CapsuleTabs);
       default: return Lang.getString(R.string.Tgx101MessageMenuOrder);
     }
   }
@@ -227,10 +228,15 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
         rows.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SwipeItem, iconOf(key), nameOf(key)).setData(entry));
       }
       int title = section == 1 ? R.string.Tgx101SwipeSectionOff : mode() == MODE_SWIPE ? R.string.Tgx101SwipeSectionOn : R.string.Tgx101BarSectionOn;
-      addSection(items, Lang.getString(title), rows);
+      CharSequence titleText = Lang.getString(title);
+      if (mode() == MODE_CAPSULE && section == 0) {
+        // «After Chats · 3 of 3»
+        titleText = Lang.getString(R.string.Tgx101CapsuleTabsOn) + " · " + Lang.getString(R.string.Tgx101MenuCountOf, rows.size(), Tgx101BarOrder.CAPSULE_MAX_TABS);
+      }
+      addSection(items, titleText, rows);
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     }
-    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, mode() == MODE_SWIPE ? R.string.Tgx101SwipeOrderHint : mode() == MODE_DRAWER ? R.string.Tgx101DrawerOrderHint : R.string.Tgx101ChatMenuOrderHint));
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, mode() == MODE_SWIPE ? R.string.Tgx101SwipeOrderHint : mode() == MODE_DRAWER ? R.string.Tgx101DrawerOrderHint : mode() == MODE_CAPSULE ? R.string.Tgx101CapsuleTabsHint : R.string.Tgx101ChatMenuOrderHint));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MenuOrderReset, R.drawable.baseline_undo_24, R.string.Tgx101MessageMenuOrderReset));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
@@ -247,6 +253,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
     switch (mode()) {
       case MODE_DRAWER: return Tgx101BarOrder.BAR_DRAWER;
       case MODE_CHAT_MENU: return Tgx101BarOrder.BAR_CHAT_MENU;
+      case MODE_CAPSULE: return Tgx101BarOrder.BAR_CAPSULE;
       default: return Tgx101BarOrder.BAR_SWIPE;
     }
   }
@@ -255,6 +262,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
     switch (mode()) {
       case MODE_DRAWER: return Tgx101BarOrder.drawerNameOf(key);
       case MODE_CHAT_MENU: return Tgx101BarOrder.chatNameOf(key);
+      case MODE_CAPSULE: return Tgx101BarOrder.tabNameOf(key);
       default: return Tgx101BarOrder.swipeNameOf(key);
     }
   }
@@ -263,6 +271,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
     switch (mode()) {
       case MODE_DRAWER: return Tgx101BarOrder.drawerIconOf(key);
       case MODE_CHAT_MENU: return Tgx101BarOrder.chatIconOf(key);
+      case MODE_CAPSULE: return Tgx101BarOrder.tabIconOf(key);
       default: return Tgx101BarOrder.swipeIconOf(key);
     }
   }
@@ -272,12 +281,29 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
     switch (mode()) {
       case MODE_SWIPE: return Tgx101BarOrder.SWIPE_REPLY;
       case MODE_DRAWER: return Tgx101BarOrder.DRAWER_SETTINGS;
+      case MODE_CAPSULE: return Tgx101BarOrder.TAB_SETTINGS; // the only way to MagiX — and back to these switches
       default: return null;
     }
   }
 
   private int fixedHint () {
-    return mode() == MODE_DRAWER ? R.string.Tgx101DrawerSettingsStays : R.string.Tgx101SwipeReplyStays;
+    return mode() == MODE_DRAWER || mode() == MODE_CAPSULE ? R.string.Tgx101DrawerSettingsStays : R.string.Tgx101SwipeReplyStays;
+  }
+
+  /** The bottom menu keeps 1–3 tabs after «Chats»; false (and a toast) when the list would break that */
+  private boolean checkCapsuleCount (List<String> list) {
+    if (mode() != MODE_CAPSULE) return true;
+    int on = 0;
+    for (String entry : list) if (!entry.startsWith("-")) on++;
+    if (on > Tgx101BarOrder.CAPSULE_MAX_TABS) {
+      UI.showToast(Lang.getString(R.string.Tgx101CapsuleTabsMax, Tgx101BarOrder.CAPSULE_MAX_TABS), android.widget.Toast.LENGTH_SHORT);
+      return false;
+    }
+    if (on == 0) {
+      UI.showToast(R.string.Tgx101CapsuleTabsMin, android.widget.Toast.LENGTH_SHORT);
+      return false;
+    }
+    return true;
   }
 
   private static int[] toArray (List<Integer> list) {
@@ -347,6 +373,10 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
           }
           list.add(section > 0 ? "-" + key : key);
         }
+      }
+      if (!checkCapsuleCount(list)) {
+        rebuild();
+        return;
       }
       Tgx101BarOrder.setOrder(bar(), list);
       org.thunderdog.challegram.Tgx101Diag.mark("order: bar " + bar() + " saved, " + list.size() + " entries");
@@ -475,6 +505,10 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
       int index = list.indexOf(entry);
       if (index != -1) {
         list.set(index, entry.startsWith("-") ? entry.substring(1) : "-" + entry);
+        if (!checkCapsuleCount(list)) {
+          adapter.updateValuedSettingById(R.id.btn_tgx101SwipeItem);
+          return;
+        }
         Tgx101BarOrder.setOrder(bar(), list);
       }
       rebuild();

@@ -661,6 +661,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101WsProxyName, "WebSocket (веб-Telegram)");
     RU.put(R.string.Tgx101MenuHidesKeyboard, "Закрывать клавиатуру, если меню сообщения не помещается");
     RU.put(R.string.Tgx101CapsuleMenu, "Меню удержания «Настроек»");
+    RU.put(R.string.Tgx101CapsuleTabs, "Вкладки нижнего меню");
+    RU.put(R.string.Tgx101CapsuleTabsOn, "После «Чатов»");
+    RU.put(R.string.Tgx101CapsuleTabsHint, "«Чаты» всегда первые, «Настройки» не выключаются. Зажмите вкладку и перетащите вверх, вниз или в «Выключены»; переключатель — показывать её или нет. «Профиль» показывает активный аккаунт, удержание — смена аккаунта.");
+    RU.put(R.string.Tgx101CapsuleTabsMax, "Не больше %1$d вкладок после «Чатов»");
+    RU.put(R.string.Tgx101CapsuleTabsMin, "Оставьте хотя бы одну вкладку после «Чатов»");
+    RU.put(R.string.Tgx101TabProfile, "Профиль");
     RU.put(R.string.Tgx101CapsuleMenuHint, "Удерживайте кнопку в нижнем меню и ведите палец к пункту. Не меньше двух пунктов.");
     RU.put(R.string.Tgx101CapsuleMenuMin, "Оставьте хотя бы два пункта");
     RU.put(R.string.Tgx101MyProfile, "Профиль");
