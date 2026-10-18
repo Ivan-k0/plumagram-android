@@ -646,7 +646,7 @@ public final class Tgx101Diag {
 
   private static void dumpSystemLog () {
     try {
-      Process process = Runtime.getRuntime().exec(new String[] {"logcat", "-d", "-v", "time", "-t", "600"});
+      Process process = Runtime.getRuntime().exec(new String[] {"logcat", "-d", "-v", "time", "-t", "2000"});
       StringBuilder b = new StringBuilder("--- System log (includes the previous launch) ---\n");
       BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
       try {
@@ -655,7 +655,11 @@ public final class Tgx101Diag {
           // Only crash and native loading lines: the app's own log may contain personal data (contacts)
           if (line.contains("AndroidRuntime") || line.contains("FATAL") || line.contains("libc") || line.contains("DEBUG") ||
             line.contains("linker") || line.contains("dalvikvm") || line.contains("ReLinker") || line.contains("UnsatisfiedLink") ||
-            line.contains("Loaded lib") || (line.contains("tgx") && line.contains("Loaded "))) {
+            line.contains("Loaded lib") || (line.contains("tgx") && line.contains("Loaded ")) ||
+            // TGx101 (video call crash 2026-10-18 17:15: a native «check failed» after a Java exception the log never had):
+            // what webrtc / JNI say right before such an abort
+            line.contains("Check failed") || line.contains("JNI DETECTED") || line.contains("System.err") ||
+            line.contains("/rtc") || line.contains("webrtc") || line.contains("tgcalls") || line.contains("Fatal error in")) {
             b.append(line).append('\n');
           }
         }
