@@ -9886,37 +9886,98 @@ public class MessagesController extends ViewController<MessagesController.Argume
     UI.post(() -> tgx101OfferTranslation(chatId, 0), 1200);
   }
 
+  // TGx101 (user 2026-10-18 «посмотри, по какой логике появляется плашка в офф»): as Telegram's TranslateController —
+  // each incoming message's language on its own (the mixed text of 15 gave one wrong language in two-language chats);
+  // offered once at least 6 were checked, at least 60 % of those with a known language are in another language
+  // (not the app's, not «Do not translate»), and under 65 % are unknown. New incoming messages count as they come
+  private static final int TRANSLATE_MIN_CHECKED = 6, TRANSLATE_LOOK_AT = 20;
+  private static final float TRANSLATE_MIN_SHARE = .60f, TRANSLATE_MAX_UNKNOWN = .65f;
+  private final java.util.Map<String, String> tgx101MessageLanguages = new java.util.HashMap<>(); // message text → language
+  private long tgx101LanguagesChatId;
+
+  public void tgx101OnIncomingMessage () {
+    if (chat != null && !tgx101TranslateBarOffered && !tgx101TranslateBarHidden) {
+      final long chatId = chat.id;
+      UI.post(() -> tgx101OfferTranslation(chatId, 3), 600); // no retries: it's a later look
+    }
+  }
+
   private void tgx101OfferTranslation (long chatId, int attempt) {
     if (isDestroyed() || chat == null || chat.id != chatId || inPreviewMode || isInForceTouchMode() || messageThread != null) return;
     if (!Settings.instance().tgx101SuggestChatTranslation() || tdlib.isSelfChat(chatId)) return;
     if (manager.getWholeChatTranslateLanguage() != null || tgx101TranslateBarOffered || tgx101TranslateBarHidden) return;
     if (Settings.instance().tgx101ChatTranslationRefused(tdlib.id(), chatId)) return;
-    StringBuilder b = new StringBuilder();
-    org.thunderdog.challegram.component.chat.MessagesAdapter adapter = manager.getAdapter();
-    int taken = 0;
-    for (int i = 0; adapter != null && i < adapter.getMessageCount() && taken < 15 && b.length() < 1000; i++) {
-      TGMessage m = adapter.getMessage(i);
-      if (m == null || m.isOutgoing()) continue;
-      TdApi.FormattedText t = m.getTextToTranslate();
-      if (t == null || t.text == null || t.text.trim().length() < 3) continue;
-      b.append(t.text).append('\n');
-      taken++;
+    if (tgx101LanguagesChatId != chatId) {
+      tgx101LanguagesChatId = chatId;
+      tgx101MessageLanguages.clear();
     }
-    if (b.length() < 24) {
+    List<String> texts = new ArrayList<>();
+    org.thunderdog.challegram.component.chat.MessagesAdapter adapter = manager.getAdapter();
+    for (int i = 0; adapter != null && i < adapter.getMessageCount() && texts.size() < TRANSLATE_LOOK_AT; i++) {
+      TGMessage m = adapter.getMessage(i);
+      if (m == null || m.isOutgoing() || m.isSponsoredMessage()) continue;
+      TdApi.FormattedText t = m.getTextToTranslate();
+      if (t == null || t.text == null || t.text.trim().isEmpty()) continue;
+      texts.add(t.text);
+    }
+    if (texts.size() < TRANSLATE_MIN_CHECKED) {
       if (attempt < 2) UI.post(() -> tgx101OfferTranslation(chatId, attempt + 1), 1500); // not loaded yet
       return;
     }
-    org.thunderdog.challegram.util.LanguageDetector.detectLanguage(context, b.toString(), lang -> UI.post(() -> {
-      if (isDestroyed() || chat == null || chat.id != chatId || lang == null || "und".equals(lang)) return;
-      String target = Lang.getDefaultLanguageToTranslateV2(null);
-      if (target != null && (lang.equalsIgnoreCase(target) || target.toLowerCase().startsWith(lang.toLowerCase() + "-"))) return;
-      if (Settings.instance().isNotTranslatableLanguage(lang)) return;
-      if (manager.getWholeChatTranslateLanguage() != null) return;
-      tgx101DetectedLanguage = lang;
-      tgx101TranslateBarOffered = true;
-      org.thunderdog.challegram.Tgx101Diag.mark("chat translation: offered, the chat is in " + lang);
-      tgx101CheckTranslateBar(true);
-    }), null);
+    final int[] left = {0};
+    for (String text : texts) if (!tgx101MessageLanguages.containsKey(text)) left[0]++;
+    Runnable decide = () -> tgx101DecideTranslation(chatId, texts);
+    if (left[0] == 0) {
+      decide.run();
+      return;
+    }
+    for (String text : texts) {
+      if (tgx101MessageLanguages.containsKey(text)) continue;
+      org.thunderdog.challegram.util.LanguageDetector.detectLanguage(context, text, lang -> UI.post(() -> {
+        tgx101MessageLanguages.put(text, lang != null ? lang : "und");
+        if (--left[0] == 0) decide.run();
+      }), error -> UI.post(() -> {
+        tgx101MessageLanguages.put(text, "und");
+        if (--left[0] == 0) decide.run();
+      }));
+    }
+  }
+
+  private void tgx101DecideTranslation (long chatId, List<String> texts) {
+    if (isDestroyed() || chat == null || chat.id != chatId || tgx101TranslateBarOffered || tgx101TranslateBarHidden) return;
+    if (manager.getWholeChatTranslateLanguage() != null) return;
+    String target = Lang.getDefaultLanguageToTranslateV2(null);
+    int translatable = 0, notTranslatable = 0, unknown = 0;
+    java.util.Map<String, Integer> byLanguage = new java.util.HashMap<>();
+    for (String text : texts) {
+      String lang = tgx101MessageLanguages.get(text);
+      if (lang == null || "und".equals(lang)) {
+        unknown++;
+      } else if ((target != null && (lang.equalsIgnoreCase(target) || target.toLowerCase().startsWith(lang.toLowerCase() + "-"))) || Settings.instance().isNotTranslatableLanguage(lang)) {
+        notTranslatable++;
+      } else {
+        translatable++;
+        byLanguage.put(lang, (byLanguage.containsKey(lang) ? byLanguage.get(lang) : 0) + 1);
+      }
+    }
+    int total = texts.size();
+    boolean offer = total >= TRANSLATE_MIN_CHECKED
+      && translatable + notTranslatable > 0 && translatable >= TRANSLATE_MIN_SHARE * (translatable + notTranslatable)
+      && unknown < TRANSLATE_MAX_UNKNOWN * total;
+    org.thunderdog.challegram.Tgx101Diag.mark("chat translation: " + total + " checked, " + translatable + " in other languages, " + notTranslatable + " not to translate, " + unknown + " unknown → " + (offer ? "offered" : "not offered"));
+    if (!offer) return;
+    String lang = null;
+    int best = 0;
+    for (java.util.Map.Entry<String, Integer> e : byLanguage.entrySet()) {
+      if (e.getValue() > best) {
+        best = e.getValue();
+        lang = e.getKey();
+      }
+    }
+    tgx101DetectedLanguage = lang;
+    tgx101TranslateBarOffered = true;
+    org.thunderdog.challegram.Tgx101Diag.mark("chat translation: offered, the chat is in " + lang);
+    tgx101CheckTranslateBar(true);
   }
 
   /** the bar says «Hidden — tap to bring it back» for a while, then goes */

@@ -4020,6 +4020,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       final TdApi.Chat chat = tdlib.chatStrict(message.chatId);
       final TGMessage parsedMessage = TGMessage.valueOf(this, message, chat, messageThread, chatAdmins);
       showMessage(chat.id, parsedMessage);
+      if (!message.isOutgoing) tdlib.ui().post(controller::tgx101OnIncomingMessage); // the translation offer counts it too
     } else if (isFocused() && TD.isScheduled(message) && messageThread == null) {
       controller.viewScheduledMessages(true);
     }
