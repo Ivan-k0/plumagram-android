@@ -1151,7 +1151,8 @@ public final class Tgx101MessageMenu {
     org.thunderdog.challegram.Tgx101Diag.mark("menu: all reactions folded");
   }
 
-  private static final android.view.animation.Interpolator MORPH = androidx.core.view.animation.PathInterpolatorCompat.create(.32f, .72f, 0f, 1f);
+  // an even start (the first curve jumped most of the way in two frames — 0.2.32 recorded on the vivo)
+  private static final android.view.animation.Interpolator MORPH = androidx.core.view.animation.PathInterpolatorCompat.create(.4f, 0f, .2f, 1f);
 
   private static void animatePanel (Host host, boolean open, @Nullable Runnable after) {
     GrowPanel panel = host.panel;
@@ -1159,7 +1160,7 @@ public final class Tgx101MessageMenu {
     if (panel == null || grid == null) return;
     host.animating = true;
     android.animation.ValueAnimator a = android.animation.ValueAnimator.ofFloat(open ? 0f : 1f, open ? 1f : 0f);
-    a.setDuration(open ? 300 : 260);
+    a.setDuration(open ? 380 : 320);
     a.setInterpolator(MORPH);
     a.addUpdateListener(anim -> {
       float f = (float) anim.getAnimatedValue();
@@ -1358,7 +1359,7 @@ public final class Tgx101MessageMenu {
     pinTop(host);
     in.setTranslationX(forward ? width : -width);
     android.animation.ValueAnimator a = android.animation.ValueAnimator.ofFloat(0f, 1f);
-    a.setDuration(340);
+    a.setDuration(360);
     a.setInterpolator(MORPH);
     a.addUpdateListener(anim -> {
       float f = (float) anim.getAnimatedValue();
