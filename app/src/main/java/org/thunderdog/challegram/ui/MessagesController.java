@@ -630,6 +630,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private @Nullable View tgx101KeyboardFiller;
+  private @Nullable View tgx101NavScrim;
+
+  private void tgx101UpdateNavScrim () {
+    if (tgx101NavScrim == null) return;
+    int height = inPreviewMode || Settings.isGestureNavigation() ? 0 : extraBottomInsetWithoutIme;
+    tgx101NavScrim.setVisibility(height > 0 ? View.VISIBLE : View.GONE);
+    if (height > 0) Views.setLayoutHeight(tgx101NavScrim, height);
+  }
   private @Nullable org.thunderdog.challegram.component.chat.Tgx101DeleteEffect tgx101DeleteEffect;
 
   /** TGx101: a message view about to leave the list turns to pixel dust (user 2026-10-12 «как пыль в оффе, но пиксельная») */
@@ -770,6 +778,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       emojiKeyboardFrameLayout.setExtraBottomInset(extraBottomInset, extraBottomInsetWithoutIme);
     }
     updateBottomWrapOffset();
+    tgx101UpdateNavScrim();
     iterateMediaTabs(c ->
       c.setBottomInset(extraBottomInset, extraBottomInsetWithoutIme)
     );
@@ -1900,6 +1909,17 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tgx101DeleteEffect.setVisibility(View.INVISIBLE); // laid out (it needs its size), drawn only while cubes fall
       tgx101DeleteEffect.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
       contentView.addView(tgx101DeleteEffect); // the deleted message's dust flies over the list, under the field
+      // TGx101 (user 2026-10-19, check with navigation buttons): the list runs on under the floating field down to the
+      // screen's edge — with buttons the messages showed through under ☰ ⌂ ↩; there a plain strip covers them (with
+      // gestures nothing changes: the thin bar stays see-through)
+      tgx101NavScrim = new View(context);
+      ViewSupport.setThemedBackground(tgx101NavScrim, ColorId.background, this);
+      RelativeLayout.LayoutParams scrimParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0);
+      scrimParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+      tgx101NavScrim.setLayoutParams(scrimParams);
+      tgx101NavScrim.setVisibility(View.GONE);
+      contentView.addView(tgx101NavScrim);
+      tgx101UpdateNavScrim();
       messagesView.addOnScrollListener(new RecyclerView.OnScrollListener() {
         @Override
         public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
