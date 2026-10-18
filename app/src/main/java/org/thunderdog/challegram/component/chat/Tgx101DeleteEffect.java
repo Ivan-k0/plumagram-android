@@ -89,7 +89,27 @@ public final class Tgx101DeleteEffect extends View {
   private static final int MAX_BURSTS = 6;
   private static boolean fastBroken;
 
+  private static Boolean capable;
+
+  /**
+   * (user 2026-10-19 «у офф телеграм такой же принцип?») as Telegram's own dust, only on phones strong enough for it:
+   * a phone the system calls low on memory, or one giving the app under 256 MB, just lets the message go as before
+   */
+  private static boolean capable (Context context) {
+    if (capable == null) {
+      boolean ok = true;
+      try {
+        android.app.ActivityManager am = (android.app.ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        if (am != null) ok = !am.isLowRamDevice() && am.getMemoryClass() >= 256;
+      } catch (Throwable ignored) { }
+      capable = ok;
+      Tgx101Diag.mark("delete effect: " + (ok ? "on" : "off — a weak phone"));
+    }
+    return capable;
+  }
+
   public void explode (View source, @Nullable Path outline) {
+    if (!capable(getContext())) return;
     if (bursts.size() >= MAX_BURSTS) {
       Tgx101Diag.mark("delete effect: skipped, " + bursts.size() + " already going");
       return;

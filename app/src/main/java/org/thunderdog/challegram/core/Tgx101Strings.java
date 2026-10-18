@@ -670,6 +670,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ReactedCount, "Реакции: %1$d");
     RU.put(R.string.Tgx101ReactedAll, "Все %1$d");
     RU.put(R.string.Tgx101Back, "Назад");
+    RU.put(R.string.Tgx101CrashReportTitle, "В прошлый раз PlumaGram закрылся с ошибкой. Отправить отчёт разработчику? Это поможет её исправить (сообщений и контактов в отчёте нет).");
+    RU.put(R.string.Tgx101CrashReportSend, "Отправить отчёт");
+    RU.put(R.string.Tgx101CrashReportSkip, "Не сейчас");
     RU.put(R.string.Tgx101UpdateNow, "Обновить");
     RU.put(R.string.Tgx101UpdateReadyText, "Скачано. Нажмите, чтобы установить");
     RU.put(R.string.Tgx101UpdateInstallShort, "Установить");

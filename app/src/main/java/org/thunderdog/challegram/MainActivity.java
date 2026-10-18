@@ -547,6 +547,11 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
         break;
     }
     showExperimentalAlert();
+    // TGx101: the last run crashed — offer to send the report (every build)
+    UI.post(() -> {
+      ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : null;
+      if (current != null && !isFinishing()) org.thunderdog.challegram.service.Tgx101CrashReport.checkAndOffer(current);
+    }, 2000);
   }
 
   private void showExperimentalAlert () {
