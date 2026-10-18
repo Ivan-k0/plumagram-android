@@ -110,7 +110,9 @@ public final class Tgx101StorageSwitch extends View {
   private final OnLayoutChangeListener parentLayout = (v, l, t, r, b, ol, ot, or, ob) -> {
     // (user's video 2026-10-16 16:26) while the keyboard is up the screen is shorter: the button only fades, it isn't
     // placed for that height (it slid down on the way out) — it comes back where it was once the keyboard goes
-    if (!isDragging() && !isKeyboardShown() && (r - l != or - ol || b - t != ob - ot || getTranslationY() == 0f)) place(false);
+    // (user 2026-10-18 «кнопка всё равно уезжает после открытия клавиатуры»): the screen changed its height a moment before
+    // the keyboard flag did — placed for the short screen, it stayed there. The keyboard on screen is asked directly
+    if (!isDragging() && !isKeyboardShown() && !imeOnScreen() && (r - l != or - ol || b - t != ob - ot || getTranslationY() == 0f)) place(false);
   };
 
   private Tgx101SavedStore store () {
@@ -126,9 +128,21 @@ public final class Tgx101StorageSwitch extends View {
     if (visible && !imeReallyVisible()) visible = false;
     if (keyboardShown != visible) {
       keyboardShown = visible;
+      if (!visible) {
+        // the keyboard went: back to its place once the screen has its full height again
+        post(() -> post(() -> {
+          if (!isDragging() && !keyboardShown) place(false);
+        }));
+      }
       org.thunderdog.challegram.Tgx101Diag.mark("storage switch: keyboard " + (visible ? "up" : "down"));
       updateVisibility();
     }
+  }
+
+  private boolean imeOnScreen () {
+    if (android.os.Build.VERSION.SDK_INT < 30) return keyboardShown;
+    android.view.WindowInsets insets = getRootWindowInsets();
+    return insets != null && insets.isVisible(android.view.WindowInsets.Type.ime());
   }
 
   private boolean imeReallyVisible () {
@@ -146,9 +160,9 @@ public final class Tgx101StorageSwitch extends View {
     org.thunderdog.challegram.Tgx101Diag.mark("storage switch: " + (show ? "shown" : "hidden") + " (" + (where == IN_CHAT ? "chat" : "storage") + ", storage " + s.storageOn + ", button " + s.switchButton + ", keyboard " + keyboardShown + ")");
     shown = show;
     if (show) {
-      if (getVisibility() != VISIBLE) {
+      if (getVisibility() != VISIBLE || getAlpha() < 1f) {
         setVisibility(VISIBLE);
-        place(false); // first in its place, then it fades in there
+        place(false); // first in its place (also when it was still fading out), then it fades in there
         setAlpha(0f);
         setScaleX(.7f);
         setScaleY(.7f);
