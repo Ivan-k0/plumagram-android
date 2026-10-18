@@ -73,7 +73,7 @@ public final class Tgx101DeleteEffect extends View {
   }
 
   private static boolean fastPath () {
-    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q; // drawVertices is hardware accelerated from Android 10
+    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !fastBroken; // drawVertices is hardware accelerated from Android 10
   }
 
   /**
@@ -82,7 +82,26 @@ public final class Tgx101DeleteEffect extends View {
    */
   private static long lastHapticAt;
 
+  // TGx101 (4PDA 2026-10-18 #262, #272: «вылетает при анимации рассыпания… пока все сообщения не удалятся», «при удалении
+  // чата»): clearing a chat removes every visible message at once — a snapshot and thousands of grains for each ran a
+  // weak phone out of memory, and a snapshot of a message with pictures in video memory can't be drawn on a software
+  // canvas at all. At most a few bursts at a time; whatever goes wrong here only means no dust, never a crash
+  private static final int MAX_BURSTS = 6;
+  private static boolean fastBroken;
+
   public void explode (View source, @Nullable Path outline) {
+    if (bursts.size() >= MAX_BURSTS) {
+      Tgx101Diag.mark("delete effect: skipped, " + bursts.size() + " already going");
+      return;
+    }
+    try {
+      explodeImpl(source, outline);
+    } catch (Throwable t) {
+      Tgx101Diag.mark("delete effect: failed " + t.getClass().getSimpleName() + " " + t.getMessage());
+    }
+  }
+
+  private void explodeImpl (View source, @Nullable Path outline) {
     // TGx101: deleted — one tap for the whole batch (user 2026-10-13 «при удалении нескольких сообщений виброотклик должен
     // быть одинарный»): messages removed together turn to dust within a few frames, only the first one vibrates
     long now = SystemClock.uptimeMillis();
@@ -115,7 +134,13 @@ public final class Tgx101DeleteEffect extends View {
     sc.scale(bw / (float) w, bh / (float) h);
     sc.translate(-area.left, -area.top);
     if (outline != null) sc.clipPath(outline);
-    source.draw(sc);
+    try {
+      source.draw(sc);
+    } catch (Throwable t) {
+      snapshot.recycle(); // e.g. «Software rendering doesn't support hardware bitmaps»
+      Tgx101Diag.mark("delete effect: snapshot failed " + t.getClass().getSimpleName());
+      return;
+    }
 
     Burst b = new Burst();
     b.snapshot = snapshot;
@@ -206,6 +231,19 @@ public final class Tgx101DeleteEffect extends View {
   @Override
   protected void onDraw (Canvas c) {
     if (bursts.isEmpty()) return;
+    try {
+      drawAll(c);
+    } catch (Throwable t) {
+      // no dust rather than a crash: drop what's flying
+      Tgx101Diag.mark("delete effect: draw failed " + t.getClass().getSimpleName() + " " + t.getMessage());
+      fastBroken = true;
+      for (Burst b : bursts) if (b.snapshot != null && !b.snapshot.isRecycled()) b.snapshot.recycle();
+      bursts.clear();
+      setVisibility(INVISIBLE);
+    }
+  }
+
+  private void drawAll (Canvas c) {
     long now = SystemClock.uptimeMillis();
     for (int k = bursts.size() - 1; k >= 0; k--) {
       Burst b = bursts.get(k);

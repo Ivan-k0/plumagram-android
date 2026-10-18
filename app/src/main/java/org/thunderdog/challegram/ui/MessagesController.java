@@ -635,8 +635,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
   /** TGx101: a message view about to leave the list turns to pixel dust (user 2026-10-12 «как пыль в оффе, но пиксельная») */
   public void tgx101ExplodeMessage (@Nullable View messageView) {
     if (tgx101DeleteEffect != null && messageView != null && isFocused()) {
-      tgx101CaptureGapClose();
-      tgx101DeleteEffect.explode(messageView, tgx101BubbleOutline(messageView));
+      try { // (4PDA 2026-10-18: crashes on deleting / clearing) the dust is a nicety — it never takes the app down
+        tgx101CaptureGapClose();
+        tgx101DeleteEffect.explode(messageView, tgx101BubbleOutline(messageView));
+      } catch (Throwable t) {
+        org.thunderdog.challegram.Tgx101Diag.mark("delete effect: failed at start " + t.getClass().getSimpleName());
+      }
     } else if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
       org.thunderdog.challegram.Tgx101Diag.mark("delete effect: skipped (" + (messageView == null ? "not on screen" : !isFocused() ? "chat not focused" : "no layer") + ")");
     }
