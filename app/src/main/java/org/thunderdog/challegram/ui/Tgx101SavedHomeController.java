@@ -196,6 +196,41 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     return v;
   }
 
+  /**
+   * A tile's name broken only between words: when its longest word is wider than the tile, the name gets smaller
+   * (down to [minSp]) so the word fits whole — a TextView cut it in the middle («Фотосе / ссия с Симбой»)
+   */
+  static TextView tileName (Context context, float sp, float minSp, int color) {
+    TextView v = new org.thunderdog.challegram.widget.EmojiTextView(context) {
+      private final android.text.TextPaint probe = new android.text.TextPaint();
+
+      @Override
+      protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
+        int width = MeasureSpec.getSize(widthMeasureSpec) - getPaddingLeft() - getPaddingRight();
+        if (MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.UNSPECIFIED && width > 0) {
+          probe.set(getPaint());
+          probe.setTextSize(Screen.dp(sp));
+          float widest = 0;
+          for (String word : getText().toString().split("\\s+")) {
+            widest = Math.max(widest, probe.measureText(word));
+          }
+          float size = Screen.dp(sp);
+          if (widest > width) {
+            size = Math.max(Screen.dp(minSp), (float) Math.floor(size * width / widest));
+          }
+          if (Math.abs(getTextSize() - size) >= .5f) {
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
+          }
+        }
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+      }
+    };
+    v.setTextSize(TypedValue.COMPLEX_UNIT_DIP, sp);
+    v.setTextColor(color);
+    v.setTypeface(Fonts.getRobotoMedium());
+    return v;
+  }
+
   static TextView sectionTitle (Context context, String title) {
     TextView v = text(context, 15f, Theme.textAccentColor(), true);
     v.setText(title);
@@ -987,7 +1022,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       t.addView(top);
     }
     t.addView(new View(context), new LinearLayout.LayoutParams(1, 0, 1f));
-    TextView n = text(context, big ? 15f : 13f, textColor, true);
+    TextView n = tileName(context, big ? 15f : 13f, big ? 12f : 10.5f, textColor);
     n.setText(name);
     n.setMaxLines(big ? 3 : 2);
     n.setEllipsize(TextUtils.TruncateAt.END);
@@ -1421,7 +1456,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     t.setOnClickListener(click);
     t.setOnLongClickListener(longClick);
     int ink = Theme.isDark() ? Tgx101SavedListController.lighten(color) : color;
-    TextView n = text(context, 14f, ink, true);
+    TextView n = tileName(context, 14f, 11f, ink);
     n.setText(name);
     n.setMaxLines(2);
     n.setEllipsize(TextUtils.TruncateAt.END);
