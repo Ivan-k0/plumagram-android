@@ -4413,10 +4413,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       return true;
     }
     if (inSlideMode) {
-      // TGx101: only a moderate swipe down closes the viewer, not any tiny flick either way
+      // TGx101: a moderate swipe closes the viewer, not any tiny flick — down or (user 2026-10-19) up, the same way
+      boolean up = lastSlideY < 0f;
+      float along = up ? -velocityY : velocityY, distance = Math.abs(lastSlideY);
       boolean apply =
-        (velocityY >= Screen.dp(TGX101_CLOSE_FLING_DP) && lastSlideY >= Screen.dp(TGX101_CLOSE_FLING_MIN_DISTANCE_DP) && velocityY > Math.abs(velocityX)) ||
-        (lastSlideY >= Screen.dp(TGX101_CLOSE_DISTANCE_DP) && velocityY >= 0f);
+        (along >= Screen.dp(TGX101_CLOSE_FLING_DP) && distance >= Screen.dp(TGX101_CLOSE_FLING_MIN_DISTANCE_DP) && Math.abs(velocityY) > Math.abs(velocityX)) ||
+        (distance >= Screen.dp(TGX101_CLOSE_DISTANCE_DP) && along >= 0f);
       dropSlideMode(apply ? 0f : velocityX, velocityY, apply);
     }
     return false;
@@ -6134,12 +6136,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             if (listenCloseBySlide) {
               float x = e.getX();
               float y = e.getY();
-              if (startY - y >= Screen.getTouchSlopBig()) {
-                // TGx101: swipe up doesn't close the viewer
-                listenCloseBySlide = false;
-                break;
-              }
-              if (y - startY >= Screen.getTouchSlopBig() && Math.abs(startX - x) < Screen.getTouchSlop() * 1.65f) {
+              // TGx101 (user 2026-10-19 «выходить из просмотра не только свайпом сверху вниз, но и снизу вверх»): either way
+              if (Math.abs(y - startY) >= Screen.getTouchSlopBig() && Math.abs(startX - x) < Screen.getTouchSlop() * 1.65f) {
                 mediaView.dropPreview(MediaView.DIRECTION_AUTO, 0f);
                 listenCloseBySlide = false;
                 slideStartX = x;
@@ -6194,7 +6192,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             if (inSlideMode) {
               float x = e.getX();
               float y = e.getY();
-              setSlide(x - slideStartX, Math.max(0f, y - slideStartY), slideStartX, false, true);
+              setSlide(x - slideStartX, y - slideStartY, slideStartX, false, true); // up or down
               return true;
             }
             break;
@@ -6206,8 +6204,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
               return true;
             }
             if (inSlideMode) {
-              boolean apply = e.getAction() == MotionEvent.ACTION_UP && lastSlideY >= Screen.dp(TGX101_CLOSE_DISTANCE_DP);
-              dropSlideMode(0f, apply ? 1f : 0f, apply);
+              boolean apply = e.getAction() == MotionEvent.ACTION_UP && Math.abs(lastSlideY) >= Screen.dp(TGX101_CLOSE_DISTANCE_DP);
+              dropSlideMode(0f, apply ? (lastSlideY < 0f ? -1f : 1f) : 0f, apply);
             }
             break;
           }
