@@ -228,15 +228,20 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     final Tgx101StoragePull storagePull = new Tgx101StoragePull(context, new Tgx101StoragePull.Host() {
       @Override
       public boolean canPull () {
-        return getCurrentPagerItemPosition() == 0 && !Lang.rtl() && !inSearchMode() && !inSelectMode()
+        boolean can = getCurrentPagerItemPosition() == 0 && !Lang.rtl() && !inSearchMode() && !inSelectMode()
           && org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).storageOn;
+        if (can) tgx101PrepareStorage(); // the finger is down, not moving yet: the screen gets made now, not on the first step
+        return can;
       }
 
       @Override
       public boolean startDrag () {
         NavigationController navigation = context().navigation();
         if (navigation == null || navigation.isAnimating() || navigation.getCurrentStackItem() != MainController.this) return false;
-        boolean started = navigation.tgx101StartDragForward(new Tgx101SavedHomeController(context(), tdlib), true);
+        Tgx101SavedHomeController storage = tgx101PreparedStorage != null ? tgx101PreparedStorage : new Tgx101SavedHomeController(context(), tdlib);
+        tgx101PreparedStorage = null;
+        boolean started = navigation.tgx101StartDragForward(storage, true);
+        if (!started) storage.destroy();
         org.thunderdog.challegram.Tgx101Diag.mark("storage pull: " + (started ? "follows the finger" : "can't start"));
         return started;
       }
@@ -1404,6 +1409,26 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
 
   private boolean tgx101CallsFetched;
 
+  // TGx101 (user 2026-10-18 «анимация выезда не плавная от слова совсем»): the storage that comes in from the left is made
+  // ahead — made on the first step of the finger it took ~30 ms and the first frames 55–66 ms (log). Made and laid out
+  // when the chats are shown, or at the latest when the finger goes down
+  private @Nullable Tgx101SavedHomeController tgx101PreparedStorage;
+
+  private void tgx101PrepareStorage () {
+    if (tgx101PreparedStorage != null || isDestroyed() || !org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).storageOn || !Settings.instance().tgx101SwipeToStorage()) return;
+    NavigationController navigation = context().navigation();
+    View root = navigation != null ? navigation.getValue() : null;
+    long t = android.os.SystemClock.uptimeMillis();
+    Tgx101SavedHomeController c = new Tgx101SavedHomeController(context(), tdlib);
+    View v = c.getValue();
+    if (root != null && root.getWidth() > 0) {
+      v.measure(View.MeasureSpec.makeMeasureSpec(root.getWidth(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(root.getHeight(), View.MeasureSpec.EXACTLY));
+      v.layout(0, 0, root.getWidth(), root.getHeight());
+    }
+    tgx101PreparedStorage = c;
+    org.thunderdog.challegram.Tgx101Diag.mark("storage pull: storage made ahead in " + (android.os.SystemClock.uptimeMillis() - t) + " ms");
+  }
+
   // TGx101 (user 2026-10-18): the capsule's tabs are the user's (MagiX → «Bottom menu tabs»); «Profile» shows the active account
   private int tgx101CapsuleVersion = -1;
 
@@ -1845,6 +1870,10 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
 
   @Override
   public void destroy () {
+    if (tgx101PreparedStorage != null) {
+      tgx101PreparedStorage.destroy();
+      tgx101PreparedStorage = null;
+    }
     super.destroy();
     if (tgx101Capsule != null && tgx101Capsule.getParent() instanceof ViewGroup) {
       ((ViewGroup) tgx101Capsule.getParent()).removeView(tgx101Capsule); // the capsule sits in the navigation, not in this screen
@@ -2025,6 +2054,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   @Override
   public void onFocus () {
     super.onFocus();
+    if (getValue() != null) getValue().postDelayed(this::tgx101PrepareStorage, 700); // after the chats settle
     // TGx101 (user's log 2026-10-06 23:29): swiped back from a chat with the keyboard up — the chats page itself doesn't
     // get focus here, so the main screen hides it (the list has no input)
     if (!inSearchMode() && context.isKeyboardVisible()) {

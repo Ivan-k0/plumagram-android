@@ -639,7 +639,11 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     if (pendingAfterOpen != null) {
       Runnable r = pendingAfterOpen;
       pendingAfterOpen = null;
-      r.run();
+      if (android.os.SystemClock.uptimeMillis() - madeStart > 5000 && column != null) {
+        reload(); // made ahead a while ago (the pull from the chats): what it shows may be old
+      } else {
+        r.run();
+      }
       return; // the first focus: everything else was loaded with the screen
     }
     if (column != null && loadedOnce) reload(); // back from a folder / list / settings: counts and tiles may have changed
