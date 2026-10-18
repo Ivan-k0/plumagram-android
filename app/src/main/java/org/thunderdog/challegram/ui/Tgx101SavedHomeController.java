@@ -630,7 +630,9 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
 
   @Override
   public void onFocus () {
+    long focusStart = android.os.SystemClock.uptimeMillis();
     super.onFocus();
+    if (getValue() != null) getValue().post(() -> org.thunderdog.challegram.Tgx101Diag.mark("storage home: focus work " + (android.os.SystemClock.uptimeMillis() - focusStart) + " ms (to the next message)"));
     if (storageSwitch != null) storageSwitch.updateVisibility();
     if (openedAt != 0) {
       org.thunderdog.challegram.Tgx101Diag.mark("storage home: on screen " + (android.os.SystemClock.uptimeMillis() - openedAt) + " ms after it was made");

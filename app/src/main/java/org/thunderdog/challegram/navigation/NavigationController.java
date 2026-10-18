@@ -1220,16 +1220,20 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
 
   public boolean tgx101StartDragForward (ViewController<?> controller, boolean fromLeft) {
     if (isAnimating || isEmpty() || controller == null || getStack().getCurrent() == null) return false;
+    long t0 = android.os.SystemClock.uptimeMillis();
     hideContextualPopups();
     setIsAnimating(true);
     controller.getValue();
     getStack().push(controller, true);
     controller.executeAnimationReadyListeners();
+    long t1 = android.os.SystemClock.uptimeMillis();
     tgx101ForceRtlOnce = fromLeft;
     prepareFactorAnimation(getStack().getPrevious(), controller, true, TRANSLATION_HORIZONTAL, PredictiveGesture.NONE);
     tgx101ForceRtlOnce = false;
+    long t2 = android.os.SystemClock.uptimeMillis();
     tgx101DragForward = controller;
     setFactor(1f);
+    org.thunderdog.challegram.Tgx101Diag.mark("drag forward: push " + (t1 - t0) + " ms, prepare " + (t2 - t1) + " ms, factor " + (android.os.SystemClock.uptimeMillis() - t2) + " ms");
     return true;
   }
 
