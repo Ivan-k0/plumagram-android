@@ -1094,6 +1094,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     topBar = new CollapseListView(context);
     topBar.setLayoutParams(params);
+    if (Settings.instance().useFloatingInput()) topBar.tgx101SetNoShadows(true); // capsules, no full-width shadow lines
     topBar.setTotalHeightChangeListener(listView -> onMessagesFrameChanged());
 
     int liveLocationHeight = Screen.dp(36f);

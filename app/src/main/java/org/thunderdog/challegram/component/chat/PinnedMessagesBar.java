@@ -176,6 +176,13 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
         setOverScrollDisabled(fromPosition == 0 && toPosition == scrollItemCount);
 
         RectF rectF = Paints.getRectF();
+        // TGx101 (user 2026-10-18 «полоски закреплённых вылазят за пределы плашки»): in the floating capsule (3 dp in from
+        // the bar's top and bottom, rounded) the scrolling lines are cut where the capsule is
+        int tgx101Save = -1;
+        if (tgx101Transparent) {
+          tgx101Save = c.save();
+          c.clipRect(0, outerSpacing, parent.getMeasuredWidth(), viewportHeight - outerSpacing);
+        }
 
         float lineScrollY = Math.max(0, lineHeight * scrollItemCount + spacingBetweenItems * (scrollItemCount - 1) + outerSpacing * 2 - viewportHeight);
 
@@ -223,7 +230,10 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
           }
         }
 
-        c.drawRect(0, parent.getMeasuredHeight() - Screen.separatorSize(), parent.getMeasuredWidth(), parent.getMeasuredHeight(), Paints.fillingPaint(ColorUtils.alphaColor(getExpandFactor() * MathUtils.clamp(focusPosition), Theme.separatorColor())));
+        if (tgx101Save != -1) c.restoreToCount(tgx101Save);
+        if (!tgx101Transparent) { // the floating capsule has its own edge
+          c.drawRect(0, parent.getMeasuredHeight() - Screen.separatorSize(), parent.getMeasuredWidth(), parent.getMeasuredHeight(), Paints.fillingPaint(ColorUtils.alphaColor(getExpandFactor() * MathUtils.clamp(focusPosition), Theme.separatorColor())));
+        }
       }
     });
     addView(recyclerView);

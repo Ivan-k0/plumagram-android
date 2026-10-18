@@ -92,6 +92,14 @@ public class CollapseListView extends FrameLayoutFix implements Destroyable {
     return super.onTouchEvent(event) || event.getAction() != MotionEvent.ACTION_DOWN || event.getY() < getTotalVisualHeight();
   }
 
+  // TGx101 (user 2026-10-18 «под закрепом серая линия — зачем?»): with the floating capsules (pinned, call bar) the
+  // full-width shadow under each bar drew a grey line under the capsule
+  private boolean tgx101NoShadows;
+
+  public void tgx101SetNoShadows (boolean noShadows) {
+    this.tgx101NoShadows = noShadows;
+  }
+
   public void initWithList (Item[] items, @Nullable ViewController<?> themeProvider) {
     if (!entries.isEmpty())
       throw new IllegalStateException();
@@ -213,7 +221,7 @@ public class CollapseListView extends FrameLayoutFix implements Destroyable {
       entry.shadowView.setAlpha(visibility);
       entry.shadowView.setTranslationY(positionY);
       if (entry.shadowView.getVisibility() != viewVisibility) {
-        entry.shadowView.setVisibility(viewVisibility);
+        entry.shadowView.setVisibility(tgx101NoShadows ? View.GONE : viewVisibility);
       }
 
       y += height * visibility;
