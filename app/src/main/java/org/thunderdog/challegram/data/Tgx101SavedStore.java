@@ -445,6 +445,27 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
     }
   }
 
+  /** (user 2026-10-17 «переименовывать теги»): the tag's messages, its place on the home screen and «last used» move to the new name */
+  public synchronized void renameLocalTag (String from, String to) {
+    String a = normalizeTag(from), b = normalizeTag(to);
+    if (a.isEmpty() || b.isEmpty() || a.equals(b)) return;
+    LinkedHashSet<Long> moved = localTags.remove(a);
+    if (moved != null) {
+      LinkedHashSet<Long> target = localTags.get(b);
+      if (target == null) localTags.put(b, moved); else target.addAll(moved);
+    } else if (!localTags.containsKey(b)) {
+      localTags.put(b, new LinkedHashSet<>());
+    }
+    if (homeTags.contains(a)) {
+      // the same place among the tiles
+      List<String> order = new ArrayList<>(homeTags);
+      homeTags.clear();
+      for (String t : order) homeTags.add(t.equals(a) ? b : t);
+    }
+    if (a.equals(lastTag)) lastTag = b;
+    save();
+  }
+
   public synchronized boolean isTagOnHome (String tag) {
     return homeTags.contains(normalizeTag(tag));
   }

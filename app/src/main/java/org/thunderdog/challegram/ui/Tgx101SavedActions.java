@@ -122,6 +122,20 @@ public final class Tgx101SavedActions {
           after.run();
         });
       }));
+      // (user 2026-10-17 «если убрать метку с главного экрана, то как её вернуть?»): the tags that aren't tiles, one tap back
+      Tgx101SavedStore store = Tgx101SavedStore.get(c.tdlib());
+      List<String> hidden = new ArrayList<>();
+      for (String t : store.knownTags()) if (!store.isTagOnHome(t)) hidden.add(t);
+      if (!hidden.isEmpty()) {
+        body.addView(Tgx101Sheet.title(c.context(), Lang.getString(R.string.Tgx101SavedTagsBack)));
+        for (String t : hidden) {
+          body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_label_24, 0, "#" + t, null, false, v -> {
+            h[0].dismiss();
+            store.setTagOnHome(t, true);
+            after.run();
+          }));
+        }
+      }
     });
   }
 
@@ -282,6 +296,95 @@ public final class Tgx101SavedActions {
       store.addLocalTag(tag, ids);
     }
     UI.showToast(Lang.getString(R.string.Tgx101SavedTagDone, "#" + tag), android.widget.Toast.LENGTH_SHORT);
+  }
+
+  /**
+   * (user 2026-10-17 «нужно дать возможность переименовывать теги в хранилище»): #old becomes #new in one's own texts and
+   * captions; messages that can't be edited (forwarded) keep it as a tag of this phone under the new name
+   */
+  public static void renameTag (ViewController<?> c, String tag, @Nullable Runnable after) {
+    String old = Tgx101SavedStore.normalizeTag(tag);
+    askName(c, Lang.getString(R.string.Tgx101SavedTagRename), "#" + old, name -> {
+      String renamed = Tgx101SavedStore.normalizeTag(name);
+      if (renamed.isEmpty() || renamed.equals(old)) return;
+      Tdlib tdlib = c.tdlib();
+      Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
+      store.renameLocalTag(old, renamed);
+      if (after != null) after.run();
+      Tgx101SavedKit.search(tdlib, null, "#" + old, 1000, found -> {
+        int edited = 0;
+        List<Long> local = new ArrayList<>();
+        for (TdApi.Message m : found) {
+          TdApi.FormattedText text = Tgx101SavedKit.text(m);
+          TdApi.FormattedText replaced = text != null ? replaceHashtag(text, old, renamed) : null;
+          if (replaced == null) continue; // the search's own fuzziness: no such word there
+          if (Tgx101SavedKit.isOwnEditable(m)) {
+            sendEdited(tdlib, m, replaced, renamed);
+            edited++;
+          } else {
+            local.add(m.id);
+          }
+        }
+        if (!local.isEmpty()) {
+          long[] ids = new long[local.size()];
+          for (int i = 0; i < ids.length; i++) ids[i] = local.get(i);
+          store.addLocalTag(renamed, ids);
+        }
+        org.thunderdog.challegram.Tgx101Diag.mark("storage: tag renamed, " + edited + " texts edited, " + local.size() + " kept on the phone");
+        UI.showToast(Lang.getString(R.string.Tgx101SavedTagRenamed, "#" + renamed), android.widget.Toast.LENGTH_SHORT);
+        if (after != null) after.run();
+      });
+    });
+  }
+
+  /** Every whole «#old» (any case) → «#renamed», the entities after it moved by the difference; null — none there */
+  static @Nullable TdApi.FormattedText replaceHashtag (TdApi.FormattedText text, String old, String renamed) {
+    String src = text.text;
+    String lower = src.toLowerCase(java.util.Locale.ROOT);
+    String needle = "#" + old, replacement = "#" + renamed;
+    StringBuilder out = new StringBuilder();
+    List<int[]> changes = new ArrayList<>(); // [start in the old text, end in the old text]
+    int prev = 0, from = 0;
+    while (true) {
+      int at = lower.indexOf(needle, from);
+      if (at < 0) break;
+      int end = at + needle.length();
+      from = end;
+      boolean whole = (end >= src.length() || !(Character.isLetterOrDigit(src.charAt(end)) || src.charAt(end) == '_'))
+        && (at == 0 || !(Character.isLetterOrDigit(src.charAt(at - 1)) || src.charAt(at - 1) == '_'));
+      if (!whole) continue;
+      out.append(src, prev, at).append(replacement);
+      prev = end;
+      changes.add(new int[] {at, end});
+    }
+    if (changes.isEmpty()) return null;
+    out.append(src, prev, src.length());
+    int delta = replacement.length() - needle.length();
+    List<TdApi.TextEntity> moved = new ArrayList<>();
+    if (text.entities != null) {
+      for (TdApi.TextEntity e : text.entities) {
+        int start = e.offset, stop = e.offset + e.length, newStart = start, newStop = stop;
+        for (int[] ch : changes) {
+          if (ch[1] <= start) newStart += delta; // wholly before the entity
+          if (ch[0] < stop) newStop += delta; // before its end (or the hashtag itself)
+        }
+        if (newStop > newStart) moved.add(new TdApi.TextEntity(newStart, newStop - newStart, e.type));
+      }
+    }
+    return new TdApi.FormattedText(out.toString(), moved.toArray(new TdApi.TextEntity[0]));
+  }
+
+  private static void sendEdited (Tdlib tdlib, TdApi.Message m, TdApi.FormattedText formatted, String tag) {
+    if (m.content.getConstructor() == TdApi.MessageText.CONSTRUCTOR) {
+      TdApi.MessageText t = (TdApi.MessageText) m.content;
+      tdlib.send(new TdApi.EditMessageText(m.chatId, m.id, null, new TdApi.InputMessageText(formatted, t.linkPreviewOptions, false)), (r, error) -> {
+        if (error != null) UI.post(() -> Tgx101SavedStore.get(tdlib).addLocalTag(tag, new long[] {m.id}));
+      });
+    } else {
+      tdlib.send(new TdApi.EditMessageCaption(m.chatId, m.id, null, formatted, false), (r, error) -> {
+        if (error != null) UI.post(() -> Tgx101SavedStore.get(tdlib).addLocalTag(tag, new long[] {m.id}));
+      });
+    }
   }
 
   /** «… #tag» at the end of one's own text / caption (already there — nothing to do) */

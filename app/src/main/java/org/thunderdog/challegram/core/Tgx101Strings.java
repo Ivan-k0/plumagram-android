@@ -670,6 +670,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ReactedCount, "Реакции: %1$d");
     RU.put(R.string.Tgx101ReactedAll, "Все %1$d");
     RU.put(R.string.Tgx101Back, "Назад");
+    RU.put(R.string.Tgx101SavedTagRename, "Переименовать метку");
+    RU.put(R.string.Tgx101SavedTagRenamed, "Метка теперь %1$s");
+    RU.put(R.string.Tgx101SavedTagsBack, "Вернуть на главную");
+    RU.put(R.string.Tgx101SavedTagRemovedHint, "Метка убрана с главной. Вернуть — кнопкой «+» в конце папок");
     RU.put(R.string.Tgx101CapsuleMenuHint, "Удерживайте кнопку в нижнем меню и ведите палец к пункту. Не меньше двух пунктов.");
     RU.put(R.string.Tgx101CapsuleMenuMin, "Оставьте хотя бы два пункта");
     RU.put(R.string.Tgx101MyProfile, "Профиль");

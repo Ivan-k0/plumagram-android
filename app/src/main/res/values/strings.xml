@@ -6545,6 +6545,10 @@
   <string name="Tgx101ReactedCount">Reactions: %1$d</string>
   <string name="Tgx101ReactedAll">All %1$d</string>
   <string name="Tgx101Back">Back</string>
+  <string name="Tgx101SavedTagRename">Rename tag</string>
+  <string name="Tgx101SavedTagRenamed">The tag is now %1$s</string>
+  <string name="Tgx101SavedTagsBack">Back to the home screen</string>
+  <string name="Tgx101SavedTagRemovedHint">The tag is off the home screen. To bring it back: the «+» button at the end of the folders</string>
   <string name="Tgx101CapsuleMenuHint">Hold the button on the bottom menu and slide to an item. At least two items.</string>
   <string name="Tgx101CapsuleMenuMin">Keep at least two items</string>
   <string name="Tgx101MyProfile">My profile</string>

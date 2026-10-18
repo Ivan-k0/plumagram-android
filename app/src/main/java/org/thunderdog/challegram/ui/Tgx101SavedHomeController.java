@@ -886,10 +886,13 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   }
 
   private void tagOptions (String tag) {
-    showOptions(null, new int[] {R.id.btn_delete, R.id.btn_cancel}, new String[] {Lang.getString(R.string.Tgx101SavedRemoveFromHome), Lang.getString(R.string.Cancel)}, new int[] {OptionColor.NORMAL, OptionColor.NORMAL}, new int[] {R.drawable.baseline_close_24, R.drawable.baseline_cancel_24}, (itemView, id) -> {
-      if (id == R.id.btn_delete) {
+    showOptions("#" + Tgx101SavedStore.normalizeTag(tag), new int[] {R.id.btn_edit, R.id.btn_delete, R.id.btn_cancel}, new String[] {Lang.getString(R.string.Tgx101SavedTagRename), Lang.getString(R.string.Tgx101SavedRemoveFromHome), Lang.getString(R.string.Cancel)}, new int[] {OptionColor.NORMAL, OptionColor.NORMAL, OptionColor.NORMAL}, new int[] {R.drawable.baseline_edit_24, R.drawable.baseline_close_24, R.drawable.baseline_cancel_24}, (itemView, id) -> {
+      if (id == R.id.btn_edit) {
+        Tgx101SavedActions.renameTag(this, tag, this::forceTiles);
+      } else if (id == R.id.btn_delete) {
         Tgx101SavedStore.get(tdlib).setTagOnHome(tag, false);
         buildTiles();
+        UI.showToast(R.string.Tgx101SavedTagRemovedHint, android.widget.Toast.LENGTH_LONG); // where it comes back from
       }
       return true;
     });
