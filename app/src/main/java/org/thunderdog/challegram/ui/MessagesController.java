@@ -1635,6 +1635,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     recordButton.setHasTouchControls(true);
     addThemeInvalidateListener(recordButton);
     recordButton.setLayoutParams(lp);
+    recordButton.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> tgx101UpdateMicExclusion());
+    contentView.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> { // the keyboard moves the bar, sometimes by an animation
+      tgx101UpdateMicExclusion();
+      contentView.removeCallbacks(tgx101MicExclusionLater);
+      contentView.postDelayed(tgx101MicExclusionLater, 450);
+    });
 
     attachButtons.addView(commandButton);
     if (silentButton != null) {
@@ -4702,6 +4708,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public void onFocus () {
     tgx101ResetMotion("focus");
     super.onFocus();
+    tgx101UpdateMicExclusion();
     tgx101DropPreventHideKeyboard();
     updateBottomWrapOffset(); // TGx101
     tgx101UpdateStorageSwitch();
@@ -4947,8 +4954,46 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return below instanceof MessagesController && ((MessagesController) below).getChatId() == getChatId() && !((MessagesController) below).areScheduled;
   }
 
+  // TGx101 (user 2026-10-18 voice note «при записи голосового свайп влево должен только отменять запись»; 2026-10-19
+  // «защита не сработала»): the mic sits at the right edge — with gesture navigation a slide from there was the system's
+  // «back». The area from the mic to the screen's edge is kept out of it (the button's own rect left the strip between it
+  // and the edge, where the finger often lands), and only while this chat is the one on screen: a chat kept in memory
+  // or the prepared storage blocked «back» at that spot on other screens
+  private final android.graphics.Rect tgx101MicExclusion = new android.graphics.Rect();
+  private int[] tgx101MicLoc, tgx101RootLoc;
+  private final Runnable tgx101MicExclusionLater = this::tgx101UpdateMicExclusion;
+
+  private void tgx101UpdateMicExclusion () {
+    tgx101UpdateMicExclusion(true);
+  }
+
+  private void tgx101UpdateMicExclusion (boolean allow) {
+    if (Build.VERSION.SDK_INT < 29 || contentView == null) return;
+    boolean on = allow && recordButton != null && isFocused() && recordButton.isShown() && recordButton.getWidth() > 0;
+    if (!on) {
+      if (!tgx101MicExclusion.isEmpty()) {
+        tgx101MicExclusion.setEmpty();
+        contentView.setSystemGestureExclusionRects(java.util.Collections.emptyList());
+      }
+      return;
+    }
+    if (tgx101MicLoc == null) {
+      tgx101MicLoc = new int[2];
+      tgx101RootLoc = new int[2];
+    }
+    recordButton.getLocationInWindow(tgx101MicLoc);
+    contentView.getLocationInWindow(tgx101RootLoc);
+    int left = tgx101MicLoc[0] - tgx101RootLoc[0], top = tgx101MicLoc[1] - tgx101RootLoc[1];
+    boolean rtl = Lang.rtl();
+    int from = rtl ? 0 : left, to = rtl ? left + recordButton.getWidth() : contentView.getWidth();
+    if (tgx101MicExclusion.left == from && tgx101MicExclusion.top == top && tgx101MicExclusion.right == to && tgx101MicExclusion.bottom == top + recordButton.getHeight()) return;
+    tgx101MicExclusion.set(from, top, to, top + recordButton.getHeight());
+    contentView.setSystemGestureExclusionRects(java.util.Collections.singletonList(new android.graphics.Rect(tgx101MicExclusion)));
+  }
+
   @Override
   public void onBlur () {
+    tgx101UpdateMicExclusion(false);
     if (tgx101StorageSwitch != null) tgx101StorageSwitch.setKeyboardShown(false); // TGx101: a keyboard closed elsewhere would leave it hidden
     tgx101ResetMotion("blur");
     saveDraft();

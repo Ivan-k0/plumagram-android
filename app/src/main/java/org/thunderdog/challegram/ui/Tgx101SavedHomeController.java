@@ -558,9 +558,16 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     // (user 2026-10-16 18:41 «свайп назад на главной — везде, кроме закреплённых»): anywhere but the «Pinned» row, which
     // slides sideways itself; never with the keyboard up or while something is selected (that is cleared first)
     if (getKeyboardState() || !selected.isEmpty()) return false;
+    // (user 2026-10-19 recording «защита не сработала»): a voice note held on the mic and slid left to cancel took the
+    // storage away with it — no «back» while recording, nor from the note bar (its mic is held there)
+    if (context().getRecordAudioVideoController().isOpen()) return false;
     View nav = navigationController.getValue();
     if (nav == null) return false;
     nav.getLocationOnScreen(slideNavLocation);
+    if (noteBar != null && noteBar.isShown()) {
+      noteBar.getLocationOnScreen(slideLocation);
+      if (y >= slideLocation[1] - slideNavLocation[1] - Screen.dp(8f)) return false;
+    }
     for (View sideways : new View[] {pinnedSection != null && pinnedSection.getVisibility() == View.VISIBLE ? pinnedScroll : null, chipsScroll}) {
       if (sideways == null || !sideways.isShown()) continue;
       if (sideways == chipsScroll && !sideways.canScrollHorizontally(-1)) continue; // the kinds row only when it scrolls back
@@ -602,9 +609,16 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   @Override
   public boolean tgx101CanSlideBackReverseFrom (org.thunderdog.challegram.navigation.NavigationController navigationController, float x, float y) {
     if (getKeyboardState() || !selected.isEmpty()) return false;
+    // (user 2026-10-19 recording «защита не сработала»): a voice note held on the mic and slid left to cancel took the
+    // storage away with it — no «back» while recording, nor from the note bar (its mic is held there)
+    if (context().getRecordAudioVideoController().isOpen()) return false;
     View nav = navigationController.getValue();
     if (nav == null) return false;
     nav.getLocationOnScreen(slideNavLocation);
+    if (noteBar != null && noteBar.isShown()) {
+      noteBar.getLocationOnScreen(slideLocation);
+      if (y >= slideLocation[1] - slideNavLocation[1] - Screen.dp(8f)) return false;
+    }
     for (View sideways : new View[] {pinnedSection != null && pinnedSection.getVisibility() == View.VISIBLE ? pinnedScroll : null, chipsScroll}) {
       if (sideways == null || !sideways.isShown()) continue;
       if (sideways == chipsScroll && !sideways.canScrollHorizontally(1)) continue; // the kinds row only while it scrolls on
