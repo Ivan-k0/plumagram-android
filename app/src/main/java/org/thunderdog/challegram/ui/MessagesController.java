@@ -9713,6 +9713,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       pinnedMessagesBar.setMessage(tdlib, message);
     }
     topBar.setItemVisible(pinnedMessagesItem, show, isFocused());
+    tgx101RefreshPinnedExtra(); // the translation button: the pinned capsule makes room or gives it back
   }
 
   public void showHidePinnedMessages (boolean show, MessageListManager messageList) {
@@ -9727,6 +9728,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       pinnedMessagesBar.setMessageList(messageList);
     }
     topBar.setItemVisible(pinnedMessagesItem, show, isFocused());
+    tgx101RefreshPinnedExtra(); // the translation button: the pinned capsule makes room or gives it back
   }
 
   private void dismissPinnedMessage () {
@@ -9893,6 +9895,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
         }
       });
     }
+  }
+
+  /** the pinned capsule came or went after the button did (user's video 2026-10-18 22:44: the button lay over it) */
+  private void tgx101RefreshPinnedExtra () {
+    if (tgx101TrButton == null) return;
+    boolean pinned = pinnedMessagesBar != null && topBar.isVisible(pinnedMessagesItem);
+    tgx101SetPinnedRightExtra(tgx101TrButton.isShown2() && pinned ? Screen.dp(org.thunderdog.challegram.component.chat.Tgx101TranslateButton.SIZE_DP + 6f) : 0, isFocused());
+    tgx101PlaceTranslateButton();
   }
 
   /** at the pinned capsule's height when there is one, else right under the header's bars */
