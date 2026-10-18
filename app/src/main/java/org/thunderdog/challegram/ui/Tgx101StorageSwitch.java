@@ -172,9 +172,20 @@ public final class Tgx101StorageSwitch extends View {
     return p == null ? 0 : Math.max(minY(), Math.max(p.getHeight() - host.bottomReserved() - size - margin, usualY()));
   }
 
+  // the usual place: the same height on both screens — 76 dp above the field (the chat's «down» arrow's place); the
+  // storage's 12 dp put it lower there and the button jumped between the screens
+  private static final float USUAL_GAP_DP = 76f;
+
   private int usualY () {
     View p = (View) getParent();
-    return p == null ? 0 : Math.max(minY(), p.getHeight() - host.bottomReserved() - size - host.usualGap());
+    return p == null ? 0 : Math.max(minY(), p.getHeight() - host.bottomReserved() - size - Screen.dp(USUAL_GAP_DP));
+  }
+
+  /** a moved place: so many dp from the screen's bottom, the same on both screens (kept inside this one's room) */
+  private float movedY (float bottomDp) {
+    View p = (View) getParent();
+    if (p == null) return minY();
+    return Math.max(minY(), Math.min(maxY(), p.getHeight() - Screen.dp(bottomDp) - size));
   }
 
   // (user 2026-10-17 «кнопки должны перемещаться на обоих экранах одинаково»): one place for the chat and the storage
@@ -190,9 +201,7 @@ public final class Tgx101StorageSwitch extends View {
     View p = (View) getParent();
     if (p == null || p.getWidth() == 0) return;
     Tgx101SavedStore s = store();
-    float f = s.switchY[SPOT];
-    int min = minY(), max = maxY();
-    float y = f < 0f ? usualY() : min + (max - min) * f;
+    float y = s.switchBottomDp < 0f ? usualY() : movedY(s.switchBottomDp);
     float x = sideX(s.switchLeft[SPOT]);
     if (animated) {
       animate().translationX(x).translationY(y).setDuration(220).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
@@ -350,14 +359,13 @@ public final class Tgx101StorageSwitch extends View {
           int min = minY(), max = maxY();
           s.switchLeft[SPOT] = left;
           if (!left && Math.abs(getTranslationY() - usualY()) < Screen.dp(40f)) {
-            s.switchY[SPOT] = -1f; // let go near its usual place: back there exactly
+            s.switchBottomDp = -1f; // let go near its usual place: back there exactly
           } else {
-            s.switchY[SPOT] = max > min ? (getTranslationY() - min) / (max - min) : 0f;
+            s.switchBottomDp = Screen.px(p.getHeight() - getTranslationY() - size);
           }
           s.switchLeft[1 - SPOT] = s.switchLeft[SPOT];
-          s.switchY[1 - SPOT] = s.switchY[SPOT];
           s.save();
-          org.thunderdog.challegram.Tgx101Diag.mark("storage switch: moved to " + (left ? "left" : "right") + " " + (s.switchY[SPOT] < 0f ? "usual place" : Math.round(s.switchY[SPOT] * 100) + "%"));
+          org.thunderdog.challegram.Tgx101Diag.mark("storage switch: moved to " + (left ? "left" : "right") + " " + (s.switchBottomDp < 0f ? "usual place" : Math.round(s.switchBottomDp) + " dp from the bottom"));
           place(true);
         } else if (up && held) {
           showHideMenu();

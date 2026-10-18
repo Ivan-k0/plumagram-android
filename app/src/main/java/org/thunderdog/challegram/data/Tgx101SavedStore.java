@@ -262,6 +262,8 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   /** where the button was put, apart for the chat [0] and the storage [1]: the side and the height (0…1 of the free room, −1: the usual place) */
   public final boolean[] switchLeft = new boolean[2];
   public final float[] switchY = {-1f, -1f};
+  /** (user 2026-10-18 «одна высота и расположение»): where the chat ↔ storage button stands — dp from the screen's bottom, -1 its usual place */
+  public float switchBottomDp = -1f;
 
   /** no «Saved» banner after saving: turned off, or the storage itself is */
   public boolean bannerOff () {
@@ -668,6 +670,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       for (int i = 0; i < 2; i++) {
         o.put("switchLeft" + i, switchLeft[i]);
         o.put("switchY" + i, (double) switchY[i]);
+        if (i == 0) o.put("switchBottomDp", (double) switchBottomDp);
       }
       Settings.instance().pmc().putString(key(), o.toString());
     } catch (Throwable t) {
@@ -756,6 +759,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       for (int i = 0; i < 2; i++) {
         switchLeft[i] = o.optBoolean("switchLeft" + i, false);
         switchY[i] = (float) o.optDouble("switchY" + i, -1d);
+        if (i == 0) switchBottomDp = (float) o.optDouble("switchBottomDp", -1d);
       }
     } catch (Throwable t) {
       org.thunderdog.challegram.Tgx101Diag.mark("saved store: load failed " + t.getClass().getSimpleName());
