@@ -6542,6 +6542,7 @@
   <string name="Tgx101CapsuleTabsMax">At most %1$d tabs after «Chats»</string>
   <string name="Tgx101CapsuleTabsMin">Keep at least one tab after «Chats»</string>
   <string name="Tgx101TabProfile">Profile</string>
+  <string name="Tgx101ReactedCount">Reactions: %1$d</string>
   <string name="Tgx101CapsuleMenuHint">Hold the button on the bottom menu and slide to an item. At least two items.</string>
   <string name="Tgx101CapsuleMenuMin">Keep at least two items</string>
   <string name="Tgx101MyProfile">My profile</string>

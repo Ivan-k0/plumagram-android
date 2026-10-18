@@ -31,6 +31,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+import tgx.td.Td;
 
 import org.drinkless.tdlib.TdApi;
 import org.thunderdog.challegram.R;
@@ -455,7 +456,7 @@ public final class Tgx101MessageMenu {
   }
 
   public static PopupLayout show (MessagesController c, TGMessage message, ViewController.Options options, OptionDelegate delegate,
-                                  boolean readDatePending, @Nullable MoreLoader moreLoader, Runnable onExpandReactions, Runnable onDismissPrepare, Runnable onDismiss) {
+                                  boolean readDatePending, @Nullable MoreLoader moreLoader, Runnable onExpandReactions, @Nullable Runnable onShowReactors, Runnable onDismissPrepare, Runnable onDismiss) {
     Context context = c.context();
     tgx101LogTextShape(message);
     Settings.instance().setTgx101MenuProfile(menuProfileOf(message)); // text, media and voice have separate menus
@@ -685,6 +686,17 @@ public final class Tgx101MessageMenu {
       headerDivider.setVisibility(View.GONE);
     }
 
+    // TGx101 (user 2026-10-18 «как в офф телеге»): reactions already on the message — the reaction (or ♥ when there are
+    // several kinds), «Reactions: N», up to three faces of who reacted; a tap opens the list of who reacted with a tab per reaction
+    View reacted = reactedRow(context, message, onShowReactors != null ? () -> {
+      dismiss(host);
+      onShowReactors.run();
+    } : null);
+    if (reacted != null) {
+      card.addView(reacted, 0, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f)));
+      card.addView(divider(context), 1);
+    }
+
     // Actions in the user's order; "Delete" goes to the bottom
     List<ViewController.OptionItem> items = new ArrayList<>();
     List<ViewController.OptionItem> moreItems = new ArrayList<>();
@@ -816,6 +828,105 @@ public final class Tgx101MessageMenu {
   }
 
   /** Popups without their own hide animation are closed right away, after a short fade */
+  /** «❤️ Reactions: 4  (faces)» — null when the message has no reactions */
+  private static @Nullable View reactedRow (Context context, TGMessage message, @Nullable Runnable onClick) {
+    org.thunderdog.challegram.data.TGReactions reactions = message.getMessageReactions();
+    TdApi.MessageReaction[] list = reactions != null && reactions.getReactions() != null ? reactions.getReactions().reactions : null;
+    int total = reactions != null ? reactions.getTotalCount() : 0;
+    if (list == null || list.length == 0 || total <= 0) return null;
+    LinearLayout row = new LinearLayout(context);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setPadding(Screen.dp(16f), 0, Screen.dp(12f), 0);
+    // the sign: the reaction itself when there's one kind and it's a plain emoji, ♥ otherwise
+    if (list.length == 1 && list[0].type.getConstructor() == TdApi.ReactionTypeEmoji.CONSTRUCTOR) {
+      TextView emoji = new org.thunderdog.challegram.widget.EmojiTextView(context);
+      emoji.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18f);
+      emoji.setText(((TdApi.ReactionTypeEmoji) list[0].type).emoji);
+      emoji.setGravity(Gravity.CENTER);
+      row.addView(emoji, new LinearLayout.LayoutParams(Screen.dp(24f), ViewGroup.LayoutParams.WRAP_CONTENT));
+    } else {
+      android.widget.ImageView heart = new android.widget.ImageView(context);
+      heart.setImageResource(R.drawable.baseline_favorite_24);
+      heart.setColorFilter(Theme.getColor(ColorId.icon));
+      row.addView(heart, new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f)));
+    }
+    TextView text = new TextView(context);
+    text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
+    text.setTextColor(Theme.getColor(ColorId.text));
+    text.setSingleLine(true);
+    text.setEllipsize(TextUtils.TruncateAt.END);
+    text.setText(Lang.getString(R.string.Tgx101ReactedCount, total));
+    LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+    textParams.leftMargin = Screen.dp(14f);
+    row.addView(text, textParams);
+    // up to three faces, as in Telegram: the most recent reactors of every reaction, no repeats
+    java.util.List<TdApi.MessageSender> senders = new ArrayList<>();
+    for (TdApi.MessageReaction reaction : list) {
+      if (reaction.recentSenderIds == null) continue;
+      for (TdApi.MessageSender sender : reaction.recentSenderIds) {
+        boolean seen = false;
+        for (TdApi.MessageSender s : senders) if (Td.equalsTo(s, sender)) { seen = true; break; }
+        if (!seen && senders.size() < 3) senders.add(sender);
+      }
+    }
+    if (!senders.isEmpty()) {
+      row.addView(new Faces(context, message.tdlib(), senders), new LinearLayout.LayoutParams(Screen.dp(22f + 14f * (senders.size() - 1) + 4f), Screen.dp(26f)));
+    }
+    if (onClick != null && message.canGetAddedReactions()) {
+      Views.setClickable(row);
+      RippleSupport.setTransparentSelector(row);
+      row.setOnClickListener(v -> onClick.run());
+    }
+    return row;
+  }
+
+  /** Overlapping round faces with a ring of the card's colour between them */
+  private static final class Faces extends View {
+    private final java.util.List<org.thunderdog.challegram.loader.AvatarReceiver> receivers = new ArrayList<>();
+
+    Faces (Context context, org.thunderdog.challegram.telegram.Tdlib tdlib, java.util.List<TdApi.MessageSender> senders) {
+      super(context);
+      for (TdApi.MessageSender sender : senders) {
+        org.thunderdog.challegram.loader.AvatarReceiver r = new org.thunderdog.challegram.loader.AvatarReceiver(this);
+        if (sender.getConstructor() == TdApi.MessageSenderUser.CONSTRUCTOR) {
+          r.requestUser(tdlib, ((TdApi.MessageSenderUser) sender).userId, org.thunderdog.challegram.loader.AvatarReceiver.Options.NONE);
+        } else {
+          r.requestChat(tdlib, ((TdApi.MessageSenderChat) sender).chatId, org.thunderdog.challegram.loader.AvatarReceiver.Options.NONE);
+        }
+        receivers.add(r);
+      }
+    }
+
+    @Override
+    protected void onAttachedToWindow () {
+      super.onAttachedToWindow();
+      for (org.thunderdog.challegram.loader.AvatarReceiver r : receivers) r.attach();
+    }
+
+    @Override
+    protected void onDetachedFromWindow () {
+      for (org.thunderdog.challegram.loader.AvatarReceiver r : receivers) r.detach();
+      super.onDetachedFromWindow();
+    }
+
+    @Override
+    protected void onDraw (android.graphics.Canvas c) {
+      int size = Screen.dp(22f), step = Screen.dp(14f), ring = Screen.dp(2f);
+      int cy = getHeight() / 2;
+      android.graphics.Paint ringPaint = org.thunderdog.challegram.tool.Paints.fillingPaint(Theme.getColor(ColorId.filling));
+      // the first face on top, as in Telegram: drawn last
+      for (int i = receivers.size() - 1; i >= 0; i--) {
+        int left = Screen.dp(2f) + step * i;
+        c.drawCircle(left + size / 2f, cy, size / 2f + ring, ringPaint);
+        org.thunderdog.challegram.loader.AvatarReceiver r = receivers.get(i);
+        r.setBounds(left, cy - size / 2, left + size, cy + size / 2);
+        if (r.needPlaceholder()) r.drawPlaceholder(c);
+        r.draw(c);
+      }
+    }
+  }
+
   private static void dismiss (Host host) {
     if (host.dismissing) {
       return;

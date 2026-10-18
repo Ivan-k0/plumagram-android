@@ -804,6 +804,11 @@ public class MessageOptionsPagerController extends BottomSheetViewController<Opt
   // and "back" from the picker closes the sheet instead of showing the stock menu
   private boolean tgx101PickerOnly;
 
+  /** TGx101: open on the «who reacted» page (the compact menu's reactions row); call before show() */
+  public void tgx101StartAtReactors () {
+    if (ALL_REACTED_POSITION != -1) startPage = ALL_REACTED_POSITION;
+  }
+
   public void setTgx101PickerOnly (boolean pickerOnly) {
     this.tgx101PickerOnly = pickerOnly;
   }

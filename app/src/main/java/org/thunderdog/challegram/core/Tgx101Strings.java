@@ -667,6 +667,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101CapsuleTabsMax, "Не больше %1$d вкладок после «Чатов»");
     RU.put(R.string.Tgx101CapsuleTabsMin, "Оставьте хотя бы одну вкладку после «Чатов»");
     RU.put(R.string.Tgx101TabProfile, "Профиль");
+    RU.put(R.string.Tgx101ReactedCount, "Реакции: %1$d");
     RU.put(R.string.Tgx101CapsuleMenuHint, "Удерживайте кнопку в нижнем меню и ведите палец к пункту. Не меньше двух пунктов.");
     RU.put(R.string.Tgx101CapsuleMenuMin, "Оставьте хотя бы два пункта");
     RU.put(R.string.Tgx101MyProfile, "Профиль");

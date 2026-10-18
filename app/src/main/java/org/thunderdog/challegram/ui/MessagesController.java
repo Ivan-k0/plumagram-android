@@ -5796,6 +5796,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
           pager.setTgx101AfterClose(() -> showTgx101MessageMenu(options, message, delegate, false));
         }
       }, 220),
+      // TGx101 (user 2026-10-18 «как в офф телеге»): the reactions row of the compact menu — who reacted, with tabs per reaction
+      () -> UI.post(() -> showMessageOptions(options, message, null, delegate, true), 220),
       this::onHideMessageOptions,
       () -> {
         optimizeEmojiLayoutForOptionsWindow(false);
@@ -5808,6 +5810,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private PopupLayout showMessageOptions (Options options, TGMessage message, @Nullable TdApi.ReactionType reactionType, OptionDelegate optionsDelegate) {
+    return showMessageOptions(options, message, reactionType, optionsDelegate, false);
+  }
+
+  private PopupLayout showMessageOptions (Options options, TGMessage message, @Nullable TdApi.ReactionType reactionType, OptionDelegate optionsDelegate, boolean tgx101AtReactors) {
     if (isMessageOptionsVisible) {
       return null;
     }
@@ -5820,6 +5826,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         optimizeEmojiLayoutForOptionsWindow(true);
       }
     };
+    if (tgx101AtReactors) r.tgx101StartAtReactors();
     PopupLayout result = r.show();
     r.setDismissListener(new PopupLayout.DismissListener() {
       @Override
