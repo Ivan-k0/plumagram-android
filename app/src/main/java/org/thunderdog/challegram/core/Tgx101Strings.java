@@ -670,6 +670,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ReactedCount, "Реакции: %1$d");
     RU.put(R.string.Tgx101ReactedAll, "Все %1$d");
     RU.put(R.string.Tgx101Back, "Назад");
+    RU.put(R.string.Tgx101UpdateNow, "Обновить");
+    RU.put(R.string.Tgx101UpdateReadyText, "Скачано. Нажмите, чтобы установить");
+    RU.put(R.string.Tgx101UpdateInstallShort, "Установить");
     RU.put(R.string.Tgx101TranslateTipOffer, "Язык чата — %1$s. Перевести?");
     RU.put(R.string.Tgx101TranslateTipOfferAny, "Чат на другом языке. Перевести?");
     RU.put(R.string.Tgx101TranslateTipDone, "Переведено (%1$s). Нажмите ещё раз — оригинал");

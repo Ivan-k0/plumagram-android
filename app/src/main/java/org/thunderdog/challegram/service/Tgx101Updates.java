@@ -76,6 +76,74 @@ public final class Tgx101Updates {
   private static final long DAY_MS = 24L * 60 * 60 * 1000;
   private static final String CHANNEL_ID = "tgx101_updates";
   private static final int NOTIFICATION_ID = 0x7101;
+  // TGx101 (user 2026-10-18 «установщик не скачивает файл сам — только переходом на GitHub, а должен сам качать и
+  // предлагать установить»): the notification's «Update» opens the app with this extra — it downloads at once, the
+  // progress shows in the notification, then the system installer comes up
+  public static final String EXTRA_ACTION = "tgx101_update";
+  private static final String ACTION_DOWNLOAD = "download", ACTION_INSTALL = "install";
+
+  /** from MainActivity: true — the intent was the update's */
+  public static boolean handleIntent (Context context, @Nullable Intent intent) {
+    String what = intent != null ? intent.getStringExtra(EXTRA_ACTION) : null;
+    if (what == null) return false;
+    intent.removeExtra(EXTRA_ACTION);
+    restore(context);
+    Tgx101Diag.mark("update: " + what + " from the notification, state " + state);
+    if (state == STATE_READY) {
+      install(context);
+    } else if (state == STATE_AVAILABLE) {
+      download(context);
+    }
+    return true;
+  }
+
+  private static PendingIntent appIntent (Context context, int requestCode, @Nullable String action) {
+    Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+    if (launch == null) launch = new Intent();
+    launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    if (action != null) launch.putExtra(EXTRA_ACTION, action);
+    return PendingIntent.getActivity(context, requestCode, launch, Intents.mutabilityFlags(false) | PendingIntent.FLAG_UPDATE_CURRENT);
+  }
+
+  private static void ensureChannel (Context context) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      NotificationChannel channel = new NotificationChannel(CHANNEL_ID, Lang.getString(R.string.Tgx101UpdateChannel), NotificationManager.IMPORTANCE_DEFAULT);
+      NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+      if (manager != null) manager.createNotificationChannel(channel);
+    }
+  }
+
+  /** the download's own notification: its progress, then «Ready — Install» */
+  private static void notifyProgress (Context context, Release r, boolean done) {
+    try {
+      ensureChannel(context);
+      NotificationCompat.Builder b = new NotificationCompat.Builder(context, CHANNEL_ID)
+        .setSmallIcon(R.drawable.baseline_sync_white_24)
+        .setOnlyAlertOnce(true)
+        .setContentTitle(Lang.getString(R.string.Tgx101UpdateTitle, r.version));
+      if (done) {
+        b.setContentText(Lang.getString(R.string.Tgx101UpdateReadyText))
+          .setAutoCancel(true)
+          .setContentIntent(appIntent(context, 4, ACTION_INSTALL))
+          .addAction(0, Lang.getString(R.string.Tgx101UpdateInstallShort), appIntent(context, 5, ACTION_INSTALL));
+      } else {
+        int p = progress();
+        b.setContentText(Lang.getString(R.string.Tgx101UpdateDownloading, p + "%"))
+          .setOngoing(true)
+          .setProgress(100, p, r.size <= 0)
+          .setContentIntent(appIntent(context, 6, null));
+      }
+      NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, b.build());
+    } catch (SecurityException ignored) {
+      // notifications not allowed
+    }
+  }
+
+  private static void cancelNotification (Context context) {
+    try {
+      NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID);
+    } catch (Throwable ignored) { }
+  }
 
   private static final Pattern VERSION = Pattern.compile("(\\d+)\\.(\\d+)\\.(\\d+)");
 
@@ -368,6 +436,7 @@ public final class Tgx101Updates {
               if (now - lastPost > 250) {
                 lastPost = now;
                 setState(STATE_DOWNLOADING);
+                notifyProgress(app, r, false);
               }
             }
           }
@@ -381,18 +450,21 @@ public final class Tgx101Updates {
           //noinspection ResultOfMethodCallIgnored
           target.delete();
           Tgx101Diag.mark("update: rejected, " + problem);
+          cancelNotification(app);
           setState(STATE_AVAILABLE);
           UI.showToast(R.string.Tgx101UpdateBadFile, android.widget.Toast.LENGTH_LONG);
           return;
         }
         Tgx101Diag.mark("update: downloaded and verified");
         setState(STATE_READY);
+        notifyProgress(app, r, true);
         UI.post(() -> install(app));
       } catch (Throwable t) {
         //noinspection ResultOfMethodCallIgnored
         part.delete();
         Log.w("TGx101 update download failed", t);
         Tgx101Diag.mark("update: download failed " + t.getClass().getSimpleName() + " " + t.getMessage());
+        cancelNotification(app);
         setState(STATE_AVAILABLE);
         UI.showToast(R.string.Tgx101UpdateDownloadFailed, android.widget.Toast.LENGTH_SHORT);
       }
@@ -529,27 +601,18 @@ public final class Tgx101Updates {
       return;
     }
     p.edit().putLong(KEY_LAST_NOTIFY, now).apply();
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      NotificationChannel channel = new NotificationChannel(CHANNEL_ID, Lang.getString(R.string.Tgx101UpdateChannel), NotificationManager.IMPORTANCE_DEFAULT);
-      NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-      if (manager != null) {
-        manager.createNotificationChannel(channel);
-      }
-    }
-    Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
-    PendingIntent open = launch != null ? PendingIntent.getActivity(context, 3, launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), Intents.mutabilityFlags(false)) : null;
+    ensureChannel(context);
+    PendingIntent update = appIntent(context, 3, ACTION_DOWNLOAD);
     PendingIntent github = PendingIntent.getActivity(context, 1,
       new Intent(Intent.ACTION_VIEW, Uri.parse(r.pageUrl)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), Intents.mutabilityFlags(false));
-    PendingIntent forum = PendingIntent.getActivity(context, 2,
-      new Intent(Intent.ACTION_VIEW, Uri.parse(FORUM_URL)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), Intents.mutabilityFlags(false));
     NotificationCompat.Builder b = new NotificationCompat.Builder(context, CHANNEL_ID)
       .setSmallIcon(R.drawable.baseline_sync_white_24)
       .setContentTitle(Lang.getString(R.string.Tgx101UpdateTitle, r.version))
       .setContentText(Lang.getString(R.string.Tgx101UpdateText))
       .setAutoCancel(true)
-      .setContentIntent(open != null ? open : github)
-      .addAction(0, "GitHub", github)
-      .addAction(0, "4PDA", forum);
+      .setContentIntent(update) // a tap downloads, as «Update» does
+      .addAction(0, Lang.getString(R.string.Tgx101UpdateNow), update)
+      .addAction(0, Lang.getString(R.string.Tgx101UpdateWhatsNew), github);
     try {
       NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, b.build());
     } catch (SecurityException ignored) {
