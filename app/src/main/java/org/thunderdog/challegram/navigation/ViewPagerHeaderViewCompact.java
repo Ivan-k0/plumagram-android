@@ -425,8 +425,12 @@ public class ViewPagerHeaderViewCompact extends FrameLayoutFix implements PagerH
 
     recyclerView.stopScroll();
     int threshold = Screen.dp(2f);
-    if (Math.abs(scrollX) >= threshold && hasUserInteraction) {
-      long duration = computeScrollDuration(scrollX, recyclerView.getMeasuredWidth());
+    // TGx101 (user 2026-10-18 video «анимация переключения папок дерганая» Channels → Groups): mid-swipe the strip's
+    // width changes (counters) and the place it keeps the chosen tab at switches between two rules — the difference came as
+    // one jump of ~40 px in two frames. A jump is played out now; the small steps that follow the finger stay as they are
+    boolean jump = Math.abs(scrollX) > Screen.dp(8f);
+    if (Math.abs(scrollX) >= threshold && (hasUserInteraction || jump)) {
+      long duration = hasUserInteraction ? computeScrollDuration(scrollX, recyclerView.getMeasuredWidth()) : 180;
 
       scrollByAnimator = new FloatAnimator(duration, QUINTIC_INTERPOLATOR, 0, new AnimatorListener<>() {
         @Override
