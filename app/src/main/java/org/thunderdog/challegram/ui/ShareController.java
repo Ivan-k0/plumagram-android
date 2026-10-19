@@ -3531,6 +3531,12 @@ public class ShareController extends TelegramViewController<ShareController.Args
     row.setGravity(Gravity.CENTER_VERTICAL);
     row.setPadding(Screen.dp(12f), Screen.dp(2f), Screen.dp(12f), Screen.dp(8f));
     ViewSupport.setThemedBackground(row, ColorId.filling, this);
+    // (user 2026-10-20 «смена иконок при переключении не фонтан»): a chip grows or narrows smoothly when its ✓ comes or
+    // goes, and one that shows up or hides slides instead of jumping
+    android.animation.LayoutTransition lt = new android.animation.LayoutTransition();
+    lt.enableTransitionType(android.animation.LayoutTransition.CHANGING);
+    lt.setDuration(180L);
+    row.setLayoutTransition(lt);
     tgx101NoName = tgx101Chip(context, R.string.Tgx101ForwardNoName, v -> {
       needHideAuthor = !needHideAuthor;
       Settings.instance().pmc().putBoolean("tgx101_fwd_no_name", needHideAuthor);
@@ -3590,8 +3596,37 @@ public class ShareController extends TelegramViewController<ShareController.Args
   private static View.OnClickListener tgx101Tick (View.OnClickListener click) {
     return v -> {
       v.performHapticFeedback(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP ? android.view.HapticFeedbackConstants.CLOCK_TICK : android.view.HapticFeedbackConstants.KEYBOARD_TAP);
+      tgx101Pop(v);
       click.onClick(v);
     };
+  }
+
+  // a short press-in and a springy way back, as a real button under the finger
+  private static void tgx101Pop (View v) {
+    v.animate().cancel();
+    v.animate().scaleX(.88f).scaleY(.88f).setDuration(80L).setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR).withEndAction(() ->
+      v.animate().scaleX(1f).scaleY(1f).setDuration(320L).setInterpolator(new android.view.animation.OvershootInterpolator(3.2f)).start()
+    ).start();
+  }
+
+  // the colors flow from the old state into the new one instead of switching at once
+  private static void tgx101AnimateColors (View v, int fromBg, int toBg, int fromFg, int toFg, @Nullable Runnable onMiddle, me.vkryl.core.lambda.RunnableData<Integer> applyFg) {
+    android.graphics.drawable.GradientDrawable bg = tgx101Pill(fromBg);
+    v.setBackground(bg);
+    android.animation.ValueAnimator a = android.animation.ValueAnimator.ofFloat(0f, 1f);
+    a.setDuration(220L);
+    a.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+    final boolean[] middle = {false};
+    a.addUpdateListener(an -> {
+      float f = (float) an.getAnimatedValue();
+      bg.setColor(me.vkryl.core.ColorUtils.fromToArgb(fromBg, toBg, f));
+      applyFg.runWithData(me.vkryl.core.ColorUtils.fromToArgb(fromFg, toFg, f));
+      if (!middle[0] && f >= .5f) {
+        middle[0] = true;
+        if (onMiddle != null) onMiddle.run();
+      }
+    });
+    a.start();
   }
 
   private static android.graphics.drawable.GradientDrawable tgx101Pill (int color) {
@@ -3631,8 +3666,24 @@ public class ShareController extends TelegramViewController<ShareController.Args
     tgx101StyleChip(tgx101NoCaptions, canCopy && canDropCaptions, needRemoveCaptions, R.string.Tgx101ForwardNoCaptions, accent, plain, on, off);
     if (tgx101Silent != null) {
       tgx101Silent.setVisibility(canSilent ? View.VISIBLE : View.GONE);
-      tgx101Silent.setBackground(tgx101Pill(forceSendWithoutSound ? on : off));
-      tgx101Silent.setColorFilter(forceSendWithoutSound ? accent : Theme.iconColor());
+      Object was = tgx101Silent.getTag();
+      boolean silent = forceSendWithoutSound;
+      int bg = silent ? on : off, fg = silent ? accent : Theme.iconColor();
+      if (was instanceof Boolean && (Boolean) was != silent && tgx101Silent.isShown()) {
+        // the bell rings: it shakes, turns into the crossed one (or back) halfway and settles
+        final ImageView icon = tgx101Silent;
+        int fromBg = (Boolean) was ? on : off, fromFg = (Boolean) was ? accent : Theme.iconColor();
+        tgx101AnimateColors(icon, fromBg, bg, fromFg, fg, () -> icon.setImageResource(silent ? R.drawable.baseline_notifications_off_24 : R.drawable.baseline_notifications_24), icon::setColorFilter);
+        icon.setRotation(0f);
+        android.animation.ObjectAnimator ring = android.animation.ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, -22f, 18f, -12f, 7f, -3f, 0f);
+        ring.setDuration(520L);
+        ring.start();
+      } else {
+        tgx101Silent.setImageResource(silent ? R.drawable.baseline_notifications_off_24 : R.drawable.baseline_notifications_24);
+        tgx101Silent.setBackground(tgx101Pill(bg));
+        tgx101Silent.setColorFilter(fg);
+      }
+      tgx101Silent.setTag(silent);
     }
     if (tgx101Later != null) {
       tgx101Later.setBackground(tgx101Pill(off));
@@ -3643,10 +3694,17 @@ public class ShareController extends TelegramViewController<ShareController.Args
   private void tgx101StyleChip (@Nullable TextView chip, boolean visible, boolean active, int textRes, int accent, int plain, int on, int off) {
     if (chip == null) return;
     chip.setVisibility(visible ? View.VISIBLE : View.GONE);
+    Object was = chip.getTag();
     chip.setText((active ? "✓ " : "") + Lang.getString(textRes));
-    chip.setTextColor(active ? accent : plain);
     chip.setTypeface(active ? Fonts.getRobotoMedium() : Fonts.getRobotoRegular());
-    chip.setBackground(tgx101Pill(active ? on : off));
+    if (was instanceof Boolean && (Boolean) was != active && chip.isShown()) {
+      boolean w = (Boolean) was;
+      tgx101AnimateColors(chip, w ? on : off, active ? on : off, w ? accent : plain, active ? accent : plain, null, chip::setTextColor);
+    } else {
+      chip.setTextColor(active ? accent : plain);
+      chip.setBackground(tgx101Pill(active ? on : off));
+    }
+    chip.setTag(active);
   }
 
   private boolean needShareSettings () {
