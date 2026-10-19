@@ -332,7 +332,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   private float scrollCompensationFactor;
 
   public float getScrollCompensationFactor () {
-    if (tgx101TextAnimator != null && tgx101TextAnimator.isAnimating() && !isFullSizeAnimator.isAnimating()) return 0f;
+    if (tgx101TextAnimator != null && tgx101TextAnimator.isAnimating() && !isFullSizeAnimator.isAnimating()) return tgx101AtBottom ? 1f : 0f;
     return scrollCompensationFactor;
   }
 
@@ -434,6 +434,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   // (user 2026-10-19 «переключение из текста в кружок очень резкое, посмотри как в экстере»): one ~0.3 s move — the circle
   // shrinks into the corner while the bubble grows round it and the text comes up; back the same way
   private static final int TEXT_ANIMATOR_ID = 10002;
+  private boolean tgx101AtBottom;
   private @androidx.annotation.Nullable BoolAnimator tgx101TextAnimator;
 
   private BoolAnimator tgx101TextAnimator () {
@@ -463,6 +464,12 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     if (on) tgx101TextModes.add(tgx101Key()); else tgx101TextModes.remove(tgx101Key());
     boolean animated = isLayoutBuilt() && hasValidAttachedView() && UI.inUiThread();
     if (on) tgx101TextAnimator().setValue(false, false); // starts from the circle with the text laid out
+    // (user's video 2026-10-20 «чат смещается»): at the very bottom of the chat the list can't scroll past its end, so a
+    // shrink (text → circle) moved everything above down while a growth kept it — every round trip drifted the chat by the
+    // difference. At the bottom the message now grows upwards and shrinks back (both ways the same), elsewhere what's
+    // above stays in place
+    MessagesController c = messagesController();
+    tgx101AtBottom = animated && c != null && c.getMessagesView() != null && !c.getMessagesView().canScrollVertically(1);
     tgx101TextAnimator().setValue(on, animated);
     if (!animated) {
       rebuildAndUpdateContent();
@@ -634,7 +641,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   public boolean inSizeAnimation () {
     // (user 2026-10-20, option 1 «как в exteraGram»): the circle ↔ text move keeps what's above in place — the list is
-    // scrolled by the whole height change (scroll compensation factor 0), only what's below moves
+    // scrolled by the whole height change (scroll compensation factor 0), only what's below moves; at the chat's bottom it grows upwards
     return isFullSizeAnimator.isAnimating() || (tgx101TextAnimator != null && tgx101TextAnimator.isAnimating());
   }
 
