@@ -943,8 +943,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
       messagesView.setPadding(messagesView.getPaddingLeft(), tgx101VeilShift, messagesView.getPaddingRight(), messagesView.getPaddingBottom());
       messagesView.addOnScrollListener(new RecyclerView.OnScrollListener() {
         @Override
+        public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
+          // only the finger (and its fling) moves the pinned row — jumps, «↓» and other auto scrolls don't (2026-10-19:
+          // the pinned «→» down hid it)
+          if (newState == RecyclerView.SCROLL_STATE_DRAGGING) tgx101FingerScroll = true;
+          else if (newState == RecyclerView.SCROLL_STATE_IDLE) tgx101FingerScroll = false;
+        }
+
+        @Override
         public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
-          tgx101TrackPinnedHide(dy);
+          if (tgx101FingerScroll) tgx101TrackPinnedHide(dy);
           tgx101UpdateVeil();
         }
       });
@@ -8878,7 +8886,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
         if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) {
           // TGx101 (user 2026-10-19, video of the official app 15:21): back to the chat where it was, then one smooth scroll
           // to the message — up or down, the whole way when it's loaded — and it flashes as on a reply jump
-          ((MessagesController) c).tgx101PendingHighlight = msg.toMessageId(); // glides there once the chat is on screen
+          MessagesController chatScreen = (MessagesController) c;
+          if (!chatScreen.manager.tgx101HasMessage(msg.toMessageId())) {
+            // not loaded (far from where the chat stands): it reloads around the message now, behind this screen, so after
+            // the back animation only the glide is seen — not the history being swapped (log 2026-10-19 15:34)
+            org.thunderdog.challegram.component.chat.MessagesManager.tgx101AllowFlashOnce(msg.toMessageId().getMessageId());
+            chatScreen.highlightMessage(msg.toMessageId());
+          } else {
+            chatScreen.tgx101PendingHighlight = msg.toMessageId(); // loaded: glides there once the chat is on screen
+          }
           navigateBack();
           return;
         }
@@ -12130,6 +12146,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // TGx101 (user 2026-10-19 «давай оба варианта»): in the veil mode the pinned row slides away under the header while
   // the chat is scrolled down (towards newer messages) and comes back on scrolling up; the list itself doesn't move
   private float tgx101PinnedHide, tgx101PinnedHideTarget;
+  private boolean tgx101FingerScroll;
   private int tgx101PinnedScrollSum;
   private @Nullable android.animation.ValueAnimator tgx101PinnedHideAnimator;
 

@@ -3385,7 +3385,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         tgx101AutoScrolling = true;
         // TGx101 (user video 2026-10-19 15:21, the official app): from the pinned list the chat glides the whole way to an
         // already loaded message — up or down — instead of standing in 1.5 screens before it (that read as a jump)
-        boolean longGlide = tgx101LongGlideOnce && Math.abs(scrollBy) <= screen * 8f;
+        boolean longGlide = tgx101LongGlideOnce && Math.abs(scrollBy) <= screen * 4f; // 7.5 screens in 1.1 s flickered (2026-10-19 15:35)
         tgx101LongGlideOnce = false;
         if (!longGlide && Math.abs(scrollBy) > screen * 1.5f) {
           int pre = tgx101PreJumpIndex(index, scrollBy < 0, (int) (screen * 1.5f));
@@ -3423,6 +3423,10 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     } else {
       scrollToPositionWithOffsetImpl(index, offset);
     }
+  }
+
+  public boolean tgx101HasMessage (MessageId messageId) {
+    return adapter.indexOfMessageContainer(messageId) != -1;
   }
 
   /** the next jump glides the whole way to a loaded message (up to 8 screens), see the pinned list's «→» */
