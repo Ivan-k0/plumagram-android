@@ -398,6 +398,130 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     videoSmallSize = Math.min(Screen.dp(200f), maxWidth);
     videoFullSize = getVideoSize();
     videoSize = MathUtils.fromTo(videoSmallSize, videoFullSize, isFullSizeAnimator.getFloatValue());
+    if (tgx101TextMode()) tgx101BuildText(maxWidth);
+  }
+
+  // TGx101 (approved mockup «Кружок в текст», user 2026-10-19; test builds first): one tap on «A» turns the round video into
+  // a bubble like a voice message's — a small circle with ▶, «Video message · 0:13», «A» on the right — and the text right
+  // away in a plate under them; «A» again brings the big circle back, a tap on the small circle plays it
+
+  private static final java.util.Set<String> tgx101TextModes = new java.util.HashSet<>();
+  private static final float TM_MINI = 40f, TM_GAP = 6f, TM_PAD = 9f, TM_A = 28f;
+  private @androidx.annotation.Nullable android.text.StaticLayout tgx101Text;
+  private int tgx101TextW, tgx101TextH;
+  private boolean tgx101ACaught, tgx101MiniCaught;
+  private final RectF tgx101ARect = new RectF(), tgx101MiniRect = new RectF();
+
+  private String tgx101Key () {
+    return msg.chatId + "_" + msg.id;
+  }
+
+  private boolean tgx101TextMode () {
+    return org.thunderdog.challegram.BuildConfig.TGX101_TEST && tgx101TextModes.contains(tgx101Key()) && !TD.isSelfDestructTypeImmediately(getMessage());
+  }
+
+  private void tgx101SetTextMode (boolean on) {
+    if (on) tgx101TextModes.add(tgx101Key()); else tgx101TextModes.remove(tgx101Key());
+    rebuildAndUpdateContent();
+    invalidate();
+  }
+
+  private android.text.TextPaint tgx101TextPaint () {
+    android.text.TextPaint paint = Paints.getRegularTextPaint(14f);
+    return paint;
+  }
+
+  private void tgx101BuildText (int maxWidth) {
+    Tgx101Transcription.Result result = Tgx101Transcription.get(tdlib, msg);
+    String text;
+    if (result == null || result.state == Tgx101Transcription.STATE_NONE || (result.state == Tgx101Transcription.STATE_PENDING && android.text.TextUtils.isEmpty(result.text))) {
+      text = "…";
+    } else {
+      text = result.text != null ? result.text : "";
+    }
+    android.text.TextPaint paint = tgx101TextPaint();
+    int maxText = Math.max(Screen.dp(120f), Math.min(maxWidth, Screen.dp(280f)) - Screen.dp(TM_PAD) * 2);
+    int desired = (int) Math.ceil(android.text.Layout.getDesiredWidth(text, paint));
+    int textWidth = Math.min(maxText, Math.max(desired, Screen.dp(170f)));
+    tgx101Text = new android.text.StaticLayout(text, paint, textWidth, android.text.Layout.Alignment.ALIGN_NORMAL, 1.1f, 0f, false);
+    tgx101TextW = textWidth + Screen.dp(TM_PAD) * 2;
+    tgx101TextH = Screen.dp(TM_MINI) + Screen.dp(TM_GAP) + tgx101Text.getHeight() + Screen.dp(TM_PAD) * 2 - Screen.dp(4f);
+  }
+
+  private void tgx101DrawText (Canvas c, int x, int y, Receiver preview) {
+    int mini = Screen.dp(TM_MINI);
+    tgx101MiniRect.set(x, y, x + mini, y + mini);
+    preview.setBounds(x, y, x + mini, y + mini);
+    preview.setRadius(mini / 2);
+    if (preview.needPlaceholder()) preview.drawPlaceholderRounded(c, mini / 2f);
+    preview.draw(c);
+    float cx = x + mini / 2f, cy = y + mini / 2f;
+    c.drawCircle(cx, cy, mini / 2f, Paints.fillingPaint(0x33000000));
+    android.graphics.Path play = new android.graphics.Path();
+    play.moveTo(cx - Screen.dp(4f), cy - Screen.dp(6.5f));
+    play.lineTo(cx + Screen.dp(7f), cy);
+    play.lineTo(cx - Screen.dp(4f), cy + Screen.dp(6.5f));
+    play.close();
+    c.drawPath(play, Paints.fillingPaint(0xffffffff));
+
+    int accent = getTextLinkColor();
+    int a = Screen.dp(TM_A);
+    float ax = x + tgx101TextW - a, ay = cy - a / 2f;
+    tgx101ARect.set(ax, ay, ax + a, ay + a);
+    c.drawRoundRect(tgx101ARect, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(ColorUtils.alphaColor(.14f, accent)));
+    android.text.TextPaint aPaint = Paints.getBoldPaint14(false, accent);
+    c.drawText("A", tgx101ARect.centerX() - aPaint.measureText("A") / 2f, tgx101ARect.centerY() + Screen.dp(5f), aPaint);
+
+    android.text.TextPaint titlePaint = Paints.getMediumTextPaint(13f, getTextColor(), false);
+    float tx = x + mini + Screen.dp(9f);
+    float maxTitle = ax - Screen.dp(8f) - tx;
+    CharSequence title = android.text.TextUtils.ellipsize(org.thunderdog.challegram.core.Lang.getString(R.string.ChatContentRoundVideo), titlePaint, Math.max(0, maxTitle), android.text.TextUtils.TruncateAt.END);
+    c.drawText(title, 0, title.length(), tx, cy - Screen.dp(2f), titlePaint);
+    android.text.TextPaint subPaint = Paints.getRegularTextPaint(12.5f, getDecentColor());
+    c.drawText(Strings.buildDuration(sourceDuration), tx, cy + Screen.dp(14f), subPaint);
+
+    if (tgx101Text != null) {
+      float top = y + mini + Screen.dp(TM_GAP);
+      RectF plate = Paints.getRectF();
+      plate.set(x, top, x + tgx101TextW, top + tgx101Text.getHeight() + Screen.dp(TM_PAD) * 2 - Screen.dp(4f));
+      c.drawRoundRect(plate, Screen.dp(10f), Screen.dp(10f), Paints.fillingPaint(ColorUtils.alphaColor(.12f, accent)));
+      tgx101TextPaint().setColor(getTextColor());
+      int save = Views.save(c);
+      c.translate(x + Screen.dp(TM_PAD), top + Screen.dp(TM_PAD) - Screen.dp(2f));
+      tgx101Text.draw(c);
+      Views.restore(c, save);
+    }
+  }
+
+  private boolean tgx101OnTextTouch (MessageView view, MotionEvent e) {
+    float x = e.getX(), y = e.getY(), slop = Screen.dp(6f);
+    switch (e.getAction()) {
+      case MotionEvent.ACTION_DOWN:
+        tgx101ACaught = x >= tgx101ARect.left - slop && x <= tgx101ARect.right + slop && y >= tgx101ARect.top - slop && y <= tgx101ARect.bottom + slop;
+        tgx101MiniCaught = !tgx101ACaught && tgx101MiniRect.contains(x, y);
+        return tgx101ACaught || tgx101MiniCaught;
+      case MotionEvent.ACTION_MOVE:
+        return tgx101ACaught || tgx101MiniCaught;
+      case MotionEvent.ACTION_UP: {
+        boolean a = tgx101ACaught, mini = tgx101MiniCaught;
+        tgx101ACaught = tgx101MiniCaught = false;
+        if (!a && !mini) return false;
+        performClickSoundFeedback();
+        tgx101SetTextMode(false); // «A»: back to the big circle; the small circle: back to it and play
+        if (mini) {
+          UI.post(() -> {
+            if (!isDestroyed()) tdlib.context().player().playPauseMessage(tdlib, msg, manager);
+          }, 120);
+        }
+        return true;
+      }
+      case MotionEvent.ACTION_CANCEL: {
+        boolean caught = tgx101ACaught || tgx101MiniCaught;
+        tgx101ACaught = tgx101MiniCaught = false;
+        return caught;
+      }
+    }
+    return false;
   }
 
   // TGx101: "A" button on the round video starts the background transcription; when it's ready, the
@@ -410,6 +534,9 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   @Override
   public void onTranscriptionChanged (long chatId, long messageId) {
     if (chatId != msg.chatId || messageId != msg.id || isDestroyed()) return;
+    if (tgx101TextMode()) {
+      rebuildAndUpdateContent(); // the text (or its progress) changed the bubble's size
+    }
     invalidate(); // the "A" button state
   }
 
@@ -427,7 +554,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   public int getImageContentRadius (boolean isPreview) {
-    return videoSize / 2;
+    return tgx101TextMode() ? Screen.dp(TM_MINI) / 2 : videoSize / 2;
   }
 
   @Override
@@ -442,12 +569,12 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   protected int getContentWidth () {
-    return videoSize;
+    return tgx101TextMode() ? tgx101TextW : videoSize;
   }
 
   @Override
   protected int getContentHeight () {
-    return videoSize;
+    return tgx101TextMode() ? tgx101TextH : videoSize;
   }
 
   @Override
@@ -462,7 +589,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   protected boolean useCircleBubble () {
-    return true;
+    return !tgx101TextMode();
   }
 
   @Override
@@ -477,11 +604,12 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   protected boolean drawBubbleTimeOverContent () {
-    return true;
+    return !tgx101TextMode();
   }
 
   @Override
   protected int getAbsolutelyRealRightContentEdge (View view, int timePartWidth) {
+    if (tgx101TextMode()) return super.getAbsolutelyRealRightContentEdge(view, timePartWidth);
     // ImageReceiver receiver = view.getPreviewReceiver();
     int left = getContentX();
     int right = left + videoSize;
@@ -507,6 +635,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   public int getContentX () {
+    if (tgx101TextMode()) return super.getContentX();
     return (int) MathUtils.fromTo(super.getContentX(), ((width - videoSize) / 2f), isFullSizeAnimator.getFloatValue());
   }
 
@@ -517,6 +646,10 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   protected void drawBubble (Canvas c, Paint paint, boolean stroke, int padding) {
+    if (tgx101TextMode()) {
+      super.drawBubble(c, paint, stroke, padding);
+      return;
+    }
     final int s = Views.save(c);
     final float cx = getContentX() + videoSize / 2f;
     final float offset = cx - bubblePathRect.centerX();
@@ -529,6 +662,10 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   protected void drawContent (MessageView view, Canvas c, int startX, int startY, int maxWidth, Receiver preview, Receiver receiver) {
+    if (tgx101TextMode()) {
+      tgx101DrawText(c, getContentX(), startY, preview);
+      return;
+    }
     startX = getContentX();
     preview.setBounds(startX, startY, startX + videoSize, startY + videoSize);
     preview.setRadius(getImageContentRadius(true));
@@ -560,6 +697,10 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   protected void drawOverlay (MessageView view, Canvas c, int startX, int startY, int maxWidth) {
+    if (tgx101TextMode()) {
+      transcribeButtonX = transcribeButtonY = 0;
+      return;
+    }
     startX = getContentX();
     fileProgress.setBounds(startX, startY, startX + videoSize, startY + videoSize);
     fileProgress.draw(view, c);
@@ -636,6 +777,9 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   public boolean onTouchEvent (MessageView view, MotionEvent e) {
+    if (tgx101TextMode()) {
+      return tgx101OnTextTouch(view, e) || super.onTouchEvent(view, e);
+    }
     // TGx101: "A" button
     if (transcribeButtonX != 0) {
       float touch = Screen.dp(TRANSCRIBE_BUTTON_RADIUS + 8f);
@@ -653,7 +797,10 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
             performClickSoundFeedback();
             // TGx101: first tap starts the background transcription; when it's ready, a tap opens the text
             String done = Tgx101Transcription.doneText(tdlib, msg);
-            if (done != null && messagesController() != null) {
+            if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) { // test builds: the bubble with the text, right away
+              if (done == null) Tgx101Transcription.start(tdlib, msg, isSecretChat());
+              tgx101SetTextMode(true);
+            } else if (done != null && messagesController() != null) {
               org.thunderdog.challegram.ui.SelectTextForQuoteDialog.showForTranscription(messagesController(), tdlib, this, done);
             } else {
               Tgx101Transcription.start(tdlib, msg, isSecretChat());
