@@ -53,6 +53,7 @@ import org.thunderdog.challegram.ui.ListItem;
 import org.thunderdog.challegram.ui.SettingHolder;
 import org.thunderdog.challegram.util.text.Text;
 import org.thunderdog.challegram.util.text.TextColorSets;
+import org.thunderdog.challegram.util.text.TextColorSet;
 import org.thunderdog.challegram.widget.AttachDelegate;
 import org.thunderdog.challegram.widget.BaseView;
 
@@ -60,6 +61,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.List;
 
+import me.vkryl.core.ColorUtils;
 import me.vkryl.android.AnimatorUtils;
 import me.vkryl.android.animator.BoolAnimator;
 import me.vkryl.android.animator.ListAnimator;
@@ -343,6 +345,13 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
     this.useAvatarFallback = useAvatarFallback;
   }
 
+  // TGx101 (approved mockup «Шапка как одно целое», 1): a row of the header's veil — written in the header's colours
+  private boolean tgx101OnHeader;
+
+  public void tgx101SetOnHeader (boolean onHeader) {
+    this.tgx101OnHeader = onHeader;
+  }
+
   private final ReplaceAnimator<TextEntry> titleText = new ReplaceAnimator<>(ignored -> invalidate(), AnimatorUtils.DECELERATE_INTERPOLATOR, 180l);
   private final ReplaceAnimator<TextEntry> contentText = new ReplaceAnimator<>(ignored -> invalidate(), AnimatorUtils.DECELERATE_INTERPOLATOR, 180l);
   private final ReplaceAnimator<MediaEntry> mediaPreview = new ReplaceAnimator<>(ignored -> {
@@ -554,6 +563,7 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
         null,
         availWidth,
         Paints.robotoStyleProvider(TEXT_SIZE),
+        tgx101OnHeader ? (TextColorSet) Theme::headerTextColor :
         accentColor != null ?
           accentColor::getNameColor :
           TextColorSets.Regular.MESSAGE_AUTHOR,
@@ -586,7 +596,7 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
     ComplexReceiver receiver;
     if (!Td.isEmpty(text)) {
       newText = new Text.Builder(tdlib,
-        text, null, availWidth, Paints.robotoStyleProvider(TEXT_SIZE), TextColorSets.Regular.NORMAL, (text1, specificMedia) -> {
+        text, null, availWidth, Paints.robotoStyleProvider(TEXT_SIZE), tgx101OnHeader ? (TextColorSet) () -> ColorUtils.alphaColor(.85f, Theme.headerTextColor()) : TextColorSets.Regular.NORMAL, (text1, specificMedia) -> {
           for (ListAnimator.Entry<TextEntry> entry : contentText) {
             if (entry.item.content == text1) {
               if (!text1.invalidateMediaContent(entry.item.receiver, specificMedia)) {

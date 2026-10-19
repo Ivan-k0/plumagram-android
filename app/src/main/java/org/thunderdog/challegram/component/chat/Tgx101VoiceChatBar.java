@@ -41,7 +41,7 @@ import org.thunderdog.challegram.voip.Tgx101GroupCall;
  * voice chat could only be found in the ⋮ menu.
  */
 public class Tgx101VoiceChatBar extends View implements GroupCallListener {
-  public static final float HEIGHT = 48f;
+  public static final float HEIGHT = 48f, HEIGHT_ON_HEADER = 40f;
 
   public interface Callback {
     void onVoiceChatBarClick (long chatId, int groupCallId);
@@ -60,6 +60,19 @@ public class Tgx101VoiceChatBar extends View implements GroupCallListener {
   private int groupCallId;
   private @Nullable TdApi.GroupCall groupCall;
   private boolean subscribed, visible;
+
+  // TGx101 (approved mockup «Шапка как одно целое», 1): a row of the header's veil — «● Voice chat · N participants   Join»
+  // in the header's colours, no background, no button pill, a thin line under it
+  private boolean onHeader;
+
+  public void setOnHeader (boolean onHeader) {
+    this.onHeader = onHeader;
+    invalidate();
+  }
+
+  public float heightDp () {
+    return onHeader ? HEIGHT_ON_HEADER : HEIGHT;
+  }
 
   public Tgx101VoiceChatBar (Context context, Tdlib tdlib, Callback callback) {
     super(context);
@@ -166,6 +179,10 @@ public class Tgx101VoiceChatBar extends View implements GroupCallListener {
 
   @Override
   protected void onDraw (@NonNull Canvas c) {
+    if (onHeader) {
+      drawOnHeader(c);
+      return;
+    }
     int width = getMeasuredWidth(), height = Screen.dp(HEIGHT);
     c.drawRect(0, 0, width, height, Paints.fillingPaint(Theme.fillingColor()));
     int accent = Theme.getColor(ColorId.textNeutral);
@@ -199,6 +216,37 @@ public class Tgx101VoiceChatBar extends View implements GroupCallListener {
 
     // the line under the bar
     c.drawRect(0, height - Math.max(1, Screen.dp(.5f)), width, height, Paints.fillingPaint(Theme.separatorColor()));
+  }
+
+  private void drawOnHeader (@NonNull Canvas c) {
+    int width = getMeasuredWidth(), height = Screen.dp(HEIGHT_ON_HEADER);
+    float cy = height / 2f;
+    int text = Theme.headerTextColor();
+    // green that reads on the header: darker on a light header, lighter on a dark or coloured one
+    int green = androidx.core.graphics.ColorUtils.calculateLuminance(Theme.headerColor()) > .6 ? 0xff2e9e48 : 0xff8ee59a;
+
+    c.drawCircle(Screen.dp(20f), cy, Screen.dp(4f), Paints.fillingPaint(green));
+
+    boolean joined = isJoinedHere(chatId, groupCallId);
+    String button = Lang.getString(joined ? R.string.Tgx101VoiceChatBarReturn : R.string.Tgx101VoiceChatBarJoin);
+    buttonPaint.setColor(green);
+    float buttonWidth = buttonPaint.measureText(button);
+    float buttonLeft = width - Screen.dp(16f) - buttonWidth;
+    c.drawText(button, buttonLeft, cy + Screen.dp(5f), buttonPaint);
+
+    float textLeft = Screen.dp(34f);
+    float textWidth = Math.max(0, buttonLeft - Screen.dp(12f) - textLeft);
+    titlePaint.setColor(text);
+    subtitlePaint.setColor(Theme.headerSubtitleColor());
+    CharSequence t = TextUtils.ellipsize(title(), titlePaint, textWidth, TextUtils.TruncateAt.END);
+    c.drawText(t, 0, t.length(), textLeft, cy + Screen.dp(5f), titlePaint);
+    float left = textLeft + titlePaint.measureText(t, 0, t.length());
+    if (t.length() == title().length()) {
+      CharSequence s = TextUtils.ellipsize(" · " + subtitle(), subtitlePaint, Math.max(0, textLeft + textWidth - left), TextUtils.TruncateAt.END);
+      c.drawText(s, 0, s.length(), left, cy + Screen.dp(5f), subtitlePaint);
+    }
+
+    c.drawRect(0, height - Math.max(1, Screen.dp(.5f)), width, height, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(.14f, text)));
   }
 
   @Override

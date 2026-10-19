@@ -1035,6 +1035,11 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     return 0f;
   }
 
+  /** TGx101 (approved mockup «Шапка как одно целое», 1): the screen continues the header with rows of its own — no shadow */
+  public boolean tgx101HeaderShadowHidden () {
+    return false;
+  }
+
   protected boolean forceFadeMode () {
     return false;
   }

@@ -71,6 +71,17 @@ public final class Tgx101TranslateButton extends View {
     }
   }
 
+  // TGx101 (approved mockup «Шапка как одно целое», 1): «文A» is a button of the header's row next to ⋮ — no circle of its
+  // own, the header's icon colour; on — a faint round mark under it
+  private boolean flat;
+
+  public void setFlat (boolean flat) {
+    this.flat = flat;
+    if (android.os.Build.VERSION.SDK_INT >= 21) setClipToOutline(false);
+    setBackgroundResource(flat ? R.drawable.bg_btn_header : 0);
+    invalidate();
+  }
+
   public void setState (int state) {
     if (this.state == state) return;
     this.state = state;
@@ -117,6 +128,31 @@ public final class Tgx101TranslateButton extends View {
     float cx = getWidth() / 2f, cy = getHeight() / 2f;
     int accent = Theme.getColor(ColorId.iconActive);
     boolean on = state == STATE_ON;
+    if (flat) {
+      int iconColor = Theme.getColor(ColorId.headerIcon);
+      paint.setStyle(Paint.Style.FILL);
+      if (on) {
+        paint.setColor(ColorUtils.alphaColor(.18f, iconColor));
+        c.drawCircle(cx, cy, Screen.dp(17f), paint);
+      }
+      if (state == STATE_LOADING) {
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Screen.dp(2f));
+        paint.setStrokeCap(Paint.Cap.ROUND);
+        paint.setColor(iconColor);
+        rect.set(cx - Screen.dp(17f), cy - Screen.dp(17f), cx + Screen.dp(17f), cy + Screen.dp(17f));
+        c.drawArc(rect, spin, 100f, false, paint);
+        paint.setStyle(Paint.Style.FILL);
+      }
+      if (icon != null) {
+        int s = Screen.dp(22f);
+        int left = Math.round(cx - s / 2f), top = Math.round(cy - s / 2f);
+        icon.setColorFilter(new PorterDuffColorFilter(iconColor, PorterDuff.Mode.SRC_IN));
+        icon.setBounds(left, top, left + s, top + s);
+        icon.draw(c);
+      }
+      return;
+    }
     paint.setStyle(Paint.Style.FILL);
     paint.setColor(on ? accent : ColorUtils.alphaColor(.9f, Theme.fillingColor()));
     c.drawCircle(cx, cy, r, paint);

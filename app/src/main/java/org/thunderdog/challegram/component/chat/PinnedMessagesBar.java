@@ -79,7 +79,7 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
 
     @Override
     protected void onDraw (Canvas c) {
-      DrawAlgorithms.drawCollapse(c, getPaddingLeft() + (getMeasuredWidth() - getPaddingLeft() - getPaddingRight()) / 2f, getMeasuredHeight() / 2f, Theme.iconColor(), isExpanded.getFloatValue(), 1f - canExpand.getFloatValue());
+      DrawAlgorithms.drawCollapse(c, getPaddingLeft() + (getMeasuredWidth() - getPaddingLeft() - getPaddingRight()) / 2f, getMeasuredHeight() / 2f, tgx101OnHeader ? Theme.getColor(ColorId.headerIcon) : Theme.iconColor(), isExpanded.getFloatValue(), 1f - canExpand.getFloatValue());
     }
   }
 
@@ -137,7 +137,7 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
 
         //
 
-        final int defaultFillColor = ColorUtils.alphaColor(alpha, Theme.chatVerticalLineColor());
+        final int defaultFillColor = ColorUtils.alphaColor(alpha, tgx101OnHeader ? Theme.headerTextColor() : Theme.chatVerticalLineColor());
         final int defaultBackgroundColor = ColorUtils.alphaColor(.3f * alpha, defaultFillColor);
 
         //
@@ -203,7 +203,7 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
             entry = (Entry) messagesAdapter.getItems().get(dataPosition).getData();
           }
           final int fillColor, backgroundColor;
-          if (entry != null && entry.accentColor != null) {
+          if (entry != null && entry.accentColor != null && !tgx101OnHeader) {
             fillColor = ColorUtils.alphaColor(alpha, entry.accentColor.getVerticalLineColor());
             backgroundColor = ColorUtils.alphaColor(.3f * alpha, fillColor);
           } else {
@@ -290,8 +290,21 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
     recyclerView.setBackground(null);
   }
 
+  // TGx101 (approved mockup «Шапка как одно целое», 1): a row of the header's veil — no background of its own, the header's
+  // colours, a thin line under it
+  private boolean tgx101OnHeader;
+
+  public void tgx101SetOnHeader () {
+    tgx101OnHeader = true;
+    tgx101SetTransparent();
+  }
+
   @Override
   protected void onDraw (Canvas c) {
+    if (tgx101OnHeader) {
+      int h = getRecyclerHeight();
+      c.drawRect(0, h - Math.max(1, Screen.dp(.5f)), getMeasuredWidth(), h, Paints.fillingPaint(ColorUtils.alphaColor(.14f, Theme.headerTextColor())));
+    }
     if (tgx101Transparent) return;
     c.drawRect(0, getRecyclerHeight(), getMeasuredWidth(), getMeasuredHeight(), Paints.fillingPaint(Theme.fillingColor()));
   }
@@ -438,6 +451,9 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
       @Nullable
       @Override
       protected View createModifiedView (ViewGroup parent, int viewType, View view) {
+        if (viewType == ListItem.TYPE_MESSAGE_PREVIEW && tgx101OnHeader) {
+          ((MessagePreviewView) view).tgx101SetOnHeader(true);
+        }
         if (viewType == ListItem.TYPE_MESSAGE_PREVIEW && messageListener != null) {
           messageListener.onCreateMessagePreview(PinnedMessagesBar.this, (MessagePreviewView) view);
         }

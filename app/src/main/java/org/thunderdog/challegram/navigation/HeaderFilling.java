@@ -416,7 +416,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       tgx101VeilPaint.setShader(tgx101VeilShader);
       tgx101VeilPaint.setAlpha((int) (255 * veil));
       c.drawRect(0f, 0f, width, fillingBottom, tgx101VeilPaint);
-      ShadowView.drawDropShadow(c, 0, width, (int) shadowTop, dropShadowAlpha * (1f - veil));
+      if (!veilOwner.tgx101HeaderShadowHidden()) ShadowView.drawDropShadow(c, 0, width, (int) shadowTop, dropShadowAlpha * (1f - veil));
     } else if (fillFactor == 1f && hideFactor == 0f) {
       c.drawRect(0f, 0f, width, fillingBottom, Paints.fillingPaint(color));
       if (radiusFactor != 0f && radiusColor != 0) {
@@ -431,7 +431,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
         // c.drawCircle(startX, y, Screen.dp(2f), Paints.fillingPaint(0xaaff0000));
         c.restore();
       }
-      ShadowView.drawDropShadow(c, 0, width, (int) shadowTop, dropShadowAlpha);
+      if (veilOwner == null || !veilOwner.tgx101HeaderShadowHidden()) ShadowView.drawDropShadow(c, 0, width, (int) shadowTop, dropShadowAlpha);
     } else {
       if (fillFactor == 1f) {
         c.drawRect(0f, 0f, width, fillingBottom, Paints.fillingPaint(color));

@@ -1222,7 +1222,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     };
     pinnedMessagesBar.setAnimationsDisabled(true);
     pinnedMessagesBar.initialize(this);
-    if (Settings.instance().useFloatingInput()) {
+    if (tgx101Veil) {
+      // TGx101 (approved mockup «Шапка как одно целое», 1): a row of the header's veil, not a capsule of its own
+      pinnedMessagesBar.tgx101SetOnHeader();
+      pinnedMessagesBar.setPadding(Screen.dp(6f), 0, Screen.dp(4f), 0);
+      addThemeInvalidateListener(pinnedMessagesBar);
+    } else if (Settings.instance().useFloatingInput()) {
       tgx101FloatPinnedBar(pinnedMessagesBar);
     }
     pinnedMessagesBar.setMessageListener(new PinnedMessagesBar.MessageListener() {
@@ -1277,9 +1282,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
         if (topBar != null && tgx101VoiceItem != null) topBar.setItemVisible(tgx101VoiceItem, visible, isFocused());
       }
     });
-    tgx101VoiceBar.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(org.thunderdog.challegram.component.chat.Tgx101VoiceChatBar.HEIGHT)));
+    tgx101VoiceBar.setOnHeader(tgx101Veil); // TGx101 (mockup «Шапка как одно целое», 1): a row of the header's veil
+    tgx101VoiceBar.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(tgx101VoiceBar.heightDp())));
     addThemeInvalidateListener(tgx101VoiceBar);
-    tgx101VoiceItem = new CollapseListView.ViewItem(tgx101VoiceBar, Screen.dp(org.thunderdog.challegram.component.chat.Tgx101VoiceChatBar.HEIGHT));
+    tgx101VoiceItem = new CollapseListView.ViewItem(tgx101VoiceBar, Screen.dp(tgx101VoiceBar.heightDp()));
 
     topBar.initWithList(new CollapseListView.Item[] {
       tgx101VoiceItem,
@@ -1941,12 +1947,40 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tgx101DeleteEffect.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
       contentView.addView(tgx101DeleteEffect); // the deleted message's dust flies over the list, under the field
       if (tgx101Veil) {
-        tgx101VeilTail = new View(context);
-        RelativeLayout.LayoutParams tailParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(14f));
+        // TGx101 (approved mockup «Шапка как одно целое», 1): under the header's rows (call, pinned) — the header's own
+        // colour, as dense as the header's bottom edge; below the last row a short fade to nothing
+        tgx101VeilTail = new View(context) {
+          private final android.graphics.Paint fadePaint = new android.graphics.Paint();
+          private android.graphics.Shader fade;
+          private int fadeColor, fadeTop;
+
+          @Override
+          protected void onDraw (Canvas c) {
+            int color = Theme.headerColor();
+            int rows = tgx101TailRows;
+            float veil = tgx101TailVeil;
+            if (rows > 0) {
+              c.drawRect(0, 0, getWidth(), rows, Paints.fillingPaint(ColorUtils.alphaColor(1f - .1f * veil, color)));
+            }
+            if (veil > 0f) {
+              int fadeHeight = Screen.dp(TGX101_VEIL_FADE);
+              if (fade == null || fadeColor != color || fadeTop != rows) {
+                fadeColor = color;
+                fadeTop = rows;
+                fade = new android.graphics.LinearGradient(0, rows, 0, rows + fadeHeight,
+                  new int[] {ColorUtils.alphaColor(.9f, color), ColorUtils.alphaColor(.4f, color), ColorUtils.alphaColor(0f, color)}, null, android.graphics.Shader.TileMode.CLAMP);
+              }
+              fadePaint.setShader(fade);
+              fadePaint.setAlpha((int) (255 * veil));
+              c.drawRect(0, rows, getWidth(), rows + fadeHeight, fadePaint);
+            }
+          }
+        };
+        RelativeLayout.LayoutParams tailParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(TGX101_VEIL_FADE));
         tailParams.addRule(RelativeLayout.ALIGN_PARENT_TOP);
         tailParams.topMargin = tgx101VeilShift;
         tgx101VeilTail.setLayoutParams(tailParams);
-        tgx101VeilTail.setAlpha(0f);
+        tgx101VeilTail.setWillNotDraw(false);
         contentView.addView(tgx101VeilTail);
       }
       // TGx101 (user 2026-10-19, check with navigation buttons): the list runs on under the floating field down to the
@@ -4308,6 +4342,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
   @Override
   public void fillMenuItems (int id, HeaderView header, LinearLayout menu) {
     if (id == R.id.menu_more) {
+      if (tgx101Veil && tgx101TrButton != null && getChatId() != 0) {
+        // TGx101 (approved mockup «Шапка как одно целое», 1): «文A» stands in the header's row, next to ⋮
+        if (tgx101TrButton.getParent() instanceof ViewGroup) ((ViewGroup) tgx101TrButton.getParent()).removeView(tgx101TrButton);
+        menu.addView(tgx101TrButton, Lang.rtl() ? 0 : -1);
+      }
       header.addMoreButton(menu, this);
     } else if (id == R.id.menu_gallery) {
       header.addButton(menu, R.id.menu_btn_gallery, R.drawable.baseline_image_24, getHeaderIconColorId(), this, Screen.dp(52f));
@@ -9967,11 +10006,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (!Settings.instance().useFloatingInput()) return; // the old bar keeps the old look
     int size = Screen.dp(org.thunderdog.challegram.component.chat.Tgx101TranslateButton.SIZE_DP);
     tgx101TrButton = new org.thunderdog.challegram.component.chat.Tgx101TranslateButton(context);
+    if (tgx101Veil) {
+      tgx101TrButton.setFlat(true);
+      tgx101TrButton.setLayoutParams(new LinearLayout.LayoutParams(Screen.dp(48f), ViewGroup.LayoutParams.MATCH_PARENT));
+    }
     RelativeLayout.LayoutParams bp = new RelativeLayout.LayoutParams(size, size);
     bp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
     bp.addRule(Lang.rtl() ? RelativeLayout.ALIGN_PARENT_LEFT : RelativeLayout.ALIGN_PARENT_RIGHT);
     bp.leftMargin = bp.rightMargin = Screen.dp(FLOATING_INPUT_SIDE);
-    tgx101TrButton.setLayoutParams(bp);
+    if (!tgx101Veil) tgx101TrButton.setLayoutParams(bp);
     tgx101TrButton.setContentDescription(Lang.getString(R.string.TranslateWholeChat));
     Views.setClickable(tgx101TrButton);
     tgx101TrButton.setOnClickListener(v -> {
@@ -9984,7 +10027,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       return true;
     });
     addThemeInvalidateListener(tgx101TrButton);
-    contentView.addView(tgx101TrButton);
+    if (!tgx101Veil) contentView.addView(tgx101TrButton); // the veil mode puts it into the header's menu (fillMenuItems)
 
     tgx101TrTip = new TextView(context);
     tgx101TrTip.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
@@ -10024,6 +10067,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private void tgx101PlaceTranslateButton () {
     if (tgx101TrButton == null || topBar == null) return;
     int size = Screen.dp(org.thunderdog.challegram.component.chat.Tgx101TranslateButton.SIZE_DP);
+    if (tgx101Veil) { // the button is in the header: only its tip goes, right under the header's rows
+      if (tgx101TrTip != null) tgx101TrTip.setTranslationY(topBar.getTop() + topBar.getTotalVisualHeight() + Screen.dp(6f));
+      return;
+    }
     float y;
     if (pinnedMessagesBar != null && topBar.isVisible(pinnedMessagesItem) && pinnedMessagesBar.getVisibility() == View.VISIBLE) {
       int h = Math.min(pinnedMessagesBar.getHeight(), Screen.dp(52f));
@@ -11544,7 +11591,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private @Nullable android.animation.ValueAnimator tgx101PinnedExtraAnimator;
 
   private void tgx101SetPinnedRightExtra (int extra, boolean animated) {
-    if (pinnedMessagesBar == null || !Settings.instance().useFloatingInput()) return;
+    if (pinnedMessagesBar == null || !Settings.instance().useFloatingInput() || tgx101Veil) return;
     if (tgx101PinnedExtraAnimator != null) tgx101PinnedExtraAnimator.cancel();
     if (!animated) {
       tgx101PinnedRightExtra = extra;
@@ -12031,7 +12078,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private int tgx101VeilShift;
   private float tgx101VeilValue;
   private @Nullable View tgx101VeilTail;
-  private int tgx101VeilTailColor;
+  private int tgx101TailRows;
+  private float tgx101TailVeil;
+  private static final float TGX101_VEIL_FADE = 14f;
+
+  /** the header's rows (call, pinned) continue the header: no shadow between them */
+  @Override
+  public boolean tgx101HeaderShadowHidden () {
+    return tgx101Veil && tgx101TailRows > 0;
+  }
 
   @Override
   public float tgx101HeaderVeil () {
@@ -12052,17 +12107,21 @@ public class MessagesController extends ViewController<MessagesController.Argume
         if (oldest != null) value = MathUtils.clamp((float) (messagesView.getPaddingTop() + topBar.getTotalVisualHeight() - oldest.getTop()) / Screen.dp(80f));
       }
     }
+    boolean shadowWas = tgx101HeaderShadowHidden();
     if (tgx101VeilTail != null) {
-      boolean pinned = pinnedMessagesBar != null && topBar.isVisible(pinnedMessagesItem);
-      int tail = pinned || tgx101TrButton != null && tgx101TrButton.isShown2() ? topBar.getTotalVisualHeight() + Screen.dp(pinned ? 10f : 58f) : Screen.dp(14f);
-      int color = Theme.headerColor();
-      if (tgx101VeilTail.getLayoutParams().height != tail || tgx101VeilTailColor != color) {
-        tgx101VeilTailColor = color;
-        tgx101VeilTail.setBackground(new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-          new int[] {ColorUtils.alphaColor(.9f, color), ColorUtils.alphaColor(.5f, color), ColorUtils.alphaColor(0f, color)}));
-        Views.setLayoutHeight(tgx101VeilTail, tail);
+      int rows = topBar.getTotalVisualHeight();
+      float tailVeil = !inSearchMode() && !inSelectMode() ? value : 0f;
+      int tail = rows + Screen.dp(TGX101_VEIL_FADE);
+      if (tgx101VeilTail.getLayoutParams().height != tail) Views.setLayoutHeight(tgx101VeilTail, tail);
+      if (tgx101TailRows != rows || tgx101TailVeil != tailVeil) {
+        tgx101TailRows = rows;
+        tgx101TailVeil = tailVeil;
+        tgx101VeilTail.invalidate();
       }
-      tgx101VeilTail.setAlpha(tgx101Veil && !inSearchMode() && !inSelectMode() ? value : 0f);
+    }
+    if (shadowWas != tgx101HeaderShadowHidden() && tgx101VeilValue == value) {
+      NavigationController navigation = navigationController();
+      if (navigation != null && navigation.getHeaderView() != null) navigation.getHeaderView().invalidate();
     }
     if (tgx101VeilValue != value) {
       tgx101VeilValue = value;
