@@ -4820,6 +4820,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private @Nullable MessageId tgx101PendingHighlight;
 
+  /** to the message without any scrolling animation, flashing it */
+  public void tgx101JumpInstantly (MessageId id) {
+    org.thunderdog.challegram.component.chat.MessagesManager.tgx101AllowFlashOnce(id.getMessageId());
+    manager.highlightMessage(id, MessagesManager.HIGHLIGHT_MODE_NORMAL, null, false);
+    showMessagesListIfNeeded();
+  }
+
   @Override
   public void onFocus () {
     tgx101ResetMotion("focus");
@@ -8874,9 +8881,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
       ViewController<?> c = previousStackItem();
       if (c instanceof MessagesController && c.getChatId() == getChatId()) {
         if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) {
-          // TGx101 (user 2026-10-19 «переход … с прыжками и без подсвечивания»): back first, the chat scrolls to the message
-          // and highlights it once it's on screen — scrolling under the back animation jumped and the highlight was lost
-          ((MessagesController) c).tgx101PendingHighlight = msg.toMessageId();
+          // TGx101 (user 2026-10-19, video of the official app): the chat stands at the message at once, behind this screen,
+          // and the back animation uncovers it already there — no visible scrolling (a smooth jump reloaded the history
+          // and glided through other messages), the message flashes as on a reply jump
+          ((MessagesController) c).tgx101JumpInstantly(msg.toMessageId());
           navigateBack();
           return;
         }
