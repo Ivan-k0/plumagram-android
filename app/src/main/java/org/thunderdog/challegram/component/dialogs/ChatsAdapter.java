@@ -125,7 +125,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
         notifyChatAppeared(-1, getItemPositionByChatIndex(ARCHIVE_INDEX));
       } else {
         chats.remove(ARCHIVE_INDEX);
-        tgx101NotifyRemoved(getItemPositionByChatIndex(ARCHIVE_INDEX));
+        tgx101NotifyRemovedKeepingInfo(getItemPositionByChatIndex(ARCHIVE_INDEX));
       }
       invalidateAttachedItemDecorations();
     }
@@ -396,7 +396,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
     }
     if (addedItemCount > 0) {
       int positionStart = getItemPositionByChatIndex(atIndex);
-      tgx101NotifyRangeInserted(positionStart, addedItemCount);
+      tgx101NotifyRangeInserted(positionStart, addedItemCount + (atIndex == 0 ? 1 : 0)); // into an empty list: the «N chats» line too
       if (firstAddedItem != null && lastChat != null && lastChat.isPinnedOrSpecial() != firstAddedItem.isPinnedOrSpecial()) {
         tgx101NotifyChanged(positionStart - 1);
       }
@@ -669,8 +669,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
         needShadowDecoration(nextChat, removedChat);
 
       removedChat.updateChatPosition(chat.id, changeInfo.position, changeInfo.sourceChanged(), changeInfo.pinStateChanged());
-      tgx101NotifyRemoved(getItemPositionByChatIndex(chatIndex));
-      tgx101NotifyChanged(getInfoItemPosition());
+      tgx101NotifyRemovedKeepingInfo(getItemPositionByChatIndex(chatIndex));
       context.checkListState();
       return invalidateDecorations || needShadowDecoration(prevChat, nextChat) ? ORDER_INVALIDATE_DECORATIONS : 0;
     }
@@ -713,9 +712,14 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
     int index = hasArchive ? atIndex + 1 : atIndex;
     newChat.makeMeasures();
     int flags = changeInfo.metadataChanged() ? ORDER_INVALIDATE_DECORATIONS : 0;
+    boolean wasEmpty = !hasChats();
     addChat(index, newChat);
-    notifyChatAppeared(-1, getItemPositionByChatIndex(index));
-    tgx101NotifyChanged(getInfoItemPosition());
+    if (wasEmpty) {
+      tgx101NotifyRangeInserted(getItemPositionByChatIndex(index), 2); // the first chat brings the «N chats» line with it
+    } else {
+      notifyChatAppeared(-1, getItemPositionByChatIndex(index));
+      tgx101NotifyChanged(getInfoItemPosition());
+    }
     context.checkListState();
     return flags;
   }
@@ -848,6 +852,25 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
 
   private void tgx101NotifyRangeInserted (int positionStart, int itemCount) {
     if (!tgx101Coalesce()) notifyItemRangeInserted(positionStart, itemCount);
+  }
+
+  /**
+   * TGx101 (crash report of 0.2.57, 4PDA/group user 2026-10-19: «Прочитать все» on a folder → «Inconsistency detected. Invalid
+   * view holder adapter position», ChatsAdapter): the «N chats» line under the chats exists only while there are chats —
+   * when the last one went, only the chat's removal was told (and a «change» of the line that was gone), the list expected
+   * one item more than there was. Now the line goes with the last chat
+   */
+  private void tgx101NotifyRemovedKeepingInfo (int position) {
+    if (!hasChats()) {
+      tgx101NotifyRangeRemoved(position, 2);
+    } else {
+      tgx101NotifyRemoved(position);
+      tgx101NotifyChanged(getInfoItemPosition());
+    }
+  }
+
+  private void tgx101NotifyRangeRemoved (int positionStart, int itemCount) {
+    if (!tgx101Coalesce()) notifyItemRangeRemoved(positionStart, itemCount);
   }
 
   private void tgx101NotifyMoved (int fromPosition, int toPosition) {
