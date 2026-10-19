@@ -171,7 +171,7 @@ public final class Tgx101BarOrder {
     if (id == R.id.btn_reportChat) return CHAT_REPORT;
     if (id == R.id.btn_setPasscode) return CHAT_PASSCODE;
     if (id == R.id.btn_tgx101ChatProxy) return CHAT_PROXY;
-    if (id == R.id.btn_removeChatFromList || id == R.id.btn_removeChatFromListAndStop || id == R.id.btn_removeChatFromListOrClearHistory) return CHAT_LEAVE;
+    if (id == R.id.btn_removeChatFromList || id == R.id.btn_removeChatFromListAndStop || id == R.id.btn_removeChatFromListOrClearHistory || id == R.id.btn_returnToChat) return CHAT_LEAVE; // «Join» stands where «Leave» would
     return CHAT_OTHER;
   }
 

@@ -415,7 +415,9 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       if (emojiShown) closeEmoji(true);
       else openEmoji();
     });
-    bar.addView(emojiButton, new LinearLayout.LayoutParams(Screen.dp(44f), Screen.dp(44f)));
+    // (user's voice note 2026-10-19 «проверить центровку всех иконок в поле ввода хранилища»): every button stands on the
+    // send button's 48 dp line — the 44 dp ones sat 2 dp low against it (the bar keeps them at its bottom)
+    bar.addView(emojiButton, new LinearLayout.LayoutParams(Screen.dp(44f), Screen.dp(48f)));
     noteField = new org.thunderdog.challegram.component.chat.InputView(context, tdlib, this);
     noteField.setInputListener(new org.thunderdog.challegram.component.chat.InputView.InputListener() {
       @Override
@@ -461,6 +463,8 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     noteField.setInputType(noteField.getInputType() | android.view.inputmethod.EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES | android.view.inputmethod.EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE);
     noteField.setBackground(null); // inside the capsule
     noteField.setPadding(Screen.dp(4f), Screen.dp(12f), Screen.dp(4f), Screen.dp(12f));
+    noteField.setMinHeight(Screen.dp(48f)); // one line is as tall as the buttons, its text on their middle
+    noteField.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
     cursor(noteField);
     noteField.setOnClickListener(v -> {
       if (emojiShown) closeEmoji(true);
@@ -474,7 +478,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     Views.setClickable(attach);
     org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(attach, Screen.dp(22f), this);
     attach.setOnClickListener(v -> openAttach());
-    bar.addView(attach, new LinearLayout.LayoutParams(Screen.dp(44f), Screen.dp(44f)));
+    bar.addView(attach, new LinearLayout.LayoutParams(Screen.dp(44f), Screen.dp(48f)));
     ImageView send = new ImageView(context);
     sendButton = send;
     send.setImageResource(R.drawable.baseline_mic_24); // an empty field: hold to record a voice note (user 2026-10-16)
@@ -2434,8 +2438,11 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       recordLabel = text(context, 15f, Theme.textAccentColor(), false);
       recordLabel.setGravity(Gravity.CENTER_VERTICAL);
       recordLabel.setPadding(Screen.dp(4f), 0, Screen.dp(4f), 0);
-      ((ViewGroup) noteField.getParent()).addView(recordLabel, ((ViewGroup) noteField.getParent()).indexOfChild(noteField), new LinearLayout.LayoutParams(0, Screen.dp(44f), 1f));
+      ((ViewGroup) noteField.getParent()).addView(recordLabel, ((ViewGroup) noteField.getParent()).indexOfChild(noteField), new LinearLayout.LayoutParams(0, Screen.dp(48f), 1f));
     }
+    // (user's voice note 2026-10-19 «когда нажимаю запись в хранилище, поле ввода немножечко сужается»): the label takes
+    // the field's place at the field's own height, so the capsule keeps its size while recording
+    Views.setLayoutHeight(recordLabel, Math.max(Screen.dp(48f), noteField.getHeight()));
     noteField.setVisibility(View.GONE);
     recordLabel.setVisibility(View.VISIBLE);
     recordTicker.run();

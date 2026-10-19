@@ -1049,6 +1049,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       addThemeTextColorListener(inputView, ColorId.text);
       inputView.setHintTextColor(Theme.textPlaceholderColor());
       addThemeHintTextColorListener(inputView, ColorId.textPlaceholder);
+      // TGx101 (user's voice note 2026-10-19 «мигающая полоска в поле ввода слишком тонкая… в хранилище нормальная»): the
+      // chat's cursor is the storage's — 2 dp wide, 20 dp tall, in the app's colour
+      Tgx101SavedHomeController.cursor(inputView);
       inputView.setLinkTextColor(Theme.textLinkColor());
       addThemeLinkTextColorListener(inputView, ColorId.textLink);
       if (!floatingInput) { // TGx101: the capsule draws the background
@@ -5347,8 +5350,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       ids.append(R.id.btn_setPasscode);
       strings.append(R.string.PasscodeTitle);
     }
-    // TGx101: with the «Join» bar hidden (MagiX), joining a channel / group is in this ⋮ menu (user 2026-10-08 18:0x)
-    tdlib.ui().addDeleteChatOptions(getChatId(), ids, strings, !tdlib.isChannel(chat.id), Settings.instance().tgx101HideJoinButton());
+    // TGx101: joining a channel / group is in this ⋮ menu — first only with the «Join» bar hidden (user 2026-10-08 18:0x),
+    // now always (user's voice note 2026-10-19 «через три точки в канале дать подписаться, или присоединиться в группу»)
+    tdlib.ui().addDeleteChatOptions(getChatId(), ids, strings, !tdlib.isChannel(chat.id), true);
 
     if (!messagesHidden) {
       if (ChatId.isUserChat(chat.id)) {
