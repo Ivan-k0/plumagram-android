@@ -417,7 +417,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   }
 
   private boolean tgx101TextMode () {
-    return org.thunderdog.challegram.BuildConfig.TGX101_TEST && tgx101TextModes.contains(tgx101Key()) && !TD.isSelfDestructTypeImmediately(getMessage());
+    return tgx101TextModes.contains(tgx101Key()) && !TD.isSelfDestructTypeImmediately(getMessage());
   }
 
   private void tgx101SetTextMode (boolean on) {
@@ -644,6 +644,18 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     return getContentX();
   }
 
+  // TGx101 (user 2026-10-19 «кружок до сих пор не рабочий»): the round video's own layer (MessageViewGroup) plays in the
+  // small circle in the text mode — it took the whole bubble and covered the circle, «A» and the text
+  @Override
+  public int getChildrenWidth () {
+    return tgx101TextMode() ? Screen.dp(TM_MINI) : super.getChildrenWidth();
+  }
+
+  @Override
+  public int getChildrenHeight () {
+    return tgx101TextMode() ? Screen.dp(TM_MINI) : super.getChildrenHeight();
+  }
+
   @Override
   protected void drawBubble (Canvas c, Paint paint, boolean stroke, int padding) {
     if (tgx101TextMode()) {
@@ -797,7 +809,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
             performClickSoundFeedback();
             // TGx101: first tap starts the background transcription; when it's ready, a tap opens the text
             String done = Tgx101Transcription.doneText(tdlib, msg);
-            if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) { // test builds: the bubble with the text, right away
+            if (true) { // the bubble with the text, right away (all builds since 2026-10-19)
               if (done == null) Tgx101Transcription.start(tdlib, msg, isSecretChat());
               tgx101SetTextMode(true);
             } else if (done != null && messagesController() != null) {

@@ -1238,7 +1238,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       addThemeInvalidateListener(pinnedMessagesBar);
     } else if (Settings.instance().useFloatingInput()) {
       tgx101FloatPinnedBar(pinnedMessagesBar);
-      if (BuildConfig.TGX101_TEST) pinnedMessagesBar.tgx101SetCompact(); // one line + the list button, in the capsule too
+      pinnedMessagesBar.tgx101SetCompact(); // one line + the list button, in the capsule too (all builds since 2026-10-19)
     }
     pinnedMessagesBar.setMessageListener(new PinnedMessagesBar.MessageListener() {
       @Override
@@ -3926,7 +3926,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     if (inPreviewSearchMode()) {
       setInputVisible(false, false);
-      if (arePinnedMessages() && !org.thunderdog.challegram.BuildConfig.TGX101_TEST) { // test builds: in ⋮
+      if (false && arePinnedMessages()) { // TGx101: «Unpin all» is in the pinned list's ⋮ (all builds since 2026-10-19)
         showBottomButton(BOTTOM_ACTION_UNPIN_ALL, 0, isUpdate);
       }
       return;
@@ -4271,7 +4271,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   protected int getMenuId () {
     if (areScheduled)
       return 0;
-    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST && arePinnedMessages()) {
+    if (arePinnedMessages()) {
       return R.id.menu_more; // TGx101 (user 2026-10-19): «Unpin all» lives in the pinned list's ⋮, not in a bar at the bottom
     }
     switch (previewMode) {
@@ -4462,7 +4462,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       showSavedMessagesTags();
       return;
     }
-    if (id == R.id.menu_btn_more && org.thunderdog.challegram.BuildConfig.TGX101_TEST && arePinnedMessages()) {
+    if (id == R.id.menu_btn_more && arePinnedMessages()) {
       showTgx101Dropdown(R.id.menu_btn_more, new int[] {R.id.btn_unpinAll},
         new String[] {Lang.getString(canPinAnyMessage(false) ? R.string.UnpinAll : R.string.DismissAllPinned)},
         new int[] {R.drawable.deproko_baseline_pin_undo_24}, viewId -> dismissPinnedMessage()); // asks before unpinning
@@ -8883,7 +8883,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (arePinnedMessages()) {
       ViewController<?> c = previousStackItem();
       if (c instanceof MessagesController && c.getChatId() == getChatId()) {
-        if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) {
+        if (true) { // all builds since 2026-10-19
           // TGx101 (user 2026-10-19, video of the official app 15:21): back to the chat where it was, then one smooth scroll
           // to the message — up or down, the whole way when it's loaded — and it flashes as on a reply jump
           MessagesController chatScreen = (MessagesController) c;

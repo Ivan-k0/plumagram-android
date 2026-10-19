@@ -2645,7 +2645,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   private boolean tgx101HasGoToButton () {
     MessagesController m = messagesController();
-    return org.thunderdog.challegram.BuildConfig.TGX101_TEST && m != null && m.arePinnedMessages() && useBubbles() && !bubblePathRect.isEmpty(); // test builds first
+    return m != null && m.arePinnedMessages() && useBubbles() && !bubblePathRect.isEmpty();
   }
 
   private void tgx101DrawGoToButton (Canvas c) {
