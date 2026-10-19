@@ -1969,7 +1969,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
             int rows = tgx101TailRows;
             float veil = tgx101TailVeil;
             if (rows > 0) {
-              c.drawRect(0, 0, getWidth(), rows, Paints.fillingPaint(ColorUtils.alphaColor(1f - .08f * veil, color)));
+              c.drawRect(0, 0, getWidth(), rows, Paints.fillingPaint(ColorUtils.alphaColor(1f - .05f * veil, color)));
             }
             if (veil > 0f) {
               int fadeHeight = Screen.dp(TGX101_VEIL_FADE);
@@ -1977,7 +1977,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
                 fadeColor = color;
                 fadeTop = rows;
                 fade = new android.graphics.LinearGradient(0, rows, 0, rows + fadeHeight,
-                  new int[] {ColorUtils.alphaColor(.92f, color), ColorUtils.alphaColor(.4f, color), ColorUtils.alphaColor(0f, color)}, null, android.graphics.Shader.TileMode.CLAMP);
+                  new int[] {ColorUtils.alphaColor(.95f, color), ColorUtils.alphaColor(.45f, color), ColorUtils.alphaColor(0f, color)}, null, android.graphics.Shader.TileMode.CLAMP);
               }
               fadePaint.setShader(fade);
               fadePaint.setAlpha((int) (255 * veil));
