@@ -435,6 +435,14 @@ public class ShareController extends TelegramViewController<ShareController.Args
       }
       return true;
     }
+    // (user 2026-10-20 «если открыть поле ввода и клавиатуру, то экран сворачивается при жесте назад»): back hides the
+    // keyboard first, as everywhere else
+    if (inputView != null && inputView.hasFocus() && context().isKeyboardVisible()) {
+      if (commit) {
+        hideSoftwareKeyboard();
+      }
+      return true;
+    }
     return super.performOnBackPressed(fromTop, commit);
   }
 
@@ -1473,6 +1481,16 @@ public class ShareController extends TelegramViewController<ShareController.Args
       initializeChatList(displayingChatList);
     }
 
+    if (tgx101KeepBottom()) {
+      // (user 2026-10-20 «появление поля ввода тоже резкое… и выезд списка людей тоже»): when forwarding, the field, the
+      // options and «Send» are in place from the start — choosing a chat moves nothing, «Send» just comes alive
+      isExpanded = true;
+      expandFactor = 1f;
+      sendButton.setTranslationY(0f);
+      bottomShadow.setAlpha(1f);
+      onExpansionFinished(1f);
+      tgx101UpdateSendEnabled();
+    }
     return wrapView;
   }
 
@@ -3200,6 +3218,17 @@ public class ShareController extends TelegramViewController<ShareController.Args
     }
   }
 
+  private boolean tgx101KeepBottom () {
+    return mode == MODE_MESSAGES && !canShareLink;
+  }
+
+  private void tgx101UpdateSendEnabled () {
+    if (sendButton == null) return;
+    boolean ready = selectedChats.size() > 0;
+    sendButton.getChildAt(0).setEnabled(ready);
+    sendButton.animate().alpha(ready ? 1f : .5f).setDuration(sendButton.isShown() ? 180L : 0L).start();
+  }
+
   private void checkAbilityToSend () {
     tgx101UpdateOptionsRow();
     final int selectedCount = selectedChats.size();
@@ -3207,6 +3236,10 @@ public class ShareController extends TelegramViewController<ShareController.Args
 
     if (canShareLink) {
       sendButton.setIsReady(isReady, true);
+    }
+    if (tgx101KeepBottom()) {
+      tgx101UpdateSendEnabled();
+      return;
     }
     setIsExpanded(isReady);
   }
@@ -3531,6 +3564,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
     row.setGravity(Gravity.CENTER_VERTICAL);
     row.setPadding(Screen.dp(12f), Screen.dp(2f), Screen.dp(12f), Screen.dp(8f));
     ViewSupport.setThemedBackground(row, ColorId.filling, this);
+    row.setClickable(true); // (user 2026-10-20) a tap between the buttons closed the whole window
     // (user 2026-10-20 «смена иконок при переключении не фонтан»): a chip grows or narrows smoothly when its ✓ comes or
     // goes, and one that shows up or hides slides instead of jumping
     android.animation.LayoutTransition lt = new android.animation.LayoutTransition();
@@ -3548,15 +3582,19 @@ public class ShareController extends TelegramViewController<ShareController.Args
       Settings.instance().pmc().putBoolean("tgx101_fwd_no_captions", needRemoveCaptions);
       tgx101UpdateOptionsRow();
     });
-    LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(32f));
+    // (user 2026-10-20 «лишнее пространство между иконками и кнопками»): the two options share the row's width, no gap
+    // in the middle
+    tgx101NoName.setLayoutParams(new LinearLayout.LayoutParams(0, Screen.dp(32f), 1f));
+    LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(0, Screen.dp(32f), 1f);
     cp.leftMargin = Screen.dp(8f);
     row.addView(tgx101NoCaptions, cp);
-    row.addView(new View(context), new LinearLayout.LayoutParams(0, 1, 1f));
     tgx101Silent = tgx101Round(context, R.drawable.baseline_notifications_off_24, v -> {
       forceSendWithoutSound = !forceSendWithoutSound;
       tgx101UpdateOptionsRow();
     });
-    row.addView(tgx101Silent);
+    LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(Screen.dp(32f), Screen.dp(32f));
+    sp.leftMargin = Screen.dp(8f);
+    row.addView(tgx101Silent, sp);
     tgx101Later = tgx101Round(context, R.drawable.baseline_date_range_24, v -> {
       if (selectedChats.size() == 0) return;
       tdlib.ui().showScheduleOptions(this, selectedChats.size() == 1 ? selectedChats.valueAt(0).getChatId() : 0, false, (sendOptions, disableMarkdown) -> performSend(false, sendOptions, false), getArgumentsStrict().defaultSendOptions, null);
@@ -3695,9 +3733,33 @@ public class ShareController extends TelegramViewController<ShareController.Args
     if (chip == null) return;
     chip.setVisibility(visible ? View.VISIBLE : View.GONE);
     Object was = chip.getTag();
-    chip.setText((active ? "✓ " : "") + Lang.getString(textRes));
+    boolean animate = was instanceof Boolean && (Boolean) was != active && chip.isShown();
     chip.setTypeface(active ? Fonts.getRobotoMedium() : Fonts.getRobotoRegular());
-    if (was instanceof Boolean && (Boolean) was != active && chip.isShown()) {
+    if (active) {
+      // (user 2026-10-20 «стрелочки не появляются»): the «✓» character came out as a tiny tick in this font — a real
+      // check icon now, and it grows in when switched on
+      android.graphics.drawable.Drawable check = org.thunderdog.challegram.tool.Drawables.get(chip.getResources(), R.drawable.baseline_check_24).mutate();
+      check.setColorFilter(new android.graphics.PorterDuffColorFilter(accent, android.graphics.PorterDuff.Mode.SRC_IN));
+      int size = Screen.dp(16f);
+      check.setBounds(0, 0, animate ? 1 : size, animate ? 1 : size);
+      android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder("x " + Lang.getString(textRes));
+      b.setSpan(new android.text.style.ImageSpan(check, android.os.Build.VERSION.SDK_INT >= 29 ? android.text.style.DynamicDrawableSpan.ALIGN_CENTER : android.text.style.DynamicDrawableSpan.ALIGN_BASELINE), 0, 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+      chip.setText(b);
+      if (animate) {
+        android.animation.ValueAnimator grow = android.animation.ValueAnimator.ofFloat(0f, 1f);
+        grow.setDuration(260L);
+        grow.setInterpolator(new android.view.animation.OvershootInterpolator(2.5f));
+        grow.addUpdateListener(an -> {
+          int s = Math.max(1, Math.round(size * (float) an.getAnimatedValue()));
+          check.setBounds(0, 0, s, s);
+          chip.setText(chip.getText());
+        });
+        grow.start();
+      }
+    } else {
+      chip.setText(Lang.getString(textRes));
+    }
+    if (animate) {
       boolean w = (Boolean) was;
       tgx101AnimateColors(chip, w ? on : off, active ? on : off, w ? accent : plain, active ? accent : plain, null, chip::setTextColor);
     } else {
