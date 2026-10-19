@@ -6872,6 +6872,7 @@
   <string name="Tgx101PaintStrength">Strength</string>
   <string name="Tgx101SameSettings">Same settings on all accounts</string>
   <string name="Tgx101SameSettingsHint">Theme, chat background, message style and chat folders</string>
+  <string name="Tgx101EditWaitDownload">The photo is still loading — try again in a moment</string>
   <string name="Tgx101PaintClearAll">Clear all</string>
   <string name="Tgx101PaintEraser">Eraser</string>
   <string name="Tgx101PaintEllipse">Oval</string>

@@ -1266,6 +1266,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PaintPen, "Ручка");
     RU.put(R.string.Tgx101SameSettings, "Одинаковые настройки на всех аккаунтах");
     RU.put(R.string.Tgx101SameSettingsHint, "Тема, фон чатов, вид сообщений и папок");
+    RU.put(R.string.Tgx101EditWaitDownload, "Фото ещё загружается — нажмите через пару секунд");
     RU.put(R.string.Tgx101PaintClearAll, "Очистить всё");
     RU.put(R.string.Tgx101PaintMarker, "Флом.");
     RU.put(R.string.Tgx101PaintPencil, "Каранд.");

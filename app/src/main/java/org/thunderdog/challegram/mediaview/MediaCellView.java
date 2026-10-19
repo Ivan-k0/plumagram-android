@@ -313,7 +313,7 @@ public class MediaCellView extends ViewGroup implements
     final int parentHeight = getMeasuredHeight();
 
     final int availWidth = fullWidth - paddingHorizontal * 2;
-    final int availHeight = fullHeight - offsetBottom;
+    final int availHeight = fullHeight - offsetTop - offsetBottom; // TGx101 (user 2026-10-19 «редактор фото не исправлен»): the editor's top row counts — the drawing layer fitted the photo to the whole height and its black mask cut the bottom off
     int imageWidth, imageHeight;
     int imageWidthCropped, imageHeightCropped;
     if (media != null) {
@@ -355,7 +355,7 @@ public class MediaCellView extends ViewGroup implements
 
 
     int centerX = paddingHorizontal + availWidth / 2;
-    int centerY = availHeight / 2;
+    int centerY = offsetTop + availHeight / 2;
 
     int exactLeft = centerX - imageWidth / 2;
     int exactRight = centerX + imageWidth / 2;
@@ -466,7 +466,7 @@ public class MediaCellView extends ViewGroup implements
     final int childCount = getChildCount();
 
     final int availWidth = fullWidth - paddingHorizontal * 2;
-    final int availHeight = fullHeight - offsetBottom;
+    final int availHeight = fullHeight - offsetTop - offsetBottom; // TGx101: as in onLayout
     int imageWidth, imageHeight;
     int imageWidthCropped, imageHeightCropped;
     if (media != null) {
@@ -542,7 +542,7 @@ public class MediaCellView extends ViewGroup implements
       final int childCount = getChildCount();
 
       final int availWidth = fullWidth - paddingHorizontal * 2;
-      final int availHeight = fullHeight - offsetBottom;
+      final int availHeight = fullHeight - offsetTop - offsetBottom;
       int imageWidth, imageHeight;
       int imageWidthOriginal, imageHeightOriginal;
       if (media != null) {
@@ -626,9 +626,9 @@ public class MediaCellView extends ViewGroup implements
       final int parentHeight = getMeasuredHeight();
 
       final int availWidth = fullWidth - paddingHorizontal * 2;
-      final int availHeight = fullHeight - offsetBottom;
+      final int availHeight = fullHeight - offsetTop - offsetBottom;
       final int centerX = paddingHorizontal + availWidth / 2;
-      final int centerY = availHeight / 2;
+      final int centerY = offsetTop + availHeight / 2;
 
       for (int i = 0; i < childCount; i++) {
         View view = getChildAt(i);

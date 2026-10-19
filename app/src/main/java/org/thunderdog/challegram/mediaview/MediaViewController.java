@@ -10085,9 +10085,17 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   private void openForceEditMode () {
-    ImageFile imageFile = stack.getCurrent().getTargetImage();
-    U.toGalleryFile(new File(imageFile.getFilePath()), false, imageGalleryFile -> {
+    MediaItem current = stack.getCurrent();
+    ImageFile imageFile = current.getTargetImage();
+    String path = imageFile != null ? imageFile.getFilePath() : null;
+    if (path == null || path.isEmpty()) {
+      tgx101EditNotReady(current);
+      return;
+    }
+    U.toGalleryFile(new File(path), false, imageGalleryFile -> {
       if (imageGalleryFile == null) {
+        // TGx101 (user 2026-10-19 «подвисание»): the full photo isn't on the phone yet — the brush did nothing at all
+        tgx101EditNotReady(current);
         return;
       }
 
@@ -10097,6 +10105,15 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
       openForceEditModeImpl(mediaStack);
     });
+  }
+
+  /** the photo is still loading: say so and fetch it, the brush works once it's here */
+  private void tgx101EditNotReady (MediaItem item) {
+    UI.showToast(R.string.Tgx101EditWaitDownload, android.widget.Toast.LENGTH_SHORT);
+    try {
+      TdApi.File file = item != null ? item.getTargetFile() : null;
+      if (file != null) tdlib.files().downloadFile(file);
+    } catch (Throwable ignored) { }
   }
 
   private void stopFullScreenTemporarily (boolean stop) {
