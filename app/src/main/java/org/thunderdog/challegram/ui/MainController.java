@@ -193,7 +193,78 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       org.thunderdog.challegram.tool.UI.post(() -> org.thunderdog.challegram.ui.Tgx101FolderShare.resumeAll(tdlib), 5000); // a shared folder's copying goes on
     });
     initPagerSections();
-    return super.onCreateView(context);
+    View view = super.onCreateView(context);
+    tgx101SetupVeil(context, view);
+    return view;
+  }
+
+  // TGx101 (approved mockup «Шапки списка и Хранилища», А without the title row; test builds): the folders' chats run on
+  // under the header, which turns into the chat screen's veil once they do; a short eased fade continues it below
+  private @Nullable View tgx101VeilTail;
+  private float tgx101TailVeil;
+
+  private void tgx101SetupVeil (Context context, View view) {
+    if (!BuildConfig.TGX101_TEST || !(view instanceof ViewGroup)) return;
+    int shift = HeaderView.getSize(true);
+    ViewGroup.LayoutParams lp = view.getLayoutParams();
+    if (!(lp instanceof ViewGroup.MarginLayoutParams)) {
+      lp = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+      view.setLayoutParams(lp);
+    }
+    ((ViewGroup.MarginLayoutParams) lp).topMargin = -shift; // the chats' lists keep this room on top (ChatsController)
+    view.setWillNotDraw(true); // the pager's band under the header would show through the veil
+    tgx101VeilTail = new View(context) {
+      private final android.graphics.Paint paint = new android.graphics.Paint();
+      private android.graphics.Shader fade;
+      private int fadeColor;
+
+      @Override
+      protected void onDraw (android.graphics.Canvas c) {
+        if (tgx101TailVeil <= 0f) return;
+        int color = Theme.headerColor();
+        if (fade == null || fadeColor != color) {
+          fadeColor = color;
+          fade = org.thunderdog.challegram.navigation.Tgx101Veil.fade(color, 0);
+        }
+        paint.setShader(fade);
+        paint.setAlpha((int) (255 * tgx101TailVeil));
+        c.drawRect(0, 0, getWidth(), org.thunderdog.challegram.navigation.Tgx101Veil.fadeHeight(), paint);
+      }
+    };
+    tgx101VeilTail.setWillNotDraw(false);
+    FrameLayoutFix.LayoutParams tp = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, org.thunderdog.challegram.navigation.Tgx101Veil.fadeHeight(), Gravity.TOP);
+    tp.topMargin = shift;
+    ((ViewGroup) view).addView(tgx101VeilTail, tp);
+  }
+
+  private @Nullable ChatsController tgx101CurrentChats () {
+    ViewController<?> c = getCachedControllerForPosition(getCurrentPagerItemPosition());
+    return c instanceof ChatsController ? (ChatsController) c : null;
+  }
+
+  @Override
+  public float tgx101HeaderVeil () {
+    if (!BuildConfig.TGX101_TEST || inSearchMode() || inSelectMode()) return 0f;
+    ChatsController chats = tgx101CurrentChats();
+    return chats != null ? chats.tgx101VeilValue() : 0f;
+  }
+
+  @Override
+  public boolean tgx101HeaderShadowHidden () {
+    ChatsController chats = BuildConfig.TGX101_TEST ? tgx101CurrentChats() : null;
+    return chats != null && chats.tgx101StoriesUnderHeader();
+  }
+
+  /** a folder's list scrolled or another folder came: the header and its fade follow */
+  public void tgx101UpdateVeil () {
+    if (tgx101VeilTail == null) return;
+    float veil = tgx101HeaderVeil();
+    if (tgx101TailVeil != veil) {
+      tgx101TailVeil = veil;
+      tgx101VeilTail.invalidate();
+    }
+    NavigationController navigation = navigationController();
+    if (navigation != null && navigation.getHeaderView() != null) navigation.getHeaderView().invalidate();
   }
 
   @Override
@@ -1047,6 +1118,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   @Override
   public void onPageScrolled (int position, int actualPosition, float actualPositionOffset, int actualPositionOffsetPixels) {
     super.onPageScrolled(position, actualPosition, actualPositionOffset, actualPositionOffsetPixels);
+    tgx101UpdateVeil();
     if (Config.CHAT_FOLDERS_HIDE_BOTTOM_BAR_ON_SCROLL && displayTabsAtBottom()) {
       showBottomBar();
     }
