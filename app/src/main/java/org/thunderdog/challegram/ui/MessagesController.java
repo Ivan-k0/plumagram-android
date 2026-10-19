@@ -944,6 +944,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       messagesView.addOnScrollListener(new RecyclerView.OnScrollListener() {
         @Override
         public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
+          tgx101TrackPinnedHide(dy);
           tgx101UpdateVeil();
         }
       });
@@ -1960,7 +1961,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
             int rows = tgx101TailRows;
             float veil = tgx101TailVeil;
             if (rows > 0) {
-              c.drawRect(0, 0, getWidth(), rows, Paints.fillingPaint(ColorUtils.alphaColor(1f - .1f * veil, color)));
+              c.drawRect(0, 0, getWidth(), rows, Paints.fillingPaint(ColorUtils.alphaColor(1f - .08f * veil, color)));
             }
             if (veil > 0f) {
               int fadeHeight = Screen.dp(TGX101_VEIL_FADE);
@@ -1968,7 +1969,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
                 fadeColor = color;
                 fadeTop = rows;
                 fade = new android.graphics.LinearGradient(0, rows, 0, rows + fadeHeight,
-                  new int[] {ColorUtils.alphaColor(.9f, color), ColorUtils.alphaColor(.4f, color), ColorUtils.alphaColor(0f, color)}, null, android.graphics.Shader.TileMode.CLAMP);
+                  new int[] {ColorUtils.alphaColor(.92f, color), ColorUtils.alphaColor(.4f, color), ColorUtils.alphaColor(0f, color)}, null, android.graphics.Shader.TileMode.CLAMP);
               }
               fadePaint.setShader(fade);
               fadePaint.setAlpha((int) (255 * veil));
@@ -12093,6 +12094,42 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return tgx101Veil && !inSearchMode() && !inSelectMode() ? tgx101VeilValue : 0f;
   }
 
+  // TGx101 (user 2026-10-19 «давай оба варианта»): in the veil mode the pinned row slides away under the header while
+  // the chat is scrolled down (towards newer messages) and comes back on scrolling up; the list itself doesn't move
+  private float tgx101PinnedHide, tgx101PinnedHideTarget;
+  private int tgx101PinnedScrollSum;
+  private @Nullable android.animation.ValueAnimator tgx101PinnedHideAnimator;
+
+  private void tgx101TrackPinnedHide (int dy) {
+    if (!tgx101Veil || pinnedMessagesBar == null || dy == 0) return;
+    if (Integer.signum(dy) != Integer.signum(tgx101PinnedScrollSum)) tgx101PinnedScrollSum = 0;
+    tgx101PinnedScrollSum += dy;
+    if (Math.abs(tgx101PinnedScrollSum) < Screen.dp(24f)) return;
+    tgx101SetPinnedHidden(tgx101PinnedScrollSum > 0 && topBar.isVisible(pinnedMessagesItem) && !inSearchMode() && !inSelectMode());
+  }
+
+  private void tgx101SetPinnedHidden (boolean hidden) {
+    float target = hidden ? 1f : 0f;
+    if (tgx101PinnedHideTarget == target) return;
+    tgx101PinnedHideTarget = target;
+    if (tgx101PinnedHideAnimator != null) tgx101PinnedHideAnimator.cancel();
+    tgx101PinnedHideAnimator = android.animation.ValueAnimator.ofFloat(tgx101PinnedHide, target);
+    tgx101PinnedHideAnimator.setDuration(220);
+    tgx101PinnedHideAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f));
+    tgx101PinnedHideAnimator.addUpdateListener(a -> {
+      tgx101PinnedHide = (float) a.getAnimatedValue();
+      tgx101ApplyPinnedHide();
+    });
+    tgx101PinnedHideAnimator.start();
+  }
+
+  private void tgx101ApplyPinnedHide () {
+    if (pinnedMessagesBar == null) return;
+    float f = tgx101PinnedHide;
+    pinnedMessagesBar.tgx101SetSlide(f); // its place in the header's rows belongs to CollapseListView: it slides within it
+    tgx101UpdateVeil();
+  }
+
   /** how far the veil has come: none while the oldest message stands below the header, whole once it's 80 dp under it */
   private void tgx101UpdateVeil () {
     if (!tgx101Veil || messagesView == null) return;
@@ -12109,7 +12146,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     boolean shadowWas = tgx101HeaderShadowHidden();
     if (tgx101VeilTail != null) {
+      if (pinnedMessagesBar != null && !topBar.isVisible(pinnedMessagesItem) && tgx101PinnedHideTarget != 0f) { // gone: back in place for next time
+        if (tgx101PinnedHideAnimator != null) tgx101PinnedHideAnimator.cancel();
+        tgx101PinnedHide = tgx101PinnedHideTarget = 0f;
+        pinnedMessagesBar.tgx101SetSlide(0f);
+      }
       int rows = topBar.getTotalVisualHeight();
+      if (pinnedMessagesBar != null && topBar.isVisible(pinnedMessagesItem)) rows -= Math.round(pinnedMessagesBar.getHeight() * tgx101PinnedHide);
       float tailVeil = !inSearchMode() && !inSelectMode() ? value : 0f;
       int tail = rows + Screen.dp(TGX101_VEIL_FADE);
       if (tgx101VeilTail.getLayoutParams().height != tail) Views.setLayoutHeight(tgx101VeilTail, tail);

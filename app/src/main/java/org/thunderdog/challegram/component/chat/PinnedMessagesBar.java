@@ -15,6 +15,7 @@ package org.thunderdog.challegram.component.chat;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.RectF;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -126,7 +127,7 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
 
         int viewportHeight = getRecyclerHeight();
 
-        int itemHeight = SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW);
+        int itemHeight = tgx101ItemHeight();
         int scrollItemCount = messageList != null ? messageList.getTotalCount() : messagesAdapter.getItems().size();
         if (scrollItemCount <= 0) {
           setOverScrollDisabled(true);
@@ -294,9 +295,41 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
   // colours, a thin line under it
   private boolean tgx101OnHeader;
 
+  private int tgx101ItemHeight () {
+    return tgx101OnHeader ? Screen.dp(MessagePreviewView.TGX101_ONE_LINE_HEIGHT) : SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW);
+  }
+
   public void tgx101SetOnHeader () {
     tgx101OnHeader = true;
     tgx101SetTransparent();
+  }
+
+  // TGx101: in the header's rows the bar slides up out of its own place (0 — in place, 1 — gone) and doesn't take touches
+  private float tgx101Slide;
+
+  public void tgx101SetSlide (float slide) {
+    if (tgx101Slide == slide) return;
+    tgx101Slide = slide;
+    setAlpha(1f - slide);
+    invalidate();
+  }
+
+  @Override
+  public boolean dispatchTouchEvent (MotionEvent e) {
+    return tgx101Slide < .5f && super.dispatchTouchEvent(e);
+  }
+
+  @Override
+  public void draw (Canvas c) {
+    if (tgx101Slide == 0f) {
+      super.draw(c);
+      return;
+    }
+    int save = c.save();
+    c.clipRect(0, 0, getWidth(), getHeight());
+    c.translate(0, -getHeight() * tgx101Slide);
+    super.draw(c);
+    c.restoreToCount(save);
   }
 
   @Override
@@ -315,7 +348,7 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
 
   private float getFocusPosition () {
     int viewportHeight = recyclerView.getMeasuredHeight();
-    int itemHeight = SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW);
+    int itemHeight = tgx101ItemHeight();
     int childCount = recyclerView.getChildCount();
     for (int i = 0; i < childCount; i++) {
       View view = recyclerView.getChildAt(i);
@@ -413,7 +446,7 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
     recyclerView.measure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(getRecyclerHeight(), MeasureSpec.EXACTLY));
     showAllButton.measure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(Screen.dp(36f), MeasureSpec.EXACTLY));
 
-    collapseButton.measure(MeasureSpec.makeMeasureSpec(Screen.dp(40f), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(MathUtils.fromTo(SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW), Screen.dp(36f), getExpandFactor()), MeasureSpec.EXACTLY));
+    collapseButton.measure(MeasureSpec.makeMeasureSpec(Screen.dp(40f), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(MathUtils.fromTo(tgx101ItemHeight(), Screen.dp(36f), getExpandFactor()), MeasureSpec.EXACTLY));
     if (newHeight != lastKnownViewHeight) {
       lastKnownViewHeight = newHeight;
       onViewportChanged();
@@ -680,7 +713,7 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
   }
 
   private int getRecyclerHeight () {
-    int itemHeight = SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW);
+    int itemHeight = tgx101ItemHeight();
     return itemHeight + Math.round((float) itemHeight * countAnimator.getFactor() * getExpandFactor());
   }
 

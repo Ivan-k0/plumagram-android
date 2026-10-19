@@ -350,6 +350,19 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
 
   public void tgx101SetOnHeader (boolean onHeader) {
     this.tgx101OnHeader = onHeader;
+    // one line, no title (user 2026-10-19 «в офф клиента тоже нет имени в закрепе»): the header grows less
+    Views.setLayoutHeight(this, rowHeight());
+  }
+
+  public static final float TGX101_ONE_LINE_HEIGHT = 36f;
+  private static final float TGX101_ONE_LINE_IMAGE = 28f;
+
+  private int rowHeight () {
+    return tgx101OnHeader ? Screen.dp(TGX101_ONE_LINE_HEIGHT) : SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW);
+  }
+
+  private int imageHeight () {
+    return Screen.dp(tgx101OnHeader ? TGX101_ONE_LINE_IMAGE : IMAGE_HEIGHT);
   }
 
   private final ReplaceAnimator<TextEntry> titleText = new ReplaceAnimator<>(ignored -> invalidate(), AnimatorUtils.DECELERATE_INTERPOLATOR, 180l);
@@ -485,13 +498,13 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
     boolean showSmallMedia = false;
 
     if (data != null && data.forcedLocalPickedFile != null) {
-      preview = data.forcedLocalPickedFile.buildMediaPreview(tdlib, Screen.dp(IMAGE_HEIGHT), Screen.dp(3f));
+      preview = data.forcedLocalPickedFile.buildMediaPreview(tdlib, imageHeight(), Screen.dp(3f));
     } else if (data != null) {
-      preview = MediaPreview.valueOf(tdlib, data.message, contentPreview, Screen.dp(IMAGE_HEIGHT), Screen.dp(3f));
+      preview = MediaPreview.valueOf(tdlib, data.message, contentPreview, imageHeight(), Screen.dp(3f));
       if (preview == null && useAvatarFallback) {
         TdApi.Chat chat = tdlib.chat(data.message.chatId);
         if (chat != null && chat.photo != null) {
-          preview = MediaPreview.valueOf(tdlib, chat.photo, Screen.dp(IMAGE_HEIGHT), Screen.dp(3f));
+          preview = MediaPreview.valueOf(tdlib, chat.photo, imageHeight(), Screen.dp(3f));
         }
       }
       showSmallMedia = data.isLinkPreviewShowSmallMedia();
@@ -643,11 +656,11 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
     float scale = 1f, cx, cy;
     if (reverseMediaFactor <= .5f) {
       cx = textX - entry.item.content.getWidth() / 2f - Screen.dp(PADDING_SIZE);
-      cy = (SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW) - Screen.dp(IMAGE_HEIGHT)) / 2f + entry.item.content.getHeight() / 2f;
+      cy = (rowHeight() - imageHeight()) / 2f + entry.item.content.getHeight() / 2f;
     } else {
       scale = MINIMIZED_MEDIA_SCALE;
       float x = getMeasuredWidth() - contentInset - getPaddingRight() - entry.item.content.getWidth() + (int) ((1f - reverseMediaFactor) * getMediaWidth());
-      float y = (SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW) - Screen.dp(IMAGE_HEIGHT)) / 2f;
+      float y = (rowHeight() - imageHeight()) / 2f;
       cx = x + entry.item.content.getWidth() / 2f;
       cy = y + entry.item.content.getHeight() / 2f;
     }
@@ -677,12 +690,12 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
     for (ListAnimator.Entry<MediaEntry> entry : mediaPreview) {
       if (reverseMediaFactor <= .5f) {
         float alpha = 1f - reverseMediaFactor / .5f;
-        entry.item.content.draw(this, c, entry.item.receiver, textX - entry.item.content.getWidth() - Screen.dp(PADDING_SIZE), (SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW) - Screen.dp(IMAGE_HEIGHT)) / 2f, entry.getVisibility() * alpha);
+        entry.item.content.draw(this, c, entry.item.receiver, textX - entry.item.content.getWidth() - Screen.dp(PADDING_SIZE), (rowHeight() - imageHeight()) / 2f, entry.getVisibility() * alpha);
       } else {
         float alpha = (reverseMediaFactor - .5f) / .5f;
         int restoreToCount = Views.save(c);
         float x = getMeasuredWidth() - contentInset - getPaddingRight() - entry.item.content.getWidth() + (int) ((1f - reverseMediaFactor) * getMediaWidth());
-        float y = (SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW) - Screen.dp(IMAGE_HEIGHT)) / 2f;
+        float y = (rowHeight() - imageHeight()) / 2f;
         float cx = x + entry.item.content.getWidth() / 2f;
         float cy = y + entry.item.content.getHeight() / 2f;
         c.scale(MINIMIZED_MEDIA_SCALE, MINIMIZED_MEDIA_SCALE, cx, cy);
@@ -691,7 +704,12 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
       }
     }
     int contextTextY = Screen.dp(7f) + Screen.dp(TEXT_SIZE) + Screen.dp(5f);
-    for (ListAnimator.Entry<TextEntry> entry : titleText) {
+    if (tgx101OnHeader) { // one line in the middle, no title
+      ListAnimator.Entry<TextEntry> first = contentText.isEmpty() ? null : contentText.iterator().next();
+      int lineHeight = first != null && first.item.content != null ? first.item.content.getLineHeight(false) : Screen.dp(TEXT_SIZE);
+      contextTextY = (rowHeight() - lineHeight) / 2;
+    }
+    if (!tgx101OnHeader) for (ListAnimator.Entry<TextEntry> entry : titleText) {
       int titleY = Screen.dp(7f);
       if (entry.item.content != null) {
         entry.item.content.draw(c, textX, titleY, null, entry.getVisibility());

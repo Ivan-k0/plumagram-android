@@ -410,8 +410,11 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       if (tgx101VeilShader == null || tgx101VeilHeight != (int) fillingBottom || tgx101VeilColor != color) {
         tgx101VeilHeight = (int) fillingBottom;
         tgx101VeilColor = color;
+        // solid under the status bar (user 2026-10-19: messages showed through under the clock), then .96 → .92 to the bottom edge
+        float statusBar = MathUtils.clamp(headerView.getEffectiveTopOffset() / Math.max(1f, fillingBottom));
         tgx101VeilShader = new android.graphics.LinearGradient(0, 0, 0, Math.max(1, fillingBottom),
-          new int[] {ColorUtils.alphaColor(.97f, color), ColorUtils.alphaColor(.9f, color)} /* light theme: black text under it stays faint (on the phone, 2026-10-19) */, null, android.graphics.Shader.TileMode.CLAMP);
+          new int[] {color, color, ColorUtils.alphaColor(.96f, color), ColorUtils.alphaColor(.92f, color)},
+          new float[] {0f, statusBar, statusBar, 1f}, android.graphics.Shader.TileMode.CLAMP);
       }
       tgx101VeilPaint.setShader(tgx101VeilShader);
       tgx101VeilPaint.setAlpha((int) (255 * veil));
