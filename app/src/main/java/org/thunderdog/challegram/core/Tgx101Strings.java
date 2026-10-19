@@ -325,6 +325,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101CallDecline, "Отклонить");
     RU.put(R.string.Tgx101CallMessage, "Сообщение");
     RU.put(R.string.Tgx101CallSilence, "Без звука");
+    RU.put(R.string.Tgx101GroupInviteTitle, "Групповой звонок");
+    RU.put(R.string.Tgx101GroupInviteVideoTitle, "Групповой видеозвонок");
+    RU.put(R.string.Tgx101GroupInviteText, "приглашает в групповой звонок");
+    RU.put(R.string.Tgx101GroupInviteVideoText, "приглашает в групповой видеозвонок");
+    RU.put(R.string.Tgx101GroupInviteOthers, "Уже в звонке: %1$s");
+    RU.put(R.string.Tgx101GroupInviteChannel, "Приглашения в групповые звонки");
     RU.put(R.string.Tgx101CallAnswer, "Ответить");
     RU.put(R.string.Tgx101IncomingCall, "Входящий вызов");
     RU.put(R.string.Tgx101NewCallScreen, "Новый экран звонка");

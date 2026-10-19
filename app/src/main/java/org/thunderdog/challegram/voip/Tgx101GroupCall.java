@@ -199,6 +199,13 @@ public final class Tgx101GroupCall implements GroupCallListener {
     lastEndedCallTime = android.os.SystemClock.elapsedRealtime();
   }
 
+  /** the invite is from the person whose 1:1 call has just ended (it became a conference): followed, not rung */
+  public static boolean isFollowUpInvite (Tdlib tdlib, TdApi.Message message) {
+    if (!(message.senderId instanceof TdApi.MessageSenderUser)) return false;
+    long userId = ((TdApi.MessageSenderUser) message.senderId).userId;
+    return lastEndedAccountId == tdlib.id() && userId == lastEndedCallUserId && android.os.SystemClock.elapsedRealtime() - lastEndedCallTime <= 8000;
+  }
+
   /** an invite to a conference came: from the person of the call that has just ended — join it at once */
   public static void onIncomingInvite (Tdlib tdlib, TdApi.Message message) {
     if (message.isOutgoing || message.content.getConstructor() != TdApi.MessageGroupCall.CONSTRUCTOR) return;

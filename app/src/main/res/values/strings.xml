@@ -6159,6 +6159,12 @@
   <string name="Tgx101CallDecline">Decline</string>
   <string name="Tgx101CallMessage">Message</string>
   <string name="Tgx101CallSilence">Silence</string>
+  <string name="Tgx101GroupInviteTitle">Group call</string>
+  <string name="Tgx101GroupInviteVideoTitle">Group video call</string>
+  <string name="Tgx101GroupInviteText">invites you to a group call</string>
+  <string name="Tgx101GroupInviteVideoText">invites you to a group video call</string>
+  <string name="Tgx101GroupInviteOthers">Already in the call: %1$s</string>
+  <string name="Tgx101GroupInviteChannel">Group call invitations</string>
   <string name="Tgx101CallAnswer">Answer</string>
   <string name="Tgx101IncomingCall">Incoming call</string>
   <string name="Tgx101NewCallScreen">New call screen</string>

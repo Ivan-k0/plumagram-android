@@ -944,6 +944,16 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       return true;
     }
 
+    if (org.thunderdog.challegram.voip.Tgx101GroupInvite.ACTION_OPEN.equals(action)) {
+      // TGx101: an invitation to a group call — its incoming screen, over the lock screen too
+      setShowOverLockScreen(true);
+      if (navigation.isEmpty()) {
+        initDefault(currentTdlib().id(), false);
+      }
+      org.thunderdog.challegram.ui.Tgx101GroupInviteController.open(this);
+      return true;
+    }
+
     if (Intents.ACTION_OPEN_CALL.equals(action)) {
       // Opened by the incoming call's full-screen intent: show over the lock screen and
       // turn the screen on, otherwise the call screen stays hidden behind the keyguard.

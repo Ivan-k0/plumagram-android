@@ -7561,6 +7561,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
 
     listeners.updateNewMessage(update);
     if (isUpdate) org.thunderdog.challegram.voip.Tgx101GroupCall.onIncomingInvite(this, update.message); // TGx101
+    if (isUpdate) org.thunderdog.challegram.voip.Tgx101GroupInvite.onNewMessage(this, update.message); // TGx101: an invitation rings
 
     notificationManager.onUpdateNewMessage(update);
 
@@ -7627,6 +7628,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
 
   @TdlibThread
   private void updateMessageContent (TdApi.UpdateMessageContent update) {
+    org.thunderdog.challegram.voip.Tgx101GroupInvite.onContentChanged(this, update.chatId, update.messageId, update.newContent); // TGx101
     listeners.updateMessageContent(update);
     context.global().notifyUpdateMessageContent(this, update);
 
