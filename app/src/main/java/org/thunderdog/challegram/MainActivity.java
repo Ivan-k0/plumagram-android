@@ -1012,8 +1012,21 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
         }
         getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN | android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
         org.thunderdog.challegram.Tgx101Diag.mark("share: keyboard kept hidden while the chat picker opens (input " + (tgx101Input != null ? "locked" : "not focused") + ")");
+        // (bug 2026-10-19 21:25, shared from another app with its keyboard up): the app started cold, nothing had the
+        // focus yet — a chat's input took it 0.2 s later and our keyboard came up; the chat picker then opened squeezed
+        // over it, looking empty and not pulling up. Whatever input of this window takes the focus while the picker
+        // opens gives it back and the keyboard goes
+        final android.view.ViewTreeObserver.OnGlobalFocusChangeListener tgx101FocusGuard = (oldFocus, newFocus) -> {
+          if (newFocus instanceof android.widget.EditText && newFocus.getRootView() == getWindow().getDecorView()) {
+            org.thunderdog.challegram.Tgx101Diag.mark("share: an input took the focus while the chat picker opens — given back");
+            org.thunderdog.challegram.tool.Keyboard.hide(newFocus);
+            newFocus.clearFocus();
+          }
+        };
+        getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener(tgx101FocusGuard);
         getWindow().getDecorView().postDelayed(() -> {
           // back to normal: the manifest's stateUnchanged|adjustPan, the input focusable again
+          getWindow().getDecorView().getViewTreeObserver().removeOnGlobalFocusChangeListener(tgx101FocusGuard);
           getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_UNCHANGED | android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
           if (tgx101Input != null) {
             tgx101Input.setFocusable(true);

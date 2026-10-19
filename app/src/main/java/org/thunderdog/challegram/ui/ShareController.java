@@ -2583,6 +2583,13 @@ public class ShareController extends TelegramViewController<ShareController.Args
         if (!isDestroyed()) {
           recyclerView.invalidateItemDecorations();
           tgx101WarmUpChatSearch();
+          // (bug 2026-10-19) a keyboard of the window under the picker squeezed it to a strip: it goes once the picker is up
+          View under = context().getCurrentFocus();
+          if (under instanceof android.widget.EditText && context().isKeyboardVisible()) {
+            org.thunderdog.challegram.Tgx101Diag.mark("share picker: the keyboard under it hidden");
+            Keyboard.hide(under);
+            under.clearFocus();
+          }
         }
       }
     };
