@@ -283,7 +283,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     root.setBackgroundColor(Theme.backgroundColor());
     // TGx101 (approved mockup «Шапки списка и Хранилища», 1 at the chat list's header height; test builds): the storage
     // runs on under the header, which turns into the chat screen's veil; the kinds chips stay where they are, in the page
-    tgx101Shift = org.thunderdog.challegram.BuildConfig.TGX101_TEST ? HeaderView.getSize(true) : 0;
+    tgx101Shift = org.thunderdog.challegram.BuildConfig.TGX101_TEST && org.thunderdog.challegram.navigation.Tgx101Veil.ENABLED ? HeaderView.getSize(true) : 0;
     if (tgx101Shift > 0) {
       FrameLayout.LayoutParams rootParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
       rootParams.topMargin = -tgx101Shift;

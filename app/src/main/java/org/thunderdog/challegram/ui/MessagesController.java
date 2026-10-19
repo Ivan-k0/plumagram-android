@@ -901,7 +901,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     floatingInput = Settings.instance().useFloatingInput() && previewMode == PREVIEW_MODE_NONE && !isInForceTouchMode();
     // TGx101 (approved mockup «Шапка: вариант В»; test builds only for now — user 2026-10-19): the chat runs on under the
     // header, which dissolves into a veil once the list is scrolled
-    tgx101Veil = BuildConfig.TGX101_TEST && floatingInput && !needTabs();
+    tgx101Veil = BuildConfig.TGX101_TEST && org.thunderdog.challegram.navigation.Tgx101Veil.ENABLED && floatingInput && !needTabs();
     if (tgx101Veil) {
       tgx101VeilShift = HeaderView.getSize(true);
       ((FrameLayoutFix.LayoutParams) contentView.getLayoutParams()).topMargin = -tgx101VeilShift;
@@ -1238,6 +1238,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       addThemeInvalidateListener(pinnedMessagesBar);
     } else if (Settings.instance().useFloatingInput()) {
       tgx101FloatPinnedBar(pinnedMessagesBar);
+      if (BuildConfig.TGX101_TEST) pinnedMessagesBar.tgx101SetCompact(); // one line + the list button, in the capsule too
     }
     pinnedMessagesBar.setMessageListener(new PinnedMessagesBar.MessageListener() {
       @Override

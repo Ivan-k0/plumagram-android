@@ -15,6 +15,12 @@ import me.vkryl.core.ColorUtils;
 public final class Tgx101Veil {
   private Tgx101Veil () { }
 
+  /**
+   * The see-through header (chats, chat lists, storage). Switched off 2026-10-19 (user: «всё-таки не нравится мне это
+   * размытие в шапке… откатывай назад, но в памяти сохрани») — the code stays; {@code true} brings it all back.
+   */
+  public static final boolean ENABLED = false;
+
   /** the veil at the header's bottom edge (and under rows that continue the header) */
   public static final float EDGE_ALPHA = .95f;
   /** how far below the bottom edge the fade runs */

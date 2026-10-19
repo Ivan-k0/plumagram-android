@@ -80,9 +80,9 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
 
     @Override
     protected void onDraw (Canvas c) {
-      if (tgx101OnHeader) { // approved mockup «Значок закрепов», 2 with 2а's lines (user 2026-10-19): a bulleted list, lines getting
+      if (tgx101Compact) { // approved mockup «Значок закрепов», 2 with 2а's lines (user 2026-10-19): a bulleted list, lines getting
         // shorter — opens the screen with all pinned messages
-        int color = Theme.getColor(ColorId.headerIcon);
+        int color = tgx101OnHeader ? Theme.getColor(ColorId.headerIcon) : Theme.iconColor();
         float cx = getPaddingLeft() + (getMeasuredWidth() - getPaddingLeft() - getPaddingRight()) / 2f, cy = getMeasuredHeight() / 2f;
         float u = Screen.dp(22f) / 24f, x0 = cx - 12f * u, y0 = cy - 12f * u; // the mockup's 24-unit grid
         android.graphics.Paint paint = Paints.fillingPaint(color);
@@ -257,7 +257,7 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
 
     collapseButton = new CollapseButton(context);
     collapseButton.setOnClickListener(v -> {
-      if (tgx101OnHeader) { // TGx101: straight to the screen with all pinned messages, as in the official app
+      if (tgx101Compact) { // TGx101: straight to the screen with all pinned messages, as in the official app
         if (messageListener != null) messageListener.onShowAllRequest(this);
         return;
       }
@@ -270,7 +270,7 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
       }
     });
     collapseButton.setOnLongClickListener(v -> { // TGx101: the old «hide» stays on a long press
-      if (!tgx101OnHeader || messageListener == null) return false;
+      if (!tgx101Compact || messageListener == null) return false;
       messageListener.onDismissRequest(this);
       return true;
     });
@@ -319,13 +319,21 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
   // TGx101 (approved mockup «Шапка как одно целое», 1): a row of the header's veil — no background of its own, the header's
   // colours, a thin line under it
   private boolean tgx101OnHeader;
+  // one line without the sender's name and the list button that opens all pinned messages (user 2026-10-19 — kept when the
+  // see-through header was switched off: the capsule gets them too)
+  private boolean tgx101Compact;
+
+  public void tgx101SetCompact () {
+    tgx101Compact = true;
+  }
 
   private int tgx101ItemHeight () {
-    return tgx101OnHeader ? Screen.dp(MessagePreviewView.TGX101_ONE_LINE_HEIGHT) : SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW);
+    return tgx101Compact ? Screen.dp(MessagePreviewView.TGX101_ONE_LINE_HEIGHT) : SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW);
   }
 
   public void tgx101SetOnHeader () {
     tgx101OnHeader = true;
+    tgx101Compact = true;
     tgx101SetTransparent();
   }
 
@@ -509,6 +517,9 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
       @Nullable
       @Override
       protected View createModifiedView (ViewGroup parent, int viewType, View view) {
+        if (viewType == ListItem.TYPE_MESSAGE_PREVIEW && tgx101Compact) {
+          ((MessagePreviewView) view).tgx101SetOneLine(true);
+        }
         if (viewType == ListItem.TYPE_MESSAGE_PREVIEW && tgx101OnHeader) {
           ((MessagePreviewView) view).tgx101SetOnHeader(true);
         }

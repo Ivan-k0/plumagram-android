@@ -521,7 +521,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     contentView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     // TGx101 (approved mockup «Шапки списка и Хранилища», А without the title row; test builds): the main screen's content
     // starts at the top of the screen, the chats run on under the header's veil — the list keeps the header's room on top
-    tgx101Inset = org.thunderdog.challegram.BuildConfig.TGX101_TEST && parentController != null ? org.thunderdog.challegram.navigation.HeaderView.getSize(true) : 0;
+    tgx101Inset = org.thunderdog.challegram.BuildConfig.TGX101_TEST && org.thunderdog.challegram.navigation.Tgx101Veil.ENABLED && parentController != null ? org.thunderdog.challegram.navigation.HeaderView.getSize(true) : 0;
 
     chatsViewport = tdlib.messageViewer().createViewport(new TdApi.MessageSourceChatList(), this);
     chatsView = (ChatsRecyclerView) Views.inflate(context(), R.layout.recycler_chats, contentView);

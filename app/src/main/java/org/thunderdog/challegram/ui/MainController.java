@@ -204,7 +204,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   private float tgx101TailVeil;
 
   private void tgx101SetupVeil (Context context, View view) {
-    if (!BuildConfig.TGX101_TEST || !(view instanceof ViewGroup)) return;
+    if (!BuildConfig.TGX101_TEST || !org.thunderdog.challegram.navigation.Tgx101Veil.ENABLED || !(view instanceof ViewGroup)) return;
     int shift = HeaderView.getSize(true);
     ViewGroup.LayoutParams lp = view.getLayoutParams();
     if (!(lp instanceof ViewGroup.MarginLayoutParams)) {
@@ -244,14 +244,14 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
 
   @Override
   public float tgx101HeaderVeil () {
-    if (!BuildConfig.TGX101_TEST || inSearchMode() || inSelectMode()) return 0f;
+    if (!BuildConfig.TGX101_TEST || !org.thunderdog.challegram.navigation.Tgx101Veil.ENABLED || inSearchMode() || inSelectMode()) return 0f;
     ChatsController chats = tgx101CurrentChats();
     return chats != null ? chats.tgx101VeilValue() : 0f;
   }
 
   @Override
   public boolean tgx101HeaderShadowHidden () {
-    ChatsController chats = BuildConfig.TGX101_TEST ? tgx101CurrentChats() : null;
+    ChatsController chats = BuildConfig.TGX101_TEST && org.thunderdog.challegram.navigation.Tgx101Veil.ENABLED ? tgx101CurrentChats() : null;
     return chats != null && chats.tgx101StoriesUnderHeader();
   }
 
@@ -1493,7 +1493,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     long t = android.os.SystemClock.uptimeMillis();
     Tgx101SavedHomeController c = new Tgx101SavedHomeController(context(), tdlib);
     View v = c.getValue();
-    if (root != null && root.getWidth() > 0 && !BuildConfig.TGX101_TEST) { // test builds: the storage under the header's veil came empty when laid out here ahead (2026-10-19)
+    if (root != null && root.getWidth() > 0 && !(BuildConfig.TGX101_TEST && org.thunderdog.challegram.navigation.Tgx101Veil.ENABLED)) { // test builds: the storage under the header's veil came empty when laid out here ahead (2026-10-19)
       v.measure(View.MeasureSpec.makeMeasureSpec(root.getWidth(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(root.getHeight(), View.MeasureSpec.EXACTLY));
       v.layout(0, 0, root.getWidth(), root.getHeight());
     }

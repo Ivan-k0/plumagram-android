@@ -350,7 +350,14 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
 
   public void tgx101SetOnHeader (boolean onHeader) {
     this.tgx101OnHeader = onHeader;
-    // one line, no title (user 2026-10-19 «в офф клиента тоже нет имени в закрепе»): the header grows less
+    tgx101SetOneLine(onHeader);
+  }
+
+  // one line, no title (user 2026-10-19 «в офф клиента тоже нет имени в закрепе»)
+  private boolean tgx101OneLine;
+
+  public void tgx101SetOneLine (boolean oneLine) {
+    this.tgx101OneLine = oneLine;
     Views.setLayoutHeight(this, rowHeight());
   }
 
@@ -358,11 +365,11 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
   private static final float TGX101_ONE_LINE_IMAGE = 28f;
 
   private int rowHeight () {
-    return tgx101OnHeader ? Screen.dp(TGX101_ONE_LINE_HEIGHT) : SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW);
+    return tgx101OneLine ? Screen.dp(TGX101_ONE_LINE_HEIGHT) : SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW);
   }
 
   private int imageHeight () {
-    return Screen.dp(tgx101OnHeader ? TGX101_ONE_LINE_IMAGE : IMAGE_HEIGHT);
+    return Screen.dp(tgx101OneLine ? TGX101_ONE_LINE_IMAGE : IMAGE_HEIGHT);
   }
 
   private final ReplaceAnimator<TextEntry> titleText = new ReplaceAnimator<>(ignored -> invalidate(), AnimatorUtils.DECELERATE_INTERPOLATOR, 180l);
@@ -704,12 +711,12 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
       }
     }
     int contextTextY = Screen.dp(7f) + Screen.dp(TEXT_SIZE) + Screen.dp(5f);
-    if (tgx101OnHeader) { // one line in the middle, no title
+    if (tgx101OneLine) { // one line in the middle, no title
       ListAnimator.Entry<TextEntry> first = contentText.isEmpty() ? null : contentText.iterator().next();
       int lineHeight = first != null && first.item.content != null ? first.item.content.getLineHeight(false) : Screen.dp(TEXT_SIZE);
       contextTextY = (rowHeight() - lineHeight) / 2;
     }
-    if (!tgx101OnHeader) for (ListAnimator.Entry<TextEntry> entry : titleText) {
+    if (!tgx101OneLine) for (ListAnimator.Entry<TextEntry> entry : titleText) {
       int titleY = Screen.dp(7f);
       if (entry.item.content != null) {
         entry.item.content.draw(c, textX, titleY, null, entry.getVisibility());
