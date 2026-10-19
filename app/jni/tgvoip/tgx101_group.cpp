@@ -21,6 +21,9 @@
 #include <memory>
 #include <mutex>
 #include <vector>
+#include <map>
+#include <string>
+#include <sstream>
 
 #include "bridge.h"
 
@@ -30,6 +33,7 @@
 #include <tgcalls/group/GroupInstanceCustomImpl.h>
 #include <tgcalls/platform/PlatformInterface.h>
 #include <sdk/android/native_api/audio_device_module/audio_device_android.h>
+#include <sdk/android/native_api/video/wrapper.h>
 
 namespace tgcalls {
   bool initialize (JNIEnv *env); // tgvoip.cpp
@@ -136,7 +140,20 @@ struct GroupContext {
   std::unique_ptr<tgcalls::GroupInstanceCustomImpl> instance;
   std::shared_ptr<GroupJava> java;
   std::shared_ptr<GroupConference> conference;
+  // TGx101 (group call video, 2026-10-19): the participants' video sinks, by endpoint — kept alive here, tgcalls holds weak ones
+  std::mutex sinksMutex;
+  std::map<std::string, std::shared_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>>> sinks;
 };
+
+std::vector<std::string> splitString (const std::string &value, char delimiter) {
+  std::vector<std::string> parts;
+  std::stringstream stream(value);
+  std::string part;
+  while (std::getline(stream, part, delimiter)) {
+    parts.push_back(part);
+  }
+  return parts;
+}
 
 int64_t userIdForSsrc (const std::shared_ptr<GroupJava> &java, uint32_t ssrc) {
   int64_t userId = 0;
@@ -267,6 +284,7 @@ JNI_OBJECT_FUNC(jlong, voip_Tgx101GroupCall, nativeCreate, jstring jLogPath, jbo
     return std::make_shared<ImmediateDescriptionTask>();
   };
   descriptor.initialEnableNoiseSuppression = true;
+  descriptor.videoContentType = tgcalls::VideoContentType::Generic; // TGx101: the participants' cameras and screens can be received
   descriptor.createWrappedAudioDeviceModule = [](webrtc::TaskQueueFactory *) -> webrtc::scoped_refptr<tgcalls::WrappedAudioDeviceModule> {
     auto device = webrtc::CreateAndroidAudioDeviceModule(webrtc::AudioDeviceModule::kPlatformDefaultAudio);
     if (device == nullptr || device->Init() != 0) {
@@ -329,6 +347,66 @@ JNI_OBJECT_FUNC(void, voip_Tgx101GroupCall, nativeSetVolume, jlong ptr, jint jSs
   auto context = jni::jlong_to_ptr<GroupContext *>(ptr);
   if (context != nullptr && context->instance != nullptr) {
     context->instance->setVolume((uint32_t) jSsrc, (double) jVolume);
+  }
+}
+
+// TGx101: which participants' videos to receive — one string per video: «audioSsrc|endpointId|quality|SEM:ssrc,ssrc;SEM:ssrc»,
+// quality 0 thumbnail, 1 medium, 2 full
+JNI_OBJECT_FUNC(void, voip_Tgx101GroupCall, nativeRequestVideo, jlong ptr, jobjectArray jChannels) {
+  auto context = jni::jlong_to_ptr<GroupContext *>(ptr);
+  if (context == nullptr || context->instance == nullptr) {
+    return;
+  }
+  std::vector<tgcalls::VideoChannelDescription> channels;
+  jsize count = jChannels != nullptr ? env->GetArrayLength(jChannels) : 0;
+  for (jsize i = 0; i < count; i++) {
+    auto jChannel = (jstring) env->GetObjectArrayElement(jChannels, i);
+    std::string channel = jni::from_jstring(env, jChannel);
+    env->DeleteLocalRef(jChannel);
+    std::vector<std::string> fields = splitString(channel, '|');
+    if (fields.size() < 4) continue;
+    tgcalls::VideoChannelDescription description;
+    description.audioSsrc = (uint32_t) std::stoul(fields[0]);
+    description.endpointId = fields[1];
+    int quality = std::stoi(fields[2]);
+    description.minQuality = tgcalls::VideoChannelDescription::Quality::Thumbnail;
+    description.maxQuality = quality >= 2 ? tgcalls::VideoChannelDescription::Quality::Full : quality == 1 ? tgcalls::VideoChannelDescription::Quality::Medium : tgcalls::VideoChannelDescription::Quality::Thumbnail;
+    for (const std::string &group : splitString(fields[3], ';')) {
+      std::vector<std::string> semanticsAndSsrcs = splitString(group, ':');
+      if (semanticsAndSsrcs.size() != 2) continue;
+      tgcalls::MediaSsrcGroup ssrcGroup;
+      ssrcGroup.semantics = semanticsAndSsrcs[0];
+      for (const std::string &ssrc : splitString(semanticsAndSsrcs[1], ',')) {
+        if (!ssrc.empty()) ssrcGroup.ssrcs.push_back((uint32_t) std::stoul(ssrc));
+      }
+      description.ssrcGroups.push_back(ssrcGroup);
+    }
+    channels.push_back(description);
+  }
+  context->instance->setRequestedVideoChannels(std::move(channels));
+}
+
+// TGx101: where a participant's video goes (an org.webrtc.VideoSink), null — nowhere
+JNI_OBJECT_FUNC(void, voip_Tgx101GroupCall, nativeSetVideoSink, jlong ptr, jstring jEndpointId, jobject jSink) {
+  auto context = jni::jlong_to_ptr<GroupContext *>(ptr);
+  if (context == nullptr || context->instance == nullptr) {
+    return;
+  }
+  std::string endpointId = jni::from_jstring(env, jEndpointId);
+  std::shared_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> sink;
+  if (jSink != nullptr) {
+    sink = std::shared_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>>(webrtc::JavaToNativeVideoSink(env, jSink).release());
+  }
+  {
+    std::lock_guard<std::mutex> lock(context->sinksMutex);
+    if (sink != nullptr) {
+      context->sinks[endpointId] = sink;
+    } else {
+      context->sinks.erase(endpointId);
+    }
+  }
+  if (sink != nullptr) {
+    context->instance->addIncomingVideoOutput(endpointId, sink);
   }
 }
 

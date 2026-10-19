@@ -207,6 +207,15 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
     kp.topMargin = Screen.dp(2f);
     column.addView(keysView, kp);
 
+    // the participants' cameras and screens (group call video, 2026-10-19): 1 — full width, 2 — side by side, 3–4 — 2 × 2
+    videoGrid = new android.widget.GridLayout(context);
+    videoGrid.setColumnCount(2);
+    videoGrid.setVisibility(View.GONE);
+    LinearLayout.LayoutParams gridParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    gridParams.leftMargin = gridParams.rightMargin = Screen.dp(12f);
+    gridParams.topMargin = Screen.dp(10f);
+    column.addView(videoGrid, gridParams);
+
     RecyclerView list = new RecyclerView(context);
     list.setLayoutManager(new LinearLayoutManager(context));
     list.setAdapter(adapter = new ParticipantsAdapter());
@@ -567,6 +576,7 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
   @Override
   public void onGroupCallParticipantsChanged (Tgx101GroupCall call) {
     adapter.setItems(call.getParticipants());
+    updateVideos();
     updateStatus();
     updateLocks();
   }
@@ -593,6 +603,7 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
     }
     titleView.setText(call.getTitle());
     updateStatus();
+    updateVideos();
     String[] emojis = call.getVerificationEmojis();
     if (emojis != null && emojis.length > 0) {
       keysView.setVisibility(View.VISIBLE);
@@ -640,6 +651,73 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
     if (call != null) {
       call.removeListener(this);
     }
+    clearVideos();
+  }
+
+  // Video tiles
+
+  private android.widget.GridLayout videoGrid;
+  private final java.util.LinkedHashMap<String, View> videoTiles = new java.util.LinkedHashMap<>(); // endpoint → tile
+  private String videoKey = "";
+
+  private void updateVideos () {
+    if (call == null || videoGrid == null || !org.thunderdog.challegram.voip.Tgx101GroupVideo.isSupported()) return;
+    java.util.List<Tgx101GroupCall.VideoSource> sources = call.videoSources();
+    if (sources.size() > 4) sources = sources.subList(0, 4);
+    StringBuilder key = new StringBuilder();
+    for (Tgx101GroupCall.VideoSource source : sources) key.append(source.info.endpointId).append(',');
+    if (key.toString().equals(videoKey)) return;
+    videoKey = key.toString();
+    clearVideos();
+    if (sources.isEmpty()) {
+      videoGrid.setVisibility(View.GONE);
+      return;
+    }
+    videoGrid.setVisibility(View.VISIBLE);
+    int width = Screen.currentWidth() - Screen.dp(24f);
+    int count = sources.size();
+    int cell = count == 1 ? width : width / 2;
+    int height = count == 1 ? Math.round(width * .75f) : count == 2 ? Math.round(cell * 1.33f) : cell;
+    for (Tgx101GroupCall.VideoSource source : sources) {
+      View renderer = org.thunderdog.challegram.voip.Tgx101GroupVideo.createView(context());
+      if (renderer == null) continue;
+      FrameLayout tile = new FrameLayout(context());
+      tile.addView(renderer, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      TextView name = newText(context(), 12, 0xffffffff, true);
+      name.setText(tdlib.senderName(source.participant.participantId, true) + (source.isScreen ? " · " + Lang.getString(R.string.Tgx101VoiceChatScreen) : ""));
+      name.setShadowLayer(Screen.dp(3f), 0, 0, 0xaa000000);
+      name.setGravity(Gravity.START);
+      FrameLayout.LayoutParams np = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.START);
+      np.leftMargin = np.bottomMargin = Screen.dp(8f);
+      tile.addView(name, np);
+      android.widget.GridLayout.LayoutParams tp = new android.widget.GridLayout.LayoutParams();
+      tp.width = cell - Screen.dp(4f);
+      tp.height = height - Screen.dp(4f);
+      tp.setMargins(Screen.dp(2f), Screen.dp(2f), Screen.dp(2f), Screen.dp(2f));
+      if (count == 1) tp.columnSpec = android.widget.GridLayout.spec(0, 2);
+      if (android.os.Build.VERSION.SDK_INT >= 21) {
+        tile.setClipToOutline(true);
+        tile.setOutlineProvider(new android.view.ViewOutlineProvider() {
+          @Override
+          public void getOutline (View view, android.graphics.Outline outline) {
+            outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), Screen.dp(14f));
+          }
+        });
+      }
+      tile.setBackgroundColor(0xff1f2731);
+      videoGrid.addView(tile, tp);
+      videoTiles.put(source.info.endpointId, renderer);
+      call.setVideoSink(source.info.endpointId, org.thunderdog.challegram.voip.Tgx101GroupVideo.sinkOf(renderer));
+    }
+  }
+
+  private void clearVideos () {
+    for (java.util.Map.Entry<String, View> entry : videoTiles.entrySet()) {
+      if (call != null) call.setVideoSink(entry.getKey(), null);
+      org.thunderdog.challegram.voip.Tgx101GroupVideo.release(entry.getValue());
+    }
+    videoTiles.clear();
+    if (videoGrid != null) videoGrid.removeAllViews();
   }
 
   // Participants

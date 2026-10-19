@@ -438,6 +438,10 @@ public final class Tgx101GroupCall implements GroupCallListener {
     UI.post(() -> {
       if (state == STATE_ENDED) return;
       setState(isConnected ? STATE_CONNECTED : STATE_CONNECTING);
+      if (isConnected) {
+        requestedVideoKey = ""; // connected (again): the videos are asked for anew
+        updateRequestedVideo();
+      }
     });
   }
 
@@ -508,9 +512,70 @@ public final class Tgx101GroupCall implements GroupCallListener {
           applyMuted(true); // an admin turned the microphone off
         }
       }
+      updateRequestedVideo();
       for (Listener listener : listeners) listener.onGroupCallParticipantsChanged(this);
       notifyGlobal();
     });
+  }
+
+  // Video (TGx101, user 2026-10-19 «делай групповые звонки до конца»): the participants' cameras and screens
+
+  /** one participant's video: a camera or a screen */
+  public static final class VideoSource {
+    public final TdApi.GroupCallParticipant participant;
+    public final TdApi.GroupCallParticipantVideoInfo info;
+    public final boolean isScreen;
+
+    VideoSource (TdApi.GroupCallParticipant participant, TdApi.GroupCallParticipantVideoInfo info, boolean isScreen) {
+      this.participant = participant;
+      this.info = info;
+      this.isScreen = isScreen;
+    }
+  }
+
+  private String requestedVideoKey = "";
+
+  /** the others' videos that go now (not paused), cameras first */
+  public java.util.List<VideoSource> videoSources () {
+    java.util.List<VideoSource> cameras = new java.util.ArrayList<>(), screens = new java.util.ArrayList<>();
+    for (TdApi.GroupCallParticipant p : participants.values()) {
+      if (p.isCurrentUser) continue;
+      if (p.videoInfo != null && !p.videoInfo.isPaused) cameras.add(new VideoSource(p, p.videoInfo, false));
+      if (p.screenSharingVideoInfo != null && !p.screenSharingVideoInfo.isPaused) screens.add(new VideoSource(p, p.screenSharingVideoInfo, true));
+    }
+    cameras.addAll(screens);
+    return cameras;
+  }
+
+  private void updateRequestedVideo () {
+    if (ptr == 0) return;
+    java.util.List<VideoSource> sources = videoSources();
+    String[] channels = new String[sources.size()];
+    StringBuilder key = new StringBuilder();
+    for (int i = 0; i < channels.length; i++) {
+      VideoSource source = sources.get(i);
+      StringBuilder groups = new StringBuilder();
+      for (TdApi.GroupCallVideoSourceGroup group : source.info.sourceGroups) {
+        if (groups.length() > 0) groups.append(';');
+        groups.append(group.semantics).append(':');
+        for (int j = 0; j < group.sourceIds.length; j++) {
+          if (j > 0) groups.append(',');
+          groups.append(group.sourceIds[j] & 0xffffffffL);
+        }
+      }
+      int audioSsrc = source.isScreen ? source.participant.screenSharingAudioSourceId : source.participant.audioSourceId;
+      channels[i] = (audioSsrc & 0xffffffffL) + "|" + source.info.endpointId + "|" + (sources.size() <= 2 ? 2 : 1) + "|" + groups;
+      key.append(channels[i]).append('\n');
+    }
+    if (key.toString().equals(requestedVideoKey)) return;
+    requestedVideoKey = key.toString();
+    org.thunderdog.challegram.Tgx101Diag.mark("group call video: receiving " + channels.length);
+    nativeRequestVideo(ptr, channels);
+  }
+
+  /** where a participant's video goes (an org.webrtc.VideoSink, from Tgx101GroupVideo); null — nowhere */
+  public void setVideoSink (String endpointId, @Nullable Object sink) {
+    if (ptr != 0 && state != STATE_ENDED) nativeSetVideoSink(ptr, endpointId, sink);
   }
 
   @Override
@@ -828,4 +893,6 @@ public final class Tgx101GroupCall implements GroupCallListener {
   private native void nativeSetMuted (long ptr, boolean muted);
   private native void nativeSetVolume (long ptr, int ssrc, double volume);
   private native void nativeDestroy (long ptr);
+  private native void nativeRequestVideo (long ptr, String[] channels);
+  private native void nativeSetVideoSink (long ptr, String endpointId, @Nullable Object sink);
 }
