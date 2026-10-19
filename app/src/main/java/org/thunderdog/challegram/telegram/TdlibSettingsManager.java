@@ -519,7 +519,10 @@ public class TdlibSettingsManager implements CleanupStartupDelegate {
       wallpapers.put(usageIdentifier, wallpaper);
       if (wallpaper != null) {
         // the background was saved under the other accounts' keys too (TGBackground.save): they read it back
-        tgx101ForOthers(other -> other.setWallpaper(TGBackground.restore(other.tdlib, usageIdentifier), true, usageIdentifier));
+        tgx101ForOthers(other -> {
+          TGBackground copy = TGBackground.restore(other.tdlib, usageIdentifier);
+          if (copy != null) other.setWallpaper(copy, true, usageIdentifier); // never clears another account's background
+        });
       }
     }
   }
