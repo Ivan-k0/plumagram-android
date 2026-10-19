@@ -720,7 +720,49 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   protected boolean useCircleBubble () {
-    return !tgx101TextMode();
+    return tgx101TimePill || !tgx101TextMode();
+  }
+
+  // (user 2026-10-20 «время одного размера в обоих режимах, прижато к правому нижнему углу и плавно едет вместе с ним,
+  // подложка плавно исчезает»): during the move the time is drawn both ways at once — on its dark plate as on the circle
+  // and plain as in the bubble — both ride from the circle's corner to the bubble's, the plate fading as the bubble comes
+  private boolean tgx101TimePill;
+  private int tgx101CircleTimeX = Integer.MIN_VALUE, tgx101CircleTimeY;
+
+  @Override
+  protected void drawBubbleTimePart (Canvas c, MessageView view) {
+    final int timeWidth = computeBubbleTimePartWidth(false) + Screen.dp(11f);
+    if (!tgx101TextMode()) {
+      super.drawBubbleTimePart(c, view);
+      tgx101CircleTimeX = getAbsolutelyRealRightContentEdge(view, timeWidth);
+      tgx101CircleTimeY = getBottomContentEdge();
+      return;
+    }
+    final float f = tgx101TextFactor();
+    if (f >= 1f || tgx101CircleTimeX == Integer.MIN_VALUE) {
+      super.drawBubbleTimePart(c, view);
+      return;
+    }
+    final float back = 1f - f;
+    final float dx = (tgx101CircleTimeX - getAbsolutelyRealRightContentEdge(view, timeWidth)) * back;
+    final float dy = (tgx101CircleTimeY - getBottomContentEdge()) * back;
+    final int plateShift = Screen.dp(5f); // the plate lifts the time by this much
+    final int w = Math.max(width, Screen.dp(64f)), h = Math.max(getHeight(), Screen.dp(64f));
+    // the plain time, coming up
+    int save = c.saveLayerAlpha(-w, -h, w * 2, h * 2, (int) (255 * f));
+    c.translate(dx, dy - plateShift * back);
+    super.drawBubbleTimePart(c, view);
+    c.restoreToCount(save);
+    // the time on its plate, going away
+    save = c.saveLayerAlpha(-w, -h, w * 2, h * 2, (int) (255 * back));
+    c.translate(dx, dy + plateShift * f);
+    tgx101TimePill = true;
+    try {
+      super.drawBubbleTimePart(c, view);
+    } finally {
+      tgx101TimePill = false;
+    }
+    c.restoreToCount(save);
   }
 
   @Override
