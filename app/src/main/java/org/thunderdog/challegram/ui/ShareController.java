@@ -2958,6 +2958,9 @@ public class ShareController extends TelegramViewController<ShareController.Args
   private void checkButtonsPosition () {
     if (bottomWrap != null) {
       int add = Math.max(0, inputView.getMeasuredHeight() - Screen.dp(48f));
+      if (tgx101OptionsRow != null && tgx101OptionsRow.getVisibility() != View.GONE) {
+        add += tgx101OptionsRow.getMeasuredHeight(); // the options are over the field
+      }
       float y = bottomWrap.getTranslationY() + add;
       okButton.setTranslationY(y);
       emojiButton.setTranslationY(y);
@@ -3576,7 +3579,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
     LinearLayout row = new LinearLayout(context);
     row.setOrientation(LinearLayout.HORIZONTAL);
     row.setGravity(Gravity.CENTER_VERTICAL);
-    row.setPadding(Screen.dp(12f), Screen.dp(2f), Screen.dp(12f), Screen.dp(8f));
+    row.setPadding(Screen.dp(12f), Screen.dp(8f), Screen.dp(12f), Screen.dp(2f));
     ViewSupport.setThemedBackground(row, ColorId.filling, this);
     row.setClickable(true); // (user 2026-10-20) a tap between the buttons closed the whole window
     tgx101NoName = tgx101Chip(context, R.string.Tgx101ForwardNoName, v -> {
@@ -3654,7 +3657,9 @@ public class ShareController extends TelegramViewController<ShareController.Args
     rp.leftMargin = Screen.dp(8f);
     row.addView(tgx101Later, rp);
     tgx101OptionsRow = row;
-    bottomWrap.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    // (user 2026-10-20, mockup «Пересылка: кнопка Отправить», variant 1): the options go over the comment field — the field
+    // stands between them and «Send», which was easy to hit by mistake right under the options
+    bottomWrap.addView(row, Math.max(0, bottomWrap.indexOfChild(inputView)), new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     tgx101UpdateOptionsRow();
   }
 
