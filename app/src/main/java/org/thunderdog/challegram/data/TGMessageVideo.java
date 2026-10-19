@@ -436,7 +436,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   private BoolAnimator tgx101TextAnimator () {
     if (tgx101TextAnimator == null) {
-      tgx101TextAnimator = new BoolAnimator(TEXT_ANIMATOR_ID, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 280L,
+      tgx101TextAnimator = new BoolAnimator(TEXT_ANIMATOR_ID, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 450L, // exteraGram takes about twice as long as 280 ms (recorded side by side 2026-10-19)
         tgx101TextModes.contains(tgx101Key()) && !TD.isSelfDestructTypeImmediately(getMessage()));
     }
     return tgx101TextAnimator;
@@ -501,17 +501,20 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     int mini = Screen.dp(TM_MINI);
     int size = tgx101Lerp(videoSize, mini, f); // the circle shrinks into the corner
     tgx101MiniRect.set(x, y, x + mini, y + mini);
+    // (user's video 2026-10-19 vs exteraGram): the text, the title and «A» come up only in the second half, once the
+    // circle has mostly shrunk — drawn under it, they no longer show through the big circle at the start
+    float partsAlpha = MathUtils.clamp((f - .45f) / .55f);
+    if (partsAlpha >= 1f) {
+      tgx101DrawTextParts(c, x, y);
+    } else if (partsAlpha > 0f) {
+      int save = c.saveLayerAlpha(x, y, x + Math.max(tgx101TextW, size), y + Math.max(tgx101TextH, size), (int) (255 * partsAlpha));
+      tgx101DrawTextParts(c, x, y);
+      c.restoreToCount(save);
+    }
     preview.setBounds(x, y, x + size, y + size);
     preview.setRadius(size / 2);
     if (preview.needPlaceholder()) preview.drawPlaceholderRounded(c, size / 2f);
     preview.draw(c);
-    if (f < 1f) {
-      int save = c.saveLayerAlpha(x, y, x + Math.max(tgx101TextW, size), y + Math.max(tgx101TextH, size), (int) (255 * f));
-      tgx101DrawTextParts(c, x, y);
-      c.restoreToCount(save);
-    } else {
-      tgx101DrawTextParts(c, x, y);
-    }
   }
 
   private void tgx101DrawTextParts (Canvas c, int x, int y) {
@@ -731,8 +734,9 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   protected void drawBubble (Canvas c, Paint paint, boolean stroke, int padding) {
     if (tgx101TextMode()) {
       float f = tgx101TextFactor();
-      if (f < 1f) { // the bubble comes up round the shrinking circle
-        int save = c.saveLayerAlpha(bubblePathRect.left - padding, bubblePathRect.top - padding, bubblePathRect.right + padding, bubblePathRect.bottom + padding, (int) (255 * f));
+      float bubbleAlpha = MathUtils.clamp(f * 4f); // solid almost at once, then it grows round the circle as in exteraGram
+      if (bubbleAlpha < 1f) { // the bubble comes up round the shrinking circle
+        int save = c.saveLayerAlpha(bubblePathRect.left - padding, bubblePathRect.top - padding, bubblePathRect.right + padding, bubblePathRect.bottom + padding, (int) (255 * bubbleAlpha));
         super.drawBubble(c, paint, stroke, padding);
         c.restoreToCount(save);
       } else {
