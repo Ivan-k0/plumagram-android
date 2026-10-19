@@ -183,8 +183,14 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   }
 
   private static void onSavedHere (Tdlib tdlib, TdApi.Message m) {
-    org.thunderdog.challegram.Tgx101Diag.mark("saved store: saved here " + (m != null ? m.id : 0) + (m != null && m.schedulingState != null ? " scheduled" : ""));
+    org.thunderdog.challegram.Tgx101Diag.mark("saved store: saved here " + (m != null ? m.id : 0) + (m != null && m.schedulingState != null ? " scheduled" : "") + (m != null && m.sendingState != null ? " (sending)" : ""));
     if (m == null || m.chatId != tdlib.selfChatId() || m.schedulingState != null) return;
+    if (m.sendingState instanceof TdApi.MessageSendingStatePending) {
+      // (user 2026-10-20: a video shared into Saved from another app — no «where to keep it» sheet): a file still being
+      // sent has only a temporary id; the sheet waits for the real one (the chat's own listener, which always comes)
+      waitSent(tdlib, m.id);
+      return;
+    }
     long now = android.os.SystemClock.uptimeMillis();
     if (now < suppressUntil) return;
     final boolean external = now - externalShareAt < 120_000L;
@@ -211,6 +217,26 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
         org.thunderdog.challegram.tool.UI.post(pendingShow, 600);
       }
     });
+  }
+
+  private static void waitSent (Tdlib tdlib, long tempId) {
+    final long chatId = tdlib.selfChatId();
+    final org.thunderdog.challegram.telegram.MessageListener[] l = new org.thunderdog.challegram.telegram.MessageListener[1];
+    l[0] = new org.thunderdog.challegram.telegram.MessageListener() {
+      @Override
+      public void onMessageSendSucceeded (TdApi.Message message, long oldMessageId) {
+        if (oldMessageId != tempId) return;
+        tdlib.listeners().unsubscribeFromMessageUpdates(chatId, l[0]);
+        get(tdlib).remap(oldMessageId, message.id);
+        onSavedHere(tdlib, message);
+      }
+
+      @Override
+      public void onMessageSendFailed (TdApi.Message message, long oldMessageId, TdApi.Error error) {
+        if (oldMessageId == tempId) tdlib.listeners().unsubscribeFromMessageUpdates(chatId, l[0]);
+      }
+    };
+    tdlib.listeners().subscribeToMessageUpdates(chatId, l[0]);
   }
 
   private final int accountId;

@@ -3266,7 +3266,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
           for (int i = 0; i < picked.size(); i++) {
             ArrayList<TdApi.Function<?>> functions = new ArrayList<>();
             TD.processSingle(tdlib, picked.get(i), pickedOptions.get(i), functions, tdlib.filegen().createThumbnail(video, ChatId.isSecret(picked.get(i))));
-            for (TdApi.Function<?> function : functions) tdlib.client().send(function, tdlib.messageHandler());
+            for (TdApi.Function<?> function : functions) tdlib.client().send(function, org.thunderdog.challegram.data.Tgx101SavedStore.savedAware(tdlib, function, tdlib.messageHandler()));
           }
           return;
         }
@@ -3287,7 +3287,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       org.thunderdog.challegram.Tgx101Diag.mark("share: the chat isn't open, video sent as is");
       ArrayList<TdApi.Function<?>> functions = new ArrayList<>();
       TD.processSingle(tdlib, chatId, Td.newSendOptions(), functions, tdlib.filegen().createThumbnail(video, ChatId.isSecret(chatId)));
-      for (TdApi.Function<?> function : functions) tdlib.client().send(function, tdlib.messageHandler());
+      for (TdApi.Function<?> function : functions) tdlib.client().send(function, org.thunderdog.challegram.data.Tgx101SavedStore.savedAware(tdlib, function, tdlib.messageHandler())); // TGx101: Saved → the «where to keep it» sheet
       return;
     }
     final org.thunderdog.challegram.loader.ImageGalleryFile file = new org.thunderdog.challegram.loader.ImageGalleryFile(-1, path, System.currentTimeMillis(), video.video.width, video.video.height, -1, true);

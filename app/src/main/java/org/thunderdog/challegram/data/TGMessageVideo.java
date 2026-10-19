@@ -332,6 +332,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   private float scrollCompensationFactor;
 
   public float getScrollCompensationFactor () {
+    if (tgx101TextAnimator != null && tgx101TextAnimator.isAnimating() && !isFullSizeAnimator.isAnimating()) return 0f;
     return scrollCompensationFactor;
   }
 
@@ -632,7 +633,9 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   }
 
   public boolean inSizeAnimation () {
-    return isFullSizeAnimator.isAnimating();
+    // (user 2026-10-20, option 1 «как в exteraGram»): the circle ↔ text move keeps what's above in place — the list is
+    // scrolled by the whole height change (scroll compensation factor 0), only what's below moves
+    return isFullSizeAnimator.isAnimating() || (tgx101TextAnimator != null && tgx101TextAnimator.isAnimating());
   }
 
   public float getPlayerScale () {
