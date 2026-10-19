@@ -144,6 +144,7 @@ struct GroupContext {
   std::unique_ptr<tgcalls::GroupInstanceCustomImpl> instance;
   std::shared_ptr<GroupJava> java;
   std::shared_ptr<GroupConference> conference;
+  bool screen = false; // TGx101: the second instance that only sends my screen (screen sharing)
   // TGx101 (group call video, 2026-10-19): the participants' video sinks, by endpoint — kept alive here, tgcalls holds weak ones
   std::mutex sinksMutex;
   std::map<std::string, std::shared_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>>> sinks;
@@ -210,7 +211,7 @@ void resolvePending (const std::shared_ptr<GroupJava> &java, const std::shared_p
 
 }
 
-JNI_OBJECT_FUNC(jlong, voip_Tgx101GroupCall, nativeCreate, jstring jLogPath, jboolean jMuted, jboolean jConference) {
+static jlong createGroup (JNIEnv *env, jobject thiz, jstring jLogPath, jboolean jMuted, jboolean jConference, bool screen) {
   if (!tgcalls::initialize(env)) {
     return 0;
   }
@@ -220,9 +221,9 @@ JNI_OBJECT_FUNC(jlong, voip_Tgx101GroupCall, nativeCreate, jstring jLogPath, jbo
   descriptor.threads = tgcalls::StaticThreads::getThreads();
   descriptor.config.need_log = false;
   descriptor.config.logPath = {jni::from_jstring(env, jLogPath)};
-  descriptor.networkStateUpdated = [java](tgcalls::GroupNetworkState state) {
-    java->run([state](JNIEnv *env, jobject obj, jclass clazz) {
-      env->CallVoidMethod(obj, env->GetMethodID(clazz, "onNativeNetworkState", "(Z)V"), (jboolean) state.isConnected);
+  descriptor.networkStateUpdated = [java, screen](tgcalls::GroupNetworkState state) {
+    java->run([state, screen](JNIEnv *env, jobject obj, jclass clazz) {
+      env->CallVoidMethod(obj, env->GetMethodID(clazz, screen ? "onNativeScreenNetworkState" : "onNativeNetworkState", "(Z)V"), (jboolean) state.isConnected);
     });
   };
   descriptor.audioLevelsUpdated = [java](tgcalls::GroupLevelsUpdate const &update) {
@@ -289,6 +290,13 @@ JNI_OBJECT_FUNC(jlong, voip_Tgx101GroupCall, nativeCreate, jstring jLogPath, jbo
   };
   descriptor.initialEnableNoiseSuppression = true;
   descriptor.videoContentType = tgcalls::VideoContentType::Generic; // TGx101: the participants' cameras and screens can be received
+  if (screen) {
+    // TGx101 (screen sharing, as Telegram's own screencast instance): sends only the screen — no microphone, nothing in
+    descriptor.videoContentType = tgcalls::VideoContentType::Screencast;
+    descriptor.disableIncomingChannels = true;
+    descriptor.disableAudioInput = true;
+    descriptor.audioLevelsUpdated = nullptr;
+  }
   descriptor.createWrappedAudioDeviceModule = [](webrtc::TaskQueueFactory *) -> webrtc::scoped_refptr<tgcalls::WrappedAudioDeviceModule> {
     auto device = webrtc::CreateAndroidAudioDeviceModule(webrtc::AudioDeviceModule::kPlatformDefaultAudio);
     if (device == nullptr || device->Init() != 0) {
@@ -300,9 +308,18 @@ JNI_OBJECT_FUNC(jlong, voip_Tgx101GroupCall, nativeCreate, jstring jLogPath, jbo
   auto *context = new GroupContext;
   context->java = java;
   context->conference = conference;
+  context->screen = screen;
   context->instance = std::make_unique<tgcalls::GroupInstanceCustomImpl>(std::move(descriptor));
-  context->instance->setIsMuted(jMuted == JNI_TRUE);
+  context->instance->setIsMuted(screen || jMuted == JNI_TRUE);
   return jni::ptr_to_jlong(context);
+}
+
+JNI_OBJECT_FUNC(jlong, voip_Tgx101GroupCall, nativeCreate, jstring jLogPath, jboolean jMuted, jboolean jConference) {
+  return createGroup(env, thiz, jLogPath, jMuted, jConference, false);
+}
+
+JNI_OBJECT_FUNC(jlong, voip_Tgx101GroupCall, nativeCreateScreen, jstring jLogPath) {
+  return createGroup(env, thiz, jLogPath, JNI_TRUE, JNI_FALSE, true);
 }
 
 JNI_OBJECT_FUNC(void, voip_Tgx101GroupCall, nativeEmitJoinPayload, jlong ptr) {
@@ -311,13 +328,14 @@ JNI_OBJECT_FUNC(void, voip_Tgx101GroupCall, nativeEmitJoinPayload, jlong ptr) {
     return;
   }
   auto java = context->java;
+  bool screen = context->screen;
   context->instance->setConnectionMode(tgcalls::GroupConnectionMode::GroupConnectionModeNone, false, false);
-  context->instance->emitJoinPayload([java](tgcalls::GroupJoinPayload const &payload) {
+  context->instance->emitJoinPayload([java, screen](tgcalls::GroupJoinPayload const &payload) {
     std::string json = payload.json;
     auto ssrc = (jint) payload.audioSsrc;
-    java->run([json, ssrc](JNIEnv *env, jobject obj, jclass clazz) {
+    java->run([json, ssrc, screen](JNIEnv *env, jobject obj, jclass clazz) {
       jstring jJson = env->NewStringUTF(json.c_str());
-      env->CallVoidMethod(obj, env->GetMethodID(clazz, "onNativeJoinPayload", "(Ljava/lang/String;I)V"), jJson, ssrc);
+      env->CallVoidMethod(obj, env->GetMethodID(clazz, screen ? "onNativeScreenJoinPayload" : "onNativeJoinPayload", "(Ljava/lang/String;I)V"), jJson, ssrc);
       env->DeleteLocalRef(jJson);
     });
   });

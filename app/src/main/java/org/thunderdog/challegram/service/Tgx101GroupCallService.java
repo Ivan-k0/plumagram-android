@@ -50,6 +50,16 @@ public class Tgx101GroupCallService extends Service {
     } catch (Throwable ignored) { }
   }
 
+  // TGx101 (screen sharing): Android 14 lets an app take the screen only from a running service of the media projection
+  // type — the service is brought up again with it before the capture starts, and back to the microphone after
+  private static volatile boolean screenSharing;
+
+  public static void setScreenSharing (Context context, boolean on) {
+    if (screenSharing == on) return;
+    screenSharing = on;
+    if (Tgx101GroupCall.current() != null) start(context);
+  }
+
   public static void stop (Context context) {
     context.stopService(new Intent(context, Tgx101GroupCallService.class));
   }
@@ -99,7 +109,14 @@ public class Tgx101GroupCallService extends Service {
       .addAction(R.drawable.baseline_call_end_24, Lang.getString(R.string.Tgx101VoiceChatLeave), PendingIntent.getService(this, 1, leave, Intents.mutabilityFlags(false)))
       .build();
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-      startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
+      int type = ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE | (screenSharing ? ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION : 0);
+      try {
+        startForeground(NOTIFICATION_ID, notification, type);
+      } catch (Throwable t) {
+        // (screen sharing) the projection type is refused without a granted projection: keep the microphone at least
+        org.thunderdog.challegram.Tgx101Diag.mark("voice chat service: type " + type + " refused — " + t.getClass().getSimpleName());
+        startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
+      }
     } else {
       startForeground(NOTIFICATION_ID, notification);
     }

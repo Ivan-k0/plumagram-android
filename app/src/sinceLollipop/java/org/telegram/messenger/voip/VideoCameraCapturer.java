@@ -42,6 +42,22 @@ public class VideoCameraCapturer {
 
   private static VideoCameraCapturer current;
 
+  // TGx101 (group call video, step 3 — screen sharing): the next capturer tgcalls makes is the screen, fed by this
+  // MediaProjection permission (the Intent from the system's «Start recording?» dialog). Set just before the native
+  // capture is created; the constructor takes it
+  private static volatile android.content.Intent nextScreenData;
+  private final @androidx.annotation.Nullable android.content.Intent screenData;
+
+  public static void prepareScreen (@androidx.annotation.Nullable android.content.Intent data) {
+    nextScreenData = data;
+  }
+
+  private static int[] screenSize () {
+    android.util.DisplayMetrics m = org.thunderdog.challegram.unsorted.AppContext.get().getResources().getDisplayMetrics();
+    float scale = Math.min(1f, 1280f / Math.max(m.widthPixels, m.heightPixels));
+    return new int[] {Math.round(m.widthPixels * scale) & ~1, Math.round(m.heightPixels * scale) & ~1};
+  }
+
   /** Applies the SD/HD choice to the running camera without restarting it. */
   public static void applyQuality () {
     VideoCameraCapturer capturer = current;
@@ -50,7 +66,7 @@ public class VideoCameraCapturer {
         if (capturer.capturer != null && capturer.capturing) {
           int[] size = captureSize();
           android.util.Log.i("TGx101Video", "camera format " + size[0] + "x" + size[1]);
-          capturer.capturer.changeCaptureFormat(size[0], size[1], FPS);
+          if (capturer.screenData == null) capturer.capturer.changeCaptureFormat(size[0], size[1], FPS);
         }
       });
     }
@@ -61,7 +77,7 @@ public class VideoCameraCapturer {
     return hd ? new int[] {1280, 720} : new int[] {960, 540};
   }
 
-  private CameraVideoCapturer capturer;
+  private org.webrtc.VideoCapturer capturer;
   private SurfaceTextureHelper textureHelper;
   private long nativePtr;
   private boolean capturing;
@@ -70,6 +86,8 @@ public class VideoCameraCapturer {
 
   @Keep
   public VideoCameraCapturer () {
+    screenData = nextScreenData;
+    nextScreenData = null;
     synchronized (VideoCameraCapturer.class) {
       if (thread == null) {
         thread = new HandlerThread("TGx101Camera");
@@ -100,8 +118,23 @@ public class VideoCameraCapturer {
       android.util.Log.i("TGx101Video", "camera init ptr=" + ptr + " front=" + useFrontCamera + " (previous " + nativePtr + ")");
       release();
       nativePtr = ptr;
-      current = this;
       Context context = org.thunderdog.challegram.unsorted.AppContext.get();
+      if (screenData != null) {
+        capturer = new org.webrtc.ScreenCapturerAndroid(screenData, new android.media.projection.MediaProjection.Callback() {
+          @Override
+          public void onStop () {
+            android.util.Log.i("TGx101Video", "screen capture stopped by the system");
+            UI.post(() -> {
+              org.thunderdog.challegram.voip.Tgx101GroupCall call = org.thunderdog.challegram.voip.Tgx101GroupCall.current();
+              if (call != null) call.setScreenSharing(false, null);
+            });
+          }
+        });
+        textureHelper = SurfaceTextureHelper.create("TGx101ScreenTexture", Tgx101Video.eglContext());
+        capturer.initialize(textureHelper, context, observer);
+        return;
+      }
+      current = this;
       CameraEnumerator enumerator = Camera2Enumerator.isSupported(context) ? new Camera2Enumerator(context) : new Camera1Enumerator(true);
       String device = null;
       for (String name : enumerator.getDeviceNames()) {
@@ -135,7 +168,7 @@ public class VideoCameraCapturer {
       android.util.Log.i("TGx101Video", "camera state " + state + " ptr=" + ptr + " current=" + nativePtr + " capturing=" + capturing);
       if (ptr != nativePtr || capturer == null) return;
       if (state == STATE_ACTIVE && !capturing) {
-        int[] size = captureSize(); // SD / HD button on the call screen
+        int[] size = screenData != null ? screenSize() : captureSize(); // SD / HD button on the call screen
         capturer.startCapture(size[0], size[1], FPS);
         capturing = true;
       } else if (state != STATE_ACTIVE && capturing) {

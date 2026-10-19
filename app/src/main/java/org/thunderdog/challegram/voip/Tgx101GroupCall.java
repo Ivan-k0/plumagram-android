@@ -624,6 +624,91 @@ public final class Tgx101GroupCall implements GroupCallListener {
     Tgx101GroupVideo.destroyCapture(capture);
   }
 
+  // Screen sharing (step 3): a second tgcalls instance that only sends my screen, joined by StartGroupCallScreenSharing
+
+  private long screenPtr, screenCapture;
+
+  public boolean isScreenSharing () {
+    return screenPtr != 0;
+  }
+
+  public boolean canShareScreen () {
+    return !isConference && ptr != 0 && state != STATE_ENDED && Tgx101GroupVideo.isSupported();
+  }
+
+  /** on: the system's screen recording permission data (MediaProjection); the call service must already run with the
+   *  media projection type (Tgx101GroupCallService.setScreenSharing) */
+  public void setScreenSharing (boolean on, @Nullable android.content.Intent projectionData) {
+    if (on == isScreenSharing()) return;
+    if (!on) {
+      stopScreenSharing(true);
+      return;
+    }
+    if (!canShareScreen() || projectionData == null) return;
+    Context context = org.thunderdog.challegram.unsorted.AppContext.get();
+    long instance;
+    try {
+      instance = nativeCreateScreen(new File(context.getCacheDir(), "tgx101_voice_chat_screen.log").getPath());
+    } catch (UnsatisfiedLinkError e) {
+      instance = 0;
+    }
+    if (instance == 0) {
+      org.thunderdog.challegram.Tgx101Diag.mark("group call video: screen instance failed");
+      return;
+    }
+    long capture = Tgx101GroupVideo.createScreenCapture(projectionData);
+    if (capture == 0) {
+      nativeDestroy(instance);
+      org.thunderdog.challegram.Tgx101Diag.mark("group call video: screen capture failed");
+      UI.showToast(R.string.Tgx101VoiceChatScreenFailed, Toast.LENGTH_SHORT);
+      return;
+    }
+    screenPtr = instance;
+    screenCapture = capture;
+    nativeSetVideoCapture(instance, capture);
+    nativeEmitJoinPayload(instance);
+    org.thunderdog.challegram.Tgx101Diag.mark("group call video: screen sharing starts");
+    for (Listener listener : listeners) listener.onGroupCallParticipantsChanged(this);
+  }
+
+  @Keep
+  private void onNativeScreenJoinPayload (String json, int ssrc) {
+    UI.post(() -> {
+      if (screenPtr == 0 || state == STATE_ENDED) return;
+      final long instance = screenPtr;
+      tdlib.send(new TdApi.StartGroupCallScreenSharing(groupCallId, ssrc, json), (response, error) -> UI.post(() -> {
+        if (screenPtr != instance) return;
+        if (error != null) {
+          org.thunderdog.challegram.Tgx101Diag.mark("group call video: screen sharing refused — " + TD.toErrorString(error));
+          UI.showToast(TD.toErrorString(error), Toast.LENGTH_LONG);
+          stopScreenSharing(false);
+          return;
+        }
+        nativeSetJoinResponse(instance, response.text);
+        org.thunderdog.challegram.Tgx101Diag.mark("group call video: screen sharing joined");
+      }));
+    });
+  }
+
+  @Keep
+  private void onNativeScreenNetworkState (boolean isConnected) {
+    org.thunderdog.challegram.Tgx101Diag.mark("group call video: screen sharing " + (isConnected ? "connected" : "connecting"));
+  }
+
+  private void stopScreenSharing (boolean tellServer) {
+    long instance = screenPtr, capture = screenCapture;
+    if (instance == 0) return;
+    screenPtr = 0;
+    screenCapture = 0;
+    nativeSetVideoCapture(instance, 0);
+    nativeDestroy(instance);
+    Tgx101GroupVideo.destroyCapture(capture);
+    if (tellServer) tdlib.send(new TdApi.EndGroupCallScreenSharing(groupCallId), (ok, error) -> { });
+    org.thunderdog.challegram.Tgx101Diag.mark("group call video: screen sharing stopped");
+    org.thunderdog.challegram.service.Tgx101GroupCallService.setScreenSharing(org.thunderdog.challegram.unsorted.AppContext.get(), false);
+    for (Listener listener : listeners) listener.onGroupCallParticipantsChanged(this);
+  }
+
   /** where a participant's video goes (an org.webrtc.VideoSink, from Tgx101GroupVideo); null — nowhere */
   public void setVideoSink (String endpointId, @Nullable Object sink) {
     if (ptr != 0 && state != STATE_ENDED) nativeSetVideoSink(ptr, endpointId, sink);
@@ -889,6 +974,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
     if (state == STATE_ENDED) return;
     tdlib.listeners().unsubscribeFromGlobalUpdates(this);
     stopCamera(); // before the instance goes: it still holds the camera
+    stopScreenSharing(false); // leaving the call ends the screen sharing with it
     if (ptr != 0) {
       long p = ptr;
       ptr = 0;
@@ -939,6 +1025,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
   // Native
 
   private native long nativeCreate (String logPath, boolean muted, boolean conference);
+  private native long nativeCreateScreen (String logPath);
   private native void nativeParticipantsChanged (long ptr);
   private native void nativeEmitJoinPayload (long ptr);
   private native void nativeSetJoinResponse (long ptr, String payload);

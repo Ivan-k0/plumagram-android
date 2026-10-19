@@ -101,6 +101,23 @@ TGX101_VIDEO(jlong, nativeCreateCapture, jboolean front) {
   return reinterpret_cast<jlong>(result);
 }
 
+// TGx101 (group call screen sharing): the Java capturer made by AndroidContext right here took the projection data
+// (VideoCameraCapturer.prepareScreen) and runs ScreenCapturerAndroid instead of a camera
+TGX101_VIDEO(jlong, nativeCreateScreenCapture) {
+  if (!tgcalls::initialize(env) || !registerCameraNatives(env)) {
+    return 0;
+  }
+  auto platformContext = std::make_shared<tgcalls::AndroidContext>(env);
+  std::shared_ptr<tgcalls::VideoCaptureInterface> capture = tgcalls::VideoCaptureInterface::Create(
+    tgcalls::StaticThreads::getThreads(), "screen", true, platformContext);
+  if (capture == nullptr) {
+    return 0;
+  }
+  auto *result = new CaptureHolder;
+  result->capture = capture;
+  return reinterpret_cast<jlong>(result);
+}
+
 TGX101_VIDEO(void, nativeSetCaptureOutput, jlong ptr, jobject sink) {
   CaptureHolder *h = holder(ptr);
   if (h == nullptr) return;

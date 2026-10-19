@@ -37,6 +37,10 @@ public final class Tgx101GroupVideo {
     return 0;
   }
 
+  public static long createScreenCapture (android.content.Intent projectionData) {
+    return 0;
+  }
+
   public static void switchCamera (long capture, boolean front) { }
 
   public static void destroyCapture (long capture) { }

@@ -6891,6 +6891,10 @@
   <string name="Tgx101VoiceChatCamera">Camera</string>
   <string name="Tgx101VoiceChatYouTile">You</string>
   <string name="Tgx101VoiceChatNoVideo">Video isn\'t available on this Android version</string>
+  <string name="Tgx101VoiceChatScreenStart">Share screen</string>
+  <string name="Tgx101VoiceChatScreenStop">Stop sharing the screen</string>
+  <string name="Tgx101VoiceChatScreenHint">Everyone in the call sees your screen</string>
+  <string name="Tgx101VoiceChatScreenFailed">Couldn\'t start sharing the screen</string>
   <string name="Tgx101PaintClearAll">Clear all</string>
   <string name="Tgx101PaintEraser">Eraser</string>
   <string name="Tgx101PaintEllipse">Oval</string>

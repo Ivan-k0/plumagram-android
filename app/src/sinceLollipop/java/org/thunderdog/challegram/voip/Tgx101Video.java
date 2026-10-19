@@ -245,6 +245,20 @@ public final class Tgx101Video {
     return ptr;
   }
 
+  /** the screen for a group call's screen sharing (the MediaProjection permission data), 0 — failed */
+  static long groupScreenCaptureCreate (android.content.Intent projectionData) {
+    org.telegram.messenger.voip.VideoCameraCapturer.prepareScreen(projectionData);
+    long ptr;
+    try {
+      ptr = nativeCreateScreenCapture();
+    } finally {
+      org.telegram.messenger.voip.VideoCameraCapturer.prepareScreen(null);
+    }
+    if (ptr == 0) return 0;
+    nativeSetCaptureActive(ptr, true);
+    return ptr;
+  }
+
   static void groupCaptureSwitch (long ptr, boolean front) {
     if (ptr != 0) nativeSwitchCamera(ptr, front);
   }
@@ -256,6 +270,7 @@ public final class Tgx101Video {
   // Native
 
   private static native long nativeCreateCapture (boolean front);
+  private static native long nativeCreateScreenCapture ();
   private static native void nativeSetCaptureOutput (long ptr, @Nullable VideoSink sink);
   private static native void nativeSetCaptureActive (long ptr, boolean active);
   private static native void nativeSwitchCamera (long ptr, boolean front);

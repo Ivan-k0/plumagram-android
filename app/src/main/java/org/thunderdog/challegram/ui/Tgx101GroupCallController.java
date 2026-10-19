@@ -284,6 +284,32 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
     call.toggleMuted();
   }
 
+  private static final int REQUEST_SCREEN = 0x7105;
+
+  private void startScreenSharing () {
+    if (call == null || android.os.Build.VERSION.SDK_INT < 21) return;
+    android.media.projection.MediaProjectionManager manager = (android.media.projection.MediaProjectionManager) context().getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+    if (manager == null) return;
+    context().putActivityResultHandler(REQUEST_SCREEN, (requestCode, resultCode, data) -> {
+      if (resultCode != android.app.Activity.RESULT_OK || data == null || call == null) {
+        org.thunderdog.challegram.Tgx101Diag.mark("group call video: screen sharing not allowed");
+        return;
+      }
+      // the service takes the media projection type first (Android 14), the capture starts once it has
+      org.thunderdog.challegram.service.Tgx101GroupCallService.setScreenSharing(context(), true);
+      UI.post(() -> {
+        if (call != null) call.setScreenSharing(true, data);
+        updateAll();
+      }, 400);
+    });
+    try {
+      context().startActivityForResult(manager.createScreenCaptureIntent(), REQUEST_SCREEN);
+    } catch (Throwable t) {
+      context().putActivityResultHandler(REQUEST_SCREEN, null);
+      UI.showToast(R.string.Tgx101VoiceChatScreenFailed, Toast.LENGTH_SHORT);
+    }
+  }
+
   private void onCameraClick () {
     if (call == null) return;
     if (call.isCameraOn()) {
@@ -374,6 +400,15 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
           navigateBack(); // the bar under the header keeps the call (step 2)
         }
       }));
+      if (call.canShareScreen() || call.isScreenSharing()) {
+        // step 3: my screen to everyone (the system asks «Start recording?» each time), the same row stops it
+        boolean sharing = call.isScreenSharing();
+        body.addView(Tgx101Sheet.row(context, R.drawable.tgx101_baseline_screen_share_24, 0, Lang.getString(sharing ? R.string.Tgx101VoiceChatScreenStop : R.string.Tgx101VoiceChatScreenStart), sharing ? null : Lang.getString(R.string.Tgx101VoiceChatScreenHint), false, v -> {
+          h[0].dismiss();
+          if (sharing) call.setScreenSharing(false, null);
+          else startScreenSharing();
+        }));
+      }
       int unread = call.unreadMessages();
       body.addView(Tgx101Sheet.row(context, R.drawable.baseline_chat_bubble_24, 0, Lang.getString(R.string.Tgx101VoiceChatMessages), unread > 0 ? Lang.getString(R.string.Tgx101VoiceChatNewMessages, unread) : null, false, v -> {
         h[0].dismiss();

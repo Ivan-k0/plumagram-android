@@ -1285,6 +1285,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101VoiceChatCamera, "Камера");
     RU.put(R.string.Tgx101VoiceChatYouTile, "Вы");
     RU.put(R.string.Tgx101VoiceChatNoVideo, "Видео недоступно на этой версии Android");
+    RU.put(R.string.Tgx101VoiceChatScreenStart, "Показать экран");
+    RU.put(R.string.Tgx101VoiceChatScreenStop, "Остановить показ экрана");
+    RU.put(R.string.Tgx101VoiceChatScreenHint, "Все в звонке увидят ваш экран");
+    RU.put(R.string.Tgx101VoiceChatScreenFailed, "Не получилось показать экран");
     RU.put(R.string.Tgx101PaintClearAll, "Очистить всё");
     RU.put(R.string.Tgx101PaintMarker, "Флом.");
     RU.put(R.string.Tgx101PaintPencil, "Каранд.");

@@ -49,6 +49,11 @@ public final class Tgx101GroupVideo {
     return Tgx101Video.groupCaptureCreate(front, preview instanceof SurfaceViewRenderer ? (SurfaceViewRenderer) preview : null);
   }
 
+  /** the screen for screen sharing, from the system's «Start recording?» permission data; 0 — failed */
+  public static long createScreenCapture (android.content.Intent projectionData) {
+    return Tgx101Video.groupScreenCaptureCreate(projectionData);
+  }
+
   public static void switchCamera (long capture, boolean front) {
     Tgx101Video.groupCaptureSwitch(capture, front);
   }
