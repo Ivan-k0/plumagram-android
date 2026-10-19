@@ -87,12 +87,12 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
         float u = Screen.dp(22f) / 24f, x0 = cx - 12f * u, y0 = cy - 12f * u; // the mockup's 24-unit grid
         android.graphics.Paint paint = Paints.fillingPaint(color);
         android.graphics.RectF rect = Paints.getRectF();
-        float[] widths = {12f, 9.5f, 7f};
+        // variant А (user 2026-10-19): no bullets — round dots under the header's ⋮ read as a second «more»
+        float[] widths = {16f, 12f, 8f};
         for (int i = 0; i < 3; i++) {
           float y = y0 + (7f + 5f * i) * u;
-          c.drawCircle(x0 + 5f * u, y, 1.6f * u, paint);
-          rect.set(x0 + 9f * u, y - .9f * u, x0 + (9f + widths[i]) * u, y + .9f * u);
-          c.drawRoundRect(rect, .9f * u, .9f * u, paint);
+          rect.set(x0 + 4f * u, y - .95f * u, x0 + (4f + widths[i]) * u, y + .95f * u);
+          c.drawRoundRect(rect, .95f * u, .95f * u, paint);
         }
         return;
       }
