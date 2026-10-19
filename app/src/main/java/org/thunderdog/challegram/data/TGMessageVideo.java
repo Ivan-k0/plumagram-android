@@ -508,10 +508,15 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
         if (!a && !mini) return false;
         performClickSoundFeedback();
         tgx101SetTextMode(false); // «A»: back to the big circle; the small circle: back to it and play
+        org.thunderdog.challegram.Tgx101Diag.mark("round video: text mode off by " + (mini ? "the small circle (play)" : "«A»"));
         if (mini) {
-          UI.post(() -> {
-            if (!isDestroyed()) tdlib.context().player().playPauseMessage(tdlib, msg, manager);
-          }, 120);
+          // once the big circle stands in its place again — the same way as a tap on it (user 2026-10-19: 120 ms was too soon)
+          view.postDelayed(() -> {
+            if (!isDestroyed()) {
+              org.thunderdog.challegram.Tgx101Diag.mark("round video: play after the text mode");
+              onClick(fileProgress, view, videoNote.video, msg.id);
+            }
+          }, 350);
         }
         return true;
       }
