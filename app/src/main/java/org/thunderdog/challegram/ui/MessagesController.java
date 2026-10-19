@@ -4809,10 +4809,17 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return true;
   }
 
+  private @Nullable MessageId tgx101PendingHighlight;
+
   @Override
   public void onFocus () {
     tgx101ResetMotion("focus");
     super.onFocus();
+    if (tgx101PendingHighlight != null) {
+      MessageId id = tgx101PendingHighlight;
+      tgx101PendingHighlight = null;
+      highlightMessage(id);
+    }
     tgx101UpdateMicExclusion();
     tgx101DropPreventHideKeyboard();
     updateBottomWrapOffset(); // TGx101
@@ -8854,6 +8861,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (arePinnedMessages()) {
       ViewController<?> c = previousStackItem();
       if (c instanceof MessagesController && c.getChatId() == getChatId()) {
+        if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) {
+          // TGx101 (user 2026-10-19 «переход … с прыжками и без подсвечивания»): back first, the chat scrolls to the message
+          // and highlights it once it's on screen — scrolling under the back animation jumped and the highlight was lost
+          ((MessagesController) c).tgx101PendingHighlight = msg.toMessageId();
+          navigateBack();
+          return;
+        }
         ((MessagesController) c).highlightMessage(msg.toMessageId());
         navigateBack();
         return;
