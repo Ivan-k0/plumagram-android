@@ -4054,7 +4054,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       }
 
       if (timeExpandValue.getToFactor() != timeAddedHeight) {
-        if (needAnimateChanges() && needAnimateTimeExpand) {
+        if (needAnimateChanges() && needAnimateTimeExpand && tgx101AnimateTimeExpand()) {
           timeExpandValue.animateTo(timeAddedHeight);
         } else {
           timeExpandValue.forceFactor(timeAddedHeight);
@@ -4454,6 +4454,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   protected int getBottomLineContentWidth () {
     return BOTTOM_LINE_EXPAND_HEIGHT;
+  }
+
+  /** TGx101: whether the time line's own 200 ms move runs when it comes or goes (a message with its own move says no) */
+  protected boolean tgx101AnimateTimeExpand () {
+    return true;
   }
 
   public float getBubbleTopRightRadius () {

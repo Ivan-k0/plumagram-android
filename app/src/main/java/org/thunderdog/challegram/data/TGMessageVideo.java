@@ -277,6 +277,12 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     }
     if (id == TEXT_ANIMATOR_ID && finalFactor == 0f) {
       rebuildAndUpdateContent(); // back to the circle entirely
+      // the sizes now match the circle's exactly, so the bubble's outline wasn't remade and the text bubble's stayed
+      // behind the circle
+      if (isLayoutBuilt()) {
+        buildBubble(true);
+        invalidate();
+      }
     }
   }
 
@@ -499,6 +505,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
       invalidate();
     } else if (on) {
       rebuildContent(); // the text's size is known before the first frame
+      buildBubble(true); // the circle's outline → the bubble's, at the same size
     }
   }
 
@@ -723,6 +730,14 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   protected boolean allowBubbleHorizontalExtend () {
+    return false;
+  }
+
+  // (user's video and log 2026-10-20: the chat still moved ~24 dp after each switch to the text): the time line has a
+  // 200 ms move of its own, it ran behind the circle ↔ text move and went on after it, where nothing kept the chat in
+  // place. The circle ↔ text move carries the time line itself
+  @Override
+  protected boolean tgx101AnimateTimeExpand () {
     return false;
   }
 

@@ -3226,7 +3226,10 @@ public class ShareController extends TelegramViewController<ShareController.Args
     if (sendButton == null) return;
     boolean ready = selectedChats.size() > 0;
     sendButton.getChildAt(0).setEnabled(ready);
-    sendButton.animate().alpha(ready ? 1f : .5f).setDuration(sendButton.isShown() ? 180L : 0L).start();
+    // (user's video 2026-10-20: the half-transparent «Send» showed the blurred chat through) — the button's own
+    // not-ready look: solid, grey text, and it fills with color from the middle when a chat is picked
+    sendButton.setShareText(Lang.getString(R.string.Send));
+    sendButton.setIsReady(ready, sendButton.isShown());
   }
 
   private void checkAbilityToSend () {
@@ -3555,6 +3558,17 @@ public class ShareController extends TelegramViewController<ShareController.Args
   private @Nullable LinearLayout tgx101OptionsRow;
   private @Nullable TextView tgx101NoName, tgx101NoCaptions;
   private @Nullable ImageView tgx101Silent, tgx101Later;
+  private HapticMenuHelper tgx101LaterMenu;
+  private boolean tgx101CanSilent;
+
+  /** scheduling needs a chosen chat and none of them secret */
+  private boolean tgx101CanLater () {
+    if (selectedChats.size() == 0) return false;
+    for (int i = 0; i < selectedChatIds.size(); i++) {
+      if (ChatId.isSecret(selectedChatIds.get(i))) return false;
+    }
+    return true;
+  }
   private boolean tgx101OptionsInit;
 
   private void tgx101AddOptionsRow (Context context) {
@@ -3565,12 +3579,6 @@ public class ShareController extends TelegramViewController<ShareController.Args
     row.setPadding(Screen.dp(12f), Screen.dp(2f), Screen.dp(12f), Screen.dp(8f));
     ViewSupport.setThemedBackground(row, ColorId.filling, this);
     row.setClickable(true); // (user 2026-10-20) a tap between the buttons closed the whole window
-    // (user 2026-10-20 «смена иконок при переключении не фонтан»): a chip grows or narrows smoothly when its ✓ comes or
-    // goes, and one that shows up or hides slides instead of jumping
-    android.animation.LayoutTransition lt = new android.animation.LayoutTransition();
-    lt.enableTransitionType(android.animation.LayoutTransition.CHANGING);
-    lt.setDuration(180L);
-    row.setLayoutTransition(lt);
     tgx101NoName = tgx101Chip(context, R.string.Tgx101ForwardNoName, v -> {
       needHideAuthor = !needHideAuthor;
       Settings.instance().pmc().putBoolean("tgx101_fwd_no_name", needHideAuthor);
@@ -3589,6 +3597,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
     cp.leftMargin = Screen.dp(8f);
     row.addView(tgx101NoCaptions, cp);
     tgx101Silent = tgx101Round(context, R.drawable.baseline_notifications_off_24, v -> {
+      if (!tgx101CanSilent) return;
       forceSendWithoutSound = !forceSendWithoutSound;
       tgx101UpdateOptionsRow();
     });
@@ -3596,9 +3605,51 @@ public class ShareController extends TelegramViewController<ShareController.Args
     sp.leftMargin = Screen.dp(8f);
     row.addView(tgx101Silent, sp);
     tgx101Later = tgx101Round(context, R.drawable.baseline_date_range_24, v -> {
-      if (selectedChats.size() == 0) return;
-      tdlib.ui().showScheduleOptions(this, selectedChats.size() == 1 ? selectedChats.valueAt(0).getChatId() : 0, false, (sendOptions, disableMarkdown) -> performSend(false, sendOptions, false), getArgumentsStrict().defaultSendOptions, null);
+      if (!tgx101CanLater()) return;
+      // (user's video 2026-10-20): a small menu over the button, as the hold of «Send» — the big options sheet blurred
+      // the whole window and came up over «Send»
+      tgx101LaterMenu.openMenu(v);
     });
+    tgx101LaterMenu = new HapticMenuHelper(v -> {
+      if (!tgx101CanLater()) return null;
+      long chatId = selectedChats.size() == 1 ? selectedChats.valueAt(0).getChatId() : 0;
+      boolean self = chatId != 0 && tdlib.isSelfChat(chatId);
+      List<HapticMenuHelper.MenuItem> items = new ArrayList<>(6);
+      long userId = chatId != 0 && ChatId.isUserChat(chatId) && !self && !tdlib.isBotChat(chatId) ? tdlib.chatUserId(chatId) : 0;
+      if (userId != 0) {
+        items.add(new HapticMenuHelper.MenuItem(R.id.btn_sendOnceOnline, Lang.getString(R.string.SendOnceOnline), R.drawable.baseline_visibility_24).bindToLastSeenAvailability(tdlib, userId));
+      }
+      items.add(new HapticMenuHelper.MenuItem(R.id.btn_sendScheduled30Min, Lang.plural(self ? R.string.RemindInXMinutes : R.string.SendInXMinutes, 30), R.drawable.dotvhs_baseline_time_30m_24));
+      items.add(new HapticMenuHelper.MenuItem(R.id.btn_sendScheduled2Hr, Lang.plural(self ? R.string.RemindInXHours : R.string.SendInXHours, 2), R.drawable.dotvhs_baseline_time_2h_24));
+      items.add(new HapticMenuHelper.MenuItem(R.id.btn_sendScheduled8Hr, Lang.plural(self ? R.string.RemindInXHours : R.string.SendInXHours, 8), R.drawable.dotvhs_baseline_time_8h_24));
+      items.add(new HapticMenuHelper.MenuItem(R.id.btn_sendScheduledCustom, Lang.getString(self ? R.string.RemindAtCustomTime : R.string.SendAtCustomTime), R.drawable.baseline_date_range_24));
+      return items;
+    }, (view, parentView, item) -> {
+      if (!tgx101CanLater()) return false;
+      TdApi.MessageSendOptions defaults = getArgumentsStrict().defaultSendOptions;
+      final int id = view.getId();
+      long seconds = 0;
+      if (id == R.id.btn_sendOnceOnline) {
+        performSend(false, Td.newSendOptions(defaults, new TdApi.MessageSchedulingStateSendWhenOnline()), false);
+      } else if (id == R.id.btn_sendScheduled30Min) {
+        seconds = java.util.concurrent.TimeUnit.MINUTES.toSeconds(30);
+      } else if (id == R.id.btn_sendScheduled2Hr) {
+        seconds = java.util.concurrent.TimeUnit.HOURS.toSeconds(2);
+      } else if (id == R.id.btn_sendScheduled8Hr) {
+        seconds = java.util.concurrent.TimeUnit.HOURS.toSeconds(8);
+      } else if (id == R.id.btn_sendScheduledCustom) {
+        long chatId = selectedChats.size() == 1 ? selectedChats.valueAt(0).getChatId() : 0;
+        boolean self = chatId != 0 && tdlib.isSelfChat(chatId);
+        showDateTimePicker(Lang.getString(self ? R.string.SendReminder : R.string.SendSchedule),
+          self ? R.string.RemindTodayAt : R.string.SendTodayAt, self ? R.string.RemindTomorrowAt : R.string.SendTomorrowAt, self ? R.string.RemindDateAt : R.string.SendDateAt,
+          millis -> performSend(false, Td.newSendOptions(defaults, new TdApi.MessageSchedulingStateSendAtDate((int) java.util.concurrent.TimeUnit.MILLISECONDS.toSeconds(millis), 0)), false), null);
+      }
+      if (seconds > 0) {
+        int sendDate = (int) (tdlib.currentTime(java.util.concurrent.TimeUnit.SECONDS) + seconds);
+        performSend(false, Td.newSendOptions(defaults, new TdApi.MessageSchedulingStateSendAtDate(sendDate, 0)), false);
+      }
+      return true;
+    }, getThemeListeners(), null);
     LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(Screen.dp(32f), Screen.dp(32f));
     rp.leftMargin = Screen.dp(8f);
     row.addView(tgx101Later, rp);
@@ -3613,7 +3664,8 @@ public class ShareController extends TelegramViewController<ShareController.Args
     chip.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13f);
     chip.setGravity(Gravity.CENTER);
     chip.setSingleLine(true);
-    chip.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
+    chip.setPadding(Screen.dp(8f), 0, Screen.dp(8f), 0);
+    chip.setEllipsize(android.text.TextUtils.TruncateAt.END);
     chip.setMinHeight(Screen.dp(32f));
     chip.setOnClickListener(tgx101Tick(click));
     Views.setClickable(chip);
@@ -3702,8 +3754,11 @@ public class ShareController extends TelegramViewController<ShareController.Args
     int accent = Theme.getColor(ColorId.textLink), plain = Theme.textAccentColor(), off = me.vkryl.core.ColorUtils.alphaColor(.08f, plain), on = me.vkryl.core.ColorUtils.alphaColor(.18f, accent);
     tgx101StyleChip(tgx101NoName, canCopy, needHideAuthor, R.string.Tgx101ForwardNoName, accent, plain, on, off);
     tgx101StyleChip(tgx101NoCaptions, canCopy && canDropCaptions, needRemoveCaptions, R.string.Tgx101ForwardNoCaptions, accent, plain, on, off);
+    tgx101CanSilent = canSilent;
     if (tgx101Silent != null) {
-      tgx101Silent.setVisibility(canSilent ? View.VISIBLE : View.GONE);
+      // (user's video 2026-10-20): the bell came and went and squeezed the options, cutting «No captions» — it stays now,
+      // pale while there's nothing to silence
+      tgx101Silent.animate().alpha(canSilent ? 1f : .35f).setDuration(tgx101Silent.isShown() ? 180L : 0L).start();
       Object was = tgx101Silent.getTag();
       boolean silent = forceSendWithoutSound;
       int bg = silent ? on : off, fg = silent ? accent : Theme.iconColor();
@@ -3713,8 +3768,8 @@ public class ShareController extends TelegramViewController<ShareController.Args
         int fromBg = (Boolean) was ? on : off, fromFg = (Boolean) was ? accent : Theme.iconColor();
         tgx101AnimateColors(icon, fromBg, bg, fromFg, fg, () -> icon.setImageResource(silent ? R.drawable.baseline_notifications_off_24 : R.drawable.baseline_notifications_24), icon::setColorFilter);
         icon.setRotation(0f);
-        android.animation.ObjectAnimator ring = android.animation.ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, -22f, 18f, -12f, 7f, -3f, 0f);
-        ring.setDuration(520L);
+        android.animation.ObjectAnimator ring = android.animation.ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, -32f, 28f, -20f, 12f, -5f, 0f);
+        ring.setDuration(560L);
         ring.start();
       } else {
         tgx101Silent.setImageResource(silent ? R.drawable.baseline_notifications_off_24 : R.drawable.baseline_notifications_24);
@@ -3724,6 +3779,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
       tgx101Silent.setTag(silent);
     }
     if (tgx101Later != null) {
+      tgx101Later.animate().alpha(tgx101CanLater() ? 1f : .35f).setDuration(tgx101Later.isShown() ? 180L : 0L).start();
       tgx101Later.setBackground(tgx101Pill(off));
       tgx101Later.setColorFilter(Theme.iconColor());
     }
@@ -3747,7 +3803,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
       chip.setText(b);
       if (animate) {
         android.animation.ValueAnimator grow = android.animation.ValueAnimator.ofFloat(0f, 1f);
-        grow.setDuration(260L);
+        grow.setDuration(220L); // together with the color
         grow.setInterpolator(new android.view.animation.OvershootInterpolator(2.5f));
         grow.addUpdateListener(an -> {
           int s = Math.max(1, Math.round(size * (float) an.getAnimatedValue()));
