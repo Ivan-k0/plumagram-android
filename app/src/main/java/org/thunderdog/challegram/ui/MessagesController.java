@@ -12054,7 +12054,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (tgx101VeilTail.getLayoutParams().height != tail || tgx101VeilTailColor != color) {
         tgx101VeilTailColor = color;
         tgx101VeilTail.setBackground(new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-          new int[] {ColorUtils.alphaColor(.82f, color), ColorUtils.alphaColor(.45f, color), ColorUtils.alphaColor(0f, color)}));
+          new int[] {ColorUtils.alphaColor(.9f, color), ColorUtils.alphaColor(.5f, color), ColorUtils.alphaColor(0f, color)}));
         Views.setLayoutHeight(tgx101VeilTail, tail);
       }
       tgx101VeilTail.setAlpha(tgx101HeaderVeil() > 0f ? value : 0f);

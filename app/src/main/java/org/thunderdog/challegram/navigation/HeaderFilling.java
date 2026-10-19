@@ -411,7 +411,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
         tgx101VeilHeight = (int) fillingBottom;
         tgx101VeilColor = color;
         tgx101VeilShader = new android.graphics.LinearGradient(0, 0, 0, Math.max(1, fillingBottom),
-          new int[] {ColorUtils.alphaColor(.96f, color), ColorUtils.alphaColor(.82f, color)}, null, android.graphics.Shader.TileMode.CLAMP);
+          new int[] {ColorUtils.alphaColor(.97f, color), ColorUtils.alphaColor(.9f, color)} /* light theme: black text under it stays faint (on the phone, 2026-10-19) */, null, android.graphics.Shader.TileMode.CLAMP);
       }
       tgx101VeilPaint.setShader(tgx101VeilShader);
       tgx101VeilPaint.setAlpha((int) (255 * veil));
