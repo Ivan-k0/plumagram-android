@@ -1990,6 +1990,10 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         final TGMessageVideo tgMessageVideo = (TGMessageVideo) message;
         if (tgMessageVideo.inSizeAnimation()) {
           final float factor = tgMessageVideo.getScrollCompensationFactor();
+          if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+            RecyclerView rv = controller.getMessagesView();
+            org.thunderdog.challegram.Tgx101Diag.mark("round size: " + oldHeight + " → " + newHeight + " factor " + factor + " top " + view.getTop() + " room↓ " + (rv.computeVerticalScrollRange() - rv.computeVerticalScrollOffset() - rv.computeVerticalScrollExtent()) + " room↑ " + rv.computeVerticalScrollOffset());
+          }
           if (playingRoundVideoId == 0 && factor != 1f) {
             scrollCompensation(view, Math.round(heightDiff * (1f - factor)));
           }
@@ -1998,6 +2002,9 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       }
     }
 
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && view instanceof MessageViewGroup && ((MessageViewGroup) view).getMessage() instanceof TGMessageVideo) {
+      org.thunderdog.challegram.Tgx101Diag.mark("round size (not animating): " + oldHeight + " → " + newHeight + " top " + view.getTop() + " bottom " + view.getBottom() + " / " + recyclerHeight);
+    }
     final int top = view.getTop();
     final int bottom = view.getBottom();
     if (bottom > recyclerHeight) {
