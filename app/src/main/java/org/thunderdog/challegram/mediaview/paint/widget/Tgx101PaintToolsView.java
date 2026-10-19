@@ -150,12 +150,15 @@ public class Tgx101PaintToolsView extends View {
       int i = SHOWN[k];
       float left = k * cell;
       rect.set(left + Screen.dp(3f), Screen.dp(2f), left + cell - Screen.dp(3f), h - Screen.dp(2f));
-      fill.setColor(i == selected ? 0xff3d8fd8 : 0x33ffffff);
-      c.drawRoundRect(rect, Screen.dp(12f), Screen.dp(12f), fill);
-      float cx = rect.centerX(), cy = rect.top + (rect.height() - Screen.dp(12f)) / 2f;
+      // TGx101 (approved mockup «Редактор фото целиком», 1 — icons only, user 2026-10-19): a round mark under the picked
+      // tool, no words; the name is still the cell's description for TalkBack
+      float cx = rect.centerX(), cy = rect.centerY();
+      if (i == selected) {
+        fill.setColor(0xff3d8fd8);
+        float r = Math.min(rect.width(), rect.height()) / 2f;
+        c.drawCircle(cx, cy, r, fill);
+      }
       drawSample(c, i, cx, cy);
-      text.setColor(i == selected ? 0xffffffff : 0xb3ffffff);
-      c.drawText(labels[i], cx, rect.bottom - Screen.dp(5f), text);
     }
   }
 

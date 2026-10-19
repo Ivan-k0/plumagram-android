@@ -7379,7 +7379,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
           // TGx101 (user 2026-10-13, editor mockup variant Б): the tools row over the colour strip — five brushes, a shape
           // (hold to pick which), an eraser
-          params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(52f), Gravity.BOTTOM);
+          params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(46f), Gravity.BOTTOM); // icons only (mockup 1)
           params.bottomMargin = Screen.dp(12f) + padding * 2 + Screen.dp(4f);
           params.leftMargin = params.rightMargin = Screen.dp(8f);
           tgx101PaintTools = new org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView(context(), new String[] {
