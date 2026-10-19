@@ -119,6 +119,25 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   private View pinnedSection;
   private DragList recentList;
   private ScrollView scroll;
+  private int tgx101Shift;
+  private @Nullable View tgx101VeilTail;
+  private float tgx101LastVeil;
+
+  @Override
+  public float tgx101HeaderVeil () {
+    if (tgx101Shift == 0 || scroll == null || inSelectMode()) return 0f;
+    return me.vkryl.core.MathUtils.clamp(scroll.getScrollY() / (float) Screen.dp(24f));
+  }
+
+  private void tgx101UpdateVeil () {
+    if (tgx101Shift == 0) return;
+    float veil = tgx101HeaderVeil();
+    if (veil == tgx101LastVeil) return;
+    tgx101LastVeil = veil;
+    if (tgx101VeilTail != null) tgx101VeilTail.invalidate();
+    org.thunderdog.challegram.navigation.NavigationController navigation = navigationController();
+    if (navigation != null && navigation.getHeaderView() != null) navigation.getHeaderView().invalidate();
+  }
   private HorizontalScrollView chipsScroll, pinnedScroll;
   private ImageView pullIcon;
   private LinearLayout selectionTop;
@@ -262,6 +281,14 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     madeStart = android.os.SystemClock.uptimeMillis();
     FrameLayout root = new FrameLayout(context);
     root.setBackgroundColor(Theme.backgroundColor());
+    // TGx101 (approved mockup «Шапки списка и Хранилища», 1 at the chat list's header height; test builds): the storage
+    // runs on under the header, which turns into the chat screen's veil; the kinds chips stay where they are, in the page
+    tgx101Shift = org.thunderdog.challegram.BuildConfig.TGX101_TEST ? HeaderView.getSize(true) : 0;
+    if (tgx101Shift > 0) {
+      FrameLayout.LayoutParams rootParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+      rootParams.topMargin = -tgx101Shift;
+      root.setLayoutParams(rootParams);
+    }
     // the note field doesn't take the focus when the screen opens (popups then sat above an expected keyboard)
     root.setFocusableInTouchMode(true);
     root.setDescendantFocusability(ViewGroup.FOCUS_BEFORE_DESCENDANTS);
@@ -280,7 +307,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
 
     column = new LinearLayout(context);
     column.setOrientation(LinearLayout.VERTICAL);
-    column.setPadding(0, Screen.dp(12f), 0, Screen.dp(16f));
+    column.setPadding(0, tgx101Shift + Screen.dp(tgx101Shift > 0 ? 4f : 12f), 0, Screen.dp(16f));
     scroll.addView(column, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
     // search pill
@@ -302,7 +329,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     search.addView(hint, hintParams);
     LinearLayout.LayoutParams searchParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(42f));
     searchParams.leftMargin = searchParams.rightMargin = Screen.dp(16f);
-    column.addView(search, searchParams);
+    if (tgx101Shift == 0) column.addView(search, searchParams); // test builds: the search is the header's 🔍
 
     // kinds
     chipsScroll = new HorizontalScrollView(context);
@@ -539,8 +566,33 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     pullIcon.setBackground(card(accent(), 20f));
     pullIcon.setAlpha(0f);
     FrameLayout.LayoutParams pp = new FrameLayout.LayoutParams(Screen.dp(40f), Screen.dp(40f), Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-    pp.topMargin = Screen.dp(8f);
+    pp.topMargin = tgx101Shift + Screen.dp(8f);
     root.addView(pullIcon, pp);
+    if (tgx101Shift > 0) {
+      tgx101VeilTail = new View(context) {
+        private final android.graphics.Paint paint = new android.graphics.Paint();
+        private android.graphics.Shader fade;
+        private int fadeColor;
+
+        @Override
+        protected void onDraw (android.graphics.Canvas c) {
+          float veil = tgx101HeaderVeil();
+          if (veil <= 0f) return;
+          int color = Theme.headerColor();
+          if (fade == null || fadeColor != color) {
+            fadeColor = color;
+            fade = org.thunderdog.challegram.navigation.Tgx101Veil.fade(color, 0);
+          }
+          paint.setShader(fade);
+          paint.setAlpha((int) (255 * veil));
+          c.drawRect(0, 0, getWidth(), org.thunderdog.challegram.navigation.Tgx101Veil.fadeHeight(), paint);
+        }
+      };
+      tgx101VeilTail.setWillNotDraw(false);
+      FrameLayout.LayoutParams tp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, org.thunderdog.challegram.navigation.Tgx101Veil.fadeHeight(), Gravity.TOP);
+      tp.topMargin = tgx101Shift;
+      root.addView(tgx101VeilTail, 1, tp); // over the page, under the note field and the bars
+    }
 
     long t = android.os.SystemClock.uptimeMillis();
     reload();
@@ -2026,7 +2078,9 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     });
     selectionTop.addView(all);
     selectionTop.setVisibility(View.GONE);
-    root.addView(selectionTop, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(56f), Gravity.TOP));
+    FrameLayout.LayoutParams selectionTopParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(56f), Gravity.TOP);
+    selectionTopParams.topMargin = tgx101Shift; // under the header, as before
+    root.addView(selectionTop, selectionTopParams);
 
     selectionPanel = new Tgx101SelectionPanel(context, this, new Tgx101SelectionPanel.Host() {
       @Override
@@ -2088,6 +2142,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     @Override
     protected void onScrollChanged (int l, int t, int oldl, int oldt) {
       super.onScrollChanged(l, t, oldl, oldt);
+      tgx101UpdateVeil();
       if (Math.abs(t - oldt) > 2) Tgx101SwipeRow.closeOpen(); // scrolling closes an open row
     }
 
