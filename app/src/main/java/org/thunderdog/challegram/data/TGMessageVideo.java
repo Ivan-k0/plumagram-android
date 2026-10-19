@@ -494,7 +494,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   }
 
   private boolean tgx101OnTextTouch (MessageView view, MotionEvent e) {
-    float x = e.getX(), y = e.getY(), slop = Screen.dp(6f);
+    float x = e.getX(), y = e.getY(), slop = Screen.dp(12f);
     switch (e.getAction()) {
       case MotionEvent.ACTION_DOWN:
         tgx101ACaught = x >= tgx101ARect.left - slop && x <= tgx101ARect.right + slop && y >= tgx101ARect.top - slop && y <= tgx101ARect.bottom + slop;
@@ -799,7 +799,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     }
     // TGx101: "A" button
     if (transcribeButtonX != 0) {
-      float touch = Screen.dp(TRANSCRIBE_BUTTON_RADIUS + 8f);
+      float touch = Screen.dp(TRANSCRIBE_BUTTON_RADIUS + 16f); // a bigger hit area (user 2026-10-19 «буква А должна иметь чуть большую область нажатия»)
       switch (e.getAction()) {
         case MotionEvent.ACTION_DOWN:
           transcribeCaught = Math.abs(e.getX() - transcribeButtonX) <= touch && Math.abs(e.getY() - transcribeButtonY) <= touch;
