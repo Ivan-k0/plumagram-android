@@ -12109,6 +12109,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private float tgx101TailVeil;
   private static final float TGX101_VEIL_FADE = 14f;
 
+  /** room a jump leaves under the header's rows so a message's top isn't under their fade */
+  public int tgx101VeilFadeGap () {
+    return tgx101Veil ? Screen.dp(TGX101_VEIL_FADE) : 0;
+  }
+
   /** the header's rows (call, pinned) continue the header: no shadow between them */
   @Override
   public boolean tgx101HeaderShadowHidden () {

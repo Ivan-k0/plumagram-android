@@ -3648,7 +3648,8 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
           return;
         }
       }
-      scrollToPositionWithOffset(index, height - fullHeight, smooth, isPlayingRoundMessage);
+      // TGx101: under the header's veil rows the top stops clear of their short fade (user 2026-10-19, pinned «→»)
+      scrollToPositionWithOffset(index, height - fullHeight - controller.tgx101VeilFadeGap(), smooth, isPlayingRoundMessage);
       wasScrollByUser = false;
     } else {
       // the list is reversed: the offset is from the bottom of the list to the bottom of the item
