@@ -3918,7 +3918,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     if (inPreviewSearchMode()) {
       setInputVisible(false, false);
-      if (arePinnedMessages()) {
+      if (arePinnedMessages() && !org.thunderdog.challegram.BuildConfig.TGX101_TEST) { // test builds: in ⋮
         showBottomButton(BOTTOM_ACTION_UNPIN_ALL, 0, isUpdate);
       }
       return;
@@ -4263,6 +4263,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
   protected int getMenuId () {
     if (areScheduled)
       return 0;
+    if (org.thunderdog.challegram.BuildConfig.TGX101_TEST && arePinnedMessages()) {
+      return R.id.menu_more; // TGx101 (user 2026-10-19): «Unpin all» lives in the pinned list's ⋮, not in a bar at the bottom
+    }
     switch (previewMode) {
       case PREVIEW_MODE_EVENT_LOG:
         return R.id.menu_search;
@@ -4449,6 +4452,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public void onMenuItemPressed (int id, View view) {
     if (id == R.id.menu_btn_savedMessagesTags) {
       showSavedMessagesTags();
+      return;
+    }
+    if (id == R.id.menu_btn_more && org.thunderdog.challegram.BuildConfig.TGX101_TEST && arePinnedMessages()) {
+      showTgx101Dropdown(R.id.menu_btn_more, new int[] {R.id.btn_unpinAll},
+        new String[] {Lang.getString(canPinAnyMessage(false) ? R.string.UnpinAll : R.string.DismissAllPinned)},
+        new int[] {R.drawable.deproko_baseline_pin_undo_24}, viewId -> dismissPinnedMessage()); // asks before unpinning
       return;
     }
     if (id == R.id.menu_btn_more) {
@@ -4818,6 +4827,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tgx101PendingHighlight != null) {
       MessageId id = tgx101PendingHighlight;
       tgx101PendingHighlight = null;
+      // the pinned list's «→» flashes the message, as a reply jump does (user 2026-10-19 «без подсвечивания» — before,
+      // per 2026-10-07, only reply jumps flashed)
+      org.thunderdog.challegram.component.chat.MessagesManager.tgx101AllowFlashOnce(id.getMessageId());
       highlightMessage(id);
     }
     tgx101UpdateMicExclusion();
