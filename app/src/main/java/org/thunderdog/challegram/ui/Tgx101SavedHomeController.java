@@ -708,6 +708,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       org.thunderdog.challegram.Tgx101Diag.mark("storage home: on screen " + (android.os.SystemClock.uptimeMillis() - openedAt) + " ms after it was made");
       openedAt = 0;
     }
+    if (tgx101Shift > 0 && getValue() != null) getValue().requestLayout(); // laid out again where it stands (under the header)
     if (pendingAfterOpen != null) {
       Runnable r = pendingAfterOpen;
       pendingAfterOpen = null;

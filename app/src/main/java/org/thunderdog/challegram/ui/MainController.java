@@ -1493,7 +1493,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     long t = android.os.SystemClock.uptimeMillis();
     Tgx101SavedHomeController c = new Tgx101SavedHomeController(context(), tdlib);
     View v = c.getValue();
-    if (root != null && root.getWidth() > 0) {
+    if (root != null && root.getWidth() > 0 && !BuildConfig.TGX101_TEST) { // test builds: the storage under the header's veil came empty when laid out here ahead (2026-10-19)
       v.measure(View.MeasureSpec.makeMeasureSpec(root.getWidth(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(root.getHeight(), View.MeasureSpec.EXACTLY));
       v.layout(0, 0, root.getWidth(), root.getHeight());
     }
