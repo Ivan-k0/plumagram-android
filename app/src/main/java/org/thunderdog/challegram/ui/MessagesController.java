@@ -2277,6 +2277,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   protected void onEnterSelectMode () {
+    UI.post(this::tgx101UpdateVeil); // TGx101: the veil and its fade go while selecting / searching, come back after
     if (pagerContentView != null) {
       pagerContentView.setPagingEnabled(false);
     }
@@ -2285,6 +2286,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   public void onLeaveSelectMode () {
+    UI.post(this::tgx101UpdateVeil); // TGx101: the veil and its fade go while selecting / searching, come back after
     if (pagerContentView != null) {
       pagerContentView.setPagingEnabled(true);
     }
@@ -12057,7 +12059,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           new int[] {ColorUtils.alphaColor(.9f, color), ColorUtils.alphaColor(.5f, color), ColorUtils.alphaColor(0f, color)}));
         Views.setLayoutHeight(tgx101VeilTail, tail);
       }
-      tgx101VeilTail.setAlpha(tgx101HeaderVeil() > 0f ? value : 0f);
+      tgx101VeilTail.setAlpha(tgx101Veil && !inSearchMode() && !inSelectMode() ? value : 0f);
     }
     if (tgx101VeilValue != value) {
       tgx101VeilValue = value;
@@ -14803,6 +14805,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   protected void onEnterSearchMode () {
+    UI.post(this::tgx101UpdateVeil); // TGx101: the veil and its fade go while selecting / searching, come back after
     super.onEnterSearchMode();
     tgx101CheckTranslateBar(true); // the translation button hides while searching
     checkAttachedFiles(true);
@@ -14834,6 +14837,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   protected void onAfterLeaveSearchMode () {
+    UI.post(this::tgx101UpdateVeil); // TGx101: the veil and its fade go while selecting / searching, come back after
     super.onAfterLeaveSearchMode();
     checkAttachedFiles(true);
     resetSearchControls(true);
