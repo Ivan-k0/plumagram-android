@@ -75,6 +75,8 @@ public final class Tgx101GroupInvite {
 
   /** every new message (Tdlib): an invitation that should ring */
   public static void onNewMessage (Tdlib tdlib, TdApi.Message message) {
+    // Android 4 builds have no group calls at all (no tgcalls): no ringing for a call that can't be joined there
+    if (!Tgx101GroupVideo.isSupported()) return;
     if (message == null || message.isOutgoing || !isRinging(message.content)) return;
     if (System.currentTimeMillis() / 1000L - message.date > 60) return; // an old one that came with the history
     if (Tgx101GroupCall.isFollowUpInvite(tdlib, message)) {
@@ -168,10 +170,14 @@ public final class Tgx101GroupInvite {
     if (mode == AudioManager.RINGER_MODE_NORMAL) {
       try {
         MediaPlayer p = new MediaPlayer();
-        p.setAudioAttributes(new AudioAttributes.Builder()
-          .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
-          .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-          .build());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+          p.setAudioAttributes(new AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build());
+        } else {
+          p.setAudioStreamType(AudioManager.STREAM_RING);
+        }
         p.setLooping(true);
         p.setDataSource(context, Uri.parse(tdlib.notifications().getCallRingtone(message.chatId)));
         p.setOnPreparedListener(MediaPlayer::start);
