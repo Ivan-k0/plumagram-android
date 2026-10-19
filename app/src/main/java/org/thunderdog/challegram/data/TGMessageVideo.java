@@ -345,8 +345,9 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
         }
       }
 
+      if (!unmuted) tgx101SmallPlay = false; // the playback ended: the next one is the usual one again
       this.isFullSizeAnimator.setDuration(fullSizeAnimatorDuration);
-      this.isFullSizeAnimator.setValue(unmuted, UI.inUiThread() && hasValidAttachedView());
+      this.isFullSizeAnimator.setValue(unmuted && !tgx101SmallPlay, UI.inUiThread() && hasValidAttachedView());
       final float toFactor = unmuted ? 1f : 0f;
       boolean animated = currentViews.hasAnyTargetToInvalidate();
       if (animated) {
@@ -533,6 +534,11 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   // text opens in a window (the round video player covers the whole content area, so no text under it)
 
   private static final float TRANSCRIBE_BUTTON_RADIUS = 13f;
+
+  // TGx101 (user 2026-10-19 «как включить звук, но так чтобы не раскрывался кружок»): a tap on the 🔇 mark plays the
+  // circle with sound where it is, small; a tap anywhere else plays it the usual way, enlarged
+  private boolean tgx101SmallPlay, tgx101MuteCaught;
+  private float tgx101MuteX, tgx101MuteY;
   private float transcribeButtonX, transcribeButtonY;
   private boolean transcribeCaught;
 
@@ -770,6 +776,8 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     if (alpha > 0f && !drawSpoiler) {
       int radius = Screen.dp(12f);
       int centerY = receiver.getBottom() - radius - Screen.dp(10f);
+      tgx101MuteX = centerX;
+      tgx101MuteY = centerY;
 
       final float scale = .6f + (1f - unmuteFactor) * .4f;
       final boolean needScale = scale != 1f;
@@ -796,6 +804,35 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   public boolean onTouchEvent (MessageView view, MotionEvent e) {
     if (tgx101TextMode()) {
       return tgx101OnTextTouch(view, e) || super.onTouchEvent(view, e);
+    }
+    // TGx101: the 🔇 mark — sound on, the circle stays small
+    if (!isUnmuted && tgx101MuteY != 0 && !TD.isSelfDestructTypeImmediately(getMessage())) {
+      float area = Screen.dp(30f); // generous: the mark itself is small (user «тоже легко промахнуться»)
+      switch (e.getAction()) {
+        case MotionEvent.ACTION_DOWN:
+          tgx101MuteCaught = Math.abs(e.getX() - tgx101MuteX) <= area && Math.abs(e.getY() - tgx101MuteY) <= area;
+          if (tgx101MuteCaught) return true;
+          break;
+        case MotionEvent.ACTION_MOVE:
+          if (tgx101MuteCaught) return true;
+          break;
+        case MotionEvent.ACTION_UP:
+          if (tgx101MuteCaught) {
+            tgx101MuteCaught = false;
+            performClickSoundFeedback();
+            tgx101SmallPlay = true;
+            org.thunderdog.challegram.Tgx101Diag.mark("round video: sound on in place (small)");
+            onClick(fileProgress, view, videoNote.video, msg.id);
+            return true;
+          }
+          break;
+        case MotionEvent.ACTION_CANCEL:
+          if (tgx101MuteCaught) {
+            tgx101MuteCaught = false;
+            return true;
+          }
+          break;
+      }
     }
     // TGx101: "A" button
     if (transcribeButtonX != 0) {
