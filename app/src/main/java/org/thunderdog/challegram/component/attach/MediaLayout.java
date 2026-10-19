@@ -149,6 +149,7 @@ public class MediaLayout extends FrameLayoutFix implements
       if (bottomBar != null) {
         bottomBar.setBottomInset(extraBottomInsetWithoutIme);
       }
+      tgx101PlaceCaptionField();
       for (MediaBottomBaseController<?> controller : controllers) {
         if (controller != null) {
           controller.setBottomInset(extraBottomInset, extraBottomInsetWithoutIme);
@@ -302,6 +303,7 @@ public class MediaLayout extends FrameLayoutFix implements
     if (mode == MODE_DEFAULT) {
       addView(bottomBar);
       addView(shadowView);
+      if (target != null) tgx101AddCaptionField();
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && false) { // FIXME
@@ -838,6 +840,86 @@ public class MediaLayout extends FrameLayoutFix implements
     return (int) ((float) getBottomBarHeight() * Math.max(bottomBarFactor, counterFactor));
   }
 
+  // TGx101 (user 2026-10-17 12:21, reminded 2026-10-19 «когда делишься медиа, внизу должно быть поле ввода, чтобы сразу
+  // подписать»): with photos / videos picked, a caption field stands over the bar, as in the official app. Its text goes
+  // to the first item (an album's caption); «Send» on the keyboard sends, the same as the bar's button
+  private android.widget.EditText tgx101CaptionField;
+  private float tgx101CaptionFactor;
+
+  private void tgx101AddCaptionField () {
+    android.widget.EditText e = new android.widget.EditText(getContext());
+    android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+    bg.setColor(Theme.fillingColor());
+    bg.setCornerRadius(Screen.dp(21f));
+    bg.setStroke(Math.max(1, Screen.dp(.5f)), Theme.separatorColor());
+    e.setBackground(bg);
+    e.setPadding(Screen.dp(16f), Screen.dp(4f), Screen.dp(16f), Screen.dp(4f));
+    e.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16f);
+    e.setTextColor(Theme.textAccentColor());
+    e.setHintTextColor(Theme.textDecentColor());
+    e.setHint(Lang.getString(R.string.AddCaption));
+    e.setMaxLines(4);
+    e.setMinHeight(Screen.dp(42f));
+    e.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+    e.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEND | android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+    e.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+    e.setHorizontallyScrolling(false);
+    e.setOnEditorActionListener((v, actionId, event) -> {
+      if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEND && sendButton != null && counterFactor > 0f) {
+        onClick(sendButton);
+        return true;
+      }
+      return false;
+    });
+    if (Build.VERSION.SDK_INT >= 29) {
+      android.graphics.drawable.GradientDrawable cursor = new android.graphics.drawable.GradientDrawable();
+      cursor.setColor(Theme.getColor(ColorId.iconActive));
+      cursor.setSize(Screen.dp(2f), Screen.dp(20f));
+      e.setTextCursorDrawable(cursor);
+    }
+    FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+    params.leftMargin = params.rightMargin = Screen.dp(8f);
+    e.setLayoutParams(params);
+    e.setVisibility(View.GONE);
+    tgx101CaptionField = e;
+    addView(e);
+    tgx101PlaceCaptionField();
+  }
+
+  private void tgx101SetCaptionFactor (float factor) {
+    if (tgx101CaptionField == null || tgx101CaptionFactor == factor) return;
+    tgx101CaptionFactor = factor;
+    tgx101CaptionField.setAlpha(factor);
+    tgx101CaptionField.setVisibility(factor > 0f ? View.VISIBLE : View.GONE);
+    if (factor == 0f && tgx101CaptionField.hasFocus()) {
+      tgx101CaptionField.clearFocus();
+      org.thunderdog.challegram.tool.Keyboard.hide(tgx101CaptionField);
+    }
+    tgx101PlaceCaptionField();
+  }
+
+  private void tgx101PlaceCaptionField () {
+    if (tgx101CaptionField == null) return;
+    int ime = Math.max(0, extraBottomInset - extraBottomInsetWithoutIme);
+    // over the bar (it rides with the sheet), or just over the keyboard while typing — the bar is under it then
+    int overBar = getBottomBarHeight() + Screen.dp(8f) - (bottomBar != null ? (int) bottomBar.getTranslationY() : 0);
+    int bottom = ime > 0 ? ime + Screen.dp(8f) : overBar;
+    Views.setBottomMargin(tgx101CaptionField, bottom);
+  }
+
+  private void tgx101ApplyCaption (List<ImageFile> images) {
+    if (tgx101CaptionField == null) return;
+    String text = tgx101CaptionField.getText().toString().trim();
+    if (text.isEmpty() || images.isEmpty() || !(images.get(0) instanceof ImageGalleryFile)) return;
+    ImageGalleryFile first = (ImageGalleryFile) images.get(0);
+    TdApi.FormattedText had = first.getCaption(false, false);
+    if (had == null || had.text == null || had.text.trim().isEmpty()) {
+      first.setCaption(new TdApi.FormattedText(text, new TdApi.TextEntity[0]));
+    }
+    tgx101CaptionField.setText("");
+    org.thunderdog.challegram.tool.Keyboard.hide(tgx101CaptionField);
+  }
+
   private void updateBarPosition () {
     int height = getBottomBarHeight();
     float factor = Math.max(bottomBarFactor, counterFactor);
@@ -849,6 +931,7 @@ public class MediaLayout extends FrameLayoutFix implements
         }
         bottomBar.setTranslationY(y);
         onCurrentColorChanged();
+        tgx101PlaceCaptionField();
       }
       if (currentController != null && mode == MODE_AVATAR_PICKER) {
         currentController.onUpdateBottomBarFactor(bottomBarFactor, counterFactor, y);
@@ -1282,6 +1365,7 @@ public class MediaLayout extends FrameLayoutFix implements
         first = false;
       }
     } else {
+      tgx101ApplyCaption(images);
       ArrayList<ImageGalleryFile> galleryFiles = new ArrayList<>(images.size());
 
       boolean first = true;
@@ -1788,6 +1872,7 @@ public class MediaLayout extends FrameLayoutFix implements
     if (bottomBar != null) {
       bottomBar.setOverlayFactor(factor);
     }
+    tgx101SetCaptionFactor(factor);
     if (counterView != null) {
       counterView.setAlpha(factor);
       sendButton.setAlpha(factor);

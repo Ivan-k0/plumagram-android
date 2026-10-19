@@ -875,7 +875,9 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       case Mode.GROUP:
         return canChangeInfo();
       case Mode.USER:
-        return TD.canEditBot(user);
+        // TGx101 (user 2026-10-19 «"О себе" нужно дать возможность редактировать»): one's own profile (the «Profile»
+        // tab) edits the bio right here, as Settings does
+        return TD.canEditBot(user) || (user != null && tdlib.isSelfUserId(user.id));
     }
     return false;
   }
@@ -892,7 +894,8 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     } else {
       currentBio = getDescriptionValue();
     }
-    c.setArguments(new EditBioController.Arguments(currentBio, chat.id)
+    boolean selfBio = mode == Mode.USER && user != null && tdlib.isSelfUserId(user.id);
+    c.setArguments(new EditBioController.Arguments(currentBio, selfBio ? 0 : chat.id) // 0: the account's own bio
       .setBioChangeListener(this)
       .setChangeFullDescription(needFull));
     navigateTo(c);
