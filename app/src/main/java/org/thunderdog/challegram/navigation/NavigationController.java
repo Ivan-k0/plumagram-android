@@ -1270,7 +1270,9 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
           }
           updateHackyViews();
         } else {
-          finishTransaction(FINISH_NAVIGATION); // the pushed screen leaves the stack, as after a back swipe
+          // the pushed screen leaves the stack; the header keeps its own title — the new screen's was only its preview
+          // (user 2026-10-19: a pull to the storage not taken all the way left the chats' header with no text)
+          finishTransaction(FINISH_TGX101_FORWARD_CANCEL);
         }
       }
     });
@@ -1434,6 +1436,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   private static final int FINISH_NAVIGATION = 1;
   private static final int FINISH_PREVIEW = 2;
   private static final int FINISH_PREVIEW_FORCE = 3;
+  private static final int FINISH_TGX101_FORWARD_CANCEL = 4;
 
   private void finishTransaction (int mode) {
     rootView.post(() -> {
@@ -1475,6 +1478,11 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       case FINISH_PREVIEW_FORCE: {
         clearPreview();
         processor.removePrevious(current);
+        break;
+      }
+      case FINISH_TGX101_FORWARD_CANCEL: {
+        processor.setPrevAsCurrent();
+        headerView.clearPreview(); // after the pop: it reads the back button and the colour off the screen that stays
         break;
       }
     }
