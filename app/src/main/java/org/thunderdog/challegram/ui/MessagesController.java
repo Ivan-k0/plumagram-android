@@ -1969,15 +1969,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
             int rows = tgx101TailRows;
             float veil = tgx101TailVeil;
             if (rows > 0) {
-              c.drawRect(0, 0, getWidth(), rows, Paints.fillingPaint(ColorUtils.alphaColor(1f - .05f * veil, color)));
+              c.drawRect(0, 0, getWidth(), rows, Paints.fillingPaint(ColorUtils.alphaColor(1f - (1f - org.thunderdog.challegram.navigation.Tgx101Veil.EDGE_ALPHA) * veil, color)));
             }
             if (veil > 0f) {
               int fadeHeight = Screen.dp(TGX101_VEIL_FADE);
               if (fade == null || fadeColor != color || fadeTop != rows) {
                 fadeColor = color;
                 fadeTop = rows;
-                fade = new android.graphics.LinearGradient(0, rows, 0, rows + fadeHeight,
-                  new int[] {ColorUtils.alphaColor(.95f, color), ColorUtils.alphaColor(.45f, color), ColorUtils.alphaColor(0f, color)}, null, android.graphics.Shader.TileMode.CLAMP);
+                fade = org.thunderdog.challegram.navigation.Tgx101Veil.fade(color, rows); // longer, eased (user 2026-10-19 «ещё плавнее»)
               }
               fadePaint.setShader(fade);
               fadePaint.setAlpha((int) (255 * veil));
@@ -12125,11 +12124,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private @Nullable View tgx101VeilTail;
   private int tgx101TailRows;
   private float tgx101TailVeil;
-  private static final float TGX101_VEIL_FADE = 14f;
+  private static final float TGX101_VEIL_FADE = org.thunderdog.challegram.navigation.Tgx101Veil.FADE_DP;
 
   /** room a jump leaves under the header's rows so a message's top isn't under their fade */
   public int tgx101VeilFadeGap () {
-    return tgx101Veil ? Screen.dp(TGX101_VEIL_FADE) : 0;
+    return tgx101Veil ? Screen.dp(14f) : 0; // under the dense part of the fade
   }
 
   /** the header's rows (call, pinned) continue the header: no shadow between them */
