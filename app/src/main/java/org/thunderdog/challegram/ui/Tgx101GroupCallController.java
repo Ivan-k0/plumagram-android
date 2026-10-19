@@ -314,9 +314,16 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
         h[0].dismiss();
         call.toggleSpeaker();
       }));
-      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_keyboard_arrow_down_24, 0, Lang.getString(R.string.Tgx101VoiceChatBackground), Lang.getString(R.string.Tgx101VoiceChatBackgroundHint), false, v -> {
+      boolean canFloat = Tgx101CallBubble.canDrawOverlays(context);
+      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_keyboard_arrow_down_24, 0, Lang.getString(R.string.Tgx101VoiceChatBackground), canFloat ? Lang.getString(R.string.Tgx101VoiceChatBackgroundHint) : Lang.getString(R.string.Tgx101CallBubble), false, v -> {
         h[0].dismiss();
-        navigateBack(); // the bar under the header keeps the call (step 2)
+        // mockup 8: outside the app the call floats as a button over other apps — allowed once in the system settings
+        org.thunderdog.challegram.unsorted.Settings.instance().setTgx101CallBubble(true);
+        if (!canFloat) {
+          Tgx101CallBubble.requestPermission(context);
+        } else {
+          navigateBack(); // the bar under the header keeps the call (step 2)
+        }
       }));
       int unread = call.unreadMessages();
       body.addView(Tgx101Sheet.row(context, R.drawable.baseline_chat_bubble_24, 0, Lang.getString(R.string.Tgx101VoiceChatMessages), unread > 0 ? Lang.getString(R.string.Tgx101VoiceChatNewMessages, unread) : null, false, v -> {

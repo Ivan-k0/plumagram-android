@@ -1330,12 +1330,14 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   protected void onStart () {
     super.onStart();
     tgx101Visible = true;
+    org.thunderdog.challegram.ui.Tgx101CallBubble.onAppShown(); // TGx101: the floating call button goes when the app is back
   }
 
   @Override
   protected void onStop () {
     super.onStop();
     tgx101Visible = false;
+    org.thunderdog.challegram.ui.Tgx101CallBubble.onAppHidden(this); // TGx101: a call goes on — the floating button over other apps
   }
 
   /** The window is on screen (started), even if paused for a moment by a notification tap */

@@ -4047,6 +4047,17 @@ public class Settings {
   }
 
   // TGx101: the incoming call ringtone starts at 20 % and rises to 100 % over 20 seconds
+  private static final String KEY_TGX101_CALL_BUBBLE = "tgx101_call_bubble";
+
+  /** TGx101: the floating call button over other apps (needs «Display over other apps»), on by default */
+  public boolean tgx101CallBubble () {
+    return pmc.getBoolean(KEY_TGX101_CALL_BUBBLE, true);
+  }
+
+  public void setTgx101CallBubble (boolean enabled) {
+    pmc.putBoolean(KEY_TGX101_CALL_BUBBLE, enabled);
+  }
+
   private static final String KEY_TGX101_RING_RAMP = "tgx101_ring_ramp";
 
   public boolean isRingRampEnabled () {

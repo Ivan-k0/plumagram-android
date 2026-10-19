@@ -6165,6 +6165,8 @@
   <string name="Tgx101GroupInviteVideoText">invites you to a group video call</string>
   <string name="Tgx101GroupInviteOthers">Already in the call: %1$s</string>
   <string name="Tgx101GroupInviteChannel">Group call invitations</string>
+  <string name="Tgx101CallBubble">Call button over other apps</string>
+  <string name="Tgx101CallBubbleMenu">Background mode</string>
   <string name="Tgx101CallAnswer">Answer</string>
   <string name="Tgx101IncomingCall">Incoming call</string>
   <string name="Tgx101NewCallScreen">New call screen</string>

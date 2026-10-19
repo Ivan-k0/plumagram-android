@@ -1486,6 +1486,25 @@ public class TGCallService extends Service implements
   private static final String TGX101_VOLUME_CHANGED = "android.media.VOLUME_CHANGED_ACTION";
 
   /** TGx101: an incoming call is ringing (not answered yet) and our ringtone / vibration is on */
+  // TGx101: the floating call button (Tgx101CallBubble) — the active call, its person and the microphone
+  public @Nullable TdApi.Call tgx101ActiveCall () {
+    return call != null && call.state.getConstructor() == TdApi.CallStateReady.CONSTRUCTOR ? call : null;
+  }
+
+  public @Nullable Tdlib tgx101Tdlib () {
+    return tdlib;
+  }
+
+  public boolean tgx101IsMicMuted () {
+    CallSettings settings = getCallSettings();
+    return settings != null && settings.isMicMuted();
+  }
+
+  public void tgx101ToggleMic () {
+    CallSettings settings = getCallSettings();
+    if (settings != null) settings.setMicMuted(!settings.isMicMuted());
+  }
+
   public boolean tgx101IsRingingIncoming () {
     return call != null && !call.isOutgoing && call.state.getConstructor() == TdApi.CallStatePending.CONSTRUCTOR && (ringtonePlayer != null || vibrator != null);
   }

@@ -306,6 +306,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().getCallPattern() != Settings.CALL_PATTERN_NONE, isUpdate);
         } else if (itemId == R.id.btn_tgx101RingRamp) {
           view.getToggler().setRadioEnabled(Settings.instance().isRingRampEnabled(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101CallBubble) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101CallBubble() && Tgx101CallBubble.canDrawOverlays(context()), isUpdate);
         } else if (itemId == R.id.btn_tgx101CameraInAttach) {
           view.getToggler().setRadioEnabled(Settings.instance().isCameraInAttach(), isUpdate);
         } else if (itemId == R.id.btn_tgx101StoriesFolders) {
@@ -648,6 +650,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101CallPhoto, 0, R.string.Tgx101CallPhoto),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CallPattern, 0, R.string.Tgx101CallPattern),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CallBubble, 0, R.string.Tgx101CallBubble),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101RingRamp, 0, R.string.Tgx101RingRamp),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1048,7 +1052,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101AppIcon || id == R.id.btn_tgx101NotificationPlane) return 9; // user 2026-10-14: the plane icon goes with the app icon
     if (id == R.id.btn_tgx101UiText || id == R.id.btn_tgx101UiBold || id == R.id.btn_tgx101ChatListTextSize || id == R.id.btn_tgx101Font || id == R.id.btn_tgx101InputFontScale || id == R.id.btn_tgx101TextWeight || id == R.id.btn_chatFontSize || id == R.id.btn_bigEmojiSize) return 6;
     if (id == R.id.btn_tgx101CallBar || id == R.id.btn_tgx101NewCallScreen || id == R.id.btn_tgx101CallPhoto || id == R.id.btn_tgx101CallPattern
-      || id == R.id.btn_tgx101RingRamp || id == R.id.btn_tgx101RingRampTime || id == R.id.btn_tgx101RingStart) return 7;
+      || id == R.id.btn_tgx101RingRamp || id == R.id.btn_tgx101RingRampTime || id == R.id.btn_tgx101RingStart || id == R.id.btn_tgx101CallBubble) return 7;
     if (id == R.id.btn_tgx101TranslateOnDevice || id == R.id.btn_tgx101TranslateModels || id == R.id.btn_tgx101SpeechModel || id == R.id.btn_tgx101SpeechEngine || id == R.id.btn_tgx101SuggestChatTranslation || id == R.id.btn_tgx101FakeNoPremium) return 8;
     return 10;
   }
@@ -1315,6 +1319,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setCallPattern(toggleResult ? Settings.CALL_PATTERN_PAPER_PLANES : Settings.CALL_PATTERN_NONE); // the view was already toggled above
     } else if (id == R.id.btn_tgx101RingRamp) {
       Settings.instance().setRingRampEnabled(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101CallBubble) {
+      Settings.instance().setTgx101CallBubble(toggleResult);
+      if (toggleResult && !Tgx101CallBubble.canDrawOverlays(context())) Tgx101CallBubble.requestPermission(context()); // «Display over other apps»
     } else if (id == R.id.btn_tgx101CapsuleMenu) {
       tgx101ChooseHoldMenu(id, MainController.TGX101_CAPSULE_MENU_TITLES, Settings.instance().tgx101CapsuleMenu(), mask -> Settings.instance().setTgx101CapsuleMenu(mask));
     } else if (id == R.id.btn_tgx101ContactsMenu) {
