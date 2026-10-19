@@ -37,6 +37,7 @@ import android.view.animation.Interpolator;
 import android.view.inputmethod.EditorInfo;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
@@ -1178,6 +1179,19 @@ public class ShareController extends TelegramViewController<ShareController.Args
       if (selectedChats.size() == 0)
         return null;
       List<HapticMenuHelper.MenuItem> items = null;
+      if (mode == MODE_MESSAGES) {
+        // (mockup «Пересылка: капсулы») without name / captions, silent and later are the row over the field: the hold
+        // keeps only the rare two
+        if (selectedChats.size() != 1) return null;
+        items = new ArrayList<>(2);
+        long chatId = selectedChats.valueAt(0).getChatId();
+        long userId = ChatId.isUserChat(chatId) && !tdlib.isSelfChat(chatId) ? tdlib.chatUserId(chatId) : 0;
+        if (userId != 0 && !tdlib.isBotChat(chatId)) {
+          items.add(new HapticMenuHelper.MenuItem(R.id.btn_sendOnceOnline, Lang.getString(R.string.SendOnceOnline), R.drawable.baseline_visibility_24).bindToLastSeenAvailability(tdlib, userId));
+        }
+        items.add(new HapticMenuHelper.MenuItem(R.id.btn_sendAndOpen, Lang.getString(R.string.SendAndOpen), R.drawable.baseline_forward_24));
+        return items;
+      }
       if (selectedChats.size() == 1) {
         items = tdlib.ui().fillDefaultHapticMenu(selectedChats.valueAt(0).getChatId(), false, false, !forceSendWithoutSound, true);
         if (items == null)
@@ -1337,6 +1351,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
     inputView.setSelectionChangeListener(this);
     inputView.setSpanChangeListener(this::onInputSpansChanged);
     bottomWrap.addView(inputView);
+    tgx101AddOptionsRow(context);
 
     if (OPEN_KEYBOARD_WITH_AUTOSCROLL) {
       params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(48f));
@@ -1468,6 +1483,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
       tdlib.getMessageProperties(list, properties -> {
         runOnUiThreadOptional(() -> {
           messageProperties = properties;
+          tgx101UpdateOptionsRow();
           if (after != null) {
             after.runWithData(properties);
           }
@@ -1896,6 +1912,9 @@ public class ShareController extends TelegramViewController<ShareController.Args
   private boolean hasSelectedAnything;
 
   private boolean processSingleTap (TGFoundChat chat) {
+    // TGx101 (approved mockup «Пересылка: капсулы», user 2026-10-20): Saved is picked as any chat when forwarding —
+    // it sent at once with no chance to drop the sender's name
+    if (mode == MODE_MESSAGES) return false;
     if (!hasSelectedAnything && chat.isSelfChat() && selectedChats.size() == 0) {
       selectedChats.put(chat.getAnyId(), chat);
       selectedChatIds.append(chat.getAnyId());
@@ -3131,7 +3150,9 @@ public class ShareController extends TelegramViewController<ShareController.Args
         } else {
           hint = Lang.getString(R.string.HoldToSchedule);
         }
-        if (mode == MODE_MESSAGES && Settings.instance().needTutorial(Settings.TUTORIAL_FORWARD_COPY)) {
+        if (mode == MODE_MESSAGES) {
+          hint = null; // (mockup «Пересылка: капсулы») the options are in sight now
+        } else if (mode == MODE_MESSAGES && Settings.instance().needTutorial(Settings.TUTORIAL_FORWARD_COPY)) {
           hint = Lang.getString(R.string.HoldToSendAsCopy);
           tutorialFlag = Settings.TUTORIAL_FORWARD_COPY;
         }
@@ -3180,6 +3201,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
   }
 
   private void checkAbilityToSend () {
+    tgx101UpdateOptionsRow();
     final int selectedCount = selectedChats.size();
     final boolean isReady = selectedCount > 0;
 
@@ -3492,6 +3514,131 @@ public class ShareController extends TelegramViewController<ShareController.Args
       }
     }
     return EXPORT_NONE;
+  }
+
+  // TGx101 (approved mockup «Пересылка: капсулы», user 2026-10-20): what hid behind the hold of «Send» → «More…» stands
+  // over the field when forwarding — «No name» and «No captions» on the left, 🔕 and 🕓 on the right; the choice of
+  // name / captions is remembered for the next time
+  private @Nullable LinearLayout tgx101OptionsRow;
+  private @Nullable TextView tgx101NoName, tgx101NoCaptions;
+  private @Nullable ImageView tgx101Silent, tgx101Later;
+  private boolean tgx101OptionsInit;
+
+  private void tgx101AddOptionsRow (Context context) {
+    if (mode != MODE_MESSAGES) return;
+    LinearLayout row = new LinearLayout(context);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setPadding(Screen.dp(12f), Screen.dp(2f), Screen.dp(12f), Screen.dp(8f));
+    ViewSupport.setThemedBackground(row, ColorId.filling, this);
+    tgx101NoName = tgx101Chip(context, R.string.Tgx101ForwardNoName, v -> {
+      needHideAuthor = !needHideAuthor;
+      Settings.instance().pmc().putBoolean("tgx101_fwd_no_name", needHideAuthor);
+      tgx101UpdateOptionsRow();
+    });
+    row.addView(tgx101NoName);
+    tgx101NoCaptions = tgx101Chip(context, R.string.Tgx101ForwardNoCaptions, v -> {
+      needRemoveCaptions = !needRemoveCaptions;
+      Settings.instance().pmc().putBoolean("tgx101_fwd_no_captions", needRemoveCaptions);
+      tgx101UpdateOptionsRow();
+    });
+    LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(32f));
+    cp.leftMargin = Screen.dp(8f);
+    row.addView(tgx101NoCaptions, cp);
+    row.addView(new View(context), new LinearLayout.LayoutParams(0, 1, 1f));
+    tgx101Silent = tgx101Round(context, R.drawable.baseline_notifications_off_24, v -> {
+      forceSendWithoutSound = !forceSendWithoutSound;
+      tgx101UpdateOptionsRow();
+    });
+    row.addView(tgx101Silent);
+    tgx101Later = tgx101Round(context, R.drawable.baseline_date_range_24, v -> {
+      if (selectedChats.size() == 0) return;
+      tdlib.ui().showScheduleOptions(this, selectedChats.size() == 1 ? selectedChats.valueAt(0).getChatId() : 0, false, (sendOptions, disableMarkdown) -> performSend(false, sendOptions, false), getArgumentsStrict().defaultSendOptions, null);
+    });
+    LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(Screen.dp(32f), Screen.dp(32f));
+    rp.leftMargin = Screen.dp(8f);
+    row.addView(tgx101Later, rp);
+    tgx101OptionsRow = row;
+    bottomWrap.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    tgx101UpdateOptionsRow();
+  }
+
+  private TextView tgx101Chip (Context context, int textRes, View.OnClickListener click) {
+    TextView chip = new TextView(context);
+    chip.setText(Lang.getString(textRes));
+    chip.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13f);
+    chip.setGravity(Gravity.CENTER);
+    chip.setSingleLine(true);
+    chip.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
+    chip.setMinHeight(Screen.dp(32f));
+    chip.setOnClickListener(click);
+    Views.setClickable(chip);
+    return chip;
+  }
+
+  private ImageView tgx101Round (Context context, int icon, View.OnClickListener click) {
+    ImageView v = new ImageView(context);
+    v.setImageResource(icon);
+    v.setScaleType(ImageView.ScaleType.CENTER);
+    v.setOnClickListener(click);
+    Views.setClickable(v);
+    v.setLayoutParams(new LinearLayout.LayoutParams(Screen.dp(32f), Screen.dp(32f)));
+    return v;
+  }
+
+  private static android.graphics.drawable.GradientDrawable tgx101Pill (int color) {
+    android.graphics.drawable.GradientDrawable d = new android.graphics.drawable.GradientDrawable();
+    d.setColor(color);
+    d.setCornerRadius(Screen.dp(16f));
+    return d;
+  }
+
+  private void tgx101UpdateOptionsRow () {
+    if (tgx101OptionsRow == null) return;
+    if (!tgx101OptionsInit && messageProperties != null) {
+      tgx101OptionsInit = true;
+      needHideAuthor = Settings.instance().pmc().getBoolean("tgx101_fwd_no_name", false);
+      needRemoveCaptions = Settings.instance().pmc().getBoolean("tgx101_fwd_no_captions", false);
+    }
+    boolean canCopy = messageProperties != null, canDropCaptions = false;
+    if (messageProperties != null) {
+      TdApi.Message[] messages = getArgumentsStrict().messages;
+      for (int i = 0; i < messages.length && i < messageProperties.length; i++) {
+        if (!messageProperties[i].canBeCopied) canCopy = false;
+        if (!Td.isText(messages[i].content) && TD.canCopyText(messages[i])) canDropCaptions = true;
+      }
+    }
+    if (!canCopy) {
+      needHideAuthor = false;
+      needRemoveCaptions = false;
+    }
+    boolean canSilent = false;
+    for (int i = 0; i < selectedChatIds.size(); i++) {
+      long chatId = selectedChatIds.get(i);
+      if (!tdlib.isSelfChat(chatId) && !ChatId.isSecret(chatId)) canSilent = true;
+    }
+    if (!canSilent) forceSendWithoutSound = false;
+    int accent = Theme.getColor(ColorId.textLink), plain = Theme.textAccentColor(), off = me.vkryl.core.ColorUtils.alphaColor(.08f, plain), on = me.vkryl.core.ColorUtils.alphaColor(.18f, accent);
+    tgx101StyleChip(tgx101NoName, canCopy, needHideAuthor, R.string.Tgx101ForwardNoName, accent, plain, on, off);
+    tgx101StyleChip(tgx101NoCaptions, canCopy && canDropCaptions, needRemoveCaptions, R.string.Tgx101ForwardNoCaptions, accent, plain, on, off);
+    if (tgx101Silent != null) {
+      tgx101Silent.setVisibility(canSilent ? View.VISIBLE : View.GONE);
+      tgx101Silent.setBackground(tgx101Pill(forceSendWithoutSound ? on : off));
+      tgx101Silent.setColorFilter(forceSendWithoutSound ? accent : Theme.iconColor());
+    }
+    if (tgx101Later != null) {
+      tgx101Later.setBackground(tgx101Pill(off));
+      tgx101Later.setColorFilter(Theme.iconColor());
+    }
+  }
+
+  private void tgx101StyleChip (@Nullable TextView chip, boolean visible, boolean active, int textRes, int accent, int plain, int on, int off) {
+    if (chip == null) return;
+    chip.setVisibility(visible ? View.VISIBLE : View.GONE);
+    chip.setText((active ? "✓ " : "") + Lang.getString(textRes));
+    chip.setTextColor(active ? accent : plain);
+    chip.setTypeface(active ? Fonts.getRobotoMedium() : Fonts.getRobotoRegular());
+    chip.setBackground(tgx101Pill(active ? on : off));
   }
 
   private boolean needShareSettings () {

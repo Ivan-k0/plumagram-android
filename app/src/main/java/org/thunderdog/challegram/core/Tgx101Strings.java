@@ -1289,6 +1289,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101VoiceChatScreenStop, "Остановить показ экрана");
     RU.put(R.string.Tgx101VoiceChatScreenHint, "Все в звонке увидят ваш экран");
     RU.put(R.string.Tgx101VoiceChatScreenFailed, "Не получилось показать экран");
+    RU.put(R.string.Tgx101ForwardNoName, "Без имени");
+    RU.put(R.string.Tgx101ForwardNoCaptions, "Без подписей");
     RU.put(R.string.Tgx101PaintClearAll, "Очистить всё");
     RU.put(R.string.Tgx101PaintMarker, "Флом.");
     RU.put(R.string.Tgx101PaintPencil, "Каранд.");

@@ -6895,6 +6895,8 @@
   <string name="Tgx101VoiceChatScreenStop">Stop sharing the screen</string>
   <string name="Tgx101VoiceChatScreenHint">Everyone in the call sees your screen</string>
   <string name="Tgx101VoiceChatScreenFailed">Couldn\'t start sharing the screen</string>
+  <string name="Tgx101ForwardNoName">No name</string>
+  <string name="Tgx101ForwardNoCaptions">No captions</string>
   <string name="Tgx101PaintClearAll">Clear all</string>
   <string name="Tgx101PaintEraser">Eraser</string>
   <string name="Tgx101PaintEllipse">Oval</string>
