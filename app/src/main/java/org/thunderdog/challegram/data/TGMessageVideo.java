@@ -234,6 +234,15 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
         setUnmuteFactor(factor);
         break;
       }
+      case TEXT_ANIMATOR_ID: {
+        if (isLayoutBuilt()) {
+          rebuildContent();
+          requestLayout();
+          invalidateOverlay();
+          invalidate();
+        }
+        break;
+      }
       case FULL_SIZE_ANIMATOR_ID: {
         videoSize = MathUtils.fromTo(videoSmallSize, videoFullSize, isFullSizeAnimator.getFloatValue());
         if (isLayoutBuilt()) {
@@ -265,6 +274,9 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   protected void onChildFactorChangeFinished (int id, float finalFactor, FactorAnimator callee) {
     if (id ==  FULL_SIZE_ANIMATOR_ID) {
       fullSizeAnimatorDuration = RESIZE_DEFAULT_DURATION;
+    }
+    if (id == TEXT_ANIMATOR_ID && finalFactor == 0f) {
+      rebuildAndUpdateContent(); // back to the circle entirely
     }
   }
 
@@ -417,14 +429,49 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     return msg.chatId + "_" + msg.id;
   }
 
+  // (user 2026-10-19 «переключение из текста в кружок очень резкое, посмотри как в экстере»): one ~0.3 s move — the circle
+  // shrinks into the corner while the bubble grows round it and the text comes up; back the same way
+  private static final int TEXT_ANIMATOR_ID = 10002;
+  private @androidx.annotation.Nullable BoolAnimator tgx101TextAnimator;
+
+  private BoolAnimator tgx101TextAnimator () {
+    if (tgx101TextAnimator == null) {
+      tgx101TextAnimator = new BoolAnimator(TEXT_ANIMATOR_ID, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 280L,
+        tgx101TextModes.contains(tgx101Key()) && !TD.isSelfDestructTypeImmediately(getMessage()));
+    }
+    return tgx101TextAnimator;
+  }
+
+  /** 0 — the circle, 1 — the bubble with the text */
+  private float tgx101TextFactor () {
+    return tgx101TextAnimator().getFloatValue();
+  }
+
+  /** laid out as the bubble (fully or on the way) */
   private boolean tgx101TextMode () {
-    return tgx101TextModes.contains(tgx101Key()) && !TD.isSelfDestructTypeImmediately(getMessage());
+    return tgx101TextFactor() > 0f || tgx101TextAnimator().getValue();
+  }
+
+  /** the bubble with the text is what's asked for (touches go to it) */
+  private boolean tgx101TextTarget () {
+    return tgx101TextAnimator().getValue();
   }
 
   private void tgx101SetTextMode (boolean on) {
     if (on) tgx101TextModes.add(tgx101Key()); else tgx101TextModes.remove(tgx101Key());
-    rebuildAndUpdateContent();
-    invalidate();
+    boolean animated = isLayoutBuilt() && hasValidAttachedView() && UI.inUiThread();
+    if (on) tgx101TextAnimator().setValue(false, false); // starts from the circle with the text laid out
+    tgx101TextAnimator().setValue(on, animated);
+    if (!animated) {
+      rebuildAndUpdateContent();
+      invalidate();
+    } else if (on) {
+      rebuildContent(); // the text's size is known before the first frame
+    }
+  }
+
+  private static int tgx101Lerp (int from, int to, float f) {
+    return Math.round(from + (to - from) * f);
   }
 
   private android.text.TextPaint tgx101TextPaint () {
@@ -450,12 +497,25 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   }
 
   private void tgx101DrawText (Canvas c, int x, int y, Receiver preview) {
+    float f = tgx101TextFactor();
     int mini = Screen.dp(TM_MINI);
+    int size = tgx101Lerp(videoSize, mini, f); // the circle shrinks into the corner
     tgx101MiniRect.set(x, y, x + mini, y + mini);
-    preview.setBounds(x, y, x + mini, y + mini);
-    preview.setRadius(mini / 2);
-    if (preview.needPlaceholder()) preview.drawPlaceholderRounded(c, mini / 2f);
+    preview.setBounds(x, y, x + size, y + size);
+    preview.setRadius(size / 2);
+    if (preview.needPlaceholder()) preview.drawPlaceholderRounded(c, size / 2f);
     preview.draw(c);
+    if (f < 1f) {
+      int save = c.saveLayerAlpha(x, y, x + Math.max(tgx101TextW, size), y + Math.max(tgx101TextH, size), (int) (255 * f));
+      tgx101DrawTextParts(c, x, y);
+      c.restoreToCount(save);
+    } else {
+      tgx101DrawTextParts(c, x, y);
+    }
+  }
+
+  private void tgx101DrawTextParts (Canvas c, int x, int y) {
+    int mini = Screen.dp(TM_MINI);
     float cx = x + mini / 2f, cy = y + mini / 2f;
     c.drawCircle(cx, cy, mini / 2f, Paints.fillingPaint(0x33000000));
     android.graphics.Path play = new android.graphics.Path();
@@ -545,7 +605,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   @Override
   public void onTranscriptionChanged (long chatId, long messageId) {
     if (chatId != msg.chatId || messageId != msg.id || isDestroyed()) return;
-    if (tgx101TextMode()) {
+    if (tgx101TextTarget() && !tgx101TextAnimator().isAnimating()) {
       rebuildAndUpdateContent(); // the text (or its progress) changed the bubble's size
     }
     invalidate(); // the "A" button state
@@ -565,7 +625,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   public int getImageContentRadius (boolean isPreview) {
-    return tgx101TextMode() ? Screen.dp(TM_MINI) / 2 : videoSize / 2;
+    return tgx101TextMode() ? tgx101Lerp(videoSize, Screen.dp(TM_MINI), tgx101TextFactor()) / 2 : videoSize / 2;
   }
 
   @Override
@@ -580,12 +640,12 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   protected int getContentWidth () {
-    return tgx101TextMode() ? tgx101TextW : videoSize;
+    return tgx101TextMode() ? tgx101Lerp(videoSize, tgx101TextW, tgx101TextFactor()) : videoSize;
   }
 
   @Override
   protected int getContentHeight () {
-    return tgx101TextMode() ? tgx101TextH : videoSize;
+    return tgx101TextMode() ? tgx101Lerp(videoSize, tgx101TextH, tgx101TextFactor()) : videoSize;
   }
 
   @Override
@@ -615,7 +675,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   protected boolean drawBubbleTimeOverContent () {
-    return !tgx101TextMode();
+    return !tgx101TextMode() || tgx101TextFactor() < .5f;
   }
 
   @Override
@@ -659,18 +719,25 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   // small circle in the text mode — it took the whole bubble and covered the circle, «A» and the text
   @Override
   public int getChildrenWidth () {
-    return tgx101TextMode() ? Screen.dp(TM_MINI) : super.getChildrenWidth();
+    return tgx101TextMode() ? tgx101Lerp(videoSize, Screen.dp(TM_MINI), tgx101TextFactor()) : super.getChildrenWidth();
   }
 
   @Override
   public int getChildrenHeight () {
-    return tgx101TextMode() ? Screen.dp(TM_MINI) : super.getChildrenHeight();
+    return tgx101TextMode() ? tgx101Lerp(videoSize, Screen.dp(TM_MINI), tgx101TextFactor()) : super.getChildrenHeight();
   }
 
   @Override
   protected void drawBubble (Canvas c, Paint paint, boolean stroke, int padding) {
     if (tgx101TextMode()) {
-      super.drawBubble(c, paint, stroke, padding);
+      float f = tgx101TextFactor();
+      if (f < 1f) { // the bubble comes up round the shrinking circle
+        int save = c.saveLayerAlpha(bubblePathRect.left - padding, bubblePathRect.top - padding, bubblePathRect.right + padding, bubblePathRect.bottom + padding, (int) (255 * f));
+        super.drawBubble(c, paint, stroke, padding);
+        c.restoreToCount(save);
+      } else {
+        super.drawBubble(c, paint, stroke, padding);
+      }
       return;
     }
     final int s = Views.save(c);
@@ -803,7 +870,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   @Override
   public boolean onTouchEvent (MessageView view, MotionEvent e) {
     if (tgx101TextMode()) {
-      return tgx101OnTextTouch(view, e) || super.onTouchEvent(view, e);
+      return tgx101TextTarget() && tgx101OnTextTouch(view, e) || super.onTouchEvent(view, e);
     }
     // TGx101: the 🔇 mark — sound on, the circle stays small
     if (!isUnmuted && tgx101MuteY != 0 && !TD.isSelfDestructTypeImmediately(getMessage())) {
