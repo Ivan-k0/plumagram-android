@@ -6932,7 +6932,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         return Screen.dp(220f) + add;
       }
       case SECTION_PAINT: {
-        return Screen.dp(136f) + add;
+        // TGx101 (approved mockup «Редактор фото целиком», 1 — as in the official app; user 2026-10-17 / 2026-10-19 «низ
+        // фото срезан нашим редактором»): the photo stands whole above the tools capsule and the colour strip
+        return Screen.dp(168f) + add;
       }
       case SECTION_CROP: {
         return Screen.dp(160f) + add;
@@ -6945,6 +6947,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     switch (section) {
       case SECTION_CROP: {
         return Screen.getStatusBarHeight() * 2;
+      }
+      case SECTION_PAINT: {
+        return Screen.getStatusBarHeight() + Screen.dp(48f); // under the «↶ · Clear all» row (mockup 1)
       }
     }
     return 0;
@@ -7383,6 +7388,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             Lang.getString(R.string.Tgx101PaintMosaic), Lang.getString(R.string.Tgx101PaintEraser)
           });
           tgx101PaintTools.setLayoutParams(params);
+          android.graphics.drawable.GradientDrawable toolsBg = new android.graphics.drawable.GradientDrawable();
+          toolsBg.setColor(0xe628303a); // one capsule, as in the official editor (mockup 1)
+          toolsBg.setCornerRadius(Screen.dp(26f));
+          tgx101PaintTools.setBackground(toolsBg);
           tgx101PaintTools.setListener(new org.thunderdog.challegram.mediaview.paint.widget.Tgx101PaintToolsView.Listener() {
             @Override
             public void onToolSelected (int tool, int paintMode, int brushStyle) {
@@ -7443,7 +7452,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           });
           paintControlsWrap.addView(tgx101SizeWedge);
 
-          params = FrameLayoutFix.newParams(Screen.dp(56f), Screen.dp(48f), Gravity.LEFT | Gravity.BOTTOM);
+          // TGx101 (mockup 1, as in the official editor): «↶» at the top left, «Clear all» at the top right — the bottom
+          // keeps only the tools capsule and the colour strip, so the photo above them is seen whole
+          params = FrameLayoutFix.newParams(Screen.dp(56f), Screen.dp(48f), Gravity.LEFT | Gravity.TOP);
+          params.topMargin = Screen.getStatusBarHeight();
           undoButton = new ImageView(context());
           undoButton.setId(R.id.paint_undo);
           undoButton.setOnClickListener(this);
@@ -7466,6 +7478,27 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           undoButton.setBackgroundResource(R.drawable.bg_btn_header_light);
           undoButton.setLayoutParams(params);
           paintControlsWrap.addView(undoButton);
+
+          TextView clearAll = new TextView(context());
+          clearAll.setText(Lang.getString(R.string.Tgx101PaintClearAll));
+          clearAll.setTextColor(0xffffffff);
+          clearAll.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 15f);
+          clearAll.setGravity(Gravity.CENTER);
+          clearAll.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);
+          Views.setClickable(clearAll);
+          clearAll.setBackgroundResource(R.drawable.bg_btn_header_light);
+          clearAll.setOnClickListener(v -> {
+            if (paintView != null && !paintView.getContentWrap().isBusy() && currentPaintState != null && !currentPaintState.isEmpty()) {
+              showOptions(null, new int[]{R.id.paint_clear, R.id.btn_cancel}, new String[]{Lang.getString(R.string.ClearDrawing), Lang.getString(R.string.Cancel)}, new int[] {OptionColor.RED, OptionColor.NORMAL}, new int[] {R.drawable.baseline_delete_24, R.drawable.baseline_cancel_24}, (itemView, id) -> {
+                if (id == R.id.paint_clear) undoAllPaintActions();
+                return true;
+              }, getForcedTheme());
+            }
+          });
+          params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(48f), Gravity.RIGHT | Gravity.TOP);
+          params.topMargin = Screen.getStatusBarHeight();
+          clearAll.setLayoutParams(params);
+          paintControlsWrap.addView(clearAll);
 
           params = FrameLayoutFix.newParams(Screen.dp(56f), Screen.dp(48f), Gravity.RIGHT | Gravity.BOTTOM);
           paintTypeButton = new EditButton(context());

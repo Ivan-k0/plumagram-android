@@ -1264,6 +1264,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SuggestChatTranslation, "Предлагать перевод чатов на других языках");
     RU.put(R.string.Tgx101DeleteForAll, "Удалить у всех");
     RU.put(R.string.Tgx101PaintPen, "Ручка");
+    RU.put(R.string.Tgx101PaintClearAll, "Очистить всё");
     RU.put(R.string.Tgx101PaintMarker, "Флом.");
     RU.put(R.string.Tgx101PaintPencil, "Каранд.");
     RU.put(R.string.Tgx101PaintNeon, "Неон");
