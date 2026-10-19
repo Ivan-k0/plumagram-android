@@ -131,7 +131,12 @@ public final class Tgx101GroupInvite {
     IntentFilter filter = new IntentFilter();
     filter.addAction(ACTION_DECLINE);
     filter.addAction(ACTION_SILENCE);
-    ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
+    // (Android 4 builds: their older androidx has no ContextCompat.RECEIVER_NOT_EXPORTED) the platform flag on 13+, plain before
+    if (android.os.Build.VERSION.SDK_INT >= 33) {
+      context.registerReceiver(receiver, filter, 0x4 /* Context.RECEIVER_NOT_EXPORTED */);
+    } else {
+      context.registerReceiver(receiver, filter);
+    }
     startRinging(context);
     showNotification(context);
     UI.post(timeout, RING_TIMEOUT_MS);
