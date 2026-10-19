@@ -474,9 +474,16 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     return Math.round(from + (to - from) * f);
   }
 
+  // (user 2026-10-20) the message text's own size (Settings → text size), as a voice message's transcription — 14 dp
+  // was smaller; and its own paint: the shared one handed back by Paints could be another object after re-entering
+  // the chat, so the colour set before drawing missed the layout's paint and the text came out black
+  private final android.text.TextPaint tgx101Paint = new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
   private android.text.TextPaint tgx101TextPaint () {
-    android.text.TextPaint paint = Paints.getRegularTextPaint(14f);
-    return paint;
+    tgx101Paint.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoRegular());
+    tgx101Paint.setTextSize(getTextStyleProvider().getTextSizeInPixels());
+    tgx101Paint.setColor(getTextColor());
+    return tgx101Paint;
   }
 
   private void tgx101BuildText (int maxWidth) {
@@ -678,7 +685,9 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   protected boolean drawBubbleTimeOverContent () {
-    return !tgx101TextMode() || tgx101TextFactor() < .5f;
+    // (user 2026-10-20 «время, дата при переходе прыгают и меняют цвет»): in the text mode the time is the bubble's own
+    // from the very start of the move and rides with its corner — it switched style and place halfway
+    return !tgx101TextMode();
   }
 
   @Override
