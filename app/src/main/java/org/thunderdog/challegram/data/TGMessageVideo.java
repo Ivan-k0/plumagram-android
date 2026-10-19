@@ -422,6 +422,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   private static final float TM_MINI = 40f, TM_GAP = 6f, TM_PAD = 9f, TM_A = 28f;
   private @androidx.annotation.Nullable android.text.StaticLayout tgx101Text;
   private int tgx101TextW, tgx101TextH;
+  private @androidx.annotation.Nullable String tgx101TextKey;
   private boolean tgx101ACaught, tgx101MiniCaught;
   private final RectF tgx101ARect = new RectF(), tgx101MiniRect = new RectF();
 
@@ -495,6 +496,11 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
       text = result.text != null ? result.text : "";
     }
     android.text.TextPaint paint = tgx101TextPaint();
+    // (user's video 2026-10-20 «рывки»): this ran on every frame of the move — a new text layout each time stalled the
+    // list for ~6 frames midway; the same text at the same width and size is laid out once
+    String key = text + '\u0000' + maxWidth + '\u0000' + paint.getTextSize();
+    if (tgx101Text != null && key.equals(tgx101TextKey)) return;
+    tgx101TextKey = key;
     int maxText = Math.max(Screen.dp(120f), Math.min(maxWidth, Screen.dp(280f)) - Screen.dp(TM_PAD) * 2);
     int desired = (int) Math.ceil(android.text.Layout.getDesiredWidth(text, paint));
     int textWidth = Math.min(maxText, Math.max(desired, Screen.dp(170f)));
@@ -718,9 +724,18 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   public int getContentX () {
-    if (tgx101TextMode()) return super.getContentX();
-    return (int) MathUtils.fromTo(super.getContentX(), ((width - videoSize) / 2f), isFullSizeAnimator.getFloatValue());
+    if (tgx101TextMode()) {
+      // (user's video 2026-10-20 «рывки»): the circle's bubble and the text bubble place the content differently — the
+      // circle jumped sideways when the move started and when it came back. The move goes from the circle's place
+      int textX = super.getContentX();
+      return tgx101CircleX == Integer.MIN_VALUE ? textX : tgx101Lerp(tgx101CircleX, textX, tgx101TextFactor());
+    }
+    int x = (int) MathUtils.fromTo(super.getContentX(), ((width - videoSize) / 2f), isFullSizeAnimator.getFloatValue());
+    tgx101CircleX = x;
+    return x;
   }
+
+  private int tgx101CircleX = Integer.MIN_VALUE;
 
   @Override
   public int getChildrenLeft () {
