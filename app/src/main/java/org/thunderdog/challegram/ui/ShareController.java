@@ -3571,7 +3571,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
     chip.setSingleLine(true);
     chip.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
     chip.setMinHeight(Screen.dp(32f));
-    chip.setOnClickListener(click);
+    chip.setOnClickListener(tgx101Tick(click));
     Views.setClickable(chip);
     return chip;
   }
@@ -3580,10 +3580,18 @@ public class ShareController extends TelegramViewController<ShareController.Args
     ImageView v = new ImageView(context);
     v.setImageResource(icon);
     v.setScaleType(ImageView.ScaleType.CENTER);
-    v.setOnClickListener(click);
+    v.setOnClickListener(tgx101Tick(click));
     Views.setClickable(v);
     v.setLayoutParams(new LinearLayout.LayoutParams(Screen.dp(32f), Screen.dp(32f)));
     return v;
+  }
+
+  // (user 2026-10-20 «добавь туда самое легкое вибро»): the lightest tick on every switch of the forward options
+  private static View.OnClickListener tgx101Tick (View.OnClickListener click) {
+    return v -> {
+      v.performHapticFeedback(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP ? android.view.HapticFeedbackConstants.CLOCK_TICK : android.view.HapticFeedbackConstants.KEYBOARD_TAP);
+      click.onClick(v);
+    };
   }
 
   private static android.graphics.drawable.GradientDrawable tgx101Pill (int color) {

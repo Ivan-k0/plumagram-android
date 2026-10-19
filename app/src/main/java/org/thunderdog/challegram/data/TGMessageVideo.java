@@ -447,12 +447,34 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   /** 0 — the circle, 1 — the bubble with the text */
   private float tgx101TextFactor () {
+    if (tgx101Measure != 0) return 0f;
     return tgx101TextAnimator().getFloatValue();
   }
 
   /** laid out as the bubble (fully or on the way) */
   private boolean tgx101TextMode () {
+    if (tgx101Measure != 0) return tgx101Measure > 0;
     return tgx101TextFactor() > 0f || tgx101TextAnimator().getValue();
+  }
+
+  // (user's video 2026-10-20 «опять прыгает»): the text bubble has its own paddings and time line (~24 dp) the circle
+  // hasn't — they were there in full all the move long and went at once on its last frame, so the chat jumped. Both
+  // heights are measured before the move: the bubble starts exactly at the circle's height and the difference goes away
+  // smoothly with the rest
+  private int tgx101Measure; // 0 — as is, -1 — laid out as the circle, 1 — as the bubble at the circle's size
+  private int tgx101HeightDiff;
+
+  private void tgx101MeasureHeightDiff () {
+    tgx101HeightDiff = 0;
+    tgx101Measure = -1;
+    rebuildContent();
+    int circleHeight = height;
+    tgx101Measure = 1;
+    rebuildContent();
+    int bubbleHeight = height;
+    tgx101Measure = 0;
+    rebuildContent();
+    tgx101HeightDiff = bubbleHeight - circleHeight;
   }
 
   /** the bubble with the text is what's asked for (touches go to it) */
@@ -470,6 +492,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     // above stays in place
     MessagesController c = messagesController();
     tgx101AtBottom = animated && c != null && c.getMessagesView() != null && !c.getMessagesView().canScrollVertically(1);
+    if (animated) tgx101MeasureHeightDiff();
     tgx101TextAnimator().setValue(on, animated);
     if (!animated) {
       rebuildAndUpdateContent();
@@ -671,7 +694,11 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   protected int getContentHeight () {
-    return tgx101TextMode() ? tgx101Lerp(videoSize, tgx101TextH, tgx101TextFactor()) : videoSize;
+    if (tgx101TextMode()) {
+      float f = tgx101TextFactor();
+      return Math.max(0, tgx101Lerp(videoSize, tgx101TextH, f) - Math.round((1f - f) * tgx101HeightDiff));
+    }
+    return videoSize;
   }
 
   @Override

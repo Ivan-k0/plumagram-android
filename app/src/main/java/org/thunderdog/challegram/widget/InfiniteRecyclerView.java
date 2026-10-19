@@ -246,6 +246,7 @@ public class InfiniteRecyclerView<T> extends RecyclerView implements View.OnClic
             if (!repeatItems && scrollByUser) {
               setCurrentIndex(findCurrentIndex());
             }
+            tgx101Tick();
           }
         }
       });
@@ -253,6 +254,24 @@ public class InfiniteRecyclerView<T> extends RecyclerView implements View.OnClic
   }
 
   private boolean scrollByUser;
+
+  // (user 2026-10-20 «нет вибро, когда выбираешь конкретное время барабаном»): the lightest tick each time another item
+  // passes the middle line, as the wheels in the system pickers and the bottom capsule's own ticks
+  private int tgx101TickPosition = RecyclerView.NO_POSITION;
+
+  private void tgx101Tick () {
+    View center = findChildViewUnder(getMeasuredWidth() / 2f, getMeasuredHeight() / 2f);
+    int position = center != null ? getChildAdapterPosition(center) : RecyclerView.NO_POSITION;
+    if (position == RecyclerView.NO_POSITION) return;
+    if (repeatItems && !items.isEmpty()) position %= items.size(); // the jump to the repeated copy isn't a step
+    if (position != tgx101TickPosition) {
+      boolean first = tgx101TickPosition == RecyclerView.NO_POSITION;
+      tgx101TickPosition = position;
+      if (!first && getScrollState() != SCROLL_STATE_IDLE) {
+        performHapticFeedback(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP ? android.view.HapticFeedbackConstants.CLOCK_TICK : android.view.HapticFeedbackConstants.KEYBOARD_TAP);
+      }
+    }
+  }
 
   @Override
   public void draw (Canvas c) {
