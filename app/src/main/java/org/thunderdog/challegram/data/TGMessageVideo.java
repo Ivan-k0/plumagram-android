@@ -558,7 +558,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     if (partsAlpha >= 1f) {
       tgx101DrawTextParts(c, x, y);
     } else if (partsAlpha > 0f) {
-      int save = c.saveLayerAlpha(x, y, x + Math.max(tgx101TextW, size), y + Math.max(tgx101TextH, size), (int) (255 * partsAlpha));
+      int save = org.thunderdog.challegram.tool.Tgx101Compat.saveLayerAlpha(c, x, y, x + Math.max(tgx101TextW, size), y + Math.max(tgx101TextH, size), (int) (255 * partsAlpha));
       tgx101DrawTextParts(c, x, y);
       c.restoreToCount(save);
     }
@@ -749,12 +749,12 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     final int plateShift = Screen.dp(5f); // the plate lifts the time by this much
     final int w = Math.max(width, Screen.dp(64f)), h = Math.max(getHeight(), Screen.dp(64f));
     // the plain time, coming up
-    int save = c.saveLayerAlpha(-w, -h, w * 2, h * 2, (int) (255 * f));
+    int save = org.thunderdog.challegram.tool.Tgx101Compat.saveLayerAlpha(c, -w, -h, w * 2, h * 2, (int) (255 * f));
     c.translate(dx, dy - plateShift * back);
     super.drawBubbleTimePart(c, view);
     c.restoreToCount(save);
     // the time on its plate, going away
-    save = c.saveLayerAlpha(-w, -h, w * 2, h * 2, (int) (255 * back));
+    save = org.thunderdog.challegram.tool.Tgx101Compat.saveLayerAlpha(c, -w, -h, w * 2, h * 2, (int) (255 * back));
     c.translate(dx, dy + plateShift * f);
     tgx101TimePill = true;
     try {
@@ -854,7 +854,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
       float f = tgx101TextFactor();
       float bubbleAlpha = MathUtils.clamp(f * 4f); // solid almost at once, then it grows round the circle as in exteraGram
       if (bubbleAlpha < 1f) { // the bubble comes up round the shrinking circle
-        int save = c.saveLayerAlpha(bubblePathRect.left - padding, bubblePathRect.top - padding, bubblePathRect.right + padding, bubblePathRect.bottom + padding, (int) (255 * bubbleAlpha));
+        int save = org.thunderdog.challegram.tool.Tgx101Compat.saveLayerAlpha(c, bubblePathRect.left - padding, bubblePathRect.top - padding, bubblePathRect.right + padding, bubblePathRect.bottom + padding, (int) (255 * bubbleAlpha));
         super.drawBubble(c, paint, stroke, padding);
         c.restoreToCount(save);
       } else {
