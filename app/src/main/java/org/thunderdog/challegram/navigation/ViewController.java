@@ -1029,6 +1029,12 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     return true;
   }
 
+  /** TGx101 (approved mockup «Шапка: вариант В», test builds first — user 2026-10-19): 0 — the header is solid as usual,
+   *  1 — it has dissolved into a veil that is dark at the top and see-through at the bottom (the content scrolls under it) */
+  public float tgx101HeaderVeil () {
+    return 0f;
+  }
+
   protected boolean forceFadeMode () {
     return false;
   }

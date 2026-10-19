@@ -267,6 +267,7 @@ import me.vkryl.android.util.ClickHelper;
 import me.vkryl.android.widget.FrameLayoutFix;
 import me.vkryl.core.ArrayUtils;
 import me.vkryl.core.BitwiseUtils;
+import me.vkryl.core.ColorUtils;
 import me.vkryl.core.MathUtils;
 import me.vkryl.core.StringUtils;
 import me.vkryl.core.collection.IntList;
@@ -898,6 +899,22 @@ public class MessagesController extends ViewController<MessagesController.Argume
     addThemeInvalidateListener(wallpaperView);
 
     floatingInput = Settings.instance().useFloatingInput() && previewMode == PREVIEW_MODE_NONE && !isInForceTouchMode();
+    // TGx101 (approved mockup «Шапка: вариант В»; test builds only for now — user 2026-10-19): the chat runs on under the
+    // header, which dissolves into a veil once the list is scrolled
+    tgx101Veil = BuildConfig.TGX101_TEST && floatingInput && !needTabs();
+    if (tgx101Veil) {
+      tgx101VeilShift = HeaderView.getSize(true);
+      ((FrameLayoutFix.LayoutParams) contentView.getLayoutParams()).topMargin = -tgx101VeilShift;
+      contentView.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+        @Override
+        public void onViewAttachedToWindow (View v) {
+          if (v.getParent() instanceof ViewGroup) ((ViewGroup) v.getParent()).setClipToPadding(false); // drawn up under the header
+        }
+
+        @Override
+        public void onViewDetachedFromWindow (View v) { }
+      });
+    }
     params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
     if (floatingInput) {
       params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM); // TGx101: messages scroll under the floating capsule (bottom padding keeps the last one visible)
@@ -921,6 +938,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
     messagesView.setLayoutManager(messagesManager);
     messagesView.setLayoutParams(params);
     Views.setScrollBarPosition(messagesView);
+    if (tgx101Veil) {
+      messagesView.setClipToPadding(false);
+      messagesView.setPadding(messagesView.getPaddingLeft(), tgx101VeilShift, messagesView.getPaddingRight(), messagesView.getPaddingBottom());
+      messagesView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+        @Override
+        public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
+          tgx101UpdateVeil();
+        }
+      });
+    }
     if (Config.HARDWARE_MESSAGES_LIST) {
       Views.setLayerType(messagesView, View.LAYER_TYPE_HARDWARE);
     }
@@ -1107,6 +1134,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
     params.addRule(RelativeLayout.ALIGN_PARENT_TOP);
     params.addRule(RelativeLayout.ALIGN_TOP, R.id.msg_bottom);
+    if (tgx101Veil) params.topMargin = tgx101VeilShift; // below the header, as before
 
     topBar = new CollapseListView(context);
     topBar.setLayoutParams(params);
@@ -1912,6 +1940,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tgx101DeleteEffect.setVisibility(View.INVISIBLE); // laid out (it needs its size), drawn only while cubes fall
       tgx101DeleteEffect.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
       contentView.addView(tgx101DeleteEffect); // the deleted message's dust flies over the list, under the field
+      if (tgx101Veil) {
+        tgx101VeilTail = new View(context);
+        RelativeLayout.LayoutParams tailParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(14f));
+        tailParams.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+        tailParams.topMargin = tgx101VeilShift;
+        tgx101VeilTail.setLayoutParams(tailParams);
+        tgx101VeilTail.setAlpha(0f);
+        contentView.addView(tgx101VeilTail);
+      }
       // TGx101 (user 2026-10-19, check with navigation buttons): the list runs on under the floating field down to the
       // screen's edge — with buttons the messages showed through under ☰ ⌂ ↩; there a plain strip covers them (with
       // gestures nothing changes: the thin bar stays see-through)
@@ -11982,11 +12019,56 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public int getTopOffset () {
     int total = topBar.getTotalVisualHeight();
     total *= (1f - getSearchTransformFactor());
-    return total;
+    return total + tgx101VeilShift; // TGx101: the list starts under the header in the veil mode
+  }
+
+  private boolean tgx101Veil;
+  private int tgx101VeilShift;
+  private float tgx101VeilValue;
+  private @Nullable View tgx101VeilTail;
+  private int tgx101VeilTailColor;
+
+  @Override
+  public float tgx101HeaderVeil () {
+    return tgx101Veil && !inSearchMode() && !inSelectMode() ? tgx101VeilValue : 0f;
+  }
+
+  /** how far the veil has come: none while the oldest message stands below the header, whole once it's 80 dp under it */
+  private void tgx101UpdateVeil () {
+    if (!tgx101Veil || messagesView == null) return;
+    float value = 1f;
+    RecyclerView.LayoutManager lm = messagesView.getLayoutManager();
+    if (lm instanceof LinearLayoutManager) {
+      int count = lm.getItemCount();
+      if (count == 0) {
+        value = 0f;
+      } else if (((LinearLayoutManager) lm).findLastVisibleItemPosition() >= count - 1) {
+        View oldest = lm.findViewByPosition(count - 1);
+        if (oldest != null) value = MathUtils.clamp((float) (messagesView.getPaddingTop() + topBar.getTotalVisualHeight() - oldest.getTop()) / Screen.dp(80f));
+      }
+    }
+    if (tgx101VeilTail != null) {
+      boolean pinned = pinnedMessagesBar != null && topBar.isVisible(pinnedMessagesItem);
+      int tail = pinned || tgx101TrButton != null && tgx101TrButton.isShown2() ? topBar.getTotalVisualHeight() + Screen.dp(pinned ? 10f : 58f) : Screen.dp(14f);
+      int color = Theme.headerColor();
+      if (tgx101VeilTail.getLayoutParams().height != tail || tgx101VeilTailColor != color) {
+        tgx101VeilTailColor = color;
+        tgx101VeilTail.setBackground(new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+          new int[] {ColorUtils.alphaColor(.82f, color), ColorUtils.alphaColor(.45f, color), ColorUtils.alphaColor(0f, color)}));
+        Views.setLayoutHeight(tgx101VeilTail, tail);
+      }
+      tgx101VeilTail.setAlpha(tgx101HeaderVeil() > 0f ? value : 0f);
+    }
+    if (tgx101VeilValue != value) {
+      tgx101VeilValue = value;
+      NavigationController navigation = navigationController();
+      if (navigation != null && navigation.getHeaderView() != null) navigation.getHeaderView().invalidate();
+    }
   }
 
   public final void onMessagesFrameChanged () {
     tgx101PlaceTranslateButton();
+    tgx101UpdateVeil();
     context().updateHackyOverlaysPositions();
     manager.onViewportMeasure();
     if (attachedFiles != null && attachedFiles.getParent() != null) {
@@ -13638,7 +13720,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
                 hiddenBottom = Math.max(hiddenBottom, listLoc[1] + messagesView.getHeight() - visibleTop);
               }
             }
-            return msg.getMediaThumbLocation(item.getSourceMessageId(), view, view.getTop() - getTopOffset(), messagesView.getBottom() - hiddenBottom - view.getBottom(), view.getTop() + HeaderView.getSize(true) + offset);
+            return msg.getMediaThumbLocation(item.getSourceMessageId(), view, view.getTop() - getTopOffset(), messagesView.getBottom() - hiddenBottom - view.getBottom(), view.getTop() + (tgx101Veil ? 0 : HeaderView.getSize(true)) + offset); // TGx101: the veil mode's list starts at the screen's top
           }
         }
       }

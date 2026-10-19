@@ -401,7 +401,23 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     if (hasVisibleOngoingBar()) {
       drawOngoingBar(c);
     }
-    if (fillFactor == 1f && hideFactor == 0f) {
+    ViewController<?> veilOwner = navigationController != null ? navigationController.getCurrentStackItem() : null;
+    float veil = veilOwner != null && fillFactor == 1f && hideFactor == 0f && radiusFactor == 0f ? veilOwner.tgx101HeaderVeil() : 0f;
+    if (veil > 0f) {
+      // TGx101 (mockup «Шапка: вариант В»): the solid filling gives way to a veil — the header's colour, dense under the
+      // status bar and thinner towards the bottom edge, where the screen itself continues it with a short fade
+      if (veil < 1f) c.drawRect(0f, 0f, width, fillingBottom, Paints.fillingPaint(ColorUtils.alphaColor(1f - veil, color)));
+      if (tgx101VeilShader == null || tgx101VeilHeight != (int) fillingBottom || tgx101VeilColor != color) {
+        tgx101VeilHeight = (int) fillingBottom;
+        tgx101VeilColor = color;
+        tgx101VeilShader = new android.graphics.LinearGradient(0, 0, 0, Math.max(1, fillingBottom),
+          new int[] {ColorUtils.alphaColor(.96f, color), ColorUtils.alphaColor(.82f, color)}, null, android.graphics.Shader.TileMode.CLAMP);
+      }
+      tgx101VeilPaint.setShader(tgx101VeilShader);
+      tgx101VeilPaint.setAlpha((int) (255 * veil));
+      c.drawRect(0f, 0f, width, fillingBottom, tgx101VeilPaint);
+      ShadowView.drawDropShadow(c, 0, width, (int) shadowTop, dropShadowAlpha * (1f - veil));
+    } else if (fillFactor == 1f && hideFactor == 0f) {
       c.drawRect(0f, 0f, width, fillingBottom, Paints.fillingPaint(color));
       if (radiusFactor != 0f && radiusColor != 0) {
         c.save();
@@ -437,6 +453,10 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       }
     }*/
   }
+
+  private final android.graphics.Paint tgx101VeilPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+  private android.graphics.Shader tgx101VeilShader;
+  private int tgx101VeilHeight, tgx101VeilColor;
 
   // TGx101 (user 2026-10-14 14:0x «строка состояния так и появилась»): the status bar is transparent edge to edge, the
   // header paints under it — the search header turns white there and the white icons vanished. Their tone follows what
