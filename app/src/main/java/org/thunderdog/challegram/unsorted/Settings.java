@@ -3804,6 +3804,16 @@ public class Settings {
   /** TGx101 (user 2026-10-12, variant 3): blur behind the message menu and the bottom sheets — off: a plain dim, as in
    *  the official app */
   /** TGx101 (user 2026-10-15/16): on the first chat folder a finger pulled right opens Saved as a storage */
+  /** TGx101 (4PDA ausypher 2026-10-19 «изменения настроек сразу для всех аккаунтов»; user «дать на выбор»): the theme,
+   *  the chat background, the message style and the chat folders' look changed on one account change on all of them */
+  public boolean tgx101SameSettingsAllAccounts () {
+    return pmc.getBoolean("tgx101_same_settings", true);
+  }
+
+  public void setTgx101SameSettingsAllAccounts (boolean v) {
+    pmc.putBoolean("tgx101_same_settings", v);
+  }
+
   public boolean tgx101SwipeToStorage () {
     // (user 2026-10-19 «когда активно боковое меню, по умолчанию свайп открывает меню; хранилище — на выбор»): unless
     // chosen in MagiX → Gestures, on with the bottom menu and off with the side menu (the swipe opens the side menu)

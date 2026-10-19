@@ -416,6 +416,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().useTgx101NotificationPlane(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideBlocked) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideBlocked(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101SameSettings) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101SameSettingsAllAccounts(), isUpdate);
         } else if (itemId == R.id.btn_tgx101Filters) {
           int count = org.thunderdog.challegram.data.Tgx101MessageFilters.getRules().size();
           view.setData(count == 0 || !org.thunderdog.challegram.data.Tgx101MessageFilters.isEnabled() ? Lang.getString(R.string.Tgx101FiltersOff) : Integer.toString(count));
@@ -551,6 +553,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Filters, 0, R.string.Tgx101Filters),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideBlocked, 0, R.string.Tgx101HideBlocked),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SameSettings, 0, R.string.Tgx101SameSettings),
+        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SameSettingsHint),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101StoriesMode, 0, R.string.Tgx101StoriesMode),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1393,6 +1398,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK); // feel it at once
           return true;
         });
+    } else if (id == R.id.btn_tgx101SameSettings) {
+      Settings.instance().setTgx101SameSettingsAllAccounts(toggleResult);
     } else if (id == R.id.btn_tgx101HideBlocked) {
       Settings.instance().setTgx101HideBlocked(toggleResult);
       org.thunderdog.challegram.data.Tgx101BlockedSenders.refresh(tdlib, true);

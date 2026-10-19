@@ -310,9 +310,36 @@ public class TdlibSettingsManager implements CleanupStartupDelegate {
     Settings.instance().remove(makeConversionKey(tdlib.id(), originalPath, conversion));
   }
 
+  // TGx101 (4PDA 2026-10-19; MagiX «Same settings on all accounts», on by default): what Telegram X keeps per account —
+  // the theme, the background, the message style, the chat folders' look — goes to the other accounts too
+  public interface Tgx101Change { void apply (TdlibSettingsManager other); }
+  private static boolean tgx101Propagating;
+
+  public void tgx101ForOthers (Tgx101Change change) {
+    if (tgx101Propagating || !Settings.instance().tgx101SameSettingsAllAccounts()) return;
+    tgx101Propagating = true;
+    try {
+      for (TdlibAccount account : TdlibManager.instance().getActiveAccounts()) {
+        if (account.id == tdlib.id()) continue;
+        try {
+          change.apply(account.tdlib().settings());
+        } catch (Throwable t) {
+          org.thunderdog.challegram.Tgx101Diag.mark("same settings: account " + account.id + " failed " + t.getClass().getSimpleName());
+        }
+      }
+    } finally {
+      tgx101Propagating = false;
+    }
+  }
+
+  public static boolean tgx101IsPropagating () {
+    return tgx101Propagating;
+  }
+
   public void setForcePlainModeInChannels (boolean forcePlainMode) {
     this._forcePlainModeInChannels = forcePlainMode;
     Settings.instance().putBoolean(key(PLAIN_CHANNEL_KEY, tdlib.id()), forcePlainMode);
+    tgx101ForOthers(other -> other.setForcePlainModeInChannels(forcePlainMode));
   }
 
   public void setApplicationConfig (String json) {
@@ -436,6 +463,7 @@ public class TdlibSettingsManager implements CleanupStartupDelegate {
 
       tdlib.wallpaper().onThemeSwitched(oldTheme, theme);
     }
+    tgx101ForOthers(other -> other.setGlobalTheme(theme));
   }
 
   public int globalTheme () {
@@ -489,6 +517,10 @@ public class TdlibSettingsManager implements CleanupStartupDelegate {
         editor.apply();
       }
       wallpapers.put(usageIdentifier, wallpaper);
+      if (wallpaper != null) {
+        // the background was saved under the other accounts' keys too (TGBackground.save): they read it back
+        tgx101ForOthers(other -> other.setWallpaper(TGBackground.restore(other.tdlib, usageIdentifier), true, usageIdentifier));
+      }
     }
   }
 
@@ -501,6 +533,7 @@ public class TdlibSettingsManager implements CleanupStartupDelegate {
       }
       ThemeManager.instance().notifyChatStyleChanged(tdlib, chatStyle);
     }
+    tgx101ForOthers(other -> other.setChatStyle(chatStyle));
   }
 
   public void toggleChatStyle () {
@@ -1177,6 +1210,7 @@ public class TdlibSettingsManager implements CleanupStartupDelegate {
         }
       }
     }
+    tgx101ForOthers(other -> other.setArchiveChatListPosition(position));
   }
 
   public boolean isChatFolderEnabled (int chatFolderId) {
@@ -1317,6 +1351,7 @@ public class TdlibSettingsManager implements CleanupStartupDelegate {
         }
       }
     }
+    if (!Config.CHAT_FOLDERS_APPEARANCE_IS_GLOBAL) tgx101ForOthers(other -> other.setChatFolderBadgeFlags(flags));
   }
 
   public @ChatFolderStyle int chatFolderStyle () {
@@ -1344,6 +1379,7 @@ public class TdlibSettingsManager implements CleanupStartupDelegate {
         }
       }
     }
+    if (!Config.CHAT_FOLDERS_APPEARANCE_IS_GLOBAL) tgx101ForOthers(other -> other.setChatFolderStyle(chatFolderStyle));
   }
 
   public int chatFolderOptions () {
@@ -1371,6 +1407,7 @@ public class TdlibSettingsManager implements CleanupStartupDelegate {
         }
       }
     }
+    if (!Config.CHAT_FOLDERS_APPEARANCE_IS_GLOBAL) tgx101ForOthers(other -> other.setChatFolderOptions(options));
   }
 
   public boolean displayFoldersAtTop () {

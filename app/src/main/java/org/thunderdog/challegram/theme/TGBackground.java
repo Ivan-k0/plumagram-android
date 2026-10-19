@@ -613,6 +613,16 @@ public class TGBackground {
   }
 
   public void save (int usageIdentifier) {
+    saveTo(accountId, usageIdentifier);
+    // TGx101 (MagiX «Same settings on all accounts»): the background is written under the other accounts' keys as well
+    if (Settings.instance().tgx101SameSettingsAllAccounts() && !org.thunderdog.challegram.telegram.TdlibSettingsManager.tgx101IsPropagating()) {
+      for (org.thunderdog.challegram.telegram.TdlibAccount account : org.thunderdog.challegram.telegram.TdlibManager.instance().getActiveAccounts()) {
+        if (account.id != accountId) saveTo(account.id, usageIdentifier);
+      }
+    }
+  }
+
+  private void saveTo (int accountId, int usageIdentifier) {
     final String key = (accountId != 0 ? "wallpaper_" + accountId : "wallpaper") + Settings.getWallpaperIdentifierSuffix(usageIdentifier);
 
     SharedPreferences.Editor editor = Settings.instance().edit();
