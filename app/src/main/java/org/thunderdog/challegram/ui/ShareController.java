@@ -1154,7 +1154,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
 
     contentView.addView(recyclerView);
 
-    params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(56f) + extraBottomInset);
+    params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, tgx101SendHeight() + extraBottomInset);
     params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
     sendButton = new SendButton(context);
     sendButton.setLayoutParams(params);
@@ -2673,7 +2673,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
   }
 
   private int getContentOffset () {
-    return getTargetHeight() / 2 - HeaderView.getSize(true) - (isExpanded ? calculateMovementDistance() : 0) + (canShareLink ? 0 : Screen.dp(56f) / 2 + extraBottomInset);
+    return getTargetHeight() / 2 - HeaderView.getSize(true) - (isExpanded ? calculateMovementDistance() : 0) + (canShareLink ? 0 : tgx101SendHeight() / 2 + extraBottomInset);
   }
 
   private int calculateTotalHeight () {
@@ -2891,17 +2891,31 @@ public class ShareController extends TelegramViewController<ShareController.Args
       }
     }
 
+    private boolean tgx101Muted;
+
+    public void tgx101SetMuted (boolean muted) {
+      if (this.tgx101Muted != muted) {
+        this.tgx101Muted = muted;
+        invalidate();
+      }
+    }
+
     private void doDraw (Canvas c) {
       final int width = getMeasuredWidth();
       final int height = getMeasuredHeight();
-      final int buttonHeight = Screen.dp(56f);
-      final int color = factor == 0f ? Theme.fillingColor() : factor == 1f ? Theme.getColor(ColorId.fillingPositive) : ColorUtils.fromToArgb(Theme.fillingColor(), Theme.getColor(ColorId.fillingPositive), factor);
+      final int buttonHeight = Screen.dp(tgx101Muted ? 50f : 56f);
+      // (user 2026-10-20 «кнопку отправить сделай чуть приглушенней, когда активна. в наших цветах»): when forwarding the
+      // ready button is the options' own muted blue — the accent over the panel — with the accent text, not the loud fill
+      final int readyColor = tgx101Muted ? ColorUtils.compositeColor(Theme.fillingColor(), ColorUtils.alphaColor(.2f, Theme.getColor(ColorId.textLink))) : Theme.getColor(ColorId.fillingPositive);
+      final int readyText = tgx101Muted ? Theme.getColor(ColorId.textLink) : Theme.getColor(ColorId.fillingPositiveContent);
+      final int idleText = tgx101Muted ? Theme.getColor(ColorId.textLight) : Theme.getColor(ColorId.textNeutral);
+      final int color = factor == 0f ? Theme.fillingColor() : factor == 1f ? readyColor : ColorUtils.fromToArgb(Theme.fillingColor(), readyColor, factor);
       c.drawColor(color);
       if (factor != 0f && factor != 1f) {
         float radius = (float) Math.sqrt(width * width + height * height) * .5f;
-        c.drawCircle(width / 2f, buttonHeight / 2f, radius * factor, Paints.fillingPaint(ColorUtils.alphaColor(factor, Theme.getColor(ColorId.fillingPositive))));
+        c.drawCircle(width / 2f, buttonHeight / 2f, radius * factor, Paints.fillingPaint(ColorUtils.alphaColor(factor, readyColor)));
       }
-      final int textColor = factor == 0f ? Theme.getColor(ColorId.textNeutral) : factor == 1f ? Theme.getColor(ColorId.fillingPositiveContent) : ColorUtils.fromToArgb(Theme.getColor(ColorId.textNeutral), Theme.getColor(ColorId.fillingPositiveContent), factor);
+      final int textColor = factor == 0f ? idleText : factor == 1f ? readyText : ColorUtils.fromToArgb(idleText, readyText, factor);
       if (factor <= .5f) {
         TextPaint paint = Paints.getTitleBigPaint(copyTextFake);
         final int sourceTextColor = paint.getColor();
@@ -2982,7 +2996,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
     if (keyboardFrameLayout != null) {
       keyboardFrameLayout.setExtraBottomInset(extraBottomInset, extraBottomInsetWithoutIme);
     }
-    Views.setLayoutHeight(sendButton, Screen.dp(56f) + extraBottomInset);
+    Views.setLayoutHeight(sendButton, tgx101SendHeight() + extraBottomInset);
       if (spaceView != null) {
       spaceView.setLayoutHeight(extraBottomInset, false);
       spaceView.setVisibility(needBottomOffset() ? View.VISIBLE : View.INVISIBLE);
@@ -3000,7 +3014,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
     if (canShareLink) {
       return Math.max(bottomWrap.getMeasuredHeight(), Screen.dp(48f));
     } else {
-      return Math.max(bottomWrap.getMeasuredHeight(), Screen.dp(48f)) + Screen.dp(56f) + extraBottomInset;
+      return Math.max(bottomWrap.getMeasuredHeight(), Screen.dp(48f)) + tgx101SendHeight() + extraBottomInset;
     }
   }
 
@@ -3221,6 +3235,11 @@ public class ShareController extends TelegramViewController<ShareController.Args
     }
   }
 
+  /** (user 2026-10-20 «её можно слегка сделать уже по высоте») — a bit lower when forwarding */
+  private int tgx101SendHeight () {
+    return Screen.dp(tgx101KeepBottom() ? 50f : 56f);
+  }
+
   private boolean tgx101KeepBottom () {
     return mode == MODE_MESSAGES && !canShareLink;
   }
@@ -3232,6 +3251,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
     // (user's video 2026-10-20: the half-transparent «Send» showed the blurred chat through) — the button's own
     // not-ready look: solid, grey text, and it fills with color from the middle when a chat is picked
     sendButton.setShareText(Lang.getString(R.string.Send));
+    sendButton.tgx101SetMuted(true);
     sendButton.setIsReady(ready, sendButton.isShown());
   }
 
