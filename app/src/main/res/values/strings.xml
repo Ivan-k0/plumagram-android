@@ -6873,6 +6873,12 @@
   <string name="Tgx101SameSettings">Same settings on all accounts</string>
   <string name="Tgx101SameSettingsHint">Theme, chat background, message style and chat folders</string>
   <string name="Tgx101EditWaitDownload">The photo is still loading — try again in a moment</string>
+  <string name="Tgx101PersonalChannel">Personal channel</string>
+  <string name="Tgx101PersonalChannelAdd">Add</string>
+  <string name="Tgx101PersonalChannelOpen">Open the channel</string>
+  <string name="Tgx101PersonalChannelRemove">Remove the personal channel</string>
+  <string name="Tgx101PersonalChannelHint">Shown on your profile to everyone</string>
+  <string name="Tgx101PersonalChannelNone">You need a public channel you own</string>
   <string name="Tgx101PaintClearAll">Clear all</string>
   <string name="Tgx101PaintEraser">Eraser</string>
   <string name="Tgx101PaintEllipse">Oval</string>

@@ -1267,6 +1267,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SameSettings, "Одинаковые настройки на всех аккаунтах");
     RU.put(R.string.Tgx101SameSettingsHint, "Тема, фон чатов, вид сообщений и папок");
     RU.put(R.string.Tgx101EditWaitDownload, "Фото ещё загружается — нажмите через пару секунд");
+    RU.put(R.string.Tgx101PersonalChannel, "Личный канал");
+    RU.put(R.string.Tgx101PersonalChannelAdd, "Добавить");
+    RU.put(R.string.Tgx101PersonalChannelOpen, "Открыть канал");
+    RU.put(R.string.Tgx101PersonalChannelRemove, "Убрать личный канал");
+    RU.put(R.string.Tgx101PersonalChannelHint, "Виден в вашем профиле всем");
+    RU.put(R.string.Tgx101PersonalChannelNone, "Нужен публичный канал, где вы владелец");
     RU.put(R.string.Tgx101PaintClearAll, "Очистить всё");
     RU.put(R.string.Tgx101PaintMarker, "Флом.");
     RU.put(R.string.Tgx101PaintPencil, "Каранд.");

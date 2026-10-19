@@ -1798,6 +1798,10 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           } else {
             view.setName(Lang.getString(R.string.LoadingInformation));
           }
+        } else if (itemId == R.id.btn_tgx101PersonalChannel) {
+          long pcId = userFull != null ? userFull.personalChatId : 0;
+          TdApi.Chat pc = pcId != 0 ? tdlib.chat(pcId) : null;
+          view.setData(pc != null ? pc.title : Lang.getString(R.string.Tgx101PersonalChannelAdd));
         } else if (itemId == R.id.btn_tgx101UserNote) {
           String note = userFull != null && userFull.note != null ? userFull.note.text : null;
           view.setData(StringUtils.isEmpty(note) ? Lang.getString(R.string.Tgx101UserNoteAdd) : note);
@@ -2562,6 +2566,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     checkBirthdate();
     checkDescription();
     tgx101CheckNote();
+    tgx101CheckPersonalChannel();
     checkGroupsInCommon();
 
     /*if (userFull.commonChatCount > 0) {
@@ -2829,6 +2834,99 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     } else if (hasBirthdate) {
       updateValuedItem(R.id.btn_birthdate);
     }
+  }
+
+  // TGx101 (user 2026-10-19 «как у нас добавить личный канал?», mockup «Личный канал»): one's own profile has «Personal
+  // channel · Add / <name>» — a public channel one owns, shown on the profile; anyone else's profile shows theirs, a tap
+  // opens it
+  private void tgx101CheckPersonalChannel () {
+    if (isEditing() || user == null || TD.isBot(user)) return;
+    boolean self = tdlib.isSelfUserId(user.id);
+    long pcId = userFull != null ? userFull.personalChatId : 0;
+    if (pcId != 0 && tdlib.chat(pcId) == null) {
+      tdlib.send(new TdApi.GetChat(pcId), (chat, error) -> runOnUiThreadOptional(this::tgx101CheckPersonalChannel));
+      return;
+    }
+    boolean has = userFull != null && (self || pcId != 0);
+    int foundIndex = baseAdapter.indexOfViewById(R.id.btn_tgx101PersonalChannel);
+    if ((foundIndex != -1) != has) {
+      if (foundIndex != -1) {
+        removeTopItem(foundIndex);
+      } else {
+        int index = 0;
+        for (int id : new int[] {R.id.btn_peer_id, R.id.btn_username, R.id.btn_birthdate, R.id.btn_description, R.id.btn_tgx101UserNote}) {
+          if ((id != R.id.btn_peer_id || Settings.instance().showPeerIds()) && baseAdapter.indexOfViewById(id) != -1) index++;
+        }
+        addTopItem(new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101PersonalChannel, R.drawable.baseline_bullhorn_24, R.string.Tgx101PersonalChannel), index);
+      }
+    } else if (has) {
+      updateValuedItem(R.id.btn_tgx101PersonalChannel);
+    }
+  }
+
+  private void tgx101OnPersonalChannel () {
+    long pcId = userFull != null ? userFull.personalChatId : 0;
+    if (user == null || !tdlib.isSelfUserId(user.id)) {
+      if (pcId != 0) tdlib.ui().openChat(this, pcId, null);
+      return;
+    }
+    tdlib.send(new TdApi.GetSuitablePersonalChats(), (chats, error) -> runOnUiThreadOptional(() -> {
+      if (error != null) {
+        UI.showError(error);
+        return;
+      }
+      long[] ids = chats.chatIds;
+      int n = ids.length + (pcId != 0 ? 2 : 1);
+      int[] optionIds = new int[n], colors = new int[n], icons = new int[n];
+      String[] titles = new String[n];
+      int k = 0;
+      for (long id : ids) {
+        TdApi.Chat c = tdlib.chat(id);
+        optionIds[k] = k;
+        titles[k] = (c != null ? c.title : String.valueOf(id)) + (id == pcId ? "  ✓" : "");
+        colors[k] = OptionColor.NORMAL;
+        icons[k] = R.drawable.baseline_bullhorn_24;
+        k++;
+      }
+      if (pcId != 0) {
+        optionIds[k] = R.id.btn_tgx101PersonalChannelOpen;
+        titles[k] = Lang.getString(R.string.Tgx101PersonalChannelOpen);
+        colors[k] = OptionColor.BLUE;
+        icons[k] = R.drawable.baseline_visibility_24;
+        k++;
+        optionIds[k] = R.id.btn_tgx101PersonalChannelRemove;
+        titles[k] = Lang.getString(R.string.Tgx101PersonalChannelRemove);
+        colors[k] = OptionColor.RED;
+        icons[k] = R.drawable.baseline_remove_circle_24;
+      } else {
+        optionIds[k] = R.id.btn_cancel;
+        titles[k] = Lang.getString(R.string.Cancel);
+        colors[k] = OptionColor.NORMAL;
+        icons[k] = R.drawable.baseline_cancel_24;
+      }
+      String header = ids.length == 0 ? Lang.getString(R.string.Tgx101PersonalChannelNone) : Lang.getString(R.string.Tgx101PersonalChannelHint);
+      showOptions(header, optionIds, titles, colors, icons, (v, id) -> {
+        if (id == R.id.btn_tgx101PersonalChannelOpen) {
+          tdlib.ui().openChat(this, pcId, null);
+        } else if (id == R.id.btn_tgx101PersonalChannelRemove) {
+          tgx101SetPersonalChannel(0);
+        } else if (id >= 0 && id < ids.length) {
+          tgx101SetPersonalChannel(ids[id]);
+        }
+        return true;
+      });
+    }));
+  }
+
+  private void tgx101SetPersonalChannel (long chatId) {
+    tdlib.send(new TdApi.SetPersonalChat(chatId), (ok, error) -> runOnUiThreadOptional(() -> {
+      if (error != null) {
+        UI.showError(error);
+        return;
+      }
+      if (userFull != null) userFull.personalChatId = chatId;
+      tgx101CheckPersonalChannel();
+    }));
   }
 
   // TGx101: the note row appears once the full info is in (the list is built before it)
@@ -4937,6 +5035,8 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           null
         );
       }
+    } else if (viewId == R.id.btn_tgx101PersonalChannel) {
+      tgx101OnPersonalChannel();
     } else if (viewId == R.id.btn_tgx101UserNote) {
       tgx101EditNote();
     } else if (viewId == R.id.btn_description) {
