@@ -49,6 +49,12 @@ CaptureHolder *holder (jlong ptr) {
 
 }
 
+// TGx101: the group call takes the same camera (tgx101_group.cpp)
+std::shared_ptr<tgcalls::VideoCaptureInterface> tgx101_capture (jlong ptr) {
+  CaptureHolder *h = holder(ptr);
+  return h != nullptr ? h->capture : nullptr;
+}
+
 #define TGX101_VIDEO(RETURN_TYPE, NAME, ...) \
   extern "C" JNIEXPORT RETURN_TYPE JNICALL Java_org_thunderdog_challegram_voip_Tgx101Video_##NAME(JNIEnv *env, jclass clazz, ##__VA_ARGS__)
 

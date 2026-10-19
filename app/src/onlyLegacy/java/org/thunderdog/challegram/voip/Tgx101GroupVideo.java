@@ -33,5 +33,13 @@ public final class Tgx101GroupVideo {
     return null;
   }
 
+  public static long createCapture (boolean front, @Nullable View preview) {
+    return 0;
+  }
+
+  public static void switchCamera (long capture, boolean front) { }
+
+  public static void destroyCapture (long capture) { }
+
   public static void release (@Nullable View view) { }
 }

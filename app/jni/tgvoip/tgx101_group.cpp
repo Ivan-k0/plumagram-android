@@ -136,6 +136,10 @@ struct GroupConference {
   std::vector<PendingDescriptions> pending;
 };
 
+}
+std::shared_ptr<tgcalls::VideoCaptureInterface> tgx101_capture (jlong ptr); // tgx101_video.cpp
+namespace {
+
 struct GroupContext {
   std::unique_ptr<tgcalls::GroupInstanceCustomImpl> instance;
   std::shared_ptr<GroupJava> java;
@@ -384,6 +388,15 @@ JNI_OBJECT_FUNC(void, voip_Tgx101GroupCall, nativeRequestVideo, jlong ptr, jobje
     channels.push_back(description);
   }
   context->instance->setRequestedVideoChannels(std::move(channels));
+}
+
+// TGx101: the camera (a capture made by Tgx101Video, tgx101_video.cpp) goes out in the group call; 0 — no camera
+JNI_OBJECT_FUNC(void, voip_Tgx101GroupCall, nativeSetVideoCapture, jlong ptr, jlong capturePtr) {
+  auto context = jni::jlong_to_ptr<GroupContext *>(ptr);
+  if (context == nullptr || context->instance == nullptr) {
+    return;
+  }
+  context->instance->setVideoCapture(capturePtr != 0 ? tgx101_capture(capturePtr) : nullptr);
 }
 
 // TGx101: where a participant's video goes (an org.webrtc.VideoSink), null — nowhere

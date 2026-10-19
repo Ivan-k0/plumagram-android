@@ -44,6 +44,19 @@ public final class Tgx101GroupVideo {
     return view instanceof SurfaceViewRenderer ? view : null;
   }
 
+  /** the camera for a group call, its picture also in the preview (a view from createView), 0 — failed */
+  public static long createCapture (boolean front, @Nullable View preview) {
+    return Tgx101Video.groupCaptureCreate(front, preview instanceof SurfaceViewRenderer ? (SurfaceViewRenderer) preview : null);
+  }
+
+  public static void switchCamera (long capture, boolean front) {
+    Tgx101Video.groupCaptureSwitch(capture, front);
+  }
+
+  public static void destroyCapture (long capture) {
+    Tgx101Video.groupCaptureDestroy(capture);
+  }
+
   public static void release (@Nullable View view) {
     if (view instanceof SurfaceViewRenderer) {
       ((SurfaceViewRenderer) view).release();

@@ -235,6 +235,24 @@ public final class Tgx101Video {
     nativeDestroyCapture(ptr);
   }
 
+  // TGx101: the camera of a group call (Tgx101GroupVideo) — the same capture, its own preview
+
+  static long groupCaptureCreate (boolean front, @Nullable VideoSink preview) {
+    long ptr = nativeCreateCapture(front);
+    if (ptr == 0) return 0;
+    nativeSetCaptureOutput(ptr, preview);
+    nativeSetCaptureActive(ptr, true);
+    return ptr;
+  }
+
+  static void groupCaptureSwitch (long ptr, boolean front) {
+    if (ptr != 0) nativeSwitchCamera(ptr, front);
+  }
+
+  static void groupCaptureDestroy (long ptr) {
+    if (ptr != 0) nativeDestroyCapture(ptr);
+  }
+
   // Native
 
   private static native long nativeCreateCapture (boolean front);

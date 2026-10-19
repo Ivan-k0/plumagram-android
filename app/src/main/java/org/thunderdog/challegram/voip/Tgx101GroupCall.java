@@ -573,6 +573,57 @@ public final class Tgx101GroupCall implements GroupCallListener {
     nativeRequestVideo(ptr, channels);
   }
 
+  // My camera (step 2)
+
+  private long capturePtr;
+  private boolean frontCamera = true;
+  private @Nullable android.view.View cameraPreview;
+
+  public boolean isCameraOn () {
+    return capturePtr != 0;
+  }
+
+  /** turns my camera on (its picture also in the preview view, from Tgx101GroupVideo.createView) or off */
+  public void setCameraEnabled (boolean enabled, @Nullable android.view.View preview) {
+    if (ptr == 0 || state == STATE_ENDED || enabled == isCameraOn()) return;
+    if (enabled) {
+      long capture = Tgx101GroupVideo.createCapture(frontCamera, preview);
+      if (capture == 0) {
+        org.thunderdog.challegram.Tgx101Diag.mark("group call video: no camera");
+        return;
+      }
+      capturePtr = capture;
+      cameraPreview = preview;
+      nativeSetVideoCapture(ptr, capture);
+    } else {
+      stopCamera();
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("group call video: my camera " + (enabled ? "on" : "off"));
+    tdlib.send(new TdApi.ToggleGroupCallIsMyVideoEnabled(groupCallId, enabled), (ok, error) -> {
+      if (error != null) org.thunderdog.challegram.Tgx101Diag.mark("group call video: toggle failed — " + TD.toErrorString(error));
+    });
+    for (Listener listener : listeners) listener.onGroupCallParticipantsChanged(this);
+  }
+
+  public void switchCamera () {
+    if (capturePtr == 0) return;
+    frontCamera = !frontCamera;
+    Tgx101GroupVideo.switchCamera(capturePtr, frontCamera);
+  }
+
+  public @Nullable android.view.View cameraPreview () {
+    return cameraPreview;
+  }
+
+  private void stopCamera () {
+    long capture = capturePtr;
+    if (capture == 0) return;
+    capturePtr = 0;
+    cameraPreview = null;
+    if (ptr != 0) nativeSetVideoCapture(ptr, 0);
+    Tgx101GroupVideo.destroyCapture(capture);
+  }
+
   /** where a participant's video goes (an org.webrtc.VideoSink, from Tgx101GroupVideo); null — nowhere */
   public void setVideoSink (String endpointId, @Nullable Object sink) {
     if (ptr != 0 && state != STATE_ENDED) nativeSetVideoSink(ptr, endpointId, sink);
@@ -837,6 +888,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
   private void end () {
     if (state == STATE_ENDED) return;
     tdlib.listeners().unsubscribeFromGlobalUpdates(this);
+    stopCamera(); // before the instance goes: it still holds the camera
     if (ptr != 0) {
       long p = ptr;
       ptr = 0;
@@ -895,4 +947,5 @@ public final class Tgx101GroupCall implements GroupCallListener {
   private native void nativeDestroy (long ptr);
   private native void nativeRequestVideo (long ptr, String[] channels);
   private native void nativeSetVideoSink (long ptr, String endpointId, @Nullable Object sink);
+  private native void nativeSetVideoCapture (long ptr, long capturePtr);
 }
