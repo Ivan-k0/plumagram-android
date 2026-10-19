@@ -132,6 +132,7 @@ public class TGCallService extends Service implements
     }
     if (call == null || user == null) {
       Log.w(Log.TAG_VOIP, "TGCallService.onStartCommand: failed because call or other party not found, call: %s, user: %s", call, user);
+      tgx101ForegroundOnce(); // (crash 2026-10-19 16:57) started with startForegroundService: Android closes the app otherwise
       stopSelf();
       return START_NOT_STICKY;
     }
@@ -142,8 +143,39 @@ public class TGCallService extends Service implements
       initCall(tdlib, call);
     }
     updateCall(call);
+    tgx101ForegroundOnce(); // a call already over by now shows no notification of its own
     return START_NOT_STICKY;
   }
+
+  // TGx101 (crash of 2026-10-19 16:57, «startForegroundService() did not then call startForeground()»): every start
+  // goes foreground at least once — if neither the incoming nor the ongoing notification was posted (the call ended
+  // right as the service came up, or wasn't found), a quiet one is shown and taken away at once
+  private void tgx101ForegroundOnce () {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || tgx101WentForeground) return;
+    try {
+      String channelId = "tgx101_call_service";
+      NotificationManager m = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+      if (m != null && m.getNotificationChannel(channelId) == null) {
+        android.app.NotificationChannel channel = new android.app.NotificationChannel(channelId, Lang.getString(R.string.NotificationChannelOutgoingCall), NotificationManager.IMPORTANCE_MIN);
+        channel.setShowBadge(false);
+        m.createNotificationChannel(channel);
+      }
+      Notification n = new androidx.core.app.NotificationCompat.Builder(this, channelId)
+        .setSmallIcon(R.drawable.baseline_phone_24_white)
+        .setContentTitle(Lang.getString(R.string.NotificationChannelOutgoingCall))
+        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MIN)
+        .build();
+      U.startForeground(this, TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION, n);
+      tgx101WentForeground = true;
+      if (call == null || TD.isFinished(call)) {
+        stopForeground(true);
+      }
+    } catch (Throwable t) {
+      Log.w(Log.TAG_VOIP, "TGCallService: placeholder foreground failed", t);
+    }
+  }
+
+  private boolean tgx101WentForeground;
 
   public int callId () {
     return call != null ? call.id : 0;
@@ -1136,6 +1168,7 @@ public class TGCallService extends Service implements
       ongoingCallNotification = builder.getNotification();
     }
     U.startForeground(this, tgx101OngoingId, ongoingCallNotification);
+    tgx101WentForeground = true;
   }
 
   // TGx101: the ongoing call on the lock screen. Some lock screens (Vivo) show only notifications posted after
@@ -1331,6 +1364,7 @@ public class TGCallService extends Service implements
       incomingNotification = builder.getNotification();
     }
     U.startForeground(this, TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION, incomingNotification);
+    tgx101WentForeground = true;
     return true;
   }
 
