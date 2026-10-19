@@ -574,7 +574,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       return false;
     }
 
-    if (m.inPreviewSearchMode()) {
+    if (m.inPreviewSearchMode() && !(org.thunderdog.challegram.BuildConfig.TGX101_TEST && m.arePinnedMessages() && msg.useBubbles())) { // TGx101: pinned bubbles act as in the chat — their «→» goes to one
       m.openPreviewMessage(msg);
       return true;
     }

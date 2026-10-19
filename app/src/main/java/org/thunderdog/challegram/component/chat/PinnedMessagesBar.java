@@ -42,6 +42,7 @@ import org.thunderdog.challegram.telegram.TdlibMessageViewer;
 import org.thunderdog.challegram.theme.ColorId;
 import org.thunderdog.challegram.theme.Theme;
 import org.thunderdog.challegram.tool.DrawAlgorithms;
+import org.thunderdog.challegram.tool.Drawables;
 import org.thunderdog.challegram.tool.Paints;
 import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.tool.Views;
@@ -80,6 +81,20 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
 
     @Override
     protected void onDraw (Canvas c) {
+      if (tgx101OnHeader) { // «📌≡» as in the official app: opens the screen with all pinned messages
+        int color = Theme.getColor(ColorId.headerIcon);
+        float cx = getPaddingLeft() + (getMeasuredWidth() - getPaddingLeft() - getPaddingRight()) / 2f, cy = getMeasuredHeight() / 2f;
+        android.graphics.drawable.Drawable pin = tgx101PinIcon();
+        if (pin != null) {
+          Drawables.draw(c, pin, cx - Screen.dp(11f), cy - pin.getMinimumHeight() / 2f, Paints.getPorterDuffPaint(color));
+        }
+        float lx = cx + Screen.dp(3f), lw = Screen.dp(8f), stroke = Screen.dp(1.5f);
+        for (int i = -1; i <= 1; i++) {
+          float ly = cy + i * Screen.dp(4f);
+          c.drawRect(lx, ly - stroke / 2f, lx + lw, ly + stroke / 2f, Paints.fillingPaint(color));
+        }
+        return;
+      }
       DrawAlgorithms.drawCollapse(c, getPaddingLeft() + (getMeasuredWidth() - getPaddingLeft() - getPaddingRight()) / 2f, getMeasuredHeight() / 2f, tgx101OnHeader ? Theme.getColor(ColorId.headerIcon) : Theme.iconColor(), isExpanded.getFloatValue(), 1f - canExpand.getFloatValue());
     }
   }
@@ -241,6 +256,10 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
 
     collapseButton = new CollapseButton(context);
     collapseButton.setOnClickListener(v -> {
+      if (tgx101OnHeader) { // TGx101: straight to the screen with all pinned messages, as in the official app
+        if (messageListener != null) messageListener.onShowAllRequest(this);
+        return;
+      }
       if (canExpand.getValue() || isExpanded.getValue()) {
         isExpanded.toggleValue(true);
       } else {
@@ -248,6 +267,11 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
           messageListener.onDismissRequest(this);
         }
       }
+    });
+    collapseButton.setOnLongClickListener(v -> { // TGx101: the old «hide» stays on a long press
+      if (!tgx101OnHeader || messageListener == null) return false;
+      messageListener.onDismissRequest(this);
+      return true;
     });
     collapseButton.setBackgroundResource(R.drawable.bg_btn_header);
     Views.setClickable(collapseButton);
@@ -294,6 +318,13 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
   // TGx101 (approved mockup «Шапка как одно целое», 1): a row of the header's veil — no background of its own, the header's
   // colours, a thin line under it
   private boolean tgx101OnHeader;
+
+  private android.graphics.drawable.Drawable tgx101Pin;
+
+  private android.graphics.drawable.Drawable tgx101PinIcon () {
+    if (tgx101Pin == null) tgx101Pin = Drawables.get(getResources(), R.drawable.deproko_baseline_pin_16);
+    return tgx101Pin;
+  }
 
   private int tgx101ItemHeight () {
     return tgx101OnHeader ? Screen.dp(MessagePreviewView.TGX101_ONE_LINE_HEIGHT) : SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW);

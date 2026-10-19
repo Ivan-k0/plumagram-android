@@ -104,6 +104,7 @@ import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.tool.Strings;
 import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.tool.Views;
+import me.vkryl.android.ViewUtils;
 import org.thunderdog.challegram.ui.FeatureToggles;
 import org.thunderdog.challegram.ui.MessagesController;
 import org.thunderdog.challegram.ui.TranslationControllerV2;
@@ -2629,11 +2630,72 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       drawTranslate(view, c);
     }
 
+    tgx101DrawGoToButton(c);
     startSetReactionAnimationIfReady();
     highlightUnreadReactionsIfNeeded();
     if (isHiddenFactor > 0f) {
       drawHiddenMessage(view, c, isHiddenFactor);
     }
+  }
+
+  // TGx101 (user 2026-10-19, video of the official app): in the screen with all pinned messages a round «→» beside each
+  // bubble — right of an incoming one, left of an outgoing one — goes to that message in the chat
+  private final RectF tgx101GoToRect = new RectF();
+  private boolean tgx101GoToPressed;
+
+  private boolean tgx101HasGoToButton () {
+    MessagesController m = messagesController();
+    return org.thunderdog.challegram.BuildConfig.TGX101_TEST && m != null && m.arePinnedMessages() && useBubbles() && !bubblePathRect.isEmpty(); // test builds first
+  }
+
+  private void tgx101DrawGoToButton (Canvas c) {
+    if (!tgx101HasGoToButton()) {
+      tgx101GoToRect.setEmpty();
+      return;
+    }
+    float r = Screen.dp(15f), gap = Screen.dp(8f);
+    boolean onRight = !isOutgoingBubble() != Lang.rtl();
+    float cx = onRight ? bubblePathRect.right + gap + r : bubblePathRect.left - gap - r;
+    float cy = bubblePathRect.bottom - r;
+    tgx101GoToRect.set(cx - r, cy - r, cx + r, cy + r);
+    c.drawCircle(cx, cy, r, Paints.fillingPaint(ColorUtils.alphaColor(tgx101GoToPressed ? .8f : 1f, getBubbleButtonBackgroundColor())));
+    Drawable icon = Drawables.get(R.drawable.baseline_arrow_forward_24);
+    if (icon != null) {
+      int restoreToCount = Views.save(c);
+      c.scale(Lang.rtl() ? -.75f : .75f, .75f, cx, cy);
+      Drawables.draw(c, icon, cx - icon.getMinimumWidth() / 2f, cy - icon.getMinimumHeight() / 2f, Paints.getInlineBubbleIconPaint(getBubbleButtonTextColor()));
+      Views.restore(c, restoreToCount);
+    }
+  }
+
+  private boolean tgx101OnGoToTouch (MessageView view, MotionEvent e) {
+    if (tgx101GoToRect.isEmpty() || !tgx101HasGoToButton()) return false;
+    float slop = Screen.dp(6f);
+    boolean inside = e.getX() >= tgx101GoToRect.left - slop && e.getX() <= tgx101GoToRect.right + slop && e.getY() >= tgx101GoToRect.top - slop && e.getY() <= tgx101GoToRect.bottom + slop;
+    switch (e.getAction()) {
+      case MotionEvent.ACTION_DOWN:
+        if (!inside) return false;
+        tgx101GoToPressed = true;
+        view.invalidate();
+        return true;
+      case MotionEvent.ACTION_MOVE:
+        return tgx101GoToPressed;
+      case MotionEvent.ACTION_UP:
+        if (!tgx101GoToPressed) return false;
+        tgx101GoToPressed = false;
+        view.invalidate();
+        if (inside) {
+          ViewUtils.onClick(view);
+          messagesController().openPreviewMessage(this);
+        }
+        return true;
+      case MotionEvent.ACTION_CANCEL:
+        if (!tgx101GoToPressed) return false;
+        tgx101GoToPressed = false;
+        view.invalidate();
+        return true;
+    }
+    return false;
   }
 
   public final void drawHiddenMessage (MessageView view, Canvas c, float isHiddenFactor) {
@@ -3007,6 +3069,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (messagesController().inSelectMode()) {
       return true;
     }
+    if (!tgx101GoToRect.isEmpty() && tgx101GoToRect.contains(x, y)) {
+      return false; // TGx101: the pinned list's «→»
+    }
     if (commentButton.isVisible() && commentButton.contains(x, y)) {
       // long press is handled in commentButton
       return false;
@@ -3170,6 +3235,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     /*if ((flags & FLAG_HEADER_ENABLED) == 0 && (msg.forwardInfo == null || forwardInfo == null) && replyData == null && (inlineKeyboard == null || inlineKeyboard.isEmpty())) {
       return false;
     }*/
+    if (tgx101OnGoToTouch(view, e)) {
+      return true;
+    }
     if (e.getAction() == MotionEvent.ACTION_DOWN) {
       mInitialTouchX = e.getX();
       mInitialTouchY = e.getY();
