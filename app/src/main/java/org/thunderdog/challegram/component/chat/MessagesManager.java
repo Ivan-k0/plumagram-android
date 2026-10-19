@@ -3383,7 +3383,11 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         // glide missed and a correction (or a snap) followed. Now: a far message — the list stands at once on a real
         // message about 1.5 screens before it, then one smooth scroll finds the message and stops it exactly at its place
         tgx101AutoScrolling = true;
-        if (Math.abs(scrollBy) > screen * 1.5f) {
+        // TGx101 (user video 2026-10-19 15:21, the official app): from the pinned list the chat glides the whole way to an
+        // already loaded message — up or down — instead of standing in 1.5 screens before it (that read as a jump)
+        boolean longGlide = tgx101LongGlideOnce && Math.abs(scrollBy) <= screen * 8f;
+        tgx101LongGlideOnce = false;
+        if (!longGlide && Math.abs(scrollBy) > screen * 1.5f) {
           int pre = tgx101PreJumpIndex(index, scrollBy < 0, (int) (screen * 1.5f));
           if (pre != index) {
             org.thunderdog.challegram.Tgx101Diag.mark("jump: far (" + scrollBy + " px), stand on item " + pre + " for " + index + ", then glide");
@@ -3409,7 +3413,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
           int by = calculateScrollBy(target, offset, false);
           // TGx101 (user video 2026-10-14 13:54, exteraGram beside us: «у них плавно — у нас рывками»): 3600 px in 0.4 s
           // with a decelerating start shot ~500 px a frame. Now as in Telegram: (distance / screen + 1) × 200 ms, soft start
-          int duration = (int) Math.min(900, Math.max(260, (Math.abs(by) / (float) Math.max(1, screen) + 1f) * 200f));
+          int duration = (int) Math.min(longGlide ? 1100 : 900, Math.max(260, (Math.abs(by) / (float) Math.max(1, screen) + 1f) * 200f));
           if (by != 0) list.smoothScrollBy(0, by, TGX101_GLIDE, duration);
           tgx101CheckLanding(target, offset, by, duration);
         });
@@ -3420,6 +3424,9 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       scrollToPositionWithOffsetImpl(index, offset);
     }
   }
+
+  /** the next jump glides the whole way to a loaded message (up to 8 screens), see the pinned list's «→» */
+  public boolean tgx101LongGlideOnce;
 
   /** -1: the chat reloads around an older message, 1: around a newer one / the end; 0: no glide */
   private int tgx101ResetGlide;
@@ -3732,6 +3739,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     }
     int index = adapter.indexOfMessageContainer(messageId);
     if (index == -1) {
+      tgx101LongGlideOnce = false; // not loaded: the reload glides in its usual way
       // TGx101 (user video 2026-10-16 09:43 «опять резко перескакивает»): a message not loaded yet — the chat reloads
       // around it; it then glides the last half screen in the way it went instead of standing there at once
       if (allowSmooth && (highlightMode == HIGHLIGHT_MODE_NORMAL || highlightMode == HIGHLIGHT_MODE_NORMAL_NEXT)) {

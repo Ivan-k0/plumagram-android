@@ -4820,12 +4820,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private @Nullable MessageId tgx101PendingHighlight;
 
-  /** to the message without any scrolling animation, flashing it */
-  public void tgx101JumpInstantly (MessageId id) {
-    org.thunderdog.challegram.component.chat.MessagesManager.tgx101AllowFlashOnce(id.getMessageId());
-    manager.highlightMessage(id, MessagesManager.HIGHLIGHT_MODE_NORMAL, null, false);
-    showMessagesListIfNeeded();
-  }
 
   @Override
   public void onFocus () {
@@ -4837,6 +4831,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // the pinned list's «→» flashes the message, as a reply jump does (user 2026-10-19 «без подсвечивания» — before,
       // per 2026-10-07, only reply jumps flashed)
       org.thunderdog.challegram.component.chat.MessagesManager.tgx101AllowFlashOnce(id.getMessageId());
+      manager.tgx101LongGlideOnce = true;
       highlightMessage(id);
     }
     tgx101UpdateMicExclusion();
@@ -8881,10 +8876,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       ViewController<?> c = previousStackItem();
       if (c instanceof MessagesController && c.getChatId() == getChatId()) {
         if (org.thunderdog.challegram.BuildConfig.TGX101_TEST) {
-          // TGx101 (user 2026-10-19, video of the official app): the chat stands at the message at once, behind this screen,
-          // and the back animation uncovers it already there — no visible scrolling (a smooth jump reloaded the history
-          // and glided through other messages), the message flashes as on a reply jump
-          ((MessagesController) c).tgx101JumpInstantly(msg.toMessageId());
+          // TGx101 (user 2026-10-19, video of the official app 15:21): back to the chat where it was, then one smooth scroll
+          // to the message — up or down, the whole way when it's loaded — and it flashes as on a reply jump
+          ((MessagesController) c).tgx101PendingHighlight = msg.toMessageId(); // glides there once the chat is on screen
           navigateBack();
           return;
         }
