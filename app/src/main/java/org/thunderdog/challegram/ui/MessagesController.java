@@ -3567,6 +3567,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       org.thunderdog.challegram.data.Tgx101BlockedSenders.refresh(tdlib, false); // TGx101: «Hide messages from blocked»
       manager.openChat(chat, messageThread, messageTopicId, previewSearchFilter, this, areScheduled, !inPreviewMode && !isInForceTouchMode());
     }
+    // TGx101 (4PDA ausypher 2026-10-19 «перевод будет, но кнопка исчезнет»): the check above ran before the manager
+    // knew this chat's saved translation — the previous chat's (often none) hid the button; asked again now it does
+    if (!inPreviewMode && !isInForceTouchMode()) tgx101CheckTranslateBar(false);
 
     updateShadowColor();
     if (scheduleButton != null && scheduleButton.setVisible(messageThread == null && tdlib.chatHasScheduled(chat.id))) {

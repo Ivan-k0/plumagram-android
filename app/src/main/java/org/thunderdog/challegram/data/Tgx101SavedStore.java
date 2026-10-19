@@ -673,14 +673,68 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
         if (i == 0) o.put("switchBottomDp", (double) switchBottomDp);
       }
       Settings.instance().pmc().putString(key(), o.toString());
+      shareLook();
     } catch (Throwable t) {
       org.thunderdog.challegram.Tgx101Diag.mark("saved store: save failed " + t.getClass().getSimpleName());
     }
   }
 
+  // TGx101 (4PDA ausypher 2026-10-19 «возвращаю старый дизайн избранного — на втором аккаунте он не применился»): how the
+  // storage looks and behaves is one for all accounts; the folders, tags and what is in them stay each account's own
+  private static final String LOOK_KEY = "tgx101_saved_look";
+
+  private JSONObject look () throws org.json.JSONException {
+    JSONObject o = new JSONObject();
+    o.put("sheet", sheetMode);
+    o.put("open", openMode);
+    o.put("inbox", inboxTile);
+    o.put("pinned", showPinned);
+    o.put("hashtag", hashtagOwn);
+    o.put("panelLabels", panelLabels);
+    o.put("backSwipe", backSwipe);
+    o.put("folderView", folderView);
+    o.put("storageOn", storageOn);
+    o.put("switchButton", switchButton);
+    return o;
+  }
+
+  private void applyLook (JSONObject o) {
+    sheetMode = o.optInt("sheet", sheetMode);
+    openMode = o.optInt("open", openMode);
+    inboxTile = o.optBoolean("inbox", inboxTile);
+    showPinned = o.optBoolean("pinned", showPinned);
+    hashtagOwn = o.optBoolean("hashtag", hashtagOwn);
+    panelLabels = o.optBoolean("panelLabels", panelLabels);
+    backSwipe = o.optInt("backSwipe", backSwipe);
+    folderView = o.optInt("folderView", folderView);
+    storageOn = o.optBoolean("storageOn", storageOn);
+    switchButton = o.optBoolean("switchButton", switchButton);
+  }
+
+  private void shareLook () throws org.json.JSONException {
+    String now = look().toString();
+    if (now.equals(Settings.instance().pmc().getString(LOOK_KEY, null))) return;
+    Settings.instance().pmc().putString(LOOK_KEY, now);
+    JSONObject o = new JSONObject(now);
+    synchronized (Tgx101SavedStore.class) {
+      for (Tgx101SavedStore other : instances.values()) {
+        if (other != this) {
+          synchronized (other) { other.applyLook(o); }
+        }
+      }
+    }
+  }
+
   private void load () {
     String raw = Settings.instance().pmc().getString(key(), null);
-    if (raw == null || raw.isEmpty()) return;
+    if (raw != null && !raw.isEmpty()) loadOwn(raw);
+    try {
+      String shared = Settings.instance().pmc().getString(LOOK_KEY, null);
+      if (shared != null) applyLook(new JSONObject(shared)); // the look last chosen on any account
+    } catch (Throwable ignored) { }
+  }
+
+  private void loadOwn (String raw) {
     try {
       JSONObject o = new JSONObject(raw);
       nextFolderId = o.optLong("next", 1);
