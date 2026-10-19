@@ -1282,6 +1282,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PersonalChannelRemove, "Убрать личный канал");
     RU.put(R.string.Tgx101PersonalChannelHint, "Виден в вашем профиле всем");
     RU.put(R.string.Tgx101PersonalChannelNone, "Нужен публичный канал, где вы владелец");
+    RU.put(R.string.Tgx101VoiceChatCamera, "Камера");
+    RU.put(R.string.Tgx101VoiceChatYouTile, "Вы");
+    RU.put(R.string.Tgx101VoiceChatNoVideo, "Видео недоступно на этой версии Android");
     RU.put(R.string.Tgx101PaintClearAll, "Очистить всё");
     RU.put(R.string.Tgx101PaintMarker, "Флом.");
     RU.put(R.string.Tgx101PaintPencil, "Каранд.");

@@ -167,7 +167,7 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
 
   private @Nullable Tgx101GroupCall call;
   private TextView titleView, statusView, keysView, micLabel, messageBadge;
-  private ImageView micButton, speakerButton, micLock, messageLock;
+  private ImageView micButton, speakerButton, cameraButton, micLock, messageLock;
   private ParticipantsAdapter adapter;
   private @Nullable LinearLayout openMessages;
   private @Nullable Runnable refreshMessages;
@@ -233,6 +233,15 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
     speakerButton = addButton(context, buttons, R.drawable.baseline_volume_up_24, 52, R.string.Tgx101VoiceChatSpeaker, v -> {
       if (call != null) call.toggleSpeaker();
     }, null, null);
+    // my camera (group call video, step 2; mockup: Speaker · Camera · the big microphone · Message · Leave): a tap turns
+    // it on / off, a hold switches the front and the back camera
+    cameraButton = addButton(context, buttons, R.drawable.baseline_videocam_24, 52, R.string.Tgx101VoiceChatCamera, v -> onCameraClick(), null, null);
+    cameraButton.setOnLongClickListener(v -> {
+      if (call == null || !call.isCameraOn()) return false;
+      UI.forceVibrate(v, false);
+      call.switchCamera();
+      return true;
+    });
     micButton = addButton(context, buttons, R.drawable.baseline_mic_24, 76, 0, v -> onMicClick(), label -> micLabel = label, lock -> micLock = lock);
     addButton(context, buttons, R.drawable.baseline_chat_bubble_24, 52, R.string.Tgx101VoiceChatMessage, v -> openMessages(), null, lock -> messageLock = lock);
     addButton(context, buttons, R.drawable.baseline_call_end_24, 52, R.string.Tgx101VoiceChatLeave, v -> onLeaveClick(), null, null).setBackground(circle(COLOR_END));
@@ -273,6 +282,37 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
       return;
     }
     call.toggleMuted();
+  }
+
+  private void onCameraClick () {
+    if (call == null) return;
+    if (call.isCameraOn()) {
+      call.setCameraEnabled(false, null);
+      updateAll();
+      return;
+    }
+    if (!org.thunderdog.challegram.voip.Tgx101GroupVideo.isSupported()) {
+      UI.showToast(R.string.Tgx101VoiceChatNoVideo, Toast.LENGTH_SHORT);
+      return;
+    }
+    Runnable start = () -> {
+      if (call == null || isDestroyed()) return;
+      View preview = org.thunderdog.challegram.voip.Tgx101GroupVideo.createView(context());
+      call.setCameraEnabled(true, preview);
+      if (!call.isCameraOn()) {
+        org.thunderdog.challegram.voip.Tgx101GroupVideo.release(preview);
+        UI.showToast(R.string.Tgx101VideoNoCamera, Toast.LENGTH_SHORT);
+      }
+      updateAll();
+    };
+    if (android.os.Build.VERSION.SDK_INT < 23 || context().checkSelfPermission(android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+      start.run();
+    } else {
+      context().requestCustomPermissions(new String[] {android.Manifest.permission.CAMERA}, (code, permissions, grantResults, grantCount) -> {
+        if (grantCount == permissions.length) start.run();
+        else UI.showToast(R.string.Tgx101VideoNoCamera, Toast.LENGTH_LONG);
+      });
+    }
   }
 
   /** under the finger, at the bottom: «Leave», for admins also «End for everyone» (mockup: confirmation under the finger) */
@@ -614,6 +654,7 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
     micButton.setBackground(circle(call.isMuted() ? 0x33ffffff : COLOR_ACCENT));
     micButton.setAlpha(call.isMuted() ? .8f : 1f);
     speakerButton.setBackground(circle(call.isSpeakerOn() ? 0x55ffffff : 0x22ffffff));
+    cameraButton.setBackground(circle(call.isCameraOn() ? 0x55ffffff : 0x22ffffff));
     adapter.setItems(call.getParticipants());
     updateLocks();
     updateBadge();
@@ -663,52 +704,64 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
   private void updateVideos () {
     if (call == null || videoGrid == null || !org.thunderdog.challegram.voip.Tgx101GroupVideo.isSupported()) return;
     java.util.List<Tgx101GroupCall.VideoSource> sources = call.videoSources();
-    if (sources.size() > 4) sources = sources.subList(0, 4);
-    StringBuilder key = new StringBuilder();
+    View mine = call.isCameraOn() ? call.cameraPreview() : null; // «You»: my camera's own picture, first
+    if (sources.size() > (mine != null ? 3 : 4)) sources = sources.subList(0, mine != null ? 3 : 4);
+    StringBuilder key = new StringBuilder(mine != null ? "me," : "");
     for (Tgx101GroupCall.VideoSource source : sources) key.append(source.info.endpointId).append(',');
     if (key.toString().equals(videoKey)) return;
     videoKey = key.toString();
     clearVideos();
-    if (sources.isEmpty()) {
+    if (sources.isEmpty() && mine == null) {
       videoGrid.setVisibility(View.GONE);
       return;
     }
     videoGrid.setVisibility(View.VISIBLE);
     int width = Screen.currentWidth() - Screen.dp(24f);
-    int count = sources.size();
+    int count = sources.size() + (mine != null ? 1 : 0);
+    if (mine != null) {
+      if (mine.getParent() instanceof ViewGroup) ((ViewGroup) mine.getParent()).removeView(mine);
+      int cell = count == 1 ? width : width / 2;
+      int height = count == 1 ? Math.round(width * .75f) : count == 2 ? Math.round(cell * 1.33f) : cell;
+      videoGrid.addView(videoTile(mine, Lang.getString(R.string.Tgx101VoiceChatYouTile), count, cell, height));
+    }
     int cell = count == 1 ? width : width / 2;
     int height = count == 1 ? Math.round(width * .75f) : count == 2 ? Math.round(cell * 1.33f) : cell;
     for (Tgx101GroupCall.VideoSource source : sources) {
       View renderer = org.thunderdog.challegram.voip.Tgx101GroupVideo.createView(context());
       if (renderer == null) continue;
-      FrameLayout tile = new FrameLayout(context());
-      tile.addView(renderer, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-      TextView name = newText(context(), 12, 0xffffffff, true);
-      name.setText(tdlib.senderName(source.participant.participantId, true) + (source.isScreen ? " · " + Lang.getString(R.string.Tgx101VoiceChatScreen) : ""));
-      name.setShadowLayer(Screen.dp(3f), 0, 0, 0xaa000000);
-      name.setGravity(Gravity.START);
-      FrameLayout.LayoutParams np = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.START);
-      np.leftMargin = np.bottomMargin = Screen.dp(8f);
-      tile.addView(name, np);
-      android.widget.GridLayout.LayoutParams tp = new android.widget.GridLayout.LayoutParams();
-      tp.width = cell - Screen.dp(4f);
-      tp.height = height - Screen.dp(4f);
-      tp.setMargins(Screen.dp(2f), Screen.dp(2f), Screen.dp(2f), Screen.dp(2f));
-      if (count == 1) tp.columnSpec = android.widget.GridLayout.spec(0, 2);
-      if (android.os.Build.VERSION.SDK_INT >= 21) {
-        tile.setClipToOutline(true);
-        tile.setOutlineProvider(new android.view.ViewOutlineProvider() {
-          @Override
-          public void getOutline (View view, android.graphics.Outline outline) {
-            outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), Screen.dp(14f));
-          }
-        });
-      }
-      tile.setBackgroundColor(0xff1f2731);
-      videoGrid.addView(tile, tp);
+      videoGrid.addView(videoTile(renderer, tdlib.senderName(source.participant.participantId, true) + (source.isScreen ? " · " + Lang.getString(R.string.Tgx101VoiceChatScreen) : ""), count, cell, height));
       videoTiles.put(source.info.endpointId, renderer);
       call.setVideoSink(source.info.endpointId, org.thunderdog.challegram.voip.Tgx101GroupVideo.sinkOf(renderer));
     }
+  }
+
+  private View videoTile (View renderer, String title, int count, int cell, int height) {
+    FrameLayout tile = new FrameLayout(context());
+    tile.addView(renderer, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    TextView name = newText(context(), 12, 0xffffffff, true);
+    name.setText(title);
+    name.setShadowLayer(Screen.dp(3f), 0, 0, 0xaa000000);
+    name.setGravity(Gravity.START);
+    FrameLayout.LayoutParams np = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.START);
+    np.leftMargin = np.bottomMargin = Screen.dp(8f);
+    tile.addView(name, np);
+    android.widget.GridLayout.LayoutParams tp = new android.widget.GridLayout.LayoutParams();
+    tp.width = cell - Screen.dp(4f);
+    tp.height = height - Screen.dp(4f);
+    tp.setMargins(Screen.dp(2f), Screen.dp(2f), Screen.dp(2f), Screen.dp(2f));
+    if (count == 1) tp.columnSpec = android.widget.GridLayout.spec(0, 2);
+    if (android.os.Build.VERSION.SDK_INT >= 21) {
+      tile.setClipToOutline(true);
+      tile.setOutlineProvider(new android.view.ViewOutlineProvider() {
+        @Override
+        public void getOutline (View view, android.graphics.Outline outline) {
+          outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), Screen.dp(14f));
+        }
+      });
+    }
+    tile.setBackgroundColor(0xff1f2731);
+    tile.setLayoutParams(tp);
+    return tile;
   }
 
   private void clearVideos () {
@@ -717,7 +770,12 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
       org.thunderdog.challegram.voip.Tgx101GroupVideo.release(entry.getValue());
     }
     videoTiles.clear();
-    if (videoGrid != null) videoGrid.removeAllViews();
+    if (videoGrid != null) {
+      // my camera's preview belongs to the call (it keeps running): only taken out of its tile, never released
+      View mine = call != null ? call.cameraPreview() : null;
+      if (mine != null && mine.getParent() instanceof ViewGroup) ((ViewGroup) mine.getParent()).removeView(mine);
+      videoGrid.removeAllViews();
+    }
   }
 
   // Participants
