@@ -410,11 +410,12 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       if (tgx101VeilShader == null || tgx101VeilHeight != (int) fillingBottom || tgx101VeilColor != color) {
         tgx101VeilHeight = (int) fillingBottom;
         tgx101VeilColor = color;
-        // solid under the status bar (user 2026-10-19: messages showed through under the clock), then .96 → .92 to the bottom edge
-        float statusBar = MathUtils.clamp(headerView.getEffectiveTopOffset() / Math.max(1f, fillingBottom));
+        // one smooth fade (user 2026-10-19 «под часами пусть просвечивает, но еле-еле. нужен плавный переход»): barely see-through
+        // under the clock, .96 at the status bar's bottom, .92 at the header's bottom edge — no step anywhere
+        float statusBar = MathUtils.clamp(headerView.getEffectiveTopOffset() / Math.max(1f, fillingBottom), .01f, .99f);
         tgx101VeilShader = new android.graphics.LinearGradient(0, 0, 0, Math.max(1, fillingBottom),
-          new int[] {color, color, ColorUtils.alphaColor(.96f, color), ColorUtils.alphaColor(.92f, color)},
-          new float[] {0f, statusBar, statusBar, 1f}, android.graphics.Shader.TileMode.CLAMP);
+          new int[] {ColorUtils.alphaColor(.985f, color), ColorUtils.alphaColor(.96f, color), ColorUtils.alphaColor(.92f, color)},
+          new float[] {0f, statusBar, 1f}, android.graphics.Shader.TileMode.CLAMP);
       }
       tgx101VeilPaint.setShader(tgx101VeilShader);
       tgx101VeilPaint.setAlpha((int) (255 * veil));
