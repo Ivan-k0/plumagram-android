@@ -7243,6 +7243,9 @@
   <string name="Tgx101SavedTagsSection">Tags</string>
   <string name="Tgx101SavedHashtagSetting">Tags as hashtags</string>
   <string name="Tgx101SavedHashtagDesc">On: in your own messages a tag is written as a #hashtag — seen on all devices. Off: tags are kept by name on this phone only.</string>
+  <string name="Tgx101RoundFront">Front camera</string>
+  <string name="Tgx101RoundRear">Rear camera</string>
+  <string name="Tgx101RoundAskCamera">Rounds — ask which camera</string>
   <string name="Tgx101QuoteShare">Quote to…</string>
   <string name="Tgx101RoundRememberCamera">Rounds — start with the camera of the last one</string>
   <string name="Tgx101LikeUnavailable">Reactions are off in this chat</string>

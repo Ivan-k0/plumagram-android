@@ -344,6 +344,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideInputEmoji(), isUpdate);
         } else if (itemId == R.id.btn_tgx101RearRounds) {
           view.getToggler().setRadioEnabled(Settings.instance().startRoundWithRear(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101RoundAskCamera) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101RoundAskCamera(), isUpdate);
         } else if (itemId == R.id.btn_tgx101RoundRememberCamera) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101RoundRememberCamera(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HidePhone) {
@@ -602,6 +604,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101RearRounds, 0, R.string.Tgx101RearRounds),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101RoundRememberCamera, 0, R.string.Tgx101RoundRememberCamera),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101RoundAskCamera, 0, R.string.Tgx101RoundAskCamera),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HidePhone, 0, R.string.Tgx101HidePhone),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1047,7 +1051,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       || id == R.id.btn_tgx101QuickReply3 || id == R.id.btn_tgx101QuickReply4 || id == R.id.btn_tgx101QuickReply5) return 2;
     if (id == R.id.btn_tgx101HideCompose || id == R.id.btn_tgx101HideJoin || id == R.id.btn_tgx101HideSponsored) return 0;
     if (id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101SearchHoldProxy || id == R.id.btn_tgx101CapsuleScrollHide || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101CapsuleTabs || id == R.id.btn_tgx101ContactsMenu || id == R.id.btn_tgx101QuickCalls) return 0;
-    if (id == R.id.btn_tgx101RearRounds || id == R.id.btn_tgx101RoundRememberCamera) return 4;
+    if (id == R.id.btn_tgx101RearRounds || id == R.id.btn_tgx101RoundRememberCamera || id == R.id.btn_tgx101RoundAskCamera) return 4;
     if (id == R.id.btn_tgx101HideAllReactions || id == R.id.btn_tgx101HideChannelReactions || id == R.id.btn_tgx101NextChannelSwipe || id == R.id.btn_tgx101NextChannelBackToList || id == R.id.btn_showDiscussButton || id == R.id.btn_showCommentsButton
       || id == R.id.btn_showChannelMuteButton || id == R.id.btn_hideSubscribeLink || id == R.id.btn_separateChannelPosts) return 3;
     if (id == R.id.btn_tgx101VoiceQueue || id == R.id.btn_tgx101CameraInAttach || id == R.id.btn_tgx101ZoomPullClose || id == R.id.btn_roundVideoQuality
@@ -1138,7 +1142,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     int[] inputButtons = {R.id.btn_tgx101HideInputCamera, R.id.btn_tgx101HideInputCommands, R.id.btn_tgx101HideInputEmoji};
     // TGx101 (user 2026-10-12 14:52 «не видно где выключатель рекламы»): channel switches get their own section
     int[] channels = {R.id.btn_tgx101HideSponsored, R.id.btn_tgx101HideJoin};
-    int[] other = {R.id.btn_tgx101RearRounds, R.id.btn_tgx101RoundRememberCamera, R.id.btn_tgx101HidePhone, R.id.btn_tgx101NotificationPlane, R.id.btn_tgx101ForegroundNotif};
+    int[] other = {R.id.btn_tgx101RearRounds, R.id.btn_tgx101RoundRememberCamera, R.id.btn_tgx101RoundAskCamera, R.id.btn_tgx101HidePhone, R.id.btn_tgx101NotificationPlane, R.id.btn_tgx101ForegroundNotif};
     java.util.Map<Integer, ListItem> byId = new java.util.HashMap<>();
     byId.put(R.id.btn_tgx101HideCompose, new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideCompose, 0, R.string.Tgx101HideCompose));
     byId.put(R.id.btn_tgx101HideJoin, new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideJoin, 0, R.string.Tgx101HideJoin));
@@ -1376,6 +1380,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setStartRoundWithRear(toggleResult);
     } else if (id == R.id.btn_tgx101RoundRememberCamera) {
       Settings.instance().setTgx101RoundRememberCamera(toggleResult);
+    } else if (id == R.id.btn_tgx101RoundAskCamera) {
+      Settings.instance().setTgx101RoundAskCamera(toggleResult);
     } else if (id == R.id.btn_tgx101HidePhone) {
       Settings.instance().setHidePhoneNumber(toggleResult);
     } else if (id == R.id.btn_tgx101HideChannelReactions) {

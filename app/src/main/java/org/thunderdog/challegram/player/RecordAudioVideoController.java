@@ -1144,6 +1144,18 @@ public class RecordAudioVideoController implements
   private @Nullable TdApi.MessageTopic targetMessageTopicId;
   private MessagesController targetController;
 
+  /** TGx101: a round from the camera menu — with that camera, at once hands-free (the finger is already up) */
+  public boolean tgx101StartRoundWithCamera (View view, boolean front) {
+    Settings.instance().tgx101SetRoundOneShotFront(front);
+    boolean started = startRecording(view, false);
+    if (started) {
+      setReleased(true, true);
+    } else {
+      Settings.instance().tgx101SetRoundOneShotFront(null);
+    }
+    return started;
+  }
+
   public boolean startRecording (View view, boolean inRaiseMode) {
     if (this.recordMode != RECORD_MODE_NONE) {
       return false;
@@ -1697,6 +1709,7 @@ public class RecordAudioVideoController implements
 
   private void setupCamera (boolean isOwned) {
     ownedCamera.getManager().setPreferFrontFacingCamera(Settings.instance().tgx101RoundStartsFront() && isOwned);
+    if (isOwned) Settings.instance().tgx101SetRoundOneShotFront(null); // the menu's choice is for this round only
     ownedCamera.getManager().setMaxResolution(isOwned ? Settings.roundCameraMaxResolution(Settings.instance().getRoundVideoQuality()) : 0);
     ownedCamera.getLegacyManager().setNoPreviewBlur(false);
     ownedCamera.getLegacyManager().setUseRoundRender(isOwned);

@@ -234,6 +234,14 @@ public class VoiceVideoButtonView extends View implements FactorAnimator.Target,
   private void setInLongTap (boolean inLongTap, boolean byCancel) {
     if (this.inLongTap != inLongTap) {
       boolean success;
+      if (inLongTap && inVideoMode.getValue() && org.thunderdog.challegram.unsorted.Settings.instance().tgx101RoundAskCamera()) {
+        // TGx101 (user 2026-10-20, photo «Front Camera / Rear Camera»): which camera — asked each round; the choice
+        // starts it hands-free
+        tgx101AskCamera();
+        cancelLongTap = true;
+        setIsDown(false);
+        return;
+      }
       if (inLongTap) {
         success = UI.getContext(getContext()).getRecordAudioVideoController().startRecording(this, false);
       } else {
@@ -248,6 +256,23 @@ public class VoiceVideoButtonView extends View implements FactorAnimator.Target,
         setIsDown(false);
       }
     }
+  }
+
+  private void tgx101AskCamera () {
+    org.thunderdog.challegram.navigation.ViewController<?> c = UI.getCurrentStackItem(getContext());
+    org.thunderdog.challegram.util.HapticMenuHelper menu = new org.thunderdog.challegram.util.HapticMenuHelper(view -> {
+      java.util.List<org.thunderdog.challegram.util.HapticMenuHelper.MenuItem> items = new java.util.ArrayList<>();
+      items.add(new org.thunderdog.challegram.util.HapticMenuHelper.MenuItem(org.thunderdog.challegram.R.id.btn_tgx101RoundFront, org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101RoundFront), org.thunderdog.challegram.R.drawable.baseline_camera_front_24));
+      items.add(new org.thunderdog.challegram.util.HapticMenuHelper.MenuItem(org.thunderdog.challegram.R.id.btn_tgx101RoundRear, org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101RoundRear), org.thunderdog.challegram.R.drawable.baseline_camera_rear_24));
+      return items;
+    }, (view, parentView, item) -> {
+      boolean front = view.getId() == org.thunderdog.challegram.R.id.btn_tgx101RoundFront;
+      org.thunderdog.challegram.Tgx101Diag.mark("round: camera picked " + (front ? "front" : "rear"));
+      UI.getContext(getContext()).getRecordAudioVideoController().tgx101StartRoundWithCamera(this, front);
+      return true;
+    }, c != null ? c.getThemeListeners() : null, null);
+    org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK);
+    menu.openMenu(this);
   }
 
   private void performTap () {

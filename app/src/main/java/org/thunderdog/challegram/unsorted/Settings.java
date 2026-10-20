@@ -4502,8 +4502,25 @@ public class Settings {
     pmc.putBoolean("tgx101_round_last_front", front);
   }
 
+  // TGx101 (user 2026-10-20 «давать на выбор при каждом кружке — при нажатии на запись выпадает меню, с какой камеры»)
+  public boolean tgx101RoundAskCamera () {
+    return pmc.getBoolean("tgx101_round_ask_cam", true);
+  }
+
+  public void setTgx101RoundAskCamera (boolean ask) {
+    pmc.putBoolean("tgx101_round_ask_cam", ask);
+  }
+
+  private Boolean tgx101RoundOneShotFront;
+
+  /** the camera picked in the menu for the round about to start */
+  public void tgx101SetRoundOneShotFront (@Nullable Boolean front) {
+    tgx101RoundOneShotFront = front;
+  }
+
   /** the camera a new round starts with */
   public boolean tgx101RoundStartsFront () {
+    if (tgx101RoundOneShotFront != null) return tgx101RoundOneShotFront;
     if (tgx101RoundRememberCamera()) return pmc.getBoolean("tgx101_round_last_front", !startRoundWithRear());
     return !startRoundWithRear();
   }
