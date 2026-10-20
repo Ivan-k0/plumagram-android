@@ -522,9 +522,29 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
     return tgx101StoppedFling;
   }
 
+  private long tgx101FlingEndTime;
+
+  @Override
+  public void onScrollStateChanged (int state) {
+    super.onScrollStateChanged(state);
+    if (state == SCROLL_STATE_IDLE && tgx101LastScrollState == SCROLL_STATE_SETTLING) {
+      tgx101FlingEndTime = android.os.SystemClock.uptimeMillis();
+    }
+    tgx101LastScrollState = state;
+  }
+
+  private int tgx101LastScrollState = SCROLL_STATE_IDLE;
+
   @Override
   public boolean onInterceptTouchEvent (MotionEvent e) {
-    if (e.getActionMasked() == MotionEvent.ACTION_DOWN && getScrollState() == SCROLL_STATE_SETTLING) {
+    if (e.getActionMasked() == MotionEvent.ACTION_DOWN && getScrollState() != SCROLL_STATE_SETTLING
+      && android.os.SystemClock.uptimeMillis() - tgx101FlingEndTime < 300) {
+      // TGx101 (log 2026-10-20 12:01, «ложные касания»): short flicks over a round video's text stop within 0.15 s, and the
+      // next finger landing a moment later — a flick that barely moved — opened the message menu, 4 times in 2 s.
+      // Right after a fling the touch still belongs to the scrolling, not to the message
+      tgx101StoppedFling = true;
+      tgx101FlingEndTime = 0;
+    } else if (e.getActionMasked() == MotionEvent.ACTION_DOWN && getScrollState() == SCROLL_STATE_SETTLING) {
       // TGx101 (user 2026-10-05): a touch on a still-flinging list caught the gesture for the list
       // (requestDisallowInterceptTouchEvent) — the swipe back to the chat list did not work while scrolling.
       // Stop the fling first: the list then treats it as a fresh touch and the back swipe can take it
