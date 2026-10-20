@@ -133,6 +133,10 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
     recyclerView.setVerticalScrollBarEnabled(false);
     Views.setScrollBarPosition(recyclerView);
     recyclerView.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, reverseLayout));
+    recyclerView.getViewTreeObserver().addOnPreDrawListener(() -> {
+      tgx101ApplyDrum();
+      return true;
+    });
     recyclerView.addItemDecoration(new RecyclerView.ItemDecoration() {
       @Override
       public void onDrawOver (@NonNull Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
@@ -714,6 +718,66 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
   private long tgx101LastTap;
 
   /**
+   * TGx101 (user video 2026-10-20 20:01 «закреп возвращается назад с рывками… нужна плавная анимация, лучше как барабан,
+   * везде при взаимодействии с закрепом»): one even roll of one row — a far target is first stood next to at once —
+   * and the rows turn over the bar's edge like a drum (see {@link #tgx101ApplyDrum()}).
+   */
+  private void tgx101RollTo (int target) {
+    LinearLayoutManager manager = (LinearLayoutManager) recyclerView.getLayoutManager();
+    if (manager == null || target < 0 || target >= messagesAdapter.getItemCount()) return;
+    recyclerView.stopScroll();
+    int current = manager.findFirstCompletelyVisibleItemPosition();
+    if (current == RecyclerView.NO_POSITION) current = manager.findFirstVisibleItemPosition();
+    if (current == target) return;
+    if (current != RecyclerView.NO_POSITION && Math.abs(target - current) > 1) {
+      manager.scrollToPositionWithOffset(target > current ? target - 1 : target + 1, 0);
+    }
+    final int itemHeight = tgx101ItemHeight();
+    androidx.recyclerview.widget.LinearSmoothScroller scroller = new androidx.recyclerview.widget.LinearSmoothScroller(getContext()) {
+      @Override
+      protected int calculateTimeForScrolling (int dx) {
+        return Math.max(60, Math.min(420, Math.round(340f * dx / Math.max(1, itemHeight))));
+      }
+
+      @Override
+      protected int calculateTimeForDeceleration (int dx) {
+        return calculateTimeForScrolling(dx); // an even roll that settles, no fast start
+      }
+
+      @Override
+      protected int getVerticalSnapPreference () {
+        return SNAP_TO_START;
+      }
+    };
+    scroller.setTargetPosition(target);
+    recyclerView.post(() -> manager.startSmoothScroll(scroller));
+  }
+
+  /** the collapsed bar's rows turn over its top and bottom edges as the faces of a drum */
+  private void tgx101ApplyDrum () {
+    final boolean drum = tgx101Compact && getExpandFactor() == 0f;
+    final int height = recyclerView.getHeight();
+    final float center = height / 2f;
+    for (int i = 0; i < recyclerView.getChildCount(); i++) {
+      View view = recyclerView.getChildAt(i);
+      if (!drum || view.getHeight() == 0) {
+        if (view.getRotationX() != 0f) view.setRotationX(0f);
+        if (view.getAlpha() != 1f) view.setAlpha(1f);
+        continue;
+      }
+      float d = ((view.getTop() + view.getBottom()) / 2f - center) / view.getHeight(); // −1 above … 0 shown … 1 below
+      d = Math.max(-1f, Math.min(1f, d));
+      float rotation = -d * 75f;
+      float alpha = 1f - Math.abs(d) * .85f;
+      view.setCameraDistance(view.getHeight() * 24f);
+      view.setPivotX(view.getWidth() / 2f);
+      view.setPivotY(d > 0 ? 0 : view.getHeight()); // turns about the edge it shares with the bar
+      if (Math.abs(view.getRotationX() - rotation) > .05f) view.setRotationX(rotation);
+      if (Math.abs(view.getAlpha() - alpha) > .005f) view.setAlpha(alpha);
+    }
+  }
+
+  /**
    * TGx101 (user 2026-10-20 15:57): as in the official app, the collapsed row shows the pinned message nearest above
    * where the chat stands — scrolling down the chat brings the newer pinned ones, up the older. Not right after a tap
    * on the row: the tap's jump and «next» go first.
@@ -742,7 +806,7 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
     if (current == RecyclerView.NO_POSITION) current = manager.findFirstVisibleItemPosition();
     if (current == target) return;
     org.thunderdog.challegram.Tgx101Diag.mark("pinned: follows the chat " + current + " → " + target);
-    recyclerView.smoothScrollToPosition(target);
+    tgx101RollTo(target);
   }
 
   private void showNextPinnedMessage (int position) {
@@ -751,18 +815,13 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
     }
     int nextPosition = position + 1;
     if (nextPosition < messagesAdapter.getItemCount()) {
-      recyclerView.smoothScrollToPosition(nextPosition);
+      tgx101RollTo(nextPosition);
     } else if (messageList.getCount() < messageList.getTotalCount()) {
       messageList.loadItems(false, null);
     } else if (position != 0) {
       // Past the oldest pinned message: start over from the newest one.
-      if (position <= 12) {
-        // TGx101 (user 2026-10-20 15:57 «при перелистывании закрепа по тапу — анимация по полоскам слева»): the lines
-        // run back to the first one instead of a jump
-        recyclerView.smoothScrollToPosition(0);
-      } else {
-        ((LinearLayoutManager) recyclerView.getLayoutManager()).scrollToPositionWithOffset(0, 0);
-      }
+      // TGx101 (user 2026-10-20 «при перелистывании закрепа — анимация», «как барабан»): rolls back to the first one
+      tgx101RollTo(0);
     }
   }
 
