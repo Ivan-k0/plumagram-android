@@ -173,10 +173,15 @@ public final class Tgx101CallBubble {
             startX = params.x;
             startY = params.y;
             dragging = false;
+            // (user 2026-10-20 15:35 «доработать анимацию — появление, нажатие, раскрытие»): it gives under the finger
+            pill.animate().scaleX(.9f).scaleY(.9f).setDuration(110).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
             return true;
           case MotionEvent.ACTION_MOVE: {
             float dx = e.getRawX() - downRawX, dy = e.getRawY() - downRawY;
-            if (!dragging && Math.hypot(dx, dy) > slop) dragging = true;
+            if (!dragging && Math.hypot(dx, dy) > slop) {
+              dragging = true;
+              pill.animate().scaleX(1.06f).scaleY(1.06f).setDuration(140).start(); // lifted while it moves
+            }
             if (dragging) {
               params.x = startX + (int) dx;
               params.y = startY + (int) dy;
@@ -184,7 +189,11 @@ public final class Tgx101CallBubble {
             }
             return true;
           }
+          case MotionEvent.ACTION_CANCEL:
+            pill.animate().scaleX(1f).scaleY(1f).setDuration(160).start();
+            return true;
           case MotionEvent.ACTION_UP:
+            pill.animate().scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(new android.view.animation.OvershootInterpolator(2.4f)).start();
             if (dragging) {
               snapToSide();
               return true;
@@ -206,11 +215,22 @@ public final class Tgx101CallBubble {
     });
   }
 
-  private final Runnable openLater = this::openCall;
+  private final Runnable openLater = this::tgx101Open;
+
+  private void tgx101Open () {
+    // the opening: the capsule swells and melts while the call screen comes up
+    pill.animate().scaleX(1.25f).scaleY(1.25f).alpha(0f).setDuration(180).setInterpolator(new android.view.animation.AccelerateInterpolator()).start();
+    openCall();
+  }
 
   private void attach () {
     try {
+      pill.setScaleX(.4f);
+      pill.setScaleY(.4f);
+      pill.setAlpha(0f);
       windowManager.addView(pill, params);
+      // grows out of a point with a little spring
+      pill.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(320).setInterpolator(new android.view.animation.OvershootInterpolator(1.6f)).start();
       org.thunderdog.challegram.Tgx101Diag.mark("call bubble: shown");
     } catch (Throwable t) {
       org.thunderdog.challegram.Tgx101Diag.mark("call bubble: can't show — " + t);
@@ -226,9 +246,13 @@ public final class Tgx101CallBubble {
     UI.cancel(openLater);
     lastX = params.x;
     lastY = params.y;
-    try {
-      windowManager.removeView(pill);
-    } catch (Throwable ignored) { }
+    // shrinks and fades, then leaves the screen
+    pill.animate().cancel();
+    pill.animate().scaleX(.4f).scaleY(.4f).alpha(0f).setDuration(160).setInterpolator(new android.view.animation.AccelerateInterpolator()).withEndAction(() -> {
+      try {
+        windowManager.removeView(pill);
+      } catch (Throwable ignored) { }
+    }).start();
   }
 
   private void update () {
