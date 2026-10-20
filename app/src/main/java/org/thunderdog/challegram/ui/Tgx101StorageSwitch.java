@@ -60,7 +60,8 @@ public final class Tgx101StorageSwitch extends View {
   private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final RectF rect = new RectF();
   private final @Nullable Drawable chatIcon;
-  private final int size = Screen.dp(52f), margin = Screen.dp(12f);
+  // (user photo 2026-10-20 15:58 «стрелку и плавающую нашу кнопку — один отступ с края, лучше как стрелка»): 16 dp, as the «down» arrow
+  private final int size = Screen.dp(52f), margin = Screen.dp(16f);
 
   public Tgx101StorageSwitch (Context context, ViewController<?> controller, int where, Host host) {
     super(context);
