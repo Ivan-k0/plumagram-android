@@ -429,6 +429,7 @@ public class TGCallService extends Service implements
       filter.addAction(Intents.ACTION_DECLINE_CALL);
       filter.addAction(Intents.ACTION_ANSWER_CALL);*/
       registerReceiver(receiver, filter);
+      tgx101WatchNetwork(true);
 
       am.registerMediaButtonEventReceiver(new ComponentName(this, VoIPMediaButtonReceiver.class));
 
@@ -535,6 +536,7 @@ public class TGCallService extends Service implements
     } catch (Throwable t) {
       Log.w(Log.TAG_VOIP, "Cannot unregister receiver", t);
     }
+    tgx101WatchNetwork(false);
 
     if (reference != null && reference.get() == this) {
       reference = null;
@@ -1800,6 +1802,55 @@ public class TGCallService extends Service implements
   private NetworkInfo lastNetInfo;
   private @CallNetworkType int lastNetworkType = CallNetworkType.UNKNOWN;
 
+  // TGx101 (user 2026-10-20 «звонок оборвался, когда выключил Wi-Fi», «ты добавил логи для этого теста?»): the system's
+  // own network events during a call, what goes to tgcalls and how long the call takes to come back
+
+  private long tgx101NetChangeAt;
+  private Object tgx101NetCallback;
+
+  private void tgx101WatchNetwork (boolean watch) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return;
+    ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+    if (cm == null) return;
+    try {
+      if (watch && tgx101NetCallback == null) {
+        ConnectivityManager.NetworkCallback callback = new ConnectivityManager.NetworkCallback() {
+          @Override
+          public void onAvailable (@NonNull android.net.Network network) {
+            tgx101NetEvent("available " + network);
+          }
+
+          @Override
+          public void onLost (@NonNull android.net.Network network) {
+            tgx101NetEvent("lost " + network);
+          }
+
+          @Override
+          public void onCapabilitiesChanged (@NonNull android.net.Network network, @NonNull android.net.NetworkCapabilities caps) {
+            String transport = caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) ? "wifi" : caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) ? "cellular" : "other";
+            org.thunderdog.challegram.Tgx101Diag.mark("[call] network " + network + " " + transport + (caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED) ? " validated" : " not validated"));
+          }
+        };
+        cm.registerDefaultNetworkCallback(callback);
+        tgx101NetCallback = callback;
+      } else if (!watch && tgx101NetCallback != null) {
+        cm.unregisterNetworkCallback((ConnectivityManager.NetworkCallback) tgx101NetCallback);
+        tgx101NetCallback = null;
+      }
+    } catch (Throwable t) {
+      org.thunderdog.challegram.Tgx101Diag.mark("[call] network watch failed " + t.getClass().getSimpleName());
+    }
+  }
+
+  private void tgx101NetEvent (String what) {
+    tgx101NetChangeAt = android.os.SystemClock.elapsedRealtime();
+    org.thunderdog.challegram.Tgx101Diag.mark("[call] network " + what + " (" + org.thunderdog.challegram.Tgx101Diag.network() + ")");
+    // tell tgcalls at once — the old connectivity broadcast comes later, if at all
+    UI.post(() -> {
+      if (!isDestroyed) updateNetworkType(true);
+    });
+  }
+
   private void updateNetworkType (boolean dispatchToTgCalls) {
     ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
     NetworkInfo info = cm.getActiveNetworkInfo();
@@ -1843,6 +1894,9 @@ public class TGCallService extends Service implements
           type = CallNetworkType.ETHERNET;
           break;
       }
+    }
+    if (type != this.lastNetworkType || dispatchToTgCalls) {
+      org.thunderdog.challegram.Tgx101Diag.mark("[call] network type " + this.lastNetworkType + " → " + type + (info != null ? " (" + info.getTypeName() + "/" + info.getSubtypeName() + (info.isConnected() ? ", connected" : ", not connected") + ")" : " (no network)") + (dispatchToTgCalls && tgcalls != null ? ", sent to tgcalls" : ""));
     }
     this.lastNetworkType = type;
     if (dispatchToTgCalls && tgcalls != null) {
@@ -1951,7 +2005,8 @@ public class TGCallService extends Service implements
 
       @Override
       public void onConnectionStateChanged (VoIPInstance context, @CallState int newState) {
-        org.thunderdog.challegram.Tgx101Diag.mark("[call] connection state " + newState + " (" + org.thunderdog.challegram.Tgx101Diag.network() + ")");
+        long sinceNet = tgx101NetChangeAt != 0 ? android.os.SystemClock.elapsedRealtime() - tgx101NetChangeAt : -1;
+        org.thunderdog.challegram.Tgx101Diag.mark("[call] connection state " + newState + " (" + org.thunderdog.challegram.Tgx101Diag.network() + ")" + (sinceNet >= 0 && sinceNet < 60000 ? ", " + sinceNet + " ms after the network change" : ""));
         if (newState == CallState.ESTABLISHED) {
           if (!vibratedOnConnect) { // TGx101: a short vibration when the call connects, as in the official app
             vibratedOnConnect = true;
