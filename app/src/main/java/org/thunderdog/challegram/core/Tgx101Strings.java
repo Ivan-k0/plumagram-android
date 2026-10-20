@@ -1359,6 +1359,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MediaPhotos, "Фото");
     RU.put(R.string.Tgx101MediaVideos, "Видео");
     RU.put(R.string.Tgx101MediaColumns, "Столбцов: %1$d");
+    RU.put(R.string.Tgx101Torch, "Фонарик");
+    RU.put(R.string.Tgx101TorchOn, "Включить фонарик");
+    RU.put(R.string.Tgx101TorchOff, "Выключить фонарик");
+    RU.put(R.string.Tgx101TorchBusy, "Фонарик занят — снимает задняя камера");
     RU.put(R.string.Tgx101SnoozeLike, "👍 Нравится");
     RU.put(R.string.Tgx101SnoozeHeart, "❤️");
     RU.put(R.string.Tgx101SnoozeLiked, "%1$s — реакция поставлена");

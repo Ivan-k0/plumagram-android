@@ -413,6 +413,14 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
           else startScreenSharing();
         }));
       }
+      if (org.thunderdog.challegram.tool.Tgx101Torch.isAvailable()) {
+        // (user 2026-10-20 18:24) the flashlight during a call
+        boolean torch = org.thunderdog.challegram.tool.Tgx101Torch.isOn();
+        body.addView(Tgx101Sheet.row(context, torch ? R.drawable.baseline_flash_on_24 : R.drawable.baseline_flash_off_24, 0, Lang.getString(torch ? R.string.Tgx101TorchOff : R.string.Tgx101TorchOn), null, false, v -> {
+          h[0].dismiss();
+          org.thunderdog.challegram.tool.Tgx101Torch.toggle();
+        }));
+      }
       int unread = call.unreadMessages();
       body.addView(Tgx101Sheet.row(context, R.drawable.baseline_chat_bubble_24, 0, Lang.getString(R.string.Tgx101VoiceChatMessages), unread > 0 ? Lang.getString(R.string.Tgx101VoiceChatNewMessages, unread) : null, false, v -> {
         h[0].dismiss();

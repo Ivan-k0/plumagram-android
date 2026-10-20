@@ -136,6 +136,10 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
         host.toggleSpeaker();
         update();
       });
+      if (org.thunderdog.challegram.tool.Tgx101Torch.isAvailable()) {
+        // (user 2026-10-20 18:24) the flashlight during a call
+        torchButton = addCapsuleButton(R.drawable.baseline_flash_off_24, R.string.Tgx101Torch, v -> toggleTorch());
+      }
       addCapsuleButton(R.drawable.baseline_chat_bubble_24, R.string.Tgx101CallChat, v -> host.openChat());
       ImageView endButton = new ImageView(controller.context());
       endButton.setImageResource(R.drawable.baseline_call_end_24);
@@ -171,6 +175,9 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
       host.toggleMicMuted();
       update();
     });
+    if (org.thunderdog.challegram.tool.Tgx101Torch.isAvailable()) {
+      torchButton = addPanelButton(R.drawable.baseline_flash_off_24, v -> toggleTorch());
+    }
     addPanelButton(R.drawable.baseline_chat_bubble_24, v -> host.openChat());
     ImageView endButton = addPanelButton(R.drawable.baseline_call_end_24, v -> host.hangUp());
     ((GradientDrawable) endButton.getBackground()).setColor(COLOR_END);
@@ -279,6 +286,16 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
 
   void updateControls () {
     update();
+  }
+
+  private ImageView torchButton;
+
+  private void toggleTorch () {
+    boolean on = org.thunderdog.challegram.tool.Tgx101Torch.toggle();
+    if (torchButton != null) {
+      torchButton.setImageResource(on ? R.drawable.baseline_flash_on_24 : R.drawable.baseline_flash_off_24);
+      torchButton.setContentDescription(org.thunderdog.challegram.core.Lang.getString(on ? R.string.Tgx101TorchOff : R.string.Tgx101TorchOn));
+    }
   }
 
   private ImageView addPanelButton (int icon, View.OnClickListener onClick) {

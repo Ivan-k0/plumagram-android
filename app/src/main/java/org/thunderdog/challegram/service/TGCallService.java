@@ -526,6 +526,7 @@ public class TGCallService extends Service implements
   public void onDestroy () {
     this.isDestroyed = true;
     Log.v(Log.TAG_VOIP, "TGCallService.onDestroy");
+    org.thunderdog.challegram.tool.Tgx101Torch.set(false); // TGx101: the call's flashlight goes off with the call
 
     setCall(null);
     updateCurrentState();

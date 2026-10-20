@@ -7243,6 +7243,10 @@
   <string name="Tgx101SavedTagsSection">Tags</string>
   <string name="Tgx101SavedHashtagSetting">Tags as hashtags</string>
   <string name="Tgx101SavedHashtagDesc">On: in your own messages a tag is written as a #hashtag — seen on all devices. Off: tags are kept by name on this phone only.</string>
+  <string name="Tgx101Torch">Flashlight</string>
+  <string name="Tgx101TorchOn">Turn the flashlight on</string>
+  <string name="Tgx101TorchOff">Turn the flashlight off</string>
+  <string name="Tgx101TorchBusy">The flashlight is busy — the back camera is filming</string>
   <string name="Tgx101SnoozeLike">👍 Like</string>
   <string name="Tgx101SnoozeHeart">❤️</string>
   <string name="Tgx101SnoozeLiked">%1$s — reaction set</string>

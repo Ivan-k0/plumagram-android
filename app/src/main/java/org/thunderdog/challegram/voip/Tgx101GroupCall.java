@@ -935,6 +935,7 @@ public final class Tgx101GroupCall implements GroupCallListener {
 
   public void leave () {
     if (state != STATE_ENDED) org.thunderdog.challegram.Tgx101Diag.mark("voice chat: leave");
+    org.thunderdog.challegram.tool.Tgx101Torch.set(false); // TGx101: the call's flashlight goes off with the call
     if (state == STATE_ENDED) return;
     tdlib.send(new TdApi.LeaveGroupCall(groupCallId), (ok, error) -> { });
     end();
