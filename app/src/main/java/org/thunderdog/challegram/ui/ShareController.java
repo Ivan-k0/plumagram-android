@@ -155,6 +155,41 @@ public class ShareController extends TelegramViewController<ShareController.Args
   ChatListListener, Filter<TdApi.Chat>, InputView.SelectionChangeListener {
   private static final int MODE_MESSAGES = 0;
   private static final int MODE_TEXT = 1;
+
+  /** the quote as a block quote, then the comment on its own line under it */
+  private static TdApi.FormattedText tgx101QuoteWithComment (TdApi.FormattedText quote, @Nullable TdApi.FormattedText comment) {
+    String quoteText = quote.text.trim();
+    int lead = quote.text.indexOf(quoteText);
+    java.util.List<TdApi.TextEntity> entities = new java.util.ArrayList<>();
+    entities.add(new TdApi.TextEntity(0, quoteText.length(), new TdApi.TextEntityTypeBlockQuote()));
+    if (quote.entities != null) {
+      for (TdApi.TextEntity e : quote.entities) {
+        if (e.type instanceof TdApi.TextEntityTypeBlockQuote || e.type instanceof TdApi.TextEntityTypeExpandableBlockQuote) continue;
+        int start = Math.max(0, e.offset - lead), end = Math.min(quoteText.length(), e.offset - lead + e.length);
+        if (end > start) entities.add(new TdApi.TextEntity(start, end - start, e.type));
+      }
+    }
+    StringBuilder text = new StringBuilder(quoteText);
+    if (comment != null && !Td.isEmpty(comment)) {
+      text.append('\n');
+      int shift = text.length();
+      text.append(comment.text);
+      if (comment.entities != null) {
+        for (TdApi.TextEntity e : comment.entities) entities.add(new TdApi.TextEntity(e.offset + shift, e.length, e.type));
+      }
+    }
+    return new TdApi.FormattedText(text.toString(), entities.toArray(new TdApi.TextEntity[0]));
+  }
+
+  /** opens the chat picker sending the text as a quote, with the comment field under it */
+  public static void tgx101ShareAsQuote (ViewController<?> context, TdApi.FormattedText quote) {
+    if (quote == null || StringUtils.isEmpty(quote.text.trim())) return;
+    ShareController c = new ShareController(context.context(), context.tdlib());
+    Args args = new Args(quote);
+    args.tgx101Quote = true;
+    c.setArguments(args);
+    c.show();
+  }
   private static final int MODE_GAME = 2;
   private static final int MODE_FILES = 3;
   private static final int MODE_CONTACT = 4;
@@ -207,6 +242,9 @@ public class ShareController extends TelegramViewController<ShareController.Args
     private boolean allowCopyLink;
 
     private boolean disallowReply;
+    /** TGx101 (user 2026-10-20 «скопировать чужой текст как цитату, без имени, а внизу — мой комментарий»): the text
+     * goes as a block quote and the comment under it — one message */
+    public boolean tgx101Quote;
 
     private ShareProviderDelegate customDelegate;
 
@@ -3973,6 +4011,10 @@ public class ShareController extends TelegramViewController<ShareController.Args
       }
       TdApi.MessageSendOptions sendOptions = ChatId.isSecret(chatId) ? secretSendOptions : cloudSendOptions;
       boolean messageReplyIncluded = false;
+      if (mode == MODE_TEXT && args.tgx101Quote) {
+        functions.addAll(TD.sendMessageText(chatId, null, null, sendOptions, new TdApi.InputMessageText(tgx101QuoteWithComment(args.text, hasComment ? comment : null), null, false), tdlib.maxMessageTextLength()));
+        continue;
+      }
       if (hasComment) {
         TdApi.InputMessageReplyToMessage replyTo = null;
         if (Config.FORCE_REPLY_WHEN_FORWARDING_WITH_COMMENT && !args.disallowReply && !ChatId.isSecret(chatId) && mode == MODE_MESSAGES && !(needHideAuthor || needRemoveCaptions) && args.messages[0].chatId != chatId) {

@@ -1755,6 +1755,7 @@
   <item name="btn_tgx101TranslateNotChat" type="id"/>
   <item name="btn_tgx101SuggestChatTranslation" type="id"/>
   <item name="btn_tgx101InputMore" type="id"/>
+  <item name="btn_tgx101QuoteShare" type="id"/>
   <item name="btn_tgx101RoundRememberCamera" type="id"/>
   <item name="btn_tgx101Ai" type="id"/>
   <item name="btn_tgx101AiFix" type="id"/>

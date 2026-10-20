@@ -7154,6 +7154,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
         if (text != null)
           UI.copyText(TD.toCopyText(text), R.string.CopiedText);
         return true;
+      } else if (id == R.id.btn_tgx101QuoteShare) {
+        TdApi.Message message = null;
+        if (selectedMessage instanceof TGMessageMedia) {
+          message = selectedMessage.getMessage(((TGMessageMedia) selectedMessage).getCaptionMessageId());
+        }
+        if (message == null) message = selectedMessage.getNewestMessage();
+        TdApi.FormattedText text = selectedMessage.isTranslated() ? selectedMessage.getTranslatedText() : Td.textOrCaption(message.content);
+        ShareController.tgx101ShareAsQuote(this, text);
+        return true;
       } else if (id == R.id.btn_messageTranscribe) {
         String transcription = org.thunderdog.challegram.data.Tgx101Transcription.doneText(tdlib, selectedMessage.getMessage());
         if (transcription != null) {

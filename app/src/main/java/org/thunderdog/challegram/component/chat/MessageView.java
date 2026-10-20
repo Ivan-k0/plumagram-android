@@ -993,6 +993,10 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       }
       icons.append(R.drawable.baseline_content_copy_24);
 
+      ids.append(R.id.btn_tgx101QuoteShare); // TGx101 (user 2026-10-20): as a quote to another chat, with a comment
+      strings.append(R.string.Tgx101QuoteShare);
+      icons.append(R.drawable.baseline_format_quote_close_24);
+
       // TGx101 (user 2026-10-06): «Select» text — the in-bubble selection from the point the finger first touched.
       // Only with «Long press: menu» (iOS mode): otherwise a second long press selects text, the item isn't needed
       if (Settings.instance().tgx101LongPressMenu() && !msg.isTranslated() && msg.tgx101SelectableText() != null) {
