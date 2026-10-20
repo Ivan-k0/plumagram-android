@@ -697,6 +697,7 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
         if (entry.isLinkPreview()) {
           messageListener.onSelectLinkPreviewUrl(this, entry.linkPreviewContext, entry.linkPreviewUrl);
         } else if (entry.isMessage()) {
+          tgx101LastTap = android.os.SystemClock.uptimeMillis();
           messageListener.onMessageClick(this, entry.message, entry.quote);
           if (messageList != null && !isExpanded.getValue()) {
             // Like the official app: each tap on the collapsed bar jumps to the shown
@@ -710,6 +711,40 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
     }
   }
 
+  private long tgx101LastTap;
+
+  /**
+   * TGx101 (user 2026-10-20 15:57): as in the official app, the collapsed row shows the pinned message nearest above
+   * where the chat stands — scrolling down the chat brings the newer pinned ones, up the older. Not right after a tap
+   * on the row: the tap's jump and «next» go first.
+   */
+  public void tgx101FollowChat (long messageId) {
+    if (messageId == 0 || messageList == null || isExpanded.getValue() || messagesAdapter == null) return;
+    if (android.os.SystemClock.uptimeMillis() - tgx101LastTap < 2500) return;
+    java.util.List<ListItem> items = messagesAdapter.getItems();
+    int target = -1;
+    for (int i = 0; i < items.size(); i++) {
+      Object data = items.get(i).getData();
+      if (data instanceof Entry && ((Entry) data).message != null && ((Entry) data).message.id <= messageId) {
+        target = i;
+        break;
+      }
+    }
+    if (target == -1) {
+      // above every loaded pinned message: the oldest loaded one (more load as the chat scrolls up)
+      for (int i = items.size() - 1; i >= 0; i--) {
+        if (items.get(i).getData() instanceof Entry) { target = i; break; }
+      }
+    }
+    if (target == -1) return;
+    LinearLayoutManager manager = (LinearLayoutManager) recyclerView.getLayoutManager();
+    int current = manager.findFirstCompletelyVisibleItemPosition();
+    if (current == RecyclerView.NO_POSITION) current = manager.findFirstVisibleItemPosition();
+    if (current == target) return;
+    org.thunderdog.challegram.Tgx101Diag.mark("pinned: follows the chat " + current + " → " + target);
+    recyclerView.smoothScrollToPosition(target);
+  }
+
   private void showNextPinnedMessage (int position) {
     if (position == RecyclerView.NO_POSITION) {
       return;
@@ -721,7 +756,13 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
       messageList.loadItems(false, null);
     } else if (position != 0) {
       // Past the oldest pinned message: start over from the newest one.
-      ((LinearLayoutManager) recyclerView.getLayoutManager()).scrollToPositionWithOffset(0, 0);
+      if (position <= 12) {
+        // TGx101 (user 2026-10-20 15:57 «при перелистывании закрепа по тапу — анимация по полоскам слева»): the lines
+        // run back to the first one instead of a jump
+        recyclerView.smoothScrollToPosition(0);
+      } else {
+        ((LinearLayoutManager) recyclerView.getLayoutManager()).scrollToPositionWithOffset(0, 0);
+      }
     }
   }
 

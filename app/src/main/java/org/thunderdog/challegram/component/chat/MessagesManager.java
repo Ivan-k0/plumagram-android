@@ -2961,6 +2961,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
 
       if (pinnedMessages != null && chatId == scrollMessageChatId) {
         pinnedMessages.ensureMessageAvailability(scrollMessageId);
+        controller.tgx101PinnedFollow(scrollMessageId);
       }
     }
   }

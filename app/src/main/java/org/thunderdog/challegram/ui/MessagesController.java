@@ -9829,6 +9829,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
     inputView.setInput(TD.toCharSequence(text), true, true);
   }
 
+  /** TGx101 (user 2026-10-20 15:57 «спускаешься вниз чата — закреп спускается вместе с чатом»): the pinned row follows the chat */
+  public void tgx101PinnedFollow (long messageId) {
+    if (pinnedMessagesBar != null) pinnedMessagesBar.tgx101FollowChat(messageId);
+  }
+
   private void updateSilentButton (boolean visible) {
     if (Config.NEED_SILENT_BROADCAST) {
       if (silentButton.setVisible(visible)) {
