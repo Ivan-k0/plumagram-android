@@ -7255,5 +7255,5 @@
   <string name="Tgx101AiDone">Done. «Bring the text back» is in the same menu</string>
   <string name="Tgx101AiPremium">The free AI requests are over — Telegram asks for Premium</string>
   <string name="Tgx101AiFailed">AI: %1$s</string>
-  <string name="Tgx101AiInfo">Telegram's AI works on its servers — the phone only sends the text</string>
+  <string name="Tgx101AiInfo">Telegram\'s AI works on its servers — the phone only sends the text</string>
 </resources>
