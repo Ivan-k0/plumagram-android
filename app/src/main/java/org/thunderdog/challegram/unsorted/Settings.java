@@ -3919,6 +3919,9 @@ public class Settings {
   private static final String KEY_TGX101_SNOOZE_MINUTES = "tgx101_snooze_minutes";
 
   /** TGx101 (user 2026-10-05): «Snooze» in a message notification mutes that chat for this many minutes; 0 = no button */
+  /** the notification's third button sets a reaction instead of «Quiet N min» (stored in the same setting) */
+  public static final int TGX101_NOTIF_BUTTON_LIKE = -1, TGX101_NOTIF_BUTTON_HEART = -2;
+
   public int tgx101SnoozeMinutes () {
     return pmc.getInt(KEY_TGX101_SNOOZE_MINUTES, 30);
   }

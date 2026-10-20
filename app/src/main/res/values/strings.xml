@@ -6462,7 +6462,7 @@
   <string name="Tgx101SnoozeAction">Quiet %1$s</string>
   <string name="Tgx101SnoozeMins">%1$dm</string>
   <string name="Tgx101SnoozeHours">%1$dh</string>
-  <string name="Tgx101SnoozeSetting">«Quiet» in notifications</string>
+  <string name="Tgx101SnoozeSetting">Third button in notifications</string>
   <string name="Tgx101SectionChatList">Chat list</string>
   <string name="Tgx101SectionChatListHint">Filters, pull to search, input field</string>
   <string name="Tgx101SectionStories">Stories</string>
@@ -7243,6 +7243,9 @@
   <string name="Tgx101SavedTagsSection">Tags</string>
   <string name="Tgx101SavedHashtagSetting">Tags as hashtags</string>
   <string name="Tgx101SavedHashtagDesc">On: in your own messages a tag is written as a #hashtag — seen on all devices. Off: tags are kept by name on this phone only.</string>
+  <string name="Tgx101SnoozeLike">👍 Like</string>
+  <string name="Tgx101SnoozeHeart">❤️</string>
+  <string name="Tgx101SnoozeLiked">%1$s — reaction set</string>
   <string name="Tgx101Ai">AI assistant</string>
   <string name="Tgx101AiFix">Fix mistakes</string>
   <string name="Tgx101AiShorten">Make shorter</string>

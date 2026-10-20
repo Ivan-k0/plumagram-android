@@ -376,7 +376,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(FOREGROUND_NOTIF_NAMES[Math.max(0, Math.min(2, Settings.instance().tgx101ForegroundNotifMode()))]);
         } else if (itemId == R.id.btn_tgx101Snooze) {
           int minutes = Settings.instance().tgx101SnoozeMinutes();
-          view.setData(minutes > 0 ? Lang.getString(R.string.Tgx101SnoozeMinutes, minutes) : Lang.getString(R.string.Tgx101SnoozeOff));
+          view.setData(tgx101SnoozeName(minutes));
         } else if (itemId == R.id.btn_tgx101VoiceQueue) {
           view.setData(Settings.instance().skipOwnVoiceInQueue() ? R.string.Tgx101VoiceQueueSkipOwn : R.string.Tgx101VoiceQueueAll);
         } else if (itemId == R.id.btn_tgx101Gestures) {
@@ -1482,10 +1482,11 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         }));
     } else if (id == R.id.btn_tgx101Snooze) {
       int current = Settings.instance().tgx101SnoozeMinutes();
-      int[] values = {5, 10, 30, 60, 180, 0};
+      // (user 2026-10-20 «в уведомлении вместо «Тихо» — «Нравится» или лайк»): the third button may also set a reaction
+      int[] values = {5, 10, 30, 60, 180, Settings.TGX101_NOTIF_BUTTON_LIKE, Settings.TGX101_NOTIF_BUTTON_HEART, 0};
       ListItem[] items = new ListItem[values.length];
       for (int i = 0; i < values.length; i++) {
-        items[i] = new ListItem(ListItem.TYPE_RADIO_OPTION, i + 1, 0, values[i] > 0 ? Lang.getString(R.string.Tgx101SnoozeMinutes, values[i]) : Lang.getString(R.string.Tgx101SnoozeOff), R.id.btn_tgx101Snooze, values[i] == current);
+        items[i] = new ListItem(ListItem.TYPE_RADIO_OPTION, i + 1, 0, tgx101SnoozeName(values[i]), R.id.btn_tgx101Snooze, values[i] == current);
       }
       showSettings(new SettingsWrapBuilder(R.id.btn_tgx101Snooze)
         .setRawItems(items)
@@ -1740,6 +1741,12 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM)
       // new SettingItem(SettingItem.TYPE_DESCRIPTION, 0, 0, R.string.SizeLimitDesc)
     };
+  }
+
+  private static String tgx101SnoozeName (int value) {
+    if (value == Settings.TGX101_NOTIF_BUTTON_LIKE) return Lang.getString(R.string.Tgx101SnoozeLike);
+    if (value == Settings.TGX101_NOTIF_BUTTON_HEART) return Lang.getString(R.string.Tgx101SnoozeHeart);
+    return value > 0 ? Lang.getString(R.string.Tgx101SnoozeMinutes, value) : Lang.getString(R.string.Tgx101SnoozeOff);
   }
 
   private static int roundStabilizationName (int mode) {

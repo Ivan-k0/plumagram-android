@@ -192,6 +192,21 @@ public class TdlibNotificationExtras {
    * to the shade, but without sound, vibration and the pop-up (the chat is not muted) */
   public void tgx101Snooze (Tdlib tdlib) {
     int minutes = org.thunderdog.challegram.unsorted.Settings.instance().tgx101SnoozeMinutes();
+    if (minutes == org.thunderdog.challegram.unsorted.Settings.TGX101_NOTIF_BUTTON_LIKE || minutes == org.thunderdog.challegram.unsorted.Settings.TGX101_NOTIF_BUTTON_HEART) {
+      // the third button set to a reaction: on the last message of the notification, then it is read and gone
+      if (messageIds != null && messageIds.length > 0) {
+        String emoji = minutes == org.thunderdog.challegram.unsorted.Settings.TGX101_NOTIF_BUTTON_LIKE ? "👍" : "❤️";
+        long messageId = messageIds[messageIds.length - 1];
+        tdlib.client().send(new TdApi.AddMessageReaction(chatId, messageId, new TdApi.ReactionTypeEmoji(emoji), false, false), result -> {
+          if (result.getConstructor() == TdApi.Error.CONSTRUCTOR) {
+            org.thunderdog.challegram.Tgx101Diag.mark("notification like failed — " + ((TdApi.Error) result).message);
+            UI.showToast(org.thunderdog.challegram.data.TD.toErrorString(result), android.widget.Toast.LENGTH_SHORT);
+          }
+        });
+      }
+      read(tdlib);
+      return;
+    }
     tgx101SetSnoozed(tdlib.id(), chatId, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(Math.max(1, minutes)));
     hide(tdlib); // user 2026-10-05: the notification goes away after «Quiet»
     UI.showToast(Lang.getString(org.thunderdog.challegram.R.string.Tgx101SnoozedToast, minutes), android.widget.Toast.LENGTH_SHORT);

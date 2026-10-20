@@ -629,7 +629,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SnoozeAction, "Тихо %1$s");
     RU.put(R.string.Tgx101SnoozeMins, "%1$dм");
     RU.put(R.string.Tgx101SnoozeHours, "%1$dч");
-    RU.put(R.string.Tgx101SnoozeSetting, "«Тихо» в уведомлениях");
+    RU.put(R.string.Tgx101SnoozeSetting, "Третья кнопка в уведомлениях");
     RU.put(R.string.Tgx101SnoozeOff, "Без кнопки");
     RU.put(R.string.Tgx101UiText, "Крупный интерфейс (меню, списки)");
     RU.put(R.string.Tgx101Subtitles, "Субтитры");
@@ -1359,6 +1359,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MediaPhotos, "Фото");
     RU.put(R.string.Tgx101MediaVideos, "Видео");
     RU.put(R.string.Tgx101MediaColumns, "Столбцов: %1$d");
+    RU.put(R.string.Tgx101SnoozeLike, "👍 Нравится");
+    RU.put(R.string.Tgx101SnoozeHeart, "❤️");
+    RU.put(R.string.Tgx101SnoozeLiked, "%1$s — реакция поставлена");
     RU.put(R.string.Tgx101Ai, "ИИ-помощник");
     RU.put(R.string.Tgx101AiFix, "Исправить ошибки");
     RU.put(R.string.Tgx101AiShorten, "Сократить");
