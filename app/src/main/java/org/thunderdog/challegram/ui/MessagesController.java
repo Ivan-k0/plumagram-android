@@ -2596,6 +2596,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return manager != null && !manager.isTotallyEmpty() && manager.getAdapter().getMessageCount() == 0;
   }
 
+  @Override
+  public long getAsynchronousAnimationTimeout (boolean fastAnimation) {
+    // TGx101 (user 2026-10-20 12:24 «если долго не заходил в канал, первый переход — с пролагом», log 12:23:26: 0.17 s
+    // waiting for the messages from the disk before the slide, up to 0.5–2 s allowed): the slide starts after 0.22 s at
+    // most, the messages come in while it runs
+    return Math.min(220L, super.getAsynchronousAnimationTimeout(fastAnimation));
+  }
+
   private void openLinkedChat (boolean directMessages) {
     if (messageThread != null && messageThread.getChatId() != 0 && messageThread.getChatId() != messageThread.getContextChatId()) {
       tdlib.ui().openChat(this, messageThread.getChatId(), new TdlibUi.ChatOpenParameters().keepStack().removeDuplicates());
