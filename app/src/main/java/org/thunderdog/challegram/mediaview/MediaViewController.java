@@ -1074,11 +1074,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     if (animationType == ANIMATION_TYPE_SECRET_CLOSE) {
       revealAnimator.setStartDelay(revealAnimator.getFactor() == 0f ? 0l : 70l);
     } else if (revealAnimationType != ANIMATION_TYPE_PIP_CLOSE) {
-      // TGx101: after a swipe the photo is already moving under the finger — it goes into its post at once, no pause
-      revealAnimator.setStartDelay(tgx101SlideReveal ? 0 : 100);
+      // TGx101: after a swipe the photo is already moving under the finger — it goes into its post at once, no pause.
+      // (user video 2026-10-20 13:01 «по жесту назад медиа сворачивается с пролагами», checked on the phone 20:42): by
+      // «back» too — the 100 ms stand-still and the 180 ms flight (half that at the phone's 0.5 animation scale) looked
+      // like a jump into the post
+      revealAnimator.setStartDelay(0);
     }
-    if (tgx101SlideReveal && animationType == ANIMATION_TYPE_REVEAL) {
-      revealAnimator.setDuration(TGX101_SLIDE_REVEAL_DURATION);
+    if (animationType == ANIMATION_TYPE_REVEAL) {
+      revealAnimator.setDuration(tgx101SlideReveal ? TGX101_SLIDE_REVEAL_DURATION : TGX101_BACK_REVEAL_DURATION);
     }
     tgx101SlideReveal = false;
     revealAnimator.animateTo(0f);
@@ -4627,6 +4630,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   // exteraGram's glide frame by frame (user's recording 01:07): no pause, one smooth move a bit longer than a tap-close,
   // the drag offset and the shrink on the same curve so the photo doesn't sit still and then jump into the post
   private static final long TGX101_SLIDE_REVEAL_DURATION = 260;
+  private static final long TGX101_BACK_REVEAL_DURATION = 280;
 
   private boolean tgx101RevealFromSlide () {
     if (mode != MODE_MESSAGES && mode != MODE_SIMPLE) return false;
