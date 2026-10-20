@@ -848,11 +848,24 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     return tgx101TextMode() ? tgx101Lerp(videoSize, Screen.dp(TM_MINI), tgx101TextFactor()) : super.getChildrenHeight();
   }
 
+  private final android.graphics.Path tgx101MorphPath = new android.graphics.Path();
+  private final android.graphics.RectF tgx101MorphRect = new android.graphics.RectF();
+
   @Override
   protected void drawBubble (Canvas c, Paint paint, boolean stroke, int padding) {
     if (tgx101TextMode()) {
       float f = tgx101TextFactor();
       float bubbleAlpha = MathUtils.clamp(f * 4f); // solid almost at once, then it grows round the circle as in exteraGram
+      // (user video 2026-10-20 18:13 «оставляет след, сделать плавнее, как в офе»): the bubble started as a square the
+      // circle's size — a square flashed behind the circle. Now its shape flows from the circle to the rounded bubble
+      float morph = 1f - (1f - f) * (1f - f);
+      float round = Math.min(bubblePathRect.width(), bubblePathRect.height()) / 2f;
+      float radius = round + (Screen.dp(Theme.getBubbleDefaultRadius()) - round) * morph;
+      tgx101MorphPath.reset();
+      tgx101MorphRect.set(bubblePathRect.left - padding, bubblePathRect.top - padding, bubblePathRect.right + padding, bubblePathRect.bottom + padding);
+      tgx101MorphPath.addRoundRect(tgx101MorphRect, radius + padding, radius + padding, android.graphics.Path.Direction.CW);
+      final int clip = Views.save(c);
+      if (morph < 1f) c.clipPath(tgx101MorphPath);
       if (bubbleAlpha < 1f) { // the bubble comes up round the shrinking circle
         int save = org.thunderdog.challegram.tool.Tgx101Compat.saveLayerAlpha(c, bubblePathRect.left - padding, bubblePathRect.top - padding, bubblePathRect.right + padding, bubblePathRect.bottom + padding, (int) (255 * bubbleAlpha));
         super.drawBubble(c, paint, stroke, padding);
@@ -860,6 +873,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
       } else {
         super.drawBubble(c, paint, stroke, padding);
       }
+      Views.restore(c, clip);
       return;
     }
     final int s = Views.save(c);
