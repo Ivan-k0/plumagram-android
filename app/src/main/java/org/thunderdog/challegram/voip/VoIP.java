@@ -440,6 +440,16 @@ public class VoIP {
       }
     }
     org.thunderdog.challegram.Tgx101Diag.mark("[call] versions: theirs and ours " + java.util.Arrays.toString(stateReady.protocol.libraryVersions) + ", ours " + java.util.Arrays.toString(tgCallsVersions) + ", picked " + (tgcalls != null ? tgcalls.getLibraryVersion() : "none") + ", p2p " + stateReady.allowP2p + ", servers " + stateReady.servers.length);
+    // TGx101 (user 2026-10-20 «звука опять не было» — connected through the relays, no media either way): what the
+    // server asks of this call, and the relays themselves
+    org.thunderdog.challegram.Tgx101Diag.mark("[call] custom parameters " + stateReady.customParameters);
+    for (TdApi.CallServer server : stateReady.servers) {
+      String kind = server.type instanceof TdApi.CallServerTypeTelegramReflector ? "reflector" + (((TdApi.CallServerTypeTelegramReflector) server.type).isTcp ? " tcp" : " udp") : server.type instanceof TdApi.CallServerTypeWebrtc ? "webrtc" + (((TdApi.CallServerTypeWebrtc) server.type).supportsTurn ? " turn" : "") + (((TdApi.CallServerTypeWebrtc) server.type).supportsStun ? " stun" : "") : "?";
+      org.thunderdog.challegram.Tgx101Diag.mark("[call] server " + server.id + " " + kind + " " + server.ipAddress + (server.ipv6Address.isEmpty() ? "" : " / " + server.ipv6Address) + ":" + server.port);
+    }
+    tdlib.send(new TdApi.GetUserPrivacySettingRules(new TdApi.UserPrivacySettingAllowPeerToPeerCalls()), (rules, error) -> {
+      if (rules != null) org.thunderdog.challegram.Tgx101Diag.mark("[call] my peer-to-peer rule " + rules);
+    });
     if (tgcalls != null) {
       try {
         tgcalls.initializeAndConnect();
