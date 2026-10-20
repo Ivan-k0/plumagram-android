@@ -2906,7 +2906,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
       final int buttonHeight = Screen.dp(tgx101Muted ? 50f : 56f);
       // (user 2026-10-20 «кнопку отправить сделай чуть приглушенней, когда активна. в наших цветах»): when forwarding the
       // ready button is the options' own muted blue — the accent over the panel — with the accent text, not the loud fill
-      final int readyColor = tgx101Muted ? ColorUtils.compositeColor(Theme.fillingColor(), ColorUtils.alphaColor(.2f, Theme.getColor(ColorId.textLink))) : Theme.getColor(ColorId.fillingPositive);
+      final int readyColor = tgx101Muted ? ColorUtils.compositeColor(Theme.fillingColor(), ColorUtils.alphaColor(.32f, Theme.getColor(ColorId.textLink))) : Theme.getColor(ColorId.fillingPositive); // (user 2026-10-20) a bit richer: .2 → .32
       final int readyText = tgx101Muted ? Theme.getColor(ColorId.textLink) : Theme.getColor(ColorId.fillingPositiveContent);
       final int idleText = tgx101Muted ? Theme.getColor(ColorId.textLight) : Theme.getColor(ColorId.textNeutral);
       final int color = factor == 0f ? Theme.fillingColor() : factor == 1f ? readyColor : ColorUtils.fromToArgb(Theme.fillingColor(), readyColor, factor);
