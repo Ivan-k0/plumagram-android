@@ -7243,6 +7243,7 @@
   <string name="Tgx101SavedTagsSection">Tags</string>
   <string name="Tgx101SavedHashtagSetting">Tags as hashtags</string>
   <string name="Tgx101SavedHashtagDesc">On: in your own messages a tag is written as a #hashtag — seen on all devices. Off: tags are kept by name on this phone only.</string>
+  <string name="Tgx101SavedBackOff">Off — back by the button only</string>
   <string name="Tgx101LikeUnavailable">Reactions are off in this chat</string>
   <string name="Tgx101Torch">Flashlight</string>
   <string name="Tgx101TorchOn">Turn the flashlight on</string>

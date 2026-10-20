@@ -651,6 +651,12 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     return y >= from && y <= top + rowHeight + Screen.dp(4f);
   }
 
+  @Override
+  public boolean swipeNavigationEnabled () {
+    // (user 2026-10-20 12:16 «свайп при боковом меню — дать отключать на хранилище»): «Off» — back only by the button
+    return Tgx101SavedStore.get(tdlib).backSwipe != Tgx101SavedStore.BACK_OFF && super.swipeNavigationEnabled();
+  }
+
   // (user 2026-10-17 «свайп с главной хранилища в обе стороны; справа налево — список чатов выезжает справа»)
   @Override
   public boolean tgx101SlideBackBothWays () {

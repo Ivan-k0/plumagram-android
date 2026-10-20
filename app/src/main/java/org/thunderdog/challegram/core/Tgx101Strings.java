@@ -1359,6 +1359,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MediaPhotos, "Фото");
     RU.put(R.string.Tgx101MediaVideos, "Видео");
     RU.put(R.string.Tgx101MediaColumns, "Столбцов: %1$d");
+    RU.put(R.string.Tgx101SavedBackOff, "Выключен — назад только кнопкой");
     RU.put(R.string.Tgx101LikeUnavailable, "В этом чате реакции выключены");
     RU.put(R.string.Tgx101Torch, "Фонарик");
     RU.put(R.string.Tgx101TorchOn, "Включить фонарик");

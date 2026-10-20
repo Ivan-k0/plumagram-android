@@ -82,7 +82,7 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
         } else if (id == R.id.btn_tgx101SavedPanelLabels) {
           view.getToggler().setRadioEnabled(s.panelLabels, isUpdate);
         } else if (id == R.id.btn_tgx101SavedBackSwipe) {
-          view.setData(Lang.getString(s.backSwipe == Tgx101SavedStore.BACK_RIGHT ? R.string.Tgx101SavedBackRight : s.backSwipe == Tgx101SavedStore.BACK_LEFT ? R.string.Tgx101SavedBackLeft : R.string.Tgx101SavedBackBoth));
+          view.setData(Lang.getString(s.backSwipe == Tgx101SavedStore.BACK_OFF ? R.string.Tgx101SavedBackOff : s.backSwipe == Tgx101SavedStore.BACK_RIGHT ? R.string.Tgx101SavedBackRight : s.backSwipe == Tgx101SavedStore.BACK_LEFT ? R.string.Tgx101SavedBackLeft : R.string.Tgx101SavedBackBoth));
         }
       }
     };
@@ -188,9 +188,9 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
       s.panelLabels = adapter.toggleView(v);
       s.save();
     } else if (id == R.id.btn_tgx101SavedBackSwipe) {
-      showOptions(Lang.getString(R.string.Tgx101SavedBackSwipe), new int[] {R.id.btn_done, R.id.btn_edit, R.id.btn_share},
-        new String[] {Lang.getString(R.string.Tgx101SavedBackBoth), Lang.getString(R.string.Tgx101SavedBackRight), Lang.getString(R.string.Tgx101SavedBackLeft)}, null, null, (itemView, optionId) -> {
-          s.backSwipe = optionId == R.id.btn_edit ? Tgx101SavedStore.BACK_RIGHT : optionId == R.id.btn_share ? Tgx101SavedStore.BACK_LEFT : Tgx101SavedStore.BACK_BOTH;
+      showOptions(Lang.getString(R.string.Tgx101SavedBackSwipe), new int[] {R.id.btn_done, R.id.btn_edit, R.id.btn_share, R.id.btn_cancel},
+        new String[] {Lang.getString(R.string.Tgx101SavedBackBoth), Lang.getString(R.string.Tgx101SavedBackRight), Lang.getString(R.string.Tgx101SavedBackLeft), Lang.getString(R.string.Tgx101SavedBackOff)}, null, null, (itemView, optionId) -> {
+          s.backSwipe = optionId == R.id.btn_cancel ? Tgx101SavedStore.BACK_OFF : optionId == R.id.btn_edit ? Tgx101SavedStore.BACK_RIGHT : optionId == R.id.btn_share ? Tgx101SavedStore.BACK_LEFT : Tgx101SavedStore.BACK_BOTH;
           s.save();
           adapter.updateValuedSettingById(R.id.btn_tgx101SavedBackSwipe);
           return true;
