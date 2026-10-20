@@ -133,14 +133,26 @@ public class TgCallsController extends VoIPInstance {
 
   @Keep
   protected final void handleRemoteMediaStateChange (@AudioState int audioState, @VideoState int videoState) {
+    org.thunderdog.challegram.Tgx101Diag.mark("[call] remote audio state " + audioState + " (0 muted, 1 active), video " + videoState);
     connectionStateListener.onRemoteMediaStateChanged(this, audioState, videoState);
     Tgx101Video.onRemoteVideoState(videoState); // TGx101: video calls
   }
 
   @Keep
   protected final void handleAudioLevelChange (float audioLevel) {
-    // TODO
+    // TGx101 (user 2026-10-20 «соединение было, но друг друга не слышали»): does my microphone hear anything — the
+    // loudest level every 3 s
+    tgx101MaxLevel = Math.max(tgx101MaxLevel, audioLevel);
+    long now = android.os.SystemClock.elapsedRealtime();
+    if (now - tgx101LevelLoggedAt >= 3000) {
+      org.thunderdog.challegram.Tgx101Diag.mark("[call] my mic level max " + String.format(java.util.Locale.US, "%.3f", tgx101MaxLevel));
+      tgx101MaxLevel = 0f;
+      tgx101LevelLoggedAt = now;
+    }
   }
+
+  private float tgx101MaxLevel;
+  private long tgx101LevelLoggedAt;
   @Keep
   protected final void handleStop (@NonNull NetworkStats totalStats, @Nullable String debugLog) {
     connectionStateListener.onStopped(this, totalStats, debugLog);

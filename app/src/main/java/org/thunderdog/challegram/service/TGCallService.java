@@ -1820,6 +1820,20 @@ public class TGCallService extends Service implements
     }
   }
 
+  /** bytes sent and received each 5 s of the first minute: do the voice packets go both ways */
+  private void tgx101LogTraffic (int step, long lastSent, long lastReceived) {
+    if (isDestroyed || tgcalls == null || step >= 12) return;
+    NetworkStats now = new NetworkStats();
+    try {
+      tgcalls.getNetworkStats(now);
+    } catch (Throwable t) {
+      return;
+    }
+    long sent = now.bytesSentWifi + now.bytesSentMobile, received = now.bytesRecvdWifi + now.bytesRecvdMobile;
+    org.thunderdog.challegram.Tgx101Diag.mark("[call] traffic 5 s: sent " + (sent - lastSent) + " B, received " + (received - lastReceived) + " B");
+    UI.post(() -> tgx101LogTraffic(step + 1, sent, received), 5000);
+  }
+
   private long tgx101NetChangeAt;
   private Object tgx101NetCallback;
 
@@ -2030,6 +2044,7 @@ public class TGCallService extends Service implements
             // the sound really goes a moment after connecting
             UI.post(() -> tgx101LogAudioRoute("2 s after connect"), 2000);
             UI.post(() -> tgx101LogAudioRoute("8 s after connect"), 8000);
+            UI.post(() -> tgx101LogTraffic(0, 0, 0), 5000);
           }
           tdlib.dispatchCallStateChanged(call.id, newState);
           UI.post(TGCallService.this::refreshOngoingNotification); // TGx101: start the timer in the notification

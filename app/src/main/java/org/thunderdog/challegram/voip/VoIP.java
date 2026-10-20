@@ -439,6 +439,7 @@ public class VoIP {
         break;
       }
     }
+    org.thunderdog.challegram.Tgx101Diag.mark("[call] versions: theirs and ours " + java.util.Arrays.toString(stateReady.protocol.libraryVersions) + ", ours " + java.util.Arrays.toString(tgCallsVersions) + ", picked " + (tgcalls != null ? tgcalls.getLibraryVersion() : "none") + ", p2p " + stateReady.allowP2p + ", servers " + stateReady.servers.length);
     if (tgcalls != null) {
       try {
         tgcalls.initializeAndConnect();
