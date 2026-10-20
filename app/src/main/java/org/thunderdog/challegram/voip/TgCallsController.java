@@ -126,7 +126,43 @@ public class TgCallsController extends VoIPInstance {
       Tgx101Video.onInstanceDestroyed(nativePtr); // TGx101: video calls
       destroyInstance(nativePtr);
       nativePtr = 0;
+      tgx101CopyEngineLog();
     }
+  }
+
+  /**
+   * TGx101 (user 2026-10-20 «звонил — соединение было, но друг друга не слышали»): tgcalls' own log lies in the app's
+   * private folder. When the call is over, its telling lines (ICE, candidates, the relays, the transport, errors) go
+   * into the diagnostics log in Downloads.
+   */
+  private void tgx101CopyEngineLog () {
+    final String path = configuration.logFilePath;
+    if (path == null) return;
+    new Thread(() -> {
+      try {
+        Thread.sleep(1500); // the engine finishes writing on its own threads
+        java.io.File file = new java.io.File(path);
+        if (!file.exists()) {
+          org.thunderdog.challegram.Tgx101Diag.mark("[tgcalls] no log file");
+          return;
+        }
+        java.util.regex.Pattern telling = java.util.regex.Pattern.compile("(?i)ice|candidate|reflector|relay|turn|stun|transport|connect|dtls|srtp|error|fail|audio|signal|network|state|ssrc|packet");
+        int lines = 0, kept = 0;
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(file))) {
+          String line;
+          while ((line = reader.readLine()) != null && kept < 400) {
+            lines++;
+            if (telling.matcher(line).find()) {
+              org.thunderdog.challegram.Tgx101Diag.mark("[tgcalls] " + (line.length() > 300 ? line.substring(0, 300) : line));
+              kept++;
+            }
+          }
+        }
+        org.thunderdog.challegram.Tgx101Diag.mark("[tgcalls] log: " + lines + " lines, " + kept + " kept, " + file.length() + " bytes");
+      } catch (Throwable t) {
+        org.thunderdog.challegram.Tgx101Diag.mark("[tgcalls] log copy failed " + t);
+      }
+    }, "Tgx101CallLog").start();
   }
 
   // Called from tgvoip.cpp
