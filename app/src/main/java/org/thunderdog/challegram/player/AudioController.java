@@ -786,6 +786,45 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
 
   private long bufferingStartTime;
 
+  /**
+   * TGx101 (user 2026-10-20 18:31: «перескакивание своих голосовых не работает — играются по порядку»): voice messages
+   * play as one ExoPlayer list that moves on by itself, so the queue's own skip was never asked. When the list itself
+   * comes to my own voice or round message, it jumps over to the next one of the other side, or stops.
+   * @return true when it jumped or stopped (the position will be checked again after the jump)
+   */
+  private boolean tgx101SkipOwnVoice () {
+    if (exoPlayer == null || playList == null || !Settings.instance().skipOwnVoiceInQueue()) return false;
+    final int total = playList.size();
+    if (total == 0 || total != exoPlayer.getMediaItemCount()) return false;
+    int window = exoPlayer.getCurrentWindowIndex();
+    int guard = total;
+    int target = window;
+    while (target != C.INDEX_UNSET && guard-- > 0) {
+      int index = inReverseMode() ? reversePosition(target, total, true) : target;
+      if (index < 0 || index >= total) return false;
+      TdApi.Message message = playList.get(index);
+      boolean own = message.isOutgoing && (Td.isVoiceNote(message.content) || message.content.getConstructor() == TdApi.MessageVideoNote.CONSTRUCTOR);
+      if (!own) break;
+      int next = exoPlayer.getNextWindowIndex();
+      if (target != window) {
+        // getNextWindowIndex() is relative to the current window: walk on by hand
+        next = target + 1 < total ? target + 1 : (exoPlayer.getRepeatMode() == Player.REPEAT_MODE_ALL ? 0 : C.INDEX_UNSET);
+      }
+      if (next == window) next = C.INDEX_UNSET;
+      target = next;
+    }
+    if (target == window) return false;
+    if (target == C.INDEX_UNSET || guard < 0) {
+      Log.i(Log.TAG_PLAYER, "skip own voice: nothing of the other side further, stopping");
+      exoPlayer.setPlayWhenReady(false);
+      context.player().playNextMessageInQueue();
+      return true;
+    }
+    Log.i(Log.TAG_PLAYER, "skip own voice: window %d -> %d", window, target);
+    exoPlayer.seekToDefaultPosition(target);
+    return true;
+  }
+
   private void checkPlayerPosition () {
     if (playbackMode == PLAYBACK_MODE_EXOPLAYER_LIST && exoPlayer != null && playList != null) {
       int windowIndex = exoPlayer.getCurrentWindowIndex();
@@ -860,6 +899,9 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
       return;
     }
     Log.d(Log.TAG_PLAYER, "[state] onPositionDiscontinuity mode:%d, reason:%d", playbackMode, reason);
+    if (reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION && tgx101SkipOwnVoice()) {
+      return;
+    }
     checkPlayerPosition();
     // findApic(exoPlayer.getCurrentTrackGroups());
   }
