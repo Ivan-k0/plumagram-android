@@ -9638,7 +9638,14 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       case Settings.DOUBLE_TAP_REACTION:
         return true;
       case Settings.DOUBLE_TAP_TRANSLATE:
-        return isTranslated() || (isTranslatable() && translationStyleMode() != Settings.TRANSLATE_MODE_NONE);
+        if (isTranslated()) return true;
+        if (translationStyleMode() == Settings.TRANSLATE_MODE_NONE) return false;
+        if (textToTranslate == null) {
+          // (user 2026-10-20 «двойной тап не сработал с первого раза», log 14:01–14:02) the text to translate was only
+          // looked up by the message menu — before it a tap on a fresh message opened the menu at once
+          return !Td.isEmpty(getTextToTranslateImpl()) && (flags & FLAG_UNSUPPORTED) == 0;
+        }
+        return isTranslatable();
       case Settings.DOUBLE_TAP_SAVE:
         return !isNotSent() && canBeForwarded() && !messagesController().isSecretChat();
       case Settings.DOUBLE_TAP_DELETE_ALL:
@@ -9653,6 +9660,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         return tgx101SetFirstQuickReaction();
       case Settings.DOUBLE_TAP_TRANSLATE:
         org.thunderdog.challegram.Tgx101Diag.mark("double tap: translate " + (isTranslated() ? "off" : "on"));
+        if (!isTranslated() && textToTranslate == null) {
+          checkTranslatableText(() -> {
+            if (isTranslatable()) messagesController().tgx101RunMessageAction(this, R.id.btn_chatTranslate);
+          });
+          return true;
+        }
         return messagesController().tgx101RunMessageAction(this, isTranslated() ? R.id.btn_chatTranslateOff : R.id.btn_chatTranslate);
       case Settings.DOUBLE_TAP_SAVE:
         org.thunderdog.challegram.Tgx101Diag.mark("double tap: save to Saved Messages");
