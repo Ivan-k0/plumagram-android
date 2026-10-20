@@ -1805,6 +1805,21 @@ public class TGCallService extends Service implements
   // TGx101 (user 2026-10-20 «звонок оборвался, когда выключил Wi-Fi», «ты добавил логи для этого теста?»): the system's
   // own network events during a call, what goes to tgcalls and how long the call takes to come back
 
+  private void tgx101LogAudioRoute (String when) {
+    if (isDestroyed) return;
+    try {
+      AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
+      String device = "?";
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        android.media.AudioDeviceInfo d = am.getCommunicationDevice();
+        device = d != null ? d.getType() + ":" + d.getProductName() : "null";
+      }
+      org.thunderdog.challegram.Tgx101Diag.mark("[call] audio " + when + ": device " + device + ", mode " + am.getMode() + ", mic muted " + am.isMicrophoneMute() + ", sco " + am.isBluetoothScoOn() + ", speaker " + am.isSpeakerphoneOn() + ", voice volume " + am.getStreamVolume(AudioManager.STREAM_VOICE_CALL) + "/" + am.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL) + ", focus " + haveAudioFocus);
+    } catch (Throwable t) {
+      org.thunderdog.challegram.Tgx101Diag.mark("[call] audio " + when + ": " + t.getClass().getSimpleName());
+    }
+  }
+
   private long tgx101NetChangeAt;
   private Object tgx101NetCallback;
 
@@ -2011,6 +2026,10 @@ public class TGCallService extends Service implements
           if (!vibratedOnConnect) { // TGx101: a short vibration when the call connects, as in the official app
             vibratedOnConnect = true;
             vibrateOnConnect();
+            // TGx101 (user 2026-10-20 17:32 «соединение было, но не слышно ни меня, ни собеседника» — Bluetooth): where
+            // the sound really goes a moment after connecting
+            UI.post(() -> tgx101LogAudioRoute("2 s after connect"), 2000);
+            UI.post(() -> tgx101LogAudioRoute("8 s after connect"), 8000);
           }
           tdlib.dispatchCallStateChanged(call.id, newState);
           UI.post(TGCallService.this::refreshOngoingNotification); // TGx101: start the timer in the notification
