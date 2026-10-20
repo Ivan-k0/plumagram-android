@@ -42,6 +42,11 @@ public class RoundStabilizer implements SensorEventListener {
   private static final float MAX_ROLL_RADIANS = (float) Math.toRadians(10);
   // High-pass time constant: movement slower than this is treated as intentional.
   private static final float FOLLOW_SECONDS = 0.5f;
+  // (user 2026-10-20 «стабилизацию гироскопом — красиво, по уму») the angles that use up the whole margin
+  private static final float LIMIT_TILT = MAX_SHIFT / SHIFT_PER_RADIAN;
+  // Near the margin the picture comes back to the centre up to this many times faster: after a turn it no longer
+  // sits at the edge for half a second, where the shake passed through uncorrected
+  private static final float EDGE_PULL = 6f;
 
   private final SensorManager sensorManager;
   private final Sensor gyroscope;
@@ -96,10 +101,9 @@ public class RoundStabilizer implements SensorEventListener {
     if (lastTimestampNs != 0) {
       float dt = (event.timestamp - lastTimestampNs) / 1_000_000_000f;
       if (dt > 0 && dt < 0.1f) {
-        float decay = (float) Math.exp(-dt / FOLLOW_SECONDS);
-        angleX = (angleX + event.values[0] * dt) * decay;
-        angleY = (angleY + event.values[1] * dt) * decay;
-        angleZ = (angleZ + event.values[2] * dt) * decay;
+        angleX = follow(angleX + event.values[0] * dt, LIMIT_TILT, dt);
+        angleY = follow(angleY + event.values[1] * dt, LIMIT_TILT, dt);
+        angleZ = follow(angleZ + event.values[2] * dt, MAX_ROLL_RADIANS, dt);
       }
     }
     lastTimestampNs = event.timestamp;
@@ -111,6 +115,13 @@ public class RoundStabilizer implements SensorEventListener {
       historyHead = (historyHead + 1) % HISTORY_SIZE;
       historyCount = Math.min(historyCount + 1, HISTORY_SIZE);
     }
+  }
+
+  /** High-pass step: still slow in the middle, the faster the closer the angle is to the edge of the margin */
+  private static float follow (float angle, float limit, float dt) {
+    float edge = Math.min(1f, Math.abs(angle) / limit);
+    float seconds = FOLLOW_SECONDS / (1f + EDGE_PULL * edge * edge);
+    return angle * (float) Math.exp(-dt / seconds);
   }
 
   @Override
@@ -135,10 +146,10 @@ public class RoundStabilizer implements SensorEventListener {
     float ax = angles[0], ay = angles[1], az = angles[2];
     // Tilting the top towards the user makes the rear camera look up (scene moves down)
     // and the front camera look down (scene moves up).
-    float shiftY = clamp((isFrontFacing ? -ax : ax) * SHIFT_PER_RADIAN, MAX_SHIFT);
+    float shiftY = soft((isFrontFacing ? -ax : ax) * SHIFT_PER_RADIAN, MAX_SHIFT);
     // Turning left/right: the rear camera and the mirrored front picture both move the same way.
-    float shiftX = clamp(-ay * SHIFT_PER_RADIAN, MAX_SHIFT);
-    float roll = clamp(az, MAX_ROLL_RADIANS);
+    float shiftX = soft(-ay * SHIFT_PER_RADIAN, MAX_SHIFT);
+    float roll = soft(az, MAX_ROLL_RADIANS);
 
     // Called from both the preview and the encoder threads, so no shared scratch matrix.
     float[] stabilization = new float[16];
@@ -169,29 +180,38 @@ public class RoundStabilizer implements SensorEventListener {
     return frameTimestampNs + (boot - mono);
   }
 
-  /** Fills angles at the given sensor time (nearest earlier sample); returns how far back it looked. */
+  /** Fills angles at the given sensor time (between the two samples around it); returns how far back it looked. */
   private long anglesAt (long timeNs, float[] outAngles) {
     synchronized (historyLock) {
       if (historyCount == 0) {
         return 0;
       }
       int newest = (historyHead - 1 + HISTORY_SIZE) % HISTORY_SIZE;
-      int index = newest;
+      int index = newest, later = -1;
       for (int i = 0; i < historyCount; i++) {
         int candidate = (newest - i + HISTORY_SIZE) % HISTORY_SIZE;
-        index = candidate;
         if (historyTime[candidate] <= timeNs) {
+          index = candidate;
           break;
         }
+        later = candidate;
+        index = candidate;
       }
-      outAngles[0] = historyAngles[index * 3];
-      outAngles[1] = historyAngles[index * 3 + 1];
-      outAngles[2] = historyAngles[index * 3 + 2];
+      float t = 0f;
+      if (later != -1 && later != index && historyTime[index] <= timeNs) {
+        // the frame was captured between two gyroscope samples: no steps of a whole sample
+        t = (float) (timeNs - historyTime[index]) / (float) (historyTime[later] - historyTime[index]);
+      }
+      for (int k = 0; k < 3; k++) {
+        float a = historyAngles[index * 3 + k];
+        outAngles[k] = later != -1 && t > 0f ? a + (historyAngles[later * 3 + k] - a) * t : a;
+      }
       return historyTime[newest] - historyTime[index];
     }
   }
 
-  private static float clamp (float value, float max) {
-    return Math.max(-max, Math.min(max, value));
+  /** A soft limit instead of a wall: almost linear in the middle, easing into the margin — no stop at the edge */
+  private static float soft (float value, float max) {
+    return max * (float) Math.tanh(value / max);
   }
 }
