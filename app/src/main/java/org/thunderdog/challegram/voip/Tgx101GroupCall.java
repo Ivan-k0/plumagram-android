@@ -564,7 +564,10 @@ public final class Tgx101GroupCall implements GroupCallListener {
         }
       }
       int audioSsrc = source.isScreen ? source.participant.screenSharingAudioSourceId : source.participant.audioSourceId;
-      channels[i] = (audioSsrc & 0xffffffffL) + "|" + source.info.endpointId + "|" + (sources.size() <= 2 ? 2 : 1) + "|" + groups;
+      // (log 2026-10-20 10:17) the user id goes along: a conference decrypts each video by its sender, and without it
+      // tgcalls asked to decrypt "from 0" — the other side's camera never showed
+      long userId = source.participant.participantId instanceof TdApi.MessageSenderUser ? ((TdApi.MessageSenderUser) source.participant.participantId).userId : 0;
+      channels[i] = (audioSsrc & 0xffffffffL) + "|" + source.info.endpointId + "|" + (sources.size() <= 2 ? 2 : 1) + "|" + groups + "|" + userId;
       key.append(channels[i]).append('\n');
     }
     if (key.toString().equals(requestedVideoKey)) return;

@@ -372,7 +372,7 @@ JNI_OBJECT_FUNC(void, voip_Tgx101GroupCall, nativeSetVolume, jlong ptr, jint jSs
   }
 }
 
-// TGx101: which participants' videos to receive — one string per video: «audioSsrc|endpointId|quality|SEM:ssrc,ssrc;SEM:ssrc»,
+// TGx101: which participants' videos to receive — one string per video: «audioSsrc|endpointId|quality|SEM:ssrc,ssrc;SEM:ssrc|userId»,
 // quality 0 thumbnail, 1 medium, 2 full
 JNI_OBJECT_FUNC(void, voip_Tgx101GroupCall, nativeRequestVideo, jlong ptr, jobjectArray jChannels) {
   auto context = jni::jlong_to_ptr<GroupContext *>(ptr);
@@ -390,6 +390,9 @@ JNI_OBJECT_FUNC(void, voip_Tgx101GroupCall, nativeRequestVideo, jlong ptr, jobje
     tgcalls::VideoChannelDescription description;
     description.audioSsrc = (uint32_t) std::stoul(fields[0]);
     description.endpointId = fields[1];
+    if (fields.size() >= 5 && !fields[4].empty()) {
+      description.userId = (int64_t) std::stoll(fields[4]); // a conference decrypts the video by its sender
+    }
     int quality = std::stoi(fields[2]);
     description.minQuality = tgcalls::VideoChannelDescription::Quality::Thumbnail;
     description.maxQuality = quality >= 2 ? tgcalls::VideoChannelDescription::Quality::Full : quality == 1 ? tgcalls::VideoChannelDescription::Quality::Medium : tgcalls::VideoChannelDescription::Quality::Thumbnail;
