@@ -522,9 +522,10 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
   // Properties
 
   public boolean hasLocalNotificationProblem () {
-    return areNotificationsBlockedGlobally() || areNotificationsBlocked(scopePrivate()) ||
-      areNotificationsBlocked(scopeGroup()) || areNotificationsBlocked(scopeChannel()) ||
-      !hasRemotePushService() ||
+    // TGx101 (user 2026-10-20): a category turned off in the system settings (e.g. «Channels») is the user's own
+    // choice, not a problem — it no longer lights the mark on «Settings» for ever; the notification settings still say so
+    return areNotificationsBlockedGlobally() ||
+      (!hasRemotePushService() && tgx101PushMissingMatters()) ||
       tdlib.notifications().getNotificationBlockStatus() == TdlibNotificationManager.Status.ACCOUNT_NOT_SELECTED;
   }
 
@@ -550,6 +551,37 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
 
   public boolean needSyncAlert () {
     return isSyncDisabledGlobally() && !hasRemotePushService();
+  }
+
+  /** TGx101: which local notification problem lights the mark on «Settings», for the log */
+  public String tgx101ProblemName () {
+    int status = getNotificationBlockStatus();
+    StringBuilder b = new StringBuilder("status ").append(status);
+    if (areNotificationsBlocked(scopePrivate())) b.append(", private blocked");
+    if (areNotificationsBlocked(scopeGroup())) b.append(", groups blocked");
+    if (areNotificationsBlocked(scopeChannel())) b.append(", channels blocked");
+    if (!hasRemotePushService()) b.append(", no push service");
+    return b.toString();
+  }
+
+  /** TGx101 key: how many times the «no Google Play services» warning was seen in the notification settings */
+  public static final String KEY_TGX101_PUSH_MISSING_SEEN = "tgx101_push_missing_seen";
+
+  /**
+   * TGx101 (4PDA nyan_ame #276, user 2026-10-20 «уведомление на боковой панели по-прежнему горит»): without Google Play
+   * the red mark on «Settings» never went away, though the messages come through «Keep the connection in background».
+   * With that on, missing push services are no problem at all; without it the warning is shown 3 times and then rests.
+   */
+  public static boolean tgx101PushMissingMatters () {
+    return !Settings.instance().getNewSetting(Settings.SETTING_FLAG_KEEP_ALIVE_CONNECTION)
+      && Settings.instance().getInt(KEY_TGX101_PUSH_MISSING_SEEN, 0) < 3;
+  }
+
+  /** the notification settings were opened while the warning shows */
+  public void tgx101NotePushMissingSeen () {
+    if (!hasRemotePushService() && tgx101PushMissingMatters()) {
+      Settings.instance().putInt(KEY_TGX101_PUSH_MISSING_SEEN, Settings.instance().getInt(KEY_TGX101_PUSH_MISSING_SEEN, 0) + 1);
+    }
   }
 
   private boolean hasRemotePushService () {
@@ -611,7 +643,7 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
       return Status.BLOCKED_ALL;
     }
     boolean hasPushServices = hasRemotePushService();
-    if (!hasPushServices) {
+    if (!hasPushServices && tgx101PushMissingMatters()) {
       // Sync matters only when push service (firebase, hms, ...) unavailable
       if (isSyncDisabledGlobally())
         return Status.DISABLED_SYNC;

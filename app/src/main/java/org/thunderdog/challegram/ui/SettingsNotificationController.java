@@ -2054,9 +2054,15 @@ public class SettingsNotificationController extends RecyclerViewController<Setti
     }
   }
 
+  private boolean tgx101SeenCounted;
+
   @Override
   public void onFocus () {
     super.onFocus();
+    if (!tgx101SeenCounted && customChatId == 0 && scope == null) {
+      tgx101SeenCounted = true;
+      tdlib.notifications().tgx101NotePushMissingSeen();
+    }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       if (oneShot && adapter != null) {
         makeChannelChecks();

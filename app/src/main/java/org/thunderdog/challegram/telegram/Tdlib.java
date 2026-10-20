@@ -12169,12 +12169,23 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       SET_LOGIN_EMAIL = 6;
   }
 
+  private String tgx101LastProblem;
+
   @ResolvableProblem
   public int findResolvableProblem () {
     final boolean haveNotificationsProblem = notifications().hasLocalNotificationProblem();
     final TdApi.SuggestedAction singleAction = singleSettingsSuggestion();
     final boolean haveSuggestions = singleAction != null || haveAnySettingsSuggestions();
     final int totalCount = (singleAction != null ? 1 : haveSuggestions ? 2 : 0) + (haveNotificationsProblem ? 1 : 0);
+    if (totalCount > 0) {
+      // TGx101 (user 2026-10-20: «the mark on the side menu still burns» — with Google Play and without the background
+      // connection): what exactly lights it
+      String why = "notifications " + (haveNotificationsProblem ? notifications().tgx101ProblemName() : "ok") + ", suggestion " + (singleAction != null ? singleAction.getClass().getSimpleName() : haveSuggestions ? "several" : "none");
+      if (!why.equals(tgx101LastProblem)) {
+        tgx101LastProblem = why;
+        org.thunderdog.challegram.Tgx101Diag.mark("settings mark: " + why);
+      }
+    }
     if (totalCount > 1) {
       return ResolvableProblem.MIXED;
     } else if (haveNotificationsProblem) {
