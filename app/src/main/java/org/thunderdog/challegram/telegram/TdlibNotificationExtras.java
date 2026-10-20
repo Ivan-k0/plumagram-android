@@ -195,13 +195,24 @@ public class TdlibNotificationExtras {
     if (minutes == org.thunderdog.challegram.unsorted.Settings.TGX101_NOTIF_BUTTON_LIKE || minutes == org.thunderdog.challegram.unsorted.Settings.TGX101_NOTIF_BUTTON_HEART) {
       // the third button set to a reaction: on the last message of the notification, then it is read and gone
       if (messageIds != null && messageIds.length > 0) {
-        TdApi.ReactionType reaction = tgx101QuickReaction(tdlib);
         long messageId = messageIds[messageIds.length - 1];
-        tdlib.client().send(new TdApi.AddMessageReaction(chatId, messageId, reaction, false, false), result -> {
-          if (result.getConstructor() == TdApi.Error.CONSTRUCTOR) {
-            org.thunderdog.challegram.Tgx101Diag.mark("notification like failed — " + ((TdApi.Error) result).message);
-            UI.showToast(org.thunderdog.challegram.data.TD.toErrorString(result), android.widget.Toast.LENGTH_SHORT);
+        // (log 2026-10-20 19:49 «The reaction isn't available for the message»): as the double tap — the first chosen
+        // reaction this chat allows, else the chat's first allowed one
+        tdlib.client().send(new TdApi.GetMessageAvailableReactions(chatId, messageId, 8), available -> {
+          TdApi.ReactionType reaction = tgx101PickReaction(tdlib, available instanceof TdApi.AvailableReactions ? (TdApi.AvailableReactions) available : null);
+          if (reaction == null) {
+            org.thunderdog.challegram.Tgx101Diag.mark("notification like: no reaction allowed here");
+            UI.showToast(org.thunderdog.challegram.R.string.Tgx101LikeUnavailable, android.widget.Toast.LENGTH_SHORT);
+            return;
           }
+          tdlib.client().send(new TdApi.AddMessageReaction(chatId, messageId, reaction, false, false), result -> {
+            if (result.getConstructor() == TdApi.Error.CONSTRUCTOR) {
+              org.thunderdog.challegram.Tgx101Diag.mark("notification like failed — " + ((TdApi.Error) result).message);
+              UI.showToast(org.thunderdog.challegram.data.TD.toErrorString(result), android.widget.Toast.LENGTH_SHORT);
+            } else {
+              org.thunderdog.challegram.Tgx101Diag.mark("notification like: " + org.thunderdog.challegram.data.TD.makeReactionKey(reaction));
+            }
+          });
         });
       }
       read(tdlib);
@@ -220,6 +231,40 @@ public class TdlibNotificationExtras {
       if (type != null) return type;
     }
     return new TdApi.ReactionTypeEmoji("👍");
+  }
+
+  private static boolean tgx101Allowed (@androidx.annotation.Nullable TdApi.AvailableReactions available, TdApi.ReactionType type) {
+    if (available == null) return true;
+    for (TdApi.AvailableReaction[] group : new TdApi.AvailableReaction[][] {available.topReactions, available.recentReactions, available.popularReactions}) {
+      if (group == null) continue;
+      for (TdApi.AvailableReaction r : group) {
+        if (!r.needsPremium && tgx101Same(r.type, type)) return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean tgx101Same (TdApi.ReactionType a, TdApi.ReactionType b) {
+    return org.thunderdog.challegram.data.TD.makeReactionKey(a).equals(org.thunderdog.challegram.data.TD.makeReactionKey(b));
+  }
+
+  /** the first chosen quick reaction the message allows, else its first allowed one; null when none */
+  public static @androidx.annotation.Nullable TdApi.ReactionType tgx101PickReaction (Tdlib tdlib, @androidx.annotation.Nullable TdApi.AvailableReactions available) {
+    String[] quick = org.thunderdog.challegram.unsorted.Settings.instance().getQuickReactions(tdlib);
+    if (quick != null) {
+      for (String key : quick) {
+        TdApi.ReactionType type = org.thunderdog.challegram.data.TD.toReactionType(key);
+        if (type != null && tgx101Allowed(available, type)) return type;
+      }
+    }
+    if (available == null) return new TdApi.ReactionTypeEmoji("👍");
+    for (TdApi.AvailableReaction[] group : new TdApi.AvailableReaction[][] {available.topReactions, available.recentReactions, available.popularReactions}) {
+      if (group == null) continue;
+      for (TdApi.AvailableReaction r : group) {
+        if (!r.needsPremium) return r.type;
+      }
+    }
+    return null;
   }
 
   /** the reaction's emoji for the button's label; a custom emoji has none to show there */

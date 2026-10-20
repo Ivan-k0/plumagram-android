@@ -9708,10 +9708,32 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       org.thunderdog.challegram.Tgx101Diag.mark("double tap: no quick reactions");
       return false;
     }
-    TdApi.ReactionType reactionType = TD.toReactionType(quickReactions[0]);
-    final TGReaction reactionObj = tdlib.getReaction(reactionType);
-    if (reactionObj == null || !canSendReaction(reactionType)) {
-      org.thunderdog.challegram.Tgx101Diag.mark("double tap: reaction " + quickReactions[0] + " unavailable here");
+    // (user 2026-10-20, log 19:38 «👍 unavailable here»): where the first chosen reaction is not allowed, the next chosen
+    // one that is, else the chat's first allowed reaction
+    TdApi.ReactionType reactionType = null;
+    for (String quick : quickReactions) {
+      TdApi.ReactionType type = TD.toReactionType(quick);
+      if (type != null && tdlib.getReaction(type) != null && canSendReaction(type)) {
+        reactionType = type;
+        break;
+      }
+    }
+    if (reactionType == null && canBeReacted() && !tdlib.isSelfChat(msg.chatId) && messageAvailableReactions != null) {
+      TdApi.AvailableReaction[][] groups = {messageAvailableReactions.topReactions, messageAvailableReactions.recentReactions, messageAvailableReactions.popularReactions};
+      for (TdApi.AvailableReaction[] group : groups) {
+        if (group == null) continue;
+        for (TdApi.AvailableReaction available : group) {
+          if (!available.needsPremium && tdlib.getReaction(available.type) != null) {
+            reactionType = available.type;
+            break;
+          }
+        }
+        if (reactionType != null) break;
+      }
+    }
+    final TGReaction reactionObj = reactionType != null ? tdlib.getReaction(reactionType) : null;
+    if (reactionObj == null) {
+      org.thunderdog.challegram.Tgx101Diag.mark("double tap: reaction " + quickReactions[0] + " unavailable here, none other");
       return false;
     }
     boolean hasReaction = messageReactions.hasReaction(reactionType);
@@ -9724,7 +9746,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         scheduleSetReactionAnimation(new NextReactionAnimation(reactionObj, NextReactionAnimation.TYPE_QUICK));
       }
     }
-    org.thunderdog.challegram.Tgx101Diag.mark("double tap: reaction " + quickReactions[0]);
+    org.thunderdog.challegram.Tgx101Diag.mark("double tap: reaction " + TD.makeReactionKey(reactionType));
     return true;
   }
 
