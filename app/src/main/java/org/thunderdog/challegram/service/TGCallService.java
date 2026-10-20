@@ -827,6 +827,26 @@ public class TGCallService extends Service implements
 
   // Implementation
 
+  /** TGx101: «Answer» from the notification, now that the app is on the screen */
+  public void tgx101AnswerFromActivity () {
+    org.thunderdog.challegram.Tgx101Diag.mark("[call] answered from the notification, the app on the screen");
+    acceptIncomingCall();
+  }
+
+  /**
+   * TGx101: the call service went foreground without the microphone type (the app was in the background) — Android 14
+   * silences the microphone then. Once the app is on the screen, the ongoing notification goes foreground again with it.
+   */
+  public void tgx101ReclaimMicrophone () {
+    if (ongoingCallNotification == null || isDestroyed) return;
+    try {
+      U.startForeground(this, tgx101OngoingId, ongoingCallNotification);
+      org.thunderdog.challegram.Tgx101Diag.mark("[call] foreground again, the app on the screen");
+    } catch (Throwable t) {
+      org.thunderdog.challegram.Tgx101Diag.mark("[call] foreground again failed " + t.getClass().getSimpleName());
+    }
+  }
+
   private void acceptIncomingCall () {
     if (call != null) {
       tdlib.context().calls().acceptCall(this, tdlib, call.id);
@@ -1320,10 +1340,15 @@ public class TGCallService extends Service implements
         ((SpannableString) endTitle).setSpan(new ForegroundColorSpan(Theme.getColor(ColorId.circleButtonNegative)), 0, endTitle.length(), 0);
       }
       PendingIntent declinePendingIntent = PendingIntent.getBroadcast(this, 0, endIntent, PendingIntent.FLAG_ONE_SHOT | Intents.mutabilityFlags(false));
-      Intent answerIntent = new Intent();
+      // TGx101 (user 2026-10-20 21:30, log: «Cannot start call service with microphone type… SecurityException»): answered
+      // from the notification, the call was taken in the background — Android 14 then silences the microphone (they
+      // heard nothing) and Android 12 won't open the call screen from a broadcast. «Answer» opens the app and the call
+      // screen, the call is taken from there, with the microphone, as in the official app
+      Intent answerIntent = new Intent(this, org.thunderdog.challegram.MainActivity.class);
       Intents.secureIntent(answerIntent, false);
       answerIntent.setAction(Intents.ACTION_ANSWER_CALL);
-      PendingIntent answerPendingIntent = PendingIntent.getBroadcast(this, 0, answerIntent, PendingIntent.FLAG_ONE_SHOT | Intents.mutabilityFlags(false));
+      answerIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+      PendingIntent answerPendingIntent = PendingIntent.getActivity(this, 0, answerIntent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_UPDATE_CURRENT | Intents.mutabilityFlags(false));
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         // TGx101: Android 12+ system incoming call card — shown as a pop-up over an unlocked phone too
         Bitmap photo = user != null ? TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true) : null;

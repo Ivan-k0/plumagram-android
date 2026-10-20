@@ -963,6 +963,17 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       return true;
     }
 
+    if (Intents.ACTION_ANSWER_CALL.equals(action)) {
+      // TGx101: «Answer» from the incoming call notification — taken now, with the app on the screen (the microphone
+      // is allowed), and the call screen opened
+      setShowOverLockScreen(true);
+      org.thunderdog.challegram.service.TGCallService service = org.thunderdog.challegram.service.TGCallService.currentInstance();
+      if (service != null) service.tgx101AnswerFromActivity();
+      tgx101CloseOverlaysForCall();
+      tgx101OpenCallWhenFree(0);
+      return true;
+    }
+
     if (Intents.ACTION_OPEN_CALL.equals(action)) {
       // Opened by the incoming call's full-screen intent: show over the lock screen and
       // turn the screen on, otherwise the call screen stays hidden behind the keyguard.
@@ -1817,6 +1828,8 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
   @Override
   public void onResume () {
     super.onResume();
+    org.thunderdog.challegram.service.TGCallService tgx101Call = org.thunderdog.challegram.service.TGCallService.currentInstance();
+    if (tgx101Call != null) tgx101Call.tgx101ReclaimMicrophone(); // the microphone type, now that we're on the screen
     if (tgx101PendingChat != null) {
       android.app.KeyguardManager keyguard = (android.app.KeyguardManager) getSystemService(KEYGUARD_SERVICE);
       if (keyguard == null || !keyguard.isKeyguardLocked()) {
