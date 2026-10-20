@@ -820,7 +820,9 @@ android {
         commandLine("git", "rev-list", "--count", "--author=188923247+Ivan-k0@users.noreply.github.com", "HEAD")
         workingDir(rootDir)
       }.standardOutput.asText.get().trim().toIntOrNull() ?: 0
-      require(modBuild in 0..999) { "modBuild out of range: $modBuild" }
+      // (2026-10-20: the 1000th mod commit) past 999 the count simply carries into the base's digits — versionCode still
+      // only grows (installs over the previous build) and stays far from the Int limit
+      require(modBuild in 0..99999) { "modBuild out of range: $modBuild" }
       // 0.2 began at mod build 848 (2026-10-16): the shown number is 0.2.<builds since then>; versionCode keeps the full count.
       val modVersion = "0.2"
       val modPatch = modBuild - 848
