@@ -1971,6 +1971,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
     // TGx101 (approved mockup «Пересылка: капсулы», user 2026-10-20): Saved is picked as any chat when forwarding —
     // it sent at once with no chance to drop the sender's name
     if (mode == MODE_MESSAGES) return false;
+    if (mode == MODE_TEXT && getArgumentsStrict().tgx101Quote) return false; // a quote: room for the comment under it, Saved too
     if (!hasSelectedAnything && chat.isSelfChat() && selectedChats.size() == 0) {
       selectedChats.put(chat.getAnyId(), chat);
       selectedChatIds.append(chat.getAnyId());
