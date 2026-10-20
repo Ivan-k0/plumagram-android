@@ -50,12 +50,123 @@ public final class Tgx101GoogleTranslator {
     new Thread(() -> {
       TdApi.FormattedText result = null;
       try {
-        result = translateImpl(text, toLanguage);
+        result = translateHtml(text, toLanguage);
       } catch (Throwable t) {
-        org.thunderdog.challegram.Tgx101Diag.mark("translate: google failed " + t.getClass().getSimpleName());
+        org.thunderdog.challegram.Tgx101Diag.mark("translate: new google failed " + t.getClass().getSimpleName() + ", the old one");
+      }
+      if (result == null) {
+        try {
+          result = translateImpl(text, toLanguage);
+        } catch (Throwable t) {
+          org.thunderdog.challegram.Tgx101Diag.mark("translate: google failed " + t.getClass().getSimpleName());
+        }
       }
       callback.onResult(result);
     }, "Tgx101GoogleTranslate").start();
+  }
+
+  // (4PDA ausypher 2026-10-20 «криво переводит, то слово обрежет», user «делай уже»): the new Google engine — the one
+  // Chrome's page translation uses (and NagramX's «new Google»). The whole text goes at once, the formatting rides
+  // inside it as <a i=N> tags, so no piece is translated without its context any more
+  private static final String HTML_URL = "https://translate-pa.googleapis.com/v1/translateHtml";
+  private static final String HTML_KEY = "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520"; // Chrome's public translate key
+
+  private static TdApi.FormattedText translateHtml (TdApi.FormattedText source, String to) throws Exception {
+    String text = source.text;
+    TdApi.TextEntity[] entities = source.entities != null ? source.entities : new TdApi.TextEntity[0];
+    TreeSet<Integer> cuts = new TreeSet<>();
+    cuts.add(0);
+    cuts.add(text.length());
+    for (TdApi.TextEntity e : entities) {
+      cuts.add(Math.max(0, Math.min(text.length(), e.offset)));
+      cuts.add(Math.max(0, Math.min(text.length(), e.offset + e.length)));
+    }
+    List<Integer> bounds = new ArrayList<>(cuts);
+    int pieces = bounds.size() - 1;
+    // a piece covered by any entity is tagged with its number, the rest goes as plain text
+    boolean[] tagged = new boolean[pieces];
+    for (TdApi.TextEntity e : entities) {
+      for (int i = 0; i < pieces; i++) {
+        if (bounds.get(i) >= e.offset && bounds.get(i + 1) <= e.offset + e.length) tagged[i] = true;
+      }
+    }
+    StringBuilder html = new StringBuilder();
+    for (int i = 0; i < pieces; i++) {
+      String piece = escapeHtml(text.substring(bounds.get(i), bounds.get(i + 1)));
+      if (tagged[i]) html.append("<a i=").append(i).append('>').append(piece).append("</a>");
+      else html.append(piece);
+    }
+    org.json.JSONArray body = new org.json.JSONArray()
+      .put(new org.json.JSONArray().put(new org.json.JSONArray().put(html.toString())).put("auto").put(to))
+      .put("te_lib");
+    HttpURLConnection connection = (HttpURLConnection) new URL(HTML_URL).openConnection();
+    connection.setConnectTimeout(10000);
+    connection.setReadTimeout(15000);
+    connection.setDoOutput(true);
+    connection.setRequestMethod("POST");
+    connection.setRequestProperty("Content-Type", "application/json+protobuf");
+    connection.setRequestProperty("X-Goog-API-Key", HTML_KEY);
+    connection.setRequestProperty("User-Agent", "Mozilla/5.0");
+    String translatedHtml;
+    try {
+      try (java.io.OutputStream out = connection.getOutputStream()) {
+        out.write(body.toString().getBytes("UTF-8"));
+      }
+      if (connection.getResponseCode() != 200) throw new java.io.IOException("HTTP " + connection.getResponseCode());
+      ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+      try (InputStream in = connection.getInputStream()) {
+        byte[] b = new byte[8192];
+        int n;
+        while ((n = in.read(b)) != -1) buffer.write(b, 0, n);
+      }
+      translatedHtml = new JSONArray(buffer.toString("UTF-8")).getJSONArray(0).getString(0);
+    } finally {
+      connection.disconnect();
+    }
+    // back to text: where each tagged piece landed
+    int[] start = new int[pieces], end = new int[pieces];
+    java.util.Arrays.fill(start, -1);
+    StringBuilder out = new StringBuilder();
+    java.util.regex.Matcher m = java.util.regex.Pattern.compile("<a i=(\\d+)>|</a>|<br\\s*/?>").matcher(translatedHtml);
+    int last = 0, open = -1;
+    while (m.find()) {
+      out.append(unescapeHtml(translatedHtml.substring(last, m.start())));
+      last = m.end();
+      String tag = m.group();
+      if (tag.startsWith("<br")) {
+        out.append('\n');
+        if (last < translatedHtml.length() && translatedHtml.charAt(last) == ' ') last++; // «<br> Собрать»
+      } else if (m.group(1) != null) {
+        open = Integer.parseInt(m.group(1));
+        if (open >= 0 && open < pieces) start[open] = out.length();
+      } else {
+        if (open >= 0 && open < pieces) end[open] = out.length();
+        open = -1;
+        // «потребичек</a> .» — no space Google puts between a tag and the punctuation after it
+        if (last < translatedHtml.length() - 1 && translatedHtml.charAt(last) == ' ' && ".,!?:;)»".indexOf(translatedHtml.charAt(last + 1)) != -1) last++;
+      }
+    }
+    out.append(unescapeHtml(translatedHtml.substring(last)));
+    List<TdApi.TextEntity> mapped = new ArrayList<>();
+    for (TdApi.TextEntity e : entities) {
+      int from = Integer.MAX_VALUE, until = -1;
+      for (int i = 0; i < pieces; i++) {
+        if (!tagged[i] || start[i] < 0 || bounds.get(i) < e.offset || bounds.get(i + 1) > e.offset + e.length) continue;
+        from = Math.min(from, start[i]);
+        until = Math.max(until, end[i]);
+      }
+      if (until > from) mapped.add(new TdApi.TextEntity(from, until - from, e.type));
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("translate: new google, " + text.length() + " → " + out.length() + " chars, " + mapped.size() + "/" + entities.length + " entities");
+    return new TdApi.FormattedText(out.toString(), mapped.toArray(new TdApi.TextEntity[0]));
+  }
+
+  private static String escapeHtml (String text) {
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>");
+  }
+
+  private static String unescapeHtml (String text) {
+    return text.replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&#39;", "'").replace("&amp;", "&");
   }
 
   private static TdApi.FormattedText translateImpl (TdApi.FormattedText source, String to) throws Exception {
