@@ -349,7 +349,7 @@ public class RecordAudioVideoController implements
           return Views.isValid(this) && super.onTouchEvent(event);
         }
       };
-      this.switchCameraButton.setCameraIconRes(!Settings.instance().startRoundWithRear());
+      this.switchCameraButton.setCameraIconRes(Settings.instance().tgx101RoundStartsFront());
       /*this.switchCameraButton.setSpinCallback(new CameraControlButton.SpinCallback() {
         @Override
         public void onSpin (CameraControlButton v, float rotate, float scaleFactor) {
@@ -853,7 +853,7 @@ public class RecordAudioVideoController implements
   private void resetViews () {
     lastDuration = 0;
     setTranslations(0f, 0f);
-    switchCameraButton.setCameraIconRes(!Settings.instance().startRoundWithRear());
+    switchCameraButton.setCameraIconRes(Settings.instance().tgx101RoundStartsFront());
     progressView.reset();
     durationView.reset();
     lockView.setCollapseFactor(0f);
@@ -1360,6 +1360,9 @@ public class RecordAudioVideoController implements
       ownedCamera.onCleanAfterHide();
       ownedCamera.releaseCameraLayout();
 
+      if (Settings.instance().tgx101RoundRememberCamera()) {
+        Settings.instance().tgx101SetRoundLastFront(ownedCamera.getManager().preferFrontFacingCamera()); // the camera it ended with
+      }
       setupCamera(false);
       context.releaseCameraOwnership();
       releasedTrace = Log.generateException();
@@ -1693,7 +1696,7 @@ public class RecordAudioVideoController implements
   // Video record impl
 
   private void setupCamera (boolean isOwned) {
-    ownedCamera.getManager().setPreferFrontFacingCamera(!Settings.instance().startRoundWithRear() && isOwned);
+    ownedCamera.getManager().setPreferFrontFacingCamera(Settings.instance().tgx101RoundStartsFront() && isOwned);
     ownedCamera.getManager().setMaxResolution(isOwned ? Settings.roundCameraMaxResolution(Settings.instance().getRoundVideoQuality()) : 0);
     ownedCamera.getLegacyManager().setNoPreviewBlur(false);
     ownedCamera.getLegacyManager().setUseRoundRender(isOwned);

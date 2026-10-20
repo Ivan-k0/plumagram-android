@@ -4488,6 +4488,26 @@ public class Settings {
     setSetting(FLAG_OTHER_HQ_ROUND_VIDEOS, needRoundVideos);
   }
 
+  // TGx101 (user 2026-10-20 «выбирать, с какой камеры писать кружок, в начале записи»): «as last time» — a round starts
+  // with the camera the previous one ended with (switch once while recording, the next ones start there)
+  public boolean tgx101RoundRememberCamera () {
+    return pmc.getBoolean("tgx101_round_remember_cam", false);
+  }
+
+  public void setTgx101RoundRememberCamera (boolean remember) {
+    pmc.putBoolean("tgx101_round_remember_cam", remember);
+  }
+
+  public void tgx101SetRoundLastFront (boolean front) {
+    pmc.putBoolean("tgx101_round_last_front", front);
+  }
+
+  /** the camera a new round starts with */
+  public boolean tgx101RoundStartsFront () {
+    if (tgx101RoundRememberCamera()) return pmc.getBoolean("tgx101_round_last_front", !startRoundWithRear());
+    return !startRoundWithRear();
+  }
+
   public boolean startRoundWithRear () {
     return checkSetting(FLAG_OTHER_START_ROUND_REAR);
   }
