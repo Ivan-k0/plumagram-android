@@ -1755,6 +1755,13 @@
   <item name="btn_tgx101TranslateNotChat" type="id"/>
   <item name="btn_tgx101SuggestChatTranslation" type="id"/>
   <item name="btn_tgx101InputMore" type="id"/>
+  <item name="btn_tgx101Ai" type="id"/>
+  <item name="btn_tgx101AiFix" type="id"/>
+  <item name="btn_tgx101AiShorten" type="id"/>
+  <item name="btn_tgx101AiStyle" type="id"/>
+  <item name="btn_tgx101AiTranslate" type="id"/>
+  <item name="btn_tgx101AiPrompt" type="id"/>
+  <item name="btn_tgx101AiUndo" type="id"/>
   <item name="btn_tgx101InputSendAs" type="id"/>
   <item name="btn_tgx101DoubleTapWhich" type="id"/>
   <item name="controller_tgx101SavedHome" type="id"/>

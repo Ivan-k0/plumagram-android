@@ -10610,7 +10610,9 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       case TdApi.UpdateActiveGiftAuctions.CONSTRUCTOR:
       case TdApi.UpdateStakeDiceState.CONSTRUCTOR:
       case TdApi.UpdateNewOauthRequest.CONSTRUCTOR:
+        break;
       case TdApi.UpdateTextCompositionStyles.CONSTRUCTOR:
+        tgx101AiStyles = ((TdApi.UpdateTextCompositionStyles) update).styles; // TGx101: «AI → Style…» in the input
         break;
 
       // for bots only.
@@ -12170,6 +12172,9 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   }
 
   private String tgx101LastProblem;
+
+  /** TGx101: the AI text styles Telegram offers (updateTextCompositionStyles) */
+  public volatile TdApi.TextCompositionStyle[] tgx101AiStyles;
 
   @ResolvableProblem
   public int findResolvableProblem () {

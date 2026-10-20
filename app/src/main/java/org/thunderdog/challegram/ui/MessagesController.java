@@ -412,6 +412,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (canSelectSender()) {
       items.add(0, createHapticSenderItem(R.id.btn_openSendersMenu, chat.messageSenderId, false, false));
     }
+    if (tgx101CanUseAi()) {
+      if (items == null) items = new ArrayList<>();
+      items.add(new HapticMenuHelper.MenuItem(R.id.btn_tgx101Ai, Lang.getString(R.string.Tgx101Ai), R.drawable.baseline_stars_24));
+    }
     hideCursorsForInputView();
     return items;
   }
@@ -434,6 +438,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
     } else if (viewId == R.id.btn_openSendersMenu) {
       openSetSenderPopup();
+    } else if (viewId == R.id.btn_tgx101Ai) {
+      tgx101ShowAiMenu();
     } else if (viewId == R.id.btn_sendOnceOnline) {
       TdApi.MessageSendOptions sendOptions = Td.newSendOptions(new TdApi.MessageSchedulingStateSendWhenOnline());
       send(sendOptions, true);
@@ -9691,6 +9697,136 @@ public class MessagesController extends ViewController<MessagesController.Argume
       onClick(cameraButton);
     }
     return true;
+  }
+
+  // TGx101 (user 2026-10-20, AI variant 1): Telegram's AI over the text being written — fix, shorter, a style, a
+  // translation or an own request. It runs on Telegram's servers; the text is replaced, «Bring the text back» undoes it
+
+  private TdApi.FormattedText tgx101AiBefore;
+  private boolean tgx101AiBusy;
+
+  private boolean tgx101CanUseAi () {
+    return inputView != null && !isSecretChat() && !inPreviewMode && inputView.getText().toString().trim().length() > 0;
+  }
+
+  private void tgx101ShowAiMenu () {
+    if (!tgx101CanUseAi()) return;
+    IntList ids = new IntList(7);
+    StringList titles = new StringList(7);
+    IntList icons = new IntList(7);
+    ids.append(R.id.btn_tgx101AiFix); titles.append(R.string.Tgx101AiFix); icons.append(R.drawable.baseline_check_24);
+    ids.append(R.id.btn_tgx101AiShorten); titles.append(R.string.Tgx101AiShorten); icons.append(R.drawable.baseline_format_text_24);
+    TdApi.TextCompositionStyle[] styles = tdlib.tgx101AiStyles;
+    if (styles != null && styles.length > 0) {
+      ids.append(R.id.btn_tgx101AiStyle); titles.append(R.string.Tgx101AiStyle); icons.append(R.drawable.baseline_palette_24);
+    }
+    ids.append(R.id.btn_tgx101AiTranslate); titles.append(R.string.Tgx101AiTranslate); icons.append(R.drawable.baseline_translate_24);
+    ids.append(R.id.btn_tgx101AiPrompt); titles.append(R.string.Tgx101AiPrompt); icons.append(R.drawable.baseline_edit_24);
+    if (tgx101AiBefore != null) {
+      ids.append(R.id.btn_tgx101AiUndo); titles.append(R.string.Tgx101AiUndo); icons.append(R.drawable.baseline_undo_24);
+    }
+    showOptions(Lang.getString(R.string.Tgx101AiInfo), ids.get(), titles.get(), null, icons.get(), (itemView, id) -> {
+      final TdApi.FormattedText text = inputView.getOutputText(false);
+      if (id == R.id.btn_tgx101AiFix) {
+        tgx101RunAi(new TdApi.FixTextWithAi(text), "fix");
+      } else if (id == R.id.btn_tgx101AiShorten) {
+        tgx101RunAiPrompt(text, "Сократи этот текст, сохрани смысл и язык. Верни только текст.", "shorter");
+      } else if (id == R.id.btn_tgx101AiStyle) {
+        tgx101PickAiStyle(text);
+      } else if (id == R.id.btn_tgx101AiTranslate) {
+        tgx101PickAiLanguage(text);
+      } else if (id == R.id.btn_tgx101AiPrompt) {
+        openInputAlert(Lang.getString(R.string.Tgx101AiPrompt), Lang.getString(R.string.Tgx101AiPromptHint), R.string.Done, R.string.Cancel, null, (inputGroup, result) -> {
+          if (StringUtils.isEmpty(result.trim())) return false;
+          tgx101RunAiPrompt(text, result.trim(), "prompt");
+          return true;
+        }, true);
+      } else if (id == R.id.btn_tgx101AiUndo && tgx101AiBefore != null) {
+        tgx101SetInputText(tgx101AiBefore);
+        tgx101AiBefore = null;
+      }
+      return true;
+    });
+  }
+
+  private void tgx101PickAiStyle (TdApi.FormattedText text) {
+    TdApi.TextCompositionStyle[] styles = tdlib.tgx101AiStyles;
+    if (styles == null || styles.length == 0) return;
+    int count = Math.min(styles.length, 12);
+    int[] ids = new int[count];
+    String[] titles = new String[count];
+    for (int i = 0; i < count; i++) {
+      ids[i] = i + 1;
+      titles[i] = !StringUtils.isEmpty(styles[i].title) ? styles[i].title : styles[i].name;
+    }
+    showOptions(Lang.getString(R.string.Tgx101AiStyle), ids, titles, null, null, (itemView, id) -> {
+      if (id >= 1 && id <= count) {
+        tgx101RunAi(new TdApi.ComposeTextWithAi(text, "", styles[id - 1].name, false), "style " + styles[id - 1].name);
+      }
+      return true;
+    });
+  }
+
+  private void tgx101PickAiLanguage (TdApi.FormattedText text) {
+    final String[] codes = {"en", "ru", "uk", "de", "pl", "es", "fr", "it", "tr", "zh"};
+    String[] titles = new String[codes.length];
+    int[] ids = new int[codes.length];
+    for (int i = 0; i < codes.length; i++) {
+      ids[i] = i + 1;
+      java.util.Locale locale = new java.util.Locale(codes[i]);
+      String name = locale.getDisplayLanguage(java.util.Locale.getDefault());
+      titles[i] = name.isEmpty() ? codes[i] : Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    }
+    showOptions(Lang.getString(R.string.Tgx101AiTranslate), ids, titles, null, null, (itemView, id) -> {
+      if (id >= 1 && id <= codes.length) {
+        tgx101RunAi(new TdApi.ComposeTextWithAi(text, codes[id - 1], "", false), "translate " + codes[id - 1]);
+      }
+      return true;
+    });
+  }
+
+  private void tgx101RunAiPrompt (TdApi.FormattedText text, String prompt, String what) {
+    TdApi.InputRichMessage message = new TdApi.InputRichMessage(new TdApi.RichMessageSourceMarkdown(text.text, new TdApi.InputRichMessageMedia[0]), false, false);
+    tgx101RunAi(new TdApi.ComposeRichMessageWithAi(message, "", "", prompt, false), what);
+  }
+
+  private void tgx101RunAi (TdApi.Function<?> function, String what) {
+    if (tgx101AiBusy) return;
+    tgx101AiBusy = true;
+    final TdApi.FormattedText before = inputView.getOutputText(false);
+    org.thunderdog.challegram.Tgx101Diag.mark("ai: " + what + ", " + before.text.length() + " chars");
+    UI.showToast(R.string.Tgx101AiWorking, android.widget.Toast.LENGTH_SHORT);
+    tdlib.client().send(function, object -> runOnUiThreadOptional(() -> {
+      tgx101AiBusy = false;
+      TdApi.FormattedText result = null;
+      switch (object.getConstructor()) {
+        case TdApi.FormattedText.CONSTRUCTOR:
+          result = (TdApi.FormattedText) object;
+          break;
+        case TdApi.FixedText.CONSTRUCTOR:
+          result = ((TdApi.FixedText) object).text;
+          break;
+        case TdApi.RichMessage.CONSTRUCTOR:
+          result = org.thunderdog.challegram.data.Tgx101RichMessage.toText((TdApi.RichMessage) object);
+          break;
+        case TdApi.Error.CONSTRUCTOR: {
+          String error = ((TdApi.Error) object).message;
+          org.thunderdog.challegram.Tgx101Diag.mark("ai: " + what + " failed — " + error);
+          UI.showToast(error != null && error.contains("PREMIUM") ? Lang.getString(R.string.Tgx101AiPremium) : Lang.getString(R.string.Tgx101AiFailed, TD.toErrorString(object)), android.widget.Toast.LENGTH_LONG);
+          return;
+        }
+      }
+      if (result == null || StringUtils.isEmpty(result.text) || inputView == null) return;
+      tgx101AiBefore = before;
+      tgx101SetInputText(result);
+      org.thunderdog.challegram.Tgx101Diag.mark("ai: " + what + " done, " + result.text.length() + " chars");
+      UI.showToast(R.string.Tgx101AiDone, android.widget.Toast.LENGTH_SHORT);
+    }));
+  }
+
+  private void tgx101SetInputText (TdApi.FormattedText text) {
+    if (inputView == null) return;
+    inputView.setInput(TD.toCharSequence(text), true, true);
   }
 
   private void updateSilentButton (boolean visible) {

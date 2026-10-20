@@ -7243,4 +7243,17 @@
   <string name="Tgx101SavedTagsSection">Tags</string>
   <string name="Tgx101SavedHashtagSetting">Tags as hashtags</string>
   <string name="Tgx101SavedHashtagDesc">On: in your own messages a tag is written as a #hashtag — seen on all devices. Off: tags are kept by name on this phone only.</string>
+  <string name="Tgx101Ai">AI assistant</string>
+  <string name="Tgx101AiFix">Fix mistakes</string>
+  <string name="Tgx101AiShorten">Make shorter</string>
+  <string name="Tgx101AiStyle">Style…</string>
+  <string name="Tgx101AiTranslate">Translate to…</string>
+  <string name="Tgx101AiPrompt">Your own request…</string>
+  <string name="Tgx101AiPromptHint">For example: make it polite</string>
+  <string name="Tgx101AiUndo">Bring the text back</string>
+  <string name="Tgx101AiWorking">AI is working…</string>
+  <string name="Tgx101AiDone">Done. «Bring the text back» is in the same menu</string>
+  <string name="Tgx101AiPremium">The free AI requests are over — Telegram asks for Premium</string>
+  <string name="Tgx101AiFailed">AI: %1$s</string>
+  <string name="Tgx101AiInfo">Telegram's AI works on its servers — the phone only sends the text</string>
 </resources>

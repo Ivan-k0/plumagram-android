@@ -1359,6 +1359,19 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MediaPhotos, "Фото");
     RU.put(R.string.Tgx101MediaVideos, "Видео");
     RU.put(R.string.Tgx101MediaColumns, "Столбцов: %1$d");
+    RU.put(R.string.Tgx101Ai, "ИИ-помощник");
+    RU.put(R.string.Tgx101AiFix, "Исправить ошибки");
+    RU.put(R.string.Tgx101AiShorten, "Сократить");
+    RU.put(R.string.Tgx101AiStyle, "Стиль…");
+    RU.put(R.string.Tgx101AiTranslate, "Перевести на…");
+    RU.put(R.string.Tgx101AiPrompt, "Свой запрос…");
+    RU.put(R.string.Tgx101AiPromptHint, "Например: сделай вежливее");
+    RU.put(R.string.Tgx101AiUndo, "Вернуть как было");
+    RU.put(R.string.Tgx101AiWorking, "ИИ думает…");
+    RU.put(R.string.Tgx101AiDone, "Готово. «Вернуть как было» — в этом же меню");
+    RU.put(R.string.Tgx101AiPremium, "Бесплатные запросы ИИ закончились — Telegram просит Premium");
+    RU.put(R.string.Tgx101AiFailed, "ИИ: %1$s");
+    RU.put(R.string.Tgx101AiInfo, "ИИ Telegram работает на его серверах — телефон только отправляет текст");
   }
 
   /** Russian text for a mod string when the app language is Russian, otherwise null. */
