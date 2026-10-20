@@ -318,7 +318,8 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
             return false;
           }
         } else {
-          if (drawer == null || !drawer.prepare()) {
+          ViewController<?> top = navigation.getCurrentStackItem();
+          if (drawer == null || (top != null && !top.tgx101DrawerBySwipe()) || !drawer.prepare()) {
             listenSlidingBack = false;
             return false;
           }

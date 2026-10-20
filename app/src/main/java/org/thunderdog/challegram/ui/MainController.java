@@ -2239,6 +2239,12 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   }
 
   @Override
+  public boolean tgx101DrawerBySwipe () {
+    // (user 2026-10-20 «вправо — в Хранилище, меню — кнопкой ☰»): on the first folder the swipe right is the storage's
+    return !(getCurrentPagerItemPosition() == 0 && Settings.instance().tgx101SwipeToStorage() && org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).storageOn);
+  }
+
+  @Override
   public boolean canSlideBackFrom (NavigationController navigationController, float x, float y) {
     if (!super.canSlideBackFrom(navigationController, x, y)) {
       return false;

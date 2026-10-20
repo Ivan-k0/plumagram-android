@@ -1477,6 +1477,11 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     setFlags(BitwiseUtils.setFlag(flags, FLAG_SWIPE_DISABLED, !enabled));
   }
 
+  /** TGx101: false — the side menu doesn't follow a swipe here (its ☰ button still opens it) */
+  public boolean tgx101DrawerBySwipe () {
+    return true;
+  }
+
   protected boolean swipeNavigationEnabled () {
     return (flags & FLAG_SWIPE_DISABLED) == 0;
   }

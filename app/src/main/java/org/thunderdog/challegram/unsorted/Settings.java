@@ -3817,7 +3817,9 @@ public class Settings {
   public boolean tgx101SwipeToStorage () {
     // (user 2026-10-19 «когда активно боковое меню, по умолчанию свайп открывает меню; хранилище — на выбор»): unless
     // chosen in MagiX → Gestures, on with the bottom menu and off with the side menu (the swipe opens the side menu)
-    return pmc.getBoolean("tgx101_swipe_storage", tgx101NavCapsule());
+    // (user 2026-10-20 «свайп из списка в Хранилище нужно добавить», «вправо, меню — кнопкой ☰»): on by default with the
+    // side menu too — the side menu then opens by its ☰ button
+    return pmc.getBoolean("tgx101_swipe_storage", true);
   }
 
   public void setTgx101SwipeToStorage (boolean v) {
