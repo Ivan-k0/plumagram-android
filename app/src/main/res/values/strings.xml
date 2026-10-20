@@ -7248,7 +7248,7 @@
   <string name="Tgx101TorchOff">Turn the flashlight off</string>
   <string name="Tgx101TorchBusy">The flashlight is busy — the back camera is filming</string>
   <string name="Tgx101SnoozeLike">Reaction, as the double tap</string>
-  <string name="Tgx101SnoozeLikeButton">%1$s Like</string>
+  <string name="Tgx101SnoozeLikeButton">Like</string>
   <string name="Tgx101SnoozeHeart">❤️</string>
   <string name="Tgx101SnoozeLiked">%1$s — reaction set</string>
   <string name="Tgx101Ai">AI assistant</string>
