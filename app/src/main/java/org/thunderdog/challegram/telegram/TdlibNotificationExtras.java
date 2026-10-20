@@ -195,9 +195,9 @@ public class TdlibNotificationExtras {
     if (minutes == org.thunderdog.challegram.unsorted.Settings.TGX101_NOTIF_BUTTON_LIKE || minutes == org.thunderdog.challegram.unsorted.Settings.TGX101_NOTIF_BUTTON_HEART) {
       // the third button set to a reaction: on the last message of the notification, then it is read and gone
       if (messageIds != null && messageIds.length > 0) {
-        String emoji = minutes == org.thunderdog.challegram.unsorted.Settings.TGX101_NOTIF_BUTTON_LIKE ? "👍" : "❤️";
+        TdApi.ReactionType reaction = tgx101QuickReaction(tdlib);
         long messageId = messageIds[messageIds.length - 1];
-        tdlib.client().send(new TdApi.AddMessageReaction(chatId, messageId, new TdApi.ReactionTypeEmoji(emoji), false, false), result -> {
+        tdlib.client().send(new TdApi.AddMessageReaction(chatId, messageId, reaction, false, false), result -> {
           if (result.getConstructor() == TdApi.Error.CONSTRUCTOR) {
             org.thunderdog.challegram.Tgx101Diag.mark("notification like failed — " + ((TdApi.Error) result).message);
             UI.showToast(org.thunderdog.challegram.data.TD.toErrorString(result), android.widget.Toast.LENGTH_SHORT);
@@ -210,6 +210,22 @@ public class TdlibNotificationExtras {
     tgx101SetSnoozed(tdlib.id(), chatId, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(Math.max(1, minutes)));
     hide(tdlib); // user 2026-10-05: the notification goes away after «Quiet»
     UI.showToast(Lang.getString(org.thunderdog.challegram.R.string.Tgx101SnoozedToast, minutes), android.widget.Toast.LENGTH_SHORT);
+  }
+
+  /** the reaction the double tap sets: the first of the quick reactions (👍 when none are chosen) */
+  public static TdApi.ReactionType tgx101QuickReaction (Tdlib tdlib) {
+    String[] quick = org.thunderdog.challegram.unsorted.Settings.instance().getQuickReactions(tdlib);
+    if (quick != null && quick.length > 0) {
+      TdApi.ReactionType type = org.thunderdog.challegram.data.TD.toReactionType(quick[0]);
+      if (type != null) return type;
+    }
+    return new TdApi.ReactionTypeEmoji("👍");
+  }
+
+  /** the reaction's emoji for the button's label; a custom emoji has none to show there */
+  public static String tgx101QuickReactionLabel (Tdlib tdlib) {
+    TdApi.ReactionType type = tgx101QuickReaction(tdlib);
+    return type instanceof TdApi.ReactionTypeEmoji ? ((TdApi.ReactionTypeEmoji) type).emoji : "";
   }
 
   private static android.content.SharedPreferences tgx101SnoozePrefs () {

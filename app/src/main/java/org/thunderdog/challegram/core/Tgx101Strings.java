@@ -1363,7 +1363,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101TorchOn, "Включить фонарик");
     RU.put(R.string.Tgx101TorchOff, "Выключить фонарик");
     RU.put(R.string.Tgx101TorchBusy, "Фонарик занят — снимает задняя камера");
-    RU.put(R.string.Tgx101SnoozeLike, "👍 Нравится");
+    RU.put(R.string.Tgx101SnoozeLike, "Реакция, как двойной тап");
+    RU.put(R.string.Tgx101SnoozeLikeButton, "%1$s Нравится");
     RU.put(R.string.Tgx101SnoozeHeart, "❤️");
     RU.put(R.string.Tgx101SnoozeLiked, "%1$s — реакция поставлена");
     RU.put(R.string.Tgx101Ai, "ИИ-помощник");

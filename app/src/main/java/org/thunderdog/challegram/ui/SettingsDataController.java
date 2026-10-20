@@ -1482,8 +1482,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         }));
     } else if (id == R.id.btn_tgx101Snooze) {
       int current = Settings.instance().tgx101SnoozeMinutes();
-      // (user 2026-10-20 «в уведомлении вместо «Тихо» — «Нравится» или лайк»): the third button may also set a reaction
-      int[] values = {5, 10, 30, 60, 180, Settings.TGX101_NOTIF_BUTTON_LIKE, Settings.TGX101_NOTIF_BUTTON_HEART, 0};
+      // (user 2026-10-20 «в уведомлении вместо «Тихо» — «Нравится»», «реакция как при двойном тапе, первая выбранная»):
+      // the third button may set the first quick reaction instead
+      int[] values = {5, 10, 30, 60, 180, Settings.TGX101_NOTIF_BUTTON_LIKE, 0};
       ListItem[] items = new ListItem[values.length];
       for (int i = 0; i < values.length; i++) {
         items[i] = new ListItem(ListItem.TYPE_RADIO_OPTION, i + 1, 0, tgx101SnoozeName(values[i]), R.id.btn_tgx101Snooze, values[i] == current);
@@ -1744,8 +1745,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   }
 
   private static String tgx101SnoozeName (int value) {
-    if (value == Settings.TGX101_NOTIF_BUTTON_LIKE) return Lang.getString(R.string.Tgx101SnoozeLike);
-    if (value == Settings.TGX101_NOTIF_BUTTON_HEART) return Lang.getString(R.string.Tgx101SnoozeHeart);
+    if (value == Settings.TGX101_NOTIF_BUTTON_LIKE || value == Settings.TGX101_NOTIF_BUTTON_HEART) return Lang.getString(R.string.Tgx101SnoozeLike);
     return value > 0 ? Lang.getString(R.string.Tgx101SnoozeMinutes, value) : Lang.getString(R.string.Tgx101SnoozeOff);
   }
 

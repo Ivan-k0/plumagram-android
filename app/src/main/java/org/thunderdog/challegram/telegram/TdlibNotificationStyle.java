@@ -652,12 +652,13 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
     NotificationCompat.Action tgx101SnoozeAction = null;
     int tgx101SnoozeMinutes = org.thunderdog.challegram.unsorted.Settings.instance().tgx101SnoozeMinutes();
     if (tgx101SnoozeMinutes == org.thunderdog.challegram.unsorted.Settings.TGX101_NOTIF_BUTTON_LIKE || tgx101SnoozeMinutes == org.thunderdog.challegram.unsorted.Settings.TGX101_NOTIF_BUTTON_HEART) {
-      // TGx101 (user 2026-10-20): the third button «👍 Like» / «❤️» — a reaction on the last message (same intent, Extras decide)
+      // TGx101 (user 2026-10-20): the third button — the first quick reaction, as the double tap, on the last message
+      // (same intent, Extras decide)
       Intent likeIntent = new Intent(org.thunderdog.challegram.unsorted.AppContext.get(), TGMessageReceiver.class);
       styleIntent(Intents.ACTION_MESSAGE_SNOOZE, likeIntent, tdlib, group, needReplyToMessage, allMessageIds, allUserIds);
       try {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(org.thunderdog.challegram.unsorted.AppContext.get(), notificationId, likeIntent, Intents.mutabilityFlags(true));
-        tgx101SnoozeAction = new NotificationCompat.Action.Builder(R.drawable.baseline_favorite_24, Lang.getString(tgx101SnoozeMinutes == org.thunderdog.challegram.unsorted.Settings.TGX101_NOTIF_BUTTON_LIKE ? R.string.Tgx101SnoozeLike : R.string.Tgx101SnoozeHeart), pendingIntent)
+        tgx101SnoozeAction = new NotificationCompat.Action.Builder(R.drawable.baseline_favorite_24, Lang.getString(R.string.Tgx101SnoozeLikeButton, TdlibNotificationExtras.tgx101QuickReactionLabel(tdlib)).trim(), pendingIntent)
           .setShowsUserInterface(false)
           .build();
       } catch (Throwable t) {
