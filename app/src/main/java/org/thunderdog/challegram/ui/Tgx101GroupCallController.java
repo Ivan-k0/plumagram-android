@@ -243,12 +243,10 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
       return true;
     });
     micButton = addButton(context, buttons, R.drawable.baseline_mic_24, 76, 0, v -> onMicClick(), label -> micLabel = label, lock -> micLock = lock);
-    // (user photo 2026-10-20 10:17) «Микрофон выключен» was cut to «Микрофо…» in a fifth of the row: the big button's
-    // cell is a bit wider and its state may take two lines
-    ((LinearLayout.LayoutParams) ((View) micButton.getParent().getParent()).getLayoutParams()).weight = 1.4f;
-    micLabel.setSingleLine(false);
-    micLabel.setMaxLines(2);
-    micLabel.setGravity(Gravity.CENTER_HORIZONTAL);
+    // (user photo 2026-10-20 10:17) «Микрофон выключен» was cut to «Микрофо…» in a fifth of the row — when the state
+    // does not fit, no label at all (user: not two lines); invisible, so the buttons stay where they are
+    micLabel.setEllipsize(null);
+    micLabel.addOnLayoutChangeListener((v, l, t, r, b2, ol, ot, or, ob) -> fitMicLabel());
     addButton(context, buttons, R.drawable.baseline_chat_bubble_24, 52, R.string.Tgx101VoiceChatMessage, v -> openMessages(), null, lock -> messageLock = lock);
     addButton(context, buttons, R.drawable.baseline_call_end_24, 52, R.string.Tgx101VoiceChatLeave, v -> onLeaveClick(), null, null).setBackground(circle(COLOR_END));
     // the unread count on «Message»
@@ -712,6 +710,7 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
     } else {
       micLabel.setText(Lang.getString(call.isMuted() ? R.string.Tgx101VoiceChatMicOff : R.string.Tgx101VoiceChatMicOn));
     }
+    fitMicLabel();
     messageLock.setVisibility(call.getGroupCall() != null && !call.canSendMessages() ? View.VISIBLE : View.GONE);
   }
 
@@ -944,6 +943,16 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
     b.setOnClickListener(click);
     b.setLayoutParams(new LinearLayout.LayoutParams(Screen.dp(48f), Screen.dp(48f)));
     return b;
+  }
+
+  private void fitMicLabel () {
+    if (micLabel == null) return;
+    View cell = (View) micLabel.getParent();
+    int room = cell.getWidth() - cell.getPaddingLeft() - cell.getPaddingRight();
+    if (room <= 0) return;
+    CharSequence text = micLabel.getText();
+    boolean fits = text == null || micLabel.getPaint().measureText(text, 0, text.length()) <= room;
+    micLabel.setVisibility(fits ? View.VISIBLE : View.INVISIBLE);
   }
 
   private static TextView newText (Context context, int sizeSp, int color, boolean bold) {
