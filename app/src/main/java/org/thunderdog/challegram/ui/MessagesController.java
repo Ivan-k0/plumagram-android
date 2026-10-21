@@ -4346,7 +4346,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (getChatId() != 0) {
       if (isSelfChat()) {
         // Saved Messages has no "more" menu: tags get their own header button.
-        return previewSearchFilter == null && messageThread == null ? R.id.menu_savedMessages : R.id.menu_search;
+        // TGx101: the tabs look has its own menu — the header keeps built menus by id (the chat look's tags button came back)
+        return previewSearchFilter == null && messageThread == null ? (needTabs() ? R.id.menu_tgx101SavedTabs : R.id.menu_savedMessages) : R.id.menu_search;
       }
       if (isSecretChat()) {
         return R.id.menu_secretChat;
@@ -4426,9 +4427,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       header.addClearButton(menu, this).setColorId(ColorId.headerLightIcon);
     } else if (id == R.id.menu_search) {
       header.addSearchButton(menu, this);
-    } else if (id == R.id.menu_savedMessages) {
-      // (user 2026-10-21 «кнопка ярлыков поехала»): with Telegram X's tabs the tags live in ⋮ — the tabs keep their room
-      if (!needTabs()) header.addButton(menu, R.id.menu_btn_savedMessagesTags, R.drawable.baseline_label_24, getHeaderIconColorId(), this, Screen.dp(48f));
+    } else if (id == R.id.menu_savedMessages || id == R.id.menu_tgx101SavedTabs) {
+      // (user 2026-10-21 «кнопка ярлыков поехала»): with the tabs the tags live in ⋮ — the tabs keep their room
+      if (id == R.id.menu_savedMessages) header.addButton(menu, R.id.menu_btn_savedMessagesTags, R.drawable.baseline_label_24, getHeaderIconColorId(), this, Screen.dp(48f));
       header.addSearchButton(menu, this);
       header.addMoreButton(menu, this); // TGx101 (user 2026-10-21): ⋮ as in the official app — «as chats» and the rest
     } else if (id == R.id.menu_chat) {
