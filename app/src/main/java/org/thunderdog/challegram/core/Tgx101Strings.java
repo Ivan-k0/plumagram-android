@@ -848,6 +848,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedAsMessages, "Как сообщения");
     RU.put(R.string.Tgx101SavedLookTgx, "Вид Telegram X (вкладки)");
     RU.put(R.string.Tgx101SavedLookChat, "Вид чата (как в exteraGram)");
+    RU.put(R.string.Tgx101AiAll, "Функции ИИ (помощник, Кратко, Что пропустил, Хранилище)");
     RU.put(R.string.Tgx101SavedAiSort, "Разложить с ИИ");
     RU.put(R.string.Tgx101SavedAiWorking, "Спрашиваю ИИ, куда что положить…");
     RU.put(R.string.Tgx101SavedAiNothing, "Все записи уже разложены по папкам.");

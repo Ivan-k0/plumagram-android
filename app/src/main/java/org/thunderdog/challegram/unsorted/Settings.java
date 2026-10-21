@@ -3703,13 +3703,19 @@ public class Settings {
   public boolean tgx101HideInputEmoji () { return pmc.getBoolean(KEY_TGX101_HIDE_INPUT_EMOJI, false); }
   public void setTgx101HideInputEmoji (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_INPUT_EMOJI, v); }
 
+  // TGx101 (user 2026-10-21 «ИИ-вещи нужно дать возможность отключать одним махом»): one switch for everything AI —
+  // the assistant on «Send», «✨ Short», «What I missed», the storage's AI sort and AI tags
+  private static final String KEY_TGX101_AI = "tgx101_ai";
+  public boolean tgx101Ai () { return pmc.getBoolean(KEY_TGX101_AI, true); }
+  public void setTgx101Ai (boolean v) { pmc.putBoolean(KEY_TGX101_AI, v); }
+
   // TGx101 (user 2026-10-21 «1 2 и 5 делай»): AI — «✨ Short» under long posts, «What I missed» in busy chats
   private static final String KEY_TGX101_AI_SUMMARY = "tgx101_ai_summary", KEY_TGX101_AI_MISSED = "tgx101_ai_missed";
-  public boolean tgx101AiSummary () { return pmc.getBoolean(KEY_TGX101_AI_SUMMARY, true); }
+  public boolean tgx101AiSummary () { return tgx101Ai() && pmc.getBoolean(KEY_TGX101_AI_SUMMARY, true); }
   public void setTgx101AiSummary (boolean v) { pmc.putBoolean(KEY_TGX101_AI_SUMMARY, v); }
   // (user 2026-10-21, AI in the storage): a hint for the sort, what the user turned down, auto tags for new records
   private static final String KEY_TGX101_AI_AUTO_TAGS = "tgx101_ai_auto_tags";
-  public boolean tgx101AiAutoTags () { return pmc.getBoolean(KEY_TGX101_AI_AUTO_TAGS, false); }
+  public boolean tgx101AiAutoTags () { return tgx101Ai() && pmc.getBoolean(KEY_TGX101_AI_AUTO_TAGS, false); }
   public void setTgx101AiAutoTags (boolean v) { pmc.putBoolean(KEY_TGX101_AI_AUTO_TAGS, v); }
   public String tgx101AiSortHint (int accountId) { return pmc.getString("tgx101_ai_sort_hint_" + accountId, ""); }
   public void setTgx101AiSortHint (int accountId, String v) { pmc.putString("tgx101_ai_sort_hint_" + accountId, v); }
@@ -3727,7 +3733,7 @@ public class Settings {
   public boolean tgx101SavedAsChats () { return pmc.getBoolean(KEY_TGX101_SAVED_AS_CHATS, false); } // the official default: messages
   public void setTgx101SavedAsChats (boolean v) { pmc.putBoolean(KEY_TGX101_SAVED_AS_CHATS, v); }
 
-  public boolean tgx101AiMissed () { return pmc.getBoolean(KEY_TGX101_AI_MISSED, true); }
+  public boolean tgx101AiMissed () { return tgx101Ai() && pmc.getBoolean(KEY_TGX101_AI_MISSED, true); }
   public void setTgx101AiMissed (boolean v) { pmc.putBoolean(KEY_TGX101_AI_MISSED, v); }
 
   // TGx101 (user 2026-10-21, mockup «Кнопка-птица» №8 + «Веер» Б): the bird at the edge of the chat lists — on/off, its

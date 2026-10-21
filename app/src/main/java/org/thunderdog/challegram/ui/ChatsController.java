@@ -871,6 +871,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     runOnUiThreadOptional(() -> {
       initialLoadFinished = true;
       adapter.addMore(parsedChats.toArray(new TGChat[0]));
+      tgx101CheckStorageRow(); // Saved Messages may have just come with this page (the row was missing after a restart)
     });
   }
 

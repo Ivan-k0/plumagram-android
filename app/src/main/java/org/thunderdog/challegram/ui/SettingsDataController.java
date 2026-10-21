@@ -336,6 +336,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideJoinButton(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideSponsored) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideSponsored(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101AiAll) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101Ai(), isUpdate);
         } else if (itemId == R.id.btn_tgx101SearchHoldProxy) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101SearchHoldProxy(), isUpdate);
         } else if (itemId == R.id.btn_tgx101CapsuleScrollHide) {
@@ -583,6 +585,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         // (user 2026-10-16) the storage's settings stay reachable while the storage itself is off
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101SavedSettingsOpen, 0, R.string.Tgx101SavedSettings),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiAll, 0, R.string.Tgx101AiAll),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SearchHoldProxy, 0, R.string.Tgx101SearchHoldProxy),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1360,6 +1364,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101HideInputCamera(toggleResult);
     } else if (id == R.id.btn_tgx101HideInputCommands) {
       Settings.instance().setTgx101HideInputCommands(toggleResult);
+    } else if (id == R.id.btn_tgx101AiAll) {
+      Settings.instance().setTgx101Ai(toggleResult); // user 2026-10-21: all AI things off / on at once
     } else if (id == R.id.btn_tgx101SearchHoldProxy) {
       Settings.instance().setTgx101SearchHoldProxy(toggleResult); // user 2026-10-12: hold the chat list search → proxy
     } else if (id == R.id.btn_tgx101HideSponsored) {

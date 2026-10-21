@@ -7117,6 +7117,7 @@
   <string name="Tgx101SavedAsMessages">As messages</string>
   <string name="Tgx101SavedLookTgx">Telegram X look (tabs)</string>
   <string name="Tgx101SavedLookChat">Chat look (as exteraGram)</string>
+  <string name="Tgx101AiAll">AI functions (assistant, Short, What I missed, storage)</string>
   <string name="Tgx101SavedAiSort">Sort with AI</string>
   <string name="Tgx101SavedAiWorking">Asking the AI where the records go…</string>
   <string name="Tgx101SavedAiNothing">Every record is already in a folder.</string>
