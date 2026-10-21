@@ -802,12 +802,7 @@ public class TGMessageText extends TGMessage {
           if (e.offset + e.length <= sum.length()) list.add(entity(sumStart + e.offset, e.length, e.type));
         }
       }
-      list.add(entity(0, b.length(), new TdApi.TextEntityTypeBlockQuote()));
-      String excerpt = t.text.length() > 160 ? t.text.substring(0, 160).trim() + "…" : t.text;
-      b.append("\n\n");
-      int exStart = b.length();
-      b.append(excerpt);
-      list.add(entity(exStart, excerpt.length(), new TdApi.TextEntityTypeItalic()));
+      // (user 2026-10-21 «в офф. телеге пересказ заменяет текст»): the summary takes the post's place, as the translation does
       b.append('\n');
       String more = Lang.getString(R.string.Tgx101AiShowFull);
       list.add(entity(b.length(), more.length(), new TdApi.TextEntityTypeTextUrl(TGX101_FULL_LINK)));
