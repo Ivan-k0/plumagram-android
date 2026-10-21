@@ -739,7 +739,9 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
 
   public void prepareFactorAnimation (ViewController<?> left, ViewController<?> right, boolean forward, int direction, @PredictiveGesture int predictiveGestureMode) {
     preventLayout();
-    if (Views.HARDWARE_LAYER_ENABLED) {
+    // TGx101 (trace 2026-10-21: the storage pull's first frames spent 7 ms each rendering both screens into layers):
+    // the pull following the finger draws them as they are — a sliding screen costs little each frame at 120 Hz
+    if (Views.HARDWARE_LAYER_ENABLED && !tgx101ForceRtlOnce) {
       setLayerType(View.LAYER_TYPE_HARDWARE, left, right);
     }
 

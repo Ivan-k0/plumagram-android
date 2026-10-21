@@ -86,6 +86,8 @@ public final class Tgx101StorageSwitch extends View {
       public void onViewAttachedToWindow (View v) {
         ViewParent p = getParent();
         if (p instanceof View) ((View) p).addOnLayoutChangeListener(parentLayout);
+        // (2026-10-21) laid out ahead off screen, the parent gets no new layout on coming in — the button stayed top-left
+        if (getTranslationY() == 0f && !isDragging()) place(false);
       }
 
       @Override
