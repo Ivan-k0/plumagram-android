@@ -245,7 +245,11 @@ public class TGStickerObj {
    * animations played as sticker previews — capped at 30 fps. They play at the file's own rate now
    */
   public TGStickerObj tgx101FullFrameRate () {
-    this.previewOptimizationMode = GifFile.OptimizationMode.NONE;
+    // a weak phone (the system calls it low on memory) keeps the 30 fps cap
+    android.app.ActivityManager am = (android.app.ActivityManager) org.thunderdog.challegram.unsorted.AppContext.get().getSystemService(android.content.Context.ACTIVITY_SERVICE);
+    if (am == null || !am.isLowRamDevice()) {
+      this.previewOptimizationMode = GifFile.OptimizationMode.NONE;
+    }
     return this;
   }
 
