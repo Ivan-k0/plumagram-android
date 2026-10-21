@@ -645,7 +645,7 @@ public class TGMessageMedia extends TGMessage {
     final int saveCount = clipped ? ViewSupport.clipPath(c, getBubbleClipPath()) : Integer.MIN_VALUE;
     final int textTop = tgx101CaptionAbove() ? startY + Screen.dp(TEXT_MARGIN) : startY + mosaicWrapper.getHeight() + Screen.dp(TEXT_MARGIN);
     startY += tgx101MediaOffset();
-    mosaicWrapper.draw(view, c, startX, startY, complexReceiver, useFullWidth());
+    mosaicWrapper.draw(view, c, startX, startY, complexReceiver, useFullWidth(), tgx101HiddenMedia != null ? tgx101HiddenMedia.getSourceMessageId() : 0);
     if (tgx101HighlightedChildId() != 0) {
       mosaicWrapper.tgx101DrawItemHighlight(c, tgx101HighlightedChildId(), tgx101ItemFlashColor()); // TGx101: only that album item flashes
     }

@@ -1254,15 +1254,20 @@ public class MosaicWrapper implements FactorAnimator.Target, ComplexReceiver.Key
   private int lastStartX, lastStartY;
 
   public <T extends View & DrawableProvider> void draw (T view, Canvas c, int startX, int startY, ComplexReceiver complexReceiver, boolean needSeparators) {
+    draw(view, c, startX, startY, complexReceiver, needSeparators, 0);
+  }
+
+  /** @param hiddenMessageId the photo flying to / from the viewer (TGx101): its place drawn empty */
+  public <T extends View & DrawableProvider> void draw (T view, Canvas c, int startX, int startY, ComplexReceiver complexReceiver, boolean needSeparators, long hiddenMessageId) {
     lastStartX = startX;
     lastStartY = startY;
-    draw(view, c, startX, startY, complexReceiver, mosaicItems, needSeparators);
-    draw(view, c, startX, startY, complexReceiver, addedMosaicItems, needSeparators);
+    draw(view, c, startX, startY, complexReceiver, mosaicItems, needSeparators, hiddenMessageId);
+    draw(view, c, startX, startY, complexReceiver, addedMosaicItems, needSeparators, hiddenMessageId);
   }
 
   private static float[] lines = new float[8];
 
-  private static <T extends View & DrawableProvider> void draw (T view, Canvas c, int startX, int startY, ComplexReceiver complexReceiver, MosaicItemInfo[] items, boolean needSeparators) {
+  private static <T extends View & DrawableProvider> void draw (T view, Canvas c, int startX, int startY, ComplexReceiver complexReceiver, MosaicItemInfo[] items, boolean needSeparators, long hiddenMessageId) {
     if (items != null) {
       for (MosaicItemInfo item : items) {
         // int key = item.target.getReceiverKey();
@@ -1288,7 +1293,11 @@ public class MosaicWrapper implements FactorAnimator.Target, ComplexReceiver.Key
         }
 
         item.target.buildContent(width, height);
-        item.target.draw(view, c, x, y, preview, receiver, 1f);
+        if (hiddenMessageId != 0 && item.target.getSourceMessageId() == hiddenMessageId) {
+          c.drawRect(x, y, x + width, y + height, Paints.fillingPaint(org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.placeholder)));
+        } else {
+          item.target.draw(view, c, x, y, preview, receiver, 1f);
+        }
         if (needSeparators) {
           Paint paint = Paints.strokeSeparatorPaint(ColorUtils.alphaColor(alpha, 0x1a000000));
           lines[0] = lines[4] = x;

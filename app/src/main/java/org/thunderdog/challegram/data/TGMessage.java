@@ -5812,8 +5812,13 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   public final void setMediaVisible (MediaItem media, boolean isVisible) {
     this.flags = BitwiseUtils.setFlag(flags, FLAG_HIDE_MEDIA, !isVisible);
+    tgx101HiddenMedia = isVisible ? null : media;
     invalidate();
   }
+
+  // TGx101 (user video 2026-10-21 17:00 «подложка должна быть пустой, пока туда едет фото»): which photo flies to or from
+  // the viewer — its place in the message stays empty meanwhile, as in the official app (the flag was set and never drawn)
+  protected @Nullable MediaItem tgx101HiddenMedia;
 
   public MediaViewThumbLocation getMediaThumbLocation (long messageId, View view, int viewTop, int viewBottom, int top) {
     // override
