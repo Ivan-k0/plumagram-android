@@ -228,18 +228,23 @@ public class Tgx101BirdView extends View {
 
   // room
 
+  // (user video 2026-10-21 19:04 «иконка сама поднялась и опустилась»): the room's bottom is the screen's (above the
+  // navigation), not the list's own — the list growing, shrinking or sliding for a moment no longer moves the bird
+  private final int[] at = new int[2];
+
   private int bottomRoom () {
     int bottom = getHeight();
-    if (Build.VERSION.SDK_INT >= 23 && getRootWindowInsets() != null) {
+    if (Build.VERSION.SDK_INT >= 23 && getRootWindowInsets() != null && getRootView() != null && getRootView().getHeight() > 0) {
       int nav = getRootWindowInsets().getSystemWindowInsetBottom();
-      int[] at = new int[2];
       getLocationInWindow(at);
-      int windowBottom = getRootView().getHeight() - nav;
-      bottom = Math.min(bottom, windowBottom - at[1]);
+      bottom = getRootView().getHeight() - nav - at[1];
     }
     if (callback != null) bottom -= callback.birdBottomInset();
     return bottom;
   }
+
+  private float lastDrawnCy = -1;
+  private int lastRoom = -1;
 
   private float minCy () {
     return Screen.dp(BUTTON / 2f + 12f);
@@ -685,6 +690,11 @@ public class Tgx101BirdView extends View {
 
     // the bird
     float cy = tabCy();
+    if (!moving && lift == 0f && lastDrawnCy >= 0 && Math.abs(cy - lastDrawnCy) > Screen.dp(8f)) {
+      org.thunderdog.challegram.Tgx101Diag.mark("bird: shifted by itself " + Math.round((cy - lastDrawnCy) / Screen.dp(1f)) + " dp (room " + lastRoom + " → " + bottomRoom() + ", height " + getHeight() + ", top " + at[1] + ")");
+    }
+    lastDrawnCy = cy;
+    lastRoom = bottomRoom();
     float bx = restCx(right), by = cy;
     if (lift > 0f) {
       bx = lerp(bx, liftX, lift);
