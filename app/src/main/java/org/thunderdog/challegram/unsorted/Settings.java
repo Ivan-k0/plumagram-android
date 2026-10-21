@@ -3703,6 +3703,13 @@ public class Settings {
   public boolean tgx101HideInputEmoji () { return pmc.getBoolean(KEY_TGX101_HIDE_INPUT_EMOJI, false); }
   public void setTgx101HideInputEmoji (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_INPUT_EMOJI, v); }
 
+  // TGx101 (user 2026-10-21 «1 2 и 5 делай»): AI — «✨ Short» under long posts, «What I missed» in busy chats
+  private static final String KEY_TGX101_AI_SUMMARY = "tgx101_ai_summary", KEY_TGX101_AI_MISSED = "tgx101_ai_missed";
+  public boolean tgx101AiSummary () { return pmc.getBoolean(KEY_TGX101_AI_SUMMARY, true); }
+  public void setTgx101AiSummary (boolean v) { pmc.putBoolean(KEY_TGX101_AI_SUMMARY, v); }
+  public boolean tgx101AiMissed () { return pmc.getBoolean(KEY_TGX101_AI_MISSED, true); }
+  public void setTgx101AiMissed (boolean v) { pmc.putBoolean(KEY_TGX101_AI_MISSED, v); }
+
   // TGx101 (user 2026-10-21, mockup «Кнопка-птица» №8 + «Веер» Б): the bird at the edge of the chat lists — on/off, its
   // ring (bit i = Tgx101Bird.ACTIONS[i], at most 5), its place per orientation (side × share of the height, ×10000) and
   // whether it was moved once (then the hint at the bottom is gone)

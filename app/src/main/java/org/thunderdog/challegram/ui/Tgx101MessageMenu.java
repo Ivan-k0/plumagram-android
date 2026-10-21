@@ -76,6 +76,7 @@ public final class Tgx101MessageMenu {
     R.id.btn_messagePin,
     R.id.btn_messageSelectText,
     R.id.btn_chatTranslate,
+    R.id.btn_tgx101Summary, // user 2026-10-21: «✨ Short» — Telegram's summary of a long post
     R.id.btn_messageCopyLink,
     R.id.btn_saveFile,
     R.id.btn_messageReport,
@@ -90,14 +91,14 @@ public final class Tgx101MessageMenu {
   };
   public static final int[] ORDERABLE_NAMES = {
     R.string.Reply, R.string.Copy, R.string.Tgx101SelectInPlace, R.string.edit, R.string.Share, R.string.Tgx101SaveFavorite, R.string.Tgx101QuoteShare, R.string.MessagePin,
-    R.string.Tgx101MenuSelectText, R.string.Translate, R.string.CopyLink, R.string.Save, R.string.MessageReport,
+    R.string.Tgx101MenuSelectText, R.string.Translate, R.string.Tgx101AiShort, R.string.CopyLink, R.string.Save, R.string.MessageReport,
     R.string.Tgx101FilterSimilar, R.string.Tgx101MenuEditorOwn, R.string.Tgx101MenuMessagesFrom,
     R.string.Tgx101MenuThread, R.string.Tgx101MenuToOriginal, R.string.DeleteFromCache, R.string.MoreMessageOptions, R.string.Delete
   };
   public static final int[] ORDERABLE_ICONS = {
     R.drawable.baseline_reply_24, R.drawable.baseline_content_copy_24, R.drawable.tgx101_select_all_24, R.drawable.baseline_edit_24,
     R.drawable.baseline_forward_24, R.drawable.baseline_bookmark_24, R.drawable.baseline_format_quote_close_24, R.drawable.deproko_baseline_pin_24, R.drawable.baseline_format_quote_close_24,
-    R.drawable.baseline_translate_24, R.drawable.baseline_link_24, R.drawable.baseline_file_download_24,
+    R.drawable.baseline_translate_24, R.drawable.baseline_stars_24, R.drawable.baseline_link_24, R.drawable.baseline_file_download_24,
     R.drawable.baseline_report_24, R.drawable.baseline_filter_variant_remove_24, R.drawable.baseline_format_text_24,
     R.drawable.baseline_person_24, R.drawable.outline_forum_24, R.drawable.baseline_forum_24, R.drawable.templarian_baseline_broom_24,
     R.drawable.baseline_more_horiz_24, R.drawable.baseline_delete_24

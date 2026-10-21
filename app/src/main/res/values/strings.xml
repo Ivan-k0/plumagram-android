@@ -7093,6 +7093,9 @@
   <string name="Tgx101SwipeToStorageSection">Chat list</string>
   <string name="Tgx101SwipeToStorage">Swipe right on the first folder — Storage</string>
   <string name="Tgx101SwipeToStorageHint">On the first chat folder pull the finger to the right, where there are no folders: past the vibration Saved opens as a storage.</string>
+  <string name="Tgx101AiShort">Short</string>
+  <string name="Tgx101AiShortLoading">Summing up…</string>
+  <string name="Tgx101AiShowFull">Show in full</string>
   <string name="Tgx101SavedAiSort">Sort with AI</string>
   <string name="Tgx101SavedAiWorking">Asking the AI where the records go…</string>
   <string name="Tgx101SavedAiNothing">Every record is already in a folder.</string>

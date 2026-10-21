@@ -1023,6 +1023,11 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       strings.append(R.string.Translate);
       icons.append(R.drawable.baseline_translate_24);
     }
+    if (!isMore && msg.tgx101CanSummarize()) { // TGx101: «✨ Short» (or back to the whole post)
+      ids.append(R.id.btn_tgx101Summary);
+      strings.append(msg.tgx101SummaryShown() ? R.string.Tgx101AiShowFull : R.string.Tgx101AiShort);
+      icons.append(R.drawable.baseline_stars_24);
+    }
 
     if (messageCount == 1) {
       if (!isMore && msg.getMessage().content.getConstructor() == TdApi.MessageSticker.CONSTRUCTOR) {

@@ -824,6 +824,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SwipeToStorageSection, "Список чатов");
     RU.put(R.string.Tgx101SwipeToStorage, "Свайп вправо на первой папке — Хранилище");
     RU.put(R.string.Tgx101SwipeToStorageHint, "На первой папке чатов ведите палец вправо, туда, где папок уже нет: после вибрации откроется Избранное-хранилище.");
+    RU.put(R.string.Tgx101AiShort, "Кратко");
+    RU.put(R.string.Tgx101AiShortLoading, "Пересказываю…");
+    RU.put(R.string.Tgx101AiShowFull, "Показать полностью");
     RU.put(R.string.Tgx101SavedAiSort, "Разложить с ИИ");
     RU.put(R.string.Tgx101SavedAiWorking, "Спрашиваю ИИ, куда что положить…");
     RU.put(R.string.Tgx101SavedAiNothing, "Все записи уже разложены по папкам.");

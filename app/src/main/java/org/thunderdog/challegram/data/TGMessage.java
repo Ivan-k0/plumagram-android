@@ -8194,6 +8194,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
       @Override
       public boolean onUrlClick (View view, String link, boolean promptUser, @NonNull TdlibUi.UrlOpenParameters openParameters) {
+        if (link != null && link.startsWith("tgx101-summary:")) { // TGx101: «✨ Short» / «Show in full» under a long post
+          return tgx101ToggleSummary();
+        }
         trackSponsoredMessageClicked();
         return false;
       }
@@ -9686,6 +9689,20 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (Td.isEmpty(messageAvailableReactions)) {
       loadAvailableReactions(() -> { });
     }
+  }
+
+  /** TGx101: Telegram can sum this post up (TGMessageText) */
+  public boolean tgx101CanSummarize () {
+    return false;
+  }
+
+  public boolean tgx101SummaryShown () {
+    return false;
+  }
+
+  /** shows / hides the summary; @return handled */
+  public boolean tgx101ToggleSummary () {
+    return false;
   }
 
   public boolean tgx101SetFirstQuickReaction () {
