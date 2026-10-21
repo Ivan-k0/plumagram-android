@@ -50,7 +50,6 @@ import org.thunderdog.challegram.unsorted.Settings;
  */
 public class Tgx101BirdView extends View {
   public interface Callback {
-    void onBirdTap ();
     /** an action of the ring ({@link org.thunderdog.challegram.ui.Tgx101Bird#ACTION_STORAGE} etc.) */
     void onBirdAction (int action);
     /** the accounts ring: an account was picked ({@code accountId}) or «Add account» ({@code -1}) */
@@ -116,6 +115,11 @@ public class Tgx101BirdView extends View {
   private boolean liftOpening;
   private float hint; // 0..1
   private long lastFrame;
+  // (user 2026-10-21, variant 1 «как AssistiveTouch»): 3 s untouched the bird pales to 40%; a finger brings it back
+  private static final long IDLE_MS = 3000;
+  private static final float IDLE_ALPHA = .4f;
+  private long lastTouch = SystemClock.uptimeMillis();
+  private float shown = 1f;
 
   private final Runnable holdRunnable = () -> {
     if (pressed && !moving && !ringOpen) openRing(false, true);
@@ -251,6 +255,7 @@ public class Tgx101BirdView extends View {
     float x = e.getX(), y = e.getY();
     switch (e.getActionMasked()) {
       case MotionEvent.ACTION_DOWN: {
+        lastTouch = SystemClock.uptimeMillis();
         if (ringOpen && !ringByFinger) {
           // the accounts ring waits for a tap
           pressed = true;
@@ -303,6 +308,7 @@ public class Tgx101BirdView extends View {
       }
       case MotionEvent.ACTION_UP: {
         if (!pressed) return false;
+        lastTouch = SystemClock.uptimeMillis();
         pressed = false;
         removeCallbacks(holdRunnable);
         removeCallbacks(moveRunnable);
@@ -320,10 +326,8 @@ public class Tgx101BirdView extends View {
           } else {
             closeRing(false);
           }
-        } else if (!moved) {
-          playSoundEffect(android.view.SoundEffectConstants.CLICK);
-          if (callback != null) callback.onBirdTap();
         }
+        // (user 2026-10-21 «активация только по удержанию, одиночное касание убери»): a tap does nothing
         return true;
       }
       case MotionEvent.ACTION_CANCEL: {
@@ -573,6 +577,11 @@ public class Tgx101BirdView extends View {
       lift = moving ? 1f : 0f;
     }
 
+    boolean busy = pressed || moving || ringOpen || lift > 0f;
+    if (busy) lastTouch = now;
+    float shownTarget = busy || now - lastTouch < IDLE_MS ? 1f : IDLE_ALPHA;
+    shown += (shownTarget - shown) * (1f - (float) Math.exp(-dt / (shownTarget > shown ? 40f : 220f)));
+    if (Math.abs(shownTarget - shown) > .005f) more = true; else shown = shownTarget;
     float hintTarget = Settings.instance().tgx101BirdMoveLearned() ? 0f : 1f;
     hint += (hintTarget - hint) * k * .5f;
     if (Math.abs(hintTarget - hint) > .005f) more = true; else hint = hintTarget;
@@ -653,6 +662,9 @@ public class Tgx101BirdView extends View {
       iconX = lerp(iconX, liftX, lift);
       iconY = lerp(iconY, liftY, lift);
     }
+    int tabAlpha = (int) (255 * shown);
+    tabPaint.setAlpha(tabAlpha);
+    birdPaint.setAlpha(tabAlpha);
     float s = 1f - .08f * press;
     c.save();
     c.scale(s, s, right ? width : 0, cy);
@@ -689,6 +701,8 @@ public class Tgx101BirdView extends View {
       postInvalidateOnAnimation();
     } else {
       lastFrame = 0;
+      long idleIn = lastTouch + IDLE_MS - SystemClock.uptimeMillis();
+      if (shown > IDLE_ALPHA && idleIn > -1) postInvalidateDelayed(Math.max(16, idleIn + 1));
     }
   }
 

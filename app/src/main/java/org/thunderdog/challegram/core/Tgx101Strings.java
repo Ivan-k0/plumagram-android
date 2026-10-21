@@ -833,7 +833,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedAiDone, "Разложено: %1$d");
     RU.put(R.string.Tgx101BirdSection, "Птичка");
     RU.put(R.string.Tgx101Bird, "Птичка у края списка чатов");
-    RU.put(R.string.Tgx101BirdHint, "Нажатие — боковое меню. Удержание — кольцо действий вокруг пальца: проведите к нужному и отпустите. Держите 2,5 с не сдвигая палец — птичка поднимется, её можно переставить к левому или правому краю на любую высоту. Видна, когда включено боковое меню и спрятана кнопка ✎.");
+    RU.put(R.string.Tgx101BirdHint, "Удержание — кольцо действий вокруг пальца: проведите к нужному и отпустите. Касание ничего не делает, свайп проходит сквозь птичку. Держите 2,5 с не сдвигая палец — птичка поднимется, её можно переставить к левому или правому краю. Без касаний через 3 с становится бледной. Видна, когда включено боковое меню и спрятана кнопка ✎.");
     RU.put(R.string.Tgx101BirdRing, "Действия в кольце");
     RU.put(R.string.Tgx101BirdRingHint, "До 5 действий. «Аккаунты» открывают второе кольцо с аккаунтами.");
     RU.put(R.string.Tgx101BirdRingMax, "Не больше 5");
@@ -848,6 +848,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101BirdSearch, "Поиск");
     RU.put(R.string.Tgx101BirdNextAccount, "Следующий аккаунт");
     RU.put(R.string.Tgx101BirdNote, "Заметка");
+    RU.put(R.string.Tgx101BirdMenu, "Боковое меню");
+    RU.put(R.string.Tgx101BirdNight, "Ночь / день");
     RU.put(R.string.Tgx101SettingsSearch, "Поиск по настройкам");
     RU.put(R.string.Tgx101SettingsSearchHint, "Настройка, например «вибрация»");
     RU.put(R.string.Tgx101SettingsSearchEmpty, "Введите слово: найдётся любой пункт настроек и MagiX, с тем, где он лежит.");

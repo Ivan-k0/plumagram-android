@@ -31,28 +31,31 @@ import tgx.td.ChatId;
 
 /**
  * TGx101 (user 2026-10-21 11:50): what the bird ({@link Tgx101BirdView}) does. The ring by default: Storage, Proxy,
- * Accounts, Calls, Settings; at most 5, chosen in MagiX → Gestures. Tap — the side menu.
+ * Accounts, Calls, Settings; at most 5, chosen in MagiX → Gestures (the side menu and night mode too). Only a hold opens it — a tap does nothing (user 2026-10-21).
  */
 public final class Tgx101Bird {
   private Tgx101Bird () { }
 
   public static final int ACTION_STORAGE = 0, ACTION_PROXY = 1, ACTION_ACCOUNTS = 2, ACTION_CALLS = 3, ACTION_SETTINGS = 4,
-    ACTION_COMPOSE = 5, ACTION_SEARCH = 6, ACTION_NEXT_ACCOUNT = 7, ACTION_NOTE = 8;
+    ACTION_COMPOSE = 5, ACTION_SEARCH = 6, ACTION_NEXT_ACCOUNT = 7, ACTION_NOTE = 8, ACTION_MENU = 9, ACTION_NIGHT = 10;
   public static final int MAX = 5;
 
   /** the order of the bits in {@link Settings#tgx101BirdRing()} */
   public static final int[] TITLES = {
     R.string.Tgx101BirdStorage, R.string.Tgx101BirdProxy, R.string.Tgx101BirdAccounts, R.string.Tgx101BirdCalls, R.string.Tgx101BirdSettings,
-    R.string.Tgx101BirdCompose, R.string.Tgx101BirdSearch, R.string.Tgx101BirdNextAccount, R.string.Tgx101BirdNote
+    R.string.Tgx101BirdCompose, R.string.Tgx101BirdSearch, R.string.Tgx101BirdNextAccount, R.string.Tgx101BirdNote,
+    R.string.Tgx101BirdMenu, R.string.Tgx101BirdNight
   };
   private static final int[] ICONS = {
     R.drawable.tgx101_storage_tiles_24, R.drawable.baseline_security_24, R.drawable.baseline_group_24, R.drawable.baseline_phone_24, R.drawable.baseline_settings_24,
-    R.drawable.baseline_chat_bubble_24, R.drawable.baseline_search_24, R.drawable.baseline_swap_horiz_24, R.drawable.baseline_create_24
+    R.drawable.baseline_chat_bubble_24, R.drawable.baseline_search_24, R.drawable.baseline_swap_horiz_24, R.drawable.baseline_create_24,
+    R.drawable.tgx101_menu_24, R.drawable.baseline_brightness_2_24
   };
   // the mockup's colours
   private static final int[] COLORS = {
     0xff5aa9e6, 0xff2f9e8f, 0xffa695e7, 0xff47c56b, 0xff6b7f95,
-    0xff4fae4e, 0xff6b7f95, 0xffe17076, 0xfffaa774
+    0xff4fae4e, 0xff6b7f95, 0xffe17076, 0xfffaa774,
+    0xff3d8fd6, 0xff5c6bc0
   };
 
   /** on every chat list while the side menu is used (not the bottom capsule) and ✎ is hidden */
@@ -75,15 +78,6 @@ public final class Tgx101Bird {
     Tgx101BirdView bird = new Tgx101BirdView(host.context());
     bird.setItems(items());
     bird.setCallback(new Tgx101BirdView.Callback() {
-      @Override
-      public void onBirdTap () {
-        BaseActivity context = host.context();
-        if (context.getDrawer() != null && !context.getDrawer().isVisible()) {
-          org.thunderdog.challegram.Tgx101Diag.mark("bird: tap → side menu");
-          context.getDrawer().open();
-        }
-      }
-
       @Override
       public void onBirdAction (int action) {
         run(host, action, search);
@@ -146,6 +140,12 @@ public final class Tgx101Bird {
       }
       case ACTION_SEARCH:
         if (search != null) search.run();
+        break;
+      case ACTION_MENU:
+        if (context.getDrawer() != null && !context.getDrawer().isVisible()) context.getDrawer().open();
+        break;
+      case ACTION_NIGHT:
+        org.thunderdog.challegram.theme.ThemeManager.instance().toggleNightMode();
         break;
       case ACTION_NEXT_ACCOUNT: {
         List<TdlibAccount> accounts = TdlibManager.instance().getActiveAccounts();
