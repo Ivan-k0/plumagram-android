@@ -3711,6 +3711,16 @@ public class Settings {
 
   // TGx101 (user 2026-10-21 «1 2 и 5 делай»): AI — «✨ Short» under long posts, «What I missed» in busy chats
   private static final String KEY_TGX101_AI_SUMMARY = "tgx101_ai_summary", KEY_TGX101_AI_MISSED = "tgx101_ai_missed";
+  // (4PDA request 2026-10-21 «Отключить анимацию — гифки, стикеры, эмодзи… жрёт процессор»): looping animations stand
+  // on their first frame; short one-off ones (a reaction's effect) still play
+  private static final String KEY_TGX101_NO_ANIMATION = "tgx101_no_animation";
+  private static volatile Boolean tgx101NoAnimation;
+  public boolean tgx101NoAnimation () {
+    Boolean v = tgx101NoAnimation;
+    return v != null ? v : (tgx101NoAnimation = pmc.getBoolean(KEY_TGX101_NO_ANIMATION, false));
+  }
+  public void setTgx101NoAnimation (boolean v) { tgx101NoAnimation = v; pmc.putBoolean(KEY_TGX101_NO_ANIMATION, v); }
+
   public boolean tgx101AiSummary () { return tgx101Ai() && pmc.getBoolean(KEY_TGX101_AI_SUMMARY, true); }
   public void setTgx101AiSummary (boolean v) { pmc.putBoolean(KEY_TGX101_AI_SUMMARY, v); }
   // (user 2026-10-21, AI in the storage): a hint for the sort, what the user turned down, auto tags for new records

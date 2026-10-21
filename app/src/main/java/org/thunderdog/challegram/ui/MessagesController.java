@@ -2134,7 +2134,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       addThemeInvalidateListener(pagerHeaderView.getTopView());
       fparams = (FrameLayoutFix.LayoutParams) pagerHeaderView.getRecyclerView().getLayoutParams();
       fparams.leftMargin = Screen.dp(56f);
-      fparams.rightMargin = Screen.dp(56f + 49f); // search + ⋮ (TGx101: the look switch; the tags are the second tab)
+      fparams.rightMargin = Screen.dp(56f + 48f + 49f); // search + tags + ⋮ (TGx101: the look switch)
       pagerHeaderView.getTopView().setOnItemClickListener(this);
       addThemeInvalidateListener(pagerHeaderView.getTopView());
 
@@ -2142,15 +2142,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       ProfileController.fillMediaControllers(mediaControllers, context(), tdlib());
       List<ViewPagerTopView.Item> items = new ArrayList<ViewPagerTopView.Item>(mediaControllers.size() + 1);
       items.add(new ViewPagerTopView.Item(
-        Lang.uppercase(Lang.getString(R.string.TabMessages)),
+        Lang.uppercase(Lang.getString(R.string.Tgx101SavedChatTab)), // TGx101 (user 2026-10-21): «ЧАТ» — the tabs fit
         R.drawable.baseline_chat_bubble_24,
-        null
-      ));
-      // TGx101 (user 2026-10-21 «ярлыки-реакции — сразу после „Сообщения“ и перед „Медиа“»): the tags as the second tab
-      // — not a page: it opens the tags as the header button did; the pages' tabs come after it
-      items.add(new ViewPagerTopView.Item(
-        Lang.uppercase(Lang.getString(R.string.Tgx101SavedTagsTab)),
-        R.drawable.baseline_label_24,
         null
       ));
       for (SharedBaseController<?> c : mediaControllers) {
@@ -2315,7 +2308,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public void onPageScrolled (int position, float positionOffset, int positionOffsetPixels) {
     positionOffset = ViewPager.clampPositionOffset(positionOffset);
     float offset = (float) position + positionOffset;
-    pagerHeaderView.getTopView().setSelectionFactor(tgx101TabOf(offset)); // the tags tab (1) is skipped
+    pagerHeaderView.getTopView().setSelectionFactor(offset);
     if (this.pagerScrollOffset != offset) {
       this.pagerScrollOffset = offset;
       if (hideKeyboardOnPageScroll) {
@@ -2376,20 +2369,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (pagerContentView.getCurrentItem() == 0 && UI.getContext(MessagesController.this.context()).getRecordAudioVideoController().isOpen()) {
       return;
     }
-    if (position == 1) { // the tags tab: what the header's tags button did
-      showSavedMessagesTags();
-      return;
+    if (pagerContentView.getCurrentItem() != position) {
+      pagerHeaderView.getTopView().setFromTo(pagerContentView.getCurrentItem(), position);
+      pagerContentView.setCurrentItem(position, true);
     }
-    int page = position > 1 ? position - 1 : position;
-    if (pagerContentView.getCurrentItem() != page) {
-      pagerHeaderView.getTopView().setFromTo(Math.round(tgx101TabOf(pagerContentView.getCurrentItem())), position);
-      pagerContentView.setCurrentItem(page, true);
-    }
-  }
-
-  /** a page's place among the tabs: the tags tab stands between messages (0) and the first media page */
-  private static float tgx101TabOf (float page) {
-    return page <= 0f ? page : page < 1f ? page * 2f : page + 1f;
   }
 
   private void showMessagesListIfNeeded () {
@@ -4458,8 +4441,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else if (id == R.id.menu_search) {
       header.addSearchButton(menu, this);
     } else if (id == R.id.menu_savedMessages || id == R.id.menu_tgx101SavedTabs) {
-      // (user 2026-10-21 «кнопка ярлыков поехала»): with the tabs the tags live in ⋮ — the tabs keep their room
-      if (id == R.id.menu_savedMessages) header.addButton(menu, R.id.menu_btn_savedMessagesTags, R.drawable.baseline_label_24, getHeaderIconColorId(), this, Screen.dp(48f));
+      // (user 2026-10-21 «ярлыки — отдельно, между поиском и вкладками, чтобы не двигались»): a fixed button in both looks
+      header.addButton(menu, R.id.menu_btn_savedMessagesTags, R.drawable.baseline_label_24, getHeaderIconColorId(), this, Screen.dp(48f));
       header.addSearchButton(menu, this);
       header.addMoreButton(menu, this); // TGx101 (user 2026-10-21): ⋮ as in the official app — «as chats» and the rest
     } else if (id == R.id.menu_chat) {

@@ -653,8 +653,14 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
     return maxFrameRate;
   }
 
+  private int tgx101Scheduled;
+
   // GifStage thread
   private void scheduleNext (boolean force) {
+    // TGx101: «Turn off animations» — a looping animation stops after its first frame
+    if (!isPlayOnce && !force && org.thunderdog.challegram.unsorted.Settings.instance().tgx101NoAnimation() && tgx101Scheduled++ >= 1) {
+      return;
+    }
     final double frameDelay;
     final long nextTimeStamp;
 

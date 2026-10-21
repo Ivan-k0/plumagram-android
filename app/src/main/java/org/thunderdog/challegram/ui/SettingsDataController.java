@@ -340,6 +340,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101Bird(), isUpdate);
         } else if (itemId == R.id.btn_tgx101BirdRing) {
           view.setData(Tgx101GesturesController.birdRingValue());
+        } else if (itemId == R.id.btn_tgx101NoAnimation) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101NoAnimation(), isUpdate);
         } else if (itemId == R.id.btn_tgx101AiAll) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101Ai(), isUpdate);
         } else if (itemId == R.id.btn_tgx101SearchHoldProxy) {
@@ -589,6 +591,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         // (user 2026-10-16) the storage's settings stay reachable while the storage itself is off
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101SavedSettingsOpen, 0, R.string.Tgx101SavedSettings),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NoAnimation, 0, R.string.Tgx101NoAnimation),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiAll, 0, R.string.Tgx101AiAll),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1067,6 +1071,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101HideCompose || id == R.id.btn_tgx101HideJoin || id == R.id.btn_tgx101HideSponsored) return 0;
     if (id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101SearchHoldProxy || id == R.id.btn_tgx101CapsuleScrollHide || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101CapsuleTabs || id == R.id.btn_tgx101ContactsMenu || id == R.id.btn_tgx101QuickCalls) return 0;
     if (id == R.id.btn_tgx101RearRounds || id == R.id.btn_tgx101RoundRememberCamera || id == R.id.btn_tgx101RoundAskCamera) return 4;
+    if (id == R.id.btn_tgx101NoAnimation) return 4; // «Media»
     if (id == R.id.btn_tgx101HideAllReactions || id == R.id.btn_tgx101HideChannelReactions || id == R.id.btn_tgx101NextChannelSwipe || id == R.id.btn_tgx101NextChannelBackToList || id == R.id.btn_showDiscussButton || id == R.id.btn_showCommentsButton
       || id == R.id.btn_showChannelMuteButton || id == R.id.btn_hideSubscribeLink || id == R.id.btn_separateChannelPosts) return 3;
     if (id == R.id.btn_tgx101VoiceQueue || id == R.id.btn_tgx101CameraInAttach || id == R.id.btn_tgx101ZoomPullClose || id == R.id.btn_roundVideoQuality
@@ -1380,6 +1385,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101Bird(toggleResult);
     } else if (id == R.id.btn_tgx101BirdRing) {
       Tgx101GesturesController.chooseBirdRing(this, () -> adapter.updateValuedSettingById(R.id.btn_tgx101BirdRing));
+    } else if (id == R.id.btn_tgx101NoAnimation) {
+      Settings.instance().setTgx101NoAnimation(toggleResult);
+      if (toggleResult) Settings.instance().setAutoplayGIFs(false);
+      UI.showToast(R.string.Tgx101NoAnimationHint, android.widget.Toast.LENGTH_LONG);
     } else if (id == R.id.btn_tgx101AiAll) {
       Settings.instance().setTgx101Ai(toggleResult); // user 2026-10-21: all AI things off / on at once
     } else if (id == R.id.btn_tgx101SearchHoldProxy) {

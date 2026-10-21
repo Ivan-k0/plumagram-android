@@ -852,6 +852,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SectionFeatures, "Фишки");
     RU.put(R.string.Tgx101SectionFeaturesHint, "Хранилище, птичка, редакторы, ИИ");
     RU.put(R.string.Tgx101SavedTagsTab, "Ярлыки");
+    RU.put(R.string.Tgx101SavedChatTab, "Чат");
+    RU.put(R.string.Tgx101NoAnimation, "Отключить анимацию (гифки, стикеры, эмодзи)");
+    RU.put(R.string.Tgx101NoAnimationHint, "Анимации стоят на первом кадре — меньше нагрузка на процессор и батарею. Применяется к тому, что откроется дальше.");
     RU.put(R.string.Tgx101SavedAiSort, "Разложить с ИИ");
     RU.put(R.string.Tgx101SavedAiWorking, "Спрашиваю ИИ, куда что положить…");
     RU.put(R.string.Tgx101SavedAiNothing, "Все записи уже разложены по папкам.");

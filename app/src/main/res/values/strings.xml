@@ -7121,6 +7121,9 @@
   <string name="Tgx101SectionFeatures">Features</string>
   <string name="Tgx101SectionFeaturesHint">Storage, bird, editors, AI</string>
   <string name="Tgx101SavedTagsTab">Tags</string>
+  <string name="Tgx101SavedChatTab">Chat</string>
+  <string name="Tgx101NoAnimation">Turn off animations (GIFs, stickers, emoji)</string>
+  <string name="Tgx101NoAnimationHint">Animations stop on their first frame — less work for the processor and the battery. Applies to what opens next.</string>
   <string name="Tgx101SavedAiSort">Sort with AI</string>
   <string name="Tgx101SavedAiWorking">Asking the AI where the records go…</string>
   <string name="Tgx101SavedAiNothing">Every record is already in a folder.</string>

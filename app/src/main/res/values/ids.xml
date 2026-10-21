@@ -1805,6 +1805,7 @@
   <item name="controller_tgx101SavedAiSort" type="id"/>
   <item name="btn_tgx101Summary" type="id"/>
   <item name="btn_tgx101AiAll" type="id"/>
+  <item name="btn_tgx101NoAnimation" type="id"/>
   <item name="btn_tgx101SectionFeatures" type="id"/>
   <item name="menu_tgx101SavedTabs" type="id"/>
   <item name="btn_tgx101HideStorageRow" type="id"/>
