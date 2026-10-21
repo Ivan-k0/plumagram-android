@@ -1493,9 +1493,14 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     long t = android.os.SystemClock.uptimeMillis();
     Tgx101SavedHomeController c = new Tgx101SavedHomeController(context(), tdlib);
     View v = c.getValue();
-    if (root != null && root.getWidth() > 0 && !(BuildConfig.TGX101_TEST && org.thunderdog.challegram.navigation.Tgx101Veil.ENABLED)) { // test builds: the storage under the header's veil came empty when laid out here ahead (2026-10-19)
-      v.measure(View.MeasureSpec.makeMeasureSpec(root.getWidth(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(root.getHeight(), View.MeasureSpec.EXACTLY));
-      v.layout(0, 0, root.getWidth(), root.getHeight());
+    // (trace 2026-10-21: the first frame of the pull measured the storage again — 19 ms of a 57 ms frame): laid out ahead at
+    // the size the chats' own screen has in the stack (the storage takes its place there), not the whole navigation's
+    View own = getValue();
+    int w = own != null && own.getWidth() > 0 ? own.getWidth() : root != null ? root.getWidth() : 0;
+    int h = own != null && own.getHeight() > 0 ? own.getHeight() : root != null ? root.getHeight() : 0;
+    if (w > 0 && h > 0 && !(BuildConfig.TGX101_TEST && org.thunderdog.challegram.navigation.Tgx101Veil.ENABLED)) { // test builds: the storage under the header's veil came empty when laid out here ahead (2026-10-19)
+      v.measure(View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY));
+      v.layout(0, 0, w, h);
     }
     tgx101PreparedStorage = c;
     org.thunderdog.challegram.Tgx101Diag.mark("storage pull: storage made ahead in " + (android.os.SystemClock.uptimeMillis() - t) + " ms");

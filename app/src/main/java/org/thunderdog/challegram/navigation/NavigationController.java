@@ -1264,14 +1264,20 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       @Override
       public void onAnimationEnd (Animator animation) {
         if (open) {
+          // (trace 2026-10-21: ~80 ms without a frame when the pull finished) — each step timed for the log
+          long t0 = android.os.SystemClock.uptimeMillis();
           removeFadeView();
           headerView.applyPreview(getStack().getCurrent());
+          long t1 = android.os.SystemClock.uptimeMillis();
           processor.setNextAsCurrent();
+          long t2 = android.os.SystemClock.uptimeMillis();
           completeNextLayout();
+          long t3 = android.os.SystemClock.uptimeMillis();
           if (Views.HARDWARE_LAYER_ENABLED) {
             setLayerType(View.LAYER_TYPE_NONE, left, right);
           }
           updateHackyViews();
+          org.thunderdog.challegram.Tgx101Diag.mark("drag forward done: header " + (t1 - t0) + " ms, next as current " + (t2 - t1) + " ms, layout " + (t3 - t2) + " ms, layers+hacky " + (android.os.SystemClock.uptimeMillis() - t3) + " ms");
         } else {
           // the pushed screen leaves the stack; the header keeps its own title — the new screen's was only its preview
           // (user 2026-10-19: a pull to the storage not taken all the way left the chats' header with no text)
