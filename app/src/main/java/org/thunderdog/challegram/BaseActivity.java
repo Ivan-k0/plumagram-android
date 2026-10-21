@@ -479,11 +479,12 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
           best = mode;
         }
       }
-      if (best.getModeId() != current.getModeId()) {
-        android.view.WindowManager.LayoutParams params = getWindow().getAttributes();
-        params.preferredDisplayModeId = best.getModeId();
-        getWindow().setAttributes(params);
-      }
+      // always asked — even when the panel happens to run at it right now (2026-10-21 11:19: it was 120 at the start, nothing
+      // was asked, and the system dropped the app to 60 again)
+      android.view.WindowManager.LayoutParams params = getWindow().getAttributes();
+      params.preferredDisplayModeId = best.getModeId();
+      params.preferredRefreshRate = best.getRefreshRate();
+      getWindow().setAttributes(params);
       Tgx101Diag.mark("display: " + Math.round(current.getRefreshRate()) + " Hz → asked " + Math.round(best.getRefreshRate()) + " Hz (mode " + best.getModeId() + ")");
     } catch (Throwable t) {
       Tgx101Diag.mark("display: refresh rate not asked — " + t.getClass().getSimpleName());
@@ -1570,6 +1571,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     setOnline(true);
     try {
       super.onResume();
+    tgx101AskHighRefreshRate();
     } catch (Throwable t) {
       Tracer.onUiError(t);
       throw t;
