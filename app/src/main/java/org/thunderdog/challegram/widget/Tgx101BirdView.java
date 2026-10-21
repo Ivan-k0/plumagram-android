@@ -75,7 +75,7 @@ public class Tgx101BirdView extends View {
   }
 
   private static final float TAB_W = 38f, TAB_H = 50f, RING_R = 84f, ITEM = 46f;
-  private static final long HOLD_MS = 350, MOVE_MS = 2500;
+  private static final long HOLD_MS = 400, MOVE_MS = 2500;
   // the bird of the mockup, 24×24
   private static final String BIRD = "M22.96,9.56 L20.39,8.82 L18.58,7.12 L16.47,7.24 L14.19,9.11 L14.03,9.11 L11.42,4.31 L6.79,1.41 L6.46,1.29 L7.00,3.56 L6.95,3.89 L6.38,3.73 L1.95,1.87 L2.32,2.70 L8.15,13.08 L8.32,13.57 L1.25,22.30 L1.00,22.71 L16.47,14.23 L16.71,13.61 L17.91,9.31 L18.08,9.15 L18.66,9.15 L18.66,9.44 L18.24,10.84 L18.33,11.17 L22.26,12.21 L22.38,12.08 L23.00,9.77 Z";
 
@@ -117,7 +117,9 @@ public class Tgx101BirdView extends View {
   private long lastFrame;
   // (user 2026-10-21, variant 1 «как AssistiveTouch»): 3 s untouched the bird pales to 40%; a finger brings it back
   private static final long IDLE_MS = 3000;
-  private static final float IDLE_ALPHA = .4f;
+  // (user 2026-10-21 «ещё бледнее, но только фон»): the half-capsule pales to 20%, the bird itself stays whole —
+  // turning blue, so on a light list it doesn't melt away white on white
+  private static final float IDLE_ALPHA = .2f;
   private long lastTouch = SystemClock.uptimeMillis();
   private float shown = 1f;
 
@@ -255,7 +257,6 @@ public class Tgx101BirdView extends View {
     float x = e.getX(), y = e.getY();
     switch (e.getActionMasked()) {
       case MotionEvent.ACTION_DOWN: {
-        lastTouch = SystemClock.uptimeMillis();
         if (ringOpen && !ringByFinger) {
           // the accounts ring waits for a tap
           pressed = true;
@@ -308,7 +309,6 @@ public class Tgx101BirdView extends View {
       }
       case MotionEvent.ACTION_UP: {
         if (!pressed) return false;
-        lastTouch = SystemClock.uptimeMillis();
         pressed = false;
         removeCallbacks(holdRunnable);
         removeCallbacks(moveRunnable);
@@ -549,7 +549,7 @@ public class Tgx101BirdView extends View {
     boolean more = false;
     float k = 1f - (float) Math.exp(-dt / 45f);
 
-    float pressTarget = pressed && !moving && !ringOpen ? 1f : 0f;
+    float pressTarget = 0f; // (user 2026-10-21 «свайпаю по птичке, и она активируется»): a touch alone shows nothing — only the hold
     press += (pressTarget - press) * k;
     if (Math.abs(pressTarget - press) > .005f) more = true; else press = pressTarget;
 
@@ -577,7 +577,7 @@ public class Tgx101BirdView extends View {
       lift = moving ? 1f : 0f;
     }
 
-    boolean busy = pressed || moving || ringOpen || lift > 0f;
+    boolean busy = moving || ringOpen || lift > 0f || ring > 0f;
     if (busy) lastTouch = now;
     float shownTarget = busy || now - lastTouch < IDLE_MS ? 1f : IDLE_ALPHA;
     shown += (shownTarget - shown) * (1f - (float) Math.exp(-dt / (shownTarget > shown ? 40f : 220f)));
@@ -662,9 +662,9 @@ public class Tgx101BirdView extends View {
       iconX = lerp(iconX, liftX, lift);
       iconY = lerp(iconY, liftY, lift);
     }
-    int tabAlpha = (int) (255 * shown);
-    tabPaint.setAlpha(tabAlpha);
-    birdPaint.setAlpha(tabAlpha);
+    tabPaint.setAlpha((int) (255 * shown));
+    float pale = (1f - shown) / (1f - IDLE_ALPHA); // 0 lit … 1 idle
+    birdPaint.setColor(me.vkryl.core.ColorUtils.fromToArgb(0xffffffff, 0xff3d8fd6, pale));
     float s = 1f - .08f * press;
     c.save();
     c.scale(s, s, right ? width : 0, cy);

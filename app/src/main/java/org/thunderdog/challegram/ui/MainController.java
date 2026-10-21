@@ -299,8 +299,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     final Tgx101StoragePull storagePull = new Tgx101StoragePull(context, new Tgx101StoragePull.Host() {
       @Override
       public boolean canPull () {
+        // (user 2026-10-21 «переделай на избранное»): with the storage off the swipe opens Saved Messages itself
         boolean can = getCurrentPagerItemPosition() == 0 && !Lang.rtl() && !inSearchMode() && !inSelectMode()
-          && org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).storageOn;
+          && (org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).storageOn || tdlib.chat(tdlib.selfChatId()) != null);
         if (can) tgx101PrepareStorage(); // the finger is down, not moving yet: the screen gets made now, not on the first step
         return can;
       }
@@ -309,8 +310,17 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       public boolean startDrag () {
         NavigationController navigation = context().navigation();
         if (navigation == null || navigation.isAnimating() || navigation.getCurrentStackItem() != MainController.this) return false;
-        Tgx101SavedHomeController storage = tgx101PreparedStorage != null ? tgx101PreparedStorage : new Tgx101SavedHomeController(context(), tdlib);
-        tgx101PreparedStorage = null;
+        ViewController<?> storage;
+        if (org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).storageOn) {
+          storage = tgx101PreparedStorage != null ? tgx101PreparedStorage : new Tgx101SavedHomeController(context(), tdlib);
+          tgx101PreparedStorage = null;
+        } else {
+          TdApi.Chat saved = tdlib.chat(tdlib.selfChatId());
+          if (saved == null) return false;
+          MessagesController chat = new MessagesController(context(), tdlib);
+          chat.setArguments(new MessagesController.Arguments(tdlib, null, saved, null, null, null));
+          storage = chat;
+        }
         boolean started = navigation.tgx101StartDragForward(storage, true);
         if (!started) storage.destroy();
         org.thunderdog.challegram.Tgx101Diag.mark("storage pull: " + (started ? "follows the finger" : "can't start"));
@@ -2250,7 +2260,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   @Override
   public boolean tgx101DrawerBySwipe () {
     // (user 2026-10-20 «вправо — в Хранилище, меню — кнопкой ☰»): on the first folder the swipe right is the storage's
-    return !(getCurrentPagerItemPosition() == 0 && Settings.instance().tgx101SwipeToStorage() && org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).storageOn);
+    return !(getCurrentPagerItemPosition() == 0 && Settings.instance().tgx101SwipeToStorage()); // storage, or Saved Messages with it off
   }
 
   @Override
