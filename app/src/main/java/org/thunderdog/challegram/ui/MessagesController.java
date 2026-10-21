@@ -2121,7 +2121,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       addThemeInvalidateListener(pagerHeaderView.getTopView());
       fparams = (FrameLayoutFix.LayoutParams) pagerHeaderView.getRecyclerView().getLayoutParams();
       fparams.leftMargin = Screen.dp(56f);
-      fparams.rightMargin = Screen.dp(56f + 48f + 49f); // search + Saved Messages tags buttons + ⋮ (TGx101: the look switch)
+      fparams.rightMargin = Screen.dp(56f + 49f); // search + ⋮ (TGx101: the look switch; the tags are in ⋮ here)
       pagerHeaderView.getTopView().setOnItemClickListener(this);
       addThemeInvalidateListener(pagerHeaderView.getTopView());
 
@@ -4427,7 +4427,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else if (id == R.id.menu_search) {
       header.addSearchButton(menu, this);
     } else if (id == R.id.menu_savedMessages) {
-      header.addButton(menu, R.id.menu_btn_savedMessagesTags, R.drawable.baseline_label_24, getHeaderIconColorId(), this, Screen.dp(48f));
+      // (user 2026-10-21 «кнопка ярлыков поехала»): with Telegram X's tabs the tags live in ⋮ — the tabs keep their room
+      if (!needTabs()) header.addButton(menu, R.id.menu_btn_savedMessagesTags, R.drawable.baseline_label_24, getHeaderIconColorId(), this, Screen.dp(48f));
       header.addSearchButton(menu, this);
       header.addMoreButton(menu, this); // TGx101 (user 2026-10-21): ⋮ as in the official app — «as chats» and the rest
     } else if (id == R.id.menu_chat) {
