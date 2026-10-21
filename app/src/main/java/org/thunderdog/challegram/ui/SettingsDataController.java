@@ -336,6 +336,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideJoinButton(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideSponsored) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideSponsored(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101Bird) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101Bird(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101BirdRing) {
+          view.setData(Tgx101GesturesController.birdRingValue());
         } else if (itemId == R.id.btn_tgx101AiAll) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101Ai(), isUpdate);
         } else if (itemId == R.id.btn_tgx101SearchHoldProxy) {
@@ -587,6 +591,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101SavedSettingsOpen, 0, R.string.Tgx101SavedSettings),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiAll, 0, R.string.Tgx101AiAll),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101Bird, 0, R.string.Tgx101Bird),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101BirdRing, 0, R.string.Tgx101BirdRing),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SearchHoldProxy, 0, R.string.Tgx101SearchHoldProxy),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1006,8 +1014,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   private static final int[] TGX101_SECTION_IDS = {
     R.id.btn_tgx101SectionChatList, R.id.btn_tgx101SectionStories, R.id.btn_tgx101SectionMessages, R.id.btn_tgx101SectionChannels,
     R.id.btn_tgx101SectionMedia, R.id.btn_tgx101SectionNotifications, R.id.btn_tgx101SectionText, R.id.btn_tgx101SectionCalls,
-    R.id.btn_tgx101SectionTranslate, R.id.btn_tgx101SectionIcon, R.id.btn_tgx101SectionData
+    R.id.btn_tgx101SectionTranslate, R.id.btn_tgx101SectionIcon, R.id.btn_tgx101SectionData,
+    R.id.btn_tgx101SectionFeatures // (user 2026-10-21) PlumaGram's own things: storage, bird, editors, AI — shown first
   };
+  private static final int TGX101_SECTION_DATA = 10, TGX101_SECTION_FEATURES = 11;
   /** for the settings search: MagiX's sections, the last one being Telegram X's own «Data» */
   public static int[] tgx101SectionTitles () {
     return TGX101_SECTION_TITLES.clone();
@@ -1016,17 +1026,17 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   private static final int[] TGX101_SECTION_TITLES = {
     R.string.Tgx101SectionChatList, R.string.Tgx101SectionStories, R.string.Tgx101SectionMessages, R.string.Tgx101SectionChannels,
     R.string.Tgx101SectionMedia, R.string.Tgx101SectionNotifications, R.string.Tgx101SectionText, R.string.Tgx101SectionCalls,
-    R.string.Tgx101SectionTranslate, R.string.Tgx101SectionIcon, R.string.Tgx101SectionData
+    R.string.Tgx101SectionTranslate, R.string.Tgx101SectionIcon, R.string.Tgx101SectionData, R.string.Tgx101SectionFeatures
   };
   private static final int[] TGX101_SECTION_HINTS = {
     R.string.Tgx101SectionChatListHint, R.string.Tgx101SectionStoriesHint, R.string.Tgx101SectionMessagesHint, R.string.Tgx101SectionChannelsHint,
     R.string.Tgx101SectionMediaHint, R.string.Tgx101SectionNotificationsHint, R.string.Tgx101SectionTextHint, R.string.Tgx101SectionCallsHint,
-    R.string.Tgx101SectionTranslateHint, R.string.Tgx101SectionIconHint, R.string.Tgx101SectionDataHint
+    R.string.Tgx101SectionTranslateHint, R.string.Tgx101SectionIconHint, R.string.Tgx101SectionDataHint, R.string.Tgx101SectionFeaturesHint
   };
   private static final int[] TGX101_SECTION_ICONS = {
     R.drawable.baseline_forum_24, R.drawable.baseline_history_24, R.drawable.baseline_chat_bubble_24, R.drawable.baseline_bullhorn_24,
     R.drawable.baseline_camera_alt_24, R.drawable.baseline_notifications_24, R.drawable.baseline_format_text_24, R.drawable.baseline_call_24,
-    R.drawable.baseline_translate_24, R.drawable.baseline_palette_24, R.drawable.baseline_data_usage_24
+    R.drawable.baseline_translate_24, R.drawable.baseline_palette_24, R.drawable.baseline_data_usage_24, R.drawable.baseline_stars_24
   };
 
   private static int tgx101SectionIndex (int id) {
@@ -1044,14 +1054,15 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       if (flag == Settings.SETTING_FLAG_PAUSE_MEDIA_ON_RECORD || flag == Settings.SETTING_FLAG_SEND_PHOTOS_IN_HD) return 4;
       if (flag == Settings.SETTING_FLAG_KEEP_ALIVE_CONNECTION) return 5; // user 2026-10-06: looked for it under «Notifications»
       if (flag == Settings.SETTING_FLAG_WRITE_CONTACTS_TO_PHONEBOOK) return 0; // with the other contacts settings: the data section opens Telegram X's own screen, it was unreachable
-      return 10;
+      return TGX101_SECTION_DATA;
     }
-    if (id == R.id.btn_tgx101SavedSettingsOpen) return 0;
+    if (id == R.id.btn_tgx101SavedSettingsOpen || id == R.id.btn_tgx101AiAll || id == R.id.btn_tgx101TextEditor || id == R.id.btn_tgx101FormatMenu
+      || id == R.id.btn_tgx101Bird || id == R.id.btn_tgx101BirdRing) return TGX101_SECTION_FEATURES;
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked || id == R.id.btn_pullToSearch || id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap) return 0;
     if (id == R.id.btn_tgx101StoriesMode || id == R.id.btn_tgx101StoriesFolders) return 1;
     if (id == R.id.btn_tgx101ChatMenuOrder) return 2;
-    if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101MenuBlur || id == R.id.btn_tgx101MenuHidesKeyboard || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101TextEditor || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuOrder
-      || id == R.id.btn_tgx101TapMode || id == R.id.btn_tgx101Gestures || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101QuickReply1 || id == R.id.btn_tgx101QuickReply2
+    if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101MenuBlur || id == R.id.btn_tgx101MenuHidesKeyboard || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuOrder
+      || id == R.id.btn_tgx101TapMode || id == R.id.btn_tgx101Gestures || id == R.id.btn_tgx101QuickReply1 || id == R.id.btn_tgx101QuickReply2
       || id == R.id.btn_tgx101QuickReply3 || id == R.id.btn_tgx101QuickReply4 || id == R.id.btn_tgx101QuickReply5) return 2;
     if (id == R.id.btn_tgx101HideCompose || id == R.id.btn_tgx101HideJoin || id == R.id.btn_tgx101HideSponsored) return 0;
     if (id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101SearchHoldProxy || id == R.id.btn_tgx101CapsuleScrollHide || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101CapsuleTabs || id == R.id.btn_tgx101ContactsMenu || id == R.id.btn_tgx101QuickCalls) return 0;
@@ -1076,8 +1087,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     out.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
     if (tgx101Section < 0) {
       out.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-      for (int i = 0; i < TGX101_SECTION_IDS.length; i++) {
-        if (i > 0) out.add(new ListItem(ListItem.TYPE_SEPARATOR));
+      for (int k = 0; k < TGX101_SECTION_IDS.length; k++) {
+        int i = k == 0 ? TGX101_SECTION_FEATURES : k - 1; // «Features» first
+        if (k > 0) out.add(new ListItem(ListItem.TYPE_SEPARATOR));
         out.add(new ListItem(ListItem.TYPE_VALUED_SETTING, TGX101_SECTION_IDS[i], TGX101_SECTION_ICONS[i], TGX101_SECTION_TITLES[i]));
       }
       out.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
@@ -1207,7 +1219,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     final boolean toggleResult = adapter.toggleView(v);
     int tgx101SectionIndex = tgx101SectionIndex(id);
     if (tgx101SectionIndex != -1) {
-      if (tgx101SectionIndex == TGX101_SECTION_IDS.length - 1) {
+      if (tgx101SectionIndex == TGX101_SECTION_DATA) {
         navigateTo(new SettingsDataController(context, tdlib)); // Telegram X's own «Data and storage»
         return;
       }
@@ -1364,6 +1376,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101HideInputCamera(toggleResult);
     } else if (id == R.id.btn_tgx101HideInputCommands) {
       Settings.instance().setTgx101HideInputCommands(toggleResult);
+    } else if (id == R.id.btn_tgx101Bird) {
+      Settings.instance().setTgx101Bird(toggleResult);
+    } else if (id == R.id.btn_tgx101BirdRing) {
+      Tgx101GesturesController.chooseBirdRing(this, () -> adapter.updateValuedSettingById(R.id.btn_tgx101BirdRing));
     } else if (id == R.id.btn_tgx101AiAll) {
       Settings.instance().setTgx101Ai(toggleResult); // user 2026-10-21: all AI things off / on at once
     } else if (id == R.id.btn_tgx101SearchHoldProxy) {

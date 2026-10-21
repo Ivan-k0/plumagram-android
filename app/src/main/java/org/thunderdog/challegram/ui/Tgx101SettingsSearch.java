@@ -126,7 +126,8 @@ public class Tgx101SettingsSearch extends ViewController<Void> {
     }));
     list.add(new Screen_(magix + " → " + Lang.getString(R.string.Tgx101Backup), Tgx101BackupController::new));
     int[] sections = SettingsDataController.tgx101SectionTitles();
-    for (int i = 0; i < sections.length - 1; i++) { // the last one is Telegram X's own «Data», indexed above
+    for (int i = 0; i < sections.length; i++) {
+      if (i == 10) continue; // Telegram X's own «Data», indexed above
       final int section = i;
       list.add(new Screen_(magix + " → " + Lang.getString(sections[i]), (ctx, tdlib) -> {
         SettingsDataController c = new SettingsDataController(ctx, tdlib);

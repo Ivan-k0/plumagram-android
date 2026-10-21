@@ -184,14 +184,6 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SwipeToStorageHint));
 
-    // TGx101 (user 2026-10-21): the bird at the edge of the chat lists
-    items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101BirdSection));
-    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101Bird, 0, R.string.Tgx101Bird));
-    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-    items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101BirdRing, 0, R.string.Tgx101BirdRing));
-    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
-    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101BirdHint));
 
     final boolean menu = Settings.instance().tgx101LongPressMenu();
     items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101LongPressSection));
@@ -207,7 +199,7 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
     return items;
   }
 
-  private static String birdRingValue () {
+  public static String birdRingValue () {
     int mask = Settings.instance().tgx101BirdRing();
     StringBuilder b = new StringBuilder();
     for (int i = 0; i < Tgx101Bird.TITLES.length; i++) {
@@ -218,13 +210,14 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
     return b.toString();
   }
 
-  private void chooseBirdRing () {
+  /** (user 2026-10-21) the bird lives in MagiX → «Features» now */
+  public static void chooseBirdRing (org.thunderdog.challegram.navigation.ViewController<?> c, Runnable after) {
     int mask = Settings.instance().tgx101BirdRing();
     ListItem[] items = new ListItem[Tgx101Bird.TITLES.length];
     for (int i = 0; i < items.length; i++) {
       items[i] = new ListItem(ListItem.TYPE_CHECKBOX_OPTION, 2100000 + i, 0, Tgx101Bird.TITLES[i], (mask & (1 << i)) != 0);
     }
-    showSettings(new SettingsWrapBuilder(R.id.btn_tgx101BirdRing)
+    c.showSettings(new SettingsWrapBuilder(R.id.btn_tgx101BirdRing)
       .addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.Tgx101BirdRingHint))
       .setRawItems(items)
       .setSaveStr(R.string.Done)
@@ -239,7 +232,7 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
           return;
         }
         Settings.instance().setTgx101BirdRing(next);
-        adapter.updateValuedSettingById(R.id.btn_tgx101BirdRing);
+        after.run();
       }));
   }
 
@@ -291,10 +284,7 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
       Settings.instance().setTgx101Bird(adapter.toggleView(v));
       return;
     }
-    if (id == R.id.btn_tgx101BirdRing) {
-      chooseBirdRing();
-      return;
-    }
+
     if (id == R.id.btn_tgx101SwipeToStorage) {
       Settings.instance().setTgx101SwipeToStorage(adapter.toggleView(v));
     } else if (id == R.id.btn_tgx101SwipeReactions) {
