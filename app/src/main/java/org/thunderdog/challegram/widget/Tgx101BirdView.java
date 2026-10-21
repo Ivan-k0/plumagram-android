@@ -269,9 +269,12 @@ public class Tgx101BirdView extends View {
           moved = true;
           removeCallbacks(moveRunnable);
           if (!ringOpen && !moving) {
-            // pulled off the tab before the hold: the ring opens at once
+            // (user 2026-10-21 «только по удержанию, случайные свайпы не должны её активировать»): moved before the
+            // hold — nothing happens, the finger is let go
             removeCallbacks(holdRunnable);
-            openRing(false, true);
+            pressed = false;
+            animatePress();
+            return false;
           }
         }
         if (moving) {
@@ -362,7 +365,7 @@ public class Tgx101BirdView extends View {
     int n = items.length;
     float from = 100f, to = 260f; // opens away from the edge
     if (n <= 1) return 180f;
-    float spread = Math.min(160f, 40f * (n - 1));
+    float spread = Math.min(160f, (accountsRing ? 60f : 40f) * (n - 1));
     from = 180f - spread / 2f; to = 180f + spread / 2f;
     float a = from + (to - from) * i / (n - 1);
     return right ? a : 180f - a;
@@ -583,7 +586,12 @@ public class Tgx101BirdView extends View {
         float labelAlpha = accountsRing ? o : highlight[i];
         if (labelAlpha > .02f && item.title != null) {
           boolean hl = highlight[i] > .5f;
-          drawLabel(c, item.title, x, y - r - Screen.dp(16f), labelAlpha * Math.min(1f, o), hl);
+          if (accountsRing) {
+            // every name, beside its circle on the screen's side — over it they covered the next one (2026-10-21 test)
+            drawSideLabel(c, item.title, right ? x - r - Screen.dp(8f) : x + r + Screen.dp(8f), y, labelAlpha * Math.min(1f, o), hl);
+          } else {
+            drawLabel(c, item.title, x, y - r - Screen.dp(16f), labelAlpha * Math.min(1f, o), hl);
+          }
         }
       }
     }
@@ -591,7 +599,6 @@ public class Tgx101BirdView extends View {
     // the bird
     float cy = tabCy();
     tabRect(rect, right, cy);
-    updateExclusion(cy);
     float iconX = right ? width - Screen.dp(TAB_W / 2f) + Screen.dp(1f) : Screen.dp(TAB_W / 2f) - Screen.dp(1f);
     float iconY = cy;
     if (lift > 0f) {
@@ -652,6 +659,23 @@ public class Tgx101BirdView extends View {
       exclusion.set(left, (int) cy - half, r, (int) cy + half);
       setSystemGestureExclusionRects(exclusions);
     }
+  }
+
+  /** a name ending at {@code edgeX} (right side) or starting there (left side) */
+  private void drawSideLabel (Canvas c, String text, float edgeX, float cy, float alpha, boolean accent) {
+    textPaint.setTextSize(Screen.dp(12f));
+    float tw = Math.min(textPaint.measureText(text), getWidth() * .5f);
+    float w = tw + Screen.dp(16f), h = Screen.dp(22f);
+    float left = right ? edgeX - w : edgeX;
+    rect.set(left, cy - h / 2f, left + w, cy + h / 2f);
+    int a = (int) (255 * Math.max(0f, Math.min(1f, alpha)));
+    fill.setColor((a << 24) | (accent ? 0x5eb0ef : 0x1d2733));
+    c.drawRoundRect(rect, h / 2f, h / 2f, fill);
+    textPaint.setColor((a << 24) | (accent ? 0x08131e : 0xe8edf3));
+    c.save();
+    c.clipRect(rect);
+    c.drawText(text, rect.left + Screen.dp(8f), cy + Screen.dp(4f), textPaint);
+    c.restore();
   }
 
   private void drawLabel (Canvas c, String text, float cx, float cy, float alpha, boolean accent) {
