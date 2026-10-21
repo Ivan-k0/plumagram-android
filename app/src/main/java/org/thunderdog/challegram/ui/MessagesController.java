@@ -4411,6 +4411,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else if (id == R.id.menu_savedMessages) {
       header.addButton(menu, R.id.menu_btn_savedMessagesTags, R.drawable.baseline_label_24, getHeaderIconColorId(), this, Screen.dp(48f));
       header.addSearchButton(menu, this);
+      header.addMoreButton(menu, this); // TGx101 (user 2026-10-21): ⋮ as in the official app — «as chats» and the rest
     } else if (id == R.id.menu_chat) {
       HeaderButton btn = header.addButton(menu, R.id.menu_btn_viewScheduled, R.drawable.baseline_date_range_24, getHeaderIconColorId(), this, Screen.dp(52f));
       btn.setVisibility(tdlib.chatHasScheduled(getChatId()) ? View.VISIBLE : View.GONE);
