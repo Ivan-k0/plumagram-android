@@ -3691,6 +3691,24 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
 
   /** TGx101: the media viewer paged to this message — behind it the chat brings the message to the middle of what's
    *  seen (no animation, nothing visible moves), so closing the viewer goes back into that post */
+  /**
+   * TGx101 (user 2026-10-20 22:52 «пролистнул много фото в чате — первое нажатие на стрелку должно возвращать туда, откуда
+   * начинал»): while the viewer pages away from the photo it was opened on, the chat behind follows; that photo's
+   * message becomes the place the arrow returns to first, as after a jump to a reply
+   */
+  public void tgx101SetViewerReturn (long chatId, long startMessageId, long currentMessageId) {
+    if (startMessageId == 0 || startMessageId == currentMessageId) return;
+    highlightMessageId = new MessageId(chatId, currentMessageId);
+    highlightMode = HIGHLIGHT_MODE_NORMAL;
+    long[] ids = {startMessageId};
+    if (!Arrays.equals(returnToMessageIds, ids)) {
+      returnToMessageIds = ids;
+      org.thunderdog.challegram.Tgx101Diag.mark("viewer: the arrow returns to message " + (startMessageId >> 20) + " first");
+      saveScrollPosition();
+      checkScrollToBottomButton();
+    }
+  }
+
   public void tgx101KeepMessageInView (int index) {
     RecyclerView list = controller.getMessagesView();
     TGMessage msg = adapter.getMessage(index);

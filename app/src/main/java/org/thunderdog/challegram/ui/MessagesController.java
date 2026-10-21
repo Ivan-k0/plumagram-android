@@ -14048,12 +14048,19 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return null;
   }
 
+  private long tgx101ViewerStartMessageId;
+  private final Runnable tgx101ViewerClosed = () -> tgx101ViewerStartMessageId = 0;
+
   @Override
   public void tgx101OnMediaFocused (int index, MediaItem item) {
     if (!needTabs() || pagerScrollPosition == MediaTabsAdapter.POSITION_MESSAGES) {
       int i = manager.getAdapter().findMessageByMediaItem(item);
       if (i != -1) {
         manager.tgx101KeepMessageInView(i);
+        TGMessage msg = manager.getAdapter().getMessage(i);
+        if (msg != null && tgx101ViewerStartMessageId != 0) {
+          manager.tgx101SetViewerReturn(getChatId(), tgx101ViewerStartMessageId, msg.getSmallestId());
+        }
       }
     } else {
       SharedBaseController<?> c = pagerContentAdapter != null ? pagerContentAdapter.cachedItems.get(pagerScrollPosition) : null;
@@ -14069,6 +14076,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
       int i = manager.getAdapter().findMessageByMediaItem(item);
       if (i != -1) {
         TGMessage msg = manager.getAdapter().getMessage(i);
+        // the viewer opened on this photo (a hidden thumb with no session yet) — or closed (shown again, no new one hidden)
+        UI.cancel(tgx101ViewerClosed);
+        if (!isVisible && tgx101ViewerStartMessageId == 0) {
+          tgx101ViewerStartMessageId = msg.getSmallestId();
+        } else if (isVisible) {
+          UI.post(tgx101ViewerClosed, 600);
+        }
         msg.setMediaVisible(item, isVisible);
       }
     }
