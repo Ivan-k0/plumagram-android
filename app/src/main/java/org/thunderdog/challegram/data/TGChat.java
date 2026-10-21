@@ -400,6 +400,22 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
     return c;
   }
 
+  /** (trace 2026-10-21: from the tap to the chat's first frame 46–67 ms, of which 25–45 the screen waited for its messages
+   *  from the database) asked for as the finger goes down — 60–100 ms before it lifts — they're in memory by then */
+  private long tgx101PrewarmedAt;
+
+  public void tgx101Prewarm () {
+    if (chat == null || tgx101Storage || isArchive()) return;
+    long now = android.os.SystemClock.uptimeMillis();
+    if (now - tgx101PrewarmedAt < 15000) return;
+    tgx101PrewarmedAt = now;
+    org.drinkless.tdlib.Client.ResultHandler ignore = result -> { };
+    tdlib.client().send(new TdApi.GetChatHistory(chat.id, 0, 0, 30, true), ignore); // the latest
+    if (chat.lastReadInboxMessageId != 0 && chat.unreadCount > 0) {
+      tdlib.client().send(new TdApi.GetChatHistory(chat.id, chat.lastReadInboxMessageId, -15, 30, true), ignore); // around the first unread
+    }
+  }
+
   public boolean tgx101IsStorage () {
     return tgx101Storage;
   }

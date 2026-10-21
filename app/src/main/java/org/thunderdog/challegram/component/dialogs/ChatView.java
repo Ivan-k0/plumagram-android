@@ -605,6 +605,7 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
     switch (e.getActionMasked()) {
       case android.view.MotionEvent.ACTION_DOWN: {
         tgx101AvatarTouch = false;
+        if (chat != null) chat.tgx101Prewarm(); // TGx101: the chat's messages asked for while the finger is down
         if (chat != null && !chat.isArchive() && org.thunderdog.challegram.ui.Tgx101Stories.ringStories(tdlib, chat.getChatId()) != null) {
           float r = avatarReceiver.getWidth() / 2f + Screen.dp(6f);
           float dx = e.getX() - avatarReceiver.centerX(), dy = e.getY() - avatarReceiver.centerY();

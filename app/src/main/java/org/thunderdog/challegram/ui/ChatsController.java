@@ -2710,7 +2710,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     }
     // TGx101 (user 2026-10-21): Saved Messages «as chats» — grouped by where the records came from, as the official apps
     if (pickerDelegate == null && chat.id == tdlib.selfChatId() && Settings.instance().tgx101SavedAsChats()) {
-      Tgx101SavedTopicsController.open(this);
+      Tgx101SavedTopicsController.open(getParentOrSelf()); // a folder page has no navigation of its own
       return;
     }
     int highlightMode;
