@@ -146,13 +146,14 @@ public class TgCallsController extends VoIPInstance {
           org.thunderdog.challegram.Tgx101Diag.mark("[tgcalls] no log file");
           return;
         }
-        java.util.regex.Pattern telling = java.util.regex.Pattern.compile("(?i)ice|candidate|reflector|relay|turn|stun|transport|connect|dtls|srtp|error|fail|audio|signal|network|state|ssrc|packet");
+        java.util.regex.Pattern telling = java.util.regex.Pattern.compile("(?i)ice|candidate|reflector|relay|turn|stun|transport|connect|dtls|srtp|error|fail|audio|signal|network|state|ssrc|packet|rtp|rtcp|playout|recording|sending|receiving|handshake|ssl|negotiat");
         int lines = 0, kept = 0;
         try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(file))) {
           String line;
-          while ((line = reader.readLine()) != null && kept < 400) {
+          java.util.regex.Pattern noise = java.util.regex.Pattern.compile("Add ACK|Got ACK|RESEND|Enqueue SEND|sending ping|Repeated RECV|Send:type|Got:type");
+          while ((line = reader.readLine()) != null && kept < 3000) {
             lines++;
-            if (telling.matcher(line).find()) {
+            if (telling.matcher(line).find() && !noise.matcher(line).find()) {
               org.thunderdog.challegram.Tgx101Diag.mark("[tgcalls] " + (line.length() > 300 ? line.substring(0, 300) : line));
               kept++;
             }
