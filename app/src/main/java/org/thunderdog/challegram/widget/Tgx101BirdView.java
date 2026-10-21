@@ -83,7 +83,7 @@ public class Tgx101BirdView extends View {
 
   private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), tabPaint = new Paint(Paint.ANTI_ALIAS_FLAG),
     textPaint = new Paint(Paint.ANTI_ALIAS_FLAG), birdPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-  private final Path birdPath = new Path(), birdScaled = new Path();
+  private final Path birdPath = new Path(), birdScaled = new Path(), tabShape = new Path();
   private final Matrix matrix = new Matrix();
   private final RectF rect = new RectF();
   private final LinearGradient gradient;
@@ -119,8 +119,7 @@ public class Tgx101BirdView extends View {
   private long lastFrame;
   // (user 2026-10-21, variant 1 «как AssistiveTouch»): 3 s untouched the bird pales to 40%; a finger brings it back
   private static final long IDLE_MS = 3000;
-  // (user 2026-10-21 «ещё бледнее, но только фон»): the half-capsule pales to 20%, the bird itself stays whole —
-  // turning blue, so on a light list it doesn't melt away white on white
+  // (user 2026-10-21 «ещё бледнее, но только фон»): the half-capsule pales to 20%, the bird in it is a see-through hole
   private static final float IDLE_ALPHA = .2f;
   private long lastTouch = SystemClock.uptimeMillis();
   private float shown = 1f;
@@ -669,20 +668,27 @@ public class Tgx101BirdView extends View {
       iconY = lerp(iconY, liftY, lift);
     }
     tabPaint.setAlpha((int) (255 * shown));
-    float pale = (1f - shown) / (1f - IDLE_ALPHA); // 0 lit … 1 idle
-    birdPaint.setColor(me.vkryl.core.ColorUtils.fromToArgb(0xffffffff, 0xff3d8fd6, pale));
     float s = 1f - .08f * press;
     c.save();
     c.scale(s, s, right ? width : 0, cy);
     matrix.setTranslate(rect.left, 0);
     gradient.setLocalMatrix(matrix);
     float radius = rect.height() / 2f;
-    c.drawRoundRect(rect, radius, radius, tabPaint);
     float bird = Screen.dp(24f) / 24f;
     matrix.setScale(bird, bird);
     matrix.postTranslate(iconX - Screen.dp(12f), iconY - Screen.dp(12f));
     birdPath.transform(matrix, birdScaled);
-    c.drawPath(birdScaled, birdPaint);
+    // (user 2026-10-21 «птичка внутри должна быть полностью прозрачной»): the bird is a hole in the half-capsule — idle,
+    // the list shows through it; lit, the white bird fills it again
+    tabShape.reset();
+    tabShape.addRoundRect(rect, radius, radius, Path.Direction.CW);
+    if (Build.VERSION.SDK_INT >= 19) tabShape.op(birdScaled, Path.Op.DIFFERENCE);
+    c.drawPath(tabShape, tabPaint);
+    float lit = (shown - IDLE_ALPHA) / (1f - IDLE_ALPHA);
+    if (lit > 0f || Build.VERSION.SDK_INT < 19) {
+      birdPaint.setAlpha((int) (255 * Math.max(0f, Math.min(1f, Build.VERSION.SDK_INT < 19 ? 1f : lit))));
+      c.drawPath(birdScaled, birdPaint);
+    }
     c.restore();
 
     // the hint
