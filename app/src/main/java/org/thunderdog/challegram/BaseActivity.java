@@ -464,6 +464,32 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   private boolean isGestureNavigationEnabled;
 
+  /**
+   * TGx101 (trace 2026-10-21, «свайп в хранилище не плавный»): the vivo panel runs 120 Hz, yet the app drew at 60 — the
+   * system keeps an app it doesn't know at 60 Hz. The window asks for the highest refresh rate at the current resolution
+   */
+  private void tgx101AskHighRefreshRate () {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) return;
+    try {
+      android.view.Display display = getWindowManager().getDefaultDisplay();
+      android.view.Display.Mode current = display.getMode();
+      android.view.Display.Mode best = current;
+      for (android.view.Display.Mode mode : display.getSupportedModes()) {
+        if (mode.getPhysicalWidth() == current.getPhysicalWidth() && mode.getPhysicalHeight() == current.getPhysicalHeight() && mode.getRefreshRate() > best.getRefreshRate() + .5f) {
+          best = mode;
+        }
+      }
+      if (best.getModeId() != current.getModeId()) {
+        android.view.WindowManager.LayoutParams params = getWindow().getAttributes();
+        params.preferredDisplayModeId = best.getModeId();
+        getWindow().setAttributes(params);
+      }
+      Tgx101Diag.mark("display: " + Math.round(current.getRefreshRate()) + " Hz → asked " + Math.round(best.getRefreshRate()) + " Hz (mode " + best.getModeId() + ")");
+    } catch (Throwable t) {
+      Tgx101Diag.mark("display: refresh rate not asked — " + t.getClass().getSimpleName());
+    }
+  }
+
   @Override
   public void onCreate (Bundle savedInstanceState) {
     UI.setContext(this);
@@ -474,6 +500,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     AppState.ensureReady();
     Tgx101Diag.mark(savedInstanceState != null ? "start: restored after the system closed the app" : "start: cold");
     tgx101RegisterScreenReceiver();
+    tgx101AskHighRefreshRate();
     tgx101RestoredFade = savedInstanceState != null;
     tgx101SetupSplashExit();
 
