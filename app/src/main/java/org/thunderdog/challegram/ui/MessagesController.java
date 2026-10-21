@@ -2121,7 +2121,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       addThemeInvalidateListener(pagerHeaderView.getTopView());
       fparams = (FrameLayoutFix.LayoutParams) pagerHeaderView.getRecyclerView().getLayoutParams();
       fparams.leftMargin = Screen.dp(56f);
-      fparams.rightMargin = Screen.dp(56f + 48f); // search + Saved Messages tags buttons
+      fparams.rightMargin = Screen.dp(56f + 48f + 49f); // search + Saved Messages tags buttons + ⋮ (TGx101: the look switch)
       pagerHeaderView.getTopView().setOnItemClickListener(this);
       addThemeInvalidateListener(pagerHeaderView.getTopView());
 
