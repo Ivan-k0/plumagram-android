@@ -118,6 +118,34 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
         showStatus(Lang.getString(R.string.Tgx101SavedAiNothing));
         return;
       }
+      withExamples(store);
+    });
+  }
+
+  // (user 2026-10-21 «этот ИИ обучается? предлагает совсем не то»): it doesn't learn — so it is shown how the user sorts:
+  // a few records already in each folder go with the folder's name
+  private static final int EXAMPLES = 3;
+  private final Map<Long, List<String>> examples = new java.util.HashMap<>();
+
+  private void withExamples (Tgx101SavedStore store) {
+    List<Long> ids = new ArrayList<>();
+    for (Tgx101SavedStore.Folder f : store.folders()) {
+      List<Long> all = new ArrayList<>(f.messageIds);
+      for (int i = Math.max(0, all.size() - EXAMPLES); i < all.size(); i++) ids.add(all.get(i));
+    }
+    if (ids.isEmpty()) {
+      ask(store);
+      return;
+    }
+    Tgx101SavedKit.byIds(tdlib, ids, messages -> {
+      if (isDestroyed()) return;
+      for (TdApi.Message m : messages) {
+        Tgx101SavedStore.Folder f = store.folderOf(m.id);
+        if (f == null) continue;
+        List<String> list = examples.get(f.id);
+        if (list == null) examples.put(f.id, list = new ArrayList<>());
+        if (list.size() < EXAMPLES) list.add(clean(Tgx101SavedKit.title(m)));
+      }
       ask(store);
     });
   }
@@ -166,20 +194,28 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
   private void ask (Tgx101SavedStore store) {
     StringBuilder text = new StringBuilder();
     List<Tgx101SavedStore.Folder> folders = store.folders();
-    text.append("Папки: ");
+    text.append("Папки и примеры того, что в них уже лежит:\n");
     if (folders.isEmpty()) {
-      text.append("(пока нет)");
+      text.append("(пока нет)\n");
     } else {
-      for (int i = 0; i < folders.size(); i++) {
-        if (i > 0) text.append("; ");
-        text.append(clean(folders.get(i).name));
+      for (Tgx101SavedStore.Folder f : folders) {
+        text.append("- ").append(clean(f.name));
+        List<String> ex = examples.get(f.id);
+        if (ex != null && !ex.isEmpty()) {
+          text.append(": ");
+          for (int i = 0; i < ex.size(); i++) {
+            if (i > 0) text.append("; ");
+            text.append('«').append(ex.get(i)).append('»');
+          }
+        }
+        text.append('\n');
       }
     }
     text.append("\n\nЗаписи:\n");
     for (int i = 0; i < batch.size(); i++) {
       text.append(i + 1).append(") ").append(describe(batch.get(i))).append('\n');
     }
-    String prompt = "Разложи записи по папкам. Для каждой записи выбери подходящую папку из списка или придумай новую короткую (1–2 слова, с большой буквы). " +
+    String prompt = "Разложи записи по папкам так же, как уже разложены примеры. Для каждой записи выбери папку из списка или придумай новую короткую (1–2 слова, с большой буквы). " +
       "Группируй по теме, а не по типу: папки «Фото», «Видео», «Файлы», «Голосовые», «Заметки» не создавай. Если тема неясна — «номер: -». " +
       "Ответь только строками вида «номер: папка», без пояснений.";
     org.thunderdog.challegram.Tgx101Diag.mark("ai sort: " + batch.size() + " records, " + folders.size() + " folders, " + text.length() + " chars");
