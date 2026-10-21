@@ -567,6 +567,19 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private Boolean tgx101TabsLook;
 
+  /** (user 2026-10-21 «выход свайпом из любого избранного должен вести в список чатов всегда»): Saved Messages, in
+   *  whatever look or topic and from wherever it was opened, has the chat list right under it */
+  private void tgx101BackToChatsFromSaved () {
+    if (!isSelfChat() || inPreviewMode() || isInForceTouchMode()) return;
+    NavigationController navigation = navigationController();
+    if (navigation == null) return;
+    org.thunderdog.challegram.navigation.NavigationStack stack = navigation.getStack();
+    int at = stack.indexOf(this);
+    if (at < 2 || !(stack.get(0) instanceof MainController)) return;
+    for (int i = at - 1; i >= 1; i--) stack.destroy(i);
+    org.thunderdog.challegram.Tgx101Diag.mark("saved: back leads to the chats (" + (at - 1) + " screens under it closed)");
+  }
+
   /** the other look of Saved Messages: kept, and the chat opened again in it */
   private void tgx101ToggleSavedLook () {
     boolean tabs = !Settings.instance().tgx101SavedTgxTabs();
@@ -2121,7 +2134,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       addThemeInvalidateListener(pagerHeaderView.getTopView());
       fparams = (FrameLayoutFix.LayoutParams) pagerHeaderView.getRecyclerView().getLayoutParams();
       fparams.leftMargin = Screen.dp(56f);
-      fparams.rightMargin = Screen.dp(56f + 49f); // search + ⋮ (TGx101: the look switch; the tags are in ⋮ here)
+      fparams.rightMargin = Screen.dp(56f + 49f); // search + ⋮ (TGx101: the look switch; the tags are the second tab)
       pagerHeaderView.getTopView().setOnItemClickListener(this);
       addThemeInvalidateListener(pagerHeaderView.getTopView());
 
@@ -2131,6 +2144,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
       items.add(new ViewPagerTopView.Item(
         Lang.uppercase(Lang.getString(R.string.TabMessages)),
         R.drawable.baseline_chat_bubble_24,
+        null
+      ));
+      // TGx101 (user 2026-10-21 «ярлыки-реакции — сразу после „Сообщения“ и перед „Медиа“»): the tags as the second tab
+      // — not a page: it opens the tags as the header button did; the pages' tabs come after it
+      items.add(new ViewPagerTopView.Item(
+        Lang.uppercase(Lang.getString(R.string.Tgx101SavedTagsTab)),
+        R.drawable.baseline_label_24,
         null
       ));
       for (SharedBaseController<?> c : mediaControllers) {
@@ -2295,7 +2315,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public void onPageScrolled (int position, float positionOffset, int positionOffsetPixels) {
     positionOffset = ViewPager.clampPositionOffset(positionOffset);
     float offset = (float) position + positionOffset;
-    pagerHeaderView.getTopView().setSelectionFactor(offset);
+    pagerHeaderView.getTopView().setSelectionFactor(tgx101TabOf(offset)); // the tags tab (1) is skipped
     if (this.pagerScrollOffset != offset) {
       this.pagerScrollOffset = offset;
       if (hideKeyboardOnPageScroll) {
@@ -2356,10 +2376,20 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (pagerContentView.getCurrentItem() == 0 && UI.getContext(MessagesController.this.context()).getRecordAudioVideoController().isOpen()) {
       return;
     }
-    if (pagerContentView.getCurrentItem() != position) {
-      pagerHeaderView.getTopView().setFromTo(pagerContentView.getCurrentItem(), position);
-      pagerContentView.setCurrentItem(position, true);
+    if (position == 1) { // the tags tab: what the header's tags button did
+      showSavedMessagesTags();
+      return;
     }
+    int page = position > 1 ? position - 1 : position;
+    if (pagerContentView.getCurrentItem() != page) {
+      pagerHeaderView.getTopView().setFromTo(Math.round(tgx101TabOf(pagerContentView.getCurrentItem())), position);
+      pagerContentView.setCurrentItem(page, true);
+    }
+  }
+
+  /** a page's place among the tabs: the tags tab stands between messages (0) and the first media page */
+  private static float tgx101TabOf (float page) {
+    return page <= 0f ? page : page < 1f ? page * 2f : page + 1f;
   }
 
   private void showMessagesListIfNeeded () {
@@ -4894,6 +4924,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public void onFocus () {
     tgx101ResetMotion("focus");
     super.onFocus();
+    tgx101BackToChatsFromSaved();
     if (tgx101PendingHighlight != null) {
       MessageId id = tgx101PendingHighlight;
       tgx101PendingHighlight = null;

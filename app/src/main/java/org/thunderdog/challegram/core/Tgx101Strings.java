@@ -851,6 +851,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AiAll, "Функции ИИ (помощник, Кратко, Что пропустил, Хранилище)");
     RU.put(R.string.Tgx101SectionFeatures, "Фишки");
     RU.put(R.string.Tgx101SectionFeaturesHint, "Хранилище, птичка, редакторы, ИИ");
+    RU.put(R.string.Tgx101SavedTagsTab, "Ярлыки");
     RU.put(R.string.Tgx101SavedAiSort, "Разложить с ИИ");
     RU.put(R.string.Tgx101SavedAiWorking, "Спрашиваю ИИ, куда что положить…");
     RU.put(R.string.Tgx101SavedAiNothing, "Все записи уже разложены по папкам.");
