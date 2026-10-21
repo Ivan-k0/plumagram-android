@@ -572,8 +572,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
     boolean tabs = !Settings.instance().tgx101SavedTgxTabs();
     Settings.instance().setTgx101SavedTgxTabs(tabs);
     org.thunderdog.challegram.Tgx101Diag.mark("saved: look → " + (tabs ? "Telegram X tabs" : "chat header"));
-    tdlib.ui().openChat(this, tdlib.selfChatId(), new TdlibUi.ChatOpenParameters().keepStack().tgx101Feed().after(chatId ->
-      UI.post(() -> destroyStackItemByIdExcludingLast(R.id.controller_messages), 450)));
+    // (user 2026-10-21 «вкладки tgx не включаются»): opening the same chat again only highlights it — a new screen is
+    // made directly, the old one goes once it's covered
+    TdApi.Chat self = tdlib.chat(tdlib.selfChatId());
+    if (self == null) return;
+    MessagesController c = new MessagesController(context, tdlib);
+    c.setArguments(new MessagesController.Arguments(tdlib, null, self, null, null, null));
+    navigateTo(c);
+    UI.post(() -> destroyStackItemByIdExcludingLast(R.id.controller_messages), 450);
   }
 
   public float getPagerScrollOffsetInPixels () {
