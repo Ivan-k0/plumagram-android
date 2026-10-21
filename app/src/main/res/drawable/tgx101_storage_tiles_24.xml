@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- TGx101 (user 2026-10-17): the storage's four tiles, as on its floating button -->
+<!-- TGx101 (user 2026-10-21 «картотека — класс, используй это везде»): the storage — a filing cabinet with two drawers
+     (the four tiles before it read as «apps») -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
   android:width="24dp"
   android:height="24dp"
@@ -7,5 +8,6 @@
   android:viewportHeight="24.0">
   <path
     android:fillColor="#FF000000"
-    android:pathData="M4.5,2.5h4a2,2 0,0 1,2,2v4a2,2 0,0 1,-2,2h-4a2,2 0,0 1,-2,-2v-4a2,2 0,0 1,2,-2z M15.5,2.5h4a2,2 0,0 1,2,2v4a2,2 0,0 1,-2,2h-4a2,2 0,0 1,-2,-2v-4a2,2 0,0 1,2,-2z M4.5,13.5h4a2,2 0,0 1,2,2v4a2,2 0,0 1,-2,2h-4a2,2 0,0 1,-2,-2v-4a2,2 0,0 1,2,-2z M15.5,13.5h4a2,2 0,0 1,2,2v4a2,2 0,0 1,-2,2h-4a2,2 0,0 1,-2,-2v-4a2,2 0,0 1,2,-2z" />
+    android:fillType="evenOdd"
+    android:pathData="M5.5,3h13a2.5,2.5 0,0 1,2.5,2.5v13a2.5,2.5 0,0 1,-2.5,2.5h-13a2.5,2.5 0,0 1,-2.5,-2.5v-13a2.5,2.5 0,0 1,2.5,-2.5z M3,11.2h18v1.6h-18z M9.5,6.5h5a1,1 0,0 1,0,2h-5a1,1 0,0 1,0,-2z M9.5,15.5h5a1,1 0,0 1,0,2h-5a1,1 0,0 1,0,-2z" />
 </vector>

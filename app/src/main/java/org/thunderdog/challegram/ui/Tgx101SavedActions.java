@@ -1144,7 +1144,7 @@ public final class Tgx101SavedActions {
       head.setOrientation(LinearLayout.HORIZONTAL);
       head.setGravity(Gravity.CENTER_VERTICAL);
       android.widget.ImageView icon = new android.widget.ImageView(context);
-      icon.setImageResource(R.drawable.baseline_bookmark_24);
+      icon.setImageResource(R.drawable.tgx101_storage_tiles_24); // the storage (user 2026-10-21: the filing cabinet everywhere)
       icon.setColorFilter(0xffffffff);
       icon.setScaleType(android.widget.ImageView.ScaleType.CENTER);
       icon.setBackground(Tgx101SavedHomeController.card(0xff3f7cad, 12f));

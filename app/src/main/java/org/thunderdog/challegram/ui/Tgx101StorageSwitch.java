@@ -69,7 +69,7 @@ public final class Tgx101StorageSwitch extends View {
     this.tdlib = controller.tdlib();
     this.where = where;
     this.host = host;
-    this.chatIcon = where == IN_STORAGE ? ContextCompat.getDrawable(context, R.drawable.baseline_forum_24) : null;
+    this.chatIcon = ContextCompat.getDrawable(context, where == IN_STORAGE ? R.drawable.baseline_forum_24 : R.drawable.tgx101_storage_tiles_24); // the storage: the filing cabinet (user 2026-10-21)
     setContentDescription(Lang.getString(where == IN_CHAT ? R.string.Tgx101SavedSwitchToStorage : R.string.Tgx101SavedSwitchToChat));
     if (android.os.Build.VERSION.SDK_INT >= 21) {
       // (user 2026-10-17 «внутри с какой-то фигурой, должно быть просто прозрачно»): no elevation — its shadow showed
@@ -437,17 +437,7 @@ public final class Tgx101StorageSwitch extends View {
     c.drawCircle(r, r, body - paint.getStrokeWidth() / 2f, paint);
     paint.setStyle(Paint.Style.FILL);
     final int iconColor = Tgx101SavedHomeController.accent();
-    if (where == IN_CHAT) {
-      // the storage: four tiles
-      paint.setColor(iconColor);
-      float cell = Screen.dp(8f), gap = Screen.dp(3f), corner = Screen.dp(2f);
-      float start = r - cell - gap / 2f;
-      for (int i = 0; i < 4; i++) {
-        float x = start + (i % 2) * (cell + gap), y = start + (i / 2) * (cell + gap);
-        rect.set(x, y, x + cell, y + cell);
-        c.drawRoundRect(rect, corner, corner, paint);
-      }
-    } else if (chatIcon != null) {
+    if (chatIcon != null) {
       int s = Screen.dp(24f);
       int left = Math.round(r - s / 2f);
       chatIcon.setColorFilter(new PorterDuffColorFilter(iconColor, PorterDuff.Mode.SRC_IN));
