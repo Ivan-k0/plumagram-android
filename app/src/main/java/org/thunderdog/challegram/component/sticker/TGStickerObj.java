@@ -240,6 +240,15 @@ public class TGStickerObj {
   @GifFile.OptimizationMode
   private int previewOptimizationMode = GifFile.OptimizationMode.STICKER_PREVIEW;
 
+  /**
+   * TGx101 (user 2026-10-21 «конфетти реакции разлетается как при 60 Гц»): a reaction's effect, around and center
+   * animations played as sticker previews — capped at 30 fps. They play at the file's own rate now
+   */
+  public TGStickerObj tgx101FullFrameRate () {
+    this.previewOptimizationMode = GifFile.OptimizationMode.NONE;
+    return this;
+  }
+
   public TGStickerObj setPreviewOptimizationMode (@GifFile.OptimizationMode int mode) {
     this.previewOptimizationMode = mode;
     return this;

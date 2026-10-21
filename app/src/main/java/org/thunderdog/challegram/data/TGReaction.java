@@ -195,7 +195,7 @@ public class TGReaction {
 
   private TGStickerObj newEffectAnimationSicker () {
     if (emojiReaction != null) {
-      return new TGStickerObj(tdlib, emojiReaction.effectAnimation, emojiReaction.emoji, emojiReaction.effectAnimation.fullType).setReactionType(type);
+      return new TGStickerObj(tdlib, emojiReaction.effectAnimation, emojiReaction.emoji, emojiReaction.effectAnimation.fullType).setReactionType(type).tgx101FullFrameRate();
     } else {
       return null;
     }
@@ -203,14 +203,14 @@ public class TGReaction {
 
   public TGStickerObj newAroundAnimationSicker () {
     if (emojiReaction != null && emojiReaction.aroundAnimation != null) {
-      return new TGStickerObj(tdlib, emojiReaction.aroundAnimation, emojiReaction.emoji, emojiReaction.aroundAnimation.fullType).setReactionType(type);
+      return new TGStickerObj(tdlib, emojiReaction.aroundAnimation, emojiReaction.emoji, emojiReaction.aroundAnimation.fullType).setReactionType(type).tgx101FullFrameRate();
     }
     return newEffectAnimationSicker();
   }
 
   public TGStickerObj newCenterAnimationSicker () {
     if (emojiReaction != null && emojiReaction.centerAnimation != null && !Config.TEST_STATIC_REACTIONS) {
-      return new TGStickerObj(tdlib, emojiReaction.centerAnimation, emojiReaction.emoji, emojiReaction.centerAnimation.fullType).setReactionType(type);
+      return new TGStickerObj(tdlib, emojiReaction.centerAnimation, emojiReaction.emoji, emojiReaction.centerAnimation.fullType).setReactionType(type).tgx101FullFrameRate();
     }
     return newStaticIconSicker();
   }

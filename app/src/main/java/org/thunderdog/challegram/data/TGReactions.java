@@ -1104,10 +1104,14 @@ public class TGReactions implements Destroyable, ReactionLoadListener {
           message.getBubbleDateBackgroundColor(),
           counter.getMuteFactor()
         );
-      } else if (message.isOutgoingBubble()) {
-        return counter.getColor(counter.getMuteFactor(), ColorId.bubbleOut_fillingPositive, ColorId.bubbleOut_fillingActive);
       } else {
-        return counter.getColor(counter.getMuteFactor(), ColorId.bubbleIn_fillingPositive, ColorId.bubbleIn_fillingActive);
+        int color = message.isOutgoingBubble() ?
+          counter.getColor(counter.getMuteFactor(), ColorId.bubbleOut_fillingPositive, ColorId.bubbleOut_fillingActive) :
+          counter.getColor(counter.getMuteFactor(), ColorId.bubbleIn_fillingPositive, ColorId.bubbleIn_fillingActive);
+        // TGx101 (user video 2026-10-21 «реакции какие-то тяжёлые, в офф/exteraGram далеко не такие»): the chosen reaction's
+        // capsule was solid — now it lies on the bubble lighter, see-through as in exteraGram; the others stay as they were
+        float chosen = 1f - counter.getMuteFactor();
+        return ColorUtils.alphaColor(1f - .24f * chosen, color);
       }
     }
   }
