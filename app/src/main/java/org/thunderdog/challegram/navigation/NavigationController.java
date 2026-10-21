@@ -737,11 +737,33 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       BACK_FROM_RIGHT_EDGE = 2;
   }
 
+  // TGx101 (log 2026-10-21: chats opening with 14–26 ms of GPU on their first frames — both screens rendered into
+  // layers): on a 90 Hz+ screen (a strong phone) the screens slide as they are; the layers stay for 60 Hz phones
+  private static Boolean tgx101FastScreen;
+
+  private boolean tgx101FastScreen () {
+    if (tgx101FastScreen == null) {
+      float rate = 60f;
+      try {
+        android.view.Display d = android.os.Build.VERSION.SDK_INT >= 30 ? getValue().getContext().getDisplay() : null;
+        if (d == null) d = ((android.view.WindowManager) getValue().getContext().getSystemService(android.content.Context.WINDOW_SERVICE)).getDefaultDisplay();
+        if (android.os.Build.VERSION.SDK_INT >= 23) {
+          for (android.view.Display.Mode m : d.getSupportedModes()) rate = Math.max(rate, m.getRefreshRate());
+        } else {
+          rate = d.getRefreshRate();
+        }
+      } catch (Throwable ignored) { }
+      tgx101FastScreen = rate >= 89f;
+      org.thunderdog.challegram.Tgx101Diag.mark("navigation: screen up to " + Math.round(rate) + " Hz — layers " + (tgx101FastScreen ? "off" : "on"));
+    }
+    return tgx101FastScreen;
+  }
+
   public void prepareFactorAnimation (ViewController<?> left, ViewController<?> right, boolean forward, int direction, @PredictiveGesture int predictiveGestureMode) {
     preventLayout();
     // TGx101 (trace 2026-10-21: the storage pull's first frames spent 7 ms each rendering both screens into layers):
     // the pull following the finger draws them as they are — a sliding screen costs little each frame at 120 Hz
-    if (Views.HARDWARE_LAYER_ENABLED && !tgx101ForceRtlOnce) {
+    if (Views.HARDWARE_LAYER_ENABLED && !tgx101ForceRtlOnce && !tgx101FastScreen()) {
       setLayerType(View.LAYER_TYPE_HARDWARE, left, right);
     }
 
