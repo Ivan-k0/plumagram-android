@@ -797,7 +797,7 @@ public class TGMessageText extends TGMessage {
     StringBuilder b = new StringBuilder();
     if (tgx101SummaryShown && tgx101Summary != null) {
       String head = "✨ " + Lang.getString(R.string.Tgx101AiShort);
-      b.append(head).append('\n');
+      b.append(head).append("\n\n"); // (user 2026-10-21 «нужно больше места» between the title, the text and «Show in full»)
       int sumStart = b.length();
       String sum = tgx101Summary.text.trim();
       b.append(sum);
@@ -808,7 +808,7 @@ public class TGMessageText extends TGMessage {
         }
       }
       // (user 2026-10-21 «в офф. телеге пересказ заменяет текст»): the summary takes the post's place, as the translation does
-      b.append('\n');
+      b.append("\n\n");
       String more = Lang.getString(R.string.Tgx101AiShowFull);
       list.add(entity(b.length(), more.length(), new TdApi.TextEntityTypeTextUrl(TGX101_FULL_LINK)));
       b.append(more);

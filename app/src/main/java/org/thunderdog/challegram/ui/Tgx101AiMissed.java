@@ -79,13 +79,9 @@ public final class Tgx101AiMissed {
       body.addView(note(c, Lang.getString(R.string.Tgx101AiMissedWorking)));
     });
     org.thunderdog.challegram.Tgx101Diag.mark("ai missed: chat " + chat.id + ", " + chat.unreadCount + " unread");
-    tdlib.send(new TdApi.GetChatHistory(chat.id, 0, 0, Math.min(MAX_MESSAGES, Math.max(MIN_UNREAD, chat.unreadCount)), false), (history, error) -> {
-      List<TdApi.Message> unread = new ArrayList<>();
-      if (history != null) {
-        for (TdApi.Message m : history.messages) {
-          if (m != null && m.id > lastRead && !m.isOutgoing) unread.add(m);
-        }
-      }
+    final int want = Math.min(MAX_MESSAGES, Math.max(MIN_UNREAD, chat.unreadCount));
+    // (test 2026-10-21: 1 of 878 found) the first page is what is cached — pages are asked until the last read one
+    loadUnread(tdlib, chat.id, 0, lastRead, want, new ArrayList<>(), 0, unread -> {
       Collections.sort(unread, (a, b) -> Long.compare(a.id, b.id));
       if (unread.isEmpty()) {
         UI.post(() -> fill(c, holder[0], sheet[0], chat, null, unread, Lang.getString(R.string.Tgx101AiMissedNothing)));
@@ -125,6 +121,32 @@ public final class Tgx101AiMissed {
         org.thunderdog.challegram.Tgx101Diag.mark("ai missed: " + (answer != null ? answer.length() + " chars" : "failed " + failure));
         fill(c, holder[0], sheet[0], chat, answer, unread, failure);
       }));
+    });
+  }
+
+  private static void loadUnread (Tdlib tdlib, long chatId, long from, long lastRead, int want, List<TdApi.Message> out, int emptyTries, me.vkryl.core.lambda.RunnableData<List<TdApi.Message>> after) {
+    tdlib.send(new TdApi.GetChatHistory(chatId, from, 0, 100, false), (history, error) -> {
+      if (history == null || history.messages.length == 0) {
+        if (history != null && emptyTries < 2) {
+          loadUnread(tdlib, chatId, from, lastRead, want, out, emptyTries + 1, after); // the server is still loading it
+        } else {
+          after.runWithData(out);
+        }
+        return;
+      }
+      long last = from;
+      boolean reachedRead = false;
+      for (TdApi.Message m : history.messages) {
+        if (m == null || m.id == from) continue;
+        last = m.id;
+        if (m.id <= lastRead) { reachedRead = true; break; }
+        if (!m.isOutgoing) out.add(m);
+      }
+      if (reachedRead || out.size() >= want || last == from) {
+        after.runWithData(out.size() > want ? new ArrayList<>(out.subList(0, want)) : out);
+      } else {
+        loadUnread(tdlib, chatId, last, lastRead, want, out, 0, after);
+      }
     });
   }
 
