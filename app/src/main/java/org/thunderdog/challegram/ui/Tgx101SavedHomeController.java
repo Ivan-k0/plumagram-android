@@ -782,8 +782,8 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     if (pendingAfterOpen != null) {
       Runnable r = pendingAfterOpen;
       pendingAfterOpen = null;
-      if (android.os.SystemClock.uptimeMillis() - madeStart > 5000 && column != null) {
-        reload(); // made ahead a while ago (the pull from the chats): what it shows may be old
+      if (android.os.SystemClock.uptimeMillis() - madeStart > 120000 && column != null) {
+        reload(); // made ahead long ago and not refreshed since (the pull from the chats): what it shows may be old
       } else {
         r.run();
       }
@@ -817,6 +817,18 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     loadReactions();
     loadPinned();
     loadRecent();
+  }
+
+  /** (user 2026-10-21 «свайп в Хранилище по-прежнему тормознутый», log 19:36: made 290 s ahead, so it rebuilt itself
+   *  while sliding in — a 63 ms frame): the storage made ahead is refreshed while the chats stand, not when it opens */
+  public void tgx101RefreshAhead () {
+    if (isFocused() || column == null || isDestroyed()) return;
+    long now = android.os.SystemClock.uptimeMillis();
+    if (now - madeStart < 30000) return;
+    long t = now;
+    reload();
+    madeStart = android.os.SystemClock.uptimeMillis();
+    org.thunderdog.challegram.Tgx101Diag.mark("storage pull: made-ahead storage refreshed in " + (madeStart - t) + " ms");
   }
 
   private @Nullable Runnable pendingAfterOpen;

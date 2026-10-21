@@ -1502,6 +1502,16 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   // when the chats are shown, or at the latest when the finger goes down
   private @Nullable Tgx101SavedHomeController tgx101PreparedStorage;
 
+  // the storage made ahead stays fresh while the chats are on screen: refreshed on coming back and every 90 s
+  private final Runnable tgx101RefreshStorage = new Runnable() {
+    @Override
+    public void run () {
+      if (isDestroyed() || !isFocused() || getValue() == null) return;
+      if (tgx101PreparedStorage != null) tgx101PreparedStorage.tgx101RefreshAhead();
+      getValue().postDelayed(this, 90000);
+    }
+  };
+
   private void tgx101PrepareStorage () {
     if (tgx101PreparedStorage != null || isDestroyed() || !org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).storageOn || !Settings.instance().tgx101SwipeToStorage()) return;
     NavigationController navigation = context().navigation();
@@ -2167,7 +2177,11 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   @Override
   public void onFocus () {
     super.onFocus();
-    if (getValue() != null) getValue().postDelayed(this::tgx101PrepareStorage, 700); // after the chats settle
+    if (getValue() != null) {
+      getValue().postDelayed(this::tgx101PrepareStorage, 700); // after the chats settle
+      getValue().removeCallbacks(tgx101RefreshStorage);
+      getValue().postDelayed(tgx101RefreshStorage, 900);
+    }
     Tgx101Bird.refresh(tgx101Bird); // back from MagiX: shown or not, and the ring
     // TGx101 (user's log 2026-10-06 23:29): swiped back from a chat with the keyboard up — the chats page itself doesn't
     // get focus here, so the main screen hides it (the list has no input)
