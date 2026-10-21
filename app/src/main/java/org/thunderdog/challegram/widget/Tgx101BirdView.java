@@ -102,6 +102,7 @@ public class Tgx101BirdView extends View {
   private final RectF rect = new RectF();
   private static final int BIRD_COLOR = 0xff5eb0ef;
   private final Paint facetPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+  private int shadowFor = -1;
   private final int touchSlop;
 
   private @Nullable Callback callback;
@@ -682,6 +683,10 @@ public class Tgx101BirdView extends View {
     int alpha = (int) (255 * shown);
     birdPath.transform(matrix, birdScaled);
     birdPaint.setAlpha(alpha);
+    if (Build.VERSION.SDK_INT >= 28 && shadowFor != alpha) {
+      shadowFor = alpha;
+      birdPaint.setShadowLayer(Screen.dp(5f), 0, Screen.dp(3f), ((int) (0x8c * shown * shown)) << 24); // pales with the bird
+    }
     c.drawPath(birdScaled, birdPaint);
     for (int i = 0; i < facets.length; i++) {
       if (facets[i] == null) continue;
