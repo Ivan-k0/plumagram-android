@@ -94,29 +94,36 @@ public class Tgx101SavedTopicsController extends RecyclerViewController<Void> im
 
   @Override
   public CharSequence getName () {
-    return Lang.getString(R.string.Tgx101SavedByChats);
+    return Lang.getString(R.string.SavedMessages); // as the official app: «Saved Messages», shown as chats
   }
 
-  private SettingsAdapter adapter;
+  // (user 2026-10-21 «Избранное должно выглядеть как обычное избранное из офа»): «as chats» is a list like the chat
+  // list — the avatar of where the records came from, its name, the last record and its time
   private final List<TdApi.SavedMessagesTopic> topics = new ArrayList<>();
   private boolean loaded;
+  private androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder> adapter;
 
   @Override
   protected void onCreateView (Context context, CustomRecyclerView recyclerView) {
-    adapter = new SettingsAdapter(this) {
+    adapter = new androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
       @Override
-      protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
-        Object data = item.getData();
-        if (data instanceof TdApi.SavedMessagesTopic) {
-          TdApi.Message last = ((TdApi.SavedMessagesTopic) data).lastMessage;
-          view.setData(last != null ? ContentPreview.getChatListPreview(tdlib, last.chatId, last, true).buildText(false) : "");
-        }
+      public androidx.recyclerview.widget.RecyclerView.ViewHolder onCreateViewHolder (android.view.ViewGroup parent, int viewType) {
+        return new androidx.recyclerview.widget.RecyclerView.ViewHolder(new Row(context)) { };
+      }
+
+      @Override
+      public void onBindViewHolder (androidx.recyclerview.widget.RecyclerView.ViewHolder holder, int position) {
+        ((Row) holder.itemView).bind(topics.get(position));
+      }
+
+      @Override
+      public int getItemCount () {
+        return topics.size();
       }
     };
     recyclerView.setAdapter(adapter);
     build();
-    // the topics arrive as updates once Telegram is asked for them
-    // an error means everything is loaded already
+    // the topics arrive as updates once Telegram is asked for them; an error means everything is loaded already
     tdlib.send(new TdApi.LoadSavedMessagesTopics(100), (ok, error) -> runOnUiThreadOptional(() -> {
       loaded = true;
       build();
@@ -135,35 +142,88 @@ public class Tgx101SavedTopicsController extends RecyclerViewController<Void> im
     return "";
   }
 
+  @android.annotation.SuppressLint("NotifyDataSetChanged")
   private void build () {
     topics.clear();
     topics.addAll(tdlib.tgx101SavedTopics());
-    List<ListItem> items = new ArrayList<>();
-    items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
-    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-    if (topics.isEmpty()) {
-      items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, loaded ? R.string.Tgx101SavedEmpty : R.string.LoadingInformation));
+    adapter.notifyDataSetChanged();
+  }
+
+  private final class Row extends android.widget.LinearLayout {
+    private final org.thunderdog.challegram.widget.AvatarView avatar;
+    private final android.widget.TextView name, time, preview;
+    private TdApi.SavedMessagesTopic topic;
+
+    Row (Context context) {
+      super(context);
+      setOrientation(HORIZONTAL);
+      setGravity(android.view.Gravity.CENTER_VERTICAL);
+      setPadding(org.thunderdog.challegram.tool.Screen.dp(10f), 0, org.thunderdog.challegram.tool.Screen.dp(14f), 0);
+      setMinimumHeight(org.thunderdog.challegram.tool.Screen.dp(72f));
+      setLayoutParams(new androidx.recyclerview.widget.RecyclerView.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, org.thunderdog.challegram.tool.Screen.dp(72f)));
+      org.thunderdog.challegram.tool.Views.setClickable(this);
+      org.thunderdog.challegram.support.RippleSupport.setSimpleWhiteBackground(this, Tgx101SavedTopicsController.this);
+      avatar = new org.thunderdog.challegram.widget.AvatarView(context);
+      LayoutParams ap = new LayoutParams(org.thunderdog.challegram.tool.Screen.dp(52f), org.thunderdog.challegram.tool.Screen.dp(52f));
+      ap.rightMargin = org.thunderdog.challegram.tool.Screen.dp(12f);
+      addView(avatar, ap);
+      android.widget.LinearLayout column = new android.widget.LinearLayout(context);
+      column.setOrientation(VERTICAL);
+      android.widget.LinearLayout top = new android.widget.LinearLayout(context);
+      top.setOrientation(HORIZONTAL);
+      name = new org.thunderdog.challegram.widget.EmojiTextView(context);
+      name.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16f);
+      name.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+      name.setTextColor(org.thunderdog.challegram.theme.Theme.textAccentColor());
+      name.setSingleLine(true);
+      name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      top.addView(name, new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f));
+      time = new android.widget.TextView(context);
+      time.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 13f);
+      time.setTextColor(org.thunderdog.challegram.theme.Theme.textDecentColor());
+      top.addView(time);
+      column.addView(top);
+      preview = new org.thunderdog.challegram.widget.EmojiTextView(context);
+      preview.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 15f);
+      preview.setTextColor(org.thunderdog.challegram.theme.Theme.textDecentColor());
+      preview.setSingleLine(true);
+      preview.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      LayoutParams pp = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
+      pp.topMargin = org.thunderdog.challegram.tool.Screen.dp(3f);
+      column.addView(preview, pp);
+      addView(column, new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f));
+      setOnClickListener(v -> open(topic));
     }
-    boolean first = true;
-    for (TdApi.SavedMessagesTopic topic : topics) {
-      if (!first) items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-      first = false;
-      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101SavedTopic, topic.isPinned ? R.drawable.deproko_baseline_pin_24 : R.drawable.baseline_bookmark_24, title(topic)).setData(topic).setLongId(topic.id));
+
+    void bind (TdApi.SavedMessagesTopic topic) {
+      this.topic = topic;
+      name.setText(title(topic));
+      switch (topic.type.getConstructor()) {
+        case TdApi.SavedMessagesTopicTypeMyNotes.CONSTRUCTOR:
+          avatar.setUser(tdlib, tdlib.myUserId(), true);
+          break;
+        case TdApi.SavedMessagesTopicTypeSavedFromChat.CONSTRUCTOR:
+          avatar.setChat(tdlib, tdlib.chat(((TdApi.SavedMessagesTopicTypeSavedFromChat) topic.type).chatId));
+          break;
+        default:
+          avatar.setMessageSender(tdlib, null);
+          break;
+      }
+      TdApi.Message last = topic.lastMessage;
+      preview.setText(last != null ? ContentPreview.getChatListPreview(tdlib, last.chatId, last, true).buildText(false) : "");
+      time.setText(last != null ? Lang.timeOrDateShort(last.date, java.util.concurrent.TimeUnit.SECONDS) : "");
     }
-    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
-    adapter.setItems(items, false);
+  }
+
+  private void open (TdApi.SavedMessagesTopic topic) {
+    if (topic == null) return;
+    TdApi.Chat self = tdlib.chat(tdlib.selfChatId());
+    if (self == null) return;
+    TdlibUi.ChatOpenParameters params = new TdlibUi.ChatOpenParameters().keepStack();
+    params.messageTopicId = new TdApi.MessageTopicSavedMessages(topic.id);
+    tdlib.ui().openChat(this, self, params);
   }
 
   @Override
-  public void onClick (View v) {
-    if (v.getId() == R.id.btn_tgx101SavedTopic) {
-      ListItem item = (ListItem) v.getTag();
-      long topicId = item.getLongId();
-      TdApi.Chat self = tdlib.chat(tdlib.selfChatId());
-      if (self == null) return;
-      TdlibUi.ChatOpenParameters params = new TdlibUi.ChatOpenParameters().keepStack();
-      params.messageTopicId = new TdApi.MessageTopicSavedMessages(topicId);
-      tdlib.ui().openChat(this, self, params);
-    }
-  }
+  public void onClick (View v) { }
 }

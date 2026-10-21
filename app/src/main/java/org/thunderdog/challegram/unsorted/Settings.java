@@ -3720,7 +3720,7 @@ public class Settings {
   private static final String KEY_TGX101_STORAGE_ROW = "tgx101_storage_row", KEY_TGX101_SAVED_AS_CHATS = "tgx101_saved_as_chats";
   public boolean tgx101StorageRow () { return pmc.getBoolean(KEY_TGX101_STORAGE_ROW, true); }
   public void setTgx101StorageRow (boolean v) { pmc.putBoolean(KEY_TGX101_STORAGE_ROW, v); }
-  public boolean tgx101SavedAsChats () { return pmc.getBoolean(KEY_TGX101_SAVED_AS_CHATS, true); }
+  public boolean tgx101SavedAsChats () { return pmc.getBoolean(KEY_TGX101_SAVED_AS_CHATS, false); } // the official default: messages
   public void setTgx101SavedAsChats (boolean v) { pmc.putBoolean(KEY_TGX101_SAVED_AS_CHATS, v); }
 
   public boolean tgx101AiMissed () { return pmc.getBoolean(KEY_TGX101_AI_MISSED, true); }

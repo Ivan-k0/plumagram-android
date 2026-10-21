@@ -559,7 +559,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   public final boolean needTabs () {
-    return isSelfChat() && !isInForceTouchMode() && !inPreviewMode() && !areScheduledOnly();
+    // TGx101 (user 2026-10-21 «Избранное должно выглядеть как обычное избранное из офа»): Saved Messages has the usual
+    // chat header with its ⋮ (as chats / as messages), not Telegram X's tabs — media and tags live in the storage
+    return false;
   }
 
   public float getPagerScrollOffsetInPixels () {
