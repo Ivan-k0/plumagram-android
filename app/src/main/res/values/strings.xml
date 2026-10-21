@@ -7107,6 +7107,14 @@
   <string name="Tgx101SavedAiWishExample">e.g. by projects, keep recipes apart</string>
   <string name="Tgx101AiAutoTags">AI tags for new records</string>
   <string name="Tgx101AiAutoTagsHint">The AI gives each new record saved from this phone a tag from your tags (or a new short one). Every record is a request to Telegram\'s AI.</string>
+  <string name="Tgx101StorageRowFolders">Folders: %1$d</string>
+  <string name="Tgx101StorageRowOpen">Open the storage</string>
+  <string name="Tgx101StorageRowHide">Hide from this folder</string>
+  <string name="Tgx101StorageRowHidden">Hidden here. Back: storage settings → «Row in the chat list». The storage stays on the swipe and in the bird.</string>
+  <string name="Tgx101StorageRowSetting">Row in the chat list</string>
+  <string name="Tgx101StorageRowShowAll">Show in every folder again</string>
+  <string name="Tgx101SavedAsChats">As chats</string>
+  <string name="Tgx101SavedAsMessages">As messages</string>
   <string name="Tgx101SavedAiSort">Sort with AI</string>
   <string name="Tgx101SavedAiWorking">Asking the AI where the records go…</string>
   <string name="Tgx101SavedAiNothing">Every record is already in a folder.</string>

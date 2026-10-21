@@ -1804,6 +1804,11 @@
   <item name="btn_tgx101SwipeToStorage" type="id"/>
   <item name="controller_tgx101SavedAiSort" type="id"/>
   <item name="btn_tgx101Summary" type="id"/>
+  <item name="btn_tgx101HideStorageRow" type="id"/>
+  <item name="btn_tgx101StorageRow" type="id"/>
+  <item name="btn_tgx101StorageRowShowAll" type="id"/>
+  <item name="btn_tgx101SavedAsChats" type="id"/>
+  <item name="btn_tgx101SavedAsMessages" type="id"/>
   <item name="btn_tgx101AiSortHint" type="id"/>
   <item name="btn_tgx101AiAutoTags" type="id"/>
   <item name="menu_btn_tgx101SavedAi" type="id"/>

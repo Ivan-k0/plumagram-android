@@ -117,7 +117,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
   }
 
   public void checkArchive () {
-    boolean hasArchive = this.needArchive && context.isInitialLoadFinished() && (chats.size() - (this.hasArchive ? 1 : 0)) > 0;
+    boolean hasArchive = this.needArchive && context.isInitialLoadFinished() && (chats.size() - tgx101Specials()) > 0;
     if (this.hasArchive != hasArchive) {
       this.hasArchive = hasArchive;
       if (hasArchive) {
@@ -129,6 +129,47 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
       }
       invalidateAttachedItemDecorations();
     }
+  }
+
+  // TGx101 (user 2026-10-21): the storage's own row, right under the archive — see TGChat#tgx101NewStorage
+  private @Nullable TGChat tgx101StorageItem;
+
+  /** the rows that aren't chats of the list (archive, storage): Telegram's indexes start after them */
+  private int tgx101Specials () {
+    return (hasArchive ? 1 : 0) + (tgx101StorageItem != null ? 1 : 0);
+  }
+
+  public boolean tgx101HasStorage () {
+    return tgx101StorageItem != null;
+  }
+
+  public void tgx101SetStorage (@Nullable TGChat item) {
+    int at = hasArchive ? ARCHIVE_INDEX + 1 : 0;
+    if (item == null) {
+      if (tgx101StorageItem != null) {
+        chats.remove(at);
+        tgx101StorageItem = null;
+        tgx101NotifyRemovedKeepingInfo(getItemPositionByChatIndex(at));
+        invalidateAttachedItemDecorations();
+      }
+      return;
+    }
+    if (tgx101StorageItem != null) {
+      chats.set(at, item);
+      tgx101StorageItem = item;
+      notifyItemChanged(getItemPositionByChatIndex(at));
+      return;
+    }
+    chats.add(at, item);
+    tgx101StorageItem = item;
+    notifyChatAppeared(-1, getItemPositionByChatIndex(at));
+    invalidateAttachedItemDecorations();
+  }
+
+  /** @return its position when what it shows changed, -1 otherwise */
+  public int tgx101UpdateStorage (String text, int date) {
+    if (tgx101StorageItem == null || !tgx101StorageItem.tgx101SetStorageInfo(text, date)) return -1;
+    return getItemPositionByChatIndex(chats.indexOf(tgx101StorageItem));
   }
 
   private TGChat newArchive () {
@@ -196,7 +237,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
         } else if (chats.size() == 0) {
           holder.setEmpty(R.string.NoChats);
         } else {
-          holder.setInfo(Lang.pluralBold(totalRes != 0 ? totalRes : R.string.xChats, hasArchive ? chats.size() - 1 : chats.size()));
+          holder.setInfo(Lang.pluralBold(totalRes != 0 ? totalRes : R.string.xChats, chats.size() - tgx101Specials()));
         }
         break;
       }
@@ -347,7 +388,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
     return index != -1 ? getChatAt(index) : null;
   }
 
-  private int indexOfChat (long chatId) {
+  public int indexOfChat (long chatId) {
     if (chatId == 0)
       return -1;
     int i = 0;
@@ -655,7 +696,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
   }
 
   public int removeChatById (TdApi.Chat chat, int fromIndex, Tdlib.ChatChange changeInfo) {
-    final int chatIndex = hasArchive ? fromIndex + 1 : fromIndex;
+    final int chatIndex = fromIndex + tgx101Specials();
     if (chatIndex != -1) {
       TGChat removedChat = removeChat(chatIndex);
       if (removedChat.getChatId() != chat.id)
@@ -678,10 +719,8 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
 
   public int moveChat (TdApi.Chat chat, int fromIndex, int toIndex, Tdlib.ChatChange changeInfo) {
     TGChat parsedChat;
-    if (hasArchive) {
-      fromIndex++;
-      toIndex++;
-    }
+    fromIndex += tgx101Specials();
+    toIndex += tgx101Specials();
     parsedChat = chats.remove(fromIndex);
 
     boolean invalidateDecorations = changeInfo.metadataChanged() ||
@@ -709,7 +748,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
 
   public int addChat (TdApi.Chat chat, int atIndex, Tdlib.ChatChange changeInfo) {
     TGChat newChat = new TGChat(context.getParentOrSelf(), context.chatList(), chat, false);
-    int index = hasArchive ? atIndex + 1 : atIndex;
+    int index = atIndex + tgx101Specials();
     newChat.makeMeasures();
     int flags = changeInfo.metadataChanged() ? ORDER_INVALIDATE_DECORATIONS : 0;
     boolean wasEmpty = !hasChats();
@@ -725,7 +764,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
   }
 
   public int updateChat (TdApi.Chat chat, int index, Tdlib.ChatChange changeInfo) {
-    final int chatIndex = hasArchive ? index + 1 : index;
+    final int chatIndex = index + tgx101Specials();
     TGChat parsedChat = chats.get(chatIndex);
     if (parsedChat.getChatId() != chat.id)
       throw new IllegalStateException();

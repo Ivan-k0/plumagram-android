@@ -3715,6 +3715,14 @@ public class Settings {
   public void setTgx101AiSortHint (int accountId, String v) { pmc.putString("tgx101_ai_sort_hint_" + accountId, v); }
   public String tgx101AiSortRejected (int accountId) { return pmc.getString("tgx101_ai_sort_rejected_" + accountId, ""); }
   public void setTgx101AiSortRejected (int accountId, String v) { pmc.putString("tgx101_ai_sort_rejected_" + accountId, v); }
+  // (user 2026-10-21) the storage as its own row in the chat lists; Saved Messages then opens as Saved Messages,
+  // as chats (by where the records came from) or as messages, chosen in its ⋮
+  private static final String KEY_TGX101_STORAGE_ROW = "tgx101_storage_row", KEY_TGX101_SAVED_AS_CHATS = "tgx101_saved_as_chats";
+  public boolean tgx101StorageRow () { return pmc.getBoolean(KEY_TGX101_STORAGE_ROW, true); }
+  public void setTgx101StorageRow (boolean v) { pmc.putBoolean(KEY_TGX101_STORAGE_ROW, v); }
+  public boolean tgx101SavedAsChats () { return pmc.getBoolean(KEY_TGX101_SAVED_AS_CHATS, true); }
+  public void setTgx101SavedAsChats (boolean v) { pmc.putBoolean(KEY_TGX101_SAVED_AS_CHATS, v); }
+
   public boolean tgx101AiMissed () { return pmc.getBoolean(KEY_TGX101_AI_MISSED, true); }
   public void setTgx101AiMissed (boolean v) { pmc.putBoolean(KEY_TGX101_AI_MISSED, v); }
 

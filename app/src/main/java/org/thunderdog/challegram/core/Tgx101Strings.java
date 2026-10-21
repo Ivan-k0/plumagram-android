@@ -838,6 +838,14 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedAiWishExample, "например: по проектам, рецепты отдельно");
     RU.put(R.string.Tgx101AiAutoTags, "Метки ИИ для новых записей");
     RU.put(R.string.Tgx101AiAutoTagsHint, "ИИ даёт каждой новой записи, сохранённой с этого телефона, метку из ваших (или новую короткую). Каждая запись — отдельный запрос к ИИ Telegram.");
+    RU.put(R.string.Tgx101StorageRowFolders, "Папок: %1$d");
+    RU.put(R.string.Tgx101StorageRowOpen, "Открыть Хранилище");
+    RU.put(R.string.Tgx101StorageRowHide, "Скрыть из этой папки");
+    RU.put(R.string.Tgx101StorageRowHidden, "Скрыто здесь. Вернуть: настройки Хранилища → «Строка в списке чатов». Хранилище остаётся на свайпе и в птичке.");
+    RU.put(R.string.Tgx101StorageRowSetting, "Строка в списке чатов");
+    RU.put(R.string.Tgx101StorageRowShowAll, "Снова показывать во всех папках");
+    RU.put(R.string.Tgx101SavedAsChats, "Как чаты");
+    RU.put(R.string.Tgx101SavedAsMessages, "Как сообщения");
     RU.put(R.string.Tgx101SavedAiSort, "Разложить с ИИ");
     RU.put(R.string.Tgx101SavedAiWorking, "Спрашиваю ИИ, куда что положить…");
     RU.put(R.string.Tgx101SavedAiNothing, "Все записи уже разложены по папкам.");

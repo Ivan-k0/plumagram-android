@@ -1574,6 +1574,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   @Override
   public void onFocus () {
     super.onFocus();
+    tgx101CheckStorageRow(); // back from the storage's settings, a hidden row, a new saved record
     Tgx101Bird.refresh(tgx101Bird);
     // TGx101 (user's log 2026-10-05 15:46): swiped back from a chat with the keyboard up (after scheduling a message,
     // the chat stays open) — the keyboard hung over the chat list; the list has no input, so it goes
@@ -2672,7 +2673,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
           selectUnselectChat(chat, true);
           return;
         }
-        if (chat.isArchive()) {
+        if (chat.tgx101IsStorage()) {
+          Tgx101SavedHomeController.open(context, tdlib);
+        } else if (chat.isArchive()) {
           ChatsController c = new ChatsController(context, tdlib);
           c.setArguments(new Arguments(new TdApi.ChatListArchive()).setNeedMessagesSearch(true));
           context.navigation().navigateTo(c);
@@ -2703,6 +2706,11 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     if (pickerDelegate == null && chat.id == tdlib.selfChatId()
       && org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).opensStorage()) {
       Tgx101SavedHomeController.open(context, tdlib);
+      return;
+    }
+    // TGx101 (user 2026-10-21): Saved Messages «as chats» — grouped by where the records came from, as the official apps
+    if (pickerDelegate == null && chat.id == tdlib.selfChatId() && Settings.instance().tgx101SavedAsChats()) {
+      Tgx101SavedTopicsController.open(this);
       return;
     }
     int highlightMode;
@@ -2813,7 +2821,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     if (v.getId() == R.id.chat) {
       TGChat chat = ((ChatView) v).getChat();
       if (chat != null) {
-        if (chat.isArchive()) {
+        if (chat.tgx101IsStorage()) {
+          if (getSelectedChatCount() == 0) tgx101StorageOptions();
+        } else if (chat.isArchive()) {
           if (getSelectedChatCount() == 0) {
             tdlib.ui().showArchiveOptions(this, tdlib.chatList(ChatPosition.CHAT_LIST_ARCHIVE));
           }
@@ -2833,7 +2843,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   }
 
   public boolean canSelectChat (TGChat chat) {
-    return chat != null && !chat.isArchive() && tdlib.chatAvailable(chat.getChat());
+    return chat != null && !chat.isArchive() && !chat.tgx101IsStorage() && tdlib.chatAvailable(chat.getChat());
   }
 
   public boolean isChatSelected (TGChat chat) {
@@ -2956,6 +2966,69 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   public void checkListState () {
     checkDisplayProgress();
     checkDisplayNoChats();
+    tgx101CheckStorageRow();
+  }
+
+  // TGx101 (user 2026-10-21 «Хранилище в отдельный чат… закреплять в любой папке… если удалит — как восстановит»): the
+  // storage's row stands on top of every list Saved Messages is in, unless hidden there (hold → «Hide from this folder»;
+  // back in the storage's settings). Saved Messages itself opens as Saved Messages then
+  private String tgx101ListKey () {
+    TdApi.ChatList list = chatList();
+    if (list == null) return "?";
+    switch (list.getConstructor()) {
+      case TdApi.ChatListMain.CONSTRUCTOR: return "main";
+      case TdApi.ChatListArchive.CONSTRUCTOR: return "archive";
+      case TdApi.ChatListFolder.CONSTRUCTOR: return "folder:" + ((TdApi.ChatListFolder) list).chatFolderId;
+    }
+    return "?";
+  }
+
+  public void tgx101CheckStorageRow () {
+    if (adapter == null || pickerDelegate != null || isDestroyed()) return;
+    org.thunderdog.challegram.data.Tgx101SavedStore store = org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib);
+    long selfChatId = tdlib.selfChatId();
+    boolean want = store.storageOn && Settings.instance().tgx101StorageRow() && selfChatId != 0
+      && adapter.indexOfChat(selfChatId) != -1 && !store.isRowHidden(tgx101ListKey());
+    if (!want) {
+      if (adapter.tgx101HasStorage()) adapter.tgx101SetStorage(null);
+      return;
+    }
+    TdApi.Chat saved = tdlib.chat(selfChatId);
+    if (saved == null) return;
+    String text = tgx101StorageText(store, saved);
+    int date = saved.lastMessage != null ? saved.lastMessage.date : 0;
+    if (!adapter.tgx101HasStorage()) {
+      adapter.tgx101SetStorage(TGChat.tgx101NewStorage(getParentOrSelf(), chatList(), saved, text, date));
+    } else {
+      int position = adapter.tgx101UpdateStorage(text, date);
+      if (position != -1) adapter.notifyItemChanged(position);
+    }
+  }
+
+  private static String tgx101StorageText (org.thunderdog.challegram.data.Tgx101SavedStore store, TdApi.Chat saved) {
+    StringBuilder b = new StringBuilder();
+    int folders = store.folders().size();
+    if (folders > 0) b.append(Lang.getString(R.string.Tgx101StorageRowFolders, folders));
+    if (saved.lastMessage != null) {
+      if (b.length() > 0) b.append(" · ");
+      b.append(Tgx101SavedKit.title(saved.lastMessage));
+    }
+    return b.toString();
+  }
+
+  private void tgx101StorageOptions () {
+    showOptions(Lang.getString(R.string.Tgx101BirdStorage), new int[] {R.id.btn_open, R.id.btn_tgx101HideStorageRow}, new String[] {
+      Lang.getString(R.string.Tgx101StorageRowOpen), Lang.getString(R.string.Tgx101StorageRowHide)
+    }, new int[] {OptionColor.NORMAL, OptionColor.RED}, new int[] {R.drawable.tgx101_storage_tiles_24, R.drawable.baseline_remove_circle_24}, (itemView, id) -> {
+      if (id == R.id.btn_open) {
+        Tgx101SavedHomeController.open(context, tdlib);
+      } else if (id == R.id.btn_tgx101HideStorageRow) {
+        org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).setRowHidden(tgx101ListKey(), true);
+        tgx101CheckStorageRow();
+        UI.showToast(R.string.Tgx101StorageRowHidden, android.widget.Toast.LENGTH_LONG);
+      }
+      return true;
+    });
   }
 
   private static final int ANIMATOR_PLACEHOLDER = 0;

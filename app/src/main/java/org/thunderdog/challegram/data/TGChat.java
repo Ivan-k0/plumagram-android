@@ -378,7 +378,39 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   }
 
   public long getChatId () {
+    if (tgx101Storage) return TGX101_STORAGE_ID;
     return chat != null ? chat.id : 0;
+  }
+
+  // TGx101 (user 2026-10-21 «Хранилище в отдельный чат, чтобы закрепить; Избранное оставить как есть»): the storage's own
+  // row, on top of every list Saved Messages is in. It is drawn from the Saved chat (avatar slot, time, look), with its
+  // own title, the cabinet icon and a summary of what's kept; its id is not a chat's
+  public static final long TGX101_STORAGE_ID = Long.MIN_VALUE + 101;
+  private boolean tgx101Storage;
+  private String tgx101StorageText = "";
+  private int tgx101StorageDate;
+
+  public static TGChat tgx101NewStorage (ViewController<?> context, TdApi.ChatList list, TdApi.Chat saved, String text, int date) {
+    TGChat c = new TGChat(context, list, saved, false);
+    c.tgx101Storage = true;
+    c.tgx101StorageText = text;
+    c.tgx101StorageDate = date;
+    c.setAvatar();
+    c.makeMeasures();
+    return c;
+  }
+
+  public boolean tgx101IsStorage () {
+    return tgx101Storage;
+  }
+
+  /** @return changed */
+  public boolean tgx101SetStorageInfo (String text, int date) {
+    if (text.equals(tgx101StorageText) && date == tgx101StorageDate) return false;
+    tgx101StorageText = text;
+    tgx101StorageDate = date;
+    makeMeasures();
+    return true;
   }
 
   public TdApi.ChatList getChatList () {
@@ -386,10 +418,12 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   }
 
   public long getChatOrder () {
+    if (tgx101Storage) return Long.MAX_VALUE - 1;
     return isArchive() ? Long.MAX_VALUE : ChatPosition.getOrder(chat, chatList);
   }
 
   private int getTotalUnreadCount () {
+    if (tgx101Storage) return 0;
     if (isArchive()) {
       TdlibCounter counter = tdlib.getCounter(ChatPosition.CHAT_LIST_ARCHIVE);
       int unreadCount = counter.chatCount;
@@ -486,11 +520,13 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   }
 
   public boolean isPinned () {
+    if (tgx101Storage) return false; // on top, but not among the chats Telegram pins
     TdApi.ChatPosition position = getPosition();
     return position != null && position.isPinned;
   }
 
   public boolean isPinnedOrSpecial () {
+    if (tgx101Storage) return true;
     TdApi.ChatPosition position = getPosition();
     return position != null && (position.isPinned || position.source != null);
   }
@@ -731,7 +767,9 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   }
 
   private void setAvatar () {
-    if (isArchive()) {
+    if (tgx101Storage) {
+      avatarPlaceholder = new AvatarPlaceholder.Metadata(tdlib.accentColor(TdlibAccentColor.InternalId.SAVED_MESSAGES), R.drawable.tgx101_storage_tiles_24);
+    } else if (isArchive()) {
       avatarPlaceholder = new AvatarPlaceholder.Metadata(tdlib.accentColor(TdlibAccentColor.InternalId.ARCHIVE), R.drawable.baseline_archive_24);
     } else {
       avatarPlaceholder = null;
@@ -743,12 +781,12 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   }
 
   public boolean isOutgoing () {
-    return !isArchive() && !showDraft() && chat.lastMessage != null && chat.lastMessage.isOutgoing;
+    return !tgx101Storage && !isArchive() && !showDraft() && chat.lastMessage != null && chat.lastMessage.isOutgoing;
   }
 
   public boolean showDraft () {
     // TODO rich message
-    return !isArchive() && chat.unreadCount == 0 && chat.draftMessage != null && chat.draftMessage.content.getConstructor() == TdApi.DraftMessageContentText.CONSTRUCTOR;
+    return !tgx101Storage && !isArchive() && chat.unreadCount == 0 && chat.draftMessage != null && chat.draftMessage.content.getConstructor() == TdApi.DraftMessageContentText.CONSTRUCTOR;
   }
 
   public boolean isUnread () {
@@ -1015,7 +1053,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   }
 
   public void setTitle () {
-    setTitleImpl(isArchive() ? Lang.getString(R.string.ArchiveTitleList) : tdlib.chatTitle(chat));
+    setTitleImpl(tgx101Storage ? Lang.getString(R.string.Tgx101BirdStorage) : isArchive() ? Lang.getString(R.string.ArchiveTitleList) : tdlib.chatTitle(chat));
     layoutTitle(true);
   }
 
@@ -1025,7 +1063,9 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
 
   public boolean setTime () {
     String time;
-    if (isArchive()) {
+    if (tgx101Storage) {
+      time = tgx101StorageDate != 0 ? Lang.timeOrDateShort(tgx101StorageDate, TimeUnit.SECONDS) : "";
+    } else if (isArchive()) {
       int maxDate = archive.maxDate();
       time = maxDate != 0 ? Lang.timeOrDateShort(maxDate, TimeUnit.SECONDS) : "";
     } else {
@@ -1315,6 +1355,11 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
       return;
     }
 
+    if (tgx101Storage) {
+      setTextValue(tgx101StorageText, (TdApi.TextEntity[]) null, false);
+      setPrefix();
+      return;
+    }
     if (isArchive()) {
       List<TextEntity> entities = new ArrayList<>();
       StringBuilder b = new StringBuilder();

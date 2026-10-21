@@ -2273,6 +2273,8 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       getValue().postDelayed(tgx101RefreshStorage, 900);
     }
     Tgx101Bird.refresh(tgx101Bird); // back from MagiX: shown or not, and the ring
+    ViewController<?> page = getCurrentPagerItem();
+    if (page instanceof ChatsController) ((ChatsController) page).tgx101CheckStorageRow(); // the storage's row: settings may have changed
     // TGx101 (user's log 2026-10-06 23:29): swiped back from a chat with the keyboard up — the chats page itself doesn't
     // get focus here, so the main screen hides it (the list has no input)
     if (!inSearchMode() && context.isKeyboardVisible()) {

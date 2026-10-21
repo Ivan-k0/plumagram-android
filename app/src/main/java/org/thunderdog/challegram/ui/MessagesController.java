@@ -2916,7 +2916,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       return;
     }
     if (id == R.id.btn_tgx101SavedByChats) {
-      Tgx101SavedTopicsController.open(this);
+      Tgx101SavedTopicsController.switchTo(this); // «as chats» (user 2026-10-21): kept as the way Saved Messages opens
       return;
     }
     if (id == R.id.menu_btn_tgx101SavedSettings) {
@@ -5471,8 +5471,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
 
     if (tdlib.isSelfChat(chat.id) && getMessageTopicId() == null) {
-      ids.append(R.id.btn_tgx101SavedByChats); // TGx101: Saved Messages grouped by chat
-      strings.append(R.string.Tgx101SavedByChats);
+      ids.append(R.id.btn_tgx101SavedByChats); // TGx101: Saved Messages grouped by chat — «as chats»
+      strings.append(R.string.Tgx101SavedAsChats);
       ids.append(R.id.menu_btn_tgx101SavedSettings); // TGx101: the storage's settings — the only way back to them while the storage is off
       strings.append(R.string.Tgx101SavedSettings);
     }

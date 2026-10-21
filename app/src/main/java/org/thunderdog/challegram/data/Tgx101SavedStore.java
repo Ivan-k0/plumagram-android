@@ -297,9 +297,36 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
     return !storageOn || sheetMode == SHEET_NEVER;
   }
 
-  /** Saved Messages opens as the storage */
+  /** Saved Messages opens as the storage — not while the storage has its own row in the chat list (user 2026-10-21: then
+   *  Saved Messages opens as Saved Messages) */
   public boolean opensStorage () {
-    return storageOn && openMode == OPEN_HOME;
+    return storageOn && openMode == OPEN_HOME && !Settings.instance().tgx101StorageRow();
+  }
+
+  // the storage's row: the chat lists it was hidden from («main», «archive», «folder:<id>»)
+  private String rowHiddenKey () {
+    return "tgx101_storage_row_hidden_" + accountId;
+  }
+
+  public synchronized boolean isRowHidden (String listKey) {
+    String raw = Settings.instance().pmc().getString(rowHiddenKey(), "");
+    for (String k : raw.split(",")) if (k.equals(listKey)) return true;
+    return false;
+  }
+
+  public synchronized void setRowHidden (String listKey, boolean hidden) {
+    java.util.LinkedHashSet<String> set = new java.util.LinkedHashSet<>();
+    for (String k : Settings.instance().pmc().getString(rowHiddenKey(), "").split(",")) if (!k.isEmpty()) set.add(k);
+    if (hidden) set.add(listKey); else set.remove(listKey);
+    Settings.instance().pmc().putString(rowHiddenKey(), android.text.TextUtils.join(",", set));
+  }
+
+  public synchronized void showRowEverywhere () {
+    Settings.instance().pmc().remove(rowHiddenKey());
+  }
+
+  public synchronized boolean hasHiddenRows () {
+    return !Settings.instance().pmc().getString(rowHiddenKey(), "").isEmpty();
   }
 
   /** Kept here: the listener lists hold their listeners weakly */
