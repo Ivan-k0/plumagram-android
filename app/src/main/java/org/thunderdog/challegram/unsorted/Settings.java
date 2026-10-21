@@ -3717,6 +3717,10 @@ public class Settings {
   public void setTgx101BirdRing (int mask) { pmc.putInt(KEY_TGX101_BIRD_RING, mask); }
   public int tgx101BirdPlace (boolean landscape) { return pmc.getInt(landscape ? KEY_TGX101_BIRD_PLACE_LAND : KEY_TGX101_BIRD_PLACE, 6200); }
   public void setTgx101BirdPlace (boolean landscape, int value) { pmc.putInt(landscape ? KEY_TGX101_BIRD_PLACE_LAND : KEY_TGX101_BIRD_PLACE, value); }
+  // (2026-10-21) where the bird stands, as side × (dp from the bottom + 1); 0 — the default place
+  private static final String KEY_TGX101_BIRD_SPOT = "tgx101_bird_spot", KEY_TGX101_BIRD_SPOT_LAND = "tgx101_bird_spot_land";
+  public int tgx101BirdSpot (boolean landscape) { return pmc.getInt(landscape ? KEY_TGX101_BIRD_SPOT_LAND : KEY_TGX101_BIRD_SPOT, 0); }
+  public void setTgx101BirdSpot (boolean landscape, int value) { pmc.putInt(landscape ? KEY_TGX101_BIRD_SPOT_LAND : KEY_TGX101_BIRD_SPOT, value); }
   public boolean tgx101BirdMoveLearned () { return pmc.getBoolean(KEY_TGX101_BIRD_MOVED, false); }
   public void setTgx101BirdMoveLearned (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD_MOVED, v); }
 

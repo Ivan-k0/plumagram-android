@@ -100,7 +100,10 @@ public class Tgx101BirdView extends View {
   private final Path facetScaled = new Path();
   private final Matrix matrix = new Matrix();
   private final RectF rect = new RectF();
-  private static final int BIRD_COLOR = 0xff5eb0ef;
+  // (user 2026-10-21 «номер 1»): the header's blue, lighter facets, a 2 dp shadow
+  private static int birdColor () {
+    return org.thunderdog.challegram.theme.Theme.isDark() ? 0xff5ea8e6 : 0xff3d8fd6;
+  }
   private final Paint facetPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private int shadowFor = -1;
   private final int touchSlop;
@@ -111,7 +114,9 @@ public class Tgx101BirdView extends View {
 
   // place: side and height (a share of the room), per orientation
   private boolean right = true;
-  private float yShare = .62f;
+  // dp from the bottom of the room; 0 — the default place (user 2026-10-21 photo: low, near the last chats; with the
+  // navigation buttons right above them). A share of the room moved the bird whenever the room changed — «сместилась сама»
+  private int fromBottomDp;
 
   // the ring
   private Item[] items = new Item[0];
@@ -150,9 +155,7 @@ public class Tgx101BirdView extends View {
   public Tgx101BirdView (Context context) {
     super(context);
     touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
-    birdPaint.setColor(BIRD_COLOR);
-    if (Build.VERSION.SDK_INT >= 28) birdPaint.setShadowLayer(Screen.dp(5f), 0, Screen.dp(3f), 0x8c000000);
-    facetPaint.setColor(BIRD_COLOR);
+    birdPaint.setColor(birdColor());
     textPaint.setTypeface(Fonts.getRobotoMedium());
     textPaint.setTextSize(Screen.dp(12f));
     try {
@@ -214,9 +217,13 @@ public class Tgx101BirdView extends View {
   }
 
   private void readPlace () {
-    int value = Settings.instance().tgx101BirdPlace(landscape());
+    int value = Settings.instance().tgx101BirdSpot(landscape());
     right = value >= 0;
-    yShare = Math.max(0f, Math.min(1f, Math.abs(value) / 10000f));
+    fromBottomDp = Math.max(0, Math.abs(value) - 1);
+  }
+
+  private boolean navButtons () {
+    return Build.VERSION.SDK_INT >= 23 && getRootWindowInsets() != null && getRootWindowInsets().getSystemWindowInsetBottom() > Screen.dp(32f);
   }
 
   // room
@@ -239,12 +246,13 @@ public class Tgx101BirdView extends View {
   }
 
   private float maxCy () {
-    return Math.max(minCy(), bottomRoom() - Screen.dp(BUTTON / 2f + 12f));
+    return Math.max(minCy(), bottomRoom() - Screen.dp(BUTTON / 2f + 4f));
   }
 
   private float tabCy () {
     float min = minCy(), max = maxCy();
-    return min + (max - min) * yShare;
+    float cy = fromBottomDp > 0 ? bottomRoom() - Screen.dp(fromBottomDp) : bottomRoom() - Screen.dp(navButtons() ? BUTTON / 2f + 4f : 90f);
+    return Math.max(min, Math.min(max, cy));
   }
 
   /** the centre of the bird where it sits at its edge */
@@ -290,7 +298,6 @@ public class Tgx101BirdView extends View {
         forwardTarget = null;
         animatePress();
         postDelayed(holdRunnable, HOLD_MS);
-        postDelayed(moveRunnable, MOVE_MS);
         getParent().requestDisallowInterceptTouchEvent(true);
         return true;
       }
@@ -299,7 +306,6 @@ public class Tgx101BirdView extends View {
         fingerX = x; fingerY = y;
         if (!moved && Math.hypot(x - downX, y - downY) > touchSlop) {
           moved = true;
-          removeCallbacks(moveRunnable);
           if (!ringOpen && !moving) {
             // (user 2026-10-21 «только по удержанию, случайные свайпы не должны её активировать»): moved before the
             // hold — nothing happens, the finger is let go
@@ -315,6 +321,11 @@ public class Tgx101BirdView extends View {
             getParent().requestDisallowInterceptTouchEvent(false);
             return true;
           }
+        }
+        if (!moving && ringOpen && ringByFinger && !accountsRing && Math.hypot(x - ringCx, y - ringCy) > Screen.dp(RING_R + ITEM)) {
+          // (user 2026-10-21 16:34 «перенос как ты предлагал: после удержания увожу палец к середине экрана»): past the
+          // ring the bird comes off its place and follows the finger
+          startMove();
         }
         if (moving) {
           liftX = x; liftY = y;
@@ -344,7 +355,11 @@ public class Tgx101BirdView extends View {
             closeRing(false);
           }
         }
-        // (user 2026-10-21 «активация только по удержанию, одиночное касание убери»): a tap does nothing
+        else if (!moved) {
+          // (user 2026-10-21 16:34 «птичка должна пропускать клики»): a tap goes to what lies under the bird
+          View under = findUnder(downEvent);
+          if (under != null) forward(under, e);
+        }
         return true;
       }
       case MotionEvent.ACTION_CANCEL: {
@@ -531,12 +546,12 @@ public class Tgx101BirdView extends View {
     right = x > getWidth() / 2f;
     float min = minCy(), max = maxCy();
     float cy = Math.max(min, Math.min(max, y));
-    yShare = max > min ? (cy - min) / (max - min) : .5f;
-    Settings.instance().setTgx101BirdPlace(landscape(), (right ? 1 : -1) * Math.max(1, Math.round(yShare * 10000)));
+    fromBottomDp = Math.max(1, Math.round((bottomRoom() - cy) / Screen.dp(1f)));
+    Settings.instance().setTgx101BirdSpot(landscape(), (right ? 1 : -1) * (fromBottomDp + 1));
     if (!Settings.instance().tgx101BirdMoveLearned()) Settings.instance().setTgx101BirdMoveLearned(true);
     liftOpening = false;
     liftAnimStart = SystemClock.uptimeMillis();
-    org.thunderdog.challegram.Tgx101Diag.mark("bird: put " + (right ? "right" : "left") + " at " + Math.round(yShare * 100) + "%");
+    org.thunderdog.challegram.Tgx101Diag.mark("bird: put " + (right ? "right" : "left") + ", " + fromBottomDp + " dp from the bottom");
     invalidate();
   }
 
@@ -684,16 +699,19 @@ public class Tgx101BirdView extends View {
     matrix.postTranslate(bx - size / 2f, by - size / 2f);
     int alpha = (int) (255 * shown);
     birdPath.transform(matrix, birdScaled);
+    boolean dark = org.thunderdog.challegram.theme.Theme.isDark();
+    int color = birdColor();
+    birdPaint.setColor(color);
     birdPaint.setAlpha(alpha);
-    if (Build.VERSION.SDK_INT >= 28 && shadowFor != alpha) {
-      shadowFor = alpha;
-      birdPaint.setShadowLayer(Screen.dp(5f), 0, Screen.dp(3f), ((int) (0x8c * shown * shown)) << 24); // pales with the bird
+    if (Build.VERSION.SDK_INT >= 28 && shadowFor != alpha + (dark ? 1000 : 0)) {
+      shadowFor = alpha + (dark ? 1000 : 0);
+      birdPaint.setShadowLayer(Screen.dp(3f), 0, Screen.dp(2f), ((int) ((dark ? 0x66 : 0x38) * shown * shown)) << 24); // 2 dp, pales with the bird
     }
     c.drawPath(birdScaled, birdPaint);
     for (int i = 0; i < facets.length; i++) {
       if (facets[i] == null) continue;
       facets[i].transform(matrix, facetScaled);
-      facetPaint.setColor(me.vkryl.core.ColorUtils.fromToArgb(BIRD_COLOR, 0xffffffff, (1f - FACET_ALPHA[i]) * .55f)); // lighter facets: the bird reads as cut glass
+      facetPaint.setColor(me.vkryl.core.ColorUtils.fromToArgb(color, 0xffffffff, (1f - FACET_ALPHA[i]) * (dark ? .45f : .5f))); // lighter facets
       facetPaint.setAlpha(alpha);
       c.drawPath(facetScaled, facetPaint);
     }

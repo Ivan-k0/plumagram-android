@@ -7104,12 +7104,12 @@
   <string name="Tgx101SavedAiUndone">Taken out of folders: %1$d</string>
   <string name="Tgx101BirdSection">Bird</string>
   <string name="Tgx101Bird">Bird at the edge of chat lists</string>
-  <string name="Tgx101BirdHint">Hold — a ring of actions around the finger: slide to one and let go. A tap does nothing, a swipe goes through the bird. Hold 2.5 s without moving — the bird lifts and can be put at the left or right edge. Untouched for 3 s it pales. Shown when the side menu is on and the ✎ button is hidden.</string>
+  <string name="Tgx101BirdHint">Hold — a ring of actions around the finger: slide to one and let go. Taps and swipes go through the bird. To move it, hold and take the finger past the ring, to the middle of the screen: the bird follows and sticks to the nearer edge. Untouched, it pales. Shown when the side menu is on and the ✎ button is hidden.</string>
   <string name="Tgx101BirdRing">Actions in the ring</string>
   <string name="Tgx101BirdRingHint">Up to 5 actions. Accounts opens a second ring with the accounts.</string>
   <string name="Tgx101BirdRingMax">No more than 5</string>
   <string name="Tgx101BirdRingMin">Choose at least one</string>
-  <string name="Tgx101BirdMoveHint">Hold the bird 2.5 s to move it</string>
+  <string name="Tgx101BirdMoveHint">To move the bird, hold it and take the finger to the middle of the screen</string>
   <string name="Tgx101BirdStorage">Storage</string>
   <string name="Tgx101BirdProxy">Proxy</string>
   <string name="Tgx101BirdAccounts">Accounts</string>
