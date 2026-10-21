@@ -9743,7 +9743,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
     if (!Config.PROTECT_ANONYMOUS_REACTIONS || hasReaction || !canGetAddedReactions() || messagesController().callNonAnonymousProtection(getId() + reactionObj.hashCode(), null)) {
       if (messageReactions.toggleReaction(reactionType, false, false, handler(findCurrentView(), null, () -> {}))) {
-        scheduleSetReactionAnimation(new NextReactionAnimation(reactionObj, NextReactionAnimation.TYPE_QUICK));
+        // (user 2026-10-21 17:09 «реакция выпрыгивает с правой части экрана — должна появляться просто в сообщении»):
+        // the swipe's flight from the right edge only for the swipe; a double tap shows it in its place
+        scheduleSetReactionAnimation(new NextReactionAnimation(reactionObj, NextReactionAnimation.TYPE_CLICK));
       }
     }
     org.thunderdog.challegram.Tgx101Diag.mark("double tap: reaction " + TD.makeReactionKey(reactionType));
