@@ -109,7 +109,6 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   @Override
   public void fillMenuItems (int id, HeaderView header, LinearLayout menu) {
     if (id == R.id.menu_tgx101SavedHome) {
-      header.addButton(menu, R.id.menu_btn_tgx101SavedAi, R.drawable.baseline_stars_24, getHeaderIconColorId(), this, Screen.dp(49f)); // user 2026-10-21: the AI sorts the storage
       header.addButton(menu, R.id.menu_btn_tgx101SavedSearch, R.drawable.baseline_search_24, getHeaderIconColorId(), this, Screen.dp(49f));
       header.addButton(menu, R.id.menu_btn_tgx101SavedFeed, R.drawable.baseline_forum_24, getHeaderIconColorId(), this, Screen.dp(49f));
       header.addButton(menu, R.id.menu_btn_tgx101SavedSettings, R.drawable.baseline_settings_24, getHeaderIconColorId(), this, Screen.dp(49f));

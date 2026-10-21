@@ -182,24 +182,47 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
     }));
   }
 
-  private static final Pattern LINE = Pattern.compile("^\\D{0,3}(\\d{1,3})\\s*[:.)\\-–—]+\\s*(.+?)\\s*$");
+  // «number: folder» anywhere — one per line, or all in one line as the AI sometimes answers (test 2026-10-21:
+  // «4: Багфикс 5: Багфикс 6: …» came as a single paragraph)
+  private static final Pattern NUMBER = Pattern.compile("(?<![\\d\\p{L}])(\\d{1,3})\\s*[:.)]\\s*");
+
+  private static List<String[]> parse (String answer) {
+    List<String[]> out = new ArrayList<>();
+    Matcher m = NUMBER.matcher(answer);
+    int lastStart = -1;
+    String lastNumber = null;
+    while (m.find()) {
+      if (lastNumber != null) out.add(new String[] {lastNumber, answer.substring(lastStart, m.start())});
+      lastNumber = m.group(1);
+      lastStart = m.end();
+    }
+    if (lastNumber != null) out.add(new String[] {lastNumber, answer.substring(lastStart)});
+    for (String[] pair : out) {
+      String name = pair[1];
+      int cut = name.length();
+      for (char c : new char[] {'\n', ';', '|', ','}) {
+        int at = name.indexOf(c);
+        if (at >= 0 && at < cut) cut = at;
+      }
+      pair[1] = name.substring(0, cut);
+    }
+    return out;
+  }
 
   private void onAnswer (Tgx101SavedStore store, String answer) {
     org.thunderdog.challegram.Tgx101Diag.mark("ai sort: answer " + answer.length() + " chars: " + answer.replace('\n', '|').substring(0, Math.min(400, answer.length())));
     Map<String, String> existing = new LinkedHashMap<>();
     for (Tgx101SavedStore.Folder f : store.folders()) existing.put(f.name.trim().toLowerCase(Locale.ROOT), f.name);
     boolean[] taken = new boolean[batch.size()];
-    for (String raw : answer.split("\n")) {
-      Matcher m = LINE.matcher(raw.trim());
-      if (!m.matches()) continue;
+    for (String[] pair : parse(answer)) {
       int index;
       try {
-        index = Integer.parseInt(m.group(1)) - 1;
+        index = Integer.parseInt(pair[0]) - 1;
       } catch (NumberFormatException e) {
         continue;
       }
       if (index < 0 || index >= batch.size() || taken[index]) continue;
-      String name = m.group(2).replaceAll("[«»\"'*_`.]", "").trim();
+      String name = pair[1].replaceAll("[«»\"'*_`.]", "").trim();
       if (name.isEmpty() || name.equals("-") || name.equals("—")) continue;
       if (name.length() > 24) name = name.substring(0, 24).trim();
       String known = existing.get(name.toLowerCase(Locale.ROOT));

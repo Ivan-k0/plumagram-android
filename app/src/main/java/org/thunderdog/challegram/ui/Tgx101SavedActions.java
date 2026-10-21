@@ -122,6 +122,11 @@ public final class Tgx101SavedActions {
           after.run();
         });
       }));
+      // (user 2026-10-21 «3 вариант с ИИ»): the AI puts the records without a folder into folders
+      body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_stars_24, 0, Lang.getString(R.string.Tgx101SavedAiSort), null, false, v -> {
+        h[0].dismiss();
+        c.navigateTo(new Tgx101SavedAiSortController(c.context(), c.tdlib()));
+      }));
       // (user 2026-10-17 «если убрать метку с главного экрана, то как её вернуть?»): the tags that aren't tiles, one tap back
       Tgx101SavedStore store = Tgx101SavedStore.get(c.tdlib());
       List<String> hidden = new ArrayList<>();
