@@ -600,6 +600,73 @@ public class TGMessageText extends TGMessage {
       int linkPreviewX = Lang.rtl() ? startX + maxWidth - linkPreview.getWidth() : startX;
       linkPreview.draw(view, c, linkPreviewX, linkPreviewY, preview, receiver, alpha, textMediaReceiver);
     }
+    tgx101DrawShortButton(c, startX, startY, maxWidth);
+  }
+
+  // TGx101 (user 2026-10-21 «кнопку вверху справа, как в оффе, чтобы не листать до конца», mockup «Кратко-значки» 1 —
+  // «сжатие»): a small circle at the post's top right, in the line of its header; lit while the summary is shown
+  private final android.graphics.RectF tgx101ShortRect = new android.graphics.RectF();
+  private boolean tgx101ShortPressed;
+
+  private void tgx101DrawShortButton (Canvas c, int startX, int startY, int maxWidth) {
+    if (!tgx101CanSummarize()) {
+      tgx101ShortRect.setEmpty();
+      return;
+    }
+    float size = Screen.dp(28f);
+    float right = startX + maxWidth, top = Math.max(0, startY - size - Screen.dp(2f));
+    tgx101ShortRect.set(right - size, top, right, top + size);
+    int accent = Theme.getColor(ColorId.textLink);
+    boolean lit = tgx101SummaryShown || tgx101ShortPressed;
+    android.graphics.Paint fill = Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(lit ? 1f : .16f, accent));
+    c.drawCircle(tgx101ShortRect.centerX(), tgx101ShortRect.centerY(), size / 2f, fill);
+    android.graphics.Paint line = Paints.getProgressPaint(lit ? 0xffffffff : accent, Screen.dp(1.6f));
+    float cx = tgx101ShortRect.centerX(), cy = tgx101ShortRect.centerY(), u = size / 24f;
+    // two arrows meeting at a line: «squeeze the text»
+    c.drawLine(cx, cy - 8 * u, cx, cy - 2.5f * u, line);
+    c.drawLine(cx - 2.6f * u, cy - 5 * u, cx, cy - 2.5f * u, line);
+    c.drawLine(cx + 2.6f * u, cy - 5 * u, cx, cy - 2.5f * u, line);
+    c.drawLine(cx, cy + 8 * u, cx, cy + 2.5f * u, line);
+    c.drawLine(cx - 2.6f * u, cy + 5 * u, cx, cy + 2.5f * u, line);
+    c.drawLine(cx + 2.6f * u, cy + 5 * u, cx, cy + 2.5f * u, line);
+    c.drawLine(cx - 6 * u, cy, cx + 6 * u, cy, line);
+  }
+
+  private boolean tgx101ShortTouch (MessageView view, MotionEvent e) {
+    if (tgx101ShortRect.isEmpty()) return false;
+    float x = e.getX(), y = e.getY();
+    float slop = Screen.dp(6f);
+    boolean inside = x >= tgx101ShortRect.left - slop && x <= tgx101ShortRect.right + slop && y >= tgx101ShortRect.top - slop && y <= tgx101ShortRect.bottom + slop;
+    switch (e.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN:
+        if (!inside) return false;
+        tgx101ShortPressed = true;
+        view.invalidate();
+        return true;
+      case MotionEvent.ACTION_MOVE:
+        if (tgx101ShortPressed && !inside) {
+          tgx101ShortPressed = false;
+          view.invalidate();
+        }
+        return tgx101ShortPressed;
+      case MotionEvent.ACTION_UP:
+        if (tgx101ShortPressed) {
+          tgx101ShortPressed = false;
+          view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
+          tgx101ToggleSummary();
+          view.invalidate();
+          return true;
+        }
+        return false;
+      case MotionEvent.ACTION_CANCEL:
+        if (tgx101ShortPressed) {
+          tgx101ShortPressed = false;
+          view.invalidate();
+          return true;
+        }
+        return false;
+    }
+    return false;
   }
 
   @Override
@@ -753,6 +820,9 @@ public class TGMessageText extends TGMessage {
 
   @Override
   public boolean onTouchEvent (MessageView view, MotionEvent e) {
+    if (tgx101ShortTouch(view, e)) {
+      return true;
+    }
     if (super.onTouchEvent(view, e)) {
       return true;
     }
