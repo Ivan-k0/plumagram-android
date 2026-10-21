@@ -16,6 +16,8 @@ import android.content.Context;
 import android.view.View;
 import android.widget.LinearLayout;
 
+import androidx.annotation.Nullable;
+
 import org.drinkless.tdlib.TdApi;
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.component.base.SettingView;
@@ -109,6 +111,7 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
       for (TdApi.Message m : messages) {
         if (batch.size() >= BATCH) break;
         if (m.content == null || store.isFiled(m.id)) continue;
+        if (!hasSense(m)) continue; // a photo with no caption, a voice not transcribed: nothing to sort by (test 2026-10-21)
         batch.add(m);
       }
       if (batch.isEmpty()) {
@@ -117,6 +120,22 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
       }
       ask(store);
     });
+  }
+
+  private static @Nullable String voiceText (TdApi.Message m) {
+    if (m.content.getConstructor() != TdApi.MessageVoiceNote.CONSTRUCTOR) return null;
+    TdApi.SpeechRecognitionResult r = ((TdApi.MessageVoiceNote) m.content).voiceNote.speechRecognitionResult;
+    return r instanceof TdApi.SpeechRecognitionResultText ? ((TdApi.SpeechRecognitionResultText) r).text : null;
+  }
+
+  /** something the AI can tell the topic by: text, a caption, a file or link title, a transcript, where it came from */
+  private boolean hasSense (TdApi.Message m) {
+    TdApi.FormattedText text = Tgx101SavedKit.text(m);
+    if (text != null && text.text != null && !text.text.trim().isEmpty()) return true;
+    String v = voiceText(m);
+    if (v != null && !v.trim().isEmpty()) return true;
+    String title = Tgx101SavedKit.title(m);
+    return !title.equals(Tgx101SavedKit.kindLabel(Tgx101SavedKit.kindOf(m))) && m.content.getConstructor() != TdApi.MessageVoiceNote.CONSTRUCTOR;
   }
 
   private static String clean (String s) {
@@ -136,6 +155,8 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
       rest = clean(rest);
       if (!rest.isEmpty()) b.append(" — ").append(rest);
     }
+    String voice = voiceText(m);
+    if (voice != null && !voice.trim().isEmpty()) b.append(" — ").append(clean(voice));
     if (kind == Tgx101SavedKit.KIND_LINK) b.append(" (").append(clean(Tgx101SavedKit.site(m))).append(')');
     String source = Tgx101SavedKit.source(tdlib, m);
     if (m.forwardInfo != null && !source.isEmpty()) b.append(". Из: ").append(clean(source));
@@ -252,7 +273,7 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
         checked[index] = true;
         TdApi.Message m = batch.get(index);
         String title = Tgx101SavedKit.title(m);
-        if (title.length() > 34) title = title.substring(0, 33).trim() + "…"; // one line, clear of the tick
+        if (title.length() > 28) title = title.substring(0, 27).trim() + "…"; // one line, clear of the tick
         ListItem item = new ListItem(ListItem.TYPE_CHECKBOX_OPTION_DOUBLE_LINE, ITEM_ID_BASE + index, 0, title, true);
         item.setData(Tgx101SavedKit.meta(tdlib, m));
         items.add(item);
