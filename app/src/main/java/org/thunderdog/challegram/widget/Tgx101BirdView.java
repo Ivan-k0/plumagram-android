@@ -76,17 +76,32 @@ public class Tgx101BirdView extends View {
     }
   }
 
-  private static final float TAB_W = 38f, TAB_H = 50f, RING_R = 84f, ITEM = 46f;
+  // (user 2026-10-21 «будем менять кнопку: вариант 5, птица без круга, отступ от края стандартный»): the faceted bird
+  // itself is the button — 44 dp with a shadow, no plate; a 56 dp invisible circle takes the finger, 16 dp from the edge
+  private static final float BUTTON = 56f, BIRD_SIZE = 44f, MARGIN = 16f, RING_R = 84f, ITEM = 46f;
   private static final long HOLD_MS = 400, MOVE_MS = 2500;
   // the bird of the mockup, 24×24
   private static final String BIRD = "M22.96,9.56 L20.39,8.82 L18.58,7.12 L16.47,7.24 L14.19,9.11 L14.03,9.11 L11.42,4.31 L6.79,1.41 L6.46,1.29 L7.00,3.56 L6.95,3.89 L6.38,3.73 L1.95,1.87 L2.32,2.70 L8.15,13.08 L8.32,13.57 L1.25,22.30 L1.00,22.71 L16.47,14.23 L16.71,13.61 L17.91,9.31 L18.08,9.15 L18.66,9.15 L18.66,9.44 L18.24,10.84 L18.33,11.17 L22.26,12.21 L22.38,12.08 L23.00,9.77 Z";
 
-  private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), tabPaint = new Paint(Paint.ANTI_ALIAS_FLAG),
+  private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG),
     textPaint = new Paint(Paint.ANTI_ALIAS_FLAG), birdPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-  private final Path birdPath = new Path(), birdScaled = new Path(), tabShape = new Path();
+  private final Path birdPath = new Path(), birdScaled = new Path();
+  // the mockup's facets over the outline, each in its own shade of the accent
+  private static final String[] FACETS = {
+    "M8.28,13.70 L1.04,22.63 L7.45,19.11 Z",
+    "M22.71,9.52 L20.39,8.86 L18.66,7.20 L18.33,7.12 L16.38,7.33 L13.57,9.60 L13.45,9.85 L16.51,14.07 L18.41,7.66 L18.66,7.78 L18.74,9.06 L18.24,11.01 L18.41,11.17 L22.26,12.17 L22.83,10.30 L22.88,9.81 L20.73,10.72 L20.48,10.72 L20.39,10.47 L21.59,10.10 L22.67,9.64 Z",
+    "M1.99,1.91 L8.36,13.36 L10.10,5.34 Z",
+    "M10.10,5.30 L10.14,5.59 L8.36,13.53 L16.42,14.19 L16.55,14.07 L16.34,13.98 L13.49,10.02 L13.53,9.60 L13.20,9.60 Z",
+    "M7.45,19.20 L16.55,14.11 L15.89,14.19 L8.40,13.57 L8.32,13.45 L8.32,13.74 L8.15,13.78 L8.32,13.82 L8.32,14.23 Z",
+    "M6.46,1.33 L7.04,3.69 L7.00,3.94 L10.10,5.26 L13.32,9.68 L14.03,9.19 L11.46,4.39 L7.24,1.70 Z"
+  };
+  private static final float[] FACET_ALPHA = {.82f, .95f, .66f, .5f, .42f, .72f};
+  private final Path[] facets = new Path[FACETS.length];
+  private final Path facetScaled = new Path();
   private final Matrix matrix = new Matrix();
   private final RectF rect = new RectF();
-  private final LinearGradient gradient;
+  private static final int BIRD_COLOR = 0xff5eb0ef;
+  private final Paint facetPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final int touchSlop;
 
   private @Nullable Callback callback;
@@ -120,7 +135,7 @@ public class Tgx101BirdView extends View {
   // (user 2026-10-21, variant 1 «как AssistiveTouch»): 3 s untouched the bird pales to 40%; a finger brings it back
   private static final long IDLE_MS = 3000;
   // (user 2026-10-21 «ещё бледнее, но только фон»): the half-capsule pales to 20%, the bird in it is a see-through hole
-  private static final float IDLE_ALPHA = .1f;
+  private static final float IDLE_ALPHA = .35f; // a bare bird: at 10% it would vanish
   private long lastTouch = SystemClock.uptimeMillis();
   private float shown = 1f;
 
@@ -134,16 +149,20 @@ public class Tgx101BirdView extends View {
   public Tgx101BirdView (Context context) {
     super(context);
     touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
-    gradient = new LinearGradient(0, 0, Screen.dp(TAB_W), 0, 0xff3d8fd6, 0xff5eb0ef, Shader.TileMode.CLAMP);
-    tabPaint.setShader(gradient);
-    if (Build.VERSION.SDK_INT >= 28) tabPaint.setShadowLayer(Screen.dp(6f), 0, Screen.dp(2f), 0x55000000);
-    birdPaint.setColor(0xffffffff);
+    birdPaint.setColor(BIRD_COLOR);
+    if (Build.VERSION.SDK_INT >= 28) birdPaint.setShadowLayer(Screen.dp(5f), 0, Screen.dp(3f), 0x8c000000);
+    facetPaint.setColor(BIRD_COLOR);
     textPaint.setTypeface(Fonts.getRobotoMedium());
     textPaint.setTextSize(Screen.dp(12f));
     try {
       Path p = androidx.core.graphics.PathParser.createPathFromPathData(BIRD);
       if (p != null) birdPath.set(p);
     } catch (Throwable ignored) { }
+    for (int i = 0; i < FACETS.length; i++) {
+      try {
+        facets[i] = androidx.core.graphics.PathParser.createPathFromPathData(FACETS[i]);
+      } catch (Throwable ignored) { }
+    }
     hint = Settings.instance().tgx101BirdMoveLearned() ? 0f : 1f;
     readPlace();
   }
@@ -157,7 +176,6 @@ public class Tgx101BirdView extends View {
     if (this.active == active) return;
     this.active = active;
     if (!active) closeRing(true);
-    if (!active && Build.VERSION.SDK_INT >= 29) { exclusion.setEmpty(); setSystemGestureExclusionRects(java.util.Collections.emptyList()); }
     setVisibility(active ? VISIBLE : GONE);
   }
 
@@ -216,11 +234,11 @@ public class Tgx101BirdView extends View {
   }
 
   private float minCy () {
-    return Screen.dp(TAB_H / 2f + 12f);
+    return Screen.dp(BUTTON / 2f + 12f);
   }
 
   private float maxCy () {
-    return Math.max(minCy(), bottomRoom() - Screen.dp(TAB_H / 2f + 12f));
+    return Math.max(minCy(), bottomRoom() - Screen.dp(BUTTON / 2f + 12f));
   }
 
   private float tabCy () {
@@ -228,19 +246,14 @@ public class Tgx101BirdView extends View {
     return min + (max - min) * yShare;
   }
 
-  private void tabRect (RectF out, boolean right, float cy) {
-    float h = Screen.dp(TAB_H), w = Screen.dp(TAB_W);
-    if (right) {
-      out.set(getWidth() - w, cy - h / 2f, getWidth() + h / 2f, cy + h / 2f);
-    } else {
-      out.set(-h / 2f, cy - h / 2f, w, cy + h / 2f);
-    }
+  /** the centre of the bird where it sits at its edge */
+  private float restCx (boolean right) {
+    float off = Screen.dp(MARGIN + BUTTON / 2f);
+    return right ? getWidth() - off : off;
   }
 
   private boolean hitsTab (float x, float y) {
-    tabRect(rect, right, tabCy());
-    rect.inset(-Screen.dp(10f), -Screen.dp(10f));
-    return rect.contains(x, y);
+    return Math.hypot(x - restCx(right), y - tabCy()) <= Screen.dp(BUTTON / 2f + 4f);
   }
 
   // touches
@@ -442,7 +455,7 @@ public class Tgx101BirdView extends View {
     float r = Screen.dp(RING_R + ITEM / 2f + 6f);
     float cy = tabCy();
     ringCy = Math.max(r, Math.min(bottomRoom() - r, cy));
-    ringCx = right ? getWidth() - Screen.dp(TAB_W / 2f) : Screen.dp(TAB_W / 2f);
+    ringCx = restCx(right);
     highlighted = -1;
     if (!ringOpen) {
       ringOpen = true;
@@ -657,39 +670,26 @@ public class Tgx101BirdView extends View {
 
     // the bird
     float cy = tabCy();
-    tabRect(rect, right, cy);
-    float iconX = right ? width - Screen.dp(TAB_W / 2f) + Screen.dp(1f) : Screen.dp(TAB_W / 2f) - Screen.dp(1f);
-    float iconY = cy;
+    float bx = restCx(right), by = cy;
     if (lift > 0f) {
-      float h = Screen.dp(TAB_H) * (1f + .08f * lift);
-      float l = liftX - h / 2f, t = liftY - h / 2f;
-      rect.set(lerp(rect.left, l, lift), lerp(rect.top, t, lift), lerp(rect.right, l + h, lift), lerp(rect.bottom, t + h, lift));
-      iconX = lerp(iconX, liftX, lift);
-      iconY = lerp(iconY, liftY, lift);
+      bx = lerp(bx, liftX, lift);
+      by = lerp(by, liftY, lift);
     }
-    tabPaint.setAlpha((int) (255 * shown));
-    float s = 1f - .08f * press;
-    c.save();
-    c.scale(s, s, right ? width : 0, cy);
-    matrix.setTranslate(rect.left, 0);
-    gradient.setLocalMatrix(matrix);
-    float radius = rect.height() / 2f;
-    float bird = Screen.dp(24f) / 24f;
-    matrix.setScale(bird, bird);
-    matrix.postTranslate(iconX - Screen.dp(12f), iconY - Screen.dp(12f));
+    float size = Screen.dp(BIRD_SIZE) * (1f + .1f * lift);
+    float k = size / 24f;
+    matrix.setScale(k, k);
+    matrix.postTranslate(bx - size / 2f, by - size / 2f);
+    int alpha = (int) (255 * shown);
     birdPath.transform(matrix, birdScaled);
-    // (user 2026-10-21 «птичка внутри должна быть полностью прозрачной»): the bird is a hole in the half-capsule — idle,
-    // the list shows through it; lit, the white bird fills it again
-    tabShape.reset();
-    tabShape.addRoundRect(rect, radius, radius, Path.Direction.CW);
-    if (Build.VERSION.SDK_INT >= 19) tabShape.op(birdScaled, Path.Op.DIFFERENCE);
-    c.drawPath(tabShape, tabPaint);
-    float lit = (shown - IDLE_ALPHA) / (1f - IDLE_ALPHA);
-    if (lit > 0f || Build.VERSION.SDK_INT < 19) {
-      birdPaint.setAlpha((int) (255 * Math.max(0f, Math.min(1f, Build.VERSION.SDK_INT < 19 ? 1f : lit))));
-      c.drawPath(birdScaled, birdPaint);
+    birdPaint.setAlpha(alpha);
+    c.drawPath(birdScaled, birdPaint);
+    for (int i = 0; i < facets.length; i++) {
+      if (facets[i] == null) continue;
+      facets[i].transform(matrix, facetScaled);
+      facetPaint.setColor(me.vkryl.core.ColorUtils.fromToArgb(BIRD_COLOR, 0xffffffff, (1f - FACET_ALPHA[i]) * .55f)); // lighter facets: the bird reads as cut glass
+      facetPaint.setAlpha(alpha);
+      c.drawPath(facetScaled, facetPaint);
     }
-    c.restore();
 
     // the hint
     if (hint > 0.01f && !ringOpen) {
@@ -715,20 +715,6 @@ public class Tgx101BirdView extends View {
       lastFrame = 0;
       long idleIn = lastTouch + IDLE_MS - SystemClock.uptimeMillis();
       if (shown > IDLE_ALPHA && idleIn > -1) postInvalidateDelayed(Math.max(16, idleIn + 1));
-    }
-  }
-
-  private final android.graphics.Rect exclusion = new android.graphics.Rect();
-  private final java.util.List<android.graphics.Rect> exclusions = java.util.Collections.singletonList(exclusion);
-
-  /** with the gesture navigation the edge is the system's «back»: not where the bird sits */
-  private void updateExclusion (float cy) {
-    if (Build.VERSION.SDK_INT < 29) return;
-    int half = Screen.dp(TAB_H / 2f + 8f);
-    int left = right ? getWidth() - Screen.dp(TAB_W + 8f) : 0, r = right ? getWidth() : Screen.dp(TAB_W + 8f);
-    if (exclusion.left != left || exclusion.right != r || exclusion.top != (int) cy - half) {
-      exclusion.set(left, (int) cy - half, r, (int) cy + half);
-      setSystemGestureExclusionRects(exclusions);
     }
   }
 
