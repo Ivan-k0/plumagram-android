@@ -824,6 +824,13 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SwipeToStorageSection, "Список чатов");
     RU.put(R.string.Tgx101SwipeToStorage, "Свайп вправо на первой папке — Хранилище");
     RU.put(R.string.Tgx101SwipeToStorageHint, "На первой папке чатов ведите палец вправо, туда, где папок уже нет: после вибрации откроется Избранное-хранилище.");
+    RU.put(R.string.Tgx101SavedAiSort, "Разложить с ИИ");
+    RU.put(R.string.Tgx101SavedAiWorking, "Спрашиваю ИИ, куда что положить…");
+    RU.put(R.string.Tgx101SavedAiNothing, "Все записи уже разложены по папкам.");
+    RU.put(R.string.Tgx101SavedAiNoAnswer, "ИИ не предложил папок — попробуйте позже.");
+    RU.put(R.string.Tgx101SavedAiHint, "ИИ предлагает, куда положить последние записи без папки. Снимите галочки с того, что не нужно, и нажмите ✓.");
+    RU.put(R.string.Tgx101SavedAiNewFolder, "новая");
+    RU.put(R.string.Tgx101SavedAiDone, "Разложено: %1$d");
     RU.put(R.string.Tgx101BirdSection, "Птичка");
     RU.put(R.string.Tgx101Bird, "Птичка у края списка чатов");
     RU.put(R.string.Tgx101BirdHint, "Нажатие — боковое меню. Удержание — кольцо действий вокруг пальца: проведите к нужному и отпустите. Держите 2,5 с не сдвигая палец — птичка поднимется, её можно переставить к левому или правому краю на любую высоту. Видна, когда включено боковое меню и спрятана кнопка ✎.");

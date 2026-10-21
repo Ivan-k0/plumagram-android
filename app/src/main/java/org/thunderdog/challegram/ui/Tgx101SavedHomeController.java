@@ -109,6 +109,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   @Override
   public void fillMenuItems (int id, HeaderView header, LinearLayout menu) {
     if (id == R.id.menu_tgx101SavedHome) {
+      header.addButton(menu, R.id.menu_btn_tgx101SavedAi, R.drawable.baseline_stars_24, getHeaderIconColorId(), this, Screen.dp(49f)); // user 2026-10-21: the AI sorts the storage
       header.addButton(menu, R.id.menu_btn_tgx101SavedSearch, R.drawable.baseline_search_24, getHeaderIconColorId(), this, Screen.dp(49f));
       header.addButton(menu, R.id.menu_btn_tgx101SavedFeed, R.drawable.baseline_forum_24, getHeaderIconColorId(), this, Screen.dp(49f));
       header.addButton(menu, R.id.menu_btn_tgx101SavedSettings, R.drawable.baseline_settings_24, getHeaderIconColorId(), this, Screen.dp(49f));
@@ -117,6 +118,10 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
 
   @Override
   public void onMenuItemPressed (int id, View view) {
+    if (id == R.id.menu_btn_tgx101SavedAi) {
+      navigateTo(new Tgx101SavedAiSortController(context, tdlib));
+      return;
+    }
     if (id == R.id.menu_btn_tgx101SavedSearch) {
       Tgx101SavedListController.openSearch(this);
     } else if (id == R.id.menu_btn_tgx101SavedFeed) {
@@ -1692,7 +1697,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     ids.add(R.id.btn_edit); names.add(Lang.getString(R.string.Tgx101SavedRename)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_edit_24);
     ids.add(R.id.btn_tgx101SavedFolderColor); names.add(Lang.getString(R.string.Tgx101SavedFolderColor)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_palette_24);
     if (Tgx101SavedStore.get(tdlib).folderView == Tgx101SavedStore.VIEW_MOSAIC) {
-      ids.add(R.id.btn_tgx101SavedFolderSize); names.add(Lang.getString(R.string.Tgx101SavedFolderSize)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.tgx101_storage_tiles_24);
+      ids.add(R.id.btn_tgx101SavedFolderSize); names.add(Lang.getString(R.string.Tgx101SavedFolderSize)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_apps_24); // the tile's size: a grid (the cabinet is the storage's own)
     }
     if (!f.messageIds.isEmpty()) { // (user 2026-10-17) every record of the folder gets the tags at once
       ids.add(R.id.btn_tgx101SavedFolderTags); names.add(Lang.getString(R.string.Tgx101SavedFolderTags)); colors.add(OptionColor.NORMAL); icons.add(R.drawable.baseline_label_24);

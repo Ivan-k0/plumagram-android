@@ -7093,6 +7093,13 @@
   <string name="Tgx101SwipeToStorageSection">Chat list</string>
   <string name="Tgx101SwipeToStorage">Swipe right on the first folder — Storage</string>
   <string name="Tgx101SwipeToStorageHint">On the first chat folder pull the finger to the right, where there are no folders: past the vibration Saved opens as a storage.</string>
+  <string name="Tgx101SavedAiSort">Sort with AI</string>
+  <string name="Tgx101SavedAiWorking">Asking the AI where the records go…</string>
+  <string name="Tgx101SavedAiNothing">Every record is already in a folder.</string>
+  <string name="Tgx101SavedAiNoAnswer">The AI didn\'t give folders — try again later.</string>
+  <string name="Tgx101SavedAiHint">The AI suggests where the latest records without a folder go. Untick what shouldn\'t move and press ✓.</string>
+  <string name="Tgx101SavedAiNewFolder">new</string>
+  <string name="Tgx101SavedAiDone">Put in folders: %1$d</string>
   <string name="Tgx101BirdSection">Bird</string>
   <string name="Tgx101Bird">Bird at the edge of chat lists</string>
   <string name="Tgx101BirdHint">Tap — the side menu. Hold — a ring of actions around the finger: slide to one and let go. Hold 2.5 s without moving — the bird lifts and can be put anywhere at the left or right edge. Shown when the side menu is on and the ✎ button is hidden.</string>

@@ -1802,6 +1802,8 @@
   <item name="btn_tgx101ShareUpdate" type="id"/>
   <item name="btn_tgx101ShareStop" type="id"/>
   <item name="btn_tgx101SwipeToStorage" type="id"/>
+  <item name="controller_tgx101SavedAiSort" type="id"/>
+  <item name="menu_btn_tgx101SavedAi" type="id"/>
   <item name="btn_tgx101Bird" type="id"/>
   <item name="btn_tgx101BirdRing" type="id"/>
   <item name="controller_tgx101SettingsSearch" type="id"/>
