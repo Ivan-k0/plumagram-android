@@ -249,7 +249,9 @@ public class Tgx101BirdView extends View {
 
   /** the centre of the bird where it sits at its edge */
   private float restCx (boolean right) {
-    float off = Screen.dp(MARGIN + BUTTON / 2f);
+    // (user 2026-10-21 screenshot «ближе к краю, крыло — у края времени»): the wing tip (x 23 of 24), not the touch
+    // circle, stands 16 dp from the edge — where the chat list's times end
+    float off = Screen.dp(MARGIN) + Screen.dp(BIRD_SIZE) * (23f / 24f - .5f);
     return right ? getWidth() - off : off;
   }
 
