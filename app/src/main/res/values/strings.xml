@@ -7096,6 +7096,12 @@
   <string name="Tgx101AiShort">Short</string>
   <string name="Tgx101AiShortLoading">Summing up…</string>
   <string name="Tgx101AiShowFull">Show in full</string>
+  <string name="Tgx101AiMissed">What I missed</string>
+  <string name="Tgx101AiMissedWorking">The AI is reading what you missed…</string>
+  <string name="Tgx101AiMissedNothing">Nothing missed</string>
+  <string name="Tgx101AiMissedCount">Messages: %1$d</string>
+  <string name="Tgx101AiClose">Close</string>
+  <string name="Tgx101AiMissedRead">Read</string>
   <string name="Tgx101SavedAiSort">Sort with AI</string>
   <string name="Tgx101SavedAiWorking">Asking the AI where the records go…</string>
   <string name="Tgx101SavedAiNothing">Every record is already in a folder.</string>

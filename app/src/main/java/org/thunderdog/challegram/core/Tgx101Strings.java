@@ -827,6 +827,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AiShort, "Кратко");
     RU.put(R.string.Tgx101AiShortLoading, "Пересказываю…");
     RU.put(R.string.Tgx101AiShowFull, "Показать полностью");
+    RU.put(R.string.Tgx101AiMissed, "Что я пропустил");
+    RU.put(R.string.Tgx101AiMissedWorking, "ИИ читает пропущенное…");
+    RU.put(R.string.Tgx101AiMissedNothing, "Пропущенного нет");
+    RU.put(R.string.Tgx101AiMissedCount, "Сообщений: %1$d");
+    RU.put(R.string.Tgx101AiClose, "Закрыть");
+    RU.put(R.string.Tgx101AiMissedRead, "Прочитано");
     RU.put(R.string.Tgx101SavedAiSort, "Разложить с ИИ");
     RU.put(R.string.Tgx101SavedAiWorking, "Спрашиваю ИИ, куда что положить…");
     RU.put(R.string.Tgx101SavedAiNothing, "Все записи уже разложены по папкам.");

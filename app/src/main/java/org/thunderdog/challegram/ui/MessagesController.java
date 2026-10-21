@@ -1356,7 +1356,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     // Scroll button
 
-    params = new RelativeLayout.LayoutParams(Screen.dp(118f), Screen.dp(74f));
+    params = new RelativeLayout.LayoutParams(Screen.dp(118f + 190f), Screen.dp(74f)); // TGx101: room for «✨ What I missed» left of the arrow
     params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
     params.addRule(RelativeLayout.ABOVE, R.id.msg_bottom);
 
@@ -1394,6 +1394,30 @@ public class MessagesController extends ViewController<MessagesController.Argume
     addThemeInvalidateListener(unreadCountView);
     scrollToBottomButtonWrap.addView(unreadCountView);
     scrollToBottomButton.setTag(unreadCountView);
+
+    // TGx101 (user 2026-10-21, mockup «ИИ/Кратко-и-Пропущенное» 2а): «✨ What I missed» left of the arrow when much is unread
+    tgx101MissedPill = new android.widget.TextView(context);
+    tgx101MissedPill.setText("✨ " + Lang.getString(R.string.Tgx101AiMissed));
+    tgx101MissedPill.setTextColor(0xffffffff);
+    tgx101MissedPill.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+    tgx101MissedPill.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 13f);
+    tgx101MissedPill.setGravity(Gravity.CENTER);
+    tgx101MissedPill.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
+    android.graphics.drawable.GradientDrawable pillBg = new android.graphics.drawable.GradientDrawable();
+    pillBg.setCornerRadius(Screen.dp(17f));
+    pillBg.setColor(Theme.getColor(ColorId.textLink));
+    tgx101MissedPill.setBackground(pillBg);
+    Views.setClickable(tgx101MissedPill);
+    tgx101MissedPill.setOnClickListener(v -> {
+      TdApi.Chat c = getChat();
+      if (c != null) Tgx101AiMissed.open(this, c);
+    });
+    FrameLayoutFix.LayoutParams pillParams = FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(34f), Gravity.RIGHT | Gravity.BOTTOM);
+    pillParams.rightMargin = Screen.dp(24f) * 2 + padding * 2 + Screen.dp(6f);
+    pillParams.bottomMargin = padding + Screen.dp(7f);
+    tgx101MissedPill.setLayoutParams(pillParams);
+    tgx101MissedPill.setVisibility(View.GONE);
+    scrollToBottomButtonWrap.addView(tgx101MissedPill);
 
     // Reaction button
 
@@ -7720,7 +7744,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     boolean animated = isUpdate && scrollToBottomVisible.getFloatValue() > 0f && isFocused();
     boolean isMuted = messageThread == null && !tdlib.chatNotificationsEnabled(getChatId());
     unreadCountView.setCounter(unreadCount, isMuted, animated);
+    if (tgx101MissedPill != null) {
+      tgx101MissedPill.setVisibility(messageThread == null && Tgx101AiMissed.canShow(tdlib, getChat(), unreadCount) ? View.VISIBLE : View.GONE);
+    }
   }
+
+  private @Nullable android.widget.TextView tgx101MissedPill;
 
   private static final int ANIMATOR_MENTION_BUTTON = 7;
   private FactorAnimator mentionButtonAnimator;
