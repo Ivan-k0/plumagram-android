@@ -298,6 +298,7 @@ public class Tgx101BirdView extends View {
         forwardTarget = null;
         animatePress();
         postDelayed(holdRunnable, HOLD_MS);
+        postDelayed(moveRunnable, MOVE_MS); // (user 2026-10-21 18:2x «всё-таки удержание 2,5 с лучше, верни как было»)
         getParent().requestDisallowInterceptTouchEvent(true);
         return true;
       }
@@ -306,6 +307,7 @@ public class Tgx101BirdView extends View {
         fingerX = x; fingerY = y;
         if (!moved && Math.hypot(x - downX, y - downY) > touchSlop) {
           moved = true;
+          removeCallbacks(moveRunnable);
           if (!ringOpen && !moving) {
             // (user 2026-10-21 «только по удержанию, случайные свайпы не должны её активировать»): moved before the
             // hold — nothing happens, the finger is let go
@@ -321,11 +323,6 @@ public class Tgx101BirdView extends View {
             getParent().requestDisallowInterceptTouchEvent(false);
             return true;
           }
-        }
-        if (!moving && ringOpen && ringByFinger && !accountsRing && Math.hypot(x - ringCx, y - ringCy) > Screen.dp(RING_R + ITEM)) {
-          // (user 2026-10-21 16:34 «перенос как ты предлагал: после удержания увожу палец к середине экрана»): past the
-          // ring the bird comes off its place and follows the finger
-          startMove();
         }
         if (moving) {
           liftX = x; liftY = y;
