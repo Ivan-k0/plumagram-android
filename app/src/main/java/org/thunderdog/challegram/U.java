@@ -740,7 +740,10 @@ public class U {
           }
         }
       }
-    }.setExtensionRendererMode(extensionMode);
+    }.setExtensionRendererMode(extensionMode)
+      // TGx101 (4PDA nyan_ame 2026-10-21: a 320×42 H.264 GIF played in the chat but failed when opened —
+      // «MediaCodecVideoRenderer error»): a hardware decoder refusing a format hands it to the next one (the software one)
+      .setEnableDecoderFallback(true);
     final MediaSource.Factory mediaSourceFactory = new DefaultMediaSourceFactory(context, new DefaultExtractorsFactory().setConstantBitrateSeekingEnabled(true));
     final AnalyticsCollector analyticsCollector;
     if (Log.getLogLevel() > Log.LEVEL_ASSERT) {
