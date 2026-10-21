@@ -302,7 +302,10 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         // (user 2026-10-21 «переделай на избранное»): with the storage off the swipe opens Saved Messages itself
         boolean can = getCurrentPagerItemPosition() == 0 && !Lang.rtl() && !inSearchMode() && !inSelectMode()
           && (org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).storageOn || tdlib.chat(tdlib.selfChatId()) != null);
-        if (can) tgx101PrepareStorage(); // the finger is down, not moving yet: the screen gets made now, not on the first step
+        if (can) {
+          tgx101PrepareStorage(); // the finger is down, not moving yet: the screen gets made now, not on the first step
+          tgx101MeasureAhead(true); // and measured again if what it loaded since asked for it (trace 2026-10-21: 9–14 ms on the first step)
+        }
         return can;
       }
 
@@ -1502,15 +1505,73 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   // when the chats are shown, or at the latest when the finger goes down
   private @Nullable Tgx101SavedHomeController tgx101PreparedStorage;
 
+  private final Runnable tgx101MeasureLater = this::tgx101MeasureAhead;
+
   // the storage made ahead stays fresh while the chats are on screen: refreshed on coming back and every 90 s
   private final Runnable tgx101RefreshStorage = new Runnable() {
     @Override
     public void run () {
       if (isDestroyed() || !isFocused() || getValue() == null) return;
       if (tgx101PreparedStorage != null) tgx101PreparedStorage.tgx101RefreshAhead();
+      getValue().postDelayed(tgx101MeasureLater, 1500); // after what the refresh loads
       getValue().postDelayed(this, 90000);
     }
   };
+
+  /** the storage made ahead, laid out again where its own loads (recent, tiles) asked for it — not on the swipe's first frame */
+  private void tgx101MeasureAhead () {
+    tgx101MeasureAhead(false);
+  }
+
+  private @Nullable Object tgx101WarmedFor;
+
+  private void tgx101MeasureAhead (boolean fingerDown) {
+    if (tgx101PreparedStorage == null) return;
+    NavigationController navigation = context().navigation();
+    View root = navigation != null ? navigation.getValue() : null;
+    View v = tgx101PreparedStorage.getValue();
+    if (root == null || root.getWidth() == 0 || v.getParent() != null) return;
+    if (v.isLayoutRequested()) {
+      long t = android.os.SystemClock.uptimeMillis();
+      v.measure(View.MeasureSpec.makeMeasureSpec(root.getWidth(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(root.getHeight(), View.MeasureSpec.EXACTLY));
+      v.layout(0, 0, root.getWidth(), root.getHeight());
+      org.thunderdog.challegram.Tgx101Diag.mark("storage pull: laid out again ahead in " + (android.os.SystemClock.uptimeMillis() - t) + " ms");
+      tgx101WarmedFor = null; // changed: drawn ahead again
+    }
+    if (!fingerDown && tgx101WarmedFor != tgx101PreparedStorage) {
+      tgx101WarmedFor = tgx101PreparedStorage;
+      tgx101WarmUp(v);
+    }
+  }
+
+  /** (trace 2026-10-21: the storage's first frames waited 18 and 10 ms for the GPU — its pictures uploaded then) drawn
+   *  once off screen while the chats stand, so its pictures are already in the GPU when it slides in. The render thread
+   *  is one for the whole app, its texture cache too */
+  private void tgx101WarmUp (View v) {
+    if (android.os.Build.VERSION.SDK_INT < 29 || v.getWidth() == 0 || v.getHeight() == 0) return;
+    long t = android.os.SystemClock.uptimeMillis();
+    android.media.ImageReader reader = null;
+    android.graphics.HardwareRenderer renderer = null;
+    try {
+      int w = v.getWidth(), h = v.getHeight();
+      android.graphics.RenderNode node = new android.graphics.RenderNode("tgx101StorageWarmUp");
+      node.setPosition(0, 0, w, h);
+      android.graphics.RecordingCanvas canvas = node.beginRecording(w, h);
+      v.draw(canvas);
+      node.endRecording();
+      reader = android.media.ImageReader.newInstance(w, h, android.graphics.PixelFormat.RGBA_8888, 1, android.hardware.HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE | android.hardware.HardwareBuffer.USAGE_GPU_COLOR_OUTPUT);
+      renderer = new android.graphics.HardwareRenderer();
+      renderer.setSurface(reader.getSurface());
+      renderer.setContentRoot(node);
+      renderer.createRenderRequest().setWaitForPresent(true).syncAndDraw();
+      org.thunderdog.challegram.Tgx101Diag.mark("storage pull: drawn ahead off screen in " + (android.os.SystemClock.uptimeMillis() - t) + " ms");
+    } catch (Throwable e) {
+      org.thunderdog.challegram.Tgx101Diag.mark("storage pull: warm-up failed " + e);
+    } finally {
+      if (renderer != null) renderer.destroy();
+      if (reader != null) reader.close();
+    }
+  }
 
   private void tgx101PrepareStorage () {
     if (tgx101PreparedStorage != null || isDestroyed() || !org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).storageOn || !Settings.instance().tgx101SwipeToStorage()) return;
@@ -2179,6 +2240,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     super.onFocus();
     if (getValue() != null) {
       getValue().postDelayed(this::tgx101PrepareStorage, 700); // after the chats settle
+      getValue().postDelayed(tgx101MeasureLater, 2200); // and laid out again once its own loads came
       getValue().removeCallbacks(tgx101RefreshStorage);
       getValue().postDelayed(tgx101RefreshStorage, 900);
     }
