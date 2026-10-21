@@ -127,6 +127,15 @@ public final class Tgx101SavedActions {
         h[0].dismiss();
         c.navigateTo(new Tgx101SavedAiSortController(c.context(), c.tdlib()));
       }));
+      Tgx101SavedAiSortController.Undo undo = Tgx101SavedAiSortController.pending(c.tdlib());
+      if (undo != null) {
+        body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_undo_24, 0, Lang.getString(R.string.Tgx101SavedAiUndo, undo.count), null, false, v -> {
+          h[0].dismiss();
+          int n = Tgx101SavedAiSortController.undo(c.tdlib());
+          UI.showToast(Lang.getString(R.string.Tgx101SavedAiUndone, n), android.widget.Toast.LENGTH_SHORT);
+          after.run();
+        }));
+      }
       // (user 2026-10-17 «если убрать метку с главного экрана, то как её вернуть?»): the tags that aren't tiles, one tap back
       Tgx101SavedStore store = Tgx101SavedStore.get(c.tdlib());
       List<String> hidden = new ArrayList<>();

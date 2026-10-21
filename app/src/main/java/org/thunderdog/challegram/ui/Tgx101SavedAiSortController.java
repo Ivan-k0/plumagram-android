@@ -294,6 +294,48 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
     }
   }
 
+  // Undo (user 2026-10-21 «можно ли будет возвращать действие? если я сделал, но потом передумал»): the last sort of
+  // each account, until the app is closed — the records leave the folders, the folders the AI made go if left empty
+  public static final class Undo {
+    final long[] ids;
+    final List<Long> createdFolders;
+    public final int count;
+    boolean announce = true;
+
+    Undo (long[] ids, List<Long> createdFolders) {
+      this.ids = ids;
+      this.createdFolders = createdFolders;
+      this.count = ids.length;
+    }
+  }
+
+  private static final Map<Integer, Undo> lastSort = new java.util.HashMap<>();
+
+  public static synchronized @androidx.annotation.Nullable Undo pending (Tdlib tdlib) {
+    return lastSort.get(tdlib.id());
+  }
+
+  /** the storage shows «Put in folders: N · Undo» once, right after */
+  public static synchronized @androidx.annotation.Nullable Undo takeAnnouncement (Tdlib tdlib) {
+    Undo u = lastSort.get(tdlib.id());
+    if (u == null || !u.announce) return null;
+    u.announce = false;
+    return u;
+  }
+
+  public static synchronized int undo (Tdlib tdlib) {
+    Undo u = lastSort.remove(tdlib.id());
+    if (u == null) return 0;
+    Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
+    store.removeFromFolders(u.ids);
+    for (long folderId : u.createdFolders) {
+      Tgx101SavedStore.Folder f = store.folder(folderId);
+      if (f != null && f.messageIds.isEmpty()) store.deleteFolder(folderId);
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("ai sort: undone, " + u.count + " records out, " + u.createdFolders.size() + " folders checked");
+    return u.count;
+  }
+
   private void apply () {
     if (!ready) {
       navigateBack();
@@ -301,6 +343,7 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
     }
     Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
     int total = 0, created = 0;
+    List<Long> movedIds = new ArrayList<>(), createdIds = new ArrayList<>();
     for (Map.Entry<String, List<Integer>> e : proposal.entrySet()) {
       List<Long> ids = new ArrayList<>();
       for (int index : e.getValue()) if (checked[index]) ids.add(batch.get(index).id);
@@ -311,15 +354,23 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
       }
       if (folder == null) {
         folder = store.createFolder(e.getKey());
+        createdIds.add(folder.id);
         created++;
       }
       long[] array = new long[ids.size()];
       for (int i = 0; i < array.length; i++) array[i] = ids.get(i);
       store.putInFolder(folder.id, array);
+      movedIds.addAll(ids);
       total += array.length;
     }
     org.thunderdog.challegram.Tgx101Diag.mark("ai sort: put " + total + " records, " + created + " new folders");
-    UI.showToast(Lang.getString(R.string.Tgx101SavedAiDone, total), android.widget.Toast.LENGTH_SHORT);
+    if (total > 0) {
+      long[] moved = new long[movedIds.size()];
+      for (int i = 0; i < moved.length; i++) moved[i] = movedIds.get(i);
+      synchronized (Tgx101SavedAiSortController.class) {
+        lastSort.put(tdlib.id(), new Undo(moved, createdIds));
+      }
+    }
     navigateBack();
   }
 }

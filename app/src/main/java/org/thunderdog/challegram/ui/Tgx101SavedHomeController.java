@@ -76,6 +76,46 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
 
   private boolean noteOnOpen;
 
+  private @Nullable org.thunderdog.challegram.widget.SnackBar aiSortedBar;
+
+  /** «Put in folders: N · UNDO» at the bottom for a few seconds after the AI sort */
+  private void showAiSortedBar (int count) {
+    if (rootView == null) return;
+    if (aiSortedBar != null) {
+      rootView.removeView(aiSortedBar);
+      aiSortedBar = null;
+    }
+    org.thunderdog.challegram.widget.SnackBar bar = new org.thunderdog.challegram.widget.SnackBar(context);
+    bar.setCallback(new org.thunderdog.challegram.widget.SnackBar.Callback() {
+      @Override
+      public void onSnackBarTransition (org.thunderdog.challegram.widget.SnackBar v, float factor) { }
+
+      @Override
+      public void onDestroySnackBar (org.thunderdog.challegram.widget.SnackBar v) {
+        if (aiSortedBar == v && rootView != null) {
+          rootView.removeView(v);
+          v.removeThemeListeners(Tgx101SavedHomeController.this);
+          aiSortedBar = null;
+        }
+      }
+    });
+    bar.addThemeListeners(this);
+    bar.setText(Lang.getString(R.string.Tgx101SavedAiDone, count));
+    bar.setAction(Lang.getString(R.string.Tgx101Undo), () -> {
+      int n = Tgx101SavedAiSortController.undo(tdlib);
+      UI.showToast(Lang.getString(R.string.Tgx101SavedAiUndone, n), android.widget.Toast.LENGTH_SHORT);
+      reload();
+    }, true);
+    android.view.WindowInsets insets = android.os.Build.VERSION.SDK_INT >= 23 ? rootView.getRootWindowInsets() : null;
+    if (insets != null) org.thunderdog.challegram.tool.Views.setPaddingBottom(bar, insets.getSystemWindowInsetBottom());
+    aiSortedBar = bar;
+    rootView.addView(bar);
+    bar.showSnackBar(true);
+    rootView.postDelayed(() -> {
+      if (aiSortedBar == bar) bar.dismissSnackBar(true);
+    }, 8000);
+  }
+
   private void focusNote () {
     if (noteField == null) return;
     noteField.requestFocus();
@@ -737,6 +777,8 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       noteOnOpen = false;
       focusNote();
     }
+    Tgx101SavedAiSortController.Undo aiSorted = Tgx101SavedAiSortController.takeAnnouncement(tdlib);
+    if (aiSorted != null) showAiSortedBar(aiSorted.count);
     if (pendingAfterOpen != null) {
       Runnable r = pendingAfterOpen;
       pendingAfterOpen = null;

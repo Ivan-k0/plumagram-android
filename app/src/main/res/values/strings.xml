@@ -7100,6 +7100,8 @@
   <string name="Tgx101SavedAiHint">The AI suggests where the latest records without a folder go. Untick what shouldn\'t move and press ✓.</string>
   <string name="Tgx101SavedAiNewFolder">new</string>
   <string name="Tgx101SavedAiDone">Put in folders: %1$d</string>
+  <string name="Tgx101SavedAiUndo">Undo the AI sort (%1$d)</string>
+  <string name="Tgx101SavedAiUndone">Taken out of folders: %1$d</string>
   <string name="Tgx101BirdSection">Bird</string>
   <string name="Tgx101Bird">Bird at the edge of chat lists</string>
   <string name="Tgx101BirdHint">Hold — a ring of actions around the finger: slide to one and let go. A tap does nothing, a swipe goes through the bird. Hold 2.5 s without moving — the bird lifts and can be put at the left or right edge. Untouched for 3 s it pales. Shown when the side menu is on and the ✎ button is hidden.</string>
