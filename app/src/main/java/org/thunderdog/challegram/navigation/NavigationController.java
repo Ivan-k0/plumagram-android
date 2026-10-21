@@ -1222,6 +1222,9 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   public boolean tgx101StartDragForward (ViewController<?> controller, boolean fromLeft) {
     if (isAnimating || isEmpty() || controller == null || getStack().getCurrent() == null) return false;
     long t0 = android.os.SystemClock.uptimeMillis();
+    View made = controller.getValue();
+    View cur = getStack().getCurrent().getValue();
+    org.thunderdog.challegram.Tgx101Diag.mark("drag forward: sizes — made " + made.getMeasuredWidth() + "×" + made.getMeasuredHeight() + (made.isLayoutRequested() ? " (layout asked)" : "") + ", current " + (cur != null ? cur.getWidth() + "×" + cur.getHeight() + " in " + (cur.getParent() instanceof View ? ((View) cur.getParent()).getWidth() + "×" + ((View) cur.getParent()).getHeight() : "?") : "?") + ", root " + getValue().getWidth() + "×" + getValue().getHeight());
     hideContextualPopups();
     setIsAnimating(true);
     controller.getValue();

@@ -343,7 +343,21 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   @Override
   protected View onCreateView (Context context) {
     madeStart = android.os.SystemClock.uptimeMillis();
-    FrameLayout root = new FrameLayout(context);
+    FrameLayout root = new FrameLayout(context) {
+      private int lastW, lastH;
+
+      @Override
+      protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
+        long t = android.os.SystemClock.uptimeMillis();
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        long took = android.os.SystemClock.uptimeMillis() - t;
+        int w = MeasureSpec.getSize(widthMeasureSpec), h = MeasureSpec.getSize(heightMeasureSpec);
+        if (took >= 3) {
+          org.thunderdog.challegram.Tgx101Diag.mark("storage home: measured " + w + "×" + h + " in " + took + " ms" + (w != lastW || h != lastH ? " (was " + lastW + "×" + lastH + ")" : " (same size)") + (getParent() != null ? ", attached" : ""));
+        }
+        lastW = w; lastH = h;
+      }
+    };
     root.setBackgroundColor(Theme.backgroundColor());
     // TGx101 (approved mockup «Шапки списка и Хранилища», 1 at the chat list's header height; test builds): the storage
     // runs on under the header, which turns into the chat screen's veil; the kinds chips stay where they are, in the page
