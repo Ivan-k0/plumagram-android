@@ -386,6 +386,10 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     if (Settings.instance().tgx101HideCompose()) {
       composeWrap.setVisibility(View.GONE); // user 2026-10-08: the ✎ button can be hidden (MagiX → Нижнее меню)
     }
+    // TGx101 (user 2026-10-21): the bird at the edge, over every folder
+    tgx101Bird = Tgx101Bird.create(this, this::openSearchMode);
+    tgx101Bird.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    contentView.addView(tgx101Bird);
 
     makeStartupChecks();
 
@@ -921,12 +925,14 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     super.onEnterSearchMode();
     composeWrap.forceHide();
     if (tgx101Capsule != null) { tgx101Capsule.closeMenu(); tgx101ShowCapsule(false); }
+    if (tgx101Bird != null) tgx101Bird.setActive(false);
   }
 
   @Override
   protected void onLeaveSearchMode () {
     super.onLeaveSearchMode();
     composeWrap.showIfWasHidden();
+    Tgx101Bird.refresh(tgx101Bird);
     if (tgx101Capsule != null && isFocused()) tgx101ShowCapsule(true);
     // TGx101 (user 2026-10-05 «тёмная фантомная полоса после поиска»): the stories row is laid out again after search
     ViewController<?> current = getCurrentPagerItem();
@@ -2152,6 +2158,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   public void onFocus () {
     super.onFocus();
     if (getValue() != null) getValue().postDelayed(this::tgx101PrepareStorage, 700); // after the chats settle
+    Tgx101Bird.refresh(tgx101Bird); // back from MagiX: shown or not, and the ring
     // TGx101 (user's log 2026-10-06 23:29): swiped back from a chat with the keyboard up — the chats page itself doesn't
     // get focus here, so the main screen hides it (the list has no input)
     if (!inSearchMode() && context.isKeyboardVisible()) {
@@ -2793,8 +2800,14 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     }
   }
 
+  private @Nullable org.thunderdog.challegram.widget.Tgx101BirdView tgx101Bird;
+
   @Override
   public boolean performOnBackPressed (boolean fromTop, boolean commit) {
+    if (tgx101Bird != null && tgx101Bird.isRingOpen()) {
+      if (commit) tgx101Bird.onBackPressed();
+      return true;
+    }
     if (tgx101Capsule != null && tgx101Capsule.isMenuOpen()) {
       if (commit) tgx101Capsule.closeMenu();
       return true;

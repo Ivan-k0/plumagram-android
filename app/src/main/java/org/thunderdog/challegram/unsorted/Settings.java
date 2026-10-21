@@ -3703,6 +3703,23 @@ public class Settings {
   public boolean tgx101HideInputEmoji () { return pmc.getBoolean(KEY_TGX101_HIDE_INPUT_EMOJI, false); }
   public void setTgx101HideInputEmoji (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_INPUT_EMOJI, v); }
 
+  // TGx101 (user 2026-10-21, mockup «Кнопка-птица» №8 + «Веер» Б): the bird at the edge of the chat lists — on/off, its
+  // ring (bit i = Tgx101Bird.ACTIONS[i], at most 5), its place per orientation (side × share of the height, ×10000) and
+  // whether it was moved once (then the hint at the bottom is gone)
+  private static final String KEY_TGX101_BIRD = "tgx101_bird";
+  private static final String KEY_TGX101_BIRD_RING = "tgx101_bird_ring";
+  private static final String KEY_TGX101_BIRD_PLACE = "tgx101_bird_place";
+  private static final String KEY_TGX101_BIRD_PLACE_LAND = "tgx101_bird_place_land";
+  private static final String KEY_TGX101_BIRD_MOVED = "tgx101_bird_moved";
+  public boolean tgx101Bird () { return pmc.getBoolean(KEY_TGX101_BIRD, true); }
+  public void setTgx101Bird (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD, v); }
+  public int tgx101BirdRing () { return pmc.getInt(KEY_TGX101_BIRD_RING, 0x1F); }
+  public void setTgx101BirdRing (int mask) { pmc.putInt(KEY_TGX101_BIRD_RING, mask); }
+  public int tgx101BirdPlace (boolean landscape) { return pmc.getInt(landscape ? KEY_TGX101_BIRD_PLACE_LAND : KEY_TGX101_BIRD_PLACE, 6200); }
+  public void setTgx101BirdPlace (boolean landscape, int value) { pmc.putInt(landscape ? KEY_TGX101_BIRD_PLACE_LAND : KEY_TGX101_BIRD_PLACE, value); }
+  public boolean tgx101BirdMoveLearned () { return pmc.getBoolean(KEY_TGX101_BIRD_MOVED, false); }
+  public void setTgx101BirdMoveLearned (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD_MOVED, v); }
+
   // TGx101 (user 2026-10-06, mockup «Капсула» B): bottom navigation capsule instead of the side menu button
   private static final String KEY_TGX101_NAV_CAPSULE = "tgx101_nav_capsule";
   private static final String KEY_TGX101_CAPSULE_SCROLL_HIDE = "tgx101_capsule_scroll_hide";

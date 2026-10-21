@@ -22,6 +22,8 @@ import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.component.base.SettingView;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.telegram.Tdlib;
+import org.thunderdog.challegram.navigation.SettingsWrapBuilder;
+import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.v.CustomRecyclerView;
 
@@ -101,6 +103,10 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
         int id = item.getId();
         if (id == R.id.btn_tgx101SwipeToStorage) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101SwipeToStorage(), isUpdate);
+        } else if (id == R.id.btn_tgx101Bird) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101Bird(), isUpdate);
+        } else if (id == R.id.btn_tgx101BirdRing) {
+          view.setData(birdRingValue());
         } else if (id == R.id.btn_tgx101SwipeReactions) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101SwipeReactions(), isUpdate);
         } else if (id == R.id.btn_tgx101SwipeActions) {
@@ -178,6 +184,15 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SwipeToStorageHint));
 
+    // TGx101 (user 2026-10-21): the bird at the edge of the chat lists
+    items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101BirdSection));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101Bird, 0, R.string.Tgx101Bird));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101BirdRing, 0, R.string.Tgx101BirdRing));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101BirdHint));
+
     final boolean menu = Settings.instance().tgx101LongPressMenu();
     items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101LongPressSection));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
@@ -190,6 +205,42 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
       R.string.Tgx101LongPressOpenMenu, R.string.Tgx101LongPressOpenMenuHint
     ), false));
     return items;
+  }
+
+  private static String birdRingValue () {
+    int mask = Settings.instance().tgx101BirdRing();
+    StringBuilder b = new StringBuilder();
+    for (int i = 0; i < Tgx101Bird.TITLES.length; i++) {
+      if ((mask & (1 << i)) == 0) continue;
+      if (b.length() > 0) b.append(", ");
+      b.append(Lang.getString(Tgx101Bird.TITLES[i]));
+    }
+    return b.toString();
+  }
+
+  private void chooseBirdRing () {
+    int mask = Settings.instance().tgx101BirdRing();
+    ListItem[] items = new ListItem[Tgx101Bird.TITLES.length];
+    for (int i = 0; i < items.length; i++) {
+      items[i] = new ListItem(ListItem.TYPE_CHECKBOX_OPTION, 2100000 + i, 0, Tgx101Bird.TITLES[i], (mask & (1 << i)) != 0);
+    }
+    showSettings(new SettingsWrapBuilder(R.id.btn_tgx101BirdRing)
+      .addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.Tgx101BirdRingHint))
+      .setRawItems(items)
+      .setSaveStr(R.string.Done)
+      .setIntDelegate((id, result) -> {
+        int next = 0;
+        for (int i = 0; i < items.length; i++) {
+          if (result.get(2100000 + i) != 0) next |= 1 << i;
+        }
+        int count = Integer.bitCount(next);
+        if (count == 0 || count > Tgx101Bird.MAX) {
+          UI.showToast(count == 0 ? R.string.Tgx101BirdRingMin : R.string.Tgx101BirdRingMax, android.widget.Toast.LENGTH_SHORT);
+          return;
+        }
+        Settings.instance().setTgx101BirdRing(next);
+        adapter.updateValuedSettingById(R.id.btn_tgx101BirdRing);
+      }));
   }
 
   /** The column as it is set up, «Reply» under the finger, with «move up / release / move down» */
@@ -234,6 +285,14 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
       EditEnabledReactionsController c = new EditEnabledReactionsController(context, tdlib);
       c.setArguments(new EditEnabledReactionsController.Args(null, EditEnabledReactionsController.TYPE_QUICK_REACTION));
       navigateTo(c);
+      return;
+    }
+    if (id == R.id.btn_tgx101Bird) {
+      Settings.instance().setTgx101Bird(adapter.toggleView(v));
+      return;
+    }
+    if (id == R.id.btn_tgx101BirdRing) {
+      chooseBirdRing();
       return;
     }
     if (id == R.id.btn_tgx101SwipeToStorage) {

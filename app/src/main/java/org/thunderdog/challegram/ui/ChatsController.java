@@ -789,7 +789,25 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     initializationTime = SystemClock.uptimeMillis();
 
     tgx101AddStoriesStrip(context);
+    // TGx101 (user 2026-10-21 «птичка должна быть на всех списках чатов»): a list of its own (archive etc.) has the bird
+    // too; the folders of the main screen share the main screen's one
+    if (parentController == null && pickerDelegate == null) {
+      tgx101Bird = Tgx101Bird.create(this, this::openSearchMode);
+      tgx101Bird.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      contentView.addView(tgx101Bird);
+    }
     return contentView;
+  }
+
+  private @Nullable org.thunderdog.challegram.widget.Tgx101BirdView tgx101Bird;
+
+  @Override
+  public boolean performOnBackPressed (boolean fromTop, boolean commit) {
+    if (tgx101Bird != null && tgx101Bird.isRingOpen()) {
+      if (commit) tgx101Bird.onBackPressed();
+      return true;
+    }
+    return super.performOnBackPressed(fromTop, commit);
   }
 
   private int archiveUpdateReasons = ChatsAdapter.ArchiveUpdate.NONE;
@@ -1556,6 +1574,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   @Override
   public void onFocus () {
     super.onFocus();
+    Tgx101Bird.refresh(tgx101Bird);
     // TGx101 (user's log 2026-10-05 15:46): swiped back from a chat with the keyboard up (after scheduling a message,
     // the chat stays open) — the keyboard hung over the chat list; the list has no input, so it goes
     if (filter == null && pickerDelegate == null && getKeyboardState()) {

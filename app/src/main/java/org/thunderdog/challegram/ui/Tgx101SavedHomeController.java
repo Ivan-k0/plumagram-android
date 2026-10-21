@@ -62,6 +62,26 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     context.navigation().navigateTo(new Tgx101SavedHomeController(context, tdlib));
   }
 
+  /** the bird's «Note» (user 2026-10-21): the storage opens with the note field in focus and the keyboard up */
+  public static void openForNote (BaseActivity context, Tdlib tdlib) {
+    ViewController<?> top = context.navigation().getCurrentStackItem();
+    if (top instanceof Tgx101SavedHomeController && top.tdlib() == tdlib) {
+      ((Tgx101SavedHomeController) top).focusNote();
+      return;
+    }
+    Tgx101SavedHomeController c = new Tgx101SavedHomeController(context, tdlib);
+    c.noteOnOpen = true;
+    context.navigation().navigateTo(c);
+  }
+
+  private boolean noteOnOpen;
+
+  private void focusNote () {
+    if (noteField == null) return;
+    noteField.requestFocus();
+    org.thunderdog.challegram.tool.Keyboard.show(noteField);
+  }
+
   public Tgx101SavedHomeController (Context context, Tdlib tdlib) {
     super(context, tdlib);
   }
@@ -709,6 +729,10 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       openedAt = 0;
     }
     if (tgx101Shift > 0 && getValue() != null) getValue().requestLayout(); // laid out again where it stands (under the header)
+    if (noteOnOpen) {
+      noteOnOpen = false;
+      focusNote();
+    }
     if (pendingAfterOpen != null) {
       Runnable r = pendingAfterOpen;
       pendingAfterOpen = null;
