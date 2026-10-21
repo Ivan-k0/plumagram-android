@@ -3720,6 +3720,10 @@ public class Settings {
   private static final String KEY_TGX101_STORAGE_ROW = "tgx101_storage_row", KEY_TGX101_SAVED_AS_CHATS = "tgx101_saved_as_chats";
   public boolean tgx101StorageRow () { return pmc.getBoolean(KEY_TGX101_STORAGE_ROW, true); }
   public void setTgx101StorageRow (boolean v) { pmc.putBoolean(KEY_TGX101_STORAGE_ROW, v); }
+  // (user 2026-10-21 «два варианта: в виде сообщений как в extera и как было по стандарту в TGX, режим запоминается»)
+  private static final String KEY_TGX101_SAVED_TGX_TABS = "tgx101_saved_tgx_tabs";
+  public boolean tgx101SavedTgxTabs () { return pmc.getBoolean(KEY_TGX101_SAVED_TGX_TABS, false); }
+  public void setTgx101SavedTgxTabs (boolean v) { pmc.putBoolean(KEY_TGX101_SAVED_TGX_TABS, v); }
   public boolean tgx101SavedAsChats () { return pmc.getBoolean(KEY_TGX101_SAVED_AS_CHATS, false); } // the official default: messages
   public void setTgx101SavedAsChats (boolean v) { pmc.putBoolean(KEY_TGX101_SAVED_AS_CHATS, v); }
 

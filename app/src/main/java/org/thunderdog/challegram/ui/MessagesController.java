@@ -559,9 +559,21 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   public final boolean needTabs () {
-    // TGx101 (user 2026-10-21 «Избранное должно выглядеть как обычное избранное из офа»): Saved Messages has the usual
-    // chat header with its ⋮ (as chats / as messages), not Telegram X's tabs — media and tags live in the storage
-    return false;
+    // TGx101 (user 2026-10-21): Saved Messages in one of two looks, chosen in its ⋮ and kept — the usual chat header as in
+    // exteraGram / the official app, or Telegram X's own tabs (messages, media…). Fixed for the screen's life
+    if (tgx101TabsLook == null) tgx101TabsLook = Settings.instance().tgx101SavedTgxTabs();
+    return tgx101TabsLook && isSelfChat() && !isInForceTouchMode() && !inPreviewMode() && !areScheduledOnly();
+  }
+
+  private Boolean tgx101TabsLook;
+
+  /** the other look of Saved Messages: kept, and the chat opened again in it */
+  private void tgx101ToggleSavedLook () {
+    boolean tabs = !Settings.instance().tgx101SavedTgxTabs();
+    Settings.instance().setTgx101SavedTgxTabs(tabs);
+    org.thunderdog.challegram.Tgx101Diag.mark("saved: look → " + (tabs ? "Telegram X tabs" : "chat header"));
+    tdlib.ui().openChat(this, tdlib.selfChatId(), new TdlibUi.ChatOpenParameters().keepStack().tgx101Feed().after(chatId ->
+      UI.post(() -> destroyStackItemByIdExcludingLast(R.id.controller_messages), 450)));
   }
 
   public float getPagerScrollOffsetInPixels () {
@@ -2918,7 +2930,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       return;
     }
     if (id == R.id.btn_tgx101SavedByChats) {
-      Tgx101SavedTopicsController.switchTo(this); // «as chats» (user 2026-10-21): kept as the way Saved Messages opens
+      tgx101ToggleSavedLook(); // the other look of Saved Messages («as chats» comes later — user 2026-10-21)
       return;
     }
     if (id == R.id.menu_btn_tgx101SavedSettings) {
@@ -5474,8 +5486,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
 
     if (tdlib.isSelfChat(chat.id) && getMessageTopicId() == null) {
-      ids.append(R.id.btn_tgx101SavedByChats); // TGx101: Saved Messages grouped by chat — «as chats»
-      strings.append(R.string.Tgx101SavedAsChats);
+      ids.append(R.id.btn_tgx101SavedByChats); // TGx101: the other look of Saved Messages
+      strings.append(needTabs() ? R.string.Tgx101SavedLookChat : R.string.Tgx101SavedLookTgx);
       ids.append(R.id.menu_btn_tgx101SavedSettings); // TGx101: the storage's settings — the only way back to them while the storage is off
       strings.append(R.string.Tgx101SavedSettings);
     }

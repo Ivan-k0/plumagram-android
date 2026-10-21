@@ -2709,7 +2709,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       return;
     }
     // TGx101 (user 2026-10-21): Saved Messages «as chats» — grouped by where the records came from, as the official apps
-    if (pickerDelegate == null && chat.id == tdlib.selfChatId() && Settings.instance().tgx101SavedAsChats()) {
+    if (false && pickerDelegate == null && chat.id == tdlib.selfChatId() && Settings.instance().tgx101SavedAsChats()) { // «as chats» comes later (user 2026-10-21)
       Tgx101SavedTopicsController.open(getParentOrSelf()); // a folder page has no navigation of its own
       return;
     }
