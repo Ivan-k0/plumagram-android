@@ -136,7 +136,7 @@ public class Tgx101BirdView extends View {
   // (user 2026-10-21, variant 1 «как AssistiveTouch»): 3 s untouched the bird pales to 40%; a finger brings it back
   private static final long IDLE_MS = 3000;
   // (user 2026-10-21 «ещё бледнее, но только фон»): the half-capsule pales to 20%, the bird in it is a see-through hole
-  private static final float IDLE_ALPHA = .35f; // a bare bird: at 10% it would vanish
+  private static final float IDLE_ALPHA = .2f; // (user 2026-10-21 «ещё более прозрачной, 80%»)
   private long lastTouch = SystemClock.uptimeMillis();
   private float shown = 1f;
 
