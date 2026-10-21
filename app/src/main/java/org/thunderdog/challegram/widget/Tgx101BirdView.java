@@ -242,6 +242,12 @@ public class Tgx101BirdView extends View {
   @Override
   public boolean onTouchEvent (MotionEvent e) {
     if (!isActive()) return false;
+    if (forwardTarget != null) {
+      forward(forwardTarget, e);
+      int action = e.getActionMasked();
+      if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) forwardTarget = null;
+      return true;
+    }
     float x = e.getX(), y = e.getY();
     switch (e.getActionMasked()) {
       case MotionEvent.ACTION_DOWN: {
@@ -256,6 +262,9 @@ public class Tgx101BirdView extends View {
         pressed = true;
         moved = moving = false;
         downX = fingerX = x; downY = fingerY = y;
+        if (downEvent != null) downEvent.recycle();
+        downEvent = MotionEvent.obtain(e);
+        forwardTarget = null;
         animatePress();
         postDelayed(holdRunnable, HOLD_MS);
         postDelayed(moveRunnable, MOVE_MS);
@@ -274,7 +283,14 @@ public class Tgx101BirdView extends View {
             removeCallbacks(holdRunnable);
             pressed = false;
             animatePress();
-            return false;
+            // (user 2026-10-21 «свайп по птице должен срабатывать, как будто её нет»): the gesture goes on to what lies
+            // under the bird — the list, the folders, the side menu's or the system's swipe
+            forwardTarget = findUnder(downEvent);
+            if (forwardTarget != null) {
+              forward(forwardTarget, e);
+            }
+            getParent().requestDisallowInterceptTouchEvent(false);
+            return true;
           }
         }
         if (moving) {
@@ -321,6 +337,35 @@ public class Tgx101BirdView extends View {
       }
     }
     return pressed;
+  }
+
+  private @Nullable MotionEvent downEvent;
+  private @Nullable View forwardTarget;
+
+  /** the view under the bird that takes this finger: its siblings below it, top first */
+  private @Nullable View findUnder (@Nullable MotionEvent down) {
+    if (down == null || !(getParent() instanceof android.view.ViewGroup)) return null;
+    android.view.ViewGroup parent = (android.view.ViewGroup) getParent();
+    float px = down.getX() + getLeft(), py = down.getY() + getTop();
+    for (int i = parent.indexOfChild(this) - 1; i >= 0; i--) {
+      View child = parent.getChildAt(i);
+      if (child.getVisibility() != VISIBLE) continue;
+      float cx = px + parent.getScrollX() - child.getLeft() - child.getTranslationX();
+      float cy = py + parent.getScrollY() - child.getTop() - child.getTranslationY();
+      if (cx < 0 || cy < 0 || cx >= child.getWidth() || cy >= child.getHeight()) continue;
+      if (forward(child, down)) return child;
+    }
+    return null;
+  }
+
+  private boolean forward (View child, MotionEvent e) {
+    android.view.ViewGroup parent = (android.view.ViewGroup) getParent();
+    MotionEvent copy = MotionEvent.obtain(e);
+    copy.offsetLocation(getLeft() + parent.getScrollX() - child.getLeft() - child.getTranslationX(),
+      getTop() + parent.getScrollY() - child.getTop() - child.getTranslationY());
+    boolean handled = child.dispatchTouchEvent(copy);
+    copy.recycle();
+    return handled;
   }
 
   private void pick (int index) {
