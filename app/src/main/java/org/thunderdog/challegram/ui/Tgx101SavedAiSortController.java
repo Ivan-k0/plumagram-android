@@ -211,11 +211,15 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
         text.append('\n');
       }
     }
+    String hint = org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiSortHint(tdlib.id());
+    String rejected = org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiSortRejected(tdlib.id());
+    if (!hint.isEmpty()) text.append("\nПожелание: ").append(clean(hint)).append('\n');
+    if (!rejected.isEmpty()) text.append("\nТак раскладывать не нужно (я отказался):\n").append(rejected).append('\n');
     text.append("\n\nЗаписи:\n");
     for (int i = 0; i < batch.size(); i++) {
       text.append(i + 1).append(") ").append(describe(batch.get(i))).append('\n');
     }
-    String prompt = "Разложи записи по папкам так же, как уже разложены примеры. Для каждой записи выбери папку из списка или придумай новую короткую (1–2 слова, с большой буквы). " +
+    String prompt = "Разложи записи по папкам так же, как уже разложены примеры, учти пожелание и то, от чего я отказался. Для каждой записи выбери папку из списка или придумай новую короткую (1–2 слова, с большой буквы). " +
       "Группируй по теме, а не по типу: папки «Фото», «Видео», «Файлы», «Голосовые», «Заметки» не создавай. Если тема неясна — «номер: -». " +
       "Ответь только строками вида «номер: папка», без пояснений.";
     org.thunderdog.challegram.Tgx101Diag.mark("ai sort: " + batch.size() + " records, " + folders.size() + " folders, " + text.length() + " chars");
@@ -298,6 +302,12 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
     checked = new boolean[batch.size()];
     List<ListItem> items = new ArrayList<>();
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, Lang.getString(R.string.Tgx101SavedAiHint), false));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    String hint = org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiSortHint(tdlib.id());
+    ListItem hintItem = new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101AiSortHint, R.drawable.baseline_edit_24, R.string.Tgx101SavedAiWish);
+    hintItem.setData(hint.isEmpty() ? Lang.getString(R.string.Tgx101SavedAiWishNone) : hint);
+    items.add(hintItem);
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     for (Map.Entry<String, List<Integer>> e : proposal.entrySet()) {
       boolean isNew = !existing.containsKey(e.getKey().toLowerCase(Locale.ROOT));
       items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, e.getKey() + (isNew ? " · " + Lang.getString(R.string.Tgx101SavedAiNewFolder) : ""), false));
@@ -323,6 +333,20 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
   @Override
   public void onClick (View v) {
     int id = v.getId();
+    if (id == R.id.btn_tgx101AiSortHint) {
+      // (user 2026-10-21, AI 5): what to sort by — kept, and the sort asked again with it
+      String now = org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiSortHint(tdlib.id());
+      Tgx101SavedActions.askText(this, Lang.getString(R.string.Tgx101SavedAiWish), now, Lang.getString(R.string.Tgx101SavedAiWishExample), value -> {
+        org.thunderdog.challegram.unsorted.Settings.instance().setTgx101AiSortHint(tdlib.id(), value);
+        proposal.clear();
+        batch.clear();
+        examples.clear();
+        ready = false;
+        showStatus(Lang.getString(R.string.Tgx101SavedAiWorking));
+        load();
+      });
+      return;
+    }
     if (id >= ITEM_ID_BASE && id < ITEM_ID_BASE + checked.length) {
       int index = id - ITEM_ID_BASE;
       checked[index] = !checked[index];
@@ -374,12 +398,30 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
     return u.count;
   }
 
+  /** what was unticked goes to the next sorts as «not like this» — the last 30 */
+  private void rememberRejected () {
+    List<String> lines = new ArrayList<>();
+    for (Map.Entry<String, List<Integer>> e : proposal.entrySet()) {
+      for (int index : e.getValue()) {
+        if (!checked[index]) lines.add("- «" + clean(Tgx101SavedKit.title(batch.get(index))) + "» → " + e.getKey());
+      }
+    }
+    if (lines.isEmpty()) return;
+    org.thunderdog.challegram.unsorted.Settings settings = org.thunderdog.challegram.unsorted.Settings.instance();
+    String old = settings.tgx101AiSortRejected(tdlib.id());
+    if (!old.isEmpty()) java.util.Collections.addAll(lines, old.split("\n"));
+    if (lines.size() > 30) lines = lines.subList(0, 30);
+    settings.setTgx101AiSortRejected(tdlib.id(), android.text.TextUtils.join("\n", lines));
+    org.thunderdog.challegram.Tgx101Diag.mark("ai sort: " + lines.size() + " turned down kept");
+  }
+
   private void apply () {
     if (!ready) {
       navigateBack();
       return;
     }
     Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
+    rememberRejected();
     int total = 0, created = 0;
     List<Long> movedIds = new ArrayList<>(), createdIds = new ArrayList<>();
     for (Map.Entry<String, List<Integer>> e : proposal.entrySet()) {

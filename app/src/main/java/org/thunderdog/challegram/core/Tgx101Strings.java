@@ -833,6 +833,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AiMissedCount, "Сообщений: %1$d");
     RU.put(R.string.Tgx101AiClose, "Закрыть");
     RU.put(R.string.Tgx101AiMissedRead, "Прочитано");
+    RU.put(R.string.Tgx101SavedAiWish, "Подсказка для ИИ");
+    RU.put(R.string.Tgx101SavedAiWishNone, "нет");
+    RU.put(R.string.Tgx101SavedAiWishExample, "например: по проектам, рецепты отдельно");
+    RU.put(R.string.Tgx101AiAutoTags, "Метки ИИ для новых записей");
+    RU.put(R.string.Tgx101AiAutoTagsHint, "ИИ даёт каждой новой записи, сохранённой с этого телефона, метку из ваших (или новую короткую). Каждая запись — отдельный запрос к ИИ Telegram.");
     RU.put(R.string.Tgx101SavedAiSort, "Разложить с ИИ");
     RU.put(R.string.Tgx101SavedAiWorking, "Спрашиваю ИИ, куда что положить…");
     RU.put(R.string.Tgx101SavedAiNothing, "Все записи уже разложены по папкам.");

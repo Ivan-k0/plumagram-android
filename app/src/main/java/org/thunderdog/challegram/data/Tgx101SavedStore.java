@@ -119,6 +119,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
           if (message.chatId == tdlib.selfChatId()) {
             get(tdlib).remap(oldMessageId, message.id);
             onSavedHere(tdlib, message); // only what this phone sent arrives here — already with its real id
+            Tgx101AiAutoTag.queue(tdlib, message); // (user 2026-10-21) AI tags, when turned on
           }
         }
 

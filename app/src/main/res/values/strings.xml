@@ -7102,6 +7102,11 @@
   <string name="Tgx101AiMissedCount">Messages: %1$d</string>
   <string name="Tgx101AiClose">Close</string>
   <string name="Tgx101AiMissedRead">Read</string>
+  <string name="Tgx101SavedAiWish">Hint for the AI</string>
+  <string name="Tgx101SavedAiWishNone">none</string>
+  <string name="Tgx101SavedAiWishExample">e.g. by projects, keep recipes apart</string>
+  <string name="Tgx101AiAutoTags">AI tags for new records</string>
+  <string name="Tgx101AiAutoTagsHint">The AI gives each new record saved from this phone a tag from your tags (or a new short one). Every record is a request to Telegram\'s AI.</string>
   <string name="Tgx101SavedAiSort">Sort with AI</string>
   <string name="Tgx101SavedAiWorking">Asking the AI where the records go…</string>
   <string name="Tgx101SavedAiNothing">Every record is already in a folder.</string>

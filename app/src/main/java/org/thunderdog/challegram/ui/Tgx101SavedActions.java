@@ -88,6 +88,41 @@ public final class Tgx101SavedActions {
     }
   }
 
+  /** like {@link #askName}, but an empty answer is allowed (it clears) and the field has its own hint */
+  public static void askText (ViewController<?> c, String title, @Nullable String initial, String hint, RunnableData<String> done) {
+    Context context = c.context();
+    final EditText[] field = new EditText[1];
+    Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
+    h[0] = Tgx101Sheet.show(c, null, body -> {
+      body.addView(Tgx101Sheet.title(context, title));
+      EditText e = new EditText(context);
+      field[0] = e;
+      e.setText(initial);
+      e.setSingleLine(true);
+      e.setHint(hint);
+      e.setImeOptions(EditorInfo.IME_ACTION_DONE);
+      Tgx101SavedHomeController.styleField(e, true);
+      LinearLayout.LayoutParams ep = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(48f));
+      ep.setMargins(Screen.dp(16f), 0, Screen.dp(16f), Screen.dp(12f));
+      body.addView(e, ep);
+      Runnable submit = () -> {
+        org.thunderdog.challegram.tool.Keyboard.hide(e);
+        h[0].dismiss();
+        done.runWithData(e.getText().toString().trim());
+      };
+      e.setOnEditorActionListener((v, actionId, event) -> {
+        submit.run();
+        return true;
+      });
+      body.addView(primaryButton(context, Lang.getString(R.string.Done), v -> submit.run()));
+    });
+    if (field[0] != null) {
+      field[0].requestFocus();
+      if (initial != null) field[0].setSelection(initial.length());
+      field[0].postDelayed(() -> org.thunderdog.challegram.tool.Keyboard.show(field[0]), 280);
+    }
+  }
+
   static TextView primaryButton (Context context, String label, View.OnClickListener click) {
     TextView b = Tgx101SavedHomeController.text(context, 15f, 0xffffffff, true);
     b.setText(label);

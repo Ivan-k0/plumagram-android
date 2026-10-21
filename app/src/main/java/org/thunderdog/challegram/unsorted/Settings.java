@@ -3707,6 +3707,14 @@ public class Settings {
   private static final String KEY_TGX101_AI_SUMMARY = "tgx101_ai_summary", KEY_TGX101_AI_MISSED = "tgx101_ai_missed";
   public boolean tgx101AiSummary () { return pmc.getBoolean(KEY_TGX101_AI_SUMMARY, true); }
   public void setTgx101AiSummary (boolean v) { pmc.putBoolean(KEY_TGX101_AI_SUMMARY, v); }
+  // (user 2026-10-21, AI in the storage): a hint for the sort, what the user turned down, auto tags for new records
+  private static final String KEY_TGX101_AI_AUTO_TAGS = "tgx101_ai_auto_tags";
+  public boolean tgx101AiAutoTags () { return pmc.getBoolean(KEY_TGX101_AI_AUTO_TAGS, false); }
+  public void setTgx101AiAutoTags (boolean v) { pmc.putBoolean(KEY_TGX101_AI_AUTO_TAGS, v); }
+  public String tgx101AiSortHint (int accountId) { return pmc.getString("tgx101_ai_sort_hint_" + accountId, ""); }
+  public void setTgx101AiSortHint (int accountId, String v) { pmc.putString("tgx101_ai_sort_hint_" + accountId, v); }
+  public String tgx101AiSortRejected (int accountId) { return pmc.getString("tgx101_ai_sort_rejected_" + accountId, ""); }
+  public void setTgx101AiSortRejected (int accountId, String v) { pmc.putString("tgx101_ai_sort_rejected_" + accountId, v); }
   public boolean tgx101AiMissed () { return pmc.getBoolean(KEY_TGX101_AI_MISSED, true); }
   public void setTgx101AiMissed (boolean v) { pmc.putBoolean(KEY_TGX101_AI_MISSED, v); }
 
