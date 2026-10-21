@@ -65,6 +65,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
 
   static final int MINIMUM_DROP_DURATION = 60; //60
   static final int MAXIMUM_DROP_DURATION = 200; //200
+  static final int TGX101_DRAG_DROP_MIN = 180, TGX101_DRAG_DROP_MAX = 320;
 
   static final int MINIMUM_VERTICAL_DROP_DURATION = 160;
   static final int MAXIMUM_VERTICAL_DROP_DURATION = 300;
@@ -1256,7 +1257,9 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     animator.addUpdateListener(animation -> setFactor(start + (end - start) * AnimatorUtils.getFraction(animation)));
     animator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
     float distance = Math.abs(end - start) * currentWidth;
-    animator.setDuration(calculateDropDuration(distance, velocity, MAXIMUM_DROP_DURATION, MINIMUM_DROP_DURATION));
+    // (user 2026-10-21 «переход в хранилище через свайп дёрганый — плавным, как в чат и из чата»; on the phone the rest
+    // of the way took 1–3 frames: 60–200 ms, half that at its 0.5 animation scale) — the rest of the way as a chat opens
+    animator.setDuration(calculateDropDuration(distance, velocity, TGX101_DRAG_DROP_MAX, TGX101_DRAG_DROP_MIN));
     animator.addListener(new AnimatorListenerAdapter() {
       @Override
       public void onAnimationEnd (Animator animation) {
