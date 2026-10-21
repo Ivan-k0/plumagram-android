@@ -230,8 +230,17 @@ public final class Tgx101BarOrder {
     String[] srcStrings = strings.get();
     ids.clear();
     strings.clear();
+    // (user 2026-10-21 «как переключить назад?»): Saved Messages' «as chats» is always there and first, as in the
+    // official app — even if hidden in an older ⋮ setup
+    for (int i = 0; i < n; i++) {
+      if (srcIds[i] == R.id.btn_tgx101SavedByChats) {
+        ids.append(srcIds[i]);
+        strings.append(srcStrings[i]);
+      }
+    }
     for (String entry : order) {
       if (entry.startsWith("-")) continue;
+      if (CHAT_SAVED_BY_CHATS.equals(entry)) continue;
       for (int i = 0; i < n; i++) {
         if (chatKeyOf(srcIds[i]).equals(entry)) {
           ids.append(srcIds[i]);
