@@ -7121,6 +7121,8 @@
   <string name="Tgx101BirdNote">Note</string>
   <string name="Tgx101BirdMenu">Side menu</string>
   <string name="Tgx101BirdNight">Night / day</string>
+  <string name="Tgx101BirdDay">Day</string>
+  <string name="Tgx101BirdNightOn">Night</string>
   <string name="Tgx101SettingsSearch">Search settings</string>
   <string name="Tgx101SettingsSearchHint">A setting, e.g. «vibration»</string>
   <string name="Tgx101SettingsSearchEmpty">Type a word: any switch in the settings and MagiX is found, with where it lives.</string>

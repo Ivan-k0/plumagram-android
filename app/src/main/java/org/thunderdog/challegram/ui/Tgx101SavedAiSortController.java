@@ -290,6 +290,8 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
     if (id >= ITEM_ID_BASE && id < ITEM_ID_BASE + checked.length) {
       int index = id - ITEM_ID_BASE;
       checked[index] = !checked[index];
+      // the item keeps it too — scrolled away and back, the row was bound ticked again (user 2026-10-21 «снимаю галочки, он ставит опять»)
+      if (v.getTag() instanceof ListItem) ((ListItem) v.getTag()).setSelected(checked[index]);
       adapter.processToggle(v);
     }
   }

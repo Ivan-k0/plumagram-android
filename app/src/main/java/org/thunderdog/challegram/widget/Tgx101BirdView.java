@@ -56,6 +56,8 @@ public class Tgx101BirdView extends View {
     void onBirdAccount (int accountId);
     /** room taken at the bottom by the host (folders at the bottom etc.) */
     default int birdBottomInset () { return 0; }
+    /** the ring's items as they are now (null — keep) */
+    default @Nullable Item[] birdItems () { return null; }
   }
 
   public static final class Item {
@@ -431,6 +433,10 @@ public class Tgx101BirdView extends View {
   }
 
   private void openRing (boolean accounts, boolean byFinger) {
+    if (!accounts && !ringOpen && callback != null) {
+      Item[] fresh = callback.birdItems();
+      if (fresh != null) setItems(fresh);
+    }
     if (items.length == 0) return;
     accountsRing = accounts;
     ringByFinger = byFinger;

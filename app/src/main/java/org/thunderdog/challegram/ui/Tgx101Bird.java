@@ -68,7 +68,15 @@ public final class Tgx101Bird {
     int mask = Settings.instance().tgx101BirdRing();
     List<Tgx101BirdView.Item> out = new ArrayList<>();
     for (int i = 0; i < TITLES.length && out.size() < MAX; i++) {
-      if ((mask & (1 << i)) != 0) out.add(new Tgx101BirdView.Item(i, ICONS[i], COLORS[i], Lang.getString(TITLES[i])));
+      if ((mask & (1 << i)) == 0) continue;
+      if (i == ACTION_NIGHT) {
+        // (user 2026-10-21): what it will turn to — the moon while it's light, the sun while it's dark
+        boolean dark = org.thunderdog.challegram.theme.Theme.isDark();
+        out.add(new Tgx101BirdView.Item(i, dark ? R.drawable.tgx101_sun_24 : R.drawable.baseline_brightness_2_24, dark ? 0xfff0a830 : COLORS[i],
+          Lang.getString(dark ? R.string.Tgx101BirdDay : R.string.Tgx101BirdNightOn)));
+        continue;
+      }
+      out.add(new Tgx101BirdView.Item(i, ICONS[i], COLORS[i], Lang.getString(TITLES[i])));
     }
     return out.toArray(new Tgx101BirdView.Item[0]);
   }
@@ -78,6 +86,11 @@ public final class Tgx101Bird {
     Tgx101BirdView bird = new Tgx101BirdView(host.context());
     bird.setItems(items());
     bird.setCallback(new Tgx101BirdView.Callback() {
+      @Override
+      public Tgx101BirdView.Item[] birdItems () {
+        return items(); // made at the moment the ring opens: the theme, the settings as they are now
+      }
+
       @Override
       public void onBirdAction (int action) {
         run(host, action, search);
