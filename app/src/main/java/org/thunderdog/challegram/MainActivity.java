@@ -907,15 +907,6 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       long messageId = intent.getLongExtra("message_id", 0);
       Tgx101Diag.mark("notification opens chat " + chatId + (messageId != 0 ? " at message " + messageId : " (its own position)"));
       if (accountId != TdlibAccount.NO_ID && chatId != 0) {
-        android.app.KeyguardManager keyguard = (android.app.KeyguardManager) getSystemService(KEYGUARD_SERVICE);
-        if (keyguard != null && keyguard.isKeyguardLocked()) {
-          // TGx101 (user 2026-10-20 09:38 «сообщение появилось раньше, чем прогрузился экран», «зачем запустилось дважды»):
-          // tapped on the lock screen, Android starts us under the lock, then once more after unlocking — the chat
-          // drawn under the lock showed before the screen came. It opens once, after unlocking
-          tgx101PendingChat = new long[] {accountId, chatId, messageId};
-          Tgx101Diag.mark("notification: chat waits for the unlock");
-          return true;
-        }
         tgx101PrepareForChat(chatId);
         openMessagesController(accountId, chatId, messageId);
         return true;
@@ -1823,23 +1814,11 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     }*/
   }
 
-  private long[] tgx101PendingChat;
-
   @Override
   public void onResume () {
     super.onResume();
     org.thunderdog.challegram.service.TGCallService tgx101Call = org.thunderdog.challegram.service.TGCallService.currentInstance();
     if (tgx101Call != null) tgx101Call.tgx101ReclaimMicrophone(); // the microphone type, now that we're on the screen
-    if (tgx101PendingChat != null) {
-      android.app.KeyguardManager keyguard = (android.app.KeyguardManager) getSystemService(KEYGUARD_SERVICE);
-      if (keyguard == null || !keyguard.isKeyguardLocked()) {
-        final long[] pending = tgx101PendingChat;
-        tgx101PendingChat = null;
-        Tgx101Diag.mark("notification: unlocked, opening chat " + pending[1]);
-        tgx101PrepareForChat(pending[1]);
-        openMessagesController((int) pending[0], pending[1], pending[2]);
-      }
-    }
     // TGx101: the dark splash colour is the launch window background only; while the app runs the
     // window background follows the theme, so relayouts (keyboard) don't flash the splash colour.
     getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(org.thunderdog.challegram.theme.Theme.backgroundColor()));
