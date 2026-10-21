@@ -2984,12 +2984,19 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     return "?";
   }
 
+  private String tgx101RowWhy;
+
   public void tgx101CheckStorageRow () {
     if (adapter == null || pickerDelegate != null || isDestroyed()) return;
     org.thunderdog.challegram.data.Tgx101SavedStore store = org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib);
     long selfChatId = tdlib.selfChatId();
     boolean want = store.storageOn && Settings.instance().tgx101StorageRow() && selfChatId != 0
       && adapter.indexOfChat(selfChatId) != -1 && !store.isRowHidden(tgx101ListKey());
+    String why = "storageOn " + store.storageOn + ", setting " + Settings.instance().tgx101StorageRow() + ", saved in list " + (selfChatId != 0 && adapter.indexOfChat(selfChatId) != -1) + ", hidden " + store.isRowHidden(tgx101ListKey()) + " (" + tgx101ListKey() + ")";
+    if (!why.equals(tgx101RowWhy)) {
+      tgx101RowWhy = why;
+      org.thunderdog.challegram.Tgx101Diag.mark("storage row: " + (want ? "shown" : "not shown") + " — " + why);
+    }
     if (!want) {
       if (adapter.tgx101HasStorage()) adapter.tgx101SetStorage(null);
       return;
@@ -3025,6 +3032,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
         Tgx101SavedHomeController.open(context, tdlib);
       } else if (id == R.id.btn_tgx101HideStorageRow) {
         org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).setRowHidden(tgx101ListKey(), true);
+        org.thunderdog.challegram.Tgx101Diag.mark("storage row: hidden by hand from " + tgx101ListKey());
         tgx101CheckStorageRow();
         UI.showToast(R.string.Tgx101StorageRowHidden, android.widget.Toast.LENGTH_LONG);
       }
