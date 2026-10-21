@@ -786,7 +786,12 @@ public class TGMessageText extends TGMessage {
     return new TdApi.TextEntity(offset, length, type);
   }
 
+  private static final java.util.Set<Long> tgx101SummaryLogged = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+
   private TdApi.FormattedText tgx101WithSummary (TdApi.FormattedText t) {
+    if (t.text.length() > 500 && tgx101SummaryLogged.add(msg.chatId ^ msg.id)) {
+      org.thunderdog.challegram.Tgx101Diag.mark("ai short: " + msg.chatId + "/" + msg.id + " " + t.text.length() + " chars, summary language '" + msg.summaryLanguageCode + "'");
+    }
     if (!tgx101CanSummarize()) return t;
     java.util.List<TdApi.TextEntity> list = new java.util.ArrayList<>();
     StringBuilder b = new StringBuilder();
