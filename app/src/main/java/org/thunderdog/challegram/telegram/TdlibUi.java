@@ -7396,53 +7396,68 @@ public class TdlibUi extends Handler {
     });
   }
 
+  // TGx101 (user 2026-10-21 «при нажатии на номер карты плюма долго думает»): the menu waited for Telegram's answer
+  // about the bank, however long. Now it comes within half a second — with the bank if it is known by then, «Copy»
+  // always; an answer is kept, so the same card again is instant
+  private static final java.util.Map<String, TdApi.BankCardInfo> tgx101BankCards = new java.util.concurrent.ConcurrentHashMap<>();
+
   public void openCardNumber (TdlibDelegate context, String cardNumber) {
+    TdApi.BankCardInfo known = tgx101BankCards.get(cardNumber);
+    if (known != null) {
+      tgx101ShowCard(context, cardNumber, known);
+      return;
+    }
+    final boolean[] shown = {false};
+    Runnable fallback = () -> {
+      if (shown[0]) return;
+      shown[0] = true;
+      tgx101ShowCard(context, cardNumber, null);
+    };
+    UI.post(fallback, 500);
     tdlib.client().send(new TdApi.GetBankCardInfo(cardNumber), result -> {
-      switch (result.getConstructor()) {
-        case TdApi.BankCardInfo.CONSTRUCTOR:
-          TdApi.BankCardInfo bankCardInfo = (TdApi.BankCardInfo) result;
-          tdlib.ui().post(() -> {
-            ViewController<?> c = context instanceof ViewController<?> ? (ViewController<?>) context : UI.getCurrentStackItem();
-            boolean hasAnyActions = bankCardInfo.actions.length > 0;
-            if (c != null && !c.isDestroyed()) {
-              IntList ids = new IntList(hasAnyActions ? 1 : bankCardInfo.actions.length);
-              StringList strings = new StringList(hasAnyActions ? 1 : bankCardInfo.actions.length);
-              int[] icons = null;
+      if (result.getConstructor() == TdApi.BankCardInfo.CONSTRUCTOR) {
+        TdApi.BankCardInfo info = (TdApi.BankCardInfo) result;
+        tgx101BankCards.put(cardNumber, info);
+        tdlib.ui().post(() -> {
+          if (shown[0]) return;
+          shown[0] = true;
+          UI.cancel(fallback);
+          tgx101ShowCard(context, cardNumber, info);
+        });
+      }
+    });
+  }
 
-              if (hasAnyActions) {
-                for (TdApi.BankCardActionOpenUrl openUrl : bankCardInfo.actions) {
-                  ids.append(R.id.btn_openLink);
-                  strings.append(openUrl.text);
-                }
-              } else {
-                ids.append(R.id.btn_copyLink);
-                strings.append(R.string.CopyBankCard);
-                icons = new int[] { R.drawable.baseline_content_copy_24 };
-              }
+  private void tgx101ShowCard (TdlibDelegate context, String cardNumber, @Nullable TdApi.BankCardInfo info) {
+    ViewController<?> c = context instanceof ViewController<?> ? (ViewController<?>) context : UI.getCurrentStackItem();
+    if (c == null || c.isDestroyed()) return;
+    int actions = info != null ? info.actions.length : 0;
+    IntList ids = new IntList(actions + 1);
+    StringList strings = new StringList(actions + 1);
+    int[] icons = new int[actions + 1];
+    for (int i = 0; i < actions; i++) {
+      ids.append(R.id.btn_openLink);
+      strings.append(info.actions[i].text);
+      icons[i] = R.drawable.baseline_open_in_browser_24;
+    }
+    ids.append(R.id.btn_copyLink);
+    strings.append(R.string.CopyBankCard);
+    icons[actions] = R.drawable.baseline_content_copy_24;
+    String title = info != null && !StringUtils.isEmpty(info.title) ? info.title : cardNumber;
+    c.showOptions(title, ids.get(), strings.get(), null, icons, new OptionDelegate() {
+      @Override
+      public boolean onOptionItemPressed (View optionItemView, int id) {
+        if (id == R.id.btn_openLink) {
+          Intents.openUri((String) optionItemView.getTag());
+        } else if (id == R.id.btn_copyLink) {
+          UI.copyText(cardNumber, R.string.CopiedBankCard);
+        }
+        return true;
+      }
 
-              c.showOptions(bankCardInfo.title, ids.get(), strings.get(), null, icons, new OptionDelegate() {
-                @Override
-                public boolean onOptionItemPressed (View optionItemView, int id) {
-                  if (id == R.id.btn_openLink) {
-                    Intents.openUri((String) optionItemView.getTag());
-                  } else if (id == R.id.btn_copyLink) {
-                    UI.copyText(cardNumber, R.string.CopiedBankCard);
-                  }
-
-                  return true;
-                }
-
-                @Override
-                public Object getTagForItem (int position) {
-                  return hasAnyActions ? bankCardInfo.actions[position].url : null;
-                }
-              });
-            }
-          });
-          break;
-        case TdApi.Error.CONSTRUCTOR:
-          UI.showError(result);
-          break;
+      @Override
+      public Object getTagForItem (int position) {
+        return info != null && position < info.actions.length ? info.actions[position].url : null;
       }
     });
   }
