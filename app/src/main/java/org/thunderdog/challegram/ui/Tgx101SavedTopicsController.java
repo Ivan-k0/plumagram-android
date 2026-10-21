@@ -150,7 +150,7 @@ public class Tgx101SavedTopicsController extends RecyclerViewController<Void> im
   }
 
   private final class Row extends android.widget.LinearLayout {
-    private final org.thunderdog.challegram.widget.AvatarView avatar;
+    private final TopicAvatar avatar;
     private final android.widget.TextView name, time, preview;
     private TdApi.SavedMessagesTopic topic;
 
@@ -163,7 +163,7 @@ public class Tgx101SavedTopicsController extends RecyclerViewController<Void> im
       setLayoutParams(new androidx.recyclerview.widget.RecyclerView.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, org.thunderdog.challegram.tool.Screen.dp(72f)));
       org.thunderdog.challegram.tool.Views.setClickable(this);
       org.thunderdog.challegram.support.RippleSupport.setSimpleWhiteBackground(this, Tgx101SavedTopicsController.this);
-      avatar = new org.thunderdog.challegram.widget.AvatarView(context);
+      avatar = new TopicAvatar(context);
       LayoutParams ap = new LayoutParams(org.thunderdog.challegram.tool.Screen.dp(52f), org.thunderdog.challegram.tool.Screen.dp(52f));
       ap.rightMargin = org.thunderdog.challegram.tool.Screen.dp(12f);
       addView(avatar, ap);
@@ -199,19 +199,47 @@ public class Tgx101SavedTopicsController extends RecyclerViewController<Void> im
       this.topic = topic;
       name.setText(title(topic));
       switch (topic.type.getConstructor()) {
-        case TdApi.SavedMessagesTopicTypeMyNotes.CONSTRUCTOR:
-          avatar.setUser(tdlib, tdlib.myUserId(), true);
+        case TdApi.SavedMessagesTopicTypeMyNotes.CONSTRUCTOR: // as the official app: a notes icon, not the own photo
+          avatar.receiver.requestPlaceholder(tdlib, new org.thunderdog.challegram.data.AvatarPlaceholder.Metadata(tdlib.accentColor(org.thunderdog.challegram.telegram.TdlibAccentColor.InternalId.SAVED_MESSAGES), R.drawable.baseline_create_24), org.thunderdog.challegram.loader.AvatarReceiver.Options.NONE);
           break;
         case TdApi.SavedMessagesTopicTypeSavedFromChat.CONSTRUCTOR:
-          avatar.setChat(tdlib, tdlib.chat(((TdApi.SavedMessagesTopicTypeSavedFromChat) topic.type).chatId));
+          avatar.receiver.requestChat(tdlib, ((TdApi.SavedMessagesTopicTypeSavedFromChat) topic.type).chatId, org.thunderdog.challegram.loader.AvatarReceiver.Options.NONE);
           break;
-        default:
-          avatar.setMessageSender(tdlib, null);
+        default: // the sender hid their account
+          avatar.receiver.requestPlaceholder(tdlib, new org.thunderdog.challegram.data.AvatarPlaceholder.Metadata(tdlib.accentColor(org.thunderdog.challegram.telegram.TdlibAccentColor.InternalId.INACTIVE), R.drawable.baseline_person_24), org.thunderdog.challegram.loader.AvatarReceiver.Options.NONE);
           break;
       }
+      avatar.invalidate();
       TdApi.Message last = topic.lastMessage;
       preview.setText(last != null ? ContentPreview.getChatListPreview(tdlib, last.chatId, last, true).buildText(false) : "");
       time.setText(last != null ? Lang.timeOrDateShort(last.date, java.util.concurrent.TimeUnit.SECONDS) : "");
+    }
+  }
+
+  private static final class TopicAvatar extends View {
+    final org.thunderdog.challegram.loader.AvatarReceiver receiver = new org.thunderdog.challegram.loader.AvatarReceiver(this);
+
+    TopicAvatar (Context context) {
+      super(context);
+    }
+
+    @Override
+    protected void onAttachedToWindow () {
+      super.onAttachedToWindow();
+      receiver.attach();
+    }
+
+    @Override
+    protected void onDetachedFromWindow () {
+      super.onDetachedFromWindow();
+      receiver.detach();
+    }
+
+    @Override
+    protected void onDraw (android.graphics.Canvas c) {
+      receiver.setBounds(0, 0, getWidth(), getHeight());
+      if (receiver.needPlaceholder()) receiver.drawPlaceholder(c);
+      receiver.draw(c);
     }
   }
 
