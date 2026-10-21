@@ -1523,6 +1523,15 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     tgx101MeasureAhead(false);
   }
 
+  /** (log 2026-10-21 19:50: the navigation gives its screens 1440×2832 — the screen less the header — and the storage
+   *  measured ahead at the root's 1440×3200 was measured again on the swipe's first frame, 8–12 ms) the size a screen
+   *  gets there: the chats' own */
+  private int[] tgx101StorageSize (View root) {
+    View own = getValue();
+    if (own != null && own.getWidth() > 0 && own.getHeight() > 0) return new int[] {own.getWidth(), own.getHeight()};
+    return new int[] {root.getWidth(), root.getHeight()};
+  }
+
   private @Nullable Object tgx101WarmedFor;
 
   private void tgx101MeasureAhead (boolean fingerDown) {
@@ -1533,8 +1542,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     if (root == null || root.getWidth() == 0 || v.getParent() != null) return;
     if (v.isLayoutRequested()) {
       long t = android.os.SystemClock.uptimeMillis();
-      v.measure(View.MeasureSpec.makeMeasureSpec(root.getWidth(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(root.getHeight(), View.MeasureSpec.EXACTLY));
-      v.layout(0, 0, root.getWidth(), root.getHeight());
+      int[] wh = tgx101StorageSize(root);
+      v.measure(View.MeasureSpec.makeMeasureSpec(wh[0], View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(wh[1], View.MeasureSpec.EXACTLY));
+      v.layout(0, 0, wh[0], wh[1]);
       org.thunderdog.challegram.Tgx101Diag.mark("storage pull: laid out again ahead in " + (android.os.SystemClock.uptimeMillis() - t) + " ms");
       tgx101WarmedFor = null; // changed: drawn ahead again
     }
@@ -1583,8 +1593,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     // (2026-10-21: laid out ahead at the chats' own size, the storage came with empty folders and the button in the corner
     // — user «папки не прогрузились»; back to the navigation's size)
     if (root != null && root.getWidth() > 0 && !(BuildConfig.TGX101_TEST && org.thunderdog.challegram.navigation.Tgx101Veil.ENABLED)) { // test builds: the storage under the header's veil came empty when laid out here ahead (2026-10-19)
-      v.measure(View.MeasureSpec.makeMeasureSpec(root.getWidth(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(root.getHeight(), View.MeasureSpec.EXACTLY));
-      v.layout(0, 0, root.getWidth(), root.getHeight());
+      int[] wh = tgx101StorageSize(root);
+      v.measure(View.MeasureSpec.makeMeasureSpec(wh[0], View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(wh[1], View.MeasureSpec.EXACTLY));
+      v.layout(0, 0, wh[0], wh[1]);
     }
     tgx101PreparedStorage = c;
     org.thunderdog.challegram.Tgx101Diag.mark("storage pull: storage made ahead in " + (android.os.SystemClock.uptimeMillis() - t) + " ms");
