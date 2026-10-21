@@ -159,7 +159,8 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
       text.append(i + 1).append(") ").append(describe(batch.get(i))).append('\n');
     }
     String prompt = "Разложи записи по папкам. Для каждой записи выбери подходящую папку из списка или придумай новую короткую (1–2 слова, с большой буквы). " +
-      "Похожие записи клади в одну папку. Ответь только строками вида «номер: папка», без пояснений.";
+      "Группируй по теме, а не по типу: папки «Фото», «Видео», «Файлы», «Голосовые», «Заметки» не создавай. Если тема неясна — «номер: -». " +
+      "Ответь только строками вида «номер: папка», без пояснений.";
     org.thunderdog.challegram.Tgx101Diag.mark("ai sort: " + batch.size() + " records, " + folders.size() + " folders, " + text.length() + " chars");
     TdApi.InputRichMessage message = new TdApi.InputRichMessage(new TdApi.RichMessageSourceMarkdown(text.toString(), new TdApi.InputRichMessageMedia[0]), false, false);
     tdlib.client().send(new TdApi.ComposeRichMessageWithAi(message, "", "", prompt, false), object -> runOnUiThreadOptional(() -> {
@@ -250,7 +251,9 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
         first = false;
         checked[index] = true;
         TdApi.Message m = batch.get(index);
-        ListItem item = new ListItem(ListItem.TYPE_CHECKBOX_OPTION_DOUBLE_LINE, ITEM_ID_BASE + index, 0, Tgx101SavedKit.title(m), true);
+        String title = Tgx101SavedKit.title(m);
+        if (title.length() > 34) title = title.substring(0, 33).trim() + "…"; // one line, clear of the tick
+        ListItem item = new ListItem(ListItem.TYPE_CHECKBOX_OPTION_DOUBLE_LINE, ITEM_ID_BASE + index, 0, title, true);
         item.setData(Tgx101SavedKit.meta(tdlib, m));
         items.add(item);
       }
