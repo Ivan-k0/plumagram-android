@@ -985,14 +985,30 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   private float photoRevealFactor;
 
+  // (trace 2026-10-22, user «открытие медиа всё равно с рывками вначале»): the navigation bar's colour followed the photo's
+  // flight frame by frame — ~30 calls to the system, the first one 5 ms right in the flight's first frame. Now it turns
+  // dark once, when the viewer opens (before the flight), and back once it's closed
+  private boolean tgx101PhotoNavDark;
+
+  public void tgx101SetPhotoNavDark (boolean dark) {
+    if (Config.USE_CUSTOM_NAVIGATION_COLOR && tgx101PhotoNavDark != dark) {
+      tgx101PhotoNavDark = dark;
+      updateNavigationBarColor();
+    }
+  }
+
   public void setPhotoRevealFactor (float revealFactor) {
     if (Config.USE_CUSTOM_NAVIGATION_COLOR) {
       if (this.photoRevealFactor != revealFactor) {
+        boolean crossed = (this.photoRevealFactor > 0f) != (revealFactor > 0f);
         this.photoRevealFactor = revealFactor;
-        updateNavigationBarColor();
+        if (crossed) updateNavigationBarColor();
       }
     }
   }
+
+  private int tgx101LastNavColor;
+  private boolean tgx101NavColorSet;
 
   public void updateWindowDecorSystemUiVisibility () {
     setWindowDecorSystemUiVisibility(lastWindowVisibility, false);
@@ -4227,8 +4243,8 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
         color = ColorUtils.fromToArgb(color, ColorUtils.compositeColor(desiredColor != null ? desiredColor.getIntValue() : 0, 0x1E000000), desiredIntensityFactor);
         isLight = isLight && desiredAllowLight;
       }
-      if (photoRevealFactor != 0f) {
-        color = ColorUtils.fromToArgb(color, UI.NAVIGATION_BAR_COLOR, photoRevealFactor);
+      if (photoRevealFactor != 0f || tgx101PhotoNavDark) {
+        color = UI.NAVIGATION_BAR_COLOR;
         isLight = false;
       }
       float passcodeFactor = isPasscodeShowing ? 1f : dismissingPasscodeController != null ? dismissingPasscodeController.getValue().getAlpha() : 0f;
@@ -4236,7 +4252,11 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
         color = ColorUtils.fromToArgb(color, Theme.getColor(ColorId.passcode), passcodeFactor);
         isLight = isLight && passcodeFactor < .5f;
       }
-      UI.setNavigationBarColor(getWindow(), color, isGestureNavigationEnabled);
+      if (!tgx101NavColorSet || tgx101LastNavColor != color) { // the same colour again is a call to the system for nothing
+        tgx101NavColorSet = true;
+        tgx101LastNavColor = color;
+        UI.setNavigationBarColor(getWindow(), color, isGestureNavigationEnabled);
+      }
       if (this.isWindowLight != isLight) {
         this.isWindowLight = isLight;
         UI.setLightSystemBars(getWindow(), isLight, Theme.needLightStatusBar(), lastWindowVisibility, true);

@@ -204,6 +204,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   // TGx101 (user video 2026-10-21 17:00 «плавности не хватает», vs the official app): 260 ms, was 180 (90 at 0.5× animations)
   private static final long REVEAL_ANIMATION_DURATION = /*BuildConfig.DEBUG ? 1800l :*/ 260;
   private static final long REVEAL_OPEN_ANIMATION_DURATION = /*BuildConfig.DEBUG ? 1800l :*/ 260l;
+  private static final android.view.animation.Interpolator TGX101_REVEAL_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.25f, .1f, .25f, 1f);
 
   public static final int MODE_MESSAGES = 0; // opened from chat
   public static final int MODE_PROFILE = 1; // opened from profile or chat (in case of groups and channels)
@@ -937,7 +938,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         if ((mode == MODE_GALLERY || isOpen) && !isFromCamera) {
           //revealAnimator.setInterpolator(isOpen ? OVERSHOOT_INTERPOLATOR : OVERSHOOT_INTERPOLATOR_2);
           //revealAnimator.setDuration(280l);
-          revealAnimator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+          // (user 2026-10-22 «открытие медиа с рывками вначале»): the plain deceleration starts at twice the average speed —
+          // the photo leapt in the first frames; a soft start and a long soft stop
+          revealAnimator.setInterpolator(TGX101_REVEAL_CURVE);
           revealAnimator.setDuration(REVEAL_OPEN_ANIMATION_DURATION);
         } else {
           revealAnimator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
@@ -1138,9 +1141,16 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private float commonFactor;
 
+  private boolean tgx101WasRevealed;
+
   private void updatePhotoRevealFactor () {
     float factor = commonFactor * (1f - pipFactor);
     context.setPhotoRevealFactor(factor);
+    if (factor > 0f) {
+      tgx101WasRevealed = true;
+    } else if (tgx101WasRevealed) {
+      context.tgx101SetPhotoNavDark(false); // closed (or gone to picture-in-picture)
+    }
   }
 
   private void setCommonFactor (float factor) {
@@ -6244,7 +6254,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         }
       }
     };
-    if (Config.HARDWARE_MEDIA_VIEWER) {
+    // (trace 2026-10-22): the whole viewer was one full-screen layer drawn again every frame of the flight (2–4 ms of the
+    // GPU, a frame lost every ~40 ms); on a 90 Hz+ screen it is drawn as it is, like the navigation's slides
+    if (Config.HARDWARE_MEDIA_VIEWER && org.thunderdog.challegram.tool.Screen.refreshRate() < 85f) {
       Views.setLayerType(contentView, View.LAYER_TYPE_HARDWARE);
     }
     contentView.setWillNotDraw(false);
@@ -6665,6 +6677,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   @Override
   public void destroy () {
+    context.tgx101SetPhotoNavDark(false);
     super.destroy();
     VideoPlayerView.tgx101CueSink = null;
     if (tgx101Locked()) {
@@ -9492,6 +9505,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   // Etc
 
   public void open () {
+    context.tgx101SetPhotoNavDark(true); // once, before the flight (BaseActivity#tgx101SetPhotoNavDark)
     getValue();
     popupView.showAnimatedPopupView(contentView, this);
     tgx101ApplyOrientation();

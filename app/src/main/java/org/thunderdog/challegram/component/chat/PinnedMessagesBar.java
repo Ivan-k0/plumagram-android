@@ -332,7 +332,7 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
   }
 
   private int tgx101ItemHeight () {
-    return tgx101Compact ? Screen.dp(MessagePreviewView.TGX101_ONE_LINE_HEIGHT) : SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW);
+    return tgx101Compact ? Screen.dp(tgx101OnHeader ? MessagePreviewView.TGX101_ONE_LINE_HEIGHT : MessagePreviewView.TGX101_TWO_LINE_HEIGHT) : SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW);
   }
 
   public void tgx101SetOnHeader () {
@@ -522,7 +522,12 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
       @Override
       protected View createModifiedView (ViewGroup parent, int viewType, View view) {
         if (viewType == ListItem.TYPE_MESSAGE_PREVIEW && tgx101Compact) {
-          ((MessagePreviewView) view).tgx101SetOneLine(true);
+          // the capsule: the name over the text (mockup «Закреп с именем», А); on the see-through header — one line
+          if (tgx101OnHeader) {
+            ((MessagePreviewView) view).tgx101SetOneLine(true);
+          } else {
+            ((MessagePreviewView) view).tgx101SetTwoLine(true);
+          }
         }
         if (viewType == ListItem.TYPE_MESSAGE_PREVIEW && tgx101OnHeader) {
           ((MessagePreviewView) view).tgx101SetOnHeader(true);

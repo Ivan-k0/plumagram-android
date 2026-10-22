@@ -358,6 +358,18 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
 
   public void tgx101SetOneLine (boolean oneLine) {
     this.tgx101OneLine = oneLine;
+    if (oneLine) this.tgx101TwoLine = false;
+    Views.setLayoutHeight(this, rowHeight());
+  }
+
+  // (approved mockup «Закреп с именем», А — user 2026-10-22 «в области закреплённых нужно место под имя, кто отправлял»):
+  // the capsule's row in two tight lines — the sender's name in their colour over the text
+  public static final float TGX101_TWO_LINE_HEIGHT = 48f;
+  private boolean tgx101TwoLine;
+
+  public void tgx101SetTwoLine (boolean twoLine) {
+    this.tgx101TwoLine = twoLine;
+    if (twoLine) this.tgx101OneLine = false;
     Views.setLayoutHeight(this, rowHeight());
   }
 
@@ -365,11 +377,11 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
   private static final float TGX101_ONE_LINE_IMAGE = 28f;
 
   private int rowHeight () {
-    return tgx101OneLine ? Screen.dp(TGX101_ONE_LINE_HEIGHT) : SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW);
+    return tgx101OneLine ? Screen.dp(TGX101_ONE_LINE_HEIGHT) : tgx101TwoLine ? Screen.dp(TGX101_TWO_LINE_HEIGHT) : SettingHolder.measureHeightForType(ListItem.TYPE_MESSAGE_PREVIEW);
   }
 
   private int imageHeight () {
-    return Screen.dp(tgx101OneLine ? TGX101_ONE_LINE_IMAGE : IMAGE_HEIGHT);
+    return Screen.dp(tgx101OneLine ? TGX101_ONE_LINE_IMAGE : tgx101TwoLine ? 36f : IMAGE_HEIGHT);
   }
 
   private final ReplaceAnimator<TextEntry> titleText = new ReplaceAnimator<>(ignored -> invalidate(), AnimatorUtils.DECELERATE_INTERPOLATOR, 180l);
@@ -716,8 +728,16 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
       int lineHeight = first != null && first.item.content != null ? first.item.content.getLineHeight(false) : Screen.dp(TEXT_SIZE);
       contextTextY = (rowHeight() - lineHeight) / 2;
     }
+    if (tgx101TwoLine) { // the name at the top, the text right under it, both inside 48 dp
+      ListAnimator.Entry<TextEntry> title = titleText.isEmpty() ? null : titleText.iterator().next();
+      int titleLine = title != null && title.item.content != null ? title.item.content.getLineHeight(false) : Screen.dp(TEXT_SIZE);
+      ListAnimator.Entry<TextEntry> first = contentText.isEmpty() ? null : contentText.iterator().next();
+      int textLine = first != null && first.item.content != null ? first.item.content.getLineHeight(false) : Screen.dp(TEXT_SIZE);
+      int top = (rowHeight() - titleLine - textLine - Screen.dp(2f)) / 2;
+      contextTextY = top + titleLine + Screen.dp(2f);
+    }
     if (!tgx101OneLine) for (ListAnimator.Entry<TextEntry> entry : titleText) {
-      int titleY = Screen.dp(7f);
+      int titleY = tgx101TwoLine ? contextTextY - Screen.dp(2f) - (entry.item.content != null ? entry.item.content.getLineHeight(false) : Screen.dp(TEXT_SIZE)) : Screen.dp(7f);
       if (entry.item.content != null) {
         entry.item.content.draw(c, textX, titleY, null, entry.getVisibility());
       }
