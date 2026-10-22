@@ -128,6 +128,25 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     dropWhenReplaced(feed);
   }
 
+  // The last topics seen per group: the topics screen opens with them at once (0.2.242: «Feed → Topics» waited ~0.4 s)
+  private static final java.util.Map<String, List<TdApi.ForumTopic>> cachedTopics = new java.util.concurrent.ConcurrentHashMap<>();
+
+  private static String cacheKey (Tdlib tdlib, long chatId) {
+    return tdlib.id() + ":" + chatId;
+  }
+
+  /** The first page of a group's topics, fetched while its feed is open — «Topics» then opens with them in place */
+  public static void prefetch (Tdlib tdlib, long chatId) {
+    String key = cacheKey(tdlib, chatId);
+    if (cachedTopics.containsKey(key)) return;
+    tdlib.send(new TdApi.GetForumTopics(chatId, "", 0, 0, 0, PAGE_SIZE), (page, error) -> {
+      if (page == null) return;
+      List<TdApi.ForumTopic> list = new ArrayList<>();
+      for (TdApi.ForumTopic topic : page.topics) list.add(topic);
+      cachedTopics.put(key, list);
+    });
+  }
+
   // Topic names for the chat list and the feed (mockup «Группы с темами»: «who · topic» under a forum's name), by account
   private static final java.util.Map<String, String> topicNames = new java.util.concurrent.ConcurrentHashMap<>();
   private static final java.util.Set<String> topicNamesLoading = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
@@ -188,14 +207,21 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
   private ChatHeaderView headerCell;
   private @Nullable String searchQuery;
   // a topic's own emoji (its custom emoji icon's base emoji), by custom emoji id
-  private final android.util.LongSparseArray<String> iconEmoji = new android.util.LongSparseArray<>();
+  private static final android.util.LongSparseArray<String> iconEmoji = new android.util.LongSparseArray<>(); // shared: no letters flashing on the next visit
 
   @Override
   protected void onCreateView (Context context, CustomRecyclerView recyclerView) {
     // the header as in the group's chat: its photo, name and members
     headerCell = new ChatHeaderView(context, tdlib, this);
     headerCell.setCallback(this);
+    headerCell.setInnerMargins(Screen.dp(56f), Screen.dp(100f)); // room for search and ⋮ (the name ran under the search, 0.2.242)
     headerCell.setChat(tdlib, getArgumentsStrict().chat, null);
+    // topics fetched ahead (from the feed's switch or an earlier visit): the list is there at once, refreshed behind it
+    List<TdApi.ForumTopic> cached = cachedTopics.get(cacheKey(tdlib, getArgumentsStrict().chat.id));
+    if (cached != null && !cached.isEmpty()) {
+      topics.addAll(cached);
+      loaded = true;
+    }
     adapter = new TopicsAdapter();
     recyclerView.setAdapter(adapter);
     // a swipe to the left over the topics opens the feed, as the switch does
@@ -411,6 +437,7 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
         topics.clear();
         topics.addAll(result);
         loaded = true;
+        cachedTopics.put(cacheKey(tdlib, getArgumentsStrict().chat.id), new ArrayList<>(result));
         buildRows();
         tgx101ShowWhenReady();
       }

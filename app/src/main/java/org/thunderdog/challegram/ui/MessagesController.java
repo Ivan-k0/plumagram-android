@@ -3608,6 +3608,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       boolean feed = chat != null && previewMode == PREVIEW_MODE_NONE && !areScheduled && messageThread == null && messageTopicId == null && tdlib.isForum(chat.id);
       tgx101TopicsSwitch.setFeed(true, false);
       topBar.setItemVisible(tgx101TopicsItem, feed, false);
+      if (feed) Tgx101TopicsController.prefetch(tdlib, chat.id); // «Topics» then opens at once
     }
 
     if (inPreviewMode) {
