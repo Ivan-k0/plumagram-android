@@ -1431,8 +1431,7 @@ public class MediaCellView extends ViewGroup implements
     final boolean gestures = org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerGesture(org.thunderdog.challegram.unsorted.Settings.GESTURE_SEEK); // seeking is a swipe then
     int width = getMeasuredWidth();
     // TGx101 (user 2026-10-04): with the gestures on, a double tap pauses anywhere on the video
-    // (user 2026-10-22 «область перемотки в видео нужно сделать меньше»): the seeking zones are the outer quarters, not thirds
-    int zone = gestures ? 0 : x < width / 4f ? -1 : x > width * 3f / 4f ? 1 : 0;
+    int zone = gestures ? 0 : x < width / 3f ? -1 : x > width * 2f / 3f ? 1 : 0; // thirds (user 2026-10-22: «двойной тап верни как было»)
     long now = android.os.SystemClock.uptimeMillis();
     boolean isQuickRepeat = zone == lastVideoTapZone && now - lastVideoTapTime < VIDEO_DOUBLE_TAP_TIMEOUT_MS * (inVideoSeekSeries ? 2 : 1);
     lastVideoTapTime = now;

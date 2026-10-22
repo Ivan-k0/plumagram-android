@@ -931,6 +931,7 @@ public class MediaView extends FrameLayoutFix {
           gState = G_PENDING;
           gDownX = e.getX();
           gDownY = e.getY();
+          org.thunderdog.challegram.Tgx101Diag.mark("player: down at x " + Math.round(e.getX()) + " (raw " + Math.round(e.getRawX()) + ") of width " + getMeasuredWidth() + ", screen " + getResources().getDisplayMetrics().widthPixels);
           postDelayed(gLongPress, 550);
         }
         return false;
