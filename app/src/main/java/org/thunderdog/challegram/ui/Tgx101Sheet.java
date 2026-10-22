@@ -161,6 +161,9 @@ public final class Tgx101Sheet {
       if (hasInput) {
         View field = findInput(body);
         if (field != null) org.thunderdog.challegram.tool.Keyboard.hide(field);
+        // (user 2026-10-22 12:41 «закрываю действие — клавиатура остаётся»): swiped away, the field is already off its
+        // window and has no token — hidden by the activity's own window then
+        if (c.context().getWindow() != null) org.thunderdog.challegram.tool.Keyboard.hide(c.context().getWindow().getDecorView());
         if (activityWindow != null) activityWindow.setSoftInputMode(previousSoftInput);
         // (video 09:07) the focus went on to the screen's own field and its keyboard stayed — the screen keeps none
         View root = c.getValue();

@@ -84,7 +84,7 @@ public final class Tgx101SavedActions {
     if (field[0] != null) {
       field[0].requestFocus();
       if (initial != null) field[0].setSelection(initial.length());
-      field[0].postDelayed(() -> org.thunderdog.challegram.tool.Keyboard.show(field[0]), 280);
+      field[0].postDelayed(() -> { if (androidx.core.view.ViewCompat.isAttachedToWindow(field[0])) org.thunderdog.challegram.tool.Keyboard.show(field[0]); }, 280);
     }
   }
 
@@ -119,7 +119,7 @@ public final class Tgx101SavedActions {
     if (field[0] != null) {
       field[0].requestFocus();
       if (initial != null) field[0].setSelection(initial.length());
-      field[0].postDelayed(() -> org.thunderdog.challegram.tool.Keyboard.show(field[0]), 280);
+      field[0].postDelayed(() -> { if (androidx.core.view.ViewCompat.isAttachedToWindow(field[0])) org.thunderdog.challegram.tool.Keyboard.show(field[0]); }, 280);
     }
   }
 
@@ -325,7 +325,7 @@ public final class Tgx101SavedActions {
     });
     if (field[0] != null) {
       field[0].requestFocus();
-      field[0].postDelayed(() -> org.thunderdog.challegram.tool.Keyboard.show(field[0]), 280);
+      field[0].postDelayed(() -> { if (androidx.core.view.ViewCompat.isAttachedToWindow(field[0])) org.thunderdog.challegram.tool.Keyboard.show(field[0]); }, 280);
     }
   }
 
