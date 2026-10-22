@@ -1293,7 +1293,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       @Override
       public void onShowAllRequest (PinnedMessagesBar view) {
         MessagesController c = new MessagesController(context, tdlib);
-        c.setArguments(new Arguments(null, chat, null, null, new TdApi.SearchMessagesFilterPinned()));
+        c.setArguments(new Arguments(tdlib, null, chat, null, getMessageTopicId() instanceof TdApi.MessageTopicForum ? getMessageTopicId() : null, new TdApi.SearchMessagesFilterPinned())); // TGx101: the topic's own
         navigateTo(c);
       }
     });

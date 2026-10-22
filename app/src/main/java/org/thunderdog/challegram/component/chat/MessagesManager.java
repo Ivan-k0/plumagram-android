@@ -653,7 +653,9 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
   // Search
 
   public void openSearch (TdApi.Chat chat, String query, TdApi.MessageSender sender, TdApi.SearchMessagesFilter filter) {
-    loader.setChat(chat, null, null, MessagesLoader.SPECIAL_MODE_SEARCH, filter);
+    // TGx101 (user 2026-10-22 «как работает переход по закрепам» in topics): a search inside a forum topic — the pinned
+    // list among them — looks only in that topic
+    loader.setChat(chat, null, controller.getMessageTopicId(), MessagesLoader.SPECIAL_MODE_SEARCH, filter);
     loader.setSearchParameters(query, sender, filter);
     adapter.setChatType(chat.type);
     if (filter != null && Td.isPinnedFilter(filter)) {
@@ -749,7 +751,9 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
   }
 
   private void initPinned (long chatId, int initialLoadCount, int loadCount) {
-    this.pinnedMessages = new MessageListManager(tdlib, initialLoadCount, loadCount, pinnedMessageListener, chatId, 0, null, null, null, new TdApi.SearchMessagesFilterPinned());
+    // TGx101: in a forum topic only that topic's pinned messages — the group's others led out of the topic
+    TdApi.MessageTopic tgx101Topic = controller.getMessageTopicId() instanceof TdApi.MessageTopicForum ? controller.getMessageTopicId() : null;
+    this.pinnedMessages = new MessageListManager(tdlib, initialLoadCount, loadCount, pinnedMessageListener, chatId, 0, tgx101Topic, null, null, new TdApi.SearchMessagesFilterPinned());
     this.pinnedMessages.addMaxMessageIdListener(pinnedMessageAvailabilityChangeListener);
     this.pinnedMessages.addChangeListener(new MessageListManager.ChangeListener() {
       @Override

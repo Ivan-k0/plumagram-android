@@ -317,6 +317,27 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     buildRows();
   }
 
+  // The screen comes in with its topics already in place, not empty
+  @Override
+  public boolean needAsynchronousAnimation () {
+    return !loaded;
+  }
+
+  @Override
+  public long getAsynchronousAnimationTimeout (boolean fastAnimation) {
+    return 400L;
+  }
+
+  private void tgx101ShowWhenReady () {
+    if (getScheduledAnimation() == null) return;
+    View view = getRecyclerView();
+    if (view != null) {
+      view.post(this::executeScheduledAnimation); // after the rows' layout
+    } else {
+      executeScheduledAnimation();
+    }
+  }
+
   @Override
   public void onFocus () {
     super.onFocus();
@@ -383,13 +404,18 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
       }
       for (TdApi.ForumTopic topic : page.topics) result.add(topic);
       boolean more = page.topics.length > 0 && result.size() < page.totalCount && (page.nextOffsetDate != 0 || page.nextOffsetMessageId != 0 || page.nextOffsetForumTopicId != 0);
-      if (more) {
-        loadPage(generation, result, page.nextOffsetDate, page.nextOffsetMessageId, page.nextOffsetForumTopicId);
-      } else {
+      if (!loaded || !more) {
+        // (user 2026-10-22 «как впервые открываются темы — чтобы не было пустого экрана в первые секунды»): the first page
+        // is shown at once, and the screen slides in only once it's there (BaseActivity waits up to 400 ms); the rest
+        // of the pages come in behind it
         topics.clear();
         topics.addAll(result);
         loaded = true;
         buildRows();
+        tgx101ShowWhenReady();
+      }
+      if (more) {
+        loadPage(generation, result, page.nextOffsetDate, page.nextOffsetMessageId, page.nextOffsetForumTopicId);
       }
     }));
   }
