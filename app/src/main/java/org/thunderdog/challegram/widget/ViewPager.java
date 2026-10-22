@@ -51,7 +51,10 @@ public class ViewPager extends androidx.viewpager.widget.ViewPager {
         @Override
         public void startScroll (int startX, int startY, int dx, int dy, int duration) {
           int width = Math.max(1, getWidth());
-          int fast = Math.round(120 + 140 * Math.min(1f, Math.abs(dx) / (float) width));
+          // (recorded 2026-10-22 at 120 Hz, the same swipe released at half the width): exteraGram settles in ~230 ms
+          // (the rest halving every ~70 ms), here in ~110 ms — a hard stop the user feels («даже лёгкие свайпы по чатам
+          // мягче»). The same quintic over ~400 ms for half the width matches it; a quick fling keeps its shorter time
+          int fast = Math.round(220 + 360 * Math.min(1f, Math.abs(dx) / (float) width));
           super.startScroll(startX, startY, dx, dy, Math.min(duration, fast));
         }
       });
