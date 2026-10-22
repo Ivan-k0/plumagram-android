@@ -861,6 +861,9 @@ public class CallController extends ViewController<CallController.Arguments> imp
   @Override
   public void onPrepareToShow () {
     super.onPrepareToShow();
+    // every way into a call (an outgoing one, an incoming one with the app open) — not only from the notification: the
+    // windows over the chat are hidden under the call (kept, with their text), the keyboard goes
+    context().tgx101CloseOverlaysForCall();
     if (!UI.isTablet()) {
       context().setOrientation(BaseActivity.getAndroidOrientationPortrait());
     }
@@ -868,6 +871,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
 
   @Override
   public void onCleanAfterHide () {
+    context().tgx101RestoreOverlaysAfterCall();
     super.onCleanAfterHide();
     if (!UI.isTablet()) {
       context().setOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
@@ -1663,6 +1667,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
 
   @Override
   public void destroy () {
+    context().tgx101RestoreOverlaysAfterCall();
     super.destroy();
     Screen.removeStatusBarHeightListener(this);
     tdlib.cache().unsubscribeFromCallUpdates(call.id, this);

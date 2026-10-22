@@ -737,20 +737,68 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   private final ArrayList<java.lang.ref.WeakReference<AlertDialog>> tgx101ShownDialogs = new ArrayList<>();
 
   /** TGx101: opening the call screen from the call chip — close dialogs (e.g. the message text window), pop-ups and the keyboard first */
+  // (user 2026-10-22 «когда открывается звонок, никакие другие окна не должны там показываться… закрывать все окна — не
+  // решение: если там было окно с текстом, оно должно оставаться»): over the call screen the open windows and dialogs are
+  // hidden, not closed — kept with what was typed in them and shown again once the call screen is gone
+  private final ArrayList<PopupLayout> tgx101WindowsHiddenForCall = new ArrayList<>();
+  private final ArrayList<AlertDialog> tgx101DialogsHiddenForCall = new ArrayList<>();
+
   public void tgx101CloseOverlaysForCall () {
     for (java.lang.ref.WeakReference<AlertDialog> ref : tgx101ShownDialogs) {
       AlertDialog dialog = ref.get();
-      if (dialog != null && dialog.isShowing()) {
+      if (dialog != null && dialog.isShowing() && !tgx101DialogsHiddenForCall.contains(dialog)) {
         try {
-          dialog.dismiss();
+          dialog.hide();
+          tgx101DialogsHiddenForCall.add(dialog);
         } catch (Throwable ignored) { }
       }
     }
-    tgx101ShownDialogs.clear();
     for (int i = windows.size() - 1; i >= 0; i--) {
-      windows.get(i).hideWindow(false);
+      PopupLayout window = windows.get(i);
+      if (window.getBoundController() instanceof org.thunderdog.challegram.ui.CallController) continue;
+      window.setVisibility(View.INVISIBLE);
+      tgx101WindowsHiddenForCall.add(0, window);
+      pretendYouDontKnowThisWindow(window); // the back button is the call screen's, not the hidden window's
     }
+    try {
+      tooltipManager().hideAll(true);
+    } catch (Throwable ignored) { }
     hideSoftwareKeyboard();
+    if (!tgx101WindowsHiddenForCall.isEmpty() || !tgx101DialogsHiddenForCall.isEmpty()) {
+      rootView.removeCallbacks(tgx101RestoreIfNoCall);
+      rootView.postDelayed(tgx101RestoreIfNoCall, 4000);
+    }
+    if (getWindow() != null) {
+      View focused = getCurrentFocus();
+      if (focused != null) focused.clearFocus(); // the text stays, only the keyboard goes
+      org.thunderdog.challegram.tool.Keyboard.hide(getWindow().getDecorView());
+    }
+  }
+
+  // hidden for a call whose screen never came (the call ended first): shown again
+  private final Runnable tgx101RestoreIfNoCall = new Runnable() {
+    @Override
+    public void run () {
+      if (tgx101WindowsHiddenForCall.isEmpty() && tgx101DialogsHiddenForCall.isEmpty()) return;
+      if (navigation != null && (navigation.isAnimating() || navigation.getCurrentStackItem() instanceof org.thunderdog.challegram.ui.CallController)) return;
+      tgx101RestoreOverlaysAfterCall();
+    }
+  };
+
+  /** The call screen is gone: what was hidden under it comes back as it was */
+  public void tgx101RestoreOverlaysAfterCall () {
+    for (PopupLayout window : tgx101WindowsHiddenForCall) {
+      if (window.getParent() == null) continue; // closed meanwhile
+      letsRememberAboutThisWindow(window);
+      window.setVisibility(View.VISIBLE);
+    }
+    tgx101WindowsHiddenForCall.clear();
+    for (AlertDialog dialog : tgx101DialogsHiddenForCall) {
+      try {
+        if (!isFinishing()) dialog.show();
+      } catch (Throwable ignored) { }
+    }
+    tgx101DialogsHiddenForCall.clear();
   }
 
   public final AlertDialog showAlert (AlertDialog.Builder b, ThemeDelegate theme) {
