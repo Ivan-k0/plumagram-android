@@ -12,10 +12,7 @@
  */
 package org.thunderdog.challegram.data;
 
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.Rect;
 import android.view.View;
 
 import org.thunderdog.challegram.unsorted.Settings;
@@ -31,8 +28,7 @@ import me.vkryl.leveldb.LevelDB;
  * TGx101 «Не подглядывай!» (user 2026-10-22): the chat list blurred for eyes over the shoulder — avatars, names and the
  * last message, each with its own strength, in every chat or in the chosen ones. One switch (the eye) turns it on and off.
  *
- * The blur is drawn by hand — the part is drawn small into a bitmap, softened and drawn back stretched — so it works on
- * every Android the app runs on (4.1+), with no RenderEffect.
+ * Android 12+ blurs on the GPU; older ones get stand-ins — plates over the texts and plain circles for the avatars.
  */
 public final class Tgx101Peek {
   private Tgx101Peek () { }
@@ -184,74 +180,33 @@ public final class Tgx101Peek {
     void draw (Canvas c);
   }
 
-  /** One part of one row: its own bitmap, since a hardware-drawn row keeps a reference to it until the next frame */
-  public static final class Painter {
-    private Bitmap bitmap;
-    private Canvas canvas;
-    private int[] pixels, buffer;
-    private final Rect src = new Rect(), dst = new Rect();
-    private static final Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
+  /** Blur needs the GPU (Android 12+, hardware drawing); without it the row draws plain stand-ins — a plate over the text, a
+   *  circle for the avatar (user 2026-10-22 «заглушки для старых»: the hand-made blur cost the main thread on every bind) */
+  public static boolean canBlur (Canvas c) {
+    return android.os.Build.VERSION.SDK_INT >= 31 && c.isHardwareAccelerated();
+  }
 
-    /** Draws what {@code drawer} draws inside left..bottom (the part's bounds, with room for the blur to spread) blurred */
-    public void draw (Canvas c, int left, int top, int right, int bottom, int strength, Drawer drawer) {
+  /** One part of one row */
+  public static final class Painter {
+    private Gpu gpu;
+
+    /** Draws what {@code drawer} draws inside left..bottom (the part's bounds, with room for the blur to spread): as is,
+     *  blurred, or — where there is no blur — {@code standIn} instead */
+    public void draw (Canvas c, int left, int top, int right, int bottom, int strength, Drawer drawer, Drawer standIn) {
       if (strength <= 0 || right <= left || bottom <= top) {
         drawer.draw(c);
-        return;
-      }
-      if (android.os.Build.VERSION.SDK_INT >= 31 && c.isHardwareAccelerated()) {
-        // Android 12+: the blur on the GPU, nothing for the main thread to do (it made the list scroll heavier)
+      } else if (canBlur(c)) {
         if (gpu == null) gpu = new Gpu();
         gpu.draw(c, left, top, right, bottom, strength, drawer);
-        return;
+      } else {
+        standIn.draw(c);
       }
-      // smaller copy for a stronger blur: 1/3 … 1/12
-      float scale = 1f / (3f + 9f * Math.min(100, strength) / 100f);
-      int w = Math.max(4, (int) Math.ceil((right - left) * scale));
-      int h = Math.max(4, (int) Math.ceil((bottom - top) * scale));
-      // the bitmap only grows (rows are reused for chats with names of other widths): no new one on every bind
-      if (bitmap == null || bitmap.getWidth() < w || bitmap.getHeight() < h) {
-        int bw = Math.max(w, bitmap != null ? bitmap.getWidth() : 0) + 15 & ~15;
-        int bh = Math.max(h, bitmap != null ? bitmap.getHeight() : 0) + 7 & ~7;
-        if (bitmap != null) bitmap.recycle();
-        try {
-          bitmap = Bitmap.createBitmap(bw, bh, Bitmap.Config.ARGB_8888);
-        } catch (Throwable t) {
-          bitmap = null;
-          return; // no memory — better nothing than the text in clear
-        }
-        canvas = new Canvas(bitmap);
-        pixels = new int[bw * bh];
-        buffer = new int[bw * bh];
-      }
-      bitmap.eraseColor(0);
-      int save = canvas.save();
-      canvas.clipRect(0, 0, w, h);
-      canvas.scale(w / (float) (right - left), h / (float) (bottom - top));
-      canvas.translate(-left, -top);
-      drawer.draw(canvas);
-      canvas.restoreToCount(save);
-      bitmap.getPixels(pixels, 0, w, 0, 0, w, h);
-      int radius = strength >= 50 ? 2 : 1;
-      boxBlur(pixels, buffer, w, h, radius);
-      boxBlur(pixels, buffer, w, h, radius);
-      bitmap.setPixels(pixels, 0, w, 0, 0, w, h);
-      src.set(0, 0, w, h);
-      dst.set(left, top, right, bottom);
-      c.drawBitmap(bitmap, src, dst, paint);
     }
-
-    private Gpu gpu;
 
     public void release () {
       if (gpu != null) {
         gpu.release();
         gpu = null;
-      }
-      if (bitmap != null) {
-        bitmap.recycle();
-        bitmap = null;
-        canvas = null;
-        pixels = buffer = null;
       }
     }
   }
@@ -285,40 +240,4 @@ public final class Tgx101Peek {
     }
   }
 
-  /** Box blur over all four channels (premultiplied, so the edges fade out cleanly): horizontal, then vertical; a running
-   *  sum — each pixel costs the same whatever the radius */
-  private static void boxBlur (int[] px, int[] tmp, int w, int h, int r) {
-    int div = r * 2 + 1;
-    for (int y = 0; y < h; y++) {
-      int row = y * w;
-      int a = 0, rr = 0, g = 0, b = 0;
-      for (int k = -r; k <= r; k++) {
-        int p = px[row + Math.max(0, Math.min(w - 1, k))];
-        a += p >>> 24; rr += (p >> 16) & 0xff; g += (p >> 8) & 0xff; b += p & 0xff;
-      }
-      for (int x = 0; x < w; x++) {
-        tmp[row + x] = ((a / div) << 24) | ((rr / div) << 16) | ((g / div) << 8) | (b / div);
-        int out = px[row + Math.max(0, x - r)], in = px[row + Math.min(w - 1, x + r + 1)];
-        a += (in >>> 24) - (out >>> 24);
-        rr += ((in >> 16) & 0xff) - ((out >> 16) & 0xff);
-        g += ((in >> 8) & 0xff) - ((out >> 8) & 0xff);
-        b += (in & 0xff) - (out & 0xff);
-      }
-    }
-    for (int x = 0; x < w; x++) {
-      int a = 0, rr = 0, g = 0, b = 0;
-      for (int k = -r; k <= r; k++) {
-        int p = tmp[Math.max(0, Math.min(h - 1, k)) * w + x];
-        a += p >>> 24; rr += (p >> 16) & 0xff; g += (p >> 8) & 0xff; b += p & 0xff;
-      }
-      for (int y = 0; y < h; y++) {
-        px[y * w + x] = ((a / div) << 24) | ((rr / div) << 16) | ((g / div) << 8) | (b / div);
-        int out = tmp[Math.max(0, y - r) * w + x], in = tmp[Math.min(h - 1, y + r + 1) * w + x];
-        a += (in >>> 24) - (out >>> 24);
-        rr += ((in >> 16) & 0xff) - ((out >> 16) & 0xff);
-        g += ((in >> 8) & 0xff) - ((out >> 8) & 0xff);
-        b += (in & 0xff) - (out & 0xff);
-      }
-    }
-  }
 }

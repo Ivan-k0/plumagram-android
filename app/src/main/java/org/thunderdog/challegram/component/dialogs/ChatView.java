@@ -690,6 +690,55 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
   private final org.thunderdog.challegram.data.Tgx101Peek.Painter tgx101PeekTitle = new org.thunderdog.challegram.data.Tgx101Peek.Painter();
   private final org.thunderdog.challegram.data.Tgx101Peek.Painter tgx101PeekText = new org.thunderdog.challegram.data.Tgx101Peek.Painter();
 
+  private org.thunderdog.challegram.data.AvatarPlaceholder tgx101Placeholder;
+  private long tgx101PlaceholderChatId;
+  private int tgx101PlaceholderSize;
+
+  /** The avatar's stand-in where there is no blur, made once per chat */
+  private org.thunderdog.challegram.data.AvatarPlaceholder tgx101PeekPlaceholder () {
+    long chatId = chat.getChatId();
+    int size = avatarReceiver.getWidth();
+    if (tgx101Placeholder == null || tgx101PlaceholderChatId != chatId || tgx101PlaceholderSize != size) {
+      tgx101Placeholder = tdlib.chatPlaceholder(chatId, chat.getChat(), true, size / 2f / Screen.density(), this);
+      tgx101PlaceholderChatId = chatId;
+      tgx101PlaceholderSize = size;
+    }
+    return tgx101Placeholder;
+  }
+
+  /** «Не подглядывай!» without blur: a rounded plate where a line of text is, as a hidden spoiler */
+  private static void tgx101Plate (Canvas c, int left, int top, int right, int lineHeight) {
+    if (right <= left) return;
+    float inset = lineHeight * .18f;
+    RectF rect = Paints.getRectF();
+    rect.set(left, top + inset, right, top + lineHeight - inset);
+    float radius = rect.height() / 2f;
+    c.drawRoundRect(rect, radius, radius, Paints.fillingPaint(ColorUtils.alphaColor(.4f, Theme.textDecentColor())));
+  }
+
+  private void tgx101DrawTextPlates (Canvas c, int chatListMode) {
+    int left = getLeftPadding(chatListMode);
+    int textTop = getTextTop(chatListMode);
+    Text prefix = chat.getPrefix();
+    if (prefix != null) {
+      tgx101Plate(c, left, textTop, left + prefix.getWidth(), prefix.getLineHeight());
+    }
+    Text text = chat.getText();
+    if (text == null) return;
+    if (chatListMode != Settings.CHAT_MODE_2LINE) {
+      if (prefix != null) {
+        textTop += prefix.getNextLineHeight();
+      } else if (text.getLineCount() == 1) {
+        textTop += getSingleLineOffset(chatListMode);
+      }
+    }
+    int lineHeight = text.getLineHeight();
+    for (int i = 0; i < text.getLineCount(); i++) {
+      // the first line from the left edge: the icons and «Who:» before it hide under the same plate
+      tgx101Plate(c, left, textTop + lineHeight * i, chat.getTextLeft() + text.getLineWidth(i), lineHeight);
+    }
+  }
+
   /** The last message (and «typing…»), drawn apart so «Не подглядывай!» can blur it */
   private void tgx101DrawText (Canvas c, int chatListMode, boolean rtl, int viewWidth) {
     TdlibStatusManager.Helper status = chat.statusHelper();
@@ -793,7 +842,8 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
       final int tx = titleX;
       int peek = org.thunderdog.challegram.data.Tgx101Peek.strengthFor(chat.getChatId(), org.thunderdog.challegram.data.Tgx101Peek.PART_TITLE);
       int spread = Screen.dp(6f);
-      tgx101PeekTitle.draw(c, tx - spread, titleTop - spread, tx + title.getWidth() + spread, titleTop + title.getHeight() + spread, peek, cc -> title.draw(cc, tx, titleTop));
+      tgx101PeekTitle.draw(c, tx - spread, titleTop - spread, tx + title.getWidth() + spread, titleTop + title.getHeight() + spread, peek, cc -> title.draw(cc, tx, titleTop),
+        cc -> tgx101Plate(cc, tx, titleTop, tx + title.getWidth(), title.getHeight()));
     }
 
     EmojiStatusHelper.EmojiStatusDrawable emojiStatus = chat.getEmojiStatus();
@@ -865,7 +915,8 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
     counterRight -= reactionCounter.getScaledWidth(getTimePaddingLeft());
 
     int peekText = org.thunderdog.challegram.data.Tgx101Peek.strengthFor(chat.getChatId(), org.thunderdog.challegram.data.Tgx101Peek.PART_TEXT);
-    tgx101PeekText.draw(c, getLeftPadding(chatListMode) - Screen.dp(8f), getTextTop(chatListMode) - Screen.dp(8f), viewWidth, getMeasuredHeight(), peekText, cc -> tgx101DrawText(cc, chatListMode, rtl, viewWidth));
+    tgx101PeekText.draw(c, getLeftPadding(chatListMode) - Screen.dp(8f), getTextTop(chatListMode) - Screen.dp(8f), viewWidth, getMeasuredHeight(), peekText, cc -> tgx101DrawText(cc, chatListMode, rtl, viewWidth),
+      cc -> tgx101DrawTextPlates(cc, chatListMode));
 
     int peekAvatar = org.thunderdog.challegram.data.Tgx101Peek.strengthFor(chat.getChatId(), org.thunderdog.challegram.data.Tgx101Peek.PART_AVATAR);
     avatarReceiver.forceAllowOnline(!isSelected.getValue(), 1f - isSelected.getFloatValue());
@@ -876,6 +927,10 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
         avatarReceiver.drawPlaceholder(cc);
       }
       avatarReceiver.draw(cc);
+      tgx101DrawStoryRing(cc);
+    }, cc -> {
+      // the chat's letters on its colour, as a chat with no photo (user 2026-10-22 «буквы пусть будут»)
+      tgx101PeekPlaceholder().draw(cc, avatarReceiver.centerX(), avatarReceiver.centerY(), 1f, avatarReceiver.getWidth() / 2f);
       tgx101DrawStoryRing(cc);
     });
 
