@@ -1261,8 +1261,19 @@ public class MosaicWrapper implements FactorAnimator.Target, ComplexReceiver.Key
   public <T extends View & DrawableProvider> void draw (T view, Canvas c, int startX, int startY, ComplexReceiver complexReceiver, boolean needSeparators, long hiddenMessageId) {
     lastStartX = startX;
     lastStartY = startY;
+    // (user video 2026-10-21 22:48 «мигания при открытии»: for a frame the whole album went grey) only a single
+    // matching cell is left empty — anything else draws as usual
+    if (hiddenMessageId != 0 && tgx101Matches(mosaicItems, hiddenMessageId) + tgx101Matches(addedMosaicItems, hiddenMessageId) != 1) {
+      hiddenMessageId = 0;
+    }
     draw(view, c, startX, startY, complexReceiver, mosaicItems, needSeparators, hiddenMessageId);
     draw(view, c, startX, startY, complexReceiver, addedMosaicItems, needSeparators, hiddenMessageId);
+  }
+
+  private static int tgx101Matches (MosaicItemInfo[] items, long messageId) {
+    int n = 0;
+    if (items != null) for (MosaicItemInfo item : items) if (item.target.getSourceMessageId() == messageId) n++;
+    return n;
   }
 
   private static float[] lines = new float[8];

@@ -223,7 +223,7 @@ public class Tgx101BirdView extends View {
   }
 
   private boolean navButtons () {
-    return Build.VERSION.SDK_INT >= 23 && getRootWindowInsets() != null && getRootWindowInsets().getSystemWindowInsetBottom() > Screen.dp(32f);
+    return Build.VERSION.SDK_INT >= 23 && getRootWindowInsets() != null && getRootWindowInsets().getStableInsetBottom() > Screen.dp(32f);
   }
 
   // room
@@ -235,7 +235,8 @@ public class Tgx101BirdView extends View {
   private int bottomRoom () {
     int bottom = getHeight();
     if (Build.VERSION.SDK_INT >= 23 && getRootWindowInsets() != null && getRootView() != null && getRootView().getHeight() > 0) {
-      int nav = getRootWindowInsets().getSystemWindowInsetBottom();
+      // the navigation only — not the keyboard (log 2026-10-22: the bird jumped 286 dp up whenever a keyboard showed)
+      int nav = getRootWindowInsets().getStableInsetBottom();
       getLocationInWindow(at);
       bottom = getRootView().getHeight() - nav - at[1];
     }

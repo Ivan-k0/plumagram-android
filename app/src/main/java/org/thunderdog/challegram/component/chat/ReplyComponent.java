@@ -317,10 +317,13 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
   public int lastX, lastY;
 
   public boolean isInside (float x, float y, boolean needWhite) {
-    // TGx101: the whole row at the quote's height is tappable — the quote, the rest of the bubble to its right
-    // and the empty space beside the bubble (log 20:45: taps there opened the menu instead of the original message)
-    return x >= 0 && y >= lastY && y <= lastY + mHeight;
+    // TGx101 (user 2026-10-22 «переход — только по нажатию на саму цитату, не по тексту и не по пустому рядом»): the
+    // quote's own drawn box, with a little slop
+    int slop = Screen.dp(4f);
+    return x >= lastX - slop && x <= lastX + lastWidth + slop && y >= lastY - slop && y <= lastY + mHeight + slop;
   }
+
+  private int lastWidth;
 
   private boolean hasPreview () {
     MediaPreview preview = this.mediaPreview;
@@ -416,6 +419,7 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
 
     lastX = startX;
     lastY = startY;
+    lastWidth = width;
 
     final boolean isOutBubble = isOutBubble();
     final @ColorInt int lineColor;

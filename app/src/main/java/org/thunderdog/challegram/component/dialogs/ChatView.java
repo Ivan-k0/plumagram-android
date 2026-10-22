@@ -215,7 +215,9 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
     }
     this.refreshRateLimiter = new RefreshRateLimiter(this, Config.MAX_ANIMATED_EMOJI_REFRESH_RATE);
     setId(R.id.chat);
-    RippleSupport.setTransparentSelector(this);
+    // TGx101 (user 2026-10-22 «во время открытия видно нажатие на чат, пока чат едет — эту область вообще не подсвечивай
+    // при одиночных нажатиях»): a chat row has no pressed highlight
+    setBackground(null);
     int chatListMode = getChatListMode();
     emojiStatusReceiver = new ComplexReceiver(this)
       .setUpdateListener(refreshRateLimiter);
@@ -526,9 +528,9 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
     if (this.needBackground != needBackground) {
       this.needBackground = needBackground;
       if (needBackground) {
-        RippleSupport.setSimpleWhiteBackground(this);
+        setBackgroundColor(org.thunderdog.challegram.theme.Theme.fillingColor()); // no pressed highlight (TGx101)
       } else {
-        RippleSupport.setTransparentSelector(this);
+        setBackground(null);
       }
     }
   }
