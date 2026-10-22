@@ -310,19 +310,44 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
   private boolean tgx101DragSelect, tgx101DragTracking, tgx101DragTarget;
   private float tgx101DragDownX, tgx101DragDownY, tgx101DragLastY;
   private int tgx101DragStartPos = -1;
+  // (user 2026-10-22 «выделение по свайпу с удержанием — с рывками, сделай плавнее как в exteraGram»): the list scrolled
+  // 12 dp at once every 16 ms on a timer — on a 120 Hz screen a step every other frame, at full speed the moment the
+  // finger touched the edge zone. Now every frame, by the frame's time, faster the deeper the finger is in the zone
+  private long tgx101AutoScrollLast;
+  private float tgx101AutoScrollRest;
   private final Runnable tgx101AutoScroll = new Runnable() {
     @Override
     public void run () {
       if (!tgx101DragSelect) return;
-      int edge = Screen.dp(72f);
-      int dy = tgx101DragLastY < edge ? -Screen.dp(12f) : tgx101DragLastY > getHeight() - edge ? Screen.dp(12f) : 0;
-      if (dy != 0) {
-        scrollBy(0, dy);
-        tgx101DragApply(tgx101DragLastY);
+      long now = android.os.SystemClock.uptimeMillis();
+      long dt = tgx101AutoScrollLast == 0 ? 8 : Math.min(32, now - tgx101AutoScrollLast);
+      tgx101AutoScrollLast = now;
+      float edge = Screen.dp(96f);
+      float depth = tgx101DragLastY < edge ? -(edge - tgx101DragLastY) / edge : tgx101DragLastY > getHeight() - edge ? (tgx101DragLastY - (getHeight() - edge)) / edge : 0f;
+      depth = Math.max(-1f, Math.min(1f, depth));
+      if (depth != 0f) {
+        float k = Math.abs(depth);
+        float speed = Screen.dp(.12f + 1.3f * k * k); // px per ms: from ~120 to ~1400 dp a second
+        tgx101AutoScrollRest += Math.signum(depth) * speed * dt;
+        int dy = (int) tgx101AutoScrollRest;
+        if (dy != 0) {
+          tgx101AutoScrollRest -= dy;
+          scrollBy(0, dy);
+          tgx101DragApply(tgx101DragLastY);
+        }
+      } else {
+        tgx101AutoScrollRest = 0f;
       }
-      postDelayed(this, 16);
+      postOnAnimation(this);
     }
   };
+
+  private void tgx101StartAutoScroll () {
+    removeCallbacks(tgx101AutoScroll);
+    tgx101AutoScrollLast = 0;
+    tgx101AutoScrollRest = 0f;
+    postOnAnimation(tgx101AutoScroll);
+  }
 
   private int tgx101PositionAt (float y) {
     View child = findChildViewUnder(getWidth() / 2f, y);
@@ -400,7 +425,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
       super.dispatchTouchEvent(cancel);
       cancel.recycle();
       tgx101DragApply(e.getY());
-      post(tgx101AutoScroll);
+      tgx101StartAutoScroll();
       return true;
     }
     if (manager != null && tgx101DragSelect && !tgx101DownInSelect) {
@@ -453,7 +478,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
                 super.dispatchTouchEvent(cancel);
                 cancel.recycle();
                 tgx101DragApply(e.getY());
-                post(tgx101AutoScroll);
+                tgx101StartAutoScroll();
                 return true;
               }
               tgx101DragTracking = false;
