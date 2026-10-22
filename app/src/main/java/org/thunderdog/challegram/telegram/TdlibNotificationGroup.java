@@ -103,6 +103,18 @@ public class TdlibNotificationGroup implements Iterable<TdlibNotification> {
 
   @Nullable
   public TdApi.MessageTopic getMessageTopicId () {
+    // TGx101 (user 2026-10-22 «как в официальном»): a reply from a notification of a group with topics goes to the topic
+    // of the latest message it answers — it went to the group without one (General)
+    if (!tdlib.isForum(chatId)) return null;
+    TdlibNotification last = null;
+    for (TdlibNotification notification : this) {
+      TdApi.NotificationType type = notification.getNotificationContent();
+      if (type instanceof TdApi.NotificationTypeNewMessage) last = notification;
+    }
+    if (last != null) {
+      TdApi.Message message = ((TdApi.NotificationTypeNewMessage) last.getNotificationContent()).message;
+      if (message != null && message.topicId instanceof TdApi.MessageTopicForum) return message.topicId;
+    }
     return null;
   }
 

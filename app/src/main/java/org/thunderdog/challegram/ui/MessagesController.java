@@ -2489,7 +2489,32 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Nullable
   public TdApi.DraftMessage getDraftMessage () {
+    if (messageThread == null && tgx101InForumTopic()) {
+      return tgx101TopicDraft; // the topic's own, not the group's (chat.draftMessage)
+    }
     return messageThread != null ? messageThread.getDraft() : chat != null ? chat.draftMessage : null;
+  }
+
+  // TGx101 (user 2026-10-22 «как в официальном»: a draft per topic): a forum topic opened with the group's draft in its field,
+  // and its own draft — saved to the topic — never came back. Its draft is the topic's, loaded with it
+  private @Nullable TdApi.DraftMessage tgx101TopicDraft;
+
+  private boolean tgx101InForumTopic () {
+    return getMessageTopicId() instanceof TdApi.MessageTopicForum;
+  }
+
+  private void tgx101LoadTopicDraft () {
+    tgx101TopicDraft = null;
+    if (chat == null || messageThread != null || !tgx101InForumTopic()) return;
+    final long chatId = chat.id;
+    final TdApi.MessageTopic topicId = getMessageTopicId();
+    tdlib.send(new TdApi.GetForumTopic(chatId, ((TdApi.MessageTopicForum) topicId).forumTopicId), (topic, error) -> runOnUiThreadOptional(() -> {
+      if (topic == null || getChatId() != chatId || !Td.equalsTo(getMessageTopicId(), topicId)) return;
+      tgx101TopicDraft = topic.draftMessage;
+      if (tgx101TopicDraft != null && inputView != null && !inputView.textChangedSinceChatOpened() && !isEditingMessage()) {
+        updateDraftMessage(chatId, tgx101TopicDraft);
+      }
+    }));
   }
 
   public long getChatUserId () {
@@ -3602,6 +3627,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     TdApi.Chat headerChat = messageThread != null ? tdlib.chatSync(messageThread.getContextChatId()) : null;
     headerCell.setChat(tdlib, headerChat != null ? headerChat : chat, messageThread);
     Tgx101TopicsController.bindTopicHeader(this, headerCell, chat, messageTopicId); // TGx101: topic name in forum topics
+    tgx101LoadTopicDraft();
     if (tgx101TopicsItem != null) {
       // the group with topics opened as one feed: the switch back to its topics
       // (crash 2026-10-22, 0.2.240): the chat screen made ahead has no chat yet
@@ -5157,6 +5183,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
         TdApi.MessageTopic topicId = messageThread != null ? messageThread.getMessageTopicId() : getMessageTopicId();
         if (messageThread != null) {
           messageThread.setDraft(draftMessage);
+        } else if (tgx101InForumTopic()) {
+          tgx101TopicDraft = !Td.isEmpty(draftMessage) ? draftMessage : null;
         }
         tdlib.send(new TdApi.SetChatDraftMessage(
           outputChatId,
@@ -14516,7 +14544,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   @Override
   public void onChatDraftMessageChanged (final long chatId, final @Nullable TdApi.DraftMessage draftMessage) {
     runOnUiThreadOptional(() -> {
-      if (getChatId() == chatId && inputView != null && !inputView.textChangedSinceChatOpened() && !isSecretChat() && messageThread == null) {
+      if (getChatId() == chatId && inputView != null && !inputView.textChangedSinceChatOpened() && !isSecretChat() && messageThread == null && !tgx101InForumTopic() /* the group's draft, not this topic's */) {
         // Applying server chat draft changes only if text wasn't changed while chat was open
         updateDraftMessage(chatId, draftMessage);
       }

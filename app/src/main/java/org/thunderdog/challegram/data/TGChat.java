@@ -1227,6 +1227,10 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
       int prefixWidth = prefix.getWidth();
       avail -= prefixWidth;
       textLeft += prefixWidth;
+    } else if (tgx101Inline != null) { // «Who:» before the text of a group with topics
+      int inlineWidth = tgx101Inline.getWidth();
+      avail -= inlineWidth;
+      textLeft += inlineWidth;
     }
 
     this.textIconsPadding = textIconIds != null && textIconIds.size() > 0 ? Screen.dp(2f) + Screen.dp(18f) * textIconIds.size() : 0;
@@ -1277,20 +1281,37 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
     return textIconColorId;
   }
 
-  /** TGx101 (approved mockup «Группы с темами», Б): a group with topics shows the last message's topic — «who · topic» */
+  /** TGx101 (as in the official app, user 2026-10-22): a group with topics shows its latest topics on the second line
+   *  («⁉️ НЕПОЛАДКИ   # ПОЛЕМИКА») and «Who:» before the text on the third; until the topics are known — «who · topic» */
+  private @Nullable Text tgx101Inline;
+
+  public @Nullable Text tgx101GetInlinePrefix () {
+    return tgx101Inline;
+  }
+
   private String tgx101WithTopic (String prefix) {
+    tgx101InlineText = null;
     if (StringUtils.isEmpty(prefix) || listMode == Settings.CHAT_MODE_2LINE || showDraft() || chat == null || chat.lastMessage == null || !tdlib.isForum(chat.id)) return prefix;
     final TdApi.Message last = chat.lastMessage;
-    String topic = org.thunderdog.challegram.ui.Tgx101TopicsController.topicName(tdlib, chat.id, last.topicId, () -> {
+    Runnable refresh = () -> {
       if (chat != null && chat.lastMessage == last) {
         setPrefix();
         currentViews.invalidate();
       }
-    });
+    };
+    String line = org.thunderdog.challegram.ui.Tgx101TopicsController.recentTopicsLine(tdlib, chat, refresh);
+    if (line != null) {
+      tgx101InlineText = prefix + ": ";
+      return line;
+    }
+    String topic = org.thunderdog.challegram.ui.Tgx101TopicsController.topicName(tdlib, chat.id, last.topicId, refresh);
     return topic != null ? prefix + " · " + topic : prefix;
   }
 
+  private @Nullable String tgx101InlineText;
+
   private void setPrefix () {
+    tgx101Inline = null;
     if ((flags & FLAG_HAS_PREFIX) != 0) {
       final String prefix;
       boolean needSuffix = true;
@@ -1327,6 +1348,12 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
             b.suffix(": ");
           }
           this.prefix = b.build();
+          if (tgx101InlineText != null) {
+            tgx101Inline = new Text.Builder(tgx101InlineText, Math.max(Screen.dp(40f), avail / 2), getTextStyleProvider(listMode), TextColorSets.Regular.NORMAL)
+              .singleLine()
+              .textFlags(Text.FLAG_ELLIPSIZE_NO_FILL)
+              .build();
+          }
         } else {
           this.prefix = null;
         }

@@ -147,6 +147,76 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     });
   }
 
+  // The chat list's line of a group's latest topics (as in the official app): «⁉️ НЕПОЛАДКИ   # ПОЛЕМИКА   💰 КУПЛЮ», the last
+  // message's topic first; by account and group, rebuilt when the group's last message changes
+  private static final java.util.Map<String, Object[]> recentLines = new java.util.concurrent.ConcurrentHashMap<>(); // {lastMessageId, line}
+  private static final java.util.Set<String> recentLoading = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+
+  public static @Nullable String recentTopicsLine (Tdlib tdlib, TdApi.Chat chat, @Nullable Runnable onLoaded) {
+    if (chat == null || chat.lastMessage == null) return null;
+    final String key = cacheKey(tdlib, chat.id);
+    final long lastId = chat.lastMessage.id;
+    Object[] entry = recentLines.get(key);
+    if (entry != null && (Long) entry[0] == lastId) return (String) entry[1];
+    final TdApi.MessageTopic lastTopic = chat.lastMessage.topicId;
+    if (recentLoading.add(key)) {
+      tdlib.send(new TdApi.GetForumTopics(chat.id, "", 0, 0, 0, 4), (page, error) -> UI.post(() -> { // the emoji cache is the UI thread's
+        recentLoading.remove(key);
+        if (page == null || page.topics.length == 0) return;
+        List<TdApi.ForumTopic> list = new ArrayList<>();
+        for (TdApi.ForumTopic topic : page.topics) list.add(topic);
+        // the last message's topic leads
+        if (lastTopic instanceof TdApi.MessageTopicForum) {
+          int id = ((TdApi.MessageTopicForum) lastTopic).forumTopicId;
+          for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).info.forumTopicId == id) {
+              list.add(0, list.remove(i));
+              break;
+            }
+          }
+        }
+        Runnable build = () -> {
+          StringBuilder b = new StringBuilder();
+          for (int i = 0; i < Math.min(3, list.size()); i++) {
+            TdApi.ForumTopicInfo info = list.get(i).info;
+            if (b.length() > 0) b.append("   ");
+            String emoji = info.icon != null && info.icon.customEmojiId != 0 ? iconEmoji.get(info.icon.customEmojiId) : null;
+            b.append(emoji != null ? emoji : "#").append(' ').append(info.name);
+          }
+          recentLines.put(key, new Object[] {lastId, b.toString()});
+          if (onLoaded != null) UI.post(onLoaded);
+        };
+        // their emoji first, so the line is built once
+        List<Long> missing = new ArrayList<>();
+        for (TdApi.ForumTopic topic : list) {
+          long id = topic.info.icon != null ? topic.info.icon.customEmojiId : 0;
+          if (id != 0 && iconEmoji.get(id) == null) missing.add(id);
+        }
+        if (missing.isEmpty()) {
+          build.run();
+          return;
+        }
+        long[] ids = new long[missing.size()];
+        for (int i = 0; i < ids.length; i++) ids[i] = missing.get(i);
+        tdlib.send(new TdApi.GetCustomEmojiStickers(ids), (stickers, error2) -> {
+          if (stickers != null) {
+            UI.post(() -> {
+              for (TdApi.Sticker sticker : stickers.stickers) {
+                if (sticker.fullType instanceof TdApi.StickerFullTypeCustomEmoji && !StringUtils.isEmpty(sticker.emoji)) {
+                  iconEmoji.put(((TdApi.StickerFullTypeCustomEmoji) sticker.fullType).customEmojiId, sticker.emoji);
+                }
+              }
+              build.run();
+            });
+          } else {
+            build.run();
+          }
+        });
+      }));
+    }
+    return entry != null ? (String) entry[1] : null; // the old line until the new one comes
+  }
+
   // Topic names for the chat list and the feed (mockup «Группы с темами»: «who · topic» under a forum's name), by account
   private static final java.util.Map<String, String> topicNames = new java.util.concurrent.ConcurrentHashMap<>();
   private static final java.util.Set<String> topicNamesLoading = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
@@ -510,22 +580,182 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
   }
 
   private void createTopic () {
-    openInputAlert(Lang.getString(R.string.Tgx101TopicNew), Lang.getString(R.string.Tgx101TopicNameHint), R.string.Done, R.string.Cancel, null, (inputView, result) -> {
-      String name = result.trim();
-      if (StringUtils.isEmpty(name)) return false;
-      int color = ICON_COLORS[topics.size() % ICON_COLORS.length];
-      tdlib.send(new TdApi.CreateForumTopic(getArgumentsStrict().chat.id, name, false, new TdApi.ForumTopicIcon(color, 0)), (info, error) -> runOnUiThreadOptional(() -> {
-        if (info == null) {
-          UI.showToast(TD.toErrorString(error), Toast.LENGTH_SHORT);
-          return;
+    editTopic(null);
+  }
+
+  // The default icons Telegram offers for topics (custom emoji) → their emoji, shared
+  private static final List<Long> defaultIconIds = new ArrayList<>();
+
+  /**
+   * (user 2026-10-22 «как в официальном»): a topic is created or edited in one sheet — its name, and as in the official app
+   * its colour (only when it's created: Telegram fixes it then) and an emoji icon from Telegram's set for topics
+   */
+  private void editTopic (@Nullable TdApi.ForumTopic topic) {
+    final boolean creating = topic == null;
+    final int[] color = {creating ? ICON_COLORS[topics.size() % ICON_COLORS.length] : topic.info.icon.color};
+    final long[] emojiId = {creating ? 0 : topic.info.icon.customEmojiId};
+    final android.widget.EditText[] field = new android.widget.EditText[1];
+    final TextView[] preview = new TextView[1];
+    final Runnable[] refreshPreview = new Runnable[1];
+    final Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
+    h[0] = Tgx101Sheet.show(this, null, body -> {
+      Context ctx = context();
+      body.addView(Tgx101Sheet.title(ctx, Lang.getString(creating ? R.string.Tgx101TopicNew : R.string.Tgx101TopicEdit)));
+      // the icon as it will be, beside the name
+      LinearLayout nameRow = new LinearLayout(ctx);
+      nameRow.setOrientation(LinearLayout.HORIZONTAL);
+      nameRow.setGravity(Gravity.CENTER_VERTICAL);
+      TextView icon = new TextView(ctx);
+      icon.setGravity(Gravity.CENTER);
+      icon.setTypeface(Typeface.DEFAULT_BOLD);
+      preview[0] = icon;
+      LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(Screen.dp(44f), Screen.dp(44f));
+      ip.leftMargin = Screen.dp(16f);
+      ip.rightMargin = Screen.dp(10f);
+      nameRow.addView(icon, ip);
+      android.widget.EditText e = new android.widget.EditText(ctx);
+      field[0] = e;
+      e.setSingleLine(true);
+      e.setHint(Lang.getString(R.string.Tgx101TopicNameHint));
+      if (!creating) {
+        e.setText(topic.info.name);
+        e.setSelection(e.getText().length());
+      }
+      Tgx101SavedHomeController.styleField(e, true);
+      LinearLayout.LayoutParams ep = new LinearLayout.LayoutParams(0, Screen.dp(48f), 1f);
+      ep.rightMargin = Screen.dp(16f);
+      nameRow.addView(e, ep);
+      LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      rp.bottomMargin = Screen.dp(10f);
+      body.addView(nameRow, rp);
+      refreshPreview[0] = () -> {
+        String emoji = emojiId[0] != 0 ? iconEmoji.get(emojiId[0]) : null;
+        GradientDrawable square = new GradientDrawable();
+        square.setCornerRadius(Screen.dp(12f));
+        if (emoji != null) {
+          square.setColor(me.vkryl.core.ColorUtils.alphaColor(.16f, 0xff000000 | color[0]));
+          icon.setText(emoji);
+          icon.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22f);
+          icon.setTextColor(0xff000000);
+        } else {
+          square.setColor(0xff000000 | color[0]);
+          String name = field[0] != null ? field[0].getText().toString().trim() : "";
+          icon.setText(name.isEmpty() ? "#" : firstLetter(name));
+          icon.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18f);
+          icon.setTextColor(0xffffffff);
         }
-        load();
-        TdlibUi.ChatOpenParameters params = new TdlibUi.ChatOpenParameters().keepStack();
-        params.messageTopicId = new TdApi.MessageTopicForum(info.forumTopicId);
-        tdlib.ui().openChat(this, getArgumentsStrict().chat, params);
-      }));
-      return true;
-    }, true);
+        icon.setBackground(square);
+      };
+      e.addTextChangedListener(new android.text.TextWatcher() {
+        @Override public void beforeTextChanged (CharSequence s, int start, int count, int after) { }
+        @Override public void onTextChanged (CharSequence s, int start, int before, int count) { }
+        @Override public void afterTextChanged (android.text.Editable s) { refreshPreview[0].run(); }
+      });
+      // colours — only when creating
+      if (creating) {
+        LinearLayout colors = new LinearLayout(ctx);
+        colors.setOrientation(LinearLayout.HORIZONTAL);
+        colors.setGravity(Gravity.CENTER);
+        for (int c : ICON_COLORS) {
+          View dot = new View(ctx);
+          GradientDrawable d = new GradientDrawable();
+          d.setShape(GradientDrawable.OVAL);
+          d.setColor(0xff000000 | c);
+          dot.setBackground(d);
+          LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(Screen.dp(32f), Screen.dp(32f));
+          dp.leftMargin = dp.rightMargin = Screen.dp(7f);
+          dot.setOnClickListener(v -> {
+            color[0] = c;
+            refreshPreview[0].run();
+          });
+          colors.addView(dot, dp);
+        }
+        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f));
+        cp.bottomMargin = Screen.dp(6f);
+        body.addView(colors, cp);
+      }
+      // Telegram's icons for topics, 7 a row; the first cell — no icon (the colour and the letter)
+      LinearLayout grid = new LinearLayout(ctx);
+      grid.setOrientation(LinearLayout.VERTICAL);
+      LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      gp.leftMargin = gp.rightMargin = Screen.dp(12f);
+      gp.bottomMargin = Screen.dp(8f);
+      body.addView(grid, gp);
+      Runnable fillGrid = () -> {
+        grid.removeAllViews();
+        List<Long> ids = new ArrayList<>();
+        ids.add(0L);
+        ids.addAll(defaultIconIds);
+        LinearLayout row = null;
+        for (int k = 0; k < ids.size() && k < 7 * 6; k++) {
+          if (k % 7 == 0) {
+            row = new LinearLayout(ctx);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            grid.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f)));
+          }
+          final long id = ids.get(k);
+          TextView cell = new TextView(ctx);
+          cell.setGravity(Gravity.CENTER);
+          cell.setTextSize(TypedValue.COMPLEX_UNIT_DIP, id == 0 ? 15f : 22f);
+          cell.setText(id == 0 ? "Aa" : StringUtils.isEmpty(iconEmoji.get(id)) ? "·" : iconEmoji.get(id));
+          cell.setTextColor(Theme.textDecentColor());
+          cell.setOnClickListener(v -> {
+            emojiId[0] = id;
+            refreshPreview[0].run();
+          });
+          row.addView(cell, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+        }
+      };
+      fillGrid.run();
+      if (defaultIconIds.isEmpty()) {
+        tdlib.send(new TdApi.GetForumTopicDefaultIcons(), (stickers, error) -> runOnUiThreadOptional(() -> {
+          if (stickers == null) return;
+          defaultIconIds.clear();
+          for (TdApi.Sticker sticker : stickers.stickers) {
+            if (sticker.fullType instanceof TdApi.StickerFullTypeCustomEmoji) {
+              long id = ((TdApi.StickerFullTypeCustomEmoji) sticker.fullType).customEmojiId;
+              defaultIconIds.add(id);
+              if (!StringUtils.isEmpty(sticker.emoji)) iconEmoji.put(id, sticker.emoji);
+            }
+          }
+          fillGrid.run();
+        }));
+      }
+      Runnable submit = () -> {
+        String name = field[0].getText().toString().trim();
+        if (name.isEmpty()) return;
+        org.thunderdog.challegram.tool.Keyboard.hide(field[0]);
+        h[0].dismiss();
+        long chatId = getArgumentsStrict().chat.id;
+        if (creating) {
+          tdlib.send(new TdApi.CreateForumTopic(chatId, name, false, new TdApi.ForumTopicIcon(color[0], emojiId[0])), (info, error) -> runOnUiThreadOptional(() -> {
+            if (info == null) {
+              UI.showToast(TD.toErrorString(error), Toast.LENGTH_SHORT);
+              return;
+            }
+            load();
+            TdlibUi.ChatOpenParameters params = new TdlibUi.ChatOpenParameters().keepStack();
+            params.messageTopicId = new TdApi.MessageTopicForum(info.forumTopicId);
+            tdlib.ui().openChat(this, getArgumentsStrict().chat, params);
+          }));
+        } else {
+          send(new TdApi.EditForumTopic(chatId, topic.info.forumTopicId, name, emojiId[0] != topic.info.icon.customEmojiId, emojiId[0]));
+        }
+      };
+      e.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
+      e.setOnEditorActionListener((v, actionId, event) -> {
+        submit.run();
+        return true;
+      });
+      body.addView(Tgx101SavedActions.primaryButton(ctx, Lang.getString(R.string.Done), v -> submit.run()));
+      refreshPreview[0].run();
+    });
+    if (field[0] != null) {
+      field[0].requestFocus();
+      field[0].postDelayed(() -> {
+        if (androidx.core.view.ViewCompat.isAttachedToWindow(field[0])) org.thunderdog.challegram.tool.Keyboard.show(field[0]);
+      }, 280);
+    }
   }
 
   private void showTopicOptions (TdApi.ForumTopic topic) {
@@ -555,12 +785,7 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
       long chatId = getArgumentsStrict().chat.id;
       int topicId = topic.info.forumTopicId;
       if (id == R.id.btn_tgx101TopicEdit) {
-        openInputAlert(Lang.getString(R.string.Tgx101TopicEdit), Lang.getString(R.string.Tgx101TopicNameHint), R.string.Done, R.string.Cancel, topic.info.name, (inputView, result) -> {
-          String name = result.trim();
-          if (StringUtils.isEmpty(name)) return false;
-          send(new TdApi.EditForumTopic(chatId, topicId, name, false, 0));
-          return true;
-        }, true);
+        editTopic(topic);
       } else if (id == R.id.btn_tgx101TopicPin) {
         send(new TdApi.ToggleForumTopicIsPinned(chatId, topicId, !topic.isPinned));
       } else if (id == R.id.btn_tgx101TopicClose) {

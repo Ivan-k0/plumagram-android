@@ -826,6 +826,8 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
           }
         }
 
+        Text tgx101Inline = chat.tgx101GetInlinePrefix();
+        if (tgx101Inline != null) tgx101Inline.draw(c, getLeftPadding(chatListMode), textTop, null, textAlpha);
         text.draw(c, chat.getTextLeft(), textTop, null, textAlpha, textMediaReceiver);
       }
 
