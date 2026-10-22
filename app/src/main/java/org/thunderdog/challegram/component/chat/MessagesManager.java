@@ -2172,8 +2172,17 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         list.scrollBy(0, -delta); // back where it was (a scroll by dy raises the messages by dy)
         android.view.animation.Interpolator curve = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP ?
           new android.view.animation.PathInterpolator(.2f, 0f, 0f, 1f) : new android.view.animation.DecelerateInterpolator(1.5f);
-        list.smoothScrollBy(0, delta, curve, 160);
-        org.thunderdog.challegram.Tgx101Diag.mark("new message: chat glides up " + delta + " px");
+        int duration = 160;
+        // (user 2026-10-22 «прыгает чат при отправке сообщений средней длины», recorded: up 284 px in 70 ms, then back down
+        // 175 px): a multi-line field emptied by sending shrinks over 250 ms on a soft curve and lowers the messages with it,
+        // while the glide up was done in ~100 ms. Run on the field's own curve and time, the two moves add up to one
+        boolean withField = controller.tgx101IsFieldRevealing();
+        if (withField) {
+          curve = org.thunderdog.challegram.ui.MessagesController.tgx101RevealCurve();
+          duration = (int) org.thunderdog.challegram.ui.MessagesController.TGX101_REVEAL_DURATION;
+        }
+        list.smoothScrollBy(0, delta, curve, duration);
+        org.thunderdog.challegram.Tgx101Diag.mark("new message: chat glides up " + delta + " px" + (withField ? " with the field" : ""));
         return false;
       }
     });

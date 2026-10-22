@@ -11447,6 +11447,17 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private float tgx101TopReveal;
   private android.animation.ValueAnimator tgx101RevealAnimator;
 
+  /** The field's top is gliding to a new height right now (a field emptied by sending shrinks over 250 ms) */
+  public boolean tgx101IsFieldRevealing () {
+    return tgx101RevealAnimator != null && tgx101RevealAnimator.isRunning();
+  }
+
+  public static final long TGX101_REVEAL_DURATION = 250;
+
+  public static android.view.animation.Interpolator tgx101RevealCurve () {
+    return androidx.core.view.animation.PathInterpolatorCompat.create(.25f, .1f, .25f, 1f);
+  }
+
   private void tgx101RevealGrowth (int delta) {
     // a shrinking field draws its top above its own bounds while it comes down — the container must not cut it off (it
     // showed the chat through that strip and tore the reply bar off the field for a moment, user 2026-10-11)
@@ -11459,8 +11470,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // TGx101 (user 2026-10-13 «ход поля ввода намного резче, чем в exteraGram — у нас резко, там плавно»): 160 ms with a
     // strong deceleration put most of the move into the first frames — the field and the chat behind it jumped. Like the
     // official app: longer, with a soft start and a soft stop (the chat follows the same curve)
-    tgx101RevealAnimator.setDuration(250);
-    tgx101RevealAnimator.setInterpolator(androidx.core.view.animation.PathInterpolatorCompat.create(.25f, .1f, .25f, 1f));
+    tgx101RevealAnimator.setDuration(TGX101_REVEAL_DURATION);
+    tgx101RevealAnimator.setInterpolator(tgx101RevealCurve());
     tgx101RevealAnimator.addUpdateListener(a -> tgx101SetTopReveal((float) a.getAnimatedValue()));
     tgx101SetTopReveal(from);
     tgx101RevealAnimator.start();
@@ -11625,6 +11636,25 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private boolean tgx101PaddingSkippedLeaving;
 
+  // (user 2026-10-22 «после возврата в чат… съезжает вниз каждый раз, должен быть сразу внизу»): the room skipped while
+  // leaving is put once the chat is off screen — at once, no glide — so the chat opened again stands at the bottom already
+  private final Runnable tgx101PaddingAfterLeaving = new Runnable() {
+    @Override
+    public void run () {
+      if (!tgx101PaddingSkippedLeaving || messagesView == null) return;
+      NavigationController nav = navigationController();
+      if (nav != null && nav.isAnimating() && nav.getCurrentStackItem() == MessagesController.this) {
+        messagesView.postDelayed(this, 60);
+        return;
+      }
+      tgx101PaddingSkippedLeaving = false;
+      tgx101ShrinkConfirmed = true; // no 120 ms wait: nothing on screen to jump
+      updateFloatingListPadding();
+      tgx101ShrinkConfirmed = false;
+      if (tgx101GlideAnimator != null) tgx101GlideAnimator.end();
+    }
+  };
+
   private void updateFloatingListPadding () {
     if (!floatingInput || messagesView == null || bottomWrap == null) return;
     if (tgx101ImeRiding && !tgx101ImeStarted) return; // the end-state layout before the ride starts: not real yet
@@ -11636,7 +11666,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // went down while the chat slid away and the list was laid out again for every step of it — the chat is leaving, its
     // room doesn't matter. If the back is cancelled, onFocus catches up
     if (!isFocused() && navigationController() != null && navigationController().isAnimating() && navigationController().getCurrentStackItem() == this) {
-      tgx101PaddingSkippedLeaving = true;
+      if (!tgx101PaddingSkippedLeaving) {
+        tgx101PaddingSkippedLeaving = true;
+        messagesView.postDelayed(tgx101PaddingAfterLeaving, 60);
+      }
       return;
     }
     // user 2026-10-07 00:08 «нижняя полоса наезжает на текст»: the capsule is lifted above the navigation bar, so the
