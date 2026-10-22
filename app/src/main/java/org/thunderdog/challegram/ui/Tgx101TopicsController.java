@@ -100,15 +100,20 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
    */
   public static void dropWhenReplaced (ViewController<?> from) {
     final long until = android.os.SystemClock.uptimeMillis() + 4000;
+    // (user 2026-10-22 «порой нужно нажать назад 3–4 раза, чтобы выйти из супергруппы»): taken now — a screen covered by the
+    // next one is detached from the navigation (navigationController() is null then), and the check gave up: every
+    // «Topics → Feed» left the topics under the feed
+    final org.thunderdog.challegram.navigation.NavigationController nav = from.navigationController() != null ? from.navigationController() : from.context().navigation();
+    if (nav == null) return;
     Runnable check = new Runnable() {
       @Override
       public void run () {
-        if (from.isDestroyed() || from.navigationController() == null) return;
-        org.thunderdog.challegram.navigation.NavigationController nav = from.navigationController();
+        if (from.isDestroyed()) return;
         org.thunderdog.challegram.navigation.NavigationStack stack = nav.getStack();
         int index = stack.indexOf(from);
         if (index == -1) return;
         if (!nav.isAnimating() && index < stack.size() - 1) {
+          org.thunderdog.challegram.Tgx101Diag.mark("topics: " + from.getClass().getSimpleName() + " taken out of the stack, replaced");
           stack.destroy(index);
           return;
         }
@@ -296,34 +301,8 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     }
     adapter = new TopicsAdapter();
     recyclerView.setAdapter(adapter);
-    // a swipe to the left over the topics opens the feed, as the switch does
-    recyclerView.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
-      private float downX, downY;
-      private boolean tracking;
-
-      @Override
-      public boolean onInterceptTouchEvent (@NonNull RecyclerView rv, @NonNull android.view.MotionEvent e) {
-        switch (e.getActionMasked()) {
-          case android.view.MotionEvent.ACTION_DOWN:
-            downX = e.getX();
-            downY = e.getY();
-            tracking = !inSearchMode();
-            break;
-          case android.view.MotionEvent.ACTION_MOVE: {
-            float dx = e.getX() - downX, dy = e.getY() - downY;
-            if (tracking && dx < -Screen.dp(72f) && Math.abs(dx) > Math.abs(dy) * 2f) {
-              tracking = false;
-              if (topicsSwitch != null) topicsSwitch.setFeed(true, true);
-              rv.postDelayed(() -> openAllMessages(), 140);
-              return true;
-            }
-            if (Math.abs(dy) > Screen.dp(16f)) tracking = false;
-            break;
-          }
-        }
-        return false;
-      }
-    });
+    // (no swipe over the topics list: a sideways swipe there is the back gesture's, user 2026-10-22 — the feed came up
+    // instead of going back; the switch itself still takes a tap or a swipe)
     buildRows();
     load();
   }
