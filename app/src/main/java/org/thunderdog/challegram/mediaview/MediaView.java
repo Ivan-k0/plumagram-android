@@ -963,11 +963,13 @@ public class MediaView extends FrameLayoutFix {
         if (gState == G_PENDING) {
           if (Math.max(Math.abs(dx), Math.abs(dy)) < Screen.getTouchSlop() * 1.5f) return false;
           removeCallbacks(gLongPress);
-          // zones: a sideways swipe from the outer 18 % of the width pages the media; vertical swipes on the left third
+          // zones: a sideways swipe from an outer third pages the media; vertical swipes on the left third
           // are brightness, on the right third volume, in the middle third they close the viewer as usual
           float width = getMeasuredWidth();
           boolean horizontal = Math.abs(dx) > Math.abs(dy), left = gDownX < width / 3f, right = gDownX > width * 2f / 3f;
-          boolean fromEdge = gDownX < width * .26f || gDownX > width * .74f; // wider paging zone (В4)
+          // seeking only from the middle third (user 2026-10-22 «область свайпа для перемотки сделать меньше», it was the
+          // middle 48 %): a sideways swipe from either outer third pages the media — the same thirds as the double tap
+          boolean fromEdge = gDownX < width / 3f || gDownX > width * 2f / 3f;
           boolean pass;
           if (horizontal) {
             pass = fromEdge || !gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_SEEK);
