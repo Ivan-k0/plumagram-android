@@ -2370,6 +2370,15 @@ public class Settings {
       }
       pmc.putBoolean(marker2, true);
     }
+    // the third (user 2026-10-22 «для новых пользователей: птичка, включённое боковое меню, свайп в хранилище»): the
+    // side menu instead of the bottom capsule, so the bird shows from the start — who has the app keeps the capsule
+    final String marker3 = "tgx101_defaults_2026_10_22";
+    if (!pmc.getBoolean(marker3, false)) {
+      if (!freshInstall) {
+        if (!pmc.contains(KEY_TGX101_NAV_CAPSULE)) pmc.putBoolean(KEY_TGX101_NAV_CAPSULE, true);
+      }
+      pmc.putBoolean(marker3, true);
+    }
   }
 
   private boolean isFreshAppInstallation () {
@@ -3773,7 +3782,7 @@ public class Settings {
   public boolean tgx101CapsuleScrollHide () { return pmc.getBoolean(KEY_TGX101_CAPSULE_SCROLL_HIDE, true); }
   public void setTgx101CapsuleScrollHide (boolean v) { pmc.putBoolean(KEY_TGX101_CAPSULE_SCROLL_HIDE, v); }
   public boolean tgx101NavCapsule () {
-    return pmc.getBoolean(KEY_TGX101_NAV_CAPSULE, true);
+    return pmc.getBoolean(KEY_TGX101_NAV_CAPSULE, false); // new installs: the side menu (see tgx101PinOldDefaults)
   }
   public void setTgx101NavCapsule (boolean v) { pmc.putBoolean(KEY_TGX101_NAV_CAPSULE, v); }
   // TGx101 (4PDA request, user 2026-10-06 «делай вебсокет»): Telegram through WebSocket like the web version
