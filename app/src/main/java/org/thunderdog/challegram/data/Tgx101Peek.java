@@ -93,7 +93,7 @@ public final class Tgx101Peek {
 
   public static boolean isAll () {
     load();
-    return all;
+    return all || chats.isEmpty();
   }
 
   public static void setAll (boolean value) {
@@ -152,7 +152,8 @@ public final class Tgx101Peek {
   /** Strength of the blur for this part of this chat's row, 0 — drawn as is */
   public static int strengthFor (long chatId, int part) {
     load();
-    if (!on || (!all && !chats.contains(chatId))) return 0;
+    // «only the chosen ones» with none chosen works everywhere: the switch must never do nothing (user 2026-10-22)
+    if (!on || (!all && !chats.isEmpty() && !chats.contains(chatId))) return 0;
     return strength(part);
   }
 

@@ -312,6 +312,9 @@ public class SelectChatsController extends RecyclerViewController<SelectChatsCon
         headerCell.setHint(bindLocaleChanger(R.string.IncludeChatsHint, headerCell.getInput(), /* isHint */ true, /* isMedium */ false));
       } else if (mode == MODE_FOLDER_EXCLUDE_CHATS) {
         headerCell.setHint(bindLocaleChanger(R.string.ExcludeChatsHint, headerCell.getInput(), /* isHint */ true, /* isMedium */ false));
+      } else if (mode == MODE_SELECT_CHATS) {
+        // TGx101 «Не подглядывай!» (user 2026-10-22): the field was blank, nothing said where to type
+        headerCell.setHint(bindLocaleChanger(R.string.Tgx101PeekPickHint, headerCell.getInput(), /* isHint */ true, /* isMedium */ false));
       }
       headerCell.setCallback(this);
       if (!bubbles.isEmpty()) {

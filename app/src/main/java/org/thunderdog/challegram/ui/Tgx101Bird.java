@@ -51,11 +51,11 @@ public final class Tgx101Bird {
     R.drawable.baseline_chat_bubble_24, R.drawable.baseline_search_24, R.drawable.baseline_swap_horiz_24, R.drawable.baseline_create_24,
     R.drawable.tgx101_menu_24, R.drawable.baseline_brightness_2_24, R.drawable.baseline_visibility_24
   };
-  // the mockup's colours
+  // one colour per action, none alike (user 2026-10-22 «нужно больше цветов, попадаются одинаковые»)
   private static final int[] COLORS = {
-    0xff5aa9e6, 0xff2f9e8f, 0xffa695e7, 0xff47c56b, 0xff6b7f95,
-    0xff4fae4e, 0xff6b7f95, 0xffe17076, 0xfffaa774,
-    0xff3d8fd6, 0xff5c6bc0, 0xff8e6fd8
+    0xff3d9be9 /* storage: blue */, 0xff26a69a /* proxy: teal */, 0xff9c6ade /* accounts: purple */, 0xff43a047 /* calls: green */,
+    0xff78909c /* settings: grey */, 0xff00acc1 /* compose: cyan */, 0xffafb42b /* search: lime */, 0xffe57373 /* next account: red */,
+    0xffffa726 /* note: orange */, 0xff8d6e63 /* menu: brown */, 0xff3f51b5 /* night: indigo */, 0xffd81b60 /* peek: crimson */
   };
 
   /** on every chat list while the side menu is used (not the bottom capsule) and ✎ is hidden */
@@ -72,7 +72,7 @@ public final class Tgx101Bird {
       if (i == ACTION_NIGHT) {
         // (user 2026-10-21): what it will turn to — the moon while it's light, the sun while it's dark
         boolean dark = org.thunderdog.challegram.theme.Theme.isDark();
-        out.add(new Tgx101BirdView.Item(i, dark ? R.drawable.tgx101_sun_24 : R.drawable.baseline_brightness_2_24, dark ? 0xfff0a830 : COLORS[i],
+        out.add(new Tgx101BirdView.Item(i, dark ? R.drawable.tgx101_sun_24 : R.drawable.baseline_brightness_2_24, dark ? 0xfff9a825 : COLORS[i],
           Lang.getString(dark ? R.string.Tgx101BirdDay : R.string.Tgx101BirdNightOn)));
         continue;
       }

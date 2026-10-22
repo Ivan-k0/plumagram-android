@@ -6479,7 +6479,7 @@
   <string name="Tgx101SectionStories">Stories</string>
   <string name="Tgx101SectionStoriesHint">Style, folders</string>
   <string name="Tgx101SectionMessages">Messages and menu</string>
-  <string name="Tgx101SectionMessagesHint">Message menu, tap, editor, quick replies</string>
+  <string name="Tgx101SectionMessagesHint">Message menu, tap, editor, gestures</string>
   <string name="Tgx101SectionChannels">Channels</string>
   <string name="Tgx101SectionChannelsHint">Reactions, next channel, buttons, comments</string>
   <string name="Tgx101SectionMedia">Media and camera</string>
@@ -6489,7 +6489,7 @@
   <string name="Tgx101SectionText">Text and font</string>
   <string name="Tgx101SectionTextHint">Font, weight, sizes, big emoji</string>
   <string name="Tgx101SectionCalls">Calls</string>
-  <string name="Tgx101SectionCallsHint">Call screen, photo, vibration, ringtone ramp</string>
+  <string name="Tgx101SectionCallsHint">Call screen, quick replies, photo, vibration</string>
   <string name="Tgx101SectionTranslate">Translation and speech</string>
   <string name="Tgx101SectionTranslateHint">On-device translation, speech recognition</string>
   <string name="Tgx101SectionIcon">App icon</string>
@@ -7263,6 +7263,7 @@
   <string name="Tgx101PeekAllChats">In all chats</string>
   <string name="Tgx101PeekSelectedChats">Only in chosen chats</string>
   <string name="Tgx101PeekChoose">Choose chats</string>
+  <string name="Tgx101PeekPickHint">What to hide…</string>
   <string name="Tgx101PeekNoChats">None</string>
   <string name="Tgx101PeekChatsCount">Chats: %1$d</string>
   <string name="Tgx101PeekOff">Off</string>

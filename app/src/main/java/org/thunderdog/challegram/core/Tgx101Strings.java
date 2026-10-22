@@ -994,6 +994,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PeekAllChats, "Во всех чатах");
     RU.put(R.string.Tgx101PeekSelectedChats, "Только в выбранных чатах");
     RU.put(R.string.Tgx101PeekChoose, "Выбрать чаты");
+    RU.put(R.string.Tgx101PeekPickHint, "Что нужно скрыть…");
     RU.put(R.string.Tgx101PeekNoChats, "Не выбраны");
     RU.put(R.string.Tgx101PeekChatsCount, "Чатов: %1$d");
     RU.put(R.string.Tgx101PeekOff, "Выкл.");
@@ -1115,7 +1116,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SectionStories, "Истории");
     RU.put(R.string.Tgx101SectionStoriesHint, "Вид, папки");
     RU.put(R.string.Tgx101SectionMessages, "Сообщения и меню");
-    RU.put(R.string.Tgx101SectionMessagesHint, "Меню сообщения, нажатие, редактор, быстрые ответы");
+    RU.put(R.string.Tgx101SectionMessagesHint, "Меню сообщения, нажатие, редактор, жесты");
     RU.put(R.string.Tgx101SectionChannels, "Каналы");
     RU.put(R.string.Tgx101SectionChannelsHint, "Реакции, следующий канал, кнопки, комментарии");
     RU.put(R.string.Tgx101SectionMedia, "Медиа и камера");
@@ -1125,7 +1126,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SectionText, "Текст и шрифт");
     RU.put(R.string.Tgx101SectionTextHint, "Шрифт, толщина, размеры, крупные эмодзи");
     RU.put(R.string.Tgx101SectionCalls, "Звонки");
-    RU.put(R.string.Tgx101SectionCallsHint, "Экран звонка, фото, вибрация, нарастание");
+    RU.put(R.string.Tgx101SectionCallsHint, "Экран звонка, быстрые ответы, фото, вибрация");
     RU.put(R.string.Tgx101SectionTranslate, "Перевод и речь");
     RU.put(R.string.Tgx101SectionTranslateHint, "Перевод на устройстве, распознавание");
     RU.put(R.string.Tgx101SectionIcon, "Иконка");

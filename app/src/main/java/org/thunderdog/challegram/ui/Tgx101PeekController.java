@@ -106,7 +106,10 @@ public class Tgx101PeekController extends RecyclerViewController<Void> implement
   @Override
   public void onFocus () {
     super.onFocus();
-    if (adapter != null) adapter.updateValuedSettingById(R.id.btn_tgx101PeekChats); // back from picking the chats
+    if (adapter != null) {
+      // back from picking with nothing chosen: «only the chosen ones» means every chat then — show it so
+      adapter.setItems(buildItems(), false);
+    }
   }
 
   private ListItem slider (int id, int titleRes, int part) {
