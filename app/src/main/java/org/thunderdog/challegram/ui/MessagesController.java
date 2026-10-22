@@ -3638,6 +3638,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tgx101TopicsSwitch.setFeed(true, false);
       topBar.setItemVisible(tgx101TopicsItem, feed, false);
       if (feed) Tgx101TopicsController.prefetch(tdlib, chat.id); // «Topics» then opens at once
+      tgx101NeedTopicsUnder = feed;
     }
 
     if (inPreviewMode) {
@@ -4954,6 +4955,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public void onFocus () {
     tgx101ResetMotion("focus");
     super.onFocus();
+    if (tgx101NeedTopicsUnder && chat != null) {
+      tgx101NeedTopicsUnder = false;
+      Tgx101TopicsController.ensureTopicsUnder(this, chat); // back from the group's feed — to its topics
+    }
     tgx101Leaving = false;
     if (tgx101PaddingSkippedLeaving) {
       tgx101PaddingSkippedLeaving = false;
@@ -8097,6 +8102,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private CollapseListView.Item tgx101VoiceItem;
   private CollapseListView.Item tgx101TopicsItem;
   private org.thunderdog.challegram.component.chat.Tgx101TopicsSwitch tgx101TopicsSwitch;
+  private boolean tgx101NeedTopicsUnder;
 
   public @Nullable ReplyInfo getCurrentReplyId () {
     if (reply != null) {

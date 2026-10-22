@@ -123,9 +123,34 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     UI.post(check, 50);
   }
 
-  /** From a forum's one feed to its topics: the feed is replaced */
+  /** The group's topics screen right under {@code feed} in the stack, or null */
+  private static @Nullable Tgx101TopicsController topicsUnder (ViewController<?> feed, long chatId) {
+    org.thunderdog.challegram.navigation.NavigationController nav = feed.navigationController() != null ? feed.navigationController() : feed.context().navigation();
+    if (nav == null) return null;
+    org.thunderdog.challegram.navigation.NavigationStack stack = nav.getStack();
+    int index = stack.indexOf(feed);
+    ViewController<?> below = index > 0 ? stack.get(index - 1) : null;
+    return below instanceof Tgx101TopicsController && ((Tgx101TopicsController) below).getChatId() == chatId ? (Tgx101TopicsController) below : null;
+  }
+
+  /** A group's feed always has its topics under it, so back from the feed leads to the topics, and from them to the chats */
+  public static void ensureTopicsUnder (ViewController<?> feed, TdApi.Chat chat) {
+    if (topicsUnder(feed, chat.id) != null) return;
+    org.thunderdog.challegram.navigation.NavigationController nav = feed.navigationController() != null ? feed.navigationController() : feed.context().navigation();
+    if (nav == null || nav.getStack().getCurrent() != feed) return;
+    Tgx101TopicsController c = new Tgx101TopicsController(feed.context(), feed.tdlib());
+    c.setArguments(new Args(chat, null));
+    nav.getStack().insertBack(c);
+    org.thunderdog.challegram.Tgx101Diag.mark("topics: put under the group's feed");
+  }
+
+  /** From a forum's one feed to its topics: back to the topics under it */
   public static void switchToTopics (ViewController<?> feed, TdApi.Chat chat) {
     feed.tdlib().send(new TdApi.ToggleChatViewAsTopics(chat.id, true), (ok, error) -> { });
+    if (topicsUnder(feed, chat.id) != null) {
+      feed.navigateBack();
+      return;
+    }
     Tgx101TopicsController c = new Tgx101TopicsController(feed.context(), feed.tdlib());
     c.setArguments(new Args(chat, null));
     c.forceFastAnimationOnce();
@@ -554,7 +579,7 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     params.chatList = getArgumentsStrict().chatList;
     params.tgx101IgnoreTopics = true;
     tdlib.ui().openChat(this, chat, params);
-    dropWhenReplaced(this); // «Feed» takes this screen's place
+    // (user 2026-10-22 «из ленты свайп должен вести в темы всегда, а с тем — уже в список чатов»): the topics stay under the feed
   }
 
   @Override
