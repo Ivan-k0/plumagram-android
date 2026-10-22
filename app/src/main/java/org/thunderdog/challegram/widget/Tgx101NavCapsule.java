@@ -414,7 +414,7 @@ public class Tgx101NavCapsule extends View {
         if (accountIds[i] == -1) continue;
         menuAvatars[i] = new org.thunderdog.challegram.loader.AvatarReceiver(this);
         menuAvatars[i].requestAccount(tdlib, accountIds[i], org.thunderdog.challegram.loader.AvatarReceiver.Options.NONE);
-        if (isAttachedToWindow()) menuAvatars[i].attach();
+        if (androidx.core.view.ViewCompat.isAttachedToWindow(this)) menuAvatars[i].attach(); // View#isAttachedToWindow: Android 4.4+
       }
     }
     menuBadges = badges;

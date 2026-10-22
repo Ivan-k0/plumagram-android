@@ -247,7 +247,8 @@ public class TGStickerObj {
   public TGStickerObj tgx101FullFrameRate () {
     // a weak phone (the system calls it low on memory) keeps the 30 fps cap
     android.app.ActivityManager am = (android.app.ActivityManager) org.thunderdog.challegram.unsorted.AppContext.get().getSystemService(android.content.Context.ACTIVITY_SERVICE);
-    if (am == null || !am.isLowRamDevice()) {
+    // isLowRamDevice: Android 4.4+; older phones count as weak
+    if (android.os.Build.VERSION.SDK_INT >= 19 && (am == null || !am.isLowRamDevice())) {
       this.previewOptimizationMode = GifFile.OptimizationMode.NONE;
     }
     return this;

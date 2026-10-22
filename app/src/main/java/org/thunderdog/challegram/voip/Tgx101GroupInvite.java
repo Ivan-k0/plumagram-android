@@ -283,10 +283,12 @@ public final class Tgx101GroupInvite {
       .addAction(R.drawable.round_call_end_24_white, Lang.getString(R.string.DeclineCall), declineIntent)
       .addAction(R.drawable.round_call_24_white, Lang.getString(R.string.AnswerCall), openIntent)
       .addAction(R.drawable.baseline_volume_off_24_white, Lang.getString(R.string.Tgx101CallSilence), silenceIntent)
-      .setPriority(Notification.PRIORITY_MAX)
-      .setCategory(Notification.CATEGORY_CALL)
-      .setVisibility(Notification.VISIBILITY_PUBLIC)
-      .setColor(tdlib.accountColor());
+      .setPriority(Notification.PRIORITY_MAX);
+    if (android.os.Build.VERSION.SDK_INT >= 21) { // not on Android 4
+      builder.setCategory(Notification.CATEGORY_CALL)
+        .setVisibility(Notification.VISIBILITY_PUBLIC)
+        .setColor(tdlib.accountColor());
+    }
     if (needFullScreen(context)) {
       builder.setFullScreenIntent(openIntent, true);
     }
@@ -301,7 +303,8 @@ public final class Tgx101GroupInvite {
   private static boolean needFullScreen (Context context) {
     android.os.PowerManager pm = (android.os.PowerManager) context.getSystemService(Context.POWER_SERVICE);
     android.app.KeyguardManager km = (android.app.KeyguardManager) context.getSystemService(Context.KEYGUARD_SERVICE);
-    boolean interactive = pm == null || pm.isInteractive();
+    //noinspection deprecation — isInteractive: Android 5+
+    boolean interactive = pm == null || (android.os.Build.VERSION.SDK_INT >= 20 ? pm.isInteractive() : pm.isScreenOn());
     boolean locked = km != null && km.isKeyguardLocked();
     return !interactive || locked;
   }

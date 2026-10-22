@@ -525,7 +525,7 @@ public class Tgx101BirdView extends View {
       Item item = new Item(i, 0, 0xffa695e7, account.getName(), account.id);
       AvatarReceiver avatar = new AvatarReceiver(this);
       avatar.requestAccount(tdlib, account.id, AvatarReceiver.Options.NONE);
-      if (isAttachedToWindow()) avatar.attach();
+      if (androidx.core.view.ViewCompat.isAttachedToWindow(this)) avatar.attach(); // View#isAttachedToWindow: Android 4.4+
       item.avatar = avatar;
       next[i] = item;
     }
