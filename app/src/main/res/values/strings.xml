@@ -5958,6 +5958,14 @@
   <string name="Tgx101TopicDelete">Delete topic</string>
   <string name="Tgx101TopicDeleteConfirm">Delete the topic «%1$s» with all its messages?</string>
   <string name="Tgx101TopicsEmpty">No topics yet</string>
+  <string name="Tgx101TopicCreatedPreview">Topic «%1$s» created</string>
+  <string name="Tgx101TopicEditedPreview">Topic renamed to «%1$s»</string>
+  <string name="Tgx101TopicIconEditedPreview">Topic icon changed</string>
+  <string name="Tgx101TopicClosedPreview">Topic closed</string>
+  <string name="Tgx101TopicReopenedPreview">Topic reopened</string>
+  <string name="Tgx101TopicHiddenPreview">Topic hidden</string>
+  <string name="Tgx101TopicShownPreview">Topic shown</string>
+  <string name="Tgx101TopicDraft">Draft</string>
   <string name="Tgx101TopicsTabTopics">Topics</string>
   <string name="Tgx101TopicsTabFeed">Feed</string>
   <string name="Tgx101TopicsSearchHint">Search topics</string>

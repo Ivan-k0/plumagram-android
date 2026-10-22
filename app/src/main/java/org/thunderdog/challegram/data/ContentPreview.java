@@ -388,6 +388,17 @@ public class ContentPreview {
         arg1 = story.viaMention ? ARG_TRUE : ARG_NONE;
         break;
       }
+      // TGx101 (user 2026-10-22, test group «Клод темы»): a topic's service messages read «Unsupported message» in the topic list
+      case TdApi.MessageForumTopicCreated.CONSTRUCTOR:
+        return new ContentPreview(null, 0, Lang.getString(R.string.Tgx101TopicCreatedPreview, ((TdApi.MessageForumTopicCreated) message.content).name), false);
+      case TdApi.MessageForumTopicEdited.CONSTRUCTOR: {
+        String name = ((TdApi.MessageForumTopicEdited) message.content).name;
+        return new ContentPreview(null, 0, StringUtils.isEmpty(name) ? Lang.getString(R.string.Tgx101TopicIconEditedPreview) : Lang.getString(R.string.Tgx101TopicEditedPreview, name), false);
+      }
+      case TdApi.MessageForumTopicIsClosedToggled.CONSTRUCTOR:
+        return new ContentPreview(null, 0, Lang.getString(((TdApi.MessageForumTopicIsClosedToggled) message.content).isClosed ? R.string.Tgx101TopicClosedPreview : R.string.Tgx101TopicReopenedPreview), false);
+      case TdApi.MessageForumTopicIsHiddenToggled.CONSTRUCTOR:
+        return new ContentPreview(null, 0, Lang.getString(((TdApi.MessageForumTopicIsHiddenToggled) message.content).isHidden ? R.string.Tgx101TopicHiddenPreview : R.string.Tgx101TopicShownPreview), false);
       case TdApi.MessagePinMessage.CONSTRUCTOR: {
         long pinnedMessageId = ((TdApi.MessagePinMessage) message.content).messageId;
         TdApi.Message pinnedMessage;
@@ -765,10 +776,6 @@ public class ContentPreview {
       case TdApi.MessageChatShared.CONSTRUCTOR:
       case TdApi.MessageSuggestProfilePhoto.CONSTRUCTOR:
       case TdApi.MessageSuggestBirthdate.CONSTRUCTOR:
-      case TdApi.MessageForumTopicCreated.CONSTRUCTOR:
-      case TdApi.MessageForumTopicEdited.CONSTRUCTOR:
-      case TdApi.MessageForumTopicIsClosedToggled.CONSTRUCTOR:
-      case TdApi.MessageForumTopicIsHiddenToggled.CONSTRUCTOR:
       case TdApi.MessagePassportDataSent.CONSTRUCTOR:
       case TdApi.MessageChatSetBackground.CONSTRUCTOR:
       case TdApi.MessageChecklist.CONSTRUCTOR:

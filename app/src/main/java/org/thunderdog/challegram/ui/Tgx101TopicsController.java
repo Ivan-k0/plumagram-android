@@ -597,6 +597,30 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     final android.widget.EditText[] field = new android.widget.EditText[1];
     final TextView[] preview = new TextView[1];
     final Runnable[] refreshPreview = new Runnable[1];
+    final List<View> colorDots = new ArrayList<>();
+    final List<Integer> dotColors = new ArrayList<>();
+    final List<TextView> iconCells = new ArrayList<>();
+    final List<Long> cellIds = new ArrayList<>();
+    // what is chosen shows: the colour with a ring, the icon on a soft square
+    final Runnable markChoice = () -> {
+      for (int k = 0; k < colorDots.size(); k++) {
+        GradientDrawable d = new GradientDrawable();
+        d.setShape(GradientDrawable.OVAL);
+        d.setColor(0xff000000 | dotColors.get(k));
+        if (dotColors.get(k) == color[0]) d.setStroke(Screen.dp(3f), Theme.getColor(ColorId.textNeutral));
+        colorDots.get(k).setBackground(d);
+      }
+      for (int k = 0; k < iconCells.size(); k++) {
+        if (cellIds.get(k) == emojiId[0]) {
+          GradientDrawable d = new GradientDrawable();
+          d.setCornerRadius(Screen.dp(10f));
+          d.setColor(me.vkryl.core.ColorUtils.alphaColor(.14f, Theme.getColor(ColorId.textNeutral)));
+          iconCells.get(k).setBackground(d);
+        } else {
+          iconCells.get(k).setBackground(null);
+        }
+      }
+    };
     final Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
     h[0] = Tgx101Sheet.show(this, null, body -> {
       Context ctx = context();
@@ -667,7 +691,10 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
           dot.setOnClickListener(v -> {
             color[0] = c;
             refreshPreview[0].run();
+            markChoice.run();
           });
+          colorDots.add(dot);
+          dotColors.add(c);
           colors.addView(dot, dp);
         }
         LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f));
@@ -683,6 +710,8 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
       body.addView(grid, gp);
       Runnable fillGrid = () -> {
         grid.removeAllViews();
+        iconCells.clear();
+        cellIds.clear();
         List<Long> ids = new ArrayList<>();
         ids.add(0L);
         ids.addAll(defaultIconIds);
@@ -702,9 +731,15 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
           cell.setOnClickListener(v -> {
             emojiId[0] = id;
             refreshPreview[0].run();
+            markChoice.run();
           });
-          row.addView(cell, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+          iconCells.add(cell);
+          cellIds.add(id);
+          LinearLayout.LayoutParams cellParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
+          cellParams.leftMargin = cellParams.rightMargin = Screen.dp(2f);
+          row.addView(cell, cellParams);
         }
+        markChoice.run();
       };
       fillGrid.run();
       if (defaultIconIds.isEmpty()) {
@@ -980,7 +1015,18 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
       }
 
       TdApi.Message last = topic.lastMessage;
-      if (last != null) {
+      String draftText = topic.draftMessage != null && topic.draftMessage.content instanceof TdApi.DraftMessageContentText ? ((TdApi.DraftMessageContentText) topic.draftMessage.content).text.text : null;
+      if (!StringUtils.isEmpty(draftText)) {
+        // the topic's draft first, as in the official app: «Draft:» in red
+        String label = Lang.getString(R.string.Tgx101TopicDraft);
+        android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder(label).append(": ").append(draftText.replace('\n', ' '));
+        b.setSpan(new android.text.style.ForegroundColorSpan(Theme.textRedColor()), 0, label.length() + 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        subtitle.setText(b);
+        if (last != null) {
+          date.setText(Lang.timeOrDateShort(Math.max(last.date, topic.draftMessage.date), TimeUnit.SECONDS));
+          date.setVisibility(View.VISIBLE);
+        }
+      } else if (last != null) {
         String text = ContentPreview.getChatListPreview(tdlib, last.chatId, last, false).buildText(true);
         String sender = last.isOutgoing ? Lang.getString(R.string.FromYou) : tdlib.senderName(last, false, true);
         if (StringUtils.isEmpty(sender)) {

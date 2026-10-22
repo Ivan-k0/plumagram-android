@@ -119,6 +119,14 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101TopicDelete, "Удалить тему");
     RU.put(R.string.Tgx101TopicDeleteConfirm, "Удалить тему «%1$s» со всеми сообщениями?");
     RU.put(R.string.Tgx101TopicsEmpty, "Тем пока нет");
+    RU.put(R.string.Tgx101TopicCreatedPreview, "Тема «%1$s» создана");
+    RU.put(R.string.Tgx101TopicEditedPreview, "Тема переименована в «%1$s»");
+    RU.put(R.string.Tgx101TopicIconEditedPreview, "Значок темы изменён");
+    RU.put(R.string.Tgx101TopicClosedPreview, "Тема закрыта");
+    RU.put(R.string.Tgx101TopicReopenedPreview, "Тема снова открыта");
+    RU.put(R.string.Tgx101TopicHiddenPreview, "Тема скрыта");
+    RU.put(R.string.Tgx101TopicShownPreview, "Тема снова видна");
+    RU.put(R.string.Tgx101TopicDraft, "Черновик");
     RU.put(R.string.Tgx101TopicsTabTopics, "Темы");
     RU.put(R.string.Tgx101TopicsTabFeed, "Лента");
     RU.put(R.string.Tgx101TopicsSearchHint, "Поиск тем");
