@@ -37,25 +37,25 @@ public final class Tgx101Bird {
   private Tgx101Bird () { }
 
   public static final int ACTION_STORAGE = 0, ACTION_PROXY = 1, ACTION_ACCOUNTS = 2, ACTION_CALLS = 3, ACTION_SETTINGS = 4,
-    ACTION_COMPOSE = 5, ACTION_SEARCH = 6, ACTION_NEXT_ACCOUNT = 7, ACTION_NOTE = 8, ACTION_MENU = 9, ACTION_NIGHT = 10;
+    ACTION_COMPOSE = 5, ACTION_SEARCH = 6, ACTION_NEXT_ACCOUNT = 7, ACTION_NOTE = 8, ACTION_MENU = 9, ACTION_NIGHT = 10, ACTION_PEEK = 11;
   public static final int MAX = 7; // (user 2026-10-22 «7 возможных кнопок вместо 5, в два ряда — 4 и 3»)
 
   /** the order of the bits in {@link Settings#tgx101BirdRing()} */
   public static final int[] TITLES = {
     R.string.Tgx101BirdStorage, R.string.Tgx101BirdProxy, R.string.Tgx101BirdAccounts, R.string.Tgx101BirdCalls, R.string.Tgx101BirdSettings,
     R.string.Tgx101BirdCompose, R.string.Tgx101BirdSearch, R.string.Tgx101BirdNextAccount, R.string.Tgx101BirdNote,
-    R.string.Tgx101BirdMenu, R.string.Tgx101BirdNight
+    R.string.Tgx101BirdMenu, R.string.Tgx101BirdNight, R.string.Tgx101Peek
   };
   private static final int[] ICONS = {
     R.drawable.tgx101_storage_tiles_24, R.drawable.baseline_security_24, R.drawable.baseline_group_24, R.drawable.baseline_phone_24, R.drawable.baseline_settings_24,
     R.drawable.baseline_chat_bubble_24, R.drawable.baseline_search_24, R.drawable.baseline_swap_horiz_24, R.drawable.baseline_create_24,
-    R.drawable.tgx101_menu_24, R.drawable.baseline_brightness_2_24
+    R.drawable.tgx101_menu_24, R.drawable.baseline_brightness_2_24, R.drawable.baseline_visibility_24
   };
   // the mockup's colours
   private static final int[] COLORS = {
     0xff5aa9e6, 0xff2f9e8f, 0xffa695e7, 0xff47c56b, 0xff6b7f95,
     0xff4fae4e, 0xff6b7f95, 0xffe17076, 0xfffaa774,
-    0xff3d8fd6, 0xff5c6bc0
+    0xff3d8fd6, 0xff5c6bc0, 0xff8e6fd8
   };
 
   /** on every chat list while the side menu is used (not the bottom capsule) and ✎ is hidden */
@@ -74,6 +74,11 @@ public final class Tgx101Bird {
         boolean dark = org.thunderdog.challegram.theme.Theme.isDark();
         out.add(new Tgx101BirdView.Item(i, dark ? R.drawable.tgx101_sun_24 : R.drawable.baseline_brightness_2_24, dark ? 0xfff0a830 : COLORS[i],
           Lang.getString(dark ? R.string.Tgx101BirdDay : R.string.Tgx101BirdNightOn)));
+        continue;
+      }
+      if (i == ACTION_PEEK) {
+        // «Не подглядывай!» (user 2026-10-22): the eye crossed out while it's on
+        out.add(new Tgx101BirdView.Item(i, org.thunderdog.challegram.data.Tgx101Peek.isOn() ? R.drawable.baseline_eye_off_24 : R.drawable.baseline_visibility_24, COLORS[i], Lang.getString(TITLES[i])));
         continue;
       }
       out.add(new Tgx101BirdView.Item(i, ICONS[i], COLORS[i], Lang.getString(TITLES[i])));
@@ -159,6 +164,9 @@ public final class Tgx101Bird {
         break;
       case ACTION_NIGHT:
         org.thunderdog.challegram.theme.ThemeManager.instance().toggleNightMode();
+        break;
+      case ACTION_PEEK:
+        Tgx101PeekController.toggleWithToast();
         break;
       case ACTION_NEXT_ACCOUNT: {
         List<TdlibAccount> accounts = TdlibManager.instance().getActiveAccounts();

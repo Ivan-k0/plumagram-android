@@ -3786,7 +3786,15 @@ public class Settings {
   public void setTgx101CapsuleCollapsed (boolean v) { pmc.putBoolean(KEY_TGX101_CAPSULE_COLLAPSED, v); }
   // Hold menu of the capsule's «Settings»: bit i = MainController.TGX101_CAPSULE_MENU_TITLES[i] shown (at least 2)
   private static final String KEY_TGX101_CAPSULE_MENU = "tgx101_capsule_menu";
-  public int tgx101CapsuleMenu () { return pmc.getInt(KEY_TGX101_CAPSULE_MENU, 0x1F); }
+  public int tgx101CapsuleMenu () {
+    int mask = pmc.getInt(KEY_TGX101_CAPSULE_MENU, 0x1F);
+    if (!pmc.getBoolean("tgx101_capsule_menu_peek", false)) {
+      // «Не подглядывай!» (user 2026-10-22) joins the menu once, also for a menu set up before
+      mask |= 1 << 6;
+      pmc.edit().putInt(KEY_TGX101_CAPSULE_MENU, mask).putBoolean("tgx101_capsule_menu_peek", true).apply();
+    }
+    return mask;
+  }
   public void setTgx101CapsuleMenu (int mask) { pmc.putInt(KEY_TGX101_CAPSULE_MENU, mask); }
   // Hold menu of «Contacts»: bit i = MainController.TGX101_CONTACTS_MENU_TITLES[i] (sync is off by default)
   private static final String KEY_TGX101_CONTACTS_MENU = "tgx101_contacts_menu";

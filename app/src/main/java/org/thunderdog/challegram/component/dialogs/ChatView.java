@@ -376,6 +376,7 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
   }
 
   public void attach () {
+    org.thunderdog.challegram.data.Tgx101Peek.register(this);
     avatarReceiver.attach();
     textMediaReceiver.attach();
     emojiStatusReceiver.attach();
@@ -383,6 +384,10 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
   }
 
   public void detach () {
+    org.thunderdog.challegram.data.Tgx101Peek.unregister(this);
+    tgx101PeekAvatar.release();
+    tgx101PeekTitle.release();
+    tgx101PeekText.release();
     avatarReceiver.detach();
     textMediaReceiver.detach();
     emojiStatusReceiver.detach();
@@ -681,6 +686,83 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
     return false;
   }
 
+  private final org.thunderdog.challegram.data.Tgx101Peek.Painter tgx101PeekAvatar = new org.thunderdog.challegram.data.Tgx101Peek.Painter();
+  private final org.thunderdog.challegram.data.Tgx101Peek.Painter tgx101PeekTitle = new org.thunderdog.challegram.data.Tgx101Peek.Painter();
+  private final org.thunderdog.challegram.data.Tgx101Peek.Painter tgx101PeekText = new org.thunderdog.challegram.data.Tgx101Peek.Painter();
+
+  /** The last message (and «typing…»), drawn apart so «Не подглядывай!» can blur it */
+  private void tgx101DrawText (Canvas c, int chatListMode, boolean rtl, int viewWidth) {
+    TdlibStatusManager.Helper status = chat.statusHelper();
+    TdlibStatusManager.ChatState state = status != null ? status.drawingState() : null;
+    float statusVisibility = state != null ? state.visibility() : 0f;
+    float textAlpha = 1f - statusVisibility;
+    if (textAlpha > 0f) {
+      final int dy = (int) (Screen.dp(14f) * statusVisibility);
+      final boolean needRestore = dy != 0;
+      final int saveCount;
+      if (needRestore) {
+        saveCount = Views.save(c);
+        c.translate(0, dy);
+      } else {
+        saveCount = -1;
+      }
+
+      int textTop = getTextTop(chatListMode);
+      Text prefix = chat.getPrefix();
+      if (prefix != null) {
+        int titleColor = ColorUtils.alphaColor(textAlpha, chat.showDraft() ? Theme.textRedColor() : Theme.textAccentColor());
+        prefix.draw(c, getLeftPadding(chatListMode), textTop, null, textAlpha);
+      }
+      Text text = chat.getText();
+      if (text != null) {
+        if (chatListMode != Settings.CHAT_MODE_2LINE) {
+          if (prefix != null) {
+            textTop += prefix.getNextLineHeight();
+          } else if (text.getLineCount() == 1) {
+            textTop += getSingleLineOffset(chatListMode);
+          }
+        }
+        IntList prefixIcons = chat.getTextIconIds();
+        if (prefixIcons != null) {
+          int x = chat.getTextLeft();
+          for (int i = 0; i < prefixIcons.size(); i++) {
+            Paint paint = PorterDuffPaint.get(chat.getTextIconColorId(), textAlpha);
+            int iconId = prefixIcons.get(i);
+            Drawable d = getSparseDrawable(iconId, ColorId.NONE);
+            int y = textTop + text.getLineHeight(false) / 2 - d.getMinimumHeight() / 2;
+            if (iconId == R.drawable.baseline_camera_alt_16) {
+              y += Screen.dp(.5f);
+            }
+            Drawables.drawRtl(c, d, x, y, paint, viewWidth, rtl);
+            x += Screen.dp(18f); //  + d.getMinimumWidth();
+
+          }
+        }
+
+        Text tgx101Inline = chat.tgx101GetInlinePrefix();
+        if (tgx101Inline != null) tgx101Inline.draw(c, getLeftPadding(chatListMode), textTop, null, textAlpha);
+        text.draw(c, chat.getTextLeft(), textTop, null, textAlpha, textMediaReceiver);
+      }
+
+      if (needRestore) {
+        Views.restore(c, saveCount);
+      }
+    }
+    if (statusVisibility > 0f) {
+      Text text = status.drawingText();
+      if (text != null) {
+        float top = getTextTop(chatListMode) - Screen.dp(14f) * textAlpha;
+        if (chatListMode != Settings.CHAT_MODE_2LINE && text.getLineCount() == 1) {
+          top += getSingleLineOffset(chatListMode);
+        }
+        DrawAlgorithms.drawStatus(c, state, rtl ? viewWidth - getLeftPadding(chatListMode) : getLeftPadding(chatListMode), top + text.getLineHeight() / 2f, ColorUtils.alphaColor(statusVisibility, text.getTextColor()), this, statusVisibility == 1f ? ColorId.textLight : ColorId.NONE);
+        int x = getLeftPadding(chatListMode);
+        text.draw(c, x, (int) top, null, statusVisibility);
+      }
+    }
+
+  }
+
   @Override
   protected void onDraw (Canvas c) {
     if (chat == null) {
@@ -708,7 +790,10 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
         titleX += Screen.dp(14f);
       }
 
-      title.draw(c, titleX, titleTop);
+      final int tx = titleX;
+      int peek = org.thunderdog.challegram.data.Tgx101Peek.strengthFor(chat.getChatId(), org.thunderdog.challegram.data.Tgx101Peek.PART_TITLE);
+      int spread = Screen.dp(6f);
+      tgx101PeekTitle.draw(c, tx - spread, titleTop - spread, tx + title.getWidth() + spread, titleTop + title.getHeight() + spread, peek, cc -> title.draw(cc, tx, titleTop));
     }
 
     EmojiStatusHelper.EmojiStatusDrawable emojiStatus = chat.getEmojiStatus();
@@ -779,82 +864,20 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
     reactionCounter.draw(c, counterRight - counterRadius, counterCenterY, Gravity.RIGHT, 1f, this, chat.notificationsEnabled() ? ColorId.badgeText : ColorId.badgeMutedText);
     counterRight -= reactionCounter.getScaledWidth(getTimePaddingLeft());
 
-    TdlibStatusManager.Helper status = chat.statusHelper();
-    TdlibStatusManager.ChatState state = status != null ? status.drawingState() : null;
-    float statusVisibility = state != null ? state.visibility() : 0f;
-    float textAlpha = 1f - statusVisibility;
-    if (textAlpha > 0f) {
-      final int dy = (int) (Screen.dp(14f) * statusVisibility);
-      final boolean needRestore = dy != 0;
-      final int saveCount;
-      if (needRestore) {
-        saveCount = Views.save(c);
-        c.translate(0, dy);
-      } else {
-        saveCount = -1;
-      }
+    int peekText = org.thunderdog.challegram.data.Tgx101Peek.strengthFor(chat.getChatId(), org.thunderdog.challegram.data.Tgx101Peek.PART_TEXT);
+    tgx101PeekText.draw(c, getLeftPadding(chatListMode) - Screen.dp(8f), getTextTop(chatListMode) - Screen.dp(8f), viewWidth, getMeasuredHeight(), peekText, cc -> tgx101DrawText(cc, chatListMode, rtl, viewWidth));
 
-      int textTop = getTextTop(chatListMode);
-      Text prefix = chat.getPrefix();
-      if (prefix != null) {
-        int titleColor = ColorUtils.alphaColor(textAlpha, chat.showDraft() ? Theme.textRedColor() : Theme.textAccentColor());
-        prefix.draw(c, getLeftPadding(chatListMode), textTop, null, textAlpha);
-      }
-      Text text = chat.getText();
-      if (text != null) {
-        if (chatListMode != Settings.CHAT_MODE_2LINE) {
-          if (prefix != null) {
-            textTop += prefix.getNextLineHeight();
-          } else if (text.getLineCount() == 1) {
-            textTop += getSingleLineOffset(chatListMode);
-          }
-        }
-        IntList prefixIcons = chat.getTextIconIds();
-        if (prefixIcons != null) {
-          int x = chat.getTextLeft();
-          for (int i = 0; i < prefixIcons.size(); i++) {
-            Paint paint = PorterDuffPaint.get(chat.getTextIconColorId(), textAlpha);
-            int iconId = prefixIcons.get(i);
-            Drawable d = getSparseDrawable(iconId, ColorId.NONE);
-            int y = textTop + text.getLineHeight(false) / 2 - d.getMinimumHeight() / 2;
-            if (iconId == R.drawable.baseline_camera_alt_16) {
-              y += Screen.dp(.5f);
-            }
-            Drawables.drawRtl(c, d, x, y, paint, viewWidth, rtl);
-            x += Screen.dp(18f); //  + d.getMinimumWidth();
-
-          }
-        }
-
-        Text tgx101Inline = chat.tgx101GetInlinePrefix();
-        if (tgx101Inline != null) tgx101Inline.draw(c, getLeftPadding(chatListMode), textTop, null, textAlpha);
-        text.draw(c, chat.getTextLeft(), textTop, null, textAlpha, textMediaReceiver);
-      }
-
-      if (needRestore) {
-        Views.restore(c, saveCount);
-      }
-    }
-    if (statusVisibility > 0f) {
-      Text text = status.drawingText();
-      if (text != null) {
-        float top = getTextTop(chatListMode) - Screen.dp(14f) * textAlpha;
-        if (chatListMode != Settings.CHAT_MODE_2LINE && text.getLineCount() == 1) {
-          top += getSingleLineOffset(chatListMode);
-        }
-        DrawAlgorithms.drawStatus(c, state, rtl ? viewWidth - getLeftPadding(chatListMode) : getLeftPadding(chatListMode), top + text.getLineHeight() / 2f, ColorUtils.alphaColor(statusVisibility, text.getTextColor()), this, statusVisibility == 1f ? ColorId.textLight : ColorId.NONE);
-        int x = getLeftPadding(chatListMode);
-        text.draw(c, x, (int) top, null, statusVisibility);
-      }
-    }
-
+    int peekAvatar = org.thunderdog.challegram.data.Tgx101Peek.strengthFor(chat.getChatId(), org.thunderdog.challegram.data.Tgx101Peek.PART_AVATAR);
     avatarReceiver.forceAllowOnline(!isSelected.getValue(), 1f - isSelected.getFloatValue());
     layoutReceiver();
-    if (avatarReceiver.needPlaceholder()) {
-      avatarReceiver.drawPlaceholder(c);
-    }
-    avatarReceiver.draw(c);
-    tgx101DrawStoryRing(c);
+    int spread = Screen.dp(10f);
+    tgx101PeekAvatar.draw(c, avatarReceiver.getLeft() - spread, avatarReceiver.getTop() - spread, avatarReceiver.getRight() + spread, avatarReceiver.getBottom() + spread, peekAvatar, cc -> {
+      if (avatarReceiver.needPlaceholder()) {
+        avatarReceiver.drawPlaceholder(cc);
+      }
+      avatarReceiver.draw(cc);
+      tgx101DrawStoryRing(cc);
+    });
 
     DrawAlgorithms.drawIcon(c, avatarReceiver, 315f, chat.getScheduleAnimator().getFloatValue(), Theme.fillingColor(), getSparseDrawable(R.drawable.baseline_watch_later_10, ColorId.badgeMuted), PorterDuffPaint.get(ColorId.badgeMuted, chat.getScheduleAnimator().getFloatValue()));
     DrawAlgorithms.drawSimplestCheckBox(c, avatarReceiver, isSelected.getFloatValue());

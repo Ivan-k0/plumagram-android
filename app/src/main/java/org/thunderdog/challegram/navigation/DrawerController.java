@@ -887,6 +887,8 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
       });
     } else if (viewId == R.id.btn_night) {
       ThemeManager.instance().toggleNightMode();
+    } else if (viewId == R.id.btn_tgx101Peek) {
+      tgx101UpdatePeekItem(org.thunderdog.challegram.ui.Tgx101PeekController.toggleWithToast());
     } else if (viewId == R.id.btn_bubble) {
       context().currentTdlib().settings().toggleChatStyle();
     } else if (viewId == R.id.btn_featureToggles) {
@@ -965,6 +967,9 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
           if (items.size() > start) items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
           items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM_WITH_RADIO, R.id.btn_night, R.drawable.baseline_brightness_2_24, R.string.NightMode, R.id.btn_night, Theme.isDark()));
           continue;
+        case org.thunderdog.challegram.ui.Tgx101BarOrder.DRAWER_PEEK:
+          items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM_WITH_RADIO, R.id.btn_tgx101Peek, org.thunderdog.challegram.ui.Tgx101BarOrder.drawerIconOf(entry), R.string.Tgx101Peek, R.id.btn_tgx101Peek, org.thunderdog.challegram.data.Tgx101Peek.isOn()));
+          continue;
       }
       items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, org.thunderdog.challegram.ui.Tgx101BarOrder.drawerIdOf(entry), org.thunderdog.challegram.ui.Tgx101BarOrder.drawerIconOf(entry), org.thunderdog.challegram.ui.Tgx101BarOrder.drawerNameOf(entry)));
     }
@@ -1005,6 +1010,18 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
     if (!showingAccounts) return 1;
     int addAccount = adapter.indexOfViewById(R.id.btn_addAccount);
     return addAccount != -1 ? addAccount + 2 : 1; // after «Add account» and its line
+  }
+
+  /** «Не подглядывай!» switched from anywhere: the eye (crossed out while on) and the switch */
+  public void tgx101UpdatePeekItem (boolean on) {
+    if (adapter == null) return;
+    int index = adapter.indexOfViewById(R.id.btn_tgx101Peek);
+    if (index == -1) return;
+    ListItem item = adapter.getItems().get(index);
+    if (item.setIconRes(on ? R.drawable.baseline_eye_off_24 : R.drawable.baseline_visibility_24)) {
+      adapter.notifyItemChanged(index);
+    }
+    adapter.setToggled(item, on);
   }
 
   public void tgx101RebuildMenu () {

@@ -153,6 +153,11 @@ public class SelectChatsController extends RecyclerViewController<SelectChatsCon
       return new Arguments(MODE_FOLDER_EXCLUDE_CHATS, delegate, chatFolderId, chatFolder, selectedChatIds, selectedChatTypes, showChatTypes);
     }
 
+    /** TGx101 «Не подглядывай!» (user 2026-10-22 «можно использовать функционал из фильтров»): any chats, no folder limit */
+    public static Arguments tgx101SelectChats (@NonNull Delegate delegate, Set<Long> selectedChatIds) {
+      return new Arguments(MODE_SELECT_CHATS, delegate, 0, null, Collections.unmodifiableSet(new LinkedHashSet<>(selectedChatIds)), Collections.emptySet(), false);
+    }
+
     private static Set<Long> unmodifiableLinkedHashSetOf (long[]... arrays) {
       int count = 0;
       for (long[] array : arrays) {
@@ -381,10 +386,12 @@ public class SelectChatsController extends RecyclerViewController<SelectChatsCon
         items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
       }
 
-      items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Chats));
-      items.add(new ListItem(ListItem.TYPE_SHADOW_TOP, chatsHeaderId));
-      items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM, chatsFooterId));
+    } else {
+      items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
     }
+    items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Chats));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP, chatsHeaderId));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM, chatsFooterId));
 
     adapter.setItems(items, false);
     recyclerView.setAdapter(adapter);
@@ -656,7 +663,7 @@ public class SelectChatsController extends RecyclerViewController<SelectChatsCon
     } else {
       long chosenChatCountMax = tdlib.chatFolderChosenChatCountMax();
       long chosenChatCount = isSecretChat ? secretChatCount : nonSecretChatCount;
-      if (chosenChatCount >= chosenChatCountMax) {
+      if (mode != MODE_SELECT_CHATS && chosenChatCount >= chosenChatCountMax) {
         tdlib.ui().checkPremiumLimit(new TdApi.PremiumLimitTypeChatFolderChosenChatCount(), (currentLimit, premiumLimit) -> executeOnUiThreadOptional(() -> {
           // FIXME: use tdlib.ui().showPremiumAlert()?
           CharSequence text;

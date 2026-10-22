@@ -1786,6 +1786,15 @@
   <item name="btn_tgx101SavedSwitch" type="id"/>
   <item name="btn_tgx101SavedSwitchReset" type="id"/>
   <item name="btn_tgx101SavedSettingsOpen" type="id"/>
+  <item name="btn_tgx101Peek" type="id"/>
+  <item name="btn_tgx101PeekOn" type="id"/>
+  <item name="btn_tgx101PeekAll" type="id"/>
+  <item name="btn_tgx101PeekSelected" type="id"/>
+  <item name="btn_tgx101PeekChats" type="id"/>
+  <item name="btn_tgx101PeekAvatar" type="id"/>
+  <item name="btn_tgx101PeekTitle" type="id"/>
+  <item name="btn_tgx101PeekText" type="id"/>
+  <item name="controller_tgx101Peek" type="id"/>
   <item name="btn_tgx101SavedFolderView" type="id"/>
   <item name="btn_tgx101SavedFolderColor" type="id"/>
   <item name="controller_tgx101Backup" type="id"/>

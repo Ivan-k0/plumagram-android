@@ -1482,11 +1482,12 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   /** Hold menu of «Settings»: the order here is the order of the bits in {@link Settings#tgx101CapsuleMenu()} */
   public static final int[] TGX101_CAPSULE_MENU_ICONS = {
     R.drawable.baseline_bookmark_24, R.drawable.baseline_format_list_bulleted_type_24, R.drawable.baseline_brightness_2_24,
-    R.drawable.baseline_account_circle_24, R.drawable.baseline_stars_24, R.drawable.baseline_security_24
+    R.drawable.baseline_account_circle_24, R.drawable.baseline_stars_24, R.drawable.baseline_security_24, R.drawable.baseline_visibility_24
   };
   public static final int[] TGX101_CAPSULE_MENU_TITLES = {
-    R.string.SavedMessages, R.string.Tgx101SavedByChats, R.string.NightMode, R.string.Tgx101MyProfile, R.string.Tgx101Settings, R.string.Proxy
+    R.string.SavedMessages, R.string.Tgx101SavedByChats, R.string.NightMode, R.string.Tgx101MyProfile, R.string.Tgx101Settings, R.string.Proxy, R.string.Tgx101Peek
   };
+  private static final int TGX101_CAPSULE_MENU_PEEK = 6;
 
   // Hold menus of «Contacts» (user 2026-10-06: «как настройки, с возможностью добавлять кнопки») and «Calls» (5 quick contacts)
   public static final int[] TGX101_CONTACTS_MENU_ICONS = {
@@ -1739,6 +1740,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       int i = on.get(k);
       outIds[k] = base + i;
       outIcons[k] = icons[i];
+      if (base == 0 && i == TGX101_CAPSULE_MENU_PEEK && org.thunderdog.challegram.data.Tgx101Peek.isOn()) {
+        outIcons[k] = R.drawable.baseline_eye_off_24; // «Не подглядывай!» on: the eye crossed out
+      }
       outTitles[k] = Lang.getString(titles[i]);
     }
     tgx101Capsule.openMenu(outIds, outIcons, outTitles);
@@ -1839,6 +1843,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       }
       case 5: // user 2026-10-08 hotfix: proxies on the «Settings» hold
         tdlib.ui().openProxySettings(current, false);
+        break;
+      case TGX101_CAPSULE_MENU_PEEK:
+        Tgx101PeekController.toggleWithToast();
         break;
     }
   }

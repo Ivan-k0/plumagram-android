@@ -171,6 +171,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (adapter != null && mode == MODE_TGX101) {
       adapter.updateValuedSettingById(R.id.btn_tgx101Gestures); // TGx101: back from «Message gestures»
       adapter.updateValuedSettingById(R.id.btn_tgx101Backup); // back from «Settings backup»: when it was last saved
+      adapter.updateValuedSettingById(R.id.btn_tgx101Peek);
     }
   }
 
@@ -340,6 +341,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101Bird(), isUpdate);
         } else if (itemId == R.id.btn_tgx101BirdRing) {
           view.setData(Tgx101GesturesController.birdRingValue());
+        } else if (itemId == R.id.btn_tgx101Peek) {
+          view.setData(Tgx101PeekController.value());
         } else if (itemId == R.id.btn_tgx101NoAnimation) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101NoAnimation(), isUpdate);
         } else if (itemId == R.id.btn_tgx101AiAll) {
@@ -591,6 +594,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         // (user 2026-10-16) the storage's settings stay reachable while the storage itself is off
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101SavedSettingsOpen, 0, R.string.Tgx101SavedSettings),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Peek, 0, R.string.Tgx101Peek),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NoAnimation, 0, R.string.Tgx101NoAnimation),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1059,7 +1064,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       return TGX101_SECTION_DATA;
     }
     if (id == R.id.btn_tgx101SavedSettingsOpen || id == R.id.btn_tgx101AiAll || id == R.id.btn_tgx101TextEditor || id == R.id.btn_tgx101FormatMenu
-      || id == R.id.btn_tgx101Bird || id == R.id.btn_tgx101BirdRing) return TGX101_SECTION_FEATURES;
+      || id == R.id.btn_tgx101Bird || id == R.id.btn_tgx101BirdRing || id == R.id.btn_tgx101Peek) return TGX101_SECTION_FEATURES;
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked || id == R.id.btn_pullToSearch || id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap) return 0;
     if (id == R.id.btn_tgx101StoriesMode || id == R.id.btn_tgx101StoriesFolders) return 1;
     if (id == R.id.btn_tgx101ChatMenuOrder) return 2;
@@ -1642,6 +1647,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       navigateTo(c);
     } else if (id == R.id.btn_tgx101SavedSettingsOpen) {
       navigateTo(new Tgx101SavedSettingsController(context, tdlib));
+    } else if (id == R.id.btn_tgx101Peek) {
+      navigateTo(new Tgx101PeekController(context, tdlib));
     } else if (id == R.id.btn_tgx101Backup) {
       navigateTo(new Tgx101BackupController(context, tdlib));
     } else if (id == R.id.btn_tgx101Gestures) {

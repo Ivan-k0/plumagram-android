@@ -420,6 +420,7 @@ public final class Tgx101SettingsBackup {
     }
     pmc.apply();
     pmc.flush();
+    Tgx101Peek.reload(); // «Не подглядывай!» keeps its settings in memory
     JSONObject prefs = o.optJSONObject("prefs");
     if (prefs != null) {
       Iterator<String> files = prefs.keys();
