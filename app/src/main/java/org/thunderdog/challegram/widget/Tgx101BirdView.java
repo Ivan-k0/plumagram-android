@@ -455,14 +455,42 @@ public class Tgx101BirdView extends View {
     return right ? a : 180f - a;
   }
 
+  // (user 2026-10-22 «7 кнопок, для удобства в два ряда — четыре и три»): more than five actions sit on two arcs — four on
+  // the outer one, the rest on the inner one, each centred
+  private static final float RING_R_OUTER = RING_R + ITEM + 10f;
+
+  private boolean twoRowsFor (boolean accounts) {
+    return !accounts && items.length > 5;
+  }
+
+  private boolean twoRows () {
+    return !accountsRing && items.length > 5;
+  }
+
+  private float radiusOf (int i) {
+    return twoRows() && i < 4 ? RING_R_OUTER : RING_R;
+  }
+
+  private float rowAngle (int k, int n, float step) {
+    if (n <= 1) return right ? 180f : 0f;
+    float spread = step * (n - 1);
+    float a = 180f - spread / 2f + spread * k / (n - 1);
+    return right ? a : 180f - a;
+  }
+
+  private float angleFor (int i) {
+    if (!twoRows()) return angleOf(i);
+    return i < 4 ? rowAngle(i, 4, 30f) : rowAngle(i - 4, items.length - 4, 40f);
+  }
+
   private float itemX (int i, float open) {
-    double a = Math.toRadians(angleOf(i));
-    return ringCx + (float) Math.cos(a) * Screen.dp(RING_R) * open;
+    double a = Math.toRadians(angleFor(i));
+    return ringCx + (float) Math.cos(a) * Screen.dp(radiusOf(i)) * open;
   }
 
   private float itemY (int i, float open) {
-    double a = Math.toRadians(angleOf(i));
-    return ringCy - (float) Math.sin(a) * Screen.dp(RING_R) * open;
+    double a = Math.toRadians(angleFor(i));
+    return ringCy - (float) Math.sin(a) * Screen.dp(radiusOf(i)) * open;
   }
 
   private void openRing (boolean accounts, boolean byFinger) {
@@ -473,7 +501,7 @@ public class Tgx101BirdView extends View {
     if (items.length == 0) return;
     accountsRing = accounts;
     ringByFinger = byFinger;
-    float r = Screen.dp(RING_R + ITEM / 2f + 6f);
+    float r = Screen.dp((twoRowsFor(accounts) ? RING_R_OUTER : RING_R) + ITEM / 2f + 6f);
     float cy = tabCy();
     ringCy = Math.max(r, Math.min(bottomRoom() - r, cy));
     ringCx = restCx(right);

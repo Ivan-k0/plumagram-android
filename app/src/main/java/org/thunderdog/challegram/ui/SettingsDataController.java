@@ -600,8 +600,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101BirdRing, 0, R.string.Tgx101BirdRing),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SearchHoldProxy, 0, R.string.Tgx101SearchHoldProxy),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
 
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101CapsuleTabs, 0, R.string.Tgx101CapsuleTabs),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),

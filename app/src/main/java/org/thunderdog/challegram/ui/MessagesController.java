@@ -4530,15 +4530,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
       header.addRetryButton(menu, this, iconColorId)
         .setVisibility((value = canResendSelectedMessages()) ? View.VISIBLE : View.GONE);
       if (value) totalButtonsCount++;
+      // TGx101 (user 2026-10-22): «Copy» before «Delete»
+      header.addCopyButton(menu, this, iconColorId)
+        .setVisibility((value = canCopySelectedMessages()) ? View.VISIBLE : View.GONE);
+      if (value) totalButtonsCount++;
       header.addDeleteButton(menu, this, iconColorId)
         .setVisibility((value = canDeleteSelectedMessages()) ? View.VISIBLE : View.GONE);
       if (value) totalButtonsCount++;
 
       HeaderButton reportButton = header.addButton(menu, R.id.menu_btn_report, R.drawable.baseline_report_24, iconColorId, this, Screen.dp(52f));
 
-      header.addCopyButton(menu, this, iconColorId)
-        .setVisibility((value = canCopySelectedMessages()) ? View.VISIBLE : View.GONE);
-      if (value) totalButtonsCount++;
       // TGx101 (user 2026-10-17): the selected Saved messages go to a folder / get tags at once
       header.addButton(menu, R.id.menu_btn_tgx101ToStorage, R.drawable.tgx101_storage_tiles_24, iconColorId, this, Screen.dp(52f))
         .setVisibility((value = canTgx101StoreSelected()) ? View.VISIBLE : View.GONE);
@@ -4548,6 +4549,23 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (value) totalButtonsCount++;
 
       reportButton.setVisibility(canReportSelectedMessages(totalButtonsCount) ? View.VISIBLE : View.GONE);
+      // (user screenshot 2026-10-22 20:00: «стрелка «ответить» наехала на цифру»): with five buttons or more they sit closer
+      // (46 dp, the icons stay 24 dp) so the number of selected messages keeps its room
+      tgx101FitSelectionButtons(menu);
+    }
+  }
+
+  private static void tgx101FitSelectionButtons (LinearLayout menu) {
+    int visible = 0;
+    for (int i = 0; i < menu.getChildCount(); i++) if (menu.getChildAt(i).getVisibility() == View.VISIBLE) visible++;
+    int width = visible >= 5 ? Screen.dp(46f) : Screen.dp(52f);
+    for (int i = 0; i < menu.getChildCount(); i++) {
+      View b = menu.getChildAt(i);
+      ViewGroup.LayoutParams lp = b.getLayoutParams();
+      if (lp != null && lp.width > 0 && lp.width != width && lp.width >= Screen.dp(46f)) {
+        lp.width = width;
+        b.setLayoutParams(lp);
+      }
     }
   }
 
@@ -6489,6 +6507,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       headerView.updateButton(R.id.menu_messageActions, R.id.btn_unpinAll, (value = canUnpinSelectedMessages()) ? View.VISIBLE : View.GONE, 0);
       if (value) totalButtonsCount++;
       headerView.updateButton(R.id.menu_messageActions, R.id.menu_btn_report, canReportSelectedMessages(totalButtonsCount) ? View.VISIBLE : View.GONE, 0);
+      View copy = headerView.findViewById(R.id.menu_btn_copy);
+      if (copy != null && copy.getParent() instanceof LinearLayout) tgx101FitSelectionButtons((LinearLayout) copy.getParent());
     }
   }
 

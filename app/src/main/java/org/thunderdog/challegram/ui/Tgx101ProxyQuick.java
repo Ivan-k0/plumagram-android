@@ -47,7 +47,8 @@ public final class Tgx101ProxyQuick {
   public static void bindSearchHold (ViewController<?> c, android.view.View searchButton, org.thunderdog.challegram.navigation.HeaderView header) {
     if (searchButton == null) return;
     searchButton.setOnLongClickListener(v -> {
-      if (Settings.instance().tgx101SearchHoldProxy()) {
+      // (user 2026-10-22 «удержание поиска, которое открывает прокси, выключить и убрать этот пункт»): gone — the usual hint
+      if (false && Settings.instance().tgx101SearchHoldProxy()) {
         org.thunderdog.challegram.Tgx101Diag.mark("search hold: proxy");
         UI.forceVibrate(v, true);
         show(c);

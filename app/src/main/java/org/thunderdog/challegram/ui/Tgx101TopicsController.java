@@ -326,8 +326,85 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     }
     adapter = new TopicsAdapter();
     recyclerView.setAdapter(adapter);
-    // (no swipe over the topics list: a sideways swipe there is the back gesture's, user 2026-10-22 — the feed came up
-    // instead of going back; the switch itself still takes a tap or a swipe)
+    // (user 2026-10-22 «свайп между темами и лентой — как в списке чатов, во время прокрутки, без ложных срабатываний»):
+    // a clearly sideways swipe to the left brings the feed in from the right, following the finger, the switch's thumb
+    // with it; past a third or flung it opens, else it slides back. Back from the feed is the usual swipe to the right
+    recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
+      private float downX, downY;
+      private boolean tracking, active;
+      private @Nullable android.view.VelocityTracker velocity;
+      private final int slop = android.view.ViewConfiguration.get(context).getScaledTouchSlop();
+
+      private float progress (RecyclerView rv, float x) {
+        return Math.max(0f, downX - x - slop) / Math.max(1, rv.getWidth());
+      }
+
+      @Override
+      public boolean onInterceptTouchEvent (@NonNull RecyclerView rv, @NonNull android.view.MotionEvent e) {
+        if (velocity != null) velocity.addMovement(e);
+        switch (e.getActionMasked()) {
+          case android.view.MotionEvent.ACTION_DOWN:
+            downX = e.getX();
+            downY = e.getY();
+            active = false;
+            // not from the right edge: that is the system's back
+            tracking = !inSearchMode() && downX < rv.getWidth() - Screen.dp(24f);
+            if (velocity != null) velocity.recycle();
+            velocity = android.view.VelocityTracker.obtain();
+            velocity.addMovement(e);
+            return false;
+          case android.view.MotionEvent.ACTION_MOVE: {
+            if (!tracking) return false;
+            float dx = e.getX() - downX, dy = e.getY() - downY;
+            if (dx > slop || Math.abs(dy) > Math.max(slop, -dx)) {
+              tracking = false; // right is back, vertical scrolls the topics
+              return false;
+            }
+            if (-dx > slop * 1.5f && -dx > Math.abs(dy) * 2f) {
+              tracking = false;
+              if (!startFeedDrag()) return false;
+              active = true;
+              tgx101FeedDrag(progress(rv, e.getX()));
+              return true; // the list under the finger lets go
+            }
+            return false;
+          }
+          case android.view.MotionEvent.ACTION_UP:
+          case android.view.MotionEvent.ACTION_CANCEL:
+            tracking = false;
+            return false;
+        }
+        return false;
+      }
+
+      @Override
+      public void onTouchEvent (@NonNull RecyclerView rv, @NonNull android.view.MotionEvent e) {
+        if (!active) return;
+        if (velocity != null) velocity.addMovement(e);
+        switch (e.getActionMasked()) {
+          case android.view.MotionEvent.ACTION_MOVE:
+            tgx101FeedDrag(progress(rv, e.getX()));
+            break;
+          case android.view.MotionEvent.ACTION_UP:
+          case android.view.MotionEvent.ACTION_CANCEL: {
+            active = false;
+            float vx = 0f;
+            if (velocity != null) {
+              velocity.computeCurrentVelocity(1000);
+              vx = velocity.getXVelocity();
+            }
+            float p = progress(rv, e.getX());
+            boolean fling = Math.abs(vx) > Screen.dp(600f);
+            boolean open = e.getActionMasked() == android.view.MotionEvent.ACTION_UP && (fling ? vx < 0 : p > .33f);
+            endFeedDrag(open, Math.abs(vx));
+            break;
+          }
+        }
+      }
+
+      @Override
+      public void onRequestDisallowInterceptTouchEvent (boolean disallowIntercept) { }
+    });
     buildRows();
     load();
   }
@@ -580,6 +657,33 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     params.tgx101IgnoreTopics = true;
     tdlib.ui().openChat(this, chat, params);
     // (user 2026-10-22 «из ленты свайп должен вести в темы всегда, а с тем — уже в список чатов»): the topics stay under the feed
+  }
+
+  // The feed pulled in by a swipe
+  private boolean startFeedDrag () {
+    org.thunderdog.challegram.navigation.NavigationController nav = navigationController();
+    if (nav == null || nav.isAnimating() || nav.getCurrentStackItem() != this) return false;
+    TdApi.Chat chat = getArgumentsStrict().chat;
+    MessagesController feed = new MessagesController(context(), tdlib);
+    feed.setArguments(new MessagesController.Arguments(tdlib, getArgumentsStrict().chatList, chat, null, null, null));
+    boolean started = nav.tgx101StartDragForward(feed, false);
+    if (!started) feed.destroy();
+    org.thunderdog.challegram.Tgx101Diag.mark("topics: feed " + (started ? "follows the finger" : "can't start"));
+    return started;
+  }
+
+  private void tgx101FeedDrag (float progress) {
+    org.thunderdog.challegram.navigation.NavigationController nav = context().navigation();
+    if (nav != null) nav.tgx101DragForward(progress);
+    if (topicsSwitch != null) topicsSwitch.setDragProgress(progress);
+  }
+
+  private void endFeedDrag (boolean open, float velocity) {
+    org.thunderdog.challegram.navigation.NavigationController nav = context().navigation();
+    if (nav != null) nav.tgx101EndDragForward(open, velocity);
+    if (topicsSwitch != null) topicsSwitch.setFeed(open, true);
+    if (open) tdlib.send(new TdApi.ToggleChatViewAsTopics(getArgumentsStrict().chat.id, false), (ok, error) -> { });
+    org.thunderdog.challegram.Tgx101Diag.mark("topics: feed " + (open ? "opened by the swipe" : "went back"));
   }
 
   @Override

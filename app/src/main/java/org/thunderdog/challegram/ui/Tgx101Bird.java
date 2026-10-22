@@ -38,7 +38,7 @@ public final class Tgx101Bird {
 
   public static final int ACTION_STORAGE = 0, ACTION_PROXY = 1, ACTION_ACCOUNTS = 2, ACTION_CALLS = 3, ACTION_SETTINGS = 4,
     ACTION_COMPOSE = 5, ACTION_SEARCH = 6, ACTION_NEXT_ACCOUNT = 7, ACTION_NOTE = 8, ACTION_MENU = 9, ACTION_NIGHT = 10;
-  public static final int MAX = 5;
+  public static final int MAX = 7; // (user 2026-10-22 «7 возможных кнопок вместо 5, в два ряда — 4 и 3»)
 
   /** the order of the bits in {@link Settings#tgx101BirdRing()} */
   public static final int[] TITLES = {

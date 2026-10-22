@@ -58,7 +58,7 @@ public class Tgx101TopicsSwitch extends View implements FactorAnimator.Target {
     super(context);
     this.feed = feed;
     this.factor = feed ? 1f : 0f;
-    this.thumb = new FactorAnimator(0, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 200L, factor);
+    this.thumb = new FactorAnimator(0, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 240L, factor);
     this.topicsText = Lang.getString(R.string.Tgx101TopicsTabTopics);
     this.feedText = Lang.getString(R.string.Tgx101TopicsTabFeed);
     textPaint.setTypeface(Fonts.getRobotoMedium());
@@ -67,6 +67,14 @@ public class Tgx101TopicsSwitch extends View implements FactorAnimator.Target {
 
   public void setListener (Listener listener) {
     this.listener = listener;
+  }
+
+  /** The thumb following a swipe between the screens: 0 — topics, 1 — feed (user 2026-10-22 «анимация капсулы — более
+   *  явная и отзывчивая») */
+  public void setDragProgress (float progress) {
+    thumb.forceFactor(Math.max(0f, Math.min(1f, progress)));
+    factor = thumb.getFactor();
+    invalidate();
   }
 
   /** Where the thumb stands, without telling the listener (a screen shown again) */
@@ -116,10 +124,11 @@ public class Tgx101TopicsSwitch extends View implements FactorAnimator.Target {
     RectF t = Paints.getRectF();
     t.set(left, rect.top + pad, left + segment, rect.bottom - pad);
     float tr = t.height() / 2f;
-    c.drawRoundRect(t, tr, tr, Paints.fillingPaint(ColorUtils.alphaColor(.14f, Theme.getColor(ColorId.textNeutral))));
+    // the thumb in the accent colour — what is chosen reads at a glance, and its move is seen
+    c.drawRoundRect(t, tr, tr, Paints.fillingPaint(ColorUtils.alphaColor(.16f, Theme.getColor(ColorId.textLink))));
     // the texts
     float cy = rect.centerY() - (textPaint.descent() + textPaint.ascent()) / 2f;
-    int active = Theme.getColor(ColorId.textNeutral), idle = Theme.textDecentColor();
+    int active = Theme.getColor(ColorId.textLink), idle = Theme.textDecentColor();
     textPaint.setColor(ColorUtils.fromToArgb(active, idle, factor));
     c.drawText(topicsText, rect.left + pad + segment / 2f - textPaint.measureText(topicsText) / 2f, cy, textPaint);
     textPaint.setColor(ColorUtils.fromToArgb(idle, active, factor));

@@ -1105,8 +1105,9 @@ public class CallController extends ViewController<CallController.Arguments> imp
   private void updateIncomingControls () {
     boolean ringing = call != null && !call.isOutgoing && call.state.getConstructor() == TdApi.CallStatePending.CONSTRUCTOR;
     if (tgx101BrandIcon != null) {
-      // TGx101: the bird only on the incoming call screen; during a call that corner belongs to the encryption emoji
-      tgx101BrandIcon.setVisibility(ringing ? View.VISIBLE : View.GONE);
+      // TGx101 (user 2026-10-22 «во время входящего звонка убрать птичку в правом верхнем углу»): never shown; during a
+      // call that corner belongs to the encryption emoji
+      tgx101BrandIcon.setVisibility(View.GONE);
     }
     if (incomingControls == null) return;
     boolean incoming = ringing;

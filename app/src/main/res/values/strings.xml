@@ -7148,8 +7148,8 @@
   <string name="Tgx101Bird">Bird at the edge of chat lists</string>
   <string name="Tgx101BirdHint">Hold — a ring of actions around the finger: slide to one and let go. Taps and swipes go through the bird. Hold 2.5 s without moving — the bird lifts and can be put at the left or right edge. Untouched, it pales. Shown when the side menu is on and the ✎ button is hidden.</string>
   <string name="Tgx101BirdRing">Actions in the ring</string>
-  <string name="Tgx101BirdRingHint">Up to 5 actions. Accounts opens a second ring with the accounts.</string>
-  <string name="Tgx101BirdRingMax">No more than 5</string>
+  <string name="Tgx101BirdRingHint">Up to 7 actions: more than five sit in two rows, 4 and 3. Accounts opens a second ring with the accounts.</string>
+  <string name="Tgx101BirdRingMax">No more than 7</string>
   <string name="Tgx101BirdRingMin">Choose at least one</string>
   <string name="Tgx101BirdMoveHint">Hold the bird 2.5 s to move it</string>
   <string name="Tgx101BirdStorage">Storage</string>
