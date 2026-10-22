@@ -5092,6 +5092,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   @Override
   public void onPrepareToShow () {
     tgx101Leaving = false; // opened again (the chat may be reused): coming in, not leaving
+    tgx101ApplyRestPadding("opened again");
     super.onPrepareToShow();
     triggerOneShot = false;
     if (headerCell != null) { // Fix for new profiles
@@ -11647,6 +11648,21 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private boolean tgx101PaddingSkippedLeaving;
   private boolean tgx101Leaving; // was focused, lost it: going away (or covered by the next screen)
+  private int tgx101RestPadding = -1;
+
+  /** (user 2026-10-22 «отправить сообщение и выйти, не скрывая клавиатуру — при повторном заходе чат подъезжает заново»):
+   *  a chat left with the keyboard up kept the keyboard's room (1403 px instead of 259) — measured off screen it can't be
+   *  worked out from the field's place — and opened again it slid down to the right one. Put back directly, no glide */
+  private void tgx101ApplyRestPadding (String why) {
+    if (messagesView == null || tgx101RestPadding <= 0 || context().isKeyboardVisible() || messagesView.getPaddingBottom() == tgx101RestPadding) return;
+    org.thunderdog.challegram.Tgx101Diag.mark("floating input: rest room " + messagesView.getPaddingBottom() + " → " + tgx101RestPadding + " (" + why + ")");
+    if (tgx101GlideAnimator != null) tgx101GlideAnimator.cancel();
+    tgx101PaddingShift = 0f;
+    messagesView.setTranslationY(tgx101ListBaseY);
+    messagesView.setClipToPadding(false);
+    messagesView.setPadding(messagesView.getPaddingLeft(), messagesView.getPaddingTop(), messagesView.getPaddingRight(), tgx101RestPadding);
+    tgx101PaddingChanged = true;
+  }
 
   private final Runnable tgx101ResetAfterLeaving = new Runnable() {
     @Override
@@ -11658,6 +11674,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         return;
       }
       tgx101ResetMotion("blur (off screen)");
+      tgx101ApplyRestPadding("left");
     }
   };
 
@@ -11677,6 +11694,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       updateFloatingListPadding();
       tgx101ShrinkConfirmed = false;
       if (tgx101GlideAnimator != null) tgx101GlideAnimator.end();
+      tgx101ApplyRestPadding("left");
     }
   };
 
@@ -11740,6 +11758,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // frame or two while text is rewritten (T9 suggestion: two lines shorter; Enter: one line too tall) and the list jumped
     // there and back. A new padding applies once it holds for 40 ms; with the keyboard moving — at once (the ride covers it)
     int current = messagesView.getPaddingBottom();
+    if (!context().isKeyboardVisible() && !tgx101ImeMoving() && messagesView.isShown()) {
+      tgx101RestPadding = padding; // the room without the keyboard, put back at once on a chat left with it up
+    }
     // …but a field emptied by sending (video 20:16, second jump) shrinks for good: the list follows at once, not 120 ms late
     boolean tgx101Cleared = inputView != null && inputView.getText() != null && inputView.getText().length() == 0;
     boolean tgx101Revealing = tgx101RevealAnimator != null && tgx101RevealAnimator.isRunning(); // the field's top glides down: follow it
