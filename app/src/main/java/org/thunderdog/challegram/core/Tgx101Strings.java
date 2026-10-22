@@ -988,7 +988,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedVoices, "Голосовые");
     RU.put(R.string.Tgx101SavedSettings, "Настройки Хранилища");
     RU.put(R.string.Tgx101Peek, "Не подглядывай!");
-    RU.put(R.string.Tgx101PeekEnabled, "Размывать список чатов");
+    RU.put(R.string.Tgx101PeekEnabled, "Размывать чаты");
     RU.put(R.string.Tgx101PeekHint, "Размывает аватарки, названия и последние сообщения в списке чатов — от чужих глаз через плечо. Быстрый переключатель с глазиком — в птичке, в меню по удержанию «Настроек» и в боковом меню: глазик перечёркнут — защита включена.");
     RU.put(R.string.Tgx101PeekWhere, "Где");
     RU.put(R.string.Tgx101PeekAllChats, "Во всех чатах");
@@ -1000,8 +1000,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PeekNone, "Без размытия");
     RU.put(R.string.Tgx101PeekStrength, "Сила размытия");
     RU.put(R.string.Tgx101PeekAvatars, "Аватарки");
-    RU.put(R.string.Tgx101PeekTitles, "Названия чатов, групп и каналов");
-    RU.put(R.string.Tgx101PeekTexts, "Последнее сообщение");
+    RU.put(R.string.Tgx101PeekTitles, "Названия");
+    RU.put(R.string.Tgx101PeekTexts, "Сообщения");
     RU.put(R.string.Tgx101PeekQuickHint, "Открытые чаты не размываются.");
     RU.put(R.string.Tgx101PeekToastOn, "«Не подглядывай!» включено");
     RU.put(R.string.Tgx101PeekToastOff, "«Не подглядывай!» выключено");

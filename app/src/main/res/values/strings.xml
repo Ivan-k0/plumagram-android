@@ -7257,7 +7257,7 @@
   <string name="Tgx101SavedVoices">Voice</string>
   <string name="Tgx101SavedSettings">Storage settings</string>
   <string name="Tgx101Peek">Don\'t peek!</string>
-  <string name="Tgx101PeekEnabled">Blur the chat list</string>
+  <string name="Tgx101PeekEnabled">Blur chats</string>
   <string name="Tgx101PeekHint">Blurs avatars, names and the last messages in the chat list — for eyes over your shoulder. The quick switch with an eye is in the bird, the «Settings» hold menu and the side menu: crossed-out eye — on.</string>
   <string name="Tgx101PeekWhere">Where</string>
   <string name="Tgx101PeekAllChats">In all chats</string>
@@ -7269,8 +7269,8 @@
   <string name="Tgx101PeekNone">No blur</string>
   <string name="Tgx101PeekStrength">Blur strength</string>
   <string name="Tgx101PeekAvatars">Avatars</string>
-  <string name="Tgx101PeekTitles">Names of chats, groups and channels</string>
-  <string name="Tgx101PeekTexts">Last message</string>
+  <string name="Tgx101PeekTitles">Names</string>
+  <string name="Tgx101PeekTexts">Messages</string>
   <string name="Tgx101PeekQuickHint">Opened chats are not blurred.</string>
   <string name="Tgx101PeekToastOn">Don\'t peek: on</string>
   <string name="Tgx101PeekToastOff">Don\'t peek: off</string>

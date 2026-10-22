@@ -198,24 +198,34 @@ public final class Tgx101Peek {
         drawer.draw(c);
         return;
       }
+      if (android.os.Build.VERSION.SDK_INT >= 31 && c.isHardwareAccelerated()) {
+        // Android 12+: the blur on the GPU, nothing for the main thread to do (it made the list scroll heavier)
+        if (gpu == null) gpu = new Gpu();
+        gpu.draw(c, left, top, right, bottom, strength, drawer);
+        return;
+      }
       // smaller copy for a stronger blur: 1/3 … 1/12
       float scale = 1f / (3f + 9f * Math.min(100, strength) / 100f);
       int w = Math.max(4, (int) Math.ceil((right - left) * scale));
       int h = Math.max(4, (int) Math.ceil((bottom - top) * scale));
-      if (bitmap == null || bitmap.getWidth() != w || bitmap.getHeight() != h) {
+      // the bitmap only grows (rows are reused for chats with names of other widths): no new one on every bind
+      if (bitmap == null || bitmap.getWidth() < w || bitmap.getHeight() < h) {
+        int bw = Math.max(w, bitmap != null ? bitmap.getWidth() : 0) + 15 & ~15;
+        int bh = Math.max(h, bitmap != null ? bitmap.getHeight() : 0) + 7 & ~7;
         if (bitmap != null) bitmap.recycle();
         try {
-          bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+          bitmap = Bitmap.createBitmap(bw, bh, Bitmap.Config.ARGB_8888);
         } catch (Throwable t) {
           bitmap = null;
           return; // no memory — better nothing than the text in clear
         }
         canvas = new Canvas(bitmap);
-        pixels = new int[w * h];
-        buffer = new int[w * h];
+        pixels = new int[bw * bh];
+        buffer = new int[bw * bh];
       }
       bitmap.eraseColor(0);
       int save = canvas.save();
+      canvas.clipRect(0, 0, w, h);
       canvas.scale(w / (float) (right - left), h / (float) (bottom - top));
       canvas.translate(-left, -top);
       drawer.draw(canvas);
@@ -230,7 +240,13 @@ public final class Tgx101Peek {
       c.drawBitmap(bitmap, src, dst, paint);
     }
 
+    private Gpu gpu;
+
     public void release () {
+      if (gpu != null) {
+        gpu.release();
+        gpu = null;
+      }
       if (bitmap != null) {
         bitmap.recycle();
         bitmap = null;
@@ -240,28 +256,68 @@ public final class Tgx101Peek {
     }
   }
 
-  /** Box blur over all four channels (premultiplied, so the edges fade out cleanly): horizontal, then vertical */
+  /** Apart, so Android 4 never loads the classes of Android 12 */
+  @androidx.annotation.RequiresApi(31)
+  private static final class Gpu {
+    private final android.graphics.RenderNode node = new android.graphics.RenderNode("tgx101peek");
+    private float radius = -1f;
+
+    void draw (Canvas c, int left, int top, int right, int bottom, int strength, Drawer drawer) {
+      // the same look as the hand-made blur: up to 10 dp
+      float r = Math.max(1f, org.thunderdog.challegram.tool.Screen.dp(10f) * Math.min(100, strength) / 100f);
+      if (r != radius) {
+        radius = r;
+        node.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(r, r, android.graphics.Shader.TileMode.DECAL));
+      }
+      node.setPosition(left, top, right, bottom);
+      android.graphics.RecordingCanvas rc = node.beginRecording();
+      try {
+        rc.translate(-left, -top);
+        drawer.draw(rc);
+      } finally {
+        node.endRecording();
+      }
+      c.drawRenderNode(node);
+    }
+
+    void release () {
+      node.discardDisplayList();
+    }
+  }
+
+  /** Box blur over all four channels (premultiplied, so the edges fade out cleanly): horizontal, then vertical; a running
+   *  sum — each pixel costs the same whatever the radius */
   private static void boxBlur (int[] px, int[] tmp, int w, int h, int r) {
     int div = r * 2 + 1;
     for (int y = 0; y < h; y++) {
       int row = y * w;
+      int a = 0, rr = 0, g = 0, b = 0;
+      for (int k = -r; k <= r; k++) {
+        int p = px[row + Math.max(0, Math.min(w - 1, k))];
+        a += p >>> 24; rr += (p >> 16) & 0xff; g += (p >> 8) & 0xff; b += p & 0xff;
+      }
       for (int x = 0; x < w; x++) {
-        int a = 0, rr = 0, g = 0, b = 0;
-        for (int k = -r; k <= r; k++) {
-          int p = px[row + Math.max(0, Math.min(w - 1, x + k))];
-          a += p >>> 24; rr += (p >> 16) & 0xff; g += (p >> 8) & 0xff; b += p & 0xff;
-        }
         tmp[row + x] = ((a / div) << 24) | ((rr / div) << 16) | ((g / div) << 8) | (b / div);
+        int out = px[row + Math.max(0, x - r)], in = px[row + Math.min(w - 1, x + r + 1)];
+        a += (in >>> 24) - (out >>> 24);
+        rr += ((in >> 16) & 0xff) - ((out >> 16) & 0xff);
+        g += ((in >> 8) & 0xff) - ((out >> 8) & 0xff);
+        b += (in & 0xff) - (out & 0xff);
       }
     }
     for (int x = 0; x < w; x++) {
+      int a = 0, rr = 0, g = 0, b = 0;
+      for (int k = -r; k <= r; k++) {
+        int p = tmp[Math.max(0, Math.min(h - 1, k)) * w + x];
+        a += p >>> 24; rr += (p >> 16) & 0xff; g += (p >> 8) & 0xff; b += p & 0xff;
+      }
       for (int y = 0; y < h; y++) {
-        int a = 0, rr = 0, g = 0, b = 0;
-        for (int k = -r; k <= r; k++) {
-          int p = tmp[Math.max(0, Math.min(h - 1, y + k)) * w + x];
-          a += p >>> 24; rr += (p >> 16) & 0xff; g += (p >> 8) & 0xff; b += p & 0xff;
-        }
         px[y * w + x] = ((a / div) << 24) | ((rr / div) << 16) | ((g / div) << 8) | (b / div);
+        int out = tmp[Math.max(0, y - r) * w + x], in = tmp[Math.min(h - 1, y + r + 1) * w + x];
+        a += (in >>> 24) - (out >>> 24);
+        rr += ((in >> 16) & 0xff) - ((out >> 16) & 0xff);
+        g += ((in >> 8) & 0xff) - ((out >> 8) & 0xff);
+        b += (in & 0xff) - (out & 0xff);
       }
     }
   }
