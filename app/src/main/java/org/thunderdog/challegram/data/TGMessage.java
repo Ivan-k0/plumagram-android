@@ -5812,9 +5812,25 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   public final void setMediaVisible (MediaItem media, boolean isVisible) {
     this.flags = BitwiseUtils.setFlag(flags, FLAG_HIDE_MEDIA, !isVisible);
-    tgx101HiddenMedia = isVisible ? null : media;
-    invalidate();
+    // (user 2026-10-22 «мигание по фото не ушло», screen recording: the place went empty a frame before the viewer drew
+    // its flying copy) emptied only once the flight has begun; shown again at once
+    org.thunderdog.challegram.tool.UI.cancel(tgx101HideLater);
+    if (isVisible) {
+      tgx101HiddenMedia = null;
+      invalidate();
+    } else {
+      tgx101PendingHidden = media;
+      org.thunderdog.challegram.tool.UI.post(tgx101HideLater, 60);
+    }
   }
+
+  private @Nullable MediaItem tgx101PendingHidden;
+  private final Runnable tgx101HideLater = () -> {
+    if (BitwiseUtils.hasFlag(flags, FLAG_HIDE_MEDIA)) {
+      tgx101HiddenMedia = tgx101PendingHidden;
+      invalidate();
+    }
+  };
 
   // TGx101 (user video 2026-10-21 17:00 «подложка должна быть пустой, пока туда едет фото»): which photo flies to or from
   // the viewer — its place in the message stays empty meanwhile, as in the official app (the flag was set and never drawn)
