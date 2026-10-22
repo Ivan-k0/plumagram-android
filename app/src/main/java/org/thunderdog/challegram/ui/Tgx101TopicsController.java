@@ -243,6 +243,8 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
   public static void bindTopicHeader (ViewController<?> context, ChatHeaderView header, TdApi.Chat chat, @Nullable TdApi.MessageTopic topicId) {
     if (!(topicId instanceof TdApi.MessageTopicForum) || header == null) return;
     int forumTopicId = ((TdApi.MessageTopicForum) topicId).forumTopicId;
+    String known = topicName(context.tdlib(), chat.id, topicId, null);
+    if (known != null) header.setText(known, context.tdlib().chatTitle(chat)); // at once, not the group's name first
     context.tdlib().send(new TdApi.GetForumTopic(chat.id, forumTopicId), (topic, error) -> {
       if (topic == null) return;
       context.runOnUiThreadOptional(() -> header.setText(topic.info.name, context.tdlib().chatTitle(chat)));
@@ -498,7 +500,10 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
         if (!loaded) UI.showToast(TD.toErrorString(error), Toast.LENGTH_SHORT);
         return;
       }
-      for (TdApi.ForumTopic topic : page.topics) result.add(topic);
+      for (TdApi.ForumTopic topic : page.topics) {
+        result.add(topic);
+        topicNames.put(tdlib.id() + ":" + chatId + ":" + topic.info.forumTopicId, topic.info.name); // the topic's header knows it at once
+      }
       boolean more = page.topics.length > 0 && result.size() < page.totalCount && (page.nextOffsetDate != 0 || page.nextOffsetMessageId != 0 || page.nextOffsetForumTopicId != 0);
       if (!loaded || !more) {
         // (user 2026-10-22 «как впервые открываются темы — чтобы не было пустого экрана в первые секунды»): the first page

@@ -659,6 +659,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       updateMessageThreadSubtitle();
     } else if (areScheduled) {
       headerCell.setForcedSubtitle(Lang.lowercase(Lang.getString(isSelfChat() ? R.string.Reminders : R.string.ScheduledMessages)));
+    } else if (chat != null && getMessageTopicId() instanceof TdApi.MessageTopicForum) {
+      // TGx101: a topic's header — its name over the group's (the group's status replaced it: «Ideas / 3 участника»)
+      headerCell.setForcedSubtitle(tdlib.chatTitle(chat));
     } else {
       headerCell.setForcedSubtitle(null);
     }
