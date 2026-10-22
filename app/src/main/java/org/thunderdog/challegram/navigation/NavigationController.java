@@ -63,6 +63,50 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   static final int SLOW_HARD_TRANSITION_DURATION = 500;
   static final int HARD_TRANSITION_DURATION = 400; // 400; //400
 
+  static final long TGX101_OPEN_DURATION = 220;
+  static final long TGX101_CLOSE_DURATION = 180;
+  static final android.view.animation.Interpolator TGX101_OPEN_INTERPOLATOR = new android.view.animation.DecelerateInterpolator(1.5f);
+  static final android.view.animation.Interpolator TGX101_CLOSE_INTERPOLATOR = new android.view.animation.DecelerateInterpolator(1.1f);
+
+  /** Progress counted from frames, not the clock: each frame adds at most ~one frame's time, so a slow frame never makes the screen jump. */
+  static final class Tgx101FrameSteps {
+    private final long duration;
+    private final android.animation.TimeInterpolator interpolator;
+    private final long maxStep;
+    private long lastTime = -1;
+    private float progress;
+    private boolean endClaimed;
+
+    Tgx101FrameSteps (long duration, android.animation.TimeInterpolator interpolator) {
+      this.duration = Math.max(1, duration);
+      this.interpolator = interpolator;
+      float hz = Screen.refreshRate();
+      this.maxStep = Math.max(8, Math.round(1000f / (hz > 1f ? hz : 60f) * 1.35f));
+    }
+
+    float next (ValueAnimator animation) {
+      long now = animation.getCurrentPlayTime();
+      if (lastTime < 0) {
+        lastTime = now;
+        return interpolator.getInterpolation(0f);
+      }
+      long dt = Math.max(0, Math.min(now - lastTime, maxStep));
+      lastTime = now;
+      progress = Math.min(1f, progress + dt / (float) duration);
+      return interpolator.getInterpolation(progress);
+    }
+
+    boolean isFinished () {
+      return progress >= 1f;
+    }
+
+    boolean claimEnd () {
+      if (endClaimed) return false;
+      endClaimed = true;
+      return true;
+    }
+  }
+
   static final int MINIMUM_DROP_DURATION = 60; //60
   static final int MAXIMUM_DROP_DURATION = 200; //200
   static final int TGX101_DRAG_DROP_MIN = 180, TGX101_DRAG_DROP_MAX = 320;
@@ -1101,37 +1145,43 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     this.animatorRunning = true;
 
     animator = AnimatorUtils.simpleValueAnimator();
-    if (forward) {
-      animator.addUpdateListener(animation -> {
-        if (!isDone[0]) {
-          setFactor(1f - AnimatorUtils.getFraction(animation));
-        }
-      });
-    } else {
-      animator.addUpdateListener(animation -> {
-        if (!isDone[0]) {
-          setFactor(AnimatorUtils.getFraction(animation));
-        }
-      });
-    }
 
+    final long duration;
+    final android.animation.TimeInterpolator interpolator;
     switch (direction) {
       case TRANSLATION_FADE: {
-        animator.setDuration(Config.DEBUG_NAV_ANIM ? 1000l : fastAnimation ? 120l : 180l);
-        animator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+        duration = Config.DEBUG_NAV_ANIM ? 1000l : fastAnimation ? 120l : 180l;
+        interpolator = AnimatorUtils.DECELERATE_INTERPOLATOR;
         break;
       }
       case TRANSLATION_VERTICAL: {
-        animator.setDuration(forward ? HARD_TRANSITION_DURATION : SLOW_HARD_TRANSITION_DURATION);
-        animator.setInterpolator(AnimatorUtils.NAVIGATION_INTERPOLATOR);
+        duration = forward ? HARD_TRANSITION_DURATION : SLOW_HARD_TRANSITION_DURATION;
+        interpolator = AnimatorUtils.NAVIGATION_INTERPOLATOR;
         break;
       }
-      case TRANSLATION_HORIZONTAL: {
-        animator.setDuration(HARD_TRANSITION_DURATION);
-        animator.setInterpolator(AnimatorUtils.NAVIGATION_INTERPOLATOR);
+      case TRANSLATION_HORIZONTAL:
+      default: {
+        // (recorded 2026-10-22 against exteraGram at 120 Hz: its chat comes in over ~200 ms easing out, leaves in ~150 ms;
+        // ours took 400 ms with a long tail) — user «extera плавнее, анимации приятнее, не такие резкие»
+        duration = forward ? TGX101_OPEN_DURATION : TGX101_CLOSE_DURATION;
+        interpolator = forward ? TGX101_OPEN_INTERPOLATOR : TGX101_CLOSE_INTERPOLATOR;
         break;
       }
     }
+    // The screens move by frames, each frame at most one frame's step: the chat's heavy first frame (20–40 ms)
+    // made the time-driven animation jump 16–21% of the width at once. A late frame now only slows it down.
+    final Tgx101FrameSteps steps = new Tgx101FrameSteps(duration, interpolator);
+    animator.setDuration(duration * 4);
+    animator.setInterpolator(AnimatorUtils.LINEAR_INTERPOLATOR);
+    animator.addUpdateListener(animation -> {
+      if (!isDone[0]) {
+        float value = steps.next(animation);
+        setFactor(forward ? 1f - value : value);
+        if (steps.isFinished() && steps.claimEnd()) {
+          animation.end();
+        }
+      }
+    });
 
     animator.addListener(new AnimatorListenerAdapter() {
       @Override
