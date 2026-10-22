@@ -107,6 +107,31 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     }
   }
 
+  interface Tgx101FrameValue {
+    void apply (float value);
+  }
+
+  /** Drives {@code animator} by {@link Tgx101FrameSteps}: {@code apply} gets the eased value 0..1, the animator ends once it reaches 1. */
+  static void tgx101FrameStepped (ValueAnimator animator, long duration, android.animation.TimeInterpolator interpolator, Tgx101FrameValue apply) {
+    final Tgx101FrameSteps steps = new Tgx101FrameSteps(duration, interpolator);
+    final boolean[] ended = new boolean[1];
+    animator.setDuration(Math.max(1, duration) * 4);
+    animator.setInterpolator(AnimatorUtils.LINEAR_INTERPOLATOR);
+    animator.addUpdateListener(animation -> {
+      if (ended[0]) return;
+      apply.apply(steps.next(animation));
+      if (steps.isFinished() && steps.claimEnd()) {
+        animation.end();
+      }
+    });
+    animator.addListener(new AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd (Animator animation) {
+        ended[0] = true; // the owner's own end listener puts the screens in place
+      }
+    });
+  }
+
   static final int MINIMUM_DROP_DURATION = 60; //60
   static final int MAXIMUM_DROP_DURATION = 200; //200
   static final int TGX101_DRAG_DROP_MIN = 180, TGX101_DRAG_DROP_MAX = 320;
@@ -1426,8 +1451,6 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
 
       final float startFactor = getFactor();
       animator = AnimatorUtils.simpleValueAnimator();
-      animator.addUpdateListener(animation -> setFactor(startFactor - startFactor * AnimatorUtils.getFraction(animation)));
-      animator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
       animator.addListener(new AnimatorListenerAdapter() {
         @Override
         public void onAnimationEnd (Animator animation) {
@@ -1435,11 +1458,13 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
         }
       });
 
+      long duration;
       if (translationMode == TRANSLATION_VERTICAL) {
-        animator.setDuration(calculateDropDuration(lastTranslation, velocity, MAXIMUM_VERTICAL_DROP_DURATION, MINIMUM_VERTICAL_DROP_DURATION));
+        duration = calculateDropDuration(lastTranslation, velocity, MAXIMUM_VERTICAL_DROP_DURATION, MINIMUM_VERTICAL_DROP_DURATION);
       } else {
-        animator.setDuration(calculateDropDuration(lastTranslation, velocity, MAXIMUM_DROP_DURATION, MINIMUM_DROP_DURATION));
+        duration = calculateDropDuration(lastTranslation, velocity, MAXIMUM_DROP_DURATION, MINIMUM_DROP_DURATION);
       }
+      tgx101FrameStepped(animator, duration, AnimatorUtils.DECELERATE_INTERPOLATOR, value -> setFactor(startFactor - startFactor * value));
       animator.start();
     }
   }
@@ -1597,8 +1622,6 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       final float startFactor = getFactor();
       final float diffFactor = 1f - startFactor;
       animator = AnimatorUtils.simpleValueAnimator();
-      animator.addUpdateListener(animation -> setFactor(startFactor + diffFactor * AnimatorUtils.getFraction(animation)));
-      animator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
       animator.addListener(new AnimatorListenerAdapter() {
         @Override
         public void onAnimationEnd (Animator animation) {
@@ -1606,11 +1629,19 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
         }
       });
 
+      long duration;
+      android.animation.TimeInterpolator interpolator = AnimatorUtils.DECELERATE_INTERPOLATOR;
       if (translationMode == TRANSLATION_VERTICAL) {
-        animator.setDuration(calculateDropDuration(currentHeight - lastTranslation, velocity, MAXIMUM_VERTICAL_DROP_DURATION, MINIMUM_VERTICAL_DROP_DURATION));
+        duration = calculateDropDuration(currentHeight - lastTranslation, velocity, MAXIMUM_VERTICAL_DROP_DURATION, MINIMUM_VERTICAL_DROP_DURATION);
+      } else if (velocity <= 0 && startFactor < .05f) {
+        // the back button / a quick system back (it reports no movement): the whole way, as exteraGram leaves a chat (~150 ms)
+        duration = TGX101_CLOSE_DURATION;
+        interpolator = TGX101_CLOSE_INTERPOLATOR;
       } else {
-        animator.setDuration(calculateDropDuration(currentWidth - lastTranslation, velocity, MAXIMUM_DROP_DURATION, MINIMUM_DROP_DURATION));
+        duration = calculateDropDuration(currentWidth - lastTranslation, velocity, MAXIMUM_DROP_DURATION, MINIMUM_DROP_DURATION);
       }
+      // by frames: the first frame of the back (the chat list redrawn under it) took ~17 ms and the chat jumped 16% at once
+      tgx101FrameStepped(animator, duration, interpolator, value -> setFactor(startFactor + diffFactor * value));
       animator.start();
     }
   }
