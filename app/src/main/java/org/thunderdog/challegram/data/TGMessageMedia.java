@@ -651,13 +651,33 @@ public class TGMessageMedia extends TGMessage {
     }
     if (tgx101HasMenuZone()) {
       // ⋮ on a soft dark pill in the top right corner of the photo / video, own and incoming alike (user 2026-10-06)
-      float dotsX = startX + mosaicWrapper.getWidth() - Screen.dp(14f);
-      float dotsY = startY + Screen.dp(12f);
-      RectF pill = Paints.getRectF();
-      pill.set(dotsX - Screen.dp(8f), dotsY - Screen.dp(6f), dotsX + Screen.dp(8f), dotsY + Screen.dp(16f));
-      c.drawRoundRect(pill, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(0x55000000));
-      for (int d = 0; d < 3; d++) {
-        c.drawCircle(dotsX, dotsY + Screen.dp(5f) * d, Screen.dp(1.6f), Paints.fillingPaint(0xffffffff));
+      // (user video 2026-10-22 «как скрывается и появляется кнопка ⋮ — нужно плавнее»): it vanished at once on the tap and
+      // popped back after the photo landed, showing over the viewer's fading dim meanwhile. Now it fades out as the photo
+      // leaves and fades in a moment after it is back in its place
+      boolean want = tgx101HiddenMedia == null && !shouldHideMedia();
+      if (!tgx101DotsInit) {
+        tgx101DotsInit = true;
+        tgx101DotsWanted = want;
+        tgx101DotsVisible.setValue(want, false);
+      } else if (want != tgx101DotsWanted) {
+        tgx101DotsWanted = want;
+        UI.cancel(tgx101ShowDots);
+        if (want) {
+          UI.post(tgx101ShowDots, 150);
+        } else {
+          tgx101DotsVisible.setValue(false, true);
+        }
+      }
+      float dotsAlpha = tgx101DotsVisible.getFloatValue();
+      if (dotsAlpha > 0f) {
+        float dotsX = startX + mosaicWrapper.getWidth() - Screen.dp(14f);
+        float dotsY = startY + Screen.dp(12f);
+        RectF pill = Paints.getRectF();
+        pill.set(dotsX - Screen.dp(8f), dotsY - Screen.dp(6f), dotsX + Screen.dp(8f), dotsY + Screen.dp(16f));
+        c.drawRoundRect(pill, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(dotsAlpha, 0x55000000)));
+        for (int d = 0; d < 3; d++) {
+          c.drawCircle(dotsX, dotsY + Screen.dp(5f) * d, Screen.dp(1.6f), Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(dotsAlpha, 0xffffffff)));
+        }
       }
     }
     if (clipped) {
@@ -977,6 +997,12 @@ public class TGMessageMedia extends TGMessage {
   protected int[] tgx101ItemBounds (long messageId) {
     return mosaicWrapper != null ? mosaicWrapper.tgx101ItemVerticalBounds(messageId) : null;
   }
+
+  private boolean tgx101DotsInit, tgx101DotsWanted;
+  private final me.vkryl.android.animator.BoolAnimator tgx101DotsVisible = new me.vkryl.android.animator.BoolAnimator(0, (id, factor, fraction, callee) -> invalidate(), me.vkryl.android.AnimatorUtils.DECELERATE_INTERPOLATOR, 200L);
+  private final Runnable tgx101ShowDots = () -> {
+    if (tgx101DotsWanted) tgx101DotsVisible.setValue(true, true);
+  };
 
   // user 2026-10-06: ⋮ in the top right corner of a single photo / video (normal mode); in the iOS long-press mode
   // the long press is the menu and the whole photo opens it
