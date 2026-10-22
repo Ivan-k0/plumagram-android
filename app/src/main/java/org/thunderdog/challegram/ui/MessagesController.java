@@ -3604,7 +3604,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     Tgx101TopicsController.bindTopicHeader(this, headerCell, chat, messageTopicId); // TGx101: topic name in forum topics
     if (tgx101TopicsItem != null) {
       // the group with topics opened as one feed: the switch back to its topics
-      boolean feed = previewMode == PREVIEW_MODE_NONE && !areScheduled && messageThread == null && messageTopicId == null && tdlib.isForum(chat.id);
+      // (crash 2026-10-22, 0.2.240): the chat screen made ahead has no chat yet
+      boolean feed = chat != null && previewMode == PREVIEW_MODE_NONE && !areScheduled && messageThread == null && messageTopicId == null && tdlib.isForum(chat.id);
       tgx101TopicsSwitch.setFeed(true, false);
       topBar.setItemVisible(tgx101TopicsItem, feed, false);
     }
