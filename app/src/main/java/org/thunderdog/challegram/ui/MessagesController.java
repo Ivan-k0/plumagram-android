@@ -1336,7 +1336,17 @@ public class MessagesController extends ViewController<MessagesController.Argume
     addThemeInvalidateListener(tgx101VoiceBar);
     tgx101VoiceItem = new CollapseListView.ViewItem(tgx101VoiceBar, Screen.dp(tgx101VoiceBar.heightDp()));
 
+    // TGx101 (approved mockup «Группы с темами», Б): «Topics | Feed» over a group's one feed
+    tgx101TopicsSwitch = new org.thunderdog.challegram.component.chat.Tgx101TopicsSwitch(context, true);
+    tgx101TopicsSwitch.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(org.thunderdog.challegram.component.chat.Tgx101TopicsSwitch.HEIGHT)));
+    tgx101TopicsSwitch.setListener(toFeed -> {
+      if (!toFeed && chat != null) Tgx101TopicsController.switchToTopics(this, chat);
+    });
+    addThemeInvalidateListener(tgx101TopicsSwitch);
+    tgx101TopicsItem = new CollapseListView.ViewItem(tgx101TopicsSwitch, Screen.dp(org.thunderdog.challegram.component.chat.Tgx101TopicsSwitch.HEIGHT));
+
     topBar.initWithList(new CollapseListView.Item[] {
+      tgx101TopicsItem,
       tgx101VoiceItem,
       pinnedMessagesItem,
       requestsItem = new CollapseListView.ViewItem(requestsView, requestsViewHeight),
@@ -3052,7 +3062,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else if (id == R.id.btn_tgx101AutoDelete) {
       tgx101ShowAutoDelete();
     } else if (id == R.id.btn_tgx101ShowTopics) {
-      Tgx101TopicsController.showTopics(this, chat);
+      Tgx101TopicsController.switchToTopics(this, chat);
     } else if (id == R.id.btn_tgx101VoiceChatStart) {
       Tgx101GroupCallController.start(this, chat.id);
     } else if (id == R.id.btn_translateWholeChat) {
@@ -3592,6 +3602,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     TdApi.Chat headerChat = messageThread != null ? tdlib.chatSync(messageThread.getContextChatId()) : null;
     headerCell.setChat(tdlib, headerChat != null ? headerChat : chat, messageThread);
     Tgx101TopicsController.bindTopicHeader(this, headerCell, chat, messageTopicId); // TGx101: topic name in forum topics
+    if (tgx101TopicsItem != null) {
+      // the group with topics opened as one feed: the switch back to its topics
+      boolean feed = previewMode == PREVIEW_MODE_NONE && !areScheduled && messageThread == null && messageTopicId == null && tdlib.isForum(chat.id);
+      tgx101TopicsSwitch.setFeed(true, false);
+      topBar.setItemVisible(tgx101TopicsItem, feed, false);
+    }
 
     if (inPreviewMode) {
       switch (previewMode) {
@@ -8046,6 +8062,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private CollapseListView.Item requestsItem;
   private org.thunderdog.challegram.component.chat.Tgx101VoiceChatBar tgx101VoiceBar;
   private CollapseListView.Item tgx101VoiceItem;
+  private CollapseListView.Item tgx101TopicsItem;
+  private org.thunderdog.challegram.component.chat.Tgx101TopicsSwitch tgx101TopicsSwitch;
 
   public @Nullable ReplyInfo getCurrentReplyId () {
     if (reply != null) {

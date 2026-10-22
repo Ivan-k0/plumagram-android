@@ -5958,6 +5958,9 @@
   <string name="Tgx101TopicDelete">Delete topic</string>
   <string name="Tgx101TopicDeleteConfirm">Delete the topic «%1$s» with all its messages?</string>
   <string name="Tgx101TopicsEmpty">No topics yet</string>
+  <string name="Tgx101TopicsTabTopics">Topics</string>
+  <string name="Tgx101TopicsTabFeed">Feed</string>
+  <string name="Tgx101TopicsSearchHint">Search topics</string>
   <string name="Tgx101TopicNoMessages">No messages yet</string>
   <string name="Tgx101TopicHidden">hidden</string>
   <string name="BigEmojiSize">Emoji and sticker size</string>

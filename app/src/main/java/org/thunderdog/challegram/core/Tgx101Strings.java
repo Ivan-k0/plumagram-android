@@ -119,6 +119,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101TopicDelete, "Удалить тему");
     RU.put(R.string.Tgx101TopicDeleteConfirm, "Удалить тему «%1$s» со всеми сообщениями?");
     RU.put(R.string.Tgx101TopicsEmpty, "Тем пока нет");
+    RU.put(R.string.Tgx101TopicsTabTopics, "Темы");
+    RU.put(R.string.Tgx101TopicsTabFeed, "Лента");
+    RU.put(R.string.Tgx101TopicsSearchHint, "Поиск тем");
     RU.put(R.string.Tgx101TopicNoMessages, "Сообщений пока нет");
     RU.put(R.string.Tgx101TopicHidden, "скрыта");
     RU.put(R.string.BigEmojiSize, "Размер эмодзи и стикеров");

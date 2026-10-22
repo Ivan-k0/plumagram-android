@@ -3516,6 +3516,21 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   private static final boolean APPLY_ACCENT_TO_FORWARDS = true;
 
+  /** TGx101 (approved mockup «Группы с темами», Б): in a group's one feed each message's name line carries its topic */
+  private String tgx101WithTopic (String authorName) {
+    if (StringUtils.isEmpty(authorName) || msg == null || !(msg.topicId instanceof TdApi.MessageTopicForum)) return authorName;
+    org.thunderdog.challegram.ui.MessagesController c = messagesController();
+    if (c == null || c.getMessageTopicId() != null || !tdlib.isForum(msg.chatId)) return authorName;
+    String topic = org.thunderdog.challegram.ui.Tgx101TopicsController.topicName(tdlib, msg.chatId, msg.topicId, () -> {
+      if (!isDestroyed()) {
+        rebuildLayout();
+        requestLayout();
+        invalidate();
+      }
+    });
+    return topic != null ? authorName + " · " + topic : authorName;
+  }
+
   private Text makeName (String authorName, TdlibAccentColor accentColor, boolean available, boolean isPsa, boolean hideName, long viaBotUserId, int maxWidth, boolean isForward) {
     if (maxWidth <= 0)
       return null;
@@ -3614,7 +3629,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         hAdminNameT = null;
       }
 
-      final String authorName = getDisplayAuthor();
+      final String authorName = tgx101WithTopic(getDisplayAuthor());
       if (needName(true) && maxWidth > 0) {
         if (!forceForwardOrImportInfo() && sender.hasChatMark()) {
           hAuthorChatMark = makeChatMark(maxWidth);
@@ -3679,7 +3694,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (forceForwardOrImportInfo()) {
       authorName = forwardInfo.getAuthorName();
     } else {
-      authorName = sender.getName();
+      authorName = tgx101WithTopic(sender.getName());
     }
 
     max -= isPinned.getScaledWidth(Screen.dp(COUNTER_ICON_MARGIN)) + Screen.dp(COUNTER_ADD_MARGIN);

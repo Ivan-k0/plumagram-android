@@ -1277,6 +1277,19 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
     return textIconColorId;
   }
 
+  /** TGx101 (approved mockup «Группы с темами», Б): a group with topics shows the last message's topic — «who · topic» */
+  private String tgx101WithTopic (String prefix) {
+    if (StringUtils.isEmpty(prefix) || listMode == Settings.CHAT_MODE_2LINE || showDraft() || chat == null || chat.lastMessage == null || !tdlib.isForum(chat.id)) return prefix;
+    final TdApi.Message last = chat.lastMessage;
+    String topic = org.thunderdog.challegram.ui.Tgx101TopicsController.topicName(tdlib, chat.id, last.topicId, () -> {
+      if (chat != null && chat.lastMessage == last) {
+        setPrefix();
+        currentViews.invalidate();
+      }
+    });
+    return topic != null ? prefix + " · " + topic : prefix;
+  }
+
   private void setPrefix () {
     if ((flags & FLAG_HAS_PREFIX) != 0) {
       final String prefix;
@@ -1297,8 +1310,9 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
       } else {
         prefix = null;
       }
+      String tgx101Prefix = tgx101WithTopic(prefix);
 
-      if (!StringUtils.isEmpty(prefix)) {
+      if (!StringUtils.isEmpty(tgx101Prefix)) {
         int avail;
         if (listMode != Settings.CHAT_MODE_2LINE) {
           avail = currentWidth - ChatView.getLeftPadding(listMode) - ChatView.getRightPadding() - getCounterAddWidth();
@@ -1306,7 +1320,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
           avail = Screen.dp(120f);
         }
         if (avail > 0) {
-          Text.Builder b = new Text.Builder(prefix, avail, getTextStyleProvider(listMode), BitwiseUtils.hasFlag(flags, FLAG_TEXT_DRAFT) ? TextColorSets.Regular.NEGATIVE : TextColorSets.Regular.NORMAL)
+          Text.Builder b = new Text.Builder(tgx101Prefix, avail, getTextStyleProvider(listMode), BitwiseUtils.hasFlag(flags, FLAG_TEXT_DRAFT) ? TextColorSets.Regular.NEGATIVE : TextColorSets.Regular.NORMAL)
             .singleLine()
             .textFlags(Text.FLAG_ELLIPSIZE_NO_FILL);
           if (needSuffix && listMode == Settings.CHAT_MODE_2LINE) {

@@ -1537,6 +1537,9 @@
   <item name="btn_tgx101ShowTopics" type="id"/>
   <item name="btn_tgx101BaseSource" type="id"/>
   <item name="btn_tgx101TopicEdit" type="id"/>
+  <item name="btn_tgx101TopicNew" type="id"/>
+  <item name="btn_tgx101TopicsInfo" type="id"/>
+  <item name="btn_tgx101TopicsLeave" type="id"/>
   <item name="btn_tgx101TopicPin" type="id"/>
   <item name="btn_tgx101TopicClose" type="id"/>
   <item name="btn_tgx101TopicHide" type="id"/>

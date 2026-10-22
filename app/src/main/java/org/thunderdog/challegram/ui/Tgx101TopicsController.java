@@ -60,7 +60,7 @@ import me.vkryl.core.StringUtils;
  * A topic opens as a regular chat limited to that topic. Admins and members with the right can
  * create topics; admins can rename, pin, close, hide General and delete them.
  */
-public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsController.Args> {
+public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsController.Args> implements org.thunderdog.challegram.navigation.MoreDelegate, ChatHeaderView.Callback {
   public static class Args {
     public final TdApi.Chat chat;
     public final @Nullable TdApi.ChatList chatList;
@@ -94,6 +94,62 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     open(context, chat, null);
   }
 
+  /**
+   * (approved mockup «Группы с темами», Б — user 2026-10-22): «Topics | Feed» swaps the two screens in place — the one being
+   * left is taken out of the stack once the other has come, so back leads to the chat list from either
+   */
+  public static void dropWhenReplaced (ViewController<?> from) {
+    final long until = android.os.SystemClock.uptimeMillis() + 4000;
+    Runnable check = new Runnable() {
+      @Override
+      public void run () {
+        if (from.isDestroyed() || from.navigationController() == null) return;
+        org.thunderdog.challegram.navigation.NavigationController nav = from.navigationController();
+        org.thunderdog.challegram.navigation.NavigationStack stack = nav.getStack();
+        int index = stack.indexOf(from);
+        if (index == -1) return;
+        if (!nav.isAnimating() && index < stack.size() - 1) {
+          stack.destroy(index);
+          return;
+        }
+        if (android.os.SystemClock.uptimeMillis() < until) UI.post(this, 50);
+      }
+    };
+    UI.post(check, 50);
+  }
+
+  /** From a forum's one feed to its topics: the feed is replaced */
+  public static void switchToTopics (ViewController<?> feed, TdApi.Chat chat) {
+    feed.tdlib().send(new TdApi.ToggleChatViewAsTopics(chat.id, true), (ok, error) -> { });
+    Tgx101TopicsController c = new Tgx101TopicsController(feed.context(), feed.tdlib());
+    c.setArguments(new Args(chat, null));
+    c.forceFastAnimationOnce();
+    feed.context().navigation().navigateTo(c);
+    dropWhenReplaced(feed);
+  }
+
+  // Topic names for the chat list and the feed (mockup «Группы с темами»: «who · topic» under a forum's name), by account
+  private static final java.util.Map<String, String> topicNames = new java.util.concurrent.ConcurrentHashMap<>();
+  private static final java.util.Set<String> topicNamesLoading = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+
+  /** The topic's name, or null while it loads — {@code onLoaded} runs on the UI thread once it's known */
+  public static @Nullable String topicName (Tdlib tdlib, long chatId, @Nullable TdApi.MessageTopic topicId, @Nullable Runnable onLoaded) {
+    if (!(topicId instanceof TdApi.MessageTopicForum)) return null;
+    int id = ((TdApi.MessageTopicForum) topicId).forumTopicId;
+    String key = tdlib.id() + ":" + chatId + ":" + id;
+    String name = topicNames.get(key);
+    if (name != null) return name;
+    if (topicNamesLoading.add(key)) {
+      tdlib.send(new TdApi.GetForumTopic(chatId, id), (topic, error) -> {
+        topicNamesLoading.remove(key);
+        if (topic == null || StringUtils.isEmpty(topic.info.name)) return;
+        topicNames.put(key, topic.info.name);
+        if (onLoaded != null) UI.post(onLoaded);
+      });
+    }
+    return null;
+  }
+
   /** In a chat opened for one topic, the header shows the topic name with the group name below. */
   public static void bindTopicHeader (ViewController<?> context, ChatHeaderView header, TdApi.Chat chat, @Nullable TdApi.MessageTopic topicId) {
     if (!(topicId instanceof TdApi.MessageTopicForum) || header == null) return;
@@ -125,17 +181,140 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
 
   private final List<TdApi.ForumTopic> topics = new ArrayList<>();
   private final List<Object> rows = new ArrayList<>();
-  private static final Object ROW_CREATE = new Object(), ROW_ALL_MESSAGES = new Object(), ROW_EMPTY = new Object();
+  private static final Object ROW_SWITCH = new Object(), ROW_EMPTY = new Object();
   private TopicsAdapter adapter;
   private boolean loaded, needReload;
   private int loadGeneration;
+  private ChatHeaderView headerCell;
+  private @Nullable String searchQuery;
+  // a topic's own emoji (its custom emoji icon's base emoji), by custom emoji id
+  private final android.util.LongSparseArray<String> iconEmoji = new android.util.LongSparseArray<>();
 
   @Override
   protected void onCreateView (Context context, CustomRecyclerView recyclerView) {
+    // the header as in the group's chat: its photo, name and members
+    headerCell = new ChatHeaderView(context, tdlib, this);
+    headerCell.setCallback(this);
+    headerCell.setChat(tdlib, getArgumentsStrict().chat, null);
     adapter = new TopicsAdapter();
     recyclerView.setAdapter(adapter);
+    // a swipe to the left over the topics opens the feed, as the switch does
+    recyclerView.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+      private float downX, downY;
+      private boolean tracking;
+
+      @Override
+      public boolean onInterceptTouchEvent (@NonNull RecyclerView rv, @NonNull android.view.MotionEvent e) {
+        switch (e.getActionMasked()) {
+          case android.view.MotionEvent.ACTION_DOWN:
+            downX = e.getX();
+            downY = e.getY();
+            tracking = !inSearchMode();
+            break;
+          case android.view.MotionEvent.ACTION_MOVE: {
+            float dx = e.getX() - downX, dy = e.getY() - downY;
+            if (tracking && dx < -Screen.dp(72f) && Math.abs(dx) > Math.abs(dy) * 2f) {
+              tracking = false;
+              if (topicsSwitch != null) topicsSwitch.setFeed(true, true);
+              rv.postDelayed(() -> openAllMessages(), 140);
+              return true;
+            }
+            if (Math.abs(dy) > Screen.dp(16f)) tracking = false;
+            break;
+          }
+        }
+        return false;
+      }
+    });
     buildRows();
     load();
+  }
+
+  private @Nullable org.thunderdog.challegram.component.chat.Tgx101TopicsSwitch topicsSwitch;
+
+  @Override
+  public View getCustomHeaderCell () {
+    return headerCell;
+  }
+
+  @Override
+  public void onChatHeaderClick () {
+    tdlib.ui().openChatProfile(this, getArgumentsStrict().chat, null, null);
+  }
+
+  // Header: search and ⋮
+
+  @Override
+  protected int getMenuId () {
+    return R.id.menu_search;
+  }
+
+  @Override
+  protected int getSearchMenuId () {
+    return R.id.menu_clear;
+  }
+
+  @Override
+  protected int getSearchHint () {
+    return R.string.Tgx101TopicsSearchHint;
+  }
+
+  @Override
+  public void fillMenuItems (int id, org.thunderdog.challegram.navigation.HeaderView header, LinearLayout menu) {
+    if (id == R.id.menu_search) {
+      header.addSearchButton(menu, this);
+      header.addMoreButton(menu, this);
+    } else if (id == R.id.menu_clear) {
+      header.addClearButton(menu, this);
+    }
+  }
+
+  @Override
+  public void onMenuItemPressed (int id, View view) {
+    if (id == R.id.menu_btn_search) {
+      if (headerView != null) headerView.openSearchMode();
+    } else if (id == R.id.menu_btn_clear) {
+      clearSearchInput();
+    } else if (id == R.id.menu_btn_more) {
+      List<Integer> ids = new ArrayList<>();
+      List<String> titles = new ArrayList<>();
+      List<Integer> icons = new ArrayList<>();
+      if (canCreateTopics()) {
+        ids.add(R.id.btn_tgx101TopicNew); titles.add(Lang.getString(R.string.Tgx101TopicNew)); icons.add(R.drawable.baseline_add_24);
+      }
+      ids.add(R.id.btn_tgx101TopicsInfo); titles.add(Lang.getString(R.string.GroupInfo)); icons.add(R.drawable.baseline_info_24);
+      ids.add(R.id.btn_reportChat); titles.add(Lang.getString(R.string.Report)); icons.add(R.drawable.baseline_report_24);
+      ids.add(R.id.btn_tgx101TopicsLeave); titles.add(Lang.getString(R.string.LeaveMegaMenu)); icons.add(R.drawable.baseline_logout_24);
+      showMore(toArray(ids), titles.toArray(new String[0]), toArray(icons));
+    }
+  }
+
+  @Override
+  public void onMoreItemPressed (int id) {
+    TdApi.Chat chat = getArgumentsStrict().chat;
+    if (id == R.id.btn_tgx101TopicNew) {
+      createTopic();
+    } else if (id == R.id.btn_tgx101TopicsInfo) {
+      onChatHeaderClick();
+    } else if (id == R.id.btn_reportChat) {
+      TdlibUi.reportChats(this, new long[] {chat.id}, null, null);
+    } else if (id == R.id.btn_tgx101TopicsLeave) {
+      tdlib.ui().showDeleteChatConfirm(this, chat.id);
+    }
+  }
+
+  @Override
+  protected void onSearchInputChanged (String query) {
+    super.onSearchInputChanged(query);
+    String q = query != null ? query.trim() : "";
+    searchQuery = q.isEmpty() ? null : q;
+    buildRows();
+  }
+
+  @Override
+  protected void onLeaveSearchMode () {
+    searchQuery = null;
+    buildRows();
   }
 
   @Override
@@ -217,11 +396,39 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
 
   private void buildRows () {
     rows.clear();
-    if (canCreateTopics()) rows.add(ROW_CREATE);
-    rows.add(ROW_ALL_MESSAGES);
-    rows.addAll(topics);
-    if (loaded && topics.isEmpty()) rows.add(ROW_EMPTY);
+    if (searchQuery == null) {
+      rows.add(ROW_SWITCH);
+      rows.addAll(topics);
+    } else {
+      String q = searchQuery.toLowerCase();
+      for (TdApi.ForumTopic topic : topics) {
+        if (topic.info.name != null && topic.info.name.toLowerCase().contains(q)) rows.add(topic);
+      }
+    }
+    if (loaded && rows.size() == (searchQuery == null ? 1 : 0)) rows.add(ROW_EMPTY);
     if (adapter != null) adapter.notifyDataSetChanged();
+    loadIconEmoji();
+  }
+
+  /** The custom emoji of the topics' icons → their base emoji, shown as the icon */
+  private void loadIconEmoji () {
+    List<Long> missing = new ArrayList<>();
+    for (TdApi.ForumTopic topic : topics) {
+      long id = topic.info.icon != null ? topic.info.icon.customEmojiId : 0;
+      if (id != 0 && iconEmoji.get(id) == null && !missing.contains(id)) missing.add(id);
+    }
+    if (missing.isEmpty()) return;
+    long[] ids = new long[missing.size()];
+    for (int i = 0; i < ids.length; i++) ids[i] = missing.get(i);
+    tdlib.send(new TdApi.GetCustomEmojiStickers(ids), (stickers, error) -> runOnUiThreadOptional(() -> {
+      if (stickers == null) return;
+      for (TdApi.Sticker sticker : stickers.stickers) {
+        if (sticker.fullType instanceof TdApi.StickerFullTypeCustomEmoji && !StringUtils.isEmpty(sticker.emoji)) {
+          iconEmoji.put(((TdApi.StickerFullTypeCustomEmoji) sticker.fullType).customEmojiId, sticker.emoji);
+        }
+      }
+      if (adapter != null) adapter.notifyDataSetChanged();
+    }));
   }
 
   // Actions
@@ -240,6 +447,13 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     params.chatList = getArgumentsStrict().chatList;
     params.tgx101IgnoreTopics = true;
     tdlib.ui().openChat(this, chat, params);
+    dropWhenReplaced(this); // «Feed» takes this screen's place
+  }
+
+  @Override
+  public void onPrepareToShow () {
+    super.onPrepareToShow();
+    if (topicsSwitch != null) topicsSwitch.setFeed(false, false); // back here: the thumb on «Topics»
   }
 
   private void createTopic () {
@@ -325,18 +539,29 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
 
   // List
 
-  private static final int VIEW_TOPIC = 0, VIEW_ACTION = 1, VIEW_EMPTY = 2;
+  private static final int VIEW_TOPIC = 0, VIEW_ACTION = 1, VIEW_EMPTY = 2, VIEW_SWITCH = 3;
 
   private final class TopicsAdapter extends RecyclerView.Adapter<Row> {
     @Override
     public int getItemViewType (int position) {
       Object item = rows.get(position);
-      return item == ROW_EMPTY ? VIEW_EMPTY : item instanceof TdApi.ForumTopic ? VIEW_TOPIC : VIEW_ACTION;
+      return item == ROW_SWITCH ? VIEW_SWITCH : item == ROW_EMPTY ? VIEW_EMPTY : item instanceof TdApi.ForumTopic ? VIEW_TOPIC : VIEW_ACTION;
     }
 
     @NonNull
     @Override
     public Row onCreateViewHolder (@NonNull ViewGroup parent, int viewType) {
+      if (viewType == VIEW_SWITCH) {
+        org.thunderdog.challegram.component.chat.Tgx101TopicsSwitch view = new org.thunderdog.challegram.component.chat.Tgx101TopicsSwitch(context(), false);
+        view.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(org.thunderdog.challegram.component.chat.Tgx101TopicsSwitch.HEIGHT + 4f)));
+        view.setPadding(0, Screen.dp(4f), 0, 0);
+        view.setListener(toFeed -> {
+          if (toFeed) openAllMessages();
+        });
+        topicsSwitch = view;
+        addThemeInvalidateListener(view);
+        return new Row(view);
+      }
       return new Row(context(), viewType);
     }
 
@@ -345,11 +570,7 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
       Object item = rows.get(position);
       if (item instanceof TdApi.ForumTopic) {
         holder.bindTopic((TdApi.ForumTopic) item);
-      } else if (item == ROW_CREATE) {
-        holder.bindAction(R.drawable.baseline_add_24, Lang.getString(R.string.Tgx101TopicNew), v -> createTopic());
-      } else if (item == ROW_ALL_MESSAGES) {
-        holder.bindAction(R.drawable.baseline_forum_24, Lang.getString(R.string.Tgx101TopicsAllMessages), v -> openAllMessages());
-      } else {
+      } else if (item == ROW_EMPTY) {
         holder.bindEmpty();
       }
     }
@@ -364,6 +585,13 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     private final LinearLayout layout;
     private final TextView icon, title, subtitle, date, badge;
     private final ImageView actionIcon, stateIcon;
+
+    Row (View view) {
+      super(view);
+      layout = null;
+      icon = title = subtitle = date = badge = null;
+      actionIcon = stateIcon = null;
+    }
 
     Row (Context context, int viewType) {
       super(new LinearLayout(context));
@@ -444,11 +672,23 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     void bindTopic (TdApi.ForumTopic topic) {
       applyTheme();
       TdApi.ForumTopicInfo info = topic.info;
-      GradientDrawable circle = new GradientDrawable();
-      circle.setShape(GradientDrawable.OVAL);
-      circle.setColor(0xff000000 | (info.isGeneral ? 0x8E9CA8 : info.icon.color));
-      icon.setBackground(circle);
-      icon.setText(info.isGeneral ? "#" : firstLetter(info.name));
+      // (mockup «Группы с темами»): the topic's own emoji on a soft square of its colour; without one — its letter
+      int color = 0xff000000 | (info.isGeneral ? 0x8E9CA8 : info.icon.color);
+      String emoji = info.icon != null && info.icon.customEmojiId != 0 ? iconEmoji.get(info.icon.customEmojiId) : null;
+      GradientDrawable square = new GradientDrawable();
+      square.setCornerRadius(Screen.dp(12f));
+      if (emoji != null) {
+        square.setColor(me.vkryl.core.ColorUtils.alphaColor(.16f, color));
+        icon.setText(emoji);
+        icon.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22f);
+        icon.setTextColor(0xff000000);
+      } else {
+        square.setColor(color);
+        icon.setText(info.isGeneral ? "#" : firstLetter(info.name));
+        icon.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18f);
+        icon.setTextColor(0xffffffff);
+      }
+      icon.setBackground(square);
 
       title.setText(info.isHidden ? info.name + " · " + Lang.getString(R.string.Tgx101TopicHidden) : info.name);
       int stateRes = info.isClosed ? R.drawable.baseline_lock_24 : topic.isPinned ? R.drawable.deproko_baseline_pin_24 : 0;
@@ -465,7 +705,14 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
       if (last != null) {
         String text = ContentPreview.getChatListPreview(tdlib, last.chatId, last, false).buildText(true);
         String sender = last.isOutgoing ? Lang.getString(R.string.FromYou) : tdlib.senderName(last, false, true);
-        subtitle.setText(StringUtils.isEmpty(sender) ? text : sender + ": " + text);
+        if (StringUtils.isEmpty(sender)) {
+          subtitle.setText(text);
+        } else {
+          // the author in the accent colour, as in the chat list
+          android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder(sender).append(": ").append(text);
+          b.setSpan(new android.text.style.ForegroundColorSpan(Theme.getColor(ColorId.textLink)), 0, sender.length() + 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+          subtitle.setText(b);
+        }
         date.setText(Lang.timeOrDateShort(last.date, TimeUnit.SECONDS));
         date.setVisibility(View.VISIBLE);
       } else {
@@ -475,7 +722,9 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
 
       int unread = topic.unreadMentionCount > 0 ? topic.unreadMentionCount : topic.unreadCount;
       if (unread > 0) {
-        boolean muted = topic.notificationSettings != null && topic.notificationSettings.muteFor > 0 && topic.unreadMentionCount == 0;
+        // muted: its own setting, or the group's when it uses the default — grey, as in the chat list
+        boolean topicMuted = topic.notificationSettings != null && (topic.notificationSettings.useDefaultMuteFor ? !tdlib.chatNotificationsEnabled(getArgumentsStrict().chat.id) : topic.notificationSettings.muteFor > 0);
+        boolean muted = topicMuted && topic.unreadMentionCount == 0;
         GradientDrawable pill = new GradientDrawable();
         pill.setCornerRadius(Screen.dp(11f));
         pill.setColor(Theme.getColor(muted ? ColorId.badgeMuted : ColorId.badge));
