@@ -4907,6 +4907,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public void onFocus () {
     tgx101ResetMotion("focus");
     super.onFocus();
+    tgx101Leaving = false;
     if (tgx101PaddingSkippedLeaving) {
       tgx101PaddingSkippedLeaving = false;
       updateFloatingListPadding();
@@ -5090,6 +5091,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   public void onPrepareToShow () {
+    tgx101Leaving = false; // opened again (the chat may be reused): coming in, not leaving
     super.onPrepareToShow();
     triggerOneShot = false;
     if (headerCell != null) { // Fix for new profiles
@@ -5206,9 +5208,18 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   public void onBlur () {
+    tgx101Leaving = true;
     tgx101UpdateMicExclusion(false);
     if (tgx101StorageSwitch != null) tgx101StorageSwitch.setKeyboardShown(false); // TGx101: a keyboard closed elsewhere would leave it hidden
-    tgx101ResetMotion("blur");
+    // (user video 2026-10-22 12:32 «прыжок на 20-й секунде»: back pressed while the keyboard went down — the field was put
+    // in place at once, −893 px in one frame on the leaving chat): while the chat slides away the field keeps riding the
+    // keyboard; the rest is reset once it is off screen (a cancelled back is reset by onFocus)
+    if (navigationController() != null && navigationController().isAnimating() && messagesView != null) {
+      messagesView.removeCallbacks(tgx101ResetAfterLeaving);
+      messagesView.postDelayed(tgx101ResetAfterLeaving, 60);
+    } else {
+      tgx101ResetMotion("blur");
+    }
     saveDraft();
     if (inputView != null) {
       inputView.tgx101DismissSelectionBar();
@@ -11635,6 +11646,20 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private boolean tgx101PaddingSkippedLeaving;
+  private boolean tgx101Leaving; // was focused, lost it: going away (or covered by the next screen)
+
+  private final Runnable tgx101ResetAfterLeaving = new Runnable() {
+    @Override
+    public void run () {
+      if (isFocused() || messagesView == null) return;
+      NavigationController nav = navigationController();
+      if (nav != null && nav.isAnimating()) {
+        messagesView.postDelayed(this, 60);
+        return;
+      }
+      tgx101ResetMotion("blur (off screen)");
+    }
+  };
 
   // (user 2026-10-22 «после возврата в чат… съезжает вниз каждый раз, должен быть сразу внизу»): the room skipped while
   // leaving is put once the chat is off screen — at once, no glide — so the chat opened again stands at the bottom already
@@ -11643,7 +11668,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     public void run () {
       if (!tgx101PaddingSkippedLeaving || messagesView == null) return;
       NavigationController nav = navigationController();
-      if (nav != null && nav.isAnimating() && nav.getCurrentStackItem() == MessagesController.this) {
+      if (nav != null && nav.isAnimating()) {
         messagesView.postDelayed(this, 60);
         return;
       }
@@ -11665,7 +11690,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // (user 2026-10-22 «притормаживает, если напишешь и сразу выйдешь из чата»): leaving with the keyboard up, the keyboard
     // went down while the chat slid away and the list was laid out again for every step of it — the chat is leaving, its
     // room doesn't matter. If the back is cancelled, onFocus catches up
-    if (!isFocused() && navigationController() != null && navigationController().isAnimating() && navigationController().getCurrentStackItem() == this) {
+    // only a chat that was on screen and is leaving — a chat coming in is not focused yet either (0.2.231–0.2.232 held its
+    // room at 16 px through the whole opening and the messages slid 243 px at its end, user video 2026-10-22 12:32)
+    if (tgx101Leaving && !isFocused() && navigationController() != null && navigationController().isAnimating()) {
       if (!tgx101PaddingSkippedLeaving) {
         tgx101PaddingSkippedLeaving = true;
         messagesView.postDelayed(tgx101PaddingAfterLeaving, 60);
