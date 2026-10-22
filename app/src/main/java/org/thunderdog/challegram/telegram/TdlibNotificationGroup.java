@@ -133,16 +133,15 @@ public class TdlibNotificationGroup implements Iterable<TdlibNotification> {
   }
 
   public long findTargetMessageId () {
-    // TGx101 (user 2026-10-22 «должно открываться то сообщение, на которое я перешёл из уведомления»; on 2026-10-13 it
-    // was the first unread one, which looked like «the old place»): the newest message of the notification — the one
-    // that popped up. Android doesn't say which line of a grouped notification was tapped
-    long target = 0;
+    // TGx101 (user 2026-10-13 «переход через любое уведомление должен вести к этому сообщению; если уведомлений от
+    // одного чата много — к первому непрочитанному»): not only mentions — the oldest message still notified about
+    // (read ones leave the notification) is the first unread one
     for (TdlibNotification notification : this) {
       long messageId = notification.findMessageId();
       if (messageId != 0)
-        target = messageId;
+        return messageId;
     }
-    return target;
+    return 0;
   }
 
   public int firstNotificationId () {
