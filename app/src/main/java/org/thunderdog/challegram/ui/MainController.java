@@ -1559,16 +1559,46 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     View root = navigation != null ? navigation.getValue() : null;
     View v = tgx101PreparedStorage.getValue();
     if (root == null || root.getWidth() == 0 || v.getParent() != null) return;
+    // (user 2026-10-22 «часто притормаживает, если что-то напишешь и сразу выйдешь из чата… не всегда», log 11:33:45):
+    // 1–2.5 s after coming back to the chats the storage was laid out again (35 ms) and drawn off screen (14 ms + the GPU's
+    // frames) right while the list was scrolled or the next chat opened. Done only in a pause: nothing touched for 1.2 s,
+    // nothing moving, and the drawing a frame after the layout
+    if (!fingerDown && (org.thunderdog.challegram.BaseActivity.tgx101RecentlyTouched(1200) || (navigation != null && navigation.isAnimating()) || !isFocused())) {
+      View own = getValue();
+      if (own != null) {
+        own.removeCallbacks(tgx101MeasureLater);
+        own.postDelayed(tgx101MeasureLater, 700);
+      }
+      return;
+    }
     if (v.isLayoutRequested()) {
       long t = android.os.SystemClock.uptimeMillis();
       int[] wh = tgx101StorageSize(root);
-      tgx101LayOut(v, wh[0], wh[1]);
+      if (tgx101WarmedFor == tgx101PreparedStorage && v.getWidth() == wh[0] && v.getHeight() == wh[1]) {
+        // laid out before at this size: its parts know their widths, one pass is enough
+        v.measure(View.MeasureSpec.makeMeasureSpec(wh[0], View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(wh[1], View.MeasureSpec.EXACTLY));
+        v.layout(0, 0, wh[0], wh[1]);
+      } else {
+        tgx101LayOut(v, wh[0], wh[1]);
+      }
       org.thunderdog.challegram.Tgx101Diag.mark("storage pull: laid out again ahead in " + (android.os.SystemClock.uptimeMillis() - t) + " ms");
-      tgx101WarmedFor = null; // changed: drawn ahead again
     }
+    // drawn off screen once per storage: its pictures stay in the GPU's cache; drawing it again after every refresh
+    // took the GPU away from the chats' own frames
     if (!fingerDown && tgx101WarmedFor != tgx101PreparedStorage) {
       tgx101WarmedFor = tgx101PreparedStorage;
-      tgx101WarmUp(v);
+      View own = getValue();
+      if (own != null) {
+        own.postOnAnimation(() -> {
+          if (tgx101PreparedStorage != null && tgx101PreparedStorage.getValue() == v && v.getParent() == null && !org.thunderdog.challegram.BaseActivity.tgx101RecentlyTouched(1200)) {
+            tgx101WarmUp(v);
+          } else {
+            tgx101WarmedFor = null;
+          }
+        });
+      } else {
+        tgx101WarmUp(v);
+      }
     }
   }
 

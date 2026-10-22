@@ -4907,6 +4907,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public void onFocus () {
     tgx101ResetMotion("focus");
     super.onFocus();
+    if (tgx101PaddingSkippedLeaving) {
+      tgx101PaddingSkippedLeaving = false;
+      updateFloatingListPadding();
+    }
     tgx101BackToChatsFromSaved();
     if (tgx101PendingHighlight != null) {
       MessageId id = tgx101PendingHighlight;
@@ -11619,6 +11623,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     tgx101GlideAnimator.start();
   }
 
+  private boolean tgx101PaddingSkippedLeaving;
+
   private void updateFloatingListPadding () {
     if (!floatingInput || messagesView == null || bottomWrap == null) return;
     if (tgx101ImeRiding && !tgx101ImeStarted) return; // the end-state layout before the ride starts: not real yet
@@ -11626,6 +11632,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // TGx101 (Vivo 0.1.552, share sheet still twitching): a window over the chat (share sheet with its own keyboard) made
     // the chat under it relayout for that keyboard (16–17 ms frame while the sheet rose); it catches up once it's closed
     if (context().getCurrentPopupWindow() != null) return;
+    // (user 2026-10-22 «притормаживает, если напишешь и сразу выйдешь из чата»): leaving with the keyboard up, the keyboard
+    // went down while the chat slid away and the list was laid out again for every step of it — the chat is leaving, its
+    // room doesn't matter. If the back is cancelled, onFocus catches up
+    if (!isFocused() && navigationController() != null && navigationController().isAnimating() && navigationController().getCurrentStackItem() == this) {
+      tgx101PaddingSkippedLeaving = true;
+      return;
+    }
     // user 2026-10-07 00:08 «нижняя полоса наезжает на текст»: the capsule is lifted above the navigation bar, so the
     // room is everything from its top edge down, not just its height
     int padding = 0;

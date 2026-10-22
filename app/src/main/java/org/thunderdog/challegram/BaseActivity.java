@@ -1934,8 +1934,16 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   private boolean isKeyboardVisible;
 
+  /** When the screen was last touched or let go (uptime): background work waits for a pause in the user's hands */
+  public static volatile long tgx101LastTouchAt;
+
+  public static boolean tgx101RecentlyTouched (long withinMs) {
+    return android.os.SystemClock.uptimeMillis() - tgx101LastTouchAt < withinMs;
+  }
+
   @Override
   public boolean dispatchTouchEvent (MotionEvent ev) {
+    tgx101LastTouchAt = android.os.SystemClock.uptimeMillis();
     if (BuildConfig.TGX101_DIAG) { // TGx101: gesture log in diagnostics builds
       Object top = navigation != null ? navigation.getCurrentStackItem() : null;
       // Never log touches on the passcode / 2FA screens: tap positions on the keypad would reveal the PIN
