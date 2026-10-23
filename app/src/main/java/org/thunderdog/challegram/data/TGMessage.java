@@ -1427,9 +1427,25 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
   }
 
-  /** TGx101: an expandable quote in this message was opened or folded */
+  /** TGx101: an expandable quote in this message is opening / folding — called every frame of it */
   protected void tgx101OnQuoteToggled () {
-    rebuildAndUpdateContent();
+    tgx101ContentHeightChanged();
+  }
+
+  /** the content's height moved (a quote folding): the bubble and the message's height follow, without a rebuild */
+  protected final void tgx101ContentHeightChanged () {
+    if ((flags & FLAG_LAYOUT_BUILT) == 0) return;
+    if (useBubbles()) {
+      buildBubble(false); // the bubble around the new height; it tells the list when the height changed
+    } else {
+      int oldHeight = height;
+      height = computeHeight();
+      if (height != oldHeight) {
+        if (hasAnyTargetToInvalidate()) manager.onMessageHeightChanged(getChatId(), getId(), oldHeight, height);
+        requestLayout();
+      }
+    }
+    invalidate();
   }
 
   protected void rebuildAndUpdateContent () {

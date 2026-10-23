@@ -50,6 +50,9 @@ public class QuoteBackground {
   private static final float[] tgx101Radii = new float[8];
 
   public boolean tgx101Expandable, tgx101Collapsed;
+  public float tgx101Factor = 1f;
+  public int tgx101Full, tgx101Limit, tgx101Delta, tgx101VisibleBottom;
+  public @Nullable android.animation.ValueAnimator tgx101Animator;
   public @Nullable String tgx101Key;
   private static Drawable tgx101ArrowDown, tgx101ArrowUp;
 
@@ -128,6 +131,9 @@ public class QuoteBackground {
       }
     }
 
+    if (tgx101Expandable && tgx101Factor < 1f) {
+      bounds.bottom = Math.min(bounds.bottom, tgx101VisibleBottom + startY); // a folded quote ends where its words fade
+    }
     bounds.left -= Screen.dp(QUOTE_LEFT_PADDING);
     bounds.top -= Screen.dp(QUOTE_VERTICAL_PADDING) + topAddition;
     bounds.right += Screen.dp(QUOTE_RIGHT_PADDING);

@@ -2707,11 +2707,20 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
         } while (true);
         continue;
       }
-      if (center) {
-        i += drawPartCentered(i, c, startX, startY, startX == endX ? maxWidth : endX - startX, alpha, defaultTheme, receiver);
-      } else {
-        i += drawPart(i, c, startX, endX, endXBottomPadding, startY, alpha, defaultTheme, receiver);
+      final float tgx101Alpha = tgx101PartAlpha(i); // a folded quote's lines fade at its edge
+      if (tgx101Alpha <= 0f) {
+        i++;
+        continue;
       }
+      final int tgx101Clip = tgx101PartClip != null && i < tgx101PartClip.length ? tgx101PartClip[i] : Integer.MAX_VALUE;
+      final int tgx101Save = tgx101Clip != Integer.MAX_VALUE ? Views.save(c) : -1;
+      if (tgx101Save != -1) c.clipRect(-Screen.dp(1000f), startY - Screen.dp(1000f), Screen.dp(5000f), startY + tgx101Clip);
+      if (center) {
+        i += drawPartCentered(i, c, startX, startY, startX == endX ? maxWidth : endX - startX, alpha * tgx101Alpha, defaultTheme, receiver);
+      } else {
+        i += drawPart(i, c, startX, endX, endXBottomPadding, startY, alpha * tgx101Alpha, defaultTheme, receiver);
+      }
+      if (tgx101Save != -1) Views.restore(c, tgx101Save);
     }
     if (topLayerPartsCount > 0) {
       for (int i = 0; i < partCount && topLayerPartsCount > 0; ) {
@@ -2955,7 +2964,10 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
     boolean useCenter = (textFlags & FLAG_ALIGN_CENTER) != 0;
     // int lineHeight = getLineHeight();
     int touchBound = getEntityTouchPadding();
+    int tgx101Index = -1;
     for (TextPart part : parts) {
+      tgx101Index++;
+      if (tgx101PartAlpha(tgx101Index) <= 0f) continue; // folded away in a quote
       int searchX;
 
       if (useCenter) {
@@ -3753,58 +3765,109 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
     return b.toString();
   }
 
+  // the layout keeps every line; what is shown of a folded quote is worked out over the base positions, so the fold can
+  // move: the quote shows 3½ lines (the half one fading — there's more), the lines at its bottom edge fade, the text
+  // below follows, and the message's height changes frame by frame (as the official app / exteraGram)
+  private int[] tgx101BaseY;
+  private int tgx101BaseHeight;
+  private float[] tgx101PartAlpha;
+  private int[] tgx101PartClip; // where a folding quote's part is cut off (its edge), or MAX_VALUE
+
   private void tgx101CollapseQuotes () {
+    tgx101BaseY = null;
+    tgx101PartAlpha = null;
     if (quotes.isEmpty()) return;
     final int lineHeight = getLineHeight();
-    for (int q = quotes.size() - 1; q >= 0; q--) {
-      QuoteBackground quote = quotes.get(q);
+    boolean any = false;
+    for (QuoteBackground quote : quotes) {
       if (!tgx101IsExpandable(quote.entity)) continue;
-      quote.tgx101Key = tgx101QuoteKey(quote);
-      quote.tgx101Expandable = true;
-      if (tgx101OpenQuotes.contains(quote.tgx101Key)) continue; // open: drawn whole, the arrow points up
-      final int firstY = parts.get(quote.partStart).getY();
-      final int limit = firstY + lineHeight * TGX101_QUOTE_COLLAPSED_LINES;
-      int hideFrom = -1, bottom = limit;
+      int firstY = parts.get(quote.partStart).getY(), full = firstY;
       for (int a = quote.partStart; a < quote.partEnd; a++) {
         TextPart part = parts.get(a);
-        if (part.getY() >= limit) {
-          if (hideFrom == -1) hideFrom = a;
-          bottom = Math.max(bottom, part.getY() + Math.max(lineHeight, part.getHeight()));
-        }
+        full = Math.max(full, part.getY() + Math.max(lineHeight, part.getHeight()));
       }
-      if (hideFrom == -1) {
-        quote.tgx101Expandable = false; // short enough — nothing to fold
-        continue;
-      }
-      final int removed = quote.partEnd - hideFrom;
-      final int delta = bottom - limit;
-      for (int a = quote.partEnd; a < parts.size(); a++) {
-        TextPart part = parts.get(a);
-        part.setXY(part.getX(), part.getY() - delta);
-      }
-      parts.subList(hideFrom, quote.partEnd).clear();
-      for (int k = q + 1; k < quotes.size(); k++) {
-        QuoteBackground next = quotes.get(k);
-        next.partStart -= removed;
-        next.partEnd -= removed;
-      }
-      quote.partEnd = hideFrom;
-      quote.tgx101Collapsed = true;
-      quote.calcHeightAddition();
-      currentY -= delta;
+      int limit = firstY + Math.round(lineHeight * (TGX101_QUOTE_COLLAPSED_LINES + .5f));
+      if (full <= limit + lineHeight / 2) continue; // short enough — nothing to fold
+      quote.tgx101Key = tgx101QuoteKey(quote);
+      quote.tgx101Expandable = true;
+      quote.tgx101Full = full;
+      quote.tgx101Limit = limit;
+      quote.tgx101Factor = tgx101OpenQuotes.contains(quote.tgx101Key) ? 1f : 0f;
+      any = true;
     }
+    if (!any) return;
+    tgx101BaseY = new int[parts.size()];
+    for (int a = 0; a < parts.size(); a++) tgx101BaseY[a] = parts.get(a).getY();
+    tgx101BaseHeight = currentY;
+    tgx101PartAlpha = new float[parts.size()];
+    tgx101PartClip = new int[parts.size()];
+    tgx101ApplyQuotes();
   }
 
-  /** a tap on an expandable quote: open / fold it; the owner lays the text out again */
+  private void tgx101ApplyQuotes () {
+    if (tgx101BaseY == null || tgx101BaseY.length != parts.size()) return;
+    final int lineHeight = getLineHeight();
+    java.util.Arrays.fill(tgx101PartAlpha, 1f);
+    java.util.Arrays.fill(tgx101PartClip, Integer.MAX_VALUE);
+    int shift = 0, q = 0;
+    for (int a = 0; a < parts.size(); a++) {
+      while (q < quotes.size() && quotes.get(q).partEnd <= a) {
+        QuoteBackground done = quotes.get(q++);
+        if (done.tgx101Expandable) shift += done.tgx101Delta;
+      }
+      if (q < quotes.size() && quotes.get(q).partStart == a) {
+        QuoteBackground quote = quotes.get(q);
+        if (quote.tgx101Expandable) {
+          float visible = quote.tgx101Limit + (quote.tgx101Full - quote.tgx101Limit) * quote.tgx101Factor;
+          quote.tgx101Delta = Math.round(quote.tgx101Full - visible);
+          quote.tgx101VisibleBottom = Math.round(visible) - shift;
+          quote.tgx101Collapsed = quote.tgx101Factor < .5f;
+        }
+      }
+      TextPart part = parts.get(a);
+      int y = tgx101BaseY[a] - shift;
+      part.setXY(part.getX(), y);
+      if (q < quotes.size() && a >= quotes.get(q).partStart && quotes.get(q).tgx101Expandable && quotes.get(q).tgx101Factor < 1f) {
+        float alpha = (quotes.get(q).tgx101VisibleBottom - y) / (float) lineHeight;
+        tgx101PartAlpha[a] = Math.max(0f, Math.min(1f, alpha));
+        if (alpha < 1f) tgx101PartClip[a] = quotes.get(q).tgx101VisibleBottom; // cut at the quote's edge
+      }
+    }
+    while (q < quotes.size()) {
+      QuoteBackground done = quotes.get(q++);
+      if (done.tgx101Expandable) shift += done.tgx101Delta;
+    }
+    currentY = tgx101BaseHeight - shift;
+  }
+
+  /** how much of a part a folded quote shows (1 — all) */
+  private float tgx101PartAlpha (int index) {
+    return tgx101PartAlpha != null && index < tgx101PartAlpha.length ? tgx101PartAlpha[index] : 1f;
+  }
+
+  /** a tap on an expandable quote: it opens / folds smoothly, the owner relays the height every frame */
   public void tgx101OnQuoteClick (QuoteBackground quote, @Nullable ClickCallback callback) {
     if (!quote.tgx101Expandable || quote.tgx101Key == null) return;
-    if (quote.tgx101Collapsed) {
+    final boolean open = quote.tgx101Factor < .5f;
+    org.thunderdog.challegram.Tgx101Diag.mark("quote: " + (open ? "open" : "fold") + " (factor " + quote.tgx101Factor + ", text " + Integer.toHexString(System.identityHashCode(this)) + ")");
+    if (open) {
       tgx101OpenQuotes.add(quote.tgx101Key);
     } else {
       tgx101OpenQuotes.remove(quote.tgx101Key);
     }
-    if (callback != null) callback.tgx101OnQuoteToggled(this);
+    if (quote.tgx101Animator != null) quote.tgx101Animator.cancel();
+    android.animation.ValueAnimator animator = android.animation.ValueAnimator.ofFloat(quote.tgx101Factor, open ? 1f : 0f);
+    animator.setDuration(260);
+    animator.setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f));
+    animator.addUpdateListener(v -> {
+      quote.tgx101Factor = (float) v.getAnimatedValue();
+      tgx101ApplyQuotes();
+      if (callback != null) callback.tgx101OnQuoteToggled(this);
+    });
+    quote.tgx101Animator = animator;
+    animator.start();
   }
+
 
 
 

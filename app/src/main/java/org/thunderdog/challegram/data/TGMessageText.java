@@ -899,7 +899,8 @@ public class TGMessageText extends TGMessage {
 
   @Override
   protected void tgx101OnQuoteToggled () {
-    tgx101Rebuild(); // the text is laid out again: the quote opens / folds
+    visibleText.measure(false); // the text's height is the folding quote's of this frame
+    super.tgx101OnQuoteToggled();
   }
 
   private void tgx101Rebuild () {
