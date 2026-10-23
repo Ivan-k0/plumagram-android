@@ -29,19 +29,33 @@ import org.thunderdog.challegram.tool.Screen;
 
 /**
  * TGx101 (user 2026-10-23 «мигающая полоска не наезжает на первую букву, отодвинь, сделай не такой острой»): the text
- * cursor of every field — centred on the caret instead of starting on it (it covered the next letter's edge), round
- * ends, a little shorter than the line, in the colour of the send arrow (read at draw time: follows the theme).
+ * cursor of every field — 1.5 dp, a hair right of the caret, so it never touches the letter just typed (left of the
+ * caret it was clipped away at the field's start and covered that letter), round ends, one height whatever the line
+ * holds, in the colour of the send arrow (read at draw time: follows the theme), like the mic. The chat field's own
+ * placeholder moves right by {@link #hintRoom()} so the cursor of an empty field doesn't cover its first letter.
  */
 public final class Tgx101CursorDrawable extends Drawable {
-  private static final float WIDTH = 2f, SHORTER = 1.5f;
+  private static final float WIDTH = 1.5f, GAP = .5f, SHORTER = 1.5f; // as in the official app: 1.5 dp (user 2026-10-23 «сильно толстая»)
 
   private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final RectF rect = new RectF();
+  private final int fixedColor; // 0: the send arrow's colour of the current theme
+  private final java.lang.ref.WeakReference<EditText> field;
+
+  private Tgx101CursorDrawable (EditText field, int fixedColor) {
+    this.field = new java.lang.ref.WeakReference<>(field);
+    this.fixedColor = fixedColor;
+  }
 
   /** Android 10+ lets a field have its own cursor drawable; older ones keep the system cursor */
   public static void apply (EditText e) {
+    apply(e, 0);
+  }
+
+  /** a header field: its own white / grey on the coloured header, the same shape */
+  public static void apply (EditText e, int fixedColor) {
     if (android.os.Build.VERSION.SDK_INT >= 29) {
-      e.setTextCursorDrawable(new Tgx101CursorDrawable());
+      e.setTextCursorDrawable(new Tgx101CursorDrawable(e, fixedColor));
     }
   }
 
@@ -49,22 +63,34 @@ public final class Tgx101CursorDrawable extends Drawable {
   public void draw (@NonNull Canvas c) {
     Rect b = getBounds();
     float inset = Screen.dp(SHORTER);
-    rect.set(b.left, b.top + inset, b.right, b.bottom - inset);
+    // (user 2026-10-23 «в оф. телеге курсор что без текста, что с текстом одного размера»): the height comes from the
+    // field's font, not from the line — an empty line (the hint) and a line with emoji were taller or shorter
+    EditText e = field.get();
+    float height = b.height() - inset * 2;
+    if (e != null) height = Math.min(height, e.getTextSize() * 1.25f);
+    float cy = b.exactCenterY();
+    float left = b.left + Screen.dp(GAP);
+    rect.set(left, cy - height / 2f, left + Screen.dp(WIDTH), cy + height / 2f);
     float radius = rect.width() / 2f;
-    paint.setColor(Theme.chatSendButtonColor());
+    paint.setColor(fixedColor != 0 ? fixedColor : Theme.chatSendButtonColor());
     c.drawRoundRect(rect, radius, radius, paint);
-  }
-
-  /** half its width to the left: the caret's line runs through the bar's middle, between the two letters */
-  @Override
-  public boolean getPadding (@NonNull Rect padding) {
-    padding.set(Screen.dp(WIDTH) / 2, 0, 0, 0);
-    return true;
   }
 
   @Override
   public int getIntrinsicWidth () {
-    return Screen.dp(WIDTH);
+    return Screen.dp(GAP) + Screen.dp(WIDTH);
+  }
+
+  /** marks a hint already moved off the field's start (so it's done once) */
+  public static final class HintRoom extends android.text.style.LeadingMarginSpan.Standard {
+    public HintRoom (int room) {
+      super(room);
+    }
+  }
+
+  /** how far a field's own placeholder stands off its start while this cursor is in use: past the bar and a gap */
+  public static int hintRoom () {
+    return android.os.Build.VERSION.SDK_INT >= 29 ? Screen.dp(GAP) * 2 + Screen.dp(WIDTH) : 0;
   }
 
   @Override

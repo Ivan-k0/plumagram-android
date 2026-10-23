@@ -55,6 +55,21 @@ public class EmojiEditText extends EditText implements Destroyable {
     addTextChangedListener(new DestroySpansWatcher());
     setFilters(new InputFilter[0]);
   }
+  /** (user 2026-10-23 «в поисках, хранилище по прежнему наезжает — по всему приложению»): a field's hint stands off its
+   *  start by the cursor's room, so the cursor of an empty field doesn't cover the hint's first letter */
+  @Override
+  protected void onDraw (android.graphics.Canvas c) {
+    int room = Tgx101CursorDrawable.hintRoom();
+    CharSequence hint = getHint();
+    if (room > 0 && hint != null && hint.length() > 0
+      && !(hint instanceof android.text.Spanned && ((android.text.Spanned) hint).getSpans(0, hint.length(), Tgx101CursorDrawable.HintRoom.class).length > 0)) {
+      android.text.SpannableString moved = new android.text.SpannableString(hint);
+      moved.setSpan(new Tgx101CursorDrawable.HintRoom(room), 0, moved.length(), android.text.Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+      setHint(moved);
+    }
+    super.onDraw(c);
+  }
+
 
   @Override
   public final void setFilters (@NonNull InputFilter[] filters) {

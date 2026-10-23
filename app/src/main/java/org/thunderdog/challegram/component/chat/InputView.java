@@ -1777,7 +1777,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
 
   @Override
   protected void onDraw (Canvas c) {
-    final int x = getPaddingLeft() + Screen.dp(placeholderIcon != null ? 20 : 0);
+    final int x = getPaddingLeft() + Screen.dp(placeholderIcon != null ? 20 : 0) + org.thunderdog.challegram.widget.Tgx101CursorDrawable.hintRoom(); // the cursor stands before it
     final float alpha = showPlaceholder.getFloatValue();
     final int offset = (int) (hasSubPlaceholder.getFloatValue() * (getTextSize() / 18 * 8));
     final int baseline = getBaseline();

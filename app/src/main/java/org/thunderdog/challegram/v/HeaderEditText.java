@@ -111,6 +111,7 @@ public class HeaderEditText extends EmojiEditText implements ActionMode.Callback
     HeaderEditText view = (HeaderEditText) Views.inflate(parent.getContext(), light ? R.layout.input_header_light : R.layout.input_header, parent);
     view.setImeOptions(EditorInfo.IME_ACTION_DONE);
     Views.setCursorDrawable(view, R.drawable.cursor_white);
+    org.thunderdog.challegram.widget.Tgx101CursorDrawable.apply(view, 0xffffffff); // the app's cursor shape (user 2026-10-23)
     return view;
   }
 
@@ -118,6 +119,7 @@ public class HeaderEditText extends EmojiEditText implements ActionMode.Callback
     HeaderEditText view = (HeaderEditText) Views.inflate(parent.getContext(), R.layout.input_header_grey, parent);
     view.setImeOptions(EditorInfo.IME_ACTION_DONE);
     Views.setCursorDrawable(view, R.drawable.cursor_grey);
+    org.thunderdog.challegram.widget.Tgx101CursorDrawable.apply(view, 0xffa1aab3);
     return view;
   }
 }
