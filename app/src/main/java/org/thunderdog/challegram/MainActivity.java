@@ -906,6 +906,7 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       }
       long messageId = intent.getLongExtra("message_id", 0);
       Tgx101Diag.mark("notification opens chat " + chatId + (messageId != 0 ? " at message " + messageId : " (its own position)"));
+      Tgx101FrameTrace.start(this, "notification"); // diagnostics builds: the first frames, for a blink
       if (accountId != TdlibAccount.NO_ID && chatId != 0) {
         tgx101PrepareForChat(chatId);
         openMessagesController(accountId, chatId, messageId);
