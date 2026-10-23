@@ -7046,6 +7046,7 @@
   <string name="Tgx101SavedNewTagTile">Tag on the home screen</string>
   <string name="Tgx101SavedNoteHint">Save a note…</string>
   <string name="Tgx101SavedNoteSave">Save note</string>
+  <string name="Tgx101SavedNoteDone">Note saved</string>
   <string name="Tgx101SavedNoteWhere">Save the note to</string>
   <string name="Tgx101SavedNoteWithTag">With a tag…</string>
   <string name="Tgx101SavedNoteRemind">As a reminder…</string>

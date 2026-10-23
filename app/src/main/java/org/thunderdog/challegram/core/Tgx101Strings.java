@@ -777,6 +777,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedNewTagTile, "Метка на главном");
     RU.put(R.string.Tgx101SavedNoteHint, "Сохранить заметку…");
     RU.put(R.string.Tgx101SavedNoteSave, "Сохранить заметку");
+    RU.put(R.string.Tgx101SavedNoteDone, "Заметка сохранена");
     RU.put(R.string.Tgx101SavedNoteWhere, "Куда сохранить заметку");
     RU.put(R.string.Tgx101SavedNoteWithTag, "С меткой…");
     RU.put(R.string.Tgx101SavedNoteRemind, "Напоминанием…");

@@ -508,11 +508,22 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     bar.setGravity(Gravity.BOTTOM);
     // (user 2026-10-16 «поле ввода в хранилище сливается с фоном»): as the chats' field — the filling colour with a
     // hairline round it and a soft shadow, so it stands off the list in a dark theme too
+    // (user 2026-10-24 «Хранилище: поле как в чате»): with the classic field chosen in MagiX it is the chats' docked panel —
+    // full width, square, a hairline on top — the capsule otherwise
+    final boolean docked = !org.thunderdog.challegram.unsorted.Settings.instance().useFloatingInput();
     GradientDrawable barBg = new GradientDrawable();
     barBg.setColor(Theme.fillingColor());
-    barBg.setCornerRadius(Screen.dp(18f));
-    barBg.setStroke(Math.max(1, Screen.dp(.5f)), Theme.separatorColor());
-    bar.setBackground(barBg);
+    if (docked) {
+      GradientDrawable line = new GradientDrawable();
+      line.setColor(Theme.separatorColor());
+      android.graphics.drawable.LayerDrawable layers = new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[] {line, barBg});
+      layers.setLayerInset(1, 0, Math.max(1, Screen.dp(.5f)), 0, 0);
+      bar.setBackground(layers);
+    } else {
+      barBg.setCornerRadius(Screen.dp(18f));
+      barBg.setStroke(Math.max(1, Screen.dp(.5f)), Theme.separatorColor());
+      bar.setBackground(barBg);
+    }
     bar.setPadding(Screen.dp(2f), Screen.dp(2f), Screen.dp(2f), Screen.dp(2f));
     rootView = root;
     outerView = outer;
@@ -614,7 +625,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     });
     bar.addView(send, new LinearLayout.LayoutParams(Screen.dp(48f), Screen.dp(48f)));
     FrameLayout.LayoutParams barParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
-    barParams.setMargins(Screen.dp(8f), 0, Screen.dp(8f), Screen.dp(8f));
+    if (!docked) barParams.setMargins(Screen.dp(8f), 0, Screen.dp(8f), Screen.dp(8f));
     content.addView(bar, barParams);
     // the end of the list stays reachable above the capsule, whatever its height (it grows with the text)
     bar.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
@@ -623,7 +634,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
         column.setPadding(column.getPaddingLeft(), column.getPaddingTop(), column.getPaddingRight(), bottom);
       }
     });
-    if (android.os.Build.VERSION.SDK_INT >= 21) bar.setElevation(Screen.dp(4f));
+    if (android.os.Build.VERSION.SDK_INT >= 21 && !docked) bar.setElevation(Screen.dp(4f));
     storageSwitch = new Tgx101StorageSwitch(context, this, Tgx101StorageSwitch.IN_STORAGE, new Tgx101StorageSwitch.Host() {
       @Override
       public int bottomReserved () {
@@ -2535,10 +2546,42 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     sendButton.setScaleY(.8f);
     sendButton.animate().scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(new android.view.animation.OvershootInterpolator(2.5f)).start();
     UI.hapticVibrate(sendButton, false);
+    tgx101ShowSavedPill();
     sendButton.postDelayed(() -> {
       checkShown = false;
       updateSendIcon();
     }, 750);
+  }
+
+  /**
+   * TGx101 (user 2026-10-24 «нужно обыграть анимацией или уведомлением, что заметка создана — нашей простой анимации не
+   * хватает, её не видно»): a pill «✓ Note saved» rises over the field, stays a moment and goes
+   */
+  private void tgx101ShowSavedPill () {
+    if (rootView == null || noteBar == null || !noteBar.isShown()) return;
+    TextView pill = text(context, 14f, 0xffffffff, true);
+    pill.setText("✓  " + Lang.getString(R.string.Tgx101SavedNoteDone));
+    pill.setGravity(Gravity.CENTER);
+    pill.setPadding(Screen.dp(16f), Screen.dp(9f), Screen.dp(16f), Screen.dp(9f));
+    GradientDrawable bg = new GradientDrawable();
+    bg.setColor(accent());
+    bg.setCornerRadius(Screen.dp(20f));
+    pill.setBackground(bg);
+    if (android.os.Build.VERSION.SDK_INT >= 21) pill.setElevation(Screen.dp(6f));
+    int[] rootAt = new int[2], barAt = new int[2];
+    rootView.getLocationInWindow(rootAt);
+    noteBar.getLocationInWindow(barAt);
+    FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+    lp.topMargin = barAt[1] - rootAt[1] - Screen.dp(52f);
+    rootView.addView(pill, lp);
+    pill.setAlpha(0f);
+    pill.setTranslationY(Screen.dp(18f));
+    pill.setScaleX(.9f);
+    pill.setScaleY(.9f);
+    pill.animate().alpha(1f).translationY(0).scaleX(1f).scaleY(1f).setDuration(240)
+      .setInterpolator(new android.view.animation.OvershootInterpolator(1.4f)).start();
+    pill.postDelayed(() -> pill.animate().alpha(0f).translationY(-Screen.dp(10f)).setDuration(220)
+      .withEndAction(() -> rootView.removeView(pill)).start(), 1500);
   }
 
   private void afterNoteSaved () {

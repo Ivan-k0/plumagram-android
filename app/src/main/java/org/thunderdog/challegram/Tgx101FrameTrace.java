@@ -91,10 +91,10 @@ public final class Tgx101FrameTrace {
           Tgx101Diag.mark("frames: " + index + " not copied (" + result + "), drawing the views instead");
           bitmap.recycle();
           // the first ~0.4 s after a return the window gives no pixels: the views drawn by hand show what the app holds
-          decor.post(() -> drawViews(activity, folder, String.format(Locale.US, "%02d_%04dms_views.jpg", index, at), io));
+          decor.post(() -> drawViews(activity, folder, String.format(Locale.US, "%02d_%04dms_views.frame", index, at), io));
           return;
         }
-        io.post(() -> save(activity.getApplicationContext(), folder, String.format(Locale.US, "%02d_%04dms.jpg", index, at), bitmap));
+        io.post(() -> save(activity.getApplicationContext(), folder, String.format(Locale.US, "%02d_%04dms.frame", index, at), bitmap));
       }, io);
     } catch (Throwable t) {
       Tgx101Diag.mark("frames: " + index + " failed — " + t);
@@ -147,7 +147,9 @@ public final class Tgx101FrameTrace {
       ContentResolver resolver = context.getContentResolver();
       ContentValues values = new ContentValues();
       values.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
-      values.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
+      // (user 2026-10-24 «чёрный ящик забил мне всю галерею»): not an image to the system — the gallery doesn't show it; a
+      // JPEG inside all the same (rename to .jpg to look)
+      values.put(MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream");
       values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/" + folder);
       Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
       if (uri == null) return;
