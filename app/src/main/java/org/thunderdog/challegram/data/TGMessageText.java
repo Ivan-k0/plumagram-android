@@ -261,6 +261,7 @@ public class TGMessageText extends TGMessage {
   }
 
   private boolean setText (TdApi.FormattedText text, boolean parseEntities, boolean forceUpdate, boolean animated) {
+    if (text == null) text = new TdApi.FormattedText("", new TdApi.TextEntity[0]); // TGx101: never null here (see updateMessageContent)
     if (this.text == null || !Td.equalsTo(this.text, text) || forceUpdate) {
       animated = animated && Config.ENABLE_TEXT_ANIMATIONS && needAnimateChanges();
 
@@ -486,7 +487,10 @@ public class TGMessageText extends TGMessage {
   @Override
   protected boolean updateMessageContent (TdApi.Message message, TdApi.MessageContent newContent, boolean isBottomMessage) {
     this.msg.content = newContent;
-    TdApi.MessageText newText = Td.isText(newContent) ? (TdApi.MessageText) newContent : new TdApi.MessageText(Td.textOrCaption(newContent), null, null);
+    TdApi.FormattedText newTextOrCaption = Td.textOrCaption(newContent);
+    // TGx101 (crash report 2026-10-23 14:31, Xiaomi, «вылеты при свайпах в каналах»): a post whose new content has neither
+    // text nor caption — setText read the entities of null; it reads an empty text now
+    TdApi.MessageText newText = Td.isText(newContent) ? (TdApi.MessageText) newContent : new TdApi.MessageText(newTextOrCaption != null ? newTextOrCaption : new TdApi.FormattedText("", new TdApi.TextEntity[0]), null, null);
     this.currentMessageText = newText;
     if (!isBeingEdited()) {
       boolean textChanged = setText(newText.text, false);
