@@ -1297,6 +1297,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else if (Settings.instance().useFloatingInput()) {
       tgx101FloatPinnedBar(pinnedMessagesBar);
       pinnedMessagesBar.tgx101SetCompact(); // one line + the list button, in the capsule too (all builds since 2026-10-19)
+    } else {
+      // (user 2026-10-23 «в классике нужна кнопка открытия всех закрепов, а не стрелка»): the full-width bar keeps its look,
+      // with the list button
+      pinnedMessagesBar.tgx101SetCompact();
     }
     pinnedMessagesBar.setMessageListener(new PinnedMessagesBar.MessageListener() {
       @Override
