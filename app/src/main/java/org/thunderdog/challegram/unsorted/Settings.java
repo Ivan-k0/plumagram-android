@@ -4493,6 +4493,12 @@ public class Settings {
    */
   public int tgx101BottomGap (int systemInset) {
     if (!needBottomGap()) return 0;
+    return tgx101AutoGap(systemInset);
+  }
+
+  /** the same gap whatever the switch (the storage keeps it always, user 2026-10-24); none with navigation buttons */
+  public int tgx101AutoGap (int systemInset) {
+    if (!isGestureNavigation()) return 0;
     return org.thunderdog.challegram.tool.Screen.dp(systemInset < org.thunderdog.challegram.tool.Screen.dp(10f) ? 12f : 8f);
   }
 

@@ -635,6 +635,25 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       }
     });
     if (android.os.Build.VERSION.SDK_INT >= 21 && !docked) bar.setElevation(Screen.dp(4f));
+    // (user 2026-10-24 «пусть хранилище подстраивается, как и поле ввода»): the chats' gap over the gesture bar — the capsule
+    // stands off it, the docked panel grows under its words (its colour down to the bar); none while the keyboard is up
+    final int basePadBottom = bar.getPaddingBottom();
+    bar.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+      androidx.core.view.WindowInsetsCompat insets = androidx.core.view.ViewCompat.getRootWindowInsets(v);
+      boolean ime = insets != null && insets.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime());
+      int nav = insets != null ? insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom : 0;
+      int gap = ime ? 0 : org.thunderdog.challegram.unsorted.Settings.instance().tgx101BottomGap(nav); // the chats' switch
+      if (docked) {
+        if (v.getPaddingBottom() != basePadBottom + gap) v.post(() -> v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), basePadBottom + gap));
+      } else {
+        ViewGroup.MarginLayoutParams mp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+        int want = Screen.dp(8f) + gap; // as the chats' capsule: its own 8 dp plus the gap
+        if (mp.bottomMargin != want) {
+          mp.bottomMargin = want;
+          v.post(v::requestLayout);
+        }
+      }
+    });
     storageSwitch = new Tgx101StorageSwitch(context, this, Tgx101StorageSwitch.IN_STORAGE, new Tgx101StorageSwitch.Host() {
       @Override
       public int bottomReserved () {
