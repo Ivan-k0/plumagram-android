@@ -6475,11 +6475,11 @@
   <string name="Tgx101SnoozeHours">%1$dh</string>
   <string name="Tgx101SnoozeSetting">Third button in notifications</string>
   <string name="Tgx101SectionChatList">Chat list</string>
-  <string name="Tgx101SectionChatListHint">Filters, pull to search, input field</string>
+  <string name="Tgx101SectionChatListHint">Pull down, hide the pencil, «Join», ads</string>
   <string name="Tgx101SectionStories">Stories</string>
   <string name="Tgx101SectionStoriesHint">Style, folders</string>
   <string name="Tgx101SectionMessages">Messages and menu</string>
-  <string name="Tgx101SectionMessagesHint">Message menu, tap, editor, gestures</string>
+  <string name="Tgx101SectionMessagesHint">Message menu, gestures, filters</string>
   <string name="Tgx101SectionChannels">Channels</string>
   <string name="Tgx101SectionChannelsHint">Reactions, next channel, buttons, comments</string>
   <string name="Tgx101SectionMedia">Media and camera</string>
@@ -7130,7 +7130,11 @@
   <string name="Tgx101SavedLookChat">Chat look</string>
   <string name="Tgx101AiAll">AI functions (assistant, Short, What I missed, storage)</string>
   <string name="Tgx101SectionFeatures">Features</string>
-  <string name="Tgx101SectionFeaturesHint">Storage, bird, editors, AI</string>
+  <string name="Tgx101SectionFeaturesHint">Storage, Don\'t peek, AI</string>
+  <string name="Tgx101SectionNav">Menus and navigation</string>
+  <string name="Tgx101SectionNavHint">Side or bottom menu, the bird, hold menus</string>
+  <string name="Tgx101SectionInput">Message field</string>
+  <string name="Tgx101SectionInputHint">Floating field, buttons, mini editor</string>
   <string name="Tgx101SavedTagsTab">Tags</string>
   <string name="Tgx101SavedChatTab">Chat</string>
   <string name="Tgx101NoAnimation">Turn off animations (GIFs, stickers, emoji)</string>

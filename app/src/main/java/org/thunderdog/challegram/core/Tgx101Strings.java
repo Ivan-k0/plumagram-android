@@ -861,7 +861,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedLookChat, "Вид чата");
     RU.put(R.string.Tgx101AiAll, "Функции ИИ (помощник, Кратко, Что пропустил, Хранилище)");
     RU.put(R.string.Tgx101SectionFeatures, "Фишки");
-    RU.put(R.string.Tgx101SectionFeaturesHint, "Хранилище, птичка, редакторы, ИИ");
+    RU.put(R.string.Tgx101SectionFeaturesHint, "Хранилище, «Не подглядывай!», ИИ");
+    RU.put(R.string.Tgx101SectionNav, "Меню и навигация");
+    RU.put(R.string.Tgx101SectionNavHint, "Боковое или нижнее меню, птичка, меню удержания");
+    RU.put(R.string.Tgx101SectionInput, "Поле ввода");
+    RU.put(R.string.Tgx101SectionInputHint, "Плавающее поле, кнопки, мини-редактор");
     RU.put(R.string.Tgx101SavedTagsTab, "Ярлыки");
     RU.put(R.string.Tgx101SavedChatTab, "Чат");
     RU.put(R.string.Tgx101NoAnimation, "Отключить анимацию (гифки, стикеры, эмодзи)");
@@ -1112,11 +1116,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ChipBlock, "Блок");
     RU.put(R.string.Tgx101ChipAddContact, "В контакты");
     RU.put(R.string.Tgx101SectionChatList, "Список чатов");
-    RU.put(R.string.Tgx101SectionChatListHint, "Фильтры, поиск свайпом, поле ввода");
+    RU.put(R.string.Tgx101SectionChatListHint, "Свайп вниз, скрыть карандаш, «Вступить», рекламу");
     RU.put(R.string.Tgx101SectionStories, "Истории");
     RU.put(R.string.Tgx101SectionStoriesHint, "Вид, папки");
     RU.put(R.string.Tgx101SectionMessages, "Сообщения и меню");
-    RU.put(R.string.Tgx101SectionMessagesHint, "Меню сообщения, нажатие, редактор, жесты");
+    RU.put(R.string.Tgx101SectionMessagesHint, "Меню сообщения, жесты, фильтры");
     RU.put(R.string.Tgx101SectionChannels, "Каналы");
     RU.put(R.string.Tgx101SectionChannelsHint, "Реакции, следующий канал, кнопки, комментарии");
     RU.put(R.string.Tgx101SectionMedia, "Медиа и камера");

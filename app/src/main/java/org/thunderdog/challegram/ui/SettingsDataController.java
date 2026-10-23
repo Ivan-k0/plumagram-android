@@ -549,8 +549,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MenuBlur, 0, R.string.Tgx101MenuBlur),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MenuHidesKeyboard, 0, R.string.Tgx101MenuHidesKeyboard),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MessageMenuOrder, 0, R.string.Tgx101MessageMenuOrder),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101ChatMenuOrder, 0, R.string.Tgx101ChatMenuOrder),
@@ -1022,9 +1020,12 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     R.id.btn_tgx101SectionChatList, R.id.btn_tgx101SectionStories, R.id.btn_tgx101SectionMessages, R.id.btn_tgx101SectionChannels,
     R.id.btn_tgx101SectionMedia, R.id.btn_tgx101SectionNotifications, R.id.btn_tgx101SectionText, R.id.btn_tgx101SectionCalls,
     R.id.btn_tgx101SectionTranslate, R.id.btn_tgx101SectionIcon, R.id.btn_tgx101SectionData,
-    R.id.btn_tgx101SectionFeatures // (user 2026-10-21) PlumaGram's own things: storage, bird, editors, AI — shown first
+    R.id.btn_tgx101SectionFeatures, // (user 2026-10-21) PlumaGram's own things: storage, bird, editors, AI — shown first
+    R.id.btn_tgx101SectionNav, R.id.btn_tgx101SectionInput // (user 2026-10-23, MagiX revision) out of the overloaded «Chat list»
   };
-  private static final int TGX101_SECTION_DATA = 10, TGX101_SECTION_FEATURES = 11;
+  private static final int TGX101_SECTION_DATA = 10, TGX101_SECTION_FEATURES = 11, TGX101_SECTION_NAV = 12, TGX101_SECTION_INPUT = 13;
+  /** the order of the sections on MagiX's first screen */
+  private static final int[] TGX101_SECTION_ORDER = {11, 0, 12, 13, 2, 3, 1, 4, 5, 6, 7, 8, 9, 10};
   /** for the settings search: MagiX's sections, the last one being Telegram X's own «Data» */
   public static int[] tgx101SectionTitles () {
     return TGX101_SECTION_TITLES.clone();
@@ -1033,17 +1034,20 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   private static final int[] TGX101_SECTION_TITLES = {
     R.string.Tgx101SectionChatList, R.string.Tgx101SectionStories, R.string.Tgx101SectionMessages, R.string.Tgx101SectionChannels,
     R.string.Tgx101SectionMedia, R.string.Tgx101SectionNotifications, R.string.Tgx101SectionText, R.string.Tgx101SectionCalls,
-    R.string.Tgx101SectionTranslate, R.string.Tgx101SectionIcon, R.string.Tgx101SectionData, R.string.Tgx101SectionFeatures
+    R.string.Tgx101SectionTranslate, R.string.Tgx101SectionIcon, R.string.Tgx101SectionData, R.string.Tgx101SectionFeatures,
+    R.string.Tgx101SectionNav, R.string.Tgx101SectionInput
   };
   private static final int[] TGX101_SECTION_HINTS = {
     R.string.Tgx101SectionChatListHint, R.string.Tgx101SectionStoriesHint, R.string.Tgx101SectionMessagesHint, R.string.Tgx101SectionChannelsHint,
     R.string.Tgx101SectionMediaHint, R.string.Tgx101SectionNotificationsHint, R.string.Tgx101SectionTextHint, R.string.Tgx101SectionCallsHint,
-    R.string.Tgx101SectionTranslateHint, R.string.Tgx101SectionIconHint, R.string.Tgx101SectionDataHint, R.string.Tgx101SectionFeaturesHint
+    R.string.Tgx101SectionTranslateHint, R.string.Tgx101SectionIconHint, R.string.Tgx101SectionDataHint, R.string.Tgx101SectionFeaturesHint,
+    R.string.Tgx101SectionNavHint, R.string.Tgx101SectionInputHint
   };
   private static final int[] TGX101_SECTION_ICONS = {
     R.drawable.baseline_forum_24, R.drawable.baseline_history_24, R.drawable.baseline_chat_bubble_24, R.drawable.baseline_bullhorn_24,
     R.drawable.baseline_camera_alt_24, R.drawable.baseline_notifications_24, R.drawable.baseline_format_text_24, R.drawable.baseline_call_24,
-    R.drawable.baseline_translate_24, R.drawable.baseline_palette_24, R.drawable.baseline_data_usage_24, R.drawable.baseline_stars_24
+    R.drawable.baseline_translate_24, R.drawable.baseline_palette_24, R.drawable.baseline_data_usage_24, R.drawable.baseline_stars_24,
+    R.drawable.tgx101_menu_24, R.drawable.baseline_keyboard_24
   };
 
   private static int tgx101SectionIndex (int id) {
@@ -1063,9 +1067,17 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       if (flag == Settings.SETTING_FLAG_WRITE_CONTACTS_TO_PHONEBOOK) return 0; // with the other contacts settings: the data section opens Telegram X's own screen, it was unreachable
       return TGX101_SECTION_DATA;
     }
-    if (id == R.id.btn_tgx101SavedSettingsOpen || id == R.id.btn_tgx101AiAll || id == R.id.btn_tgx101TextEditor || id == R.id.btn_tgx101FormatMenu
-      || id == R.id.btn_tgx101Bird || id == R.id.btn_tgx101BirdRing || id == R.id.btn_tgx101Peek) return TGX101_SECTION_FEATURES;
-    if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked || id == R.id.btn_pullToSearch || id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap) return 0;
+    // (user 2026-10-23, MagiX revision — Ревизия-MagiX-список.md) the side / bottom menu and the bird together; the field's
+    // things together; filters with the messages; quick calls with the calls
+    if (id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101CapsuleTabs || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101ContactsMenu
+      || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101CapsuleScrollHide
+      || id == R.id.btn_tgx101Bird || id == R.id.btn_tgx101BirdRing) return TGX101_SECTION_NAV;
+    if (id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap || id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands
+      || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101TextEditor) return TGX101_SECTION_INPUT;
+    if (id == R.id.btn_tgx101QuickCalls) return 7;
+    if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked) return 2;
+    if (id == R.id.btn_tgx101SavedSettingsOpen || id == R.id.btn_tgx101AiAll || id == R.id.btn_tgx101Peek) return TGX101_SECTION_FEATURES;
+    if (id == R.id.btn_pullToSearch) return 0;
     if (id == R.id.btn_tgx101StoriesMode || id == R.id.btn_tgx101StoriesFolders) return 1;
     if (id == R.id.btn_tgx101ChatMenuOrder) return 2;
     if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101MenuBlur || id == R.id.btn_tgx101MenuHidesKeyboard || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuOrder
@@ -1097,8 +1109,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     out.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
     if (tgx101Section < 0) {
       out.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-      for (int k = 0; k < TGX101_SECTION_IDS.length; k++) {
-        int i = k == 0 ? TGX101_SECTION_FEATURES : k - 1; // «Features» first
+      for (int k = 0; k < TGX101_SECTION_ORDER.length; k++) {
+        int i = TGX101_SECTION_ORDER[k];
         if (k > 0) out.add(new ListItem(ListItem.TYPE_SEPARATOR));
         out.add(new ListItem(ListItem.TYPE_VALUED_SETTING, TGX101_SECTION_IDS[i], TGX101_SECTION_ICONS[i], TGX101_SECTION_TITLES[i]));
       }
@@ -1106,7 +1118,11 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       // TGx101 (approved mockup «Копия настроек», variant В): the whole app's settings to a file and back
       out.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
       out.add(new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101Backup, R.drawable.baseline_import_export_24, R.string.Tgx101Backup));
+      out.add(new ListItem(ListItem.TYPE_SEPARATOR));
+      // (user 2026-10-23, MagiX revision) it sat under «Data», which opens Telegram X's own screen — nowhere to be seen
+      out.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SameSettings, R.drawable.baseline_group_24, R.string.Tgx101SameSettings));
       out.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+      out.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SameSettingsHint));
       adapter.setItems(out.toArray(new ListItem[0]), false);
       return;
     }
