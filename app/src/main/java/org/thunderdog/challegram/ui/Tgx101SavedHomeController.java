@@ -262,12 +262,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   }
 
   static void cursor (EditText e) {
-    if (android.os.Build.VERSION.SDK_INT >= 29) {
-      GradientDrawable c = new GradientDrawable();
-      c.setColor(accent());
-      c.setSize(Screen.dp(2f), Screen.dp(20f));
-      e.setTextCursorDrawable(c);
-    }
+    org.thunderdog.challegram.widget.Tgx101CursorDrawable.apply(e); // the app's one cursor (it cleared it for a plain one)
   }
 
   static TextView text (Context context, float sp, int color, boolean medium) {

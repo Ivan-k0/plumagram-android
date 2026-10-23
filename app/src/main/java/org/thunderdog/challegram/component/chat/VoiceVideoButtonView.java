@@ -113,13 +113,14 @@ public class VoiceVideoButtonView extends View implements FactorAnimator.Target,
 
   private Paint paint;
 
-  // TGx101: the mic / video-message button next to the input is dusty blue (variant B) instead of gray
-  private static final int TGX101_MIC_COLOR = 0xff5b87b0;
-  private static Paint tgx101MicPaint;
+  // TGx101 (user 2026-10-23 «как в оф телеге»): the mic / video-message button next to the input is grey like the
+  // other field icons (paperclip, emoji) — only the cursor and the send arrow carry the app's colour (it was dusty blue)
+  private Paint tgx101MicPaint;
 
-  private static Paint getTgx101MicPaint () {
-    if (tgx101MicPaint == null) {
-      tgx101MicPaint = Paints.createPorterDuffPaint(null, TGX101_MIC_COLOR);
+  private Paint getTgx101MicPaint () {
+    int color = Theme.getColor(ColorId.icon);
+    if (tgx101MicPaint == null || tgx101MicPaint.getColor() != color) {
+      tgx101MicPaint = Paints.createPorterDuffPaint(tgx101MicPaint, color);
     }
     return tgx101MicPaint;
   }

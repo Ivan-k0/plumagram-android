@@ -232,6 +232,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     setMinimumHeight(Screen.dp(49f));
     setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     Views.clearCursorDrawable(this);
+    org.thunderdog.challegram.widget.Tgx101CursorDrawable.apply(this); // the app's one cursor on Android 10+ (user 2026-10-23)
     setMaxCodePointCount(0);
     addTextChangedListener(new TextWatcher() {
       @Override

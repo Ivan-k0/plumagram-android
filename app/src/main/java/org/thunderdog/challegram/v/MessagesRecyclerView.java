@@ -842,14 +842,17 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
                 top = topOffset;
               }
             }
+            // (user 2026-10-23 «если рядом два дня, предыдущий мелькает»): the stuck date pushed up by the next day's
+            // goes under the pinned capsule and stayed peeking from under it — it fades out as it's pushed, gone halfway
+            float tgx101Pushed = top < topOffset ? MathUtils.clamp(1f - (topOffset - top) / (dateHeight * .5f)) : 1f;
             boolean isLast = i == lastIndex;
             int checkTop = viewTop - topOffset;
             float detachFactor = !isLast || checkTop >= 0 ? 0f : MathUtils.clamp((float) -checkTop / (float) dateHeight);
             float alpha = isLast ? scrollFactor : 1f;
             float drawAlpha = detachFactor == 1f ? alpha : 1f;
-            if (top != viewTop || isLast) { // the stuck one: hidden while a jump slides by
-              alpha *= tgx101StuckDateAlpha;
-              drawAlpha *= tgx101StuckDateAlpha;
+            if (top != viewTop || isLast) { // the stuck one: hidden while a jump slides by, and while it's pushed away
+              alpha *= tgx101StuckDateAlpha * tgx101Pushed;
+              drawAlpha *= tgx101StuckDateAlpha * tgx101Pushed;
             }
             if (msg.drawDate(c, centerX, top, detachFactor, drawAlpha)) {
               tgx101Hit(msg, top, drawAlpha);

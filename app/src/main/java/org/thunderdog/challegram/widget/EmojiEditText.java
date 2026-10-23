@@ -51,6 +51,7 @@ public class EmojiEditText extends EditText implements Destroyable {
   }
 
   private void init () {
+    Tgx101CursorDrawable.apply(this); // one cursor for every field (a header field puts its own white / grey on top)
     addTextChangedListener(new DestroySpansWatcher());
     setFilters(new InputFilter[0]);
   }
