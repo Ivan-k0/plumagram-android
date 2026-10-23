@@ -741,7 +741,8 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
     androidx.recyclerview.widget.LinearSmoothScroller scroller = new androidx.recyclerview.widget.LinearSmoothScroller(getContext()) {
       @Override
       protected int calculateTimeForScrolling (int dx) {
-        return Math.max(60, Math.min(420, Math.round(340f * dx / Math.max(1, itemHeight))));
+        // (user 2026-10-24, video: «у нас не идеально» — two blurred, skewed rows at once for a third of a second) quicker
+        return Math.max(60, Math.min(300, Math.round(240f * dx / Math.max(1, itemHeight))));
       }
 
       @Override
@@ -772,8 +773,8 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
       }
       float d = ((view.getTop() + view.getBottom()) / 2f - center) / view.getHeight(); // −1 above … 0 shown … 1 below
       d = Math.max(-1f, Math.min(1f, d));
-      float rotation = -d * 75f;
-      float alpha = 1f - Math.abs(d) * .85f;
+      float rotation = -d * 35f; // half the turn: less of the «italic» smear
+      float alpha = Math.max(0f, 1f - Math.abs(d) * 1.7f); // the leaving row is gone by mid-way, the rows hardly overlap
       view.setCameraDistance(view.getHeight() * 24f);
       view.setPivotX(view.getWidth() / 2f);
       view.setPivotY(d > 0 ? 0 : view.getHeight()); // turns about the edge it shares with the bar
