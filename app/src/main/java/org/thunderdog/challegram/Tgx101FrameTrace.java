@@ -14,18 +14,13 @@ package org.thunderdog.challegram;
 
 import android.app.Activity;
 import android.app.KeyguardManager;
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.os.Build;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.SystemClock;
-import android.provider.MediaStore;
 import android.view.PixelCopy;
 import android.view.View;
 import android.view.Window;
@@ -42,7 +37,7 @@ import java.util.Locale;
  * TGx101 (user 2026-10-23 «мигание из уведомления — редко, чаще с заблокированного экрана, на видео не поймать, может
  * мало логов»): a black box for the moments that flicker. Only in builds with the diagnostics log (-Ptgx101Diag=true):
  * after a tap on a notification and after coming back from the lock screen it copies the first frames of the window —
- * small, ~270 px wide — into Download/PlumaGram-frames/<time>/, and logs for each what was on screen (the top screen,
+ * small, ~270 px wide — into the app's own folder Android/data/<package>/files/frames/<time>/ (the last day kept), and logs for each what was on screen (the top screen,
  * whether the navigation was moving, the cover over the window, the lock screen, the window's focus).
  * The pictures stay on the phone (they show the chats); nothing is sent anywhere.
  */
@@ -67,7 +62,7 @@ public final class Tgx101FrameTrace {
     }
     final Handler io = new Handler(thread.getLooper());
     final String folder = "PlumaGram-frames/" + new SimpleDateFormat("MM-dd_HH-mm-ss", Locale.US).format(new Date()) + "_" + reason;
-    Tgx101Diag.mark("frames: tracing «" + reason + "» → Download/" + folder);
+    Tgx101Diag.mark("frames: tracing «" + reason + "» → Android/data/…/files/frames/" + folder.substring(folder.indexOf('/') + 1));
     final View decor = activity.getWindow().getDecorView();
     for (int i = 0; i < AT.length; i++) {
       final int index = i;
@@ -142,19 +137,40 @@ public final class Tgx101FrameTrace {
     return b.toString();
   }
 
+  /** (user 2026-10-24 «10 мало — может и час пройти, пока скажу про баг»): traces of the last day are kept, at most 300
+   * (~200 KB each); older folders go when a new one starts */
+  private static final int KEEP = 300;
+  private static final long KEEP_MS = 24L * 60 * 60 * 1000;
+
+  // (user 2026-10-24 «забил мне загрузки — храни отдельно»): the app's own folder Android/data/<package>/files/frames —
+  // not in Download, not in the gallery, gone with the app; read with adb pull
+  private static java.io.File folder (Context context, String name) {
+    java.io.File root = context.getExternalFilesDir("frames");
+    if (root == null) return null;
+    java.io.File dir = new java.io.File(root, name);
+    if (!dir.exists()) {
+      dir.mkdirs();
+      java.io.File[] all = root.listFiles(java.io.File::isDirectory);
+      if (all != null) {
+        java.util.Arrays.sort(all, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
+        long old = System.currentTimeMillis() - KEEP_MS;
+        for (int i = 0; i < all.length; i++) {
+          if (all.length - i <= KEEP && all[i].lastModified() >= old) break;
+          java.io.File[] files = all[i].listFiles();
+          if (files != null) for (java.io.File f : files) f.delete();
+          all[i].delete();
+        }
+      }
+    }
+    return dir;
+  }
+
   private static void save (Context context, String folder, String name, Bitmap bitmap) {
     try {
-      ContentResolver resolver = context.getContentResolver();
-      ContentValues values = new ContentValues();
-      values.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
-      // (user 2026-10-24 «чёрный ящик забил мне всю галерею»): not an image to the system — the gallery doesn't show it; a
-      // JPEG inside all the same (rename to .jpg to look)
-      values.put(MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream");
-      values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/" + folder);
-      Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-      if (uri == null) return;
-      try (OutputStream out = resolver.openOutputStream(uri)) {
-        if (out != null) bitmap.compress(Bitmap.CompressFormat.JPEG, 70, out);
+      java.io.File dir = folder(context, folder.substring(folder.indexOf('/') + 1));
+      if (dir == null) return;
+      try (OutputStream out = new java.io.FileOutputStream(new java.io.File(dir, name.replace(".frame", ".jpg")))) {
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 70, out);
       }
     } catch (Throwable t) {
       Tgx101Diag.mark("frames: " + name + " not saved — " + t);

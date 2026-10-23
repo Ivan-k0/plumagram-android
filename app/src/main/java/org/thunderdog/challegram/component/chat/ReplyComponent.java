@@ -445,6 +445,26 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
       c.drawRoundRect(rectF, mergeRadius, mergeRadius, Paints.fillingPaint(parent.getBubbleMediaReplyBackgroundColor()));
     }
 
+    // TGx101 (approved mockup «Ответы — подложка», А3 + Ф2, user 2026-10-24): the replied-to message lies on a wash of its
+    // author's colour, the line stands inside it with round ends; a voice note shows a small wave instead of its name
+    final boolean tgx101Washed = isMessageComponent() && !isWhite;
+    if (tgx101Washed) {
+      // (user 2026-10-24 «смотри как красиво и как нет», his screenshot): across the whole bubble, not just its words
+      int washRight = parent.tgx101ReplyInsideBubble() ? Math.max(startX + width, endX) : startX + width;
+      rectF.set(startX, startY, washRight, startY + mHeight);
+      // (user 2026-10-24 «у нас сообщения какой формы? подложку такой же формы», his screenshot): the bubble's own corners,
+      // smaller — round ones stay round, the small ones between messages in a row stay small
+      float[] corners = parent.useBubbles() ? parent.tgx101BubbleCorners() : null;
+      float fallback = Screen.dp(Theme.getBubbleDefaultRadius());
+      for (int i = 0; i < 4; i++) {
+        float r = Math.min(mHeight / 2f, (corners != null && corners[i] > 0 ? corners[i] : fallback) * .55f);
+        tgx101Radii[i * 2] = tgx101Radii[i * 2 + 1] = r;
+      }
+      tgx101WashPath.reset();
+      tgx101WashPath.addRoundRect(rectF, tgx101Radii, android.graphics.Path.Direction.CW);
+      c.drawPath(tgx101WashPath, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(.12f, lineColor)));
+    }
+
     if (cornerDrawable != null) {
       // TODO: optimize
       Drawables.draw(c, cornerDrawable, cornerPositionX - cornerDrawable.getMinimumWidth(), cornerPositionY, Paints.getPorterDuffPaint(lineColor));
@@ -491,14 +511,17 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
         trimmedTitle.draw(c, startX + textLeft, startX + textLeft + trimmedTitle.getWidth(), 0, startY + Screen.dp(1f));
       }
 
-      if (trimmedContent != null) {
+      if (tgx101Wave != null && !isWhite) {
+        tgx101Wave.draw(c, 0f, startX + textLeft, startY + Screen.dp(30f));
+      } else if (trimmedContent != null) {
         trimmedContent.draw(c, startX + textLeft, startX + textLeft + trimmedContent.getWidth(), 0, startY + Screen.dp(22f), null, 1f, textMediaReceiver);
       }
 
+      final int inset = tgx101Washed ? Screen.dp(5f) : 0, shift = tgx101Washed ? Screen.dp(3f) : 0;
       if (rtl) {
-        rectF.set(endX - lineWidth, startY, endX, startY + mHeight);
+        rectF.set(endX - lineWidth - shift, startY + inset, endX - shift, startY + mHeight - inset);
       } else {
-        rectF.set(startX, startY, startX + lineWidth, startY + mHeight);
+        rectF.set(startX + shift, startY + inset, startX + shift + lineWidth, startY + mHeight - inset);
       }
       c.drawRoundRect(rectF, lineWidth / 2f, lineWidth / 2f, Paints.fillingPaint(lineColor));
 
@@ -1030,8 +1053,20 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
     return new MediaPreview(miniPreview, preview, contour, isPrivate || hasSpoiler, previewCircle);
   }
 
+  private @Nullable Waveform tgx101Wave;
+  private final android.graphics.Path tgx101WashPath = new android.graphics.Path();
+  private final float[] tgx101Radii = new float[8];
+
   private void setMessage (TdApi.Message msg, boolean forceRequestImage, boolean forceLocal) {
     currentMessage = msg;
+    tgx101Wave = null;
+    if (isMessageComponent() && msg.content.getConstructor() == TdApi.MessageVoiceNote.CONSTRUCTOR && Td.isEmpty(quote)) {
+      byte[] data = ((TdApi.MessageVoiceNote) msg.content).voiceNote.waveform;
+      if (data != null && data.length > 0) {
+        tgx101Wave = new Waveform(data, Waveform.MODE_RECT, isOutBubble());
+        tgx101Wave.layout(Screen.dp(120f));
+      }
+    }
     MediaPreview mediaPreview = newMediaPreview(msg.chatId, msg.content);
     ContentPreview contentPreview = ContentPreview.getChatListPreview(tdlib, msg.chatId, msg, true);
     if (!Td.isEmpty(quote)) {

@@ -368,7 +368,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       buildTitles(maxWidth - (getPreviewSize() + getPreviewOffset()));
     }
     if (waveform != null) {
-      waveform.layout(Math.min(Screen.dp(420f), Math.min(TGMessage.getEstimatedContentMaxWidth(), maxWidth) - tgx101PlaySize() - getPreviewOffset() - tgx101SideDurationWidth() - transcribeButtonSpace()));
+      waveform.layout(Math.min(tgx101WaveMaxWidth(), Math.min(TGMessage.getEstimatedContentMaxWidth(), maxWidth) - tgx101PlaySize() - getPreviewOffset() - tgx101SideDurationWidth() - transcribeButtonSpace()));
     }
   }
 
@@ -723,6 +723,13 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   // TGx101 (user 2026-10-06 «всё должно быть оцентровано, как в официальном Telegram»): a lower block, so the bubble time
   // (drawn about 4 dp above the block's bottom) shares the duration's row, and the 38 dp button is centred on both rows
   private static final float TGX101_VOICE_HEIGHT = 51f, TGX101_VOICE_WAVE_CY = 15f, TGX101_VOICE_BARS_SHIFT = 11f; // user 2026-10-06 18:32: «Официальный с круглой А» (mockup variant 4) // measured on the 0.1.487 screenshot: the bubble adds ~7 dp above and ~14 dp under the time
+
+  /** TGx101 (user 2026-10-24 «голосовые очень крупные», his screenshot): the wave no longer spreads over the whole bubble —
+   * ~110 dp for a short note, growing a little with the length up to ~160 dp at a minute */
+  private int tgx101WaveMaxWidth () {
+    int seconds = voice != null ? voice.duration : 0;
+    return Screen.dp(110f + 50f * Math.min(seconds, 60) / 60f);
+  }
 
   /** Play button size: 38 dp in the two-row voice layout (mockup «Голосовое-кнопка-плей»), the stock 50 dp otherwise */
   private int tgx101PlaySize () {

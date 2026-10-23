@@ -306,6 +306,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   private final Path bubblePath, bubbleClipPath;
   private float topRightRadius, topLeftRadius, bottomLeftRadius, bottomRightRadius;
+
+  /** TGx101: the bubble's corners {top left, top right, bottom right, bottom left} — the reply's wash copies them */
+  public final float[] tgx101BubbleCorners () {
+    return new float[] {topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius};
+  }
   protected final RectF bubblePathRect, bubbleClipPathRect;
 
   private boolean needSponsorSmallPadding;
@@ -851,6 +856,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   protected final boolean useBubble () {
     return useBubbles() && (!disableBubble() || useForward());
+  }
+
+  /** TGx101: the reply lies inside the bubble above the content — its wash may span the bubble's width */
+  public final boolean tgx101ReplyInsideBubble () {
+    return useBubble() && !separateReplyFromBubble() && !alignReplyHorizontally();
   }
 
   protected boolean separateReplyFromBubble () {
