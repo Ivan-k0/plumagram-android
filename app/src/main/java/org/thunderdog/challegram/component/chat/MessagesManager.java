@@ -948,6 +948,11 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
   // far away — the list is put 1.5 screens above the end at once and scrolls the rest, like the official app.
   // The arrow hides at once and doesn't come back while this runs.
   private boolean tgx101AutoScrolling;
+
+  /** for the diagnostics' jump catcher: a scroll of ours is under way (a glide to a message or to the end) */
+  public boolean tgx101IsAutoScrolling () {
+    return tgx101AutoScrolling;
+  }
   private boolean tgx101UserScrolledSinceJump = true;
 
   private boolean tgx101SmoothScrollToBottom () {

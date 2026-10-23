@@ -295,6 +295,70 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
     invalidateDate();
   }, AnimatorUtils.DECELERATE_INTERPOLATOR, 220L, 1f);
 
+  // TGx101 diagnostics builds (user 2026-10-23 «прыжок чата бывает редко, нужно ловить; с чужими сообщениями»): every
+  // frame the bottom message's place is noted; a chat that moves there and back within 0.3 s, or leaps 40 dp in a frame,
+  // with no finger on it, writes its last 3 s of moves (and why they might be) to the log and copies its frames
+  private long tgx101JumpAnchorId;
+  private int tgx101JumpAnchorBottom = Integer.MIN_VALUE;
+  private int tgx101LastMove;
+  private long tgx101LastMoveAt, tgx101LastCatchAt;
+  private final java.util.ArrayDeque<String> tgx101Moves = new java.util.ArrayDeque<>();
+  private final android.view.ViewTreeObserver.OnPreDrawListener tgx101JumpWatch = () -> {
+    tgx101WatchJump();
+    return true;
+  };
+
+  @Override
+  protected void onAttachedToWindow () {
+    super.onAttachedToWindow();
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) getViewTreeObserver().addOnPreDrawListener(tgx101JumpWatch);
+  }
+
+  @Override
+  protected void onDetachedFromWindow () {
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) getViewTreeObserver().removeOnPreDrawListener(tgx101JumpWatch);
+    super.onDetachedFromWindow();
+  }
+
+  private void tgx101WatchJump () {
+    if (getChildCount() == 0 || !(getAdapter() instanceof MessagesAdapter)) return;
+    View bottom = getChildAt(0);
+    int position = getChildAdapterPosition(bottom);
+    TGMessage message = position != NO_POSITION ? ((MessagesAdapter) getAdapter()).getMessage(position) : null;
+    if (message == null) return;
+    long id = message.getId();
+    int at = bottom.getBottom() + (int) getTranslationY();
+    long now = android.os.SystemClock.uptimeMillis();
+    if (id != tgx101JumpAnchorId || tgx101JumpAnchorBottom == Integer.MIN_VALUE) {
+      tgx101JumpAnchorId = id;
+      tgx101JumpAnchorBottom = at;
+      return;
+    }
+    int move = at - tgx101JumpAnchorBottom;
+    tgx101JumpAnchorBottom = at;
+    if (move == 0) return;
+    boolean touched = org.thunderdog.challegram.BaseActivity.tgx101RecentlyTouched(400);
+    boolean ours = manager != null && manager.tgx101IsAutoScrolling();
+    String line = "+" + (now % 100000) + " " + (move > 0 ? "down " : "up ") + Math.abs(move) + " px"
+      + (touched ? " finger" : "") + (ours ? " glide" : "") + (getScrollState() != SCROLL_STATE_IDLE ? " scroll" + getScrollState() : "")
+      + (isAnimating() ? " items-anim" : "") + " pad " + getPaddingBottom() + " ty " + (int) getTranslationY() + " h " + getHeight();
+    tgx101Moves.addLast(now + "|" + line);
+    while (!tgx101Moves.isEmpty() && now - Long.parseLong(tgx101Moves.peekFirst().substring(0, tgx101Moves.peekFirst().indexOf('|'))) > 3000) tgx101Moves.removeFirst();
+    boolean reversed = tgx101LastMove != 0 && Integer.signum(move) != Integer.signum(tgx101LastMove) && now - tgx101LastMoveAt < 300
+      && Math.abs(move) >= Screen.dp(4f) && Math.abs(tgx101LastMove) >= Screen.dp(4f);
+    boolean leap = Math.abs(move) >= Screen.dp(40f);
+    tgx101LastMove = move;
+    tgx101LastMoveAt = now;
+    if ((reversed || leap) && !touched && now - tgx101LastCatchAt > 10000) {
+      tgx101LastCatchAt = now;
+      StringBuilder b = new StringBuilder("chat jump caught (" + (reversed ? "there and back" : "leap") + "), last moves:");
+      for (String entry : tgx101Moves) b.append("\n    ").append(entry.substring(entry.indexOf('|') + 1));
+      org.thunderdog.challegram.Tgx101Diag.mark(b.toString());
+      android.app.Activity activity = org.thunderdog.challegram.tool.UI.getContext(getContext());
+      org.thunderdog.challegram.Tgx101FrameTrace.start(activity, "chat-jump");
+    }
+  }
+
   public void tgx101TakeJumpShot () {
     tgx101JumpShot = null;
     if (android.os.Build.VERSION.SDK_INT < 23 || getWidth() == 0 || getHeight() == 0) return;
