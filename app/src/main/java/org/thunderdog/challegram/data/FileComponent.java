@@ -176,6 +176,15 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     if (viewProvider != null) {
       this.progress.setViewProvider(viewProvider);
     }
+    tgx101PrefetchVideoSize();
+  }
+
+  // TGx101 (user 2026-10-23 «большое видео открывается 1–2 секунды»): a downloaded video file without a thumbnail needs
+  // its size read before the viewer opens — read it ahead, while the bubble is on screen
+  private void tgx101PrefetchVideoSize () {
+    if (doc != null && doc.thumbnail == null && TGMimeType.isVideoMimeType(doc.mimeType) && TD.isFileLoaded(doc.document)) {
+      org.thunderdog.challegram.tool.Tgx101Mp4Meta.prefetch(doc.document.local.path);
+    }
   }
 
   // AUDIO
@@ -982,6 +991,9 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
   @Override
   public void onStateChanged (TdApi.File file, @TdlibFilesManager.FileDownloadState int state) {
+    if (state == TdlibFilesManager.STATE_DOWNLOADED_OR_UPLOADED) {
+      tgx101PrefetchVideoSize();
+    }
     if (needProgress()) {
       setSubtitle(buildSubtitle());
     }

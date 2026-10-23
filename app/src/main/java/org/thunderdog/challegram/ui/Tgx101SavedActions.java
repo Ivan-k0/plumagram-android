@@ -1176,14 +1176,16 @@ public final class Tgx101SavedActions {
         }
       };
       card.setOrientation(LinearLayout.VERTICAL);
-      // dark ink on a light theme; on a dark one a step lighter than the screen, so it doesn't melt into it
-      card.setBackground(Tgx101SavedHomeController.card(Theme.isDark() ? 0xff33414f : 0xff17212b, 18f));
+      // (user 2026-10-23 «плашка всегда тёмная, а должна быть в цвет темы»): the theme's card colour — on a dark theme a
+      // step lighter than the screen, so it doesn't melt into it; its words and buttons in the theme's colours too
+      final int ink = Theme.textAccentColor(), accent = Tgx101SavedHomeController.accent();
+      card.setBackground(Tgx101SavedHomeController.card(Theme.isDark() ? androidx.core.graphics.ColorUtils.compositeColors(0x14ffffff, Theme.fillingColor()) : Theme.fillingColor(), 18f));
       card.setPadding(Screen.dp(14f), Screen.dp(8f), Screen.dp(14f), Screen.dp(12f));
       if (android.os.Build.VERSION.SDK_INT >= 21) card.setElevation(Screen.dp(6f));
       card.setClickable(true);
 
       View grip = new View(context);
-      grip.setBackground(Tgx101SavedHomeController.card(0x59ffffff, 2f));
+      grip.setBackground(Tgx101SavedHomeController.card(Tgx101SavedHomeController.tint(ink, .25f), 2f));
       LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(Screen.dp(36f), Screen.dp(4f));
       gp.gravity = Gravity.CENTER_HORIZONTAL;
       gp.bottomMargin = Screen.dp(8f);
@@ -1194,17 +1196,17 @@ public final class Tgx101SavedActions {
       head.setGravity(Gravity.CENTER_VERTICAL);
       android.widget.ImageView icon = new android.widget.ImageView(context);
       icon.setImageResource(R.drawable.tgx101_storage_tiles_24); // the storage (user 2026-10-21: the filing cabinet everywhere)
-      icon.setColorFilter(0xffffffff);
+      icon.setColorFilter(Tgx101SavedHomeController.onChosen());
       icon.setScaleType(android.widget.ImageView.ScaleType.CENTER);
-      icon.setBackground(Tgx101SavedHomeController.card(0xff3f7cad, 12f));
+      icon.setBackground(Tgx101SavedHomeController.card(accent, 12f));
       head.addView(icon, new LinearLayout.LayoutParams(Screen.dp(40f), Screen.dp(40f)));
       LinearLayout texts = new LinearLayout(context);
       texts.setOrientation(LinearLayout.VERTICAL);
       texts.setPadding(Screen.dp(12f), 0, 0, 0);
-      TextView t1 = Tgx101SavedHomeController.text(context, 15f, 0xffffffff, true);
+      TextView t1 = Tgx101SavedHomeController.text(context, 15f, ink, true);
       t1.setText(Lang.getString(R.string.Tgx101SavedBannerTitle));
       texts.addView(t1);
-      TextView t2 = Tgx101SavedHomeController.text(context, 12f, 0xffb9c4cd, false);
+      TextView t2 = Tgx101SavedHomeController.text(context, 12f, Theme.textDecentColor(), false);
       t2.setText(Lang.getString(R.string.Tgx101SavedBannerHint));
       texts.addView(t2);
       head.addView(texts, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -1231,10 +1233,10 @@ public final class Tgx101SavedActions {
       int[] labels = {R.string.Tgx101SavedToFolder, R.string.Tgx101SavedTag, R.string.Tgx101SavedRemind};
       for (int i = 0; i < labels.length; i++) {
         final int which = i;
-        TextView b = Tgx101SavedHomeController.text(context, 14f, 0xffffffff, false);
+        TextView b = Tgx101SavedHomeController.text(context, 14f, accent, false);
         b.setText(Lang.getString(labels[i]));
         b.setGravity(Gravity.CENTER);
-        b.setBackground(Tgx101SavedHomeController.card(0x1fffffff, 12f));
+        b.setBackground(Tgx101SavedHomeController.card(Tgx101SavedHomeController.tint(accent, .12f), 12f));
         Views.setClickable(b);
         b.setOnClickListener(v -> {
           close[0].run();
@@ -1261,10 +1263,10 @@ public final class Tgx101SavedActions {
 
       // a reaction straight from the banner (user 2026-10-15: «реакции … при пересылке»)
       for (String e : Tgx101SavedKit.QUICK_REACTIONS) {
-        TextView b = Tgx101SavedHomeController.text(context, 18f, 0xffffffff, false);
+        TextView b = Tgx101SavedHomeController.text(context, 18f, ink, false);
         b.setText(Tgx101SavedKit.emoji(e));
         b.setGravity(Gravity.CENTER);
-        b.setBackground(Tgx101SavedHomeController.card(0x1fffffff, 12f));
+        b.setBackground(Tgx101SavedHomeController.card(Tgx101SavedHomeController.tint(accent, .12f), 12f));
         Views.setClickable(b);
         b.setOnClickListener(v -> {
           close[0].run();

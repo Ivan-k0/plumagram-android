@@ -949,7 +949,11 @@ public class MediaItem implements MessageSourceProvider, InvalidateContentProvid
             break;
           }
           case DocumentType.VIDEO: {
-            mediaMetadata = U.getMediaMetadata(document.document.local.path);
+            long tgx101Start = android.os.SystemClock.uptimeMillis();
+            boolean tgx101Known = org.thunderdog.challegram.tool.Tgx101Mp4Meta.isKnown(document.document.local.path);
+            mediaMetadata = org.thunderdog.challegram.tool.Tgx101Mp4Meta.get(document.document.local.path); // TGx101: kept / read ahead / from the index
+            org.thunderdog.challegram.Tgx101Diag.mark("video file: size " + (tgx101Known ? "known ahead" : "read now") + " in " + (android.os.SystemClock.uptimeMillis() - tgx101Start) + " ms"
+              + (mediaMetadata != null ? ", " + mediaMetadata.width + "x" + mediaMetadata.height + " rot " + mediaMetadata.rotation + ", " + mediaMetadata.durationMs / 1000 + " s" + (mediaMetadata.hasAudio ? ", sound" : "") : ""));
             if (mediaMetadata == null || !mediaMetadata.hasVideo) {
               return null;
             }

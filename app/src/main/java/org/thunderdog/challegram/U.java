@@ -1362,6 +1362,15 @@ public class U {
       return;
     }
 
+    // TGx101 (user 2026-10-23 «файл mhtml в Избранном не открывается»): a saved web page — browsers open it as
+    // «multipart/related», not as the type it came with (message/rfc822, octet-stream)
+    if ("mhtml".equalsIgnoreCase(extension) || "mht".equalsIgnoreCase(extension)) {
+      org.thunderdog.challegram.Tgx101Diag.mark("open file: web page " + extension + ", came as " + mimeType);
+      if (!"multipart/related".equals(mimeType) && Intents.openFileAsType(context.context(), file, "multipart/related")) {
+        return;
+      }
+    }
+
     if (Intents.openFile(context.context(), file, mimeType)) {
       return;
     }

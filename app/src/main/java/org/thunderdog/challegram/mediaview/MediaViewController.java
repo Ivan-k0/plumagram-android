@@ -401,6 +401,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   public MediaViewThumbLocation getCurrentTargetLocation () {
+    // TGx101 (user 2026-10-23 «анимация сворачивания — кошмар»): a video sent as a file has no picture of its size to fly
+    // back into — its bubble is a small round icon; a screen-wide black box flew over the chat. It fades out instead
+    MediaItem current = stack != null ? stack.getCurrent() : null;
+    if (current != null && current.getSourceDocument() != null && current.isVideo()) {
+      return null;
+    }
     return delegate != null && !UI.isNavigationAnimating() ? delegate.getTargetLocation(stack.getCurrentIndex(), stack.getCurrent()) : null;
   }
 
@@ -4649,6 +4655,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     // cell and the viewer hung on screen (user 2026-10-12) — it flies off and fades as before
     if (mediaView.isZoomed()) return false;
     MediaViewThumbLocation target = getCurrentTargetLocation();
+    MediaItem tgx101Item = stack.getCurrent();
+    org.thunderdog.challegram.Tgx101Diag.mark("media viewer: closing " + (tgx101Item == null ? "nothing" : (tgx101Item.isVideo() ? "video" : "type " + tgx101Item.getType())
+      + (tgx101Item.getSourceDocument() != null ? " file " + tgx101Item.getSourceDocument().mimeType + (tgx101Item.getSourceDocument().thumbnail != null ? " with thumbnail" : "") : ""))
+      + (target == null ? ", fades" : ", into the post"));
     if (target == null) return false;
     final float fromX = mediaView.getTranslationX(), fromY = mediaView.getTranslationY(), fromRotation = mediaView.getRotation();
     tgx101RevealAlphaScale = MathUtils.clamp(1f - dismissFactor);

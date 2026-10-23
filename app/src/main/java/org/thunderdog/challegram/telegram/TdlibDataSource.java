@@ -193,6 +193,7 @@ public final class TdlibDataSource extends BaseDataSource {
   private final FileUpdateListener listener = this::processUpdate;
 
   private boolean referenceAcquired;
+  private static final java.util.concurrent.atomic.AtomicInteger tgx101OpenLogs = new java.util.concurrent.atomic.AtomicInteger();
 
   public TdlibDataSource (int defaultAccountId, int defaultPriority, RequestModifier requestModifier) {
     super(true);
@@ -274,10 +275,20 @@ public final class TdlibDataSource extends BaseDataSource {
       this.file = (TdApi.File) result;
     }
     transferStarted(dataSpec);
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && tgx101OpenLogs.incrementAndGet() <= 40) { // TGx101 (user 2026-10-23 «большие mp4 не воспроизводятся»): the first 40 opens
+      TdApi.File f = this.file;
+      org.thunderdog.challegram.Tgx101Diag.mark("stream: open file " + f.id + " at " + dataSpec.position + (dataSpec.length != C.LENGTH_UNSET ? " +" + dataSpec.length : "")
+        + " of " + f.size + ", have " + f.local.downloadedSize + (f.local.isDownloadingCompleted ? " (complete)" : "") + ", prefix " + f.local.downloadedPrefixSize + " at " + f.local.downloadOffset
+        + (f.local.isDownloadingActive ? ", downloading" : "") + (f.local.canBeDownloaded ? "" : ", can't be downloaded") + ", flags " + flags + ", " + durationMs / 1000 + " s");
+    }
+    // TGx101 (user 2026-10-23 «большие mp4 не воспроизводятся»): the bytes left from the position, not the whole file —
+    // an mp4 whose index sits after the video is read from its end, and the whole size there sent the player looking
+    // ever further past the end (58 000 opens in 10 s, nothing played)
+    final long left = file.size != 0 ? Math.max(0, file.size - dataSpec.position) : C.LENGTH_UNSET;
     if (dataSpec.length != C.LENGTH_UNSET) {
-      return file.size != 0 ? Math.min(dataSpec.length, file.size) : dataSpec.length;
+      return left != C.LENGTH_UNSET ? Math.min(dataSpec.length, left) : dataSpec.length;
     } else {
-      return file.size != 0 ? file.size : C.LENGTH_UNSET;
+      return left;
     }
   }
 
@@ -395,7 +406,18 @@ public final class TdlibDataSource extends BaseDataSource {
           return C.RESULT_END_OF_INPUT;
         }
         if (available == 0) {
-          latch.await();
+          if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+            long waitStart = android.os.SystemClock.uptimeMillis();
+            if (!latch.await(3, java.util.concurrent.TimeUnit.SECONDS)) {
+              org.thunderdog.challegram.Tgx101Diag.mark("stream: file " + file.id + " waiting 3 s for bytes at " + offset + " (limit " + downloadLimit + " from " + initialOffset
+                + "), have " + file.local.downloadedSize + ", prefix " + file.local.downloadedPrefixSize + " at " + file.local.downloadOffset + (file.local.isDownloadingActive ? ", downloading" : ", NOT downloading")
+                + (referenceAcquired ? "" : ", no reference"));
+              latch.await();
+              org.thunderdog.challegram.Tgx101Diag.mark("stream: file " + file.id + " bytes came after " + (android.os.SystemClock.uptimeMillis() - waitStart) + " ms");
+            }
+          } else {
+            latch.await();
+          }
           continue;
         }
         try {
