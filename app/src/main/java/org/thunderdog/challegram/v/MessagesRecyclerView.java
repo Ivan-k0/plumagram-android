@@ -705,8 +705,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
           // rest at its end — not the touch that stops a fling into the end, not a scroll that just reached it
           tgx101NextTracking = org.thunderdog.challegram.unsorted.Settings.instance().tgx101NextChannelSwipe()
             && manager.controller().isChannel() && !manager.tgx101CanLoadBottom() && !canScrollVertically(1)
-            && !manager.controller().inPreviewMode() && getScrollState() == SCROLL_STATE_IDLE
-            && android.os.SystemClock.uptimeMillis() - tgx101LastScrollAt > 400;
+            && !manager.controller().inPreviewMode() && getScrollState() == SCROLL_STATE_IDLE; // (user 23.10 22:40 «свайп на другой канал не работает»: a 0.4 s wait after any scroll state change killed it)
           tgx101NextDownX = e.getX();
           tgx101NextPast = false;
           tgx101NextDownY = e.getY();
@@ -725,7 +724,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
               break;
             }
             float pull = tgx101NextDownY - e.getY();
-            float progress = Math.max(0f, Math.min(1f, pull / Screen.dp(170f))); // was 110 dp — too easy to reach by accident
+            float progress = Math.max(0f, Math.min(1f, pull / Screen.dp(150f))); // was 110 dp — too easy to reach by accident
             boolean past = progress >= 1f;
             if (past && !tgx101NextPast) {
               org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK);

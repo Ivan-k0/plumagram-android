@@ -333,14 +333,16 @@ public class SliderView extends View implements FactorAnimator.Target {
 
         int radius = Screen.dp(24f);
 
-        if (x >= cx - radius && x <= cx + radius && y >= cy - radius && y <= cy + radius && slideEnabled && (changeAnimator == null || !changeAnimator.isAnimating()) && (listener == null || listener.allowSliderChanges(this))) {
+        if (x >= cx - radius && x <= cx + radius && (tgx101TapToSeek ? y >= 0 && y <= getMeasuredHeight() : y >= cy - radius && y <= cy + radius) && slideEnabled && (changeAnimator == null || !changeAnimator.isAnimating()) && (listener == null || listener.allowSliderChanges(this))) {
           diffX = x - cx;
           setIsUp(true);
           return true;
         }
         // TGx101 (4PDA 23.10 «нажал на середину полосы — середина видео»): a touch anywhere on the track takes the thumb
         // there at once and drags it on from there
-        if (tgx101TapToSeek && y >= cy - radius && y <= cy + radius && x >= getTotalPaddingLeft() - radius / 2 && x <= getMeasuredWidth() - getTotalPaddingRight() + radius / 2
+        // (user 2026-10-23 «тап по бегунку срабатывает не с первого раза»): the whole height of the bar counts, not 24 dp
+        // around the line
+        if (tgx101TapToSeek && y >= 0 && y <= getMeasuredHeight() && x >= getTotalPaddingLeft() - radius / 2 && x <= getMeasuredWidth() - getTotalPaddingRight() + radius / 2
           && slideEnabled && (changeAnimator == null || !changeAnimator.isAnimating()) && (listener == null || listener.allowSliderChanges(this))) {
           diffX = 0;
           setIsUp(true);

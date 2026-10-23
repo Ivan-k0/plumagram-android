@@ -2379,6 +2379,13 @@ public class Settings {
       }
       pmc.putBoolean(marker3, true);
     }
+    // the fourth (user 2026-10-23 «новым — классическое поле ввода без отступа снизу»): the docked field for new installs;
+    // everyone else has had the capsule since 2026-10-08 (a «false» saved before that was ignored) — they keep it
+    final String marker4 = "tgx101_input_style_2026_10_23";
+    if (!pmc.getBoolean(marker4, false)) {
+      if (!freshInstall) pmc.putBoolean(KEY_TGX101_FLOATING_INPUT, true);
+      pmc.putBoolean(marker4, true);
+    }
   }
 
   private boolean isFreshAppInstallation () {
@@ -3616,12 +3623,8 @@ public class Settings {
   public boolean useFloatingInput () {
     // user 2026-10-23 «берём вариант Б — поле-вставка»: the docked field is back as a choice (it was locked to the capsule
     // since 2026-10-08); the capsule stays the default
-    // a «false» saved before 2026-10-08 was ignored all this time — everyone has had the capsule since; keep it once
-    if (!pmc.getBoolean("tgx101_input_style_2026_10_23", false)) {
-      pmc.putBoolean(KEY_TGX101_FLOATING_INPUT, true);
-      pmc.putBoolean("tgx101_input_style_2026_10_23", true);
-    }
-    return pmc.getBoolean(KEY_TGX101_FLOATING_INPUT, true);
+    // new installs: the classic field (user 2026-10-23 22:21); who has the app keeps the capsule (tgx101PinOldDefaults)
+    return pmc.getBoolean(KEY_TGX101_FLOATING_INPUT, false);
   }
 
   public void setUseFloatingInput (boolean use) {
@@ -3631,7 +3634,7 @@ public class Settings {
   /** TGx101 (user 2026-10-23, mockup «Поле ввода — классика»): the docked field as variant Б — a «well» for the words and
    *  the send / mic on a rounded square; false — variant А, the flat panel */
   public boolean tgx101InputWell () {
-    return pmc.getBoolean("tgx101_input_well", true);
+    return pmc.getBoolean("tgx101_input_well", false); // «Classic» is variant А (user 2026-10-23)
   }
 
   public void setTgx101InputWell (boolean well) {
