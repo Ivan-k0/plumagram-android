@@ -363,6 +363,9 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
       }
     }
     int previous = tgx101JumpAnchorBottom;
+    // a message came in under the watched one: the list rises by its height in that frame — meant, not a jump (most of
+    // the catches 23.10 were sends); the frames after it are still watched
+    final boolean inserted = id != tgx101JumpAnchorId;
     tgx101JumpAnchorId = id;
     tgx101JumpAnchorBottom = at;
     if (was == Integer.MIN_VALUE) return;
@@ -382,7 +385,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
     while (!tgx101Moves.isEmpty() && now - Long.parseLong(tgx101Moves.peekFirst().substring(0, tgx101Moves.peekFirst().indexOf('|'))) > 3000) tgx101Moves.removeFirst();
     boolean reversed = tgx101LastMove != 0 && Integer.signum(move) != Integer.signum(tgx101LastMove) && now - tgx101LastMoveAt < 300
       && Math.abs(move) >= Screen.dp(4f) && Math.abs(tgx101LastMove) >= Screen.dp(4f);
-    boolean leap = !expected && (Math.abs(move) >= Screen.dp(40f) || (typing && !ours && getScrollState() == SCROLL_STATE_IDLE && Math.abs(move) >= Screen.dp(12f)));
+    boolean leap = !expected && !inserted && (Math.abs(move) >= Screen.dp(40f) || (typing && !ours && getScrollState() == SCROLL_STATE_IDLE && Math.abs(move) >= Screen.dp(12f)));
     if (expected) { // riding with the keyboard or the field: written down, never a jump by itself
       tgx101LastMove = 0;
       return;

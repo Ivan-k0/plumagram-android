@@ -1032,12 +1032,22 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
     if (isChannel()) {
       // Comments stay reachable from the message menu when the button is turned off.
-      return Settings.instance().showCommentsButton() && findMessageWithReplyInfo() != null;
+      // TGx101 (user 2026-10-23 16:31, black box «прыжок при отправке»): a post being sent to a channel with comments gets
+      // the «Leave a comment» row at once — it came only with the server's answer, the post grew by it in one frame and
+      // the whole chat jumped up
+      return Settings.instance().showCommentsButton() && (findMessageWithReplyInfo() != null || (isSending() && tgx101ChannelHasComments()));
     }
     if (isRepliesChat()) {
       return FeatureToggles.SHOW_VIEW_IN_CHAT_BUTTON_IN_REPLIES && msg.forwardInfo != null && Td.hasMessageSource(msg.forwardInfo) && msg.forwardInfo.source.chatId != msg.chatId;
     }
     return false;
+  }
+
+  private boolean tgx101ChannelHasComments () {
+    long supergroupId = ChatId.toSupergroupId(msg.chatId);
+    if (supergroupId == 0) return false;
+    TdApi.SupergroupFullInfo full = tdlib.cache().supergroupFull(supergroupId, false);
+    return full != null && full.linkedChatId != 0;
   }
 
   protected boolean needCommentButtonSeparator () {
