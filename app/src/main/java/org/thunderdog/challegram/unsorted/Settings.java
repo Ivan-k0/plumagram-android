@@ -4486,6 +4486,16 @@ public class Settings {
     return bottomGapEnabled() && isGestureNavigation();
   }
 
+  /**
+   * TGx101 (user 2026-10-24 «отступ снизу при жестах, особенно с панелью индикатора — у всех она разная; авто или без»):
+   * the gap counts from the gesture bar, not from the screen edge — before, a shown indicator (its inset ≈ 16–24 dp) left
+   * the field right on it and only a hidden one got the 16 dp. Now 8 dp over the bar, 12 dp when the bar is hidden
+   */
+  public int tgx101BottomGap (int systemInset) {
+    if (!needBottomGap()) return 0;
+    return org.thunderdog.challegram.tool.Screen.dp(systemInset < org.thunderdog.challegram.tool.Screen.dp(10f) ? 12f : 8f);
+  }
+
   private static Boolean gestureNavigation;
   private static long gestureNavigationCheckTime;
 

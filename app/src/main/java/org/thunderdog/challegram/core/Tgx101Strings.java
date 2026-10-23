@@ -217,7 +217,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ReadDateHidden, "Время прочтения скрыто");
     RU.put(R.string.Tgx101DeleteMore, "Другие действия…");
     RU.put(R.string.Tgx101Channel, "Канал PlumaGram");
-    RU.put(R.string.Tgx101BottomGap, "Отступ под полем ввода и меню");
+    RU.put(R.string.Tgx101BottomGap, "Отступ над полосой жестов (авто)");
     RU.put(R.string.Tgx101SwipeKeyboard, "Двойной свайп вверх — клавиатура");
     RU.put(R.string.Tgx101Emergency, "Экстренный пароль");
     RU.put(R.string.Tgx101EmergencyOff, "Выключен");

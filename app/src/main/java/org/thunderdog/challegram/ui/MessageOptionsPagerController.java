@@ -464,7 +464,7 @@ public class MessageOptionsPagerController extends BottomSheetViewController<Opt
         - getOptionItemsHeight()
         - Screen.dp(1)
         - navigationInset
-        - (Settings.instance().needBottomGap() ? Math.max(0, Screen.dp(16f) - navigationInset) : 0) // TGx101: keep the last option 16dp above the screen edge
+        - Settings.instance().tgx101BottomGap(navigationInset) // TGx101: keep the last option 16dp above the screen edge
       );
     } else {
       return Screen.currentHeight() / 2;

@@ -12233,7 +12233,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // doesn't already give), but not when the keyboard is open. The keyboard is detected by the
       // IME inset only: the activity's keyboard flag is updated after this runs and would lag.
       if (Settings.instance().needBottomGap() && !emojiShown && !commandsShown && extraBottomInset <= extraBottomInsetWithoutIme) {
-        height += Math.max(0, Screen.dp(16f) - extraBottomInset);
+        height += Settings.instance().tgx101BottomGap(extraBottomInset);
       }
       if (floatingInput && !commandsShown) {
         // TGx101: the capsule floats above the edge (or the keyboard). Above the emoji panel too (user's video
