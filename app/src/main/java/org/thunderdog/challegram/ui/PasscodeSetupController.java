@@ -315,6 +315,31 @@ public class PasscodeSetupController extends ViewController<PasscodeSetupControl
       textView = newDescription(this);
       textView.setText(Lang.getString(R.string.ScreenCaptureInfo));
       autoLockWrap.addView(textView);
+
+      // TGx101 (4PDA 23.10, user 2026-10-24): the emergency passcode
+      shadow = new ShadowView(context);
+      addThemeInvalidateListener(shadow);
+      shadow.setSimpleTopShadow(true, this);
+      autoLockWrap.addView(shadow);
+
+      tgx101EmergencyView = new SettingView(context, tdlib);
+      tgx101EmergencyView.setId(R.id.btn_tgx101EmergencyPasscode);
+      tgx101EmergencyView.setType(SettingView.TYPE_INFO);
+      tgx101EmergencyView.setSwapDataAndName();
+      tgx101EmergencyView.setName(R.string.Tgx101Emergency);
+      tgx101UpdateEmergency();
+      tgx101EmergencyView.setOnClickListener(this);
+      tgx101EmergencyView.addThemeListeners(this);
+      autoLockWrap.addView(tgx101EmergencyView);
+
+      shadow = new ShadowView(context);
+      addThemeInvalidateListener(shadow);
+      shadow.setSimpleBottomTransparentShadow(true);
+      autoLockWrap.addView(shadow);
+
+      textView = newDescription(this);
+      textView.setText(Lang.getString(R.string.Tgx101EmergencyInfo));
+      autoLockWrap.addView(textView);
     } else {
       shadow = new ShadowView(context);
       addThemeInvalidateListener(shadow);
@@ -391,6 +416,7 @@ public class PasscodeSetupController extends ViewController<PasscodeSetupControl
   @Override
   public void onFocus () {
     super.onFocus();
+    tgx101UpdateEmergency(); // back from setting it up
     if (specificChat != null) {
       chatPasscode = tdlib.chatPasscode(specificChat);
     }
@@ -492,6 +518,22 @@ public class PasscodeSetupController extends ViewController<PasscodeSetupControl
     });
   }
 
+  private SettingView tgx101EmergencyView;
+
+  private void tgx101UpdateEmergency () {
+    if (tgx101EmergencyView != null) {
+      tgx101EmergencyView.setData(Passcode.instance().tgx101HasEmergency() ? R.string.Tgx101EmergencyOn : R.string.Tgx101EmergencyOff);
+    }
+  }
+
+  private void tgx101OpenEmergencySetup (int mode) {
+    PasscodeController c = new PasscodeController(context, tdlib);
+    c.setPasscodeMode(PasscodeController.MODE_SETUP);
+    c.forceMode(mode);
+    c.tgx101SetEmergencySetup();
+    navigateTo(c);
+  }
+
   @Override
   public void onClick (View v) {
     final int viewId = v.getId();
@@ -503,6 +545,27 @@ public class PasscodeSetupController extends ViewController<PasscodeSetupControl
       } else {
         disablePasscode();
         updateEnabledStatus(true);
+      }
+    } else if (viewId == R.id.btn_tgx101EmergencyPasscode) {
+      int mode = Passcode.instance().getMode();
+      if (mode != Passcode.MODE_PINCODE && mode != Passcode.MODE_PASSWORD && mode != Passcode.MODE_PATTERN) {
+        UI.showToast(R.string.Tgx101EmergencyKinds, android.widget.Toast.LENGTH_SHORT);
+        return;
+      }
+      if (Passcode.instance().tgx101HasEmergency()) {
+        showOptions(Lang.getString(R.string.Tgx101Emergency), new int[] {R.id.btn_edit, R.id.btn_delete},
+          new String[] {Lang.getString(R.string.Tgx101EmergencyChange), Lang.getString(R.string.Tgx101EmergencyRemove)},
+          new int[] {OptionColor.NORMAL, OptionColor.RED}, null, (optionView, id) -> {
+            if (id == R.id.btn_edit) {
+              tgx101OpenEmergencySetup(mode);
+            } else if (id == R.id.btn_delete) {
+              Passcode.instance().tgx101RemoveEmergency();
+              tgx101UpdateEmergency();
+            }
+            return true;
+          });
+      } else {
+        tgx101OpenEmergencySetup(mode);
       }
     } else if (viewId == R.id.btn_passcode_change) {
       if (isPasscodeEnabled()) {

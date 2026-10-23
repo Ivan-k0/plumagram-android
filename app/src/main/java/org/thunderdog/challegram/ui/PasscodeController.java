@@ -171,6 +171,19 @@ public class PasscodeController extends ViewController<PasscodeController.Args> 
     forcedMode = Passcode.MODE_BIOMETRICS;
   }
 
+  // TGx101: setting the emergency code (Passcode#tgx101SetEmergency) instead of the passcode
+  private boolean tgx101Emergency;
+  public void tgx101SetEmergencySetup () {
+    tgx101Emergency = true;
+  }
+
+  private boolean tgx101SaveEmergency (int mode, String code) {
+    if (!tgx101Emergency || specificChat != null) return false;
+    boolean ok = Passcode.instance().tgx101SetEmergency(mode, code);
+    UI.showToast(ok ? R.string.Tgx101EmergencySaved : R.string.Tgx101EmergencySame, Toast.LENGTH_SHORT);
+    return true;
+  }
+
   private int forcedMode;
   public void forceMode (int mode) {
     this.forcedMode = mode;
@@ -1222,6 +1235,7 @@ public class PasscodeController extends ViewController<PasscodeController.Args> 
   }
 
   private void setPassword (String password) {
+    if (tgx101SaveEmergency(Passcode.MODE_PASSWORD, password)) return;
     if (specificChat != null) {
       chatPasscode.hash = Passcode.getPasscodeHash(password);
       chatPasscode.mode = Passcode.MODE_PASSWORD;
@@ -1240,6 +1254,7 @@ public class PasscodeController extends ViewController<PasscodeController.Args> 
   }
 
   private void setPattern (String pattern) {
+    if (tgx101SaveEmergency(Passcode.MODE_PATTERN, pattern)) return;
     if (specificChat != null) {
       chatPasscode.hash = Passcode.getPasscodeHash(pattern);
       chatPasscode.mode = Passcode.MODE_PATTERN;
@@ -1258,6 +1273,7 @@ public class PasscodeController extends ViewController<PasscodeController.Args> 
   }
 
   private void setPincode (String pincode) {
+    if (tgx101SaveEmergency(Passcode.MODE_PINCODE, pincode)) return;
     if (specificChat != null) {
       chatPasscode.hash = Passcode.getPasscodeHash(pincode);
       chatPasscode.mode = Passcode.MODE_PINCODE;

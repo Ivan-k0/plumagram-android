@@ -219,6 +219,15 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101Channel, "Канал PlumaGram");
     RU.put(R.string.Tgx101BottomGap, "Отступ под полем ввода и меню");
     RU.put(R.string.Tgx101SwipeKeyboard, "Двойной свайп вверх — клавиатура");
+    RU.put(R.string.Tgx101Emergency, "Экстренный пароль");
+    RU.put(R.string.Tgx101EmergencyOff, "Выключен");
+    RU.put(R.string.Tgx101EmergencyOn, "Включён");
+    RU.put(R.string.Tgx101EmergencyInfo, "Второй код того же вида. Если ввести его на экране блокировки вместо пароля, приложение выйдет из всех аккаунтов на этом телефоне и откроется экран входа.");
+    RU.put(R.string.Tgx101EmergencySaved, "Экстренный пароль сохранён");
+    RU.put(R.string.Tgx101EmergencySame, "Экстренный пароль не может совпадать с основным");
+    RU.put(R.string.Tgx101EmergencyKinds, "Доступен для ПИН-кода, пароля и узора");
+    RU.put(R.string.Tgx101EmergencyChange, "Изменить");
+    RU.put(R.string.Tgx101EmergencyRemove, "Удалить");
     RU.put(R.string.PullToSearchHint, "Когда список чатов уже в самом верху, ещё один свайп вниз открывает поиск. Отступ под полем ввода и меню: поднимает их на 16 dp над нижним краем экрана, чтобы они не лежали на полоске жестов. Только при навигации жестами: с кнопками навигации отступа нет.");
     RU.put(R.string.AttachFromMenu, "Прикрепить");
     RU.put(R.string.PendingAttachment, "Вложение");
@@ -590,7 +599,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101HapticNormal, "Обычная");
     RU.put(R.string.Tgx101HapticStrong, "Сильная");
     RU.put(R.string.Tgx101MenuBlur, "Размытие под меню и окнами");
-    RU.put(R.string.Tgx101SolidControls, "Непрозрачные кнопки и нижнее меню");
+    RU.put(R.string.Tgx101SolidControls, "Без стекла: поле ввода, кнопки, меню");
     RU.put(R.string.Tgx101InputStyle, "Вид поля ввода");
     RU.put(R.string.Tgx101InputStyleFloating, "Плавающее");
     RU.put(R.string.Tgx101InputStyleFlat, "Классика");

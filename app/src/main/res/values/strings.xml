@@ -6423,7 +6423,7 @@
   <string name="Tgx101HapticNormal">Normal</string>
   <string name="Tgx101HapticStrong">Strong</string>
   <string name="Tgx101MenuBlur">Blur behind menus and sheets</string>
-  <string name="Tgx101SolidControls">Solid buttons and bottom menu</string>
+  <string name="Tgx101SolidControls">No glass: message field, buttons, menus</string>
   <string name="Tgx101InputStyle">Message field</string>
   <string name="Tgx101InputStyleFloating">Floating</string>
   <string name="Tgx101InputStyleFlat">Classic</string>
@@ -6824,6 +6824,15 @@
   <string name="Tgx101UpdateWhatsNew">What\'s new (GitHub)</string>
   <string name="Tgx101BottomGap">Space under the message field and menus</string>
   <string name="Tgx101SwipeKeyboard">Double swipe up opens the keyboard</string>
+  <string name="Tgx101Emergency">Emergency passcode</string>
+  <string name="Tgx101EmergencyOff">Off</string>
+  <string name="Tgx101EmergencyOn">On</string>
+  <string name="Tgx101EmergencyInfo">A second code of the same kind. Entered on the lock screen instead of the passcode, it signs out of every account on this phone — the app opens on the sign-in screen.</string>
+  <string name="Tgx101EmergencySaved">Emergency passcode saved</string>
+  <string name="Tgx101EmergencySame">The emergency passcode can\'t be the same as the passcode</string>
+  <string name="Tgx101EmergencyKinds">Available for a PIN, a password or a pattern</string>
+  <string name="Tgx101EmergencyChange">Change</string>
+  <string name="Tgx101EmergencyRemove">Remove</string>
   <string name="OpenInBrowser">Open in browser</string>
   <string name="UnsupportedKindStory">story</string>
   <string name="UnsupportedKindPaidMedia">paid photo or video</string>

@@ -1675,7 +1675,20 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   public final void checkPasscode (boolean byUserLock) {
     if (byUserLock) {
-      // TODO FIXME
+      // TGx101 (user 2026-10-24 «нажать на замочек — приложение не блокируется, только после выхода; в первом клиенте
+      // сразу»): Telegram X left this unfinished. The lock screen comes at once, after the lock's own turn (0.25 s)
+      if (Passcode.instance().isLocked()) {
+        if (getCurrentFocus() != null) org.thunderdog.challegram.tool.Keyboard.hide(getCurrentFocus());
+        rootView.postDelayed(() -> {
+          if (Passcode.instance().isLocked() && !isPasscodeShowing) {
+            try {
+              showPasscode(true);
+            } catch (Throwable t) {
+              Log.e("TODO", t);
+            }
+          }
+        }, 250);
+      }
       return;
     }
     if (Passcode.instance().isLocked()) {
@@ -2327,6 +2340,10 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     passcodeController.onFocus();
 
     if (byUserLock) {
+      // TGx101: the lock screen fades in over the chats instead of popping up
+      View wrap = passcodeController.getValue();
+      wrap.setAlpha(0f);
+      wrap.animate().alpha(1f).setDuration(180).setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR).start();
      /* PasscodeController c = passcodeController;
       c.getWrap().setAlpha(0f);
       FactorAnimator animator = new FactorAnimator(0, new FactorAnimator.Target() {

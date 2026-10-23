@@ -316,6 +316,7 @@ public class Passcode implements UI.StateListener {
   }
 
   public void disable () {
+    tgx101RemoveEmergency(); // TGx101: no passcode — no emergency code
     if (mode != MODE_NONE) {
       mode = MODE_NONE;
       Settings.instance().putInt(KEY_PASSCODE_MODE, MODE_NONE);
@@ -351,6 +352,9 @@ public class Passcode implements UI.StateListener {
       edit.putInt(KEY_PASSCODE_BIOMETRICS_OPTIONS, extraOptions);
     }
     edit.apply();
+    if (passcode != null && getPasscodeHash(passcode).equals(Settings.instance().getString(KEY_TGX101_EMERGENCY_HASH, null))) {
+      tgx101RemoveEmergency(); // TGx101: the new passcode is the emergency one — it can't be both
+    }
     if (turnedOn) {
       TdlibManager.instance().onUpdateAllNotifications();
     }
@@ -414,7 +418,47 @@ public class Passcode implements UI.StateListener {
     setPasscodeHash(MODE_BIOMETRICS, String.valueOf(biometricsId), newOptions);
   }
 
+  // TGx101 (4PDA 23.10 ausypher, user 2026-10-24 «экстренный пароль: ввод особого пароля в то же поле — полный выход из
+  // аккаунта», as in NagramX / Nagram X Turbo): a second code of the same kind as the passcode; typed on the lock screen it
+  // signs every account out and the lock opens on the sign-in screen. Kept as a hash beside the passcode («pc_» keys —
+  // not in the settings copy)
+  private static final String KEY_TGX101_EMERGENCY_MODE = "pc_tgx101_emergency_mode", KEY_TGX101_EMERGENCY_HASH = "pc_tgx101_emergency_hash";
+
+  public boolean tgx101HasEmergency () {
+    return isEnabled() && Settings.instance().getInt(KEY_TGX101_EMERGENCY_MODE, MODE_NONE) == mode && Settings.instance().getString(KEY_TGX101_EMERGENCY_HASH, null) != null;
+  }
+
+  /** false — the same as the passcode itself */
+  public boolean tgx101SetEmergency (int mode, String code) {
+    if (getPasscodeHashOld(code).equals(passcodeHash)) return false;
+    Settings.instance().edit().putInt(KEY_TGX101_EMERGENCY_MODE, mode).putString(KEY_TGX101_EMERGENCY_HASH, getPasscodeHash(code)).apply();
+    return true;
+  }
+
+  public void tgx101RemoveEmergency () {
+    Settings.instance().edit().remove(KEY_TGX101_EMERGENCY_MODE).remove(KEY_TGX101_EMERGENCY_HASH).apply();
+  }
+
+  private boolean tgx101IsEmergency (int mode, String code) {
+    if (code == null || !tgx101HasEmergency() || mode != this.mode) return false;
+    return getPasscodeHash(code).equals(Settings.instance().getString(KEY_TGX101_EMERGENCY_HASH, null));
+  }
+
+  /** the emergency code: every account signs out, the lock opens */
+  private boolean tgx101TryEmergency (int mode, String code) {
+    if (!tgx101IsEmergency(mode, code)) return false;
+    org.thunderdog.challegram.Tgx101Diag.mark("passcode: emergency code — signing every account out");
+    for (org.thunderdog.challegram.telegram.TdlibAccount account : TdlibManager.instance()) {
+      if (account.hasTdlib(false) && !account.isUnauthorized()) {
+        account.tdlib().send(new org.drinkless.tdlib.TdApi.LogOut(), account.tdlib().typedOkHandler());
+      }
+    }
+    setLocked(false);
+    return true;
+  }
+
   public boolean unlockByPassword (String password) {
+    if (tgx101TryEmergency(MODE_PASSWORD, password)) return true;
     if (comparePassword(password)) {
       setLocked(false);
       return true;
@@ -423,6 +467,7 @@ public class Passcode implements UI.StateListener {
   }
 
   public boolean unlockByPincode (String pincode) {
+    if (tgx101TryEmergency(MODE_PINCODE, pincode)) return true;
     if (comparePincode(pincode)) {
       setLocked(false);
       return true;
@@ -435,6 +480,7 @@ public class Passcode implements UI.StateListener {
   }
 
   public boolean unlockByPattern (String pattern) {
+    if (tgx101TryEmergency(MODE_PATTERN, pattern)) return true;
     if (comparePattern(pattern)) {
       setLocked(false);
       return true;

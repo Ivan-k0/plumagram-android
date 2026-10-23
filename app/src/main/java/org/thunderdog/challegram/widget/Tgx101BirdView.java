@@ -121,6 +121,56 @@ public class Tgx101BirdView extends View {
   // the ring
   private Item[] items = new Item[0];
   private float[] highlight = new float[0];
+
+  private float labelTargetX, labelTargetY, labelTargetAlpha;
+  private @androidx.annotation.Nullable String labelTargetTitle, labelTitle, labelOldTitle;
+  private float labelX, labelY, labelShown, labelSwap = 1f;
+  private boolean labelInit;
+  private long labelLastStep;
+
+  private boolean tgx101StepLabel (Canvas c) {
+    long now = android.os.SystemClock.uptimeMillis();
+    float dt = labelLastStep == 0 ? 16f : Math.min(48f, now - labelLastStep);
+    labelLastStep = now;
+    float k = 1f - (float) Math.exp(-dt / 70f); // ~0.2 s to settle
+    boolean more = false;
+    if (labelTargetTitle != null) {
+      if (!labelInit) {
+        labelX = labelTargetX;
+        labelY = labelTargetY;
+        labelInit = true;
+      }
+      if (!labelTargetTitle.equals(labelTitle)) {
+        labelOldTitle = labelShown > .05f ? labelTitle : null;
+        labelTitle = labelTargetTitle;
+        labelSwap = labelOldTitle != null ? 0f : 1f;
+      }
+      labelX += (labelTargetX - labelX) * k;
+      labelY += (labelTargetY - labelY) * k;
+      labelShown += (labelTargetAlpha - labelShown) * k;
+      if (Math.abs(labelTargetX - labelX) > .5f || Math.abs(labelTargetY - labelY) > .5f) more = true; else { labelX = labelTargetX; labelY = labelTargetY; }
+    } else {
+      labelShown += (0f - labelShown) * k;
+    }
+    if (labelSwap < 1f) {
+      labelSwap = Math.min(1f, labelSwap + dt / 160f);
+      more = true;
+    }
+    if (Math.abs(labelShown - (labelTargetTitle != null ? labelTargetAlpha : 0f)) > .01f) more = true;
+    if (labelShown > .02f && labelTitle != null) {
+      if (labelOldTitle != null && labelSwap < 1f) {
+        drawLabel(c, labelOldTitle, labelX, labelY - Screen.dp(6f) * labelSwap, labelShown * (1f - labelSwap), true);
+        drawLabel(c, labelTitle, labelX, labelY + Screen.dp(6f) * (1f - labelSwap), labelShown * labelSwap, true);
+      } else {
+        drawLabel(c, labelTitle, labelX, labelY, labelShown, true);
+      }
+    }
+    if (labelShown <= .02f && labelTargetTitle == null) {
+      labelInit = false;
+      labelTitle = null;
+    }
+    return more;
+  }
   private int highlighted = -1;
   private boolean ringOpen, accountsRing, ringByFinger;
   private float ring; // 0..1
@@ -710,12 +760,25 @@ public class Tgx101BirdView extends View {
           if (accountsRing) {
             // every name, beside its circle on the screen's side — over it they covered the next one (2026-10-21 test)
             drawSideLabel(c, item.title, right ? x - r - Screen.dp(8f) : x + r + Screen.dp(8f), y, labelAlpha * Math.min(1f, o), hl);
-          } else {
-            drawLabel(c, item.title, x, y - r - Screen.dp(16f), labelAlpha * Math.min(1f, o), hl);
+          } else if (i == highlighted) {
+            labelTargetX = x; // the one floating name goes there (drawn after the ring)
+            labelTargetY = y - r - Screen.dp(16f);
+            labelTargetTitle = item.title;
+            labelTargetAlpha = Math.min(1f, o);
           }
         }
       }
     }
+
+    // TGx101 (user's video 2026-10-23 16:33 «анимацию переключения названия — приятнее глазу»): one name that glides from
+    // circle to circle and changes its words softly — not a name fading out over one circle while another comes over the next
+    if (!accountsRing && ring > 0f) {
+      more |= tgx101StepLabel(c);
+    } else {
+      labelShown = 0f;
+      labelInit = false;
+    }
+    labelTargetTitle = null;
 
     // the bird
     float cy = tabCy();

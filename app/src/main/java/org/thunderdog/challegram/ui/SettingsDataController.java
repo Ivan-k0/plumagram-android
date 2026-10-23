@@ -1355,8 +1355,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     } else if (id == R.id.btn_tgx101FloatingInput) {
       // (user 2026-10-23) three looks: floating, docked flat (А), docked with the well (Б); applies to chats opened afterwards
       int style = Settings.instance().tgx101InputStyle();
-      showOptions(Lang.getString(R.string.Tgx101InputStyle), new int[] {R.id.btn_tgx101InputStyleFloating, R.id.btn_tgx101InputStyleFlat, R.id.btn_tgx101InputStyleWell},
-        new String[] {Lang.getString(R.string.Tgx101InputStyleFloating), Lang.getString(R.string.Tgx101InputStyleFlat), Lang.getString(R.string.Tgx101InputStyleWell)}, null, null, (optionView, optionId) -> {
+      showOptions(Lang.getString(R.string.Tgx101InputStyle), new int[] {R.id.btn_tgx101InputStyleFloating, R.id.btn_tgx101InputStyleFlat},
+        new String[] {Lang.getString(R.string.Tgx101InputStyleFloating), Lang.getString(R.string.Tgx101InputStyleFlat)}, null, null, (optionView, optionId) -> {
           Settings.instance().setUseFloatingInput(optionId == R.id.btn_tgx101InputStyleFloating);
           if (optionId != R.id.btn_tgx101InputStyleFloating) Settings.instance().setTgx101InputWell(optionId == R.id.btn_tgx101InputStyleWell);
           adapter.updateValuedSettingById(R.id.btn_tgx101FloatingInput);

@@ -11967,6 +11967,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   /** The field's filling: a bit denser in a light theme — over a bright photo the words and buttons were lost (10:00) */
   private static float tgx101FieldAlpha (boolean blurred) {
+    // (user 2026-10-23 «стекло нужно давать выключать везде, и в поле ввода тоже; закрепы — в цвет поля»): «Solid buttons and
+    // bottom menu» makes the field, its reply bar, the pinned capsule and the arrow solid too
+    if (Settings.instance().tgx101SolidControls()) return 1f;
     return blurred ? (Theme.isDark() ? .74f : .86f) : FLOATING_INPUT_ALPHA_NO_BLUR;
   }
 
@@ -11995,6 +11998,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
 
     boolean draw (Canvas c, View view, android.graphics.RectF rect, android.graphics.Path clip) {
+      if (Settings.instance().tgx101SolidControls()) return false; // TGx101: no glass at all
       if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) { note(view, "off: Android < 12"); return false; }
       if (!c.isHardwareAccelerated()) { note(view, "off: software canvas"); return false; }
       if (messagesView == null || wallpaperView == null) { note(view, "off: no content"); return false; }

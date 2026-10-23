@@ -3634,7 +3634,7 @@ public class Settings {
   /** TGx101 (user 2026-10-23, mockup «Поле ввода — классика»): the docked field as variant Б — a «well» for the words and
    *  the send / mic on a rounded square; false — variant А, the flat panel */
   public boolean tgx101InputWell () {
-    return pmc.getBoolean("tgx101_input_well", false); // «Classic» is variant А (user 2026-10-23)
+    return false; // (user 2026-10-24 «классику с полем убери из MagiX») variant Б is off; the drawing stays in the code
   }
 
   public void setTgx101InputWell (boolean well) {
