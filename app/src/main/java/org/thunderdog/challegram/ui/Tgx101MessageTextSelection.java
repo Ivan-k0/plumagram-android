@@ -203,13 +203,15 @@ public final class Tgx101MessageTextSelection {
         UI.copyText(selectedText(), R.string.CopiedText);
         close("copy");
       }));
-      actions.add(new Tgx101SelectionBar.Action(Lang.getString(R.string.Tgx101QuoteShare), () -> {
-        // (user 2026-10-20 «скопировать чужой текст, часть или целиком, как цитату») the selected part with its formatting
-        int[] range = mapToMessage();
-        TdApi.FormattedText part = Td.substring(formatted, range[0], range[1]);
-        close("quote share");
-        ShareController.tgx101ShareAsQuote(controller, part);
-      }));
+      if (!Tgx101MessageMenu.isHidden(R.id.btn_tgx101QuoteShare)) { // off with the message menu's item (MagiX → message menu)
+        actions.add(new Tgx101SelectionBar.Action(Lang.getString(R.string.Tgx101QuoteShare), () -> {
+          // (user 2026-10-20 «скопировать чужой текст, часть или целиком, как цитату») the selected part with its formatting
+          int[] range = mapToMessage();
+          TdApi.FormattedText part = Td.substring(formatted, range[0], range[1]);
+          close("quote share");
+          ShareController.tgx101ShareAsQuote(controller, part);
+        }));
+      }
       actions.add(new Tgx101SelectionBar.Action(Tgx101BarOrder.SELECT_ALL, Lang.getString(R.string.Tgx101SelectAllFull), () -> {
         setSelection(0, text.getText().length());
         overlay.updateBar();

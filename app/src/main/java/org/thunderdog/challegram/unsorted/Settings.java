@@ -3296,6 +3296,15 @@ public class Settings {
   /** TGx101: message menu actions the user hid (resource names stored, like the order) */
   public int[] getTgx101MessageMenuHidden () {
     String saved = pmc.getString(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_HIDDEN), null);
+    final String quoteOffKey = tgx101MenuKey("tgx101_message_menu_quote_off");
+    if (!pmc.getBoolean(quoteOffKey, false)) {
+      // «Quote to…» starts hidden, once, for everyone (user 2026-10-23 «по умолчанию выключено, пусть люди сами включают»)
+      pmc.putBoolean(quoteOffKey, true);
+      if (saved == null || !saved.contains("btn_tgx101QuoteShare")) {
+        saved = saved == null || saved.isEmpty() ? "btn_tgx101QuoteShare" : saved + ",btn_tgx101QuoteShare";
+        pmc.putString(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_HIDDEN), saved);
+      }
+    }
     if (saved == null || saved.isEmpty()) {
       return new int[0];
     }
