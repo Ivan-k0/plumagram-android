@@ -64,6 +64,7 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
     sliderView.setForceBackgroundColorId(ColorId.videoSliderInactive);
     sliderView.setForceSecondaryColorId(ColorId.videoSliderInactive);
     sliderView.setSlideEnabled(true, false);
+    sliderView.setTgx101TapToSeek(true); // TGx101 (4PDA 23.10): a tap on the bar seeks there
     sliderView.setColorId(ColorId.videoSliderActive, false);
     sliderView.setPadding(Screen.dp(56f), 0, Screen.dp(56f), 0);
     sliderView.setLayoutParams(params);

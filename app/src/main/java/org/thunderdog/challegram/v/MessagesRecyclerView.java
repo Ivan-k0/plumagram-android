@@ -501,7 +501,8 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
 
   // TGx101 (4PDA request 2026-10-04): at the very end of a channel, a pull up leads to the next unread channel
   private boolean tgx101NextTracking, tgx101NextPast;
-  private float tgx101NextDownY;
+  private float tgx101NextDownY, tgx101NextDownX;
+  private long tgx101LastScrollAt;
 
   // TGx101 (user 2026-10-04, «как в галерее iPhone»): in select mode a drag that starts sideways selects (or
   // unselects, if the first message was selected) every message the finger passes; near the edges the list scrolls
@@ -700,9 +701,13 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
     if (manager != null) {
       switch (e.getActionMasked()) {
         case MotionEvent.ACTION_DOWN:
+          // (4PDA 23.10 «переход в другой канал резкий, можно случайно перейти»): only a fresh pull from a list already at
+          // rest at its end — not the touch that stops a fling into the end, not a scroll that just reached it
           tgx101NextTracking = org.thunderdog.challegram.unsorted.Settings.instance().tgx101NextChannelSwipe()
             && manager.controller().isChannel() && !manager.tgx101CanLoadBottom() && !canScrollVertically(1)
-            && !manager.controller().inPreviewMode();
+            && !manager.controller().inPreviewMode() && getScrollState() == SCROLL_STATE_IDLE
+            && android.os.SystemClock.uptimeMillis() - tgx101LastScrollAt > 400;
+          tgx101NextDownX = e.getX();
           tgx101NextPast = false;
           tgx101NextDownY = e.getY();
           if (tgx101NextTracking) manager.controller().tgx101PrepareNextChannel();
@@ -714,8 +719,13 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
               manager.controller().tgx101ShowNextChannel(0f, false);
               break;
             }
+            if (Math.abs(e.getX() - tgx101NextDownX) > Screen.dp(48f) && Math.abs(e.getX() - tgx101NextDownX) > Math.abs(tgx101NextDownY - e.getY())) {
+              tgx101NextTracking = false; // a sideways swipe (back, reply) — not a pull
+              manager.controller().tgx101ShowNextChannel(0f, false);
+              break;
+            }
             float pull = tgx101NextDownY - e.getY();
-            float progress = Math.max(0f, Math.min(1f, pull / Screen.dp(110f)));
+            float progress = Math.max(0f, Math.min(1f, pull / Screen.dp(170f))); // was 110 dp — too easy to reach by accident
             boolean past = progress >= 1f;
             if (past && !tgx101NextPast) {
               org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK);
@@ -751,6 +761,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
   @Override
   public void onScrollStateChanged (int state) {
     super.onScrollStateChanged(state);
+    tgx101LastScrollAt = android.os.SystemClock.uptimeMillis(); // the pull to the next channel waits for the list to rest
     if (state == SCROLL_STATE_IDLE && tgx101LastScrollState == SCROLL_STATE_SETTLING) {
       tgx101FlingEndTime = android.os.SystemClock.uptimeMillis();
     }

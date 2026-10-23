@@ -738,7 +738,8 @@ public class Tgx101NavCapsule extends View {
     float r = Math.min(h / 2f, Screen.dp(CORNER_DP));
     int filling = Theme.getColor(ColorId.filling);
     boolean dark = Theme.isDark();
-    shadowPaint.setColor(ColorUtils.alphaColor(dark ? .94f : .92f, filling));
+    final boolean solid = org.thunderdog.challegram.unsorted.Settings.instance().tgx101SolidControls();
+    shadowPaint.setColor(solid ? filling : ColorUtils.alphaColor(dark ? .94f : .92f, filling));
     shadowPaint.setShadowLayer(Screen.dp(10f), 0, Screen.dp(3f), ColorUtils.alphaColor(dark ? .5f : .18f, 0xff000000));
     layoutCapsuleRect(rect);
     if (collapseFactor > 0f) {
@@ -750,14 +751,14 @@ public class Tgx101NavCapsule extends View {
     // a 65 % filling with a hairline (no shadow, like the field); 90 % without the blur
     if (tgx101IconsOnly) {
       // a snapshot for the menu → field transition: the morph overlay draws the capsule itself
-    } else if (collapseFactor < 1f && drawBlurBehind(c, rect, cr)) {
+    } else if (collapseFactor < 1f && !solid && drawBlurBehind(c, rect, cr)) {
       blurFill.setColor(ColorUtils.fromToArgb(ColorUtils.alphaColor(.65f, filling), shadowPaint.getColor(), collapseFactor));
       c.drawRoundRect(rect, cr, cr, blurFill);
       float half = Math.max(1, Screen.dp(.5f)) / 2f;
       hairRect.set(rect.left + half, rect.top + half, rect.right - half, rect.bottom - half);
       c.drawRoundRect(hairRect, cr, cr, Paints.strokeSeparatorPaint(Theme.separatorColor()));
     } else {
-      if (collapseFactor < 1f) shadowPaint.setColor(ColorUtils.fromToArgb(ColorUtils.alphaColor(.9f, filling), shadowPaint.getColor(), collapseFactor));
+      if (collapseFactor < 1f) shadowPaint.setColor(ColorUtils.fromToArgb(solid ? filling : ColorUtils.alphaColor(.9f, filling), shadowPaint.getColor(), collapseFactor));
       c.drawRoundRect(rect, cr, cr, shadowPaint);
     }
     int contentSave = -1;

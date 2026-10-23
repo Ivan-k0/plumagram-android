@@ -1986,6 +1986,16 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return manager.getOverlayColor(ColorId.NONE, ColorId.bubble_button, ColorId.bubble_button_noWallpaper, PropertyId.WALLPAPER_OVERRIDE_BUTTON);
   }
 
+  /** the round arrow beside a post (share / go to): see-through over the wallpaper; with MagiX «Solid buttons and
+   *  bottom menu» (4PDA 23.10 «стрелка справа») the same colour laid over the chat background, solid */
+  private int tgx101CircleButtonColor () {
+    int color = getBubbleButtonBackgroundColor();
+    if (Settings.instance().tgx101SolidControls() && android.graphics.Color.alpha(color) < 255) {
+      color = ColorUtils.compositeColor(Theme.getColor(ColorId.chatBackground), color);
+    }
+    return color;
+  }
+
   public final int getBubbleButtonRippleColor () {
     if (tgx101Journal() && !isOutgoing()) return ColorUtils.alphaColor(.18f, Theme.getColor(ColorId.textLink));
     return manager.getOverlayColor(ColorId.NONE, ColorId.bubble_buttonRipple, ColorId.bubble_buttonRipple_noWallpaper, PropertyId.WALLPAPER_OVERRIDE_BUTTON);
@@ -2668,7 +2678,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     float cx = onRight ? bubblePathRect.right + gap + r : bubblePathRect.left - gap - r;
     float cy = bubblePathRect.bottom - r;
     tgx101GoToRect.set(cx - r, cy - r, cx + r, cy + r);
-    c.drawCircle(cx, cy, r, Paints.fillingPaint(ColorUtils.alphaColor(tgx101GoToPressed ? .8f : 1f, getBubbleButtonBackgroundColor())));
+    c.drawCircle(cx, cy, r, Paints.fillingPaint(ColorUtils.alphaColor(tgx101GoToPressed ? .8f : 1f, tgx101CircleButtonColor())));
     Drawable icon = Drawables.get(R.drawable.baseline_arrow_forward_24);
     if (icon != null) {
       int restoreToCount = Views.save(c);

@@ -12004,8 +12004,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
         rect.set(bounds.centerX() - radius, bounds.centerY() - radius, bounds.centerX() + radius, bounds.centerY() + radius);
         path.reset();
         path.addCircle(rect.centerX(), rect.centerY(), radius, android.graphics.Path.Direction.CW);
-        boolean blurred = blur.draw(c, view, rect, path);
-        c.drawCircle(rect.centerX(), rect.centerY(), radius, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(tgx101FieldAlpha(blurred, c), Theme.fillingColor())));
+        // (4PDA 23.10) «Solid buttons and bottom menu»: no blur, the full filling
+        final boolean solid = Settings.instance().tgx101SolidControls();
+        boolean blurred = !solid && blur.draw(c, view, rect, path);
+        c.drawCircle(rect.centerX(), rect.centerY(), radius, Paints.fillingPaint(solid ? Theme.fillingColor() : me.vkryl.core.ColorUtils.alphaColor(tgx101FieldAlpha(blurred, c), Theme.fillingColor())));
         float half = Math.max(1, Screen.dp(.5f)) / 2f;
         c.drawCircle(rect.centerX(), rect.centerY(), radius - half, Paints.strokeSeparatorPaint(Theme.separatorColor()));
       }

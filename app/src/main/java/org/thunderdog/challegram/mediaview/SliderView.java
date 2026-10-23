@@ -37,6 +37,11 @@ public class SliderView extends View implements FactorAnimator.Target {
   private @ColorId int colorId = ColorId.sliderActive;
   private int anchorMode;
   private boolean slideEnabled;
+  private boolean tgx101TapToSeek;
+
+  public void setTgx101TapToSeek (boolean tapToSeek) {
+    this.tgx101TapToSeek = tapToSeek;
+  }
   private int valueCount;
 
   public SliderView (Context context) {
@@ -331,6 +336,17 @@ public class SliderView extends View implements FactorAnimator.Target {
         if (x >= cx - radius && x <= cx + radius && y >= cy - radius && y <= cy + radius && slideEnabled && (changeAnimator == null || !changeAnimator.isAnimating()) && (listener == null || listener.allowSliderChanges(this))) {
           diffX = x - cx;
           setIsUp(true);
+          return true;
+        }
+        // TGx101 (4PDA 23.10 «нажал на середину полосы — середина видео»): a touch anywhere on the track takes the thumb
+        // there at once and drags it on from there
+        if (tgx101TapToSeek && y >= cy - radius && y <= cy + radius && x >= getTotalPaddingLeft() - radius / 2 && x <= getMeasuredWidth() - getTotalPaddingRight() + radius / 2
+          && slideEnabled && (changeAnimator == null || !changeAnimator.isAnimating()) && (listener == null || listener.allowSliderChanges(this))) {
+          diffX = 0;
+          setIsUp(true);
+          int left = getTotalPaddingLeft();
+          int width = (getMeasuredWidth() - getTotalPaddingRight() - left);
+          changeValue(anchorMode == ANCHOR_MODE_CENTER ? Math.max(-1f, Math.min(1f, (x - (left + width / 2)) / (float) (width / 2))) : Math.max(0f, Math.min(1f, (x - left) / (float) width)));
           return true;
         }
 

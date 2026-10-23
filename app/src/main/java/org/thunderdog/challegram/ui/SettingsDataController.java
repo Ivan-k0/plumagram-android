@@ -373,6 +373,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101MenuHidesKeyboard(), isUpdate);
         } else if (itemId == R.id.btn_tgx101MenuBlur) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101MenuBlur(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101SolidControls) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101SolidControls(), isUpdate);
         } else if (itemId == R.id.btn_tgx101Haptics) {
           // TGx101 (user 2026-10-12 «не дублируй»): one row — off or how strong
           int st = Settings.instance().tgx101HapticStrength();
@@ -587,6 +589,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101FloatingInput, 0, R.string.Tgx101FloatingInput),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NavCapsule, 0, R.string.Tgx101NavCapsule),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SolidControls, 0, R.string.Tgx101SolidControls),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101DrawerOrder, 0, R.string.Tgx101DrawerOrder),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1071,7 +1075,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     // things together; filters with the messages; quick calls with the calls
     if (id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101CapsuleTabs || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101ContactsMenu
       || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101CapsuleScrollHide
-      || id == R.id.btn_tgx101Bird || id == R.id.btn_tgx101BirdRing) return TGX101_SECTION_NAV;
+      || id == R.id.btn_tgx101Bird || id == R.id.btn_tgx101BirdRing || id == R.id.btn_tgx101SolidControls) return TGX101_SECTION_NAV;
     if (id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap || id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands
       || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101TextEditor) return TGX101_SECTION_INPUT;
     if (id == R.id.btn_tgx101QuickCalls) return 7;
@@ -1459,6 +1463,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101LongPressMenu(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101MenuBlur) {
       Settings.instance().setTgx101MenuBlur(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101SolidControls) {
+      Settings.instance().setTgx101SolidControls(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101Haptics) {
       showOptions(Lang.getString(R.string.Tgx101Haptics), new int[] {R.id.btn_disabled, R.id.btn_tgx101HapticLight, R.id.btn_tgx101HapticNormal, R.id.btn_tgx101HapticStrong},
         new String[] {Lang.getString(R.string.Tgx101HapticOff), Lang.getString(R.string.Tgx101HapticLight), Lang.getString(R.string.Tgx101HapticNormal), Lang.getString(R.string.Tgx101HapticStrong)}, null, null, (optionView, optionId) -> {
