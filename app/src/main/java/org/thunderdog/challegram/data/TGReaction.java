@@ -181,7 +181,7 @@ public class TGReaction {
       return new TGStickerObj(tdlib, emojiReaction.staticIcon, emojiReaction.emoji, emojiReaction.staticIcon.fullType).setReactionType(type).setDisplayScale(.5f);
     } else {
       float displayScale = TextMedia.getScale(customReaction, 0) * .5f;
-      return new TGStickerObj(tdlib, customReaction, null, customReaction.fullType).setReactionType(type).setDisplayScale(displayScale).setPreviewOptimizationMode(GifFile.OptimizationMode.EMOJI);
+      return new TGStickerObj(tdlib, customReaction, null, customReaction.fullType).setReactionType(type).setDisplayScale(displayScale).setPreviewOptimizationMode(GifFile.OptimizationMode.EMOJI_PREVIEW); // TGx101 (4PDA 23.10 «без сглаживания»): 70 px stretched on a bigger icon — 120 px now
     }
   }
 

@@ -4200,7 +4200,16 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     float r = Screen.dp(20f);
     bg.setCornerRadii(landscape ? new float[] {r, r, 0, 0, 0, 0, r, r} : new float[] {r, r, r, r, 0, 0, 0, 0});
     panel.setBackground(bg);
-    panel.setPadding(0, Screen.dp(6f), 0, Screen.dp(landscape ? 6f : 16f));
+    // TGx101 (4PDA 23.10 «в книжной ориентации плеер выходит за рабочее пространство», с кнопками навигации): the panel
+    // keeps clear of the navigation bar — under it at the bottom, beside it in landscape
+    int tgx101NavBottom = 0, tgx101NavRight = 0;
+    androidx.core.view.WindowInsetsCompat tgx101Insets = androidx.core.view.ViewCompat.getRootWindowInsets(contentView);
+    if (tgx101Insets != null) {
+      androidx.core.graphics.Insets nav = tgx101Insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars());
+      tgx101NavBottom = nav.bottom;
+      tgx101NavRight = nav.right;
+    }
+    panel.setPadding(0, Screen.dp(6f), landscape ? tgx101NavRight : 0, Screen.dp(landscape ? 6f : 16f) + tgx101NavBottom);
 
     LinearLayout header = new LinearLayout(context);
     header.setOrientation(LinearLayout.HORIZONTAL);

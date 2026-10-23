@@ -8326,7 +8326,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   public static TextStyleProvider reactionsTextStyleProvider () {
     if (reactionBubbleProvider == null) {
-      reactionBubbleProvider = new TextStyleProvider(Fonts.newRobotoStorage()).setTextSizeDiff(-4f).setTextSize(Settings.instance().getChatFontSize()).setAllowSp(true);
+      // TGx101 (4PDA 23.10): -4 → -5, the count a step smaller beside the bigger emoji
+      reactionBubbleProvider = new TextStyleProvider(Fonts.newRobotoStorage()).setTextSizeDiff(-5f).setTextSize(Settings.instance().getChatFontSize()).setAllowSp(true);
       Settings.instance().addChatFontSizeChangeListener(reactionBubbleProvider);
     }
     return reactionBubbleProvider;

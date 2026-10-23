@@ -383,8 +383,14 @@ public class TGReactions implements Destroyable, ReactionLoadListener {
     return Screen.dp((TGMessage.reactionsTextStyleProvider().getTextSizeInDp() + 1) * 1.25f + 11);
   }
 
+  // TGx101 (4PDA 23.10, side by side with the official app: «реакции мелковаты») the emoji bigger, its count a step smaller
   public static int getReactionImageSize () {
-    return Screen.dp((TGMessage.reactionsTextStyleProvider().getTextSizeInDp() + 1) * 1.25f + 17);
+    return Screen.dp((TGMessage.reactionsTextStyleProvider().getTextSizeInDp() + 1) * 1.25f + 23);
+  }
+
+  /** the count starts this much further right — the bigger emoji kept clear of it */
+  private static int tgx101TextShift () {
+    return Screen.dp(3f);
   }
 
   public static int getReactionAvatarRadiusDp () {
@@ -980,7 +986,7 @@ public class TGReactions implements Destroyable, ReactionLoadListener {
       int height = getBubbleHeight();
       int imageSize = getReactionImageSize();
       int imgY = (height - imageSize) / 2;
-      int avatarsX = height + Screen.dp(1);
+      int avatarsX = height + Screen.dp(1) + tgx101TextShift();
       int textX = avatarsX + avatarsOffset + avatarsWidth;
       int radius = height / 2;
       int backgroundColor = backgroundColor(false);
