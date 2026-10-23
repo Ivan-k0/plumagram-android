@@ -257,7 +257,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     e.setPadding(Screen.dp(16f), 0, Screen.dp(16f), 0);
     e.setTextColor(Theme.textAccentColor());
     e.setHintTextColor(Theme.textDecentColor());
-    e.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
+    size(e, 16f);
     cursor(e);
   }
 
@@ -265,10 +265,24 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     org.thunderdog.challegram.widget.Tgx101CursorDrawable.apply(e); // the app's one cursor (it cleared it for a plain one)
   }
 
+  /**
+   * (user 2026-10-23 «Хранилище тоже должно менять размер текста и шрифт, как везде»): the storage's text follows the app's
+   * text settings — «Large interface» × the system font size (up to 130 %: its tiles and capsules have fixed heights),
+   * the chosen font and weight, «Bolder interface text»
+   */
+  static float scale () {
+    return org.thunderdog.challegram.unsorted.Settings.tgx101RowScale();
+  }
+
+  static void size (TextView v, float sp) {
+    v.setTextSize(TypedValue.COMPLEX_UNIT_DIP, sp * scale());
+    v.setTypeface(org.thunderdog.challegram.unsorted.Settings.instance().tgx101UiBold() ? Fonts.getRobotoMedium() : Fonts.getRobotoRegular());
+  }
+
   static TextView text (Context context, float sp, int color, boolean medium) {
     // the app's own emoji (as in the chats), redrawn when their pictures are ready — a plain TextView left them blank
     TextView v = new org.thunderdog.challegram.widget.EmojiTextView(context);
-    v.setTextSize(TypedValue.COMPLEX_UNIT_DIP, sp);
+    size(v, sp);
     v.setTextColor(color);
     if (medium) v.setTypeface(Fonts.getRobotoMedium());
     return v;
@@ -287,14 +301,14 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
         int width = MeasureSpec.getSize(widthMeasureSpec) - getPaddingLeft() - getPaddingRight();
         if (MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.UNSPECIFIED && width > 0) {
           probe.set(getPaint());
-          probe.setTextSize(Screen.dp(sp));
+          probe.setTextSize(Screen.dp(sp * scale()));
           float widest = 0;
           for (String word : getText().toString().split("\\s+")) {
             widest = Math.max(widest, probe.measureText(word));
           }
-          float size = Screen.dp(sp);
+          float size = Screen.dp(sp * scale());
           if (widest > width) {
-            size = Math.max(Screen.dp(minSp), (float) Math.floor(size * width / widest));
+            size = Math.max(Screen.dp(minSp * scale()), (float) Math.floor(size * width / widest));
           }
           if (Math.abs(getTextSize() - size) >= .5f) {
             setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
@@ -303,7 +317,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
       }
     };
-    v.setTextSize(TypedValue.COMPLEX_UNIT_DIP, sp);
+    size(v, sp);
     v.setTextColor(color);
     v.setTypeface(Fonts.getRobotoMedium());
     return v;
@@ -556,7 +570,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     noteField.setHintTextColor(Theme.textDecentColor());
     noteField.setTextColor(Theme.textAccentColor());
     noteField.setHighlightColor(Theme.fillingTextSelectionColor());
-    noteField.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
+    size(noteField, 16f);
     noteField.setSingleLine(false);
     noteField.setMaxLines(6);
     noteField.setImeOptions(android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI);

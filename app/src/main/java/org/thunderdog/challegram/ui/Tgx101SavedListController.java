@@ -599,7 +599,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
       final int k = KIND_ORDER[i];
       TextView t = chip(Tgx101SavedHomeController.kindPlural(k), false, v -> switchKind(k));
       if (reach) {
-        t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 15f);
+        Tgx101SavedHomeController.size(t, 15f);
         LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) t.getLayoutParams();
         lp.height = Screen.dp(40f); // big: under the thumb
       }
@@ -1993,7 +1993,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
       kp.setMargins(Screen.dp(8f), Screen.dp(8f), 0, 0);
       cell.addView(kindIcon, kp);
       text = new TextView(context);
-      text.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 12f);
+      Tgx101SavedHomeController.size(text, 12f);
       text.setTextColor(Theme.textAccentColor());
       text.setLineSpacing(0, 1.05f);
       text.setMaxLines(4);
@@ -2002,7 +2002,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
       xp.setMargins(Screen.dp(8f), Screen.dp(28f), Screen.dp(8f), Screen.dp(26f));
       cell.addView(text, xp);
       badge = new TextView(context);
-      badge.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 11f);
+      Tgx101SavedHomeController.size(badge, 11f);
       badge.setTextColor(0xffffffff);
       badge.setBackground(Tgx101SavedHomeController.card(0x80000000, 6f));
       badge.setPadding(Screen.dp(6f), Screen.dp(2f), Screen.dp(6f), Screen.dp(2f));
@@ -2019,17 +2019,17 @@ public class Tgx101SavedListController extends ViewController<Void> {
       dp.rightMargin = Screen.dp(4f);
       info.addView(folderDot, dp);
       tag = new TextView(context);
-      tag.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 10.5f);
+      Tgx101SavedHomeController.size(tag, 10.5f);
       tag.setSingleLine(true);
       tag.setPadding(0, 0, Screen.dp(4f), 0);
       info.addView(tag);
       date = new TextView(context);
-      date.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 10.5f);
+      Tgx101SavedHomeController.size(date, 10.5f);
       date.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium()); // (user 2026-10-17) the date a little bolder
       date.setSingleLine(true);
       info.addView(date);
       reaction = new org.thunderdog.challegram.widget.EmojiTextView(context); // the app's emoji, as in the chats
-      reaction.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 12f);
+      Tgx101SavedHomeController.size(reaction, 12f);
       reaction.setPadding(Screen.dp(4f), 0, 0, 0);
       info.addView(reaction);
       FrameLayout.LayoutParams ip = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.LEFT);
@@ -2038,7 +2038,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
       check = new TextView(context);
       check.setGravity(Gravity.CENTER);
       check.setTextColor(0xffffffff);
-      check.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 12f);
+      Tgx101SavedHomeController.size(check, 12f);
       FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f), Gravity.TOP | Gravity.RIGHT);
       cp.setMargins(0, Screen.dp(6f), Screen.dp(6f), 0);
       cell.addView(check, cp);

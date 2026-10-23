@@ -259,7 +259,7 @@ public final class Tgx101SavedActions {
       e.setTextColor(Theme.textAccentColor());
       e.setImeOptions(EditorInfo.IME_ACTION_DONE);
       e.setPadding(Screen.dp(6f), 0, 0, 0);
-      e.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16f);
+      Tgx101SavedHomeController.size(e, 16f);
       Tgx101SavedHomeController.cursor(e);
       input.addView(e, new LinearLayout.LayoutParams(0, Screen.dp(46f), 1f));
       LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(46f));
