@@ -897,6 +897,11 @@ public class TGMessageText extends TGMessage {
     return new TdApi.FormattedText(b.toString(), list.toArray(new TdApi.TextEntity[0]));
   }
 
+  @Override
+  protected void tgx101OnQuoteToggled () {
+    tgx101Rebuild(); // the text is laid out again: the quote opens / folds
+  }
+
   private void tgx101Rebuild () {
     setText(this.text, false, true, true);
     rebuildAndUpdateContent();

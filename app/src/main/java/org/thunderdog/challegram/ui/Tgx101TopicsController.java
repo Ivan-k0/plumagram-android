@@ -523,7 +523,37 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     if (needReload) { // back from a topic: fresh counters and last messages
       needReload = false;
       load();
+      // (4PDA 23.10, Android 4.3: «прочитал новые в теме — счётчик на теме не пропадает, пока не переключишься на ленту»):
+      // the read reaches the server a moment after the return — the list is asked again then, and once more when the
+      // topic just left reports its new read mark
+      UI.post(tgx101Reload, 1500);
     }
+  }
+
+  private final Runnable tgx101Reload = () -> {
+    if (!isDestroyed()) load();
+  };
+
+  private int tgx101WatchedTopicId;
+  private final org.thunderdog.challegram.telegram.ForumTopicInfoListener tgx101TopicWatch = new org.thunderdog.challegram.telegram.ForumTopicInfoListener() {
+    @Override
+    public void onForumTopicUpdated (long chatId, long messageThreadId, boolean isPinned, long lastReadInboxMessageId, long lastReadOutboxMessageId, TdApi.ChatNotificationSettings notificationSettings) {
+      runOnUiThreadOptional(() -> load());
+    }
+  };
+
+  @Override
+  public void destroy () {
+    super.destroy();
+    UI.removePendingRunnable(tgx101Reload);
+    tgx101WatchTopic(0);
+  }
+
+  private void tgx101WatchTopic (int forumTopicId) {
+    long chatId = getArgumentsStrict().chat.id;
+    if (tgx101WatchedTopicId != 0) tdlib.listeners().unsubscribeFromForumTopicUpdates(chatId, tgx101WatchedTopicId, tgx101TopicWatch);
+    tgx101WatchedTopicId = forumTopicId;
+    if (forumTopicId != 0) tdlib.listeners().subscribeToForumTopicUpdates(chatId, forumTopicId, tgx101TopicWatch);
   }
 
   @Override
@@ -643,6 +673,7 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
   // Actions
 
   private void openTopic (TdApi.ForumTopic topic) {
+    tgx101WatchTopic(topic.info.forumTopicId);
     TdlibUi.ChatOpenParameters params = new TdlibUi.ChatOpenParameters().keepStack();
     params.messageTopicId = new TdApi.MessageTopicForum(topic.info.forumTopicId);
     params.chatList = getArgumentsStrict().chatList;

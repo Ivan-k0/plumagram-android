@@ -317,6 +317,7 @@ public final class Tgx101Updates {
   /** The newer release with an APK for this build variant, or null when this build is the latest */
   private static @Nullable Release fetch (Context context) throws Exception {
     HttpURLConnection connection = (HttpURLConnection) new URL(API_URL).openConnection();
+    Tgx101Tls.apply(connection); // Android 4.x: TLS 1.2 on
     connection.setConnectTimeout(15_000);
     connection.setReadTimeout(15_000);
     connection.setRequestProperty("Accept", "application/vnd.github+json");
@@ -420,6 +421,7 @@ public final class Tgx101Updates {
         if (dir != null && !dir.exists() && !dir.mkdirs()) throw new IllegalStateException("no dir");
         clearDownloads(app, null);
         HttpURLConnection c = (HttpURLConnection) new URL(r.apkUrl).openConnection();
+        Tgx101Tls.apply(c);
         c.setInstanceFollowRedirects(true);
         c.setConnectTimeout(20_000);
         c.setReadTimeout(30_000);

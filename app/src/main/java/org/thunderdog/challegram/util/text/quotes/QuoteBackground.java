@@ -46,6 +46,12 @@ public class QuoteBackground {
 
   private static Drawable quoteDrawable;
   private static final RectF tmpRect = new RectF();
+  private static final android.graphics.Path tgx101Path = new android.graphics.Path();
+  private static final float[] tgx101Radii = new float[8];
+
+  public boolean tgx101Expandable, tgx101Collapsed;
+  public @Nullable String tgx101Key;
+  private static Drawable tgx101ArrowDown, tgx101ArrowUp;
 
   private int topAddition;
   private int bottomAddition;
@@ -62,7 +68,13 @@ public class QuoteBackground {
     this.parent = text;
     this.entity = entity;
 
-    this.ripple = new RippleDrawable();
+    this.ripple = new RippleDrawable() {
+      @Override
+      public void performClick (View view) {
+        super.performClick(view);
+        parent.tgx101QuoteClicked(QuoteBackground.this); // TGx101: an expandable quote opens / folds
+      }
+    };
   }
 
   public void setViewProvider (@Nullable ViewProvider viewProvider) {
@@ -127,12 +139,29 @@ public class QuoteBackground {
     final int lineColorId = parent.getQuoteLineColorId();
     final int lineColor = Theme.getColor(lineColorId);
 
+    // TGx101 (4PDA 23.10, «цитаты с цветной подложкой, как в оригинале»): the quote lies on a light wash of its line's
+    // colour, the corners as the ripple's
+    tgx101Path.reset();
+    tgx101Radii[0] = tgx101Radii[1] = tgx101Radii[6] = tgx101Radii[7] = Screen.dp(1.5f);
+    tgx101Radii[2] = tgx101Radii[3] = tgx101Radii[4] = tgx101Radii[5] = Screen.dp(8f);
+    tgx101Path.addRoundRect(bounds, tgx101Radii, android.graphics.Path.Direction.CW);
+    c.drawPath(tgx101Path, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(.1f, lineColor)));
+
     ripple.setBounds((int) bounds.left, (int) bounds.top, (int) bounds.right, (int) bounds.bottom);
     ripple.setRadius(Screen.dp(1.5f), Screen.dp(8f), Screen.dp(8f), Screen.dp(1.5f));
     ripple.setMainColorId(lineColorId, 0.25f);
     ripple.draw(c);
 
     Drawables.draw(c, quoteDrawable, bounds.right - Screen.dp(19), bounds.top + Screen.dp(3.5f), PorterDuffPaint.get(lineColorId));
+    if (tgx101Expandable) {
+      // TGx101: the fold arrow in the bottom right corner, as in the official app
+      if (tgx101ArrowDown == null) {
+        tgx101ArrowDown = Drawables.get(R.drawable.baseline_keyboard_arrow_down_24);
+        tgx101ArrowUp = Drawables.get(R.drawable.baseline_keyboard_arrow_up_24);
+      }
+      Drawable arrow = tgx101Collapsed ? tgx101ArrowDown : tgx101ArrowUp;
+      Drawables.draw(c, arrow, bounds.right - Screen.dp(23), bounds.bottom - Screen.dp(22), PorterDuffPaint.get(lineColorId));
+    }
 
     tmpRect.set(bounds);
     tmpRect.right = bounds.left + Screen.dp(3);

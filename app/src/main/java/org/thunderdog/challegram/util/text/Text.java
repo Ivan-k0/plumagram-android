@@ -2910,6 +2910,8 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
     default boolean forceInstantView (String link) { return false; }
     default TdApi.LinkPreview findLinkPreview (String link) { return null; }
     default boolean onCommandClick (View view, Text text, TextPart part, String command, boolean isLongPress) { return false; }
+    /** TGx101: an expandable quote was opened or folded — lay the text out again */
+    default void tgx101OnQuoteToggled (Text text) { }
     default boolean onDateClick (View view, Text text, TextPart part, String date, TdApi.TextEntityTypeDateTime entity, boolean isLongPress) { return false; }
     default boolean onUsernameClick (String username) { return false; }
     default boolean onUserClick (long userId) { return false; }
@@ -3022,6 +3024,11 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
 
   @Nullable
   private QuoteBackground pressedQuote;
+  private @Nullable ClickCallback tgx101QuoteCallback;
+
+  public void tgx101QuoteClicked (QuoteBackground quote) {
+    tgx101OnQuoteClick(quote, tgx101QuoteCallback);
+  }
 
   @Nullable
   private PressHighlight pressHighlight;
@@ -3163,6 +3170,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
           for (QuoteBackground quote : quotes) {
             if (quote.contains(touchX, touchY)) {
               pressedQuote = quote;
+              tgx101QuoteCallback = callback;
               cancelPendingQuotePress();
               final MotionEvent down = MotionEvent.obtain(e);
               pendingQuotePressView = view;
@@ -3721,6 +3729,81 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
     if (quote != null) {
       addQuote(quote);
     }
+    tgx101CollapseQuotes();
+  }
+
+  // TGx101 (4PDA 23.10, the official app side by side: «возможность развернуть/свернуть цитаты, порой текст — простыня»):
+  // a quote its author marked expandable shows its first lines and an arrow; a tap opens it in full and back. Which
+  // ones are open is kept while the app runs, by the quote's words
+  public static final int TGX101_QUOTE_COLLAPSED_LINES = 3;
+  private static final java.util.Set<String> tgx101OpenQuotes = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+
+  private static boolean tgx101IsExpandable (@Nullable TextEntity entity) {
+    TdApi.TextEntity quote = entity != null ? entity.getQuote() : null;
+    return quote != null && quote.type.getConstructor() == TdApi.TextEntityTypeExpandableBlockQuote.CONSTRUCTOR;
+  }
+
+  private String tgx101QuoteKey (QuoteBackground quote) {
+    StringBuilder b = new StringBuilder();
+    for (int a = quote.partStart; a < quote.partEnd && b.length() < 120; a++) {
+      TextPart part = parts.get(a);
+      String line = part.getLine();
+      if (line != null) b.append(line, part.getStart(), Math.min(part.getEnd(), line.length()));
+    }
+    return b.toString();
+  }
+
+  private void tgx101CollapseQuotes () {
+    if (quotes.isEmpty()) return;
+    final int lineHeight = getLineHeight();
+    for (int q = quotes.size() - 1; q >= 0; q--) {
+      QuoteBackground quote = quotes.get(q);
+      if (!tgx101IsExpandable(quote.entity)) continue;
+      quote.tgx101Key = tgx101QuoteKey(quote);
+      quote.tgx101Expandable = true;
+      if (tgx101OpenQuotes.contains(quote.tgx101Key)) continue; // open: drawn whole, the arrow points up
+      final int firstY = parts.get(quote.partStart).getY();
+      final int limit = firstY + lineHeight * TGX101_QUOTE_COLLAPSED_LINES;
+      int hideFrom = -1, bottom = limit;
+      for (int a = quote.partStart; a < quote.partEnd; a++) {
+        TextPart part = parts.get(a);
+        if (part.getY() >= limit) {
+          if (hideFrom == -1) hideFrom = a;
+          bottom = Math.max(bottom, part.getY() + Math.max(lineHeight, part.getHeight()));
+        }
+      }
+      if (hideFrom == -1) {
+        quote.tgx101Expandable = false; // short enough — nothing to fold
+        continue;
+      }
+      final int removed = quote.partEnd - hideFrom;
+      final int delta = bottom - limit;
+      for (int a = quote.partEnd; a < parts.size(); a++) {
+        TextPart part = parts.get(a);
+        part.setXY(part.getX(), part.getY() - delta);
+      }
+      parts.subList(hideFrom, quote.partEnd).clear();
+      for (int k = q + 1; k < quotes.size(); k++) {
+        QuoteBackground next = quotes.get(k);
+        next.partStart -= removed;
+        next.partEnd -= removed;
+      }
+      quote.partEnd = hideFrom;
+      quote.tgx101Collapsed = true;
+      quote.calcHeightAddition();
+      currentY -= delta;
+    }
+  }
+
+  /** a tap on an expandable quote: open / fold it; the owner lays the text out again */
+  public void tgx101OnQuoteClick (QuoteBackground quote, @Nullable ClickCallback callback) {
+    if (!quote.tgx101Expandable || quote.tgx101Key == null) return;
+    if (quote.tgx101Collapsed) {
+      tgx101OpenQuotes.add(quote.tgx101Key);
+    } else {
+      tgx101OpenQuotes.remove(quote.tgx101Key);
+    }
+    if (callback != null) callback.tgx101OnQuoteToggled(this);
   }
 
 

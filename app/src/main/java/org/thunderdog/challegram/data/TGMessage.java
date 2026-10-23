@@ -1427,6 +1427,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
   }
 
+  /** TGx101: an expandable quote in this message was opened or folded */
+  protected void tgx101OnQuoteToggled () {
+    rebuildAndUpdateContent();
+  }
+
   protected void rebuildAndUpdateContent () {
     boolean isBackground = Looper.myLooper() != Looper.getMainLooper();
     if (isBackground) {
@@ -8186,6 +8191,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (clickCallback != null)
       return clickCallback;
     return clickCallback = new Text.ClickCallback() {
+      @Override
+      public void tgx101OnQuoteToggled (Text text) {
+        TGMessage.this.tgx101OnQuoteToggled();
+      }
+
       @Override
       public boolean onCommandClick (View view, Text text, TextPart part, String command, boolean isLongPress) {
         if (isLongPress) {
