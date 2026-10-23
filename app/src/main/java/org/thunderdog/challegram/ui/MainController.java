@@ -2300,6 +2300,15 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
 
   private boolean oneShot;
 
+  private final Runnable tgx101HideStrayKeyboard = () -> {
+    if (isDestroyed() || inSearchMode() || !isFocused() || !context.isKeyboardVisible()) return;
+    if (context.navigation() != null && context.navigation().getCurrentStackItem() != this) return;
+    android.view.View focused = context.getCurrentFocus();
+    if (focused != null) focused.clearFocus();
+    org.thunderdog.challegram.tool.Keyboard.hide(focused != null ? focused : getValue());
+    org.thunderdog.challegram.Tgx101Diag.mark("main: keyboard came back over the chats list — hidden again");
+  };
+
   @Override
   public void onFocus () {
     super.onFocus();
@@ -2318,6 +2327,14 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       android.view.View focused = context.getCurrentFocus();
       org.thunderdog.challegram.tool.Keyboard.hide(focused != null ? focused : getValue());
       org.thunderdog.challegram.Tgx101Diag.mark("main: keyboard left over from a chat — hidden");
+    }
+    // TGx101 (2026-10-23, cold start after the app was closed with a chat's keyboard up): the system brings the keyboard
+    // back once the window gets focus (~0.15 s after the hide above) and it hung over the chats list — the keys took taps
+    // meant for the list. Checked again once the window has settled
+    if (getValue() != null) {
+      getValue().removeCallbacks(tgx101HideStrayKeyboard);
+      getValue().postDelayed(tgx101HideStrayKeyboard, 350);
+      getValue().postDelayed(tgx101HideStrayKeyboard, 800);
     }
     // FIXME check tdlib.isUnauthorized()
     tdlib.context().changePreferredAccountId(tdlib.id(), TdlibManager.SWITCH_REASON_NAVIGATION);

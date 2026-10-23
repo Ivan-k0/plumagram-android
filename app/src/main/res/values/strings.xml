@@ -6424,6 +6424,10 @@
   <string name="Tgx101HapticStrong">Strong</string>
   <string name="Tgx101MenuBlur">Blur behind menus and sheets</string>
   <string name="Tgx101SolidControls">Solid buttons and bottom menu</string>
+  <string name="Tgx101InputStyle">Message field</string>
+  <string name="Tgx101InputStyleFloating">Floating</string>
+  <string name="Tgx101InputStyleFlat">Classic</string>
+  <string name="Tgx101InputStyleWell">Classic with a box</string>
   <string name="Tgx101SearchHoldProxy">Hold search in the chat list: proxy</string>
   <string name="Tgx101UnofficialTitle">Unofficial build</string>
   <string name="Tgx101UnofficialText">This PlumaGram is signed by somebody else, not by its author. It may be changed in any way. The official version is on 4PDA and in the @plumagram channel.</string>

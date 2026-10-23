@@ -590,6 +590,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101HapticStrong, "Сильная");
     RU.put(R.string.Tgx101MenuBlur, "Размытие под меню и окнами");
     RU.put(R.string.Tgx101SolidControls, "Непрозрачные кнопки и нижнее меню");
+    RU.put(R.string.Tgx101InputStyle, "Вид поля ввода");
+    RU.put(R.string.Tgx101InputStyleFloating, "Плавающее");
+    RU.put(R.string.Tgx101InputStyleFlat, "Классика");
+    RU.put(R.string.Tgx101InputStyleWell, "Классика с полем");
     RU.put(R.string.Tgx101SearchHoldProxy, "Удержание поиска в чатах — прокси");
     RU.put(R.string.Tgx101UnofficialTitle, "Неофициальная сборка");
     RU.put(R.string.Tgx101UnofficialText, "Этот PlumaGram подписан не автором, а кем-то другим — его могли изменить как угодно. Официальная версия — на 4PDA и в канале @plumagram.");

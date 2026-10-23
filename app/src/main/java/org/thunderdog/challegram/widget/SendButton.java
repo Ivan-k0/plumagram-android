@@ -120,6 +120,27 @@ public class SendButton extends View implements FactorAnimator.Target, TooltipOv
     setInInlineProgress(inInlineProgress);
   }
 
+  // TGx101 (approved mockup «Поле ввода — классика», variant Б): in the docked field the send arrow sits white on a
+  // rounded square of the theme's send colour
+  private boolean tgx101Square;
+  private Paint tgx101WhitePaint;
+
+  public void setTgx101Square (boolean square) {
+    if (this.tgx101Square != square) {
+      this.tgx101Square = square;
+      invalidate();
+    }
+  }
+
+  /** the rounded square under the send arrow / the mic in the docked field */
+  public static void tgx101DrawSquare (Canvas c, float cx, float cy, float alpha) {
+    if (alpha <= 0f) return;
+    float half = Screen.dp(18f);
+    android.graphics.RectF r = Paints.getRectF();
+    r.set(cx - half, cy - half, cx + half, cy + half);
+    c.drawRoundRect(r, Screen.dp(10f), Screen.dp(10f), Paints.fillingPaint(ColorUtils.alphaColor(alpha, Theme.chatSendButtonColor())));
+  }
+
   @Override
   protected void onDraw (Canvas c) {
     final int cx = getMeasuredWidth() / 2;
@@ -129,10 +150,13 @@ public class SendButton extends View implements FactorAnimator.Target, TooltipOv
     final float sendScale = 1f - inlineFactor;
     final float activeFactor = isActiveAnimator.getFloatValue();
     final float editFactor = inEditModeAnimator.getFloatValue();
+    if (tgx101Square) {
+      tgx101DrawSquare(c, cx, cy, sendScale * (1f - editFactor));
+    }
 
     if (sendScale > 0f) {
       if (editFactor != 1f) {
-        final Paint paint = Paints.getSendButtonPaint();
+        final Paint paint = tgx101Square ? (tgx101WhitePaint != null ? tgx101WhitePaint : (tgx101WhitePaint = Paints.createPorterDuffPaint(null, 0xffffffff))) : Paints.getSendButtonPaint();
         final Paint paintBg = PorterDuffPaint.get(ColorId.iconLight);
         final int sourceAlpha = Color.alpha(Theme.chatSendButtonColor());
         final boolean saved = editFactor != 0f || sendScale != 1f;

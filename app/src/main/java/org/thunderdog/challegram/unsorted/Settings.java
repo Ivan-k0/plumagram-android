@@ -3614,12 +3614,33 @@ public class Settings {
   private static final String KEY_TGX101_FLOATING_INPUT = "tgx101_floating_input";
 
   public boolean useFloatingInput () {
-    if (true /* user 2026-10-08: all test changes go to the release */) return true; // test builds: the capsule only (user 2026-10-08)
-    return pmc.getBoolean(KEY_TGX101_FLOATING_INPUT, false); // user 2026-09-30: classic (variant 1) by default, the capsule stays an option
+    // user 2026-10-23 «берём вариант Б — поле-вставка»: the docked field is back as a choice (it was locked to the capsule
+    // since 2026-10-08); the capsule stays the default
+    // a «false» saved before 2026-10-08 was ignored all this time — everyone has had the capsule since; keep it once
+    if (!pmc.getBoolean("tgx101_input_style_2026_10_23", false)) {
+      pmc.putBoolean(KEY_TGX101_FLOATING_INPUT, true);
+      pmc.putBoolean("tgx101_input_style_2026_10_23", true);
+    }
+    return pmc.getBoolean(KEY_TGX101_FLOATING_INPUT, true);
   }
 
   public void setUseFloatingInput (boolean use) {
     pmc.putBoolean(KEY_TGX101_FLOATING_INPUT, use);
+  }
+
+  /** TGx101 (user 2026-10-23, mockup «Поле ввода — классика»): the docked field as variant Б — a «well» for the words and
+   *  the send / mic on a rounded square; false — variant А, the flat panel */
+  public boolean tgx101InputWell () {
+    return pmc.getBoolean("tgx101_input_well", true);
+  }
+
+  public void setTgx101InputWell (boolean well) {
+    pmc.putBoolean("tgx101_input_well", well);
+  }
+
+  /** 0 — floating, 1 — docked flat (А), 2 — docked with the well (Б) */
+  public int tgx101InputStyle () {
+    return useFloatingInput() ? 0 : tgx101InputWell() ? 2 : 1;
   }
 
   // TGx101: the camera button leaves the message input for the attach (paperclip) menu, in place of «Inline bot»

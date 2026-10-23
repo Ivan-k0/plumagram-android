@@ -1514,6 +1514,9 @@
   <item name="btn_tgx101SearchHoldProxy" type="id"/>
   <item name="btn_tgx101MenuBlur" type="id"/>
   <item name="btn_tgx101SolidControls" type="id"/>
+  <item name="btn_tgx101InputStyleFloating" type="id"/>
+  <item name="btn_tgx101InputStyleFlat" type="id"/>
+  <item name="btn_tgx101InputStyleWell" type="id"/>
   <item name="btn_tgx101HapticStrength" type="id"/>
   <item name="btn_tgx101HapticLight" type="id"/>
   <item name="btn_tgx101HapticNormal" type="id"/>

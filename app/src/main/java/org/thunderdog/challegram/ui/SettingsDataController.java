@@ -428,7 +428,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         } else if (itemId == R.id.btn_separateChannelPosts) {
           view.getToggler().setRadioEnabled(Settings.instance().separateChannelPosts(), isUpdate);
         } else if (itemId == R.id.btn_tgx101FloatingInput) {
-          view.getToggler().setRadioEnabled(Settings.instance().useFloatingInput(), isUpdate);
+          int style = Settings.instance().tgx101InputStyle();
+          view.setData(style == 0 ? R.string.Tgx101InputStyleFloating : style == 2 ? R.string.Tgx101InputStyleWell : R.string.Tgx101InputStyleFlat);
         } else if (itemId == R.id.btn_tgx101BottomGap) {
           view.getToggler().setRadioEnabled(Settings.instance().bottomGapEnabled(), isUpdate);
         } else if (itemId == R.id.btn_tgx101NotificationPlane) {
@@ -586,7 +587,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_pullToSearch, 0, R.string.Tgx101PullAction),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101FloatingInput, 0, R.string.Tgx101FloatingInput),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101FloatingInput, 0, R.string.Tgx101InputStyle),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NavCapsule, 0, R.string.Tgx101NavCapsule),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1177,7 +1178,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
    *  list section is split into labelled groups */
   private static ListItem[] tgx101TestItems (ListItem[] raw) {
     java.util.Set<Integer> gone = new java.util.HashSet<>(java.util.Arrays.asList(
-      R.id.btn_tgx101FloatingInput, // capsule only (the side menu is back as an option — hotfix 0.1.591)
+      // R.id.btn_tgx101FloatingInput — back as a choice (user 2026-10-23, the docked field in variant Б)
       R.id.btn_tgx101TextEditor, R.id.btn_tgx101MenuAtFinger, // always on (the hand choice is back — user 2026-10-08 15:40)
       R.id.btn_tgx101MenuHidesKeyboard)); // the keyboard never closes for the menu
     if (true /* all T changes in the release (user 2026-10-08) */) {
@@ -1348,7 +1349,15 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_always, 0, R.string.UseLessDataAlways, id, tdlib.files().getVoipDataSavingOption() == DataSavingOption.ALWAYS)
       }).setIntDelegate(this));
     } else if (id == R.id.btn_tgx101FloatingInput) {
-      Settings.instance().setUseFloatingInput(toggleResult); // the view was already toggled above; applies to chats opened afterwards
+      // (user 2026-10-23) three looks: floating, docked flat (А), docked with the well (Б); applies to chats opened afterwards
+      int style = Settings.instance().tgx101InputStyle();
+      showOptions(Lang.getString(R.string.Tgx101InputStyle), new int[] {R.id.btn_tgx101InputStyleFloating, R.id.btn_tgx101InputStyleFlat, R.id.btn_tgx101InputStyleWell},
+        new String[] {Lang.getString(R.string.Tgx101InputStyleFloating), Lang.getString(R.string.Tgx101InputStyleFlat), Lang.getString(R.string.Tgx101InputStyleWell)}, null, null, (optionView, optionId) -> {
+          Settings.instance().setUseFloatingInput(optionId == R.id.btn_tgx101InputStyleFloating);
+          if (optionId != R.id.btn_tgx101InputStyleFloating) Settings.instance().setTgx101InputWell(optionId == R.id.btn_tgx101InputStyleWell);
+          adapter.updateValuedSettingById(R.id.btn_tgx101FloatingInput);
+          return true;
+        });
     } else if (id == R.id.btn_tgx101BottomGap) {
       Settings.instance().setBottomGapEnabled(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101NotificationPlane) {

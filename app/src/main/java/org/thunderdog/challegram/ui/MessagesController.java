@@ -1032,6 +1032,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       int lastHeight;
 
       @Override
+      protected void dispatchDraw (Canvas c) {
+        if (!floatingInput) tgx101DrawWell(c, this);
+        super.dispatchDraw(c);
+      }
+
+      @Override
       protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         updateButtonsY();
@@ -1064,6 +1070,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
     };
     bottomWrap.setId(R.id.msg_bottom);
+    if (!floatingInput) { bottomWrap.setWillNotDraw(false); addThemeInvalidateListener(bottomWrap); } // TGx101: the well follows the theme
     if (floatingInput) {
       applyFloatingInputShape(bottomWrap, false);
       // user 2026-10-07 09:49/10:00 (Xiaomi, 0.1.507): the capsule still covered the last message — it moves without its
@@ -1140,8 +1147,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       Tgx101SavedHomeController.cursor(inputView);
       inputView.setLinkTextColor(Theme.textLinkColor());
       addThemeLinkTextColorListener(inputView, ColorId.textLink);
-      if (!floatingInput) { // TGx101: the capsule draws the background
-        ViewSupport.setThemedBackground(inputView, ColorId.filling, this);
+      if (!floatingInput) {
+        // TGx101 (approved mockup «Поле ввода — классика», variant Б): the docked panel draws the filling and the well
+        inputView.setBackground(null);
       } else {
         inputView.setBackground(null); // otherwise the system EditText background draws its blue underline
       }
@@ -1552,6 +1560,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     bottomShadowView.setId(R.id.msg_bottomShadow);
     if (floatingInput) {
       bottomShadowView.setVisibility(View.GONE); // the capsule has its own shadow
+    } else {
+      bottomShadowView.setVisibility(View.GONE); // TGx101 (variants А/Б): a hairline on the panel instead of the shadow
     }
 
     params = new RelativeLayout.LayoutParams(Screen.dp(55f), Screen.dp(49f));
@@ -1773,6 +1783,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     recordButton = new VoiceVideoButtonView(context);
     recordButton.setPadding(0, 0, Screen.dp(2f), 0);
     recordButton.setHasTouchControls(true);
+    recordButton.setTgx101Square(!floatingInput && Settings.instance().tgx101InputWell());
     addThemeInvalidateListener(recordButton);
     recordButton.setLayoutParams(lp);
     recordButton.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> tgx101UpdateMicExclusion());
@@ -1833,6 +1844,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     sendButton = new SendButton(context, areScheduled ? R.drawable.dotvhs_baseline_send_schedule_24 : R.drawable.deproko_baseline_send_24);
     sendButton.setIgnoreDrawMessageSender();
+    sendButton.setTgx101Square(!floatingInput && Settings.instance().tgx101InputWell());
     sendButton.setOnClickListener(this);
     addThemeInvalidateListener(sendButton);
     sendButton.setId(R.id.msg_send);
@@ -4234,7 +4246,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (visible) {
       bottomWrap.setVisibility(View.VISIBLE);
       bottomSpace.setVisibility(View.VISIBLE);
-      bottomShadowView.setVisibility(floatingInput ? View.GONE : View.VISIBLE);
+      bottomShadowView.setVisibility(View.GONE); // TGx101: the capsule has its own shadow; the docked panel (А/Б) a hairline
       if (replyBarView != null) {
         replyBarView.setVisibility(View.VISIBLE);
       }
@@ -11682,6 +11694,29 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   /** TGx101: the recording bar takes the floating field's shape (mockup «Запись-голосового» 1) */
+  // TGx101 (approved mockup «Поле ввода — классика», variant Б, user 2026-10-23): the docked field — the theme's panel,
+  // on it a «well» for the words (a rectangle with 10 dp corners, a shade off the panel) from the smile to the clip; the
+  // send / mic button stands beside it on its own rounded square
+  private void tgx101DrawWell (Canvas c, View wrap) {
+    int w = wrap.getWidth(), h = wrap.getHeight() - wrap.getPaddingBottom();
+    if (w <= 0 || h <= 0) return;
+    int filling = Theme.fillingColor();
+    c.drawRect(0, 0, w, wrap.getHeight(), Paints.fillingPaint(filling));
+    // variant А (flat): the panel with a hairline on top instead of the shadow; variant Б adds the well
+    c.drawRect(0, 0, w, Math.max(1, Screen.dp(.5f)), Paints.fillingPaint(Theme.separatorColor()));
+    if (!Settings.instance().tgx101InputWell()) return;
+    int wash = Theme.isDark() ? 0x0dffffff : 0x0f1e3a5a;
+    int well = me.vkryl.core.ColorUtils.compositeColor(filling, wash);
+    android.graphics.RectF r = Paints.getRectF();
+    float side = Screen.dp(6f), slot = Screen.dp(54f), vertical = Screen.dp(6f);
+    if (Lang.rtl()) {
+      r.set(slot, vertical, w - side, h - vertical);
+    } else {
+      r.set(side, vertical, w - slot, h - vertical);
+    }
+    c.drawRoundRect(r, Screen.dp(10f), Screen.dp(10f), Paints.fillingPaint(well));
+  }
+
   public boolean tgx101FloatingInput () {
     return floatingInput;
   }

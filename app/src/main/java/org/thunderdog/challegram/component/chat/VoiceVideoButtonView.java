@@ -117,8 +117,18 @@ public class VoiceVideoButtonView extends View implements FactorAnimator.Target,
   // and the cursor — the send arrow's, following the theme (it was a fixed dusty blue)
   private Paint tgx101MicPaint;
 
+  private boolean tgx101Square;
+
+  /** TGx101 (approved mockup «Поле ввода — классика», variant Б): the mic white on a rounded square of the send colour */
+  public void setTgx101Square (boolean square) {
+    if (this.tgx101Square != square) {
+      this.tgx101Square = square;
+      invalidate();
+    }
+  }
+
   private Paint getTgx101MicPaint () {
-    int color = Theme.chatSendButtonColor();
+    int color = tgx101Square ? 0xffffffff : Theme.chatSendButtonColor();
     if (tgx101MicPaint == null || tgx101MicPaint.getColor() != color) {
       tgx101MicPaint = Paints.createPorterDuffPaint(tgx101MicPaint, color);
     }
@@ -141,6 +151,9 @@ public class VoiceVideoButtonView extends View implements FactorAnimator.Target,
     final float videoFactor = inVideoMode.getFloatValue();
     final float searchFactor = inSearchMode.getFloatValue();
 
+    if (tgx101Square && hasTouchControls) {
+      org.thunderdog.challegram.widget.SendButton.tgx101DrawSquare(c, cx, cy, (1f - sendFactor) * (1f - searchFactor));
+    }
     final Paint paint = hasTouchControls ? getTgx101MicPaint() : getIconPaint();
     final int savedAlpha = paint.getAlpha();
     final float generalFactor = (1f - sendFactor);
