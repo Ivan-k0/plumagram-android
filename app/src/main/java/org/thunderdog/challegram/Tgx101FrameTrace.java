@@ -88,8 +88,10 @@ public final class Tgx101FrameTrace {
     try {
       PixelCopy.request(window, bitmap, result -> {
         if (result != PixelCopy.SUCCESS) {
-          Tgx101Diag.mark("frames: " + index + " not copied (" + result + ")");
+          Tgx101Diag.mark("frames: " + index + " not copied (" + result + "), drawing the views instead");
           bitmap.recycle();
+          // the first ~0.4 s after a return the window gives no pixels: the views drawn by hand show what the app holds
+          decor.post(() -> drawViews(activity, folder, String.format(Locale.US, "%02d_%04dms_views.jpg", index, at), io));
           return;
         }
         io.post(() -> save(activity.getApplicationContext(), folder, String.format(Locale.US, "%02d_%04dms.jpg", index, at), bitmap));
@@ -97,6 +99,24 @@ public final class Tgx101FrameTrace {
     } catch (Throwable t) {
       Tgx101Diag.mark("frames: " + index + " failed — " + t);
       bitmap.recycle();
+    }
+  }
+
+  private static void drawViews (Activity activity, String folder, String name, Handler io) {
+    View decor = activity.getWindow().getDecorView();
+    if (activity.isFinishing() || decor.getWidth() == 0 || decor.getHeight() == 0) return;
+    float scale = WIDTH / (float) decor.getWidth();
+    Bitmap bitmap = null;
+    try {
+      bitmap = Bitmap.createBitmap(WIDTH, Math.round(decor.getHeight() * scale), Bitmap.Config.ARGB_8888);
+      android.graphics.Canvas c = new android.graphics.Canvas(bitmap);
+      c.scale(scale, scale);
+      decor.draw(c);
+      final Bitmap done = bitmap;
+      io.post(() -> save(activity.getApplicationContext(), folder, name, done));
+    } catch (Throwable t) {
+      Tgx101Diag.mark("frames: " + name + " not drawn — " + t);
+      if (bitmap != null) bitmap.recycle();
     }
   }
 
