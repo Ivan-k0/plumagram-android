@@ -282,6 +282,97 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
   @Override
   public void onFactorChangeFinished (int id, float finalFactor, FactorAnimator callee) { }
 
+  // TGx101 (user video 2026-10-23 00:34 «как в офф. Telegram»): a jump that reloads the chat (a pinned message, a quote,
+  // the «down» arrow) — the screen that was there doesn't vanish for one frame: a picture of it slides out and the new
+  // part of the chat comes in right behind it, as one long scroll. Android 6+: a Picture on a hardware canvas.
+  private @androidx.annotation.Nullable android.graphics.Picture tgx101JumpShot;
+  private float tgx101JumpShotY; // where the old screen's top is now
+  // (user 2026-10-23 «при прокрутке дата сильно резко меняется»): the date stuck at the top runs through every day the
+  // slide passes — it fades out for the slide and fades back in, already with the right day, once the chat stands
+  private float tgx101StuckDateAlpha = 1f;
+  private final FactorAnimator tgx101StuckDateAnimator = new FactorAnimator(1, (id, factor, fraction, callee) -> {
+    tgx101StuckDateAlpha = factor;
+    invalidateDate();
+  }, AnimatorUtils.DECELERATE_INTERPOLATOR, 220L, 1f);
+
+  public void tgx101TakeJumpShot () {
+    tgx101JumpShot = null;
+    if (android.os.Build.VERSION.SDK_INT < 23 || getWidth() == 0 || getHeight() == 0) return;
+    android.graphics.Picture shot = new android.graphics.Picture();
+    Canvas c = shot.beginRecording(getWidth(), getHeight());
+    try {
+      draw(c);
+    } finally {
+      shot.endRecording();
+    }
+    tgx101JumpShot = shot;
+    tgx101JumpShotY = 0f;
+    tgx101StuckDateAnimator.forceFactor(0f);
+    tgx101StuckDateAlpha = 0f;
+    invalidate();
+  }
+
+  public boolean tgx101HasJumpShot () {
+    return tgx101JumpShot != null;
+  }
+
+  public void tgx101SetJumpShotY (float y) {
+    if (tgx101JumpShot == null) return;
+    if (Math.abs(y) >= getHeight()) {
+      tgx101ClearJumpShot();
+      return;
+    }
+    tgx101JumpShotY = y;
+    invalidate();
+  }
+
+  public void tgx101ClearJumpShot () {
+    if (tgx101JumpShot != null) {
+      tgx101JumpShot = null;
+      invalidate();
+    }
+    if (tgx101StuckDateAlpha < 1f) {
+      tgx101StuckDateAnimator.setStartDelay(80);
+      tgx101StuckDateAnimator.animateTo(1f);
+    }
+  }
+
+  /** While the old screen slides out, the new chat's dates are drawn only in the part it has entered */
+  private int tgx101ClipToLive (Canvas c) {
+    if (tgx101JumpShot == null) return -1;
+    int save = c.save();
+    if (tgx101JumpShotY >= 0f) {
+      c.clipRect(0, 0, getWidth(), tgx101JumpShotY);
+    } else {
+      c.clipRect(0, getHeight() + tgx101JumpShotY, getWidth(), getHeight());
+    }
+    return save;
+  }
+
+  @Override
+  protected void dispatchDraw (Canvas c) {
+    if (tgx101JumpShot == null) {
+      super.dispatchDraw(c);
+      return;
+    }
+    final int width = getWidth(), height = getHeight();
+    final float y = tgx101JumpShotY;
+    // the new messages only in the part the old screen has left, the old screen in the rest
+    int save = c.save();
+    if (y >= 0f) {
+      c.clipRect(0, 0, width, y);
+    } else {
+      c.clipRect(0, height + y, width, height);
+    }
+    super.dispatchDraw(c);
+    c.restoreToCount(save);
+    save = c.save();
+    c.clipRect(0, Math.max(0f, y), width, Math.min(height, height + y));
+    c.translate(0, y);
+    c.drawPicture(tgx101JumpShot);
+    c.restoreToCount(save);
+  }
+
   @Override
   public void setTranslationY (float translationY) {
     if (scrollFactor == 0f) {
@@ -697,7 +788,15 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
       }
 
       final int centerX = parent.getMeasuredWidth() / 2;
+      final int tgx101Save = tgx101ClipToLive(c);
+      try {
+        tgx101DrawDates(c, parent, state, adapter, centerX);
+      } finally {
+        if (tgx101Save != -1) c.restoreToCount(tgx101Save);
+      }
+    }
 
+    private void tgx101DrawDates (Canvas c, RecyclerView parent, State state, MessagesAdapter adapter, int centerX) {
       // int lastTop = 0;
       boolean hasDrawn = false;
 
@@ -748,6 +847,10 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
             float detachFactor = !isLast || checkTop >= 0 ? 0f : MathUtils.clamp((float) -checkTop / (float) dateHeight);
             float alpha = isLast ? scrollFactor : 1f;
             float drawAlpha = detachFactor == 1f ? alpha : 1f;
+            if (top != viewTop || isLast) { // the stuck one: hidden while a jump slides by
+              alpha *= tgx101StuckDateAlpha;
+              drawAlpha *= tgx101StuckDateAlpha;
+            }
             if (msg.drawDate(c, centerX, top, detachFactor, drawAlpha)) {
               tgx101Hit(msg, top, drawAlpha);
               hasDrawn = true;

@@ -936,6 +936,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     stopScroll();
     if (loader.canLoadBottom()) {
       tgx101ResetGlide = 1; // the newest come in gliding up (not a snap to the end)
+      tgx101TakeJumpShot();
       loadFromStart();
     } else if (!tgx101SmoothScrollToBottom()) {
       scrollToBottom(true);
@@ -3462,7 +3463,14 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
    */
   private void tgx101GlideIn (int direction) {
     final RecyclerView list = controller.getMessagesView();
-    if (list == null || list.getHeight() == 0) return;
+    if (list == null || list.getHeight() == 0) {
+      tgx101ClearJumpShot();
+      return;
+    }
+    if (controller.getMessagesView().tgx101HasJumpShot()) {
+      tgx101GlideInBehindShot(direction);
+      return;
+    }
     final int distance = Math.round((list.getHeight() - list.getPaddingBottom()) * .5f) * direction;
     list.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
       @Override
@@ -3473,6 +3481,86 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         org.thunderdog.challegram.Tgx101Diag.mark("jump: reloaded, glide in " + distance + " px");
         tgx101AutoScrolling = true;
         list.smoothScrollBy(0, distance, TGX101_GLIDE, 460);
+        return true;
+      }
+    });
+  }
+
+  /** Starts at rest and ends at rest: the old screen begins to move from where it stood, no first-frame leap */
+  private static final android.view.animation.Interpolator TGX101_JUMP = androidx.core.view.animation.PathInterpolatorCompat.create(.4f, 0f, .2f, 1f);
+
+  private void tgx101TakeJumpShot () {
+    org.thunderdog.challegram.v.MessagesRecyclerView list = controller.getMessagesView();
+    if (list == null) return;
+    list.tgx101TakeJumpShot();
+    // never left over the chat: a reload that doesn't come (or comes without a glide) takes it away
+    list.removeCallbacks(tgx101ClearShot);
+    list.postDelayed(tgx101ClearShot, 2000);
+  }
+
+  private final Runnable tgx101ClearShot = this::tgx101ClearJumpShot;
+
+  private void tgx101ClearJumpShot () {
+    org.thunderdog.challegram.v.MessagesRecyclerView list = controller.getMessagesView();
+    if (list != null) list.tgx101ClearJumpShot();
+  }
+
+  /**
+   * (user video 2026-10-23 00:34 «как в офф. Telegram»: the chat swapped in one frame, then shot in at 200+ px a frame)
+   * The reloaded chat is put a whole screen back the way it came; the picture of the old screen covers it, and both slide
+   * together — the old screen out, the new part in right behind it, starting and stopping softly.
+   */
+  private void tgx101GlideInBehindShot (int direction) {
+    final org.thunderdog.challegram.v.MessagesRecyclerView list = controller.getMessagesView();
+    list.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+      @Override
+      public boolean onPreDraw () {
+        list.getViewTreeObserver().removeOnPreDrawListener(this);
+        final int height = list.getHeight();
+        final int[] consumed = new int[1];
+        RecyclerView.OnScrollListener counter = new RecyclerView.OnScrollListener() {
+          @Override
+          public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
+            consumed[0] += dy;
+          }
+        };
+        list.addOnScrollListener(counter);
+        list.scrollBy(0, -height * direction);
+        list.removeOnScrollListener(counter);
+        final int back = -consumed[0]; // what the glide scrolls to stand where the reload put it
+        if (Math.abs(back) < height / 4) {
+          // too little of the chat on that side to slide through: the old way
+          if (back != 0) list.scrollBy(0, back);
+          tgx101ClearJumpShot();
+          org.thunderdog.challegram.Tgx101Diag.mark("jump: no room to slide (" + back + " px), half-screen glide");
+          final int distance = Math.round((height - list.getPaddingBottom()) * .5f) * direction;
+          list.scrollBy(0, -distance);
+          tgx101AutoScrolling = true;
+          list.smoothScrollBy(0, distance, TGX101_GLIDE, 460);
+          return true;
+        }
+        // the old screen leaves the screen exactly as the glide ends, whatever room there was
+        final float scale = height / (float) Math.abs(back);
+        final int duration = (int) Math.min(520, 340 + Math.abs(back) / (float) height * 80);
+        list.addOnScrollListener(new RecyclerView.OnScrollListener() {
+          private float moved;
+
+          @Override
+          public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
+            moved -= dy; // a scroll by dy moves what's on screen by -dy
+            list.tgx101SetJumpShotY(moved * scale);
+          }
+
+          @Override
+          public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
+            if (newState == RecyclerView.SCROLL_STATE_SETTLING) return;
+            recyclerView.removeOnScrollListener(this);
+            tgx101ClearJumpShot();
+          }
+        });
+        org.thunderdog.challegram.Tgx101Diag.mark("jump: reloaded, slides in behind the old screen, " + back + " px in " + duration + " ms");
+        tgx101AutoScrolling = true;
+        list.smoothScrollBy(0, back, TGX101_JUMP, duration);
         return true;
       }
     });
@@ -3788,6 +3876,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       if (allowSmooth && (highlightMode == HIGHLIGHT_MODE_NORMAL || highlightMode == HIGHLIGHT_MODE_NORMAL_NEXT)) {
         TGMessage bottom = findBottomMessage();
         tgx101ResetGlide = bottom == null ? 0 : messageId.getMessageId() < bottom.getId() ? -1 : 1;
+        if (tgx101ResetGlide != 0) tgx101TakeJumpShot();
       }
       org.thunderdog.challegram.Tgx101Diag.mark("jump: not loaded, reload around it (smooth " + allowSmooth + ", mode " + highlightMode + ", glide " + tgx101ResetGlide + ")");
       resetByMessage(messageId, highlightMode);

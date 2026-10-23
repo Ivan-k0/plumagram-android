@@ -576,8 +576,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
     org.thunderdog.challegram.navigation.NavigationStack stack = navigation.getStack();
     int at = stack.indexOf(this);
     if (at < 2 || !(stack.get(0) instanceof MainController)) return;
-    for (int i = at - 1; i >= 1; i--) stack.destroy(i);
-    org.thunderdog.challegram.Tgx101Diag.mark("saved: back leads to the chats (" + (at - 1) + " screens under it closed)");
+    // (user 2026-10-22 18:38/18:39, video 2026-10-23 10:38) opened from the storage — a folder, a tag, the search — back
+    // goes there, then a level up each time: the storage's screens stay under it, only what lies between goes
+    int closed = 0;
+    for (int i = at - 1; i >= 1; i--) {
+      ViewController<?> under = stack.get(i);
+      if (under instanceof Tgx101SavedListController || under instanceof Tgx101SavedHomeController) break;
+      stack.destroy(i);
+      closed++;
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("saved: back leads " + (closed == at - 1 ? "to the chats" : "to the storage") + " (" + closed + " screens under it closed)");
   }
 
   /** the other look of Saved Messages: kept, and the chat opened again in it */
