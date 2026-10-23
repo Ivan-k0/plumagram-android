@@ -432,6 +432,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(style == 0 ? R.string.Tgx101InputStyleFloating : style == 2 ? R.string.Tgx101InputStyleWell : R.string.Tgx101InputStyleFlat);
         } else if (itemId == R.id.btn_tgx101BottomGap) {
           view.getToggler().setRadioEnabled(Settings.instance().bottomGapEnabled(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101SwipeKeyboard) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101SwipeKeyboard(), isUpdate);
         } else if (itemId == R.id.btn_tgx101NotificationPlane) {
           view.getToggler().setRadioEnabled(Settings.instance().useTgx101NotificationPlane(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideBlocked) {
@@ -632,6 +634,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HidePhone, 0, R.string.Tgx101HidePhone),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101BottomGap, 0, R.string.Tgx101BottomGap),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SwipeKeyboard, 0, R.string.Tgx101SwipeKeyboard),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_CUSTOM - TGX101_APP_ICON_PICKER, R.id.btn_tgx101AppIcon),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1077,7 +1081,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101CapsuleTabs || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101ContactsMenu
       || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101CapsuleScrollHide
       || id == R.id.btn_tgx101Bird || id == R.id.btn_tgx101BirdRing || id == R.id.btn_tgx101SolidControls) return TGX101_SECTION_NAV;
-    if (id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap || id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands
+    if (id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap || id == R.id.btn_tgx101SwipeKeyboard || id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands
       || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101TextEditor) return TGX101_SECTION_INPUT;
     if (id == R.id.btn_tgx101QuickCalls) return 7;
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked) return 2;
@@ -1360,6 +1364,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         });
     } else if (id == R.id.btn_tgx101BottomGap) {
       Settings.instance().setBottomGapEnabled(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101SwipeKeyboard) {
+      Settings.instance().setTgx101SwipeKeyboard(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101NotificationPlane) {
       Settings.instance().setTgx101NotificationPlane(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101Filters) {

@@ -6823,6 +6823,7 @@
   <string name="Tgx101UpdateDownloadSize">Download and install · %1$s</string>
   <string name="Tgx101UpdateWhatsNew">What\'s new (GitHub)</string>
   <string name="Tgx101BottomGap">Space under the message field and menus</string>
+  <string name="Tgx101SwipeKeyboard">Double swipe up opens the keyboard</string>
   <string name="OpenInBrowser">Open in browser</string>
   <string name="UnsupportedKindStory">story</string>
   <string name="UnsupportedKindPaidMedia">paid photo or video</string>

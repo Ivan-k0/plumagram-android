@@ -3641,6 +3641,15 @@ public class Settings {
     pmc.putBoolean("tgx101_input_well", well);
   }
 
+  /** TGx101 (user 2026-10-23 22:24 «внизу чата быстрый двойной свайп открывает клавиатуру», off by default) */
+  public boolean tgx101SwipeKeyboard () {
+    return pmc.getBoolean("tgx101_swipe_keyboard", false);
+  }
+
+  public void setTgx101SwipeKeyboard (boolean on) {
+    pmc.putBoolean("tgx101_swipe_keyboard", on);
+  }
+
   /** 0 — floating, 1 — docked flat (А), 2 — docked with the well (Б) */
   public int tgx101InputStyle () {
     return useFloatingInput() ? 0 : tgx101InputWell() ? 2 : 1;

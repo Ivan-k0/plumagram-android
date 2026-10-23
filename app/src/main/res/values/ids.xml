@@ -1718,6 +1718,7 @@
   <item name="btn_tgx101UpdateNow" type="id"/>
   <item name="btn_tgx101UpdatePage" type="id"/>
   <item name="btn_tgx101BottomGap" type="id"/>
+  <item name="btn_tgx101SwipeKeyboard" type="id"/>
   <item name="btn_tgx101CapsuleScrollHide" type="id"/>
   <item name="btn_tgx101HideCompose" type="id"/>
   <item name="btn_tgx101HideJoin" type="id"/>

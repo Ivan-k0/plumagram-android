@@ -502,6 +502,41 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
   // TGx101 (4PDA request 2026-10-04): at the very end of a channel, a pull up leads to the next unread channel
   private boolean tgx101NextTracking, tgx101NextPast;
   private float tgx101NextDownY, tgx101NextDownX;
+
+  // TGx101 (user 2026-10-23 22:24 «когда внизу чата, быстрый двойной свайп открывает клавиатуру»; MagiX → Message field,
+  // off by default): two quick flicks up within 0.6 s while the list is at its end
+  private float tgx101FlickDownY, tgx101FlickDownX;
+  private long tgx101FlickDownAt, tgx101LastFlickAt;
+  private boolean tgx101FlickAtEnd;
+
+  private void tgx101WatchSwipeKeyboard (MotionEvent e) {
+    switch (e.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN:
+        tgx101FlickDownY = e.getY();
+        tgx101FlickDownX = e.getX();
+        tgx101FlickDownAt = e.getEventTime();
+        tgx101FlickAtEnd = !canScrollVertically(1) && !manager.tgx101CanLoadBottom();
+        break;
+      case MotionEvent.ACTION_UP: {
+        float up = tgx101FlickDownY - e.getY(), side = Math.abs(e.getX() - tgx101FlickDownX);
+        boolean flick = tgx101FlickAtEnd && !canScrollVertically(1) && up > Screen.dp(40f) && side < up && e.getEventTime() - tgx101FlickDownAt < 350;
+        if (!flick) {
+          tgx101LastFlickAt = 0;
+          break;
+        }
+        if (tgx101LastFlickAt != 0 && e.getEventTime() - tgx101LastFlickAt < 600) {
+          tgx101LastFlickAt = 0;
+          manager.controller().tgx101OpenKeyboardBySwipe();
+        } else {
+          tgx101LastFlickAt = e.getEventTime();
+        }
+        break;
+      }
+      case MotionEvent.ACTION_CANCEL:
+        tgx101LastFlickAt = 0;
+        break;
+    }
+  }
   private long tgx101LastScrollAt;
 
   // TGx101 (user 2026-10-04, «как в галерее iPhone»): in select mode a drag that starts sideways selects (or
@@ -698,6 +733,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
         }
       }
     }
+    if (manager != null && org.thunderdog.challegram.unsorted.Settings.instance().tgx101SwipeKeyboard()) tgx101WatchSwipeKeyboard(e);
     if (manager != null) {
       switch (e.getActionMasked()) {
         case MotionEvent.ACTION_DOWN:

@@ -6390,6 +6390,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return true;
   }
 
+  /** TGx101 (user 2026-10-23): a quick double swipe up at the bottom of the chat brings the keyboard up */
+  public void tgx101OpenKeyboardBySwipe () {
+    if (inputView == null || !canWriteMessages() || inPreviewMode() || isEventLog() || inputView.getVisibility() != View.VISIBLE) return;
+    if (context().isKeyboardVisible() || emojiShown) return;
+    org.thunderdog.challegram.Tgx101Diag.mark("chat: double swipe up → keyboard");
+    inputView.requestFocus();
+    Keyboard.show(inputView);
+  }
+
   public boolean onCommandLongPressed (TGMessage msg, String command) {
     if (!canWriteMessages()) {
       return false;
