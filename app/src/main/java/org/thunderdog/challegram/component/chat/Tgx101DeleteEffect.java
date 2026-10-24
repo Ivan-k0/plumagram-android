@@ -100,7 +100,8 @@ public final class Tgx101DeleteEffect extends View {
       boolean ok = true;
       try {
         android.app.ActivityManager am = (android.app.ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        if (am != null) ok = !am.isLowRamDevice() && am.getMemoryClass() >= 256;
+        // isLowRamDevice is Android 4.4+: on 4.3 it threw, the catch left «ok» and the dust ran on the weakest phones
+        if (am != null) ok = (Build.VERSION.SDK_INT < 19 || !am.isLowRamDevice()) && am.getMemoryClass() >= 256;
       } catch (Throwable ignored) { }
       capable = ok;
       Tgx101Diag.mark("delete effect: " + (ok ? "on" : "off — a weak phone"));

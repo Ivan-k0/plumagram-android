@@ -4308,7 +4308,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       drawBubbleTimePart(c, view);
       return;
     }
-    int save = c.saveLayerAlpha(getActualLeftContentEdge(), topContentEdge, getActualRightContentEdge(), bottomContentEdge, (int) (255 * alpha));
+    //noinspection deprecation — the flags form: the one without them is Android 5+ only
+    int save = c.saveLayerAlpha(getActualLeftContentEdge(), topContentEdge, getActualRightContentEdge(), bottomContentEdge, (int) (255 * alpha), Canvas.ALL_SAVE_FLAG);
     drawBubbleTimePart(c, view);
     c.restoreToCount(save);
   }
