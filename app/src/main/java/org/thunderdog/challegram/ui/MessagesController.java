@@ -691,21 +691,29 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
   private @Nullable org.thunderdog.challegram.component.chat.Tgx101DeleteEffect tgx101DeleteEffect;
 
-  /** TGx101: a message view about to leave the list turns to pixel dust (user 2026-10-12 «как пыль в оффе, но пиксельная») */
-  public void tgx101ExplodeMessage (@Nullable View messageView) {
-    if (isFocused()) {
-      // (user 2026-10-24 «просто исчезают даже без аккуратного подъезда»): the rows below glide up even when the message
-      // itself gives no dust (off screen, too many at once)
-      try { tgx101CaptureGapClose(); } catch (Throwable ignored) { }
+  /**
+   * TGx101: a message view about to leave the list turns to pixel dust (user 2026-10-12 «как пыль в оффе, но пиксельная»);
+   * called for each message of a deletion while it's still whole ({@code null} — not on screen), then
+   * {@link #tgx101LaunchDust()} lets the whole batch go together (2026-10-24)
+   */
+  public void tgx101TakeLeavingMessage (@Nullable View messageView) {
+    if (!isFocused()) return;
+    // (user 2026-10-24 «просто исчезают даже без аккуратного подъезда»): the rows below glide up even when the messages
+    // themselves give no dust (off screen, a weak phone)
+    try { tgx101CaptureGapClose(); } catch (Throwable ignored) { }
+    if (tgx101DeleteEffect == null) return;
+    try { // (4PDA 2026-10-18: crashes on deleting / clearing) the dust is a nicety — it never takes the app down
+      tgx101DeleteEffect.take(messageView, messageView != null ? tgx101BubbleOutline(messageView) : null);
+    } catch (Throwable t) {
+      org.thunderdog.challegram.Tgx101Diag.mark("delete effect: failed at start " + t.getClass().getSimpleName());
     }
-    if (tgx101DeleteEffect != null && messageView != null && isFocused()) {
-      try { // (4PDA 2026-10-18: crashes on deleting / clearing) the dust is a nicety — it never takes the app down
-        tgx101DeleteEffect.explode(messageView, tgx101BubbleOutline(messageView));
-      } catch (Throwable t) {
-        org.thunderdog.challegram.Tgx101Diag.mark("delete effect: failed at start " + t.getClass().getSimpleName());
-      }
+  }
+
+  public void tgx101LaunchDust () {
+    if (tgx101DeleteEffect != null) {
+      tgx101DeleteEffect.launch();
     } else if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
-      org.thunderdog.challegram.Tgx101Diag.mark("delete effect: skipped (" + (messageView == null ? "not on screen" : !isFocused() ? "chat not focused" : "no layer") + ")");
+      org.thunderdog.challegram.Tgx101Diag.mark("delete effect: skipped (" + (isFocused() ? "no layer" : "chat not focused") + ")");
     }
   }
 

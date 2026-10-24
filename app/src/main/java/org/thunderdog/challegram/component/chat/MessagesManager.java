@@ -2571,7 +2571,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
             // TGx101: cubes, before it leaves. (user 2026-10-24 «удаляю много — анимации нет, просто исчезают»): the list
             // still holds the old positions until it's laid out again — every message already taken out above shifts the
             // index by one; looking up the bare index found nothing (or the wrong row) after the first
-            controller.tgx101ExplodeMessage(manager.findViewByPosition(index + tgx101RemovedRows));
+            controller.tgx101TakeLeavingMessage(manager.findViewByPosition(index + tgx101RemovedRows));
             tgx101RemovedRows++;
             TGMessage removed = adapter.removeItem(index);
             if (controller.unselectMessage(messageId, removed)) {
@@ -2592,6 +2592,8 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
 
       index++;
     }
+
+    controller.tgx101LaunchDust(); // TGx101: the messages photographed above turn to dust together
 
     if (unselectedSomeMessages) {
       if (selectedCount == 0) {

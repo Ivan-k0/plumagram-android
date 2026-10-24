@@ -85,8 +85,8 @@ public final class Tgx101DeleteEffect extends View {
   // TGx101 (4PDA 2026-10-18 #262, #272: «вылетает при анимации рассыпания… пока все сообщения не удалятся», «при удалении
   // чата»): clearing a chat removes every visible message at once — a snapshot and thousands of grains for each ran a
   // weak phone out of memory, and a snapshot of a message with pictures in video memory can't be drawn on a software
-  // canvas at all. At most a few bursts at a time; whatever goes wrong here only means no dust, never a crash
-  private static final int MAX_BURSTS = 6;
+  // canvas at all. (2026-10-24) a batch shares one particle and snapshot budget (see explode(List)); whatever goes wrong
+  // here only means no dust, never a crash
   private static boolean fastBroken;
 
   private static Boolean capable;
@@ -108,47 +108,94 @@ public final class Tgx101DeleteEffect extends View {
     return capable;
   }
 
-  public void explode (View source, @Nullable Path outline) {
-    if (!capable(getContext())) return;
-    if (bursts.size() >= MAX_BURSTS) {
-      Tgx101Diag.mark("delete effect: skipped, " + bursts.size() + " already going");
-      return;
-    }
+  // TGx101 (user 2026-10-24 «сделай по уму»): messages deleted together turn to dust as one — like Telegram's own
+  // effect, which takes the whole group in one pass. Each message is photographed while it's still whole (take(), before
+  // the list destroys it), then launch() gives the batch one budget: the grains are the same size on all of its messages
+  // and together stay under the particle cap; the photos share a memory cap — past it they're taken coarser. Twenty
+  // messages cost what one big photo does, no «at most 6» any more.
+  private final ArrayList<Burst> pending = new ArrayList<>();
+  private long pendingPixels;
+  private int pendingAsked;
+  private static final long BATCH_SNAPSHOT = 3_000_000L;
+  private static final float COARSE = .35f;
+
+  /** Photographs a message view about to leave the list ({@code null}: not on screen); {@link #launch()} lets the batch go */
+  public void take (@Nullable View source, @Nullable Path outline) {
+    pendingAsked++;
+    if (!capable(getContext()) || source == null || source.getWidth() <= 0 || source.getHeight() <= 0 || !source.isShown()) return;
     try {
-      explodeImpl(source, outline);
+      RectF area = new RectF(0, 0, source.getWidth(), source.getHeight());
+      if (outline != null) {
+        RectF r = new RectF();
+        outline.computeBounds(r, true);
+        if (r.width() > 0 && r.height() > 0 && r.intersect(area)) area.set(r);
+        else outline = null;
+      }
+      double pixels = Math.max(1.0, (double) area.width() * area.height());
+      long left = BATCH_SNAPSHOT - pendingPixels;
+      float scale = (float) Math.min(1.0, Math.sqrt(Math.min(MAX_SNAPSHOT, Math.max(0, left)) / pixels));
+      scale = Math.max(scale, COARSE);
+      Burst b = snapshot(source, area, outline, scale);
+      if (b != null) {
+        pending.add(b);
+        pendingPixels += (long) (b.snapshot.getWidth()) * b.snapshot.getHeight();
+      }
     } catch (Throwable t) {
-      Tgx101Diag.mark("delete effect: failed " + t.getClass().getSimpleName() + " " + t.getMessage());
+      Tgx101Diag.mark("delete effect: snapshot failed " + t.getClass().getSimpleName() + " " + t.getMessage());
     }
   }
 
-  private void explodeImpl (View source, @Nullable Path outline) {
-    // TGx101: deleted — one tap for the whole batch (user 2026-10-13 «при удалении нескольких сообщений виброотклик должен
-    // быть одинарный»): messages removed together turn to dust within a few frames, only the first one vibrates
+  public void launch () {
+    int asked = pendingAsked;
+    pendingAsked = 0;
+    pendingPixels = 0;
+    if (asked == 0) return;
+    // one tap for the whole batch (user 2026-10-13 «при удалении нескольких сообщений виброотклик должен быть одинарный»)
     long now = SystemClock.uptimeMillis();
     if (now - lastHapticAt > 300) {
       org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK);
     }
     lastHapticAt = now;
-    if (source == null || source.getWidth() <= 0 || source.getHeight() <= 0 || !source.isShown() || getWidth() == 0) {
-      Tgx101Diag.mark("delete effect: no snapshot (view " + (source == null ? "null" : source.getWidth() + "x" + source.getHeight() + (source.isShown() ? "" : " hidden")) + ", layer " + getWidth() + ")");
+    if (pending.isEmpty()) {
+      if (capable(getContext())) Tgx101Diag.mark("delete effect: no snapshot (" + asked + " not on screen)");
       return;
     }
-    long t0 = SystemClock.uptimeMillis();
-    RectF area = new RectF(0, 0, source.getWidth(), source.getHeight());
-    if (outline != null) {
-      RectF r = new RectF();
-      outline.computeBounds(r, true);
-      if (r.width() > 0 && r.height() > 0 && r.intersect(area)) area.set(r);
-      else outline = null;
+    ArrayList<Burst> batch = new ArrayList<>(pending);
+    pending.clear();
+    try {
+      long t0 = SystemClock.uptimeMillis();
+      // what's still flying from an earlier batch keeps its share; a new batch always gets at least a quarter
+      int maxParticles = fastPath() ? MAX_PARTICLES_FAST : MAX_PARTICLES_SLOW;
+      int flying = 0;
+      for (Burst f : bursts) flying += f.count;
+      int budget = Math.max(maxParticles / 4, maxParticles - flying);
+      double total = 0;
+      for (Burst b : batch) total += (double) b.bounds.width() * b.bounds.height();
+      float size = Math.max(Screen.dp(PIXEL_DP), (float) Math.sqrt(total / budget));
+      int particles = 0;
+      for (Burst b : batch) {
+        particles += grains(b, size, now);
+        bursts.add(b);
+      }
+      int made = batch.size();
+      batch.clear();
+      setVisibility(VISIBLE);
+      postInvalidateOnAnimation();
+      Tgx101Diag.mark("delete effect: " + made + " message(s) of " + asked + ", " + particles + " pixels of " + Math.round(size) + " px, " + (SystemClock.uptimeMillis() - t0) + " ms" + (fastPath() ? "" : " (rects)"));
+    } catch (Throwable t) {
+      for (Burst b : batch) if (b.snapshot != null && !b.snapshot.isRecycled() && !bursts.contains(b)) b.snapshot.recycle();
+      Tgx101Diag.mark("delete effect: failed " + t.getClass().getSimpleName() + " " + t.getMessage());
     }
+  }
+
+  private @Nullable Burst snapshot (View source, RectF area, @Nullable Path outline, float scale) {
     int w = Math.max(1, Math.round(area.width())), h = Math.max(1, Math.round(area.height()));
-    float scale = (float) Math.min(1.0, Math.sqrt(MAX_SNAPSHOT / ((double) w * h)));
     int bw = Math.max(1, Math.round(w * scale)), bh = Math.max(1, Math.round(h * scale));
     Bitmap snapshot;
     try {
       snapshot = Bitmap.createBitmap(bw, bh, Bitmap.Config.ARGB_8888);
     } catch (Throwable t) {
-      return;
+      return null;
     }
     Canvas sc = new Canvas(snapshot);
     sc.scale(bw / (float) w, bh / (float) h);
@@ -159,25 +206,27 @@ public final class Tgx101DeleteEffect extends View {
     } catch (Throwable t) {
       snapshot.recycle(); // e.g. «Software rendering doesn't support hardware bitmaps»
       Tgx101Diag.mark("delete effect: snapshot failed " + t.getClass().getSimpleName());
-      return;
+      return null;
     }
-
     Burst b = new Burst();
     b.snapshot = snapshot;
     source.getLocationInWindow(srcLoc);
     getLocationInWindow(loc);
     float bl = srcLoc[0] - loc[0] + area.left, bt = srcLoc[1] - loc[1] + area.top;
     b.bounds.set(bl, bt, bl + w, bt + h);
+    return b;
+  }
 
-    int maxParticles = fastPath() ? MAX_PARTICLES_FAST : MAX_PARTICLES_SLOW;
-    b.size = Math.max(Screen.dp(PIXEL_DP), (float) Math.sqrt((double) w * h / maxParticles));
+  private int grains (Burst b, float size, long start) {
+    float w = b.bounds.width(), h = b.bounds.height();
+    b.size = size;
     b.cols = Math.max(1, (int) Math.ceil(w / b.size));
     b.rows = Math.max(1, (int) Math.ceil(h / b.size));
     int n = b.cols * b.rows;
     int[] pixels = new int[n];
-    Bitmap small = Bitmap.createScaledBitmap(snapshot, b.cols, b.rows, true); // each pixel — the colour of a dust grain
+    Bitmap small = Bitmap.createScaledBitmap(b.snapshot, b.cols, b.rows, true); // each pixel — the colour of a dust grain
     small.getPixels(pixels, 0, b.cols, 0, 0, b.cols, b.rows);
-    if (small != snapshot) small.recycle();
+    if (small != b.snapshot) small.recycle();
 
     int count = 0;
     for (int p : pixels) if ((p >>> 24) >= 60) count++;
@@ -207,11 +256,8 @@ public final class Tgx101DeleteEffect extends View {
       b.colors = new int[Math.min(count, BATCH) * 4];
       ensureIndices();
     }
-    b.start = SystemClock.uptimeMillis();
-    bursts.add(b);
-    setVisibility(VISIBLE);
-    postInvalidateOnAnimation();
-    Tgx101Diag.mark("delete effect: " + count + " pixels of " + Math.round(b.size) + " px, view " + w + "x" + h + ", snapshot " + bw + "x" + bh + ", " + (b.start - t0) + " ms" + (fastPath() ? "" : " (rects)"));
+    b.start = start;
+    return count;
   }
 
   private static void ensureIndices () {
