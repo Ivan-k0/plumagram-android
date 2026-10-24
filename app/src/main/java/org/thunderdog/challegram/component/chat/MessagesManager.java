@@ -2539,6 +2539,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     ThreadInfo messageThread = loader.getMessageThread();
     long lastReadInboxMessageId = messageThread != null ? messageThread.getLastReadInboxMessageId() : chat.lastReadInboxMessageId;
 
+    int tgx101RemovedRows = 0;
     int index = 0;
     main: while (index < adapter.getMessageCount()) {
       TGMessage item = adapter.getMessage(index);
@@ -2567,7 +2568,11 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
             }
           }
           case TGMessage.REMOVE_COMPLETELY: {
-            controller.tgx101ExplodeMessage(manager.findViewByPosition(index)); // TGx101: cubes, before it leaves
+            // TGx101: cubes, before it leaves. (user 2026-10-24 «удаляю много — анимации нет, просто исчезают»): the list
+            // still holds the old positions until it's laid out again — every message already taken out above shifts the
+            // index by one; looking up the bare index found nothing (or the wrong row) after the first
+            controller.tgx101ExplodeMessage(manager.findViewByPosition(index + tgx101RemovedRows));
+            tgx101RemovedRows++;
             TGMessage removed = adapter.removeItem(index);
             if (controller.unselectMessage(messageId, removed)) {
               selectedCount--;

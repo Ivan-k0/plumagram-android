@@ -693,9 +693,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   /** TGx101: a message view about to leave the list turns to pixel dust (user 2026-10-12 «как пыль в оффе, но пиксельная») */
   public void tgx101ExplodeMessage (@Nullable View messageView) {
+    if (isFocused()) {
+      // (user 2026-10-24 «просто исчезают даже без аккуратного подъезда»): the rows below glide up even when the message
+      // itself gives no dust (off screen, too many at once)
+      try { tgx101CaptureGapClose(); } catch (Throwable ignored) { }
+    }
     if (tgx101DeleteEffect != null && messageView != null && isFocused()) {
       try { // (4PDA 2026-10-18: crashes on deleting / clearing) the dust is a nicety — it never takes the app down
-        tgx101CaptureGapClose();
         tgx101DeleteEffect.explode(messageView, tgx101BubbleOutline(messageView));
       } catch (Throwable t) {
         org.thunderdog.challegram.Tgx101Diag.mark("delete effect: failed at start " + t.getClass().getSimpleName());
@@ -2131,6 +2135,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     if (!floatingInput) {
       contentView.addView(messagesView);
+      // TGx101 (user 2026-10-24 «пропала анимация удаления»): the dust layer was made only for the floating field — with
+      // the classic one (back since 10-23) deleted messages just vanished
+      tgx101DeleteEffect = new org.thunderdog.challegram.component.chat.Tgx101DeleteEffect(context);
+      tgx101DeleteEffect.setVisibility(View.INVISIBLE);
+      tgx101DeleteEffect.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      contentView.addView(tgx101DeleteEffect);
     }
     contentView.addView(bottomShadowView);
 
