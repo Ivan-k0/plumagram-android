@@ -2161,7 +2161,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
 
   /**
    * The list has just jumped to show a new message at the bottom: before that frame is drawn it's put back where it
-   * was and glides up by the same distance (160 ms, fast then soft — as exteraGram). Skipped while the keyboard rides
+   * was and glides up by the same distance (250 ms, soft start and stop — as the official app). Skipped while the keyboard rides
    * or a saved position is being held; nothing changes on old Android except the curve.
    */
   private void tgx101GlideToNewMessage (long anchorId, int anchorTop) {
@@ -2179,18 +2179,17 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         int delta = anchorTop - view.getTop(); // how far the old bottom message jumped up
         if (delta <= 0 || delta > list.getHeight()) return true;
         list.stopScroll();
+        tgx101AutoScrolling = true; // our glide: the catcher takes the put-back below as meant (it's never drawn)
         list.scrollBy(0, -delta); // back where it was (a scroll by dy raises the messages by dy)
-        android.view.animation.Interpolator curve = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP ?
-          new android.view.animation.PathInterpolator(.2f, 0f, 0f, 1f) : new android.view.animation.DecelerateInterpolator(1.5f);
-        int duration = 160;
+        // (user 2026-10-24 «написал — довольно резко или быстро», black box: 200 of 202 px in the first 25 ms) 160 ms on a
+        // curve that starts at full speed put the whole move into one frame. As in the official app: ~250 ms, a soft start
+        // and a soft stop — the field's own curve
+        android.view.animation.Interpolator curve = org.thunderdog.challegram.ui.MessagesController.tgx101RevealCurve();
+        int duration = (int) org.thunderdog.challegram.ui.MessagesController.TGX101_REVEAL_DURATION;
         // (user 2026-10-22 «прыгает чат при отправке сообщений средней длины», recorded: up 284 px in 70 ms, then back down
         // 175 px): a multi-line field emptied by sending shrinks over 250 ms on a soft curve and lowers the messages with it,
         // while the glide up was done in ~100 ms. Run on the field's own curve and time, the two moves add up to one
         boolean withField = controller.tgx101IsFieldRevealing();
-        if (withField) {
-          curve = org.thunderdog.challegram.ui.MessagesController.tgx101RevealCurve();
-          duration = (int) org.thunderdog.challegram.ui.MessagesController.TGX101_REVEAL_DURATION;
-        }
         list.smoothScrollBy(0, delta, curve, duration);
         org.thunderdog.challegram.Tgx101Diag.mark("new message: chat glides up " + delta + " px" + (withField ? " with the field" : ""));
         return false;
@@ -3422,6 +3421,13 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         boolean longGlide = tgx101LongGlideOnce && Math.abs(scrollBy) <= screen * 4f; // 7.5 screens in 1.1 s flickered (2026-10-19 15:35)
         tgx101LongGlideOnce = false;
         if (!longGlide && Math.abs(scrollBy) > screen * 1.5f) {
+          // (user 2026-10-24 «сделай как в официальном»): the old picture leaves, the target comes in — one move, no stand-in
+          final int swapIndex = index, swapOffset = offset;
+          if (controller.tgx101SwapList(() -> scrollToPositionWithOffsetImpl(swapIndex, swapOffset), scrollBy > 0)) {
+            org.thunderdog.challegram.Tgx101Diag.mark("jump: far (" + scrollBy + " px), swapped in one move");
+            tgx101AutoScrolling = false;
+            return;
+          }
           int pre = tgx101PreJumpIndex(index, scrollBy < 0, (int) (screen * 1.5f));
           if (pre != index) {
             org.thunderdog.challegram.Tgx101Diag.mark("jump: far (" + scrollBy + " px), stand on item " + pre + " for " + index + ", then glide");

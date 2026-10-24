@@ -375,7 +375,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
     // the list following its own padding (the field grew a line, the keyboard moved), which is meant
     // (2026-10-24) the classic field riding the keyboard: the window is laid out for the keyboard's end first, the list
     // reaches down again before that frame is drawn — meant too
-    boolean expected = (padMove != 0 && Math.abs(move + padMove) < Screen.dp(2f)) || (manager != null && manager.controller().tgx101IsKeyboardRiding());
+    boolean expected = (padMove != 0 && Math.abs(move + padMove) < Screen.dp(2f)) || (manager != null && (manager.controller().tgx101IsKeyboardRiding() || manager.controller().tgx101IsListSwapping()));
     boolean typing = android.os.Build.VERSION.SDK_INT >= 30 && getRootWindowInsets() != null && getRootWindowInsets().isVisible(android.view.WindowInsets.Type.ime());
     // a finger on the list itself — a tap on «Send» or a key isn't one (user 2026-10-23 «прыгает при отправке»)
     boolean touched = tgx101FingerDown || android.os.SystemClock.uptimeMillis() - tgx101ListTouchAt < 400;
@@ -385,9 +385,9 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
       + (isAnimating() ? " items-anim" : "") + (typing ? " keyboard" : "") + (expected ? " follows-pad" : "") + " pad " + getPaddingBottom() + " ty " + (int) getTranslationY() + " h " + getHeight();
     tgx101Moves.addLast(now + "|" + line);
     while (!tgx101Moves.isEmpty() && now - Long.parseLong(tgx101Moves.peekFirst().substring(0, tgx101Moves.peekFirst().indexOf('|'))) > 3000) tgx101Moves.removeFirst();
-    boolean reversed = tgx101LastMove != 0 && Integer.signum(move) != Integer.signum(tgx101LastMove) && now - tgx101LastMoveAt < 300
+    boolean reversed = !ours && tgx101LastMove != 0 && Integer.signum(move) != Integer.signum(tgx101LastMove) && now - tgx101LastMoveAt < 300
       && Math.abs(move) >= Screen.dp(4f) && Math.abs(tgx101LastMove) >= Screen.dp(4f);
-    boolean leap = !expected && !inserted && (Math.abs(move) >= Screen.dp(40f) || (typing && !ours && getScrollState() == SCROLL_STATE_IDLE && Math.abs(move) >= Screen.dp(12f)));
+    boolean leap = !expected && !inserted && !ours && (Math.abs(move) >= Screen.dp(40f) || (typing && !ours && getScrollState() == SCROLL_STATE_IDLE && Math.abs(move) >= Screen.dp(12f)));
     if (expected) { // riding with the keyboard or the field: written down, never a jump by itself
       tgx101LastMove = 0;
       return;

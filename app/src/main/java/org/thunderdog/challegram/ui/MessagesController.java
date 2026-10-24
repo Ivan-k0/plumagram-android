@@ -690,6 +690,30 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (height > 0) Views.setLayoutHeight(tgx101NavScrim, height);
   }
   private @Nullable org.thunderdog.challegram.component.chat.Tgx101DeleteEffect tgx101DeleteEffect;
+  private @Nullable org.thunderdog.challegram.component.chat.Tgx101ListSwap tgx101ListSwap;
+
+  private void tgx101AddListSwap (Context context) {
+    tgx101ListSwap = new org.thunderdog.challegram.component.chat.Tgx101ListSwap(context);
+    tgx101ListSwap.setVisibility(View.INVISIBLE); // laid out (it needs its size), drawn only during a far jump
+    tgx101ListSwap.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    contentView.addView(tgx101ListSwap);
+  }
+
+  /** TGx101: a far jump in one move, as in the official app (see Tgx101ListSwap); false — jump the old way */
+  public boolean tgx101SwapList (Runnable jump, boolean down) {
+    if (tgx101ListSwap == null || messagesView == null || !isFocused() || !androidx.core.view.ViewCompat.isAttachedToWindow(messagesView)) return false;
+    try {
+      return tgx101ListSwap.swap(messagesView, jump, down);
+    } catch (Throwable t) {
+      org.thunderdog.challegram.Tgx101Diag.mark("list swap: failed " + t.getClass().getSimpleName());
+      tgx101ListSwap.finish();
+      return false;
+    }
+  }
+
+  public boolean tgx101IsListSwapping () {
+    return tgx101ListSwap != null && tgx101ListSwap.isRunning();
+  }
 
   /**
    * TGx101: a message view about to leave the list turns to pixel dust (user 2026-10-12 «как пыль в оффе, но пиксельная»);
@@ -2069,6 +2093,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tgx101DeleteEffect.setVisibility(View.INVISIBLE); // laid out (it needs its size), drawn only while cubes fall
       tgx101DeleteEffect.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
       contentView.addView(tgx101DeleteEffect); // the deleted message's dust flies over the list, under the field
+      tgx101AddListSwap(context);
       if (tgx101Veil) {
         // TGx101 (approved mockup «Шапка как одно целое», 1): under the header's rows (call, pinned) — the header's own
         // colour, as dense as the header's bottom edge; below the last row a short fade to nothing
@@ -2151,6 +2176,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tgx101DeleteEffect.setVisibility(View.INVISIBLE);
       tgx101DeleteEffect.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
       contentView.addView(tgx101DeleteEffect);
+      tgx101AddListSwap(context);
     }
     contentView.addView(bottomShadowView);
 
