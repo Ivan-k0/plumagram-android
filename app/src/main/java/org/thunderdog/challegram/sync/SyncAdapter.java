@@ -61,13 +61,26 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
     return newAccount;
   }
 
+  // TGx101 (4PDA 2026-10-24, BlackBerry Passport on Android 4.3: «UI STALL 100–420 ms … addAccountExplicitly» ten times
+  // at every start): the stub account was added again on each notification settings check, on the main thread — a
+  // system call that's slow on old phones. Now once per launch, off the main thread
+  private static volatile long registeredFrequency = -1; // the sync period the account was set up with
+
   static void register (Context context) {
+    long frequency = Settings.instance().getPeriodicSyncFrequencySeconds();
+    if (registeredFrequency == frequency) return;
+    registeredFrequency = frequency;
+    final Context app = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+    new Thread(() -> registerImpl(app), "Tgx101SyncAccount").start();
+  }
+
+  private static void registerImpl (Context context) {
     try {
       Account account = getAccount(context);
       ContentResolver.setIsSyncable(account, AUTHORITY, 1);
       ContentResolver.setSyncAutomatically(account, AUTHORITY, true);
       ContentResolver.addPeriodicSync(account, AUTHORITY, Bundle.EMPTY, Settings.instance().getPeriodicSyncFrequencySeconds());
-    } catch (SecurityException t) {
+    } catch (Throwable t) { // off the main thread now: nothing here may take the app down
       Log.e("Cannot register stub account", t);
     }
   }

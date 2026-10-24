@@ -41,7 +41,16 @@ public class SparseDrawableView extends View implements DrawableProvider {
   // Sparse drawable function
   private SparseArrayCompat<Drawable> sparseDrawables;
   @Override
-  public final SparseArrayCompat<Drawable> getSparseDrawableHolder () { return (sparseDrawables != null ? sparseDrawables : (sparseDrawables = new SparseArrayCompat<>())); }
+  public final SparseArrayCompat<Drawable> getSparseDrawableHolder () {
+    SparseArrayCompat<Drawable> shared = tgx101SharedDrawables();
+    if (shared != null) return shared;
+    return (sparseDrawables != null ? sparseDrawables : (sparseDrawables = new SparseArrayCompat<>()));
+  }
+
+  /** TGx101: views of one kind that draw their icons the same way may share one set (see ChatView) */
+  protected @androidx.annotation.Nullable SparseArrayCompat<Drawable> tgx101SharedDrawables () {
+    return null;
+  }
   @Override
   public final Resources getSparseDrawableResources () { return getResources(); }
 }

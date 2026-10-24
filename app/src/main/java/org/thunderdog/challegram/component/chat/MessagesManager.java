@@ -142,6 +142,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         }
         if (newState == RecyclerView.SCROLL_STATE_IDLE) {
           saveScrollPosition();
+          tgx101GlidingNew = false;
           if (tgx101AutoScrolling) {
             tgx101AutoScrolling = false;
             tgx101ScrollDistance = 0;
@@ -149,6 +150,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
           }
         } else if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
           tgx101AutoScrolling = false; // the finger takes over
+          tgx101GlidingNew = false;
           tgx101UserScrolledSinceJump = true;
         }
         ((MessagesRecyclerView) recyclerView).setIsScrolling(newState != RecyclerView.SCROLL_STATE_IDLE);
@@ -950,8 +952,10 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
   private boolean tgx101AutoScrolling;
 
   /** for the diagnostics' jump catcher: a scroll of ours is under way (a glide to a message or to the end) */
+  private boolean tgx101GlidingNew; // a new message's glide (see tgx101GlideToNewMessage) — for the catcher only
+
   public boolean tgx101IsAutoScrolling () {
-    return tgx101AutoScrolling;
+    return tgx101AutoScrolling || tgx101GlidingNew;
   }
   private boolean tgx101UserScrolledSinceJump = true;
 
@@ -2104,6 +2108,9 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       }
       boolean scrollToBottom = (message.isSending() || (atBottom && (!message.isOld() || message.isChatMember()))) && !message.isSponsoredMessage();
       // message.mergeWith(bottomMessage, true);
+      if (scrollToBottom && message.isSending()) {
+        message.tgx101StartAppear(); // TGx101 (user 2026-10-24 «выезд снизу»): the sent message comes up from under the field
+      }
       if (scrollToBottom) {
         // TGx101 (user 2026-10-13, two videos: exteraGram vs ours): the chat at the bottom jumped up by the new message
         // in one frame — it glides there now, as the field does when a line is added
@@ -2179,17 +2186,25 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         int delta = anchorTop - view.getTop(); // how far the old bottom message jumped up
         if (delta <= 0 || delta > list.getHeight()) return true;
         list.stopScroll();
-        tgx101AutoScrolling = true; // our glide: the catcher takes the put-back below as meant (it's never drawn)
+        tgx101GlidingNew = true; // our glide: the catcher takes the put-back below as meant (it's never drawn)
         list.scrollBy(0, -delta); // back where it was (a scroll by dy raises the messages by dy)
-        // (user 2026-10-24 «написал — довольно резко или быстро», black box: 200 of 202 px in the first 25 ms) 160 ms on a
-        // curve that starts at full speed put the whole move into one frame. As in the official app: ~250 ms, a soft start
-        // and a soft stop — the field's own curve
-        android.view.animation.Interpolator curve = org.thunderdog.challegram.ui.MessagesController.tgx101RevealCurve();
-        int duration = (int) org.thunderdog.challegram.ui.MessagesController.TGX101_REVEAL_DURATION;
+        android.view.animation.Interpolator curve;
+        int duration;
         // (user 2026-10-22 «прыгает чат при отправке сообщений средней длины», recorded: up 284 px in 70 ms, then back down
         // 175 px): a multi-line field emptied by sending shrinks over 250 ms on a soft curve and lowers the messages with it,
         // while the glide up was done in ~100 ms. Run on the field's own curve and time, the two moves add up to one
         boolean withField = controller.tgx101IsFieldRevealing();
+        if (withField || !controller.tgx101FloatingInput()) {
+          // (user 2026-10-24 «написал — довольно резко или быстро», classic field, black box: 200 of 202 px in the first
+          // 25 ms): there ~250 ms with a soft start and stop — the field's own curve
+          curve = org.thunderdog.challegram.ui.MessagesController.tgx101RevealCurve();
+          duration = (int) org.thunderdog.challegram.ui.MessagesController.TGX101_REVEAL_DURATION;
+        } else {
+          // the floating field keeps its own 160 ms, fast then soft (user 2026-10-24 «раньше всё было нормально и красиво»)
+          curve = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP ?
+            new android.view.animation.PathInterpolator(.2f, 0f, 0f, 1f) : new android.view.animation.DecelerateInterpolator(1.5f);
+          duration = 160;
+        }
         list.smoothScrollBy(0, delta, curve, duration);
         org.thunderdog.challegram.Tgx101Diag.mark("new message: chat glides up " + delta + " px" + (withField ? " with the field" : ""));
         return false;

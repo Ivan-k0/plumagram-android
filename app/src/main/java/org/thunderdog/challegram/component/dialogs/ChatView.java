@@ -394,6 +394,16 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
     reactionsReceiver.detach();
   }
 
+  // TGx101 (4PDA 2026-10-24, Android 4.3 «список чатов рвётся»: icons were loaded from resources inside onDraw for every
+  // new row, each row with its own copies — garbage, then 110–130 ms pauses of the old collector): one set for all rows,
+  // drawn on the main thread one row at a time
+  private static final androidx.collection.SparseArrayCompat<android.graphics.drawable.Drawable> TGX101_ICONS = new androidx.collection.SparseArrayCompat<>();
+
+  @Override
+  protected androidx.collection.SparseArrayCompat<android.graphics.drawable.Drawable> tgx101SharedDrawables () {
+    return TGX101_ICONS;
+  }
+
   public void setChat (TGChat chat) {
     if (this.chat != chat) {
       if (this.chat != null) {

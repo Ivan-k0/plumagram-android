@@ -428,8 +428,22 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
 
   @Override
   public void onDraw (Canvas c) {
+    float appear = msg.tgx101AppearProgress();
+    if (appear < 1f) {
+      // TGx101 (user 2026-10-24 «выезд снизу»): a message just sent comes up from below and fades in
+      float e = TGX101_APPEAR_CURVE.getInterpolation(appear);
+      //noinspection deprecation — the flags form works on every Android
+      int save = c.saveLayerAlpha(0, 0, getWidth(), getHeight(), (int) (255 * Math.min(1f, e * 1.5f)), Canvas.ALL_SAVE_FLAG);
+      c.translate(0, (1f - e) * Math.min(getHeight(), Screen.dp(40f)));
+      msg.draw(this, c, avatarReceiver, replyReceiver, replyTextMediaReceiver, previewReceiver, contentReceiver, gifReceiver, complexReceiver);
+      c.restoreToCount(save);
+      postInvalidateOnAnimation();
+      return;
+    }
     msg.draw(this, c, avatarReceiver, replyReceiver, replyTextMediaReceiver, previewReceiver, contentReceiver, gifReceiver, complexReceiver);
   }
+
+  private static final android.view.animation.Interpolator TGX101_APPEAR_CURVE = org.thunderdog.challegram.ui.MessagesController.tgx101RevealCurve();
 
   public AvatarReceiver getAvatarReceiver () {
     return avatarReceiver;

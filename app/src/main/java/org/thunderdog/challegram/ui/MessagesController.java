@@ -2172,6 +2172,29 @@ public class MessagesController extends ViewController<MessagesController.Argume
         }
       });
     }
+    if (!floatingInput) {
+      // (user video 2026-10-24 15:23 «чат едет сквозь поле ввода»): the list lies UNDER the field and the reply bar here too
+      // — added after them it drew over the field whenever its bottom reached under it (the keyboard / growth rides)
+      contentView.addView(messagesView);
+      // TGx101 (user 2026-10-24 «пропала анимация удаления»): the dust layer was made only for the floating field — with
+      // the classic one (back since 10-23) deleted messages just vanished
+      tgx101DeleteEffect = new org.thunderdog.challegram.component.chat.Tgx101DeleteEffect(context);
+      tgx101DeleteEffect.setVisibility(View.INVISIBLE);
+      tgx101DeleteEffect.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      contentView.addView(tgx101DeleteEffect);
+      tgx101AddListSwap(context);
+      messagesView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+        @Override
+        public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
+          if (tgx101DeleteEffect != null) tgx101DeleteEffect.onListScrolled(dy); // the dust stays with the chat while it scrolls
+        }
+
+        @Override
+        public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
+          if (newState == RecyclerView.SCROLL_STATE_DRAGGING) tgx101CheckClassicRoom();
+        }
+      });
+    }
     if (!inPreviewMode) {
       contentView.addView(replyBarView);
     }
@@ -2191,16 +2214,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // (user 2026-10-24 «чат подъезжает резко»): the classic field rides the keyboard too — it jumped in one frame
     if (TGX101_CHAT_KEYBOARD_ENGINE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
       tgx101RideKeyboard(contentView);
-    }
-    if (!floatingInput) {
-      contentView.addView(messagesView);
-      // TGx101 (user 2026-10-24 «пропала анимация удаления»): the dust layer was made only for the floating field — with
-      // the classic one (back since 10-23) deleted messages just vanished
-      tgx101DeleteEffect = new org.thunderdog.challegram.component.chat.Tgx101DeleteEffect(context);
-      tgx101DeleteEffect.setVisibility(View.INVISIBLE);
-      tgx101DeleteEffect.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-      contentView.addView(tgx101DeleteEffect);
-      tgx101AddListSwap(context);
     }
     contentView.addView(bottomShadowView);
 
@@ -11630,6 +11643,21 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (bottomWrap != null) updateButtonsY();
     if (tgx101FieldShift() == 0f) {
       org.thunderdog.challegram.Tgx101Diag.mark("chat motion: field in place (top " + (bottomWrap != null ? bottomWrap.getTop() : -1) + ", translation " + (bottomWrap != null ? bottomWrap.getTranslationY() : 0) + ")");
+    }
+  }
+
+  /** (user video 2026-10-24 15:23): a finger on the list and no ride going — the list's bottom must be at the field */
+  private void tgx101CheckClassicRoom () {
+    if (floatingInput || messagesView == null || !(messagesView.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) return;
+    if (tgx101ImeRiding || (tgx101RevealAnimator != null && tgx101RevealAnimator.isRunning())) return;
+    ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) messagesView.getLayoutParams();
+    if (lp.bottomMargin != 0 || tgx101ImeShift != 0f || tgx101TopReveal != 0f) {
+      org.thunderdog.challegram.Tgx101Diag.mark("chat motion: classic room left at " + lp.bottomMargin + " (ime " + tgx101ImeShift + ", reveal " + tgx101TopReveal + ") — put back");
+      tgx101ImeShift = 0f;
+      tgx101TopReveal = 0f;
+      if (inputView != null) inputView.tgx101SetContentShift(0f);
+      tgx101ApplyFieldShift();
+      if (bottomWrap != null) bottomWrap.invalidate();
     }
   }
 

@@ -31,14 +31,13 @@ import org.thunderdog.challegram.ui.MessagesController;
 /**
  * TGx101 (user 2026-10-24 «сделай как в официальном»): a far jump in a chat — the arrow down, a send while scrolled
  * up, a quote far above — no longer stands the list on a message 1.5 screens before the target (that one frame read as
- * a jump). As the official app does it: what's on screen now is photographed, the list is put on the target at once and
- * photographed again, and in one move the old picture leaves while the new one comes in from the side it lies on. The
- * real list is shown again at the end. Without memory for the two pictures, or if a picture fails, the old way is used.
+ * a jump). As the official app does it: what's on screen now is photographed, the list is put on the target at once, and
+ * in one move the old picture leaves while the real list comes in from the side the target lies on. Without memory for the two pictures, or if a picture fails, the old way is used.
  */
 public final class Tgx101ListSwap extends View {
   private static final long DURATION = 300;
 
-  private @Nullable Bitmap from, to;
+  private @Nullable Bitmap from;
   private final Rect area = new Rect();
   private final Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG);
   private boolean down;
@@ -67,7 +66,7 @@ public final class Tgx101ListSwap extends View {
     if (isRunning()) finish();
     int w = list.getWidth(), h = list.getHeight();
     if (w <= 0 || h <= 0 || getWidth() == 0) return false;
-    long need = 2L * w * h * 4;
+    long need = (long) w * h * 4;
     Runtime rt = Runtime.getRuntime();
     if (rt.maxMemory() - (rt.totalMemory() - rt.freeMemory()) < need * 3) {
       Tgx101Diag.mark("list swap: not enough memory, old way");
@@ -84,12 +83,7 @@ public final class Tgx101ListSwap extends View {
       public boolean onPreDraw () {
         list.getViewTreeObserver().removeOnPreDrawListener(this);
         pending = false;
-        Bitmap after = shot(list);
-        if (after == null) {
-          before.recycle();
-          return true; // already on the target: just shown there
-        }
-        start(before, after);
+        start(before);
         return true;
       }
     });
@@ -110,28 +104,34 @@ public final class Tgx101ListSwap extends View {
     }
   }
 
-  private void start (Bitmap before, Bitmap after) {
+  // (user 2026-10-24 «при переходе по стрелке подложка медиа мигает»): the target used to be a picture too — taken right
+  // after the jump, before its photos had loaded, so grey placeholders came in and the real ones popped at the end. Now
+  // only what leaves is a picture; the real list comes in (moved by its translation), its media load as usual
+  private float baseTranslation;
+
+  private void start (Bitmap before) {
     View list = this.list;
     if (list == null) {
       before.recycle();
-      after.recycle();
       return;
     }
     int[] a = new int[2], b = new int[2];
     list.getLocationInWindow(a);
     getLocationInWindow(b);
-    int left = a[0] - b[0] - Math.round(list.getTranslationX()), top = a[1] - b[1] - Math.round(list.getTranslationY());
+    baseTranslation = list.getTranslationY();
+    int left = a[0] - b[0] - Math.round(list.getTranslationX()), top = a[1] - b[1] - Math.round(baseTranslation);
     area.set(left, top, left + list.getWidth(), top + list.getHeight());
     from = before;
-    to = after;
     progress = 0f;
-    list.setAlpha(0f);
+    list.setTranslationY(baseTranslation + (down ? area.height() : -area.height()));
     setVisibility(VISIBLE);
     animator = ValueAnimator.ofFloat(0f, 1f);
     animator.setDuration(DURATION);
     animator.setInterpolator(MessagesController.tgx101RevealCurve());
     animator.addUpdateListener(v -> {
       progress = (float) v.getAnimatedValue();
+      View l = this.list;
+      if (l != null) l.setTranslationY(baseTranslation + (down ? area.height() : -area.height()) * (1f - progress));
       invalidate();
     });
     animator.addListener(new AnimatorListenerAdapter() {
@@ -153,30 +153,23 @@ public final class Tgx101ListSwap extends View {
       a.cancel();
     }
     if (list != null) {
-      list.setAlpha(1f);
+      if (from != null) list.setTranslationY(baseTranslation);
       list = null;
     }
     if (from != null) {
       from.recycle();
       from = null;
     }
-    if (to != null) {
-      to.recycle();
-      to = null;
-    }
     setVisibility(INVISIBLE);
   }
 
   @Override
   protected void onDraw (Canvas c) {
-    if (from == null || to == null) return;
+    if (from == null) return;
     int save = c.save();
     c.clipRect(area);
     float d = area.height();
-    float oldY = area.top + (down ? -d : d) * progress;
-    float newY = area.top + (down ? d : -d) * (1f - progress);
-    c.drawBitmap(from, area.left, oldY, paint);
-    c.drawBitmap(to, area.left, newY, paint);
+    c.drawBitmap(from, area.left, area.top + (down ? -d : d) * progress, paint);
     c.restoreToCount(save);
   }
 

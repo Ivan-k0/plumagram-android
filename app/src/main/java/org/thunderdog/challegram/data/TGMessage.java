@@ -4296,6 +4296,26 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   private static final float COUNTER_ICON_MARGIN = 3f;
   private static final float COUNTER_ADD_MARGIN = 3f;
 
+  // TGx101 (user 2026-10-24 «текст появляется вообще без анимации — выезд снизу»): a message just sent rises a little
+  // from under the field and fades in, on the field's curve
+  private long tgx101AppearAt;
+  public static final long TGX101_APPEAR_DURATION = 250;
+
+  public final void tgx101StartAppear () {
+    tgx101AppearAt = android.os.SystemClock.uptimeMillis();
+  }
+
+  /** 0 — just sent, 1 — in place (and from then on) */
+  public final float tgx101AppearProgress () {
+    if (tgx101AppearAt == 0) return 1f;
+    float p = (android.os.SystemClock.uptimeMillis() - tgx101AppearAt) / (float) TGX101_APPEAR_DURATION;
+    if (p >= 1f) {
+      tgx101AppearAt = 0;
+      return 1f;
+    }
+    return Math.max(0f, p);
+  }
+
   /** TGx101: how visible the time is — a photo's time fades with its ⋮ while the photo flies to / from the viewer */
   protected float tgx101TimeAlpha () {
     return 1f;
