@@ -999,6 +999,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     messagesView.setHasFixedSize(true);
     messagesView.setLayoutManager(messagesManager);
     messagesView.setLayoutParams(params);
+    org.thunderdog.challegram.Tgx101ScrollWatch.attach(messagesView, "messages"); // TGx101: scroll measure (diagnostics builds)
     Views.setScrollBarPosition(messagesView);
     if (tgx101Veil) {
       messagesView.setClipToPadding(false);
@@ -2138,7 +2139,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       contentView.addView(tgx101KeyboardFiller);
     }
     updateBottomWrapOffset(); // TGx101: apply the bottom gap right away, insets may have arrived before bottomWrap existed
-    if (TGX101_CHAT_KEYBOARD_ENGINE && floatingInput && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+    // (user 2026-10-24 «чат подъезжает резко»): the classic field rides the keyboard too — it jumped in one frame
+    if (TGX101_CHAT_KEYBOARD_ENGINE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
       tgx101RideKeyboard(contentView);
     }
     if (!floatingInput) {
@@ -11573,6 +11575,17 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void tgx101ApplyFieldShift () {
     if (bottomWrap != null) bottomWrap.setTranslationY(tgx101EmojiTranslation + tgx101FieldShift());
+    if (!floatingInput && messagesView != null && messagesView.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+      // TGx101 (user 2026-10-24 «чат подъезжает резко»): the classic list stands above the field — the window is already laid
+      // out for the keyboard's end, so the list reaches down to where the field is drawn (it keeps the messages at its
+      // bottom) and follows it every frame, instead of jumping by the keyboard's height at once
+      ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) messagesView.getLayoutParams();
+      int margin = -Math.round(tgx101ImeShift);
+      if (lp.bottomMargin != margin) {
+        lp.bottomMargin = margin;
+        messagesView.setLayoutParams(lp);
+      }
+    }
     updateReplyView();
     if (bottomWrap != null) updateButtonsY();
     if (tgx101FieldShift() == 0f) {
@@ -11653,7 +11666,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
       @Override
       public void onPrepare (@NonNull android.view.WindowInsetsAnimation animation) {
-        if ((animation.getTypeMask() & android.view.WindowInsets.Type.ime()) != 0 && floatingInput && !isDestroyed() && !context().tgx101IsKeyboardHeld(inputView)) {
+        if ((animation.getTypeMask() & android.view.WindowInsets.Type.ime()) != 0 && !isDestroyed() && !context().tgx101IsKeyboardHeld(inputView)) {
           ime = animation;
           tgx101ImeRiding = true;
           tgx101ImeStart = tgx101BottomInset(view.getRootWindowInsets());

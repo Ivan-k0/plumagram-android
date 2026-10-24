@@ -817,6 +817,16 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
     if (chat == null) {
       return;
     }
+    if (org.thunderdog.challegram.Tgx101ScrollWatch.on()) { // TGx101: scroll measure (diagnostics builds)
+      long at = System.nanoTime();
+      tgx101Draw(c);
+      org.thunderdog.challegram.Tgx101ScrollWatch.drawn(System.nanoTime() - at);
+    } else {
+      tgx101Draw(c);
+    }
+  }
+
+  private void tgx101Draw (Canvas c) {
 
     final int chatListMode = getChatListMode();
 

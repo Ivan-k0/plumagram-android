@@ -373,7 +373,9 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
     if (move == 0) return;
     // (user 2026-10-23 «чат попрыгивал при печати»): with the keyboard up a lone 12 dp step is caught too — unless it is
     // the list following its own padding (the field grew a line, the keyboard moved), which is meant
-    boolean expected = padMove != 0 && Math.abs(move + padMove) < Screen.dp(2f);
+    // (2026-10-24) the classic field riding the keyboard: the window is laid out for the keyboard's end first, the list
+    // reaches down again before that frame is drawn — meant too
+    boolean expected = (padMove != 0 && Math.abs(move + padMove) < Screen.dp(2f)) || (manager != null && manager.controller().tgx101IsKeyboardRiding());
     boolean typing = android.os.Build.VERSION.SDK_INT >= 30 && getRootWindowInsets() != null && getRootWindowInsets().isVisible(android.view.WindowInsets.Type.ime());
     // a finger on the list itself — a tap on «Send» or a key isn't one (user 2026-10-23 «прыгает при отправке»)
     boolean touched = tgx101FingerDown || android.os.SystemClock.uptimeMillis() - tgx101ListTouchAt < 400;

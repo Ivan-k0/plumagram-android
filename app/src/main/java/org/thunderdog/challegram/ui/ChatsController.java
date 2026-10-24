@@ -538,6 +538,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       chatsView.setVerticalScrollBarEnabled(false);
     }
     chatsView.setHasFixedSize(true);
+    org.thunderdog.challegram.Tgx101ScrollWatch.attach(chatsView, "chats"); // TGx101: scroll measure (diagnostics builds)
     chatsView.addItemDecoration(new ChatPinSeparatorDecoration(this));
     ViewSupport.setThemedBackground(chatsView, ColorId.filling, this);
 

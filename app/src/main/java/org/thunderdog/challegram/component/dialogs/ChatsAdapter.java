@@ -79,6 +79,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
   @NonNull
   @Override
   public ChatsViewHolder onCreateViewHolder (@NonNull ViewGroup parent, int viewType) {
+    org.thunderdog.challegram.Tgx101ScrollWatch.created();
     return ChatsViewHolder.create(context.context(), context.tdlib(), viewType, context.isInForceTouchMode() ? null : context, context, context);
   }
 
@@ -228,7 +229,9 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
       case VIEW_TYPE_CHAT: {
         TGChat currentChat = getChatByItemPosition(position);
         TGChat nextChat = getChatByItemPosition(position + 1);
+        long tgx101At = org.thunderdog.challegram.Tgx101ScrollWatch.on() ? System.nanoTime() : 0;
         holder.setChat(currentChat, false, nextChat != null && currentChat.isPinnedOrSpecial() && !nextChat.isPinnedOrSpecial(), context.isChatSelected(currentChat));
+        if (tgx101At != 0) org.thunderdog.challegram.Tgx101ScrollWatch.bound(System.nanoTime() - tgx101At);
         break;
       }
       case VIEW_TYPE_INFO: {
