@@ -7701,6 +7701,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private final BoolAnimator bottomBarVisible = new BoolAnimator(ANIMATOR_BOTTOM_BUTTON, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 180l);
 
   public int getBottomOffset () {
+    if (!floatingInput) return 0; // TGx101: the classic list is no longer moved up by the reply bar — it ends above it
     return (int) (getReplyOffset() + getAttachedFilesOffset());
   }
 
@@ -8864,8 +8865,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     float y = -getReplyOffset();
     float offset = -getAttachedFilesOffset();
     final float keyboardOffset = -getKeyboardOffset();
-    tgx101ListBaseY = y + offset + keyboardOffset;
+    // TGx101 (user 2026-10-24 «при ответе на сообщение чаты прыгают», black box 18:54): with the classic field the reply bar
+    // (and attached files) moved the whole list by their offset, and on sending that move fought the new message's
+    // glide. Now the list's bottom stands at the bar's top instead (tgx101ApplyClassicListRoom), the messages stay at it
+    tgx101ListBaseY = floatingInput ? y + offset + keyboardOffset : keyboardOffset;
     messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift);
+    if (!floatingInput) tgx101ApplyClassicListRoom();
     bottomShadowView.setTranslationY(y + offset + keyboardOffset + tgx101FieldShift() + tgx101TopReveal);
     if (replyBarView != null) {
       replyBarView.setTranslationY(y + keyboardOffset + tgx101FieldShift() + tgx101TopReveal);
@@ -11646,12 +11651,17 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
+  /** The reply bar and attached files above the classic field: the list ends at their drawn top */
+  private int tgx101ClassicBarsRoom () {
+    return Math.round(getReplyOffset() + getAttachedFilesOffset());
+  }
+
   /** (user video 2026-10-24 15:23): a finger on the list and no ride going — the list's bottom must be at the field */
   private void tgx101CheckClassicRoom () {
     if (floatingInput || messagesView == null || !(messagesView.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) return;
     if (tgx101ImeRiding || (tgx101RevealAnimator != null && tgx101RevealAnimator.isRunning())) return;
     ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) messagesView.getLayoutParams();
-    if (lp.bottomMargin != 0 || tgx101ImeShift != 0f || tgx101TopReveal != 0f) {
+    if (lp.bottomMargin != tgx101ClassicBarsRoom() || tgx101ImeShift != 0f || tgx101TopReveal != 0f) {
       org.thunderdog.challegram.Tgx101Diag.mark("chat motion: classic room left at " + lp.bottomMargin + " (ime " + tgx101ImeShift + ", reveal " + tgx101TopReveal + ") — put back");
       tgx101ImeShift = 0f;
       tgx101TopReveal = 0f;
@@ -11667,7 +11677,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // out for the keyboard's end (or the field for its new height), so the list reaches down to where the field's top is
       // drawn (it keeps the messages at its bottom) and follows it every frame, instead of jumping at once
       ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) messagesView.getLayoutParams();
-      int margin = -Math.round(tgx101ImeShift + tgx101TopReveal);
+      int margin = tgx101ClassicBarsRoom() - Math.round(tgx101ImeShift + tgx101TopReveal);
       if (lp.bottomMargin != margin) {
         lp.bottomMargin = margin;
         messagesView.setLayoutParams(lp);
