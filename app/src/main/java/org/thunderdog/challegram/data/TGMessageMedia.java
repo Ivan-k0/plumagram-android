@@ -649,25 +649,26 @@ public class TGMessageMedia extends TGMessage {
     if (tgx101HighlightedChildId() != 0) {
       mosaicWrapper.tgx101DrawItemHighlight(c, tgx101HighlightedChildId(), tgx101ItemFlashColor()); // TGx101: only that album item flashes
     }
+    // (user video 2026-10-22 «как скрывается и появляется кнопка ⋮ — нужно плавнее»): it vanished at once on the tap and
+    // popped back after the photo landed, showing over the viewer's fading dim meanwhile. Now it fades out as the photo
+    // leaves and fades in a moment after it is back in its place. (user 2026-10-24 «время справа снизу тоже плавно, синхронно
+    // с тремя точками»): the time on the photo goes with it — the same fade
+    boolean want = tgx101HiddenMedia == null && !shouldHideMedia();
+    if (!tgx101DotsInit) {
+      tgx101DotsInit = true;
+      tgx101DotsWanted = want;
+      tgx101DotsVisible.setValue(want, false);
+    } else if (want != tgx101DotsWanted) {
+      tgx101DotsWanted = want;
+      UI.cancel(tgx101ShowDots);
+      if (want) {
+        UI.post(tgx101ShowDots, 150);
+      } else {
+        tgx101DotsVisible.setValue(false, true);
+      }
+    }
     if (tgx101HasMenuZone()) {
       // ⋮ on a soft dark pill in the top right corner of the photo / video, own and incoming alike (user 2026-10-06)
-      // (user video 2026-10-22 «как скрывается и появляется кнопка ⋮ — нужно плавнее»): it vanished at once on the tap and
-      // popped back after the photo landed, showing over the viewer's fading dim meanwhile. Now it fades out as the photo
-      // leaves and fades in a moment after it is back in its place
-      boolean want = tgx101HiddenMedia == null && !shouldHideMedia();
-      if (!tgx101DotsInit) {
-        tgx101DotsInit = true;
-        tgx101DotsWanted = want;
-        tgx101DotsVisible.setValue(want, false);
-      } else if (want != tgx101DotsWanted) {
-        tgx101DotsWanted = want;
-        UI.cancel(tgx101ShowDots);
-        if (want) {
-          UI.post(tgx101ShowDots, 150);
-        } else {
-          tgx101DotsVisible.setValue(false, true);
-        }
-      }
       float dotsAlpha = tgx101DotsVisible.getFloatValue();
       if (dotsAlpha > 0f) {
         float dotsX = startX + mosaicWrapper.getWidth() - Screen.dp(14f);
@@ -996,6 +997,11 @@ public class TGMessageMedia extends TGMessage {
   @Override
   protected int[] tgx101ItemBounds (long messageId) {
     return mosaicWrapper != null ? mosaicWrapper.tgx101ItemVerticalBounds(messageId) : null;
+  }
+
+  @Override
+  protected float tgx101TimeAlpha () {
+    return drawBubbleTimeOverContent() && tgx101DotsInit ? tgx101DotsVisible.getFloatValue() : 1f;
   }
 
   private boolean tgx101DotsInit, tgx101DotsWanted;

@@ -2547,7 +2547,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
     if (useBubbles) {
       if (!needViewGroup() && useBubbleTime()) {
-        drawBubbleTimePart(c, view);
+        tgx101DrawTime(c, view);
       }
     }
 
@@ -2807,7 +2807,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
     if (useBubbles()) {
       if (useBubbleTime()) {
-        drawBubbleTimePart(c, view);
+        tgx101DrawTime(c, view);
       }
     }
     if (savedContentTranslation) {
@@ -4295,6 +4295,23 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   private static final float COUNTER_ICON_MARGIN = 3f;
   private static final float COUNTER_ADD_MARGIN = 3f;
+
+  /** TGx101: how visible the time is — a photo's time fades with its ⋮ while the photo flies to / from the viewer */
+  protected float tgx101TimeAlpha () {
+    return 1f;
+  }
+
+  private void tgx101DrawTime (Canvas c, MessageView view) {
+    float alpha = tgx101TimeAlpha();
+    if (alpha <= 0f) return;
+    if (alpha >= 1f) {
+      drawBubbleTimePart(c, view);
+      return;
+    }
+    int save = c.saveLayerAlpha(getActualLeftContentEdge(), topContentEdge, getActualRightContentEdge(), bottomContentEdge, (int) (255 * alpha));
+    drawBubbleTimePart(c, view);
+    c.restoreToCount(save);
+  }
 
   protected void drawBubbleTimePart (Canvas c, MessageView view) {
     boolean isTransparent = !useBubble() || useCircleBubble();
