@@ -1070,16 +1070,36 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
       @Override
       protected void dispatchDraw (Canvas c) {
-        if (!floatingInput) tgx101DrawWell(c, this);
+        if (!floatingInput) {
+          tgx101DrawWell(c, this);
+          if (tgx101TopReveal > 0f) {
+            // (user 2026-10-24) the classic field growing a line: nothing of it above its drawn top
+            int saved = c.save();
+            c.clipRect(0, tgx101TopReveal, getWidth(), getHeight());
+            super.dispatchDraw(c);
+            c.restoreToCount(saved);
+            return;
+          }
+        }
         super.dispatchDraw(c);
       }
 
       @Override
       protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        if (!floatingInput) {
+          // (user 2026-10-24 «плавный рост классического поля»): the list stands ABOVE the field and is placed right after
+          // it in this same pass — its room is set here, before that, or it stood one frame jumped (caught: up 96 px)
+          int content = getMeasuredHeight() - getPaddingBottom();
+          if (tgx101ClassicContent > 0 && content != tgx101ClassicContent && Math.abs(content - tgx101ClassicContent) < Screen.dp(400f) && !tgx101ImeRiding && getVisibility() == View.VISIBLE) {
+            tgx101RevealGrowth(content - tgx101ClassicContent);
+          }
+          tgx101ClassicContent = content;
+        }
         updateButtonsY();
       }
 
+      int tgx101ClassicContent = -1;
       int tgx101LastContent = -1, tgx101LastPad = -1;
 
       @Override
@@ -11601,21 +11621,25 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void tgx101ApplyFieldShift () {
     if (bottomWrap != null) bottomWrap.setTranslationY(tgx101EmojiTranslation + tgx101FieldShift());
-    if (!floatingInput && messagesView != null && messagesView.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
-      // TGx101 (user 2026-10-24 «чат подъезжает резко»): the classic list stands above the field — the window is already laid
-      // out for the keyboard's end, so the list reaches down to where the field is drawn (it keeps the messages at its
-      // bottom) and follows it every frame, instead of jumping by the keyboard's height at once
-      ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) messagesView.getLayoutParams();
-      int margin = -Math.round(tgx101ImeShift);
-      if (lp.bottomMargin != margin) {
-        lp.bottomMargin = margin;
-        messagesView.setLayoutParams(lp);
-      }
-    }
+    tgx101ApplyClassicListRoom();
     updateReplyView();
     if (bottomWrap != null) updateButtonsY();
     if (tgx101FieldShift() == 0f) {
       org.thunderdog.challegram.Tgx101Diag.mark("chat motion: field in place (top " + (bottomWrap != null ? bottomWrap.getTop() : -1) + ", translation " + (bottomWrap != null ? bottomWrap.getTranslationY() : 0) + ")");
+    }
+  }
+
+  private void tgx101ApplyClassicListRoom () {
+    if (!floatingInput && messagesView != null && messagesView.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+      // TGx101 (user 2026-10-24 «чат подъезжает резко»): the classic list stands above the field — the window is already laid
+      // out for the keyboard's end (or the field for its new height), so the list reaches down to where the field's top is
+      // drawn (it keeps the messages at its bottom) and follows it every frame, instead of jumping at once
+      ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) messagesView.getLayoutParams();
+      int margin = -Math.round(tgx101ImeShift + tgx101TopReveal);
+      if (lp.bottomMargin != margin) {
+        lp.bottomMargin = margin;
+        messagesView.setLayoutParams(lp);
+      }
     }
   }
 
@@ -11666,6 +11690,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     updateReplyView();
     updateFloatingListPadding();
+    tgx101ApplyClassicListRoom();
   }
 
   /** The field's own height changed by {@code delta} (a new line, attachments, reply…): its top glides there */
@@ -11771,9 +11796,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     int w = wrap.getWidth(), h = wrap.getHeight() - wrap.getPaddingBottom();
     if (w <= 0 || h <= 0) return;
     int filling = Theme.fillingColor();
-    c.drawRect(0, 0, w, wrap.getHeight(), Paints.fillingPaint(filling));
+    float top = tgx101TopReveal; // a growing field's top rises, a shrinking one comes down (above its own bounds)
+    c.drawRect(0, top, w, wrap.getHeight(), Paints.fillingPaint(filling));
     // variant А (flat): the panel with a hairline on top instead of the shadow; variant Б adds the well
-    c.drawRect(0, 0, w, Math.max(1, Screen.dp(.5f)), Paints.fillingPaint(Theme.separatorColor()));
+    c.drawRect(0, top, w, top + Math.max(1, Screen.dp(.5f)), Paints.fillingPaint(Theme.separatorColor()));
     if (!Settings.instance().tgx101InputWell()) return;
     int wash = Theme.isDark() ? 0x0dffffff : 0x0f1e3a5a;
     int well = me.vkryl.core.ColorUtils.compositeColor(filling, wash);
