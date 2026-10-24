@@ -1091,7 +1091,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
           // (user 2026-10-24 «плавный рост классического поля»): the list stands ABOVE the field and is placed right after
           // it in this same pass — its room is set here, before that, or it stood one frame jumped (caught: up 96 px)
           int content = getMeasuredHeight() - getPaddingBottom();
-          if (tgx101ClassicContent > 0 && content != tgx101ClassicContent && Math.abs(content - tgx101ClassicContent) < Screen.dp(400f) && !tgx101ImeRiding && getVisibility() == View.VISIBLE) {
+          // a field emptied by sending snaps to one line: the new message then stands where its words were and glides the
+          // rest — the field coming down slowly pulled the chat down while the new message's glide pushed it up (user
+          // 2026-10-24 «подпрыгнул вверх и вниз»)
+          boolean sent = content < tgx101ClassicContent && inputView != null && inputView.getText() != null && inputView.getText().length() == 0;
+          if (tgx101ClassicContent > 0 && content != tgx101ClassicContent && !sent && Math.abs(content - tgx101ClassicContent) < Screen.dp(400f) && !tgx101ImeRiding && getVisibility() == View.VISIBLE) {
             tgx101RevealGrowth(content - tgx101ClassicContent);
           }
           tgx101ClassicContent = content;
