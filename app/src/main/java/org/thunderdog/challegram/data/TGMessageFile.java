@@ -641,7 +641,7 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
       }
       int contentStartY = Math.round(rectF.top + entry.getSpacingStart());
       entry.item.component.draw(view, c, startX, contentStartY, previewReceiver, imageReceiver, backgroundColor, useBubbles() ? ColorUtils.compositeColor(contentReplaceColor, pressColor) : contentReplaceColor, entry.getVisibility(), entry.item.getCheckFactor());
-      if (entry.item.component.isDocument() && tgx101HasMenuDots()) {
+      if (entry.item.component.tgx101HasDots() && tgx101HasMenuDots()) {
         // TGx101: ⋮ in the top right corner of the card — a finger-sized area around it opens the message menu
         float dotsX = startX + getContentWidth() - Screen.dp(4f);
         float dotsY = contentStartY + Screen.dp(8f);
@@ -798,7 +798,7 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
 
   /** TGx101: a finger-sized area around the ⋮ (top right of the first card) opens the message menu, the rest opens the file */
   private boolean isInMenuZone (float x, float y) {
-    if (filesList.isEmpty() || !filesList.get(0).component.isDocument() || !tgx101HasMenuDots()) return false;
+    if (filesList.isEmpty() || !filesList.get(0).component.tgx101HasDots() || !tgx101HasMenuDots()) return false;
     int zone = Screen.dp(48f);
     int right = getContentX() + getContentWidth() + Screen.dp(12f);
     int top = getContentY();

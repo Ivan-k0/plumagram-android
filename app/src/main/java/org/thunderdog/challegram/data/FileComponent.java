@@ -346,6 +346,11 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     return audio != null;
   }
 
+  /** TGx101 (user 2026-10-24 21:38 «на музыке тоже три точки, как везде на медиа»): files and music carry ⋮ */
+  public boolean tgx101HasDots () {
+    return doc != null || audio != null;
+  }
+
   public boolean isVoice () {
     return voice != null;
   }
@@ -377,7 +382,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       // TGx101: like the official app — the document name takes up to two lines, room on the right is kept for ⋮
       trimmedTitle = new Text.Builder(title, maxWidth - Screen.dp(TGX101_DOTS_SPACE), Paints.getTitleStyleProvider(), context.getTextColorSet()).maxLineCount(2).allBold().highlight(context.getHighlightedText(Highlight.Pool.KEY_FILE_TITLE, title)).build();
     } else {
-      trimmedTitle = title != null ? new Text.Builder(title, maxWidth, Paints.getTitleStyleProvider(), context.getTextColorSet()).textFlags(doc != null ? Text.FLAG_ELLIPSIZE_MIDDLE : 0).singleLine().allBold().highlight(context.getHighlightedText(Highlight.Pool.KEY_FILE_TITLE, title)).build() : null;
+      trimmedTitle = title != null ? new Text.Builder(title, maxWidth - (audio != null ? Screen.dp(TGX101_DOTS_SPACE) : 0), Paints.getTitleStyleProvider(), context.getTextColorSet()).textFlags(doc != null ? Text.FLAG_ELLIPSIZE_MIDDLE : 0).singleLine().allBold().highlight(context.getHighlightedText(Highlight.Pool.KEY_FILE_TITLE, title)).build() : null;
     }
 
     float oldWidth = sizeWidth;
@@ -538,7 +543,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     if (waveform != null) {
       contentWidth += waveform.getWidth() + tgx101SideDurationWidth() + transcribeButtonSpace();
     } else {
-      contentWidth += Math.max(getTitleWidth(), sizeWidth) + Screen.dp(doc != null ? TGX101_DOTS_SPACE : 6f);
+      contentWidth += Math.max(getTitleWidth(), sizeWidth) + Screen.dp(tgx101HasDots() ? TGX101_DOTS_SPACE : 6f);
     }
     return contentWidth;
   }
