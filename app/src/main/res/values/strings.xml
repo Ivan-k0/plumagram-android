@@ -6410,7 +6410,7 @@
   <string name="Tgx101ResetSelectionHint">Close the attachment menu?</string>
   <string name="Tgx101ResetSelectionDo">Reset</string>
   <string name="Tgx101ForwardFrom">from %1$s</string>
-  <string name="Tgx101EditNoMedia">Media can't be added to a text message while editing</string>
+  <string name="Tgx101EditNoMedia">Media can\'t be added to a text message while editing</string>
   <string name="Tgx101SectionChannelsAds">Channels and ads</string>
   <string name="Tgx101SectionChannelsAdsHint">Sponsored posts are not shown in channels; the «Join» button can be hidden too.</string>
   <string name="Tgx101FontMerriweather">Merriweather</string>
