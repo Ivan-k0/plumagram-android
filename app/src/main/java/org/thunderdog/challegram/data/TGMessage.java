@@ -3604,18 +3604,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       if (hideName) {
         return null;
       }
-      if (isForward) {
-        // TGx101 (user 2026-10-24 16:34, screenshots side by side): «Переслано от Сергей» + the date, as the official
-        // app — a bare name over the quote read as a second author line
-        text = Lang.getString(R.string.ForwardedFromX, (target, argStart, argEnd, argIndex, needFakeBold) -> new TextEntityCustom(controller(), tdlib, target.toString(), argStart, argEnd, TextEntityCustom.FLAG_CLICKABLE | (available ? TextEntityCustom.FLAG_BOLD : 0), openParameters()), authorName);
-        allActive = true;
-      } else {
       SpannableStringBuilder b = new SpannableStringBuilder(authorName);
       b.setSpan(new TextEntityCustom(controller(), tdlib, authorName, 0, authorName.length(), TextEntityCustom.FLAG_CLICKABLE, openParameters()), 0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
       text = b;
       allActive = true;
       allBold = available;
-      }
     } else if (textRes == R.string.PsaFromXViaBot || textRes == R.string.message_nameViaBot) { // author via bot
       text = Lang.getString(textRes, (target, argStart, argEnd, argIndex, needFakeBold) -> new TextEntityCustom(controller(), tdlib, target.toString(), argStart, argEnd, TextEntityCustom.FLAG_CLICKABLE | (argIndex == 1 || available ? TextEntityCustom.FLAG_BOLD : 0), openParameters()).setTag(argIndex == 1 ? viaBotUserId : null), authorName, viaBotUsername);
     } else if (textRes == R.string.PsaFromX) { // author

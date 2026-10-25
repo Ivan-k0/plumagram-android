@@ -632,6 +632,9 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
         }
       } else if (expandFactor >= .2f || !canMinimizeHeight()) {
         animateCurrentHeight(startHeight, false);
+      } else if (showExitWarning(false, true)) {
+        // TGx101 (user 2026-10-25 «смахиваешь окно — подтверждения нет»): photos are chosen — the sheet comes back and asks
+        animateCurrentHeight(startHeight, false);
       } else {
         useBottomBarChange = true;
         barChangeFromHeight = currentHeight;
@@ -654,7 +657,9 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
 
       mediaLayout.prepareHeader();
 
-      if (openFactor <= .45f && !isHeightIncreasing) {
+      if (openFactor <= .45f && !isHeightIncreasing && showExitWarning(false, true)) {
+        animateCurrentHeight(startHeight, false); // photos are chosen: the sheet comes back and asks first
+      } else if (openFactor <= .45f && !isHeightIncreasing) {
         useBottomBarChange = true;
         barChangeFromHeight = currentHeight;
         barChangeHeightDiff = -currentHeight;
