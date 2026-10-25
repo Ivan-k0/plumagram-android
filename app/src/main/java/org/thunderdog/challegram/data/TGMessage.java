@@ -708,7 +708,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (msg.forwardInfo == null) {
       return null;
     }
-    return Lang.getRelativeTimestampShort(msg.forwardInfo.date, TimeUnit.SECONDS);
+    // TGx101 (user 2026-10-25 «дату, время не ставь»): «16 окт.», not «16 окт. в 16:44»
+    return Lang.dateFullShort(msg.forwardInfo.date, TimeUnit.SECONDS);
   }
 
   public int getForwardTimeStamp () {
@@ -3607,7 +3608,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       if (isForward) {
         // TGx101 (user 2026-10-25 «переслано убери, от оставь — от и имя»): «от Сергей» + the date — a bare name over the
         // quote read as a second author line, «Forwarded from» left no room for the name
-        text = Lang.getString(R.string.Tgx101ForwardFrom, (target, argStart, argEnd, argIndex, needFakeBold) -> new TextEntityCustom(controller(), tdlib, target.toString(), argStart, argEnd, TextEntityCustom.FLAG_CLICKABLE | (available ? TextEntityCustom.FLAG_BOLD : 0), openParameters()), authorName);
+        String fromName = forwardInfo instanceof TGSourceUser ? ((TGSourceUser) forwardInfo).tgx101FromName() : authorName;
+        text = Lang.getString(R.string.Tgx101ForwardFrom, (target, argStart, argEnd, argIndex, needFakeBold) -> new TextEntityCustom(controller(), tdlib, target.toString(), argStart, argEnd, TextEntityCustom.FLAG_CLICKABLE | (available ? TextEntityCustom.FLAG_BOLD : 0), openParameters()), fromName);
         allActive = true;
       } else {
       SpannableStringBuilder b = new SpannableStringBuilder(authorName);
