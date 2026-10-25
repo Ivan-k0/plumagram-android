@@ -707,6 +707,7 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
   /** The avatar's stand-in where there is no blur, made once per chat */
   private org.thunderdog.challegram.data.AvatarPlaceholder tgx101PeekPlaceholder () {
     long chatId = chat.getChatId();
+    if (chatId == org.thunderdog.challegram.data.TGChat.TGX101_STORAGE_ID) chatId = tdlib.selfChatId(); // not a real chat (crash log 2026-10-25)
     int size = avatarReceiver.getWidth();
     if (tgx101Placeholder == null || tgx101PlaceholderChatId != chatId || tgx101PlaceholderSize != size) {
       tgx101Placeholder = tdlib.chatPlaceholder(chatId, chat.getChat(), true, size / 2f / Screen.density(), this);

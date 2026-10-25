@@ -154,6 +154,9 @@ public final class Tgx101Peek {
     load();
     // «only the chosen ones» with none chosen works everywhere: the switch must never do nothing (user 2026-10-22)
     if (!on || (!all && !chats.isEmpty() && !chats.contains(chatId))) return 0;
+    // (crash log 2026-10-25, Moto Z2 Play 0.2.295): the Storage row isn't a chat — its stand-in id made TDLib's ChatId.getType
+    // throw while the hidden avatar's letters were drawn
+    if (chatId == TGChat.TGX101_STORAGE_ID) return 0;
     return strength(part);
   }
 
