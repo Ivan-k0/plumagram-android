@@ -149,6 +149,7 @@ public class MediaLayout extends FrameLayoutFix implements
       if (bottomBar != null) {
         bottomBar.setBottomInset(extraBottomInsetWithoutIme);
       }
+      tgx101LiftForKeyboard();
       tgx101PlaceCaptionField();
       for (MediaBottomBaseController<?> controller : controllers) {
         if (controller != null) {
@@ -900,11 +901,29 @@ public class MediaLayout extends FrameLayoutFix implements
 
   private void tgx101PlaceCaptionField () {
     if (tgx101CaptionField == null) return;
-    int ime = Math.max(0, extraBottomInset - extraBottomInsetWithoutIme);
-    // over the bar (it rides with the sheet), or just over the keyboard while typing — the bar is under it then
+    // over the bar: while typing the whole sheet rides up with the keyboard (tgx101LiftForKeyboard), the field with it
     int overBar = getBottomBarHeight() + Screen.dp(8f) - (bottomBar != null ? (int) bottomBar.getTranslationY() : 0);
-    int bottom = ime > 0 ? ime + Screen.dp(8f) : overBar;
-    Views.setBottomMargin(tgx101CaptionField, bottom);
+    Views.setBottomMargin(tgx101CaptionField, overBar);
+  }
+
+  // TGx101 (user video 2026-10-24 16:36): typing a caption, the keyboard covered the sheet — the chosen photos, the
+  // count and «Send» were gone, only the bare field hung over it. Now the sheet rides up with the keyboard, whole
+  private ValueAnimator tgx101LiftAnimator;
+  private float tgx101Lift;
+
+  private void tgx101LiftForKeyboard () {
+    if (tgx101CaptionField == null) return;
+    float target = Math.max(0, extraBottomInset - extraBottomInsetWithoutIme);
+    if (tgx101LiftAnimator != null) tgx101LiftAnimator.cancel();
+    if (tgx101Lift == target) return;
+    tgx101LiftAnimator = ValueAnimator.ofFloat(tgx101Lift, target);
+    tgx101LiftAnimator.setDuration(250);
+    tgx101LiftAnimator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+    tgx101LiftAnimator.addUpdateListener(a -> {
+      tgx101Lift = (float) a.getAnimatedValue();
+      setTranslationY(-tgx101Lift);
+    });
+    tgx101LiftAnimator.start();
   }
 
   private void tgx101ApplyCaption (List<ImageFile> images) {
