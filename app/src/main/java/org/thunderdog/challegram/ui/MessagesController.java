@@ -11630,6 +11630,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return tgx101RevealAnimator != null && tgx101RevealAnimator.isRunning();
   }
 
+  /** How far the field's top glide has gone (ms), so a glide started with it can run on the same clock */
+  public long tgx101RevealPlayTime () {
+    return tgx101RevealAnimator != null && tgx101RevealAnimator.isRunning() ? tgx101RevealAnimator.getCurrentPlayTime() : 0;
+  }
+
   public static final long TGX101_REVEAL_DURATION = 250;
 
   public static android.view.animation.Interpolator tgx101RevealCurve () {

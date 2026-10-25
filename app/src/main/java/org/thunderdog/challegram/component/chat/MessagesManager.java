@@ -2215,7 +2215,33 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
             new android.view.animation.PathInterpolator(.2f, 0f, 0f, 1f) : new android.view.animation.DecelerateInterpolator(1.5f);
           duration = 160;
         }
-        list.smoothScrollBy(0, delta, curve, duration);
+        if (withField) {
+          // (user 2026-10-25 «отправка, когда много строк», recorded: the old messages went down 144 px for two frames, then
+          // up): the field's shrink lowers the chat from the frame it starts, a smooth scroll starts a frame or two later.
+          // Driven by the field's own clock, the two moves add up frame by frame
+          final android.animation.ValueAnimator glide = android.animation.ValueAnimator.ofFloat(0f, 1f);
+          glide.setDuration(duration);
+          glide.setInterpolator(curve);
+          final int total = delta;
+          final int[] done = {0};
+          glide.addUpdateListener(an -> {
+            int target = Math.round(total * (float) an.getAnimatedValue());
+            if (target != done[0]) {
+              list.scrollBy(0, target - done[0]);
+              done[0] = target;
+            }
+          });
+          glide.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd (android.animation.Animator animation) {
+              tgx101GlidingNew = false;
+            }
+          });
+          glide.start();
+          glide.setCurrentPlayTime(Math.min(duration, controller.tgx101RevealPlayTime()));
+        } else {
+          list.smoothScrollBy(0, delta, curve, duration);
+        }
         org.thunderdog.challegram.Tgx101Diag.mark("new message: chat glides up " + delta + " px" + (withField ? " with the field" : ""));
         return false;
       }
