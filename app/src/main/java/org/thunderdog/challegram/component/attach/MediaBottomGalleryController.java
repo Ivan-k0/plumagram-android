@@ -452,6 +452,19 @@ public class MediaBottomGalleryController extends MediaBottomBaseController<Medi
         }
         return true;
       }
+      // TGx101 (user video 2026-10-24 16:36): chosen photos weren't to be lost by a stray tap outside or «back» —
+      // «Reset selection? Close the attachment menu?» (Cancel / Reset). Only when leaving the menu, not the selection
+      if (!isExitingSelection) {
+        if (commit) {
+          showOptions(new android.text.SpannableStringBuilder(Lang.boldify(Lang.getString(R.string.Tgx101ResetSelection))).append("\n").append(Lang.getString(R.string.Tgx101ResetSelectionHint)), new int[] {R.id.btn_done, R.id.btn_cancel},
+            new String[] {Lang.getString(R.string.Tgx101ResetSelectionDo), Lang.getString(R.string.Cancel)},
+            new int[] {OptionColor.RED, OptionColor.NORMAL}, new int[] {R.drawable.baseline_delete_24, R.drawable.baseline_cancel_24}, (itemView, id) -> {
+              if (id == R.id.btn_done) mediaLayout.onConfirmExit(false);
+              return true;
+            });
+        }
+        return true;
+      }
     }
     return false;
   }
