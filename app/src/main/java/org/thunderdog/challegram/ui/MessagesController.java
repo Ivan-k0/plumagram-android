@@ -3175,7 +3175,18 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tgx101ToggleChatTranslation(false);
     } else if (id == R.id.btn_attachFromMenu) {
       hideBottomHint();
-      openPendingAttachmentPicker();
+      if (isEditingMessage() && editContext != null) {
+        // TGx101 (user video 2026-10-24 21:44 «прикрепить не работает»): while editing, the picked photo was kept as a
+        // separate attachment and went out as a new message on save. A message with media gets it replaced; a text one
+        // can't take media (Telegram doesn't allow it) — say so
+        if (editContext.message.content.getConstructor() == TdApi.MessageText.CONSTRUCTOR) {
+          UI.showToast(R.string.Tgx101EditNoMedia, android.widget.Toast.LENGTH_SHORT);
+        } else {
+          onMessageMediaReplaceRequested(replyBarView, editContext.message);
+        }
+      } else {
+        openPendingAttachmentPicker();
+      }
     } else if (id == R.id.btn_tgx101ChatProxy) {
       tgx101ShowChatProxy();
     } else if (id == R.id.btn_tgx101JumpToDate) {

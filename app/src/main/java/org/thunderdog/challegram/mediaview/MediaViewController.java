@@ -453,7 +453,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       currentThumb = location;
       setAnimatorType(ANIMATION_TYPE_REVEAL, true);
       mediaView.setTarget(location, 0f);
-      hideCurrentCell();
+      // TGx101 (user videos 2026-10-24 23:50 / 25.10 09:25 «подложка перед запуском видео»): the viewer waits up to 134 ms
+      // for the video's preview before it starts to grow, and the post's place went empty (white with ▶) meanwhile —
+      // it's emptied with the flight's first frame now
+      tgx101HideOnReveal = true;
 
       switch (mode) {
         case MODE_GALLERY: {
@@ -903,7 +906,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private int hiddenCellIndex;
   private MediaItem hiddenCell;
 
+  private boolean tgx101HideOnReveal;
+
   private void hideCurrentCell () {
+    tgx101HideOnReveal = false;
     MediaItem currentItem = stack.getCurrent();
     if (hiddenCell == null || hiddenCell != currentItem) {
       if (hiddenCell != null && delegate != null) {
@@ -1198,6 +1204,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             break;
           }
           case ANIMATION_TYPE_REVEAL: {
+            if (tgx101HideOnReveal && factor > 0f) {
+              tgx101HideOnReveal = false;
+              hideCurrentCell();
+            }
             mediaView.getBaseCell().getDetector().setPositionFactor(fraction);
             mediaView.setRevealFactor(factor);
             break;
