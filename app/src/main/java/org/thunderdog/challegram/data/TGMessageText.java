@@ -632,15 +632,34 @@ public class TGMessageText extends TGMessage {
     android.graphics.Paint fill = Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(lit ? 1f : .16f, accent));
     c.drawCircle(tgx101ShortRect.centerX(), tgx101ShortRect.centerY(), size / 2f, fill);
     android.graphics.Paint line = Paints.getProgressPaint(lit ? 0xffffffff : accent, Screen.dp(1.6f));
-    float cx = tgx101ShortRect.centerX(), cy = tgx101ShortRect.centerY(), u = size / 24f;
-    // two arrows meeting at a line: «squeeze the text»
-    c.drawLine(cx, cy - 8 * u, cx, cy - 2.5f * u, line);
-    c.drawLine(cx - 2.6f * u, cy - 5 * u, cx, cy - 2.5f * u, line);
-    c.drawLine(cx + 2.6f * u, cy - 5 * u, cx, cy - 2.5f * u, line);
-    c.drawLine(cx, cy + 8 * u, cx, cy + 2.5f * u, line);
-    c.drawLine(cx - 2.6f * u, cy + 5 * u, cx, cy + 2.5f * u, line);
-    c.drawLine(cx + 2.6f * u, cy + 5 * u, cx, cy + 2.5f * u, line);
-    c.drawLine(cx - 6 * u, cy, cx + 6 * u, cy, line);
+    // (user 2026-10-25, mockup «И2»): a magic wand over two short lines; the icon is drawn on a 24-unit grid
+    float u = size * .7f / 24f, ox = tgx101ShortRect.centerX() - 12 * u, oy = tgx101ShortRect.centerY() - 12 * u;
+    android.graphics.Paint thin = Paints.getProgressPaint(lit ? 0xffffffff : accent, 2f * u);
+    c.drawLine(ox + 4 * u, oy + 15 * u, ox + 13 * u, oy + 15 * u, thin);
+    c.drawLine(ox + 4 * u, oy + 19 * u, ox + 10 * u, oy + 19 * u, thin);
+    c.drawLine(ox + 11 * u, oy + 11 * u, ox + 19 * u, oy + 3 * u, Paints.getProgressPaint(lit ? 0xffffffff : accent, 2.2f * u));
+    android.graphics.Paint spark = Paints.fillingPaint(lit ? 0xffffffff : accent);
+    tgx101Spark(c, ox + 6.5f * u, oy + 6.2f * u, 2.2f * u, spark);
+    tgx101Spark(c, ox + 19f * u, oy + 13.1f * u, 2.1f * u, spark);
+  }
+
+  private static final android.graphics.Path tgx101SparkPath = new android.graphics.Path();
+
+  /** a four-pointed star centred at (cx, cy) reaching {@code r} */
+  private static void tgx101Spark (Canvas c, float cx, float cy, float r, android.graphics.Paint paint) {
+    float k = r * .28f;
+    android.graphics.Path p = tgx101SparkPath;
+    p.reset();
+    p.moveTo(cx, cy - r);
+    p.lineTo(cx + k, cy - k);
+    p.lineTo(cx + r, cy);
+    p.lineTo(cx + k, cy + k);
+    p.lineTo(cx, cy + r);
+    p.lineTo(cx - k, cy + k);
+    p.lineTo(cx - r, cy);
+    p.lineTo(cx - k, cy - k);
+    p.close();
+    c.drawPath(p, paint);
   }
 
   private boolean tgx101ShortTouch (MessageView view, MotionEvent e) {
