@@ -224,7 +224,23 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
   private void buildTitle () {
     int width = getContentWidth(true);
     String titleText = computeTitleText(Lang.getString(isChannel() ? R.string.LoadingChannel : R.string.LoadingUser));
-    trimmedTitle = new Text.Builder(titleText, width, getTitleStyleProvider(isMessageComponent()), getTitleColorSet())
+    // TGx101 (user 2026-10-24 16:22 «Макс» — the surname was dropped): in a message the author's full name, when it fits;
+    // the first name only when the full one would be cut
+    if (isMessageComponent() && sender != null && StringUtils.isEmpty(senderName) && !BitwiseUtils.hasFlag(flags, FLAG_FORCE_TITLE)) {
+      String fullName = tdlib.senderName(sender, false);
+      if (!StringUtils.isEmpty(fullName) && !fullName.equals(titleText)) {
+        Text full = buildTitleText(fullName, width);
+        if (!full.isEllipsized()) {
+          trimmedTitle = full;
+          return;
+        }
+      }
+    }
+    trimmedTitle = buildTitleText(titleText, width);
+  }
+
+  private Text buildTitleText (String titleText, int width) {
+    return new Text.Builder(titleText, width, getTitleStyleProvider(isMessageComponent()), getTitleColorSet())
       .singleLine()
       .clipTextArea()
       .allBold(sender != null || StringUtils.isEmpty(senderName))

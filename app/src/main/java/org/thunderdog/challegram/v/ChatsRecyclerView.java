@@ -68,6 +68,7 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
   }
 
   private void init (Context context) {
+    tgx101TrackEdges();
     initialLoadCount = Screen.calculateLoadingItems(Screen.dp(72f), 5) + 5;
     loadCount = Screen.calculateLoadingItems(Screen.dp(72f), 25);
 
@@ -257,9 +258,40 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
   // pager can't pick up a horizontal swipe until scrolling fully stops.
   // Stop the fling ourselves first so RecyclerView stays idle and the pager
   // still gets to intercept; keep the gesture so the tap doesn't open a chat.
+  // TGx101 (user video 2026-10-24 18:35 «после прокрутки вверх свайп вбок не листает папки»): a fling into the top or
+  // bottom leaves the list stretched (Android 12+) for a moment — RecyclerView «catches» that stretch on touch and
+  // blocks the pager the same way. The touch lets the stretch go first, then it's handled as one on a flinging list
+  private android.widget.EdgeEffect tgx101TopEdge, tgx101BottomEdge;
+
+  private void tgx101TrackEdges () {
+    setEdgeEffectFactory(new EdgeEffectFactory() {
+      @NonNull
+      @Override
+      protected android.widget.EdgeEffect createEdgeEffect (@NonNull RecyclerView view, int direction) {
+        android.widget.EdgeEffect edge = super.createEdgeEffect(view, direction);
+        if (direction == DIRECTION_TOP) tgx101TopEdge = edge;
+        else if (direction == DIRECTION_BOTTOM) tgx101BottomEdge = edge;
+        return edge;
+      }
+    });
+  }
+
+  private boolean tgx101ReleaseStretch () {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) return false;
+    boolean released = false;
+    for (android.widget.EdgeEffect edge : new android.widget.EdgeEffect[] {tgx101TopEdge, tgx101BottomEdge}) {
+      if (edge != null && edge.getDistance() != 0f) {
+        edge.finish();
+        released = true;
+      }
+    }
+    if (released) invalidate();
+    return released;
+  }
+
   @Override
   public boolean onInterceptTouchEvent (MotionEvent e) {
-    if (e.getActionMasked() == MotionEvent.ACTION_DOWN && getScrollState() == SCROLL_STATE_SETTLING) {
+    if (e.getActionMasked() == MotionEvent.ACTION_DOWN && (tgx101ReleaseStretch() | getScrollState() == SCROLL_STATE_SETTLING)) {
       stopScroll();
       super.onInterceptTouchEvent(e);
       return true;
