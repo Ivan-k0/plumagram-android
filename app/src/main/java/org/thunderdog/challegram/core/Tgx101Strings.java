@@ -585,6 +585,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ResetSelection, "Сбросить выбор?");
     RU.put(R.string.Tgx101ResetSelectionHint, "Закрыть меню вложений?");
     RU.put(R.string.Tgx101ResetSelectionDo, "Сбросить");
+    RU.put(R.string.Tgx101ForwardFrom, "от %1$s");
     RU.put(R.string.Tgx101SectionChannelsAds, "Каналы и реклама");
     RU.put(R.string.Tgx101SectionChannelsAdsHint, "Рекламные посты в каналах не показываются; кнопку «Вступить» тоже можно скрыть.");
     RU.put(R.string.Tgx101FontMerriweather, "Merriweather");

@@ -96,7 +96,9 @@ public class MediaCellView extends ViewGroup implements
   ForceTouchView.StateListener,
   FactorAnimator.Target {
   private static final float SCALE_FACTOR = .25f;
-  public static final int ZOOM_DURATION = 140;
+  // TGx101 (user video 2026-10-24 15:32 «анимацию по нашему стандарту»): a double tap zoomed in 140 ms (70 at the
+  // phone's ×0.5) — 2 frames, it read as a jump. Like the official app: ~260 ms, fast start, soft stop
+  public static final int ZOOM_DURATION = 260;
 
   private @Nullable MediaItem media;
   private float factor; // 0f - normal, 1f - out of screen, -1f - fade out

@@ -4610,6 +4610,20 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       slideAnimator.forceFactor(0f);
     }
 
+    // TGx101 (user video 2026-10-24 15:32): a zoomed photo pulled down flew off and was cut in one frame — first it
+    // zooms back out where the finger left it, then it goes into its post as an unzoomed one does
+    if (apply && !tgx101UnzoomedForClose && mediaView.isZoomed() && (mode == MODE_MESSAGES || mode == MODE_SIMPLE) && getCurrentTargetLocation() != null) {
+      tgx101UnzoomedForClose = true;
+      mediaView.normalizeZoom();
+      final float vx = velocityX, vy = velocityY;
+      mediaView.postDelayed(() -> {
+        if (!isDestroyed()) dropSlideMode(vx, vy, true);
+        tgx101UnzoomedForClose = false;
+      }, Math.round(MediaCellView.ZOOM_DURATION * U.getAnimationScale(context())) + 16);
+      org.thunderdog.challegram.Tgx101Diag.mark("media viewer: zoomed swipe — zooms out, then into the post");
+      return;
+    }
+
     if (apply && tgx101RevealFromSlide()) {
       return;
     }
@@ -4657,6 +4671,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   // the drag offset and the shrink on the same curve so the photo doesn't sit still and then jump into the post
   private static final long TGX101_SLIDE_REVEAL_DURATION = 260;
   private static final long TGX101_BACK_REVEAL_DURATION = 280;
+
+  private boolean tgx101UnzoomedForClose;
 
   private boolean tgx101RevealFromSlide () {
     if (mode != MODE_MESSAGES && mode != MODE_SIMPLE) return false;
