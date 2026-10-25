@@ -567,7 +567,7 @@ public class SearchManager {
     final int[] state = new int[2]; // 1 - step, 2 - disallowSelf
     final LongList foundChatIds = new LongList(16);
 
-    tdlib.client().send(new TdApi.SearchChats(query, null, StringUtils.isEmpty(query) ? 20 : isFiltered() ? 50 : 30), new Client.ResultHandler() {
+    tdlib.client().send(new TdApi.SearchChats(query, null, StringUtils.isEmpty(query) ? 50 /* TGx101 (user 2026-10-25 «сколько хранится недавних»): all TDLib keeps, not 20 */ : isFiltered() ? 50 : 30), new Client.ResultHandler() {
       @Override
       public void onResult (final TdApi.Object object) {
         if (contextId != currentContextId) {
