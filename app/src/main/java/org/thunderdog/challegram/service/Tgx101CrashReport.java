@@ -120,19 +120,37 @@ public final class Tgx101CrashReport {
     if (Build.VERSION.SDK_INT < 30) return "";
     try (InputStream in = exit.getTraceInputStream()) {
       if (in == null) return "";
-      String t = readAll(in);
-      // a native crash's trace is a binary tombstone on Android 12+: keep the readable lines only
+      java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+      byte[] buf = new byte[16 * 1024];
+      int n;
+      while ((n = in.read(buf)) != -1 && out.size() < 1024 * 1024) out.write(buf, 0, n);
+      byte[] raw = out.toByteArray();
+      // TGx101 (4PDA nyan_ame 2026-10-24, «Exit: reason 5 status 11» and nothing else): a native crash's trace is a binary
+      // tombstone on Android 12+ — no whole line of it is readable, so all of it was dropped. Like `strings`: the readable
+      // runs inside it, keeping the ones that tell where it fell (libraries, functions, the signal, the abort message)
       StringBuilder b = new StringBuilder("\n\n");
-      for (String line : t.split("\n")) {
-        boolean readable = true;
-        for (int i = 0; i < line.length() && readable; i++) {
-          char ch = line.charAt(i);
-          if (ch < 0x20 && ch != '\t') readable = false;
+      StringBuilder run = new StringBuilder();
+      String last = null;
+      int kept = 0;
+      for (int i = 0; i <= raw.length && kept < 80; i++) {
+        int ch = i < raw.length ? raw[i] & 0xff : 0;
+        if (ch >= 0x20 && ch < 0x7f) {
+          run.append((char) ch);
+          continue;
         }
-        if (readable && line.trim().length() > 3) b.append(line).append('\n');
-        if (b.length() > MAX_TEXT) break;
+        if (run.length() >= 6) {
+          String r = run.toString().trim();
+          boolean useful = r.contains(".so") || r.contains(".apk") || r.contains(".oat") || r.contains(".odex") || r.contains("Abort") || r.contains("abort")
+            || r.startsWith("SIG") || r.contains("Cause") || r.contains("Thread") || r.contains("Java_") || r.contains("tgx101") || r.contains("challegram") || r.contains("::");
+          if (useful && !r.equals(last)) {
+            b.append(r).append('\n');
+            last = r;
+            kept++;
+          }
+        }
+        run.setLength(0);
       }
-      return b.toString();
+      return kept > 0 ? b.toString() : "";
     } catch (Throwable ignored) {
       return "";
     }
