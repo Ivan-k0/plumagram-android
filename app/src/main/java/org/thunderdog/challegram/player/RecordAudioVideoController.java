@@ -792,7 +792,7 @@ public class RecordAudioVideoController implements
       int want = Math.max(Screen.dp(49f), rowHeight);
       // TGx101 (user 2026-10-07 19:14, mockup «Запись-голосового» 1): with the floating field the bar is the same capsule —
       // side gaps and bubble corners — instead of a full-width strip over the bottom
-      boolean floating = ((MessagesController) c).tgx101FloatingInput();
+      boolean floating = ((MessagesController) c).tgx101FloatingLook();
       int side = floating ? Screen.dp(10f) : 0;
       if (tgx101OverlayFloating != floating) {
         tgx101OverlayFloating = floating;

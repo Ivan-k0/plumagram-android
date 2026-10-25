@@ -2194,7 +2194,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         // 175 px): a multi-line field emptied by sending shrinks over 250 ms on a soft curve and lowers the messages with it,
         // while the glide up was done in ~100 ms. Run on the field's own curve and time, the two moves add up to one
         boolean withField = controller.tgx101IsFieldRevealing();
-        if (withField || !controller.tgx101FloatingInput()) {
+        if (withField || !controller.tgx101FloatingLook()) {
           // (user 2026-10-24 «написал — довольно резко или быстро», classic field, black box: 200 of 202 px in the first
           // 25 ms): there ~250 ms with a soft start and stop — the field's own curve
           curve = org.thunderdog.challegram.ui.MessagesController.tgx101RevealCurve();

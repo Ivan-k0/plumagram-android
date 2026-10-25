@@ -984,10 +984,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
     wallpaperView.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     addThemeInvalidateListener(wallpaperView);
 
-    floatingInput = Settings.instance().useFloatingInput() && previewMode == PREVIEW_MODE_NONE && !isInForceTouchMode();
+    // TGx101 (user 2026-10-24/25 «перевести классику на движок плавающего поля»): one engine for both fields — the list runs
+    // down under the field and its bottom room follows the field's drawn top every frame (keyboard, growth, reply bar,
+    // files, sending all come out of that). Only the look differs: floatingLook = the capsule, otherwise the docked panel
+    floatingLook = Settings.instance().useFloatingInput() && previewMode == PREVIEW_MODE_NONE && !isInForceTouchMode();
+    floatingInput = previewMode == PREVIEW_MODE_NONE && !isInForceTouchMode();
     // TGx101 (approved mockup «Шапка: вариант В»; test builds only for now — user 2026-10-19): the chat runs on under the
     // header, which dissolves into a veil once the list is scrolled
-    tgx101Veil = BuildConfig.TGX101_TEST && org.thunderdog.challegram.navigation.Tgx101Veil.ENABLED && floatingInput && !needTabs();
+    tgx101Veil = BuildConfig.TGX101_TEST && org.thunderdog.challegram.navigation.Tgx101Veil.ENABLED && floatingLook && !needTabs();
     if (tgx101Veil) {
       tgx101VeilShift = HeaderView.getSize(true);
       ((FrameLayoutFix.LayoutParams) contentView.getLayoutParams()).topMargin = -tgx101VeilShift;
@@ -1055,13 +1059,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     bottomSpace = new FillingSpace(context);
     bottomSpace.setLayoutParams(params);
-    if (!floatingInput) { // TGx101: with the floating capsule the chat shows around and under it
+    if (!floatingLook) { // TGx101: with the floating capsule the chat shows around and under it
       bottomSpace.setThemedBackground(ColorId.filling, this);
     }
 
     params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-    if (floatingInput) {
+    if (floatingLook) {
       params.leftMargin = params.rightMargin = Screen.dp(FLOATING_INPUT_SIDE);
     }
 
@@ -1070,7 +1074,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
       @Override
       protected void dispatchDraw (Canvas c) {
-        if (!floatingInput) {
+        if (!floatingLook) {
           tgx101DrawWell(c, this);
           if (tgx101TopReveal > 0f) {
             // (user 2026-10-24) the classic field growing a line: nothing of it above its drawn top
@@ -1087,23 +1091,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
       @Override
       protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        if (!floatingInput) {
-          // (user 2026-10-24 «плавный рост классического поля»): the list stands ABOVE the field and is placed right after
-          // it in this same pass — its room is set here, before that, or it stood one frame jumped (caught: up 96 px)
-          int content = getMeasuredHeight() - getPaddingBottom();
-          // a field emptied by sending snaps to one line: the new message then stands where its words were and glides the
-          // rest — the field coming down slowly pulled the chat down while the new message's glide pushed it up (user
-          // 2026-10-24 «подпрыгнул вверх и вниз»)
-          boolean sent = content < tgx101ClassicContent && inputView != null && inputView.getText() != null && inputView.getText().length() == 0;
-          if (tgx101ClassicContent > 0 && content != tgx101ClassicContent && !sent && Math.abs(content - tgx101ClassicContent) < Screen.dp(400f) && !tgx101ImeRiding && getVisibility() == View.VISIBLE) {
-            tgx101RevealGrowth(content - tgx101ClassicContent);
-          }
-          tgx101ClassicContent = content;
-        }
+        // (the classic field's own growth handling went with the one engine — onLayout below reveals both fields' growth)
         updateButtonsY();
       }
 
-      int tgx101ClassicContent = -1;
       int tgx101LastContent = -1, tgx101LastPad = -1;
 
       @Override
@@ -1131,9 +1122,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
     };
     bottomWrap.setId(R.id.msg_bottom);
-    if (!floatingInput) { bottomWrap.setWillNotDraw(false); addThemeInvalidateListener(bottomWrap); } // TGx101: the well follows the theme
+    if (!floatingLook) { bottomWrap.setWillNotDraw(false); addThemeInvalidateListener(bottomWrap); } // TGx101: the well follows the theme
+    if (floatingLook) applyFloatingInputShape(bottomWrap, false);
     if (floatingInput) {
-      applyFloatingInputShape(bottomWrap, false);
       // user 2026-10-07 09:49/10:00 (Xiaomi, 0.1.507): the capsule still covered the last message — it moves without its
       // own layout (keyboard hides, reply bar, the list resized later), so check the room before every frame
       android.view.ViewTreeObserver.OnPreDrawListener paddingCheck = () -> {
@@ -1145,7 +1136,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         tgx101UpdateKeyboardFiller();
         return true;
       };
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+      if (floatingLook && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         // the blur under the field follows the list (variant В); not every frame — only when the list moves
         messagesView.addOnScrollListener(new RecyclerView.OnScrollListener() {
           @Override
@@ -1228,12 +1219,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (!inPreviewMode) {
       params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(48f));
       params.addRule(RelativeLayout.ALIGN_TOP, R.id.msg_bottom);
-      if (floatingInput) { // TGx101: it lies behind the capsule; full width it showed as a white strip at the sides
+      if (floatingLook) { // TGx101: it lies behind the capsule; full width it showed as a white strip at the sides
         params.leftMargin = params.rightMargin = Screen.dp(FLOATING_INPUT_SIDE);
       }
 
       replyBarView = new ReplyBarView(context(), tdlib);
-      if (floatingInput) {
+      if (floatingLook) {
         // user 2026-10-08 10:01 «это должно краситься в цвет поля ввода во всех случаях»: the same see-through, blurred filling
         applyFloatingInputShape(replyBarView, true);
       } else {
@@ -1242,10 +1233,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
       replyBarView.setId(R.id.msg_bottomReply);
       replyBarView.setAnimationsDisabled(true);
       replyBarView.initWithCallback(this, this);
-      if (floatingInput) replyBarView.tgx101SetTransparent();
+      if (floatingLook) replyBarView.tgx101SetTransparent();
       replyBarView.setOnClickListener(this);
       replyBarView.setLayoutParams(params);
-      if (floatingInput && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+      if (floatingLook && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
         // TGx101: rounded like the capsule, so its square corners don't show behind it
         replyBarView.setOutlineProvider(new android.view.ViewOutlineProvider() {
           @Override
@@ -1506,7 +1497,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     });
     addThemeInvalidateListener(scrollToBottomButton);
     scrollToBottomButton.init(R.drawable.baseline_arrow_downward_24, 48f, 4f, ColorId.circleButtonChat, ColorId.circleButtonChatIcon);
-    if (floatingInput) {
+    if (floatingLook) {
       applyFloatingCircleShape(scrollToBottomButton, 48f);
     }
     scrollToBottomButton.setLayoutParams(fparams);
@@ -1636,7 +1627,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else {
       params.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
     }
-    if (floatingInput) {
+    if (floatingLook) {
       params.leftMargin = params.rightMargin = Screen.dp(FLOATING_INPUT_SIDE);
     }
 
@@ -1656,7 +1647,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else {
       params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
     }
-    if (floatingInput) {
+    if (floatingLook) {
       params.leftMargin = params.rightMargin = Screen.dp(FLOATING_INPUT_SIDE);
     }
 
@@ -1848,7 +1839,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     recordButton = new VoiceVideoButtonView(context);
     recordButton.setPadding(0, 0, Screen.dp(2f), 0);
     recordButton.setHasTouchControls(true);
-    recordButton.setTgx101Square(!floatingInput && Settings.instance().tgx101InputWell());
+    recordButton.setTgx101Square(!floatingLook && Settings.instance().tgx101InputWell());
     addThemeInvalidateListener(recordButton);
     recordButton.setLayoutParams(lp);
     recordButton.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> tgx101UpdateMicExclusion());
@@ -1903,13 +1894,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else {
       params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
     }
-    if (floatingInput) {
+    if (floatingLook) {
       params.leftMargin = params.rightMargin = Screen.dp(FLOATING_INPUT_SIDE);
     }
 
     sendButton = new SendButton(context, areScheduled ? R.drawable.dotvhs_baseline_send_schedule_24 : R.drawable.deproko_baseline_send_24);
     sendButton.setIgnoreDrawMessageSender();
-    sendButton.setTgx101Square(!floatingInput && Settings.instance().tgx101InputWell());
+    sendButton.setTgx101Square(!floatingLook && Settings.instance().tgx101InputWell());
     sendButton.setOnClickListener(this);
     addThemeInvalidateListener(sendButton);
     sendButton.setId(R.id.msg_send);
@@ -2172,28 +2163,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
         }
       });
     }
-    if (!floatingInput) {
-      // (user video 2026-10-24 15:23 «чат едет сквозь поле ввода»): the list lies UNDER the field and the reply bar here too
-      // — added after them it drew over the field whenever its bottom reached under it (the keyboard / growth rides)
+    if (!floatingInput) { // previews (no field): the list as it was
       contentView.addView(messagesView);
-      // TGx101 (user 2026-10-24 «пропала анимация удаления»): the dust layer was made only for the floating field — with
-      // the classic one (back since 10-23) deleted messages just vanished
-      tgx101DeleteEffect = new org.thunderdog.challegram.component.chat.Tgx101DeleteEffect(context);
-      tgx101DeleteEffect.setVisibility(View.INVISIBLE);
-      tgx101DeleteEffect.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-      contentView.addView(tgx101DeleteEffect);
-      tgx101AddListSwap(context);
-      messagesView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-        @Override
-        public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
-          if (tgx101DeleteEffect != null) tgx101DeleteEffect.onListScrolled(dy); // the dust stays with the chat while it scrolls
-        }
-
-        @Override
-        public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
-          if (newState == RecyclerView.SCROLL_STATE_DRAGGING) tgx101CheckClassicRoom();
-        }
-      });
     }
     if (!inPreviewMode) {
       contentView.addView(replyBarView);
@@ -7701,7 +7672,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private final BoolAnimator bottomBarVisible = new BoolAnimator(ANIMATOR_BOTTOM_BUTTON, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 180l);
 
   public int getBottomOffset () {
-    if (!floatingInput) return 0; // TGx101: the classic list is no longer moved up by the reply bar — it ends above it
     return (int) (getReplyOffset() + getAttachedFilesOffset());
   }
 
@@ -8865,16 +8835,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     float y = -getReplyOffset();
     float offset = -getAttachedFilesOffset();
     final float keyboardOffset = -getKeyboardOffset();
-    // TGx101 (user 2026-10-24 «при ответе на сообщение чаты прыгают», black box 18:54): with the classic field the reply bar
-    // (and attached files) moved the whole list by their offset, and on sending that move fought the new message's
-    // glide. Now the list's bottom stands at the bar's top instead (tgx101ApplyClassicListRoom), the messages stay at it
     tgx101ListBaseY = floatingInput ? y + offset + keyboardOffset : keyboardOffset;
     messagesView.setTranslationY(tgx101ListBaseY + tgx101PaddingShift);
-    if (!floatingInput) tgx101ApplyClassicListRoom();
     bottomShadowView.setTranslationY(y + offset + keyboardOffset + tgx101FieldShift() + tgx101TopReveal);
     if (replyBarView != null) {
       replyBarView.setTranslationY(y + keyboardOffset + tgx101FieldShift() + tgx101TopReveal);
-      if (floatingInput) {
+      if (floatingLook) {
         // TGx101: hidden behind the see-through capsule while there's no reply (it would show through)
         replyBarView.setAlpha(MathUtils.clamp(-y / (float) Screen.dp(48f)));
         if (bottomWrap != null) {
@@ -11643,45 +11609,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void tgx101ApplyFieldShift () {
     if (bottomWrap != null) bottomWrap.setTranslationY(tgx101EmojiTranslation + tgx101FieldShift());
-    tgx101ApplyClassicListRoom();
     updateReplyView();
     if (bottomWrap != null) updateButtonsY();
     if (tgx101FieldShift() == 0f) {
       org.thunderdog.challegram.Tgx101Diag.mark("chat motion: field in place (top " + (bottomWrap != null ? bottomWrap.getTop() : -1) + ", translation " + (bottomWrap != null ? bottomWrap.getTranslationY() : 0) + ")");
-    }
-  }
-
-  /** The reply bar and attached files above the classic field: the list ends at their drawn top */
-  private int tgx101ClassicBarsRoom () {
-    return Math.round(getReplyOffset() + getAttachedFilesOffset());
-  }
-
-  /** (user video 2026-10-24 15:23): a finger on the list and no ride going — the list's bottom must be at the field */
-  private void tgx101CheckClassicRoom () {
-    if (floatingInput || messagesView == null || !(messagesView.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) return;
-    if (tgx101ImeRiding || (tgx101RevealAnimator != null && tgx101RevealAnimator.isRunning())) return;
-    ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) messagesView.getLayoutParams();
-    if (lp.bottomMargin != tgx101ClassicBarsRoom() || tgx101ImeShift != 0f || tgx101TopReveal != 0f) {
-      org.thunderdog.challegram.Tgx101Diag.mark("chat motion: classic room left at " + lp.bottomMargin + " (ime " + tgx101ImeShift + ", reveal " + tgx101TopReveal + ") — put back");
-      tgx101ImeShift = 0f;
-      tgx101TopReveal = 0f;
-      if (inputView != null) inputView.tgx101SetContentShift(0f);
-      tgx101ApplyFieldShift();
-      if (bottomWrap != null) bottomWrap.invalidate();
-    }
-  }
-
-  private void tgx101ApplyClassicListRoom () {
-    if (!floatingInput && messagesView != null && messagesView.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
-      // TGx101 (user 2026-10-24 «чат подъезжает резко»): the classic list stands above the field — the window is already laid
-      // out for the keyboard's end (or the field for its new height), so the list reaches down to where the field's top is
-      // drawn (it keeps the messages at its bottom) and follows it every frame, instead of jumping at once
-      ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) messagesView.getLayoutParams();
-      int margin = tgx101ClassicBarsRoom() - Math.round(tgx101ImeShift + tgx101TopReveal);
-      if (lp.bottomMargin != margin) {
-        lp.bottomMargin = margin;
-        messagesView.setLayoutParams(lp);
-      }
     }
   }
 
@@ -11732,7 +11663,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     updateReplyView();
     updateFloatingListPadding();
-    tgx101ApplyClassicListRoom();
   }
 
   /** The field's own height changed by {@code delta} (a new line, attachments, reply…): its top glides there */
@@ -11820,14 +11750,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // TGx101 (user 2026-10-07 19:05, mockup «Поле-ввода-углы» variant В): corners like a message bubble (18), 65 % over a blur of
   // what's under the field on Android 12+; without the blur (older Android) the text under it would show through, so 90 % there
   private static final float FLOATING_INPUT_ALPHA_BLUR = .65f, FLOATING_INPUT_ALPHA_NO_BLUR = .9f, FLOATING_INPUT_BLUR_DP = 14f;
-  private boolean floatingInput;
+  private boolean floatingInput, floatingLook;
   /** TGx101: the menu → field transition snapshot draws the field's contents without its capsule */
   public boolean tgx101NoFieldShape;
 
   /** The floating field (with the reply bar) for the menu → field transition, or null */
   @Override
   public @Nullable View tgx101BottomCapsule () {
-    return floatingInput && bottomWrap != null && bottomWrap.getVisibility() == View.VISIBLE && !emojiShown && !commandsShown ? bottomWrap : null;
+    return floatingLook && bottomWrap != null && bottomWrap.getVisibility() == View.VISIBLE && !emojiShown && !commandsShown ? bottomWrap : null;
   }
 
   /** TGx101: the recording bar takes the floating field's shape (mockup «Запись-голосового» 1) */
@@ -11857,6 +11787,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   public boolean tgx101FloatingInput () {
     return floatingInput;
+  }
+
+  /** the capsule look (not the docked panel) — both run on the one engine */
+  public boolean tgx101FloatingLook () {
+    return floatingLook;
   }
 
   private boolean tgx101ShrinkPending, tgx101ShrinkConfirmed;
@@ -12360,7 +12295,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (Settings.instance().needBottomGap() && !emojiShown && !commandsShown && extraBottomInset <= extraBottomInsetWithoutIme) {
         height += Settings.instance().tgx101BottomGap(extraBottomInset);
       }
-      if (floatingInput && !commandsShown) {
+      if (floatingLook && !commandsShown) {
         // TGx101: the capsule floats above the edge (or the keyboard). Above the emoji panel too (user's video
         // 2026-10-13 12:02 «сдвиг чата при нажатии на смайлы»): without this gap the field and the chat dropped 9 dp on
         // every switch keyboard ↔ emoji — the panel is as tall as the keyboard, the gap above it must match as well
@@ -16731,7 +16666,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           }
         }
       };
-      if (floatingInput) { // user 2026-10-07 11:47 «А должно быть так»: the attached file is one capsule with the input, like a reply
+      if (floatingLook) { // user 2026-10-07 11:47 «А должно быть так»: the attached file is one capsule with the input, like a reply
         attachedFiles.tgx101SetCapsule(Screen.dp(FLOATING_INPUT_SIDE), Screen.dp(FLOATING_INPUT_RADIUS));
       }
       attachedFilesAnimator = new CustomItemAnimator(AnimatorUtils.DECELERATE_INTERPOLATOR, 150L);
