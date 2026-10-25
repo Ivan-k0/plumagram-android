@@ -11298,7 +11298,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     TdApi.LinkPreviewOptions linkPreviewOptions = findTargetContext().takeOutputLinkPreviewOptions(true);
     if (close) {
       findTargetContext().reset();
-      updateReplyBarVisibility(false);
+      // TGx101 (user 2026-10-25 «при ответе чаты прыгают», black box 21:14:25): on sending, the reply bar's slide away
+      // (obtainReplyTo) was cut to one frame here — the chat dropped by the bar's height and glided back up with the message
+      updateReplyBarVisibility(true);
     }
     return linkPreviewOptions;
   }
