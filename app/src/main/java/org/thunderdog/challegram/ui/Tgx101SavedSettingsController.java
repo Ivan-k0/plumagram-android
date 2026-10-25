@@ -71,6 +71,8 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
           view.setData(Lang.getString(s.folderView == Tgx101SavedStore.VIEW_TILES ? R.string.Tgx101SavedFolderViewTiles : s.folderView == Tgx101SavedStore.VIEW_MOSAIC ? R.string.Tgx101SavedFolderViewMosaic : R.string.Tgx101SavedFolderViewCapsules));
         } else if (id == R.id.btn_tgx101StorageRow) {
           view.getToggler().setRadioEnabled(org.thunderdog.challegram.unsorted.Settings.instance().tgx101StorageRow(), isUpdate);
+        } else if (id == R.id.btn_tgx101SwipeToStorage) {
+          view.getToggler().setRadioEnabled(org.thunderdog.challegram.unsorted.Settings.instance().tgx101SwipeToStorage(), isUpdate);
         } else if (id == R.id.btn_tgx101AiAutoTags) {
           view.getToggler().setRadioEnabled(org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiAutoTags(), isUpdate);
         } else if (id == R.id.btn_tgx101SavedStorageOn) {
@@ -100,6 +102,8 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiAutoTags, 0, R.string.Tgx101AiAutoTags));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101StorageRow, 0, R.string.Tgx101StorageRowSetting));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SwipeToStorage, 0, R.string.Tgx101SwipeToStorage)); // (user 2026-10-24 21:26)
     if (Tgx101SavedStore.get(tdlib).hasHiddenRows()) {
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
       items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101StorageRowShowAll, 0, R.string.Tgx101StorageRowShowAll));
@@ -176,6 +180,8 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
         });
     } else if (id == R.id.btn_tgx101StorageRow) {
       org.thunderdog.challegram.unsorted.Settings.instance().setTgx101StorageRow(adapter.toggleView(v));
+    } else if (id == R.id.btn_tgx101SwipeToStorage) {
+      org.thunderdog.challegram.unsorted.Settings.instance().setTgx101SwipeToStorage(adapter.toggleView(v));
     } else if (id == R.id.btn_tgx101StorageRowShowAll) {
       Tgx101SavedStore.get(tdlib).showRowEverywhere();
       org.thunderdog.challegram.tool.UI.showToast(R.string.Done, android.widget.Toast.LENGTH_SHORT);

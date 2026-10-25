@@ -339,6 +339,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideSponsored(), isUpdate);
         } else if (itemId == R.id.btn_tgx101Bird) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101Bird(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101SwipeToStorage) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101SwipeToStorage(), isUpdate);
         } else if (itemId == R.id.btn_tgx101BirdRing) {
           view.setData(Tgx101GesturesController.birdRingValue());
         } else if (itemId == R.id.btn_tgx101Peek) {
@@ -609,6 +611,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101Bird, 0, R.string.Tgx101Bird),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101BirdRing, 0, R.string.Tgx101BirdRing),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        // (user 2026-10-24 21:26, 4PDA nyan_ame «как отключить попадание в хранилище свайпом»): it was only under message gestures
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SwipeToStorage, 0, R.string.Tgx101SwipeToStorage),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
 
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101CapsuleTabs, 0, R.string.Tgx101CapsuleTabs),
@@ -1080,7 +1085,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     // things together; filters with the messages; quick calls with the calls
     if (id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101CapsuleTabs || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101ContactsMenu
       || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101CapsuleScrollHide
-      || id == R.id.btn_tgx101Bird || id == R.id.btn_tgx101BirdRing || id == R.id.btn_tgx101SolidControls) return TGX101_SECTION_NAV;
+      || id == R.id.btn_tgx101Bird || id == R.id.btn_tgx101BirdRing || id == R.id.btn_tgx101SwipeToStorage || id == R.id.btn_tgx101SolidControls) return TGX101_SECTION_NAV;
     if (id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap || id == R.id.btn_tgx101SwipeKeyboard || id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands
       || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101TextEditor) return TGX101_SECTION_INPUT;
     if (id == R.id.btn_tgx101QuickCalls) return 7;
@@ -1423,6 +1428,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101HideInputCommands(toggleResult);
     } else if (id == R.id.btn_tgx101Bird) {
       Settings.instance().setTgx101Bird(toggleResult);
+    } else if (id == R.id.btn_tgx101SwipeToStorage) {
+      Settings.instance().setTgx101SwipeToStorage(toggleResult);
     } else if (id == R.id.btn_tgx101BirdRing) {
       Tgx101GesturesController.chooseBirdRing(this, () -> adapter.updateValuedSettingById(R.id.btn_tgx101BirdRing));
     } else if (id == R.id.btn_tgx101NoAnimation) {
