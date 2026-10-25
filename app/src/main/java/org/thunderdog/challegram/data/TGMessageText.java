@@ -292,6 +292,12 @@ public class TGMessageText extends TGMessage {
           .setClickCallback(clickCallback());
       }
       wrapper.addTextFlags(Text.FLAG_BIG_EMOJI);
+      if (tgx101CanSummarize()) {
+        // TGx101 (user 2026-10-25, mockup «К1» for every bubble): «Кратко» sits inside the bubble at the top right, the
+        // first line ends before it — above the text it went out of a headerless post and onto a discussion's channel icon
+        final int room = Screen.dp(TGX101_SHORT_SIZE + 6f);
+        wrapper.setLineWidthProvider((lineIndex, y, defaultMaxWidth, lineHeight) -> y < Screen.dp(TGX101_SHORT_SIZE) ? defaultMaxWidth - room : defaultMaxWidth);
+      }
       if (useBubbles()) {
         wrapper.addTextFlags(Text.FLAG_ADJUST_TO_CURRENT_WIDTH);
       }
@@ -609,6 +615,7 @@ public class TGMessageText extends TGMessage {
 
   // TGx101 (user 2026-10-21 «кнопку вверху справа, как в оффе, чтобы не листать до конца», mockup «Кратко-значки» 1 —
   // «сжатие»): a small circle at the post's top right, in the line of its header; lit while the summary is shown
+  private static final float TGX101_SHORT_SIZE = 24f;
   private final android.graphics.RectF tgx101ShortRect = new android.graphics.RectF();
   private boolean tgx101ShortPressed;
 
@@ -617,8 +624,8 @@ public class TGMessageText extends TGMessage {
       tgx101ShortRect.setEmpty();
       return;
     }
-    float size = Screen.dp(28f);
-    float right = startX + maxWidth, top = Math.max(0, startY - size - Screen.dp(2f));
+    float size = Screen.dp(TGX101_SHORT_SIZE);
+    float right = startX + maxWidth, top = startY;
     tgx101ShortRect.set(right - size, top, right, top + size);
     int accent = Theme.getColor(ColorId.textLink);
     boolean lit = tgx101SummaryShown || tgx101ShortPressed;

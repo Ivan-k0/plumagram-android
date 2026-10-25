@@ -478,7 +478,17 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
       }
       tgx101WashPath.reset();
       tgx101WashPath.addRoundRect(rectF, tgx101Radii, android.graphics.Path.Direction.CW);
-      c.drawPath(tgx101WashPath, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(.12f, lineColor)));
+      // (user 2026-10-25, mockup «Ц»: «заливка 12 %, тает слева направо»)
+      float fadeFrom = rtl ? rectF.right : rectF.left, fadeTo = rtl ? rectF.right - rectF.width() * .85f : rectF.left + rectF.width() * .85f;
+      if (tgx101Fade == null || tgx101FadeColor != lineColor || tgx101FadeFrom != fadeFrom || tgx101FadeTo != fadeTo) {
+        tgx101FadeColor = lineColor;
+        tgx101FadeFrom = fadeFrom;
+        tgx101FadeTo = fadeTo;
+        tgx101Fade = new android.graphics.LinearGradient(fadeFrom, 0, fadeTo, 0, me.vkryl.core.ColorUtils.alphaColor(.12f, lineColor),
+          me.vkryl.core.ColorUtils.alphaColor(0f, lineColor), android.graphics.Shader.TileMode.CLAMP);
+      }
+      tgx101FadePaint.setShader(tgx101Fade);
+      c.drawPath(tgx101WashPath, tgx101FadePaint);
     }
 
     if (cornerDrawable != null) {
@@ -533,13 +543,15 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
         trimmedContent.draw(c, startX + textLeft, startX + textLeft + trimmedContent.getWidth(), 0, startY + Screen.dp(22f), null, 1f, textMediaReceiver);
       }
 
-      final int inset = tgx101Washed ? Screen.dp(5f) : 0, shift = tgx101Washed ? Screen.dp(3f) : 0;
+      // (user 2026-10-25, mockup «Ц»): a 1.5 dp line on the wash's edge, running 3 dp past its top and bottom
+      final float drawnLine = Screen.dp(1.5f);
+      final int over = tgx101Washed ? Screen.dp(3f) : 0;
       if (rtl) {
-        rectF.set(endX - lineWidth - shift, startY + inset, endX - shift, startY + mHeight - inset);
+        rectF.set(endX - drawnLine, startY - over, endX, startY + mHeight + over);
       } else {
-        rectF.set(startX + shift, startY + inset, startX + shift + lineWidth, startY + mHeight - inset);
+        rectF.set(startX, startY - over, startX + drawnLine, startY + mHeight + over);
       }
-      c.drawRoundRect(rectF, lineWidth / 2f, lineWidth / 2f, Paints.fillingPaint(lineColor));
+      c.drawRoundRect(rectF, drawnLine / 2f, drawnLine / 2f, Paints.fillingPaint(lineColor));
 
       return;
     }
@@ -1219,6 +1231,10 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
   }
 
   private static int lineWidth;
+  private android.graphics.Shader tgx101Fade;
+  private int tgx101FadeColor;
+  private float tgx101FadeFrom, tgx101FadeTo;
+  private final android.graphics.Paint tgx101FadePaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
   private static int height;
   private static int paddingLeft;
 

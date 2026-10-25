@@ -55,6 +55,10 @@ public class QuoteBackground {
   public @Nullable android.animation.ValueAnimator tgx101Animator;
   public @Nullable String tgx101Key;
   private static Drawable tgx101ArrowDown, tgx101ArrowUp;
+  private android.graphics.Shader tgx101Fade;
+  private int tgx101FadeColor;
+  private float tgx101FadeLeft, tgx101FadeRight;
+  private final Paint tgx101FadePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
   private int topAddition;
   private int bottomAddition;
@@ -151,7 +155,16 @@ public class QuoteBackground {
     tgx101Radii[0] = tgx101Radii[1] = tgx101Radii[6] = tgx101Radii[7] = Screen.dp(1.5f);
     tgx101Radii[2] = tgx101Radii[3] = tgx101Radii[4] = tgx101Radii[5] = Screen.dp(8f);
     tgx101Path.addRoundRect(bounds, tgx101Radii, android.graphics.Path.Direction.CW);
-    c.drawPath(tgx101Path, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(.1f, lineColor)));
+    // (user 2026-10-25, mockup «Ц»: «заливка 12 %, тает слева направо»): the wash fades out towards the right edge
+    if (tgx101Fade == null || tgx101FadeColor != lineColor || tgx101FadeLeft != bounds.left || tgx101FadeRight != bounds.right) {
+      tgx101FadeColor = lineColor;
+      tgx101FadeLeft = bounds.left;
+      tgx101FadeRight = bounds.right;
+      tgx101Fade = new android.graphics.LinearGradient(bounds.left, 0, bounds.left + (bounds.right - bounds.left) * .85f, 0,
+        me.vkryl.core.ColorUtils.alphaColor(.12f, lineColor), me.vkryl.core.ColorUtils.alphaColor(0f, lineColor), android.graphics.Shader.TileMode.CLAMP);
+    }
+    tgx101FadePaint.setShader(tgx101Fade);
+    c.drawPath(tgx101Path, tgx101FadePaint);
 
     ripple.setBounds((int) bounds.left, (int) bounds.top, (int) bounds.right, (int) bounds.bottom);
     ripple.setRadius(Screen.dp(1.5f), Screen.dp(8f), Screen.dp(8f), Screen.dp(1.5f));
@@ -169,8 +182,11 @@ public class QuoteBackground {
       Drawables.draw(c, arrow, bounds.right - Screen.dp(23), bounds.bottom - Screen.dp(22), PorterDuffPaint.get(lineColorId));
     }
 
+    // (mockup «Ц»): a 1.5 dp line that runs 3 dp past the quote's top and bottom
     tmpRect.set(bounds);
-    tmpRect.right = bounds.left + Screen.dp(3);
-    c.drawRoundRect(tmpRect, Screen.dp(1.5f), Screen.dp(1.5f), Paints.fillingPaint(lineColor));
+    tmpRect.right = bounds.left + Screen.dp(1.5f);
+    tmpRect.top -= Screen.dp(3f);
+    tmpRect.bottom += Screen.dp(3f);
+    c.drawRoundRect(tmpRect, Screen.dp(.75f), Screen.dp(.75f), Paints.fillingPaint(lineColor));
   }
 }
