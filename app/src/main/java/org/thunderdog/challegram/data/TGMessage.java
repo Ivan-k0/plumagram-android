@@ -2615,9 +2615,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         }
       }
 
-      int lineWidth = Screen.dp(3f);
-      int lineLeft = getForwardLeft();
-      int lineRight = lineLeft + lineWidth;
+      // TGx101 (user 2026-10-25 «когда "от Сергея" полоска тоже тонкая, 1,5»): as thin as the quote and reply lines
+      float lineWidth = Screen.dp(1.5f);
+      float lineLeft = getForwardLeft();
+      float lineRight = lineLeft + lineWidth;
 
       RectF rectF = Paints.getRectF();
       rectF.set(lineLeft, lineTop, lineRight, lineBottom);

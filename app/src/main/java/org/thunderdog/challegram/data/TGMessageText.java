@@ -615,7 +615,7 @@ public class TGMessageText extends TGMessage {
 
   // TGx101 (user 2026-10-21 «кнопку вверху справа, как в оффе, чтобы не листать до конца», mockup «Кратко-значки» 1 —
   // «сжатие»): a small circle at the post's top right, in the line of its header; lit while the summary is shown
-  private static final float TGX101_SHORT_SIZE = 24f;
+  private static final float TGX101_SHORT_SIZE = 30f; // (user 2026-10-25 «иконка "кратко" маловата»: was 24)
   private final android.graphics.RectF tgx101ShortRect = new android.graphics.RectF();
   private boolean tgx101ShortPressed;
 
@@ -633,7 +633,7 @@ public class TGMessageText extends TGMessage {
     c.drawCircle(tgx101ShortRect.centerX(), tgx101ShortRect.centerY(), size / 2f, fill);
     android.graphics.Paint line = Paints.getProgressPaint(lit ? 0xffffffff : accent, Screen.dp(1.6f));
     // (user 2026-10-25, mockup «И2»): a magic wand over two short lines; the icon is drawn on a 24-unit grid
-    float u = size * .7f / 24f, ox = tgx101ShortRect.centerX() - 12 * u, oy = tgx101ShortRect.centerY() - 12 * u;
+    float u = size * .78f / 24f, ox = tgx101ShortRect.centerX() - 12 * u, oy = tgx101ShortRect.centerY() - 12 * u;
     android.graphics.Paint thin = Paints.getProgressPaint(lit ? 0xffffffff : accent, 2f * u);
     c.drawLine(ox + 4 * u, oy + 15 * u, ox + 13 * u, oy + 15 * u, thin);
     c.drawLine(ox + 4 * u, oy + 19 * u, ox + 10 * u, oy + 19 * u, thin);
