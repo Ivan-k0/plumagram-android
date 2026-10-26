@@ -102,6 +102,14 @@ public final class Tgx101Bird {
 
   /** put once into the window's content, right above the navigation */
   public static void install (BaseActivity context, android.view.ViewGroup content, android.view.View navigation) {
+    try {
+      installImpl(context, content, navigation);
+    } catch (Throwable t) {
+      org.thunderdog.challegram.Tgx101Diag.mark("bird: install failed " + t);
+    }
+  }
+
+  private static void installImpl (BaseActivity context, android.view.ViewGroup content, android.view.View navigation) {
     Tgx101BirdView bird = new Tgx101BirdView(context);
     bird.setItems(items());
     bird.setActive(false);
@@ -131,6 +139,15 @@ public final class Tgx101Bird {
 
   /** a screen of the window's stack is about to show or got the focus: the bird stays, goes or comes */
   public static void sync (ViewController<?> c) {
+    // called from every screen's focus: whatever goes wrong here must not take the screen down (release safety, 26.10)
+    try {
+      syncImpl(c);
+    } catch (Throwable t) {
+      org.thunderdog.challegram.Tgx101Diag.mark("bird: sync failed " + t);
+    }
+  }
+
+  private static void syncImpl (ViewController<?> c) {
     BaseActivity context = c.context();
     Tgx101BirdView bird = birds.get(context);
     if (bird == null || context.navigation() == null || context.navigation().getStack().indexOf(c) < 0) return;
