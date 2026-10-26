@@ -280,7 +280,15 @@ public final class Tgx101Updates {
     setState(STATE_CHECKING);
     new Thread(() -> {
       try {
-        Release r = fetch(app);
+        Release r;
+        try {
+          r = fetch(app);
+        } catch (Throwable github) {
+          // TGx101 (4PDA, Android 4.3: GitHub can't be reached even with TLS 1.2): the release is also posted to the
+          // @plumagram channel — look there through Telegram itself
+          Tgx101Diag.mark("update: GitHub failed (" + github.getClass().getSimpleName() + "), trying the channel");
+          r = fetchFromChannel(app);
+        }
         if (r != null) {
           boolean same = release != null && release.version.equals(r.version) && before == STATE_READY;
           release = r;
@@ -353,6 +361,61 @@ public final class Tgx101Updates {
     return null;
   }
 
+  private static final String CHANNEL_USERNAME = "plumagram", CHANNEL_SCHEME = "tg-channel:";
+
+  private static Object tdSync (org.thunderdog.challegram.telegram.Tdlib tdlib, org.drinkless.tdlib.TdApi.Function<?> f, long timeoutMs) throws Exception {
+    final Object[] out = new Object[1];
+    final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+    tdlib.client().send(f, object -> {
+      out[0] = object;
+      latch.countDown();
+    });
+    if (!latch.await(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)) throw new IllegalStateException("timeout");
+    if (out[0] instanceof org.drinkless.tdlib.TdApi.Error) throw new IllegalStateException(((org.drinkless.tdlib.TdApi.Error) out[0]).message);
+    return out[0];
+  }
+
+  /** The newest file for this build variant among the channel's documents, if it's newer than this build */
+  private static @Nullable Release fetchFromChannel (Context context) throws Exception {
+    org.thunderdog.challegram.telegram.Tdlib tdlib = org.thunderdog.challegram.telegram.TdlibManager.instance().current();
+    org.drinkless.tdlib.TdApi.Chat chat = (org.drinkless.tdlib.TdApi.Chat) tdSync(tdlib, new org.drinkless.tdlib.TdApi.SearchPublicChat(CHANNEL_USERNAME), 20_000);
+    String suffix = assetSuffix();
+    org.drinkless.tdlib.TdApi.FoundChatMessages found = (org.drinkless.tdlib.TdApi.FoundChatMessages) tdSync(tdlib,
+      new org.drinkless.tdlib.TdApi.SearchChatMessages(chat.id, null, "", null, 0, 0, 50, new org.drinkless.tdlib.TdApi.SearchMessagesFilterDocument()), 20_000);
+    prefs(context).edit().putLong(KEY_LAST_CHECK, System.currentTimeMillis()).apply();
+    for (org.drinkless.tdlib.TdApi.Message m : found.messages) {
+      if (!(m.content instanceof org.drinkless.tdlib.TdApi.MessageDocument)) continue;
+      org.drinkless.tdlib.TdApi.Document doc = ((org.drinkless.tdlib.TdApi.MessageDocument) m.content).document;
+      String name = doc.fileName != null ? doc.fileName : "";
+      if (!name.endsWith(suffix) || (!BuildConfig.TGX101_TEST && name.contains("-T-"))) continue;
+      int[] v = parse(name);
+      if (v == null) continue;
+      String version = v[0] + "." + v[1] + "." + v[2];
+      if (!isNewer(version)) return null; // newest first: nothing newer
+      Tgx101Diag.mark("update: " + version + " found in the channel, " + name);
+      return new Release(version, CHANNEL_SCHEME + m.chatId + ":" + m.id, name, doc.document.size, "https://t.me/" + CHANNEL_USERNAME + "/" + (m.id >> 20), "");
+    }
+    return null;
+  }
+
+  /** Downloads a channel-posted APK through TDLib into {@code part} */
+  private static void downloadFromChannel (Release r, File part) throws Exception {
+    String[] ids = r.apkUrl.substring(CHANNEL_SCHEME.length()).split(":");
+    org.thunderdog.challegram.telegram.Tdlib tdlib = org.thunderdog.challegram.telegram.TdlibManager.instance().current();
+    org.drinkless.tdlib.TdApi.Message m = (org.drinkless.tdlib.TdApi.Message) tdSync(tdlib, new org.drinkless.tdlib.TdApi.GetMessage(Long.parseLong(ids[0]), Long.parseLong(ids[1])), 20_000);
+    org.drinkless.tdlib.TdApi.File file = ((org.drinkless.tdlib.TdApi.MessageDocument) m.content).document.document;
+    file = (org.drinkless.tdlib.TdApi.File) tdSync(tdlib, new org.drinkless.tdlib.TdApi.DownloadFile(file.id, 32, 0, 0, true), 30 * 60_000);
+    if (!file.local.isDownloadingCompleted) throw new IllegalStateException("not downloaded");
+    try (InputStream in = new java.io.FileInputStream(file.local.path); OutputStream out = new FileOutputStream(part)) {
+      byte[] buf = new byte[64 * 1024];
+      int n;
+      while ((n = in.read(buf)) != -1) {
+        out.write(buf, 0, n);
+        downloaded += n;
+      }
+    }
+  }
+
   /** Release asset names, see scripts/tgx101/build-public.sh and build-test.sh */
   private static String assetSuffix () {
     if (BuildConfig.TGX101_TEST) {
@@ -420,6 +483,9 @@ public final class Tgx101Updates {
         File dir = target.getParentFile();
         if (dir != null && !dir.exists() && !dir.mkdirs()) throw new IllegalStateException("no dir");
         clearDownloads(app, null);
+        if (r.apkUrl.startsWith(CHANNEL_SCHEME)) {
+          downloadFromChannel(r, part);
+        } else {
         HttpURLConnection c = (HttpURLConnection) new URL(r.apkUrl).openConnection();
         Tgx101Tls.apply(c);
         c.setInstanceFollowRedirects(true);
@@ -444,6 +510,7 @@ public final class Tgx101Updates {
           }
         } finally {
           c.disconnect();
+        }
         }
         if (r.size > 0 && part.length() != r.size) throw new IllegalStateException("size " + part.length() + " != " + r.size);
         if (!part.renameTo(target)) throw new IllegalStateException("rename");

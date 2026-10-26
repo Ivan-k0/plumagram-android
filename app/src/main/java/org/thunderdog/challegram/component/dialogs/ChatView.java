@@ -863,8 +863,12 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
       final int tx = titleX;
       int peek = org.thunderdog.challegram.data.Tgx101Peek.strengthFor(chat.getChatId(), org.thunderdog.challegram.data.Tgx101Peek.PART_TITLE);
       int spread = Screen.dp(6f);
-      tgx101PeekTitle.draw(c, tx - spread, titleTop - spread, tx + title.getWidth() + spread, titleTop + title.getHeight() + spread, peek, cc -> title.draw(cc, tx, titleTop),
-        cc -> tgx101Plate(cc, tx, titleTop, tx + title.getWidth(), title.getHeight()));
+      if (peek <= 0) {
+        title.draw(c, tx, titleTop); // TGx101 (Android 4 GC logs): no lambdas per row per frame when nothing is hidden
+      } else {
+        tgx101PeekTitle.draw(c, tx - spread, titleTop - spread, tx + title.getWidth() + spread, titleTop + title.getHeight() + spread, peek, cc -> title.draw(cc, tx, titleTop),
+          cc -> tgx101Plate(cc, tx, titleTop, tx + title.getWidth(), title.getHeight()));
+      }
     }
 
     EmojiStatusHelper.EmojiStatusDrawable emojiStatus = chat.getEmojiStatus();
@@ -936,13 +940,24 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
     counterRight -= reactionCounter.getScaledWidth(getTimePaddingLeft());
 
     int peekText = org.thunderdog.challegram.data.Tgx101Peek.strengthFor(chat.getChatId(), org.thunderdog.challegram.data.Tgx101Peek.PART_TEXT);
-    tgx101PeekText.draw(c, getLeftPadding(chatListMode) - Screen.dp(8f), getTextTop(chatListMode) - Screen.dp(8f), viewWidth, getMeasuredHeight(), peekText, cc -> tgx101DrawText(cc, chatListMode, rtl, viewWidth),
-      cc -> tgx101DrawTextPlates(cc, chatListMode));
+    if (peekText <= 0) {
+      tgx101DrawText(c, chatListMode, rtl, viewWidth);
+    } else {
+      tgx101PeekText.draw(c, getLeftPadding(chatListMode) - Screen.dp(8f), getTextTop(chatListMode) - Screen.dp(8f), viewWidth, getMeasuredHeight(), peekText, cc -> tgx101DrawText(cc, chatListMode, rtl, viewWidth),
+        cc -> tgx101DrawTextPlates(cc, chatListMode));
+    }
 
     int peekAvatar = org.thunderdog.challegram.data.Tgx101Peek.strengthFor(chat.getChatId(), org.thunderdog.challegram.data.Tgx101Peek.PART_AVATAR);
     avatarReceiver.forceAllowOnline(!isSelected.getValue(), 1f - isSelected.getFloatValue());
     layoutReceiver();
     int spread = Screen.dp(10f);
+    if (peekAvatar <= 0) {
+      if (avatarReceiver.needPlaceholder()) {
+        avatarReceiver.drawPlaceholder(c);
+      }
+      avatarReceiver.draw(c);
+      tgx101DrawStoryRing(c);
+    } else
     tgx101PeekAvatar.draw(c, avatarReceiver.getLeft() - spread, avatarReceiver.getTop() - spread, avatarReceiver.getRight() + spread, avatarReceiver.getBottom() + spread, peekAvatar, cc -> {
       if (avatarReceiver.needPlaceholder()) {
         avatarReceiver.drawPlaceholder(cc);
