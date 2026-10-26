@@ -302,7 +302,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       if (controller.preventRootInteractions()) {
         rootView.addView(controller.getValue(), 0);
       } else {
-        rootView.addView(controller.getValue(), rootView.getChildCount() - 2);
+        rootView.addView(controller.getValue(), rootView.indexOfChild(headerView)); // TGx101 (user 2026-10-26 «нет кнопки ⋮ в плеере»): right under the header — «two from the end» put the player over it once tgx101Morph came after the header
       }
     } else {
       contentWrapper.addView(controller.getValue());
@@ -760,7 +760,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   private void applyPopupMode (ViewController<?> current) {
     if (!current.preventRootInteractions()) {
       rootView.removeView(current.getValue());
-      rootView.addView(current.getValue(), rootView.getChildCount() - 2);
+      rootView.addView(current.getValue(), rootView.indexOfChild(headerView));
     }
     headerView.getFilling().setCollapsed(true);
   }
