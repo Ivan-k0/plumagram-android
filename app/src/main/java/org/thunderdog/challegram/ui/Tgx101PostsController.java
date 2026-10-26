@@ -171,12 +171,21 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
   }
 
   // (user 2026-10-26 «свайп в публикациях должен переключать папки; назад — только на первой»)
-  private void swipeAlbum (int dir) {
-    if (getArgumentsStrict().archive || albums.isEmpty()) return;
-    int index = 0;
-    for (int i = 0; i < albums.size(); i++) if (albums.get(i).id == albumId) index = i + 1;
-    int next = Math.max(0, Math.min(albums.size(), index + dir));
-    if (next != index) selectAlbum(next == 0 ? 0 : albums.get(next - 1).id);
+  private int albumPosition () {
+    return albumIndex(albumId);
+  }
+
+  private int albumAt (int position) {
+    return position <= 0 || position > albums.size() ? 0 : albums.get(position - 1).id;
+  }
+
+  private boolean hasAlbum (int dir) {
+    int next = albumPosition() + dir;
+    return next >= 0 && next <= albums.size();
+  }
+
+  private boolean canSwipeAlbums (int dir) {
+    return !getArgumentsStrict().archive && !albums.isEmpty() && !(dir == -1 && albumId == 0);
   }
 
   @Override
@@ -202,36 +211,7 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
     chipScroll.setVisibility(View.GONE);
     column.addView(chipScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-    RecyclerView list = new RecyclerView(context) {
-      private float downX, downY;
-      private boolean swiped;
-
-      @Override
-      public boolean onInterceptTouchEvent (android.view.MotionEvent e) {
-        if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) {
-          downX = e.getX();
-          downY = e.getY();
-          swiped = false;
-        } else if (e.getActionMasked() == android.view.MotionEvent.ACTION_MOVE && !swiped) {
-          float dx = e.getX() - downX, dy = e.getY() - downY;
-          if (Math.abs(dx) > Screen.dp(48f) && Math.abs(dx) > Math.abs(dy) * 2f && !(dx > 0 && albumId == 0)) {
-            swiped = true;
-            swipeAlbum(dx < 0 ? 1 : -1);
-            return true;
-          }
-        }
-        return super.onInterceptTouchEvent(e);
-      }
-
-      @Override
-      public boolean onTouchEvent (android.view.MotionEvent e) {
-        if (swiped) {
-          if (e.getActionMasked() == android.view.MotionEvent.ACTION_UP || e.getActionMasked() == android.view.MotionEvent.ACTION_CANCEL) swiped = false;
-          return true;
-        }
-        return super.onTouchEvent(e);
-      }
-    };
+    RecyclerView list = new RecyclerView(context);
     listView = list;
     list.setLayoutManager(new GridLayoutManager(context, 3));
     int gap = Screen.dp(1.5f);
@@ -272,7 +252,80 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
     list.setAdapter(adapter);
     list.setPadding(0, 0, 0, Screen.dp(72f) + MainController.tgx101CapsuleSpace());
     list.setClipToPadding(false);
-    FrameLayout listWrap = new FrameLayout(context);
+    // (user 2026-10-26 «свайп в публикациях работает плохо, а где пусто — не работает вовсе»): the whole area under the
+    // chips takes the sideways swipe, the grid follows the finger and goes on to the next album or springs back
+    FrameLayout listWrap = new FrameLayout(context) {
+      private float downX, downY;
+      private boolean decided, dragging;
+      private @Nullable android.view.VelocityTracker velocity;
+      private final int slop = android.view.ViewConfiguration.get(context).getScaledTouchSlop();
+
+      @Override
+      public boolean dispatchTouchEvent (android.view.MotionEvent e) {
+        switch (e.getActionMasked()) {
+          case android.view.MotionEvent.ACTION_DOWN:
+            downX = e.getX();
+            downY = e.getY();
+            decided = dragging = false;
+            if (velocity != null) velocity.recycle();
+            velocity = android.view.VelocityTracker.obtain();
+            velocity.addMovement(e);
+            super.dispatchTouchEvent(e);
+            return true; // the empty area too
+          case android.view.MotionEvent.ACTION_MOVE: {
+            if (velocity != null) velocity.addMovement(e);
+            float dx = e.getX() - downX, dy = e.getY() - downY;
+            if (!decided && (Math.abs(dx) > slop || Math.abs(dy) > slop)) {
+              decided = true;
+              if (Math.abs(dx) > Math.abs(dy) * 1.2f && canSwipeAlbums(dx < 0 ? 1 : -1)) {
+                dragging = true;
+                downX = e.getX();
+                list.animate().cancel();
+                android.view.MotionEvent cancel = android.view.MotionEvent.obtain(e);
+                cancel.setAction(android.view.MotionEvent.ACTION_CANCEL);
+                super.dispatchTouchEvent(cancel);
+                cancel.recycle();
+                if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+              }
+            }
+            if (dragging) {
+              float t = e.getX() - downX;
+              int dir = t < 0 ? 1 : -1;
+              if (!hasAlbum(dir)) t /= 3f; // the end: it only gives a little
+              if (dir == -1 && albumId == 0) t = 0;
+              list.setTranslationX(t);
+              list.setAlpha(1f - Math.min(1f, Math.abs(t) / getWidth()) * .6f);
+              return true;
+            }
+            break;
+          }
+          case android.view.MotionEvent.ACTION_UP:
+          case android.view.MotionEvent.ACTION_CANCEL: {
+            if (dragging) {
+              dragging = false;
+              float t = list.getTranslationX();
+              float vx = 0;
+              if (velocity != null) {
+                velocity.addMovement(e);
+                velocity.computeCurrentVelocity(1000);
+                vx = velocity.getXVelocity();
+              }
+              int dir = t < 0 ? 1 : -1;
+              boolean go = e.getActionMasked() == android.view.MotionEvent.ACTION_UP && hasAlbum(dir)
+                && (Math.abs(t) > getWidth() * .2f || (Math.abs(vx) > Screen.dp(500f) && Math.signum(vx) == Math.signum(t)));
+              if (go) {
+                switchAlbumAnimated(albumAt(albumPosition() + dir), dir);
+              } else {
+                list.animate().translationX(0f).alpha(1f).setDuration(180).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(null);
+              }
+              return true;
+            }
+            break;
+          }
+        }
+        return super.dispatchTouchEvent(e);
+      }
+    };
     listWrap.addView(list, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     empty = new TextView(context);
     empty.setTextColor(Theme.textDecentColor());
@@ -367,7 +420,10 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
   private void selectAlbum (int id) {
     if (albumId == id) return;
     // (user 2026-10-26 «анимации влево при переключении папок нет»): the grid slides out to the side and the next one in
-    int dir = albumIndex(id) > albumIndex(albumId) ? 1 : -1;
+    switchAlbumAnimated(id, albumIndex(id) > albumIndex(albumId) ? 1 : -1);
+  }
+
+  private void switchAlbumAnimated (int id, int dir) {
     albumId = id;
     buildChips();
     RecyclerView list = listView;
@@ -375,9 +431,12 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
       reload();
       return;
     }
-    float shift = list.getWidth() * .25f;
+    float shift = list.getWidth() * .3f;
     list.animate().cancel();
-    list.animate().translationX(-dir * shift).alpha(0f).setDuration(110).setInterpolator(new android.view.animation.AccelerateInterpolator()).withEndAction(() -> {
+    float from = list.getTranslationX();
+    long outMs = Math.max(60, Math.round(130 * (1f - Math.min(1f, Math.abs(from) / shift))));
+    float out = Math.max(shift, Math.abs(from) + list.getWidth() * .1f); // a dragged grid goes on, never back
+    list.animate().translationX(-dir * out).alpha(0f).setDuration(outMs).setInterpolator(new android.view.animation.AccelerateInterpolator()).withEndAction(() -> {
       reload();
       list.setTranslationX(dir * shift);
       list.animate().translationX(0f).alpha(1f).setDuration(200).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(null);

@@ -270,7 +270,13 @@ public class Tgx101BirdView extends View {
     return getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
   }
 
+  // (user 2026-10-26 «птица не держит расположение, где бы я её ни выставил — везде на этом месте»): every bird (chat
+  // lists, archive, chats) re-reads the place once any of them was moved
+  private static int placeGeneration;
+  private int readGeneration = -1;
+
   private void readPlace () {
+    readGeneration = placeGeneration;
     int value = Settings.instance().tgx101BirdSpot(landscape());
     right = value >= 0;
     fromBottomDp = Math.max(0, Math.abs(value) - 1);
@@ -310,6 +316,7 @@ public class Tgx101BirdView extends View {
   }
 
   private float tabCy () {
+    if (readGeneration != placeGeneration) readPlace();
     float min = minCy(), max = maxCy();
     float cy = fromBottomDp > 0 ? bottomRoom() - Screen.dp(fromBottomDp) : bottomRoom() - Screen.dp(navButtons() ? BUTTON / 2f + 4f : 90f);
     return Math.max(min, Math.min(max, cy));
@@ -333,6 +340,7 @@ public class Tgx101BirdView extends View {
   @Override
   public boolean onTouchEvent (MotionEvent e) {
     if (!isActive()) return false;
+    if (readGeneration != placeGeneration && !moving) readPlace();
     if (forwardTarget != null) {
       forward(forwardTarget, e);
       int action = e.getActionMasked();
@@ -667,6 +675,7 @@ public class Tgx101BirdView extends View {
     float cy = Math.max(min, Math.min(max, y));
     fromBottomDp = Math.max(1, Math.round((bottomRoom() - cy) / Screen.dp(1f)));
     Settings.instance().setTgx101BirdSpot(landscape(), (right ? 1 : -1) * (fromBottomDp + 1));
+    readGeneration = ++placeGeneration;
     if (!Settings.instance().tgx101BirdMoveLearned()) Settings.instance().setTgx101BirdMoveLearned(true);
     liftOpening = false;
     liftAnimStart = SystemClock.uptimeMillis();
@@ -747,6 +756,7 @@ public class Tgx101BirdView extends View {
   @Override
   protected void onDraw (Canvas c) {
     if (!active) return;
+    if (readGeneration != placeGeneration && !moving) readPlace();
     boolean more = step();
     int width = getWidth();
 
