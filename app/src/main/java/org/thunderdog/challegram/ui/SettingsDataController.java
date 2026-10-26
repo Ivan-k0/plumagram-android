@@ -1454,7 +1454,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Tgx101GesturesController.chooseBirdRing(this, () -> adapter.updateValuedSettingById(R.id.btn_tgx101BirdRing));
     } else if (id == R.id.btn_tgx101NoAnimation) {
       Settings.instance().setTgx101NoAnimation(toggleResult);
-      if (toggleResult) Settings.instance().setAutoplayGIFs(false);
+      Settings.instance().setAutoplayGIFs(!toggleResult); // (user 2026-10-26 17:59): animations back on — GIFs play in the chat again
       UI.showToast(R.string.Tgx101NoAnimationHint, android.widget.Toast.LENGTH_LONG);
     } else if (id == R.id.btn_tgx101AiAll) {
       Settings.instance().setTgx101Ai(toggleResult); // user 2026-10-21: all AI things off / on at once

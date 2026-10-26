@@ -2844,8 +2844,19 @@ public class Settings {
   }
 
   public boolean needAutoplayGIFs () {
+    // TGx101 (user 2026-10-26 17:59 «если анимация гиф не отключена, гиф должны проигрываться сразу»): turning «No animation»
+    // on used to switch GIF autoplay off and turning it off didn't bring it back — once, the two are put in agreement
+    if (!tgx101GifAutoplayFixed) {
+      tgx101GifAutoplayFixed = true;
+      if (!pmc.getBoolean("tgx101_gif_autoplay_fix_2026_10_26", false)) {
+        pmc.putBoolean("tgx101_gif_autoplay_fix_2026_10_26", true);
+        if (!tgx101NoAnimation() && !checkSetting(FLAG_OTHER_AUTOPLAY_GIFS)) setAutoplayGIFs(true);
+      }
+    }
     return checkSetting(FLAG_OTHER_AUTOPLAY_GIFS);
   }
+
+  private boolean tgx101GifAutoplayFixed;
 
   public void setAutoplayGIFs (boolean autoplayGIFs) {
     setSetting(FLAG_OTHER_AUTOPLAY_GIFS, autoplayGIFs);
