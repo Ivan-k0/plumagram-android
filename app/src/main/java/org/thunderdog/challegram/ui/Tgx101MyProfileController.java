@@ -91,7 +91,15 @@ public class Tgx101MyProfileController extends ViewController<Void> implements T
     avatar = new AvatarView(context);
     LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(Screen.dp(88f), Screen.dp(88f));
     head.addView(avatar, ap);
-    avatar.setOnClickListener(v -> avatarPicker.showMenuForProfile(null, false));
+    // (user 2026-10-26 «в профиле фото не открывается»): a tap opens the photo; changing it is the «Choose photo» button
+    avatar.setOnClickListener(v -> {
+      TdApi.User me = tdlib.myUser();
+      if (me != null && me.profilePhoto != null) {
+        org.thunderdog.challegram.mediaview.MediaViewController.openFromProfile(this, me, null);
+      } else {
+        avatarPicker.showMenuForProfile(null, false);
+      }
+    });
     name = new TextView(context);
     name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20f);
     name.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
@@ -101,7 +109,8 @@ public class Tgx101MyProfileController extends ViewController<Void> implements T
     head.addView(name, np);
     status = new TextView(context);
     status.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f);
-    head.addView(status);
+    status.setGravity(Gravity.CENTER);
+    head.addView(status, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     LinearLayout buttons = new LinearLayout(context);
     buttons.setOrientation(LinearLayout.HORIZONTAL);
     LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -152,7 +161,8 @@ public class Tgx101MyProfileController extends ViewController<Void> implements T
     t.setTextColor(0xffffffff);
     t.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12f);
     t.setSingleLine(true);
-    b.addView(t);
+    t.setGravity(Gravity.CENTER);
+    b.addView(t, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     b.setOnClickListener(onClick);
     LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
     lp.leftMargin = lp.rightMargin = Screen.dp(4f);

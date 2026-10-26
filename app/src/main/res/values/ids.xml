@@ -100,6 +100,8 @@
   <item type="id" name="more_btn_edit" />
   <item type="id" name="more_btn_delete" />
   <item type="id" name="more_btn_addMember" />
+  <item type="id" name="more_btn_tgx101AddToFolder" />
+  <item type="id" name="more_btn_tgx101Shortcut" />
   <item type="id" name="more_btn_editDescription" />
   <item type="id" name="more_btn_join" />
   <item type="id" name="more_btn_archive" />

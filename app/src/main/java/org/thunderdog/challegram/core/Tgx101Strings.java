@@ -588,6 +588,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ForwardFrom, "от %1$s");
     RU.put(R.string.Tgx101PlayerKeepSpeed, "Запоминать скорость");
     RU.put(R.string.Tgx101SearchSettings, "Поиск по настройкам");
+    RU.put(R.string.Tgx101CreateShortcut, "Создать ярлык");
+    RU.put(R.string.Tgx101ShortcutUnsupported, "Рабочий стол не поддерживает ярлыки");
     RU.put(R.string.Tgx101Account, "Аккаунт");
     RU.put(R.string.Tgx101YourName, "Ваше имя");
     RU.put(R.string.Tgx101AboutYou, "Информация о вас");

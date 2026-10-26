@@ -232,7 +232,7 @@ public class TdlibNotificationUtils {
     return PendingIntent.getActivity(UI.getContext(), 0, forLocalChatId != 0 ? Intents.valueOfLocalChatId(accountId, forLocalChatId, specificMessageId) : Intents.valueOfMain(accountId), PendingIntent.FLAG_ONE_SHOT | Intents.mutabilityFlags(true));
   }
 
-  static Intent newCoreIntent (int accountId, long forLocalChatId, long specificMessageId) {
+  public static Intent newCoreIntent (int accountId, long forLocalChatId, long specificMessageId) { // TGx101: public for the profile shortcut
     return forLocalChatId != 0 ? Intents.valueOfLocalChatId(accountId, forLocalChatId, specificMessageId) : Intents.valueOfMain(accountId);
   }
 

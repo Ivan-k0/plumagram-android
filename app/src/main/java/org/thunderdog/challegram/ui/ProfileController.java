@@ -695,11 +695,35 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       strings.append(R.string.Stats);
     }
 
+    // TGx101 (user 2026-10-26, screenshot 16:33 «пункты для трёх точек в группах»; «не хватает добавить в папку»):
+    // add to a folder and a home-screen shortcut, for groups and channels alike
+    ids.append(R.id.more_btn_tgx101AddToFolder);
+    strings.append(R.string.AddToFolder);
+    ids.append(R.id.more_btn_tgx101Shortcut);
+    strings.append(R.string.Tgx101CreateShortcut);
+
     tdlib.ui().addDeleteChatOptions(getChatId(), ids, strings, false, true);
 
     if (ids.size() > 0) {
       showMore(ids.get(), strings.get(), 0);
     }
+  }
+
+  private void tgx101CreateShortcut () {
+    TdApi.Chat chat = tdlib.chat(getChatId());
+    if (chat == null) return;
+    android.content.Context ctx = context();
+    if (!androidx.core.content.pm.ShortcutManagerCompat.isRequestPinShortcutSupported(ctx)) {
+      UI.showToast(R.string.Tgx101ShortcutUnsupported, android.widget.Toast.LENGTH_SHORT);
+      return;
+    }
+    long localChatId = tdlib.settings().getLocalChatId(chat.id);
+    androidx.core.content.pm.ShortcutInfoCompat shortcut = new androidx.core.content.pm.ShortcutInfoCompat.Builder(ctx, "tgx101_pin_" + tdlib.id() + "_" + localChatId)
+      .setShortLabel(chat.title)
+      .setIntent(org.thunderdog.challegram.telegram.TdlibNotificationUtils.newCoreIntent(tdlib.id(), localChatId, 0))
+      .setIcon(androidx.core.graphics.drawable.IconCompat.createWithResource(ctx, R.mipmap.app_launcher))
+      .build();
+    androidx.core.content.pm.ShortcutManagerCompat.requestPinShortcut(ctx, shortcut, null);
   }
 
   private void openPrivacyExceptions () {
@@ -769,7 +793,11 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       case Mode.SUPERGROUP:
       case Mode.CHANNEL:
       case Mode.GROUP: {
-        if (id == R.id.more_btn_addMember) {
+        if (id == R.id.more_btn_tgx101AddToFolder) {
+          tdlib.ui().showAddChatToFolderOptions(this, getChatId(), null);
+        } else if (id == R.id.more_btn_tgx101Shortcut) {
+          tgx101CreateShortcut();
+        } else if (id == R.id.more_btn_addMember) {
           addMember(null);
         } else if (id == R.id.btn_recentActions) {
           openRecentActions();
@@ -1801,7 +1829,17 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         } else if (itemId == R.id.btn_tgx101PersonalChannel) {
           long pcId = userFull != null ? userFull.personalChatId : 0;
           TdApi.Chat pc = pcId != 0 ? tdlib.chat(pcId) : null;
-          view.setData(pc != null ? pc.title : Lang.getString(R.string.Tgx101PersonalChannelAdd));
+          if (pc == null) {
+            view.setData(Lang.getString(R.string.Tgx101PersonalChannelAdd));
+          } else {
+            // TGx101 (user 2026-10-26 «в моём канале мало информации»): the channel's name and subscribers on top, its
+            // last post under it — as the official app's channel card
+            TdApi.Supergroup sg = ChatId.isSupergroup(pc.id) ? tdlib.cache().supergroup(ChatId.toSupergroupId(pc.id)) : null;
+            String subs = sg != null && sg.memberCount > 0 ? " · " + Lang.plural(R.string.xSubscribers, sg.memberCount) : "";
+            view.setName(pc.title + subs);
+            String last = pc.lastMessage != null ? TD.getTextFromMessage(pc.lastMessage) : null;
+            view.setData(StringUtils.isEmpty(last) ? Lang.getString(R.string.Tgx101PersonalChannel) : last.replace('\n', ' '));
+          }
         } else if (itemId == R.id.btn_tgx101UserNote) {
           String note = userFull != null && userFull.note != null ? userFull.note.text : null;
           view.setData(StringUtils.isEmpty(note) ? Lang.getString(R.string.Tgx101UserNoteAdd) : note);

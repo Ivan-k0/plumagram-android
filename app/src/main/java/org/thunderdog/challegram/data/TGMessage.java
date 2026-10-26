@@ -994,7 +994,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   private int getViewCountMode () {
     if (viewCounter != null) {
       if (useForward() && !msg.isChannelPost && msg.forwardInfo != null && msg.forwardInfo.origin.getConstructor() == TdApi.MessageOriginChannel.CONSTRUCTOR) {
-        return VIEW_COUNT_FORWARD;
+        // TGx101 (user 2026-10-26 «в пересылках не нужно показывать количество пересылок и просмотров, только дату. везде»):
+        // a forwarded post shows only its date — the room goes to the name
+        return VIEW_COUNT_HIDDEN;
       }
       if (useBubbles() || BitwiseUtils.hasFlag(flags, FLAG_HEADER_ENABLED)) {
         return VIEW_COUNT_MAIN;
@@ -2563,6 +2565,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       int forwardTextLeft = getForwardAuthorNameLeft();
 
       int forwardX = forwardTextLeft + (isPsa ? (fPsaTextT != null ? fPsaTextT.getWidth() : 0) : (fAuthorNameT != null ? fAuthorNameT.getWidth() : 0)) + Screen.dp(6f);
+      // TGx101 (user 2026-10-26 «область нажатия на того, на кого ссылаются, мала»): the whole «from … date» line is the target
+      tgx101ForwardZone.set(forwardTextLeft - Screen.dp(12f), forwardTextTop - Screen.dp(22f), forwardX + fTimeWidth + Screen.dp(16f), forwardTextTop + Screen.dp(10f));
       TextPaint mTimePaint = useBubbles ? Paints.colorPaint(mTimeBubble(), getDecentColor()) : mTime(true);
       if (fTime != null) {
         c.drawText(fTime, forwardX, forwardTextTop, mTimePaint);
@@ -3283,6 +3287,36 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   private float mInitialTouchX;
   private float mInitialTouchY;
+  private final android.graphics.RectF tgx101ForwardZone = new android.graphics.RectF();
+  private boolean tgx101ForwardPressed;
+
+  private boolean tgx101ForwardTouch (MessageView view, MotionEvent e) {
+    if (!useForward() || forwardInfo == null || isPsa() || tgx101ForwardZone.isEmpty()) return false;
+    float x = e.getX(), y = e.getY();
+    switch (e.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN:
+        tgx101ForwardPressed = tgx101ForwardZone.contains(x, y);
+        return tgx101ForwardPressed;
+      case MotionEvent.ACTION_MOVE:
+        if (tgx101ForwardPressed && (Math.abs(x - mInitialTouchX) > Screen.getTouchSlop() || Math.abs(y - mInitialTouchY) > Screen.getTouchSlop())) {
+          tgx101ForwardPressed = false;
+        }
+        return tgx101ForwardPressed;
+      case MotionEvent.ACTION_UP:
+        if (tgx101ForwardPressed && tgx101ForwardZone.contains(x, y)) {
+          tgx101ForwardPressed = false;
+          view.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP);
+          forwardInfo.open(view, fAuthorNameT, null, openParameters(), null);
+          return true;
+        }
+        tgx101ForwardPressed = false;
+        return false;
+      case MotionEvent.ACTION_CANCEL:
+        tgx101ForwardPressed = false;
+        return false;
+    }
+    return false;
+  }
 
   public boolean onTouchEvent (MessageView view, MotionEvent e) {
     /*if ((flags & FLAG_HEADER_ENABLED) == 0 && (msg.forwardInfo == null || forwardInfo == null) && replyData == null && (inlineKeyboard == null || inlineKeyboard.isEmpty())) {
@@ -3294,6 +3328,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (e.getAction() == MotionEvent.ACTION_DOWN) {
       mInitialTouchX = e.getX();
       mInitialTouchY = e.getY();
+    }
+    if (tgx101ForwardTouch(view, e)) {
+      return true;
     }
 
     if (hasHeader() && needName(true)) {

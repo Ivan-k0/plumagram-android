@@ -6412,6 +6412,8 @@
   <string name="Tgx101ForwardFrom">from %1$s</string>
   <string name="Tgx101PlayerKeepSpeed">Remember speed</string>
   <string name="Tgx101SearchSettings">Search settings</string>
+  <string name="Tgx101CreateShortcut">Create shortcut</string>
+  <string name="Tgx101ShortcutUnsupported">Your launcher doesn\'t support shortcuts</string>
   <string name="Tgx101Account">Account</string>
   <string name="Tgx101YourName">Your name</string>
   <string name="Tgx101AboutYou">About you</string>

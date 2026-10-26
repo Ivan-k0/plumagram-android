@@ -477,9 +477,7 @@ public class SettingsController extends ViewController<Void> implements
           hasError = sessions != null && sessions.incompleteLoginAttempts.length > 0;
         }
         view.setUnreadCounter(hasError ? Tdlib.CHAT_FAILED : 0, false, isUpdate);
-        // (user 2026-10-26 «иконки чёрно-белые, не хочу квадраты»): the icons in the text colour, no coloured squares
-        view.setTgx101IconSquare(0);
-        view.setIconColorId(ColorId.text);
+        view.setTgx101IconSquare(0); // (user 2026-10-26 «цвета иконок верни как были — сероватые»): the default grey
         if (itemId == R.id.btn_tgx101Channel) {
           view.setData("@plumagram");
         }
@@ -1038,7 +1036,19 @@ public class SettingsController extends ViewController<Void> implements
     chev.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 24f);
     chev.setTextColor(Theme.textDecentColor());
     card.addView(chev);
-    card.setOnClickListener(v -> navigateTo(new Tgx101MyProfileController(context, tdlib)));
+    // (user 2026-10-26 «не вытягивается фото, нет публикаций и медиа как в старом профиле»): the card opens the full
+    // profile — the same one as the «Profile» tab (pull-down photo, posts, media)
+    card.setOnClickListener(v -> {
+      long myUserId = tdlib.myUserId();
+      if (myUserId == 0) return;
+      tdlib.client().send(new TdApi.CreatePrivateChat(myUserId, false), result -> runOnUiThreadOptional(() -> {
+        if (result.getConstructor() == TdApi.Chat.CONSTRUCTOR) {
+          ProfileController c = new ProfileController(context, tdlib);
+          c.setArguments(new ProfileController.Args(tdlib.objectToChat(result), null, false));
+          navigateTo(c);
+        }
+      }));
+    });
     android.widget.LinearLayout.LayoutParams cp = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     cp.topMargin = Screen.dp(10f);
     top.addView(card, cp);
