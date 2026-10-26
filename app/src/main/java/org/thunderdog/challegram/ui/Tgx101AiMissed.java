@@ -114,7 +114,11 @@ public final class Tgx101AiMissed {
             break;
           case TdApi.Error.CONSTRUCTOR: {
             String e = ((TdApi.Error) result).message;
-            failure = e != null && e.contains("PREMIUM") ? Lang.getString(R.string.Tgx101AiPremium) : Lang.getString(R.string.Tgx101AiFailed, TD.toErrorString(result));
+            // (4PDA / group 2026-10-26, Xiaomi on Android 16: «#400: RICH_MESSAGE_UNSUPPORTED» shown raw) — Telegram doesn't
+            // offer this AI to that account yet: say so plainly
+            failure = e != null && e.contains("PREMIUM") ? Lang.getString(R.string.Tgx101AiPremium)
+              : e != null && e.contains("RICH_MESSAGE_UNSUPPORTED") ? Lang.getString(R.string.Tgx101AiUnavailable)
+              : Lang.getString(R.string.Tgx101AiFailed, TD.toErrorString(result));
             break;
           }
         }

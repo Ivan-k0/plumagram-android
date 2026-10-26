@@ -1558,6 +1558,12 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   // its keyboard before the window had focus (it came 0.48 s later, with a notification) and Android ignored the request.
   // Like the official app, ask again once the window has focus — every 100 ms for up to 1.5 s — until it's up
   private long tgx101ExpectKeyboardUntil;
+
+  /** Something modal opens right on return (a call confirmation): the keyboard from before must not come back over it */
+  public void tgx101CancelKeyboardComeBack () {
+    tgx101ExpectKeyboardUntil = 0;
+    tgx101KeyboardAtPause = false;
+  }
   private final Runnable tgx101AskKeyboardAgain = new Runnable() {
     @Override
     public void run () {

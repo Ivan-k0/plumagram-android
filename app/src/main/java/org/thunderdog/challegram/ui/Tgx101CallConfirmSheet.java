@@ -46,6 +46,10 @@ public final class Tgx101CallConfirmSheet {
   public static void show (ViewController<?> c, long userId, boolean video, Runnable onCall) {
     Tdlib tdlib = c.tdlib();
     android.content.Context context = c.context();
+    // TGx101 (user 2026-10-26 11:59, a call picked in another app — «открылась клавиатура вместо подтверждения»): the chat's
+    // keyboard was coming back from before the app was left and lay over this sheet — it stays away now
+    c.context().tgx101CancelKeyboardComeBack();
+    c.hideSoftwareKeyboard();
     final PopupLayout popup = new PopupLayout(context);
     popup.init(true);
     popup.setNeedRootInsets();
