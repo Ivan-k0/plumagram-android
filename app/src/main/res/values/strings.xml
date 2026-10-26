@@ -7211,12 +7211,12 @@
   <string name="Tgx101BirdDoubleTap">Double tap on the bird</string>
   <string name="Tgx101BirdDoubleTapHint">While a double tap is set, a single tap on the bird reaches what lies under it a moment later.</string>
   <string name="Tgx101BirdTapNone">Nothing</string>
-  <string name="Tgx101BirdTapLastChat">Last private chat with a new message</string>
+  <string name="Tgx101BirdTapLastChat">Last notification</string>
   <string name="Tgx101BirdTapNextAccount">Switch account</string>
   <string name="Tgx101BirdTapProxy">Proxy</string>
   <string name="Tgx101BirdTapNote">Write a note</string>
   <string name="Tgx101BirdTapOneAccount">Only one account is signed in</string>
-  <string name="Tgx101BirdTapNoChat">No private chats with incoming messages</string>
+  <string name="Tgx101BirdTapNoChat">No notifications yet</string>
   <string name="Tgx101AiSection">AI functions</string>
   <string name="Tgx101AiOff">Off</string>
   <string name="Tgx101AiOnCount">On: %1$s</string>

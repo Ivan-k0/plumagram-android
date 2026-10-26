@@ -80,6 +80,7 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
   private final List<TdApi.StoryAlbum> albums = new ArrayList<>();
   private int albumId; // 0 — all stories
   private RecyclerView.Adapter<RecyclerView.ViewHolder> adapter;
+  private @Nullable RecyclerView listView;
   private LinearLayout chips;
   private TextView empty;
   private boolean loading, ended;
@@ -231,6 +232,7 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
         return super.onTouchEvent(e);
       }
     };
+    listView = list;
     list.setLayoutManager(new GridLayoutManager(context, 3));
     int gap = Screen.dp(1.5f);
     list.addItemDecoration(new RecyclerView.ItemDecoration() {
@@ -357,11 +359,29 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
     return chip;
   }
 
+  private int albumIndex (int id) {
+    for (int i = 0; i < albums.size(); i++) if (albums.get(i).id == id) return i + 1;
+    return 0;
+  }
+
   private void selectAlbum (int id) {
     if (albumId == id) return;
+    // (user 2026-10-26 «анимации влево при переключении папок нет»): the grid slides out to the side and the next one in
+    int dir = albumIndex(id) > albumIndex(albumId) ? 1 : -1;
     albumId = id;
     buildChips();
-    reload();
+    RecyclerView list = listView;
+    if (list == null || list.getWidth() == 0) {
+      reload();
+      return;
+    }
+    float shift = list.getWidth() * .25f;
+    list.animate().cancel();
+    list.animate().translationX(-dir * shift).alpha(0f).setDuration(110).setInterpolator(new android.view.animation.AccelerateInterpolator()).withEndAction(() -> {
+      reload();
+      list.setTranslationX(dir * shift);
+      list.animate().translationX(0f).alpha(1f).setDuration(200).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(null);
+    });
   }
 
   private void askAlbumName (@Nullable TdApi.StoryAlbum album, @Nullable int[] storyIds) {

@@ -135,7 +135,7 @@ public final class Tgx101Bird {
   }
 
   // TGx101 (user 2026-10-26): what two taps on the bird do
-  public static final int DOUBLE_TAP_NONE = 0, DOUBLE_TAP_LAST_CHAT = 1, DOUBLE_TAP_NEXT_ACCOUNT = 2, DOUBLE_TAP_PROXY = 3, DOUBLE_TAP_NOTE = 4;
+  public static final int DOUBLE_TAP_NONE = 0, DOUBLE_TAP_LAST_NOTIFICATION = 1, DOUBLE_TAP_NEXT_ACCOUNT = 2, DOUBLE_TAP_PROXY = 3, DOUBLE_TAP_NOTE = 4;
   public static final int[] DOUBLE_TAP_TITLES = {
     R.string.Tgx101BirdTapNone, R.string.Tgx101BirdTapLastChat, R.string.Tgx101BirdTapNextAccount, R.string.Tgx101BirdTapProxy, R.string.Tgx101BirdTapNote
   };
@@ -145,8 +145,8 @@ public final class Tgx101Bird {
     int mode = Settings.instance().tgx101BirdDoubleTap();
     org.thunderdog.challegram.Tgx101Diag.mark("bird: double tap " + mode);
     switch (mode) {
-      case DOUBLE_TAP_LAST_CHAT:
-        openLastPrivateChat(host);
+      case DOUBLE_TAP_LAST_NOTIFICATION:
+        openLastNotification(host);
         break;
       case DOUBLE_TAP_NEXT_ACCOUNT:
         if (TdlibManager.instance().getActiveAccounts().size() < 2) {
@@ -164,31 +164,67 @@ public final class Tgx101Bird {
     }
   }
 
-  /** the private chat (not mine, not a bot's) where the last message came in */
-  private static void openLastPrivateChat (ViewController<?> host) {
+  /**
+   * (user 2026-10-26 «последнее уведомление: в личных чатах, в группах, где меня отметили — ответ, цитата»): the newest of
+   * — an incoming message in a private or secret chat (not mine, not a bot's), an unread mention / reply / quote of me
+   * in a group, an unread reaction to my message; a group or a reaction opens at that message
+   */
+  private static void openLastNotification (ViewController<?> host) {
     Tdlib tdlib = host.tdlib();
-    tdlib.send(new TdApi.GetChats(new TdApi.ChatListMain(), 60), (chats, error) -> {
+    tdlib.send(new TdApi.GetChats(new TdApi.ChatListMain(), 100), (chats, error) -> {
       if (chats == null) return;
-      long found = 0;
-      int foundDate = 0;
+      final long[] best = new long[3]; // date, chat id, message id
+      List<TdApi.SearchChatMessages> searches = new ArrayList<>();
       for (long chatId : chats.chatIds) {
         TdApi.Chat chat = tdlib.chat(chatId);
-        if (chat == null || chat.lastMessage == null || chat.lastMessage.isOutgoing) continue;
-        if (!(chat.type instanceof TdApi.ChatTypePrivate) || tdlib.isSelfChat(chat) || tdlib.isBotChat(chat)) continue;
-        if (chat.lastMessage.date > foundDate) {
-          foundDate = chat.lastMessage.date;
-          found = chatId;
+        if (chat == null) continue;
+        boolean personal = chat.type instanceof TdApi.ChatTypePrivate || chat.type instanceof TdApi.ChatTypeSecret;
+        if (personal && chat.lastMessage != null && !chat.lastMessage.isOutgoing && !tdlib.isSelfChat(chat) && !tdlib.isBotChat(chat)
+          && chat.lastMessage.date > best[0]) {
+          best[0] = chat.lastMessage.date;
+          best[1] = chatId;
+          best[2] = 0;
+        }
+        if (chat.unreadMentionCount > 0) {
+          searches.add(new TdApi.SearchChatMessages(chatId, null, "", null, 0, 0, 1, new TdApi.SearchMessagesFilterUnreadMention()));
+        }
+        if (chat.unreadReactionCount > 0) {
+          searches.add(new TdApi.SearchChatMessages(chatId, null, "", null, 0, 0, 1, new TdApi.SearchMessagesFilterUnreadReaction()));
         }
       }
-      final long chatId = found;
-      tdlib.ui().post(() -> {
-        if (host.isDestroyed()) return;
-        if (chatId != 0) {
-          tdlib.ui().openChat(host, chatId, null);
-        } else {
-          org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101BirdTapNoChat, android.widget.Toast.LENGTH_SHORT);
+      final int[] left = {searches.size() + 1};
+      Runnable done = () -> {
+        synchronized (best) {
+          if (--left[0] > 0) return;
         }
-      });
+        final long chatId = best[1], messageId = best[2];
+        tdlib.ui().post(() -> {
+          if (host.isDestroyed()) return;
+          if (chatId == 0) {
+            org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101BirdTapNoChat, android.widget.Toast.LENGTH_SHORT);
+          } else if (messageId != 0) {
+            tdlib.ui().openMessage(host, chatId, new tgx.td.MessageId(chatId, messageId), null);
+          } else {
+            tdlib.ui().openChat(host, chatId, null);
+          }
+        });
+      };
+      for (TdApi.SearchChatMessages search : searches) {
+        tdlib.send(search, (found, err) -> {
+          if (found != null && found.messages.length > 0 && found.messages[0] != null) {
+            TdApi.Message message = found.messages[0];
+            synchronized (best) {
+              if (message.date > best[0]) {
+                best[0] = message.date;
+                best[1] = message.chatId;
+                best[2] = message.id;
+              }
+            }
+          }
+          done.run();
+        });
+      }
+      done.run();
     });
   }
 

@@ -2282,7 +2282,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // bird over a chat, when MagiX → Features → Bird → «In chats» is on
     if (previewMode == PREVIEW_MODE_NONE && !isInForceTouchMode() && Settings.instance().tgx101BirdInChats()) {
       tgx101Bird = Tgx101Bird.create(this, null);
-      tgx101Bird.setActive(Tgx101Bird.enabledInChats());
+      tgx101Bird.setActive(tgx101BirdActive());
       tgx101Bird.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
       contentView.addView(tgx101Bird);
     }
@@ -2291,6 +2291,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private @Nullable org.thunderdog.challegram.widget.Tgx101BirdView tgx101Bird;
+
+  /** (user 2026-10-26) not in Saved Messages */
+  private boolean tgx101BirdActive () {
+    return Tgx101Bird.enabledInChats() && chat != null && !isSelfChat();
+  }
 
   private SliderView fontSliderView;
   private SliderView blurSliderView;
@@ -5075,7 +5080,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     tgx101ResetMotion("focus");
     super.onFocus();
     if (tgx101Bird != null) {
-      tgx101Bird.setActive(Tgx101Bird.enabledInChats());
+      tgx101Bird.setActive(tgx101BirdActive());
       if (!tgx101Bird.isRingOpen()) tgx101Bird.setItems(Tgx101Bird.items());
     }
     if (tgx101NeedTopicsUnder && chat != null) {

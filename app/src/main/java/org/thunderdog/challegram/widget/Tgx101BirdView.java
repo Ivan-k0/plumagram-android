@@ -197,7 +197,7 @@ public class Tgx101BirdView extends View {
   // (user 2026-10-21 «ещё бледнее, но только фон»): the half-capsule pales to 20%, the bird in it is a see-through hole
   private static final float IDLE_ALPHA = .2f; // (user 2026-10-21 «ещё более прозрачной, 80%»)
   private long lastTouch = SystemClock.uptimeMillis();
-  private float shown = 1f;
+  private float shown = IDLE_ALPHA;
 
   private final Runnable holdRunnable = () -> {
     if (pressed && !moving && !ringOpen) openRing(false, true);
@@ -734,7 +734,8 @@ public class Tgx101BirdView extends View {
 
     boolean busy = moving || ringOpen || lift > 0f || ring > 0f;
     if (busy) lastTouch = now;
-    float shownTarget = busy || now - lastTouch < IDLE_MS ? 1f : IDLE_ALPHA;
+    // (user 2026-10-26 «подсвечивать её только при долгом удержании, во всех остальных случаях — прозрачная»)
+    float shownTarget = busy ? 1f : IDLE_ALPHA;
     shown += (shownTarget - shown) * (1f - (float) Math.exp(-dt / (shownTarget > shown ? 40f : 220f)));
     if (Math.abs(shownTarget - shown) > .005f) more = true; else shown = shownTarget;
     float hintTarget = Settings.instance().tgx101BirdMoveLearned() ? 0f : 1f;

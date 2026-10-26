@@ -939,12 +939,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101BirdDoubleTap, "Двойное нажатие на птичку");
     RU.put(R.string.Tgx101BirdDoubleTapHint, "Пока двойное нажатие задано, одиночное нажатие на птичку доходит до того, что под ней, чуть позже.");
     RU.put(R.string.Tgx101BirdTapNone, "Ничего");
-    RU.put(R.string.Tgx101BirdTapLastChat, "Последний личный чат с новым сообщением");
+    RU.put(R.string.Tgx101BirdTapLastChat, "Последнее уведомление");
     RU.put(R.string.Tgx101BirdTapNextAccount, "Сменить аккаунт");
     RU.put(R.string.Tgx101BirdTapProxy, "Прокси");
     RU.put(R.string.Tgx101BirdTapNote, "Написать заметку");
     RU.put(R.string.Tgx101BirdTapOneAccount, "Вход только в один аккаунт");
-    RU.put(R.string.Tgx101BirdTapNoChat, "Нет личных чатов с входящими сообщениями");
+    RU.put(R.string.Tgx101BirdTapNoChat, "Пока нет уведомлений");
     RU.put(R.string.Tgx101AiSection, "Функции ИИ");
     RU.put(R.string.Tgx101AiOff, "Выключено");
     RU.put(R.string.Tgx101AiOnCount, "Включено: %1$s");
