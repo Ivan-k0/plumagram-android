@@ -308,6 +308,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       contentWrapper.addView(controller.getValue());
     }
     controller.attachNavigationController(this);
+    syncKeyboardState(controller); // Telegram X ee48c65a: stale keyboard state
     controller.onPrepareToShow();
     controller.onAttachStateChanged(this, true);
     checkDisallowScreenshots();
@@ -325,9 +326,16 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       contentWrapper.addView(controller.getValue(), index);
     }
     controller.attachNavigationController(this);
+    syncKeyboardState(controller); // Telegram X ee48c65a: stale keyboard state
     controller.onPrepareToShow();
     controller.onAttachStateChanged(this, true);
     checkDisallowScreenshots();
+  }
+
+  private void syncKeyboardState (ViewController<?> controller) {
+    if (controller.getKeyboardState() && !UI.getContext(context).isKeyboardVisible()) {
+      controller.onKeyboardStateChanged(false);
+    }
   }
 
   public void removeChildWrapper (ViewController<?> controller) {
