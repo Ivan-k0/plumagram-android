@@ -952,7 +952,9 @@ public class TGMessageText extends TGMessage {
     tgx101SummaryLoading = true;
     tgx101Rebuild();
     String pack = Lang.packId(); String lang = pack != null && pack.length() >= 2 ? pack.substring(0, 2) : ""; // the summary in the app's language
-    String to = lang != null && !lang.isEmpty() && !lang.equalsIgnoreCase(msg.summaryLanguageCode) ? lang : "";
+    // (user video 2026-10-26 19:17 «что-то не так»: a Russian post summed up in English) — with an empty code the server
+    // answers in English whatever the post's language; the app's language is always asked
+    String to = lang != null && !lang.isEmpty() ? lang : "";
     org.thunderdog.challegram.Tgx101Diag.mark("ai short: asked for " + msg.chatId + "/" + msg.id + " (" + msg.summaryLanguageCode + (to.isEmpty() ? "" : " → " + to) + ")");
     tdlib.client().send(new TdApi.SummarizeMessage(msg.chatId, msg.id, to, ""), result -> runOnUiThreadOptional(() -> {
       tgx101SummaryLoading = false;
