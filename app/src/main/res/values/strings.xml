@@ -7220,7 +7220,6 @@
   <string name="Tgx101AiSection">AI functions</string>
   <string name="Tgx101AiOff">Off</string>
   <string name="Tgx101AiOnCount">On: %1$s</string>
-  <string name="Tgx101AccountsAdd">Add</string>
   <string name="Tgx101AccountsSwitch">Switch to it</string>
   <string name="Tgx101AccountsLogOutAsk">Log out of «%1$s»?</string>
   <string name="Tgx101BirdRingHint">Up to 7 actions: more than five sit in two rows, 4 and 3. Accounts opens a second ring with the accounts.</string>

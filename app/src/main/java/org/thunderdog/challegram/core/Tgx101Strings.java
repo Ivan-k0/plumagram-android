@@ -948,7 +948,6 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AiSection, "Функции ИИ");
     RU.put(R.string.Tgx101AiOff, "Выключено");
     RU.put(R.string.Tgx101AiOnCount, "Включено: %1$s");
-    RU.put(R.string.Tgx101AccountsAdd, "Добавить");
     RU.put(R.string.Tgx101AccountsSwitch, "Переключиться");
     RU.put(R.string.Tgx101AccountsLogOutAsk, "Выйти из аккаунта «%1$s»?");
     RU.put(R.string.Tgx101Bird, "Птичка у края списка чатов");

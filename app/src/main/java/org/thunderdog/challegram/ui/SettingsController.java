@@ -1121,16 +1121,11 @@ public class SettingsController extends ViewController<Void> implements
       });
       tgx101Accounts.addView(item);
     }
-    // only my account — no row: the header's person+ adds one
+    // only my account — no row; adding one is the header's person+ (user 2026-10-26 «кнопка Добавить не нужна, она есть вверху»)
     tgx101AccountsScroll.setVisibility(any ? View.VISIBLE : View.GONE);
-    if (any) {
-      View add = tgx101AccountItem(Lang.getString(R.string.Tgx101AccountsAdd), null, false, null);
-      add.setOnClickListener(v -> tdlib.ui().addAccount(context, true, false));
-      tgx101Accounts.addView(add);
-    }
   }
 
-  private View tgx101AccountItem (String name, @Nullable String badge, boolean muted, @Nullable me.vkryl.core.lambda.RunnableData<org.thunderdog.challegram.widget.AvatarView> bind) {
+  private View tgx101AccountItem (String name, @Nullable String badge, boolean muted, me.vkryl.core.lambda.RunnableData<org.thunderdog.challegram.widget.AvatarView> bind) {
     Context context = context();
     android.widget.LinearLayout item = new android.widget.LinearLayout(context);
     item.setOrientation(android.widget.LinearLayout.VERTICAL);
@@ -1138,25 +1133,13 @@ public class SettingsController extends ViewController<Void> implements
     item.setPadding(Screen.dp(4f), Screen.dp(4f), Screen.dp(4f), Screen.dp(2f));
     org.thunderdog.challegram.tool.Views.setClickable(item);
     // (user 2026-10-26 «счётчик не влазит, крестик не по центру»): the photo sits inside a 4 dp wider frame, the count
-    // stays within it; «+» is the icon, not a letter
+    // stays within it
     android.widget.FrameLayout photo = new android.widget.FrameLayout(context);
     int size = Screen.dp(48f), frame = size + Screen.dp(8f);
     android.widget.FrameLayout.LayoutParams pp = new android.widget.FrameLayout.LayoutParams(size, size, android.view.Gravity.CENTER);
-    if (bind != null) {
-      org.thunderdog.challegram.widget.AvatarView avatar = new org.thunderdog.challegram.widget.AvatarView(context);
-      bind.runWithData(avatar);
-      photo.addView(avatar, pp);
-    } else {
-      android.widget.ImageView plus = new android.widget.ImageView(context);
-      plus.setScaleType(android.widget.ImageView.ScaleType.CENTER);
-      plus.setImageResource(R.drawable.baseline_add_24);
-      plus.setColorFilter(Theme.getColor(ColorId.textNeutral));
-      android.graphics.drawable.GradientDrawable ring = new android.graphics.drawable.GradientDrawable();
-      ring.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-      ring.setStroke(Screen.dp(1.5f), Theme.getColor(ColorId.textNeutral), Screen.dp(4f), Screen.dp(3f));
-      plus.setBackground(ring);
-      photo.addView(plus, pp);
-    }
+    org.thunderdog.challegram.widget.AvatarView avatar = new org.thunderdog.challegram.widget.AvatarView(context);
+    bind.runWithData(avatar);
+    photo.addView(avatar, pp);
     if (badge != null) {
       android.widget.TextView b = new android.widget.TextView(context);
       b.setText(badge);
