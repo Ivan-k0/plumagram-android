@@ -586,6 +586,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ResetSelectionHint, "Закрыть меню вложений?");
     RU.put(R.string.Tgx101ResetSelectionDo, "Сбросить");
     RU.put(R.string.Tgx101ForwardFrom, "от %1$s");
+    RU.put(R.string.Tgx101PlayerKeepSpeed, "Запоминать скорость");
     RU.put(R.string.Tgx101AiUnavailable, "Telegram пока не даёт эту ИИ-функцию вашему аккаунту.");
     RU.put(R.string.Tgx101EditNoMedia, "К текстовому сообщению нельзя добавить медиа при редактировании");
     RU.put(R.string.Tgx101SectionChannelsAds, "Каналы и реклама");

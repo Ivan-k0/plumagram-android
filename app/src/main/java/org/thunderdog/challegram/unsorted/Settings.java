@@ -4405,6 +4405,17 @@ public class Settings {
     return pmc.getFloat(KEY_TGX101_PLAYER_SPEED, 1f);
   }
 
+  private static final String KEY_TGX101_PLAYER_KEEP_SPEED = "tgx101_player_keep_speed";
+
+  /** TGx101 (user 2026-10-26 12:52 «сбрасывать скорость видео по умолчанию»): off — every viewer opens at 1× */
+  public boolean tgx101PlayerKeepSpeed () {
+    return pmc.getBoolean(KEY_TGX101_PLAYER_KEEP_SPEED, true);
+  }
+
+  public void setTgx101PlayerKeepSpeed (boolean keep) {
+    pmc.putBoolean(KEY_TGX101_PLAYER_KEEP_SPEED, keep);
+  }
+
   public void setTgx101PlayerSpeed (float speed) {
     pmc.putFloat(KEY_TGX101_PLAYER_SPEED, speed);
   }

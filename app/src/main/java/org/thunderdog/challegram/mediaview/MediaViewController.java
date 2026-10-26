@@ -443,6 +443,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   @Override
   public void prepareShowAnimation () {
+    if (!Settings.instance().tgx101PlayerKeepSpeed() && Settings.instance().tgx101PlayerSpeed() != 1f) {
+      Settings.instance().setTgx101PlayerSpeed(1f); // TGx101: «don't keep the speed» — each viewer starts at 1×
+    }
     revealAnimator = new FactorAnimator(ANIMATOR_REVEAL, this, AnimatorUtils.DECELERATE_INTERPOLATOR, REVEAL_ANIMATION_DURATION);
     setLowProfile(true);
     onAppear();
@@ -4293,6 +4296,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
     String off = Lang.getString(R.string.Tgx101Off);
     tgx101SettingsRow(rows, R.drawable.baseline_fast_forward_24, Lang.getString(R.string.Tgx101PlayerSpeed), speedText, -1, () -> tgx101OpenSettingsPage(PAGE_SPEED));
+    tgx101SettingsRow(rows, R.drawable.baseline_history_24, Lang.getString(R.string.Tgx101PlayerKeepSpeed), null, settings.tgx101PlayerKeepSpeed() ? 1 : 0, () -> {
+      settings.setTgx101PlayerKeepSpeed(!settings.tgx101PlayerKeepSpeed());
+      org.thunderdog.challegram.Tgx101Diag.mark("player settings: keep speed " + settings.tgx101PlayerKeepSpeed());
+      tgx101RefreshSettings();
+    });
     tgx101SettingsRow(rows, R.drawable.baseline_gesture_24, Lang.getString(R.string.Tgx101PlayerGestures), gesturesOn + " / 4", -1, () -> tgx101OpenSettingsPage(PAGE_GESTURES));
     tgx101SettingsRow(rows, R.drawable.baseline_school_24, Lang.getString(R.string.Tgx101PlayerGuide), "", -1, () -> {
       tgx101CloseSettings();
