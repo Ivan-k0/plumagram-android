@@ -1823,6 +1823,9 @@
   <item name="controller_tgx101SavedAiSort" type="id"/>
   <item name="btn_tgx101Summary" type="id"/>
   <item name="btn_tgx101AiAll" type="id"/>
+  <item name="controller_tgx101Account" type="id"/>
+  <item name="controller_tgx101MyProfile" type="id"/>
+  <item name="btn_tgx101EditName" type="id"/>
   <item name="btn_tgx101AiCompose" type="id"/>
   <item name="btn_tgx101AiSummary" type="id"/>
   <item name="btn_tgx101AiMissed" type="id"/>

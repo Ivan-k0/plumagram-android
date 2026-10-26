@@ -6412,6 +6412,12 @@
   <string name="Tgx101ForwardFrom">from %1$s</string>
   <string name="Tgx101PlayerKeepSpeed">Remember speed</string>
   <string name="Tgx101SearchSettings">Search settings</string>
+  <string name="Tgx101Account">Account</string>
+  <string name="Tgx101YourName">Your name</string>
+  <string name="Tgx101AboutYou">About you</string>
+  <string name="Tgx101BioHint">Everyone can see «About». Your phone and birthday — as set in Privacy.</string>
+  <string name="Tgx101ChoosePhoto">Choose photo</string>
+  <string name="Tgx101EditProfile">Edit</string>
   <string name="Tgx101AiComposeSetting">AI: assistant on «Send»</string>
   <string name="Tgx101AiSummarySetting">AI: «Short» on long posts</string>
   <string name="Tgx101AiMissedSetting">AI: «What I missed»</string>

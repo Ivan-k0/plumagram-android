@@ -160,22 +160,29 @@ public class SettingsController extends ViewController<Void> implements
 
   @Override
   protected int getHeaderIconColorId () {
-    return headerCell != null && !headerCell.isCollapsed() ? ColorId.white : ColorId.headerIcon;
+    return ColorId.headerIcon;
   }
 
+  // TGx101 (approved mockup Н1+, user 2026-10-26 «в настройках не нужна такая огромная аватарка, делаем кружок»): a plain
+  // «Settings» bar — me as a card with a round photo at the top of the list, it opens my profile
   @Override
   protected int getHeaderHeight () {
-    return (int) (Size.getHeaderPortraitSize() + Size.getHeaderSizeDifference(true) * contentView.getScrollFactor());
+    return Size.getHeaderPortraitSize();
   }
 
   @Override
   protected int getMaximumHeaderHeight () {
-    return Size.getHeaderBigPortraitSize(true);
+    return Size.getHeaderPortraitSize();
+  }
+
+  @Override
+  public CharSequence getName () {
+    return Lang.getString(R.string.Settings);
   }
 
   @Override
   protected int getFloatingButtonId () {
-    return R.drawable.baseline_edit_24;
+    return 0;
   }
 
   @Override
@@ -258,7 +265,7 @@ public class SettingsController extends ViewController<Void> implements
 
   @Override
   public View getCustomHeaderCell () {
-    return headerCell;
+    return null;
   }
 
   private void changeProfilePhoto () {
@@ -443,7 +450,7 @@ public class SettingsController extends ViewController<Void> implements
     this.contentView = new ComplexRecyclerView(context, this);
     Views.applyBottomInset(contentView, extraBottomInset);
     this.contentView.setHasFixedSize(true);
-    this.contentView.setHeaderView(headerCell, this);
+    // (mockup Н1+): no stretchy header any more — headerCell stays only as the photo picker's anchor
     this.contentView.setItemAnimator(null);
     ViewSupport.setThemedBackground(contentView, ColorId.background, this);
     this.contentView.setLayoutManager(new LinearLayoutManager(context, RecyclerView.VERTICAL, false));
@@ -451,35 +458,13 @@ public class SettingsController extends ViewController<Void> implements
     this.adapter = new SettingsAdapter(this) {
       @Override
       protected SettingHolder initCustom (ViewGroup parent) {
-        // TGx101 (mockup Н1+, user 2026-10-26): «Search settings» as a plaque right under the header — opens the search
-        android.widget.TextView plaque = new android.widget.TextView(parent.getContext());
-        plaque.setText(Lang.getString(R.string.Tgx101SearchSettings));
-        plaque.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 15f);
-        plaque.setTextColor(Theme.textDecentColor());
-        plaque.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        plaque.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);
-        plaque.setCompoundDrawablePadding(Screen.dp(10f));
-        android.graphics.drawable.Drawable lens = org.thunderdog.challegram.tool.Drawables.get(R.drawable.baseline_search_24);
-        if (lens != null) {
-          lens = lens.mutate();
-          lens.setColorFilter(new android.graphics.PorterDuffColorFilter(Theme.iconColor(), android.graphics.PorterDuff.Mode.SRC_IN));
-          plaque.setCompoundDrawablesWithIntrinsicBounds(lens, null, null, null);
-        }
-        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-        bg.setColor(Theme.fillingColor());
-        bg.setCornerRadius(Screen.dp(12f));
-        plaque.setBackground(bg);
-        android.widget.FrameLayout wrap = new android.widget.FrameLayout(parent.getContext());
-        android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f));
-        lp.setMargins(Screen.dp(12f), Screen.dp(8f), Screen.dp(12f), Screen.dp(8f));
-        wrap.addView(plaque, lp);
-        wrap.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        plaque.setOnClickListener(v -> Tgx101SettingsSearch.open(SettingsController.this));
-        return new SettingHolder(wrap);
+        return new SettingHolder(tgx101MakeTop(parent.getContext()));
       }
 
       @Override
-      protected void setCustom (ListItem item, SettingHolder holder, int position) { }
+      protected void setCustom (ListItem item, SettingHolder holder, int position) {
+        tgx101BindCard();
+      }
 
       @Override
       public void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
@@ -492,7 +477,9 @@ public class SettingsController extends ViewController<Void> implements
           hasError = sessions != null && sessions.incompleteLoginAttempts.length > 0;
         }
         view.setUnreadCounter(hasError ? Tdlib.CHAT_FAILED : 0, false, isUpdate);
-        view.setTgx101IconSquare(tgx101SquareColor(itemId));
+        // (user 2026-10-26 «иконки чёрно-белые, не хочу квадраты»): the icons in the text colour, no coloured squares
+        view.setTgx101IconSquare(0);
+        view.setIconColorId(ColorId.text);
         if (itemId == R.id.btn_tgx101Channel) {
           view.setData("@plumagram");
         }
@@ -648,27 +635,7 @@ public class SettingsController extends ViewController<Void> implements
     List<ListItem> items = adapter.getItems();
     ArrayUtils.ensureCapacity(items, 27);
 
-    items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET));
-    items.add(new ListItem(ListItem.TYPE_CUSTOM_SINGLE)); // TGx101 (mockup Н1+): «Search settings» plaque
-    if (Settings.instance().showPeerIds()) {
-      items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_peer_id, R.drawable.baseline_identifier_24, R.string.UserId).setContentStrings(R.string.LoadingInformation, R.string.LoadingInformation));
-      items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-    }
-    items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_username, R.drawable.baseline_alternate_email_24, R.string.Username).setContentStrings(R.string.LoadingUsername, R.string.SetUpUsername));
-    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-    items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_phone, R.drawable.baseline_phone_24, R.string.Phone));
-    if (userFull != null && userFull.birthdate != null) {
-      items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-      items.add(newBirthdateItem());
-    }
-    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-    items.add(new ListItem(ListItem.TYPE_INFO_MULTILINE, R.id.btn_bio, R.drawable.baseline_info_24, R.string.UserBio).setContentStrings(R.string.LoadingInformation, R.string.BioNone));
-    if (tdlib.hasPremium()) {
-      // TGx101: name colour (Premium; the official apps' «Name colour» with the seven basic colours)
-      items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-      items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_tgx101NameColor, R.drawable.baseline_palette_24, R.string.Tgx101NameColor));
-    }
-    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    items.add(new ListItem(ListItem.TYPE_CUSTOM_SINGLE)); // TGx101 (mockup Н1+): «Search settings» plaque and my card (the account rows went to «Edit»)
 
     TdApi.SuggestedAction[] actions = tdlib.getSuggestedActions();
     int addedActionItems = 0;
@@ -807,7 +774,9 @@ public class SettingsController extends ViewController<Void> implements
 
     processUserFull(tdlib.myUserFull());
 
+    tgx101MakeCards(items);
     this.contentView.setAdapter(adapter);
+    tgx101RoundGroups();
     if (MainController.tgx101CapsuleSpace() > 0) {
       // TGx101 (a 4PDA user's screenshot 2026-10-16 «нижняя панель накладывается на пункт „Канал PlumaGram“»): the last
       // rows scroll up above the bottom capsule, as the chat list's do
@@ -969,6 +938,7 @@ public class SettingsController extends ViewController<Void> implements
   }
 
   private void checkBirthdate () {
+    if (adapter.indexOfViewById(R.id.btn_phone) == -1) return; // TGx101: the account rows live on «Edit» now
     int position = adapter.indexOfViewById(R.id.btn_birthdate);
     boolean hadBirthdate = position != -1;
     boolean hasBirthdate = userFull != null && userFull.birthdate != null;
@@ -1007,6 +977,175 @@ public class SettingsController extends ViewController<Void> implements
         removeSuggestionFromList(action);
       }
     });
+  }
+
+  // TGx101 (approved mockup Н1+, user 2026-10-26): the top of Settings — the search plaque and me as a card with a round
+  // photo; the card opens my profile, the photo — the photo menu
+  private org.thunderdog.challegram.widget.AvatarView tgx101CardAvatar;
+  private android.widget.TextView tgx101CardName, tgx101CardSub;
+
+  private View tgx101MakeTop (Context context) {
+    android.widget.LinearLayout top = new android.widget.LinearLayout(context);
+    top.setOrientation(android.widget.LinearLayout.VERTICAL);
+    top.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    top.setPadding(0, Screen.dp(8f), 0, Screen.dp(2f));
+
+    android.widget.TextView plaque = new android.widget.TextView(context);
+    plaque.setText(Lang.getString(R.string.Tgx101SearchSettings));
+    plaque.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 15f);
+    plaque.setTextColor(Theme.textDecentColor());
+    plaque.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    plaque.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);
+    plaque.setCompoundDrawablePadding(Screen.dp(10f));
+    android.graphics.drawable.Drawable lens = org.thunderdog.challegram.tool.Drawables.get(R.drawable.baseline_search_24);
+    if (lens != null) {
+      lens = lens.mutate();
+      lens.setColorFilter(new android.graphics.PorterDuffColorFilter(Theme.iconColor(), android.graphics.PorterDuff.Mode.SRC_IN));
+      plaque.setCompoundDrawablesWithIntrinsicBounds(lens, null, null, null);
+    }
+    plaque.setBackground(tgx101CardBackground());
+    plaque.setOnClickListener(v -> Tgx101SettingsSearch.open(SettingsController.this));
+    top.addView(plaque, new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f)));
+
+    android.widget.LinearLayout card = new android.widget.LinearLayout(context);
+    card.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    card.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    card.setPadding(Screen.dp(12f), Screen.dp(12f), Screen.dp(14f), Screen.dp(12f));
+    card.setBackground(tgx101CardBackground());
+    tgx101CardAvatar = new org.thunderdog.challegram.widget.AvatarView(context);
+    card.addView(tgx101CardAvatar, new android.widget.LinearLayout.LayoutParams(Screen.dp(56f), Screen.dp(56f)));
+    tgx101CardAvatar.setOnClickListener(v -> changeProfilePhoto());
+    android.widget.LinearLayout texts = new android.widget.LinearLayout(context);
+    texts.setOrientation(android.widget.LinearLayout.VERTICAL);
+    android.widget.LinearLayout.LayoutParams tp = new android.widget.LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+    tp.leftMargin = Screen.dp(14f);
+    card.addView(texts, tp);
+    tgx101CardName = new android.widget.TextView(context);
+    tgx101CardName.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 17f);
+    tgx101CardName.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+    tgx101CardName.setTextColor(Theme.textAccentColor());
+    tgx101CardName.setSingleLine(true);
+    tgx101CardName.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    texts.addView(tgx101CardName);
+    tgx101CardSub = new android.widget.TextView(context);
+    tgx101CardSub.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14f);
+    tgx101CardSub.setTextColor(Theme.textDecentColor());
+    tgx101CardSub.setSingleLine(true);
+    tgx101CardSub.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    texts.addView(tgx101CardSub);
+    android.widget.TextView chev = new android.widget.TextView(context);
+    chev.setText("›");
+    chev.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 24f);
+    chev.setTextColor(Theme.textDecentColor());
+    card.addView(chev);
+    card.setOnClickListener(v -> navigateTo(new Tgx101MyProfileController(context, tdlib)));
+    android.widget.LinearLayout.LayoutParams cp = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    cp.topMargin = Screen.dp(10f);
+    top.addView(card, cp);
+    tgx101BindCard();
+    return top;
+  }
+
+  private android.graphics.drawable.Drawable tgx101CardBackground () {
+    android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+    bg.setColor(Theme.fillingColor());
+    bg.setCornerRadius(Screen.dp(TGX101_CARD_RADIUS));
+    return bg;
+  }
+
+  private void tgx101BindCard () {
+    if (tgx101CardAvatar == null) return;
+    TdApi.User me = tdlib.myUser();
+    tgx101CardAvatar.setUser(tdlib, me, false);
+    tgx101CardName.setText(me != null ? TD.getUserName(me) : "");
+    StringBuilder sub = new StringBuilder();
+    if (me != null && !StringUtils.isEmpty(me.phoneNumber)) sub.append(Strings.formatPhone(me.phoneNumber));
+    if (me != null && Td.hasUsername(me)) sub.append(sub.length() > 0 ? " · " : "").append('@').append(Td.primaryUsername(me));
+    tgx101CardSub.setText(sub);
+  }
+
+  // TGx101 (user 2026-10-26 «как лучше выделить, чтобы без серых полос» — variant А): the groups are rounded cards on the
+  // plain background, 12 dp from the sides, no shadows between them
+  private static final float TGX101_CARD_RADIUS = 14f;
+
+  private static void tgx101MakeCards (List<ListItem> items) {
+    for (int i = items.size() - 1; i >= 0; i--) {
+      int type = items.get(i).getViewType();
+      if (type == ListItem.TYPE_SHADOW_TOP) {
+        items.remove(i);
+      } else if (type == ListItem.TYPE_SHADOW_BOTTOM) {
+        items.set(i, new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
+      }
+    }
+  }
+
+  private static boolean tgx101InCard (int type) {
+    switch (type) {
+      case ListItem.TYPE_EMPTY_OFFSET:
+      case ListItem.TYPE_EMPTY_OFFSET_SMALL:
+      case ListItem.TYPE_CUSTOM_SINGLE:
+      case ListItem.TYPE_BUILD_NO:
+      case ListItem.TYPE_DESCRIPTION:
+      case ListItem.TYPE_HEADER:
+      case ListItem.TYPE_SHADOW_TOP:
+      case ListItem.TYPE_SHADOW_BOTTOM:
+        return false;
+    }
+    return true;
+  }
+
+  private int tgx101TypeAt (int position) {
+    List<ListItem> items = adapter.getItems();
+    return position >= 0 && position < items.size() ? items.get(position).getViewType() : ListItem.TYPE_EMPTY_OFFSET_SMALL;
+  }
+
+  private void tgx101RoundGroups () {
+    int side = Screen.dp(12f);
+    contentView.setPadding(side, 0, side, 0);
+    contentView.setClipToPadding(false);
+    org.thunderdog.challegram.support.ViewSupport.setThemedBackground(contentView, ColorId.background, this);
+    final android.graphics.Path corner = new android.graphics.Path();
+    final android.graphics.RectF oval = new android.graphics.RectF();
+    contentView.addItemDecoration(new RecyclerView.ItemDecoration() {
+      @Override
+      public void getItemOffsets (@androidx.annotation.NonNull android.graphics.Rect outRect, @androidx.annotation.NonNull View view, @androidx.annotation.NonNull RecyclerView parent, @androidx.annotation.NonNull RecyclerView.State state) {
+        int pos = parent.getChildAdapterPosition(view);
+        if (pos != RecyclerView.NO_POSITION && tgx101InCard(tgx101TypeAt(pos)) && !tgx101InCard(tgx101TypeAt(pos - 1))) {
+          outRect.top = Screen.dp(6f); // a gap above each card
+        }
+      }
+
+      @Override
+      public void onDrawOver (@androidx.annotation.NonNull android.graphics.Canvas c, @androidx.annotation.NonNull RecyclerView parent, @androidx.annotation.NonNull RecyclerView.State state) {
+        float r = Screen.dp(TGX101_CARD_RADIUS);
+        android.graphics.Paint paint = org.thunderdog.challegram.tool.Paints.fillingPaint(Theme.backgroundColor());
+        for (int i = 0; i < parent.getChildCount(); i++) {
+          View v = parent.getChildAt(i);
+          int pos = parent.getChildAdapterPosition(v);
+          if (pos == RecyclerView.NO_POSITION || !tgx101InCard(tgx101TypeAt(pos))) continue;
+          float l = v.getLeft(), rt = v.getRight(), t = v.getTop() + v.getTranslationY(), b = v.getBottom() + v.getTranslationY();
+          if (!tgx101InCard(tgx101TypeAt(pos - 1))) {
+            tgx101Corner(c, corner, oval, l, t, r, 180f, paint);
+            tgx101Corner(c, corner, oval, rt - r * 2, t, r, 270f, paint);
+          }
+          if (!tgx101InCard(tgx101TypeAt(pos + 1))) {
+            tgx101Corner(c, corner, oval, l, b - r * 2, r, 90f, paint);
+            tgx101Corner(c, corner, oval, rt - r * 2, b - r * 2, r, 0f, paint);
+          }
+        }
+      }
+    });
+  }
+
+  /** covers one corner of the 2r box at (x, y) outside its quarter circle; {@code start} — the quarter (0 = bottom right) */
+  private static void tgx101Corner (android.graphics.Canvas c, android.graphics.Path path, android.graphics.RectF oval, float x, float y, float r, float start, android.graphics.Paint paint) {
+    oval.set(x, y, x + r * 2, y + r * 2);
+    float cx = start == 0f || start == 270f ? x + r * 2 : x, cy = start == 0f || start == 90f ? y + r * 2 : y;
+    path.reset();
+    path.moveTo(cx, cy);
+    path.arcTo(oval, start, 90f);
+    path.close();
+    c.drawPath(path, paint);
   }
 
   /** (mockup Н1) the coloured square behind each row's icon; 0 — a plain grey icon */
@@ -1110,6 +1249,7 @@ public class SettingsController extends ViewController<Void> implements
     runOnUiThreadOptional(() -> {
       setMyUserId(myUser.id);
       updateHeader();
+      tgx101BindCard();
       if (setUsername(myUser)) {
         adapter.updateValuedSettingById(R.id.btn_username);
       }
@@ -1251,7 +1391,14 @@ public class SettingsController extends ViewController<Void> implements
   private static final String[] TGX101_COLOR_EMOJI = {"🔴", "🟠", "🟣", "🟢", "🩵", "🔵", "🩷"};
   private static final int[] TGX101_COLOR_NAMES = {R.string.Tgx101ColorRed, R.string.Tgx101ColorOrange, R.string.Tgx101ColorViolet, R.string.Tgx101ColorGreen, R.string.Tgx101ColorCyan, R.string.Tgx101ColorBlue, R.string.Tgx101ColorPink};
 
-  private void tgx101PickNameColor () {
+  /** «🔵 Blue» — the name colour as a row value (also on the account screen) */
+  static String tgx101NameColorValue (@Nullable TdApi.User me) {
+    int id = me != null ? me.accentColorId : -1;
+    return id >= 0 && id < TGX101_COLOR_NAMES.length ? TGX101_COLOR_EMOJI[id] + " " + Lang.getString(TGX101_COLOR_NAMES[id]) : Lang.getString(R.string.Tgx101NameColorOther);
+  }
+
+  static void tgx101PickNameColor (ViewController<?> c, Runnable after) {
+    Tdlib tdlib = c.tdlib();
     TdApi.User me = tdlib.myUser();
     int current = me != null ? me.accentColorId : -1;
     int[] ids = new int[TGX101_COLOR_NAMES.length];
@@ -1260,14 +1407,14 @@ public class SettingsController extends ViewController<Void> implements
       ids[i] = i + 1;
       names[i] = TGX101_COLOR_EMOJI[i] + "  " + Lang.getString(TGX101_COLOR_NAMES[i]) + (i == current ? "  ✓" : "");
     }
-    showOptions(Lang.getString(R.string.Tgx101NameColorHint), ids, names, null, null, (itemView, optionId) -> {
+    c.showOptions(Lang.getString(R.string.Tgx101NameColorHint), ids, names, null, null, (itemView, optionId) -> {
       int colorId = optionId - 1;
       long emoji = me != null ? me.backgroundCustomEmojiId : 0;
-      tdlib.send(new TdApi.SetAccentColor(colorId, emoji), (ok, error) -> runOnUiThreadOptional(() -> {
+      tdlib.send(new TdApi.SetAccentColor(colorId, emoji), (ok, error) -> c.runOnUiThreadOptional(() -> {
         if (error != null) {
           UI.showError(error);
         } else {
-          adapter.updateValuedSettingById(R.id.btn_tgx101NameColor);
+          after.run();
         }
       }));
       return true;
@@ -1282,7 +1429,7 @@ public class SettingsController extends ViewController<Void> implements
     }
     final int viewId = v.getId();
     if (viewId == R.id.btn_tgx101NameColor) {
-      tgx101PickNameColor();
+      tgx101PickNameColor(this, () -> adapter.updateValuedSettingById(R.id.btn_tgx101NameColor));
       return;
     }
     if (viewId == R.id.btn_bio) {

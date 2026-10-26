@@ -588,6 +588,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ForwardFrom, "от %1$s");
     RU.put(R.string.Tgx101PlayerKeepSpeed, "Запоминать скорость");
     RU.put(R.string.Tgx101SearchSettings, "Поиск по настройкам");
+    RU.put(R.string.Tgx101Account, "Аккаунт");
+    RU.put(R.string.Tgx101YourName, "Ваше имя");
+    RU.put(R.string.Tgx101AboutYou, "Информация о вас");
+    RU.put(R.string.Tgx101BioHint, "Раздел «О себе» видят все. Телефон и день рождения — как задано в «Конфиденциальности».");
+    RU.put(R.string.Tgx101ChoosePhoto, "Выбрать фото");
+    RU.put(R.string.Tgx101EditProfile, "Изменить");
     RU.put(R.string.Tgx101AiComposeSetting, "ИИ: помощник на «Отправить»");
     RU.put(R.string.Tgx101AiSummarySetting, "ИИ: «Кратко» на длинных постах");
     RU.put(R.string.Tgx101AiMissedSetting, "ИИ: «Что пропустил»");
