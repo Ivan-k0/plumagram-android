@@ -8735,6 +8735,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   /** The sent message is in the list: a held bar goes at once, the new message's glide covers its height */
   public void tgx101SettleBarsForSend () {
+    // attached files: they were taken off only once the server confirmed the send — after the new message's glide had begun
+    if (isSendingText && attachedFiles != null && attachedFiles.getVisibleFactor() > 0f) {
+      attachedFiles.setHidden(true, false);
+      updateReplyView();
+    }
     if (!tgx101BarHeld) return;
     tgx101BarHeld = false;
     UI.cancel(tgx101ReleaseBar);
