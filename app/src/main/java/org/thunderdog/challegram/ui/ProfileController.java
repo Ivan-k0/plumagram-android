@@ -4916,7 +4916,9 @@ public class ProfileController extends ViewController<ProfileController.Args> im
 
   @Override
   public void performComplexPhotoOpen () {
-    if (tdlib.canChangeInfo(chat) || tdlib.canEditBotChat(chat.id)) {
+    // TGx101 (user 2026-10-26 «в профиле фото не открывается»): on one's own profile a tap opened «change photo» — a person's
+    // photo opens; changing it is in ⋮ / Settings
+    if (user == null && (tdlib.canChangeInfo(chat) || tdlib.canEditBotChat(chat.id))) {
       changeProfilePhoto();
     } else {
       openPhoto();
@@ -4927,7 +4929,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   private void loadTgx101PhotoCount () {
     TdApi.Function<?> function;
     if (user != null) {
-      function = new TdApi.GetUserProfilePhotos(user.id, 0, 1);
+      function = new TdApi.GetUserProfilePhotos(user.id, 0, 30); // TGx101: the photos too, for swiping in the header
     } else if (chat != null) {
       function = new TdApi.GetChatMessageCount(chat.id, null, new TdApi.SearchMessagesFilterChatPhoto(), false);
     } else {
@@ -4937,6 +4939,10 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       int count;
       if (result.getConstructor() == TdApi.ChatPhotos.CONSTRUCTOR) {
         count = ((TdApi.ChatPhotos) result).totalCount;
+        final TdApi.ChatPhoto[] photos = ((TdApi.ChatPhotos) result).photos;
+        runOnUiThreadOptional(() -> {
+          if (headerCell != null && chat != null) headerCell.setTgx101Photos(chat.id, photos);
+        });
       } else if (result.getConstructor() == TdApi.Count.CONSTRUCTOR) {
         count = ((TdApi.Count) result).count;
       } else {

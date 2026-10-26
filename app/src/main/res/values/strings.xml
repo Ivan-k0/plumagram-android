@@ -6420,6 +6420,17 @@
   <string name="Tgx101PostsArchiveHint">Your past stories</string>
   <string name="Tgx101PostsEmpty">No posts yet. Stories you keep on your profile show here.</string>
   <string name="Tgx101PostsArchiveEmpty">The archive is empty.</string>
+  <string name="Tgx101PostsAll">All stories</string>
+  <string name="Tgx101PostsAdd">Add</string>
+  <string name="Tgx101PostsAddAlbum">Add album</string>
+  <string name="Tgx101PostsAlbumName">Album name</string>
+  <string name="Tgx101PostsRenameAlbum">Rename album</string>
+  <string name="Tgx101PostsDeleteAlbum">Delete album</string>
+  <string name="Tgx101PostsPin">Pin</string>
+  <string name="Tgx101PostsUnpin">Unpin</string>
+  <string name="Tgx101PostsToAlbum">Add to album</string>
+  <string name="Tgx101PostsFromAlbum">Remove from album</string>
+  <string name="Tgx101PostsAdded">Added to «%1$s»</string>
   <string name="Tgx101ShortcutUnsupported">Your launcher doesn\'t support shortcuts</string>
   <string name="Tgx101Account">Account</string>
   <string name="Tgx101YourName">Your name</string>

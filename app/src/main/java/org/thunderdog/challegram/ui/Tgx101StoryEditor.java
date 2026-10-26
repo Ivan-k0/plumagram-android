@@ -119,6 +119,9 @@ public final class Tgx101StoryEditor extends Dialog {
   // ── entry ──────────────────────────────────────────────────────────────────────────────
 
   /** Picks a photo from the gallery and opens the editor with it; with drafts saved, asks first: a new photo or a draft */
+  /** TGx101 (user 2026-10-26): set by the posts grid — the album that is open there gets the new story */
+  public static int tgx101TargetAlbumId;
+
   public static void pickAndOpen (BaseActivity activity, Tdlib tdlib) {
     int drafts = listDrafts(activity).size();
     org.thunderdog.challegram.navigation.ViewController<?> c = activity.navigation() != null ? activity.navigation().getCurrentStackItem() : null;
@@ -3335,7 +3338,9 @@ public final class Tgx101StoryEditor extends Dialog {
           : new TdApi.StoryPrivacySettingsEveryone(toArray(exceptEveryone));
         TdApi.InputStoryContent content = new TdApi.InputStoryContentPhoto(new TdApi.InputFileLocal(result.getAbsolutePath()), new int[0]);
         TdApi.FormattedText text = caption.isEmpty() ? null : new TdApi.FormattedText(caption, new TdApi.TextEntity[0]);
-        tdlib.send(new TdApi.PostStory(tdlib.selfChatId(), content, reactionAreas(), text, privacySettings, new int[0], activePeriod, null, postToProfile, protectContent), (story, error) -> UI.post(() -> {
+        final int tgx101Album = tgx101TargetAlbumId;
+        tgx101TargetAlbumId = 0;
+        tdlib.send(new TdApi.PostStory(tdlib.selfChatId(), content, reactionAreas(), text, privacySettings, tgx101Album != 0 ? new int[] {tgx101Album} : new int[0], activePeriod, null, postToProfile || tgx101Album != 0, protectContent), (story, error) -> UI.post(() -> {
           publishing = false;
           if (error != null) {
             Tgx101Diag.mark("story editor: post failed " + error.message);

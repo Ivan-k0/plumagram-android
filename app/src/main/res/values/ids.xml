@@ -104,6 +104,9 @@
   <item type="id" name="btn_tgx101Posts" />
   <item type="id" name="btn_tgx101PostsArchive" />
   <item type="id" name="controller_tgx101Posts" />
+  <item type="id" name="btn_pinUnpin" />
+  <item type="id" name="btn_addToFolder" />
+  <item type="id" name="btn_removeFromFolder" />
   <item type="id" name="more_btn_tgx101Shortcut" />
   <item type="id" name="more_btn_editDescription" />
   <item type="id" name="more_btn_join" />

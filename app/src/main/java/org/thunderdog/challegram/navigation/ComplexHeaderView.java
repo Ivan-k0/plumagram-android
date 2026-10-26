@@ -42,6 +42,7 @@ import org.thunderdog.challegram.config.Config;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.data.TD;
 import org.thunderdog.challegram.loader.AvatarReceiver;
+import android.view.MotionEvent;
 import org.thunderdog.challegram.mediaview.MediaViewController;
 import org.thunderdog.challegram.mediaview.MediaViewDelegate;
 import org.thunderdog.challegram.mediaview.MediaViewThumbLocation;
@@ -862,11 +863,74 @@ public class ComplexHeaderView extends BaseView implements RtlCheckListener, Sti
     }
   }
 
+  // TGx101 (user 2026-10-26 «фото в профиле должны листаться по свайпу сразу, как в офф.»): with the photo open
+  // wide, a sideways swipe shows the next / previous one right in the header
+  private @Nullable TdApi.ChatPhoto[] tgx101Photos;
+  private long tgx101PhotosChatId;
+  private int tgx101PhotoIndex;
+  private float tgx101DownX, tgx101DownY;
+  private boolean tgx101Swiping;
+
+  public void setTgx101Photos (long chatId, @Nullable TdApi.ChatPhoto[] photos) {
+    this.tgx101PhotosChatId = chatId;
+    this.tgx101Photos = photos;
+    this.tgx101PhotoIndex = 0;
+  }
+
+  private boolean tgx101SwipeTouch (MotionEvent e) {
+    if (tgx101Photos == null || tgx101Photos.length < 2 || getAvatarExpandFactor() < .5f) return false;
+    switch (e.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN:
+        tgx101DownX = e.getX();
+        tgx101DownY = e.getY();
+        tgx101Swiping = false;
+        return false;
+      case MotionEvent.ACTION_MOVE: {
+        float dx = e.getX() - tgx101DownX, dy = e.getY() - tgx101DownY;
+        if (!tgx101Swiping && Math.abs(dx) > Screen.dp(24f) && Math.abs(dx) > Math.abs(dy) * 1.5f) {
+          tgx101Swiping = true;
+          if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+          MotionEvent cancel = MotionEvent.obtain(e);
+          cancel.setAction(MotionEvent.ACTION_CANCEL);
+          super.onTouchEvent(cancel);
+          cancel.recycle();
+        }
+        return tgx101Swiping;
+      }
+      case MotionEvent.ACTION_UP:
+      case MotionEvent.ACTION_CANCEL: {
+        if (!tgx101Swiping) return false;
+        tgx101Swiping = false;
+        float dx = e.getX() - tgx101DownX;
+        if (e.getActionMasked() == MotionEvent.ACTION_UP) tgx101ShowPhoto(tgx101PhotoIndex + (dx < 0 ? 1 : -1));
+        return true;
+      }
+    }
+    return tgx101Swiping;
+  }
+
+  private void tgx101ShowPhoto (int index) {
+    if (tgx101Photos == null) return;
+    int n = tgx101Photos.length;
+    index = ((index % n) + n) % n;
+    if (index == tgx101PhotoIndex) return;
+    tgx101PhotoIndex = index;
+    receiver.requestSpecific(tdlib, new AvatarReceiver.FullChatPhoto(tgx101Photos[index], tgx101PhotosChatId), AvatarReceiver.Options.FULL_SIZE);
+    performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
+    invalidate();
+  }
+
+  @Override
+  public boolean onTouchEvent (MotionEvent e) {
+    if (tgx101SwipeTouch(e)) return true;
+    return super.onTouchEvent(e);
+  }
+
   private void drawTgx101PhotoCount (Canvas c, float avatarExpandFactor) {
     if (tgx101PhotoCount <= 1 || receiver.needPlaceholder()) {
       return;
     }
-    String text = "1/" + tgx101PhotoCount;
+    String text = (tgx101PhotoIndex + 1) + "/" + tgx101PhotoCount;
     android.graphics.Paint paint = Paints.getSmallTitlePaint();
     float textSize = paint.getTextSize();
     paint.setTextSize(Screen.sp(11f + 3f * avatarExpandFactor));

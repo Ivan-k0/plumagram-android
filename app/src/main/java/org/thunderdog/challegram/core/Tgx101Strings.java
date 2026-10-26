@@ -596,6 +596,17 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PostsArchiveHint, "Ваши прошлые истории");
     RU.put(R.string.Tgx101PostsEmpty, "Пока нет публикаций. Здесь будут истории, сохранённые в профиле.");
     RU.put(R.string.Tgx101PostsArchiveEmpty, "Архив пуст.");
+    RU.put(R.string.Tgx101PostsAll, "Все истории");
+    RU.put(R.string.Tgx101PostsAdd, "Добавить");
+    RU.put(R.string.Tgx101PostsAddAlbum, "Добавить альбом");
+    RU.put(R.string.Tgx101PostsAlbumName, "Название альбома");
+    RU.put(R.string.Tgx101PostsRenameAlbum, "Переименовать альбом");
+    RU.put(R.string.Tgx101PostsDeleteAlbum, "Удалить альбом");
+    RU.put(R.string.Tgx101PostsPin, "Закрепить");
+    RU.put(R.string.Tgx101PostsUnpin, "Открепить");
+    RU.put(R.string.Tgx101PostsToAlbum, "Добавить в альбом");
+    RU.put(R.string.Tgx101PostsFromAlbum, "Убрать из альбома");
+    RU.put(R.string.Tgx101PostsAdded, "Добавлено в «%1$s»");
     RU.put(R.string.Tgx101ShortcutUnsupported, "Рабочий стол не поддерживает ярлыки");
     RU.put(R.string.Tgx101Account, "Аккаунт");
     RU.put(R.string.Tgx101YourName, "Ваше имя");
