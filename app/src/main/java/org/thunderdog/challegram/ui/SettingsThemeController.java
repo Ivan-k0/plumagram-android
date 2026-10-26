@@ -549,17 +549,8 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
 
       // TGx101: updates come from the fork's GitHub releases, not Google Play or the Telegram X beta channel
       if (true) {
-        items.addAll(Arrays.asList(
-          new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101Updates),
-          new ListItem(ListItem.TYPE_SHADOW_TOP),
-          new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CheckUpdates, 0, R.string.Tgx101CheckUpdates),
-          new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-          new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101UpdateNow, R.drawable.baseline_system_update_24, R.string.Tgx101UpdateCheckNow),
-          new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
-          new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101CheckUpdatesHint)
-        ));
-        org.thunderdog.challegram.service.Tgx101Updates.restore(context());
-        org.thunderdog.challegram.service.Tgx101Updates.addListener(this);
+        // TGx101 (user 2026-10-26 13:01 «соединить в общем меню внизу настроек»): our updates live at the bottom of Settings;
+        // nothing here (the Telegram X store / beta rows below never apply to this fork)
       } else if (AppInstallationUtil.isAppSideLoaded(AppContext.get())) {
         items.addAll(Arrays.asList(
           new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.InAppUpdates),

@@ -106,7 +106,7 @@ public class SettingsController extends ViewController<Void> implements
   Menu, MoreDelegate, OptionDelegate,
   TdlibCache.MyUserDataChangeListener, ConnectionListener, StickersListener, MediaLayout.MediaGalleryCallback,
   ActivityResultHandler, View.OnLongClickListener, SessionListener, GlobalTokenStateListener, TdlibCache.UserDataChangeListener,
-  TdlibOptionListener {
+  TdlibOptionListener, org.thunderdog.challegram.service.Tgx101Updates.Listener {
 
   private final AvatarPickerManager avatarPickerManager;
   private ComplexHeaderView headerCell;
@@ -463,6 +463,14 @@ public class SettingsController extends ViewController<Void> implements
         if (itemId == R.id.btn_tgx101Channel) {
           view.setData("@plumagram");
         }
+        if (itemId == R.id.btn_tgx101CheckUpdates) {
+          view.getToggler().setRadioEnabled(org.thunderdog.challegram.service.Tgx101Updates.isEnabled(context()), isUpdate);
+        } else if (itemId == R.id.btn_tgx101UpdateNow) {
+          int st = org.thunderdog.challegram.service.Tgx101Updates.state();
+          boolean has = org.thunderdog.challegram.service.Tgx101Updates.release() != null && st != org.thunderdog.challegram.service.Tgx101Updates.STATE_NONE;
+          view.setName(has ? org.thunderdog.challegram.service.Tgx101Updates.rowTitle() : Lang.getString(R.string.Tgx101UpdateCheckNow));
+          view.setEnabledAnimated(st != org.thunderdog.challegram.service.Tgx101Updates.STATE_CHECKING && st != org.thunderdog.challegram.service.Tgx101Updates.STATE_DOWNLOADING, isUpdate);
+        }
         if (itemId == R.id.btn_sourceCode) {
           PullRequest specificPullRequest = (PullRequest) item.getData();
           CharSequence buildInfoShort;
@@ -722,8 +730,13 @@ public class SettingsController extends ViewController<Void> implements
           throw new UnsupportedOperationException();
       }
     }
-    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_checkUpdates, downloadIconRes, downloadStringRes)
-      .setData(downloadUrl));
+    // TGx101 (user 2026-10-26 13:01 «убрать обновление из интерфейса и соединить в общем меню внизу настроек»): our
+    // releases (GitHub, or the channel) — the check / download / install row and the daily-check switch, here only
+    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101UpdateNow, R.drawable.baseline_system_update_24, R.string.Tgx101UpdateCheckNow));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CheckUpdates, R.drawable.baseline_update_24, R.string.Tgx101CheckUpdates));
+    org.thunderdog.challegram.service.Tgx101Updates.restore(context());
+    org.thunderdog.challegram.service.Tgx101Updates.addListener(this);
     if (downloadUrl.installerId == AppInstallationUtil.InstallerId.GOOGLE_PLAY) {
       items.add(new ListItem(ListItem.TYPE_SEPARATOR));
       items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_subscribeToBeta, R.drawable.templarian_baseline_flask_24, R.string.SubscribeToBeta));
@@ -962,8 +975,16 @@ public class SettingsController extends ViewController<Void> implements
   }
 
   @Override
+  public void onTgx101UpdateStateChanged () {
+    UI.post(() -> {
+      if (adapter != null && !isDestroyed()) adapter.updateValuedSettingById(R.id.btn_tgx101UpdateNow);
+    });
+  }
+
+  @Override
   public void destroy () {
     super.destroy();
+    org.thunderdog.challegram.service.Tgx101Updates.removeListener(this);
     tdlib.cache().removeMyUserListener(this);
     setMyUserId(0);
     tdlib.listeners().unsubscribeFromConnectivityUpdates(this);
@@ -1226,6 +1247,17 @@ public class SettingsController extends ViewController<Void> implements
       navigateTo(new SettingsNotificationController(context, tdlib));
     } else if (viewId == R.id.btn_devices) {
       navigateTo(new SettingsSessionsController(context, tdlib));
+    } else if (viewId == R.id.btn_tgx101UpdateNow) {
+      int st = org.thunderdog.challegram.service.Tgx101Updates.state();
+      if (st == org.thunderdog.challegram.service.Tgx101Updates.STATE_READY) {
+        org.thunderdog.challegram.service.Tgx101Updates.install(context());
+      } else if (st == org.thunderdog.challegram.service.Tgx101Updates.STATE_AVAILABLE) {
+        org.thunderdog.challegram.service.Tgx101Updates.onRowClick(this);
+      } else if (st == org.thunderdog.challegram.service.Tgx101Updates.STATE_NONE) {
+        org.thunderdog.challegram.service.Tgx101Updates.checkNow(context());
+      }
+    } else if (viewId == R.id.btn_tgx101CheckUpdates) {
+      org.thunderdog.challegram.service.Tgx101Updates.setEnabled(context(), adapter.toggleView(v));
     } else if (viewId == R.id.btn_checkUpdates) {
       openInstallerPage(((AppInstallationUtil.DownloadUrl) ((ListItem) v.getTag()).getData()));
     } else if (viewId == R.id.btn_subscribeToBeta) {
