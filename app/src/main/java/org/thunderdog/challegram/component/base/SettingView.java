@@ -338,6 +338,16 @@ public class SettingView extends FrameLayoutFix implements FactorAnimator.Target
     layoutProgress();
   }
 
+  // TGx101 (approved mockup «Настройки» Н1, user 2026-10-26): the icon white on a coloured rounded square
+  private int tgx101SquareColor;
+
+  public void setTgx101IconSquare (int color) {
+    if (tgx101SquareColor != color) {
+      tgx101SquareColor = color;
+      invalidate();
+    }
+  }
+
   public void setIconOverlay (IconOverlay overlay) {
     this.overlay = overlay;
   }
@@ -882,6 +892,16 @@ public class SettingView extends FrameLayoutFix implements FactorAnimator.Target
         c.save();
         c.rotate(MathUtils.fromTo(0, 90, iconRotated.getFloatValue()), cx, cy);
       }
+      if (tgx101SquareColor != 0 && lastIconResource != 0) {
+        float cx = x + icon.getMinimumWidth() / 2f, cy = y + icon.getMinimumHeight() / 2f, half = Screen.dp(15f);
+        android.graphics.RectF sq = Paints.getRectF();
+        sq.set(cx - half, cy - half, cx + half, cy + half);
+        c.drawRoundRect(sq, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(iconAlpha, tgx101SquareColor)));
+        c.save();
+        c.scale(.8f, .8f, cx, cy);
+        Drawables.draw(c, icon, x, y, Paints.getPorterDuffPaint(me.vkryl.core.ColorUtils.alphaColor(iconAlpha, 0xffffffff)));
+        c.restore();
+      } else
       Drawables.draw(c, icon, x, y, lastIconResource == 0 ? Paints.getBitmapPaint() : iconColorId != 0 ? PorterDuffPaint.get(iconColorId, iconAlpha) : Paints.getIconGrayPorterDuffPaint());
       if (needRotateIcon) {
         c.restore();

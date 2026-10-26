@@ -6411,6 +6411,7 @@
   <string name="Tgx101ResetSelectionDo">Reset</string>
   <string name="Tgx101ForwardFrom">from %1$s</string>
   <string name="Tgx101PlayerKeepSpeed">Remember speed</string>
+  <string name="Tgx101SearchSettings">Search settings</string>
   <string name="Tgx101AiComposeSetting">AI: assistant on «Send»</string>
   <string name="Tgx101AiSummarySetting">AI: «Short» on long posts</string>
   <string name="Tgx101AiMissedSetting">AI: «What I missed»</string>

@@ -450,6 +450,38 @@ public class SettingsController extends ViewController<Void> implements
     this.contentView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     this.adapter = new SettingsAdapter(this) {
       @Override
+      protected SettingHolder initCustom (ViewGroup parent) {
+        // TGx101 (mockup Н1+, user 2026-10-26): «Search settings» as a plaque right under the header — opens the search
+        android.widget.TextView plaque = new android.widget.TextView(parent.getContext());
+        plaque.setText(Lang.getString(R.string.Tgx101SearchSettings));
+        plaque.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 15f);
+        plaque.setTextColor(Theme.textDecentColor());
+        plaque.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        plaque.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);
+        plaque.setCompoundDrawablePadding(Screen.dp(10f));
+        android.graphics.drawable.Drawable lens = org.thunderdog.challegram.tool.Drawables.get(R.drawable.baseline_search_24);
+        if (lens != null) {
+          lens = lens.mutate();
+          lens.setColorFilter(new android.graphics.PorterDuffColorFilter(Theme.iconColor(), android.graphics.PorterDuff.Mode.SRC_IN));
+          plaque.setCompoundDrawablesWithIntrinsicBounds(lens, null, null, null);
+        }
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor(Theme.fillingColor());
+        bg.setCornerRadius(Screen.dp(12f));
+        plaque.setBackground(bg);
+        android.widget.FrameLayout wrap = new android.widget.FrameLayout(parent.getContext());
+        android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f));
+        lp.setMargins(Screen.dp(12f), Screen.dp(8f), Screen.dp(12f), Screen.dp(8f));
+        wrap.addView(plaque, lp);
+        wrap.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        plaque.setOnClickListener(v -> Tgx101SettingsSearch.open(SettingsController.this));
+        return new SettingHolder(wrap);
+      }
+
+      @Override
+      protected void setCustom (ListItem item, SettingHolder holder, int position) { }
+
+      @Override
       public void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
         boolean hasError = false;
         final int itemId = item.getId();
@@ -460,6 +492,7 @@ public class SettingsController extends ViewController<Void> implements
           hasError = sessions != null && sessions.incompleteLoginAttempts.length > 0;
         }
         view.setUnreadCounter(hasError ? Tdlib.CHAT_FAILED : 0, false, isUpdate);
+        view.setTgx101IconSquare(tgx101SquareColor(itemId));
         if (itemId == R.id.btn_tgx101Channel) {
           view.setData("@plumagram");
         }
@@ -616,6 +649,7 @@ public class SettingsController extends ViewController<Void> implements
     ArrayUtils.ensureCapacity(items, 27);
 
     items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET));
+    items.add(new ListItem(ListItem.TYPE_CUSTOM_SINGLE)); // TGx101 (mockup Н1+): «Search settings» plaque
     if (Settings.instance().showPeerIds()) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_peer_id, R.drawable.baseline_identifier_24, R.string.UserId).setContentStrings(R.string.LoadingInformation, R.string.LoadingInformation));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR));
@@ -657,9 +691,8 @@ public class SettingsController extends ViewController<Void> implements
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101Stars, R.drawable.baseline_star_24, R.string.Tgx101Stars));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101Premium, R.drawable.baseline_stars_24, R.string.Tgx101Premium));
-    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-    items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_devices, R.drawable.baseline_devices_other_24, R.string.Devices));
-    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
 
     checkErrors(false);
 
@@ -679,6 +712,8 @@ public class SettingsController extends ViewController<Void> implements
       items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_chatFolders, R.drawable.baseline_folder_copy_24, R.string.ChatFolders));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     }
+    items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_devices, R.drawable.baseline_devices_other_24, R.string.Devices));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_languageSettings, R.drawable.baseline_language_24, R.string.Language));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
 
@@ -972,6 +1007,31 @@ public class SettingsController extends ViewController<Void> implements
         removeSuggestionFromList(action);
       }
     });
+  }
+
+  /** (mockup Н1) the coloured square behind each row's icon; 0 — a plain grey icon */
+  private static int tgx101SquareColor (int id) {
+    if (id == R.id.btn_tgx101Settings) return 0xff8e5bd9;
+    if (id == R.id.btn_tgx101Stars) return 0xfff5a623;
+    if (id == R.id.btn_tgx101Premium) return 0xffb760e6;
+    if (id == R.id.btn_notificationSettings) return 0xffe0533d;
+    if (id == R.id.btn_chatSettings) return 0xff43a047;
+    if (id == R.id.btn_privacySettings) return 0xff7a8794;
+    if (id == R.id.btn_stickerSettingsAndEmoji) return 0xfff39c12;
+    if (id == R.id.btn_themeSettings) return 0xff3a8bd0;
+    if (id == R.id.btn_tweakSettings) return 0xffef6c00;
+    if (id == R.id.btn_chatFolders) return 0xff00acc1;
+    if (id == R.id.btn_devices) return 0xff5c6bc0;
+    if (id == R.id.btn_languageSettings) return 0xff26a69a;
+    if (id == R.id.btn_help) return 0xff3a8bd0;
+    if (id == R.id.btn_faq) return 0xff00acc1;
+    if (id == R.id.btn_privacyPolicy) return 0xff7a8794;
+    if (id == R.id.btn_tgx101UpdateNow) return 0xff43a047;
+    if (id == R.id.btn_tgx101CheckUpdates) return 0xff5c6bc0;
+    if (id == R.id.btn_sourceCode) return 0xff455a64;
+    if (id == R.id.btn_tgx101Channel) return 0xff2aa3e0;
+    if (id == R.id.btn_sourceCodeChanges) return 0xff607d8b;
+    return 0;
   }
 
   @Override

@@ -587,6 +587,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ResetSelectionDo, "Сбросить");
     RU.put(R.string.Tgx101ForwardFrom, "от %1$s");
     RU.put(R.string.Tgx101PlayerKeepSpeed, "Запоминать скорость");
+    RU.put(R.string.Tgx101SearchSettings, "Поиск по настройкам");
     RU.put(R.string.Tgx101AiComposeSetting, "ИИ: помощник на «Отправить»");
     RU.put(R.string.Tgx101AiSummarySetting, "ИИ: «Кратко» на длинных постах");
     RU.put(R.string.Tgx101AiMissedSetting, "ИИ: «Что пропустил»");
