@@ -6411,6 +6411,10 @@
   <string name="Tgx101ResetSelectionDo">Reset</string>
   <string name="Tgx101ForwardFrom">from %1$s</string>
   <string name="Tgx101PlayerKeepSpeed">Remember speed</string>
+  <string name="Tgx101AiComposeSetting">AI: assistant on «Send»</string>
+  <string name="Tgx101AiSummarySetting">AI: «Short» on long posts</string>
+  <string name="Tgx101AiMissedSetting">AI: «What I missed»</string>
+  <string name="Tgx101AiSortSetting">AI: sorting in Storage</string>
   <string name="Tgx101AiUnavailable">Telegram doesn\'t offer this AI feature to your account yet.</string>
   <string name="Tgx101EditNoMedia">Media can\'t be added to a text message while editing</string>
   <string name="Tgx101SectionChannelsAds">Channels and ads</string>

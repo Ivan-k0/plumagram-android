@@ -1823,6 +1823,10 @@
   <item name="controller_tgx101SavedAiSort" type="id"/>
   <item name="btn_tgx101Summary" type="id"/>
   <item name="btn_tgx101AiAll" type="id"/>
+  <item name="btn_tgx101AiCompose" type="id"/>
+  <item name="btn_tgx101AiSummary" type="id"/>
+  <item name="btn_tgx101AiMissed" type="id"/>
+  <item name="btn_tgx101AiSort" type="id"/>
   <item name="btn_tgx101NoAnimation" type="id"/>
   <item name="btn_tgx101SectionFeatures" type="id"/>
   <item name="btn_tgx101SectionNav" type="id"/>

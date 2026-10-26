@@ -349,6 +349,18 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101NoAnimation(), isUpdate);
         } else if (itemId == R.id.btn_tgx101AiAll) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101Ai(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101AiCompose) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101AiCompose(), isUpdate);
+          view.setEnabledAnimated(Settings.instance().tgx101Ai(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101AiSummary) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101AiSummary(), isUpdate);
+          view.setEnabledAnimated(Settings.instance().tgx101Ai(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101AiMissed) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101AiMissed(), isUpdate);
+          view.setEnabledAnimated(Settings.instance().tgx101Ai(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101AiSort) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101AiSort(), isUpdate);
+          view.setEnabledAnimated(Settings.instance().tgx101Ai(), isUpdate);
         } else if (itemId == R.id.btn_tgx101SearchHoldProxy) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101SearchHoldProxy(), isUpdate);
         } else if (itemId == R.id.btn_tgx101CapsuleScrollHide) {
@@ -607,6 +619,14 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NoAnimation, 0, R.string.Tgx101NoAnimation),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiAll, 0, R.string.Tgx101AiAll),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiCompose, 0, R.string.Tgx101AiComposeSetting),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiSummary, 0, R.string.Tgx101AiSummarySetting),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiMissed, 0, R.string.Tgx101AiMissedSetting),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiSort, 0, R.string.Tgx101AiSortSetting),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101Bird, 0, R.string.Tgx101Bird),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1090,7 +1110,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101TextEditor) return TGX101_SECTION_INPUT;
     if (id == R.id.btn_tgx101QuickCalls) return 7;
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked) return 2;
-    if (id == R.id.btn_tgx101SavedSettingsOpen || id == R.id.btn_tgx101AiAll || id == R.id.btn_tgx101Peek) return TGX101_SECTION_FEATURES;
+    if (id == R.id.btn_tgx101SavedSettingsOpen || id == R.id.btn_tgx101AiAll || id == R.id.btn_tgx101AiCompose || id == R.id.btn_tgx101AiSummary || id == R.id.btn_tgx101AiMissed || id == R.id.btn_tgx101AiSort || id == R.id.btn_tgx101Peek) return TGX101_SECTION_FEATURES;
     if (id == R.id.btn_pullToSearch) return 0;
     if (id == R.id.btn_tgx101StoriesMode || id == R.id.btn_tgx101StoriesFolders) return 1;
     if (id == R.id.btn_tgx101ChatMenuOrder) return 2;
@@ -1438,6 +1458,18 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       UI.showToast(R.string.Tgx101NoAnimationHint, android.widget.Toast.LENGTH_LONG);
     } else if (id == R.id.btn_tgx101AiAll) {
       Settings.instance().setTgx101Ai(toggleResult); // user 2026-10-21: all AI things off / on at once
+      adapter.updateValuedSettingById(R.id.btn_tgx101AiCompose);
+      adapter.updateValuedSettingById(R.id.btn_tgx101AiSummary);
+      adapter.updateValuedSettingById(R.id.btn_tgx101AiMissed);
+      adapter.updateValuedSettingById(R.id.btn_tgx101AiSort);
+    } else if (id == R.id.btn_tgx101AiCompose) {
+      Settings.instance().setTgx101AiCompose(toggleResult);
+    } else if (id == R.id.btn_tgx101AiSummary) {
+      Settings.instance().setTgx101AiSummary(toggleResult);
+    } else if (id == R.id.btn_tgx101AiMissed) {
+      Settings.instance().setTgx101AiMissed(toggleResult);
+    } else if (id == R.id.btn_tgx101AiSort) {
+      Settings.instance().setTgx101AiSort(toggleResult);
     } else if (id == R.id.btn_tgx101SearchHoldProxy) {
       Settings.instance().setTgx101SearchHoldProxy(toggleResult); // user 2026-10-12: hold the chat list search → proxy
     } else if (id == R.id.btn_tgx101HideSponsored) {

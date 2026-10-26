@@ -10021,7 +10021,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private boolean tgx101AiBusy;
 
   private boolean tgx101CanUseAi () {
-    return Settings.instance().tgx101Ai() && inputView != null && !isSecretChat() && !inPreviewMode && inputView.getText().toString().trim().length() > 0;
+    return Settings.instance().tgx101AiCompose() && inputView != null && !isSecretChat() && !inPreviewMode && inputView.getText().toString().trim().length() > 0;
   }
 
   private void tgx101ShowAiMenu () {

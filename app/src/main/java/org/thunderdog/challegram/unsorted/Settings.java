@@ -3794,6 +3794,13 @@ public class Settings {
   public boolean tgx101SavedAsChats () { return pmc.getBoolean(KEY_TGX101_SAVED_AS_CHATS, false); } // the official default: messages
   public void setTgx101SavedAsChats (boolean v) { pmc.putBoolean(KEY_TGX101_SAVED_AS_CHATS, v); }
 
+  // (user 2026-10-26 12:54 «ИИ отключать опционально, не все разом»): each AI thing on its own, under the common switch
+  private static final String KEY_TGX101_AI_COMPOSE = "tgx101_ai_compose", KEY_TGX101_AI_SORT = "tgx101_ai_sort";
+  public boolean tgx101AiCompose () { return tgx101Ai() && pmc.getBoolean(KEY_TGX101_AI_COMPOSE, true); }
+  public void setTgx101AiCompose (boolean v) { pmc.putBoolean(KEY_TGX101_AI_COMPOSE, v); }
+  public boolean tgx101AiSort () { return tgx101Ai() && pmc.getBoolean(KEY_TGX101_AI_SORT, true); }
+  public void setTgx101AiSort (boolean v) { pmc.putBoolean(KEY_TGX101_AI_SORT, v); }
+
   public boolean tgx101AiMissed () { return tgx101Ai() && pmc.getBoolean(KEY_TGX101_AI_MISSED, true); }
   public void setTgx101AiMissed (boolean v) { pmc.putBoolean(KEY_TGX101_AI_MISSED, v); }
 

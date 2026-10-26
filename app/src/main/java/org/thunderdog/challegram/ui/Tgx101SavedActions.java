@@ -158,7 +158,7 @@ public final class Tgx101SavedActions {
         });
       }));
       // (user 2026-10-21 «3 вариант с ИИ»): the AI puts the records without a folder into folders
-      if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101Ai()) body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_stars_24, 0, Lang.getString(R.string.Tgx101SavedAiSort), null, false, v -> {
+      if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiSort()) body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_stars_24, 0, Lang.getString(R.string.Tgx101SavedAiSort), null, false, v -> {
         h[0].dismiss();
         c.navigateTo(new Tgx101SavedAiSortController(c.context(), c.tdlib()));
       }));

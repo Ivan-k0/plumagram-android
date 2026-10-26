@@ -587,6 +587,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ResetSelectionDo, "Сбросить");
     RU.put(R.string.Tgx101ForwardFrom, "от %1$s");
     RU.put(R.string.Tgx101PlayerKeepSpeed, "Запоминать скорость");
+    RU.put(R.string.Tgx101AiComposeSetting, "ИИ: помощник на «Отправить»");
+    RU.put(R.string.Tgx101AiSummarySetting, "ИИ: «Кратко» на длинных постах");
+    RU.put(R.string.Tgx101AiMissedSetting, "ИИ: «Что пропустил»");
+    RU.put(R.string.Tgx101AiSortSetting, "ИИ: сортировка в Хранилище");
     RU.put(R.string.Tgx101AiUnavailable, "Telegram пока не даёт эту ИИ-функцию вашему аккаунту.");
     RU.put(R.string.Tgx101EditNoMedia, "К текстовому сообщению нельзя добавить медиа при редактировании");
     RU.put(R.string.Tgx101SectionChannelsAds, "Каналы и реклама");
