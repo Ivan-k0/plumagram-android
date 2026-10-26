@@ -93,11 +93,76 @@ public final class Tgx101Bird {
     return out.toArray(new Tgx101BirdView.Item[0]);
   }
 
-  /** made and put over a chat list's content */
-  public static Tgx101BirdView create (ViewController<?> host, @Nullable Runnable search) {
-    Tgx101BirdView bird = new Tgx101BirdView(host.context());
+  // TGx101 (user 2026-10-26 «птичка не должна перезапускаться, мигать при переходах — вкопана, как системная кнопка»):
+  // one bird per window, over the navigation and under the side menu; the screen on top only says whether it is there
+  // (chat lists, and chats when «In chats» is on) and is the one its actions act on
+  private static final java.util.WeakHashMap<BaseActivity, Tgx101BirdView> birds = new java.util.WeakHashMap<>();
+  private static final java.util.WeakHashMap<BaseActivity, java.lang.ref.WeakReference<ViewController<?>>> hosts = new java.util.WeakHashMap<>();
+  private static final java.util.WeakHashMap<ViewController<?>, Runnable> searches = new java.util.WeakHashMap<>();
+
+  /** put once into the window's content, right above the navigation */
+  public static void install (BaseActivity context, android.view.ViewGroup content, android.view.View navigation) {
+    Tgx101BirdView bird = new Tgx101BirdView(context);
     bird.setItems(items());
-    bird.setCallback(new Tgx101BirdView.Callback() {
+    bird.setActive(false);
+    bird.setLayoutParams(new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+    content.addView(bird, content.indexOfChild(navigation) + 1);
+    birds.put(context, bird);
+  }
+
+  /** what «Search» in the ring opens on this screen */
+  public static void setSearch (ViewController<?> host, Runnable search) {
+    searches.put(host, search);
+  }
+
+  private static @Nullable ViewController<?> host (BaseActivity context) {
+    java.lang.ref.WeakReference<ViewController<?>> ref = hosts.get(context);
+    ViewController<?> host = ref != null ? ref.get() : null;
+    return host != null && !host.isDestroyed() ? host : null;
+  }
+
+  private static boolean wants (ViewController<?> c) {
+    if (c.inSearchMode()) return false;
+    if (c instanceof MainController) return enabled();
+    if (c instanceof ChatsController) return ((ChatsController) c).tgx101IsOwnList() && enabled();
+    if (c instanceof MessagesController) return ((MessagesController) c).tgx101WantsBird();
+    return false;
+  }
+
+  /** a screen of the window's stack is about to show or got the focus: the bird stays, goes or comes */
+  public static void sync (ViewController<?> c) {
+    BaseActivity context = c.context();
+    Tgx101BirdView bird = birds.get(context);
+    if (bird == null || context.navigation() == null || context.navigation().getStack().indexOf(c) < 0) return;
+    if (!wants(c)) {
+      bird.setActive(false);
+      return;
+    }
+    ViewController<?> old = host(context);
+    hosts.put(context, new java.lang.ref.WeakReference<>(c));
+    if (old != c || !bird.isActive()) {
+      bird.setCallback(callback(context), c.tdlib());
+    }
+    if (!bird.isRingOpen()) bird.setItems(items());
+    bird.setActive(true);
+  }
+
+  /** the screen's search took the place: no bird */
+  public static void hideFor (ViewController<?> c) {
+    Tgx101BirdView bird = birds.get(c.context());
+    if (bird != null && host(c.context()) == c) bird.setActive(false);
+  }
+
+  /** back pressed while the ring is open */
+  public static boolean closeRing (BaseActivity context, boolean commit) {
+    Tgx101BirdView bird = birds.get(context);
+    if (bird == null || !bird.isActive() || !bird.isRingOpen()) return false;
+    if (commit) bird.onBackPressed();
+    return true;
+  }
+
+  private static Tgx101BirdView.Callback callback (BaseActivity context) {
+    return new Tgx101BirdView.Callback() {
       @Override
       public Tgx101BirdView.Item[] birdItems () {
         return items(); // made at the moment the ring opens: the theme, the settings as they are now
@@ -105,7 +170,8 @@ public final class Tgx101Bird {
 
       @Override
       public void onBirdAction (int action) {
-        run(host, action, search);
+        ViewController<?> host = host(context);
+        if (host != null) run(host, action, searches.get(host));
       }
 
       @Override
@@ -115,11 +181,14 @@ public final class Tgx101Bird {
 
       @Override
       public void onBirdDoubleTap () {
-        doubleTap(host);
+        ViewController<?> host = host(context);
+        if (host != null) doubleTap(host);
       }
 
       @Override
       public void onBirdAccount (int accountId) {
+        ViewController<?> host = host(context);
+        if (host == null) return;
         if (accountId == -1) {
           host.tdlib().ui().addAccount(host.context(), true, false);
           return;
@@ -129,9 +198,7 @@ public final class Tgx101Bird {
           host.tdlib().context().changePreferredAccountId(accountId, TdlibManager.SWITCH_REASON_USER_CLICK);
         }
       }
-    }, host.tdlib());
-    bird.setActive(enabled());
-    return bird;
+    };
   }
 
   // TGx101 (user 2026-10-26): what two taps on the bird do
@@ -226,13 +293,6 @@ public final class Tgx101Bird {
       }
       done.run();
     });
-  }
-
-  /** the settings may have changed while away: shown or not, and the ring */
-  public static void refresh (@Nullable Tgx101BirdView bird) {
-    if (bird == null) return;
-    bird.setActive(enabled());
-    if (!bird.isRingOpen()) bird.setItems(items());
   }
 
   public static void run (ViewController<?> host, int action, @Nullable Runnable search) {

@@ -568,6 +568,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
     contentView.addView(focusView);
     contentView.addView(navigation.getValue());
+    org.thunderdog.challegram.ui.Tgx101Bird.install(this, contentView, navigation.getValue()); // TGx101 (user 2026-10-26): one bird for all screens
     contentView.addView(recordAudioVideoController.prepareViews());
     if (drawer != null) {
       contentView.addView(drawer.getValue());

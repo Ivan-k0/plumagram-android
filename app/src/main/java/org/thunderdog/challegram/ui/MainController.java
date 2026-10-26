@@ -399,10 +399,8 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     if (Settings.instance().tgx101HideCompose()) {
       composeWrap.setVisibility(View.GONE); // user 2026-10-08: the ✎ button can be hidden (MagiX → Нижнее меню)
     }
-    // TGx101 (user 2026-10-21): the bird at the edge, over every folder
-    tgx101Bird = Tgx101Bird.create(this, this::openSearchMode);
-    tgx101Bird.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-    contentView.addView(tgx101Bird);
+    // TGx101 (user 2026-10-21): the bird at the edge, over every folder — the app's one bird (Tgx101Bird.install)
+    Tgx101Bird.setSearch(this, this::openSearchMode);
 
     makeStartupChecks();
 
@@ -938,14 +936,14 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     super.onEnterSearchMode();
     composeWrap.forceHide();
     if (tgx101Capsule != null) { tgx101Capsule.closeMenu(); tgx101ShowCapsule(false); }
-    if (tgx101Bird != null) tgx101Bird.setActive(false);
+    Tgx101Bird.hideFor(this);
   }
 
   @Override
   protected void onLeaveSearchMode () {
     super.onLeaveSearchMode();
     composeWrap.showIfWasHidden();
-    Tgx101Bird.refresh(tgx101Bird);
+    getValue().post(() -> Tgx101Bird.sync(this)); // the search flag is cleared right after this
     if (tgx101Capsule != null && isFocused()) tgx101ShowCapsule(true);
     // TGx101 (user 2026-10-05 «тёмная фантомная полоса после поиска»): the stories row is laid out again after search
     ViewController<?> current = getCurrentPagerItem();
@@ -2318,7 +2316,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       getValue().removeCallbacks(tgx101RefreshStorage);
       getValue().postDelayed(tgx101RefreshStorage, 900);
     }
-    Tgx101Bird.refresh(tgx101Bird); // back from MagiX: shown or not, and the ring
+    Tgx101Bird.sync(this); // back from MagiX: shown or not, and the ring
     ViewController<?> page = getCurrentPagerItem();
     if (page instanceof ChatsController) ((ChatsController) page).tgx101CheckStorageRow(); // the storage's row: settings may have changed
     // TGx101 (user's log 2026-10-06 23:29): swiped back from a chat with the keyboard up — the chats page itself doesn't
@@ -2970,12 +2968,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     }
   }
 
-  private @Nullable org.thunderdog.challegram.widget.Tgx101BirdView tgx101Bird;
-
   @Override
   public boolean performOnBackPressed (boolean fromTop, boolean commit) {
-    if (tgx101Bird != null && tgx101Bird.isRingOpen()) {
-      if (commit) tgx101Bird.onBackPressed();
+    if (Tgx101Bird.closeRing(context, commit)) {
       return true;
     }
     if (tgx101Capsule != null && tgx101Capsule.isMenuOpen()) {

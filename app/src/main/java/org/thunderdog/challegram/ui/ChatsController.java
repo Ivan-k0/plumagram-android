@@ -792,20 +792,20 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     tgx101AddStoriesStrip(context);
     // TGx101 (user 2026-10-21 «птичка должна быть на всех списках чатов»): a list of its own (archive etc.) has the bird
     // too; the folders of the main screen share the main screen's one
-    if (parentController == null && pickerDelegate == null) {
-      tgx101Bird = Tgx101Bird.create(this, this::openSearchMode);
-      tgx101Bird.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-      contentView.addView(tgx101Bird);
+    if (tgx101IsOwnList()) {
+      Tgx101Bird.setSearch(this, this::openSearchMode);
     }
     return contentView;
   }
 
-  private @Nullable org.thunderdog.challegram.widget.Tgx101BirdView tgx101Bird;
+  /** a list of its own on the stack (archive etc.), not a folder page of the main screen nor a picker */
+  public boolean tgx101IsOwnList () {
+    return parentController == null && pickerDelegate == null;
+  }
 
   @Override
   public boolean performOnBackPressed (boolean fromTop, boolean commit) {
-    if (tgx101Bird != null && tgx101Bird.isRingOpen()) {
-      if (commit) tgx101Bird.onBackPressed();
+    if (tgx101IsOwnList() && Tgx101Bird.closeRing(context, commit)) {
       return true;
     }
     return super.performOnBackPressed(fromTop, commit);
@@ -1577,7 +1577,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   public void onFocus () {
     super.onFocus();
     tgx101CheckStorageRow(); // back from the storage's settings, a hidden row, a new saved record
-    Tgx101Bird.refresh(tgx101Bird);
+    Tgx101Bird.sync(this);
     // TGx101 (user's log 2026-10-05 15:46): swiped back from a chat with the keyboard up (after scheduling a message,
     // the chat stays open) — the keyboard hung over the chat list; the list has no input, so it goes
     if (filter == null && pickerDelegate == null && getKeyboardState()) {

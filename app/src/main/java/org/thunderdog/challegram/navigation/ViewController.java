@@ -3707,6 +3707,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
 
   @CallSuper
   public void onFocus () {
+    org.thunderdog.challegram.ui.Tgx101Bird.sync(this); // TGx101: the window's one bird — here or not on this screen
     int flags = this.flags;
     flags |= FLAG_FOCUSED;
     flags &= ~FLAG_PREVENT_LEAVING_SEARCH_MODE;

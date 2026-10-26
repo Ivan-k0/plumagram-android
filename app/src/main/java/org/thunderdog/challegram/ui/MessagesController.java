@@ -2278,23 +2278,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     }
 
-    // TGx101 (user 2026-10-26 «птичке нужно дать возможность быть в чатах, каналах, группах (опционально)»): the same
-    // bird over a chat, when MagiX → Features → Bird → «In chats» is on
-    if (previewMode == PREVIEW_MODE_NONE && !isInForceTouchMode() && Settings.instance().tgx101BirdInChats()) {
-      tgx101Bird = Tgx101Bird.create(this, null);
-      tgx101Bird.setActive(tgx101BirdActive());
-      tgx101Bird.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-      contentView.addView(tgx101Bird);
-    }
-
     return contentView;
   }
 
-  private @Nullable org.thunderdog.challegram.widget.Tgx101BirdView tgx101Bird;
-
-  /** (user 2026-10-26) not in Saved Messages */
-  private boolean tgx101BirdActive () {
-    return Tgx101Bird.enabledInChats() && chat != null && !isSelfChat();
+  /** TGx101 (user 2026-10-26 «птичке — возможность быть в чатах, каналах, группах (опционально)»; not in Saved Messages) */
+  public boolean tgx101WantsBird () {
+    return Tgx101Bird.enabledInChats() && chat != null && !isSelfChat() && previewMode == PREVIEW_MODE_NONE && !isInForceTouchMode();
   }
 
   private SliderView fontSliderView;
@@ -5079,10 +5068,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public void onFocus () {
     tgx101ResetMotion("focus");
     super.onFocus();
-    if (tgx101Bird != null) {
-      tgx101Bird.setActive(tgx101BirdActive());
-      if (!tgx101Bird.isRingOpen()) tgx101Bird.setItems(Tgx101Bird.items());
-    }
     if (tgx101NeedTopicsUnder && chat != null) {
       tgx101NeedTopicsUnder = false;
       Tgx101TopicsController.ensureTopicsUnder(this, chat); // back from the group's feed — to its topics
@@ -11522,8 +11507,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   @Override
   public boolean performOnBackPressed (boolean fromTop, boolean commit) {
     BaseActivity context = context();
-    if (tgx101Bird != null && tgx101Bird.isRingOpen()) {
-      if (commit) tgx101Bird.onBackPressed();
+    if (Tgx101Bird.closeRing(context, commit)) {
       return true;
     }
     if (context.getRecordAudioVideoController().isOpen()) {
