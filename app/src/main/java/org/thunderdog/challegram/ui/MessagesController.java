@@ -8237,6 +8237,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public @Nullable ReplyInfo obtainReplyTo () {
     if (reply != null) {
       ReplyInfo replyTo = getCurrentReplyId();
+      tgx101HoldBarForSend();
       // TGx101 (user 2026-10-14 11:32, exteraGram vs ours «что это за прыжки»): the reply bar was dropped in one frame as
       // the message went — now it slides away together with the new message gliding up
       closeReply(true, true);
@@ -8388,7 +8389,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private void updateReplyBarVisibility (boolean animated) {
-    if (replyBarView == null) {
+    if (replyBarView == null || (tgx101BarHeld && animated)) {
       return;
     }
     boolean shouldBeVisible = true;
@@ -8590,6 +8591,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       sent = false;
     }
     if (sent) {
+      tgx101HoldBarForSend();
       pendingAttachment = null;
       if (inputView != null) {
         inputView.setInput("", false, true);
@@ -8713,16 +8715,34 @@ public class MessagesController extends ViewController<MessagesController.Argume
     updateReplyBarVisibility(false);
   }
 
-  /** A message has just been sent: a reply / attachment bar still sliding away is gone at once (the new message's glide
-   *  covers its height in one move) */
-  public void tgx101SettleBarsForSend () {
-    if (replyBarView != null && !replyBarVisible.getValue() && replyBarVisible.getFloatValue() > 0f) {
-      replyBarVisible.forceValue(false, 0f);
-      setForceHw(false);
-      replyBarView.reset();
-      updateReplyView();
-      syncFloatingReplyBar();
+  // TGx101 (user video 2026-10-26 10:21 «при отправке файлом чат подпрыгивает»): the reply / attachment bar started sliding
+  // away at the tap, the new message came 20–30 ms later — by then the chat had dropped with the bar, then the message's
+  // glide raised it. Now the bar stays until the message is there and goes within its one glide (or after 600 ms)
+  private boolean tgx101BarHeld;
+  private final Runnable tgx101ReleaseBar = () -> {
+    if (tgx101BarHeld) {
+      tgx101BarHeld = false;
+      updateReplyBarVisibility(true);
     }
+  };
+
+  private void tgx101HoldBarForSend () {
+    if (replyBarView == null || replyBarVisible.getFloatValue() == 0f) return;
+    tgx101BarHeld = true;
+    UI.cancel(tgx101ReleaseBar);
+    UI.post(tgx101ReleaseBar, 600);
+  }
+
+  /** The sent message is in the list: a held bar goes at once, the new message's glide covers its height */
+  public void tgx101SettleBarsForSend () {
+    if (!tgx101BarHeld) return;
+    tgx101BarHeld = false;
+    UI.cancel(tgx101ReleaseBar);
+    updateReplyBarVisibility(false);
+    setForceHw(false);
+    if (replyBarView != null && !replyBarVisible.getValue()) replyBarView.reset();
+    updateReplyView();
+    syncFloatingReplyBar();
   }
 
   public void closeReply (final boolean byUser, boolean animated) {
