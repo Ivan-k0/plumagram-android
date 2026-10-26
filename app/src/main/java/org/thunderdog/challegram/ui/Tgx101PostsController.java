@@ -122,9 +122,9 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
       FrameLayout wrap = new FrameLayout(context);
       FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(36f), Gravity.CENTER_VERTICAL | Gravity.START);
       lp.leftMargin = Screen.dp(68f);
-      lp.topMargin = org.thunderdog.challegram.navigation.HeaderView.getTopOffset();
       wrap.addView(headerSwitch, lp);
-      wrap.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      // (crash 2026-10-26 21:52): the header sets a top margin on its custom cell — the params must take margins
+      wrap.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, org.thunderdog.challegram.navigation.HeaderView.getSize(false)));
       paintHeaderTabs();
       return wrap;
     }

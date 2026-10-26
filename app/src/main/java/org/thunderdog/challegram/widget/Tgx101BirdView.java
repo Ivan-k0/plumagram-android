@@ -58,6 +58,10 @@ public class Tgx101BirdView extends View {
     default int birdBottomInset () { return 0; }
     /** the ring's items as they are now (null — keep) */
     default @Nullable Item[] birdItems () { return null; }
+    /** whether two taps on the bird do something (MagiX → Features → Bird) */
+    default boolean birdHasDoubleTap () { return false; }
+    /** two taps on the bird, while {@link #birdHasDoubleTap()} */
+    default void onBirdDoubleTap () { }
   }
 
   public static final class Item {
@@ -409,6 +413,31 @@ public class Tgx101BirdView extends View {
           }
         }
         else if (!moved) {
+          // TGx101 (user 2026-10-26): a second tap within 350 ms is the bird's double tap (its action is chosen in MagiX);
+          // while one is set, the first tap waits that long before it goes to what lies under the bird
+          long now = android.os.SystemClock.uptimeMillis();
+          boolean doubleTap = callback != null && callback.birdHasDoubleTap();
+          if (doubleTap && now - tgx101LastTap < 350) {
+            tgx101LastTap = 0;
+            tgx101CancelPendingTap();
+            performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+            callback.onBirdDoubleTap();
+            return true;
+          }
+          tgx101LastTap = now;
+          if (doubleTap && downEvent != null) {
+            tgx101CancelPendingTap();
+            final MotionEvent down = MotionEvent.obtain(downEvent), up = MotionEvent.obtain(e);
+            tgx101PendingTap = () -> {
+              tgx101PendingTap = null;
+              View under = findUnder(down);
+              if (under != null) forward(under, up);
+              down.recycle();
+              up.recycle();
+            };
+            postDelayed(tgx101PendingTap, 330);
+            return true;
+          }
           // (user 2026-10-21 16:34 «птичка должна пропускать клики»): a tap goes to what lies under the bird
           View under = findUnder(downEvent);
           if (under != null) forward(under, e);
@@ -428,6 +457,15 @@ public class Tgx101BirdView extends View {
     return pressed;
   }
 
+  private long tgx101LastTap;
+  private @Nullable Runnable tgx101PendingTap;
+
+  private void tgx101CancelPendingTap () {
+    if (tgx101PendingTap != null) {
+      removeCallbacks(tgx101PendingTap);
+      tgx101PendingTap = null; // its events are left to the collector: rare
+    }
+  }
   private @Nullable MotionEvent downEvent;
   private @Nullable View forwardTarget;
 

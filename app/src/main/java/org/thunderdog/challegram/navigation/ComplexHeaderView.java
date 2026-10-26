@@ -920,8 +920,7 @@ public class ComplexHeaderView extends BaseView implements RtlCheckListener, Sti
     if (index == tgx101PhotoIndex) return;
     tgx101PhotoIndex = index;
     receiver.requestSpecific(tdlib, new AvatarReceiver.FullChatPhoto(tgx101Photos[index], tgx101PhotosChatId), AvatarReceiver.Options.FULL_SIZE);
-    performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
-    invalidate();
+    invalidate(); // (no buzz — user 2026-10-26)
   }
 
   @Override

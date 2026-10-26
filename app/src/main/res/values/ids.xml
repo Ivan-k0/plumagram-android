@@ -105,6 +105,7 @@
   <item type="id" name="btn_tgx101PostsArchive" />
   <item type="id" name="controller_tgx101Posts" />
   <item type="id" name="btn_pinUnpin" />
+  <item type="id" name="menu_btn_tgx101AddAccount" />
   <item type="id" name="btn_addToFolder" />
   <item type="id" name="btn_removeFromFolder" />
   <item type="id" name="more_btn_tgx101Shortcut" />
@@ -1853,5 +1854,11 @@
   <item name="menu_btn_tgx101SavedAi" type="id"/>
   <item name="btn_tgx101Bird" type="id"/>
   <item name="btn_tgx101BirdRing" type="id"/>
+  <item name="btn_tgx101BirdInChats" type="id"/>
+  <item name="btn_tgx101BirdDoubleTap" type="id"/>
+  <item name="btn_tgx101BirdOpen" type="id"/>
+  <item name="btn_tgx101AiOpen" type="id"/>
+  <item name="controller_tgx101BirdSettings" type="id"/>
+  <item name="controller_tgx101AiSettings" type="id"/>
   <item name="controller_tgx101SettingsSearch" type="id"/>
 </resources>

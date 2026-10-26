@@ -172,6 +172,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       adapter.updateValuedSettingById(R.id.btn_tgx101Gestures); // TGx101: back from «Message gestures»
       adapter.updateValuedSettingById(R.id.btn_tgx101Backup); // back from «Settings backup»: when it was last saved
       adapter.updateValuedSettingById(R.id.btn_tgx101Peek);
+      adapter.updateValuedSettingById(R.id.btn_tgx101AiOpen);
+      adapter.updateValuedSettingById(R.id.btn_tgx101BirdOpen);
     }
   }
 
@@ -343,6 +345,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101SwipeToStorage(), isUpdate);
         } else if (itemId == R.id.btn_tgx101BirdRing) {
           view.setData(Tgx101GesturesController.birdRingValue());
+        } else if (itemId == R.id.btn_tgx101AiOpen) {
+          view.setData(Tgx101AiSettingsController.value());
+        } else if (itemId == R.id.btn_tgx101BirdOpen) {
+          view.setData(Settings.instance().tgx101Bird() ? Tgx101BirdSettingsController.doubleTapValue() : Lang.getString(R.string.Tgx101AiOff));
         } else if (itemId == R.id.btn_tgx101Peek) {
           view.setData(Tgx101PeekController.value());
         } else if (itemId == R.id.btn_tgx101NoAnimation) {
@@ -618,19 +624,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NoAnimation, 0, R.string.Tgx101NoAnimation),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiAll, 0, R.string.Tgx101AiAll),
+        // (user 2026-10-26 «функции ИИ отдельным подменю», «настройки птички вынеси в Фишки»): one row each, the rest inside
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101AiOpen, 0, R.string.Tgx101AiSection),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiCompose, 0, R.string.Tgx101AiComposeSetting),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiSummary, 0, R.string.Tgx101AiSummarySetting),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiMissed, 0, R.string.Tgx101AiMissedSetting),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiSort, 0, R.string.Tgx101AiSortSetting),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101Bird, 0, R.string.Tgx101Bird),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101BirdRing, 0, R.string.Tgx101BirdRing),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101BirdOpen, 0, R.string.Tgx101BirdSection),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         // (user 2026-10-24 21:26, 4PDA nyan_ame «как отключить попадание в хранилище свайпом»): it was only under message gestures
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SwipeToStorage, 0, R.string.Tgx101SwipeToStorage),
@@ -1110,7 +1107,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101TextEditor) return TGX101_SECTION_INPUT;
     if (id == R.id.btn_tgx101QuickCalls) return 7;
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked) return 2;
-    if (id == R.id.btn_tgx101SavedSettingsOpen || id == R.id.btn_tgx101AiAll || id == R.id.btn_tgx101AiCompose || id == R.id.btn_tgx101AiSummary || id == R.id.btn_tgx101AiMissed || id == R.id.btn_tgx101AiSort || id == R.id.btn_tgx101Peek) return TGX101_SECTION_FEATURES;
+    if (id == R.id.btn_tgx101SavedSettingsOpen || id == R.id.btn_tgx101AiAll || id == R.id.btn_tgx101AiCompose || id == R.id.btn_tgx101AiSummary || id == R.id.btn_tgx101AiMissed || id == R.id.btn_tgx101AiSort || id == R.id.btn_tgx101Peek
+      || id == R.id.btn_tgx101AiOpen || id == R.id.btn_tgx101BirdOpen) return TGX101_SECTION_FEATURES;
     if (id == R.id.btn_pullToSearch) return 0;
     if (id == R.id.btn_tgx101StoriesMode || id == R.id.btn_tgx101StoriesFolders) return 1;
     if (id == R.id.btn_tgx101ChatMenuOrder) return 2;
@@ -1723,6 +1721,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Tgx101MenuOrderController c = new Tgx101MenuOrderController(context, tdlib);
       c.setArguments(new Tgx101MenuOrderController.Args(id == R.id.btn_tgx101DrawerOrder ? Tgx101MenuOrderController.MODE_DRAWER : Tgx101MenuOrderController.MODE_CHAT_MENU));
       navigateTo(c);
+    } else if (id == R.id.btn_tgx101AiOpen) {
+      navigateTo(new Tgx101AiSettingsController(context, tdlib));
+    } else if (id == R.id.btn_tgx101BirdOpen) {
+      navigateTo(new Tgx101BirdSettingsController(context, tdlib));
     } else if (id == R.id.btn_tgx101SavedSettingsOpen) {
       navigateTo(new Tgx101SavedSettingsController(context, tdlib));
     } else if (id == R.id.btn_tgx101Peek) {

@@ -193,7 +193,8 @@ public class SettingsController extends ViewController<Void> implements
   @Override
   public void fillMenuItems (int id, HeaderView header, LinearLayout menu) {
     if (id == R.id.menu_more_settings) {
-      header.addSearchButton(menu, this); // TGx101: the settings search
+      // TGx101 (user 2026-10-26 «лупу в шапке убери, поменяй на иконку добавить аккаунт»): the search is the plaque below
+      header.addButton(menu, R.id.menu_btn_tgx101AddAccount, R.drawable.baseline_person_add_24, 52f, this, ColorId.headerIcon);
       header.addMoreButton(menu, this);
     }
   }
@@ -204,6 +205,8 @@ public class SettingsController extends ViewController<Void> implements
       showMore(new int[] {R.id.more_btn_logout}, new String[] {Lang.getString(R.string.LogOut)}, 0);
     } else if (id == R.id.menu_btn_search) {
       Tgx101SettingsSearch.open(this);
+    } else if (id == R.id.menu_btn_tgx101AddAccount) {
+      tdlib.ui().addAccount(context, true, false);
     }
   }
 
@@ -634,9 +637,7 @@ public class SettingsController extends ViewController<Void> implements
     ArrayUtils.ensureCapacity(items, 27);
 
     items.add(new ListItem(ListItem.TYPE_CUSTOM_SINGLE)); // TGx101 (mockup Н1+): «Search settings» plaque and my card (the account rows went to «Edit»)
-    // (user 2026-10-26 «нет возможности добавить ещё один аккаунт — только в боковом меню?»): right under my card
-    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_addAccount, R.drawable.baseline_person_add_24, R.string.AddAccount));
-    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    // (adding an account is the header's person+ button — user 2026-10-26)
 
     TdApi.SuggestedAction[] actions = tdlib.getSuggestedActions();
     int addedActionItems = 0;
@@ -655,10 +656,6 @@ public class SettingsController extends ViewController<Void> implements
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     // TGx101: mod settings first, set apart by a full-width line
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101Settings, R.drawable.tgx101_magix_24, R.string.Tgx101Settings));
-    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101Stars, R.drawable.baseline_star_24, R.string.Tgx101Stars));
-    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101Premium, R.drawable.baseline_stars_24, R.string.Tgx101Premium));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
 
@@ -683,6 +680,12 @@ public class SettingsController extends ViewController<Void> implements
     items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_devices, R.drawable.baseline_devices_other_24, R.string.Devices));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_languageSettings, R.drawable.baseline_language_24, R.string.Language));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    // TGx101 (user 2026-10-26): Stars and Premium on their own, after Language, before help
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101Stars, R.drawable.baseline_star_24, R.string.Tgx101Stars));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101Premium, R.drawable.baseline_stars_24, R.string.Tgx101Premium));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
 
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));

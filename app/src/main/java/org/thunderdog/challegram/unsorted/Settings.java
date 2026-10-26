@@ -3833,6 +3833,12 @@ public class Settings {
   private static final String KEY_TGX101_BIRD_SPOT = "tgx101_bird_spot", KEY_TGX101_BIRD_SPOT_LAND = "tgx101_bird_spot_land";
   public int tgx101BirdSpot (boolean landscape) { return pmc.getInt(landscape ? KEY_TGX101_BIRD_SPOT_LAND : KEY_TGX101_BIRD_SPOT, 0); }
   public void setTgx101BirdSpot (boolean landscape, int value) { pmc.putInt(landscape ? KEY_TGX101_BIRD_SPOT_LAND : KEY_TGX101_BIRD_SPOT, value); }
+  // (user 2026-10-26) the bird over chats too; what two taps on it do (Tgx101Bird.DOUBLE_TAP_*)
+  private static final String KEY_TGX101_BIRD_IN_CHATS = "tgx101_bird_in_chats", KEY_TGX101_BIRD_DOUBLE_TAP = "tgx101_bird_double_tap";
+  public boolean tgx101BirdInChats () { return pmc.getBoolean(KEY_TGX101_BIRD_IN_CHATS, false); }
+  public void setTgx101BirdInChats (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD_IN_CHATS, v); }
+  public int tgx101BirdDoubleTap () { return pmc.getInt(KEY_TGX101_BIRD_DOUBLE_TAP, 0); }
+  public void setTgx101BirdDoubleTap (int v) { pmc.putInt(KEY_TGX101_BIRD_DOUBLE_TAP, v); }
   public boolean tgx101BirdMoveLearned () { return pmc.getBoolean(KEY_TGX101_BIRD_MOVED, false); }
   public void setTgx101BirdMoveLearned (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD_MOVED, v); }
 

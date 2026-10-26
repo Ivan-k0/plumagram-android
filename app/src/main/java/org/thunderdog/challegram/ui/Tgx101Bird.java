@@ -14,6 +14,7 @@ package org.thunderdog.challegram.ui;
 
 import androidx.annotation.Nullable;
 
+import org.drinkless.tdlib.TdApi;
 import org.thunderdog.challegram.BaseActivity;
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.core.Lang;
@@ -64,6 +65,12 @@ public final class Tgx101Bird {
     return s.tgx101Bird() && !s.tgx101NavCapsule() && s.tgx101HideCompose();
   }
 
+  /** over a chat (MagiX → Features → Bird → «In chats»): whatever the side menu / capsule */
+  public static boolean enabledInChats () {
+    Settings s = Settings.instance();
+    return s.tgx101Bird() && s.tgx101BirdInChats();
+  }
+
   public static Tgx101BirdView.Item[] items () {
     int mask = Settings.instance().tgx101BirdRing();
     List<Tgx101BirdView.Item> out = new ArrayList<>();
@@ -102,6 +109,16 @@ public final class Tgx101Bird {
       }
 
       @Override
+      public boolean birdHasDoubleTap () {
+        return Settings.instance().tgx101BirdDoubleTap() != DOUBLE_TAP_NONE;
+      }
+
+      @Override
+      public void onBirdDoubleTap () {
+        doubleTap(host);
+      }
+
+      @Override
       public void onBirdAccount (int accountId) {
         if (accountId == -1) {
           host.tdlib().ui().addAccount(host.context(), true, false);
@@ -115,6 +132,64 @@ public final class Tgx101Bird {
     }, host.tdlib());
     bird.setActive(enabled());
     return bird;
+  }
+
+  // TGx101 (user 2026-10-26): what two taps on the bird do
+  public static final int DOUBLE_TAP_NONE = 0, DOUBLE_TAP_LAST_CHAT = 1, DOUBLE_TAP_NEXT_ACCOUNT = 2, DOUBLE_TAP_PROXY = 3, DOUBLE_TAP_NOTE = 4;
+  public static final int[] DOUBLE_TAP_TITLES = {
+    R.string.Tgx101BirdTapNone, R.string.Tgx101BirdTapLastChat, R.string.Tgx101BirdTapNextAccount, R.string.Tgx101BirdTapProxy, R.string.Tgx101BirdTapNote
+  };
+
+  public static void doubleTap (ViewController<?> host) {
+    if (host.isDestroyed()) return;
+    int mode = Settings.instance().tgx101BirdDoubleTap();
+    org.thunderdog.challegram.Tgx101Diag.mark("bird: double tap " + mode);
+    switch (mode) {
+      case DOUBLE_TAP_LAST_CHAT:
+        openLastPrivateChat(host);
+        break;
+      case DOUBLE_TAP_NEXT_ACCOUNT:
+        if (TdlibManager.instance().getActiveAccounts().size() < 2) {
+          org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101BirdTapOneAccount, android.widget.Toast.LENGTH_SHORT);
+        } else {
+          run(host, ACTION_NEXT_ACCOUNT, null);
+        }
+        break;
+      case DOUBLE_TAP_PROXY:
+        run(host, ACTION_PROXY, null);
+        break;
+      case DOUBLE_TAP_NOTE:
+        run(host, ACTION_NOTE, null);
+        break;
+    }
+  }
+
+  /** the private chat (not mine, not a bot's) where the last message came in */
+  private static void openLastPrivateChat (ViewController<?> host) {
+    Tdlib tdlib = host.tdlib();
+    tdlib.send(new TdApi.GetChats(new TdApi.ChatListMain(), 60), (chats, error) -> {
+      if (chats == null) return;
+      long found = 0;
+      int foundDate = 0;
+      for (long chatId : chats.chatIds) {
+        TdApi.Chat chat = tdlib.chat(chatId);
+        if (chat == null || chat.lastMessage == null || chat.lastMessage.isOutgoing) continue;
+        if (!(chat.type instanceof TdApi.ChatTypePrivate) || tdlib.isSelfChat(chat) || tdlib.isBotChat(chat)) continue;
+        if (chat.lastMessage.date > foundDate) {
+          foundDate = chat.lastMessage.date;
+          found = chatId;
+        }
+      }
+      final long chatId = found;
+      tdlib.ui().post(() -> {
+        if (host.isDestroyed()) return;
+        if (chatId != 0) {
+          tdlib.ui().openChat(host, chatId, null);
+        } else {
+          org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101BirdTapNoChat, android.widget.Toast.LENGTH_SHORT);
+        }
+      });
+    });
   }
 
   /** the settings may have changed while away: shown or not, and the ring */
