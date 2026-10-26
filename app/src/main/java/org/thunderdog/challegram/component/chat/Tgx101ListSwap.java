@@ -109,6 +109,24 @@ public final class Tgx101ListSwap extends View {
   // only what leaves is a picture; the real list comes in (moved by its translation), its media load as usual
   private float baseTranslation;
 
+  /** Where the chat wants the list right now (it moves on while the swap runs: a new message's glide, the field shrinking) */
+  public interface Base {
+    float listTranslation ();
+  }
+
+  private @Nullable Base base;
+
+  public void setBase (@Nullable Base base) {
+    this.base = base;
+  }
+
+  // TGx101 (user video 2026-10-26 09:51 «файл завис в воздухе, не прижался к полю»): a send from a scrolled-up chat swapped
+  // while the list was still gliding — the translation taken at the start was put back at the end and the new message
+  // hung above the field until a touch. The chat's current wish is used every frame and at the end
+  private float base () {
+    return base != null ? base.listTranslation() : baseTranslation;
+  }
+
   private void start (Bitmap before) {
     View list = this.list;
     if (list == null) {
@@ -131,7 +149,7 @@ public final class Tgx101ListSwap extends View {
     animator.addUpdateListener(v -> {
       progress = (float) v.getAnimatedValue();
       View l = this.list;
-      if (l != null) l.setTranslationY(baseTranslation + (down ? area.height() : -area.height()) * (1f - progress));
+      if (l != null) l.setTranslationY(base() + (down ? area.height() : -area.height()) * (1f - progress));
       invalidate();
     });
     animator.addListener(new AnimatorListenerAdapter() {
@@ -153,7 +171,7 @@ public final class Tgx101ListSwap extends View {
       a.cancel();
     }
     if (list != null) {
-      if (from != null) list.setTranslationY(baseTranslation);
+      if (from != null) list.setTranslationY(base());
       list = null;
     }
     if (from != null) {

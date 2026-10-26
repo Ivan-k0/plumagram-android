@@ -694,6 +694,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void tgx101AddListSwap (Context context) {
     tgx101ListSwap = new org.thunderdog.challegram.component.chat.Tgx101ListSwap(context);
+    tgx101ListSwap.setBase(() -> tgx101ListBaseY + tgx101PaddingShift);
     tgx101ListSwap.setVisibility(View.INVISIBLE); // laid out (it needs its size), drawn only during a far jump
     tgx101ListSwap.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     contentView.addView(tgx101ListSwap);
@@ -8710,6 +8711,18 @@ public class MessagesController extends ViewController<MessagesController.Argume
     draftContext.reset();
     setReplyInfo(null, false);
     updateReplyBarVisibility(false);
+  }
+
+  /** A message has just been sent: a reply / attachment bar still sliding away is gone at once (the new message's glide
+   *  covers its height in one move) */
+  public void tgx101SettleBarsForSend () {
+    if (replyBarView != null && !replyBarVisible.getValue() && replyBarVisible.getFloatValue() > 0f) {
+      replyBarVisible.forceValue(false, 0f);
+      setForceHw(false);
+      replyBarView.reset();
+      updateReplyView();
+      syncFloatingReplyBar();
+    }
   }
 
   public void closeReply (final boolean byUser, boolean animated) {

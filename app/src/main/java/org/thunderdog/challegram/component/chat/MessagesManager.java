@@ -2118,6 +2118,8 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         TGMessage oldBottom = oldBottomView != null ? adapter.getMessage(0) : null;
         int oldBottomTop = oldBottomView != null ? oldBottomView.getTop() : 0;
         int oldBottomEdge = oldBottomView != null ? manager.getDecoratedBottom(oldBottomView) : 0;
+        RecyclerView tgx101ListNow = controller.getMessagesView();
+        float oldListShift = tgx101ListNow != null ? tgx101ListNow.getTranslationY() : 0f;
         // TGx101 (user 2026-10-14 13:55 / 20:2x, on the phone: sent while scrolled up — the chat jumped to the end in one
         // frame): it goes down to the new message the way the arrow does — a glide, from 1.5 screens away if it's far
         RecyclerView tgx101List = controller.getMessagesView();
@@ -2134,7 +2136,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         if (!hasScrolled) {
           scrollToBottom(false);
           if (oldBottom != null) {
-            tgx101GlideToNewMessage(oldBottom.getId(), oldBottomTop, oldBottomEdge);
+            tgx101GlideToNewMessage(oldBottom.getId(), oldBottomTop, oldBottomEdge, oldListShift);
           }
         }
         if (message.isSending()) {
@@ -2172,7 +2174,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
    * was and glides up by the same distance (250 ms, soft start and stop — as the official app). Skipped while the keyboard rides
    * or a saved position is being held; nothing changes on old Android except the curve.
    */
-  private void tgx101GlideToNewMessage (long anchorId, int anchorTop, int anchorEdge) {
+  private void tgx101GlideToNewMessage (long anchorId, int anchorTop, int anchorEdge, float anchorShift) {
     final RecyclerView list = controller.getMessagesView();
     if (list == null || !androidx.core.view.ViewCompat.isAttachedToWindow(list) || tgx101IsRestoringPosition() || controller.tgx101IsKeyboardRiding()) {
       return;
@@ -2181,20 +2183,25 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       @Override
       public boolean onPreDraw () {
         list.getViewTreeObserver().removeOnPreDrawListener(this);
+        // TGx101 (user video 2026-10-26 10:21 «при отправке файлом чат подпрыгивает»): the attachment / reply bar over the
+        // field slid away on its own fast-start curve and dropped the chat ~180 px while the new message raised it — down,
+        // then up. The bar goes at once here and its height is part of this one glide
+        controller.tgx101SettleBarsForSend();
+        int shiftDiff = Math.round(list.getTranslationY() - anchorShift);
         int index = adapter.indexOfMessageContainer(anchorId);
         View view = index != -1 ? manager.findViewByPosition(index) : null;
         int delta;
         if (view != null) {
-          delta = anchorTop - view.getTop(); // how far the old bottom message jumped up
+          delta = anchorTop - view.getTop() - shiftDiff; // how far the old bottom message jumped up on screen
         } else {
           // (user 2026-10-25 «отправка, когда много строк»): a tall message over a tall field pushed the old bottom one out
           // of the laid-out part — the glide was skipped and the chat jumped in one frame. The old bottom message ends where
           // the new one begins: the jump is from its old bottom edge to the new message's top
           View newest = manager.findViewByPosition(0);
           if (newest == null) return true;
-          delta = anchorEdge - manager.getDecoratedTop(newest);
+          delta = anchorEdge - manager.getDecoratedTop(newest) - shiftDiff;
         }
-        if (delta <= 0 || delta > list.getHeight()) return true;
+        if (delta == 0 || Math.abs(delta) > list.getHeight()) return true;
         list.stopScroll();
         tgx101GlidingNew = true; // our glide: the catcher takes the put-back below as meant (it's never drawn)
         list.scrollBy(0, -delta); // back where it was (a scroll by dy raises the messages by dy)
