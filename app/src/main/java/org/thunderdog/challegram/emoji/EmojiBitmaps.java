@@ -138,6 +138,12 @@ class EmojiBitmaps {
   }
 
   static int calculateSampleSize () {
+    // TGx101 (4PDA logs, BlackBerry Passport / Z30 on Android 4.3): a smileys sheet is 1086×2242 — 9.7 MB per page, two
+    // pages in a chat list, the heap at 80 of 87 MB and GC pauses of 100–300 ms while scrolling. Sheets are drawn at 66 px;
+    // at ×2 density text emoji are ~40 px, so half the sheet (2.4 MB) is enough there
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.LOLLIPOP && Screen.density() <= 2.0f) {
+      return 2;
+    }
     return Screen.density() <= 1.0f ? 2 : 1;
   }
 
