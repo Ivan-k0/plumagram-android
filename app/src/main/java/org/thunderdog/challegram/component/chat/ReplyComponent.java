@@ -478,17 +478,8 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
       }
       tgx101WashPath.reset();
       tgx101WashPath.addRoundRect(rectF, tgx101Radii, android.graphics.Path.Direction.CW);
-      // (user 2026-10-25, mockup «Ц»: «заливка 12 %, тает слева направо»)
-      float fadeFrom = rtl ? rectF.right : rectF.left, fadeTo = rtl ? rectF.right - rectF.width() * .85f : rectF.left + rectF.width() * .85f;
-      if (tgx101Fade == null || tgx101FadeColor != lineColor || tgx101FadeFrom != fadeFrom || tgx101FadeTo != fadeTo) {
-        tgx101FadeColor = lineColor;
-        tgx101FadeFrom = fadeFrom;
-        tgx101FadeTo = fadeTo;
-        tgx101Fade = new android.graphics.LinearGradient(fadeFrom, 0, fadeTo, 0, me.vkryl.core.ColorUtils.alphaColor(.12f, lineColor),
-          me.vkryl.core.ColorUtils.alphaColor(0f, lineColor), android.graphics.Shader.TileMode.CLAMP);
-      }
-      tgx101FadePaint.setShader(tgx101Fade);
-      c.drawPath(tgx101WashPath, tgx101FadePaint);
+      // (user 2026-10-26 «затухание убери, верни как было 10 %»): an even wash
+      c.drawPath(tgx101WashPath, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(.1f, lineColor)));
     }
 
     if (cornerDrawable != null) {
@@ -1231,10 +1222,6 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
   }
 
   private static int lineWidth;
-  private android.graphics.Shader tgx101Fade;
-  private int tgx101FadeColor;
-  private float tgx101FadeFrom, tgx101FadeTo;
-  private final android.graphics.Paint tgx101FadePaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
   private static int height;
   private static int paddingLeft;
 
