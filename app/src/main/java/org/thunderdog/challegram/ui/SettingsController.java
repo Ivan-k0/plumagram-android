@@ -686,7 +686,7 @@ public class SettingsController extends ViewController<Void> implements
 
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     // TGx101: mod settings first, set apart by a full-width line
-    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101Settings, R.drawable.baseline_stars_24, R.string.Tgx101Settings));
+    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101Settings, R.drawable.tgx101_magix_24, R.string.Tgx101Settings));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101Stars, R.drawable.baseline_star_24, R.string.Tgx101Stars));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
@@ -1011,7 +1011,7 @@ public class SettingsController extends ViewController<Void> implements
 
   /** (mockup Н1) the coloured square behind each row's icon; 0 — a plain grey icon */
   private static int tgx101SquareColor (int id) {
-    if (id == R.id.btn_tgx101Settings) return 0xff8e5bd9;
+    if (id == R.id.btn_tgx101Settings) return 0xff03a1fc; // (user 2026-10-26: X4 feather, #03a1fc)
     if (id == R.id.btn_tgx101Stars) return 0xfff5a623;
     if (id == R.id.btn_tgx101Premium) return 0xffb760e6;
     if (id == R.id.btn_notificationSettings) return 0xffe0533d;
