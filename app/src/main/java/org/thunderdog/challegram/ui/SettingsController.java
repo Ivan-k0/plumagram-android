@@ -1042,16 +1042,6 @@ public class SettingsController extends ViewController<Void> implements
     chev.setText("›");
     chev.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 24f);
     chev.setTextColor(Theme.textDecentColor());
-    // the other accounts open and close with this arrow; the choice is kept
-    tgx101AccountsArrow = new android.widget.ImageView(context);
-    tgx101AccountsArrow.setScaleType(android.widget.ImageView.ScaleType.CENTER);
-    tgx101AccountsArrow.setImageResource(R.drawable.baseline_keyboard_arrow_down_24);
-    tgx101AccountsArrow.setColorFilter(Theme.iconColor());
-    org.thunderdog.challegram.tool.Views.setClickable(tgx101AccountsArrow);
-    tgx101AccountsArrow.setOnClickListener(v -> tgx101ToggleAccounts());
-    android.widget.LinearLayout.LayoutParams ap = new android.widget.LinearLayout.LayoutParams(Screen.dp(40f), Screen.dp(40f));
-    ap.rightMargin = Screen.dp(4f);
-    card.addView(tgx101AccountsArrow, ap);
     card.addView(chev);
     // (user 2026-10-26 «не вытягивается фото, нет публикаций и медиа как в старом профиле»): the card opens the full
     // profile — the same one as the «Profile» tab (pull-down photo, posts, media)
@@ -1081,6 +1071,48 @@ public class SettingsController extends ViewController<Void> implements
     tgx101Accounts.setPadding(Screen.dp(4f), 0, Screen.dp(8f), Screen.dp(12f));
     stripScroll.addView(tgx101Accounts);
     tgx101AccountsScroll = stripScroll;
+    // (user 2026-10-26 «посмотри, куда ты стрелку влепил»): the arrow has a line of its own at the card's bottom —
+    // «Accounts · N», the photos overlapped, the unread total; the whole line opens / closes the row (the choice is kept)
+    android.widget.LinearLayout toggle = new android.widget.LinearLayout(context);
+    toggle.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    toggle.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    toggle.setPadding(Screen.dp(12f), 0, Screen.dp(10f), 0);
+    org.thunderdog.challegram.tool.Views.setClickable(toggle);
+    toggle.setOnClickListener(v -> tgx101ToggleAccounts());
+    tgx101AccountsStack = new android.widget.LinearLayout(context);
+    tgx101AccountsStack.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    toggle.addView(tgx101AccountsStack, new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    tgx101AccountsTitle = new android.widget.TextView(context);
+    tgx101AccountsTitle.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 15f);
+    tgx101AccountsTitle.setTextColor(Theme.textAccentColor());
+    tgx101AccountsTitle.setSingleLine(true);
+    android.widget.LinearLayout.LayoutParams ttp = new android.widget.LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+    ttp.leftMargin = Screen.dp(10f);
+    toggle.addView(tgx101AccountsTitle, ttp);
+    tgx101AccountsTotal = new android.widget.TextView(context);
+    tgx101AccountsTotal.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 12f);
+    tgx101AccountsTotal.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+    tgx101AccountsTotal.setTextColor(0xffffffff);
+    tgx101AccountsTotal.setGravity(android.view.Gravity.CENTER);
+    tgx101AccountsTotal.setIncludeFontPadding(false);
+    tgx101AccountsTotal.setMinWidth(Screen.dp(22f));
+    tgx101AccountsTotal.setPadding(Screen.dp(6f), 0, Screen.dp(6f), 0);
+    toggle.addView(tgx101AccountsTotal, new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(22f)));
+    tgx101AccountsArrow = new android.widget.ImageView(context);
+    tgx101AccountsArrow.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+    tgx101AccountsArrow.setImageResource(R.drawable.baseline_keyboard_arrow_down_24);
+    tgx101AccountsArrow.setColorFilter(Theme.iconColor());
+    android.widget.LinearLayout.LayoutParams arp = new android.widget.LinearLayout.LayoutParams(Screen.dp(32f), Screen.dp(32f));
+    arp.leftMargin = Screen.dp(6f);
+    toggle.addView(tgx101AccountsArrow, arp);
+    View divider = new View(context);
+    divider.setBackgroundColor(Theme.separatorColor());
+    android.widget.LinearLayout.LayoutParams dp = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, Screen.dp(.5f)));
+    dp.leftMargin = Screen.dp(12f);
+    cardBox.addView(divider, dp);
+    cardBox.addView(toggle, new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(48f)));
+    tgx101AccountsToggle = toggle;
+    tgx101AccountsDivider = divider;
     cardBox.addView(stripScroll, new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     android.widget.LinearLayout.LayoutParams cp = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     cp.topMargin = Screen.dp(10f);
@@ -1111,6 +1143,9 @@ public class SettingsController extends ViewController<Void> implements
   private android.widget.LinearLayout tgx101Accounts;
   private View tgx101AccountsScroll;
   private android.widget.ImageView tgx101AccountsArrow;
+  private android.widget.LinearLayout tgx101AccountsStack;
+  private android.widget.TextView tgx101AccountsTitle, tgx101AccountsTotal;
+  private View tgx101AccountsToggle, tgx101AccountsDivider;
   private @Nullable android.animation.ValueAnimator tgx101AccountsAnimator;
 
   private void tgx101ToggleAccounts () {
@@ -1176,7 +1211,33 @@ public class SettingsController extends ViewController<Void> implements
       tgx101AccountsScroll.setVisibility(any && open ? View.VISIBLE : View.GONE);
       tgx101AccountsArrow.setRotation(open ? 180f : 0f);
     }
-    tgx101AccountsArrow.setVisibility(any ? View.VISIBLE : View.GONE);
+    tgx101AccountsToggle.setVisibility(any ? View.VISIBLE : View.GONE);
+    tgx101AccountsDivider.setVisibility(any ? View.VISIBLE : View.GONE);
+    // the line: up to 3 photos overlapped, «Accounts · N», the unread total (grey when all of it is muted)
+    tgx101AccountsStack.removeAllViews();
+    int others = 0, total = 0;
+    boolean loud = false;
+    for (org.thunderdog.challegram.telegram.TdlibAccount account : accounts) {
+      if (account.id == tdlib.id()) continue;
+      others++;
+      int unread = account.getUnreadBadge().getCount();
+      total += unread;
+      if (unread > 0 && !account.getUnreadBadge().isMuted()) loud = true;
+      if (tgx101AccountsStack.getChildCount() < 3) {
+        org.thunderdog.challegram.widget.AvatarView mini = new org.thunderdog.challegram.widget.AvatarView(context());
+        mini.setUser(account);
+        android.widget.LinearLayout.LayoutParams mp = new android.widget.LinearLayout.LayoutParams(Screen.dp(26f), Screen.dp(26f));
+        if (tgx101AccountsStack.getChildCount() > 0) mp.leftMargin = -Screen.dp(8f);
+        tgx101AccountsStack.addView(mini, mp);
+      }
+    }
+    tgx101AccountsTitle.setText(Lang.getString(R.string.Tgx101AccountsRow, Integer.toString(others)));
+    tgx101AccountsTotal.setVisibility(total > 0 ? View.VISIBLE : View.GONE);
+    tgx101AccountsTotal.setText(total > 99 ? "99+" : Integer.toString(total));
+    android.graphics.drawable.GradientDrawable tbg = new android.graphics.drawable.GradientDrawable();
+    tbg.setColor(Theme.getColor(loud ? ColorId.badge : ColorId.badgeMuted));
+    tbg.setCornerRadius(Screen.dp(11f));
+    tgx101AccountsTotal.setBackground(tbg);
   }
 
   private View tgx101AccountItem (String name, @Nullable String badge, boolean muted, me.vkryl.core.lambda.RunnableData<org.thunderdog.challegram.widget.AvatarView> bind) {
