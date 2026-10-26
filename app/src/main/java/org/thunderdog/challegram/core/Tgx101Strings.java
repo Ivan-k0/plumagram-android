@@ -948,6 +948,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AiSection, "Функции ИИ");
     RU.put(R.string.Tgx101AiOff, "Выключено");
     RU.put(R.string.Tgx101AiOnCount, "Включено: %1$s");
+    RU.put(R.string.Tgx101AccountsAdd, "Добавить");
+    RU.put(R.string.Tgx101AccountsSwitch, "Переключиться");
+    RU.put(R.string.Tgx101AccountsLogOutAsk, "Выйти из аккаунта «%1$s»?");
     RU.put(R.string.Tgx101Bird, "Птичка у края списка чатов");
     RU.put(R.string.Tgx101BirdHint, "Удержание — кольцо действий вокруг пальца: проведите к нужному и отпустите. Касания и свайпы проходят сквозь птичку. Держите 2,5 с не сдвигая палец — птичка поднимется, её можно переставить к левому или правому краю. Без касаний бледнеет. Видна, когда включено боковое меню и спрятана кнопка ✎.");
     RU.put(R.string.Tgx101BirdRing, "Действия в кольце");

@@ -133,6 +133,7 @@ public class SettingsController extends ViewController<Void> implements
   @Override
   public void onFocus () {
     super.onFocus();
+    tgx101BindAccounts(); // unread counts, an account added or gone meanwhile
     contentView.setFactorLocked(false);
     stickerSetsPreloader.preloadStickers();
     emojiPacksPreloader.preloadStickers();
@@ -1055,9 +1056,25 @@ public class SettingsController extends ViewController<Void> implements
         }
       }));
     });
+    // (approved mockup «Аккаунты в Настройках» Б, user 2026-10-26): my card and, under it, the other accounts as a row of
+    // round photos with their unread counts and «+» at the end; one card for both
+    android.widget.LinearLayout cardBox = new android.widget.LinearLayout(context);
+    cardBox.setOrientation(android.widget.LinearLayout.VERTICAL);
+    cardBox.setBackground(tgx101CardBackground());
+    card.setBackground(null);
+    cardBox.addView(card, new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    android.widget.HorizontalScrollView stripScroll = new android.widget.HorizontalScrollView(context);
+    stripScroll.setHorizontalScrollBarEnabled(false);
+    stripScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+    tgx101Accounts = new android.widget.LinearLayout(context);
+    tgx101Accounts.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    tgx101Accounts.setPadding(Screen.dp(8f), Screen.dp(2f), Screen.dp(8f), Screen.dp(12f));
+    stripScroll.addView(tgx101Accounts);
+    tgx101AccountsScroll = stripScroll;
+    cardBox.addView(stripScroll, new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     android.widget.LinearLayout.LayoutParams cp = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     cp.topMargin = Screen.dp(10f);
-    top.addView(card, cp);
+    top.addView(cardBox, cp);
     tgx101BindCard();
     return top;
   }
@@ -1078,6 +1095,123 @@ public class SettingsController extends ViewController<Void> implements
     if (me != null && !StringUtils.isEmpty(me.phoneNumber)) sub.append(Strings.formatPhone(me.phoneNumber));
     if (me != null && Td.hasUsername(me)) sub.append(sub.length() > 0 ? " · " : "").append('@').append(Td.primaryUsername(me));
     tgx101CardSub.setText(sub);
+    tgx101BindAccounts();
+  }
+
+  private android.widget.LinearLayout tgx101Accounts;
+  private View tgx101AccountsScroll;
+
+  private void tgx101BindAccounts () {
+    if (tgx101Accounts == null) return;
+    tgx101Accounts.removeAllViews();
+    java.util.List<org.thunderdog.challegram.telegram.TdlibAccount> accounts = org.thunderdog.challegram.telegram.TdlibManager.instance().getActiveAccounts();
+    boolean any = false;
+    for (org.thunderdog.challegram.telegram.TdlibAccount account : accounts) {
+      if (account.id == tdlib.id()) continue;
+      any = true;
+      int unread = account.getUnreadBadge().getCount();
+      View item = tgx101AccountItem(account.getName(), unread > 0 ? (unread > 99 ? "99+" : Integer.toString(unread)) : null, account.getUnreadBadge().isMuted(), avatar -> avatar.setUser(account));
+      item.setOnClickListener(v -> {
+        org.thunderdog.challegram.Tgx101Diag.mark("settings: switch account " + tdlib.id() + " → " + account.id);
+        account.context().changePreferredAccountId(account.id, org.thunderdog.challegram.telegram.TdlibManager.SWITCH_REASON_USER_CLICK);
+      });
+      item.setOnLongClickListener(v -> {
+        tgx101AccountOptions(account);
+        return true;
+      });
+      tgx101Accounts.addView(item);
+    }
+    // only my account — no row: the header's person+ adds one
+    tgx101AccountsScroll.setVisibility(any ? View.VISIBLE : View.GONE);
+    if (any) {
+      View add = tgx101AccountItem(Lang.getString(R.string.Tgx101AccountsAdd), null, false, null);
+      add.setOnClickListener(v -> tdlib.ui().addAccount(context, true, false));
+      tgx101Accounts.addView(add);
+    }
+  }
+
+  private View tgx101AccountItem (String name, @Nullable String badge, boolean muted, @Nullable me.vkryl.core.lambda.RunnableData<org.thunderdog.challegram.widget.AvatarView> bind) {
+    Context context = context();
+    android.widget.LinearLayout item = new android.widget.LinearLayout(context);
+    item.setOrientation(android.widget.LinearLayout.VERTICAL);
+    item.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+    item.setPadding(Screen.dp(4f), Screen.dp(4f), Screen.dp(4f), Screen.dp(2f));
+    org.thunderdog.challegram.tool.Views.setClickable(item);
+    android.widget.FrameLayout photo = new android.widget.FrameLayout(context);
+    int size = Screen.dp(48f);
+    if (bind != null) {
+      org.thunderdog.challegram.widget.AvatarView avatar = new org.thunderdog.challegram.widget.AvatarView(context);
+      bind.runWithData(avatar);
+      photo.addView(avatar, new android.widget.FrameLayout.LayoutParams(size, size));
+    } else {
+      android.widget.TextView plus = new android.widget.TextView(context);
+      plus.setText("+");
+      plus.setGravity(android.view.Gravity.CENTER);
+      plus.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 24f);
+      plus.setTextColor(Theme.getColor(ColorId.textNeutral));
+      android.graphics.drawable.GradientDrawable ring = new android.graphics.drawable.GradientDrawable();
+      ring.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+      ring.setStroke(Screen.dp(1.5f), Theme.getColor(ColorId.textNeutral), Screen.dp(4f), Screen.dp(3f));
+      plus.setBackground(ring);
+      photo.addView(plus, new android.widget.FrameLayout.LayoutParams(size, size));
+    }
+    if (badge != null) {
+      android.widget.TextView b = new android.widget.TextView(context);
+      b.setText(badge);
+      b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 11f);
+      b.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+      b.setTextColor(0xffffffff);
+      b.setGravity(android.view.Gravity.CENTER);
+      b.setPadding(Screen.dp(5f), 0, Screen.dp(5f), 0);
+      b.setMinWidth(Screen.dp(20f));
+      android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+      bg.setColor(Theme.getColor(muted ? ColorId.badgeMuted : ColorId.badge));
+      bg.setCornerRadius(Screen.dp(10f));
+      bg.setStroke(Screen.dp(2f), Theme.fillingColor());
+      b.setBackground(bg);
+      android.widget.FrameLayout.LayoutParams bp = new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(20f), android.view.Gravity.TOP | android.view.Gravity.END);
+      bp.topMargin = -Screen.dp(4f);
+      bp.rightMargin = -Screen.dp(6f);
+      photo.setClipChildren(false);
+      item.setClipChildren(false);
+      photo.addView(b, bp);
+    }
+    item.addView(photo, new android.widget.LinearLayout.LayoutParams(size, size));
+    android.widget.TextView label = new android.widget.TextView(context);
+    label.setText(name);
+    label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 12f);
+    label.setTextColor(Theme.textDecentColor());
+    label.setSingleLine(true);
+    label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    label.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+    android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(Screen.dp(60f), ViewGroup.LayoutParams.WRAP_CONTENT);
+    lp.topMargin = Screen.dp(4f);
+    item.addView(label, lp);
+    android.widget.LinearLayout.LayoutParams ip = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    ip.rightMargin = Screen.dp(4f);
+    item.setLayoutParams(ip);
+    return item;
+  }
+
+  /** hold on another account: switch to it or log out of it (asked again) */
+  private void tgx101AccountOptions (org.thunderdog.challegram.telegram.TdlibAccount account) {
+    showOptions(account.getName(), new int[] {R.id.btn_tgx101AccountSwitch, R.id.btn_logout}, new String[] {Lang.getString(R.string.Tgx101AccountsSwitch), Lang.getString(R.string.LogOut)},
+      new int[] {OptionColor.NORMAL, OptionColor.RED}, new int[] {R.drawable.baseline_swap_horiz_24, R.drawable.baseline_logout_24}, (v, id) -> {
+        if (id == R.id.btn_tgx101AccountSwitch) {
+          account.context().changePreferredAccountId(account.id, org.thunderdog.challegram.telegram.TdlibManager.SWITCH_REASON_USER_CLICK);
+        } else if (id == R.id.btn_logout) {
+          showOptions(Lang.getString(R.string.Tgx101AccountsLogOutAsk, account.getName()), new int[] {R.id.btn_logout, R.id.btn_cancel},
+            new String[] {Lang.getString(R.string.LogOut), Lang.getString(R.string.Cancel)}, new int[] {OptionColor.RED, OptionColor.NORMAL}, null, (v2, id2) -> {
+              if (id2 == R.id.btn_logout) {
+                org.thunderdog.challegram.Tgx101Diag.mark("settings: log out of account " + account.id);
+                account.tdlib().signOut();
+                runOnUiThreadOptional(this::tgx101BindAccounts);
+              }
+              return true;
+            });
+        }
+        return true;
+      });
   }
 
   // TGx101 (user 2026-10-26 «как лучше выделить, чтобы без серых полос» — variant А): the groups are rounded cards on the
