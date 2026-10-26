@@ -1068,7 +1068,7 @@ public class SettingsController extends ViewController<Void> implements
     stripScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
     tgx101Accounts = new android.widget.LinearLayout(context);
     tgx101Accounts.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-    tgx101Accounts.setPadding(Screen.dp(8f), Screen.dp(2f), Screen.dp(8f), Screen.dp(12f));
+    tgx101Accounts.setPadding(Screen.dp(4f), 0, Screen.dp(8f), Screen.dp(12f));
     stripScroll.addView(tgx101Accounts);
     tgx101AccountsScroll = stripScroll;
     cardBox.addView(stripScroll, new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -1137,23 +1137,25 @@ public class SettingsController extends ViewController<Void> implements
     item.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
     item.setPadding(Screen.dp(4f), Screen.dp(4f), Screen.dp(4f), Screen.dp(2f));
     org.thunderdog.challegram.tool.Views.setClickable(item);
+    // (user 2026-10-26 «счётчик не влазит, крестик не по центру»): the photo sits inside a 4 dp wider frame, the count
+    // stays within it; «+» is the icon, not a letter
     android.widget.FrameLayout photo = new android.widget.FrameLayout(context);
-    int size = Screen.dp(48f);
+    int size = Screen.dp(48f), frame = size + Screen.dp(8f);
+    android.widget.FrameLayout.LayoutParams pp = new android.widget.FrameLayout.LayoutParams(size, size, android.view.Gravity.CENTER);
     if (bind != null) {
       org.thunderdog.challegram.widget.AvatarView avatar = new org.thunderdog.challegram.widget.AvatarView(context);
       bind.runWithData(avatar);
-      photo.addView(avatar, new android.widget.FrameLayout.LayoutParams(size, size));
+      photo.addView(avatar, pp);
     } else {
-      android.widget.TextView plus = new android.widget.TextView(context);
-      plus.setText("+");
-      plus.setGravity(android.view.Gravity.CENTER);
-      plus.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 24f);
-      plus.setTextColor(Theme.getColor(ColorId.textNeutral));
+      android.widget.ImageView plus = new android.widget.ImageView(context);
+      plus.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+      plus.setImageResource(R.drawable.baseline_add_24);
+      plus.setColorFilter(Theme.getColor(ColorId.textNeutral));
       android.graphics.drawable.GradientDrawable ring = new android.graphics.drawable.GradientDrawable();
       ring.setShape(android.graphics.drawable.GradientDrawable.OVAL);
       ring.setStroke(Screen.dp(1.5f), Theme.getColor(ColorId.textNeutral), Screen.dp(4f), Screen.dp(3f));
       plus.setBackground(ring);
-      photo.addView(plus, new android.widget.FrameLayout.LayoutParams(size, size));
+      photo.addView(plus, pp);
     }
     if (badge != null) {
       android.widget.TextView b = new android.widget.TextView(context);
@@ -1162,6 +1164,7 @@ public class SettingsController extends ViewController<Void> implements
       b.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
       b.setTextColor(0xffffffff);
       b.setGravity(android.view.Gravity.CENTER);
+      b.setIncludeFontPadding(false);
       b.setPadding(Screen.dp(5f), 0, Screen.dp(5f), 0);
       b.setMinWidth(Screen.dp(20f));
       android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
@@ -1169,14 +1172,9 @@ public class SettingsController extends ViewController<Void> implements
       bg.setCornerRadius(Screen.dp(10f));
       bg.setStroke(Screen.dp(2f), Theme.fillingColor());
       b.setBackground(bg);
-      android.widget.FrameLayout.LayoutParams bp = new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(20f), android.view.Gravity.TOP | android.view.Gravity.END);
-      bp.topMargin = -Screen.dp(4f);
-      bp.rightMargin = -Screen.dp(6f);
-      photo.setClipChildren(false);
-      item.setClipChildren(false);
-      photo.addView(b, bp);
+      photo.addView(b, new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(20f), android.view.Gravity.TOP | android.view.Gravity.END));
     }
-    item.addView(photo, new android.widget.LinearLayout.LayoutParams(size, size));
+    item.addView(photo, new android.widget.LinearLayout.LayoutParams(frame, frame));
     android.widget.TextView label = new android.widget.TextView(context);
     label.setText(name);
     label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 12f);
@@ -1185,7 +1183,7 @@ public class SettingsController extends ViewController<Void> implements
     label.setEllipsize(android.text.TextUtils.TruncateAt.END);
     label.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
     android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(Screen.dp(60f), ViewGroup.LayoutParams.WRAP_CONTENT);
-    lp.topMargin = Screen.dp(4f);
+    lp.topMargin = Screen.dp(2f);
     item.addView(label, lp);
     android.widget.LinearLayout.LayoutParams ip = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     ip.rightMargin = Screen.dp(4f);
