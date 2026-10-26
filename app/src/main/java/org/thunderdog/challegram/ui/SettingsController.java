@@ -1042,6 +1042,16 @@ public class SettingsController extends ViewController<Void> implements
     chev.setText("›");
     chev.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 24f);
     chev.setTextColor(Theme.textDecentColor());
+    // the other accounts open and close with this arrow; the choice is kept
+    tgx101AccountsArrow = new android.widget.ImageView(context);
+    tgx101AccountsArrow.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+    tgx101AccountsArrow.setImageResource(R.drawable.baseline_keyboard_arrow_down_24);
+    tgx101AccountsArrow.setColorFilter(Theme.iconColor());
+    org.thunderdog.challegram.tool.Views.setClickable(tgx101AccountsArrow);
+    tgx101AccountsArrow.setOnClickListener(v -> tgx101ToggleAccounts());
+    android.widget.LinearLayout.LayoutParams ap = new android.widget.LinearLayout.LayoutParams(Screen.dp(40f), Screen.dp(40f));
+    ap.rightMargin = Screen.dp(4f);
+    card.addView(tgx101AccountsArrow, ap);
     card.addView(chev);
     // (user 2026-10-26 «не вытягивается фото, нет публикаций и медиа как в старом профиле»): the card opens the full
     // profile — the same one as the «Profile» tab (pull-down photo, posts, media)
@@ -1100,6 +1110,45 @@ public class SettingsController extends ViewController<Void> implements
 
   private android.widget.LinearLayout tgx101Accounts;
   private View tgx101AccountsScroll;
+  private android.widget.ImageView tgx101AccountsArrow;
+  private @Nullable android.animation.ValueAnimator tgx101AccountsAnimator;
+
+  private void tgx101ToggleAccounts () {
+    boolean open = !Settings.instance().tgx101SettingsAccountsOpen();
+    Settings.instance().setTgx101SettingsAccountsOpen(open);
+    View strip = tgx101AccountsScroll;
+    if (tgx101AccountsAnimator != null) tgx101AccountsAnimator.cancel();
+    tgx101AccountsArrow.animate().rotation(open ? 180f : 0f).setDuration(200).setInterpolator(me.vkryl.android.AnimatorUtils.DECELERATE_INTERPOLATOR);
+    int width = ((View) strip.getParent()).getWidth();
+    strip.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+    int full = strip.getMeasuredHeight();
+    int from = strip.getVisibility() == View.VISIBLE ? strip.getHeight() : 0, to = open ? full : 0;
+    ViewGroup.LayoutParams lp = strip.getLayoutParams();
+    lp.height = from;
+    strip.setLayoutParams(lp);
+    strip.setVisibility(View.VISIBLE);
+    android.animation.ValueAnimator a = android.animation.ValueAnimator.ofInt(from, to);
+    a.setDuration(220);
+    a.setInterpolator(me.vkryl.android.AnimatorUtils.DECELERATE_INTERPOLATOR);
+    a.addUpdateListener(an -> {
+      lp.height = (int) an.getAnimatedValue();
+      strip.setLayoutParams(lp);
+      strip.setAlpha(full > 0 ? lp.height / (float) full : 1f);
+    });
+    a.addListener(new android.animation.AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd (android.animation.Animator animation) {
+        if (tgx101AccountsAnimator != animation) return;
+        tgx101AccountsAnimator = null;
+        lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+        strip.setLayoutParams(lp);
+        strip.setAlpha(1f);
+        strip.setVisibility(open ? View.VISIBLE : View.GONE);
+      }
+    });
+    tgx101AccountsAnimator = a;
+    a.start();
+  }
 
   private void tgx101BindAccounts () {
     if (tgx101Accounts == null) return;
@@ -1122,7 +1171,12 @@ public class SettingsController extends ViewController<Void> implements
       tgx101Accounts.addView(item);
     }
     // only my account — no row; adding one is the header's person+ (user 2026-10-26 «кнопка Добавить не нужна, она есть вверху»)
-    tgx101AccountsScroll.setVisibility(any ? View.VISIBLE : View.GONE);
+    boolean open = Settings.instance().tgx101SettingsAccountsOpen();
+    if (tgx101AccountsAnimator == null) {
+      tgx101AccountsScroll.setVisibility(any && open ? View.VISIBLE : View.GONE);
+      tgx101AccountsArrow.setRotation(open ? 180f : 0f);
+    }
+    tgx101AccountsArrow.setVisibility(any ? View.VISIBLE : View.GONE);
   }
 
   private View tgx101AccountItem (String name, @Nullable String badge, boolean muted, me.vkryl.core.lambda.RunnableData<org.thunderdog.challegram.widget.AvatarView> bind) {
