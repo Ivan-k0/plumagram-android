@@ -63,7 +63,7 @@ import me.vkryl.core.ColorUtils;
 public class Tgx101PostsController extends ViewController<Tgx101PostsController.Args> {
   public static class Args {
     final long chatId;
-    final boolean archive;
+    boolean archive;
 
     public Args (long chatId, boolean archive) {
       this.chatId = chatId;
@@ -84,6 +84,8 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
   private TextView empty;
   private boolean loading, ended;
   private int generation;
+  private View chipScroll, addButton;
+  private TextView tabPosts, tabArchive;
 
   private boolean isOwn () {
     return getArgumentsStrict().chatId == tdlib.selfChatId();
@@ -99,6 +101,88 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
     return Lang.getString(getArgumentsStrict().archive ? R.string.Tgx101PostsArchive : R.string.Tgx101Posts);
   }
 
+  // TGx101 (user 2026-10-26 «архив вынести в окно самих публикаций отдельным переключением вверху, нативно, по тапу»):
+  // on one's own profile the title is a two-way switch «Posts | Archive»
+  private LinearLayout headerSwitch;
+
+  @Override
+  public View getCustomHeaderCell () {
+    if (!isOwn()) return null;
+    if (headerSwitch == null) {
+      headerSwitch = new LinearLayout(context);
+      headerSwitch.setOrientation(LinearLayout.HORIZONTAL);
+      headerSwitch.setGravity(Gravity.CENTER_VERTICAL);
+      GradientDrawable bg = new GradientDrawable();
+      bg.setColor(0x26ffffff);
+      bg.setCornerRadius(Screen.dp(18f));
+      headerSwitch.setBackground(bg);
+      headerSwitch.setPadding(Screen.dp(3f), Screen.dp(3f), Screen.dp(3f), Screen.dp(3f));
+      tabPosts = headerTab(R.string.Tgx101Posts, false);
+      tabArchive = headerTab(R.string.Tgx101PostsArchiveShort, true);
+      FrameLayout wrap = new FrameLayout(context);
+      FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(36f), Gravity.CENTER_VERTICAL | Gravity.START);
+      lp.leftMargin = Screen.dp(68f);
+      lp.topMargin = org.thunderdog.challegram.navigation.HeaderView.getTopOffset();
+      wrap.addView(headerSwitch, lp);
+      wrap.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      paintHeaderTabs();
+      return wrap;
+    }
+    return (View) headerSwitch.getParent();
+  }
+
+  private TextView headerTab (int text, boolean archive) {
+    TextView t = new TextView(context);
+    t.setText(Lang.getString(text));
+    t.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
+    t.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+    t.setGravity(Gravity.CENTER);
+    t.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);
+    t.setOnClickListener(v -> setArchive(archive));
+    headerSwitch.addView(t, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    return t;
+  }
+
+  private void paintHeaderTabs () {
+    if (tabPosts == null) return;
+    boolean archive = getArgumentsStrict().archive;
+    int headerColor = Theme.headerColor();
+    for (TextView t : new TextView[] {tabPosts, tabArchive}) {
+      boolean on = (t == tabArchive) == archive;
+      GradientDrawable bg = new GradientDrawable();
+      bg.setColor(on ? 0xffffffff : 0);
+      bg.setCornerRadius(Screen.dp(15f));
+      t.setBackground(bg);
+      t.setTextColor(on ? headerColor : 0xccffffff);
+    }
+  }
+
+  private void setArchive (boolean archive) {
+    Args args = getArgumentsStrict();
+    if (args.archive == archive) return;
+    args.archive = archive;
+    paintHeaderTabs();
+    if (chipScroll != null) chipScroll.setVisibility(archive || (albums.isEmpty() && !isOwn()) ? View.GONE : View.VISIBLE);
+    if (addButton != null) addButton.setVisibility(archive ? View.GONE : View.VISIBLE);
+    albumId = 0;
+    if (!archive) buildChips();
+    reload();
+  }
+
+  // (user 2026-10-26 «свайп в публикациях должен переключать папки; назад — только на первой»)
+  private void swipeAlbum (int dir) {
+    if (getArgumentsStrict().archive || albums.isEmpty()) return;
+    int index = 0;
+    for (int i = 0; i < albums.size(); i++) if (albums.get(i).id == albumId) index = i + 1;
+    int next = Math.max(0, Math.min(albums.size(), index + dir));
+    if (next != index) selectAlbum(next == 0 ? 0 : albums.get(next - 1).id);
+  }
+
+  @Override
+  public boolean canSlideBackFrom (org.thunderdog.challegram.navigation.NavigationController navigationController, float x, float y) {
+    return getArgumentsStrict().archive || albumId == 0 || albums.isEmpty() || x <= Screen.dp(16f);
+  }
+
   @Override
   protected View onCreateView (Context context) {
     FrameLayout root = new FrameLayout(context);
@@ -108,6 +192,7 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
     root.addView(column, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
     HorizontalScrollView chipScroll = new HorizontalScrollView(context);
+    this.chipScroll = chipScroll;
     chipScroll.setHorizontalScrollBarEnabled(false);
     chips = new LinearLayout(context);
     chips.setOrientation(LinearLayout.HORIZONTAL);
@@ -116,7 +201,36 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
     chipScroll.setVisibility(View.GONE);
     column.addView(chipScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-    RecyclerView list = new RecyclerView(context);
+    RecyclerView list = new RecyclerView(context) {
+      private float downX, downY;
+      private boolean swiped;
+
+      @Override
+      public boolean onInterceptTouchEvent (android.view.MotionEvent e) {
+        if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) {
+          downX = e.getX();
+          downY = e.getY();
+          swiped = false;
+        } else if (e.getActionMasked() == android.view.MotionEvent.ACTION_MOVE && !swiped) {
+          float dx = e.getX() - downX, dy = e.getY() - downY;
+          if (Math.abs(dx) > Screen.dp(48f) && Math.abs(dx) > Math.abs(dy) * 2f && !(dx > 0 && albumId == 0)) {
+            swiped = true;
+            swipeAlbum(dx < 0 ? 1 : -1);
+            return true;
+          }
+        }
+        return super.onInterceptTouchEvent(e);
+      }
+
+      @Override
+      public boolean onTouchEvent (android.view.MotionEvent e) {
+        if (swiped) {
+          if (e.getActionMasked() == android.view.MotionEvent.ACTION_UP || e.getActionMasked() == android.view.MotionEvent.ACTION_CANCEL) swiped = false;
+          return true;
+        }
+        return super.onTouchEvent(e);
+      }
+    };
     list.setLayoutManager(new GridLayoutManager(context, 3));
     int gap = Screen.dp(1.5f);
     list.addItemDecoration(new RecyclerView.ItemDecoration() {
@@ -167,8 +281,10 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
     listWrap.addView(empty, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     column.addView(listWrap, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-    if (isOwn() && !getArgumentsStrict().archive) {
+    if (isOwn()) {
       TextView add = new TextView(context);
+      addButton = add;
+      if (getArgumentsStrict().archive) add.setVisibility(View.GONE);
       add.setText(Lang.getString(R.string.Tgx101PostsAdd));
       add.setTextColor(0xffffffff);
       add.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
@@ -195,7 +311,7 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
       root.addView(add, lp);
     }
 
-    if (!getArgumentsStrict().archive) loadAlbums(chipScroll);
+    loadAlbums(chipScroll);
     reload();
     return root;
   }
@@ -206,7 +322,7 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
     tdlib.send(new TdApi.GetChatStoryAlbums(getArgumentsStrict().chatId), (result, error) -> runOnUiThreadOptional(() -> {
       albums.clear();
       if (result != null) java.util.Collections.addAll(albums, result.albums);
-      chipScroll.setVisibility(albums.isEmpty() && !isOwn() ? View.GONE : View.VISIBLE);
+      chipScroll.setVisibility(getArgumentsStrict().archive || (albums.isEmpty() && !isOwn()) ? View.GONE : View.VISIBLE);
       buildChips();
     }));
   }

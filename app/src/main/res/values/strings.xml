@@ -6421,6 +6421,7 @@
   <string name="Tgx101PostsEmpty">No posts yet. Stories you keep on your profile show here.</string>
   <string name="Tgx101PostsArchiveEmpty">The archive is empty.</string>
   <string name="Tgx101PostsAll">All stories</string>
+  <string name="Tgx101PostsArchiveShort">Archive</string>
   <string name="Tgx101PostsAdd">Add</string>
   <string name="Tgx101PostsAddAlbum">Add album</string>
   <string name="Tgx101PostsAlbumName">Album name</string>

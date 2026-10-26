@@ -2924,9 +2924,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           if ((id != R.id.btn_peer_id || Settings.instance().showPeerIds()) && baseAdapter.indexOfViewById(id) != -1) index++;
         }
         addTopItem(new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101Posts, R.drawable.baseline_image_24, R.string.Tgx101Posts), index);
-        if (self && baseAdapter.indexOfViewById(R.id.btn_tgx101PostsArchive) == -1) {
-          addTopItem(new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101PostsArchive, R.drawable.baseline_archive_24, R.string.Tgx101PostsArchive), index + 1);
-        }
+        // (the archive is a switch inside «Posts» now — user 2026-10-26)
       } else if (at != -1) {
         updateValuedItem(R.id.btn_tgx101Posts);
       }
@@ -5673,6 +5671,11 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       return false;
     }
     if (isEditing() && hasUnsavedChanges()) {
+      return false;
+    }
+    // TGx101 (user 2026-10-26 «фото листаются вправо, но не влево — влево делает жест назад»): over the open photo the
+    // sideways swipe pages the photos; «back» only from the very edge
+    if (headerCell != null && headerCell.tgx101CanSwipePhotos() && y <= headerCell.getMeasuredHeight() && x > Screen.dp(16f)) {
       return false;
     }
     y -= HeaderView.getSize(true);

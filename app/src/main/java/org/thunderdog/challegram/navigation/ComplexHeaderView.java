@@ -877,6 +877,10 @@ public class ComplexHeaderView extends BaseView implements RtlCheckListener, Sti
     this.tgx101PhotoIndex = 0;
   }
 
+  public boolean tgx101CanSwipePhotos () {
+    return tgx101Photos != null && tgx101Photos.length > 1 && getAvatarExpandFactor() >= .5f;
+  }
+
   private boolean tgx101SwipeTouch (MotionEvent e) {
     if (tgx101Photos == null || tgx101Photos.length < 2 || getAvatarExpandFactor() < .5f) return false;
     switch (e.getActionMasked()) {
