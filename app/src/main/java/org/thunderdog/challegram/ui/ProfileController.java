@@ -1840,6 +1840,10 @@ public class ProfileController extends ViewController<ProfileController.Args> im
             String last = pc.lastMessage != null ? TD.getTextFromMessage(pc.lastMessage) : null;
             view.setData(StringUtils.isEmpty(last) ? Lang.getString(R.string.Tgx101PersonalChannel) : last.replace('\n', ' '));
           }
+        } else if (itemId == R.id.btn_tgx101Posts) {
+          view.setData(tgx101PostsCount > 0 ? Lang.getString(R.string.Tgx101PostsCount, tgx101PostsCount) : Lang.getString(R.string.Tgx101PostsNone));
+        } else if (itemId == R.id.btn_tgx101PostsArchive) {
+          view.setData(Lang.getString(R.string.Tgx101PostsArchiveHint));
         } else if (itemId == R.id.btn_tgx101UserNote) {
           String note = userFull != null && userFull.note != null ? userFull.note.text : null;
           view.setData(StringUtils.isEmpty(note) ? Lang.getString(R.string.Tgx101UserNoteAdd) : note);
@@ -2605,6 +2609,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     checkDescription();
     tgx101CheckNote();
     tgx101CheckPersonalChannel();
+    tgx101CheckPosts();
     checkGroupsInCommon();
 
     /*if (userFull.commonChatCount > 0) {
@@ -2900,6 +2905,32 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     } else if (has) {
       updateValuedItem(R.id.btn_tgx101PersonalChannel);
     }
+  }
+
+  // TGx101 (user 2026-10-26 «в профиле нет публикаций»): «Posts» — the stories posted to the profile — and, on the own
+  // profile, «Posts archive»; rows under the details, opening a grid
+  private int tgx101PostsCount = -1;
+
+  private void tgx101CheckPosts () {
+    if (isEditing() || user == null || TD.isBot(user) || getChatId() == 0) return;
+    boolean self = tdlib.isSelfUserId(user.id);
+    tdlib.send(new TdApi.GetChatPostedToChatPageStories(getChatId(), 0, 1), (stories, error) -> runOnUiThreadOptional(() -> {
+      tgx101PostsCount = stories != null ? stories.totalCount : 0;
+      boolean show = self || tgx101PostsCount > 0;
+      int at = baseAdapter.indexOfViewById(R.id.btn_tgx101Posts);
+      if (show && at == -1) {
+        int index = 0;
+        for (int id : new int[] {R.id.btn_peer_id, R.id.btn_username, R.id.btn_birthdate, R.id.btn_description, R.id.btn_tgx101UserNote, R.id.btn_tgx101PersonalChannel}) {
+          if ((id != R.id.btn_peer_id || Settings.instance().showPeerIds()) && baseAdapter.indexOfViewById(id) != -1) index++;
+        }
+        addTopItem(new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101Posts, R.drawable.baseline_image_24, R.string.Tgx101Posts), index);
+        if (self && baseAdapter.indexOfViewById(R.id.btn_tgx101PostsArchive) == -1) {
+          addTopItem(new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101PostsArchive, R.drawable.baseline_archive_24, R.string.Tgx101PostsArchive), index + 1);
+        }
+      } else if (at != -1) {
+        updateValuedItem(R.id.btn_tgx101Posts);
+      }
+    }));
   }
 
   private void tgx101OnPersonalChannel () {
@@ -5073,6 +5104,11 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           null
         );
       }
+    } else if (viewId == R.id.btn_tgx101Posts || viewId == R.id.btn_tgx101PostsArchive) {
+      Tgx101PostsController c = new Tgx101PostsController(context, tdlib);
+      c.setArguments(new Tgx101PostsController.Args(getChatId(), viewId == R.id.btn_tgx101PostsArchive));
+      navigateTo(c);
+      return;
     } else if (viewId == R.id.btn_tgx101PersonalChannel) {
       tgx101OnPersonalChannel();
     } else if (viewId == R.id.btn_tgx101UserNote) {

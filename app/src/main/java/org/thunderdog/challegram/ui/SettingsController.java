@@ -634,6 +634,9 @@ public class SettingsController extends ViewController<Void> implements
     ArrayUtils.ensureCapacity(items, 27);
 
     items.add(new ListItem(ListItem.TYPE_CUSTOM_SINGLE)); // TGx101 (mockup Н1+): «Search settings» plaque and my card (the account rows went to «Edit»)
+    // (user 2026-10-26 «нет возможности добавить ещё один аккаунт — только в боковом меню?»): right under my card
+    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_addAccount, R.drawable.baseline_person_add_24, R.string.AddAccount));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
 
     TdApi.SuggestedAction[] actions = tdlib.getSuggestedActions();
     int addedActionItems = 0;
@@ -1464,6 +1467,8 @@ public class SettingsController extends ViewController<Void> implements
       navigateTo(new SettingsNotificationController(context, tdlib));
     } else if (viewId == R.id.btn_devices) {
       navigateTo(new SettingsSessionsController(context, tdlib));
+    } else if (viewId == R.id.btn_addAccount) {
+      tdlib.ui().addAccount(context, true, false);
     } else if (viewId == R.id.btn_tgx101UpdateNow) {
       int st = org.thunderdog.challegram.service.Tgx101Updates.state();
       if (st == org.thunderdog.challegram.service.Tgx101Updates.STATE_READY) {

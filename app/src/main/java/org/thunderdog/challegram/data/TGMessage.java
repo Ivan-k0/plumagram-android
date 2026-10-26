@@ -2569,7 +2569,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       tgx101ForwardZone.set(forwardTextLeft - Screen.dp(12f), forwardTextTop - Screen.dp(22f), forwardX + fTimeWidth + Screen.dp(16f), forwardTextTop + Screen.dp(10f));
       TextPaint mTimePaint = useBubbles ? Paints.colorPaint(mTimeBubble(), getDecentColor()) : mTime(true);
       if (fTime != null) {
-        c.drawText(fTime, forwardX, forwardTextTop, mTimePaint);
+        // TGx101 (user 2026-10-26 «дату сместить максимально вправо, гармонично со временем верхнего сообщения»): in
+        // bubbles the date sits at the bubble's right edge, the name gets the room up to it
+        float timeX = useBubbles && !isPsa ? Math.max(forwardX, getInternalBubbleEndX() - fTimeWidth) : forwardX;
+        c.drawText(fTime, timeX, forwardTextTop, mTimePaint);
+        tgx101ForwardZone.right = Math.max(tgx101ForwardZone.right, timeX + fTimeWidth + Screen.dp(8f));
       }
       if (getViewCountMode() == VIEW_COUNT_FORWARD) {
         forwardX += Screen.dp(2f) + fTimeWidth + Screen.dp(COUNTER_ADD_MARGIN);

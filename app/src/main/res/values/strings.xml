@@ -6413,6 +6413,13 @@
   <string name="Tgx101PlayerKeepSpeed">Remember speed</string>
   <string name="Tgx101SearchSettings">Search settings</string>
   <string name="Tgx101CreateShortcut">Create shortcut</string>
+  <string name="Tgx101Posts">Posts</string>
+  <string name="Tgx101PostsArchive">Posts archive</string>
+  <string name="Tgx101PostsCount">Posts: %1$s</string>
+  <string name="Tgx101PostsNone">No posts yet</string>
+  <string name="Tgx101PostsArchiveHint">Your past stories</string>
+  <string name="Tgx101PostsEmpty">No posts yet. Stories you keep on your profile show here.</string>
+  <string name="Tgx101PostsArchiveEmpty">The archive is empty.</string>
   <string name="Tgx101ShortcutUnsupported">Your launcher doesn\'t support shortcuts</string>
   <string name="Tgx101Account">Account</string>
   <string name="Tgx101YourName">Your name</string>
