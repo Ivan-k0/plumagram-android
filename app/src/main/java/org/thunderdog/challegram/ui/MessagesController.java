@@ -6243,7 +6243,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
         if (full != null && full.getBoundController() instanceof MessageOptionsPagerController) {
           MessageOptionsPagerController pager = (MessageOptionsPagerController) full.getBoundController();
           pager.setTgx101PickerOnly(true);
-          pager.setTgx101AfterClose(() -> showTgx101MessageMenu(options, message, delegate, false));
+          // (log 2026-10-27 21:01: closing the picker brought the compact menu back, a second tap closed it) — as the
+          // official app, closing the picker closes it all
         }
       }),
       // TGx101 (user 2026-10-18 «как в офф телеге»): the reactions row of the compact menu — who reacted, with tabs per reaction

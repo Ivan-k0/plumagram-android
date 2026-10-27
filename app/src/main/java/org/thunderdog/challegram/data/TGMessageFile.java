@@ -640,6 +640,7 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
         }
       }
       int contentStartY = Math.round(rectF.top + entry.getSpacingStart());
+      entry.item.component.tgx101SetContentWidth(useBubbles() ? getContentWidth() : 0);
       entry.item.component.draw(view, c, startX, contentStartY, previewReceiver, imageReceiver, backgroundColor, useBubbles() ? ColorUtils.compositeColor(contentReplaceColor, pressColor) : contentReplaceColor, entry.getVisibility(), entry.item.getCheckFactor());
       if (entry.item.component.tgx101HasDots() && tgx101HasMenuDots()) {
         // TGx101: ⋮ in the top right corner of the card — a finger-sized area around it opens the message menu

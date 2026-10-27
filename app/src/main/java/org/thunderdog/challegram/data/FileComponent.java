@@ -761,7 +761,18 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   }
 
   private float transcribeButtonCenterX (int startX) {
-    return startX + tgx101PlaySize() + getPreviewOffset() + waveform.getWidth() + tgx101SideDurationWidth() + Screen.dp(8f) + Screen.dp(TRANSCRIBE_BUTTON_SIZE / 2f);
+    float x = startX + tgx101PlaySize() + getPreviewOffset() + waveform.getWidth() + tgx101SideDurationWidth() + Screen.dp(8f) + Screen.dp(TRANSCRIBE_BUTTON_SIZE / 2f);
+    // (user screenshot 2026-10-27 21:03, as the official app): with the transcription the bubble is wider — «A» keeps
+    // to its right edge, not right after the wave
+    if (tgx101ContentWidth > getWidth()) x += tgx101ContentWidth - getWidth();
+    return x;
+  }
+
+  private int tgx101ContentWidth;
+
+  /** the width the message gives this file (wider than the file itself under a long transcription) */
+  public void tgx101SetContentWidth (int width) {
+    this.tgx101ContentWidth = width;
   }
 
   private void drawTranscribeButton (Canvas c, float cx, float cy, boolean outgoing, float alpha) {
