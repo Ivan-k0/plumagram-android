@@ -732,8 +732,14 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   /** TGx101 (user 2026-10-24 «голосовые очень крупные», his screenshot): the wave no longer spreads over the whole bubble —
    * ~110 dp for a short note, growing a little with the length up to ~160 dp at a minute */
   private int tgx101WaveMaxWidth () {
-    int seconds = voice != null ? voice.duration : 0;
-    return Screen.dp(110f + 50f * Math.min(seconds, 60) / 60f);
+    // (approved «Г1», user 2026-10-27 «все голосовые одного размера, какой бы длины ни были»): one wave width for every
+    // voice note — the bubble comes out ~240 dp (46 play + 12 + wave + 38 «A» + the bubble's paddings); without the «A»
+    // the wave takes its room, so the bubble stays the same
+    return Screen.dp(124f) + (hasTranscribeButton() ? 0 : transcribeButtonSpace0());
+  }
+
+  private static int transcribeButtonSpace0 () {
+    return Screen.dp(TRANSCRIBE_BUTTON_SIZE + 8f);
   }
 
   /** Play button size: 38 dp in the two-row voice layout (mockup «Голосовое-кнопка-плей»), the stock 50 dp otherwise */

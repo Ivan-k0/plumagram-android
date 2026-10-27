@@ -129,8 +129,8 @@ public final class Tgx101Bird {
     return host != null && !host.isDestroyed() ? host : null;
   }
 
-  private static boolean wants (ViewController<?> c) {
-    if (c.inSearchMode()) return false;
+  private static boolean wants (ViewController<?> c, boolean leavingSearch) {
+    if (c.inSearchMode() && !leavingSearch) return false;
     if (c instanceof MainController) return enabled();
     if (c instanceof ChatsController) return ((ChatsController) c).tgx101IsOwnList() && enabled();
     if (c instanceof MessagesController) return ((MessagesController) c).tgx101WantsBird();
@@ -141,17 +141,26 @@ public final class Tgx101Bird {
   public static void sync (ViewController<?> c) {
     // called from every screen's focus: whatever goes wrong here must not take the screen down (release safety, 26.10)
     try {
-      syncImpl(c);
+      syncImpl(c, false);
     } catch (Throwable t) {
       org.thunderdog.challegram.Tgx101Diag.mark("bird: sync failed " + t);
     }
   }
 
-  private static void syncImpl (ViewController<?> c) {
+  /** (user 2026-10-27 00:06 «из поиска назад — птичка появляется не сразу»): back as the search starts to close */
+  public static void showLeavingSearch (ViewController<?> c) {
+    try {
+      syncImpl(c, true);
+    } catch (Throwable t) {
+      org.thunderdog.challegram.Tgx101Diag.mark("bird: sync failed " + t);
+    }
+  }
+
+  private static void syncImpl (ViewController<?> c, boolean leavingSearch) {
     BaseActivity context = c.context();
     Tgx101BirdView bird = birds.get(context);
     if (bird == null || context.navigation() == null || context.navigation().getStack().indexOf(c) < 0) return;
-    if (!wants(c)) {
+    if (!wants(c, leavingSearch)) {
       bird.setActive(false);
       return;
     }
@@ -263,7 +272,9 @@ public final class Tgx101Bird {
         TdApi.Chat chat = tdlib.chat(chatId);
         if (chat == null) continue;
         boolean personal = chat.type instanceof TdApi.ChatTypePrivate || chat.type instanceof TdApi.ChatTypeSecret;
+        // (user 2026-10-27 09:49 «не должно учитывать входящие или исходящие звонки»)
         if (personal && chat.lastMessage != null && !chat.lastMessage.isOutgoing && !tdlib.isSelfChat(chat) && !tdlib.isBotChat(chat)
+          && !(chat.lastMessage.content instanceof TdApi.MessageCall) && !(chat.lastMessage.content instanceof TdApi.MessageGroupCall)
           && chat.lastMessage.date > best[0]) {
           best[0] = chat.lastMessage.date;
           best[1] = chatId;

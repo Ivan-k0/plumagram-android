@@ -1198,7 +1198,10 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       default: {
         // (recorded 2026-10-22 against exteraGram at 120 Hz: its chat comes in over ~200 ms easing out, leaves in ~150 ms;
         // ours took 400 ms with a long tail) — user «extera плавнее, анимации приятнее, не такие резкие»
-        duration = forward ? TGX101_OPEN_DURATION : TGX101_CLOSE_DURATION;
+        // (user video 2026-10-27 13:54 «такие анимации плавнее»): a screen whose header grows into a big photo (a profile)
+        // gets more time — in 220 ms the header shot up in ~4 frames
+        boolean tall = right != null && right.tgx101TallHeaderTransition();
+        duration = forward ? (tall ? 320 : TGX101_OPEN_DURATION) : (tall ? 260 : TGX101_CLOSE_DURATION);
         interpolator = forward ? TGX101_OPEN_INTERPOLATOR : TGX101_CLOSE_INTERPOLATOR;
         break;
       }

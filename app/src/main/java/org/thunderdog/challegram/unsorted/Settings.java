@@ -879,6 +879,7 @@ public class Settings {
     if (didNotExist) {
       pmcVersion = VERSION;
       pmc.putInt(KEY_VERSION, VERSION);
+      pmc.putBoolean("tgx101_swipe_storage", false); // TGx101 (user 2026-10-27 00:19): a new install starts without the swipe into Storage
     } else {
       pmcVersion = 0;
       try {
@@ -4431,8 +4432,12 @@ public class Settings {
 
   /** TGx101: the video player's speed, remembered between videos */
   public float tgx101PlayerSpeed () {
-    return pmc.getFloat(KEY_TGX101_PLAYER_SPEED, 1f);
+    return tgx101PlayerKeepSpeed() ? pmc.getFloat(KEY_TGX101_PLAYER_SPEED, 1f) : tgx101SessionSpeed;
   }
+
+  // (user 2026-10-27 08:39 «скорость сохраняется даже с выключенным тумблером, если выбрать её во время видео»): with
+  // «Remember speed» off the speed lives only while the viewer is open and is never written
+  private float tgx101SessionSpeed = 1f;
 
   private static final String KEY_TGX101_PLAYER_KEEP_SPEED = "tgx101_player_keep_speed";
 
@@ -4442,11 +4447,13 @@ public class Settings {
   }
 
   public void setTgx101PlayerKeepSpeed (boolean keep) {
+    float speed = tgx101PlayerSpeed();
     pmc.putBoolean(KEY_TGX101_PLAYER_KEEP_SPEED, keep);
+    if (keep) pmc.putFloat(KEY_TGX101_PLAYER_SPEED, speed); else { tgx101SessionSpeed = speed; pmc.remove(KEY_TGX101_PLAYER_SPEED); }
   }
 
   public void setTgx101PlayerSpeed (float speed) {
-    pmc.putFloat(KEY_TGX101_PLAYER_SPEED, speed);
+    if (tgx101PlayerKeepSpeed()) pmc.putFloat(KEY_TGX101_PLAYER_SPEED, speed); else tgx101SessionSpeed = speed;
   }
 
   private static final String KEY_TGX101_PLAYER_GESTURES = "tgx101_player_gestures";

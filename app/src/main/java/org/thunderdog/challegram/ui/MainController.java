@@ -940,10 +940,17 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   }
 
   @Override
+  public boolean onBeforeLeaveSearchMode () {
+    boolean leave = super.onBeforeLeaveSearchMode();
+    if (leave) Tgx101Bird.showLeavingSearch(this); // the bird is back as the search starts to close, not after
+    return leave;
+  }
+
+  @Override
   protected void onLeaveSearchMode () {
     super.onLeaveSearchMode();
     composeWrap.showIfWasHidden();
-    getValue().post(() -> Tgx101Bird.sync(this)); // the search flag is cleared right after this
+    Tgx101Bird.showLeavingSearch(this); // the search flag is still set here
     if (tgx101Capsule != null && isFocused()) tgx101ShowCapsule(true);
     // TGx101 (user 2026-10-05 «тёмная фантомная полоса после поиска»): the stories row is laid out again after search
     ViewController<?> current = getCurrentPagerItem();

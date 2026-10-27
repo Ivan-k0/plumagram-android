@@ -628,7 +628,8 @@ public class TGMessageText extends TGMessage {
     float right = startX + maxWidth, top = startY;
     tgx101ShortRect.set(right - size, top, right, top + size);
     int accent = Theme.getColor(ColorId.textLink);
-    boolean lit = tgx101SummaryShown || tgx101ShortPressed;
+    // (user 2026-10-27 10:00 «пока он думает, нажатие никак не отображается»): lit at once, and a ring runs round it
+    boolean lit = tgx101SummaryShown || tgx101ShortPressed || tgx101SummaryLoading;
     android.graphics.Paint fill = Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(lit ? 1f : .16f, accent));
     c.drawCircle(tgx101ShortRect.centerX(), tgx101ShortRect.centerY(), size / 2f, fill);
     android.graphics.Paint line = Paints.getProgressPaint(lit ? 0xffffffff : accent, Screen.dp(1.6f));
@@ -641,6 +642,14 @@ public class TGMessageText extends TGMessage {
     android.graphics.Paint spark = Paints.fillingPaint(lit ? 0xffffffff : accent);
     tgx101Spark(c, ox + 6.5f * u, oy + 6.2f * u, 2.2f * u, spark);
     tgx101Spark(c, ox + 19f * u, oy + 13.1f * u, 2.1f * u, spark);
+    if (tgx101SummaryLoading) {
+      float inset = Screen.dp(1.5f);
+      android.graphics.RectF arc = Paints.getRectF();
+      arc.set(tgx101ShortRect.left - inset, tgx101ShortRect.top - inset, tgx101ShortRect.right + inset, tgx101ShortRect.bottom + inset);
+      float angle = (android.os.SystemClock.uptimeMillis() % 900L) / 900f * 360f;
+      c.drawArc(arc, angle, 100f, false, Paints.getProgressPaint(accent, Screen.dp(2f)));
+      invalidate();
+    }
   }
 
   private static final android.graphics.Path tgx101SparkPath = new android.graphics.Path();

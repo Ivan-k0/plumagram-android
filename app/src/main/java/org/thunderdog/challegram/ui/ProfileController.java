@@ -397,6 +397,11 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   }
 
   @Override
+  public boolean tgx101TallHeaderTransition () {
+    return true;
+  }
+
+  @Override
   public int getId () {
     return R.id.controller_profile;
   }

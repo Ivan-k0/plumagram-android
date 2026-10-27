@@ -467,6 +467,7 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
     if (tgx101Washed) {
       // (user 2026-10-24 «смотри как красиво и как нет», his screenshot): across the whole bubble, not just its words
       int washRight = parent.tgx101ReplyInsideBubble() ? Math.max(startX + width, endX) : startX + width;
+      lastWidth = washRight - startX; // (user 2026-10-27 13:05 «нажатие — по всей ширине плашки, не только слева»): the tap takes the whole wash
       rectF.set(startX, startY, washRight, startY + mHeight);
       // (user 2026-10-24 «у нас сообщения какой формы? подложку такой же формы», his screenshot): the bubble's own corners,
       // smaller — round ones stay round, the small ones between messages in a row stay small

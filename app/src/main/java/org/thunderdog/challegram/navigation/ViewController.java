@@ -3705,6 +3705,11 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     }
   }
 
+  /** TGx101: the header grows into a tall one on the way in (a profile) — its transition is given more time */
+  public boolean tgx101TallHeaderTransition () {
+    return false;
+  }
+
   @CallSuper
   public void onFocus () {
     org.thunderdog.challegram.ui.Tgx101Bird.sync(this); // TGx101: the window's one bird — here or not on this screen

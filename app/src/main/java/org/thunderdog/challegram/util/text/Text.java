@@ -3038,6 +3038,16 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
   private QuoteBackground pressedQuote;
   private @Nullable ClickCallback tgx101QuoteCallback;
 
+  private boolean tgx101PlainInQuote (int partIndex, int x, int y) {
+    if (quotes == null || quotes.isEmpty()) return false;
+    TextPart part = parts.get(partIndex);
+    if (part.isClickable() || findSpoiler(part.getSpoiler()) != null) return false;
+    for (QuoteBackground quote : quotes) {
+      if (quote.contains(x, y)) return true;
+    }
+    return false;
+  }
+
   public void tgx101QuoteClicked (QuoteBackground quote) {
     tgx101OnQuoteClick(quote, tgx101QuoteCallback);
   }
@@ -3177,7 +3187,9 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
 
         final boolean onlyClickable = clickListener == null;
         final int causeIndex = findTextPart(touchX, touchY, lastStartX, lastEndX, lastEndXBottomPadding, lastStartY, onlyClickable);
-        if (causeIndex == -1) {
+        // TGx101 (user 2026-10-27 13:05 «нажатие на цитату — по всей ширине плашки, а не только слева»): plain words inside
+        // a quote (no link, no spoiler) are the quote's too
+        if (causeIndex == -1 || tgx101PlainInQuote(causeIndex, touchX, touchY)) {
 
           for (QuoteBackground quote : quotes) {
             if (quote.contains(touchX, touchY)) {
