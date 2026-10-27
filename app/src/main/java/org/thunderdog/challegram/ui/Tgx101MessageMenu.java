@@ -1566,7 +1566,7 @@ public final class Tgx101MessageMenu {
   /** The plain dim behind the menu — 30 % black, as in the official app */
   public static final int MENU_DIM = 0x4d000000;
 
-  private static Drawable blurredBackground (MessagesController c) {
+  static Drawable blurredBackground (ViewController<?> c) {
     // TGx101 (user 2026-10-12 20:56, variant 3): no blur by default — the same plain dim as the sheets that open from
     // the menu (the blur then turning into a dim was what jarred); with MagiX «Blur» on, both blur
     if (!org.thunderdog.challegram.unsorted.Settings.instance().tgx101MenuBlur()) {
@@ -1806,7 +1806,7 @@ public final class Tgx101MessageMenu {
     }
   }
 
-  private static View divider (Context context) {
+  static View divider (Context context) {
     View divider = new View(context);
     divider.setBackgroundColor(Theme.getColor(ColorId.separator));
     LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, Screen.dp(.5f)));
@@ -1829,7 +1829,7 @@ public final class Tgx101MessageMenu {
 
   private static final float REACTIONS_OVERHANG = 16f, REACTION_ITEM_WIDTH = 38f; // item: 40dp view with -1dp decoration on each side
 
-  private static GradientDrawable rounded (int color, float radius) {
+  static GradientDrawable rounded (int color, float radius) {
     GradientDrawable drawable = new GradientDrawable();
     drawable.setColor(color);
     drawable.setCornerRadius(radius);
@@ -1838,7 +1838,7 @@ public final class Tgx101MessageMenu {
     return drawable;
   }
 
-  private static void elevate (View view, float radius) {
+  static void elevate (View view, float radius) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       view.setOutlineProvider(new ViewOutlineProvider() {
         @Override

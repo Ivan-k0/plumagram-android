@@ -49,21 +49,12 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
   private SettingsAdapter adapter;
   private long[] channels = new long[0];
 
-  private static String fontName (float sp) {
-    return ((int) sp) + " sp";
-  }
-
   private static int[] paletteNames () {
     return Tgx101Gazeta.profile() == Tgx101Gazeta.PROFILE_DARK ? Tgx101Gazeta.DARK_PALETTE_NAMES : Tgx101Gazeta.LIGHT_PALETTE_NAMES;
   }
 
   private static String foldName (int fold) {
-    switch (fold) {
-      case Tgx101Gazeta.FOLD_NONE: return Lang.getString(R.string.Tgx101GazetaFoldNone);
-      case Tgx101Gazeta.FOLD_8: return Lang.getString(R.string.Tgx101GazetaFoldLines, 8);
-      case Tgx101Gazeta.FOLD_SHORT: return Lang.getString(R.string.Tgx101GazetaFoldShort);
-      case Tgx101Gazeta.FOLD_10: default: return Lang.getString(R.string.Tgx101GazetaFoldLines, 10);
-    }
+    return fold == Tgx101Gazeta.FOLD_SHORT ? Lang.getString(R.string.Tgx101GazetaFoldShort) : Lang.getString(R.string.Tgx101GazetaFoldLines, 9);
   }
 
   private static String pictureName () {
@@ -80,9 +71,7 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
       @Override
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
         int id = item.getId();
-        if (id == R.id.btn_tgx101GazetaFont) {
-          view.setData(fontName(Tgx101Gazeta.fontSize()));
-        } else if (id == R.id.btn_tgx101GazetaColor) {
+        if (id == R.id.btn_tgx101GazetaColor) {
           view.setData(Lang.getString(paletteNames()[Tgx101Gazeta.paletteIndex()]));
         } else if (id == R.id.btn_tgx101GazetaPhotos) {
           view.setData(Lang.getString(Tgx101Gazeta.photos() == Tgx101Gazeta.PHOTOS_THUMB ? R.string.Tgx101GazetaPhotosThumb : R.string.Tgx101GazetaPhotosAsIs));
@@ -114,8 +103,6 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
       items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
       items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, Tgx101Gazeta.profile() == Tgx101Gazeta.PROFILE_DARK ? R.string.Tgx101GazetaLookDark : R.string.Tgx101GazetaLookLight));
       items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101GazetaFont, 0, R.string.Tgx101GazetaFont));
-      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
       items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101GazetaColor, 0, R.string.Tgx101GazetaColor));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
       items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101GazetaPhotos, 0, R.string.Tgx101GazetaPhotos));
@@ -180,19 +167,7 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
   @Override
   public void onClick (View v) {
     int id = v.getId();
-    if (id == R.id.btn_tgx101GazetaFont) {
-      float[] sizes = Tgx101Gazeta.FONT_SIZES;
-      String[] names = new String[sizes.length];
-      int current = -1;
-      for (int i = 0; i < sizes.length; i++) {
-        names[i] = fontName(sizes[i]);
-        if (sizes[i] == Tgx101Gazeta.fontSize()) current = i;
-      }
-      choose(R.string.Tgx101GazetaFont, names, current, which -> {
-        Tgx101Gazeta.setFontSize(sizes[which]);
-        adapter.updateValuedSettingById(id);
-      });
-    } else if (id == R.id.btn_tgx101GazetaColor) {
+    if (id == R.id.btn_tgx101GazetaColor) {
       int[] res = paletteNames();
       String[] names = new String[res.length];
       for (int i = 0; i < res.length; i++) names[i] = Lang.getString(res[i]);
@@ -237,7 +212,7 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
         }
       });
     } else if (id == R.id.btn_tgx101GazetaFold) {
-      int[] folds = {Tgx101Gazeta.FOLD_SHORT, Tgx101Gazeta.FOLD_8, Tgx101Gazeta.FOLD_10, Tgx101Gazeta.FOLD_NONE};
+      int[] folds = {Tgx101Gazeta.FOLD_LINES, Tgx101Gazeta.FOLD_SHORT};
       String[] names = new String[folds.length];
       int current = -1;
       for (int i = 0; i < folds.length; i++) {

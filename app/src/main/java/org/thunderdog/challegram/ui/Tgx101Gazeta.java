@@ -100,25 +100,20 @@ public final class Tgx101Gazeta {
     Settings.instance().pmc().putInt(pkey("photos"), value);
   }
 
-  public static final int FOLD_NONE = 0, FOLD_8 = 8, FOLD_10 = 10, FOLD_SHORT = 1;
+  public static final int FOLD_LINES = 9, FOLD_SHORT = 1;
 
-  /** how long posts fold: not at all, to 8 or 10 lines, or to 10 lines with «✨ Short» (the AI summary) */
+  /** (user 2026-10-28) long posts: 9 lines and «Show in full», or 9 lines and «Short» (the AI summary) instead */
   public static int fold () {
-    return Settings.instance().pmc().getInt(pkey("fold"), FOLD_10);
+    return Settings.instance().pmc().getInt(pkey("fold"), FOLD_LINES) == FOLD_SHORT ? FOLD_SHORT : FOLD_LINES;
   }
 
   public static void setFold (int value) {
     Settings.instance().pmc().putInt(pkey("fold"), value);
   }
 
-  public static final float[] FONT_SIZES = {13f, 14f, 15f, 16f, 17f, 18f, 20f, 22f};
-
+  /** the app's own message text size (user 2026-10-28: «оставляем как выставлено в приложении») */
   public static float fontSize () {
-    return Settings.instance().pmc().getFloat(pkey("font"), 15f);
-  }
-
-  public static void setFontSize (float sp) {
-    Settings.instance().pmc().putFloat(pkey("font"), sp);
+    return Settings.instance().getChatFontSize();
   }
 
   /** {page, card, text, secondary text, link} — reading colours, as in e-readers */

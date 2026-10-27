@@ -1000,11 +1000,22 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
   }
 
   protected final int getHeaderColor () {
-    return Theme.getColor(getHeaderColorId());
+    int custom = tgx101HeaderColor();
+    return custom != 0 ? custom : Theme.getColor(getHeaderColorId());
   }
 
   protected final int getHeaderTextColor () {
-    return Theme.getColor(getHeaderTextColorId());
+    int custom = tgx101HeaderTextColor();
+    return custom != 0 ? custom : Theme.getColor(getHeaderTextColorId());
+  }
+
+  /** TGx101: a screen with colours of its own («Газета»'s reading colours) paints the header with them; 0 — the theme's */
+  protected int tgx101HeaderColor () {
+    return 0;
+  }
+
+  protected int tgx101HeaderTextColor () {
+    return 0;
   }
 
   // FUTURE

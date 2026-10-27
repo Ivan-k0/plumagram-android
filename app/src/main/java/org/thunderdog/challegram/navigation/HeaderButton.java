@@ -130,7 +130,16 @@ public class HeaderButton extends View {
     }
   }
 
+  private int tgx101ForcedColor;
+
+  /** TGx101: a colour of its own instead of the theme's (0 — back to the theme) */
+  public void tgx101SetForcedColor (int color) {
+    this.tgx101ForcedColor = color;
+    invalidate();
+  }
+
   protected final int getColor (int defaultColor) {
+    if (tgx101ForcedColor != 0) return tgx101ForcedColor;
     if (themeColorId == 0) {
       return defaultColor;
     } else if (colorFactor != -1f) {
