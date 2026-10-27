@@ -3248,6 +3248,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           break;
         }
         case CLICK_TYPE_REPLY: {
+          if (isRepliesChat() && Td.hasMessageSource(msg.forwardInfo)) {
+            // TGx101 (user 2026-10-27 14:17, as the official app): in «Replies» a tap on the quoted comment opens the answer
+            // to it — in the comments of that post — not the comment itself
+            tgx101OpenRepliesSource();
+            break;
+          }
           if (msg.replyTo != null && msg.replyTo.getConstructor() == TdApi.MessageReplyToMessage.CONSTRUCTOR) {
             TdApi.MessageReplyToMessage replyToMessage = (TdApi.MessageReplyToMessage) msg.replyTo;
             if (replyData != null && replyData.getError() != null) {

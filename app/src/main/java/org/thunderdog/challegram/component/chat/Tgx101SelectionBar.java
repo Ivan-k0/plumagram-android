@@ -402,6 +402,13 @@ public final class Tgx101SelectionBar {
     TextView view = this.textView;
     if (view == null) return;
     int id = item.getItemId();
+    if (id == android.R.id.selectAll && view instanceof android.widget.EditText && view.length() > 0) {
+      // (user 2026-10-27 23:56 «после „Выделить всё“ редактор не должен гаснуть»): the system command restarts the
+      // selection mode and the bar went with it — the selection is widened here, the bar stays and moves to it
+      ((android.widget.EditText) view).setSelection(0, view.length());
+      view.post(this::reposition);
+      return;
+    }
     if (isStandard(id)) {
       if (view instanceof InputView && (id == android.R.id.cut || id == android.R.id.paste)) {
         ((InputView) view).tgx101SaveUndo();

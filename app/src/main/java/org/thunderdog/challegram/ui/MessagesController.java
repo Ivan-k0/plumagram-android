@@ -4508,6 +4508,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (isSecretChat()) {
         return R.id.menu_secretChat;
       }
+      if (messageThread != null && messageThread.getChatId() != 0 && messageThread.getChatId() != messageThread.getContextChatId()) {
+        return R.id.menu_tgx101Comments; // TGx101 (user 2026-10-27 14:20): comments of a post — the «whole chat» bubble before ⋮
+      }
       return R.id.menu_more;
     }
     return 0;
@@ -4581,6 +4584,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
       header.addButton(menu, R.id.menu_btn_share, R.drawable.baseline_share_arrow_24, getHeaderIconColorId(), this, Screen.dp(52f));
     } else if (id == R.id.menu_clear) {
       header.addClearButton(menu, this).setColorId(ColorId.headerLightIcon);
+    } else if (id == R.id.menu_tgx101Comments) {
+      // (user 2026-10-27 14:17–14:20, as the official app): in a post's comments the bubble at the top right opens the
+      // whole discussion chat of the channel
+      header.addButton(menu, R.id.menu_btn_tgx101WholeChat, R.drawable.outline_forum_24, getHeaderIconColorId(), this, Screen.dp(48f));
+      header.addMoreButton(menu, this);
     } else if (id == R.id.menu_search) {
       header.addSearchButton(menu, this);
     } else if (id == R.id.menu_savedMessages || id == R.id.menu_tgx101SavedTabs) {
@@ -4793,6 +4801,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (isSecretChat()) {
         tdlib.ui().showTTLPicker(context(), chat);
       }
+    } else if (id == R.id.menu_btn_tgx101WholeChat) {
+      openLinkedChat(false);
     } else if (id == R.id.menu_btn_viewScheduled) {
       viewScheduledMessages(false);
     } else if (id == R.id.menu_btn_tgx101ToStorage) {

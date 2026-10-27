@@ -134,6 +134,19 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
 
   private void init () {
     setOverScrollMode(Config.HAS_NICE_OVER_SCROLL_EFFECT ? OVER_SCROLL_IF_CONTENT_SCROLLS : OVER_SCROLL_NEVER);
+    // TGx101 (user 2026-10-27 00:03 «свайп назад в чатах, когда опускаешься в самый низ, — безотказно, как в списке
+    // чатов»): a fling into the end leaves the list stretched (Android 12+); RecyclerView «catches» that stretch on the
+    // next touch and keeps the gesture from the back swipe. The touch lets the stretch go first (as ChatsRecyclerView)
+    setEdgeEffectFactory(new EdgeEffectFactory() {
+      @androidx.annotation.NonNull
+      @Override
+      protected android.widget.EdgeEffect createEdgeEffect (@androidx.annotation.NonNull RecyclerView view, int direction) {
+        android.widget.EdgeEffect edge = super.createEdgeEffect(view, direction);
+        if (direction == DIRECTION_TOP) tgx101TopEdge = edge;
+        else if (direction == DIRECTION_BOTTOM) tgx101BottomEdge = edge;
+        return edge;
+      }
+    });
     itemAnimator = new CustomItemAnimator(AnimatorUtils.DECELERATE_INTERPOLATOR, ITEM_ANIMATOR_DURATION);
     itemAnimator.setSupportsChangeAnimations(false);
     setItemAnimator(null);
@@ -807,6 +820,21 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
 
   private int tgx101LastScrollState = SCROLL_STATE_IDLE;
 
+  private android.widget.EdgeEffect tgx101TopEdge, tgx101BottomEdge;
+
+  private boolean tgx101ReleaseStretch () {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) return false;
+    boolean released = false;
+    for (android.widget.EdgeEffect edge : new android.widget.EdgeEffect[] {tgx101TopEdge, tgx101BottomEdge}) {
+      if (edge != null && edge.getDistance() != 0f) {
+        edge.finish();
+        released = true;
+      }
+    }
+    if (released) invalidate();
+    return released;
+  }
+
   @Override
   public boolean onInterceptTouchEvent (MotionEvent e) {
     if (e.getActionMasked() == MotionEvent.ACTION_DOWN && getScrollState() != SCROLL_STATE_SETTLING
@@ -816,7 +844,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
       // Right after a fling the touch still belongs to the scrolling, not to the message
       tgx101StoppedFling = true;
       tgx101FlingEndTime = 0;
-    } else if (e.getActionMasked() == MotionEvent.ACTION_DOWN && getScrollState() == SCROLL_STATE_SETTLING) {
+    } else if (e.getActionMasked() == MotionEvent.ACTION_DOWN && (tgx101ReleaseStretch() | getScrollState() == SCROLL_STATE_SETTLING)) {
       // TGx101 (user 2026-10-05): a touch on a still-flinging list caught the gesture for the list
       // (requestDisallowInterceptTouchEvent) — the swipe back to the chat list did not work while scrolling.
       // Stop the fling first: the list then treats it as a fresh touch and the back swipe can take it
