@@ -265,6 +265,7 @@ public final class Tgx101MessageMenu {
   }
 
   private static class Host {
+    boolean handedOver;
     PopupLayout popup;
     View content;
     boolean dismissing;
@@ -827,12 +828,12 @@ public final class Tgx101MessageMenu {
     popup.setDismissListener(new PopupLayout.DismissListener() {
       @Override
       public void onPopupDismiss (PopupLayout p) {
-        if (onDismiss != null) onDismiss.run();
+        if (onDismiss != null && !host.handedOver) onDismiss.run();
       }
 
       @Override
       public void onPopupDismissPrepare (PopupLayout p) {
-        if (onDismissPrepare != null) onDismissPrepare.run();
+        if (onDismissPrepare != null && !host.handedOver) onDismissPrepare.run();
       }
     });
     popup.setTag(host);
@@ -1108,8 +1109,11 @@ public final class Tgx101MessageMenu {
     Views.setClickable(more);
     RippleSupport.setTransparentSelector(more);
     more.setOnClickListener(v -> {
-      dismiss(host);
+      // TGx101 (user video 2026-10-27 19:57 / 20:38): the full picker first, the compact menu goes under it — between the
+      // two the chat and the keyboard showed for ~150 ms («ещё одно меню, которое сразу исчезает»)
+      host.handedOver = true; // the picker owns the keyboard / emoji panel state now — the compact menu just goes
       if (onExpandReactions != null) onExpandReactions.run();
+      v.postDelayed(() -> dismiss(host), 120);
     });
     grid.addView(more, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     host.grid = grid;

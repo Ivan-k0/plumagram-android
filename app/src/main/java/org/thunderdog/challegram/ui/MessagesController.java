@@ -6238,13 +6238,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
     PopupLayout popup = Tgx101MessageMenu.show(this, message, options, delegate, readDatePending,
       callback -> tgx101LoadMore(message, null, callback),
       () -> UI.post(() -> {
+        isMessageOptionsVisible = false; // the compact menu goes under the picker a moment later
         PopupLayout full = showMessageOptions(options, message, null, delegate);
         if (full != null && full.getBoundController() instanceof MessageOptionsPagerController) {
           MessageOptionsPagerController pager = (MessageOptionsPagerController) full.getBoundController();
           pager.setTgx101PickerOnly(true);
           pager.setTgx101AfterClose(() -> showTgx101MessageMenu(options, message, delegate, false));
         }
-      }, 220),
+      }),
       // TGx101 (user 2026-10-18 «как в офф телеге»): the reactions row of the compact menu — who reacted, with tabs per reaction
       () -> UI.post(() -> showMessageOptions(options, message, null, delegate, true), 220),
       this::onHideMessageOptions,
@@ -6305,6 +6306,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     needShowKeyboardAfterHideMessageOptions = getKeyboardState();
     needShowEmojiKeyboardAfterHideMessageOptions = emojiShown;
     if (needShowKeyboardAfterHideMessageOptions) {    // показываем emoji-клавиатуру, чтобы скрыть системную
+      // TGx101 (user video 2026-10-27 19:57 / 20:38, log «emoji panel shown» as «All emoji» opened): the panel came up for
+      // a frame before it was made invisible — invisible first now, then opened in the keyboard's place
+      if (emojiLayout != null) emojiLayout.optimizeForDisplayMessageOptionsWindow(true);
       openEmojiKeyboard();                            // делаем emojiLayout невидимым для оптимизации
       emojiLayout.optimizeForDisplayMessageOptionsWindow(true);
     }                                                 // todo: если меню сообщения ниже EmojiLayout, то не скрывать?
