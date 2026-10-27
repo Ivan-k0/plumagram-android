@@ -222,7 +222,7 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
           adapter.updateValuedSettingById(id);
         } else {
           boolean bright = which == n;
-          int[] values = bright ? new int[] {60, 70, 80, 90, 100, 110, 120} : new int[] {0, 25, 50, 75, 100, 125, 150};
+          int[] values = bright ? new int[] {20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120} : new int[] {0, 25, 50, 75, 100, 125, 150};
           String[] labels = new String[values.length];
           int now = bright ? Tgx101Gazeta.brightness() : Tgx101Gazeta.saturation(), at = -1;
           for (int i = 0; i < values.length; i++) {

@@ -228,14 +228,13 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     if (org.thunderdog.challegram.data.Tgx101MessageFilters.suggestion(main) != null) {
       ids.add(R.id.btn_tgx101FilterSimilar); titles.add(Lang.getString(R.string.Tgx101FilterSimilar)); icons.add(R.drawable.baseline_filter_variant_remove_24);
     }
-    ids.add(R.id.btn_tgx101ChatMedia); titles.add(Lang.getString(R.string.Tgx101ChatMedia)); icons.add(R.drawable.baseline_image_24);
     ids.add(R.id.btn_tgx101GazetaHideChannel); titles.add(Lang.getString(R.string.Tgx101GazetaHideChannel)); icons.add(R.drawable.baseline_eye_off_24);
     int[] outIds = new int[ids.size()], outIcons = new int[ids.size()];
     for (int i = 0; i < outIds.length; i++) {
       outIds[i] = ids.get(i);
       outIcons[i] = icons.get(i);
     }
-    showOptions(tdlib.chatTitle(post.chatId), outIds, titles.toArray(new String[0]), null, outIcons, (v, id) -> {
+    showMiniMenu(post, main, outIds, titles.toArray(new String[0]), outIcons, id -> {
       if (id == R.id.btn_tgx101GazetaOpen) {
         openInChannel(post);
       } else if (id == R.id.btn_messageReply || id == R.id.btn_messageShare) {
@@ -251,8 +250,6 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         });
       } else if (id == R.id.btn_tgx101FilterSimilar) {
         Tgx101FiltersController.addRule(this, org.thunderdog.challegram.data.Tgx101MessageFilters.suggestion(main), post.chatId, tdlib.chatTitle(post.chatId));
-      } else if (id == R.id.btn_tgx101ChatMedia) {
-        org.thunderdog.challegram.data.Tgx101ChatMedia.openSheet(this, post.chatId);
       } else if (id == R.id.btn_tgx101GazetaHideChannel) {
         java.util.Set<Long> off = Tgx101Gazeta.excluded(tdlib);
         off.add(post.chatId);
@@ -263,8 +260,128 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         adapter.notifyDataSetChanged(); // the neighbours may join into one channel's run
         UI.showToast(Lang.getString(R.string.Tgx101GazetaChannelHidden, tdlib.chatTitle(post.chatId)), android.widget.Toast.LENGTH_SHORT);
       }
-      return true;
     });
+  }
+
+  private static android.graphics.drawable.Drawable ripple () {
+    int pressed = me.vkryl.core.ColorUtils.alphaColor(.12f, Theme.getColor(ColorId.text));
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+      return new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(pressed), null, new android.graphics.drawable.ColorDrawable(0xffffffff));
+    }
+    android.graphics.drawable.StateListDrawable d = new android.graphics.drawable.StateListDrawable();
+    d.addState(new int[] {android.R.attr.state_pressed}, new android.graphics.drawable.ColorDrawable(pressed));
+    return d;
+  }
+
+  private interface MenuPick {
+    void onPick (int id);
+  }
+
+  private float touchRawX = -1, touchRawY = -1;
+  private @Nullable android.widget.PopupWindow miniMenu;
+
+  /**
+   * (user 2026-10-28 «выпадающее меню должно быть миниатюрным, как у нас в системе»): a small card at the finger — the
+   * channel's reactions on top, then the actions, one short row each
+   */
+  private void showMiniMenu (Tgx101Gazeta.Post post, TdApi.Message main, int[] ids, String[] titles, int[] icons, MenuPick pick) {
+    if (miniMenu != null) miniMenu.dismiss();
+    Context ctx = context();
+    LinearLayout card = new LinearLayout(ctx);
+    card.setOrientation(LinearLayout.VERTICAL);
+    card.setPadding(0, Screen.dp(6f), 0, Screen.dp(6f));
+    GradientDrawable bg = new GradientDrawable();
+    bg.setCornerRadius(Screen.dp(14f));
+    bg.setColor(Theme.getColor(ColorId.filling));
+    card.setBackground(bg);
+    android.widget.PopupWindow popup = new android.widget.PopupWindow(card, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, true);
+    miniMenu = popup;
+    popup.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
+    popup.setOutsideTouchable(true);
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) popup.setElevation(Screen.dp(8f));
+
+    boolean canReact = Tgx101Gazeta.reactions() && main.interactionInfo != null && main.interactionInfo.reactions != null;
+    LinearLayout reactRow = new LinearLayout(ctx);
+    reactRow.setOrientation(LinearLayout.HORIZONTAL);
+    reactRow.setPadding(Screen.dp(8f), 0, Screen.dp(8f), Screen.dp(4f));
+    if (canReact) card.addView(reactRow);
+
+    int textColor = Theme.getColor(ColorId.text), iconColor = Theme.getColor(ColorId.icon);
+    for (int i = 0; i < ids.length; i++) {
+      final int id = ids[i];
+      LinearLayout row = new LinearLayout(ctx);
+      row.setOrientation(LinearLayout.HORIZONTAL);
+      row.setGravity(Gravity.CENTER_VERTICAL);
+      row.setPadding(Screen.dp(16f), 0, Screen.dp(20f), 0);
+      row.setMinimumWidth(Screen.dp(210f));
+      ImageView icon = new ImageView(ctx);
+      icon.setImageResource(icons[i]);
+      icon.setColorFilter(iconColor);
+      row.addView(icon, new LinearLayout.LayoutParams(Screen.dp(20f), Screen.dp(20f)));
+      TextView label = new TextView(ctx);
+      label.setText(titles[i]);
+      label.setTextColor(textColor);
+      label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
+      label.setSingleLine(true);
+      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      lp.leftMargin = Screen.dp(16f);
+      row.addView(label, lp);
+      row.setBackground(ripple());
+      row.setOnClickListener(v -> {
+        popup.dismiss();
+        pick.onPick(id);
+      });
+      card.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f)));
+    }
+
+    if (canReact) {
+      tdlib.send(new TdApi.GetMessageAvailableReactions(main.chatId, main.id, 6), (available, error) -> {
+        if (available == null) return;
+        UI.post(() -> {
+          if (!popup.isShowing()) return;
+          int count = 0;
+          java.util.List<TdApi.AvailableReaction> all = new ArrayList<>();
+          java.util.Collections.addAll(all, available.topReactions);
+          java.util.Collections.addAll(all, available.recentReactions);
+          java.util.Set<String> seen = new java.util.HashSet<>();
+          for (TdApi.AvailableReaction r : all) {
+            if (count >= 6 || r.type.getConstructor() != TdApi.ReactionTypeEmoji.CONSTRUCTOR) continue;
+            String emoji = ((TdApi.ReactionTypeEmoji) r.type).emoji;
+            if (!seen.add(emoji)) continue;
+            TextView e = new TextView(ctx);
+            e.setText(emoji);
+            e.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22f);
+            e.setGravity(Gravity.CENTER);
+            e.setBackground(ripple());
+            e.setOnClickListener(v -> {
+              popup.dismiss();
+              TdApi.MessageReaction chosen = null;
+              for (TdApi.MessageReaction mr : main.interactionInfo.reactions.reactions) {
+                if (mr.type.getConstructor() == TdApi.ReactionTypeEmoji.CONSTRUCTOR && emoji.equals(((TdApi.ReactionTypeEmoji) mr.type).emoji)) chosen = mr;
+              }
+              toggleReaction(post, main, chosen != null ? chosen : new TdApi.MessageReaction(r.type, 0, false, null, new TdApi.MessageSender[0]));
+            });
+            reactRow.addView(e, new LinearLayout.LayoutParams(Screen.dp(40f), Screen.dp(42f)));
+            count++;
+          }
+          if (count == 0) card.removeView(reactRow);
+        });
+      });
+    }
+
+    card.measure(View.MeasureSpec.makeMeasureSpec(Screen.currentWidth(), View.MeasureSpec.AT_MOST), View.MeasureSpec.makeMeasureSpec(Screen.currentHeight(), View.MeasureSpec.AT_MOST));
+    int w = Math.max(card.getMeasuredWidth(), Screen.dp(210f)), h = card.getMeasuredHeight() + (canReact ? Screen.dp(46f) : 0);
+    int x = (int) (touchRawX >= 0 ? touchRawX : Screen.currentWidth() / 2f) - w / 2;
+    int y = (int) (touchRawY >= 0 ? touchRawY : Screen.currentHeight() / 2f) - Screen.dp(24f);
+    x = Math.max(Screen.dp(8f), Math.min(x, Screen.currentWidth() - w - Screen.dp(8f)));
+    y = Math.max(Screen.dp(56f), Math.min(y, Screen.currentHeight() - h - Screen.dp(56f)));
+    card.setAlpha(0f);
+    card.setScaleX(.92f);
+    card.setScaleY(.92f);
+    card.setPivotX(w / 2f);
+    card.setPivotY(0f);
+    popup.showAtLocation(list, Gravity.NO_GRAVITY, x, y);
+    card.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(160).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
   }
 
   // ---- cards ----
@@ -312,53 +429,60 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     return v;
   }
 
-  /** chips left to right, a new row when the next doesn't fit (user: «реакции спускаются вторым рядом») */
+  /**
+   * chips left to right, a new row when the next doesn't fit (user: «реакции спускаются вторым рядом»); the last child
+   * — views and time — keeps to the right of the last row, or below it on the right, as under a post in a channel
+   */
   private static final class FlowLayout extends ViewGroup {
     private final int gap = Screen.dp(6f);
+    @Nullable View trailing;
 
     FlowLayout (Context context) {
       super(context);
     }
 
-    @Override
-    protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
-      int width = MeasureSpec.getSize(widthMeasureSpec);
-      int x = 0, y = 0, rowHeight = 0, maxX = 0;
-      for (int i = 0; i < getChildCount(); i++) {
-        View child = getChildAt(i);
-        if (child.getVisibility() == GONE) continue;
-        child.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-        int w = child.getMeasuredWidth(), h = child.getMeasuredHeight();
-        if (x > 0 && x + w > width) {
-          x = 0;
-          y += rowHeight + gap;
-          rowHeight = 0;
-        }
-        x += w + gap;
-        maxX = Math.max(maxX, x - gap);
-        rowHeight = Math.max(rowHeight, h);
-      }
-      int mode = MeasureSpec.getMode(widthMeasureSpec);
-      setMeasuredDimension(mode == MeasureSpec.EXACTLY ? width : Math.max(0, maxX), y + rowHeight);
-    }
-
-    @Override
-    protected void onLayout (boolean changed, int l, int t, int r, int b) {
-      int width = r - l;
+    private int place (int width, boolean layout) {
       int x = 0, y = 0, rowHeight = 0;
       for (int i = 0; i < getChildCount(); i++) {
         View child = getChildAt(i);
         if (child.getVisibility() == GONE) continue;
         int w = child.getMeasuredWidth(), h = child.getMeasuredHeight();
+        if (child == trailing) {
+          int tx = width - w;
+          if (x > 0 && x > tx - gap) {
+            y += rowHeight + gap;
+            rowHeight = 0;
+          }
+          int ty = y + Math.max(0, (rowHeight - h) / 2);
+          if (layout) child.layout(tx, rowHeight > 0 ? ty : y, width, (rowHeight > 0 ? ty : y) + h);
+          rowHeight = Math.max(rowHeight, h);
+          continue;
+        }
         if (x > 0 && x + w > width) {
           x = 0;
           y += rowHeight + gap;
           rowHeight = 0;
         }
-        child.layout(x, y, x + w, y + h);
+        if (layout) child.layout(x, y, x + w, y + h);
         x += w + gap;
         rowHeight = Math.max(rowHeight, h);
       }
+      return y + rowHeight;
+    }
+
+    @Override
+    protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
+      int width = MeasureSpec.getSize(widthMeasureSpec);
+      for (int i = 0; i < getChildCount(); i++) {
+        View child = getChildAt(i);
+        if (child.getVisibility() != GONE) child.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+      }
+      setMeasuredDimension(width, place(width, false));
+    }
+
+    @Override
+    protected void onLayout (boolean changed, int l, int t, int r, int b) {
+      place(r - l, true);
     }
   }
 
@@ -372,8 +496,11 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   private final class Card extends LinearLayout {
     final LinearLayout header;
     final AvatarView avatar;
-    final TextView title, summary, body, bodyBelow, more, shortBtn, meta;
+    final TextView title, summary, body, bodyBelow, more, shortBtn, meta, commentsText;
     final FlowLayout reactions;
+    final LinearLayout comments, repliers;
+    final ImageView commentsIcon, commentsArrow;
+    final View commentsLine;
     final FrameLayout media, thumbWrap;
     final ImageView mediaImage, thumbImage;
     final TextView mediaBadge, mediaCount, thumbBadge;
@@ -475,24 +602,51 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       links.addView(shortBtn, shp);
       addView(links);
 
-      LinearLayout footer = new LinearLayout(context);
-      footer.setOrientation(HORIZONTAL);
-      footer.setGravity(Gravity.BOTTOM);
-      footer.setPadding(pad, Screen.dp(8f), pad, Screen.dp(10f));
       reactions = new FlowLayout(context);
-      LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-      rp.rightMargin = Screen.dp(8f);
-      footer.addView(reactions, rp);
+      reactions.setPadding(pad, Screen.dp(8f), pad, Screen.dp(10f));
       meta = text(context, 12.5f, false);
       meta.setGravity(Gravity.CENTER_VERTICAL);
       meta.setCompoundDrawablePadding(Screen.dp(3f));
-      footer.addView(meta);
-      addView(footer);
+      addView(reactions, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+      // «Leave a comment» / «N comments» at the bottom of the post, as in channels
+      comments = new LinearLayout(context);
+      comments.setOrientation(HORIZONTAL);
+      comments.setGravity(Gravity.CENTER_VERTICAL);
+      comments.setPadding(pad, 0, Screen.dp(8f), 0);
+      commentsIcon = new ImageView(context);
+      commentsIcon.setImageResource(R.drawable.outline_forum_24);
+      comments.addView(commentsIcon, new LinearLayout.LayoutParams(Screen.dp(22f), Screen.dp(22f)));
+      repliers = new LinearLayout(context);
+      repliers.setOrientation(HORIZONTAL);
+      LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      rlp.leftMargin = Screen.dp(10f);
+      comments.addView(repliers, rlp);
+      commentsText = text(context, 15f, true);
+      LinearLayout.LayoutParams ctp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+      ctp.leftMargin = Screen.dp(10f);
+      comments.addView(commentsText, ctp);
+      commentsArrow = new ImageView(context);
+      commentsArrow.setImageResource(R.drawable.round_keyboard_arrow_right_24);
+      comments.addView(commentsArrow, new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f)));
+      comments.setOnClickListener(v -> {
+        if (post != null) openComments(post);
+      });
+      commentsLine = new View(context);
+      addView(commentsLine, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, Screen.dp(.5f))));
+      addView(comments, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(46f)));
       // the views' eye as on channel posts
       eye = org.thunderdog.challegram.tool.Drawables.get(getResources(), R.drawable.baseline_visibility_14).mutate();
 
       setOnClickListener(v -> {
         if (post != null) openPostMenu(post);
+      });
+      setOnTouchListener((v, e) -> {
+        if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) {
+          touchRawX = e.getRawX();
+          touchRawY = e.getRawY();
+        }
+        return false;
       });
     }
 
@@ -510,12 +664,11 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     private TextView chip (CharSequence label, boolean chosen, int[] pal, @Nullable View.OnClickListener click) {
       TextView v = text(getContext(), Math.max(12f, Tgx101Gazeta.fontSize() - 2f), false);
       v.setText(label);
-      v.setTextColor(chosen ? pal[4] : pal[3]);
-      v.setPadding(Screen.dp(9f), Screen.dp(4f), Screen.dp(9f), Screen.dp(4f));
+      v.setTextColor(chosen ? 0xffffffff : pal[4]);
+      v.setPadding(Screen.dp(8f), Screen.dp(3f), Screen.dp(10f), Screen.dp(3f));
       GradientDrawable bg = new GradientDrawable();
       bg.setCornerRadius(Screen.dp(14f));
-      bg.setColor(me.vkryl.core.ColorUtils.alphaColor(chosen ? .18f : .1f, chosen ? pal[4] : pal[2]));
-      if (chosen) bg.setStroke(Math.max(1, Screen.dp(1f)), me.vkryl.core.ColorUtils.alphaColor(.6f, pal[4]));
+      bg.setColor(chosen ? pal[4] : me.vkryl.core.ColorUtils.alphaColor(.14f, pal[4]));
       v.setBackground(bg);
       if (click != null) v.setOnClickListener(click);
       return v;
@@ -652,7 +805,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       shortBtn.setText(post.summaryLoading ? "✨ …" : post.summaryShown ? Lang.getString(R.string.Tgx101GazetaShortHide) : "✨ " + Lang.getString(R.string.Tgx101AiShort));
       ((View) more.getParent()).setVisibility(cut || canShort ? VISIBLE : GONE);
 
-      // reactions (each one a tap), stars and comments on the left, wrapping; views and time on the right
+      // reactions (each one a tap) and stars, wrapping; views and time on the right of the last row — as in a channel
       reactions.removeAllViews();
       TdApi.MessageInteractionInfo info = main.interactionInfo;
       if (info != null && info.reactions != null) {
@@ -664,10 +817,6 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
           reactions.addView(chip(emoji + " " + Strings.buildCounter(r.totalCount), r.isChosen, pal, paid ? v -> openInChannel(post) : v -> toggleReaction(post, main, r)));
         }
       }
-      if (info != null && info.replyInfo != null && info.replyInfo.replyCount > 0) {
-        reactions.addView(chip("💬 " + Strings.buildCounter(info.replyInfo.replyCount), false, pal, v -> openInChannel(post)));
-      }
-      reactions.setVisibility(reactions.getChildCount() > 0 ? VISIBLE : INVISIBLE);
       StringBuilder right = new StringBuilder();
       boolean views = info != null && info.viewCount > 0;
       if (views) right.append(Strings.buildCounter(info.viewCount)).append("   ");
@@ -675,6 +824,34 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       meta.setText(right);
       meta.setTextSize(TypedValue.COMPLEX_UNIT_DIP, Math.max(11f, font - 2.5f));
       meta.setCompoundDrawablesWithIntrinsicBounds(views ? eye : null, null, null, null);
+      reactions.addView(meta);
+      reactions.trailing = meta;
+
+      TdApi.MessageReplyInfo replyInfo = info != null ? info.replyInfo : null;
+      boolean hasComments = replyInfo != null;
+      comments.setVisibility(hasComments ? VISIBLE : GONE);
+      commentsLine.setVisibility(hasComments ? VISIBLE : GONE);
+      reactions.setPadding(pad, Screen.dp(8f), pad, Screen.dp(hasComments ? 8f : 10f));
+      if (hasComments) {
+        commentsLine.setBackgroundColor(me.vkryl.core.ColorUtils.alphaColor(.12f, pal[2]));
+        commentsText.setTextColor(pal[4]);
+        commentsText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, Math.max(13f, font - 1f));
+        commentsText.setText(replyInfo.replyCount > 0 ? Lang.plural(R.string.xComments, replyInfo.replyCount) : Lang.getString(R.string.LeaveComment));
+        commentsIcon.setColorFilter(pal[4]);
+        commentsArrow.setColorFilter(pal[3]);
+        repliers.removeAllViews();
+        int n = replyInfo.recentReplierIds != null ? Math.min(3, replyInfo.recentReplierIds.length) : 0;
+        for (int i = 0; i < n; i++) {
+          AvatarView a = new AvatarView(getContext());
+          a.setMessageSender(tdlib, replyInfo.recentReplierIds[i]);
+          LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(Screen.dp(22f), Screen.dp(22f));
+          if (i > 0) alp.leftMargin = -Screen.dp(6f);
+          repliers.addView(a, alp);
+          a.attach();
+        }
+        repliers.setVisibility(n > 0 ? VISIBLE : GONE);
+        commentsIcon.setVisibility(n > 0 ? GONE : VISIBLE);
+      }
     }
 
     private void loadImage (TdApi.Message message, ImageView target, int token, int targetWidth) {
@@ -703,6 +880,20 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   }
 
   private static final float THUMB = 58f, THUMB_GAP = 10f;
+
+  // the post's comments, as its «Leave a comment» bar in the channel opens them
+  private void openComments (Tgx101Gazeta.Post post) {
+    TdApi.Message main = post.main();
+    tdlib.send(new TdApi.GetMessageThread(main.chatId, main.id), (thread, error) -> UI.post(() -> {
+      if (isDestroyed()) return;
+      if (thread == null) {
+        if (error != null) UI.showError(error);
+        return;
+      }
+      org.thunderdog.challegram.data.ThreadInfo info = org.thunderdog.challegram.data.ThreadInfo.openedFromChat(tdlib, thread, main.chatId);
+      tdlib.ui().openChat(this, thread.chatId, new org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters().keepStack().messageThread(info));
+    }));
+  }
 
   private void openInChannel (Tgx101Gazeta.Post post) {
     tdlib.ui().openMessage(this, post.chatId, new MessageId(post.chatId, post.main().id), null);

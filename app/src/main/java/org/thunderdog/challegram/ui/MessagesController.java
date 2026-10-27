@@ -5820,7 +5820,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // TGx101 (user 2026-10-12): «Proxy» right in the chat (switched on in MagiX → «Chat ⋮ menu items»), and the user's order
     ids.append(R.id.btn_tgx101ChatProxy);
     strings.append(R.string.Proxy);
+    boolean tgx101HadMedia = ids.indexOf(R.id.btn_tgx101ChatMedia) != -1;
     Tgx101BarOrder.applyToChatMenu(ids, strings);
+    org.thunderdog.challegram.Tgx101Diag.mark("chat menu: " + ids.size() + " items, channel " + tdlib.isChannel(chat.id) + ", media " + tgx101HadMedia + " → " + (ids.indexOf(R.id.btn_tgx101ChatMedia) != -1));
     showMore(ids.get(), strings.get(), 0);
   }
 
