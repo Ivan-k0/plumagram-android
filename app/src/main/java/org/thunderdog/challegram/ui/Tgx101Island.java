@@ -60,20 +60,22 @@ public final class Tgx101Island {
   private static long lastDismissedChatId;
   private static int dismissedInRow;
 
-  /** from the TDLib thread: a notification group got new messages */
+  /**
+   * from the TDLib thread: a new message. (user 2026-10-27 «капсула приходит с задержкой, должно в тот же миг»): TDLib holds
+   * its notification groups back while one is online (in case the message is read elsewhere) — the capsule, the sound
+   * and the vibration go off the message itself, with the same rules: incoming, notifications of the chat on (or a
+   * mention of me), not the open chat
+   */
   public static void onUpdate (Tdlib tdlib, TdApi.Update update) {
-    if (update.getConstructor() != TdApi.UpdateNotificationGroup.CONSTRUCTOR) return;
-    TdApi.UpdateNotificationGroup u = (TdApi.UpdateNotificationGroup) update;
-    if (u.addedNotifications == null || u.addedNotifications.length == 0) return;
-    if (!(u.type instanceof TdApi.NotificationGroupTypeMessages) && !(u.type instanceof TdApi.NotificationGroupTypeMentions)) return;
+    if (update.getConstructor() != TdApi.UpdateNewMessage.CONSTRUCTOR) return;
+    final TdApi.Message message = ((TdApi.UpdateNewMessage) update).message;
+    if (message == null || message.isOutgoing || message.sendingState != null || message.schedulingState != null) return;
+    if (System.currentTimeMillis() / 1000L - message.date > 60) return; // not «now»
     final Settings settings = Settings.instance();
     if (settings.tgx101FgShow() == Settings.TGX101_FG_SYSTEM) return; // the system notification does it all
-    TdApi.Notification last = u.addedNotifications[u.addedNotifications.length - 1];
-    if (!(last.type instanceof TdApi.NotificationTypeNewMessage)) return;
-    TdApi.Message message = ((TdApi.NotificationTypeNewMessage) last.type).message;
-    if (message == null || message.isOutgoing) return;
-    if (System.currentTimeMillis() / 1000L - message.date > 60) return; // pending ones from before — not «now»
-    final long chatId = u.chatId;
+    final long chatId = message.chatId;
+    if (tdlib.isSelfChat(chatId)) return;
+    if (!tdlib.chatNotificationsEnabled(chatId) && !message.containsUnreadMention) return;
     UI.post(() -> {
       if (!passes(tdlib, chatId)) return;
       // the app's own sound / vibration — the shade gets nothing while the app is open
@@ -150,9 +152,17 @@ public final class Tgx101Island {
     }
   }
 
+  private static int Color_alpha (int color) {
+    return color >>> 24;
+  }
+
   private static final class IslandView extends View {
     private final AvatarReceiver avatar = new AvatarReceiver(this);
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint border = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint shade = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint dot = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final RectF shadeRect = new RectF();
     private final TextPaint titlePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final RectF rect = new RectF();
@@ -170,11 +180,10 @@ public final class Tgx101Island {
 
     IslandView (Context context) {
       super(context);
-      fill.setColor(0xf0000000);
-      titlePaint.setColor(0xffffffff);
       titlePaint.setTypeface(Fonts.getRobotoMedium());
-      textPaint.setColor(0xffd0d6dc);
       textPaint.setTypeface(Fonts.getRobotoRegular());
+      border.setStyle(Paint.Style.STROKE);
+      border.setStrokeWidth(Math.max(1, Screen.dp(.5f)));
     }
 
     private final Runnable hide = () -> animateShown(false, null);
@@ -258,9 +267,25 @@ public final class Tgx101Island {
       float scale = .7f + .3f * shown;
       c.scale(scale, scale, rect.centerX(), rect.top);
       int alpha = (int) (255 * Math.min(1f, shown * 1.4f));
-      fill.setAlpha((int) (0xf0 * Math.min(1f, shown * 1.4f)));
-      float radius = Screen.dp(17f) + Screen.dp(5f) * expanded;
+      // (user 2026-10-27 «в цвет темы и мягче»): the theme's own card colour, a soft shadow under it and a hairline
+      // edge instead of the black island
+      float a = Math.min(1f, shown * 1.4f);
+      float radius = Screen.dp(17f) + Screen.dp(7f) * expanded;
+      int dark = org.thunderdog.challegram.theme.Theme.isDark() ? 0x55 : 0x22;
+      for (int i = 3; i >= 1; i--) {
+        float grow = Screen.dp(1.6f) * i;
+        shadeRect.set(rect.left - grow, rect.top - grow + Screen.dp(1.5f) * i, rect.right + grow, rect.bottom + grow + Screen.dp(1.5f) * i);
+        shade.setColor(((int) (dark * a / (i + 1))) << 24);
+        c.drawRoundRect(shadeRect, radius + grow, radius + grow, shade);
+      }
+      fill.setColor(org.thunderdog.challegram.theme.Theme.fillingColor());
+      fill.setAlpha((int) (255 * a));
       c.drawRoundRect(rect, radius, radius, fill);
+      border.setColor(org.thunderdog.challegram.theme.Theme.separatorColor());
+      border.setAlpha((int) (Color_alpha(org.thunderdog.challegram.theme.Theme.separatorColor()) * a));
+      c.drawRoundRect(rect, radius, radius, border);
+      titlePaint.setColor(org.thunderdog.challegram.theme.Theme.textAccentColor());
+      textPaint.setColor(org.thunderdog.challegram.theme.Theme.textDecentColor());
 
       // the photo: 24 dp in the capsule, 40 dp in the card
       float ar = Screen.dp(12f) + Screen.dp(8f) * expanded;
@@ -280,8 +305,7 @@ public final class Tgx101Island {
 
       // the dot of the capsule
       if (expanded < 1f) {
-        Paint dot = new Paint(Paint.ANTI_ALIAS_FLAG);
-        dot.setColor(0xff4fa6e8);
+        dot.setColor(org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.textLink));
         dot.setAlpha((int) (alpha * (1f - expanded)));
         c.drawCircle(rect.right - Screen.dp(13f), rect.top + Screen.dp(17f), Screen.dp(3.5f), dot);
       }
