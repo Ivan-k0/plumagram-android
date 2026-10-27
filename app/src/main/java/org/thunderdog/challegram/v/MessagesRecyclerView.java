@@ -857,13 +857,13 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
     // TGx101 (user 2026-10-27 «свайп назад в чатах должен работать безотказно», log 15:02: back swipes «117 right, 43 up»
     // failed — the list started scrolling at 8 dp of vertical move while the back gesture still waited for its distance):
     // a finger going more right than up or down doesn't start the list's scroll, the back swipe takes it. To the left
-    // (reply) and with the right swipe set to share, nothing changes
+    // (reply) nothing changes; left to right is always back here
     if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
       tgx101DownX = e.getX();
       tgx101DownY = e.getY();
     } else if (e.getActionMasked() == MotionEvent.ACTION_MOVE && getScrollState() == SCROLL_STATE_IDLE) {
       float dx = e.getX() - tgx101DownX, dy = e.getY() - tgx101DownY;
-      if (dx > 0 && dx > Math.abs(dy) * 1.3f && !org.thunderdog.challegram.unsorted.Settings.instance().needChatQuickShare() && !org.thunderdog.challegram.core.Lang.rtl()) {
+      if (dx > 0 && dx > Math.abs(dy) * 1.3f && !org.thunderdog.challegram.core.Lang.rtl()) {
         return false;
       }
     }
