@@ -122,6 +122,26 @@ public class AvatarPlaceholder {
     }
   }
 
+  private @Nullable android.text.TextPaint tgx101LettersPaint;
+  private final android.graphics.Rect tgx101LettersBounds = new android.graphics.Rect();
+
+  private boolean tgx101DrawCentered (Canvas c, float centerX, float centerY, float alpha) {
+    String text = metadata.letters != null ? metadata.letters.text : null;
+    if (text == null || text.isEmpty()) return false;
+    if (tgx101LettersPaint == null) {
+      android.text.TextPaint source = letters.getTextPaint(null);
+      if (source == null) return false;
+      tgx101LettersPaint = new android.text.TextPaint(source);
+      tgx101LettersPaint.getTextBounds(text, 0, text.length(), tgx101LettersBounds);
+    }
+    android.text.TextPaint paint = tgx101LettersPaint;
+    paint.setColor(org.thunderdog.challegram.theme.Theme.getColor(ColorId.avatar_content));
+    paint.setAlpha((int) (paint.getAlpha() * alpha));
+    android.graphics.Rect b = tgx101LettersBounds;
+    c.drawText(text, centerX - (b.left + b.right) / 2f, centerY - (b.top + b.bottom) / 2f, paint);
+    return true;
+  }
+
   public int getRadius () {
     return Screen.dp(radius);
   }
@@ -160,7 +180,11 @@ public class AvatarPlaceholder {
       } else {
         saveCount = -1;
       }
-      letters.draw(c, (int) (centerX - letters.getWidth() / 2),  (int) (centerY - letters.getHeight() / 2), null, alpha);
+      // TGx101 (user 2026-10-27 «на таких иконках буквы должны быть по центру»): the line's height holds the descent and
+      // the line spacing, the capitals sat off the circle's centre — drawn now by the glyphs' own bounds
+      if (!tgx101DrawCentered(c, centerX, centerY, alpha)) {
+        letters.draw(c, (int) (centerX - letters.getWidth() / 2),  (int) (centerY - letters.getHeight() / 2), null, alpha);
+      }
       if (needRestore) {
         Views.restore(c, saveCount);
       }

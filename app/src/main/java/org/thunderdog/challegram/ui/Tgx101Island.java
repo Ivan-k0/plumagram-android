@@ -271,13 +271,6 @@ public final class Tgx101Island {
       // edge instead of the black island
       float a = Math.min(1f, shown * 1.4f);
       float radius = Screen.dp(17f) + Screen.dp(7f) * expanded;
-      int dark = org.thunderdog.challegram.theme.Theme.isDark() ? 0x55 : 0x22;
-      for (int i = 3; i >= 1; i--) {
-        float grow = Screen.dp(1.6f) * i;
-        shadeRect.set(rect.left - grow, rect.top - grow + Screen.dp(1.5f) * i, rect.right + grow, rect.bottom + grow + Screen.dp(1.5f) * i);
-        shade.setColor(((int) (dark * a / (i + 1))) << 24);
-        c.drawRoundRect(shadeRect, radius + grow, radius + grow, shade);
-      }
       fill.setColor(org.thunderdog.challegram.theme.Theme.fillingColor());
       fill.setAlpha((int) (255 * a));
       c.drawRoundRect(rect, radius, radius, fill);
