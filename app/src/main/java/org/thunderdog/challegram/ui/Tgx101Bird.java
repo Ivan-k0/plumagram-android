@@ -56,7 +56,7 @@ public final class Tgx101Bird {
   private static final int[] COLORS = {
     0xff3d9be9 /* storage: blue */, 0xff26a69a /* proxy: teal */, 0xff9c6ade /* accounts: purple */, 0xff43a047 /* calls: green */,
     0xff78909c /* settings: grey */, 0xff00acc1 /* compose: cyan */, 0xffafb42b /* search: lime */, 0xffe57373 /* next account: red */,
-    0xffec407a /* note: pink (user 2026-10-27 23:27: orange was too close to the day sun) */, 0xff8d6e63 /* menu: brown */, 0xff3f51b5 /* night: indigo */, 0xffd81b60 /* peek: crimson */,
+    0xffffa726 /* note: orange */, 0xff8d6e63 /* menu: brown */, 0xff3f51b5 /* night: indigo */, 0xffd81b60 /* peek: crimson */,
     0xffc49a45 /* gazeta: newsprint yellow */
   };
 
@@ -80,7 +80,7 @@ public final class Tgx101Bird {
       if (i == ACTION_NIGHT) {
         // (user 2026-10-21): what it will turn to — the moon while it's light, the sun while it's dark
         boolean dark = org.thunderdog.challegram.theme.Theme.isDark();
-        out.add(new Tgx101BirdView.Item(i, dark ? R.drawable.tgx101_sun_24 : R.drawable.baseline_brightness_2_24, dark ? 0xfff9a825 : COLORS[i],
+        out.add(new Tgx101BirdView.Item(i, dark ? R.drawable.tgx101_sun_24 : R.drawable.baseline_brightness_2_24, dark ? 0xffe65100 /* day: darker, more orange than the note (user 2026-10-28) */ : COLORS[i],
           Lang.getString(dark ? R.string.Tgx101BirdDay : R.string.Tgx101BirdNightOn)));
         continue;
       }
