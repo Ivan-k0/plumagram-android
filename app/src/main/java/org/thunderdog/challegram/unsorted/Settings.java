@@ -4485,6 +4485,10 @@ public class Settings {
   // «Remember speed» off the speed lives only while the viewer is open and is never written
   private float tgx101SessionSpeed = 1f;
 
+  // TGx101 (user 2026-10-27 17:43): reopen a chat where it was left (Telegram X) — off: the first unread or the end
+  public boolean tgx101RememberChatPlace () { return pmc.getBoolean("tgx101_remember_chat_place", false); }
+  public void setTgx101RememberChatPlace (boolean v) { pmc.putBoolean("tgx101_remember_chat_place", v); }
+
   // TGx101 (user 2026-10-27): the video stream's quality picked in the viewer — the short side (720, 480…), 0 = «Auto»
   public int tgx101VideoQuality () { return pmc.getInt("tgx101_video_quality", 0); }
   public void setTgx101VideoQuality (int quality) { pmc.putInt("tgx101_video_quality", quality); }

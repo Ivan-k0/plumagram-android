@@ -10775,10 +10775,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     captionView.setHint(Lang.getString(R.string.AddCaption));
     captionView.setMaxLines(4);
     captionView.setId(R.id.input);
-    captionView.setPadding(Screen.dp(55f), Screen.dp(15f), Screen.dp(55f), Screen.dp(14f));
+    // TGx101 (user 2026-10-27, screenshots 16:58 «смайл и название не отцентрованы»): letters sit below the line box's
+    // middle — the text goes 2 dp up, level with the emoji button; colours of the theme (the user: «цвет в цвет темы»)
+    captionView.setPadding(Screen.dp(55f), Screen.dp(13f), Screen.dp(55f), Screen.dp(16f));
     captionView.setTranslationX(-(Screen.dp(55f) - Screen.dp(14f)));
-    captionView.setHintTextColor(0xbaffffff);
-    captionView.setTextColor(0xffffffff);
+    captionView.setHintTextColor(Theme.textPlaceholderColor());
+    captionView.setTextColor(Theme.textAccentColor());
     captionView.setTypeface(Fonts.getRobotoRegular());
     captionView.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     captionView.setInputType(captionView.getInputType() | EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES | EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE);
@@ -10810,7 +10812,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     captionEmojiButton.setOnClickListener(this);
     captionEmojiButton.setScaleType(ImageView.ScaleType.CENTER);
     captionEmojiButton.setImageResource(R.drawable.deproko_baseline_insert_emoticon_26);
-    captionEmojiButton.setColorFilter(0xffffffff);
+    captionEmojiButton.setColorFilter(Theme.iconColor());
     captionEmojiButton.setAlpha(0f);
     captionEmojiButton.setEnabled(false);
     FrameLayoutFix.LayoutParams emojiParams = FrameLayoutFix.newParams(Screen.dp(55f), Screen.dp(52f), Gravity.LEFT | Gravity.BOTTOM);
@@ -10845,9 +10847,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     // TGx101 (user 2026-10-04, variant 3): the caption field is a dark glass capsule — readable on any photo,
     // grows upwards with the text (a full-width translucent strip merged with bright photos)
     android.graphics.drawable.GradientDrawable capsule = new android.graphics.drawable.GradientDrawable();
-    capsule.setColor(0xe6141a20); // TGx101 (11.10): denser — over a see-through photo or the keyboard the words got lost at 70 %
+    capsule.setColor(me.vkryl.core.ColorUtils.alphaColor(.9f, Theme.fillingColor())); // TGx101 (27.10): the theme's card colour, the same see-through as before
     capsule.setCornerRadius(Screen.dp(24f));
-    capsule.setStroke(Screen.dp(.5f), 0x33ffffff);
+    capsule.setStroke(Screen.dp(.5f), Theme.separatorColor());
     captionWrapView.setBackground(capsule);
     captionWrapView.addView(captionView);
     FrameLayoutFix.LayoutParams capsuleParams = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);

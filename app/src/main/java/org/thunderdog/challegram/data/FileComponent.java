@@ -599,7 +599,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       switch (event.getAction()) {
         case MotionEvent.ACTION_DOWN: {
           transcribeCaught = false;
-          float bx = transcribeButtonCenterX(startX), by = tgx101TwoRowVoice() ? startY + Screen.dp(TGX101_VOICE_WAVE_CY) : startY + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS);
+          float bx = transcribeButtonCenterX(startX), by = startY + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS); // level with ▶
           float touchRadius = Screen.dp(TRANSCRIBE_BUTTON_SIZE / 2f + 8f);
           if (Math.abs(x - bx) <= touchRadius && Math.abs(y - by) <= touchRadius) {
             transcribeCaught = true;
@@ -929,8 +929,8 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
         }
       }
       if (hasTranscribeButton()) {
-        // two rows: «A» on the waveform's line, so the bubble time sits right under it on the duration's line
-        drawTranscribeButton(c, transcribeButtonCenterX(startX), twoRows ? waveCy : cy, align, alpha);
+        // (user photo 2026-10-27 17:52 «кнопки на одном уровне»): «A» level with ▶ — both on the block's centre
+        drawTranscribeButton(c, transcribeButtonCenterX(startX), cy, align, alpha);
       }
     }
   }

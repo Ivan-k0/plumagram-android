@@ -7234,6 +7234,8 @@
   <string name="Tgx101FgSoundHint">A short sound and vibration of the app for a new message while it is open. With «System notification», when both are off it goes into the shade quietly.</string>
   <string name="Tgx101Quality">Video quality</string>
   <string name="Tgx101QualityAuto">Auto</string>
+  <string name="Tgx101RememberChatPlace">Reopen a chat where you left it (off — at the first unread or the end)</string>
+  <string name="Tgx101HistoryCleared">History cleared</string>
   <string name="Tgx101AccountsRow">Accounts · %1$s</string>
   <string name="Tgx101AccountsSwitch">Switch to it</string>
   <string name="Tgx101AccountsLogOutAsk">Log out of «%1$s»?</string>

@@ -320,6 +320,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(Tgx101Stories.mode() == Tgx101Stories.MODE_RINGS ? R.string.Tgx101StoriesModeRings : R.string.Tgx101StoriesModeStrip);
         } else if (itemId == R.id.btn_tgx101NextChannelBackToList) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101NextChannelBackToList(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101RememberChatPlace) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101RememberChatPlace(), isUpdate);
         } else if (itemId == R.id.btn_tgx101NextChannelSwipe) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101NextChannelSwipe(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideAllReactions) {
@@ -607,6 +609,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideAllReactions, 0, R.string.Tgx101HideAllReactions),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NextChannelSwipe, 0, R.string.Tgx101NextChannelSwipe),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101RememberChatPlace, 0, R.string.Tgx101RememberChatPlace),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_pullToSearch, 0, R.string.Tgx101PullAction),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1107,7 +1111,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap || id == R.id.btn_tgx101SwipeKeyboard || id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands
       || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101TextEditor) return TGX101_SECTION_INPUT;
     if (id == R.id.btn_tgx101QuickCalls) return 7;
-    if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked) return 2;
+    if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked || id == R.id.btn_tgx101RememberChatPlace) return 2;
     if (id == R.id.btn_tgx101SavedSettingsOpen || id == R.id.btn_tgx101AiAll || id == R.id.btn_tgx101AiCompose || id == R.id.btn_tgx101AiSummary || id == R.id.btn_tgx101AiMissed || id == R.id.btn_tgx101AiSort || id == R.id.btn_tgx101Peek
       || id == R.id.btn_tgx101AiOpen || id == R.id.btn_tgx101BirdOpen) return TGX101_SECTION_FEATURES;
     if (id == R.id.btn_pullToSearch) return 0;
@@ -1437,6 +1441,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         });
     } else if (id == R.id.btn_tgx101NextChannelBackToList) {
       Settings.instance().setTgx101NextChannelBackToList(toggleResult);
+    } else if (id == R.id.btn_tgx101RememberChatPlace) {
+      Settings.instance().setTgx101RememberChatPlace(toggleResult);
     } else if (id == R.id.btn_tgx101NextChannelSwipe) {
       Settings.instance().setTgx101NextChannelSwipe(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101HideAllReactions) {

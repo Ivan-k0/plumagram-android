@@ -4156,6 +4156,12 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       return HIGHLIGHT_MODE_NONE;
     }
     boolean canGoUnread = canGoUnread(chat, threadInfo);
+    if (!Settings.instance().tgx101RememberChatPlace()) {
+      // TGx101 (user 2026-10-27 17:43, as the official app): unread — at the first of them; none — at the end. The place
+      // left in the middle is kept only with MagiX «Remember the place in a chat» on
+      if (canGoUnread || threadInfo != null) return HIGHLIGHT_MODE_UNREAD;
+      return HIGHLIGHT_MODE_NONE;
+    }
     Settings.SavedMessageId messageId = Settings.instance().getScrollMessageId(accountId, chat.id,
       threadInfo != null ? threadInfo.getMessageTopicId() : null
     );

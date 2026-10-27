@@ -1501,7 +1501,9 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
       setContentPreview(preview);
       visibleMessage = msg;
     } else {
-      setTextValue(R.string.DeletedMessage);
+      // TGx101 (user 2026-10-27, 4PDA report: auto-delete): no last message — the history is empty, as the official app
+      // says «History cleared» (not «Deleted message»)
+      setTextValue(R.string.Tgx101HistoryCleared);
       setPrefix();
     }
   }

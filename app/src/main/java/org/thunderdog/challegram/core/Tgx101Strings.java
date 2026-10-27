@@ -962,6 +962,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101FgSoundHint, "Короткий звук и вибрация приложения на новое сообщение, пока оно открыто. При «Системном уведомлении», если оба выключены, оно приходит в шторку тихо.");
     RU.put(R.string.Tgx101Quality, "Качество видео");
     RU.put(R.string.Tgx101QualityAuto, "Авто");
+    RU.put(R.string.Tgx101RememberChatPlace, "Открывать чат там, где ушёл (выкл. — на первом непрочитанном или в конце)");
+    RU.put(R.string.Tgx101HistoryCleared, "История очищена");
     RU.put(R.string.Tgx101AccountsRow, "Аккаунты · %1$s");
     RU.put(R.string.Tgx101AccountsSwitch, "Переключиться");
     RU.put(R.string.Tgx101AccountsLogOutAsk, "Выйти из аккаунта «%1$s»?");
