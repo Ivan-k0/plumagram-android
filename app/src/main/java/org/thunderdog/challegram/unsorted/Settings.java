@@ -4105,7 +4105,10 @@ public class Settings {
   public int tgx101ForegroundNotifMode () {
     // (user 2026-10-27, «уведомления в приложении — настроить грамотно»): worked out of the show / sound / vibration below
     int show = tgx101FgShow();
-    if (show != TGX101_FG_SYSTEM) return TGX101_FOREGROUND_NOTIF_HIDE; // the capsule or nothing — not into the shade
+    // (user 2026-10-27 17:25 «даже с капсулой уведомления должны приходить в шторку и пропадать, когда прочитано»):
+    // with the capsule — into the shade quietly; with «Nothing» — not at all
+    if (show == TGX101_FG_CAPSULE) return TGX101_FOREGROUND_NOTIF_QUIET;
+    if (show != TGX101_FG_SYSTEM) return TGX101_FOREGROUND_NOTIF_HIDE;
     return tgx101FgSound() || tgx101FgVibrate() ? TGX101_FOREGROUND_NOTIF_SHOW : TGX101_FOREGROUND_NOTIF_QUIET;
   }
 

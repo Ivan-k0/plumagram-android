@@ -7228,7 +7228,7 @@
   <string name="Tgx101FgSystem">System notification</string>
   <string name="Tgx101FgCapsule">Capsule (silent)</string>
   <string name="Tgx101FgNone">Nothing</string>
-  <string name="Tgx101FgShowHint">Capsule — a small capsule at the top with the chat\'s photo and name, it hides by itself in 4 s: a tap shows the message, a second tap opens the chat, a swipe up takes it away (twice in a row from one chat — none from it for 5 minutes). With the capsule and «Nothing» nothing goes into the shade while the app is open. The chat that is open never shows.</string>
+  <string name="Tgx101FgShowHint">Capsule — a small capsule at the top with the chat\'s photo and name, it hides by itself in 4 s: a tap shows the message, a second tap opens the chat, a swipe up takes it away (twice in a row from one chat — none from it for 5 minutes). With the capsule the notification still goes into the shade, quietly, and goes when the message is read; with «Nothing» nothing goes there while the app is open. The chat that is open never shows.</string>
   <string name="Tgx101FgSound">Sound</string>
   <string name="Tgx101FgVibrate">Vibration</string>
   <string name="Tgx101FgSoundHint">A short sound and vibration of the app for a new message while it is open. With «System notification», when both are off it goes into the shade quietly.</string>

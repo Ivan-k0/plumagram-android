@@ -186,9 +186,33 @@ public final class Tgx101Island {
       border.setStrokeWidth(Math.max(1, Screen.dp(.5f)));
     }
 
-    private final Runnable hide = () -> animateShown(false, null);
+    private final Runnable hide = () -> animateShown(false, this::showNext);
+
+    // (user 2026-10-27 17:00 «пишут несколько человек — капсула по очереди по 4 с, раньше времени не сворачивается»):
+    // another chat while one is shown waits its turn; the same chat only refreshes its text
+    private final java.util.ArrayDeque<Object[]> queue = new java.util.ArrayDeque<>();
 
     void present (Tdlib tdlib, long chatId, String title, String text) {
+      boolean busy = shown > 0f && (showAnimator == null || !showAnimator.isRunning() || shownTarget > 0f);
+      if (busy && !(this.tdlib == tdlib && this.chatId == chatId)) {
+        for (java.util.Iterator<Object[]> it = queue.iterator(); it.hasNext(); ) {
+          Object[] q = it.next();
+          if (q[0] == tdlib && (Long) q[1] == chatId) it.remove(); // the newest text of that chat only
+        }
+        queue.add(new Object[] {tdlib, chatId, title, text});
+        return;
+      }
+      presentNow(tdlib, chatId, title, text);
+    }
+
+    private void showNext () {
+      Object[] q = queue.poll();
+      if (q != null) presentNow((Tdlib) q[0], (Long) q[1], (String) q[2], (String) q[3]);
+    }
+
+    private float shownTarget;
+
+    private void presentNow (Tdlib tdlib, long chatId, String title, String text) {
       boolean same = this.tdlib == tdlib && this.chatId == chatId && shown > 0f;
       this.tdlib = tdlib;
       this.chatId = chatId;
@@ -355,7 +379,7 @@ public final class Tgx101Island {
           } else if (dragY < -Screen.dp(20f)) {
             // swiped up: away; twice in a row from one chat — that chat quiet for 5 minutes
             if (tdlib != null) onDismissedBySwipe(tdlib, chatId, title);
-            animateShown(false, null);
+            animateShown(false, this::showNext);
           } else {
             settleDrag();
             postDelayed(hide, expanded > 0f ? HIDE_EXPANDED_MS : HIDE_MS);
@@ -377,6 +401,7 @@ public final class Tgx101Island {
         ViewController<?> top = context != null && context.navigation() != null ? context.navigation().getCurrentStackItem() : null;
         lastDismissedChatId = 0;
         dismissedInRow = 0;
+        queue.clear(); // into a chat — the rest waits in the shade
         animateShown(false, null);
         if (top != null) t.ui().openChat(top, id, null);
       }
@@ -415,6 +440,7 @@ public final class Tgx101Island {
 
     private void animateShown (boolean show, @Nullable Runnable after) {
       float to = show ? 1f : 0f;
+      shownTarget = to;
       if (showAnimator != null) showAnimator.cancel();
       if (shown == to) {
         if (after != null) after.run();

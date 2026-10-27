@@ -67,7 +67,7 @@ public class Tgx101BirdView extends View {
   public static final class Item {
     final int id, icon, color;
     final String title;
-    final int accountId; // != 0 → the account's avatar instead of the icon
+    final int accountId; // the account's id (0 is a real one) — in the accounts ring the avatar instead of the icon
     @Nullable AvatarReceiver avatar;
     @Nullable Drawable drawable;
 
@@ -508,7 +508,8 @@ public class Tgx101BirdView extends View {
     performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
     if (accountsRing) {
       closeRing(false);
-      if (callback != null) callback.onBirdAccount(item.accountId == 0 ? -1 : item.accountId);
+      // (user video 2026-10-27 17:14): the first account's id is 0 — it was taken for «Add account»; that is the item -1
+      if (callback != null) callback.onBirdAccount(item.id == -1 ? -1 : item.accountId);
       return;
     }
     if (item.id == org.thunderdog.challegram.ui.Tgx101Bird.ACTION_ACCOUNTS && tdlib != null) {
