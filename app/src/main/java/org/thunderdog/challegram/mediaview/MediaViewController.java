@@ -1061,6 +1061,13 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
     currentThumb = location;
     int animationType = forceAnimationType != -1 ? forceAnimationType : location != null ? ANIMATION_TYPE_REVEAL : ANIMATION_TYPE_FADE;
+    // TGx101 diag (user video 2026-10-26 23:29 / 27.10 14:39: a wide photo lands below its place, a frame uncropped)
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+      MediaItem closing = stack != null ? stack.getCurrent() : null;
+      org.thunderdog.challegram.Tgx101Diag.mark("viewer close: type " + animationType + " forced " + forceAnimationType
+        + (location != null ? " to " + location.left + "," + location.top + "–" + location.right + "," + location.bottom + " clip " + location.clipTop + "/" + location.clipBottom : " to nothing")
+        + (closing != null ? " image " + closing.getWidth() + "×" + closing.getHeight() : "") + " view " + mediaView.getMeasuredWidth() + "×" + mediaView.getMeasuredHeight());
+    }
 
     if (animationType != ANIMATION_TYPE_PIP_CLOSE) {
       mediaView.setTarget(location, 1f);
