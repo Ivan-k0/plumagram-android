@@ -821,6 +821,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
   private int tgx101LastScrollState = SCROLL_STATE_IDLE;
 
   private android.widget.EdgeEffect tgx101TopEdge, tgx101BottomEdge;
+  private float tgx101DownX, tgx101DownY;
 
   private boolean tgx101ReleaseStretch () {
     if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) return false;
@@ -852,6 +853,19 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
       tgx101StoppedFling = true; // this touch only stops the list — not a tap on a message (user 2026-10-05 19:54)
     } else if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
       tgx101StoppedFling = false;
+    }
+    // TGx101 (user 2026-10-27 «свайп назад в чатах должен работать безотказно», log 15:02: back swipes «117 right, 43 up»
+    // failed — the list started scrolling at 8 dp of vertical move while the back gesture still waited for its distance):
+    // a finger going more right than up or down doesn't start the list's scroll, the back swipe takes it. To the left
+    // (reply) and with the right swipe set to share, nothing changes
+    if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
+      tgx101DownX = e.getX();
+      tgx101DownY = e.getY();
+    } else if (e.getActionMasked() == MotionEvent.ACTION_MOVE && getScrollState() == SCROLL_STATE_IDLE) {
+      float dx = e.getX() - tgx101DownX, dy = e.getY() - tgx101DownY;
+      if (dx > 0 && dx > Math.abs(dy) * 1.3f && !org.thunderdog.challegram.unsorted.Settings.instance().needChatQuickShare() && !org.thunderdog.challegram.core.Lang.rtl()) {
+        return false;
+      }
     }
     boolean res = super.onInterceptTouchEvent(e);
     if (e.getAction() == MotionEvent.ACTION_DOWN && isInsideDate(e.getX(), e.getY())) {
