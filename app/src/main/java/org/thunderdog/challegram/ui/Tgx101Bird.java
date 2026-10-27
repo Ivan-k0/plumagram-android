@@ -56,7 +56,7 @@ public final class Tgx101Bird {
   private static final int[] COLORS = {
     0xff3d9be9 /* storage: blue */, 0xff26a69a /* proxy: teal */, 0xff9c6ade /* accounts: purple */, 0xff43a047 /* calls: green */,
     0xff78909c /* settings: grey */, 0xff00acc1 /* compose: cyan */, 0xffafb42b /* search: lime */, 0xffe57373 /* next account: red */,
-    0xffffa726 /* note: orange */, 0xff8d6e63 /* menu: brown */, 0xff3f51b5 /* night: indigo */, 0xffd81b60 /* peek: crimson */,
+    0xffec407a /* note: pink (user 2026-10-27 23:27: orange was too close to the day sun) */, 0xff8d6e63 /* menu: brown */, 0xff3f51b5 /* night: indigo */, 0xffd81b60 /* peek: crimson */,
     0xffc49a45 /* gazeta: newsprint yellow */
   };
 
