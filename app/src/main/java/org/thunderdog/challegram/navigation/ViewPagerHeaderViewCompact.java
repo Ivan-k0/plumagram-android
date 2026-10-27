@@ -311,7 +311,10 @@ public class ViewPagerHeaderViewCompact extends FrameLayoutFix implements PagerH
 
     int animationDuration = RecyclerView.UNDEFINED_DURATION;
 
-    if ((selfWidth < selfMaxWidth) || (topView.getMaxStableWidth() - parentWidth) < lastItemWidth / 2) {
+    // TGx101 (user video 2026-10-27 15:16 «от Личных к Каналам плавно, с Каналов на Группы — уже нет»): the selection was
+    // held at the left edge — the row scrolled first, then the line moved, with a jolt between the two. The row now
+    // scrolls in proportion to the pager's position, the row and the line move together
+    if (true || (selfWidth < selfMaxWidth) || (topView.getMaxStableWidth() - parentWidth) < lastItemWidth / 2) {
       int desiredViewLeft = (int) (maxViewLeft * (1f - totalFactor) + minViewLeft * totalFactor);
       if (viewLeft != desiredViewLeft) {
         int diff = (viewLeft - desiredViewLeft)/* * (Lang.rtl() ? -1 : 1)*/;  // TODO RTL

@@ -207,6 +207,13 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
 
   @Override
   public void requestDisallowInterceptTouchEvent (boolean disallowIntercept) {
+    if (disallowIntercept && !this.disallowIntercept && org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+      // TGx101 diag (2026-10-27, back swipe lost right after a fling): who keeps the finger from the back swipe
+      StackTraceElement[] st = new Throwable().getStackTrace();
+      StringBuilder b = new StringBuilder("messages list: disallow intercept, state " + getScrollState() + " by");
+      for (int i = 1; i < Math.min(st.length, 5); i++) b.append(' ').append(st[i].getClassName().substring(st[i].getClassName().lastIndexOf('.') + 1)).append('.').append(st[i].getMethodName()).append(':').append(st[i].getLineNumber());
+      org.thunderdog.challegram.Tgx101Diag.mark(b.toString());
+    }
     this.disallowIntercept = disallowIntercept;
     super.requestDisallowInterceptTouchEvent(disallowIntercept);
   }
@@ -845,12 +852,22 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
       // Right after a fling the touch still belongs to the scrolling, not to the message
       tgx101StoppedFling = true;
       tgx101FlingEndTime = 0;
+      tgx101DownX = e.getX();
+      tgx101DownY = e.getY();
+      super.onInterceptTouchEvent(e);
+      return true; // the same: right after a fling the finger is the list's, the back swipe can take it
     } else if (e.getActionMasked() == MotionEvent.ACTION_DOWN && (tgx101ReleaseStretch() | getScrollState() == SCROLL_STATE_SETTLING)) {
       // TGx101 (user 2026-10-05): a touch on a still-flinging list caught the gesture for the list
       // (requestDisallowInterceptTouchEvent) — the swipe back to the chat list did not work while scrolling.
       // Stop the fling first: the list then treats it as a fresh touch and the back swipe can take it
       stopScroll();
       tgx101StoppedFling = true; // this touch only stops the list — not a tap on a message (user 2026-10-05 19:54)
+      // (user 2026-10-27 «в списке чатов жест назад срабатывает и сразу после прокрутки»): as ChatsRecyclerView — the
+      // list keeps this finger itself, a message under it never takes it and so never holds it from the back swipe
+      tgx101DownX = e.getX();
+      tgx101DownY = e.getY();
+      super.onInterceptTouchEvent(e);
+      return true;
     } else if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
       tgx101StoppedFling = false;
     }

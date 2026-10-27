@@ -105,7 +105,10 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
     }
   }
 
+  private boolean tgx101RejectLogged;
+
   public boolean onDown (MotionEvent event) {
+    tgx101RejectLogged = false;
     if (navigation.isDestroyed() || navigation.isAnimating())
       return false;
 
@@ -121,6 +124,9 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
       return false;
 
     listenSlidingBack = ((drawer != null && drawer.isVisible()) || (!isScrolling && canSlideBack(c, startX, startY)));
+    if (!listenSlidingBack && org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+      org.thunderdog.challegram.Tgx101Diag.mark("back swipe: not listening at " + Math.round(startX / Screen.dp(1f)) + "," + Math.round(startY / Screen.dp(1f)) + "dp (scrolling " + isScrolling + ")");
+    }
     slidingVertical = listenSlidingBack && c.usePopupMode();
 
     return listenSlidingBack;
@@ -295,6 +301,10 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
         }
 
         if (!approve) {
+          if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && !tgx101RejectLogged && Math.abs(diffX) >= Screen.getTouchSlopBig()) {
+            tgx101RejectLogged = true;
+            org.thunderdog.challegram.Tgx101Diag.mark("back swipe: not taken, moved " + Math.round(diffX / Screen.dp(1f)) + "," + Math.round(diffY / Screen.dp(1f)) + "dp (slop " + Math.round(Screen.getTouchSlopBig() / Screen.dp(1f)) + " / y " + Math.round(Screen.getTouchSlopY() / Screen.dp(1f)) + ")");
+          }
           return false;
         }
 
