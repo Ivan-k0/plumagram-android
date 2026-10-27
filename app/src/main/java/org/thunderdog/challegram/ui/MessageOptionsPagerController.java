@@ -313,6 +313,12 @@ public class MessageOptionsPagerController extends BottomSheetViewController<Opt
 
   @Override
   protected void onCreateView (Context context, FrameLayoutFix contentView, ViewPager pager) {
+    if (tgx101PickerOnly) {
+      // TGx101 (user video 2026-10-27 21:09): «All emoji» — the stock options showed while the sheet came up, the picker
+      // only after; nothing of them shows now, the picker opens over the empty sheet
+      contentView.setAlpha(0f);
+      if (headerView != null) headerView.setAlpha(0f);
+    }
     pager.setOffscreenPageLimit(1);
     prepareControllerForPosition(startPage, null);
     tdlib.ui().post(this::launchOpenAnimation);

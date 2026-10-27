@@ -6238,7 +6238,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     PopupLayout popup = Tgx101MessageMenu.show(this, message, options, delegate, readDatePending,
       callback -> tgx101LoadMore(message, null, callback),
       () -> UI.post(() -> { // TGx101: run as the compact menu is gone (its onDismiss above has reset the state)
+        tgx101NextPickerOnly = true; // (user video 2026-10-27 21:09: the full options sheet showed for a frame first)
         PopupLayout full = showMessageOptions(options, message, null, delegate);
+        tgx101NextPickerOnly = false;
         org.thunderdog.challegram.Tgx101Diag.mark("menu: picker " + (full != null ? "opened" : "did not open") + (full != null && !(full.getBoundController() instanceof MessageOptionsPagerController) ? " (not the pager)" : ""));
         if (full != null && full.getBoundController() instanceof MessageOptionsPagerController) {
           MessageOptionsPagerController pager = (MessageOptionsPagerController) full.getBoundController();
@@ -6264,6 +6266,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return showMessageOptions(options, message, reactionType, optionsDelegate, false);
   }
 
+  private boolean tgx101NextPickerOnly;
+
   private PopupLayout showMessageOptions (Options options, TGMessage message, @Nullable TdApi.ReactionType reactionType, OptionDelegate optionsDelegate, boolean tgx101AtReactors) {
     if (isMessageOptionsVisible) {
       org.thunderdog.challegram.Tgx101Diag.mark("menu: full options / picker NOT shown — a menu is still marked visible");
@@ -6280,6 +6284,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
     };
     if (tgx101AtReactors) r.tgx101StartAtReactors();
+    if (tgx101NextPickerOnly) r.setTgx101PickerOnly(true); // before it is shown — the emoji picker from the first frame
     PopupLayout result = r.show();
     r.setDismissListener(new PopupLayout.DismissListener() {
       @Override
