@@ -105,7 +105,7 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
     }
   }
 
-  private boolean tgx101RejectLogged;
+  private boolean tgx101RejectLogged, tgx101DragLogged;
 
   public boolean onDown (MotionEvent event) {
     tgx101RejectLogged = false;
@@ -124,6 +124,10 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
       return false;
 
     listenSlidingBack = ((drawer != null && drawer.isVisible()) || (!isScrolling && canSlideBack(c, startX, startY)));
+    tgx101DragLogged = false;
+    if (listenSlidingBack && org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+      org.thunderdog.challegram.Tgx101Diag.mark("back swipe: listening at " + Math.round(startX / Screen.dp(1f)) + "," + Math.round(startY / Screen.dp(1f)) + "dp");
+    }
     if (!listenSlidingBack && org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
       org.thunderdog.challegram.Tgx101Diag.mark("back swipe: not listening at " + Math.round(startX / Screen.dp(1f)) + "," + Math.round(startY / Screen.dp(1f)) + "dp (scrolling " + isScrolling + ")");
     }
@@ -263,6 +267,10 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
     if (listenSlidingBack) {
       float diffX = event.getX(0) - startX;
       float diffY = event.getY(0) - startY;
+      if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && !tgx101DragLogged && (Math.abs(diffX) >= Screen.dp(4f) || Math.abs(diffY) >= Screen.dp(4f))) {
+        tgx101DragLogged = true;
+        org.thunderdog.challegram.Tgx101Diag.mark("back swipe: first move " + Math.round(diffX / Screen.dp(1f)) + "," + Math.round(diffY / Screen.dp(1f)) + "dp");
+      }
 
       if (drawer != null && drawer.isVisible() && (Math.abs(diffX) >= Screen.getTouchSlop() /*|| Math.abs(diffY) > Size.TOUCH_SLOP_Y*/)) {
         startX += diffX;

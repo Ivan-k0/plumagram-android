@@ -823,6 +823,9 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
       tgx101FlingEndTime = android.os.SystemClock.uptimeMillis();
     }
     tgx101LastScrollState = state;
+    if (state == SCROLL_STATE_DRAGGING && org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+      org.thunderdog.challegram.Tgx101Diag.mark("messages list: drag starts (stopped fling " + tgx101StoppedFling + ")");
+    }
   }
 
   private int tgx101LastScrollState = SCROLL_STATE_IDLE;
