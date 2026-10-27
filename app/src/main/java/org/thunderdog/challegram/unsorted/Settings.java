@@ -3839,6 +3839,10 @@ public class Settings {
   public boolean tgx101SettingsAccountsOpen () { return pmc.getBoolean(KEY_TGX101_SETTINGS_ACCOUNTS_OPEN, true); }
   public void setTgx101SettingsAccountsOpen (boolean v) { pmc.putBoolean(KEY_TGX101_SETTINGS_ACCOUNTS_OPEN, v); }
 
+  // TGx101 (user 2026-10-27, mockup «Уведомления» 2): the silent capsule for new messages while the app is open
+  public boolean tgx101Island () { return pmc.getBoolean("tgx101_island", false); }
+  public void setTgx101Island (boolean v) { pmc.putBoolean("tgx101_island", v); }
+
   // (user 2026-10-26) the bird over chats too; what two taps on it do (Tgx101Bird.DOUBLE_TAP_*)
   private static final String KEY_TGX101_BIRD_IN_CHATS = "tgx101_bird_in_chats", KEY_TGX101_BIRD_DOUBLE_TAP = "tgx101_bird_double_tap";
   public boolean tgx101BirdInChats () { return pmc.getBoolean(KEY_TGX101_BIRD_IN_CHATS, false); }

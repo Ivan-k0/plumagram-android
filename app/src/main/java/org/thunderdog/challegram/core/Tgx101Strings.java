@@ -949,6 +949,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AiOff, "Выключено");
     RU.put(R.string.Tgx101AiOnCount, "Включено: %1$s");
     RU.put(R.string.Tgx101OpenWholeChat, "Открыть весь чат");
+    RU.put(R.string.Tgx101Island, "Тихие всплывающие (капсула)");
+    RU.put(R.string.Tgx101IslandHint, "Пока приложение открыто — маленькая капсула сверху с фото и именем чата: без звука, сама прячется через 4 с. Нажатие — показать сообщение, второе — открыть чат. Смахнуть вверх — убрать; два раза подряд от одного чата — от него 5 минут не будет.");
+    RU.put(R.string.Tgx101IslandSnoozed, "От «%1$s» 5 минут без всплывающих");
     RU.put(R.string.Tgx101AccountsRow, "Аккаунты · %1$s");
     RU.put(R.string.Tgx101AccountsSwitch, "Переключиться");
     RU.put(R.string.Tgx101AccountsLogOutAsk, "Выйти из аккаунта «%1$s»?");

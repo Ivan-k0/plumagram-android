@@ -1858,6 +1858,7 @@
   <item name="btn_tgx101BirdDoubleTap" type="id"/>
   <item name="btn_tgx101BirdOpen" type="id"/>
   <item name="btn_tgx101AccountSwitch" type="id"/>
+  <item name="btn_tgx101Island" type="id"/>
   <item name="btn_tgx101AiOpen" type="id"/>
   <item name="controller_tgx101BirdSettings" type="id"/>
   <item name="controller_tgx101AiSettings" type="id"/>

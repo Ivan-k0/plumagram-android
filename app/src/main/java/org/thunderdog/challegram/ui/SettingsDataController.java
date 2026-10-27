@@ -345,6 +345,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101SwipeToStorage(), isUpdate);
         } else if (itemId == R.id.btn_tgx101BirdRing) {
           view.setData(Tgx101GesturesController.birdRingValue());
+        } else if (itemId == R.id.btn_tgx101Island) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101Island(), isUpdate);
         } else if (itemId == R.id.btn_tgx101AiOpen) {
           view.setData(Tgx101AiSettingsController.value());
         } else if (itemId == R.id.btn_tgx101BirdOpen) {
@@ -739,6 +741,11 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.WriteContactsToPhoneBook).setLongId(Settings.SETTING_FLAG_WRITE_CONTACTS_TO_PHONEBOOK),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
+        new ListItem(ListItem.TYPE_SHADOW_TOP),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101Island, 0, R.string.Tgx101Island),
+        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101IslandHint),
+
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.BackgroundConnection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.KeepAliveConnectionSetting).setLongId(Settings.SETTING_FLAG_KEEP_ALIVE_CONNECTION),
@@ -1105,6 +1112,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       || id == R.id.btn_tgx101Bird || id == R.id.btn_tgx101BirdRing || id == R.id.btn_tgx101SwipeToStorage || id == R.id.btn_tgx101SolidControls) return TGX101_SECTION_NAV;
     if (id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap || id == R.id.btn_tgx101SwipeKeyboard || id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands
       || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101TextEditor) return TGX101_SECTION_INPUT;
+    if (id == R.id.btn_tgx101Island) return 5; // TGx101 (user 2026-10-27): the silent capsule — MagiX → Notifications
     if (id == R.id.btn_tgx101QuickCalls) return 7;
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked) return 2;
     if (id == R.id.btn_tgx101SavedSettingsOpen || id == R.id.btn_tgx101AiAll || id == R.id.btn_tgx101AiCompose || id == R.id.btn_tgx101AiSummary || id == R.id.btn_tgx101AiMissed || id == R.id.btn_tgx101AiSort || id == R.id.btn_tgx101Peek
@@ -1444,6 +1452,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101HideInputCamera(toggleResult);
     } else if (id == R.id.btn_tgx101HideInputCommands) {
       Settings.instance().setTgx101HideInputCommands(toggleResult);
+    } else if (id == R.id.btn_tgx101Island) {
+      Settings.instance().setTgx101Island(toggleResult);
     } else if (id == R.id.btn_tgx101Bird) {
       Settings.instance().setTgx101Bird(toggleResult);
     } else if (id == R.id.btn_tgx101SwipeToStorage) {

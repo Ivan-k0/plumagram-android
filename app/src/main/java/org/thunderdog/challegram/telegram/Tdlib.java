@@ -9908,6 +9908,9 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
 
   private void processUpdate (ClientHolder context, TdApi.Update update) {
     org.thunderdog.challegram.Tgx101DiagHooks.onUpdate(update); // TGx101: diagnostics builds only
+    if (update.getConstructor() == TdApi.UpdateNotificationGroup.CONSTRUCTOR) {
+      org.thunderdog.challegram.ui.Tgx101Island.onUpdate(this, update); // TGx101: the silent capsule (MagiX → Notifications)
+    }
     switch (update.getConstructor()) {
       // Notifications
       case TdApi.UpdateHavePendingNotifications.CONSTRUCTOR:

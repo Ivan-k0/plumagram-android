@@ -7221,6 +7221,9 @@
   <string name="Tgx101AiOff">Off</string>
   <string name="Tgx101AiOnCount">On: %1$s</string>
   <string name="Tgx101OpenWholeChat">Open the whole chat</string>
+  <string name="Tgx101Island">Silent pop-ups (capsule)</string>
+  <string name="Tgx101IslandHint">A small capsule at the top with the chat\'s photo and name while the app is open: no sound, it hides by itself in 4 s. A tap shows the message, a second tap opens the chat. A swipe up takes it away; two swipes in a row from one chat — none from it for 5 minutes.</string>
+  <string name="Tgx101IslandSnoozed">No pop-ups from «%1$s» for 5 minutes</string>
   <string name="Tgx101AccountsRow">Accounts · %1$s</string>
   <string name="Tgx101AccountsSwitch">Switch to it</string>
   <string name="Tgx101AccountsLogOutAsk">Log out of «%1$s»?</string>
