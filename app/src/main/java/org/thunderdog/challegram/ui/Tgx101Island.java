@@ -66,24 +66,44 @@ public final class Tgx101Island {
     TdApi.UpdateNotificationGroup u = (TdApi.UpdateNotificationGroup) update;
     if (u.addedNotifications == null || u.addedNotifications.length == 0) return;
     if (!(u.type instanceof TdApi.NotificationGroupTypeMessages) && !(u.type instanceof TdApi.NotificationGroupTypeMentions)) return;
-    if (!Settings.instance().tgx101Island()) return;
+    final Settings settings = Settings.instance();
+    if (settings.tgx101FgShow() == Settings.TGX101_FG_SYSTEM) return; // the system notification does it all
     TdApi.Notification last = u.addedNotifications[u.addedNotifications.length - 1];
     if (!(last.type instanceof TdApi.NotificationTypeNewMessage)) return;
     TdApi.Message message = ((TdApi.NotificationTypeNewMessage) last.type).message;
     if (message == null || message.isOutgoing) return;
     if (System.currentTimeMillis() / 1000L - message.date > 60) return; // pending ones from before — not «now»
     final long chatId = u.chatId;
-    UI.post(() -> show(tdlib, chatId, message));
+    UI.post(() -> {
+      if (!passes(tdlib, chatId)) return;
+      // the app's own sound / vibration — the shade gets nothing while the app is open
+      if (settings.tgx101FgSound()) tdlib.notifications().tgx101PlayInAppSound();
+      if (settings.tgx101FgVibrate()) vibrate();
+      if (settings.tgx101FgShow() == Settings.TGX101_FG_CAPSULE) show(tdlib, chatId, message);
+    });
+  }
+
+  /** the app on screen with this account, the chat not the open one, not quieted by two swipes */
+  private static boolean passes (Tdlib tdlib, long chatId) {
+    BaseActivity context = UI.getUiContext();
+    if (context == null || !UI.isResumed() || context.isPasscodeShowing()) return false;
+    Long until = snoozedUntil.get(chatId);
+    if (until != null && until > SystemClock.uptimeMillis()) return false;
+    ViewController<?> top = context.navigation() != null ? context.navigation().getCurrentStackItem() : null;
+    if (top == null || top.tdlib() != tdlib) return false; // only the account on screen
+    return !(top instanceof MessagesController && ((MessagesController) top).getChatId() == chatId);
+  }
+
+  private static void vibrate () {
+    try {
+      android.os.Vibrator vibrator = (android.os.Vibrator) org.thunderdog.challegram.unsorted.AppContext.get().getSystemService(Context.VIBRATOR_SERVICE);
+      if (vibrator != null && vibrator.hasVibrator()) vibrator.vibrate(40);
+    } catch (Throwable ignored) { }
   }
 
   private static void show (Tdlib tdlib, long chatId, TdApi.Message message) {
     BaseActivity context = UI.getUiContext();
-    if (context == null || !UI.isResumed() || context.isPasscodeShowing()) return;
-    Long until = snoozedUntil.get(chatId);
-    if (until != null && until > SystemClock.uptimeMillis()) return;
-    ViewController<?> top = context.navigation() != null ? context.navigation().getCurrentStackItem() : null;
-    if (top == null || top.tdlib() != tdlib) return; // only the account on screen
-    if (top instanceof MessagesController && ((MessagesController) top).getChatId() == chatId) return;
+    if (context == null) return;
     String title = tdlib.chatTitle(chatId);
     String text;
     try {

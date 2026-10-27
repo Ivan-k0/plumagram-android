@@ -1970,6 +1970,11 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
     }
   }
 
+  /** TGx101: the short in-app sound for a new message while the app is open (MagiX → Notifications → When the app is open) */
+  public void tgx101PlayInAppSound () {
+    playSound(R.raw.sound_in, 500);
+  }
+
   private void playIncomingSound () {
     if (areInAppChatSoundsEnabled()) {
       playSound(R.raw.sound_in, 500);

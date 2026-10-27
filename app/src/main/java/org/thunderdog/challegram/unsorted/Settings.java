@@ -3840,8 +3840,7 @@ public class Settings {
   public void setTgx101SettingsAccountsOpen (boolean v) { pmc.putBoolean(KEY_TGX101_SETTINGS_ACCOUNTS_OPEN, v); }
 
   // TGx101 (user 2026-10-27, mockup «Уведомления» 2): the silent capsule for new messages while the app is open
-  public boolean tgx101Island () { return pmc.getBoolean("tgx101_island", false); }
-  public void setTgx101Island (boolean v) { pmc.putBoolean("tgx101_island", v); }
+  public boolean tgx101Island () { return tgx101FgShow() == TGX101_FG_CAPSULE; }
 
   // (user 2026-10-26) the bird over chats too; what two taps on it do (Tgx101Bird.DOUBLE_TAP_*)
   private static final String KEY_TGX101_BIRD_IN_CHATS = "tgx101_bird_in_chats", KEY_TGX101_BIRD_DOUBLE_TAP = "tgx101_bird_double_tap";
@@ -4104,11 +4103,51 @@ public class Settings {
 
   /** TGx101 (user 2026-10-07 «как убрать всплывающие уведомления когда приложение открыто?»): message notifications while the app is on screen */
   public int tgx101ForegroundNotifMode () {
-    return pmc.getInt(KEY_TGX101_FOREGROUND_NOTIF, TGX101_FOREGROUND_NOTIF_SHOW);
+    // (user 2026-10-27, «уведомления в приложении — настроить грамотно»): worked out of the show / sound / vibration below
+    int show = tgx101FgShow();
+    if (show != TGX101_FG_SYSTEM) return TGX101_FOREGROUND_NOTIF_HIDE; // the capsule or nothing — not into the shade
+    return tgx101FgSound() || tgx101FgVibrate() ? TGX101_FOREGROUND_NOTIF_SHOW : TGX101_FOREGROUND_NOTIF_QUIET;
   }
 
-  public void setTgx101ForegroundNotifMode (int mode) {
-    pmc.putInt(KEY_TGX101_FOREGROUND_NOTIF, mode);
+  // TGx101 (user 2026-10-27): while the app is open — how a new message shows (a system notification / our capsule /
+  // nothing), whether there's a sound and a vibration. Was one 3-way choice (show / quiet / hide) and a capsule switch
+  public static final int TGX101_FG_SYSTEM = 0, TGX101_FG_CAPSULE = 1, TGX101_FG_NONE = 2;
+  private static final String KEY_TGX101_FG_SHOW = "tgx101_fg_show", KEY_TGX101_FG_SOUND = "tgx101_fg_sound", KEY_TGX101_FG_VIBRATE = "tgx101_fg_vibrate";
+
+  public int tgx101FgShow () {
+    if (!pmc.contains(KEY_TGX101_FG_SHOW)) {
+      int old = pmc.getInt(KEY_TGX101_FOREGROUND_NOTIF, TGX101_FOREGROUND_NOTIF_SHOW);
+      int show = pmc.getBoolean("tgx101_island", false) ? TGX101_FG_CAPSULE : old == TGX101_FOREGROUND_NOTIF_HIDE ? TGX101_FG_NONE : TGX101_FG_SYSTEM;
+      if (old == TGX101_FOREGROUND_NOTIF_QUIET) {
+        pmc.putBoolean(KEY_TGX101_FG_SOUND, false);
+        pmc.putBoolean(KEY_TGX101_FG_VIBRATE, false);
+      }
+      pmc.putInt(KEY_TGX101_FG_SHOW, show);
+      return show;
+    }
+    return pmc.getInt(KEY_TGX101_FG_SHOW, TGX101_FG_SYSTEM);
+  }
+
+  public void setTgx101FgShow (int show) {
+    pmc.putInt(KEY_TGX101_FG_SHOW, show);
+  }
+
+  public boolean tgx101FgSound () {
+    tgx101FgShow(); // the old choice taken over first
+    return pmc.getBoolean(KEY_TGX101_FG_SOUND, true);
+  }
+
+  public void setTgx101FgSound (boolean v) {
+    pmc.putBoolean(KEY_TGX101_FG_SOUND, v);
+  }
+
+  public boolean tgx101FgVibrate () {
+    tgx101FgShow();
+    return pmc.getBoolean(KEY_TGX101_FG_VIBRATE, true);
+  }
+
+  public void setTgx101FgVibrate (boolean v) {
+    pmc.putBoolean(KEY_TGX101_FG_VIBRATE, v);
   }
 
   private static final String KEY_TGX101_ZOOM_PULL_CLOSE = "tgx101_zoom_pull_close";

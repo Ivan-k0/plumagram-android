@@ -174,6 +174,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       adapter.updateValuedSettingById(R.id.btn_tgx101Peek);
       adapter.updateValuedSettingById(R.id.btn_tgx101AiOpen);
       adapter.updateValuedSettingById(R.id.btn_tgx101BirdOpen);
+      adapter.updateValuedSettingById(R.id.btn_tgx101ForegroundNotif);
     }
   }
 
@@ -345,8 +346,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101SwipeToStorage(), isUpdate);
         } else if (itemId == R.id.btn_tgx101BirdRing) {
           view.setData(Tgx101GesturesController.birdRingValue());
-        } else if (itemId == R.id.btn_tgx101Island) {
-          view.getToggler().setRadioEnabled(Settings.instance().tgx101Island(), isUpdate);
         } else if (itemId == R.id.btn_tgx101AiOpen) {
           view.setData(Tgx101AiSettingsController.value());
         } else if (itemId == R.id.btn_tgx101BirdOpen) {
@@ -412,7 +411,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         } else if (itemId == R.id.btn_tgx101AppIcon) {
           view.setData(org.thunderdog.challegram.tool.Tgx101AppIcon.isAvailable() ? Lang.getString(org.thunderdog.challegram.tool.Tgx101AppIcon.NAMES[org.thunderdog.challegram.tool.Tgx101AppIcon.current(context)]) : Lang.getString(R.string.Tgx101AppIconOld));
         } else if (itemId == R.id.btn_tgx101ForegroundNotif) {
-          view.setData(FOREGROUND_NOTIF_NAMES[Math.max(0, Math.min(2, Settings.instance().tgx101ForegroundNotifMode()))]);
+          view.setData(Tgx101ForegroundNotifController.value());
         } else if (itemId == R.id.btn_tgx101Snooze) {
           int minutes = Settings.instance().tgx101SnoozeMinutes();
           view.setData(tgx101SnoozeName(minutes));
@@ -740,11 +739,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.WriteContactsToPhoneBook).setLongId(Settings.SETTING_FLAG_WRITE_CONTACTS_TO_PHONEBOOK),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
-
-        new ListItem(ListItem.TYPE_SHADOW_TOP),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101Island, 0, R.string.Tgx101Island),
-        new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
-        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101IslandHint),
 
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.BackgroundConnection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
@@ -1112,7 +1106,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       || id == R.id.btn_tgx101Bird || id == R.id.btn_tgx101BirdRing || id == R.id.btn_tgx101SwipeToStorage || id == R.id.btn_tgx101SolidControls) return TGX101_SECTION_NAV;
     if (id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap || id == R.id.btn_tgx101SwipeKeyboard || id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands
       || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101TextEditor) return TGX101_SECTION_INPUT;
-    if (id == R.id.btn_tgx101Island) return 5; // TGx101 (user 2026-10-27): the silent capsule — MagiX → Notifications
     if (id == R.id.btn_tgx101QuickCalls) return 7;
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked) return 2;
     if (id == R.id.btn_tgx101SavedSettingsOpen || id == R.id.btn_tgx101AiAll || id == R.id.btn_tgx101AiCompose || id == R.id.btn_tgx101AiSummary || id == R.id.btn_tgx101AiMissed || id == R.id.btn_tgx101AiSort || id == R.id.btn_tgx101Peek
@@ -1452,8 +1445,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101HideInputCamera(toggleResult);
     } else if (id == R.id.btn_tgx101HideInputCommands) {
       Settings.instance().setTgx101HideInputCommands(toggleResult);
-    } else if (id == R.id.btn_tgx101Island) {
-      Settings.instance().setTgx101Island(toggleResult);
     } else if (id == R.id.btn_tgx101Bird) {
       Settings.instance().setTgx101Bird(toggleResult);
     } else if (id == R.id.btn_tgx101SwipeToStorage) {
@@ -1600,18 +1591,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           adapter.updateValuedSettingById(R.id.btn_tgx101AppIcon);
         }));
     } else if (id == R.id.btn_tgx101ForegroundNotif) {
-      int current = Settings.instance().tgx101ForegroundNotifMode();
-      ListItem[] items = new ListItem[FOREGROUND_NOTIF_NAMES.length];
-      for (int i = 0; i < items.length; i++) {
-        items[i] = new ListItem(ListItem.TYPE_RADIO_OPTION, i + 1, 0, FOREGROUND_NOTIF_NAMES[i], R.id.btn_tgx101ForegroundNotif, i == current);
-      }
-      showSettings(new SettingsWrapBuilder(R.id.btn_tgx101ForegroundNotif)
-        .setRawItems(items)
-        .setIntDelegate((resultId, result) -> {
-          int index = result.get(R.id.btn_tgx101ForegroundNotif) - 1;
-          if (index >= 0 && index < FOREGROUND_NOTIF_NAMES.length) Settings.instance().setTgx101ForegroundNotifMode(index);
-          adapter.updateValuedSettingById(R.id.btn_tgx101ForegroundNotif);
-        }));
+      // (user 2026-10-27 «уведомления в приложении — настроить грамотно»): its own screen — show / sound / vibration
+      navigateTo(new Tgx101ForegroundNotifController(context, tdlib));
     } else if (id == R.id.btn_tgx101Snooze) {
       int current = Settings.instance().tgx101SnoozeMinutes();
       // (user 2026-10-20 «в уведомлении вместо «Тихо» — «Нравится»», «реакция как при двойном тапе, первая выбранная»):
