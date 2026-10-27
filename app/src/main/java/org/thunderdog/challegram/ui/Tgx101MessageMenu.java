@@ -265,7 +265,7 @@ public final class Tgx101MessageMenu {
   }
 
   private static class Host {
-    boolean handedOver;
+    @Nullable Runnable expandAfterDismiss;
     PopupLayout popup;
     View content;
     boolean dismissing;
@@ -828,12 +828,15 @@ public final class Tgx101MessageMenu {
     popup.setDismissListener(new PopupLayout.DismissListener() {
       @Override
       public void onPopupDismiss (PopupLayout p) {
-        if (onDismiss != null && !host.handedOver) onDismiss.run();
+        if (onDismiss != null) onDismiss.run();
+        Runnable expand = host.expandAfterDismiss;
+        host.expandAfterDismiss = null;
+        if (expand != null) expand.run();
       }
 
       @Override
       public void onPopupDismissPrepare (PopupLayout p) {
-        if (onDismissPrepare != null && !host.handedOver) onDismissPrepare.run();
+        if (onDismissPrepare != null) onDismissPrepare.run();
       }
     });
     popup.setTag(host);
@@ -1109,11 +1112,11 @@ public final class Tgx101MessageMenu {
     Views.setClickable(more);
     RippleSupport.setTransparentSelector(more);
     more.setOnClickListener(v -> {
-      // TGx101 (user video 2026-10-27 19:57 / 20:38): the full picker first, the compact menu goes under it — between the
-      // two the chat and the keyboard showed for ~150 ms («ещё одно меню, которое сразу исчезает»)
-      host.handedOver = true; // the picker owns the keyboard / emoji panel state now — the compact menu just goes
-      if (onExpandReactions != null) onExpandReactions.run();
-      v.postDelayed(() -> dismiss(host), 120);
+      // TGx101 (user video 2026-10-27 19:57 / 20:38): between the compact menu and the full picker the chat and the
+      // keyboard showed for ~150 ms («ещё одно меню, которое сразу исчезает») — no fixed pause now
+      // (picker opened while the compact menu was still up never showed — it opens the moment the menu is gone instead)
+      host.expandAfterDismiss = onExpandReactions;
+      dismiss(host);
     });
     grid.addView(more, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     host.grid = grid;

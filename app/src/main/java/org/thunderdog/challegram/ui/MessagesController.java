@@ -6237,8 +6237,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     isMessageOptionsVisible = true;
     PopupLayout popup = Tgx101MessageMenu.show(this, message, options, delegate, readDatePending,
       callback -> tgx101LoadMore(message, null, callback),
-      () -> UI.post(() -> {
-        isMessageOptionsVisible = false; // the compact menu goes under the picker a moment later
+      () -> UI.post(() -> { // TGx101: run as the compact menu is gone (its onDismiss above has reset the state)
         PopupLayout full = showMessageOptions(options, message, null, delegate);
         if (full != null && full.getBoundController() instanceof MessageOptionsPagerController) {
           MessageOptionsPagerController pager = (MessageOptionsPagerController) full.getBoundController();
