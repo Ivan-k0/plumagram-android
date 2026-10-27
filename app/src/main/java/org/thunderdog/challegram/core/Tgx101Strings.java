@@ -960,6 +960,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101FgSound, "Звук");
     RU.put(R.string.Tgx101FgVibrate, "Вибрация");
     RU.put(R.string.Tgx101FgSoundHint, "Короткий звук и вибрация приложения на новое сообщение, пока оно открыто. При «Системном уведомлении», если оба выключены, оно приходит в шторку тихо.");
+    RU.put(R.string.Tgx101Quality, "Качество видео");
+    RU.put(R.string.Tgx101QualityAuto, "Авто");
     RU.put(R.string.Tgx101AccountsRow, "Аккаунты · %1$s");
     RU.put(R.string.Tgx101AccountsSwitch, "Переключиться");
     RU.put(R.string.Tgx101AccountsLogOutAsk, "Выйти из аккаунта «%1$s»?");

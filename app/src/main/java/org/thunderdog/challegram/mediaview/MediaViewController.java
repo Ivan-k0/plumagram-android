@@ -1857,6 +1857,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     pipButton.setVisibility(canGoPip() ? View.VISIBLE : View.GONE);
     menu.addView(pipButton);
 
+    // TGx101 (user 2026-10-27 «качество видео — третья иконка вверху справа»): «HD» — the stream's quality
+    HeaderButton qualityButton = header.genButton(R.id.menu_btn_tgx101Quality, R.drawable.tgx101_hd_24, ColorId.white, null, Screen.dp(49f), header);
+    qualityButton.setBackgroundResource(R.drawable.bg_btn_header_light);
+    qualityButton.setVisibility(tgx101CanChooseQuality() ? View.VISIBLE : View.GONE);
+    menu.addView(qualityButton);
+
     HeaderButton shareButton = header.addForwardButton(menu, null, ColorId.white);
     shareButton.setBackgroundResource(R.drawable.bg_btn_header_light);
     shareButton.setVisibility(canShare() ? View.VISIBLE : View.GONE);
@@ -1937,9 +1943,40 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
   }
 
+  private boolean tgx101CanChooseQuality () {
+    MediaItem item = stack != null ? stack.getCurrent() : null;
+    return item != null && item.isVideo() && (mode == MODE_MESSAGES || mode == MODE_SIMPLE) && item.tgx101Qualities().length > 1;
+  }
+
+  private void tgx101ChooseQuality () {
+    MediaItem item = stack != null ? stack.getCurrent() : null;
+    if (item == null) return;
+    int[] qualities = item.tgx101Qualities();
+    int current = Settings.instance().tgx101VideoQuality();
+    boolean currentShown = false;
+    for (int q : qualities) if (q == current) currentShown = true;
+    int[] ids = new int[qualities.length + 1];
+    String[] names = new String[qualities.length + 1];
+    ids[0] = 1;
+    names[0] = Lang.getString(R.string.Tgx101QualityAuto) + (current == 0 || !currentShown ? "  ✓" : "");
+    for (int i = 0; i < qualities.length; i++) {
+      ids[i + 1] = 1000 + qualities[i];
+      names[i + 1] = qualities[i] + "p" + (qualities[i] == current ? "  ✓" : "");
+    }
+    showOptions(Lang.getString(R.string.Tgx101Quality), ids, names, null, null, (itemView, id) -> {
+      int quality = id >= 1000 ? id - 1000 : 0;
+      Settings.instance().setTgx101VideoQuality(quality);
+      org.thunderdog.challegram.Tgx101Diag.mark("player: quality " + (quality == 0 ? "auto" : quality + "p"));
+      mediaView.tgx101ApplyQuality();
+      return true;
+    });
+  }
+
   @Override
   public void onMenuItemPressed (int id, View view) {
-    if (id == R.id.menu_btn_pictureInPicture) {
+    if (id == R.id.menu_btn_tgx101Quality) {
+      tgx101ChooseQuality();
+    } else if (id == R.id.menu_btn_pictureInPicture) {
       enterPictureInPicture();
     } else if (id == R.id.menu_btn_forward) {
       // ...
@@ -2156,6 +2193,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     if (canGoPip()) {
       width += Screen.dp(49f);
     }
+    if (tgx101CanChooseQuality()) {
+      width += Screen.dp(49f); // the title gets shorter for «HD»
+    }
     if (canViewMasks()) {
       width += Screen.dp(49f);
     }
@@ -2166,6 +2206,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     if (headerView != null) {
       headerView.updateButton(R.id.menu_photo, R.id.menu_btn_masks, canViewMasks() ? View.VISIBLE : View.GONE, 0);
       headerView.updateButton(R.id.menu_photo, R.id.menu_btn_pictureInPicture, canGoPip() ? View.VISIBLE : View.GONE, 0);
+      headerView.updateButton(R.id.menu_photo, R.id.menu_btn_tgx101Quality, tgx101CanChooseQuality() ? View.VISIBLE : View.GONE, 0);
       headerView.updateButton(R.id.menu_photo, R.id.menu_btn_forward, canShare() ? View.VISIBLE : View.GONE, 0);
       headerView.updateButton(R.id.menu_photo, R.id.menu_btn_edit, canEdit() ? View.VISIBLE : View.GONE, 0);
       updateTitleMargins();

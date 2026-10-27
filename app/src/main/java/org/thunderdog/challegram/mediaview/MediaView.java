@@ -854,6 +854,10 @@ public class MediaView extends FrameLayoutFix {
     if (baseCell != null) baseCell.tgx101SetSpeed(speed);
   }
 
+  public void tgx101ApplyQuality () {
+    if (baseCell != null) baseCell.tgx101ApplyQuality();
+  }
+
   /** TGx101: the player's ‹ › buttons — previous / next media with the usual slide */
   public void tgx101Page (boolean next) {
     if (next ? !hasNext() : !hasPrevious()) return;

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TGx101 (user 2026-10-27): the video quality button — «HD» in a rounded frame -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="24dp"
+  android:height="24dp"
+  android:viewportWidth="24"
+  android:viewportHeight="24">
+  <path
+    android:fillColor="#00000000"
+    android:strokeColor="#FFFFFFFF"
+    android:strokeWidth="1.8"
+    android:pathData="M5.5,5.5h13a2.5,2.5 0 0 1 2.5,2.5v8a2.5,2.5 0 0 1 -2.5,2.5h-13a2.5,2.5 0 0 1 -2.5,-2.5v-8a2.5,2.5 0 0 1 2.5,-2.5z" />
+  <path
+    android:fillColor="#00000000"
+    android:strokeColor="#FFFFFFFF"
+    android:strokeWidth="1.8"
+    android:strokeLineCap="round"
+    android:pathData="M7,9v6M10.5,9v6M7,12h3.5" />
+  <path
+    android:fillColor="#00000000"
+    android:strokeColor="#FFFFFFFF"
+    android:strokeWidth="1.8"
+    android:strokeLineJoin="round"
+    android:pathData="M13.5,9h1.8a3,3 0 0 1 0,6h-1.8z" />
+</vector>

@@ -149,6 +149,23 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     tgx101CueSink.runWithData(b.length() > 0 && org.thunderdog.challegram.unsorted.Settings.instance().tgx101Subtitles() ? b : null);
   }
 
+  private @Nullable MediaItem tgx101QualityItem;
+
+  /** TGx101 (user 2026-10-27 «качество видео — значок HD вверху»): the stream's quality — «Auto» (the player's own
+   *  choice by the network) or the one picked in the viewer (Settings, kept for the next videos when they have it) */
+  public void tgx101ApplyQuality () {
+    if (player == null) return;
+    int quality = org.thunderdog.challegram.unsorted.Settings.instance().tgx101VideoQuality();
+    TdApi.AlternativeVideo v = quality > 0 && tgx101QualityItem != null ? tgx101QualityItem.tgx101Alternative(quality) : null;
+    androidx.media3.common.TrackSelectionParameters.Builder b = player.getTrackSelectionParameters().buildUpon();
+    if (v != null) {
+      b.setMaxVideoSize(v.width, v.height).setMinVideoSize(v.width, v.height);
+    } else {
+      b.clearVideoSizeConstraints().setMinVideoSize(0, 0);
+    }
+    player.setTrackSelectionParameters(b.build());
+  }
+
   /** The subtitle setting changed: pick (or drop) a text track */
   public void tgx101ApplySubtitles () {
     if (player == null) return;
@@ -333,6 +350,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
           source = U.newMediaSource(mediaItem.tdlib().id(), targetFile, TdlibFilesManager.PRIORITY_STREAMING_VIDEO, TdlibDataSource.Flag.OPTIMIZE_CHUNKS, durationMs);
         } else {
           source = U.newMediaSource(mediaItem.tdlib().id(), hlsVideo);
+          tgx101QualityItem = mediaItem;
         }
         forcePlay = mediaItem.getType() == MediaItem.TYPE_GIF;
         break;
@@ -352,6 +370,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
       this.player = U.newExoPlayer(context, preferExtensions);
       this.player.addListener(this);
       tgx101ApplySubtitles();
+      tgx101ApplyQuality();
       checkMuted();
       this.player.setVideoTextureView(renderView);
 

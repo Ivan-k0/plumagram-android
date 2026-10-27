@@ -488,6 +488,25 @@ public class MediaItem implements MessageSourceProvider, InvalidateContentProvid
     setVideo(video, alternativeVideos, cover, allowIcon, false);
   }
 
+  /** TGx101 (user 2026-10-27, video quality): the stream's qualities by their short side (720, 480…), highest first;
+   *  empty when the video has none or is played from the whole file */
+  public int[] tgx101Qualities () {
+    if (sourceAlternativeVideos == null || sourceAlternativeVideos.length == 0 || TD.isFileLoaded(targetFile)) return new int[0];
+    java.util.TreeSet<Integer> set = new java.util.TreeSet<>(java.util.Collections.reverseOrder());
+    for (TdApi.AlternativeVideo v : sourceAlternativeVideos) set.add(Math.min(v.width, v.height));
+    int[] out = new int[set.size()];
+    int i = 0;
+    for (int q : set) out[i++] = q;
+    return out;
+  }
+
+  /** the stream variant of that quality (short side), or null */
+  public @Nullable TdApi.AlternativeVideo tgx101Alternative (int quality) {
+    if (sourceAlternativeVideos == null) return null;
+    for (TdApi.AlternativeVideo v : sourceAlternativeVideos) if (Math.min(v.width, v.height) == quality) return v;
+    return null;
+  }
+
   @Nullable
   public HlsVideo getHslVideo () {
     if (sourceAlternativeVideos != null && sourceAlternativeVideos.length > 0) {

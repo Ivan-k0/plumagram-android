@@ -4485,6 +4485,10 @@ public class Settings {
   // «Remember speed» off the speed lives only while the viewer is open and is never written
   private float tgx101SessionSpeed = 1f;
 
+  // TGx101 (user 2026-10-27): the video stream's quality picked in the viewer — the short side (720, 480…), 0 = «Auto»
+  public int tgx101VideoQuality () { return pmc.getInt("tgx101_video_quality", 0); }
+  public void setTgx101VideoQuality (int quality) { pmc.putInt("tgx101_video_quality", quality); }
+
   private static final String KEY_TGX101_PLAYER_KEEP_SPEED = "tgx101_player_keep_speed";
 
   /** TGx101 (user 2026-10-26 12:52 «сбрасывать скорость видео по умолчанию»): off — every viewer opens at 1× */
