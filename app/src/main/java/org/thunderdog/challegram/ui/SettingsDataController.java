@@ -1122,7 +1122,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     // quick replies to a call by message — with the calls (user 2026-10-22 «быстрые ответы на звонок перенести в «Звонки»»)
     if (id == R.id.btn_tgx101QuickReply1 || id == R.id.btn_tgx101QuickReply2 || id == R.id.btn_tgx101QuickReply3
       || id == R.id.btn_tgx101QuickReply4 || id == R.id.btn_tgx101QuickReply5) return 7;
-    if (id == R.id.btn_tgx101HideCompose || id == R.id.btn_tgx101HideJoin || id == R.id.btn_tgx101HideSponsored) return 0;
+    if (id == R.id.btn_tgx101HideCompose || id == R.id.btn_tgx101HideJoin || id == R.id.btn_tgx101HideSponsored || id == R.id.btn_tgx101TypeMedia) return 0;
     if (id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101SearchHoldProxy || id == R.id.btn_tgx101CapsuleScrollHide || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101CapsuleTabs || id == R.id.btn_tgx101ContactsMenu || id == R.id.btn_tgx101QuickCalls) return 0;
     if (id == R.id.btn_tgx101RearRounds || id == R.id.btn_tgx101RoundRememberCamera || id == R.id.btn_tgx101RoundAskCamera) return 4;
     if (id == R.id.btn_tgx101NoAnimation) return 4; // «Media»
@@ -1220,12 +1220,13 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     int[] bottomMenu = {R.id.btn_tgx101CapsuleMenu, R.id.btn_tgx101ContactsMenu, R.id.btn_tgx101QuickCalls, R.id.btn_tgx101BottomGap, R.id.btn_tgx101HideCompose};
     int[] inputButtons = {R.id.btn_tgx101HideInputCamera, R.id.btn_tgx101HideInputCommands, R.id.btn_tgx101HideInputEmoji};
     // TGx101 (user 2026-10-12 14:52 «не видно где выключатель рекламы»): channel switches get their own section
-    int[] channels = {R.id.btn_tgx101HideSponsored, R.id.btn_tgx101HideJoin};
+    int[] channels = {R.id.btn_tgx101TypeMedia, R.id.btn_tgx101HideSponsored, R.id.btn_tgx101HideJoin};
     int[] other = {R.id.btn_tgx101RearRounds, R.id.btn_tgx101RoundRememberCamera, R.id.btn_tgx101RoundAskCamera, R.id.btn_tgx101HidePhone, R.id.btn_tgx101NotificationPlane, R.id.btn_tgx101ForegroundNotif};
     java.util.Map<Integer, ListItem> byId = new java.util.HashMap<>();
     byId.put(R.id.btn_tgx101HideCompose, new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideCompose, 0, R.string.Tgx101HideCompose));
     byId.put(R.id.btn_tgx101HideJoin, new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideJoin, 0, R.string.Tgx101HideJoin));
     byId.put(R.id.btn_tgx101HideSponsored, new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideSponsored, 0, R.string.Tgx101HideSponsored));
+    byId.put(R.id.btn_tgx101TypeMedia, new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101TypeMedia, R.drawable.baseline_image_24, R.string.Tgx101TypeMedia)); // (user 2026-10-28)
     for (ListItem item : raw) if (item.getId() != 0) byId.put(item.getId(), item);
     java.util.Set<Integer> moved = new java.util.HashSet<>();
     for (int[] g : new int[][] {bottomMenu, inputButtons, channels, other}) for (int id : g) moved.add(id);
@@ -1714,6 +1715,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Tgx101MenuOrderController c = new Tgx101MenuOrderController(context, tdlib);
       c.setArguments(new Tgx101MenuOrderController.Args(Tgx101MenuOrderController.MODE_CAPSULE));
       navigateTo(c);
+    } else if (id == R.id.btn_tgx101TypeMedia) {
+      org.thunderdog.challegram.data.Tgx101ChatMedia.openTypes(this);
     } else if (id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101ChatMenuOrder) {
       Tgx101MenuOrderController c = new Tgx101MenuOrderController(context, tdlib);
       c.setArguments(new Tgx101MenuOrderController.Args(id == R.id.btn_tgx101DrawerOrder ? Tgx101MenuOrderController.MODE_DRAWER : Tgx101MenuOrderController.MODE_CHAT_MENU));

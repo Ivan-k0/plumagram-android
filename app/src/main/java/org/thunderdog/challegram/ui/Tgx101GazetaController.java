@@ -228,6 +228,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     if (org.thunderdog.challegram.data.Tgx101MessageFilters.suggestion(main) != null) {
       ids.add(R.id.btn_tgx101FilterSimilar); titles.add(Lang.getString(R.string.Tgx101FilterSimilar)); icons.add(R.drawable.baseline_filter_variant_remove_24);
     }
+    ids.add(R.id.btn_tgx101ChatMedia); titles.add(Lang.getString(R.string.Tgx101ChatMedia)); icons.add(R.drawable.baseline_image_24);
     ids.add(R.id.btn_tgx101GazetaHideChannel); titles.add(Lang.getString(R.string.Tgx101GazetaHideChannel)); icons.add(R.drawable.baseline_eye_off_24);
     int[] outIds = new int[ids.size()], outIcons = new int[ids.size()];
     for (int i = 0; i < outIds.length; i++) {
@@ -250,6 +251,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         });
       } else if (id == R.id.btn_tgx101FilterSimilar) {
         Tgx101FiltersController.addRule(this, org.thunderdog.challegram.data.Tgx101MessageFilters.suggestion(main), post.chatId, tdlib.chatTitle(post.chatId));
+      } else if (id == R.id.btn_tgx101ChatMedia) {
+        org.thunderdog.challegram.data.Tgx101ChatMedia.openSheet(this, post.chatId);
       } else if (id == R.id.btn_tgx101GazetaHideChannel) {
         java.util.Set<Long> off = Tgx101Gazeta.excluded(tdlib);
         off.add(post.chatId);

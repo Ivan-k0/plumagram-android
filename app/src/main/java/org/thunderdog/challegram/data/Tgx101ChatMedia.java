@@ -44,25 +44,45 @@ public final class Tgx101ChatMedia {
     return "tgx101_chat_media_" + tdlib.id() + "_" + chatId;
   }
 
+  // TGx101 (user 2026-10-28): the same rules for all channels / groups / private chats at once (MagiX → «Channels»);
+  // a chat's own rules come first
+  public static final int TYPE_CHANNELS = 0, TYPE_GROUPS = 1, TYPE_PRIVATE = 2;
+
+  private static String typeKey (int type) {
+    return "tgx101_type_media_" + type;
+  }
+
+  private static int typeOf (Tdlib tdlib, long chatId) {
+    if (tdlib.isChannel(chatId)) return TYPE_CHANNELS;
+    if (tdlib.isMultiChat(chatId)) return TYPE_GROUPS;
+    return TYPE_PRIVATE;
+  }
+
   /** bits: photo 0..3, video 4..7, limit index 8..11, autoplay 12..15 */
-  private static int get (Tdlib tdlib, long chatId) {
-    return Settings.instance().pmc().getInt(key(tdlib, chatId), 0);
+  private static int raw (String key) {
+    return Settings.instance().pmc().getInt(key, 0);
   }
 
-  public static int photo (Tdlib tdlib, long chatId) { return get(tdlib, chatId) & 0xf; }
-  public static int video (Tdlib tdlib, long chatId) { return (get(tdlib, chatId) >> 4) & 0xf; }
-  public static int limit (Tdlib tdlib, long chatId) { return Math.min(LIMITS_MB.length - 1, (get(tdlib, chatId) >> 8) & 0xf); }
-  public static int autoplayOf (Tdlib tdlib, long chatId) { return (get(tdlib, chatId) >> 12) & 0xf; }
-
-  public static void set (Tdlib tdlib, long chatId, int photo, int video, int limit, int autoplay) {
+  private static void put (String key, int photo, int video, int limit, int autoplay) {
     int value = (photo & 0xf) | ((video & 0xf) << 4) | ((limit & 0xf) << 8) | ((autoplay & 0xf) << 12);
-    if (value == 0) Settings.instance().pmc().remove(key(tdlib, chatId));
-    else Settings.instance().pmc().putInt(key(tdlib, chatId), value);
+    if (value == 0) Settings.instance().pmc().remove(key);
+    else Settings.instance().pmc().putInt(key, value);
   }
 
-  public static boolean hasCustom (Tdlib tdlib, long chatId) {
-    return get(tdlib, chatId) != 0;
+  /** the chat's own rules, or its kind's when it has none */
+  private static int get (Tdlib tdlib, long chatId) {
+    int own = raw(key(tdlib, chatId));
+    return own != 0 ? own : raw(typeKey(typeOf(tdlib, chatId)));
   }
+
+  private static int photoOf (int v) { return v & 0xf; }
+  private static int videoOf (int v) { return (v >> 4) & 0xf; }
+  private static int limitOf (int v) { return Math.min(LIMITS_MB.length - 1, (v >> 8) & 0xf); }
+  private static int autoplayBits (int v) { return (v >> 12) & 0xf; }
+
+  public static int autoplayOf (Tdlib tdlib, long chatId) { return autoplayBits(get(tdlib, chatId)); }
+
+
 
   // ---- general autoplay ----
 
@@ -119,54 +139,66 @@ public final class Tgx101ChatMedia {
     return null;
   }
 
-  // ---- the sheet: ⋮ → «Media in this channel» ----
-
-  private static final int ROW_PHOTO = 0, ROW_VIDEO = 1, ROW_LIMIT = 2, ROW_AUTOPLAY = 3, ROW_RESET = 4;
+  // ---- the sheet: ⋮ → «Media in this channel», or MagiX → «Channels» for a kind of chats ----
 
   public static void openSheet (ViewController<?> c, long chatId) {
-    Tdlib tdlib = c.tdlib();
+    openSheet(c, key(c.tdlib(), chatId), Lang.getString(R.string.Tgx101ChatMediaHint, autoplayModeName(autoplayMode())));
+  }
+
+  /** MagiX → «Channels» → «Media in channels, groups and chats»: which kind first */
+  public static void openTypes (ViewController<?> c) {
+    int[] ids = {1, 2, 3};
+    String[] names = {Lang.getString(R.string.Tgx101TypeMediaChannels), Lang.getString(R.string.Tgx101TypeMediaGroups), Lang.getString(R.string.Tgx101TypeMediaPrivate)};
+    int[] icons = {R.drawable.baseline_bullhorn_24, R.drawable.baseline_group_24, R.drawable.baseline_person_24};
+    c.showOptions(Lang.getString(R.string.Tgx101TypeMediaHint), ids, names, null, icons, (v, id) -> {
+      openSheet(c, typeKey(id - 1), names[id - 1] + ". " + Lang.getString(R.string.Tgx101TypeMediaSheetHint));
+      return true;
+    });
+  }
+
+  private static void openSheet (ViewController<?> c, String key, String hint) {
+    int value = raw(key);
+    int photo = photoOf(value), video = videoOf(value), limit = limitOf(value), autoplay = autoplayBits(value);
     String[] titles = {
-      Lang.getString(R.string.Tgx101ChatMediaPhoto) + ": " + photoName(photo(tdlib, chatId)),
-      Lang.getString(R.string.Tgx101ChatMediaVideo) + ": " + videoName(video(tdlib, chatId)),
-      Lang.getString(R.string.Tgx101ChatMediaLimit) + ": " + limitName(limit(tdlib, chatId)),
-      Lang.getString(R.string.Tgx101ChatMediaAutoplay) + ": " + autoplayName(autoplayOf(tdlib, chatId)),
+      Lang.getString(R.string.Tgx101ChatMediaPhoto) + ": " + photoName(photo),
+      Lang.getString(R.string.Tgx101ChatMediaVideo) + ": " + videoName(video),
+      Lang.getString(R.string.Tgx101ChatMediaLimit) + ": " + limitName(limit),
+      Lang.getString(R.string.Tgx101ChatMediaAutoplay) + ": " + autoplayName(autoplay),
       Lang.getString(R.string.Tgx101ChatMediaReset)
     };
     int[] ids = {R.id.btn_tgx101ChatMediaPhoto, R.id.btn_tgx101ChatMediaVideo, R.id.btn_tgx101ChatMediaLimit, R.id.btn_tgx101ChatMediaAutoplay, R.id.btn_tgx101ChatMediaReset};
     int[] icons = {R.drawable.baseline_image_24, R.drawable.baseline_videocam_24, R.drawable.baseline_sd_storage_24, R.drawable.baseline_play_circle_filled_24_white, R.drawable.baseline_replay_24};
-    int n = hasCustom(tdlib, chatId) ? 5 : 4;
+    int n = value != 0 ? 5 : 4;
     String[] t = new String[n];
     int[] i2 = new int[n], ic = new int[n];
     System.arraycopy(titles, 0, t, 0, n);
     System.arraycopy(ids, 0, i2, 0, n);
     System.arraycopy(icons, 0, ic, 0, n);
-    String hint = Lang.getString(R.string.Tgx101ChatMediaHint, autoplayModeName(autoplayMode()));
     c.showOptions(hint, i2, t, null, ic, (v, id) -> {
-      int photo = photo(tdlib, chatId), video = video(tdlib, chatId), limit = limit(tdlib, chatId), autoplay = autoplayOf(tdlib, chatId);
       if (id == R.id.btn_tgx101ChatMediaPhoto) {
         choose(c, R.string.Tgx101ChatMediaPhoto, new String[] {photoName(0), photoName(1), photoName(2)}, photo, which -> {
-          set(tdlib, chatId, which, video, limit, autoplay);
-          openSheet(c, chatId);
+          put(key, which, video, limit, autoplay);
+          openSheet(c, key, hint);
         });
       } else if (id == R.id.btn_tgx101ChatMediaVideo) {
         choose(c, R.string.Tgx101ChatMediaVideo, new String[] {videoName(0), videoName(1), videoName(2), videoName(3)}, video, which -> {
-          set(tdlib, chatId, photo, which, limit, autoplay);
-          openSheet(c, chatId);
+          put(key, photo, which, limit, autoplay);
+          openSheet(c, key, hint);
         });
       } else if (id == R.id.btn_tgx101ChatMediaLimit) {
         String[] names = new String[LIMITS_MB.length];
         for (int k = 0; k < names.length; k++) names[k] = limitName(k);
         choose(c, R.string.Tgx101ChatMediaLimit, names, limit, which -> {
-          set(tdlib, chatId, photo, video, which, autoplay);
-          openSheet(c, chatId);
+          put(key, photo, video, which, autoplay);
+          openSheet(c, key, hint);
         });
       } else if (id == R.id.btn_tgx101ChatMediaAutoplay) {
         choose(c, R.string.Tgx101ChatMediaAutoplay, new String[] {autoplayName(0), autoplayName(1), autoplayName(2)}, autoplay, which -> {
-          set(tdlib, chatId, photo, video, limit, which);
-          openSheet(c, chatId);
+          put(key, photo, video, limit, which);
+          openSheet(c, key, hint);
         });
       } else if (id == R.id.btn_tgx101ChatMediaReset) {
-        set(tdlib, chatId, 0, 0, 0, 0);
+        put(key, 0, 0, 0, 0);
       }
       return true;
     });

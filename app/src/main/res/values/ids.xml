@@ -1899,4 +1899,5 @@
   <item name="btn_tgx101GazetaReactions" type="id"/>
   <item name="btn_tgx101GazetaStars" type="id"/>
   <item name="btn_tgx101GazetaBird" type="id"/>
+  <item name="btn_tgx101TypeMedia" type="id"/>
 </resources>

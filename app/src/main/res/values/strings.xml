@@ -7519,4 +7519,10 @@
   <string name="Tgx101GazetaColorNightSepia">Night sepia</string>
   <string name="Tgx101GazetaColorBlack">Black</string>
   <string name="Tgx101GazetaColorGraphite">Graphite</string>
+  <string name="Tgx101TypeMedia">Media in channels, groups and chats</string>
+  <string name="Tgx101TypeMediaChannels">Channels</string>
+  <string name="Tgx101TypeMediaGroups">Groups</string>
+  <string name="Tgx101TypeMediaPrivate">Private chats</string>
+  <string name="Tgx101TypeMediaHint">Download and autoplay for all chats of a kind. A channel\'s own «Media in this channel» (⋮) comes first.</string>
+  <string name="Tgx101TypeMediaSheetHint">«Default» follows the general settings (Data and storage).</string>
 </resources>

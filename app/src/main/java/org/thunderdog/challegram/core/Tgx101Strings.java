@@ -136,6 +136,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101GazetaColorNightSepia, "Ночная сепия");
     RU.put(R.string.Tgx101GazetaColorBlack, "Чёрная");
     RU.put(R.string.Tgx101GazetaColorGraphite, "Графит");
+    RU.put(R.string.Tgx101TypeMedia, "Медиа в каналах, группах и чатах");
+    RU.put(R.string.Tgx101TypeMediaChannels, "Каналы");
+    RU.put(R.string.Tgx101TypeMediaGroups, "Группы");
+    RU.put(R.string.Tgx101TypeMediaPrivate, "Личные чаты");
+    RU.put(R.string.Tgx101TypeMediaHint, "Загрузка и автовоспроизведение для всех чатов одного вида. Свои настройки канала («⋮» → «Медиа в этом канале») главнее.");
+    RU.put(R.string.Tgx101TypeMediaSheetHint, "«По умолчанию» — как в общих настройках («Данные и память»).");
     RU.put(R.string.Tgx101FilterSimilar, "Скрывать похожие…");
     RU.put(R.string.RecordingAndPhotos, "Запись и фото");
     RU.put(R.string.PauseMediaOnRecord, "Пауза музыки при записи и голосовых");
