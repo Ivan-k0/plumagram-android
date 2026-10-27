@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- TGx101 (user 2026-10-27): «Газета» — a sheet with a column on the right; the same icon everywhere -->
+<!-- TGx101 (user 2026-10-27, variant 5 of the mockup): «Газета» — two-tone, a see-through sheet behind a sharp one; the same icon everywhere -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
   android:width="24dp"
   android:height="24dp"
@@ -7,5 +7,15 @@
   android:viewportHeight="24">
   <path
     android:fillColor="#FF000000"
-    android:pathData="M4,5h13v13a2,2 0,0 0,2 2H6a2,2 0,0 1,-2 -2zM19,8h2v10a2,2 0,0 1,-4 0V8zM7,8v3h7V8zM7,13v1.5h7V13zM7,16v1.5h7V16z"/>
+    android:fillAlpha="0.38"
+    android:pathData="M4.5,5.5a2,2 0,0 1,2,-2h9a2,2 0,0 1,2,2v13a2.5,2.5 0,0 0,0.3,1.2H6.5a2,2 0,0 1,-2,-2z"/>
+  <path
+    android:strokeColor="#FF000000"
+    android:strokeWidth="1.8"
+    android:strokeLineCap="round"
+    android:strokeLineJoin="round"
+    android:pathData="M8,3.5h7.5a2,2 0,0 1,2,2V18a1.5,1.5 0,0 0,3,0V9.5a1,1 0,0 0,-1,-1h-0.5V18"/>
+  <path
+    android:fillColor="#FF000000"
+    android:pathData="M7.9,7h5.7a0.9,0.9 0,0 1,0,1.8h-5.7a0.9,0.9 0,0 1,0,-1.8zM7.9,10.6h5.7a0.9,0.9 0,0 1,0,1.8h-5.7a0.9,0.9 0,0 1,0,-1.8zM7.9,14.2h3.2a0.9,0.9 0,0 1,0,1.8h-3.2a0.9,0.9 0,0 1,0,-1.8z"/>
 </vector>

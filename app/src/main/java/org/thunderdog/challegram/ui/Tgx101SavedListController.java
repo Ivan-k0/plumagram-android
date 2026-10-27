@@ -281,7 +281,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
     column.addView(toolbar);
     buildViewSwitch();
 
-    list = new RecyclerView(context) {
+    list = new org.thunderdog.challegram.v.CustomRecyclerView(context) {
       private boolean downStoppedFling;
 
       @Override

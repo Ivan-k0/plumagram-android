@@ -216,7 +216,7 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
     gridParams.topMargin = Screen.dp(10f);
     column.addView(videoGrid, gridParams);
 
-    RecyclerView list = new RecyclerView(context);
+    RecyclerView list = new org.thunderdog.challegram.v.CustomRecyclerView(context);
     list.setLayoutManager(new LinearLayoutManager(context));
     list.setAdapter(adapter = new ParticipantsAdapter());
     list.setOverScrollMode(View.OVER_SCROLL_NEVER);

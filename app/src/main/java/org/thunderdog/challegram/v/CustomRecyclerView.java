@@ -28,14 +28,17 @@ import me.vkryl.android.animator.Animated;
 public class CustomRecyclerView extends RecyclerView implements Animated {
   public CustomRecyclerView (Context context) {
     super(context);
+    tgx101TrackEdges();
   }
 
   public CustomRecyclerView (Context context, AttributeSet attrs) {
     super(context, attrs);
+    tgx101TrackEdges();
   }
 
   public CustomRecyclerView (Context context, AttributeSet attrs, int defStyle) {
     super(context, attrs, defStyle);
+    tgx101TrackEdges();
   }
 
   public void requestLayoutAt (int adapterIndex) {
@@ -123,7 +126,69 @@ public class CustomRecyclerView extends RecyclerView implements Animated {
       return true;
     }
 
+    if (tgx101IsVertical()) {
+      // TGx101 (user 2026-10-27 «все наши свайпы назад — как в списке чатов и в чате»): the same rules as the chat and
+      // the chat list for every vertical list — a finger landing on a moving or stretched list only stops it and is
+      // not held from the back swipe, and a move more to the right than up or down never starts the list's scroll
+      if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
+        tgx101DownX = e.getX();
+        tgx101DownY = e.getY();
+        if (tgx101ReleaseStretch() | getScrollState() == SCROLL_STATE_SETTLING) {
+          stopScroll();
+          super.onInterceptTouchEvent(e);
+          if (getScrollState() == SCROLL_STATE_DRAGGING) {
+            stopScroll();
+            if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+          }
+          return true;
+        }
+      } else if (e.getActionMasked() == MotionEvent.ACTION_MOVE && getScrollState() == SCROLL_STATE_IDLE) {
+        float dx = e.getX() - tgx101DownX, dy = e.getY() - tgx101DownY;
+        if (dx > 0 && dx > Math.abs(dy) * 1.3f && !org.thunderdog.challegram.core.Lang.rtl()) {
+          return false;
+        }
+      }
+    }
+
     return super.onInterceptTouchEvent(e);
+  }
+
+  private float tgx101DownX, tgx101DownY;
+
+  private boolean tgx101IsVertical () {
+    LayoutManager manager = getLayoutManager();
+    return manager != null && manager.canScrollVertically() && !manager.canScrollHorizontally();
+  }
+
+  /** a list still stretched at its edge (Android 12+) lets it go, as a fling would be stopped */
+  // a fling into the top or bottom leaves the list stretched (Android 12+) for a moment; RecyclerView «catches» that
+  // stretch on touch just like a fling — the touch lets it go first
+  private android.widget.EdgeEffect tgx101TopEdge, tgx101BottomEdge;
+
+  private void tgx101TrackEdges () {
+    setEdgeEffectFactory(new EdgeEffectFactory() {
+      @androidx.annotation.NonNull
+      @Override
+      protected android.widget.EdgeEffect createEdgeEffect (@androidx.annotation.NonNull RecyclerView view, int direction) {
+        android.widget.EdgeEffect edge = super.createEdgeEffect(view, direction);
+        if (direction == DIRECTION_TOP) tgx101TopEdge = edge;
+        else if (direction == DIRECTION_BOTTOM) tgx101BottomEdge = edge;
+        return edge;
+      }
+    });
+  }
+
+  private boolean tgx101ReleaseStretch () {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) return false;
+    boolean released = false;
+    for (android.widget.EdgeEffect edge : new android.widget.EdgeEffect[] {tgx101TopEdge, tgx101BottomEdge}) {
+      if (edge != null && edge.getDistance() != 0f) {
+        edge.finish();
+        released = true;
+      }
+    }
+    if (released) invalidate();
+    return released;
   }
 
   @Override

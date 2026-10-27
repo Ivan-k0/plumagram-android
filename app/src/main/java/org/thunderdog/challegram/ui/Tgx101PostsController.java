@@ -211,7 +211,7 @@ public class Tgx101PostsController extends ViewController<Tgx101PostsController.
     chipScroll.setVisibility(View.GONE);
     column.addView(chipScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-    RecyclerView list = new RecyclerView(context);
+    RecyclerView list = new org.thunderdog.challegram.v.CustomRecyclerView(context);
     listView = list;
     list.setLayoutManager(new GridLayoutManager(context, 3));
     int gap = Screen.dp(1.5f);

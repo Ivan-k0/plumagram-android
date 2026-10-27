@@ -107,7 +107,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   protected View onCreateView (Context context) {
     FrameLayout root = new FrameLayout(context);
     ViewSupport.setThemedBackground(root, ColorId.background, this);
-    list = new RecyclerView(context);
+    list = new org.thunderdog.challegram.v.CustomRecyclerView(context);
     list.setLayoutManager(new LinearLayoutManager(context, RecyclerView.VERTICAL, false));
     list.setItemAnimator(null);
     list.setAdapter(adapter);
