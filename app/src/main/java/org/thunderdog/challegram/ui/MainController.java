@@ -3546,22 +3546,35 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     viewer.open();
   }
 
+  /** the caption of a shared file, where it can carry one */
+  private static boolean tgx101SetCaption (TdApi.InputMessageContent content, TdApi.FormattedText caption) {
+    if (content instanceof TdApi.InputMessagePhoto) ((TdApi.InputMessagePhoto) content).caption = caption;
+    else if (content instanceof TdApi.InputMessageVideo) ((TdApi.InputMessageVideo) content).caption = caption;
+    else if (content instanceof TdApi.InputMessageDocument) ((TdApi.InputMessageDocument) content).caption = caption;
+    else if (content instanceof TdApi.InputMessageAudio) ((TdApi.InputMessageAudio) content).caption = caption;
+    else if (content instanceof TdApi.InputMessageAnimation) ((TdApi.InputMessageAnimation) content).caption = caption;
+    else return false;
+    return true;
+  }
+
   private void shareContents (final Tdlib tdlib, final String type, final ArrayList<TdApi.InputMessageContent> contents, boolean mergeAlbum) {
     if (contents.isEmpty()) {
       throw new IllegalArgumentException("Unsupported content type: " + type);
     }
-    if (tgx101ShareVideoWithPreview(tdlib, contents)) {
-      return;
-    }
+    // (user 2026-10-27 15:30 «двойное поле отправки — первого подтверждения достаточно»): no second screen of ours after
+    // the chat picker — the picker's comment is the caption, sent at once (tgx101ShareVideoWithPreview kept, unused)
     tdlib.ui().post(() -> tdlib.awaitInitialization(() -> tdlib.ui().post(() -> {
       ShareController c = new ShareController(context, tdlib);
 
+      final TdApi.FormattedText[] comment = new TdApi.FormattedText[1];
       ShareController.ShareProviderDelegate shareDelegate = new ShareController.ShareProviderDelegate() {
         @Override
         public void generateFunctionsForChat (long chatId, TdApi.Chat chat, TdApi.MessageSendOptions sendOptions, ArrayList<TdApi.Function<?>> functions) {
           List<TdApi.InputMessageContent> album = null;
+          boolean captionPut = comment[0] == null;
           for (TdApi.InputMessageContent content : contents) {
             content = tdlib.filegen().createThumbnail(content, ChatId.isSecret(chatId));
+            if (!captionPut && tgx101SetCaption(content, comment[0])) captionPut = true; // the picker's comment on the first file
             if (mergeAlbum) {
               int combineMode = TD.getCombineMode(content);
               if (combineMode == TD.COMBINE_MODE_MEDIA) {
@@ -3594,7 +3607,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         }
       };
 
-      c.setArguments(new ShareController.Args(shareDelegate).setNeedOpenChat(true));
+      c.setArguments(new ShareController.Args(shareDelegate).setNeedOpenChat(true).setTgx101CommentSink(text -> comment[0] = text));
       // TGx101: shared into the app while a chat with the keyboard was open — the keyboard came back over the chat
       // picker and only the keyboard was visible: hide it first, show the picker once it is down
       tgx101ShowOverKeyboard(c);

@@ -833,6 +833,18 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
   private android.widget.EdgeEffect tgx101TopEdge, tgx101BottomEdge;
   private float tgx101DownX, tgx101DownY;
 
+  /** (log 2026-10-27 15:33: «messages list: drag starts» 1 ms after the finger landed on a list that was still moving or
+   *  stretched): RecyclerView «catches» it on the down — dragging at once and holding the finger from its parents, so the
+   *  back swipe never saw it. The catch is undone: the list starts dragging only when the finger really goes up or down */
+  private void tgx101InterceptDownNotDragging (MotionEvent e) {
+    super.onInterceptTouchEvent(e);
+    if (getScrollState() == SCROLL_STATE_DRAGGING) {
+      stopScroll();
+      if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+      org.thunderdog.challegram.Tgx101Diag.mark("messages list: caught on down — let go for the back swipe");
+    }
+  }
+
   private boolean tgx101ReleaseStretch () {
     if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) return false;
     boolean released = false;
@@ -857,7 +869,8 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
       tgx101FlingEndTime = 0;
       tgx101DownX = e.getX();
       tgx101DownY = e.getY();
-      super.onInterceptTouchEvent(e);
+      tgx101ReleaseStretch();
+      tgx101InterceptDownNotDragging(e);
       return true; // the same: right after a fling the finger is the list's, the back swipe can take it
     } else if (e.getActionMasked() == MotionEvent.ACTION_DOWN && (tgx101ReleaseStretch() | getScrollState() == SCROLL_STATE_SETTLING)) {
       // TGx101 (user 2026-10-05): a touch on a still-flinging list caught the gesture for the list
@@ -869,7 +882,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
       // list keeps this finger itself, a message under it never takes it and so never holds it from the back swipe
       tgx101DownX = e.getX();
       tgx101DownY = e.getY();
-      super.onInterceptTouchEvent(e);
+      tgx101InterceptDownNotDragging(e);
       return true;
     } else if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
       tgx101StoppedFling = false;
