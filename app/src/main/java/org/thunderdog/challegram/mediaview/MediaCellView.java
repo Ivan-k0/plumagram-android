@@ -986,7 +986,10 @@ public class MediaCellView extends ViewGroup implements
       int fromHeight = fromBottom - fromTop;
 
       float ratio = Math.max((float) fromWidth / (float) imageWidth, (float) fromHeight / (float) imageHeight);
-      if (ratio != 1f) {
+      // TGx101 (user video 2026-10-27 15:03, log «to 200,1844–1248,2324 … image 1280×480»): the place's height equalled the
+      // picture's to the pixel, the scale came out exactly 1 and the crop to the place's shape was skipped — a wide photo
+      // landed whole (lower and narrower than its place) and the bubble then drew it cropped: a jump. Always worked out now
+      if (imageWidth > 0 && imageHeight > 0) {
         int actualFromWidth = (int) ((float) imageWidth * ratio);
         int actualFromHeight = (int) ((float) imageHeight * ratio);
 
