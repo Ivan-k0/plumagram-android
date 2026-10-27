@@ -241,7 +241,7 @@ public final class Tgx101BarOrder {
   public static void applyToChatMenu (me.vkryl.core.collection.IntList ids, org.thunderdog.challegram.util.StringList strings) {
     List<String> order = getOrder(BAR_CHAT_MENU);
     int n = ids.size();
-    int[] srcIds = ids.get();
+    int[] srcIds = ids.get().clone(); // a copy: IntList.get() hands out its own array, which the appends below overwrite (log 2026-10-28 01:27: «media true → false»)
     String[] srcStrings = strings.get();
     ids.clear();
     strings.clear();
