@@ -1892,4 +1892,11 @@
   <item name="btn_tgx101ChatMediaLimit" type="id"/>
   <item name="btn_tgx101ChatMediaAutoplay" type="id"/>
   <item name="btn_tgx101ChatMediaReset" type="id"/>
+  <item name="menu_btn_tgx101GazetaProfile" type="id"/>
+  <item name="btn_tgx101GazetaFont" type="id"/>
+  <item name="btn_tgx101GazetaColor" type="id"/>
+  <item name="btn_tgx101GazetaPicture" type="id"/>
+  <item name="btn_tgx101GazetaReactions" type="id"/>
+  <item name="btn_tgx101GazetaStars" type="id"/>
+  <item name="btn_tgx101GazetaBird" type="id"/>
 </resources>

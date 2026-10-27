@@ -26,8 +26,10 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * TGx101 «Газета» settings (user 2026-10-27): how photos show (as is / a thumbnail), whether long posts fold, the
- * archived channels, and every subscribed channel with a tick — «Select all» / «Deselect all» on top of the list
+ * TGx101 «Газета» settings (user 2026-10-27). The look belongs to the profile switched on by ☀/☾ in the feed's header
+ * (light or dark): font size, colour of the posts, photos as is or a thumbnail, pictures' brightness and saturation,
+ * how long posts fold. For both: reactions, stars, the bird, the archived channels, and every subscribed channel
+ * with a tick — «Select all» / «Deselect all» on top of the list.
  */
 public class Tgx101GazetaSettingsController extends RecyclerViewController<Void> implements View.OnClickListener {
   public Tgx101GazetaSettingsController (Context context, Tdlib tdlib) {
@@ -47,14 +49,53 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
   private SettingsAdapter adapter;
   private long[] channels = new long[0];
 
+  private static String fontName (float sp) {
+    return ((int) sp) + " sp";
+  }
+
+  private static int[] paletteNames () {
+    return Tgx101Gazeta.profile() == Tgx101Gazeta.PROFILE_DARK ? Tgx101Gazeta.DARK_PALETTE_NAMES : Tgx101Gazeta.LIGHT_PALETTE_NAMES;
+  }
+
+  private static String foldName (int fold) {
+    switch (fold) {
+      case Tgx101Gazeta.FOLD_NONE: return Lang.getString(R.string.Tgx101GazetaFoldNone);
+      case Tgx101Gazeta.FOLD_8: return Lang.getString(R.string.Tgx101GazetaFoldLines, 8);
+      case Tgx101Gazeta.FOLD_SHORT: return Lang.getString(R.string.Tgx101GazetaFoldShort);
+      case Tgx101Gazeta.FOLD_10: default: return Lang.getString(R.string.Tgx101GazetaFoldLines, 10);
+    }
+  }
+
+  private static String pictureName () {
+    int b = Tgx101Gazeta.brightness(), s = Tgx101Gazeta.saturation();
+    for (int i = 0; i < Tgx101Gazeta.PICTURE_PRESETS.length; i++) {
+      if (Tgx101Gazeta.PICTURE_PRESETS[i][0] == b && Tgx101Gazeta.PICTURE_PRESETS[i][1] == s) return Lang.getString(Tgx101Gazeta.PICTURE_PRESET_NAMES[i]);
+    }
+    return Lang.getString(R.string.Tgx101GazetaPicCustom, b, s);
+  }
+
   @Override
   protected void onCreateView (Context context, CustomRecyclerView recyclerView) {
     adapter = new SettingsAdapter(this) {
       @Override
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
         int id = item.getId();
-        if (id == R.id.btn_tgx101GazetaFold) {
-          view.getToggler().setRadioEnabled(Tgx101Gazeta.foldLong(), isUpdate);
+        if (id == R.id.btn_tgx101GazetaFont) {
+          view.setData(fontName(Tgx101Gazeta.fontSize()));
+        } else if (id == R.id.btn_tgx101GazetaColor) {
+          view.setData(Lang.getString(paletteNames()[Tgx101Gazeta.paletteIndex()]));
+        } else if (id == R.id.btn_tgx101GazetaPhotos) {
+          view.setData(Lang.getString(Tgx101Gazeta.photos() == Tgx101Gazeta.PHOTOS_THUMB ? R.string.Tgx101GazetaPhotosThumb : R.string.Tgx101GazetaPhotosAsIs));
+        } else if (id == R.id.btn_tgx101GazetaPicture) {
+          view.setData(pictureName());
+        } else if (id == R.id.btn_tgx101GazetaFold) {
+          view.setData(foldName(Tgx101Gazeta.fold()));
+        } else if (id == R.id.btn_tgx101GazetaReactions) {
+          view.getToggler().setRadioEnabled(Tgx101Gazeta.reactions(), isUpdate);
+        } else if (id == R.id.btn_tgx101GazetaStars) {
+          view.getToggler().setRadioEnabled(Tgx101Gazeta.stars(), isUpdate);
+        } else if (id == R.id.btn_tgx101GazetaBird) {
+          view.getToggler().setRadioEnabled(Tgx101Gazeta.bird(), isUpdate);
         } else if (id == R.id.btn_tgx101GazetaArchive) {
           view.getToggler().setRadioEnabled(Tgx101Gazeta.withArchive(tdlib), isUpdate);
         }
@@ -69,17 +110,27 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
       if (isDestroyed()) return;
       channels = all;
       Set<Long> off = Tgx101Gazeta.excluded(tdlib);
-      int photos = Tgx101Gazeta.photos();
       List<ListItem> items = new ArrayList<>();
       items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
-      items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101GazetaPhotos));
+      items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, Tgx101Gazeta.profile() == Tgx101Gazeta.PROFILE_DARK ? R.string.Tgx101GazetaLookDark : R.string.Tgx101GazetaLookLight));
       items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-      items.add(new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101GazetaPhotosAsIs, 0, R.string.Tgx101GazetaPhotosAsIs, R.id.btn_tgx101GazetaPhotos, photos == Tgx101Gazeta.PHOTOS_AS_IS));
+      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101GazetaFont, 0, R.string.Tgx101GazetaFont));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-      items.add(new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101GazetaPhotosThumb, 0, R.string.Tgx101GazetaPhotosThumb, R.id.btn_tgx101GazetaPhotos, photos == Tgx101Gazeta.PHOTOS_THUMB));
+      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101GazetaColor, 0, R.string.Tgx101GazetaColor));
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101GazetaPhotos, 0, R.string.Tgx101GazetaPhotos));
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101GazetaPicture, 0, R.string.Tgx101GazetaPicture));
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101GazetaFold, 0, R.string.Tgx101GazetaFold));
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+      items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101GazetaLookHint));
       items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-      items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GazetaFold, 0, R.string.Tgx101GazetaFold));
+      items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GazetaReactions, 0, R.string.Tgx101GazetaReactions));
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+      items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GazetaStars, 0, R.string.Tgx101GazetaStars));
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+      items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GazetaBird, 0, R.string.Tgx101GazetaBird));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
       items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GazetaArchive, 0, R.string.Tgx101GazetaArchive));
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
@@ -110,14 +161,99 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
     adapter.notifyDataSetChanged();
   }
 
+  private interface Choice {
+    void onChoice (int which);
+  }
+
+  private void choose (int titleRes, String[] names, int current, Choice choice) {
+    int[] ids = new int[names.length], icons = new int[names.length];
+    for (int i = 0; i < names.length; i++) {
+      ids[i] = i + 1;
+      icons[i] = i == current ? R.drawable.baseline_check_24 : 0;
+    }
+    showOptions(Lang.getString(titleRes), ids, names, null, icons, (v, id) -> {
+      choice.onChoice(id - 1);
+      return true;
+    });
+  }
+
   @Override
   public void onClick (View v) {
     int id = v.getId();
-    if (id == R.id.btn_tgx101GazetaPhotosAsIs || id == R.id.btn_tgx101GazetaPhotosThumb) {
-      adapter.processToggle(v);
-      Tgx101Gazeta.setPhotos(id == R.id.btn_tgx101GazetaPhotosThumb ? Tgx101Gazeta.PHOTOS_THUMB : Tgx101Gazeta.PHOTOS_AS_IS);
+    if (id == R.id.btn_tgx101GazetaFont) {
+      float[] sizes = Tgx101Gazeta.FONT_SIZES;
+      String[] names = new String[sizes.length];
+      int current = -1;
+      for (int i = 0; i < sizes.length; i++) {
+        names[i] = fontName(sizes[i]);
+        if (sizes[i] == Tgx101Gazeta.fontSize()) current = i;
+      }
+      choose(R.string.Tgx101GazetaFont, names, current, which -> {
+        Tgx101Gazeta.setFontSize(sizes[which]);
+        adapter.updateValuedSettingById(id);
+      });
+    } else if (id == R.id.btn_tgx101GazetaColor) {
+      int[] res = paletteNames();
+      String[] names = new String[res.length];
+      for (int i = 0; i < res.length; i++) names[i] = Lang.getString(res[i]);
+      choose(R.string.Tgx101GazetaColor, names, Tgx101Gazeta.paletteIndex(), which -> {
+        Tgx101Gazeta.setPaletteIndex(which);
+        adapter.updateValuedSettingById(id);
+      });
+    } else if (id == R.id.btn_tgx101GazetaPhotos) {
+      choose(R.string.Tgx101GazetaPhotos, new String[] {Lang.getString(R.string.Tgx101GazetaPhotosAsIs), Lang.getString(R.string.Tgx101GazetaPhotosThumb)}, Tgx101Gazeta.photos(), which -> {
+        Tgx101Gazeta.setPhotos(which == 1 ? Tgx101Gazeta.PHOTOS_THUMB : Tgx101Gazeta.PHOTOS_AS_IS);
+        adapter.updateValuedSettingById(id);
+      });
+    } else if (id == R.id.btn_tgx101GazetaPicture) {
+      // quick sets first, then brightness and saturation one by one
+      int n = Tgx101Gazeta.PICTURE_PRESETS.length;
+      String[] names = new String[n + 2];
+      int current = -1;
+      for (int i = 0; i < n; i++) {
+        names[i] = Lang.getString(Tgx101Gazeta.PICTURE_PRESET_NAMES[i]);
+        if (Tgx101Gazeta.PICTURE_PRESETS[i][0] == Tgx101Gazeta.brightness() && Tgx101Gazeta.PICTURE_PRESETS[i][1] == Tgx101Gazeta.saturation()) current = i;
+      }
+      names[n] = Lang.getString(R.string.Tgx101GazetaBrightness) + ": " + Tgx101Gazeta.brightness() + "%";
+      names[n + 1] = Lang.getString(R.string.Tgx101GazetaSaturation) + ": " + Tgx101Gazeta.saturation() + "%";
+      choose(R.string.Tgx101GazetaPicture, names, current, which -> {
+        if (which < n) {
+          Tgx101Gazeta.setPicture(Tgx101Gazeta.PICTURE_PRESETS[which][0], Tgx101Gazeta.PICTURE_PRESETS[which][1]);
+          adapter.updateValuedSettingById(id);
+        } else {
+          boolean bright = which == n;
+          int[] values = bright ? new int[] {60, 70, 80, 90, 100, 110, 120} : new int[] {0, 25, 50, 75, 100, 125, 150};
+          String[] labels = new String[values.length];
+          int now = bright ? Tgx101Gazeta.brightness() : Tgx101Gazeta.saturation(), at = -1;
+          for (int i = 0; i < values.length; i++) {
+            labels[i] = values[i] + "%";
+            if (values[i] == now) at = i;
+          }
+          choose(bright ? R.string.Tgx101GazetaBrightness : R.string.Tgx101GazetaSaturation, labels, at, w -> {
+            if (bright) Tgx101Gazeta.setPicture(values[w], Tgx101Gazeta.saturation());
+            else Tgx101Gazeta.setPicture(Tgx101Gazeta.brightness(), values[w]);
+            adapter.updateValuedSettingById(id);
+          });
+        }
+      });
     } else if (id == R.id.btn_tgx101GazetaFold) {
-      Tgx101Gazeta.setFoldLong(adapter.toggleView(v));
+      int[] folds = {Tgx101Gazeta.FOLD_SHORT, Tgx101Gazeta.FOLD_8, Tgx101Gazeta.FOLD_10, Tgx101Gazeta.FOLD_NONE};
+      String[] names = new String[folds.length];
+      int current = -1;
+      for (int i = 0; i < folds.length; i++) {
+        names[i] = foldName(folds[i]);
+        if (folds[i] == Tgx101Gazeta.fold()) current = i;
+      }
+      choose(R.string.Tgx101GazetaFold, names, current, which -> {
+        Tgx101Gazeta.setFold(folds[which]);
+        adapter.updateValuedSettingById(id);
+      });
+    } else if (id == R.id.btn_tgx101GazetaReactions) {
+      Tgx101Gazeta.setReactions(adapter.toggleView(v));
+    } else if (id == R.id.btn_tgx101GazetaStars) {
+      Tgx101Gazeta.setStars(adapter.toggleView(v));
+    } else if (id == R.id.btn_tgx101GazetaBird) {
+      Tgx101Gazeta.setBird(adapter.toggleView(v));
     } else if (id == R.id.btn_tgx101GazetaArchive) {
       Tgx101Gazeta.setWithArchive(tdlib, adapter.toggleView(v));
       build();

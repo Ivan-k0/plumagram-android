@@ -135,6 +135,7 @@ public final class Tgx101Bird {
     if (c instanceof MainController) return enabled();
     if (c instanceof ChatsController) return ((ChatsController) c).tgx101IsOwnList() && enabled();
     if (c instanceof MessagesController) return ((MessagesController) c).tgx101WantsBird();
+    if (c instanceof Tgx101GazetaController) return Tgx101Gazeta.bird() && Settings.instance().tgx101Bird(); // (user 2026-10-27) if switched on in its settings
     return false;
   }
 

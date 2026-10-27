@@ -16,6 +16,7 @@ import androidx.annotation.Nullable;
 
 import org.drinkless.tdlib.TdApi;
 import org.thunderdog.challegram.BaseActivity;
+import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.data.TD;
 import org.thunderdog.challegram.navigation.NavigationController;
 import org.thunderdog.challegram.navigation.ViewController;
@@ -74,21 +75,135 @@ public final class Tgx101Gazeta {
     cache.remove(tdlib.id());
   }
 
+  // ---- two profiles of the look: light and dark (user 2026-10-27), switched by ☀/☾ in the feed's header ----
+
+  public static final int PROFILE_LIGHT = 0, PROFILE_DARK = 1;
+
+  public static int profile () {
+    int p = Settings.instance().pmc().getInt("tgx101_gazeta_profile", -1);
+    return p == -1 ? (org.thunderdog.challegram.theme.Theme.isDark() ? PROFILE_DARK : PROFILE_LIGHT) : p;
+  }
+
+  public static void setProfile (int profile) {
+    Settings.instance().pmc().putInt("tgx101_gazeta_profile", profile);
+  }
+
+  private static String pkey (String name) {
+    return "tgx101_gazeta_" + name + "_p" + profile();
+  }
+
   public static int photos () {
-    return Settings.instance().pmc().getInt("tgx101_gazeta_photos", PHOTOS_AS_IS);
+    return Settings.instance().pmc().getInt(pkey("photos"), PHOTOS_AS_IS);
   }
 
   public static void setPhotos (int value) {
-    Settings.instance().pmc().putInt("tgx101_gazeta_photos", value);
+    Settings.instance().pmc().putInt(pkey("photos"), value);
   }
 
-  /** long posts fold to a few lines with «Show in full» */
-  public static boolean foldLong () {
-    return Settings.instance().pmc().getBoolean("tgx101_gazeta_fold", true);
+  public static final int FOLD_NONE = 0, FOLD_8 = 8, FOLD_10 = 10, FOLD_SHORT = 1;
+
+  /** how long posts fold: not at all, to 8 or 10 lines, or to 10 lines with «✨ Short» (the AI summary) */
+  public static int fold () {
+    return Settings.instance().pmc().getInt(pkey("fold"), FOLD_10);
   }
 
-  public static void setFoldLong (boolean value) {
-    Settings.instance().pmc().putBoolean("tgx101_gazeta_fold", value);
+  public static void setFold (int value) {
+    Settings.instance().pmc().putInt(pkey("fold"), value);
+  }
+
+  public static final float[] FONT_SIZES = {13f, 14f, 15f, 16f, 17f, 18f, 20f, 22f};
+
+  public static float fontSize () {
+    return Settings.instance().pmc().getFloat(pkey("font"), 15f);
+  }
+
+  public static void setFontSize (float sp) {
+    Settings.instance().pmc().putFloat(pkey("font"), sp);
+  }
+
+  /** {page, card, text, secondary text, link} — reading colours, as in e-readers */
+  public static final int[][] LIGHT_PALETTES = {
+    {0xffeef1f4, 0xffffffff, 0xff1b1f23, 0xff7b8794, 0xff2a7bd1}, // white
+    {0xffe9dfc9, 0xfff6eedc, 0xff3b2f20, 0xff8a7a62, 0xff9a5b1e}, // sepia
+    {0xfff1ece0, 0xfffffbf0, 0xff2b2925, 0xff8c867a, 0xff3a72b0}, // cream
+    {0xffd9dcdf, 0xffeceef0, 0xff202326, 0xff6f767d, 0xff2f6fae}  // grey
+  };
+  public static final int[][] DARK_PALETTES = {
+    {0xff0e1621, 0xff17212b, 0xffe9eef2, 0xff7d8b99, 0xff6ab3f3}, // dark
+    {0xff1a1611, 0xff26201a, 0xffe6d9c3, 0xff9c8c74, 0xffd9a46a}, // night sepia
+    {0xff000000, 0xff0d0d0d, 0xffdedede, 0xff7a7a7a, 0xff6ab3f3}, // black
+    {0xff1c1d1f, 0xff2a2b2e, 0xffe4e4e6, 0xff8b8d91, 0xff8ab4f8}  // graphite
+  };
+  public static final int[] LIGHT_PALETTE_NAMES = {R.string.Tgx101GazetaColorWhite, R.string.Tgx101GazetaColorSepia, R.string.Tgx101GazetaColorCream, R.string.Tgx101GazetaColorGrey};
+  public static final int[] DARK_PALETTE_NAMES = {R.string.Tgx101GazetaColorDark, R.string.Tgx101GazetaColorNightSepia, R.string.Tgx101GazetaColorBlack, R.string.Tgx101GazetaColorGraphite};
+
+  public static int paletteIndex () {
+    return Math.max(0, Math.min(3, Settings.instance().pmc().getInt(pkey("palette"), 0)));
+  }
+
+  public static void setPaletteIndex (int index) {
+    Settings.instance().pmc().putInt(pkey("palette"), index);
+  }
+
+  public static int[] palette () {
+    return (profile() == PROFILE_DARK ? DARK_PALETTES : LIGHT_PALETTES)[paletteIndex()];
+  }
+
+  /** brightness and saturation of the posts' pictures, percent */
+  public static int brightness () {
+    return Settings.instance().pmc().getInt(pkey("bright"), 100);
+  }
+
+  public static int saturation () {
+    return Settings.instance().pmc().getInt(pkey("sat"), 100);
+  }
+
+  public static void setPicture (int brightness, int saturation) {
+    Settings.instance().pmc().edit().putInt(pkey("bright"), brightness).putInt(pkey("sat"), saturation).apply();
+  }
+
+  /** quick sets: as is, soft for the night, black and white, juicy */
+  public static final int[][] PICTURE_PRESETS = {{100, 100}, {80, 75}, {100, 0}, {105, 140}};
+  public static final int[] PICTURE_PRESET_NAMES = {R.string.Tgx101GazetaPicAsIs, R.string.Tgx101GazetaPicNight, R.string.Tgx101GazetaPicBw, R.string.Tgx101GazetaPicJuicy};
+
+  @Nullable
+  public static android.graphics.ColorMatrixColorFilter pictureFilter () {
+    int b = brightness(), s = saturation();
+    if (b == 100 && s == 100) return null;
+    android.graphics.ColorMatrix m = new android.graphics.ColorMatrix();
+    m.setSaturation(s / 100f);
+    float k = b / 100f;
+    android.graphics.ColorMatrix scale = new android.graphics.ColorMatrix();
+    scale.setScale(k, k, k, 1f);
+    m.postConcat(scale);
+    return new android.graphics.ColorMatrixColorFilter(m);
+  }
+
+  // ---- for both profiles ----
+
+  public static boolean reactions () {
+    return Settings.instance().pmc().getBoolean("tgx101_gazeta_reactions", true);
+  }
+
+  public static void setReactions (boolean value) {
+    Settings.instance().pmc().putBoolean("tgx101_gazeta_reactions", value);
+  }
+
+  public static boolean stars () {
+    return Settings.instance().pmc().getBoolean("tgx101_gazeta_stars", true);
+  }
+
+  public static void setStars (boolean value) {
+    Settings.instance().pmc().putBoolean("tgx101_gazeta_stars", value);
+  }
+
+  /** the bird over the feed (off unless switched on) */
+  public static boolean bird () {
+    return Settings.instance().pmc().getBoolean("tgx101_gazeta_bird", false);
+  }
+
+  public static void setBird (boolean value) {
+    Settings.instance().pmc().putBoolean("tgx101_gazeta_bird", value);
   }
 
   // the channels last found, per account: the side menu counts their unread posts without asking TDLib again
@@ -160,6 +275,9 @@ public final class Tgx101Gazeta {
     public final List<TdApi.Message> messages = new ArrayList<>();
     public boolean unread;
     public boolean expanded;
+    // the AI summary («✨ Short»)
+    public @Nullable TdApi.FormattedText summary;
+    public boolean summaryShown, summaryLoading;
 
     Post (long chatId) {
       this.chatId = chatId;
