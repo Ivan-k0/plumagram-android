@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TGx101 (user 2026-10-27): «Газета» — a sheet with a column on the right; the same icon everywhere -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="24dp"
+  android:height="24dp"
+  android:viewportWidth="24"
+  android:viewportHeight="24">
+  <path
+    android:fillColor="#FF000000"
+    android:pathData="M4,5h13v13a2,2 0,0 0,2 2H6a2,2 0,0 1,-2 -2zM19,8h2v10a2,2 0,0 1,-4 0V8zM7,8v3h7V8zM7,13v1.5h7V13zM7,16v1.5h7V16z"/>
+</vector>

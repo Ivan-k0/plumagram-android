@@ -317,9 +317,13 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
           view.setText(Lang.getDebugString(account.getName(), account.isDebug()));
           view.setCustomControllerProvider(DrawerController.this);
           view.setPreviewActionListProvider(DrawerController.this);
+        } else if (itemId == R.id.btn_tgx101Gazeta) {
+          view.tgx101SetGazetaCount(org.thunderdog.challegram.ui.Tgx101Gazeta.unreadCount(DrawerController.this.context.currentTdlib()), isUpdate);
         } else if (itemId == R.id.btn_settings && settingsClickBait != null) {
+          view.tgx101ClearGazetaCount();
           view.setClickBait(settingsClickBait.isError, settingsClickBait.iconRes, isUpdate);
         } else {
+          view.tgx101ClearGazetaCount();
           view.setClickBait(false, 0, isUpdate);
         }
       }
@@ -845,6 +849,8 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
       }
     } else if (viewId == R.id.btn_tgx101NewStory) {
       close(0f, () -> org.thunderdog.challegram.ui.Tgx101StoryEditor.pickAndOpen(context, context.currentTdlib()));
+    } else if (viewId == R.id.btn_tgx101Gazeta) {
+      close(0f, () -> org.thunderdog.challegram.ui.Tgx101Gazeta.open(context, context.currentTdlib()));
     } else if (viewId == R.id.btn_contacts) {
       openContacts();
       // openEmptyChat();
@@ -964,8 +970,14 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
           items.add(proxyItem);
           continue;
         case org.thunderdog.challegram.ui.Tgx101BarOrder.DRAWER_NIGHT:
-          if (items.size() > start) items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+          if (items.size() > start && items.get(items.size() - 1).getViewType() != ListItem.TYPE_SEPARATOR_FULL) items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
           items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM_WITH_RADIO, R.id.btn_night, R.drawable.baseline_brightness_2_24, R.string.NightMode, R.id.btn_night, Theme.isDark()));
+          continue;
+        case org.thunderdog.challegram.ui.Tgx101BarOrder.DRAWER_GAZETA:
+          // (user 2026-10-27): a plain row with its yellowish counter, set off by a line like «Night mode»
+          if (items.size() > start && items.get(items.size() - 1).getViewType() != ListItem.TYPE_SEPARATOR_FULL) items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+          items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_tgx101Gazeta, R.drawable.tgx101_gazeta_24, R.string.Tgx101Gazeta));
+          items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
           continue;
         case org.thunderdog.challegram.ui.Tgx101BarOrder.DRAWER_PEEK:
           items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM_WITH_RADIO, R.id.btn_tgx101Peek, org.thunderdog.challegram.ui.Tgx101BarOrder.drawerIconOf(entry), R.string.Tgx101Peek, R.id.btn_tgx101Peek, org.thunderdog.challegram.data.Tgx101Peek.isOn()));
@@ -973,6 +985,7 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
       }
       items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, org.thunderdog.challegram.ui.Tgx101BarOrder.drawerIdOf(entry), org.thunderdog.challegram.ui.Tgx101BarOrder.drawerIconOf(entry), org.thunderdog.challegram.ui.Tgx101BarOrder.drawerNameOf(entry)));
     }
+    if (items.size() > start && items.get(items.size() - 1).getViewType() == ListItem.TYPE_SEPARATOR_FULL) items.remove(items.size() - 1); // «Газета» last: no line under it
     // TGx101 (user 2026-10-12): a newer release sits at the very bottom — «Обновить PlumaGram · 0.1.N» → progress → «Установить»
     org.thunderdog.challegram.service.Tgx101Updates.restore(context);
     tgx101UpdateShown = tgx101HasUpdateRow();
@@ -1368,6 +1381,7 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
       } else if (factor > 0f && recyclerView.getItemAnimator() == null) {
         recyclerView.setItemAnimator(recyclerAnimator);
         checkSettingsClickBait();
+        adapter.updateValuedSettingById(R.id.btn_tgx101Gazeta); // «Газета»: fresh count of unread posts
       }
       cancelSupportOpen();
 

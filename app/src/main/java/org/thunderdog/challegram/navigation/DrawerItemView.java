@@ -245,6 +245,48 @@ public class DrawerItemView extends BaseView implements FactorAnimator.Target, A
     }
   }
 
+  // TGx101 (user 2026-10-27): «Газета» counts its unread posts in a yellowish badge, like newsprint
+  private static final org.thunderdog.challegram.util.text.TextColorSet TGX101_GAZETA_COLORS = new org.thunderdog.challegram.util.text.TextColorSet() {
+    @Override
+    public int defaultTextColor () {
+      return 0xff2a2210;
+    }
+
+    @Override
+    public int backgroundColor (boolean isPressed) {
+      return 0xffd9b46a;
+    }
+  };
+
+  private boolean tgx101GazetaCounter;
+
+  /** a recycled row that showed «Газета» drops its badge */
+  public void tgx101ClearGazetaCount () {
+    if (tgx101GazetaCounter) {
+      tgx101GazetaCounter = false;
+      this.counter = null;
+      trimText(false);
+      invalidate();
+    }
+  }
+
+  public void tgx101SetGazetaCount (int count, boolean animated) {
+    if (count == 0 && this.counter == null)
+      return;
+    if (this.counter == null || !tgx101GazetaCounter) {
+      tgx101GazetaCounter = true;
+      this.counter = new Counter.Builder()
+        .colorSet(TGX101_GAZETA_COLORS)
+        .callback((counter, sizeChanged) -> {
+          if (sizeChanged) {
+            trimText(false);
+          }
+          invalidate();
+        }).build();
+    }
+    this.counter.setCount(count, false, animated);
+  }
+
   public void setUnreadCount (int unreadCount, boolean muted, boolean animated) {
     if (unreadCount == 0 && this.counter == null && iconDrawableRes == 0)
       return;

@@ -38,25 +38,26 @@ public final class Tgx101Bird {
   private Tgx101Bird () { }
 
   public static final int ACTION_STORAGE = 0, ACTION_PROXY = 1, ACTION_ACCOUNTS = 2, ACTION_CALLS = 3, ACTION_SETTINGS = 4,
-    ACTION_COMPOSE = 5, ACTION_SEARCH = 6, ACTION_NEXT_ACCOUNT = 7, ACTION_NOTE = 8, ACTION_MENU = 9, ACTION_NIGHT = 10, ACTION_PEEK = 11;
+    ACTION_COMPOSE = 5, ACTION_SEARCH = 6, ACTION_NEXT_ACCOUNT = 7, ACTION_NOTE = 8, ACTION_MENU = 9, ACTION_NIGHT = 10, ACTION_PEEK = 11, ACTION_GAZETA = 12;
   public static final int MAX = 7; // (user 2026-10-22 «7 возможных кнопок вместо 5, в два ряда — 4 и 3»)
 
   /** the order of the bits in {@link Settings#tgx101BirdRing()} */
   public static final int[] TITLES = {
     R.string.Tgx101BirdStorage, R.string.Tgx101BirdProxy, R.string.Tgx101BirdAccounts, R.string.Tgx101BirdCalls, R.string.Tgx101BirdSettings,
     R.string.Tgx101BirdCompose, R.string.Tgx101BirdSearch, R.string.Tgx101BirdNextAccount, R.string.Tgx101BirdNote,
-    R.string.Tgx101BirdMenu, R.string.Tgx101BirdNight, R.string.Tgx101Peek
+    R.string.Tgx101BirdMenu, R.string.Tgx101BirdNight, R.string.Tgx101Peek, R.string.Tgx101Gazeta
   };
   private static final int[] ICONS = {
     R.drawable.tgx101_storage_tiles_24, R.drawable.baseline_security_24, R.drawable.baseline_group_24, R.drawable.baseline_phone_24, R.drawable.baseline_settings_24,
     R.drawable.baseline_chat_bubble_24, R.drawable.baseline_search_24, R.drawable.baseline_swap_horiz_24, R.drawable.baseline_create_24,
-    R.drawable.tgx101_menu_24, R.drawable.baseline_brightness_2_24, R.drawable.baseline_visibility_24
+    R.drawable.tgx101_menu_24, R.drawable.baseline_brightness_2_24, R.drawable.baseline_visibility_24, R.drawable.tgx101_gazeta_24
   };
   // one colour per action, none alike (user 2026-10-22 «нужно больше цветов, попадаются одинаковые»)
   private static final int[] COLORS = {
     0xff3d9be9 /* storage: blue */, 0xff26a69a /* proxy: teal */, 0xff9c6ade /* accounts: purple */, 0xff43a047 /* calls: green */,
     0xff78909c /* settings: grey */, 0xff00acc1 /* compose: cyan */, 0xffafb42b /* search: lime */, 0xffe57373 /* next account: red */,
-    0xffffa726 /* note: orange */, 0xff8d6e63 /* menu: brown */, 0xff3f51b5 /* night: indigo */, 0xffd81b60 /* peek: crimson */
+    0xffffa726 /* note: orange */, 0xff8d6e63 /* menu: brown */, 0xff3f51b5 /* night: indigo */, 0xffd81b60 /* peek: crimson */,
+    0xffc49a45 /* gazeta: newsprint yellow */
   };
 
   /** on every chat list while the side menu is used (not the bottom capsule) and ✎ is hidden */
@@ -413,6 +414,9 @@ public final class Tgx101Bird {
         break;
       case ACTION_PEEK:
         Tgx101PeekController.toggleWithToast();
+        break;
+      case ACTION_GAZETA:
+        host.navigateTo(new Tgx101GazetaController(context, tdlib));
         break;
       case ACTION_NEXT_ACCOUNT: {
         List<TdlibAccount> accounts = TdlibManager.instance().getActiveAccounts();

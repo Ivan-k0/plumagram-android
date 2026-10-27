@@ -1487,12 +1487,13 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   /** Hold menu of «Settings»: the order here is the order of the bits in {@link Settings#tgx101CapsuleMenu()} */
   public static final int[] TGX101_CAPSULE_MENU_ICONS = {
     R.drawable.baseline_bookmark_24, R.drawable.baseline_format_list_bulleted_type_24, R.drawable.baseline_brightness_2_24,
-    R.drawable.baseline_account_circle_24, R.drawable.baseline_stars_24, R.drawable.baseline_security_24, R.drawable.baseline_visibility_24
+    R.drawable.baseline_account_circle_24, R.drawable.baseline_stars_24, R.drawable.baseline_security_24, R.drawable.baseline_visibility_24,
+    R.drawable.tgx101_gazeta_24
   };
   public static final int[] TGX101_CAPSULE_MENU_TITLES = {
-    R.string.SavedMessages, R.string.Tgx101SavedByChats, R.string.NightMode, R.string.Tgx101MyProfile, R.string.Tgx101Settings, R.string.Proxy, R.string.Tgx101Peek
+    R.string.SavedMessages, R.string.Tgx101SavedByChats, R.string.NightMode, R.string.Tgx101MyProfile, R.string.Tgx101Settings, R.string.Proxy, R.string.Tgx101Peek, R.string.Tgx101Gazeta
   };
-  private static final int TGX101_CAPSULE_MENU_PEEK = 6;
+  private static final int TGX101_CAPSULE_MENU_PEEK = 6, TGX101_CAPSULE_MENU_GAZETA = 7;
 
   // Hold menus of «Contacts» (user 2026-10-06: «как настройки, с возможностью добавлять кнопки») and «Calls» (5 quick contacts)
   public static final int[] TGX101_CONTACTS_MENU_ICONS = {
@@ -1852,6 +1853,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       case TGX101_CAPSULE_MENU_PEEK:
         Tgx101PeekController.toggleWithToast();
         break;
+      case TGX101_CAPSULE_MENU_GAZETA:
+        current.navigateTo(new Tgx101GazetaController(context, tdlib));
+        break;
     }
   }
 
@@ -1921,6 +1925,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         break;
       case Tgx101NavCapsule.TAB_SETTINGS:
         tgx101PushTab(new SettingsController(context, tdlib), tab);
+        break;
+      case Tgx101NavCapsule.TAB_GAZETA:
+        tgx101PushTab(new Tgx101GazetaController(context, tdlib), tab);
         break;
       case Tgx101NavCapsule.TAB_PROFILE: {
         // the own profile, as a tab: the chat with oneself is made first when it isn't known yet

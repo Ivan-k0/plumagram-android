@@ -165,7 +165,7 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
         } else if (itemId == R.id.btn_reduceMotion) {
           v.getToggler().setRadioEnabled(Settings.instance().needReduceMotion(), isUpdate);
         } else if (itemId == R.id.btn_autoplayGIFs) {
-          v.getToggler().setRadioEnabled(Settings.instance().needAutoplayGIFs(), isUpdate);
+          v.setData(org.thunderdog.challegram.data.Tgx101ChatMedia.autoplayModeName(org.thunderdog.challegram.data.Tgx101ChatMedia.autoplayMode()));
         } else if (itemId == R.id.btn_saveToGallery) {
           v.getToggler().setRadioEnabled(Settings.instance().needSaveEditedMediaToGallery(), isUpdate);
         } else if (itemId == R.id.btn_mosaic) {
@@ -524,7 +524,7 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
         }
       });
     } else if (mode == MODE_INTERFACE_OPTIONS) {
-      items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_autoplayGIFs, 0, R.string.AutoplayGifs));
+      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_autoplayGIFs, 0, R.string.Tgx101AutoplayVideos)); // TGx101: everywhere / chosen channels / nowhere
       if (Config.IN_APP_BROWSER_AVAILABLE) {
         items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_useInAppBrowser, 0, R.string.UseInAppBrowser, Settings.instance().useInAppBrowser()));
@@ -982,7 +982,20 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
     } else if (viewId == R.id.btn_earpieceModeVideo) {
       showEarpieceOptions(true);
     } else if (viewId == R.id.btn_autoplayGIFs) {
-      Settings.instance().setAutoplayGIFs(adapter.toggleView(v));
+      int[] modes = {org.thunderdog.challegram.data.Tgx101ChatMedia.MODE_EVERYWHERE, org.thunderdog.challegram.data.Tgx101ChatMedia.MODE_CHOSEN, org.thunderdog.challegram.data.Tgx101ChatMedia.MODE_NOWHERE};
+      int current = org.thunderdog.challegram.data.Tgx101ChatMedia.autoplayMode();
+      String[] names = new String[modes.length];
+      int[] ids = new int[modes.length], icons = new int[modes.length];
+      for (int i = 0; i < modes.length; i++) {
+        names[i] = org.thunderdog.challegram.data.Tgx101ChatMedia.autoplayModeName(modes[i]);
+        ids[i] = i + 1;
+        icons[i] = modes[i] == current ? R.drawable.baseline_check_24 : 0;
+      }
+      showOptions(Lang.getString(R.string.Tgx101AutoplayHint), ids, names, null, icons, (view, id) -> {
+        org.thunderdog.challegram.data.Tgx101ChatMedia.setAutoplayMode(modes[id - 1]);
+        adapter.updateValuedSettingById(R.id.btn_autoplayGIFs);
+        return true;
+      });
     } else if (viewId == R.id.btn_cameraSetting) {
       ListItem item = ((ListItem) v.getTag());
       Settings.instance().setNewSetting(item.getLongId(), item.getBoolValue() != adapter.toggleView(v));

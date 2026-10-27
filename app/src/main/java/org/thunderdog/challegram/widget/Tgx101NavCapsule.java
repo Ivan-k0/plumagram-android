@@ -26,7 +26,7 @@ import me.vkryl.core.ColorUtils;
  * white ~92 % capsule with a soft shadow; the selected icon lights up, a line under it slides along the bottom edge (animation variant A).
  */
 public class Tgx101NavCapsule extends View {
-  public static final int TAB_CHATS = 0, TAB_CONTACTS = 1, TAB_CALLS = 2, TAB_SETTINGS = 3, TAB_PROFILE = 4;
+  public static final int TAB_CHATS = 0, TAB_CONTACTS = 1, TAB_CALLS = 2, TAB_SETTINGS = 3, TAB_PROFILE = 4, TAB_GAZETA = 5;
 
   public static final float HEIGHT_DP = 58f, MARGIN_DP = 14f, CORNER_DP = 18f;
 
@@ -42,7 +42,8 @@ public class Tgx101NavCapsule extends View {
     R.drawable.baseline_person_24,
     R.drawable.baseline_phone_24,
     R.drawable.baseline_settings_24,
-    R.drawable.baseline_account_circle_24 // «Profile» — drawn as the account's avatar once it's known
+    R.drawable.baseline_account_circle_24, // «Profile» — drawn as the account's avatar once it's known
+    R.drawable.tgx101_gazeta_24 // «Газета» (user 2026-10-27)
   };
 
   // TGx101 (user 2026-10-18): which tabs stand in the capsule, left to right (Settings → MagiX → «Bottom menu tabs»).

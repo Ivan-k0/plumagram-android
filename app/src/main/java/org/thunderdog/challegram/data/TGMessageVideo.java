@@ -113,7 +113,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     this.mutedVideoFile = new GifFile(tdlib, videoNote.video, GifFile.TYPE_MPEG4);
     this.mutedVideoFile.setIsRoundVideo(msg.chatId, msg.id);
     this.mutedVideoFile.setRequestedSize(Screen.dp(200f));
-    if (!Settings.instance().needAutoplayGIFs()) {
+    if (!Tgx101ChatMedia.autoplay(tdlib, msg.chatId)) { // TGx101: the channel's own autoplay, or the general one
       this.mutedVideoFile.setIsStill(true);
     }
 

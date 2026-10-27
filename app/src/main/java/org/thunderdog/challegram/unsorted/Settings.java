@@ -3877,6 +3877,11 @@ public class Settings {
       mask |= 1 << 6;
       pmc.edit().putInt(KEY_TGX101_CAPSULE_MENU, mask).putBoolean("tgx101_capsule_menu_peek", true).apply();
     }
+    if (!pmc.getBoolean("tgx101_capsule_menu_gazeta", false)) {
+      // «Газета» (user 2026-10-27): while «Contacts» keep their tab, it opens from the «Settings» hold
+      mask |= 1 << 7;
+      pmc.edit().putInt(KEY_TGX101_CAPSULE_MENU, mask).putBoolean("tgx101_capsule_menu_gazeta", true).apply();
+    }
     return mask;
   }
   public void setTgx101CapsuleMenu (int mask) { pmc.putInt(KEY_TGX101_CAPSULE_MENU, mask); }

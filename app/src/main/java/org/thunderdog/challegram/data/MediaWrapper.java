@@ -337,7 +337,7 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
     setNativeEmbed(nativeEmbed, true);
     if (isHot()) {
       fileProgress.setDownloadedIconRes(R.drawable.deproko_baseline_whatshot_24);
-    } else if ((customAutoplay && noAutoplay) || (!customAutoplay && !Settings.instance().needAutoplayGIFs())) {
+    } else if ((customAutoplay && noAutoplay) || (!customAutoplay && !org.thunderdog.challegram.data.Tgx101ChatMedia.autoplay(tdlib, chatId))) {
       this.forceNoAutoPlay = true;
       this.fileProgress.setDownloadedIconRes(R.drawable.deproko_baseline_gif_24);
     }

@@ -1595,6 +1595,15 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
   }
 
   public boolean downloadAutomatically (@Nullable TdApi.ChatType chatType) {
+    // TGx101 (user 2026-10-27): a channel's own «Media in this channel» rules come first
+    if (file != null && chatId != 0) {
+      Boolean own = org.thunderdog.challegram.data.Tgx101ChatMedia.download(tdlib, chatId, fileType, file.size);
+      if (own != null) {
+        if (!own) return false;
+        if (!TD.isFileLoaded(file)) tdlib.files().downloadFile(file);
+        return true;
+      }
+    }
     return file != null && tdlib.files().downloadAutomatically(file, chatType, fileType, currentState == TdlibFilesManager.STATE_PAUSED);
   }
 

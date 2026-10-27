@@ -3206,6 +3206,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (chat != null) {
         tdlib.ui().toggleMute(this, chat.id, false, null);
       }
+    } else if (id == R.id.btn_tgx101ChatMedia) {
+      if (chat != null) {
+        org.thunderdog.challegram.data.Tgx101ChatMedia.openSheet(this, chat.id);
+      }
     } else if (id == R.id.btn_tgx101ChatNotifications) {
       if (chat != null) {
         SettingsNotificationController c = new SettingsNotificationController(context, tdlib);
@@ -5709,6 +5713,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // TGx101 (user 2026-10-08 23:5x): this chat's own notification settings (sound, vibration, LED, priority) from ⋮
       ids.append(R.id.btn_tgx101ChatNotifications);
       strings.append(R.string.Notifications);
+    }
+
+    if (tdlib.isChannel(chat.id)) {
+      ids.append(R.id.btn_tgx101ChatMedia); // TGx101 (user 2026-10-27): this channel's downloads and autoplay
+      strings.append(R.string.Tgx101ChatMedia);
     }
 
     if (tdlib.canReportChatSpam(chat.id)) {

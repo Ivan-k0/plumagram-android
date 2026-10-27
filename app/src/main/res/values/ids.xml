@@ -1872,4 +1872,24 @@
   <item name="controller_tgx101BirdSettings" type="id"/>
   <item name="controller_tgx101AiSettings" type="id"/>
   <item name="controller_tgx101SettingsSearch" type="id"/>
+  <item name="btn_tgx101Gazeta" type="id"/>
+  <item name="controller_tgx101Gazeta" type="id"/>
+  <item name="controller_tgx101GazetaSettings" type="id"/>
+  <item name="menu_tgx101Gazeta" type="id"/>
+  <item name="btn_tgx101GazetaOpen" type="id"/>
+  <item name="btn_tgx101GazetaHideChannel" type="id"/>
+  <item name="btn_tgx101GazetaFold" type="id"/>
+  <item name="btn_tgx101GazetaArchive" type="id"/>
+  <item name="btn_tgx101GazetaPhotos" type="id"/>
+  <item name="btn_tgx101GazetaPhotosAsIs" type="id"/>
+  <item name="btn_tgx101GazetaPhotosThumb" type="id"/>
+  <item name="btn_tgx101GazetaSelectAll" type="id"/>
+  <item name="btn_tgx101GazetaSelectNone" type="id"/>
+  <item name="btn_tgx101GazetaChannel" type="id"/>
+  <item name="btn_tgx101ChatMedia" type="id"/>
+  <item name="btn_tgx101ChatMediaPhoto" type="id"/>
+  <item name="btn_tgx101ChatMediaVideo" type="id"/>
+  <item name="btn_tgx101ChatMediaLimit" type="id"/>
+  <item name="btn_tgx101ChatMediaAutoplay" type="id"/>
+  <item name="btn_tgx101ChatMediaReset" type="id"/>
 </resources>

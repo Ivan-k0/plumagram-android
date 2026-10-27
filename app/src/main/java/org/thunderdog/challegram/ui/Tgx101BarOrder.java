@@ -30,19 +30,21 @@ public final class Tgx101BarOrder {
 
   // TGx101 (user 2026-10-18 «давай меню дадим настраивать»): the bottom capsule's tabs after «Chats» (always first), up to
   // three, in the user's order; «Profile» (the active account, hold — switch accounts) is off until switched on
-  public static final String TAB_CONTACTS = "contacts", TAB_CALLS = "calls", TAB_SETTINGS = "settings", TAB_PROFILE = "profile";
+  public static final String TAB_CONTACTS = "contacts", TAB_CALLS = "calls", TAB_SETTINGS = "settings", TAB_PROFILE = "profile", TAB_GAZETA = "gazeta";
   public static final int CAPSULE_MAX_TABS = 3;
-  private static final String[] CAPSULE_OFF_BY_DEFAULT = {TAB_PROFILE};
+  private static final String[] CAPSULE_OFF_BY_DEFAULT = {TAB_PROFILE, TAB_GAZETA};
 
   // TGx101 (user 2026-10-12 00:15): the side drawer is editable — order and which items are shown
   public static final String DRAWER_CONTACTS = "contacts", DRAWER_CALLS = "calls", DRAWER_SAVED = "saved", DRAWER_SAVED_BY_CHATS = "savedByChats",
     DRAWER_SETTINGS = "settings", DRAWER_PROXY = "proxy", DRAWER_NIGHT = "night", DRAWER_STORY = "story",
-    DRAWER_PEEK = "peek"; // «Не подглядывай!» (user 2026-10-22)
+    DRAWER_PEEK = "peek", // «Не подглядывай!» (user 2026-10-22)
+    DRAWER_GAZETA = "gazeta"; // «Газета» (user 2026-10-27)
   // TGx101 (user 2026-10-12): the chat's ⋮ menu is editable too, with «Proxy» to add (off until switched on)
   public static final String CHAT_CALL = "call", CHAT_VIDEO_CALL = "videoCall", CHAT_SEARCH = "search", CHAT_DATE = "date",
     CHAT_SAVED_BY_CHATS = "savedByChats", CHAT_BACKGROUND = "background", CHAT_MUTE = "mute", CHAT_NOTIFICATIONS = "notifications",
     CHAT_TRANSLATE = "translate", CHAT_PINNED = "pinned", CHAT_LINKED = "linked", CHAT_SCHEDULED = "scheduled", CHAT_VOICE_CHAT = "voiceChat",
     CHAT_TOPICS = "topics", CHAT_REPORT = "report", CHAT_PASSCODE = "passcode", CHAT_PROXY = "proxy", CHAT_OTHER = "other",
+    CHAT_MEDIA = "media", // «Медиа в этом канале» (user 2026-10-27)
     CHAT_LEAVE = "leave"; // TGx101 (user 2026-10-16): «Leave» / «Delete chat» on its own, not among «the rest»
   private static final String[] CHAT_OFF_BY_DEFAULT = {CHAT_PROXY};
 
@@ -61,10 +63,10 @@ public final class Tgx101BarOrder {
     {CUT, COPY, PASTE, SELECT_ALL, APPS},
     {SWIPE_PIN, SWIPE_TRANSLATE, SWIPE_SAVE, SWIPE_FORWARD, SWIPE_REPLY, SWIPE_COPY, SWIPE_EDIT, SWIPE_SELECT, SWIPE_DELETE,
       SWIPE_REACTION, SWIPE_DELETE_ALL, SWIPE_LINK, SWIPE_SAVE_FILE, SWIPE_REPORT},
-    {DRAWER_STORY, DRAWER_CONTACTS, DRAWER_CALLS, DRAWER_SAVED, DRAWER_SAVED_BY_CHATS, DRAWER_SETTINGS, DRAWER_PROXY, DRAWER_NIGHT, DRAWER_PEEK},
-    {CHAT_CALL, CHAT_VIDEO_CALL, CHAT_SEARCH, CHAT_DATE, CHAT_SAVED_BY_CHATS, CHAT_BACKGROUND, CHAT_MUTE, CHAT_NOTIFICATIONS, CHAT_TRANSLATE,
+    {DRAWER_GAZETA, DRAWER_STORY, DRAWER_CONTACTS, DRAWER_CALLS, DRAWER_SAVED, DRAWER_SAVED_BY_CHATS, DRAWER_SETTINGS, DRAWER_PROXY, DRAWER_NIGHT, DRAWER_PEEK},
+    {CHAT_CALL, CHAT_VIDEO_CALL, CHAT_SEARCH, CHAT_DATE, CHAT_SAVED_BY_CHATS, CHAT_BACKGROUND, CHAT_MUTE, CHAT_NOTIFICATIONS, CHAT_MEDIA, CHAT_TRANSLATE,
       CHAT_PINNED, CHAT_LINKED, CHAT_SCHEDULED, CHAT_VOICE_CHAT, CHAT_TOPICS, CHAT_REPORT, CHAT_PASSCODE, CHAT_OTHER, CHAT_PROXY, CHAT_LEAVE},
-    {TAB_CONTACTS, TAB_CALLS, TAB_SETTINGS, TAB_PROFILE}
+    {TAB_GAZETA, TAB_CONTACTS, TAB_CALLS, TAB_SETTINGS, TAB_PROFILE}
   };
 
   public static int tabNameOf (String key) {
@@ -72,6 +74,7 @@ public final class Tgx101BarOrder {
       case TAB_CONTACTS: return R.string.Contacts;
       case TAB_CALLS: return R.string.Calls;
       case TAB_PROFILE: return R.string.Tgx101TabProfile;
+      case TAB_GAZETA: return R.string.Tgx101Gazeta;
       case TAB_SETTINGS: default: return R.string.Settings;
     }
   }
@@ -81,6 +84,7 @@ public final class Tgx101BarOrder {
       case TAB_CONTACTS: return R.drawable.baseline_person_24;
       case TAB_CALLS: return R.drawable.baseline_phone_24;
       case TAB_PROFILE: return R.drawable.baseline_account_circle_24;
+      case TAB_GAZETA: return R.drawable.tgx101_gazeta_24;
       case TAB_SETTINGS: default: return R.drawable.baseline_settings_24;
     }
   }
@@ -90,6 +94,7 @@ public final class Tgx101BarOrder {
       case TAB_CONTACTS: return org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_CONTACTS;
       case TAB_CALLS: return org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_CALLS;
       case TAB_PROFILE: return org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_PROFILE;
+      case TAB_GAZETA: return org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_GAZETA;
       case TAB_SETTINGS: default: return org.thunderdog.challegram.widget.Tgx101NavCapsule.TAB_SETTINGS;
     }
   }
@@ -116,6 +121,7 @@ public final class Tgx101BarOrder {
 
   public static int drawerIdOf (String key) {
     switch (key) {
+      case DRAWER_GAZETA: return R.id.btn_tgx101Gazeta;
       case DRAWER_PEEK: return R.id.btn_tgx101Peek;
       case DRAWER_STORY: return R.id.btn_tgx101NewStory;
       case DRAWER_CONTACTS: return R.id.btn_contacts;
@@ -130,6 +136,7 @@ public final class Tgx101BarOrder {
 
   public static int drawerNameOf (String key) {
     switch (key) {
+      case DRAWER_GAZETA: return R.string.Tgx101Gazeta;
       case DRAWER_PEEK: return R.string.Tgx101Peek;
       case DRAWER_STORY: return R.string.Tgx101NewStory;
       case DRAWER_CONTACTS: return R.string.Contacts;
@@ -144,6 +151,7 @@ public final class Tgx101BarOrder {
 
   public static int drawerIconOf (String key) {
     switch (key) {
+      case DRAWER_GAZETA: return R.drawable.tgx101_gazeta_24;
       case DRAWER_PEEK: return org.thunderdog.challegram.data.Tgx101Peek.isOn() ? R.drawable.baseline_eye_off_24 : R.drawable.baseline_visibility_24;
       case DRAWER_STORY: return R.drawable.baseline_camera_alt_24;
       case DRAWER_CONTACTS: return R.drawable.baseline_perm_contact_calendar_24;
@@ -166,6 +174,7 @@ public final class Tgx101BarOrder {
     if (id == R.id.btn_tgx101ChatBackground) return CHAT_BACKGROUND;
     if (id == R.id.btn_mute) return CHAT_MUTE;
     if (id == R.id.btn_tgx101ChatNotifications) return CHAT_NOTIFICATIONS;
+    if (id == R.id.btn_tgx101ChatMedia) return CHAT_MEDIA;
     if (id == R.id.btn_translateWholeChat) return CHAT_TRANSLATE;
     if (id == R.id.btn_showPinnedMessage) return CHAT_PINNED;
     if (id == R.id.btn_openLinkedChat || id == R.id.btn_openDirectMessages) return CHAT_LINKED;
@@ -189,6 +198,7 @@ public final class Tgx101BarOrder {
       case CHAT_BACKGROUND: return R.string.Tgx101ChatBackground;
       case CHAT_MUTE: return R.string.Tgx101ChatMenuMute;
       case CHAT_NOTIFICATIONS: return R.string.Notifications;
+      case CHAT_MEDIA: return R.string.Tgx101ChatMedia;
       case CHAT_TRANSLATE: return R.string.Tgx101ChatMenuTranslate;
       case CHAT_PINNED: return R.string.PinnedMessage;
       case CHAT_LINKED: return R.string.Tgx101ChatMenuLinked;
@@ -213,6 +223,7 @@ public final class Tgx101BarOrder {
       case CHAT_BACKGROUND: return R.drawable.baseline_image_24;
       case CHAT_MUTE: return R.drawable.baseline_notifications_off_24;
       case CHAT_NOTIFICATIONS: return R.drawable.baseline_notifications_24;
+      case CHAT_MEDIA: return R.drawable.baseline_image_24;
       case CHAT_TRANSLATE: return R.drawable.baseline_translate_24;
       case CHAT_PINNED: return R.drawable.deproko_baseline_pin_24;
       case CHAT_LINKED: return R.drawable.baseline_forum_24;
