@@ -7220,6 +7220,7 @@
   <string name="Tgx101AiSection">AI functions</string>
   <string name="Tgx101AiOff">Off</string>
   <string name="Tgx101AiOnCount">On: %1$s</string>
+  <string name="Tgx101OpenWholeChat">Open the whole chat</string>
   <string name="Tgx101AccountsRow">Accounts · %1$s</string>
   <string name="Tgx101AccountsSwitch">Switch to it</string>
   <string name="Tgx101AccountsLogOutAsk">Log out of «%1$s»?</string>

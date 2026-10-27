@@ -370,6 +370,14 @@ public class ShareController extends TelegramViewController<ShareController.Args
       return this;
     }
 
+    private @Nullable me.vkryl.core.lambda.RunnableData<TdApi.FormattedText> tgx101CommentSink;
+
+    /** TGx101: the comment isn't sent — it is handed over (a caption for what opens next) */
+    public Args setTgx101CommentSink (@Nullable me.vkryl.core.lambda.RunnableData<TdApi.FormattedText> sink) {
+      this.tgx101CommentSink = sink;
+      return this;
+    }
+
     public Args setNeedOpenChat (boolean needOpenChat) {
       this.needOpenChat = needOpenChat;
       return this;
@@ -4016,7 +4024,11 @@ public class ShareController extends TelegramViewController<ShareController.Args
         functions.addAll(TD.sendMessageText(chatId, null, null, sendOptions, new TdApi.InputMessageText(tgx101QuoteWithComment(args.text, hasComment ? comment : null), null, false), tdlib.maxMessageTextLength()));
         continue;
       }
-      if (hasComment) {
+      if (hasComment && args.tgx101CommentSink != null) {
+        // TGx101 (user video 2026-10-27 14:56 «текст отправляется отдельно от файла»): a video shared into the app opens
+        // our preview first — the comment typed in the picker becomes its caption there, it isn't sent on its own
+        args.tgx101CommentSink.runWithData(comment);
+      } else if (hasComment) {
         TdApi.InputMessageReplyToMessage replyTo = null;
         if (Config.FORCE_REPLY_WHEN_FORWARDING_WITH_COMMENT && !args.disallowReply && !ChatId.isSecret(chatId) && mode == MODE_MESSAGES && !(needHideAuthor || needRemoveCaptions) && args.messages[0].chatId != chatId) {
           messageReplyIncluded = true;

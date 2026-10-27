@@ -3453,11 +3453,13 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
           return tdlib.getRestrictionText(tdlib.chatStrict(chatId), video);
         }
       };
-      c.setArguments(new ShareController.Args(delegate).setNeedOpenChat(true).setAfter(() -> UI.post(() -> {
+      final TdApi.FormattedText[] caption = new TdApi.FormattedText[1];
+      c.setArguments(new ShareController.Args(delegate).setNeedOpenChat(true).setTgx101CommentSink(text -> caption[0] = text).setAfter(() -> UI.post(() -> {
         if (picked.size() > 1) {
           // several chats: no preview, the video goes to each of them as before
           for (int i = 0; i < picked.size(); i++) {
             ArrayList<TdApi.Function<?>> functions = new ArrayList<>();
+            if (caption[0] != null) video.caption = caption[0]; // the picker's comment as the video's caption
             TD.processSingle(tdlib, picked.get(i), pickedOptions.get(i), functions, tdlib.filegen().createThumbnail(video, ChatId.isSecret(picked.get(i))));
             for (TdApi.Function<?> function : functions) tdlib.client().send(function, org.thunderdog.challegram.data.Tgx101SavedStore.savedAware(tdlib, function, tdlib.messageHandler()));
           }
@@ -3466,6 +3468,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         if (picked.isEmpty()) return;
         org.thunderdog.challegram.Tgx101Diag.mark("share: video preview before sending");
         // the chat opens 250 ms after the picker closes — then the preview goes over it
+        if (caption[0] != null) video.caption = caption[0]; // the picker's comment — the preview's caption
         UI.post(() -> tgx101OpenSharedVideoPreview(tdlib, picked.get(0), path, video), 600);
       })));
       tgx101ShowOverKeyboard(c);
@@ -3486,6 +3489,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     final org.thunderdog.challegram.loader.ImageGalleryFile file = new org.thunderdog.challegram.loader.ImageGalleryFile(-1, path, System.currentTimeMillis(), video.video.width, video.video.height, -1, true);
     file.setIsVideo(video.video.duration * 1000L, "video/mp4");
     file.setNoCache();
+    if (video.caption != null && !Td.isEmpty(video.caption)) file.setCaption(video.caption); // the picker's comment
     org.thunderdog.challegram.mediaview.data.MediaStack stack = new org.thunderdog.challegram.mediaview.data.MediaStack(context, tdlib);
     org.thunderdog.challegram.mediaview.data.MediaItem item = new org.thunderdog.challegram.mediaview.data.MediaItem(context, tdlib, file);
     stack.set(item);
