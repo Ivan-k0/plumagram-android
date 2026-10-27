@@ -831,7 +831,10 @@ public final class Tgx101MessageMenu {
         if (onDismiss != null) onDismiss.run();
         Runnable expand = host.expandAfterDismiss;
         host.expandAfterDismiss = null;
-        if (expand != null) expand.run();
+        if (expand != null) {
+          org.thunderdog.challegram.Tgx101Diag.mark("menu: compact menu gone — opening the picker");
+          expand.run();
+        }
       }
 
       @Override
@@ -1116,6 +1119,7 @@ public final class Tgx101MessageMenu {
       // keyboard showed for ~150 ms («ещё одно меню, которое сразу исчезает») — no fixed pause now
       // (picker opened while the compact menu was still up never showed — it opens the moment the menu is gone instead)
       host.expandAfterDismiss = onExpandReactions;
+      org.thunderdog.challegram.Tgx101Diag.mark("menu: «All emoji» tapped — the compact menu goes, the picker next");
       dismiss(host);
     });
     grid.addView(more, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));

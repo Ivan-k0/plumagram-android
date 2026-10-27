@@ -2124,12 +2124,13 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         // frame): it goes down to the new message the way the arrow does — a glide, from 1.5 screens away if it's far
         RecyclerView tgx101List = controller.getMessagesView();
         if (!atBottom && message.isSending() && tgx101List != null && androidx.core.view.ViewCompat.isAttachedToWindow(tgx101List) && !tgx101IsRestoringPosition()) {
+          long returnTo = tgx101VisibleMessageId();
           adapter.addMessage(message, false, false);
           tgx101List.post(() -> {
             if (!tgx101SmoothScrollToBottom()) scrollToBottom(false);
           });
           org.thunderdog.challegram.Tgx101Diag.mark("sent while scrolled up: glides down like the arrow");
-          revokeReturnMessages();
+          tgx101SetReturnAfterSend(message, returnTo);
           return;
         }
         boolean hasScrolled = adapter.addMessage(message, false, scrollToBottom);
@@ -2165,8 +2166,34 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         adapter.addMessage(message, false, scrollToBottom);
       }
     } else if (message.isSending()) {
+      // TGx101 (user 2026-10-27 17:43 «отправил файл — не показан, чат не прокручивается»): far up the history the end
+      // isn't loaded — it is loaded now and the arrow keeps the way back to where you were
+      long returnTo = tgx101VisibleMessageId();
+      tgx101ResetGlide = 1;
       loadFromStart();
+      tgx101SetReturnAfterSend(message, returnTo);
+      org.thunderdog.challegram.Tgx101Diag.mark("sent far up the history: the end loaded, return to " + (returnTo >> 20));
     }
+  }
+
+  /** the message in the middle of what's on screen now — where the arrow brings you back */
+  private long tgx101VisibleMessageId () {
+    int first = manager.findFirstVisibleItemPosition(), last = manager.findLastVisibleItemPosition();
+    if (first < 0) return 0;
+    int middle = last >= first ? (first + last) / 2 : first;
+    TGMessage m = middle >= 0 && middle < adapter.getMessageCount() ? adapter.getMessage(middle) : null;
+    return m != null ? m.getBiggestId() : 0;
+  }
+
+  /** (user 2026-10-27 «стрелка возвращает на то место, где ты был перед отправкой», as after a jump to a reply) */
+  private void tgx101SetReturnAfterSend (TGMessage sent, long returnTo) {
+    if (returnTo == 0) {
+      revokeReturnMessages();
+      return;
+    }
+    highlightMessageId = new MessageId(sent.getChatId(), sent.getId());
+    returnToMessageIds = new long[] {returnTo};
+    checkScrollToBottomButton();
   }
 
   /**

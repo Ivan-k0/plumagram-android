@@ -6239,6 +6239,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       callback -> tgx101LoadMore(message, null, callback),
       () -> UI.post(() -> { // TGx101: run as the compact menu is gone (its onDismiss above has reset the state)
         PopupLayout full = showMessageOptions(options, message, null, delegate);
+        org.thunderdog.challegram.Tgx101Diag.mark("menu: picker " + (full != null ? "opened" : "did not open") + (full != null && !(full.getBoundController() instanceof MessageOptionsPagerController) ? " (not the pager)" : ""));
         if (full != null && full.getBoundController() instanceof MessageOptionsPagerController) {
           MessageOptionsPagerController pager = (MessageOptionsPagerController) full.getBoundController();
           pager.setTgx101PickerOnly(true);
@@ -6264,8 +6265,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private PopupLayout showMessageOptions (Options options, TGMessage message, @Nullable TdApi.ReactionType reactionType, OptionDelegate optionsDelegate, boolean tgx101AtReactors) {
     if (isMessageOptionsVisible) {
+      org.thunderdog.challegram.Tgx101Diag.mark("menu: full options / picker NOT shown — a menu is still marked visible");
       return null;
     }
+    org.thunderdog.challegram.Tgx101Diag.mark("menu: full options / picker shown (keyboard " + getKeyboardState() + ", emoji panel " + emojiShown + ")");
     isMessageOptionsVisible = true;
 
     MessageOptionsPagerController r = new MessageOptionsPagerController(context, tdlib, options, message, reactionType, optionsDelegate) {
