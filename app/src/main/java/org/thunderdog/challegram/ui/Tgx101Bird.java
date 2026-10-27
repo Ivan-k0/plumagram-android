@@ -239,7 +239,7 @@ public final class Tgx101Bird {
     org.thunderdog.challegram.Tgx101Diag.mark("bird: double tap " + mode);
     switch (mode) {
       case DOUBLE_TAP_LAST_NOTIFICATION:
-        openLastNotification(host);
+        if (!tgx101ReturnBack(host)) openLastNotification(host);
         break;
       case DOUBLE_TAP_NEXT_ACCOUNT:
         if (TdlibManager.instance().getActiveAccounts().size() < 2) {
@@ -262,6 +262,45 @@ public final class Tgx101Bird {
    * — an incoming message in a private or secret chat (not mine, not a bot's), an unread mention / reply / quote of me
    * in a group, an unread reaction to my message; a group or a reaction opens at that message
    */
+  // (user 2026-10-27 «второе двойное нажатие возвращает туда, откуда пришёл по первому»): where the first double tap was
+  // made and which chat it opened; a second one in that chat goes back there — the screen below, or that chat (its
+  // place in the list is kept by the chat itself)
+  private static java.lang.ref.WeakReference<ViewController<?>> tgx101ReturnTo;
+  private static long tgx101ReturnChatId, tgx101JumpedChatId;
+
+  private static boolean tgx101ReturnBack (ViewController<?> host) {
+    ViewController<?> back = tgx101ReturnTo != null ? tgx101ReturnTo.get() : null;
+    long jumped = tgx101JumpedChatId, returnChat = tgx101ReturnChatId;
+    if (jumped == 0 || !(host instanceof MessagesController) || ((MessagesController) host).getChatId() != jumped) {
+      return false;
+    }
+    tgx101ReturnTo = null;
+    tgx101JumpedChatId = tgx101ReturnChatId = 0;
+    org.thunderdog.challegram.navigation.NavigationController navigation = host.context().navigation();
+    if (navigation == null) return false;
+    int at = back != null && navigation != null ? navigation.getStack().indexOf(back) : -1;
+    org.thunderdog.challegram.Tgx101Diag.mark("bird: double tap back (" + (at == navigation.getStackSize() - 2 ? "the screen below" : returnChat != 0 ? "chat " + returnChat : "nothing") + ")");
+    if (at >= 0 && at == navigation.getStackSize() - 2) {
+      host.navigateBack();
+      return true;
+    }
+    if (returnChat != 0) {
+      host.tdlib().ui().openChat(host, returnChat, null);
+      return true;
+    }
+    if (at >= 0) {
+      host.navigateBack();
+      return true;
+    }
+    return false;
+  }
+
+  private static void tgx101RememberJump (ViewController<?> from, long toChatId) {
+    tgx101ReturnTo = new java.lang.ref.WeakReference<>(from);
+    tgx101ReturnChatId = from instanceof MessagesController ? ((MessagesController) from).getChatId() : 0;
+    tgx101JumpedChatId = toChatId;
+  }
+
   private static void openLastNotification (ViewController<?> host) {
     Tdlib tdlib = host.tdlib();
     tdlib.send(new TdApi.GetChats(new TdApi.ChatListMain(), 100), (chats, error) -> {
@@ -297,10 +336,18 @@ public final class Tgx101Bird {
           if (host.isDestroyed()) return;
           if (chatId == 0) {
             org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101BirdTapNoChat, android.widget.Toast.LENGTH_SHORT);
-          } else if (messageId != 0) {
-            tdlib.ui().openMessage(host, chatId, new tgx.td.MessageId(chatId, messageId), null);
           } else {
-            tdlib.ui().openChat(host, chatId, null);
+            if (host instanceof MessagesController && ((MessagesController) host).getChatId() == chatId) {
+              tgx101ReturnTo = null; // already here: nothing to go back to
+              tgx101JumpedChatId = 0;
+            } else {
+              tgx101RememberJump(host, chatId);
+            }
+            if (messageId != 0) {
+              tdlib.ui().openMessage(host, chatId, new tgx.td.MessageId(chatId, messageId), null);
+            } else {
+              tdlib.ui().openChat(host, chatId, null);
+            }
           }
         });
       };
