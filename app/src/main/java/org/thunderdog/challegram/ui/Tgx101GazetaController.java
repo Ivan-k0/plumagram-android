@@ -125,10 +125,12 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     }
   }
 
-  // (user 2026-10-28 «шапка скрывается при прокрутке»): the header rides up with the posts going up and comes back
-  // with them coming down; the feed moves up into its place
+  // (user 2026-10-28 «шапка скрывается при прокрутке»; video 01:50 «дёргание текста» — the feed moving with the header
+  // jerked): the feed lies under the header and never moves for it — only the header slides away over the posts going
+  // up and back with them coming down, settling fully shown or hidden when the finger lets go
   private int headerHide;
   private FrameLayout inner;
+  private @Nullable android.animation.ValueAnimator headerAnimator;
 
   private void setHeaderHide (int value) {
     int max = Size.getHeaderPortraitSize();
@@ -136,6 +138,20 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     if (value == headerHide) return;
     headerHide = value;
     applyHeaderHide();
+  }
+
+  private void settleHeader () {
+    int max = Size.getHeaderPortraitSize();
+    LinearLayoutManager manager = list != null ? (LinearLayoutManager) list.getLayoutManager() : null;
+    boolean atTop = manager != null && !list.canScrollVertically(-1);
+    int target = atTop || headerHide < max / 2 ? 0 : max;
+    if (target == headerHide) return;
+    if (headerAnimator != null) headerAnimator.cancel();
+    headerAnimator = android.animation.ValueAnimator.ofInt(headerHide, target);
+    headerAnimator.setDuration(180);
+    headerAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator());
+    headerAnimator.addUpdateListener(a -> setHeaderHide((int) a.getAnimatedValue()));
+    headerAnimator.start();
   }
 
   private void applyHeaderHide () {
@@ -146,11 +162,14 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       float alpha = 1f - headerHide / (float) max;
       for (int i = 0; i < header.getChildCount(); i++) header.getChildAt(i).setAlpha(alpha);
     }
-    if (inner != null) inner.setTranslationY(-headerHide);
+  }
+
+  /** the feed reaches up under the header only while it's on screen; the window's layout is left as it was */
+  private void setUnderHeader (boolean under) {
     if (root != null && root.getParent() instanceof ViewGroup) {
       ViewGroup parent = (ViewGroup) root.getParent();
-      parent.setClipToPadding(headerHide == 0);
-      parent.setClipChildren(headerHide == 0);
+      parent.setClipToPadding(!under);
+      parent.setClipChildren(!under);
     }
   }
 
@@ -172,6 +191,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       repaintHeader();
       adapter.notifyDataSetChanged();
     } else if (id == R.id.menu_btn_settings) {
+      needReload = true;
       navigateTo(new Tgx101GazetaSettingsController(context, tdlib));
     }
   }
@@ -189,19 +209,25 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     root.setClipChildren(false);
     inner = new FrameLayout(context);
     FrameLayout.LayoutParams innerParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-    innerParams.bottomMargin = -Size.getHeaderPortraitSize(); // room for the header's place when it hides
+    innerParams.topMargin = -Size.getHeaderPortraitSize(); // under the header: it slides away over the posts
     root.addView(inner, innerParams);
     list = new org.thunderdog.challegram.v.CustomRecyclerView(context);
     list.setLayoutManager(new LinearLayoutManager(context, RecyclerView.VERTICAL, false));
     list.setItemAnimator(null);
     list.setAdapter(adapter);
     list.setClipToPadding(false);
-    list.setPadding(0, Screen.dp(4f), 0, Screen.dp(4f) + MainController.tgx101CapsuleSpace() + Size.getHeaderPortraitSize());
+    list.setPadding(0, Screen.dp(4f) + Size.getHeaderPortraitSize(), 0, Screen.dp(4f) + MainController.tgx101CapsuleSpace());
     list.addOnScrollListener(new RecyclerView.OnScrollListener() {
       @Override
       public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
         markVisibleRead();
-        if (loaded && isFocused()) setHeaderHide(headerHide + dy);
+        if (loaded && isFocused() && (headerAnimator == null || !headerAnimator.isRunning())) setHeaderHide(headerHide + dy);
+        rememberPlace();
+      }
+
+      @Override
+      public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
+        if (newState == RecyclerView.SCROLL_STATE_IDLE && isFocused()) settleHeader();
       }
     });
     inner.addView(list, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -222,7 +248,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   @Override
   public void onFocus () {
     super.onFocus();
+    setUnderHeader(true);
     repaintHeader();
+    applyPalette();
+    adapter.notifyDataSetChanged(); // the look may have changed in the settings
     if (needReload) {
       needReload = false;
       load();
@@ -239,10 +268,13 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   @Override
   public void onBlur () {
     // the header is the whole window's: it is back in place before another screen takes it
+    if (headerAnimator != null) headerAnimator.cancel();
     headerHide = 0;
     applyHeaderHide();
+    setUnderHeader(false);
     super.onBlur();
-    needReload = true; // the settings may change the channels; the feed comes back on the first unread
+    // (video 01:50 «логика возврата в газету»): back from a channel or comments the feed stays where it was; it is
+    // gathered again only after its settings, where the channels may have changed
   }
 
   private void load () {
@@ -251,6 +283,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       Tgx101Gazeta.loadFeed(tdlib, chatIds, (feed, firstUnread) -> {
         if (isDestroyed()) return;
         loaded = true;
+        rememberedIndex = -1;
         posts.clear();
         posts.addAll(feed);
         adapter.notifyDataSetChanged();
@@ -259,11 +292,44 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         org.thunderdog.challegram.Tgx101Diag.mark("gazeta: " + chatIds.length + " channels, " + posts.size() + " posts, first unread " + firstUnread);
         LinearLayoutManager manager = (LinearLayoutManager) list.getLayoutManager();
         if (manager != null && !posts.isEmpty()) {
-          manager.scrollToPositionWithOffset(firstUnread != -1 ? firstUnread : posts.size() - 1, Screen.dp(4f));
+          // the first unread post; with none — the post the feed was left on; else the newest
+          int at = firstUnread;
+          if (at == -1) at = placeIndex();
+          if (at == -1) at = posts.size() - 1;
+          manager.scrollToPositionWithOffset(at, Screen.dp(4f) + Size.getHeaderPortraitSize());
         }
         list.post(this::markVisibleRead);
       });
     });
+  }
+
+  private String placeKey () {
+    return "tgx101_gazeta_at_" + tdlib.id();
+  }
+
+  private int rememberedIndex = -1;
+
+  /** the post at the top of the feed, kept for the next opening */
+  private void rememberPlace () {
+    LinearLayoutManager manager = (LinearLayoutManager) list.getLayoutManager();
+    if (manager == null || !loaded) return;
+    int first = manager.findFirstCompletelyVisibleItemPosition();
+    if (first == RecyclerView.NO_POSITION) first = manager.findFirstVisibleItemPosition();
+    if (first < 0 || first >= posts.size() || first == rememberedIndex) return;
+    rememberedIndex = first; // written once per post, not on every scrolled pixel
+    Tgx101Gazeta.Post post = posts.get(first);
+    org.thunderdog.challegram.unsorted.Settings.instance().pmc().putLongArray(placeKey(), new long[] {post.chatId, post.first().id});
+  }
+
+  private int placeIndex () {
+    long[] at = org.thunderdog.challegram.unsorted.Settings.instance().pmc().getLongArray(placeKey());
+    if (at == null || at.length != 2) return -1;
+    for (int i = 0; i < posts.size(); i++) {
+      Tgx101Gazeta.Post post = posts.get(i);
+      if (post.chatId != at[0]) continue;
+      for (TdApi.Message m : post.messages) if (m.id == at[1]) return i;
+    }
+    return -1;
   }
 
   // a post that came into view is read, in its channel too (user: «пролистанный пост = прочитан»)
