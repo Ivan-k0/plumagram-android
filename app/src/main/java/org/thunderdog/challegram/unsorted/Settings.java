@@ -2387,6 +2387,13 @@ public class Settings {
       if (!freshInstall) pmc.putBoolean(KEY_TGX101_FLOATING_INPUT, true);
       pmc.putBoolean(marker4, true);
     }
+    // the fifth (user 2026-10-28 «размытие под меню и окнами по умолчанию выключено у новых пользователей»): off for new
+    // installs; those who had it by the old default (Android 12+) and never touched it keep it on
+    final String marker5 = "tgx101_menu_blur_2026_10_28";
+    if (!pmc.getBoolean(marker5, false)) {
+      if (!freshInstall && !pmc.contains("tgx101_menu_blur")) pmc.putBoolean("tgx101_menu_blur", Build.VERSION.SDK_INT >= 31);
+      pmc.putBoolean(marker5, true);
+    }
   }
 
   private boolean isFreshAppInstallation () {
@@ -3988,7 +3995,7 @@ public class Settings {
   }
 
   public boolean tgx101MenuBlur () {
-    return pmc.getBoolean("tgx101_menu_blur", Build.VERSION.SDK_INT >= 31); // new installs: on where the system blur is light (Android 12+)
+    return pmc.getBoolean("tgx101_menu_blur", false); // new installs: off (2026-10-28); older ones were pinned to the old default
   }
 
   public void setTgx101MenuBlur (boolean v) {

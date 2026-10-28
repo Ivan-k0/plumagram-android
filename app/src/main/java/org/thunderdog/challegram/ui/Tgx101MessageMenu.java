@@ -1649,6 +1649,7 @@ public final class Tgx101MessageMenu {
       int width = source.getWidth(), height = source.getHeight();
       if (width > 0 && height > 0) {
         final float scale = 1f / 8f;
+        final long tgx101At = android.os.SystemClock.uptimeMillis(); // (2026-10-28) its cost, for the OnePlus «reactions jerk» case
         android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(Math.max(1, (int) (width * scale)), Math.max(1, (int) (height * scale)), android.graphics.Bitmap.Config.ARGB_8888);
         android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
         canvas.scale(scale, scale);
@@ -1656,6 +1657,7 @@ public final class Tgx101MessageMenu {
         boxBlur(bitmap, 3);
         boxBlur(bitmap, 3);
         new android.graphics.Canvas(bitmap).drawColor(dim);
+        org.thunderdog.challegram.Tgx101Diag.mark("menu blur: picture " + bitmap.getWidth() + "x" + bitmap.getHeight() + " in " + (android.os.SystemClock.uptimeMillis() - tgx101At) + " ms");
         return bitmap;
       }
     } catch (Throwable ignored) { }

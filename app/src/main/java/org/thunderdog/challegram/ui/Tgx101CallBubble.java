@@ -200,13 +200,13 @@ public final class Tgx101CallBubble {
             }
             boolean onMic = e.getX() >= mic.getLeft() - Screen.dp(6f);
             long now = android.os.SystemClock.uptimeMillis();
-            if (onMic || now - lastTapTime < 300) {
+            if (onMic || now - lastTapTime < 230) { // (2026-10-28) 230 ms as everywhere: real double taps lift 130–165 ms apart
               lastTapTime = 0;
               UI.cancel(openLater);
               toggleMic();
             } else {
               lastTapTime = now;
-              UI.post(openLater, 300); // a second tap within 300 ms is the microphone (mockup: «двойное нажатие — микрофон»)
+              UI.post(openLater, 230); // a second tap within 300 ms is the microphone (mockup: «двойное нажатие — микрофон»)
             }
             return true;
         }
