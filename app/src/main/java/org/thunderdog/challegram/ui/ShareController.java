@@ -3113,15 +3113,24 @@ public class ShareController extends TelegramViewController<ShareController.Args
     if (top > 0) {
       topEnsured = true;
       topEnsuredBy = top;
-      recyclerView.scrollBy(0, top);
+      tgx101ScrollWithKeyboard(top);
     } else {
       topEnsured = false;
     }
   }
 
+  // TGx101 (user video 2026-10-28 20:06 «дёргание при „Поделиться“»): a tap on the comment put the sheet at the top of
+  // the screen in one frame while the keyboard was only starting to slide — now it goes up (and back) along with it
+  private static final android.view.animation.Interpolator TGX101_KEYBOARD_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.2f, 0f, 0f, 1f);
+
+  private void tgx101ScrollWithKeyboard (int by) {
+    recyclerView.stopScroll();
+    recyclerView.smoothScrollBy(0, by, TGX101_KEYBOARD_CURVE, 280);
+  }
+
   private void restoreEnsuredTopPosition () {
     if (topEnsured) {
-      recyclerView.scrollBy(0, -topEnsuredBy);
+      tgx101ScrollWithKeyboard(-topEnsuredBy);
       topEnsured = false;
     }
   }
@@ -3334,7 +3343,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
       this.isKeyboardReallyVisible = isVisible;
       if (isVisible) {
         ensureTopPosition();
-      } else {
+      } else if (!sendOnKeyboardClose) { // (user video 2026-10-28 20:06): sending, the sheet goes down from where it is, not from the middle it was put back to in one frame
         restoreEnsuredTopPosition();
       }
       setSendButtonHidden(isVisible);

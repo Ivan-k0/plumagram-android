@@ -11787,7 +11787,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
       @Override
       public void onPrepare (@NonNull android.view.WindowInsetsAnimation animation) {
-        if ((animation.getTypeMask() & android.view.WindowInsets.Type.ime()) != 0 && !isDestroyed() && !context().tgx101IsKeyboardHeld(inputView)) {
+        // (user video 2026-10-28 20:06 «после отправки посмотри на чат»): the share sheet's own keyboard went down as it
+        // sent, the chat under it rode that keyboard and, the sheet gone mid-way, came out 63 px up and slid down. A
+        // keyboard opened by a window over the chat is not the chat's
+        boolean notOurs = context().getCurrentPopupWindow() != null && (inputView == null || !inputView.hasFocus());
+        if ((animation.getTypeMask() & android.view.WindowInsets.Type.ime()) != 0 && !isDestroyed() && !notOurs && !context().tgx101IsKeyboardHeld(inputView)) {
           ime = animation;
           tgx101ImeRiding = true;
           tgx101ImeStart = tgx101BottomInset(view.getRootWindowInsets());
