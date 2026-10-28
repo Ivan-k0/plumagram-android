@@ -338,8 +338,41 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
           manager.scrollToPositionWithOffset(at, Screen.dp(4f) + Size.getHeaderPortraitSize());
         }
         list.post(this::markVisibleRead);
+        completeAlbums();
       });
     });
+  }
+
+  /**
+   * (user's screenshots 02:36: a channel's album of two videos with its text — in the feed only a thumbnail, no text, no
+   * reactions): the feed takes a channel's posts by count, so an album at the edge came in cut — its caption and its
+   * reactions sat on the part left out. Each album asks for its neighbours and takes in its missing parts
+   */
+  private void completeAlbums () {
+    for (Tgx101Gazeta.Post post : new ArrayList<>(posts)) {
+      TdApi.Message first = post.first();
+      if (first.mediaAlbumId == 0) continue;
+      long albumId = first.mediaAlbumId;
+      long newest = post.messages.get(post.messages.size() - 1).id;
+      tdlib.send(new TdApi.GetChatHistory(post.chatId, newest, -9, 19, false), (history, error) -> {
+        if (history == null) return;
+        List<TdApi.Message> more = new ArrayList<>();
+        for (TdApi.Message m : history.messages) {
+          if (m.mediaAlbumId != albumId) continue;
+          boolean have = false;
+          for (TdApi.Message h : post.messages) if (h.id == m.id) have = true;
+          if (!have) more.add(m);
+        }
+        if (more.isEmpty()) return;
+        UI.post(() -> {
+          if (isDestroyed()) return;
+          post.messages.addAll(more);
+          java.util.Collections.sort(post.messages, (a, b) -> Long.compare(a.id, b.id));
+          int i = posts.indexOf(post);
+          if (i != -1) adapter.notifyItemChanged(i);
+        });
+      });
+    }
   }
 
   private String placeKey () {
