@@ -90,6 +90,8 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
           view.getToggler().setRadioEnabled(Tgx101Gazeta.reactions(), isUpdate);
         } else if (id == R.id.btn_tgx101GazetaStars) {
           view.getToggler().setRadioEnabled(Tgx101Gazeta.stars(), isUpdate);
+        } else if (id == R.id.btn_tgx101GazetaComments) {
+          view.getToggler().setRadioEnabled(Tgx101Gazeta.comments(), isUpdate);
         } else if (id == R.id.btn_tgx101GazetaBird) {
           view.getToggler().setRadioEnabled(Tgx101Gazeta.bird(), isUpdate);
         } else if (id == R.id.btn_tgx101GazetaArchive) {
@@ -116,6 +118,8 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
       items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GazetaReactions, 0, R.string.Tgx101GazetaReactions));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
       items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GazetaStars, 0, R.string.Tgx101GazetaStars));
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+      items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GazetaComments, 0, R.string.Tgx101GazetaComments));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
       items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GazetaBird, 0, R.string.Tgx101GazetaBird));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
@@ -229,6 +233,8 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
       Tgx101Gazeta.setReactions(adapter.toggleView(v));
     } else if (id == R.id.btn_tgx101GazetaStars) {
       Tgx101Gazeta.setStars(adapter.toggleView(v));
+    } else if (id == R.id.btn_tgx101GazetaComments) {
+      Tgx101Gazeta.setComments(adapter.toggleView(v));
     } else if (id == R.id.btn_tgx101GazetaBird) {
       Tgx101Gazeta.setBird(adapter.toggleView(v));
     } else if (id == R.id.btn_tgx101GazetaArchive) {

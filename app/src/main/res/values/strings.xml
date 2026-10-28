@@ -7538,4 +7538,5 @@
   <string name="Tgx101GazetaAuto">Autoscroll</string>
   <string name="Tgx101GazetaAutoSpeed">Speed</string>
   <string name="Tgx101GazetaAutoHint">Switched on by the button in the feed\'s header. A touch pauses it; it goes on after 3 seconds with the screen left alone. You can swipe meanwhile.</string>
+  <string name="Tgx101GazetaComments">Comments</string>
 </resources>

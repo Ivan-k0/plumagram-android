@@ -259,6 +259,15 @@ public final class Tgx101Gazeta {
     Settings.instance().pmc().putBoolean("tgx101_gazeta_stars", value);
   }
 
+  /** «Leave a comment» / «N comments» under the posts (user 2026-10-28: switched off in the settings) */
+  public static boolean comments () {
+    return Settings.instance().pmc().getBoolean("tgx101_gazeta_comments", true);
+  }
+
+  public static void setComments (boolean value) {
+    Settings.instance().pmc().putBoolean("tgx101_gazeta_comments", value);
+  }
+
   /** the bird over the feed (off unless switched on) */
   public static boolean bird () {
     return Settings.instance().pmc().getBoolean("tgx101_gazeta_bird", false);

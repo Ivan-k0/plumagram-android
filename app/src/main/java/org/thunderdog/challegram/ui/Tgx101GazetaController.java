@@ -568,8 +568,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
             if (count >= reactionCount) break;
             ReactionIcon e = new ReactionIcon(ctx);
             e.set(tdlib, type);
-            e.setPadding(Screen.dp(7f), Screen.dp(12f), Screen.dp(7f), Screen.dp(12f));
-            org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(e);
+            boolean isChosen = false;
+            if (main.interactionInfo != null && main.interactionInfo.reactions != null) {
+              for (TdApi.MessageReaction mr : main.interactionInfo.reactions.reactions) if (mr.isChosen && reactionKey(mr.type).equals(reactionKey(type))) isChosen = true;
+            }
             e.setOnClickListener(v -> {
               popup.dismiss();
               TdApi.MessageReaction chosen = null;
@@ -579,9 +581,19 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
               toggleReaction(post, main, chosen != null ? chosen : new TdApi.MessageReaction(type, 0, false, null, new TdApi.MessageSender[0]));
             });
             FrameLayout cell = new FrameLayout(ctx);
-            cell.addView(e, new FrameLayout.LayoutParams(Screen.dp(30f), Screen.dp(30f), Gravity.CENTER));
+            if (isChosen) {
+              GradientDrawable on = new GradientDrawable();
+              on.setCornerRadius(Screen.dp(19f));
+              on.setColor(Theme.getColor(ColorId.fillingPositive));
+              View bubble = new View(ctx);
+              bubble.setBackground(on);
+              cell.addView(bubble, new FrameLayout.LayoutParams(Screen.dp(38f), Screen.dp(38f), Gravity.CENTER));
+            }
+            cell.addView(e, new FrameLayout.LayoutParams(Screen.dp(40f), Screen.dp(40f), Gravity.CENTER));
+            cell.setClipChildren(false);
             cell.setOnClickListener(v -> e.performClick());
             pill.addView(cell, new LinearLayout.LayoutParams(itemWidth, Screen.dp(52f)));
+            pill.setClipChildren(false);
             count++;
           }
           if (count > 0) pill.setVisibility(View.VISIBLE);
@@ -876,6 +888,9 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       addView(links);
 
       reactions = new FlowLayout(context);
+      reactions.setClipChildren(false);
+      reactions.setClipToPadding(false);
+      setClipChildren(false);
       reactions.setPadding(pad, Screen.dp(8f), pad, Screen.dp(10f));
       meta = text(context, 12.5f, false);
       meta.setGravity(Gravity.CENTER_VERTICAL);
@@ -938,26 +953,9 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       return v;
     }
 
-    /** a reaction as under a channel post: the reaction's own picture and the count, in the theme's reaction colours */
     private View chip (TdApi.ReactionType type, CharSequence count, boolean chosen, @Nullable View.OnClickListener click) {
-      LinearLayout v = new LinearLayout(getContext());
-      v.setOrientation(HORIZONTAL);
-      v.setGravity(Gravity.CENTER_VERTICAL);
-      v.setPadding(Screen.dp(6f), 0, Screen.dp(10f), 0);
-      v.setMinimumHeight(Screen.dp(30f));
-      ReactionIcon icon = new ReactionIcon(getContext());
-      icon.set(tdlib, type);
-      v.addView(icon, new LinearLayout.LayoutParams(Screen.dp(20f), Screen.dp(20f)));
-      TextView label = text(getContext(), 13f, true);
-      label.setText(count);
-      label.setTextColor(Theme.getColor(chosen ? ColorId.fillingPositiveContent : ColorId.fillingActiveContent));
-      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-      lp.leftMargin = Screen.dp(5f);
-      v.addView(label, lp);
-      GradientDrawable bg = new GradientDrawable();
-      bg.setCornerRadius(Screen.dp(15f));
-      bg.setColor(Theme.getColor(chosen ? ColorId.fillingPositive : ColorId.fillingActive));
-      v.setBackground(bg);
+      ReactionChip v = new ReactionChip(getContext());
+      v.set(tdlib, type, count.toString(), chosen);
       if (click != null) v.setOnClickListener(click);
       return v;
     }
@@ -988,7 +986,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       // posts of one channel in a row: one header for them, a thin line between (user 2026-10-27)
       boolean samePrev = position > 0 && posts.get(position - 1).chatId == post.chatId;
       boolean sameNext = position + 1 < posts.size() && posts.get(position + 1).chatId == post.chatId;
-      RecyclerView.LayoutParams lp = (RecyclerView.LayoutParams) getLayoutParams();
+      // (crash 02:09): the look screen's sample sits in a plain layout, not in the list
+      RecyclerView.LayoutParams lp = getLayoutParams() instanceof RecyclerView.LayoutParams ? (RecyclerView.LayoutParams) getLayoutParams() : null;
       if (lp != null) {
         lp.topMargin = samePrev ? Math.max(1, Screen.dp(.5f)) : Screen.dp(GAP / 2f);
         lp.bottomMargin = sameNext ? 0 : Screen.dp(GAP / 2f);
@@ -1143,7 +1142,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       reactions.trailing = meta;
 
       TdApi.MessageReplyInfo replyInfo = info != null ? info.replyInfo : null;
-      boolean hasComments = replyInfo != null;
+      boolean hasComments = replyInfo != null && Tgx101Gazeta.comments();
       comments.setVisibility(hasComments ? VISIBLE : GONE);
       commentsLine.setVisibility(hasComments ? VISIBLE : GONE);
       reactions.setPadding(pad, Screen.dp(8f), pad, Screen.dp(hasComments ? 8f : 10f));
@@ -1195,6 +1194,89 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   }
 
   private static final float THUMB = 58f, THUMB_GAP = 10f;
+
+  /**
+   * (user 2026-10-28, screenshots of a channel and of the feed side by side): a reaction drawn as TGReactions draws it
+   * under a channel post — the bubble of {@code getReactionBubbleHeight()}, the reaction's picture of
+   * {@code getReactionImageSize()} sticking out of it on the left, the count in the reactions' text size after it
+   */
+  static final class ReactionChip extends View {
+    private final org.thunderdog.challegram.loader.ImageReceiver receiver;
+    private float scale = 1f;
+    private @Nullable String fallback;
+    private String count = "";
+    private boolean chosen;
+    private final android.text.TextPaint textPaint = new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+    private final android.graphics.RectF rect = new android.graphics.RectF();
+
+    ReactionChip (Context context) {
+      super(context);
+      receiver = new org.thunderdog.challegram.loader.ImageReceiver(this, 0);
+      textPaint.setTypeface(Fonts.getRobotoRegular());
+    }
+
+    void set (Tdlib tdlib, TdApi.ReactionType type, String count, boolean chosen) {
+      this.count = count;
+      this.chosen = chosen;
+      org.thunderdog.challegram.data.TGReaction reaction = tdlib.getReaction(type);
+      org.thunderdog.challegram.component.sticker.TGStickerObj sticker = reaction != null ? reaction.staticCenterAnimationSicker() : null;
+      org.thunderdog.challegram.loader.ImageFile image = sticker != null ? sticker.getImage() : null;
+      fallback = image == null ? (type.getConstructor() == TdApi.ReactionTypeEmoji.CONSTRUCTOR ? ((TdApi.ReactionTypeEmoji) type).emoji : type.getConstructor() == TdApi.ReactionTypePaid.CONSTRUCTOR ? "⭐" : "❤") : null;
+      scale = sticker != null ? sticker.getDisplayScale() : 1f;
+      receiver.requestFile(image);
+      requestLayout();
+      invalidate();
+    }
+
+    private static float textSize () {
+      return org.thunderdog.challegram.data.TGMessage.reactionsTextStyleProvider().getTextSizeInDp();
+    }
+
+    @Override
+    protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
+      textPaint.setTextSize(Screen.dp(textSize()));
+      int height = org.thunderdog.challegram.data.TGReactions.getReactionBubbleHeight();
+      int addW = Screen.dp((textSize() + 1f) / 3f);
+      int width = (int) (textPaint.measureText(count) + org.thunderdog.challegram.data.TGReactions.getReactionImageSize() + addW);
+      setMeasuredDimension(width, height);
+    }
+
+    @Override
+    protected void onAttachedToWindow () {
+      super.onAttachedToWindow();
+      receiver.attach();
+    }
+
+    @Override
+    protected void onDetachedFromWindow () {
+      super.onDetachedFromWindow();
+      receiver.detach();
+    }
+
+    @Override
+    protected void onDraw (android.graphics.Canvas c) {
+      int height = getHeight();
+      float radius = height / 2f;
+      rect.set(0, 0, getWidth(), height);
+      c.drawRoundRect(rect, radius, radius, org.thunderdog.challegram.tool.Paints.fillingPaint(Theme.getColor(chosen ? ColorId.fillingPositive : ColorId.fillingActive)));
+      textPaint.setTextSize(Screen.dp(textSize()));
+      textPaint.setColor(Theme.getColor(chosen ? ColorId.fillingPositiveContent : ColorId.fillingActiveContent));
+      float textX = height + Screen.dp(1f) + Screen.dp(3f);
+      android.graphics.Paint.FontMetrics fm = textPaint.getFontMetrics();
+      c.drawText(count, textX, height / 2f - (fm.ascent + fm.descent) / 2f, textPaint);
+      int imageSize = org.thunderdog.challegram.data.TGReactions.getReactionImageSize();
+      int imgY = (height - imageSize) / 2;
+      if (fallback != null) {
+        android.text.TextPaint e = new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        e.setTextSize(imageSize * .42f);
+        float w = e.measureText(fallback);
+        c.drawText(fallback, Screen.dp(-1f) + (imageSize - w) / 2f, height / 2f + imageSize * .15f, e);
+        return;
+      }
+      receiver.setBounds(Screen.dp(-1f), imgY, Screen.dp(-1f) + imageSize, imgY + imageSize);
+      receiver.drawScaled(c, scale);
+    }
+  }
 
   /** the static picture Telegram gives a reaction (what channel posts show), or its emoji while that isn't there */
   static final class ReactionIcon extends View {

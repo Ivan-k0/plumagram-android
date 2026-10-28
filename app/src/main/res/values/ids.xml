@@ -1903,4 +1903,5 @@
   <item name="menu_btn_tgx101GazetaAuto" type="id"/>
   <item name="controller_tgx101GazetaLook" type="id"/>
   <item name="btn_tgx101GazetaLook" type="id"/>
+  <item name="btn_tgx101GazetaComments" type="id"/>
 </resources>
