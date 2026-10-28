@@ -47,6 +47,10 @@ import java.util.Map;
  * either side took out goes; a changed name / colour comes from the side that changed it.
  */
 public final class Tgx101SavedCloud {
+  /** (user 2026-10-29 «пока файл не ставить, пока не запустим полноценно веб-версию»): the app neither reads nor writes
+   *  the file yet. The code stays; a file already there is still kept out of the storage's lists */
+  public static final boolean ENABLED = false;
+
   public static final String FILE_NAME = "PlumaGram-Хранилище.json";
   private static final String CAPTION = "Служебный файл PlumaGram: папки Хранилища для приложения и веб-версии. Не удаляйте.";
   /** the folder fields merged one by one (the rest of a folder is taken whole from the cloud) */
@@ -77,6 +81,7 @@ public final class Tgx101SavedCloud {
 
   /** The storage was opened: what the cloud has now, at most every 20 s; {@code onChanged} when the folders here changed */
   public static void pull (Tdlib tdlib, @Nullable Runnable onChanged) {
+    if (!ENABLED) return;
     Tgx101SavedCloud c = get(Tgx101SavedStore.get(tdlib));
     synchronized (c) {
       if (onChanged != null) c.onChanged = onChanged;
@@ -89,6 +94,7 @@ public final class Tgx101SavedCloud {
 
   /** Something was saved here: the data part changed — written to the cloud a moment later (several changes, one file) */
   static void changed (Tgx101SavedStore store) {
+    if (!ENABLED) return;
     if (store.tdlib.selfChatId() == 0) return;
     Tgx101SavedCloud c = get(store);
     String canon;
