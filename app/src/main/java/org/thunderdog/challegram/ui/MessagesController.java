@@ -6122,8 +6122,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     CharSequence text = StringUtils.trim(b);
 
-    msg.loadAllMessageProperties(() -> {
-      msg.loadAvailableReactions(() -> {
+    msg.tgx101LoadForMenu(() -> {
+      {
         AtomicBoolean shown = new AtomicBoolean(false);
         AtomicReference<RunnableData<TdApi.MessageReadDate>> inject = new AtomicReference<>();
         msg.checkReadDate(expectAgain -> {
@@ -6211,7 +6211,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
             }
           }
         }, 200L);
-      });
+      }
     });
   }
 

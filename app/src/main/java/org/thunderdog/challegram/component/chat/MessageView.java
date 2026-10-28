@@ -632,6 +632,9 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       if (doubleTapAction == Settings.DOUBLE_TAP_REACTION) {
         tappedMessage.tgx101PrefetchAvailableReactions(); // arrives during the double-tap wait
       }
+      if (tapMenu && !msg.isEventLog() && msg.messagesController() != null && !msg.messagesController().inPreviewSearchMode()) {
+        tappedMessage.tgx101PrefetchMenu(); // what the menu needs, asked for while the second tap is awaited
+      }
       pendingMenuMessage = tappedMessage;
       pendingMenuTap = new CancellableRunnable() {
         @Override

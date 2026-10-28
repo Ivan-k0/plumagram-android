@@ -9303,6 +9303,14 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       after.runWithBool(false);
       return;
     }
+    if (tgx101MenuPrefetched()) {
+      // TGx101: the properties came during the tap's wait — no second round trip just to learn there's no read time
+      TdApi.MessageProperties properties = cachedProperties != null ? cachedProperties.get(msg.id) : null;
+      if (properties != null && !properties.canGetReadDate) {
+        after.runWithBool(false);
+        return;
+      }
+    }
     getMessageProperties(msg.id, properties -> {
       if (properties.canGetReadDate) {
         loadReadDate(after, timeoutMs);
@@ -9877,6 +9885,59 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (Td.isEmpty(messageAvailableReactions)) {
       loadAvailableReactions(() -> { });
     }
+  }
+
+  // TGx101 (user 2026-10-29 «меню — тоже нужно делать, но чтобы ничего не сломалось»): the menu waited for three
+  // requests one after another (properties → reactions → read date), each a round trip to TDLib and back. They are
+  // asked for during the double-tap wait instead; the menu takes what came if it is from this same tap
+  private long tgx101MenuPrefetchStart, tgx101MenuPrefetchReady;
+  private int tgx101MenuPrefetchToken;
+  private static final long TGX101_MENU_PREFETCH_FRESH = 2000;
+
+  /** Asks for what the message menu needs; called at the first tap, while a second one is awaited */
+  public void tgx101PrefetchMenu () {
+    final int token = ++tgx101MenuPrefetchToken;
+    tgx101MenuPrefetchStart = android.os.SystemClock.uptimeMillis();
+    tgx101MenuPrefetchReady = 0;
+    final AtomicInteger left = new AtomicInteger(2);
+    final Runnable done = () -> {
+      if (left.decrementAndGet() == 0 && token == tgx101MenuPrefetchToken) {
+        tgx101MenuPrefetchReady = android.os.SystemClock.uptimeMillis();
+        org.thunderdog.challegram.Tgx101Diag.mark("menu: data asked for during the wait, ready in " + (tgx101MenuPrefetchReady - tgx101MenuPrefetchStart) + " ms");
+      }
+    };
+    loadAllMessageProperties(() -> {
+      // the read time, when there can be one: the menu's own check then finds it at once
+      TdApi.MessageProperties properties = cachedProperties != null ? cachedProperties.get(msg.id) : null;
+      if (properties != null && properties.canGetReadDate && readDate == null && !(isUnread() && !noUnread())) {
+        tdlib.send(new TdApi.GetMessageReadDate(msg.chatId, msg.id), (readDate, error) -> {
+          if (readDate != null) {
+            this.readDate = readDate;
+          }
+        });
+      }
+      done.run();
+    });
+    loadAvailableReactions(done);
+    checkTranslatableText(() -> { }); // the language is detected once and kept
+  }
+
+  private boolean tgx101MenuPrefetched () {
+    return tgx101MenuPrefetchReady != 0 && android.os.SystemClock.uptimeMillis() - tgx101MenuPrefetchStart < TGX101_MENU_PREFETCH_FRESH;
+  }
+
+  /** Properties and reactions for the message menu: from the tap's wait when they came, else asked for now */
+  public void tgx101LoadForMenu (Runnable after) {
+    if (tgx101MenuPrefetched()) {
+      org.thunderdog.challegram.Tgx101Diag.mark("menu: data from the wait");
+      after.run();
+      return;
+    }
+    final long start = android.os.SystemClock.uptimeMillis();
+    loadAllMessageProperties(() -> loadAvailableReactions(() -> {
+      org.thunderdog.challegram.Tgx101Diag.mark("menu: data loaded in " + (android.os.SystemClock.uptimeMillis() - start) + " ms");
+      after.run();
+    }));
   }
 
   /** TGx101: Telegram can sum this post up (TGMessageText) */
