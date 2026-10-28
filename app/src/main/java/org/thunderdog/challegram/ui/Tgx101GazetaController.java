@@ -984,7 +984,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       smp.leftMargin = Screen.dp(8f);
       header.addView(selectionMark, smp);
       header.setOnClickListener(v -> {
-        if (post != null) tdlib.ui().openChat(Tgx101GazetaController.this, post.chatId, null);
+        // (user 2026-10-28 «назад не вернул в газету»): the feed stays under the channel
+        if (post != null) tdlib.ui().openChat(Tgx101GazetaController.this, post.chatId, new org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters().keepStack());
       });
       addView(header);
 
@@ -1772,7 +1773,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   }
 
   private void openInChannel (Tgx101Gazeta.Post post) {
-    tdlib.ui().openMessage(this, post.chatId, new MessageId(post.chatId, post.main().id), null);
+    tdlib.ui().openChat(this, post.chatId, new org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters().keepStack()
+      .highlightMessage(new MessageId(post.chatId, post.main().id)).ensureHighlightAvailable());
   }
 
   /** (user 2026-10-28 «сворачивание — супер плавно, как везде»): the next change of a card's height glides */
