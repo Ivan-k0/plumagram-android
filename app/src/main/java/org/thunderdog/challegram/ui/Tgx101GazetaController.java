@@ -415,6 +415,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   }
 
   private boolean needReload;
+  private @Nullable String shownLook;
 
   @Override
   public void onFocus () {
@@ -422,7 +423,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     setUnderHeader(true);
     repaintHeader();
     applyPalette();
-    adapter.notifyDataSetChanged(); // the look may have changed in the settings
+    // (user 2026-10-28 «при возврате с канала медиа задрожало»): the cards are drawn again only when the look did change
+    String look = Tgx101Gazeta.lookSignature();
+    if (shownLook != null && !shownLook.equals(look)) adapter.notifyDataSetChanged();
+    shownLook = look;
     if (needReload) {
       needReload = false;
       load();

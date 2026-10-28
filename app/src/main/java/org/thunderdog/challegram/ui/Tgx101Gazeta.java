@@ -254,6 +254,12 @@ public final class Tgx101Gazeta {
     editor.apply();
   }
 
+  /** everything a card's look depends on — the feed redraws its cards only when it changes */
+  public static String lookSignature () {
+    return profile() + "|" + paletteIndex() + "|" + fontSize() + "|" + lineSpacing() + "|" + font() + "|" + photos() + "|" + fold() + "|"
+      + brightness() + "|" + saturation() + "|" + sepia() + "|" + reactions() + "|" + stars() + "|" + comments();
+  }
+
   // ---- own profiles (user 2026-10-28 «свой профиль для ночи и дня: настроил и сохранил») ----
 
   private static final String[] LOOK_INT_KEYS = {"photos", "fold", "lh", "ff", "palette", "bright", "sat"};
