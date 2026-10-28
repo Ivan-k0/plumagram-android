@@ -166,6 +166,7 @@ public final class Tgx101DiagHooks {
 
   public static void onBack (String source) {
     if (BuildConfig.TGX101_DIAG) {
+      onInputAction();
       Tgx101Diag.mark("back (" + source + ")");
     }
   }
@@ -191,6 +192,11 @@ public final class Tgx101DiagHooks {
   // TGx101 (user 2026-10-28 «наше приложение стало работать хуже оригинала»): response time — from the finger leaving the
   // screen to what it set off (a menu, a screen, the keyboard). Normal use fills the log; slow ones get their own line
   private static long lastUpAt;
+
+  /** An action that didn't come through our touch (the system back gesture, a key): the response is timed from now */
+  public static void onInputAction () {
+    if (BuildConfig.TGX101_DIAG) lastUpAt = android.os.SystemClock.uptimeMillis();
+  }
 
   private static String response (String what, long slowMs) {
     if (lastUpAt == 0) return "";

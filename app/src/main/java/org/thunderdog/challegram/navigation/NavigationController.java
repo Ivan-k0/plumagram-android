@@ -1879,6 +1879,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
 
   @Override
   public boolean onSystemBackPressed () {
+    org.thunderdog.challegram.Tgx101DiagHooks.onInputAction(); // the response to the system back is timed from here
     org.thunderdog.challegram.Tgx101Diag.mark("system back: pressed at " + translationFactor + ", animating " + isAnimating);
     if (isAnimating) {
       applyPreview(0f);
