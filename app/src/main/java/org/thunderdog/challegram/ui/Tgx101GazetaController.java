@@ -252,12 +252,17 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     }
     if (id == R.id.menu_btn_forward) {
       List<TdApi.Message> messages = selectedMessages();
-      if (!messages.isEmpty()) {
-        ShareController c = new ShareController(context, tdlib);
-        c.setArguments(new ShareController.Args(messages.toArray(new TdApi.Message[0])));
-        c.show();
-      }
+      // (log 03:02: the share sheet opened and closed 70 ms later — leaving the select mode took it down): the select
+      // mode goes first, the sheet opens after it
       closeSelectMode();
+      if (!messages.isEmpty()) {
+        UI.post(() -> {
+          if (isDestroyed()) return;
+          ShareController c = new ShareController(context, tdlib);
+          c.setArguments(new ShareController.Args(messages.toArray(new TdApi.Message[0])));
+          c.show();
+        }, 220);
+      }
       return;
     }
     if (id == R.id.menu_btn_tgx101GazetaAuto) {
@@ -519,7 +524,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     if (org.thunderdog.challegram.data.Tgx101MessageFilters.suggestion(main) != null) {
       ids.add(R.id.btn_tgx101FilterSimilar); titles.add(Lang.getString(R.string.Tgx101FilterSimilar)); icons.add(R.drawable.baseline_filter_variant_remove_24);
     }
-    if (hasText && org.thunderdog.challegram.unsorted.Settings.instance().tgx101Ai()) {
+    if (false && hasText && org.thunderdog.challegram.unsorted.Settings.instance().tgx101Ai()) { // (user 2026-10-28 «пока убери, нужно доработать»)
       ids.add(R.id.btn_tgx101GazetaHideTopic); titles.add(Lang.getString(R.string.Tgx101GazetaHideTopic)); icons.add(R.drawable.baseline_auto_awesome_hide_24);
     }
     ids.add(R.id.btn_tgx101GazetaHideChannel); titles.add(Lang.getString(R.string.Tgx101GazetaHideChannel)); icons.add(R.drawable.baseline_eye_off_24);
