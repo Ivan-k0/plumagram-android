@@ -104,7 +104,7 @@ public class Tgx101GazetaLookController extends ViewController<Void> {
     preview = feed != null ? feed.createPreview(context) : null;
     if (preview != null) {
       previewWrap.addView(preview);
-      previewWrap.setClipToOutline(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP);
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) previewWrap.setClipToOutline(true); // 5.0+ only
     }
 
     ScrollView scroll = new ScrollView(context);

@@ -602,7 +602,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     miniMenu = popup;
     popup.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
     popup.setClippingEnabled(false);
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) popup.setAttachedInDecor(false);
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP_MR1) popup.setAttachedInDecor(false); // 5.1+ (lint, Android 4/5.0 check)
 
     LinearLayout column = new LinearLayout(ctx);
     column.setOrientation(LinearLayout.VERTICAL);
