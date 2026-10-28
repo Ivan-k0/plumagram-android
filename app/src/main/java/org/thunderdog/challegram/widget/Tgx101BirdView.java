@@ -425,7 +425,7 @@ public class Tgx101BirdView extends View {
           // while one is set, the first tap waits that long before it goes to what lies under the bird
           long now = android.os.SystemClock.uptimeMillis();
           boolean doubleTap = callback != null && callback.birdHasDoubleTap();
-          if (doubleTap && now - tgx101LastTap < 350) {
+          if (doubleTap && now - tgx101LastTap < TGX101_DOUBLE_TAP_MS) {
             tgx101LastTap = 0;
             tgx101CancelPendingTap();
             performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
@@ -443,7 +443,7 @@ public class Tgx101BirdView extends View {
               down.recycle();
               up.recycle();
             };
-            postDelayed(tgx101PendingTap, 330);
+            postDelayed(tgx101PendingTap, TGX101_DOUBLE_TAP_MS);
             return true;
           }
           // (user 2026-10-21 16:34 «птичка должна пропускать клики»): a tap goes to what lies under the bird
@@ -465,6 +465,9 @@ public class Tgx101BirdView extends View {
     return pressed;
   }
 
+  // (user 2026-10-28 «время отклика»): a tap on the bird waited 330 ms before it reached what lies under it, in case a
+  // second tap came; the user's double taps lift 130–165 ms apart (diagnostics log) — 230 ms is enough
+  private static final long TGX101_DOUBLE_TAP_MS = 230;
   private long tgx101LastTap;
   private @Nullable Runnable tgx101PendingTap;
 

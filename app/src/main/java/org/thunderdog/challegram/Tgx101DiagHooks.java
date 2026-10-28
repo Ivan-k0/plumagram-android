@@ -137,7 +137,8 @@ public final class Tgx101DiagHooks {
 
   public static void onControllerFocus (Object controller, boolean focused) {
     if (BuildConfig.TGX101_DIAG) {
-      Tgx101Diag.mark((focused ? "screen → " : "screen ← ") + controller.getClass().getSimpleName());
+      // a screen is focused once its opening animation is over: ~300 ms is the animation itself
+      Tgx101Diag.mark((focused ? "screen → " : "screen ← ") + controller.getClass().getSimpleName() + (focused ? response("screen " + controller.getClass().getSimpleName(), 450) : ""));
       if (focused) Tgx101Diag.setTopScreen(controller.getClass().getSimpleName());
     }
   }
@@ -152,13 +153,14 @@ public final class Tgx101DiagHooks {
 
   public static void onKeyboard (boolean visible) {
     if (BuildConfig.TGX101_DIAG) {
-      Tgx101Diag.mark("keyboard " + (visible ? "shown" : "hidden"));
+      Tgx101Diag.mark("keyboard " + (visible ? "shown" : "hidden") + (visible ? response("keyboard", 250) : ""));
     }
   }
 
   public static void onPopup (Object popup, Object content, boolean shown) {
     if (BuildConfig.TGX101_DIAG) {
-      Tgx101Diag.mark("popup " + (shown ? "shown " : "removed ") + (content != null ? content.getClass().getSimpleName() : popup.getClass().getSimpleName()));
+      String name = content != null ? content.getClass().getSimpleName() : popup.getClass().getSimpleName();
+      Tgx101Diag.mark("popup " + (shown ? "shown " : "removed ") + name + (shown ? response("popup " + name, 150) : ""));
     }
   }
 
@@ -185,6 +187,18 @@ public final class Tgx101DiagHooks {
 
   private static float downX, downY;
   private static long downTime;
+
+  // TGx101 (user 2026-10-28 «наше приложение стало работать хуже оригинала»): response time — from the finger leaving the
+  // screen to what it set off (a menu, a screen, the keyboard). Normal use fills the log; slow ones get their own line
+  private static long lastUpAt;
+
+  private static String response (String what, long slowMs) {
+    if (lastUpAt == 0) return "";
+    long ms = android.os.SystemClock.uptimeMillis() - lastUpAt;
+    if (ms > 1500) return "";
+    if (ms > slowMs) Tgx101Diag.mark("SLOW RESPONSE: " + what + " " + ms + " ms after the finger left (norm ≤ " + slowMs + ")");
+    return " (+" + ms + " ms after the finger)";
+  }
   private static float maxDistance;
 
   private static int dp (float px) {
@@ -208,6 +222,7 @@ public final class Tgx101DiagHooks {
         break;
       case MotionEvent.ACTION_UP:
       case MotionEvent.ACTION_CANCEL: {
+        if (e.getActionMasked() == MotionEvent.ACTION_UP) lastUpAt = android.os.SystemClock.uptimeMillis();
         float dx = e.getRawX() - downX, dy = e.getRawY() - downY;
         String kind = maxDistance < Screen.dp(8) ? (e.getEventTime() - downTime >= 400 ? "long press" : "tap") : "swipe";
         Tgx101Diag.mark("touch " + kind + (e.getActionMasked() == MotionEvent.ACTION_CANCEL ? " (cancelled)" : "") +
