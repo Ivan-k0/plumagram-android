@@ -167,6 +167,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101GazetaTopicHidden, "Тема скрыта; убрано постов: %1$d");
     RU.put(R.string.Tgx101GazetaTopics, "Скрытые темы");
     RU.put(R.string.Tgx101GazetaTopicsHint, "Посты на эти темы не показываются в «Газете». Нажмите на тему, чтобы вернуть её посты.");
+    RU.put(R.string.Tgx101GazetaReset, "Сбросить по умолчанию");
+    RU.put(R.string.Tgx101GazetaResetInfo, "Вид «Газеты» — и дневной, и ночной — и скорость автопрокрутки вернутся к настройкам по умолчанию. Свои сохранённые профили останутся.");
     RU.put(R.string.Tgx101FilterSimilar, "Скрывать похожие…");
     RU.put(R.string.RecordingAndPhotos, "Запись и фото");
     RU.put(R.string.PauseMediaOnRecord, "Пауза музыки при записи и голосовых");

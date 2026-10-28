@@ -41,7 +41,7 @@ import org.thunderdog.challegram.tool.Screen;
  * ☀/☾ — the two profiles, each with its own values; text (size — the app's by default, line spacing, typeface), the
  * posts' colour, pictures (quick filters, brightness, saturation), long posts (9 lines / «Short»), autoscroll speed.
  */
-public class Tgx101GazetaLookController extends ViewController<Void> {
+public class Tgx101GazetaLookController extends ViewController<Void> implements org.thunderdog.challegram.navigation.Menu {
   private final @Nullable Tgx101GazetaController feed;
 
   public Tgx101GazetaLookController (Context context, Tdlib tdlib, @Nullable Tgx101GazetaController feed) {
@@ -57,6 +57,33 @@ public class Tgx101GazetaLookController extends ViewController<Void> {
   @Override
   public CharSequence getName () {
     return Lang.getString(R.string.Tgx101GazetaLook);
+  }
+
+  @Override
+  protected int getMenuId () {
+    return R.id.menu_tgx101GazetaLook;
+  }
+
+  @Override
+  public void fillMenuItems (int id, org.thunderdog.challegram.navigation.HeaderView header, LinearLayout menu) {
+    if (id == R.id.menu_tgx101GazetaLook) {
+      header.addButton(menu, R.id.menu_btn_tgx101GazetaReset, R.drawable.baseline_replay_24, 49f, this, getHeaderIconColorId()).tgx101SetForcedColor(Tgx101Gazeta.palette()[2]);
+    }
+  }
+
+  @Override
+  public void onMenuItemPressed (int id, View view) {
+    if (id == R.id.menu_btn_tgx101GazetaReset) {
+      showOptions(Lang.getString(R.string.Tgx101GazetaResetInfo), new int[] {1, 2},
+        new String[] {Lang.getString(R.string.Tgx101GazetaReset), Lang.getString(R.string.Cancel)},
+        new int[] {OptionColor.RED, OptionColor.NORMAL}, new int[] {R.drawable.baseline_replay_24, R.drawable.baseline_cancel_24}, (v, option) -> {
+          if (option == 1) {
+            Tgx101Gazeta.resetLook();
+            rebuild();
+          }
+          return true;
+        });
+    }
   }
 
   @Override

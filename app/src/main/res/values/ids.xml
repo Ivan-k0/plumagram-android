@@ -1907,4 +1907,6 @@
   <item name="menu_tgx101GazetaSelect" type="id"/>
   <item name="btn_tgx101GazetaHideTopic" type="id"/>
   <item name="btn_tgx101GazetaTopic" type="id"/>
+  <item name="menu_tgx101GazetaLook" type="id"/>
+  <item name="menu_btn_tgx101GazetaReset" type="id"/>
 </resources>

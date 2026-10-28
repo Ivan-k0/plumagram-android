@@ -241,6 +241,19 @@ public final class Tgx101Gazeta {
     return new android.graphics.ColorMatrixColorFilter(m);
   }
 
+  /** (user 2026-10-28 «сброс всех настроек вида — по умолчанию, как в приложении»): both looks and the autoscroll speed
+   *  back to their defaults; the own saved looks stay */
+  public static void resetLook () {
+    me.vkryl.leveldb.LevelDB.Editor editor = Settings.instance().pmc().edit();
+    for (int p = 0; p < 2; p++) {
+      for (String k : new String[] {"photos", "fold", "fs", "lh", "ff", "palette", "bright", "sat", "sepia"}) {
+        editor.remove("tgx101_gazeta_" + k + "_p" + p);
+      }
+    }
+    editor.remove("tgx101_gazeta_auto_speed");
+    editor.apply();
+  }
+
   // ---- own profiles (user 2026-10-28 «свой профиль для ночи и дня: настроил и сохранил») ----
 
   private static final String[] LOOK_INT_KEYS = {"photos", "fold", "lh", "ff", "palette", "bright", "sat"};
