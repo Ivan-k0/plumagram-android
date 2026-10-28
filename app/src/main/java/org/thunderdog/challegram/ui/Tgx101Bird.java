@@ -351,10 +351,15 @@ public final class Tgx101Bird {
             } else {
               tgx101RememberJump(host, chatId);
             }
+            // (log 11:08: from «Газета» the chat replaced it in the stack — the second double tap had nowhere to go back
+            // to): over the feed the chat keeps it underneath
+            boolean keep = host instanceof Tgx101GazetaController;
+            org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters params = keep ? new org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters().keepStack() : null;
             if (messageId != 0) {
-              tdlib.ui().openMessage(host, chatId, new tgx.td.MessageId(chatId, messageId), null);
+              if (keep) tdlib.ui().openChat(host, chatId, params.highlightMessage(new tgx.td.MessageId(chatId, messageId)).ensureHighlightAvailable());
+              else tdlib.ui().openMessage(host, chatId, new tgx.td.MessageId(chatId, messageId), null);
             } else {
-              tdlib.ui().openChat(host, chatId, null);
+              tdlib.ui().openChat(host, chatId, params);
             }
           }
         });
