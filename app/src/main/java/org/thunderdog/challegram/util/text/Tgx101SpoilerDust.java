@@ -51,13 +51,13 @@ final class Tgx101SpoilerDust {
     Canvas c = new Canvas(b);
     Paint dot = new Paint(Paint.ANTI_ALIAS_FLAG);
     Random random = new Random(101);
-    float step = Screen.dp(2.6f);
+    float step = Screen.dp(4.2f); // sparse: the words' shape must not show through
     int count = Math.round(size * size / (step * step));
     for (int i = 0; i < count; i++) {
       float x = random.nextFloat() * size, y = random.nextFloat() * size;
-      float r = Screen.dp(.45f + random.nextFloat() * .55f);
+      float r = Screen.dp(.35f + random.nextFloat() * .4f);
       dot.setColor(0xffffffff);
-      dot.setAlpha(90 + random.nextInt(166));
+      dot.setAlpha(70 + random.nextInt(186));
       // drawn three times near the edges so the tile repeats without seams
       for (int dx = -1; dx <= 1; dx++) for (int dy = -1; dy <= 1; dy++) {
         c.drawCircle(x + dx * size, y + dy * size, r, dot);
@@ -87,7 +87,7 @@ final class Tgx101SpoilerDust {
     }
     float t = (SystemClock.uptimeMillis() % 600000L) / 1000f;
     float dp = Screen.density();
-    int a = Math.round(alpha * (color >>> 24));
+    int a = Math.round(alpha * (color >>> 24) * .8f);
     int save = c.save();
     c.clipPath(path);
     matrix.setTranslate(t * 9f * dp, -t * 6f * dp);
