@@ -79,6 +79,8 @@ public class Intents {
   public static final int ACTIVITY_RESULT_RINGTONE_NOTIFICATION = 108;
   public static final int ACTIVITY_RESULT_VIDEO_CAPTURE = 109;
   public static final int ACTIVITY_RESULT_MANAGE_STORAGE = 110;
+  // TGx101 (user 2026-10-28): a sound picked as a file
+  public static final int ACTIVITY_RESULT_TGX101_RINGTONE_FILE = 191, ACTIVITY_RESULT_TGX101_SOUND_FILE = 192;
 
   private static final String PACKAGE_NAME = BuildConfig.APPLICATION_ID; // AppContext.get().getPackageName();
 

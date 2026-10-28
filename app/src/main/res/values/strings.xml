@@ -7552,4 +7552,8 @@
   <string name="Tgx101GazetaTopicsHint">Posts on these topics are left out of Gazeta. Tap a topic to bring its posts back.</string>
   <string name="Tgx101GazetaReset">Reset to default</string>
   <string name="Tgx101GazetaResetInfo">The look of Gazeta — both day and night — and the autoscroll speed go back to their defaults. Your own saved looks stay.</string>
+  <string name="Tgx101SoundPickFile">Choose a file…</string>
+  <string name="Tgx101SoundDefault">Default sound</string>
+  <string name="Tgx101SoundNone">No sound</string>
+  <string name="Tgx101SoundNoFiles">No app to choose a file with</string>
 </resources>

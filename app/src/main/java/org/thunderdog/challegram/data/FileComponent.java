@@ -600,7 +600,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       switch (event.getAction()) {
         case MotionEvent.ACTION_DOWN: {
           transcribeCaught = false;
-          float bx = transcribeButtonCenterX(startX), by = startY + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS); // level with ▶
+          float bx = transcribeButtonCenterX(startX), by = startY + Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS) - Screen.dp(3f); // where it is drawn
           float touchRadius = Screen.dp(TRANSCRIBE_BUTTON_SIZE / 2f + 8f);
           if (Math.abs(x - bx) <= touchRadius && Math.abs(y - by) <= touchRadius) {
             transcribeCaught = true;
@@ -950,7 +950,8 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       }
       if (hasTranscribeButton()) {
         // (user photo 2026-10-27 17:52 «кнопки на одном уровне»): «A» level with ▶ — both on the block's centre
-        drawTranscribeButton(c, transcribeButtonCenterX(startX), cy, align, alpha);
+        // (user 2026-10-28: «А визуально ниже, чем стрелка плэй» — its box ends on the wave's bottom line): 3 dp up
+        drawTranscribeButton(c, transcribeButtonCenterX(startX), cy - Screen.dp(3f), align, alpha);
       }
     }
   }

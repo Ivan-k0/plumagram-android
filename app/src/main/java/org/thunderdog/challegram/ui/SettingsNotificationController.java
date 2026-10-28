@@ -1887,6 +1887,30 @@ public class SettingsNotificationController extends RecyclerViewController<Setti
             requestCode = Intents.ACTIVITY_RESULT_RINGTONE_NOTIFICATION;
           }
 
+          // TGx101 (user 2026-10-28, screenshot 10:57: the system list was full of call recordings): a file from the files
+          // app, or the default sound, or none; the file is copied in, so it keeps playing
+          final int pickedRequest = requestCode;
+          final Uri defaultUri = systemDefaultRingtone;
+          showOptions(title, new int[] {1, 2, 3}, new String[] {Lang.getString(R.string.Tgx101SoundPickFile), Lang.getString(R.string.Tgx101SoundDefault), Lang.getString(R.string.Tgx101SoundNone)},
+            null, new int[] {R.drawable.baseline_insert_drive_file_24, R.drawable.baseline_notifications_24, R.drawable.baseline_notifications_off_24}, (optionView, option) -> {
+              if (option == 1) {
+                Intent pick = new Intent(Intent.ACTION_GET_CONTENT);
+                pick.setType("audio/*");
+                pick.addCategory(Intent.CATEGORY_OPENABLE);
+                try {
+                  context.startActivityForResult(Intent.createChooser(pick, title), pickedRequest == Intents.ACTIVITY_RESULT_RINGTONE ? Intents.ACTIVITY_RESULT_TGX101_RINGTONE_FILE : Intents.ACTIVITY_RESULT_TGX101_SOUND_FILE);
+                } catch (Throwable t) {
+                  UI.showToast(R.string.Tgx101SoundNoFiles, android.widget.Toast.LENGTH_SHORT);
+                }
+              } else {
+                Intent result = new Intent();
+                if (option == 2) result.putExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, defaultUri);
+                onActivityResult(pickedRequest, Activity.RESULT_OK, result);
+              }
+              return true;
+            });
+          if (true) return;
+
           Intent intent = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
           intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, title);
           intent.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true);
@@ -2074,6 +2098,14 @@ public class SettingsNotificationController extends RecyclerViewController<Setti
 
   @Override
   public void onActivityResult (int requestCode, int resultCode, Intent data) {
+    if (resultCode == Activity.RESULT_OK && data != null && data.getData() != null
+      && (requestCode == Intents.ACTIVITY_RESULT_TGX101_RINGTONE_FILE || requestCode == Intents.ACTIVITY_RESULT_TGX101_SOUND_FILE)) {
+      // TGx101: a file picked — handled as the system picker's pick (copied in by fixSoundUri)
+      Intent result = new Intent();
+      result.putExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, data.getData());
+      onActivityResult(requestCode == Intents.ACTIVITY_RESULT_TGX101_RINGTONE_FILE ? Intents.ACTIVITY_RESULT_RINGTONE : Intents.ACTIVITY_RESULT_RINGTONE_NOTIFICATION, Activity.RESULT_OK, result);
+      return;
+    }
     if (resultCode == Activity.RESULT_OK && (requestCode == Intents.ACTIVITY_RESULT_RINGTONE || requestCode == Intents.ACTIVITY_RESULT_RINGTONE_NOTIFICATION)) {
       final Uri originalUri = data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
 
