@@ -438,6 +438,7 @@ public final class Tgx101SavedKit {
         if (m == null || m.id == from) continue;
         last = m.id;
         if (Tgx101SavedCloud.isCloudFile(m)) continue; // the folders' service file
+        out.add(m); // (user 2026-10-29 «в хранилище нет недавних, и всех»): this line was lost with the line above
       }
       if (out.size() >= max || last == from) {
         UI.post(() -> after.runWithData(out));
