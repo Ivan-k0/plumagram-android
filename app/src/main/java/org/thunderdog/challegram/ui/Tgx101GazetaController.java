@@ -419,6 +419,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         }
         list.post(this::markVisibleRead);
         completeAlbums();
+        readChannelsWithNothingToShow(chatIds);
       });
     });
   }
@@ -501,9 +502,39 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       for (long id : post.ids()) ids.add(id);
     }
     for (Map.Entry<Long, List<Long>> e : byChat.entrySet()) {
+      // (user 2026-10-28 «висит 5 непрочитанных, а всё прочитано»): what the feed doesn't show — service messages,
+      // polls and the like, filtered posts — stayed unread after the channel's newest post was seen; seeing it reads
+      // the channel up to its very last message
+      if (!Tgx101Gazeta.truncated.contains(e.getKey()) && isNewestOfChat(e.getKey(), e.getValue())) {
+        TdApi.Chat chat = tdlib.chat(e.getKey());
+        if (chat != null && chat.lastMessage != null && !e.getValue().contains(chat.lastMessage.id)) e.getValue().add(chat.lastMessage.id);
+      }
       long[] ids = new long[e.getValue().size()];
       for (int i = 0; i < ids.length; i++) ids[i] = e.getValue().get(i);
       tdlib.client().send(new TdApi.ViewMessages(e.getKey(), ids, new TdApi.MessageSourceChatHistory(), true), r -> { });
+    }
+  }
+
+  /** none of the chat's posts in the feed comes after these */
+  private boolean isNewestOfChat (long chatId, List<Long> seen) {
+    long max = 0;
+    for (long id : seen) max = Math.max(max, id);
+    for (Tgx101Gazeta.Post p : posts) {
+      if (p.chatId != chatId) continue;
+      for (TdApi.Message m : p.messages) if (m.id > max) return false;
+    }
+    return true;
+  }
+
+  /** a channel with unread messages but no post of them in the feed (all of them service, hidden or filtered) is read:
+   *  there's nothing to show for it, and its count would hang on «Газета» forever */
+  private void readChannelsWithNothingToShow (long[] chatIds) {
+    java.util.Set<Long> shown = new java.util.HashSet<>();
+    for (Tgx101Gazeta.Post p : posts) if (p.unread) shown.add(p.chatId);
+    for (long chatId : chatIds) {
+      TdApi.Chat chat = tdlib.chat(chatId);
+      if (chat == null || chat.unreadCount == 0 || chat.lastMessage == null || shown.contains(chatId)) continue;
+      tdlib.client().send(new TdApi.ViewMessages(chatId, new long[] {chat.lastMessage.id}, new TdApi.MessageSourceChatHistory(), true), r -> { });
     }
   }
 

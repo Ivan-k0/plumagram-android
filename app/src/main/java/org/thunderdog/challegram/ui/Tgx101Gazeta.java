@@ -481,6 +481,9 @@ public final class Tgx101Gazeta {
     return false;
   }
 
+  /** channels with more unread posts than the feed takes: never read to their end from the feed */
+  public static final java.util.Set<Long> truncated = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+
   /** the unread posts of every channel (with a few read ones above), merged by time; on the UI thread */
   public static void loadFeed (Tdlib tdlib, long[] chatIds, FeedCallback callback) {
     if (chatIds.length == 0) {
@@ -510,6 +513,7 @@ public final class Tgx101Gazeta {
         continue;
       }
       int unread = Math.min(chat.unreadCount, MAX_UNREAD_PER_CHANNEL);
+      if (chat.unreadCount > MAX_UNREAD_PER_CHANNEL) truncated.add(chatId); else truncated.remove(chatId);
       long read = chat.lastReadInboxMessageId;
       synchronized (all) {
         lastRead.put(chatId, read);
