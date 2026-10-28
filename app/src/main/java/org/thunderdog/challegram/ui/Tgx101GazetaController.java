@@ -92,8 +92,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   @Override
   public void fillMenuItems (int id, HeaderView header, LinearLayout menu) {
     if (id == R.id.menu_tgx101GazetaSelect) {
-      header.addButton(menu, R.id.menu_btn_copy, R.drawable.baseline_content_copy_24, getSelectHeaderIconColorId(), this, Screen.dp(52f));
-      header.addButton(menu, R.id.menu_btn_forward, R.drawable.baseline_forward_24, getSelectHeaderIconColorId(), this, Screen.dp(52f));
+      header.addButton(menu, R.id.menu_btn_copy, R.drawable.baseline_content_copy_24, getSelectHeaderIconColorId(), this, Screen.dp(52f)).tgx101SetForcedColor(Tgx101Gazeta.palette()[2]);
+      header.addButton(menu, R.id.menu_btn_forward, R.drawable.baseline_forward_24, getSelectHeaderIconColorId(), this, Screen.dp(52f)).tgx101SetForcedColor(Tgx101Gazeta.palette()[2]);
       return;
     }
     if (id == R.id.menu_tgx101Gazeta) {
@@ -623,7 +623,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     pill.setOrientation(LinearLayout.HORIZONTAL);
     pill.setGravity(Gravity.CENTER);
     pill.setPadding(Screen.dp(9f), 0, Screen.dp(9f), 0);
-    pill.setBackground(Tgx101MessageMenu.rounded(Theme.getColor(ColorId.filling), Screen.dp(26f)));
+    final int[] pal = Tgx101Gazeta.palette();
+    pill.setBackground(Tgx101MessageMenu.rounded(pal[1], Screen.dp(26f)));
     Tgx101MessageMenu.elevate(pill, Screen.dp(26f));
     pill.setClickable(true);
     LinearLayout.LayoutParams pillParams = new LinearLayout.LayoutParams(pillWidth, Screen.dp(52f));
@@ -637,13 +638,13 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
     LinearLayout card = new LinearLayout(ctx);
     card.setOrientation(LinearLayout.VERTICAL);
-    card.setBackground(Tgx101MessageMenu.rounded(Theme.getColor(ColorId.filling), Screen.dp(16f)));
+    card.setBackground(Tgx101MessageMenu.rounded(pal[1], Screen.dp(16f)));
     Tgx101MessageMenu.elevate(card, Screen.dp(16f));
     card.setClickable(true);
     TextView head = new TextView(ctx);
     head.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13f);
     head.setTypeface(Fonts.getRobotoRegular());
-    head.setTextColor(Theme.getColor(ColorId.textLight));
+    head.setTextColor(pal[3]);
     head.setSingleLine(true);
     head.setEllipsize(TextUtils.TruncateAt.END);
     head.setGravity(Gravity.CENTER_VERTICAL);
@@ -651,7 +652,9 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     head.setMinHeight(Screen.dp(40f));
     head.setText(tdlib.chatTitle(post.chatId));
     card.addView(head, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-    card.addView(Tgx101MessageMenu.divider(ctx));
+    View divider = Tgx101MessageMenu.divider(ctx);
+    divider.setBackgroundColor(me.vkryl.core.ColorUtils.alphaColor(.12f, pal[2]));
+    card.addView(divider);
     for (int i = 0; i < ids.length; i++) {
       final int id = ids[i];
       TextView row = new TextView(ctx);
@@ -662,13 +665,13 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       row.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
       row.setPadding(Screen.dp(16f), 0, Screen.dp(16f), 0);
       row.setCompoundDrawablePadding(Screen.dp(14f));
-      row.setTextColor(Theme.getColor(ColorId.text));
+      row.setTextColor(pal[2]);
       row.setText(titles[i]);
       org.thunderdog.challegram.unsorted.Settings.tgx101StyleRow(row, 15f);
       android.graphics.drawable.Drawable icon = org.thunderdog.challegram.tool.Drawables.get(ctx.getResources(), icons[i]);
       if (icon != null) {
         icon = icon.mutate();
-        icon.setColorFilter(org.thunderdog.challegram.tool.Paints.getColorFilter(Theme.getColor(ColorId.icon)));
+        icon.setColorFilter(org.thunderdog.challegram.tool.Paints.getColorFilter(pal[3]));
         icon.setBounds(0, 0, Screen.dp(21f), Screen.dp(21f));
         row.setCompoundDrawables(icon, null, null, null);
       }

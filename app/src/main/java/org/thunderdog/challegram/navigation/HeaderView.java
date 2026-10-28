@@ -2842,7 +2842,8 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     }
     if (allowTransform) {
       if (c.inSelectMode()) {
-        return Theme.getColor(c.getSelectTextColorId());
+        int custom = c.tgx101HeaderTextColor();
+        return custom != 0 ? custom : Theme.getColor(c.getSelectTextColorId());
       }
       if (c.inSearchMode()) {
         return /*c.inChatSearchMode() ? c.getHeaderTextColor() : */c.getSearchTextColor();

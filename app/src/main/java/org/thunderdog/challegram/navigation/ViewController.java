@@ -976,7 +976,8 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
   // DEPRECATED
 
   protected final int getSelectHeaderIconColor () {
-    return Theme.getColor(getSelectHeaderIconColorId());
+    int custom = tgx101HeaderTextColor();
+    return custom != 0 ? custom : Theme.getColor(getSelectHeaderIconColorId());
   }
 
   protected int getHeaderIconColor () {
@@ -992,7 +993,8 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
   }
 
   protected final int getSelectHeaderColor () {
-    return Theme.getColor(getSelectHeaderColorId());
+    int custom = tgx101HeaderColor();
+    return custom != 0 ? custom : Theme.getColor(getSelectHeaderColorId());
   }
 
   protected final int getSearchHeaderColor () {
