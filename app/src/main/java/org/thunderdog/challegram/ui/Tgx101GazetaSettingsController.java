@@ -61,7 +61,7 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
   }
 
   private static String foldName (int fold) {
-    return fold == Tgx101Gazeta.FOLD_SHORT ? Lang.getString(R.string.Tgx101GazetaFoldShort) : Lang.getString(R.string.Tgx101GazetaFoldLines, 9);
+    return fold == Tgx101Gazeta.FOLD_NONE ? Lang.getString(R.string.Tgx101GazetaFoldFull) : Lang.getString(R.string.Tgx101GazetaFoldLines, 9);
   }
 
   private static String pictureName () {
@@ -218,7 +218,7 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
         }
       });
     } else if (id == R.id.btn_tgx101GazetaFold) {
-      int[] folds = {Tgx101Gazeta.FOLD_LINES, Tgx101Gazeta.FOLD_SHORT};
+      int[] folds = {Tgx101Gazeta.FOLD_LINES, Tgx101Gazeta.FOLD_NONE};
       String[] names = new String[folds.length];
       int current = -1;
       for (int i = 0; i < folds.length; i++) {

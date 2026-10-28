@@ -31,6 +31,7 @@ import androidx.annotation.Nullable;
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.navigation.ViewController;
+import org.thunderdog.challegram.navigation.ViewController.OptionColor;
 import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.tool.Fonts;
 import org.thunderdog.challegram.tool.Screen;
@@ -263,6 +264,38 @@ public class Tgx101GazetaLookController extends ViewController<Void> {
         rebuild();
       });
 
+    // own profiles: a tap puts one on the profile now on (☀ or ☾), a long press deletes it; «+» saves the look now on
+    LinearLayout own = section(context, R.string.Tgx101GazetaOwnLooks);
+    android.widget.HorizontalScrollView ownScroll = new android.widget.HorizontalScrollView(context);
+    ownScroll.setHorizontalScrollBarEnabled(false);
+    LinearLayout ownRow = chipRow(context);
+    for (String name : Tgx101Gazeta.savedLooks()) {
+      View c = chip(context, name, false, v -> {
+        Tgx101Gazeta.applyLook(name);
+        rebuild();
+      });
+      c.setOnLongClickListener(v -> {
+        showOptions(name, new int[] {1, 2}, new String[] {Lang.getString(R.string.Tgx101GazetaLookOverwrite), Lang.getString(R.string.Delete)}, new int[] {OptionColor.NORMAL, OptionColor.RED}, new int[] {R.drawable.baseline_edit_24, R.drawable.baseline_delete_24}, (view, id) -> {
+          if (id == 1) Tgx101Gazeta.saveLook(name);
+          else Tgx101Gazeta.deleteLook(name);
+          rebuild();
+          return true;
+        });
+        return true;
+      });
+      addChip(ownRow, c);
+    }
+    addChip(ownRow, chip(context, "+ " + Lang.getString(R.string.Tgx101GazetaLookSave), false, v ->
+      Tgx101SavedActions.askName(this, Lang.getString(R.string.Tgx101GazetaLookSave), null, name -> {
+        Tgx101Gazeta.saveLook(name);
+        rebuild();
+      })));
+    ownScroll.addView(ownRow);
+    own.addView(ownScroll);
+    TextView ownHint = label(context, Lang.getString(R.string.Tgx101GazetaOwnLooksHint), 12.5f, false, pal()[3]);
+    ownHint.setPadding(Screen.dp(2f), Screen.dp(8f), Screen.dp(2f), 0);
+    own.addView(ownHint);
+
     // text
     LinearLayout text = section(context, R.string.Tgx101GazetaText);
     float appSize = org.thunderdog.challegram.unsorted.Settings.instance().getChatFontSize();
@@ -376,9 +409,9 @@ public class Tgx101GazetaLookController extends ViewController<Void> {
     LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(40f));
     fp.topMargin = Screen.dp(10f);
     fold.addView(foldSegment, fp);
-    segmentButtons(foldSegment, new String[] {Lang.getString(R.string.Tgx101GazetaFoldLines, 9), "✨ " + Lang.getString(R.string.Tgx101AiShort)},
-      Tgx101Gazeta.fold() == Tgx101Gazeta.FOLD_SHORT ? 1 : 0, which -> {
-        Tgx101Gazeta.setFold(which == 1 ? Tgx101Gazeta.FOLD_SHORT : Tgx101Gazeta.FOLD_LINES);
+    segmentButtons(foldSegment, new String[] {Lang.getString(R.string.Tgx101GazetaFoldLines, 9), Lang.getString(R.string.Tgx101GazetaFoldFull)},
+      Tgx101Gazeta.fold() == Tgx101Gazeta.FOLD_NONE ? 1 : 0, which -> {
+        Tgx101Gazeta.setFold(which == 1 ? Tgx101Gazeta.FOLD_NONE : Tgx101Gazeta.FOLD_LINES);
         rebuild();
       });
 

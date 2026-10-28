@@ -156,6 +156,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101GazetaAutoSpeed, "Скорость");
     RU.put(R.string.Tgx101GazetaAutoHint, "Включается кнопкой в шапке ленты. Касание ставит на паузу, через 3 секунды без касаний листает дальше. Свайпать при этом можно.");
     RU.put(R.string.Tgx101GazetaComments, "Комментарии");
+    RU.put(R.string.Tgx101GazetaFoldFull, "Показывать целиком");
+    RU.put(R.string.Tgx101GazetaOwnLooks, "Свои профили");
+    RU.put(R.string.Tgx101GazetaOwnLooksHint, "Нажатие — включить профиль для дня (☀) или ночи (☾), смотря что выбрано сверху. Удержание — перезаписать или удалить.");
+    RU.put(R.string.Tgx101GazetaLookSave, "Сохранить как…");
+    RU.put(R.string.Tgx101GazetaLookOverwrite, "Перезаписать текущим видом");
     RU.put(R.string.Tgx101FilterSimilar, "Скрывать похожие…");
     RU.put(R.string.RecordingAndPhotos, "Запись и фото");
     RU.put(R.string.PauseMediaOnRecord, "Пауза музыки при записи и голосовых");

@@ -7539,4 +7539,9 @@
   <string name="Tgx101GazetaAutoSpeed">Speed</string>
   <string name="Tgx101GazetaAutoHint">Switched on by the button in the feed\'s header. A touch pauses it; it goes on after 3 seconds with the screen left alone. You can swipe meanwhile.</string>
   <string name="Tgx101GazetaComments">Comments</string>
+  <string name="Tgx101GazetaFoldFull">In full</string>
+  <string name="Tgx101GazetaOwnLooks">Own looks</string>
+  <string name="Tgx101GazetaOwnLooksHint">A tap puts the look on the day (☀) or the night (☾) profile — whichever is on above. Hold a look to overwrite or delete it.</string>
+  <string name="Tgx101GazetaLookSave">Save as…</string>
+  <string name="Tgx101GazetaLookOverwrite">Save the look now on here</string>
 </resources>

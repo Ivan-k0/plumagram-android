@@ -100,11 +100,11 @@ public final class Tgx101Gazeta {
     Settings.instance().pmc().putInt(pkey("photos"), value);
   }
 
-  public static final int FOLD_LINES = 9, FOLD_SHORT = 1;
+  public static final int FOLD_LINES = 9, FOLD_NONE = 0;
 
-  /** (user 2026-10-28) long posts: 9 lines and «Show in full», or 9 lines and «Short» (the AI summary) instead */
+  /** (user 2026-10-28) long posts: 9 lines and «Show in full» under them, or in full; «Short» is the sign top right */
   public static int fold () {
-    return Settings.instance().pmc().getInt(pkey("fold"), FOLD_LINES) == FOLD_SHORT ? FOLD_SHORT : FOLD_LINES;
+    return Settings.instance().pmc().getInt(pkey("fold"), FOLD_LINES) == FOLD_NONE ? FOLD_NONE : FOLD_LINES;
   }
 
   public static void setFold (int value) {
@@ -239,6 +239,67 @@ public final class Tgx101Gazeta {
     scale.setScale(k, k, k, 1f);
     m.postConcat(scale);
     return new android.graphics.ColorMatrixColorFilter(m);
+  }
+
+  // ---- own profiles (user 2026-10-28 «свой профиль для ночи и дня: настроил и сохранил») ----
+
+  private static final String[] LOOK_INT_KEYS = {"photos", "fold", "lh", "ff", "palette", "bright", "sat"};
+
+  public static java.util.List<String> savedLooks () {
+    String names = Settings.instance().pmc().getString("tgx101_gazeta_looks", null);
+    java.util.List<String> out = new ArrayList<>();
+    if (names != null && !names.isEmpty()) java.util.Collections.addAll(out, names.split("\n"));
+    return out;
+  }
+
+  private static void setSavedLooks (java.util.List<String> names) {
+    Settings.instance().pmc().putString("tgx101_gazeta_looks", android.text.TextUtils.join("\n", names));
+  }
+
+  private static String lookKey (String name) {
+    return "tgx101_gazeta_look_" + Integer.toHexString(name.hashCode());
+  }
+
+  /** the look now on (☀ or ☾) kept under a name; the same name is overwritten */
+  public static void saveLook (String name) {
+    name = name.replace('\n', ' ').trim();
+    if (name.isEmpty()) return;
+    StringBuilder b = new StringBuilder();
+    for (String k : LOOK_INT_KEYS) b.append(k).append('=').append(Settings.instance().pmc().getInt(pkey(k), Integer.MIN_VALUE)).append(';');
+    b.append("fs=").append(Settings.instance().pmc().getFloat(pkey("fs"), 0f)).append(';');
+    b.append("sepia=").append(sepia() ? 1 : 0);
+    Settings.instance().pmc().putString(lookKey(name), b.toString());
+    java.util.List<String> names = savedLooks();
+    if (!names.contains(name)) names.add(name);
+    setSavedLooks(names);
+  }
+
+  /** puts a saved look on the profile now on (☀ or ☾) */
+  public static void applyLook (String name) {
+    String data = Settings.instance().pmc().getString(lookKey(name), null);
+    if (data == null) return;
+    me.vkryl.leveldb.LevelDB.Editor editor = Settings.instance().pmc().edit();
+    for (String pair : data.split(";")) {
+      int eq = pair.indexOf('=');
+      if (eq <= 0) continue;
+      String k = pair.substring(0, eq), v = pair.substring(eq + 1);
+      try {
+        if ("fs".equals(k)) editor.putFloat(pkey("fs"), Float.parseFloat(v));
+        else if ("sepia".equals(k)) editor.putBoolean(pkey("sepia"), "1".equals(v));
+        else {
+          int value = Integer.parseInt(v);
+          if (value == Integer.MIN_VALUE) editor.remove(pkey(k)); else editor.putInt(pkey(k), value);
+        }
+      } catch (NumberFormatException ignored) { }
+    }
+    editor.apply();
+  }
+
+  public static void deleteLook (String name) {
+    Settings.instance().pmc().remove(lookKey(name));
+    java.util.List<String> names = savedLooks();
+    names.remove(name);
+    setSavedLooks(names);
   }
 
   // ---- for both profiles ----

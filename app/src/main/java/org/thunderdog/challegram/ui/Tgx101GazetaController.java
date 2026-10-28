@@ -1134,7 +1134,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
       // the text; beside a thumbnail only as many lines as its height, the rest goes on under it at full width
       int fold = Tgx101Gazeta.fold();
-      int maxLines = post.expanded ? Integer.MAX_VALUE : 9;
+      int maxLines = post.expanded || fold == Tgx101Gazeta.FOLD_NONE ? Integer.MAX_VALUE : 9;
       int fullWidth = width - pad * 2;
       boolean hasText = str != null && str.length() > 0;
       CharSequence top = str, below = null;
@@ -1167,7 +1167,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       int total = below != null ? topLines + lineCount(below, bodyBelow, fullWidth) : lineCount(str, body, withThumb ? fullWidth - Screen.dp(THUMB + THUMB_GAP) : fullWidth);
       boolean cut = maxLines != Integer.MAX_VALUE && total > maxLines;
       boolean summarizable = summarizable(main);
-      boolean shortInstead = cut && fold == Tgx101Gazeta.FOLD_SHORT && summarizable && !post.summaryShown;
+      boolean shortInstead = false; // «Short» is the sign top right; under a folded post — always «Show in full»
       more.setVisibility(cut && !shortInstead ? VISIBLE : GONE);
       shortBtn.setVisibility(shortInstead ? VISIBLE : GONE);
       shortBtn.setText(post.summaryLoading ? Lang.getString(R.string.Tgx101AiShortLoading) : Lang.getString(R.string.Tgx101AiShort));
