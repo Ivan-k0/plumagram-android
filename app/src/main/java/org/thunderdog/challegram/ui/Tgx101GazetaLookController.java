@@ -120,8 +120,11 @@ public class Tgx101GazetaLookController extends ViewController<Void> {
     return Tgx101Gazeta.palette();
   }
 
+  private @Nullable View pictureSample;
+
   private void refresh () {
     if (preview != null && feed != null) feed.bindPreview(preview);
+    if (pictureSample != null) pictureSample.invalidate();
     int[] pal = pal();
     page.setBackgroundColor(pal[0]);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -306,6 +309,35 @@ public class Tgx101GazetaLookController extends ViewController<Void> {
 
     // pictures
     LinearLayout pics = section(context, R.string.Tgx101GazetaPicture);
+    // a colourful sample that changes with the filters and sliders at once
+    pictureSample = new View(context) {
+      private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+      private final android.graphics.RectF r = new android.graphics.RectF();
+
+      @Override
+      protected void onDraw (android.graphics.Canvas c) {
+        int w = getWidth(), h = getHeight();
+        paint.setShader(new android.graphics.LinearGradient(0, 0, w, 0,
+          new int[] {0xffff5252, 0xffffb300, 0xffffeb3b, 0xff4caf50, 0xff00bcd4, 0xff3d5afe, 0xffaa00ff, 0xffff4081}, null, android.graphics.Shader.TileMode.CLAMP));
+        paint.setColorFilter(Tgx101Gazeta.pictureFilter());
+        r.set(0, 0, w, h);
+        c.drawRoundRect(r, Screen.dp(10f), Screen.dp(10f), paint);
+        paint.setShader(new android.graphics.LinearGradient(0, 0, 0, h, new int[] {0x00ffffff, 0x00ffffff, 0x99000000}, new float[] {0f, .45f, 1f}, android.graphics.Shader.TileMode.CLAMP));
+        c.drawRoundRect(r, Screen.dp(10f), Screen.dp(10f), paint);
+        paint.setShader(null);
+        // faces of colour: skin, sky, leaf — what pictures usually hold
+        int[] spots = {0xfff1c27d, 0xff87ceeb, 0xff2e7d32, 0xffffffff, 0xff212121};
+        float d = h * .34f;
+        for (int i = 0; i < spots.length; i++) {
+          paint.setColor(spots[i]);
+          c.drawCircle(w * (i + 1) / (spots.length + 1f), h * .66f, d / 2f, paint);
+        }
+        paint.setColorFilter(null);
+      }
+    };
+    LinearLayout.LayoutParams psp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(64f));
+    psp.topMargin = Screen.dp(10f);
+    pics.addView(pictureSample, psp);
     LinearLayout photos = chipRow(context);
     addChip(photos, chip(context, Lang.getString(R.string.Tgx101GazetaPhotosAsIs), Tgx101Gazeta.photos() == Tgx101Gazeta.PHOTOS_AS_IS, v -> {
       Tgx101Gazeta.setPhotos(Tgx101Gazeta.PHOTOS_AS_IS);

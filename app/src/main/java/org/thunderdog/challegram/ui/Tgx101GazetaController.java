@@ -647,14 +647,23 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     int at = 0;
     LinearLayoutManager manager = list != null ? (LinearLayoutManager) list.getLayoutManager() : null;
     if (manager != null && manager.findFirstVisibleItemPosition() >= 0) at = Math.min(posts.size() - 1, manager.findFirstVisibleItemPosition() + 1);
-    // a post with text, a picture if there is one near
-    for (int i = at; i < Math.min(posts.size(), at + 6); i++) {
-      TdApi.FormattedText t = Td.textOrCaption(posts.get(i).main().content);
-      if (t != null && !Td.isEmpty(t)) {
-        at = i;
-        break;
+    // (user 2026-10-28 «нет примера, как будет меняться картинка»): a post with a picture and text first, so the
+    // filters show on it; a picture alone, then text alone, if the feed has nothing better
+    int best = -1, rank = -1;
+    for (int k = 0; k < posts.size() && rank < 2; k++) {
+      int i = (at + k) % posts.size();
+      Tgx101Gazeta.Post p = posts.get(i);
+      boolean visual = false;
+      for (TdApi.Message m : p.messages) if (isVisual(m)) visual = true;
+      TdApi.FormattedText t = Td.textOrCaption(p.main().content);
+      boolean text = t != null && !Td.isEmpty(t);
+      int r = visual && text ? 2 : visual ? 1 : text ? 0 : -1;
+      if (r > rank) {
+        rank = r;
+        best = i;
       }
     }
+    if (best != -1) at = best;
     ((Card) preview).bindSample(posts.get(at));
   }
 
@@ -786,6 +795,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     @Nullable Tgx101Gazeta.Post post;
     int position;
     int imageToken;
+    @Nullable String loadedImageKey;
     final int pad = Screen.dp(14f);
 
     Card (Context context) {
@@ -1039,9 +1049,15 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       android.graphics.ColorMatrixColorFilter filter = Tgx101Gazeta.pictureFilter();
       mediaImage.setColorFilter(filter);
       thumbImage.setColorFilter(filter);
-      int token = ++imageToken;
-      mediaImage.setImageDrawable(null);
-      thumbImage.setImageDrawable(null);
+      // the same picture again (the look screen's sample on every slider move): kept, only its colours change
+      String imageKey = visual != null ? visual.chatId + ":" + visual.id + ":" + thumbs : null;
+      boolean sameImage = imageKey != null && imageKey.equals(loadedImageKey);
+      loadedImageKey = imageKey;
+      int token = sameImage ? imageToken : ++imageToken;
+      if (!sameImage) {
+        mediaImage.setImageDrawable(null);
+        thumbImage.setImageDrawable(null);
+      }
       int width = list != null && list.getWidth() > 0 ? list.getWidth() : Screen.currentWidth();
       boolean withThumb = visual != null && thumbs;
       if (visual == null) {
@@ -1053,7 +1069,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         String badgeText = extra > 0 ? "+" + extra : isVideo(visual) ? "▶" : null;
         thumbBadge.setText(badgeText);
         thumbBadge.setVisibility(badgeText != null ? VISIBLE : GONE);
-        loadImage(visual, thumbImage, token, Screen.dp(THUMB));
+        if (!sameImage) loadImage(visual, thumbImage, token, Screen.dp(THUMB));
       } else {
         thumbWrap.setVisibility(GONE);
         media.setVisibility(VISIBLE);
@@ -1068,7 +1084,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         mediaBadge.setVisibility(duration != null ? VISIBLE : GONE);
         mediaCount.setText(extra > 0 ? "+" + extra : null);
         mediaCount.setVisibility(extra > 0 ? VISIBLE : GONE);
-        loadImage(visual, mediaImage, token, width);
+        if (!sameImage) loadImage(visual, mediaImage, token, width);
       }
 
       // the text; beside a thumbnail only as many lines as its height, the rest goes on under it at full width
