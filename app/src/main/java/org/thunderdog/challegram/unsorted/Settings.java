@@ -3213,7 +3213,7 @@ public class Settings {
     java.util.ArrayList<Integer> ids = new java.util.ArrayList<>();
     for (String name : saved.split(",")) {
       boolean hidden = name.startsWith("-");
-      int id = res.getIdentifier(hidden ? name.substring(1) : name, "id", org.thunderdog.challegram.unsorted.AppContext.get().getPackageName());
+      int id = tgx101IdByName(res, hidden ? name.substring(1) : name);
       if (id != 0) ids.add(hidden ? -id : id);
     }
     int[] result = new int[ids.size()];
@@ -3292,7 +3292,7 @@ public class Settings {
     android.content.res.Resources res = org.thunderdog.challegram.unsorted.AppContext.get().getResources();
     java.util.ArrayList<Integer> ids = new java.util.ArrayList<>();
     for (String name : saved.split(",")) {
-      int id = res.getIdentifier(name, "id", org.thunderdog.challegram.unsorted.AppContext.get().getPackageName());
+      int id = tgx101IdByName(res, name);
       if (id != 0) ids.add(id);
     }
     int[] result = new int[ids.size()];
@@ -3319,6 +3319,19 @@ public class Settings {
     pmc.putString(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_MORE), b.toString());
   }
 
+  // TGx101 (user 2026-10-29, menu speed): the menu settings are stored as resource names, and each name was looked up by
+  // Resources.getIdentifier — slow, and done for every action of every menu (30–50 ms of the menu's 45). An id never
+  // changes while the app runs, so each name is looked up once
+  private static final java.util.concurrent.ConcurrentHashMap<String, Integer> tgx101IdsByName = new java.util.concurrent.ConcurrentHashMap<>();
+
+  private static int tgx101IdByName (android.content.res.Resources res, String name) {
+    Integer cached = tgx101IdsByName.get(name);
+    if (cached != null) return cached;
+    int id = res.getIdentifier(name, "id", org.thunderdog.challegram.unsorted.AppContext.get().getPackageName());
+    tgx101IdsByName.put(name, id);
+    return id;
+  }
+
   /** TGx101: message menu actions the user hid (resource names stored, like the order) */
   public int[] getTgx101MessageMenuHidden () {
     String saved = pmc.getString(tgx101MenuKey(KEY_TGX101_MESSAGE_MENU_HIDDEN), null);
@@ -3337,7 +3350,7 @@ public class Settings {
     android.content.res.Resources res = org.thunderdog.challegram.unsorted.AppContext.get().getResources();
     java.util.ArrayList<Integer> ids = new java.util.ArrayList<>();
     for (String name : saved.split(",")) {
-      int id = res.getIdentifier(name, "id", org.thunderdog.challegram.unsorted.AppContext.get().getPackageName());
+      int id = tgx101IdByName(res, name);
       if (id != 0) ids.add(id);
     }
     int[] result = new int[ids.size()];
@@ -3370,7 +3383,7 @@ public class Settings {
     String[] names = saved.split(",");
     java.util.ArrayList<Integer> ids = new java.util.ArrayList<>();
     for (String name : names) {
-      int id = res.getIdentifier(name, "id", org.thunderdog.challegram.unsorted.AppContext.get().getPackageName());
+      int id = tgx101IdByName(res, name);
       if (id != 0) {
         ids.add(id);
       }

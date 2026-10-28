@@ -463,9 +463,16 @@ public final class Tgx101MessageMenu {
     return all != null && withoutIme != null ? Math.max(0, all.bottom - withoutIme.bottom) : 0;
   }
 
+  private static String ms (long[] t, int from, int to) {
+    return String.valueOf((t[to] - t[from]) / 100000 / 10f);
+  }
+
   public static PopupLayout show (MessagesController c, TGMessage message, ViewController.Options options, OptionDelegate delegate,
                                   boolean readDatePending, @Nullable MoreLoader moreLoader, Runnable onExpandReactions, @Nullable Runnable onShowReactors, Runnable onDismissPrepare, Runnable onDismiss) {
     Context context = c.context();
+    // TGx101 (user 2026-10-29, menu speed): where the ~40 ms of building the menu go — diagnostics builds only
+    final long[] tgx101T = org.thunderdog.challegram.BuildConfig.TGX101_DIAG ? new long[6] : null;
+    if (tgx101T != null) tgx101T[0] = android.os.SystemClock.elapsedRealtimeNanos();
     tgx101LogTextShape(message);
     Settings.instance().setTgx101MenuProfile(menuProfileOf(message)); // text, media and voice have separate menus
     Host host = new Host();
@@ -611,6 +618,7 @@ public final class Tgx101MessageMenu {
     root.addView(column);
     host.content = column;
 
+    if (tgx101T != null) tgx101T[1] = android.os.SystemClock.elapsedRealtimeNanos();
     // Reactions pill
     if (message.canBeReacted() && message.getMessageAvailableReactions() != null && message.getMessageAvailableReactions().length > 0) {
       LinearLayout pill = new LinearLayout(context);
@@ -656,6 +664,7 @@ public final class Tgx101MessageMenu {
       host.pill = pill;
     }
 
+    if (tgx101T != null) tgx101T[2] = android.os.SystemClock.elapsedRealtimeNanos();
     // Card: its main page (header + actions) and, on «Reactions: N», the page of who reacted sliding in over it
     // (user 2026-10-18, exteraGram: one card, the pages slide sideways, the card's height follows)
     MorphCard card = new MorphCard(context);
@@ -711,6 +720,7 @@ public final class Tgx101MessageMenu {
       cardMain.addView(divider(context), 1);
     }
 
+    if (tgx101T != null) tgx101T[3] = android.os.SystemClock.elapsedRealtimeNanos();
     // Actions in the user's order; "Delete" goes to the bottom
     List<ViewController.OptionItem> items = new ArrayList<>();
     List<ViewController.OptionItem> moreItems = new ArrayList<>();
@@ -843,7 +853,9 @@ public final class Tgx101MessageMenu {
       }
     });
     popup.setTag(host);
+    if (tgx101T != null) tgx101T[4] = android.os.SystemClock.elapsedRealtimeNanos();
     popup.showNonAnimatedView(root);
+    if (tgx101T != null) { tgx101T[5] = android.os.SystemClock.elapsedRealtimeNanos(); org.thunderdog.challegram.Tgx101Diag.mark("menu: built in " + ms(tgx101T, 0, 5) + " ms (background " + ms(tgx101T, 0, 1) + ", reactions " + ms(tgx101T, 1, 2) + ", header " + ms(tgx101T, 2, 3) + ", rows " + ms(tgx101T, 3, 4) + ", window " + ms(tgx101T, 4, 5) + ")"); }
     return popup;
   }
 
