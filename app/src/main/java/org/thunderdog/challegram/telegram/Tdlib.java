@@ -9910,6 +9910,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     org.thunderdog.challegram.Tgx101DiagHooks.onUpdate(update); // TGx101: diagnostics builds only
     if (update.getConstructor() == TdApi.UpdateNewMessage.CONSTRUCTOR) {
       org.thunderdog.challegram.ui.Tgx101Island.onUpdate(this, update); // TGx101: the capsule / in-app sound (MagiX → Notifications)
+      org.thunderdog.challegram.ui.Tgx101Gazeta.onNewMessage(this, ((TdApi.UpdateNewMessage) update).message); // TGx101: «Газета» takes new posts in
     }
     switch (update.getConstructor()) {
       // Notifications

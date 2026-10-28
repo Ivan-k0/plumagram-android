@@ -64,7 +64,7 @@ import tgx.td.MessageId;
  * at the top, it opens on the first unread post; a post that came into view is read in its channel too. A tap — the
  * post's menu.
  */
-public class Tgx101GazetaController extends ViewController<Void> implements Menu {
+public class Tgx101GazetaController extends ViewController<Void> implements Menu, org.thunderdog.challegram.mediaview.MediaViewDelegate {
   public Tgx101GazetaController (Context context, Tdlib tdlib) {
     super(context, tdlib);
   }
@@ -201,6 +201,28 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   }
 
   private final List<Tgx101Gazeta.Post> posts = new ArrayList<>();
+
+  // a new post of a channel in the feed comes in at the bottom (an album's next part joins its card); the feed
+  // follows it only when it was at the very end
+  private final Tgx101Gazeta.NewPostListener newPosts = this::onNewPost;
+
+  private void onNewPost (TdApi.Message message) {
+    if (isDestroyed() || !loaded) return;
+    if (org.thunderdog.challegram.data.Tgx101MessageFilters.match(tdlib, message, tdlib.chat(message.chatId)) != null) return;
+    boolean atEnd = list != null && !list.canScrollVertically(1);
+    Tgx101Gazeta.Post last = posts.isEmpty() ? null : posts.get(posts.size() - 1);
+    if (last != null && message.mediaAlbumId != 0 && last.chatId == message.chatId && last.first().mediaAlbumId == message.mediaAlbumId) {
+      last.messages.add(message);
+      adapter.notifyItemChanged(posts.size() - 1);
+    } else {
+      Tgx101Gazeta.Post post = Tgx101Gazeta.newPost(message);
+      posts.add(post);
+      adapter.notifyItemInserted(posts.size() - 1);
+      if (posts.size() > 1) adapter.notifyItemChanged(posts.size() - 2); // a channel's run: one header
+    }
+    empty.setVisibility(View.GONE);
+    if (atEnd && list != null) list.post(() -> list.smoothScrollToPosition(posts.size() - 1));
+  }
   private RecyclerView list;
   private TextView empty;
   private final Adapter adapter = new Adapter();
@@ -253,6 +275,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     empty.setText(Lang.getString(R.string.Tgx101GazetaLoading));
     inner.addView(empty, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     applyPalette();
+    Tgx101Gazeta.addNewPostListener(tdlib, newPosts);
     load();
     return root;
   }
@@ -274,6 +297,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   @Override
   public void destroy () {
+    Tgx101Gazeta.removeNewPostListener(newPosts);
     headerHide = 0;
     applyHeaderHide();
     super.destroy();
@@ -538,7 +562,9 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       });
       card.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f)));
     }
-    LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(cardWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
+    // (user 2026-10-28 «шире на 10%, но чтобы не сместилось вправо — там место под палец»): it grows away from the edge
+    int wideCard = Math.min((int) (cardWidth * 1.1f), Screen.currentWidth() - cardEdgeGap - Screen.dp(36f));
+    LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(wideCard, ViewGroup.LayoutParams.WRAP_CONTENT);
     if (leftHand) cardParams.leftMargin = cardEdgeGap;
     else cardParams.rightMargin = cardEdgeGap;
     column.addView(card, cardParams);
@@ -644,6 +670,11 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   public void bindPreview (View preview) {
     if (!(preview instanceof Card) || posts.isEmpty()) return;
+    Card card = (Card) preview;
+    if (card.post != null && posts.contains(card.post)) {
+      card.bindSample(card.post); // the same post while the screen is open — only the look changes
+      return;
+    }
     int at = 0;
     LinearLayoutManager manager = list != null ? (LinearLayoutManager) list.getLayoutManager() : null;
     if (manager != null && manager.findFirstVisibleItemPosition() >= 0) at = Math.min(posts.size() - 1, manager.findFirstVisibleItemPosition() + 1);
@@ -657,7 +688,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       for (TdApi.Message m : p.messages) if (isVisual(m)) visual = true;
       TdApi.FormattedText t = Td.textOrCaption(p.main().content);
       boolean text = t != null && !Td.isEmpty(t);
-      int r = visual && text ? 2 : visual ? 1 : text ? 0 : -1;
+      // (user 2026-10-28 «фото вообще убери из примера»): text only — the pictures have their colour strip
+      int r = text && !visual ? 2 : text ? 1 : -1;
       if (r > rank) {
         rank = r;
         best = i;
@@ -830,6 +862,9 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       media = new FrameLayout(context);
       mediaImage = new ImageView(context);
       mediaImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+      media.setOnClickListener(v -> {
+        if (post != null && !sample) openMedia(post);
+      });
       media.addView(mediaImage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
       mediaBadge = badge(context);
       FrameLayout.LayoutParams bp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.LEFT | Gravity.BOTTOM);
@@ -866,6 +901,9 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       round.setCornerRadius(Screen.dp(8f));
       round.setColor(0x22000000);
       thumbWrap.setBackground(round);
+      thumbWrap.setOnClickListener(v -> {
+        if (post != null && !sample) openMedia(post);
+      });
       if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) thumbWrap.setClipToOutline(true);
       LinearLayout.LayoutParams thp = new LinearLayout.LayoutParams(Screen.dp(THUMB), Screen.dp(THUMB));
       thp.leftMargin = Screen.dp(THUMB_GAP);
@@ -883,6 +921,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       more.setText(Lang.getString(R.string.Tgx101GazetaShowFull));
       more.setOnClickListener(v -> {
         if (post != null) {
+          smoothly();
           post.expanded = true;
           bind(post, position);
         }
@@ -975,6 +1014,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     void bindSample (Tgx101Gazeta.Post post) {
       sample = true;
       bind(post, 0);
+      media.setVisibility(GONE);
+      thumbWrap.setVisibility(GONE);
       header.setVisibility(VISIBLE);
       avatar.setVisibility(VISIBLE);
       title.setVisibility(VISIBLE);
@@ -1050,13 +1091,17 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       mediaImage.setColorFilter(filter);
       thumbImage.setColorFilter(filter);
       // the same picture again (the look screen's sample on every slider move): kept, only its colours change
-      String imageKey = visual != null ? visual.chatId + ":" + visual.id + ":" + thumbs : null;
+      String imageKey = visual != null ? visual.chatId + ":" + visual.id : null;
       boolean sameImage = imageKey != null && imageKey.equals(loadedImageKey);
       loadedImageKey = imageKey;
       int token = sameImage ? imageToken : ++imageToken;
       if (!sameImage) {
         mediaImage.setImageDrawable(null);
         thumbImage.setImageDrawable(null);
+      } else if (thumbs && thumbImage.getDrawable() == null) {
+        thumbImage.setImageDrawable(mediaImage.getDrawable());
+      } else if (!thumbs && mediaImage.getDrawable() == null) {
+        mediaImage.setImageDrawable(thumbImage.getDrawable());
       }
       int width = list != null && list.getWidth() > 0 ? list.getWidth() : Screen.currentWidth();
       boolean withThumb = visual != null && thumbs;
@@ -1069,7 +1114,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         String badgeText = extra > 0 ? "+" + extra : isVideo(visual) ? "▶" : null;
         thumbBadge.setText(badgeText);
         thumbBadge.setVisibility(badgeText != null ? VISIBLE : GONE);
-        if (!sameImage) loadImage(visual, thumbImage, token, Screen.dp(THUMB));
+        if (!sameImage || thumbImage.getDrawable() == null) loadImage(visual, thumbImage, token, Screen.dp(THUMB));
       } else {
         thumbWrap.setVisibility(GONE);
         media.setVisibility(VISIBLE);
@@ -1084,7 +1129,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         mediaBadge.setVisibility(duration != null ? VISIBLE : GONE);
         mediaCount.setText(extra > 0 ? "+" + extra : null);
         mediaCount.setVisibility(extra > 0 ? VISIBLE : GONE);
-        if (!sameImage) loadImage(visual, mediaImage, token, width);
+        if (!sameImage || mediaImage.getDrawable() == null) loadImage(visual, mediaImage, token, width);
       }
 
       // the text; beside a thumbnail only as many lines as its height, the rest goes on under it at full width
@@ -1461,6 +1506,80 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     }
   }
 
+  /** (task: «просмотр медиа в ленте») the post's photos and videos in the viewer, from the first; an album as a whole */
+  private void openMedia (Tgx101Gazeta.Post post) {
+    if (tapPausedAuto) {
+      tapPausedAuto = false;
+      return;
+    }
+    List<org.thunderdog.challegram.mediaview.data.MediaItem> items = new ArrayList<>();
+    for (TdApi.Message m : post.messages) {
+      if (!isVisual(m)) continue;
+      org.thunderdog.challegram.mediaview.data.MediaItem item = org.thunderdog.challegram.mediaview.data.MediaItem.valueOf(context(), tdlib, m);
+      if (item != null) items.add(item);
+    }
+    if (items.isEmpty()) {
+      openInChannel(post);
+      return;
+    }
+    org.thunderdog.challegram.mediaview.data.MediaStack stack = new org.thunderdog.challegram.mediaview.data.MediaStack(context(), tdlib);
+    stack.set(0, items);
+    // (user 2026-10-28 «сворачивание — супер плавным, как везде»): the viewer flies out of the picture and back into it
+    viewerPost = post;
+    org.thunderdog.challegram.mediaview.MediaViewController.Args args = new org.thunderdog.challegram.mediaview.MediaViewController.Args(this,
+      org.thunderdog.challegram.mediaview.MediaViewController.MODE_SIMPLE, this, null, null, stack);
+    args.setForceThumbs(items.size() > 1);
+    org.thunderdog.challegram.mediaview.MediaViewController viewer = new org.thunderdog.challegram.mediaview.MediaViewController(context(), tdlib);
+    viewer.setArguments(args);
+    viewer.open();
+  }
+
+  private @Nullable Tgx101Gazeta.Post viewerPost;
+  private final org.thunderdog.challegram.mediaview.MediaViewThumbLocation viewerLocation = new org.thunderdog.challegram.mediaview.MediaViewThumbLocation();
+
+  /** the card's picture the viewer opened from: the big one, or the thumbnail */
+  @Nullable
+  private View viewerTarget () {
+    if (viewerPost == null || list == null) return null;
+    int i = posts.indexOf(viewerPost);
+    if (i == -1) return null;
+    RecyclerView.ViewHolder holder = list.findViewHolderForAdapterPosition(i);
+    if (holder == null || !(holder.itemView instanceof Card)) return null;
+    Card card = (Card) holder.itemView;
+    if (card.media.getVisibility() == View.VISIBLE) return card.mediaImage;
+    if (card.thumbWrap.getVisibility() == View.VISIBLE) return card.thumbImage;
+    return null;
+  }
+
+  @Override
+  public org.thunderdog.challegram.mediaview.MediaViewThumbLocation getTargetLocation (int indexInStack, org.thunderdog.challegram.mediaview.data.MediaItem item) {
+    View target = viewerTarget();
+    if (target == null || target.getWidth() == 0) return null;
+    int[] loc = new int[2];
+    target.getLocationInWindow(loc);
+    viewerLocation.set(loc[0], loc[1], loc[0] + target.getWidth(), loc[1] + target.getHeight());
+    // what the header or the screen's edge covers is cut off, as in a chat
+    int[] listLoc = new int[2];
+    list.getLocationInWindow(listLoc);
+    int visibleTop = listLoc[1] + Size.getHeaderPortraitSize() - headerHide;
+    int clipTop = Math.max(0, visibleTop - loc[1]);
+    int clipBottom = Math.max(0, loc[1] + target.getHeight() - (listLoc[1] + list.getHeight()));
+    viewerLocation.setClip(0, Math.min(clipTop, target.getHeight()), 0, Math.min(clipBottom, target.getHeight()));
+    viewerLocation.setRoundings(isThumb(target) ? Screen.dp(8f) : 0);
+    return viewerLocation;
+  }
+
+  private boolean isThumb (View target) {
+    RecyclerView.ViewHolder holder = viewerPost != null ? list.findViewHolderForAdapterPosition(posts.indexOf(viewerPost)) : null;
+    return holder != null && holder.itemView instanceof Card && ((Card) holder.itemView).thumbImage == target;
+  }
+
+  @Override
+  public void setMediaItemVisible (int index, org.thunderdog.challegram.mediaview.data.MediaItem item, boolean isVisible) {
+    View target = viewerTarget();
+    if (target != null) target.setAlpha(isVisible ? 1f : 0f); // the picture's place is empty while it's in the viewer
+  }
+
   // the post's comments, as its «Leave a comment» bar in the channel opens them
   private void openComments (Tgx101Gazeta.Post post) {
     TdApi.Message main = post.main();
@@ -1479,7 +1598,18 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     tdlib.ui().openMessage(this, post.chatId, new MessageId(post.chatId, post.main().id), null);
   }
 
+  /** (user 2026-10-28 «сворачивание — супер плавно, как везде»): the next change of a card's height glides */
+  private void smoothly () {
+    if (list != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+      android.transition.AutoTransition t = new android.transition.AutoTransition();
+      t.setDuration(260);
+      t.setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f));
+      android.transition.TransitionManager.beginDelayedTransition(list, t);
+    }
+  }
+
   private void rebindPost (Tgx101Gazeta.Post post) {
+    smoothly();
     int i = posts.indexOf(post);
     if (i != -1) adapter.notifyItemChanged(i);
   }

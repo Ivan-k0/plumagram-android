@@ -378,6 +378,13 @@ public final class Tgx101Gazeta {
     void onFeed (List<Post> posts, int firstUnread);
   }
 
+  static Post newPost (TdApi.Message message) {
+    Post post = new Post(message.chatId);
+    post.messages.add(message);
+    post.unread = true;
+    return post;
+  }
+
   private static boolean isPost (TdApi.Message m) {
     if (m == null || m.content == null) return false;
     switch (m.content.getConstructor()) {
@@ -485,6 +492,38 @@ public final class Tgx101Gazeta {
       if (read != null && m.id > read) last.unread = true;
     }
     return posts;
+  }
+
+  // ---- new posts while the feed is open (task «новые посты без перезахода») ----
+
+  public interface NewPostListener {
+    void onNewPost (TdApi.Message message);
+  }
+
+  private static final java.util.Set<NewPostListener> newPostListeners = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+  private static final Map<NewPostListener, Tdlib> listenerAccounts = new java.util.concurrent.ConcurrentHashMap<>();
+
+  public static void addNewPostListener (Tdlib tdlib, NewPostListener listener) {
+    listenerAccounts.put(listener, tdlib);
+    newPostListeners.add(listener);
+  }
+
+  public static void removeNewPostListener (NewPostListener listener) {
+    newPostListeners.remove(listener);
+    listenerAccounts.remove(listener);
+  }
+
+  /** from TDLib's thread: a post of a channel in the feed goes to the open feed, on the UI thread */
+  public static void onNewMessage (Tdlib tdlib, TdApi.Message message) {
+    if (newPostListeners.isEmpty() || message == null || message.isOutgoing || !isPost(message)) return;
+    long[] ids = cache.get(tdlib.id());
+    if (ids == null) return;
+    boolean ours = false;
+    for (long id : ids) if (id == message.chatId) ours = true;
+    if (!ours) return;
+    for (NewPostListener listener : newPostListeners) {
+      if (listenerAccounts.get(listener) == tdlib) UI.post(() -> listener.onNewPost(message));
+    }
   }
 
   /** opens the feed over whatever is on top */
