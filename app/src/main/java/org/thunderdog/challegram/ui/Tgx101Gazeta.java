@@ -426,6 +426,7 @@ public final class Tgx101Gazeta {
     public final List<TdApi.Message> messages = new ArrayList<>();
     public boolean unread;
     public boolean expanded;
+    public boolean spoilersShown; // (2026-10-28) hidden text revealed by a tap
     // the AI summary («✨ Short»)
     public @Nullable TdApi.FormattedText summary;
     public boolean summaryShown, summaryLoading;

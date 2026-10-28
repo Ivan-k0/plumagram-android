@@ -5026,7 +5026,7 @@ public class TD {
   }
 
   private static final String SPOILER_REPLACEMENT_CHAR = "▒";
-  private static final int SPOILER_BACKGROUND_COLOR = 0xffa9a9a9;
+  public static final int SPOILER_BACKGROUND_COLOR = 0xffa9a9a9; // TGx101: read by «Газета» to swap the grey block for its dust
 
   public static boolean canConvertToSpan (TdApi.TextEntityType type) {
     if (type == null) {

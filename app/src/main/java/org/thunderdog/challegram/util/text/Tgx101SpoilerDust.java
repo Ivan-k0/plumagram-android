@@ -36,7 +36,7 @@ import java.util.Random;
  * drifting over the words: one tile of random dots drawn twice, the two layers sliding different ways — a shimmer for
  * the price of two rectangles, the same on every Android.
  */
-final class Tgx101SpoilerDust {
+public final class Tgx101SpoilerDust {
   private Tgx101SpoilerDust () { }
 
   private static @Nullable Bitmap tile;
@@ -71,7 +71,7 @@ final class Tgx101SpoilerDust {
   }
 
   /** Draws the dust inside {@code path} (bounds {@code bounds}); {@code alpha} 0…1. Returns true while it moves */
-  static boolean draw (Canvas c, Path path, RectF bounds, int color, float alpha) {
+  public static boolean draw (Canvas c, Path path, RectF bounds, int color, float alpha) {
     // clipping to a path is drawn by the GPU only from Android 4.3 — older ones keep the plain blocks
     if (alpha <= 0f || bounds.isEmpty() || android.os.Build.VERSION.SDK_INT < 18) return false;
     try {

@@ -197,11 +197,11 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     if (empty != null) empty.setTextColor(Tgx101Gazeta.palette()[3]);
   }
 
-  // ---- the arrow in the header (user 2026-10-28 09:50): a tap — to the first unread post, the next — back to where
-  // the tap was made; it points the way it will take, and stays out of sight with nothing unread and nowhere to go back
+  // ---- the arrow in the header (user 2026-10-28 13:04 «стрелка делает лишь одну функцию — возвращает к первому
+  // непрочитанному, без каких-либо других функций»): a tap — to the first unread post, nothing else (the way back of 09:50
+  // is gone); it points the way it will take and stays out of sight with nothing unread or when that post is on top
 
   private @Nullable org.thunderdog.challegram.navigation.HeaderButton jumpButton;
-  private int jumpBackIndex = -1;
 
   private int firstUnreadIndex () {
     for (int i = 0; i < posts.size(); i++) if (posts.get(i).unread) return i;
@@ -215,7 +215,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   private void updateJumpButton () {
     if (jumpButton == null) return;
-    int target = jumpBackIndex != -1 ? jumpBackIndex : firstUnreadIndex();
+    int target = firstUnreadIndex();
     int top = topIndex();
     boolean visible = target != -1 && target != top;
     jumpButton.setVisibility(visible ? View.VISIBLE : View.GONE);
@@ -225,16 +225,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   private void jump () {
     LinearLayoutManager manager = list != null ? (LinearLayoutManager) list.getLayoutManager() : null;
     if (manager == null) return;
-    int top = topIndex();
-    int target;
-    if (jumpBackIndex != -1) {
-      target = jumpBackIndex;
-      jumpBackIndex = -1;
-    } else {
-      target = firstUnreadIndex();
-      if (target == -1) return;
-      jumpBackIndex = top;
-    }
+    int target = firstUnreadIndex();
+    if (target == -1) return;
     setAutoScroll(false);
     manager.scrollToPositionWithOffset(target, Screen.dp(4f) + Size.getHeaderPortraitSize() - headerHide);
     list.post(() -> {
@@ -478,7 +470,6 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
           manager.scrollToPositionWithOffset(at, Screen.dp(4f) + Size.getHeaderPortraitSize());
         }
         list.post(this::markVisibleRead);
-        jumpBackIndex = -1;
         list.post(this::updateJumpButton);
         completeAlbums();
         readChannelsWithNothingToShow(chatIds);
@@ -953,9 +944,93 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   private static TextView text (Context context, float sp, boolean medium) {
     TextView v = new TextView(context);
+    styleText(v, sp, medium);
+    return v;
+  }
+
+  private static void styleText (TextView v, float sp, boolean medium) {
     v.setTextSize(TypedValue.COMPLEX_UNIT_DIP, sp);
     v.setTypeface(medium ? Fonts.getRobotoMedium() : Fonts.getRobotoRegular());
-    return v;
+  }
+
+  // ---- hidden text (user 2026-10-28 13:10 «нечитаемая ссылка внизу и подложка сильно грубая»): a spoiler came as a grey
+  // block per line with the words readable through it, a link lost on it. As in the chats now: until a tap the words
+  // are hidden under the same drifting dust; revealed — plain text, no block
+
+  /** the words under it aren't drawn (links too: it's put after them) */
+  private static final class HiddenSpan extends android.text.style.CharacterStyle {
+    @Override
+    public void updateDrawState (android.text.TextPaint tp) {
+      tp.setColor(0);
+      tp.linkColor = 0;
+      tp.bgColor = 0;
+    }
+  }
+
+  /** the grey blocks of the spoilers out; while {@code hidden}, the words under the dust */
+  private static CharSequence prepareSpoilers (CharSequence str, boolean hidden) {
+    if (!(str instanceof android.text.Spanned)) return str;
+    android.text.Spanned spanned = (android.text.Spanned) str;
+    android.text.style.BackgroundColorSpan[] blocks = spanned.getSpans(0, spanned.length(), android.text.style.BackgroundColorSpan.class);
+    if (blocks.length == 0) return str;
+    android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder(str);
+    for (android.text.style.BackgroundColorSpan block : blocks) {
+      if (block.getBackgroundColor() != TD.SPOILER_BACKGROUND_COLOR) continue;
+      int start = b.getSpanStart(block), end = b.getSpanEnd(block);
+      b.removeSpan(block);
+      if (hidden && start < end) b.setSpan(new HiddenSpan(), start, end, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    }
+    return b;
+  }
+
+  private static boolean hasHidden (CharSequence str) {
+    return str instanceof android.text.Spanned && ((android.text.Spanned) str).getSpans(0, str.length(), HiddenSpan.class).length > 0;
+  }
+
+  /** a post's text that draws the dust over its hidden words */
+  private static final class SpoilerText extends TextView {
+    private final android.graphics.Path path = new android.graphics.Path();
+    private final android.graphics.RectF bounds = new android.graphics.RectF();
+
+    SpoilerText (Context context) {
+      super(context);
+    }
+
+    @Override
+    protected void onDraw (android.graphics.Canvas c) {
+      super.onDraw(c);
+      CharSequence text = getText();
+      android.text.Layout layout = getLayout();
+      if (layout == null || !(text instanceof android.text.Spanned)) return;
+      android.text.Spanned spanned = (android.text.Spanned) text;
+      HiddenSpan[] hidden = spanned.getSpans(0, spanned.length(), HiddenSpan.class);
+      if (hidden.length == 0) return;
+      path.reset();
+      bounds.setEmpty();
+      android.graphics.RectF r = new android.graphics.RectF();
+      int pad = Screen.dp(1f);
+      for (HiddenSpan span : hidden) {
+        int start = spanned.getSpanStart(span), end = spanned.getSpanEnd(span);
+        int firstLine = layout.getLineForOffset(start), lastLine = layout.getLineForOffset(end);
+        for (int line = firstLine; line <= lastLine && line < layout.getLineCount(); line++) {
+          int from = Math.max(start, layout.getLineStart(line));
+          int to = Math.min(end, layout.getLineEnd(line));
+          if (to <= from) continue;
+          float left = layout.getPrimaryHorizontal(from);
+          float right = to >= layout.getLineEnd(line) ? layout.getLineRight(line) : layout.getPrimaryHorizontal(to);
+          if (right < left) { float t = left; left = right; right = t; }
+          r.set(left - pad, layout.getLineTop(line), right + pad, layout.getLineBottom(line));
+          r.offset(getCompoundPaddingLeft(), getExtendedPaddingTop());
+          path.addRoundRect(r, Screen.dp(3f), Screen.dp(3f), android.graphics.Path.Direction.CW);
+          if (bounds.isEmpty()) bounds.set(r); else bounds.union(r);
+        }
+      }
+      if (org.thunderdog.challegram.util.text.Tgx101SpoilerDust.draw(c, path, bounds, getCurrentTextColor(), 1f)) {
+        postInvalidateOnAnimation();
+      } else {
+        c.drawPath(path, org.thunderdog.challegram.tool.Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(.35f, getCurrentTextColor())));
+      }
+    }
   }
 
   /**
@@ -1029,6 +1104,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     final LinearLayout header;
     final AvatarView avatar;
     final TextView title, summary, body, bodyBelow, more, shortBtn, meta, commentsText;
+    boolean hiddenText; // the bound post has spoilers still hidden
     final FlowLayout reactions;
     final LinearLayout comments, repliers;
     final ImageView commentsIcon, commentsArrow;
@@ -1160,7 +1236,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       LinearLayout row = new LinearLayout(context);
       row.setOrientation(HORIZONTAL);
       row.setPadding(pad, Screen.dp(8f), pad, 0);
-      body = text(context, 15f, false);
+      body = new SpoilerText(context);
+      styleText(body, 15f, false);
       body.setLineSpacing(Screen.dp(2f), 1f);
       row.addView(body, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
       thumbWrap = new FrameLayout(context);
@@ -1182,7 +1259,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       thp.leftMargin = Screen.dp(THUMB_GAP);
       row.addView(thumbWrap, thp);
       addView(row);
-      bodyBelow = text(context, 15f, false);
+      bodyBelow = new SpoilerText(context);
+      styleText(bodyBelow, 15f, false);
       bodyBelow.setLineSpacing(Screen.dp(2f), 1f);
       bodyBelow.setPadding(pad, Screen.dp(2f), pad, 0);
       addView(bodyBelow);
@@ -1254,8 +1332,21 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
           return;
         }
         if (post == null) return;
-        if (selecting()) toggleSelected(post);
-        else openPostMenu(post);
+        if (selecting()) {
+          toggleSelected(post);
+          return;
+        }
+        // (user 2026-10-28 13:12 «если пост нужно раскрыть больше — первый тап раскрывает его, второй уже меню»): a folded
+        // post or one with hidden words opens up in full on the first tap; the menu comes on the next
+        boolean folded = more.getVisibility() == VISIBLE && !post.expanded;
+        if (folded || (hiddenText && !post.spoilersShown)) {
+          smoothly();
+          post.expanded = true;
+          post.spoilersShown = true;
+          bind(post, position);
+          return;
+        }
+        openPostMenu(post);
       });
       setOnLongClickListener(v -> {
         if (post == null || sample) return false;
@@ -1350,6 +1441,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       TdApi.Message main = post.main();
       TdApi.FormattedText text = Td.textOrCaption(main.content);
       CharSequence str = text != null && !Td.isEmpty(text) ? TD.toCharSequence(text) : describe(main);
+      str = prepareSpoilers(str, !post.spoilersShown);
+      hiddenText = hasHidden(str);
 
       // the AI summary («✨ Short»), above the text while shown
       GradientDrawable sumBg = new GradientDrawable();
