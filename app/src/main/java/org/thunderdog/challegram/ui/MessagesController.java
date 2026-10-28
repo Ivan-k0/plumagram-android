@@ -11651,7 +11651,17 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // 11:13 (adb video): leaving the chat with the keyboard open, its close animation kept running after the blur and left
     // the field shifted by −161 px — the list's room stayed 161 px too big and the messages dropped as the chat came back.
     // Off screen nothing rides
-    if (!isFocused()) shift = 0f;
+    if (!isFocused()) {
+      // (user 2026-10-28 «свайп назад при открытой клавиатуре работает плохо», recording 14:29): the keyboard goes down
+      // as the back swipe starts — the leaving chat put its field down at once and laid its messages out again while
+      // sliding away. It stays as it was until it's off screen (reset there, or by onFocus if the swipe is cancelled)
+      if (tgx101Leaving) {
+        if (tgx101ImeRiding && tgx101ImeStarted) shift = tgx101ImeEnd - tgx101ImeStart;
+        else return;
+      } else {
+        shift = 0f;
+      }
+    }
     // user video 2026-10-08 20:16 «прыжки»: keyboard ↔ emoji panel — the panel takes the keyboard's place in the layout, so
     // the field stays where it is; riding the keyboard as well threw it to the top of the screen for a frame
     if (emojiShown || android.os.SystemClock.uptimeMillis() - tgx101EmojiToggledAt < 450) shift = 0f;
