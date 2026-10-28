@@ -7403,6 +7403,7 @@
   <string name="Tgx101BackupRestoreDesc">A .plumagram file from Downloads or from a chat. Tapping such a file in a chat also offers to restore.</string>
   <string name="Tgx101BackupSavedTo">Saved: %1$s</string>
   <string name="Tgx101BackupSentToSaved">Sent to Saved Messages</string>
+  <string name="Tgx101StorageRestored">Storage folders restored from this device</string>
   <string name="Tgx101BackupCaption">PlumaGram %1$s settings</string>
   <string name="Tgx101BackupFailed">Couldn\'t save: %1$s</string>
   <string name="Tgx101BackupNothing">Tick at least one part</string>

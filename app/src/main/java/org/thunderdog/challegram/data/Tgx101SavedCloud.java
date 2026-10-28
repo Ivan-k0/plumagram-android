@@ -52,8 +52,15 @@ public final class Tgx101SavedCloud {
   /** the folder fields merged one by one (the rest of a folder is taken whole from the cloud) */
   private static final String[] FOLDER_FIELDS = {"name", "color", "home", "size", "share"};
 
+  /** the largest file taken (the web version's limit too) */
+  private static final long MAX_BYTES = 512 * 1024;
+  private static final int MAX_FOLDERS = 500, MAX_IDS = 10_000, MAX_TAGS = 2_000, MAX_NAME = 256;
+
+  /** (user 2026-10-29 «защита») only this account's own file counts: one forwarded into Saved Messages (sent by someone
+   *  else) is an ordinary file — never read, never hidden */
   public static boolean isCloudFile (@Nullable TdApi.Message m) {
     return m != null && m.content != null && m.content.getConstructor() == TdApi.MessageDocument.CONSTRUCTOR
+      && m.forwardInfo == null && m.isOutgoing && m.importInfo == null
       && FILE_NAME.equals(((TdApi.MessageDocument) m.content).document.fileName);
   }
 
@@ -146,13 +153,26 @@ public final class Tgx101SavedCloud {
         return;
       }
       TdApi.File file = ((TdApi.MessageDocument) message.content).document.document;
+      if (Math.max(file.size, file.expectedSize) > MAX_BYTES) { // not ours to read: this phone's copy takes its place
+        Tgx101Diag.mark("storage cloud: file too big (" + Math.max(file.size, file.expectedSize) + " bytes), rejected");
+        merge(message, null);
+        return;
+      }
       tdlib.send(new TdApi.DownloadFile(file.id, 16, 0, 0, true), (downloaded, error) -> {
         JSONObject cloud = null;
         if (downloaded != null && downloaded.local != null && downloaded.local.isDownloadingCompleted) {
           try {
-            cloud = new JSONObject(read(new File(downloaded.local.path)));
+            File f = new File(downloaded.local.path);
+            if (f.length() > MAX_BYTES) throw new IllegalStateException("too big");
+            cloud = new JSONObject(read(f));
+            String bad = invalid(cloud);
+            if (bad != null) {
+              Tgx101Diag.mark("storage cloud: file rejected — " + bad);
+              cloud = null;
+            }
           } catch (Throwable t) {
             Tgx101Diag.mark("storage cloud: unreadable file " + t.getClass().getSimpleName());
+            cloud = null;
           }
         } else {
           Tgx101Diag.mark("storage cloud: download failed " + (error != null ? error.message : "?"));
@@ -201,6 +221,11 @@ public final class Tgx101SavedCloud {
       }
       // the search sees a file sent a moment ago only some time later — hence the history first
       tdlib.send(new TdApi.SearchChatMessages(chatId, null, "PlumaGram", null, 0, 0, 50, new TdApi.SearchMessagesFilterDocument()), (result, error2) -> {
+        if (result == null) { // the search failed (offline): not «the file is gone» — nothing restored over it
+          Tgx101Diag.mark("storage cloud: search failed " + (error2 != null ? error2.message : "?"));
+          done();
+          return;
+        }
         TdApi.Message m = newest(result != null ? result.messages : null);
         if (m != null) remember(m);
         after.runWithData(m);
@@ -226,11 +251,79 @@ public final class Tgx101SavedCloud {
     try {
       String baseRaw = pmc().getString(key("base"), null);
       JSONObject base = baseRaw != null ? new JSONObject(baseRaw) : null;
+      long baseMsg = pmc().getLong(key("baseMsg"), 0);
+      if (base != null && message != null && baseMsg != 0 && baseMsg != message.id) {
+        // another file than the one last in sync (made anew after it was deleted): nothing in it counts as «taken out»
+        Tgx101Diag.mark("storage cloud: a new file " + message.id + " (was " + baseMsg + "): merged as a union");
+        base = null;
+      }
       JSONObject local = store.dataJson();
-      String localCanon = canon(local);
       long localAt = pmc().getLong(key("localAt"), 0);
       boolean cloudNewer = cloud != null && cloud.optLong("updated") > localAt;
       JSONObject merged = cloud != null ? merge3(base, local, cloud, cloudNewer) : local;
+      checkShares(merged, local, () -> finish(message, cloud, local, merged));
+    } catch (Throwable t) {
+      Tgx101Diag.mark("storage cloud: merge failed " + t);
+      done();
+    }
+  }
+
+  /**
+   * (user 2026-10-29 «защита») «Share folder» from the cloud file is taken only for a chat this account made: a file
+   * changed by someone else would otherwise send the folder's records to their channel. Not made here: this phone's
+   * own share stays (or none).
+   */
+  private void checkShares (JSONObject merged, JSONObject local, Runnable after) throws Exception {
+    LinkedHashMap<Long, JSONObject> localFolders = foldersById(local);
+    JSONArray fs = merged.optJSONArray("folders");
+    List<JSONObject> toCheck = new ArrayList<>();
+    if (fs != null) {
+      for (int i = 0; i < fs.length(); i++) {
+        JSONObject f = fs.getJSONObject(i);
+        JSONObject lf = localFolders.get(f.optLong("id"));
+        Object share = f.opt("share"), had = lf != null ? lf.opt("share") : null;
+        if (share != null && !same(share, had)) toCheck.add(f);
+      }
+    }
+    if (toCheck.isEmpty()) {
+      after.run();
+      return;
+    }
+    final int[] left = {toCheck.size()};
+    for (JSONObject f : toCheck) {
+      JSONObject lf = localFolders.get(f.optLong("id"));
+      long chatId = f.optJSONObject("share") != null ? f.optJSONObject("share").optLong("chat") : 0;
+      Runnable one = () -> {
+        boolean last;
+        synchronized (left) { last = --left[0] == 0; }
+        if (last) after.run();
+      };
+      if (chatId == 0) {
+        keepLocalShare(f, lf);
+        one.run();
+        continue;
+      }
+      tdlib.send(new TdApi.GetChatMember(chatId, new TdApi.MessageSenderUser(tdlib.myUserId())), (member, error) -> {
+        boolean creator = member != null && member.status != null && member.status.getConstructor() == TdApi.ChatMemberStatusCreator.CONSTRUCTOR;
+        if (!creator) {
+          Tgx101Diag.mark("storage cloud: share of folder " + f.optLong("id") + " not taken — chat " + chatId + " isn't this account's");
+          synchronized (left) { keepLocalShare(f, lf); }
+        }
+        one.run();
+      });
+    }
+  }
+
+  private static void keepLocalShare (JSONObject f, @Nullable JSONObject lf) {
+    try {
+      Object had = lf != null ? lf.opt("share") : null;
+      if (had != null) f.put("share", had); else f.remove("share");
+    } catch (Throwable ignored) { }
+  }
+
+  private void finish (@Nullable TdApi.Message message, @Nullable JSONObject cloud, JSONObject local, JSONObject merged) {
+    try {
+      String localCanon = canon(local);
       String mergedCanon = canon(merged);
 
       if (!mergedCanon.equals(localCanon)) {
@@ -254,12 +347,18 @@ public final class Tgx101SavedCloud {
         done(); // nothing to keep yet: no file in Saved Messages for it
         return;
       }
+      if (cloud != null) {
+        pmc().putBoolean(key("had"), true);
+        if (message != null) pmc().putLong(key("baseMsg"), message.id);
+      }
       if (cloud != null && mergedCanon.equals(canon(cloud))) {
         pmc().putString(key("base"), cloud.toString());
         done();
         return;
       }
-      write(message, cloud, merged);
+      // (user 2026-10-29 «восстановление») the file was there and is gone: sent anew from this phone's copy
+      boolean restoring = message == null && pmc().getBoolean(key("had"), false);
+      write(message, cloud, merged, restoring);
     } catch (Throwable t) {
       Tgx101Diag.mark("storage cloud: merge failed " + t);
       done();
@@ -267,7 +366,7 @@ public final class Tgx101SavedCloud {
   }
 
   /** The file replaced in its message, or sent the first time */
-  private void write (@Nullable TdApi.Message message, @Nullable JSONObject cloud, JSONObject merged) throws Exception {
+  private void write (@Nullable TdApi.Message message, @Nullable JSONObject cloud, JSONObject merged, boolean restoring) throws Exception {
     JSONObject out = cloud != null ? new JSONObject(cloud.toString()) : new JSONObject();
     Iterator<String> keys = merged.keys();
     while (keys.hasNext()) {
@@ -301,6 +400,8 @@ public final class Tgx101SavedCloud {
           if (error.message != null && error.message.contains("MESSAGE_ID_INVALID")) pmc().remove(key("msg"));
         } else {
           pmc().putString(key("base"), written);
+          pmc().putLong(key("baseMsg"), message.id);
+          pmc().putBoolean(key("had"), true);
           Tgx101Diag.mark("storage cloud: file replaced in " + message.id);
         }
         done();
@@ -316,11 +417,87 @@ public final class Tgx101SavedCloud {
         } else {
           // the id is the sending one for now: the next sync finds the message again
           pmc().putString(key("base"), written);
-          Tgx101Diag.mark("storage cloud: file sent");
+          pmc().putLong(key("baseMsg"), 0); // its real id comes later: the next file found is this one
+          pmc().putBoolean(key("had"), true);
+          Tgx101Diag.mark("storage cloud: file sent" + (restoring ? " (restored)" : ""));
+          if (restoring) UI.showToast(org.thunderdog.challegram.R.string.Tgx101StorageRestored, android.widget.Toast.LENGTH_LONG);
         }
         done();
       });
     }
+  }
+
+  // Checking what came from the cloud
+
+  /** Why the file can't be taken (null: it can) — the wrong types, too much of something */
+  static @Nullable String invalid (JSONObject o) {
+    Object fsRaw = o.opt("folders");
+    if (fsRaw != null && !(fsRaw instanceof JSONArray)) return "folders not a list";
+    JSONArray fs = (JSONArray) fsRaw;
+    if (fs != null) {
+      if (fs.length() > MAX_FOLDERS) return fs.length() + " folders";
+      for (int i = 0; i < fs.length(); i++) {
+        Object fr = fs.opt(i);
+        if (!(fr instanceof JSONObject)) return "folder " + i + " not an object";
+        JSONObject f = (JSONObject) fr;
+        if (!isWhole(f.opt("id")) || ((Number) f.opt("id")).longValue() <= 0) return "folder " + i + ": id";
+        Object name = f.opt("name");
+        if (!(name instanceof String) || ((String) name).length() > MAX_NAME) return "folder " + i + ": name";
+        if (f.has("color") && !isWhole(f.opt("color"))) return "folder " + i + ": color";
+        if (f.has("size") && !isWhole(f.opt("size"))) return "folder " + i + ": size";
+        if (f.has("home") && !(f.opt("home") instanceof Boolean)) return "folder " + i + ": home";
+        String ids = idList(f.opt("ids"), true);
+        if (ids != null) return "folder " + i + ": ids " + ids;
+        Object share = f.opt("share");
+        if (share != null && share != JSONObject.NULL) {
+          if (!(share instanceof JSONObject)) return "folder " + i + ": share";
+          JSONObject sh = (JSONObject) share;
+          if (!isWhole(sh.opt("chat"))) return "folder " + i + ": share chat";
+          if (sh.has("link") && !(sh.opt("link") instanceof String)) return "folder " + i + ": share link";
+          String done = idList(sh.opt("done"), false);
+          if (done != null) return "folder " + i + ": share done " + done;
+        }
+      }
+    }
+    Object tagsRaw = o.opt("tags");
+    if (tagsRaw != null) {
+      if (!(tagsRaw instanceof JSONObject)) return "tags not an object";
+      JSONObject tags = (JSONObject) tagsRaw;
+      if (tags.length() > MAX_TAGS) return tags.length() + " tags";
+      Iterator<String> keys = tags.keys();
+      while (keys.hasNext()) {
+        String k = keys.next();
+        if (k.length() > MAX_NAME) return "tag name";
+        String ids = idList(tags.opt(k), true);
+        if (ids != null) return "tag " + k + ": " + ids;
+      }
+    }
+    Object home = o.opt("homeTags");
+    if (home != null) {
+      if (!(home instanceof JSONArray) || ((JSONArray) home).length() > MAX_TAGS) return "homeTags";
+      for (int i = 0; i < ((JSONArray) home).length(); i++) if (!(((JSONArray) home).opt(i) instanceof String)) return "homeTags " + i;
+    }
+    if (o.has("next") && !isWhole(o.opt("next"))) return "next";
+    if (o.has("updated") && !(o.opt("updated") instanceof Number)) return "updated";
+    return null;
+  }
+
+  private static @Nullable String idList (@Nullable Object v, boolean required) {
+    if (v == null) return required ? "missing" : null;
+    if (!(v instanceof JSONArray)) return "not a list";
+    JSONArray a = (JSONArray) v;
+    if (a.length() > MAX_IDS) return a.length() + " ids";
+    for (int i = 0; i < a.length(); i++) if (!isWhole(a.opt(i))) return "not a number at " + i;
+    return null;
+  }
+
+  private static boolean isWhole (@Nullable Object v) {
+    if (v instanceof Integer || v instanceof Long) return true;
+    if (v instanceof Number) {
+      double d = ((Number) v).doubleValue();
+      return d == Math.rint(d) && !Double.isInfinite(d) && Math.abs(d) < 9e15;
+    }
+    return false;
   }
 
   // Merging

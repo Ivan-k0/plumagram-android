@@ -1238,6 +1238,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101BackupRestoreDesc, "Файл .plumagram из «Загрузок» или из чата. Нажатие на такой файл в чате тоже предлагает восстановить.");
     RU.put(R.string.Tgx101BackupSavedTo, "Сохранено: %1$s");
     RU.put(R.string.Tgx101BackupSentToSaved, "Отправлено в Избранное");
+    RU.put(R.string.Tgx101StorageRestored, "Папки Хранилища восстановлены с этого устройства");
     RU.put(R.string.Tgx101BackupCaption, "Настройки PlumaGram %1$s");
     RU.put(R.string.Tgx101BackupFailed, "Не удалось сохранить: %1$s");
     RU.put(R.string.Tgx101BackupNothing, "Отметьте хотя бы одну часть");
