@@ -125,6 +125,17 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
       items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GazetaArchive, 0, R.string.Tgx101GazetaArchive));
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+      java.util.List<Tgx101Gazeta.Topic> topics = Tgx101Gazeta.topics(tdlib);
+      if (!topics.isEmpty()) {
+        items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101GazetaTopics));
+        items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+        for (int i = 0; i < topics.size(); i++) {
+          if (i > 0) items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+          items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101GazetaTopic, R.drawable.baseline_close_24, topics.get(i).title).setIntValue(i));
+        }
+        items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+        items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101GazetaTopicsHint));
+      }
       items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, Lang.getString(R.string.Tgx101GazetaChannelsN, all.length)));
       items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
       items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101GazetaSelectAll, R.drawable.baseline_done_all_24, R.string.Tgx101GazetaSelectAll));
@@ -239,6 +250,10 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
       Tgx101Gazeta.setBird(adapter.toggleView(v));
     } else if (id == R.id.btn_tgx101GazetaArchive) {
       Tgx101Gazeta.setWithArchive(tdlib, adapter.toggleView(v));
+      build();
+    } else if (id == R.id.btn_tgx101GazetaTopic) {
+      ListItem item = (ListItem) v.getTag();
+      Tgx101Gazeta.removeTopic(tdlib, item.getIntValue());
       build();
     } else if (id == R.id.btn_tgx101GazetaSelectAll) {
       setAll(true);

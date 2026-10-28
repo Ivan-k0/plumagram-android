@@ -85,7 +85,17 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   }
 
   @Override
+  protected int getSelectMenuId () {
+    return R.id.menu_tgx101GazetaSelect;
+  }
+
+  @Override
   public void fillMenuItems (int id, HeaderView header, LinearLayout menu) {
+    if (id == R.id.menu_tgx101GazetaSelect) {
+      header.addButton(menu, R.id.menu_btn_copy, R.drawable.baseline_content_copy_24, getSelectHeaderIconColorId(), this, Screen.dp(52f));
+      header.addButton(menu, R.id.menu_btn_forward, R.drawable.baseline_forward_24, getSelectHeaderIconColorId(), this, Screen.dp(52f));
+      return;
+    }
     if (id == R.id.menu_tgx101Gazeta) {
       autoButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaAuto, autoIcon(autoScroll), 49f, this, getHeaderIconColorId());
       // ☀/☾ — the light or the dark look of the feed (user 2026-10-27: switched here, not in the settings)
@@ -184,8 +194,72 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     if (empty != null) empty.setTextColor(Tgx101Gazeta.palette()[3]);
   }
 
+  // ---- selection (user's п.9: «удержание — режим выделения, как при удержании поста в канале»)
+
+  private final java.util.LinkedHashSet<Tgx101Gazeta.Post> selected = new java.util.LinkedHashSet<>();
+
+  private boolean selecting () {
+    return inSelectMode();
+  }
+
+  private void toggleSelected (Tgx101Gazeta.Post post) {
+    if (!selected.remove(post)) selected.add(post);
+    int i = posts.indexOf(post);
+    if (i != -1) adapter.notifyItemChanged(i);
+    if (selected.isEmpty()) {
+      closeSelectMode();
+    } else if (!selecting()) {
+      setAutoScroll(false);
+      if (headerAnimator != null) headerAnimator.cancel();
+      setHeaderHide(0);
+      openSelectMode(selected.size());
+    } else {
+      setSelectedCount(selected.size());
+    }
+  }
+
+  @Override
+  public void onLeaveSelectMode () {
+    super.onLeaveSelectMode();
+    if (selected.isEmpty()) return;
+    selected.clear();
+    adapter.notifyDataSetChanged();
+  }
+
+  private List<TdApi.Message> selectedMessages () {
+    List<Tgx101Gazeta.Post> ordered = new ArrayList<>(posts);
+    ordered.retainAll(selected);
+    List<TdApi.Message> out = new ArrayList<>();
+    for (Tgx101Gazeta.Post p : ordered) out.addAll(p.messages);
+    return out;
+  }
+
   @Override
   public void onMenuItemPressed (int id, View view) {
+    if (id == R.id.menu_btn_copy) {
+      StringBuilder b = new StringBuilder();
+      List<Tgx101Gazeta.Post> ordered = new ArrayList<>(posts);
+      ordered.retainAll(selected);
+      for (Tgx101Gazeta.Post p : ordered) {
+        TdApi.FormattedText t = Td.textOrCaption(p.main().content);
+        if (t == null || Td.isEmpty(t)) continue;
+        if (b.length() > 0) b.append("\n\n");
+        b.append(tdlib.chatTitle(p.chatId)).append(":\n").append(TD.toCopyText(t));
+      }
+      if (b.length() > 0) UI.copyText(b, R.string.CopiedText);
+      closeSelectMode();
+      return;
+    }
+    if (id == R.id.menu_btn_forward) {
+      List<TdApi.Message> messages = selectedMessages();
+      if (!messages.isEmpty()) {
+        ShareController c = new ShareController(context, tdlib);
+        c.setArguments(new ShareController.Args(messages.toArray(new TdApi.Message[0])));
+        c.show();
+      }
+      closeSelectMode();
+      return;
+    }
     if (id == R.id.menu_btn_tgx101GazetaAuto) {
       setAutoScroll(!autoScroll);
     } else if (id == R.id.menu_btn_tgx101GazetaProfile) {
@@ -209,6 +283,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   private void onNewPost (TdApi.Message message) {
     if (isDestroyed() || !loaded) return;
     if (org.thunderdog.challegram.data.Tgx101MessageFilters.match(tdlib, message, tdlib.chat(message.chatId)) != null) return;
+    if (Tgx101Gazeta.hiddenTopic(tdlib, message) != null) return;
     boolean atEnd = list != null && !list.canScrollVertically(1);
     Tgx101Gazeta.Post last = posts.isEmpty() ? null : posts.get(posts.size() - 1);
     if (last != null && message.mediaAlbumId != 0 && last.chatId == message.chatId && last.first().mediaAlbumId == message.mediaAlbumId) {
@@ -444,6 +519,9 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     if (org.thunderdog.challegram.data.Tgx101MessageFilters.suggestion(main) != null) {
       ids.add(R.id.btn_tgx101FilterSimilar); titles.add(Lang.getString(R.string.Tgx101FilterSimilar)); icons.add(R.drawable.baseline_filter_variant_remove_24);
     }
+    if (hasText && org.thunderdog.challegram.unsorted.Settings.instance().tgx101Ai()) {
+      ids.add(R.id.btn_tgx101GazetaHideTopic); titles.add(Lang.getString(R.string.Tgx101GazetaHideTopic)); icons.add(R.drawable.baseline_auto_awesome_hide_24);
+    }
     ids.add(R.id.btn_tgx101GazetaHideChannel); titles.add(Lang.getString(R.string.Tgx101GazetaHideChannel)); icons.add(R.drawable.baseline_eye_off_24);
     int[] outIds = new int[ids.size()], outIcons = new int[ids.size()];
     for (int i = 0; i < outIds.length; i++) {
@@ -466,6 +544,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         });
       } else if (id == R.id.btn_tgx101FilterSimilar) {
         Tgx101FiltersController.addRule(this, org.thunderdog.challegram.data.Tgx101MessageFilters.suggestion(main), post.chatId, tdlib.chatTitle(post.chatId));
+      } else if (id == R.id.btn_tgx101GazetaHideTopic) {
+        hideTopicOf(post);
       } else if (id == R.id.btn_tgx101GazetaHideChannel) {
         java.util.Set<Long> off = Tgx101Gazeta.excluded(tdlib);
         off.add(post.chatId);
@@ -857,6 +937,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     final TextView mediaBadge, mediaCount, thumbBadge;
     final android.graphics.drawable.Drawable eye;
     ShortIcon shortIcon;
+    @Nullable ImageView selectionMark;
     @Nullable Tgx101Gazeta.Post post;
     int position;
     int imageToken;
@@ -887,6 +968,13 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       LinearLayout.LayoutParams sip = new LinearLayout.LayoutParams(Screen.dp(30f), Screen.dp(30f));
       sip.leftMargin = Screen.dp(8f);
       header.addView(shortIcon, sip);
+      selectionMark = new ImageView(context);
+      selectionMark.setImageResource(R.drawable.baseline_check_circle_24);
+      selectionMark.setColorFilter(Tgx101Gazeta.palette()[4]);
+      selectionMark.setVisibility(GONE);
+      LinearLayout.LayoutParams smp = new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f));
+      smp.leftMargin = Screen.dp(8f);
+      header.addView(selectionMark, smp);
       header.setOnClickListener(v -> {
         if (post != null) tdlib.ui().openChat(Tgx101GazetaController.this, post.chatId, null);
       });
@@ -1013,7 +1101,15 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
           tapPausedAuto = false; // the tap that paused the autoscroll opens nothing
           return;
         }
-        if (post != null) openPostMenu(post);
+        if (post == null) return;
+        if (selecting()) toggleSelected(post);
+        else openPostMenu(post);
+      });
+      setOnLongClickListener(v -> {
+        if (post == null || sample) return false;
+        performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+        toggleSelected(post);
+        return true;
       });
       setOnTouchListener((v, e) -> {
         if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) {
@@ -1065,7 +1161,9 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       this.position = position;
       int[] pal = Tgx101Gazeta.palette();
       float font = Tgx101Gazeta.fontSize();
-      setBackgroundColor(pal[1]);
+      boolean isSelected = !sample && selected.contains(post);
+      setBackgroundColor(isSelected ? me.vkryl.core.ColorUtils.fromToArgb(pal[1], pal[4], .16f) : pal[1]);
+      if (selectionMark != null) selectionMark.setVisibility(isSelected ? VISIBLE : GONE);
 
       // posts of one channel in a row: one header for them, a thin line between (user 2026-10-27)
       boolean samePrev = position > 0 && posts.get(position - 1).chatId == post.chatId;
@@ -1209,7 +1307,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       // the «Short» sign top right, as on a channel's long post — whatever the folding
       shortIcon.setVisibility(summarizable ? VISIBLE : GONE);
       shortIcon.setState(post.summaryShown, post.summaryLoading, pal[4]);
-      header.setVisibility(!samePrev || summarizable ? VISIBLE : GONE);
+      header.setVisibility(!samePrev || summarizable || (!sample && selected.contains(post)) ? VISIBLE : GONE);
+      if (selectionMark != null) selectionMark.setColorFilter(pal[4]);
       avatar.setVisibility(samePrev ? GONE : VISIBLE);
       title.setVisibility(samePrev ? INVISIBLE : VISIBLE);
       header.setPadding(pad, samePrev ? Screen.dp(4f) : Screen.dp(10f), Screen.dp(10f), samePrev ? 0 : Screen.dp(8f));
@@ -1611,6 +1710,43 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   public void setMediaItemVisible (int index, org.thunderdog.challegram.mediaview.data.MediaItem item, boolean isVisible) {
     View target = viewerTarget();
     if (target != null) target.setAlpha(isVisible ? 1f : 0f); // the picture's place is empty while it's in the viewer
+  }
+
+  /** the post's topic by Telegram's AI: its summary's key words (with the post's own most repeated ones) */
+  private void hideTopicOf (Tgx101Gazeta.Post post) {
+    TdApi.Message main = post.main();
+    TdApi.FormattedText text = Td.textOrCaption(main.content);
+    if (text == null) return;
+    String pack = Lang.packId();
+    String to = pack != null && pack.length() >= 2 ? pack.substring(0, 2) : "";
+    UI.showToast(R.string.Tgx101GazetaTopicThinking, android.widget.Toast.LENGTH_SHORT);
+    tdlib.send(new TdApi.SummarizeMessage(main.chatId, main.id, to, ""), (summary, error) -> UI.post(() -> {
+      if (isDestroyed()) return;
+      // the summary's words first; without a summary (a short post) — the post's own
+      java.util.Set<String> fromSummary = Tgx101Gazeta.stems(summary != null ? summary.text : null);
+      java.util.Set<String> fromPost = Tgx101Gazeta.stems(text.text);
+      List<String> keys = new ArrayList<>();
+      for (String stem : fromSummary) if (fromPost.contains(stem) && keys.size() < 8) keys.add(stem);
+      for (String stem : fromSummary) if (!keys.contains(stem) && keys.size() < 8) keys.add(stem);
+      for (String stem : fromPost) if (!keys.contains(stem) && keys.size() < 6) keys.add(stem);
+      if (keys.size() < 2) {
+        UI.showToast(R.string.Tgx101GazetaTopicTooShort, android.widget.Toast.LENGTH_SHORT);
+        return;
+      }
+      String title = summary != null && !Td.isEmpty(summary) ? summary.text : text.text;
+      title = title.replace('\n', ' ').trim();
+      if (title.length() > 60) title = title.substring(0, 60).trim() + "…";
+      Tgx101Gazeta.addTopic(tdlib, title, keys);
+      int removed = 0;
+      for (int i = posts.size() - 1; i >= 0; i--) {
+        if (Tgx101Gazeta.hiddenTopic(tdlib, posts.get(i).main()) != null) {
+          posts.remove(i);
+          removed++;
+        }
+      }
+      adapter.notifyDataSetChanged();
+      UI.showToast(Lang.getString(R.string.Tgx101GazetaTopicHidden, removed), android.widget.Toast.LENGTH_SHORT);
+    }));
   }
 
   // the post's comments, as its «Leave a comment» bar in the channel opens them

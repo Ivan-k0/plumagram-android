@@ -507,7 +507,7 @@ public final class Tgx101Gazeta {
       fetch(tdlib, request, 2, messages -> {
         synchronized (all) {
           for (TdApi.Message m : messages) {
-            if (isPost(m) && org.thunderdog.challegram.data.Tgx101MessageFilters.match(tdlib, m, chat) == null) all.add(m);
+            if (isPost(m) && org.thunderdog.challegram.data.Tgx101MessageFilters.match(tdlib, m, chat) == null && hiddenTopic(tdlib, m) == null) all.add(m);
           }
         }
         done.run();
@@ -553,6 +553,91 @@ public final class Tgx101Gazeta {
       if (read != null && m.id > read) last.unread = true;
     }
     return posts;
+  }
+
+  // ---- «Hide similar by meaning» (user's п.9, the AI variant): the post's topic is taken from Telegram's AI summary of
+  // it (one request, when asked), as its key words; a post sharing enough of them is left out of the feed. The words
+  // are cut to their stems, so «выборы», «выборах», «выборов» are one
+
+  private static final java.util.Set<String> STOP = new java.util.HashSet<>(java.util.Arrays.asList(
+    "котор", "этого", "этому", "также", "через", "после", "более", "может", "можно", "будет", "будут", "сегод", "время",
+    "который", "своих", "своей", "своим", "очень", "нужно", "всего", "всех", "между", "потом", "тогда", "когда", "чтобы",
+    "about", "which", "their", "there", "would", "could", "other", "these", "those", "after", "where", "while", "being"));
+
+  /** a text's stems: words of 5+ letters, cut to 5, without the everyday ones */
+  public static java.util.Set<String> stems (@Nullable String text) {
+    java.util.Set<String> out = new java.util.LinkedHashSet<>();
+    if (text == null) return out;
+    for (String word : text.toLowerCase(java.util.Locale.ROOT).split("[^\\p{L}]+")) {
+      if (word.length() < 5) continue;
+      String stem = word.substring(0, 5);
+      if (STOP.contains(stem) || STOP.contains(word)) continue;
+      out.add(stem);
+    }
+    return out;
+  }
+
+  public static final class Topic {
+    public final String title;
+    public final java.util.List<String> stems;
+
+    Topic (String title, java.util.List<String> stems) {
+      this.title = title;
+      this.stems = stems;
+    }
+  }
+
+  private static String topicsKey (Tdlib tdlib) {
+    return "tgx101_gazeta_topics_" + tdlib.id();
+  }
+
+  public static java.util.List<Topic> topics (Tdlib tdlib) {
+    java.util.List<Topic> out = new ArrayList<>();
+    String raw = Settings.instance().pmc().getString(topicsKey(tdlib), null);
+    if (raw == null || raw.isEmpty()) return out;
+    for (String line : raw.split("\n")) {
+      int bar = line.indexOf('|');
+      if (bar <= 0) continue;
+      out.add(new Topic(line.substring(0, bar), java.util.Arrays.asList(line.substring(bar + 1).split(","))));
+    }
+    return out;
+  }
+
+  private static void setTopics (Tdlib tdlib, java.util.List<Topic> topics) {
+    StringBuilder b = new StringBuilder();
+    for (Topic t : topics) {
+      if (b.length() > 0) b.append('\n');
+      b.append(t.title.replace('|', ' ').replace('\n', ' ')).append('|').append(android.text.TextUtils.join(",", t.stems));
+    }
+    Settings.instance().pmc().putString(topicsKey(tdlib), b.toString());
+  }
+
+  public static void addTopic (Tdlib tdlib, String title, java.util.List<String> stems) {
+    java.util.List<Topic> all = topics(tdlib);
+    all.add(new Topic(title, stems));
+    setTopics(tdlib, all);
+  }
+
+  public static void removeTopic (Tdlib tdlib, int index) {
+    java.util.List<Topic> all = topics(tdlib);
+    if (index >= 0 && index < all.size()) all.remove(index);
+    setTopics(tdlib, all);
+  }
+
+  /** the topic a post falls under, or null */
+  @Nullable
+  public static Topic hiddenTopic (Tdlib tdlib, TdApi.Message m) {
+    java.util.List<Topic> all = topics(tdlib);
+    if (all.isEmpty()) return null;
+    TdApi.FormattedText text = tgx.td.Td.textOrCaption(m.content);
+    if (text == null || tgx.td.Td.isEmpty(text)) return null;
+    java.util.Set<String> mine = stems(text.text);
+    for (Topic t : all) {
+      int hits = 0;
+      for (String stem : t.stems) if (mine.contains(stem)) hits++;
+      if (hits >= Math.max(2, (int) Math.ceil(t.stems.size() * .35f))) return t;
+    }
+    return null;
   }
 
   // ---- new posts while the feed is open (task «новые посты без перезахода») ----

@@ -7544,4 +7544,10 @@
   <string name="Tgx101GazetaOwnLooksHint">A tap puts the look on the day (☀) or the night (☾) profile — whichever is on above. Hold a look to overwrite or delete it.</string>
   <string name="Tgx101GazetaLookSave">Save as…</string>
   <string name="Tgx101GazetaLookOverwrite">Save the look now on here</string>
+  <string name="Tgx101GazetaHideTopic">Hide similar by meaning (AI)</string>
+  <string name="Tgx101GazetaTopicThinking">Working out what the post is about…</string>
+  <string name="Tgx101GazetaTopicTooShort">The post is too short to tell its topic</string>
+  <string name="Tgx101GazetaTopicHidden">The topic is hidden; posts left out: %1$d</string>
+  <string name="Tgx101GazetaTopics">Hidden topics</string>
+  <string name="Tgx101GazetaTopicsHint">Posts on these topics are left out of Gazeta. Tap a topic to bring its posts back.</string>
 </resources>

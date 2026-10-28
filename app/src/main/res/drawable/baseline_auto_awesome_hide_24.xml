@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TGx101 (user 2026-10-28): «Hide similar by meaning» — a spark of the AI over a struck-out line -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="24dp"
+  android:height="24dp"
+  android:viewportWidth="24"
+  android:viewportHeight="24">
+  <path
+    android:fillColor="#FF000000"
+    android:pathData="M17,3l1.2,2.8L21,7l-2.8,1.2L17,11l-1.2,-2.8L13,7l2.8,-1.2zM3,13h12v2H3zM3,17h9v2H3zM2.3,21.3l18,-18 1.4,1.4 -18,18z"/>
+</vector>

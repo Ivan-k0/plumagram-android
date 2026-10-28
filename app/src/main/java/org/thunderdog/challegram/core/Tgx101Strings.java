@@ -161,6 +161,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101GazetaOwnLooksHint, "Нажатие — включить профиль для дня (☀) или ночи (☾), смотря что выбрано сверху. Удержание — перезаписать или удалить.");
     RU.put(R.string.Tgx101GazetaLookSave, "Сохранить как…");
     RU.put(R.string.Tgx101GazetaLookOverwrite, "Перезаписать текущим видом");
+    RU.put(R.string.Tgx101GazetaHideTopic, "Скрывать похожее по смыслу (ИИ)");
+    RU.put(R.string.Tgx101GazetaTopicThinking, "Определяю, о чём пост…");
+    RU.put(R.string.Tgx101GazetaTopicTooShort, "Пост слишком короткий, чтобы понять тему");
+    RU.put(R.string.Tgx101GazetaTopicHidden, "Тема скрыта; убрано постов: %1$d");
+    RU.put(R.string.Tgx101GazetaTopics, "Скрытые темы");
+    RU.put(R.string.Tgx101GazetaTopicsHint, "Посты на эти темы не показываются в «Газете». Нажмите на тему, чтобы вернуть её посты.");
     RU.put(R.string.Tgx101FilterSimilar, "Скрывать похожие…");
     RU.put(R.string.RecordingAndPhotos, "Запись и фото");
     RU.put(R.string.PauseMediaOnRecord, "Пауза музыки при записи и голосовых");
