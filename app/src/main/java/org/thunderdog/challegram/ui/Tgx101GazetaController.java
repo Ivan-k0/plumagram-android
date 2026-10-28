@@ -97,6 +97,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       return;
     }
     if (id == R.id.menu_tgx101Gazeta) {
+      jumpButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaJump, R.drawable.baseline_arrow_downward_24, 44f, this, getHeaderIconColorId());
+      updateJumpButton();
       autoButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaAuto, autoIcon(autoScroll), 49f, this, getHeaderIconColorId());
       // ☀/☾ — the light or the dark look of the feed (user 2026-10-27: switched here, not in the settings)
       profileButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaProfile, profileIcon(), 49f, this, getHeaderIconColorId());
@@ -127,6 +129,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     int color = Tgx101Gazeta.palette()[2];
     if (profileButton != null) profileButton.tgx101SetForcedColor(color);
     if (autoButton != null) autoButton.tgx101SetForcedColor(color);
+    if (jumpButton != null) jumpButton.tgx101SetForcedColor(me.vkryl.core.ColorUtils.alphaColor(.7f, color)); // unobtrusive
     if (settingsButton != null) settingsButton.tgx101SetForcedColor(color);
   }
 
@@ -192,6 +195,52 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   private void applyPalette () {
     if (root != null) root.setBackgroundColor(Tgx101Gazeta.palette()[0]);
     if (empty != null) empty.setTextColor(Tgx101Gazeta.palette()[3]);
+  }
+
+  // ---- the arrow in the header (user 2026-10-28 09:50): a tap — to the first unread post, the next — back to where
+  // the tap was made; it points the way it will take, and stays out of sight with nothing unread and nowhere to go back
+
+  private @Nullable org.thunderdog.challegram.navigation.HeaderButton jumpButton;
+  private int jumpBackIndex = -1;
+
+  private int firstUnreadIndex () {
+    for (int i = 0; i < posts.size(); i++) if (posts.get(i).unread) return i;
+    return -1;
+  }
+
+  private int topIndex () {
+    LinearLayoutManager manager = list != null ? (LinearLayoutManager) list.getLayoutManager() : null;
+    return manager != null ? manager.findFirstVisibleItemPosition() : -1;
+  }
+
+  private void updateJumpButton () {
+    if (jumpButton == null) return;
+    int target = jumpBackIndex != -1 ? jumpBackIndex : firstUnreadIndex();
+    int top = topIndex();
+    boolean visible = target != -1 && target != top;
+    jumpButton.setVisibility(visible ? View.VISIBLE : View.GONE);
+    if (visible) jumpButton.setImageResource(target > top ? R.drawable.baseline_arrow_downward_24 : R.drawable.baseline_arrow_upward_24);
+  }
+
+  private void jump () {
+    LinearLayoutManager manager = list != null ? (LinearLayoutManager) list.getLayoutManager() : null;
+    if (manager == null) return;
+    int top = topIndex();
+    int target;
+    if (jumpBackIndex != -1) {
+      target = jumpBackIndex;
+      jumpBackIndex = -1;
+    } else {
+      target = firstUnreadIndex();
+      if (target == -1) return;
+      jumpBackIndex = top;
+    }
+    setAutoScroll(false);
+    manager.scrollToPositionWithOffset(target, Screen.dp(4f) + Size.getHeaderPortraitSize() - headerHide);
+    list.post(() -> {
+      markVisibleRead();
+      updateJumpButton();
+    });
   }
 
   // ---- selection (user's п.9: «удержание — режим выделения, как при удержании поста в канале»)
@@ -263,6 +312,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
           c.show();
         }, 220);
       }
+      return;
+    }
+    if (id == R.id.menu_btn_tgx101GazetaJump) {
+      jump();
       return;
     }
     if (id == R.id.menu_btn_tgx101GazetaAuto) {
@@ -337,6 +390,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       @Override
       public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
         markVisibleRead();
+        updateJumpButton();
         if (loaded && isFocused() && (headerAnimator == null || !headerAnimator.isRunning())) setHeaderHide(headerHide + dy);
         rememberPlace();
       }
@@ -412,12 +466,16 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         LinearLayoutManager manager = (LinearLayoutManager) list.getLayoutManager();
         if (manager != null && !posts.isEmpty()) {
           // the first unread post; with none — the post the feed was left on; else the newest
-          int at = firstUnread;
-          if (at == -1) at = placeIndex();
+          // (user 2026-10-28 09:50 «вернулся — туда, где остался»): the place it was left first; the first unread is a
+          // tap on the arrow in the header away
+          int at = placeIndex();
+          if (at == -1) at = firstUnread;
           if (at == -1) at = posts.size() - 1;
           manager.scrollToPositionWithOffset(at, Screen.dp(4f) + Size.getHeaderPortraitSize());
         }
         list.post(this::markVisibleRead);
+        jumpBackIndex = -1;
+        list.post(this::updateJumpButton);
         completeAlbums();
         readChannelsWithNothingToShow(chatIds);
       });
@@ -977,6 +1035,52 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     final android.graphics.drawable.Drawable eye;
     ShortIcon shortIcon;
     @Nullable ImageView selectionMark;
+    LinearLayout mosaic;
+    final List<ImageView> mosaicCells = new ArrayList<>();
+
+    /** (user 2026-10-28 09:46 «медиа больше одного — как в каналах»): an album's pictures side by side, as a channel shows them */
+    private void layoutMosaic (List<TdApi.Message> visuals, int width, int token) {
+      mosaic.removeAllViews();
+      mosaicCells.clear();
+      int n = Math.min(4, visuals.size());
+      int gap = Math.max(1, Screen.dp(2f));
+      LinearLayout left = new LinearLayout(getContext()), right = new LinearLayout(getContext());
+      left.setOrientation(VERTICAL);
+      right.setOrientation(VERTICAL);
+      mosaic.addView(left, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, n == 3 ? 1.3f : 1f));
+      View spacer = new View(getContext());
+      mosaic.addView(spacer, new LinearLayout.LayoutParams(gap, ViewGroup.LayoutParams.MATCH_PARENT));
+      mosaic.addView(right, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+      for (int i = 0; i < n; i++) {
+        final int index = i;
+        FrameLayout cell = new FrameLayout(getContext());
+        ImageView image = new ImageView(getContext());
+        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        image.setColorFilter(Tgx101Gazeta.pictureFilter());
+        cell.addView(image, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        TdApi.Message m = visuals.get(i);
+        String duration = durationOf(m);
+        boolean last = i == n - 1 && visuals.size() > n;
+        if (duration != null || last) {
+          TextView badge = badge(getContext());
+          badge.setText(last ? "+" + (visuals.size() - n + 1) : "▶ " + duration);
+          FrameLayout.LayoutParams blp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, last ? Gravity.CENTER : Gravity.LEFT | Gravity.BOTTOM);
+          blp.leftMargin = blp.bottomMargin = Screen.dp(6f);
+          cell.addView(badge, blp);
+        }
+        cell.setOnClickListener(v -> {
+          if (post != null && !sample) openMedia(post, index);
+        });
+        LinearLayout column = n == 2 ? (i == 0 ? left : right) : n == 3 ? (i == 0 ? left : right) : (i % 2 == 0 ? left : right);
+        if (column.getChildCount() > 0) {
+          View g = new View(getContext());
+          column.addView(g, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, gap));
+        }
+        column.addView(cell, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        mosaicCells.add(image);
+        loadImage(m, image, token, width / 2);
+      }
+    }
     @Nullable Tgx101Gazeta.Post post;
     int position;
     int imageToken;
@@ -1035,6 +1139,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.RIGHT | Gravity.TOP);
       cp.rightMargin = cp.topMargin = Screen.dp(8f);
       media.addView(mediaCount, cp);
+      mosaic = new LinearLayout(context);
+      mosaic.setOrientation(HORIZONTAL);
+      mosaic.setVisibility(GONE);
+      media.addView(mosaic, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
       addView(media, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0));
 
       summary = text(context, 15f, false);
@@ -1298,9 +1406,24 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         String duration = durationOf(visual);
         mediaBadge.setText(duration != null ? "▶ " + duration : null);
         mediaBadge.setVisibility(duration != null ? VISIBLE : GONE);
-        mediaCount.setText(extra > 0 ? "+" + extra : null);
-        mediaCount.setVisibility(extra > 0 ? VISIBLE : GONE);
-        if (!sameImage || mediaImage.getDrawable() == null) loadImage(visual, mediaImage, token, width);
+        List<TdApi.Message> visualList = new ArrayList<>();
+        for (TdApi.Message m : post.messages) if (isVisual(m)) visualList.add(m);
+        boolean many = visualList.size() > 1;
+        mosaic.setVisibility(many ? VISIBLE : GONE);
+        mediaImage.setVisibility(many ? GONE : VISIBLE);
+        if (many) {
+          // the album in its cells; its height as a channel's album — about three quarters of the width
+          mp.height = (int) (width * (visualList.size() == 2 ? .62f : .78f));
+          media.setLayoutParams(mp);
+          mediaBadge.setVisibility(GONE);
+          mediaCount.setVisibility(GONE);
+          if (!sameImage || mosaicCells.size() != Math.min(4, visualList.size())) layoutMosaic(visualList, width, token);
+          else for (ImageView cell : mosaicCells) cell.setColorFilter(filter);
+        } else {
+          mediaCount.setText(extra > 0 ? "+" + extra : null);
+          mediaCount.setVisibility(extra > 0 ? VISIBLE : GONE);
+          if (!sameImage || mediaImage.getDrawable() == null) loadImage(visual, mediaImage, token, width);
+        }
       }
 
       // the text; beside a thumbnail only as many lines as its height, the rest goes on under it at full width
@@ -1680,6 +1803,12 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   /** (task: «просмотр медиа в ленте») the post's photos and videos in the viewer, from the first; an album as a whole */
   private void openMedia (Tgx101Gazeta.Post post) {
+    openMedia(post, 0);
+  }
+
+  private int viewerIndex;
+
+  private void openMedia (Tgx101Gazeta.Post post, int startIndex) {
     if (tapPausedAuto) {
       tapPausedAuto = false;
       return;
@@ -1695,7 +1824,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       return;
     }
     org.thunderdog.challegram.mediaview.data.MediaStack stack = new org.thunderdog.challegram.mediaview.data.MediaStack(context(), tdlib);
-    stack.set(0, items);
+    viewerIndex = Math.max(0, Math.min(items.size() - 1, startIndex));
+    stack.set(viewerIndex, items);
     // (user 2026-10-28 «сворачивание — супер плавным, как везде»): the viewer flies out of the picture and back into it
     viewerPost = post;
     org.thunderdog.challegram.mediaview.MediaViewController.Args args = new org.thunderdog.challegram.mediaview.MediaViewController.Args(this,
@@ -1718,6 +1848,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     RecyclerView.ViewHolder holder = list.findViewHolderForAdapterPosition(i);
     if (holder == null || !(holder.itemView instanceof Card)) return null;
     Card card = (Card) holder.itemView;
+    if (card.media.getVisibility() == View.VISIBLE && card.mosaic.getVisibility() == View.VISIBLE) {
+      int i2 = Math.min(card.mosaicCells.size() - 1, viewerIndex);
+      return i2 >= 0 ? card.mosaicCells.get(i2) : card.mediaImage;
+    }
     if (card.media.getVisibility() == View.VISIBLE) return card.mediaImage;
     if (card.thumbWrap.getVisibility() == View.VISIBLE) return card.thumbImage;
     return null;
@@ -1744,6 +1878,11 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   private boolean isThumb (View target) {
     RecyclerView.ViewHolder holder = viewerPost != null ? list.findViewHolderForAdapterPosition(posts.indexOf(viewerPost)) : null;
     return holder != null && holder.itemView instanceof Card && ((Card) holder.itemView).thumbImage == target;
+  }
+
+  @Override
+  public void tgx101OnMediaFocused (int index, org.thunderdog.challegram.mediaview.data.MediaItem item) {
+    viewerIndex = index;
   }
 
   @Override

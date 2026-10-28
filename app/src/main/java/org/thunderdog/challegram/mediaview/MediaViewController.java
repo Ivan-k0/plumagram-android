@@ -4434,6 +4434,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
 
+  private @Nullable MediaItem tgx101SpeedItem;
+
   @Override
   public void onPlayPause (MediaItem item, boolean isPlaying) {
     if (stack.getCurrent() != item) {
@@ -4444,6 +4446,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       tgx101ScheduleLockedHide();
     }
     if (isPlaying && mode == MODE_MESSAGES) {
+      // (user 2026-10-28 10:30): with «Remember speed» off, the next video swiped to starts at 1× too, not only a new viewer
+      if (item != tgx101SpeedItem) {
+        if (tgx101SpeedItem != null && !Settings.instance().tgx101PlayerKeepSpeed()) Settings.instance().setTgx101PlayerSpeed(1f);
+        tgx101SpeedItem = item;
+      }
       mediaView.tgx101SetSpeed(Settings.instance().tgx101PlayerSpeed()); // TGx101: the remembered speed
     }
     if (videoSliderView != null) {

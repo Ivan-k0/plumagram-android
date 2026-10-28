@@ -373,7 +373,8 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       buildTitles(maxWidth - (getPreviewSize() + getPreviewOffset()));
     }
     if (waveform != null) {
-      waveform.layout(Math.min(tgx101WaveMaxWidth(), Math.min(TGMessage.getEstimatedContentMaxWidth(), maxWidth) - tgx101PlaySize() - getPreviewOffset() - tgx101SideDurationWidth() - transcribeButtonSpace()));
+      tgx101WaveBase = Math.min(tgx101WaveMaxWidth(), Math.min(TGMessage.getEstimatedContentMaxWidth(), maxWidth) - tgx101PlaySize() - getPreviewOffset() - tgx101SideDurationWidth() - transcribeButtonSpace());
+      waveform.layout(tgx101WaveBase);
     }
   }
 
@@ -769,10 +770,18 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   }
 
   private int tgx101ContentWidth;
+  private int tgx101WaveBase; // the wave's own width, before it runs on under a wide transcription
 
   /** the width the message gives this file (wider than the file itself under a long transcription) */
   public void tgx101SetContentWidth (int width) {
     this.tgx101ContentWidth = width;
+    // (user 2026-10-28 10:29, screenshot 10:28): under a shown transcription the bubble is wider — the wave runs on to
+    // the «A» at its right edge, as in a collapsed one, not stopping halfway
+    if (waveform != null && hasTranscribeButton() && tgx101WaveBase > 0) {
+      int widthWithBase = getWidth() - waveform.getWidth() + tgx101WaveBase;
+      int target = tgx101WaveBase + Math.max(0, width - widthWithBase);
+      if (target != waveform.getWidth()) waveform.layout(target);
+    }
   }
 
   private void drawTranscribeButton (Canvas c, float cx, float cy, boolean outgoing, float alpha) {

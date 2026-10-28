@@ -230,9 +230,9 @@ public final class Tgx101Bird {
   }
 
   // TGx101 (user 2026-10-26): what two taps on the bird do
-  public static final int DOUBLE_TAP_NONE = 0, DOUBLE_TAP_LAST_NOTIFICATION = 1, DOUBLE_TAP_NEXT_ACCOUNT = 2, DOUBLE_TAP_PROXY = 3, DOUBLE_TAP_NOTE = 4;
+  public static final int DOUBLE_TAP_NONE = 0, DOUBLE_TAP_LAST_NOTIFICATION = 1, DOUBLE_TAP_NEXT_ACCOUNT = 2, DOUBLE_TAP_PROXY = 3, DOUBLE_TAP_NOTE = 4, DOUBLE_TAP_GAZETA = 5;
   public static final int[] DOUBLE_TAP_TITLES = {
-    R.string.Tgx101BirdTapNone, R.string.Tgx101BirdTapLastChat, R.string.Tgx101BirdTapNextAccount, R.string.Tgx101BirdTapProxy, R.string.Tgx101BirdTapNote
+    R.string.Tgx101BirdTapNone, R.string.Tgx101BirdTapLastChat, R.string.Tgx101BirdTapNextAccount, R.string.Tgx101BirdTapProxy, R.string.Tgx101BirdTapNote, R.string.Tgx101Gazeta
   };
 
   public static void doubleTap (ViewController<?> host) {
@@ -255,6 +255,12 @@ public final class Tgx101Bird {
         break;
       case DOUBLE_TAP_NOTE:
         run(host, ACTION_NOTE, null);
+        break;
+      case DOUBLE_TAP_GAZETA:
+        // (user 2026-10-28 09:52 «двойной тап на птичку — и в газету, и из газеты»): into «Газета», and from it back
+        // to the screen it was opened over
+        if (host instanceof Tgx101GazetaController) host.navigateBack();
+        else host.navigateTo(new Tgx101GazetaController(host.context(), host.tdlib()));
         break;
     }
   }
