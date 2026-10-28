@@ -3967,7 +3967,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
     int anchorMode = MessagesManager.getAnchorHighlightMode(tdlib.id(), chat, messageThread);
     org.thunderdog.challegram.Tgx101Diag.mark("arrow: pressed (return " + manager.hasReturnMessage() + ", anchor " + anchorMode + ")");
     if (!manager.hasReturnMessage()) {
-      if (!inPreviewMode && !isInForceTouchMode() && anchorMode == MessagesManager.HIGHLIGHT_MODE_UNREAD) {
+      // TGx101 (user 2026-10-29 «при нажатиях сообщения просто съезжают вниз»): since chats open on the first unread
+      // (27.10) the anchor is «unread» whenever there are any, and every tap went to the first unread one again, a
+      // little lower each time. Without the remembered place the tap goes by what is on screen (below): to the first
+      // unread if it is still below, else to the end
+      if (!inPreviewMode && !isInForceTouchMode() && anchorMode == MessagesManager.HIGHLIGHT_MODE_UNREAD && Settings.instance().tgx101RememberChatPlace()) {
         MessageId messageId = MessagesManager.getAnchorMessageId(tdlib.id(), chat, messageThread, anchorMode);
         manager.highlightMessage(messageId, MessagesManager.HIGHLIGHT_MODE_UNREAD_NEXT, null, true);
         return;
