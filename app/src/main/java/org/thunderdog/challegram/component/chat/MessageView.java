@@ -643,12 +643,16 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
           }
         }
       };
-      postDelayed(pendingMenuTap, android.view.ViewConfiguration.getDoubleTapTimeout()); // 300 ms on most phones
+      // (user 2026-10-28 «время открытия меню у нас и в экстере», video 14:04: the menu itself opens as fast, but it came
+      // ~360 ms after the tap — the whole 300 ms system double-tap window was waited first). Real double taps on the
+      // user's phone come 130–165 ms apart (diagnostics log): 200 ms is enough and the menu is ~100 ms sooner
+      postDelayed(pendingMenuTap, Math.min(TGX101_DOUBLE_TAP_WINDOW, android.view.ViewConfiguration.getDoubleTapTimeout()));
       return true;
     }
     return tapMenu && onMessageClickImpl(x, y, null);
   }
 
+  private static final long TGX101_DOUBLE_TAP_WINDOW = 200;
   private boolean doubleTapArmed;
   private CancellableRunnable pendingMenuTap;
   private TGMessage pendingMenuMessage;
