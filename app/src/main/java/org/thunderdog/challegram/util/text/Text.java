@@ -230,7 +230,10 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
       highlightRect.bottom = y + (part.getHeight() == -1 ? fm.descent - fm.ascent : part.getHeight()) + bound;
       highlightRect.offset(0, paint.baselineShift + getPartVerticalOffset(part));
       path.addRoundRect(highlightRect, radius, radius, Path.Direction.CW);
+      if (tgx101Bounds.isEmpty()) tgx101Bounds.set(highlightRect); else tgx101Bounds.union(highlightRect);
     }
+
+    private final RectF tgx101Bounds = new RectF();
 
     public boolean willDraw () {
       return isRevealed.getFloatValue() != 1f;
@@ -246,7 +249,11 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
     }
 
     public void draw (Canvas c, int iconColor) {
-      // TODO proper particles
+      // TGx101 (user 2026-10-28 «скрытый текст — ужас»): drifting dust of the text's colour instead of solid blocks
+      if (Tgx101SpoilerDust.draw(c, path, tgx101Bounds, iconColor, 1f - getContentAlpha())) {
+        if (viewProvider != null) viewProvider.invalidate();
+        return;
+      }
       c.drawPath(path, Paints.fillingPaint(ColorUtils.alphaColor(1f - getContentAlpha(), iconColor)));
     }
 
@@ -2680,7 +2687,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
               c.translate(0, startY);
             }
             TextColorSet theme = pickTheme(defaultTheme, parts.get(spoiler.startPartIndex).getEntity());
-            spoiler.draw(c, theme.iconColor());
+            spoiler.draw(c, theme.defaultTextColor());
           }
         }
         if (saved) {
