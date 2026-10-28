@@ -97,8 +97,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       return;
     }
     if (id == R.id.menu_tgx101Gazeta) {
-      jumpButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaJump, R.drawable.baseline_arrow_downward_24, 44f, this, getHeaderIconColorId());
-      updateJumpButton();
+      // (user 2026-10-28 «убери стрелку вообще»): no arrow in the header
       autoButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaAuto, autoIcon(autoScroll), 49f, this, getHeaderIconColorId());
       // ☀/☾ — the light or the dark look of the feed (user 2026-10-27: switched here, not in the settings)
       profileButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaProfile, profileIcon(), 49f, this, getHeaderIconColorId());
@@ -129,7 +128,6 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     int color = Tgx101Gazeta.palette()[2];
     if (profileButton != null) profileButton.tgx101SetForcedColor(color);
     if (autoButton != null) autoButton.tgx101SetForcedColor(color);
-    if (jumpButton != null) jumpButton.tgx101SetForcedColor(me.vkryl.core.ColorUtils.alphaColor(.7f, color)); // unobtrusive
     if (settingsButton != null) settingsButton.tgx101SetForcedColor(color);
   }
 
@@ -195,44 +193,6 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   private void applyPalette () {
     if (root != null) root.setBackgroundColor(Tgx101Gazeta.palette()[0]);
     if (empty != null) empty.setTextColor(Tgx101Gazeta.palette()[3]);
-  }
-
-  // ---- the arrow in the header (user 2026-10-28 13:04 «стрелка делает лишь одну функцию — возвращает к первому
-  // непрочитанному, без каких-либо других функций»): a tap — to the first unread post, nothing else (the way back of 09:50
-  // is gone); it points the way it will take and stays out of sight with nothing unread or when that post is on top
-
-  private @Nullable org.thunderdog.challegram.navigation.HeaderButton jumpButton;
-
-  private int firstUnreadIndex () {
-    for (int i = 0; i < posts.size(); i++) if (posts.get(i).unread) return i;
-    return -1;
-  }
-
-  private int topIndex () {
-    LinearLayoutManager manager = list != null ? (LinearLayoutManager) list.getLayoutManager() : null;
-    return manager != null ? manager.findFirstVisibleItemPosition() : -1;
-  }
-
-  private void updateJumpButton () {
-    if (jumpButton == null) return;
-    int target = firstUnreadIndex();
-    int top = topIndex();
-    boolean visible = target != -1 && target != top;
-    jumpButton.setVisibility(visible ? View.VISIBLE : View.GONE);
-    if (visible) jumpButton.setImageResource(target > top ? R.drawable.baseline_arrow_downward_24 : R.drawable.baseline_arrow_upward_24);
-  }
-
-  private void jump () {
-    LinearLayoutManager manager = list != null ? (LinearLayoutManager) list.getLayoutManager() : null;
-    if (manager == null) return;
-    int target = firstUnreadIndex();
-    if (target == -1) return;
-    setAutoScroll(false);
-    manager.scrollToPositionWithOffset(target, Screen.dp(4f) + Size.getHeaderPortraitSize() - headerHide);
-    list.post(() -> {
-      markVisibleRead();
-      updateJumpButton();
-    });
   }
 
   // ---- selection (user's п.9: «удержание — режим выделения, как при удержании поста в канале»)
@@ -304,10 +264,6 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
           c.show();
         }, 220);
       }
-      return;
-    }
-    if (id == R.id.menu_btn_tgx101GazetaJump) {
-      jump();
       return;
     }
     if (id == R.id.menu_btn_tgx101GazetaAuto) {
@@ -382,7 +338,6 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       @Override
       public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
         markVisibleRead();
-        updateJumpButton();
         if (loaded && isFocused() && (headerAnimator == null || !headerAnimator.isRunning())) setHeaderHide(headerHide + dy);
         rememberPlace();
       }
