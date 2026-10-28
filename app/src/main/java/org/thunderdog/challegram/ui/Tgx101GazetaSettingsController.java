@@ -36,6 +36,13 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
     super(context, tdlib);
   }
 
+  private @androidx.annotation.Nullable Tgx101GazetaController feed;
+
+  public Tgx101GazetaSettingsController setFeed (Tgx101GazetaController feed) {
+    this.feed = feed;
+    return this;
+  }
+
   @Override
   public int getId () {
     return R.id.controller_tgx101GazetaSettings;
@@ -101,15 +108,8 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
       Set<Long> off = Tgx101Gazeta.excluded(tdlib);
       List<ListItem> items = new ArrayList<>();
       items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
-      items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, Tgx101Gazeta.profile() == Tgx101Gazeta.PROFILE_DARK ? R.string.Tgx101GazetaLookDark : R.string.Tgx101GazetaLookLight));
       items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101GazetaColor, 0, R.string.Tgx101GazetaColor));
-      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101GazetaPhotos, 0, R.string.Tgx101GazetaPhotos));
-      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101GazetaPicture, 0, R.string.Tgx101GazetaPicture));
-      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101GazetaFold, 0, R.string.Tgx101GazetaFold));
+      items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101GazetaLook, R.drawable.baseline_palette_24, R.string.Tgx101GazetaLook));
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
       items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101GazetaLookHint));
       items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
@@ -167,7 +167,9 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
   @Override
   public void onClick (View v) {
     int id = v.getId();
-    if (id == R.id.btn_tgx101GazetaColor) {
+    if (id == R.id.btn_tgx101GazetaLook) {
+      navigateTo(new Tgx101GazetaLookController(context, tdlib, feed));
+    } else if (id == R.id.btn_tgx101GazetaColor) {
       int[] res = paletteNames();
       String[] names = new String[res.length];
       for (int i = 0; i < res.length; i++) names[i] = Lang.getString(res[i]);

@@ -7493,8 +7493,8 @@
   <string name="Tgx101AutoplayHint">Chosen channels — those with autoplay «On» in ⋮ → «Media in this channel»</string>
   <string name="Tgx101GazetaLookLight">Look: light (☀/☾ in the feed\'s header)</string>
   <string name="Tgx101GazetaLookDark">Look: dark (☀/☾ in the feed\'s header)</string>
-  <string name="Tgx101GazetaLookHint">The light and the dark Gazeta keep their own look; switch between them with ☀/☾ in the feed\'s header.</string>
-  <string name="Tgx101GazetaFont">Font size</string>
+  <string name="Tgx101GazetaLookHint">Text, colours, pictures, long posts and autoscroll — with a live sample post. The light and the dark Gazeta keep their own values (☀/☾ in the header).</string>
+  <string name="Tgx101GazetaFont">Size</string>
   <string name="Tgx101GazetaColor">Colour of the posts</string>
   <string name="Tgx101GazetaPicture">Pictures</string>
   <string name="Tgx101GazetaPicAsIs">As is</string>
@@ -7525,4 +7525,17 @@
   <string name="Tgx101TypeMediaPrivate">Private chats</string>
   <string name="Tgx101TypeMediaHint">Download and autoplay for all chats of a kind. A channel\'s own «Media in this channel» (⋮) comes first.</string>
   <string name="Tgx101TypeMediaSheetHint">«Default» follows the general settings (Data and storage).</string>
+  <string name="Tgx101GazetaLook">Look of Gazeta</string>
+  <string name="Tgx101GazetaLight">Light</string>
+  <string name="Tgx101GazetaDark">Dark</string>
+  <string name="Tgx101GazetaText">Text</string>
+  <string name="Tgx101GazetaAsInApp">as in the app</string>
+  <string name="Tgx101GazetaSpacing">Line spacing</string>
+  <string name="Tgx101GazetaFontRegular">Regular</string>
+  <string name="Tgx101GazetaFontSerif">Serif</string>
+  <string name="Tgx101GazetaFontNarrow">Narrow</string>
+  <string name="Tgx101GazetaPicSepia">Sepia</string>
+  <string name="Tgx101GazetaAuto">Autoscroll</string>
+  <string name="Tgx101GazetaAutoSpeed">Speed</string>
+  <string name="Tgx101GazetaAutoHint">Switched on by the button in the feed\'s header. A touch pauses it; it goes on after 3 seconds with the screen left alone. You can swipe meanwhile.</string>
 </resources>

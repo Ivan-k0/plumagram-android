@@ -87,6 +87,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   @Override
   public void fillMenuItems (int id, HeaderView header, LinearLayout menu) {
     if (id == R.id.menu_tgx101Gazeta) {
+      autoButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaAuto, autoIcon(autoScroll), 49f, this, getHeaderIconColorId());
       // ☀/☾ — the light or the dark look of the feed (user 2026-10-27: switched here, not in the settings)
       profileButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaProfile, profileIcon(), 49f, this, getHeaderIconColorId());
       settingsButton = header.addButton(menu, R.id.menu_btn_settings, R.drawable.baseline_settings_24, 49f, this, getHeaderIconColorId());
@@ -115,6 +116,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   private void tintHeaderButtons () {
     int color = Tgx101Gazeta.palette()[2];
     if (profileButton != null) profileButton.tgx101SetForcedColor(color);
+    if (autoButton != null) autoButton.tgx101SetForcedColor(color);
     if (settingsButton != null) settingsButton.tgx101SetForcedColor(color);
   }
 
@@ -184,7 +186,9 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   @Override
   public void onMenuItemPressed (int id, View view) {
-    if (id == R.id.menu_btn_tgx101GazetaProfile) {
+    if (id == R.id.menu_btn_tgx101GazetaAuto) {
+      setAutoScroll(!autoScroll);
+    } else if (id == R.id.menu_btn_tgx101GazetaProfile) {
       Tgx101Gazeta.setProfile(Tgx101Gazeta.profile() == Tgx101Gazeta.PROFILE_DARK ? Tgx101Gazeta.PROFILE_LIGHT : Tgx101Gazeta.PROFILE_DARK);
       if (profileButton != null) profileButton.setImageResource(profileIcon());
       applyPalette();
@@ -192,7 +196,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       adapter.notifyDataSetChanged();
     } else if (id == R.id.menu_btn_settings) {
       needReload = true;
-      navigateTo(new Tgx101GazetaSettingsController(context, tdlib));
+      navigateTo(new Tgx101GazetaSettingsController(context, tdlib).setFeed(this));
     }
   }
 
@@ -217,6 +221,16 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     list.setAdapter(adapter);
     list.setClipToPadding(false);
     list.setPadding(0, Screen.dp(4f) + Size.getHeaderPortraitSize(), 0, Screen.dp(4f) + MainController.tgx101CapsuleSpace());
+    list.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+      @Override
+      public boolean onInterceptTouchEvent (@NonNull RecyclerView rv, @NonNull android.view.MotionEvent e) {
+        if (autoScroll) {
+          if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) tapPausedAuto = autoMoving();
+          autoPausedUntil = android.os.SystemClock.uptimeMillis() + 3000;
+        }
+        return false;
+      }
+    });
     list.addOnScrollListener(new RecyclerView.OnScrollListener() {
       @Override
       public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
@@ -267,6 +281,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   @Override
   public void onBlur () {
+    setAutoScroll(false);
     // the header is the whole window's: it is back in place before another screen takes it
     if (headerAnimator != null) headerAnimator.cancel();
     headerHide = 0;
@@ -533,30 +548,40 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         if (available == null) return;
         UI.post(() -> {
           if (!popup.isShowing()) return;
-          java.util.List<TdApi.AvailableReaction> all = new ArrayList<>();
-          java.util.Collections.addAll(all, available.topReactions);
-          java.util.Collections.addAll(all, available.recentReactions);
-          java.util.Collections.addAll(all, available.popularReactions);
+          // (user 2026-10-28 «иконки, что разрешены каналом, а не случайные»): what the channel allows — the ones already
+          // under the post first, then the channel's own list in its order; no «popular» or «recent» from elsewhere
+          java.util.List<TdApi.ReactionType> types = new ArrayList<>();
           java.util.Set<String> seen = new java.util.HashSet<>();
+          java.util.List<TdApi.ReactionType> allowed = new ArrayList<>();
+          for (TdApi.AvailableReaction r : available.topReactions) if (!r.needsPremium) allowed.add(r.type);
+          java.util.Set<String> allowedKeys = new java.util.HashSet<>();
+          for (TdApi.ReactionType t : allowed) allowedKeys.add(reactionKey(t));
+          if (main.interactionInfo != null && main.interactionInfo.reactions != null) {
+            for (TdApi.MessageReaction mr : main.interactionInfo.reactions.reactions) {
+              if (mr.type.getConstructor() == TdApi.ReactionTypePaid.CONSTRUCTOR) continue;
+              if (allowedKeys.contains(reactionKey(mr.type)) && seen.add(reactionKey(mr.type))) types.add(mr.type);
+            }
+          }
+          for (TdApi.ReactionType t : allowed) if (seen.add(reactionKey(t))) types.add(t);
           int count = 0;
-          for (TdApi.AvailableReaction r : all) {
-            if (count >= reactionCount || r.type.getConstructor() != TdApi.ReactionTypeEmoji.CONSTRUCTOR) continue;
-            String emoji = ((TdApi.ReactionTypeEmoji) r.type).emoji;
-            if (!seen.add(emoji)) continue;
-            TextView e = new TextView(ctx);
-            e.setText(emoji);
-            e.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24f);
-            e.setGravity(Gravity.CENTER);
+          for (TdApi.ReactionType type : types) {
+            if (count >= reactionCount) break;
+            ReactionIcon e = new ReactionIcon(ctx);
+            e.set(tdlib, type);
+            e.setPadding(Screen.dp(7f), Screen.dp(12f), Screen.dp(7f), Screen.dp(12f));
             org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(e);
             e.setOnClickListener(v -> {
               popup.dismiss();
               TdApi.MessageReaction chosen = null;
               for (TdApi.MessageReaction mr : main.interactionInfo.reactions.reactions) {
-                if (mr.type.getConstructor() == TdApi.ReactionTypeEmoji.CONSTRUCTOR && emoji.equals(((TdApi.ReactionTypeEmoji) mr.type).emoji)) chosen = mr;
+                if (reactionKey(mr.type).equals(reactionKey(type))) chosen = mr;
               }
-              toggleReaction(post, main, chosen != null ? chosen : new TdApi.MessageReaction(r.type, 0, false, null, new TdApi.MessageSender[0]));
+              toggleReaction(post, main, chosen != null ? chosen : new TdApi.MessageReaction(type, 0, false, null, new TdApi.MessageSender[0]));
             });
-            pill.addView(e, new LinearLayout.LayoutParams(itemWidth, Screen.dp(52f)));
+            FrameLayout cell = new FrameLayout(ctx);
+            cell.addView(e, new FrameLayout.LayoutParams(Screen.dp(30f), Screen.dp(30f), Gravity.CENTER));
+            cell.setOnClickListener(v -> e.performClick());
+            pill.addView(cell, new LinearLayout.LayoutParams(itemWidth, Screen.dp(52f)));
             count++;
           }
           if (count > 0) pill.setVisibility(View.VISIBLE);
@@ -593,6 +618,32 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     fade.addUpdateListener(a -> dim.setAlpha((int) a.getAnimatedValue()));
     fade.start();
     popup.showAtLocation(list, Gravity.NO_GRAVITY, 0, 0);
+  }
+
+  /** the look screen's sample: a card of the feed, bound to the post on top (or the first one) */
+  @Nullable
+  public View createPreview (Context context) {
+    if (posts.isEmpty()) return null;
+    Card card = new Card(context);
+    card.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    bindPreview(card);
+    return card;
+  }
+
+  public void bindPreview (View preview) {
+    if (!(preview instanceof Card) || posts.isEmpty()) return;
+    int at = 0;
+    LinearLayoutManager manager = list != null ? (LinearLayoutManager) list.getLayoutManager() : null;
+    if (manager != null && manager.findFirstVisibleItemPosition() >= 0) at = Math.min(posts.size() - 1, manager.findFirstVisibleItemPosition() + 1);
+    // a post with text, a picture if there is one near
+    for (int i = at; i < Math.min(posts.size(), at + 6); i++) {
+      TdApi.FormattedText t = Td.textOrCaption(posts.get(i).main().content);
+      if (t != null && !Td.isEmpty(t)) {
+        at = i;
+        break;
+      }
+    }
+    ((Card) preview).bindSample(posts.get(at));
   }
 
   // ---- cards ----
@@ -861,6 +912,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       eye = org.thunderdog.challegram.tool.Drawables.get(getResources(), R.drawable.baseline_visibility_14).mutate();
 
       setOnClickListener(v -> {
+        if (tapPausedAuto) {
+          tapPausedAuto = false; // the tap that paused the autoscroll opens nothing
+          return;
+        }
         if (post != null) openPostMenu(post);
       });
       setOnTouchListener((v, e) -> {
@@ -883,20 +938,44 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       return v;
     }
 
-    private TextView chip (CharSequence label, boolean chosen, int[] pal, @Nullable View.OnClickListener click) {
-      // (user 2026-10-28 «реакции такие же, как в каналах»): the colours of reactions under a channel post
-      TextView v = text(getContext(), 13f, true);
-      v.setText(label);
+    /** a reaction as under a channel post: the reaction's own picture and the count, in the theme's reaction colours */
+    private View chip (TdApi.ReactionType type, CharSequence count, boolean chosen, @Nullable View.OnClickListener click) {
+      LinearLayout v = new LinearLayout(getContext());
+      v.setOrientation(HORIZONTAL);
       v.setGravity(Gravity.CENTER_VERTICAL);
-      v.setTextColor(Theme.getColor(chosen ? ColorId.fillingPositiveContent : ColorId.fillingActiveContent));
-      v.setPadding(Screen.dp(8f), 0, Screen.dp(10f), 0);
-      v.setMinHeight(Screen.dp(30f));
+      v.setPadding(Screen.dp(6f), 0, Screen.dp(10f), 0);
+      v.setMinimumHeight(Screen.dp(30f));
+      ReactionIcon icon = new ReactionIcon(getContext());
+      icon.set(tdlib, type);
+      v.addView(icon, new LinearLayout.LayoutParams(Screen.dp(20f), Screen.dp(20f)));
+      TextView label = text(getContext(), 13f, true);
+      label.setText(count);
+      label.setTextColor(Theme.getColor(chosen ? ColorId.fillingPositiveContent : ColorId.fillingActiveContent));
+      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      lp.leftMargin = Screen.dp(5f);
+      v.addView(label, lp);
       GradientDrawable bg = new GradientDrawable();
       bg.setCornerRadius(Screen.dp(15f));
       bg.setColor(Theme.getColor(chosen ? ColorId.fillingPositive : ColorId.fillingActive));
       v.setBackground(bg);
       if (click != null) v.setOnClickListener(click);
       return v;
+    }
+
+    boolean sample;
+
+    void bindSample (Tgx101Gazeta.Post post) {
+      sample = true;
+      bind(post, 0);
+      header.setVisibility(VISIBLE);
+      avatar.setVisibility(VISIBLE);
+      title.setVisibility(VISIBLE);
+      avatar.setChat(tdlib, tdlib.chat(post.chatId));
+      avatar.attach();
+      title.setText(tdlib.chatTitle(post.chatId));
+      setOnClickListener(null);
+      setClickable(false);
+      comments.setOnClickListener(null);
     }
 
     void bind (Tgx101Gazeta.Post post, int position) {
@@ -921,10 +1000,15 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         title.setText(tdlib.chatTitle(post.chatId));
       }
 
+      float spacing = Tgx101Gazeta.lineSpacing() / 14f;
+      android.graphics.Typeface face = Tgx101Gazeta.typeface(false);
       for (TextView t : new TextView[] {body, bodyBelow, summary}) {
         t.setTextColor(pal[2]);
         t.setTextSize(TypedValue.COMPLEX_UNIT_DIP, font);
+        t.setTypeface(face);
+        t.setLineSpacing(Screen.dp(2f), spacing);
       }
+      title.setTypeface(Tgx101Gazeta.typeface(true));
       more.setTextColor(pal[4]);
       shortBtn.setTextColor(pal[4]);
       meta.setTextColor(pal[3]);
@@ -1044,9 +1128,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         for (TdApi.MessageReaction r : info.reactions.reactions) {
           boolean paid = r.type.getConstructor() == TdApi.ReactionTypePaid.CONSTRUCTOR;
           if (paid ? !Tgx101Gazeta.stars() : !Tgx101Gazeta.reactions()) continue;
-          String emoji = r.type.getConstructor() == TdApi.ReactionTypeEmoji.CONSTRUCTOR ? ((TdApi.ReactionTypeEmoji) r.type).emoji : paid ? "⭐" : "✨";
           // stars cost money: not sent from here, the tap opens the post
-          reactions.addView(chip(emoji + " " + Strings.buildCounter(r.totalCount), r.isChosen, pal, paid ? v -> openInChannel(post) : v -> toggleReaction(post, main, r)));
+          reactions.addView(chip(r.type, Strings.buildCounter(r.totalCount), r.isChosen, paid ? v -> openInChannel(post) : v -> toggleReaction(post, main, r)));
         }
       }
       StringBuilder right = new StringBuilder();
@@ -1112,6 +1195,111 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   }
 
   private static final float THUMB = 58f, THUMB_GAP = 10f;
+
+  /** the static picture Telegram gives a reaction (what channel posts show), or its emoji while that isn't there */
+  static final class ReactionIcon extends View {
+    private final org.thunderdog.challegram.loader.ImageReceiver receiver;
+    private float scale = 1f;
+    private @Nullable String fallback;
+    private final android.text.TextPaint paint = new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
+    ReactionIcon (Context context) {
+      super(context);
+      receiver = new org.thunderdog.challegram.loader.ImageReceiver(this, 0);
+    }
+
+    void set (Tdlib tdlib, TdApi.ReactionType type) {
+      org.thunderdog.challegram.data.TGReaction reaction = tdlib.getReaction(type);
+      org.thunderdog.challegram.component.sticker.TGStickerObj sticker = reaction != null ? reaction.staticCenterAnimationSicker() : null;
+      org.thunderdog.challegram.loader.ImageFile image = sticker != null ? sticker.getImage() : null;
+      fallback = image == null ? (type.getConstructor() == TdApi.ReactionTypeEmoji.CONSTRUCTOR ? ((TdApi.ReactionTypeEmoji) type).emoji : type.getConstructor() == TdApi.ReactionTypePaid.CONSTRUCTOR ? "⭐" : "❤") : null;
+      scale = sticker != null ? sticker.getDisplayScale() : 1f;
+      receiver.requestFile(image);
+      invalidate();
+    }
+
+    @Override
+    protected void onAttachedToWindow () {
+      super.onAttachedToWindow();
+      receiver.attach();
+    }
+
+    @Override
+    protected void onDetachedFromWindow () {
+      super.onDetachedFromWindow();
+      receiver.detach();
+    }
+
+    @Override
+    protected void onDraw (android.graphics.Canvas c) {
+      if (fallback != null) {
+        paint.setTextSize(getHeight() * .8f);
+        float w = paint.measureText(fallback);
+        c.drawText(fallback, (getWidth() - w) / 2f, getHeight() * .8f, paint);
+        return;
+      }
+      receiver.setBounds(0, 0, getWidth(), getHeight());
+      receiver.drawScaled(c, scale);
+    }
+  }
+
+  // ---- autoscroll (user 2026-10-28): the feed moves by itself at the speed set in its look; a finger may still swipe;
+  // any touch pauses it, and it goes on after 3 s with the screen left alone. A tap on a moving feed only pauses it
+
+  private boolean autoScroll;
+  private long autoPausedUntil, autoLastFrame;
+  private float autoCarry;
+  private boolean tapPausedAuto;
+  private @Nullable org.thunderdog.challegram.navigation.HeaderButton autoButton;
+
+  private final Runnable autoTick = new Runnable() {
+    @Override
+    public void run () {
+      if (!autoScroll || list == null || isDestroyed()) return;
+      long now = android.os.SystemClock.uptimeMillis();
+      long dt = autoLastFrame == 0 ? 16 : Math.min(64, now - autoLastFrame);
+      autoLastFrame = now;
+      if (now >= autoPausedUntil && list.getScrollState() == RecyclerView.SCROLL_STATE_IDLE && isFocused()) {
+        autoCarry += Screen.dp(Tgx101Gazeta.AUTO_DP_PER_SECOND[Tgx101Gazeta.autoSpeed() - 1]) * dt / 1000f;
+        int step = (int) autoCarry;
+        if (step > 0) {
+          autoCarry -= step;
+          if (!list.canScrollVertically(1)) {
+            setAutoScroll(false); // the newest post reached
+            return;
+          }
+          list.scrollBy(0, step);
+        }
+      }
+      list.postOnAnimation(this);
+    }
+  };
+
+  private static int autoIcon (boolean on) {
+    return on ? R.drawable.baseline_pause_24 : R.drawable.tgx101_autoscroll_24;
+  }
+
+  private void setAutoScroll (boolean on) {
+    if (autoScroll == on) return;
+    autoScroll = on;
+    autoLastFrame = 0;
+    autoCarry = 0;
+    autoPausedUntil = 0;
+    if (autoButton != null) autoButton.setImageResource(autoIcon(on));
+    if (on && list != null) list.postOnAnimation(autoTick);
+  }
+
+  private boolean autoMoving () {
+    return autoScroll && android.os.SystemClock.uptimeMillis() >= autoPausedUntil;
+  }
+
+  private static String reactionKey (TdApi.ReactionType t) {
+    switch (t.getConstructor()) {
+      case TdApi.ReactionTypeEmoji.CONSTRUCTOR: return "e" + ((TdApi.ReactionTypeEmoji) t).emoji;
+      case TdApi.ReactionTypeCustomEmoji.CONSTRUCTOR: return "c" + ((TdApi.ReactionTypeCustomEmoji) t).customEmojiId;
+      default: return "p";
+    }
+  }
 
   private static boolean summarizable (TdApi.Message m) {
     TdApi.FormattedText text = Td.textOrCaption(m.content);

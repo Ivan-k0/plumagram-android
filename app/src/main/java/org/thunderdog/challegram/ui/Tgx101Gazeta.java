@@ -113,8 +113,57 @@ public final class Tgx101Gazeta {
 
   /** the app's own message text size (user 2026-10-28: «оставляем как выставлено в приложении») */
   public static float fontSize () {
-    return Settings.instance().getChatFontSize();
+    float own = Settings.instance().pmc().getFloat(pkey("fs"), 0f);
+    return own > 0f ? own : Settings.instance().getChatFontSize();
   }
+
+  /** 0 — the app's own size */
+  public static float ownFontSize () {
+    return Settings.instance().pmc().getFloat(pkey("fs"), 0f);
+  }
+
+  public static void setFontSize (float sp) {
+    Settings.instance().pmc().putFloat(pkey("fs"), sp);
+  }
+
+  /** line spacing, tenths: 14 — the usual */
+  public static int lineSpacing () {
+    return Settings.instance().pmc().getInt(pkey("lh"), 14);
+  }
+
+  public static void setLineSpacing (int tenths) {
+    Settings.instance().pmc().putInt(pkey("lh"), tenths);
+  }
+
+  public static final int FONT_REGULAR = 0, FONT_SERIF = 1, FONT_NARROW = 2;
+
+  public static int font () {
+    return Settings.instance().pmc().getInt(pkey("ff"), FONT_REGULAR);
+  }
+
+  public static void setFont (int font) {
+    Settings.instance().pmc().putInt(pkey("ff"), font);
+  }
+
+  public static android.graphics.Typeface typeface (boolean medium) {
+    switch (font()) {
+      case FONT_SERIF: return android.graphics.Typeface.create(android.graphics.Typeface.SERIF, medium ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+      case FONT_NARROW: return android.graphics.Typeface.create("sans-serif-condensed", medium ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+      default: return medium ? org.thunderdog.challegram.tool.Fonts.getRobotoMedium() : org.thunderdog.challegram.tool.Fonts.getRobotoRegular();
+    }
+  }
+
+  /** autoscroll speed, 1..10 (user 2026-10-28) */
+  public static int autoSpeed () {
+    return Math.max(1, Math.min(10, Settings.instance().pmc().getInt("tgx101_gazeta_auto_speed", 3)));
+  }
+
+  public static void setAutoSpeed (int speed) {
+    Settings.instance().pmc().putInt("tgx101_gazeta_auto_speed", speed);
+  }
+
+  /** dp a second for each speed */
+  public static final int[] AUTO_DP_PER_SECOND = {8, 14, 20, 30, 42, 56, 75, 100, 130, 170};
 
   /** {page, card, text, secondary text, link} — reading colours, as in e-readers */
   public static final int[][] LIGHT_PALETTES = {
@@ -154,7 +203,15 @@ public final class Tgx101Gazeta {
   }
 
   public static void setPicture (int brightness, int saturation) {
-    Settings.instance().pmc().edit().putInt(pkey("bright"), brightness).putInt(pkey("sat"), saturation).apply();
+    Settings.instance().pmc().edit().putInt(pkey("bright"), brightness).putInt(pkey("sat"), saturation).putBoolean(pkey("sepia"), false).apply();
+  }
+
+  public static boolean sepia () {
+    return Settings.instance().pmc().getBoolean(pkey("sepia"), false);
+  }
+
+  public static void setPicture (int brightness, int saturation, boolean sepia) {
+    Settings.instance().pmc().edit().putInt(pkey("bright"), brightness).putInt(pkey("sat"), saturation).putBoolean(pkey("sepia"), sepia).apply();
   }
 
   /** quick sets: as is, soft for the night, black and white, juicy */
@@ -164,9 +221,19 @@ public final class Tgx101Gazeta {
   @Nullable
   public static android.graphics.ColorMatrixColorFilter pictureFilter () {
     int b = brightness(), s = saturation();
-    if (b == 100 && s == 100) return null;
+    boolean sepia = sepia();
+    if (b == 100 && s == 100 && !sepia) return null;
     android.graphics.ColorMatrix m = new android.graphics.ColorMatrix();
     m.setSaturation(s / 100f);
+    if (sepia) {
+      android.graphics.ColorMatrix tone = new android.graphics.ColorMatrix(new float[] {
+        .393f, .769f, .189f, 0, 0,
+        .349f, .686f, .168f, 0, 0,
+        .272f, .534f, .131f, 0, 0,
+        0, 0, 0, 1, 0
+      });
+      m.postConcat(tone);
+    }
     float k = b / 100f;
     android.graphics.ColorMatrix scale = new android.graphics.ColorMatrix();
     scale.setScale(k, k, k, 1f);
