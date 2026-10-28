@@ -821,6 +821,8 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     super.onFocus();
     if (getValue() != null) getValue().post(() -> org.thunderdog.challegram.Tgx101Diag.mark("storage home: focus work " + (android.os.SystemClock.uptimeMillis() - focusStart) + " ms (to the next message)"));
     if (storageSwitch != null) storageSwitch.updateVisibility();
+    // (user 2026-10-29) the folders as the cloud has them — made or filled in the web version
+    org.thunderdog.challegram.data.Tgx101SavedCloud.pull(tdlib, this::reloadSoon);
     if (openedAt != 0) {
       org.thunderdog.challegram.Tgx101Diag.mark("storage home: on screen " + (android.os.SystemClock.uptimeMillis() - openedAt) + " ms after it was made");
       openedAt = 0;

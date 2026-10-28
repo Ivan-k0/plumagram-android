@@ -21,6 +21,7 @@ import androidx.annotation.Nullable;
 import org.drinkless.tdlib.TdApi;
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.core.Lang;
+import org.thunderdog.challegram.data.Tgx101SavedCloud;
 import org.thunderdog.challegram.data.Tgx101SavedStore;
 import org.thunderdog.challegram.navigation.ViewController;
 import org.thunderdog.challegram.telegram.Tdlib;
@@ -406,7 +407,7 @@ public final class Tgx101SavedKit {
         UI.post(() -> after.runWithData(out));
         return;
       }
-      for (TdApi.Message m : found.messages) out.add(m);
+      for (TdApi.Message m : found.messages) if (!Tgx101SavedCloud.isCloudFile(m)) out.add(m); // the folders' service file
       if (out.size() >= max || found.nextFromMessageId == 0) {
         UI.post(() -> after.runWithData(out));
       } else {
@@ -435,8 +436,8 @@ public final class Tgx101SavedKit {
       long last = from;
       for (TdApi.Message m : messages.messages) {
         if (m == null || m.id == from) continue;
-        out.add(m);
         last = m.id;
+        if (Tgx101SavedCloud.isCloudFile(m)) continue; // the folders' service file
       }
       if (out.size() >= max || last == from) {
         UI.post(() -> after.runWithData(out));
@@ -455,7 +456,7 @@ public final class Tgx101SavedKit {
     for (int i = 0; i < arr.length; i++) arr[i] = ids.get(i);
     tdlib.send(new TdApi.GetMessages(tdlib.selfChatId(), arr), (messages, error) -> {
       List<TdApi.Message> out = new ArrayList<>();
-      if (messages != null) for (TdApi.Message m : messages.messages) if (m != null) out.add(m);
+      if (messages != null) for (TdApi.Message m : messages.messages) if (m != null && !Tgx101SavedCloud.isCloudFile(m)) out.add(m);
       if (messages != null && messages.messages.length == arr.length) {
         // (user 2026-10-16 «папки пустые, но счётчик не сбросился»): Telegram has no such message any more (deleted on
         // another device, or while the app was closed) — it leaves the folders, tags and reactions here too

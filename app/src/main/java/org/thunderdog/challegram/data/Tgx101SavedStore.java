@@ -116,7 +116,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
         @Override
         public void onMessageSendSucceeded (Tdlib tdlib, TdApi.Message message, long oldMessageId) {
           org.thunderdog.challegram.Tgx101Diag.mark("saved store: sent " + message.chatId + "/" + message.id + " (self " + tdlib.selfChatId() + ")");
-          if (message.chatId == tdlib.selfChatId()) {
+          if (message.chatId == tdlib.selfChatId() && !Tgx101SavedCloud.isCloudFile(message)) {
             get(tdlib).remap(oldMessageId, message.id);
             onSavedHere(tdlib, message); // only what this phone sent arrives here — already with its real id
             Tgx101AiAutoTag.queue(tdlib, message); // (user 2026-10-21) AI tags, when turned on
@@ -185,7 +185,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
 
   private static void onSavedHere (Tdlib tdlib, TdApi.Message m) {
     org.thunderdog.challegram.Tgx101Diag.mark("saved store: saved here " + (m != null ? m.id : 0) + (m != null && m.schedulingState != null ? " scheduled" : "") + (m != null && m.sendingState != null ? " (sending)" : ""));
-    if (m == null || m.chatId != tdlib.selfChatId() || m.schedulingState != null) return;
+    if (m == null || m.chatId != tdlib.selfChatId() || m.schedulingState != null || Tgx101SavedCloud.isCloudFile(m)) return;
     if (m.sendingState instanceof TdApi.MessageSendingStatePending) {
       // (user 2026-10-20: a video shared into Saved from another app — no «where to keep it» sheet): a file still being
       // sent has only a temporary id; the sheet waits for the real one (the chat's own listener, which always comes)
@@ -241,6 +241,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   }
 
   private final int accountId;
+  final Tdlib tdlib;
   /** set by the folder sharing: a shared folder got something new */
   public static me.vkryl.core.lambda.RunnableData<long[]> onShareChanged;
 
@@ -334,6 +335,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
 
   private Tgx101SavedStore (Tdlib tdlib) {
     this.accountId = tdlib.id();
+    this.tdlib = tdlib;
     load();
     // (test 2026-10-15: the app-wide message listener never got the «sent» update) — the Saved chat's own updates,
     // the path the chat screens use
@@ -655,47 +657,126 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
     if (changed) save();
   }
 
+  // The data part: what the cloud file (Tgx101SavedCloud) carries — the folders, tags given by name and the home tags
+
+  private boolean applyingCloud;
+
+  synchronized JSONObject dataJson () throws org.json.JSONException {
+    JSONObject o = new JSONObject();
+    o.put("next", nextFolderId);
+    JSONArray fs = new JSONArray();
+    for (Folder f : folders) {
+      JSONObject j = new JSONObject();
+      j.put("id", f.id);
+      j.put("name", f.name);
+      j.put("color", f.colorIndex);
+      j.put("home", f.onHome);
+      if (f.tileSize != TILE_AUTO) j.put("size", f.tileSize);
+      JSONArray ids = new JSONArray();
+      for (long id : f.messageIds) ids.put(id);
+      j.put("ids", ids);
+      if (f.shareChatId != 0) {
+        JSONObject sh = new JSONObject();
+        sh.put("chat", f.shareChatId);
+        if (f.shareLink != null) sh.put("link", f.shareLink);
+        sh.put("channel", f.shareChannel);
+        sh.put("auto", f.shareAuto);
+        sh.put("copies", f.shareCopies);
+        sh.put("approval", f.shareApproval);
+        JSONArray done = new JSONArray();
+        for (long id : f.sharedIds) done.put(id);
+        sh.put("done", done);
+        j.put("share", sh);
+      }
+      fs.put(j);
+    }
+    o.put("folders", fs);
+    JSONObject tags = new JSONObject();
+    for (Map.Entry<String, LinkedHashSet<Long>> e : localTags.entrySet()) {
+      JSONArray ids = new JSONArray();
+      for (long id : e.getValue()) ids.put(id);
+      tags.put(e.getKey(), ids);
+    }
+    o.put("tags", tags);
+    JSONArray home = new JSONArray();
+    for (String t : homeTags) home.put(t);
+    o.put("homeTags", home);
+    return o;
+  }
+
+  /** What the cloud and this phone have together (Tgx101SavedCloud.merge) takes the place of the data part here */
+  synchronized void applyData (JSONObject o) throws org.json.JSONException {
+    List<Folder> was = new ArrayList<>(folders);
+    folders.clear();
+    JSONArray fs = o.optJSONArray("folders");
+    if (fs != null) {
+      for (int i = 0; i < fs.length(); i++) {
+        JSONObject j = fs.getJSONObject(i);
+        long id = j.getLong("id");
+        Folder f = null;
+        for (Folder old : was) if (old.id == id) f = old; // the same object: screens holding it see the change
+        if (f == null) f = new Folder(id, j.optString("name"), j.optInt("color"));
+        readFolder(f, j);
+        folders.add(f);
+        nextFolderId = Math.max(nextFolderId, id + 1);
+      }
+    }
+    nextFolderId = Math.max(nextFolderId, o.optLong("next", 1));
+    localTags.clear();
+    JSONObject tags = o.optJSONObject("tags");
+    if (tags != null) {
+      java.util.Iterator<String> keys = tags.keys();
+      while (keys.hasNext()) {
+        String k = keys.next();
+        JSONArray ids = tags.optJSONArray(k);
+        LinkedHashSet<Long> set = new LinkedHashSet<>();
+        if (ids != null) for (int i = 0; i < ids.length(); i++) set.add(ids.getLong(i));
+        localTags.put(k, set);
+      }
+    }
+    homeTags.clear();
+    JSONArray home = o.optJSONArray("homeTags");
+    if (home != null) for (int i = 0; i < home.length(); i++) homeTags.add(home.getString(i));
+    if (folder(lastFolderId) == null) lastFolderId = 0;
+    applyingCloud = true;
+    try {
+      save();
+    } finally {
+      applyingCloud = false;
+    }
+  }
+
+  private static void readFolder (Folder f, JSONObject j) throws org.json.JSONException {
+    f.name = j.optString("name", f.name);
+    f.colorIndex = j.optInt("color", f.colorIndex);
+    f.onHome = j.optBoolean("home", true);
+    f.tileSize = Math.max(TILE_AUTO, Math.min(TILE_BIG, j.optInt("size", TILE_AUTO)));
+    f.messageIds.clear();
+    JSONArray ids = j.optJSONArray("ids");
+    if (ids != null) for (int k = 0; k < ids.length(); k++) f.messageIds.add(ids.getLong(k));
+    JSONObject sh = j.optJSONObject("share");
+    f.sharedIds.clear();
+    if (sh != null) {
+      f.shareChatId = sh.optLong("chat");
+      f.shareLink = sh.optString("link", null);
+      f.shareChannel = sh.optBoolean("channel", true);
+      f.shareAuto = sh.optBoolean("auto", true);
+      f.shareCopies = sh.optBoolean("copies", true);
+      f.shareApproval = sh.optBoolean("approval", false);
+      JSONArray done = sh.optJSONArray("done");
+      if (done != null) for (int k = 0; k < done.length(); k++) f.sharedIds.add(done.getLong(k));
+    } else {
+      f.shareChatId = 0;
+      f.shareLink = null;
+    }
+  }
+
   // Persistence
 
   public synchronized void save () {
     try {
-      JSONObject o = new JSONObject();
+      JSONObject o = dataJson();
       o.put("v", 1);
-      o.put("next", nextFolderId);
-      JSONArray fs = new JSONArray();
-      for (Folder f : folders) {
-        JSONObject j = new JSONObject();
-        j.put("id", f.id);
-        j.put("name", f.name);
-        j.put("color", f.colorIndex);
-        j.put("home", f.onHome);
-        if (f.tileSize != TILE_AUTO) j.put("size", f.tileSize);
-        JSONArray ids = new JSONArray();
-        for (long id : f.messageIds) ids.put(id);
-        j.put("ids", ids);
-        if (f.shareChatId != 0) {
-          JSONObject sh = new JSONObject();
-          sh.put("chat", f.shareChatId);
-          if (f.shareLink != null) sh.put("link", f.shareLink);
-          sh.put("channel", f.shareChannel);
-          sh.put("auto", f.shareAuto);
-          sh.put("copies", f.shareCopies);
-          sh.put("approval", f.shareApproval);
-          JSONArray done = new JSONArray();
-          for (long id : f.sharedIds) done.put(id);
-          sh.put("done", done);
-          j.put("share", sh);
-        }
-        fs.put(j);
-      }
-      o.put("folders", fs);
-      JSONObject tags = new JSONObject();
-      for (Map.Entry<String, LinkedHashSet<Long>> e : localTags.entrySet()) {
-        JSONArray ids = new JSONArray();
-        for (long id : e.getValue()) ids.put(id);
-        tags.put(e.getKey(), ids);
-      }
-      o.put("tags", tags);
       JSONObject reactions = new JSONObject();
       for (Map.Entry<String, LinkedHashSet<Long>> e : localReactions.entrySet()) {
         JSONArray ids = new JSONArray();
@@ -705,9 +786,6 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       o.put("reactions", reactions);
       o.put("lastFolder", lastFolderId);
       if (lastTag != null) o.put("lastTag", lastTag);
-      JSONArray home = new JSONArray();
-      for (String t : homeTags) home.put(t);
-      o.put("homeTags", home);
       o.put("sheet", sheetMode);
       o.put("open", openMode);
       o.put("inbox", inboxTile);
@@ -728,6 +806,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       }
       Settings.instance().pmc().putString(key(), o.toString());
       shareLook();
+      if (!applyingCloud) Tgx101SavedCloud.changed(this);
     } catch (Throwable t) {
       org.thunderdog.challegram.Tgx101Diag.mark("saved store: save failed " + t.getClass().getSimpleName());
     }
@@ -797,21 +876,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
         for (int i = 0; i < fs.length(); i++) {
           JSONObject j = fs.getJSONObject(i);
           Folder f = new Folder(j.getLong("id"), j.optString("name"), j.optInt("color"));
-          f.onHome = j.optBoolean("home", true);
-          f.tileSize = Math.max(TILE_AUTO, Math.min(TILE_BIG, j.optInt("size", TILE_AUTO)));
-          JSONArray ids = j.optJSONArray("ids");
-          if (ids != null) for (int k = 0; k < ids.length(); k++) f.messageIds.add(ids.getLong(k));
-          JSONObject sh = j.optJSONObject("share");
-          if (sh != null) {
-            f.shareChatId = sh.optLong("chat");
-            f.shareLink = sh.optString("link", null);
-            f.shareChannel = sh.optBoolean("channel", true);
-            f.shareAuto = sh.optBoolean("auto", true);
-            f.shareCopies = sh.optBoolean("copies", true);
-            f.shareApproval = sh.optBoolean("approval", false);
-            JSONArray done = sh.optJSONArray("done");
-            if (done != null) for (int k = 0; k < done.length(); k++) f.sharedIds.add(done.getLong(k));
-          }
+          readFolder(f, j);
           folders.add(f);
           nextFolderId = Math.max(nextFolderId, f.id + 1);
         }
