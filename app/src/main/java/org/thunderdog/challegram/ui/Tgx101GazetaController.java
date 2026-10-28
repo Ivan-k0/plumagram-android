@@ -124,6 +124,16 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     return Tgx101Gazeta.palette()[2];
   }
 
+  // (user 2026-10-28 «строка состояния стала такой после открытия фото»): the status bar is see-through over the feed's
+  // paper; its icons followed the theme (white) or the viewer's black and were lost on a light look. Set by the feed's
+  // own background when shown and after the viewer, back to the theme's when it's left
+  private void tgx101MatchStatusIcons () {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M || !isFocused()) return;
+    int bg = Tgx101Gazeta.palette()[0];
+    float lum = (0.299f * android.graphics.Color.red(bg) + 0.587f * android.graphics.Color.green(bg) + 0.114f * android.graphics.Color.blue(bg)) / 255f;
+    UI.setLightSystemBars(context().getWindow(), !Theme.isDark(), lum > .6f, 0, false);
+  }
+
   private void tintHeaderButtons () {
     int color = Tgx101Gazeta.palette()[2];
     if (profileButton != null) profileButton.tgx101SetForcedColor(color);
@@ -367,6 +377,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   @Override
   public void onFocus () {
     super.onFocus();
+    tgx101MatchStatusIcons();
     setUnderHeader(true);
     repaintHeader();
     applyPalette();
@@ -390,6 +401,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   @Override
   public void onBlur () {
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) UI.setLightSystemBars(context().getWindow(), !Theme.isDark(), Theme.needLightStatusBar(), 0, false); // the theme's icons again
     setAutoScroll(false);
     // the header is the whole window's: it is back in place before another screen takes it
     if (headerAnimator != null) headerAnimator.cancel();
@@ -1469,7 +1481,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
           mediaBadge.setVisibility(GONE);
           mediaCount.setVisibility(GONE);
           if (!sameImage || mosaicCells.size() != Math.min(4, visualList.size())) layoutMosaic(visualList, width, token);
-          else for (ImageView cell : mosaicCells) cell.setColorFilter(filter);
+          else for (ImageView cell : mosaicCells) {
+            cell.setColorFilter(filter);
+            if (viewerPost != post) cell.setAlpha(1f); // a cell left hidden by the viewer never stays blank
+          }
         } else {
           mediaCount.setText(extra > 0 ? "+" + extra : null);
           mediaCount.setVisibility(extra > 0 ? VISIBLE : GONE);
@@ -1893,6 +1908,12 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   /** the card's picture the viewer opened from: the big one, or the thumbnail */
   @Nullable
   private View viewerTarget () {
+    return viewerTarget(viewerIndex);
+  }
+
+  /** the picture of item {@code index} of the post in the viewer */
+  @Nullable
+  private View viewerTarget (int index) {
     if (viewerPost == null || list == null) return null;
     int i = posts.indexOf(viewerPost);
     if (i == -1) return null;
@@ -1900,7 +1921,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     if (holder == null || !(holder.itemView instanceof Card)) return null;
     Card card = (Card) holder.itemView;
     if (card.media.getVisibility() == View.VISIBLE && card.mosaic.getVisibility() == View.VISIBLE) {
-      int i2 = Math.min(card.mosaicCells.size() - 1, viewerIndex);
+      int i2 = Math.min(card.mosaicCells.size() - 1, index);
       return i2 >= 0 ? card.mosaicCells.get(i2) : card.mediaImage;
     }
     if (card.media.getVisibility() == View.VISIBLE) return card.mediaImage;
@@ -1938,7 +1959,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   @Override
   public void setMediaItemVisible (int index, org.thunderdog.challegram.mediaview.data.MediaItem item, boolean isVisible) {
-    View target = viewerTarget();
+    if (isVisible) UI.post(this::tgx101MatchStatusIcons, 350); // the viewer has put its own icons back by then
+    // (user video 2026-10-28 16:4x: two of four album photos stayed blank after the viewer) the cell of THIS item — the one
+    // being shown now had already moved on when an album was swiped through, so the hidden cell was never given back
+    View target = viewerTarget(index);
     if (target != null) target.setAlpha(isVisible ? 1f : 0f); // the picture's place is empty while it's in the viewer
   }
 
