@@ -425,7 +425,6 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
           manager.scrollToPositionWithOffset(at, Screen.dp(4f) + Size.getHeaderPortraitSize());
         }
         list.post(this::markVisibleRead);
-        list.post(this::updateJumpButton);
         completeAlbums();
         readChannelsWithNothingToShow(chatIds);
       });
