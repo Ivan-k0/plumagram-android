@@ -2127,6 +2127,9 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
           long returnTo = tgx101VisibleMessageId();
           adapter.addMessage(message, false, false);
           tgx101List.post(() -> {
+            // (user video 2026-10-29 00:33 «баг с ответом на гиф»): this way never let the held reply bar go — it hung
+            // over the chat for 600 ms after the jump, then slid away and dropped the chat by its height
+            controller.tgx101SettleBarsForSend();
             if (!tgx101SmoothScrollToBottom()) scrollToBottom(false);
           });
           org.thunderdog.challegram.Tgx101Diag.mark("sent while scrolled up: glides down like the arrow");
