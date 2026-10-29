@@ -4125,10 +4125,18 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     } else {
       tgx101FillSettingsPage(tgx101SettingsRows, tgx101SettingsPage);
     }
-    // a page change fades in (the rows used to be swapped in a single frame)
-    tgx101SettingsRows.setAlpha(0f);
-    tgx101SettingsRows.animate().alpha(1f).setDuration(130).start();
+    // a page change fades in (the rows used to be swapped in a single frame); a switch flipped on the same page doesn't —
+    // the whole list blinked out and back at every tap (user video 2026-10-29 16:48 «смотри, как мигает меню плеера»)
+    if (tgx101ShownSettingsPage != tgx101SettingsPage || tgx101ShownSettingsRows != tgx101SettingsRows) {
+      tgx101SettingsRows.setAlpha(0f);
+      tgx101SettingsRows.animate().alpha(1f).setDuration(130).start();
+    }
+    tgx101ShownSettingsPage = tgx101SettingsPage;
+    tgx101ShownSettingsRows = tgx101SettingsRows;
   }
+
+  private int tgx101ShownSettingsPage = -1;
+  private @Nullable LinearLayout tgx101ShownSettingsRows;
 
   private void tgx101FillSettingsPage (LinearLayout rows, int page) {
     rows.removeAllViews();
