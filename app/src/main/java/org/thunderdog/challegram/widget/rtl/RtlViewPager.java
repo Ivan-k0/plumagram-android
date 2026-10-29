@@ -61,6 +61,13 @@ public class RtlViewPager extends ViewPager implements RtlCheckListener {
   public boolean dispatchTouchEvent (android.view.MotionEvent e) {
     if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) {
       tgx101CheckAligned("touch");
+    } else if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && (e.getActionMasked() == android.view.MotionEvent.ACTION_UP || e.getActionMasked() == android.view.MotionEvent.ACTION_CANCEL)) {
+      // test builds: a drag the finger has left but the pages never let go of (no settling after it)
+      postDelayed(() -> {
+        if (tgx101ScrollState == SCROLL_STATE_DRAGGING) {
+          org.thunderdog.challegram.Tgx101Diag.mark("pager: still dragging 0.6 s after the finger left, at " + getScrollX() + " px, page " + super.getCurrentItem());
+        }
+      }, 600);
     }
     if (tgx101EdgeGesture != null && tgx101EdgeGesture.onTouch(e)) {
       return true;
@@ -90,6 +97,14 @@ public class RtlViewPager extends ViewPager implements RtlCheckListener {
   }
 
   @Override
+  protected void onSizeChanged (int w, int h, int oldw, int oldh) {
+    super.onSizeChanged(w, h, oldw, oldh);
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && w != oldw && oldw != 0) {
+      org.thunderdog.challegram.Tgx101Diag.mark("pager: width " + oldw + " → " + w + ", at " + getScrollX() + " px, page " + super.getCurrentItem() + ", state " + tgx101ScrollState);
+    }
+  }
+
+  @Override
   public void onWindowFocusChanged (boolean hasWindowFocus) {
     super.onWindowFocusChanged(hasWindowFocus);
     if (hasWindowFocus) {
@@ -104,6 +119,10 @@ public class RtlViewPager extends ViewPager implements RtlCheckListener {
     super.addOnPageChangeListener(new SimpleOnPageChangeListener() {
       @Override
       public void onPageScrollStateChanged (int state) {
+        if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+          // test builds: how each scroll of the pages starts and ends — to see what left them off their place
+          org.thunderdog.challegram.Tgx101Diag.mark("pager: " + (state == SCROLL_STATE_DRAGGING ? "dragging" : state == SCROLL_STATE_SETTLING ? "settling" : "idle") + " at " + getScrollX() + " px, page " + RtlViewPager.super.getCurrentItem() + ", width " + getWidth());
+        }
         tgx101ScrollState = state;
         if (state == SCROLL_STATE_IDLE) {
           post(() -> tgx101CheckAligned("scroll ended"));
