@@ -66,6 +66,54 @@ public class EditText extends android.widget.EditText {
     super(context, attrs, defStyleAttr);
   }
 
+  // TGx101 (crash log from 4PDA 2026-10-29, Moto Z2 Play, Android 9): «setSpan (36 … 56) ends beyond length 36» in
+  // Editor$SuggestionsPopupWindow.updateSuggestions ← Editor.replace — the system's own spelling suggestions, shown a
+  // moment after a tap on an underlined word, read word bounds the text no longer had. A bug of Android 8–9's Editor,
+  // all its frames are the system's; its delayed runs on this field are wrapped so that one failing is only logged
+  private java.util.HashMap<Runnable, Runnable> tgx101SafeRuns;
+
+  private Runnable tgx101Safe (Runnable action) {
+    if (action == null || android.os.Build.VERSION.SDK_INT > 28 || !action.getClass().getName().startsWith("android.widget.")) {
+      return action;
+    }
+    if (tgx101SafeRuns == null) {
+      tgx101SafeRuns = new java.util.HashMap<>();
+    }
+    Runnable safe = tgx101SafeRuns.get(action);
+    if (safe == null) {
+      safe = () -> {
+        try {
+          action.run();
+        } catch (IndexOutOfBoundsException e) {
+          Log.e("System text editor failed, ignored", e);
+          org.thunderdog.challegram.Tgx101Diag.mark("input: the system's suggestions failed (" + e.getMessage() + "), ignored");
+        }
+      };
+      tgx101SafeRuns.put(action, safe); // one wrapper per action, so removeCallbacks finds it
+    }
+    return safe;
+  }
+
+  @Override
+  public boolean post (Runnable action) {
+    return super.post(tgx101Safe(action));
+  }
+
+  @Override
+  public boolean postDelayed (Runnable action, long delayMillis) {
+    return super.postDelayed(tgx101Safe(action), delayMillis);
+  }
+
+  @Override
+  public boolean removeCallbacks (Runnable action) {
+    Runnable safe = tgx101SafeRuns != null && action != null ? tgx101SafeRuns.get(action) : null;
+    boolean removed = super.removeCallbacks(action);
+    if (safe != null) {
+      removed |= super.removeCallbacks(safe);
+    }
+    return removed;
+  }
+
   public final void initDefault () {
     setTextColor(Theme.textAccentColor());
     setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17f);

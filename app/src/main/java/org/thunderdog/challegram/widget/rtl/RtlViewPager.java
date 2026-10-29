@@ -59,16 +59,57 @@ public class RtlViewPager extends ViewPager implements RtlCheckListener {
 
   @Override
   public boolean dispatchTouchEvent (android.view.MotionEvent e) {
+    if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) {
+      tgx101CheckAligned("touch");
+    }
     if (tgx101EdgeGesture != null && tgx101EdgeGesture.onTouch(e)) {
       return true;
     }
     return super.dispatchTouchEvent(e);
   }
 
+  // TGx101 (4PDA 2026-10-29, screenshot: the chat list cut by the left edge, a strip free on the right; «помогает
+  // перезапуск / открытие любого чата»): the pages stood still a few dozen px off their place. The cause is not known;
+  // a pager at rest that is not on a page is put back on the nearest one — at a touch, when the window comes back and
+  // when a scroll ends — and the diagnostics say when that happened
+  private int tgx101ScrollState = SCROLL_STATE_IDLE;
+
+  private void tgx101CheckAligned (String why) {
+    if (tgx101ScrollState != SCROLL_STATE_IDLE || isFakeDragging() || getWidth() == 0 || getAdapter() == null || getAdapter().getCount() == 0) {
+      return;
+    }
+    int pageWidth = getWidth() + getPageMargin();
+    int off = getScrollX() - super.getCurrentItem() * pageWidth;
+    if (Math.abs(off) <= 1) {
+      return;
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("pager: stood " + off + " px off page " + super.getCurrentItem() + " (" + why + "), put back");
+    if (beginFakeDrag()) {
+      endFakeDrag(); // settles on the nearest page and tells the listeners (header, attached screens)
+    }
+  }
+
+  @Override
+  public void onWindowFocusChanged (boolean hasWindowFocus) {
+    super.onWindowFocusChanged(hasWindowFocus);
+    if (hasWindowFocus) {
+      post(() -> tgx101CheckAligned("window back"));
+    }
+  }
+
   public RtlViewPager(Context context) {
     super(context);
     reverseOnPageChangeListeners = new ArrayMap<>(1);
     this.isRtl = Lang.rtl();
+    super.addOnPageChangeListener(new SimpleOnPageChangeListener() {
+      @Override
+      public void onPageScrollStateChanged (int state) {
+        tgx101ScrollState = state;
+        if (state == SCROLL_STATE_IDLE) {
+          post(() -> tgx101CheckAligned("scroll ended"));
+        }
+      }
+    });
   }
 
   public void setDisableRtl (boolean disableRtl) {
