@@ -128,7 +128,9 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
   private Tdlib.SessionsInfo sessionsInfo; // TODO move to BaseActivity
 
   private BaseActivity.ClickBait getSettingsClickBait () {
-    BaseActivity.ClickBait clickBait = context.getSettingsClickBait();
+    // TGx101 (user 2026-10-29 «полностью убираем красные уведомления из бокового меню»): problems (notifications, birthday,
+    // e-mail…) are shown inside Settings at their own rows; only someone else's unfinished login still marks «Settings» here
+    BaseActivity.ClickBait clickBait = null;
     boolean haveIncompleteLoginAttempts = sessionsInfo != null && sessionsInfo.incompleteLoginAttempts.length > 0;
     if (clickBait != null && haveIncompleteLoginAttempts) {
       return new BaseActivity.ClickBait(clickBait.iconRes, true);

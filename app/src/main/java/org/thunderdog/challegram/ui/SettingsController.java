@@ -154,6 +154,9 @@ public class SettingsController extends ViewController<Void> implements
 
   @Override
   public void onBlur () {
+    if (tgx101BackgroundNoticeShown) {
+      org.thunderdog.challegram.unsorted.Settings.instance().pmc().putBoolean(KEY_TGX101_BACKGROUND_NOTICE_SEEN, true);
+    }
     super.onBlur();
     contentView.setFactorLocked(true);
     cancelSupportOpen();
@@ -344,9 +347,28 @@ public class SettingsController extends ViewController<Void> implements
     return 0;
   }
 
+  // TGx101 (user 2026-10-29 «когда нет гапсов — один раз показать и потом убрать»): the warning that notifications can't
+  // come in the background (no Google services, sync off) is shown at «Notifications» once; after this screen is left it
+  // doesn't come back. Blocked notifications or a missing permission keep their mark — the person can fix those
+  private static final String KEY_TGX101_BACKGROUND_NOTICE_SEEN = "tgx101_background_notice_seen";
+  private boolean tgx101BackgroundNoticeShown;
+
+  private boolean tgx101IsBackgroundProblem () {
+    @TdlibNotificationManager.Status int status = tdlib.notifications().getNotificationBlockStatus();
+    return status == TdlibNotificationManager.Status.DISABLED_SYNC || status == TdlibNotificationManager.Status.DISABLED_APP_SYNC ||
+      status == TdlibNotificationManager.Status.PUSH_SERVICE_MISSING || status == TdlibNotificationManager.Status.PUSH_SERVICE_ERROR;
+  }
+
   private void checkErrors (boolean updateList) {
     long oldProblematicChatId = this.problematicChatId;
     boolean hasNotificationError = tdlib.notifications().hasLocalNotificationProblem();
+    if (hasNotificationError && tgx101IsBackgroundProblem()) {
+      if (org.thunderdog.challegram.unsorted.Settings.instance().pmc().getBoolean(KEY_TGX101_BACKGROUND_NOTICE_SEEN, false)) {
+        hasNotificationError = false;
+      } else {
+        tgx101BackgroundNoticeShown = true;
+      }
+    }
     int notificationErrorDescriptionRes = hasNotificationError ? getNotificationErrorDescription() : 0;
     boolean hadDescription = this.notificationErrorDescriptionRes != 0;
     boolean hasDescription = notificationErrorDescriptionRes != 0;

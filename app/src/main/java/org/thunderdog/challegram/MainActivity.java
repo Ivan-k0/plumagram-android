@@ -259,7 +259,9 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
   private void updateCounter () {
     Tdlib tdlib = currentTdlib();
     boolean animated = getActivityState() == UI.State.RESUMED;
-    @Tdlib.ResolvableProblem int problemType = tdlib.findResolvableProblem();
+    // TGx101 (4PDA 2026-10-29 mutnyy1 + user: «полностью убираем красные уведомления … в бутерброде»): problems are shown
+    // in Settings at their own row, not as a red dot on ☰ — the badge only counts unread chats of other accounts
+    @Tdlib.ResolvableProblem int problemType = Tdlib.ResolvableProblem.NONE;
     BackHeaderButton backButton = navigation.getHeaderView().getBackButton();
     if (problemType != Tdlib.ResolvableProblem.NONE) {
       @ColorId int colorId;
