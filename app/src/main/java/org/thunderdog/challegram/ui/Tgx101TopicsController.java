@@ -543,6 +543,7 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     super.onFocus();
     if (needReload) { // back from a topic: fresh counters and last messages
       needReload = false;
+      tgx101RefreshTopic(tgx101WatchedTopicId);
       load();
       // (4PDA 23.10, Android 4.3: «прочитал новые в теме — счётчик на теме не пропадает, пока не переключишься на ленту»):
       // the read reaches the server a moment after the return — the list is asked again then, and once more when the
@@ -555,11 +556,51 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     if (!isDestroyed()) load();
   };
 
+  // (black box 2026-10-29 21:34 «сообщения в темах не прочитываются»): TDLib had the topic read (0 unread) right after
+  // the return, yet the list asked again from the server came back with the old mark — «4 unread», and the topic opened
+  // at the old place again. The topic just left is taken from TDLib itself, and a server answer older than it doesn't
+  // overwrite its read mark until the server catches up
+  private final android.util.SparseArray<TdApi.ForumTopic> tgx101FreshTopics = new android.util.SparseArray<>();
+
+  private void tgx101RefreshTopic (int forumTopicId) {
+    if (forumTopicId == 0) return;
+    tdlib.send(new TdApi.GetForumTopic(getArgumentsStrict().chat.id, forumTopicId), (topic, error) -> runOnUiThreadOptional(() -> {
+      if (topic == null) return;
+      TdApi.ForumTopic known = tgx101FreshTopics.get(forumTopicId);
+      if (known != null && known.lastReadInboxMessageId > topic.lastReadInboxMessageId) return;
+      tgx101FreshTopics.put(forumTopicId, topic);
+      boolean changed = false;
+      for (TdApi.ForumTopic shown : topics) {
+        if (shown.info.forumTopicId == forumTopicId) changed = tgx101KeepFreshRead(shown);
+      }
+      if (changed && adapter != null) adapter.notifyDataSetChanged();
+    }));
+  }
+
+  /** Puts the newer read mark known from TDLib on a topic; true when it changed */
+  private boolean tgx101KeepFreshRead (TdApi.ForumTopic topic) {
+    TdApi.ForumTopic fresh = tgx101FreshTopics.get(topic.info.forumTopicId);
+    if (fresh == null) return false;
+    if (topic.lastReadInboxMessageId >= fresh.lastReadInboxMessageId) {
+      if (topic != fresh) tgx101FreshTopics.remove(topic.info.forumTopicId); // the server caught up
+      return false;
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("topics: topic " + topic.info.forumTopicId + " keeps its read mark (" + topic.unreadCount + " → " + fresh.unreadCount + " unread)");
+    topic.lastReadInboxMessageId = fresh.lastReadInboxMessageId;
+    topic.unreadCount = fresh.unreadCount;
+    topic.unreadMentionCount = fresh.unreadMentionCount;
+    topic.unreadReactionCount = fresh.unreadReactionCount;
+    return true;
+  }
+
   private int tgx101WatchedTopicId;
   private final org.thunderdog.challegram.telegram.ForumTopicInfoListener tgx101TopicWatch = new org.thunderdog.challegram.telegram.ForumTopicInfoListener() {
     @Override
     public void onForumTopicUpdated (long chatId, long messageThreadId, boolean isPinned, long lastReadInboxMessageId, long lastReadOutboxMessageId, TdApi.ChatNotificationSettings notificationSettings) {
-      runOnUiThreadOptional(() -> load());
+      runOnUiThreadOptional(() -> {
+        tgx101RefreshTopic(tgx101WatchedTopicId);
+        load();
+      });
     }
   };
 
@@ -637,6 +678,7 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
         topicNames.put(tdlib.id() + ":" + chatId + ":" + topic.info.forumTopicId, topic.info.name); // the topic's header knows it at once
       }
       boolean more = page.topics.length > 0 && result.size() < page.totalCount && (page.nextOffsetDate != 0 || page.nextOffsetMessageId != 0 || page.nextOffsetForumTopicId != 0);
+      for (TdApi.ForumTopic topic : result) tgx101KeepFreshRead(topic);
       if (!loaded || !more) {
         // (user 2026-10-22 «как впервые открываются темы — чтобы не было пустого экрана в первые секунды»): the first page
         // is shown at once, and the screen slides in only once it's there (BaseActivity waits up to 400 ms); the rest
