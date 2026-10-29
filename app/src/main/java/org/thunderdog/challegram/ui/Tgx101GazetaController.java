@@ -100,6 +100,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       // (user 2026-10-28 «убери стрелку вообще»): no arrow in the header
       autoButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaAuto, autoIcon(autoScroll), 49f, this, getHeaderIconColorId());
       translateButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaTranslate, translateFeed ? R.drawable.baseline_translate_24 : R.drawable.baseline_translate_off_24, 49f, this, getHeaderIconColorId());
+      translateButton.setOnLongClickListener(v -> {
+        tgx101ChooseTranslateLanguage(); // hold: the language the feed is translated into
+        return true;
+      });
       // ☀/☾ — the light or the dark look of the feed (user 2026-10-27: switched here, not in the settings)
       profileButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaProfile, profileIcon(), 49f, this, getHeaderIconColorId());
       settingsButton = header.addButton(menu, R.id.menu_btn_settings, R.drawable.baseline_settings_24, 49f, this, getHeaderIconColorId());
@@ -113,8 +117,28 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   // reading language — each post asked for as it comes on screen, kept with the post; the button again shows the originals
   private boolean translateFeed;
 
+  // (user 2026-10-29 «где человеку настроить перевод?»): the feed's own language — chosen by holding the button; until
+  // then the one last chosen when translating a message, else the app's language
+  private static final String KEY_TGX101_TRANSLATE_TO = "tgx101_gazeta_translate_to";
+
   private static String tgx101TranslateTo () {
-    return Lang.getDefaultLanguageToTranslateV2(null);
+    String own = org.thunderdog.challegram.unsorted.Settings.instance().pmc().getString(KEY_TGX101_TRANSLATE_TO, null);
+    return own != null && !own.isEmpty() ? own : Lang.getDefaultLanguageToTranslateV2(null);
+  }
+
+  private void tgx101ChooseTranslateLanguage () {
+    TranslationControllerV2.LanguageSelectorPopup popup = new TranslationControllerV2.LanguageSelectorPopup(context, this, lang -> {
+      org.thunderdog.challegram.unsorted.Settings.instance().pmc().putString(KEY_TGX101_TRANSLATE_TO, lang);
+      org.thunderdog.challegram.Tgx101Diag.mark("gazeta: translate to " + lang);
+      if (!translateFeed) {
+        setTranslateFeed(true);
+      } else {
+        adapter.notifyDataSetChanged(); // posts kept in another language are asked for again
+      }
+    }, tgx101TranslateTo(), null);
+    popup.languageRecyclerWrap.setTranslationX(Math.max(0, Screen.currentWidth() - Screen.dp(TranslationControllerV2.LanguageSelectorPopup.WIDTH + 16)));
+    popup.languageRecyclerWrap.setTranslationY(HeaderView.getTopOffset() + Size.getHeaderPortraitSize());
+    popup.show();
   }
 
   private void setTranslateFeed (boolean on) {
@@ -132,19 +156,32 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     if (post.translated != null && to.equals(post.translatedTo)) return post.translated;
     if (!post.translating) {
       post.translating = true;
-      tdlib.send(new TdApi.TranslateText(original, to, tgx.td.TdConstants.TEXT_FORMAT_NEUTRAL), (result, error) -> runOnUiThreadOptional(() -> {
-        post.translating = false;
-        if (result != null) {
-          post.translated = result;
+      // a post already in that language, or in one of «Do not translate», stays as it is — nothing is asked for
+      org.thunderdog.challegram.util.LanguageDetector.detectLanguage(context, original.text, lang -> runOnUiThreadOptional(() -> {
+        if (lang != null && (lang.equals(to) || org.thunderdog.challegram.unsorted.Settings.instance().isNotTranslatableLanguage(lang))) {
+          post.translating = false;
+          post.translated = original;
           post.translatedTo = to;
-          int i = posts.indexOf(post);
-          if (i != -1 && translateFeed) adapter.notifyItemChanged(i);
-        } else if (error != null) {
-          org.thunderdog.challegram.Tgx101Diag.mark("gazeta: translation failed — " + error.message);
+          return;
         }
-      }));
+        tgx101RequestTranslation(post, original, to);
+      }), error -> runOnUiThreadOptional(() -> tgx101RequestTranslation(post, original, to)));
     }
     return original;
+  }
+
+  private void tgx101RequestTranslation (Tgx101Gazeta.Post post, TdApi.FormattedText original, String to) {
+    tdlib.send(new TdApi.TranslateText(original, to, tgx.td.TdConstants.TEXT_FORMAT_NEUTRAL), (result, error) -> runOnUiThreadOptional(() -> {
+      post.translating = false;
+      if (result != null) {
+        post.translated = result;
+        post.translatedTo = to;
+        int i = posts.indexOf(post);
+        if (i != -1 && translateFeed) adapter.notifyItemChanged(i);
+      } else if (error != null) {
+        org.thunderdog.challegram.Tgx101Diag.mark("gazeta: translation failed — " + error.message);
+      }
+    }));
   }
 
   // (user 2026-10-28): the header in the feed's own colours
