@@ -1149,6 +1149,12 @@ public class AvatarReceiver implements Receiver, ChatListener, TdlibCache.UserDa
     float displayRadius = getDisplayRadius();
     float alpha = primaryReceiver().getPaintAlpha();
     if (enabledReceivers != 0) {
+      // TGx101 (user video 2026-10-29 12:04, again 20:46: a chat row with an empty place where the avatar is — no photo,
+      // no letters — until a restart): with a photo asked for, the letters were drawn only for chats without one, and a
+      // photo that hadn't come left nothing. Until any of it is there, the letters stand in
+      if (requestedPlaceholder != null && tgx101PhotoMissing()) {
+        drawRequestedPlaceholder(c, displayRadius, alpha);
+      }
       int startReceiverTypeIndex = 0;
       for (int i = RECEIVER_TYPE_COUNT - 1; i >= 0; i--) {
         //noinspection WrongConstant
@@ -1178,6 +1184,35 @@ public class AvatarReceiver implements Receiver, ChatListener, TdlibCache.UserDa
         }
       }
     } else if (requestedPlaceholder != null) {
+      drawRequestedPlaceholder(c, displayRadius, alpha);
+    }
+
+    int contentCutOutColor = ColorUtils.alphaColor(alpha,
+      Theme.getColor(contentCutOutColorId != 0 ? contentCutOutColorId : ColorId.filling)
+    );
+    int onlineColor = ColorUtils.alphaColor(alpha, Theme.getColor(ColorId.online));
+    DrawAlgorithms.drawOnline(c,
+      this,
+      allowOnline.getFloatValue() * isOnline.getFloatValue(),
+      contentCutOutColor,
+      onlineColor
+    );
+  }
+
+  /** TGx101: a photo was asked for and nothing of it (not even the small preview) is loaded yet */
+  public boolean tgx101PhotoMissing () {
+    if (enabledReceivers == 0) return false;
+    for (int i = 0; i < RECEIVER_TYPE_COUNT; i++) {
+      @ReceiverType int receiverType = 1 << i;
+      if (BitwiseUtils.hasFlag(enabledReceivers, receiverType) && !findReceiver(receiverType).needPlaceholder()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private void drawRequestedPlaceholder (Canvas c, float displayRadius, float alpha) {
+    {
       int placeholderColor = ColorUtils.fromToArgb(
         requestedPlaceholder.accentColor.getPrimaryColor(),
         requestedPlaceholder.accentColor.getPrimaryBigColor(),
@@ -1197,17 +1232,6 @@ public class AvatarReceiver implements Receiver, ChatListener, TdlibCache.UserDa
         drawPlaceholderDrawable(c, requestedPlaceholder.extraDrawableRes, avatarContentColorId, alpha * (1f - primaryContentAlpha) * .75f);
       }
     }
-
-    int contentCutOutColor = ColorUtils.alphaColor(alpha,
-      Theme.getColor(contentCutOutColorId != 0 ? contentCutOutColorId : ColorId.filling)
-    );
-    int onlineColor = ColorUtils.alphaColor(alpha, Theme.getColor(ColorId.online));
-    DrawAlgorithms.drawOnline(c,
-      this,
-      allowOnline.getFloatValue() * isOnline.getFloatValue(),
-      contentCutOutColor,
-      onlineColor
-    );
   }
 
   private Text displayingLetters;

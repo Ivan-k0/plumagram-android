@@ -719,10 +719,20 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
 
   // TGx101 (user video 2026-10-29 12:04: a chat row with an empty place for the avatar — no photo, no letters — until the
   // app was restarted), test builds: what the row asked for when it draws nothing there, once per chat
-  private long tgx101AvatarReportedChatId;
+  private long tgx101AvatarReportedChatId, tgx101AvatarWaitChatId;
 
   private void tgx101CheckAvatar () {
     if (chat == null || tgx101AvatarReportedChatId == chat.getChatId()) return;
+    if (avatarReceiver.tgx101PhotoMissing() && tgx101AvatarWaitChatId != chat.getChatId()) {
+      // a photo asked for that doesn't come: the letters stand in (AvatarReceiver.draw); the black box says if it lasts
+      final long chatId = tgx101AvatarWaitChatId = chat.getChatId();
+      postDelayed(() -> {
+        if (chat != null && chat.getChatId() == chatId && tgx101AvatarReportedChatId != chatId && avatarReceiver.tgx101PhotoMissing()) {
+          tgx101AvatarReportedChatId = chatId;
+          org.thunderdog.challegram.Tgx101Diag.mark("chat row: photo of chat " + chatId + " didn't come in 2 s (asked for chat " + avatarReceiver.getRequestedChatId() + ") — letters drawn instead");
+        }
+      }, 2000);
+    }
     boolean empty = avatarReceiver.isEmpty();
     if (!empty && (chat.getAvatarPlaceholder() != null || avatarReceiver.getRequestedChatId() == chat.getChatId())) return;
     tgx101AvatarReportedChatId = chat.getChatId();

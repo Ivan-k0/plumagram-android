@@ -3336,8 +3336,27 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     });
   }
 
+  // TGx101 (user 2026-10-29 20:47 «в списке мигнул чат» when its place changed): the black box gets the list's changes
+  // near the top, and a chat taken out and put back within a moment — such a pair draws the row away for a frame
+  private final android.util.LongSparseArray<Long> tgx101RemovedAt = new android.util.LongSparseArray<>();
+
+  private void tgx101MarkListChange (String what, long chatId, int from, int to) {
+    if (!org.thunderdog.challegram.BuildConfig.TGX101_DIAG || Math.min(from, to) > 30) return;
+    long now = android.os.SystemClock.uptimeMillis();
+    String back = "";
+    if (what.equals("removed")) {
+      tgx101RemovedAt.put(chatId, now);
+    } else if (what.equals("added")) {
+      Long removed = tgx101RemovedAt.get(chatId);
+      if (removed != null && now - removed < 1500) back = " — BACK " + (now - removed) + " ms after being removed (blinks)";
+      tgx101RemovedAt.remove(chatId);
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("chat list: chat " + chatId + " " + what + (from >= 0 ? " from " + from : "") + (to >= 0 ? " to " + to : "") + ", animator " + (chatsView != null && chatsView.getItemAnimator() != null ? "on" : "off") + back);
+  }
+
   @Override
   public void onChatAdded (TdlibChatList chatList, TdApi.Chat chat, int atIndex, Tdlib.ChatChange changeInfo) {
+    tgx101MarkListChange("added", chat.id, -1, atIndex);
     runOnUiThreadOptional(() ->
       chatsView.processChatUpdate(
         adapter.addChat(chat, atIndex, changeInfo)
@@ -3347,6 +3366,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
   @Override
   public void onChatRemoved (TdlibChatList chatList, TdApi.Chat chat, int fromIndex, Tdlib.ChatChange changeInfo) {
+    tgx101MarkListChange("removed", chat.id, fromIndex, -1);
     runOnUiThreadOptional(() ->
       chatsView.processChatUpdate(
         adapter.removeChatById(chat, fromIndex, changeInfo)
@@ -3356,6 +3376,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
   @Override
   public void onChatMoved (TdlibChatList chatList, TdApi.Chat chat, int fromIndex, int toIndex, Tdlib.ChatChange changeInfo) {
+    tgx101MarkListChange("moved", chat.id, fromIndex, toIndex);
     runOnUiThreadOptional(() ->
       chatsView.processChatUpdate(
         adapter.moveChat(chat, fromIndex, toIndex, changeInfo)
