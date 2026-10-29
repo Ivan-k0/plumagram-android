@@ -1910,7 +1910,13 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   public boolean onSystemBackPressed () {
     org.thunderdog.challegram.Tgx101DiagHooks.onInputAction(); // the response to the system back is timed from here
     org.thunderdog.challegram.Tgx101Diag.mark("system back: pressed at " + translationFactor + ", animating " + isAnimating + (tgx101BackPending ? ", no preview yet" : ""));
-    tgx101BackPending = false; // a quick flick that never showed the preview: the usual back below
+    boolean wasPending = tgx101BackPending;
+    tgx101BackPending = false;
+    // (black box 2026-10-29 20:38 «свайп назад с лагами»): a quick flick ended before the finger went far enough sideways
+    // for the preview — the screen was swapped in one frame. It now opens the preview at that moment and slides it off
+    if (wasPending && !isAnimating && openPreviewImpl(tgx101BackPendingY, false, tgx101BackPendingGesture)) {
+      org.thunderdog.challegram.Tgx101Diag.mark("system back: quick flick — the preview opened on release and slides off");
+    }
     if (isAnimating) {
       applyPreview(0f);
       return true;
