@@ -363,7 +363,9 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
             downY = e.getY();
             active = false;
             // not from the right edge: that is the system's back
-            tracking = !inSearchMode() && downX < rv.getWidth() - Screen.dp(24f);
+            // (black box 2026-10-29 21:08 «системный жест назад не выходит из тем»): the system's back from the right edge
+            // is a swipe to the left too — it pulled the feed in; the edge strip is the system's
+            tracking = !inSearchMode() && downX < rv.getWidth() - Screen.dp(40f);
             if (velocity != null) velocity.recycle();
             velocity = android.view.VelocityTracker.obtain();
             velocity.addMovement(e);
@@ -696,6 +698,12 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     TdlibUi.ChatOpenParameters params = new TdlibUi.ChatOpenParameters().keepStack();
     params.messageTopicId = new TdApi.MessageTopicForum(topic.info.forumTopicId);
     params.chatList = getArgumentsStrict().chatList;
+    // (black box 2026-10-29 21:08 «из тем кидает в самый низ вместо непрочитанного»): a forum counts its unread messages
+    // per topic, the group's own count was 0 — the topic opened at its end. It opens after its own last read message
+    if (topic.unreadCount > 0 && topic.lastReadInboxMessageId != 0) {
+      params.highlightMessage(org.thunderdog.challegram.component.chat.MessagesManager.HIGHLIGHT_MODE_UNREAD, new tgx.td.MessageId(getArgumentsStrict().chat.id, topic.lastReadInboxMessageId));
+      org.thunderdog.challegram.Tgx101Diag.mark("topics: topic " + topic.info.forumTopicId + " opens at its first unread (" + topic.unreadCount + " unread)");
+    }
     tdlib.ui().openChat(this, getArgumentsStrict().chat, params);
   }
 

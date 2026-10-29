@@ -1831,7 +1831,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   // its back gesture on any touch at the screen's edge, a scroll up or down too, and cancels it a moment later; the preview
   // opened at once, took the screen and the list under the finger lost its scroll. The preview now waits until the finger
   // has really gone sideways; a gesture cancelled before that leaves the screen and the scroll alone
-  private boolean tgx101BackPending;
+  private boolean tgx101BackPending, tgx101BackHidesKeyboard;
   private float tgx101BackPendingY;
   private int tgx101BackPendingGesture;
 
@@ -1840,6 +1840,14 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     tgx101BackStartX = Float.NaN;
     tgx101BackPending = false;
     org.thunderdog.challegram.Tgx101Diag.mark("system back: started, swipe nav " + swipeNavigationEnabled() + ", animating " + isAnimating + ", top " + (getCurrentStackItem() != null ? getCurrentStackItem().getClass().getSimpleName() : "?"));
+    tgx101BackHidesKeyboard = false;
+    if (context instanceof BaseActivity && ((BaseActivity) context).isKeyboardVisible()) {
+      // (user 2026-10-29 «свайп назад системы не убирает клавиатуру» — it left the feed instead): with the keyboard up
+      // the system's back only takes the keyboard away, as everywhere
+      tgx101BackHidesKeyboard = true;
+      org.thunderdog.challegram.Tgx101Diag.mark("system back: the keyboard is up — it only hides it");
+      return true;
+    }
     if (swipeNavigationEnabled()) {
       tgx101BackPending = true;
       tgx101BackPendingY = backEvent.getTouchY();
@@ -1898,6 +1906,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
 
   @Override
   public void onSystemBackCancelled () {
+    tgx101BackHidesKeyboard = false;
     boolean wasPending = tgx101BackPending;
     tgx101BackPending = false;
     org.thunderdog.challegram.Tgx101Diag.mark("system back: cancelled at " + translationFactor + (wasPending ? " (no preview — the finger didn't go sideways)" : ""));
@@ -1912,6 +1921,12 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     org.thunderdog.challegram.Tgx101Diag.mark("system back: pressed at " + translationFactor + ", animating " + isAnimating + (tgx101BackPending ? ", no preview yet" : ""));
     boolean wasPending = tgx101BackPending;
     tgx101BackPending = false;
+    if (tgx101BackHidesKeyboard) {
+      tgx101BackHidesKeyboard = false;
+      ViewController<?> current = getCurrentStackItem();
+      if (current != null) current.hideSoftwareKeyboard();
+      return true;
+    }
     // (black box 2026-10-29 20:38 «свайп назад с лагами»): a quick flick ended before the finger went far enough sideways
     // for the preview — the screen was swapped in one frame. It now opens the preview at that moment and slides it off
     if (wasPending && !isAnimating && openPreviewImpl(tgx101BackPendingY, false, tgx101BackPendingGesture)) {
