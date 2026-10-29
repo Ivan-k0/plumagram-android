@@ -356,11 +356,14 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
           case android.view.MotionEvent.ACTION_MOVE: {
             if (!tracking) return false;
             float dx = e.getX() - downX, dy = e.getY() - downY;
-            if (dx > slop || Math.abs(dy) > Math.max(slop, -dx)) {
+            if (dx > slop || Math.abs(dy) > Math.max(slop * 1.5f, -dx)) {
               tracking = false; // right is back, vertical scrolls the topics
               return false;
             }
-            if (-dx > slop * 1.5f && -dx > Math.abs(dy) * 2f) {
+            // (black box 2026-10-29 20:39 «свайп не работает»: 15 swipes to the left, 3 taken — they went 54–126 dp left and
+            // 13–32 dp down, the list took them for a scroll before «twice as sideways» held): a swipe more sideways than
+            // down is the feed's
+            if (-dx > slop && -dx > Math.abs(dy) * 1.2f) {
               tracking = false;
               if (!startFeedDrag()) return false;
               active = true;
@@ -394,8 +397,9 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
               vx = velocity.getXVelocity();
             }
             float p = progress(rv, e.getX());
-            boolean fling = Math.abs(vx) > Screen.dp(600f);
-            boolean open = e.getActionMasked() == android.view.MotionEvent.ACTION_UP && (fling ? vx < 0 : p > .33f);
+            // (same log: a quick swipe of 107 dp went back) — a fifth of the width or a light flick opens it
+            boolean fling = Math.abs(vx) > Screen.dp(350f);
+            boolean open = e.getActionMasked() == android.view.MotionEvent.ACTION_UP && (fling ? vx < 0 : p > .2f);
             endFeedDrag(open, Math.abs(vx));
             break;
           }
