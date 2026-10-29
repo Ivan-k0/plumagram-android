@@ -772,6 +772,12 @@ public class TdlibMessageViewer {
     private void viewMessagesImpl (long chatId, long[] messageIds, TdApi.MessageSource messageSource, boolean forceRead, @Nullable RunnableBool after) {
       if (messageIds.length > 0) {
         context.tdlib.send(new TdApi.ViewMessages(chatId, messageIds, messageSource, forceRead), (ok, error) -> {
+          // (user 2026-10-29 21:12–21:15 «сообщения в темах не прочитываются»): what a topic's read asked and the answer
+          if (messageSource.getConstructor() == TdApi.MessageSourceForumTopicHistory.CONSTRUCTOR) {
+            long max = 0;
+            for (long id : messageIds) max = Math.max(max, id);
+            org.thunderdog.challegram.Tgx101Diag.mark("topic read: " + messageIds.length + " message(s) up to " + (max >> 20) + ", force " + forceRead + " → " + (error == null ? "ok" : TD.toErrorString(error)));
+          }
           if (after != null) {
             after.runWithBool(error == null);
           }

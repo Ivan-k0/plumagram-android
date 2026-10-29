@@ -2038,9 +2038,49 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
         || top instanceof org.thunderdog.challegram.ui.PasswordController;
       if (!secret) {
         Tgx101DiagHooks.onTouch(ev, top);
+        if (ev.getActionMasked() == MotionEvent.ACTION_DOWN) tgx101LogEdgeTouch(ev);
       }
     }
     return super.dispatchTouchEvent(ev);
+  }
+
+  // (user 2026-10-29 «системный назад не работает в темах»: right-edge swipes on the topics screen reached the app as plain
+  // touches — the system didn't take them as back). A touch that starts at a side edge with gesture navigation tells
+  // whether our back callback was on and which views keep the system's gesture away there
+  private void tgx101LogEdgeTouch (MotionEvent ev) {
+    if (Build.VERSION.SDK_INT < 29 || !Screen.isGesturalNavigationEnabled(getResources())) return;
+    View root = getWindow().getDecorView();
+    float x = ev.getRawX();
+    int edge = Screen.dp(24f);
+    if (x > edge && x < root.getWidth() - edge) return;
+    StringBuilder b = new StringBuilder("edge touch: ").append(x <= edge ? "left" : "right")
+      .append(" at y ").append(Math.round(ev.getRawY() / Screen.density())).append("dp, back callback ")
+      .append(backPressedCallback.isEnabled() ? "on" : "OFF").append(" (mode ").append(handleOnBackPress(false, false)).append(")");
+    int[] loc = new int[2];
+    int found = tgx101CollectExclusions(root, b, loc, 0);
+    if (found == 0) b.append(", no exclusions");
+    Tgx101Diag.mark(b.toString());
+  }
+
+  private static int tgx101CollectExclusions (View view, StringBuilder b, int[] loc, int found) {
+    if (Build.VERSION.SDK_INT < 29 || found >= 6) return found;
+    java.util.List<android.graphics.Rect> rects = view.getSystemGestureExclusionRects();
+    if (!rects.isEmpty()) {
+      view.getLocationOnScreen(loc);
+      for (android.graphics.Rect r : rects) {
+        b.append(found == 0 ? ", exclusions: " : "; ").append(view.getClass().getSimpleName())
+          .append(view.isShown() ? "" : " (hidden)").append(" [").append(loc[0] + r.left).append(',').append(loc[1] + r.top)
+          .append(" – ").append(loc[0] + r.right).append(',').append(loc[1] + r.bottom).append(']');
+        if (++found >= 6) return found;
+      }
+    }
+    if (view instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) view;
+      for (int i = 0; i < group.getChildCount() && found < 6; i++) {
+        found = tgx101CollectExclusions(group.getChildAt(i), b, loc, found);
+      }
+    }
+    return found;
   }
 
   public boolean isKeyboardVisible () {

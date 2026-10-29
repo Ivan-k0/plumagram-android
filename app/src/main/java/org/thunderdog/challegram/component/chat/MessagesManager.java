@@ -2848,6 +2848,9 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         Log.i(Log.TAG_MESSAGES_LOADER, "MessagesManager isFocused -> %b", isFocused);
       }
       this.isFocused = isFocused;
+      if (loader.getMessageTopicId() instanceof TdApi.MessageTopicForum) { // reads are sent only while focused
+        org.thunderdog.challegram.Tgx101Diag.mark("topic screen: " + (isFocused ? "focused — reads go out" : "not focused — no reads") + ", source " + loader.messageSource().getClass().getSimpleName());
+      }
       if (isFocused) {
         onFocus();
       } else {
