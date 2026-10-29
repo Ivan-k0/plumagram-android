@@ -1827,23 +1827,50 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     }
   }
 
+  // (user video 2026-10-29 12:32 «свайпы вверх-вниз по краям не работают» — channels, groups, «Газета»): Android 14 starts
+  // its back gesture on any touch at the screen's edge, a scroll up or down too, and cancels it a moment later; the preview
+  // opened at once, took the screen and the list under the finger lost its scroll. The preview now waits until the finger
+  // has really gone sideways; a gesture cancelled before that leaves the screen and the scroll alone
+  private boolean tgx101BackPending;
+  private float tgx101BackPendingY;
+  private int tgx101BackPendingGesture;
+
   @Override
   public boolean onSystemBackStarted (@NonNull BackEventCompat backEvent) {
     tgx101BackStartX = Float.NaN;
+    tgx101BackPending = false;
     org.thunderdog.challegram.Tgx101Diag.mark("system back: started, swipe nav " + swipeNavigationEnabled() + ", animating " + isAnimating + ", top " + (getCurrentStackItem() != null ? getCurrentStackItem().getClass().getSimpleName() : "?"));
     if (swipeNavigationEnabled()) {
-      if (openPreviewImpl(backEvent.getTouchY(), false, backEvent.getSwipeEdge() == BackEventCompat.EDGE_RIGHT ? PredictiveGesture.BACK_FROM_RIGHT_EDGE : PredictiveGesture.BACK_FROM_LEFT_EDGE)) {
-        setFactor(tgx101BackPreview(backEvent));
-        org.thunderdog.challegram.Tgx101Diag.mark("system back: preview opened, mode " + translationMode + ", left " + (currentLeft != null ? currentLeft.getClass().getSimpleName() : "?"));
-        return true;
-      }
-      org.thunderdog.challegram.Tgx101Diag.mark("system back: preview NOT opened");
+      tgx101BackPending = true;
+      tgx101BackPendingY = backEvent.getTouchY();
+      tgx101BackPendingGesture = backEvent.getSwipeEdge() == BackEventCompat.EDGE_RIGHT ? PredictiveGesture.BACK_FROM_RIGHT_EDGE : PredictiveGesture.BACK_FROM_LEFT_EDGE;
+      tgx101BackPreview(backEvent); // notes where the finger started
+      return true;
     }
+    return false;
+  }
+
+  private boolean tgx101OpenPendingBack (@NonNull BackEventCompat backEvent) {
+    tgx101BackPending = false;
+    if (openPreviewImpl(tgx101BackPendingY, false, tgx101BackPendingGesture)) {
+      setFactor(tgx101BackPreview(backEvent));
+      org.thunderdog.challegram.Tgx101Diag.mark("system back: preview opened, mode " + translationMode + ", left " + (currentLeft != null ? currentLeft.getClass().getSimpleName() : "?"));
+      return true;
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("system back: preview NOT opened");
     return false;
   }
 
   @Override
   public void onSystemBackProgressed (@NonNull BackEventCompat backEvent) {
+    if (tgx101BackPending && !isAnimating) {
+      float x = backEvent.getTouchX();
+      boolean sideways = !Float.isNaN(x) && !Float.isNaN(tgx101BackStartX) && Math.abs(x - tgx101BackStartX) >= Screen.dp(14f);
+      if (sideways || (Float.isNaN(x) && backEvent.getProgress() > .05f)) {
+        tgx101OpenPendingBack(backEvent);
+      }
+      return;
+    }
     if (isAnimating) {
       setFactor(tgx101BackPreview(backEvent));
     }
@@ -1871,7 +1898,9 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
 
   @Override
   public void onSystemBackCancelled () {
-    org.thunderdog.challegram.Tgx101Diag.mark("system back: cancelled at " + translationFactor);
+    boolean wasPending = tgx101BackPending;
+    tgx101BackPending = false;
+    org.thunderdog.challegram.Tgx101Diag.mark("system back: cancelled at " + translationFactor + (wasPending ? " (no preview — the finger didn't go sideways)" : ""));
     if (isAnimating) {
       closePreview(0f);
     }
@@ -1880,7 +1909,8 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   @Override
   public boolean onSystemBackPressed () {
     org.thunderdog.challegram.Tgx101DiagHooks.onInputAction(); // the response to the system back is timed from here
-    org.thunderdog.challegram.Tgx101Diag.mark("system back: pressed at " + translationFactor + ", animating " + isAnimating);
+    org.thunderdog.challegram.Tgx101Diag.mark("system back: pressed at " + translationFactor + ", animating " + isAnimating + (tgx101BackPending ? ", no preview yet" : ""));
+    tgx101BackPending = false; // a quick flick that never showed the preview: the usual back below
     if (isAnimating) {
       applyPreview(0f);
       return true;
