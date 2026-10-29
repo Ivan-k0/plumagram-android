@@ -778,17 +778,18 @@ public class TdlibMessageViewer {
             for (long id : messageIds) maxId = Math.max(maxId, id);
             final long max = maxId;
             org.thunderdog.challegram.Tgx101Diag.mark("topic read: " + messageIds.length + " message(s) up to " + (max >> 20) + ", force " + forceRead + " → " + (error == null ? "ok" : TD.toErrorString(error)));
-            // what TDLib holds right after, and once the server had time to answer
+            // the topics screen remembers how far a topic was read (TDLib takes 15–20 s to show a read after a jump to the
+            // end — black box 21:39), and the black box gets what TDLib holds right after
             context.tdlib.send(new TdApi.GetMessage(chatId, max), (message, messageError) -> {
               if (message == null || !(message.topicId instanceof TdApi.MessageTopicForum)) {
                 org.thunderdog.challegram.Tgx101Diag.mark("topic read: message " + (max >> 20) + " has no forum topic (" + (message != null ? message.topicId : TD.toErrorString(messageError)) + ")");
                 return;
               }
               int topicId = ((TdApi.MessageTopicForum) message.topicId).forumTopicId;
+              if (error == null) org.thunderdog.challegram.ui.Tgx101TopicsController.noteRead(context.tdlib, chatId, topicId, max);
               Runnable check = () -> context.tdlib.send(new TdApi.GetForumTopic(chatId, topicId), (topic, topicError) ->
                 org.thunderdog.challegram.Tgx101Diag.mark("topic read: topic " + topicId + " now " + (topic != null ? "read up to " + (topic.lastReadInboxMessageId >> 20) + ", " + topic.unreadCount + " unread" : TD.toErrorString(topicError))));
               check.run();
-              context.tdlib.ui().postDelayed(check, 3000);
             });
           }
           if (after != null) {

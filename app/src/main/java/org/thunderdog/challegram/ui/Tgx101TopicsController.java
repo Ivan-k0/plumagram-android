@@ -543,6 +543,9 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     super.onFocus();
     if (needReload) { // back from a topic: fresh counters and last messages
       needReload = false;
+      boolean changed = false;
+      for (TdApi.ForumTopic topic : topics) changed |= tgx101KeepOwnRead(topic); // at once, before a tap can open one
+      if (changed && adapter != null) adapter.notifyDataSetChanged();
       tgx101RefreshTopic(tgx101WatchedTopicId);
       load();
       // (4PDA 23.10, Android 4.3: «прочитал новые в теме — счётчик на теме не пропадает, пока не переключишься на ленту»):
@@ -569,6 +572,7 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
       TdApi.ForumTopic known = tgx101FreshTopics.get(forumTopicId);
       if (known != null && known.lastReadInboxMessageId > topic.lastReadInboxMessageId) return;
       tgx101FreshTopics.put(forumTopicId, topic);
+      tgx101KeepOwnRead(topic);
       boolean changed = false;
       for (TdApi.ForumTopic shown : topics) {
         if (shown.info.forumTopicId == forumTopicId) changed = tgx101KeepFreshRead(shown);
@@ -577,8 +581,44 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     }));
   }
 
-  /** Puts the newer read mark known from TDLib on a topic; true when it changed */
+  // (black box 2026-10-29 21:39 «не работает»): after the arrow took a topic to its end, the reads up to the last message
+  // were answered «ok», yet TDLib showed the old mark («17 unread») for 15–20 s more — the topic opened at the old place
+  // again. How far each topic was read here is remembered; read up to its last message, it has nothing unread
+  private static final java.util.Map<String, Long> readUpTo = new java.util.concurrent.ConcurrentHashMap<>();
+
+  /** A forum topic's messages up to {@code messageId} were viewed in this app */
+  public static void noteRead (Tdlib tdlib, long chatId, int forumTopicId, long messageId) {
+    String key = tdlib.id() + ":" + chatId + ":" + forumTopicId;
+    Long known = readUpTo.get(key);
+    if (known == null || known < messageId) readUpTo.put(key, messageId);
+  }
+
+  /** Puts the newer read mark known from TDLib or from this app's reads on a topic; true when it changed */
   private boolean tgx101KeepFreshRead (TdApi.ForumTopic topic) {
+    boolean changed = tgx101KeepOwnRead(topic);
+    return tgx101KeepTdlibRead(topic) || changed;
+  }
+
+  private boolean tgx101KeepOwnRead (TdApi.ForumTopic topic) {
+    String key = tdlib.id() + ":" + getArgumentsStrict().chat.id + ":" + topic.info.forumTopicId;
+    Long mine = readUpTo.get(key);
+    if (mine == null) return false;
+    if (topic.lastReadInboxMessageId >= mine) {
+      readUpTo.remove(key); // TDLib caught up
+      return false;
+    }
+    boolean toEnd = topic.lastMessage != null && mine >= topic.lastMessage.id;
+    org.thunderdog.challegram.Tgx101Diag.mark("topics: topic " + topic.info.forumTopicId + " read here up to " + (mine >> 20) + (toEnd ? " — its end, nothing unread" : "") + " (TDLib: " + (topic.lastReadInboxMessageId >> 20) + ", " + topic.unreadCount + " unread)");
+    topic.lastReadInboxMessageId = mine;
+    if (toEnd) {
+      topic.unreadCount = 0;
+      topic.unreadMentionCount = 0;
+      topic.unreadReactionCount = 0;
+    }
+    return true;
+  }
+
+  private boolean tgx101KeepTdlibRead (TdApi.ForumTopic topic) {
     TdApi.ForumTopic fresh = tgx101FreshTopics.get(topic.info.forumTopicId);
     if (fresh == null) return false;
     if (topic.lastReadInboxMessageId >= fresh.lastReadInboxMessageId) {
