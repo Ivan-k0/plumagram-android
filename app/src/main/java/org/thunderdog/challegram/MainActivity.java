@@ -819,9 +819,9 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     // "Open chat" row of a synced Telegram contact, tapped in a dialer or contacts app
 
     final String tgx101ContactType = intent.getType();
-    final boolean tgx101Call = TdlibPhoneBookSync.MIME_VOICE_CALL.equals(tgx101ContactType);
+    final boolean tgx101Call = TdlibPhoneBookSync.MIME_VOICE_CALL.equals(tgx101ContactType) || TdlibPhoneBookSync.MIME_TG_CALL.equals(tgx101ContactType);
     boolean tgx101Video = TdlibPhoneBookSync.MIME_VIDEO_CALL.equals(tgx101ContactType); // rows written before 0.1.810
-    if (Intent.ACTION_VIEW.equals(action) && (TdlibPhoneBookSync.MIME_OPEN_CHAT.equals(tgx101ContactType) || tgx101Call || tgx101Video) && intent.getData() != null) {
+    if (Intent.ACTION_VIEW.equals(action) && (TdlibPhoneBookSync.MIME_OPEN_CHAT.equals(tgx101ContactType) || TdlibPhoneBookSync.MIME_TG_PROFILE.equals(tgx101ContactType) || tgx101Call || tgx101Video) && intent.getData() != null) {
       long userId = 0;
       // TGx101: any app may send this intent — read the user id only from a row of the system contacts
       // provider that has our MIME type and belongs to our sync account (not from an arbitrary provider)

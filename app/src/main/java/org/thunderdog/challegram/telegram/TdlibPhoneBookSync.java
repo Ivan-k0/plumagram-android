@@ -60,6 +60,11 @@ public class TdlibPhoneBookSync {
   // TGx101 (user 2026-10-06, like other messengers in the phone's contact card): voice and video call rows
   public static final String MIME_VOICE_CALL = "vnd.android.cursor.item/vnd.com.tgx101.app.call";
   public static final String MIME_VIDEO_CALL = "vnd.android.cursor.item/vnd.com.tgx101.app.video";
+  // TGx101 (user 2026-10-29: «когда стоял TGX, звонилка предлагала Telegram, а наше приложение не предлагается»): dialers
+  // such as HB Dialer show a messenger next to «Call» only for the data types they know — Telegram's among them. Each
+  // contact gets Telegram's «profile» and «call» rows too; they belong to our account and open in PlumaGram
+  public static final String MIME_TG_PROFILE = "vnd.android.cursor.item/vnd.org.telegram.messenger.android.profile";
+  public static final String MIME_TG_CALL = "vnd.android.cursor.item/vnd.org.telegram.messenger.android.call";
   private static final int CHUNK_SIZE = 100; // contacts per applyBatch call, well under provider limits
 
   private static TdlibPhoneBookSync instance;
@@ -281,7 +286,7 @@ public class TdlibPhoneBookSync {
     // (user 2026-10-16: «Video call» opened vivo's own Health app with its sport-route map) — vivo hands a type nobody
     // chose «always» for to its system app, which takes any type; the video row has the call's type, which the user had
     // already set to PlumaGram, and says «video» in DATA4
-    String[][] calls = {{MIME_VOICE_CALL, "call"}, {MIME_VOICE_CALL, "video"}};
+    String[][] calls = {{MIME_VOICE_CALL, "call"}, {MIME_VOICE_CALL, "video"}, {MIME_TG_PROFILE, "profile"}, {MIME_TG_CALL, "call"}};
     for (String[] call : calls) {
       builder = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI);
       builder.withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, rawContactOpIndex);
@@ -289,7 +294,7 @@ public class TdlibPhoneBookSync {
       builder.withValue(ContactsContract.Data.DATA4, call[1]);
       builder.withValue(ContactsContract.Data.DATA1, String.valueOf(user.id));
       builder.withValue(ContactsContract.Data.DATA2, "PlumaGram");
-      builder.withValue(ContactsContract.Data.DATA3, rowLabel(call[1].equals("call") ? org.thunderdog.challegram.R.string.Tgx101ContactVoiceCall : org.thunderdog.challegram.R.string.Tgx101ContactVideoCall, user));
+      builder.withValue(ContactsContract.Data.DATA3, rowLabel(call[1].equals("call") ? org.thunderdog.challegram.R.string.Tgx101ContactVoiceCall : call[1].equals("profile") ? org.thunderdog.challegram.R.string.Tgx101ContactMessage : org.thunderdog.challegram.R.string.Tgx101ContactVideoCall, user));
       ops.add(builder.build());
     }
   }
@@ -337,7 +342,8 @@ public class TdlibPhoneBookSync {
   private static String fingerprint (TdApi.User user) {
     // «2» — the row set (message + audio + video call, 2026-10-06); «3» — the video row with the call's type
     // (2026-10-16): old contacts are rewritten once with the new rows
-    return "3\u0001" + (user.firstName != null ? user.firstName : "") + "\u0001" + (user.lastName != null ? user.lastName : "") + "\u0001" + (user.phoneNumber != null ? user.phoneNumber : "");
+    // «4» — Telegram's «profile» and «call» rows for dialers that know only those (2026-10-29)
+    return "4\u0001" + (user.firstName != null ? user.firstName : "") + "\u0001" + (user.lastName != null ? user.lastName : "") + "\u0001" + (user.phoneNumber != null ? user.phoneNumber : "");
   }
 
   private void writeExactSet (Context context, List<TdApi.User> users) {

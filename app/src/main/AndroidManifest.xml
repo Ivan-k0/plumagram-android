@@ -427,6 +427,9 @@
         <data android:mimeType="vnd.android.cursor.item/vnd.com.tgx101.app.contact" />
         <data android:mimeType="vnd.android.cursor.item/vnd.com.tgx101.app.call" />
         <data android:mimeType="vnd.android.cursor.item/vnd.com.tgx101.app.video" />
+        <!-- Telegram's own data types, written to our contacts too: some dialers offer only messengers they know -->
+        <data android:mimeType="vnd.android.cursor.item/vnd.org.telegram.messenger.android.profile" />
+        <data android:mimeType="vnd.android.cursor.item/vnd.org.telegram.messenger.android.call" />
       </intent-filter>
 
       <!-- Share from other apps -->
