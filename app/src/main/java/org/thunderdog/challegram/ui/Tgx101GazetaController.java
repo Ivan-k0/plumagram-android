@@ -1338,6 +1338,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     @Nullable ImageView selectionMark;
     LinearLayout mosaic;
     final List<ImageView> mosaicCells = new ArrayList<>();
+    final InlinePlayer player;
+    final org.thunderdog.challegram.component.sticker.StickerSmallView stickerView;
 
     /** (user 2026-10-28 09:46 «медиа больше одного — как в каналах»): an album's pictures side by side, as a channel shows them */
     private void layoutMosaic (List<TdApi.Message> visuals, int width, int token) {
@@ -1432,6 +1434,9 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         if (post != null && !sample) openMedia(post);
       });
       media.addView(mediaImage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      player = new InlinePlayer(context);
+      player.setVisibility(GONE);
+      media.addView(player, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
       mediaBadge = badge(context);
       FrameLayout.LayoutParams bp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.LEFT | Gravity.BOTTOM);
       bp.leftMargin = bp.bottomMargin = Screen.dp(8f);
@@ -1445,6 +1450,21 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       mosaic.setVisibility(GONE);
       media.addView(mosaic, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
       addView(media, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0));
+      // (user 2026-10-29 «посмотри, как выглядят стикеры у нас»): a sticker post showed only its emoji as text — now the
+      // sticker itself, moving as in the channel
+      stickerView = new org.thunderdog.challegram.component.sticker.StickerSmallView(context, 0) {
+        @Override
+        public boolean onTouchEvent (android.view.MotionEvent e) {
+          return false; // the card takes the taps (menu), no sticker preview here
+        }
+      };
+      stickerView.init(tdlib);
+      stickerView.setForceHeight(Screen.dp(STICKER_SIZE));
+      stickerView.setVisibility(GONE);
+      LinearLayout.LayoutParams stp = new LinearLayout.LayoutParams(Screen.dp(STICKER_SIZE), Screen.dp(STICKER_SIZE));
+      stp.leftMargin = pad;
+      stp.topMargin = Screen.dp(8f);
+      addView(stickerView, stp);
 
       summary = text(context, 15f, false);
       summary.setPadding(Screen.dp(10f), Screen.dp(8f), Screen.dp(10f), Screen.dp(8f));
@@ -1705,6 +1725,20 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       }
       int width = list != null && list.getWidth() > 0 ? list.getWidth() : Screen.currentWidth();
       boolean withThumb = visual != null && thumbs;
+      TdApi.Message stickerMessage = null;
+      for (TdApi.Message m : post.messages) if (m.content.getConstructor() == TdApi.MessageSticker.CONSTRUCTOR) { stickerMessage = m; break; }
+      if (stickerMessage != null && !sample) {
+        TdApi.Sticker sticker = ((TdApi.MessageSticker) stickerMessage.content).sticker;
+        if (stickerView.getTag() != sticker || stickerView.getVisibility() != VISIBLE) {
+          stickerView.setTag(sticker);
+          stickerView.setSticker(new org.thunderdog.challegram.component.sticker.TGStickerObj(tdlib, sticker, null, sticker.fullType));
+        }
+        stickerView.setVisibility(VISIBLE);
+      } else if (stickerView.getVisibility() != GONE) {
+        stickerView.setVisibility(GONE);
+        stickerView.setTag(null);
+        stickerView.setSticker(null);
+      }
       if (visual == null) {
         media.setVisibility(GONE);
         thumbWrap.setVisibility(GONE);
@@ -1749,6 +1783,14 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
           if (!sameImage || mediaImage.getDrawable() == null) loadImage(visual, mediaImage, token, width);
         }
       }
+      // (user 2026-10-29 «автовоспроизведение видео тоже нужно», as in channels): a video or a GIF plays by itself, without
+      // sound, over its cover — by the channels' autoplay rule (MagiX → Channels: everywhere / only chosen / nowhere)
+      org.thunderdog.challegram.loader.gif.GifFile playFile = null;
+      if (visual != null && !thumbs && !sample && visuals == 1 && isVideo(visual) && Tgx101ChatMediaAutoplay(post.chatId)) {
+        playFile = inlineFile(visual);
+      }
+      player.setFile(playFile);
+      player.setVisibility(playFile != null ? VISIBLE : GONE);
 
       // the text; beside a thumbnail only as many lines as its height, the rest goes on under it at full width
       int fold = Tgx101Gazeta.fold();
@@ -2423,6 +2465,69 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     }));
   }
 
+  private static final float STICKER_SIZE = 160f;
+  /** the largest video that plays by itself in the feed — a bigger one waits for a tap, as files over the autoload size */
+  private static final long INLINE_MAX_BYTES = 20L * 1024 * 1024;
+
+  private boolean Tgx101ChatMediaAutoplay (long chatId) {
+    return org.thunderdog.challegram.data.Tgx101ChatMedia.autoplay(tdlib, chatId);
+  }
+
+  @Nullable
+  private org.thunderdog.challegram.loader.gif.GifFile inlineFile (TdApi.Message m) {
+    org.thunderdog.challegram.loader.gif.GifFile file = null;
+    if (m.content.getConstructor() == TdApi.MessageAnimation.CONSTRUCTOR) {
+      file = new org.thunderdog.challegram.loader.gif.GifFile(tdlib, ((TdApi.MessageAnimation) m.content).animation);
+    } else if (m.content.getConstructor() == TdApi.MessageVideo.CONSTRUCTOR) {
+      TdApi.Video video = ((TdApi.MessageVideo) m.content).video;
+      long size = Math.max(video.video.size, video.video.expectedSize);
+      if (size > 0 && size <= INLINE_MAX_BYTES) file = new org.thunderdog.challegram.loader.gif.GifFile(tdlib, video.video, org.thunderdog.challegram.loader.gif.GifFile.TYPE_MPEG4);
+    }
+    if (file != null) file.setScaleType(org.thunderdog.challegram.loader.gif.GifFile.CENTER_CROP);
+    return file;
+  }
+
+  /** A video or GIF of the feed playing by itself, without sound, over its cover; it plays while on screen */
+  private static final class InlinePlayer extends View {
+    private final org.thunderdog.challegram.loader.gif.GifReceiver receiver;
+    private int fileId;
+
+    InlinePlayer (Context context) {
+      super(context);
+      receiver = new org.thunderdog.challegram.loader.gif.GifReceiver(this);
+    }
+
+    void setFile (@Nullable org.thunderdog.challegram.loader.gif.GifFile file) {
+      int id = file != null ? file.getFileId() : 0;
+      if (id == fileId) return;
+      fileId = id;
+      receiver.requestFile(file);
+    }
+
+    @Override
+    protected void onLayout (boolean changed, int left, int top, int right, int bottom) {
+      super.onLayout(changed, left, top, right, bottom);
+      receiver.setBounds(0, 0, getWidth(), getHeight());
+    }
+
+    @Override
+    protected void onAttachedToWindow () {
+      super.onAttachedToWindow();
+      receiver.attach();
+    }
+
+    @Override
+    protected void onDetachedFromWindow () {
+      super.onDetachedFromWindow();
+      receiver.detach();
+    }
+
+    @Override
+    protected void onDraw (android.graphics.Canvas c) {
+      if (!receiver.needPlaceholder()) receiver.draw(c); // until the first frame the cover under it shows
+    }
+  }
+
   private static boolean isVisual (TdApi.Message m) {
     switch (m.content.getConstructor()) {
       case TdApi.MessagePhoto.CONSTRUCTOR:
@@ -2524,7 +2629,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       case TdApi.MessageVideoNote.CONSTRUCTOR:
         return "⏺ " + Lang.getString(R.string.Tgx101GazetaVideoNote);
       case TdApi.MessageSticker.CONSTRUCTOR:
-        return ((TdApi.MessageSticker) m.content).sticker.emoji;
+        return ""; // the sticker itself is drawn
       case TdApi.MessageLocation.CONSTRUCTOR:
       case TdApi.MessageVenue.CONSTRUCTOR:
         return "📍";
