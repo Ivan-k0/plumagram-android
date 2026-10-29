@@ -41,9 +41,10 @@ public final class Tgx101Peek {
   private static final String KEY_TITLE = "tgx101_peek_title";
   private static final String KEY_STYLE = "tgx101_peek_style";
 
-  /** (4PDA 2026-10-29 «на скудном устройстве тормозит, пока чат не открою — сделайте как секретный документ»): blur, or
-   *  black bars over the words and dark circles for the avatars — nothing for the GPU to work out, for weak phones */
-  public static final int STYLE_BLUR = 0, STYLE_BARS = 1;
+  /** (4PDA 2026-10-29 «на скудном устройстве тормозит, пока чат не открою»; user «наш лёгкий вид лучше»): blur, or the
+   *  light look — the stand-ins older phones draw anyway (plates over the lines, letters for the avatars), nothing for the
+   *  GPU to work out — on any phone */
+  public static final int STYLE_BLUR = 0, STYLE_LIGHT = 1;
 
   public static final int PART_AVATAR = 0, PART_TITLE = 1, PART_TEXT = 2;
 
@@ -152,8 +153,8 @@ public final class Tgx101Peek {
     return style;
   }
 
-  public static boolean bars () {
-    return style() == STYLE_BARS;
+  public static boolean light () {
+    return style() == STYLE_LIGHT;
   }
 
   public static void setStyle (int value) {
@@ -221,7 +222,7 @@ public final class Tgx101Peek {
     public void draw (Canvas c, int left, int top, int right, int bottom, int strength, Drawer drawer, Drawer standIn) {
       if (strength <= 0 || right <= left || bottom <= top) {
         drawer.draw(c);
-      } else if (!bars() && canBlur(c)) {
+      } else if (!light() && canBlur(c)) {
         if (gpu == null) gpu = new Gpu();
         gpu.draw(c, left, top, right, bottom, strength, drawer);
       } else {

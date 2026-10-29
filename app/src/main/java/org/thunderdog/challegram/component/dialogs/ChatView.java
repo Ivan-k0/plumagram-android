@@ -720,16 +720,8 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
   /** «Не подглядывай!» without blur: a rounded plate where a line of text is, as a hidden spoiler */
   private static void tgx101Plate (Canvas c, int left, int top, int right, int lineHeight) {
     if (right <= left) return;
-    RectF rect = Paints.getRectF();
-    if (org.thunderdog.challegram.data.Tgx101Peek.bars()) {
-      // «Чёрные полосы»: a redacted line of a document — a black bar the height of the letters
-      float inset = lineHeight * .1f;
-      rect.set(left, top + inset, right, top + lineHeight - inset);
-      float radius = Screen.dp(2f);
-      c.drawRoundRect(rect, radius, radius, Paints.fillingPaint(0xff000000));
-      return;
-    }
     float inset = lineHeight * .18f;
+    RectF rect = Paints.getRectF();
     rect.set(left, top + inset, right, top + lineHeight - inset);
     float radius = rect.height() / 2f;
     c.drawRoundRect(rect, radius, radius, Paints.fillingPaint(ColorUtils.alphaColor(.4f, Theme.textDecentColor())));
@@ -973,13 +965,8 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
       avatarReceiver.draw(cc);
       tgx101DrawStoryRing(cc);
     }, cc -> {
-      if (org.thunderdog.challegram.data.Tgx101Peek.bars()) {
-        // «Чёрные полосы»: the avatar blacked out too, no letters to tell the chat by
-        cc.drawCircle(avatarReceiver.centerX(), avatarReceiver.centerY(), avatarReceiver.getWidth() / 2f, Paints.fillingPaint(0xff000000));
-      } else {
-        // the chat's letters on its colour, as a chat with no photo (user 2026-10-22 «буквы пусть будут»)
-        tgx101PeekPlaceholder().draw(cc, avatarReceiver.centerX(), avatarReceiver.centerY(), 1f, avatarReceiver.getWidth() / 2f);
-      }
+      // the chat's letters on its colour, as a chat with no photo (user 2026-10-22 «буквы пусть будут»)
+      tgx101PeekPlaceholder().draw(cc, avatarReceiver.centerX(), avatarReceiver.centerY(), 1f, avatarReceiver.getWidth() / 2f);
       tgx101DrawStoryRing(cc);
     });
 
