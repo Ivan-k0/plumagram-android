@@ -299,6 +299,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       return this;
     }
 
+    /** TGx101: a stack set up outside (the «Газета» feed) that loads the chat's other media like a chat does */
+    public Args tgx101SetReverseMode (boolean reverseMode) {
+      this.reverseMode = reverseMode;
+      return this;
+    }
+
     public Args setForceThumbs (boolean forceThumbs) {
       this.forceThumbs = forceThumbs;
       return this;

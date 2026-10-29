@@ -428,6 +428,11 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       @Override
       public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
         markVisibleRead();
+        if (dy != 0) {
+          // (user 2026-10-29 «стрелка исчезает плавно, когда свайпаешь вниз»): back up the feed it goes, down it comes back
+          arrowScrollDy = (dy > 0) == (arrowScrollDy > 0) ? arrowScrollDy + dy : dy;
+          if (Math.abs(arrowScrollDy) > Screen.dp(12f)) arrowGoingDown = arrowScrollDy > 0;
+        }
         updateArrow();
         if (loaded && isFocused() && (headerAnimator == null || !headerAnimator.isRunning())) setHeaderHide(headerHide + dy);
         rememberPlace();
@@ -601,6 +606,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   private @Nullable FrameLayout arrowWrap;
   private @Nullable TextView arrowCounter;
   private boolean arrowShown;
+  private boolean arrowGoingDown = true;
+  private int arrowScrollDy;
 
   private final class UnreadMark extends RecyclerView.ItemDecoration {
     private final android.text.TextPaint paint = new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
@@ -691,7 +698,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   private void updateArrow () {
     if (arrowWrap == null || list == null) return;
-    boolean show = loaded && !posts.isEmpty() && list.canScrollVertically(1);
+    boolean show = loaded && !posts.isEmpty() && list.canScrollVertically(1) && arrowGoingDown;
     int count = show ? unreadCount() : 0;
     if (arrowCounter != null) {
       arrowCounter.setVisibility(count > 0 ? View.VISIBLE : View.GONE);
@@ -2170,9 +2177,13 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     stack.set(viewerIndex, items);
     // (user 2026-10-28 «сворачивание — супер плавным, как везде»): the viewer flies out of the picture and back into it
     viewerPost = post;
+    // (user 2026-10-29 «внутри плеера можно листать все медиа канала, как в каналах; при выходе — в газету на то же
+    // место»): the viewer is the chat's — it loads the channel's photos and videos on both sides of these, as in the channel
     org.thunderdog.challegram.mediaview.MediaViewController.Args args = new org.thunderdog.challegram.mediaview.MediaViewController.Args(this,
-      org.thunderdog.challegram.mediaview.MediaViewController.MODE_SIMPLE, this, null, null, stack);
-    args.setForceThumbs(items.size() > 1);
+      org.thunderdog.challegram.mediaview.MediaViewController.MODE_MESSAGES, this, null, null, stack);
+    args.tgx101SetReverseMode(stack.getReverseModeHint(true));
+    args.setFilter(new TdApi.SearchMessagesFilterPhotoAndVideo());
+    args.setForceThumbs(true);
     org.thunderdog.challegram.mediaview.MediaViewController viewer = new org.thunderdog.challegram.mediaview.MediaViewController(context(), tdlib);
     viewer.setArguments(args);
     viewer.open();
@@ -2207,7 +2218,9 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   @Override
   public org.thunderdog.challegram.mediaview.MediaViewThumbLocation getTargetLocation (int indexInStack, org.thunderdog.challegram.mediaview.data.MediaItem item) {
-    View target = viewerTarget();
+    int inPost = indexInPost(item);
+    if (inPost == -1) return null; // another post of the channel, swiped to in the viewer: no picture of it here
+    View target = viewerTarget(inPost);
     if (target == null || target.getWidth() == 0) return null;
     int[] loc = new int[2];
     target.getLocationInWindow(loc);
@@ -2230,7 +2243,20 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   @Override
   public void tgx101OnMediaFocused (int index, org.thunderdog.challegram.mediaview.data.MediaItem item) {
-    viewerIndex = index;
+    int inPost = indexInPost(item);
+    if (inPost != -1) viewerIndex = inPost;
+  }
+
+  /** the item's place among the opened post's pictures, -1 — not one of them (the viewer loads the channel's others) */
+  private int indexInPost (@Nullable org.thunderdog.challegram.mediaview.data.MediaItem item) {
+    if (viewerPost == null || item == null) return -1;
+    int i = 0;
+    for (TdApi.Message m : viewerPost.messages) {
+      if (!isVisual(m)) continue;
+      if (m.id == item.getSourceMessageId() && m.chatId == item.getSourceChatId()) return i;
+      i++;
+    }
+    return -1;
   }
 
   @Override
@@ -2238,7 +2264,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     if (isVisible) UI.post(this::tgx101MatchStatusIcons, 350); // the viewer has put its own icons back by then
     // (user video 2026-10-28 16:4x: two of four album photos stayed blank after the viewer) the cell of THIS item — the one
     // being shown now had already moved on when an album was swiped through, so the hidden cell was never given back
-    View target = viewerTarget(index);
+    int inPost = indexInPost(item);
+    View target = inPost != -1 ? viewerTarget(inPost) : null;
     if (target != null) target.setAlpha(isVisible ? 1f : 0f); // the picture's place is empty while it's in the viewer
   }
 
