@@ -2376,6 +2376,16 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     int inPost = indexInPost(item);
     View target = inPost != -1 ? viewerTarget(inPost) : null;
     if (target != null) target.setAlpha(isVisible ? 1f : 0f); // the picture's place is empty while it's in the viewer
+    // (user recording 2026-10-29 22:56: the viewer swiped on to another post's video and closed — the album's first cell
+    // stayed empty): whenever a picture comes back, every picture of the opened post is shown again
+    if (isVisible && viewerPost != null) {
+      int count = 0;
+      for (TdApi.Message m : viewerPost.messages) if (isVisual(m)) count++;
+      for (int i = 0; i < count; i++) {
+        View cell = viewerTarget(i);
+        if (cell != null && cell.getAlpha() != 1f) cell.setAlpha(1f);
+      }
+    }
   }
 
   /** the post's topic by Telegram's AI: its summary's key words (with the post's own most repeated ones) */

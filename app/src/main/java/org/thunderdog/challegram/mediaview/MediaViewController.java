@@ -4784,6 +4784,30 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     org.thunderdog.challegram.Tgx101Diag.mark("media viewer: closing " + (tgx101Item == null ? "nothing" : (tgx101Item.isVideo() ? "video" : "type " + tgx101Item.getType())
       + (tgx101Item.getSourceDocument() != null ? " file " + tgx101Item.getSourceDocument().mimeType + (tgx101Item.getSourceDocument().thumbnail != null ? " with thumbnail" : "") : ""))
       + (target == null ? ", fades" : ", into the post"));
+    if (target == null && delegate instanceof org.thunderdog.challegram.ui.Tgx101GazetaController && contentView != null) {
+      // (user 2026-10-29 «в газете — пусть просто растворяется аккуратно, без этих съездов вниз»): with no place to go
+      // back to, the viewer doesn't fly on off the screen — it dissolves where the finger let it go
+      final float fromAlpha = contentView.getAlpha();
+      android.animation.ValueAnimator fade = android.animation.ValueAnimator.ofFloat(1f, 0f);
+      fade.setDuration(220);
+      fade.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+      fade.addUpdateListener(a -> {
+        float f = (float) a.getAnimatedValue();
+        contentView.setAlpha(fromAlpha * f);
+        float scale = .94f + .06f * f;
+        mediaView.setScaleX(scale);
+        mediaView.setScaleY(scale);
+      });
+      fade.addListener(new android.animation.AnimatorListenerAdapter() {
+        @Override
+        public void onAnimationEnd (android.animation.Animator animation) {
+          if (!isDestroyed()) applySlide();
+        }
+      });
+      fade.start();
+      org.thunderdog.challegram.Tgx101Diag.mark("media viewer: gazeta — dissolves in place");
+      return true;
+    }
     if (target == null) return false;
     final float fromX = mediaView.getTranslationX(), fromY = mediaView.getTranslationY(), fromRotation = mediaView.getRotation();
     tgx101RevealAlphaScale = MathUtils.clamp(1f - dismissFactor);
