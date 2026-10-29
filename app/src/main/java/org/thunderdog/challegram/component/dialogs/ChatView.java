@@ -717,6 +717,18 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
     return tgx101Placeholder;
   }
 
+  // TGx101 (user video 2026-10-29 12:04: a chat row with an empty place for the avatar — no photo, no letters — until the
+  // app was restarted), test builds: what the row asked for when it draws nothing there, once per chat
+  private long tgx101AvatarReportedChatId;
+
+  private void tgx101CheckAvatar () {
+    if (chat == null || tgx101AvatarReportedChatId == chat.getChatId()) return;
+    boolean empty = avatarReceiver.isEmpty();
+    if (!empty && (chat.getAvatarPlaceholder() != null || avatarReceiver.getRequestedChatId() == chat.getChatId())) return;
+    tgx101AvatarReportedChatId = chat.getChatId();
+    org.thunderdog.challegram.Tgx101Diag.mark("chat row: avatar " + (empty ? "not asked for" : "asked for chat " + avatarReceiver.getRequestedChatId()) + " in row of chat " + chat.getChatId() + " (placeholder " + (chat.getAvatarPlaceholder() != null) + ")");
+  }
+
   /** «Не подглядывай!» without blur: a rounded plate where a line of text is, as a hidden spoiler */
   private static void tgx101Plate (Canvas c, int left, int top, int right, int lineHeight) {
     if (right <= left) return;
@@ -952,6 +964,7 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
     layoutReceiver();
     int spread = Screen.dp(10f);
     if (peekAvatar <= 0) {
+      if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) tgx101CheckAvatar();
       if (avatarReceiver.needPlaceholder()) {
         avatarReceiver.drawPlaceholder(c);
       }
