@@ -446,6 +446,23 @@ public class WatchDog {
 
   private void sendTGConnectionType (int type, boolean isOnline) {
     Log.w("sendTGConnectionType type:%d isOnline:%b inBackground:%b this.isOnline:%b", type, isOnline, inBackground, this.isOnline);
+    // TGx101 (user 2026-10-29 22:27–22:35 «плюма не видела вай фай»: on Wi‑Fi it stayed «Connecting» for 7 minutes, on
+    // mobile data it connected at once): what the system says of the network the app was moved to
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && android.os.Build.VERSION.SDK_INT >= 23) {
+      try {
+        ConnectivityManager cm = (ConnectivityManager) UI.getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        android.net.Network network = cm != null ? cm.getActiveNetwork() : null;
+        android.net.NetworkCapabilities caps = network != null ? cm.getNetworkCapabilities(network) : null;
+        org.thunderdog.challegram.Tgx101Diag.mark("network: " + (caps == null ? "none" :
+          (caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) ? "Wi‑Fi" : caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) ? "mobile" : "other")
+          + (caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN) ? " + VPN" : "")
+          + ", internet " + caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+          + ", checked by the system " + caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+          + (android.os.Build.VERSION.SDK_INT >= 28 && cm.getLinkProperties(network) != null && cm.getLinkProperties(network).isPrivateDnsActive() ? ", private DNS" : "")));
+      } catch (Throwable t) {
+        org.thunderdog.challegram.Tgx101Diag.mark("network: unknown (" + t.getClass().getSimpleName() + ")");
+      }
+    }
     TdApi.NetworkType networkType;
     if (isOnline) {
       switch (type) {
