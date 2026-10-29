@@ -774,9 +774,22 @@ public class TdlibMessageViewer {
         context.tdlib.send(new TdApi.ViewMessages(chatId, messageIds, messageSource, forceRead), (ok, error) -> {
           // (user 2026-10-29 21:12–21:15 «сообщения в темах не прочитываются»): what a topic's read asked and the answer
           if (messageSource.getConstructor() == TdApi.MessageSourceForumTopicHistory.CONSTRUCTOR) {
-            long max = 0;
-            for (long id : messageIds) max = Math.max(max, id);
+            long maxId = 0;
+            for (long id : messageIds) maxId = Math.max(maxId, id);
+            final long max = maxId;
             org.thunderdog.challegram.Tgx101Diag.mark("topic read: " + messageIds.length + " message(s) up to " + (max >> 20) + ", force " + forceRead + " → " + (error == null ? "ok" : TD.toErrorString(error)));
+            // what TDLib holds right after, and once the server had time to answer
+            context.tdlib.send(new TdApi.GetMessage(chatId, max), (message, messageError) -> {
+              if (message == null || !(message.topicId instanceof TdApi.MessageTopicForum)) {
+                org.thunderdog.challegram.Tgx101Diag.mark("topic read: message " + (max >> 20) + " has no forum topic (" + (message != null ? message.topicId : TD.toErrorString(messageError)) + ")");
+                return;
+              }
+              int topicId = ((TdApi.MessageTopicForum) message.topicId).forumTopicId;
+              Runnable check = () -> context.tdlib.send(new TdApi.GetForumTopic(chatId, topicId), (topic, topicError) ->
+                org.thunderdog.challegram.Tgx101Diag.mark("topic read: topic " + topicId + " now " + (topic != null ? "read up to " + (topic.lastReadInboxMessageId >> 20) + ", " + topic.unreadCount + " unread" : TD.toErrorString(topicError))));
+              check.run();
+              context.tdlib.ui().postDelayed(check, 3000);
+            });
           }
           if (after != null) {
             after.runWithBool(error == null);

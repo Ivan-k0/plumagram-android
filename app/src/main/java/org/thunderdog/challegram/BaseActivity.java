@@ -2048,12 +2048,14 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   // touches — the system didn't take them as back). A touch that starts at a side edge with gesture navigation tells
   // whether our back callback was on and which views keep the system's gesture away there
   private void tgx101LogEdgeTouch (MotionEvent ev) {
-    if (Build.VERSION.SDK_INT < 29 || !Screen.isGesturalNavigationEnabled(getResources())) return;
+    // (vivo: its own gestures — Android's navigation mode reads «buttons» even with gestures on, so it isn't asked)
+    if (Build.VERSION.SDK_INT < 29) return;
     View root = getWindow().getDecorView();
     float x = ev.getRawX();
     int edge = Screen.dp(24f);
     if (x > edge && x < root.getWidth() - edge) return;
     StringBuilder b = new StringBuilder("edge touch: ").append(x <= edge ? "left" : "right")
+      .append(", nav mode ").append(Screen.isGesturalNavigationEnabled(getResources()) ? "gestures" : "buttons")
       .append(" at y ").append(Math.round(ev.getRawY() / Screen.density())).append("dp, back callback ")
       .append(backPressedCallback.isEnabled() ? "on" : "OFF").append(" (mode ").append(handleOnBackPress(false, false)).append(")");
     int[] loc = new int[2];
