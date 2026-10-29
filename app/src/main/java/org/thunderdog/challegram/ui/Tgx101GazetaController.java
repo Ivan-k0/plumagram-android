@@ -99,7 +99,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     if (id == R.id.menu_tgx101Gazeta) {
       // (user 2026-10-28 «убери стрелку вообще»): no arrow in the header
       autoButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaAuto, autoIcon(autoScroll), 49f, this, getHeaderIconColorId());
-      translateButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaTranslate, translateFeed ? R.drawable.baseline_translate_off_24 : R.drawable.baseline_translate_24, 49f, this, getHeaderIconColorId());
+      translateButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaTranslate, translateFeed ? R.drawable.baseline_translate_24 : R.drawable.baseline_translate_off_24, 49f, this, getHeaderIconColorId());
       // ☀/☾ — the light or the dark look of the feed (user 2026-10-27: switched here, not in the settings)
       profileButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaProfile, profileIcon(), 49f, this, getHeaderIconColorId());
       settingsButton = header.addButton(menu, R.id.menu_btn_settings, R.drawable.baseline_settings_24, 49f, this, getHeaderIconColorId());
@@ -120,7 +120,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   private void setTranslateFeed (boolean on) {
     translateFeed = on;
     org.thunderdog.challegram.Tgx101Diag.mark("gazeta: translate the feed " + (on ? "on → " + tgx101TranslateTo() : "off"));
-    if (translateButton != null) translateButton.setImageResource(on ? R.drawable.baseline_translate_off_24 : R.drawable.baseline_translate_24);
+    if (translateButton != null) translateButton.setImageResource(on ? R.drawable.baseline_translate_24 : R.drawable.baseline_translate_off_24);
     tintHeaderButtons();
     adapter.notifyDataSetChanged();
   }
