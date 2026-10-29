@@ -996,12 +996,14 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   }
 
   /** a post's text that draws the dust over its hidden words */
-  private static final class SpoilerText extends TextView {
+  // (user 2026-10-29 «анимации, что отображаются в текстах постов, не прикручены — только оболочки»): a plain TextView
+  // showed a post's emoji from packs as empty shells; the text is now drawn by the app's own text view that plays them
+  private static final class SpoilerText extends org.thunderdog.challegram.widget.CustomEmojiTextView {
     private final android.graphics.Path path = new android.graphics.Path();
     private final android.graphics.RectF bounds = new android.graphics.RectF();
 
-    SpoilerText (Context context) {
-      super(context);
+    SpoilerText (Context context, Tdlib tdlib) {
+      super(context, tdlib);
     }
 
     @Override
@@ -1244,7 +1246,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       LinearLayout row = new LinearLayout(context);
       row.setOrientation(HORIZONTAL);
       row.setPadding(pad, Screen.dp(8f), pad, 0);
-      body = new SpoilerText(context);
+      body = new SpoilerText(context, tdlib);
       styleText(body, 15f, false);
       body.setLineSpacing(Screen.dp(2f), 1f);
       row.addView(body, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -1267,7 +1269,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       thp.leftMargin = Screen.dp(THUMB_GAP);
       row.addView(thumbWrap, thp);
       addView(row);
-      bodyBelow = new SpoilerText(context);
+      bodyBelow = new SpoilerText(context, tdlib);
       styleText(bodyBelow, 15f, false);
       bodyBelow.setLineSpacing(Screen.dp(2f), 1f);
       bodyBelow.setPadding(pad, Screen.dp(2f), pad, 0);
@@ -1676,16 +1678,30 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     private final android.text.TextPaint textPaint = new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
     private final android.graphics.RectF rect = new android.graphics.RectF();
 
+    private Runnable tgx101Retry;
+
     ReactionChip (Context context) {
       super(context);
       receiver = new org.thunderdog.challegram.loader.ImageReceiver(this, 0);
       textPaint.setTypeface(Fonts.getRobotoRegular());
     }
 
+    private int tgx101Tries;
+
     void set (Tdlib tdlib, TdApi.ReactionType type, String count, boolean chosen) {
       this.count = count;
       this.chosen = chosen;
       org.thunderdog.challegram.data.TGReaction reaction = tdlib.getReaction(type);
+      // (user 2026-10-29 «реакции из наборов не видны»): a reaction from a pack is loaded on request — it came after the
+      // chip was drawn with a stand-in heart and was never put in; the chip asks again until it has it
+      removeCallbacks(tgx101Retry);
+      if (reaction == null && type.getConstructor() == TdApi.ReactionTypeCustomEmoji.CONSTRUCTOR && tgx101Tries < 10) {
+        tgx101Tries++;
+        tgx101Retry = () -> set(tdlib, type, this.count, this.chosen);
+        postDelayed(tgx101Retry, 400);
+      } else if (reaction != null) {
+        tgx101Tries = 0;
+      }
       org.thunderdog.challegram.component.sticker.TGStickerObj sticker = reaction != null ? reaction.staticCenterAnimationSicker() : null;
       org.thunderdog.challegram.loader.ImageFile image = sticker != null ? sticker.getImage() : null;
       fallback = image == null ? (type.getConstructor() == TdApi.ReactionTypeEmoji.CONSTRUCTOR ? ((TdApi.ReactionTypeEmoji) type).emoji : type.getConstructor() == TdApi.ReactionTypePaid.CONSTRUCTOR ? "⭐" : "❤") : null;
@@ -1757,8 +1773,19 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       receiver = new org.thunderdog.challegram.loader.ImageReceiver(this, 0);
     }
 
+    private int tgx101Tries;
+    private Runnable tgx101Retry;
+
     void set (Tdlib tdlib, TdApi.ReactionType type) {
       org.thunderdog.challegram.data.TGReaction reaction = tdlib.getReaction(type);
+      removeCallbacks(tgx101Retry);
+      if (reaction == null && type.getConstructor() == TdApi.ReactionTypeCustomEmoji.CONSTRUCTOR && tgx101Tries < 10) {
+        tgx101Tries++;
+        tgx101Retry = () -> set(tdlib, type);
+        postDelayed(tgx101Retry, 400); // a reaction from a pack comes a moment later (see ReactionChip)
+      } else if (reaction != null) {
+        tgx101Tries = 0;
+      }
       org.thunderdog.challegram.component.sticker.TGStickerObj sticker = reaction != null ? reaction.staticCenterAnimationSicker() : null;
       org.thunderdog.challegram.loader.ImageFile image = sticker != null ? sticker.getImage() : null;
       fallback = image == null ? (type.getConstructor() == TdApi.ReactionTypeEmoji.CONSTRUCTOR ? ((TdApi.ReactionTypeEmoji) type).emoji : type.getConstructor() == TdApi.ReactionTypePaid.CONSTRUCTOR ? "⭐" : "❤") : null;
