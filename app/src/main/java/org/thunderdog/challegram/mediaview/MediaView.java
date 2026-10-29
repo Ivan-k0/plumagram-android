@@ -835,7 +835,22 @@ public class MediaView extends FrameLayoutFix {
 
   private final Runnable gLongPress = () -> {
     if (gState != G_PENDING || !baseCell.tgx101CanGesture()) return;
-    boolean leftHalf = gDownX < getMeasuredWidth() / 2f;
+    // (user 2026-10-29 18:27 «удержание пальца в центре видео — ускорение 2×»): a hold in the middle third plays at 2×
+    // while the finger stays; the outer thirds keep brightness / volume
+    float width = getMeasuredWidth();
+    if (gDownX > width / 3f && gDownX < width * 2f / 3f) {
+      if (!gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_SPEED) || !tgx101IsVideo()) return;
+      gState = G_SPEED;
+      gSavedSpeed = baseCell.tgx101GetSpeed();
+      baseCell.tgx101SetSpeed(2f);
+      org.thunderdog.challegram.Tgx101Diag.mark("player: hold in the middle → 2× (was " + gSavedSpeed + "×)");
+      if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true); // no swipe-to-close while held
+      cancelChildren();
+      showHud("2× ▸▸", null);
+      org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
+      return;
+    }
+    boolean leftHalf = gDownX < width / 2f;
     boolean on = leftHalf ? gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_BRIGHTNESS) : gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_VOLUME);
     if (!on) return;
     gState = G_ARMED;
@@ -950,6 +965,7 @@ public class MediaView extends FrameLayoutFix {
       case MotionEvent.ACTION_MOVE: {
         if (gState == G_NONE) return false;
         float dx = e.getX() - gDownX, dy = e.getY() - gDownY;
+        if (gState == G_SPEED) return true; // held at 2×: moving the finger does nothing else
         if (gState == G_ARMED) {
           if (Math.abs(dy) < Screen.getTouchSlop()) return true;
           if (gDownX < getMeasuredWidth() / 2f) {
@@ -1007,7 +1023,7 @@ public class MediaView extends FrameLayoutFix {
         removeCallbacks(gLongPress);
         int state = gState;
         gState = G_NONE;
-        if (state == G_ARMED || state == G_BRIGHTNESS || state == G_VOLUME) {
+        if (state == G_ARMED || state == G_BRIGHTNESS || state == G_VOLUME || state == G_SPEED) {
           // the viewer keeps its own copy of the flag; without this, swipe-to-close stayed off after a hold
           if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
         }

@@ -4544,9 +4544,10 @@ public class Settings {
 
   public static final int GESTURE_SEEK = 1, GESTURE_BRIGHTNESS = 2, GESTURE_VOLUME = 3, GESTURE_SPEED = 4;
 
-  /** TGx101: one player gesture — seek / brightness / volume swipes, hold for 2× — each off by default */
+  /** TGx101: one player gesture — seek / brightness / volume swipes (off by default), hold for 2× (on by default) */
   public boolean tgx101PlayerGesture (int gesture) {
-    return pmc.getBoolean(KEY_TGX101_PLAYER_GESTURES + "_" + gesture, false);
+    // (user 2026-10-29 «удержание в центре видео — 2×»): the hold for 2× is on unless switched off, the others stay off
+    return pmc.getBoolean(KEY_TGX101_PLAYER_GESTURES + "_" + gesture, gesture == GESTURE_SPEED);
   }
 
   public void setTgx101PlayerGesture (int gesture, boolean value) {
