@@ -45,7 +45,8 @@ public final class Tgx101Gazeta {
   /** posts of one channel taken at most, unread ones; and how many read ones stand above them */
   static final int MAX_UNREAD_PER_CHANNEL = 40, READ_CONTEXT = 3;
 
-  public static final int PHOTOS_AS_IS = 0, PHOTOS_THUMB = 1;
+  // PHOTOS_PAPER (user 2026-10-29, mockup «Газета»): margins around pictures, one photo beside a longer text — the default
+  public static final int PHOTOS_AS_IS = 0, PHOTOS_THUMB = 1, PHOTOS_PAPER = 2;
 
   private static String key (Tdlib tdlib, String name) {
     return "tgx101_gazeta_" + name + "_" + tdlib.id();
@@ -93,7 +94,7 @@ public final class Tgx101Gazeta {
   }
 
   public static int photos () {
-    return Settings.instance().pmc().getInt(pkey("photos"), PHOTOS_AS_IS);
+    return Settings.instance().pmc().getInt(pkey("photos"), PHOTOS_PAPER);
   }
 
   public static void setPhotos (int value) {

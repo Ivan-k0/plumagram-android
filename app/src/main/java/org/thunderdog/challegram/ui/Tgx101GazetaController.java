@@ -1331,6 +1331,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     final ImageView commentsIcon, commentsArrow;
     final View commentsLine;
     final FrameLayout media, thumbWrap;
+    GradientDrawable mediaRound;
+    int thumbW, thumbH; // the picture beside the text: the small thumbnail, or a photo beside a longer text
     final ImageView mediaImage, thumbImage;
     final TextView mediaBadge, mediaCount, thumbBadge;
     final android.graphics.drawable.Drawable eye;
@@ -1449,7 +1451,12 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       mosaic.setOrientation(HORIZONTAL);
       mosaic.setVisibility(GONE);
       media.addView(mosaic, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-      addView(media, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0));
+      // (user 2026-10-29, mockup «Газета»: «не на всю ширину, даже видео — нужны приятные отступы»): pictures, videos and
+      // albums keep the text's side margins and round corners
+      mediaRound = new GradientDrawable();
+      mediaRound.setCornerRadius(Screen.dp(10f));
+      mediaRound.setColor(0x22000000);
+      addView(media, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0)); // margins and corners: bind, by the «Photos» look
       // (user 2026-10-29 «посмотри, как выглядят стикеры у нас»): a sticker post showed only its emoji as text — now the
       // sticker itself, moving as in the channel
       stickerView = new org.thunderdog.challegram.component.sticker.StickerSmallView(context, 0) {
@@ -1724,7 +1731,34 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         mediaImage.setImageDrawable(thumbImage.getDrawable());
       }
       int width = list != null && list.getWidth() > 0 ? list.getWidth() : Screen.currentWidth();
-      boolean withThumb = visual != null && thumbs;
+      boolean paper = Tgx101Gazeta.photos() == Tgx101Gazeta.PHOTOS_PAPER;
+      int inner = paper ? width - pad * 2 : width; // in «Paper» pictures keep the text's margins
+      // (mockup «Газета», user 2026-10-29): one photo with a text of a few lines stands beside the text, as in a paper;
+      // videos, albums and a photo alone take the width between the margins
+      boolean side = paper && visual != null && visuals == 1 && !isVideo(visual) && str != null && str.length() >= SIDE_MIN_TEXT;
+      boolean withThumb = visual != null && (thumbs || side);
+      if (side) {
+        int[] ps = sizeOf(visual);
+        thumbW = Math.min(Screen.dp(SIDE_WIDTH), (int) (inner * .38f));
+        float ratio = ps[0] > 0 && ps[1] > 0 ? ps[1] / (float) ps[0] : 1f;
+        thumbH = (int) (thumbW * Math.max(.75f, Math.min(1.3f, ratio)));
+      } else {
+        thumbW = thumbH = Screen.dp(THUMB);
+      }
+      LinearLayout.LayoutParams mlp = (LinearLayout.LayoutParams) media.getLayoutParams();
+      int margin = paper ? pad : 0;
+      if (mlp.leftMargin != margin) {
+        mlp.leftMargin = mlp.rightMargin = margin;
+        media.setLayoutParams(mlp);
+      }
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) media.setClipToOutline(paper);
+      media.setBackground(paper ? mediaRound : null);
+      LinearLayout.LayoutParams thp = (LinearLayout.LayoutParams) thumbWrap.getLayoutParams();
+      if (thp.width != thumbW || thp.height != thumbH) {
+        thp.width = thumbW;
+        thp.height = thumbH;
+        thumbWrap.setLayoutParams(thp);
+      }
       TdApi.Message stickerMessage = null;
       for (TdApi.Message m : post.messages) if (m.content.getConstructor() == TdApi.MessageSticker.CONSTRUCTOR) { stickerMessage = m; break; }
       if (stickerMessage != null && !sample) {
@@ -1742,19 +1776,20 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       if (visual == null) {
         media.setVisibility(GONE);
         thumbWrap.setVisibility(GONE);
-      } else if (thumbs) {
+      } else if (thumbs || side) {
         media.setVisibility(GONE);
         thumbWrap.setVisibility(VISIBLE);
-        String badgeText = extra > 0 ? "+" + extra : isVideo(visual) ? "▶" : null;
+        String badgeText = side ? null : extra > 0 ? "+" + extra : isVideo(visual) ? "▶" : null;
         thumbBadge.setText(badgeText);
         thumbBadge.setVisibility(badgeText != null ? VISIBLE : GONE);
-        if (!sameImage || thumbImage.getDrawable() == null) loadImage(visual, thumbImage, token, Screen.dp(THUMB));
+        if (!sameImage || thumbImage.getDrawable() == null) loadImage(visual, thumbImage, token, thumbW);
       } else {
         thumbWrap.setVisibility(GONE);
         media.setVisibility(VISIBLE);
         int[] size = sizeOf(visual);
-        int height = size[0] > 0 && size[1] > 0 ? (int) ((long) width * size[1] / size[0]) : width * 9 / 16;
-        height = Math.max(Screen.dp(120f), Math.min(height, (int) (Screen.currentHeight() * .6f)));
+        int height = size[0] > 0 && size[1] > 0 ? (int) ((long) inner * size[1] / size[0]) : inner * 9 / 16;
+        // a tall picture no taller than 5:4 of the width (it took up to 60 % of the screen)
+        height = Math.max(Screen.dp(120f), Math.min(height, paper ? Math.min(inner * 5 / 4, (int) (Screen.currentHeight() * .6f)) : (int) (Screen.currentHeight() * .6f)));
         LinearLayout.LayoutParams mp = (LinearLayout.LayoutParams) media.getLayoutParams();
         mp.height = height;
         media.setLayoutParams(mp);
@@ -1768,11 +1803,11 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         mediaImage.setVisibility(many ? GONE : VISIBLE);
         if (many) {
           // the album in its cells; its height as a channel's album — about three quarters of the width
-          mp.height = (int) (width * (visualList.size() == 2 ? .62f : .78f));
+          mp.height = (int) (inner * (visualList.size() == 2 ? .62f : .78f));
           media.setLayoutParams(mp);
           mediaBadge.setVisibility(GONE);
           mediaCount.setVisibility(GONE);
-          if (!sameImage || mosaicCells.size() != Math.min(4, visualList.size())) layoutMosaic(visualList, width, token);
+          if (!sameImage || mosaicCells.size() != Math.min(4, visualList.size())) layoutMosaic(visualList, inner, token);
           else for (ImageView cell : mosaicCells) {
             cell.setColorFilter(filter);
             if (viewerPost != post) cell.setAlpha(1f); // a cell left hidden by the viewer never stays blank
@@ -1780,7 +1815,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         } else {
           mediaCount.setText(extra > 0 ? "+" + extra : null);
           mediaCount.setVisibility(extra > 0 ? VISIBLE : GONE);
-          if (!sameImage || mediaImage.getDrawable() == null) loadImage(visual, mediaImage, token, width);
+          if (!sameImage || mediaImage.getDrawable() == null) loadImage(visual, mediaImage, token, inner);
         }
       }
       // (user 2026-10-29 «автовоспроизведение видео тоже нужно», as in channels): a video or a GIF plays by itself, without
@@ -1800,11 +1835,11 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       CharSequence top = str, below = null;
       int topLines = 0;
       if (hasText && withThumb) {
-        int besideWidth = fullWidth - Screen.dp(THUMB + THUMB_GAP);
+        int besideWidth = fullWidth - thumbW - Screen.dp(THUMB_GAP);
         android.text.StaticLayout layout = new android.text.StaticLayout(str, body.getPaint(), Math.max(1, besideWidth), android.text.Layout.Alignment.ALIGN_NORMAL,
           body.getLineSpacingMultiplier(), body.getLineSpacingExtra(), true);
         int lineHeight = Math.max(1, layout.getHeight() / Math.max(1, layout.getLineCount()));
-        int fit = Math.max(1, (int) Math.ceil(Screen.dp(THUMB) / (float) lineHeight));
+        int fit = Math.max(1, (int) Math.ceil(thumbH / (float) lineHeight));
         if (layout.getLineCount() > fit) {
           int end = layout.getLineEnd(fit - 1);
           top = str.subSequence(0, end);
@@ -1824,7 +1859,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       bodyBelow.setVisibility(below != null && below.length() > 0 ? VISIBLE : GONE);
       bodyBelow.setText(below);
       bodyBelow.setMaxLines(maxLines == Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.max(1, maxLines - topLines));
-      int total = below != null ? topLines + lineCount(below, bodyBelow, fullWidth) : lineCount(str, body, withThumb ? fullWidth - Screen.dp(THUMB + THUMB_GAP) : fullWidth);
+      int total = below != null ? topLines + lineCount(below, bodyBelow, fullWidth) : lineCount(str, body, withThumb ? fullWidth - thumbW - Screen.dp(THUMB_GAP) : fullWidth);
       boolean cut = maxLines != Integer.MAX_VALUE && total > maxLines;
       boolean summarizable = summarizable(main);
       boolean shortInstead = false; // «Short» is the sign top right; under a folded post — always «Show in full»
@@ -1915,7 +1950,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     }
   }
 
-  private static final float THUMB = 58f, THUMB_GAP = 10f;
+  private static final float THUMB = 58f, THUMB_GAP = 10f, SIDE_WIDTH = 130f;
+  private static final int SIDE_MIN_TEXT = 80; // a photo goes beside a text of about two lines or more
 
   /**
    * (user 2026-10-28, screenshots of a channel and of the feed side by side): a reaction drawn as TGReactions draws it

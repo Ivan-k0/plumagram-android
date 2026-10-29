@@ -81,7 +81,7 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
         if (id == R.id.btn_tgx101GazetaColor) {
           view.setData(Lang.getString(paletteNames()[Tgx101Gazeta.paletteIndex()]));
         } else if (id == R.id.btn_tgx101GazetaPhotos) {
-          view.setData(Lang.getString(Tgx101Gazeta.photos() == Tgx101Gazeta.PHOTOS_THUMB ? R.string.Tgx101GazetaPhotosThumb : R.string.Tgx101GazetaPhotosAsIs));
+          view.setData(Lang.getString(Tgx101Gazeta.photos() == Tgx101Gazeta.PHOTOS_THUMB ? R.string.Tgx101GazetaPhotosThumb : Tgx101Gazeta.photos() == Tgx101Gazeta.PHOTOS_PAPER ? R.string.Tgx101GazetaPhotosPaper : R.string.Tgx101GazetaPhotosAsIs));
         } else if (id == R.id.btn_tgx101GazetaPicture) {
           view.setData(pictureName());
         } else if (id == R.id.btn_tgx101GazetaFold) {
@@ -193,8 +193,8 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
         adapter.updateValuedSettingById(id);
       });
     } else if (id == R.id.btn_tgx101GazetaPhotos) {
-      choose(R.string.Tgx101GazetaPhotos, new String[] {Lang.getString(R.string.Tgx101GazetaPhotosAsIs), Lang.getString(R.string.Tgx101GazetaPhotosThumb)}, Tgx101Gazeta.photos(), which -> {
-        Tgx101Gazeta.setPhotos(which == 1 ? Tgx101Gazeta.PHOTOS_THUMB : Tgx101Gazeta.PHOTOS_AS_IS);
+      choose(R.string.Tgx101GazetaPhotos, new String[] {Lang.getString(R.string.Tgx101GazetaPhotosAsIs), Lang.getString(R.string.Tgx101GazetaPhotosThumb), Lang.getString(R.string.Tgx101GazetaPhotosPaper)}, Tgx101Gazeta.photos(), which -> {
+        Tgx101Gazeta.setPhotos(which == 2 ? Tgx101Gazeta.PHOTOS_PAPER : which == 1 ? Tgx101Gazeta.PHOTOS_THUMB : Tgx101Gazeta.PHOTOS_AS_IS);
         adapter.updateValuedSettingById(id);
       });
     } else if (id == R.id.btn_tgx101GazetaPicture) {

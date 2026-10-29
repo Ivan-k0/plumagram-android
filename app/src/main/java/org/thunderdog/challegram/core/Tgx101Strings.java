@@ -81,7 +81,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101GazetaVideoNote, "Видеосообщение");
     RU.put(R.string.Tgx101GazetaSettings, "Газета");
     RU.put(R.string.Tgx101GazetaPhotos, "Фото в постах");
-    RU.put(R.string.Tgx101GazetaPhotosAsIs, "Как есть");
+    RU.put(R.string.Tgx101GazetaPhotosAsIs, "Во всю ширину");
+    RU.put(R.string.Tgx101GazetaPhotosPaper, "Газета: с отступами, фото у текста");
     RU.put(R.string.Tgx101GazetaPhotosThumb, "Миниатюра справа");
     RU.put(R.string.Tgx101GazetaFold, "Длинные посты");
     RU.put(R.string.Tgx101GazetaArchive, "Каналы из архива");
