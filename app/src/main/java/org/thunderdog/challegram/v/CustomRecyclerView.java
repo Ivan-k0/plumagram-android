@@ -133,7 +133,11 @@ public class CustomRecyclerView extends RecyclerView implements Animated {
       if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
         tgx101DownX = e.getX();
         tgx101DownY = e.getY();
-        if (tgx101ReleaseStretch() | getScrollState() == SCROLL_STATE_SETTLING) {
+        // (user video 2026-10-29 12:17, «Новый опрос»: the question field took no tap): a list left stretched at its edge
+        // swallowed every touch to «stop» — a short screen that never settles took no taps at all. A stretch is let go
+        // without taking the touch; only a list really moving keeps the finger for itself
+        tgx101ReleaseStretch();
+        if (getScrollState() == SCROLL_STATE_SETTLING) {
           stopScroll();
           super.onInterceptTouchEvent(e);
           if (getScrollState() == SCROLL_STATE_DRAGGING) {

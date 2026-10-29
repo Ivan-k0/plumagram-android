@@ -445,6 +445,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   public void prepareShowAnimation () {
     if (!Settings.instance().tgx101PlayerKeepSpeed() && Settings.instance().tgx101PlayerSpeed() != 1f) {
       Settings.instance().setTgx101PlayerSpeed(1f); // TGx101: «don't keep the speed» — each viewer starts at 1×
+      if (videoSliderView != null) videoSliderView.setTgx101Speed(1f);
     }
     revealAnimator = new FactorAnimator(ANIMATOR_REVEAL, this, AnimatorUtils.DECELERATE_INTERPOLATOR, REVEAL_ANIMATION_DURATION);
     setLowProfile(true);
@@ -4461,6 +4462,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         tgx101SpeedItem = item;
       }
       mediaView.tgx101SetSpeed(Settings.instance().tgx101PlayerSpeed()); // TGx101: the remembered speed
+      // (user 2026-10-29 13:55 «скорость внизу показывает последнюю, хотя играет 1×»): the chip was made before the viewer
+      // put the speed back to 1× and kept the old number — it shows what plays now
+      if (videoSliderView != null) videoSliderView.setTgx101Speed(Settings.instance().tgx101PlayerSpeed());
     }
     if (videoSliderView != null) {
       videoSliderView.setIsPlaying(isPlaying, videoFactor > 0f);
