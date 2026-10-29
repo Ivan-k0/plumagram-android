@@ -3763,6 +3763,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       org.thunderdog.challegram.Tgx101Diag.mark("player settings: speed " + speed + "×");
       Settings.instance().setTgx101PlayerSpeed(speed);
       mediaView.tgx101SetSpeed(speed);
+      tgx101SpeedItem = stack.getCurrent(); // the speed belongs to this video: the next one starts at 1× unless it is kept
       if (videoSliderView != null) videoSliderView.setTgx101Speed(speed);
       tgx101RefreshSettings();
       return true;
@@ -4014,6 +4015,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         org.thunderdog.challegram.Tgx101Diag.mark("player: speed " + speed + "×");
         Settings.instance().setTgx101PlayerSpeed(speed);
         mediaView.tgx101SetSpeed(speed);
+        tgx101SpeedItem = stack.getCurrent(); // the speed belongs to this video: the next one starts at 1× unless it is kept
         if (videoSliderView != null) videoSliderView.setTgx101Speed(speed);
         tgx101CloseSpeedPopup();
       });
@@ -4150,6 +4152,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             org.thunderdog.challegram.Tgx101Diag.mark("player settings: speed " + speed + "×");
             settings.setTgx101PlayerSpeed(speed);
             mediaView.tgx101SetSpeed(speed);
+            tgx101SpeedItem = stack.getCurrent(); // the speed belongs to this video: the next one starts at 1× unless it is kept
             if (videoSliderView != null) videoSliderView.setTgx101Speed(speed);
             tgx101SettingsPage = PAGE_MAIN;
             tgx101RefreshSettings();
@@ -4448,7 +4451,13 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     if (isPlaying && mode == MODE_MESSAGES) {
       // (user 2026-10-28 10:30): with «Remember speed» off, the next video swiped to starts at 1× too, not only a new viewer
       if (item != tgx101SpeedItem) {
-        if (tgx101SpeedItem != null && !Settings.instance().tgx101PlayerKeepSpeed()) Settings.instance().setTgx101PlayerSpeed(1f);
+        // (user video 2026-10-29 09:09 «скорость не сбрасывается»): the speed set on a video left paused never counted —
+        // that video never played, so the next one took its speed; the speed now belongs to the video it was set on
+        if (tgx101SpeedItem != null && !Settings.instance().tgx101PlayerKeepSpeed() && Settings.instance().tgx101PlayerSpeed() != 1f) {
+          Settings.instance().setTgx101PlayerSpeed(1f);
+          if (videoSliderView != null) videoSliderView.setTgx101Speed(1f);
+          org.thunderdog.challegram.Tgx101Diag.mark("player: next video, speed back to 1×");
+        }
         tgx101SpeedItem = item;
       }
       mediaView.tgx101SetSpeed(Settings.instance().tgx101PlayerSpeed()); // TGx101: the remembered speed
