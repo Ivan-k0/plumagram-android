@@ -63,6 +63,11 @@ public class SliderView extends View implements FactorAnimator.Target {
   private float secondaryValue, secondaryValueOffset; // -1f..0f -- left to center, 0..1f -- center to right
 
   public void setValue (float value) {
+    if (isUp && tgx101TapToSeek) {
+      // (user video 2026-10-29 09:25 «перемотка не всегда с первого раза»): while the finger is on the bar the player's
+      // ticks put the thumb back where the video was — a quick tap then let go at the old place and nothing moved
+      return;
+    }
     if (this.value != value) {
       this.value = value;
       invalidate();
