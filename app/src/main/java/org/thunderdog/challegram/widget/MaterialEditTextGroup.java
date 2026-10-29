@@ -367,6 +367,7 @@ public class MaterialEditTextGroup extends FrameLayoutFix implements View.OnFocu
         }
       });
       checkboxView.setAlpha(0f);
+      checkboxView.setVisibility(View.INVISIBLE); // hidden until shown (see setRadioVisibility)
       ((ViewGroup) getParent()).addView(checkboxView);
 
       checkboxVisible = new BoolAnimator(ANIMATOR_RADIO_VISIBILITY, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 180l);
@@ -376,6 +377,9 @@ public class MaterialEditTextGroup extends FrameLayoutFix implements View.OnFocu
 
   private void setRadioVisibility (float factor) {
     checkboxView.setAlpha(factor);
+    // TGx101 (user 2026-10-29 «поле в опросе: тап срабатывает только на слове "вопроса"»): the hidden quiz checkbox, 56 dp
+    // at the field's left, stayed clickable at alpha 0 and took the taps there; hidden, it lets them through to the field
+    checkboxView.setVisibility(factor == 0f ? View.INVISIBLE : View.VISIBLE);
     checkboxView.setTranslationX(-Screen.dp(40f) * (1f - factor));
     editText.setTranslationX(Screen.dp(40f) * factor);
     if (radioTooltip != null) {
