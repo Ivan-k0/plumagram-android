@@ -7470,6 +7470,7 @@
   <string name="Tgx101GazetaSettings">Gazeta</string>
   <string name="Tgx101GazetaPhotos">Photos in posts</string>
   <string name="Tgx101GazetaPhotosAsIs">Full width</string>
+  <string name="Tgx101GazetaPhotosPaperShort">Paper</string>
   <string name="Tgx101GazetaPhotosPaper">Paper: margins, photo beside the text</string>
   <string name="Tgx101GazetaPhotosThumb">Thumbnail on the right</string>
   <string name="Tgx101GazetaFold">Long posts</string>

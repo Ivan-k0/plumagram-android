@@ -421,6 +421,11 @@ public class Tgx101GazetaLookController extends ViewController<Void> implements 
     psp.topMargin = Screen.dp(10f);
     pics.addView(pictureSample, psp);
     LinearLayout photos = chipRow(context);
+    // (user 2026-10-29 «нема там газеты»): the «Paper» look is chosen here too, first
+    addChip(photos, chip(context, Lang.getString(R.string.Tgx101GazetaPhotosPaperShort), Tgx101Gazeta.photos() == Tgx101Gazeta.PHOTOS_PAPER, v -> {
+      Tgx101Gazeta.setPhotos(Tgx101Gazeta.PHOTOS_PAPER);
+      rebuild();
+    }));
     addChip(photos, chip(context, Lang.getString(R.string.Tgx101GazetaPhotosAsIs), Tgx101Gazeta.photos() == Tgx101Gazeta.PHOTOS_AS_IS, v -> {
       Tgx101Gazeta.setPhotos(Tgx101Gazeta.PHOTOS_AS_IS);
       rebuild();
