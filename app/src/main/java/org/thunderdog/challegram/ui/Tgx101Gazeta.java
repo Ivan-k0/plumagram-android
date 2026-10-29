@@ -439,6 +439,10 @@ public final class Tgx101Gazeta {
     // the AI summary («✨ Short»)
     public @Nullable TdApi.FormattedText summary;
     public boolean summaryShown, summaryLoading;
+    // (user 2026-10-29 «в газете кнопка вверху — перевод всей ленты»): the post's text in the reading language
+    public @Nullable TdApi.FormattedText translated;
+    public @Nullable String translatedTo;
+    public boolean translating;
 
     Post (long chatId) {
       this.chatId = chatId;

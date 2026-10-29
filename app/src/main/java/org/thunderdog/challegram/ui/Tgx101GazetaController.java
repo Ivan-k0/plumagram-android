@@ -99,6 +99,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     if (id == R.id.menu_tgx101Gazeta) {
       // (user 2026-10-28 «убери стрелку вообще»): no arrow in the header
       autoButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaAuto, autoIcon(autoScroll), 49f, this, getHeaderIconColorId());
+      translateButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaTranslate, translateFeed ? R.drawable.baseline_translate_off_24 : R.drawable.baseline_translate_24, 49f, this, getHeaderIconColorId());
       // ☀/☾ — the light or the dark look of the feed (user 2026-10-27: switched here, not in the settings)
       profileButton = header.addButton(menu, R.id.menu_btn_tgx101GazetaProfile, profileIcon(), 49f, this, getHeaderIconColorId());
       settingsButton = header.addButton(menu, R.id.menu_btn_settings, R.drawable.baseline_settings_24, 49f, this, getHeaderIconColorId());
@@ -106,7 +107,45 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     }
   }
 
-  private @Nullable org.thunderdog.challegram.navigation.HeaderButton profileButton, settingsButton;
+  private @Nullable org.thunderdog.challegram.navigation.HeaderButton profileButton, settingsButton, translateButton;
+
+  // (user 2026-10-29 11:20 «кнопка вверху — перевод всей ленты»; the post menu keeps no such item): the whole feed in the
+  // reading language — each post asked for as it comes on screen, kept with the post; the button again shows the originals
+  private boolean translateFeed;
+
+  private static String tgx101TranslateTo () {
+    return Lang.getDefaultLanguageToTranslateV2(null);
+  }
+
+  private void setTranslateFeed (boolean on) {
+    translateFeed = on;
+    org.thunderdog.challegram.Tgx101Diag.mark("gazeta: translate the feed " + (on ? "on → " + tgx101TranslateTo() : "off"));
+    if (translateButton != null) translateButton.setImageResource(on ? R.drawable.baseline_translate_off_24 : R.drawable.baseline_translate_24);
+    tintHeaderButtons();
+    adapter.notifyDataSetChanged();
+  }
+
+  /** The text to show for this post: its translation when the feed is translated and it has come, else the original */
+  private TdApi.FormattedText tgx101TextFor (Tgx101Gazeta.Post post, TdApi.FormattedText original) {
+    if (!translateFeed || original == null || Td.isEmpty(original)) return original;
+    String to = tgx101TranslateTo();
+    if (post.translated != null && to.equals(post.translatedTo)) return post.translated;
+    if (!post.translating) {
+      post.translating = true;
+      tdlib.send(new TdApi.TranslateText(original, to, tgx.td.TdConstants.TEXT_FORMAT_NEUTRAL), (result, error) -> runOnUiThreadOptional(() -> {
+        post.translating = false;
+        if (result != null) {
+          post.translated = result;
+          post.translatedTo = to;
+          int i = posts.indexOf(post);
+          if (i != -1 && translateFeed) adapter.notifyItemChanged(i);
+        } else if (error != null) {
+          org.thunderdog.challegram.Tgx101Diag.mark("gazeta: translation failed — " + error.message);
+        }
+      }));
+    }
+    return original;
+  }
 
   // (user 2026-10-28): the header in the feed's own colours
   @Override
@@ -139,6 +178,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     if (profileButton != null) profileButton.tgx101SetForcedColor(color);
     if (autoButton != null) autoButton.tgx101SetForcedColor(color);
     if (settingsButton != null) settingsButton.tgx101SetForcedColor(color);
+    if (translateButton != null) translateButton.tgx101SetForcedColor(color);
   }
 
   private void repaintHeader () {
@@ -276,7 +316,9 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       }
       return;
     }
-    if (id == R.id.menu_btn_tgx101GazetaAuto) {
+    if (id == R.id.menu_btn_tgx101GazetaTranslate) {
+      setTranslateFeed(!translateFeed);
+    } else if (id == R.id.menu_btn_tgx101GazetaAuto) {
       setAutoScroll(!autoScroll);
     } else if (id == R.id.menu_btn_tgx101GazetaProfile) {
       Tgx101Gazeta.setProfile(Tgx101Gazeta.profile() == Tgx101Gazeta.PROFILE_DARK ? Tgx101Gazeta.PROFILE_LIGHT : Tgx101Gazeta.PROFILE_DARK);
@@ -1408,7 +1450,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       eye.setColorFilter(new android.graphics.PorterDuffColorFilter(pal[3], android.graphics.PorterDuff.Mode.SRC_IN));
 
       TdApi.Message main = post.main();
-      TdApi.FormattedText text = Td.textOrCaption(main.content);
+      TdApi.FormattedText text = sample ? Td.textOrCaption(main.content) : tgx101TextFor(post, Td.textOrCaption(main.content));
       CharSequence str = text != null && !Td.isEmpty(text) ? TD.toCharSequence(text) : describe(main);
       str = prepareSpoilers(str, !post.spoilersShown);
       hiddenText = hasHidden(str);
