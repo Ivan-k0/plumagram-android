@@ -1332,8 +1332,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     final View commentsLine;
     final FrameLayout media, thumbWrap;
     GradientDrawable mediaRound;
+    boolean tallWhole; // a tall video shown whole in «Paper»
     int thumbW, thumbH; // the picture beside the text: the small thumbnail, or a photo beside a longer text
     final ImageView mediaImage, thumbImage;
+    final ImageView mediaBlur; // behind a tall video shown whole: its own frame, stretched and blurred
     final TextView mediaBadge, mediaCount, thumbBadge;
     final android.graphics.drawable.Drawable eye;
     ShortIcon shortIcon;
@@ -1451,6 +1453,12 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       mosaic.setOrientation(HORIZONTAL);
       mosaic.setVisibility(GONE);
       media.addView(mosaic, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      mediaBlur = new ImageView(context);
+      mediaBlur.setScaleType(ImageView.ScaleType.CENTER_CROP);
+      mediaBlur.setAlpha(.55f);
+      mediaBlur.setVisibility(GONE);
+      if (android.os.Build.VERSION.SDK_INT >= 31) mediaBlur.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(Screen.dp(16f), Screen.dp(16f), android.graphics.Shader.TileMode.CLAMP));
+      media.addView(mediaBlur, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
       // (user 2026-10-29, mockup «Газета»: «не на всю ширину, даже видео — нужны приятные отступы»): pictures, videos and
       // albums keep the text's side margins and round corners
       mediaRound = new GradientDrawable();
@@ -1773,6 +1781,9 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         stickerView.setTag(null);
         stickerView.setSticker(null);
       }
+      tallWhole = false;
+      mediaBlur.setVisibility(GONE);
+      mediaImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
       if (visual == null) {
         media.setVisibility(GONE);
         thumbWrap.setVisibility(GONE);
@@ -1788,8 +1799,21 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         media.setVisibility(VISIBLE);
         int[] size = sizeOf(visual);
         int height = size[0] > 0 && size[1] > 0 ? (int) ((long) inner * size[1] / size[0]) : inner * 9 / 16;
-        // a tall picture no taller than 5:4 of the width (it took up to 60 % of the screen)
-        height = Math.max(Screen.dp(120f), Math.min(height, paper ? Math.min(inner * 5 / 4, (int) (Screen.currentHeight() * .6f)) : (int) (Screen.currentHeight() * .6f)));
+        // a tall picture no taller than 5:4 of the width (it took up to 60 % of the screen); (user 2026-10-29, screenshot
+        // of a tall photo filling the screen): in «Paper» a photo no taller than a square — a little of its top and bottom
+        // goes; a tall video stays 5:4 and is shown whole, with its own frame blurred at the sides
+        boolean photo = !isVideo(visual);
+        int cap = paper ? (photo ? inner : inner * 5 / 4) : Integer.MAX_VALUE;
+        height = Math.max(Screen.dp(120f), Math.min(height, Math.min(cap, (int) (Screen.currentHeight() * .6f))));
+        tallWhole = paper && !photo && visuals == 1 && size[0] > 0 && size[1] > 0 && (long) size[1] * 4 > (long) size[0] * 5;
+        mediaImage.setScaleType(tallWhole ? ImageView.ScaleType.FIT_CENTER : ImageView.ScaleType.CENTER_CROP);
+        if (tallWhole) {
+          TdApi.Minithumbnail mini = minithumbnailOf(visual);
+          Bitmap blur = mini != null && mini.data != null ? BitmapFactory.decodeByteArray(mini.data, 0, mini.data.length) : null;
+          mediaBlur.setImageBitmap(blur);
+          mediaBlur.setColorFilter(filter);
+        }
+        mediaBlur.setVisibility(tallWhole && mediaBlur.getDrawable() != null ? VISIBLE : GONE);
         LinearLayout.LayoutParams mp = (LinearLayout.LayoutParams) media.getLayoutParams();
         mp.height = height;
         media.setLayoutParams(mp);
@@ -1823,6 +1847,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       org.thunderdog.challegram.loader.gif.GifFile playFile = null;
       if (visual != null && !thumbs && !sample && visuals == 1 && isVideo(visual) && Tgx101ChatMediaAutoplay(post.chatId)) {
         playFile = inlineFile(visual);
+        if (playFile != null && tallWhole) playFile.setScaleType(org.thunderdog.challegram.loader.gif.GifFile.FIT_CENTER);
       }
       player.setFile(playFile);
       player.setVisibility(playFile != null ? VISIBLE : GONE);
