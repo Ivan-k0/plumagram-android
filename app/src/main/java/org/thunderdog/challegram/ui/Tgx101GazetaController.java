@@ -2375,7 +2375,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     // being shown now had already moved on when an album was swiped through, so the hidden cell was never given back
     int inPost = indexInPost(item);
     View target = inPost != -1 ? viewerTarget(inPost) : null;
-    if (target != null) target.setAlpha(isVisible ? 1f : 0f); // the picture's place is empty while it's in the viewer
+    // (user 2026-10-29 23:15 «если превью будет статично, а не восстанавливаться — будет нормально»): the feed's picture
+    // stays where it is while the viewer shows it — emptied and given back, it blinked behind the viewer as it was pulled
+    // and swiped through; the viewer flies from it and back onto it all the same
+    if (target != null && target.getAlpha() != 1f) target.setAlpha(1f);
     // (user recording 2026-10-29 22:56: the viewer swiped on to another post's video and closed — the album's first cell
     // stayed empty): whenever a picture comes back, every picture of the opened post is shown again
     if (isVisible && viewerPost != null) {
