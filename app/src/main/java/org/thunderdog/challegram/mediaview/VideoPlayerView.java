@@ -345,7 +345,12 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
       case MediaItem.TYPE_GIF: {
         HlsVideo hlsVideo = mediaItem.getHslVideo();
         TdApi.File targetFile = mediaItem.getTargetFile();
-        if (hlsVideo == null || TD.isFileLoaded(targetFile) || targetFile.local.isDownloadingActive || !hlsVideo.hasSupportedCodecs() || Settings.instance().getNewSetting(Settings.SETTING_FLAG_FORCE_DISABLE_HLS_VIDEO)) {
+        // TGx101 (user 2026-10-29 22:17 «в газете один кэш, в каналах другой — видео загружается заново»): the feed's
+        // autoplay loads the whole file and stops when the post leaves the screen; the viewer then took a stream of
+        // another quality — other files, loaded again. A file already partly here goes on from what is cached
+        boolean partlyHere = targetFile != null && (targetFile.local.downloadedPrefixSize > 0 || targetFile.local.downloadedSize > 0);
+        if (hlsVideo != null) org.thunderdog.challegram.Tgx101Diag.mark("video: file " + (targetFile != null ? targetFile.id + " " + (targetFile.local.downloadedSize >> 10) + " of " + (Math.max(targetFile.size, targetFile.expectedSize) >> 10) + " KB here" : "?") + " → " + (hlsVideo == null || TD.isFileLoaded(targetFile) || (targetFile != null && targetFile.local.isDownloadingActive) || partlyHere ? "the file" : "stream"));
+        if (hlsVideo == null || TD.isFileLoaded(targetFile) || targetFile.local.isDownloadingActive || partlyHere || !hlsVideo.hasSupportedCodecs() || Settings.instance().getNewSetting(Settings.SETTING_FLAG_FORCE_DISABLE_HLS_VIDEO)) {
           long durationMs = mediaItem.getVideoDuration(false, TimeUnit.MILLISECONDS);
           source = U.newMediaSource(mediaItem.tdlib().id(), targetFile, TdlibFilesManager.PRIORITY_STREAMING_VIDEO, TdlibDataSource.Flag.OPTIMIZE_CHUNKS, durationMs);
         } else {
