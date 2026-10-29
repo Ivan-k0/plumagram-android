@@ -11948,12 +11948,17 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private boolean tgx101PaddingSkippedLeaving;
   private boolean tgx101Leaving; // was focused, lost it: going away (or covered by the next screen)
   private int tgx101RestPadding = -1;
+  // (black box 2026-10-29 20:17, a channel opened from «Газета»: «rest room 0 → 218 (opened again)», then «list padding
+  // 218 → 0» and a jump of 117 px caught): this screen is reused for another chat — the room remembered for the chat left
+  // before (a group with its field) was put on a channel with none. It is put back only on the chat it was taken from
+  private long tgx101RestPaddingChatId;
 
   /** (user 2026-10-22 «отправить сообщение и выйти, не скрывая клавиатуру — при повторном заходе чат подъезжает заново»):
    *  a chat left with the keyboard up kept the keyboard's room (1403 px instead of 259) — measured off screen it can't be
    *  worked out from the field's place — and opened again it slid down to the right one. Put back directly, no glide */
   private void tgx101ApplyRestPadding (String why) {
     if (messagesView == null || tgx101RestPadding <= 0 || context().isKeyboardVisible() || messagesView.getPaddingBottom() == tgx101RestPadding) return;
+    if (tgx101RestPaddingChatId != getChatId()) return; // remembered for another chat this screen showed before
     org.thunderdog.challegram.Tgx101Diag.mark("floating input: rest room " + messagesView.getPaddingBottom() + " → " + tgx101RestPadding + " (" + why + ")");
     if (tgx101GlideAnimator != null) tgx101GlideAnimator.cancel();
     tgx101PaddingShift = 0f;
@@ -12059,6 +12064,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     int current = messagesView.getPaddingBottom();
     if (!context().isKeyboardVisible() && !tgx101ImeMoving() && messagesView.isShown()) {
       tgx101RestPadding = padding; // the room without the keyboard, put back at once on a chat left with it up
+      tgx101RestPaddingChatId = getChatId();
     }
     // …but a field emptied by sending (video 20:16, second jump) shrinks for good: the list follows at once, not 120 ms late
     boolean tgx101Cleared = inputView != null && inputView.getText() != null && inputView.getText().length() == 0;
