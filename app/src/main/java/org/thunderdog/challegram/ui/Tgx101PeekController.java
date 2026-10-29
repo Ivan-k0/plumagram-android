@@ -134,6 +134,15 @@ public class Tgx101PeekController extends RecyclerViewController<Void> implement
     items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101PeekChats, 0, R.string.Tgx101PeekChoose));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
 
+    boolean bars = Tgx101Peek.bars();
+    items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101PeekStyle));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    items.add(new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101PeekStyleBlur, 0, R.string.Tgx101PeekStyleBlur, R.id.btn_tgx101PeekStyleBlur, !bars));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    items.add(new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101PeekStyleBars, 0, R.string.Tgx101PeekStyleBars, R.id.btn_tgx101PeekStyleBlur, bars));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101PeekStyleHint));
+
     items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101PeekStrength));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     items.add(slider(R.id.btn_tgx101PeekAvatar, R.string.Tgx101PeekAvatars, Tgx101Peek.PART_AVATAR));
@@ -159,6 +168,9 @@ public class Tgx101PeekController extends RecyclerViewController<Void> implement
       if (id == R.id.btn_tgx101PeekSelected && Tgx101Peek.chats().isEmpty()) pickChats();
     } else if (id == R.id.btn_tgx101PeekChats) {
       pickChats();
+    } else if (id == R.id.btn_tgx101PeekStyleBlur || id == R.id.btn_tgx101PeekStyleBars) {
+      adapter.processToggle(v);
+      Tgx101Peek.setStyle(id == R.id.btn_tgx101PeekStyleBars ? Tgx101Peek.STYLE_BARS : Tgx101Peek.STYLE_BLUR);
     }
   }
 

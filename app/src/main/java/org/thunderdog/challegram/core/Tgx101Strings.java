@@ -1195,6 +1195,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PeekOff, "Выкл.");
     RU.put(R.string.Tgx101PeekNone, "Без размытия");
     RU.put(R.string.Tgx101PeekStrength, "Сила размытия");
+    RU.put(R.string.Tgx101PeekStyle, "Вид");
+    RU.put(R.string.Tgx101PeekStyleBlur, "Размытие");
+    RU.put(R.string.Tgx101PeekStyleBars, "Чёрные полосы");
+    RU.put(R.string.Tgx101PeekStyleHint, "Чёрные полосы закрывают слова и аватары, как в секретном документе. Они не нагружают телефон — выберите их, если с размытием список чатов тормозит.");
     RU.put(R.string.Tgx101PeekAvatars, "Аватарки");
     RU.put(R.string.Tgx101PeekTitles, "Названия");
     RU.put(R.string.Tgx101PeekTexts, "Сообщения");

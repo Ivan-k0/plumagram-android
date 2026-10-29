@@ -1806,6 +1806,8 @@
   <item name="btn_tgx101PeekAll" type="id"/>
   <item name="btn_tgx101PeekSelected" type="id"/>
   <item name="btn_tgx101PeekChats" type="id"/>
+  <item name="btn_tgx101PeekStyleBlur" type="id"/>
+  <item name="btn_tgx101PeekStyleBars" type="id"/>
   <item name="btn_tgx101PeekAvatar" type="id"/>
   <item name="btn_tgx101PeekTitle" type="id"/>
   <item name="btn_tgx101PeekText" type="id"/>

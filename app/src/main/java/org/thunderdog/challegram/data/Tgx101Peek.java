@@ -39,6 +39,11 @@ public final class Tgx101Peek {
   private static final String KEY_AVATAR = "tgx101_peek_avatar";
   private static final String KEY_TEXT = "tgx101_peek_text";
   private static final String KEY_TITLE = "tgx101_peek_title";
+  private static final String KEY_STYLE = "tgx101_peek_style";
+
+  /** (4PDA 2026-10-29 «на скудном устройстве тормозит, пока чат не открою — сделайте как секретный документ»): blur, or
+   *  black bars over the words and dark circles for the avatars — nothing for the GPU to work out, for weak phones */
+  public static final int STYLE_BLUR = 0, STYLE_BARS = 1;
 
   public static final int PART_AVATAR = 0, PART_TITLE = 1, PART_TEXT = 2;
 
@@ -46,7 +51,7 @@ public final class Tgx101Peek {
   public static final int[] STEPS = {0, 20, 40, 60, 80, 100};
 
   private static boolean loaded, on, all;
-  private static int avatar, title, text;
+  private static int avatar, title, text, style;
   private static Set<Long> chats = Collections.emptySet();
 
   private static LevelDB pmc () {
@@ -62,6 +67,7 @@ public final class Tgx101Peek {
     avatar = pmc.getInt(KEY_AVATAR, 60);
     text = pmc.getInt(KEY_TEXT, 80);
     title = pmc.getInt(KEY_TITLE, 0);
+    style = pmc.getInt(KEY_STYLE, STYLE_BLUR);
     long[] ids = pmc.getLongArray(KEY_CHATS);
     Set<Long> set = new LinkedHashSet<>();
     if (ids != null) for (long id : ids) set.add(id);
@@ -141,6 +147,22 @@ public final class Tgx101Peek {
     invalidateAll();
   }
 
+  public static int style () {
+    load();
+    return style;
+  }
+
+  public static boolean bars () {
+    return style() == STYLE_BARS;
+  }
+
+  public static void setStyle (int value) {
+    load();
+    style = value;
+    pmc().putInt(KEY_STYLE, value);
+    invalidateAll();
+  }
+
   public static int stepIndex (int value) {
     int best = 0;
     for (int i = 0; i < STEPS.length; i++) {
@@ -199,7 +221,7 @@ public final class Tgx101Peek {
     public void draw (Canvas c, int left, int top, int right, int bottom, int strength, Drawer drawer, Drawer standIn) {
       if (strength <= 0 || right <= left || bottom <= top) {
         drawer.draw(c);
-      } else if (canBlur(c)) {
+      } else if (!bars() && canBlur(c)) {
         if (gpu == null) gpu = new Gpu();
         gpu.draw(c, left, top, right, bottom, strength, drawer);
       } else {

@@ -162,6 +162,7 @@ public class SliderView extends View implements FactorAnimator.Target {
   private void setIsUp (boolean isUp) {
     if (this.isUp != isUp) {
       this.isUp = isUp;
+      if (tgx101TapToSeek) org.thunderdog.challegram.Tgx101Diag.mark("seek bar: " + (isUp ? "taken at " : "let go at ") + Math.round(value * 100) + "%");
       getParent().requestDisallowInterceptTouchEvent(isUp);
       if (upAnimator == null) {
         upAnimator = new FactorAnimator(ANIMATOR_TOUCH, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 180l);
@@ -351,7 +352,11 @@ public class SliderView extends View implements FactorAnimator.Target {
           changeValue(anchorMode == ANCHOR_MODE_CENTER ? Math.max(-1f, Math.min(1f, (x - (left + width / 2)) / (float) (width / 2))) : Math.max(0f, Math.min(1f, (x - left) / (float) width)));
           return true;
         }
-
+        if (tgx101TapToSeek && org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+          // (user 2026-10-29 «полоса перемотки не всегда с первого раза»): why a touch on the bar was not taken
+          org.thunderdog.challegram.Tgx101Diag.mark("seek bar: touch not taken at " + Math.round(x) + "," + Math.round(y) + " of " + getMeasuredWidth() + "x" + getMeasuredHeight() +
+            " (enabled " + slideEnabled + ", animating " + (changeAnimator != null && changeAnimator.isAnimating()) + ", allowed " + (listener == null || listener.allowSliderChanges(this)) + ")");
+        }
         return false;
       }
       case MotionEvent.ACTION_MOVE: {

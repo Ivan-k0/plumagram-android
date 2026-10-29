@@ -128,7 +128,12 @@ public class VideoControlView extends FrameLayoutFix implements FactorAnimator.T
 
   @Override
   public boolean onInterceptTouchEvent (MotionEvent ev) {
-    return !Views.onTouchEvent(this, ev) || super.onInterceptTouchEvent(ev);
+    boolean valid = Views.onTouchEvent(this, ev);
+    if (!valid && org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+      // (user 2026-10-29 «полоса перемотки не всегда с первого раза»): a touch the bar didn't pass on — it was not shown yet
+      org.thunderdog.challegram.Tgx101Diag.mark("control bar: touch held back (alpha " + getAlpha() + ", parent alpha " + ((View) getParent()).getAlpha() + ")");
+    }
+    return !valid || super.onInterceptTouchEvent(ev);
   }
 
   private BoolAnimator showPlayPause = new BoolAnimator(0, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 180l);

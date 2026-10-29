@@ -7360,6 +7360,10 @@
   <string name="Tgx101PeekOff">Off</string>
   <string name="Tgx101PeekNone">No blur</string>
   <string name="Tgx101PeekStrength">Blur strength</string>
+  <string name="Tgx101PeekStyle">Look</string>
+  <string name="Tgx101PeekStyleBlur">Blur</string>
+  <string name="Tgx101PeekStyleBars">Black bars</string>
+  <string name="Tgx101PeekStyleHint">Black bars cover the words and avatars like a classified document. They cost the phone nothing — choose them if the chat list slows down with blur.</string>
   <string name="Tgx101PeekAvatars">Avatars</string>
   <string name="Tgx101PeekTitles">Names</string>
   <string name="Tgx101PeekTexts">Messages</string>
