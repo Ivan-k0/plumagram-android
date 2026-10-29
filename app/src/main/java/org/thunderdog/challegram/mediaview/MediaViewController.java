@@ -4597,6 +4597,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     if (this.dismissFactor != factor) {
       this.dismissFactor = factor;
       setCommonFactor(1f - dismissFactor);
+      // (user recording 2026-10-29 23:03 «"чужое" фото резко появляется после смахивания и исчезает»): in «Газета» a
+      // picture with no place in the feed to go back to stayed solid over the feed while pulled, then dropped to half in
+      // one frame — it now pales with the pull, together with the dimming
+      if (factor == 0f) tgx101NoPlaceChecked = false;
+      if (tgx101PalesWithPull()) mediaView.setAlpha(1f - .7f * factor);
 
       if (headerView != null) {
         if (mode == MODE_MESSAGES || mode == MODE_SIMPLE) {
@@ -4616,6 +4621,17 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         checkBottomWrapY();
       }
     }
+  }
+
+  private boolean tgx101NoPlaceChecked, tgx101NoPlace;
+
+  private boolean tgx101PalesWithPull () {
+    if (!(delegate instanceof org.thunderdog.challegram.ui.Tgx101GazetaController) || (mode != MODE_MESSAGES && mode != MODE_SIMPLE)) return false;
+    if (!tgx101NoPlaceChecked) {
+      tgx101NoPlaceChecked = true;
+      tgx101NoPlace = getCurrentTargetLocation() == null;
+    }
+    return tgx101NoPlace;
   }
 
   private void checkBottomWrapY () {
@@ -4787,14 +4803,15 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     if (target == null && delegate instanceof org.thunderdog.challegram.ui.Tgx101GazetaController && contentView != null) {
       // (user 2026-10-29 «в газете — пусть просто растворяется аккуратно, без этих съездов вниз»): with no place to go
       // back to, the viewer doesn't fly on off the screen — it dissolves where the finger let it go
-      final float fromAlpha = contentView.getAlpha();
+      final float fromAlpha = contentView.getAlpha(), fromPictureAlpha = mediaView.getAlpha();
       android.animation.ValueAnimator fade = android.animation.ValueAnimator.ofFloat(1f, 0f);
-      fade.setDuration(220);
-      fade.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+      fade.setDuration(240);
+      fade.setInterpolator(new android.view.animation.LinearInterpolator()); // no drop in the first frame
       fade.addUpdateListener(a -> {
         float f = (float) a.getAnimatedValue();
         contentView.setAlpha(fromAlpha * f);
-        float scale = .94f + .06f * f;
+        mediaView.setAlpha(fromPictureAlpha * f);
+        float scale = .97f + .03f * f;
         mediaView.setScaleX(scale);
         mediaView.setScaleY(scale);
       });
