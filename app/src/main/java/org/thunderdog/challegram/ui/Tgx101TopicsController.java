@@ -277,8 +277,23 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     if (known != null) header.setText(known, context.tdlib().chatTitle(chat)); // at once, not the group's name first
     context.tdlib().send(new TdApi.GetForumTopic(chat.id, forumTopicId), (topic, error) -> {
       if (topic == null) return;
-      context.runOnUiThreadOptional(() -> header.setText(topic.info.name, context.tdlib().chatTitle(chat)));
+      context.runOnUiThreadOptional(() -> {
+        // (user video 2026-10-29 20:42: a private chat showed «Xiaomi Club» in its header after that group's topics were
+        // visited): the chat screen is reused for the next chat — a topic's name that came late was written over the
+        // header of a chat that was no topic at all. It goes only on the topic it was asked for
+        if (!stillShowsTopic(context, chat.id, forumTopicId)) return;
+        header.setText(topic.info.name, context.tdlib().chatTitle(chat));
+      });
     });
+  }
+
+  private static boolean stillShowsTopic (ViewController<?> context, long chatId, int forumTopicId) {
+    if (context.isDestroyed() || context.getChatId() != chatId) return false;
+    if (context instanceof MessagesController) {
+      TdApi.MessageTopic now = ((MessagesController) context).getMessageTopicId();
+      return now instanceof TdApi.MessageTopicForum && ((TdApi.MessageTopicForum) now).forumTopicId == forumTopicId;
+    }
+    return true;
   }
 
   public Tgx101TopicsController (Context context, Tdlib tdlib) {
