@@ -211,6 +211,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   }
 
   private void tintHeaderButtons () {
+    tintArrow();
     int color = Tgx101Gazeta.palette()[2];
     if (profileButton != null) profileButton.tgx101SetForcedColor(color);
     if (autoButton != null) autoButton.tgx101SetForcedColor(color);
@@ -427,6 +428,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       @Override
       public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
         markVisibleRead();
+        updateArrow();
         if (loaded && isFocused() && (headerAnimator == null || !headerAnimator.isRunning())) setHeaderHide(headerHide + dy);
         rememberPlace();
       }
@@ -437,6 +439,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       }
     });
     inner.addView(list, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    list.addItemDecoration(new UnreadMark());
+    tgx101AddArrow(context);
     empty = new TextView(context);
     empty.setGravity(Gravity.CENTER);
     empty.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
@@ -501,6 +505,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         rememberedIndex = -1;
         posts.clear();
         posts.addAll(feed);
+        unreadAnchor = firstUnread >= 0 && firstUnread < posts.size() ? posts.get(firstUnread) : null; // stays where it was
         adapter.notifyDataSetChanged();
         empty.setVisibility(posts.isEmpty() ? View.VISIBLE : View.GONE);
         empty.setText(Lang.getString(chatIds.length == 0 ? R.string.Tgx101GazetaNoChannels : R.string.Tgx101GazetaEmpty));
@@ -515,7 +520,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
           if (at == -1) at = posts.size() - 1;
           manager.scrollToPositionWithOffset(at, Screen.dp(4f) + Size.getHeaderPortraitSize());
         }
-        list.post(this::markVisibleRead);
+        list.post(() -> {
+          markVisibleRead();
+          updateArrow();
+        });
         completeAlbums();
         readChannelsWithNothingToShow(chatIds);
       });
@@ -584,6 +592,165 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   }
 
   // a post that came into view is read, in its channel too (user: «пролистанный пост = прочитан»)
+  // ---- (user 2026-10-29, the feed of another app shown side by side: «у них стрелка норм работает, у нас было криво; и у
+  // нас нигде не отображается, где начинаются непрочитанные»): a «Unread messages» mark over the first post that was
+  // unread when the feed opened (it stays there, as in a chat); an arrow bottom right with the number of unread posts —
+  // the first tap glides to the mark (put under the header), the next one to the end; at the end it is gone
+
+  private @Nullable Tgx101Gazeta.Post unreadAnchor;
+  private @Nullable FrameLayout arrowWrap;
+  private @Nullable TextView arrowCounter;
+  private boolean arrowShown;
+
+  private final class UnreadMark extends RecyclerView.ItemDecoration {
+    private final android.text.TextPaint paint = new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+    private final android.graphics.Paint fill = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+    private final android.graphics.RectF rect = new android.graphics.RectF();
+
+    private boolean isAnchor (View child, RecyclerView parent) {
+      int position = parent.getChildAdapterPosition(child);
+      return unreadAnchor != null && position != RecyclerView.NO_POSITION && position < posts.size() && posts.get(position) == unreadAnchor && position > 0;
+    }
+
+    @Override
+    public void getItemOffsets (@NonNull android.graphics.Rect outRect, @NonNull View view, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
+      if (isAnchor(view, parent)) outRect.top = Screen.dp(36f);
+    }
+
+    @Override
+    public void onDraw (@NonNull android.graphics.Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
+      for (int i = 0; i < parent.getChildCount(); i++) {
+        View child = parent.getChildAt(i);
+        if (!isAnchor(child, parent)) continue;
+        int[] pal = Tgx101Gazeta.palette();
+        String text = Lang.getString(R.string.Tgx101GazetaUnreadMark);
+        paint.setTextSize(Screen.dp(13f));
+        paint.setTypeface(Fonts.getRobotoMedium());
+        paint.setColor(pal[3]);
+        float w = paint.measureText(text) + Screen.dp(24f), h = Screen.dp(24f);
+        RecyclerView.LayoutParams lp = (RecyclerView.LayoutParams) child.getLayoutParams();
+        float cy = child.getTop() + child.getTranslationY() - lp.topMargin - Screen.dp(18f);
+        float cx = parent.getWidth() / 2f;
+        rect.set(cx - w / 2f, cy - h / 2f, cx + w / 2f, cy + h / 2f);
+        fill.setColor(pal[1]);
+        c.drawRoundRect(rect, h / 2f, h / 2f, fill);
+        c.drawText(text, cx - paint.measureText(text) / 2f, cy - (paint.descent() + paint.ascent()) / 2f, paint);
+      }
+    }
+  }
+
+  private void tgx101AddArrow (Context context) {
+    arrowWrap = new FrameLayout(context);
+    int size = Screen.dp(44f);
+    ImageView arrow = new ImageView(context);
+    arrow.setScaleType(ImageView.ScaleType.CENTER);
+    arrow.setImageResource(R.drawable.baseline_keyboard_arrow_down_24);
+    android.graphics.drawable.GradientDrawable circle = new android.graphics.drawable.GradientDrawable();
+    circle.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+    arrow.setBackground(circle);
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) arrow.setElevation(Screen.dp(3f));
+    FrameLayout.LayoutParams ap = new FrameLayout.LayoutParams(size, size, Gravity.BOTTOM | Gravity.RIGHT);
+    ap.topMargin = Screen.dp(10f);
+    arrowWrap.addView(arrow, ap);
+    arrowCounter = new TextView(context);
+    arrowCounter.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12f);
+    arrowCounter.setTypeface(Fonts.getRobotoMedium());
+    arrowCounter.setTextColor(0xffffffff);
+    arrowCounter.setGravity(Gravity.CENTER);
+    arrowCounter.setMinWidth(Screen.dp(22f));
+    arrowCounter.setPadding(Screen.dp(6f), 0, Screen.dp(6f), 0);
+    android.graphics.drawable.GradientDrawable pill = new android.graphics.drawable.GradientDrawable();
+    pill.setCornerRadius(Screen.dp(11f));
+    pill.setColor(Theme.getColor(ColorId.badge));
+    arrowCounter.setBackground(pill);
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) arrowCounter.setElevation(Screen.dp(4f));
+    arrowWrap.addView(arrowCounter, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(22f), Gravity.TOP | Gravity.CENTER_HORIZONTAL));
+    FrameLayout.LayoutParams wp = new FrameLayout.LayoutParams(size, size + Screen.dp(10f), Gravity.BOTTOM | Gravity.RIGHT);
+    wp.rightMargin = Screen.dp(12f);
+    wp.bottomMargin = Screen.dp(16f) + MainController.tgx101CapsuleSpace();
+    arrowWrap.setOnClickListener(v -> arrowTap());
+    arrowWrap.setAlpha(0f);
+    arrowWrap.setVisibility(View.GONE);
+    root.addView(arrowWrap, wp);
+    tintArrow();
+  }
+
+  private void tintArrow () {
+    if (arrowWrap == null) return;
+    int[] pal = Tgx101Gazeta.palette();
+    ImageView arrow = (ImageView) arrowWrap.getChildAt(0);
+    ((android.graphics.drawable.GradientDrawable) arrow.getBackground()).setColor(pal[1]);
+    arrow.setColorFilter(new android.graphics.PorterDuffColorFilter(pal[3], android.graphics.PorterDuff.Mode.SRC_IN));
+  }
+
+  private int unreadCount () {
+    int count = 0;
+    for (Tgx101Gazeta.Post p : posts) if (p.unread) count++;
+    return count;
+  }
+
+  private void updateArrow () {
+    if (arrowWrap == null || list == null) return;
+    boolean show = loaded && !posts.isEmpty() && list.canScrollVertically(1);
+    int count = show ? unreadCount() : 0;
+    if (arrowCounter != null) {
+      arrowCounter.setVisibility(count > 0 ? View.VISIBLE : View.GONE);
+      if (count > 0) arrowCounter.setText(org.thunderdog.challegram.tool.Strings.buildCounter(count));
+    }
+    if (show == arrowShown) return;
+    arrowShown = show;
+    arrowWrap.animate().cancel();
+    if (show) {
+      arrowWrap.setVisibility(View.VISIBLE);
+      arrowWrap.animate().alpha(1f).setDuration(150).start();
+    } else {
+      arrowWrap.animate().alpha(0f).setDuration(150).withEndAction(() -> {
+        if (!arrowShown) arrowWrap.setVisibility(View.GONE);
+      }).start();
+    }
+  }
+
+  private void arrowTap () {
+    LinearLayoutManager manager = list != null ? (LinearLayoutManager) list.getLayoutManager() : null;
+    if (manager == null || posts.isEmpty()) return;
+    setAutoScroll(false);
+    int first = manager.findFirstVisibleItemPosition();
+    int target = -1;
+    for (int i = 0; i < posts.size(); i++) if (posts.get(i).unread) { target = i; break; }
+    // the first unread post still below the top — to it; otherwise (or nothing unread) — to the end
+    if (target == -1 || target <= first) target = posts.size() - 1;
+    boolean toEnd = target == posts.size() - 1;
+    org.thunderdog.challegram.Tgx101Diag.mark("gazeta: arrow → " + (toEnd ? "the end" : "the first unread, post " + target + " of " + posts.size()));
+    final int to = target;
+    final int topOffset = Screen.dp(4f) + Size.getHeaderPortraitSize() - headerHide + (posts.get(to) == unreadAnchor ? Screen.dp(36f) : 0);
+    // far away: stand a few posts before, then one quick glide the rest of the way
+    if (Math.abs(to - first) > 4) {
+      int pre = to > first ? Math.max(0, to - 3) : Math.min(posts.size() - 1, to + 3);
+      manager.scrollToPositionWithOffset(pre, topOffset);
+    }
+    list.post(() -> {
+      androidx.recyclerview.widget.LinearSmoothScroller scroller = new androidx.recyclerview.widget.LinearSmoothScroller(context) {
+        @Override
+        protected int getVerticalSnapPreference () {
+          return toEnd ? SNAP_TO_END : SNAP_TO_START;
+        }
+
+        @Override
+        public int calculateDtToFit (int viewStart, int viewEnd, int boxStart, int boxEnd, int snapPreference) {
+          if (snapPreference == SNAP_TO_START) return boxStart + topOffset - list.getPaddingTop() - viewStart;
+          return super.calculateDtToFit(viewStart, viewEnd, boxStart, boxEnd, snapPreference);
+        }
+
+        @Override
+        protected float calculateSpeedPerPixel (android.util.DisplayMetrics metrics) {
+          return 40f / metrics.densityDpi; // quick, as a jump
+        }
+      };
+      scroller.setTargetPosition(to);
+      manager.startSmoothScroll(scroller);
+    });
+  }
+
   private void markVisibleRead () {
     if (!loaded || list == null) return;
     LinearLayoutManager manager = (LinearLayoutManager) list.getLayoutManager();

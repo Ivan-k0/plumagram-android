@@ -149,6 +149,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101GazetaAsInApp, "как в приложении");
     RU.put(R.string.Tgx101GazetaSpacing, "Межстрочный интервал");
     RU.put(R.string.Tgx101GazetaChannelGap, "Отступ между каналами");
+    RU.put(R.string.Tgx101GazetaUnreadMark, "Непрочитанные сообщения");
     RU.put(R.string.Tgx101GazetaFontRegular, "Обычный");
     RU.put(R.string.Tgx101GazetaFontSerif, "С засечками");
     RU.put(R.string.Tgx101GazetaFontNarrow, "Узкий");
