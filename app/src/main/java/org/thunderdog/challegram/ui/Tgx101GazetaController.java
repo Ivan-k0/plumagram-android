@@ -2334,6 +2334,12 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     int visibleTop = listLoc[1] + Size.getHeaderPortraitSize() - headerHide;
     int clipTop = Math.max(0, visibleTop - loc[1]);
     int clipBottom = Math.max(0, loc[1] + target.getHeight() - (listLoc[1] + list.getHeight()));
+    // (user 2026-10-29 «когда фото вышло за рамки контента газеты — пусть просто растворяется аккуратно, без этих съездов
+    // вниз»): a picture partly under the header or past the screen's edge isn't flown into — the viewer dissolves
+    if (clipTop + clipBottom > Screen.dp(4f)) {
+      org.thunderdog.challegram.Tgx101Diag.mark("gazeta viewer: the picture is " + (clipTop > 0 ? "under the header" : "past the bottom") + " — dissolves");
+      return null;
+    }
     viewerLocation.setClip(0, Math.min(clipTop, target.getHeight()), 0, Math.min(clipBottom, target.getHeight()));
     viewerLocation.setRoundings(isThumb(target) ? Screen.dp(8f) : 0);
     return viewerLocation;
