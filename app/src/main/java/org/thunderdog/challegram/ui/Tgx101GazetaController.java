@@ -1238,9 +1238,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       more.setText(Lang.getString(R.string.Tgx101GazetaShowFull));
       more.setOnClickListener(v -> {
         if (post != null) {
-          smoothly();
-          post.expanded = true;
-          bind(post, position);
+          tgx101Unfold(this, () -> {
+            post.expanded = true;
+            bind(post, position);
+          });
         }
       });
       links.addView(more);
@@ -1306,10 +1307,11 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         // post or one with hidden words opens up in full on the first tap; the menu comes on the next
         boolean folded = more.getVisibility() == VISIBLE && !post.expanded;
         if (folded || (hiddenText && !post.spoilersShown)) {
-          smoothly();
-          post.expanded = true;
-          post.spoilersShown = true;
-          bind(post, position);
+          tgx101Unfold(this, () -> {
+            post.expanded = true;
+            post.spoilersShown = true;
+            bind(post, position);
+          });
           return;
         }
         openPostMenu(post);
@@ -1380,8 +1382,9 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       // (crash 02:09): the look screen's sample sits in a plain layout, not in the list
       RecyclerView.LayoutParams lp = getLayoutParams() instanceof RecyclerView.LayoutParams ? (RecyclerView.LayoutParams) getLayoutParams() : null;
       if (lp != null) {
-        lp.topMargin = samePrev ? Math.max(1, Screen.dp(.5f)) : Screen.dp(GAP / 2f);
-        lp.bottomMargin = sameNext ? 0 : Screen.dp(GAP / 2f);
+        float channelGap = Tgx101Gazeta.channelGap();
+        lp.topMargin = samePrev ? Math.max(1, Screen.dp(.5f)) : Screen.dp(channelGap / 2f);
+        lp.bottomMargin = sameNext ? 0 : Screen.dp(channelGap / 2f);
       }
       title.setTextColor(pal[2]);
       title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, font);
@@ -2023,6 +2026,37 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   }
 
   /** (user 2026-10-28 «сворачивание — супер плавно, как везде»): the next change of a card's height glides */
+  // (user video 2026-10-29 12:26 «Прочитать полностью — анимация отсутствует»): a transition over the list doesn't move
+  // what changes inside a card, the post jumped open in one frame. The card now grows from its folded height to the full
+  // one, the text below the fold coming into view as it opens
+  private void tgx101Unfold (View card, Runnable change) {
+    int from = card.getHeight();
+    change.run();
+    if (from <= 0 || card.getWidth() <= 0) return;
+    card.measure(View.MeasureSpec.makeMeasureSpec(card.getWidth(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+    int to = card.getMeasuredHeight();
+    if (to <= from) return;
+    ViewGroup.LayoutParams params = card.getLayoutParams();
+    if (params == null) return;
+    params.height = from;
+    card.setLayoutParams(params);
+    android.animation.ValueAnimator animator = android.animation.ValueAnimator.ofInt(from, to);
+    animator.setDuration(Math.min(420, 200 + (to - from) / Math.max(1, Screen.dp(4f))));
+    animator.setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f));
+    animator.addUpdateListener(a -> {
+      params.height = (int) a.getAnimatedValue();
+      card.requestLayout();
+    });
+    animator.addListener(new android.animation.AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd (android.animation.Animator a) {
+        params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+        card.requestLayout();
+      }
+    });
+    animator.start();
+  }
+
   private void smoothly () {
     if (list != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
       android.transition.AutoTransition t = new android.transition.AutoTransition();

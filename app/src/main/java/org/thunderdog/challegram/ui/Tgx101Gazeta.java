@@ -126,6 +126,15 @@ public final class Tgx101Gazeta {
     Settings.instance().pmc().putFloat(pkey("fs"), sp);
   }
 
+  /** (user 2026-10-29 «слегка увеличивать расстояние между постами от разных каналов»): the gap between channels, dp */
+  public static int channelGap () {
+    return Settings.instance().pmc().getInt(pkey("gap"), 6);
+  }
+
+  public static void setChannelGap (int dp) {
+    Settings.instance().pmc().putInt(pkey("gap"), dp);
+  }
+
   /** line spacing, tenths: 14 — the usual */
   public static int lineSpacing () {
     return Settings.instance().pmc().getInt(pkey("lh"), 14);

@@ -7536,6 +7536,7 @@
   <string name="Tgx101GazetaText">Text</string>
   <string name="Tgx101GazetaAsInApp">as in the app</string>
   <string name="Tgx101GazetaSpacing">Line spacing</string>
+  <string name="Tgx101GazetaChannelGap">Gap between channels</string>
   <string name="Tgx101GazetaFontRegular">Regular</string>
   <string name="Tgx101GazetaFontSerif">Serif</string>
   <string name="Tgx101GazetaFontNarrow">Narrow</string>

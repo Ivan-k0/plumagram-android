@@ -119,14 +119,35 @@ public class Tgx101GazetaLookController extends ViewController<Void> implements 
     page.addView(segment, sp);
 
     previewWrap = new FrameLayout(context) {
+      private final android.graphics.Paint fade = new android.graphics.Paint();
+      private boolean cut;
+
       @Override
       protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
         // the sample keeps to a part of the screen; the settings scroll under it
-        super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec((int) (Screen.currentHeight() * .42f), MeasureSpec.AT_MOST));
+        int cap = (int) (Screen.currentHeight() * .42f);
+        super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(cap, MeasureSpec.AT_MOST));
+        View child = getChildCount() > 0 ? getChildAt(0) : null;
+        if (child != null) {
+          child.measure(MeasureSpec.makeMeasureSpec(getMeasuredWidth(), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+          cut = child.getMeasuredHeight() > getMeasuredHeight();
+        }
+      }
+
+      @Override
+      protected void dispatchDraw (android.graphics.Canvas c) {
+        super.dispatchDraw(c);
+        // (user screenshot 2026-10-29 14:39 «нужно доработать дизайн»): a tall sample was cut with a hard edge right on the
+        // slider below and read as one card; where it is cut it now fades into the page
+        if (cut) {
+          int h = Screen.dp(36f), bottom = getHeight();
+          fade.setShader(new android.graphics.LinearGradient(0, bottom - h, 0, bottom, 0x00000000 | (Tgx101Gazeta.palette()[0] & 0xffffff), Tgx101Gazeta.palette()[0], android.graphics.Shader.TileMode.CLAMP));
+          c.drawRect(0, bottom - h, getWidth(), bottom, fade);
+        }
       }
     };
     LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    pp.setMargins(Screen.dp(14f), 0, Screen.dp(14f), 0);
+    pp.setMargins(Screen.dp(14f), 0, Screen.dp(14f), Screen.dp(12f));
     page.addView(previewWrap, pp);
     preview = feed != null ? feed.createPreview(context) : null;
     if (preview != null) {
@@ -332,6 +353,7 @@ public class Tgx101GazetaLookController extends ViewController<Void> implements 
       v -> Tgx101Gazeta.setFontSize(v == Math.round(appSize) ? 0f : v));
     slider(text, R.string.Tgx101GazetaSpacing, 10, 20, Tgx101Gazeta.lineSpacing(),
       v -> String.format(java.util.Locale.getDefault(), "%.1f", v / 10f), Tgx101Gazeta::setLineSpacing);
+    slider(text, R.string.Tgx101GazetaChannelGap, 6, 30, Tgx101Gazeta.channelGap(), v -> v + " dp", Tgx101Gazeta::setChannelGap);
     LinearLayout fonts = chipRow(context);
     int[] fontNames = {R.string.Tgx101GazetaFontRegular, R.string.Tgx101GazetaFontSerif, R.string.Tgx101GazetaFontNarrow};
     for (int i = 0; i < fontNames.length; i++) {
