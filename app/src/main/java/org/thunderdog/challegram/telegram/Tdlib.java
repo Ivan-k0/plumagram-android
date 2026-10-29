@@ -9087,6 +9087,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
           connectionLossTime = SystemClock.uptimeMillis();
         }
       }
+      tgx101ScheduleNudge(state == ConnectionState.CONNECTING);
       listeners.updateConnectionState(state, prevState);
       context.onConnectionStateChanged(this, state);
       notifyConnectionDisplayStatusChanged();
@@ -9097,6 +9098,40 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       }
     }
   }
+  // TGx101 (black box 2026-10-29 22:27–22:35, user «плюма не видела вай фай», other apps worked on it): after the
+  // screen came on, on Wi‑Fi it stayed «Connecting» for 7 minutes; going to mobile data and back connected it at once.
+  // Telling TDLib about the network again makes it start its connections anew: done after 25 s of «Connecting», then
+  // after 60 s and 120 s more
+  private CancellableRunnable tgx101Nudge;
+  private int tgx101NudgeCount;
+
+  @TdlibThread
+  private void tgx101ScheduleNudge (boolean connecting) {
+    if (tgx101Nudge != null) {
+      tgx101Nudge.cancel();
+      tgx101Nudge = null;
+    }
+    if (!connecting) {
+      tgx101NudgeCount = 0;
+      return;
+    }
+    if (tgx101NudgeCount >= 3) return;
+    double delay = tgx101NudgeCount == 0 ? 25.0 : tgx101NudgeCount == 1 ? 60.0 : 120.0;
+    tgx101Nudge = new CancellableRunnable() {
+      @Override
+      public void act () {
+        tgx101Nudge = null;
+        TdApi.NetworkType type = networkType;
+        if (connectionState != ConnectionState.CONNECTING || type == null || type.getConstructor() == TdApi.NetworkTypeNone.CONSTRUCTOR) return;
+        tgx101NudgeCount++;
+        org.thunderdog.challegram.Tgx101Diag.mark("td connection: still connecting after " + Math.round(delay) + " s — the network told again (" + type.getClass().getSimpleName() + ", try " + tgx101NudgeCount + ")");
+        performOptional(client -> client.send(new TdApi.SetNetworkType(type), okHandler()), null);
+        tgx101ScheduleNudge(true);
+      }
+    };
+    runOnTdlibThread(tgx101Nudge, delay, false);
+  }
+
   private void notifyConnectionDisplayStatusChanged () {
     listeners.updateConnectionDisplayStatusChanged();
     context.onConnectionDisplayStatusChanged(this);
