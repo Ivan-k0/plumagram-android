@@ -1930,4 +1930,6 @@
   <item name="btn_tgx101CleanVoice" type="id"/>
   <item name="btn_tgx101CleanStickers" type="id"/>
   <item name="btn_tgx101CleanSkipPinned" type="id"/>
+  <item name="more_btn_tgx101Cache" type="id"/>
+  <item name="btn_tgx101CleanKeep" type="id"/>
 </resources>

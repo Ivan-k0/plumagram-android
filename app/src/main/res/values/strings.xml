@@ -7584,4 +7584,10 @@
   <string name="Tgx101CleanTypeStickers">Stickers</string>
   <string name="Tgx101CleanSkipPinned">Leave pinned chats alone</string>
   <string name="Tgx101CleanHint">Checked when the app opens, at most once an hour, quietly. Everything deleted stays in the Telegram cloud and downloads again when opened.</string>
+  <string name="Tgx101ChatCache">Cache</string>
+  <string name="Tgx101ChatCacheTitle">Cache of this chat: %1$s. Other chats are not touched.</string>
+  <string name="Tgx101ChatCacheEmpty">Nothing of this chat is in the cache.</string>
+  <string name="Tgx101CleanKeep">Never clean this chat automatically</string>
+  <string name="Tgx101ChatCacheSave">Save</string>
+  <string name="Tgx101ChatCacheCleared">Cleared: %1$s</string>
 </resources>

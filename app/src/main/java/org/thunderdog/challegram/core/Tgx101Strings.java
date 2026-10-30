@@ -1681,6 +1681,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AiPremium, "Бесплатные запросы ИИ закончились — Telegram просит Premium");
     RU.put(R.string.Tgx101AiFailed, "ИИ: %1$s");
     RU.put(R.string.Tgx101AiInfo, "ИИ Telegram работает на его серверах — телефон только отправляет текст");
+    RU.put(R.string.Tgx101ChatCacheCleared, "Очищено: %1$s");
+    RU.put(R.string.Tgx101ChatCache, "Кэш");
+    RU.put(R.string.Tgx101ChatCacheTitle, "Кэш этого чата: %1$s. Другие чаты не затрагиваются.");
+    RU.put(R.string.Tgx101ChatCacheEmpty, "В кэше ничего из этого чата.");
+    RU.put(R.string.Tgx101CleanKeep, "Не чистить этот чат автоматически");
+    RU.put(R.string.Tgx101ChatCacheSave, "Сохранить");
     RU.put(R.string.Tgx101AutoClean, "Автоочистка");
     RU.put(R.string.Tgx101CleanOff, "Выключена");
     RU.put(R.string.Tgx101CleanPrivate, "Личные чаты");

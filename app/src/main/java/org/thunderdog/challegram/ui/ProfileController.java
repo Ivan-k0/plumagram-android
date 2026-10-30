@@ -666,6 +666,9 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       strings.append(R.string.OpenCloudChat);
     }
 
+    ids.append(R.id.more_btn_tgx101Cache); // TGx101 (approved mockup «Кэш» 3)
+    strings.append(R.string.Tgx101ChatCache);
+
     showMore(ids.get(), strings.get(), 0);
   }
 
@@ -706,6 +709,8 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     strings.append(R.string.AddToFolder);
     ids.append(R.id.more_btn_tgx101Shortcut);
     strings.append(R.string.Tgx101CreateShortcut);
+    ids.append(R.id.more_btn_tgx101Cache); // TGx101 (approved mockup «Кэш» 3)
+    strings.append(R.string.Tgx101ChatCache);
 
     tdlib.ui().addDeleteChatOptions(getChatId(), ids, strings, false, true);
 
@@ -740,6 +745,10 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   @Override
   public void onMoreItemPressed (int id) {
     if (tdlib.ui().processLeaveButton(this, null, getChatId(), id, null)) {
+      return;
+    }
+    if (id == R.id.more_btn_tgx101Cache) {
+      Tgx101ChatCache.show(this, getChatId());
       return;
     }
     switch (mode) {
