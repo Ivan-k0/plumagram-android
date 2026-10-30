@@ -1305,8 +1305,9 @@ public class MosaicWrapper implements FactorAnimator.Target, ComplexReceiver.Key
 
         item.target.buildContent(width, height);
         if (hiddenMessageId != 0 && item.target.getSourceMessageId() == hiddenMessageId) {
-          if (!item.target.tgx101DrawHiddenPlace(view, c, x, y, preview))
-          c.drawRect(x, y, x + width, y + height, Paints.fillingPaint(org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.placeholder)));
+          if (!item.target.tgx101DrawHiddenPlace(view, c, x, y, preview)) {
+            c.drawRect(x, y, x + width, y + height, Paints.fillingPaint(org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.placeholder)));
+          }
         } else {
           item.target.draw(view, c, x, y, preview, receiver, 1f);
         }
