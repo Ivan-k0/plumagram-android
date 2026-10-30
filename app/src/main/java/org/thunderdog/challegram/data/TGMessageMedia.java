@@ -221,6 +221,12 @@ public class TGMessageMedia extends TGMessage {
   private static final float MIN_RATIO_GIF = .8f;
   private static final float MAX_RATIO = 1.5f;
   private static final float MAX_RATIO_GIF = 1.08f;
+  private static final float TGX101_JOURNAL_MEDIA_MARGIN = 14f;
+
+  /** «Journal», as the feed's «Paper» look: a tall photo no taller than a square, a tall video 5:4 */
+  private static float tgx101JournalMaxRatio (MediaWrapper item) {
+    return item.isVideo() ? 1.25f : 1f;
+  }
 
   @Override
   protected boolean tgx101JournalEdgeToEdge () {
@@ -482,7 +488,9 @@ public class TGMessageMedia extends TGMessage {
   @Override
   protected int getBubbleContentPadding () {
     // «Journal» (23:47 zoomed screenshot: the video started 8 px from the edge, white above it): media touches the edges
-    if (tgx101Journal() && !isOutgoing()) return 0;
+    // (user 2026-10-30 «медиа в "Журнале" сделай как в "Газете", в едином стиле»): pictures keep side margins like the
+    // text and their own round corners, no longer edge to edge
+    if (tgx101Journal() && !isOutgoing()) return Screen.dp(TGX101_JOURNAL_MEDIA_MARGIN);
     return xBubblePaddingSmall;
   }
 
@@ -498,7 +506,7 @@ public class TGMessageMedia extends TGMessage {
     if (needFullWidth) {
       maxWidth = origMaxWidth;
       if (mosaicWrapper.isSingular()) {
-        maxHeight = (int) ((float) origMaxWidth * (mosaicWrapper.getSingularItem().isGif() ? MAX_RATIO_GIF : MAX_RATIO));
+        maxHeight = (int) ((float) origMaxWidth * (mosaicWrapper.getSingularItem().isGif() ? MAX_RATIO_GIF : tgx101Journal() && !isOutgoing() ? tgx101JournalMaxRatio(mosaicWrapper.getSingularItem()) : MAX_RATIO));
         MediaWrapper item = mosaicWrapper.getSingularItem();
         float ratio = (float) origMaxWidth / (float) item.getContentWidth();
         maxHeight = Math.min(maxHeight, (int) ((float) item.getContentHeight() * ratio));
