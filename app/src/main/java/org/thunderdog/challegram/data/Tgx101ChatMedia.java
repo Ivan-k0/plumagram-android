@@ -107,6 +107,9 @@ public final class Tgx101ChatMedia {
 
   /** whether videos and GIFs of this chat play by themselves */
   public static boolean autoplay (@Nullable Tdlib tdlib, long chatId) {
+    // (user 2026-10-31 «я выключил воспроизведение, но газета играет»): «Nowhere» means nowhere — a channel's own «On»
+    // counts only with «Everywhere» or «Only chosen»
+    if (autoplayMode() == MODE_NOWHERE) return false;
     if (tdlib != null && chatId != 0) {
       int own = autoplayOf(tdlib, chatId);
       if (own == AUTOPLAY_ON) return true;
