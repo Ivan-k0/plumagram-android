@@ -389,8 +389,8 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
   private void buildTitles (int maxWidth) {
     if (doc != null && title != null) {
-      // TGx101: like the official app — the document name takes up to two lines, room on the right is kept for ⋮
-      trimmedTitle = new Text.Builder(title, maxWidth - Screen.dp(TGX101_DOTS_SPACE), Paints.getTitleStyleProvider(), context.getTextColorSet()).maxLineCount(2).allBold().highlight(context.getHighlightedText(Highlight.Pool.KEY_FILE_TITLE, title)).build();
+      // TGx101 (user 2026-10-30 «нижний файл слишком длинный»): the document name is one line, cut in the middle (the extension stays), room on the right is kept for ⋮
+      trimmedTitle = new Text.Builder(title, maxWidth - Screen.dp(TGX101_DOTS_SPACE), Paints.getTitleStyleProvider(), context.getTextColorSet()).textFlags(Text.FLAG_ELLIPSIZE_MIDDLE).singleLine().allBold().highlight(context.getHighlightedText(Highlight.Pool.KEY_FILE_TITLE, title)).build();
     } else {
       trimmedTitle = title != null ? new Text.Builder(title, maxWidth - (audio != null ? Screen.dp(TGX101_DOTS_SPACE) : 0), Paints.getTitleStyleProvider(), context.getTextColorSet()).textFlags(doc != null ? Text.FLAG_ELLIPSIZE_MIDDLE : 0).singleLine().allBold().highlight(context.getHighlightedText(Highlight.Pool.KEY_FILE_TITLE, title)).build() : null;
     }
@@ -903,10 +903,10 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     if (waveform == null) {
       int textLeft = startX + previewSize + getPreviewOffset();
       if (trimmedTitle != null) {
-        trimmedTitle.draw(c, textLeft, textLeft + trimmedTitle.getWidth(), 0, startY + Screen.dp(8f), null, alpha);
+        trimmedTitle.draw(c, textLeft, textLeft + trimmedTitle.getWidth(), 0, startY + Screen.dp(6f), null, alpha);
       }
       if (trimmedSubtitle != null) {
-        trimmedSubtitle.draw(c, textLeft, textLeft + trimmedSubtitle.getWidth(), 0, startY + Screen.dp(29f) + tgx101TitleExtraHeight(), null, alpha);
+        trimmedSubtitle.draw(c, textLeft, textLeft + trimmedSubtitle.getWidth(), 0, startY + Screen.dp(27f) + tgx101TitleExtraHeight(), null, alpha);
       }
     } else {
       // TODO alpha parameter support for voice messages
@@ -1060,12 +1060,14 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
   // STATIC
 
+  // (user 2026-10-30 «музыка как и голосовые тоже разные, подведи под единый размер»): the play button of music and files
+  // is the voice message's 46 dp, not the stock 50
   private static int getDocHeight () {
-    return Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS) * 2;
+    return Screen.dp(46f);
   }
 
   private static int getPreviewSize () {
-    return Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS) * 2;
+    return Screen.dp(46f);
   }
 
   private static int getPreviewOffset () {
