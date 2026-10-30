@@ -902,7 +902,15 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
   }
 
   private int getRadius () {
+    if (tgx101JournalMedia()) return Screen.dp(TGX101_JOURNAL_RADIUS);
     return Screen.dp(useBubbles() ? Theme.getBubbleMergeRadius() : Theme.getImageRadius());
+  }
+
+  /** «Journal» pictures have the feed's 10 dp corners */
+  private static final float TGX101_JOURNAL_RADIUS = 10f;
+
+  private boolean tgx101JournalMedia () {
+    return source != null && source.tgx101Journal() && !source.isOutgoing();
   }
 
   public int getContentWidth () {
@@ -979,7 +987,9 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
 
   public <T extends View & DrawableProvider> void draw (T view, Canvas c, int startX, int startY, Receiver preview, Receiver receiver, float alpha) {
     final float selectionFactor = selectionAnimator != null && source != null ? source.getSelectionFactor(selectionAnimator) : 0f;
-    final boolean clipped = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && path != null && !(source != null && source.useFullWidth());
+    // TGx101 (user 2026-10-30, channel Jeteed in «Journal»: square corners while the feed's are round): «Journal» media
+    // sit between margins now, so even full-width ones are cut to their own rounded shape
+    final boolean clipped = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && path != null && (!(source != null && source.useFullWidth()) || tgx101JournalMedia());
     final int saveCount;
     if (clipped) {
       int radius = getRadius();
@@ -1214,8 +1224,8 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
       thumbLocation.setNoBounce();
     }
 
-    int radius1 = Screen.dp(Theme.getBubbleMergeRadius()); // TGMessage.IMAGE_CONTENT_DEFAULT_RADIUS;
-    int radius2 = useBubbles() ? (int) ((float) Screen.dp(Theme.getBubbleDefaultRadius()) / 1.5f) : 0;
+    int radius1 = tgx101JournalMedia() ? Screen.dp(TGX101_JOURNAL_RADIUS) : Screen.dp(Theme.getBubbleMergeRadius()); // TGMessage.IMAGE_CONTENT_DEFAULT_RADIUS;
+    int radius2 = tgx101JournalMedia() ? radius1 : useBubbles() ? (int) ((float) Screen.dp(Theme.getBubbleDefaultRadius()) / 1.5f) : 0;
     thumbLocation.setRoundings(
       (roundings & ROUND_TOP_LEFT) != 0 ? radius1 : radius2,
       (roundings & ROUND_TOP_RIGHT) != 0 ? radius1 : radius2,
