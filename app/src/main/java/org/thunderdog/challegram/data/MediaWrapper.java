@@ -891,7 +891,12 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
       path.reset();
       RectF rectF = Paints.getRectF();
       rectF.set(lastLeft, lastTop, cellRight, cellBottom);
-      int halfRadius = radius / 2;
+      int halfRadius = tgx101JournalMedia() ? radius : radius / 2; // «Journal» albums: their outer corners at 10 dp too
+      if (tgx101JournalMedia() && source != null && source.tgx101JournalSingleMedia()) {
+        // «Journal», a single picture: all four corners round at 10 dp, as in the feed (the corners next to the text were
+        // square, the others half the radius)
+        DrawAlgorithms.buildPath(path, rectF, radius, radius, radius, radius);
+      } else
       DrawAlgorithms.buildPath(path, rectF,
         (roundings & ROUND_TOP_LEFT) != 0 ? halfRadius : 0,
         (roundings & ROUND_TOP_RIGHT) != 0 ? halfRadius : 0,

@@ -1663,6 +1663,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return false;
   }
 
+  /** «Journal»: one picture alone (an album keeps its cells' own corners) */
+  public boolean tgx101JournalSingleMedia () {
+    return false;
+  }
+
   /** «Journal»: the side margin of full-width content (media) */
   protected int tgx101JournalMediaMargin () {
     return 0;

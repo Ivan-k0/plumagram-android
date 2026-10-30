@@ -234,6 +234,11 @@ public class TGMessageMedia extends TGMessage {
   }
 
   @Override
+  public boolean tgx101JournalSingleMedia () {
+    return mosaicWrapper.isSingular();
+  }
+
+  @Override
   protected int tgx101JournalMediaMargin () {
     return Screen.dp(TGX101_JOURNAL_MEDIA_MARGIN);
   }
