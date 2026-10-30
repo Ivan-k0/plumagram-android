@@ -7590,4 +7590,16 @@
   <string name="Tgx101CleanKeep">Never clean this chat automatically</string>
   <string name="Tgx101ChatCacheSave">Save</string>
   <string name="Tgx101ChatCacheCleared">Cleared: %1$s</string>
+  <string name="Tgx101CleanCatFiles">Files</string>
+  <string name="Tgx101CleanCatVideo">Videos and GIFs</string>
+  <string name="Tgx101CleanCatPhoto">Photos</string>
+  <string name="Tgx101CleanCatMusic">Music</string>
+  <string name="Tgx101CleanCatStickers">Stickers and emoji</string>
+  <string name="Tgx101CleanCatOther">Other</string>
+  <string name="Tgx101CleanTabAll">All</string>
+  <string name="Tgx101CleanTabPrivate">Personal</string>
+  <string name="Tgx101CleanTabGroups">Groups</string>
+  <string name="Tgx101CleanTabChannels">Channels</string>
+  <string name="Tgx101CleanOfDevice">PlumaGram cache · %1$d%% of the phone storage</string>
+  <string name="Tgx101CleanSelected">Clear selected · %1$s</string>
 </resources>

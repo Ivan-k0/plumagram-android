@@ -1681,6 +1681,18 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AiPremium, "Бесплатные запросы ИИ закончились — Telegram просит Premium");
     RU.put(R.string.Tgx101AiFailed, "ИИ: %1$s");
     RU.put(R.string.Tgx101AiInfo, "ИИ Telegram работает на его серверах — телефон только отправляет текст");
+    RU.put(R.string.Tgx101CleanCatFiles, "Файлы");
+    RU.put(R.string.Tgx101CleanCatVideo, "Видео и GIF");
+    RU.put(R.string.Tgx101CleanCatPhoto, "Фото");
+    RU.put(R.string.Tgx101CleanCatMusic, "Музыка");
+    RU.put(R.string.Tgx101CleanCatStickers, "Стикеры и эмодзи");
+    RU.put(R.string.Tgx101CleanCatOther, "Прочее");
+    RU.put(R.string.Tgx101CleanTabAll, "Все");
+    RU.put(R.string.Tgx101CleanTabPrivate, "Личные");
+    RU.put(R.string.Tgx101CleanTabGroups, "Группы");
+    RU.put(R.string.Tgx101CleanTabChannels, "Каналы");
+    RU.put(R.string.Tgx101CleanOfDevice, "кэш PlumaGram · %1$d %% памяти телефона");
+    RU.put(R.string.Tgx101CleanSelected, "Очистить выбранное · %1$s");
     RU.put(R.string.Tgx101ChatCacheCleared, "Очищено: %1$s");
     RU.put(R.string.Tgx101ChatCache, "Кэш");
     RU.put(R.string.Tgx101ChatCacheTitle, "Кэш этого чата: %1$s. Другие чаты не затрагиваются.");

@@ -20,6 +20,8 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.IdRes;
+import android.view.ViewGroup;
+
 import androidx.annotation.Nullable;
 
 import org.drinkless.tdlib.Client;
@@ -207,6 +209,16 @@ public class SettingsCacheController extends RecyclerViewController<SettingsData
       }
 
       @Override
+      protected SettingHolder initCustom (ViewGroup parent, int customViewType) {
+        // TGx101 (approved mockup «Кэш» 1): the ring, tabs and checks on top
+        Tgx101StorageOverview view = new Tgx101StorageOverview(context);
+        view.setCallback(SettingsCacheController.this::tgx101Clear);
+        overview = view;
+        if (tgx101Stats != null) view.setStatistics(tdlib, tgx101Stats);
+        return new SettingHolder(view);
+      }
+
+      @Override
       protected void setDoubleText (ListItem item, int position, DoubleTextView textView, boolean isUpdate) {
         TGStorageStats.Entry entry = (TGStorageStats.Entry) item.getData();
         if (entry != null) {
@@ -229,6 +241,9 @@ public class SettingsCacheController extends RecyclerViewController<SettingsData
       }
     }*/
 
+    items.add(new ListItem(ListItem.TYPE_CUSTOM - 1, R.id.btn_tgx101StorageOverview));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     items.add(new ListItem(VIEW_TYPE, R.id.btn_keepMedia, 0, R.string.Tgx101AutoClean));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101CleanHint));
@@ -266,8 +281,7 @@ public class SettingsCacheController extends RecyclerViewController<SettingsData
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
     items.add(new ListItem(VIEW_TYPE, R.id.btn_localDatabase, 0, R.string.LocalDatabase));
-    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-    items.add(new ListItem(VIEW_TYPE, R.id.btn_clearCache, 0, R.string.MediaAndFiles));
+    // TGx101: «Media and files» is the overview's button now (mockup «Кэш» 1)
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     headerSize = items.size();
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, R.id.btn_clearCacheHint, 0, R.string.ClearCacheHint));
@@ -300,6 +314,7 @@ public class SettingsCacheController extends RecyclerViewController<SettingsData
     });
     getStats(true);
     tdlib.ui().postDelayed(this::executeScheduledAnimation, 500);
+    tgx101LoadOverview();
   }
 
   @Override
@@ -533,6 +548,42 @@ public class SettingsCacheController extends RecyclerViewController<SettingsData
         }
       }
     }
+  }
+
+  // TGx101 (approved mockup «Кэш» 1)
+
+  private @Nullable Tgx101StorageOverview overview;
+  private @Nullable TdApi.StorageStatistics tgx101Stats;
+
+  private void tgx101LoadOverview () {
+    tdlib.send(new TdApi.GetStorageStatistics(100000), (stats, error) -> {
+      if (stats == null) return;
+      tgx101Stats = stats;
+      Tgx101StorageOverview view = overview;
+      if (view != null) view.setStatistics(tdlib, stats);
+    });
+  }
+
+  private void tgx101Clear (TdApi.FileType[] types, @Nullable long[] chatIds, long size) {
+    if (isCleaningUp || isBusyGlobally || overview == null) return;
+    overview.setBusy(true);
+    ImageLoader.instance().clear(tdlib.id(), false);
+    tdlib.send(new TdApi.OptimizeStorage(0, 0, 0, 0, types, chatIds, null, false, 100000), (stats, error) -> {
+      org.thunderdog.challegram.Tgx101Diag.mark("storage: cleared " + Strings.buildSize(size) + " of " + types.length + " types" + (chatIds != null ? " in " + chatIds.length + " chats" : "") + (error != null ? ", error " + error.message : ""));
+      if (stats != null) {
+        tgx101Stats = stats;
+        Tgx101StorageOverview view = overview;
+        if (view != null) view.setStatistics(tdlib, stats);
+      } else {
+        tgx101LoadOverview();
+      }
+      tdlib.ui().post(() -> {
+        if (!isDestroyed()) {
+          getStats(false);
+          reloadFastStats();
+        }
+      });
+    });
   }
 
   private void showClearSettings (int id, final TGStorageStats.Entry entry) {
