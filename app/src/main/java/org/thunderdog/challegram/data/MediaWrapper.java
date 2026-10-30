@@ -914,6 +914,11 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
   /** «Journal» pictures have the feed's 10 dp corners */
   private static final float TGX101_JOURNAL_RADIUS = 10f;
 
+  /** «Journal»: a single video taller than 5:4 — shown whole in its 5:4 frame, blurred at the sides */
+  private boolean tgx101TallWhole () {
+    return tgx101JournalMedia() && isVideo() && source.tgx101JournalSingleMedia() && contentWidth > 0 && contentHeight > 0 && (long) contentHeight * 4 > (long) contentWidth * 5;
+  }
+
   private boolean tgx101JournalMedia () {
     return source != null && source.tgx101Journal() && !source.isOutgoing();
   }
@@ -1027,7 +1032,22 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
     fileProgress.setPaddingCompensation(selectionPadding);
     fileProgress.setBounds(cellLeft, cellTop, cellRight, cellBottom);
 
-    DrawAlgorithms.drawReceiver(c, preview, receiver, false, true, cellLeft, cellTop, cellRight, cellBottom);
+    if (tgx101TallWhole()) {
+      // (user 2026-10-30, as the feed's «Paper»): a tall video in «Journal» keeps its 5:4 frame and is shown whole in the
+      // middle; at the sides its own frame, stretched and blurred (the mini thumbnail is blurred already)
+      Receiver back = preview instanceof DoubleImageReceiver ? ((DoubleImageReceiver) preview).getPreview() : preview;
+      if (back != null) {
+        back.setBounds(cellLeft, cellTop, cellRight, cellBottom);
+        back.setPaintAlpha(alpha * .6f);
+        back.draw(c);
+        back.restorePaintAlpha();
+      }
+      int fitWidth = Math.min(cellRight - cellLeft, Math.round((float) (cellBottom - cellTop) * contentWidth / contentHeight));
+      int fitLeft = cellLeft + ((cellRight - cellLeft) - fitWidth) / 2;
+      DrawAlgorithms.drawReceiver(c, preview, receiver, false, false, fitLeft, cellTop, fitLeft + fitWidth, cellBottom);
+    } else {
+      DrawAlgorithms.drawReceiver(c, preview, receiver, false, true, cellLeft, cellTop, cellRight, cellBottom);
+    }
     float spoilerFactor = spoilerOverlayVisible.getFloatValue();
     if (spoilerFactor > 0f) {
       Receiver spoilerReceiver;
@@ -1241,7 +1261,15 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
     int actualTop = lastTop + viewTop;
     int actualBottom = (view.getMeasuredHeight() - cellBottom) + viewBottom;
 
-    thumbLocation.set(lastLeft, lastTop + top, lastLeft + cellWidth, lastTop + cellHeight + top);
+    if (tgx101TallWhole()) {
+      // the viewer flies from and into the whole video in the middle, not the 5:4 frame (its corners are square there)
+      int fitWidth = Math.min(cellWidth, Math.round((float) cellHeight * contentWidth / contentHeight));
+      int fitLeft = lastLeft + (cellWidth - fitWidth) / 2;
+      thumbLocation.setRoundings(0, 0, 0, 0);
+      thumbLocation.set(fitLeft, lastTop + top, fitLeft + fitWidth, lastTop + cellHeight + top);
+    } else {
+      thumbLocation.set(lastLeft, lastTop + top, lastLeft + cellWidth, lastTop + cellHeight + top);
+    }
     thumbLocation.setClip(0, actualTop < 0 ? -actualTop : 0, 0, actualBottom < 0 ? -actualBottom : 0);
     return thumbLocation;
   }
