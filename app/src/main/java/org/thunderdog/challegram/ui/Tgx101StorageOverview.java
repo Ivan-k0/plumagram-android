@@ -136,7 +136,12 @@ public class Tgx101StorageOverview extends View {
     long deviceTotal = 0;
     try {
       StatFs fs = new StatFs(getContext().getFilesDir().getPath());
-      deviceTotal = fs.getBlockCountLong() * fs.getBlockSizeLong();
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN_MR2) {
+        deviceTotal = fs.getBlockCountLong() * fs.getBlockSizeLong();
+      } else { // Android 4.1–4.2
+        //noinspection deprecation
+        deviceTotal = (long) fs.getBlockCount() * fs.getBlockSize();
+      }
     } catch (Throwable ignored) { }
     final long total = deviceTotal;
     UI.post(() -> {
