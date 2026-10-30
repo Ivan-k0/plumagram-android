@@ -21,6 +21,7 @@ import org.thunderdog.challegram.component.base.SettingView;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.data.Tgx101AutoClean;
 import org.thunderdog.challegram.telegram.Tdlib;
+import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.tool.Strings;
 import org.thunderdog.challegram.v.CustomRecyclerView;
 import org.thunderdog.challegram.widget.SliderWrapView;
@@ -103,6 +104,13 @@ public class Tgx101AutoCleanController extends RecyclerViewController<Void> impl
         if (item.getId() == R.id.btn_tgx101CleanSkipPinned) {
           view.getToggler().setRadioEnabled(Tgx101AutoClean.skipPinned(), isUpdate);
         }
+      }
+
+      @Override
+      protected void setSliderValues (ListItem item, SliderWrapView view) {
+        super.setSliderValues(item, view);
+        // user 2026-10-30: the sliders reached the screen's edges — dragging them often became a «back» swipe
+        view.setPadding(Screen.dp(20f), 0, Screen.dp(36f), 0);
       }
 
       @Override
@@ -190,6 +198,24 @@ public class Tgx101AutoCleanController extends RecyclerViewController<Void> impl
         return;
       }
     }
+  }
+
+  @Override
+  public boolean canSlideBackFrom (org.thunderdog.challegram.navigation.NavigationController navigationController, float x, float y) {
+    // a drag on a slider row is the slider's, not a «back» swipe
+    CustomRecyclerView recyclerView = getRecyclerView();
+    View root = navigationController.getValue();
+    if (recyclerView == null || root == null) return true;
+    int[] rootAt = new int[2], rowAt = new int[2];
+    root.getLocationOnScreen(rootAt);
+    float screenY = rootAt[1] + y;
+    for (int i = 0; i < recyclerView.getChildCount(); i++) {
+      View child = recyclerView.getChildAt(i);
+      if (!(child instanceof SliderWrapView)) continue;
+      child.getLocationOnScreen(rowAt);
+      if (screenY >= rowAt[1] && screenY < rowAt[1] + child.getHeight()) return false;
+    }
+    return true;
   }
 
   @Override
