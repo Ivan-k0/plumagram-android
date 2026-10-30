@@ -257,13 +257,17 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
     if (message == null || message.mediaAlbumId != 0) return;
     long size = Math.max(content.video.video.size, content.video.video.expectedSize);
     if (size <= 0 || size > TGX101_INLINE_MAX_BYTES) return;
-    if (!org.thunderdog.challegram.data.Tgx101ChatMedia.autoplay(tdlib, chatId)) return;
+    // the autoplay rule is asked each time the post is shown (requestGif), not once here — a post made under «Nowhere»
+    // stayed still after the rule became «Everywhere», while the feed, asking each time, played (user 2026-10-31)
     tgx101InlineVideo = true;
+    tgx101ChatId = chatId;
     targetGifFile = new GifFile(tdlib, content.video.video, GifFile.TYPE_MPEG4);
     targetGifFile.setScaleType(ImageFile.CENTER_CROP);
     if (Math.max(content.video.width, content.video.height) > 1280) targetGifFile.setRequestedSize(1280);
-    fileProgress.setHideDownloadedIcon(true); // no ▶ over a video playing by itself
   }
+
+  private long tgx101ChatId;
+  private Boolean tgx101LoggedPlay;
 
   public MediaWrapper (BaseActivity context, Tdlib tdlib, @NonNull TdApi.Video video, @Nullable TdApi.Photo cover, long chatId, long messageId, @Nullable TGMessage source, boolean useHotStuff) {
     this.tdlib = tdlib;
@@ -842,7 +846,14 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
 
   public void requestGif (GifReceiver receiver) {
     if (tgx101InlineVideo) {
-      receiver.requestFile(targetGifFile); // loads itself, as the feed's
+      boolean play = org.thunderdog.challegram.data.Tgx101ChatMedia.autoplay(tdlib, tgx101ChatId);
+      fileProgress.setHideDownloadedIcon(play); // no ▶ over a video playing by itself
+      if (tgx101LoggedPlay == null || tgx101LoggedPlay != play) {
+        tgx101LoggedPlay = play;
+        org.thunderdog.challegram.Tgx101Diag.mark("channel video: chat " + tgx101ChatId + " message " + sourceMessageId + " autoplay " + play +
+          " — own " + org.thunderdog.challegram.data.Tgx101ChatMedia.autoplayOf(tdlib, tgx101ChatId) + ", mode " + org.thunderdog.challegram.data.Tgx101ChatMedia.autoplayMode());
+      }
+      receiver.requestFile(play ? targetGifFile : null); // loads itself, as the feed's
       return;
     }
     receiver.requestFile(targetGifFile != null && TD.isFileLoaded(targetFile) && (fileProgress == null || fileProgress.isDownloaded()) && !isHot() ? targetGifFile : null);
