@@ -1041,6 +1041,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   @Override
   public boolean launchHideAnimation (PopupLayout popup, FactorAnimator ignored) {
     tgx101FullscreenDeferred = false;
+    if (mediaView != null) mediaView.getBaseCell().tgx101HideButtonForClose();
     if (tgx101LandscapeWindow() || mode == MODE_MESSAGES || mode == MODE_SIMPLE) {
       // the status bar comes back while the viewer still covers the chat, not after it is gone (in portrait too —
       // user 2026-10-12: it flashed in once the photo had already landed in its post)
@@ -4792,6 +4793,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private boolean tgx101RevealFromSlide () {
     if (mode != MODE_MESSAGES && mode != MODE_SIMPLE) return false;
+    mediaView.getBaseCell().tgx101HideButtonForClose();
     // a zoomed photo pulled down (MagiX «swipe down closes zoom»): the shrink into the post never finished on a zoomed
     // cell and the viewer hung on screen (user 2026-10-12) — it flies off and fades as before
     if (mediaView.isZoomed()) return false;
