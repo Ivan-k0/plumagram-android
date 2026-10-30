@@ -252,7 +252,8 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
   private boolean tgx101InlineVideo;
 
   private void tgx101SetInlineVideo (long chatId, long messageId, TdApi.MessageVideo content) {
-    if (source == null || source.isSecretChat() || content.hasSpoiler || isHot() || !tdlib.isChannel(chatId)) return;
+    // (user 2026-10-31 «да. там тоже»): groups and personal chats too, not only channels
+    if (source == null || source.isSecretChat() || content.hasSpoiler || isHot()) return;
     TdApi.Message message = source.getMessage(messageId);
     if (message == null || message.mediaAlbumId != 0) return;
     long size = Math.max(content.video.video.size, content.video.video.expectedSize);
