@@ -1364,6 +1364,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     final FrameLayout media, thumbWrap;
     GradientDrawable mediaRound;
     boolean tallWhole; // a tall video shown whole in «Paper»
+    int tallW, tallH; // its own size
     int thumbW, thumbH; // the picture beside the text: the small thumbnail, or a photo beside a longer text
     final ImageView mediaImage, thumbImage;
     final ImageView mediaBlur; // behind a tall video shown whole: its own frame, stretched and blurred
@@ -1838,6 +1839,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         int cap = paper ? (photo ? inner : inner * 5 / 4) : Integer.MAX_VALUE;
         height = Math.max(Screen.dp(120f), Math.min(height, Math.min(cap, (int) (Screen.currentHeight() * .6f))));
         tallWhole = paper && !photo && visuals == 1 && size[0] > 0 && size[1] > 0 && (long) size[1] * 4 > (long) size[0] * 5;
+        tallW = size[0];
+        tallH = size[1];
         mediaImage.setScaleType(tallWhole ? ImageView.ScaleType.FIT_CENTER : ImageView.ScaleType.CENTER_CROP);
         if (tallWhole) {
           TdApi.Minithumbnail mini = minithumbnailOf(visual);
@@ -2360,6 +2363,14 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     int[] loc = new int[2];
     target.getLocationInWindow(loc);
     viewerLocation.set(loc[0], loc[1], loc[0] + target.getWidth(), loc[1] + target.getHeight());
+    // (user's recording 2026-10-30 15:31): a tall video shown whole between blurred sides — the viewer flew into the whole
+    // 5:4 frame over the sides and snapped narrower on its last frame; it lands on the video itself now
+    Card tallCard = tallCardOf(target);
+    if (tallCard != null) {
+      int fit = Math.min(target.getWidth(), Math.round((float) target.getHeight() * tallCard.tallW / tallCard.tallH));
+      int left = loc[0] + (target.getWidth() - fit) / 2;
+      viewerLocation.set(left, loc[1], left + fit, loc[1] + target.getHeight());
+    }
     // what the header or the screen's edge covers is cut off, as in a chat
     int[] listLoc = new int[2];
     list.getLocationInWindow(listLoc);
@@ -2375,6 +2386,13 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     viewerLocation.setClip(0, Math.min(clipTop, target.getHeight()), 0, Math.min(clipBottom, target.getHeight()));
     viewerLocation.setRoundings(isThumb(target) ? Screen.dp(8f) : 0);
     return viewerLocation;
+  }
+
+  private @Nullable Card tallCardOf (View target) {
+    RecyclerView.ViewHolder holder = viewerPost != null ? list.findViewHolderForAdapterPosition(posts.indexOf(viewerPost)) : null;
+    if (holder == null || !(holder.itemView instanceof Card)) return null;
+    Card card = (Card) holder.itemView;
+    return card.tallWhole && card.mediaImage == target && card.tallW > 0 && card.tallH > 0 ? card : null;
   }
 
   private boolean isThumb (View target) {
