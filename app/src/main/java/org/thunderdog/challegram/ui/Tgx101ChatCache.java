@@ -113,7 +113,7 @@ public final class Tgx101ChatCache {
       .setRawItems(items)
       .setOnSettingItemClick((view, settingsId, item, doneButton, settingsAdapter, window) -> doneButton.setText(Lang.uppercase(saveText(groups, settingsAdapter.getCheckIntResults()))))
       .setIntDelegate((id, result) -> apply(c, chatId, groups, result))
-      .setSaveStr(selected > 0 ? Lang.getString(R.string.ClearX, Strings.buildSize(selected, false)) : Lang.getString(R.string.Tgx101ChatCacheSave))
+      .setSaveStr(selected > 0 ? Lang.getString(R.string.Clear) : Lang.getString(R.string.Tgx101ChatCacheSave)) // the size didn't fit the button; each row shows its own
       .setSaveColorId(selected > 0 ? ColorId.textNegative : ColorId.textNeutral)
       .setAllowResize(items.size() >= 6));
   }
@@ -125,7 +125,7 @@ public final class Tgx101ChatCache {
   private static String saveText (ArrayList<Group> groups, SparseIntArray result) {
     long size = 0;
     for (Group g : groups) if (checked(result, g.id)) size += g.size;
-    return size > 0 ? Lang.getString(R.string.ClearX, Strings.buildSize(size, false)) : Lang.getString(R.string.Tgx101ChatCacheSave);
+    return size > 0 ? Lang.getString(R.string.Clear) : Lang.getString(R.string.Tgx101ChatCacheSave);
   }
 
   private static void apply (ViewController<?> c, long chatId, ArrayList<Group> groups, SparseIntArray result) {
