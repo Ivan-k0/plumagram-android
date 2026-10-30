@@ -259,7 +259,11 @@ public class TGMessageMedia extends TGMessage {
   }
 
   private void updateRounds () {
-    if (useBubbles()) {
+    if (tgx101Journal() && !isOutgoing()) {
+      // (user 2026-10-30, channel ЗеРада: «групповые медиа не скруглены»): «Journal» albums stand between margins — their
+      // outer corners always round, at 10 dp like a single picture
+      mosaicWrapper.setNeedDefaultRounds(true, true);
+    } else if (useBubbles()) {
       mosaicWrapper.setNeedDefaultRounds(needTopContentRounding(), needBottomContentRounding());
     }
   }
