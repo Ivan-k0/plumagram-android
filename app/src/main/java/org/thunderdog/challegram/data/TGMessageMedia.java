@@ -500,7 +500,11 @@ public class TGMessageMedia extends TGMessage {
   }
 
   @Override
-  protected void buildContent (final int origMaxWidth) {
+  protected void buildContent (final int buildMaxWidth) {
+    // (user recording 2026-10-30 09:30: «обрезано резко», «три точки не оцентрованы», «при нажатии медиа сначала
+    // расширяется»): «Journal» pictures were laid out across the whole width and only shifted by the margin — cut on the
+    // right, the ⋮ off its place, the viewer flying from the whole width. They are laid out between the margins now
+    final int origMaxWidth = tgx101Journal() && !isOutgoing() ? buildMaxWidth - Screen.dp(TGX101_JOURNAL_MEDIA_MARGIN) * 2 : buildMaxWidth;
     int maxWidth, maxHeight;
     boolean needFullWidth = useFullWidth();
     if (needFullWidth) {
