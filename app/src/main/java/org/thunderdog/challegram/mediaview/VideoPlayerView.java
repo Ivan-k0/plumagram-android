@@ -414,7 +414,8 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
       seekToSavedPosition = false;
       player.seekTo(savedPosition);
     } else {
-      long resumePosition = org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerResume() ? Tgx101VideoResume.get(mediaItem) : 0;
+      long resumePosition = Tgx101VideoResume.takeStart(mediaItem);
+      if (resumePosition == 0) resumePosition = org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerResume() ? Tgx101VideoResume.get(mediaItem) : 0;
       if (resumePosition > 0) {
         org.thunderdog.challegram.Tgx101Diag.mark("player: resumed at " + resumePosition / 1000 + " s");
         player.seekTo(resumePosition);

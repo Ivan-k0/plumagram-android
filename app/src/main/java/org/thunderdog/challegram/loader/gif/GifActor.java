@@ -388,6 +388,7 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
         } else {
           int ret = N.getVideoFrame(nativePtr, frame.bitmap, metadata);
           frame.no = lastTimeStamp = metadata[3];
+          tgx101Positions.put(file.getFileId(), lastTimeStamp);
           return ret == 1 && !N.isVideoBroken(nativePtr);
         }
       }, 1, Bitmap.Config.ARGB_8888);
@@ -408,6 +409,16 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
   }
 
   private volatile long lastTimeStamp;
+
+  // TGx101 (user 2026-10-30, «в офф клиенте видео продолжается, а у нас заново»): where a video playing by itself in a
+  // feed stands, by file — the viewer opened on it starts there
+  private static final java.util.Map<Integer, Long> tgx101Positions = new java.util.concurrent.ConcurrentHashMap<>();
+
+  /** the last frame shown of this file's video playing by itself, ms; 0 — none */
+  public static long tgx101Position (int fileId) {
+    Long at = tgx101Positions.get(fileId);
+    return at != null ? at : 0;
+  }
   private volatile double lastFrameNo;
   private long totalFrameCount;
   private double frameRate;

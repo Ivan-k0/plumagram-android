@@ -11,7 +11,7 @@ import java.util.Map;
  * TGx101: remembers where a video was left off in the media viewer, so reopening it
  * continues from there instead of starting over. In-memory only, lives while the process does.
  */
-final class Tgx101VideoResume {
+public final class Tgx101VideoResume {
   private static final int MAX_ENTRIES = 32;
   private static final long MIN_POSITION_MS = 3000;
   private static final long END_MARGIN_MS = 3000;
@@ -44,6 +44,26 @@ final class Tgx101VideoResume {
       } else {
         positions.put(key, positionMs);
       }
+    }
+  }
+
+  // (user 2026-10-30) once: the video opened from where it was playing by itself in the feed
+  private static final Map<String, Long> startOnce = new java.util.HashMap<>();
+
+  public static void startAt (@Nullable MediaItem item, long positionMs) {
+    String key = key(item);
+    if (key == null || positionMs <= 0) return;
+    synchronized (startOnce) {
+      startOnce.put(key, positionMs);
+    }
+  }
+
+  static long takeStart (@Nullable MediaItem item) {
+    String key = key(item);
+    if (key == null) return 0;
+    synchronized (startOnce) {
+      Long at = startOnce.remove(key);
+      return at != null ? at : 0;
     }
   }
 

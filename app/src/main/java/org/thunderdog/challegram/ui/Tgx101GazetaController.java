@@ -2307,6 +2307,14 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       if (!isVisual(m)) continue;
       org.thunderdog.challegram.mediaview.data.MediaItem item = org.thunderdog.challegram.mediaview.data.MediaItem.valueOf(context(), tdlib, m);
       if (item != null) items.add(item);
+      // (user 2026-10-30 «в офф клиенте видео продолжается, а у нас заново»): the viewer starts where the feed's video stands
+      if (item != null && m.content.getConstructor() == TdApi.MessageVideo.CONSTRUCTOR) {
+        long at = org.thunderdog.challegram.loader.gif.GifActor.tgx101Position(((TdApi.MessageVideo) m.content).video.video.id);
+        if (at > 0) {
+          org.thunderdog.challegram.mediaview.Tgx101VideoResume.startAt(item, at);
+          org.thunderdog.challegram.Tgx101Diag.mark("gazeta viewer: the video starts at " + at + " ms, where the feed stands");
+        }
+      }
     }
     if (items.isEmpty()) {
       openInChannel(post);
