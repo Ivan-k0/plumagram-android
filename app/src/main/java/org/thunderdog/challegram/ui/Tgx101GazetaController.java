@@ -259,7 +259,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     int max = Size.getHeaderPortraitSize();
     org.thunderdog.challegram.navigation.HeaderView header = context().navigation() != null ? context().navigation().getHeaderView() : null;
     if (header != null && (isFocused() || headerHide == 0)) {
-      header.setTranslationY(-headerHide);
+      // (user 2026-10-30 «белая подложка», recording 09:16: a light strip 10 dp tall stayed under the status bar): the
+      // header's own lower edge goes up with it — the whole header below the status bar slides away
+      int below = Math.max(max, header.getMeasuredHeight() - header.getEffectiveTopOffset());
+      header.setTranslationY(-headerHide * (float) below / max);
       float alpha = 1f - headerHide / (float) max;
       for (int i = 0; i < header.getChildCount(); i++) header.getChildAt(i).setAlpha(alpha);
     }
