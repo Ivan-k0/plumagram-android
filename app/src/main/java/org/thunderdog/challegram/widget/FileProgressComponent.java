@@ -868,6 +868,10 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
   // Icon animation
 
   private int currentBitmapRes;
+  // (user's recording 2026-10-30 14:45 «когда голосовое отправилось, кнопка плэй мигнула»): the icon change shrank the old
+  // icon away and grew the new one from nothing, so mid-way the button stood empty for a few frames. Now both are drawn
+  // at once — the old fades and shrinks while the new fades in and grows
+  private int tgx101OldBitmapRes;
   // private Bitmap currentBitmap;
 
   private void setBitmapChangeFactor (float factor) {
@@ -877,6 +881,7 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
         currentBitmapRes = pendingBitmapRes;
         pendingBitmapRes = 0;
       }
+      if (factor == 0f || factor == 1f) tgx101OldBitmapRes = 0;
     }
     invalidate();
   }
@@ -906,6 +911,7 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
   private void setIcon (int iconRes, boolean animated) {
     if (animated && shouldAnimate() && currentBitmapRes != iconRes && alpha == 1f) {
       this.pendingBitmapRes = iconRes;
+      this.tgx101OldBitmapRes = currentBitmapRes;
 
       if (bitmapAnimator == null) {
         bitmapAnimator = new FactorAnimator(ANIMATOR_BITMAP, this, DECELERATE_INTERPOLATOR, CHANGE_DURATION, this.bitmapChangeFactor);
@@ -923,6 +929,22 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
       this.currentBitmapRes = iconRes;
       invalidate();
     }
+  }
+
+  private <T extends View & DrawableProvider> void tgx101DrawIcon (Canvas c, T view, int res, int cx, int cy, float iconAlpha, float scale) {
+    if (res == 0 || iconAlpha <= 0f) return;
+    int save = Views.save(c);
+    if (scale != 1f) c.scale(scale, scale, cx, cy);
+    if (res == FileProgressComponent.PLAY_ICON && playPauseFile != null) {
+      DrawAlgorithms.drawPlayPause(c, cx, cy, Screen.dp(13f), playPausePath, playPauseDrawFactor, playPauseDrawFactor = this.playPauseFactor, progressFactor, ColorUtils.alphaColor(iconAlpha, 0xffffffff));
+    } else {
+      Drawable drawable = Drawables.get(res); // own copy: its alpha is changed
+      Paint paint = Paints.whitePorterDuffPaint();
+      paint.setAlpha((int) (255f * iconAlpha));
+      Drawables.draw(c, drawable, cx - drawable.getMinimumWidth() / 2f, cy - drawable.getMinimumHeight() / 2f, paint);
+      paint.setAlpha(255);
+    }
+    Views.restore(c, save);
   }
 
   private static final int ANIMATOR_ALPHA = 1;
@@ -1501,7 +1523,14 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
         boolean ignoreScale = isVideoStreaming() && !isVideoStreamingSmallUi() && vsOnDownloadedAnimator != null && vsOnDownloadedAnimator.isAnimating();
         Paint bitmapPaint = Paints.whitePorterDuffPaint();
 
-        final float initScaleFactor = bitmapChangeFactor <= .5f ? (bitmapChangeFactor / .5f) : (1f - (bitmapChangeFactor - .5f) / .5f);
+        final boolean crossFade = tgx101OldBitmapRes != 0 && bitmapChangeFactor > 0f && bitmapChangeFactor < 1f;
+        final float initScaleFactor = crossFade ? 0f : bitmapChangeFactor <= .5f ? (bitmapChangeFactor / .5f) : (1f - (bitmapChangeFactor - .5f) / .5f);
+        if (crossFade) {
+          // old icon: out; new icon: in — overlapping, so the button is never empty
+          int newRes = pendingBitmapRes != 0 ? pendingBitmapRes : currentBitmapRes;
+          tgx101DrawIcon(c, view, tgx101OldBitmapRes, cx, cy, alpha * (1f - bitmapChangeFactor), ignoreScale ? 1f : 1f - (1f - MIN_SCALE) * bitmapChangeFactor);
+          tgx101DrawIcon(c, view, newRes, cx, cy, alpha * bitmapChangeFactor, ignoreScale ? 1f : MIN_SCALE + (1f - MIN_SCALE) * bitmapChangeFactor);
+        } else {
         final float scaleFactor = (ignoreScale) ? 0f : initScaleFactor;
         final float bitmapAlpha = alpha * (1f - initScaleFactor);
 
@@ -1546,6 +1575,7 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
 
         if (needRestore) {
           Views.restore(c, saveCount);
+        }
         }
       }
     }
