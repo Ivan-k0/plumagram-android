@@ -2626,6 +2626,20 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     ThreadInfo messageThread = loader.getMessageThread();
     long lastReadInboxMessageId = messageThread != null ? messageThread.getLastReadInboxMessageId() : chat.lastReadInboxMessageId;
 
+    // (user 2026-10-30, recording 09:50 «как в другом клиенте — аккуратно растворяется»): an album losing one picture was
+    // laid out again at once, the pictures jumping. Its old look is photographed first and dissolves over the new one
+    if (manager != null) {
+      for (int i = 0; i < manager.getChildCount(); i++) {
+        View view = manager.getChildAt(i);
+        TGMessage shown = view instanceof MessageProvider ? ((MessageProvider) view).getMessage() : null;
+        if (shown == null || shown.getCombinedMessageCount() < 2) continue;
+        int leaving = 0;
+        for (long messageId : messageIds) if (shown.isDescendantOrSelf(messageId)) leaving++;
+        // the whole album leaving is the usual squash; only one that stays, smaller, dissolves
+        if (leaving > 0 && leaving < shown.getCombinedMessageCount()) controller.tgx101TakeChangingAlbum(view);
+      }
+    }
+
     int tgx101RemovedRows = 0;
     int index = 0;
     main: while (index < adapter.getMessageCount()) {

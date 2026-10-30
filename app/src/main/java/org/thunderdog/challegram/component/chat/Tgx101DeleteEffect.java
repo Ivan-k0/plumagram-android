@@ -57,6 +57,7 @@ public final class Tgx101DeleteEffect extends View {
     float[] verts;
     int[] colors;
     long start;
+    boolean fade; // an album that stays, smaller: its old look dissolves
     float shift; // how far the chat has scrolled since — the dust is tied to the messages, not to the screen
   }
 
@@ -146,6 +147,20 @@ public final class Tgx101DeleteEffect extends View {
     }
   }
 
+  /** Photographs an album about to be laid out smaller — {@link #launch()} lets it dissolve over the new layout */
+  public void takeFade (@Nullable View source) {
+    if (!capable(getContext()) || source == null || source.getWidth() <= 0 || source.getHeight() <= 0 || !source.isShown()) return;
+    RectF area = new RectF(0, 0, source.getWidth(), source.getHeight());
+    double pixels = Math.max(1.0, (double) area.width() * area.height());
+    float scale = (float) Math.min(1.0, Math.sqrt(MAX_SNAPSHOT / pixels));
+    Burst b = snapshot(source, area, null, Math.max(scale, COARSE));
+    if (b != null) {
+      b.fade = true;
+      pending.add(b);
+      pendingAsked++;
+    }
+  }
+
   public void launch () {
     int asked = pendingAsked;
     pendingAsked = 0;
@@ -181,7 +196,7 @@ public final class Tgx101DeleteEffect extends View {
       java.util.Collections.sort(batch, (x, y) -> Float.compare(x.bounds.top, y.bounds.top));
       for (int i = 0; i < batch.size(); i++) {
         Burst b = batch.get(i);
-        b.start = now + Math.min(i * SQUASH_WAVE_STEP, SQUASH_WAVE_MAX);
+        b.start = b.fade ? now : now + Math.min(i * SQUASH_WAVE_STEP, SQUASH_WAVE_MAX);
         b.count = 0;
         bursts.add(b);
       }
@@ -318,6 +333,7 @@ public final class Tgx101DeleteEffect extends View {
   }
 
   private static final long SQUASH_WAVE_STEP = 30, SQUASH_WAVE_MAX = 150;
+  private static final float FADE_END = .18f;
   private static final float SQUASH_FLAT = .14f, SQUASH_OUT = .11f, SQUASH_END = SQUASH_FLAT + SQUASH_OUT;
   private static final android.view.animation.Interpolator SQUASH_CURVE = new android.view.animation.DecelerateInterpolator(1.6f);
 
@@ -346,14 +362,20 @@ public final class Tgx101DeleteEffect extends View {
     for (int k = bursts.size() - 1; k >= 0; k--) {
       Burst b = bursts.get(k);
       float t = (now - b.start) / 1000f;
-      if (t >= SQUASH_END) {
+      if (t >= (b.fade ? FADE_END : SQUASH_END)) {
         b.snapshot.recycle();
         bursts.remove(k);
         continue;
       }
       int save = c.save();
       c.translate(0, b.shift);
-      drawSquash(c, b, t);
+      if (b.fade) {
+        bitmapPaint.setAlpha((int) (255 * Math.max(0f, 1f - t / FADE_END)));
+        c.drawBitmap(b.snapshot, null, b.bounds, bitmapPaint);
+        bitmapPaint.setAlpha(255);
+      } else {
+        drawSquash(c, b, t);
+      }
       c.restoreToCount(save);
     }
     if (!bursts.isEmpty()) {

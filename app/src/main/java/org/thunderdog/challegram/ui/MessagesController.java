@@ -734,6 +734,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
+  /** An album about to lose some of its pictures: its old look dissolves over the new one */
+  public void tgx101TakeChangingAlbum (View messageView) {
+    if (!isFocused() || tgx101DeleteEffect == null) return;
+    try {
+      tgx101DeleteEffect.takeFade(messageView);
+    } catch (Throwable t) {
+      org.thunderdog.challegram.Tgx101Diag.mark("delete effect: album snapshot failed " + t.getClass().getSimpleName());
+    }
+  }
+
   public void tgx101LaunchDust () {
     if (tgx101DeleteEffect != null) {
       tgx101DeleteEffect.launch();
