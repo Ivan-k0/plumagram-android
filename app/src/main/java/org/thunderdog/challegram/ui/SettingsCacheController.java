@@ -302,7 +302,7 @@ public class SettingsCacheController extends RecyclerViewController<SettingsData
         case TdApi.OptionValueInteger.CONSTRUCTOR: {
           final long value = ((TdApi.OptionValueInteger) result).value;
           tdlib.ui().post(() -> {
-            org.thunderdog.challegram.data.Tgx101AutoClean.migrate(tdlib, value); // TGx101: the old single time becomes the rule for every kind
+            org.thunderdog.challegram.data.Tgx101AutoClean.migrate(tdlib, value); // TGx101: TDLib's own optimizer steps aside for the rules by kind
             if (!isDestroyed()) {
               setKeepMedia(value, false);
               adapter.updateValuedSettingById(R.id.btn_keepMedia);

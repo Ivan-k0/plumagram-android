@@ -59,8 +59,13 @@ public final class Tgx101AutoClean {
 
   // Rules
 
+  /** (user 2026-10-31 23:38 «по умолчанию у всех»): channels — a week, groups — a month, personal chats — never */
+  private static int defaultTtl (int kind) {
+    return kind == KIND_CHANNEL ? 60 * 60 * 24 * 7 : kind == KIND_GROUP ? 60 * 60 * 24 * 30 : 0;
+  }
+
   public static int ttl (int kind) {
-    return pmc().getInt(KEY_TTL + kind, 0);
+    return pmc().getInt(KEY_TTL + kind, defaultTtl(kind));
   }
 
   public static void setTtl (int kind, int seconds) {
@@ -131,11 +136,8 @@ public final class Tgx101AutoClean {
   public static void migrate (Tdlib tdlib, long oldTtl) {
     if (pmc().getBoolean(KEY_MIGRATED, false)) return;
     pmc().putBoolean(KEY_MIGRATED, true);
-    if (oldTtl > 0) {
-      int step = TTL_STEPS[stepOf(TTL_STEPS, (int) oldTtl)];
-      for (int kind = 0; kind < KIND_COUNT; kind++) setTtl(kind, step);
-      Tgx101Diag.mark("auto clean: «Keep media» " + oldTtl + " s became " + step + " s for every kind");
-    }
+    // the old single «Keep media» is no longer copied to every kind — the defaults by kind take its place
+    Tgx101Diag.mark("auto clean: «Keep media» was " + oldTtl + " s, the kinds' defaults stand");
     switchOffTdlibOptimizer(tdlib);
   }
 
@@ -199,6 +201,7 @@ public final class Tgx101AutoClean {
   /** On the app's resume: at most once an hour per account */
   public static void maybeRun (@Nullable Tdlib tdlib) {
     if (tdlib == null || tdlib.account().isUnauthorized() || !hasRules()) return;
+    if (!isMigrated()) migrate(tdlib, 0); // the defaults now work for everyone — TDLib's own optimizer steps aside
     Long last = lastRun.get(tdlib.id());
     long now = SystemClock.elapsedRealtime();
     if (last != null && now - last < RUN_INTERVAL_MS) return;
