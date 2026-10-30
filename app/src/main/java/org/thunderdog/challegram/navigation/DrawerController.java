@@ -1167,7 +1167,29 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
     if (this.isAnimating != isAnimating) {
       this.isAnimating = isAnimating;
       context.notifyBackPressAvailabilityChanged();
+      if (isAnimating) {
+        tgx101WatchAnimation();
+      }
     }
+  }
+
+  // TGx101 (user 2026-10-30 23:04 «настройки не открываются»): the drawer stayed drawn open while it counted itself
+  // closed and still animating — every open/close returned early, the taps went to the chats under it, only a restart
+  // helped. An open or a close that hasn't landed in time is landed by force.
+  private int tgx101AnimationId;
+
+  private void tgx101WatchAnimation () {
+    final int id = ++tgx101AnimationId;
+    UI.post(() -> {
+      if (id != tgx101AnimationId || !isAnimating || isDestroyed()) return;
+      boolean opening = isVisible || factor >= .5f;
+      org.thunderdog.challegram.Tgx101Diag.mark("drawer: animation stuck at " + factor + ", visible " + isVisible + " — landed " + (opening ? "open" : "closed") + " by force");
+      if (opening) {
+        forceOpen();
+      } else {
+        forceClose();
+      }
+    }, 1500);
   }
 
   public void open (float velocity) {
