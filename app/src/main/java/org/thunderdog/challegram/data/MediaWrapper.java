@@ -914,6 +914,41 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
   /** «Journal» pictures have the feed's 10 dp corners */
   private static final float TGX101_JOURNAL_RADIUS = 10f;
 
+  /**
+   * (user's recording 2026-10-30 14:29): while the viewer shows this video its place was filled with the placeholder
+   * whole, so the blurred sides were white all the flight back and popped in on its last frame. Now only the middle,
+   * where the video lands, is the placeholder; the blurred sides stay.
+   * @return false when this isn't a tall «Journal» video (the caller fills the whole cell)
+   */
+  public <T extends View & DrawableProvider> boolean tgx101DrawHiddenPlace (T view, Canvas c, int startX, int startY, Receiver preview) {
+    if (!tgx101TallWhole()) return false;
+    final boolean clipped = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && path != null;
+    int saveCount = Integer.MIN_VALUE;
+    if (clipped) {
+      int radius = getRadius();
+      if (lastLeft != startX || lastTop != startY || lastRadius != radius) {
+        layoutPath(startX, startY, radius);
+      }
+      saveCount = ViewSupport.clipPath(c, path);
+    }
+    lastLeft = startX;
+    lastTop = startY;
+    Receiver back = preview instanceof DoubleImageReceiver ? ((DoubleImageReceiver) preview).getPreview() : preview;
+    if (back != null) {
+      back.setBounds(startX, startY, startX + cellWidth, startY + cellHeight);
+      back.setPaintAlpha(.9f);
+      back.draw(c);
+      back.restorePaintAlpha();
+    }
+    int fitWidth = Math.min(cellWidth, Math.round((float) cellHeight * contentWidth / contentHeight));
+    int fitLeft = startX + (cellWidth - fitWidth) / 2;
+    c.drawRect(fitLeft, startY, fitLeft + fitWidth, startY + cellHeight, Paints.fillingPaint(Theme.getColor(ColorId.placeholder)));
+    if (clipped) {
+      ViewSupport.restoreClipPath(c, saveCount);
+    }
+    return true;
+  }
+
   /** «Journal»: a single video taller than 5:4 — shown whole in its 5:4 frame, blurred at the sides */
   private boolean tgx101TallWhole () {
     return tgx101JournalMedia() && isVideo() && source.tgx101JournalSingleMedia() && contentWidth > 0 && contentHeight > 0 && (long) contentHeight * 4 > (long) contentWidth * 5;
@@ -1038,7 +1073,7 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
       Receiver back = preview instanceof DoubleImageReceiver ? ((DoubleImageReceiver) preview).getPreview() : preview;
       if (back != null) {
         back.setBounds(cellLeft, cellTop, cellRight, cellBottom);
-        back.setPaintAlpha(alpha * .6f);
+        back.setPaintAlpha(alpha * .9f); // (user's recording 2026-10-30) at .6 the sides came out washed-out grey on white
         back.draw(c);
         back.restorePaintAlpha();
       }
