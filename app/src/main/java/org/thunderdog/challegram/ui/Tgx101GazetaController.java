@@ -1314,6 +1314,21 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     }
   }
 
+  // (user 2026-10-30 «белая подложка и чёрный текст, что не читается»): a quote in a post took the app theme's quote
+  // colour — dark text from the light theme on the dark feed. In the feed a quote's text is the feed's own text colour
+  private static CharSequence tgx101QuoteColors (CharSequence str) {
+    if (!(str instanceof android.text.Spanned)) return str;
+    android.text.Spanned spanned = (android.text.Spanned) str;
+    org.thunderdog.challegram.util.text.quotes.QuoteSpan.QuoteStyleSpan[] quotes = spanned.getSpans(0, spanned.length(), org.thunderdog.challegram.util.text.quotes.QuoteSpan.QuoteStyleSpan.class);
+    if (quotes.length == 0) return str;
+    android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder(str);
+    int color = Tgx101Gazeta.palette()[2];
+    for (Object q : quotes) {
+      b.setSpan(new android.text.style.ForegroundColorSpan(color), spanned.getSpanStart(q), spanned.getSpanEnd(q), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    }
+    return b;
+  }
+
   private static int lineCount (CharSequence text, TextView like, int width) {
     if (width <= 0 || text == null || text.length() == 0) return 0;
     android.text.StaticLayout layout = new android.text.StaticLayout(text, like.getPaint(), width, android.text.Layout.Alignment.ALIGN_NORMAL,
@@ -1701,6 +1716,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       TdApi.FormattedText text = sample ? Td.textOrCaption(main.content) : tgx101TextFor(post, Td.textOrCaption(main.content));
       CharSequence str = text != null && !Td.isEmpty(text) ? TD.toCharSequence(text) : describe(main);
       str = prepareSpoilers(str, !post.spoilersShown);
+      str = tgx101QuoteColors(str);
       hiddenText = hasHidden(str);
 
       // the AI summary («✨ Short»), above the text while shown
