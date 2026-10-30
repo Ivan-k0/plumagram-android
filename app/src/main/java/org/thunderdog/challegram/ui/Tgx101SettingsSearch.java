@@ -219,14 +219,24 @@ public class Tgx101SettingsSearch extends ViewController<Void> {
 
       @Override
       public void afterTextChanged (Editable s) {
-        search(s.toString());
+        // (user 2026-10-31 «лаги в поиске»): typed fast, only the last letter's search runs
+        field.removeCallbacks(pendingSearch);
+        field.postDelayed(pendingSearch, 90);
       }
     });
     field.requestFocus();
     field.postDelayed(() -> org.thunderdog.challegram.tool.Keyboard.show(field), 250);
-    UI.post(this::buildIndex, 50);
+    // the index reads 23 screens on the UI thread (~140 ms) — after the keyboard has come up, not under it (a 73 ms frame)
+    UI.post(this::buildIndex, 650);
     return column;
   }
+
+  private final Runnable pendingSearch = () -> {
+    if (field != null) search(field.getText().toString());
+  };
+
+  /** rows made once and filled again on every letter — making up to 60 rows per letter gave 40–56 ms frames */
+  private final List<View> rowPool = new ArrayList<>();
 
   private void search (String query) {
     if (isDestroyed()) return;
@@ -256,8 +266,17 @@ public class Tgx101SettingsSearch extends ViewController<Void> {
     }
     int n = 0;
     for (Entry e : found) {
-      if (n++ >= 60) break;
-      results.addView(row(e, q));
+      if (n >= 60) break;
+      View r;
+      if (n < rowPool.size()) {
+        r = rowPool.get(n);
+      } else {
+        r = row();
+        rowPool.add(r);
+      }
+      bindRow(r, e, q);
+      results.addView(r);
+      n++;
     }
   }
 
@@ -268,22 +287,29 @@ public class Tgx101SettingsSearch extends ViewController<Void> {
     return 2;
   }
 
-  private View row (Entry e, String q) {
+  private View row () {
     LinearLayout r = new LinearLayout(context);
     r.setOrientation(LinearLayout.VERTICAL);
     r.setPadding(Screen.dp(18f), Screen.dp(10f), Screen.dp(18f), Screen.dp(10f));
     Views.setClickable(r);
     org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(r);
-    r.setOnClickListener(v -> openEntry(e));
+    r.setOnClickListener(v -> {
+      if (v.getTag() instanceof Entry) openEntry((Entry) v.getTag());
+    });
     TextView t = Tgx101SavedHomeController.text(context, 16f, Theme.textAccentColor(), false);
-    t.setText(Tgx101SavedListController.highlighted(e.title, q));
     r.addView(t);
     TextView p = Tgx101SavedHomeController.text(context, 12f, Theme.textDecentColor(), false);
-    p.setText(e.path);
     p.setSingleLine(true);
     p.setEllipsize(TextUtils.TruncateAt.START);
     r.addView(p);
     return r;
+  }
+
+  private void bindRow (View row, Entry e, String q) {
+    LinearLayout r = (LinearLayout) row;
+    r.setTag(e);
+    ((TextView) r.getChildAt(0)).setText(Tgx101SavedListController.highlighted(e.title, q));
+    ((TextView) r.getChildAt(1)).setText(e.path);
   }
 
   /** the screen opens, scrolls to the item and lights it up twice */
