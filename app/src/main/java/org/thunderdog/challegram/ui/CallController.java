@@ -827,7 +827,11 @@ public class CallController extends ViewController<CallController.Arguments> imp
     }
     if (nameView != null) {
       this.nameView.setText(TD.getUserName(user));
-      this.nameView.setPadding(0, 0, user != null && user.isPremium ? emojiStatusHelper.getWidth(Screen.dp(7)) : 0, 0);
+      int statusWidth = user != null && user.isPremium ? emojiStatusHelper.getWidth(Screen.dp(7)) : 0;
+      // TGx101 (user 2026-10-30): on the new screen the status' room is kept on both sides — with it on the right only,
+      // a centred two-line name stood off the screen's middle
+      boolean centred = Settings.instance().useNewCallScreen() && photoMode != Settings.CALL_PHOTO_FULL_SCREEN;
+      this.nameView.setPadding(centred ? statusWidth : 0, 0, statusWidth, 0);
       this.nameView.requestLayout();
     }
     if (emojiViewHint != null)
