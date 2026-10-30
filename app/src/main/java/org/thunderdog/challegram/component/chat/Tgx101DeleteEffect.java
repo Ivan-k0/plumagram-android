@@ -335,9 +335,13 @@ public final class Tgx101DeleteEffect extends View {
   private void drawBurst (Canvas c, Burst b, float t) {
     // the part the front hasn't reached yet — the message itself
     float front = b.bounds.left + b.bounds.width() * Math.min(1f, t / SWEEP);
-    if (front < b.bounds.right) {
+    // (user 2026-10-30 «можно сделать не так грубо? особенно видно когда удаляешь медиа»): behind the front the message
+    // stood as solid 20 px blocks until each grain flew off — a band of mosaic over a photo. The picture now stays sharp
+    // until its grains have all left (the front lags by the grains' delay), and a grain shows only once it flies
+    float released = b.bounds.left + b.bounds.width() * Math.max(0f, Math.min(1f, (t - JITTER) / SWEEP));
+    if (released < b.bounds.right) {
       int save = c.save();
-      c.clipRect(front, b.bounds.top, b.bounds.right, b.bounds.bottom);
+      c.clipRect(released, b.bounds.top, b.bounds.right, b.bounds.bottom);
       c.drawBitmap(b.snapshot, null, b.bounds, bitmapPaint);
       c.restoreToCount(save);
     }
@@ -352,8 +356,7 @@ public final class Tgx101DeleteEffect extends View {
       int alpha, rgb;
       float gs = s;
       if (u <= 0f) {
-        alpha = 255; // the front passed, the grain hasn't left yet — stands in for the message
-        rgb = b.color[i];
+        continue; // hasn't left yet: the picture under it still shows
       } else {
         float a = 1f - u / b.life[i];
         if (a <= 0f) continue;
@@ -361,7 +364,7 @@ public final class Tgx101DeleteEffect extends View {
         x += b.vx[i] * u + (float) Math.sin(u * 9f + b.phase[i]) * wobble;
         y += b.vy[i] * u - rise * u * u + (float) Math.cos(u * 6f + b.phase[i] * 1.7f) * wobble * .5f;
         rgb = u < FLASH ? mix(b.bright[i], b.color[i], u / FLASH) : b.color[i];
-        gs = s * (.55f + .45f * a); // grains get smaller as they melt
+        gs = s * (.45f + .35f * a); // grains get smaller as they melt; a bit finer from the start
       }
       int color = (rgb & 0x00ffffff) | (alpha << 24);
       if (fast) {
