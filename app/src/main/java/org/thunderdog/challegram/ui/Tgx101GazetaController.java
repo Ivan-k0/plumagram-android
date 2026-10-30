@@ -255,14 +255,19 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     headerAnimator.start();
   }
 
+  // (user 2026-10-30 «белая подложка», recordings 09:16 and 09:47: a light strip 10 dp tall stayed under the status bar
+  // when the header slid away — the header's drop shadow; sliding the header further up bared the status bar instead).
+  // The feed's header has no shadow: it lies over posts of its own colour
+  @Override
+  public boolean tgx101HeaderShadowHidden () {
+    return true;
+  }
+
   private void applyHeaderHide () {
     int max = Size.getHeaderPortraitSize();
     org.thunderdog.challegram.navigation.HeaderView header = context().navigation() != null ? context().navigation().getHeaderView() : null;
     if (header != null && (isFocused() || headerHide == 0)) {
-      // (user 2026-10-30 «белая подложка», recording 09:16: a light strip 10 dp tall stayed under the status bar): the
-      // header's own lower edge goes up with it — the whole header below the status bar slides away
-      int below = Math.max(max, header.getMeasuredHeight() - header.getEffectiveTopOffset());
-      header.setTranslationY(-headerHide * (float) below / max);
+      header.setTranslationY(-headerHide);
       float alpha = 1f - headerHide / (float) max;
       for (int i = 0; i < header.getChildCount(); i++) header.getChildAt(i).setAlpha(alpha);
     }
