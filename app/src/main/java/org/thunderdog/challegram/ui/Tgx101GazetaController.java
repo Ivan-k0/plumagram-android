@@ -1815,6 +1815,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         stickerView.setSticker(null);
       }
       tallWhole = false;
+      if (mediaImage.getAlpha() != 1f) mediaImage.setAlpha(1f); // a card hidden for the viewer, reused
+      if (player.getAlpha() != 1f) player.setAlpha(1f);
       mediaBlur.setVisibility(GONE);
       mediaImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
       if (visual == null) {
@@ -2429,6 +2431,15 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     // stays where it is while the viewer shows it — emptied and given back, it blinked behind the viewer as it was pulled
     // and swiped through; the viewer flies from it and back onto it all the same
     if (target != null && target.getAlpha() != 1f) target.setAlpha(1f);
+    // (user 2026-10-30 «там оно накладывается одно на другое»): a tall video between blurred sides — the post's own
+    // playing frame showed under the viewer flying back, two pictures over each other. Its middle stays empty while the
+    // viewer has it (the blurred sides stay), as in a channel's «Journal»
+    Card tallCard = target != null ? tallCardOf(target) : null;
+    if (tallCard != null) {
+      float a = isVisible ? 1f : 0f;
+      tallCard.mediaImage.setAlpha(a);
+      tallCard.player.setAlpha(a);
+    }
     // (user recording 2026-10-29 22:56: the viewer swiped on to another post's video and closed — the album's first cell
     // stayed empty): whenever a picture comes back, every picture of the opened post is shown again
     if (isVisible && viewerPost != null) {
@@ -2437,6 +2448,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       for (int i = 0; i < count; i++) {
         View cell = viewerTarget(i);
         if (cell != null && cell.getAlpha() != 1f) cell.setAlpha(1f);
+        Card c = cell != null ? tallCardOf(cell) : null;
+        if (c != null) c.player.setAlpha(1f);
       }
     }
   }
