@@ -405,6 +405,9 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     }
     empty.setVisibility(View.GONE);
     if (atEnd && list != null) list.post(() -> list.smoothScrollToPosition(posts.size() - 1));
+    // (user 2026-10-30 «на стрелке нужно отображать кол-во непрочитанных»): a post that came while reading lower in the
+    // feed is counted on the arrow at once — it was counted only at the next scroll
+    else if (list != null) list.post(this::updateArrow);
   }
   private RecyclerView list;
   private TextView empty;
