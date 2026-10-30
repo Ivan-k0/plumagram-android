@@ -215,10 +215,9 @@ public final class Tgx101ChatMedia {
       } else if (id == R.id.btn_tgx101ChatMediaAutoplay) {
         choose(c, R.string.Tgx101ChatMediaAutoplay, new String[] {autoplayName(0), autoplayName(1), autoplayName(2)}, autoplay, which -> {
           put(key, photo, video, limit, which);
-          // (user 2026-10-31 «если я включаю через три точки, то настройки автоматом переключаются на выбранные»): «On»
-          // in a chat switches the general rule to «Only chosen», from «Everywhere» too — the chosen ones play, and the
-          // chat shows up in that setting's list
-          if (which == AUTOPLAY_ON && autoplayMode() != MODE_CHOSEN && key.startsWith(CHAT_KEY_PREFIX)) {
+          // (user 2026-10-31): «On» in one chat while the general rule is «Nowhere» switches it to «Only chosen» —
+          // the chat plays, the rest stay still, and it shows up in that setting's list
+          if (which == AUTOPLAY_ON && autoplayMode() == MODE_NOWHERE && key.startsWith(CHAT_KEY_PREFIX)) {
             setAutoplayMode(MODE_CHOSEN);
             org.thunderdog.challegram.tool.UI.showToast(Lang.getString(R.string.Tgx101AutoplayVideos) + ": " + autoplayModeName(MODE_CHOSEN), android.widget.Toast.LENGTH_SHORT);
           }
