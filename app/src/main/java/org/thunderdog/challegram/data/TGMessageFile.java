@@ -707,6 +707,12 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
     return Math.round(files.getMetadata().getMaximumItemWidth());
   }
 
+  // TGx101: a voice message keeps its own width — a long reply or name is cut, not stretching the bubble (user 2026-10-30: «все в едином размере, кнопки на одном месте»)
+  @Override
+  protected boolean allowBubbleHorizontalExtend () {
+    return filesList == null || !(filesList.size() == 1 && filesList.get(0).component.isVoice());
+  }
+
   @Override
   protected void buildReactions (boolean animated) {
     if (!useBubble() || !useReactionBubbles()) {
