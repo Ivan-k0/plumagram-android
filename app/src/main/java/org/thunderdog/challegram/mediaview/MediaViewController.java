@@ -6654,6 +6654,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         captionView.setId(R.id.input);
         captionView.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         this.captionView = captionView;
+        // TGx101 (user 2026-10-30 18:02): the caption opened unfolded — its fold was checked before it had a width
+        captionView.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+          if (r - l != or - ol && !tgx101CaptionExpanded) v.post(this::tgx101ApplyCaptionHeight);
+        });
 
 
         LinearLayout captionWrap = new LinearLayout(context);
@@ -6662,9 +6666,54 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         captionWrap.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         MaxHeightScrollView scrollView = new MaxHeightScrollView(context) {
+          private float swipeX, swipeY;
+          private boolean swipeChecked, swipeTaken;
+
           @Override
           public boolean onInterceptTouchEvent (MotionEvent ev) {
             return tgx101CaptionExpanded || !tgx101CaptionCollapsible() ? super.onInterceptTouchEvent(ev) : false; // TGx101: collapsed — a tap expands it
+          }
+
+          // TGx101 (user 2026-10-30 18:02): a swipe up over a long caption opens it, a swipe down (at its top) folds it;
+          // the swipe stays with the caption — the photo under it does not move or close
+          @Override
+          public boolean dispatchTouchEvent (MotionEvent ev) {
+            switch (ev.getActionMasked()) {
+              case MotionEvent.ACTION_DOWN:
+                swipeX = ev.getX();
+                swipeY = ev.getY();
+                swipeChecked = swipeTaken = false;
+                break;
+              case MotionEvent.ACTION_MOVE: {
+                if (swipeTaken) return true;
+                if (swipeChecked || !tgx101CaptionCollapsible()) break;
+                float dx = ev.getX() - swipeX, dy = ev.getY() - swipeY;
+                if (Math.abs(dy) < Screen.getTouchSlop() || Math.abs(dy) < Math.abs(dx)) {
+                  if (Math.abs(dx) >= Screen.getTouchSlop()) swipeChecked = true; // sideways — the album's own swipe
+                  break;
+                }
+                swipeChecked = true;
+                if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+                if ((dy < 0 && !tgx101CaptionExpanded) || (dy > 0 && tgx101CaptionExpanded && getScrollY() == 0)) {
+                  swipeTaken = true;
+                  tgx101ToggleCaption();
+                  MotionEvent cancel = MotionEvent.obtain(ev);
+                  cancel.setAction(MotionEvent.ACTION_CANCEL);
+                  super.dispatchTouchEvent(cancel);
+                  cancel.recycle();
+                  return true;
+                }
+                break;
+              }
+              case MotionEvent.ACTION_UP:
+              case MotionEvent.ACTION_CANCEL:
+                if (swipeTaken) {
+                  swipeTaken = false;
+                  return true;
+                }
+                break;
+            }
+            return super.dispatchTouchEvent(ev);
           }
         };
         scrollView.setMaxHeight(Text.getLineHeight(TGMessage.getTextStyleProvider(), true) * 10 + Screen.dp(14f));
