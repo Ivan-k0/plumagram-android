@@ -59,6 +59,7 @@ public final class Tgx101DeleteEffect extends View {
     long start;
     boolean fade; // an album that stays, smaller: its old look dissolves
     float shift; // how far the chat has scrolled since — the dust is tied to the messages, not to the screen
+    @Nullable RectF group; // messages deleted together: the whole batch flattens as one picture around its centre
   }
 
   private final ArrayList<Burst> bursts = new ArrayList<>();
@@ -193,11 +194,20 @@ public final class Tgx101DeleteEffect extends View {
       // flattens into a line where it stood, the line shrinks to the middle and goes out; several go top to bottom,
       // each 30 ms after the one above, the whole wave at most 150 ms. One picture per message instead of thousands of
       // grains — the GPU barely notices
-      java.util.Collections.sort(batch, (x, y) -> Float.compare(x.bounds.top, y.bounds.top));
-      for (int i = 0; i < batch.size(); i++) {
-        Burst b = batch.get(i);
-        b.start = b.fade ? now : now + Math.min(i * SQUASH_WAVE_STEP, SQUASH_WAVE_MAX);
+      // (user 2026-10-30 18:45 «пусть сжимаются в один телевизор»): several messages go as one — no wave, the batch
+      // flattens into one line around its common centre and that line goes out
+      RectF group = null;
+      for (Burst b : batch) {
+        if (b.fade) continue;
+        if (group == null) group = new RectF(b.bounds);
+        else group.union(b.bounds);
+      }
+      int squashed = 0;
+      for (Burst b : batch) if (!b.fade) squashed++;
+      for (Burst b : batch) {
+        b.start = now;
         b.count = 0;
+        if (!b.fade && squashed > 1) b.group = group;
         bursts.add(b);
       }
       int made = batch.size();
@@ -332,7 +342,6 @@ public final class Tgx101DeleteEffect extends View {
     }
   }
 
-  private static final long SQUASH_WAVE_STEP = 30, SQUASH_WAVE_MAX = 150;
   private static final float FADE_END = .18f;
   private static final float SQUASH_FLAT = .14f, SQUASH_OUT = .11f, SQUASH_END = SQUASH_FLAT + SQUASH_OUT;
   private static final android.view.animation.Interpolator SQUASH_CURVE = new android.view.animation.DecelerateInterpolator(1.6f);
@@ -350,8 +359,13 @@ public final class Tgx101DeleteEffect extends View {
       alpha = 1f - f;
     }
     if (alpha <= 0f) return;
-    float cx = b.bounds.centerX(), cy = b.bounds.centerY();
-    dst.set(cx - b.bounds.width() / 2f * sx, cy - b.bounds.height() / 2f * sy, cx + b.bounds.width() / 2f * sx, cy + b.bounds.height() / 2f * sy);
+    if (b.group != null) {
+      float gx = b.group.centerX(), gy = b.group.centerY();
+      dst.set(gx + (b.bounds.left - gx) * sx, gy + (b.bounds.top - gy) * sy, gx + (b.bounds.right - gx) * sx, gy + (b.bounds.bottom - gy) * sy);
+    } else {
+      float cx = b.bounds.centerX(), cy = b.bounds.centerY();
+      dst.set(cx - b.bounds.width() / 2f * sx, cy - b.bounds.height() / 2f * sy, cx + b.bounds.width() / 2f * sx, cy + b.bounds.height() / 2f * sy);
+    }
     bitmapPaint.setAlpha((int) (255 * alpha));
     c.drawBitmap(b.snapshot, null, dst, bitmapPaint);
     bitmapPaint.setAlpha(255);
