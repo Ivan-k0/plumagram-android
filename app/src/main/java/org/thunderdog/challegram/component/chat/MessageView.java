@@ -1222,21 +1222,20 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
 
     if (!ChatId.isSecret(msg.getChatId())) {
       boolean hasFilesToRemove = false;
+      long cachedSize = 0;
       TdApi.Message[] allMessages = msg.getAllMessages();
       for (TdApi.Message message : allMessages) {
         if (TD.canDeleteFiles(m.tdlib(), message)) {
           hasFilesToRemove = true;
-          break;
+          java.util.List<TdApi.File> files = TD.getFiles(message);
+          if (files != null) for (TdApi.File cached : files) if (TD.canDeleteFile(message, cached)) cachedSize += cached.local.downloadedSize;
         }
       }
       if (hasFilesToRemove) {
-        if (isMore) {
-          ids.append(R.id.btn_deleteFile);
-          strings.append(R.string.DeleteFromCache);
-          icons.append(R.drawable.templarian_baseline_broom_24);
-        } else {
-          moreOptions++;
-        }
+        // TGx101 (approved mockup «Кэш» 4): in the first menu, with the size — it hid under «More»
+        ids.append(R.id.btn_deleteFile);
+        strings.append(cachedSize > 0 ? Lang.getString(R.string.DeleteFromCache) + " · " + Strings.buildSize(cachedSize) : Lang.getString(R.string.DeleteFromCache));
+        icons.append(R.drawable.templarian_baseline_broom_24);
       }
     }
 
