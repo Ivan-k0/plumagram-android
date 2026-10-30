@@ -40,8 +40,25 @@ public final class Tgx101ChatMedia {
 
   public static final int MODE_EVERYWHERE = 0, MODE_CHOSEN = 1, MODE_NOWHERE = 2;
 
+  private static final String CHAT_KEY_PREFIX = "tgx101_chat_media_";
+
   private static String key (Tdlib tdlib, long chatId) {
-    return "tgx101_chat_media_" + tdlib.id() + "_" + chatId;
+    return CHAT_KEY_PREFIX + tdlib.id() + "_" + chatId;
+  }
+
+  /** The chats where autoplay is «On» of their own — for «Only chosen» in the settings (user 2026-10-31) */
+  public static java.util.List<String> chosenTitles (Tdlib tdlib) {
+    java.util.List<String> titles = new java.util.ArrayList<>();
+    String prefix = CHAT_KEY_PREFIX + tdlib.id() + "_";
+    try {
+      for (me.vkryl.leveldb.LevelDB.Entry entry : Settings.instance().pmc().find(prefix)) {
+        if (autoplayBits(entry.asInt()) != AUTOPLAY_ON) continue;
+        long chatId = Long.parseLong(entry.key().substring(prefix.length()));
+        String title = tdlib.chatTitle(chatId);
+        titles.add(title != null && !title.isEmpty() ? title : String.valueOf(chatId));
+      }
+    } catch (Throwable ignored) { }
+    return titles;
   }
 
   // TGx101 (user 2026-10-28): the same rules for all channels / groups / private chats at once (MagiX → «Channels»);
@@ -198,6 +215,12 @@ public final class Tgx101ChatMedia {
       } else if (id == R.id.btn_tgx101ChatMediaAutoplay) {
         choose(c, R.string.Tgx101ChatMediaAutoplay, new String[] {autoplayName(0), autoplayName(1), autoplayName(2)}, autoplay, which -> {
           put(key, photo, video, limit, which);
+          // (user 2026-10-31): «On» in one chat while the general rule is «Nowhere» switches it to «Only chosen» —
+          // the chat plays, the rest stay still, and it shows up in that setting's list
+          if (which == AUTOPLAY_ON && autoplayMode() == MODE_NOWHERE && key.startsWith(CHAT_KEY_PREFIX)) {
+            setAutoplayMode(MODE_CHOSEN);
+            org.thunderdog.challegram.tool.UI.showToast(Lang.getString(R.string.Tgx101AutoplayVideos) + ": " + autoplayModeName(MODE_CHOSEN), android.widget.Toast.LENGTH_SHORT);
+          }
           openSheet(c, key, hint);
         });
       } else if (id == R.id.btn_tgx101ChatMediaReset) {

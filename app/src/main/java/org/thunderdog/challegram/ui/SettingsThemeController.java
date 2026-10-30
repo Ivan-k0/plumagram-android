@@ -165,7 +165,14 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
         } else if (itemId == R.id.btn_reduceMotion) {
           v.getToggler().setRadioEnabled(Settings.instance().needReduceMotion(), isUpdate);
         } else if (itemId == R.id.btn_autoplayGIFs) {
-          v.setData(org.thunderdog.challegram.data.Tgx101ChatMedia.autoplayModeName(org.thunderdog.challegram.data.Tgx101ChatMedia.autoplayMode()));
+          int mode = org.thunderdog.challegram.data.Tgx101ChatMedia.autoplayMode();
+          String name = org.thunderdog.challegram.data.Tgx101ChatMedia.autoplayModeName(mode);
+          if (mode == org.thunderdog.challegram.data.Tgx101ChatMedia.MODE_CHOSEN) {
+            // (user 2026-10-31): which chats are chosen, right under the setting
+            java.util.List<String> chosen = org.thunderdog.challegram.data.Tgx101ChatMedia.chosenTitles(tdlib);
+            if (!chosen.isEmpty()) name += ": " + android.text.TextUtils.join(", ", chosen);
+          }
+          v.setData(name);
         } else if (itemId == R.id.btn_saveToGallery) {
           v.getToggler().setRadioEnabled(Settings.instance().needSaveEditedMediaToGallery(), isUpdate);
         } else if (itemId == R.id.btn_mosaic) {
@@ -988,6 +995,10 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
       int[] ids = new int[modes.length], icons = new int[modes.length];
       for (int i = 0; i < modes.length; i++) {
         names[i] = org.thunderdog.challegram.data.Tgx101ChatMedia.autoplayModeName(modes[i]);
+        if (modes[i] == org.thunderdog.challegram.data.Tgx101ChatMedia.MODE_CHOSEN) {
+          java.util.List<String> chosen = org.thunderdog.challegram.data.Tgx101ChatMedia.chosenTitles(tdlib);
+          if (!chosen.isEmpty()) names[i] += " (" + android.text.TextUtils.join(", ", chosen) + ")";
+        }
         ids[i] = i + 1;
         icons[i] = modes[i] == current ? R.drawable.baseline_check_24 : 0;
       }
