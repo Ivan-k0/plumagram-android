@@ -383,7 +383,11 @@ public class VideoTimelineView extends View implements Destroyable, FactorAnimat
               realEndX = paddingLeft + (int) ((double) timelineWidth * (normalizedEnd / totalDuration));
             }
             float slideDiffX = Math.abs(x - Math.max(realStartX, Math.min(realEndX, realStartX + (int) ((realEndX - realStartX) * sliderProgress))));
-            if (slideDiffX < Math.min(startDiffX, endDiffX) && slideDiffX < padding) {
+            // (user's recording 2026-10-30 14:46): with the play position right at a trim edge a touch on that edge's
+            // handle, outside the strip, went to the position — the edge couldn't be dragged until the position was
+            // moved away. Outside the strip the edges win; the position is caught only inside it
+            boolean outsideStrip = x <= startX || x >= endX;
+            if (!outsideStrip && slideDiffX < Math.min(startDiffX, endDiffX) && slideDiffX < padding) {
               slideMode = SLIDE_MODE_SEEK;
             }
           }
