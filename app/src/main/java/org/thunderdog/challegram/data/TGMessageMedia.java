@@ -234,6 +234,11 @@ public class TGMessageMedia extends TGMessage {
   }
 
   @Override
+  protected int tgx101JournalMediaMargin () {
+    return Screen.dp(TGX101_JOURNAL_MEDIA_MARGIN);
+  }
+
+  @Override
   protected boolean preferFullWidth () {
     return UI.isPortrait() && !UI.isTablet() && isChannel() && !isEventLog() && !Td.isAnimation(msg.content) && (!mosaicWrapper.isSingular() || mosaicWrapper.getAspectRatio() >= (mosaicWrapper.getSingularItem().isGif() ? MIN_RATIO_GIF : MIN_RATIO));
   }
@@ -504,7 +509,7 @@ public class TGMessageMedia extends TGMessage {
     // (user recording 2026-10-30 09:30: «обрезано резко», «три точки не оцентрованы», «при нажатии медиа сначала
     // расширяется»): «Journal» pictures were laid out across the whole width and only shifted by the margin — cut on the
     // right, the ⋮ off its place, the viewer flying from the whole width. They are laid out between the margins now
-    final int origMaxWidth = tgx101Journal() && !isOutgoing() ? buildMaxWidth - Screen.dp(TGX101_JOURNAL_MEDIA_MARGIN) * 2 : buildMaxWidth;
+    final int origMaxWidth = buildMaxWidth; // «Journal» margins: TGMessage.updateContentPositions gives the narrower width
     int maxWidth, maxHeight;
     boolean needFullWidth = useFullWidth();
     if (needFullWidth) {

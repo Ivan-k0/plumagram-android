@@ -1391,8 +1391,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   private void updateContentPositions (boolean maxOnly) {
     if (useFullWidth()) {
-      pContentX = 0;
-      pContentMaxWidth = width;
+      // TGx101 (user 2026-10-30, channel Jeteed): «Journal» media sit between side margins — laid out, drawn, touched and
+      // flown into from the same place (they were drawn from the screen's edge under the card's margin, cut on the left)
+      int margin = tgx101Journal() && !isOutgoing() ? tgx101JournalMediaMargin() : 0;
+      pContentX = margin;
+      pContentMaxWidth = width - margin * 2;
     } else if (alignBubbleRight()) {
       pContentX = width - rightContentEdge - leftContentEdge + pRealContentX;
       pContentMaxWidth = pRealContentMaxWidth;
@@ -1658,6 +1661,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   /** «Journal» (user 2026-10-08 23:39 «растяни фото на всю»): media posts go from screen edge to screen edge */
   protected boolean tgx101JournalEdgeToEdge () {
     return false;
+  }
+
+  /** «Journal»: the side margin of full-width content (media) */
+  protected int tgx101JournalMediaMargin () {
+    return 0;
   }
 
   public final boolean tgx101Journal () {
