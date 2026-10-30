@@ -554,6 +554,11 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       contentWidth += waveform.getWidth() + tgx101SideDurationWidth() + transcribeButtonSpace();
     } else {
       contentWidth += Math.max(getTitleWidth(), sizeWidth) + Screen.dp(tgx101HasDots() ? TGX101_DOTS_SPACE : 6f);
+      if (tgx101HasDots() && lastMaxWidth > contentWidth) {
+        // TGx101 (user 2026-10-30, channel «100 с чем-то книг»: «длина их должна быть одной»): music and files take the
+        // whole width — the ⋮ of each stands in one place, not after its name
+        contentWidth = lastMaxWidth;
+      }
     }
     return contentWidth;
   }
