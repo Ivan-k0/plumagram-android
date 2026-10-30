@@ -60,12 +60,18 @@ public class RtlViewPager extends ViewPager implements RtlCheckListener {
   @Override
   public boolean dispatchTouchEvent (android.view.MotionEvent e) {
     if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) {
+      tgx101FingerDown = true;
       tgx101CheckAligned("touch");
-    } else if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && (e.getActionMasked() == android.view.MotionEvent.ACTION_UP || e.getActionMasked() == android.view.MotionEvent.ACTION_CANCEL)) {
-      // test builds: a drag the finger has left but the pages never let go of (no settling after it)
+    } else if (e.getActionMasked() == android.view.MotionEvent.ACTION_UP || e.getActionMasked() == android.view.MotionEvent.ACTION_CANCEL) {
+      tgx101FingerDown = false;
+      tgx101UpAt = android.os.SystemClock.uptimeMillis();
+      // a drag the finger has left but the pages never let go of (no settling after it)
       postDelayed(() -> {
-        if (tgx101ScrollState == SCROLL_STATE_DRAGGING) {
-          org.thunderdog.challegram.Tgx101Diag.mark("pager: still dragging 0.6 s after the finger left, at " + getScrollX() + " px, page " + super.getCurrentItem());
+        if (tgx101ScrollState == SCROLL_STATE_DRAGGING && !tgx101FingerDown) {
+          if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) { // TEMPORARY log, drop with the cause found
+            org.thunderdog.challegram.Tgx101Diag.mark("pager: still dragging 0.6 s after the finger left, at " + getScrollX() + " px, page " + super.getCurrentItem() + ", letting go");
+          }
+          tgx101LetGo();
         }
       }, 600);
     }
@@ -81,6 +87,20 @@ public class RtlViewPager extends ViewPager implements RtlCheckListener {
   // when a scroll ends — and the diagnostics say when that happened
   private int tgx101ScrollState = SCROLL_STATE_IDLE;
 
+  private boolean tgx101FingerDown;
+  private long tgx101UpAt;
+
+  // (user 2026-10-30 «чаты сдвигаются в левый край и обрезаются»): the pages stuck in the dragging state long after the
+  // finger left — nothing was settling them and tgx101CheckAligned skips a pager that is not at rest. A cancel lets
+  // ViewPager end its drag and settle on the page. Only when no finger is down; a normal gesture is long over by 0.6 s
+  private void tgx101LetGo () {
+    if (tgx101FingerDown || getWidth() == 0 || getAdapter() == null) return;
+    long now = android.os.SystemClock.uptimeMillis();
+    android.view.MotionEvent cancel = android.view.MotionEvent.obtain(now, now, android.view.MotionEvent.ACTION_CANCEL, 0f, 0f, 0);
+    super.onTouchEvent(cancel);
+    cancel.recycle();
+  }
+
   private void tgx101CheckAligned (String why) {
     if (tgx101ScrollState != SCROLL_STATE_IDLE || isFakeDragging() || getWidth() == 0 || getAdapter() == null || getAdapter().getCount() == 0) {
       return;
@@ -90,7 +110,8 @@ public class RtlViewPager extends ViewPager implements RtlCheckListener {
     if (Math.abs(off) <= 1) {
       return;
     }
-    org.thunderdog.challegram.Tgx101Diag.mark("pager: stood " + off + " px off page " + super.getCurrentItem() + " (" + why + "), put back");
+    // TEMPORARY diagnostics (user 2026-10-30: drop once the cause of the shifted chat list is found)
+    org.thunderdog.challegram.Tgx101Diag.mark("pager: stood " + off + " px off page " + super.getCurrentItem() + " at " + getScrollX() + " px (" + why + "), state " + tgx101ScrollState + ", " + (android.os.SystemClock.uptimeMillis() - tgx101UpAt) + " ms after the finger, put back");
     if (beginFakeDrag()) {
       endFakeDrag(); // settles on the nearest page and tells the listeners (header, attached screens)
     }
