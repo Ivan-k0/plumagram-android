@@ -845,6 +845,10 @@ public class CallController extends ViewController<CallController.Arguments> imp
 
   @Override
   public void onCallDecline (TdApi.Call call, boolean isHangUp) {
+    if (isClosed || TD.isFinished(this.call)) {
+      tgx101NavigateBack(0); // TGx101: the call is over — the red button closes its screen
+      return;
+    }
     tdlib.context().calls().hangUp(tdlib, call.id);
   }
 
@@ -1082,6 +1086,10 @@ public class CallController extends ViewController<CallController.Arguments> imp
 
       @Override
       public void hangUp () {
+        if (isClosed || TD.isFinished(call)) {
+          tgx101NavigateBack(0); // TGx101: the call is over — the red button closes its screen
+          return;
+        }
         tdlib.context().calls().hangUp(tdlib, call.id);
       }
 
@@ -1278,7 +1286,20 @@ public class CallController extends ViewController<CallController.Arguments> imp
       // so the ended call flashed before the chats; hide it right away
       getValue().setAlpha(0f);
     }
-    navigateBack();
+    tgx101NavigateBack(0);
+  }
+
+  // TGx101 (user 2026-10-30 18:13): the call ended while a three-finger screenshot had started a back swipe — the
+  // navigation was still animating, navigateBack() silently refused, the ended call's screen stayed for good and the red
+  // button only discarded the discarded call. Tried again until it goes.
+  private void tgx101NavigateBack (int attempt) {
+    if (isDestroyed() || !isAttachedToNavigationController()) return;
+    if (navigateBack()) {
+      if (attempt > 0) org.thunderdog.challegram.Tgx101Diag.mark("call screen: closed on attempt " + (attempt + 1));
+      return;
+    }
+    if (attempt == 0) org.thunderdog.challegram.Tgx101Diag.mark("call screen: navigation busy, closing again shortly");
+    if (attempt < 40) UI.post(() -> tgx101NavigateBack(attempt + 1), 150);
   }
 
   private TdApi.CallState previousCallState;
