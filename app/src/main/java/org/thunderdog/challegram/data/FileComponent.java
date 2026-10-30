@@ -120,6 +120,15 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   }
 
   public void setDoc (@NonNull TdApi.Document doc) {
+    setDoc(doc, null);
+  }
+
+  /**
+   * @param ownMessage TGx101 (user 2026-10-30 18:43, files stuck at «100 %» with ✕): this file's own message as it is
+   *                   now — the group's first message was taken before, so in a group of files a sent file whose first
+   *                   neighbour was still sending stayed «sending» for good
+   */
+  public void setDoc (@NonNull TdApi.Document doc, @Nullable TdApi.Message ownMessage) {
     this.doc = doc;
     this.title = doc.fileName;
     if (this.title == null || this.title.length() == 0) {
@@ -172,7 +181,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     } else {
       this.progress.setBackgroundColorId(TdlibAccentColor.getFileColorId(doc, context.isOutgoingBubble()));
     }
-    this.progress.setFile(doc.document, context.getMessage());
+    this.progress.setFile(doc.document, ownMessage != null ? ownMessage : message != null ? message : context.getMessage());
     if (viewProvider != null) {
       this.progress.setViewProvider(viewProvider);
     }

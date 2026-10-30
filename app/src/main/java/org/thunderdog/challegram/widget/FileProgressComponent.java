@@ -416,8 +416,8 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
     } else {
       this.isDownloaded = this.useGenerationProgress = false;
     }
-    if (message != null && tdlib.messageSending(message)) {
-      isSendingMessage = true;
+    if (message != null) {
+      isSendingMessage = tdlib.messageSending(message); // TGx101: a sent message's new content ends «sending» too
     }
     if (file != null) {
       if (isSendingMessage) {

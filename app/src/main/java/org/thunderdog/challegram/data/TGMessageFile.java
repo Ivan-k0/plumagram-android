@@ -469,7 +469,7 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
           TdApi.MessageDocument document = (TdApi.MessageDocument) content;
           serverCaption = document.caption;
           if (component.isDocument()) {
-            component.setDoc(document.document);
+            component.setDoc(document.document, message);
           } else {
             newComponent = new FileComponent(this, message, document.document);
           }
