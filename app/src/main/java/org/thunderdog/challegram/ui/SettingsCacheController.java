@@ -965,7 +965,8 @@ public class SettingsCacheController extends RecyclerViewController<SettingsData
   }
 
   private boolean canEraseAllData () {
-    return stats != null && !isBusyGlobally && !isCleaningUp;
+    // TGx101: the statistics now come with the overview at the top (the old «Media and files» screen that loaded them is gone)
+    return (stats != null || tgx101Stats != null) && !isBusyGlobally && !isCleaningUp && (overview == null || !overview.isBusy());
   }
 
   @Override

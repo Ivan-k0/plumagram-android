@@ -84,6 +84,10 @@ public class Tgx101StorageOverview extends View {
     invalidate();
   }
 
+  public boolean isBusy () {
+    return busy;
+  }
+
   // Data
 
   public static int categoryOf (TdApi.FileType type) {
