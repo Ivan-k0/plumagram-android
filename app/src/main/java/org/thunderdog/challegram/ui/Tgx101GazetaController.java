@@ -1355,6 +1355,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   private final class Card extends LinearLayout {
     final LinearLayout header;
     final AvatarView avatar;
+    final QuoteBar quoteBar;
     final TextView title, summary, body, bodyBelow, more, shortBtn, meta, commentsText;
     boolean hiddenText; // the bound post has spoilers still hidden
     final FlowLayout reactions;
@@ -1434,7 +1435,13 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       header = new LinearLayout(context);
       header.setOrientation(HORIZONTAL);
       header.setGravity(Gravity.CENTER_VERTICAL);
-      header.setPadding(pad, Screen.dp(10f), pad, Screen.dp(8f));
+      // (user 2026-10-31, mockup variant В): the same 14 dp above and under the channel's row — the photo sat close to the
+      // post; a thin bar in the name's colour, as a quote's, to the left of the photo and 3 dp past it above and below
+      header.setPadding(pad, Screen.dp(14f), pad, Screen.dp(14f));
+      quoteBar = new QuoteBar(context);
+      LinearLayout.LayoutParams qp = new LinearLayout.LayoutParams(Screen.dp(1.5f), Screen.dp(34f + 6f));
+      qp.rightMargin = Screen.dp(10f);
+      header.addView(quoteBar, qp);
       avatar = new AvatarView(context);
       header.addView(avatar, new LinearLayout.LayoutParams(Screen.dp(34f), Screen.dp(34f)));
       title = text(context, 15f, true);
@@ -1715,6 +1722,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         nameColor = me.vkryl.core.ColorUtils.fromToArgb(tdlib.chatAccentColor(post.chatId).getNameColor(), pal[2], .25f);
       } catch (Throwable ignored) { }
       title.setTextColor(nameColor);
+      quoteBar.setColor(nameColor);
       title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, font);
       if (!samePrev) {
         avatar.setChat(tdlib, tdlib.chat(post.chatId));
@@ -1942,8 +1950,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       header.setVisibility(!samePrev || summarizable || (!sample && selected.contains(post)) ? VISIBLE : GONE);
       if (selectionMark != null) selectionMark.setColorFilter(pal[4]);
       avatar.setVisibility(samePrev ? GONE : VISIBLE);
+      quoteBar.setVisibility(samePrev ? GONE : VISIBLE);
       title.setVisibility(samePrev ? INVISIBLE : VISIBLE);
-      header.setPadding(pad, samePrev ? Screen.dp(4f) : Screen.dp(10f), Screen.dp(10f), samePrev ? 0 : Screen.dp(8f));
+      // (user 2026-10-31, variant В): the same 14 dp above and under the channel's row
+      header.setPadding(pad, samePrev ? Screen.dp(4f) : Screen.dp(14f), Screen.dp(10f), samePrev ? 0 : Screen.dp(14f));
 
       // reactions (each one a tap) and stars, wrapping; views and time on the right of the last row — as in a channel
       reactions.removeAllViews();
@@ -2653,6 +2663,29 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     }
     if (file != null) file.setScaleType(org.thunderdog.challegram.loader.gif.GifFile.CENTER_CROP);
     return file;
+  }
+
+  /** The bar left of the channel's photo — drawn as a quote's line: 1.5 dp, round ends */
+  private static final class QuoteBar extends View {
+    private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+    private final android.graphics.RectF rect = new android.graphics.RectF();
+
+    QuoteBar (Context context) {
+      super(context);
+    }
+
+    void setColor (int color) {
+      if (paint.getColor() != color) {
+        paint.setColor(color);
+        invalidate();
+      }
+    }
+
+    @Override
+    protected void onDraw (android.graphics.Canvas c) {
+      rect.set(0, 0, getWidth(), getHeight());
+      c.drawRoundRect(rect, getWidth() / 2f, getWidth() / 2f, paint);
+    }
   }
 
   /** A video or GIF of the feed playing by itself, without sound, over its cover; it plays while on screen */
