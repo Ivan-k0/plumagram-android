@@ -293,7 +293,14 @@ public final class Tgx101Bird {
       return true;
     }
     if (returnChat != 0) {
-      host.tdlib().ui().openChat(host, returnChat, null);
+      // (user 2026-10-30 11:52 «возвращает вниз чата, а должно — на то же место»): the chat is reopened at the place it
+      // was left at (saved when leaving), whatever MagiX «Remember the place in a chat» says
+      org.thunderdog.challegram.unsorted.Settings.SavedMessageId saved = org.thunderdog.challegram.unsorted.Settings.instance().getScrollMessageId(host.tdlib().id(), returnChat, null);
+      org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters params = null;
+      if (saved != null && saved.id.getMessageId() != 0) {
+        params = new org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters().highlightMessage(org.thunderdog.challegram.component.chat.MessagesManager.HIGHLIGHT_MODE_POSITION_RESTORE, saved.id);
+      }
+      host.tdlib().ui().openChat(host, returnChat, params);
       return true;
     }
     if (at >= 0) {

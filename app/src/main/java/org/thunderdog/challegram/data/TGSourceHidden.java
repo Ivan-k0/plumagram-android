@@ -51,7 +51,8 @@ public class TGSourceHidden extends TGSource {
     msg.context()
       .tooltipManager()
       .builder(view, msg.currentViews)
-      .locate(text != null ? (targetView, outRect) -> text.locatePart(outRect, part) : receiver != null ? (targetView, outRect) -> receiver.toRect(outRect) : null)
+      // (crash 2026-10-30 12:32, NPE in Text.locatePart): the tap can come without a text part — the whole text is then the place
+      .locate(text != null ? (targetView, outRect) -> { if (part != null) text.locatePart(outRect, part); else text.toRect(outRect); } : receiver != null ? (targetView, outRect) -> receiver.toRect(outRect) : null)
       .controller(msg.controller())
       .show(msg.tdlib(), msg.isImported() ? R.string.ForwardAuthorImported : R.string.ForwardAuthorHidden)
       .hideDelayed();
