@@ -1708,7 +1708,13 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         lp.topMargin = samePrev ? Math.max(1, Screen.dp(.5f)) : Screen.dp(channelGap / 2f);
         lp.bottomMargin = sameNext ? 0 : Screen.dp(channelGap / 2f);
       }
-      title.setTextColor(pal[2]);
+      // (user 2026-10-30 18:57): each channel's name in its own colour — the channel's name colour, a quarter towards the
+      // feed's text so it reads on any of the feed's papers
+      int nameColor = pal[2];
+      try {
+        nameColor = me.vkryl.core.ColorUtils.fromToArgb(tdlib.chatAccentColor(post.chatId).getNameColor(), pal[2], .25f);
+      } catch (Throwable ignored) { }
+      title.setTextColor(nameColor);
       title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, font);
       if (!samePrev) {
         avatar.setChat(tdlib, tdlib.chat(post.chatId));
@@ -2620,8 +2626,19 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   /** the largest video that plays by itself in the feed — a bigger one waits for a tap, as files over the autoload size */
   private static final long INLINE_MAX_BYTES = 20L * 1024 * 1024;
 
+  private final java.util.HashSet<Long> tgx101AutoplayLogged = new java.util.HashSet<>();
+
   private boolean Tgx101ChatMediaAutoplay (long chatId) {
-    return org.thunderdog.challegram.data.Tgx101ChatMedia.autoplay(tdlib, chatId);
+    boolean play = org.thunderdog.challegram.data.Tgx101ChatMedia.autoplay(tdlib, chatId);
+    // (user 2026-10-30 18:46 «видео играют сами, даже если автовоспроизведение выключено»): a channel whose videos
+    // mustn't load by itself doesn't play them in the feed either; why a channel plays goes to the log once
+    Boolean load = org.thunderdog.challegram.data.Tgx101ChatMedia.download(tdlib, chatId, org.thunderdog.challegram.telegram.TdlibFilesManager.DOWNLOAD_FLAG_VIDEO, 1);
+    if (Boolean.FALSE.equals(load)) play = false;
+    if (tgx101AutoplayLogged.add(chatId)) {
+      org.thunderdog.challegram.Tgx101Diag.mark("gazeta: chat " + chatId + " autoplay " + play + " — own " + org.thunderdog.challegram.data.Tgx101ChatMedia.autoplayOf(tdlib, chatId) +
+        ", mode " + org.thunderdog.challegram.data.Tgx101ChatMedia.autoplayMode() + ", video load " + load);
+    }
+    return play;
   }
 
   @Nullable
