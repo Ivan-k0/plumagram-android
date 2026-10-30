@@ -809,6 +809,22 @@ public class MessagesController extends ViewController<MessagesController.Argume
         deltas[i] = last; // came into view in the freed space — moves with its neighbour
       }
     }
+    // (user recording 2026-10-30 09:34 «чёрная подложка бежит следом»): rows that weren't on screen before and now stand
+    // in the freed space showed through behind the dust at once — a dark post looked like a backing running after the
+    // sweep. They come in once most of the dust has gone
+    int faded = 0;
+    for (int i = 0; i < n; i++) {
+      View child = messagesView.getChildAt(i);
+      TGMessage msg = tgx101MessageOf(child);
+      if (msg == null || tops.containsKey(msg)) continue;
+      child.setAlpha(0f); // hidden through the delay too — the animator sets its first value only when it starts
+      android.animation.ObjectAnimator in = android.animation.ObjectAnimator.ofFloat(child, View.ALPHA, 0f, 1f);
+      in.setStartDelay(TGX101_GAP_CLOSE_DELAY);
+      in.setDuration(220);
+      in.start();
+      faded++;
+    }
+    if (faded > 0) org.thunderdog.challegram.Tgx101Diag.mark("delete effect: " + faded + " row(s) come into the freed space after the dust");
     // rows before the first known one take its shift
     float first = Float.NaN;
     for (int i = 0; i < n; i++) if (known[i]) { first = deltas[i]; break; }
