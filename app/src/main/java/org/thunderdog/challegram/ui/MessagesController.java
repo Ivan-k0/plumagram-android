@@ -768,7 +768,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // so the messages around a deleted one jumped into its place. Remember where every row stood before the removal, and
   // after the list has laid out again let each one glide from its old place to the new one (bubble merges included)
   private @Nullable java.util.IdentityHashMap<TGMessage, Integer> tgx101GapTops;
-  private static final long TGX101_GAP_CLOSE_DURATION = 320;
+  private static final long TGX101_GAP_CLOSE_DURATION = 320, TGX101_GAP_CLOSE_DELAY = 380;
 
   private void tgx101CaptureGapClose () {
     if (tgx101GapTops != null || messagesView == null) return;
@@ -820,10 +820,17 @@ public class MessagesController extends ViewController<MessagesController.Argume
       View child = messagesView.getChildAt(i);
       child.animate().cancel();
       child.setTranslationY(deltas[i]);
-      child.animate().translationY(0f).setDuration(TGX101_GAP_CLOSE_DURATION).setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR).start();
+      // (user recording 2026-10-30 09:09 «медиа удаляется не красиво»): the neighbours slid into the freed space at once and
+      // the deleted photo's dust flew over their text — two pictures at once. They wait until most of the dust has left
+      // (an ObjectAnimator: a start delay set on the view's own animate() would stay for every later animation of the row)
+      android.animation.ObjectAnimator glide = android.animation.ObjectAnimator.ofFloat(child, View.TRANSLATION_Y, deltas[i], 0f);
+      glide.setStartDelay(TGX101_GAP_CLOSE_DELAY);
+      glide.setDuration(TGX101_GAP_CLOSE_DURATION);
+      glide.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+      glide.start();
       moved++;
     }
-    org.thunderdog.challegram.Tgx101Diag.mark("delete effect: gap closes, " + moved + " rows glide");
+    org.thunderdog.challegram.Tgx101Diag.mark("delete effect: gap closes after " + TGX101_GAP_CLOSE_DELAY + " ms, " + moved + " rows glide");
   }
 
   private void tgx101UpdateKeyboardFiller () {
