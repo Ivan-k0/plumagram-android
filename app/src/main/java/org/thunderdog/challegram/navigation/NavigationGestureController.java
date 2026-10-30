@@ -50,6 +50,9 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
     listenSlidingBack = false;
     slidingVertical = false;
     // blocked = false;
+    if (slidingBack) {
+      org.thunderdog.challegram.Tgx101ScrollWatch.gestureEnd(450); // the landing animation included
+    }
     slidingBack = false;
     slidingDrawer = false;
     lastScrollX = -1;
@@ -330,6 +333,7 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
         setInputBlocked(true);
 
         if (slidingBack) {
+          org.thunderdog.challegram.Tgx101ScrollWatch.gestureStart("back swipe"); // diagnostics builds: the frames from the screen's first move to its landing
           if (!(tgx101Reverse ? navigation.tgx101OpenPreviewReverse(event.getY()) : navigation.openPreview(event.getY()))) {
             slidingBack = false;
             listenSlidingBack = false;

@@ -14,8 +14,9 @@ package org.thunderdog.challegram;
 
 import android.view.Choreographer;
 
-import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import org.thunderdog.challegram.tool.UI;
 
 import java.util.Locale;
 
@@ -48,6 +49,25 @@ public final class Tgx101ScrollWatch extends RecyclerView.OnScrollListener imple
     list.addOnScrollListener(new Tgx101ScrollWatch(name));
   }
 
+  // TGx101 (user 2026-10-30 17:51, «свайп назад с лагами»): the same measure for a gesture that is no list's scroll —
+  // the in-app back swipe; started when the screen begins to slide, reported a while after the finger lets go
+  private static Tgx101ScrollWatch gesture;
+
+  public static void gestureStart (String name) {
+    if (!BuildConfig.TGX101_DIAG) return;
+    if (gesture != null && gesture.running) return;
+    gesture = new Tgx101ScrollWatch(name);
+    gesture.onScrollStateChanged(null, RecyclerView.SCROLL_STATE_DRAGGING);
+  }
+
+  public static void gestureEnd (long afterMs) {
+    final Tgx101ScrollWatch w = gesture;
+    if (w == null || !w.running) return;
+    UI.post(() -> {
+      if (w.running) w.onScrollStateChanged(null, RecyclerView.SCROLL_STATE_IDLE);
+    }, afterMs);
+  }
+
   public static boolean on () {
     return BuildConfig.TGX101_DIAG && active != null;
   }
@@ -74,7 +94,7 @@ public final class Tgx101ScrollWatch extends RecyclerView.OnScrollListener imple
   }
 
   @Override
-  public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
+  public void onScrollStateChanged (RecyclerView recyclerView, int newState) {
     if (newState != RecyclerView.SCROLL_STATE_IDLE) {
       if (!running) {
         running = true;
