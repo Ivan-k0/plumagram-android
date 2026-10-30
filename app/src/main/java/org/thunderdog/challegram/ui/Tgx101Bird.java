@@ -276,6 +276,32 @@ public final class Tgx101Bird {
   private static java.lang.ref.WeakReference<ViewController<?>> tgx101ReturnTo;
   private static long tgx101ReturnChatId, tgx101JumpedChatId;
 
+  // (user's recording 2026-10-30 15:00: chat → double tap back to «Газета» → double tap again opened the same chat at the
+  // bottom): the chat just left by a double tap is reopened by the next one at the place it was left, unless something
+  // new came there meanwhile
+  private static long tgx101LeftChatId, tgx101LeftLastMessageId;
+
+  private static void tgx101NoteLeft (ViewController<?> host) {
+    if (!(host instanceof MessagesController)) return;
+    long chatId = ((MessagesController) host).getChatId();
+    TdApi.Chat chat = host.tdlib().chat(chatId);
+    tgx101LeftChatId = chatId;
+    tgx101LeftLastMessageId = chat != null && chat.lastMessage != null ? chat.lastMessage.id : 0;
+  }
+
+  /** the open parameters keeping the place a chat was left at by a double tap, or null */
+  private static @Nullable org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters tgx101KeepPlace (Tdlib tdlib, long chatId, @Nullable org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters params) {
+    if (chatId == 0 || chatId != tgx101LeftChatId) return params;
+    TdApi.Chat chat = tdlib.chat(chatId);
+    long last = chat != null && chat.lastMessage != null ? chat.lastMessage.id : 0;
+    tgx101LeftChatId = 0;
+    if (last != tgx101LeftLastMessageId) return params; // something new came: as before, at it
+    org.thunderdog.challegram.unsorted.Settings.SavedMessageId saved = org.thunderdog.challegram.unsorted.Settings.instance().getScrollMessageId(tdlib.id(), chatId, null);
+    if (saved == null || saved.id.getMessageId() == 0) return params;
+    org.thunderdog.challegram.Tgx101Diag.mark("bird: the chat left by a double tap opens at its place");
+    return (params != null ? params : new org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters()).highlightMessage(org.thunderdog.challegram.component.chat.MessagesManager.HIGHLIGHT_MODE_POSITION_RESTORE, saved.id);
+  }
+
   private static boolean tgx101ReturnBack (ViewController<?> host) {
     ViewController<?> back = tgx101ReturnTo != null ? tgx101ReturnTo.get() : null;
     long jumped = tgx101JumpedChatId, returnChat = tgx101ReturnChatId;
@@ -289,6 +315,7 @@ public final class Tgx101Bird {
     int at = back != null && navigation != null ? navigation.getStack().indexOf(back) : -1;
     org.thunderdog.challegram.Tgx101Diag.mark("bird: double tap back (" + (at == navigation.getStackSize() - 2 ? "the screen below" : returnChat != 0 ? "chat " + returnChat : "nothing") + ")");
     if (at >= 0 && at == navigation.getStackSize() - 2) {
+      tgx101NoteLeft(host);
       host.navigateBack();
       return true;
     }
@@ -362,7 +389,10 @@ public final class Tgx101Bird {
             // to): over the feed the chat keeps it underneath
             boolean keep = host instanceof Tgx101GazetaController;
             org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters params = keep ? new org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters().keepStack() : null;
-            if (messageId != 0) {
+            org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters kept = tgx101KeepPlace(tdlib, chatId, params);
+            if (kept != params) {
+              tdlib.ui().openChat(host, chatId, kept);
+            } else if (messageId != 0) {
               if (keep) tdlib.ui().openChat(host, chatId, params.highlightMessage(new tgx.td.MessageId(chatId, messageId)).ensureHighlightAvailable());
               else tdlib.ui().openMessage(host, chatId, new tgx.td.MessageId(chatId, messageId), null);
             } else {
