@@ -10103,6 +10103,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     if (item == null) {
       return;
     }
+    // (user 2026-10-30) a channel's video playing by itself in its post: the viewer starts where it stands
+    if (msg != null && msg.content.getConstructor() == TdApi.MessageVideo.CONSTRUCTOR && item.isVideo()) {
+      long at = org.thunderdog.challegram.loader.gif.GifActor.tgx101Position(((TdApi.MessageVideo) msg.content).video.video.id);
+      if (at > 0 && org.thunderdog.challegram.data.Tgx101ChatMedia.autoplay(messageContainer.tdlib(), msg.chatId)) Tgx101VideoResume.startAt(item, at);
+    }
 
     boolean allowLoadMore = !messageContainer.isSponsoredMessage() && !item.isSecret() && !item.isViewOnce();
     TdApi.SearchMessagesFilter filter = null;

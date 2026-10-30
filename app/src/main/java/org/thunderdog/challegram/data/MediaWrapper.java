@@ -242,6 +242,27 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
   public MediaWrapper (BaseActivity context, Tdlib tdlib, @NonNull TdApi.MessageVideo video, long chatId, long messageId, @Nullable TGMessage source, boolean useHotStuff) {
     this(context, tdlib, video.video, video.cover, chatId, messageId, source, useHotStuff);
     setRevealOnTap(video.hasSpoiler);
+    tgx101SetInlineVideo(chatId, messageId, video);
+  }
+
+  // (user 2026-10-30 «почему видео не воспроизводится автоматически в каналах, в газете ок»): a channel's single video
+  // up to 20 MB plays by itself without sound in its post, as in the feed — by the channel's autoplay rule (MagiX →
+  // «Каналы»); a tap opens it as before
+  private static final long TGX101_INLINE_MAX_BYTES = 20L * 1024 * 1024;
+  private boolean tgx101InlineVideo;
+
+  private void tgx101SetInlineVideo (long chatId, long messageId, TdApi.MessageVideo content) {
+    if (source == null || source.isSecretChat() || content.hasSpoiler || isHot() || !tdlib.isChannel(chatId)) return;
+    TdApi.Message message = source.getMessage(messageId);
+    if (message == null || message.mediaAlbumId != 0) return;
+    long size = Math.max(content.video.video.size, content.video.video.expectedSize);
+    if (size <= 0 || size > TGX101_INLINE_MAX_BYTES) return;
+    if (!org.thunderdog.challegram.data.Tgx101ChatMedia.autoplay(tdlib, chatId)) return;
+    tgx101InlineVideo = true;
+    targetGifFile = new GifFile(tdlib, content.video.video, GifFile.TYPE_MPEG4);
+    targetGifFile.setScaleType(ImageFile.CENTER_CROP);
+    if (Math.max(content.video.width, content.video.height) > 1280) targetGifFile.setRequestedSize(1280);
+    fileProgress.setHideDownloadedIcon(true); // no ▶ over a video playing by itself
   }
 
   public MediaWrapper (BaseActivity context, Tdlib tdlib, @NonNull TdApi.Video video, @Nullable TdApi.Photo cover, long chatId, long messageId, @Nullable TGMessage source, boolean useHotStuff) {
@@ -820,6 +841,10 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
   }
 
   public void requestGif (GifReceiver receiver) {
+    if (tgx101InlineVideo) {
+      receiver.requestFile(targetGifFile); // loads itself, as the feed's
+      return;
+    }
     receiver.requestFile(targetGifFile != null && TD.isFileLoaded(targetFile) && (fileProgress == null || fileProgress.isDownloaded()) && !isHot() ? targetGifFile : null);
   }
 
