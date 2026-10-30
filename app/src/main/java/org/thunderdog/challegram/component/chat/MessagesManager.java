@@ -2176,6 +2176,9 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       loadFromStart();
       tgx101SetReturnAfterSend(message, returnTo);
       org.thunderdog.challegram.Tgx101Diag.mark("sent far up the history: the end loaded, return to " + (returnTo >> 20));
+      // (user's recording 2026-10-30 15:36 «после ответа плашка над полем уезжает крайне долго»): here the reply bar was
+      // never let go — it waited for the 600 ms safety timer; it slides away with the reload now
+      controller.tgx101ReleaseBarForSend();
     }
   }
 

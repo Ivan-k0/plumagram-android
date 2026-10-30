@@ -8799,6 +8799,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     UI.post(tgx101ReleaseBar, 600);
   }
 
+  /** sent far up the history (the chat reloads at its end): a held bar slides away now, without waiting the 600 ms */
+  public void tgx101ReleaseBarForSend () {
+    UI.cancel(tgx101ReleaseBar);
+    tgx101ReleaseBar.run();
+  }
+
   /** The sent message is in the list: a held bar goes at once, the new message's glide covers its height */
   public void tgx101SettleBarsForSend () {
     // attached files: they were taken off only once the server confirmed the send — after the new message's glide had begun
