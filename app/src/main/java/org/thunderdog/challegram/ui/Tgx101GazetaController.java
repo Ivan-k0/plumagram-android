@@ -288,6 +288,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   private void applyPalette () {
     if (root != null) root.setBackgroundColor(Tgx101Gazeta.palette()[0]);
+    // (user 2026-10-30 «белая подложка в газете не ушла», screen 10:01: a light band 61 px tall under the status bar): the
+    // layer under the header reaches 224 px above the root and had no colour of its own — the gaps between posts there
+    // showed the app theme's light background
+    if (inner != null) inner.setBackgroundColor(Tgx101Gazeta.palette()[0]);
     if (empty != null) empty.setTextColor(Tgx101Gazeta.palette()[3]);
   }
 
@@ -413,6 +417,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     root = new FrameLayout(context);
     root.setClipChildren(false);
     inner = new FrameLayout(context);
+    inner.setBackgroundColor(Tgx101Gazeta.palette()[0]); // it reaches up under the header, past the root's own colour
     FrameLayout.LayoutParams innerParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
     innerParams.topMargin = -Size.getHeaderPortraitSize(); // under the header: it slides away over the posts
     root.addView(inner, innerParams);
