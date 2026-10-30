@@ -481,7 +481,11 @@ public final class TdlibFileGenerationManager {
   private void finishGenerationImpl (String originalPath, String conversion, long generationId, @Nullable TdApi.Error error) {
     synchronized (this) {
       pendingTasks.remove(generationId);
-      tdlib.client().send(new TdApi.FinishFileGeneration(generationId, error), tdlib.silentHandler());
+      // TGx101 (user 2026-10-30 «почему медиа не отправилось», «такое уже было и с фото»): every prepared file in the black box
+      org.thunderdog.challegram.Tgx101Diag.mark("file prep " + generationId + ": " + (error == null ? "done" : "failed " + error.code + " " + error.message) + " (" + conversion + ")");
+      tdlib.client().send(new TdApi.FinishFileGeneration(generationId, error), result -> {
+        if (result instanceof TdApi.Error) org.thunderdog.challegram.Tgx101Diag.mark("file prep " + generationId + ": TDLib didn't take it — " + ((TdApi.Error) result).code + " " + ((TdApi.Error) result).message);
+      });
       tdlib.settings().forgetConversion(originalPath, conversion);
     }
   }

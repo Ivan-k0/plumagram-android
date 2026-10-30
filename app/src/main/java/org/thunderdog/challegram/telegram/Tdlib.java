@@ -9904,6 +9904,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   // Filegen
 
   private void updateFileGenerationStart (TdApi.UpdateFileGenerationStart update) {
+    org.thunderdog.challegram.Tgx101Diag.mark("file prep " + update.generationId + ": asked (" + update.conversion + ")");
     synchronized (awaitingGenerations) {
       Generation generation = awaitingGenerations.remove(update.conversion);
       if (generation != null) {
@@ -9919,6 +9920,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   }
 
   private void updateFileGenerationStop (TdApi.UpdateFileGenerationStop update) {
+    org.thunderdog.challegram.Tgx101Diag.mark("file prep " + update.generationId + ": TDLib stopped it");
     synchronized (awaitingGenerations) {
       Generation generation = pendingGenerations.remove(update.generationId);
       if (generation != null) {

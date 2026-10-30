@@ -500,6 +500,12 @@ public class VideoGen {
     ProgressHolder progressHolder = new ProgressHolder();
     File outFile = new File(destinationPath);
     Runnable progressRunner = new Runnable() {
+      // TGx101 (user 2026-10-30 09:10 «почему медиа не отправилось»: a 19 s screen recording stayed at «0 %» — the
+      // conversion took a track it doesn't know, «Unsupported track type: -1», and never moved): a conversion that hasn't
+      // moved for 20 s is dropped and the video goes as it is
+      private int lastPercent = -1;
+      private long movedAt = android.os.SystemClock.uptimeMillis();
+
       @Override
       public void run () {
         if (entry.transcodeFinished.get() || entry.canceled.get()) {
@@ -514,6 +520,25 @@ public class VideoGen {
             double progress = (double) progressHolder.progress / 100.0;
             long fileSize = outFile.length();
             onProgress.onTranscodeProgress(progress, fileSize);
+          }
+          int percent = progressState == Transformer.PROGRESS_STATE_AVAILABLE ? progressHolder.progress : -1;
+          long now = android.os.SystemClock.uptimeMillis();
+          if (percent != lastPercent) {
+            lastPercent = percent;
+            movedAt = now;
+          } else if (now - movedAt > 20_000L) {
+            transformFinished.set(true);
+            org.thunderdog.challegram.Tgx101Diag.mark("video send: conversion stuck at " + percent + " % for 20 s (state " + progressState + ") — sending the original");
+            try {
+              entry.transformer.cancel();
+            } catch (Throwable ignored) { }
+            synchronized (entry) {
+              if (!entry.transcodeFinished.getAndSet(true) && !entry.canceled.get()) {
+                sendOriginal(info, entry);
+              }
+            }
+            U.run(after);
+            return;
           }
           queue.post(this, 500L);
         }
