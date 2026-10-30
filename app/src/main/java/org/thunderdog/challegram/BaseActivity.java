@@ -1546,7 +1546,9 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     long offFor = !screenWentOff ? 0 : (tgx101ScreenOnAt > tgx101ScreenOffAt ? tgx101ScreenOnAt : now) - tgx101ScreenOffAt;
     tgx101EnterAfterScreenOff = false; // user 2026-10-14: the own rise after unlocking is off — on vivo the lock screen vanishes in one frame and the app is already there (it only blinked)
     Tgx101Diag.mark("resume: away " + idle + " ms, screen " + (screenWentOff ? "off " + offFor + " ms" : "stayed on") + ", keyboard at pause " + (keyboard ? "open" : "closed"));
-    if (screenWentOff) Tgx101FrameTrace.start(this, "unlock"); // diagnostics builds: the first frames after the lock screen
+    // diagnostics builds: the first frames after the lock screen; (user 2026-10-30, a blink on coming back at 13:30) and
+    // after coming back from another app too
+    Tgx101FrameTrace.start(this, screenWentOff ? "unlock" : "resume");
     // user 2026-10-14 01:10 «возвращай как было: клавиатуру показываем так долго, как возможно, даже после
     // разблокировки» — the keyboard always comes back (held frames keep the chat from jumping); only the log stays
     if (keyboard) {
@@ -1955,6 +1957,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   public void performBackPress (boolean fromTop) {
     Tgx101DiagHooks.onBack(fromTop ? "top" : "system"); // TGx101: diagnostics builds only
+    Tgx101FrameTrace.start(this, "back"); // (user 2026-10-30, a blink after «back» at 11:20) diagnostics builds: the first frames
     if (handleOnBackPress(fromTop, true) == BackPressMode.SYSTEM_ACTION_REQUIRED) {
       backPressedCallback.setEnabled(false);
       getOnBackPressedDispatcher().onBackPressed();

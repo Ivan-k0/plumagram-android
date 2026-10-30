@@ -1884,6 +1884,7 @@ public class RecordAudioVideoController implements
   }
 
   private void sendAudioNote (TdApi.InputMessageVoiceNote voiceNote, TdApi.MessageSendOptions initialSendOptions) {
+    org.thunderdog.challegram.Tgx101FrameTrace.start(context, "voice"); // (user 2026-10-30, a blink after sending a voice at 11:52) diagnostics builds: the first frames
     if (hasValidOutputTarget()) {
       targetController.pickDateOrProceed(initialSendOptions, (modifiedSendOptions, disableMarkdown) -> {
         long chatId = targetController.getChatId();

@@ -36,7 +36,8 @@ import java.util.Locale;
 /**
  * TGx101 (user 2026-10-23 «мигание из уведомления — редко, чаще с заблокированного экрана, на видео не поймать, может
  * мало логов»): a black box for the moments that flicker. Only in builds with the diagnostics log (-Ptgx101Diag=true):
- * after a tap on a notification and after coming back from the lock screen it copies the first frames of the window —
+ * after a tap on a notification, coming back from the lock screen or another app, «back» and sending a voice message
+ * (user 2026-10-30: blinks after those) it copies the first frames of the window —
  * small, ~270 px wide — into the app's own folder Android/data/<package>/files/frames/<time>/ (the last day kept), and logs for each what was on screen (the top screen,
  * whether the navigation was moving, the cover over the window, the lock screen, the window's focus).
  * The pictures stay on the phone (they show the chats); nothing is sent anywhere.
