@@ -1269,7 +1269,10 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
       getFileProgress().setPausedIconRes(R.drawable.baseline_cloud_download_24);
     }
 
-    if (!hideLoader) {
+    // (user's recording 2026-10-30 16:00 «на видео, которое само играет, не нужна кнопка плэй»): a channel's video playing
+    // by itself shows no ▶ (nor the stream button) once its frames are on screen; until then — as before
+    boolean tgx101Playing = tgx101InlineVideo && receiver instanceof GifReceiver && !receiver.needPlaceholder();
+    if (!hideLoader && !tgx101Playing) {
       getFileProgress().setRequestedAlpha(alpha * (1f - selectionFactor) * (1f - spoilerFactor), alpha * (1f - selectionFactor));
       if (isStreamingUI) {
         fileProgress.drawClipped(view, c, durationRect, (-durationDx) * downloadedAnimator.getFloatValue());
