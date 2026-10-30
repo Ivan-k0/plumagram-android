@@ -3664,6 +3664,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private static final int ANIMATOR_VIDEO = 5;
 
   private boolean needVideoMargin;
+  // TGx101 (user 2026-10-30: «подними область, часто срабатывает ложный свайп домой»): a photo's caption stands this high over the screen's bottom
+  private static final float TGX101_CAPTION_LIFT = 40f;
 
   private void updateCaptionLayout () {
     boolean needMargin = videoFactor == 1f && !inCaption;
@@ -3671,7 +3673,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       this.needVideoMargin = needMargin;
       float y = (needMargin ? 0 : (float) -Screen.dp(56f) * videoFactor * (inCaption ? 0f : 1f)) + (thumbsFactor * Screen.dp(THUMBS_PADDING));
       captionWrapView.setTranslationY(y);
-      Views.setBottomMargin(captionWrapView, (needVideoMargin ? Screen.dp(56f) : Screen.dp(6f))); // TGx101: keep the capsule's own 6 dp
+      Views.setBottomMargin(captionWrapView, (needVideoMargin ? Screen.dp(56f) : Screen.dp(TGX101_CAPTION_LIFT))); // TGx101: off the «home» swipe's edge
     }
   }
 
@@ -6720,7 +6722,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         scrollView.addView(captionWrap);
         scrollView.setAlpha(0f);
         scrollView.setBackgroundColor(Theme.getColor(ColorId.transparentEditor));
-        scrollView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
+        FrameLayout.LayoutParams captionParams = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+        captionParams.bottomMargin = Screen.dp(TGX101_CAPTION_LIFT);
+        scrollView.setLayoutParams(captionParams);
         this.captionWrapView = scrollView;
 
         bottomWrap.addView(this.captionWrapView);
