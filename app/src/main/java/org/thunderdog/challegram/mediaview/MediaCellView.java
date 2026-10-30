@@ -1328,6 +1328,11 @@ public class MediaCellView extends ViewGroup implements
     }
 
     this.media = media;
+    // (user's recording 2026-10-30 15:38 «кнопка плэй тупо мешает»): a video the viewer starts by itself showed its ▶ all
+    // the opening flight, until the player had begun — it is left out while that start is on its way (1.5 s at most)
+    tgx101StartPending = media != null && media.isVideo() && !media.isGifType() && media.isRemoteVideo() && Config.VIDEO_PLAYER_AVAILABLE && (media.isLoaded() || Config.VIDEO_CLOUD_PLAYBACK_AVAILABLE);
+    removeCallbacks(tgx101StartGiveUp);
+    if (tgx101StartPending) postDelayed(tgx101StartGiveUp, 1500);
     this.bufferingProgressView.setProgressVisibleInstant(false);
 
     boolean needLock = needLock();
@@ -1927,7 +1932,7 @@ public class MediaCellView extends ViewGroup implements
 
     @Override
     protected void onDraw (Canvas c) {
-      if (media != null && !isPlaying && !hideStaticView && (!media.isAutoplay() || (!media.isLoaded() && !Config.VIDEO_CLOUD_PLAYBACK_AVAILABLE))) {
+      if (media != null && !isPlaying && !hideStaticView && !tgx101StartPending && (!media.isAutoplay() || (!media.isLoaded() && !Config.VIDEO_CLOUD_PLAYBACK_AVAILABLE))) {
         media.drawComponents(this, c, receiver.getLeft(), receiver.getTop(), receiver.getRight(), receiver.getBottom());
       }
     }
@@ -2147,9 +2152,20 @@ public class MediaCellView extends ViewGroup implements
   }
 
   private boolean isPlaying;
+  private boolean tgx101StartPending;
+  private final Runnable tgx101StartGiveUp = () -> {
+    if (tgx101StartPending) {
+      tgx101StartPending = false;
+      invalidateImageComponents();
+    }
+  };
 
   @Override
   public void onPlayPause (boolean isPlaying) {
+    if (tgx101StartPending && isPlaying) {
+      tgx101StartPending = false; // it has begun: from now on the button is shown as usual (on a pause)
+      removeCallbacks(tgx101StartGiveUp);
+    }
     if (this.isPlaying != isPlaying) {
       this.isPlaying = isPlaying;
       invalidateImageComponents();
