@@ -594,6 +594,9 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     int startX = lastStartX;
     int startY = lastStartY;
 
+    if (tgx101CancelTouch(view, event)) {
+      return true;
+    }
     if (progress.onTouchEvent(view, event)) {
       return true;
     }
@@ -889,6 +892,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       progress.setBounds(startX, startY, startX + previewSize, startY + previewSize);
     }
     progress.draw(view, c);
+    tgx101DrawCancel(c);
 
     if (checkFactor != 0f) {
       c.restore();
@@ -1109,5 +1113,68 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     if (progress != null) {
       progress.performDestroy();
     }
+  }
+
+  // TGx101 (approved mockup «Кэш» 4, user 2026-10-30): while an audio plays it shows ▶/❚❚, not the loading ring with ✕ —
+  // a file still loading as it plays couldn't be stopped. A small ✕ at the button's corner stops the loading (and the playing)
+  private boolean tgx101CancelCaught;
+
+  private boolean tgx101CancelShown () {
+    if (!(isAudio() || isVoice()) || !isPlaying) return false;
+    TdApi.File file = progress.getFile();
+    return file != null && file.local != null && !file.local.isDownloadingCompleted && file.local.isDownloadingActive;
+  }
+
+  private float tgx101CancelX () {
+    return progress.centerX() + progress.getRadius() * .78f;
+  }
+
+  private float tgx101CancelY () {
+    return progress.centerY() - progress.getRadius() * .78f;
+  }
+
+  private void tgx101DrawCancel (Canvas c) {
+    if (!tgx101CancelShown()) return;
+    float cx = tgx101CancelX(), cy = tgx101CancelY(), r = Screen.dp(9f), d = Screen.dp(3.2f);
+    c.drawCircle(cx, cy, r + Screen.dp(1.5f), Paints.fillingPaint(Theme.getColor(context.isOutgoingBubble() ? ColorId.bubbleOut_background : ColorId.filling)));
+    c.drawCircle(cx, cy, r, Paints.fillingPaint(Theme.getColor(ColorId.textNegative)));
+    android.graphics.Paint stroke = Paints.getProgressPaint(0xffffffff, Screen.dp(1.6f));
+    c.drawLine(cx - d, cy - d, cx + d, cy + d, stroke);
+    c.drawLine(cx - d, cy + d, cx + d, cy - d, stroke);
+  }
+
+  private boolean tgx101CancelTouch (View view, MotionEvent event) {
+    switch (event.getAction()) {
+      case MotionEvent.ACTION_DOWN: {
+        tgx101CancelCaught = false;
+        if (!tgx101CancelShown()) return false;
+        float slop = Screen.dp(16f);
+        if (Math.abs(event.getX() - tgx101CancelX()) <= slop && Math.abs(event.getY() - tgx101CancelY()) <= slop) {
+          tgx101CancelCaught = true;
+          return true;
+        }
+        return false;
+      }
+      case MotionEvent.ACTION_MOVE:
+        return tgx101CancelCaught;
+      case MotionEvent.ACTION_UP: {
+        if (!tgx101CancelCaught) return false;
+        tgx101CancelCaught = false;
+        TdApi.File file = progress.getFile();
+        if (file != null) {
+          context.performClickSoundFeedback();
+          TdlibManager.instance().player().stopPlaybackIfPlaying(file.id);
+          context.tdlib().files().cancelDownloadOrUploadFile(file.id, false, true);
+          context.invalidate();
+        }
+        return true;
+      }
+      case MotionEvent.ACTION_CANCEL: {
+        boolean caught = tgx101CancelCaught;
+        tgx101CancelCaught = false;
+        return caught;
+      }
+    }
+    return false;
   }
 }
