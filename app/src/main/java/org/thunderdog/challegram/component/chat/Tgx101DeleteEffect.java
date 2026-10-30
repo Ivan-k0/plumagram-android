@@ -44,7 +44,7 @@ public final class Tgx101DeleteEffect extends View {
   private static final float END = SWEEP + JITTER + LIFE_MIN + LIFE_RANGE;
   private static final float PIXEL_DP = 2f; // TGx101 (user 2026-10-12 14:00 «блоки чуть крупнее»): was 1.25
   private static final int MAX_PARTICLES_FAST = 12000, MAX_PARTICLES_SLOW = 2000;
-  private static final long MAX_SNAPSHOT = 1_500_000L;
+  private static final long MAX_SNAPSHOT = 3_000_000L; // the picture itself is seen now (it flattens) — sharper than the dust needed
   private static final int BATCH = 8000; // 4 vertices each — stays under the 16-bit index limit
 
   private static final class Burst {
@@ -117,7 +117,7 @@ public final class Tgx101DeleteEffect extends View {
   private final ArrayList<Burst> pending = new ArrayList<>();
   private long pendingPixels;
   private int pendingAsked;
-  private static final long BATCH_SNAPSHOT = 3_000_000L;
+  private static final long BATCH_SNAPSHOT = 6_000_000L;
   private static final float COARSE = .35f;
 
   /** Photographs a message view about to leave the list ({@code null}: not on screen); {@link #launch()} lets the batch go */
@@ -174,8 +174,15 @@ public final class Tgx101DeleteEffect extends View {
       for (Burst b : batch) total += (double) b.bounds.width() * b.bounds.height();
       float size = Math.max(Screen.dp(PIXEL_DP), (float) Math.sqrt(total / budget));
       int particles = 0;
-      for (Burst b : batch) {
-        particles += grains(b, size, now);
+      // (user 2026-10-30, mockup «Удаление без пыли», variant 3 «Схлопывание» with a wave): no dust — each message
+      // flattens into a line where it stood, the line shrinks to the middle and goes out; several go top to bottom,
+      // each 30 ms after the one above, the whole wave at most 150 ms. One picture per message instead of thousands of
+      // grains — the GPU barely notices
+      java.util.Collections.sort(batch, (x, y) -> Float.compare(x.bounds.top, y.bounds.top));
+      for (int i = 0; i < batch.size(); i++) {
+        Burst b = batch.get(i);
+        b.start = now + Math.min(i * SQUASH_WAVE_STEP, SQUASH_WAVE_MAX);
+        b.count = 0;
         bursts.add(b);
       }
       int made = batch.size();
@@ -310,19 +317,43 @@ public final class Tgx101DeleteEffect extends View {
     }
   }
 
+  private static final long SQUASH_WAVE_STEP = 30, SQUASH_WAVE_MAX = 150;
+  private static final float SQUASH_FLAT = .14f, SQUASH_OUT = .11f, SQUASH_END = SQUASH_FLAT + SQUASH_OUT;
+  private static final android.view.animation.Interpolator SQUASH_CURVE = new android.view.animation.DecelerateInterpolator(1.6f);
+
+  private void drawSquash (Canvas c, Burst b, float t) {
+    float sy, sx = 1f, alpha = 1f;
+    if (t <= 0f) {
+      sy = 1f; // its turn in the wave hasn't come yet: the message stands as it was
+    } else if (t < SQUASH_FLAT) {
+      sy = 1f - .96f * SQUASH_CURVE.getInterpolation(t / SQUASH_FLAT);
+    } else {
+      float f = Math.min(1f, (t - SQUASH_FLAT) / SQUASH_OUT);
+      sy = .04f;
+      sx = 1f - .8f * SQUASH_CURVE.getInterpolation(f);
+      alpha = 1f - f;
+    }
+    if (alpha <= 0f) return;
+    float cx = b.bounds.centerX(), cy = b.bounds.centerY();
+    dst.set(cx - b.bounds.width() / 2f * sx, cy - b.bounds.height() / 2f * sy, cx + b.bounds.width() / 2f * sx, cy + b.bounds.height() / 2f * sy);
+    bitmapPaint.setAlpha((int) (255 * alpha));
+    c.drawBitmap(b.snapshot, null, dst, bitmapPaint);
+    bitmapPaint.setAlpha(255);
+  }
+
   private void drawAll (Canvas c) {
     long now = SystemClock.uptimeMillis();
     for (int k = bursts.size() - 1; k >= 0; k--) {
       Burst b = bursts.get(k);
       float t = (now - b.start) / 1000f;
-      if (t >= END) {
+      if (t >= SQUASH_END) {
         b.snapshot.recycle();
         bursts.remove(k);
         continue;
       }
       int save = c.save();
       c.translate(0, b.shift);
-      drawBurst(c, b, t);
+      drawSquash(c, b, t);
       c.restoreToCount(save);
     }
     if (!bursts.isEmpty()) {

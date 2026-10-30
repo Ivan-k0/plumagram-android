@@ -768,7 +768,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // so the messages around a deleted one jumped into its place. Remember where every row stood before the removal, and
   // after the list has laid out again let each one glide from its old place to the new one (bubble merges included)
   private @Nullable java.util.IdentityHashMap<TGMessage, Integer> tgx101GapTops;
-  private static final long TGX101_GAP_CLOSE_DURATION = 320, TGX101_GAP_CLOSE_DELAY = 380;
+  private static final long TGX101_GAP_CLOSE_DURATION = 320, TGX101_GAP_CLOSE_DELAY = 260; // the single message's squash is over at 250 ms
 
   private void tgx101CaptureGapClose () {
     if (tgx101GapTops != null || messagesView == null) return;
