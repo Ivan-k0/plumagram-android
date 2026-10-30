@@ -7565,4 +7565,23 @@
   <string name="Tgx101SoundDefault">Default sound</string>
   <string name="Tgx101SoundNone">No sound</string>
   <string name="Tgx101SoundNoFiles">No app to choose a file with</string>
+  <string name="Tgx101AutoClean">Auto clean</string>
+  <string name="Tgx101CleanOff">Off</string>
+  <string name="Tgx101CleanPrivate">Personal chats</string>
+  <string name="Tgx101CleanGroups">Groups</string>
+  <string name="Tgx101CleanChannels">Channels</string>
+  <string name="Tgx101CleanTtl">Delete if not opened for</string>
+  <string name="Tgx101CleanLimit">When the cache is bigger than</string>
+  <string name="Tgx101CleanNever">never</string>
+  <string name="Tgx101CleanNoLimit">no limit</string>
+  <string name="Tgx101CleanUsage">Now %1$s.</string>
+  <string name="Tgx101CleanUsageOf">Now %1$s of %2$s. Above it, the longest unopened files go first.</string>
+  <string name="Tgx101CleanWhat">What may be deleted</string>
+  <string name="Tgx101CleanTypeVideo">Videos and GIFs</string>
+  <string name="Tgx101CleanTypeFiles">Files and music</string>
+  <string name="Tgx101CleanTypePhoto">Photos</string>
+  <string name="Tgx101CleanTypeVoice">Voice and video messages</string>
+  <string name="Tgx101CleanTypeStickers">Stickers</string>
+  <string name="Tgx101CleanSkipPinned">Leave pinned chats alone</string>
+  <string name="Tgx101CleanHint">Checked when the app opens, at most once an hour, quietly. Everything deleted stays in the Telegram cloud and downloads again when opened.</string>
 </resources>

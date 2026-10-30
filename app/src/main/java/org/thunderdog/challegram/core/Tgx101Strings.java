@@ -1681,6 +1681,25 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AiPremium, "Бесплатные запросы ИИ закончились — Telegram просит Premium");
     RU.put(R.string.Tgx101AiFailed, "ИИ: %1$s");
     RU.put(R.string.Tgx101AiInfo, "ИИ Telegram работает на его серверах — телефон только отправляет текст");
+    RU.put(R.string.Tgx101AutoClean, "Автоочистка");
+    RU.put(R.string.Tgx101CleanOff, "Выключена");
+    RU.put(R.string.Tgx101CleanPrivate, "Личные чаты");
+    RU.put(R.string.Tgx101CleanGroups, "Группы");
+    RU.put(R.string.Tgx101CleanChannels, "Каналы");
+    RU.put(R.string.Tgx101CleanTtl, "Удалять, если не открывали");
+    RU.put(R.string.Tgx101CleanLimit, "Когда кэш больше");
+    RU.put(R.string.Tgx101CleanNever, "никогда");
+    RU.put(R.string.Tgx101CleanNoLimit, "без предела");
+    RU.put(R.string.Tgx101CleanUsage, "Сейчас %1$s.");
+    RU.put(R.string.Tgx101CleanUsageOf, "Сейчас %1$s из %2$s. При превышении первыми удаляются самые давно открытые файлы.");
+    RU.put(R.string.Tgx101CleanWhat, "Что удалять");
+    RU.put(R.string.Tgx101CleanTypeVideo, "Видео и GIF");
+    RU.put(R.string.Tgx101CleanTypeFiles, "Файлы и музыка");
+    RU.put(R.string.Tgx101CleanTypePhoto, "Фото");
+    RU.put(R.string.Tgx101CleanTypeVoice, "Голосовые и кружки");
+    RU.put(R.string.Tgx101CleanTypeStickers, "Стикеры");
+    RU.put(R.string.Tgx101CleanSkipPinned, "Не трогать закреплённые чаты");
+    RU.put(R.string.Tgx101CleanHint, "Проверяется при открытии приложения, не чаще раза в час, тихо. Всё удалённое остаётся в облаке Telegram и скачается снова при открытии.");
   }
 
   /** Russian text for a mod string when the app language is Russian, otherwise null. */

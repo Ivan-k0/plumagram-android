@@ -1831,6 +1831,7 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     tdlib.contacts().makeSilentPermissionCheck(this);
     KeepAliveService.sync(this);
     org.thunderdog.challegram.service.Tgx101Updates.checkIfNeeded(this); // TGx101: once a day
+    org.thunderdog.challegram.data.Tgx101AutoClean.maybeRun(tdlib); // TGx101: the cache rules by chat kind, at most once an hour
     if (!tdlib.account().isUnauthorized() && !TGCallService.requestFullScreenIntentOnce(this)) {
       KeepAliveService.requestIgnoreBatteryOptimizationsOnce(this);
     }

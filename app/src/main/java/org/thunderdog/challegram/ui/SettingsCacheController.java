@@ -136,7 +136,7 @@ public class SettingsCacheController extends RecyclerViewController<SettingsData
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
         final int itemId = item.getId();
         if (itemId == R.id.btn_keepMedia) {
-          view.setData(keepMedia == 0 ? Lang.getString(R.string.KeepMediaForever) : Lang.getDuration((int) keepMedia, 0, 0, false));
+          view.setData(Tgx101AutoCleanController.value()); // TGx101: «Keep media» became the auto clean by chat kind
         } else if (itemId == R.id.btn_storagePath) {
           TdApi.SetTdlibParameters parametersRequest = tdlib.clientParameters();
           view.setData(parametersRequest != null ? parametersRequest.filesDirectory : "Unavailable");
@@ -229,9 +229,9 @@ public class SettingsCacheController extends RecyclerViewController<SettingsData
       }
     }*/
 
-    items.add(new ListItem(VIEW_TYPE, R.id.btn_keepMedia, 0, R.string.KeepMedia));
+    items.add(new ListItem(VIEW_TYPE, R.id.btn_keepMedia, 0, R.string.Tgx101AutoClean));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
-    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, Strings.replaceBoldTokens(Lang.getString(R.string.KeepMediaInfo), ColorId.background_textLight), false));
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101CleanHint));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     items.add(new ListItem(VIEW_TYPE, R.id.btn_settings, 0, R.string.SettingsAndThemes));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
@@ -288,8 +288,10 @@ public class SettingsCacheController extends RecyclerViewController<SettingsData
         case TdApi.OptionValueInteger.CONSTRUCTOR: {
           final long value = ((TdApi.OptionValueInteger) result).value;
           tdlib.ui().post(() -> {
+            org.thunderdog.challegram.data.Tgx101AutoClean.migrate(tdlib, value); // TGx101: the old single time becomes the rule for every kind
             if (!isDestroyed()) {
               setKeepMedia(value, false);
+              adapter.updateValuedSettingById(R.id.btn_keepMedia);
             }
           });
           break;
@@ -351,6 +353,7 @@ public class SettingsCacheController extends RecyclerViewController<SettingsData
   protected void onFocusStateChanged () {
     super.onFocusStateChanged();
     checkShortPolling();
+    if (isFocused() && adapter != null) adapter.updateValuedSettingById(R.id.btn_keepMedia); // TGx101: back from «Auto clean»
   }
 
   private static final long SHORT_POLLING_TIME = 2500;
@@ -508,25 +511,7 @@ public class SettingsCacheController extends RecyclerViewController<SettingsData
         });
       }
     } else if (viewId == R.id.btn_keepMedia) {
-      // TGx101 (4PDA nyan_ame 2026-10-04): shorter steps — two views of a picture-heavy chat filled half a gigabyte
-      showOptions(new int[] {R.id.btn_tgx101KeepMedia1h, R.id.btn_tgx101KeepMedia6h, R.id.btn_tgx101KeepMedia1d, R.id.btn_keepMedia_3days, R.id.btn_keepMedia_1week, R.id.btn_keepMedia_1month, R.id.btn_keepMedia_forever}, new String[] {Lang.plural(R.string.xHours, 1), Lang.plural(R.string.xHours, 6), Lang.plural(R.string.xDays, 1), Lang.plural(R.string.xDays, 3), Lang.plural(R.string.xWeeks, 1), Lang.plural(R.string.xMonths, 1), Lang.getString(R.string.KeepMediaForever)}, (itemView, id) -> {
-        if (id == R.id.btn_tgx101KeepMedia1h) {
-          setKeepMedia(60 * 60, true);
-        } else if (id == R.id.btn_tgx101KeepMedia6h) {
-          setKeepMedia(60 * 60 * 6, true);
-        } else if (id == R.id.btn_tgx101KeepMedia1d) {
-          setKeepMedia(60 * 60 * 24, true);
-        } else if (id == R.id.btn_keepMedia_3days) {
-          setKeepMedia(60 * 60 * 24 * 3, true);
-        } else if (id == R.id.btn_keepMedia_1week) {
-          setKeepMedia(60 * 60 * 24 * 7, true);
-        } else if (id == R.id.btn_keepMedia_1month) {
-          setKeepMedia(60 * 60 * 24 * 30, true);
-        } else if (id == R.id.btn_keepMedia_forever) {
-          setKeepMedia(0, true);
-        }
-        return true;
-      });
+      navigateTo(new Tgx101AutoCleanController(context, tdlib)); // TGx101 (approved mockup «Кэш» 2)
     } else if (viewId == R.id.btn_clearCache || viewId == R.id.btn_otherChats || viewId == R.id.btn_otherFiles) {
       if (isBusyGlobally)
         return;

@@ -1913,4 +1913,21 @@
   <item name="menu_tgx101GazetaLook" type="id"/>
   <item name="menu_btn_tgx101GazetaReset" type="id"/>
   <item name="menu_btn_tgx101GazetaJump" type="id"/>
+  <item name="controller_tgx101AutoClean" type="id"/>
+  <item name="btn_tgx101AutoClean" type="id"/>
+  <item name="btn_tgx101CleanTtlPrivate" type="id"/>
+  <item name="btn_tgx101CleanTtlGroup" type="id"/>
+  <item name="btn_tgx101CleanTtlChannel" type="id"/>
+  <item name="btn_tgx101CleanLimitPrivate" type="id"/>
+  <item name="btn_tgx101CleanLimitGroup" type="id"/>
+  <item name="btn_tgx101CleanLimitChannel" type="id"/>
+  <item name="btn_tgx101CleanUsagePrivate" type="id"/>
+  <item name="btn_tgx101CleanUsageGroup" type="id"/>
+  <item name="btn_tgx101CleanUsageChannel" type="id"/>
+  <item name="btn_tgx101CleanVideo" type="id"/>
+  <item name="btn_tgx101CleanFiles" type="id"/>
+  <item name="btn_tgx101CleanPhoto" type="id"/>
+  <item name="btn_tgx101CleanVoice" type="id"/>
+  <item name="btn_tgx101CleanStickers" type="id"/>
+  <item name="btn_tgx101CleanSkipPinned" type="id"/>
 </resources>
