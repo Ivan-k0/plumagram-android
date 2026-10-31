@@ -6714,6 +6714,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
               }
               case MotionEvent.ACTION_UP:
               case MotionEvent.ACTION_CANCEL:
+                // (user 2026-10-31 «после раскрытия свайп не реагирует»): the viewer keeps «don't intercept» until told
+                // otherwise — once the finger is up the caption gives the swipes back
+                if (swipeChecked && getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
                 if (swipeTaken) {
                   swipeTaken = false;
                   return true;
