@@ -1490,7 +1490,9 @@ public class MediaCellView extends ViewGroup implements
   // TGx101 player gestures (MediaView drives them, see MediaView#dispatchTouchEvent)
 
   public boolean tgx101CanGesture () {
-    return isSeekableVideo() && canTouch(false) && !isZoomed();
+    // (user 2026-10-31 «не работают свайпы, когда видео приближено — громкость, 2× и яркость точно должны»): a zoomed
+    // video keeps the hold gestures; a plain swipe there still moves the picture (see MediaView)
+    return isSeekableVideo() && canTouch(false);
   }
 
   public long tgx101TimeNow () {

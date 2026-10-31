@@ -983,6 +983,10 @@ public class MediaView extends FrameLayoutFix {
         if (gState == G_PENDING) {
           if (Math.max(Math.abs(dx), Math.abs(dy)) < Screen.getTouchSlop() * 1.5f) return false;
           removeCallbacks(gLongPress);
+          if (baseCell.isZoomed()) {
+            gState = G_NONE; // zoomed in: a swipe without a hold moves the picture
+            return false;
+          }
           // zones: a sideways swipe from an outer third pages the media; vertical swipes on the left third
           // are brightness, on the right third volume, in the middle third they close the viewer as usual
           float width = getMeasuredWidth();
