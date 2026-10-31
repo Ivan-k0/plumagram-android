@@ -138,12 +138,10 @@ public class CustomRecyclerView extends RecyclerView implements Animated {
         // without taking the touch; only a list really moving keeps the finger for itself
         tgx101ReleaseStretch();
         if (getScrollState() == SCROLL_STATE_SETTLING) {
-          stopScroll();
+          // (user 2026-10-31 «свайпы как будто без отзывчивости»): the finger catches a flying list at once, as in any
+          // Android list — it was stopped dead and had to move a touch slop again. The back swipe can still take it
           super.onInterceptTouchEvent(e);
-          if (getScrollState() == SCROLL_STATE_DRAGGING) {
-            stopScroll();
-            if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
-          }
+          if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
           return true;
         }
       } else if (e.getActionMasked() == MotionEvent.ACTION_MOVE && getScrollState() == SCROLL_STATE_IDLE) {

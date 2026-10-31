@@ -879,13 +879,20 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
       // TGx101 (user 2026-10-05): a touch on a still-flinging list caught the gesture for the list
       // (requestDisallowInterceptTouchEvent) — the swipe back to the chat list did not work while scrolling.
       // Stop the fling first: the list then treats it as a fresh touch and the back swipe can take it
-      stopScroll();
       tgx101StoppedFling = true; // this touch only stops the list — not a tap on a message (user 2026-10-05 19:54)
       // (user 2026-10-27 «в списке чатов жест назад срабатывает и сразу после прокрутки»): as ChatsRecyclerView — the
       // list keeps this finger itself, a message under it never takes it and so never holds it from the back swipe
       tgx101DownX = e.getX();
       tgx101DownY = e.getY();
-      tgx101InterceptDownNotDragging(e);
+      if (getScrollState() == SCROLL_STATE_SETTLING) {
+        // (user 2026-10-31 «свайпы в чатах как будто без отзывчивости», log: 61 of 63 drags started on a still flying list)
+        // a finger on a flying list catches it at once, as in any Android list — it was stopped dead and had to move
+        // a touch slop again before scrolling. The parent may still take the finger for the back swipe
+        super.onInterceptTouchEvent(e);
+        if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+      } else {
+        tgx101InterceptDownNotDragging(e); // a stretched end: let it go
+      }
       return true;
     } else if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
       tgx101StoppedFling = false;
