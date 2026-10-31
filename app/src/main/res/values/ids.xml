@@ -1937,4 +1937,6 @@
   <item name="more_btn_tgx101Cache" type="id"/>
   <item name="btn_tgx101CleanKeep" type="id"/>
   <item name="btn_tgx101StorageOverview" type="id"/>
+  <item name="btn_tgx101FilterMoreCase" type="id"/>
+  <item name="controller_tgx101FilterMore" type="id"/>
 </resources>

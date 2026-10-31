@@ -4558,6 +4558,14 @@ public class Settings {
   private static final String KEY_TGX101_MESSAGE_FILTERS = "tgx101_message_filters";
   private static final String KEY_TGX101_MESSAGE_FILTERS_ON = "tgx101_message_filters_on";
 
+  public String getTgx101FilterHits () {
+    return pmc.getString("tgx101_filter_hits", null);
+  }
+
+  public void setTgx101FilterHits (String json) {
+    pmc.putString("tgx101_filter_hits", json);
+  }
+
   public String getTgx101MessageFilters () {
     return pmc.getString(KEY_TGX101_MESSAGE_FILTERS, null);
   }

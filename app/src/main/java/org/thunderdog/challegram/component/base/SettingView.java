@@ -149,6 +149,7 @@ public class SettingView extends FrameLayoutFix implements FactorAnimator.Target
 
     if (type != TYPE_SETTING_INACTIVE) {
       Views.setClickable(this);
+      setLongClickable(true); // TGx101: a hold shows a name cut with «…» (see performLongClick)
       RippleSupport.setSimpleWhiteBackground(this);
     }
 
@@ -390,6 +391,19 @@ public class SettingView extends FrameLayoutFix implements FactorAnimator.Target
 
   public CharSequence getName () {
     return itemName;
+  }
+
+  // TGx101 (user rule, again 2026-10-31 «везде, где текст не помещается, долгое удержание должно показывать его
+  // полностью»): every row, not only MagiX — a hold on a row whose name is cut shows the whole name; a row with its own
+  // hold action keeps it
+  @Override
+  public boolean performLongClick () {
+    if (super.performLongClick()) return true;
+    if (isNameEllipsized() && getContext() instanceof org.thunderdog.challegram.BaseActivity) {
+      ((org.thunderdog.challegram.BaseActivity) getContext()).tooltipManager().builder(this).show(tdlib, itemName.toString()).hideDelayed();
+      return true;
+    }
+    return false;
   }
 
   // TGx101: the name did not fit and is cut with "…"

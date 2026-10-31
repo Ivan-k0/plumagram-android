@@ -50,6 +50,8 @@ public class Tgx101FiltersController extends RecyclerViewController<Void> implem
     switch (rule.scope) {
       case Tgx101MessageFilters.SCOPE_CHANNELS:
         return Lang.getString(R.string.Tgx101FilterScopeChannels);
+      case Tgx101MessageFilters.SCOPE_GROUPS:
+        return Lang.getString(R.string.Tgx101FilterScopeGroups);
       case Tgx101MessageFilters.SCOPE_CHANNELS_GROUPS:
         return Lang.getString(R.string.Tgx101FilterScopeChannelsGroups);
       case Tgx101MessageFilters.SCOPE_CHAT:
@@ -80,7 +82,9 @@ public class Tgx101FiltersController extends RecyclerViewController<Void> implem
           int index = (int) item.getLongId();
           if (index < rules.size()) {
             Tgx101MessageFilters.Rule rule = rules.get(index);
-            view.setData(scopeName(rule) + (rule.regex ? " · regex" : ""));
+            // mockup В: where it works and how much it hid this week — a filter that finds nothing is seen at once
+            int count = Tgx101MessageFilters.weekCount(rule);
+            view.setData(scopeName(rule) + " · " + (count > 0 ? Lang.getString(R.string.Tgx101FilterListWeek, count) : Lang.getString(R.string.Tgx101FilterListWeekNone)));
           }
         }
       }
@@ -135,28 +139,23 @@ public class Tgx101FiltersController extends RecyclerViewController<Void> implem
     edit.setSelection(edit.length());
   }
 
+  /** A new filter opens straight on its screen (mockup А): the message's line is its first tag; the chat is
+   * remembered for «One chat», but a new filter works everywhere until «One chat» is chosen */
   static void addRule (ViewController<?> parent, String suggestion, long chatId, String chatTitle) {
-    tgx101MultilineInput(parent.openInputAlert(Lang.getString(R.string.Tgx101FilterNew), Lang.getString(R.string.Tgx101FilterText), R.string.Done, R.string.Cancel, suggestion, (inputView, result) -> {
-      String text = result.trim();
-      if (text.isEmpty()) {
-        return false;
-      }
-      Tgx101MessageFilters.Rule rule = new Tgx101MessageFilters.Rule();
-      rule.text = text;
-      rule.wholeWord = false;
-      if (chatId != 0) {
-        rule.scope = Tgx101MessageFilters.SCOPE_CHAT;
-        rule.chatId = chatId;
-        rule.chatTitle = chatTitle;
-      }
-      List<Tgx101MessageFilters.Rule> rules = new ArrayList<>(Tgx101MessageFilters.getRules());
-      rules.add(rule);
-      Tgx101MessageFilters.setRules(rules);
-      Tgx101FilterEditController c = new Tgx101FilterEditController(parent.context(), parent.tdlib());
-      c.setArguments(rules.size() - 1);
-      parent.navigateTo(c);
-      return true;
-    }, true));
+    Tgx101MessageFilters.Rule rule = new Tgx101MessageFilters.Rule();
+    rule.id = Tgx101MessageFilters.newId();
+    rule.text = suggestion != null ? suggestion.trim() : "";
+    if (chatId != 0) {
+      rule.scope = Tgx101MessageFilters.SCOPE_CHAT;
+      rule.chatId = chatId;
+      rule.chatTitle = chatTitle;
+    }
+    List<Tgx101MessageFilters.Rule> rules = new ArrayList<>(Tgx101MessageFilters.getRules());
+    rules.add(rule);
+    Tgx101MessageFilters.setRules(rules);
+    Tgx101FilterEditController c = new Tgx101FilterEditController(parent.context(), parent.tdlib());
+    c.setArguments(rules.size() - 1);
+    parent.navigateTo(c);
   }
 
   @Override

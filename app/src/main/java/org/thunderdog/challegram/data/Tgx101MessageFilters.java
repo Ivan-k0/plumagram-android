@@ -39,10 +39,14 @@ import tgx.td.Td;
 public final class Tgx101MessageFilters {
   private Tgx101MessageFilters () { }
 
-  public static final int SCOPE_ALL = 0, SCOPE_CHANNELS = 1, SCOPE_CHANNELS_GROUPS = 2, SCOPE_CHAT = 3;
+  public static final int SCOPE_ALL = 0, SCOPE_CHANNELS = 1, SCOPE_CHANNELS_GROUPS = 2, SCOPE_CHAT = 3, SCOPE_GROUPS = 4;
 
   public static final class Rule {
+    /** Without «Pattern» (regex) every line is a word or phrase of its own — the «tags» of the filter screen; a message
+     * with any of them is hidden (approved mockup «Фильтры и живые примеры» А, user 2026-10-31) */
     public String text = "";
+    /** Stable for the week counter: the list's order changes */
+    public long id;
     public boolean regex, matchCase, wholeWord, checkAuthor;
     /** No «Hidden by filter» strip: the message is left out of the chat entirely (4PDA request 2026-10-04) */
     public boolean hideFully;
@@ -66,6 +70,30 @@ public final class Tgx101MessageFilters {
       return pattern;
     }
 
+    /** The tags: the lines of the text (a pattern is one whole tag) */
+    public List<String> words () {
+      List<String> list = new ArrayList<>();
+      if (regex) {
+        if (!text.trim().isEmpty()) list.add(text.trim());
+        return list;
+      }
+      for (String line : text.split("\n")) {
+        String word = line.trim();
+        if (!word.isEmpty() && !list.contains(word)) list.add(word);
+      }
+      return list;
+    }
+
+    public void setWords (List<String> words) {
+      StringBuilder b = new StringBuilder();
+      for (String word : words) {
+        if (b.length() > 0) b.append('\n');
+        b.append(word.trim());
+      }
+      text = b.toString();
+      invalidate();
+    }
+
     public void invalidate () {
       patternBuilt = false;
       pattern = null;
@@ -74,6 +102,7 @@ public final class Tgx101MessageFilters {
     public Rule copy () {
       Rule rule = new Rule();
       rule.text = text;
+      rule.id = id;
       rule.regex = regex;
       rule.matchCase = matchCase;
       rule.wholeWord = wholeWord;
@@ -88,7 +117,17 @@ public final class Tgx101MessageFilters {
 
   /** @throws PatternSyntaxException when the rule is a broken regular expression */
   public static Pattern compile (Rule rule) {
-    String body = rule.regex ? rule.text : Pattern.quote(rule.text);
+    String body;
+    if (rule.regex) {
+      body = rule.text;
+    } else {
+      StringBuilder b = new StringBuilder();
+      for (String word : rule.words()) {
+        if (b.length() > 0) b.append('|');
+        b.append(Pattern.quote(word));
+      }
+      body = b.length() > 0 ? b.toString() : Pattern.quote(rule.text);
+    }
     if (rule.wholeWord) {
       body = "(?<![\\p{L}\\p{N}_])(?:" + body + ")(?![\\p{L}\\p{N}_])";
     }
@@ -183,6 +222,8 @@ public final class Tgx101MessageFilters {
         rule.scope = o.optInt("scope", SCOPE_ALL);
         rule.chatId = o.optLong("chat");
         rule.chatTitle = o.optString("title", null);
+        rule.id = o.optLong("id");
+        if (rule.id == 0) rule.id = newId();
         if (!rule.text.isEmpty()) {
           result.add(rule);
         }
@@ -198,6 +239,8 @@ public final class Tgx101MessageFilters {
       JSONArray array = new JSONArray();
       for (Rule rule : list) {
         JSONObject o = new JSONObject();
+        if (rule.id == 0) rule.id = newId();
+        o.put("id", rule.id);
         o.put("text", rule.text);
         o.put("regex", rule.regex);
         o.put("case", rule.matchCase);
@@ -225,6 +268,8 @@ public final class Tgx101MessageFilters {
         return chat.id == rule.chatId;
       case SCOPE_CHANNELS:
         return isChannel(chat);
+      case SCOPE_GROUPS:
+        return (chat.type.getConstructor() == TdApi.ChatTypeSupergroup.CONSTRUCTOR && !isChannel(chat)) || chat.type.getConstructor() == TdApi.ChatTypeBasicGroup.CONSTRUCTOR;
       case SCOPE_CHANNELS_GROUPS:
         return chat.type.getConstructor() == TdApi.ChatTypeSupergroup.CONSTRUCTOR || chat.type.getConstructor() == TdApi.ChatTypeBasicGroup.CONSTRUCTOR;
       case SCOPE_ALL:
@@ -296,10 +341,11 @@ public final class Tgx101MessageFilters {
     String author = null;
     boolean authorLoaded = false;
     for (Rule rule : list) {
-      if (!inScope(rule, chat)) continue;
+      if (rule.text.trim().isEmpty() || !inScope(rule, chat)) continue; // a new filter with no words yet hides nothing
       Pattern pattern = rule.pattern();
       if (pattern == null) continue;
       if (text != null && !text.isEmpty() && pattern.matcher(text).find()) {
+        countHit(rule, msg);
         return rule;
       }
       if (rule.checkAuthor) {
@@ -308,6 +354,7 @@ public final class Tgx101MessageFilters {
           authorLoaded = true;
         }
         if (author != null && pattern.matcher(author).find()) {
+          countHit(rule, msg);
           return rule;
         }
       }
@@ -347,9 +394,90 @@ public final class Tgx101MessageFilters {
     strip.manager().tgx101ShowFilteredMessage(strip);
   }
 
+  public static long newId () {
+    return System.currentTimeMillis() * 1000 + (long) (Math.random() * 1000);
+  }
+
+  // The week counter (mockup В «скрыто 34 за неделю»): each hidden message once, by the day it was first hidden.
+  // Kept on the phone only, saved a few seconds after the last change
+
+  private static final long WEEK = 7L * 24 * 60 * 60 * 1000;
+  private static java.util.HashMap<Long, java.util.LinkedHashMap<String, Long>> hits;
+  private static final Runnable saveHits = Tgx101MessageFilters::saveHits;
+
+  private static java.util.HashMap<Long, java.util.LinkedHashMap<String, Long>> hits () {
+    if (hits == null) {
+      hits = new java.util.HashMap<>();
+      try {
+        String json = Settings.instance().getTgx101FilterHits();
+        if (json != null) {
+          JSONObject o = new JSONObject(json);
+          long cutoff = System.currentTimeMillis() - WEEK;
+          java.util.Iterator<String> keys = o.keys();
+          while (keys.hasNext()) {
+            String id = keys.next();
+            JSONObject list = o.getJSONObject(id);
+            java.util.LinkedHashMap<String, Long> map = new java.util.LinkedHashMap<>();
+            java.util.Iterator<String> messages = list.keys();
+            while (messages.hasNext()) {
+              String key = messages.next();
+              long time = list.getLong(key);
+              if (time >= cutoff) map.put(key, time);
+            }
+            hits.put(Long.parseLong(id), map);
+          }
+        }
+      } catch (Throwable ignored) { }
+    }
+    return hits;
+  }
+
+  private static void countHit (Rule rule, TdApi.Message msg) {
+    if (rule.id == 0) return;
+    synchronized (Tgx101MessageFilters.class) {
+      java.util.LinkedHashMap<String, Long> map = hits().get(rule.id);
+      if (map == null) hits.put(rule.id, map = new java.util.LinkedHashMap<>());
+      String key = key(msg.chatId, msg.id);
+      if (map.containsKey(key)) return;
+      long now = System.currentTimeMillis();
+      map.put(key, now);
+      // oldest first: drop the ones older than a week, and keep at most 2000
+      java.util.Iterator<java.util.Map.Entry<String, Long>> it = map.entrySet().iterator();
+      while (it.hasNext()) {
+        long time = it.next().getValue();
+        if (map.size() > 2000 || time < now - WEEK) it.remove();
+        else break;
+      }
+    }
+    org.thunderdog.challegram.tool.UI.removePendingRunnable(saveHits);
+    org.thunderdog.challegram.tool.UI.post(saveHits, 5000);
+  }
+
+  private static synchronized void saveHits () {
+    try {
+      JSONObject o = new JSONObject();
+      for (java.util.Map.Entry<Long, java.util.LinkedHashMap<String, Long>> e : hits().entrySet()) {
+        JSONObject list = new JSONObject();
+        for (java.util.Map.Entry<String, Long> m : e.getValue().entrySet()) list.put(m.getKey(), (long) m.getValue());
+        o.put(String.valueOf(e.getKey()), list);
+      }
+      Settings.instance().setTgx101FilterHits(o.toString());
+    } catch (Throwable ignored) { }
+  }
+
+  /** How many messages the rule hid in the last 7 days */
+  public static synchronized int weekCount (Rule rule) {
+    java.util.LinkedHashMap<String, Long> map = hits().get(rule.id);
+    if (map == null) return 0;
+    long cutoff = System.currentTimeMillis() - WEEK;
+    int count = 0;
+    for (long time : map.values()) if (time >= cutoff) count++;
+    return count;
+  }
+
   /** Short label for a rule in lists and on the strip */
   public static String label (String text) {
-    String oneLine = text.replace('\n', ' ').trim();
+    String oneLine = text.replace("\n", " · ").trim();
     return oneLine.length() > 40 ? oneLine.substring(0, 39) + "…" : oneLine;
   }
 

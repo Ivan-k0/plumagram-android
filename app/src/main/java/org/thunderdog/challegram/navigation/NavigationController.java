@@ -1689,6 +1689,12 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       return;
     }
     if (this.translationFactor == factor) return;
+    // (crash 2026-10-31: the header «back» tapped right as the system back gesture was cancelled — the slide got a frame
+    // after the screens were already put back, with no screen on the move) — nothing to move then
+    if (rightWrap == null || currentRight == null || currentLeft == null) {
+      org.thunderdog.challegram.Tgx101Diag.mark("navigation: slide frame with no screens on the move, ignored");
+      return;
+    }
 
     factor = MathUtils.clamp(factor);
 
