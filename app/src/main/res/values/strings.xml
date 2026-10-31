@@ -7265,7 +7265,7 @@
   <string name="Tgx101AdFilterCheck">Show as a strip to check</string>
   <string name="Tgx101AdFilterCheckHint">Instead of hiding, an ad stays as a strip «Ad · Show» — to see the filter is right. The feed still leaves them out.</string>
   <string name="Tgx101AdFilterLabel">Ad</string>
-  <string name="Tgx101FileBroken">The file is damaged and can't be opened</string>
+  <string name="Tgx101FileBroken">The file is damaged and can\'t be opened</string>
   <string name="Tgx101SettingsSearchHint">A setting, e.g. «vibration»</string>
   <string name="Tgx101SettingsSearchEmpty">Type a word: any switch in the settings and MagiX is found, with where it lives.</string>
   <string name="Tgx101SettingsSearchNothing">Nothing found</string>
