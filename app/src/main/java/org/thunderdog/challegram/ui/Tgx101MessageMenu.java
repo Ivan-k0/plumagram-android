@@ -1725,6 +1725,7 @@ public final class Tgx101MessageMenu {
     row.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f)));
     Views.setClickable(row);
     RippleSupport.setTransparentSelector(row);
+    Tgx101FullText.attach(row, null, item.name); // «Цитатой в…»: a hold shows the whole item
     row.setOnClickListener(v -> {
       if (item.id == R.id.btn_tgx101SelectInPlace && host.selectInPlace != null) {
         // close the menu at once, then select: the menu closing later took the selection down with it
