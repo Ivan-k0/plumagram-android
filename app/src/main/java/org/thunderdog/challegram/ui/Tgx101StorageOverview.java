@@ -40,7 +40,7 @@ import org.thunderdog.challegram.tool.UI;
 import java.util.ArrayList;
 
 /**
- * TGx101 (approved mockup «Кэш» 1, user 2026-10-30): the top of Storage — a ring of the cache by type, tabs All /
+ * TGx101 (approved mockup «Кэш» 1, user 2026-10-30; the ring became one bar, 2026-10-31): the top of Storage — the cache by type, tabs All /
  * Personal / Groups / Channels, coloured checks for what to clear and one button with the total. The same colours mark
  * the types everywhere on the screen.
  */
@@ -64,14 +64,11 @@ public class Tgx101StorageOverview extends View {
   private boolean busy;
   private @Nullable Callback callback;
 
-  private final Paint ringPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final RectF rect = new RectF();
 
   public Tgx101StorageOverview (Context context) {
     super(context);
-    ringPaint.setStyle(Paint.Style.STROKE);
-    ringPaint.setStrokeWidth(Screen.dp(10f));
     for (int i = 0; i < 3; i++) chatIds.add(new ArrayList<>());
   }
 
@@ -169,8 +166,12 @@ public class Tgx101StorageOverview extends View {
   // Layout
 
   private static int pad () { return Screen.dp(16f); }
-  private static int ringSize () { return Screen.dp(76f); }
-  private static int tabsTop () { return pad() + ringSize() + Screen.dp(14f); }
+  // (user 2026-10-31, mockup «Кэш вместо круга», variant 1): the total, a line under it, one stacked bar by type
+  private static int totalBaseline () { return pad() + Screen.dp(22f); }
+  private static int subBaseline () { return totalBaseline() + Screen.dp(20f); }
+  private static int barTop () { return subBaseline() + Screen.dp(12f); }
+  private static int barHeight () { return Screen.dp(14f); }
+  private static int tabsTop () { return barTop() + barHeight() + Screen.dp(16f); }
   private static int tabsHeight () { return Screen.dp(36f); }
   private static int rowsTop () { return tabsTop() + tabsHeight() + Screen.dp(8f); }
   private static int rowHeight () { return Screen.dp(44f); }
@@ -188,29 +189,39 @@ public class Tgx101StorageOverview extends View {
     c.drawColor(Theme.getColor(ColorId.filling));
     int pad = pad();
 
-    // ring
-    float stroke = Screen.dp(10f);
-    rect.set(pad + stroke / 2f, pad + stroke / 2f, pad + ringSize() - stroke / 2f, pad + ringSize() - stroke / 2f);
-    ringPaint.setColor(Theme.getColor(ColorId.background));
-    c.drawArc(rect, 0, 360, false, ringPaint);
+    // total, the line under it and one bar by type
     long total = total();
-    if (total > 0) {
-      float angle = -90f;
-      for (int i = 0; i < CAT_COUNT; i++) {
-        float sweep = 360f * sizes[tab][i] / total;
-        if (sweep <= 0) continue;
-        ringPaint.setColor(CAT_COLORS[i]);
-        c.drawArc(rect, angle, Math.max(.5f, sweep - (sweep > 3 ? 1.5f : 0)), false, ringPaint);
-        angle += sweep;
-      }
-    }
-    int textX = pad + ringSize() + Screen.dp(16f);
-    TextPaint big = Paints.getMediumTextPaint(22f, Theme.getColor(ColorId.text), false);
+    TextPaint big = Paints.getMediumTextPaint(24f, Theme.getColor(ColorId.text), false);
     TextPaint small = Paints.getRegularTextPaint(13f, Theme.getColor(ColorId.textLight));
     String totalText = sizes == null ? Lang.getString(R.string.Calculating) : Strings.buildSize(total);
-    c.drawText(totalText, textX, pad + ringSize() / 2f - Screen.dp(2f), big);
+    c.drawText(totalText, pad, totalBaseline(), big);
     String sub = tab == 0 && deviceTotal > 0 && total > 0 ? Lang.getString(R.string.Tgx101CleanOfDevice, Math.max(1, Math.round(100f * total / deviceTotal))) : Lang.getString(TAB_NAMES[tab]);
-    c.drawText(TextUtils.ellipsize(sub, small, width - textX - pad, TextUtils.TruncateAt.END).toString(), textX, pad + ringSize() / 2f + Screen.dp(18f), small);
+    c.drawText(TextUtils.ellipsize(sub, small, width - pad * 2, TextUtils.TruncateAt.END).toString(), pad, subBaseline(), small);
+    int barTop = barTop(), barH = barHeight();
+    float barW = width - pad * 2f;
+    rect.set(pad, barTop, width - pad, barTop + barH);
+    fillPaint.setColor(Theme.getColor(ColorId.background));
+    c.drawRoundRect(rect, barH / 2f, barH / 2f, fillPaint);
+    if (total > 0) {
+      // pieces with round corners, no clipPath (Android 4.1–4.2 can't clip a path on a hardware canvas)
+      float gap = Screen.dp(2f), x = pad;
+      // the biggest type first, as the list's order on the mockup
+      Integer[] order = new Integer[CAT_COUNT];
+      for (int i = 0; i < CAT_COUNT; i++) order[i] = i;
+      final long[] tabSizes = sizes[tab];
+      java.util.Arrays.sort(order, (a, b) -> Long.compare(tabSizes[b], tabSizes[a]));
+      for (int k = 0; k < CAT_COUNT; k++) {
+        int i = order[k];
+        if (tabSizes[i] <= 0) continue;
+        float w = Math.max(Screen.dp(2f), barW * tabSizes[i] / total);
+        fillPaint.setColor(CAT_COLORS[i]);
+        fillPaint.setAlpha(checked[i] ? 255 : 90);
+        rect.set(x, barTop, Math.min(width - pad, x + w - gap), barTop + barH);
+        c.drawRoundRect(rect, Math.min(barH / 2f, rect.width() / 2f), Math.min(barH / 2f, rect.width() / 2f), fillPaint);
+        x += w;
+      }
+      fillPaint.setAlpha(255);
+    }
 
     // tabs
     int tabsTop = tabsTop(), tabsH = tabsHeight();
