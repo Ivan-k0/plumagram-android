@@ -604,19 +604,21 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     // at most once in 2 s per forum, with one more check at the end of a burst (it ran 650 times in 2 minutes)
     String key = tdlib.id() + ":" + chatId;
     long at = android.os.SystemClock.uptimeMillis();
-    Long last = syncedAt.get(key);
-    if (last != null && at - last < 2000) {
-      if (last <= at) { // not booked yet: the one check after the burst
-        long next = last + 2000;
-        syncedAt.put(key, next + 1);
-        UI.post(() -> {
-          syncedAt.remove(key);
-          syncChatRead(tdlib, chatId);
-        }, next - at + 10);
+    synchronized (syncedAt) { // reads of several topics report from TDLib's threads at the same moment
+      Long last = syncedAt.get(key);
+      if (last != null && at - last < 2000) {
+        if (last <= at) { // not booked yet: the one check after the burst
+          long next = last + 2000;
+          syncedAt.put(key, next + 1);
+          UI.post(() -> {
+            syncedAt.remove(key);
+            syncChatRead(tdlib, chatId);
+          }, next - at + 10);
+        }
+        return;
       }
-      return;
+      syncedAt.put(key, at);
     }
-    syncedAt.put(key, at);
     tdlib.send(new TdApi.GetForumTopics(chatId, "", 0, 0, 0, 100), (topics, error) -> {
       if (topics == null) return;
       int unread = 0;
