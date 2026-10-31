@@ -66,6 +66,13 @@ public class Tgx101FiltersController extends RecyclerViewController<Void> implem
       @Override
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
         int id = item.getId();
+        if (id == R.id.btn_tgx101AdFilter) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101AdFilter(), isUpdate);
+          return;
+        } else if (id == R.id.btn_tgx101AdFilterCheck) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101AdFilterCheck(), isUpdate);
+          return;
+        }
         if (id == R.id.btn_tgx101FiltersEnabled) {
           view.getToggler().setRadioEnabled(Tgx101MessageFilters.isEnabled(), isUpdate);
         } else if (id == R.id.btn_tgx101FilterItem) {
@@ -94,6 +101,12 @@ public class Tgx101FiltersController extends RecyclerViewController<Void> implem
     List<Tgx101MessageFilters.Rule> rules = Tgx101MessageFilters.getRules();
     List<ListItem> items = new ArrayList<>();
     items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AdFilter, 0, R.string.Tgx101AdFilter));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AdFilterCheck, 0, R.string.Tgx101AdFilterCheck));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101AdFilterHint));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101FiltersEnabled, 0, R.string.Tgx101FiltersEnabled));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
@@ -149,6 +162,14 @@ public class Tgx101FiltersController extends RecyclerViewController<Void> implem
   @Override
   public void onClick (View v) {
     int id = v.getId();
+    if (id == R.id.btn_tgx101AdFilter) {
+      Settings.instance().setTgx101AdFilter(adapter.toggleView(v)); // applies to chats opened afterwards
+      return;
+    }
+    if (id == R.id.btn_tgx101AdFilterCheck) {
+      Settings.instance().setTgx101AdFilterCheck(adapter.toggleView(v));
+      return;
+    }
     if (id == R.id.btn_tgx101FiltersEnabled) {
       Settings.instance().setTgx101MessageFiltersEnabled(adapter.toggleView(v)); // applies to chats opened afterwards
     } else if (id == R.id.btn_tgx101FilterAdd) {

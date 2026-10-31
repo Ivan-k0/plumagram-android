@@ -1098,6 +1098,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101BirdNightOn, "Ночь");
     RU.put(R.string.Tgx101SettingsSearch, "Поиск по настройкам");
     RU.put(R.string.Tgx101SettingsSearchRecent, "Недавние");
+    RU.put(R.string.Tgx101AdFilter, "Умный фильтр рекламы");
+    RU.put(R.string.Tgx101AdFilterHint, "Посты каналов, помеченные как реклама (erid, «на правах рекламы», #реклама, «Реклама» с ИНН), не показываются — ни в каналах, ни в «Газете». Обычные слова вроде «скидка» не считаются.");
+    RU.put(R.string.Tgx101AdFilterCheck, "Показывать полоской для проверки");
+    RU.put(R.string.Tgx101AdFilterCheckHint, "Вместо скрытия реклама остаётся полоской «Реклама · Показать» — чтобы проверить, что фильтр не ошибается. В «Газете» она всё равно не показывается.");
+    RU.put(R.string.Tgx101AdFilterLabel, "Реклама");
     RU.put(R.string.Tgx101FileBroken, "Файл повреждён, открыть не получится");
     RU.put(R.string.Tgx101SettingsSearchHint, "Настройка, например «вибрация»");
     RU.put(R.string.Tgx101SettingsSearchEmpty, "Введите слово: найдётся любой пункт настроек и MagiX, с тем, где он лежит.");

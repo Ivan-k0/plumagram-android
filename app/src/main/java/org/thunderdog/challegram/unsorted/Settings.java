@@ -4575,6 +4575,27 @@ public class Settings {
   public boolean tgx101HideBlocked () { return pmc.getBoolean(KEY_TGX101_HIDE_BLOCKED, false); }
   public void setTgx101HideBlocked (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_BLOCKED, v); }
 
+  // TGx101 (user 2026-10-31, mockup «Фильтры и живые примеры» Д): the smart ad filter — channel posts marked as ads by
+  // their own text (erid, «на правах рекламы», «#реклама», «Реклама» with an ИНН) are left out; «check mode» shows them as
+  // a strip «Ad · Show» instead, to see the filter is right
+  private static final String KEY_TGX101_AD_FILTER = "tgx101_ad_filter", KEY_TGX101_AD_FILTER_CHECK = "tgx101_ad_filter_check";
+
+  public boolean tgx101AdFilter () {
+    return pmc.getBoolean(KEY_TGX101_AD_FILTER, false);
+  }
+
+  public void setTgx101AdFilter (boolean value) {
+    pmc.putBoolean(KEY_TGX101_AD_FILTER, value);
+  }
+
+  public boolean tgx101AdFilterCheck () {
+    return pmc.getBoolean(KEY_TGX101_AD_FILTER_CHECK, false);
+  }
+
+  public void setTgx101AdFilterCheck (boolean value) {
+    pmc.putBoolean(KEY_TGX101_AD_FILTER_CHECK, value);
+  }
+
   public boolean tgx101MessageFiltersEnabled () {
     return pmc.getBoolean(KEY_TGX101_MESSAGE_FILTERS_ON, true);
   }

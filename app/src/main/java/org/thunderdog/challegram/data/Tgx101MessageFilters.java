@@ -118,7 +118,38 @@ public final class Tgx101MessageFilters {
 
   /** Rules or «hide messages from blocked»: anything that can leave a message out */
   public static boolean anyHiding () {
-    return isEnabled() || Tgx101BlockedSenders.isEnabled();
+    return isEnabled() || Tgx101BlockedSenders.isEnabled() || Settings.instance().tgx101AdFilter();
+  }
+
+  // The smart ad filter (user 2026-10-31): a channel post that marks itself as an ad. Only the marks the law and the
+  // channels themselves put — words like «скидка» alone never count, so an ordinary post isn't taken for an ad
+  private static final Pattern AD_MARKS = Pattern.compile(
+    "(?iu)(\\berid\\s*[:=]|[?&]erid=|на\\s+правах\\s+рекламы|#реклама|#ad\\b|#sponsored|\\bpaid\\s+partnership\\b|партн[её]рский\\s+материал|рекламный\\s+пост|^\\s*реклама\\s*[.:]|\\bреклама\\b[^\\n]{0,80}\\bинн\\b|\\bинн\\b[^\\n]{0,80}\\bреклама\\b)",
+    Pattern.MULTILINE);
+  private static Rule adRule;
+
+  /** The rule the smart ad filter shows in place of a post: hidden fully, or as a strip in «check mode» */
+  private static Rule adRule () {
+    if (adRule == null) adRule = new Rule();
+    adRule.text = org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101AdFilterLabel);
+    adRule.hideFully = !Settings.instance().tgx101AdFilterCheck();
+    return adRule;
+  }
+
+  public static boolean isAd (TdApi.Message msg) {
+    if (msg == null || msg.content == null) return false;
+    TdApi.FormattedText formatted = Td.textOrCaption(msg.content);
+    if (formatted == null || formatted.text == null) return false;
+    if (AD_MARKS.matcher(formatted.text).find()) return true;
+    if (formatted.entities != null) {
+      for (TdApi.TextEntity entity : formatted.entities) {
+        if (entity.type.getConstructor() == TdApi.TextEntityTypeTextUrl.CONSTRUCTOR) {
+          String url = ((TdApi.TextEntityTypeTextUrl) entity.type).url;
+          if (url != null && url.toLowerCase(java.util.Locale.ROOT).contains("erid=")) return true;
+        }
+      }
+    }
+    return false;
   }
 
   private static List<Rule> load () {
@@ -227,17 +258,27 @@ public final class Tgx101MessageFilters {
   /** The rule hiding this message, or null when it is shown as usual */
   @Nullable
   public static Rule match (Tdlib tdlib, TdApi.Message msg, @Nullable TdApi.Chat chat) {
-    if (chat == null || msg == null || msg.isOutgoing || msg.content == null || !isEnabled()) {
+    if (chat == null || msg == null || msg.isOutgoing || msg.content == null) {
       return null;
     }
-    List<Rule> list = getRules();
-    if (list.isEmpty()) {
+    boolean ads = Settings.instance().tgx101AdFilter() && isChannel(chat);
+    if (!isEnabled() && !ads) {
       return null;
     }
     synchronized (revealed) {
       if (revealed.contains(key(msg.chatId, msg.id))) {
         return null;
       }
+    }
+    if (ads && isAd(msg)) {
+      return adRule();
+    }
+    if (!isEnabled()) {
+      return null;
+    }
+    List<Rule> list = getRules();
+    if (list.isEmpty()) {
+      return null;
     }
     TdApi.FormattedText formatted = Td.textOrCaption(msg.content);
     String text = formatted != null ? formatted.text : null;
