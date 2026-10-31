@@ -166,8 +166,10 @@ public class Tgx101MagixPreview extends View {
   private void drawInput (Canvas c, float left, float top, float right, float bottom) {
     Settings s = Settings.instance();
     float y = header(c, left, top, right, Lang.getString(R.string.Tgx101PreviewMom), Lang.getString(R.string.Tgx101PreviewOnline), 0xffcc5049, "М");
-    float b1 = bubble(c, left + Screen.dp(10f), y + Screen.dp(10f), right - Screen.dp(60f), Lang.getString(R.string.Tgx101PreviewMomText), false);
-    bubble(c, left + Screen.dp(60f), b1 + Screen.dp(6f), right - Screen.dp(10f), Lang.getString(R.string.Tgx101PreviewMyText), true);
+    // one row: hers on the left, mine on the right — the field needs the room below
+    float mid = (left + right) / 2f;
+    bubble(c, left + Screen.dp(10f), y + Screen.dp(10f), mid - Screen.dp(6f), Lang.getString(R.string.Tgx101PreviewMomText), false);
+    bubble(c, mid + Screen.dp(6f), y + Screen.dp(10f), right - Screen.dp(10f), Lang.getString(R.string.Tgx101PreviewMyText), true);
     int style = s.tgx101InputStyle(); // 0 floating, 1 flat, 2 well
     float fh = Screen.dp(38f);
     float fl, fr, ft, fb;
