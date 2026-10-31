@@ -43,6 +43,7 @@ import org.thunderdog.challegram.data.TD;
 import org.thunderdog.challegram.service.SyncContactsService;
 import org.thunderdog.challegram.theme.Theme;
 import org.thunderdog.challegram.tool.Intents;
+import org.thunderdog.challegram.ui.Tgx101AskSheet;
 import org.thunderdog.challegram.tool.Strings;
 import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.unsorted.AppContext;
@@ -715,10 +716,11 @@ public class TdlibContactManager implements CleanupStartupDelegate {
 
   public void makeSilentPermissionCheck (BaseActivity context) {
     boolean hasPermission = context.permissions().canReadContacts();
-    if (pendingRetryDialog != null && pendingRetryDialog.getContext() == context && hasPermission) {
+    if (pendingRetryDialog != null && pendingRetryContext == context && hasPermission) {
       DialogInterface dialog = pendingRetryDialog;
       Runnable callback = pendingRetryCallback;
       pendingRetryDialog = null;
+      pendingRetryContext = null;
       pendingRetryCallback = null;
       if (callback != null) {
         callback.run();
@@ -734,12 +736,14 @@ public class TdlibContactManager implements CleanupStartupDelegate {
   private static final int FLAG_NOT_FIRST_TIME = 1 << 1;
   private static final int FLAG_NEED_NEVER = 1 << 2;
 
-  private AlertDialog pendingRetryDialog;
+  private DialogInterface pendingRetryDialog;
+  private BaseActivity pendingRetryContext;
   private Runnable pendingRetryCallback;
 
   private void clearPendingRetryDialog (DialogInterface dialog) {
     if (pendingRetryDialog == dialog) {
       pendingRetryDialog = null;
+      pendingRetryContext = null;
       pendingRetryCallback = null;
     }
   }
@@ -754,7 +758,7 @@ public class TdlibContactManager implements CleanupStartupDelegate {
       return;
     }
 
-    if (showingAlert != null && showingAlert instanceof AlertDialog && ((AlertDialog) showingAlert).isShowing()) {
+    if ((showingAlert instanceof AlertDialog && ((AlertDialog) showingAlert).isShowing()) || (showingAlert instanceof Tgx101AskSheet && ((Tgx101AskSheet) showingAlert).isShowing())) {
       return;
     }
 
@@ -777,25 +781,13 @@ public class TdlibContactManager implements CleanupStartupDelegate {
       message = Lang.getMarkdownString(delegate, R.string.SyncHint3, appName);
     }
 
-    AlertDialog.Builder b = new AlertDialog.Builder(context, Theme.dialogTheme());
-    b.setTitle(Lang.getString(title));
-    b.setMessage(message);
-    b.setCancelable(false);
-    /*b.setNeutralButton(Lang.getString(R.string.SyncLearnMore), (dialog, which) -> {
-      tdlib.ui().openUrl(delegate, Lang.getStringSecure(R.string.url_contactsPrivacy), null);
-    });*/
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-      b.setOnDismissListener(dialog -> {
-        if (showingAlert == dialog) {
-          showingAlert = null;
-        }
-      });
-    }
-    b.setPositiveButton(Lang.getString(!context.permissions().canReadContacts() ? (isRetry ? R.string.Settings : R.string.SyncBtn) : R.string.SyncBtn), (dialog, which) -> {
+    final boolean[] answered = {false};
+    DialogInterface.OnClickListener onPositive = (dialog, which) -> {
       if (isRetry) {
         Intents.openPermissionSettings();
         return;
       }
+      answered[0] = true;
       dialog.dismiss();
       setHideOption(HIDE_OPTION_DEFAULT);
       if (!context.permissions().requestReadContacts(granted -> {
@@ -814,8 +806,9 @@ public class TdlibContactManager implements CleanupStartupDelegate {
         setStatus(STATUS_IN_FIRST_PROGRESS);
         startSyncIfNeeded(context, allowNever, callback);
       }
-    });
-    b.setNegativeButton(Lang.getString(needNever ? R.string.Never : R.string.NotNow), (dialog, which) -> {
+    };
+    DialogInterface.OnClickListener onNegative = (dialog, which) -> {
+      answered[0] = true;
       if (isRetry) {
         clearPendingRetryDialog(dialog);
       }
@@ -829,17 +822,54 @@ public class TdlibContactManager implements CleanupStartupDelegate {
       } else {
         setHideOption(HIDE_OPTION_LATER);
       }
-    });
-    if (!needNever) {
-      b.setCancelable(false);
+    };
+    CharSequence positiveText = Lang.getString(!context.permissions().canReadContacts() ? (isRetry ? R.string.Settings : R.string.SyncBtn) : R.string.SyncBtn);
+    CharSequence negativeText = Lang.getString(needNever ? R.string.Never : R.string.NotNow);
+    if (context.isFinishing()) {
+      return;
     }
-    if (!context.isFinishing()) {
-      AlertDialog dialog = context.showAlert(b);
-      showingAlert = dialog;
-      if (isRetry) {
-        pendingRetryDialog = dialog;
-        pendingRetryCallback = callback;
+    DialogInterface dialog;
+    // TGx101 (user 2026-10-31 «дизайн не наш, а с андроида 4.1»): the app's own sheet; a swipe away means «later»
+    // (it asks again another time), the system dialog only when no screen is open
+    if (delegate instanceof org.thunderdog.challegram.navigation.ViewController<?>) {
+      dialog = Tgx101AskSheet.show((org.thunderdog.challegram.navigation.ViewController<?>) delegate, R.drawable.baseline_contact_phone_24,
+        Lang.getString(title), message, positiveText, negativeText, onPositive, onNegative, d -> {
+          if (showingAlert == d) {
+            showingAlert = null;
+          }
+          // a retry the permission check already finished (it ran the callback) is not a «later»
+          if (!answered[0] && !(isRetry && pendingRetryDialog != d)) {
+            answered[0] = true;
+            if (isRetry) {
+              clearPendingRetryDialog(d);
+            }
+            setHideOption(HIDE_OPTION_LATER);
+            if (callback != null) {
+              callback.run();
+            }
+          }
+        });
+    } else {
+      AlertDialog.Builder b = new AlertDialog.Builder(context, Theme.dialogTheme());
+      b.setTitle(Lang.getString(title));
+      b.setMessage(message);
+      b.setCancelable(false);
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+        b.setOnDismissListener(d -> {
+          if (showingAlert == d) {
+            showingAlert = null;
+          }
+        });
       }
+      b.setPositiveButton(positiveText, onPositive);
+      b.setNegativeButton(negativeText, onNegative);
+      dialog = context.showAlert(b);
+    }
+    showingAlert = dialog;
+    if (isRetry) {
+      pendingRetryDialog = dialog;
+      pendingRetryContext = context;
+      pendingRetryCallback = callback;
     }
   }
 
