@@ -384,6 +384,14 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
     }
     if (forceNoAutoPlay) {
       this.targetGifFile.setIsStill(true);
+    } else if (source != null && !source.isSecretChat() && !isHot()) {
+      // (user 2026-10-31: a screen recording without sound, sent as a GIF, stood still with no ▶ in a group): an
+      // animation up to 20 MB loads and plays by itself, as a video does — not only once the auto-download got it
+      long size = Math.max(animation.animation.size, animation.animation.expectedSize);
+      if (size > 0 && size <= TGX101_INLINE_MAX_BYTES) {
+        tgx101InlineVideo = true;
+        tgx101ChatId = source.getChatId();
+      }
     }
 
     this.contentWidth = animation.width;
@@ -848,7 +856,8 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
   public void requestGif (GifReceiver receiver) {
     if (tgx101InlineVideo) {
       boolean play = org.thunderdog.challegram.data.Tgx101ChatMedia.autoplay(tdlib, tgx101ChatId);
-      fileProgress.setHideDownloadedIcon(play); // no ▶ over a video playing by itself
+      // ▶ (or GIF) stays until the frames are on screen — the drawing hides it then; hidden from the start, a video that
+      // hadn't loaded yet showed nothing at all
       if (tgx101LoggedPlay == null || tgx101LoggedPlay != play) {
         tgx101LoggedPlay = play;
         org.thunderdog.challegram.Tgx101Diag.mark("channel video: chat " + tgx101ChatId + " message " + sourceMessageId + " autoplay " + play +
