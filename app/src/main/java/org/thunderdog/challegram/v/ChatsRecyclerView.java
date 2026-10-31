@@ -292,15 +292,8 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
   @Override
   public boolean onInterceptTouchEvent (MotionEvent e) {
     if (e.getActionMasked() == MotionEvent.ACTION_DOWN && (tgx101ReleaseStretch() | getScrollState() == SCROLL_STATE_SETTLING)) {
-      if (getScrollState() == SCROLL_STATE_SETTLING) {
-        // (user 2026-10-31 «свайпы как будто без отзывчивости»): a flying list is caught at once, not stopped dead and
-        // started again after a touch slop; the folders / back swipe can still take the finger
-        super.onInterceptTouchEvent(e);
-        if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
-      } else {
-        stopScroll();
-        super.onInterceptTouchEvent(e);
-      }
+      stopScroll();
+      super.onInterceptTouchEvent(e);
       return true;
     }
     return super.onInterceptTouchEvent(e);
