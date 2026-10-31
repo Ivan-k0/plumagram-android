@@ -142,7 +142,6 @@ public class CustomRecyclerView extends RecyclerView implements Animated {
           // Android list — it was stopped dead and had to move a touch slop again. The back swipe can still take it
           super.onInterceptTouchEvent(e);
           if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
-          tgx101MarkCaught(e);
           return true;
         }
       } else if (e.getActionMasked() == MotionEvent.ACTION_MOVE && getScrollState() == SCROLL_STATE_IDLE) {
@@ -157,45 +156,6 @@ public class CustomRecyclerView extends RecyclerView implements Animated {
   }
 
   private float tgx101DownX, tgx101DownY;
-
-  protected final void tgx101MarkCaught (MotionEvent e) {
-    tgx101Caught = true;
-    tgx101CaughtX = e.getX();
-    tgx101CaughtY = e.getY();
-  }
-
-  @Override
-  public boolean dispatchTouchEvent (MotionEvent e) {
-    boolean handled = super.dispatchTouchEvent(e);
-    tgx101AfterCaughtTouch(e);
-    return handled;
-  }
-
-  // (2026-10-31, after the catch of a flying list): RecyclerView holds the finger from its parents as soon as it scrolls
-  // even a pixel — a swipe to the right right after a fling no longer went back. While the caught finger goes more to the
-  // right than up or down, it stays free for the back swipe; once it went clearly up or down, it is the list's
-  private boolean tgx101Caught;
-  private float tgx101CaughtX, tgx101CaughtY;
-
-  private void tgx101AfterCaughtTouch (MotionEvent e) {
-    if (!tgx101Caught) return;
-    switch (e.getActionMasked()) {
-      case MotionEvent.ACTION_MOVE: {
-        float dx = e.getX() - tgx101CaughtX, dy = e.getY() - tgx101CaughtY;
-        if (dx > 0 && dx > Math.abs(dy) * 1.3f && !org.thunderdog.challegram.core.Lang.rtl()) {
-          if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
-        } else if (Math.abs(dy) > org.thunderdog.challegram.tool.Screen.getTouchSlop() * 2) {
-          tgx101Caught = false;
-        }
-        break;
-      }
-      case MotionEvent.ACTION_UP:
-      case MotionEvent.ACTION_CANCEL:
-        tgx101Caught = false;
-        break;
-    }
-  }
-
 
   private boolean tgx101IsVertical () {
     LayoutManager manager = getLayoutManager();
