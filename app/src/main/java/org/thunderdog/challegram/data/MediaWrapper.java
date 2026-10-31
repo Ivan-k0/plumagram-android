@@ -1566,6 +1566,10 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
       textShort = null;
     }
 
+    if (video == null && animation != null && text.isEmpty()) {
+      text = "GIF"; // TGx101 (user 2026-10-31 «гифка — как в офф»): a loaded animation says what it is in the corner
+    }
+
     if (video != null) {
       textShort = Strings.buildDuration(video.duration);
 
