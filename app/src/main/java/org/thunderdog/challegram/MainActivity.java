@@ -131,6 +131,7 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     Tgx101Diag.mark("MainActivity.onCreate …"); // TGx101: diagnostics builds only
     super.onCreate(savedInstanceState);
     Tgx101Diag.mark("MainActivity.onCreate: window ready");
+    Tgx101FrameTrace.removeLeftovers(getApplicationContext()); // TGx101
     Tgx101BuildCheck.checkLater(this); // TGx101: warn about a build signed with somebody else's key
 
     Log.i("MainActivity.onCreate");

@@ -53,7 +53,8 @@ public final class Tgx101FrameTrace {
   private static long lastStart;
 
   public static void start (Activity activity, String reason) {
-    if (!BuildConfig.TGX101_DIAG || Build.VERSION.SDK_INT < 29 || activity == null) return;
+    // frame traces belong to the developer's own diagnostics builds only
+    if (!BuildConfig.TGX101_DIAG || BuildConfig.TGX101_TEST || Build.VERSION.SDK_INT < 29 || activity == null) return;
     long now = SystemClock.uptimeMillis();
     if (now - lastStart < 3000) return; // one trace at a time (a notification tap also resumes the activity)
     lastStart = now;
@@ -140,6 +141,25 @@ public final class Tgx101FrameTrace {
 
   /** (user 2026-10-24 «10 мало — может и час пройти, пока скажу про баг»): traces of the last day are kept, at most 300
    * (~200 KB each); older folders go when a new one starts */
+  /** Builds without frame traces remove a leftover traces folder, once per start, in the background */
+  public static void removeLeftovers (Context context) {
+    if (BuildConfig.TGX101_DIAG && !BuildConfig.TGX101_TEST) return;
+    new Thread(() -> {
+      try {
+        java.io.File root = context.getExternalFilesDir(null);
+        if (root != null) deleteTree(new java.io.File(root, "frames"));
+      } catch (Throwable ignored) { }
+    }, "tgx101-frames-cleanup").start();
+  }
+
+  private static void deleteTree (java.io.File f) {
+    if (!f.exists()) return;
+    java.io.File[] children = f.listFiles();
+    if (children != null) for (java.io.File c : children) deleteTree(c);
+    //noinspection ResultOfMethodCallIgnored
+    f.delete();
+  }
+
   private static final int KEEP = 300;
   private static final long KEEP_MS = 24L * 60 * 60 * 1000;
 
