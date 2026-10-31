@@ -212,7 +212,7 @@ public class Tgx101SettingsSearch extends ViewController<Void> {
     empty.setGravity(Gravity.CENTER);
     empty.setPadding(Screen.dp(32f), Screen.dp(32f), Screen.dp(32f), 0);
     empty.setText(Lang.getString(R.string.Tgx101SettingsSearchEmpty));
-    results.addView(empty);
+    showRecent();
     field.addTextChangedListener(new TextWatcher() {
       @Override public void beforeTextChanged (CharSequence s, int start, int count, int after) { }
       @Override public void onTextChanged (CharSequence s, int start, int before, int count) { }
@@ -244,7 +244,7 @@ public class Tgx101SettingsSearch extends ViewController<Void> {
     results.removeAllViews();
     String q = query.trim().toLowerCase(Locale.ROOT);
     if (q.isEmpty()) {
-      results.addView(empty);
+      showRecent();
       return;
     }
     String[] words = q.split("\\s+");
@@ -313,7 +313,74 @@ public class Tgx101SettingsSearch extends ViewController<Void> {
   }
 
   /** the screen opens, scrolls to the item and lights it up twice */
+  // (user 2026-10-31 «в поиске настроек нужно добавить последние 9 удачных переходов… не сразу ведёт, а вставляет в
+  // строку поиска»): with the field empty, the last 9 searches that ended in opening an item, the latest first; a tap
+  // puts the search back into the field
+  private static final String KEY_RECENT = "tgx101_settings_search_recent";
+  private static final int RECENT_MAX = 9;
+
+  private static List<String[]> recent () {
+    List<String[]> out = new ArrayList<>();
+    String raw = org.thunderdog.challegram.unsorted.Settings.instance().pmc().getString(KEY_RECENT, null);
+    if (raw == null || raw.isEmpty()) return out;
+    for (String line : raw.split("\n")) {
+      String[] parts = line.split("\t", -1);
+      if (parts.length >= 2 && !parts[0].isEmpty()) out.add(parts); // [query, the item it opened]
+    }
+    return out;
+  }
+
+  private void remember (Entry e) {
+    String query = field != null ? field.getText().toString().trim() : "";
+    if (query.isEmpty()) return;
+    String clean = query.replace('\t', ' ').replace('\n', ' ');
+    StringBuilder b = new StringBuilder(clean).append('\t').append(e.title.replace('\t', ' ').replace('\n', ' '));
+    int n = 1;
+    for (String[] old : recent()) {
+      if (n >= RECENT_MAX) break;
+      if (old[0].equalsIgnoreCase(clean)) continue;
+      b.append('\n').append(old[0]).append('\t').append(old[1]);
+      n++;
+    }
+    org.thunderdog.challegram.unsorted.Settings.instance().pmc().putString(KEY_RECENT, b.toString());
+  }
+
+  private void showRecent () {
+    results.removeAllViews();
+    List<String[]> list = recent();
+    if (list.isEmpty()) {
+      results.addView(empty);
+      return;
+    }
+    TextView header = Tgx101SavedHomeController.text(context, 13f, Theme.textAccentColor(), true);
+    header.setText(Lang.getString(R.string.Tgx101SettingsSearchRecent));
+    header.setPadding(Screen.dp(18f), Screen.dp(14f), Screen.dp(18f), Screen.dp(4f));
+    results.addView(header);
+    for (String[] item : list) {
+      LinearLayout r = new LinearLayout(context);
+      r.setOrientation(LinearLayout.VERTICAL);
+      r.setPadding(Screen.dp(18f), Screen.dp(10f), Screen.dp(18f), Screen.dp(10f));
+      Views.setClickable(r);
+      org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(r);
+      final String query = item[0];
+      r.setOnClickListener(v -> {
+        field.setText(query);
+        field.setSelection(field.getText().length());
+      });
+      TextView t = Tgx101SavedHomeController.text(context, 16f, Theme.textAccentColor(), false);
+      t.setText(query);
+      r.addView(t);
+      TextView p = Tgx101SavedHomeController.text(context, 12f, Theme.textDecentColor(), false);
+      p.setText(item[1]);
+      p.setSingleLine(true);
+      p.setEllipsize(TextUtils.TruncateAt.END);
+      r.addView(p);
+      results.addView(r);
+    }
+  }
+
   private void openEntry (Entry e) {
+    remember(e);
     org.thunderdog.challegram.tool.Keyboard.hide(field);
     Screen_ screen = screens(context).get(e.screen);
     ViewController<?> c = screen.factory.make(context, tdlib);

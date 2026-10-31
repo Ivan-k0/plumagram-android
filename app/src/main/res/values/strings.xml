@@ -7259,6 +7259,7 @@
   <string name="Tgx101BirdDay">Day</string>
   <string name="Tgx101BirdNightOn">Night</string>
   <string name="Tgx101SettingsSearch">Search settings</string>
+  <string name="Tgx101SettingsSearchRecent">Recent</string>
   <string name="Tgx101SettingsSearchHint">A setting, e.g. «vibration»</string>
   <string name="Tgx101SettingsSearchEmpty">Type a word: any switch in the settings and MagiX is found, with where it lives.</string>
   <string name="Tgx101SettingsSearchNothing">Nothing found</string>

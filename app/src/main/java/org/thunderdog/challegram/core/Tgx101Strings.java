@@ -1097,6 +1097,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101BirdDay, "День");
     RU.put(R.string.Tgx101BirdNightOn, "Ночь");
     RU.put(R.string.Tgx101SettingsSearch, "Поиск по настройкам");
+    RU.put(R.string.Tgx101SettingsSearchRecent, "Недавние");
     RU.put(R.string.Tgx101SettingsSearchHint, "Настройка, например «вибрация»");
     RU.put(R.string.Tgx101SettingsSearchEmpty, "Введите слово: найдётся любой пункт настроек и MagiX, с тем, где он лежит.");
     RU.put(R.string.Tgx101SettingsSearchNothing, "Ничего не найдено");
