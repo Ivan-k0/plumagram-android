@@ -2664,7 +2664,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // TGx101: pull up at the end of a channel → the next unread channel (official clients do the same)
 
   private @Nullable TdApi.Chat tgx101NextChannel;
-  private @Nullable android.widget.TextView tgx101NextChannelHint;
+  private @Nullable Tgx101NextChannelCard tgx101NextChannelCard;
 
   public void tgx101PrepareNextChannel () {
     final long currentChatId = getChatId();
@@ -2686,39 +2686,32 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   public void tgx101ShowNextChannel (float progress, boolean ready) {
+    // (4PDA 2026-10-31 #358, mockup «Следующий канал»): a card with the next channel's photo, name and unread count
+    // rises from the bottom; the ring round the photo fills as the finger goes, a full ring turns it green
     if (progress <= 0f) {
-      if (tgx101NextChannelHint != null) tgx101NextChannelHint.animate().alpha(0f).translationY(Screen.dp(24f)).setDuration(150).start();
+      if (tgx101NextChannelCard != null) {
+        tgx101NextChannelCard.animate().alpha(0f).translationY(Tgx101NextChannelCard.cardHeight() + Screen.dp(64f)).setDuration(180).start();
+      }
       return;
     }
-    if (tgx101NextChannelHint == null) {
-      android.widget.TextView hint = new android.widget.TextView(context());
-      hint.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14f);
-      hint.setTextColor(0xffffffff);
-      hint.setGravity(Gravity.CENTER);
-      hint.setMaxLines(2);
-      hint.setPadding(Screen.dp(16f), Screen.dp(9f), Screen.dp(16f), Screen.dp(9f));
-      android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-      bg.setCornerRadius(Screen.dp(20f));
-      hint.setBackground(bg);
-      RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    if (tgx101NextChannelCard == null) {
+      Tgx101NextChannelCard card = new Tgx101NextChannelCard(context());
+      RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(Tgx101NextChannelCard.cardWidth(), Tgx101NextChannelCard.cardHeight());
       params.addRule(RelativeLayout.CENTER_HORIZONTAL);
       params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-      params.bottomMargin = Screen.dp(112f); // above the input / «Mute» bar
-      params.leftMargin = params.rightMargin = Screen.dp(24f);
-      hint.setLayoutParams(params);
-      hint.setAlpha(0f);
-      contentView.addView(hint);
-      tgx101NextChannelHint = hint;
+      params.bottomMargin = Screen.dp(64f) + extraBottomInsetWithoutIme; // above the input / «Mute» bar
+      card.setLayoutParams(params);
+      card.setAlpha(0f);
+      contentView.addView(card);
+      tgx101NextChannelCard = card;
     }
-    android.widget.TextView hint = tgx101NextChannelHint;
+    Tgx101NextChannelCard card = tgx101NextChannelCard;
     TdApi.Chat next = tgx101NextChannel;
-    String text = next == null ? Lang.getString(R.string.Tgx101NextChannelNone)
-      : Lang.getString(ready ? R.string.Tgx101NextChannelRelease : R.string.Tgx101NextChannelPull, next.title);
-    hint.setText(text);
-    ((android.graphics.drawable.GradientDrawable) hint.getBackground()).setColor(ready && next != null ? Theme.getColor(ColorId.fillingPositive) : 0xd0161c22);
-    hint.animate().cancel();
-    hint.setAlpha(Math.min(1f, progress * 1.6f));
-    hint.setTranslationY((1f - progress) * Screen.dp(24f));
+    card.setChat(tdlib, next);
+    card.setProgress(progress, ready && next != null);
+    card.animate().cancel();
+    card.setAlpha(Math.min(1f, progress * 2f));
+    card.setTranslationY((1f - Math.min(1f, progress * 1.25f)) * (Tgx101NextChannelCard.cardHeight() + Screen.dp(64f)));
   }
 
   public void tgx101OpenNextChannel () {

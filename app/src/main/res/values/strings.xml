@@ -6693,6 +6693,7 @@
   <string name="Tgx101NextChannelPull">↑ Next: %1$s</string>
   <string name="Tgx101NextChannelRelease">Release to open %1$s</string>
   <string name="Tgx101NextChannelNone">No unread channels</string>
+  <string name="Tgx101NextChannelReleaseShort">Release to open</string>
   <string name="Tgx101CaptionAbove">Text above media</string>
   <string name="Tgx101SendHd">HD quality</string>
   <string name="Tgx101MyStory">My story</string>

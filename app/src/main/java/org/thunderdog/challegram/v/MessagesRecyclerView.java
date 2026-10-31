@@ -786,6 +786,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
             boolean past = progress >= 1f;
             if (past && !tgx101NextPast) {
               org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK);
+              tgx101NextPastAt = android.os.SystemClock.uptimeMillis();
             }
             tgx101NextPast = past;
             manager.controller().tgx101ShowNextChannel(progress, past);
@@ -794,7 +795,8 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
         case MotionEvent.ACTION_UP:
         case MotionEvent.ACTION_CANCEL:
           if (tgx101NextTracking) {
-            boolean open = tgx101NextPast && e.getActionMasked() == MotionEvent.ACTION_UP;
+            // a flick that flies past the line doesn't open: the finger has to stay at «ready» for 0.15 s (mockup)
+            boolean open = tgx101NextPast && e.getActionMasked() == MotionEvent.ACTION_UP && android.os.SystemClock.uptimeMillis() - tgx101NextPastAt >= 150;
             tgx101NextTracking = false;
             tgx101NextPast = false;
             manager.controller().tgx101ShowNextChannel(0f, false);
@@ -806,6 +808,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
     return super.dispatchTouchEvent(e);
   }
 
+  private long tgx101NextPastAt;
   private boolean tgx101StoppedFling;
 
   /** True for the touch that stopped a fling: message views don't treat it as a tap */

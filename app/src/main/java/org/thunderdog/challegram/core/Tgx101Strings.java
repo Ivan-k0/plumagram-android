@@ -1371,6 +1371,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101NextChannelPull, "↑ Дальше: %1$s");
     RU.put(R.string.Tgx101NextChannelRelease, "Отпустите — откроется %1$s");
     RU.put(R.string.Tgx101NextChannelNone, "Непрочитанных каналов нет");
+    RU.put(R.string.Tgx101NextChannelReleaseShort, "Отпустите — откроется");
     RU.put(R.string.Tgx101CaptionAbove, "Текст над медиа");
     RU.put(R.string.Tgx101SendHd, "HD-качество");
     RU.put(R.string.Tgx101MyStory, "Моя история");
