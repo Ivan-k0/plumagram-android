@@ -371,7 +371,7 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
       error = (width <= 0 || height <= 0);
     }
     if (error) {
-      org.thunderdog.challegram.Tgx101Diag.mark("gif: file " + file.getFileId() + " type " + file.getGifType() + " didn't open — " + width + "x" + height); // TGx101 (user 2026-10-31 «гифка так и не играет»)
+      org.thunderdog.challegram.Tgx101Diag.mark("gif: file " + file.getFileId() + " type " + file.getGifType() + " didn't open — " + width + "x" + height + ", " + tgx101WhyNot(path)); // TGx101 (user 2026-10-31 «гифка так и не играет»)
       destroyDecoder();
     }
     if (nativePtr == 0) {
@@ -422,6 +422,31 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
   // TGx101 (user 2026-10-30, «в офф клиенте видео продолжается, а у нас заново»): where a video playing by itself in a
   // feed stands, by file — the viewer opened on it starts there
   private static final java.util.Map<Integer, Long> tgx101Positions = new java.util.concurrent.ConcurrentHashMap<>();
+
+  /** Why a video didn't open, for the log: is it on the disk, readable, what codec Android reads in it */
+  private static String tgx101WhyNot (String path) {
+    try {
+      java.io.File f = new java.io.File(path);
+      StringBuilder b = new StringBuilder();
+      b.append(f.exists() ? "on disk " + f.length() + " B" : "not on disk").append(f.canRead() ? ", readable" : ", not readable");
+      if (f.exists() && f.canRead()) {
+        android.media.MediaExtractor x = new android.media.MediaExtractor();
+        try {
+          x.setDataSource(path);
+          for (int i = 0; i < x.getTrackCount(); i++) {
+            android.media.MediaFormat format = x.getTrackFormat(i);
+            String mime = format.getString(android.media.MediaFormat.KEY_MIME);
+            if (mime != null && mime.startsWith("video/")) b.append(", codec ").append(mime);
+          }
+        } finally {
+          x.release();
+        }
+      }
+      return b.toString();
+    } catch (Throwable t) {
+      return "check failed: " + t.getClass().getSimpleName();
+    }
+  }
 
   /** where the viewer left this file's video — the feed's copy goes on from there */
   public static void tgx101SetPosition (int fileId, long positionMs) {
