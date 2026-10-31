@@ -360,7 +360,21 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
       View child = getChildAt(i);
       if (!(child instanceof org.thunderdog.challegram.component.dialogs.ChatView)) continue;
       ViewHolder holder = getChildViewHolder(child);
-      if (holder == null || holder.getAbsoluteAdapterPosition() == NO_POSITION) continue; // leaving the list
+      if (holder != null && holder.getAbsoluteAdapterPosition() == NO_POSITION) {
+        // (user's screenshot 2026-10-31 10:36, a channel twice in «Channels»): the animations are over, yet a row that
+        // left the list is still on screen — a ghost of a chat that was just «added» elsewhere; it's taken away
+        long now = android.os.SystemClock.uptimeMillis();
+        if (now - tgx101LastDuplicateFix >= 1000) {
+          tgx101LastDuplicateFix = now;
+          org.thunderdog.challegram.Tgx101Diag.mark("chat list: a row of chat " + ((org.thunderdog.challegram.component.dialogs.ChatView) child).getChatId() + " stayed on screen after leaving the list — removed");
+          post(() -> {
+            if (getItemAnimator() != null) getItemAnimator().endAnimations();
+            if (adapter != null) adapter.notifyDataSetChanged();
+          });
+        }
+        return;
+      }
+      if (holder == null) continue;
       long chatId = ((org.thunderdog.challegram.component.dialogs.ChatView) child).getChatId();
       if (chatId == 0) continue;
       Integer other = seen.put(chatId, holder.getAbsoluteAdapterPosition());
