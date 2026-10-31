@@ -530,6 +530,21 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
 
   // File opening
 
+  /** An MP4 / MOV / 3GP file starts with a «ftyp», «moov», «mdat», «wide» or «free» box; a video document without one is broken */
+  private static boolean tgx101IsBrokenVideo (@Nullable String path) {
+    if (path == null) return false;
+    String lower = path.toLowerCase(java.util.Locale.ROOT);
+    if (!(lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".m4v") || lower.endsWith(".3gp"))) return false;
+    try (java.io.FileInputStream in = new java.io.FileInputStream(path)) {
+      byte[] head = new byte[12];
+      if (in.read(head) < 12) return true;
+      String box = new String(head, 4, 4, java.nio.charset.StandardCharsets.US_ASCII);
+      return !(box.equals("ftyp") || box.equals("moov") || box.equals("mdat") || box.equals("wide") || box.equals("free") || box.equals("skip"));
+    } catch (Throwable t) {
+      return false; // can't tell — let it try
+    }
+  }
+
   private boolean openFile () {
     if (mimeType == null || file == null || fileType != TdlibFilesManager.DOWNLOAD_FLAG_FILE)
       return false;
@@ -569,6 +584,13 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
             });
           } else if (BitwiseUtils.hasFlag(flags, FLAG_MEDIA_DOCUMENT)) {
             Background.instance().post(() -> {
+              // TGx101 (user 2026-10-31, a .mov from a friend that «doesn't open»): a video file without the MP4/MOV header
+              // is broken — say so instead of doing nothing
+              if (tgx101IsBrokenVideo(downloadedFile.local.path)) {
+                org.thunderdog.challegram.Tgx101Diag.mark("file: " + U.getFileName(downloadedFile.local.path) + " has no video header — broken");
+                UI.showToast(R.string.Tgx101FileBroken, android.widget.Toast.LENGTH_LONG);
+                return;
+              }
               MediaItem item = MediaItem.valueOf(context, tdlib, originalDocument, null);
               if (item != null) {
                 runOnUiThreadOptional(c, () -> {
