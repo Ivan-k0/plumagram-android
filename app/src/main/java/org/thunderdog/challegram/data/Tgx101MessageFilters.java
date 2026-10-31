@@ -123,9 +123,20 @@ public final class Tgx101MessageFilters {
 
   // The smart ad filter (user 2026-10-31): a channel post that marks itself as an ad. Only the marks the law and the
   // channels themselves put — words like «скидка» alone never count, so an ordinary post isn't taken for an ad
-  private static final Pattern AD_MARKS = Pattern.compile(
-    "(?iu)(\\berid\\s*[:=]|[?&]erid=|на\\s+правах\\s+рекламы|#реклама|#ad\\b|#sponsored|\\bpaid\\s+partnership\\b|партн[её]рский\\s+материал|рекламный\\s+пост|^\\s*реклама\\s*[.:]|\\bреклама\\b[^\\n]{0,80}\\bинн\\b|\\bинн\\b[^\\n]{0,80}\\bреклама\\b)",
+  // (2026-10-31: «[.:]» did not compile on Android's ICU and the app fell at start) — a pattern that fails only turns
+  // the filter off
+  private static final Pattern AD_MARKS = compileAdMarks(
+    "(?iu)(\\berid\\s*(?::|=)|[?&]erid=|на\\s+правах\\s+рекламы|#реклама|#ad\\b|#sponsored|\\bpaid\\s+partnership\\b|партн[её]рский\\s+материал|рекламный\\s+пост|^\\s*реклама\\s*(?:\\.|:)|\\bреклама\\b.{0,80}\\bинн\\b|\\bинн\\b.{0,80}\\bреклама\\b)",
     Pattern.MULTILINE);
+  private static @Nullable Pattern compileAdMarks (String regex, int flags) {
+    try {
+      return Pattern.compile(regex, flags);
+    } catch (Throwable t) {
+      org.thunderdog.challegram.Log.e("ad filter pattern", t);
+      return null;
+    }
+  }
+
   private static Rule adRule;
 
   /** The rule the smart ad filter shows in place of a post: hidden fully, or as a strip in «check mode» */
@@ -140,7 +151,7 @@ public final class Tgx101MessageFilters {
     if (msg == null || msg.content == null) return false;
     TdApi.FormattedText formatted = Td.textOrCaption(msg.content);
     if (formatted == null || formatted.text == null) return false;
-    if (AD_MARKS.matcher(formatted.text).find()) return true;
+    if (AD_MARKS != null && AD_MARKS.matcher(formatted.text).find()) return true;
     if (formatted.entities != null) {
       for (TdApi.TextEntity entity : formatted.entities) {
         if (entity.type.getConstructor() == TdApi.TextEntityTypeTextUrl.CONSTRUCTOR) {
