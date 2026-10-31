@@ -1687,6 +1687,13 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101CleanCatMusic, "Музыка");
     RU.put(R.string.Tgx101CleanCatStickers, "Стикеры и эмодзи");
     RU.put(R.string.Tgx101CleanCatOther, "Прочее");
+    RU.put(R.string.Tgx101CleanSubThumbs, "Миниатюры");
+    RU.put(R.string.Tgx101CleanSubAvatars, "Аватарки");
+    RU.put(R.string.Tgx101CleanSubStories, "Истории");
+    RU.put(R.string.Tgx101CleanSubWallpapers, "Обои");
+    RU.put(R.string.Tgx101CleanSubSounds, "Звуки уведомлений");
+    RU.put(R.string.Tgx101CleanSubSecret, "Секретные чаты");
+    RU.put(R.string.Tgx101CleanSubUnknown, "Неизвестное");
     RU.put(R.string.Tgx101CleanTabAll, "Все");
     RU.put(R.string.Tgx101CleanTabPrivate, "Личные");
     RU.put(R.string.Tgx101CleanTabGroups, "Группы");

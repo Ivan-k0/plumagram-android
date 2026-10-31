@@ -7596,6 +7596,13 @@
   <string name="Tgx101CleanCatMusic">Music</string>
   <string name="Tgx101CleanCatStickers">Stickers and emoji</string>
   <string name="Tgx101CleanCatOther">Other</string>
+  <string name="Tgx101CleanSubThumbs">Thumbnails</string>
+  <string name="Tgx101CleanSubAvatars">Profile photos</string>
+  <string name="Tgx101CleanSubStories">Stories</string>
+  <string name="Tgx101CleanSubWallpapers">Wallpapers</string>
+  <string name="Tgx101CleanSubSounds">Notification sounds</string>
+  <string name="Tgx101CleanSubSecret">Secret chats</string>
+  <string name="Tgx101CleanSubUnknown">Unknown</string>
   <string name="Tgx101CleanTabAll">All</string>
   <string name="Tgx101CleanTabPrivate">Personal</string>
   <string name="Tgx101CleanTabGroups">Groups</string>
