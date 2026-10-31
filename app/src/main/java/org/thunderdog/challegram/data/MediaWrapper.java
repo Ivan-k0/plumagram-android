@@ -268,6 +268,15 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
   }
 
   private long tgx101ChatId;
+
+  /** Loaded already, or the chat's own rules / the auto-download settings let it load by itself */
+  public static boolean tgx101MayLoad (Tdlib tdlib, long chatId, @Nullable TdApi.File file, int fileType) {
+    if (file == null) return false;
+    if (TD.isFileLoaded(file)) return true;
+    Boolean own = org.thunderdog.challegram.data.Tgx101ChatMedia.download(tdlib, chatId, fileType, Math.max(file.size, file.expectedSize));
+    if (own != null) return own;
+    return tdlib.files().canAutomaticallyDownload(file, fileType, tdlib.chatType(chatId));
+  }
   private Boolean tgx101LoggedPlay;
 
   public MediaWrapper (BaseActivity context, Tdlib tdlib, @NonNull TdApi.Video video, @Nullable TdApi.Photo cover, long chatId, long messageId, @Nullable TGMessage source, boolean useHotStuff) {
@@ -855,7 +864,9 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
 
   public void requestGif (GifReceiver receiver) {
     if (tgx101InlineVideo) {
-      boolean play = org.thunderdog.challegram.data.Tgx101ChatMedia.autoplay(tdlib, tgx101ChatId);
+      // (user 2026-10-31 «отключение автозагрузки не работает… автозагрузка и автовоспроизведение — разные вещи»): it
+      // plays by itself only what is on the phone already or what the auto-download lets load — it never loads it past that
+      boolean play = org.thunderdog.challegram.data.Tgx101ChatMedia.autoplay(tdlib, tgx101ChatId) && tgx101MayLoad(tdlib, tgx101ChatId, targetFile, animation != null ? TdlibFilesManager.DOWNLOAD_FLAG_GIF : TdlibFilesManager.DOWNLOAD_FLAG_VIDEO);
       // ▶ (or GIF) stays until the frames are on screen — the drawing hides it then; hidden from the start, a video that
       // hadn't loaded yet showed nothing at all
       if (tgx101LoggedPlay == null || tgx101LoggedPlay != play) {

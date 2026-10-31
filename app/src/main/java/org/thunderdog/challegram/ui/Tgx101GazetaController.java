@@ -1898,6 +1898,11 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       org.thunderdog.challegram.loader.gif.GifFile playFile = null;
       if (visual != null && !thumbs && !sample && visuals == 1 && isVideo(visual) && Tgx101ChatMediaAutoplay(post.chatId)) {
         playFile = inlineFile(visual);
+        // (user 2026-10-31): autoplay never loads past the auto-download — not on the phone and not allowed, it waits for a tap
+        if (playFile != null && !org.thunderdog.challegram.data.MediaWrapper.tgx101MayLoad(tdlib, post.chatId, tgx101FileOf(visual),
+          visual.content.getConstructor() == TdApi.MessageAnimation.CONSTRUCTOR ? org.thunderdog.challegram.telegram.TdlibFilesManager.DOWNLOAD_FLAG_GIF : org.thunderdog.challegram.telegram.TdlibFilesManager.DOWNLOAD_FLAG_VIDEO)) {
+          playFile = null;
+        }
         if (playFile != null && tallWhole) playFile.setScaleType(org.thunderdog.challegram.loader.gif.GifFile.FIT_CENTER);
       }
       player.setFile(playFile);
@@ -2649,6 +2654,13 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         ", mode " + org.thunderdog.challegram.data.Tgx101ChatMedia.autoplayMode() + ", video load " + load);
     }
     return play;
+  }
+
+  @Nullable
+  private static TdApi.File tgx101FileOf (TdApi.Message m) {
+    if (m.content.getConstructor() == TdApi.MessageAnimation.CONSTRUCTOR) return ((TdApi.MessageAnimation) m.content).animation.animation;
+    if (m.content.getConstructor() == TdApi.MessageVideo.CONSTRUCTOR) return ((TdApi.MessageVideo) m.content).video.video;
+    return null;
   }
 
   @Nullable
