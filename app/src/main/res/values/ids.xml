@@ -1939,4 +1939,5 @@
   <item name="btn_tgx101StorageOverview" type="id"/>
   <item name="btn_tgx101FilterMoreCase" type="id"/>
   <item name="controller_tgx101FilterMore" type="id"/>
+  <item name="btn_tgx101MagixPreview" type="id"/>
 </resources>

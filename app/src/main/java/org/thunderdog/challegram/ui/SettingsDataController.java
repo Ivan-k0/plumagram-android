@@ -196,11 +196,19 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         if (customViewType == TGX101_APP_ICON_PICKER) {
           return new SettingHolder(new Tgx101AppIconPicker(context));
         }
+        if (customViewType == TGX101_PREVIEW) {
+          return new SettingHolder(new Tgx101MagixPreview(context));
+        }
         return super.initCustom(parent, customViewType);
       }
 
       @Override
       protected void modifyCustom (SettingHolder holder, int position, ListItem item, int customViewType, View view, boolean isUpdate) {
+        if (view instanceof Tgx101MagixPreview) {
+          tgx101Preview = (Tgx101MagixPreview) view;
+          tgx101Preview.setMode((int) item.getLongId());
+          tgx101Preview.invalidate();
+        }
         if (view instanceof Tgx101AppIconPicker) {
           ((Tgx101AppIconPicker) view).updateColors();
           ((Tgx101AppIconPicker) view).update();
@@ -210,6 +218,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       @Override
       public void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
         final int itemId = item.getId();
+        if (isUpdate && tgx101Preview != null) tgx101Preview.invalidate(); // a setting changed: the example follows
         if (mode == MODE_TGX101) {
           // TGx101: hold to read a title cut with "…"; tap only toggles
           view.setOnLongClickListener(v -> {
@@ -1056,7 +1065,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   // TGx101: MagiX → Notifications → «When the app is open», in Settings.TGX101_FOREGROUND_NOTIF_* order
   private static final int[] FOREGROUND_NOTIF_NAMES = {R.string.Tgx101ForegroundNotifShow, R.string.Tgx101ForegroundNotifQuiet, R.string.Tgx101ForegroundNotifHide};
 
-  private static final int TGX101_APP_ICON_PICKER = 1;
+  private static final int TGX101_APP_ICON_PICKER = 1, TGX101_PREVIEW = 2;
+  private Tgx101MagixPreview tgx101Preview;
 
   private static final int[] TGX101_SECTION_IDS = {
     R.id.btn_tgx101SectionChatList, R.id.btn_tgx101SectionStories, R.id.btn_tgx101SectionMessages, R.id.btn_tgx101SectionChannels,
@@ -1168,6 +1178,12 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       out.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SameSettingsHint));
       adapter.setItems(out.toArray(new ListItem[0]), false);
       return;
+    }
+    // TGx101 (approved mockup «Фильтры и живые примеры» Е/Ж/З): a live example over the sections whose switches change
+    // what the screen looks like
+    int previewMode = tgx101Section == 3 ? Tgx101MagixPreview.MODE_CHANNEL : tgx101Section == TGX101_SECTION_INPUT ? Tgx101MagixPreview.MODE_INPUT : tgx101Section == TGX101_SECTION_NAV ? Tgx101MagixPreview.MODE_NAV : -1;
+    if (previewMode != -1) {
+      out.add(new ListItem(ListItem.TYPE_CUSTOM - TGX101_PREVIEW, R.id.btn_tgx101MagixPreview).setLongId(previewMode));
     }
     // walk the blocks: HEADER, SHADOW_TOP, items / separators (a description may sit inside), SHADOW_BOTTOM, description
     ListItem header = null;
@@ -1284,6 +1300,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
 
   @Override
   public void onClick (View v) {
+    if (tgx101Preview != null) {
+      final Tgx101MagixPreview preview = tgx101Preview;
+      UI.post(preview::invalidate); // after the switch below has saved its value
+    }
     final int id = v.getId();
     final boolean toggleResult = adapter.toggleView(v);
     int tgx101SectionIndex = tgx101SectionIndex(id);

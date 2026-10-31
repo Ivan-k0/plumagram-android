@@ -53,6 +53,16 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101FiltersOff, "Выкл");
     RU.put(R.string.Tgx101FiltersHint, "Работает только на этом телефоне: сообщения не удаляются, и никто не видит, что вы их скрыли. Скрытое сообщение становится полоской — нажатие показывает его. Свои сообщения и спонсорская реклама Telegram не скрываются. Изменения действуют на чаты, открытые после них.");
     RU.put(R.string.Tgx101FilterNew, "Новый фильтр");
+    RU.put(R.string.Tgx101PreviewHint, "Пример меняется вместе с переключателями");
+    RU.put(R.string.Tgx101PreviewSubscribers, "142 000 подписчиков");
+    RU.put(R.string.Tgx101PreviewJoin, "ПОДПИСАТЬСЯ");
+    RU.put(R.string.Tgx101PreviewDiscuss, "Обсудить");
+    RU.put(R.string.Tgx101PreviewMute, "ВЫКЛЮЧИТЬ УВЕДОМЛЕНИЯ");
+    RU.put(R.string.Tgx101PreviewMom, "Мама");
+    RU.put(R.string.Tgx101PreviewOnline, "в сети");
+    RU.put(R.string.Tgx101PreviewMomText, "Да да 😂");
+    RU.put(R.string.Tgx101PreviewMyText, "Скоро буду");
+    RU.put(R.string.Tgx101PreviewMe, "Я");
     RU.put(R.string.Tgx101FilterPreview, "Так будет в канале");
     RU.put(R.string.Tgx101FilterPreviewChannel, "Кибер Новости");
     RU.put(R.string.Tgx101FilterPreviewPost, "Обзор нового телефона: камера, батарея и цена.");

@@ -7653,4 +7653,14 @@
   <string name="Tgx101FilterPatternShort">Pattern (regex)</string>
   <string name="Tgx101FilterListWeek">hidden %1$s this week</string>
   <string name="Tgx101FilterListWeekNone">nothing this week</string>
+  <string name="Tgx101PreviewHint">The example changes with the switches</string>
+  <string name="Tgx101PreviewSubscribers">142,000 subscribers</string>
+  <string name="Tgx101PreviewJoin">JOIN</string>
+  <string name="Tgx101PreviewDiscuss">Discuss</string>
+  <string name="Tgx101PreviewMute">MUTE</string>
+  <string name="Tgx101PreviewMom">Mom</string>
+  <string name="Tgx101PreviewOnline">online</string>
+  <string name="Tgx101PreviewMomText">Yes yes 😂</string>
+  <string name="Tgx101PreviewMyText">On my way</string>
+  <string name="Tgx101PreviewMe">Me</string>
 </resources>
