@@ -371,6 +371,7 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
       error = (width <= 0 || height <= 0);
     }
     if (error) {
+      org.thunderdog.challegram.Tgx101Diag.mark("gif: file " + file.getFileId() + " type " + file.getGifType() + " didn't open — " + width + "x" + height); // TGx101 (user 2026-10-31 «гифка так и не играет»)
       destroyDecoder();
     }
     if (nativePtr == 0) {

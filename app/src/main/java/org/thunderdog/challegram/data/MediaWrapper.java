@@ -861,6 +861,7 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
       if (tgx101LoggedPlay == null || tgx101LoggedPlay != play) {
         tgx101LoggedPlay = play;
         org.thunderdog.challegram.Tgx101Diag.mark("channel video: chat " + tgx101ChatId + " message " + sourceMessageId + " autoplay " + play +
+          (animation != null ? ", animation " + animation.mimeType + " type " + targetGifFile.getGifType() + ", loaded " + TD.isFileLoaded(targetFile) : "") +
           " — own " + org.thunderdog.challegram.data.Tgx101ChatMedia.autoplayOf(tdlib, tgx101ChatId) + ", mode " + org.thunderdog.challegram.data.Tgx101ChatMedia.autoplayMode());
       }
       receiver.requestFile(play ? targetGifFile : null); // loads itself, as the feed's
