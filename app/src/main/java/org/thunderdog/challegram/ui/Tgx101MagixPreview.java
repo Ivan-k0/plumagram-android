@@ -130,14 +130,16 @@ public class Tgx101MagixPreview extends View {
       String j = Lang.getString(R.string.Tgx101PreviewJoin);
       c.drawText(j, right - Screen.dp(12f) - join.measureText(j), top + Screen.dp(28f), join);
     }
-    boolean bar = s.showChannelMuteButton() && !s.tgx101ChannelMuteBell();
+    boolean mute = s.showChannelMuteButton() && !s.tgx101ChannelMuteBell();
     boolean bell = s.showChannelMuteButton() && s.tgx101ChannelMuteBell();
+    boolean discuss = s.showDiscussButton(); // «Discuss» sits in the bottom bar, next to the mute button
+    boolean bar = mute || discuss;
     float barH = bar ? Screen.dp(36f) : 0;
     float postY = y + Screen.dp(10f);
     float postBottom = bubble(c, left + Screen.dp(10f), postY, right - Screen.dp(60f), Lang.getString(R.string.Tgx101FilterPreviewPost), false);
-    if (s.showDiscussButton() || s.showCommentsButton()) {
+    if (s.showCommentsButton()) { // the comments button is under the post
       TextPaint d = Paints.getMediumTextPaint(12f, Theme.getColor(ColorId.textLink), false);
-      c.drawText("💬 " + Lang.getString(R.string.Tgx101PreviewDiscuss), left + Screen.dp(22f), postBottom + Screen.dp(17f), d);
+      c.drawText("💬 " + Lang.getString(R.string.Tgx101PreviewComments), left + Screen.dp(22f), postBottom + Screen.dp(17f), d);
     }
     // the round buttons over the bottom: «down», and the bell next to it when the mute button folds into a bell
     float cy = bottom - barH - Screen.dp(22f);
@@ -158,8 +160,18 @@ public class Tgx101MagixPreview extends View {
       round(c, left, bottom - barH - Screen.dp(16f), right, bottom, 16f, Theme.fillingColor());
       c.restore();
       TextPaint t = Paints.getMediumTextPaint(12f, Theme.getColor(ColorId.textNeutral), false);
-      String m = Lang.getString(R.string.Tgx101PreviewMute);
-      c.drawText(m, (left + right - t.measureText(m)) / 2f, bottom - barH / 2f + Screen.dp(4f), t);
+      float ty = bottom - barH / 2f + Screen.dp(4f);
+      String m = Lang.getString(R.string.Tgx101PreviewMute), d = Lang.getString(R.string.Tgx101PreviewDiscuss).toUpperCase();
+      if (mute && discuss) {
+        float half = (right - left) / 2f;
+        c.drawText(fit(m, t, half - Screen.dp(12f)), left + (half - Math.min(t.measureText(m), half - Screen.dp(12f))) / 2f, ty, t);
+        c.drawText(d, left + half + (half - t.measureText(d)) / 2f, ty, t);
+        fill.setColor(Theme.separatorColor());
+        c.drawRect(left + half - Screen.dp(.5f), bottom - barH + Screen.dp(8f), left + half + Screen.dp(.5f), bottom - Screen.dp(8f), fill);
+      } else {
+        String one = mute ? m : d;
+        c.drawText(one, (left + right - t.measureText(one)) / 2f, ty, t);
+      }
     }
   }
 

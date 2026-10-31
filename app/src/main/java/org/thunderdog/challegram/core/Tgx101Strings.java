@@ -57,6 +57,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PreviewSubscribers, "142 000 подписчиков");
     RU.put(R.string.Tgx101PreviewJoin, "ПОДПИСАТЬСЯ");
     RU.put(R.string.Tgx101PreviewDiscuss, "Обсудить");
+    RU.put(R.string.Tgx101PreviewComments, "Комментарии");
     RU.put(R.string.Tgx101PreviewMute, "ВЫКЛЮЧИТЬ УВЕДОМЛЕНИЯ");
     RU.put(R.string.Tgx101PreviewMom, "Мама");
     RU.put(R.string.Tgx101PreviewOnline, "в сети");
