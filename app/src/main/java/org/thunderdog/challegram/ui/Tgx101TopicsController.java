@@ -433,6 +433,11 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
   private @Nullable org.thunderdog.challegram.component.chat.Tgx101TopicsSwitch topicsSwitch;
 
   @Override
+  public boolean tgx101LenientBackSwipe () {
+    return true; // back to the chats at an angle too (4PDA 2026-10-31)
+  }
+
+  @Override
   public View getCustomHeaderCell () {
     return headerCell;
   }

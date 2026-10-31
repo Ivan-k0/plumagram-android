@@ -1074,6 +1074,11 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     return true;
   }
 
+  /** TGx101: a back swipe here may go to the right at an angle (up to ~35°), not only straight */
+  public boolean tgx101LenientBackSwipe () {
+    return false;
+  }
+
   public boolean tgx101CanSlideBackReverseFrom (NavigationController navigationController, float x, float y) {
     return canSlideBackFrom(navigationController, x, y);
   }

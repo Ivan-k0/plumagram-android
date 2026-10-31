@@ -298,6 +298,12 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
           approve = diffX <= -Screen.getTouchSlopBig() && Math.abs(diffY) <= Screen.getTouchSlopY();
         } else {
           approve = diffX >= Screen.getTouchSlopBig() && Math.abs(diffY) <= Screen.getTouchSlopY();
+          if (!approve && diffX >= Screen.getTouchSlopBig() && Math.abs(diffY) <= diffX * .7f) {
+            // TGx101 (4PDA 2026-10-31, black box: «почти не перелистнуть назад с веток» — swipes of 127,33 / 59,-50 dp were
+            // dropped for going 15 dp off the line): on screens that ask for it, a swipe to the right at an angle counts
+            ViewController<?> current = navigation.getCurrentStackItem();
+            approve = current != null && current.tgx101LenientBackSwipe();
+          }
           if (approve && navigation.getCurrentStackItem() != null && !navigation.getCurrentStackItem().tgx101SlideBackForward()) {
             approve = false; // (user 2026-10-17) this screen is left only right to left
           }
