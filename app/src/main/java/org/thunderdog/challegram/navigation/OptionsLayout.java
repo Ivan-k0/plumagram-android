@@ -92,6 +92,9 @@ public class OptionsLayout extends LinearLayout implements Animated, RootFrameLa
         int height = view != null ? view.getMeasuredHeight() : 0;
         int color = forcedTheme != null ? forcedTheme.getColor(ColorId.filling) : Theme.getColor(ColorId.filling);
         if (TGX101_CARD) {
+          // (mockup «Окна выбора» А): on a dark theme the card is a tone lighter than the screen, with a grip on top
+          boolean dark = forcedTheme != null ? forcedTheme.isDark() : Theme.isDark();
+          if (dark) color = me.vkryl.core.ColorUtils.fromToArgb(color, 0xffffffff, .07f);
           // TGx101 (user 2026-10-08, mockup «Окна» variant А): a floating card like the message field — side gaps, round corners
           rect.set(0, height, getMeasuredWidth(), getMeasuredHeight() - getPaddingBottom());
           float r = Screen.dp(TGX101_CARD_RADIUS);
@@ -99,6 +102,10 @@ public class OptionsLayout extends LinearLayout implements Animated, RootFrameLa
           float half = Math.max(1, Screen.dp(.5f)) / 2f;
           rect.inset(half, half);
           c.drawRoundRect(rect, r, r, Paints.strokeSmallPaint(me.vkryl.core.ColorUtils.alphaColor(.08f, 0xff000000)));
+          float gw = Screen.dp(36f), gt = height + Screen.dp(7f);
+          rect.set((getMeasuredWidth() - gw) / 2f, gt, (getMeasuredWidth() + gw) / 2f, gt + Screen.dp(4f));
+          int textColor = forcedTheme != null ? forcedTheme.getColor(ColorId.text) : Theme.getColor(ColorId.text);
+          c.drawRoundRect(rect, Screen.dp(2f), Screen.dp(2f), Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(.25f, textColor)));
           return;
         }
         if (height > 0)
@@ -258,6 +265,25 @@ public class OptionsLayout extends LinearLayout implements Animated, RootFrameLa
       }
     }
     Views.setClickable(text);
+    // TGx101 (mockup «Окна выбора» А): a choice ending with «✓» is the current one — accent colour and a check on the
+    // right instead of the plain sign at the end
+    if (string != null && string.toString().endsWith("✓")) {
+      string = string.toString().substring(0, string.length() - 1).trim();
+      int accent = forcedTheme != null ? forcedTheme.getColor(ColorId.textNeutral) : Theme.getColor(ColorId.textNeutral);
+      text.setTextColor(accent);
+      text.setTypeface(Fonts.getRobotoMedium());
+      Drawable check = Drawables.get(context.getResources(), org.thunderdog.challegram.R.drawable.baseline_check_24);
+      if (check != null) {
+        check = check.mutate();
+        check.setColorFilter(Paints.getColorFilter(accent));
+        Drawable[] current = text.getCompoundDrawables();
+        if (Lang.rtl()) {
+          text.setCompoundDrawablesWithIntrinsicBounds(check, null, current[2], null);
+        } else {
+          text.setCompoundDrawablesWithIntrinsicBounds(current[0], null, check, null);
+        }
+      }
+    }
     if (!StringUtils.isEmpty(string)) {
       text.setText(string);
     }

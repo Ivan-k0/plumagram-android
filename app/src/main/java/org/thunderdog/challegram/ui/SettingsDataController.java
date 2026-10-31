@@ -1410,7 +1410,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       // (user 2026-10-23) three looks: floating, docked flat (А), docked with the well (Б); applies to chats opened afterwards
       int style = Settings.instance().tgx101InputStyle();
       showOptions(Lang.getString(R.string.Tgx101InputStyle), new int[] {R.id.btn_tgx101InputStyleFloating, R.id.btn_tgx101InputStyleFlat},
-        new String[] {Lang.getString(R.string.Tgx101InputStyleFloating), Lang.getString(R.string.Tgx101InputStyleFlat)}, null, null, (optionView, optionId) -> {
+        new String[] {Lang.getString(R.string.Tgx101InputStyleFloating) + (style == 0 ? "  ✓" : ""), Lang.getString(R.string.Tgx101InputStyleFlat) + (style != 0 ? "  ✓" : "")}, null, null, (optionView, optionId) -> {
           Settings.instance().setUseFloatingInput(optionId == R.id.btn_tgx101InputStyleFloating);
           if (optionId != R.id.btn_tgx101InputStyleFloating) Settings.instance().setTgx101InputWell(optionId == R.id.btn_tgx101InputStyleWell);
           adapter.updateValuedSettingById(R.id.btn_tgx101FloatingInput);

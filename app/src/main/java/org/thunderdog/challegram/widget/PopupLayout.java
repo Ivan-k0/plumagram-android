@@ -1023,7 +1023,9 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
         return; // the dim is already in the picture
       }
       // TGx101: sheets dim like the official app's — 20 % black in any theme; other popups keep the theme's dim
-      final int color = ColorUtils.color(animationType == ANIMATION_TYPE_SIMPLE ? 51 : (int) (255f * (Theme.getPopupOverlayAlpha())), 0);
+      // (approved mockup «Окна выбора» А, user 2026-10-31 «всё сливается»): 20 % was not seen on a dark theme — 55 % there,
+      // 35 % on a light one, so the sheet stands apart from the screen
+      final int color = ColorUtils.color(animationType == ANIMATION_TYPE_SIMPLE ? (Theme.isDark() ? 140 : 90) : (int) (255f * (Theme.getPopupOverlayAlpha())), 0);
       int offset = HeaderView.getTopOffset();
       if (useStatusBar && offset != 0) {
         c.drawRect(0, offset, getMeasuredWidth(), getMeasuredHeight(), Paints.fillingPaint(color));
