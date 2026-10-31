@@ -440,6 +440,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101FakeNoPremium(), isUpdate);
         } else if (itemId == R.id.btn_showChannelMuteButton) {
           view.getToggler().setRadioEnabled(Settings.instance().showChannelMuteButton(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101ChannelMuteBell) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101ChannelMuteBell(), isUpdate);
         } else if (itemId == R.id.btn_showDiscussButton) {
           view.getToggler().setRadioEnabled(Settings.instance().showDiscussButton(), isUpdate);
         } else if (itemId == R.id.btn_showCommentsButton) {
@@ -697,6 +699,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showCommentsButton, 0, R.string.ShowCommentsButton),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showChannelMuteButton, 0, R.string.ShowChannelMuteButton),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101ChannelMuteBell, 0, R.string.Tgx101ChannelMuteBell),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_hideSubscribeLink, 0, R.string.HideSubscribeLink),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1129,7 +1133,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101RearRounds || id == R.id.btn_tgx101RoundRememberCamera || id == R.id.btn_tgx101RoundAskCamera) return 4;
     if (id == R.id.btn_tgx101NoAnimation) return 4; // «Media»
     if (id == R.id.btn_tgx101HideAllReactions || id == R.id.btn_tgx101HideChannelReactions || id == R.id.btn_tgx101NextChannelSwipe || id == R.id.btn_tgx101NextChannelBackToList || id == R.id.btn_showDiscussButton || id == R.id.btn_showCommentsButton
-      || id == R.id.btn_showChannelMuteButton || id == R.id.btn_hideSubscribeLink || id == R.id.btn_separateChannelPosts || id == R.id.btn_tgx101TypeMedia) return 3;
+      || id == R.id.btn_showChannelMuteButton || id == R.id.btn_tgx101ChannelMuteBell || id == R.id.btn_hideSubscribeLink || id == R.id.btn_separateChannelPosts || id == R.id.btn_tgx101TypeMedia) return 3;
     if (id == R.id.btn_tgx101VoiceQueue || id == R.id.btn_tgx101CameraInAttach || id == R.id.btn_tgx101ZoomPullClose || id == R.id.btn_roundVideoQuality
       || id == R.id.btn_roundStabilization) return 4;
     if (id == R.id.btn_tgx101Snooze || id == R.id.btn_tgx101ForegroundNotif) return 5;
@@ -1672,6 +1676,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101FakeNoPremium(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showChannelMuteButton) {
       Settings.instance().setShowChannelMuteButton(toggleResult); // the view was already toggled above
+    } else if (id == R.id.btn_tgx101ChannelMuteBell) {
+      Settings.instance().setTgx101ChannelMuteBell(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_showCommentsButton) {
       Settings.instance().setShowCommentsButton(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_hideSubscribeLink) {

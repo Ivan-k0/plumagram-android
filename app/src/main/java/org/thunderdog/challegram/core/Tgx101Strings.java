@@ -475,7 +475,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101QuickReply5, "Я на встрече");
     RU.put(R.string.Tgx101QuickReplyN, "Ответ %1$d");
     RU.put(R.string.Tgx101CallPatternHint, "Круг — чёткое фото под именем. На весь экран — прежний дизайн Telegram X. Узор из бумажных самолётиков еле заметный и неподвижный; за фото на весь экран его не видно.");
-    RU.put(R.string.ShowChannelMuteButton, "Кнопка уведомлений и колокольчик");
+    RU.put(R.string.ShowChannelMuteButton, "Кнопка уведомлений");
+    RU.put(R.string.Tgx101ChannelMuteBell, "Колокольчик при прокрутке");
     RU.put(R.string.Tgx101TranslateSection, "Перевод");
     RU.put(R.string.Tgx101SpeechSection, "Распознавание речи");
     RU.put(R.string.Tgx101SpeechModel, "Голосовые в текст на телефоне");

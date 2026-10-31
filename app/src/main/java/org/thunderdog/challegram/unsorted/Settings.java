@@ -4593,6 +4593,18 @@ public class Settings {
     pmc.putBoolean(KEY_SHOW_CHANNEL_MUTE_BUTTON, show);
   }
 
+  // TGx101 (4PDA 2026-10-31 #358, user: «кнопку уведомлений и колокольчик в каналах нужно разделить»): off — the «Mute»
+  // bar stays at the bottom while scrolling instead of turning into a bell by the «down» button
+  private static final String KEY_TGX101_CHANNEL_MUTE_BELL = "tgx101_channel_mute_bell";
+
+  public boolean tgx101ChannelMuteBell () {
+    return pmc.getBoolean(KEY_TGX101_CHANNEL_MUTE_BELL, true);
+  }
+
+  public void setTgx101ChannelMuteBell (boolean bell) {
+    pmc.putBoolean(KEY_TGX101_CHANNEL_MUTE_BELL, bell);
+  }
+
   public boolean showCommentsButton () {
     return pmc.getBoolean(KEY_SHOW_COMMENTS_BUTTON, false); // new installs: off (user 2026-10-16)
   }

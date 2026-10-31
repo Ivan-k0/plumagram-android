@@ -7728,7 +7728,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (bottomBar == null)
       return;
     float bottomButtonFactor = bottomBarVisible.getFloatValue();
-    float detachFactor = scrollToBottomVisible.getFloatValue();
+    // TGx101: with «Bell while scrolling» off the «Mute» bar stays a bar at the bottom
+    float detachFactor = tgx101MuteBarPinned() ? 0f : scrollToBottomVisible.getFloatValue();
     int barHeight = Screen.dp(48f) + extraBottomInset;
     int baseY = needSearchControlsTranslate() ? (int) ((float) barHeight * MathUtils.clamp(searchControlsFactor)) : 0;
     float fromY = bottomButtonFactor == 1f ? baseY : baseY + (int) ((float) barHeight * (1f - bottomButtonFactor));
@@ -8901,7 +8902,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private float getButtonsOffset () {
-    return getReplyOffset() + getAttachedFilesOffset() + getSearchControlsOffset() + getKeyboardOffset() + (bottomWrap.getVisibility() == View.VISIBLE ? 0 : extraBottomInsetWithoutIme);
+    return getReplyOffset() + getAttachedFilesOffset() + getSearchControlsOffset() + getKeyboardOffset() + (bottomWrap.getVisibility() == View.VISIBLE ? 0 : extraBottomInsetWithoutIme)
+      + (tgx101MuteBarPinned() ? Screen.dp(48f) * bottomBarVisible.getFloatValue() : 0); // the «down» button stands over the pinned bar
+  }
+
+  /** The «Mute» bar of a channel stays at the bottom instead of turning into a bell (4PDA 2026-10-31 #358) */
+  private boolean tgx101MuteBarPinned () {
+    return bottomButtonAction == BOTTOM_ACTION_TOGGLE_MUTE && !Settings.instance().tgx101ChannelMuteBell();
   }
 
   private float getMentionButtonY () {
@@ -11291,6 +11298,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
       case ANIMATOR_BOTTOM_BUTTON: {
         updateBottomBarStyle();
+        if (tgx101MuteBarPinned()) checkScrollButtonOffsets(); // the «down» button rides over the pinned bar
         break;
       }
       case ANIMATOR_REACTION_BUTTON: {

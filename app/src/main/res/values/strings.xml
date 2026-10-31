@@ -6191,7 +6191,8 @@
   <string name="Tgx101QuickReply5">I\'m in a meeting</string>
   <string name="Tgx101QuickReplyN">Reply %1$d</string>
   <string name="Tgx101CallPatternHint">Circle: a sharp photo under the name. Full screen: the original Telegram X design. The pattern of paper planes is faint and still; it is hidden behind a full-screen photo.</string>
-  <string name="ShowChannelMuteButton">«Mute» button and bell</string>
+  <string name="ShowChannelMuteButton">«Mute» button</string>
+  <string name="Tgx101ChannelMuteBell">Bell while scrolling</string>
   <string name="Tgx101TranslateSection">Translation</string>
   <string name="Tgx101SpeechSection">Speech recognition</string>
   <string name="Tgx101SpeechModel">Voice messages to text on the phone</string>
