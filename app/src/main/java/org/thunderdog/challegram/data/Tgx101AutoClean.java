@@ -221,23 +221,39 @@ public final class Tgx101AutoClean {
     run(tdlib, null);
   }
 
-  /** Story files older than their time, from every chat but the ones left out of cleaning */
-  private static void runStories (Tdlib tdlib) {
+  /** Story files older than their time, from every chat but the ones left out of cleaning — the chain's first step */
+  private static ArrayList<Step> storiesCall (Tdlib tdlib) {
+    ArrayList<Step> calls = new ArrayList<>();
     int ttl = storyTtl();
-    if (ttl == 0) return;
+    if (ttl == 0) return calls;
     long[] kept = pmc().getLongArray(KEY_KEEP);
     TdApi.FileType[] types = {new TdApi.FileTypePhotoStory(), new TdApi.FileTypeVideoStory()};
-    tdlib.send(new TdApi.OptimizeStorage(1L << 50, ttl, Integer.MAX_VALUE, 60 * 60, types, null, kept != null && kept.length > 0 ? kept : null, true, 0), (deleted, err) ->
-      Tgx101Diag.mark("auto clean: stories, ttl " + ttl + " s → " + (err != null ? "error " + err.message : "freed " + Strings.buildSize(deleted != null ? deleted.size : 0) + " in " + (deleted != null ? deleted.count : 0) + " files")));
+    calls.add(next -> tdlib.send(new TdApi.OptimizeStorage(1L << 50, ttl, Integer.MAX_VALUE, 60 * 60, types, null, kept != null && kept.length > 0 ? kept : null, true, 0), (deleted, err) -> {
+      Tgx101Diag.mark("auto clean: stories, ttl " + ttl + " s → " + (err != null ? "error " + err.message : "freed " + Strings.buildSize(deleted != null ? deleted.size : 0) + " in " + (deleted != null ? deleted.count : 0) + " files"));
+      next.run();
+    }));
+    return calls;
+  }
+
+  /** One OptimizeStorage of the chain; {@code next} starts the following one */
+  private interface Step {
+    void run (Runnable next);
+  }
+
+  private static void runChain (Tdlib tdlib, ArrayList<Step> calls, int index, @Nullable Runnable after) {
+    if (index >= calls.size()) {
+      if (after != null) tdlib.ui().post(after);
+      return;
+    }
+    calls.get(index).run(() -> runChain(tdlib, calls, index + 1, after));
   }
 
   /** Right now (the rules changed); {@code after} gets the fresh statistics on the UI thread */
   public static void run (Tdlib tdlib, @Nullable Runnable after) {
     lastRun.put(tdlib.id(), SystemClock.elapsedRealtime());
     TdApi.FileType[] fileTypes = fileTypes();
-    runStories(tdlib);
     if (fileTypes.length == 0) {
-      if (after != null) tdlib.ui().post(after);
+      runChain(tdlib, storiesCall(tdlib), 0, after);
       return;
     }
     tdlib.send(new TdApi.GetStorageStatistics(1000), (stats, error) -> {
@@ -254,8 +270,9 @@ public final class Tgx101AutoClean {
         if (isKept(chat.chatId) || (skipPinned && isPinned(tdlib, chat.chatId))) continue;
         chats.get(kindOf(tdlib, chat.chatId)).add(chat.chatId);
       }
-      int[] pending = {0};
-      ArrayList<Runnable> calls = new ArrayList<>();
+      // (log 2026-10-31: «Request aborted» every time): TDLib runs one OptimizeStorage at a time and a new one aborts the
+      // one running — the kinds and the stories go one after another
+      ArrayList<Step> calls = storiesCall(tdlib);
       for (int kind = 0; kind < KIND_COUNT; kind++) {
         final int k = kind;
         int ttl = ttl(kind), limitMb = limitMb(kind);
@@ -265,18 +282,13 @@ public final class Tgx101AutoClean {
         for (int i = 0; i < chatIds.length; i++) chatIds[i] = ids.get(i);
         long size = limitMb != 0 ? limitMb * 1024L * 1024L : 1L << 50;
         int ttlArg = ttl != 0 ? ttl : Integer.MAX_VALUE;
-        pending[0]++;
-        calls.add(() -> tdlib.send(new TdApi.OptimizeStorage(size, ttlArg, Integer.MAX_VALUE, 60 * 60, fileTypes, chatIds, null, true, 0), (deleted, err) -> {
+        calls.add(next -> tdlib.send(new TdApi.OptimizeStorage(size, ttlArg, Integer.MAX_VALUE, 60 * 60, fileTypes, chatIds, null, true, 0), (deleted, err) -> {
           Tgx101Diag.mark("auto clean: kind " + k + ", " + chatIds.length + " chats, ttl " + ttl + " s, limit " + limitMb + " MB → " +
             (err != null ? "error " + err.message : "freed " + Strings.buildSize(deleted != null ? deleted.size : 0) + " in " + (deleted != null ? deleted.count : 0) + " files"));
-          if (--pending[0] == 0 && after != null) tdlib.ui().post(after);
+          next.run();
         }));
       }
-      if (calls.isEmpty()) {
-        if (after != null) tdlib.ui().post(after);
-        return;
-      }
-      for (Runnable call : calls) call.run();
+      runChain(tdlib, calls, 0, after);
     });
   }
 }

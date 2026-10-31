@@ -797,7 +797,10 @@ public class TdlibFilesManager implements GlobalConnectionListener {
       long offset = 0;
       long limit = LIMIT_MAX;
       manuallyCancelledFiles.remove(file.id);
-      if (!TD.isFileLoaded(file)) {
+      // TGx101 (user 2026-10-31 «почему не грузит»): a file the cache clean took off the disk could still be «loaded» in
+      // the copy here — the download button showed and its tap did nothing; a loaded file that isn't on the disk loads again
+      if (!TD.isFileLoaded(file) || !TD.isFileLoadedAndExists(file)) {
+        if (TD.isFileLoaded(file)) org.thunderdog.challegram.Tgx101Diag.mark("files: file " + file.id + " was «loaded» but isn't on the disk — loading again");
         downloadFileInternal(file.id, priority, offset, limit, handler);
       } else if (handler != null) {
         tdlib.send(downloadFile(file.id, priority, offset, limit, false), handler);
