@@ -748,6 +748,15 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
 
   private static final int TRANSLATION_HORIZONTAL = 1;
   private static final int TRANSLATION_VERTICAL = 2;
+
+  // TGx101 (user 2026-10-31 «чтобы новый канал выходил снизу, а не сбоку»): the next forward screen rises from below
+  private boolean tgx101NextVertical;
+
+  public void tgx101OpenNextFromBelow () {
+    tgx101NextVertical = true;
+    // only the opening it was asked for: if the channel didn't open, the next screen slides in as usual
+    org.thunderdog.challegram.tool.UI.post(() -> tgx101NextVertical = false, 1500);
+  }
   private static final int TRANSLATION_FADE = 3;
   private static final int TRANSLATION_NONE = 4;
 
@@ -1077,6 +1086,10 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       if (forward) {
         fastAnimation = controller.forceFastAnimation();
         direction = fastAnimation || controller.forceFadeMode() ? TRANSLATION_FADE : controller.usePopupMode() ? TRANSLATION_VERTICAL : TRANSLATION_HORIZONTAL;
+        if (tgx101NextVertical && !fastAnimation) {
+          direction = TRANSLATION_VERTICAL; // TGx101: the next channel comes up from below, as the pull that opened it
+        }
+        tgx101NextVertical = false;
       } else {
         ViewController<?> current = getStack().getCurrent();
         fastAnimation = controller.forceFastAnimation();

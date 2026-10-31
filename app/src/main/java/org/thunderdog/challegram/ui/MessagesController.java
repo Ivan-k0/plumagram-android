@@ -2720,6 +2720,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     org.thunderdog.challegram.Tgx101Diag.mark("chat: pull up → next unread channel");
     TdlibUi.ChatOpenParameters params = new TdlibUi.ChatOpenParameters().removeDuplicates();
     if (!Settings.instance().tgx101NextChannelBackToList()) params.keepStack(); // otherwise it replaces this channel
+    if (navigationController != null) navigationController.tgx101OpenNextFromBelow();
     tdlib.ui().openChat(this, next, params);
   }
 
