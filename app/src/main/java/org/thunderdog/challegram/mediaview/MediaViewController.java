@@ -6658,7 +6658,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         this.captionView = captionView;
         // TGx101 (user 2026-10-30 18:02): the caption opened unfolded — its fold was checked before it had a width
         captionView.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
-          if (r - l != or - ol && !tgx101CaptionExpanded) v.post(this::tgx101ApplyCaptionHeight);
+          // (user 2026-10-31 «почему раскрыто»): and when its height changes — swiping in an album from a photo without a
+          // caption to one with a long caption kept the width, so the fold wasn't checked again and it stood open
+          if ((r - l != or - ol || b - t != ob - ot) && !tgx101CaptionExpanded) v.post(this::tgx101ApplyCaptionHeight);
         });
 
 
