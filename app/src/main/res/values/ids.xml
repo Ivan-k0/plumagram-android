@@ -1918,6 +1918,7 @@
   <item name="btn_tgx101CleanTtlPrivate" type="id"/>
   <item name="btn_tgx101CleanTtlGroup" type="id"/>
   <item name="btn_tgx101CleanTtlChannel" type="id"/>
+  <item name="btn_tgx101CleanTtlStories" type="id"/>
   <item name="btn_tgx101CleanLimitPrivate" type="id"/>
   <item name="btn_tgx101CleanLimitGroup" type="id"/>
   <item name="btn_tgx101CleanLimitChannel" type="id"/>

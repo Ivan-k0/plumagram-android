@@ -7596,6 +7596,8 @@
   <string name="Tgx101CleanCatMusic">Music</string>
   <string name="Tgx101CleanCatStickers">Stickers and emoji</string>
   <string name="Tgx101CleanCatOther">Other</string>
+  <string name="Tgx101CleanStories">Stories</string>
+  <string name="Tgx101CleanStoriesHint">Stories from every chat. Removed ones load again when you open them.</string>
   <string name="Tgx101CleanSubThumbs">Thumbnails</string>
   <string name="Tgx101CleanSubAvatars">Profile photos</string>
   <string name="Tgx101CleanSubStories">Stories</string>

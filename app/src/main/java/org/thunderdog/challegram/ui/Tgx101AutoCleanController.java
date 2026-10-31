@@ -115,6 +115,11 @@ public class Tgx101AutoCleanController extends RecyclerViewController<Void> impl
 
       @Override
       protected void onSliderValueChanged (ListItem item, SliderWrapView view, int value, int oldValue) {
+        if (item.getId() == R.id.btn_tgx101CleanTtlStories) {
+          Tgx101AutoClean.setStoryTtl(Tgx101AutoClean.STORY_TTL_STEPS[value]);
+          changed = true;
+          return;
+        }
         int kind = kindOf(item.getId(), TTL_IDS);
         if (kind != -1) {
           Tgx101AutoClean.setTtl(kind, Tgx101AutoClean.TTL_STEPS[value]);
@@ -170,6 +175,13 @@ public class Tgx101AutoCleanController extends RecyclerViewController<Void> impl
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
       items.add(new ListItem(ListItem.TYPE_DESCRIPTION, usageId(kind), 0, usageText(kind), false));
     }
+    // (user 2026-10-31): stories have their own time, 2 days by default
+    items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101CleanStories));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    items.add(new ListItem(ListItem.TYPE_SLIDER, R.id.btn_tgx101CleanTtlStories, 0, R.string.Tgx101CleanTtl)
+      .setSliderInfo(names(Tgx101AutoClean.STORY_TTL_STEPS, true), Tgx101AutoClean.stepOf(Tgx101AutoClean.STORY_TTL_STEPS, Tgx101AutoClean.storyTtl())));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101CleanStoriesHint));
     items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101CleanWhat));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     for (int i = 0; i < TYPE_IDS.length; i++) {

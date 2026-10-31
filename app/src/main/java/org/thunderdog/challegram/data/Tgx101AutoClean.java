@@ -64,6 +64,19 @@ public final class Tgx101AutoClean {
     return kind == KIND_CHANNEL ? 60 * 60 * 24 * 7 : kind == KIND_GROUP ? 60 * 60 * 24 * 30 : 0;
   }
 
+  // (user 2026-10-31 «нужно включить автоочистку для историй. по умолчанию 2 дня»): stories have a time of their own,
+  // for every chat at once — they're seen once and go
+  public static final int[] STORY_TTL_STEPS = {60 * 60 * 24, 60 * 60 * 24 * 2, 60 * 60 * 24 * 3, 60 * 60 * 24 * 7, 0};
+  private static final String KEY_STORY_TTL = "tgx101_clean_ttl_stories";
+
+  public static int storyTtl () {
+    return pmc().getInt(KEY_STORY_TTL, 60 * 60 * 24 * 2);
+  }
+
+  public static void setStoryTtl (int seconds) {
+    pmc().putInt(KEY_STORY_TTL, seconds);
+  }
+
   public static int ttl (int kind) {
     return pmc().getInt(KEY_TTL + kind, defaultTtl(kind));
   }
@@ -122,7 +135,7 @@ public final class Tgx101AutoClean {
     for (int kind = 0; kind < KIND_COUNT; kind++) {
       if (ttl(kind) != 0 || limitMb(kind) != 0) return true;
     }
-    return false;
+    return storyTtl() != 0;
   }
 
   public static int stepOf (int[] steps, int value) {
@@ -208,10 +221,21 @@ public final class Tgx101AutoClean {
     run(tdlib, null);
   }
 
+  /** Story files older than their time, from every chat but the ones left out of cleaning */
+  private static void runStories (Tdlib tdlib) {
+    int ttl = storyTtl();
+    if (ttl == 0) return;
+    long[] kept = pmc().getLongArray(KEY_KEEP);
+    TdApi.FileType[] types = {new TdApi.FileTypePhotoStory(), new TdApi.FileTypeVideoStory()};
+    tdlib.send(new TdApi.OptimizeStorage(1L << 50, ttl, Integer.MAX_VALUE, 60 * 60, types, null, kept != null && kept.length > 0 ? kept : null, true, 0), (deleted, err) ->
+      Tgx101Diag.mark("auto clean: stories, ttl " + ttl + " s → " + (err != null ? "error " + err.message : "freed " + Strings.buildSize(deleted != null ? deleted.size : 0) + " in " + (deleted != null ? deleted.count : 0) + " files")));
+  }
+
   /** Right now (the rules changed); {@code after} gets the fresh statistics on the UI thread */
   public static void run (Tdlib tdlib, @Nullable Runnable after) {
     lastRun.put(tdlib.id(), SystemClock.elapsedRealtime());
     TdApi.FileType[] fileTypes = fileTypes();
+    runStories(tdlib);
     if (fileTypes.length == 0) {
       if (after != null) tdlib.ui().post(after);
       return;

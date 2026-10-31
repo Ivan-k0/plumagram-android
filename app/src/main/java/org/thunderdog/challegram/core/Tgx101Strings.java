@@ -1687,6 +1687,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101CleanCatMusic, "Музыка");
     RU.put(R.string.Tgx101CleanCatStickers, "Стикеры и эмодзи");
     RU.put(R.string.Tgx101CleanCatOther, "Прочее");
+    RU.put(R.string.Tgx101CleanStories, "Истории");
+    RU.put(R.string.Tgx101CleanStoriesHint, "Истории из всех чатов. Удалённые загрузятся снова, когда вы их откроете.");
     RU.put(R.string.Tgx101CleanSubThumbs, "Миниатюры");
     RU.put(R.string.Tgx101CleanSubAvatars, "Аватарки");
     RU.put(R.string.Tgx101CleanSubStories, "Истории");
