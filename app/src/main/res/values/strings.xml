@@ -7640,16 +7640,17 @@
   <string name="Tgx101FilterMore">More: case, whole word, pattern</string>
   <string name="Tgx101FilterMoreTitle">Filter · more</string>
   <string name="Tgx101FilterCompare">How to compare</string>
-  <string name="Tgx101FilterCaseShort">Tell capital and small letters apart</string>
+  <string name="Tgx101FilterCaseShort">Match letter case</string>
   <string name="Tgx101FilterCaseHint">«Ad» and «ad» are different words</string>
   <string name="Tgx101FilterWordHint">«cat» won\'t hide «category»</string>
   <string name="Tgx101FilterPattern">Pattern (regular expression)</string>
   <string name="Tgx101FilterPatternHint">sale|giveaway — any of the words</string>
   <string name="Tgx101FilterWhereElse">Where else to look</string>
   <string name="Tgx101FilterAuthorShort">In the author\'s name and the source</string>
-  <string name="Tgx101FilterAuthorHint">post signature, sender, where it was forwarded from</string>
+  <string name="Tgx101FilterAuthorHint">signature, sender, forwarded from</string>
   <string name="Tgx101FilterAlwaysHint">The message text and photo and video captions are always checked.</string>
   <string name="Tgx101FilterPatternEdit">Pattern</string>
+  <string name="Tgx101FilterPatternShort">Pattern (regex)</string>
   <string name="Tgx101FilterListWeek">hidden %1$s this week</string>
   <string name="Tgx101FilterListWeekNone">nothing this week</string>
 </resources>

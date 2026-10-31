@@ -79,7 +79,7 @@ public class Tgx101FilterMoreController extends RecyclerViewController<Void> imp
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT_WITH_TOGGLER, R.id.btn_tgx101FilterWholeWord, 0, R.string.Tgx101FilterWholeWord));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-    items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT_WITH_TOGGLER, R.id.btn_tgx101FilterRegex, 0, R.string.Tgx101FilterPattern));
+    items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT_WITH_TOGGLER, R.id.btn_tgx101FilterRegex, 0, R.string.Tgx101FilterPatternShort));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
 
     items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101FilterWhereElse));

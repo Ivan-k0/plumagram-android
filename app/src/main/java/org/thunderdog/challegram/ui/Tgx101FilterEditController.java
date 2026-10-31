@@ -65,6 +65,11 @@ public class Tgx101FilterEditController extends ViewController<Integer> {
     return Lang.getString(R.string.Tgx101FilterEdit);
   }
 
+  @Override
+  protected int getBackButton () {
+    return org.thunderdog.challegram.navigation.BackHeaderButton.TYPE_BACK;
+  }
+
   private int index () {
     Integer index = getArguments();
     return index != null ? index : -1;
@@ -150,6 +155,7 @@ public class Tgx101FilterEditController extends ViewController<Integer> {
     post.addView(postText);
     preview.addView(post, wrapWidth());
     if (rule.hideFully) {
+      post.setAlpha(.35f); // this post won't be there
       TextView gone = text(context, 13f, Theme.textDecentColor(), false);
       gone.setText(Lang.getString(R.string.Tgx101FilterPreviewGone));
       gone.setGravity(Gravity.CENTER);
