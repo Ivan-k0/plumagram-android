@@ -1156,7 +1156,8 @@ public class SettingsController extends ViewController<Void> implements
     tgx101CardAvatar.setUser(tdlib, me, false);
     tgx101CardName.setText(me != null ? TD.getUserName(me) : "");
     StringBuilder sub = new StringBuilder();
-    if (me != null && !StringUtils.isEmpty(me.phoneNumber)) sub.append(Strings.formatPhone(me.phoneNumber));
+    // (user 2026-10-31): «hide the phone number» covers the account card too — it showed the number by the accounts switch
+    if (me != null && !StringUtils.isEmpty(me.phoneNumber) && !Settings.instance().needHidePhoneNumber()) sub.append(Strings.formatPhone(me.phoneNumber));
     if (me != null && Td.hasUsername(me)) sub.append(sub.length() > 0 ? " · " : "").append('@').append(Td.primaryUsername(me));
     tgx101CardSub.setText(sub);
     tgx101BindAccounts();

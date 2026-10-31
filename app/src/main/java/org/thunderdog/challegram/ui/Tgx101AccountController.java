@@ -69,7 +69,7 @@ public class Tgx101AccountController extends RecyclerViewController<Void> implem
           String bio = full != null && full.bio != null ? full.bio.text : null;
           view.setData(StringUtils.isEmpty(bio) ? Lang.getString(R.string.BioNone) : bio);
         } else if (id == R.id.btn_phone) {
-          view.setData(me != null && !StringUtils.isEmpty(me.phoneNumber) ? Strings.formatPhone(me.phoneNumber) : Lang.getString(R.string.LoadingInformation));
+          view.setData(me != null && !StringUtils.isEmpty(me.phoneNumber) ? (org.thunderdog.challegram.unsorted.Settings.instance().needHidePhoneNumber() ? Strings.replaceNumbers(Strings.formatPhone(me.phoneNumber)) : Strings.formatPhone(me.phoneNumber)) : Lang.getString(R.string.LoadingInformation));
         } else if (id == R.id.btn_username) {
           view.setData(me != null && Td.hasUsername(me) ? "@" + Td.primaryUsername(me) : Lang.getString(R.string.SetUpUsername));
         } else if (id == R.id.btn_birthdate) {
