@@ -34,7 +34,9 @@ public final class Tgx101FullText {
     for (int i = 0; i < layout.getLineCount(); i++) {
       if (layout.getEllipsisCount(i) > 0) return true;
     }
-    return false;
+    // a running line (large interface: «marquee» instead of «…») is longer than the room it has
+    int room = view.getWidth() - view.getTotalPaddingLeft() - view.getTotalPaddingRight();
+    return layout.getLineCount() == 1 && room > 0 && layout.getLineWidth(0) > room + 1;
   }
 
   /** {@code full} — the text to show, when the label holds a shortened form of it; null for the label's own text */

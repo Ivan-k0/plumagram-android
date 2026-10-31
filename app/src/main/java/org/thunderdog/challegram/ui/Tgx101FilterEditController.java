@@ -138,6 +138,7 @@ public class Tgx101FilterEditController extends ViewController<Integer> {
     Context context = context();
     List<String> words = rule.words();
     String firstWord = words.isEmpty() ? "…" : Tgx101MessageFilters.label(words.get(0));
+    if (firstWord.length() > 18) firstWord = firstWord.substring(0, 17).trim() + "…"; // «· Show» must stay in the example strip
 
     // 1. the live example
     column.addView(header(context, Lang.getString(R.string.Tgx101FilterPreview)));
