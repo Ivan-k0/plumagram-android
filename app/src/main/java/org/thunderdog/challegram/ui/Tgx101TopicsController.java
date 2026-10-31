@@ -596,9 +596,27 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
    * topics' — read topic by topic, the chat list kept its number. Once every topic has nothing unread, the chat itself is
    * marked read up to its last message; while any topic still has unread messages, the chat is left alone
    */
+  private static final java.util.Map<String, Long> syncedAt = new java.util.concurrent.ConcurrentHashMap<>();
+
   public static void syncChatRead (Tdlib tdlib, long chatId) {
     TdApi.Chat chat = tdlib.chat(chatId);
     if (chat == null || chat.unreadCount == 0 || chat.lastMessage == null) return;
+    // at most once in 2 s per forum, with one more check at the end of a burst (it ran 650 times in 2 minutes)
+    String key = tdlib.id() + ":" + chatId;
+    long at = android.os.SystemClock.uptimeMillis();
+    Long last = syncedAt.get(key);
+    if (last != null && at - last < 2000) {
+      if (last <= at) { // not booked yet: the one check after the burst
+        long next = last + 2000;
+        syncedAt.put(key, next + 1);
+        UI.post(() -> {
+          syncedAt.remove(key);
+          syncChatRead(tdlib, chatId);
+        }, next - at + 10);
+      }
+      return;
+    }
+    syncedAt.put(key, at);
     tdlib.send(new TdApi.GetForumTopics(chatId, "", 0, 0, 0, 100), (topics, error) -> {
       if (topics == null) return;
       int unread = 0;
@@ -667,7 +685,10 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     public void onForumTopicUpdated (long chatId, long messageThreadId, boolean isPinned, long lastReadInboxMessageId, long lastReadOutboxMessageId, TdApi.ChatNotificationSettings notificationSettings) {
       runOnUiThreadOptional(() -> {
         tgx101RefreshTopic(tgx101WatchedTopicId);
-        load();
+        // (black box 2026-10-31 23:04: a big forum sends thousands of topic updates, the whole list was asked again
+        // 5–10 times a second) — updates in a row make one reload
+        UI.removePendingRunnable(tgx101Reload);
+        UI.post(tgx101Reload, 600);
       });
     }
   };
