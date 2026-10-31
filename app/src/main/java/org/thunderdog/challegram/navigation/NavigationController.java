@@ -1087,7 +1087,13 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
         fastAnimation = controller.forceFastAnimation();
         direction = fastAnimation || controller.forceFadeMode() ? TRANSLATION_FADE : controller.usePopupMode() ? TRANSLATION_VERTICAL : TRANSLATION_HORIZONTAL;
         if (tgx101NextVertical && !fastAnimation) {
-          direction = TRANSLATION_VERTICAL; // TGx101: the next channel comes up from below, as the pull that opened it
+          // TGx101: the next channel comes up from below, as the pull that opened it. Not the popup's vertical slide —
+          // that one repaints the header and the status bar as a popup's (user 2026-10-31 «шапки испортились»): the
+          // screens cross-fade and the new one rises 120 dp at the same time
+          direction = TRANSLATION_FADE;
+          View view = controller.getValue();
+          view.setTranslationY(Screen.dp(120f));
+          view.animate().translationY(0f).setDuration(260).setInterpolator(me.vkryl.android.AnimatorUtils.DECELERATE_INTERPOLATOR).start();
         }
         tgx101NextVertical = false;
       } else {
