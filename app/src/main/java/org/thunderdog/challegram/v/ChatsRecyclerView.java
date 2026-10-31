@@ -297,6 +297,7 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
         // started again after a touch slop; the folders / back swipe can still take the finger
         super.onInterceptTouchEvent(e);
         if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+        tgx101MarkCaught(e);
       } else {
         stopScroll();
         super.onInterceptTouchEvent(e);
