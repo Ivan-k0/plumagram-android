@@ -358,7 +358,14 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
         file.setIsStill(true);
       }
     } else {
-      nativePtr = N.createDecoder(path, metadata, file.getStartMediaTimestamp());
+      // TGx101 (user 2026-10-31 «видит один и тот же фрагмент начала видео… это убого»): a video playing by itself goes
+      // on from where it stood when it left the screen — the decoder jumps to the keyframe before that place, once
+      double start = file.getStartMediaTimestamp();
+      if (start == 0 && !file.isStill()) {
+        long at = tgx101Position(file.getFileId());
+        if (at > 0) start = at / 1000.0;
+      }
+      nativePtr = N.createDecoder(path, metadata, start);
       width = (int) metadata[0];
       height = (int) metadata[1];
       error = (width <= 0 || height <= 0);
@@ -388,6 +395,7 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
         } else {
           int ret = N.getVideoFrame(nativePtr, frame.bitmap, metadata);
           frame.no = lastTimeStamp = metadata[3];
+          if (tgx101Positions.size() > 500) tgx101Positions.clear(); // the last few hundred videos are enough
           tgx101Positions.put(file.getFileId(), lastTimeStamp);
           return ret == 1 && !N.isVideoBroken(nativePtr);
         }
@@ -413,6 +421,11 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
   // TGx101 (user 2026-10-30, «в офф клиенте видео продолжается, а у нас заново»): where a video playing by itself in a
   // feed stands, by file — the viewer opened on it starts there
   private static final java.util.Map<Integer, Long> tgx101Positions = new java.util.concurrent.ConcurrentHashMap<>();
+
+  /** where the viewer left this file's video — the feed's copy goes on from there */
+  public static void tgx101SetPosition (int fileId, long positionMs) {
+    tgx101Positions.put(fileId, positionMs);
+  }
 
   /** the last frame shown of this file's video playing by itself, ms; 0 — none */
   public static long tgx101Position (int fileId) {
@@ -708,6 +721,7 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
         if (GifBridge.instance().scheduleNextFrame(this, file.getFileId(), force ? 0 : frameDelayMs, force)) {
           if (gif == null || !gif.isFrozen()) {
             this.lastTimeStamp = nextTimeStamp;
+            if (!isLottie && nextTimeStamp > 0) tgx101Positions.put(file.getFileId(), nextTimeStamp); // where it stands now
           }
         }
       }

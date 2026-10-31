@@ -38,6 +38,8 @@ public final class Tgx101VideoResume {
     if (key == null) {
       return;
     }
+    // (user 2026-10-31): back in the feed or the post, the video goes on from where the viewer left it
+    if (positionMs > 0) org.thunderdog.challegram.loader.gif.GifActor.tgx101SetPosition(item.getFileId(), positionMs);
     synchronized (positions) {
       if (positionMs < MIN_POSITION_MS || (durationMs > 0 && positionMs > durationMs - END_MARGIN_MS)) {
         positions.remove(key);
