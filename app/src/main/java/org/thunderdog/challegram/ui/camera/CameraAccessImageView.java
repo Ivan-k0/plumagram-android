@@ -25,6 +25,7 @@ import org.thunderdog.challegram.ui.MessagesController;
 import org.thunderdog.challegram.unsorted.Settings;
 
 public class CameraAccessImageView extends InvisibleImageView {
+  private static final boolean TGX101_DRAG_TO_CAMERA = false;
   private final MessagesController c;
   private boolean hasAnyCamera;
 
@@ -38,7 +39,9 @@ public class CameraAccessImageView extends InvisibleImageView {
     @Override
     public boolean onTouchEvent (MotionEvent event) {
     boolean res = super.onTouchEvent(event);
-    if (Settings.instance().getCameraType() != Settings.CAMERA_TYPE_SYSTEM && res && event.getAction() == MotionEvent.ACTION_DOWN) {
+    // TGx101 (user 2026-10-31 «убери свайп открытия камеры из скрепки»): a drag from the paperclip no longer pulls the
+    // camera out — the paperclip only opens the attach menu
+    if (TGX101_DRAG_TO_CAMERA && Settings.instance().getCameraType() != Settings.CAMERA_TYPE_SYSTEM && res && event.getAction() == MotionEvent.ACTION_DOWN) {
       if (!hasAnyCamera) {
         hasAnyCamera = U.deviceHasAnyCamera(getContext());
       }
