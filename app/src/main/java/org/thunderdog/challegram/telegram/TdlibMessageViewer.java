@@ -787,8 +787,10 @@ public class TdlibMessageViewer {
               }
               int topicId = ((TdApi.MessageTopicForum) message.topicId).forumTopicId;
               if (error == null) org.thunderdog.challegram.ui.Tgx101TopicsController.noteRead(context.tdlib, chatId, topicId, max);
-              Runnable check = () -> context.tdlib.send(new TdApi.GetForumTopic(chatId, topicId), (topic, topicError) ->
-                org.thunderdog.challegram.Tgx101Diag.mark("topic read: topic " + topicId + " now " + (topic != null ? "read up to " + (topic.lastReadInboxMessageId >> 20) + ", " + topic.unreadCount + " unread" : TD.toErrorString(topicError))));
+              Runnable check = () -> context.tdlib.send(new TdApi.GetForumTopic(chatId, topicId), (topic, topicError) -> {
+                org.thunderdog.challegram.Tgx101Diag.mark("topic read: topic " + topicId + " now " + (topic != null ? "read up to " + (topic.lastReadInboxMessageId >> 20) + ", " + topic.unreadCount + " unread" : TD.toErrorString(topicError)));
+                if (topic != null && topic.unreadCount == 0) org.thunderdog.challegram.ui.Tgx101TopicsController.syncChatRead(context.tdlib, chatId);
+              });
               check.run();
             });
           }

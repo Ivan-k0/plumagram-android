@@ -591,6 +591,29 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
   // again. How far each topic was read here is remembered; read up to its last message, it has nothing unread
   private static final java.util.Map<String, Long> readUpTo = new java.util.concurrent.ConcurrentHashMap<>();
 
+  /**
+   * (4PDA 2026-10-31, «в ветках всё прочитано, а на главной счётчик 5»): a forum's own unread count lives apart from its
+   * topics' — read topic by topic, the chat list kept its number. Once every topic has nothing unread, the chat itself is
+   * marked read up to its last message; while any topic still has unread messages, the chat is left alone
+   */
+  public static void syncChatRead (Tdlib tdlib, long chatId) {
+    TdApi.Chat chat = tdlib.chat(chatId);
+    if (chat == null || chat.unreadCount == 0 || chat.lastMessage == null) return;
+    tdlib.send(new TdApi.GetForumTopics(chatId, "", 0, 0, 0, 100), (topics, error) -> {
+      if (topics == null) return;
+      int unread = 0;
+      for (TdApi.ForumTopic topic : topics.topics) unread += topic.unreadCount;
+      if (unread > 0 || topics.totalCount > topics.topics.length) {
+        org.thunderdog.challegram.Tgx101Diag.mark("topics: chat " + chatId + " keeps its count " + chat.unreadCount + " — " + unread + " unread in its topics" + (topics.totalCount > topics.topics.length ? ", not all topics seen" : ""));
+        return;
+      }
+      TdApi.Chat now = tdlib.chat(chatId);
+      if (now == null || now.lastMessage == null || now.unreadCount == 0) return;
+      org.thunderdog.challegram.Tgx101Diag.mark("topics: chat " + chatId + " — every topic read, the chat's own count " + now.unreadCount + " is cleared");
+      tdlib.send(new TdApi.ViewMessages(chatId, new long[] {now.lastMessage.id}, new TdApi.MessageSourceChatHistory(), true), tdlib.typedOkHandler());
+    });
+  }
+
   /** A forum topic's messages up to {@code messageId} were viewed in this app */
   public static void noteRead (Tdlib tdlib, long chatId, int forumTopicId, long messageId) {
     String key = tdlib.id() + ":" + chatId + ":" + forumTopicId;
@@ -705,6 +728,7 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
   // Loading
 
   private void load () {
+    syncChatRead(tdlib, getArgumentsStrict().chat.id); // everything read already, yet the chat list shows a count — cleared
     final int generation = ++loadGeneration;
     final List<TdApi.ForumTopic> result = new ArrayList<>();
     loadPage(generation, result, 0, 0, 0);
