@@ -6697,6 +6697,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
                   break;
                 }
                 swipeChecked = true;
+                // (user 2026-10-31 «если там есть описание то свайп не работает»): a swipe down over a folded caption is
+                // the viewer's — it closes; only what the caption answers (unfold, fold, scroll its text) stays with it
+                if (dy > 0 && !tgx101CaptionExpanded) break;
                 if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
                 if ((dy < 0 && !tgx101CaptionExpanded) || (dy > 0 && tgx101CaptionExpanded && getScrollY() == 0)) {
                   swipeTaken = true;
