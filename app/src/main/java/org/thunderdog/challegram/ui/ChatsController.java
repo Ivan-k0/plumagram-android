@@ -920,7 +920,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
   private void tgx101PullTo (RecyclerView rv, float dy) {
     int full = tgx101ArchiveFullReveal();
-    int target = (int) Math.max(0, Math.min(full, dy));
+    int target = (int) Math.max(0, Math.min(full, dy * .7f)); // a little behind the finger: it opened too easily (user 18:12)
     int now = tgx101ArchiveReveal(rv);
     if (target != now) rv.scrollBy(0, now - target);
     if (tgx101PullLogs++ % 8 == 0) {
