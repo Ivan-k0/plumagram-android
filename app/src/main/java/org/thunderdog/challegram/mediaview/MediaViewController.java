@@ -2302,6 +2302,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   private View tgx101CenterPlay;
+  private float tgx101CenterLoggedHeader = -1f;
 
   private void tgx101UpdateCenterPlay () {
     if (tgx101CenterPlay == null) return;
@@ -2309,6 +2310,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     boolean video = mode == MODE_MESSAGES && item != null && item.isVideo() && !item.isGifType() && videoSliderView != null && !tgx101Locked();
     float alpha = video ? headerVisible.getFloatValue() * (1f - pipFactor) * (inCaption ? 0f : 1f) : 0f;
     boolean shown = alpha > 0f;
+    float hv = headerVisible.getFloatValue();
+    if ((hv == 1f || hv == 0f) && hv != tgx101CenterLoggedHeader) {
+      tgx101CenterLoggedHeader = hv;
+      org.thunderdog.challegram.Tgx101Diag.mark("player: centre button check — header " + hv + ", mode " + mode + ", item " + (item == null ? "none" : (item.isVideo() ? "video" : "not video") + (item.isGifType() ? " gif" : "")) + ", slider " + (videoSliderView != null) + ", locked " + tgx101Locked() + ", pip " + pipFactor + ", caption " + inCaption + " → alpha " + alpha);
+    }
     if (shown != (tgx101CenterPlay.getVisibility() == View.VISIBLE)) {
       org.thunderdog.challegram.Tgx101Diag.mark("player: centre button " + (shown ? "shown" : "hidden") + " (mode " + mode + ", video " + (item != null && item.isVideo()) + ", slider " + (videoSliderView != null) + ", header " + headerVisible.getFloatValue() + ", size " + tgx101CenterPlay.getWidth() + ", parent " + (tgx101CenterPlay.getParent() != null) + ")");
     }
