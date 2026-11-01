@@ -740,8 +740,11 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     int first = manager.findFirstVisibleItemPosition();
     int target = -1;
     for (int i = 0; i < posts.size(); i++) if (posts.get(i).unread) { target = i; break; }
-    // the first unread post still below the top — to it; otherwise (or nothing unread) — to the end
-    if (target == -1 || target <= first) target = posts.size() - 1;
+    // the first unread post further down than the next screen — to it; otherwise (or nothing unread) — to the end.
+    // (user 2026-11-01 «стрелка не пролистывает до конца, а листает по чуть-чуть»): the posts are read as they pass, so
+    // the first unread is nearly always the one right under the screen — each tap moved the feed 3–4 posts
+    int last = manager.findLastVisibleItemPosition();
+    if (target == -1 || target <= first || (last != RecyclerView.NO_POSITION && target <= last + 1)) target = posts.size() - 1;
     boolean toEnd = target == posts.size() - 1;
     org.thunderdog.challegram.Tgx101Diag.mark("gazeta: arrow → " + (toEnd ? "the end" : "the first unread, post " + target + " of " + posts.size()));
     final int to = target;
