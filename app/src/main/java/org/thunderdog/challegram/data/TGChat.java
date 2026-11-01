@@ -378,6 +378,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   }
 
   public long getChatId () {
+    if (tgx101StoriesRow) return TGX101_STORIES_ID;
     if (tgx101Storage) return TGX101_STORAGE_ID;
     return chat != null ? chat.id : 0;
   }
@@ -389,6 +390,26 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   private boolean tgx101Storage;
   private String tgx101StorageText = "";
   private int tgx101StorageDate;
+
+  // TGx101 (approved mockup «Где жить историям» В, 2026-11-01): the stories' row in «All chats», right under the hidden
+  // archive — folded and pulled out with it, a tap drops the stories panel. Drawn from the Saved chat like the storage's
+  // row (nothing of that chat shows), with its own title, icon and the first names
+  public static final long TGX101_STORIES_ID = Long.MIN_VALUE + 102;
+  private boolean tgx101StoriesRow;
+
+  public static TGChat tgx101NewStoriesRow (ViewController<?> context, TdApi.ChatList list, TdApi.Chat saved, String text) {
+    TGChat c = new TGChat(context, list, saved, false);
+    c.tgx101Storage = true; // behaves as the storage's row: no counters, draft, pin, preview
+    c.tgx101StoriesRow = true;
+    c.tgx101StorageText = text;
+    c.setAvatar();
+    c.makeMeasures();
+    return c;
+  }
+
+  public boolean tgx101IsStoriesRow () {
+    return tgx101StoriesRow;
+  }
 
   public static TGChat tgx101NewStorage (ViewController<?> context, TdApi.ChatList list, TdApi.Chat saved, String text, int date) {
     TGChat c = new TGChat(context, list, saved, false);
@@ -417,7 +438,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   }
 
   public boolean tgx101IsStorage () {
-    return tgx101Storage;
+    return tgx101Storage && !tgx101StoriesRow;
   }
 
   /** @return changed */
@@ -783,7 +804,9 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   }
 
   private void setAvatar () {
-    if (tgx101Storage) {
+    if (tgx101StoriesRow) {
+      avatarPlaceholder = new AvatarPlaceholder.Metadata(tdlib.accentColor(TdlibAccentColor.InternalId.ARCHIVE), R.drawable.tgx101_stories_24);
+    } else if (tgx101Storage) {
       avatarPlaceholder = new AvatarPlaceholder.Metadata(tdlib.accentColor(TdlibAccentColor.InternalId.SAVED_MESSAGES), R.drawable.tgx101_storage_tiles_24);
     } else if (isArchive()) {
       avatarPlaceholder = new AvatarPlaceholder.Metadata(tdlib.accentColor(TdlibAccentColor.InternalId.ARCHIVE), R.drawable.baseline_archive_24);
@@ -1069,7 +1092,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   }
 
   public void setTitle () {
-    setTitleImpl(tgx101Storage ? Lang.getString(R.string.Tgx101BirdStorage) : isArchive() ? Lang.getString(R.string.ArchiveTitleList) : tdlib.chatTitle(chat));
+    setTitleImpl(tgx101StoriesRow ? Lang.getString(R.string.Tgx101StoriesRowTitle) : tgx101Storage ? Lang.getString(R.string.Tgx101BirdStorage) : isArchive() ? Lang.getString(R.string.ArchiveTitleList) : tdlib.chatTitle(chat));
     layoutTitle(true);
   }
 

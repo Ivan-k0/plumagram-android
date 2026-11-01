@@ -7177,6 +7177,8 @@
   <string name="Tgx101AiAutoTags">AI tags for new records</string>
   <string name="Tgx101AiAutoTagsHint">The AI gives each new record saved from this phone a tag from your tags (or a new short one). Every record is a request to Telegram\'s AI.</string>
   <string name="Tgx101StorageRowFolders">Folders: %1$d</string>
+  <string name="Tgx101StoriesRowTitle">Stories</string>
+  <string name="Tgx101StoriesRowMore">%1$s and %2$d more</string>
   <string name="Tgx101StorageRowOpen">Open the storage</string>
   <string name="Tgx101StorageRowHide">Hide from this folder</string>
   <string name="Tgx101StorageRowHidden">Hidden here. Back: storage settings → «Row in the chat list». The storage stays on the swipe and in the bird.</string>

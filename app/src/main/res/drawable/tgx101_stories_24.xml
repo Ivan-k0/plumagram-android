@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TGx101 (mockup «Где жить историям» В): the stories row — a story ring cut into arcs around a dot -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="24dp"
+  android:height="24dp"
+  android:viewportWidth="24.0"
+  android:viewportHeight="24.0">
+  <path
+    android:strokeColor="#FF000000"
+    android:strokeWidth="2"
+    android:strokeLineCap="round"
+    android:pathData="M13.2,3.1A9,9 0,0 1,20.9 10.8 M20.9,13.2A9,9 0,0 1,13.2 20.9 M10.8,20.9A9,9 0,0 1,3.1 13.2 M3.1,10.8A9,9 0,0 1,10.8 3.1" />
+  <path
+    android:fillColor="#FF000000"
+    android:pathData="M12,8.5a3.5,3.5 0,1 1,0 7a3.5,3.5 0,1 1,0 -7z" />
+</vector>

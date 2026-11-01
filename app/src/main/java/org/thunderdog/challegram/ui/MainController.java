@@ -1460,6 +1460,8 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       public void onStripVisibilityChanged (boolean hasItems) {
         tgx101FillStoriesStack();
         if (!hasItems) tgx101SetStoriesPanelOpen(false);
+        ChatsController main = findMainChatsController();
+        if (main != null) main.tgx101CheckStoriesRow();
       }
     });
     tgx101StoriesPanel = new FrameLayoutFix(context);
@@ -1505,6 +1507,14 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     tgx101StoriesSheet = sheet;
     tgx101StoriesPanel.addView(sheet, FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP));
     contentView.addView(tgx101StoriesPanel, FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+  }
+
+  public java.util.List<TdApi.ChatActiveStories> tgx101HeaderStories () {
+    return tgx101HeaderStrip != null ? tgx101HeaderStrip.ordered() : java.util.Collections.emptyList();
+  }
+
+  public void tgx101OpenStoriesPanel () {
+    tgx101SetStoriesPanelOpen(true);
   }
 
   private android.widget.LinearLayout tgx101StoriesStack (Context context) {

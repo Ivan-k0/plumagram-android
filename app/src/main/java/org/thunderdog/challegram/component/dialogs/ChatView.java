@@ -421,12 +421,12 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
           this.tdlib.settings().addUserPreferenceChangeListener(this);
         }
       }
-      if (chat != null && !chat.tgx101IsStorage()) {
+      if (chat != null && !chat.tgx101IsStorage() && !chat.tgx101IsStoriesRow()) {
         setPreviewChatId(chat.getChatList(), chat.getChatId(), null);
       } else {
         setPreviewChatId(null, 0, null); // TGx101: the storage row has no chat preview — its hold menu is its own
       }
-      if (chat != null && chat.tgx101IsStorage()) {
+      if (chat != null && (chat.tgx101IsStorage() || chat.tgx101IsStoriesRow())) {
         setCustomControllerProvider(new CustomControllerProvider() {
           @Override
           public boolean needsForceTouch (BaseView v, float x, float y) {

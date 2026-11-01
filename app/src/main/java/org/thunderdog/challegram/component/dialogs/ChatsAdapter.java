@@ -125,6 +125,11 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
         chats.add(ARCHIVE_INDEX, newArchive());
         notifyChatAppeared(-1, getItemPositionByChatIndex(ARCHIVE_INDEX));
       } else {
+        if (tgx101StoriesItem != null) { // the stories' row goes with the archive
+          chats.remove(ARCHIVE_INDEX + 1);
+          tgx101StoriesItem = null;
+          tgx101NotifyRemovedKeepingInfo(getItemPositionByChatIndex(ARCHIVE_INDEX + 1));
+        }
         chats.remove(ARCHIVE_INDEX);
         tgx101NotifyRemovedKeepingInfo(getItemPositionByChatIndex(ARCHIVE_INDEX));
       }
@@ -135,9 +140,40 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
   // TGx101 (user 2026-10-21): the storage's own row, right under the archive — see TGChat#tgx101NewStorage
   private @Nullable TGChat tgx101StorageItem;
 
-  /** the rows that aren't chats of the list (archive, storage): Telegram's indexes start after them */
+  /** the rows that aren't chats of the list (archive, stories, storage): Telegram's indexes start after them */
   private int tgx101Specials () {
-    return (hasArchive ? 1 : 0) + (tgx101StorageItem != null ? 1 : 0);
+    return (hasArchive ? 1 : 0) + (tgx101StoriesItem != null ? 1 : 0) + (tgx101StorageItem != null ? 1 : 0);
+  }
+
+  // TGx101 (mockup «Где жить историям» В): the stories' row, right under the archive — see TGChat#tgx101NewStoriesRow
+  private @Nullable TGChat tgx101StoriesItem;
+
+  public boolean tgx101HasStoriesRow () {
+    return tgx101StoriesItem != null;
+  }
+
+  public void tgx101SetStoriesRow (@Nullable TGChat item) {
+    int at = ARCHIVE_INDEX + 1;
+    if (item == null) {
+      if (tgx101StoriesItem != null) {
+        chats.remove(at);
+        tgx101StoriesItem = null;
+        tgx101NotifyRemovedKeepingInfo(getItemPositionByChatIndex(at));
+        invalidateAttachedItemDecorations();
+      }
+      return;
+    }
+    if (!hasArchive) return; // it lives under the archive only
+    if (tgx101StoriesItem != null) {
+      chats.set(at, item);
+      tgx101StoriesItem = item;
+      notifyItemChanged(getItemPositionByChatIndex(at));
+      return;
+    }
+    chats.add(at, item);
+    tgx101StoriesItem = item;
+    notifyChatAppeared(-1, getItemPositionByChatIndex(at));
+    invalidateAttachedItemDecorations();
   }
 
   public boolean tgx101HasStorage () {
@@ -145,7 +181,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
   }
 
   public void tgx101SetStorage (@Nullable TGChat item) {
-    int at = hasArchive ? ARCHIVE_INDEX + 1 : 0;
+    int at = (hasArchive ? ARCHIVE_INDEX + 1 : 0) + (tgx101StoriesItem != null ? 1 : 0);
     if (item == null) {
       if (tgx101StorageItem != null) {
         chats.remove(at);

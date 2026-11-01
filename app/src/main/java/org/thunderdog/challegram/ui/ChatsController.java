@@ -457,7 +457,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       }
 
       TGChat next = context.adapter.getChatByItemPosition(position + 1);
-      if (next != null && (current.isArchive() != next.isArchive() || current.isPinnedOrSpecial() != next.isPinnedOrSpecial())) {
+      // TGx101: the stories' row belongs with the archive — one block, the gap after both
+      boolean currentBlock = current.isArchive() || current.tgx101IsStoriesRow(), nextBlock = next != null && (next.isArchive() || next.tgx101IsStoriesRow());
+      if (next != null && (currentBlock != nextBlock || (!currentBlock && current.isPinnedOrSpecial() != next.isPinnedOrSpecial()))) {
         outRect.bottom = Screen.dp(12f);
       } else {
         outRect.bottom = Screen.separatorSize();
@@ -474,13 +476,10 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
         }
       }
 
-      if (context.archiveCollapsed && outRect.top == 0 && current.isArchive()) {
-        outRect.top = -ChatView.getViewHeight(current.getListMode());
-        if (context.liveLocationHelper != null && context.liveLocationHelper.isVisible()) {
-          outRect.top -= Screen.dp(1f);
-        } else {
-          outRect.top -= Screen.dp(12f);
-        }
+      if (context.archiveCollapsed && outRect.top == 0 && (current.isArchive() || current.tgx101IsStoriesRow())) {
+        // folded: the row and whatever follows it (gap, separator) take no room — the stories' row folds with the archive
+        // (both then stand in the same place above the top; a pull lifts the archive above it, see tgx101SetShift)
+        outRect.top = -ChatView.getViewHeight(current.getListMode()) - outRect.bottom;
       }
     }
   }
@@ -712,6 +711,19 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
                   } else {
                     onScrollToTopRequested();
                   }
+                } else if (firstVisiblePosition == 1 && adapter.tgx101HasStoriesRow() && !archiveCollapsed) {
+                  // the stories' row (unfolded with the archive) still shows: the block comes out whole when most of it
+                  // is on screen, else it slides away (and folds when the list rests past it)
+                  View stories = manager.findViewByPosition(1);
+                  if (stories != null) {
+                    int blockHeight = manager.getDecoratedBottom(stories) - manager.getDecoratedTop(stories) + ChatView.getViewHeight(Settings.instance().getChatListMode()) + Screen.dp(12f);
+                    int hidden = blockHeight - manager.getDecoratedBottom(stories);
+                    if (hidden < blockHeight / 2) {
+                      chatsView.smoothScrollBy(0, -hidden);
+                    } else {
+                      chatsView.smoothScrollBy(0, manager.getDecoratedBottom(stories));
+                    }
+                  }
                 } else if (firstVisiblePosition == 1) {
                   // TGx101: the archive scrolled out of sight folds even if the next chat stopped right at the top —
                   // else a plain scroll brought it back without the pull (test 2026-11-01 17:27)
@@ -728,7 +740,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
             // the list's rest counts from its last real move: pulls at the top that don't move it (quick repeated
             // tries) no longer restart the wait (user video 18:21 — pulls stopped working)
             if (dy != 0 && !tgx101Pulling) tgx101ListRestAt = android.os.SystemClock.uptimeMillis();
-            if (hideArchive && !archiveCollapsed && chatScrollState == RecyclerView.SCROLL_STATE_SETTLING && dy > 0 && ((LinearLayoutManager) recyclerView.getLayoutManager()).findFirstVisibleItemPosition() > 0) {
+            if (hideArchive && !archiveCollapsed && chatScrollState == RecyclerView.SCROLL_STATE_SETTLING && dy > 0 && ((LinearLayoutManager) recyclerView.getLayoutManager()).findFirstVisibleItemPosition() > (adapter.tgx101HasStoriesRow() ? 1 : 0)) {
               setArchiveCollapsed(true);
             }
           }
@@ -894,7 +906,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
   private int tgx101ArchiveFullReveal () {
     int mode = Settings.instance().getChatListMode();
-    return ChatView.getViewHeight(mode) + Screen.dp(12f);
+    int full = ChatView.getViewHeight(mode) + Screen.dp(12f);
+    if (adapter != null && adapter.tgx101HasStoriesRow()) full += ChatView.getViewHeight(mode) + Screen.separatorSize(); // comes out with it
+    return full;
   }
 
   // the list rests at its very top under the folded archive. Rows of no height right under it (the storage row before
@@ -903,7 +917,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     LinearLayoutManager manager = (LinearLayoutManager) rv.getLayoutManager();
     if (manager == null) return false;
     int count = adapter.getItemCount();
-    for (int position = adapter.getArchiveItemPosition() + 1; position < count; position++) {
+    for (int position = adapter.getArchiveItemPosition() + 1 + (adapter.tgx101HasStoriesRow() ? 1 : 0); position < count; position++) {
       View view = manager.findViewByPosition(position);
       if (view == null || manager.getDecoratedTop(view) < 0) return false;
       if (manager.getDecoratedMeasuredHeight(view) > 0) return true;
@@ -913,8 +927,13 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
   private void tgx101SetShift (RecyclerView rv, float shift) {
     tgx101PullShift = shift;
+    // the folded archive and stories' rows stand in the same place: the archive comes in above the stories' row
+    int archivePosition = adapter != null && adapter.tgx101HasStoriesRow() && shift != 0f ? adapter.getArchiveItemPosition() : -1;
+    float storiesRoom = archivePosition != -1 ? ChatView.getViewHeight(Settings.instance().getChatListMode()) + Screen.dp(12f) : 0f;
     for (int i = 0; i < rv.getChildCount(); i++) {
-      rv.getChildAt(i).setTranslationY(shift);
+      View child = rv.getChildAt(i);
+      boolean archive = archivePosition != -1 && rv.getChildAdapterPosition(child) == archivePosition;
+      child.setTranslationY(archive ? shift - storiesRoom : shift);
     }
     rv.invalidate();
   }
@@ -937,7 +956,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       b.append("; children ").append(rv.getChildCount()).append(", first child at ").append(rv.getChildCount() > 0 ? rv.getChildAdapterPosition(rv.getChildAt(0)) : -1);
       org.thunderdog.challegram.Tgx101Diag.mark(b.toString());
     }
-    tgx101PullProgress = Math.min(1f, shift / (full - Screen.dp(12f)));
+    tgx101PullProgress = Math.min(1f, shift / (float) ChatView.getViewHeight(Settings.instance().getChatListMode())); // the archive row out: enough
     boolean ready = tgx101PullProgress >= 1f;
     if (ready != tgx101PullReady) {
       tgx101PullReady = ready;
@@ -953,23 +972,19 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     if (chatsView != null) chatsView.tgx101ExtraTop = 0;
     org.thunderdog.challegram.Tgx101Diag.mark("archive: pull ends at " + (int) Screen.px(tgx101PullShift) + " of " + (int) Screen.px(tgx101ArchiveFullReveal()) + " dp" + (cancel ? ", cancelled" : "") + (keep ? " — pulled out" : " — slides back"));
     if (keep) {
-      // unfold for real with the archive at the very top, and drop the shift in the same frame the new layout shows
-      // — exactly where the first row stood before the pull (the very start would also bring the stories strip in)
-      archiveCollapsed = false;
-      int archivePosition = adapter.getArchiveItemPosition();
-      LinearLayoutManager manager = (LinearLayoutManager) rv.getLayoutManager();
-      View under = manager.findViewByPosition(archivePosition + 1);
-      int top = under != null ? manager.getDecoratedTop(under) : rv.getPaddingTop();
-      adapter.notifyItemChanged(archivePosition);
-      manager.scrollToPositionWithOffset(archivePosition, top - rv.getPaddingTop());
-      rv.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+      // the rest of the block (the stories' row) comes out, then it unfolds for real
+      tgx101StopPullBack();
+      tgx101PullBack = android.animation.ValueAnimator.ofFloat(tgx101PullShift, tgx101ArchiveFullReveal());
+      tgx101PullBack.setDuration(140);
+      tgx101PullBack.setInterpolator(new android.view.animation.DecelerateInterpolator());
+      tgx101PullBack.addUpdateListener(animation -> tgx101SetShift(rv, (float) animation.getAnimatedValue()));
+      tgx101PullBack.addListener(new android.animation.AnimatorListenerAdapter() {
         @Override
-        public boolean onPreDraw () {
-          rv.getViewTreeObserver().removeOnPreDrawListener(this);
-          tgx101SetShift(rv, 0f);
-          return true;
+        public void onAnimationEnd (android.animation.Animator animation) {
+          tgx101UnfoldPulled(rv);
         }
       });
+      tgx101PullBack.start();
     } else {
       tgx101StopPullBack();
       tgx101PullBack = android.animation.ValueAnimator.ofFloat(tgx101PullShift, 0f);
@@ -980,12 +995,38 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     }
   }
 
+  private void tgx101UnfoldPulled (RecyclerView rv) {
+    if (!archiveCollapsed || adapter == null || !adapter.hasArchive()) {
+      tgx101SetShift(rv, 0f);
+      return;
+    }
+    // unfold for real with the archive at the very top, and drop the shift in the same frame the new layout shows
+    // — exactly where the first row stood before the pull (the very start would also bring the stories strip in)
+    archiveCollapsed = false;
+    int archivePosition = adapter.getArchiveItemPosition();
+    LinearLayoutManager manager = (LinearLayoutManager) rv.getLayoutManager();
+    View under = manager.findViewByPosition(archivePosition + 1 + (adapter.tgx101HasStoriesRow() ? 1 : 0));
+    int top = under != null ? manager.getDecoratedTop(under) : rv.getPaddingTop();
+    adapter.notifyItemChanged(archivePosition);
+    if (adapter.tgx101HasStoriesRow()) adapter.notifyItemChanged(archivePosition + 1); // it unfolds too
+    manager.scrollToPositionWithOffset(archivePosition, top - rv.getPaddingTop());
+    rv.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+      @Override
+      public boolean onPreDraw () {
+        rv.getViewTreeObserver().removeOnPreDrawListener(this);
+        tgx101SetShift(rv, 0f);
+        return true;
+      }
+    });
+  }
+
   private final RecyclerView.ItemDecoration tgx101PullRing = new RecyclerView.ItemDecoration() {
     @Override
     public void onDrawOver (@NonNull android.graphics.Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
       if (!tgx101Pulling || tgx101PullProgress <= 0f || adapter == null) return;
       LinearLayoutManager manager = (LinearLayoutManager) parent.getLayoutManager();
-      View view = manager != null ? manager.findViewByPosition(adapter.getArchiveItemPosition()) : null;
+      // around the row that comes in first: the stories' row when it is there (the archive is still above the top)
+      View view = manager != null ? manager.findViewByPosition(adapter.getArchiveItemPosition() + (adapter.tgx101HasStoriesRow() ? 1 : 0)) : null;
       if (view == null) return;
       int mode = Settings.instance().getChatListMode();
       float cx = view.getLeft() + ChatView.getAvatarLeftFull(mode);
@@ -1106,6 +1147,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
             if (archivePosition != -1) {
               chatsView.saveScrollPosition();
               adapter.notifyItemChanged(archivePosition);
+              if (adapter.tgx101HasStoriesRow()) adapter.notifyItemChanged(archivePosition + 1); // TGx101: folds with it
               chatsView.restoreScrollPosition();
             }
           }
@@ -2880,7 +2922,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
           selectUnselectChat(chat, true);
           return;
         }
-        if (chat.tgx101IsStorage()) {
+        if (chat.tgx101IsStoriesRow()) {
+          if (parentController != null) parentController.tgx101OpenStoriesPanel();
+        } else if (chat.tgx101IsStorage()) {
           Tgx101SavedHomeController.open(context, tdlib);
         } else if (chat.isArchive()) {
           ChatsController c = new ChatsController(context, tdlib);
@@ -3050,7 +3094,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   }
 
   public boolean canSelectChat (TGChat chat) {
-    return chat != null && !chat.isArchive() && !chat.tgx101IsStorage() && tdlib.chatAvailable(chat.getChat());
+    return chat != null && !chat.isArchive() && !chat.tgx101IsStorage() && !chat.tgx101IsStoriesRow() && tdlib.chatAvailable(chat.getChat());
   }
 
   public boolean isChatSelected (TGChat chat) {
@@ -3192,8 +3236,35 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
   private String tgx101RowWhy;
 
+  /** «All chats» with the hidden archive: the stories' row under it while there are stories (header stack mode) */
+  public void tgx101CheckStoriesRow () {
+    if (adapter == null || pickerDelegate != null || isDestroyed() || filter != null || chatList().getConstructor() != TdApi.ChatListMain.CONSTRUCTOR) return;
+    java.util.List<TdApi.ChatActiveStories> ordered = parentController != null && Tgx101Stories.mode() == Tgx101Stories.MODE_HEADER ? parentController.tgx101HeaderStories() : java.util.Collections.emptyList();
+    TdApi.Chat saved = tdlib.selfChatId() != 0 ? tdlib.chat(tdlib.selfChatId()) : null;
+    if (ordered.isEmpty() || !adapter.hasArchive() || saved == null) {
+      if (adapter.tgx101HasStoriesRow()) adapter.tgx101SetStoriesRow(null);
+      return;
+    }
+    StringBuilder names = new StringBuilder();
+    int shown = Math.min(3, ordered.size());
+    for (int i = 0; i < shown; i++) {
+      if (i > 0) names.append(", ");
+      names.append(tdlib.chatTitle(ordered.get(i).chatId));
+    }
+    String text = ordered.size() > shown ? Lang.getString(R.string.Tgx101StoriesRowMore, names.toString(), ordered.size() - shown) : names.toString();
+    if (adapter.tgx101HasStoriesRow() && text.equals(tgx101StoriesRowText)) return;
+    tgx101StoriesRowText = text;
+    // keep the rows on screen where they are: the folded row takes no room, an unfolded one comes in above
+    chatsView.saveScrollPosition();
+    adapter.tgx101SetStoriesRow(TGChat.tgx101NewStoriesRow(getParentOrSelf(), chatList(), saved, text));
+    chatsView.restoreScrollPosition();
+  }
+
+  private String tgx101StoriesRowText;
+
   public void tgx101CheckStorageRow () {
     if (adapter == null || pickerDelegate != null || isDestroyed()) return;
+    tgx101CheckStoriesRow(); // first: the storage's row goes under it
     org.thunderdog.challegram.data.Tgx101SavedStore store = org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib);
     long selfChatId = tdlib.selfChatId();
     boolean want = store.storageOn && Settings.instance().tgx101StorageRow() && selfChatId != 0
