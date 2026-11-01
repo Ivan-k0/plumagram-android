@@ -140,9 +140,53 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
   // TGx101 (user 2026-10-21): the storage's own row, right under the archive — see TGChat#tgx101NewStorage
   private @Nullable TGChat tgx101StorageItem;
 
-  /** the rows that aren't chats of the list (archive, stories, storage): Telegram's indexes start after them */
+  /** the rows that aren't chats of the list (archive, stories, storage) */
   private int tgx101Specials () {
     return (hasArchive ? 1 : 0) + (tgx101StoriesItem != null ? 1 : 0) + (tgx101StorageItem != null ? 1 : 0);
+  }
+
+  /** the special rows on top: Telegram's indexes start after them */
+  private int tgx101Top () {
+    return (hasArchive ? 1 : 0) + (tgx101StoriesItem != null ? 1 : 0) + (tgx101StorageItem != null && tgx101StorageItem.tgx101StoragePinned() ? 1 : 0);
+  }
+
+  /** where the unpinned storage's row stands among the chats, -1 — pinned or none */
+  private int tgx101LooseStorageAt () {
+    return tgx101StorageItem != null && !tgx101StorageItem.tgx101StoragePinned() ? chats.indexOf(tgx101StorageItem) : -1;
+  }
+
+  /** a chat already in the list: its Telegram index → its index here (past the unpinned storage's row, if it's above) */
+  private int tgx101ChatIndex (int index) {
+    int chatIndex = index + tgx101Top();
+    int storageAt = tgx101LooseStorageAt();
+    return storageAt != -1 && chatIndex >= storageAt ? chatIndex + 1 : chatIndex;
+  }
+
+  /** a chat coming in at this Telegram index: right where the unpinned storage's row stands it goes above or under it by date */
+  private int tgx101InsertIndex (int index, TGChat chat) {
+    int chatIndex = index + tgx101Top();
+    int storageAt = tgx101LooseStorageAt();
+    if (storageAt == -1 || chatIndex < storageAt) return chatIndex;
+    if (chatIndex > storageAt) return chatIndex + 1;
+    return chat.getChatOrder() >= tgx101StorageItem.getChatOrder() ? storageAt : storageAt + 1;
+  }
+
+  /** the unpinned storage's row goes where its date puts it among the loaded chats */
+  public void tgx101PlaceStorage () {
+    int storageAt = tgx101LooseStorageAt();
+    if (storageAt == -1) return;
+    long order = tgx101StorageItem.getChatOrder();
+    int top = tgx101Top();
+    int target = top;
+    for (int i = top; i < chats.size(); i++) {
+      if (i != storageAt && chats.get(i).getChatOrder() > order) target++;
+    }
+    if (target != storageAt) {
+      chats.remove(storageAt);
+      chats.add(target, tgx101StorageItem);
+      notifyItemMoved(getItemPositionByChatIndex(storageAt), getItemPositionByChatIndex(target));
+      invalidateAttachedItemDecorations();
+    }
   }
 
   // TGx101 (mockup «Где жить историям» В): the stories' row, right under the archive — see TGChat#tgx101NewStoriesRow
@@ -180,8 +224,38 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
     return tgx101StorageItem != null;
   }
 
+  public boolean tgx101StoragePinned () {
+    return tgx101StorageItem != null && tgx101StorageItem.tgx101StoragePinned();
+  }
+
   public void tgx101SetStorage (@Nullable TGChat item) {
     int at = (hasArchive ? ARCHIVE_INDEX + 1 : 0) + (tgx101StoriesItem != null ? 1 : 0);
+    if (tgx101StorageItem != null && (item == null || item.tgx101StoragePinned() != tgx101StorageItem.tgx101StoragePinned())) {
+      // gone, or pinned ↔ unpinned: out from where it stands, then in at its new place
+      int storageAt = chats.indexOf(tgx101StorageItem);
+      if (storageAt != -1) {
+        chats.remove(storageAt);
+        tgx101StorageItem = null;
+        tgx101NotifyRemovedKeepingInfo(getItemPositionByChatIndex(storageAt));
+        invalidateAttachedItemDecorations();
+      }
+      tgx101StorageItem = null;
+    }
+    if (item != null && !item.tgx101StoragePinned()) {
+      if (tgx101StorageItem != null) {
+        int storageAt = chats.indexOf(tgx101StorageItem);
+        chats.set(storageAt, item);
+        tgx101StorageItem = item;
+        notifyItemChanged(getItemPositionByChatIndex(storageAt));
+      } else {
+        chats.add(at, item); // under the specials on top, then where its date puts it
+        tgx101StorageItem = item;
+        notifyChatAppeared(-1, getItemPositionByChatIndex(at));
+        invalidateAttachedItemDecorations();
+      }
+      tgx101PlaceStorage();
+      return;
+    }
     if (item == null) {
       if (tgx101StorageItem != null) {
         chats.remove(at);
@@ -206,6 +280,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
   /** @return its position when what it shows changed, -1 otherwise */
   public int tgx101UpdateStorage (String text, int date) {
     if (tgx101StorageItem == null || !tgx101StorageItem.tgx101SetStorageInfo(text, date)) return -1;
+    tgx101PlaceStorage(); // a newer date moves an unpinned one up
     return getItemPositionByChatIndex(chats.indexOf(tgx101StorageItem));
   }
 
@@ -735,7 +810,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
   }
 
   public int removeChatById (TdApi.Chat chat, int fromIndex, Tdlib.ChatChange changeInfo) {
-    final int chatIndex = fromIndex + tgx101Specials();
+    final int chatIndex = tgx101ChatIndex(fromIndex);
     if (chatIndex != -1) {
       TGChat removedChat = removeChat(chatIndex);
       if (removedChat.getChatId() != chat.id)
@@ -758,9 +833,9 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
 
   public int moveChat (TdApi.Chat chat, int fromIndex, int toIndex, Tdlib.ChatChange changeInfo) {
     TGChat parsedChat;
-    fromIndex += tgx101Specials();
-    toIndex += tgx101Specials();
+    fromIndex = tgx101ChatIndex(fromIndex);
     parsedChat = chats.remove(fromIndex);
+    toIndex = tgx101InsertIndex(toIndex, parsedChat); // in the list without it
 
     boolean invalidateDecorations = changeInfo.metadataChanged() ||
       needShadowDecoration(getChatAt(fromIndex - 1), parsedChat) ||
@@ -782,12 +857,13 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
       int toPosition = getItemPositionByChatIndex(toIndex);
       notifyChatAppeared(fromPosition, toPosition);
     }
+    tgx101PlaceStorage(); // a chat that crossed the unpinned storage's date
     return flags;
   }
 
   public int addChat (TdApi.Chat chat, int atIndex, Tdlib.ChatChange changeInfo) {
     TGChat newChat = new TGChat(context.getParentOrSelf(), context.chatList(), chat, false);
-    int index = atIndex + tgx101Specials();
+    int index = tgx101InsertIndex(atIndex, newChat);
     newChat.makeMeasures();
     int flags = changeInfo.metadataChanged() ? ORDER_INVALIDATE_DECORATIONS : 0;
     boolean wasEmpty = !hasChats();
@@ -803,11 +879,12 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
   }
 
   public int updateChat (TdApi.Chat chat, int index, Tdlib.ChatChange changeInfo) {
-    final int chatIndex = index + tgx101Specials();
+    final int chatIndex = tgx101ChatIndex(index);
     TGChat parsedChat = chats.get(chatIndex);
     if (parsedChat.getChatId() != chat.id)
       throw new IllegalStateException();
     parsedChat.updateChatPosition(chat.id, changeInfo.position, changeInfo.sourceChanged(), changeInfo.pinStateChanged());
+    tgx101PlaceStorage();
     return changeInfo.metadataChanged() ? ORDER_INVALIDATE_DECORATIONS : 0;
   }
 

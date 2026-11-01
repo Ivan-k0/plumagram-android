@@ -3267,9 +3267,13 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     tgx101CheckStoriesRow(); // first: the storage's row goes under it
     org.thunderdog.challegram.data.Tgx101SavedStore store = org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib);
     long selfChatId = tdlib.selfChatId();
-    boolean want = store.storageOn && Settings.instance().tgx101StorageRow() && selfChatId != 0
-      && adapter.indexOfChat(selfChatId) != -1 && !store.isRowHidden(tgx101ListKey());
-    String why = "storageOn " + store.storageOn + ", setting " + Settings.instance().tgx101StorageRow() + ", saved in list " + (selfChatId != 0 && adapter.indexOfChat(selfChatId) != -1) + ", hidden " + store.isRowHidden(tgx101ListKey()) + " (" + tgx101ListKey() + ")";
+    // (user 2026-11-01 «строку Хранилище я вообще не вижу»): Saved Messages far down «All chats» wasn't loaded into the list
+    // yet, and the row waited for a scroll down to it. The whole list or a folder also knows it by the chat's own positions
+    TdApi.Chat savedChat = selfChatId != 0 ? tdlib.chat(selfChatId) : null;
+    boolean savedInList = selfChatId != 0 && (adapter.indexOfChat(selfChatId) != -1 || (filter == null && savedChat != null && ChatPosition.findPosition(savedChat, chatList()) != null));
+    boolean want = store.storageOn && Settings.instance().tgx101StorageRow() && savedInList && !store.isRowHidden(tgx101ListKey());
+    boolean pinned = store.isRowPinned(tgx101ListKey());
+    String why = "storageOn " + store.storageOn + ", setting " + Settings.instance().tgx101StorageRow() + ", pinned " + pinned + ", saved in list " + savedInList + ", hidden " + store.isRowHidden(tgx101ListKey()) + " (" + tgx101ListKey() + ")";
     if (!why.equals(tgx101RowWhy)) {
       tgx101RowWhy = why;
       org.thunderdog.challegram.Tgx101Diag.mark("storage row: " + (want ? "shown" : "not shown") + " — " + why);
@@ -3282,8 +3286,10 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     if (saved == null) return;
     String text = tgx101StorageText(store, saved);
     int date = saved.lastMessage != null ? saved.lastMessage.date : 0;
-    if (!adapter.tgx101HasStorage()) {
-      adapter.tgx101SetStorage(TGChat.tgx101NewStorage(getParentOrSelf(), chatList(), saved, text, date));
+    if (!adapter.tgx101HasStorage() || adapter.tgx101StoragePinned() != pinned) {
+      TGChat item = TGChat.tgx101NewStorage(getParentOrSelf(), chatList(), saved, text, date);
+      item.tgx101SetStoragePinned(pinned);
+      adapter.tgx101SetStorage(item);
     } else {
       int position = adapter.tgx101UpdateStorage(text, date);
       if (position != -1) adapter.notifyItemChanged(position);
@@ -3302,11 +3308,17 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   }
 
   private void tgx101StorageOptions () {
-    showOptions(Lang.getString(R.string.Tgx101BirdStorage), new int[] {R.id.btn_open, R.id.btn_tgx101HideStorageRow}, new String[] {
-      Lang.getString(R.string.Tgx101StorageRowOpen), Lang.getString(R.string.Tgx101StorageRowHide)
-    }, new int[] {OptionColor.NORMAL, OptionColor.RED}, new int[] {R.drawable.tgx101_storage_tiles_24, R.drawable.baseline_remove_circle_24}, (itemView, id) -> {
+    boolean pinned = org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).isRowPinned(tgx101ListKey());
+    showOptions(Lang.getString(R.string.Tgx101BirdStorage), new int[] {R.id.btn_open, R.id.btn_pinUnpinChat, R.id.btn_tgx101HideStorageRow}, new String[] {
+      Lang.getString(R.string.Tgx101StorageRowOpen), Lang.getString(pinned ? R.string.Unpin : R.string.Pin), Lang.getString(R.string.Tgx101StorageRowHide)
+    }, new int[] {OptionColor.NORMAL, OptionColor.NORMAL, OptionColor.RED}, new int[] {R.drawable.tgx101_storage_tiles_24, pinned ? R.drawable.deproko_baseline_pin_undo_24 : R.drawable.deproko_baseline_pin_24, R.drawable.baseline_remove_circle_24}, (itemView, id) -> {
       if (id == R.id.btn_open) {
         Tgx101SavedHomeController.open(context, tdlib);
+      } else if (id == R.id.btn_pinUnpinChat) {
+        // its own pin, apart from Saved Messages' (user 2026-11-01)
+        org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).setRowPinned(tgx101ListKey(), !pinned);
+        org.thunderdog.challegram.Tgx101Diag.mark("storage row: " + (pinned ? "unpinned" : "pinned") + " in " + tgx101ListKey());
+        tgx101CheckStorageRow();
       } else if (id == R.id.btn_tgx101HideStorageRow) {
         org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).setRowHidden(tgx101ListKey(), true);
         org.thunderdog.challegram.Tgx101Diag.mark("storage row: hidden by hand from " + tgx101ListKey());

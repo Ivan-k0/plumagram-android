@@ -411,6 +411,17 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
     return tgx101StoriesRow;
   }
 
+  private boolean tgx101StoragePinned = true;
+
+  /** the storage's row: pinned on top, or among the chats by its date */
+  public boolean tgx101StoragePinned () {
+    return tgx101StoriesRow || tgx101StoragePinned;
+  }
+
+  public void tgx101SetStoragePinned (boolean pinned) {
+    tgx101StoragePinned = pinned;
+  }
+
   public static TGChat tgx101NewStorage (ViewController<?> context, TdApi.ChatList list, TdApi.Chat saved, String text, int date) {
     TGChat c = new TGChat(context, list, saved, false);
     c.tgx101Storage = true;
@@ -455,7 +466,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   }
 
   public long getChatOrder () {
-    if (tgx101Storage) return Long.MAX_VALUE - 1;
+    if (tgx101Storage) return tgx101StoragePinned() ? Long.MAX_VALUE - 1 : ((long) tgx101StorageDate << 32); // unpinned: by its date, as chats go
     return isArchive() ? Long.MAX_VALUE : ChatPosition.getOrder(chat, chatList);
   }
 
@@ -563,7 +574,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   }
 
   public boolean isPinnedOrSpecial () {
-    if (tgx101Storage) return true;
+    if (tgx101Storage) return tgx101StoragePinned();
     TdApi.ChatPosition position = getPosition();
     return position != null && (position.isPinned || position.source != null);
   }

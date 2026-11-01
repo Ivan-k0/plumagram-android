@@ -322,6 +322,24 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
     Settings.instance().pmc().putString(rowHiddenKey(), android.text.TextUtils.join(",", set));
   }
 
+  // (user 2026-11-01 «хранилище отдельно, избранное отдельно закрепляется»): the storage's row has its own pin per list —
+  // pinned it stands on top, unpinned among the chats by its date. Pinned unless unpinned by hand
+  private String rowUnpinnedKey () {
+    return "tgx101_storage_row_unpinned_" + accountId;
+  }
+
+  public synchronized boolean isRowPinned (String listKey) {
+    for (String k : Settings.instance().pmc().getString(rowUnpinnedKey(), "").split(",")) if (k.equals(listKey)) return false;
+    return true;
+  }
+
+  public synchronized void setRowPinned (String listKey, boolean pinned) {
+    java.util.LinkedHashSet<String> set = new java.util.LinkedHashSet<>();
+    for (String k : Settings.instance().pmc().getString(rowUnpinnedKey(), "").split(",")) if (!k.isEmpty()) set.add(k);
+    if (pinned) set.remove(listKey); else set.add(listKey);
+    Settings.instance().pmc().putString(rowUnpinnedKey(), android.text.TextUtils.join(",", set));
+  }
+
   public synchronized void showRowEverywhere () {
     Settings.instance().pmc().remove(rowHiddenKey());
   }
