@@ -226,6 +226,7 @@ public final class Tgx101Island {
       layoutTexts();
       removeCallbacks(hide);
       postDelayed(hide, expanded > 0f ? HIDE_EXPANDED_MS : HIDE_MS);
+      if (!same) tgx101ShownAt = SystemClock.uptimeMillis();
       animateShown(true, null);
       invalidate();
     }
@@ -239,6 +240,7 @@ public final class Tgx101Island {
     @Override
     protected void onDetachedFromWindow () {
       super.onDetachedFromWindow();
+      if (shown > 0f && tgx101ShownAt != 0) org.thunderdog.challegram.Tgx101Diag.mark("island: taken off the screen after " + (SystemClock.uptimeMillis() - tgx101ShownAt) + " ms");
       avatar.detach();
     }
 
@@ -438,8 +440,15 @@ public final class Tgx101Island {
       a.start();
     }
 
+    // (user 2026-11-01 «висит 2-3 секунды, а нужно 4»): the timer is 4 s — the journal now says how long it really stayed
+    private long tgx101ShownAt;
+
     private void animateShown (boolean show, @Nullable Runnable after) {
       float to = show ? 1f : 0f;
+      if (!show && shown > 0f && tgx101ShownAt != 0) {
+        org.thunderdog.challegram.Tgx101Diag.mark("island: hides after " + (SystemClock.uptimeMillis() - tgx101ShownAt) + " ms, expanded " + expanded + ", attached " + isAttachedToWindow());
+        tgx101ShownAt = 0;
+      }
       shownTarget = to;
       if (showAnimator != null) showAnimator.cancel();
       if (shown == to) {

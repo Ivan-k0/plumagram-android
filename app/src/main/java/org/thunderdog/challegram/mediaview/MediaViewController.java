@@ -4647,11 +4647,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private float lastSlideX, lastSlideY, lastSlideSourceX;
   private float dismissFactor;
+  private float tgx101SlideDim;
 
   private void setSlideDismissFactor (float factor) {
     if (this.dismissFactor != factor) {
       this.dismissFactor = factor;
-      setCommonFactor(1f - dismissFactor);
+      if (mode != MODE_MESSAGES && mode != MODE_SIMPLE) setCommonFactor(1f - dismissFactor);
       // (user recording 2026-10-29 23:03 «"чужое" фото резко появляется после смахивания и исчезает»): in «Газета» a
       // picture with no place in the feed to go back to stayed solid over the feed while pulled, then dropped to half in
       // one frame — it now pales with the pull, together with the dimming
@@ -4719,6 +4720,15 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       dismissFactor = 0f;
     if (noRotation || dismissFactor > this.dismissFactor || byTouch) {
       setSlideDismissFactor(dismissFactor);
+      if (mode == MODE_MESSAGES || mode == MODE_SIMPLE) {
+        // TGx101 (user 2026-11-01 «фото так плохо сворачивает, блимает сильно»): the dark backdrop was gone after 125dp
+        // of pull — a quick flick cleared it in a few frames and the chat flashed in under the photo. It now pales over a
+        // long pull and never all the way, the rest dissolving with the flight into the post
+        float dim = .8f * MathUtils.clamp(Math.abs(y) / (float) Screen.dp(420f));
+        if (Float.isNaN(dim)) dim = 0f;
+        tgx101SlideDim = dim;
+        setCommonFactor(1f - dim);
+      }
     }
 
     mediaView.setTranslationX(x);
@@ -4883,7 +4893,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
     if (target == null) return false;
     final float fromX = mediaView.getTranslationX(), fromY = mediaView.getTranslationY(), fromRotation = mediaView.getRotation();
-    tgx101RevealAlphaScale = MathUtils.clamp(1f - dismissFactor);
+    tgx101RevealAlphaScale = MathUtils.clamp(1f - tgx101SlideDim);
     android.animation.ValueAnimator back = android.animation.ValueAnimator.ofFloat(1f, 0f);
     back.setDuration(TGX101_SLIDE_REVEAL_DURATION);
     back.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);

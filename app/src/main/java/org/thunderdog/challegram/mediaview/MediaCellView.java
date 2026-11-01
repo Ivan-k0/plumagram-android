@@ -2047,8 +2047,14 @@ public class MediaCellView extends ViewGroup implements
         }
         receiver.draw(c);
         if (disappearing && tgx101Frame != null && !tgx101Frame.isRecycled()) {
+          // (user video 2026-11-01 21:18 «ужас убирания видео свайпом»): the frame was stretched over the receiver's whole
+          // bounds — the full-screen height — and the clip into the post cut a blown-up face out of it. It is fitted the way
+          // the receiver fits its picture (FIT_CENTER), so it lands exactly where the cover would
           android.graphics.Rect dst = Paints.getRect();
-          dst.set(receiver.getLeft(), receiver.getTop(), receiver.getRight(), receiver.getBottom());
+          float boxW = receiver.getWidth(), boxH = receiver.getHeight();
+          float fit = Math.min(boxW / tgx101Frame.getWidth(), boxH / tgx101Frame.getHeight());
+          float frameW = tgx101Frame.getWidth() * fit, frameH = tgx101Frame.getHeight() * fit;
+          dst.set(Math.round(receiver.centerX() - frameW / 2f), Math.round(receiver.centerY() - frameH / 2f), Math.round(receiver.centerX() + frameW / 2f), Math.round(receiver.centerY() + frameH / 2f));
           android.graphics.Paint paint = Paints.getBitmapPaint();
           int was = paint.getAlpha();
           paint.setAlpha(Math.round(255 * Math.max(0f, Math.min(1f, receiver.getAlpha() * receiver.getPaintAlpha()))));
