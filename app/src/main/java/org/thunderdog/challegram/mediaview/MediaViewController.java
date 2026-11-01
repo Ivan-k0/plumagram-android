@@ -524,8 +524,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     return false;
   }
 
+  private @Nullable View tgx101BottomShade;
+
   private void setBottomAlpha (float alpha) {
     float visibility = alpha * headerVisible.getFloatValue() * (1f - pipFactor);
+    if (tgx101BottomShade != null) tgx101BottomShade.setAlpha(visibility);
     if (hasCaption() || mode == MODE_GALLERY) {
       captionWrapView.setAlpha(visibility);
     }
@@ -10940,6 +10943,16 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
     updateIconStates(false);
 
+    // TGx101 (user 2026-11-01, variant 1 of «как выделить поле ввода»): the caption field, the video's timeline and the
+    // buttons stand on a shade rising from the bottom — a dark field on a dark video ran into the picture. The picture
+    // above stays as it is
+    if (mode == MODE_GALLERY) {
+      tgx101BottomShade = new View(context);
+      tgx101BottomShade.setBackground(new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.BOTTOM_TOP,
+        new int[] {0x99000000, 0x80000000, 0x40000000, 0x00000000}));
+      tgx101BottomShade.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(280f), Gravity.BOTTOM));
+      contentView.addView(tgx101BottomShade);
+    }
     contentView.addView(editWrap);
     attachedViews.add(editWrap);
 
