@@ -187,7 +187,7 @@ public class SettingView extends FrameLayoutFix implements FactorAnimator.Target
     if (togglerView == null) {
       togglerView = new TogglerView(getContext());
       togglerView.init(isEnabled());
-      FrameLayout.LayoutParams params = FrameLayoutFix.newParams(Screen.dp(66f), Screen.dp(48f), (Lang.rtl() ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL);
+      FrameLayout.LayoutParams params = FrameLayoutFix.newParams(Screen.dp(66f + (TogglerView.TGX101_M3 ? TogglerView.TGX101_M3_EXTRA_WIDTH : 0f)), Screen.dp(48f), (Lang.rtl() ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL);
       params.leftMargin = Screen.dp(4f);
       params.bottomMargin = Screen.dp(3f);
       togglerView.setLayoutParams(params);
@@ -602,7 +602,7 @@ public class SettingView extends FrameLayoutFix implements FactorAnimator.Target
     float availWidth;
 
     if (type == TYPE_RADIO) {
-      availWidth = totalWidth - paddingLeft - paddingRight - paddingRight - Screen.dp(38f);
+      availWidth = totalWidth - paddingLeft - paddingRight - paddingRight - Screen.dp(38f + (TogglerView.TGX101_M3 ? TogglerView.TGX101_M3_EXTRA_WIDTH : 0f));
     } else {
       availWidth = totalWidth - paddingLeft - paddingRight;
     }

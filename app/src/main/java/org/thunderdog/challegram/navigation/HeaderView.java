@@ -1101,7 +1101,9 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
       moreWrap.init(themeListenerList, null);
     }
     moreWrap.setAnchorMode(MenuMoreWrap.ANCHOR_MODE_RIGHT);
-    moreWrap.setTranslationY(getTranslationY() + getCurrentHeaderOffset());
+    // (user 2026-11-01 «удалить вверху шапки — оставить там, но с новым дизайном и чуть ниже шапки, а то сливается»):
+    // the confirmation under a header button stands a little below the header
+    moreWrap.setTranslationY(getTranslationY() + getCurrentHeaderOffset() + Screen.dp(10f));
     showMore(ids, titles, icons, v -> {
       ((PopupLayout) v.getParent().getParent()).hideWindow(true);
       onItemPressed.runWithInt(v.getId());
@@ -1124,6 +1126,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
         android.graphics.drawable.Drawable drawable = org.thunderdog.challegram.tool.Drawables.get(getResources(), icons[i]).mutate();
         drawable.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.iconNegative)));
         TextView item = (TextView) moreWrap.getChildAt(i);
+        item.setTextColor(Theme.getColor(ColorId.textNegative)); // the deleting choice in red, as on the new windows
         if (Lang.rtl()) {
           item.setCompoundDrawablesWithIntrinsicBounds(null, null, drawable, null);
         } else {
@@ -1151,6 +1154,9 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
       for (; i < size; i++) {
         moreWrap.addItem(ids == null ? i : ids[i], titles[i], icons != null ? icons[i] : 0, null, onItemClick);
       }
+    }
+    for (int k = 0; k < moreWrap.getChildCount(); k++) { // a red «Delete» from the last menu doesn't stay red
+      if (moreWrap.getChildAt(k) instanceof TextView) ((TextView) moreWrap.getChildAt(k)).setTextColor(Theme.textAccentColor());
     }
     PopupLayout popupLayout = new PopupLayout(getContext());
     popupLayout.init(true);

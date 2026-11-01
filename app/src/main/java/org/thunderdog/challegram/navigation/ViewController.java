@@ -2759,6 +2759,14 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
       return null;
     }
 
+    // TGx101 (approved mockup «Окна Material 3»): a question with «Cancel» is a dialog in the middle, a choice is a sheet
+    // with radio buttons; other options keep the card below
+    PopupLayout tgx101M3 = Tgx101M3Sheets.show(this, options, delegate, forcedTheme, extraBottomInsetWithoutIme);
+    if (tgx101M3 != null) {
+      onCreatePopupLayout(tgx101M3);
+      return tgx101M3;
+    }
+
     final PopupLayout popupLayout = new PopupLayout(context);
 
     popupLayout.setTag(this);

@@ -65,10 +65,21 @@ public class TogglerView extends View implements FactorAnimator.Target, TooltipO
     super(context);
   }
 
+  /** TGx101 (approved mockup «Окна Material 3» В, user 2026-11-01): the Material 3 switch — a 52×32 dp track, outlined
+   *  when off with a small thumb, filled with the accent when on with a bigger thumb holding a ✓. The red / green and
+   *  the locked togglers keep their old look */
+  public static final boolean TGX101_M3 = true;
+  /** How much wider than the old one the Material 3 switch is: rows leave this much more room for it */
+  public static final float TGX101_M3_EXTRA_WIDTH = 18f;
+
+  private boolean tgx101M3 () {
+    return TGX101_M3 && !useNegativeState && !showLock;
+  }
+
   public void init (boolean isEnabled) {
     setRadioEnabled(isEnabled, false);
     initDrawingItems();
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !TGX101_M3) {
       setOutlineProvider(new android.view.ViewOutlineProvider() {
         @Override
         @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
@@ -252,6 +263,56 @@ public class TogglerView extends View implements FactorAnimator.Target, TooltipO
     }
   }
 
+  private final RectF tgx101Track = new RectF();
+  private Paint tgx101Paint;
+  private final android.graphics.Path tgx101Check = new android.graphics.Path();
+
+  private void tgx101DrawM3 (Canvas c, float factor, float disableFactor) {
+    if (tgx101Paint == null) {
+      tgx101Paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+      tgx101Paint.setStrokeCap(Paint.Cap.ROUND);
+      tgx101Paint.setStrokeJoin(Paint.Join.ROUND);
+    }
+    float f = factor * (1f - disableFactor);
+    int accent = Theme.togglerActiveColor();
+    int outline = Theme.togglerInactiveColor();
+    int surface = Theme.fillingColor();
+    float trackRight = currentWidth - Screen.dp(18f), trackLeft = trackRight - Screen.dp(52f);
+    float cy = origY, half = Screen.dp(16f);
+    tgx101Track.set(trackLeft, cy - half, trackRight, cy + half);
+    float alpha = 1f - .62f * disableFactor; // a disabled switch fades to 38 %, as Material 3 asks
+    // track: the surface with an outline when off, the accent when on
+    tgx101Paint.setStyle(Paint.Style.FILL);
+    tgx101Paint.setColor(ColorUtils.alphaColor(alpha, ColorUtils.fromToArgb(ColorUtils.fromToArgb(surface, outline, .12f), accent, f)));
+    c.drawRoundRect(tgx101Track, half, half, tgx101Paint);
+    if (f < 1f) {
+      float stroke = Screen.dp(2f);
+      tgx101Paint.setStyle(Paint.Style.STROKE);
+      tgx101Paint.setStrokeWidth(stroke);
+      tgx101Paint.setColor(ColorUtils.alphaColor(alpha * (1f - f), outline));
+      tgx101Track.inset(stroke / 2f, stroke / 2f);
+      c.drawRoundRect(tgx101Track, half - stroke / 2f, half - stroke / 2f, tgx101Paint);
+    }
+    // thumb: small and grey when off, bigger and in the surface colour when on
+    float from = trackLeft + half, to = trackRight - half;
+    float x = Lang.rtl() ? to - (to - from) * factor : from + (to - from) * factor;
+    float radius = Screen.dp(8f) + Screen.dp(4f) * f;
+    tgx101Paint.setStyle(Paint.Style.FILL);
+    tgx101Paint.setColor(ColorUtils.alphaColor(alpha, ColorUtils.fromToArgb(outline, surface, f)));
+    c.drawCircle(x, cy, radius, tgx101Paint);
+    if (f > 0f) {
+      float s = Screen.dp(4.5f);
+      tgx101Check.reset();
+      tgx101Check.moveTo(x - s, cy + s * .05f);
+      tgx101Check.lineTo(x - s * .3f, cy + s * .75f);
+      tgx101Check.lineTo(x + s, cy - s * .65f);
+      tgx101Paint.setStyle(Paint.Style.STROKE);
+      tgx101Paint.setStrokeWidth(Screen.dp(2f));
+      tgx101Paint.setColor(ColorUtils.alphaColor(alpha * f, accent));
+      c.drawPath(tgx101Check, tgx101Paint);
+    }
+  }
+
   @Override
   public void getTargetBounds (View targetView, Rect outRect) {
     final int bound = Screen.dp(2f);
@@ -281,7 +342,11 @@ public class TogglerView extends View implements FactorAnimator.Target, TooltipO
 
     final float disableFactor = !useNegativeState && this.isDisabled != null ? this.isDisabled.getFloatValue() : 0f;
 
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+    if (tgx101M3()) {
+      tgx101DrawM3(c, factor, disableFactor);
+      return;
+    }
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || TGX101_M3) {
       c.drawRoundRect(fillingRect, fillRadius, fillRadius, Paints.fillingPaint(ColorUtils.fromToArgb(fromBackgroundColor, toBackgroundColor, factor * (1f - disableFactor))));
     }
     circlePaint.setColor(ColorUtils.fromToArgb(fromColor, toColor, factor * (1f - disableFactor)));
