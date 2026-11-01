@@ -1430,6 +1430,8 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   private android.animation.ValueAnimator tgx101StoriesPanelAnimator;
   private String tgx101StackKey = "";
 
+  private static final float TGX101_STORIES_PULL_DP = 140f;
+
   private void tgx101AddStoriesPanel (Context context, FrameLayoutFix contentView) {
     if (Tgx101Stories.mode() != Tgx101Stories.MODE_HEADER) return;
     tgx101HeaderStrip = new org.thunderdog.challegram.widget.Tgx101StoriesStrip(context, tdlib, new org.thunderdog.challegram.widget.Tgx101StoriesStrip.Callback() {
@@ -1462,19 +1464,11 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     // (user 2026-11-01 «первый свайп открывает плашку с историями, повторный запускает проигрывание»): with the pull set
     // to «Stories», the pull drops this panel; a swipe down on the open panel (over the sheet or the dim) plays them
     // (user 2026-11-01 «повторный свайп с историями нужно тоже как-то предохранить»): the swipe down that plays them is a
-    // pull — the sheet follows the finger a little, and only a long, clearly downward pull let go plays; a short one
-    // springs back
+    // long, clearly downward pull let go. The panel stays still («анимация не очень… не нужно трогать панель»): a light
+    // tick tells the pull went far enough
     tgx101StoriesPanel = new FrameLayoutFix(context) {
       private float downX, downY;
-      private boolean pulling, sideways;
-
-      private float pull (float dy) {
-        return Math.min(Screen.dp(56f), dy * .35f);
-      }
-
-      private void springBack () {
-        if (tgx101StoriesSheet != null) tgx101StoriesSheet.animate().translationY(0f).setDuration(180).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
-      }
+      private boolean pulling, sideways, ready;
 
       @Override
       public boolean dispatchTouchEvent (MotionEvent e) {
@@ -1482,8 +1476,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
           case MotionEvent.ACTION_DOWN:
             downX = e.getX();
             downY = e.getY();
-            pulling = sideways = false;
-            if (tgx101StoriesSheet != null) tgx101StoriesSheet.animate().cancel();
+            pulling = sideways = ready = false;
             break;
           case MotionEvent.ACTION_MOVE: {
             float dy = e.getY() - downY, dx = Math.abs(e.getX() - downX);
@@ -1497,7 +1490,11 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
               sideways = true; // the circles scroll sideways: no pull in this gesture
             }
             if (pulling) {
-              if (tgx101StoriesSheet != null) tgx101StoriesSheet.setTranslationY(pull(Math.max(0f, dy)));
+              boolean nowReady = dy >= Screen.dp(TGX101_STORIES_PULL_DP) && dy > dx * 2f;
+              if (nowReady != ready) {
+                ready = nowReady;
+                if (ready) performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
+              }
               return true;
             }
             break;
@@ -1506,9 +1503,8 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
           case MotionEvent.ACTION_CANCEL:
             if (pulling) {
               pulling = false;
-              springBack();
               float dy = e.getY() - downY, dx = Math.abs(e.getX() - downX);
-              if (e.getActionMasked() == MotionEvent.ACTION_UP && dy >= Screen.dp(140f) && dy > dx * 2f) {
+              if (e.getActionMasked() == MotionEvent.ACTION_UP && dy >= Screen.dp(TGX101_STORIES_PULL_DP) && dy > dx * 2f) {
                 tgx101PlayFirstStories();
               } else {
                 org.thunderdog.challegram.Tgx101Diag.mark("stories: panel pulled " + Math.round(dy / Screen.dp(1f)) + " dp — too short, nothing played");
