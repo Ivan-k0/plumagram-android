@@ -731,7 +731,8 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
           @Override
           public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
-            if (hideArchive && !archiveCollapsed && chatScrollState == RecyclerView.SCROLL_STATE_SETTLING && dy > 0 && ((LinearLayoutManager) recyclerView.getLayoutManager()).findFirstVisibleItemPosition() > 0) {
+            // TGx101: not while a let-go pull slides away — folding mid-slide kept the slide going one row too far (test 17:57)
+            if (hideArchive && !archiveCollapsed && !tgx101FoldOnIdle && chatScrollState == RecyclerView.SCROLL_STATE_SETTLING && dy > 0 && ((LinearLayoutManager) recyclerView.getLayoutManager()).findFirstVisibleItemPosition() > 0) {
               setArchiveCollapsed(true);
             }
           }
