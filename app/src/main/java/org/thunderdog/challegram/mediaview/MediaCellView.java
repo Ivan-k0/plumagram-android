@@ -754,7 +754,11 @@ public class MediaCellView extends ViewGroup implements
       if (media != null) {
         float alpha = MathUtils.clamp(revealFactor);
         if ((media.isLoaded() || Config.VIDEO_CLOUD_PLAYBACK_AVAILABLE) && media.isVideo() && media.isRemoteVideo()) {
-          if (disappearing) {
+          if (disappearing && tgx101Frame != null) {
+            // (user video 2026-11-01 13:55 «кнопка плей летит за видео»): the frame flies back without the play button —
+            // it shows up only when the picture has landed in the chat
+            media.setComponentsAlpha(alpha <= .02f ? 1f : 0f);
+          } else if (disappearing) {
             float diff = 1f - fromComponentsAlpha;
             media.setComponentsAlpha(fromComponentsAlpha + diff * (1f - alpha));
           } else {
