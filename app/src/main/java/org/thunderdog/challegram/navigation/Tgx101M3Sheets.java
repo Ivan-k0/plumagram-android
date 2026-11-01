@@ -389,8 +389,13 @@ public final class Tgx101M3Sheets {
     final LinearLayout sheet = new LinearLayout(context);
     sheet.setOrientation(LinearLayout.VERTICAL);
     sheet.setClickable(true);
-    // above the navigation buttons or the gesture bar — the rows never go under them
-    sheet.setPadding(0, Screen.dp(24f), 0, Screen.dp(16f) + Math.max(0, bottomInset));
+    // above the navigation buttons or the gesture bar — the rows never go under them (the screen's own inset is 0 when
+    // the app draws under the bar, so the window's navigation bar inset is asked too)
+    int navigationBar = 0;
+    android.view.Window window = controller.context().getWindow();
+    androidx.core.view.WindowInsetsCompat insets = window != null ? androidx.core.view.ViewCompat.getRootWindowInsets(window.getDecorView()) : null;
+    if (insets != null) navigationBar = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom;
+    sheet.setPadding(0, Screen.dp(24f), 0, Screen.dp(16f) + Math.max(Math.max(0, bottomInset), navigationBar));
     GradientDrawable background = new GradientDrawable();
     background.setColor(surface(forcedTheme));
     float r = Screen.dp(28f);
