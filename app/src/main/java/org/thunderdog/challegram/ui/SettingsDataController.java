@@ -199,6 +199,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         if (customViewType == TGX101_PREVIEW) {
           return new SettingHolder(new Tgx101MagixPreview(context));
         }
+        if (customViewType == TGX101_PILLS) {
+          return new SettingHolder(new org.thunderdog.challegram.widget.Tgx101Pills(context));
+        }
         return super.initCustom(parent, customViewType);
       }
 
@@ -208,6 +211,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           tgx101Preview = (Tgx101MagixPreview) view;
           tgx101Preview.setMode((int) item.getLongId());
           tgx101Preview.invalidate();
+        }
+        if (view instanceof org.thunderdog.challegram.widget.Tgx101Pills) {
+          tgx101BindPills((org.thunderdog.challegram.widget.Tgx101Pills) view, item.getId());
         }
         if (view instanceof Tgx101AppIconPicker) {
           ((Tgx101AppIconPicker) view).updateColors();
@@ -612,7 +618,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SameSettings, 0, R.string.Tgx101SameSettings),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SameSettingsHint),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101StoriesMode, 0, R.string.Tgx101StoriesMode),
+        new ListItem(ListItem.TYPE_CUSTOM - TGX101_PILLS, R.id.btn_tgx101StoriesMode, 0, R.string.Tgx101StoriesMode),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101StoriesFolders, 0, R.string.Tgx101StoriesFolders),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -626,7 +632,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_pullToSearch, 0, R.string.Tgx101PullAction),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101FloatingInput, 0, R.string.Tgx101InputStyle),
+        new ListItem(ListItem.TYPE_CUSTOM - TGX101_PILLS, R.id.btn_tgx101FloatingInput, 0, R.string.Tgx101InputStyle),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NavCapsule, 0, R.string.Tgx101NavCapsule),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1066,7 +1072,31 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   // TGx101: MagiX → Notifications → «When the app is open», in Settings.TGX101_FOREGROUND_NOTIF_* order
   private static final int[] FOREGROUND_NOTIF_NAMES = {R.string.Tgx101ForegroundNotifShow, R.string.Tgx101ForegroundNotifQuiet, R.string.Tgx101ForegroundNotifHide};
 
-  private static final int TGX101_APP_ICON_PICKER = 1, TGX101_PREVIEW = 2;
+  // TGx101 (approved mockup «Окна Material 3» В): a choice of two right in its row as pills, no window
+  private void tgx101BindPills (org.thunderdog.challegram.widget.Tgx101Pills pills, int id) {
+    if (id == R.id.btn_tgx101FloatingInput) {
+      int style = Settings.instance().tgx101InputStyle();
+      pills.bind(Lang.getString(R.string.Tgx101InputStyle),
+        new String[] {Lang.getString(R.string.Tgx101InputStyleFloating), Lang.getString(R.string.Tgx101InputStyleFlat)},
+        style == 0 ? 0 : 1, index -> {
+          Settings.instance().setUseFloatingInput(index == 0);
+          if (index != 0) Settings.instance().setTgx101InputWell(false);
+          adapter.updateItemById(R.id.btn_tgx101FloatingInput);
+          if (tgx101Preview != null) tgx101Preview.invalidate();
+        });
+    } else if (id == R.id.btn_tgx101StoriesMode) {
+      int current = Tgx101Stories.mode();
+      pills.bind(Lang.getString(R.string.Tgx101StoriesMode),
+        new String[] {Lang.getString(R.string.Tgx101StoriesModeHeader), Lang.getString(R.string.Tgx101StoriesModeRings)},
+        current == Tgx101Stories.MODE_RINGS ? 1 : 0, index -> {
+          Tgx101Stories.setMode(index == 1 ? Tgx101Stories.MODE_RINGS : Tgx101Stories.MODE_HEADER);
+          adapter.updateItemById(R.id.btn_tgx101StoriesMode);
+          UI.showToast(R.string.Tgx101StoriesModeRestart, android.widget.Toast.LENGTH_SHORT);
+        });
+    }
+  }
+
+  private static final int TGX101_APP_ICON_PICKER = 1, TGX101_PREVIEW = 2, TGX101_PILLS = 3;
   private Tgx101MagixPreview tgx101Preview;
 
   private static final int[] TGX101_SECTION_IDS = {
