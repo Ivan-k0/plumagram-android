@@ -718,8 +718,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
                     onScrollToTopRequested();
                   }
                 } else if (firstVisiblePosition == 1) {
-                  View view = manager.findViewByPosition(firstVisiblePosition);
-                  setArchiveCollapsed(view == null || manager.getDecoratedTop(view) < 0);
+                  // TGx101: the archive scrolled out of sight folds even if the next chat stopped right at the top —
+                  // else a plain scroll brought it back without the pull (test 2026-11-01 17:27)
+                  setArchiveCollapsed(true);
                 } else {
                   setArchiveCollapsed(true);
                 }
