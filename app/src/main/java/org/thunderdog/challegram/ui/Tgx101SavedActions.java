@@ -1184,12 +1184,7 @@ public final class Tgx101SavedActions {
       if (android.os.Build.VERSION.SDK_INT >= 21) card.setElevation(Screen.dp(6f));
       card.setClickable(true);
 
-      View grip = new View(context);
-      grip.setBackground(Tgx101SavedHomeController.card(Tgx101SavedHomeController.tint(ink, .25f), 2f));
-      LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(Screen.dp(36f), Screen.dp(4f));
-      gp.gravity = Gravity.CENTER_HORIZONTAL;
-      gp.bottomMargin = Screen.dp(8f);
-      card.addView(grip, gp);
+      // (user 2026-11-01 «убрать ручки везде»): no grip on top
 
       LinearLayout head = new LinearLayout(context);
       head.setOrientation(LinearLayout.HORIZONTAL);

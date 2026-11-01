@@ -92,7 +92,7 @@ public class OptionsLayout extends LinearLayout implements Animated, RootFrameLa
         int height = view != null ? view.getMeasuredHeight() : 0;
         int color = forcedTheme != null ? forcedTheme.getColor(ColorId.filling) : Theme.getColor(ColorId.filling);
         if (TGX101_CARD) {
-          // (mockup «Окна выбора» А): on a dark theme the card is a tone lighter than the screen, with a grip on top
+          // (mockup «Окна выбора» А): on a dark theme the card is a tone lighter than the screen
           boolean dark = forcedTheme != null ? forcedTheme.isDark() : Theme.isDark();
           if (dark) color = me.vkryl.core.ColorUtils.fromToArgb(color, 0xffffffff, .07f);
           // TGx101 (user 2026-10-08, mockup «Окна» variant А): a floating card like the message field — side gaps, round corners
@@ -102,10 +102,7 @@ public class OptionsLayout extends LinearLayout implements Animated, RootFrameLa
           float half = Math.max(1, Screen.dp(.5f)) / 2f;
           rect.inset(half, half);
           c.drawRoundRect(rect, r, r, Paints.strokeSmallPaint(me.vkryl.core.ColorUtils.alphaColor(.08f, 0xff000000)));
-          float gw = Screen.dp(36f), gt = height + Screen.dp(7f);
-          rect.set((getMeasuredWidth() - gw) / 2f, gt, (getMeasuredWidth() + gw) / 2f, gt + Screen.dp(4f));
-          int textColor = forcedTheme != null ? forcedTheme.getColor(ColorId.text) : Theme.getColor(ColorId.text);
-          c.drawRoundRect(rect, Screen.dp(2f), Screen.dp(2f), Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(.25f, textColor)));
+          // (user 2026-11-01 «убрать ручки везде»): no grip — it promised a drag these sheets don't have; the dim says enough
           return;
         }
         if (height > 0)

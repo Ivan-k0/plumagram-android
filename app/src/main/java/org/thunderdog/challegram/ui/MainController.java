@@ -1461,9 +1461,20 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     });
     // (user 2026-11-01 «первый свайп открывает плашку с историями, повторный запускает проигрывание»): with the pull set
     // to «Stories», the pull drops this panel; a swipe down on the open panel (over the sheet or the dim) plays them
+    // (user 2026-11-01 «повторный свайп с историями нужно тоже как-то предохранить»): the swipe down that plays them is a
+    // pull — the sheet follows the finger a little, and only a long, clearly downward pull let go plays; a short one
+    // springs back
     tgx101StoriesPanel = new FrameLayoutFix(context) {
       private float downX, downY;
-      private boolean played;
+      private boolean pulling, sideways;
+
+      private float pull (float dy) {
+        return Math.min(Screen.dp(56f), dy * .35f);
+      }
+
+      private void springBack () {
+        if (tgx101StoriesSheet != null) tgx101StoriesSheet.animate().translationY(0f).setDuration(180).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+      }
 
       @Override
       public boolean dispatchTouchEvent (MotionEvent e) {
@@ -1471,25 +1482,39 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
           case MotionEvent.ACTION_DOWN:
             downX = e.getX();
             downY = e.getY();
-            played = false;
+            pulling = sideways = false;
+            if (tgx101StoriesSheet != null) tgx101StoriesSheet.animate().cancel();
             break;
           case MotionEvent.ACTION_MOVE: {
-            if (played) return true;
             float dy = e.getY() - downY, dx = Math.abs(e.getX() - downX);
-            if (tgx101StoriesPanelOpen && dy > Screen.dp(48f) && dy > dx * 1.5f) {
-              played = true;
+            if (!pulling && !sideways && tgx101StoriesPanelOpen && dy > Screen.getTouchSlop() * 2 && dy > dx * 2f) {
+              pulling = true;
               MotionEvent cancel = MotionEvent.obtain(e);
               cancel.setAction(MotionEvent.ACTION_CANCEL);
-              super.dispatchTouchEvent(cancel);
+              super.dispatchTouchEvent(cancel); // a circle under the finger isn't tapped
               cancel.recycle();
-              tgx101PlayFirstStories();
+            } else if (!pulling && dx > Screen.getTouchSlop()) {
+              sideways = true; // the circles scroll sideways: no pull in this gesture
+            }
+            if (pulling) {
+              if (tgx101StoriesSheet != null) tgx101StoriesSheet.setTranslationY(pull(Math.max(0f, dy)));
               return true;
             }
             break;
           }
           case MotionEvent.ACTION_UP:
           case MotionEvent.ACTION_CANCEL:
-            if (played) return true;
+            if (pulling) {
+              pulling = false;
+              springBack();
+              float dy = e.getY() - downY, dx = Math.abs(e.getX() - downX);
+              if (e.getActionMasked() == MotionEvent.ACTION_UP && dy >= Screen.dp(140f) && dy > dx * 2f) {
+                tgx101PlayFirstStories();
+              } else {
+                org.thunderdog.challegram.Tgx101Diag.mark("stories: panel pulled " + Math.round(dy / Screen.dp(1f)) + " dp — too short, nothing played");
+              }
+              return true;
+            }
             break;
         }
         return super.dispatchTouchEvent(e);
@@ -1510,16 +1535,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       sheet.setElevation(Screen.dp(8f));
     }
     sheet.addView(tgx101HeaderStrip, new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(org.thunderdog.challegram.widget.Tgx101StoriesStrip.HEIGHT_DP)));
-    View grip = new View(context);
-    android.graphics.drawable.GradientDrawable gripDrawable = new android.graphics.drawable.GradientDrawable();
-    gripDrawable.setColor(Theme.getColor(ColorId.iconLight));
-    gripDrawable.setCornerRadius(Screen.dp(2f));
-    grip.setBackground(gripDrawable);
-    android.widget.LinearLayout.LayoutParams gripParams = new android.widget.LinearLayout.LayoutParams(Screen.dp(34f), Screen.dp(4f));
-    gripParams.gravity = Gravity.CENTER_HORIZONTAL;
-    gripParams.topMargin = Screen.dp(6f);
-    gripParams.bottomMargin = Screen.dp(10f);
-    sheet.addView(grip, gripParams);
+    sheet.setPadding(0, 0, 0, Screen.dp(10f)); // (user 2026-11-01 «убрать ручки везде»): no grip under the circles
     // a swipe up on the sheet puts it away too
     sheet.setOnTouchListener(new View.OnTouchListener() {
       private float downY;

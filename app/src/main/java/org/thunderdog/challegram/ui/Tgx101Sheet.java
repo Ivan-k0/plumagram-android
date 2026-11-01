@@ -69,15 +69,7 @@ public final class Tgx101Sheet {
     sheet.setBackground(bg);
     sheet.setClickable(true); // taps on the sheet stay in it
 
-    View grip = new View(context);
-    GradientDrawable gripBg = new GradientDrawable();
-    gripBg.setColor(Theme.separatorColor());
-    gripBg.setCornerRadius(Screen.dp(2f));
-    grip.setBackground(gripBg);
-    LinearLayout.LayoutParams gripParams = new LinearLayout.LayoutParams(Screen.dp(36f), Screen.dp(4f));
-    gripParams.gravity = Gravity.CENTER_HORIZONTAL;
-    gripParams.bottomMargin = Screen.dp(8f);
-    sheet.addView(grip, gripParams);
+    // (user 2026-11-01 «убрать ручки везде»): no grip on top
 
     // the content scrolls when it is taller than ~¾ of the screen (many folders / tags)
     final int maxBody = Math.round(Screen.currentHeight() * .72f);
