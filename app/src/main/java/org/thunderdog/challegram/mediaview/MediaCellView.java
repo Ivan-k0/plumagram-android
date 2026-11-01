@@ -790,8 +790,16 @@ public class MediaCellView extends ViewGroup implements
     return isPlaying;
   }
 
+  // TGx101 (user video 2026-11-01 13:43, «смотри, как видео уходит»): closing a video watched past its start flew back
+  // as its first frame (the cover) — the picture jumped. The frame on screen at that moment flies back instead
+  private @Nullable android.graphics.Bitmap tgx101Frame;
+
   public void setDisappearing (boolean disappearing) {
     this.disappearing = disappearing;
+    if (!disappearing) tgx101Frame = null;
+    if (disappearing && hideStaticView && videoReady && playerView != null && media != null && media.isVideo()) {
+      tgx101Frame = playerView.tgx101CurrentFrame();
+    }
     if (disappearing) {
       if (isPlaying && media != null) {
         media.setComponentsAlpha(0f);
@@ -2034,6 +2042,15 @@ public class MediaCellView extends ViewGroup implements
           }
         }
         receiver.draw(c);
+        if (disappearing && tgx101Frame != null && !tgx101Frame.isRecycled()) {
+          android.graphics.Rect dst = Paints.getRect();
+          dst.set(receiver.getLeft(), receiver.getTop(), receiver.getRight(), receiver.getBottom());
+          android.graphics.Paint paint = Paints.getBitmapPaint();
+          int was = paint.getAlpha();
+          paint.setAlpha(Math.round(255 * Math.max(0f, Math.min(1f, receiver.getAlpha() * receiver.getPaintAlpha()))));
+          c.drawBitmap(tgx101Frame, null, dst, paint);
+          paint.setAlpha(was);
+        }
       } else {
         if (targetAnimator != null) {
           targetAnimator.animateTo(1f);

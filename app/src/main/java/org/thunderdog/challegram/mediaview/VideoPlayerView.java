@@ -105,6 +105,17 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     this.errorHandler = onError;
   }
 
+  /** TGx101: the frame on screen now (smaller), for the closing animation — null when there's none */
+  public @androidx.annotation.Nullable android.graphics.Bitmap tgx101CurrentFrame () {
+    if (renderView == null || !renderView.isAvailable() || renderView.getWidth() <= 0) return null;
+    try {
+      float scale = Math.min(1f, 720f / Math.max(renderView.getWidth(), renderView.getHeight()));
+      return renderView.getBitmap(Math.max(1, Math.round(renderView.getWidth() * scale)), Math.max(1, Math.round(renderView.getHeight() * scale)));
+    } catch (Throwable t) {
+      return null;
+    }
+  }
+
   public void prepareTextureView () {
     if (renderView == null) {
       this.renderView = new TextureView(context);
