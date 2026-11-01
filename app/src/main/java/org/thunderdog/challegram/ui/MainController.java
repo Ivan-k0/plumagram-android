@@ -1436,12 +1436,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       @Override
       public void onStoryClick (java.util.List<TdApi.ChatActiveStories> ordered, int index) {
         org.thunderdog.challegram.Tgx101Diag.mark("stories: open " + index + " of " + ordered.size() + " from the header panel");
-        Tgx101StoryViewer viewer = new Tgx101StoryViewer(context(), tdlib, new java.util.ArrayList<>(ordered), index);
-        viewer.setTargetProvider(storyChatId -> tgx101HeaderStrip != null ? tgx101HeaderStrip.circleOf(storyChatId) : null);
-        viewer.setOnClosed(() -> {
-          if (tgx101HeaderStrip != null) tgx101HeaderStrip.refresh();
-        });
-        viewer.show();
+        tgx101PlayStories(ordered, index);
       }
 
       @Override
@@ -1464,7 +1459,42 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         if (main != null) main.tgx101CheckStoriesRow();
       }
     });
-    tgx101StoriesPanel = new FrameLayoutFix(context);
+    // (user 2026-11-01 «первый свайп открывает плашку с историями, повторный запускает проигрывание»): with the pull set
+    // to «Stories», the pull drops this panel; a swipe down on the open panel (over the sheet or the dim) plays them
+    tgx101StoriesPanel = new FrameLayoutFix(context) {
+      private float downX, downY;
+      private boolean played;
+
+      @Override
+      public boolean dispatchTouchEvent (MotionEvent e) {
+        switch (e.getActionMasked()) {
+          case MotionEvent.ACTION_DOWN:
+            downX = e.getX();
+            downY = e.getY();
+            played = false;
+            break;
+          case MotionEvent.ACTION_MOVE: {
+            if (played) return true;
+            float dy = e.getY() - downY, dx = Math.abs(e.getX() - downX);
+            if (tgx101StoriesPanelOpen && dy > Screen.dp(48f) && dy > dx * 1.5f) {
+              played = true;
+              MotionEvent cancel = MotionEvent.obtain(e);
+              cancel.setAction(MotionEvent.ACTION_CANCEL);
+              super.dispatchTouchEvent(cancel);
+              cancel.recycle();
+              tgx101PlayFirstStories();
+              return true;
+            }
+            break;
+          }
+          case MotionEvent.ACTION_UP:
+          case MotionEvent.ACTION_CANCEL:
+            if (played) return true;
+            break;
+        }
+        return super.dispatchTouchEvent(e);
+      }
+    };
     tgx101StoriesPanel.setBackgroundColor(0x59000000);
     tgx101StoriesPanel.setVisibility(View.GONE);
     tgx101StoriesPanel.setOnClickListener(v -> tgx101SetStoriesPanelOpen(false));
@@ -1515,6 +1545,35 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
 
   public void tgx101OpenStoriesPanel () {
     tgx101SetStoriesPanelOpen(true);
+  }
+
+  public boolean tgx101StoriesPanelOpen () {
+    return tgx101StoriesPanelOpen;
+  }
+
+  private void tgx101PlayStories (java.util.List<TdApi.ChatActiveStories> ordered, int index) {
+    Tgx101StoryViewer viewer = new Tgx101StoryViewer(context(), tdlib, new java.util.ArrayList<>(ordered), index);
+    viewer.setTargetProvider(storyChatId -> tgx101HeaderStrip != null ? tgx101HeaderStrip.circleOf(storyChatId) : null);
+    viewer.setOnClosed(() -> {
+      if (tgx101HeaderStrip != null) tgx101HeaderStrip.refresh();
+    });
+    viewer.show();
+  }
+
+  /** The first chat with unseen stories (else the first one) — what a swipe down plays */
+  private void tgx101PlayFirstStories () {
+    java.util.List<TdApi.ChatActiveStories> ordered = tgx101HeaderStories();
+    if (ordered.isEmpty()) return;
+    int index = 0;
+    for (int i = 0; i < ordered.size(); i++) {
+      TdApi.ChatActiveStories s = ordered.get(i);
+      if (s.stories.length > 0 && s.stories[s.stories.length - 1].storyId > s.maxReadStoryId) {
+        index = i;
+        break;
+      }
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("stories: swipe down on the panel → play " + index + " of " + ordered.size());
+    tgx101PlayStories(ordered, index);
   }
 
   private android.widget.LinearLayout tgx101StoriesStack (Context context) {

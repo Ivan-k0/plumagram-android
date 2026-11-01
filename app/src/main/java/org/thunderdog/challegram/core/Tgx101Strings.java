@@ -1433,6 +1433,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101StoryIncognitoOn, "Инкогнито включено: ваши просмотры за последние 5 и следующие 25 минут скрыты");
     RU.put(R.string.Tgx101StoryReply, "Ответить…");
     RU.put(R.string.Tgx101StoryReplySent, "Ответ отправлен");
+    RU.put(R.string.Tgx101StorySoundOn, "Включить звук");
+    RU.put(R.string.Tgx101StorySoundOff, "Выключить звук");
     RU.put(R.string.Tgx101StoryHide, "Скрыть истории");
     RU.put(R.string.Tgx101StoryShowLess, "Показывать меньше (в конец)");
     RU.put(R.string.Tgx101StoryShowNormally, "Показывать как обычно");

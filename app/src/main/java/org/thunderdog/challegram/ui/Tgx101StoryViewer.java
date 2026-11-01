@@ -170,6 +170,8 @@ public class Tgx101StoryViewer extends Dialog {
     FrameLayout.LayoutParams videoParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER);
     root.addView(videoView, videoParams);
     videoView.setVisibility(View.GONE);
+    // a muted story doesn't stop the music that's playing
+    if (android.os.Build.VERSION.SDK_INT >= 26) videoView.setAudioFocusRequest(android.media.AudioManager.AUDIOFOCUS_NONE);
 
     // TGx101: reaction stickers (suggested reaction areas) — apps draw them over the media themselves
     areasView = new AreasView(context);
@@ -287,6 +289,20 @@ public class Tgx101StoryViewer extends Dialog {
     LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(Screen.dp(48f), Screen.dp(48f));
     hp.leftMargin = Screen.dp(6f);
     bottom.addView(heartButton, hp);
+    // TGx101 (user 2026-11-01 «истории должны начинаться без звука, звук включать снизу справа — и он включён на все
+    // следующие истории, пока не закроешь»): video stories open muted; the button turns the sound on for this viewing
+    soundButton = new android.widget.ImageView(context);
+    soundButton.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+    soundButton.setVisibility(View.GONE);
+    soundButton.setOnClickListener(v -> {
+      soundOn = !soundOn;
+      applySound();
+      Tgx101Diag.mark("story: sound " + (soundOn ? "on" : "off"));
+    });
+    updateSoundIcon();
+    LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(Screen.dp(44f), Screen.dp(48f));
+    sp.leftMargin = Screen.dp(2f);
+    bottom.addView(soundButton, sp);
     FrameLayout.LayoutParams bottomParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
     bottomParams.leftMargin = Screen.dp(12f);
     bottomParams.rightMargin = Screen.dp(10f);
@@ -343,6 +359,7 @@ public class Tgx101StoryViewer extends Dialog {
       closeOpened();
       root.removeCallbacks(ticker);
       videoView.stopPlayback();
+      setAudioFocus(false);
     });
     startPerson(personIndex, true);
     animateOpen();
@@ -471,6 +488,7 @@ public class Tgx101StoryViewer extends Dialog {
     imageView.animate().cancel();
     videoView.setAlpha(0f);
     videoView.setVisibility(View.GONE);
+    soundPlayer = null;
     spinner.setVisibility(View.GONE);
     final int waitingStoryId = story.id;
     UI.post(() -> {
@@ -501,8 +519,11 @@ public class Tgx101StoryViewer extends Dialog {
         if (isVideo) {
           videoView.setVisibility(View.VISIBLE);
           videoView.setVideoPath(path);
+          soundButton.setVisibility(View.VISIBLE);
           videoView.setOnPreparedListener(mp -> {
             duration = Math.max(1000L, mp.getDuration());
+            soundPlayer = mp;
+            applySound();
             videoView.animate().alpha(1f).setDuration(220).start();
             mp.setOnInfoListener((player, what, extra) -> {
               if (what == android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) imageView.animate().alpha(0f).setDuration(120).start(); // the preview under the video goes
@@ -518,6 +539,8 @@ public class Tgx101StoryViewer extends Dialog {
             return true;
           });
         } else {
+          soundButton.setVisibility(View.GONE);
+          soundPlayer = null;
           imageView.animate().cancel();
           imageView.setImageBitmap(bitmap);
           imageView.setAlpha(1f);
@@ -829,6 +852,42 @@ public class Tgx101StoryViewer extends Dialog {
 
   private FrameLayout heartButton;
   private android.widget.ImageView heartIcon;
+
+  private android.widget.ImageView soundButton;
+  private boolean soundOn; // muted at every opening of the viewer, kept from story to story while it's open
+  private @Nullable android.media.MediaPlayer soundPlayer;
+
+  private boolean hasAudioFocus;
+
+  @SuppressWarnings("deprecation")
+  private void setAudioFocus (boolean take) {
+    if (hasAudioFocus == take) return;
+    android.media.AudioManager am = (android.media.AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+    if (am == null) return;
+    hasAudioFocus = take;
+    // the sound turned on pauses the music for this viewing, as any video does; it comes back when the viewer closes
+    if (take) am.requestAudioFocus(null, android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+    else am.abandonAudioFocus(null);
+  }
+
+  private void applySound () {
+    updateSoundIcon();
+    setAudioFocus(soundOn);
+    if (soundPlayer != null) {
+      try {
+        float volume = soundOn ? 1f : 0f;
+        soundPlayer.setVolume(volume, volume);
+      } catch (Throwable ignored) {
+        soundPlayer = null; // released with the previous story
+      }
+    }
+  }
+
+  private void updateSoundIcon () {
+    if (soundButton == null) return;
+    soundButton.setImageResource(soundOn ? R.drawable.baseline_volume_up_24_white : R.drawable.baseline_volume_off_24_white);
+    soundButton.setContentDescription(Lang.getString(soundOn ? R.string.Tgx101StorySoundOff : R.string.Tgx101StorySoundOn));
+  }
 
   private void showChosenReaction (@Nullable TdApi.ReactionType reaction) {
     heartIcon.setVisibility(reaction == null ? View.VISIBLE : View.GONE);

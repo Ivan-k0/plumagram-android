@@ -630,8 +630,18 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       captionEmojiButton.setAlpha(factor);
       captionDoneButton.setAlpha(factor);
       captionView.setTranslationX(-(Screen.dp(55f) - Screen.dp(14f)) * (1f - factor));
+      // TGx101 (user 2026-11-01 «поле сливается с фоном, сделай задний фон более приглушённым»): while a caption is
+      // written, the picture behind dims so the dark field stands out on a dark photo or video
+      if (mode == MODE_GALLERY) {
+        if (tgx101CaptionDim == null) tgx101CaptionDim = new android.graphics.drawable.ColorDrawable(0xff000000);
+        tgx101CaptionDim.setAlpha(Math.round(255 * .5f * MathUtils.clamp(factor)));
+        if (mediaView.getForeground() != tgx101CaptionDim) mediaView.setForeground(tgx101CaptionDim);
+        mediaView.invalidate();
+      }
     }
   }
+
+  private android.graphics.drawable.ColorDrawable tgx101CaptionDim;
 
   private void onCaptionDone () {
     closeCaption();
@@ -3719,7 +3729,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       this.needVideoMargin = needMargin;
       float y = (needMargin ? 0 : (float) -Screen.dp(56f) * videoFactor * (inCaption ? 0f : 1f)) + (thumbsFactor * Screen.dp(THUMBS_PADDING));
       captionWrapView.setTranslationY(y);
-      Views.setBottomMargin(captionWrapView, (needVideoMargin ? Screen.dp(56f) : Screen.dp(TGX101_CAPTION_LIFT))); // TGx101: off the «home» swipe's edge
+      // TGx101: off the «home» swipe's edge — a caption being read. The field of a caption being written (sending a video,
+      // user photo 2026-11-01 21:18 «поле ввода опять куда-то уехало») went up by the lift while its smiley and ✓ stayed
+      // at the bottom: there it keeps its own 6 dp, with the buttons
+      Views.setBottomMargin(captionWrapView, needVideoMargin ? Screen.dp(56f) : mode == MODE_GALLERY ? Screen.dp(6f) : Screen.dp(TGX101_CAPTION_LIFT));
     }
   }
 

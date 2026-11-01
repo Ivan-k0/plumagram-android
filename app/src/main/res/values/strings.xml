@@ -6701,6 +6701,8 @@
   <string name="Tgx101StoryIncognitoOn">Incognito on: your views of the last 5 and the next 25 minutes are hidden</string>
   <string name="Tgx101StoryReply">Reply…</string>
   <string name="Tgx101StoryReplySent">Reply sent</string>
+  <string name="Tgx101StorySoundOn">Turn the sound on</string>
+  <string name="Tgx101StorySoundOff">Turn the sound off</string>
   <string name="Tgx101StoryHide">Hide stories</string>
   <string name="Tgx101StoryShowLess">Show less (to the end)</string>
   <string name="Tgx101StoryShowNormally">Show as usual</string>
