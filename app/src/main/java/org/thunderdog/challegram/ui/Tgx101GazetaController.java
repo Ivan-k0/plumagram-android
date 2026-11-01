@@ -150,7 +150,9 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   }
 
   /** The text to show for this post: its translation when the feed is translated and it has come, else the original */
-  private TdApi.FormattedText tgx101TextFor (Tgx101Gazeta.Post post, TdApi.FormattedText original) {
+  private TdApi.FormattedText tgx101TextFor (Tgx101Gazeta.Post post, TdApi.FormattedText text) {
+    // (group 2026-11-02, messages 1924–1926): the channel's own «Subscribe» line is hidden here as in the channel
+    final TdApi.FormattedText original = org.thunderdog.challegram.data.Tgx101Text.displayText(tdlib, post.chatId, text);
     if (!translateFeed || original == null || Td.isEmpty(original)) return original;
     String to = tgx101TranslateTo();
     if (post.translated != null && to.equals(post.translatedTo)) return post.translated;

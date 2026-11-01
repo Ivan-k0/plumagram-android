@@ -48,6 +48,20 @@ public final class Tgx101Text {
     }
   }
 
+  /** The same for a channel post shown outside its chat (the «Газета» feed) */
+  public static @Nullable TdApi.FormattedText displayText (@NonNull Tdlib tdlib, long chatId, @Nullable TdApi.FormattedText text) {
+    if (text == null || text.text == null || text.entities == null || text.entities.length == 0 ||
+      !tdlib.isChannel(chatId) || !Settings.instance().hideChannelSubscribeLink()) {
+      return text;
+    }
+    try {
+      TdApi.FormattedText stripped = stripOwnChannelLink(tdlib, chatId, text);
+      return stripped != null ? stripped : text;
+    } catch (Throwable t) {
+      return text;
+    }
+  }
+
   private static @Nullable TdApi.FormattedText stripOwnChannelLink (Tdlib tdlib, long chatId, TdApi.FormattedText text) {
     String s = text.text;
     int end = s.length();
