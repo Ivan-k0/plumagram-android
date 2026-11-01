@@ -45,6 +45,9 @@ public class MediaCellViewDetector implements FactorAnimator.Target {
 
     boolean canMoveZoomedView ();
 
+    /** TGx101: a double tap held and dragged up / down zooms (the player gesture, on a playing video) */
+    default boolean tgx101CanZoomDrag () { return false; }
+
     void getZoomDisplayRect (Rect rect);
     void getZoomContentRect (Rect rect);
   }
@@ -67,6 +70,9 @@ public class MediaCellViewDetector implements FactorAnimator.Target {
   private float downStartX, downStartY;
 
   public boolean onTouchEvent (MotionEvent e) {
+    if (tgx101ZoomDrag(e)) {
+      return true;
+    }
     int action = e.getActionMasked();
 
     int pointerCount = e.getPointerCount();
@@ -117,6 +123,90 @@ public class MediaCellViewDetector implements FactorAnimator.Target {
     }
 
     return true;
+  }
+
+  // TGx101 (group 2026-11-01, player gesture «Приближение: двойное нажатие с протяжкой»): on a video the double tap pauses,
+  // so the zoom is one finger — tap, then tap again and drag without letting go: up zooms in at the finger, down zooms
+  // out. A second tap that doesn't move is the usual double tap
+  private long tgx101LastUpTime;
+  private float tgx101LastUpX, tgx101LastUpY;
+  private boolean tgx101DragCandidate, tgx101DragActive;
+  private float tgx101DragStartY, tgx101DragStartZoom;
+
+  private boolean tgx101ZoomDrag (MotionEvent e) {
+    final int action = e.getActionMasked();
+    final float x = e.getX(), y = e.getY();
+    switch (action) {
+      case MotionEvent.ACTION_DOWN: {
+        tgx101DragActive = false;
+        tgx101DragCandidate = e.getPointerCount() == 1 && SystemClock.uptimeMillis() - tgx101LastUpTime <= DOUBLE_TAP_DELAY
+          && Math.hypot(x - tgx101LastUpX, y - tgx101LastUpY) < Screen.dp(48f) && callback.tgx101CanZoomDrag();
+        if (tgx101DragCandidate) {
+          tgx101DragStartY = y;
+          tgx101DragStartZoom = zoom;
+          if (target.getParent() != null) target.getParent().requestDisallowInterceptTouchEvent(true); // not the swipe-to-close
+        }
+        return false;
+      }
+      case MotionEvent.ACTION_POINTER_DOWN: {
+        if (tgx101DragActive) return true;
+        tgx101DragCandidate = false; // a pinch
+        return false;
+      }
+      case MotionEvent.ACTION_MOVE: {
+        if (tgx101DragCandidate && !tgx101DragActive && Math.abs(y - tgx101DragStartY) > Screen.getTouchSlop()) {
+          if (!callback.onZoomStart()) {
+            tgx101DragCandidate = false;
+            return false;
+          }
+          tgx101DragActive = true;
+          listenClick = false;
+          cancelClick();
+          lastClickTime = 0;
+          if (zoom <= 1f) { // zoom in where the finger is
+            callback.getZoomDisplayRect(displayRect);
+            if (displayRect.width() > 0 && displayRect.height() > 0) {
+              pivotX = x / displayRect.width();
+              pivotY = y / displayRect.height();
+            }
+            positionX = positionY = 0f;
+          }
+          org.thunderdog.challegram.Tgx101Diag.mark("player: double tap + drag → zoom");
+        }
+        if (tgx101DragActive) {
+          float z = tgx101DragStartZoom * (float) Math.exp(-(y - tgx101DragStartY) / Screen.dp(160f));
+          float clamped = Math.max(1f, Math.min(MAX_ZOOM, z));
+          if (clamped != zoom) {
+            zoom = clamped;
+            callback.onZoom();
+          }
+          return true;
+        }
+        return false;
+      }
+      case MotionEvent.ACTION_UP:
+      case MotionEvent.ACTION_CANCEL: {
+        tgx101DragCandidate = false;
+        if (tgx101DragActive) {
+          tgx101DragActive = false;
+          tgx101LastUpTime = 0;
+          if (zoom < 1.05f) {
+            animatePosition(1f, pivotX, pivotY, 0f, 0f, true);
+          } else {
+            normalizePosition();
+          }
+          callback.onZoomEnd();
+          return true;
+        }
+        if (action == MotionEvent.ACTION_UP) {
+          tgx101LastUpTime = SystemClock.uptimeMillis();
+          tgx101LastUpX = x;
+          tgx101LastUpY = y;
+        }
+        return false;
+      }
+    }
+    return tgx101DragActive;
   }
 
   private long lastClickTime;

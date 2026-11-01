@@ -3953,9 +3953,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   /** Each player gesture on / off in one window with check boxes (no menu reopening on every tap); saved by «Done» */
   private void tgx101ChooseGestures () {
     Settings settings = Settings.instance();
-    final int[] ids = {R.id.btn_tgx101GestureSeek, R.id.btn_tgx101GestureBrightness, R.id.btn_tgx101GestureVolume, R.id.btn_tgx101GestureSpeed};
-    final int[] gestures = {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED};
-    final int[] names = {R.string.Tgx101GestureSeek, R.string.Tgx101GestureBrightness, R.string.Tgx101GestureVolume, R.string.Tgx101GestureSpeed};
+    final int[] ids = {R.id.btn_tgx101GestureSeek, R.id.btn_tgx101GestureBrightness, R.id.btn_tgx101GestureVolume, R.id.btn_tgx101GestureSpeed, R.id.btn_tgx101GestureZoomDrag};
+    final int[] gestures = {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED, Settings.GESTURE_ZOOM_DRAG};
+    final int[] names = {R.string.Tgx101GestureSeek, R.string.Tgx101GestureBrightness, R.string.Tgx101GestureVolume, R.string.Tgx101GestureSpeed, R.string.Tgx101GestureZoomDrag};
     ListItem[] items = new ListItem[ids.length];
     for (int i = 0; i < ids.length; i++) {
       items[i] = new ListItem(ListItem.TYPE_CHECKBOX_OPTION, ids[i], 0, names[i], settings.tgx101PlayerGesture(gestures[i]));
@@ -4198,9 +4198,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         break;
       }
       case PAGE_GESTURES: {
-        final int[] gestures = {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED};
-        final int[] names = {R.string.Tgx101GestureSeek, R.string.Tgx101GestureBrightness, R.string.Tgx101GestureVolume, R.string.Tgx101GestureSpeed};
-        final int[] icons = {R.drawable.baseline_swap_horiz_24, R.drawable.baseline_brightness_5_24, R.drawable.baseline_volume_up_24, R.drawable.baseline_fast_forward_24};
+        final int[] gestures = {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED, Settings.GESTURE_ZOOM_DRAG};
+        final int[] names = {R.string.Tgx101GestureSeek, R.string.Tgx101GestureBrightness, R.string.Tgx101GestureVolume, R.string.Tgx101GestureSpeed, R.string.Tgx101GestureZoomDrag};
+        final int[] icons = {R.drawable.baseline_swap_horiz_24, R.drawable.baseline_brightness_5_24, R.drawable.baseline_volume_up_24, R.drawable.baseline_fast_forward_24, R.drawable.baseline_zoom_in_24};
         for (int i = 0; i < gestures.length; i++) {
           final int gesture = gestures[i];
           tgx101SettingsRow(rows, icons[i], Lang.getString(names[i]), null, settings.tgx101PlayerGesture(gesture) ? 1 : 0, () -> {
@@ -4379,7 +4379,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     float speed = settings.tgx101PlayerSpeed();
     String speedText = (speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed)) + "×";
     int gesturesOn = 0;
-    for (int g : new int[] {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED}) {
+    for (int g : new int[] {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED, Settings.GESTURE_ZOOM_DRAG}) {
       if (settings.tgx101PlayerGesture(g)) gesturesOn++;
     }
     String off = Lang.getString(R.string.Tgx101Off);

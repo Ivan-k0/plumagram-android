@@ -4539,10 +4539,10 @@ public class Settings {
 
   /** TGx101: any of the video player gestures is on */
   public boolean tgx101PlayerGestures () {
-    return tgx101PlayerGesture(GESTURE_SEEK) || tgx101PlayerGesture(GESTURE_BRIGHTNESS) || tgx101PlayerGesture(GESTURE_VOLUME) || tgx101PlayerGesture(GESTURE_SPEED);
+    return tgx101PlayerGesture(GESTURE_SEEK) || tgx101PlayerGesture(GESTURE_BRIGHTNESS) || tgx101PlayerGesture(GESTURE_VOLUME) || tgx101PlayerGesture(GESTURE_SPEED) || tgx101PlayerGesture(GESTURE_ZOOM_DRAG);
   }
 
-  public static final int GESTURE_SEEK = 1, GESTURE_BRIGHTNESS = 2, GESTURE_VOLUME = 3, GESTURE_SPEED = 4;
+  public static final int GESTURE_SEEK = 1, GESTURE_BRIGHTNESS = 2, GESTURE_VOLUME = 3, GESTURE_SPEED = 4, GESTURE_ZOOM_DRAG = 5;
 
   /** TGx101: one player gesture — seek / brightness / volume swipes (off by default), hold for 2× (on by default) */
   public boolean tgx101PlayerGesture (int gesture) {

@@ -1753,6 +1753,11 @@ public class MediaCellView extends ViewGroup implements
   }
 
   @Override
+  public boolean tgx101CanZoomDrag () {
+    return isSeekableVideo() && canZoom() && org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerGesture(org.thunderdog.challegram.unsorted.Settings.GESTURE_ZOOM_DRAG);
+  }
+
+  @Override
   public boolean canDoubleTap (float x, float y) {
     if (!((MediaView) getParent()).canDoubleTapZoom()) {
       return false;
