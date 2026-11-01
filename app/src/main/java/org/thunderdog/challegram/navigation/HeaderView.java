@@ -1103,7 +1103,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     moreWrap.setAnchorMode(MenuMoreWrap.ANCHOR_MODE_RIGHT);
     // (user 2026-11-01 «удалить вверху шапки — оставить там, но с новым дизайном и чуть ниже шапки, а то сливается»):
     // the confirmation under a header button stands a little below the header
-    moreWrap.setTranslationY(getTranslationY() + getCurrentHeaderOffset() + Screen.dp(10f));
+    moreWrap.setTranslationY(getTranslationY() + getCurrentHeaderOffset() + getSize(false) - Screen.dp(4f));
     showMore(ids, titles, icons, v -> {
       ((PopupLayout) v.getParent().getParent()).hideWindow(true);
       onItemPressed.runWithInt(v.getId());
