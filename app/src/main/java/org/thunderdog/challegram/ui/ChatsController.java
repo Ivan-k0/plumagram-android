@@ -698,6 +698,11 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
             // Now only a deliberate pull does (see tgx101ArchivePull)
             if (newState == RecyclerView.SCROLL_STATE_IDLE) tgx101ListRestAt = android.os.SystemClock.uptimeMillis();
             chatScrollState = newState;
+            if (newState == RecyclerView.SCROLL_STATE_IDLE && tgx101FoldOnIdle) {
+              tgx101FoldOnIdle = false; // a pull let go early has slid away: fold the archive again
+              setArchiveCollapsed(true);
+              return;
+            }
             if (hideArchive) {
               if (newState == RecyclerView.SCROLL_STATE_IDLE) {
                 LinearLayoutManager manager = (LinearLayoutManager) recyclerView.getLayoutManager();
@@ -730,6 +735,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
           }
         });
         chatsView.addOnItemTouchListener(tgx101ArchivePull);
+        chatsView.addItemDecoration(tgx101PullRing);
         hideArchive = archiveCollapsed = tdlib.settings().needHideArchive();
         archiveList = tdlib.chatList(ChatPosition.CHAT_LIST_ARCHIVE);
         archiveListListener = new ChatListListener() {
@@ -874,35 +880,125 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   private boolean hideArchive, archiveCollapsed;
 
   // The archive's safety catch: only a finger that lands on a list already resting at its top (not one a fling just
-  // brought there) and pulls down 80 dp unfolds it, with a light tick
+  // brought there) and pulls down brings it out. TGx101 (approved mockup «Вытягивание архива» Б): the archive row
+  // itself rides down with the finger and a ring fills around its icon; a full ring ticks, releasing then keeps the
+  // row, releasing earlier (or pulling back up) slides it away and folds the archive again
   private long tgx101ListRestAt;
-  private boolean tgx101PullTracking;
-  private float tgx101PullDownY;
+  private boolean tgx101PullTracking, tgx101Pulling, tgx101PullReady, tgx101FoldOnIdle;
+  private float tgx101PullDownX, tgx101PullDownY, tgx101PullProgress;
+  private final android.graphics.Paint tgx101PullPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
+  private int tgx101ArchiveFullReveal () {
+    int mode = Settings.instance().getChatListMode();
+    return ChatView.getViewHeight(mode) + Screen.dp(12f);
+  }
+
+  // how much of the archive row shows now: the top of the first chat under it
+  private int tgx101ArchiveReveal (RecyclerView rv) {
+    LinearLayoutManager manager = (LinearLayoutManager) rv.getLayoutManager();
+    View first = manager != null ? manager.findViewByPosition(1) : null;
+    return first != null ? Math.max(0, manager.getDecoratedTop(first)) : 0;
+  }
+
+  private void tgx101PullTo (RecyclerView rv, float dy) {
+    int full = tgx101ArchiveFullReveal();
+    int target = (int) Math.max(0, Math.min(full, dy));
+    int now = tgx101ArchiveReveal(rv);
+    if (target != now) rv.scrollBy(0, now - target);
+    tgx101PullProgress = Math.min(1f, tgx101ArchiveReveal(rv) / (float) (full - Screen.dp(12f)));
+    boolean ready = tgx101PullProgress >= 1f;
+    if (ready != tgx101PullReady) {
+      tgx101PullReady = ready;
+      if (ready) org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
+    }
+    rv.invalidate();
+  }
+
+  private void tgx101PullEnd (RecyclerView rv, boolean cancel) {
+    tgx101Pulling = false;
+    boolean keep = !cancel && tgx101PullReady;
+    tgx101PullReady = false;
+    tgx101PullProgress = 0f;
+    rv.invalidate();
+    int reveal = tgx101ArchiveReveal(rv);
+    if (keep) {
+      org.thunderdog.challegram.Tgx101Diag.mark("archive: pulled out");
+      int full = tgx101ArchiveFullReveal();
+      if (reveal < full) rv.smoothScrollBy(0, reveal - full);
+    } else {
+      org.thunderdog.challegram.Tgx101Diag.mark("archive: pull let go early — folds back");
+      if (reveal > 0) {
+        tgx101FoldOnIdle = true;
+        rv.smoothScrollBy(0, reveal);
+      } else {
+        setArchiveCollapsed(true);
+      }
+    }
+  }
+
+  private final RecyclerView.ItemDecoration tgx101PullRing = new RecyclerView.ItemDecoration() {
+    @Override
+    public void onDrawOver (@NonNull android.graphics.Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
+      if (!tgx101Pulling || tgx101PullProgress <= 0f || adapter == null) return;
+      LinearLayoutManager manager = (LinearLayoutManager) parent.getLayoutManager();
+      View view = manager != null ? manager.findViewByPosition(adapter.getArchiveItemPosition()) : null;
+      if (view == null) return;
+      int mode = Settings.instance().getChatListMode();
+      float cx = view.getLeft() + ChatView.getAvatarLeftFull(mode);
+      float cy = view.getTop() + ChatView.getAvatarTopFull(mode);
+      float radius = ChatView.getAvatarRadius(mode) + Screen.dp(3f);
+      int accent = Theme.getColor(ColorId.fillingPositive);
+      tgx101PullPaint.setStyle(android.graphics.Paint.Style.STROKE);
+      tgx101PullPaint.setStrokeWidth(Screen.dp(2.5f));
+      tgx101PullPaint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+      if (tgx101PullReady) {
+        // full: the icon's circle takes the theme's colour
+        tgx101PullPaint.setStyle(android.graphics.Paint.Style.FILL);
+        tgx101PullPaint.setColor(me.vkryl.core.ColorUtils.alphaColor(.45f, accent));
+        c.drawCircle(cx, cy, ChatView.getAvatarRadius(mode), tgx101PullPaint);
+        tgx101PullPaint.setStyle(android.graphics.Paint.Style.STROKE);
+        tgx101PullPaint.setColor(accent);
+        c.drawCircle(cx, cy, radius, tgx101PullPaint);
+      } else {
+        tgx101PullPaint.setColor(me.vkryl.core.ColorUtils.alphaColor(.25f, accent));
+        c.drawCircle(cx, cy, radius, tgx101PullPaint);
+        tgx101PullPaint.setColor(accent);
+        android.graphics.RectF arc = new android.graphics.RectF(cx - radius, cy - radius, cx + radius, cy + radius);
+        c.drawArc(arc, -90f, 360f * tgx101PullProgress, false, tgx101PullPaint);
+      }
+    }
+  };
+
   private final RecyclerView.OnItemTouchListener tgx101ArchivePull = new RecyclerView.SimpleOnItemTouchListener() {
     @Override
     public boolean onInterceptTouchEvent (@NonNull RecyclerView rv, @NonNull android.view.MotionEvent e) {
       switch (e.getActionMasked()) {
         case android.view.MotionEvent.ACTION_DOWN: {
-          tgx101PullTracking = false;
+          tgx101PullTracking = tgx101Pulling = false;
           if (hideArchive && archiveCollapsed && adapter != null && adapter.hasArchive() && chatScrollState == RecyclerView.SCROLL_STATE_IDLE
             && android.os.SystemClock.uptimeMillis() - tgx101ListRestAt > 250) {
             LinearLayoutManager manager = (LinearLayoutManager) rv.getLayoutManager();
             View first = manager != null ? manager.findViewByPosition(1) : null;
             if (manager != null && manager.findFirstVisibleItemPosition() == 1 && first != null && manager.getDecoratedTop(first) >= 0) {
               tgx101PullTracking = true;
+              tgx101PullDownX = e.getX();
               tgx101PullDownY = e.getY();
             }
           }
           break;
         }
         case android.view.MotionEvent.ACTION_MOVE: {
-          if (tgx101PullTracking && e.getY() - tgx101PullDownY > Screen.dp(80f)) {
+          if (!tgx101PullTracking) break;
+          float dy = e.getY() - tgx101PullDownY, dx = Math.abs(e.getX() - tgx101PullDownX);
+          if (dy < -Screen.dp(8f) || dx > Screen.dp(24f) || e.getPointerCount() > 1) {
+            tgx101PullTracking = false; // a scroll up or a sideways swipe, not a pull
+          } else if (dy >= Screen.dp(10f) && dy > dx * 2f) {
+            // the pull starts: the row unfolds right above the top and from now on follows the finger
             tgx101PullTracking = false;
-            org.thunderdog.challegram.Tgx101Diag.mark("archive: pulled down 80 dp — unfolded");
-            org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
+            tgx101Pulling = true;
+            tgx101PullDownY += Screen.dp(10f);
             setArchiveCollapsed(false);
-          } else if (tgx101PullTracking && tgx101PullDownY - e.getY() > Screen.dp(8f)) {
-            tgx101PullTracking = false; // the finger went up: a scroll, not a pull
+            return true;
           }
           break;
         }
@@ -912,6 +1008,22 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
           break;
       }
       return false;
+    }
+
+    @Override
+    public void onTouchEvent (@NonNull RecyclerView rv, @NonNull android.view.MotionEvent e) {
+      if (!tgx101Pulling) return;
+      switch (e.getActionMasked()) {
+        case android.view.MotionEvent.ACTION_MOVE:
+          tgx101PullTo(rv, e.getY() - tgx101PullDownY);
+          break;
+        case android.view.MotionEvent.ACTION_UP:
+          tgx101PullEnd(rv, false);
+          break;
+        case android.view.MotionEvent.ACTION_CANCEL:
+          tgx101PullEnd(rv, true);
+          break;
+      }
     }
   };
   private TdlibChatList archiveList;
