@@ -24,11 +24,21 @@ public final class Tgx101Stories {
   private static final String KEY_LESS = "less";
   private static final String KEY_MODE = "mode";
 
-  /** 0 — strip above the chat list, 1 — rings on the chat list avatars (user 2026-10-04, «на выбор») */
-  public static final int MODE_STRIP = 0, MODE_RINGS = 1;
+  /** 0 — strip above the chat list, 1 — rings on the chat list avatars (user 2026-10-04, «на выбор»), 2 — a stack of
+   *  circles in the header that drops the strip down as a panel (approved mockup «Где жить историям» А, 2026-11-01: the strip
+   *  on top of the list fought the hidden archive and the pull for search) */
+  public static final int MODE_STRIP = 0, MODE_RINGS = 1, MODE_HEADER = 2;
+  private static final String KEY_HEADER_MOVED = "header_moved";
 
   public static int mode () {
-    return prefs().getInt(KEY_MODE, MODE_STRIP);
+    SharedPreferences prefs = prefs();
+    int mode = prefs.getInt(KEY_MODE, MODE_HEADER);
+    if (!prefs.getBoolean(KEY_HEADER_MOVED, false)) {
+      // once: whoever had the strip gets the header stack (the strip stays a choice in the settings)
+      if (mode == MODE_STRIP) mode = MODE_HEADER;
+      prefs.edit().putBoolean(KEY_HEADER_MOVED, true).putInt(KEY_MODE, mode).apply();
+    }
+    return mode;
   }
 
   public static void setMode (int mode) {

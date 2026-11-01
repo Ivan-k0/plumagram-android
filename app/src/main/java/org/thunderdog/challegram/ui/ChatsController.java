@@ -1799,7 +1799,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     }
   }
 
-  private void tgx101ShowStoryMenu (TdApi.ChatActiveStories stories) {
+  void tgx101ShowStoryMenu (TdApi.ChatActiveStories stories) {
     final long chatId = stories.chatId;
     final boolean less = Tgx101Stories.isShownLess(chatId);
     final boolean notify = Tgx101Stories.notifiesNewStories(tdlib, chatId);

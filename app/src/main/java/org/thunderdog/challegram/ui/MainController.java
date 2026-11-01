@@ -396,6 +396,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     composeWrap.setCallback(this);
     tgx101AddCapsule(context, contentView);
     contentView.addView(composeWrap);
+    tgx101AddStoriesPanel(context, contentView);
     if (Settings.instance().tgx101HideCompose()) {
       composeWrap.setVisibility(View.GONE); // user 2026-10-08: the ✎ button can be hidden (MagiX → Нижнее меню)
     }
@@ -1418,6 +1419,185 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     }
   }
 
+  // TGx101 (approved mockup «Где жить историям» А, 2026-11-01): the stories leave the top of the chat list — it fought the
+  // hidden archive and the pull for search. A stack of up to three circles sits in the header; a tap drops the whole
+  // strip down over the list as a panel, a tap outside it (or back) puts it away
+  private org.thunderdog.challegram.widget.Tgx101StoriesStrip tgx101HeaderStrip;
+  private @Nullable android.widget.LinearLayout tgx101StoriesStackView;
+  private FrameLayoutFix tgx101StoriesPanel;
+  private View tgx101StoriesSheet;
+  private boolean tgx101StoriesPanelOpen;
+  private android.animation.ValueAnimator tgx101StoriesPanelAnimator;
+  private String tgx101StackKey = "";
+
+  private void tgx101AddStoriesPanel (Context context, FrameLayoutFix contentView) {
+    if (Tgx101Stories.mode() != Tgx101Stories.MODE_HEADER) return;
+    tgx101HeaderStrip = new org.thunderdog.challegram.widget.Tgx101StoriesStrip(context, tdlib, new org.thunderdog.challegram.widget.Tgx101StoriesStrip.Callback() {
+      @Override
+      public void onStoryClick (java.util.List<TdApi.ChatActiveStories> ordered, int index) {
+        org.thunderdog.challegram.Tgx101Diag.mark("stories: open " + index + " of " + ordered.size() + " from the header panel");
+        Tgx101StoryViewer viewer = new Tgx101StoryViewer(context(), tdlib, new java.util.ArrayList<>(ordered), index);
+        viewer.setTargetProvider(storyChatId -> tgx101HeaderStrip != null ? tgx101HeaderStrip.circleOf(storyChatId) : null);
+        viewer.setOnClosed(() -> {
+          if (tgx101HeaderStrip != null) tgx101HeaderStrip.refresh();
+        });
+        viewer.show();
+      }
+
+      @Override
+      public void onStoryLongClick (View view, TdApi.ChatActiveStories stories) {
+        ChatsController chats = tgx101CurrentChats();
+        if (chats != null) chats.tgx101ShowStoryMenu(stories);
+      }
+
+      @Override
+      public void onAddStoryClick () {
+        tgx101SetStoriesPanelOpen(false);
+        Tgx101StoryEditor.pickAndOpen(context(), tdlib);
+      }
+
+      @Override
+      public void onStripVisibilityChanged (boolean hasItems) {
+        tgx101FillStoriesStack();
+        if (!hasItems) tgx101SetStoriesPanelOpen(false);
+      }
+    });
+    tgx101StoriesPanel = new FrameLayoutFix(context);
+    tgx101StoriesPanel.setBackgroundColor(0x59000000);
+    tgx101StoriesPanel.setVisibility(View.GONE);
+    tgx101StoriesPanel.setOnClickListener(v -> tgx101SetStoriesPanelOpen(false));
+    android.widget.LinearLayout sheet = new android.widget.LinearLayout(context);
+    sheet.setOrientation(android.widget.LinearLayout.VERTICAL);
+    sheet.setClickable(true); // taps on the sheet itself don't close it
+    android.graphics.drawable.GradientDrawable sheetBackground = new android.graphics.drawable.GradientDrawable();
+    sheetBackground.setColor(Theme.fillingColor());
+    float r = Screen.dp(18f);
+    sheetBackground.setCornerRadii(new float[] {0, 0, 0, 0, r, r, r, r});
+    sheet.setBackground(sheetBackground);
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+      sheet.setElevation(Screen.dp(8f));
+    }
+    sheet.addView(tgx101HeaderStrip, new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(org.thunderdog.challegram.widget.Tgx101StoriesStrip.HEIGHT_DP)));
+    View grip = new View(context);
+    android.graphics.drawable.GradientDrawable gripDrawable = new android.graphics.drawable.GradientDrawable();
+    gripDrawable.setColor(Theme.getColor(ColorId.iconLight));
+    gripDrawable.setCornerRadius(Screen.dp(2f));
+    grip.setBackground(gripDrawable);
+    android.widget.LinearLayout.LayoutParams gripParams = new android.widget.LinearLayout.LayoutParams(Screen.dp(34f), Screen.dp(4f));
+    gripParams.gravity = Gravity.CENTER_HORIZONTAL;
+    gripParams.topMargin = Screen.dp(6f);
+    gripParams.bottomMargin = Screen.dp(10f);
+    sheet.addView(grip, gripParams);
+    // a swipe up on the sheet puts it away too
+    sheet.setOnTouchListener(new View.OnTouchListener() {
+      private float downY;
+
+      @Override
+      public boolean onTouch (View v, android.view.MotionEvent e) {
+        if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) {
+          downY = e.getRawY();
+        } else if (e.getActionMasked() == android.view.MotionEvent.ACTION_MOVE && downY - e.getRawY() > Screen.dp(24f)) {
+          tgx101SetStoriesPanelOpen(false);
+        }
+        return false;
+      }
+    });
+    tgx101StoriesSheet = sheet;
+    tgx101StoriesPanel.addView(sheet, FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP));
+    contentView.addView(tgx101StoriesPanel, FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+  }
+
+  private android.widget.LinearLayout tgx101StoriesStack (Context context) {
+    android.widget.LinearLayout stack = new android.widget.LinearLayout(context);
+    stack.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    stack.setGravity(Gravity.CENTER_VERTICAL);
+    stack.setPadding(Screen.dp(6f), 0, Screen.dp(14f), 0);
+    stack.setLayoutParams(new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    stack.setOnClickListener(v -> tgx101SetStoriesPanelOpen(!tgx101StoriesPanelOpen));
+    org.thunderdog.challegram.tool.Views.setClickable(stack);
+    tgx101StoriesStackView = stack;
+    tgx101StackKey = "";
+    tgx101FillStoriesStack();
+    return stack;
+  }
+
+  private int tgx101StoriesStackWidth () {
+    android.widget.LinearLayout stack = tgx101StoriesStackView;
+    int count = stack != null && stack.getVisibility() == View.VISIBLE ? stack.getChildCount() : 0;
+    return count == 0 ? 0 : Screen.dp(6f + 14f + 28f + 17f * (count - 1));
+  }
+
+  /** Up to three overlapping avatars with rings, the first on top */
+  private void tgx101FillStoriesStack () {
+    android.widget.LinearLayout stack = tgx101StoriesStackView;
+    if (stack == null) return;
+    java.util.List<TdApi.ChatActiveStories> ordered = tgx101HeaderStrip != null ? tgx101HeaderStrip.ordered() : java.util.Collections.emptyList();
+    StringBuilder key = new StringBuilder();
+    for (int i = 0; i < Math.min(3, ordered.size()); i++) key.append(ordered.get(i).chatId).append(',');
+    int visibility = ordered.isEmpty() ? View.GONE : View.VISIBLE;
+    if (stack.getVisibility() != visibility) {
+      stack.setVisibility(visibility);
+      UI.post(this::checkHeaderMargins);
+    }
+    if (key.toString().equals(tgx101StackKey) && stack.getChildCount() > 0) return;
+    tgx101StackKey = key.toString();
+    stack.removeAllViews();
+    int count = Math.min(3, ordered.size());
+    UI.post(this::checkHeaderMargins);
+    for (int i = 0; i < count; i++) {
+      android.widget.FrameLayout ringWrap = new android.widget.FrameLayout(context()) {
+        private final android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        { setWillNotDraw(false); p.setStyle(android.graphics.Paint.Style.STROKE); }
+        @Override
+        protected void dispatchDraw (android.graphics.Canvas c) {
+          super.dispatchDraw(c);
+          p.setStrokeWidth(Screen.dp(2.5f));
+          p.setColor(Theme.headerColor());
+          c.drawCircle(getWidth() / 2f, getHeight() / 2f, getWidth() / 2f - Screen.dp(1.25f), p);
+          p.setStrokeWidth(Screen.dp(1.5f));
+          p.setColor(0xff3fa9f5);
+          c.drawCircle(getWidth() / 2f, getHeight() / 2f, getWidth() / 2f - Screen.dp(2.75f), p);
+        }
+      };
+      org.thunderdog.challegram.widget.AvatarView avatar = new org.thunderdog.challegram.widget.AvatarView(context());
+      avatar.setChat(tdlib, tdlib.chat(ordered.get(i).chatId));
+      ringWrap.addView(avatar, new android.widget.FrameLayout.LayoutParams(Screen.dp(20f), Screen.dp(20f), Gravity.CENTER));
+      android.widget.LinearLayout.LayoutParams params = new android.widget.LinearLayout.LayoutParams(Screen.dp(28f), Screen.dp(28f));
+      if (i > 0) params.leftMargin = -Screen.dp(11f);
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+        ringWrap.setTranslationZ(count - i); // the first one on top
+      }
+      stack.addView(ringWrap, params);
+    }
+  }
+
+  private void tgx101SetStoriesPanelOpen (boolean open) {
+    if (tgx101StoriesPanel == null || tgx101StoriesPanelOpen == open) return;
+    tgx101StoriesPanelOpen = open;
+    org.thunderdog.challegram.Tgx101Diag.mark("stories: header panel " + (open ? "opened" : "closed"));
+    if (open && tgx101HeaderStrip != null) tgx101HeaderStrip.refresh();
+    if (tgx101StoriesPanelAnimator != null) tgx101StoriesPanelAnimator.cancel();
+    float from = tgx101StoriesPanel.getVisibility() == View.VISIBLE ? tgx101StoriesPanel.getAlpha() : 0f;
+    tgx101StoriesPanel.setVisibility(View.VISIBLE);
+    tgx101StoriesPanel.bringToFront();
+    tgx101StoriesPanelAnimator = android.animation.ValueAnimator.ofFloat(from, open ? 1f : 0f);
+    tgx101StoriesPanelAnimator.setDuration(open ? 220 : 180);
+    tgx101StoriesPanelAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator());
+    tgx101StoriesPanelAnimator.addUpdateListener(a -> {
+      float f = (float) a.getAnimatedValue();
+      tgx101StoriesPanel.setAlpha(f);
+      int h = tgx101StoriesSheet.getHeight() > 0 ? tgx101StoriesSheet.getHeight() : Screen.dp(org.thunderdog.challegram.widget.Tgx101StoriesStrip.HEIGHT_DP + 20f);
+      tgx101StoriesSheet.setTranslationY(-h * (1f - f));
+    });
+    tgx101StoriesPanelAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd (android.animation.Animator animation) {
+        if (!tgx101StoriesPanelOpen) tgx101StoriesPanel.setVisibility(View.GONE);
+      }
+    });
+    tgx101StoriesPanelAnimator.start();
+  }
+
   private void tgx101AddCapsule (Context context, FrameLayoutFix contentView) {
     if (!Settings.instance().tgx101NavCapsule())
       return;
@@ -2060,6 +2240,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       if (Passcode.instance().isEnabled()) {
         menuWidth += Screen.dp(48f);
       }
+      menuWidth += tgx101StoriesStackWidth(); // the tabs end before the stories stack, not under it
       int backWidth = Settings.instance().tgx101NavCapsule() ? 0 : Screen.dp(44f); // TGx101: no ☰ with the capsule
       if (Lang.rtl()) {
         paddingLeft = menuWidth;
@@ -2952,6 +3133,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   public void fillMenuItems (int id, HeaderView header, LinearLayout menu) {
     if (id == R.id.menu_main) {
       header.addLockButton(menu);
+      if (Tgx101Stories.mode() == Tgx101Stories.MODE_HEADER) {
+        header.addButton(menu, tgx101StoriesStack(menu.getContext()));
+      }
       Tgx101ProxyQuick.bindSearchHold(this, header.addSearchButton(menu, this), header);
     } else if (id == R.id.menu_clear) {
       header.addClearButton(menu, getSearchHeaderIconColorId(), getSearchBackButtonResource());
@@ -2985,6 +3169,10 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   @Override
   public boolean performOnBackPressed (boolean fromTop, boolean commit) {
     if (Tgx101Bird.closeRing(context, commit)) {
+      return true;
+    }
+    if (tgx101StoriesPanelOpen) {
+      if (commit) tgx101SetStoriesPanelOpen(false);
       return true;
     }
     if (tgx101Capsule != null && tgx101Capsule.isMenuOpen()) {

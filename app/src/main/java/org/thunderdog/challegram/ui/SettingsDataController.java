@@ -326,7 +326,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         } else if (itemId == R.id.btn_tgx101StoriesFolders) {
           view.setData(tgx101StoriesFoldersValue());
         } else if (itemId == R.id.btn_tgx101StoriesMode) {
-          view.setData(Tgx101Stories.mode() == Tgx101Stories.MODE_RINGS ? R.string.Tgx101StoriesModeRings : R.string.Tgx101StoriesModeStrip);
+          int storiesMode = Tgx101Stories.mode();
+          view.setData(storiesMode == Tgx101Stories.MODE_RINGS ? R.string.Tgx101StoriesModeRings : storiesMode == Tgx101Stories.MODE_HEADER ? R.string.Tgx101StoriesModeHeader : R.string.Tgx101StoriesModeStrip);
         } else if (itemId == R.id.btn_tgx101NextChannelBackToList) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101NextChannelBackToList(), isUpdate);
         } else if (itemId == R.id.btn_tgx101RememberChatPlace) {
@@ -1455,12 +1456,13 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       tgx101ChooseStoriesFolders();
     } else if (id == R.id.btn_tgx101StoriesMode) {
       int current = Tgx101Stories.mode();
-      showOptions(Lang.getString(R.string.Tgx101StoriesMode), new int[] {1, 2},
+      showOptions(Lang.getString(R.string.Tgx101StoriesMode), new int[] {3, 1, 2},
         new String[] {
+          Lang.getString(R.string.Tgx101StoriesModeHeader) + (current == Tgx101Stories.MODE_HEADER ? "  ✓" : ""),
           Lang.getString(R.string.Tgx101StoriesModeStrip) + (current == Tgx101Stories.MODE_STRIP ? "  ✓" : ""),
           Lang.getString(R.string.Tgx101StoriesModeRings) + (current == Tgx101Stories.MODE_RINGS ? "  ✓" : "")
         }, null, null, (itemView, optionId) -> {
-          Tgx101Stories.setMode(optionId == 2 ? Tgx101Stories.MODE_RINGS : Tgx101Stories.MODE_STRIP);
+          Tgx101Stories.setMode(optionId == 3 ? Tgx101Stories.MODE_HEADER : optionId == 2 ? Tgx101Stories.MODE_RINGS : Tgx101Stories.MODE_STRIP);
           adapter.updateValuedSettingById(R.id.btn_tgx101StoriesMode);
           UI.showToast(R.string.Tgx101StoriesModeRestart, android.widget.Toast.LENGTH_SHORT);
           return true;

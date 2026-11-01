@@ -1443,6 +1443,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101StoriesMode, "Истории");
     RU.put(R.string.Tgx101StoriesModeStrip, "Лента над чатами");
     RU.put(R.string.Tgx101StoriesModeRings, "Кольца на аватарках");
+    RU.put(R.string.Tgx101StoriesModeHeader, "Стопка в шапке");
     RU.put(R.string.Tgx101StoriesModeRestart, "Применится, когда вернётесь к списку чатов");
     RU.put(R.string.Tgx101StoriesFolders, "Истории из папок");
     RU.put(R.string.Tgx101StoriesFoldersAll, "Все чаты");
