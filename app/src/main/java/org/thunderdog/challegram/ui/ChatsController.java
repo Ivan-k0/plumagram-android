@@ -925,8 +925,16 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     return false;
   }
 
+  // every row the pull ever moved: a row that left the screen meanwhile came back later still moved — an empty band the size
+  // of a chat lower in the list and rows on top of each other (user video 20:01). All of them go back when the pull ends
+  private final java.util.Set<View> tgx101Shifted = java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+
   private void tgx101SetShift (RecyclerView rv, float shift) {
     tgx101PullShift = shift;
+    if (shift == 0f) {
+      for (View view : tgx101Shifted) view.setTranslationY(0f);
+      tgx101Shifted.clear();
+    }
     // the folded archive and stories' rows stand in the same place: the archive comes in above the stories' row
     int archivePosition = adapter != null && adapter.tgx101HasStoriesRow() && shift != 0f ? adapter.getArchiveItemPosition() : -1;
     float storiesRoom = archivePosition != -1 ? ChatView.getViewHeight(Settings.instance().getChatListMode()) + Screen.dp(12f) : 0f;
@@ -934,6 +942,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       View child = rv.getChildAt(i);
       boolean archive = archivePosition != -1 && rv.getChildAdapterPosition(child) == archivePosition;
       child.setTranslationY(archive ? shift - storiesRoom : shift);
+      if (shift != 0f) tgx101Shifted.add(child);
     }
     rv.invalidate();
   }
