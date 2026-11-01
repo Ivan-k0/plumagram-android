@@ -2308,8 +2308,13 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     MediaItem item = stack != null ? stack.getCurrent() : null;
     boolean video = mode == MODE_MESSAGES && item != null && item.isVideo() && !item.isGifType() && videoSliderView != null && !tgx101Locked();
     float alpha = video ? headerVisible.getFloatValue() * (1f - pipFactor) * (inCaption ? 0f : 1f) : 0f;
+    boolean shown = alpha > 0f;
+    if (shown != (tgx101CenterPlay.getVisibility() == View.VISIBLE)) {
+      org.thunderdog.challegram.Tgx101Diag.mark("player: centre button " + (shown ? "shown" : "hidden") + " (mode " + mode + ", video " + (item != null && item.isVideo()) + ", slider " + (videoSliderView != null) + ", header " + headerVisible.getFloatValue() + ", size " + tgx101CenterPlay.getWidth() + ", parent " + (tgx101CenterPlay.getParent() != null) + ")");
+    }
     tgx101CenterPlay.setAlpha(alpha);
-    tgx101CenterPlay.setVisibility(alpha > 0f ? View.VISIBLE : View.GONE);
+    tgx101CenterPlay.setVisibility(shown ? View.VISIBLE : View.GONE);
+    if (shown) tgx101CenterPlay.bringToFront();
     tgx101CenterPlay.invalidate();
   }
 
@@ -4519,6 +4524,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       videoSliderView.setIsPlaying(isPlaying, videoFactor > 0f);
     }
     isPlayingVideo = isPlaying;
+    // (user 2026-11-01) paused: the controls and the middle play button stay on screen until a tap elsewhere
+    if (!isPlaying && mode == MODE_MESSAGES && !headerVisible.getValue() && !tgx101Locked() && item != null && item.isVideo() && !item.isGifType() && !isDestroyed()
+      && popupView != null && !popupView.isWindowHidden()) { // not the pause of the closing viewer
+      toggleHeaderVisibility();
+    }
     tgx101UpdateCenterPlay(); // its icon follows
     switch (mode) {
       case MODE_MESSAGES:
