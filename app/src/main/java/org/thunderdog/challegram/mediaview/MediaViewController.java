@@ -6535,6 +6535,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     tgx101CenterPlay = new View(context) {
       private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
       private final android.graphics.Path path = new android.graphics.Path();
+      private final android.graphics.RectF bar = new android.graphics.RectF();
       @Override
       protected void onDraw (android.graphics.Canvas c) {
         float cx = getWidth() / 2f, cy = getHeight() / 2f, r = Math.min(cx, cy);
@@ -6543,8 +6544,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         paint.setColor(0xffffffff);
         if (isPlayingVideo) {
           float w = r * .16f, h = r * .44f, gap = r * .14f;
-          c.drawRoundRect(cx - gap - w, cy - h, cx - gap, cy + h, w / 3f, w / 3f, paint);
-          c.drawRoundRect(cx + gap, cy - h, cx + gap + w, cy + h, w / 3f, w / 3f, paint);
+          bar.set(cx - gap - w, cy - h, cx - gap, cy + h); // RectF form: the float one is Android 5+ only
+          c.drawRoundRect(bar, w / 3f, w / 3f, paint);
+          bar.set(cx + gap, cy - h, cx + gap + w, cy + h);
+          c.drawRoundRect(bar, w / 3f, w / 3f, paint);
         } else {
           float h = r * .46f;
           path.reset();

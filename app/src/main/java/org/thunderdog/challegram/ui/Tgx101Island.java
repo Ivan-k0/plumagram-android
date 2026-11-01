@@ -446,7 +446,7 @@ public final class Tgx101Island {
     private void animateShown (boolean show, @Nullable Runnable after) {
       float to = show ? 1f : 0f;
       if (!show && shown > 0f && tgx101ShownAt != 0) {
-        org.thunderdog.challegram.Tgx101Diag.mark("island: hides after " + (SystemClock.uptimeMillis() - tgx101ShownAt) + " ms, expanded " + expanded + ", attached " + isAttachedToWindow());
+        org.thunderdog.challegram.Tgx101Diag.mark("island: hides after " + (SystemClock.uptimeMillis() - tgx101ShownAt) + " ms, expanded " + expanded + ", attached " + androidx.core.view.ViewCompat.isAttachedToWindow(this));
         tgx101ShownAt = 0;
       }
       shownTarget = to;
