@@ -199,7 +199,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     if (Settings.instance().tgx101PullAction() == Settings.TGX101_PULL_STORIES) {
       // (user 2026-11-01 «первый свайп открывает плашку с историями, как нажатие на 3 истории вверху; повторный
       // запускает проигрывание»): with the stack in the header the pull drops the panel; a swipe down on it plays
-      if (parentController != null && Tgx101Stories.mode() == Tgx101Stories.MODE_HEADER) {
+      if (parentController != null && (Tgx101Stories.mode() == Tgx101Stories.MODE_HEADER || Tgx101Stories.mode() == Tgx101Stories.MODE_RINGS)) {
         if (!parentController.tgx101HeaderStories().isEmpty()) {
           org.thunderdog.challegram.Tgx101Diag.mark("chats: pull down → stories panel");
           parentController.tgx101OpenStoriesPanel();

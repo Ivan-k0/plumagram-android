@@ -1433,7 +1433,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   private static final float TGX101_STORIES_PULL_DP = 140f;
 
   private void tgx101AddStoriesPanel (Context context, FrameLayoutFix contentView) {
-    if (Tgx101Stories.mode() != Tgx101Stories.MODE_HEADER) return;
+    // (user 2026-11-01): the panel is there in both modes — with rings on the avatars the pull drops it too
     tgx101HeaderStrip = new org.thunderdog.challegram.widget.Tgx101StoriesStrip(context, tdlib, new org.thunderdog.challegram.widget.Tgx101StoriesStrip.Callback() {
       @Override
       public void onStoryClick (java.util.List<TdApi.ChatActiveStories> ordered, int index) {
@@ -1465,10 +1465,56 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     // to «Stories», the pull drops this panel; a swipe down on the open panel (over the sheet or the dim) plays them
     // (user 2026-11-01 «повторный свайп с историями нужно тоже как-то предохранить»): the swipe down that plays them is a
     // long, clearly downward pull let go. The panel stays still («анимация не очень… не нужно трогать панель»): a light
-    // tick tells the pull went far enough
+    // tick tells the pull went far enough, and (user 2026-11-01 «нужно визуально показывать повторный свайп, не только
+    // вибрация») a circle under the panel fills its ring with the pull — full, it turns into a ▶ to let go on
     tgx101StoriesPanel = new FrameLayoutFix(context) {
       private float downX, downY;
       private boolean pulling, sideways, ready;
+      private float progress;
+      private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+      private final android.graphics.RectF arc = new android.graphics.RectF();
+      private final android.graphics.Path play = new android.graphics.Path();
+
+      private void setProgress (float value) {
+        if (progress != value) {
+          progress = value;
+          invalidate();
+        }
+      }
+
+      @Override
+      protected void dispatchDraw (android.graphics.Canvas c) {
+        super.dispatchDraw(c);
+        if (progress <= 0f || tgx101StoriesSheet == null) return;
+        float cx = getWidth() / 2f, cy = tgx101StoriesSheet.getBottom() + Screen.dp(44f) + Screen.dp(12f) * progress;
+        float radius = Screen.dp(22f);
+        int accent = Theme.getColor(ColorId.iconActive);
+        int alpha = Math.round(255 * Math.min(1f, progress * 2.5f));
+        paint.setStyle(android.graphics.Paint.Style.FILL);
+        paint.setColor(ready ? accent : Theme.fillingColor());
+        paint.setAlpha(alpha);
+        c.drawCircle(cx, cy, radius, paint);
+        if (!ready) {
+          paint.setStyle(android.graphics.Paint.Style.STROKE);
+          paint.setStrokeWidth(Screen.dp(2.5f));
+          paint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+          paint.setColor(accent);
+          paint.setAlpha(alpha);
+          float inset = Screen.dp(2.5f);
+          arc.set(cx - radius + inset, cy - radius + inset, cx + radius - inset, cy + radius - inset);
+          c.drawArc(arc, -90f, 360f * progress, false, paint);
+        }
+        float t = Screen.dp(7f);
+        play.reset();
+        play.moveTo(cx - t * .6f, cy - t);
+        play.lineTo(cx + t, cy);
+        play.lineTo(cx - t * .6f, cy + t);
+        play.close();
+        paint.setStyle(android.graphics.Paint.Style.FILL);
+        paint.setColor(ready ? 0xffffffff : accent);
+        paint.setAlpha(alpha);
+        c.drawPath(play, paint);
+      }
 
       @Override
       public boolean dispatchTouchEvent (MotionEvent e) {
@@ -1477,6 +1523,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
             downX = e.getX();
             downY = e.getY();
             pulling = sideways = ready = false;
+            setProgress(0f);
             break;
           case MotionEvent.ACTION_MOVE: {
             float dy = e.getY() - downY, dx = Math.abs(e.getX() - downX);
@@ -1495,6 +1542,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
                 ready = nowReady;
                 if (ready) performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
               }
+              setProgress(MathUtils.clamp(dy / Screen.dp(TGX101_STORIES_PULL_DP)));
               return true;
             }
             break;
@@ -1503,6 +1551,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
           case MotionEvent.ACTION_CANCEL:
             if (pulling) {
               pulling = false;
+              setProgress(0f);
               float dy = e.getY() - downY, dx = Math.abs(e.getX() - downX);
               if (e.getActionMasked() == MotionEvent.ACTION_UP && dy >= Screen.dp(TGX101_STORIES_PULL_DP) && dy > dx * 2f) {
                 tgx101PlayFirstStories();
