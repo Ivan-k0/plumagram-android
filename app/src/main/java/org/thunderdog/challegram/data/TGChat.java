@@ -413,6 +413,10 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
 
   private boolean tgx101StoragePinned = true;
 
+  public int tgx101StorageDate () {
+    return tgx101StorageDate;
+  }
+
   /** the storage's row: pinned on top, or among the chats by its date */
   public boolean tgx101StoragePinned () {
     return tgx101StoriesRow || tgx101StoragePinned;

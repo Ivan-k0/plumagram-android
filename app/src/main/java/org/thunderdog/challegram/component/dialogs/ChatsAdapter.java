@@ -168,18 +168,27 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
     int storageAt = tgx101LooseStorageAt();
     if (storageAt == -1 || chatIndex < storageAt) return chatIndex;
     if (chatIndex > storageAt) return chatIndex + 1;
-    return chat.getChatOrder() >= tgx101StorageItem.getChatOrder() ? storageAt : storageAt + 1;
+    return tgx101DateKey(chat) >= tgx101DateKey(tgx101StorageItem) ? storageAt : storageAt + 1;
+  }
+
+  /** what puts the unpinned storage's row among the chats: the date of the last message (Telegram's order isn't a date),
+   *  pinned chats above any date */
+  private static long tgx101DateKey (TGChat chat) {
+    if (chat.tgx101IsStorage()) return chat.tgx101StorageDate();
+    if (chat.isPinnedOrSpecial()) return Long.MAX_VALUE;
+    TdApi.Chat c = chat.getChat();
+    return c != null && c.lastMessage != null ? c.lastMessage.date : 0;
   }
 
   /** the unpinned storage's row goes where its date puts it among the loaded chats */
   public void tgx101PlaceStorage () {
     int storageAt = tgx101LooseStorageAt();
     if (storageAt == -1) return;
-    long order = tgx101StorageItem.getChatOrder();
+    long key = tgx101DateKey(tgx101StorageItem);
     int top = tgx101Top();
     int target = top;
     for (int i = top; i < chats.size(); i++) {
-      if (i != storageAt && chats.get(i).getChatOrder() > order) target++;
+      if (i != storageAt && tgx101DateKey(chats.get(i)) > key) target++;
     }
     if (target != storageAt) {
       chats.remove(storageAt);
