@@ -34,11 +34,11 @@ public final class Tgx101Stories {
     SharedPreferences prefs = prefs();
     int mode = prefs.getInt(KEY_MODE, MODE_HEADER);
     if (!prefs.getBoolean(KEY_HEADER_MOVED, false)) {
-      // once: whoever had the strip gets the header stack (the strip stays a choice in the settings)
-      if (mode == MODE_STRIP) mode = MODE_HEADER;
-      prefs.edit().putBoolean(KEY_HEADER_MOVED, true).putInt(KEY_MODE, mode).apply();
+      prefs.edit().putBoolean(KEY_HEADER_MOVED, true).putInt(KEY_MODE, mode == MODE_STRIP ? MODE_HEADER : mode).apply();
     }
-    return mode;
+    // (user 2026-11-01 «историю над чатами убираем как опцию, она конфликтует с архивом»): the strip above the chats is
+    // no longer a choice — whoever picked it again gets the header stack
+    return mode == MODE_STRIP ? MODE_HEADER : mode;
   }
 
   public static void setMode (int mode) {
