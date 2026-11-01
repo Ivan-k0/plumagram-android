@@ -107,9 +107,24 @@ public class Tgx101StorageOverview extends View {
     org.thunderdog.challegram.unsorted.Settings.instance().putInt(key, mask);
   }
 
+  // (user 2026-11-01 «настройки должны сохраняться отдельно для каждого окна — чаты, каналы и т. д.»): every tab keeps
+  // its own ticks; «All» uses the keys without a suffix (as they were saved before)
+  private static String tabKey (String key, int tab) {
+    return tab == 0 ? key : key + "_" + tab;
+  }
+
+  private static final boolean[] DEFAULT_SUB_CHECKED = {true, false, true, false, false, false, true};
+
+  private void loadTicks () {
+    java.util.Arrays.fill(checked, true);
+    System.arraycopy(DEFAULT_SUB_CHECKED, 0, subChecked, 0, Math.min(subChecked.length, DEFAULT_SUB_CHECKED.length));
+    loadTicks(tabKey(KEY_CHECKED, tab), checked);
+    loadTicks(tabKey(KEY_SUB_CHECKED, tab), subChecked);
+  }
+
   private void saveTicks () {
-    saveTicks(KEY_CHECKED, checked);
-    saveTicks(KEY_SUB_CHECKED, subChecked);
+    saveTicks(tabKey(KEY_CHECKED, tab), checked);
+    saveTicks(tabKey(KEY_SUB_CHECKED, tab), subChecked);
   }
   private long[][] sizes; // [tab][cat]
   private final ArrayList<ArrayList<Long>> chatIds = new ArrayList<>(); // [tab - 1]
@@ -124,8 +139,7 @@ public class Tgx101StorageOverview extends View {
   public Tgx101StorageOverview (Context context) {
     super(context);
     for (int i = 0; i < 3; i++) chatIds.add(new ArrayList<>());
-    loadTicks(KEY_CHECKED, checked);
-    loadTicks(KEY_SUB_CHECKED, subChecked);
+    loadTicks();
   }
 
   public void setCallback (@Nullable Callback callback) {
@@ -472,6 +486,7 @@ public class Tgx101StorageOverview extends View {
       int t = (int) ((x - pad) / ((width - pad * 2f) / TAB_COUNT));
       if (t != tab && t >= 0 && t < TAB_COUNT) {
         tab = t;
+        loadTicks(); // this tab's own ticks
         performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
         requestLayout();
         invalidate();
