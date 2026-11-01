@@ -101,6 +101,9 @@ public class RtlViewPager extends ViewPager implements RtlCheckListener {
     cancel.recycle();
   }
 
+  private long tgx101PutBackAt;
+  private int tgx101PutBackLoops;
+
   private void tgx101CheckAligned (String why) {
     if (tgx101ScrollState != SCROLL_STATE_IDLE || isFakeDragging() || getWidth() == 0 || getAdapter() == null || getAdapter().getCount() == 0) {
       return;
@@ -110,8 +113,21 @@ public class RtlViewPager extends ViewPager implements RtlCheckListener {
     if (Math.abs(off) <= 1) {
       return;
     }
+    long now = android.os.SystemClock.uptimeMillis();
+    if (now - tgx101PutBackAt < 1000) {
+      // (user 2026-11-01 19:37 «даже свайпы между папками не работают»): the settle below left it where it was — the pager
+      // stands right by its own page layout, which then isn't «page × width» (after the tabs changed) — and ending that
+      // settle called this again, every frame (32 000 times a minute); no swipe got through. A second try in a row is
+      // left alone
+      if (tgx101PutBackLoops++ == 0) {
+        org.thunderdog.challegram.Tgx101Diag.mark("pager: still " + off + " px off page " + super.getCurrentItem() + " at " + getScrollX() + " px after putting back — left alone");
+      }
+      return;
+    }
+    tgx101PutBackAt = now;
+    tgx101PutBackLoops = 0;
     // TEMPORARY diagnostics (user 2026-10-30: drop once the cause of the shifted chat list is found)
-    org.thunderdog.challegram.Tgx101Diag.mark("pager: stood " + off + " px off page " + super.getCurrentItem() + " at " + getScrollX() + " px (" + why + "), state " + tgx101ScrollState + ", " + (android.os.SystemClock.uptimeMillis() - tgx101UpAt) + " ms after the finger, put back");
+    org.thunderdog.challegram.Tgx101Diag.mark("pager: stood " + off + " px off page " + super.getCurrentItem() + " at " + getScrollX() + " px (" + why + "), state " + tgx101ScrollState + ", " + (now - tgx101UpAt) + " ms after the finger, put back");
     if (beginFakeDrag()) {
       endFakeDrag(); // settles on the nearest page and tells the listeners (header, attached screens)
     }
