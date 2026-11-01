@@ -54,7 +54,7 @@ import me.vkryl.android.AnimatorUtils;
 public final class Tgx101Island {
   private Tgx101Island () { }
 
-  private static final long HIDE_MS = 4000, HIDE_EXPANDED_MS = 6000, SNOOZE_MS = 5 * 60 * 1000;
+  private static final long HIDE_MS = 4500, HIDE_EXPANDED_MS = 6000, SNOOZE_MS = 5 * 60 * 1000;
 
   private static final Map<Long, Long> snoozedUntil = new HashMap<>();
   private static long lastDismissedChatId;
