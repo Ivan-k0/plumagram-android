@@ -90,7 +90,27 @@ public class Tgx101StorageOverview extends View {
     void onClear (TdApi.FileType[] types, @Nullable long[] chatIds, long size);
   }
 
-  private final boolean[] checked = {true, true, true, false, true, false, true};
+  // (group 2026-11-01 «галочки «Голосовые и кружки» и «Стикеры» не запоминаются, каждый раз отмечать заново»): every kind
+  // is ticked by default, and the ticks are remembered between visits
+  private final boolean[] checked = {true, true, true, true, true, true, true};
+  private static final String KEY_CHECKED = "tgx101_storage_checked", KEY_SUB_CHECKED = "tgx101_storage_sub_checked";
+
+  private static void loadTicks (String key, boolean[] into) {
+    int mask = org.thunderdog.challegram.unsorted.Settings.instance().getInt(key, -1);
+    if (mask == -1) return; // never changed: the defaults
+    for (int i = 0; i < into.length; i++) into[i] = (mask & (1 << i)) != 0;
+  }
+
+  private static void saveTicks (String key, boolean[] from) {
+    int mask = 0;
+    for (int i = 0; i < from.length; i++) if (from[i]) mask |= 1 << i;
+    org.thunderdog.challegram.unsorted.Settings.instance().putInt(key, mask);
+  }
+
+  private void saveTicks () {
+    saveTicks(KEY_CHECKED, checked);
+    saveTicks(KEY_SUB_CHECKED, subChecked);
+  }
   private long[][] sizes; // [tab][cat]
   private final ArrayList<ArrayList<Long>> chatIds = new ArrayList<>(); // [tab - 1]
   private long deviceTotal;
@@ -104,6 +124,8 @@ public class Tgx101StorageOverview extends View {
   public Tgx101StorageOverview (Context context) {
     super(context);
     for (int i = 0; i < 3; i++) chatIds.add(new ArrayList<>());
+    loadTicks(KEY_CHECKED, checked);
+    loadTicks(KEY_SUB_CHECKED, subChecked);
   }
 
   public void setCallback (@Nullable Callback callback) {
@@ -476,6 +498,7 @@ public class Tgx101StorageOverview extends View {
           checked[i] = !checked[i];
         }
       }
+      saveTicks();
       performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
       invalidate();
     } else if (y >= buttonTop() && y < buttonTop() + buttonHeight() && !busy && sizes != null && callback != null) {

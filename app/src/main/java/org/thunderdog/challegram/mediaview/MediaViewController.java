@@ -1198,6 +1198,25 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
   }
 
+  // (group 2026-11-01 «когда увеличиваешь фото двойным нажатием, «состояние» — описание и количество медиа — должно
+  // пропадать»): zoomed in — the header and caption go away; back to normal size — they come back, if they went for the zoom
+  private boolean tgx101HiddenByZoom;
+  private final Runnable tgx101ZoomWatch = new Runnable() {
+    @Override
+    public void run () {
+      if (isDestroyed() || mediaView == null) return;
+      boolean zoomed = mediaView.isZoomed();
+      if (zoomed && !tgx101HiddenByZoom && headerVisible.getValue()) {
+        tgx101HiddenByZoom = true;
+        toggleHeaderVisibility();
+      } else if (!zoomed && tgx101HiddenByZoom) {
+        tgx101HiddenByZoom = false;
+        if (!headerVisible.getValue()) toggleHeaderVisibility();
+      }
+      UI.post(this, 150);
+    }
+  };
+
   public void onMediaZoomStart () {
     if (mode == MODE_GALLERY && currentSection == SECTION_PAINT && paintView != null) {
       paintView.getContentWrap().cancelDrawingByZoom();
@@ -6448,6 +6467,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     updateMediaView();
     mediaView.setCellCallback(this);
     mediaView.setBoundController(this);
+    UI.post(tgx101ZoomWatch, 300);
     mediaView.initWithStack(stack);
     stack.setCallback(this);
     mediaView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
