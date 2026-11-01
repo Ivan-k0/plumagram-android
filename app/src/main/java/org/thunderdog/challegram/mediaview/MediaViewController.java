@@ -2308,7 +2308,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     if (tgx101CenterPlay == null) return;
     MediaItem item = stack != null ? stack.getCurrent() : null;
     boolean video = mode == MODE_MESSAGES && item != null && item.isVideo() && !item.isGifType() && videoSliderView != null && !tgx101Locked();
-    float alpha = video ? headerVisible.getFloatValue() * (1f - pipFactor) * (inCaption ? 0f : 1f) : 0f;
+    // fades with the header while the viewer opens / closes or is dragged away — it was left floating in the middle
+    // after a close (user 2026-11-01 «фантомная кнопка плей при сворачивании»)
+    float alpha = video ? MathUtils.clamp(headerVisible.getFloatValue() * (1f - pipFactor) * tgx101HeaderRevealAlpha * tgx101HeaderDragAlpha) * (inCaption ? 0f : 1f) : 0f;
     boolean shown = alpha > 0f;
     float hv = headerVisible.getFloatValue();
     if ((hv == 1f || hv == 0f) && hv != tgx101CenterLoggedHeader) {
@@ -2351,6 +2353,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     if (headerView != null) {
       headerView.setAlpha(alpha);
     }
+    tgx101UpdateCenterPlay();
     /*if (bottomPaddingView != null) {
       bottomPaddingView.setAlpha(alpha);
     }*/
@@ -6534,6 +6537,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     });
     tgx101CenterPlay.setAlpha(0f);
     tgx101CenterPlay.setVisibility(View.GONE);
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+      tgx101CenterPlay.setTranslationZ(Screen.dp(12f)); // the playing video's layer is lifted (pip elevation) — above it
+    }
     contentView.addView(tgx101CenterPlay, FrameLayoutFix.newParams(Screen.dp(72f), Screen.dp(72f), Gravity.CENTER));
     // TGx101: the subtitle line, over the picture near the bottom
     tgx101SubtitleView = new android.widget.TextView(context);
