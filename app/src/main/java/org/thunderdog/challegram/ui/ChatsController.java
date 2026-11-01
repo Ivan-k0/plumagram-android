@@ -897,11 +897,25 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     return ChatView.getViewHeight(mode) + Screen.dp(12f);
   }
 
-  // how much of the archive row shows now: the top of the first chat under it
+  // how much of the archive row shows now: the top of the row right under it
   private int tgx101ArchiveReveal (RecyclerView rv) {
     LinearLayoutManager manager = (LinearLayoutManager) rv.getLayoutManager();
-    View first = manager != null ? manager.findViewByPosition(1) : null;
+    View first = manager != null ? manager.findViewByPosition(adapter.getArchiveItemPosition() + 1) : null;
     return first != null ? Math.max(0, manager.getDecoratedTop(first)) : 0;
+  }
+
+  // the list rests at its very top under the folded archive. Rows of no height right under it (the storage row before
+  // it is shown, user video 18:10 — quick pulls did nothing after a restart) don't count
+  private boolean tgx101ListAtTop (RecyclerView rv) {
+    LinearLayoutManager manager = (LinearLayoutManager) rv.getLayoutManager();
+    if (manager == null) return false;
+    int count = adapter.getItemCount();
+    for (int position = adapter.getArchiveItemPosition() + 1; position < count; position++) {
+      View view = manager.findViewByPosition(position);
+      if (view == null || manager.getDecoratedTop(view) < 0) return false;
+      if (manager.getDecoratedMeasuredHeight(view) > 0) return true;
+    }
+    return false;
   }
 
   private void tgx101PullTo (RecyclerView rv, float dy) {
@@ -987,13 +1001,17 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
           tgx101PullTracking = tgx101Pulling = false;
           if (hideArchive && archiveCollapsed && adapter != null && adapter.hasArchive() && chatScrollState == RecyclerView.SCROLL_STATE_IDLE
             && android.os.SystemClock.uptimeMillis() - tgx101ListRestAt > 250) {
-            LinearLayoutManager manager = (LinearLayoutManager) rv.getLayoutManager();
-            View first = manager != null ? manager.findViewByPosition(1) : null;
-            if (manager != null && manager.findFirstVisibleItemPosition() == 1 && first != null && manager.getDecoratedTop(first) >= 0) {
+            if (tgx101ListAtTop(rv)) {
               tgx101PullTracking = true;
               tgx101PullDownX = e.getX();
               tgx101PullDownY = e.getY();
             }
+          }
+          if (!tgx101PullTracking && hideArchive && archiveCollapsed && adapter != null && adapter.hasArchive()) {
+            LinearLayoutManager m = (LinearLayoutManager) rv.getLayoutManager();
+            int first = m != null ? m.findFirstVisibleItemPosition() : -1;
+            View v = first >= 0 ? m.findViewByPosition(first) : null;
+            org.thunderdog.challegram.Tgx101Diag.mark("archive: finger down, no pull — scroll state " + chatScrollState + ", rested " + (android.os.SystemClock.uptimeMillis() - tgx101ListRestAt) + " ms, first " + first + (v != null ? " top " + (int) Screen.px(m.getDecoratedTop(v)) + " h " + (int) Screen.px(m.getDecoratedMeasuredHeight(v)) : ""));
           }
           break;
         }
