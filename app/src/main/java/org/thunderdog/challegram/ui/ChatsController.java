@@ -696,12 +696,17 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
             // TGx101 (user video 2026-11-01 13:36, «нужен предохранитель выезда архива, как при переключении каналов»):
             // any scroll starting at the very top unfolded the archive — quick flicks up and down kept bringing it out.
             // Now only a deliberate pull does (see tgx101ArchivePull)
-            if (newState == RecyclerView.SCROLL_STATE_IDLE) tgx101ListRestAt = android.os.SystemClock.uptimeMillis();
             chatScrollState = newState;
             if (tgx101Pulling) return; // taking the pull stops the list's own drag («idle»): that mustn't fold the archive back
             if (newState == RecyclerView.SCROLL_STATE_IDLE && tgx101FoldOnIdle) {
               tgx101FoldOnIdle = false; // a pull let go early has slid away: fold the archive again
               setArchiveCollapsed(true);
+              // and put the first row exactly at the top: it was left cut by the unpulled part (user video 18:21)
+              UI.post(() -> {
+                if (!isDestroyed() && adapter != null && adapter.hasArchive() && archiveCollapsed) {
+                  ((LinearLayoutManager) recyclerView.getLayoutManager()).scrollToPositionWithOffset(adapter.getArchiveItemPosition() + 1, 0);
+                }
+              });
               return;
             }
             if (hideArchive) {
@@ -731,6 +736,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
           @Override
           public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
+            // the list's rest counts from its last real move: pulls at the top that don't move it (quick repeated
+            // tries) no longer restart the wait (user video 18:21 — pulls stopped working)
+            if (dy != 0 && !tgx101Pulling && !tgx101FoldOnIdle) tgx101ListRestAt = android.os.SystemClock.uptimeMillis();
             // TGx101: not while a let-go pull slides away — folding mid-slide kept the slide going one row too far (test 17:57)
             if (hideArchive && !archiveCollapsed && !tgx101FoldOnIdle && chatScrollState == RecyclerView.SCROLL_STATE_SETTLING && dy > 0 && ((LinearLayoutManager) recyclerView.getLayoutManager()).findFirstVisibleItemPosition() > 0) {
               setArchiveCollapsed(true);
