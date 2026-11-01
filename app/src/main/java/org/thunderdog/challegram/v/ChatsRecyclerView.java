@@ -44,6 +44,8 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
   private ChatsController controller;
   private ChatsAdapter adapter;
   private LinearLayoutManager manager;
+  // TGx101: room laid out above the top — while the hidden archive is pulled, its folded row has to exist there
+  public int tgx101ExtraTop;
 
   public ChatsRecyclerView (Context context) {
     super(context);
@@ -74,7 +76,13 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
 
     // setItemAnimator(null);
 
-    setLayoutManager(manager = new LinearLayoutManager(context, RecyclerView.VERTICAL, false));
+    setLayoutManager(manager = new LinearLayoutManager(context, RecyclerView.VERTICAL, false) {
+      @Override
+      protected void calculateExtraLayoutSpace (@NonNull RecyclerView.State state, @NonNull int[] extraLayoutSpace) {
+        super.calculateExtraLayoutSpace(state, extraLayoutSpace);
+        extraLayoutSpace[0] = Math.max(extraLayoutSpace[0], tgx101ExtraTop);
+      }
+    });
     addOnScrollListener(new OnScrollListener() {
       @Override
       public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
