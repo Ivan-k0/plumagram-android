@@ -2298,6 +2298,19 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       float alpha = headerVisible.getFloatValue() * (1f - pipFactor) * (inCaption ? 0f : 1f);
       videoSliderView.setAlpha(alpha);
     }
+    tgx101UpdateCenterPlay();
+  }
+
+  private View tgx101CenterPlay;
+
+  private void tgx101UpdateCenterPlay () {
+    if (tgx101CenterPlay == null) return;
+    MediaItem item = stack != null ? stack.getCurrent() : null;
+    boolean video = mode == MODE_MESSAGES && item != null && item.isVideo() && !item.isGifType() && videoSliderView != null && !tgx101Locked();
+    float alpha = video ? headerVisible.getFloatValue() * (1f - pipFactor) * (inCaption ? 0f : 1f) : 0f;
+    tgx101CenterPlay.setAlpha(alpha);
+    tgx101CenterPlay.setVisibility(alpha > 0f ? View.VISIBLE : View.GONE);
+    tgx101CenterPlay.invalidate();
   }
 
   private float headerAlpha;
@@ -3872,7 +3885,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private void tgx101ScheduleLockedHide () {
     contentView.removeCallbacks(tgx101HideLockedControls);
-    contentView.postDelayed(tgx101HideLockedControls, 4000);
+    contentView.postDelayed(tgx101HideLockedControls, 3500); // (user 2026-11-01) 3.5 s
   }
 
   private void tgx101TouchActivity (MotionEvent e) {
@@ -3953,9 +3966,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   /** Each player gesture on / off in one window with check boxes (no menu reopening on every tap); saved by «Done» */
   private void tgx101ChooseGestures () {
     Settings settings = Settings.instance();
-    final int[] ids = {R.id.btn_tgx101GestureSeek, R.id.btn_tgx101GestureBrightness, R.id.btn_tgx101GestureVolume, R.id.btn_tgx101GestureSpeed, R.id.btn_tgx101GestureZoomDrag};
-    final int[] gestures = {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED, Settings.GESTURE_ZOOM_DRAG};
-    final int[] names = {R.string.Tgx101GestureSeek, R.string.Tgx101GestureBrightness, R.string.Tgx101GestureVolume, R.string.Tgx101GestureSpeed, R.string.Tgx101GestureZoomDrag};
+    final int[] ids = {R.id.btn_tgx101GestureSeek, R.id.btn_tgx101GestureBrightness, R.id.btn_tgx101GestureVolume, R.id.btn_tgx101GestureSpeed, R.id.btn_tgx101GestureDoubleTapZoom};
+    final int[] gestures = {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED, Settings.GESTURE_DOUBLE_TAP_ZOOM};
+    final int[] names = {R.string.Tgx101GestureSeek, R.string.Tgx101GestureBrightness, R.string.Tgx101GestureVolume, R.string.Tgx101GestureSpeed, R.string.Tgx101GestureDoubleTapZoom};
     ListItem[] items = new ListItem[ids.length];
     for (int i = 0; i < ids.length; i++) {
       items[i] = new ListItem(ListItem.TYPE_CHECKBOX_OPTION, ids[i], 0, names[i], settings.tgx101PlayerGesture(gestures[i]));
@@ -4198,8 +4211,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         break;
       }
       case PAGE_GESTURES: {
-        final int[] gestures = {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED, Settings.GESTURE_ZOOM_DRAG};
-        final int[] names = {R.string.Tgx101GestureSeek, R.string.Tgx101GestureBrightness, R.string.Tgx101GestureVolume, R.string.Tgx101GestureSpeed, R.string.Tgx101GestureZoomDrag};
+        final int[] gestures = {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED, Settings.GESTURE_DOUBLE_TAP_ZOOM};
+        final int[] names = {R.string.Tgx101GestureSeek, R.string.Tgx101GestureBrightness, R.string.Tgx101GestureVolume, R.string.Tgx101GestureSpeed, R.string.Tgx101GestureDoubleTapZoom};
         final int[] icons = {R.drawable.baseline_swap_horiz_24, R.drawable.baseline_brightness_5_24, R.drawable.baseline_volume_up_24, R.drawable.baseline_fast_forward_24, R.drawable.baseline_zoom_in_24};
         for (int i = 0; i < gestures.length; i++) {
           final int gesture = gestures[i];
@@ -4379,7 +4392,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     float speed = settings.tgx101PlayerSpeed();
     String speedText = (speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed)) + "×";
     int gesturesOn = 0;
-    for (int g : new int[] {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED, Settings.GESTURE_ZOOM_DRAG}) {
+    for (int g : new int[] {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED, Settings.GESTURE_DOUBLE_TAP_ZOOM}) {
       if (settings.tgx101PlayerGesture(g)) gesturesOn++;
     }
     String off = Lang.getString(R.string.Tgx101Off);
@@ -4506,6 +4519,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       videoSliderView.setIsPlaying(isPlaying, videoFactor > 0f);
     }
     isPlayingVideo = isPlaying;
+    tgx101UpdateCenterPlay(); // its icon follows
     switch (mode) {
       case MODE_MESSAGES:
       case MODE_SIMPLE: {
@@ -6472,6 +6486,39 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     stack.setCallback(this);
     mediaView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     contentView.addView(mediaView);
+    // TGx101 (user 2026-11-01): a dark half-transparent play / pause button in the middle while the controls are shown
+    tgx101CenterPlay = new View(context) {
+      private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+      private final android.graphics.Path path = new android.graphics.Path();
+      @Override
+      protected void onDraw (android.graphics.Canvas c) {
+        float cx = getWidth() / 2f, cy = getHeight() / 2f, r = Math.min(cx, cy);
+        paint.setColor(0x80000000);
+        c.drawCircle(cx, cy, r, paint);
+        paint.setColor(0xffffffff);
+        if (isPlayingVideo) {
+          float w = r * .16f, h = r * .44f, gap = r * .14f;
+          c.drawRoundRect(cx - gap - w, cy - h, cx - gap, cy + h, w / 3f, w / 3f, paint);
+          c.drawRoundRect(cx + gap, cy - h, cx + gap + w, cy + h, w / 3f, w / 3f, paint);
+        } else {
+          float h = r * .46f;
+          path.reset();
+          path.moveTo(cx - h * .62f, cy - h);
+          path.lineTo(cx + h * .95f, cy);
+          path.lineTo(cx - h * .62f, cy + h);
+          path.close();
+          c.drawPath(path, paint);
+        }
+      }
+    };
+    tgx101CenterPlay.setOnClickListener(v -> {
+      org.thunderdog.challegram.Tgx101Diag.mark("player: centre button → " + (isPlayingVideo ? "pause" : "play"));
+      mediaView.tgx101PlayPause();
+      tgx101ScheduleLockedHide();
+    });
+    tgx101CenterPlay.setAlpha(0f);
+    tgx101CenterPlay.setVisibility(View.GONE);
+    contentView.addView(tgx101CenterPlay, FrameLayoutFix.newParams(Screen.dp(72f), Screen.dp(72f), Gravity.CENTER));
     // TGx101: the subtitle line, over the picture near the bottom
     tgx101SubtitleView = new android.widget.TextView(context);
     tgx101SubtitleView.setTextColor(0xffffffff);

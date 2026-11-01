@@ -693,16 +693,10 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
         chatsView.addOnScrollListener(new RecyclerView.OnScrollListener() {
           @Override
           public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
-            if (hideArchive && archiveCollapsed && chatScrollState == RecyclerView.SCROLL_STATE_IDLE && newState != RecyclerView.SCROLL_STATE_IDLE) {
-              LinearLayoutManager manager = (LinearLayoutManager) recyclerView.getLayoutManager();
-              int firstVisiblePosition = manager.findFirstVisibleItemPosition();
-              if (firstVisiblePosition == 1) {
-                View view = manager.findViewByPosition(1);
-                if (view != null && manager.getDecoratedTop(view) == 0) {
-                  setArchiveCollapsed(false);
-                }
-              }
-            }
+            // TGx101 (user video 2026-11-01 13:36, «нужен предохранитель выезда архива, как при переключении каналов»):
+            // any scroll starting at the very top unfolded the archive — quick flicks up and down kept bringing it out.
+            // Now only a deliberate pull does (see tgx101ArchivePull)
+            if (newState == RecyclerView.SCROLL_STATE_IDLE) tgx101ListRestAt = android.os.SystemClock.uptimeMillis();
             chatScrollState = newState;
             if (hideArchive) {
               if (newState == RecyclerView.SCROLL_STATE_IDLE) {
@@ -735,6 +729,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
             }
           }
         });
+        chatsView.addOnItemTouchListener(tgx101ArchivePull);
         hideArchive = archiveCollapsed = tdlib.settings().needHideArchive();
         archiveList = tdlib.chatList(ChatPosition.CHAT_LIST_ARCHIVE);
         archiveListListener = new ChatListListener() {
@@ -877,6 +872,48 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   }
 
   private boolean hideArchive, archiveCollapsed;
+
+  // The archive's safety catch: only a finger that lands on a list already resting at its top (not one a fling just
+  // brought there) and pulls down 80 dp unfolds it, with a light tick
+  private long tgx101ListRestAt;
+  private boolean tgx101PullTracking;
+  private float tgx101PullDownY;
+  private final RecyclerView.OnItemTouchListener tgx101ArchivePull = new RecyclerView.SimpleOnItemTouchListener() {
+    @Override
+    public boolean onInterceptTouchEvent (@NonNull RecyclerView rv, @NonNull android.view.MotionEvent e) {
+      switch (e.getActionMasked()) {
+        case android.view.MotionEvent.ACTION_DOWN: {
+          tgx101PullTracking = false;
+          if (hideArchive && archiveCollapsed && adapter != null && adapter.hasArchive() && chatScrollState == RecyclerView.SCROLL_STATE_IDLE
+            && android.os.SystemClock.uptimeMillis() - tgx101ListRestAt > 250) {
+            LinearLayoutManager manager = (LinearLayoutManager) rv.getLayoutManager();
+            View first = manager != null ? manager.findViewByPosition(1) : null;
+            if (manager != null && manager.findFirstVisibleItemPosition() == 1 && first != null && manager.getDecoratedTop(first) >= 0) {
+              tgx101PullTracking = true;
+              tgx101PullDownY = e.getY();
+            }
+          }
+          break;
+        }
+        case android.view.MotionEvent.ACTION_MOVE: {
+          if (tgx101PullTracking && e.getY() - tgx101PullDownY > Screen.dp(80f)) {
+            tgx101PullTracking = false;
+            org.thunderdog.challegram.Tgx101Diag.mark("archive: pulled down 80 dp — unfolded");
+            org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
+            setArchiveCollapsed(false);
+          } else if (tgx101PullTracking && tgx101PullDownY - e.getY() > Screen.dp(8f)) {
+            tgx101PullTracking = false; // the finger went up: a scroll, not a pull
+          }
+          break;
+        }
+        case android.view.MotionEvent.ACTION_UP:
+        case android.view.MotionEvent.ACTION_CANCEL:
+          tgx101PullTracking = false;
+          break;
+      }
+      return false;
+    }
+  };
   private TdlibChatList archiveList;
   private ChatListListener archiveListListener;
 

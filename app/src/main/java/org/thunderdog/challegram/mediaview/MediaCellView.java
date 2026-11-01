@@ -1451,6 +1451,14 @@ public class MediaCellView extends ViewGroup implements
       removeCallbacks(pendingVideoTap);
       pendingVideoTap = null;
     }
+    if (isQuickRepeat && zone == 0 && canZoom() && org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerGesture(org.thunderdog.challegram.unsorted.Settings.GESTURE_DOUBLE_TAP_ZOOM)) {
+      // (user 2026-11-01) the double tap set to «zoom»: one step in; from any zoom back to the normal size
+      org.thunderdog.challegram.Tgx101Diag.mark("player: double tap centre → " + (isZoomed() ? "zoom back" : "zoom in"));
+      inVideoSeekSeries = false;
+      lastVideoTapZone = Integer.MIN_VALUE;
+      detector.tgx101ToggleZoom(x, y);
+      return true;
+    }
     if (isQuickRepeat && zone == 0) {
       // double tap in the middle: play / pause
       org.thunderdog.challegram.Tgx101Diag.mark("player: double tap centre → " + (playerView.isPlaying() ? "pause" : "play"));
@@ -1750,11 +1758,6 @@ public class MediaCellView extends ViewGroup implements
   @Override
   public boolean canMoveZoomedView () {
     return getParent() != null && ((MediaView) getParent()).canMoveZoomedView(this);
-  }
-
-  @Override
-  public boolean tgx101CanZoomDrag () {
-    return isSeekableVideo() && canZoom() && org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerGesture(org.thunderdog.challegram.unsorted.Settings.GESTURE_ZOOM_DRAG);
   }
 
   @Override

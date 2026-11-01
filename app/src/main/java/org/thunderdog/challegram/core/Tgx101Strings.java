@@ -53,7 +53,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101FiltersOff, "Выкл");
     RU.put(R.string.Tgx101FiltersHint, "Работает только на этом телефоне: сообщения не удаляются, и никто не видит, что вы их скрыли. Скрытое сообщение становится полоской — нажатие показывает его. Свои сообщения и спонсорская реклама Telegram не скрываются. Изменения действуют на чаты, открытые после них.");
     RU.put(R.string.Tgx101FilterNew, "Новый фильтр");
-    RU.put(R.string.Tgx101GestureZoomDrag, "Приближение: двойное нажатие с протяжкой");
+    RU.put(R.string.Tgx101GestureDoubleTapZoom, "Двойное нажатие — приближение (вместо паузы)");
     RU.put(R.string.Tgx101PreviewHint, "Пример меняется вместе с переключателями");
     RU.put(R.string.Tgx101PreviewSubscribers, "142 000 подписчиков");
     RU.put(R.string.Tgx101PreviewJoin, "ПОДПИСАТЬСЯ");
