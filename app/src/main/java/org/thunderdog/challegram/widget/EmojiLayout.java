@@ -303,6 +303,10 @@ public class EmojiLayout extends FrameLayoutFix implements ViewPager.OnPageChang
 
     adapter = new Adapter(context, this, allowMedia, themeProvider);
     pager = new RtlViewPager(getContext());
+    // TGx101 (4PDA 2026-11-01 «при прокрутке гифок/стикеров/смайликов клиент думает, что это свайп вбок»): the androidx
+    // pager took a move half as wide as it was tall for a page flip, so scrolling the grid at a slant switched the section.
+    // A clearly sideways move only, a gesture that went vertical first stays a scroll — as on the profile's tabs
+    pager.setStrictPaging(true);
     pager.setOverScrollMode(Config.HAS_NICE_OVER_SCROLL_EFFECT ? View.OVER_SCROLL_IF_CONTENT_SCROLLS :View.OVER_SCROLL_NEVER);
     pager.addOnPageChangeListener(this);
     pager.setAdapter(adapter);
@@ -1134,6 +1138,9 @@ public class EmojiLayout extends FrameLayoutFix implements ViewPager.OnPageChang
 
   @Override
   public void onPageScrollStateChanged (int state) {
+    if (state == ViewPager.SCROLL_STATE_DRAGGING && this.scrollState != state) {
+      org.thunderdog.challegram.Tgx101Diag.mark("emoji panel: section dragged sideways from page " + pager.getCurrentItem());
+    }
     this.scrollState = state;
     setAffectHeight(state != ViewPager.SCROLL_STATE_IDLE);
   }
