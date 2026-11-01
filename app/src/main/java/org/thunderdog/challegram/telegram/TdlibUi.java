@@ -706,16 +706,18 @@ public class TdlibUi extends Handler {
         after.run();
       }
     };
+    // TGx101 (user 2026-11-01): the confirmation stays at the top, by the header button, as a card in the new look,
+    // below the header; «for everyone» is a check box over one red «Delete» instead of two red buttons
     if (deleteSuperGroupMessages(context, messages, after, true)) {
-      context.getTgx101HeaderView().showMore(
-        new int[] {R.id.menu_btn_delete, R.id.btn_moreActions},
-        new String[] {Lang.plural(R.string.DeleteXMessages, messages.length), Lang.getString(R.string.Tgx101DeleteMore)},
+      org.thunderdog.challegram.navigation.Tgx101M3Sheets.showHeaderMenu(context, null, false,
+        new CharSequence[] {Lang.plural(R.string.DeleteXMessages, messages.length), Lang.getString(R.string.Tgx101DeleteMore)},
         new int[] {R.drawable.baseline_delete_24, R.drawable.baseline_more_horiz_24},
-        anchor, context, id -> {
-          if (id == R.id.menu_btn_delete) {
+        new boolean[] {true, false},
+        (index, checked) -> {
+          if (index == 0) {
             deleteMessagesSplit(messages, true);
             onDone.run();
-          } else if (id == R.id.btn_moreActions) {
+          } else {
             deleteSuperGroupMessages(context, messages, after);
           }
         });
@@ -751,16 +753,15 @@ public class TdlibUi extends Handler {
       } else {
         revokeFor = ChatId.isMultiChat(chatId) ? Lang.plural(R.string.DeleteXForEveryone, optionalCount) : Lang.plural(R.string.DeleteXForUser, optionalCount, tdlib.cache().userFirstName(tdlib.chatUserId(chatId)));
       }
-      boolean revokeFirst = outgoingCount > 0;
-      int[] ids = revokeFirst ? new int[] {R.id.btn_revokeMessages, R.id.menu_btn_delete} : new int[] {R.id.menu_btn_delete, R.id.btn_revokeMessages};
-      String[] titles = revokeFirst ? new String[] {revokeFor, forMe} : new String[] {forMe, revokeFor};
-      int[] icons = revokeFirst ? new int[] {R.drawable.baseline_delete_forever_24, R.drawable.baseline_delete_24} : new int[] {R.drawable.baseline_delete_24, R.drawable.baseline_delete_forever_24};
-      context.getTgx101HeaderView().showMore(ids, titles, icons, anchor, context, id -> {
-        if (id == R.id.btn_revokeMessages || id == R.id.menu_btn_delete) {
-          deleteMessagesSplit(messages, id == R.id.btn_revokeMessages);
+      // «for everyone» starts unticked: a quick tap never deletes from the other side by accident
+      org.thunderdog.challegram.navigation.Tgx101M3Sheets.showHeaderMenu(context, revokeFor, false,
+        new CharSequence[] {Lang.getString(R.string.Delete)},
+        new int[] {R.drawable.baseline_delete_24},
+        new boolean[] {true},
+        (index, checked) -> {
+          deleteMessagesSplit(messages, checked);
           onDone.run();
-        }
-      });
+        });
       return;
     }
 
@@ -768,12 +769,14 @@ public class TdlibUi extends Handler {
     if (!allScheduled && needsRevokeLabel) {
       title = ChatId.isUserChat(chatId) ? Lang.getString(R.string.DeleteForMeAndX, tdlib.cache().userFirstName(tdlib.chatUserId(chatId))) : Lang.getString(R.string.DeleteForEveryone);
     }
-    context.getTgx101HeaderView().showMore(new int[] {R.id.menu_btn_delete}, new String[] {title}, new int[] {R.drawable.baseline_delete_24}, anchor, context, id -> {
-      if (id == R.id.menu_btn_delete) {
+    org.thunderdog.challegram.navigation.Tgx101M3Sheets.showHeaderMenu(context, null, false,
+      new CharSequence[] {title},
+      new int[] {R.drawable.baseline_delete_24},
+      new boolean[] {true},
+      (index, checked) -> {
         deleteMessagesSplit(messages, false);
         onDone.run();
-      }
-    });
+      });
   }
 
   private void deleteMessagesSplit (MessageWithProperties[] messages, boolean revoke) {

@@ -155,6 +155,7 @@ public final class Tgx101M3Sheets {
     popup.init(true);
     popup.setDismissOtherPopUps(!options.ignoreOtherPopUps);
     popup.setNeedFullScreen(true);
+    popup.tgx101SetStrongDim(true);
     if (delegate != null) popup.setDisableCancelOnTouchDown(delegate.disableCancelOnTouchdown());
     return popup;
   }
@@ -339,6 +340,205 @@ public final class Tgx101M3Sheets {
       }
     });
     return popup;
+  }
+
+  // The «Delete» under a header button: it stays at the top, by the finger (user 2026-11-01), in the new look
+
+  public interface HeaderMenuCallback {
+    void onItem (int index, boolean checked);
+  }
+
+  /** A card under the header at the end side: an optional check row (e.g. «Delete for everyone»), then the buttons */
+  public static PopupLayout showHeaderMenu (ViewController<?> controller, @Nullable CharSequence checkLabel, boolean checked, CharSequence[] labels, int[] icons, boolean[] red, HeaderMenuCallback callback) {
+    Context context = controller.context();
+    final PopupLayout popup = new PopupLayout(context);
+    popup.setTag(controller);
+    popup.init(true);
+    popup.setNeedFullScreen(true);
+    popup.tgx101SetStrongDim(true);
+
+    final FrameLayoutFix root = new FrameLayoutFix(context);
+    root.setOnClickListener(v -> popup.hideWindow(true));
+    root.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+    final LinearLayout card = new LinearLayout(context);
+    card.setOrientation(LinearLayout.VERTICAL);
+    card.setClickable(true);
+    card.setPadding(0, Screen.dp(8f), 0, Screen.dp(8f));
+    GradientDrawable background = new GradientDrawable();
+    background.setColor(surface(null));
+    background.setCornerRadius(Screen.dp(20f));
+    card.setBackground(background);
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) card.setElevation(Screen.dp(8f));
+
+    int text = Theme.getColor(ColorId.text);
+    int accent = accent(null);
+    int negative = Theme.getColor(ColorId.textNegative);
+    final boolean[] state = {checked};
+
+    if (checkLabel != null) {
+      final CheckBox box = new CheckBox(context, checked, accent, Theme.getColor(ColorId.iconLight), surface(null));
+      LinearLayout row = row(context, ColorUtils.alphaColor(.14f, accent));
+      row.addView(box, new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f)));
+      row.addView(label(context, checkLabel, text, false));
+      row.setOnClickListener(v -> {
+        state[0] = !state[0];
+        box.setChecked(state[0]);
+      });
+      card.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(52f)));
+    }
+    for (int i = 0; i < labels.length; i++) {
+      final int index = i;
+      int color = red[i] ? negative : text;
+      LinearLayout row = row(context, ColorUtils.alphaColor(.14f, color));
+      Drawable icon = icons[i] != 0 ? Drawables.get(context.getResources(), icons[i]) : null;
+      if (icon != null) {
+        icon = icon.mutate();
+        icon.setColorFilter(Paints.getColorFilter(red[i] ? negative : Theme.getColor(ColorId.icon)));
+        ImageView iconView = new ImageView(context);
+        iconView.setImageDrawable(icon);
+        iconView.setScaleType(ImageView.ScaleType.CENTER);
+        row.addView(iconView, new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f)));
+      }
+      row.addView(label(context, labels[i], color, red[i]));
+      row.setOnClickListener(v -> {
+        popup.hideWindow(true);
+        callback.onItem(index, state[0]);
+      });
+      card.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(52f)));
+    }
+
+    // under the header, with a gap — it no longer runs into the header
+    FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | (Lang.rtl() ? Gravity.LEFT : Gravity.RIGHT));
+    params.topMargin = HeaderView.getTopOffset() + HeaderView.getSize(false) + Screen.dp(6f);
+    params.leftMargin = params.rightMargin = Screen.dp(8f);
+    card.setMinimumWidth(Screen.dp(220f));
+    root.addView(card, params);
+
+    popup.showAnimatedPopupView(root, new PopupLayout.AnimatedPopupProvider() {
+      private android.animation.ValueAnimator animator;
+      private float factor;
+
+      private void apply (float f) {
+        factor = f;
+        card.setAlpha(Math.min(1f, f * 1.6f));
+        card.setPivotX(Lang.rtl() ? 0 : card.getWidth());
+        card.setPivotY(0);
+        float scale = .92f + .08f * f;
+        card.setScaleX(scale);
+        card.setScaleY(scale);
+        popup.setRevealFactor(f);
+      }
+
+      private void run (float to, long duration, android.animation.TimeInterpolator interpolator, Runnable end) {
+        if (animator != null) animator.cancel();
+        animator = android.animation.ValueAnimator.ofFloat(factor, to);
+        animator.setDuration(duration);
+        animator.setInterpolator(interpolator);
+        animator.addUpdateListener(a -> apply((float) a.getAnimatedValue()));
+        animator.addListener(new android.animation.AnimatorListenerAdapter() {
+          @Override
+          public void onAnimationEnd (android.animation.Animator animation) {
+            end.run();
+          }
+        });
+        animator.start();
+      }
+
+      @Override
+      public void prepareShowAnimation () {
+        apply(0f);
+      }
+
+      @Override
+      public void launchShowAnimation (PopupLayout p) {
+        run(1f, 200, new android.view.animation.DecelerateInterpolator(2f), p::onCustomShowComplete);
+      }
+
+      @Override
+      public boolean launchHideAnimation (PopupLayout p, me.vkryl.android.animator.FactorAnimator originalAnimator) {
+        run(0f, 150, new android.view.animation.AccelerateInterpolator(1.5f), p::onCustomHideAnimationComplete);
+        return true;
+      }
+    });
+    return popup;
+  }
+
+  private static LinearLayout row (Context context, int pressedColor) {
+    LinearLayout row = new LinearLayout(context);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setPadding(Screen.dp(16f), 0, Screen.dp(20f), 0);
+    row.setBackground(pressable(pressedColor, 0));
+    return row;
+  }
+
+  private static TextView label (Context context, CharSequence text, int color, boolean medium) {
+    TextView label = new TextView(context);
+    label.setText(text);
+    label.setTextColor(color);
+    label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
+    if (medium) label.setTypeface(Fonts.getRobotoMedium());
+    label.setSingleLine(true);
+    label.setEllipsize(TextUtils.TruncateAt.END);
+    label.setMaxWidth(Screen.dp(240f));
+    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    if (Lang.rtl()) params.rightMargin = Screen.dp(16f); else params.leftMargin = Screen.dp(16f);
+    label.setLayoutParams(params);
+    return label;
+  }
+
+  /** The Material 3 check box: a rounded square, filled with the accent and a ✓ when checked */
+  private static final class CheckBox extends View {
+    private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final android.graphics.RectF rect = new android.graphics.RectF();
+    private final android.graphics.Path check = new android.graphics.Path();
+    private boolean checked;
+    private final int onColor, offColor, markColor;
+
+    CheckBox (Context context, boolean checked, int onColor, int offColor, int markColor) {
+      super(context);
+      this.checked = checked;
+      this.onColor = onColor;
+      this.offColor = offColor;
+      this.markColor = markColor;
+      paint.setStrokeCap(Paint.Cap.ROUND);
+      paint.setStrokeJoin(Paint.Join.ROUND);
+    }
+
+    void setChecked (boolean checked) {
+      if (this.checked != checked) {
+        this.checked = checked;
+        invalidate();
+      }
+    }
+
+    @Override
+    protected void onDraw (Canvas c) {
+      float cx = getWidth() / 2f, cy = getHeight() / 2f, half = Screen.dp(9f), radius = Screen.dp(2.5f);
+      rect.set(cx - half, cy - half, cx + half, cy + half);
+      if (checked) {
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(onColor);
+        c.drawRoundRect(rect, radius, radius, paint);
+        float s = Screen.dp(4.5f);
+        check.reset();
+        check.moveTo(cx - s, cy);
+        check.lineTo(cx - s * .3f, cy + s * .7f);
+        check.lineTo(cx + s, cy - s * .7f);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Screen.dp(2f));
+        paint.setColor(markColor);
+        c.drawPath(check, paint);
+      } else {
+        float stroke = Screen.dp(2f);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(stroke);
+        paint.setColor(offColor);
+        rect.inset(stroke / 2f, stroke / 2f);
+        c.drawRoundRect(rect, radius, radius, paint);
+      }
+    }
   }
 
   // B — the choice sheet from the bottom

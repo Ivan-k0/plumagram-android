@@ -998,6 +998,14 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
   private BackgroundView backgroundView;
 
 
+  private boolean tgx101StrongDim;
+
+  /** TGx101 (user 2026-11-01 «чуть больше затемнения, как с другими всплывающими окнами»): the Material 3 windows dim the
+   *  screen as the sheets do (55 % on a dark theme, 35 % on a light one), not the light dim of a menu */
+  public void tgx101SetStrongDim (boolean strong) {
+    this.tgx101StrongDim = strong;
+  }
+
   private class BackgroundView extends View {
     @Nullable org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable tgx101Blur;
 
@@ -1025,7 +1033,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
       // TGx101: sheets dim like the official app's — 20 % black in any theme; other popups keep the theme's dim
       // (approved mockup «Окна выбора» А, user 2026-10-31 «всё сливается»): 20 % was not seen on a dark theme — 55 % there,
       // 35 % on a light one, so the sheet stands apart from the screen
-      final int color = ColorUtils.color(animationType == ANIMATION_TYPE_SIMPLE ? (Theme.isDark() ? 140 : 90) : (int) (255f * (Theme.getPopupOverlayAlpha())), 0);
+      final int color = ColorUtils.color(animationType == ANIMATION_TYPE_SIMPLE || tgx101StrongDim ? (Theme.isDark() ? 140 : 90) : (int) (255f * (Theme.getPopupOverlayAlpha())), 0);
       int offset = HeaderView.getTopOffset();
       if (useStatusBar && offset != 0) {
         c.drawRect(0, offset, getMeasuredWidth(), getMeasuredHeight(), Paints.fillingPaint(color));
