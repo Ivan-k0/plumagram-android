@@ -1019,6 +1019,12 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     getWindow().getContext().getTheme().applyStyle(Theme.isDark() ? R.style.AppTheme_Dark : R.style.AppTheme, true);
   }
 
+  /** The screen on top, when it draws its own ground under a see-through status bar: dark icons (true) or light; else null */
+  private @Nullable Boolean tgx101ScreenLightStatusBar () {
+    org.thunderdog.challegram.navigation.ViewController<?> top = navigation != null ? navigation.getCurrentStackItem() : null;
+    return top != null && !navigation.isAnimating() ? top.tgx101LightStatusBar() : null;
+  }
+
   public void setWindowDecorSystemUiVisibility (int visibility, boolean remember) {
     boolean lightNavigationBar = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && Config.USE_CUSTOM_NAVIGATION_COLOR && !Theme.isDark() && (visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0;
     boolean lightStatusBar = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Theme.needLightStatusBar();
@@ -1030,6 +1036,12 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       if (android.graphics.Color.alpha(bar) >= 200) {
         float lum = (0.299f * android.graphics.Color.red(bar) + 0.587f * android.graphics.Color.green(bar) + 0.114f * android.graphics.Color.blue(bar)) / 255f;
         lightStatusBar = lum > 0.7f;
+      }
+      // (user 2026-11-02, video: the light «Газета» on a dark theme, white icons faded in after the viewer and turned dark
+      // only ~0.5 s later): a see-through bar over a screen with its own ground — that screen says which icons it needs
+      if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+        Boolean own = tgx101ScreenLightStatusBar();
+        if (own != null) lightStatusBar = own;
       }
     }
     UI.setLightSystemBars(getWindow(), lightNavigationBar, lightStatusBar, visibility, true);
@@ -4339,7 +4351,8 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       }
       if (this.isWindowLight != isLight) {
         this.isWindowLight = isLight;
-        UI.setLightSystemBars(getWindow(), isLight, Theme.needLightStatusBar(), lastWindowVisibility, true);
+        Boolean own = (lastWindowVisibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0 ? tgx101ScreenLightStatusBar() : null;
+        UI.setLightSystemBars(getWindow(), isLight, own != null ? own : Theme.needLightStatusBar(), lastWindowVisibility, true);
       }
     }
   }

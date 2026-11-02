@@ -208,9 +208,15 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   // own background when shown and after the viewer, back to the theme's when it's left
   private void tgx101MatchStatusIcons () {
     if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M || !isFocused()) return;
+    UI.setLightSystemBars(context().getWindow(), !Theme.isDark(), tgx101LightStatusBar(), 0, false);
+  }
+
+  /** The window asks too, as the viewer gives the status bar back — the icons fade in right instead of turning dark later */
+  @Override
+  public @androidx.annotation.NonNull Boolean tgx101LightStatusBar () {
     int bg = Tgx101Gazeta.palette()[0];
     float lum = (0.299f * android.graphics.Color.red(bg) + 0.587f * android.graphics.Color.green(bg) + 0.114f * android.graphics.Color.blue(bg)) / 255f;
-    UI.setLightSystemBars(context().getWindow(), !Theme.isDark(), lum > .6f, 0, false);
+    return lum > .6f;
   }
 
   private void tintHeaderButtons () {

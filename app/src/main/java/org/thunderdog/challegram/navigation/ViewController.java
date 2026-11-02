@@ -797,6 +797,11 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
   private Runnable scheduledAnimation;
   private ArrayList<Runnable> animationReadyListeners;
 
+  /** TGx101: a screen with its own ground under the see-through status bar — true for dark icons, false for light; null: the theme's */
+  public @Nullable Boolean tgx101LightStatusBar () {
+    return null;
+  }
+
   public boolean needAsynchronousAnimation () {
     return false;
   }
