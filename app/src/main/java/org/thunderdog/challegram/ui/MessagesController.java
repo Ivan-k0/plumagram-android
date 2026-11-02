@@ -5323,7 +5323,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (isEditingMessage()) {
         // TODO save local draft
       } else if (inputView != null && inputView.textChangedSinceChatOpened() && isFocused()) {
-        final TdApi.FormattedText outputText = inputView.getOutputText(false);
+        // TGx101 (4PDA 2026-11-02, Android 5, forum topics: «сообщения отправил, а в ветках фантомы этих сообщений как
+        // черновики»): the field is emptied only once the server has the message — a draft saved before that (leaving the
+        // topic, the reply bar going with the send) kept the text that was already sent. Text on its way is no draft
+        final TdApi.FormattedText outputText = isSendingText ? new TdApi.FormattedText("", new TdApi.TextEntity[0]) : inputView.getOutputText(false);
+        if (isSendingText) org.thunderdog.challegram.Tgx101Diag.mark("draft: saved empty — the field's text is being sent");
         final @Nullable ReplyInfo replyTo = getCurrentReplyId();
         final long date = tdlib.currentTime(TimeUnit.SECONDS);
         final TdApi.DraftMessageContentText draftText = new TdApi.DraftMessageContentText(
@@ -13696,7 +13700,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       manager.setSentMessages(null);
       if (success) {
         if (allowReply && replyTo != null && replyTo.equals(getCurrentReplyId())) {
-          obtainReplyTo();
+          obtainReplyTo(); // its draft is saved empty: the text is still being sent (saveDraft)
         }
         if (allowLinkPreview) {
           obtainLinkPreviewOptions(true);
