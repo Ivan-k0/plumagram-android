@@ -2435,7 +2435,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private void initHeaderStyle () {
     if (headerView != null) {
       if (revealAnimationType == ANIMATION_TYPE_REVEAL) {
-        headerView.setTranslationY(-headerView.getSize());
+        headerView.setTranslationY(-tgx101HeaderHeight());
+        if (mode == MODE_MESSAGES || mode == MODE_SIMPLE) {
+          // TGx101 (user 2026-11-02 «полоса вверху»: a 4 dp strip of the 80 % dark header stood over the chat for ~0.3 s
+          // before the opening began — moved up by its size, a status bar's offset short of its real height): unseen
+          // until the reveal brings it in
+          tgx101HeaderRevealAlpha = 0f;
+          updateHeaderAlpha();
+        }
       } else {
         headerView.setAlpha(0f);
       }
@@ -2443,12 +2450,17 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
   }
 
+  /** The header's own height when laid out — its size counts the status bar's offset as it was, which can be short of it */
+  private int tgx101HeaderHeight () {
+    return headerView != null ? Math.max(headerView.getSize(), headerView.getMeasuredHeight()) : 0;
+  }
+
   private void setHeaderAlpha (float alpha) {
     setHeaderAlphaImpl(alpha);
     switch (revealAnimationType) {
       case ANIMATION_TYPE_REVEAL: {
         if (headerView != null) {
-          headerView.setTranslationY(-headerView.getSize() * Math.max(1f - alpha, getForceEditModeVisibility()));
+          headerView.setTranslationY(-tgx101HeaderHeight() * Math.max(1f - alpha, getForceEditModeVisibility()));
         }
         break;
       }
