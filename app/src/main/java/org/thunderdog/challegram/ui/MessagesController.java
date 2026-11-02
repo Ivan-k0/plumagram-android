@@ -12107,15 +12107,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tgx101RestPadding = padding; // the room without the keyboard, put back at once on a chat left with it up
       tgx101RestPaddingChatId = getChatId();
     }
-    // (user 2026-11-02 «открыл чат после разблокировки и чат дёрнулся», black box 11:06:00): back from the lock with the
-    // keyboard open before it, the room dropped to the bare field at once (the keyboard isn't back yet) and jumped up again
-    // 0.6 s later when it came — the messages went down and up. While the keyboard is coming back the room stays
-    if (padding < current && context().tgx101KeyboardComingBack()) {
-      messagesView.removeCallbacks(tgx101ApplyPending);
-      messagesView.postDelayed(tgx101ApplyPending, 150); // looked at again: kept while it's on its way, let go after
-      tgx101ShrinkPending = true;
-      return;
-    }
     // …but a field emptied by sending (video 20:16, second jump) shrinks for good: the list follows at once, not 120 ms late
     boolean tgx101Cleared = inputView != null && inputView.getText() != null && inputView.getText().length() == 0;
     boolean tgx101Revealing = tgx101RevealAnimator != null && tgx101RevealAnimator.isRunning(); // the field's top glides down: follow it

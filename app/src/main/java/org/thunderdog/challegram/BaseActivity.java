@@ -1562,11 +1562,6 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   // Like the official app, ask again once the window has focus — every 100 ms for up to 1.5 s — until it's up
   private long tgx101ExpectKeyboardUntil;
 
-  /** The keyboard open before the lock / the switch away is still on its way back (up to 1.5 s after the return) */
-  public boolean tgx101KeyboardComingBack () {
-    return !isKeyboardVisible && tgx101ExpectKeyboardUntil != 0 && android.os.SystemClock.uptimeMillis() < tgx101ExpectKeyboardUntil;
-  }
-
   /** Something modal opens right on return (a call confirmation): the keyboard from before must not come back over it */
   public void tgx101CancelKeyboardComeBack () {
     tgx101ExpectKeyboardUntil = 0;
