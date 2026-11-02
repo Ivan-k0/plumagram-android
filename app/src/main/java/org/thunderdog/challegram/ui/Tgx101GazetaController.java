@@ -1337,6 +1337,43 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   // (user 2026-10-30 «белая подложка и чёрный текст, что не читается»): a quote in a post took the app theme's quote
   // colour — dark text from the light theme on the dark feed. In the feed a quote's text is the feed's own text colour
+  /**
+   * (user 2026-11-02 «такие ссылки от канала нужно помечать не так ярко — сильно бросаются в глаза при чтении»): the
+   * channel's signature at the end of a post — a last line of links only («Курс Одесса | Прислать новость | …») — is
+   * drawn in the quiet colour of the views and time, not underlined; it still opens on a tap
+   */
+  private static CharSequence tgx101MuteFooter (CharSequence str, int quiet) {
+    if (!(str instanceof android.text.Spanned) || str.length() == 0) return str;
+    int end = str.length();
+    while (end > 0 && Character.isWhitespace(str.charAt(end - 1))) end--;
+    int start = end;
+    while (start > 0 && str.charAt(start - 1) != '\n') start--;
+    if (start >= end || start == 0) return str; // a post of one line is its text, not a signature
+    android.text.Spanned spanned = (android.text.Spanned) str;
+    android.text.style.ClickableSpan[] links = spanned.getSpans(start, end, android.text.style.ClickableSpan.class);
+    if (links.length == 0) return str;
+    boolean[] covered = new boolean[end - start];
+    for (android.text.style.ClickableSpan link : links) {
+      int from = Math.max(start, spanned.getSpanStart(link)), to = Math.min(end, spanned.getSpanEnd(link));
+      for (int i = from; i < to; i++) covered[i - start] = true;
+    }
+    for (int i = start; i < end; ) {
+      int codePoint = Character.codePointAt(str, i);
+      if (!covered[i - start] && Character.isLetterOrDigit(codePoint)) return str; // words besides the links: real text
+      i += Character.charCount(codePoint);
+    }
+    android.text.SpannableStringBuilder b = str instanceof android.text.SpannableStringBuilder ? (android.text.SpannableStringBuilder) str : new android.text.SpannableStringBuilder(str);
+    // added after the links' own spans, so their colour and underline give way
+    b.setSpan(new android.text.style.CharacterStyle() {
+      @Override
+      public void updateDrawState (android.text.TextPaint tp) {
+        tp.setColor(quiet);
+        tp.setUnderlineText(false);
+      }
+    }, start, end, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    return b;
+  }
+
   private static CharSequence tgx101QuoteColors (CharSequence str) {
     if (!(str instanceof android.text.Spanned)) return str;
     android.text.Spanned spanned = (android.text.Spanned) str;
@@ -1753,6 +1790,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       CharSequence str = text != null && !Td.isEmpty(text) ? TD.toCharSequence(text) : describe(main);
       str = prepareSpoilers(str, !post.spoilersShown);
       str = tgx101QuoteColors(str);
+      str = tgx101MuteFooter(str, pal[3]);
       hiddenText = hasHidden(str);
 
       // the AI summary («✨ Short»), above the text while shown
