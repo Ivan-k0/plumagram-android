@@ -321,69 +321,7 @@ public class RootFrameLayout extends FrameLayoutFix {
       y < systemGesturesInsets.top || y > getMeasuredHeight() - systemGesturesInsets.bottom;
   }
 
-  // TGx101 (user 2026-11-02 «при открытии экран мигнул», frames 11:14:20): leaving for the home screen, the keyboard went
-  // down after the app was paused (and blinked up and down once more) and the chat laid itself out for that; back, the
-  // keyboard came up in one frame and the field and the messages jumped. While the app is away a change of the keyboard
-  // alone is held: back with the same keyboard nothing moves; if it doesn't come back within 1.5 s the held state applies
-  private Object tgx101HeldInsets;
-  private long tgx101HoldUntil;
-  private int tgx101AppliedIme = -1;
-  private final Rect tgx101TmpInsets = new Rect();
-
-  private boolean tgx101AppAway () {
-    org.thunderdog.challegram.BaseActivity activity = UI.getContext(getContext());
-    return activity != null && activity.getActivityState() != UI.State.RESUMED;
-  }
-
-  private final Runnable tgx101CheckHeld = new Runnable() {
-    @Override
-    public void run () {
-      if (tgx101HeldInsets == null) return;
-      if (tgx101AppAway()) {
-        tgx101HoldUntil = 0;
-      } else if (tgx101HoldUntil == 0) {
-        tgx101HoldUntil = SystemClock.uptimeMillis() + 1500;
-      } else if (SystemClock.uptimeMillis() >= tgx101HoldUntil) {
-        Object held = tgx101HeldInsets;
-        tgx101HeldInsets = null;
-        tgx101HoldUntil = 0;
-        org.thunderdog.challegram.Tgx101Diag.mark("keyboard: didn't come back — the held change applies");
-        processWindowInsets(held, true);
-        return;
-      }
-      postDelayed(this, 100);
-    }
-  };
-
-  /** True: this change only moves the keyboard while the app is away (or just back) — kept for later */
-  private boolean tgx101HoldKeyboardChange (Object insetsRaw) {
-    if (!(this instanceof BaseRootLayout) || !CAN_DETECT_IME || !hasInsets || tgx101AppliedIme < 0) return false;
-    boolean holding = tgx101AppAway() || (tgx101HeldInsets != null && (tgx101HoldUntil == 0 || SystemClock.uptimeMillis() < tgx101HoldUntil));
-    int ime = getImeHeight(insetsRaw);
-    if (holding && ime != tgx101AppliedIme) {
-      tgx101TmpInsets.set(systemInsetsWithoutIme);
-      updateInsets(tgx101TmpInsets, insetsRaw, InsetsType.SYSTEM_BARS_CUTOUT);
-      if (tgx101TmpInsets.equals(systemInsetsWithoutIme)) {
-        if (tgx101HeldInsets == null) org.thunderdog.challegram.Tgx101Diag.mark("keyboard: " + tgx101AppliedIme + " → " + ime + " px while away — held");
-        tgx101HeldInsets = insetsRaw;
-        removeCallbacks(tgx101CheckHeld);
-        postDelayed(tgx101CheckHeld, 100);
-        return true;
-      }
-    }
-    if (tgx101HeldInsets != null) {
-      if (ime == tgx101AppliedIme) org.thunderdog.challegram.Tgx101Diag.mark("keyboard: back as it was — nothing moves");
-      tgx101HeldInsets = null;
-      tgx101HoldUntil = 0;
-      removeCallbacks(tgx101CheckHeld);
-    }
-    return false;
-  }
-
   private void processWindowInsets (Object insetsRaw, boolean force) {
-    if (!force && tgx101HoldKeyboardChange(insetsRaw)) {
-      return;
-    }
     boolean hadInsets = hasInsets;
     boolean systemInsetsUpdated = updateInsets(systemInsets, insetsRaw, InsetsType.SYSTEM_BARS_CUTOUT_IME);
     boolean systemInsetsWithoutImeUpdated = updateInsets(systemInsetsWithoutIme, insetsRaw, InsetsType.SYSTEM_BARS_CUTOUT);
@@ -393,7 +331,6 @@ public class RootFrameLayout extends FrameLayoutFix {
     boolean horizontalSystemInsetsUpdated = !hasInsets || systemInsets.left != prevSystemInsets.left || systemInsets.right != prevSystemInsets.right;
     final int imeHeight = CAN_DETECT_IME ? getImeHeight(insetsRaw) : 0;
     final boolean isKeyboardVisible = imeHeight > 0;
-    tgx101AppliedIme = imeHeight;
 
     boolean ignoreChanges = Settings.instance().useEdgeToEdge() && !force &&
       UI.getContext(getContext()).isInFullScreen() &&
