@@ -796,6 +796,31 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
     return done;
   }
 
+  /**
+   * TGx101 (user 2026-11-02 23:20 «после чистки кэша файлы не грузятся»): after the cache clean TDLib could no longer
+   * download some files («#400 Can't download or generate the file», can_be_downloaded false) — the file kept in memory
+   * had lost where it lies on the server. The message is asked for again (it brings that back), then the file once more
+   */
+  private void tgx101RefreshAndDownload () {
+    final int fileId = file.id;
+    final long chatId = this.chatId, messageId = this.messageId;
+    setCurrentState(TdlibFilesManager.STATE_IN_PROGRESS, true);
+    org.thunderdog.challegram.Tgx101Diag.mark("files: file " + fileId + " can't be downloaded — asking for message " + chatId + "/" + messageId + " again");
+    tdlib.send(new TdApi.GetMessage(chatId, messageId), (message, error) -> tdlib.send(new TdApi.GetFile(fileId), (fresh, error2) -> tdlib.ui().post(() -> {
+      boolean can = fresh != null && fresh.local.canBeDownloaded;
+      org.thunderdog.challegram.Tgx101Diag.mark("files: file " + fileId + " after the message came again — " + (message == null ? "message error " + error + ", " : "") + (fresh == null ? "file error " + error2 : can ? "can be downloaded" : "still can't"));
+      if (file == null || file.id != fileId) return;
+      if (can) {
+        TdApi.File f = file;
+        Td.copyTo(fresh, f);
+        tdlib.files().downloadFile(f);
+      } else {
+        setCurrentState(TdlibFilesManager.STATE_PAUSED, true);
+        org.thunderdog.challegram.tool.UI.showToast(org.thunderdog.challegram.R.string.Tgx101FileGone, android.widget.Toast.LENGTH_SHORT);
+      }
+    })));
+  }
+
   private boolean tgx101PerformClick (View view, boolean ignoreListener) {
     if (ignoreLoaderClicks && !(isVideoStreaming() && vsDownloadClickRect.contains(startX, startY))) {
       return !ignoreListener && listener != null && listener.onClick(this, view, file, messageId);
@@ -818,6 +843,10 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
     switch (currentState) {
       case TdlibFilesManager.STATE_PAUSED: {
         if (file != null) {
+          if (!file.local.canBeDownloaded && chatId != 0 && messageId != 0) {
+            tgx101RefreshAndDownload();
+            return true;
+          }
           tdlib.files().downloadFile(file);
           return true;
         }

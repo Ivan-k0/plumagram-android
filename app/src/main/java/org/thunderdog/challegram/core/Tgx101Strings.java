@@ -222,6 +222,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SoundDefault, "Мелодия по умолчанию");
     RU.put(R.string.Tgx101SoundNone, "Без звука");
     RU.put(R.string.Tgx101SoundNoFiles, "Нет приложения для выбора файла");
+    RU.put(R.string.Tgx101FileGone, "Telegram сейчас не отдаёт этот файл. Откройте чат заново или попробуйте позже.");
     RU.put(R.string.Tgx101FilterSimilar, "Скрывать похожие…");
     RU.put(R.string.RecordingAndPhotos, "Запись и фото");
     RU.put(R.string.PauseMediaOnRecord, "Пауза музыки при записи и голосовых");

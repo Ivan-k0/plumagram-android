@@ -7673,4 +7673,5 @@
   <string name="Tgx101PreviewMe">Me</string>
   <string name="Tgx101PreviewComments">Comments</string>
   <string name="Tgx101GestureDoubleTapZoom">Double tap zooms (instead of pause)</string>
+  <string name="Tgx101FileGone">Telegram can\'t give this file right now. Open the chat again or try later.</string>
 </resources>
