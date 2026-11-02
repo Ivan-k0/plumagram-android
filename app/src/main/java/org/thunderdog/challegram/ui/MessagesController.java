@@ -2629,6 +2629,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     final long chatId = chat.id;
     final TdApi.MessageTopic topicId = getMessageTopicId();
     tdlib.send(new TdApi.GetForumTopic(chatId, ((TdApi.MessageTopicForum) topicId).forumTopicId), (topic, error) -> runOnUiThreadOptional(() -> {
+      org.thunderdog.challegram.Tgx101Diag.mark("draft: topic " + ((TdApi.MessageTopicForum) topicId).forumTopicId + " loaded → " + (topic == null ? "error " + error : topic.draftMessage == null ? "no draft" : "draft " + (topic.draftMessage.content instanceof TdApi.DraftMessageContentText ? ((TdApi.DraftMessageContentText) topic.draftMessage.content).text.text.length() : -1) + " chars")
+        + ", same screen " + (getChatId() == chatId && Td.equalsTo(getMessageTopicId(), topicId)) + ", typed " + (inputView != null && inputView.textChangedSinceChatOpened()) + ", editing " + isEditingMessage());
       if (topic == null || getChatId() != chatId || !Td.equalsTo(getMessageTopicId(), topicId)) return;
       tgx101TopicDraft = topic.draftMessage;
       if (tgx101TopicDraft != null && inputView != null && !inputView.textChangedSinceChatOpened() && !isEditingMessage()) {
