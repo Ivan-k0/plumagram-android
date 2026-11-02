@@ -1179,8 +1179,20 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
       path.reset();
       path.addRoundRect(rectF, targetRadius, targetRadius, Path.Direction.CCW);
+
+      // how far the circle has covered the top edge: both top corners inside it (the header sits there)
+      float cx = receiver.centerX(), cy = receiver.centerY();
+      float toCorner = (float) Math.sqrt(Math.max(cx * cx, (width - cx) * (width - cx)) + cy * cy);
+      tgx101TopCover = MathUtils.clamp((targetRadius - toCorner) / Screen.dp(56f) + 1f);
+    } else {
+      tgx101TopCover = 1f;
     }
   }
+
+  // TGx101 (user 2026-11-02 «полоса вверху»; video: the header's grey band stood over the still light «Газета» for 2–3
+  // frames while the dimming grew as a circle from the photo): the header comes in only as the circle reaches the top —
+  // the way the official app's header fades in with its backdrop
+  private float tgx101TopCover = 1f;
 
   private float commonFactor;
 
@@ -1274,7 +1286,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         setCommonFactor(factor * tgx101RevealAlphaScale); // TGx101: after a swipe the dimming fades on from where the swipe left it
         setHeaderAlpha(MathUtils.clamp(factor));
         if (mode == MODE_MESSAGES || mode == MODE_SIMPLE) {
-          tgx101HeaderRevealAlpha = MathUtils.clamp((factor - .75f) / .25f); // gone in the first quarter — before the photo
+          tgx101HeaderRevealAlpha = MathUtils.clamp((factor - .75f) / .25f) * (factor >= 1f ? 1f : tgx101TopCover); // gone in the first quarter — before the photo
           updateHeaderAlpha();
         }
         switch (mode) {
