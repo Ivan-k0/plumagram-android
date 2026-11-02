@@ -12085,6 +12085,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
       // the floor is the field itself, not its keyboard room below (0.1.573 09:00: with the keyboard the floor was the
       // whole 1391 px, so the room never followed the field down while it rode the keyboard — the list jumped at once)
+      // (black box 2026-11-02 11:16:29, padding −926): the keyboard's room was given to the bottom bar before the bar grew
+      // for it — height 218 minus room 1144; the room is measured again once the bar is laid out with it
+      if (bottomWrap.getHeight() - bottomWrap.getPaddingBottom() <= 0) return;
       padding = Math.max(bottomWrap.getHeight() - bottomWrap.getPaddingBottom(), fromTop) + Screen.dp(4f);
     } else {
       // user 2026-10-08 17:25 (three-button navigation, a channel without the bottom bar): the last post went under the
