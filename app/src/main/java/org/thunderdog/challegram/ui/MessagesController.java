@@ -2628,13 +2628,19 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (chat == null || messageThread != null || !tgx101InForumTopic()) return;
     final long chatId = chat.id;
     final TdApi.MessageTopic topicId = getMessageTopicId();
+    // what the topics list knew — in the field at once (the field is filled from getDraftMessage() right after this)
+    tgx101TopicDraft = Tgx101TopicsController.takeOpeningDraft(chatId, ((TdApi.MessageTopicForum) topicId).forumTopicId);
     tdlib.send(new TdApi.GetForumTopic(chatId, ((TdApi.MessageTopicForum) topicId).forumTopicId), (topic, error) -> runOnUiThreadOptional(() -> {
       org.thunderdog.challegram.Tgx101Diag.mark("draft: topic " + ((TdApi.MessageTopicForum) topicId).forumTopicId + " loaded → " + (topic == null ? "error " + error : topic.draftMessage == null ? "no draft" : "draft " + (topic.draftMessage.content instanceof TdApi.DraftMessageContentText ? ((TdApi.DraftMessageContentText) topic.draftMessage.content).text.text.length() : -1) + " chars")
         + ", same screen " + (getChatId() == chatId && Td.equalsTo(getMessageTopicId(), topicId)) + ", typed " + (inputView != null && inputView.textChangedSinceChatOpened()) + ", editing " + isEditingMessage());
       if (topic == null || getChatId() != chatId || !Td.equalsTo(getMessageTopicId(), topicId)) return;
+      boolean same = Td.equalsTo(Td.textContent(tgx101TopicDraft), Td.textContent(topic.draftMessage));
       tgx101TopicDraft = topic.draftMessage;
-      if (tgx101TopicDraft != null && inputView != null && !inputView.textChangedSinceChatOpened() && !isEditingMessage()) {
+      if (!same && inputView != null && !inputView.textChangedSinceChatOpened() && !isEditingMessage()) {
         updateDraftMessage(chatId, tgx101TopicDraft);
+        // (user 2026-11-02 «пока на поле не нажмёшь — текст не появляется»): the field shows it at once
+        inputView.requestLayout();
+        inputView.invalidate();
       }
     }));
   }
@@ -3847,7 +3853,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       checkCanSendMessagesToUser(true);
     }
     if (inputView != null) {
-      inputView.setChat(chat, messageThread, draftMessage != null ? draftMessage.content : null, getCustomInputPlaceholder(), silentButton != null && silentButton.getIsSilent());
+      // a forum topic never takes the group's own draft (chat.draftMessage) — its own, or an empty field
+      TdApi.DraftMessageContent forceDraft = draftMessage != null ? draftMessage.content : messageThread == null && tgx101InForumTopic() ? new TdApi.DraftMessageContentText(new TdApi.FormattedText("", new TdApi.TextEntity[0]), null) : null;
+      inputView.setChat(chat, messageThread, forceDraft, getCustomInputPlaceholder(), silentButton != null && silentButton.getIsSilent());
     }
     ignoreDraftLoad = false;
     discardAttachedFiles(false);

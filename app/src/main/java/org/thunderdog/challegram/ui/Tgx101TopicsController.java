@@ -827,8 +827,20 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
 
   // Actions
 
+  // (user video 2026-11-02 22:44, black box 22:57): the topic's draft as the list knows it — the topic opens with it in
+  // the field at once instead of a second later (in between the group's own draft stood there)
+  private static final java.util.Map<String, TdApi.DraftMessage> openingDrafts = new java.util.concurrent.ConcurrentHashMap<>();
+
+  /** the draft the topics list knew for this topic as it opened it, taken once */
+  @Nullable
+  public static TdApi.DraftMessage takeOpeningDraft (long chatId, long forumTopicId) {
+    return openingDrafts.remove(chatId + ":" + forumTopicId);
+  }
+
   private void openTopic (TdApi.ForumTopic topic) {
     tgx101WatchTopic(topic.info.forumTopicId);
+    String draftKey = getArgumentsStrict().chat.id + ":" + topic.info.forumTopicId;
+    if (topic.draftMessage != null) openingDrafts.put(draftKey, topic.draftMessage); else openingDrafts.remove(draftKey);
     TdlibUi.ChatOpenParameters params = new TdlibUi.ChatOpenParameters().keepStack();
     params.messageTopicId = new TdApi.MessageTopicForum(topic.info.forumTopicId);
     params.chatList = getArgumentsStrict().chatList;
