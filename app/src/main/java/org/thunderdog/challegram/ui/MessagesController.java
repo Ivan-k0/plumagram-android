@@ -11692,6 +11692,18 @@ public class MessagesController extends ViewController<MessagesController.Argume
     tgx101ImeGlide.start();
   }
 
+  /** The field glides from where it is drawn now to its place, 250 ms (a keyboard that came without a real animation) */
+  private void tgx101GlideImeFrom (float from) {
+    org.thunderdog.challegram.Tgx101Diag.mark("keyboard: came in one step (" + Math.round(from) + " px) — gliding by itself");
+    if (tgx101ImeGlide != null) tgx101ImeGlide.cancel();
+    tgx101ImeGlide = android.animation.ValueAnimator.ofFloat(from, 0f);
+    tgx101ImeGlide.setDuration(250);
+    tgx101ImeGlide.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+    tgx101ImeGlide.addUpdateListener(a -> tgx101SetImeShift((float) a.getAnimatedValue()));
+    tgx101SetImeShift(from);
+    tgx101ImeGlide.start();
+  }
+
   private void tgx101SetImeShift (float shift) {
     // 11:13 (adb video): leaving the chat with the keyboard open, its close animation kept running after the blur and left
     // the field shifted by −161 px — the list's room stayed 161 px too big and the messages dropped as the chat came back.
@@ -11860,6 +11872,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
         return bounds;
       }
 
+      // (user 2026-11-02 «при открытии экран мигнул», frames 11:14:20; as the official app's AdjustPanLayoutHelper does):
+      // back in the app the keyboard comes with an «animation» already at 100 % on its first step — the field and the
+      // messages jumped in one frame. Then the field glides there by itself over 250 ms, not following that animation
+      private boolean ownGlide;
+
       @NonNull
       @Override
       public android.view.WindowInsets onProgress (@NonNull android.view.WindowInsets insets, @NonNull java.util.List<android.view.WindowInsetsAnimation> running) {
@@ -11867,6 +11884,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
           if (tgx101ProgressLogs < 4) {
             tgx101ProgressLogs++;
             org.thunderdog.challegram.Tgx101Diag.mark("keyboard ride: progress " + Math.round(ime.getInterpolatedFraction() * 100) + " %, inset " + tgx101BottomInset(insets));
+            if (tgx101ProgressLogs == 1 && ime.getInterpolatedFraction() >= .9f && Math.abs(tgx101ImeEnd - tgx101ImeStart) >= Screen.dp(40f)) {
+              ownGlide = true;
+              tgx101GlideImeFrom(tgx101ImeShift);
+            }
+          }
+          if (ownGlide) {
+            view.postInvalidateOnAnimation();
+            return insets;
           }
           tgx101SetImeShift(tgx101ImeEnd - tgx101BottomInset(insets));
           // user 2026-10-08 21:45 «не могу свернуть смайлы кнопкой клавиатуры»: emoji → keyboard the field doesn't move (the
@@ -11883,7 +11908,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
           ime = null;
           tgx101ImeRiding = false;
           tgx101ShrinkConfirmed = false;
-          tgx101SetImeShift(0f);
+          if (ownGlide) {
+            ownGlide = false; // the own glide finishes by itself
+          } else {
+            tgx101SetImeShift(0f);
+          }
         }
       }
     });
