@@ -738,7 +738,11 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
       case MotionEvent.ACTION_DOWN: {
         this.startX = (int) x;
         this.startY = (int) y;
-        return isTouchCaught = x >= left && x <= right && y >= top && y <= bottom && (!isTrack || currentState != TdlibFilesManager.STATE_DOWNLOADED_OR_UPLOADED);
+        isTouchCaught = x >= left && x <= right && y >= top && y <= bottom && (!isTrack || currentState != TdlibFilesManager.STATE_DOWNLOADED_OR_UPLOADED);
+        // TGx101 (user 2026-11-02 23:12 «файлы не грузятся — нажимаю, ничего»): where the finger landed against the button
+        org.thunderdog.challegram.Tgx101Diag.mark("file touch: " + (isTouchCaught ? "caught" : "missed") + " at " + (int) x + "," + (int) y
+          + " button " + left + "," + top + "–" + right + "," + bottom + ", state " + currentState + ", file " + (file != null ? file.id : 0) + ", track " + isTrack);
+        return isTouchCaught;
       }
       case MotionEvent.ACTION_MOVE: {
         if (isTouchCaught && Math.max(Math.abs(startX - x), Math.abs(startY - y)) > Screen.getTouchSlop()) {
@@ -786,6 +790,13 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
   }
 
   public boolean performClick (View view, boolean ignoreListener) {
+    boolean done = tgx101PerformClick(view, ignoreListener);
+    org.thunderdog.challegram.Tgx101Diag.mark("file click: state " + currentState + ", file " + (file != null ? file.id + " " + file.size + " B, local " + file.local.downloadedSize + (file.local.isDownloadingActive ? " downloading" : "") + (file.local.canBeDownloaded ? "" : " CAN'T be downloaded") : "none")
+      + ", loader clicks " + (ignoreLoaderClicks ? "off" : "on") + ", listener " + (listener != null) + " → " + (done ? "handled" : "nothing"));
+    return done;
+  }
+
+  private boolean tgx101PerformClick (View view, boolean ignoreListener) {
     if (ignoreLoaderClicks && !(isVideoStreaming() && vsDownloadClickRect.contains(startX, startY))) {
       return !ignoreListener && listener != null && listener.onClick(this, view, file, messageId);
     }
