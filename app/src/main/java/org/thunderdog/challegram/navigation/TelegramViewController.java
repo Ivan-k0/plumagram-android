@@ -168,9 +168,17 @@ public abstract class TelegramViewController<T> extends ViewController<T> {
     Views.setScrollBarPosition(chatSearchView);
     tdlib.ui().attachViewportToRecyclerView(chatSearchViewport, chatSearchView);
     chatSearchView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+      // TGx101 (user 2026-11-02 «первые буквы, начинаю скроллить — скролл с лагами», black box 19:27:20): the keyboard
+      // went down right as the finger moved the results, and for its 285 ms the screen was laid out again every frame
+      // (20 ms) under the swipe. It goes once the scroll has come to rest; the swipe itself stays smooth
+      private boolean dragged;
+
       @Override
       public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
         if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
+          dragged = true;
+        } else if (newState == RecyclerView.SCROLL_STATE_IDLE && dragged) {
+          dragged = false;
           hideSoftwareKeyboard();
         }
       }
@@ -179,12 +187,6 @@ public abstract class TelegramViewController<T> extends ViewController<T> {
 
       @Override
       public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
-        if (dy != 0) {
-          /*
-           * (((LinearLayoutManager) recyclerView.getLayoutManager()).findFirstVisibleItemPosition() > 0) || ((LinearLayoutManager) recyclerView.getLayoutManager()).findLastVisibleItemPosition() < recyclerView.getAdapter().getItemCount() - 1
-           * */
-          hideSoftwareKeyboard();
-        }
         int first = ((LinearLayoutManager) recyclerView.getLayoutManager()).findFirstVisibleItemPosition();
         int last = ((LinearLayoutManager) recyclerView.getLayoutManager()).findLastVisibleItemPosition();
         if (this.firstVisiblePosition != first || this.lastVisiblePosition != last) {
