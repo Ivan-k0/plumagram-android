@@ -19,6 +19,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -1238,6 +1239,52 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       super(context, tdlib);
     }
 
+    // (user 2026-11-02 «может сделать их кликабельными»): a tap on a link opens it; anywhere else the tap goes on to the
+    // post as before (unfold, the menu), a long press still selects the post
+    private @Nullable LinkSpan pressed;
+
+    private @Nullable LinkSpan linkAt (MotionEvent e) {
+      CharSequence text = getText();
+      android.text.Layout layout = getLayout();
+      if (layout == null || !(text instanceof android.text.Spanned)) return null;
+      int x = (int) e.getX() - getTotalPaddingLeft() + getScrollX(), y = (int) e.getY() - getTotalPaddingTop() + getScrollY();
+      int line = layout.getLineForVertical(y);
+      if (x < layout.getLineLeft(line) || x > layout.getLineRight(line)) return null;
+      int offset = layout.getOffsetForHorizontal(line, x);
+      LinkSpan[] links = ((android.text.Spanned) text).getSpans(offset, offset, LinkSpan.class);
+      if (links.length == 0) return null;
+      HiddenSpan[] hidden = ((android.text.Spanned) text).getSpans(offset, offset, HiddenSpan.class);
+      return hidden.length == 0 ? links[0] : null; // a link under the dust stays hidden
+    }
+
+    @Override
+    public boolean onTouchEvent (MotionEvent e) {
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+          pressed = linkAt(e);
+          if (pressed != null) {
+            getParent().requestDisallowInterceptTouchEvent(false);
+            return true;
+          }
+          break;
+        case MotionEvent.ACTION_UP:
+          if (pressed != null) {
+            LinkSpan link = pressed;
+            pressed = null;
+            if (linkAt(e) == link) link.onClick(this);
+            return true;
+          }
+          break;
+        case MotionEvent.ACTION_CANCEL:
+          if (pressed != null) {
+            pressed = null;
+            return true;
+          }
+          break;
+      }
+      return super.onTouchEvent(e);
+    }
+
     @Override
     protected void onDraw (android.graphics.Canvas c) {
       super.onDraw(c);
@@ -1342,7 +1389,45 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
    * channel's signature at the end of a post — the last lines made of links only («Курс Одесса | Прислать новость»,
    * «👉 Отзывы», …) — is drawn in the quiet colour of the views and time, not underlined; the links still open on a tap
    */
-  private static CharSequence tgx101MuteFooter (CharSequence str, TdApi.FormattedText text, int quiet, int ink) {
+  /** A link in a post: drawn by the colours around it, opened by {@link SpoilerText} */
+  private static final class LinkSpan extends android.text.style.ClickableSpan {
+    private final Runnable open;
+
+    LinkSpan (Runnable open) {
+      this.open = open;
+    }
+
+    @Override
+    public void onClick (@NonNull View widget) {
+      open.run();
+    }
+  }
+
+  private @Nullable Runnable tgx101LinkAction (String t, TdApi.TextEntity entity) {
+    String url;
+    switch (entity.type.getConstructor()) {
+      case TdApi.TextEntityTypeUrl.CONSTRUCTOR:
+        url = t.substring(entity.offset, entity.offset + entity.length);
+        break;
+      case TdApi.TextEntityTypeTextUrl.CONSTRUCTOR:
+        url = ((TdApi.TextEntityTypeTextUrl) entity.type).url;
+        break;
+      case TdApi.TextEntityTypeMention.CONSTRUCTOR: {
+        String name = t.substring(entity.offset, entity.offset + entity.length);
+        url = "https://t.me/" + (name.startsWith("@") ? name.substring(1) : name);
+        break;
+      }
+      default:
+        return null;
+    }
+    final String target = url;
+    return () -> {
+      org.thunderdog.challegram.Tgx101Diag.mark("gazeta: link tapped");
+      tdlib.ui().openUrl(this, target, null);
+    };
+  }
+
+  private CharSequence tgx101MuteFooter (CharSequence str, TdApi.FormattedText text, int quiet, int ink) {
     if (text.entities == null || text.entities.length == 0 || str == null || str.length() != text.text.length()) return str;
     String t = text.text;
     android.text.SpannableStringBuilder sb = str instanceof android.text.SpannableStringBuilder ? (android.text.SpannableStringBuilder) str : new android.text.SpannableStringBuilder(str);
@@ -1372,6 +1457,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
           tp.linkColor = soft;
         }
       }, from, to, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+      Runnable open = tgx101LinkAction(t, entity);
+      if (open != null) sb.setSpan(new LinkSpan(open), from, to, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // takes the soft colour, keeps the underline
     }
     int end = t.length();
     while (end > 0 && Character.isWhitespace(t.charAt(end - 1))) end--;
