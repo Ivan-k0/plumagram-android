@@ -1022,6 +1022,16 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   public void setWindowDecorSystemUiVisibility (int visibility, boolean remember) {
     boolean lightNavigationBar = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && Config.USE_CUSTOM_NAVIGATION_COLOR && !Theme.isDark() && (visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0;
     boolean lightStatusBar = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Theme.needLightStatusBar();
+    // TGx101 (user 2026-11-02 «строка состояния появляется поздно; в тёмном режиме нормально»): back from the viewer the
+    // icons were set by the app's theme — white over a light bar (the light «Газета» header on a dark theme) stayed
+    // unseen until the header painted them again. An opaque bar decides by itself, as HeaderView.tgx101MatchStatusIcons does
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      int bar = getWindow().getStatusBarColor();
+      if (android.graphics.Color.alpha(bar) >= 200) {
+        float lum = (0.299f * android.graphics.Color.red(bar) + 0.587f * android.graphics.Color.green(bar) + 0.114f * android.graphics.Color.blue(bar)) / 255f;
+        lightStatusBar = lum > 0.7f;
+      }
+    }
     UI.setLightSystemBars(getWindow(), lightNavigationBar, lightStatusBar, visibility, true);
     if (this.isWindowLight != lightNavigationBar) {
       this.isWindowLight = lightNavigationBar;
