@@ -5319,6 +5319,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private void saveDraft () {
+    // TGx101 (user video 2026-11-02 22:44, forum topics: a draft typed and left wasn't kept, a cleared one stayed): why
+    // a draft is or isn't saved, and what Telegram answers
+    org.thunderdog.challegram.Tgx101Diag.mark("draft: save? can " + canSaveDraft() + ", editing " + isEditingMessage()
+      + ", changed " + (inputView != null && inputView.textChangedSinceChatOpened()) + ", focused " + isFocused()
+      + ", thread " + (messageThread != null) + ", forum topic " + tgx101InForumTopic() + ", text " + (inputView != null ? inputView.getText().length() : -1));
     if (canSaveDraft()) {
       if (isEditingMessage()) {
         // TODO save local draft
@@ -5348,11 +5353,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
         } else if (tgx101InForumTopic()) {
           tgx101TopicDraft = !Td.isEmpty(draftMessage) ? draftMessage : null;
         }
+        final int draftLength = outputText.text.length();
         tdlib.send(new TdApi.SetChatDraftMessage(
           outputChatId,
           topicId,
           !Td.isEmpty(draftMessage) ? draftMessage : null
-        ), tdlib.typedOkHandler());
+        ), (ok, error) -> org.thunderdog.challegram.Tgx101Diag.mark("draft: set " + draftLength + " chars in chat " + outputChatId
+          + ", topic " + (topicId != null ? topicId.getClass().getSimpleName() : "none") + " → " + (error != null ? "error " + error.code + " " + error.message : "ok")));
         if (hasAttachedFiles()) {
           // TODO save local draft ?
         }
