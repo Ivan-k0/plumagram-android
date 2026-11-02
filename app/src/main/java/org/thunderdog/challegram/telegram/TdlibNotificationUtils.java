@@ -283,6 +283,7 @@ public class TdlibNotificationUtils {
     if (DeviceTokenRetrieverInstance.initialize()) {
       DeviceTokenRetriever deviceTokenRetriever = DeviceTokenRetrieverInstance.get();
       TDLib.Tag.notifications("Retrieving device token via %s... retryCount: %d", deviceTokenRetriever.name, retryCount);
+      org.thunderdog.challegram.Tgx101Diag.mark("push: asking token via " + deviceTokenRetriever.name + ", retries left " + retryCount);
       deviceTokenRetriever.retrieveDeviceToken(context, listener);
     } else {
       TDLib.Tag.notifications("Token fetch failed because TokenRetriever was not initialized, retryCount: %d", retryCount);

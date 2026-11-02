@@ -691,6 +691,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       try {
         if (pushReceiverId != null) {
           TDLib.Tag.notifications("Successfully registered device token:%s, accountId:%d, otherUserIdsCount:%d", deviceToken, accountId, otherUserIds.length);
+          org.thunderdog.challegram.Tgx101Diag.mark("push: Telegram accepted the token (" + deviceToken.getClass().getSimpleName() + "), account " + accountId);
           Settings.instance().putNotificationReceiverId(pushReceiverId.id, accountId);
           TdlibSettingsManager.setRegisteredDevice(accountId, myUserId, deviceToken, otherUserIds);
           context().setDeviceRegistered(accountId, true);
@@ -704,6 +705,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
             U.run(onDone);
           } else {
             TDLib.Tag.notifications("Unable to register device token, retrying in %d seconds: %s, accountId:%d", seconds, TD.toErrorString(error), accountId);
+            org.thunderdog.challegram.Tgx101Diag.mark("push: Telegram REFUSED the token: " + TD.toErrorString(error) + ", retry in " + seconds + " s, account " + accountId);
             client().send(new TdApi.SetAlarm(seconds), ignored -> checkDeviceTokenImpl(onDone));
           }
         }

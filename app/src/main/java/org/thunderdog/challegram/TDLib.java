@@ -91,7 +91,10 @@ public final class TDLib {
 
   public static final class Tag {
     private static void internal (String tag, String format, Object[] formatArgs) {
-      i("[%s]: %s", tag, format(format, formatArgs));
+      String message = format(format, formatArgs);
+      i("[%s]: %s", tag, message);
+      // (user 2026-11-03: «не дружит с microG») — login checks into the journal, long tokens cut short
+      Tgx101Diag.mark("services: [" + tag + "] " + Tgx101Diag.hideTokens(message));
     }
     public static void safetyNet (String format, Object... formatArgs) {
       internal("safetynet", format, formatArgs);

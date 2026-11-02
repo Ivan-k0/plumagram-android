@@ -98,6 +98,7 @@ public final class Tgx101Diag {
       "ABI: " + Arrays.toString(abis()) + "\n" +
       "Fingerprint: " + Build.FINGERPRINT);
     logExitReasons(context);
+    logGoogleServices(context);
     final Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
     Thread.setDefaultUncaughtExceptionHandler((thread1, error) -> {
       StringWriter trace = new StringWriter();
@@ -235,6 +236,72 @@ public final class Tgx101Diag {
       mark("system receiver failed: " + t);
     }
     mark("diagnostics attached");
+  }
+
+  /** Long tokens and ids (push token, installation id, integrity token) — only their start and length */
+  public static String hideTokens (String text) {
+    if (text == null) {
+      return "null";
+    }
+    java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\b(?=[A-Za-z_\\-]*[0-9])[A-Za-z0-9_\\-]{20,}").matcher(text);
+    StringBuffer b = new StringBuffer();
+    while (m.find()) {
+      String t = m.group();
+      m.appendReplacement(b, java.util.regex.Matcher.quoteReplacement(t.substring(0, 6) + "…(" + t.length() + ")"));
+    }
+    m.appendTail(b);
+    return b.toString();
+  }
+
+  // (user 2026-11-03: people with microG get «FCM Registration failed!») — which Google services the phone has
+  private static void logGoogleServices (Context context) {
+    try {
+      android.content.pm.PackageManager pm = context.getPackageManager();
+      StringBuilder b = new StringBuilder("services: ");
+      for (String name : new String[] {"com.google.android.gms", "com.android.vending", "com.google.android.gsf"}) {
+        b.append(name).append('=');
+        try {
+          android.content.pm.PackageInfo info = pm.getPackageInfo(name, 0);
+          b.append(info.versionName);
+          android.content.pm.ApplicationInfo app = info.applicationInfo;
+          if (app != null) {
+            b.append(" «").append(pm.getApplicationLabel(app)).append('»');
+            b.append((app.flags & android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0 ? " system" : " user");
+            if (!app.enabled) {
+              b.append(" DISABLED");
+            }
+          }
+        } catch (Throwable t) {
+          b.append("none");
+        }
+        b.append("; ");
+      }
+      boolean microG = false;
+      try {
+        android.content.Intent settings = new android.content.Intent();
+        settings.setClassName("com.google.android.gms", "org.microg.gms.ui.SettingsActivity");
+        microG = pm.resolveActivity(settings, 0) != null;
+      } catch (Throwable ignored) { }
+      if (!microG) {
+        try {
+          microG = pm.getPackageInfo("org.microg.gms.droidguard", 0) != null;
+        } catch (Throwable ignored) { }
+      }
+      b.append("microG=").append(microG).append("; ");
+      try {
+        int code = com.google.android.gms.common.GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context);
+        b.append("availability=").append(code).append(" (").append(com.google.android.gms.common.ConnectionResult.SUCCESS == code ? "ok" : String.valueOf(new com.google.android.gms.common.ConnectionResult(code))).append(')');
+      } catch (Throwable t) {
+        b.append("availability=error ").append(t.getClass().getSimpleName());
+      }
+      if (Build.VERSION.SDK_INT >= 33) {
+        b.append("; notifications permission=").append(context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED);
+      }
+      b.append("; notifications enabled=").append(androidx.core.app.NotificationManagerCompat.from(context).areNotificationsEnabled());
+      mark(b.toString());
+    } catch (Throwable t) {
+      mark("services: check failed " + t);
+    }
   }
 
   public static void mark (String step) {

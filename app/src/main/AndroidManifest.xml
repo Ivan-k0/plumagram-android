@@ -114,6 +114,10 @@
 
   <queries>
     <package android:name="com.google.android.apps.maps" />
+    <package android:name="com.google.android.gms" />
+    <package android:name="com.android.vending" />
+    <package android:name="com.google.android.gsf" />
+    <package android:name="org.microg.gms.droidguard" />
     <package android:name="com.google.android.launcher.layouts.genymotion" />
     <package android:name="com.bluestacks" />
     <package android:name="com.bignox.app" />

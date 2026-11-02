@@ -1728,6 +1728,7 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
 
       @Override
       public void onTokenRetrievalSuccess (TdApi.@NotNull DeviceToken token) {
+        org.thunderdog.challegram.Tgx101Diag.mark("push: token ok (" + token.getClass().getSimpleName() + ")");
         setDeviceToken(token);
         if (after != null) {
           after.runWithBool(true);
@@ -1737,6 +1738,7 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
       @Override
       public void onTokenRetrievalError (@NotNull String errorKey, @org.jetbrains.annotations.Nullable Throwable e) {
         TDLib.Tag.notifications("Failed to retrieve push token", e);
+        org.thunderdog.challegram.Tgx101Diag.mark("push: token FAILED " + errorKey + (e != null ? " — " + org.thunderdog.challegram.Tgx101Diag.hideTokens(e.toString()) : ""));
         setTokenState(TokenState.ERROR, errorKey, e);
         if (after != null) {
           after.runWithBool(false);
