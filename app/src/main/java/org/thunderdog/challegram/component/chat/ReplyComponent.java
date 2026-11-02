@@ -477,6 +477,11 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
         float r = Math.min(mHeight / 2f, (corners != null && corners[i] > 0 ? corners[i] : fallback) * .55f);
         tgx101Radii[i * 2] = tgx101Radii[i * 2 + 1] = r;
       }
+      // (user 2026-11-02 «пузырь просто выходит из линии без скруглений, скругляется в другой стороне»): the wash comes out
+      // of the line square, its round corners only on the far side (still following the bubble's corners)
+      int lineSide0 = rtl ? 1 : 0, lineSide1 = rtl ? 2 : 3; // top-left and bottom-left; top-right and bottom-right in RTL
+      tgx101Radii[lineSide0 * 2] = tgx101Radii[lineSide0 * 2 + 1] = 0;
+      tgx101Radii[lineSide1 * 2] = tgx101Radii[lineSide1 * 2 + 1] = 0;
       tgx101WashPath.reset();
       tgx101WashPath.addRoundRect(rectF, tgx101Radii, android.graphics.Path.Direction.CW);
       // (user 2026-10-26 «затухание убери, верни как было 10 %»): an even wash
