@@ -78,7 +78,8 @@ public class Tgx101StorageOverview extends View {
       case SUB_WALLPAPERS: return new TdApi.FileType[] {new TdApi.FileTypeWallpaper()};
       case SUB_SOUNDS: return new TdApi.FileType[] {new TdApi.FileTypeNotificationSound()};
       case SUB_SECRET: return new TdApi.FileType[] {new TdApi.FileTypeSecret()};
-      default: return new TdApi.FileType[] {new TdApi.FileTypeUnknown(), new TdApi.FileTypeNone()};
+      // TGx101 (user 2026-11-02 «почистил всё — старые фото не грузятся»): no FileTypeNone — the official apps never clean it, TDLib's own service files fall under it
+      default: return new TdApi.FileType[] {new TdApi.FileTypeUnknown()};
     }
   }
 
@@ -181,7 +182,7 @@ public class Tgx101StorageOverview extends View {
       case CAT_MUSIC: return new TdApi.FileType[] {new TdApi.FileTypeAudio()};
       case CAT_STICKERS: return new TdApi.FileType[] {new TdApi.FileTypeSticker()};
       default: return new TdApi.FileType[] {new TdApi.FileTypeThumbnail(), new TdApi.FileTypeProfilePhoto(), new TdApi.FileTypeWallpaper(), new TdApi.FileTypeUnknown(),
-        new TdApi.FileTypeSecret(), new TdApi.FileTypePhotoStory(), new TdApi.FileTypeVideoStory(), new TdApi.FileTypeNotificationSound(), new TdApi.FileTypeNone()};
+        new TdApi.FileTypeSecret(), new TdApi.FileTypePhotoStory(), new TdApi.FileTypeVideoStory(), new TdApi.FileTypeNotificationSound()};
     }
   }
 
