@@ -2837,13 +2837,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void joinChat () {
     if (referrer != null) {
+      org.thunderdog.challegram.Tgx101Diag.mark("join: chat bar by invite link, chat " + chat.id);
       tdlib.send(new TdApi.JoinChatByInviteLink(referrer.inviteLink), (chatJoinResult, error) -> {
+        org.thunderdog.challegram.Tgx101Diag.mark("join: invite link → " + (error != null ? TD.toErrorString(error) : chatJoinResult.getClass().getSimpleName()));
         if (error != null || chatJoinResult.getConstructor() == TdApi.ChatJoinResultDeclined.CONSTRUCTOR) {
-          tdlib.send(new TdApi.AddChatMember(chat.id, tdlib.myUserId(), 0), tdlib.errorHandler());
+          tdlib.send(new TdApi.AddChatMember(chat.id, tdlib.myUserId(), 0), tdlib.tgx101JoinHandler("chat bar, add self", chat.id));
         }
       });
     } else {
-      tdlib.send(new TdApi.AddChatMember(chat.id, tdlib.myUserId(), 0), tdlib.errorHandler());
+      tdlib.send(new TdApi.AddChatMember(chat.id, tdlib.myUserId(), 0), tdlib.tgx101JoinHandler("chat bar, add self", chat.id));
     }
   }
 

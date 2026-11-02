@@ -2480,6 +2480,26 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     };
   }
 
+  /**
+   * TGx101 (4PDA 2026-11-02, Android 5: «не может вступить в группу, даже через кнопку; через Telegram X смог» — the
+   * journal had no line about joining): the error shown as before, and the journal says what was asked and what came back
+   */
+  public <T extends TdApi.Object> ResultHandler<T> tgx101JoinHandler (String how, long chatId) {
+    org.thunderdog.challegram.Tgx101Diag.mark("join: " + how + " chat " + chatId + ", status " + tgx101StatusName(chatStatus(chatId)) + ", api " + android.os.Build.VERSION.SDK_INT);
+    return (result, error) -> {
+      if (error != null) {
+        org.thunderdog.challegram.Tgx101Diag.mark("join: " + how + " chat " + chatId + " refused: " + TD.toErrorString(error));
+        UI.showError(error);
+      } else {
+        org.thunderdog.challegram.Tgx101Diag.mark("join: " + how + " chat " + chatId + " → " + (result != null ? result.getClass().getSimpleName() : "null") + ", status now " + tgx101StatusName(chatStatus(chatId)));
+      }
+    };
+  }
+
+  public static String tgx101StatusName (@Nullable TdApi.ChatMemberStatus status) {
+    return status != null ? status.getClass().getSimpleName().replace("ChatMemberStatus", "") : "unknown";
+  }
+
   public ResultHandler<TdApi.Ok> typedOkHandler () {
     return (ok, error) -> {
       if (error != null) {

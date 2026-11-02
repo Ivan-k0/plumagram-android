@@ -4909,7 +4909,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     switch (mode) {
       case Mode.CHANNEL:
       case Mode.SUPERGROUP: {
-        tdlib.send(new TdApi.AddChatMember(chat.id, tdlib.myUserId(), 0), tdlib.errorHandler());
+        tdlib.send(new TdApi.AddChatMember(chat.id, tdlib.myUserId(), 0), tdlib.tgx101JoinHandler("profile, add self", chat.id));
         break;
       }
     }

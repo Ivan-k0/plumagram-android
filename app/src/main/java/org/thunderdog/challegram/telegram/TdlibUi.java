@@ -4962,9 +4962,11 @@ public class TdlibUi extends Handler {
   private void leaveJoinChat (ViewController<?> context, long chatId, boolean join, @Nullable Runnable after) {
     TdApi.ChatMemberStatus status = tdlib.chatStatus(chatId);
     if (status == null) {
+      if (join) org.thunderdog.challegram.Tgx101Diag.mark("join: menu, chat " + chatId + " — no member status known, nothing sent");
       return;
     }
     if (tdlib.context().watchDog().isOffline()) {
+      if (join) org.thunderdog.challegram.Tgx101Diag.mark("join: menu, chat " + chatId + " — offline, nothing sent");
       UI.showNetworkPrompt();
       return;
     }
@@ -5039,6 +5041,7 @@ public class TdlibUi extends Handler {
     }
     if (newStatus == null) {
       if (join) {
+        org.thunderdog.challegram.Tgx101Diag.mark("join: menu, chat " + chatId + " — status " + Tdlib.tgx101StatusName(status) + ", can't return");
         UI.showToast(R.string.NoReturnToChat, Toast.LENGTH_SHORT);
       }
       return;
@@ -5048,9 +5051,16 @@ public class TdlibUi extends Handler {
       long myUserId = tdlib.myUserId();
       if (myUserId != 0) {
         if (needAdd) {
-          tdlib.send(new TdApi.AddChatMember(chatId, myUserId, 0), tdlib.errorHandler());
+          tdlib.send(new TdApi.AddChatMember(chatId, myUserId, 0), join ? tdlib.tgx101JoinHandler("menu, add self", chatId) : tdlib.errorHandler());
         } else {
           Client.ResultHandler handler = tdlib.okHandler();
+          if (join) {
+            org.thunderdog.challegram.Tgx101Diag.mark("join: menu, status " + Tdlib.tgx101StatusName(status) + " → " + Tdlib.tgx101StatusName(newStatus) + ", chat " + chatId + ", api " + android.os.Build.VERSION.SDK_INT);
+            handler = result -> {
+              org.thunderdog.challegram.Tgx101Diag.mark("join: menu chat " + chatId + " → " + (result.getConstructor() == TdApi.Error.CONSTRUCTOR ? "refused: " + TD.toErrorString(result) : result.getClass().getSimpleName() + ", status now " + Tdlib.tgx101StatusName(tdlib.chatStatus(chatId))));
+              if (result.getConstructor() == TdApi.Error.CONSTRUCTOR) UI.showError(result);
+            };
+          }
           if (deleteChat) {
             handler = result -> {
               switch (result.getConstructor()) {
