@@ -1342,9 +1342,37 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
    * channel's signature at the end of a post — the last lines made of links only («Курс Одесса | Прислать новость»,
    * «👉 Отзывы», …) — is drawn in the quiet colour of the views and time, not underlined; the links still open on a tap
    */
-  private static CharSequence tgx101MuteFooter (CharSequence str, TdApi.FormattedText text, int quiet) {
+  private static CharSequence tgx101MuteFooter (CharSequence str, TdApi.FormattedText text, int quiet, int ink) {
     if (text.entities == null || text.entities.length == 0 || str == null || str.length() != text.text.length()) return str;
     String t = text.text;
+    android.text.SpannableStringBuilder sb = str instanceof android.text.SpannableStringBuilder ? (android.text.SpannableStringBuilder) str : new android.text.SpannableStringBuilder(str);
+    str = sb;
+    // (user 2026-11-02 «подчёркивание оставь, но цвет приглуши»): every link in a post a softer colour, between the link
+    // colour and the text's — a post made of links no longer shouts; the underline stays
+    final int soft = me.vkryl.core.ColorUtils.fromToArgb(Theme.getColor(ColorId.textLink), ink, .45f);
+    for (TdApi.TextEntity entity : text.entities) {
+      switch (entity.type.getConstructor()) {
+        case TdApi.TextEntityTypeUrl.CONSTRUCTOR:
+        case TdApi.TextEntityTypeTextUrl.CONSTRUCTOR:
+        case TdApi.TextEntityTypeMention.CONSTRUCTOR:
+        case TdApi.TextEntityTypeMentionName.CONSTRUCTOR:
+        case TdApi.TextEntityTypeHashtag.CONSTRUCTOR:
+        case TdApi.TextEntityTypeEmailAddress.CONSTRUCTOR:
+        case TdApi.TextEntityTypePhoneNumber.CONSTRUCTOR:
+          break;
+        default:
+          continue;
+      }
+      int from = Math.max(0, entity.offset), to = Math.min(t.length(), entity.offset + entity.length);
+      if (from >= to) continue;
+      sb.setSpan(new android.text.style.CharacterStyle() {
+        @Override
+        public void updateDrawState (android.text.TextPaint tp) {
+          tp.setColor(soft);
+          tp.linkColor = soft;
+        }
+      }, from, to, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    }
     int end = t.length();
     while (end > 0 && Character.isWhitespace(t.charAt(end - 1))) end--;
     int blockStart = -1;
@@ -1815,9 +1843,10 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       TdApi.Message main = post.main();
       TdApi.FormattedText text = sample ? Td.textOrCaption(main.content) : tgx101TextFor(post, Td.textOrCaption(main.content));
       CharSequence str = text != null && !Td.isEmpty(text) ? TD.toCharSequence(text) : describe(main);
+      // before the spoilers: their hiding span has to come after these colours
+      if (text != null && !Td.isEmpty(text)) str = tgx101MuteFooter(str, text, pal[3], pal[2]);
       str = prepareSpoilers(str, !post.spoilersShown);
       str = tgx101QuoteColors(str);
-      if (text != null) str = tgx101MuteFooter(str, text, pal[3]);
       hiddenText = hasHidden(str);
 
       // the AI summary («✨ Short»), above the text while shown
