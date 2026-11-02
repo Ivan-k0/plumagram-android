@@ -1339,29 +1339,27 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   // colour — dark text from the light theme on the dark feed. In the feed a quote's text is the feed's own text colour
   /**
    * (user 2026-11-02 «такие ссылки от канала нужно помечать не так ярко — сильно бросаются в глаза при чтении»): the
-   * channel's signature at the end of a post — a last line of links only («Курс Одесса | Прислать новость | …») — is
-   * drawn in the quiet colour of the views and time, not underlined; it still opens on a tap
+   * channel's signature at the end of a post — the last lines made of links only («Курс Одесса | Прислать новость»,
+   * «👉 Отзывы», …) — is drawn in the quiet colour of the views and time, not underlined; the links still open on a tap
    */
-  private static CharSequence tgx101MuteFooter (CharSequence str, int quiet) {
-    if (!(str instanceof android.text.Spanned) || str.length() == 0) return str;
-    int end = str.length();
-    while (end > 0 && Character.isWhitespace(str.charAt(end - 1))) end--;
-    int start = end;
-    while (start > 0 && str.charAt(start - 1) != '\n') start--;
-    if (start >= end || start == 0) return str; // a post of one line is its text, not a signature
-    android.text.Spanned spanned = (android.text.Spanned) str;
-    android.text.style.ClickableSpan[] links = spanned.getSpans(start, end, android.text.style.ClickableSpan.class);
-    if (links.length == 0) return str;
-    boolean[] covered = new boolean[end - start];
-    for (android.text.style.ClickableSpan link : links) {
-      int from = Math.max(start, spanned.getSpanStart(link)), to = Math.min(end, spanned.getSpanEnd(link));
-      for (int i = from; i < to; i++) covered[i - start] = true;
+  private static CharSequence tgx101MuteFooter (CharSequence str, TdApi.FormattedText text, int quiet) {
+    if (text.entities == null || text.entities.length == 0 || str == null || str.length() != text.text.length()) return str;
+    String t = text.text;
+    int end = t.length();
+    while (end > 0 && Character.isWhitespace(t.charAt(end - 1))) end--;
+    int blockStart = -1;
+    int lineEnd = end;
+    while (lineEnd > 0) {
+      int lineStart = t.lastIndexOf('\n', lineEnd - 1) + 1;
+      if (lineStart == 0) break; // the first line is the post's own text
+      boolean blank = t.substring(lineStart, lineEnd).trim().isEmpty();
+      if (!blank) {
+        if (!tgx101LinksOnly(t, text.entities, lineStart, lineEnd)) break;
+        blockStart = lineStart;
+      }
+      lineEnd = lineStart - 1;
     }
-    for (int i = start; i < end; ) {
-      int codePoint = Character.codePointAt(str, i);
-      if (!covered[i - start] && Character.isLetterOrDigit(codePoint)) return str; // words besides the links: real text
-      i += Character.charCount(codePoint);
-    }
+    if (blockStart == -1) return str;
     android.text.SpannableStringBuilder b = str instanceof android.text.SpannableStringBuilder ? (android.text.SpannableStringBuilder) str : new android.text.SpannableStringBuilder(str);
     // added after the links' own spans, so their colour and underline give way
     b.setSpan(new android.text.style.CharacterStyle() {
@@ -1370,8 +1368,37 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         tp.setColor(quiet);
         tp.setUnderlineText(false);
       }
-    }, start, end, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    }, blockStart, end, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
     return b;
+  }
+
+  /** A line whose every letter and digit belongs to a link (emoji, «|», «•» and the like around them are fine) */
+  private static boolean tgx101LinksOnly (String t, TdApi.TextEntity[] entities, int start, int end) {
+    boolean[] covered = new boolean[end - start];
+    boolean any = false;
+    for (TdApi.TextEntity entity : entities) {
+      switch (entity.type.getConstructor()) {
+        case TdApi.TextEntityTypeUrl.CONSTRUCTOR:
+        case TdApi.TextEntityTypeTextUrl.CONSTRUCTOR:
+        case TdApi.TextEntityTypeMention.CONSTRUCTOR:
+        case TdApi.TextEntityTypeMentionName.CONSTRUCTOR:
+          break;
+        default:
+          continue;
+      }
+      int from = Math.max(start, entity.offset), to = Math.min(end, entity.offset + entity.length);
+      for (int i = from; i < to; i++) {
+        covered[i - start] = true;
+        any = true;
+      }
+    }
+    if (!any) return false;
+    for (int i = start; i < end; ) {
+      int codePoint = t.codePointAt(i);
+      if (!covered[i - start] && Character.isLetterOrDigit(codePoint)) return false;
+      i += Character.charCount(codePoint);
+    }
+    return true;
   }
 
   private static CharSequence tgx101QuoteColors (CharSequence str) {
@@ -1790,7 +1817,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       CharSequence str = text != null && !Td.isEmpty(text) ? TD.toCharSequence(text) : describe(main);
       str = prepareSpoilers(str, !post.spoilersShown);
       str = tgx101QuoteColors(str);
-      str = tgx101MuteFooter(str, pal[3]);
+      if (text != null) str = tgx101MuteFooter(str, text, pal[3]);
       hiddenText = hasHidden(str);
 
       // the AI summary («✨ Short»), above the text while shown
