@@ -1434,6 +1434,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101StoryReply, "Ответить…");
     RU.put(R.string.Tgx101StoryReplySent, "Ответ отправлен");
     RU.put(R.string.Tgx101StorySoundOn, "Включить звук");
+    RU.put(R.string.Tgx101ProxyNotResponding, "Не отвечает");
+    RU.put(R.string.Tgx101ProxyNoLocalNetwork, "Нет доступа к локальной сети — нажмите, чтобы разрешить");
+    RU.put(R.string.Tgx101ProxyLocalNetworkDenied, "Без доступа к локальной сети PlumaGram не подключится к прокси в домашней сети. Его можно разрешить в разрешениях приложения");
     RU.put(R.string.Tgx101StorySoundOff, "Выключить звук");
     RU.put(R.string.Tgx101StoryHide, "Скрыть истории");
     RU.put(R.string.Tgx101StoryShowLess, "Показывать меньше (в конец)");

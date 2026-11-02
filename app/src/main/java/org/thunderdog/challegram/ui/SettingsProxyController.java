@@ -327,7 +327,16 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
         case ConnectionState.CONNECTING_TO_PROXY:
         case ConnectionState.UNKNOWN:
         default:
-          out.value = Lang.getString(R.string.network_Connecting);
+          // TGx101 (4PDA video 2026-11-02: a proxy that never answered stood «соединение…» for good): say why it doesn't connect
+          if (org.thunderdog.challegram.proxy.Tgx101LocalNetwork.isBlocked(context(), info.proxy)) {
+            out.value = Lang.getString(R.string.Tgx101ProxyNoLocalNetwork);
+            out.colorId = ColorId.textNegative;
+          } else if (info.pingMs == Settings.PROXY_TIME_EMPTY) {
+            out.value = Lang.getString(R.string.Tgx101ProxyNotResponding);
+            out.colorId = ColorId.textNegative;
+          } else {
+            out.value = Lang.getString(R.string.network_Connecting);
+          }
           break;
       }
     } else if (tdlib.connectionState() == ConnectionState.WAITING_FOR_NETWORK) {
@@ -341,7 +350,9 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
       }
     } else if (info.pingMs == Settings.PROXY_TIME_EMPTY) {
       out.colorId = ColorId.textNegative;
-      if (Settings.instance().checkProxySetting(Settings.PROXY_FLAG_SHOW_ERRORS))
+      if (org.thunderdog.challegram.proxy.Tgx101LocalNetwork.isBlocked(context(), info.proxy))
+        out.value = Lang.getString(R.string.Tgx101ProxyNoLocalNetwork); // the check can't reach the home network either
+      else if (Settings.instance().checkProxySetting(Settings.PROXY_FLAG_SHOW_ERRORS))
         out.value = Lang.getString(R.string.ProxyErrorDetailed, info.pingError == null ? "unknown" : info.pingError.code + ": " + info.pingError.message);
       else
         out.value = Lang.getString(info.id == Settings.PROXY_ID_NONE ? R.string.ProxyErrorDirect : R.string.ProxyError);
@@ -664,7 +675,9 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
       tdlib.ui().addNewProxy(this, false);
     } else if (viewId == R.id.btn_proxy) {
       Settings.Proxy proxy = (Settings.Proxy) item.getData();
-      if (proxy.id == effectiveProxyId) {
+      if (proxy.id == effectiveProxyId && org.thunderdog.challegram.proxy.Tgx101LocalNetwork.isBlocked(context(), proxy.proxy)) {
+        org.thunderdog.challegram.proxy.Tgx101LocalNetwork.askNow(context()); // «no access to the local network — tap to allow»
+      } else if (proxy.id == effectiveProxyId) {
         showProxyOptions(proxy);
       } else if (proxy.proxy != null) {
         Settings.instance().addOrUpdateProxy(proxy.proxy, null, true);

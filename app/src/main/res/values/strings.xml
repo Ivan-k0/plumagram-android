@@ -6702,6 +6702,9 @@
   <string name="Tgx101StoryReply">Reply…</string>
   <string name="Tgx101StoryReplySent">Reply sent</string>
   <string name="Tgx101StorySoundOn">Turn the sound on</string>
+  <string name="Tgx101ProxyNotResponding">Not responding</string>
+  <string name="Tgx101ProxyNoLocalNetwork">No access to the local network — tap to allow</string>
+  <string name="Tgx101ProxyLocalNetworkDenied">Without access to the local network PlumaGram can\'t reach a proxy in your home network. It can be allowed in the app\'s permissions</string>
   <string name="Tgx101StorySoundOff">Turn the sound off</string>
   <string name="Tgx101StoryHide">Hide stories</string>
   <string name="Tgx101StoryShowLess">Show less (to the end)</string>

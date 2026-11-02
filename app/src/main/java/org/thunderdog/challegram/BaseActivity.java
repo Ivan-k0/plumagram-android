@@ -1639,6 +1639,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   public void onResume () {
     tgx101CheckHideNavigation(); // TGx101: never come back stuck without the status bar
     org.thunderdog.challegram.ui.Tgx101Proxies.onAppResumed(); // TGx101: back to the direct connection when it works
+    org.thunderdog.challegram.proxy.Tgx101LocalNetwork.onAppResumed(this); // TGx101: Android 17 — a proxy in the home network needs a permission
     tgx101CheckKeyboardAfterLock(); // TGx101: back on with the screen rule (user 2026-10-13)
     tgx101FadeInRestored();
     tgx101HoldDrawForKeyboard();
