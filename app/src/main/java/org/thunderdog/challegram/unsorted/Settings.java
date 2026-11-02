@@ -6740,8 +6740,10 @@ public class Settings {
     int proxySettings = getProxySettings();
 
     if (availableProxyId == proxyId && (proxySettings & PROXY_FLAG_ENABLED) != 0) {
+      org.thunderdog.challegram.Tgx101Diag.mark("proxy: #" + proxyId + " not removed — it's in use");
       return false;
     }
+    org.thunderdog.challegram.Tgx101Diag.mark("proxy: #" + proxyId + " removed" + (availableProxyId == proxyId ? " (it was the chosen one, off)" : ""));
 
     pmc.edit();
     pmc.remove(KEY_PROXY_PREFIX_CONFIG + proxyId);
@@ -7053,6 +7055,7 @@ public class Settings {
    * @param isNewAdd
    */
   private void dispatchProxyConfiguration (int id, @Nullable TdApi.Proxy proxy, @Nullable String description, boolean isCurrent, boolean isNewAdd) {
+    org.thunderdog.challegram.Tgx101Diag.mark("proxy: #" + id + " " + org.thunderdog.challegram.Tgx101DiagHooks.proxyKind(proxy) + (isCurrent ? ", now in use" : "") + (isNewAdd ? ", just added" : ""));
     for (ProxyChangeListener listener : proxyListeners) {
       listener.onProxyConfigurationChanged(id, proxy, description, isCurrent, isNewAdd);
     }

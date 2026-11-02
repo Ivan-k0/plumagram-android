@@ -211,6 +211,52 @@ public final class Tgx101DiagHooks {
     return Math.round(px / Screen.density());
   }
 
+  /**
+   * (4PDA 2026-10-29 … 11-02 «весь экран с чатами уезжает влево, пропадает половина»): where a screen stands if it's off
+   * its place — its left edge on the screen, and every view up to the window moved, scrolled, faded or scaled. Empty
+   * when all is in place
+   */
+  public static String offPlace (android.view.View v) {
+    if (v == null) return "";
+    StringBuilder b = new StringBuilder();
+    int[] at = new int[2];
+    v.getLocationOnScreen(at);
+    if (Math.abs(at[0]) > Screen.dp(2)) b.append("left edge at ").append(dp(at[0])).append("dp");
+    if (!v.isShown()) b.append(b.length() > 0 ? ", " : "").append("not shown");
+    for (android.view.View p = v; p != null; p = p.getParent() instanceof android.view.View ? (android.view.View) p.getParent() : null) {
+      boolean moved = Math.abs(p.getTranslationX()) >= 1f || Math.abs(p.getTranslationY()) >= 1f;
+      boolean scrolled = p.getScrollX() != 0 && !(p instanceof androidx.viewpager.widget.ViewPager || p instanceof org.thunderdog.challegram.widget.ViewPager);
+      boolean faded = p.getAlpha() < .99f;
+      boolean scaled = Math.abs(p.getScaleX() - 1f) > .01f;
+      if (moved || scrolled || faded || scaled) {
+        b.append(b.length() > 0 ? "; " : "").append(p.getClass().getSimpleName());
+        if (moved) b.append(" moved ").append(dp(p.getTranslationX())).append(",").append(dp(p.getTranslationY())).append("dp");
+        if (scrolled) b.append(" scrolled ").append(dp(p.getScrollX())).append("dp");
+        if (faded) b.append(" alpha ").append(Math.round(p.getAlpha() * 100)).append("%");
+        if (scaled) b.append(" scale ").append(Math.round(p.getScaleX() * 100)).append("%");
+      }
+    }
+    return b.toString();
+  }
+
+  /**
+   * (4PDA 2026-11-02 «добавил 2 локальных и попробовал (безуспешно) между ними попереключаться» — not a line about proxies
+   * in the journal): a proxy by its kind only — the type, and the port of one on this phone. Never a server's address
+   */
+  /** An error text without the addresses in it (IPs, host names with a port) — journals are posted in public */
+  public static String noAddress (String text) {
+    if (text == null) return "";
+    return text.replaceAll("\\[?[0-9a-fA-F:.]*\\d[0-9a-fA-F:.]*\\]?:\\d+|\\b\\d{1,3}(\\.\\d{1,3}){3}\\b|[\\w-]+(\\.[\\w-]+)+\\.[a-zA-Z]{2,}", "<address>");
+  }
+
+  public static String proxyKind (@androidx.annotation.Nullable TdApi.Proxy p) {
+    if (p == null) return "none";
+    String type = p.type instanceof TdApi.ProxyTypeSocks5 ? "socks5" : p.type instanceof TdApi.ProxyTypeHttp ? "http" : p.type instanceof TdApi.ProxyTypeMtproto ? "mtproto" : "?";
+    String host = p.server != null ? p.server.trim().toLowerCase(java.util.Locale.ROOT) : "";
+    boolean local = host.equals("127.0.0.1") || host.equals("localhost") || host.equals("::1") || host.equals("[::1]") || host.equals("0.0.0.0");
+    return type + (local ? " on this phone :" + p.port : " remote");
+  }
+
   /** Touches: position and gesture shape only (dp), to replay taps and swipes that went wrong */
   public static void onTouch (MotionEvent e, Object topController) {
     if (!BuildConfig.TGX101_DIAG) {
@@ -236,6 +282,11 @@ public final class Tgx101DiagHooks {
           (kind.equals("swipe") ? " by " + dp(dx) + "," + dp(dy) + "dp" : "") +
           " " + (e.getEventTime() - downTime) + "ms" +
           (topController != null ? " on " + topController.getClass().getSimpleName() : ""));
+        // a sideways swipe: was the screen under it where it should be? (4PDA: swipes that did nothing on a shifted screen)
+        if (kind.equals("swipe") && Math.abs(dx) > Math.abs(dy) * 2f && topController instanceof org.thunderdog.challegram.navigation.ViewController) {
+          String off = offPlace(((org.thunderdog.challegram.navigation.ViewController<?>) topController).getWrapUnchecked());
+          if (!off.isEmpty()) Tgx101Diag.mark("  screen under the swipe off its place: " + off);
+        }
         break;
       }
     }

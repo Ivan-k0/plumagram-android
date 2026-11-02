@@ -1639,6 +1639,28 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     rightWrap = null;
 
     updateHackyViews();
+
+    rootView.post(() -> tgx101CheckPlace(mode, "next frame"));
+    rootView.postDelayed(() -> tgx101CheckPlace(mode, "0.5 s later"), 500);
+  }
+
+  // TGx101 (4PDA 2026-10-29 … 11-02 «весь экран вместе с чатами уезжает влево и пропадает половина экрана», black box: a
+  // quick system back, then a dozen sideways swipes that moved nothing): the screen left on top after a slide should stand
+  // at its place. Where it doesn't, the journal says what is off, and a screen still moved sideways is put back
+  private void tgx101CheckPlace (int mode, String when) {
+    if (isAnimating) return;
+    ViewController<?> current = getCurrentStackItem();
+    View view = current != null ? current.getWrapUnchecked() : null;
+    if (view == null || view.getParent() == null) return;
+    String off = org.thunderdog.challegram.Tgx101DiagHooks.offPlace(view);
+    if (off.isEmpty()) return;
+    String how = mode == FINISH_NAVIGATION ? "back" : mode == FINISH_PREVIEW ? "back cancelled" : mode == FINISH_PREVIEW_FORCE ? "back dropped" : "forward cancelled";
+    boolean putBack = Math.abs(view.getTranslationX()) >= 1f;
+    org.thunderdog.challegram.Tgx101Diag.mark("navigation: after " + how + " (" + when + ") " + current.getClass().getSimpleName() + " stands off its place: " + off + (putBack ? " — put back" : ""));
+    if (putBack) {
+      view.setTranslationX(0f);
+      current.onTranslationChanged(0f);
+    }
   }
 
   void applyPreview (float velocity) {
@@ -1672,6 +1694,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       } else {
         duration = calculateDropDuration(currentWidth - lastTranslation, velocity, MAXIMUM_DROP_DURATION, MINIMUM_DROP_DURATION);
       }
+      org.thunderdog.challegram.Tgx101Diag.mark("navigation: back slides from " + Math.round(startFactor * 100) + " % over " + duration + " ms, mode " + translationMode + ", velocity " + Math.round(velocity));
       // by frames: the first frame of the back (the chat list redrawn under it) took ~17 ms and the chat jumped 16% at once
       tgx101FrameStepped(animator, duration, interpolator, value -> setFactor(startFactor + diffFactor * value));
       animator.start();

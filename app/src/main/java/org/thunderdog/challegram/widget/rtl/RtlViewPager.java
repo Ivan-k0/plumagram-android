@@ -76,9 +76,46 @@ public class RtlViewPager extends ViewPager implements RtlCheckListener {
       }, 600);
     }
     if (tgx101EdgeGesture != null && tgx101EdgeGesture.onTouch(e)) {
+      tgx101EdgeTook = true;
+      tgx101TraceSwipe(e);
       return true;
     }
+    tgx101TraceSwipe(e);
     return super.dispatchTouchEvent(e);
+  }
+
+  // TGx101 (4PDA 2026-11-02: a dozen sideways swipes on the chat list, none moved the folders and the pager said nothing):
+  // a clearly sideways swipe the pages didn't follow gets a line — who took it, where the pages stood, the screen's place
+  private float tgx101DownX, tgx101DownY;
+  private boolean tgx101EdgeTook, tgx101Dragged;
+
+  private void tgx101TraceSwipe (android.view.MotionEvent e) {
+    if (!org.thunderdog.challegram.BuildConfig.TGX101_DIAG) return;
+    switch (e.getActionMasked()) {
+      case android.view.MotionEvent.ACTION_DOWN:
+        tgx101DownX = e.getRawX();
+        tgx101DownY = e.getRawY();
+        tgx101EdgeTook = false;
+        tgx101Dragged = tgx101ScrollState != SCROLL_STATE_IDLE;
+        break;
+      case android.view.MotionEvent.ACTION_MOVE:
+        if (tgx101ScrollState == SCROLL_STATE_DRAGGING) tgx101Dragged = true;
+        break;
+      case android.view.MotionEvent.ACTION_UP:
+      case android.view.MotionEvent.ACTION_CANCEL: {
+        float dx = e.getRawX() - tgx101DownX, dy = e.getRawY() - tgx101DownY;
+        if (tgx101Dragged || Math.abs(dx) < org.thunderdog.challegram.tool.Screen.dp(40f) || Math.abs(dx) < Math.abs(dy) * 2f) break;
+        if (!tgx101EdgeTook && !canScrollHorizontally(dx > 0 ? -1 : 1)) break; // the first / last folder: nothing to go to
+        int count = getAdapter() != null ? getAdapter().getCount() : 0;
+        String off = org.thunderdog.challegram.Tgx101DiagHooks.offPlace(this);
+        org.thunderdog.challegram.Tgx101Diag.mark("pager: sideways swipe " + Math.round(dx / org.thunderdog.challegram.tool.Screen.density()) + "dp not followed" +
+          (tgx101EdgeTook ? " — the Saved pull took it" : "") +
+          (e.getActionMasked() == android.view.MotionEvent.ACTION_CANCEL ? " (cancelled)" : "") +
+          ", page " + super.getCurrentItem() + " of " + count + ", at " + getScrollX() + " px, width " + getWidth() +
+          ", enabled " + isEnabled() + ", state " + tgx101ScrollState + (off.isEmpty() ? "" : ", off place: " + off));
+        break;
+      }
+    }
   }
 
   // TGx101 (4PDA 2026-10-29, screenshot: the chat list cut by the left edge, a strip free on the right; «помогает

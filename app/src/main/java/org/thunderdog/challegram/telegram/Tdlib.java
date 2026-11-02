@@ -6322,13 +6322,19 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     if (proxy != null) {
       send(new TdApi.AddProxy(proxy, true, ""), (addedProxy, error) -> {
         if (addedProxy != null) {
+          org.thunderdog.challegram.Tgx101Diag.mark("proxy: account " + accountId + " uses #" + proxyId + " (TDLib " + addedProxy.id + ", " + org.thunderdog.challegram.Tgx101DiagHooks.proxyKind(proxy) + ")");
           setEffectiveProxyId(proxyId);
+        } else {
+          org.thunderdog.challegram.Tgx101Diag.mark("proxy: account " + accountId + " — TDLib refused #" + proxyId + " (" + org.thunderdog.challegram.Tgx101DiagHooks.proxyKind(proxy) + "): " + (error != null ? org.thunderdog.challegram.Tgx101DiagHooks.noAddress(TD.toErrorString(error)) : "no answer"));
         }
       });
     } else {
       send(new TdApi.DisableProxy(), (ok, error) -> {
         if (ok != null) {
+          org.thunderdog.challegram.Tgx101Diag.mark("proxy: account " + accountId + " goes direct");
           setEffectiveProxyId(Settings.PROXY_ID_NONE);
+        } else {
+          org.thunderdog.challegram.Tgx101Diag.mark("proxy: account " + accountId + " — TDLib didn't turn the proxy off: " + (error != null ? org.thunderdog.challegram.Tgx101DiagHooks.noAddress(TD.toErrorString(error)) : "no answer"));
         }
       });
     }
@@ -6430,6 +6436,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
             throw new UnsupportedOperationException(result.toString());
         }
         proxy.pingMs = pingMs;
+        org.thunderdog.challegram.Tgx101Diag.mark("proxy ping #" + proxyId + " (" + org.thunderdog.challegram.Tgx101DiagHooks.proxyKind(proxy.proxy) + "): " + (pingMs >= 0 ? pingMs + " ms" : "failed" + (proxy.pingError != null ? " — " + org.thunderdog.challegram.Tgx101DiagHooks.noAddress(TD.toErrorString(proxy.pingError)) : "")) + " in " + elapsed + " ms");
         notifyPingValueChanged(proxy);
         if (after != null) {
           after.runWithLong(pingMs);
