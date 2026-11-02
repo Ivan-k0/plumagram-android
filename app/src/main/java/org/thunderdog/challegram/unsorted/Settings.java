@@ -2394,6 +2394,21 @@ public class Settings {
       if (!freshInstall && !pmc.contains("tgx101_menu_blur")) pmc.putBoolean("tgx101_menu_blur", Build.VERSION.SDK_INT >= 31);
       pmc.putBoolean(marker5, true);
     }
+    // the sixth (user 2026-11-02, from his own settings: «двойное — реакция, перемотка 10 с, поворот авто, капсула, свои
+    // голосовые пропускаются, кнопка комментариев, звонок нарастает за 10 с»): for new installs; the rest keep what they had
+    final String marker6 = "tgx101_defaults_2026_11_02";
+    if (!pmc.getBoolean(marker6, false)) {
+      if (!freshInstall) {
+        if (!pmc.contains(KEY_TGX101_DOUBLE_TAP_ACTION)) pmc.putInt(KEY_TGX101_DOUBLE_TAP_ACTION, getTapMode() == TAP_MODE_STOCK ? DOUBLE_TAP_OFF : DOUBLE_TAP_REACTION);
+        if (!pmc.contains(KEY_TGX101_PLAYER_SEEK_STEP)) pmc.putInt(KEY_TGX101_PLAYER_SEEK_STEP, 5);
+        if (!pmc.contains(KEY_TGX101_PLAYER_ORIENTATION)) pmc.putInt(KEY_TGX101_PLAYER_ORIENTATION, PLAYER_ORIENTATION_SYSTEM);
+        if (!pmc.contains(KEY_TGX101_FG_SHOW) && !pmc.contains(KEY_TGX101_FOREGROUND_NOTIF) && !pmc.getBoolean("tgx101_island", false)) pmc.putInt(KEY_TGX101_FG_SHOW, TGX101_FG_SYSTEM);
+        if (!pmc.contains(KEY_TGX101_VOICE_SKIP_OWN)) pmc.putBoolean(KEY_TGX101_VOICE_SKIP_OWN, false);
+        if (!pmc.contains(KEY_SHOW_COMMENTS_BUTTON)) pmc.putBoolean(KEY_SHOW_COMMENTS_BUTTON, false);
+        if (!pmc.contains(KEY_TGX101_RING_RAMP_SECONDS)) pmc.putInt(KEY_TGX101_RING_RAMP_SECONDS, 30);
+      }
+      pmc.putBoolean(marker6, true);
+    }
   }
 
   private boolean isFreshAppInstallation () {
@@ -3418,7 +3433,7 @@ public class Settings {
 
   /** TGx101: seconds the incoming call ringtone takes to grow from quiet to full volume */
   public int getTgx101RingRampSeconds () {
-    int value = pmc.getInt(KEY_TGX101_RING_RAMP_SECONDS, 30);
+    int value = pmc.getInt(KEY_TGX101_RING_RAMP_SECONDS, 10); // new installs: 10 s (user 2026-11-02; was 30)
     for (int option : TGX101_RING_RAMP_OPTIONS) if (option == value) return value;
     return 30;
   }
@@ -4145,7 +4160,8 @@ public class Settings {
   public int tgx101FgShow () {
     if (!pmc.contains(KEY_TGX101_FG_SHOW)) {
       int old = pmc.getInt(KEY_TGX101_FOREGROUND_NOTIF, TGX101_FOREGROUND_NOTIF_SHOW);
-      int show = pmc.getBoolean("tgx101_island", false) ? TGX101_FG_CAPSULE : old == TGX101_FOREGROUND_NOTIF_HIDE ? TGX101_FG_NONE : TGX101_FG_SYSTEM;
+      // a new install (no old choice): the capsule (user 2026-11-02); the old «show» stays the system notification
+      int show = pmc.getBoolean("tgx101_island", false) ? TGX101_FG_CAPSULE : old == TGX101_FOREGROUND_NOTIF_HIDE ? TGX101_FG_NONE : pmc.contains(KEY_TGX101_FOREGROUND_NOTIF) ? TGX101_FG_SYSTEM : TGX101_FG_CAPSULE;
       if (old == TGX101_FOREGROUND_NOTIF_QUIET) {
         pmc.putBoolean(KEY_TGX101_FG_SOUND, false);
         pmc.putBoolean(KEY_TGX101_FG_VIBRATE, false);
@@ -4204,7 +4220,7 @@ public class Settings {
   private static final String KEY_TGX101_VOICE_SKIP_OWN = "tgx101_voice_skip_own";
 
   public boolean skipOwnVoiceInQueue () {
-    return pmc.getBoolean(KEY_TGX101_VOICE_SKIP_OWN, false);
+    return pmc.getBoolean(KEY_TGX101_VOICE_SKIP_OWN, true); // new installs: on (user 2026-11-02)
   }
 
   public void setSkipOwnVoiceInQueue (boolean skip) {
@@ -4233,7 +4249,8 @@ public class Settings {
     if (pmc.contains(KEY_TGX101_DOUBLE_TAP_ACTION)) {
       return pmc.getInt(KEY_TGX101_DOUBLE_TAP_ACTION, DOUBLE_TAP_OFF);
     }
-    return getTapMode() == TAP_MODE_STOCK ? DOUBLE_TAP_OFF : DOUBLE_TAP_REACTION;
+    // new installs: a reaction (user 2026-11-02); a tap mode chosen before decides as it did
+    return pmc.contains(KEY_TGX101_TAP_MODE) && getTapMode() == TAP_MODE_STOCK ? DOUBLE_TAP_OFF : DOUBLE_TAP_REACTION;
   }
 
   public void setTgx101DoubleTapAction (int action) {
@@ -4462,7 +4479,7 @@ public class Settings {
 
   /** TGx101 player: screen orientation in the viewer — as the system, always turning with the phone, or portrait only */
   public int tgx101PlayerOrientation () {
-    return pmc.getInt(KEY_TGX101_PLAYER_ORIENTATION, PLAYER_ORIENTATION_SYSTEM);
+    return pmc.getInt(KEY_TGX101_PLAYER_ORIENTATION, PLAYER_ORIENTATION_AUTO); // new installs: turns with the phone (user 2026-11-02)
   }
 
   public void setTgx101PlayerOrientation (int mode) {
@@ -4475,7 +4492,7 @@ public class Settings {
 
   /** TGx101 player: seconds per double tap on the sides */
   public int tgx101PlayerSeekStep () {
-    return pmc.getInt(KEY_TGX101_PLAYER_SEEK_STEP, 5);
+    return pmc.getInt(KEY_TGX101_PLAYER_SEEK_STEP, 10); // new installs: 10 s (user 2026-11-02)
   }
 
   public void setTgx101PlayerSeekStep (int seconds) {
@@ -4635,7 +4652,7 @@ public class Settings {
   }
 
   public boolean showCommentsButton () {
-    return pmc.getBoolean(KEY_SHOW_COMMENTS_BUTTON, false); // new installs: off (user 2026-10-16)
+    return pmc.getBoolean(KEY_SHOW_COMMENTS_BUTTON, true); // new installs: on again (user 2026-11-02; off since 2026-10-16)
   }
 
   public void setShowCommentsButton (boolean show) {
