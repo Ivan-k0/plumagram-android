@@ -808,12 +808,28 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
     org.thunderdog.challegram.Tgx101Diag.mark("files: file " + fileId + " can't be downloaded — asking for message " + chatId + "/" + messageId + " again");
     tdlib.send(new TdApi.GetMessage(chatId, messageId), (message, error) -> tdlib.send(new TdApi.GetFile(fileId), (fresh, error2) -> tdlib.ui().post(() -> {
       boolean can = fresh != null && fresh.local.canBeDownloaded;
-      org.thunderdog.challegram.Tgx101Diag.mark("files: file " + fileId + " after the message came again — " + (message == null ? "message error " + error + ", " : "") + (fresh == null ? "file error " + error2 : can ? "can be downloaded" : "still can't"));
+      String remoteId = fresh != null ? fresh.remote.id : file != null ? file.remote.id : null;
+      org.thunderdog.challegram.Tgx101Diag.mark("files: file " + fileId + " after the message came again — " + (message == null ? "message error " + error + ", " : "") + (fresh == null ? "file error " + error2 : can ? "can be downloaded" : "still can't")
+        + (fresh != null ? " (remote id " + (fresh.remote.id.isEmpty() ? "EMPTY" : fresh.remote.id.length() + " chars") + ", unique " + (fresh.remote.uniqueId.isEmpty() ? "EMPTY" : "kept") + ", uploaded " + fresh.remote.isUploadingCompleted + ", local path " + (fresh.local.path.isEmpty() ? "none" : "kept") + ")" : ""));
       if (file == null || file.id != fileId) return;
       if (can) {
         TdApi.File f = file;
         Td.copyTo(fresh, f);
         tdlib.files().downloadFile(f);
+      } else if (remoteId != null && !remoteId.isEmpty()) {
+        // the server's id is still known: the file is asked for anew by it — TDLib gives a file it can download
+        tdlib.send(new TdApi.GetRemoteFile(remoteId, null), (remote, error3) -> tdlib.ui().post(() -> {
+          boolean ok = remote != null && remote.local.canBeDownloaded;
+          org.thunderdog.challegram.Tgx101Diag.mark("files: file " + fileId + " by its remote id → " + (remote == null ? "error " + error3 : "file " + remote.id + (ok ? ", can be downloaded" : ", still can't")));
+          if (file == null || file.id != fileId) return;
+          if (ok) {
+            setFile(remote);
+            tdlib.files().downloadFile(remote);
+          } else {
+            setCurrentState(TdlibFilesManager.STATE_PAUSED, true);
+            org.thunderdog.challegram.tool.UI.showToast(org.thunderdog.challegram.R.string.Tgx101FileGone, android.widget.Toast.LENGTH_SHORT);
+          }
+        }));
       } else {
         setCurrentState(TdlibFilesManager.STATE_PAUSED, true);
         org.thunderdog.challegram.tool.UI.showToast(org.thunderdog.challegram.R.string.Tgx101FileGone, android.widget.Toast.LENGTH_SHORT);
