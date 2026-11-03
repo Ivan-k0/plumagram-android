@@ -56,7 +56,7 @@ public final class Tgx101FrameTrace {
     // frame traces belong to the developer's own diagnostics builds only
     if (!BuildConfig.TGX101_DIAG || BuildConfig.TGX101_TEST || Build.VERSION.SDK_INT < 29 || activity == null) return;
     long now = SystemClock.uptimeMillis();
-    if (now - lastStart < 3000) return; // one trace at a time (a notification tap also resumes the activity)
+    if (now - lastStart < 1500) return; // one trace at a time (a notification tap also resumes the activity); 3 → 1.5 s, two backs in a row are both caught (user 2026-11-03)
     lastStart = now;
     if (thread == null) {
       thread = new HandlerThread("Tgx101FrameTrace");

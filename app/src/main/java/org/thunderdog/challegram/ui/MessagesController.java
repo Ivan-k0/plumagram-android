@@ -12127,6 +12127,39 @@ public class MessagesController extends ViewController<MessagesController.Argume
     android.view.Choreographer.getInstance().postFrameCallback(tgx101MotionFrame);
   }
 
+  private void tgx101HitsAt (View v, int x, int y, StringBuilder out) {
+    if (v.getVisibility() != View.VISIBLE || v.getAlpha() <= 0f) return;
+    int[] at = new int[2];
+    v.getLocationInWindow(at);
+    if (x < at[0] || y < at[1] || x >= at[0] + v.getWidth() || y >= at[1] + v.getHeight()) return;
+    boolean draws = v.getBackground() != null || !v.willNotDraw();
+    if (draws) {
+      String label = v == wallpaperView ? "WALLPAPER" : v == contentView ? "CONTENT" : v == bottomWrap ? "FIELD" : v == getValue() ? "CHAT" : v == messagesView ? "LIST" : v == context().getContentView() ? "ROOT" : v.getId() == android.R.id.content ? "ANDROID_CONTENT" : v.getClass().getSimpleName();
+      out.append(" | ").append(label).append(' ').append(at[1]).append('–').append(at[1] + v.getHeight());
+      if (v.getBackground() != null) out.append(" bg");
+      if (Math.abs(v.getTranslationY()) >= 1f) out.append(" ty ").append(Math.round(v.getTranslationY()));
+    }
+    if (v instanceof android.view.ViewGroup) {
+      android.view.ViewGroup g = (android.view.ViewGroup) v;
+      for (int i = 0; i < g.getChildCount(); i++) tgx101HitsAt(g.getChildAt(i), x, y, out);
+    }
+  }
+
+  /** Where the list and each of its parents end on screen, and their bottom padding — the view that cuts the chat short */
+  private String tgx101MotionBounds () {
+    StringBuilder b = new StringBuilder(", ends:");
+    int[] at = new int[2];
+    View v = messagesView;
+    for (int depth = 0; v != null && depth < 6; depth++) {
+      v.getLocationInWindow(at);
+      b.append(' ').append(v.getClass().getSimpleName()).append('=').append(at[1] + v.getHeight());
+      if (v.getPaddingBottom() != 0) b.append("/p").append(v.getPaddingBottom());
+      if (v instanceof android.view.ViewGroup && !((android.view.ViewGroup) v).getClipChildren()) b.append("/nc");
+      v = v.getParent() instanceof View ? (View) v.getParent() : null;
+    }
+    return b.toString();
+  }
+
   private final android.view.Choreographer.FrameCallback tgx101MotionFrame = new android.view.Choreographer.FrameCallback() {
     @Override
     public void doFrame (long frameTimeNanos) {
@@ -12153,7 +12186,24 @@ public class MessagesController extends ViewController<MessagesController.Argume
       String line = "field " + fieldTop + " (ty " + fieldShift + "), list room " + messagesView.getPaddingBottom() + " ty " + Math.round(messagesView.getTranslationY()) +
         ", newest bottom " + (lastBottom < 0 ? "—" : lastBottom + " gap " + (fieldTop >= 0 ? fieldTop - lastBottom : 0)) +
         ", ime " + kb + (tgx101ImeMoving() ? " riding" : "") + (replyBarView != null && replyBarView.getVisibility() == View.VISIBLE ? ", bar a " + Math.round(replyBarView.getAlpha() * 100) + "%" : "") +
-        (inputView != null ? ", field h " + (bottomWrap != null ? bottomWrap.getHeight() : 0) : "");
+        (inputView != null ? ", field h " + (bottomWrap != null ? bottomWrap.getHeight() : 0) : "") + tgx101MotionBounds();
+      if (tgx101MotionLast == null && getValue() != null) {
+        // the first frame: every view drawing at the left edge, 300 px under the field's final top — what paints there
+        StringBuilder hits = new StringBuilder();
+        tgx101HitsAt(getValue().getRootView(), 60, Math.min(getValue().getRootView().getHeight() - 10, (fieldTop >= 0 ? Math.min(fieldTop, 2400) : 2300) - 60), hits);
+        org.thunderdog.challegram.Tgx101Diag.mark("  motion: at the edge " + hits);
+        StringBuilder chain = new StringBuilder();
+        int[] wa = new int[2];
+        for (View p = wallpaperView; p != null; p = p.getParent() instanceof View ? (View) p.getParent() : null) {
+          p.getLocationInWindow(wa);
+          String label = p == wallpaperView ? "WALLPAPER" : p == contentView ? "CONTENT" : p == getValue() ? "CHAT" : p == context().getContentView() ? "ROOT" : p.getId() == android.R.id.content ? "ANDROID_CONTENT" : p.getClass().getSimpleName();
+          chain.append(' ').append(label).append('=').append(wa[1]).append('–').append(wa[1] + p.getHeight());
+          if (p.getPaddingBottom() != 0) chain.append("/p").append(p.getPaddingBottom());
+          if (p.getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams && ((android.view.ViewGroup.MarginLayoutParams) p.getLayoutParams()).bottomMargin != 0) chain.append("/m").append(((android.view.ViewGroup.MarginLayoutParams) p.getLayoutParams()).bottomMargin);
+          if (p instanceof android.view.ViewGroup && !((android.view.ViewGroup) p).getClipChildren()) chain.append("/nc");
+        }
+        org.thunderdog.challegram.Tgx101Diag.mark("  motion: wallpaper chain" + chain);
+      }
       if (!line.equals(tgx101MotionLast)) {
         tgx101MotionLast = line;
         org.thunderdog.challegram.Tgx101Diag.mark("  motion +" + (now - tgx101MotionStartedAt) + " ms: " + line);

@@ -340,6 +340,7 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
 
         if (slidingBack) {
           org.thunderdog.challegram.Tgx101ScrollWatch.gestureStart("back swipe"); // diagnostics builds: the frames from the screen's first move to its landing
+          org.thunderdog.challegram.Tgx101FrameTrace.start(UI.getContext(navigation.getContext()), "back-swipe"); // (user 2026-11-03) the black box for the app's own swipe too
           if (!(tgx101Reverse ? navigation.tgx101OpenPreviewReverse(event.getY()) : navigation.openPreview(event.getY()))) {
             slidingBack = false;
             listenSlidingBack = false;
