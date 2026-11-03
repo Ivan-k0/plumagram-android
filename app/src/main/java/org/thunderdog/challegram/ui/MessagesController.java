@@ -12178,7 +12178,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       v.getLocationInWindow(at);
       b.append(' ').append(v.getClass().getSimpleName()).append('=').append(at[1] + v.getHeight());
       if (v.getPaddingBottom() != 0) b.append("/p").append(v.getPaddingBottom());
-      if (v instanceof android.view.ViewGroup && !((android.view.ViewGroup) v).getClipChildren()) b.append("/nc");
+      if (Build.VERSION.SDK_INT >= 18 && v instanceof android.view.ViewGroup && !((android.view.ViewGroup) v).getClipChildren()) b.append("/nc");
       v = v.getParent() instanceof View ? (View) v.getParent() : null;
     }
     return b.toString();
@@ -12224,7 +12224,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           chain.append(' ').append(label).append('=').append(wa[1]).append('–').append(wa[1] + p.getHeight());
           if (p.getPaddingBottom() != 0) chain.append("/p").append(p.getPaddingBottom());
           if (p.getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams && ((android.view.ViewGroup.MarginLayoutParams) p.getLayoutParams()).bottomMargin != 0) chain.append("/m").append(((android.view.ViewGroup.MarginLayoutParams) p.getLayoutParams()).bottomMargin);
-          if (p instanceof android.view.ViewGroup && !((android.view.ViewGroup) p).getClipChildren()) chain.append("/nc");
+          if (Build.VERSION.SDK_INT >= 18 && p instanceof android.view.ViewGroup && !((android.view.ViewGroup) p).getClipChildren()) chain.append("/nc");
         }
         org.thunderdog.challegram.Tgx101Diag.mark("  motion: wallpaper chain" + chain);
       }
