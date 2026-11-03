@@ -2805,22 +2805,79 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
     return part.isRtl() ? partX + part.getWidth() - width : partX + width;
   }
 
+  // TGx101 (group 2026-11-03 18:22, photo: «выделение текста внутри чата такое же, как в полях ввода»): the selected lines
+  // make one block with rounded corners, as the input field draws it (EmojiEditText.tgx101DrawSelection) — the first line
+  // from the selection's start to the right edge, the middle ones edge to edge, the last from the left edge to its end —
+  // instead of a strip per line as long as its text
+  private final android.graphics.Path tgx101SelPath = new android.graphics.Path(), tgx101SelLine = new android.graphics.Path();
+  private Paint tgx101SelPaint;
+
   private void tgx101DrawSelection (Canvas c, int startX, int endX, int endXBottomPadding, int startY) {
     if (!tgx101HasSelection() || parts == null)
       return;
-    Paint paint = Paints.fillingPaint(tgx101SelColor);
+    // per line: top, bottom, the line's own left and right, the selected part's left and right
+    java.util.TreeMap<Integer, float[]> lines = new java.util.TreeMap<>();
     for (TextPart part : parts) {
-      if (!tgx101IsTextPart(part) || part.getEnd() <= tgx101SelStart || part.getStart() >= tgx101SelEnd)
+      if (!tgx101IsTextPart(part))
         continue;
       int partX = tgx101PartX(part, startX, endX, endXBottomPadding);
+      int lineIndex = part.getLineIndex();
+      float[] line = lines.get(lineIndex);
+      if (line == null) {
+        int top = startY + part.getY();
+        line = new float[] {top, top + getLineHeight(lineIndex), Float.MAX_VALUE, -Float.MAX_VALUE, Float.MAX_VALUE, -Float.MAX_VALUE};
+        lines.put(lineIndex, line);
+      }
+      line[2] = Math.min(line[2], partX);
+      line[3] = Math.max(line[3], partX + part.getWidth());
+      if (part.getEnd() <= tgx101SelStart || part.getStart() >= tgx101SelEnd)
+        continue;
       float a = tgx101XInPart(part, Math.max(part.getStart(), tgx101SelStart), partX);
       float b = tgx101XInPart(part, Math.min(part.getEnd(), tgx101SelEnd), partX);
-      float left = Math.max(startX, Math.min(a, b)), right = Math.min(startX + maxWidth, Math.max(a, b));
-      if (right <= left)
-        continue;
-      int top = startY + part.getY();
-      c.drawRect(left, top, right, top + getLineHeight(part.getLineIndex()), paint);
+      line[4] = Math.min(line[4], Math.min(a, b));
+      line[5] = Math.max(line[5], Math.max(a, b));
     }
+    int first = Integer.MAX_VALUE, last = Integer.MIN_VALUE;
+    float minLeft = Float.MAX_VALUE, maxRight = -Float.MAX_VALUE;
+    for (java.util.Map.Entry<Integer, float[]> e : lines.entrySet()) {
+      float[] line = e.getValue();
+      if (line[5] <= line[4]) continue;
+      first = Math.min(first, e.getKey());
+      last = Math.max(last, e.getKey());
+    }
+    if (first > last) return;
+    for (int i = first; i <= last; i++) {
+      float[] line = lines.get(i);
+      if (line == null) continue;
+      minLeft = Math.min(minLeft, line[2]);
+      maxRight = Math.max(maxRight, line[3]);
+    }
+    float pad = Screen.dp(2f);
+    tgx101SelPath.reset();
+    for (int i = first; i <= last; i++) {
+      float[] line = lines.get(i);
+      if (line == null) continue;
+      float left = i == first ? line[4] : minLeft;
+      float right = i == last ? line[5] : maxRight;
+      if (first == last) { left = line[4]; right = line[5]; }
+      left = Math.max(startX - pad, left - pad);
+      right = Math.min(startX + maxWidth + pad, right + pad);
+      if (right <= left) continue;
+      if (android.os.Build.VERSION.SDK_INT >= 19) {
+        tgx101SelLine.reset();
+        tgx101SelLine.addRect(left, line[0], right, line[1], android.graphics.Path.Direction.CW);
+        tgx101SelPath.op(tgx101SelLine, android.graphics.Path.Op.UNION);
+      } else {
+        tgx101SelPath.addRect(left, line[0], right, line[1], android.graphics.Path.Direction.CW);
+      }
+    }
+    if (tgx101SelPaint == null) {
+      tgx101SelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+      tgx101SelPaint.setStyle(Paint.Style.FILL);
+      tgx101SelPaint.setPathEffect(new android.graphics.CornerPathEffect(Screen.dp(6f)));
+    }
+    tgx101SelPaint.setColor(tgx101SelColor);
+    c.drawPath(tgx101SelPath, tgx101SelPaint);
   }
 
   /** The text offset nearest to a point (view coordinates of the last draw); -1 when there is no text */

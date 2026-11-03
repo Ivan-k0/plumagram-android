@@ -1149,7 +1149,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
             tgx101GlideIme(pad - tgx101LastPad); // the keyboard changed size without an animation (suggestion strip)
           }
         }
-        if (floatingInput && tgx101LastContent > 0 && content != tgx101LastContent && Math.abs(content - tgx101LastContent) < Screen.dp(400f) && !tgx101ImeRiding && getVisibility() == View.VISIBLE) {
+        boolean tgx101Reveal = floatingInput && tgx101LastContent > 0 && content != tgx101LastContent && Math.abs(content - tgx101LastContent) < Screen.dp(400f) && !tgx101ImeRiding && getVisibility() == View.VISIBLE;
+        if (TGX101_MOTION_TRACE && content != tgx101LastContent) {
+          org.thunderdog.challegram.Tgx101Diag.mark("field height " + tgx101LastContent + " → " + content + (tgx101Reveal ? ", glides" : ", no glide (floating " + floatingInput + ", riding " + tgx101ImeRiding + ", visible " + (getVisibility() == View.VISIBLE) + ")") + ", pad " + pad);
+          tgx101TraceMotion("field height");
+        }
+        if (tgx101Reveal) {
           tgx101RevealGrowth(content - tgx101LastContent);
         }
         tgx101LastContent = content;
@@ -12281,7 +12286,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
       // the floor is the field itself, not its keyboard room below (0.1.573 09:00: with the keyboard the floor was the
       // whole 1391 px, so the room never followed the field down while it rode the keyboard — the list jumped at once)
-      padding = Math.max(bottomWrap.getHeight() - bottomWrap.getPaddingBottom(), fromTop) + Screen.dp(4f);
+      // …and while a grown field's top still glides up, the floor follows that drawn top too (log 2026-11-03 19:54:33,
+      // «Изменить»: the field grew 202 → 484 with its glide on, but the floor took its full height at once — the room jumped
+      // 218 → 500 in one frame and the messages with it)
+      padding = Math.max(bottomWrap.getHeight() - bottomWrap.getPaddingBottom() - Math.max(0, Math.round(tgx101TopReveal)), fromTop) + Screen.dp(4f);
     } else {
       // user 2026-10-08 17:25 (three-button navigation, a channel without the bottom bar): the last post went under the
       // navigation buttons — without the capsule the room is the part of the list behind the navigation bar
