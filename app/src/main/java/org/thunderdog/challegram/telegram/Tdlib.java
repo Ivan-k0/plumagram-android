@@ -5014,7 +5014,11 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       map.put(key, pendingData);
     }
     listeners.updateMessagePendingContentChanged(chatId, messageId);
+    // (4PDA 2026-11-03, Android 4.3: an edit in a channel's comments hangs as sending, then the old text comes back)
+    final long tgx101EditStart = SystemClock.uptimeMillis();
+    org.thunderdog.challegram.Tgx101Diag.mark("edit: " + function.getClass().getSimpleName() + " chat " + chatId + " msg " + messageId + " — sending, " + org.thunderdog.challegram.Tgx101Diag.network());
     client().send(function, result -> {
+      org.thunderdog.challegram.Tgx101Diag.mark("edit: msg " + messageId + " — " + (result.getConstructor() == TdApi.Error.CONSTRUCTOR ? "ERROR " + TD.toErrorString(result) : "ok " + result.getClass().getSimpleName()) + " in " + (SystemClock.uptimeMillis() - tgx101EditStart) + " ms");
       if (result.getConstructor() == TdApi.Error.CONSTRUCTOR) {
         UI.showError(result);
       }
