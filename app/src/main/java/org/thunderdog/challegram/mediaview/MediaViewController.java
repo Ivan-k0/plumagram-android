@@ -1147,7 +1147,16 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private Path path = new Path();
 
+  // TGx101 (user 2026-11-03 «почему открытие медиа сопровождается затемнением экрана?», recordings of the same photo
+  // here and in another client): the backdrop grew as a dark circle out of the photo, so the chat around darkened in
+  // a spreading patch before the picture came; the whole screen now fades evenly together with the picture's flight
+  private static final boolean TGX101_EVEN_BACKDROP = true;
+
   private void layoutPath () {
+    if (TGX101_EVEN_BACKDROP) {
+      tgx101TopCover = 1f;
+      return;
+    }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && path != null && currentThumb != null && commonFactor > 0f && commonFactor < 1f) {
 
       // v1
@@ -6517,7 +6526,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         }
         float alpha = Math.max(0f, Math.min(1f, commonFactor));
 
-        final boolean saved = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && path != null && !inSlideMode && lastSlideX == 0f && lastSlideY == 0f && currentThumb != null && commonFactor > 0f && commonFactor < 1f && !currentThumb.noBounce();
+        final boolean saved = !TGX101_EVEN_BACKDROP && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && path != null && !inSlideMode && lastSlideX == 0f && lastSlideY == 0f && currentThumb != null && commonFactor > 0f && commonFactor < 1f && !currentThumb.noBounce();
         final int saveCount = saved ? ViewSupport.clipPath(c, path) : Integer.MIN_VALUE;
 
         if (currentThumb != null && commonFactor < 1f && !inSlideMode && lastSlideX == 0f && lastSlideY == 0f) {
