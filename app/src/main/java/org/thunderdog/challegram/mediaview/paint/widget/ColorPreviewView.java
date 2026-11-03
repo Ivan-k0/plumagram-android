@@ -29,7 +29,7 @@ import me.vkryl.android.AnimatorUtils;
 import me.vkryl.android.animator.FactorAnimator;
 
 public class ColorPreviewView extends View implements FactorAnimator.Target {
-  private static final float MIN_RADIUS = 4f;
+  private static final float MIN_RADIUS = 1.5f; // TGx101 (user 2026-11-03 «линии сильно толстые»): was 4
   private static final float MAX_RADIUS = 20f;
 
   private float radiusFactor;

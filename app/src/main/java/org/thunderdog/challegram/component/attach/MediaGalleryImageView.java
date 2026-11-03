@@ -16,6 +16,7 @@ package org.thunderdog.challegram.component.attach;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.view.MotionEvent;
@@ -107,7 +108,7 @@ public class MediaGalleryImageView extends BaseView implements Destroyable, Fact
   @Override
   public void onClickAt (View view, float x, float y) {
     if (listener != null) {
-      int size = Screen.dp(24f) * 2;
+      int size = Screen.dp(28f) * 2; // TGx101 (user 2026-11-03 «или область касания»): was 24
       listener.onClick(view, y <= size && x >= getMeasuredWidth() - size);
     }
   }
@@ -331,8 +332,19 @@ public class MediaGalleryImageView extends BaseView implements Destroyable, Fact
     if (!isInvisible && !isAlwaysInvisible) {
       final int centerX = receiver.centerX() + (int) ((float) receiver.getWidth() * (1f - SCALE)) / 2;
       final int centerY = receiver.centerY() - (int) ((float) receiver.getHeight() * (1f - SCALE)) / 2;
-      final int radius = Screen.dp(9f + 2f * factor);
+      final int radius = Screen.dp(10f + 2f * factor); // TGx101: was 9
 
+      // TGx101 (user 2026-11-03 «кружочка не видно на белых медиа»): a dark see-through backing with a dark edge
+      // under the white ring, so it stands out on light photos too
+      if (factor < 1f) {
+        c.drawCircle(centerX, centerY, radius, Paints.fillingPaint(ColorUtils.alphaColor(1f - factor, 0x40000000)));
+        Paint edge = Paints.getOuterCheckPaint(0);
+        float width = edge.getStrokeWidth();
+        edge.setStrokeWidth(width + Screen.dp(2f));
+        edge.setColor(ColorUtils.alphaColor(1f - factor, 0x59000000));
+        c.drawCircle(centerX, centerY, radius, edge);
+        edge.setStrokeWidth(width);
+      }
       final int toColor = ColorUtils.compositeColor(Theme.fillingColor(), Theme.chatSelectionColor());
       c.drawCircle(centerX, centerY, radius, Paints.getOuterCheckPaint(ColorUtils.alphaColor(1f, ColorUtils.fromToArgb(0xffffffff, toColor, factor))));
 
