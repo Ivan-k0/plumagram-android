@@ -204,7 +204,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   // TGx101 (user video 2026-10-21 17:00 «плавности не хватает», vs the official app): 260 ms, was 180 (90 at 0.5× animations)
   private static final long REVEAL_ANIMATION_DURATION = /*BuildConfig.DEBUG ? 1800l :*/ 260;
   private static final long REVEAL_OPEN_ANIMATION_DURATION = /*BuildConfig.DEBUG ? 1800l :*/ 260l;
-  private static final android.view.animation.Interpolator TGX101_REVEAL_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.25f, .1f, .25f, 1f);
+  // (user 2026-11-03, recording 120 fps next to another client: «скорость открытия и плавность по кадрам») the soft start
+  // (.25, .1) stood still for the first 3–4 frames while the backdrop already darkened, then hurried — slow-fast-slow
+  // and a dark frame before the light photo. Now it starts at ~1.7× the average speed (the other client's measured first
+  // steps), still without the old leap of the plain deceleration (2×, user 2026-10-22 «рывки вначале»), and lands softly
+  private static final android.view.animation.Interpolator TGX101_REVEAL_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.25f, .42f, .25f, 1f);
 
   public static final int MODE_MESSAGES = 0; // opened from chat
   public static final int MODE_PROFILE = 1; // opened from profile or chat (in case of groups and channels)
@@ -1292,7 +1296,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             break;
           }
         }
-        setCommonFactor(factor * tgx101RevealAlphaScale); // TGx101: after a swipe the dimming fades on from where the swipe left it
+        // TGx101: after a swipe the dimming fades on from where the swipe left it. Opening, the backdrop comes a little
+        // behind the picture (user 2026-11-03: the screen went dark before the light photo had grown — a blink)
+        float tgx101Dim = revealAnimationType == ANIMATION_TYPE_REVEAL && revealAnimator.getToFactor() == 1f && factor < 1f ? factor * (.6f + .4f * factor) : factor;
+        setCommonFactor(tgx101Dim * tgx101RevealAlphaScale);
         setHeaderAlpha(MathUtils.clamp(factor));
         if (mode == MODE_MESSAGES || mode == MODE_SIMPLE) {
           tgx101HeaderRevealAlpha = MathUtils.clamp((factor - .75f) / .25f) * (factor >= 1f ? 1f : tgx101TopCover); // gone in the first quarter — before the photo
@@ -4899,8 +4906,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private boolean tgx101SlideReveal;
   // exteraGram's glide frame by frame (user's recording 01:07): no pause, one smooth move a bit longer than a tap-close,
   // the drag offset and the shrink on the same curve so the photo doesn't sit still and then jump into the post
-  private static final long TGX101_SLIDE_REVEAL_DURATION = 260;
-  private static final long TGX101_BACK_REVEAL_DURATION = 280;
+  private static final long TGX101_SLIDE_REVEAL_DURATION = 220; // 260 → 220, 280 → 240 (user 2026-11-03: closing ~40 ms longer than the other client's)
+  private static final long TGX101_BACK_REVEAL_DURATION = 240;
 
   private boolean tgx101UnzoomedForClose;
 
