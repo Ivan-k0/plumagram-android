@@ -176,7 +176,11 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
         }
         if (pullToSearchActive) {
           pullToSearchActive = false;
-          boolean open = e.getActionMasked() == MotionEvent.ACTION_UP && pullToSearchReady && controller != null && controller.canOpenSearchByPull();
+          // (user 2026-11-03): like the pull to the next channel — a sharp flick past the line doesn't open search or
+          // the stories, the finger has to stay at «ready» for 0.15 s
+          long held = android.os.SystemClock.uptimeMillis() - tgx101PullReadyAt;
+          boolean open = e.getActionMasked() == MotionEvent.ACTION_UP && pullToSearchReady && held >= 150 && controller != null && controller.canOpenSearchByPull();
+          if (e.getActionMasked() == MotionEvent.ACTION_UP && pullToSearchReady && !open) org.thunderdog.challegram.Tgx101Diag.mark("chats: pull down flicked, ready held only " + held + " ms");
           animatePullBack();
           if (open) {
             controller.openSearchByPull();
@@ -189,11 +193,14 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
     return super.dispatchTouchEvent(e);
   }
 
+  private long tgx101PullReadyAt;
+
   private void setPullDistance (float distance) {
     pullDistance = distance;
     boolean ready = distance >= Screen.dp(PULL_THRESHOLD_DP);
     if (ready != pullToSearchReady) {
       pullToSearchReady = ready;
+      tgx101PullReadyAt = android.os.SystemClock.uptimeMillis();
       if (ready) org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK);
     }
     invalidate();

@@ -1470,6 +1470,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     tgx101StoriesPanel = new FrameLayoutFix(context) {
       private float downX, downY;
       private boolean pulling, sideways, ready;
+      private long readyAt;
       private float progress;
       private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
       private final android.graphics.RectF arc = new android.graphics.RectF();
@@ -1540,6 +1541,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
               boolean nowReady = dy >= Screen.dp(TGX101_STORIES_PULL_DP) && dy > dx * 2f;
               if (nowReady != ready) {
                 ready = nowReady;
+                readyAt = android.os.SystemClock.uptimeMillis();
                 if (ready) performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
               }
               setProgress(MathUtils.clamp(dy / Screen.dp(TGX101_STORIES_PULL_DP)));
@@ -1553,8 +1555,12 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
               pulling = false;
               setProgress(0f);
               float dy = e.getY() - downY, dx = Math.abs(e.getX() - downX);
-              if (e.getActionMasked() == MotionEvent.ACTION_UP && dy >= Screen.dp(TGX101_STORIES_PULL_DP) && dy > dx * 2f) {
+              // (user 2026-11-03): like the pull to the next channel — a flick doesn't play, «ready» has to hold 0.15 s
+              long held = android.os.SystemClock.uptimeMillis() - readyAt;
+              if (e.getActionMasked() == MotionEvent.ACTION_UP && ready && held >= 150 && dy >= Screen.dp(TGX101_STORIES_PULL_DP) && dy > dx * 2f) {
                 tgx101PlayFirstStories();
+              } else if (ready) {
+                org.thunderdog.challegram.Tgx101Diag.mark("stories: panel pull flicked, ready held only " + held + " ms");
               } else {
                 org.thunderdog.challegram.Tgx101Diag.mark("stories: panel pulled " + Math.round(dy / Screen.dp(1f)) + " dp — too short, nothing played");
               }
