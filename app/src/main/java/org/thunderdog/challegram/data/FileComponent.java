@@ -552,6 +552,10 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     int contentWidth = tgx101PlaySize() + getPreviewOffset();
     if (waveform != null) {
       contentWidth += waveform.getWidth() + tgx101SideDurationWidth() + transcribeButtonSpace();
+      // TGx101 (group 2026-11-03 12:13, two own voice messages with shown transcriptions: «опять не одного размера»): the
+      // bubble took the width of its transcription — each voice stood at its own width, the buttons in different places.
+      // Like music and files (2026-10-30), a voice takes the whole width; its wave runs on to the «A» (tgx101SetContentWidth)
+      if (lastMaxWidth > contentWidth) contentWidth = lastMaxWidth;
     } else {
       contentWidth += Math.max(getTitleWidth(), sizeWidth) + Screen.dp(tgx101HasDots() ? TGX101_DOTS_SPACE : 6f);
       if (tgx101HasDots() && lastMaxWidth > contentWidth) {
@@ -794,8 +798,8 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     this.tgx101ContentWidth = width;
     // (user 2026-10-28 10:29, screenshot 10:28): under a shown transcription the bubble is wider — the wave runs on to
     // the «A» at its right edge, as in a collapsed one, not stopping halfway
-    if (waveform != null && hasTranscribeButton() && tgx101WaveBase > 0) {
-      int widthWithBase = getWidth() - waveform.getWidth() + tgx101WaveBase;
+    if (waveform != null && tgx101WaveBase > 0) {
+      int widthWithBase = tgx101PlaySize() + getPreviewOffset() + tgx101WaveBase + tgx101SideDurationWidth() + transcribeButtonSpace(); // the voice's own width (getWidth takes the whole width now)
       int target = tgx101WaveBase + Math.max(0, width - widthWithBase);
       if (target != waveform.getWidth()) waveform.layout(target);
     }
