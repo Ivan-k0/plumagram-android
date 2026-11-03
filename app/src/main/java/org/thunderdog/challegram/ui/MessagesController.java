@@ -863,7 +863,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tgx101KeyboardFiller == null) return;
     boolean held = inputView != null && context().tgx101IsKeyboardHeld(inputView);
     int imeHeight = Math.max(0, extraBottomInset - extraBottomInsetWithoutIme);
-    boolean show = held && imeHeight > 0;
+    // (user video 2026-11-03 18:31 «поле ввода едет за подложкой», 19:17 log: this panel stood at the keyboard's final place
+    // from the first frame of every keyboard slide, the field rode up through it): while the keyboard slides by its own
+    // animation it covers its place itself — the panel is only for a keyboard that is held and not moving yet
+    boolean show = held && imeHeight > 0 && !tgx101ImeRiding;
     if (show) {
       ViewGroup.LayoutParams params = tgx101KeyboardFiller.getLayoutParams();
       if (params.height != imeHeight) {
@@ -11788,6 +11791,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void tgx101ApplyFieldShift () {
     if (bottomWrap != null) bottomWrap.setTranslationY(tgx101EmojiTranslation + tgx101FieldShift());
+    // (user video 2026-11-03 18:31 «поле ввода едет за подложкой», log 19:17: the white strip under the docked field stood at
+    // the keyboard's final top from the first frame, the field rode up through it) — the strip rides with the field
+    if (bottomSpace != null) bottomSpace.setTranslationY(tgx101ImeShift);
     updateReplyView();
     if (bottomWrap != null) updateButtonsY();
     if (tgx101FieldShift() == 0f) {
@@ -11894,6 +11900,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           tgx101ImeEnd = tgx101BottomInset(view.getRootWindowInsets());
           tgx101SetImeShift(tgx101ImeEnd - tgx101ImeStart); // the first frame already in place, before any progress
           tgx101ImeStarted = true;
+          tgx101UpdateKeyboardFiller(); // the panel goes before the first frame of the slide
           tgx101RunPendingReply(); // a reply waiting for the keyboard slides in with it
           org.thunderdog.challegram.Tgx101Diag.mark("keyboard ride: from " + tgx101ImeStart + " to " + tgx101ImeEnd + "px, " + animation.getDurationMillis() + " ms, bounds " + bounds.getLowerBound().bottom + "…" + bounds.getUpperBound().bottom);
           tgx101TraceMotion("keyboard " + (tgx101ImeEnd > tgx101ImeStart ? "up" : "down"));
@@ -12127,6 +12134,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     android.view.Choreographer.getInstance().postFrameCallback(tgx101MotionFrame);
   }
 
+  private static String tgx101IdName (View v) {
+    try { return v.getResources().getResourceEntryName(v.getId()); } catch (Throwable t) { return String.valueOf(v.getId()); }
+  }
+
   private void tgx101HitsAt (View v, int x, int y, StringBuilder out) {
     if (v.getVisibility() != View.VISIBLE || v.getAlpha() <= 0f) return;
     int[] at = new int[2];
@@ -12136,7 +12147,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (draws) {
       String label = v == wallpaperView ? "WALLPAPER" : v == contentView ? "CONTENT" : v == bottomWrap ? "FIELD" : v == getValue() ? "CHAT" : v == messagesView ? "LIST" : v == context().getContentView() ? "ROOT" : v.getId() == android.R.id.content ? "ANDROID_CONTENT" : v.getClass().getSimpleName();
       out.append(" | ").append(label).append(' ').append(at[1]).append('–').append(at[1] + v.getHeight());
-      if (v.getBackground() != null) out.append(" bg");
+      if (v.getBackground() != null) {
+        out.append(" bg");
+        if (v.getBackground() instanceof android.graphics.drawable.ColorDrawable) out.append(String.format(java.util.Locale.US, " #%08x", ((android.graphics.drawable.ColorDrawable) v.getBackground()).getColor()));
+      }
+      if (v.getId() != View.NO_ID) {
+        try { out.append(" id ").append(v.getResources().getResourceEntryName(v.getId())); } catch (Throwable ignored) { }
+      }
+      View parent = v.getParent() instanceof View ? (View) v.getParent() : null;
+      if (parent != null) out.append(" in ").append(parent == contentView ? "CONTENT" : parent == bottomWrap ? "FIELD" : parent == getValue() ? "CHAT" : parent.getClass().getSimpleName() + (parent.getId() != View.NO_ID ? "#" + tgx101IdName(parent) : ""));
       if (Math.abs(v.getTranslationY()) >= 1f) out.append(" ty ").append(Math.round(v.getTranslationY()));
     }
     if (v instanceof android.view.ViewGroup) {
