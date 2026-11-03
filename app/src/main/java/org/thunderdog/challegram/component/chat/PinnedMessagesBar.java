@@ -106,6 +106,15 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
 
   private final boolean reverseLayout;
 
+  // TGx101 (group 2026-11-03 20:59, screenshot: «в поле цитаты тоже действует наш дизайн тонкой полоски»; then «я просил
+  // только тонкую линию»): the reply bar over the field has the bubble reply's thin 1.5 dp line instead of the 3 dp one
+  private boolean tgx101ThinLine;
+
+  public void tgx101SetThinLine (boolean thin) {
+    this.tgx101ThinLine = thin;
+    invalidate();
+  }
+
   public PinnedMessagesBar (@NonNull Context context, boolean reverseLayout) {
     super(context);
 
@@ -175,7 +184,7 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
         //
 
         final int lineX = Screen.dp(10f);
-        final float strokeWidth = Screen.dp(1.5f);
+        final float strokeWidth = tgx101ThinLine && !tgx101OnHeader ? Screen.dp(.75f) : Screen.dp(1.5f);
         final int outerSpacing = Screen.dp(6f); // spacing before the first and the last item
         final int minSpacingBetweenItems = Screen.dp(3f);
         final float lineStartX = lineX - strokeWidth;

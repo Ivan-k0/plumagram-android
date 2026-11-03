@@ -108,6 +108,7 @@ public class ReplyBarView extends FrameLayoutFix implements View.OnClickListener
     pinnedMessagesBar.setPadding(0, 0, Screen.dp(TGX101_CLOSE_WIDTH), 0); // TGx101: ✕ on the right, like the pinned message bar
     pinnedMessagesBar.setCollapseButtonVisible(false);
     pinnedMessagesBar.setIgnoreAlbums(true);
+    pinnedMessagesBar.tgx101SetThinLine(true);
     pinnedMessagesBar.setMessageListener(new PinnedMessagesBar.MessageListener() {
       @Override
       public void onCreateMessagePreview (PinnedMessagesBar view, MessagePreviewView previewView) {

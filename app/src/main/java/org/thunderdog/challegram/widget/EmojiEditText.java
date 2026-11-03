@@ -75,6 +75,16 @@ public class EmojiEditText extends EditText implements Destroyable {
     invalidate();
   }
 
+  /**
+   * TGx101 (group 2026-11-03 21:00: «выделение текста сильно сливается в тёмной теме»): on a dark theme the selection is the
+   * accent at 35 % instead of the theme's faint grey; light themes keep their own
+   */
+  public static int tgx101SelectionColor (int themed) {
+    if (!org.thunderdog.challegram.theme.Theme.isDark()) return themed;
+    int accent = org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.textLink);
+    return me.vkryl.core.ColorUtils.alphaColor(.35f, accent);
+  }
+
   private void tgx101DrawSelection (android.graphics.Canvas c) {
     int start = getSelectionStart(), end = getSelectionEnd();
     if (start == end || start < 0 || end < 0 || android.graphics.Color.alpha(tgx101Highlight) == 0) return;
@@ -115,7 +125,7 @@ public class EmojiEditText extends EditText implements Destroyable {
       tgx101SelectionPaint.setStyle(android.graphics.Paint.Style.FILL);
       tgx101SelectionPaint.setPathEffect(new android.graphics.CornerPathEffect(org.thunderdog.challegram.tool.Screen.dp(6f)));
     }
-    tgx101SelectionPaint.setColor(tgx101Highlight);
+    tgx101SelectionPaint.setColor(tgx101SelectionColor(tgx101Highlight));
     int save = c.save();
     c.translate(getCompoundPaddingLeft(), getExtendedPaddingTop() + voffset);
     c.drawPath(tgx101SelectionPath, tgx101SelectionPaint);

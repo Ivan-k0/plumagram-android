@@ -160,7 +160,7 @@ public final class Tgx101MessageTextSelection {
       int length = text.getText().length();
       this.start = Math.max(0, Math.min(length, Math.min(start, end)));
       this.end = Math.max(0, Math.min(length, Math.max(start, end)));
-      text.tgx101SetSelection(this.start, this.end, Theme.getColor(ColorId.textSelectionHighlight));
+      text.tgx101SetSelection(this.start, this.end, org.thunderdog.challegram.widget.EmojiEditText.tgx101SelectionColor(Theme.getColor(ColorId.textSelectionHighlight)));
       View view = currentView();
       if (view != null) view.invalidate();
       overlay.invalidate();
