@@ -39,20 +39,27 @@ class FirebaseDeviceTokenRetriever : DefaultFirebaseTokenRetriever() {
           e
         )
         if (isNewApiMissing(e)) {
-          // TGx101: microG — the new registration API isn't there, the old way is
-          try {
-            PushManagerBridge.log("FirebaseMessaging: new API missing, registering the old way...")
-            Tgx101LegacyRegistration.register(FirebaseMessaging.getInstance())
-              .addOnSuccessListener { _ -> onRegistered() }
-              .addOnFailureListener { e2: Exception ->
-                val errorName2 = extractFirebaseErrorName(e2)
-                PushManagerBridge.error("FirebaseMessaging: old way registration failed ($errorName2)", e2)
-                listener.onTokenRetrievalError(errorName2, e2)
-              }
-          } catch (t: Throwable) {
-            PushManagerBridge.error("FirebaseMessaging: old way unavailable", t)
-            listener.onTokenRetrievalError(errorName, e)
-          }
+          // TGx101: microG — the new registration API isn't there, the old way is. It blocks, so never on the main
+          // thread (4PDA 2026-11-03, microG 0.3.17: «Must not be called on the main application thread» every try);
+          // its token is the plain FCM token, the one the official apps send
+          PushManagerBridge.log("FirebaseMessaging: new API missing, registering the old way...")
+          val main = android.os.Handler(android.os.Looper.getMainLooper())
+          Thread({
+            try {
+              val token = com.google.android.gms.tasks.Tasks.await(
+                Tgx101LegacyRegistration.register(FirebaseMessaging.getInstance()),
+                30, java.util.concurrent.TimeUnit.SECONDS
+              )
+              if (token.isNullOrEmpty()) throw IllegalStateException("empty token")
+              PushManagerBridge.log("FirebaseMessaging: old way registered, token of %d chars", token.length)
+              main.post { listener.onTokenRetrievalSuccess(DeviceTokenFirebaseCloudMessaging(token, true)) }
+            } catch (t: Throwable) {
+              val cause = (t as? java.util.concurrent.ExecutionException)?.cause ?: t
+              val errorName2 = if (cause is Exception) extractFirebaseErrorName(cause) else errorName
+              PushManagerBridge.error("FirebaseMessaging: old way registration failed ($errorName2)", cause)
+              main.post { listener.onTokenRetrievalError(errorName2, cause) }
+            }
+          }, "tgx101-push-legacy").start()
         } else {
           listener.onTokenRetrievalError(errorName, e)
         }
