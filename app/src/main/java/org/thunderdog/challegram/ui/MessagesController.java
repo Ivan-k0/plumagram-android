@@ -9355,6 +9355,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private void editMessage (@NonNull MessageWithProperties m) {
+    org.thunderdog.challegram.Tgx101Diag.mark("edit: start, message " + m.message.id);
+    tgx101TraceMotion("edit start");
+    if (TGX101_MOTION_TRACE) org.thunderdog.challegram.Tgx101FrameTrace.start(context(), "edit-start");
     if (isEditingMessage()) {
       return;
     }
@@ -9389,6 +9392,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private void closeEdit (boolean isSaved) {
+    org.thunderdog.challegram.Tgx101Diag.mark("edit: " + (isSaved ? "saved" : "cancelled"));
+    tgx101TraceMotion(isSaved ? "edit saved" : "edit cancelled");
+    if (TGX101_MOTION_TRACE) org.thunderdog.challegram.Tgx101FrameTrace.start(context(), isSaved ? "edit-saved" : "edit-cancel");
     if (!isEditingMessage()) {
       return;
     }
@@ -11890,6 +11896,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
           tgx101ImeStarted = true;
           tgx101RunPendingReply(); // a reply waiting for the keyboard slides in with it
           org.thunderdog.challegram.Tgx101Diag.mark("keyboard ride: from " + tgx101ImeStart + " to " + tgx101ImeEnd + "px, " + animation.getDurationMillis() + " ms, bounds " + bounds.getLowerBound().bottom + "…" + bounds.getUpperBound().bottom);
+          tgx101TraceMotion("keyboard " + (tgx101ImeEnd > tgx101ImeStart ? "up" : "down"));
+          if (TGX101_MOTION_TRACE) org.thunderdog.challegram.Tgx101FrameTrace.start(context(), tgx101ImeEnd > tgx101ImeStart ? "keyboard-up" : "keyboard-down");
           tgx101ProgressLogs = 0;
         }
         return bounds;
@@ -12095,13 +12103,80 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   };
 
+  // TGx101 (user 2026-11-03: «логи и чёрный ящик должны писать всё, что связано с анимациями, полем ввода и поведением
+  // чатов»): while anything at the bottom of the chat moves — the keyboard, the field, the list's room, the reply / edit
+  // bar — one line per frame that changed: the field's top and shift, the list's room and shift, the newest message's
+  // bottom and its gap to the field, the keyboard. Own diagnostics builds only (not «Т»); stops after 0.4 s of rest
+  private static final boolean TGX101_MOTION_TRACE = org.thunderdog.challegram.BuildConfig.TGX101_DIAG && !org.thunderdog.challegram.BuildConfig.TGX101_TEST;
+  private long tgx101MotionUntil;
+  private boolean tgx101MotionRunning;
+  private String tgx101MotionLast;
+  private long tgx101MotionStartedAt;
+  private String tgx101MotionWhy;
+
+  public void tgx101TraceMotion (String why) {
+    if (!TGX101_MOTION_TRACE || messagesView == null || android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.JELLY_BEAN) return;
+    long now = android.os.SystemClock.uptimeMillis();
+    tgx101MotionUntil = now + 400;
+    if (tgx101MotionRunning) return;
+    tgx101MotionRunning = true;
+    tgx101MotionStartedAt = now;
+    tgx101MotionWhy = why;
+    tgx101MotionLast = null;
+    org.thunderdog.challegram.Tgx101Diag.mark("motion: start (" + why + ")");
+    android.view.Choreographer.getInstance().postFrameCallback(tgx101MotionFrame);
+  }
+
+  private final android.view.Choreographer.FrameCallback tgx101MotionFrame = new android.view.Choreographer.FrameCallback() {
+    @Override
+    public void doFrame (long frameTimeNanos) {
+      if (isDestroyed() || messagesView == null) {
+        tgx101MotionRunning = false;
+        return;
+      }
+      long now = android.os.SystemClock.uptimeMillis();
+      int fieldTop = -1, fieldShift = 0, lastBottom = -1, kb = 0;
+      if (bottomWrap != null) {
+        int[] at = new int[2];
+        bottomWrap.getLocationInWindow(at);
+        fieldTop = at[1];
+        fieldShift = Math.round(bottomWrap.getTranslationY());
+      }
+      View newest = manager != null && manager.getLayoutManager() != null ? manager.getLayoutManager().findViewByPosition(0) : null;
+      if (newest != null) {
+        int[] at = new int[2];
+        newest.getLocationInWindow(at);
+        lastBottom = at[1] + newest.getHeight();
+      }
+      androidx.core.view.WindowInsetsCompat insets = androidx.core.view.ViewCompat.getRootWindowInsets(messagesView);
+      if (insets != null) kb = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom;
+      String line = "field " + fieldTop + " (ty " + fieldShift + "), list room " + messagesView.getPaddingBottom() + " ty " + Math.round(messagesView.getTranslationY()) +
+        ", newest bottom " + (lastBottom < 0 ? "—" : lastBottom + " gap " + (fieldTop >= 0 ? fieldTop - lastBottom : 0)) +
+        ", ime " + kb + (tgx101ImeMoving() ? " riding" : "") + (replyBarView != null && replyBarView.getVisibility() == View.VISIBLE ? ", bar a " + Math.round(replyBarView.getAlpha() * 100) + "%" : "") +
+        (inputView != null ? ", field h " + (bottomWrap != null ? bottomWrap.getHeight() : 0) : "");
+      if (!line.equals(tgx101MotionLast)) {
+        tgx101MotionLast = line;
+        org.thunderdog.challegram.Tgx101Diag.mark("  motion +" + (now - tgx101MotionStartedAt) + " ms: " + line);
+      }
+      if (now < tgx101MotionUntil) {
+        android.view.Choreographer.getInstance().postFrameCallback(this);
+      } else {
+        tgx101MotionRunning = false;
+        org.thunderdog.challegram.Tgx101Diag.mark("motion: rest after " + (now - tgx101MotionStartedAt) + " ms (" + tgx101MotionWhy + ")");
+      }
+    }
+  };
+
   private void updateFloatingListPadding () {
     if (!floatingInput || messagesView == null || bottomWrap == null) return;
     if (tgx101ImeRiding && !tgx101ImeStarted) return; // the end-state layout before the ride starts: not real yet
     if (context().tgx101IsRising()) return; // the window scales in after unlocking: positions on screen aren't real (log 00:41:16)
     // TGx101 (Vivo 0.1.552, share sheet still twitching): a window over the chat (share sheet with its own keyboard) made
     // the chat under it relayout for that keyboard (16–17 ms frame while the sheet rose); it catches up once it's closed
-    if (context().getCurrentPopupWindow() != null) return;
+    // …but not when the keyboard is this chat's own (user video 2026-11-03 18:31 «рывки при редактировании»): «Edit» in the
+    // message menu brings the keyboard up while the menu is still fading out — the room stood at 218 px for 120 ms and
+    // then jumped by 1247 px in one frame
+    if (context().getCurrentPopupWindow() != null && !(inputView != null && inputView.hasFocus())) return;
     // (user 2026-10-22 «притормаживает, если напишешь и сразу выйдешь из чата»): leaving with the keyboard up, the keyboard
     // went down while the chat slid away and the list was laid out again for every step of it — the chat is leaving, its
     // room doesn't matter. If the back is cancelled, onFocus catches up
@@ -12177,6 +12252,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       boolean atBottom = androidx.core.view.ViewCompat.isAttachedToWindow(messagesView) && messagesView.getAdapter() != null && messagesView.getAdapter().getItemCount() > 0
         && !messagesView.canScrollVertically(1);
       org.thunderdog.challegram.Tgx101Diag.mark("floating input: list padding " + messagesView.getPaddingBottom() + " → " + padding + (atBottom ? " (at bottom)" : ""));
+      tgx101TraceMotion("room");
       messagesView.setClipToPadding(false);
       int delta = padding - messagesView.getPaddingBottom();
       messagesView.setPadding(messagesView.getPaddingLeft(), messagesView.getPaddingTop(), messagesView.getPaddingRight(), padding);
@@ -12222,6 +12298,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     float alpha = floatingReplyFactor();
     if (replyBarView.getAlpha() != alpha) {
       org.thunderdog.challegram.Tgx101Diag.mark("floating input: reply bar alpha " + replyBarView.getAlpha() + " → " + alpha);
+      tgx101TraceMotion("bar");
       replyBarView.setAlpha(alpha);
       bottomWrap.invalidate();
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {

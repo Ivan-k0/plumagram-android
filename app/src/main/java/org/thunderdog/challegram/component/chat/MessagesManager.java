@@ -2283,6 +2283,10 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
           list.smoothScrollBy(0, delta, curve, duration);
         }
         org.thunderdog.challegram.Tgx101Diag.mark("new message: chat glides up " + delta + " px" + (withField ? " with the field" : ""));
+        controller.tgx101TraceMotion("sent");
+        if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && !org.thunderdog.challegram.BuildConfig.TGX101_TEST) {
+          org.thunderdog.challegram.Tgx101FrameTrace.start(controller.context(), "sent");
+        }
         return false;
       }
     });

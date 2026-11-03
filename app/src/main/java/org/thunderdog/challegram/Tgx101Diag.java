@@ -65,7 +65,9 @@ public final class Tgx101Diag {
   private static final String FILE_PREFIX = "com.plumagram.app".equals(BuildConfig.APPLICATION_ID) ? "PlumaGram" : "PlumaGram-T";
   private static final String FILE_NAME = FILE_PREFIX + "-diagnostics.txt";
   private static final String OLD_FILE_NAME = FILE_PREFIX + "-diagnostics-old.txt";
-  private static final long MAX_SIZE = 8L * 1024 * 1024;
+  // (user 2026-11-03 «пусть размер логов для меня растёт вплоть до 200 МБ»): the developer's own builds keep two parts of
+  // 100 MB; the «Т» builds people install keep 8 MB (their phones' memory, user 2026-10-31)
+  private static final long MAX_SIZE = (BuildConfig.TGX101_TEST ? 8L : 100L) * 1024 * 1024;
   private static final long STALL_MS = 100, STALL_STACK_MS = 80;
 
   private static File file;
