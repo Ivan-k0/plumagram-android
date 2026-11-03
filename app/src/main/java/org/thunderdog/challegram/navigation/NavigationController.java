@@ -1911,6 +1911,10 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     if (openPreviewImpl(tgx101BackPendingY, false, tgx101BackPendingGesture)) {
       setFactor(tgx101BackPreview(backEvent));
       org.thunderdog.challegram.Tgx101Diag.mark("system back: preview opened, mode " + translationMode + ", left " + (currentLeft != null ? currentLeft.getClass().getSimpleName() : "?"));
+      // (user 2026-11-03 14:07 «жест назад с пролагом», nothing in the black box): the system back gets the in-app swipe's
+      // frame measure and the black box's first frames too — both went only with the header arrow / the app's own swipe
+      org.thunderdog.challegram.Tgx101ScrollWatch.gestureStart("system back");
+      org.thunderdog.challegram.Tgx101FrameTrace.start(UI.getContext(context), "system-back");
       return true;
     }
     org.thunderdog.challegram.Tgx101Diag.mark("system back: preview NOT opened");
@@ -1961,6 +1965,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     if (isAnimating) {
       closePreview(0f);
     }
+    org.thunderdog.challegram.Tgx101ScrollWatch.gestureEnd(350);
   }
 
   @Override
@@ -1979,9 +1984,12 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     // for the preview — the screen was swapped in one frame. It now opens the preview at that moment and slides it off
     if (wasPending && !isAnimating && openPreviewImpl(tgx101BackPendingY, false, tgx101BackPendingGesture)) {
       org.thunderdog.challegram.Tgx101Diag.mark("system back: quick flick — the preview opened on release and slides off");
+      org.thunderdog.challegram.Tgx101ScrollWatch.gestureStart("system back");
+      org.thunderdog.challegram.Tgx101FrameTrace.start(UI.getContext(context), "system-back");
     }
     if (isAnimating) {
       applyPreview(0f);
+      org.thunderdog.challegram.Tgx101ScrollWatch.gestureEnd(350); // the slide off included
       return true;
     }
     return false;

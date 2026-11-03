@@ -51,6 +51,12 @@ import me.vkryl.core.reference.ReferenceList;
 
 @SuppressWarnings("deprecation")
 public class RootFrameLayout extends FrameLayoutFix {
+  @Override
+  public void requestLayout () {
+    super.requestLayout();
+    org.thunderdog.challegram.Tgx101ScrollWatch.onLayoutRequested(); // diagnostics builds, during a measured gesture only
+  }
+
   private boolean ignoreBottom, ignoreSystemNavigationBar, ignoreAll, alwaysApplyIme;
   private final ViewTreeObserver.OnPreDrawListener onPreDrawListener = () -> false;
 

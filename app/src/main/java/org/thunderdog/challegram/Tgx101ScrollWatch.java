@@ -53,9 +53,34 @@ public final class Tgx101ScrollWatch extends RecyclerView.OnScrollListener imple
   // the in-app back swipe; started when the screen begins to slide, reported a while after the finger lets go
   private static Tgx101ScrollWatch gesture;
 
+  /** A gesture is being measured: layout requests during it are logged (who asked), a few per gesture */
+  public static boolean isGestureRunning () {
+    return gesture != null && gesture.running;
+  }
+
+  private static int layoutRequestsLogged;
+
+  /** (user 2026-11-03 «жест назад с пролагом»: 6–8 ms of layout in each slow frame of the slide) — whose layout it is */
+  public static void onLayoutRequested () {
+    if (!BuildConfig.TGX101_DIAG || !isGestureRunning() || layoutRequestsLogged >= 4) return;
+    layoutRequestsLogged++;
+    StringBuilder b = new StringBuilder();
+    StackTraceElement[] stack = new Throwable().getStackTrace();
+    int shown = 0;
+    for (StackTraceElement e : stack) {
+      String c = e.getClassName();
+      if (c.startsWith("android.") || c.startsWith("androidx.") || c.startsWith("java.") || c.contains("Tgx101ScrollWatch") || c.endsWith("RootFrameLayout")) continue;
+      if (b.length() > 0) b.append(" ← ");
+      b.append(c.substring(c.lastIndexOf('.') + 1)).append('.').append(e.getMethodName()).append(':').append(e.getLineNumber());
+      if (++shown == 4) break;
+    }
+    Tgx101Diag.mark("  layout asked during " + gesture.name + ": " + b);
+  }
+
   public static void gestureStart (String name) {
     if (!BuildConfig.TGX101_DIAG) return;
     if (gesture != null && gesture.running) return;
+    layoutRequestsLogged = 0;
     gesture = new Tgx101ScrollWatch(name);
     gesture.onScrollStateChanged(null, RecyclerView.SCROLL_STATE_DRAGGING);
   }
