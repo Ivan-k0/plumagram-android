@@ -980,13 +980,20 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     boolean ready = tgx101PullProgress >= 1f;
     if (ready != tgx101PullReady) {
       tgx101PullReady = ready;
+      tgx101PullReadyAt = android.os.SystemClock.uptimeMillis();
       if (ready) org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
     }
   }
 
+  // (user 2026-11-03): like the pull to the next channel — a sharp flick that flies past the line doesn't open the
+  // archive, the finger has to stay at «ready» for 0.15 s
+  private long tgx101PullReadyAt;
+
   private void tgx101PullEnd (RecyclerView rv, boolean cancel) {
     tgx101Pulling = false;
-    boolean keep = !cancel && tgx101PullReady;
+    long held = android.os.SystemClock.uptimeMillis() - tgx101PullReadyAt;
+    boolean keep = !cancel && tgx101PullReady && held >= 150;
+    if (!cancel && tgx101PullReady && !keep) org.thunderdog.challegram.Tgx101Diag.mark("archive: flick, ready held only " + held + " ms");
     tgx101PullReady = false;
     tgx101PullProgress = 0f;
     if (chatsView != null) chatsView.tgx101ExtraTop = 0;
