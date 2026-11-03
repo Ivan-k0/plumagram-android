@@ -149,7 +149,7 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
             .addTextFlags(Text.FLAG_BIG_EMOJI)
             .setClickCallback(clickCallback());
           wrapper.setViewProvider(currentViews);
-          wrapper.prepare(getContentMaxWidth());
+          wrapper.prepare(tgx101CaptionWidth(getContentMaxWidth()));
         } else {
           wrapper = null;
         }
@@ -173,6 +173,15 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
         return 0;
       }
       return Screen.dp(SPACING);
+    }
+
+    /** TGx101: a voice's transcription and caption wrap inside the voice's own width (user 2026-11-03 «голосовые уже») */
+    int tgx101CaptionWidth (int maxWidth) {
+      if (component.isVoice()) {
+        int own = component.getWidth();
+        if (own > 0) return Math.min(maxWidth, own);
+      }
+      return maxWidth;
     }
 
     @Override
@@ -571,7 +580,7 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
     for (ListAnimator.Entry<CaptionedFile> entry : files) {
       entry.item.component.buildLayout(maxWidth);
       for (ListAnimator.Entry<TextWrapper> caption : entry.item.caption) {
-        caption.item.prepare(maxWidth);
+        caption.item.prepare(entry.item.tgx101CaptionWidth(maxWidth));
       }
       entry.item.caption.measure(false);
     }
@@ -739,7 +748,7 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
       if (maxWidth > 0) {
         file.component.buildLayout(maxWidth);
         if (file.hasCaption()) {
-          file.captionWrapper.prepare(maxWidth);
+          file.captionWrapper.prepare(file.tgx101CaptionWidth(maxWidth));
           file.caption.measure(false);
         }
       }
