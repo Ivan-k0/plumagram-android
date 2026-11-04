@@ -1025,15 +1025,12 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
         rebuildAndUpdateContent();
       }
       invalidateTextMediaReceiver();
+      // (user 2026-11-04 15:37): no second move to show the message's start — its top stands still or stops mid-screen as it opens
       if (messageId == tgx101FollowTopId) {
-        // the text grows upwards: once the height animation is over, the message's start goes back under the header
         TdApi.Message fileMessage = getMessage(messageId);
         if (fileMessage == null || Tgx101Transcription.doneText(tdlib, fileMessage) != null) {
           tgx101FollowTopId = 0;
         }
-        UI.post(() -> {
-          if (!isDestroyed()) manager().tgx101ShowMessageTop(chatId, messageId, findTopEdge());
-        }, TEXT_CROSS_FADE_DURATION_MS + 50);
       }
     }
     invalidate(); // the "A" button state

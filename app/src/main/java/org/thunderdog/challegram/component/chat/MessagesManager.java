@@ -2036,13 +2036,17 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     // downwards — the message's top and its «A» stand still, what is under it moves. At the very bottom of the chat the list
     // has nowhere to go, the rest of the growth goes up
     if (messageId == tgx101KeepTopId && android.os.SystemClock.uptimeMillis() < tgx101KeepTopUntil) {
-      // (user 2026-11-04 15:25, video: at the bottom of the chat the text went under the field): it opens downwards only as far as
-      // the visible part goes; from there it lifts the chat, frame by frame, so the whole text is seen
+      // (user 2026-11-04 15:25, 15:37, video of another client «как там, не нужно весь текст показывать, сделай красиво»): it opens
+      // downwards while it fits; then lifts the chat, but only until the message's top reaches about 40 % of the visible part,
+      // in one move — the rest of a long text goes under the field and is scrolled to as usual
       RecyclerView list = controller.getMessagesView();
       int growth = -heightDiff;
       if (growth > 0 && list != null) {
-        int room = Math.max(0, list.getHeight() - list.getPaddingBottom() - view.getBottom());
-        scrollCompensation(view, -Math.min(growth, room));
+        int visibleTop = controller.getTopOffset(), visibleBottom = list.getHeight() - list.getPaddingBottom();
+        int stopAt = visibleTop + Math.round((visibleBottom - visibleTop) * .4f);
+        int overflow = Math.max(0, view.getBottom() + growth - visibleBottom);
+        int lift = Math.min(Math.min(growth, overflow), Math.max(0, view.getTop() - stopAt));
+        scrollCompensation(view, -(growth - lift));
       } else {
         scrollCompensation(view, heightDiff);
       }
