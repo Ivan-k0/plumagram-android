@@ -1354,6 +1354,23 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
       (roundings & ROUND_BOTTOM_LEFT) != 0 ? radius1 : radius2
     );
 
+    // (user 2026-11-04 16:20 «после нажатия в следующий миг углы фото выходят за установленные границы»): in the post the photo is cut by
+    // the bubble's clip, whose corners are its own (a tail's differs); the viewer started from other radii, so the corners stuck out
+    // in its first frame. A corner lying on the bubble's clip starts with exactly that radius
+    if (source != null && useBubbles() && !tgx101JournalMedia()) {
+      RectF clip = source.bubbleClipPathRect;
+      int slack = Screen.dp(3f);
+      boolean atLeft = Math.abs(lastLeft - clip.left) <= slack, atRight = Math.abs(lastLeft + cellWidth - clip.right) <= slack;
+      boolean atTop = Math.abs(lastTop - clip.top) <= slack, atBottom = Math.abs(lastTop + cellHeight - clip.bottom) <= slack;
+      thumbLocation.setRoundings(
+        atTop && atLeft ? source.getBubbleTopLeftRadius() / 1.5f : thumbLocation.topLeftRadius,
+        atTop && atRight ? source.getBubbleTopRightRadius() / 1.5f : thumbLocation.topRightRadius,
+        atBottom && atRight ? source.getBubbleBottomRightRadius() / 1.5f : thumbLocation.bottomRightRadius,
+        atBottom && atLeft ? source.getBubbleBottomLeftRadius() / 1.5f : thumbLocation.bottomLeftRadius
+      );
+      org.thunderdog.challegram.Tgx101Diag.mark("viewer start corners: " + thumbLocation.topLeftRadius + " " + thumbLocation.topRightRadius + " " + thumbLocation.bottomRightRadius + " " + thumbLocation.bottomLeftRadius + ", on the bubble's edge l" + atLeft + " t" + atTop + " r" + atRight + " b" + atBottom);
+    }
+
     int actualTop = lastTop + viewTop;
     int actualBottom = (view.getMeasuredHeight() - cellBottom) + viewBottom;
 
