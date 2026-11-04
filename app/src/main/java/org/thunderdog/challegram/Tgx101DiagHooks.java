@@ -270,6 +270,7 @@ public final class Tgx101DiagHooks {
         downY = e.getRawY();
         downTime = e.getEventTime();
         maxDistance = 0;
+        Tgx101Diag.watchTouch(true, topController != null ? topController.getClass().getSimpleName() : "?");
         break;
       case MotionEvent.ACTION_MOVE:
         maxDistance = Math.max(maxDistance, Math.abs(e.getRawX() - downX) + Math.abs(e.getRawY() - downY));
@@ -277,6 +278,7 @@ public final class Tgx101DiagHooks {
       case MotionEvent.ACTION_UP:
       case MotionEvent.ACTION_CANCEL: {
         if (e.getActionMasked() == MotionEvent.ACTION_UP) lastUpAt = android.os.SystemClock.uptimeMillis();
+        Tgx101Diag.watchTouch(false, topController != null ? topController.getClass().getSimpleName() : "?");
         float dx = e.getRawX() - downX, dy = e.getRawY() - downY;
         String kind = maxDistance < Screen.dp(8) ? (e.getEventTime() - downTime >= 400 ? "long press" : "tap") : "swipe";
         Tgx101Diag.mark("touch " + kind + (e.getActionMasked() == MotionEvent.ACTION_CANCEL ? " (cancelled)" : "") +

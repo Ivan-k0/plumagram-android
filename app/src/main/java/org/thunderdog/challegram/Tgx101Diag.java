@@ -98,7 +98,8 @@ public final class Tgx101Diag {
       "Device: " + Build.MANUFACTURER + " " + Build.MODEL + " (" + Build.DEVICE + ", " + Build.PRODUCT + ")\n" +
       "Android: " + Build.VERSION.RELEASE + ", API " + Build.VERSION.SDK_INT + "\n" +
       "ABI: " + Arrays.toString(abis()) + "\n" +
-      "Fingerprint: " + Build.FINGERPRINT);
+      "Fingerprint: " + Build.FINGERPRINT + "\n" +
+      "Power: " + power(context));
     logExitReasons(context);
     logGoogleServices(context);
     final Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
@@ -115,6 +116,94 @@ public final class Tgx101Diag {
     });
     // A native crash can't be caught here: the log of the previous launch shows it
     writer.post(Tgx101Diag::dumpSystemLog);
+  }
+
+  /** How strong the phone is: the journal of a slow old phone starts with it (group 2026-11-03: 2 cores, 1 GB, Android 4.2) */
+  private static String power (Context context) {
+    StringBuilder b = new StringBuilder();
+    try {
+      b.append(Runtime.getRuntime().availableProcessors()).append(" cores");
+      String freq = cpuMaxFreq();
+      if (freq != null) b.append(", up to ").append(freq).append(" MHz");
+      ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+      if (am != null) {
+        ActivityManager.MemoryInfo info = new ActivityManager.MemoryInfo();
+        am.getMemoryInfo(info);
+        b.append(", RAM ").append(info.totalMem / (1024 * 1024)).append(" MB (free ").append(info.availMem / (1024 * 1024)).append(")");
+        b.append(", heap limit ").append(am.getMemoryClass()).append("/").append(am.getLargeMemoryClass()).append(" MB");
+        if (Build.VERSION.SDK_INT >= 19) b.append(", low RAM ").append(am.isLowRamDevice());
+      }
+      android.util.DisplayMetrics m = context.getResources().getDisplayMetrics();
+      b.append(", screen ").append(m.widthPixels).append("x").append(m.heightPixels).append(" density ").append(m.density);
+    } catch (Throwable t) {
+      b.append(" (failed: ").append(t).append(")");
+    }
+    return b.toString();
+  }
+
+  private static String cpuMaxFreq () {
+    try (BufferedReader reader = new BufferedReader(new java.io.FileReader("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"))) {
+      String line = reader.readLine();
+      return line != null ? String.valueOf(Long.parseLong(line.trim()) / 1000) : null;
+    } catch (Throwable t) {
+      return null;
+    }
+  }
+
+  private static String heap () {
+    Runtime r = Runtime.getRuntime();
+    long mb = 1024 * 1024;
+    return "heap " + (r.totalMemory() - r.freeMemory()) / mb + "/" + r.maxMemory() / mb + " MB, native " + android.os.Debug.getNativeHeapAllocatedSize() / mb + " MB";
+  }
+
+  /**
+   * «Т» only: frames around each touch. Frame metrics exist from Android 7, so on an old phone JANK writes nothing;
+   * this is what shows there how a tap, a scroll or an opening screen went.
+   */
+  public static void watchTouch (boolean fingerDown, String screen) {
+    if (!BuildConfig.TGX101_TEST || !BuildConfig.TGX101_DIAG || writer == null) return;
+    new MainFrames((fingerDown ? "finger on " : "after the finger on ") + screen, fingerDown ? 4000 : 2000).start();
+  }
+
+  /**
+   * «Т» only: garbage collector pauses and skipped frames, which only the system log tells on Android 4 — on a phone of
+   * 4PDA these pauses were the main cause of the stutter. Only these tags are read: nothing about chats is in them.
+   */
+  private static final class PauseLog {
+    private static final long PERIOD_MS = 60_000;
+    private static String lastTime = "";
+    private static boolean enabled;
+    private static final Runnable tick = () -> { dump(); if (enabled) writer.postDelayed(PauseLog.tick, PERIOD_MS); };
+
+    static void setEnabled (boolean enable) {
+      if (!BuildConfig.TGX101_TEST || writer == null || enabled == enable) return;
+      enabled = enable;
+      writer.removeCallbacks(tick);
+      if (enable) writer.postDelayed(tick, PERIOD_MS);
+      else writer.post(PauseLog::dump);
+    }
+
+    private static void dump () {
+      try {
+        Process process = Runtime.getRuntime().exec(new String[] {"logcat", "-d", "-v", "time", "-t", "500", "-s", "dalvikvm:D", "art:I", "Choreographer:I"});
+        StringBuilder b = new StringBuilder();
+        String newest = lastTime;
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+          String line;
+          while ((line = reader.readLine()) != null) {
+            if (line.length() < 18 || !(line.contains("GC_") || line.contains(" GC ") || line.contains("Grow heap") || line.contains("Skipped "))) continue;
+            String at = line.substring(0, 18);
+            if (at.compareTo(lastTime) <= 0) continue;
+            newest = at;
+            b.append("  ").append(line).append('\n');
+          }
+        }
+        lastTime = newest;
+        if (b.length() > 0) mark("pauses from the system log, " + heap() + ":\n" + b.toString().replaceAll("\\n$", ""));
+      } catch (Throwable t) {
+        mark("pauses: system log unavailable " + t);
+      }
+    }
   }
 
   private static java.lang.ref.WeakReference<Activity> topActivity = new java.lang.ref.WeakReference<>(null);
@@ -197,13 +286,13 @@ public final class Tgx101Diag {
       @Override public void onActivityResumed (Activity a) {
         topActivity = new java.lang.ref.WeakReference<>(a);
         mark("activity " + a.getClass().getSimpleName() + " resumed [" + state(a) + "]");
-        if (resumed++ == 0) StallWatch.setEnabled(true);
+        if (resumed++ == 0) { StallWatch.setEnabled(true); PauseLog.setEnabled(true); }
         FrameWatch.attach(a);
       }
       @Override public void onActivityPaused (Activity a) {
         mark("activity " + a.getClass().getSimpleName() + " paused [" + state(a) + "]");
         FrameWatch.detach(a);
-        if (--resumed <= 0) { resumed = 0; StallWatch.setEnabled(false); }
+        if (--resumed <= 0) { resumed = 0; StallWatch.setEnabled(false); PauseLog.setEnabled(false); }
       }
       @Override public void onActivityStopped (Activity a) { mark("activity " + a.getClass().getSimpleName() + " stopped [" + state(a) + (a.isChangingConfigurations() ? ", config change" : "") + "]"); }
       @Override public void onActivitySaveInstanceState (Activity a, Bundle outState) { }
@@ -317,7 +406,9 @@ public final class Tgx101Diag {
   }
 
   private static final class MainFrames implements android.view.Choreographer.FrameCallback {
-    private static final long STALL_NS = 12_000_000L; // (user 2026-11-04: a 16 ms frame at +132 of closing the viewer showed no stack at 24 ms)
+    // on an old phone everything is slow: only the long stops, and the checks themselves must not load it
+    private static final long CHECK_MS = BuildConfig.TGX101_TEST ? 25 : 10;
+    private static final long STALL_NS = BuildConfig.TGX101_TEST ? 60_000_000L : 12_000_000L; // (user 2026-11-04: a 16 ms frame at +132 of closing the viewer showed no stack at 24 ms)
     private static final int MAX_FRAMES = 240;
     private static MainFrames current;
 
@@ -342,7 +433,7 @@ public final class Tgx101Diag {
       running = true;
       lastSeenNs = System.nanoTime();
       android.view.Choreographer.getInstance().postFrameCallback(this);
-      writer.postDelayed(this::checkStall, 10);
+      writer.postDelayed(this::checkStall, CHECK_MS);
     }
 
     @Override
@@ -380,12 +471,14 @@ public final class Tgx101Diag {
       if (count > 0) {
         for (int i = 0; i < count; i++) {
           if (gapsNs[i] * 2 >= shortest * 3) {
-            b.append(late == 0 ? ", late at" : ",").append(" +").append(offsetsMs[i]).append(" (").append(gapsNs[i] / 1_000_000L).append(" ms)");
+            if (late < 12) b.append(late == 0 ? ", late at" : ",").append(" +").append(offsetsMs[i]).append(" (").append(gapsNs[i] / 1_000_000L).append(" ms)");
             late++;
           }
         }
       }
       if (late == 0) b.append(", none late");
+      else if (late > 12) b.append(" and ").append(late - 12).append(" more");
+      if (BuildConfig.TGX101_TEST) b.append(", ").append(heap());
       mark(b.toString());
     }
 
@@ -407,7 +500,7 @@ public final class Tgx101Diag {
         mark(b.toString());
         lastSeenNs = System.nanoTime(); // the next stack only if it stands on
       }
-      writer.postDelayed(this::checkStall, 10);
+      writer.postDelayed(this::checkStall, CHECK_MS);
     }
   }
 
