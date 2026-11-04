@@ -426,7 +426,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   // away in a plate under them; «A» again brings the big circle back, a tap on the small circle plays it
 
   private static final java.util.Set<String> tgx101TextModes = new java.util.HashSet<>();
-  private static final float TM_MINI = 40f, TM_GAP = 6f, TM_PAD = 9f, TM_A = 28f;
+  private static final float TM_MINI = 40f, TM_GAP = 8f, TM_A = 28f, TM_WIDTH = 240f;
   private @androidx.annotation.Nullable org.thunderdog.challegram.util.text.Text tgx101Text;
   private int tgx101TextW, tgx101TextH;
   private @androidx.annotation.Nullable String tgx101TextKey;
@@ -513,18 +513,6 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     return Math.round(from + (to - from) * f);
   }
 
-  // (user 2026-10-20) the message text's own size (Settings → text size), as a voice message's transcription — 14 dp
-  // was smaller; and its own paint: the shared one handed back by Paints could be another object after re-entering
-  // the chat, so the colour set before drawing missed the layout's paint and the text came out black
-  private final android.text.TextPaint tgx101Paint = new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-
-  private android.text.TextPaint tgx101TextPaint () {
-    tgx101Paint.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoRegular());
-    tgx101Paint.setTextSize(getTextStyleProvider().getTextSizeInPixels());
-    tgx101Paint.setColor(getTextColor());
-    return tgx101Paint;
-  }
-
   private void tgx101BuildText (int maxWidth) {
     Tgx101Transcription.Result result = Tgx101Transcription.get(tdlib, msg);
     String text;
@@ -533,19 +521,18 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     } else {
       text = result.text != null ? result.text : "";
     }
-    android.text.TextPaint paint = tgx101TextPaint();
     // (user's video 2026-10-20 «рывки»): this ran on every frame of the move — a new text layout each time stalled the
     // list for ~6 frames midway; the same text at the same width and size is laid out once
-    String key = text + '\u0000' + maxWidth + '\u0000' + paint.getTextSize();
+    String key = text + '\u0000' + maxWidth + '\u0000' + getTextStyleProvider().getTextSizeInPixels();
     if (tgx101Text != null && key.equals(tgx101TextKey)) return;
     tgx101TextKey = key;
-    int maxText = Math.max(Screen.dp(120f), Math.min(maxWidth, Screen.dp(280f)) - Screen.dp(TM_PAD) * 2);
-    int desired = (int) Math.ceil(android.text.Layout.getDesiredWidth(text, paint));
-    int textWidth = Math.min(maxText, Math.max(desired, Screen.dp(170f)));
-    // (user 2026-11-04 «выделение текста как при обычном»): the message's own kind of text — the in-bubble selection works on it
-    tgx101Text = new org.thunderdog.challegram.util.text.Text.Builder(text, textWidth, getTextStyleProvider(), getTextColorSet()).build();
-    tgx101TextW = textWidth + Screen.dp(TM_PAD) * 2;
-    tgx101TextH = Screen.dp(TM_MINI) + Screen.dp(TM_GAP) + tgx101Text.getHeight() + Screen.dp(TM_PAD) * 2 - Screen.dp(4f);
+    // (user 2026-11-04 14:31 «выделение плохо видно, сделай вид текста как при голосовых, без фона»): the same italic text
+    // straight on the bubble and the same one width as a voice message, whatever the length of the text
+    int textWidth = Math.max(Screen.dp(120f), Math.min(maxWidth, Screen.dp(TM_WIDTH)));
+    TdApi.FormattedText formatted = new TdApi.FormattedText(text, new TdApi.TextEntity[] {new TdApi.TextEntity(0, text.length(), new TdApi.TextEntityTypeItalic())});
+    tgx101Text = new org.thunderdog.challegram.util.text.Text.Builder(tdlib, formatted, null, textWidth, getTextStyleProvider(), getTextColorSet(), null).build();
+    tgx101TextW = textWidth;
+    tgx101TextH = Screen.dp(TM_MINI) + Screen.dp(TM_GAP) + tgx101Text.getHeight();
   }
 
   private void tgx101DrawText (Canvas c, int x, int y, Receiver preview) {
@@ -596,12 +583,13 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     play.close();
     c.drawPath(play, Paints.fillingPaint(0xffffffff));
 
-    int accent = getTextLinkColor();
     int a = Screen.dp(TM_A);
     float ax = x + tgx101TextW - a, ay = cy - a / 2f;
     tgx101ARect.set(ax, ay, ax + a, ay + a);
-    c.drawRoundRect(tgx101ARect, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(ColorUtils.alphaColor(.14f, accent)));
-    android.text.TextPaint aPaint = Paints.getBoldPaint14(false, accent);
+    // as on a voice message with its text shown: filled in the wave's colour
+    boolean outgoing = isOutgoingBubble();
+    c.drawRoundRect(tgx101ARect, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(Theme.getColor(outgoing ? ColorId.bubbleOut_waveformActive : ColorId.waveformActive)));
+    android.text.TextPaint aPaint = Paints.getBoldPaint14(false, Theme.getColor(outgoing ? ColorId.bubbleOut_background : (useBubbles() ? ColorId.bubbleIn_background : ColorId.filling)));
     c.drawText("A", tgx101ARect.centerX() - aPaint.measureText("A") / 2f, tgx101ARect.centerY() + Screen.dp(5f), aPaint);
 
     android.text.TextPaint titlePaint = Paints.getMediumTextPaint(13f, getTextColor(), false);
@@ -613,11 +601,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     c.drawText(Strings.buildDuration(sourceDuration), tx, cy + Screen.dp(14f), subPaint);
 
     if (tgx101Text != null) {
-      float top = y + mini + Screen.dp(TM_GAP);
-      RectF plate = Paints.getRectF();
-      plate.set(x, top, x + tgx101TextW, top + tgx101Text.getHeight() + Screen.dp(TM_PAD) * 2 - Screen.dp(4f));
-      c.drawRoundRect(plate, Screen.dp(10f), Screen.dp(10f), Paints.fillingPaint(ColorUtils.alphaColor(.12f, accent)));
-      tgx101Text.draw(c, x + Screen.dp(TM_PAD), (int) top + Screen.dp(TM_PAD) - Screen.dp(2f));
+      tgx101Text.draw(c, x, y + mini + Screen.dp(TM_GAP));
     }
   }
 
