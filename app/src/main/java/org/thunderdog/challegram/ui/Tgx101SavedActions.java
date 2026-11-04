@@ -191,21 +191,26 @@ public final class Tgx101SavedActions {
   // To folder
 
   public static void toFolder (ViewController<?> c, long[] messageIds, @Nullable Runnable after) {
-    toFolder(c, messageIds, after, 0);
+    toFolder(c, messageIds, after, 0, null);
   }
 
-  /** {@code rememberChat}: the chat this choice is remembered for (the banner's check), 0 for none */
-  public static void toFolder (ViewController<?> c, long[] messageIds, @Nullable Runnable after, long rememberChat) {
+  /** {@code sourceChat}: the chat the check «Remember for this chat» in the sheet speaks of, 0 for no check */
+  public static void toFolder (ViewController<?> c, long[] messageIds, @Nullable Runnable after, long sourceChat, @Nullable boolean[] remember) {
     if (messageIds.length == 0) return;
     Tgx101SavedStore store = Tgx101SavedStore.get(c.tdlib());
     Tgx101SavedStore.Folder current = messageIds.length == 1 ? store.folderOf(messageIds[0]) : null;
     Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
     h[0] = Tgx101Sheet.show(c, null, body -> {
       body.addView(Tgx101Sheet.title(c.context(), Lang.getString(R.string.Tgx101SavedPutInFolder)));
+      if (sourceChat != 0 && remember != null) {
+        View check = rememberRow(c.context(), c.tdlib(), sourceChat, remember, null);
+        check.setPadding(Screen.dp(20f), 0, Screen.dp(20f), Screen.dp(10f));
+        body.addView(check);
+      }
       for (Tgx101SavedStore.Folder f : store.folders()) {
         body.addView(Tgx101Sheet.row(c.context(), 0, f.color(), f.name, String.valueOf(f.messageIds.size()), current != null && current.id == f.id, v -> {
           store.putInFolder(f.id, messageIds);
-          store.rememberForChat(rememberChat, f.id, null, null);
+          if (sourceChat != 0 && remember != null && remember[0]) store.rememberForChat(sourceChat, f.id, null, null);
           h[0].dismiss();
           UI.showToast(Lang.getString(R.string.Tgx101SavedPutDone, f.name), android.widget.Toast.LENGTH_SHORT);
           if (after != null) after.run();
@@ -223,7 +228,7 @@ public final class Tgx101SavedActions {
         askName(c, Lang.getString(R.string.Tgx101SavedNewFolder), null, name -> {
           Tgx101SavedStore.Folder f = store.createFolder(name);
           store.putInFolder(f.id, messageIds);
-          store.rememberForChat(rememberChat, f.id, null, null);
+          if (sourceChat != 0 && remember != null && remember[0]) store.rememberForChat(sourceChat, f.id, null, null);
           UI.showToast(Lang.getString(R.string.Tgx101SavedPutDone, f.name), android.widget.Toast.LENGTH_SHORT);
           if (after != null) after.run();
         });
@@ -238,10 +243,10 @@ public final class Tgx101SavedActions {
    * forwarded messages can't be edited, so they keep the tag by name on this phone (searchable the same way)
    */
   public static void tag (ViewController<?> c, List<TdApi.Message> messages, @Nullable Runnable after) {
-    tag(c, messages, after, 0);
+    tag(c, messages, after, 0, null);
   }
 
-  public static void tag (ViewController<?> c, List<TdApi.Message> messages, @Nullable Runnable after, long rememberChat) {
+  public static void tag (ViewController<?> c, List<TdApi.Message> messages, @Nullable Runnable after, long sourceChat, @Nullable boolean[] remember) {
     if (messages.isEmpty()) return;
     Context context = c.context();
     Tgx101SavedStore store = Tgx101SavedStore.get(c.tdlib());
@@ -253,6 +258,11 @@ public final class Tgx101SavedActions {
     Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
     h[0] = Tgx101Sheet.show(c, null, body -> {
       body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101SavedTag)));
+      if (sourceChat != 0 && remember != null) {
+        View check = rememberRow(context, c.tdlib(), sourceChat, remember, null);
+        check.setPadding(Screen.dp(20f), 0, Screen.dp(20f), Screen.dp(10f));
+        body.addView(check);
+      }
       LinearLayout input = new LinearLayout(context);
       input.setOrientation(LinearLayout.HORIZONTAL);
       input.setGravity(Gravity.CENTER_VERTICAL);
@@ -325,7 +335,7 @@ public final class Tgx101SavedActions {
         if (t.isEmpty()) return;
         org.thunderdog.challegram.tool.Keyboard.hide(e);
         h[0].dismiss();
-        { applyTag(c, messages, t, onHome[0]); store.rememberForChat(rememberChat, 0, t, null); }
+        { applyTag(c, messages, t, onHome[0]); if (sourceChat != 0 && remember != null && remember[0]) store.rememberForChat(sourceChat, 0, t, null); }
         if (after != null) after.run();
       };
       e.setOnEditorActionListener((v, actionId, event) -> {
@@ -1145,6 +1155,38 @@ public final class Tgx101SavedActions {
     });
   }
 
+  /** The check «Remember for this chat» (user 2026-11-05): on the banner and in the sheets it opens; off forgets the chat's choice */
+  private static View rememberRow (Context context, Tdlib tdlib, long sourceChat, boolean[] remember, @Nullable Runnable changed) {
+    final int ink = Theme.textAccentColor(), accent = Tgx101SavedHomeController.accent();
+    LinearLayout row = new LinearLayout(context);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setPadding(0, Screen.dp(10f), 0, Screen.dp(2f));
+    android.widget.ImageView check = new android.widget.ImageView(context);
+    check.setImageResource(R.drawable.baseline_check_24);
+    check.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+    check.setPadding(Screen.dp(2f), Screen.dp(2f), Screen.dp(2f), Screen.dp(2f));
+    final Runnable paint = () -> {
+      check.setBackground(Tgx101SavedHomeController.card(remember[0] ? accent : Tgx101SavedHomeController.tint(accent, .12f), 7f));
+      check.setColorFilter(remember[0] ? Tgx101SavedHomeController.onChosen() : android.graphics.Color.TRANSPARENT);
+    };
+    paint.run();
+    row.addView(check, new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f)));
+    TextView text = Tgx101SavedHomeController.text(context, 14f, ink, false);
+    text.setText(Lang.getString(R.string.Tgx101SavedRememberChat));
+    text.setPadding(Screen.dp(10f), 0, 0, 0);
+    row.addView(text);
+    Views.setClickable(row);
+    row.setOnClickListener(v -> {
+      remember[0] = !remember[0];
+      paint.run();
+      org.thunderdog.challegram.Tgx101Diag.mark("saved remember: " + remember[0] + " for chat " + sourceChat);
+      if (!remember[0]) Tgx101SavedStore.get(tdlib).forgetChat(sourceChat);
+      if (changed != null) changed.run();
+    });
+    return row;
+  }
+
   private static @Nullable String describeRule (Tgx101SavedStore store, @Nullable Tgx101SavedStore.ChatRule rule) {
     if (rule == null) return null;
     List<String> parts = new ArrayList<>();
@@ -1159,6 +1201,7 @@ public final class Tgx101SavedActions {
     if (messageIds == null || messageIds.length == 0) return;
     Tgx101SavedStore store = Tgx101SavedStore.get(tdlib);
     final Tgx101SavedStore.ChatRule rule = sourceChat != 0 ? store.chatRule(sourceChat) : null;
+    org.thunderdog.challegram.Tgx101Diag.mark("saved banner: from chat " + sourceChat + ", remembered " + (rule != null ? describeRule(store, rule) : "nothing"));
     if (rule != null) applyChatRule(tdlib, messageIds, rule);
     org.thunderdog.challegram.Tgx101Diag.mark("saved banner: " + messageIds.length + " saved" + (external ? " from another app" : "") + ", mode " + store.sheetMode);
     if (store.bannerOff() || (store.sheetMode == Tgx101SavedStore.SHEET_EXTERNAL_ONLY && !external)) return;
@@ -1276,34 +1319,11 @@ public final class Tgx101SavedActions {
       // the check: what is picked next from this banner stays this chat's choice (user 2026-11-05)
       final boolean[] remember = {ruleText != null};
       if (sourceChat != 0) {
-        LinearLayout rememberRow = new LinearLayout(context);
-        rememberRow.setOrientation(LinearLayout.HORIZONTAL);
-        rememberRow.setGravity(Gravity.CENTER_VERTICAL);
-        rememberRow.setPadding(0, Screen.dp(10f), 0, Screen.dp(2f));
-        android.widget.ImageView check = new android.widget.ImageView(context);
-        check.setImageResource(R.drawable.baseline_check_24);
-        check.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
-        check.setPadding(Screen.dp(2f), Screen.dp(2f), Screen.dp(2f), Screen.dp(2f));
-        final Runnable paintCheck = () -> {
-          check.setBackground(Tgx101SavedHomeController.card(remember[0] ? accent : Tgx101SavedHomeController.tint(accent, .12f), 7f));
-          check.setColorFilter(remember[0] ? Tgx101SavedHomeController.onChosen() : android.graphics.Color.TRANSPARENT);
-        };
-        paintCheck.run();
-        rememberRow.addView(check, new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f)));
-        TextView rememberText = Tgx101SavedHomeController.text(context, 14f, ink, false);
-        rememberText.setText(Lang.getString(R.string.Tgx101SavedRememberChat));
-        rememberText.setPadding(Screen.dp(10f), 0, 0, 0);
-        rememberRow.addView(rememberText);
-        Views.setClickable(rememberRow);
-        rememberRow.setOnClickListener(v -> {
-          remember[0] = !remember[0];
-          paintCheck.run();
-          if (!remember[0]) bannerStore.forgetChat(sourceChat);
+        card.addView(rememberRow(context, tdlib, sourceChat, remember, () -> {
           // time to pick what to remember
           holder.removeCallbacks(close[0]);
           holder.postDelayed(close[0], 10000);
-        });
-        card.addView(rememberRow, 1);
+        }), 1);
       }
       int[] labels = {R.string.Tgx101SavedToFolder, R.string.Tgx101SavedTag, R.string.Tgx101SavedRemind};
       for (int i = 0; i < labels.length; i++) {
@@ -1323,9 +1343,9 @@ public final class Tgx101SavedActions {
             if (messages.isEmpty()) return;
             long[] real = Tgx101SavedKit.idsOf(messages);
             if (which == 0) {
-              toFolder(c, real, () -> refreshOpenSaved(c), remember[0] ? sourceChat : 0);
+              toFolder(c, real, () -> refreshOpenSaved(c), sourceChat, remember);
             } else if (which == 1) {
-              tag(c, messages, () -> refreshOpenSaved(c), remember[0] ? sourceChat : 0);
+              tag(c, messages, () -> refreshOpenSaved(c), sourceChat, remember);
             } else {
               remind(c, real, null);
             }
