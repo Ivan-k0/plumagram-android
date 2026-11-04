@@ -726,7 +726,18 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     }
     drawCloseIcon(c, playerTop, width, playerBottom, true);
 
-    drawOngoingText(c, playerTop, rectWidth, playerBottom, Screen.dp(TGX101_AUDIO_TEXT_LEFT_DP), null, 1f, 1f);
+    final int textLeft = Screen.dp(TGX101_AUDIO_TEXT_LEFT_DP);
+    if (tgx101TextSwap < 1f) {
+      final int oldTop = playerTop + Screen.dp(9f);
+      final float oldAlpha = (1f - tgx101TextSwap) * dropShadowAlpha;
+      if (tgx101OldTitle != null) {
+        tgx101OldTitle.draw(c, textLeft, oldTop, null, oldAlpha);
+      }
+      if (tgx101OldSubtitle != null) {
+        tgx101OldSubtitle.draw(c, textLeft + (tgx101OldTitle != null ? tgx101OldTitle.getWidth() : 0), oldTop, null, oldAlpha);
+      }
+    }
+    drawOngoingText(c, playerTop, rectWidth, playerBottom, textLeft, null, tgx101TextSwap, tgx101TextSwap);
   }
 
   private static final float TGX101_AUDIO_TEXT_LEFT_DP = 56f;
@@ -753,8 +764,34 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
   private String title, subtitle;
   private Text trimmedTitle, trimmedSubtitle;
 
+  // The next track on the bar: the old name fades as the new one comes (user 2026-11-04, player mockup)
+  private Text tgx101OldTitle, tgx101OldSubtitle;
+  private float tgx101TextSwap = 1f;
+  private final FactorAnimator tgx101TextSwapAnimator = new FactorAnimator(0, new FactorAnimator.Target() {
+    @Override
+    public void onFactorChanged (int id, float factor, float fraction, FactorAnimator callee) {
+      tgx101TextSwap = factor;
+      if (headerView != null) invalidateOngoingBar();
+    }
+
+    @Override
+    public void onFactorChangeFinished (int id, float finalFactor, FactorAnimator callee) {
+      if (finalFactor == 1f) {
+        tgx101OldTitle = tgx101OldSubtitle = null;
+      }
+    }
+  }, AnimatorUtils.DECELERATE_INTERPOLATOR, 220L);
+
   private void setText (String title, String text, int textPadding) {
     boolean changed = lastTextPadding != 0 && lastTextPadding != textPadding;
+    final boolean renamed = !StringUtils.equalsOrBothEmpty(this.title, title) || !StringUtils.equalsOrBothEmpty(this.subtitle, text);
+    if (renamed && headerView != null && isCurrentSection(SECTION_AUDIO) && hasVisibleOngoingBar() && (trimmedTitle != null || trimmedSubtitle != null)) {
+      tgx101OldTitle = trimmedTitle;
+      tgx101OldSubtitle = trimmedSubtitle;
+      tgx101TextSwap = 0f;
+      tgx101TextSwapAnimator.forceFactor(0f);
+      tgx101TextSwapAnimator.animateTo(1f);
+    }
     if (!StringUtils.equalsOrBothEmpty(this.title, title)) {
       this.title = title;
       changed = true;

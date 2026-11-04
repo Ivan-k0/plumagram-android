@@ -1852,7 +1852,8 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   private static class CoverView extends SparseDrawableView implements FactorAnimator.Target, InvalidateContentProvider {
     private final ComplexReceiver preview;
-    private final ImageReceiver receiver, source;
+    private final ImageReceiver receiver, tgx101SourceA, tgx101SourceB;
+    private ImageReceiver source, tgx101OldSource;
     private PlaybackController controller;
     private boolean disableAnimations;
 
@@ -1869,7 +1870,8 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       this.disableAnimations = disableAnimation;
       preview.setAnimationDisabled(disableAnimation);
       receiver.setAnimationDisabled(disableAnimation);
-      source.setAnimationDisabled(disableAnimation);
+      tgx101SourceA.setAnimationDisabled(disableAnimation);
+      tgx101SourceB.setAnimationDisabled(disableAnimation);
     }
 
     private static int getRadialGradientRadius () {
@@ -1895,7 +1897,8 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
       this.preview = new ComplexReceiver(this);
       this.receiver = new ImageReceiver(this, 0);
-      this.source = new ImageReceiver(this, 0);
+      this.source = this.tgx101SourceA = new ImageReceiver(this, 0);
+      this.tgx101OldSource = this.tgx101SourceB = new ImageReceiver(this, 0);
       setDisableAnimation(true);
 
       ViewUtils.setBackground(this, new Drawable() {
@@ -2292,11 +2295,27 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
           invalidate();
           break;
         }
+        case ANIMATOR_TEXT_SWAP: {
+          tgx101TextSwap = factor;
+          invalidate();
+          break;
+        }
+        case ANIMATOR_COVER_SWAP: {
+          tgx101CoverFade = factor;
+          invalidate();
+          break;
+        }
       }
     }
 
     @Override
-    public void onFactorChangeFinished (int id, float finalFactor, FactorAnimator callee) { }
+    public void onFactorChangeFinished (int id, float finalFactor, FactorAnimator callee) {
+      if (id == ANIMATOR_TEXT_SWAP && finalFactor == 1f) {
+        tgx101OldTitle = tgx101OldSubtitle = null;
+      } else if (id == ANIMATOR_COVER_SWAP && finalFactor == 1f) {
+        tgx101FinishCoverSwap();
+      }
+    }
 
     public void setFileProgress (float offset, float progress, boolean animated) {
       progress += offset;
@@ -2433,8 +2452,15 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       if (this.item != null) {
         this.item.detachFromView(this);
       }
+      final boolean swap = this.item != null && item != null && !disableAnimations;
       this.item = item;
       setSeeking(false, false);
+      if (swap) {
+        tgx101PrepareTextSwap();
+        tgx101PrepareCoverSwap();
+      } else {
+        tgx101FinishCoverSwap();
+      }
       if (item != null) {
         item.attachToView(this);
         boolean changed;
@@ -2470,6 +2496,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         preview.clear();
         receiver.clear();
         source.clear();
+        tgx101FinishCoverSwap();
         return;
       }
       if (!invalidate) {
@@ -2497,6 +2524,76 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       } else {
         receiver.requestFile(null);
       }*/
+    }
+
+    // (user 2026-11-04, player mockup) the next track doesn't jump in: the old title leaves upwards as the new one comes from below,
+    // the old cover stays over the new one until that is ready and then fades away
+    private static final int ANIMATOR_TEXT_SWAP = 8, ANIMATOR_COVER_SWAP = 9;
+    private Text tgx101OldTitle, tgx101OldSubtitle;
+    private float tgx101TextSwap = 1f;
+    private FactorAnimator tgx101TextSwapAnimator;
+
+    private void tgx101PrepareTextSwap () {
+      tgx101OldTitle = trimmedTitle;
+      tgx101OldSubtitle = trimmedSubtitle;
+      if (tgx101TextSwapAnimator == null) {
+        tgx101TextSwapAnimator = new FactorAnimator(ANIMATOR_TEXT_SWAP, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 260L);
+      }
+      tgx101TextSwap = 0f;
+      tgx101TextSwapAnimator.forceFactor(0f);
+      tgx101TextSwapAnimator.animateTo(1f);
+    }
+
+    private boolean tgx101CoverSwapping, tgx101CoverFading;
+    private long tgx101CoverSwapStart;
+    private float tgx101CoverFade;
+    private FactorAnimator tgx101CoverAnimator;
+    private static final long TGX101_COVER_WAIT = 320L;
+
+    private void tgx101PrepareCoverSwap () {
+      tgx101FinishCoverSwap();
+      if (source.needPlaceholder()) {
+        return; // no big picture to keep; the new one fades in by itself
+      }
+      ImageReceiver old = source;
+      source = tgx101OldSource;
+      tgx101OldSource = old;
+      source.setAnimationDisabled(true); // it appears whole under the old one
+      tgx101CoverSwapping = true;
+      tgx101CoverSwapStart = android.os.SystemClock.uptimeMillis();
+      postInvalidateDelayed(TGX101_COVER_WAIT);
+    }
+
+    private void tgx101FinishCoverSwap () {
+      if (tgx101CoverAnimator != null) {
+        tgx101CoverAnimator.forceFactor(0f);
+      }
+      tgx101CoverFade = 0f;
+      tgx101CoverFading = false;
+      if (tgx101CoverSwapping) {
+        tgx101CoverSwapping = false;
+        source.setAnimationDisabled(disableAnimations);
+        tgx101OldSource.clear();
+        invalidate();
+      }
+    }
+
+    private void tgx101DrawOldCover (Canvas c, int x, int y, int width, int height, int radius) {
+      if (!tgx101CoverSwapping) {
+        return;
+      }
+      if (!tgx101CoverFading && (!source.needPlaceholder() || android.os.SystemClock.uptimeMillis() - tgx101CoverSwapStart >= TGX101_COVER_WAIT)) {
+        tgx101CoverFading = true;
+        if (tgx101CoverAnimator == null) {
+          tgx101CoverAnimator = new FactorAnimator(ANIMATOR_COVER_SWAP, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 280L);
+        }
+        tgx101CoverAnimator.animateTo(1f);
+      }
+      tgx101OldSource.setRadius(radius);
+      tgx101OldSource.setBounds(x, y, x + width, y + height);
+      tgx101OldSource.setPaintAlpha(1f - tgx101CoverFade);
+      tgx101OldSource.draw(c);
+      tgx101OldSource.restorePaintAlpha();
     }
 
     private int getAvailWidth () {
@@ -2581,11 +2678,25 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       final float titleX = textStartX + ((textEndCenterX - getTitleWidth() / 2) - textStartX) * coverFactor;
       final float subtitleX = textStartX + ((textEndCenterX - getSubtitleWidth() / 2) - textStartX) * coverFactor;
 
+      final float textSwap = tgx101TextSwap;
+      final int swapDistance = Screen.dp(10f);
+      if (textSwap < 1f) {
+        final int oldY = (int) textY2 - (int) (swapDistance * textSwap);
+        if (tgx101OldTitle != null) {
+          int oldX = (int) (textStartX + ((textEndCenterX - tgx101OldTitle.getWidth() / 2) - textStartX) * coverFactor);
+          tgx101OldTitle.draw(c, oldX, oldY, null, 1f - textSwap);
+        }
+        if (tgx101OldSubtitle != null) {
+          int oldX = (int) (textStartX + ((textEndCenterX - tgx101OldSubtitle.getWidth() / 2) - textStartX) * coverFactor);
+          tgx101OldSubtitle.draw(c, oldX, oldY + Screen.dp(24f), null, 1f - textSwap);
+        }
+      }
+      final int newY = (int) textY2 + (int) (swapDistance * (1f - textSwap));
       if (trimmedTitle != null) {
-        trimmedTitle.draw(c, (int) titleX, (int) textY2);
+        trimmedTitle.draw(c, (int) titleX, newY, null, textSwap);
       }
       if (trimmedSubtitle != null) {
-        trimmedSubtitle.draw(c, (int) subtitleX, (int) textY2 + Screen.dp(24f));
+        trimmedSubtitle.draw(c, (int) subtitleX, newY + Screen.dp(24f), null, textSwap);
       }
 
       // Seekbar
@@ -2656,6 +2767,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       source.setRadius(radius);
       source.setBounds(x, y, x + width, y + height);
       source.draw(c);
+      tgx101DrawOldCover(c, x, y, width, height, radius);
 
       int shadowAlpha = (int) (255f * coverFactor);
       if (coverFactor > 0f) {
