@@ -368,6 +368,28 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     frameLayout.addView(nextButton);
     frameLayout.addView(playPauseButton);
 
+    tgx101SpeedPill = new Tgx101Pill(context);
+    FrameLayoutFix.LayoutParams speedParams = FrameLayoutFix.newParams(Screen.dp(64f), Screen.dp(40f));
+    speedParams.leftMargin = Screen.dp(16f);
+    tgx101SpeedPill.setLayoutParams(speedParams);
+    tgx101SpeedPill.setContentDescription(Lang.getString(R.string.PlaybackSpeed));
+    tgx101SpeedPill.setOnClickListener(v -> tgx101ShowSpeedSheet());
+    addThemeInvalidateListener(tgx101SpeedPill);
+    frameLayout.addView(tgx101SpeedPill);
+    tgx101NextPill = new Tgx101Pill(context);
+    tgx101NextPill.setIcon(R.drawable.baseline_queue_music_24);
+    FrameLayoutFix.LayoutParams nextParams = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(40f));
+    nextParams.leftMargin = Screen.dp(16f + 64f + 8f);
+    nextParams.rightMargin = Screen.dp(16f);
+    tgx101NextPill.setLayoutParams(nextParams);
+    tgx101NextPill.setOnClickListener(v -> {
+      if (indexOfCurrentTrack() != -1) highlightCurrentItem();
+    });
+    addThemeInvalidateListener(tgx101NextPill);
+    frameLayout.addView(tgx101NextPill);
+    tgx101UpdateSpeedPill(tdlib.context().player().getSpeed());
+    tdlib.context().player().addTrackChangeListener(tgx101SpeedListener);
+
     tdlib.context().player().addTrackListChangeListener(this, false);
     setItem((InlineResultCommon) tracks.get(preparedTrackIndex + 1).getData(), true);
     TGLegacyManager.instance().addEmojiListener(this);
@@ -384,6 +406,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
   public void destroy () {
     super.destroy();
     tdlib.context().player().removeTrackListChangeListener(this);
+    tdlib.context().player().removeTrackChangeListener(tgx101SpeedListener);
     TGLegacyManager.instance().removeEmojiListener(this);
     TGLegacyManager.instance().removeEmojiListener(adapter);
     Views.destroyRecyclerView(recyclerView);
@@ -712,6 +735,145 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     }
     coverView.setFileProgress(prefixProgress, progress, hadItem);
     ensureScroll(hadItem);
+    tgx101UpdateNextPill();
+  }
+
+  // The row under the buttons (user 2026-11-04, player mockup)
+
+  private Tgx101Pill tgx101SpeedPill, tgx101NextPill;
+
+  private final TGPlayerController.TrackChangeListener tgx101SpeedListener = new TGPlayerController.TrackChangeListener() {
+    @Override
+    public void onTrackChanged (Tdlib tdlib, @Nullable TdApi.Message newTrack, int fileId, int state, float progress, boolean byUser) { }
+
+    @Override
+    public void onPlaybackSpeedChanged (int newSpeed) {
+      UI.execute(() -> tgx101UpdateSpeedPill(newSpeed));
+    }
+  };
+
+  private static String tgx101SpeedText (int speed) {
+    return org.thunderdog.challegram.navigation.PlaybackSpeedLayout.getSpeedText(speed) + "×";
+  }
+
+  private void tgx101UpdateSpeedPill (int speed) {
+    if (tgx101SpeedPill != null) tgx101SpeedPill.setText(tgx101SpeedText(speed));
+  }
+
+  private void tgx101UpdateNextPill () {
+    if (tgx101NextPill == null) return;
+    TdApi.Message next = tdlib.context().player().tgx101PeekNextTrack();
+    String title = null;
+    if (next != null) {
+      for (int i = 1; i < tracks.size() - 1; i++) {
+        Object data = tracks.get(i).getData();
+        if (data instanceof InlineResultCommon && TGPlayerController.compareTracks(next, ((InlineResultCommon) data).getMessage())) {
+          title = ((InlineResultCommon) data).getTrackTitle();
+          break;
+        }
+      }
+    }
+    tgx101NextPill.setText(StringUtils.isEmpty(title) ? Lang.getString(R.string.Tgx101PlayerQueue) : Lang.getString(R.string.Tgx101PlayerNext, title));
+  }
+
+  private static final int[] TGX101_SPEEDS = {75, 100, 125, 150, 200};
+
+  private void tgx101ShowSpeedSheet () {
+    final Tgx101Sheet.Handle[] handle = new Tgx101Sheet.Handle[1];
+    handle[0] = Tgx101Sheet.show(this, null, body -> {
+      final int current = tdlib.context().player().getSpeed();
+      android.widget.TextView title = Tgx101Sheet.title(context, Lang.getString(R.string.PlaybackSpeed) + " · " + tgx101SpeedText(current));
+      body.addView(title);
+      android.widget.SeekBar bar = new android.widget.SeekBar(context);
+      // from 0.2× to 3× by 0.05, the player's own range
+      bar.setMax((300 - 20) / 5);
+      bar.setProgress((org.thunderdog.challegram.navigation.PlaybackSpeedLayout.normalizeSpeed(current) - 20) / 5);
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+        android.content.res.ColorStateList accent = android.content.res.ColorStateList.valueOf(Theme.getColor(ColorId.seekDone));
+        bar.setProgressTintList(accent);
+        bar.setThumbTintList(accent);
+      }
+      bar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+        @Override
+        public void onProgressChanged (android.widget.SeekBar seekBar, int progress, boolean fromUser) {
+          if (!fromUser) return;
+          int speed = 20 + progress * 5;
+          tdlib.context().player().setPlaybackSpeed(speed);
+          title.setText(Lang.getString(R.string.PlaybackSpeed) + " · " + tgx101SpeedText(speed));
+        }
+        @Override public void onStartTrackingTouch (android.widget.SeekBar seekBar) { }
+        @Override public void onStopTrackingTouch (android.widget.SeekBar seekBar) { }
+      });
+      android.widget.LinearLayout.LayoutParams barParams = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f));
+      barParams.leftMargin = barParams.rightMargin = Screen.dp(8f);
+      body.addView(bar, barParams);
+      for (int speed : TGX101_SPEEDS) {
+        final int value = speed;
+        body.addView(Tgx101Sheet.row(context, 0, 0, tgx101SpeedText(value), null, value == current, v -> {
+          tdlib.context().player().setPlaybackSpeed(value);
+          handle[0].dismiss();
+        }));
+      }
+    });
+  }
+
+  /** A pill of the row: its own drawing follows the theme by a plain invalidate */
+  private static class Tgx101Pill extends View {
+    private CharSequence text = "";
+    private int iconRes;
+
+    Tgx101Pill (Context context) {
+      super(context);
+      org.thunderdog.challegram.tool.Views.setClickable(this);
+    }
+
+    void setText (CharSequence text) {
+      this.text = text;
+      invalidate();
+    }
+
+    void setIcon (int iconRes) {
+      this.iconRes = iconRes;
+      invalidate();
+    }
+
+    @Override
+    public boolean onTouchEvent (MotionEvent e) {
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+          animate().scaleX(.96f).scaleY(.96f).setDuration(90).start();
+          break;
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL:
+          animate().scaleX(1f).scaleY(1f).setDuration(180).start();
+          break;
+      }
+      return super.onTouchEvent(e);
+    }
+
+    @Override
+    protected void onDraw (Canvas c) {
+      RectF rect = Paints.getRectF();
+      rect.set(0, 0, getWidth(), getHeight());
+      float r = getHeight() / 2f;
+      c.drawRoundRect(rect, r, r, Paints.fillingPaint(ColorUtils.alphaColor(.09f, Theme.textAccentColor())));
+      int left = Screen.dp(14f);
+      if (iconRes != 0) {
+        android.graphics.drawable.Drawable icon = Drawables.get(getResources(), iconRes);
+        if (icon != null) {
+          Drawables.drawCentered(c, icon, left + Screen.dp(9f), getHeight() / 2f, Paints.getIconGrayPorterDuffPaint());
+        }
+        left += Screen.dp(26f);
+      }
+      android.text.TextPaint paint = Paints.getRegularTextPaint(13f, Theme.textAccentColor());
+      int available = getWidth() - left - Screen.dp(14f);
+      if (available <= 0) return;
+      CharSequence shown = android.text.TextUtils.ellipsize(text, paint, available, android.text.TextUtils.TruncateAt.END);
+      float textWidth = paint.measureText(shown, 0, shown.length());
+      float x = iconRes != 0 ? left : (getWidth() - textWidth) / 2f;
+      float y = getHeight() / 2f - (paint.descent() + paint.ascent()) / 2f;
+      c.drawText(shown, 0, shown.length(), x, y, paint);
+    }
   }
 
   // Track listener
@@ -771,6 +933,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   @Override
   public void onTrackListReset (Tdlib tdlib, @NonNull TdApi.Message currentTrack, int trackIndex, List<TdApi.Message> trackList, long playListChatId, int playFlags, int playState) {
+    UI.post(this::tgx101UpdateNextPill);
     if (ignoreNextReset) {
       ignoreNextReset = false;
       setItemByPosition(trackIndex, true);
@@ -818,6 +981,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   @Override
   public void onTrackListFlagsChanged (int newPlayFlags) {
+    UI.post(this::tgx101UpdateNextPill);
     boolean wasShuffling = (playFlags & TGPlayerController.PLAY_FLAG_SHUFFLE) != 0;
     boolean nowShuffling = (newPlayFlags & TGPlayerController.PLAY_FLAG_SHUFFLE) != 0;
     if (wasShuffling != nowShuffling) {
@@ -953,6 +1117,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   @Override
   public void onTrackListItemRemoved (Tdlib tdlib, TdApi.Message track, int position, boolean isCurrent) {
+    UI.post(this::tgx101UpdateNextPill);
     if ((playFlags & TGPlayerController.PLAYLIST_FLAG_REVERSE) != 0) {
       int count = getTrackCount();
       position = count - position - 1;
@@ -984,6 +1149,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   @Override
   public void onTrackListItemMoved (Tdlib tdlib, TdApi.Message track, int fromPosition, int toPosition) {
+    UI.post(this::tgx101UpdateNextPill);
     if (!ignoreMoveUpdate) {
       moveTrack(fromPosition, toPosition, false);
     }
@@ -991,6 +1157,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   @Override
   public void onTrackListItemAdded (Tdlib tdlib, TdApi.Message newTrack, int position) {
+    UI.post(this::tgx101UpdateNextPill);
     InlineResult<?> result = InlineResult.valueOf(context, tdlib, newTrack);
     if (!(result instanceof InlineResultCommon) || result.getType() != InlineResult.TYPE_AUDIO) {
       return;
@@ -1006,6 +1173,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   @Override
   public void onTrackListItemRangeAdded (Tdlib tdlib, List<TdApi.Message> addedItems, boolean areNew) {
+    UI.post(this::tgx101UpdateNextPill);
     ArrayList<ListItem> newItems = new ArrayList<>(addedItems.size());
 
     long addedDuration = 0;
@@ -1245,8 +1413,11 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     return mayExpandOverlay(recyclerView.getMeasuredWidth(), recyclerView.getMeasuredHeight());
   }
 
+  /** (user 2026-11-04, player mockup) a row under the buttons: the speed and what plays next */
+  private static final float TGX101_ROW_DP = 52f;
+
   private static int getMinimumOverlayHeight () {
-    return Screen.dp(112f) + HeaderView.getSize(false);
+    return Screen.dp(112f + TGX101_ROW_DP) + HeaderView.getSize(false);
   }
 
   private int getAvailableOverlayHeight (int totalWidth, int totalHeight) {
@@ -1256,7 +1427,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       int offset = HeaderView.getTopOffset();
       // int desiredHeight = offset + (totalHeight - offset) / 2;
       int desiredHeight = totalWidth;
-      if (desiredHeight + height > height / 2) {
+      if (desiredHeight + height <= totalHeight) { // the taller controls must stay on a short screen too
         return desiredHeight + height;
       }
     }
@@ -1544,7 +1715,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
       // Values copy-paste from drawing
       final int overlayHeight = controller.getCurrentOverlayHeight();
-      final int buttonsY = overlayHeight - Screen.dp(34f);
+      final int buttonsY = overlayHeight - Screen.dp(34f + TGX101_ROW_DP);
       final int durationsY = buttonsY - Screen.dp(30f);
       final int workingDistance = Math.min(viewWidth, Screen.dp(480f));
       final int startX = viewWidth != workingDistance ? viewWidth / 2 - workingDistance / 2 : 0;
@@ -1981,7 +2152,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
       // Values
       final int overlayHeight = controller.getCurrentOverlayHeight();
-      final int buttonsY = overlayHeight - Screen.dp(34f);
+      final int buttonsY = overlayHeight - Screen.dp(34f + TGX101_ROW_DP);
       final int durationsY = buttonsY - Screen.dp(30f);
       final int workingDistance = Math.min(viewWidth, Screen.dp(480f));
       final int startX = viewWidth != workingDistance ? viewWidth / 2 - workingDistance / 2 : 0;
@@ -2148,6 +2319,9 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         view.setTranslationY(buttonY);
         cx += perx;
       }
+      float rowY = overlayHeight - Screen.dp(TGX101_ROW_DP) / 2f - controller.tgx101SpeedPill.getMeasuredHeight() / 2f - Screen.dp(4f);
+      controller.tgx101SpeedPill.setTranslationY(rowY);
+      controller.tgx101NextPill.setTranslationY(rowY);
     }
   }
 

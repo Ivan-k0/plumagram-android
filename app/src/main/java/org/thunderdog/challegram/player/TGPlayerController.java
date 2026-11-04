@@ -822,6 +822,16 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
     return i;
   }
 
+  /** TGx101: what the «next» button leads to, for the player's hint; null when shuffling, it is not known yet */
+  @Nullable
+  public synchronized TdApi.Message tgx101PeekNextTrack () {
+    if (message == null || messageList == null || messageList.isEmpty() || (getPlaybackFlags(message, playbackFlags) & PLAY_FLAG_SHUFFLE) != 0) {
+      return null;
+    }
+    int next = indexOfNextMessage(indexOfCurrentMessage(), true, true);
+    return next >= 0 && next < messageList.size() ? messageList.get(next) : null;
+  }
+
   public void stopPlaybackIfPlayingAnyOf (TdApi.File[] files) {
     boolean stop = false;
     synchronized (this) {
