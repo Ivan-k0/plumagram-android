@@ -359,10 +359,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     tgx101Heart = newButton(R.id.btn_tgx101SaveFavorite, R.drawable.tgx101_heart_outline_24, false);
     tgx101Heart.setContentDescription(Lang.getString(R.string.Tgx101PlayerSave));
     tgx101Heart.setOnClickListener(v -> tgx101ToggleSaved());
-    tgx101Heart.setOnLongClickListener(v -> {
-      tgx101SaveToFolder();
-      return true;
-    });
+    tgx101AttachFolderMenu(tgx101Heart);
     tgx101HoldToSeek(nextButton, 1);
     tgx101HoldToSeek(prevButton, -1);
     playPauseButton = new PlayPauseButton(context);
@@ -892,25 +889,67 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     });
   }
 
-  /** Held ♥: the folder chosen here is where the next tap saves */
-  private void tgx101ChooseFolder (long[] ids) {
-    Tgx101SavedActions.toFolder(this, ids, () -> {
-      org.thunderdog.challegram.data.Tgx101SavedStore store = org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib);
-      org.thunderdog.challegram.data.Tgx101SavedStore.Folder folder = store.folderOf(ids[0]);
-      if (folder != null) store.setPlayerFolder(folder.id);
+  // (user 2026-11-05 «зажатие на сердце должно вести по пальцу, а не свайпать экран плеера»): held ♥ opens the folders over it, the
+  // finger goes along them and lets go on one; that one is where the next tap saves. Let go elsewhere: nothing happens
+
+  private static final int TGX101_FOLDER_MENU_MAX = 7;
+
+  private void tgx101AttachFolderMenu (View heart) {
+    org.thunderdog.challegram.util.HapticMenuHelper menu = new org.thunderdog.challegram.util.HapticMenuHelper(view -> tgx101FolderMenuItems(), (view, parentView, item) -> true, getThemeListeners(), null);
+    menu.attachToView(heart);
+    menu.selectableMode(heart); // the helper's own touch listener, wrapped below
+    heart.setOnTouchListener((v, e) -> {
+      if (e.getActionMasked() == MotionEvent.ACTION_DOWN && v.getParent() != null) {
+        v.getParent().requestDisallowInterceptTouchEvent(true); // the finger stays here: the screen doesn't go down with it
+      }
+      return menu.onTouch(v, e);
     });
   }
 
-  private void tgx101SaveToFolder () {
-    if (currentItem == null) return;
-    long[] copies = tgx101SavedCopies.get(currentItem.getTrackFile().id);
-    if (copies != null) {
-      if (copies.length != 0) tgx101ChooseFolder(copies);
-      return;
+  private java.util.List<org.thunderdog.challegram.util.HapticMenuHelper.MenuItem> tgx101FolderMenuItems () {
+    if (currentItem == null) return null;
+    final org.thunderdog.challegram.data.Tgx101SavedStore store = org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib);
+    final long chosenId = store.playerFolder(Lang.getString(R.string.Tgx101PlayerMusicFolder)).id;
+    final java.util.ArrayList<org.thunderdog.challegram.util.HapticMenuHelper.MenuItem> items = new java.util.ArrayList<>();
+    final java.util.List<org.thunderdog.challegram.data.Tgx101SavedStore.Folder> folders = new java.util.ArrayList<>(store.folders());
+    for (int i = 0; i < folders.size(); i++) { // the chosen one always fits in
+      if (folders.get(i).id == chosenId) {
+        folders.add(0, folders.remove(i));
+        break;
+      }
     }
-    tgx101ForwardToStorage(ids -> {
-      if (!isDestroyed() && ids.length != 0) tgx101ChooseFolder(ids);
-    });
+    for (int i = 0; i < folders.size() && i < TGX101_FOLDER_MENU_MAX; i++) {
+      final org.thunderdog.challegram.data.Tgx101SavedStore.Folder folder = folders.get(i);
+      items.add(new org.thunderdog.challegram.util.HapticMenuHelper.MenuItem(i, folder.name, folder.id == chosenId ? R.drawable.baseline_check_24 : R.drawable.baseline_folder_24).setOnClickListener((view, parentView, item) -> {
+        tgx101SaveToFolder(folder.id);
+        return true;
+      }));
+    }
+    items.add(new org.thunderdog.challegram.util.HapticMenuHelper.MenuItem(TGX101_FOLDER_MENU_MAX, Lang.getString(R.string.Tgx101SavedNewFolder), R.drawable.baseline_create_new_folder_24).setOnClickListener((view, parentView, item) -> {
+      Tgx101SavedActions.askName(this, Lang.getString(R.string.Tgx101SavedNewFolder), null, name -> {
+        if (!isDestroyed()) tgx101SaveToFolder(store.createFolder(name).id);
+      });
+      return true;
+    }));
+    return items;
+  }
+
+  private void tgx101SaveToFolder (long folderId) {
+    if (currentItem == null) return;
+    final org.thunderdog.challegram.data.Tgx101SavedStore store = org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib);
+    store.setPlayerFolder(folderId);
+    final me.vkryl.core.lambda.RunnableData<long[]> put = ids -> {
+      org.thunderdog.challegram.data.Tgx101SavedStore.Folder folder = store.folder(folderId);
+      if (folder == null) return;
+      store.putInFolderKeepingLast(folderId, ids);
+      UI.showToast(Lang.getString(R.string.Tgx101SavedPutDone, folder.name), android.widget.Toast.LENGTH_SHORT);
+    };
+    long[] copies = tgx101SavedCopies.get(currentItem.getTrackFile().id);
+    if (copies == null) {
+      tgx101ForwardToStorage(put);
+    } else if (copies.length != 0) {
+      put.runWithData(copies);
+    }
   }
 
   // Queue search and the file's details (user 2026-11-04, player mockup): sheets over the list, the list itself stays as it is
