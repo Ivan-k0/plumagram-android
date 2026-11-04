@@ -1610,6 +1610,8 @@
   <item name="btn_tgx101LongPressMenu" type="id"/>
   <item name="btn_tgx101Haptics" type="id"/>
   <item name="btn_tgx101SaveFavorite" type="id"/>
+  <item name="btn_tgx101QueueSearch" type="id"/>
+  <item name="btn_tgx101TrackInfo" type="id"/>
   <item name="btn_tgx101ToStorage" type="id"/>
   <item name="btn_tgx101SavedFolderTags" type="id"/>
   <item name="btn_tgx101SavedFolderSize" type="id"/>
@@ -1874,6 +1876,7 @@
   <item name="controller_tgx101AiSettings" type="id"/>
   <item name="controller_tgx101SettingsSearch" type="id"/>
   <item name="btn_tgx101Gazeta" type="id"/>
+  <item name="btn_tgx101Player" type="id"/>
   <item name="controller_tgx101Gazeta" type="id"/>
   <item name="controller_tgx101GazetaSettings" type="id"/>
   <item name="menu_tgx101Gazeta" type="id"/>

@@ -325,6 +325,8 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   /** where the swipe buttons on «Recent» put a message with one tap */
   public long lastFolderId;
   public String lastTag;
+  /** (group 2026-11-05) where the music player's ♥ saves: 0 — not chosen yet, the folder named after the default */
+  public long playerFolderId;
 
   public int sheetMode = SHEET_ALWAYS;
   public int openMode = OPEN_HOME;
@@ -486,6 +488,31 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   }
 
   /** A message lives in one folder at most (moving it takes it out of the old one) */
+  /** The player's ♥: its folder, or the one named so, made when it isn't there */
+  public synchronized Folder playerFolder (String defaultName) {
+    Folder chosen = folder(playerFolderId);
+    if (chosen != null) return chosen;
+    for (Folder f : folders) {
+      if (defaultName.equalsIgnoreCase(f.name)) return f;
+    }
+    return createFolder(defaultName);
+  }
+
+  public synchronized void setPlayerFolder (long folderId) {
+    playerFolderId = folderId;
+    save();
+  }
+
+  /** Doesn't become the folder of the quick buttons on «Recent» */
+  public synchronized void putInFolderKeepingLast (long folderId, long[] messageIds) {
+    final long last = lastFolderId;
+    putInFolder(folderId, messageIds);
+    if (lastFolderId != last) {
+      lastFolderId = last;
+      save();
+    }
+  }
+
   public synchronized void putInFolder (long folderId, long[] messageIds) {
     Folder target = folder(folderId);
     if (target == null) return;
@@ -833,6 +860,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
     JSONArray home = o.optJSONArray("homeTags");
     if (home != null) for (int i = 0; i < home.length(); i++) homeTags.add(home.getString(i));
     if (folder(lastFolderId) == null) lastFolderId = 0;
+    if (folder(playerFolderId) == null) playerFolderId = 0;
     applyingCloud = true;
     try {
       save();
@@ -880,6 +908,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       }
       o.put("reactions", reactions);
       o.put("lastFolder", lastFolderId);
+      o.put("playerFolder", playerFolderId);
       if (lastTag != null) o.put("lastTag", lastTag);
       o.put("sheet", sheetMode);
       o.put("open", openMode);
@@ -1004,6 +1033,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
         }
       }
       lastFolderId = o.optLong("lastFolder", 0);
+      playerFolderId = o.optLong("playerFolder", 0);
       lastTag = o.optString("lastTag", null);
       JSONArray home = o.optJSONArray("homeTags");
       if (home != null) for (int i = 0; i < home.length(); i++) homeTags.add(home.getString(i));

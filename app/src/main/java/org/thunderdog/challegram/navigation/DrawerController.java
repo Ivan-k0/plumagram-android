@@ -853,6 +853,8 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
       close(0f, () -> org.thunderdog.challegram.ui.Tgx101StoryEditor.pickAndOpen(context, context.currentTdlib()));
     } else if (viewId == R.id.btn_tgx101Gazeta) {
       close(0f, () -> org.thunderdog.challegram.ui.Tgx101Gazeta.open(context, context.currentTdlib()));
+    } else if (viewId == R.id.btn_tgx101Player) {
+      close(0f, () -> org.thunderdog.challegram.ui.Tgx101Bird.openPlayer(context.navigation()));
     } else if (viewId == R.id.btn_contacts) {
       openContacts();
       // openEmptyChat();

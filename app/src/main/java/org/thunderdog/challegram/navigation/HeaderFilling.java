@@ -519,9 +519,28 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
   private Tdlib currentTrackTdlib;
   private TdApi.Message currentTrack;
 
+  // The bar takes the colours of the track's cover (user 2026-11-04, player mockup)
+  private final org.thunderdog.challegram.player.Tgx101CoverTint.Animated tgx101Tint = new org.thunderdog.challegram.player.Tgx101CoverTint.Animated(() -> {
+    if (headerView != null) invalidateOngoingBar();
+  });
+
+  private void tgx101UpdateTint (Tdlib tdlib, TdApi.Message track) {
+    boolean[] sync = {true};
+    final boolean visible = hasVisibleOngoingBar();
+    org.thunderdog.challegram.player.Tgx101CoverTint.request(tdlib, track, colors -> {
+      if (currentTrack == track) {
+        tgx101Tint.set(colors, visible || !sync[0]);
+      }
+    });
+    sync[0] = false;
+  }
+
   @Override
   public void onTrackChanged (Tdlib tdlib, @Nullable TdApi.Message newTrack, int fileId, int state, float progress, boolean byUser) {
     boolean changedTrack = false;
+    if (newTrack != null && state != TGPlayerController.STATE_NONE && (currentTrack != newTrack || playingMessage == null)) {
+      tgx101ResetSwipe(); // the same track played again after it was swiped away too
+    }
     if (currentTrackTdlib != tdlib || currentTrack != newTrack) {
       if (currentTrack != null) {
         TdlibManager.instance().player().removeTrackListener(currentTrackTdlib, currentTrack, this);
@@ -529,6 +548,9 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       currentTrack = newTrack;
       currentTrackTdlib = tdlib;
       changedTrack = true;
+      if (newTrack != null && headerView != null) {
+        tgx101UpdateTint(tdlib, newTrack);
+      }
     }
     boolean isPlaying = state == TGPlayerController.STATE_PLAYING;
     TdApi.Message newMessage = newTrack != null && state != TGPlayerController.STATE_NONE ? newTrack : null;
@@ -683,20 +705,28 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
 
   private void drawOngoingAudio (Canvas c, int playerTop, float rectWidth, int playerBottom) {
     if (restoreRect && restorePixels > 0) {
-      c.drawRect(rectWidth, playerTop, width, playerBottom, Paints.fillingPaint(Theme.fillingColor()));
+      c.drawRect(rectWidth, playerTop, width, playerBottom, Paints.fillingPaint(tgx101Tint.background(Theme.fillingColor())));
     }
 
-    final int playerFillingColor = ColorUtils.alphaColor(dropShadowAlpha, Theme.fillingColor());
+    final int playerFillingColor = ColorUtils.alphaColor(dropShadowAlpha, tgx101Tint.background(Theme.fillingColor()));
 
     c.drawRect(0, playerTop, rectWidth, playerBottom, Paints.fillingPaint(playerFillingColor));
     if (seekFactor != 0f) {
-      c.drawRect(0, playerBottom - (Screen.dp(1f) + 1), (int) (width * seekFactor), playerBottom, Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha, Theme.getColor(ColorId.headerBarCallActive))));
+      c.drawRect(0, playerBottom - (Screen.dp(1f) + 1), (int) (width * seekFactor), playerBottom, Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha, tgx101Tint.accent(Theme.getColor(ColorId.headerBarCallActive)))));
+    }
+
+    final float tgx101ShownAlpha = dropShadowAlpha;
+    final boolean tgx101Swiped = tgx101SwipeDx != 0f && width > 0;
+    if (tgx101Swiped) {
+      dropShadowAlpha *= Math.max(0f, 1f - Math.abs(tgx101SwipeDx) / (width * .7f));
+      c.save();
+      c.translate(tgx101SwipeDx, 0f);
     }
 
     if (speedCounter != null) {
       // (user 2026-11-04 14:53, a screenshot of another client: «закрыть справа на всех подобных окнах»): ▶ on the left, then the
       // title, the speed and ✕ on the right; «next» only for music, it has a queue
-      speedCounter.draw(c, getRightButtonCenter(width - Screen.dp(TGX101_SPEED_GAP), 1), (playerBottom + playerTop) / 2f, Gravity.CENTER, 1f);
+      speedCounter.draw(c, getRightButtonCenter(width - Screen.dp(TGX101_SPEED_GAP), 1), (playerBottom + playerTop) / 2f, Gravity.CENTER, tgx101Swiped ? dropShadowAlpha : 1f);
     }
 
     TdApi.File file = TD.getFile(playingMessage);
@@ -707,7 +737,23 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     }
     drawCloseIcon(c, playerTop, width, playerBottom, true);
 
-    drawOngoingText(c, playerTop, rectWidth, playerBottom, Screen.dp(TGX101_AUDIO_TEXT_LEFT_DP), null, 1f, 1f);
+    final int textLeft = Screen.dp(TGX101_AUDIO_TEXT_LEFT_DP);
+    if (tgx101TextSwap < 1f) {
+      final int oldTop = playerTop + Screen.dp(9f);
+      final float oldAlpha = (1f - tgx101TextSwap) * dropShadowAlpha;
+      if (tgx101OldTitle != null) {
+        tgx101OldTitle.draw(c, textLeft, oldTop, null, oldAlpha);
+      }
+      if (tgx101OldSubtitle != null) {
+        tgx101OldSubtitle.draw(c, textLeft + (tgx101OldTitle != null ? tgx101OldTitle.getWidth() : 0), oldTop, null, oldAlpha);
+      }
+    }
+    drawOngoingText(c, playerTop, rectWidth, playerBottom, textLeft, null, tgx101TextSwap, tgx101TextSwap);
+
+    if (tgx101Swiped) {
+      c.restore();
+      dropShadowAlpha = tgx101ShownAlpha;
+    }
   }
 
   private static final float TGX101_AUDIO_TEXT_LEFT_DP = 56f;
@@ -734,8 +780,34 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
   private String title, subtitle;
   private Text trimmedTitle, trimmedSubtitle;
 
+  // The next track on the bar: the old name fades as the new one comes (user 2026-11-04, player mockup)
+  private Text tgx101OldTitle, tgx101OldSubtitle;
+  private float tgx101TextSwap = 1f;
+  private final FactorAnimator tgx101TextSwapAnimator = new FactorAnimator(0, new FactorAnimator.Target() {
+    @Override
+    public void onFactorChanged (int id, float factor, float fraction, FactorAnimator callee) {
+      tgx101TextSwap = factor;
+      if (headerView != null) invalidateOngoingBar();
+    }
+
+    @Override
+    public void onFactorChangeFinished (int id, float finalFactor, FactorAnimator callee) {
+      if (finalFactor == 1f) {
+        tgx101OldTitle = tgx101OldSubtitle = null;
+      }
+    }
+  }, AnimatorUtils.DECELERATE_INTERPOLATOR, 220L);
+
   private void setText (String title, String text, int textPadding) {
     boolean changed = lastTextPadding != 0 && lastTextPadding != textPadding;
+    final boolean renamed = !StringUtils.equalsOrBothEmpty(this.title, title) || !StringUtils.equalsOrBothEmpty(this.subtitle, text);
+    if (renamed && headerView != null && isCurrentSection(SECTION_AUDIO) && hasVisibleOngoingBar() && (trimmedTitle != null || trimmedSubtitle != null)) {
+      tgx101OldTitle = trimmedTitle;
+      tgx101OldSubtitle = trimmedSubtitle;
+      tgx101TextSwap = 0f;
+      tgx101TextSwapAnimator.forceFactor(0f);
+      tgx101TextSwapAnimator.animateTo(1f);
+    }
     if (!StringUtils.equalsOrBothEmpty(this.title, title)) {
       this.title = title;
       changed = true;
@@ -1349,8 +1421,146 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     }
   }
 
+  // (user 2026-11-04, player mockup) the music's bar: a swipe up opens the player, a swipe to a side follows the finger and closes
+  private static final int TGX101_SWIPE_NONE = 0, TGX101_SWIPE_WATCHING = 1, TGX101_SWIPE_OPENED = 2, TGX101_SWIPE_SIDE = 3;
+  private int tgx101SwipeMode;
+  private float tgx101SwipeX, tgx101SwipeY, tgx101SwipeDx;
+  private android.view.VelocityTracker tgx101SwipeVelocity;
+  private FactorAnimator tgx101SwipeAnimator;
+  private boolean tgx101SwipeCloses;
+
+  private void tgx101SetSwipeDx (float dx) {
+    if (tgx101SwipeDx != dx) {
+      tgx101SwipeDx = dx;
+      invalidateOngoingBar();
+    }
+  }
+
+  private void tgx101CancelClicks (MotionEvent e) {
+    MotionEvent cancel = MotionEvent.obtain(e);
+    cancel.setAction(MotionEvent.ACTION_CANCEL);
+    helper.onTouchEvent(headerView, cancel);
+    cancel.recycle();
+  }
+
+  /** The bar is back in its place for what comes next: the voice message's ✕ brings the music */
+  private void tgx101ResetSwipe () {
+    if (tgx101SwipeAnimator != null) {
+      tgx101SwipeAnimator.cancel();
+    }
+    tgx101SwipeCloses = false;
+    tgx101SwipeDx = 0f;
+  }
+
+  private void tgx101AnimateSwipeTo (float toDx, boolean closes, float velocity) {
+    if (tgx101SwipeAnimator == null) {
+      tgx101SwipeAnimator = new FactorAnimator(0, new FactorAnimator.Target() {
+        @Override
+        public void onFactorChanged (int id, float factor, float fraction, FactorAnimator callee) {
+          tgx101SetSwipeDx(tgx101SwipeFrom + (tgx101SwipeTo - tgx101SwipeFrom) * factor);
+        }
+
+        @Override
+        public void onFactorChangeFinished (int id, float finalFactor, FactorAnimator callee) {
+          if (finalFactor == 1f && tgx101SwipeCloses) {
+            tgx101SwipeCloses = false;
+            UI.hapticVibrate(headerView, false);
+            TdlibManager.instance().player().stopPlayback(true);
+          }
+        }
+      }, AnimatorUtils.DECELERATE_INTERPOLATOR, 180L);
+    }
+    tgx101SwipeFrom = tgx101SwipeDx;
+    tgx101SwipeTo = toDx;
+    tgx101SwipeCloses = closes;
+    tgx101SwipeAnimator.setDuration(closes && Math.abs(velocity) > Screen.dp(800f) ? 120L : 180L);
+    tgx101SwipeAnimator.forceFactor(0f);
+    tgx101SwipeAnimator.animateTo(1f);
+  }
+
+  private float tgx101SwipeFrom, tgx101SwipeTo;
+
   public boolean onTouchEvent (MotionEvent e) {
-    return helper != null && helper.onTouchEvent(headerView, e);
+    if (helper == null) {
+      return false;
+    }
+    switch (e.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN: {
+        tgx101SwipeMode = TGX101_SWIPE_NONE;
+        if (isCurrentSection(SECTION_AUDIO) && !BitwiseUtils.hasFlag(ongoingSections, SECTION_CALL) && needClickAt(headerView, e.getX(), e.getY()) && playbackSpeedLayout == null && !tgx101SwipeCloses) {
+          tgx101SwipeMode = TGX101_SWIPE_WATCHING;
+          tgx101SwipeX = e.getX();
+          tgx101SwipeY = e.getY();
+          if (tgx101SwipeVelocity == null) {
+            tgx101SwipeVelocity = android.view.VelocityTracker.obtain();
+          } else {
+            tgx101SwipeVelocity.clear();
+          }
+          tgx101SwipeVelocity.addMovement(e);
+          if (headerView.getParent() != null) {
+            headerView.getParent().requestDisallowInterceptTouchEvent(true); // or «back» takes the side swipe
+          }
+        }
+        break;
+      }
+      case MotionEvent.ACTION_MOVE: {
+        if (tgx101SwipeMode == TGX101_SWIPE_WATCHING || tgx101SwipeMode == TGX101_SWIPE_SIDE) {
+          tgx101SwipeVelocity.addMovement(e);
+        }
+        if (tgx101SwipeMode == TGX101_SWIPE_WATCHING) {
+          final float dx = e.getX() - tgx101SwipeX, dy = e.getY() - tgx101SwipeY;
+          final float slop = ViewConfiguration.get(headerView.getContext()).getScaledTouchSlop() * 1.5f;
+          if (helper.inLongPress() || playbackSpeedLayout != null) {
+            tgx101SwipeMode = TGX101_SWIPE_NONE;
+          } else if (Math.hypot(dx, dy) > slop) {
+            if (Math.abs(dx) > Math.abs(dy)) {
+              tgx101SwipeMode = TGX101_SWIPE_SIDE;
+              tgx101SwipeX = e.getX(); // no jump: it goes from here
+              tgx101CancelClicks(e);
+            } else if (dy < 0 && tgx101ShowsNext()) {
+              tgx101SwipeMode = TGX101_SWIPE_OPENED;
+              tgx101CancelClicks(e);
+              openPlayer();
+            } else {
+              tgx101SwipeMode = TGX101_SWIPE_NONE; // down over the speed: its picker, as it was
+            }
+          }
+        }
+        if (tgx101SwipeMode == TGX101_SWIPE_SIDE) {
+          tgx101SetSwipeDx(e.getX() - tgx101SwipeX);
+          return true;
+        }
+        if (tgx101SwipeMode == TGX101_SWIPE_OPENED) {
+          return true;
+        }
+        break;
+      }
+      case MotionEvent.ACTION_UP:
+      case MotionEvent.ACTION_CANCEL: {
+        final int mode = tgx101SwipeMode;
+        tgx101SwipeMode = TGX101_SWIPE_NONE;
+        if (mode == TGX101_SWIPE_SIDE) {
+          float velocity = 0f;
+          if (e.getActionMasked() == MotionEvent.ACTION_UP) {
+            tgx101SwipeVelocity.addMovement(e);
+            tgx101SwipeVelocity.computeCurrentVelocity(1000);
+            velocity = tgx101SwipeVelocity.getXVelocity();
+          }
+          final boolean flung = Math.abs(velocity) > Screen.dp(500f) && Math.signum(velocity) == Math.signum(tgx101SwipeDx);
+          if (e.getActionMasked() == MotionEvent.ACTION_UP && (flung || Math.abs(tgx101SwipeDx) > width * .35f)) {
+            tgx101AnimateSwipeTo(Math.signum(tgx101SwipeDx) * width, true, velocity);
+          } else {
+            tgx101AnimateSwipeTo(0f, false, 0f);
+          }
+          return true;
+        }
+        if (mode == TGX101_SWIPE_OPENED) {
+          return true;
+        }
+        break;
+      }
+    }
+    return helper.onTouchEvent(headerView, e);
   }
 
   @Override

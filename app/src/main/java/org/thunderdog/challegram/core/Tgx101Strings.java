@@ -1147,6 +1147,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101BirdSearch, "Поиск");
     RU.put(R.string.Tgx101BirdNextAccount, "Следующий аккаунт");
     RU.put(R.string.Tgx101BirdNote, "Заметка");
+    RU.put(R.string.Tgx101BirdPlayer, "Плеер");
+    RU.put(R.string.Tgx101BirdPlayerNone, "Сейчас ничего не играет");
     RU.put(R.string.Tgx101BirdMenu, "Боковое меню");
     RU.put(R.string.Tgx101BirdNight, "Ночь / день");
     RU.put(R.string.Tgx101BirdDay, "День");
@@ -1730,6 +1732,19 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101QuoteShare, "Цитатой в…");
     RU.put(R.string.Tgx101RoundRememberCamera, "Кружки — начинать с камеры прошлого кружка");
     RU.put(R.string.Tgx101LikeUnavailable, "В этом чате реакции выключены");
+    RU.put(R.string.Tgx101PlayerNext, "Дальше: %1$s");
+    RU.put(R.string.Tgx101PlayerQueue, "Очередь");
+    RU.put(R.string.Tgx101PlayerSave, "Сохранить в Хранилище");
+    RU.put(R.string.Tgx101PlayerMusicFolder, "Музыка");
+    RU.put(R.string.Tgx101PlayerUnsaved, "Убрано из Хранилища");
+    RU.put(R.string.Tgx101PlayerSearch, "Поиск по очереди");
+    RU.put(R.string.Tgx101PlayerNothing, "Ничего не найдено");
+    RU.put(R.string.Tgx101PlayerInfo, "Сведения о файле");
+    RU.put(R.string.Tgx101PlayerInfoFormat, "Формат");
+    RU.put(R.string.Tgx101PlayerInfoLength, "Длина");
+    RU.put(R.string.Tgx101PlayerInfoSize, "Размер");
+    RU.put(R.string.Tgx101PlayerInfoBitrate, "Битрейт");
+    RU.put(R.string.Tgx101PlayerInfoKbps, "≈ %1$d кбит/с");
     RU.put(R.string.Tgx101SavedRememberChat, "Запомнить для этого чата");
     RU.put(R.string.Tgx101SavedRuleApplied, "Для этого чата: %1$s");
     RU.put(R.string.Tgx101FontSample, "Съешь ещё этих мягких булок 123");

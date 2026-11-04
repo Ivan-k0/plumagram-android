@@ -3874,8 +3874,8 @@ public class Settings {
   public boolean tgx101Bird () { return pmc.getBoolean(KEY_TGX101_BIRD, true); }
   public void setTgx101Bird (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD, v); }
   public int tgx101BirdRing () { return pmc.getInt(KEY_TGX101_BIRD_RING, TGX101_BIRD_RING_NEW_INSTALL); }
-  // storage, calls, settings, note, night, peek, «Газета» (the bits are Tgx101Bird.ACTION_*)
-  private static final int TGX101_BIRD_RING_NEW_INSTALL = 1 | 1 << 3 | 1 << 4 | 1 << 8 | 1 << 10 | 1 << 11 | 1 << 12;
+  // storage, calls, settings, player (user 2026-11-05: in place of the note), night, peek, «Газета» (the bits are Tgx101Bird.ACTION_*)
+  private static final int TGX101_BIRD_RING_NEW_INSTALL = 1 | 1 << 3 | 1 << 4 | 1 << 13 | 1 << 10 | 1 << 11 | 1 << 12;
   public void setTgx101BirdRing (int mask) { pmc.putInt(KEY_TGX101_BIRD_RING, mask); }
   public int tgx101BirdPlace (boolean landscape) { return pmc.getInt(landscape ? KEY_TGX101_BIRD_PLACE_LAND : KEY_TGX101_BIRD_PLACE, 6200); }
   public void setTgx101BirdPlace (boolean landscape, int value) { pmc.putInt(landscape ? KEY_TGX101_BIRD_PLACE_LAND : KEY_TGX101_BIRD_PLACE, value); }
@@ -3931,6 +3931,11 @@ public class Settings {
       // «Газета» (user 2026-10-27): while «Contacts» keep their tab, it opens from the «Settings» hold
       mask |= 1 << 7;
       pmc.edit().putInt(KEY_TGX101_CAPSULE_MENU, mask).putBoolean("tgx101_capsule_menu_gazeta", true).apply();
+    }
+    if (!pmc.getBoolean("tgx101_capsule_menu_player", false)) {
+      // (user 2026-11-05 «плеер … по удержанию (настройки в нижнем меню)»): joins once; it can be taken off there like the others
+      mask |= 1 << 8;
+      pmc.edit().putInt(KEY_TGX101_CAPSULE_MENU, mask).putBoolean("tgx101_capsule_menu_player", true).apply();
     }
     return mask;
   }
@@ -4497,6 +4502,52 @@ public class Settings {
   }
 
   /** TGx101 player: a sideways swipe on a video goes to the next / previous media */
+  /** TGx101 music player: the time on the right shows the whole length instead of what is left */
+  public boolean tgx101PlayerShowsTotal () {
+    return pmc.getBoolean("tgx101_player_shows_total", false);
+  }
+
+  public void setTgx101PlayerShowsTotal (boolean value) {
+    pmc.putBoolean("tgx101_player_shows_total", value);
+  }
+
+  /** TGx101 music player: the last music, for the bird's «Player» when nothing plays */
+  public @androidx.annotation.Nullable String tgx101LastMusic () {
+    return pmc.getString("tgx101_last_music", null);
+  }
+
+  public void setTgx101LastMusic (@androidx.annotation.Nullable String value) {
+    if (value == null) {
+      pmc.remove("tgx101_last_music");
+    } else {
+      pmc.putString("tgx101_last_music", value);
+    }
+  }
+
+  public long tgx101LastMusicPosition () {
+    return pmc.getLong("tgx101_last_music_position", 0L);
+  }
+
+  public void setTgx101LastMusicPosition (long position) {
+    pmc.putLong("tgx101_last_music_position", position);
+  }
+
+  /** TGx101 music player: music's own speed; it starts from the speed set so far, then the two never touch */
+  public int tgx101MusicSpeed () {
+    int speed = pmc.getInt("tgx101_music_speed", 0);
+    if (speed <= 0) {
+      speed = getPlaybackSpeed();
+      pmc.putInt("tgx101_music_speed", speed);
+    }
+    return PlaybackSpeedLayout.normalizeSpeed(speed);
+  }
+
+  public void setTgx101MusicSpeed (int speed) {
+    if (speed <= 0)
+      throw new IllegalArgumentException(Integer.toString(speed));
+    pmc.putInt("tgx101_music_speed", speed);
+  }
+
   public boolean tgx101PlayerSwipePaging () {
     return pmc.getBoolean(KEY_TGX101_PLAYER_SWIPE_PAGING, true);
   }
