@@ -526,11 +526,10 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     String key = text + '\u0000' + maxWidth + '\u0000' + getTextStyleProvider().getTextSizeInPixels();
     if (tgx101Text != null && key.equals(tgx101TextKey)) return;
     tgx101TextKey = key;
-    // (user 2026-11-04 14:31 «выделение плохо видно, сделай вид текста как при голосовых, без фона»): the same italic text
+    // (user 2026-11-04 14:31 «выделение плохо видно, сделай вид текста как при голосовых, без фона»): the same text
     // straight on the bubble and the same one width as a voice message, whatever the length of the text
     int textWidth = Math.max(Screen.dp(120f), Math.min(maxWidth, Screen.dp(TM_WIDTH)));
-    TdApi.FormattedText formatted = new TdApi.FormattedText(text, new TdApi.TextEntity[] {new TdApi.TextEntity(0, text.length(), new TdApi.TextEntityTypeItalic())});
-    tgx101Text = new org.thunderdog.challegram.util.text.Text.Builder(tdlib, formatted, null, textWidth, getTextStyleProvider(), getTextColorSet(), null).build();
+    tgx101Text = new org.thunderdog.challegram.util.text.Text.Builder(text, textWidth, getTextStyleProvider(), getTextColorSet()).build();
     tgx101TextW = textWidth;
     tgx101TextH = Screen.dp(TM_MINI) + Screen.dp(TM_GAP) + tgx101Text.getHeight();
   }
@@ -586,11 +585,12 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     int a = Screen.dp(TM_A);
     float ax = x + tgx101TextW - a, ay = cy - a / 2f;
     tgx101ARect.set(ax, ay, ax + a, ay + a);
-    // as on a voice message with its text shown: filled in the wave's colour
+    // as on a voice message with its text shown: a light plate, the arrow that folds the text back
     boolean outgoing = isOutgoingBubble();
-    c.drawRoundRect(tgx101ARect, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(Theme.getColor(outgoing ? ColorId.bubbleOut_waveformActive : ColorId.waveformActive)));
-    android.text.TextPaint aPaint = Paints.getBoldPaint14(false, Theme.getColor(outgoing ? ColorId.bubbleOut_background : (useBubbles() ? ColorId.bubbleIn_background : ColorId.filling)));
-    c.drawText("A", tgx101ARect.centerX() - aPaint.measureText("A") / 2f, tgx101ARect.centerY() + Screen.dp(5f), aPaint);
+    int active = Theme.getColor(outgoing ? ColorId.bubbleOut_waveformActive : ColorId.waveformActive);
+    c.drawRoundRect(tgx101ARect, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(ColorUtils.alphaColor(Theme.isDark() ? .3f : .18f, active)));
+    android.graphics.drawable.Drawable foldArrow = org.thunderdog.challegram.tool.Drawables.get(R.drawable.baseline_keyboard_arrow_up_24);
+    org.thunderdog.challegram.tool.Drawables.draw(c, foldArrow, tgx101ARect.centerX() - foldArrow.getMinimumWidth() / 2f, tgx101ARect.centerY() - foldArrow.getMinimumHeight() / 2f, Paints.getPorterDuffPaint(ColorUtils.fromToArgb(active, getTextColor(), .65f)));
 
     android.text.TextPaint titlePaint = Paints.getMediumTextPaint(13f, getTextColor(), false);
     float tx = x + mini + Screen.dp(9f);
@@ -644,7 +644,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   // TGx101: "A" button on the round video starts the background transcription; when it's ready, the
   // text opens in a window (the round video player covers the whole content area, so no text under it)
 
-  private static final float TRANSCRIBE_BUTTON_RADIUS = 13f;
+  private static final float TRANSCRIBE_BUTTON_RADIUS = 16f;
 
   // TGx101 (user 2026-10-19 «как включить звук, но так чтобы не раскрывался кружок»): a tap on the 🔇 mark plays the
   // circle with sound where it is, small; a tap anywhere else plays it the usual way, enlarged
@@ -958,14 +958,16 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     // TGx101: "A" transcription button at the top right of the circle (the bottom has the duration, the
     // sound icon and, on outgoing ones, the time), hidden while the video plays full size
     if (!TD.isSelfDestructTypeImmediately(getMessage())) {
+      // (user 2026-11-04 14:42, video «так же должно быть и у нас»): outside the circle, level with its bottom, on its free side
       float circleRadius = receiver.getWidth() / 2f;
-      transcribeButtonX = centerX + circleRadius * 0.72f;
-      transcribeButtonY = receiver.centerY() - circleRadius * 0.72f;
+      float buttonRadius = Screen.dp(TRANSCRIBE_BUTTON_RADIUS);
+      boolean buttonOnLeft = isOutgoingBubble();
+      transcribeButtonX = centerX + (buttonOnLeft ? -1 : 1) * (circleRadius + Screen.dp(6f) + buttonRadius);
+      transcribeButtonY = receiver.centerY() + circleRadius - buttonRadius;
       Tgx101Transcription.Result result = Tgx101Transcription.get(tdlib, msg);
-      boolean shown = result != null && result.state == Tgx101Transcription.STATE_DONE;
-      c.drawCircle(transcribeButtonX, transcribeButtonY, Screen.dp(TRANSCRIBE_BUTTON_RADIUS), Paints.fillingPaint(shown ? 0xf0ffffff : (useBubbles() ? getBubbleTimeColor() : 0x80000000)));
-      String label = result != null && result.state == Tgx101Transcription.STATE_PENDING ? "…" : "A";
-      android.text.TextPaint labelPaint = Paints.getBoldPaint14(false, shown ? 0xff222222 : 0xffffffff);
+      c.drawCircle(transcribeButtonX, transcribeButtonY, buttonRadius, Paints.fillingPaint(Theme.getColor(isOutgoingBubble() ? ColorId.bubbleOut_waveformActive : ColorId.waveformActive)));
+      String label = result != null && result.state == Tgx101Transcription.STATE_PENDING ? "…" : "→A";
+      android.text.TextPaint labelPaint = Paints.getBoldPaint14(false, 0xffffffff);
       c.drawText(label, transcribeButtonX - labelPaint.measureText(label) / 2f, transcribeButtonY + Screen.dp(5f), labelPaint);
     } else {
       transcribeButtonX = transcribeButtonY = 0;

@@ -734,7 +734,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
   // TGx101: "A" button next to a voice message, starts the background transcription or hides/shows it
 
-  private static final float TRANSCRIBE_BUTTON_SIZE = 30f, TRANSCRIBE_BUTTON_HEIGHT = 28f; // a rounded square, like Telegram Web
+  private static final float TRANSCRIBE_BUTTON_SIZE = 34f, TRANSCRIBE_BUTTON_HEIGHT = 28f; // a rounded square, like Telegram Web
   private boolean transcribeCaught;
 
   /** TGx101 (user 2026-10-06, variant 2): a voice message in two even rows — the waveform on top, the duration (and
@@ -803,6 +803,8 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     }
   }
 
+  private me.vkryl.android.animator.BoolAnimator tgx101ShownAnimator;
+
   private void drawTranscribeButton (Canvas c, float cx, float cy, boolean outgoing, float alpha) {
     Tgx101Transcription.Result result = Tgx101Transcription.get(context.tdlib(), message);
     boolean shown = result != null && !result.collapsed && result.state != Tgx101Transcription.STATE_ERROR;
@@ -812,16 +814,30 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     // user 2026-10-06 18:46 «кнопка перевод в текст не читается» (dark themes: inactive ≈ active) — a light tint of the
     // waveform colour under a full-colour «A», like the bars themselves on the bubble
     // user 2026-10-07 (mockup «Голосовое-как-Web» А, «в кнопке расшифровки убери стрелку»): a rounded square with a lone «A»
+    // (user 2026-11-04 14:42, video «так же должно быть и у нас»): one light plate all the time; «→A» turns into the arrow that
+    // folds the text back while it is shown
     android.graphics.RectF r = Paints.getRectF();
     r.set(cx - halfW, cy - halfH, cx + halfW, cy + halfH);
-    c.drawRoundRect(r, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(ColorUtils.alphaColor(alpha * (shown ? 1f : (Theme.isDark() ? .3f : .18f)), active)));
-    String label = result != null && result.state == Tgx101Transcription.STATE_PENDING ? "…" : "A";
-    // user 2026-10-07 20:16 «буквы А нужно слегка выделить, не читаются»: the letter leans towards the message text colour
+    c.drawRoundRect(r, Screen.dp(8f), Screen.dp(8f), Paints.fillingPaint(ColorUtils.alphaColor(alpha * (Theme.isDark() ? .3f : .18f), active)));
+    if (tgx101ShownAnimator == null) {
+      tgx101ShownAnimator = new me.vkryl.android.animator.BoolAnimator(0, (id, factor, fraction, callee) -> context.invalidate(), AnimatorUtils.DECELERATE_INTERPOLATOR, 180L, shown);
+    }
+    tgx101ShownAnimator.setValue(shown, context.needAnimateChanges());
+    float shownFactor = tgx101ShownAnimator.getFloatValue();
     int textColor = Theme.getColor(outgoing ? ColorId.bubbleOut_text : (context.useBubbles() ? ColorId.bubbleIn_text : ColorId.text));
     int letter = ColorUtils.fromToArgb(active, textColor, .65f);
-    android.text.TextPaint paint = Paints.getBoldPaint15(false, ColorUtils.alphaColor(alpha, shown ? Theme.getColor(outgoing ? ColorId.bubbleOut_background : (context.useBubbles() ? ColorId.bubbleIn_background : ColorId.filling)) : letter));
-    float textWidth = paint.measureText(label);
-    c.drawText(label, cx - textWidth / 2f, cy + Screen.dp(5.5f), paint);
+    if (shownFactor < 1f) {
+      String label = result != null && result.state == Tgx101Transcription.STATE_PENDING ? "…" : "→A";
+      android.text.TextPaint paint = Paints.getBoldPaint14(false, ColorUtils.alphaColor(alpha * (1f - shownFactor), letter));
+      c.drawText(label, cx - paint.measureText(label) / 2f, cy + Screen.dp(5f), paint);
+    }
+    if (shownFactor > 0f) {
+      android.graphics.drawable.Drawable arrow = org.thunderdog.challegram.tool.Drawables.get(R.drawable.baseline_keyboard_arrow_up_24);
+      android.graphics.Paint arrowPaint = Paints.getPorterDuffPaint(letter);
+      arrowPaint.setAlpha((int) (255 * alpha * shownFactor));
+      org.thunderdog.challegram.tool.Drawables.draw(c, arrow, cx - arrow.getMinimumWidth() / 2f, cy - arrow.getMinimumHeight() / 2f, arrowPaint);
+      arrowPaint.setAlpha(255);
+    }
   }
 
   // private static final boolean USE_ROUND_SMOOTHING = false;

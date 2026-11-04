@@ -150,7 +150,7 @@ public final class Tgx101Transcription {
       default:
         return null;
     }
-    return new TdApi.FormattedText(text, new TdApi.TextEntity[] {new TdApi.TextEntity(0, text.length(), new TdApi.TextEntityTypeItalic())});
+    return new TdApi.FormattedText(text, new TdApi.TextEntity[0]); // plain, as the message's own text (user 2026-11-04 14:42)
   }
 
   /** Finished transcription text, or null. */
