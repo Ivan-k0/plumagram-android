@@ -1580,6 +1580,13 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     if (keyboard) {
       Tgx101Diag.mark("keyboard: comes back");
       tgx101ExpectKeyboardUntil = android.os.SystemClock.uptimeMillis() + 1500;
+    } else if (!org.thunderdog.challegram.unsorted.Passcode.instance().isEnabled()) {
+      // (user 2026-11-04, video 17:36 «откуда у нас клавиатура с вотсапа?»; 14 of 194 returns in the log): stateUnchanged, which brings our
+      // own keyboard back, brought another app's too — over the chat list. It wasn't open when we left: this return it stays hidden
+      // (with a passcode its own screen may be asking for the keyboard, that one isn't touched)
+      tgx101SavedSoftInput = getWindow().getAttributes().softInputMode;
+      getWindow().setSoftInputMode((tgx101SavedSoftInput & ~android.view.WindowManager.LayoutParams.SOFT_INPUT_MASK_STATE) | android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+      tgx101HideKeyboardOnFocus = true;
     }
   }
 
@@ -1627,15 +1634,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       tgx101HideKeyboardOnFocus = false;
       final int saved = tgx101SavedSoftInput;
       getWindow().getDecorView().postDelayed(() -> getWindow().setSoftInputMode(saved), 800);
-      Runnable hide = () -> {
-        View focus = getCurrentFocus();
-        android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-        if (imm != null) imm.hideSoftInputFromWindow((focus != null ? focus : getWindow().getDecorView()).getWindowToken(), 0);
-      };
-      org.thunderdog.challegram.Tgx101Diag.mark("keyboard: hidden after lock");
-      getWindow().getDecorView().post(hide);
-      getWindow().getDecorView().postDelayed(hide, 300);
-      getWindow().getDecorView().postDelayed(hide, 700);
+      Tgx101Diag.mark("keyboard: another app's stays hidden on return");
     }
   }
 
