@@ -1099,31 +1099,12 @@ public class MediaCellView extends ViewGroup implements
         clipVertical + clipTop / scale,
         clipHorizontal + clipRight / scale,
         clipVertical + clipBottom / scale,
-        Math.max(radius, tgx101CornerRadius(thumb, thumb.topLeftRadius, revealFactor) * tgx101CornerScale(thumb, width)) / scale,
-        Math.max(radius, tgx101CornerRadius(thumb, thumb.topRightRadius, revealFactor) * tgx101CornerScale(thumb, width)) / scale,
-        Math.max(radius, tgx101CornerRadius(thumb, thumb.bottomRightRadius, revealFactor) * tgx101CornerScale(thumb, width)) / scale,
-        Math.max(radius, tgx101CornerRadius(thumb, thumb.bottomLeftRadius, revealFactor) * tgx101CornerScale(thumb, width)) / scale
+        Math.max(radius, thumb.topLeftRadius * clipFactor) / scale,
+        Math.max(radius, thumb.topRightRadius * clipFactor) / scale,
+        Math.max(radius, thumb.bottomRightRadius * clipFactor) / scale,
+        Math.max(radius, thumb.bottomLeftRadius * clipFactor) / scale
       );
     }
-  }
-
-  /**
-   * (user 2026-11-04 15:53, recorded: corners went sharp in the first frames of opening): the reveal decelerates — half of it is
-   * there in a few frames, and the corners followed it. They stay round through the flight and square only as it lands.
-   * (16:03 «не все углы ровные»: the corner away from the bubble's tail has a small radius in the post and showed sharp): each corner
-   * starts as it is in the post and at once takes the biggest one — the four are even in flight
-   */
-  private static float tgx101CornerRadius (MediaViewThumbLocation thumb, float own, float revealFactor) {
-    float f = MathUtils.clamp(revealFactor);
-    float even = Math.max(thumb.getRadius(), Math.max(Math.max(thumb.topLeftRadius, thumb.topRightRadius), Math.max(thumb.bottomRightRadius, thumb.bottomLeftRadius)));
-    float start = Math.max(thumb.getRadius(), own);
-    float f2 = f * f, f4 = f2 * f2;
-    return (start + (even - start) * MathUtils.clamp(f / .15f)) * (1f - f4 * f4); // square only in the last frames of the landing
-  }
-
-  private static float tgx101CornerScale (MediaViewThumbLocation thumb, float pictureWidth) {
-    int thumbWidth = thumb.width();
-    return thumbWidth > 0 ? MathUtils.clamp(pictureWidth / thumbWidth, 1f, 3f) : 1f;
   }
 
   public Receiver getReceiver () {
@@ -2019,10 +2000,10 @@ public class MediaCellView extends ViewGroup implements
         c.save();
         c.clipRect(receiver.getLeft() + clipLeft, receiver.getTop() + clipTop, receiver.getRight() - clipRight, receiver.getBottom() - clipBottom);
 
-        float topLeftRadius = tgx101CornerRadius(thumb, thumb.topLeftRadius, clipFactor);
-        float topRightRadius = tgx101CornerRadius(thumb, thumb.topRightRadius, clipFactor);
-        float bottomRightRadius = tgx101CornerRadius(thumb, thumb.bottomRightRadius, clipFactor);
-        float bottomLeftRadius = tgx101CornerRadius(thumb, thumb.bottomLeftRadius, clipFactor);
+        float topLeftRadius = Math.max(thumb.getRadius(), thumb.topLeftRadius) * (1f - clipFactor);
+        float topRightRadius = Math.max(thumb.getRadius(), thumb.topRightRadius) * (1f - clipFactor);
+        float bottomRightRadius = Math.max(thumb.getRadius(), thumb.bottomRightRadius) * (1f - clipFactor);
+        float bottomLeftRadius = Math.max(thumb.getRadius(), thumb.bottomLeftRadius) * (1f - clipFactor);
 
         if (topLeftRadius != 0 || topRightRadius != 0 || bottomLeftRadius != 0 || bottomRightRadius != 0) {
           clipPath.reset();
@@ -2047,10 +2028,7 @@ public class MediaCellView extends ViewGroup implements
           rectF.set(receiver.centerX() - clipWidth / 2f, receiver.centerY() - clipHeight / 2f, receiver.centerX() + clipWidth / 2f, receiver.centerY() + clipHeight / 2f);
           // TGx101: round the corners of the visible frame, not of the whole photo that sticks out under the clip
           rectF.intersect(receiver.getLeft() + clipLeft, receiver.getTop() + clipTop, receiver.getRight() - clipRight, receiver.getBottom() - clipBottom);
-          // (user 2026-11-04 16:10 «углы по прежнему заостряются»): the same radius on a picture 2–3 times bigger looks sharp —
-          // the corners grow with the picture
-          float cornerScale = tgx101CornerScale(thumb, rectF.width());
-          DrawAlgorithms.buildPath(clipPath, rectF, topLeftRadius * cornerScale, topRightRadius * cornerScale, bottomRightRadius * cornerScale, bottomLeftRadius * cornerScale);
+          DrawAlgorithms.buildPath(clipPath, rectF, topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius);
           savedRoundedClip = ViewSupport.clipPath(c, clipPath);
         }
       }
