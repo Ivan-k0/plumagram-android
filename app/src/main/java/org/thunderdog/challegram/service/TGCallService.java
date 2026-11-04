@@ -279,6 +279,8 @@ public class TGCallService extends Service implements
         // TGx101: a volume key (with the app in the background) mutes a ringing incoming call
         if (tgx101IsRingingIncoming()) {
           silenceRinging();
+        } else if (tgx101IsRingbackPlaying()) {
+          tgx101MuteRingback();
         }
         return;
       }
@@ -1579,7 +1581,22 @@ public class TGCallService extends Service implements
     return PendingIntent.getBroadcast(this, 2, intent, PendingIntent.FLAG_UPDATE_CURRENT | Intents.mutabilityFlags(false));
   }
 
+  // TGx101 (user 2026-11-04 11:15 «во время звонка звук мелодии должен отключаться по нажатию на кнопку громкости», after an
+  // outgoing call): a volume key mutes the tone while the other side is being rung, too
+  private boolean tgx101RingbackMuted;
+
+  public boolean tgx101IsRingbackPlaying () {
+    return call != null && call.isOutgoing && !tgx101RingbackMuted && TD.getCallStateSound(call) == R.raw.voip_ringback;
+  }
+
+  public void tgx101MuteRingback () {
+    tgx101RingbackMuted = true;
+    soundPoolMap.stopLastSound();
+    org.thunderdog.challegram.Tgx101Diag.mark("call: ringback muted by a volume key");
+  }
+
   public void silenceRinging () {
+    org.thunderdog.challegram.Tgx101Diag.mark("call: ringing silenced");
     if (ringtonePlayer != null) {
       try {
         ringtonePlayer.stop();
@@ -1616,6 +1633,7 @@ public class TGCallService extends Service implements
       setIsRinging(true);
     } else {
       callSound = call != null ? TD.getCallStateSound(call) : 0;
+      if (callSound == R.raw.voip_ringback && tgx101RingbackMuted) callSound = 0;
       setIsRinging(false);
     }
     if (callSound != 0) {

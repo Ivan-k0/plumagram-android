@@ -936,6 +936,10 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
         callService.silenceRinging();
         return true;
       }
+      if (callService != null && callService.tgx101IsRingbackPlaying()) {
+        callService.tgx101MuteRingback();
+        return true;
+      }
     }
     boolean handled = false;
     for (KeyEventListener listener : keyEventListeners) {
