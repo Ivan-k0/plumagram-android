@@ -68,6 +68,7 @@ public class ProximityManager implements Settings.RaiseToSpeakListener, SensorEv
     boolean hadObject = this.playbackObject != null;
     boolean hasObject = playbackObject != null;
     this.playbackObject = playbackObject;
+    if (hasObject) tgx101CheckRoute(playbackObject);
     if (hadObject != hasObject) {
       if (hasObject) {
         Settings.instance().addRaiseToSpeakListener(this);
@@ -249,6 +250,36 @@ public class ProximityManager implements Settings.RaiseToSpeakListener, SensorEv
       Log.e("Unable to unregister receiver");
     }
     return true;
+  }
+
+  /**
+   * (group 2026-11-04 11:31 «кружки через внутренний динамик, пока не включил голосовое»): the log couldn't tell where the
+   * sound went. Every voice or round message logs the phone's audio state; a call mode nobody holds any more (no call here,
+   * not at the ear) is put back — in it media goes to the earpiece.
+   */
+  private void tgx101CheckRoute (TdApi.Message message) {
+    AudioManager am = (AudioManager) AppContext.get().getSystemService(Context.AUDIO_SERVICE);
+    if (am == null) return;
+    int audioMode = am.getMode();
+    StringBuilder b = new StringBuilder("audio route: ").append(Td.isVideoNote(message.content) ? "round" : "voice")
+      .append(", mode ").append(audioMode).append(", speaker ").append(am.isSpeakerphoneOn())
+      .append(", earpiece asked ").append(playingThroughEarpiece);
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      try {
+        android.media.AudioAttributes media = new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA).build();
+        b.append(", media to");
+        for (android.media.AudioDeviceInfo device : am.getAudioDevicesForAttributes(media)) b.append(' ').append(device.getType());
+        android.media.AudioDeviceInfo communication = am.getCommunicationDevice();
+        b.append(", call device ").append(communication != null ? communication.getType() : -1);
+      } catch (Throwable ignored) { }
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark(b.toString());
+    if (audioMode == AudioManager.MODE_IN_COMMUNICATION && !playingThroughEarpiece
+      && org.thunderdog.challegram.service.TGCallService.currentInstance() == null
+      && org.thunderdog.challegram.voip.Tgx101GroupCall.current() == null) {
+      org.thunderdog.challegram.Tgx101Diag.mark("audio route: the call mode was left over — back to normal");
+      am.setMode(AudioManager.MODE_NORMAL);
+    }
   }
 
   private boolean forceEarpiece, isNearToProximitySensor, inRaiseMode;
