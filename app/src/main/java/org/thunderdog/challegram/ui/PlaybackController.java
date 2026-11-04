@@ -999,6 +999,8 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       e.setSingleLine(true);
       e.setHint(Lang.getString(R.string.Search));
       Tgx101SavedHomeController.styleField(e, true);
+      e.setGravity(android.view.Gravity.CENTER_VERTICAL);
+      e.setIncludeFontPadding(false); // the word in the middle of the field, whatever the font
       android.widget.LinearLayout.LayoutParams ep = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(48f));
       ep.setMargins(Screen.dp(16f), 0, Screen.dp(16f), Screen.dp(8f));
       body.addView(e, ep);

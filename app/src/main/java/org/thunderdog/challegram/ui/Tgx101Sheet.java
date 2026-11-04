@@ -76,7 +76,9 @@ public final class Tgx101Sheet {
     android.widget.ScrollView scroll = new android.widget.ScrollView(context) {
       @Override
       protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(maxBody, MeasureSpec.AT_MOST));
+        // (user 2026-11-05, screenshot of the queue search «окно уехало вверх»): over the keyboard only what is left of the screen
+        int room = MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.UNSPECIFIED ? maxBody : Math.min(maxBody, MeasureSpec.getSize(heightMeasureSpec));
+        super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(room, MeasureSpec.AT_MOST));
       }
     };
     scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -91,6 +93,8 @@ public final class Tgx101Sheet {
     FrameLayout.LayoutParams sheetParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
     sheetParams.leftMargin = sheetParams.rightMargin = sheetParams.bottomMargin = Screen.dp(8f);
     wrap.addView(sheet, sheetParams);
+    final int topRoom = org.thunderdog.challegram.navigation.HeaderView.getTopOffset() + Screen.dp(8f); // never under the status bar
+    wrap.setPadding(0, topRoom, 0, 0);
     wrap.setClickable(true);
     wrap.setOnClickListener(v -> popup.hideWindow(true)); // a tap outside only closes the sheet
     sheet.popup = popup;
@@ -132,7 +136,7 @@ public final class Tgx101Sheet {
         android.animation.ValueAnimator a = android.animation.ValueAnimator.ofInt(wrap.getPaddingBottom(), bottom);
         a.setDuration(200);
         a.setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f));
-        a.addUpdateListener(v -> wrap.setPadding(0, 0, 0, (int) v.getAnimatedValue()));
+        a.addUpdateListener(v -> wrap.setPadding(0, topRoom, 0, (int) v.getAnimatedValue()));
         imeAnimator[0] = a;
         a.start();
       }
