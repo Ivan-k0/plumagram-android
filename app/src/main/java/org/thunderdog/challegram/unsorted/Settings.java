@@ -2410,13 +2410,14 @@ public class Settings {
       pmc.putBoolean(marker6, true);
     }
     // the seventh (user 2026-11-04, screenshots 23:46–23:47: «вот так должно быть у новых пользователей»): the bird's ring of
-    // seven and the side menu of calls, settings, saved and «Газета»; those who have the app already keep what they have
+    // seven, its place and the side menu of calls, settings, saved and «Газета»; those who have the app already keep what they have
     final String marker7 = "tgx101_defaults_2026_11_04";
     if (!pmc.getBoolean(marker7, false)) {
       if (freshInstall) {
         pmc.putString("tgx101_bar_order_" + org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_DRAWER, org.thunderdog.challegram.ui.Tgx101BarOrder.DRAWER_NEW_INSTALL);
-      } else if (!pmc.contains(KEY_TGX101_BIRD_RING)) {
-        pmc.putInt(KEY_TGX101_BIRD_RING, 0x1F);
+      } else {
+        if (!pmc.contains(KEY_TGX101_BIRD_RING)) pmc.putInt(KEY_TGX101_BIRD_RING, 0x1F);
+        if (!pmc.contains(KEY_TGX101_BIRD_SPOT)) pmc.putInt(KEY_TGX101_BIRD_SPOT, 0);
       }
       pmc.putBoolean(marker7, true);
     }
@@ -3880,7 +3881,8 @@ public class Settings {
   public void setTgx101BirdPlace (boolean landscape, int value) { pmc.putInt(landscape ? KEY_TGX101_BIRD_PLACE_LAND : KEY_TGX101_BIRD_PLACE, value); }
   // (2026-10-21) where the bird stands, as side × (dp from the bottom + 1); 0 — the default place
   private static final String KEY_TGX101_BIRD_SPOT = "tgx101_bird_spot", KEY_TGX101_BIRD_SPOT_LAND = "tgx101_bird_spot_land";
-  public int tgx101BirdSpot (boolean landscape) { return pmc.getInt(landscape ? KEY_TGX101_BIRD_SPOT_LAND : KEY_TGX101_BIRD_SPOT, 0); }
+  // a new install: on the right, about a quarter of the way up (user 2026-11-04, screenshot 23:47); the value is dp from the bottom + 1
+  public int tgx101BirdSpot (boolean landscape) { return landscape ? pmc.getInt(KEY_TGX101_BIRD_SPOT_LAND, 0) : pmc.getInt(KEY_TGX101_BIRD_SPOT, 212); }
   public void setTgx101BirdSpot (boolean landscape, int value) { pmc.putInt(landscape ? KEY_TGX101_BIRD_SPOT_LAND : KEY_TGX101_BIRD_SPOT, value); }
   // (user 2026-10-26 «меню с доп. аккаунтами разворачивается и сворачивается стрелкой, позиция сохраняется»)
   private static final String KEY_TGX101_SETTINGS_ACCOUNTS_OPEN = "tgx101_settings_accounts_open";
