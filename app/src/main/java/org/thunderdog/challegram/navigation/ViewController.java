@@ -1079,6 +1079,11 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     return true;
   }
 
+  /** TGx101: the system's back gesture is this screen's own for now (one step inside it): no preview of the screen below, {@link #performOnBackPressed} when it ends */
+  public boolean tgx101TakesSystemBack () {
+    return false;
+  }
+
   /** TGx101: a back swipe here may go to the right at an angle (up to ~35°), not only straight */
   public boolean tgx101LenientBackSwipe () {
     return false;
