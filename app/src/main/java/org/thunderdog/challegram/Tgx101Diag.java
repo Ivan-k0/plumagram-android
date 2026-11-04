@@ -317,7 +317,7 @@ public final class Tgx101Diag {
   }
 
   private static final class MainFrames implements android.view.Choreographer.FrameCallback {
-    private static final long STALL_NS = 24_000_000L;
+    private static final long STALL_NS = 12_000_000L; // (user 2026-11-04: a 16 ms frame at +132 of closing the viewer showed no stack at 24 ms)
     private static final int MAX_FRAMES = 240;
     private static MainFrames current;
 

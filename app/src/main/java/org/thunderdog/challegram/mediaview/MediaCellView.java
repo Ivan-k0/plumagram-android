@@ -1099,21 +1099,25 @@ public class MediaCellView extends ViewGroup implements
         clipVertical + clipTop / scale,
         clipHorizontal + clipRight / scale,
         clipVertical + clipBottom / scale,
-        Math.max(radius, thumb.topLeftRadius * tgx101CornerFactor(revealFactor)) / scale,
-        Math.max(radius, thumb.topRightRadius * tgx101CornerFactor(revealFactor)) / scale,
-        Math.max(radius, thumb.bottomRightRadius * tgx101CornerFactor(revealFactor)) / scale,
-        Math.max(radius, thumb.bottomLeftRadius * tgx101CornerFactor(revealFactor)) / scale
+        Math.max(radius, tgx101CornerRadius(thumb, thumb.topLeftRadius, revealFactor)) / scale,
+        Math.max(radius, tgx101CornerRadius(thumb, thumb.topRightRadius, revealFactor)) / scale,
+        Math.max(radius, tgx101CornerRadius(thumb, thumb.bottomRightRadius, revealFactor)) / scale,
+        Math.max(radius, tgx101CornerRadius(thumb, thumb.bottomLeftRadius, revealFactor)) / scale
       );
     }
   }
 
   /**
    * (user 2026-11-04 15:53, recorded: corners went sharp in the first frames of opening): the reveal decelerates — half of it is
-   * there in a few frames, and the corners followed it. They stay round through the flight and square only as it lands
+   * there in a few frames, and the corners followed it. They stay round through the flight and square only as it lands.
+   * (16:03 «не все углы ровные»: the corner away from the bubble's tail has a small radius in the post and showed sharp): each corner
+   * starts as it is in the post and at once takes the biggest one — the four are even in flight
    */
-  private static float tgx101CornerFactor (float revealFactor) {
+  private static float tgx101CornerRadius (MediaViewThumbLocation thumb, float own, float revealFactor) {
     float f = MathUtils.clamp(revealFactor);
-    return 1f - f * f * f * f;
+    float even = Math.max(thumb.getRadius(), Math.max(Math.max(thumb.topLeftRadius, thumb.topRightRadius), Math.max(thumb.bottomRightRadius, thumb.bottomLeftRadius)));
+    float start = Math.max(thumb.getRadius(), own);
+    return (start + (even - start) * MathUtils.clamp(f / .15f)) * (1f - f * f * f * f);
   }
 
   public Receiver getReceiver () {
@@ -2009,11 +2013,10 @@ public class MediaCellView extends ViewGroup implements
         c.save();
         c.clipRect(receiver.getLeft() + clipLeft, receiver.getTop() + clipTop, receiver.getRight() - clipRight, receiver.getBottom() - clipBottom);
 
-        float cornerFactor = tgx101CornerFactor(clipFactor);
-        float topLeftRadius = Math.max(thumb.getRadius(), thumb.topLeftRadius) * cornerFactor;
-        float topRightRadius = Math.max(thumb.getRadius(), thumb.topRightRadius) * cornerFactor;
-        float bottomRightRadius = Math.max(thumb.getRadius(), thumb.bottomRightRadius) * cornerFactor;
-        float bottomLeftRadius = Math.max(thumb.getRadius(), thumb.bottomLeftRadius) * cornerFactor;
+        float topLeftRadius = tgx101CornerRadius(thumb, thumb.topLeftRadius, clipFactor);
+        float topRightRadius = tgx101CornerRadius(thumb, thumb.topRightRadius, clipFactor);
+        float bottomRightRadius = tgx101CornerRadius(thumb, thumb.bottomRightRadius, clipFactor);
+        float bottomLeftRadius = tgx101CornerRadius(thumb, thumb.bottomLeftRadius, clipFactor);
 
         if (topLeftRadius != 0 || topRightRadius != 0 || bottomLeftRadius != 0 || bottomRightRadius != 0) {
           clipPath.reset();
