@@ -78,6 +78,24 @@ public class SelectTextForQuoteDialog {
    * message's own text, so "Reply" answers the voice message and puts the selected fragment into the input
    * as a block quote; "Copy" copies the selection (or everything).
    */
+  /** A transcription isn't in the message, the server can't quote it: a reply, with the part as a quote in the field */
+  public static void replyWithTranscriptionPart (MessagesController controller, TGMessage message, String part) {
+    final String selected = part != null ? part.trim() : null;
+    TdApi.Message newestMessage = message.getNewestMessage();
+    message.getMessageProperties(newestMessage.id, properties -> {
+      if (properties == null) return;
+      controller.runOnUiThreadOptional(() -> {
+        controller.showReply(new MessageWithProperties(newestMessage, properties), null, 0, "", true, true);
+        if (selected != null && !selected.isEmpty()) {
+          String draft = selected + "\n";
+          controller.fillDraft(new TdApi.FormattedText(draft, new TdApi.TextEntity[] {
+            new TdApi.TextEntity(0, selected.length(), new TdApi.TextEntityTypeBlockQuote())
+          }), true);
+        }
+      });
+    });
+  }
+
   public static void showForTranscription (MessagesController controller, Tdlib tdlib, TGMessage message, String text) {
     if (controller == null || text == null || text.isEmpty()) {
       return;
@@ -103,21 +121,9 @@ public class SelectTextForQuoteDialog {
     });
     builder.setPositiveButton(Lang.getString(R.string.Reply), (dialog, which) -> {
       int start = textView.getSelectionStart(), end = textView.getSelectionEnd();
-      String selected = start >= 0 && end > start && end <= text.length() ? text.substring(start, end).trim() : null;
+      String selected = start >= 0 && end > start && end <= text.length() ? text.substring(start, end) : null;
       dialog.dismiss();
-      TdApi.Message newestMessage = message.getNewestMessage();
-      message.getMessageProperties(newestMessage.id, properties -> {
-        if (properties == null) return;
-        controller.runOnUiThreadOptional(() -> {
-          controller.showReply(new MessageWithProperties(newestMessage, properties), null, 0, "", true, true);
-          if (selected != null && !selected.isEmpty()) {
-            String draft = selected + "\n";
-            controller.fillDraft(new TdApi.FormattedText(draft, new TdApi.TextEntity[] {
-              new TdApi.TextEntity(0, selected.length(), new TdApi.TextEntityTypeBlockQuote())
-            }), true);
-          }
-        });
-      });
+      replyWithTranscriptionPart(controller, message, selected);
     });
     controller.showAlert(builder);
   }

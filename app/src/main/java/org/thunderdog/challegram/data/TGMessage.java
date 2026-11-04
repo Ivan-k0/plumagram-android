@@ -7281,6 +7281,16 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return getNewestMessage();
   }
 
+  /** TGx101: the full text behind tgx101SelectableText() */
+  public @Nullable TdApi.FormattedText tgx101SelectableFormatted () {
+    return Td.textOrCaption(tgx101SelectableMessage().content);
+  }
+
+  /** TGx101: tgx101SelectableText() holds a transcription: it isn't in the message, so the server can't quote it */
+  public boolean tgx101SelectableIsTranscription () {
+    return false;
+  }
+
   /** TGx101: what a jump centers on — the album item the reply was to, or the message without its date / padding */
   public int[] tgx101FocusBounds () {
     int[] item = tgx101HighlightedChildId != 0 ? tgx101ItemBounds(tgx101HighlightedChildId) : null;

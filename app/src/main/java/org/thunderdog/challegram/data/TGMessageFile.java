@@ -281,6 +281,21 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
     return message != null ? message : getNewestMessage();
   }
 
+  // (user 2026-11-04, the old «Выделить текст» window: «можно сделать выделение текста как при обычном?»): a voice message's
+  // transcription is drawn as its caption, so it is selected the same way
+  @Override
+  public @Nullable TdApi.FormattedText tgx101SelectableFormatted () {
+    CaptionedFile file = tgx101CaptionedFile();
+    return file != null ? file.effectiveCaption : null;
+  }
+
+  @Override
+  public boolean tgx101SelectableIsTranscription () {
+    CaptionedFile file = tgx101CaptionedFile();
+    TdApi.Message message = file != null && file.component.isVoice() ? getMessage(file.messageId) : null;
+    return message != null && Tgx101Transcription.doneText(tdlib, message) != null;
+  }
+
   private final List<CaptionedFile> filesList = new ArrayList<>();
   private final ListAnimator<CaptionedFile> files = new ListAnimator<>(animator -> {
     if (rebuildContentDimensions()) {

@@ -427,7 +427,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   private static final java.util.Set<String> tgx101TextModes = new java.util.HashSet<>();
   private static final float TM_MINI = 40f, TM_GAP = 6f, TM_PAD = 9f, TM_A = 28f;
-  private @androidx.annotation.Nullable android.text.StaticLayout tgx101Text;
+  private @androidx.annotation.Nullable org.thunderdog.challegram.util.text.Text tgx101Text;
   private int tgx101TextW, tgx101TextH;
   private @androidx.annotation.Nullable String tgx101TextKey;
   private boolean tgx101ACaught, tgx101MiniCaught;
@@ -542,7 +542,8 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     int maxText = Math.max(Screen.dp(120f), Math.min(maxWidth, Screen.dp(280f)) - Screen.dp(TM_PAD) * 2);
     int desired = (int) Math.ceil(android.text.Layout.getDesiredWidth(text, paint));
     int textWidth = Math.min(maxText, Math.max(desired, Screen.dp(170f)));
-    tgx101Text = new android.text.StaticLayout(text, paint, textWidth, android.text.Layout.Alignment.ALIGN_NORMAL, 1.1f, 0f, false);
+    // (user 2026-11-04 «выделение текста как при обычном»): the message's own kind of text — the in-bubble selection works on it
+    tgx101Text = new org.thunderdog.challegram.util.text.Text.Builder(text, textWidth, getTextStyleProvider(), getTextColorSet()).build();
     tgx101TextW = textWidth + Screen.dp(TM_PAD) * 2;
     tgx101TextH = Screen.dp(TM_MINI) + Screen.dp(TM_GAP) + tgx101Text.getHeight() + Screen.dp(TM_PAD) * 2 - Screen.dp(4f);
   }
@@ -566,6 +567,22 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     preview.setRadius(size / 2);
     if (preview.needPlaceholder()) preview.drawPlaceholderRounded(c, size / 2f);
     preview.draw(c);
+  }
+
+  @Override
+  public @androidx.annotation.Nullable org.thunderdog.challegram.util.text.Text tgx101SelectableText () {
+    return tgx101TextFactor() >= 1f && Tgx101Transcription.doneText(tdlib, msg) != null ? tgx101Text : null;
+  }
+
+  @Override
+  public @androidx.annotation.Nullable TdApi.FormattedText tgx101SelectableFormatted () {
+    String done = Tgx101Transcription.doneText(tdlib, msg);
+    return done != null ? new TdApi.FormattedText(done, new TdApi.TextEntity[0]) : null;
+  }
+
+  @Override
+  public boolean tgx101SelectableIsTranscription () {
+    return true;
   }
 
   private void tgx101DrawTextParts (Canvas c, int x, int y) {
@@ -600,11 +617,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
       RectF plate = Paints.getRectF();
       plate.set(x, top, x + tgx101TextW, top + tgx101Text.getHeight() + Screen.dp(TM_PAD) * 2 - Screen.dp(4f));
       c.drawRoundRect(plate, Screen.dp(10f), Screen.dp(10f), Paints.fillingPaint(ColorUtils.alphaColor(.12f, accent)));
-      tgx101TextPaint().setColor(getTextColor());
-      int save = Views.save(c);
-      c.translate(x + Screen.dp(TM_PAD), top + Screen.dp(TM_PAD) - Screen.dp(2f));
-      tgx101Text.draw(c);
-      Views.restore(c, save);
+      tgx101Text.draw(c, x + Screen.dp(TM_PAD), (int) top + Screen.dp(TM_PAD) - Screen.dp(2f));
     }
   }
 

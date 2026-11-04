@@ -72,7 +72,7 @@ public final class Tgx101MessageTextSelection {
   public static boolean show (MessagesController controller, Tdlib tdlib, MessageView view, TGMessage msg, float touchX, float touchY, Runnable onClose) {
     Text text = msg.tgx101SelectableText(); // text, or a caption under media / files (user 2026-10-06)
     TdApi.Message message = msg.tgx101SelectableMessage();
-    TdApi.FormattedText formatted = Td.textOrCaption(message.content);
+    TdApi.FormattedText formatted = msg.tgx101SelectableFormatted();
     if (text == null) return fail(msg instanceof TGMessageText ? "link preview above the text" : "no text or caption: " + msg.getClass().getSimpleName());
     if (formatted == null || formatted.text.isEmpty() || text.getText() == null || text.getText().isEmpty()) return fail("no text");
     if (msg.isTranslated()) return fail("translated");
@@ -195,6 +195,12 @@ public final class Tgx101MessageTextSelection {
     private List<Tgx101SelectionBar.Action> buildActions (Context context) {
       List<Tgx101SelectionBar.Action> actions = new ArrayList<>();
       actions.add(new Tgx101SelectionBar.Action(Tgx101BarOrder.QUOTE, Lang.getString(R.string.Tgx101EditorQuote), () -> {
+        if (msg.tgx101SelectableIsTranscription()) {
+          String selected = selectedText();
+          close("quote");
+          SelectTextForQuoteDialog.replyWithTranscriptionPart(controller, msg, selected);
+          return;
+        }
         int[] range = mapToMessage();
         close("quote");
         SelectTextForQuoteDialog.onReplyRequested(controller, tdlib, msg, formatted, range[0], range[1]);
@@ -216,7 +222,7 @@ public final class Tgx101MessageTextSelection {
         setSelection(0, text.getText().length());
         overlay.updateBar();
       }));
-      if (Tgx101TextEditor.canEdit(message) && msg.canEditText()) {
+      if (!msg.tgx101SelectableIsTranscription() && Tgx101TextEditor.canEdit(message) && msg.canEditText()) {
         actions.add(new Tgx101SelectionBar.Action(Tgx101BarOrder.EDITOR, Lang.getString(R.string.Tgx101EditorMenu), () -> {
           close("editor");
           Tgx101TextEditor.showEdit(controller, tdlib, message);
