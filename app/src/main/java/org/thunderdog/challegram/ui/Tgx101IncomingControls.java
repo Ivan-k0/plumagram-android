@@ -264,7 +264,8 @@ public class Tgx101IncomingControls extends FrameLayout {
         save = c.save();
         c.clipRect(0, 0, right, getHeight());
         inkRect.set(0, 0, right, getHeight());
-        c.saveLayer(inkRect, inkPaint);
+        // not saveLayer(RectF, Paint): that one is Android 5+ and would crash the swipe on Android 4
+        c.saveLayer(inkRect, inkPaint, Canvas.ALL_SAVE_FLAG);
         super.drawChild(c, child, drawingTime);
         c.restoreToCount(save);
         return result;
