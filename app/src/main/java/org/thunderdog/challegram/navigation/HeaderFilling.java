@@ -519,6 +519,22 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
   private Tdlib currentTrackTdlib;
   private TdApi.Message currentTrack;
 
+  // The bar takes the colours of the track's cover (user 2026-11-04, player mockup)
+  private final org.thunderdog.challegram.player.Tgx101CoverTint.Animated tgx101Tint = new org.thunderdog.challegram.player.Tgx101CoverTint.Animated(() -> {
+    if (headerView != null) invalidateOngoingBar();
+  });
+
+  private void tgx101UpdateTint (Tdlib tdlib, TdApi.Message track) {
+    boolean[] sync = {true};
+    final boolean visible = hasVisibleOngoingBar();
+    org.thunderdog.challegram.player.Tgx101CoverTint.request(tdlib, track, colors -> {
+      if (currentTrack == track) {
+        tgx101Tint.set(colors, visible || !sync[0]);
+      }
+    });
+    sync[0] = false;
+  }
+
   @Override
   public void onTrackChanged (Tdlib tdlib, @Nullable TdApi.Message newTrack, int fileId, int state, float progress, boolean byUser) {
     boolean changedTrack = false;
@@ -529,6 +545,9 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       currentTrack = newTrack;
       currentTrackTdlib = tdlib;
       changedTrack = true;
+      if (newTrack != null && headerView != null) {
+        tgx101UpdateTint(tdlib, newTrack);
+      }
     }
     boolean isPlaying = state == TGPlayerController.STATE_PLAYING;
     TdApi.Message newMessage = newTrack != null && state != TGPlayerController.STATE_NONE ? newTrack : null;
@@ -683,14 +702,14 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
 
   private void drawOngoingAudio (Canvas c, int playerTop, float rectWidth, int playerBottom) {
     if (restoreRect && restorePixels > 0) {
-      c.drawRect(rectWidth, playerTop, width, playerBottom, Paints.fillingPaint(Theme.fillingColor()));
+      c.drawRect(rectWidth, playerTop, width, playerBottom, Paints.fillingPaint(tgx101Tint.background(Theme.fillingColor())));
     }
 
-    final int playerFillingColor = ColorUtils.alphaColor(dropShadowAlpha, Theme.fillingColor());
+    final int playerFillingColor = ColorUtils.alphaColor(dropShadowAlpha, tgx101Tint.background(Theme.fillingColor()));
 
     c.drawRect(0, playerTop, rectWidth, playerBottom, Paints.fillingPaint(playerFillingColor));
     if (seekFactor != 0f) {
-      c.drawRect(0, playerBottom - (Screen.dp(1f) + 1), (int) (width * seekFactor), playerBottom, Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha, Theme.getColor(ColorId.headerBarCallActive))));
+      c.drawRect(0, playerBottom - (Screen.dp(1f) + 1), (int) (width * seekFactor), playerBottom, Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha, tgx101Tint.accent(Theme.getColor(ColorId.headerBarCallActive)))));
     }
 
     if (speedCounter != null) {

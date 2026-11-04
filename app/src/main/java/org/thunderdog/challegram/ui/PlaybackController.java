@@ -380,6 +380,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     frameLayout.addView(tgx101Heart);
 
     tgx101SpeedPill = new Tgx101Pill(context);
+    tgx101SpeedPill.setTint(tgx101Tint);
     FrameLayoutFix.LayoutParams speedParams = FrameLayoutFix.newParams(Screen.dp(64f), Screen.dp(40f));
     speedParams.leftMargin = Screen.dp(16f);
     tgx101SpeedPill.setLayoutParams(speedParams);
@@ -388,6 +389,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     addThemeInvalidateListener(tgx101SpeedPill);
     frameLayout.addView(tgx101SpeedPill);
     tgx101NextPill = new Tgx101Pill(context);
+    tgx101NextPill.setTint(tgx101Tint);
     tgx101NextPill.setIcon(R.drawable.baseline_queue_music_24);
     FrameLayoutFix.LayoutParams nextParams = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(40f));
     nextParams.leftMargin = Screen.dp(16f + 64f + 8f);
@@ -719,6 +721,40 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   private InlineResultCommon currentItem;
 
+  // The colours of the current track's cover (user 2026-11-04, player mockup)
+  private final org.thunderdog.challegram.player.Tgx101CoverTint.Animated tgx101Tint = new org.thunderdog.challegram.player.Tgx101CoverTint.Animated(this::tgx101InvalidateTinted);
+  private final android.util.SparseIntArray tgx101ButtonTints = new android.util.SparseIntArray();
+
+  private void tgx101InvalidateTinted () {
+    if (coverView != null) coverView.invalidate();
+    if (tgx101SpeedPill != null) tgx101SpeedPill.invalidate();
+    if (tgx101NextPill != null) tgx101NextPill.invalidate();
+  }
+
+  private void tgx101UpdateTint (InlineResultCommon item, boolean animated) {
+    if (item == null) return;
+    final TdApi.Message message = item.getMessage();
+    boolean[] sync = {true};
+    org.thunderdog.challegram.player.Tgx101CoverTint.request(item.tdlib(), message, colors -> {
+      if (currentItem == item) {
+        tgx101Tint.set(colors, animated || !sync[0]);
+      }
+    });
+    sync[0] = false;
+  }
+
+  /** The active shuffle, repeat and ♥ take the cover's accent; called from drawing, so a change of a theme comes here too */
+  private void tgx101TintButton (ImageView button, boolean isActive) {
+    if (!isActive) return;
+    int theme = Theme.getColor(ColorId.playerButtonActive);
+    int color = tgx101Tint.accent(theme);
+    int key = color * 31 + theme;
+    if (tgx101ButtonTints.get(button.getId()) != key) {
+      tgx101ButtonTints.put(button.getId(), key);
+      button.setColorFilter(color);
+    }
+  }
+
   private void setItem (InlineResultCommon item, boolean setCurrent) {
     if (this.currentItem == item) {
       if (item != null && setCurrent) {
@@ -736,6 +772,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       }
     }
     this.currentItem = item;
+    tgx101UpdateTint(item, hadItem);
     coverView.setItem(item);
     float prefixProgress = 0f;
     float progress = 0f;
@@ -1033,6 +1070,11 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
   private static class Tgx101Pill extends View {
     private CharSequence text = "";
     private int iconRes;
+    private org.thunderdog.challegram.player.Tgx101CoverTint.Animated tint;
+
+    void setTint (org.thunderdog.challegram.player.Tgx101CoverTint.Animated tint) {
+      this.tint = tint;
+    }
 
     Tgx101Pill (Context context) {
       super(context);
@@ -1068,7 +1110,8 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       RectF rect = Paints.getRectF();
       rect.set(0, 0, getWidth(), getHeight());
       float r = getHeight() / 2f;
-      c.drawRoundRect(rect, r, r, Paints.fillingPaint(ColorUtils.alphaColor(.09f, Theme.textAccentColor())));
+      final int accent = tint != null ? tint.accent(Theme.textAccentColor()) : Theme.textAccentColor();
+      c.drawRoundRect(rect, r, r, Paints.fillingPaint(ColorUtils.alphaColor(.09f, accent)));
       int left = Screen.dp(14f);
       if (iconRes != 0) {
         android.graphics.drawable.Drawable icon = Drawables.get(getResources(), iconRes);
@@ -1077,7 +1120,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         }
         left += Screen.dp(26f);
       }
-      android.text.TextPaint paint = Paints.getRegularTextPaint(13f, Theme.textAccentColor());
+      android.text.TextPaint paint = Paints.getRegularTextPaint(13f, accent);
       int available = getWidth() - left - Screen.dp(14f);
       if (available <= 0) return;
       CharSequence shown = android.text.TextUtils.ellipsize(text, paint, available, android.text.TextUtils.TruncateAt.END);
@@ -1189,6 +1232,8 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     int colorId = isActive ? ColorId.playerButtonActive : ColorId.playerButton;
     imageView.setColorFilter(Theme.getColor(colorId));
     addThemeFilterListener(imageView, colorId);
+    tgx101ButtonTints.delete(imageView.getId());
+    if (coverView != null) coverView.invalidate();
   }
 
   @Override
@@ -1798,7 +1843,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         @Override
         public void draw (@NonNull Canvas c) {
           int height = controller.getCurrentOverlayHeight();
-          c.drawRect(0, 0, getBounds().right, height, Paints.fillingPaint(Theme.fillingColor()));
+          c.drawRect(0, 0, getBounds().right, height, Paints.fillingPaint(controller.tgx101Tint.background(Theme.fillingColor())));
           if (controller.shadowView.getTranslationY() != height) {
             controller.shadowView.setTranslationY(height);
           }
@@ -2443,11 +2488,11 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       final float seekDistanceReadyStart = seekDistance * fileOffset;
       final float seekDistanceReadyEnd = seekDistance * fileProgress;
       final int seekStroke = Screen.dp(2f);
-      int doneColor = Theme.getColor(ColorId.seekDone);
+      int doneColor = controller.tgx101Tint.accent(Theme.getColor(ColorId.seekDone));
       if (seekDistanceReadyStart > 0 || seekDistanceReadyEnd < seekDistance) {
-        c.drawLine(seekX, seekY, seekX + seekDistance, seekY, Paints.getProgressPaint(Theme.getColor(ColorId.seekEmpty), seekStroke));
+        c.drawLine(seekX, seekY, seekX + seekDistance, seekY, Paints.getProgressPaint(controller.tgx101Tint.accentShade(Theme.getColor(ColorId.seekEmpty), .2f), seekStroke));
       }
-      c.drawLine(seekX + seekDistanceReadyStart, seekY, seekX + seekDistanceReadyEnd, seekY, Paints.getProgressPaint(Theme.getColor(ColorId.seekReady), seekStroke));
+      c.drawLine(seekX + seekDistanceReadyStart, seekY, seekX + seekDistanceReadyEnd, seekY, Paints.getProgressPaint(controller.tgx101Tint.accentShade(Theme.getColor(ColorId.seekReady), .36f), seekStroke));
       c.drawLine(seekX, seekY, seekX + seekDistanceDone, seekY, Paints.getProgressPaint(doneColor, seekStroke));
       float seekCenterX = seekX + seekDistance * getSeekFactor();
       c.drawCircle(seekCenterX, seekY, Screen.dp(6f) + Screen.dp(4f) * seekDesireFactor, Paints.fillingPaint(doneColor));
@@ -2529,7 +2574,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         RectF rectF = Paints.getRectF();
         int strokeSize = radius / 2;
         rectF.set(x - strokeSize / 2, y - strokeSize / 2, x + width + strokeSize / 2, y + height + strokeSize / 2);
-        c.drawRoundRect(rectF, radius, radius, Paints.getProgressPaint(Theme.fillingColor(), strokeSize));
+        c.drawRoundRect(rectF, radius, radius, Paints.getProgressPaint(controller.tgx101Tint.background(Theme.fillingColor()), strokeSize));
       }
 
       // Buttons
@@ -2558,6 +2603,9 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         view.setTranslationY(buttonY);
         cx += perx;
       }
+      controller.tgx101TintButton(controller.shuffleButton, controller.isShuffleActive());
+      controller.tgx101TintButton(controller.repeatButton, controller.isRepeatActive());
+      controller.tgx101TintButton(controller.tgx101Heart, controller.currentItem != null && controller.tgx101SavedCopies.get(controller.currentItem.getTrackFile().id) != null);
       float rowY = overlayHeight - Screen.dp(TGX101_ROW_DP) / 2f - controller.tgx101SpeedPill.getMeasuredHeight() / 2f - Screen.dp(4f);
       controller.tgx101SpeedPill.setTranslationY(rowY);
       controller.tgx101NextPill.setTranslationY(rowY);
