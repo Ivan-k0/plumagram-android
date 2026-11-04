@@ -1563,6 +1563,10 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   private void tgx101CheckKeyboardAfterLock () {
     if (tgx101PausedLockedAt == 0) return;
+    if (tgx101HideKeyboardOnFocus) { // the window never got focus after the last return: the mode isn't left behind
+      tgx101HideKeyboardOnFocus = false;
+      getWindow().setSoftInputMode(tgx101SavedSoftInput);
+    }
     long now = android.os.SystemClock.elapsedRealtime();
     long idle = now - tgx101PausedLockedAt;
     tgx101PausedLockedAt = 0;
