@@ -466,6 +466,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       @Override
       public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
         if (newState == RecyclerView.SCROLL_STATE_IDLE && isFocused()) settleHeader();
+        if (newState == RecyclerView.SCROLL_STATE_DRAGGING) arrowWentToUnread = false; // the finger: the arrow starts over
       }
     });
     inner.addView(list, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -753,8 +754,16 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     // (user 2026-11-01 «стрелка не пролистывает до конца, а листает по чуть-чуть»): the posts are read as they pass, so
     // the first unread is nearly always the one right under the screen — each tap moved the feed 3–4 posts
     int last = manager.findLastVisibleItemPosition();
-    if (target == -1 || target <= first || (last != RecyclerView.NO_POSITION && target <= last + 1)) target = posts.size() - 1;
+    // (group 2026-11-04 09:16 «первое нажатие точно ведёт к непрочитанному? часто сразу вниз», «счётчик не сбрасывается»):
+    // the first tap after the finger always goes to the first unread, even right under the screen, the next one to the end;
+    // going to the end passes everything over, so all of it counts as read and the counter goes away
+    if (target == -1 || target <= first || arrowWentToUnread) target = posts.size() - 1;
     boolean toEnd = target == posts.size() - 1;
+    arrowWentToUnread = !toEnd;
+    if (toEnd) {
+      markRead(0, posts.size() - 1);
+      updateArrow();
+    }
     org.thunderdog.challegram.Tgx101Diag.mark("gazeta: arrow → " + (toEnd ? "the end" : "the first unread, post " + target + " of " + posts.size()));
     final int to = target;
     final int topOffset = Screen.dp(4f) + Size.getHeaderPortraitSize() - headerHide + (posts.get(to) == unreadAnchor ? Screen.dp(36f) : 0);
@@ -786,12 +795,18 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     });
   }
 
+  private boolean arrowWentToUnread;
+
   private void markVisibleRead () {
     if (!loaded || list == null) return;
     LinearLayoutManager manager = (LinearLayoutManager) list.getLayoutManager();
     if (manager == null) return;
     int first = manager.findFirstVisibleItemPosition(), last = manager.findLastVisibleItemPosition();
     if (first == RecyclerView.NO_POSITION) return;
+    markRead(first, last);
+  }
+
+  private void markRead (int first, int last) {
     Map<Long, List<Long>> byChat = new HashMap<>();
     for (int i = first; i <= last && i < posts.size(); i++) {
       Tgx101Gazeta.Post post = posts.get(i);
@@ -1291,8 +1306,50 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       return super.onTouchEvent(e);
     }
 
+    // (group 2026-11-03 21:55 «цитаты в газете должны выделяться как и в каналах»): the wash, the line and the mark of a
+    // quote are drawn by the message's own text; a TextView only left the margin for them
+    private final android.graphics.RectF quoteRect = new android.graphics.RectF();
+
+    private void drawQuotes (android.graphics.Canvas c) {
+      CharSequence text = getText();
+      android.text.Layout layout = getLayout();
+      if (layout == null || !(text instanceof android.text.Spanned)) return;
+      android.text.Spanned spanned = (android.text.Spanned) text;
+      org.thunderdog.challegram.util.text.quotes.QuoteSpan[] quotes = spanned.getSpans(0, spanned.length(), org.thunderdog.challegram.util.text.quotes.QuoteSpan.class);
+      if (quotes.length == 0) return;
+      int color = Tgx101Gazeta.palette()[4];
+      int save = c.save();
+      c.clipRect(0, getExtendedPaddingTop(), getWidth(), getHeight() - getExtendedPaddingBottom());
+      c.translate(getCompoundPaddingLeft(), getExtendedPaddingTop());
+      float right = getWidth() - getCompoundPaddingLeft() - getCompoundPaddingRight();
+      float radius = Screen.dp(8f), bar = Screen.dp(3f);
+      android.graphics.drawable.Drawable mark = org.thunderdog.challegram.tool.Drawables.get(getResources(), R.drawable.baseline_format_quote_close_16);
+      for (org.thunderdog.challegram.util.text.quotes.QuoteSpan quote : quotes) {
+        int start = spanned.getSpanStart(quote), end = spanned.getSpanEnd(quote);
+        if (start < 0 || end <= start) continue;
+        float top = layout.getLineTop(layout.getLineForOffset(start));
+        float bottom = layout.getLineBottom(layout.getLineForOffset(end - 1));
+        quoteRect.set(0, top, right, bottom);
+        c.drawRoundRect(quoteRect, radius, radius, org.thunderdog.challegram.tool.Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(.1f, color)));
+        quoteRect.right = bar;
+        c.drawRoundRect(quoteRect, bar / 2f, bar / 2f, org.thunderdog.challegram.tool.Paints.fillingPaint(color));
+        if (mark != null) {
+          org.thunderdog.challegram.tool.Drawables.draw(c, mark, right - Screen.dp(19f), top + Screen.dp(3.5f), tintPaint(color));
+        }
+      }
+      c.restoreToCount(save);
+    }
+
+    private final android.graphics.Paint markPaint = new android.graphics.Paint();
+
+    private android.graphics.Paint tintPaint (int color) {
+      markPaint.setColorFilter(new android.graphics.PorterDuffColorFilter(color, android.graphics.PorterDuff.Mode.SRC_IN));
+      return markPaint;
+    }
+
     @Override
     protected void onDraw (android.graphics.Canvas c) {
+      drawQuotes(c);
       super.onDraw(c);
       CharSequence text = getText();
       android.text.Layout layout = getLayout();
