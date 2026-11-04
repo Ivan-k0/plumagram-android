@@ -148,6 +148,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   }
 
   private static final List<Long> pendingIds = new ArrayList<>();
+  private static long pendingSource; // the chat all of them came from, -1 when they came from different ones
   private static Runnable pendingShow;
 
   /**
@@ -201,23 +202,76 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       org.thunderdog.challegram.navigation.ViewController<?> top = a != null ? a.navigation().getCurrentStackItem() : null;
       if (!external && top instanceof org.thunderdog.challegram.ui.MessagesController && ((org.thunderdog.challegram.ui.MessagesController) top).getChatId() == tdlib.selfChatId()) return;
       synchronized (pendingIds) {
+        long source = sourceChatOf(tdlib, m);
+        pendingSource = pendingIds.isEmpty() || pendingSource == source ? source : -1;
         if (!pendingIds.contains(m.id)) pendingIds.add(m.id); // one message may be announced twice (single and batch)
         if (pendingShow != null) org.thunderdog.challegram.tool.UI.removePendingRunnable(pendingShow);
         pendingShow = () -> {
           long[] ids;
+          long sourceChat;
           synchronized (pendingIds) {
             ids = new long[pendingIds.size()];
             for (int i = 0; i < ids.length; i++) ids[i] = pendingIds.get(i);
             pendingIds.clear();
             pendingShow = null;
+            sourceChat = Math.max(0, pendingSource);
           }
           if (external) externalShareAt = 0;
-          org.thunderdog.challegram.ui.Tgx101SavedActions.showSavedBanner(tdlib, ids, external);
+          org.thunderdog.challegram.ui.Tgx101SavedActions.showSavedBanner(tdlib, ids, external, sourceChat);
         };
         // an album or several forwarded messages arrive together: one banner for all of them
         org.thunderdog.challegram.tool.UI.post(pendingShow, 600);
       }
     });
+  }
+
+  /** The chat a saved message was forwarded from: what a chat's remembered choice is looked up by; 0 for a note of one's own */
+  private static long sourceChatOf (Tdlib tdlib, TdApi.Message m) {
+    if (m.forwardInfo == null) return 0;
+    long chatId = 0;
+    if (m.forwardInfo.source != null && m.forwardInfo.source.chatId != 0) {
+      chatId = m.forwardInfo.source.chatId;
+    } else if (m.forwardInfo.origin instanceof TdApi.MessageOriginChannel) {
+      chatId = ((TdApi.MessageOriginChannel) m.forwardInfo.origin).chatId;
+    } else if (m.forwardInfo.origin instanceof TdApi.MessageOriginChat) {
+      chatId = ((TdApi.MessageOriginChat) m.forwardInfo.origin).senderChatId;
+    }
+    return chatId == tdlib.selfChatId() ? 0 : chatId;
+  }
+
+  // (user 2026-11-05 «для каждого канала или группы своя память … запомнить для этого чата»): what is saved from a chat goes
+  // on its own to the folder, tag and reaction picked once for that chat
+
+  public static final class ChatRule {
+    public long folderId;
+    public @Nullable String tag, reaction;
+
+    boolean isEmpty () {
+      return folderId == 0 && tag == null && reaction == null;
+    }
+  }
+
+  private final java.util.HashMap<Long, ChatRule> chatRules = new java.util.HashMap<>();
+
+  public synchronized @Nullable ChatRule chatRule (long chatId) {
+    return chatRules.get(chatId);
+  }
+
+  public synchronized void rememberForChat (long chatId, long folderId, @Nullable String tag, @Nullable String reaction) {
+    if (chatId == 0) return;
+    ChatRule rule = chatRules.get(chatId);
+    if (rule == null) {
+      rule = new ChatRule();
+      chatRules.put(chatId, rule);
+    }
+    if (folderId != 0) rule.folderId = folderId;
+    if (tag != null) rule.tag = tag;
+    if (reaction != null) rule.reaction = reaction;
+    save();
+  }
+
+  public synchronized void forgetChat (long chatId) {
+    if (chatRules.remove(chatId) != null) save();
   }
 
   private static void waitSent (Tdlib tdlib, long tempId) {
@@ -746,11 +800,34 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
     JSONArray home = new JSONArray();
     for (String t : homeTags) home.put(t);
     o.put("homeTags", home);
+    JSONObject rules = new JSONObject();
+    for (Map.Entry<Long, ChatRule> e : chatRules.entrySet()) {
+      JSONObject r = new JSONObject();
+      r.put("folder", e.getValue().folderId);
+      if (e.getValue().tag != null) r.put("tag", e.getValue().tag);
+      if (e.getValue().reaction != null) r.put("reaction", e.getValue().reaction);
+      rules.put(String.valueOf(e.getKey()), r);
+    }
+    o.put("chatRules", rules);
     return o;
   }
 
   /** What the cloud and this phone have together (Tgx101SavedCloud.merge) takes the place of the data part here */
   synchronized void applyData (JSONObject o) throws org.json.JSONException {
+    JSONObject rules = o.optJSONObject("chatRules");
+    if (rules != null) { // an older copy without them leaves this phone's as they are
+      chatRules.clear();
+      java.util.Iterator<String> keys = rules.keys();
+      while (keys.hasNext()) {
+        String key = keys.next();
+        JSONObject r = rules.getJSONObject(key);
+        ChatRule rule = new ChatRule();
+        rule.folderId = r.optLong("folder");
+        rule.tag = r.has("tag") ? r.getString("tag") : null;
+        rule.reaction = r.has("reaction") ? r.getString("reaction") : null;
+        if (!rule.isEmpty()) chatRules.put(Long.parseLong(key), rule);
+      }
+    }
     List<Folder> was = new ArrayList<>(folders);
     folders.clear();
     JSONArray fs = o.optJSONArray("folders");

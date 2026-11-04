@@ -40,6 +40,8 @@ import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.telegram.TdlibFilesManager;
 import org.thunderdog.challegram.telegram.TdlibManager;
 import org.thunderdog.challegram.theme.ColorId;
+import org.thunderdog.challegram.theme.Theme;
+import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.v.CustomRecyclerView;
@@ -336,8 +338,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(storiesMode == Tgx101Stories.MODE_RINGS ? R.string.Tgx101StoriesModeRings : R.string.Tgx101StoriesModeHeader);
         } else if (itemId == R.id.btn_tgx101NextChannelBackToList) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101NextChannelBackToList(), isUpdate);
-        } else if (itemId == R.id.btn_tgx101RememberChatPlace) {
-          view.getToggler().setRadioEnabled(Settings.instance().tgx101RememberChatPlace(), isUpdate);
         } else if (itemId == R.id.btn_tgx101NextChannelSwipe) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101NextChannelSwipe(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideAllReactions) {
@@ -627,8 +627,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideAllReactions, 0, R.string.Tgx101HideAllReactions),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NextChannelSwipe, 0, R.string.Tgx101NextChannelSwipe),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101RememberChatPlace, 0, R.string.Tgx101RememberChatPlace),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_pullToSearch, 0, R.string.Tgx101PullAction),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1158,7 +1156,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap || id == R.id.btn_tgx101SwipeKeyboard || id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands
       || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101TextEditor) return TGX101_SECTION_INPUT;
     if (id == R.id.btn_tgx101QuickCalls) return 7;
-    if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked || id == R.id.btn_tgx101RememberChatPlace) return 2;
+    if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked) return 2;
     if (id == R.id.btn_tgx101SavedSettingsOpen || id == R.id.btn_tgx101AiAll || id == R.id.btn_tgx101AiCompose || id == R.id.btn_tgx101AiSummary || id == R.id.btn_tgx101AiMissed || id == R.id.btn_tgx101AiSort || id == R.id.btn_tgx101Peek
       || id == R.id.btn_tgx101AiOpen || id == R.id.btn_tgx101BirdOpen) return TGX101_SECTION_FEATURES;
     if (id == R.id.btn_pullToSearch) return 0;
@@ -1499,8 +1497,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         });
     } else if (id == R.id.btn_tgx101NextChannelBackToList) {
       Settings.instance().setTgx101NextChannelBackToList(toggleResult);
-    } else if (id == R.id.btn_tgx101RememberChatPlace) {
-      Settings.instance().setTgx101RememberChatPlace(toggleResult);
     } else if (id == R.id.btn_tgx101NextChannelSwipe) {
       Settings.instance().setTgx101NextChannelSwipe(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101HideAllReactions) {
@@ -1808,17 +1804,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101TextWeight2, 0, R.string.Tgx101TextWeightSemibold, id, weight == Settings.TEXT_WEIGHT_SEMIBOLD)
       }).setIntDelegate(this));
     } else if (id == R.id.btn_tgx101Font) {
-      int appFont = Settings.instance().getAppFont();
-      showSettings(new SettingsWrapBuilder(id).addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.Tgx101FontHint)).setRawItems(new ListItem[] {
-        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101FontManrope, 0, R.string.Tgx101FontManrope, id, appFont == Settings.APP_FONT_MANROPE),
-        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101FontRoboto, 0, R.string.Tgx101FontRoboto, id, appFont == Settings.APP_FONT_ROBOTO),
-        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101FontMontserrat, 0, R.string.Tgx101FontMontserrat, id, appFont == Settings.APP_FONT_MONTSERRAT),
-        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101FontPtSerif, 0, R.string.Tgx101FontPtSerif, id, appFont == Settings.APP_FONT_PT_SERIF),
-        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101FontMerriweather, 0, R.string.Tgx101FontMerriweather, id, appFont == Settings.APP_FONT_MERRIWEATHER),
-        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101FontCondensed, 0, R.string.Tgx101FontCondensed, id, appFont == Settings.APP_FONT_CONDENSED),
-        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101FontInter, 0, R.string.Tgx101FontInter, id, appFont == Settings.APP_FONT_INTER),
-        new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101FontSystem, 0, R.string.Tgx101FontSystem, id, appFont == Settings.APP_FONT_SYSTEM)
-      }).setIntDelegate(this));
+      tgx101ShowFonts();
     } else if (id == R.id.btn_chatFontSize) {
       MessagesController controller = new MessagesController(context, tdlib);
       controller.setArguments(new MessagesController.Arguments(MessagesController.PREVIEW_MODE_FONT_SIZE, null, null));
@@ -1981,6 +1967,73 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     }
   }
 
+  // (user 2026-11-05 «шрифты должны быть наглядны»): each name in its own font, with a sample beside it in the app's language
+  private void tgx101ShowFonts () {
+    final int[][] fonts = {
+      {Settings.APP_FONT_MANROPE, R.string.Tgx101FontManrope},
+      {Settings.APP_FONT_ROBOTO, R.string.Tgx101FontRoboto},
+      {Settings.APP_FONT_MONTSERRAT, R.string.Tgx101FontMontserrat},
+      {Settings.APP_FONT_PT_SERIF, R.string.Tgx101FontPtSerif},
+      {Settings.APP_FONT_MERRIWEATHER, R.string.Tgx101FontMerriweather},
+      {Settings.APP_FONT_CONDENSED, R.string.Tgx101FontCondensed},
+      {Settings.APP_FONT_INTER, R.string.Tgx101FontInter},
+      {Settings.APP_FONT_SYSTEM, R.string.Tgx101FontSystem}
+    };
+    final Tgx101Sheet.Handle[] handle = new Tgx101Sheet.Handle[1];
+    handle[0] = Tgx101Sheet.show(this, null, body -> {
+      final int current = Settings.instance().getAppFont();
+      body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101Font)));
+      for (int[] font : fonts) {
+        final int value = font[0];
+        final android.graphics.Typeface face = org.thunderdog.challegram.tool.Fonts.tgx101PreviewFont(value);
+        android.widget.LinearLayout row = new android.widget.LinearLayout(context);
+        row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setPadding(Screen.dp(20f), Screen.dp(9f), Screen.dp(20f), Screen.dp(9f));
+        org.thunderdog.challegram.tool.Views.setClickable(row);
+        org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(row);
+        android.widget.LinearLayout texts = new android.widget.LinearLayout(context);
+        texts.setOrientation(android.widget.LinearLayout.VERTICAL);
+        android.widget.TextView name = new android.widget.TextView(context);
+        name.setText(Lang.getString(font[1]));
+        name.setTypeface(face);
+        name.setTextColor(Theme.textAccentColor());
+        name.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 17f);
+        texts.addView(name);
+        android.widget.TextView sample = new android.widget.TextView(context);
+        sample.setText(Lang.getString(R.string.Tgx101FontSample));
+        sample.setTypeface(face);
+        sample.setTextColor(Theme.textDecentColor());
+        sample.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14f);
+        sample.setSingleLine(true);
+        sample.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        texts.addView(sample);
+        row.addView(texts, new android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        if (value == current) {
+          android.widget.ImageView check = new android.widget.ImageView(context);
+          check.setImageResource(R.drawable.baseline_check_24);
+          check.setColorFilter(Theme.getColor(org.thunderdog.challegram.theme.ColorId.iconActive));
+          row.addView(check);
+        }
+        row.setOnClickListener(v -> {
+          handle[0].dismiss();
+          if (value != Settings.instance().getAppFont()) {
+            Settings.instance().setAppFont(value);
+            adapter.updateValuedSettingById(R.id.btn_tgx101Font);
+            UI.showToast(R.string.Tgx101FontRestart, android.widget.Toast.LENGTH_LONG);
+          }
+        });
+        body.addView(row);
+      }
+      android.widget.TextView hint = new android.widget.TextView(context);
+      hint.setText(Lang.getString(R.string.Tgx101FontHint));
+      hint.setTextColor(Theme.textDecentColor());
+      hint.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 13f);
+      hint.setPadding(Screen.dp(20f), Screen.dp(8f), Screen.dp(20f), Screen.dp(12f));
+      body.addView(hint);
+    });
+  }
+
   @Override
   public void onApplySettings (@IdRes int id, SparseIntArray result) {
     if (id == R.id.btn_dataSaverForce) {
@@ -2013,16 +2066,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       int size = res == R.id.btn_tgx101ChatListTextSize110 ? 110 : res == R.id.btn_tgx101ChatListTextSize120 ? 120 : res == R.id.btn_tgx101ChatListTextSize130 ? 130 : 100;
       Settings.instance().setChatListTextSize(size);
       adapter.updateValuedSettingById(R.id.btn_tgx101ChatListTextSize);
-    } else if (id == R.id.btn_tgx101Font) {
-      int res = result.get(R.id.btn_tgx101Font);
-      int appFont = res == R.id.btn_tgx101FontSystem ? Settings.APP_FONT_SYSTEM : res == R.id.btn_tgx101FontRoboto ? Settings.APP_FONT_ROBOTO
-        : res == R.id.btn_tgx101FontMontserrat ? Settings.APP_FONT_MONTSERRAT : res == R.id.btn_tgx101FontPtSerif ? Settings.APP_FONT_PT_SERIF
-        : res == R.id.btn_tgx101FontMerriweather ? Settings.APP_FONT_MERRIWEATHER : res == R.id.btn_tgx101FontCondensed ? Settings.APP_FONT_CONDENSED : res == R.id.btn_tgx101FontInter ? Settings.APP_FONT_INTER : Settings.APP_FONT_MANROPE;
-      if (appFont != Settings.instance().getAppFont()) {
-        Settings.instance().setAppFont(appFont);
-        adapter.updateValuedSettingById(R.id.btn_tgx101Font);
-        UI.showToast(R.string.Tgx101FontRestart, android.widget.Toast.LENGTH_LONG);
-      }
     } else if (id == R.id.btn_tgx101TextWeight) {
       final int res = result.get(R.id.btn_tgx101TextWeight);
       int weight = res == R.id.btn_tgx101TextWeight1 ? Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER : res == R.id.btn_tgx101TextWeight2 ? Settings.TEXT_WEIGHT_SEMIBOLD : Settings.TEXT_WEIGHT_NORMAL;

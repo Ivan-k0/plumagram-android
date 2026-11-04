@@ -248,6 +248,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     if (value == headerHide) return;
     headerHide = value;
     applyHeaderHide();
+    if (value >= max) tgx101MarkHiddenHeader();
   }
 
   private void settleHeader () {
@@ -262,6 +263,22 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     headerAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator());
     headerAnimator.addUpdateListener(a -> setHeaderHide((int) a.getAnimatedValue()));
     headerAnimator.start();
+  }
+
+  // (group 2026-11-04, OnePlus 10): the header's background stays when the header is hidden; what lies there, three times a visit
+  private int tgx101HiddenHeaderMarks;
+
+  private void tgx101MarkHiddenHeader () {
+    if (!org.thunderdog.challegram.BuildConfig.TGX101_DIAG || tgx101HiddenHeaderMarks >= 3 || list == null) return;
+    tgx101HiddenHeaderMarks++;
+    list.postDelayed(() -> {
+      if (isDestroyed() || !isFocused() || headerHide < Size.getHeaderPortraitSize()) return;
+      org.thunderdog.challegram.navigation.HeaderView header = context().navigation() != null ? context().navigation().getHeaderView() : null;
+      if (header == null) return;
+      int top = HeaderView.getTopOffset();
+      org.thunderdog.challegram.Tgx101Diag.markLayersOver(header.getRootView(), top, top + Size.getHeaderPortraitSize(),
+        "gazeta hidden header, feed " + Integer.toHexString(Tgx101Gazeta.palette()[0]) + " header " + Integer.toHexString(Tgx101Gazeta.palette()[1]) + ", status bar " + top);
+    }, 300);
   }
 
   // (user 2026-10-30 «белая подложка», recordings 09:16 and 09:47: a light strip 10 dp tall stayed under the status bar
@@ -492,6 +509,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   public void onFocus () {
     super.onFocus();
     tgx101MatchStatusIcons();
+    tgx101HiddenHeaderMarks = 0;
     setUnderHeader(true);
     repaintHeader();
     applyPalette();

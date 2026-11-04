@@ -1127,7 +1127,6 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101FgSoundHint, "Короткий звук и вибрация приложения на новое сообщение, пока оно открыто. При «Системном уведомлении», если оба выключены, оно приходит в шторку тихо.");
     RU.put(R.string.Tgx101Quality, "Качество видео");
     RU.put(R.string.Tgx101QualityAuto, "Авто");
-    RU.put(R.string.Tgx101RememberChatPlace, "Открывать чат там, где ушёл (выкл. — на первом непрочитанном или в конце)");
     RU.put(R.string.Tgx101HistoryCleared, "История очищена");
     RU.put(R.string.Tgx101AccountsRow, "Аккаунты · %1$s");
     RU.put(R.string.Tgx101AccountsSwitch, "Переключиться");
@@ -1746,6 +1745,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PlayerInfoSize, "Размер");
     RU.put(R.string.Tgx101PlayerInfoBitrate, "Битрейт");
     RU.put(R.string.Tgx101PlayerInfoKbps, "≈ %1$d кбит/с");
+    RU.put(R.string.Tgx101SavedRememberChat, "Запомнить для этого чата");
+    RU.put(R.string.Tgx101SavedRuleApplied, "Для этого чата: %1$s");
+    RU.put(R.string.Tgx101FontSample, "Съешь ещё этих мягких булок 123");
     RU.put(R.string.Tgx101Torch, "Фонарик");
     RU.put(R.string.Tgx101TorchOn, "Включить фонарик");
     RU.put(R.string.Tgx101TorchOff, "Выключить фонарик");

@@ -2409,6 +2409,18 @@ public class Settings {
       }
       pmc.putBoolean(marker6, true);
     }
+    // the seventh (user 2026-11-04, screenshots 23:46–23:47: «вот так должно быть у новых пользователей»): the bird's ring of
+    // seven, its place and the side menu of calls, settings, saved and «Газета»; those who have the app already keep what they have
+    final String marker7 = "tgx101_defaults_2026_11_04";
+    if (!pmc.getBoolean(marker7, false)) {
+      if (freshInstall) {
+        pmc.putString("tgx101_bar_order_" + org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_DRAWER, org.thunderdog.challegram.ui.Tgx101BarOrder.DRAWER_NEW_INSTALL);
+      } else {
+        if (!pmc.contains(KEY_TGX101_BIRD_RING)) pmc.putInt(KEY_TGX101_BIRD_RING, 0x1F);
+        if (!pmc.contains(KEY_TGX101_BIRD_SPOT)) pmc.putInt(KEY_TGX101_BIRD_SPOT, 0);
+      }
+      pmc.putBoolean(marker7, true);
+    }
   }
 
   private boolean isFreshAppInstallation () {
@@ -3861,13 +3873,16 @@ public class Settings {
   private static final String KEY_TGX101_BIRD_MOVED = "tgx101_bird_moved_25"; // the 2.5 s hold is back (2026-10-21): its hint shows again
   public boolean tgx101Bird () { return pmc.getBoolean(KEY_TGX101_BIRD, true); }
   public void setTgx101Bird (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD, v); }
-  public int tgx101BirdRing () { return pmc.getInt(KEY_TGX101_BIRD_RING, 0x1F | (1 << org.thunderdog.challegram.ui.Tgx101Bird.ACTION_PLAYER)); }
+  public int tgx101BirdRing () { return pmc.getInt(KEY_TGX101_BIRD_RING, TGX101_BIRD_RING_NEW_INSTALL); }
+  // storage, calls, settings, note, night, peek, «Газета» (the bits are Tgx101Bird.ACTION_*)
+  private static final int TGX101_BIRD_RING_NEW_INSTALL = 1 | 1 << 3 | 1 << 4 | 1 << 8 | 1 << 10 | 1 << 11 | 1 << 12;
   public void setTgx101BirdRing (int mask) { pmc.putInt(KEY_TGX101_BIRD_RING, mask); }
   public int tgx101BirdPlace (boolean landscape) { return pmc.getInt(landscape ? KEY_TGX101_BIRD_PLACE_LAND : KEY_TGX101_BIRD_PLACE, 6200); }
   public void setTgx101BirdPlace (boolean landscape, int value) { pmc.putInt(landscape ? KEY_TGX101_BIRD_PLACE_LAND : KEY_TGX101_BIRD_PLACE, value); }
   // (2026-10-21) where the bird stands, as side × (dp from the bottom + 1); 0 — the default place
   private static final String KEY_TGX101_BIRD_SPOT = "tgx101_bird_spot", KEY_TGX101_BIRD_SPOT_LAND = "tgx101_bird_spot_land";
-  public int tgx101BirdSpot (boolean landscape) { return pmc.getInt(landscape ? KEY_TGX101_BIRD_SPOT_LAND : KEY_TGX101_BIRD_SPOT, 0); }
+  // a new install: on the right, about a quarter of the way up (user 2026-11-04, screenshot 23:47); the value is dp from the bottom + 1
+  public int tgx101BirdSpot (boolean landscape) { return landscape ? pmc.getInt(KEY_TGX101_BIRD_SPOT_LAND, 0) : pmc.getInt(KEY_TGX101_BIRD_SPOT, 212); }
   public void setTgx101BirdSpot (boolean landscape, int value) { pmc.putInt(landscape ? KEY_TGX101_BIRD_SPOT_LAND : KEY_TGX101_BIRD_SPOT, value); }
   // (user 2026-10-26 «меню с доп. аккаунтами разворачивается и сворачивается стрелкой, позиция сохраняется»)
   private static final String KEY_TGX101_SETTINGS_ACCOUNTS_OPEN = "tgx101_settings_accounts_open";
@@ -4579,9 +4594,9 @@ public class Settings {
   // «Remember speed» off the speed lives only while the viewer is open and is never written
   private float tgx101SessionSpeed = 1f;
 
-  // TGx101 (user 2026-10-27 17:43): reopen a chat where it was left (Telegram X) — off: the first unread or the end
-  public boolean tgx101RememberChatPlace () { return pmc.getBoolean("tgx101_remember_chat_place", false); }
-  public void setTgx101RememberChatPlace (boolean v) { pmc.putBoolean("tgx101_remember_chat_place", v); }
+  // TGx101 (user 2026-10-27 17:43, 2026-11-05 «убрать из настроек, всегда выкл»): a chat never reopens where it was left:
+  // the first unread or the end
+  public boolean tgx101RememberChatPlace () { return false; }
 
   // TGx101 (user 2026-10-27): the video stream's quality picked in the viewer — the short side (720, 480…), 0 = «Auto»
   public int tgx101VideoQuality () { return pmc.getInt("tgx101_video_quality", 0); }

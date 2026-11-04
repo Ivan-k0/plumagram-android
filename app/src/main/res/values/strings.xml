@@ -7252,7 +7252,6 @@
   <string name="Tgx101FgSoundHint">A short sound and vibration of the app for a new message while it is open. With «System notification», when both are off it goes into the shade quietly.</string>
   <string name="Tgx101Quality">Video quality</string>
   <string name="Tgx101QualityAuto">Auto</string>
-  <string name="Tgx101RememberChatPlace">Reopen a chat where you left it (off — at the first unread or the end)</string>
   <string name="Tgx101HistoryCleared">History cleared</string>
   <string name="Tgx101AccountsRow">Accounts · %1$s</string>
   <string name="Tgx101AccountsSwitch">Switch to it</string>
@@ -7476,6 +7475,9 @@
   <string name="Tgx101PlayerInfoSize">Size</string>
   <string name="Tgx101PlayerInfoBitrate">Bitrate</string>
   <string name="Tgx101PlayerInfoKbps">≈ %1$d kbps</string>
+  <string name="Tgx101SavedRememberChat">Remember for this chat</string>
+  <string name="Tgx101SavedRuleApplied">For this chat: %1$s</string>
+  <string name="Tgx101FontSample">The quick brown fox jumps over 123</string>
   <string name="Tgx101Torch">Flashlight</string>
   <string name="Tgx101TorchOn">Turn the flashlight on</string>
   <string name="Tgx101TorchOff">Turn the flashlight off</string>
