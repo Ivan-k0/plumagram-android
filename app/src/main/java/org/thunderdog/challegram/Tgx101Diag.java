@@ -306,6 +306,110 @@ public final class Tgx101Diag {
     }
   }
 
+  /**
+   * Every frame of the main thread for a while, whichever window draws it: JANK only sees the activity's window,
+   * while the media viewer and other popups have their own. Logs the frames that came late and, when the main thread
+   * stands still, what it is doing. Call on the main thread.
+   */
+  public static void watchMainFrames (String label, long durationMs) {
+    if (!BuildConfig.TGX101_DIAG || writer == null) return;
+    new MainFrames(label, durationMs).start();
+  }
+
+  private static final class MainFrames implements android.view.Choreographer.FrameCallback {
+    private static final long STALL_NS = 24_000_000L;
+    private static final int MAX_FRAMES = 240;
+    private static MainFrames current;
+
+    private final String label;
+    private final long durationNs;
+    private final int[] offsetsMs = new int[MAX_FRAMES];
+    private final long[] gapsNs = new long[MAX_FRAMES];
+    private int count;
+    private long firstFrameNs, lastFrameNs;
+    private volatile long lastSeenNs;
+    private volatile boolean running;
+    private int stacks;
+
+    MainFrames (String label, long durationMs) {
+      this.label = label;
+      this.durationNs = durationMs * 1_000_000L;
+    }
+
+    void start () {
+      if (current != null) current.finish();
+      current = this;
+      running = true;
+      lastSeenNs = System.nanoTime();
+      android.view.Choreographer.getInstance().postFrameCallback(this);
+      writer.postDelayed(this::checkStall, 10);
+    }
+
+    @Override
+    public void doFrame (long frameTimeNanos) {
+      if (!running) return;
+      lastSeenNs = System.nanoTime();
+      if (firstFrameNs == 0) {
+        firstFrameNs = frameTimeNanos;
+      } else if (count < MAX_FRAMES) {
+        offsetsMs[count] = (int) ((frameTimeNanos - firstFrameNs) / 1_000_000L);
+        gapsNs[count] = frameTimeNanos - lastFrameNs;
+        count++;
+      }
+      lastFrameNs = frameTimeNanos;
+      if (frameTimeNanos - firstFrameNs >= durationNs) {
+        finish();
+      } else {
+        android.view.Choreographer.getInstance().postFrameCallback(this);
+      }
+    }
+
+    private void finish () {
+      if (!running) return;
+      running = false;
+      if (current == this) current = null;
+      long shortest = Long.MAX_VALUE, worst = 0;
+      for (int i = 0; i < count; i++) {
+        shortest = Math.min(shortest, gapsNs[i]);
+        worst = Math.max(worst, gapsNs[i]);
+      }
+      StringBuilder b = new StringBuilder(label).append(" frames: ").append(count).append(" in ")
+        .append((lastFrameNs - firstFrameNs) / 1_000_000L).append(" ms, worst gap ").append(worst / 1_000_000L).append(" ms");
+      int late = 0;
+      if (count > 0) {
+        for (int i = 0; i < count; i++) {
+          if (gapsNs[i] * 2 >= shortest * 3) {
+            b.append(late == 0 ? ", late at" : ",").append(" +").append(offsetsMs[i]).append(" (").append(gapsNs[i] / 1_000_000L).append(" ms)");
+            late++;
+          }
+        }
+      }
+      if (late == 0) b.append(", none late");
+      mark(b.toString());
+    }
+
+    // Runs on the diagnostics thread
+    private void checkStall () {
+      if (!running) return;
+      long standing = System.nanoTime() - lastSeenNs;
+      if (standing >= STALL_NS && stacks < 5) {
+        stacks++;
+        StringBuilder b = new StringBuilder(label).append(": main thread busy ").append(standing / 1_000_000L).append(" ms in");
+        int shown = 0;
+        for (StackTraceElement e : Looper.getMainLooper().getThread().getStackTrace()) {
+          boolean ours = e.getClassName().startsWith("org.thunderdog");
+          if (ours || shown < 2) {
+            b.append(' ').append(e.getClassName().substring(e.getClassName().lastIndexOf('.') + 1)).append('.').append(e.getMethodName()).append(':').append(e.getLineNumber());
+            if (++shown == 10) break;
+          }
+        }
+        mark(b.toString());
+        lastSeenNs = System.nanoTime(); // the next stack only if it stands on
+      }
+      writer.postDelayed(this::checkStall, 10);
+    }
+  }
+
   public static void mark (String step) {
     if (!BuildConfig.TGX101_DIAG || writer == null) {
       return;

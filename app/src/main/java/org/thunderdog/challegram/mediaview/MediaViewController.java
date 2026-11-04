@@ -1094,6 +1094,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         + (closing != null ? " image " + closing.getWidth() + "×" + closing.getHeight() : "") + " view " + mediaView.getMeasuredWidth() + "×" + mediaView.getMeasuredHeight());
     }
 
+    // (group 2026-11-03 22:31: a microlag on leaving the photo viewer the log didn't show — the viewer has its own window)
+    org.thunderdog.challegram.Tgx101Diag.watchMainFrames("viewer close", 700);
+
     if (animationType != ANIMATION_TYPE_PIP_CLOSE) {
       mediaView.setTarget(location, 1f);
     }
