@@ -414,6 +414,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
     final boolean isPlaying = isPlaying();
     playPauseButton.setIsPlaying(isPlaying, false);
+    coverView.tgx101SetWaving(isPlaying, false);
     currentItem.setIsTrackPlaying(isPlaying);
 
     return frameLayout;
@@ -1194,6 +1195,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     if ((state == TGPlayerController.STATE_PAUSED || state == TGPlayerController.STATE_PLAYING) && currentItem != null && TGPlayerController.compareTracks(currentItem.getMessage(), chatId, messageId, fileId)) {
       boolean isPlaying = state == TGPlayerController.STATE_PLAYING;
       playPauseButton.setIsPlaying(isPlaying, true);
+      coverView.tgx101SetWaving(isPlaying, true);
       if (currentItem != null) {
         currentItem.setIsTrackPlaying(isPlaying);
       }
@@ -1409,6 +1411,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
   @Override
   public void onTrackListClose (Tdlib tdlib, long playListChatId, long playListMaxMessageId, long playListMinMessageId, boolean newEndReached, boolean oldEndReached, List<TdApi.Message> removedMessages) {
     playPauseButton.setIsPlaying(false, true);
+    coverView.tgx101SetWaving(false, true);
     if (currentItem != null) {
       currentItem.setIsTrackCurrent(false);
       setItem((InlineResultCommon) this.tracks.get(1).getData(), false);
@@ -1938,6 +1941,53 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       return durationMillis <= 0 || positionMillis <= 0 ? 0 : MathUtils.clamp((float) ((double) positionMillis / (double) durationMillis));
     }
 
+    // (user 2026-11-04, player mockup) the played part of the bar waves while the track plays, and is straight on pause and under
+    // the finger. Short lines, not a path: a path is rasterized anew for each frame. Not on Android 4: no round caps on lines there
+    private static final int ANIMATOR_WAVE = 7;
+    private BoolAnimator tgx101WaveAnimator;
+    private float tgx101WaveFactor;
+    private float[] tgx101WaveLines;
+
+    void tgx101SetWaving (boolean isWaving, boolean animated) {
+      if (tgx101WaveAnimator == null) {
+        tgx101WaveAnimator = new BoolAnimator(ANIMATOR_WAVE, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 320L);
+      }
+      boolean allowed = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP && !org.thunderdog.challegram.unsorted.Settings.instance().needReduceMotion();
+      tgx101WaveAnimator.setValue(isWaving && allowed, animated && !disableAnimations);
+    }
+
+    private void tgx101DrawPlayed (Canvas c, float x, float y, float distance, int color) {
+      final Paint paint = Paints.getProgressPaint(color, Screen.dp(3f));
+      final float amplitude = Screen.dp(3f) * tgx101WaveFactor * (1f - seekDesireFactor);
+      if (amplitude < Screen.dp(.25f) || distance < Screen.dp(8f)) {
+        c.drawLine(x, y, x + distance, y, paint);
+        return;
+      }
+      final int segments = Math.max(2, (int) Math.ceil(distance / Screen.dp(3f)));
+      if (tgx101WaveLines == null || tgx101WaveLines.length < segments * 4) {
+        tgx101WaveLines = new float[segments * 4];
+      }
+      final double frequency = Math.PI * 2 / Screen.dp(34f);
+      final double phase = Math.PI * 2 * (android.os.SystemClock.uptimeMillis() % 1900L) / 1900.0;
+      final float taper = Screen.dp(14f); // it grows out of the start and into the knob
+      float lastX = x, lastY = y;
+      for (int i = 1; i <= segments; i++) {
+        float dx = distance * i / segments;
+        float edge = Math.min(1f, Math.min(dx, distance - dx) / taper);
+        float pointX = x + dx;
+        float pointY = y + (float) Math.sin(dx * frequency - phase) * amplitude * edge;
+        int at = (i - 1) * 4;
+        tgx101WaveLines[at] = lastX;
+        tgx101WaveLines[at + 1] = lastY;
+        tgx101WaveLines[at + 2] = pointX;
+        tgx101WaveLines[at + 3] = pointY;
+        lastX = pointX;
+        lastY = pointY;
+      }
+      c.drawLines(tgx101WaveLines, 0, segments * 4, paint);
+      postInvalidateOnAnimation(); // nothing asks for the next frame when this view isn't drawn
+    }
+
     private float seekDisplayProgress;
     private FactorAnimator seekDisplayAnimator;
 
@@ -2235,6 +2285,11 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         }
         case ANIMATOR_PROGRESS_PREFIX: {
           setOffsetFactor(factor);
+          break;
+        }
+        case ANIMATOR_WAVE: {
+          tgx101WaveFactor = factor;
+          invalidate();
           break;
         }
       }
@@ -2549,7 +2604,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         c.drawLine(seekX, seekY, seekX + seekDistance, seekY, Paints.getProgressPaint(controller.tgx101Tint.accentShade(Theme.getColor(ColorId.seekEmpty), .2f), seekStroke));
       }
       c.drawLine(seekX + seekDistanceReadyStart, seekY, seekX + seekDistanceReadyEnd, seekY, Paints.getProgressPaint(controller.tgx101Tint.accentShade(Theme.getColor(ColorId.seekReady), .36f), seekStroke));
-      c.drawLine(seekX, seekY, seekX + seekDistanceDone, seekY, Paints.getProgressPaint(doneColor, seekStroke));
+      tgx101DrawPlayed(c, seekX, seekY, seekDistanceDone, doneColor);
       float seekCenterX = seekX + seekDistance * getSeekFactor();
       c.drawCircle(seekCenterX, seekY, Screen.dp(6f) + Screen.dp(4f) * seekDesireFactor, Paints.fillingPaint(doneColor));
       if (bufferingFactor > 0f) {
