@@ -12,9 +12,12 @@
  */
 package org.thunderdog.challegram.ui;
 
-import android.app.AlertDialog;
 import android.content.Context;
+import android.graphics.drawable.GradientDrawable;
 import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.drinkless.tdlib.TdApi;
@@ -22,15 +25,19 @@ import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.data.TGMessage;
 import org.thunderdog.challegram.telegram.Tdlib;
+import org.thunderdog.challegram.support.RippleSupport;
+import org.thunderdog.challegram.theme.ColorId;
 import org.thunderdog.challegram.theme.Theme;
+import org.thunderdog.challegram.tool.Fonts;
 import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.tool.UI;
+import org.thunderdog.challegram.tool.Views;
 
 import tgx.td.data.MessageWithProperties;
 
 /**
  * "Select Text" message-options entry: shows the message's plain text in a native, selectable
- * (not editable) {@link TextView} inside a themed dialog -- real drag-selection handles, the
+ * (not editable) {@link TextView} inside the app's sheet -- real drag-selection handles, the
  * magnifier loupe, and the system's own copy/select-all action bar all come for free from the
  * Android framework this way, instead of re-implementing character-precise touch/selection math
  * on top of this app's own hand-rolled canvas text engine (util/text/Text.java). That inline
@@ -52,25 +59,69 @@ public class SelectTextForQuoteDialog {
     if (controller == null || formattedText == null || formattedText.text.isEmpty()) {
       return;
     }
-    Context context = controller.context();
+    showSheet(controller, formattedText.text, (start, end) ->
+      onReplyRequested(controller, tdlib, message, formattedText, start, end));
+  }
 
-    final TextView textView = new TextView(context);
-    textView.setText(formattedText.text);
-    textView.setTextIsSelectable(true);
-    textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f);
-    int paddingH = Screen.dp(20f), paddingV = Screen.dp(14f);
-    textView.setPadding(paddingH, paddingV, paddingH, paddingV);
+  private interface OnReply {
+    void onReply (int selectionStart, int selectionEnd);
+  }
 
-    AlertDialog.Builder builder = new AlertDialog.Builder(context, Theme.dialogTheme());
-    builder.setTitle(Lang.getString(R.string.SelectText));
-    builder.setView(textView);
-    builder.setNegativeButton(Lang.getString(R.string.Cancel), (dialog, which) -> dialog.dismiss());
-    builder.setPositiveButton(Lang.getString(R.string.Reply), (dialog, which) -> {
-      dialog.dismiss();
-      onReplyRequested(controller, tdlib, message, formattedText, textView.getSelectionStart(), textView.getSelectionEnd());
+  /**
+   * (user 2026-11-04 «старое окно сделай современней на всякий случай»): the app's own sheet instead of the system dialog.
+   * Nothing selected: «Reply» answers the whole message and «Copy» takes all of the text.
+   */
+  private static void showSheet (MessagesController controller, String text, OnReply reply) {
+    final Tgx101Sheet.Handle[] handle = new Tgx101Sheet.Handle[1];
+    handle[0] = Tgx101Sheet.show(controller, null, body -> {
+      Context context = controller.context();
+      body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.SelectText)));
+
+      final TextView textView = new TextView(context);
+      textView.setText(text);
+      textView.setTextIsSelectable(true);
+      textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f);
+      textView.setTextColor(Theme.textAccentColor());
+      textView.setLineSpacing(Screen.dp(2f), 1f);
+      textView.setPadding(Screen.dp(20f), 0, Screen.dp(20f), Screen.dp(16f));
+      body.addView(textView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+      TextView button = new TextView(context);
+      button.setText(Lang.getString(R.string.Reply));
+      button.setTextColor(Theme.getColor(ColorId.fillingPositiveContent));
+      button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
+      button.setTypeface(Fonts.getRobotoMedium());
+      button.setGravity(Gravity.CENTER);
+      GradientDrawable buttonBg = new GradientDrawable();
+      buttonBg.setColor(Theme.getColor(ColorId.fillingPositive));
+      buttonBg.setCornerRadius(Screen.dp(14f));
+      button.setBackground(buttonBg);
+      Views.setClickable(button);
+      button.setOnClickListener(v -> {
+        int start = textView.getSelectionStart(), end = textView.getSelectionEnd();
+        handle[0].dismiss();
+        reply.onReply(start, end);
+      });
+      LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(50f));
+      buttonParams.setMargins(Screen.dp(20f), 0, Screen.dp(20f), Screen.dp(8f));
+      body.addView(button, buttonParams);
+
+      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_content_copy_24, 0, Lang.getString(R.string.Copy), null, false, v -> {
+        int start = textView.getSelectionStart(), end = textView.getSelectionEnd();
+        UI.copyText(start >= 0 && end > start && end <= text.length() ? text.substring(start, end) : text, R.string.CopiedText);
+        handle[0].dismiss();
+      }));
+
+      TextView quiet = new TextView(context);
+      quiet.setText(Lang.getString(R.string.Cancel));
+      quiet.setTextColor(Theme.textDecentColor());
+      quiet.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
+      quiet.setGravity(Gravity.CENTER);
+      Views.setClickable(quiet);
+      RippleSupport.setTransparentSelector(quiet);
+      quiet.setOnClickListener(v -> handle[0].dismiss());
+      body.addView(quiet, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(46f)));
     });
-
-    controller.showAlert(builder);
   }
 
   /**
@@ -100,32 +151,8 @@ public class SelectTextForQuoteDialog {
     if (controller == null || text == null || text.isEmpty()) {
       return;
     }
-    Context context = controller.context();
-    final TextView textView = new TextView(context);
-    textView.setText(text);
-    textView.setTextIsSelectable(true);
-    textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f);
-    textView.setTextColor(Theme.textAccentColor());
-    int paddingH = Screen.dp(20f), paddingV = Screen.dp(14f);
-    textView.setPadding(paddingH, paddingV, paddingH, paddingV);
-
-    AlertDialog.Builder builder = new AlertDialog.Builder(context, Theme.dialogTheme());
-    builder.setTitle(Lang.getString(R.string.SelectText));
-    builder.setView(textView);
-    builder.setNegativeButton(Lang.getString(R.string.Cancel), (dialog, which) -> dialog.dismiss());
-    builder.setNeutralButton(Lang.getString(R.string.Copy), (dialog, which) -> {
-      int start = textView.getSelectionStart(), end = textView.getSelectionEnd();
-      String copy = start >= 0 && end > start && end <= text.length() ? text.substring(start, end) : text;
-      UI.copyText(copy, R.string.CopiedText);
-      dialog.dismiss();
-    });
-    builder.setPositiveButton(Lang.getString(R.string.Reply), (dialog, which) -> {
-      int start = textView.getSelectionStart(), end = textView.getSelectionEnd();
-      String selected = start >= 0 && end > start && end <= text.length() ? text.substring(start, end) : null;
-      dialog.dismiss();
-      replyWithTranscriptionPart(controller, message, selected);
-    });
-    controller.showAlert(builder);
+    showSheet(controller, text, (start, end) ->
+      replyWithTranscriptionPart(controller, message, start >= 0 && end > start && end <= text.length() ? text.substring(start, end) : null));
   }
 
   public static void onReplyRequested (MessagesController controller, Tdlib tdlib, TGMessage message, TdApi.FormattedText fullText, int selStart, int selEnd) {
