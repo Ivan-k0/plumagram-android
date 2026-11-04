@@ -678,7 +678,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       subtitle = fileName.trim();
     }
 
-    setText(StringUtils.isEmpty(title) ? null : title, StringUtils.isEmpty(subtitle) ? null : subtitle, Screen.dp(TGX101_AUDIO_TEXT_LEFT_DP + (SIZE + GAP) * (tgx101ShowsNext() ? 3 : 2) + OFFSET));
+    setText(StringUtils.isEmpty(title) ? null : title, StringUtils.isEmpty(subtitle) ? null : subtitle, Screen.dp(TGX101_AUDIO_TEXT_LEFT_DP + (SIZE + GAP) * (tgx101ShowsNext() ? 3 : 2) + OFFSET + TGX101_SPEED_GAP));
   }
 
   private void drawOngoingAudio (Canvas c, int playerTop, float rectWidth, int playerBottom) {
@@ -696,14 +696,14 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     if (speedCounter != null) {
       // (user 2026-11-04 14:53, a screenshot of another client: «закрыть справа на всех подобных окнах»): ▶ on the left, then the
       // title, the speed and ✕ on the right; «next» only for music, it has a queue
-      speedCounter.draw(c, getRightButtonCenter(width, 1), (playerBottom + playerTop) / 2f, Gravity.CENTER, 1f);
+      speedCounter.draw(c, getRightButtonCenter(width - Screen.dp(TGX101_SPEED_GAP), 1), (playerBottom + playerTop) / 2f, Gravity.CENTER, 1f);
     }
 
     TdApi.File file = TD.getFile(playingMessage);
     DrawAlgorithms.drawPlayPause(c, Screen.dp(28f), playerBottom - Size.getHeaderPlayerSize() / 2, Screen.dp(12f), playPausePath, playPauseDrawFactor, playPauseDrawFactor = playPauseFactor, file != null ? TD.getFileProgress(file) : 1f, ColorUtils.alphaColor(dropShadowAlpha, Theme.iconColor()));
 
     if (tgx101ShowsNext()) {
-      Drawables.draw(c, forwardIcon, getRightButtonLeft(width, 2), playerBottom - Size.getHeaderPlayerSize() / 2 - forwardIcon.getMinimumHeight() / 2, dropShadowAlpha == 1f ? Paints.getIconGrayPorterDuffPaint() : Paints.getPorterDuffPaint(ColorUtils.alphaColor(dropShadowAlpha, Theme.iconColor())));
+      Drawables.draw(c, forwardIcon, getRightButtonLeft(width - Screen.dp(TGX101_SPEED_GAP), 2), playerBottom - Size.getHeaderPlayerSize() / 2 - forwardIcon.getMinimumHeight() / 2, dropShadowAlpha == 1f ? Paints.getIconGrayPorterDuffPaint() : Paints.getPorterDuffPaint(ColorUtils.alphaColor(dropShadowAlpha, Theme.iconColor())));
     }
     drawCloseIcon(c, playerTop, width, playerBottom, true);
 
@@ -711,6 +711,14 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
   }
 
   private static final float TGX101_AUDIO_TEXT_LEFT_DP = 56f;
+  // (user 2026-11-04 14:59 «больше расстояния между крестиком и скоростью, пожертвуй названием»)
+  private static final int TGX101_SPEED_GAP = 16;
+
+  /** Which button of the player bar is under x: 0 ✕, 1 the speed, 2 next, more for the title */
+  private int tgx101AudioButtonIndex (float x) {
+    if (x >= width - Screen.dp(OFFSET + SIZE + TGX101_SPEED_GAP / 2f)) return 0;
+    return Math.max(1, getRightButtonIndex(width - Screen.dp(TGX101_SPEED_GAP), x));
+  }
 
   private boolean tgx101ShowsNext () {
     return playingMessage != null && playingMessage.content.getConstructor() == TdApi.MessageAudio.CONSTRUCTOR;
@@ -1357,8 +1365,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       return false;
     }
     if (BitwiseUtils.hasFlag(ongoingSections, SECTION_AUDIO)) {
-      int rIndex = getRightButtonIndex(width, x);
-      return rIndex == 1;
+      return tgx101AudioButtonIndex(x) == 1;
     }
     return false;
   }
@@ -1396,7 +1403,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
   @Override
   public void onClickAt (View view, float x, float y) {
     final boolean isAudio = BitwiseUtils.hasFlag(ongoingSections, SECTION_AUDIO);
-    int rIndex = getRightButtonIndex(width, x);
+    int rIndex = tgx101AudioButtonIndex(x);
 
     int buttonSize = Screen.dp(52f);
     if (isAudio && x <= buttonSize) {
@@ -1581,7 +1588,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       .builder(headerView)
       .locate((targetView, outRect) -> {
         final int width = targetView.getMeasuredWidth();
-        outRect.set(getRightButtonLeft(width, 1), 0, getRightButtonRight(width, 1), playerBottom);
+        outRect.set(getRightButtonLeft(width - Screen.dp(TGX101_SPEED_GAP), 1), 0, getRightButtonRight(width - Screen.dp(TGX101_SPEED_GAP), 1), playerBottom);
       })
       .maxWidth(300)
       .show(null, text).hideDelayed(3000, TimeUnit.MILLISECONDS);
@@ -1604,7 +1611,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       }
     }, TdlibManager.instance().player().getSpeed());
     playbackSpeedLayout.setTranslationY((playerTop + playerBottom) / 2f - Screen.dp(24 + 8));
-    playbackSpeedLayout.setTranslationX(getRightButtonCenter(0, 1) + Screen.dp( 24 + 8));
+    playbackSpeedLayout.setTranslationX(getRightButtonCenter(-Screen.dp(TGX101_SPEED_GAP), 1) + Screen.dp( 24 + 8));
     playbackSpeedLayout.processTouchEvent(MotionEvent.ACTION_DOWN, touchX, touchY, playbackOffsetY, true);
 
     playbackSpeedPopup.init(true);
