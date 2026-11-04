@@ -678,7 +678,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       subtitle = fileName.trim();
     }
 
-    setText(StringUtils.isEmpty(title) ? null : title, StringUtils.isEmpty(subtitle) ? null : subtitle, Screen.dp(67 + (SIZE + GAP) * 3 + OFFSET));
+    setText(StringUtils.isEmpty(title) ? null : title, StringUtils.isEmpty(subtitle) ? null : subtitle, Screen.dp(TGX101_AUDIO_TEXT_LEFT_DP + (SIZE + GAP) * (tgx101ShowsNext() ? 3 : 2) + OFFSET));
   }
 
   private void drawOngoingAudio (Canvas c, int playerTop, float rectWidth, int playerBottom) {
@@ -694,16 +694,26 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     }
 
     if (speedCounter != null) {
-      speedCounter.draw(c, getRightButtonCenter(width, 2), (playerBottom + playerTop) / 2f, Gravity.CENTER, 1f);
+      // (user 2026-11-04 14:53, a screenshot of another client: «закрыть справа на всех подобных окнах»): ▶ on the left, then the
+      // title, the speed and ✕ on the right; «next» only for music, it has a queue
+      speedCounter.draw(c, getRightButtonCenter(width, 1), (playerBottom + playerTop) / 2f, Gravity.CENTER, 1f);
     }
 
     TdApi.File file = TD.getFile(playingMessage);
-    DrawAlgorithms.drawPlayPause(c, getRightButtonCenter(width, 0), playerBottom - Size.getHeaderPlayerSize() / 2, Screen.dp(12f), playPausePath, playPauseDrawFactor, playPauseDrawFactor = playPauseFactor, file != null ? TD.getFileProgress(file) : 1f, ColorUtils.alphaColor(dropShadowAlpha, Theme.iconColor()));
+    DrawAlgorithms.drawPlayPause(c, Screen.dp(28f), playerBottom - Size.getHeaderPlayerSize() / 2, Screen.dp(12f), playPausePath, playPauseDrawFactor, playPauseDrawFactor = playPauseFactor, file != null ? TD.getFileProgress(file) : 1f, ColorUtils.alphaColor(dropShadowAlpha, Theme.iconColor()));
 
-    Drawables.draw(c, forwardIcon, getRightButtonLeft(width, 1), playerBottom - Size.getHeaderPlayerSize() / 2 - forwardIcon.getMinimumHeight() / 2, dropShadowAlpha == 1f ? Paints.getIconGrayPorterDuffPaint() : Paints.getPorterDuffPaint(ColorUtils.alphaColor(dropShadowAlpha, Theme.iconColor())));
-    drawCloseIcon(c, playerTop, width, playerBottom, false);
+    if (tgx101ShowsNext()) {
+      Drawables.draw(c, forwardIcon, getRightButtonLeft(width, 2), playerBottom - Size.getHeaderPlayerSize() / 2 - forwardIcon.getMinimumHeight() / 2, dropShadowAlpha == 1f ? Paints.getIconGrayPorterDuffPaint() : Paints.getPorterDuffPaint(ColorUtils.alphaColor(dropShadowAlpha, Theme.iconColor())));
+    }
+    drawCloseIcon(c, playerTop, width, playerBottom, true);
 
-    drawOngoingText(c, playerTop, rectWidth, playerBottom, Screen.dp(67f), null, 1f, 1f);
+    drawOngoingText(c, playerTop, rectWidth, playerBottom, Screen.dp(TGX101_AUDIO_TEXT_LEFT_DP), null, 1f, 1f);
+  }
+
+  private static final float TGX101_AUDIO_TEXT_LEFT_DP = 56f;
+
+  private boolean tgx101ShowsNext () {
+    return playingMessage != null && playingMessage.content.getConstructor() == TdApi.MessageAudio.CONSTRUCTOR;
   }
 
   private void drawCloseIcon (Canvas c, int playerTop, float rectWidth, int playerBottom, boolean alignRight) {
@@ -821,7 +831,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
 
   // TGx101 (user 2026-10-14, voice chats step 2): «you're in a voice chat» — the call bar under the header while the
   // voice chat's own screen is closed (that screen is a popup, the bar is hidden there): tap — back to it, the
-  // microphone on the right, leave on the left. A 1:1 call keeps the bar when both run
+  // microphone on the left, leave on the right. A 1:1 call keeps the bar when both run
 
   private @Nullable org.thunderdog.challegram.voip.Tgx101GroupCall groupCall;
 
@@ -1144,14 +1154,15 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
 
     // Mute button
     iconPaint.setAlpha((int) (255f * dropShadowAlpha * callActiveFactor * (1f - callIncomingFactor)));
-    int cx = width - Screen.dp(12f) - micIcon.getMinimumWidth();
+    // (user 2026-11-04 «закрыть справа на всех подобных окнах: звонок, музыка, голосовое»): the microphone left, hanging up right
+    int cx = Screen.dp(18f);
     int cy = playerTop + Screen.dp(6f);
     Drawables.draw(c, micIcon, cx, cy, iconPaint);
     DrawAlgorithms.drawCross(c, cx + micIcon.getMinimumWidth() / 2, cy + micIcon.getMinimumHeight() / 2, callMuteFactor, ColorUtils.color(iconPaint.getAlpha(), 0xffffff), playerFillingColor);
 
     // Call button
     iconPaint.setAlpha((int) (255f * dropShadowAlpha));
-    cx = Screen.dp(18f);
+    cx = width - Screen.dp(12f) - hangIcon.getMinimumWidth();
     cy = playerTop + Screen.dp(6f);
 
     float callRotationFactor = callIncomingFactor * callActiveFactor;
@@ -1171,7 +1182,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     float textAlpha = ((float) 0xe0 / (float) 0xff) * (callFlashFactor <= .5f ? 1f - (callFlashFactor / .5f) : (callFlashFactor - .5f) / .5f);
     // TGx101 (user 2026-10-07 15:31 «по центру имя нужно отображать»): name and timer centred in the bar, never over the icons
     int textWidth = getTitleWidth() + (trimmedSubtitle != null ? trimmedSubtitle.getWidth() : 0);
-    int rightLimit = width - Screen.dp(12f) - micIcon.getMinimumWidth() - Screen.dp(8f);
+    int rightLimit = width - Screen.dp(12f) - hangIcon.getMinimumWidth() - Screen.dp(8f);
     int centeredLeft = (int) ((rectWidth - textWidth) / 2f);
     int callTextLeft = Math.max(textLeft, Math.min(centeredLeft, rightLimit - textWidth));
     drawOngoingText(c, playerTop, rectWidth, playerBottom, callTextLeft, TextColorSets.WHITE, 1f, textAlpha);
@@ -1347,7 +1358,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     }
     if (BitwiseUtils.hasFlag(ongoingSections, SECTION_AUDIO)) {
       int rIndex = getRightButtonIndex(width, x);
-      return rIndex == 2;
+      return rIndex == 1;
     }
     return false;
   }
@@ -1388,13 +1399,18 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     int rIndex = getRightButtonIndex(width, x);
 
     int buttonSize = Screen.dp(52f);
-    if (!isAudio && x <= width && x >= width - buttonSize - Screen.dp(24f)) {
-      int index = x >= width - buttonSize ? 0 : (int) (width - x - buttonSize) / Screen.dp(24f) + 1;
-      onRightClick(index);
-    } else if (isAudio && x <= width && rIndex <= 2) {
-      onRightClick(rIndex);
-    } else if (x >= 0 && x <= buttonSize) {
-      onLeftClick();
+    if (isAudio && x <= buttonSize) {
+      onRightClick(0); // ▶ on the left
+    } else if (isAudio && x <= width && rIndex == 0) {
+      onLeftClick(); // ✕ on the right
+    } else if (isAudio && x <= width && rIndex == 1) {
+      onRightClick(2); // the speed
+    } else if (isAudio && x <= width && rIndex == 2 && tgx101ShowsNext()) {
+      onRightClick(1); // next
+    } else if (!isAudio && x <= width && x >= width - buttonSize) {
+      onLeftClick(); // hanging up on the right
+    } else if (!isAudio && x >= 0 && x <= buttonSize) {
+      onRightClick(0); // the microphone on the left
     } else {
       onBarClick();
     }
@@ -1565,7 +1581,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       .builder(headerView)
       .locate((targetView, outRect) -> {
         final int width = targetView.getMeasuredWidth();
-        outRect.set(getRightButtonLeft(width, 2), 0, getRightButtonRight(width, 2), playerBottom);
+        outRect.set(getRightButtonLeft(width, 1), 0, getRightButtonRight(width, 1), playerBottom);
       })
       .maxWidth(300)
       .show(null, text).hideDelayed(3000, TimeUnit.MILLISECONDS);
@@ -1588,7 +1604,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       }
     }, TdlibManager.instance().player().getSpeed());
     playbackSpeedLayout.setTranslationY((playerTop + playerBottom) / 2f - Screen.dp(24 + 8));
-    playbackSpeedLayout.setTranslationX(getRightButtonCenter(0, 2) + Screen.dp( 24 + 8));
+    playbackSpeedLayout.setTranslationX(getRightButtonCenter(0, 1) + Screen.dp( 24 + 8));
     playbackSpeedLayout.processTouchEvent(MotionEvent.ACTION_DOWN, touchX, touchY, playbackOffsetY, true);
 
     playbackSpeedPopup.init(true);
