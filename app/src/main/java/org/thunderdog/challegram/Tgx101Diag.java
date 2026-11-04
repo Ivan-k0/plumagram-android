@@ -504,6 +504,45 @@ public final class Tgx101Diag {
     }
   }
 
+  /**
+   * Every visible layer lying over a band of the screen, bottom to top: class, place, translation, alpha and background.
+   * For a leftover nobody can see on the developer's phone (group 2026-11-04: a header's background staying on a OnePlus 10).
+   * Only classes, numbers and colours, no text or pixels.
+   */
+  public static void markLayersOver (android.view.View root, int top, int bottom, String label) {
+    if (!BuildConfig.TGX101_DIAG || writer == null || root == null) return;
+    StringBuilder b = new StringBuilder(label).append(": layers over y ").append(top).append("..").append(bottom);
+    int[] count = {0};
+    appendLayers(root, top, bottom, b, 0, count);
+    mark(b.toString());
+  }
+
+  private static void appendLayers (android.view.View v, int top, int bottom, StringBuilder b, int depth, int[] count) {
+    if (v.getVisibility() != android.view.View.VISIBLE || count[0] >= 80) return;
+    int[] at = new int[2];
+    v.getLocationOnScreen(at);
+    if (at[1] < bottom && at[1] + v.getHeight() > top && v.getWidth() > 0) {
+      count[0]++;
+      b.append("\n  ");
+      for (int i = 0; i < depth && i < 12; i++) b.append(' ');
+      b.append(v.getClass().getSimpleName()).append(" y ").append(at[1]).append("..").append(at[1] + v.getHeight());
+      b.append(" x ").append(at[0]).append(" w ").append(v.getWidth());
+      if (v.getTranslationY() != 0f) b.append(" transY ").append((int) v.getTranslationY());
+      if (v.getAlpha() != 1f) b.append(" alpha ").append(v.getAlpha());
+      android.graphics.drawable.Drawable background = v.getBackground();
+      if (background instanceof android.graphics.drawable.ColorDrawable) {
+        b.append(" bg #").append(Integer.toHexString(((android.graphics.drawable.ColorDrawable) background).getColor()));
+      } else if (background != null) {
+        b.append(" bg ").append(background.getClass().getSimpleName());
+      }
+      if (v instanceof android.view.ViewGroup) {
+        android.view.ViewGroup group = (android.view.ViewGroup) v;
+        if (!group.getClipChildren()) b.append(" noClipChildren");
+        for (int i = 0; i < group.getChildCount(); i++) appendLayers(group.getChildAt(i), top, bottom, b, depth + 1, count);
+      }
+    }
+  }
+
   public static void mark (String step) {
     if (!BuildConfig.TGX101_DIAG || writer == null) {
       return;
