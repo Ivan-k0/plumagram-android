@@ -32,7 +32,7 @@ import tgx.td.ChatId;
 
 /**
  * TGx101 (user 2026-10-21 11:50): what the bird ({@link Tgx101BirdView}) does. The ring by default: Storage, Proxy,
- * Accounts, Calls, Settings, Player (user 2026-11-05); at most 7, chosen in MagiX → Gestures (the side menu and night mode too). Only a hold opens it — a tap does nothing (user 2026-10-21).
+ * Accounts, Calls, Settings; new installs: {@link Settings#tgx101BirdRing()}; at most 7, chosen in MagiX → Gestures (the side menu and night mode too). Only a hold opens it — a tap does nothing (user 2026-10-21).
  */
 public final class Tgx101Bird {
   private Tgx101Bird () { }
@@ -60,6 +60,12 @@ public final class Tgx101Bird {
     0xffc49a45 /* gazeta: newsprint yellow */, 0xfff06292 /* player: pink */
   };
 
+  /** Where each stands in the ring: the player beside the note, the place it took by default */
+  private static final int[] RING_ORDER = {
+    ACTION_STORAGE, ACTION_PROXY, ACTION_ACCOUNTS, ACTION_CALLS, ACTION_SETTINGS, ACTION_COMPOSE, ACTION_SEARCH, ACTION_NEXT_ACCOUNT,
+    ACTION_PLAYER, ACTION_NOTE, ACTION_MENU, ACTION_NIGHT, ACTION_PEEK, ACTION_GAZETA
+  };
+
   /** on every chat list while the side menu is used (not the bottom capsule) and ✎ is hidden */
   public static boolean enabled () {
     Settings s = Settings.instance();
@@ -75,7 +81,8 @@ public final class Tgx101Bird {
   public static Tgx101BirdView.Item[] items () {
     int mask = Settings.instance().tgx101BirdRing();
     List<Tgx101BirdView.Item> out = new ArrayList<>();
-    for (int i = 0; i < TITLES.length && out.size() < MAX; i++) {
+    for (int at = 0; at < RING_ORDER.length && out.size() < MAX; at++) {
+      final int i = RING_ORDER[at];
       if ((mask & (1 << i)) == 0) continue;
       if (i == ACTION_NIGHT) {
         // (user 2026-10-21): what it will turn to — the moon while it's light, the sun while it's dark
