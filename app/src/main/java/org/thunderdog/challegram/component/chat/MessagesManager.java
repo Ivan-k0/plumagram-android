@@ -2046,8 +2046,10 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         int stopAt = visibleTop + Math.round((visibleBottom - visibleTop) * .4f);
         int overflow = Math.max(0, view.getBottom() + growth - visibleBottom);
         int lift = Math.min(Math.min(growth, overflow), Math.max(0, view.getTop() - stopAt));
+        org.thunderdog.challegram.Tgx101Diag.mark("transcription move: height " + oldHeight + " → " + newHeight + ", top " + view.getTop() + ", bottom " + view.getBottom() + " of " + visibleBottom + ", stops at " + stopAt + ", lifts " + lift);
         scrollCompensation(view, -(growth - lift));
       } else {
+        org.thunderdog.challegram.Tgx101Diag.mark("transcription move: height " + oldHeight + " → " + newHeight + ", top " + view.getTop() + ", bottom " + view.getBottom() + " (folding)");
         scrollCompensation(view, heightDiff);
       }
       return;

@@ -774,6 +774,8 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     }
 
     isHidden = true;
+    // TGx101: every frame while it goes (diagnostics builds; JANK doesn't see a popup's own window)
+    org.thunderdog.challegram.Tgx101Diag.watchMainFrames("popup close", 500);
     if (tgx101From != null) { // closed before it finished coming in: the menu goes with it
       PopupLayout from = tgx101From;
       tgx101From = null;

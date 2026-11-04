@@ -1019,6 +1019,7 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
     if (changed) {
       // (user 2026-11-04 «анимации раскрытия нет», recorded: the whole height changed in one frame): a rebuild measures the file
       // at once and ended the move before it began; the text is already laid out, the file only measures itself animated
+      org.thunderdog.challegram.Tgx101Diag.mark("transcription: voice " + messageId + " text " + (Tgx101Transcription.captionFor(tdlib, getMessage(messageId)) != null ? "shown" : "hidden") + ", by the button " + (messageId == tgx101FollowTopId) + ", animated " + needAnimateChanges());
       if (needAnimateChanges()) {
         files.measure(true);
       } else {

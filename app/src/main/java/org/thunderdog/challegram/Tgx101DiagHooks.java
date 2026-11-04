@@ -161,6 +161,8 @@ public final class Tgx101DiagHooks {
     if (BuildConfig.TGX101_DIAG) {
       String name = content != null ? content.getClass().getSimpleName() : popup.getClass().getSimpleName();
       Tgx101Diag.mark("popup " + (shown ? "shown " : "removed ") + name + (shown ? response("popup " + name, 150) : ""));
+      // (user 2026-11-04 «логи всё пишут?»): JANK sees only the activity's window, a popup has its own — every frame while it comes in
+      if (shown) Tgx101Diag.watchMainFrames("popup open " + name, 500);
     }
   }
 
