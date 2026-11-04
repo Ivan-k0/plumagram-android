@@ -1099,10 +1099,10 @@ public class MediaCellView extends ViewGroup implements
         clipVertical + clipTop / scale,
         clipHorizontal + clipRight / scale,
         clipVertical + clipBottom / scale,
-        Math.max(radius, tgx101CornerRadius(thumb, thumb.topLeftRadius, revealFactor)) / scale,
-        Math.max(radius, tgx101CornerRadius(thumb, thumb.topRightRadius, revealFactor)) / scale,
-        Math.max(radius, tgx101CornerRadius(thumb, thumb.bottomRightRadius, revealFactor)) / scale,
-        Math.max(radius, tgx101CornerRadius(thumb, thumb.bottomLeftRadius, revealFactor)) / scale
+        Math.max(radius, tgx101CornerRadius(thumb, thumb.topLeftRadius, revealFactor) * tgx101CornerScale(thumb, width)) / scale,
+        Math.max(radius, tgx101CornerRadius(thumb, thumb.topRightRadius, revealFactor) * tgx101CornerScale(thumb, width)) / scale,
+        Math.max(radius, tgx101CornerRadius(thumb, thumb.bottomRightRadius, revealFactor) * tgx101CornerScale(thumb, width)) / scale,
+        Math.max(radius, tgx101CornerRadius(thumb, thumb.bottomLeftRadius, revealFactor) * tgx101CornerScale(thumb, width)) / scale
       );
     }
   }
@@ -1117,7 +1117,13 @@ public class MediaCellView extends ViewGroup implements
     float f = MathUtils.clamp(revealFactor);
     float even = Math.max(thumb.getRadius(), Math.max(Math.max(thumb.topLeftRadius, thumb.topRightRadius), Math.max(thumb.bottomRightRadius, thumb.bottomLeftRadius)));
     float start = Math.max(thumb.getRadius(), own);
-    return (start + (even - start) * MathUtils.clamp(f / .15f)) * (1f - f * f * f * f);
+    float f2 = f * f, f4 = f2 * f2;
+    return (start + (even - start) * MathUtils.clamp(f / .15f)) * (1f - f4 * f4); // square only in the last frames of the landing
+  }
+
+  private static float tgx101CornerScale (MediaViewThumbLocation thumb, float pictureWidth) {
+    int thumbWidth = thumb.width();
+    return thumbWidth > 0 ? MathUtils.clamp(pictureWidth / thumbWidth, 1f, 3f) : 1f;
   }
 
   public Receiver getReceiver () {
@@ -2041,7 +2047,10 @@ public class MediaCellView extends ViewGroup implements
           rectF.set(receiver.centerX() - clipWidth / 2f, receiver.centerY() - clipHeight / 2f, receiver.centerX() + clipWidth / 2f, receiver.centerY() + clipHeight / 2f);
           // TGx101: round the corners of the visible frame, not of the whole photo that sticks out under the clip
           rectF.intersect(receiver.getLeft() + clipLeft, receiver.getTop() + clipTop, receiver.getRight() - clipRight, receiver.getBottom() - clipBottom);
-          DrawAlgorithms.buildPath(clipPath, rectF, topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius);
+          // (user 2026-11-04 16:10 «углы по прежнему заостряются»): the same radius on a picture 2–3 times bigger looks sharp —
+          // the corners grow with the picture
+          float cornerScale = tgx101CornerScale(thumb, rectF.width());
+          DrawAlgorithms.buildPath(clipPath, rectF, topLeftRadius * cornerScale, topRightRadius * cornerScale, bottomRightRadius * cornerScale, bottomLeftRadius * cornerScale);
           savedRoundedClip = ViewSupport.clipPath(c, clipPath);
         }
       }
