@@ -426,7 +426,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   // away in a plate under them; «A» again brings the big circle back, a tap on the small circle plays it
 
   private static final java.util.Set<String> tgx101TextModes = new java.util.HashSet<>();
-  private static final float TM_MINI = 46f, TM_GAP = 8f, TM_PAD = 12f, TM_A_WIDTH = 34f, TM_A_HEIGHT = 28f, TM_WIDTH = 218f; // with the margins, a voice message's whole width
+  private static final float TM_MINI = 46f, TM_GAP = 8f, TM_PAD = 8f, TM_PAD_TOP = 12f, TM_A_WIDTH = 34f, TM_A_HEIGHT = 28f, TM_WIDTH = 222f; // with the margins, a voice message's whole width
   private @androidx.annotation.Nullable org.thunderdog.challegram.util.text.Text tgx101Text;
   private int tgx101TextW, tgx101TextH;
   private @androidx.annotation.Nullable String tgx101TextKey;
@@ -532,7 +532,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     tgx101Text = new org.thunderdog.challegram.util.text.Text.Builder(text, textWidth, getTextStyleProvider(), getTextColorSet()).build();
     // (user 2026-11-04 «текст не лежит в пузыре как нужно»): with the plate went its margins — the bubble's own, as a voice's
     tgx101TextW = textWidth + Screen.dp(TM_PAD) * 2;
-    tgx101TextH = Screen.dp(TM_PAD) + Screen.dp(TM_MINI) + Screen.dp(TM_GAP) + tgx101Text.getHeight() + Screen.dp(4f);
+    tgx101TextH = Screen.dp(TM_PAD_TOP) + Screen.dp(TM_MINI) + Screen.dp(TM_GAP) + tgx101Text.getHeight() + Screen.dp(4f);
   }
 
   private void tgx101DrawText (Canvas c, int x, int y, Receiver preview) {
@@ -546,7 +546,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
       tgx101DrawCircleButton(c, x + size / 2f + tgx101ButtonDx * scale, y + size / 2f + tgx101ButtonDy * scale, (1f - f) * (1f - f));
     }
     x += contentMargin;
-    y += contentMargin;
+    y += Math.round(Screen.dp(TM_PAD_TOP) * f);
     tgx101MiniRect.set(x, y, x + mini, y + mini);
     // (user's video 2026-10-19 vs exteraGram): the text, the title and «A» come up only in the second half, once the
     // circle has mostly shrunk — drawn under it, they no longer show through the big circle at the start
@@ -586,9 +586,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     if (alpha <= 0f) return;
     Tgx101Transcription.Result result = Tgx101Transcription.get(tdlib, msg);
     c.drawCircle(cx, cy, Screen.dp(TRANSCRIBE_BUTTON_RADIUS), Paints.fillingPaint(ColorUtils.alphaColor(alpha, Theme.getColor(isOutgoingBubble() ? ColorId.bubbleOut_waveformActive : ColorId.waveformActive))));
-    String label = result != null && result.state == Tgx101Transcription.STATE_PENDING ? "…" : "→A";
-    android.text.TextPaint labelPaint = Paints.getBoldPaint14(false, ColorUtils.alphaColor(alpha, 0xffffffff));
-    c.drawText(label, cx - labelPaint.measureText(label) / 2f, cy + Screen.dp(5f), labelPaint);
+    FileComponent.tgx101DrawTranscribeMark(c, cx, cy, ColorUtils.alphaColor(alpha, 0xffffffff), result != null && result.state == Tgx101Transcription.STATE_PENDING);
   }
 
   private void tgx101DrawTextParts (Canvas c, int x, int y) {
@@ -856,7 +854,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   // (user 2026-11-04 15:25 «кружок налазит один на другой»): the video's own layer goes with the small circle, inside the margins
   @Override
   public int getChildrenTop () {
-    return super.getChildrenTop() + tgx101ContentMargin();
+    return super.getChildrenTop() + (tgx101TextMode() ? Math.round(Screen.dp(TM_PAD_TOP) * tgx101TextFactor()) : 0);
   }
 
   private int tgx101ContentMargin () {

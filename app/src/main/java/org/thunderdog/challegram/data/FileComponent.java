@@ -805,6 +805,35 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
   private me.vkryl.android.animator.BoolAnimator tgx101ShownAnimator;
 
+  private static final android.graphics.Rect tgx101MarkBounds = new android.graphics.Rect();
+  private static final android.graphics.Paint tgx101MarkStroke = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
+  /**
+   * The «→A» of the transcribe buttons (user 2026-11-04 15:33 «буква и стрелка выглядят плохо, не оцентровано»): as one string the
+   * arrow glyph sat off the letter's middle — the arrow is drawn, and both stand on the exact centre by the letter's real outline
+   */
+  static void tgx101DrawTranscribeMark (Canvas c, float cx, float cy, int color, boolean pending) {
+    android.text.TextPaint paint = Paints.getBoldPaint14(false, color);
+    String letter = pending ? "…" : "A";
+    paint.getTextBounds(letter, 0, letter.length(), tgx101MarkBounds);
+    if (pending) {
+      c.drawText(letter, cx - paint.measureText(letter) / 2f - tgx101MarkBounds.left + (paint.measureText(letter) - tgx101MarkBounds.width()) / 2f, cy - tgx101MarkBounds.exactCenterY(), paint);
+      return;
+    }
+    float arrow = Screen.dp(8f), gap = Screen.dp(2f), head = Screen.dp(3f);
+    float total = arrow + gap + tgx101MarkBounds.width();
+    float left = cx - total / 2f, right = left + arrow;
+    tgx101MarkStroke.setStyle(android.graphics.Paint.Style.STROKE);
+    tgx101MarkStroke.setStrokeWidth(Screen.dp(1.6f));
+    tgx101MarkStroke.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+    tgx101MarkStroke.setStrokeJoin(android.graphics.Paint.Join.ROUND);
+    tgx101MarkStroke.setColor(color);
+    c.drawLine(left, cy, right, cy, tgx101MarkStroke);
+    c.drawLine(right - head, cy - head, right, cy, tgx101MarkStroke);
+    c.drawLine(right - head, cy + head, right, cy, tgx101MarkStroke);
+    c.drawText(letter, right + gap - tgx101MarkBounds.left, cy - tgx101MarkBounds.exactCenterY(), paint);
+  }
+
   private void drawTranscribeButton (Canvas c, float cx, float cy, boolean outgoing, float alpha) {
     Tgx101Transcription.Result result = Tgx101Transcription.get(context.tdlib(), message);
     boolean shown = result != null && !result.collapsed && result.state != Tgx101Transcription.STATE_ERROR;
@@ -827,9 +856,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     int textColor = Theme.getColor(outgoing ? ColorId.bubbleOut_text : (context.useBubbles() ? ColorId.bubbleIn_text : ColorId.text));
     int letter = ColorUtils.fromToArgb(active, textColor, .65f);
     if (shownFactor < 1f) {
-      String label = result != null && result.state == Tgx101Transcription.STATE_PENDING ? "…" : "→A";
-      android.text.TextPaint paint = Paints.getBoldPaint14(false, ColorUtils.alphaColor(alpha * (1f - shownFactor), letter));
-      c.drawText(label, cx - paint.measureText(label) / 2f, cy + Screen.dp(5f), paint);
+      tgx101DrawTranscribeMark(c, cx, cy, ColorUtils.alphaColor(alpha * (1f - shownFactor), letter), result != null && result.state == Tgx101Transcription.STATE_PENDING);
     }
     if (shownFactor > 0f) {
       android.graphics.drawable.Drawable arrow = org.thunderdog.challegram.tool.Drawables.get(R.drawable.baseline_keyboard_arrow_up_24);
