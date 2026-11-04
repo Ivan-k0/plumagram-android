@@ -2409,6 +2409,17 @@ public class Settings {
       }
       pmc.putBoolean(marker6, true);
     }
+    // the seventh (user 2026-11-04, screenshots 23:46–23:47: «вот так должно быть у новых пользователей»): the bird's ring of
+    // seven and the side menu of calls, settings, saved and «Газета»; those who have the app already keep what they have
+    final String marker7 = "tgx101_defaults_2026_11_04";
+    if (!pmc.getBoolean(marker7, false)) {
+      if (freshInstall) {
+        pmc.putString("tgx101_bar_order_" + org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_DRAWER, org.thunderdog.challegram.ui.Tgx101BarOrder.DRAWER_NEW_INSTALL);
+      } else if (!pmc.contains(KEY_TGX101_BIRD_RING)) {
+        pmc.putInt(KEY_TGX101_BIRD_RING, 0x1F);
+      }
+      pmc.putBoolean(marker7, true);
+    }
   }
 
   private boolean isFreshAppInstallation () {
@@ -3861,7 +3872,9 @@ public class Settings {
   private static final String KEY_TGX101_BIRD_MOVED = "tgx101_bird_moved_25"; // the 2.5 s hold is back (2026-10-21): its hint shows again
   public boolean tgx101Bird () { return pmc.getBoolean(KEY_TGX101_BIRD, true); }
   public void setTgx101Bird (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD, v); }
-  public int tgx101BirdRing () { return pmc.getInt(KEY_TGX101_BIRD_RING, 0x1F); }
+  public int tgx101BirdRing () { return pmc.getInt(KEY_TGX101_BIRD_RING, TGX101_BIRD_RING_NEW_INSTALL); }
+  // storage, calls, settings, note, night, peek, «Газета» (the bits are Tgx101Bird.ACTION_*)
+  private static final int TGX101_BIRD_RING_NEW_INSTALL = 1 | 1 << 3 | 1 << 4 | 1 << 8 | 1 << 10 | 1 << 11 | 1 << 12;
   public void setTgx101BirdRing (int mask) { pmc.putInt(KEY_TGX101_BIRD_RING, mask); }
   public int tgx101BirdPlace (boolean landscape) { return pmc.getInt(landscape ? KEY_TGX101_BIRD_PLACE_LAND : KEY_TGX101_BIRD_PLACE, 6200); }
   public void setTgx101BirdPlace (boolean landscape, int value) { pmc.putInt(landscape ? KEY_TGX101_BIRD_PLACE_LAND : KEY_TGX101_BIRD_PLACE, value); }

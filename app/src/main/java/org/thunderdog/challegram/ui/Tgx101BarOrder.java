@@ -39,6 +39,8 @@ public final class Tgx101BarOrder {
     DRAWER_SETTINGS = "settings", DRAWER_PROXY = "proxy", DRAWER_NIGHT = "night", DRAWER_STORY = "story",
     DRAWER_PEEK = "peek", // «Не подглядывай!» (user 2026-10-22)
     DRAWER_GAZETA = "gazeta"; // «Газета» (user 2026-10-27)
+  /** What a new install starts with (user 2026-11-04, screenshot 23:46) */
+  public static final String DRAWER_NEW_INSTALL = DRAWER_CALLS + "," + DRAWER_SETTINGS + "," + DRAWER_SAVED + "," + DRAWER_GAZETA + ",-" + DRAWER_STORY + ",-" + DRAWER_CONTACTS + ",-" + DRAWER_SAVED_BY_CHATS + ",-" + DRAWER_PROXY + ",-" + DRAWER_NIGHT + ",-" + DRAWER_PEEK;
   // TGx101 (user 2026-10-12): the chat's ⋮ menu is editable too, with «Proxy» to add (off until switched on)
   public static final String CHAT_CALL = "call", CHAT_VIDEO_CALL = "videoCall", CHAT_SEARCH = "search", CHAT_DATE = "date",
     CHAT_SAVED_BY_CHATS = "savedByChats", CHAT_BACKGROUND = "background", CHAT_MUTE = "mute", CHAT_NOTIFICATIONS = "notifications",
