@@ -7464,6 +7464,7 @@
   <string name="Tgx101PlayerNext">Next: %1$s</string>
   <string name="Tgx101PlayerQueue">Queue</string>
   <string name="Tgx101PlayerSave">Save to Storage</string>
+  <string name="Tgx101PlayerMusicFolder">Music</string>
   <string name="Tgx101PlayerUnsaved">Removed from Storage</string>
   <string name="Tgx101PlayerSearch">Search in queue</string>
   <string name="Tgx101PlayerNothing">Nothing found</string>

@@ -1734,6 +1734,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PlayerNext, "Дальше: %1$s");
     RU.put(R.string.Tgx101PlayerQueue, "Очередь");
     RU.put(R.string.Tgx101PlayerSave, "Сохранить в Хранилище");
+    RU.put(R.string.Tgx101PlayerMusicFolder, "Музыка");
     RU.put(R.string.Tgx101PlayerUnsaved, "Убрано из Хранилища");
     RU.put(R.string.Tgx101PlayerSearch, "Поиск по очереди");
     RU.put(R.string.Tgx101PlayerNothing, "Ничего не найдено");

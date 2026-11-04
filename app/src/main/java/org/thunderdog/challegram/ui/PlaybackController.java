@@ -805,21 +805,69 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     setActive(tgx101Heart, saved);
   }
 
-  private void tgx101ForwardToStorage (me.vkryl.core.lambda.RunnableData<TdApi.Messages> after) {
+  /** The copies get their real ids when they are sent; an empty entry until then keeps ♥ lit and unpressable */
+  private void tgx101ForwardToStorage (me.vkryl.core.lambda.RunnableData<long[]> after) {
     if (currentItem == null) return;
     final TdApi.Message message = currentItem.getMessage();
     final int fileId = currentItem.getTrackFile().id;
-    tdlib.send(new TdApi.ForwardMessages(tdlib.selfChatId(), null, message.chatId, new long[] {message.id}, null, false, false), (result, error) -> UI.post(() -> {
+    tgx101SavedCopies.put(fileId, new long[0]);
+    tgx101UpdateHeart();
+    tdlib.send(new TdApi.ForwardMessages(tdlib.selfChatId(), null, message.chatId, new long[] {message.id}, null, false, false), (result, error) -> {
       if (error != null) {
-        UI.showError(error);
+        UI.post(() -> {
+          tgx101SavedCopies.remove(fileId);
+          if (!isDestroyed()) tgx101UpdateHeart();
+          UI.showError(error);
+        });
         return;
       }
-      long[] ids = new long[result.messages.length];
-      for (int i = 0; i < ids.length; i++) ids[i] = result.messages[i].id;
-      tgx101SavedCopies.put(fileId, ids);
-      if (!isDestroyed()) tgx101UpdateHeart();
-      after.runWithData(result);
-    }));
+      // Listening here, on the client's thread: the answer about the sending can't come before it
+      final long[] ids = new long[result.messages.length];
+      final java.util.ArrayList<Long> waiting = new java.util.ArrayList<>();
+      for (int i = 0; i < ids.length; i++) {
+        ids[i] = result.messages[i].id;
+        if (result.messages[i].sendingState != null) waiting.add(ids[i]);
+      }
+      if (waiting.isEmpty()) {
+        UI.post(() -> tgx101OnSavedCopies(fileId, ids, after));
+        return;
+      }
+      final long selfChatId = tdlib.selfChatId();
+      final org.thunderdog.challegram.telegram.MessageListener[] listener = new org.thunderdog.challegram.telegram.MessageListener[1];
+      listener[0] = new org.thunderdog.challegram.telegram.MessageListener() {
+        @Override
+        public void onMessageSendSucceeded (TdApi.Message sent, long oldMessageId) {
+          UI.post(() -> {
+            if (!waiting.remove((Long) oldMessageId)) return;
+            for (int i = 0; i < ids.length; i++) {
+              if (ids[i] == oldMessageId) ids[i] = sent.id;
+            }
+            if (waiting.isEmpty()) {
+              tdlib.listeners().unsubscribeFromMessageUpdates(selfChatId, listener[0]);
+              tgx101OnSavedCopies(fileId, ids, after);
+            }
+          });
+        }
+
+        @Override
+        public void onMessageSendFailed (TdApi.Message failed, long oldMessageId, TdApi.Error sendError) {
+          UI.post(() -> {
+            if (!waiting.remove((Long) oldMessageId)) return;
+            tdlib.listeners().unsubscribeFromMessageUpdates(selfChatId, listener[0]);
+            tgx101SavedCopies.remove(fileId);
+            if (!isDestroyed()) tgx101UpdateHeart();
+            UI.showError(sendError);
+          });
+        }
+      };
+      tdlib.listeners().subscribeToMessageUpdates(selfChatId, listener[0]);
+    });
+  }
+
+  private void tgx101OnSavedCopies (int fileId, long[] ids, me.vkryl.core.lambda.RunnableData<long[]> after) {
+    tgx101SavedCopies.put(fileId, ids);
+    if (!isDestroyed()) tgx101UpdateHeart();
+    after.runWithData(ids);
   }
 
   private void tgx101ToggleSaved () {
@@ -827,18 +875,28 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     int fileId = currentItem.getTrackFile().id;
     long[] copies = tgx101SavedCopies.get(fileId);
     if (copies != null) { // only what this very button has just put there
+      if (copies.length == 0) return; // still being sent
       tgx101SavedCopies.remove(fileId);
       tdlib.send(new TdApi.DeleteMessages(tdlib.selfChatId(), copies, true), tdlib.typedOkHandler());
       UI.showToast(R.string.Tgx101PlayerUnsaved, android.widget.Toast.LENGTH_SHORT);
       tgx101UpdateHeart();
       return;
     }
-    tgx101ForwardToStorage(result -> {
-      if (org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).bannerOff()) {
-        UI.showToast(R.string.Tgx101SwipeSaved, android.widget.Toast.LENGTH_SHORT);
-      } else {
-        org.thunderdog.challegram.data.Tgx101SavedStore.onSavedResult(tdlib, result);
-      }
+    // (group 2026-11-05 00:08 «нажатие на лайк автоматом сохраняет в хранилище в папку музыка, если не выбрана иная»)
+    tgx101ForwardToStorage(ids -> {
+      org.thunderdog.challegram.data.Tgx101SavedStore store = org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib);
+      org.thunderdog.challegram.data.Tgx101SavedStore.Folder folder = store.playerFolder(Lang.getString(R.string.Tgx101PlayerMusicFolder));
+      store.putInFolderKeepingLast(folder.id, ids);
+      UI.showToast(Lang.getString(R.string.Tgx101SavedPutDone, folder.name), android.widget.Toast.LENGTH_SHORT);
+    });
+  }
+
+  /** Held ♥: the folder chosen here is where the next tap saves */
+  private void tgx101ChooseFolder (long[] ids) {
+    Tgx101SavedActions.toFolder(this, ids, () -> {
+      org.thunderdog.challegram.data.Tgx101SavedStore store = org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib);
+      org.thunderdog.challegram.data.Tgx101SavedStore.Folder folder = store.folderOf(ids[0]);
+      if (folder != null) store.setPlayerFolder(folder.id);
     });
   }
 
@@ -846,13 +904,11 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     if (currentItem == null) return;
     long[] copies = tgx101SavedCopies.get(currentItem.getTrackFile().id);
     if (copies != null) {
-      Tgx101SavedActions.toFolder(this, copies, null);
+      if (copies.length != 0) tgx101ChooseFolder(copies);
       return;
     }
-    tgx101ForwardToStorage(result -> {
-      long[] ids = new long[result.messages.length];
-      for (int i = 0; i < ids.length; i++) ids[i] = result.messages[i].id;
-      if (!isDestroyed()) Tgx101SavedActions.toFolder(this, ids, null);
+    tgx101ForwardToStorage(ids -> {
+      if (!isDestroyed() && ids.length != 0) tgx101ChooseFolder(ids);
     });
   }
 
