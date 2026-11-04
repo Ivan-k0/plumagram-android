@@ -1989,6 +1989,14 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     }
   }
 
+  private long tgx101KeepTopId, tgx101KeepTopUntil;
+
+  /** For the next {@code durationMs} this message's height changes keep its top where it is */
+  public void tgx101KeepMessageTop (long messageId, long durationMs) {
+    tgx101KeepTopId = messageId;
+    tgx101KeepTopUntil = android.os.SystemClock.uptimeMillis() + durationMs;
+  }
+
   public void onMessageHeightChanged (final long chatId, final long messageId, final int oldHeight, final int newHeight) {
     final long playingRoundVideoId = TdlibManager.instance().player().getMessageId();
     final boolean isPlayingRoundVideo = playingRoundVideoId == messageId;
@@ -2024,6 +2032,14 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && view instanceof MessageViewGroup && ((MessageViewGroup) view).getMessage() instanceof TGMessageVideo) {
       org.thunderdog.challegram.Tgx101Diag.mark("round size (not animating): " + oldHeight + " → " + newHeight + " top " + view.getTop() + " bottom " + view.getBottom() + " / " + recyclerHeight);
     }
+    // (user 2026-11-04, video 14:42 «А должна оставаться на месте при раскрытии»): a voice message's transcription opens
+    // downwards — the message's top and its «A» stand still, what is under it moves. At the very bottom of the chat the list
+    // has nowhere to go, the rest of the growth goes up
+    if (messageId == tgx101KeepTopId && android.os.SystemClock.uptimeMillis() < tgx101KeepTopUntil) {
+      scrollCompensation(view, heightDiff);
+      return;
+    }
+
     final int top = view.getTop();
     final int bottom = view.getBottom();
     if (bottom > recyclerHeight) {

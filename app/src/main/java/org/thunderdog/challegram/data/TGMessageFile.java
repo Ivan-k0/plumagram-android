@@ -1009,6 +1009,7 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
   @Override
   public void onTranscriptionChanged (long chatId, long messageId) {
     if (chatId != getChatId() || isDestroyed()) return;
+    if (messageId == tgx101FollowTopId) manager().tgx101KeepMessageTop(messageId, TEXT_CROSS_FADE_DURATION_MS + 100);
     boolean changed = false;
     for (CaptionedFile file : filesList) {
       if (file.messageId == messageId) {
