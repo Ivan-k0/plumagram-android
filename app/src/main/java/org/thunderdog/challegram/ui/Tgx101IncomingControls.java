@@ -33,6 +33,7 @@ import android.widget.TextView;
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.tool.Screen;
+import me.vkryl.core.ColorUtils;
 import org.thunderdog.challegram.unsorted.Settings;
 
 /**
@@ -180,6 +181,14 @@ public class Tgx101IncomingControls extends FrameLayout {
     private boolean dragging;
     private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF fillRect = new RectF();
+    // (user 2026-11-04, variant 4) waiting the knob breathes; pulled, the track fills with green; past the point where
+    // letting go answers, a tick and the knob turns green. The same control on voice, video and group invites
+    private static final int FILL_FROM = 0x8c11161c, FILL_TO = 0xff2fa855, KNOB_WHITE = 0xffffffff, KNOB_GREEN = 0xff2fa855;
+    private static final float ANSWER_AT = .75f;
+    private final GradientDrawable circle = new GradientDrawable();
+    private ValueAnimator breath, settle, popAnimator, greenAnimator;
+    private float breathAmount = 1f, breathWave, pop, green;
+    private boolean past;
 
     AnswerSlider (Context context) {
       super(context);
@@ -209,14 +218,13 @@ public class Tgx101IncomingControls extends FrameLayout {
       contentParams.leftMargin = Screen.dp(66f);
       addView(content, contentParams);
 
-      fillPaint.setColor(0x8c11161c);
+      fillPaint.setColor(FILL_FROM);
       setWillNotDraw(false);
 
       knob = new ImageView(context);
       knob.setImageResource(R.drawable.baseline_phone_24);
-      knob.setColorFilter(0xff2fa855);
+      knob.setColorFilter(KNOB_GREEN);
       knob.setScaleType(ImageView.ScaleType.CENTER);
-      GradientDrawable circle = new GradientDrawable();
       circle.setShape(GradientDrawable.OVAL);
       circle.setColor(0xffffffff);
       knob.setBackground(circle);
@@ -255,7 +263,99 @@ public class Tgx101IncomingControls extends FrameLayout {
 
     private void setKnobTranslation (float t) {
       knob.setTranslationX(t);
+      float max = maxTranslation();
+      float progress = max > 0 ? Math.min(1f, t / max) : 0f;
+      fillPaint.setColor(ColorUtils.fromToArgb(FILL_FROM, FILL_TO, progress));
+      content.setAlpha(Math.max(0f, 1f - progress * 1.3f));
+      boolean nowPast = max > 0 && t >= max * ANSWER_AT;
+      if (nowPast != past) {
+        past = nowPast;
+        animateGreen(nowPast);
+        if (nowPast) {
+          knob.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
+          animatePop();
+        }
+      }
       invalidate();
+    }
+
+    private void animateGreen (boolean toGreen) {
+      if (greenAnimator != null) greenAnimator.cancel();
+      greenAnimator = ValueAnimator.ofFloat(green, toGreen ? 1f : 0f);
+      greenAnimator.setDuration(140);
+      greenAnimator.addUpdateListener(a -> {
+        green = (float) a.getAnimatedValue();
+        circle.setColor(ColorUtils.fromToArgb(KNOB_WHITE, KNOB_GREEN, green));
+        knob.setColorFilter(ColorUtils.fromToArgb(KNOB_GREEN, KNOB_WHITE, green));
+      });
+      greenAnimator.start();
+    }
+
+    private void animatePop () {
+      if (popAnimator != null) popAnimator.cancel();
+      popAnimator = ValueAnimator.ofFloat(1f, 0f);
+      popAnimator.setDuration(260);
+      popAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator());
+      popAnimator.addUpdateListener(a -> {
+        pop = (float) a.getAnimatedValue();
+        applyKnobScale();
+      });
+      popAnimator.start();
+    }
+
+    private void applyKnobScale () {
+      float scale = (1f + .045f * breathAmount * breathWave) * (1f + .13f * pop);
+      knob.setScaleX(scale);
+      knob.setScaleY(scale);
+    }
+
+    private void updateBreath () {
+      boolean run = !answered && getWindowVisibility() == View.VISIBLE && androidx.core.view.ViewCompat.isAttachedToWindow(this);
+      if (run == (breath != null)) return;
+      if (run) {
+        breath = ValueAnimator.ofFloat(0f, (float) (Math.PI * 2));
+        breath.setDuration(3900);
+        breath.setRepeatCount(ValueAnimator.INFINITE);
+        breath.setInterpolator(new android.view.animation.LinearInterpolator());
+        breath.addUpdateListener(a -> {
+          if (answered) {
+            updateBreath();
+            return;
+          }
+          // eases away under the finger instead of stopping at once
+          float target = !dragging && knob.getTranslationX() == 0f ? 1f : 0f;
+          breathAmount += (target - breathAmount) * .12f;
+          breathWave = (float) Math.sin((float) a.getAnimatedValue());
+          applyKnobScale();
+        });
+        breath.start();
+      } else {
+        breath.cancel();
+        breath = null;
+        breathWave = 0f;
+        applyKnobScale();
+      }
+    }
+
+    @Override
+    protected void onAttachedToWindow () {
+      super.onAttachedToWindow();
+      updateBreath();
+    }
+
+    @Override
+    protected void onDetachedFromWindow () {
+      super.onDetachedFromWindow();
+      if (breath != null) {
+        breath.cancel();
+        breath = null;
+      }
+    }
+
+    @Override
+    protected void onWindowVisibilityChanged (int visibility) {
+      super.onWindowVisibilityChanged(visibility);
+      updateBreath();
     }
 
     private float maxTranslation () {
@@ -272,7 +372,11 @@ public class Tgx101IncomingControls extends FrameLayout {
           dragging = x <= knob.getLeft() + knob.getTranslationX() + knob.getWidth() + Screen.dp(16f);
           downX = x;
           startTranslation = knob.getTranslationX();
-          if (dragging) getParent().requestDisallowInterceptTouchEvent(true);
+          if (dragging) {
+            getParent().requestDisallowInterceptTouchEvent(true);
+            if (settle != null) settle.cancel(); // caught on its way back: it stays under the finger
+            startTranslation = knob.getTranslationX();
+          }
           return dragging;
         }
         case MotionEvent.ACTION_MOVE: {
@@ -286,7 +390,7 @@ public class Tgx101IncomingControls extends FrameLayout {
           if (!dragging) return false;
           dragging = false;
           float max = maxTranslation();
-          if (e.getAction() == MotionEvent.ACTION_UP && max > 0 && knob.getTranslationX() >= max * .75f) {
+          if (e.getAction() == MotionEvent.ACTION_UP && max > 0 && knob.getTranslationX() >= max * ANSWER_AT) {
             answered = true;
             ValueAnimator end = ValueAnimator.ofFloat(knob.getTranslationX(), max);
             end.setDuration(120);
@@ -294,10 +398,11 @@ public class Tgx101IncomingControls extends FrameLayout {
             end.start();
             callback.onAnswer();
           } else {
-            ValueAnimator back = ValueAnimator.ofFloat(knob.getTranslationX(), 0f);
-            back.setDuration(200);
-            back.addUpdateListener(a -> setKnobTranslation((float) a.getAnimatedValue()));
-            back.start();
+            settle = ValueAnimator.ofFloat(knob.getTranslationX(), 0f);
+            settle.setDuration(240);
+            settle.setInterpolator(new android.view.animation.DecelerateInterpolator(1.4f));
+            settle.addUpdateListener(a -> setKnobTranslation((float) a.getAnimatedValue()));
+            settle.start();
           }
           return true;
         }

@@ -413,7 +413,8 @@ public class Tgx101GroupCallController extends ViewController<Void> implements T
           else startScreenSharing();
         }));
       }
-      if (org.thunderdog.challegram.tool.Tgx101Torch.isAvailable()) {
+      // (user 2026-11-04) only with the camera on, not in a voice call; if it is still lit, the row stays to put it out
+      if (org.thunderdog.challegram.tool.Tgx101Torch.isAvailable() && (call.isCameraOn() || org.thunderdog.challegram.tool.Tgx101Torch.isOn())) {
         // (user 2026-10-20 18:24) the flashlight during a call
         boolean torch = org.thunderdog.challegram.tool.Tgx101Torch.isOn();
         body.addView(Tgx101Sheet.row(context, torch ? R.drawable.baseline_flash_on_24 : R.drawable.baseline_flash_off_24, 0, Lang.getString(torch ? R.string.Tgx101TorchOff : R.string.Tgx101TorchOn), null, false, v -> {
