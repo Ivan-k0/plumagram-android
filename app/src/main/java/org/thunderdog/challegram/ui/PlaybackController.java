@@ -356,6 +356,13 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     nextButton = newButton(R.id.btn_next, R.drawable.round_skip_next_36, false);
     prevButton = newButton(R.id.btn_previous, R.drawable.round_skip_previous_36, false);
     repeatButton = newButton(R.id.btn_repeat, getRepeatIcon(), isRepeatActive());
+    tgx101Heart = newButton(R.id.btn_tgx101SaveFavorite, R.drawable.tgx101_heart_outline_24, false);
+    tgx101Heart.setContentDescription(Lang.getString(R.string.Tgx101PlayerSave));
+    tgx101Heart.setOnClickListener(v -> tgx101ToggleSaved());
+    tgx101Heart.setOnLongClickListener(v -> {
+      tgx101SaveToFolder();
+      return true;
+    });
     tgx101HoldToSeek(nextButton, 1);
     tgx101HoldToSeek(prevButton, -1);
     playPauseButton = new PlayPauseButton(context);
@@ -369,6 +376,8 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     frameLayout.addView(prevButton);
     frameLayout.addView(nextButton);
     frameLayout.addView(playPauseButton);
+
+    frameLayout.addView(tgx101Heart);
 
     tgx101SpeedPill = new Tgx101Pill(context);
     FrameLayoutFix.LayoutParams speedParams = FrameLayoutFix.newParams(Screen.dp(64f), Screen.dp(40f));
@@ -386,6 +395,10 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     tgx101NextPill.setLayoutParams(nextParams);
     tgx101NextPill.setOnClickListener(v -> {
       if (indexOfCurrentTrack() != -1) highlightCurrentItem();
+    });
+    tgx101NextPill.setOnLongClickListener(v -> {
+      tgx101ShowQueueSearch();
+      return true;
     });
     addThemeInvalidateListener(tgx101NextPill);
     frameLayout.addView(tgx101NextPill);
@@ -738,6 +751,155 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     coverView.setFileProgress(prefixProgress, progress, hadItem);
     ensureScroll(hadItem);
     tgx101UpdateNextPill();
+    tgx101UpdateHeart();
+  }
+
+  // ♥: to the Storage, held to a folder of it (user 2026-11-04, player mockup)
+
+  private ImageView tgx101Heart;
+  private final android.util.SparseArray<long[]> tgx101SavedCopies = new android.util.SparseArray<>();
+
+  private void tgx101UpdateHeart () {
+    if (tgx101Heart == null || currentItem == null) return;
+    boolean canSave = currentItem.getMessage().chatId != 0;
+    tgx101Heart.setVisibility(canSave ? View.VISIBLE : View.GONE);
+    boolean saved = tgx101SavedCopies.get(currentItem.getTrackFile().id) != null;
+    tgx101Heart.setImageResource(saved ? R.drawable.baseline_favorite_24 : R.drawable.tgx101_heart_outline_24);
+    setActive(tgx101Heart, saved);
+  }
+
+  private void tgx101ForwardToStorage (me.vkryl.core.lambda.RunnableData<TdApi.Messages> after) {
+    if (currentItem == null) return;
+    final TdApi.Message message = currentItem.getMessage();
+    final int fileId = currentItem.getTrackFile().id;
+    tdlib.send(new TdApi.ForwardMessages(tdlib.selfChatId(), null, message.chatId, new long[] {message.id}, null, false, false), (result, error) -> UI.post(() -> {
+      if (error != null) {
+        UI.showError(error);
+        return;
+      }
+      long[] ids = new long[result.messages.length];
+      for (int i = 0; i < ids.length; i++) ids[i] = result.messages[i].id;
+      tgx101SavedCopies.put(fileId, ids);
+      if (!isDestroyed()) tgx101UpdateHeart();
+      after.runWithData(result);
+    }));
+  }
+
+  private void tgx101ToggleSaved () {
+    if (currentItem == null) return;
+    int fileId = currentItem.getTrackFile().id;
+    long[] copies = tgx101SavedCopies.get(fileId);
+    if (copies != null) { // only what this very button has just put there
+      tgx101SavedCopies.remove(fileId);
+      tdlib.send(new TdApi.DeleteMessages(tdlib.selfChatId(), copies, true), tdlib.typedOkHandler());
+      UI.showToast(R.string.Tgx101PlayerUnsaved, android.widget.Toast.LENGTH_SHORT);
+      tgx101UpdateHeart();
+      return;
+    }
+    tgx101ForwardToStorage(result -> {
+      if (org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).bannerOff()) {
+        UI.showToast(R.string.Tgx101SwipeSaved, android.widget.Toast.LENGTH_SHORT);
+      } else {
+        org.thunderdog.challegram.data.Tgx101SavedStore.onSavedResult(tdlib, result);
+      }
+    });
+  }
+
+  private void tgx101SaveToFolder () {
+    if (currentItem == null) return;
+    long[] copies = tgx101SavedCopies.get(currentItem.getTrackFile().id);
+    if (copies != null) {
+      Tgx101SavedActions.toFolder(this, copies, null);
+      return;
+    }
+    tgx101ForwardToStorage(result -> {
+      long[] ids = new long[result.messages.length];
+      for (int i = 0; i < ids.length; i++) ids[i] = result.messages[i].id;
+      if (!isDestroyed()) Tgx101SavedActions.toFolder(this, ids, null);
+    });
+  }
+
+  // Queue search and the file's details (user 2026-11-04, player mockup): sheets over the list, the list itself stays as it is
+
+  private void tgx101ShowQueueSearch () {
+    final Tgx101Sheet.Handle[] handle = new Tgx101Sheet.Handle[1];
+    final android.widget.EditText[] field = new android.widget.EditText[1];
+    handle[0] = Tgx101Sheet.show(this, null, body -> {
+      body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101PlayerSearch)));
+      android.widget.EditText e = new android.widget.EditText(context);
+      field[0] = e;
+      e.setSingleLine(true);
+      e.setHint(Lang.getString(R.string.Search));
+      Tgx101SavedHomeController.styleField(e, true);
+      android.widget.LinearLayout.LayoutParams ep = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(48f));
+      ep.setMargins(Screen.dp(16f), 0, Screen.dp(16f), Screen.dp(8f));
+      body.addView(e, ep);
+      android.widget.LinearLayout results = new android.widget.LinearLayout(context);
+      results.setOrientation(android.widget.LinearLayout.VERTICAL);
+      body.addView(results);
+      Runnable fill = () -> {
+        results.removeAllViews();
+        String query = e.getText().toString().trim().toLowerCase(java.util.Locale.ROOT);
+        int shown = 0;
+        for (int i = 1; i < tracks.size() - 1 && shown < 40; i++) {
+          Object data = tracks.get(i).getData();
+          if (!(data instanceof InlineResultCommon)) continue;
+          InlineResultCommon track = (InlineResultCommon) data;
+          String title = StringUtils.isEmpty(track.getTrackTitle()) ? "" : track.getTrackTitle();
+          String artist = StringUtils.isEmpty(track.getTrackSubtitle()) ? "" : track.getTrackSubtitle();
+          if (!query.isEmpty() && !(title + " " + artist).toLowerCase(java.util.Locale.ROOT).contains(query)) continue;
+          results.addView(Tgx101Sheet.row(context, track == currentItem ? R.drawable.baseline_volume_up_24 : R.drawable.baseline_queue_music_24, 0, title.isEmpty() ? artist : title, title.isEmpty() ? null : artist, false, v -> {
+            org.thunderdog.challegram.tool.Keyboard.hide(e);
+            handle[0].dismiss();
+            if (track != currentItem) tdlib.context().player().playPauseMessage(tdlib, track.getMessage(), this);
+          }));
+          shown++;
+        }
+        if (shown == 0) {
+          results.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101PlayerNothing), null, false, null));
+        }
+      };
+      e.addTextChangedListener(new android.text.TextWatcher() {
+        @Override public void beforeTextChanged (CharSequence s, int start, int count, int after) { }
+        @Override public void onTextChanged (CharSequence s, int start, int before, int count) { }
+        @Override public void afterTextChanged (android.text.Editable s) { fill.run(); }
+      });
+      fill.run();
+    });
+    if (field[0] != null) {
+      field[0].requestFocus();
+      field[0].postDelayed(() -> {
+        if (androidx.core.view.ViewCompat.isAttachedToWindow(field[0])) org.thunderdog.challegram.tool.Keyboard.show(field[0]);
+      }, 200);
+    }
+  }
+
+  private void tgx101ShowFileDetails () {
+    if (currentItem == null) return;
+    final TdApi.Audio audio = currentItem.getTrackAudio();
+    final TdApi.File file = currentItem.getTrackFile();
+    Tgx101Sheet.show(this, null, body -> {
+      body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101PlayerInfo)));
+      if (audio != null && !StringUtils.isEmpty(audio.fileName)) {
+        body.addView(Tgx101Sheet.row(context, 0, 0, audio.fileName, null, false, null));
+      }
+      if (audio != null && !StringUtils.isEmpty(audio.mimeType)) {
+        String mime = audio.mimeType;
+        int slash = mime.indexOf('/');
+        body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101PlayerInfoFormat), (slash != -1 ? mime.substring(slash + 1) : mime).toUpperCase(java.util.Locale.ROOT), false, null));
+      }
+      if (audio != null && audio.duration > 0) {
+        body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101PlayerInfoLength), org.thunderdog.challegram.tool.Strings.buildDuration(audio.duration), false, null));
+      }
+      if (file != null && file.size > 0) {
+        body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101PlayerInfoSize), org.thunderdog.challegram.tool.Strings.buildSize(file.size), false, null));
+        if (audio != null && audio.duration > 0) {
+          // from the size and the length: the real figure lies in the file's header, this is what it averages to
+          long kbps = file.size * 8 / audio.duration / 1000;
+          body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101PlayerInfoBitrate), Lang.getString(R.string.Tgx101PlayerInfoKbps, kbps), false, null));
+        }
+      }
+    });
   }
 
   // ⏮ ⏭ held: rewinds, faster the longer it is held (user 2026-11-04, player mockup)
@@ -2399,6 +2561,13 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       float rowY = overlayHeight - Screen.dp(TGX101_ROW_DP) / 2f - controller.tgx101SpeedPill.getMeasuredHeight() / 2f - Screen.dp(4f);
       controller.tgx101SpeedPill.setTranslationY(rowY);
       controller.tgx101NextPill.setTranslationY(rowY);
+      // beside the title of the big cover; the collapsed header has its own ⋮ there
+      View heart = controller.tgx101Heart;
+      heart.setTranslationX(startX + workingDistance - heart.getMeasuredWidth());
+      heart.setTranslationY(buttonsY - Screen.dp(98f) + Screen.dp(11f) - heart.getMeasuredHeight() / 2f);
+      float heartAlpha = coverFactor;
+      heart.setAlpha(heartAlpha);
+      heart.setEnabled(heartAlpha > .5f);
     }
   }
 
@@ -2576,13 +2745,25 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         strings.append(R.string.PlayListReverse);
       }
 
+      if (getTrackCount() > 3) {
+        ids.append(R.id.btn_tgx101QueueSearch);
+        strings.append(R.string.Tgx101PlayerSearch);
+      }
+
+      ids.append(R.id.btn_tgx101TrackInfo);
+      strings.append(R.string.Tgx101PlayerInfo);
+
       showMore(ids.get(), strings.get(), 0);
     }
   }
 
   @Override
   public void onMoreItemPressed (int id) {
-    if (id == R.id.btn_share) {
+    if (id == R.id.btn_tgx101QueueSearch) {
+      tgx101ShowQueueSearch();
+    } else if (id == R.id.btn_tgx101TrackInfo) {
+      tgx101ShowFileDetails();
+    } else if (id == R.id.btn_share) {
       ShareController c = new ShareController(context, tdlib);
       c.setArguments(new ShareController.Args(currentItem.getMessage()).setAllowCopyLink(true));
       c.show();

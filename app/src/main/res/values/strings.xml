@@ -7463,6 +7463,16 @@
   <string name="Tgx101LikeUnavailable">Reactions are off in this chat</string>
   <string name="Tgx101PlayerNext">Next: %1$s</string>
   <string name="Tgx101PlayerQueue">Queue</string>
+  <string name="Tgx101PlayerSave">Save to Storage</string>
+  <string name="Tgx101PlayerUnsaved">Removed from Storage</string>
+  <string name="Tgx101PlayerSearch">Search in queue</string>
+  <string name="Tgx101PlayerNothing">Nothing found</string>
+  <string name="Tgx101PlayerInfo">File details</string>
+  <string name="Tgx101PlayerInfoFormat">Format</string>
+  <string name="Tgx101PlayerInfoLength">Length</string>
+  <string name="Tgx101PlayerInfoSize">Size</string>
+  <string name="Tgx101PlayerInfoBitrate">Bitrate</string>
+  <string name="Tgx101PlayerInfoKbps">≈ %1$d kbps</string>
   <string name="Tgx101Torch">Flashlight</string>
   <string name="Tgx101TorchOn">Turn the flashlight on</string>
   <string name="Tgx101TorchOff">Turn the flashlight off</string>
