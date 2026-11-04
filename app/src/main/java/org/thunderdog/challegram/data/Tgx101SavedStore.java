@@ -148,7 +148,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   }
 
   private static final List<Long> pendingIds = new ArrayList<>();
-  private static long pendingSource; // the chat all of them came from, -1 when they came from different ones
+  private static long pendingSource; // the chat all of them came from, 0 when none or different ones (a channel's id is negative)
   private static Runnable pendingShow;
 
   /**
@@ -203,7 +203,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
       if (!external && top instanceof org.thunderdog.challegram.ui.MessagesController && ((org.thunderdog.challegram.ui.MessagesController) top).getChatId() == tdlib.selfChatId()) return;
       synchronized (pendingIds) {
         long source = sourceChatOf(tdlib, m);
-        pendingSource = pendingIds.isEmpty() || pendingSource == source ? source : -1;
+        pendingSource = pendingIds.isEmpty() || pendingSource == source ? source : 0;
         if (!pendingIds.contains(m.id)) pendingIds.add(m.id); // one message may be announced twice (single and batch)
         if (pendingShow != null) org.thunderdog.challegram.tool.UI.removePendingRunnable(pendingShow);
         pendingShow = () -> {
@@ -214,7 +214,7 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
             for (int i = 0; i < ids.length; i++) ids[i] = pendingIds.get(i);
             pendingIds.clear();
             pendingShow = null;
-            sourceChat = Math.max(0, pendingSource);
+            sourceChat = pendingSource;
           }
           if (external) externalShareAt = 0;
           org.thunderdog.challegram.ui.Tgx101SavedActions.showSavedBanner(tdlib, ids, external, sourceChat);
