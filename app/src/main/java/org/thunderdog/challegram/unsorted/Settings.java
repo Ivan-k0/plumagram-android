@@ -3932,6 +3932,11 @@ public class Settings {
       mask |= 1 << 7;
       pmc.edit().putInt(KEY_TGX101_CAPSULE_MENU, mask).putBoolean("tgx101_capsule_menu_gazeta", true).apply();
     }
+    if (!pmc.getBoolean("tgx101_capsule_menu_player", false)) {
+      // (user 2026-11-05 «плеер … по удержанию (настройки в нижнем меню)»): joins once; it can be taken off there like the others
+      mask |= 1 << 8;
+      pmc.edit().putInt(KEY_TGX101_CAPSULE_MENU, mask).putBoolean("tgx101_capsule_menu_player", true).apply();
+    }
     return mask;
   }
   public void setTgx101CapsuleMenu (int mask) { pmc.putInt(KEY_TGX101_CAPSULE_MENU, mask); }

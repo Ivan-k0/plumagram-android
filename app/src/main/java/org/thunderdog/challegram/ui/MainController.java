@@ -1804,12 +1804,12 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   public static final int[] TGX101_CAPSULE_MENU_ICONS = {
     R.drawable.baseline_bookmark_24, R.drawable.baseline_format_list_bulleted_type_24, R.drawable.baseline_brightness_2_24,
     R.drawable.baseline_account_circle_24, R.drawable.baseline_stars_24, R.drawable.baseline_security_24, R.drawable.baseline_visibility_24,
-    R.drawable.tgx101_gazeta_24
+    R.drawable.tgx101_gazeta_24, R.drawable.baseline_music_note_24
   };
   public static final int[] TGX101_CAPSULE_MENU_TITLES = {
-    R.string.SavedMessages, R.string.Tgx101SavedByChats, R.string.NightMode, R.string.Tgx101MyProfile, R.string.Tgx101Settings, R.string.Proxy, R.string.Tgx101Peek, R.string.Tgx101Gazeta
+    R.string.SavedMessages, R.string.Tgx101SavedByChats, R.string.NightMode, R.string.Tgx101MyProfile, R.string.Tgx101Settings, R.string.Proxy, R.string.Tgx101Peek, R.string.Tgx101Gazeta, R.string.Tgx101BirdPlayer
   };
-  private static final int TGX101_CAPSULE_MENU_PEEK = 6, TGX101_CAPSULE_MENU_GAZETA = 7;
+  private static final int TGX101_CAPSULE_MENU_PEEK = 6, TGX101_CAPSULE_MENU_GAZETA = 7, TGX101_CAPSULE_MENU_PLAYER = 8;
 
   // Hold menus of «Contacts» (user 2026-10-06: «как настройки, с возможностью добавлять кнопки») and «Calls» (5 quick contacts)
   public static final int[] TGX101_CONTACTS_MENU_ICONS = {
@@ -2171,6 +2171,9 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         break;
       case TGX101_CAPSULE_MENU_GAZETA:
         current.navigateTo(new Tgx101GazetaController(context, tdlib));
+        break;
+      case TGX101_CAPSULE_MENU_PLAYER:
+        Tgx101Bird.openPlayer(navigation);
         break;
     }
   }

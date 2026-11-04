@@ -60,6 +60,22 @@ public final class Tgx101Bird {
     0xffc49a45 /* gazeta: newsprint yellow */, 0xfff06292 /* player: pink */
   };
 
+  /** The bird, the side menu and the hold of «Settings»: what plays now, or the last music brought back; a word when there's none */
+  public static void openPlayer (@androidx.annotation.Nullable org.thunderdog.challegram.navigation.NavigationController navigation) {
+    if (navigation == null) return;
+    if (TdlibManager.instance().player().getCurrentTrack() != null) {
+      navigation.getHeaderView().getFilling().openPlayer();
+      return;
+    }
+    TdlibManager.instance().player().tgx101ResumeLastMusic(resumed -> {
+      if (!resumed) {
+        org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101BirdPlayerNone, android.widget.Toast.LENGTH_SHORT);
+      } else if (!navigation.isDestroyed()) {
+        navigation.getHeaderView().getFilling().openPlayer();
+      }
+    });
+  }
+
   /** Where each stands in the ring: the player beside the note, the place it took by default */
   private static final int[] RING_ORDER = {
     ACTION_STORAGE, ACTION_PROXY, ACTION_ACCOUNTS, ACTION_CALLS, ACTION_SETTINGS, ACTION_COMPOSE, ACTION_SEARCH, ACTION_NEXT_ACCOUNT,
@@ -476,19 +492,7 @@ public final class Tgx101Bird {
         break;
       case ACTION_PLAYER: {
         // (user 2026-11-05 «из птички нужно дать доступ к плееру»): what the music's bar opens
-        org.thunderdog.challegram.navigation.NavigationController navigation = host.navigationController();
-        if (navigation == null) break;
-        if (TdlibManager.instance().player().getCurrentTrack() != null) {
-          navigation.getHeaderView().getFilling().openPlayer();
-        } else {
-          TdlibManager.instance().player().tgx101ResumeLastMusic(resumed -> {
-            if (resumed) {
-              if (!navigation.isDestroyed()) navigation.getHeaderView().getFilling().openPlayer();
-            } else {
-              org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101BirdPlayerNone, android.widget.Toast.LENGTH_SHORT);
-            }
-          });
-        }
+        openPlayer(host.navigationController());
         break;
       }
       case ACTION_NEXT_ACCOUNT: {
