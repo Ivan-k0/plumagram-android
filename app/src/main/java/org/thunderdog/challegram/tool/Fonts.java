@@ -214,6 +214,23 @@ public class Fonts {
     return null;
   }
 
+  /** The regular face of any of the app's fonts, whichever is on now: the font list shows each in its own (user 2026-11-05) */
+  public static Typeface tgx101PreviewFont (int font) {
+    final Typeface fallback = font == Settings.APP_FONT_PT_SERIF || font == Settings.APP_FONT_MERRIWEATHER ? Typeface.SERIF : Typeface.DEFAULT;
+    final String file;
+    switch (font) {
+      case Settings.APP_FONT_MANROPE: file = "fonts/Manrope-Regular.ttf"; break;
+      case Settings.APP_FONT_ROBOTO: file = "fonts/Roboto-Regular.ttf"; break;
+      case Settings.APP_FONT_MONTSERRAT: file = "fonts/StoryMontserrat.ttf"; break;
+      case Settings.APP_FONT_INTER: file = "fonts/Inter.ttf"; break;
+      case Settings.APP_FONT_PT_SERIF: file = "fonts/StoryPTSerif-Regular.ttf"; break;
+      case Settings.APP_FONT_MERRIWEATHER: file = "fonts/Merriweather-Regular.ttf"; break;
+      case Settings.APP_FONT_CONDENSED: return Typeface.create("sans-serif-condensed", Typeface.NORMAL);
+      default: return Typeface.DEFAULT;
+    }
+    return loadFont(file, () -> fallback);
+  }
+
   private static int tgx101TextWeight (int normal, int slightly, int semibold) {
     int w = Settings.instance().getTextWeight();
     return w == Settings.TEXT_WEIGHT_SLIGHTLY_BOLDER ? slightly : w == Settings.TEXT_WEIGHT_SEMIBOLD ? semibold : normal;
