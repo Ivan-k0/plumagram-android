@@ -185,14 +185,16 @@ public final class Tgx101Sheet {
   }
 
   /** The column that follows the finger */
-  static final class DragSheet extends LinearLayout {
+  public static final class DragSheet extends LinearLayout {
     PopupLayout popup;
+    /** a sheet outside a popup (a window of its own): what a swipe away does */
+    public @Nullable Runnable swipedAway;
     private final int touchSlop;
     private float downX, downY;
     private boolean dragging;
     private VelocityTracker velocity;
 
-    DragSheet (Context context) {
+    public DragSheet (Context context) {
       super(context);
       touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
     }
@@ -254,6 +256,7 @@ public final class Tgx101Sheet {
           dragging = false;
           if (getTranslationY() > getHeight() / 3f || vy > Screen.dp(900f)) {
             if (popup != null) popup.hideWindow(true);
+            else if (swipedAway != null) swipedAway.run();
           } else {
             animate().translationY(0f).setDuration(180).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
           }

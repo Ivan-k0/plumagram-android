@@ -1025,6 +1025,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ShareCopyingText, "%1$s из %2$s");
     RU.put(R.string.Tgx101ShareDoneTitle, "«%1$s» готова");
     RU.put(R.string.Tgx101ShareDoneText, "скопировано %1$s из %2$s");
+    RU.put(R.string.Tgx101CallRateTitle, "Как прошёл звонок?");
+    RU.put(R.string.Tgx101CallRateSend, "Отправить");
+    RU.put(R.string.Tgx101CallRateLater, "Не сейчас");
     RU.put(R.string.Tgx101LinkOpenTitle, "Перейти по ссылке?");
     RU.put(R.string.Tgx101LinkOpenAlways, "Открыть и больше не спрашивать");
     RU.put(R.string.Tgx101LinkSites, "Сайты без вопроса");

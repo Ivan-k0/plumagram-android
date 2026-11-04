@@ -49,7 +49,7 @@ public class BetterRatingView extends View {
   protected void onDraw(Canvas c){
     for(int i=0;i<numStars;i++){
       paint.setColor(Theme.iconColor());
-      Drawables.draw(c, i<selectedRating ? filledStar : hollowStar, i*Screen.dp(32+16), 0, Paints.getIconGrayPorterDuffPaint());
+      Drawables.draw(c, i<selectedRating ? filledStar : hollowStar, i*Screen.dp(32+16), 0, i<selectedRating ? org.thunderdog.challegram.tool.PorterDuffPaint.get(org.thunderdog.challegram.theme.ColorId.fillingPositive) : Paints.getIconGrayPorterDuffPaint());
     }
   }
 

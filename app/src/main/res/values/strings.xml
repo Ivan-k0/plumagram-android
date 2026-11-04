@@ -7147,6 +7147,9 @@
   <string name="Tgx101ShareCopyingText">%1$s of %2$s</string>
   <string name="Tgx101ShareDoneTitle">«%1$s» is ready</string>
   <string name="Tgx101ShareDoneText">%1$s of %2$s copied</string>
+  <string name="Tgx101CallRateTitle">How was the call?</string>
+  <string name="Tgx101CallRateSend">Send</string>
+  <string name="Tgx101CallRateLater">Not now</string>
   <string name="Tgx101LinkOpenTitle">Open this link?</string>
   <string name="Tgx101LinkOpenAlways">Open and stop asking for this site</string>
   <string name="Tgx101LinkSites">Sites that open without asking</string>
