@@ -1187,7 +1187,8 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     }
     iconPaint.setAlpha(0xff);
 
-    float textAlpha = ((float) 0xe0 / (float) 0xff) * (callFlashFactor <= .5f ? 1f - (callFlashFactor / .5f) : (callFlashFactor - .5f) / .5f);
+    // (user 2026-11-04 20:11 «мигающее сделать современным»): a soft breath, as on the call screen, not going out
+    float textAlpha = ((float) 0xe0 / (float) 0xff) * (.775f + .225f * (float) Math.cos(2 * Math.PI * callFlashFactor));
     // TGx101 (user 2026-10-07 15:31 «по центру имя нужно отображать»): name and timer centred in the bar, never over the icons
     int textWidth = getTitleWidth() + (trimmedSubtitle != null ? trimmedSubtitle.getWidth() : 0);
     int rightLimit = width - Screen.dp(12f) - hangIcon.getMinimumWidth() - Screen.dp(8f);

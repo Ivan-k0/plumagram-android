@@ -948,7 +948,8 @@ public class CallController extends ViewController<CallController.Arguments> imp
         break;
       }
       case ANIMATOR_FLASH_ID: {
-        stateView.setAlpha(factor <= .5f ? 1f - (factor / .5f) : (factor - .5f) / .5f);
+        // (user 2026-11-04 20:11 «это мигающее нужно сделать современным»): it no longer goes out — a soft breath, 100 % → 55 % → 100 %
+        stateView.setAlpha(.775f + .225f * (float) Math.cos(2 * Math.PI * factor));
         break;
       }
       case ANIMATOR_EMOJI_VISIBILITY_ID: {
@@ -1448,7 +1449,8 @@ public class CallController extends ViewController<CallController.Arguments> imp
         }
       }
     }
-    stateView.setText(Lang.uppercase(str));
+    // (same): plain sentence case on the new screen, not capitals
+    stateView.setText(Settings.instance().useNewCallScreen() && photoMode != Settings.CALL_PHOTO_FULL_SCREEN ? str : Lang.uppercase(str));
     setButtonsVisible(!TD.isFinished(call) && !(call.state.getConstructor() == TdApi.CallStatePending.CONSTRUCTOR && !call.isOutgoing), isFocused());
     updateEmoji();
     updateFlashing();
