@@ -539,7 +539,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     float f = tgx101TextFactor();
     int mini = Screen.dp(TM_MINI);
     int size = tgx101Lerp(videoSize, mini, f); // the circle shrinks into the corner
-    int contentMargin = Math.round(Screen.dp(TM_PAD) * f);
+    int contentMargin = tgx101ContentMargin();
     // (user 2026-11-04 «кнопка появляется без анимации при сворачивании»): the circle's button comes back with the circle
     if (f < 1f && !TD.isSelfDestructTypeImmediately(getMessage())) {
       float scale = videoSize > 0 ? (float) size / videoSize : 1f;
@@ -850,7 +850,17 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   @Override
   public int getChildrenLeft () {
-    return getContentX();
+    return getContentX() + tgx101ContentMargin();
+  }
+
+  // (user 2026-11-04 15:25 «кружок налазит один на другой»): the video's own layer goes with the small circle, inside the margins
+  @Override
+  public int getChildrenTop () {
+    return super.getChildrenTop() + tgx101ContentMargin();
+  }
+
+  private int tgx101ContentMargin () {
+    return tgx101TextMode() ? Math.round(Screen.dp(TM_PAD) * tgx101TextFactor()) : 0;
   }
 
   // TGx101 (user 2026-10-19 «кружок до сих пор не рабочий»): the round video's own layer (MessageViewGroup) plays in the
