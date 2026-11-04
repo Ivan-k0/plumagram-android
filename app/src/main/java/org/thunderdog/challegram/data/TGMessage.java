@@ -4238,7 +4238,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         leftContentEdge += translateBy;
         rightContentEdge += translateBy;
       }
-      boolean tgx101Journal = tgx101Journal() && !isOutgoing();
+      // (group 2026-11-04 14:23, a screenshot «Кружки в каналах...»): a round video keeps its own circle — stretched to the
+      // screen's width the post's card showed as a wide white shape behind the circle
+      boolean tgx101Journal = tgx101Journal() && !isOutgoing() && !useCircleBubble();
       if (tgx101Journal) {
         // «Journal» (user 2026-10-08 23:xx «как в классике, фото на всю ширину с лёгкими скруглениями, по центру»): the post
         // spans the screen with equal small gaps, lightly rounded
