@@ -229,6 +229,8 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     setInputType(getInputType() | EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES | EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE);
     setSingleLine(false);
     setMaxLines(8);
+    // (user 2026-11-04, video 17:53): at its full height the field's text jumped a line in one frame on Enter — TextView glides with a scroller
+    setScroller(new android.widget.Scroller(context, new android.view.animation.DecelerateInterpolator(1.6f)));
     setMinimumHeight(Screen.dp(49f));
     setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     Views.clearCursorDrawable(this);
