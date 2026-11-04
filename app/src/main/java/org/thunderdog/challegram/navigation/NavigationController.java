@@ -1879,7 +1879,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   // its back gesture on any touch at the screen's edge, a scroll up or down too, and cancels it a moment later; the preview
   // opened at once, took the screen and the list under the finger lost its scroll. The preview now waits until the finger
   // has really gone sideways; a gesture cancelled before that leaves the screen and the scroll alone
-  private boolean tgx101BackPending, tgx101BackHidesKeyboard;
+  private boolean tgx101BackPending, tgx101BackHidesKeyboard, tgx101BackInsideScreen;
   private float tgx101BackPendingY;
   private int tgx101BackPendingGesture;
 
@@ -1894,6 +1894,12 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       // the system's back only takes the keyboard away, as everywhere
       tgx101BackHidesKeyboard = true;
       org.thunderdog.challegram.Tgx101Diag.mark("system back: the keyboard is up — it only hides it");
+      return true;
+    }
+    tgx101BackInsideScreen = false;
+    if (getCurrentStackItem() != null && getCurrentStackItem().tgx101TakesSystemBack()) {
+      tgx101BackInsideScreen = true;
+      org.thunderdog.challegram.Tgx101Diag.mark("system back: a step inside the screen");
       return true;
     }
     if (swipeNavigationEnabled()) {
@@ -1959,6 +1965,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   @Override
   public void onSystemBackCancelled () {
     tgx101BackHidesKeyboard = false;
+    tgx101BackInsideScreen = false;
     boolean wasPending = tgx101BackPending;
     tgx101BackPending = false;
     org.thunderdog.challegram.Tgx101Diag.mark("system back: cancelled at " + translationFactor + (wasPending ? " (no preview — the finger didn't go sideways)" : ""));
@@ -1978,6 +1985,12 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       tgx101BackHidesKeyboard = false;
       ViewController<?> current = getCurrentStackItem();
       if (current != null) current.hideSoftwareKeyboard();
+      return true;
+    }
+    if (tgx101BackInsideScreen) {
+      tgx101BackInsideScreen = false;
+      ViewController<?> current = getCurrentStackItem();
+      if (current != null) current.performOnBackPressed(false, true);
       return true;
     }
     // (black box 2026-10-29 20:38 «свайп назад с лагами»): a quick flick ended before the finger went far enough sideways
