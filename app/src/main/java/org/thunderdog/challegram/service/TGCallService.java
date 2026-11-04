@@ -277,10 +277,10 @@ public class TGCallService extends Service implements
 
       if (TGX101_VOLUME_CHANGED.equals(action)) {
         // TGx101: a volume key (with the app in the background) mutes a ringing incoming call
+        // (user 2026-11-04 19:24: the sound went only on the second press): this message comes only when the volume really changed
+        org.thunderdog.challegram.Tgx101Diag.mark("volume key: system says the volume changed, stream " + intent.getIntExtra("android.media.EXTRA_VOLUME_STREAM_TYPE", -1) + ", " + intent.getIntExtra("android.media.EXTRA_PREV_VOLUME_STREAM_VALUE", -1) + " → " + intent.getIntExtra("android.media.EXTRA_VOLUME_STREAM_VALUE", -1) + ", ringing incoming " + tgx101IsRingingIncoming());
         if (tgx101IsRingingIncoming()) {
           silenceRinging();
-        } else if (tgx101IsRingbackPlaying()) {
-          tgx101MuteRingback();
         }
         return;
       }
@@ -1581,20 +1581,6 @@ public class TGCallService extends Service implements
     return PendingIntent.getBroadcast(this, 2, intent, PendingIntent.FLAG_UPDATE_CURRENT | Intents.mutabilityFlags(false));
   }
 
-  // TGx101 (user 2026-11-04 11:15 «во время звонка звук мелодии должен отключаться по нажатию на кнопку громкости», after an
-  // outgoing call): a volume key mutes the tone while the other side is being rung, too
-  private boolean tgx101RingbackMuted;
-
-  public boolean tgx101IsRingbackPlaying () {
-    return call != null && call.isOutgoing && !tgx101RingbackMuted && TD.getCallStateSound(call) == R.raw.voip_ringback;
-  }
-
-  public void tgx101MuteRingback () {
-    tgx101RingbackMuted = true;
-    soundPoolMap.stopLastSound();
-    org.thunderdog.challegram.Tgx101Diag.mark("call: ringback muted by a volume key");
-  }
-
   public void silenceRinging () {
     org.thunderdog.challegram.Tgx101Diag.mark("call: ringing silenced");
     if (ringtonePlayer != null) {
@@ -1633,7 +1619,6 @@ public class TGCallService extends Service implements
       setIsRinging(true);
     } else {
       callSound = call != null ? TD.getCallStateSound(call) : 0;
-      if (callSound == R.raw.voip_ringback && tgx101RingbackMuted) callSound = 0;
       setIsRinging(false);
     }
     if (callSound != 0) {

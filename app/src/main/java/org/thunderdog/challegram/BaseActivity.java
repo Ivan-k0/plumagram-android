@@ -932,12 +932,9 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     // TGx101: volume keys mute a ringing incoming call (and don't change the volume then)
     if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
       org.thunderdog.challegram.service.TGCallService callService = org.thunderdog.challegram.service.TGCallService.currentInstance();
+      Tgx101Diag.mark("volume key: in the app, " + (keyCode == KeyEvent.KEYCODE_VOLUME_UP ? "up" : "down") + ", repeat " + event.getRepeatCount() + ", call service " + (callService != null) + ", ringing incoming " + (callService != null && callService.tgx101IsRingingIncoming()));
       if (callService != null && callService.tgx101IsRingingIncoming()) {
         callService.silenceRinging();
-        return true;
-      }
-      if (callService != null && callService.tgx101IsRingbackPlaying()) {
-        callService.tgx101MuteRingback();
         return true;
       }
     }
