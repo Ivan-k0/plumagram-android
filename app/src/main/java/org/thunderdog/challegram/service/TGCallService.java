@@ -529,6 +529,7 @@ public class TGCallService extends Service implements
   public void onDestroy () {
     this.isDestroyed = true;
     Log.v(Log.TAG_VOIP, "TGCallService.onDestroy");
+    tgx101ReleaseVolumeKeys();
     org.thunderdog.challegram.tool.Tgx101Torch.set(false); // TGx101: the call's flashlight goes off with the call
 
     setCall(null);
@@ -1442,8 +1443,46 @@ public class TGCallService extends Service implements
     });
   }
 
+  // TGx101 (user 2026-11-04 20:08, journal: with the app away the first press only showed the volume panel and changed nothing, so the
+  // system told us nothing and the ringing stopped on the second): while it rings, a session of our own takes the volume keys, as players do
+  private Object tgx101VolumeSession;
+
+  private void tgx101TakeVolumeKeys () {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || tgx101VolumeSession != null) return;
+    try {
+      android.media.session.MediaSession session = new android.media.session.MediaSession(this, "tgx101_ringing");
+      session.setPlaybackState(new android.media.session.PlaybackState.Builder().setState(android.media.session.PlaybackState.STATE_PLAYING, 0, 1f).build());
+      session.setPlaybackToRemote(new android.media.VolumeProvider(android.media.VolumeProvider.VOLUME_CONTROL_RELATIVE, 100, 50) {
+        @Override
+        public void onAdjustVolume (int direction) {
+          org.thunderdog.challegram.Tgx101Diag.mark("volume key: taken while ringing, direction " + direction + ", ringing incoming " + tgx101IsRingingIncoming());
+          if (tgx101IsRingingIncoming()) {
+            silenceRinging();
+          }
+        }
+      });
+      session.setActive(true);
+      tgx101VolumeSession = session;
+      org.thunderdog.challegram.Tgx101Diag.mark("volume key: taken for the ringing");
+    } catch (Throwable t) {
+      Log.e(Log.TAG_VOIP, "Unable to take the volume keys", t);
+    }
+  }
+
+  private void tgx101ReleaseVolumeKeys () {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || tgx101VolumeSession == null) return;
+    try {
+      ((android.media.session.MediaSession) tgx101VolumeSession).release();
+    } catch (Throwable t) {
+      Log.e(Log.TAG_VOIP, "Unable to release the volume keys", t);
+    }
+    tgx101VolumeSession = null;
+    org.thunderdog.challegram.Tgx101Diag.mark("volume key: given back");
+  }
+
   private void startRinging () {
     Log.i(Log.TAG_VOIP, "startRinging");
+    tgx101TakeVolumeKeys();
     TdlibManager.instance().player().pauseWithReason(TGPlayerController.PAUSE_REASON_TELEGRAM_CALL);
     ringtonePlayer = new MediaPlayer();
     final boolean ramp = Settings.instance().isRingRampEnabled(); // TGx101: 20 % → 100 % over 20 s
@@ -1583,6 +1622,7 @@ public class TGCallService extends Service implements
 
   public void silenceRinging () {
     org.thunderdog.challegram.Tgx101Diag.mark("call: ringing silenced");
+    tgx101ReleaseVolumeKeys();
     if (ringtonePlayer != null) {
       try {
         ringtonePlayer.stop();
@@ -1597,6 +1637,7 @@ public class TGCallService extends Service implements
   }
 
   private void stopRinging () {
+    tgx101ReleaseVolumeKeys();
     cleanupChannels((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE));
     U.stopForeground(this, true, TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION, TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION_2, TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION);
     incomingNotification = ongoingCallNotification = null;
