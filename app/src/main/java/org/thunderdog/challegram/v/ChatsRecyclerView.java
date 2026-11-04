@@ -178,9 +178,10 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
           pullToSearchActive = false;
           // (user 2026-11-03): like the pull to the next channel — a sharp flick past the line doesn't open search or
           // the stories, the finger has to stay at «ready» for 0.15 s
-          long held = android.os.SystemClock.uptimeMillis() - tgx101PullReadyAt;
-          boolean open = e.getActionMasked() == MotionEvent.ACTION_UP && pullToSearchReady && held >= 150 && controller != null && controller.canOpenSearchByPull();
-          if (e.getActionMasked() == MotionEvent.ACTION_UP && pullToSearchReady && !open) org.thunderdog.challegram.Tgx101Diag.mark("chats: pull down flicked, ready held only " + held + " ms");
+          boolean open = e.getActionMasked() == MotionEvent.ACTION_UP && pullToSearchReady && controller != null && controller.canOpenSearchByPull();
+          if (e.getActionMasked() == MotionEvent.ACTION_UP && tgx101PullOver && !pullToSearchReady) org.thunderdog.challegram.Tgx101Diag.mark("chats: pull down flicked, over the line only " + (android.os.SystemClock.uptimeMillis() - tgx101PullReadyAt) + " ms");
+          removeCallbacks(tgx101PullArm);
+          tgx101PullOver = pullToSearchReady = false;
           animatePullBack();
           if (open) {
             controller.openSearchByPull();
@@ -194,14 +195,30 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
   }
 
   private long tgx101PullReadyAt;
+  private boolean tgx101PullOver;
+  private static final long TGX101_PULL_HOLD_MS = 150;
+  private final Runnable tgx101PullArm = () -> {
+    if (pullToSearchActive && tgx101PullOver) {
+      pullToSearchReady = true;
+      org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK);
+      invalidate();
+    }
+  };
 
   private void setPullDistance (float distance) {
     pullDistance = distance;
-    boolean ready = distance >= Screen.dp(PULL_THRESHOLD_DP);
-    if (ready != pullToSearchReady) {
-      pullToSearchReady = ready;
+    // (group 2026-11-04 09:06 «анимация и вибрация спешат, быстрый свайп их отрабатывает, а действия нет»): the ring closes,
+    // the circle fills and the phone ticks only when letting go surely opens — after 0.15 s over the line
+    boolean over = distance >= Screen.dp(PULL_THRESHOLD_DP);
+    if (over != tgx101PullOver) {
+      tgx101PullOver = over;
       tgx101PullReadyAt = android.os.SystemClock.uptimeMillis();
-      if (ready) org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK);
+      removeCallbacks(tgx101PullArm);
+      if (over) {
+        postDelayed(tgx101PullArm, TGX101_PULL_HOLD_MS);
+      } else {
+        pullToSearchReady = false;
+      }
     }
     invalidate();
   }
@@ -224,14 +241,19 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
     super.draw(c);
     if (pullDistance <= 0f) return;
     float threshold = Screen.dp(PULL_THRESHOLD_DP);
-    float progress = Math.min(1f, pullDistance / threshold);
+    float progress = Math.min(.85f, pullDistance / threshold);
+    if (tgx101PullOver && !pullToSearchReady) {
+      // the last part of the ring is the hold itself
+      progress = .85f + .15f * Math.min(1f, (android.os.SystemClock.uptimeMillis() - tgx101PullReadyAt) / (float) TGX101_PULL_HOLD_MS);
+      postInvalidateOnAnimation();
+    }
     float radius = Screen.dp(20f);
     float cx = getWidth() / 2f;
     // slides down from above the top edge, slower than the finger
     // below the stories strip (it covered the circle — «пропала анимация поиска», user 2026-10-04)
     float cy = getPaddingTop() - radius + Math.min(pullDistance, threshold * 1.15f) * .62f;
     float alpha = Math.min(1f, pullDistance / Screen.dp(24f));
-    boolean ready = pullToSearchReady && pullToSearchActive || pullDistance >= threshold;
+    boolean ready = pullToSearchReady && pullToSearchActive;
     int accent = org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.fillingPositive);
     int filling = org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.filling);
     // shadow + circle

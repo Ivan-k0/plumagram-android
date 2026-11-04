@@ -977,13 +977,30 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       org.thunderdog.challegram.Tgx101Diag.mark(b.toString());
     }
     tgx101PullProgress = Math.min(1f, shift / (float) ChatView.getViewHeight(Settings.instance().getChatListMode())); // the archive row out: enough
-    boolean ready = tgx101PullProgress >= 1f;
-    if (ready != tgx101PullReady) {
-      tgx101PullReady = ready;
+    // (group 2026-11-04 09:06 «анимация и вибрация спешат»): the ring closes and the phone ticks only when letting go surely
+    // opens the archive — after 0.15 s over the line
+    boolean over = tgx101PullProgress >= 1f;
+    if (over != tgx101PullOver) {
+      tgx101PullOver = over;
       tgx101PullReadyAt = android.os.SystemClock.uptimeMillis();
-      if (ready) org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
+      rv.removeCallbacks(tgx101PullArm);
+      if (over) {
+        rv.postDelayed(tgx101PullArm, TGX101_PULL_HOLD_MS);
+      } else {
+        tgx101PullReady = false;
+      }
     }
   }
+
+  private boolean tgx101PullOver;
+  private static final long TGX101_PULL_HOLD_MS = 150;
+  private final Runnable tgx101PullArm = () -> {
+    if (tgx101Pulling && tgx101PullOver) {
+      tgx101PullReady = true;
+      org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
+      if (chatsView != null) chatsView.invalidate();
+    }
+  };
 
   // (user 2026-11-03): like the pull to the next channel — a sharp flick that flies past the line doesn't open the
   // archive, the finger has to stay at «ready» for 0.15 s
@@ -991,9 +1008,10 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
   private void tgx101PullEnd (RecyclerView rv, boolean cancel) {
     tgx101Pulling = false;
-    long held = android.os.SystemClock.uptimeMillis() - tgx101PullReadyAt;
-    boolean keep = !cancel && tgx101PullReady && held >= 150;
-    if (!cancel && tgx101PullReady && !keep) org.thunderdog.challegram.Tgx101Diag.mark("archive: flick, ready held only " + held + " ms");
+    boolean keep = !cancel && tgx101PullReady;
+    if (!cancel && tgx101PullOver && !keep) org.thunderdog.challegram.Tgx101Diag.mark("archive: flick, over the line only " + (android.os.SystemClock.uptimeMillis() - tgx101PullReadyAt) + " ms");
+    rv.removeCallbacks(tgx101PullArm);
+    tgx101PullOver = false;
     tgx101PullReady = false;
     tgx101PullProgress = 0f;
     if (chatsView != null) chatsView.tgx101ExtraTop = 0;
@@ -1076,7 +1094,13 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
         c.drawCircle(cx, cy, radius, tgx101PullPaint);
         tgx101PullPaint.setColor(accent);
         android.graphics.RectF arc = new android.graphics.RectF(cx - radius, cy - radius, cx + radius, cy + radius);
-        c.drawArc(arc, -90f, 360f * tgx101PullProgress, false, tgx101PullPaint);
+        float shown = Math.min(.85f, tgx101PullProgress);
+        if (tgx101PullOver) {
+          // the last part of the ring is the hold itself
+          shown = .85f + .15f * Math.min(1f, (android.os.SystemClock.uptimeMillis() - tgx101PullReadyAt) / (float) TGX101_PULL_HOLD_MS);
+          parent.postInvalidateOnAnimation();
+        }
+        c.drawArc(arc, -90f, 360f * shown, false, tgx101PullPaint);
       }
     }
   };
