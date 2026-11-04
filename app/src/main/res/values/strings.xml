@@ -6451,6 +6451,8 @@
   <string name="Tgx101FontMerriweather">Merriweather</string>
   <string name="Tgx101FontCondensed">Roboto Condensed</string>
   <string name="Tgx101FontInter">Inter (like San Francisco)</string>
+  <string name="Tgx101FontGoogleSans">Google Sans</string>
+  <string name="Tgx101FontGolos">Golos Text</string>
   <string name="Tgx101InputFontScale">Text size in the message field</string>
   <string name="Tgx101InputSize18">Standard, as in Telegram</string>
   <string name="Tgx101InputSize20">Slightly bigger</string>

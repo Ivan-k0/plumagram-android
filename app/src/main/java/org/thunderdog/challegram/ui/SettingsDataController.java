@@ -507,7 +507,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(textWeightName(Settings.instance().getTextWeight()));
         } else if (itemId == R.id.btn_tgx101Font) {
           int appFont = Settings.instance().getAppFont();
-          view.setData(appFont == Settings.APP_FONT_SYSTEM ? R.string.Tgx101FontSystem : appFont == Settings.APP_FONT_ROBOTO ? R.string.Tgx101FontRoboto : appFont == Settings.APP_FONT_MONTSERRAT ? R.string.Tgx101FontMontserrat : appFont == Settings.APP_FONT_PT_SERIF ? R.string.Tgx101FontPtSerif : appFont == Settings.APP_FONT_MERRIWEATHER ? R.string.Tgx101FontMerriweather : appFont == Settings.APP_FONT_CONDENSED ? R.string.Tgx101FontCondensed : appFont == Settings.APP_FONT_INTER ? R.string.Tgx101FontInter : R.string.Tgx101FontManrope);
+          view.setData(appFont == Settings.APP_FONT_SYSTEM ? R.string.Tgx101FontSystem : appFont == Settings.APP_FONT_ROBOTO ? R.string.Tgx101FontRoboto : appFont == Settings.APP_FONT_MONTSERRAT ? R.string.Tgx101FontMontserrat : appFont == Settings.APP_FONT_PT_SERIF ? R.string.Tgx101FontPtSerif : appFont == Settings.APP_FONT_MERRIWEATHER ? R.string.Tgx101FontMerriweather : appFont == Settings.APP_FONT_CONDENSED ? R.string.Tgx101FontCondensed : appFont == Settings.APP_FONT_INTER ? R.string.Tgx101FontInter : appFont == Settings.APP_FONT_GOOGLE_SANS ? R.string.Tgx101FontGoogleSans : appFont == Settings.APP_FONT_GOLOS ? R.string.Tgx101FontGolos : R.string.Tgx101FontManrope);
         } else if (itemId == R.id.btn_toggleNewSetting) {
           updateSettingView(view, item, isUpdate);
         }
@@ -1977,6 +1977,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       {Settings.APP_FONT_MERRIWEATHER, R.string.Tgx101FontMerriweather},
       {Settings.APP_FONT_CONDENSED, R.string.Tgx101FontCondensed},
       {Settings.APP_FONT_INTER, R.string.Tgx101FontInter},
+      {Settings.APP_FONT_GOOGLE_SANS, R.string.Tgx101FontGoogleSans},
+      {Settings.APP_FONT_GOLOS, R.string.Tgx101FontGolos},
       {Settings.APP_FONT_SYSTEM, R.string.Tgx101FontSystem}
     };
     final Tgx101Sheet.Handle[] handle = new Tgx101Sheet.Handle[1];

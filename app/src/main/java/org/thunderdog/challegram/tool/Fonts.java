@@ -184,8 +184,10 @@ public class Fonts {
   private static Typeface tgx101AppFont (int weight) {
     int font = Settings.instance().getAppFont();
     // TGx101 (user 2026-10-14 «San Francisco»; Apple's licence keeps SF on Apple devices — Inter, its free look-alike, OFL)
-    if (font == Settings.APP_FONT_MONTSERRAT || font == Settings.APP_FONT_INTER) {
-      final String file = font == Settings.APP_FONT_INTER ? "fonts/Inter.ttf" : "fonts/StoryMontserrat.ttf";
+    // TGx101 (user 2026-11-05): Google Sans, OFL since 2025; the file keeps Latin, Cyrillic and Greek, weights 400-700. Other scripts fall back to the system font
+    // TGx101 (user 2026-11-05): Golos Text, OFL, the free font close to the Yandex one (whose licence forbids embedding in apps)
+    if (font == Settings.APP_FONT_MONTSERRAT || font == Settings.APP_FONT_INTER || font == Settings.APP_FONT_GOOGLE_SANS || font == Settings.APP_FONT_GOLOS) {
+      final String file = font == Settings.APP_FONT_GOLOS ? "fonts/GolosText.ttf" : font == Settings.APP_FONT_GOOGLE_SANS ? "fonts/GoogleSans.ttf" : font == Settings.APP_FONT_INTER ? "fonts/Inter.ttf" : "fonts/StoryMontserrat.ttf";
       synchronized (tgx101Variable) {
         Typeface t = tgx101Variable.get(weight);
         if (t == null) {
@@ -223,6 +225,8 @@ public class Fonts {
       case Settings.APP_FONT_ROBOTO: file = "fonts/Roboto-Regular.ttf"; break;
       case Settings.APP_FONT_MONTSERRAT: file = "fonts/StoryMontserrat.ttf"; break;
       case Settings.APP_FONT_INTER: file = "fonts/Inter.ttf"; break;
+      case Settings.APP_FONT_GOOGLE_SANS: file = "fonts/GoogleSans.ttf"; break;
+      case Settings.APP_FONT_GOLOS: file = "fonts/GolosText.ttf"; break;
       case Settings.APP_FONT_PT_SERIF: file = "fonts/StoryPTSerif-Regular.ttf"; break;
       case Settings.APP_FONT_MERRIWEATHER: file = "fonts/Merriweather-Regular.ttf"; break;
       case Settings.APP_FONT_CONDENSED: return Typeface.create("sans-serif-condensed", Typeface.NORMAL);
