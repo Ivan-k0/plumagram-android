@@ -64,7 +64,8 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
   public static final int PLAY_SPEED_3X = 300;
   public static final int PLAY_SPEED_4X = 400;
 
-  private int speed;
+  private int speed; // voice and video messages
+  private int tgx101MusicSpeed; // (group 2026-11-05 «скорость для музыки и голосовых разная и не должна пересекаться»)
 
   public static final int PLAYLIST_FLAG_REVERSE = 1 << 15;  // e.g. when starting music playback from the shared media we need to go from newer to older items
   public static final int PLAYLIST_FLAG_ALTERED = 1 << 16; // when we are working with user-customized playlist, it's a good idea to not rebuild it each time we see the same song in different lists
@@ -169,6 +170,7 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
     this.playbackFlags = Settings.instance().getPlayerFlags();
     this.proximityManager = new ProximityManager(this, this);
     this.speed = Settings.instance().getPlaybackSpeed();
+    this.tgx101MusicSpeed = Settings.instance().tgx101MusicSpeed();
   }
 
   public void onUpdateFile (Tdlib tdlib, TdApi.UpdateFile updateFile) {
@@ -450,7 +452,15 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
       handler.sendMessage(Message.obtain(handler, ACTION_SET_SPEED, speed, 0));
       return;
     }
-    if (this.speed != speed) {
+    if (isPlayingMusic()) {
+      if (this.tgx101MusicSpeed != speed) {
+        this.tgx101MusicSpeed = speed;
+        Settings.instance().setTgx101MusicSpeed(speed);
+        synchronized (this) {
+          notifyTrackListSpeedChanged(globalListeners, speed);
+        }
+      }
+    } else if (this.speed != speed) {
       this.speed = speed;
       Settings.instance().setPlaybackSpeed(speed);
       synchronized (this) {
@@ -459,8 +469,9 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
     }
   }
 
+  /** The speed of what is playing now: music has its own */
   public int getSpeed () {
-    return speed;
+    return isPlayingMusic() ? tgx101MusicSpeed : speed;
   }
 
   public static @NonNull PlaybackParameters newPlaybackParameters (boolean isVoice, int speedValue) {
@@ -1142,6 +1153,11 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
         notifyTrackChange(globalListeners, currentTdlib, currentMessage, currentFileId, newState, 0f, byUserRequest);
       } else {
         notifyTrackChange(globalListeners, tdlib, message, TD.getFileId(message), newState, 0f, byUserRequest);
+      }
+
+      if (newState != STATE_NONE && (currentMessage == null || Td.isAudio(currentMessage.content) != Td.isAudio(message.content))) {
+        // From music to a voice message and back: the player and the speed on the bar follow the kind of a track
+        notifyTrackListSpeedChanged(globalListeners, getSpeed());
       }
 
       if (currentFileId != 0) {

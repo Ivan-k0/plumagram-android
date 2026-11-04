@@ -4491,6 +4491,22 @@ public class Settings {
     pmc.putBoolean("tgx101_player_shows_total", value);
   }
 
+  /** TGx101 music player: music's own speed; it starts from the speed set so far, then the two never touch */
+  public int tgx101MusicSpeed () {
+    int speed = pmc.getInt("tgx101_music_speed", 0);
+    if (speed <= 0) {
+      speed = getPlaybackSpeed();
+      pmc.putInt("tgx101_music_speed", speed);
+    }
+    return PlaybackSpeedLayout.normalizeSpeed(speed);
+  }
+
+  public void setTgx101MusicSpeed (int speed) {
+    if (speed <= 0)
+      throw new IllegalArgumentException(Integer.toString(speed));
+    pmc.putInt("tgx101_music_speed", speed);
+  }
+
   public boolean tgx101PlayerSwipePaging () {
     return pmc.getBoolean(KEY_TGX101_PLAYER_SWIPE_PAGING, true);
   }
