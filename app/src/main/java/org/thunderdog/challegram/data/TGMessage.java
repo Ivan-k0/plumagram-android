@@ -4136,6 +4136,14 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
             break;
           case BOTTOM_LINE_DEFINE_BY_FACTOR: {
             final int extendedWidth = getAnimatedBottomLineWidth(bubbleTimePartWidth);
+            // (user 2026-11-04 14:33 «А опять смещена»): a voice keeps its own width — the time that doesn't fit after the last
+            // line of the transcription took the bubble wider, the «A» stayed at the own width. It takes its own line instead
+            if (!allowHorizontalExtend && extendedWidth != -1 && extendedWidth + bubbleTimePartWidth > bubbleWidth) {
+              timeAddedHeight = expandedBubbleHeight - bubbleHeight;
+              bubbleHeight = expandedBubbleHeight;
+              needAnimateTimeExpand = false;
+              break;
+            }
             final int fitBubbleWidth = Math.max(bubbleWidth, extendedWidth != -1 ? extendedWidth + bubbleTimePartWidth : bubbleWidth);
 
             float factor = getIntermediateBubbleExpandFactor();
