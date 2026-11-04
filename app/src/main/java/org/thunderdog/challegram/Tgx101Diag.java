@@ -368,6 +368,7 @@ public final class Tgx101Diag {
       if (!running) return;
       running = false;
       if (current == this) current = null;
+      if (count == 0) return; // replaced by another watch at once: nothing to tell
       long shortest = Long.MAX_VALUE, worst = 0;
       for (int i = 0; i < count; i++) {
         shortest = Math.min(shortest, gapsNs[i]);
