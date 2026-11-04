@@ -4192,6 +4192,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           bubbleHeight = MathUtils.fromTo(bubbleHeight, reactionsFinalCorrectedHeight, messageReactions.getVisibility());
         }
 
+        // (group 2026-11-04 14:23 «Кружки в каналах...», user 14:45 «по прежнему белая подложка»): the reactions under a round
+        // video took the bubble's width to theirs — the circle under the video grew with it, a white shape around it
+        if (useCircleBubble()) {
+          bubbleWidth = defaultBubbleWidth;
+        }
+
         this.bubbleTimePartWidth = bubbleTimePartWidth;
       } else {
         this.bubbleTimePartWidth = 0;
