@@ -1017,7 +1017,13 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
       }
     }
     if (changed) {
-      rebuildAndUpdateContent();
+      // (user 2026-11-04 «анимации раскрытия нет», recorded: the whole height changed in one frame): a rebuild measures the file
+      // at once and ended the move before it began; the text is already laid out, the file only measures itself animated
+      if (needAnimateChanges()) {
+        files.measure(true);
+      } else {
+        rebuildAndUpdateContent();
+      }
       invalidateTextMediaReceiver();
       if (messageId == tgx101FollowTopId) {
         // the text grows upwards: once the height animation is over, the message's start goes back under the header
