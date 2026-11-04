@@ -4506,6 +4506,27 @@ public class Settings {
     pmc.putBoolean("tgx101_player_shows_total", value);
   }
 
+  /** TGx101 music player: the last music, for the bird's «Player» when nothing plays */
+  public @androidx.annotation.Nullable String tgx101LastMusic () {
+    return pmc.getString("tgx101_last_music", null);
+  }
+
+  public void setTgx101LastMusic (@androidx.annotation.Nullable String value) {
+    if (value == null) {
+      pmc.remove("tgx101_last_music");
+    } else {
+      pmc.putString("tgx101_last_music", value);
+    }
+  }
+
+  public long tgx101LastMusicPosition () {
+    return pmc.getLong("tgx101_last_music_position", 0L);
+  }
+
+  public void setTgx101LastMusicPosition (long position) {
+    pmc.putLong("tgx101_last_music_position", position);
+  }
+
   /** TGx101 music player: music's own speed; it starts from the speed set so far, then the two never touch */
   public int tgx101MusicSpeed () {
     int speed = pmc.getInt("tgx101_music_speed", 0);

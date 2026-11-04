@@ -477,10 +477,17 @@ public final class Tgx101Bird {
       case ACTION_PLAYER: {
         // (user 2026-11-05 «из птички нужно дать доступ к плееру»): what the music's bar opens
         org.thunderdog.challegram.navigation.NavigationController navigation = host.navigationController();
-        if (navigation != null && TdlibManager.instance().player().getCurrentTrack() != null) {
+        if (navigation == null) break;
+        if (TdlibManager.instance().player().getCurrentTrack() != null) {
           navigation.getHeaderView().getFilling().openPlayer();
         } else {
-          org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101BirdPlayerNone, android.widget.Toast.LENGTH_SHORT);
+          TdlibManager.instance().player().tgx101ResumeLastMusic(resumed -> {
+            if (resumed) {
+              if (!navigation.isDestroyed()) navigation.getHeaderView().getFilling().openPlayer();
+            } else {
+              org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101BirdPlayerNone, android.widget.Toast.LENGTH_SHORT);
+            }
+          });
         }
         break;
       }

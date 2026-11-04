@@ -769,6 +769,7 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
         this.playDuration = playDuration;
         this.playPosition = playPosition;
         this.playBuffering = isBuffering;
+        tgx101RememberMusic(false);
         notifyTrackState(targetListeners, tdlib, chatId, messageId, fileId, STATE_SEEK, progress, playPosition, playDuration, isBuffering);
       }
     }
@@ -1104,6 +1105,32 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
     final String inlineNextOffset, searchNextOffset;
     final long searchNextFromMessageId;
 
+    /** Read back after the app was closed: the queue's messages are fetched anew */
+    Tgx101SuspendedMusic (Tdlib tdlib, TdApi.Message message, List<TdApi.Message> messages, long position, int playListFlags, boolean newEndReached, boolean oldEndReached, long chatId, long maxMessageId, long minMessageId, String searchQuery) {
+      this.tdlib = tdlib;
+      this.message = message;
+      this.wasPlaying = false;
+      this.position = position;
+      this.messages = messages;
+      this.removed = new ArrayList<>();
+      int origin = 0;
+      for (int i = 0; i < messages.size(); i++) {
+        if (messages.get(i).id == message.id) origin = i;
+      }
+      this.originIndex = origin;
+      this.playListFlags = playListFlags;
+      this.newEndReached = newEndReached;
+      this.oldEndReached = oldEndReached;
+      this.chatId = chatId;
+      this.maxMessageId = maxMessageId;
+      this.minMessageId = minMessageId;
+      this.searchQuery = searchQuery;
+      this.topicId = null;
+      this.inlineQuery = null;
+      this.inlineNextOffset = this.searchNextOffset = null;
+      this.searchNextFromMessageId = 0;
+    }
+
     Tgx101SuspendedMusic (TGPlayerController c) {
       this.tdlib = c.tdlib;
       this.message = c.message;
@@ -1151,6 +1178,136 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
   private @Nullable Tgx101SuspendedMusic tgx101Suspended;
   private long tgx101RestorePosition;
 
+  // (user 2026-11-05 «если нажать на плеер и ничего не играет, пусть откроется последний игравший трек (плейлист), как было до
+  // закрытия»): the last music, kept while the app lives and written down for after it: the track, its queue, the place
+
+  private static final int TGX101_LAST_QUEUE_MAX = 200;
+  private static final long TGX101_LAST_POSITION_STEP = 5000L;
+  private @Nullable Tgx101SuspendedMusic tgx101LastMusic;
+  private TdApi.Message tgx101LastSaved;
+  private long tgx101LastSavedPosition;
+
+  private void tgx101RememberMusic (boolean closing) {
+    if (message == null || tdlib == null || !Td.isAudio(message.content)) {
+      return;
+    }
+    if (closing) {
+      tgx101LastMusic = new Tgx101SuspendedMusic(this);
+    }
+    if (message.chatId == 0 || message.id == 0) {
+      return; // a file on the phone, not a message: nothing to fetch it by later
+    }
+    final long position = Math.max(playPosition, 0);
+    if (tgx101LastSaved != message) {
+      tgx101LastSaved = message;
+      tgx101LastSavedPosition = position;
+      Settings.instance().setTgx101LastMusic(tgx101EncodeLastMusic());
+      Settings.instance().setTgx101LastMusicPosition(position);
+    } else if (closing || Math.abs(position - tgx101LastSavedPosition) >= TGX101_LAST_POSITION_STEP) {
+      tgx101LastSavedPosition = position;
+      Settings.instance().setTgx101LastMusicPosition(position);
+    }
+  }
+
+  private String tgx101EncodeLastMusic () {
+    try {
+      org.json.JSONObject o = new org.json.JSONObject();
+      o.put("account", tdlib.id());
+      o.put("chat", message.chatId);
+      o.put("message", message.id);
+      org.json.JSONArray ids = new org.json.JSONArray();
+      int at = indexOfCurrentMessage();
+      int from = Math.max(0, at - TGX101_LAST_QUEUE_MAX / 2);
+      for (int i = from; i < messageList.size() && i < from + TGX101_LAST_QUEUE_MAX; i++) {
+        TdApi.Message track = messageList.get(i);
+        if (track.chatId == message.chatId) ids.put(track.id);
+      }
+      o.put("queue", ids);
+      o.put("flags", playListFlags);
+      o.put("newEnd", (messageListStateFlags & LIST_STATE_LOADED_NEW) != 0);
+      o.put("oldEnd", (messageListStateFlags & LIST_STATE_LOADED_OLD) != 0);
+      o.put("listChat", playlistChatId);
+      o.put("max", playlistMaxMessageId);
+      o.put("min", playlistMinMessageId);
+      if (playlistSearchQuery != null) o.put("query", playlistSearchQuery);
+      return o.toString();
+    } catch (Throwable t) {
+      return null;
+    }
+  }
+
+  private boolean tgx101IsActiveAccount (int accountId) {
+    for (org.thunderdog.challegram.telegram.TdlibAccount account : context.getActiveAccounts()) {
+      if (account.id == accountId) return true;
+    }
+    return false;
+  }
+
+  private void tgx101Resume (Tgx101SuspendedMusic music) {
+    tgx101RestorePosition = music.position;
+    playPauseMessageImpl(music.message, true, false, music.tdlib, music);
+    tgx101RestorePosition = 0;
+    playPauseMessageImpl(music.message, true, false, music.tdlib, null); // on pause, the same moment, before any sound
+  }
+
+  /** Nothing plays: brings back the last music on pause; the answer is on the UI thread, false when there's nothing to bring */
+  public void tgx101ResumeLastMusic (me.vkryl.core.lambda.RunnableBool after) {
+    if (tgx101LastMusic != null && tgx101IsActiveAccount(tgx101LastMusic.tdlib.id())) {
+      tgx101Resume(tgx101LastMusic);
+      after.runWithBool(true);
+      return;
+    }
+    final org.json.JSONObject saved;
+    final Tdlib tdlib;
+    final long chatId, messageId;
+    final long[] ids;
+    try {
+      String encoded = Settings.instance().tgx101LastMusic();
+      if (encoded == null) {
+        after.runWithBool(false);
+        return;
+      }
+      saved = new org.json.JSONObject(encoded);
+      int accountId = saved.getInt("account");
+      if (!tgx101IsActiveAccount(accountId)) {
+        after.runWithBool(false);
+        return;
+      }
+      tdlib = context.tdlib(accountId);
+      chatId = saved.getLong("chat");
+      messageId = saved.getLong("message");
+      org.json.JSONArray queue = saved.getJSONArray("queue");
+      ids = new long[queue.length()];
+      for (int i = 0; i < ids.length; i++) ids[i] = queue.getLong(i);
+    } catch (Throwable t) {
+      after.runWithBool(false);
+      return;
+    }
+    tdlib.send(new TdApi.GetMessages(chatId, ids), (result, error) -> org.thunderdog.challegram.tool.UI.post(() -> {
+      List<TdApi.Message> messages = new ArrayList<>();
+      TdApi.Message current = null;
+      if (result != null) {
+        for (TdApi.Message track : result.messages) {
+          if (track != null && Td.isAudio(track.content)) {
+            messages.add(track);
+            if (track.id == messageId) current = track;
+          }
+        }
+      }
+      if (current == null) {
+        after.runWithBool(false);
+        return;
+      }
+      long position = Settings.instance().tgx101LastMusicPosition();
+      long duration = ((TdApi.MessageAudio) current.content).audio.duration * 1000L;
+      if (duration > 0 && position >= duration - 2000L) {
+        position = 0; // it had played to the end
+      }
+      tgx101Resume(new Tgx101SuspendedMusic(tdlib, current, messages, position, saved.optInt("flags"), saved.optBoolean("newEnd"), saved.optBoolean("oldEnd"), saved.optLong("listChat", chatId), saved.optLong("max"), saved.optLong("min"), saved.has("query") ? saved.optString("query") : null));
+      after.runWithBool(true);
+    }));
+  }
+
   /** The place where the returning music goes on, once */
   long tgx101TakeRestorePosition () {
     long position = tgx101RestorePosition;
@@ -1174,6 +1331,7 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
       }
 
       if (message == null) {
+        tgx101RememberMusic(true);
         final Tgx101SuspendedMusic music = tgx101Suspended;
         if (music != null) {
           tgx101Suspended = null;
