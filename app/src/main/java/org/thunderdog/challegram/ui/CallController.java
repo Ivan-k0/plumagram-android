@@ -338,7 +338,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
     int startMargin = Math.max(Screen.dp(18f) + newHeight, Screen.dp(42f));
     Views.setTopMargin(brandWrap, startMargin);
     Views.setTopMargin(nameView, startMargin + Screen.dp(34f));
-    Views.setTopMargin(stateView, startMargin + Screen.dp(94f));
+    Views.setTopMargin(stateView, startMargin + Screen.dp(Settings.instance().useNewCallScreen() && photoMode != Settings.CALL_PHOTO_FULL_SCREEN ? 86f : 94f));
     if (photoMode == Settings.CALL_PHOTO_CIRCLE) {
       Views.setTopMargin(avatarView, startMargin + AVATAR_TOP_OFFSET);
     }
@@ -462,11 +462,11 @@ public class CallController extends ViewController<CallController.Arguments> imp
     int startMargin = Math.max(Screen.dp(18f) + Screen.getStatusBarHeight(), Screen.dp(42f));
     avatarView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER_HORIZONTAL | Gravity.TOP));
     if (isCircle) {
-      Views.setTopMargin(avatarView, startMargin + AVATAR_TOP_OFFSET - (Settings.instance().useNewCallScreen() ? Screen.dp(28f) : 0));
+      Views.setTopMargin(avatarView, startMargin + AVATAR_TOP_OFFSET);
     }
 
     final boolean tgx101New = Settings.instance().useNewCallScreen() && !isFullScreen;
-    params.topMargin = tgx101New ? startMargin + Screen.dp(6f) : startMargin + Screen.dp(34f); // TGx101: the name as high as possible
+    params.topMargin = startMargin + Screen.dp(34f); /* (user 2026-11-04: the group call button stood right against the name — the name goes under it) */ // TGx101: the name as high as possible
     params.leftMargin = params.rightMargin = Screen.dp(18f);
 
     final boolean newScreen = Settings.instance().useNewCallScreen() && !isFullScreen;
@@ -547,7 +547,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
     emojiStatusHelper.attach(); // TGx101: without it custom (animated) statuses were never loaded
 
     params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    params.topMargin = tgx101New ? startMargin + Screen.dp(58f) : startMargin + Screen.dp(94f); // TGx101: the timer a little higher
+    params.topMargin = tgx101New ? startMargin + Screen.dp(86f) : startMargin + Screen.dp(94f); // TGx101: the timer a little higher
     params.leftMargin = params.rightMargin = Screen.dp(18f);
 
     stateView = new TextView(context);
