@@ -731,6 +731,14 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
     return Math.round(files.getMetadata().getMaximumItemWidth());
   }
 
+  // (user's video 2026-11-04 16:47, a post with files: an opened quote lay over the reactions, the bubble didn't grow): the text's height
+  // is the folding quote's of this frame — the files' sizes follow it
+  @Override
+  protected void tgx101OnQuoteToggled () {
+    files.measure(false);
+    super.tgx101OnQuoteToggled();
+  }
+
   // TGx101: a voice message keeps its own width — a long reply or name is cut, not stretching the bubble (user 2026-10-30: «все в едином размере, кнопки на одном месте»)
   @Override
   protected boolean allowBubbleHorizontalExtend () {
