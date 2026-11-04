@@ -12894,7 +12894,21 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return true;
   };
 
-  private void tgx101UpdateCalc (CharSequence text) {
+  /** (user 2026-11-04, video 17:53 «не считает, если в поле уже есть текст»): the sum is the line the cursor stands on, not the whole field */
+  private CharSequence tgx101CalcLine (CharSequence all) {
+    if (all == null || inputView == null) return all;
+    int cursor = Math.max(0, Math.min(all.length(), inputView.getSelectionEnd()));
+    tgx101CalcLineEnd = cursor;
+    while (tgx101CalcLineEnd < all.length() && all.charAt(tgx101CalcLineEnd) != '\n') tgx101CalcLineEnd++;
+    int start = cursor;
+    while (start > 0 && all.charAt(start - 1) != '\n') start--;
+    return all.subSequence(start, tgx101CalcLineEnd);
+  }
+
+  private int tgx101CalcLineEnd;
+
+  private void tgx101UpdateCalc (CharSequence all) {
+    CharSequence text = tgx101CalcLine(all);
     String result = org.thunderdog.challegram.tool.Tgx101Calc.evaluate(text);
     if (result != null && (contentView == null || bottomWrap == null)) result = null;
     if (result == null && text != null && tgx101CalcResult != null) {
@@ -12927,10 +12941,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
       Views.setClickable(tgx101CalcChip);
       tgx101CalcChip.setOnClickListener(v -> {
         if (inputView == null || tgx101CalcResult == null) return;
-        String now = inputView.getText().toString();
+        String now = tgx101CalcLine(inputView.getText()).toString();
         String add = now.trim().endsWith("=") ? (now.endsWith(" ") ? "" : " ") + tgx101CalcResult : " = " + tgx101CalcResult;
-        inputView.getText().append(add);
-        inputView.setSelection(inputView.getText().length());
+        int at = tgx101CalcLineEnd;
+        inputView.getText().insert(at, add);
+        inputView.setSelection(at + add.length());
         org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
       });
       tgx101CalcChip.setOnLongClickListener(v -> {
@@ -16582,6 +16597,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   public void onInputSelectionChanged (InputView v, int start, int end) {
+    if (start == end && v == inputView) tgx101UpdateCalc(v.getText()); // the cursor went to another line
     if (textFormattingLayout != null) {
       textFormattingLayout.onInputViewSelectionChanged(start, end);
     }
