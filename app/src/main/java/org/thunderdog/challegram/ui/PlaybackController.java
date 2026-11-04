@@ -356,6 +356,8 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     nextButton = newButton(R.id.btn_next, R.drawable.round_skip_next_36, false);
     prevButton = newButton(R.id.btn_previous, R.drawable.round_skip_previous_36, false);
     repeatButton = newButton(R.id.btn_repeat, getRepeatIcon(), isRepeatActive());
+    tgx101HoldToSeek(nextButton, 1);
+    tgx101HoldToSeek(prevButton, -1);
     playPauseButton = new PlayPauseButton(context);
     playPauseButton.setId(R.id.btn_play);
     playPauseButton.setOnClickListener(this);
@@ -736,6 +738,54 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     coverView.setFileProgress(prefixProgress, progress, hadItem);
     ensureScroll(hadItem);
     tgx101UpdateNextPill();
+  }
+
+  // ⏮ ⏭ held: rewinds, faster the longer it is held (user 2026-11-04, player mockup)
+
+  private static final long TGX101_HOLD_MS = 350, TGX101_HOLD_TICK_MS = 180;
+  private boolean tgx101SeekHeld;
+  private Runnable tgx101HoldTick;
+
+  @android.annotation.SuppressLint("ClickableViewAccessibility")
+  private void tgx101HoldToSeek (View button, int direction) {
+    button.setOnTouchListener((v, e) -> {
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN: {
+          tgx101SeekHeld = false;
+          final long startedAt = android.os.SystemClock.uptimeMillis();
+          tgx101HoldTick = new Runnable() {
+            @Override
+            public void run () {
+              if (tgx101HoldTick != this || isDestroyed() || currentItem == null || coverView == null) return;
+              TdApi.Message message = currentItem.getMessage();
+              if (!tdlib.context().player().canSeekTrack(message) || coverView.durationMillis <= 0) return;
+              if (!tgx101SeekHeld) {
+                tgx101SeekHeld = true;
+                v.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+              }
+              long held = android.os.SystemClock.uptimeMillis() - startedAt;
+              long step = held < 1800 ? 1500 : held < 4000 ? 4000 : 9000;
+              // stops a second before the end: reaching it would start the next track under the finger
+              long position = Math.max(0, Math.min(coverView.positionMillis + direction * step, coverView.durationMillis - 1000));
+              tdlib.context().player().seekTrack(message, position);
+              coverView.setDurations(position, coverView.durationMillis);
+              v.postDelayed(this, TGX101_HOLD_TICK_MS);
+            }
+          };
+          v.postDelayed(tgx101HoldTick, TGX101_HOLD_MS);
+          break;
+        }
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL:
+          if (tgx101HoldTick != null) {
+            v.removeCallbacks(tgx101HoldTick);
+            tgx101HoldTick = null;
+          }
+          if (e.getActionMasked() == MotionEvent.ACTION_CANCEL) tgx101SeekHeld = false;
+          break;
+      }
+      return false; // the click still goes through
+    });
   }
 
   // The row under the buttons (user 2026-11-04, player mockup)
@@ -1255,9 +1305,17 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         tdlib.context().player().playPauseMessage(tdlib, currentItem.getMessage(), this);
       }
     } else if (viewId == R.id.btn_next) {
-      tdlib.context().player().skip(true);
+      if (tgx101SeekHeld) { // the finger was rewinding, not asking for another track
+        tgx101SeekHeld = false;
+      } else {
+        tdlib.context().player().skip(true);
+      }
     } else if (viewId == R.id.btn_previous) {
-      tdlib.context().player().skip(false);
+      if (tgx101SeekHeld) {
+        tgx101SeekHeld = false;
+      } else {
+        tdlib.context().player().skip(false);
+      }
     } else if (viewId == R.id.btn_repeat) {
       tdlib.context().player().toggleRepeatMode();
     } else if (viewId == R.id.btn_shuffle) {
@@ -1747,6 +1805,9 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
           }
 
           setSeeking(isSeeking, false);
+          tgx101DurationTap = !isSeeking && y >= durationsY - Screen.dp(20f) && y <= durationsY + Screen.dp(10f) &&
+            x >= startX + workingDistance - durationWidth - Screen.dp(24f) && x <= startX + workingDistance;
+          if (tgx101DurationTap) return true;
           return isSeeking || (y < height && (isCollapsed || controller.recyclerView.findChildViewUnder(x, y) != null));
         }
         case MotionEvent.ACTION_MOVE: {
@@ -1756,6 +1817,12 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
           return isSeeking;
         }
         case MotionEvent.ACTION_UP: {
+          if (tgx101DurationTap) {
+            tgx101DurationTap = false;
+            org.thunderdog.challegram.unsorted.Settings.instance().setTgx101PlayerShowsTotal(!tgx101ShowsTotal());
+            if (setDurationTexts()) invalidate();
+            return true;
+          }
           if (isSeeking) {
             setSeeking(false, true);
             return true;
@@ -1763,6 +1830,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
           return false;
         }
         case MotionEvent.ACTION_CANCEL: {
+          tgx101DurationTap = false;
           if (isSeeking) {
             setSeeking(false, false);
             return true;
@@ -1955,11 +2023,20 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       return false;
     }
 
+    // (user 2026-11-04, player mockup) a tap on the time on the right: how much is left, or the whole length
+    private boolean tgx101DurationTap, tgx101DurationShownTotal;
+
+    private static boolean tgx101ShowsTotal () {
+      return org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerShowsTotal();
+    }
+
     private boolean setDuration (int seconds) {
-      if (this.durationSeconds != seconds) {
+      boolean total = tgx101ShowsTotal();
+      if (this.durationSeconds != seconds || this.tgx101DurationShownTotal != total) {
         this.durationSeconds = seconds;
+        this.tgx101DurationShownTotal = total;
         StringBuilder b = new StringBuilder(5);
-        b.append('-');
+        if (!total) b.append('-');
         Strings.buildDuration(durationSeconds, TimeUnit.SECONDS, false, b);
         String str = b.toString();
         this.durationStr = str;
@@ -1999,7 +2076,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
       boolean changed;
       changed = setPosition(positionSeconds);
-      changed = setDuration(durationSeconds) || changed;
+      changed = setDuration(tgx101ShowsTotal() ? totalSeconds : durationSeconds) || changed;
 
       return changed;
     }

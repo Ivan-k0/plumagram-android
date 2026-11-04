@@ -4482,6 +4482,15 @@ public class Settings {
   }
 
   /** TGx101 player: a sideways swipe on a video goes to the next / previous media */
+  /** TGx101 music player: the time on the right shows the whole length instead of what is left */
+  public boolean tgx101PlayerShowsTotal () {
+    return pmc.getBoolean("tgx101_player_shows_total", false);
+  }
+
+  public void setTgx101PlayerShowsTotal (boolean value) {
+    pmc.putBoolean("tgx101_player_shows_total", value);
+  }
+
   public boolean tgx101PlayerSwipePaging () {
     return pmc.getBoolean(KEY_TGX101_PLAYER_SWIPE_PAGING, true);
   }
