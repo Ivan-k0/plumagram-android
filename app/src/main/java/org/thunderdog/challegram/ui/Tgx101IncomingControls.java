@@ -183,7 +183,10 @@ public class Tgx101IncomingControls extends FrameLayout {
     private final RectF fillRect = new RectF();
     // (user 2026-11-04, variant 4) waiting the knob breathes; pulled, the track fills with green; past the point where
     // letting go answers, a tick and the knob turns green. The same control on voice, video and group invites
-    private static final int FILL_FROM = 0x8c11161c, FILL_TO = 0xff2fa855, KNOB_WHITE = 0xffffffff, KNOB_GREEN = 0xff2fa855;
+    private static final int FILL_FROM = 0x8c11161c, FILL_TO = 0xff2fa855, KNOB_WHITE = 0xffffffff, KNOB_GREEN = 0xff2fa855, INK_DARK = 0xff0b3a1c;
+    private final Paint inkPaint = new Paint();
+    private final RectF inkRect = new RectF();
+    private int inkColor;
     private static final float ANSWER_AT = .75f;
     private final GradientDrawable circle = new GradientDrawable();
     private ValueAnimator breath, settle, popAnimator, greenAnimator;
@@ -252,9 +255,17 @@ public class Tgx101IncomingControls extends FrameLayout {
     @Override
     protected boolean drawChild (Canvas c, View child, long drawingTime) {
       if (child == content && knob.getTranslationX() > 0f) {
+        // (user 2026-11-04, variant А) the label stays: ahead of the strip it is white, under the strip it turns dark
+        float right = fillRight();
         int save = c.save();
-        c.clipRect(fillRight(), 0, getWidth(), getHeight());
+        c.clipRect(right, 0, getWidth(), getHeight());
         boolean result = super.drawChild(c, child, drawingTime);
+        c.restoreToCount(save);
+        save = c.save();
+        c.clipRect(0, 0, right, getHeight());
+        inkRect.set(0, 0, right, getHeight());
+        c.saveLayer(inkRect, inkPaint);
+        super.drawChild(c, child, drawingTime);
         c.restoreToCount(save);
         return result;
       }
@@ -266,7 +277,11 @@ public class Tgx101IncomingControls extends FrameLayout {
       float max = maxTranslation();
       float progress = max > 0 ? Math.min(1f, t / max) : 0f;
       fillPaint.setColor(ColorUtils.fromToArgb(FILL_FROM, FILL_TO, progress));
-      content.setAlpha(Math.max(0f, 1f - progress * 1.3f));
+      int ink = ColorUtils.fromToArgb(KNOB_WHITE, INK_DARK, Math.min(1f, progress * 2.2f));
+      if (ink != inkColor) {
+        inkColor = ink;
+        inkPaint.setColorFilter(new android.graphics.PorterDuffColorFilter(ink, android.graphics.PorterDuff.Mode.SRC_IN));
+      }
       boolean nowPast = max > 0 && t >= max * ANSWER_AT;
       if (nowPast != past) {
         past = nowPast;
