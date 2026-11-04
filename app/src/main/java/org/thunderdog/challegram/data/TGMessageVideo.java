@@ -873,14 +873,8 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
       Views.restore(c, clip);
       return;
     }
-    final int s = Views.save(c);
-    final float cx = getContentX() + videoSize / 2f;
-    final float offset = cx - bubblePathRect.centerX();
-    c.translate(offset, 0);
-
-    super.drawBubble(c, paint, stroke, padding);
-
-    Views.restore(c, s);
+    // (user 2026-11-04 14:59, a screenshot, third report «по прежнему белая подложка»): nothing under a round video in its
+    // circle — the picture covers its place, and the circle was bigger than the video in channels
   }
 
   @Override
