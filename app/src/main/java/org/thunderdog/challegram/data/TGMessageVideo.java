@@ -426,7 +426,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   // away in a plate under them; «A» again brings the big circle back, a tap on the small circle plays it
 
   private static final java.util.Set<String> tgx101TextModes = new java.util.HashSet<>();
-  private static final float TM_MINI = 40f, TM_GAP = 8f, TM_A = 28f, TM_WIDTH = 240f;
+  private static final float TM_MINI = 46f, TM_GAP = 8f, TM_PAD = 12f, TM_A_WIDTH = 34f, TM_A_HEIGHT = 28f, TM_WIDTH = 218f; // with the margins, a voice message's whole width
   private @androidx.annotation.Nullable org.thunderdog.challegram.util.text.Text tgx101Text;
   private int tgx101TextW, tgx101TextH;
   private @androidx.annotation.Nullable String tgx101TextKey;
@@ -528,16 +528,25 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     tgx101TextKey = key;
     // (user 2026-11-04 14:31 «выделение плохо видно, сделай вид текста как при голосовых, без фона»): the same text
     // straight on the bubble and the same one width as a voice message, whatever the length of the text
-    int textWidth = Math.max(Screen.dp(120f), Math.min(maxWidth, Screen.dp(TM_WIDTH)));
+    int textWidth = Math.max(Screen.dp(120f), Math.min(maxWidth - Screen.dp(TM_PAD) * 2, Screen.dp(TM_WIDTH)));
     tgx101Text = new org.thunderdog.challegram.util.text.Text.Builder(text, textWidth, getTextStyleProvider(), getTextColorSet()).build();
-    tgx101TextW = textWidth;
-    tgx101TextH = Screen.dp(TM_MINI) + Screen.dp(TM_GAP) + tgx101Text.getHeight();
+    // (user 2026-11-04 «текст не лежит в пузыре как нужно»): with the plate went its margins — the bubble's own, as a voice's
+    tgx101TextW = textWidth + Screen.dp(TM_PAD) * 2;
+    tgx101TextH = Screen.dp(TM_PAD) + Screen.dp(TM_MINI) + Screen.dp(TM_GAP) + tgx101Text.getHeight() + Screen.dp(4f);
   }
 
   private void tgx101DrawText (Canvas c, int x, int y, Receiver preview) {
     float f = tgx101TextFactor();
     int mini = Screen.dp(TM_MINI);
     int size = tgx101Lerp(videoSize, mini, f); // the circle shrinks into the corner
+    int contentMargin = Math.round(Screen.dp(TM_PAD) * f);
+    // (user 2026-11-04 «кнопка появляется без анимации при сворачивании»): the circle's button comes back with the circle
+    if (f < 1f && !TD.isSelfDestructTypeImmediately(getMessage())) {
+      float scale = videoSize > 0 ? (float) size / videoSize : 1f;
+      tgx101DrawCircleButton(c, x + size / 2f + tgx101ButtonDx * scale, y + size / 2f + tgx101ButtonDy * scale, (1f - f) * (1f - f));
+    }
+    x += contentMargin;
+    y += contentMargin;
     tgx101MiniRect.set(x, y, x + mini, y + mini);
     // (user's video 2026-10-19 vs exteraGram): the text, the title and «A» come up only in the second half, once the
     // circle has mostly shrunk — drawn under it, they no longer show through the big circle at the start
@@ -571,6 +580,17 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     return true;
   }
 
+  private float tgx101ButtonDx, tgx101ButtonDy; // the circle's «→A» from the circle's centre
+
+  private void tgx101DrawCircleButton (Canvas c, float cx, float cy, float alpha) {
+    if (alpha <= 0f) return;
+    Tgx101Transcription.Result result = Tgx101Transcription.get(tdlib, msg);
+    c.drawCircle(cx, cy, Screen.dp(TRANSCRIBE_BUTTON_RADIUS), Paints.fillingPaint(ColorUtils.alphaColor(alpha, Theme.getColor(isOutgoingBubble() ? ColorId.bubbleOut_waveformActive : ColorId.waveformActive))));
+    String label = result != null && result.state == Tgx101Transcription.STATE_PENDING ? "…" : "→A";
+    android.text.TextPaint labelPaint = Paints.getBoldPaint14(false, ColorUtils.alphaColor(alpha, 0xffffffff));
+    c.drawText(label, cx - labelPaint.measureText(label) / 2f, cy + Screen.dp(5f), labelPaint);
+  }
+
   private void tgx101DrawTextParts (Canvas c, int x, int y) {
     int mini = Screen.dp(TM_MINI);
     float cx = x + mini / 2f, cy = y + mini / 2f;
@@ -582,9 +602,9 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     play.close();
     c.drawPath(play, Paints.fillingPaint(0xffffffff));
 
-    int a = Screen.dp(TM_A);
-    float ax = x + tgx101TextW - a, ay = cy - a / 2f;
-    tgx101ARect.set(ax, ay, ax + a, ay + a);
+    int a = Screen.dp(TM_A_WIDTH), aHeight = Screen.dp(TM_A_HEIGHT);
+    float ax = x + tgx101TextW - Screen.dp(TM_PAD) * 2 - a, ay = cy - aHeight / 2f;
+    tgx101ARect.set(ax, ay, ax + a, ay + aHeight);
     // as on a voice message with its text shown: a light plate, the arrow that folds the text back
     boolean outgoing = isOutgoingBubble();
     int active = Theme.getColor(outgoing ? ColorId.bubbleOut_waveformActive : ColorId.waveformActive);
@@ -952,17 +972,19 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     // TGx101: "A" transcription button at the top right of the circle (the bottom has the duration, the
     // sound icon and, on outgoing ones, the time), hidden while the video plays full size
     if (!TD.isSelfDestructTypeImmediately(getMessage())) {
-      // (user 2026-11-04 14:42, video «так же должно быть и у нас»): outside the circle, level with its bottom, on its free side
-      float circleRadius = receiver.getWidth() / 2f;
+      // (user 2026-11-04 14:42, video «так же должно быть и у нас»): outside the circle, level with its bottom, next to the
+      // duration on the left of one's own, next to the views and time on the right of others' — not over them
       float buttonRadius = Screen.dp(TRANSCRIBE_BUTTON_RADIUS);
       boolean buttonOnLeft = isOutgoingBubble();
-      transcribeButtonX = centerX + (buttonOnLeft ? -1 : 1) * (circleRadius + Screen.dp(6f) + buttonRadius);
-      transcribeButtonY = receiver.centerY() + circleRadius - buttonRadius;
-      Tgx101Transcription.Result result = Tgx101Transcription.get(tdlib, msg);
-      c.drawCircle(transcribeButtonX, transcribeButtonY, buttonRadius, Paints.fillingPaint(Theme.getColor(isOutgoingBubble() ? ColorId.bubbleOut_waveformActive : ColorId.waveformActive)));
-      String label = result != null && result.state == Tgx101Transcription.STATE_PENDING ? "…" : "→A";
-      android.text.TextPaint labelPaint = Paints.getBoldPaint14(false, 0xffffffff);
-      c.drawText(label, transcribeButtonX - labelPaint.measureText(label) / 2f, transcribeButtonY + Screen.dp(5f), labelPaint);
+      float circleRadius = receiver.getWidth() / 2f;
+      float pillLeft = x - contentWidth - (useBubbles ? Screen.dp(6f) * 2 : 0);
+      float circleRight = centerX + circleRadius;
+      float timeRight = tgx101CircleTimeX != Integer.MIN_VALUE ? tgx101CircleTimeX + computeBubbleTimePartWidth(false) + Screen.dp(11f) : circleRight;
+      transcribeButtonX = buttonOnLeft ? pillLeft - Screen.dp(4f) - buttonRadius : Math.max(circleRight, timeRight) + Screen.dp(4f) + buttonRadius;
+      transcribeButtonY = receiver.getBottom() - Screen.dp(TRANSCRIBE_BUTTON_RADIUS) ;
+      tgx101ButtonDx = transcribeButtonX - centerX;
+      tgx101ButtonDy = transcribeButtonY - receiver.centerY();
+      tgx101DrawCircleButton(c, transcribeButtonX, transcribeButtonY, 1f);
     } else {
       transcribeButtonX = transcribeButtonY = 0;
     }
