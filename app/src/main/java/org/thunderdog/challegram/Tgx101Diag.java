@@ -537,7 +537,7 @@ public final class Tgx101Diag {
       }
       if (v instanceof android.view.ViewGroup) {
         android.view.ViewGroup group = (android.view.ViewGroup) v;
-        if (!group.getClipChildren()) b.append(" noClipChildren");
+        if (Build.VERSION.SDK_INT >= 18 && !group.getClipChildren()) b.append(" noClipChildren");
         for (int i = 0; i < group.getChildCount(); i++) appendLayers(group.getChildAt(i), top, bottom, b, depth + 1, count);
       }
     }
