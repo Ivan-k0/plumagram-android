@@ -296,6 +296,7 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
       torchButton.setImageResource(on ? R.drawable.baseline_flash_on_24 : R.drawable.baseline_flash_off_24);
       torchButton.setContentDescription(org.thunderdog.challegram.core.Lang.getString(on ? R.string.Tgx101TorchOff : R.string.Tgx101TorchOn));
     }
+    update();
   }
 
   private ImageView addPanelButton (int icon, View.OnClickListener onClick) {
@@ -389,6 +390,10 @@ final class Tgx101CallVideo implements Tgx101Video.Listener {
     remoteView.setVisibility(remote ? View.VISIBLE : View.GONE);
     for (View view : hideWhenRemoteVideo) {
       if (view != null) view.setAlpha(remote ? 0f : 1f);
+    }
+    if (torchButton != null) {
+      // (user 2026-11-04) only with the camera on, not in a voice call; while it is still lit, the button stays to put it out
+      ((View) torchButton.getParent()).setVisibility(camera || org.thunderdog.challegram.tool.Tgx101Torch.isOn() ? View.VISIBLE : View.GONE);
     }
     qualityButton.setVisibility(camera ? View.VISIBLE : View.GONE);
     qualityButton.setText(Settings.instance().getCallVideoQuality() == Settings.CALL_VIDEO_HD ? "HD" : "SD");
