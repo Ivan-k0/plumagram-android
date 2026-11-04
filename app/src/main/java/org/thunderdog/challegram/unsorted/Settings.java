@@ -3861,7 +3861,7 @@ public class Settings {
   private static final String KEY_TGX101_BIRD_MOVED = "tgx101_bird_moved_25"; // the 2.5 s hold is back (2026-10-21): its hint shows again
   public boolean tgx101Bird () { return pmc.getBoolean(KEY_TGX101_BIRD, true); }
   public void setTgx101Bird (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD, v); }
-  public int tgx101BirdRing () { return pmc.getInt(KEY_TGX101_BIRD_RING, 0x1F); }
+  public int tgx101BirdRing () { return pmc.getInt(KEY_TGX101_BIRD_RING, 0x1F | (1 << org.thunderdog.challegram.ui.Tgx101Bird.ACTION_PLAYER)); }
   public void setTgx101BirdRing (int mask) { pmc.putInt(KEY_TGX101_BIRD_RING, mask); }
   public int tgx101BirdPlace (boolean landscape) { return pmc.getInt(landscape ? KEY_TGX101_BIRD_PLACE_LAND : KEY_TGX101_BIRD_PLACE, 6200); }
   public void setTgx101BirdPlace (boolean landscape, int value) { pmc.putInt(landscape ? KEY_TGX101_BIRD_PLACE_LAND : KEY_TGX101_BIRD_PLACE, value); }

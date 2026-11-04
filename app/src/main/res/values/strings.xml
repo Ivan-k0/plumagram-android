@@ -7270,6 +7270,8 @@
   <string name="Tgx101BirdSearch">Search</string>
   <string name="Tgx101BirdNextAccount">Next account</string>
   <string name="Tgx101BirdNote">Note</string>
+  <string name="Tgx101BirdPlayer">Player</string>
+  <string name="Tgx101BirdPlayerNone">Nothing is playing</string>
   <string name="Tgx101BirdMenu">Side menu</string>
   <string name="Tgx101BirdNight">Night / day</string>
   <string name="Tgx101BirdDay">Day</string>

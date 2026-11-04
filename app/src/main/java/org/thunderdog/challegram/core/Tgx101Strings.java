@@ -1148,6 +1148,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101BirdSearch, "Поиск");
     RU.put(R.string.Tgx101BirdNextAccount, "Следующий аккаунт");
     RU.put(R.string.Tgx101BirdNote, "Заметка");
+    RU.put(R.string.Tgx101BirdPlayer, "Плеер");
+    RU.put(R.string.Tgx101BirdPlayerNone, "Сейчас ничего не играет");
     RU.put(R.string.Tgx101BirdMenu, "Боковое меню");
     RU.put(R.string.Tgx101BirdNight, "Ночь / день");
     RU.put(R.string.Tgx101BirdDay, "День");
