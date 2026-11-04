@@ -1537,12 +1537,12 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101HideJoinButton(toggleResult); // 4PDA 2026-10-08: applies from the next opened chat
     } else if (id == R.id.btn_tgx101HideCompose) {
       Settings.instance().setTgx101HideCompose(toggleResult); // user 2026-10-08 «дай возможность убирать синий карандаш»
-      UI.showToast(R.string.Tgx101AppliesAfterRestart, android.widget.Toast.LENGTH_SHORT);
+      tgx101AskRestart(R.string.Tgx101AppliesAfterRestart);
     } else if (id == R.id.btn_tgx101CapsuleScrollHide) {
       Settings.instance().setTgx101CapsuleScrollHide(toggleResult); // user 2026-10-07 22:46 «дай возможность его не скрывать»
     } else if (id == R.id.btn_tgx101NavCapsule) {
       Settings.instance().setTgx101NavCapsule(toggleResult);
-      UI.showToast(R.string.Tgx101AppliesAfterRestart, android.widget.Toast.LENGTH_SHORT);
+      tgx101AskRestart(R.string.Tgx101AppliesAfterRestart);
     } else if (id == R.id.btn_tgx101HideInputEmoji) {
       Settings.instance().setTgx101HideInputEmoji(toggleResult);
     } else if (id == R.id.btn_tgx101RearRounds) {
@@ -1967,6 +1967,25 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     }
   }
 
+  // (user 2026-11-05 «кнопка перезапуска»): what is read once, at start, applies by one tap: a new process with the main
+  // screen on top, as after restoring a backup
+  private void tgx101AskRestart (int messageRes) {
+    final Tgx101Sheet.Handle[] handle = new Tgx101Sheet.Handle[1];
+    handle[0] = Tgx101Sheet.show(this, null, body -> {
+      body.addView(Tgx101Sheet.title(context, Lang.getString(messageRes)));
+      body.addView(Tgx101SavedActions.primaryButton(context, Lang.getString(R.string.Tgx101RestartNow), v -> {
+        handle[0].dismiss();
+        final org.thunderdog.challegram.BaseActivity activity = context();
+        UI.post(() -> {
+          android.content.Intent intent = android.content.Intent.makeRestartActivityTask(new android.content.ComponentName(activity, org.thunderdog.challegram.MainActivity.class));
+          activity.startActivity(intent);
+          Runtime.getRuntime().exit(0);
+        }, 300);
+      }));
+      body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101RestartLater), null, false, v -> handle[0].dismiss()));
+    });
+  }
+
   // (user 2026-11-05 «шрифты должны быть наглядны»): each name in its own font, with a sample beside it in the app's language
   private void tgx101ShowFonts () {
     final int[][] fonts = {
@@ -2022,7 +2041,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           if (value != Settings.instance().getAppFont()) {
             Settings.instance().setAppFont(value);
             adapter.updateValuedSettingById(R.id.btn_tgx101Font);
-            UI.showToast(R.string.Tgx101FontRestart, android.widget.Toast.LENGTH_LONG);
+            tgx101AskRestart(R.string.Tgx101FontRestart);
           }
         });
         body.addView(row);
@@ -2074,7 +2093,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       if (weight != Settings.instance().getTextWeight()) {
         Settings.instance().setTextWeight(weight);
         adapter.updateValuedSettingById(R.id.btn_tgx101TextWeight);
-        UI.showToast(R.string.Tgx101TextWeightRestart, android.widget.Toast.LENGTH_LONG);
+        tgx101AskRestart(R.string.Tgx101TextWeightRestart);
       }
     } else if (id == R.id.btn_bigEmojiSize) {
       final int res = result.get(R.id.btn_bigEmojiSize);

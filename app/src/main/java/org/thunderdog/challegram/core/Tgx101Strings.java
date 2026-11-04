@@ -1748,6 +1748,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedRememberChat, "Запомнить для этого чата");
     RU.put(R.string.Tgx101SavedRuleApplied, "Для этого чата: %1$s");
     RU.put(R.string.Tgx101FontSample, "Съешь ещё этих мягких булок 123");
+    RU.put(R.string.Tgx101RestartNow, "Перезапустить");
+    RU.put(R.string.Tgx101RestartLater, "Позже");
     RU.put(R.string.Tgx101Torch, "Фонарик");
     RU.put(R.string.Tgx101TorchOn, "Включить фонарик");
     RU.put(R.string.Tgx101TorchOff, "Выключить фонарик");
