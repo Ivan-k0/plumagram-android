@@ -152,8 +152,12 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
           tgx101AutoScrolling = false; // the finger takes over
           tgx101GlidingNew = false;
           tgx101UserScrolledSinceJump = true;
+          tgx101FingerScroll = true;
         }
-        ((MessagesRecyclerView) recyclerView).setIsScrolling(newState != RecyclerView.SCROLL_STATE_IDLE);
+        // (group 2026-11-03 22:04, 22:12 «после отправки дата не должна подсвечиваться», «дата только по свайпу по чату»):
+        // the glide after sending and the jumps are the app's own scrolls — the date comes with the finger and its fling
+        ((MessagesRecyclerView) recyclerView).setIsScrolling(tgx101FingerScroll && newState != RecyclerView.SCROLL_STATE_IDLE);
+        if (newState == RecyclerView.SCROLL_STATE_IDLE) tgx101FingerScroll = false;
       }
 
       @Override
@@ -952,6 +956,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
   private boolean tgx101AutoScrolling;
 
   /** for the diagnostics' jump catcher: a scroll of ours is under way (a glide to a message or to the end) */
+  private boolean tgx101FingerScroll; // this scroll was started by a finger, not by a glide or a jump
   private boolean tgx101GlidingNew; // a new message's glide (see tgx101GlideToNewMessage) — for the catcher only
 
   public boolean tgx101IsAutoScrolling () {
