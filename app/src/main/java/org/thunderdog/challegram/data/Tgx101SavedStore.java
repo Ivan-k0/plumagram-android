@@ -498,6 +498,16 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
     return createFolder(defaultName);
   }
 
+  /** The same folder, when it's already there */
+  public synchronized @Nullable Folder playerFolderIfAny (String defaultName) {
+    Folder chosen = folder(playerFolderId);
+    if (chosen != null) return chosen;
+    for (Folder f : folders) {
+      if (defaultName.equalsIgnoreCase(f.name)) return f;
+    }
+    return null;
+  }
+
   public synchronized void setPlayerFolder (long folderId) {
     playerFolderId = folderId;
     save();

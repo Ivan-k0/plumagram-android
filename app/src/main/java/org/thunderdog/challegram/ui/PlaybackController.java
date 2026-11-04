@@ -793,6 +793,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   private ImageView tgx101Heart;
   private final android.util.SparseArray<long[]> tgx101SavedCopies = new android.util.SparseArray<>();
+  private final android.util.SparseArray<java.util.List<TdApi.Message>> tgx101SavedMessages = new android.util.SparseArray<>();
 
   private void tgx101UpdateHeart () {
     if (tgx101Heart == null || currentItem == null) return;
@@ -822,6 +823,8 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       // Listening here, on the client's thread: the answer about the sending can't come before it
       final long[] ids = new long[result.messages.length];
       final java.util.ArrayList<Long> waiting = new java.util.ArrayList<>();
+      final java.util.ArrayList<TdApi.Message> copies = new java.util.ArrayList<>(java.util.Arrays.asList(result.messages));
+      UI.post(() -> tgx101SavedMessages.put(fileId, copies));
       for (int i = 0; i < ids.length; i++) {
         ids[i] = result.messages[i].id;
         if (result.messages[i].sendingState != null) waiting.add(ids[i]);
@@ -838,7 +841,10 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
           UI.post(() -> {
             if (!waiting.remove((Long) oldMessageId)) return;
             for (int i = 0; i < ids.length; i++) {
-              if (ids[i] == oldMessageId) ids[i] = sent.id;
+              if (ids[i] == oldMessageId) {
+                ids[i] = sent.id;
+                copies.set(i, sent);
+              }
             }
             if (waiting.isEmpty()) {
               tdlib.listeners().unsubscribeFromMessageUpdates(selfChatId, listener[0]);
@@ -889,49 +895,48 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     });
   }
 
-  // (user 2026-11-05 «зажатие на сердце должно вести по пальцу, а не свайпать экран плеера»): held ♥ opens the folders over it, the
-  // finger goes along them and lets go on one; that one is where the next tap saves. Let go elsewhere: nothing happens
-
-  private static final int TGX101_FOLDER_MENU_MAX = 7;
+  // (user 2026-11-05 «зажатие на сердце должно вести по пальцу, а не свайпать экран плеера»): the finger stays on ♥ and goes on to
+  // its menu; the menu is the usual one of a held button
 
   private void tgx101AttachFolderMenu (View heart) {
-    org.thunderdog.challegram.util.HapticMenuHelper menu = new org.thunderdog.challegram.util.HapticMenuHelper(view -> tgx101FolderMenuItems(), (view, parentView, item) -> true, getThemeListeners(), null);
-    menu.attachToView(heart);
-    menu.selectableMode(heart); // the helper's own touch listener, wrapped below
-    heart.setOnTouchListener((v, e) -> {
+    final View.OnTouchListener keepFinger = (v, e) -> {
       if (e.getActionMasked() == MotionEvent.ACTION_DOWN && v.getParent() != null) {
-        v.getParent().requestDisallowInterceptTouchEvent(true); // the finger stays here: the screen doesn't go down with it
+        v.getParent().requestDisallowInterceptTouchEvent(true); // the screen doesn't go down with it
       }
-      return menu.onTouch(v, e);
+      return false;
+    };
+    heart.setOnTouchListener(keepFinger);
+    heart.setOnLongClickListener(v -> {
+      if (currentItem == null) return false;
+      UI.forceVibrate(v, false);
+      new Tgx101HeartMenu(this, v, keepFinger, new Tgx101HeartMenu.Host() {
+        @Override
+        public void withSavedCopy (me.vkryl.core.lambda.RunnableData<java.util.List<TdApi.Message>> action) {
+          tgx101WithSavedCopy(action);
+        }
+
+        @Override
+        public void saveToFolder (long folderId) {
+          if (folderId != 0) {
+            tgx101SaveToFolder(folderId);
+          } else {
+            tgx101SaveToFolder(org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).playerFolder(Lang.getString(R.string.Tgx101PlayerMusicFolder)).id);
+          }
+        }
+      });
+      return true;
     });
   }
 
-  private java.util.List<org.thunderdog.challegram.util.HapticMenuHelper.MenuItem> tgx101FolderMenuItems () {
-    if (currentItem == null) return null;
-    final org.thunderdog.challegram.data.Tgx101SavedStore store = org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib);
-    final long chosenId = store.playerFolder(Lang.getString(R.string.Tgx101PlayerMusicFolder)).id;
-    final java.util.ArrayList<org.thunderdog.challegram.util.HapticMenuHelper.MenuItem> items = new java.util.ArrayList<>();
-    final java.util.List<org.thunderdog.challegram.data.Tgx101SavedStore.Folder> folders = new java.util.ArrayList<>(store.folders());
-    for (int i = 0; i < folders.size(); i++) { // the chosen one always fits in
-      if (folders.get(i).id == chosenId) {
-        folders.add(0, folders.remove(i));
-        break;
-      }
+  private void tgx101WithSavedCopy (me.vkryl.core.lambda.RunnableData<java.util.List<TdApi.Message>> action) {
+    if (currentItem == null) return;
+    final int fileId = currentItem.getTrackFile().id;
+    long[] copies = tgx101SavedCopies.get(fileId);
+    if (copies == null) {
+      tgx101ForwardToStorage(ids -> action.runWithData(tgx101SavedMessages.get(fileId)));
+    } else if (copies.length != 0) {
+      action.runWithData(tgx101SavedMessages.get(fileId));
     }
-    for (int i = 0; i < folders.size() && i < TGX101_FOLDER_MENU_MAX; i++) {
-      final org.thunderdog.challegram.data.Tgx101SavedStore.Folder folder = folders.get(i);
-      items.add(new org.thunderdog.challegram.util.HapticMenuHelper.MenuItem(i, folder.name, folder.id == chosenId ? R.drawable.baseline_check_24 : R.drawable.baseline_folder_24).setOnClickListener((view, parentView, item) -> {
-        tgx101SaveToFolder(folder.id);
-        return true;
-      }));
-    }
-    items.add(new org.thunderdog.challegram.util.HapticMenuHelper.MenuItem(TGX101_FOLDER_MENU_MAX, Lang.getString(R.string.Tgx101SavedNewFolder), R.drawable.baseline_create_new_folder_24).setOnClickListener((view, parentView, item) -> {
-      Tgx101SavedActions.askName(this, Lang.getString(R.string.Tgx101SavedNewFolder), null, name -> {
-        if (!isDestroyed()) tgx101SaveToFolder(store.createFolder(name).id);
-      });
-      return true;
-    }));
-    return items;
   }
 
   private void tgx101SaveToFolder (long folderId) {
