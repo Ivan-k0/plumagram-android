@@ -1025,6 +1025,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ShareCopyingText, "%1$s из %2$s");
     RU.put(R.string.Tgx101ShareDoneTitle, "«%1$s» готова");
     RU.put(R.string.Tgx101ShareDoneText, "скопировано %1$s из %2$s");
+    RU.put(R.string.Tgx101LinkOpenTitle, "Перейти по ссылке?");
+    RU.put(R.string.Tgx101LinkOpenAlways, "Открыть и больше не спрашивать");
+    RU.put(R.string.Tgx101LinkSites, "Сайты без вопроса");
+    RU.put(R.string.Tgx101LinkSitesForget, "Снова спрашивать для всех");
+    RU.put(R.string.Tgx101LinkSitesNone, "Таких сайтов пока нет");
     RU.put(R.string.Tgx101ShareReady, "Папка доступна по ссылке");
     RU.put(R.string.Tgx101ShareReadyHint, "«%1$s» · записей: %2$s · закреплена в чатах");
     RU.put(R.string.Tgx101ShareSend, "Отправить…");

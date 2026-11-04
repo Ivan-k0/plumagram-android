@@ -3168,28 +3168,13 @@ public class TdlibUi extends Handler {
 
     Uri uri = Strings.wrapHttps(url);
 
-    if (options != null && options.requireOpenPrompt && (uri == null || !tdlib.isTrustedHost(url, true))) {
+    if (options != null && options.requireOpenPrompt && (uri == null || !tdlib.isTrustedHost(url, true))
+      && !org.thunderdog.challegram.ui.Tgx101LinkSheet.isAnswered(url, options.displayUrl)) {
       ViewController<?> c = context instanceof ViewController<?> ? (ViewController<?>) context : context.context().navigation().getCurrentStackItem();
       if (c != null && !c.isDestroyed()) {
-        AlertDialog.Builder b = new AlertDialog.Builder(context.context(), Theme.dialogTheme());
-        b.setTitle(Lang.getString(R.string.AppName));
-        b.setMessage(Lang.getString(R.string.OpenThisLink, !StringUtils.isEmpty(options.displayUrl) ? options.displayUrl : url));
-        b.setPositiveButton(Lang.getString(R.string.Open), (dialog, which) ->
-          tdlib.ui()
-            .openExternalUrl(context, url, options.disableOpenPrompt(), after)
-        );
-        b.setNegativeButton(Lang.getString(R.string.Cancel), (dialog, which) -> {
-          if (options.openPromptCancellationCallback != null) {
-            options.openPromptCancellationCallback.run();
-          }
-          dialog.dismiss();
-        });
-        b.setOnCancelListener(dialog -> {
-          if (options.openPromptCancellationCallback != null) {
-            options.openPromptCancellationCallback.run();
-          }
-        });
-        c.showAlert(b);
+        org.thunderdog.challegram.ui.Tgx101LinkSheet.show(c, url, options.displayUrl,
+          () -> tdlib.ui().openExternalUrl(context, url, options.disableOpenPrompt(), after),
+          options.openPromptCancellationCallback);
       }
       return;
     }

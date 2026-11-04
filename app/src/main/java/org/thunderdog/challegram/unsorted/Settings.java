@@ -4022,6 +4022,33 @@ public class Settings {
     pmc.putBoolean("tgx101_swipe_storage", v);
   }
 
+  // Sites whose links open without the question (one host per line; user 2026-11-04)
+  private static final String KEY_TGX101_SITES_WITHOUT_PROMPT = "tgx101_sites_without_prompt";
+
+  public String tgx101SitesWithoutPrompt () {
+    return pmc.getString(KEY_TGX101_SITES_WITHOUT_PROMPT, "");
+  }
+
+  public boolean isTgx101SiteWithoutPrompt (String host) {
+    return java.util.Arrays.asList(tgx101SitesWithoutPrompt().split("\n")).contains(host);
+  }
+
+  public void addTgx101SiteWithoutPrompt (String host) {
+    if (!isTgx101SiteWithoutPrompt(host)) {
+      String sites = tgx101SitesWithoutPrompt();
+      pmc.putString(KEY_TGX101_SITES_WITHOUT_PROMPT, sites.isEmpty() ? host : sites + "\n" + host);
+    }
+  }
+
+  public int tgx101SitesWithoutPromptCount () {
+    String sites = tgx101SitesWithoutPrompt();
+    return sites.isEmpty() ? 0 : sites.split("\n").length;
+  }
+
+  public void clearTgx101SitesWithoutPrompt () {
+    pmc.remove(KEY_TGX101_SITES_WITHOUT_PROMPT);
+  }
+
   public boolean tgx101MenuBlur () {
     return pmc.getBoolean("tgx101_menu_blur", false); // new installs: off (2026-10-28); older ones were pinned to the old default
   }

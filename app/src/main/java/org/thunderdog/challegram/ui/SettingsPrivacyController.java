@@ -112,6 +112,8 @@ public class SettingsPrivacyController extends RecyclerViewController<SettingsPr
           v.setData(Passcode.instance().getModeName());
         } else if (itemId == R.id.btn_accountTTL) {
           v.setData(getAccountTTLIn());
+        } else if (itemId == R.id.btn_tgx101SitesWithoutPrompt) {
+          v.setData(String.valueOf(Settings.instance().tgx101SitesWithoutPromptCount()));
         } else if (itemId == R.id.btn_tgx101DefaultAutoDelete) {
           v.setData(tgx101DefaultAutoDelete < 0 ? "…" : tgx101AutoDeleteName(tgx101DefaultAutoDelete));
         } else if (itemId == R.id.btn_hideSecretChats) {
@@ -247,6 +249,8 @@ public class SettingsPrivacyController extends RecyclerViewController<SettingsPr
     items.add(new SettingItem(SettingItem.TYPE_VALUED_SETTING, R.id.btn_mapProviderCloud, 0, R.string.MapPreviewProviderCloud));*/
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
       items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101DefaultAutoDelete, 0, R.string.Tgx101DefaultAutoDelete));
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101SitesWithoutPrompt, 0, R.string.Tgx101LinkSites));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
       items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_accountTTL, 0, R.string.DeleteAccountIfAwayFor2));
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
@@ -510,6 +514,8 @@ public class SettingsPrivacyController extends RecyclerViewController<SettingsPr
       if (passwordState != null && !StringUtils.isEmpty(passwordState.loginEmailAddressPattern)) {
         tdlib.ui().editLoginEmail(this, passwordState);
       }
+    } else if (id == R.id.btn_tgx101SitesWithoutPrompt) {
+      Tgx101LinkSheet.showRemembered(this, () -> adapter.updateValuedSettingById(R.id.btn_tgx101SitesWithoutPrompt));
     } else if (id == R.id.btn_tgx101DefaultAutoDelete) {
       // TGx101: default auto-delete timer for new chats (official apps: Privacy → Auto-delete messages)
       final int[] values = {0, 86400, 7 * 86400, 31 * 86400};

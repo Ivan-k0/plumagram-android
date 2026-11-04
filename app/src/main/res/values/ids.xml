@@ -1941,4 +1941,5 @@
   <item name="controller_tgx101FilterMore" type="id"/>
   <item name="btn_tgx101MagixPreview" type="id"/>
   <item name="btn_tgx101GestureDoubleTapZoom" type="id"/>
+  <item name="btn_tgx101SitesWithoutPrompt" type="id"/>
 </resources>

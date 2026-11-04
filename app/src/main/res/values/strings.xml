@@ -7147,6 +7147,11 @@
   <string name="Tgx101ShareCopyingText">%1$s of %2$s</string>
   <string name="Tgx101ShareDoneTitle">«%1$s» is ready</string>
   <string name="Tgx101ShareDoneText">%1$s of %2$s copied</string>
+  <string name="Tgx101LinkOpenTitle">Open this link?</string>
+  <string name="Tgx101LinkOpenAlways">Open and stop asking for this site</string>
+  <string name="Tgx101LinkSites">Sites that open without asking</string>
+  <string name="Tgx101LinkSitesForget">Ask again for all of them</string>
+  <string name="Tgx101LinkSitesNone">No such sites yet</string>
   <string name="Tgx101ShareReady">The folder is shared</string>
   <string name="Tgx101ShareReadyHint">«%1$s» · %2$s items · pinned in the chats</string>
   <string name="Tgx101ShareSend">Send…</string>
