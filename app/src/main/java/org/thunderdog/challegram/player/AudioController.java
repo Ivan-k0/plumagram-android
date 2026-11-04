@@ -386,6 +386,10 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
     exoPlayer.setMediaSources(mediaSources);
     exoPlayer.prepare();
     seekTo(exoPlayer, trackIndex, mediaSources.size(), reverseMode);
+    long restorePosition = context.player().tgx101TakeRestorePosition();
+    if (restorePosition > 0) {
+      exoPlayer.seekTo(restorePosition); // the music back after a voice message
+    }
     exoPlayer.setPlayWhenReady(isPlaying);
   }
 

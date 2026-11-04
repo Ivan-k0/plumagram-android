@@ -846,6 +846,9 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
   public void stopPlaybackIfPlayingAnyOf (TdApi.File[] files) {
     boolean stop = false;
     synchronized (this) {
+      for (TdApi.File file : files) {
+        tgx101ForgetSuspendedFile(file.id);
+      }
       if (message != null) {
         int fileId = TD.getFileId(message);
         for (TdApi.File file : files) {
@@ -861,9 +864,16 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
     }
   }
 
+  private void tgx101ForgetSuspendedFile (int fileId) {
+    if (tgx101Suspended != null && TD.getFileId(tgx101Suspended.message) == fileId) {
+      tgx101Suspended = null;
+    }
+  }
+
   public void stopPlaybackIfPlaying (int fileId) {
     boolean stop;
     synchronized (this) {
+      tgx101ForgetSuspendedFile(fileId);
       stop = message != null && TD.getFileId(message) == fileId;
     }
     if (stop) {
@@ -1075,6 +1085,79 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
     ExternalAudioFocus.instance().setActive(ExternalAudioFocus.REASON_PLAYBACK, newState == STATE_PLAYING && isVoiceOrRound);
   }
 
+  // (group 2026-11-05 00:10 «музыка должна оставаться в закрепе пока не закроешь, сейчас запуск голосового её убирает»): one
+  // player at a time stays; a voice or video message takes it over, and when that's done the music comes back with its queue
+  // and place, playing or paused as it was. Only ✕ on the music itself, or another music, ends it
+
+  private static final class Tgx101SuspendedMusic implements PlayListBuilder {
+    final Tdlib tdlib;
+    final TdApi.Message message;
+    final boolean wasPlaying;
+    final long position;
+    final List<TdApi.Message> messages, removed;
+    final int originIndex, playListFlags;
+    final boolean newEndReached, oldEndReached;
+    final long chatId, maxMessageId, minMessageId;
+    final String searchQuery;
+    final @Nullable TdApi.MessageTopic topicId;
+    final TdApi.GetInlineQueryResults inlineQuery;
+    final String inlineNextOffset, searchNextOffset;
+    final long searchNextFromMessageId;
+
+    Tgx101SuspendedMusic (TGPlayerController c) {
+      this.tdlib = c.tdlib;
+      this.message = c.message;
+      this.wasPlaying = c.playState == STATE_PLAYING;
+      this.position = c.playPosition;
+      this.messages = new ArrayList<>(c.messageList);
+      this.removed = new ArrayList<>(c.removedMessageList);
+      this.originIndex = c.indexOfCurrentMessage();
+      this.playListFlags = c.playListFlags;
+      this.newEndReached = (c.messageListStateFlags & LIST_STATE_LOADED_NEW) != 0;
+      this.oldEndReached = (c.messageListStateFlags & LIST_STATE_LOADED_OLD) != 0;
+      this.chatId = c.playlistChatId;
+      this.maxMessageId = c.playlistMaxMessageId;
+      this.minMessageId = c.playlistMinMessageId;
+      this.searchQuery = c.playlistSearchQuery;
+      this.topicId = c.playlistTopicId;
+      this.inlineQuery = c.playlistInlineQuery;
+      this.inlineNextOffset = c.playlistInlineNextOffset;
+      this.searchNextOffset = c.playlistSearchNextOffset;
+      this.searchNextFromMessageId = c.playlistSearchNextFromMessageId;
+    }
+
+    @Override
+    public PlayList buildPlayList (TdApi.Message fromMessage) {
+      PlayList list = new PlayList(messages, Math.max(originIndex, 0))
+        .setPlayListFlags(playListFlags)
+        .setPlayListSource(chatId, maxMessageId, minMessageId)
+        .setSearchQuery(searchQuery)
+        .setTopicId(topicId)
+        .setRemovedMessages(new ArrayList<>(removed));
+      if (inlineQuery != null) {
+        list.setInlineQuery(inlineQuery, inlineNextOffset);
+      }
+      list.searchNextOffset = searchNextOffset;
+      list.searchNextFromMessageId = searchNextFromMessageId;
+      return list.setReachedEnds(newEndReached, oldEndReached);
+    }
+
+    @Override
+    public boolean wouldReusePlayList (TdApi.Message fromMessage, boolean isReverse, boolean hasAltered, List<TdApi.Message> trackList, long playListChatId) {
+      return false;
+    }
+  }
+
+  private @Nullable Tgx101SuspendedMusic tgx101Suspended;
+  private long tgx101RestorePosition;
+
+  /** The place where the returning music goes on, once */
+  long tgx101TakeRestorePosition () {
+    long position = tgx101RestorePosition;
+    tgx101RestorePosition = 0;
+    return position;
+  }
+
   private void playPauseMessageImpl (@Nullable TdApi.Message message, boolean byUserRequest, boolean isNext, Tdlib tdlib, @Nullable PlayListBuilder builder) {
     if (Looper.myLooper() != Looper.getMainLooper()) {
       int flags = 0;
@@ -1088,6 +1171,25 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
     synchronized (this) {
       if (this.message == null && message == null) {
         return;
+      }
+
+      if (message == null) {
+        final Tgx101SuspendedMusic music = tgx101Suspended;
+        if (music != null) {
+          tgx101Suspended = null;
+          tgx101RestorePosition = music.position;
+          // By the user's request: the audio player takes it as a new start of a track, not as the next one of a queue
+          playPauseMessageImpl(music.message, true, false, music.tdlib, music);
+          tgx101RestorePosition = 0; // the old audio mode has no list to take it
+          if (!music.wasPlaying) {
+            playPauseMessageImpl(music.message, true, false, music.tdlib, null); // the same moment, before any sound
+          }
+          return;
+        }
+      } else if (Td.isAudio(message.content)) {
+        tgx101Suspended = null;
+      } else if (tgx101Suspended == null && this.message != null && playState != STATE_NONE && Td.isAudio(this.message.content) && (Td.isVoiceNote(message.content) || Td.isVideoNote(message.content))) {
+        tgx101Suspended = new Tgx101SuspendedMusic(this);
       }
 
       final Tdlib currentTdlib = this.tdlib;
