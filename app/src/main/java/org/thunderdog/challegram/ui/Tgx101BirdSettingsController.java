@@ -60,6 +60,8 @@ public class Tgx101BirdSettingsController extends RecyclerViewController<Void> i
           view.getToggler().setRadioEnabled(on, isUpdate);
         } else if (id == R.id.btn_tgx101BirdInChats) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101BirdInChats(), isUpdate);
+        } else if (id == R.id.btn_tgx101BirdInPlayer) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101BirdInPlayer(), isUpdate);
           view.setEnabledAnimated(on, isUpdate);
         } else if (id == R.id.btn_tgx101BirdInPlayer) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101BirdInPlayer(), isUpdate);
