@@ -2177,17 +2177,43 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     @Override public void onWindowFocusChanged (boolean hasWindowFocus) { mode.onWindowFocusChanged(hasWindowFocus); }
   }
 
+  // (group 2026-11-05 15:15, log 15:15:49 «input cursor 54 → 130» at each lift): scrolling a long text put the cursor where
+  // the finger left it and the keyboard took that word. A finger that moved scrolls only: the cursor stays where it was
+  private boolean tgx101ScrollGesture;
+  private int tgx101KeepSelStart = -1, tgx101KeepSelEnd = -1;
+  private float tgx101ScrollDownX, tgx101ScrollDownY;
+
   @Override
   public boolean onTouchEvent (MotionEvent event) {
     if (tgx101SafetyTap(event)) {
       return true;
     }
+    final int action = event.getActionMasked();
+    if (action == MotionEvent.ACTION_DOWN) {
+      tgx101ScrollGesture = false;
+      tgx101KeepSelStart = isFocused() ? getSelectionStart() : -1;
+      tgx101KeepSelEnd = isFocused() ? getSelectionEnd() : -1;
+      tgx101ScrollDownX = event.getX();
+      tgx101ScrollDownY = event.getY();
+    } else if (action == MotionEvent.ACTION_MOVE && !tgx101ScrollGesture && Math.hypot(event.getX() - tgx101ScrollDownX, event.getY() - tgx101ScrollDownY) > android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop()) {
+      tgx101ScrollGesture = true;
+    }
+    boolean result;
     try {
-      return super.onTouchEvent(event);
+      result = super.onTouchEvent(event);
     } catch (Throwable t) {
       Log.e("System bug", t);
       return false;
     }
+    if (action == MotionEvent.ACTION_UP && tgx101ScrollGesture && tgx101KeepSelStart >= 0 && tgx101KeepSelEnd <= length() && !hasSelection()
+      && (getSelectionStart() != tgx101KeepSelStart || getSelectionEnd() != tgx101KeepSelEnd)) {
+      final int start = tgx101KeepSelStart, end = tgx101KeepSelEnd;
+      org.thunderdog.challegram.Tgx101Diag.mark("input: a scroll, the cursor stays at " + start);
+      setSelection(start, end);
+      post(() -> { if (start <= length() && end <= length() && !hasSelection()) setSelection(start, end); }); // the editor moves it once more after the lift
+    }
+    if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) tgx101ScrollGesture = false;
+    return result;
   }
 
   // Android bug https://code.google.com/p/android/issues/detail?id=208169R
