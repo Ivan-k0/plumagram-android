@@ -783,6 +783,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   private void tgx101InvalidateTinted () {
     if (coverView != null) coverView.invalidate();
+    tgx101MatchStatusIcons();
     if (tgx101SpeedPill != null) tgx101SpeedPill.invalidate();
     if (tgx101NextPill != null) tgx101NextPill.invalidate();
     if (tgx101LyricsPill != null) tgx101LyricsPill.invalidate();
@@ -2565,6 +2566,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       if (this.collapseFactor != factor) {
         this.collapseFactor = factor;
         controller.updateButtonColors();
+        controller.tgx101MatchStatusIcons();
         invalidate();
       }
     }
@@ -3288,9 +3290,40 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   // ViewController
 
+  // (user 2026-11-05, screenshot «в таком положении тоже не читается строка»): over the cover the icons are white on its shade; with the
+  // cover gone up they stand on the player's tone, which may be light
+
+  @Override
+  public Boolean tgx101LightStatusBar () {
+    if (coverView == null || coverView.getActualCollapseFactor() < .5f) return false;
+    int ground = tgx101Tint.background(Theme.fillingColor());
+    return (0.299f * android.graphics.Color.red(ground) + 0.587f * android.graphics.Color.green(ground) + 0.114f * android.graphics.Color.blue(ground)) / 255f > .6f;
+  }
+
+  private Boolean tgx101StatusIconsDark;
+
+  private void tgx101MatchStatusIcons () {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M || !isFocused()) return;
+    Boolean dark = tgx101LightStatusBar();
+    if (dark.equals(tgx101StatusIconsDark)) return;
+    tgx101StatusIconsDark = dark;
+    UI.setLightSystemBars(context().getWindow(), !Theme.isDark(), dark, 0, false);
+  }
+
+  @Override
+  public void onBlur () {
+    super.onBlur();
+    tgx101StatusIconsDark = null;
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+      UI.setLightSystemBars(context().getWindow(), !Theme.isDark(), Theme.needLightStatusBar(), 0, false);
+    }
+  }
+
   @Override
   public void onFocus () {
     super.onFocus();
+    tgx101StatusIconsDark = null;
+    tgx101MatchStatusIcons();
     coverView.setDisableAnimation(false);
     destroyAllStackItemsById(R.id.controller_playback);
   }
