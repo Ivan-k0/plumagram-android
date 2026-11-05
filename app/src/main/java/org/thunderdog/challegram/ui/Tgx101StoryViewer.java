@@ -235,7 +235,7 @@ public class Tgx101StoryViewer extends Dialog {
       @Override
       public boolean onTouch (View v, MotionEvent e) {
         if (e.getActionMasked() == MotionEvent.ACTION_DOWN) downY = e.getY();
-        if (e.getActionMasked() == MotionEvent.ACTION_UP && captionExpanded && e.getY() - downY > Screen.dp(40f)) {
+        if (e.getActionMasked() == MotionEvent.ACTION_UP && captionExpanded && v.getScrollY() == 0 && e.getY() - downY > Screen.dp(40f)) {
           setCaptionExpanded(false); // swipe down folds the text
           return true;
         }
@@ -272,6 +272,12 @@ public class Tgx101StoryViewer extends Dialog {
     field.setStroke(Screen.dp(1f), 0x88ffffff);
     replyView.setBackground(field);
     replyView.setOnFocusChangeListener((v, hasFocus) -> setPaused(hasFocus));
+    // (user 2026-11-05 «пауза, когда начинаешь писать ответ, ставится через раз»): the keyboard put away by «back» left the field
+    // focused, the story went on, and the next tap changed nothing. A touch on the field pauses; the keyboard gone takes the focus away
+    replyView.setOnTouchListener((v, e) -> {
+      if (e.getActionMasked() == MotionEvent.ACTION_DOWN) setPaused(true);
+      return false;
+    });
     replyView.setOnEditorActionListener((v, actionId, event) -> {
       if (actionId == EditorInfo.IME_ACTION_SEND) {
         sendReply();
@@ -320,6 +326,14 @@ public class Tgx101StoryViewer extends Dialog {
     root.setOnTouchListener(new GestureHandler());
     // keep the reply field and ♡ above the system navigation bar
     if (android.os.Build.VERSION.SDK_INT >= 21) root.setOnApplyWindowInsetsListener((v, insets) -> {
+      if (android.os.Build.VERSION.SDK_INT >= 30) {
+        boolean ime = insets.isVisible(android.view.WindowInsets.Type.ime());
+        if (tgx101ImeShown && !ime && replyView.hasFocus()) {
+          Tgx101Diag.mark("story: keyboard gone, the reply field lets go");
+          replyView.clearFocus();
+        }
+        tgx101ImeShown = ime;
+      }
       bottomParams.bottomMargin = Screen.dp(16f) + insets.getSystemWindowInsetBottom();
       bottom.setLayoutParams(bottomParams);
       captionParams.bottomMargin = Screen.dp(72f) + insets.getSystemWindowInsetBottom();
@@ -577,9 +591,17 @@ public class Tgx101StoryViewer extends Dialog {
       captionView.setMaxLines(Integer.MAX_VALUE);
       captionView.setEllipsize(null);
       captionView.setText(captionText);
+      // (user 2026-11-05 «описание растянуто слишком высоко и не пролистывается; должно быть ниже вдвое»): half the room, the rest scrolls
+      captionView.setMaxHeight(Math.max(Screen.dp(120f), (root.getHeight() - Screen.dp(160f)) / 2));
+      captionView.setMovementMethod(new android.text.method.ScrollingMovementMethod());
+      captionView.setVerticalScrollBarEnabled(true);
+      captionView.scrollTo(0, 0);
       captionView.setBackground(tgx101Capsule());
       captionView.setPadding(Screen.dp(16f), Screen.dp(12f), Screen.dp(16f), Screen.dp(12f));
     } else {
+      captionView.setMovementMethod(null);
+      captionView.setMaxHeight(Integer.MAX_VALUE);
+      captionView.scrollTo(0, 0);
       captionView.setMaxLines(2);
       captionView.setEllipsize(android.text.TextUtils.TruncateAt.END);
       captionView.setBackground(tgx101Capsule());
@@ -670,7 +692,10 @@ public class Tgx101StoryViewer extends Dialog {
     if (!paused) root.post(ticker);
   }
 
+  private boolean tgx101ImeShown;
+
   private void setPaused (boolean paused) {
+    if (!paused && replyView != null && replyView.hasFocus()) return; // typing a reply: the story waits
     if (this.paused == paused) return;
     this.paused = paused;
     if (paused) {
