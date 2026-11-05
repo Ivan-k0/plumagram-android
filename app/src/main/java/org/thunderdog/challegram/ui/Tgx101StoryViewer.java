@@ -250,7 +250,15 @@ public class Tgx101StoryViewer extends Dialog {
     LinearLayout bottom = new LinearLayout(context);
     bottom.setOrientation(LinearLayout.HORIZONTAL);
     bottom.setGravity(Gravity.CENTER_VERTICAL);
-    replyView = new EditText(context);
+    replyView = new EditText(context) {
+      // (group 2026-11-05 14:25 «поле слишком вплотную стоит, нужно пространство»): the window pans just enough to show
+      // what has focus; asking for 14 dp more below, the field stands apart from the keyboard
+      @Override
+      public void getFocusedRect (android.graphics.Rect r) {
+        super.getFocusedRect(r);
+        r.bottom += Screen.dp(14f);
+      }
+    };
     replyView.setHint(Lang.getString(R.string.Tgx101StoryReply));
     replyView.setHintTextColor(0xbbffffff);
     replyView.setTextColor(Color.WHITE);
