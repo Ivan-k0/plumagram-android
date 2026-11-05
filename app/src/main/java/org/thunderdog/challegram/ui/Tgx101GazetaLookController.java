@@ -104,6 +104,7 @@ public class Tgx101GazetaLookController extends ViewController<Void> implements 
   private LinearLayout page, settings;
   private FrameLayout previewWrap;
   private @Nullable View preview;
+  private View previewLine;
   private LinearLayout segment;
 
   @Override
@@ -149,6 +150,9 @@ public class Tgx101GazetaLookController extends ViewController<Void> implements 
     LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     pp.setMargins(Screen.dp(14f), 0, Screen.dp(14f), Screen.dp(12f));
     page.addView(previewWrap, pp);
+    // (user 2026-11-05 «нет разделения между примером и настройками»): a line under the example, the settings scroll below it
+    previewLine = new View(context);
+    page.addView(previewLine, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, Screen.dp(1f))));
     preview = feed != null ? feed.createPreview(context) : null;
     if (preview != null) {
       previewWrap.addView(preview);
@@ -176,6 +180,7 @@ public class Tgx101GazetaLookController extends ViewController<Void> implements 
     if (pictureSample != null) pictureSample.invalidate();
     int[] pal = pal();
     page.setBackgroundColor(pal[0]);
+    if (previewLine != null) previewLine.setBackgroundColor(me.vkryl.core.ColorUtils.alphaColor(.22f, pal[3]));
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       GradientDrawable round = new GradientDrawable();
       round.setCornerRadius(Screen.dp(16f));
