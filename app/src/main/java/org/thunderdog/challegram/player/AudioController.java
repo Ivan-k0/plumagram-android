@@ -386,6 +386,8 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
     exoPlayer.setMediaSources(mediaSources);
     exoPlayer.prepare();
     seekTo(exoPlayer, trackIndex, mediaSources.size(), reverseMode);
+    tgx101Played.clear(); // a new queue
+    tgx101NotePlayed(exoPlayer.getCurrentWindowIndex());
     long restorePosition = context.player().tgx101TakeRestorePosition();
     if (restorePosition > 0) {
       exoPlayer.seekTo(restorePosition); // the music back after a voice message
@@ -637,10 +639,99 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
     if (playbackMode != PLAYBACK_MODE_EXOPLAYER_LIST || exoPlayer == null) {
       return false;
     }
-    if (exoPlayer.getRepeatMode() == Player.REPEAT_MODE_ONE) {
-      return exoPlayer.getMediaItemCount() > 1; // skip goes through the whole list there
+    return tgx101PickTrack(exoPlayer.getCurrentWindowIndex(), next, false) != C.INDEX_UNSET;
+  }
+
+  // (user 2026-11-05 «листаю вперёд, а мне ставит треки, которые уже были, да ещё в дизлайках»): going forward in music passes what is
+  // hidden and, while the queue has something else, what has already played. Going back passes only what is hidden
+
+  private final java.util.Set<String> tgx101Played = new java.util.HashSet<>();
+
+  private void tgx101NotePlayed (int window) {
+    TdApi.Message message = tgx101MessageAt(window);
+    String key = Tgx101MusicTaste.keyOf(message);
+    if (key != null) tgx101Played.add(key);
+  }
+
+  private @Nullable TdApi.Message tgx101MessageAt (int window) {
+    if (playList == null || window < 0 || window >= playList.size() || exoPlayer == null || playList.size() != exoPlayer.getMediaItemCount()) {
+      return null;
     }
-    return (next ? exoPlayer.getNextWindowIndex() : exoPlayer.getPreviousWindowIndex()) != C.POSITION_UNSET;
+    return playList.get(inReverseMode() ? reversePosition(window, playList.size(), true) : window);
+  }
+
+  private boolean tgx101IsMusicHidden (@Nullable TdApi.Message message) {
+    return message != null && tdlib != null && Tgx101MusicTaste.get(tdlib).isHidden(message);
+  }
+
+  /**
+   * @param commit may start the queue's round anew when everything has played
+   * @return the window to go to from this one, {@link C#INDEX_UNSET} when there's none
+   */
+  private int tgx101PickTrack (int from, boolean forward, boolean commit) {
+    final Timeline timeline = exoPlayer.getCurrentTimeline();
+    final int total = exoPlayer.getMediaItemCount();
+    if (from == C.INDEX_UNSET || timeline.isEmpty() || from >= timeline.getWindowCount()) {
+      return C.INDEX_UNSET;
+    }
+    // Repeat of one track: a press still goes on through the list
+    final int repeat = exoPlayer.getRepeatMode() == Player.REPEAT_MODE_ONE ? Player.REPEAT_MODE_ALL : exoPlayer.getRepeatMode();
+    final boolean shuffle = exoPlayer.getShuffleModeEnabled();
+    int hidden = 0, played = 0, firstPlayed = C.INDEX_UNSET;
+    int window = from;
+    for (int guard = total; guard > 0; guard--) {
+      window = forward ? timeline.getNextWindowIndex(window, repeat, shuffle) : timeline.getPreviousWindowIndex(window, repeat, shuffle);
+      if (window == C.INDEX_UNSET || window == from) break;
+      TdApi.Message message = tgx101MessageAt(window);
+      if (tgx101IsMusicHidden(message)) {
+        hidden++;
+        continue;
+      }
+      if (forward && message != null && tgx101Played.contains(Tgx101MusicTaste.keyOf(message))) {
+        played++;
+        if (firstPlayed == C.INDEX_UNSET) firstPlayed = window;
+        continue;
+      }
+      if (commit && (hidden != 0 || played != 0)) {
+        org.thunderdog.challegram.Tgx101Diag.mark("player: " + (forward ? "next" : "previous") + " " + from + " -> " + window + ", passed " + hidden + " hidden, " + played + " played");
+      }
+      return window;
+    }
+    if (firstPlayed != C.INDEX_UNSET) {
+      // Only what has played is left: with repeat on, the queue's next round
+      if (commit) {
+        org.thunderdog.challegram.Tgx101Diag.mark("player: next " + from + " -> " + firstPlayed + ", all has played, a new round, " + hidden + " hidden passed");
+        tgx101Played.clear();
+      }
+      return firstPlayed;
+    }
+    if (commit) {
+      org.thunderdog.challegram.Tgx101Diag.mark("player: " + (forward ? "next" : "previous") + " from " + from + ": nothing, " + hidden + " hidden of " + total);
+    }
+    return C.INDEX_UNSET;
+  }
+
+  /** The queue itself came to a track that is hidden or has played: on to another. True when it jumped or stopped */
+  private boolean tgx101PassOnAutoTransition () {
+    if (exoPlayer == null || exoPlayer.getRepeatMode() == Player.REPEAT_MODE_ONE) return false;
+    final int window = exoPlayer.getCurrentWindowIndex();
+    final TdApi.Message message = tgx101MessageAt(window);
+    if (message == null || !Td.isAudio(message.content)) return false;
+    final boolean isHidden = tgx101IsMusicHidden(message);
+    final boolean wasPlayed = tgx101Played.contains(Tgx101MusicTaste.keyOf(message));
+    if (!isHidden && !wasPlayed) return false;
+    final int target = tgx101PickTrack(window, true, true);
+    if (target == C.INDEX_UNSET) {
+      if (!isHidden) return false; // the only one: it may play again
+      context.player().stopPlayback(false);
+      return true;
+    }
+    final TdApi.Message next = tgx101MessageAt(target);
+    if (!isHidden && next != null && tgx101Played.contains(Tgx101MusicTaste.keyOf(next))) {
+      return false; // all has played: this one starts the new round
+    }
+    exoPlayer.seekToDefaultPosition(target);
+    return true;
   }
 
   public void skip (boolean next) {
@@ -665,7 +756,8 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
           exoPlayer.setRepeatMode(Player.REPEAT_MODE_ALL);
         }
 
-        int desiredPosition = next ? exoPlayer.getNextWindowIndex() : exoPlayer.getPreviousWindowIndex();
+        TdApi.Message playing = tgx101MessageAt(position);
+        int desiredPosition = playing != null && Td.isAudio(playing.content) ? tgx101PickTrack(position, next, true) : (next ? exoPlayer.getNextWindowIndex() : exoPlayer.getPreviousWindowIndex());
         boolean reverseMode = inReverseMode();
         Log.i(Log.TAG_PLAYER, "skipping track position:%d, desiredPosition:%d reverse:%b", position, desiredPosition, reverseMode);
         if (desiredPosition == C.POSITION_UNSET) {
@@ -849,6 +941,7 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
       if (windowIndex != playIndex && windowIndex >= 0 && windowIndex < playList.size()) {
         Log.i(Log.TAG_PLAYER, "Next track reached, updating UI only %d -> %d", playIndex, windowIndex);
         playIndex = windowIndex;
+        tgx101NotePlayed(exoPlayer.getCurrentWindowIndex());
         // TODO reset time
         onNextSongReached(tdlib, playList.get(windowIndex));
       }
@@ -914,7 +1007,7 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
       return;
     }
     Log.d(Log.TAG_PLAYER, "[state] onPositionDiscontinuity mode:%d, reason:%d", playbackMode, reason);
-    if (reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION && tgx101SkipOwnVoice()) {
+    if (reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION && (tgx101SkipOwnVoice() || tgx101PassOnAutoTransition())) {
       return;
     }
     checkPlayerPosition();

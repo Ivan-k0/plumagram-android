@@ -1760,7 +1760,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
           return false;
         }
         if (BitwiseUtils.hasFlag(ongoingSections, SECTION_AUDIO)) {
-          TdlibManager.instance().player().playNextMessageInQueue();
+          TdlibManager.instance().player().skip(true); // as ⏭ in the player and in the notification: past what is hidden
           return true;
         }
         break;
