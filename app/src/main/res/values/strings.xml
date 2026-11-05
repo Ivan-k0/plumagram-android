@@ -6034,7 +6034,7 @@
   <string name="Tgx101Font">Font</string>
   <string name="Tgx101FontSystem">System (as set on the phone)</string>
   <string name="Tgx101FontManrope">Manrope</string>
-  <string name="Tgx101FontRoboto">Roboto</string>
+  <string name="Tgx101FontRoboto">Roboto (original)</string>
   <string name="Tgx101FontHint">Only the typeface changes; text size and weight stay as set. Applies after the app restarts.</string>
   <string name="Tgx101FontRestart">Restart the app to apply the font</string>
   <string name="Tgx101TextWeightNormal">Regular</string>
@@ -6610,6 +6610,7 @@
   <string name="Tgx101CapsuleTabsMin">Keep at least one tab after «Chats»</string>
   <string name="Tgx101TabProfile">Profile</string>
   <string name="Tgx101ReactedCount">Reactions: %1$d</string>
+  <string name="Tgx101ReactedOfSeen">%1$d/%2$d reacted</string>
   <string name="Tgx101ReactedAll">All %1$d</string>
   <string name="Tgx101Back">Back</string>
   <string name="Tgx101CrashReportTitle">PlumaGram closed with an error last time. Send the report to the developer? It helps to fix it (no messages or contacts in it).</string>

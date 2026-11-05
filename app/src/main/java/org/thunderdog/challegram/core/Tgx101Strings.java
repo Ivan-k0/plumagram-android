@@ -346,7 +346,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101RingRampHint, "За сколько секунд мелодия входящего звонка вырастает от тихой до полной громкости.");
     RU.put(R.string.Tgx101Font, "Шрифт");
     RU.put(R.string.Tgx101FontSystem, "Системный (как в настройках телефона)");
-    RU.put(R.string.Tgx101FontRoboto, "Roboto");
+    RU.put(R.string.Tgx101FontRoboto, "Roboto (родной)");
     RU.put(R.string.Tgx101FontHint, "Меняется только начертание; размер и толщина текста остаются как настроены. Применится после перезапуска приложения.");
     RU.put(R.string.Tgx101FontRestart, "Перезапустите приложение, чтобы применить шрифт");
     RU.put(R.string.Tgx101TextWeightNormal, "Обычная");
@@ -897,6 +897,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101CapsuleTabsMin, "Оставьте хотя бы одну вкладку после «Чатов»");
     RU.put(R.string.Tgx101TabProfile, "Профиль");
     RU.put(R.string.Tgx101ReactedCount, "Реакции: %1$d");
+    RU.put(R.string.Tgx101ReactedOfSeen, "%1$d/%2$d с реакцией");
     RU.put(R.string.Tgx101ReactedAll, "Все %1$d");
     RU.put(R.string.Tgx101Back, "Назад");
     RU.put(R.string.Tgx101CrashReportTitle, "В прошлый раз PlumaGram закрылся с ошибкой. Отправить отчёт разработчику? Это поможет её исправить (сообщений и контактов в отчёте нет).");
