@@ -520,6 +520,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     shownLook = look;
     if (needReload) {
       needReload = false;
+      prunePortion = true; // what the settings left out goes, the post in view stays
       load();
     }
   }
@@ -592,6 +593,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   private @Nullable List<Tgx101Gazeta.Post> waitingPortion;
   private boolean waitingComplete;
   private long[] waitingChats;
+  private boolean prunePortion;
 
   private void applyPortion (List<Tgx101Gazeta.Post> feed, boolean complete, long[] chatIds) {
     waitingPortion = feed;
@@ -617,6 +619,12 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         java.util.Collections.sort(had.messages, (x, y) -> Long.compare(x.id, y.id));
       }
     }
+    if (finished && prunePortion) {
+      prunePortion = false;
+      java.util.Set<String> kept = new java.util.HashSet<>();
+      for (Tgx101Gazeta.Post post : feed) kept.add(postKey(post));
+      merged.keySet().retainAll(kept);
+    }
     LinearLayoutManager manager = (LinearLayoutManager) list.getLayoutManager();
     int firstVisible = manager != null ? manager.findFirstVisibleItemPosition() : RecyclerView.NO_POSITION;
     View firstView = manager != null && firstVisible != RecyclerView.NO_POSITION ? manager.findViewByPosition(firstVisible) : null;
@@ -637,9 +645,15 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         break;
       }
     }
-    if (posts.size() != before) adapter.notifyDataSetChanged();
-    if (anchor != null && manager != null && posts.size() != before) {
+    // always: returning from the settings their looks may have changed the cards
+    adapter.notifyDataSetChanged();
+    if (anchor != null && manager != null) {
       int at = posts.indexOf(anchor);
+      // (user 2026-11-05 «возвращение из настроек … на то же место»): its own post left out by a filter: the next one by time
+      for (int i = 0; at == -1 && i < posts.size(); i++) {
+        if (posts.get(i).first().date >= anchor.first().date) at = i;
+      }
+      if (at == -1 && !posts.isEmpty()) at = posts.size() - 1;
       if (at != -1) manager.scrollToPositionWithOffset(at, anchorTop);
     }
     empty.setVisibility(posts.isEmpty() && finished ? View.VISIBLE : View.GONE);
