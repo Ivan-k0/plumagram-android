@@ -1947,8 +1947,46 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       return;
     }
     if (isAnimating) {
-      setFactor(tgx101BackPreview(backEvent));
       tgx101NoteBackSample(backEvent.getTouchX());
+      tgx101BackTarget = tgx101BackPreview(backEvent);
+      tgx101BackTargetAt = android.os.SystemClock.uptimeMillis();
+      if (!tgx101Following) {
+        tgx101Following = true;
+        android.view.Choreographer.getInstance().postFrameCallback(tgx101Follow);
+      }
+    }
+  }
+
+  // (check 2026-11-05 23:07, frames of two system backs): the system tells the gesture's progress less often than the screen
+  // is drawn — every third or fourth frame the screen stood still under a moving finger. It now follows the finger every frame:
+  // most of the way to where the finger was last told, and on by the finger's speed for a frame or two when the next word is late
+  private float tgx101BackTarget = Float.NaN;
+  private long tgx101BackTargetAt;
+  private boolean tgx101Following;
+  private final android.view.Choreographer.FrameCallback tgx101Follow = new android.view.Choreographer.FrameCallback() {
+    @Override
+    public void doFrame (long frameTimeNanos) {
+      if (!isAnimating || Float.isNaN(tgx101BackTarget) || currentWidth <= 0) {
+        tgx101Following = false;
+        return;
+      }
+      long late = android.os.SystemClock.uptimeMillis() - tgx101BackTargetAt;
+      float target = tgx101BackTarget;
+      if (late > 10 && late < 40) {
+        target = Math.min(.66f, target + tgx101BackVelocity() * (late - 10) / 1000f / currentWidth);
+      }
+      float now = getFactor();
+      float next = Math.abs(target - now) < .0005f ? target : now + (target - now) * .6f;
+      setFactor(next);
+      android.view.Choreographer.getInstance().postFrameCallback(this);
+    }
+  };
+
+  private void tgx101StopFollowing () {
+    tgx101BackTarget = Float.NaN;
+    if (tgx101Following) {
+      tgx101Following = false;
+      android.view.Choreographer.getInstance().removeFrameCallback(tgx101Follow);
     }
   }
 
@@ -2010,6 +2048,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     tgx101BackInsideScreen = false;
     boolean wasPending = tgx101BackPending;
     tgx101BackPending = false;
+    tgx101StopFollowing();
     org.thunderdog.challegram.Tgx101Diag.mark("system back: cancelled at " + translationFactor + (wasPending ? " (no preview — the finger didn't go sideways)" : ""));
     if (isAnimating) {
       closePreview(0f);
@@ -2042,6 +2081,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       org.thunderdog.challegram.Tgx101ScrollWatch.gestureStart("system back");
       org.thunderdog.challegram.Tgx101FrameTrace.start(UI.getContext(context), "system-back");
     }
+    tgx101StopFollowing();
     if (isAnimating) {
       float velocity = tgx101BackVelocity();
       tgx101BackSamples = 0;
