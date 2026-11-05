@@ -326,7 +326,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     int newSeconds = position > 0 ? U.calculateRemainingSeconds(position) : 0;
     boolean secondsChanged = newSeconds != playSeconds;
     playSeconds = newSeconds;
-    if (isPlaying) {
+    if (isPlaying && !isSeeking) { // the finger's place is shown while it moves
       if (secondsChanged) {
         setSubtitle(buildSubtitle());
       }
@@ -653,7 +653,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
           int waveformLeft = startX + tgx101PlaySize() + getPreviewOffset();
           int cy = startY + radius;
           if (y >= cy - radius && y <= cy + radius && x >= waveformLeft && x <= waveformLeft + waveform.getWidth()) {
-            seekStartX = startX;
+            seekStartX = x;
             seekCaught = view.getParent();
             if (seekCaught != null) {
               seekCaught.requestDisallowInterceptTouchEvent(true);
@@ -688,6 +688,8 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
             float seek = MathUtils.clamp((x - waveformLeft) / (float) waveformWidth);
             boolean needInvalidate = desiredSeek == -1 || (int) ((float) waveformWidth * seek) != (int) ((float) waveformWidth * desiredSeek);
             desiredSeek = seek;
+            // (user 2026-11-05) the seconds follow the finger
+            setSubtitle(Strings.buildDuration(U.calculateRemainingSeconds((long) ((double) playDuration * seek))));
             if (needInvalidate) {
               context.invalidate();
             }
@@ -699,11 +701,22 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       case MotionEvent.ACTION_UP: {
         if (!(loadCaught || seekCaught != null))
           return false;
+        if (seekCaught != null && !isSeeking && waveform != null && isPlaying && playDuration > 0) {
+          // (user 2026-11-05 «нажатие на волну снимает с паузы»): a tap on the wave goes to that place, playing or on pause
+          int waveformLeft = startX + tgx101PlaySize() + getPreviewOffset();
+          desiredSeek = MathUtils.clamp((x - waveformLeft) / (float) waveform.getWidth());
+          isSeeking = true;
+        }
         if (isSeeking && desiredSeek != -1 && isPlaying && playDuration > 0) {
           seekDesireTime = SystemClock.uptimeMillis();
-          TdlibManager.instance().audio().seekTo((long) ((double) playDuration * desiredSeek), playDuration);
+          final long position = (long) ((double) playDuration * desiredSeek);
+          TdlibManager.instance().audio().seekTo(position, playDuration);
+          // on pause the player tells nothing until it plays
+          playPosition = position;
+          playSeconds = U.calculateRemainingSeconds(position);
         }
         dropSeek();
+        if (waveform != null) setSubtitle(buildSubtitle());
         if (loadCaught && progress.performClick(view)) {
           context.performClickSoundFeedback();
         }
