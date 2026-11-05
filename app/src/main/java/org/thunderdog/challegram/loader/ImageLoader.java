@@ -405,7 +405,9 @@ public class ImageLoader {
           }
 
           record.getActor().cancel();
-          for (WatcherReference reference : record.getWatchers()) {
+          // (crash 2026-11-05 21:41, a user's T 0.2.774 «Index 6 out of bounds for length 5»): a watcher told the image is gone
+          // leaves the list right away; a copy is walked
+          for (WatcherReference reference : new ArrayList<>(record.getWatchers())) {
             reference.imageLoaded(record.getFile(), false, null);
           }
         }
