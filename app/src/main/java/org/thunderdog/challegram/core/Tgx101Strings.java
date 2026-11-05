@@ -1740,6 +1740,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PlayerUnsaved, "Убрано из Хранилища");
     RU.put(R.string.Tgx101PlayerSearch, "Поиск музыки");
     RU.put(R.string.Tgx101PlayerSearchAll, "Во всех чатах");
+    RU.put(R.string.Tgx101Lyrics, "Текст песни");
+    RU.put(R.string.Tgx101LyricsLoading, "Смотрю в файле…");
+    RU.put(R.string.Tgx101LyricsNone, "В файле нет текста песни");
+    RU.put(R.string.Tgx101LyricsNotLoaded, "Файл ещё не загрузился");
     RU.put(R.string.Tgx101PlayerSearchMore, "Показать ещё");
     RU.put(R.string.Tgx101PlayerNothing, "Ничего не найдено");
     RU.put(R.string.Tgx101PlayerInfo, "Сведения о файле");

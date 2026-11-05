@@ -386,12 +386,23 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     tgx101SpeedPill.setOnClickListener(v -> tgx101ShowSpeedSheet());
     addThemeInvalidateListener(tgx101SpeedPill);
     frameLayout.addView(tgx101SpeedPill);
+    tgx101LyricsPill = new Tgx101Pill(context);
+    tgx101LyricsPill.setTint(tgx101Tint);
+    tgx101LyricsPill.setController(this);
+    tgx101LyricsPill.setIcon(R.drawable.baseline_format_text_24);
+    FrameLayoutFix.LayoutParams lyricsParams = FrameLayoutFix.newParams(Screen.dp(48f), Screen.dp(40f));
+    lyricsParams.leftMargin = Screen.dp(16f + 64f + 8f);
+    tgx101LyricsPill.setLayoutParams(lyricsParams);
+    tgx101LyricsPill.setContentDescription(Lang.getString(R.string.Tgx101Lyrics));
+    tgx101LyricsPill.setOnClickListener(v -> tgx101ShowLyrics());
+    addThemeInvalidateListener(tgx101LyricsPill);
+    frameLayout.addView(tgx101LyricsPill);
     tgx101NextPill = new Tgx101Pill(context);
     tgx101NextPill.setTint(tgx101Tint);
     tgx101NextPill.setController(this);
     tgx101NextPill.setIcon(R.drawable.baseline_queue_music_24);
     FrameLayoutFix.LayoutParams nextParams = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(40f));
-    nextParams.leftMargin = Screen.dp(16f + 64f + 8f);
+    nextParams.leftMargin = Screen.dp(16f + 64f + 8f + 48f + 8f);
     nextParams.rightMargin = Screen.dp(16f);
     tgx101NextPill.setLayoutParams(nextParams);
     tgx101NextPill.setOnClickListener(v -> {
@@ -767,6 +778,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     if (coverView != null) coverView.invalidate();
     if (tgx101SpeedPill != null) tgx101SpeedPill.invalidate();
     if (tgx101NextPill != null) tgx101NextPill.invalidate();
+    if (tgx101LyricsPill != null) tgx101LyricsPill.invalidate();
   }
 
   private void tgx101UpdateTint (InlineResultCommon item, boolean animated) {
@@ -827,6 +839,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     ensureScroll(hadItem);
     tgx101UpdateNextPill();
     tgx101UpdateHeart();
+    if (tgx101LyricsSheet != null && item != null) tgx101LyricsSheet.setItem(item);
   }
 
   // ♥: to the Storage, held to a folder of it (user 2026-11-04, player mockup)
@@ -1240,7 +1253,14 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   // The row under the buttons (user 2026-11-04, player mockup)
 
-  private Tgx101Pill tgx101SpeedPill, tgx101NextPill;
+  private Tgx101Pill tgx101SpeedPill, tgx101NextPill, tgx101LyricsPill;
+  private Tgx101LyricsSheet tgx101LyricsSheet;
+
+  private void tgx101ShowLyrics () {
+    if (currentItem != null && tgx101LyricsSheet == null) {
+      tgx101LyricsSheet = new Tgx101LyricsSheet(this, currentItem, () -> tgx101LyricsSheet = null);
+    }
+  }
 
   private final TGPlayerController.TrackChangeListener tgx101SpeedListener = new TGPlayerController.TrackChangeListener() {
     @Override
@@ -1420,7 +1440,8 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       if (iconRes != 0) {
         android.graphics.drawable.Drawable icon = Drawables.get(getResources(), iconRes);
         if (icon != null) {
-          Drawables.drawCentered(c, icon, left + Screen.dp(9f), getHeight() / 2f, Paints.getIconGrayPorterDuffPaint());
+          // with no words: in the middle of the pill
+          Drawables.drawCentered(c, icon, text.length() == 0 ? getWidth() / 2f : left + Screen.dp(9f), getHeight() / 2f, Paints.getIconGrayPorterDuffPaint());
         }
         left += Screen.dp(26f);
       }
@@ -1453,6 +1474,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
   public void onTrackPlayProgress (Tdlib tdlib, long chatId, long messageId, int fileId, float progress, long playPosition, long playDuration, boolean isBuffering) {
     if (currentItem != null && TGPlayerController.compareTracks(currentItem.getMessage(), chatId, messageId, fileId)) {
       coverView.setDurations(playPosition, playDuration);
+      if (tgx101LyricsSheet != null) tgx101LyricsSheet.onProgress(playPosition);
     }
   }
 
@@ -3114,6 +3136,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       float rowY = overlayHeight - Screen.dp(TGX101_ROW_DP) / 2f - controller.tgx101SpeedPill.getMeasuredHeight() / 2f - Screen.dp(4f);
       controller.tgx101SpeedPill.setTranslationY(rowY);
       controller.tgx101NextPill.setTranslationY(rowY);
+      controller.tgx101LyricsPill.setTranslationY(rowY);
       // beside the title of the big cover; the collapsed header has its own ⋮ there
       View heart = controller.tgx101Heart;
       heart.setTranslationX(startX + workingDistance - heart.getMeasuredWidth());

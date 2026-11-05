@@ -7472,6 +7472,10 @@
   <string name="Tgx101PlayerUnsaved">Removed from Storage</string>
   <string name="Tgx101PlayerSearch">Search music</string>
   <string name="Tgx101PlayerSearchAll">In all chats</string>
+  <string name="Tgx101Lyrics">Lyrics</string>
+  <string name="Tgx101LyricsLoading">Looking in the file…</string>
+  <string name="Tgx101LyricsNone">The file has no lyrics</string>
+  <string name="Tgx101LyricsNotLoaded">The file hasn\'t finished loading yet</string>
   <string name="Tgx101PlayerSearchMore">Show more</string>
   <string name="Tgx101PlayerNothing">Nothing found</string>
   <string name="Tgx101PlayerInfo">File details</string>
