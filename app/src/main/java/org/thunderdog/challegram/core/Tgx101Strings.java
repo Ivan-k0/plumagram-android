@@ -1753,6 +1753,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedQuickReactions, "Быстрые реакции");
     RU.put(R.string.Tgx101SavedQuickReactionsCount, "Закреплено %1$d из %2$d");
     RU.put(R.string.Tgx101SavedQuickReactionsHint, "Нажмите, чтобы закрепить или убрать. Тяните вдоль верхнего ряда, чтобы поменять порядок.");
+    RU.put(R.string.Tgx101RoundTranscribing, "Распознаю текст…");
     RU.put(R.string.Tgx101Torch, "Фонарик");
     RU.put(R.string.Tgx101TorchOn, "Включить фонарик");
     RU.put(R.string.Tgx101TorchOff, "Выключить фонарик");

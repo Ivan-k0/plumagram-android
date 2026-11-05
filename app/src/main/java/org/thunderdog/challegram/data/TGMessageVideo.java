@@ -517,7 +517,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     Tgx101Transcription.Result result = Tgx101Transcription.get(tdlib, msg);
     String text;
     if (result == null || result.state == Tgx101Transcription.STATE_NONE || (result.state == Tgx101Transcription.STATE_PENDING && android.text.TextUtils.isEmpty(result.text))) {
-      text = "…";
+      text = org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101RoundTranscribing); // (user 2026-11-05) not three dots
     } else {
       text = result.text != null ? result.text : "";
     }
