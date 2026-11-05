@@ -161,6 +161,8 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
   }
 
   private @Nullable MediaItem tgx101QualityItem;
+  private boolean tgx101PlayingStream;
+  private @Nullable MediaItem tgx101StreamFailed;
 
   /** TGx101 (user 2026-10-27 «качество видео — значок HD вверху»): the stream's quality — «Auto» (the player's own
    *  choice by the network) or the one picked in the viewer (Settings, kept for the next videos when they have it) */
@@ -361,12 +363,14 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
         // another quality — other files, loaded again. A file already partly here goes on from what is cached
         boolean partlyHere = targetFile != null && (targetFile.local.downloadedPrefixSize > 0 || targetFile.local.downloadedSize > 0);
         if (hlsVideo != null) org.thunderdog.challegram.Tgx101Diag.mark("video: file " + (targetFile != null ? targetFile.id + " " + (targetFile.local.downloadedSize >> 10) + " of " + (Math.max(targetFile.size, targetFile.expectedSize) >> 10) + " KB here" : "?") + " → " + (hlsVideo == null || TD.isFileLoaded(targetFile) || (targetFile != null && targetFile.local.isDownloadingActive) || partlyHere ? "the file" : "stream"));
-        if (hlsVideo == null || TD.isFileLoaded(targetFile) || targetFile.local.isDownloadingActive || partlyHere || !hlsVideo.hasSupportedCodecs() || Settings.instance().getNewSetting(Settings.SETTING_FLAG_FORCE_DISABLE_HLS_VIDEO)) {
+        tgx101PlayingStream = false;
+        if (hlsVideo == null || (targetFile != null && tgx101StreamFailed == mediaItem) || TD.isFileLoaded(targetFile) || targetFile.local.isDownloadingActive || partlyHere || !hlsVideo.hasSupportedCodecs() || Settings.instance().getNewSetting(Settings.SETTING_FLAG_FORCE_DISABLE_HLS_VIDEO)) {
           long durationMs = mediaItem.getVideoDuration(false, TimeUnit.MILLISECONDS);
           source = U.newMediaSource(mediaItem.tdlib().id(), targetFile, TdlibFilesManager.PRIORITY_STREAMING_VIDEO, TdlibDataSource.Flag.OPTIMIZE_CHUNKS, durationMs);
         } else {
           source = U.newMediaSource(mediaItem.tdlib().id(), hlsVideo);
           tgx101QualityItem = mediaItem;
+          tgx101PlayingStream = true;
         }
         forcePlay = mediaItem.getType() == MediaItem.TYPE_GIF;
         break;
@@ -666,6 +670,17 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
   @Override
   public void onPlayerError (@NonNull PlaybackException error) {
     org.thunderdog.challegram.Tgx101Diag.mark("player: error " + error.getErrorCodeName() + " (" + error.errorCode + ")" + (error.getCause() != null ? " cause " + error.getCause().getClass().getSimpleName() : "") + ", extensions " + preferExtensions);
+    if (tgx101PlayingStream && !U.isRenderError(error) && currentItem != null && tgx101StreamFailed != currentItem) {
+      // (group 2026-11-05 15:45, a user's «Source error»): a stream of parts that can't be read is no reason to give up on the video, its plain file plays
+      org.thunderdog.challegram.Tgx101Diag.mark("player: the stream failed, the plain file instead");
+      tgx101StreamFailed = currentItem;
+      boolean isPlaying = this.isPlaying;
+      MediaItem currentItem = this.currentItem;
+      setVideo(null);
+      setVideo(currentItem);
+      setPlaying(isPlaying);
+      return;
+    }
     if (U.isRenderError(error) && preferExtensions == Config.PREFER_RENDER_EXTENSIONS) {
       Log.w(Log.TAG_VIDEO, "Unable to play video, but trying to retry, preferExtensions:%b", error, preferExtensions);
       preferExtensions = !preferExtensions;

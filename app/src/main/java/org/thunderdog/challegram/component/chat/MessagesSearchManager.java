@@ -147,6 +147,8 @@ public class MessagesSearchManager {
 
     Client.ResultHandler handler = object -> {
       final boolean isMore = (fromMessageId != 0) && direction != SEARCH_DIRECTION_AROUND;
+      // (group 2026-11-05 «слова вводит, а список пустой»): what came back, without the words themselves
+      org.thunderdog.challegram.Tgx101Diag.mark("chat search: chat " + chatId + ", " + (input != null ? input.length() : 0) + " chars, topic " + (topicId != null) + ", sender " + (fromSender != null) + ", filter " + (filter != null) + " → " + (object.getConstructor() == TdApi.FoundChatMessages.CONSTRUCTOR ? ((TdApi.FoundChatMessages) object).messages.length + " of " + ((TdApi.FoundChatMessages) object).totalCount : object.getConstructor() == TdApi.Error.CONSTRUCTOR ? "error " + ((TdApi.Error) object).code + " " + ((TdApi.Error) object).message : object.getClass().getSimpleName()));
       switch (object.getConstructor()) {
         case TdApi.Messages.CONSTRUCTOR: {
           TdApi.Messages messages = (TdApi.Messages) object;
