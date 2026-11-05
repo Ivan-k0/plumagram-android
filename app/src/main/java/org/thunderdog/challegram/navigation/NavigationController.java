@@ -1696,7 +1696,15 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       }
       org.thunderdog.challegram.Tgx101Diag.mark("navigation: back slides from " + Math.round(startFactor * 100) + " % over " + duration + " ms, mode " + translationMode + ", velocity " + Math.round(velocity));
       // by frames: the first frame of the back (the chat list redrawn under it) took ~17 ms and the chat jumped 16% at once
-      tgx101FrameStepped(animator, duration, interpolator, value -> setFactor(startFactor + diffFactor * value));
+      if (tgx101LeadStep) {
+        // the release frame itself already moves: no frame standing still between the finger and the slide
+        tgx101LeadStep = false;
+        float hz = Screen.refreshRate();
+        float step = Math.min(1f, (1000f / (hz > 1f ? hz : 60f)) / Math.max(1, duration));
+        setFactor(startFactor + diffFactor * interpolator.getInterpolation(step));
+      }
+      final float from = getFactor(), rest = 1f - from;
+      tgx101FrameStepped(animator, duration, interpolator, value -> setFactor(from + rest * value));
       animator.start();
     }
   }
@@ -1886,6 +1894,7 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
   @Override
   public boolean onSystemBackStarted (@NonNull BackEventCompat backEvent) {
     tgx101BackStartX = Float.NaN;
+    tgx101BackSamples = 0;
     tgx101BackPending = false;
     org.thunderdog.challegram.Tgx101Diag.mark("system back: started, swipe nav " + swipeNavigationEnabled() + ", animating " + isAnimating + ", top " + (getCurrentStackItem() != null ? getCurrentStackItem().getClass().getSimpleName() : "?"));
     tgx101BackHidesKeyboard = false;
@@ -1939,7 +1948,40 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
     }
     if (isAnimating) {
       setFactor(tgx101BackPreview(backEvent));
+      tgx101NoteBackSample(backEvent.getTouchX());
     }
+  }
+
+  // (user 2026-11-05 «анимация при жесте назад дёрганная, при свайпе норм», video 22:45:06): the system gesture's release slid on
+  // from a standstill (velocity 0, the longest 200 ms) — the screen moved with the finger, stopped, then went again. The finger's own
+  // speed over its last ~60 ms now carries into the slide, as the in-app swipe does
+  private final float[] tgx101BackX = new float[8];
+  private final long[] tgx101BackT = new long[8];
+  private int tgx101BackSamples;
+  private boolean tgx101LeadStep;
+
+  private void tgx101NoteBackSample (float x) {
+    if (Float.isNaN(x)) return;
+    int i = tgx101BackSamples++ % tgx101BackX.length;
+    tgx101BackX[i] = x;
+    tgx101BackT[i] = android.os.SystemClock.uptimeMillis();
+  }
+
+  /** px per second towards closing, 0 when unknown */
+  private float tgx101BackVelocity () {
+    int n = Math.min(tgx101BackSamples, tgx101BackX.length);
+    if (n < 2) return 0f;
+    int last = (tgx101BackSamples - 1) % tgx101BackX.length;
+    long now = android.os.SystemClock.uptimeMillis();
+    int first = last;
+    for (int k = 1; k < n; k++) {
+      int j = (last - k + tgx101BackX.length) % tgx101BackX.length;
+      if (now - tgx101BackT[j] > 80) break;
+      first = j;
+    }
+    long dt = tgx101BackT[last] - tgx101BackT[first];
+    if (first == last || dt <= 0) return 0f;
+    return Math.abs(tgx101BackX[last] - tgx101BackX[first]) * 1000f / dt;
   }
 
   /** TGx101: the system gesture's progress jumps to 1 within ~80 ms on Vivo — the screen was already gone when the finger
@@ -2001,7 +2043,11 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       org.thunderdog.challegram.Tgx101FrameTrace.start(UI.getContext(context), "system-back");
     }
     if (isAnimating) {
-      applyPreview(0f);
+      float velocity = tgx101BackVelocity();
+      tgx101BackSamples = 0;
+      org.thunderdog.challegram.Tgx101Diag.mark("system back: the finger's speed " + Math.round(velocity) + " px/s carries on");
+      tgx101LeadStep = true;
+      applyPreview(velocity);
       org.thunderdog.challegram.Tgx101ScrollWatch.gestureEnd(350); // the slide off included
       return true;
     }
