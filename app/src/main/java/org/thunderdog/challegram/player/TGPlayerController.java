@@ -1308,6 +1308,12 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
     }));
   }
 
+  public @Nullable Tdlib tgx101CurrentTdlib () {
+    synchronized (this) {
+      return playState != STATE_NONE ? tdlib : null;
+    }
+  }
+
   /** The place where the returning music goes on, once */
   long tgx101TakeRestorePosition () {
     long position = tgx101RestorePosition;

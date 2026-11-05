@@ -50,6 +50,12 @@ public class AudioMediaReceiver extends BroadcastReceiver {
       case Intents.ACTION_PLAYBACK_SKIP_PREVIOUS:
         TdlibManager.instance().player().skip(false);
         break;
+      case Intents.ACTION_PLAYBACK_LIKE:
+        org.thunderdog.challegram.service.AudioService.tgx101Like();
+        break;
+      case Intents.ACTION_PLAYBACK_DISLIKE:
+        org.thunderdog.challegram.service.AudioService.tgx101Dislike();
+        break;
     }
   }
 }
