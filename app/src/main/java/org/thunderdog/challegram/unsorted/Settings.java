@@ -4519,6 +4519,15 @@ public class Settings {
     pmc.putBoolean("tgx101_player_shows_total", value);
   }
 
+  /** TGx101 music player: the wave asks outside services what is similar */
+  public boolean tgx101WaveHints () {
+    return pmc.getBoolean("tgx101_wave_hints", false);
+  }
+
+  public void setTgx101WaveHints (boolean value) {
+    pmc.putBoolean("tgx101_wave_hints", value);
+  }
+
   /** TGx101 music player: {@link org.thunderdog.challegram.player.Tgx101MusicTaste} */
   public @androidx.annotation.Nullable String tgx101MusicTaste (int accountId) {
     return pmc.getString("tgx101_music_taste_" + accountId, null);

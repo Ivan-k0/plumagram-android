@@ -36,7 +36,7 @@ import tgx.td.Td;
  * topped up while it runs out, and the session ends as soon as something else starts to play.
  */
 public final class Tgx101Wave implements TGPlayerController.TrackChangeListener {
-  private static final int PAGE = 30, REFILL_BELOW = 12, MIN_TO_START = 2, ARTISTS = 6;
+  private static final int PAGE = 30, REFILL_BELOW = 12, MIN_TO_START = 2, ARTISTS = 6, FIRST_SEARCHES = 16;
   private static final long REPEAT_WINDOW_MS = 2 * 60 * 60 * 1000L;
 
   private static @Nullable Tgx101Wave session;
@@ -68,12 +68,32 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
   }
 
   private void begin (RunnableBool after) {
+    if (!org.thunderdog.challegram.unsorted.Settings.instance().tgx101WaveHints()) {
+      beginWith(new ArrayList<>(), after);
+      return;
+    }
+    // Switched on with a warning. Whatever goes wrong there, the wave goes on from the chats alone
+    String artist = seedArtist;
+    if (artist == null) {
+      List<String> favorites = taste.favoriteArtists(1);
+      if (!favorites.isEmpty()) artist = favorites.get(0);
+    }
+    TdApi.Message current = TdlibManager.instance().player().getCurrentTrack();
+    String title = current != null && current.content instanceof TdApi.MessageAudio && artist != null && artist.equalsIgnoreCase(Tgx101MusicTaste.artistOf(current)) ? ((TdApi.MessageAudio) current.content).audio.title : null;
+    Tgx101WaveHints.find(artist, title, hints -> UI.post(() -> beginWith(hints, after)));
+  }
+
+  private void beginWith (List<String> hints, RunnableBool after) {
     if (seedArtist != null) queries.add(seedArtist);
     for (String artist : taste.favoriteArtists(ARTISTS)) {
       if (!artist.equalsIgnoreCase(seedArtist)) queries.add(artist);
     }
     queries.add(""); // music of all the chats: what is new to the account
-    load(queries.size(), found -> {
+    Collections.shuffle(hints);
+    for (String hint : hints) {
+      if (!taste.isArtistHidden(hint) && !queries.contains(hint)) queries.add(hint);
+    }
+    load(Math.min(queries.size(), FIRST_SEARCHES), found -> {
       if (found.size() < MIN_TO_START) {
         after.runWithBool(false);
         return;

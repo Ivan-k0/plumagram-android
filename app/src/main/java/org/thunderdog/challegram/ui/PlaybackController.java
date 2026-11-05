@@ -1138,6 +1138,29 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     }
   }
 
+  /** (user 2026-11-05) «Wave», and the similar tracks from outside: off until the warning is read and it's switched on */
+  private void tgx101ShowWaveSheet () {
+    final Tgx101Sheet.Handle[] handle = new Tgx101Sheet.Handle[1];
+    handle[0] = Tgx101Sheet.show(this, null, body -> {
+      body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101Wave)));
+      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_music_note_24, 0, Lang.getString(R.string.Tgx101WaveStart), null, false, v -> {
+        handle[0].dismiss();
+        tgx101StartWave();
+      }));
+      final org.thunderdog.challegram.unsorted.Settings settings = org.thunderdog.challegram.unsorted.Settings.instance();
+      final boolean on = settings.tgx101WaveHints();
+      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_search_24, 0, Lang.getString(on ? R.string.Tgx101WaveHintsOff : R.string.Tgx101WaveHintsOn), null, on, v -> {
+        settings.setTgx101WaveHints(!on);
+        handle[0].dismiss();
+        tgx101ShowWaveSheet();
+      }));
+      android.widget.TextView warning = Tgx101SavedHomeController.text(context, 13f, Theme.textDecentColor(), false);
+      warning.setText(Lang.getString(R.string.Tgx101WaveHintsWarning));
+      warning.setPadding(Screen.dp(20f), Screen.dp(2f), Screen.dp(20f), Screen.dp(6f));
+      body.addView(warning);
+    });
+  }
+
   private void tgx101StartWave () {
     String artist = currentItem != null ? org.thunderdog.challegram.player.Tgx101MusicTaste.artistOf(currentItem.getMessage()) : null;
     org.thunderdog.challegram.player.Tgx101Wave.start(tdlib, artist, started -> {
@@ -3314,7 +3337,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
   @Override
   public void onMoreItemPressed (int id) {
     if (id == R.id.btn_tgx101Wave) {
-      tgx101StartWave();
+      tgx101ShowWaveSheet();
     } else if (id == R.id.btn_tgx101QueueSearch) {
       tgx101ShowQueueSearch();
     } else if (id == R.id.btn_tgx101TrackInfo) {

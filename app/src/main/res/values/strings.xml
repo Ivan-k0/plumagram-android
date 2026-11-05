@@ -7475,6 +7475,10 @@
   <string name="Tgx101Lyrics">Lyrics</string>
   <string name="Tgx101Dislike">Don\'t like it</string>
   <string name="Tgx101Wave">Wave</string>
+  <string name="Tgx101WaveStart">Start the wave</string>
+  <string name="Tgx101WaveHintsOn">Also ask what is similar</string>
+  <string name="Tgx101WaveHintsOff">Don\'t ask what is similar</string>
+  <string name="Tgx101WaveHintsWarning">Similar artists and tracks are asked of Deezer and YouTube Music: they get the artist and track names and see your IP address; a proxy set up in the app isn\'t used for this. The music itself only comes from your Telegram chats and channels. The YouTube Music part is unofficial and may stop working.</string>
   <string name="Tgx101WaveEmpty">Not enough music in your chats for a wave</string>
   <string name="Tgx101DislikeDone">The wave won\'t offer this track</string>
   <string name="Tgx101DislikeTrack">Don\'t offer this track</string>

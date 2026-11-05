@@ -1743,6 +1743,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101Lyrics, "Текст песни");
     RU.put(R.string.Tgx101Dislike, "Не нравится");
     RU.put(R.string.Tgx101Wave, "Волна");
+    RU.put(R.string.Tgx101WaveStart, "Запустить волну");
+    RU.put(R.string.Tgx101WaveHintsOn, "Спрашивать, что похоже");
+    RU.put(R.string.Tgx101WaveHintsOff, "Не спрашивать, что похоже");
+    RU.put(R.string.Tgx101WaveHintsWarning, "Похожих исполнителей и треки волна спросит у Deezer и YouTube Music: они получат название трека и исполнителя и увидят ваш IP-адрес, прокси из приложения здесь не используется. Сама музыка будет только из ваших чатов и каналов Telegram. Часть с YouTube Music неофициальная и может перестать работать.");
     RU.put(R.string.Tgx101WaveEmpty, "В ваших чатах мало музыки для волны");
     RU.put(R.string.Tgx101DislikeDone, "Волна больше не предложит этот трек");
     RU.put(R.string.Tgx101DislikeTrack, "Не предлагать трек");
