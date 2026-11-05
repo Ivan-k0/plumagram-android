@@ -692,6 +692,8 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     menuWrap.setPivotX(cx);
     menuWrap.setPivotY(cy);
 
+    tgx101StrongDim = true; // (group 2026-11-05 17:52 «окна сливаются, нужно затемнение»): a ⋮ menu stands apart from the screen as the sheets do
+
     addView(boundView = menuWrap);
     ((BaseActivity) getContext()).showPopupWindow(this);
   }
