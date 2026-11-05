@@ -740,6 +740,13 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
   // (user 2026-11-05 «когда переходишь в плейлист или «следующие» список раскрывается, но вернуться в прежнее состояние нельзя; свайп
   // назад от края должен возвращать сначала назад, свайп сверху вниз, где плеер, тоже»): the opened list is a step of this screen
 
+  /** Over the big cover itself, and the list isn't opened */
+  private boolean tgx101CoverSwipeAllowed (float y) {
+    if (recyclerView == null || !mayExpandOverlay() || scrollFactor != 0f || coverView.getActualCollapseFactor() > 0f) return false;
+    int coverBottom = getCurrentOverlayHeight() - getMinimumOverlayHeight();
+    return y > HeaderView.getTopOffset() + HeaderView.getSize(false) && y < coverBottom;
+  }
+
   private boolean tgx101ListOpened () {
     return scrollFactor != 0f && recyclerView != null && mayExpandOverlay();
   }
@@ -2399,6 +2406,63 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       }
     }
 
+    private float tgx101CoverDx;
+    private android.animation.ValueAnimator tgx101CoverAnimator2;
+
+    void tgx101DragCover (float dx) {
+      if (tgx101CoverAnimator2 != null) tgx101CoverAnimator2.cancel();
+      boolean next = dx < 0;
+      // no track that way: it gives a little
+      tgx101SetCoverDx(org.thunderdog.challegram.telegram.TdlibManager.instance().audio().tgx101CanSkip(next) ? dx : dx * .3f);
+    }
+
+    private void tgx101SetCoverDx (float dx) {
+      if (tgx101CoverDx != dx) {
+        tgx101CoverDx = dx;
+        invalidate();
+      }
+    }
+
+    private void tgx101AnimateCover (float to, long duration, @Nullable Runnable after) {
+      if (tgx101CoverAnimator2 != null) tgx101CoverAnimator2.cancel();
+      android.animation.ValueAnimator animator = android.animation.ValueAnimator.ofFloat(tgx101CoverDx, to);
+      animator.setDuration(duration);
+      animator.setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f));
+      animator.addUpdateListener(a -> tgx101SetCoverDx((float) a.getAnimatedValue()));
+      if (after != null) {
+        animator.addListener(new android.animation.AnimatorListenerAdapter() {
+          private boolean cancelled;
+
+          @Override
+          public void onAnimationCancel (android.animation.Animator animation) {
+            cancelled = true;
+          }
+
+          @Override
+          public void onAnimationEnd (android.animation.Animator animation) {
+            if (!cancelled) after.run();
+          }
+        });
+      }
+      tgx101CoverAnimator2 = animator;
+      animator.start();
+    }
+
+    void tgx101ReleaseCover (float dx, float velocity, boolean apply) {
+      final boolean next = dx < 0;
+      final int width = getMeasuredWidth();
+      final boolean far = Math.abs(dx) > width * .25f || (Math.abs(velocity) > Screen.dp(800f) && Math.signum(velocity) == Math.signum(dx));
+      if (!apply || !far || width == 0 || !org.thunderdog.challegram.telegram.TdlibManager.instance().audio().tgx101CanSkip(next)) {
+        tgx101AnimateCover(0f, 200L, null);
+        return;
+      }
+      tgx101AnimateCover(Math.signum(dx) * width, 140L, () -> {
+        controller.tdlib().context().player().skip(next);
+        tgx101SetCoverDx(-Math.signum(dx) * width * .35f); // the next one comes in from the other side
+        tgx101AnimateCover(0f, 220L, null);
+      });
+    }
+
     private void setSeekDisplayProgress (float progress) {
       if (this.seekDisplayProgress != progress) {
         this.seekDisplayProgress = progress;
@@ -3106,6 +3170,11 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       final float titleX = textStartX + ((textEndCenterX - getTitleWidth() / 2) - textStartX) * coverFactor;
       final float subtitleX = textStartX + ((textEndCenterX - getSubtitleWidth() / 2) - textStartX) * coverFactor;
 
+      final boolean coverMoved = tgx101CoverDx != 0f;
+      if (coverMoved) {
+        c.save();
+        c.translate(tgx101CoverDx, 0f);
+      }
       final float textSwap = tgx101TextSwap;
       final int swapDistance = Screen.dp(10f);
       if (textSwap < 1f) {
@@ -3125,6 +3194,9 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       }
       if (trimmedSubtitle != null) {
         trimmedSubtitle.draw(c, (int) subtitleX, newY + Screen.dp(24f), null, textSwap);
+      }
+      if (coverMoved) {
+        c.restore();
       }
 
       // Seekbar
@@ -3154,6 +3226,10 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
       // Cover image
 
+      if (coverMoved) {
+        c.save();
+        c.translate(tgx101CoverDx, 0f);
+      }
       int x = (int) ((float) coverLeft * (1f - coverFactor));
       int y = (int) ((float) coverY * (1f - coverFactor));
       int width = coverWidth + (int) ((float) (viewWidth - coverWidth) * coverFactor);
@@ -3196,6 +3272,9 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       source.setBounds(x, y, x + width, y + height);
       source.draw(c);
       tgx101DrawOldCover(c, x, y, width, height, radius);
+      if (coverMoved) {
+        c.restore();
+      }
       // (user 2026-11-05, screenshots «не видны кнопки вверху и строка состояния, когда обложка светлая»): white on any cover
       if (coverFactor > 0f) {
         final int scrimHeight = Math.min(height, HeaderView.getTopOffset() + HeaderView.getSize(false) + Screen.dp(28f));
@@ -3336,8 +3415,69 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       });
     }
 
+    // (user 2026-11-05 «свайпы влево и вправо по обложке пускай меняют треки»): to a side over the big cover — the next track (left) or
+    // the previous (right), the cover follows the finger; up and down stay the list's and the screen's
+    private static final int COVER_NONE = 0, COVER_WATCHING = 1, COVER_DRAGGING = 2;
+    private int coverMode;
+    private float coverX, coverY;
+    private android.view.VelocityTracker coverVelocity;
+
+    /** True while the cover has the finger */
+    private boolean trackCover (MotionEvent e) {
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN: {
+          coverMode = controller.tgx101CoverSwipeAllowed(e.getY()) ? COVER_WATCHING : COVER_NONE;
+          coverX = e.getX();
+          coverY = e.getY();
+          if (coverVelocity == null) coverVelocity = android.view.VelocityTracker.obtain();
+          coverVelocity.clear();
+          coverVelocity.addMovement(e);
+          return false;
+        }
+        case MotionEvent.ACTION_MOVE: {
+          if (coverMode == COVER_NONE) return false;
+          coverVelocity.addMovement(e);
+          float dx = e.getX() - coverX, dy = e.getY() - coverY;
+          if (coverMode == COVER_WATCHING && Math.hypot(dx, dy) > Screen.getTouchSlop()) {
+            if (Math.abs(dx) > Math.abs(dy) * 1.3f) {
+              coverMode = COVER_DRAGGING;
+              coverX = e.getX(); // no jump: from here
+              if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+            } else {
+              coverMode = COVER_NONE;
+            }
+          }
+          if (coverMode == COVER_DRAGGING) {
+            controller.coverView.tgx101DragCover(e.getX() - coverX);
+            return true;
+          }
+          return false;
+        }
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL: {
+          if (coverMode == COVER_DRAGGING) {
+            coverMode = COVER_NONE;
+            float velocity = 0f;
+            if (e.getActionMasked() == MotionEvent.ACTION_UP) {
+              coverVelocity.addMovement(e);
+              coverVelocity.computeCurrentVelocity(1000);
+              velocity = coverVelocity.getXVelocity();
+            }
+            controller.coverView.tgx101ReleaseCover(e.getX() - coverX, velocity, e.getActionMasked() == MotionEvent.ACTION_UP);
+            return true;
+          }
+          coverMode = COVER_NONE;
+          return false;
+        }
+      }
+      return coverMode == COVER_DRAGGING;
+    }
+
     @Override
     public boolean onInterceptTouchEvent (MotionEvent e) {
+      if (trackCover(e)) {
+        return true;
+      }
       if (e.getAction() == MotionEvent.ACTION_DOWN) {
         if (getAlpha() == 0f) {
           return true;
@@ -3351,6 +3491,18 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
     @Override
     public boolean onTouchEvent (MotionEvent e) {
+      if (coverMode == COVER_DRAGGING || (coverMode == COVER_WATCHING && e.getActionMasked() != MotionEvent.ACTION_DOWN)) {
+        boolean wasDragging = coverMode == COVER_DRAGGING;
+        if (trackCover(e)) {
+          if (!wasDragging) {
+            MotionEvent cancel = MotionEvent.obtain(e);
+            cancel.setAction(MotionEvent.ACTION_CANCEL);
+            super.onTouchEvent(cancel); // the list's own scroll lets go
+            cancel.recycle();
+          }
+          return true;
+        }
+      }
       return !(getAlpha() == 0f && e.getAction() == MotionEvent.ACTION_DOWN) && super.onTouchEvent(e);
     }
 
