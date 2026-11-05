@@ -200,10 +200,17 @@ public final class Tgx101MusicTaste {
         return;
       }
       // Listening here, on the client's thread: the answer about the sending can't come before it
-      final List<TdApi.Message> copies = new ArrayList<>(Arrays.asList(result.messages));
+      // (crash 2026-11-05 16:35, a heart on a track): a message that can't be forwarded (a protected chat) comes back as null
+      final List<TdApi.Message> copies = new ArrayList<>();
       final List<Long> waiting = new ArrayList<>();
       for (TdApi.Message copy : result.messages) {
+        if (copy == null) continue;
+        copies.add(copy);
         if (copy.sendingState != null) waiting.add(copy.id);
+      }
+      if (copies.isEmpty()) {
+        UI.post(() -> onCopyFailed(key, new TdApi.Error(400, "MESSAGE_CANT_BE_FORWARDED")));
+        return;
       }
       if (waiting.isEmpty()) {
         UI.post(() -> onCopySaved(message, key, copies, after));
