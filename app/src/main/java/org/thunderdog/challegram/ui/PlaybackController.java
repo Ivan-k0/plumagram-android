@@ -1017,11 +1017,20 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       android.widget.LinearLayout results = new android.widget.LinearLayout(context);
       results.setOrientation(android.widget.LinearLayout.VERTICAL);
       body.addView(results);
+      android.widget.LinearLayout everywhere = new android.widget.LinearLayout(context);
+      everywhere.setOrientation(android.widget.LinearLayout.VERTICAL);
+      body.addView(everywhere);
+      final Tgx101AllChatsSearch allChats = new Tgx101AllChatsSearch(everywhere, () -> {
+        org.thunderdog.challegram.tool.Keyboard.hide(e);
+        handle[0].dismiss();
+      });
       Runnable fill = () -> {
         results.removeAllViews();
         String query = e.getText().toString().trim().toLowerCase(java.util.Locale.ROOT);
+        final boolean searching = query.length() >= Tgx101AllChatsSearch.MIN_QUERY;
+        allChats.setQuery(query);
         int shown = 0;
-        for (int i = 1; i < tracks.size() - 1 && shown < 40; i++) {
+        for (int i = 1; i < tracks.size() - 1 && shown < (searching ? 8 : 40); i++) {
           Object data = tracks.get(i).getData();
           if (!(data instanceof InlineResultCommon)) continue;
           InlineResultCommon track = (InlineResultCommon) data;
@@ -1035,8 +1044,10 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
           }));
           shown++;
         }
-        if (shown == 0) {
+        if (shown == 0 && !searching) {
           results.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101PlayerNothing), null, false, null));
+        } else if (shown != 0 && searching) {
+          results.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101PlayerQueue)), 0);
         }
       };
       e.addTextChangedListener(new android.text.TextWatcher() {
@@ -1051,6 +1062,103 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       field[0].postDelayed(() -> {
         if (androidx.core.view.ViewCompat.isAttachedToWindow(field[0])) org.thunderdog.challegram.tool.Keyboard.show(field[0]);
       }, 200);
+    }
+  }
+
+  // (user 2026-11-05 «глобальный поиск музыки») in all the chats and channels of the account: Telegram has no search of music in all of
+  // its public channels. What was found becomes the queue
+
+  private final class Tgx101AllChatsSearch {
+    static final int MIN_QUERY = 2;
+    private static final int PAGE = 50;
+    private final android.widget.LinearLayout box;
+    private final Runnable close;
+    private final List<TdApi.Message> found = new java.util.ArrayList<>();
+    private final java.util.Set<String> seen = new java.util.HashSet<>();
+    private String query = "", nextOffset;
+    private int token;
+    private Runnable scheduled;
+    private View moreRow;
+
+    Tgx101AllChatsSearch (android.widget.LinearLayout box, Runnable close) {
+      this.box = box;
+      this.close = close;
+    }
+
+    void setQuery (String query) {
+      if (query.equals(this.query)) return;
+      this.query = query;
+      token++;
+      if (scheduled != null) UI.removePendingRunnable(scheduled);
+      scheduled = null;
+      box.removeAllViews();
+      found.clear();
+      seen.clear();
+      nextOffset = null;
+      moreRow = null;
+      if (query.length() >= MIN_QUERY) {
+        box.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101PlayerSearchAll)));
+        scheduled = this::load;
+        UI.post(scheduled, 400); // not for each letter
+      }
+    }
+
+    private void load () {
+      final int request = token;
+      tdlib.send(new TdApi.SearchMessages(null, query, nextOffset != null ? nextOffset : "", PAGE, new TdApi.SearchMessagesFilterAudio(), null, 0, 0), (result, error) -> UI.post(() -> {
+        if (request != token || isDestroyed()) return;
+        if (moreRow != null) {
+          box.removeView(moreRow);
+          moreRow = null;
+        }
+        if (error != null) {
+          UI.showError(error);
+          return;
+        }
+        int added = 0;
+        for (TdApi.Message message : result.messages) {
+          if (!tgx.td.Td.isAudio(message.content)) continue;
+          TdApi.Audio audio = ((TdApi.MessageAudio) message.content).audio;
+          // the same song is in many chats
+          String key = audio.audio.remote != null && !StringUtils.isEmpty(audio.audio.remote.uniqueId) ? audio.audio.remote.uniqueId : message.chatId + "_" + message.id;
+          if (!seen.add(key)) continue;
+          found.add(message);
+          box.addView(row(message, audio));
+          added++;
+        }
+        nextOffset = result.nextOffset;
+        if (found.isEmpty()) {
+          box.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101PlayerNothing), null, false, null));
+        } else if (!StringUtils.isEmpty(nextOffset) && result.messages.length > 0) {
+          moreRow = Tgx101Sheet.row(context, R.drawable.baseline_search_24, 0, Lang.getString(R.string.Tgx101PlayerSearchMore), null, false, v -> load());
+          box.addView(moreRow);
+        }
+      }));
+    }
+
+    private View row (TdApi.Message message, TdApi.Audio audio) {
+      String title = TD.getTitle(audio), artist = TD.getSubtitle(audio);
+      if (StringUtils.isEmpty(title)) title = audio.fileName;
+      return Tgx101Sheet.row(context, R.drawable.baseline_music_note_24, 0, title, artist, false, v -> {
+        close.run();
+        if (currentItem != null && TGPlayerController.compareTracks(currentItem.getMessage(), message)) return;
+        final List<TdApi.Message> queue = new java.util.ArrayList<>(found);
+        tdlib.context().player().playPauseMessage(tdlib, message, new TGPlayerController.PlayListBuilder() {
+          @Override
+          public TGPlayerController.PlayList buildPlayList (TdApi.Message fromMessage) {
+            int origin = 0;
+            for (int i = 0; i < queue.size(); i++) {
+              if (TGPlayerController.compareTracks(queue.get(i), fromMessage)) origin = i;
+            }
+            return new TGPlayerController.PlayList(queue, origin).setReachedEnds(true, true); // only what was found: it isn't one chat to go on in
+          }
+
+          @Override
+          public boolean wouldReusePlayList (TdApi.Message fromMessage, boolean isReverse, boolean hasAltered, List<TdApi.Message> trackList, long playListChatId) {
+            return false;
+          }
+        });
+      });
     }
   }
 
@@ -3190,10 +3298,8 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         strings.append(R.string.PlayListReverse);
       }
 
-      if (getTrackCount() > 3) {
-        ids.append(R.id.btn_tgx101QueueSearch);
-        strings.append(R.string.Tgx101PlayerSearch);
-      }
+      ids.append(R.id.btn_tgx101QueueSearch);
+      strings.append(R.string.Tgx101PlayerSearch);
 
       ids.append(R.id.btn_tgx101TrackInfo);
       strings.append(R.string.Tgx101PlayerInfo);

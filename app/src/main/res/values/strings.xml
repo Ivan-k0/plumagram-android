@@ -7469,7 +7469,9 @@
   <string name="Tgx101PlayerSave">Save to Storage</string>
   <string name="Tgx101PlayerMusicFolder">Music</string>
   <string name="Tgx101PlayerUnsaved">Removed from Storage</string>
-  <string name="Tgx101PlayerSearch">Search in queue</string>
+  <string name="Tgx101PlayerSearch">Search music</string>
+  <string name="Tgx101PlayerSearchAll">In all chats</string>
+  <string name="Tgx101PlayerSearchMore">Show more</string>
   <string name="Tgx101PlayerNothing">Nothing found</string>
   <string name="Tgx101PlayerInfo">File details</string>
   <string name="Tgx101PlayerInfoFormat">Format</string>
