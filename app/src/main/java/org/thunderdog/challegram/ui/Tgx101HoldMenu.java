@@ -317,6 +317,14 @@ abstract class Tgx101HoldMenu {
     }
   }
 
+  /** (user 2026-11-05 «не могу создать папку из лайка»): a sheet asked for while the menu was fading went with the menu's window */
+  protected final void dismissThen (Runnable after) {
+    afterDismiss = after;
+    dismiss();
+  }
+
+  private @Nullable Runnable afterDismiss;
+
   public final void dismiss () {
     if (dismissing) return;
     dismissing = true;
@@ -331,6 +339,9 @@ abstract class Tgx101HoldMenu {
       @Override
       public void onAnimationEnd (android.animation.Animator animation) {
         popup.hideWindow(false);
+        Runnable after = afterDismiss;
+        afterDismiss = null;
+        if (after != null) org.thunderdog.challegram.tool.UI.post(after);
       }
     });
     card.animate().cancel();
