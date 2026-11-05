@@ -66,6 +66,11 @@ abstract class Tgx101HoldMenu {
    * @param anchorTouch what the button listens to once the finger is gone
    */
   Tgx101HoldMenu (ViewController<?> c, View anchor, boolean beside, @Nullable View.OnTouchListener anchorTouch) {
+    this(c, anchor, beside, anchorTouch, false);
+  }
+
+  /** @param rightOfAnchor the button stands at the left edge: the card goes to the right of it */
+  Tgx101HoldMenu (ViewController<?> c, View anchor, boolean beside, @Nullable View.OnTouchListener anchorTouch, boolean rightOfAnchor) {
     this.c = c;
     this.anchor = anchor;
     this.anchorTouch = anchorTouch;
@@ -98,8 +103,12 @@ abstract class Tgx101HoldMenu {
     anchor.getLocationOnScreen(at);
     int navigationInset = Settings.instance().useEdgeToEdge() && c.context().getRootView().getSystemInsetsWithoutIme() != null ? c.context().getRootView().getSystemInsetsWithoutIme().bottom : 0;
     int cardWidth = Math.min(Screen.dp(250f), Screen.currentWidth() - Screen.dp(80f));
-    FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(cardWidth, ViewGroup.LayoutParams.WRAP_CONTENT, beside ? Gravity.TOP | Gravity.RIGHT : Gravity.BOTTOM | Gravity.RIGHT);
-    cp.rightMargin = Math.max(Screen.dp(12f), Screen.currentWidth() - at[0] + Screen.dp(4f));
+    FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(cardWidth, ViewGroup.LayoutParams.WRAP_CONTENT, (beside ? Gravity.TOP : Gravity.BOTTOM) | (rightOfAnchor ? Gravity.LEFT : Gravity.RIGHT));
+    if (rightOfAnchor) {
+      cp.leftMargin = Math.min(at[0] + anchor.getWidth() + Screen.dp(4f), Math.max(Screen.dp(12f), Screen.currentWidth() - cardWidth - Screen.dp(12f)));
+    } else {
+      cp.rightMargin = Math.max(Screen.dp(12f), Screen.currentWidth() - at[0] + Screen.dp(4f));
+    }
     if (beside) {
       // A longer list grows up from the finger and stays on the screen whatever its length
       final int cardBottom = at[1] + anchor.getHeight() / 2 + Screen.dp(56f);
@@ -122,7 +131,7 @@ abstract class Tgx101HoldMenu {
     mainPage();
 
     FrameLayout.LayoutParams cp = (FrameLayout.LayoutParams) card.getLayoutParams();
-    card.setPivotX(cp.width);
+    card.setPivotX((cp.gravity & Gravity.LEFT) == Gravity.LEFT && (cp.gravity & Gravity.RIGHT) != Gravity.RIGHT ? 0 : cp.width);
     card.setAlpha(0f);
     card.setScaleX(.92f);
     card.setScaleY(.92f);

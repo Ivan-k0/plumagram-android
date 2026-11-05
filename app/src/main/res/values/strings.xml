@@ -7473,6 +7473,14 @@
   <string name="Tgx101PlayerSearch">Search music</string>
   <string name="Tgx101PlayerSearchAll">In all chats</string>
   <string name="Tgx101Lyrics">Lyrics</string>
+  <string name="Tgx101Dislike">Don\'t like it</string>
+  <string name="Tgx101DislikeDone">The wave won\'t offer this track</string>
+  <string name="Tgx101DislikeTrack">Don\'t offer this track</string>
+  <string name="Tgx101DislikeArtist">Don\'t offer %1$s</string>
+  <string name="Tgx101DislikeArtistBack">Offer %1$s again</string>
+  <string name="Tgx101DislikeHidden">Hidden from the wave</string>
+  <string name="Tgx101DislikeHiddenNone">Nothing is hidden</string>
+  <string name="Tgx101DislikeHiddenHint">Tap to bring it back</string>
   <string name="Tgx101LyricsFind">Find on lrclib.net</string>
   <string name="Tgx101LyricsWarning">The track\'s title, performer and file name will go to lrclib.net, which isn\'t part of Telegram. The site will see your IP address; a proxy set up in the app isn\'t used for this.</string>
   <string name="Tgx101LyricsSearching">Searching…</string>

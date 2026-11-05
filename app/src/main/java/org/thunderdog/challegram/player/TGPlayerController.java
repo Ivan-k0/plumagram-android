@@ -1381,6 +1381,11 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
         return;
       }
 
+      if (currentMessage != null && currentTdlib != null && Td.isAudio(currentMessage.content) && (message == null || Td.isAudio(message.content))) {
+        // (user 2026-11-05) what the wave goes by; a voice message cutting in says nothing about the song
+        Tgx101MusicTaste.get(currentTdlib).noteListen(currentMessage, playPosition, playDuration, message != null);
+      }
+
       final int newState;
       if (message != null) {
         if (TD.isFileLoaded(message) || Config.useCloudPlayback(message)) {

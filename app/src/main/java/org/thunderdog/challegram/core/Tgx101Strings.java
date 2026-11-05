@@ -1741,6 +1741,14 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PlayerSearch, "Поиск музыки");
     RU.put(R.string.Tgx101PlayerSearchAll, "Во всех чатах");
     RU.put(R.string.Tgx101Lyrics, "Текст песни");
+    RU.put(R.string.Tgx101Dislike, "Не нравится");
+    RU.put(R.string.Tgx101DislikeDone, "Волна больше не предложит этот трек");
+    RU.put(R.string.Tgx101DislikeTrack, "Не предлагать трек");
+    RU.put(R.string.Tgx101DislikeArtist, "Не предлагать: %1$s");
+    RU.put(R.string.Tgx101DislikeArtistBack, "Снова предлагать: %1$s");
+    RU.put(R.string.Tgx101DislikeHidden, "Скрыто из волны");
+    RU.put(R.string.Tgx101DislikeHiddenNone, "Ничего не скрыто");
+    RU.put(R.string.Tgx101DislikeHiddenHint, "Нажмите, чтобы вернуть");
     RU.put(R.string.Tgx101LyricsFind, "Найти на lrclib.net");
     RU.put(R.string.Tgx101LyricsWarning, "Название, исполнитель и имя файла уйдут на сайт lrclib.net, он не связан с Telegram. Сайт увидит ваш IP-адрес; прокси из приложения здесь не используется.");
     RU.put(R.string.Tgx101LyricsSearching, "Ищу…");
