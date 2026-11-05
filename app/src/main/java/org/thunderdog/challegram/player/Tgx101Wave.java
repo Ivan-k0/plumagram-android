@@ -271,6 +271,11 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
   @Override
   public void onTrackChanged (Tdlib tdlib, @Nullable TdApi.Message newTrack, int fileId, int state, float progress, boolean byUser) {
     if (isStopped) return;
+    if (lastOurs == null && (newTrack == null || !isOurs(newTrack))) {
+      // (user 2026-11-05 «кнопки продолжить не было»): the player tells a new listener at once what plays now — still the track before
+      // the flow; that ended the flow before its first track. Until its own track plays, nothing else counts
+      return;
+    }
     if (newTrack == null || state == TGPlayerController.STATE_NONE) {
       stop(true); // closed: it may go on later
       return;
