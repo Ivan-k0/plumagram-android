@@ -237,7 +237,7 @@ public final class Tgx101Bird {
 
       @Override
       public boolean birdHasDoubleTap () {
-        return Settings.instance().tgx101BirdDoubleTap() != DOUBLE_TAP_NONE || host(context) instanceof PlaybackController;
+        return Settings.instance().tgx101BirdDoubleTap() != DOUBLE_TAP_NONE;
       }
 
       @Override
@@ -270,18 +270,7 @@ public final class Tgx101Bird {
 
   public static void doubleTap (ViewController<?> host) {
     if (host.isDestroyed()) return;
-    if (host instanceof PlaybackController) {
-      // (user 2026-11-06 «двойной тап по птице не переносит в последний чат и оттуда в плеер»): with «last chat» chosen the
-      // player works as any screen — the chat opens over it, a double tap there comes back to the player
-      if (Settings.instance().tgx101BirdDoubleTap() == DOUBLE_TAP_LAST_NOTIFICATION) {
-        org.thunderdog.challegram.Tgx101Diag.mark("bird: double tap in the player → the last chat");
-        openLastNotification(host);
-        return;
-      }
-      // (user 2026-11-05 «двойной тап возвращает в то же место, где был до этого»): the screen below stays as it was left
-      host.navigateBack();
-      return;
-    }
+    // (user 2026-11-06 «делай для плеера как я сказал»): the player is a screen like any other for a double tap — no going back from it by itself
     int mode = Settings.instance().tgx101BirdDoubleTap();
     org.thunderdog.challegram.Tgx101Diag.mark("bird: double tap " + mode);
     switch (mode) {
