@@ -786,6 +786,12 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   // Closing the player down is a longer way than the other popup screens
 
+  /** (video 2026-11-05 23:23) short drags of 40–100 dp, the list's or a tap's, started the close and the screen jerked down and back */
+  @Override
+  public float tgx101PopupStartDp () {
+    return 32f;
+  }
+
   @Override
   public float tgx101PopupCloseFlingDp () {
     return 1800f;
