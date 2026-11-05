@@ -378,6 +378,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
     tgx101SpeedPill = new Tgx101Pill(context);
     tgx101SpeedPill.setTint(tgx101Tint);
+    tgx101SpeedPill.setController(this);
     FrameLayoutFix.LayoutParams speedParams = FrameLayoutFix.newParams(Screen.dp(64f), Screen.dp(40f));
     speedParams.leftMargin = Screen.dp(16f);
     tgx101SpeedPill.setLayoutParams(speedParams);
@@ -387,6 +388,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     frameLayout.addView(tgx101SpeedPill);
     tgx101NextPill = new Tgx101Pill(context);
     tgx101NextPill.setTint(tgx101Tint);
+    tgx101NextPill.setController(this);
     tgx101NextPill.setIcon(R.drawable.baseline_queue_music_24);
     FrameLayoutFix.LayoutParams nextParams = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(40f));
     nextParams.leftMargin = Screen.dp(16f + 64f + 8f);
@@ -722,6 +724,14 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   private boolean tgx101ListOpened () {
     return scrollFactor != 0f && recyclerView != null && mayExpandOverlay();
+  }
+
+  private void tgx101PullList (float dy) {
+    recyclerView.scrollBy(0, (int) -dy);
+  }
+
+  private void tgx101EndPull (float total) {
+    if (total >= Screen.dp(32f)) tgx101ReturnToCover();
   }
 
   private void tgx101ReturnToCover () {
@@ -1204,9 +1214,59 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     private CharSequence text = "";
     private int iconRes;
     private org.thunderdog.challegram.player.Tgx101CoverTint.Animated tint;
+    private PlaybackController controller;
+    private boolean pulling;
+    private float startX, startY, lastY;
 
     void setTint (org.thunderdog.challegram.player.Tgx101CoverTint.Animated tint) {
       this.tint = tint;
+    }
+
+    void setController (PlaybackController controller) {
+      this.controller = controller;
+    }
+
+    /** (user 2026-11-05) over an opened list a swipe down on the pill brings the cover down, as on the player itself */
+    private boolean pull (MotionEvent e) {
+      // on the screen, not in the pill: the pill goes down with the player
+      final float x = e.getRawX(), y = e.getRawY();
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+          pulling = false;
+          startX = x;
+          startY = lastY = y;
+          return false;
+        case MotionEvent.ACTION_MOVE:
+          if (!pulling && controller != null && controller.tgx101ListOpened() && y - startY > Screen.getTouchSlop() && y - startY > Math.abs(x - startX)) {
+            pulling = true;
+            lastY = y;
+            if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+            MotionEvent cancel = MotionEvent.obtain(e);
+            cancel.setAction(MotionEvent.ACTION_CANCEL);
+            super.onTouchEvent(cancel); // no press and no hold of the pill any more
+            cancel.recycle();
+            animate().scaleX(1f).scaleY(1f).setDuration(180).start();
+          }
+          if (pulling) {
+            controller.tgx101PullList(y - lastY);
+            lastY = y;
+          }
+          return pulling;
+        case MotionEvent.ACTION_UP:
+          if (pulling) {
+            pulling = false;
+            controller.tgx101EndPull(y - startY);
+            return true;
+          }
+          return false;
+        case MotionEvent.ACTION_CANCEL:
+          if (pulling) {
+            pulling = false;
+            return true;
+          }
+          return false;
+      }
+      return false;
     }
 
     Tgx101Pill (Context context) {
@@ -1226,6 +1286,9 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
     @Override
     public boolean onTouchEvent (MotionEvent e) {
+      if (pull(e)) {
+        return true;
+      }
       switch (e.getActionMasked()) {
         case MotionEvent.ACTION_DOWN:
           animate().scaleX(.96f).scaleY(.96f).setDuration(90).start();
@@ -2203,23 +2266,27 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
           tgx101PullX = x;
           tgx101PullStartY = tgx101PullLastY = y;
           tgx101Pulling = false;
+          tgx101FreeTap = !isSeeking && controller.tgx101ListOpened();
           tgx101DurationTap = !isSeeking && y >= durationsY - Screen.dp(20f) && y <= durationsY + Screen.dp(10f) &&
             x >= startX + workingDistance - durationWidth - Screen.dp(24f) && x <= startX + workingDistance;
           if (tgx101DurationTap) return true;
-          return isSeeking || (y < height && (isCollapsed || controller.recyclerView.findChildViewUnder(x, y) != null));
+          return isSeeking || (y < height && (isCollapsed || tgx101FreeTap || controller.recyclerView.findChildViewUnder(x, y) != null));
         }
         case MotionEvent.ACTION_MOVE: {
           if (isSeeking) {
             setDesiredSeekPosition(controller.tdlib().context().player().normalizeSeekPosition(durationMillis, MathUtils.clamp(((x - seekStartX) / (float) seekDistance))));
           }
-          if (!isSeeking && !tgx101Pulling && controller.tgx101ListOpened() && y - tgx101PullStartY > Screen.getTouchSlop() && y - tgx101PullStartY > Math.abs(x - tgx101PullX)) {
+          if (Math.hypot(x - tgx101PullX, y - tgx101PullStartY) > Screen.getTouchSlop()) {
+            tgx101FreeTap = false;
+          }
+          if (!isSeeking && !tgx101Pulling && controller.tgx101ListOpened() && Math.abs(y - tgx101PullStartY) > Screen.getTouchSlop() && Math.abs(y - tgx101PullStartY) > Math.abs(x - tgx101PullX)) {
             tgx101Pulling = true; // down over the player: the list goes down with the finger, letting go brings the cover
             tgx101DurationTap = false;
             tgx101PullLastY = y;
             getParent().requestDisallowInterceptTouchEvent(true);
           }
           if (tgx101Pulling) {
-            controller.recyclerView.scrollBy(0, (int) (tgx101PullLastY - y));
+            controller.tgx101PullList(y - tgx101PullLastY);
             tgx101PullLastY = y;
             return true;
           }
@@ -2228,13 +2295,18 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         case MotionEvent.ACTION_UP: {
           if (tgx101Pulling) {
             tgx101Pulling = false;
-            if (y - tgx101PullStartY >= Screen.dp(32f)) controller.tgx101ReturnToCover();
+            controller.tgx101EndPull(y - tgx101PullStartY);
             return true;
           }
           if (tgx101DurationTap) {
             tgx101DurationTap = false;
             org.thunderdog.challegram.unsorted.Settings.instance().setTgx101PlayerShowsTotal(!tgx101ShowsTotal());
             if (setDurationTexts()) invalidate();
+            return true;
+          }
+          if (tgx101FreeTap) { // (user 2026-11-05) a tap on a free place of the player brings the cover down too
+            tgx101FreeTap = false;
+            controller.tgx101ReturnToCover();
             return true;
           }
           if (isSeeking) {
@@ -2246,6 +2318,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         case MotionEvent.ACTION_CANCEL: {
           tgx101DurationTap = false;
           tgx101Pulling = false;
+          tgx101FreeTap = false;
           if (isSeeking) {
             setSeeking(false, false);
             return true;
@@ -2461,7 +2534,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
     // (user 2026-11-04, player mockup) a tap on the time on the right: how much is left, or the whole length
     private boolean tgx101DurationTap, tgx101DurationShownTotal;
-    private boolean tgx101Pulling;
+    private boolean tgx101Pulling, tgx101FreeTap;
     private float tgx101PullX, tgx101PullStartY, tgx101PullLastY;
 
     private static boolean tgx101ShowsTotal () {
