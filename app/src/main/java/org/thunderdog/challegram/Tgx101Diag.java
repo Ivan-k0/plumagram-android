@@ -521,12 +521,14 @@ public final class Tgx101Diag {
     if (v.getVisibility() != android.view.View.VISIBLE || count[0] >= 80) return;
     int[] at = new int[2];
     v.getLocationOnScreen(at);
-    if (at[1] < bottom && at[1] + v.getHeight() > top && v.getWidth() > 0) {
+    boolean over = at[1] < bottom && at[1] + v.getHeight() > top && v.getWidth() > 0;
+    if (over || depth < 10) { // the layers above the band too: what is meant to reach up into it may stand there, clipped
       count[0]++;
       b.append("\n  ");
       for (int i = 0; i < depth && i < 12; i++) b.append(' ');
       b.append(v.getClass().getSimpleName()).append(" y ").append(at[1]).append("..").append(at[1] + v.getHeight());
       b.append(" x ").append(at[0]).append(" w ").append(v.getWidth());
+      if (v.getPaddingTop() != 0) b.append(" padTop ").append(v.getPaddingTop());
       if (v.getTranslationY() != 0f) b.append(" transY ").append((int) v.getTranslationY());
       if (v.getAlpha() != 1f) b.append(" alpha ").append(v.getAlpha());
       android.graphics.drawable.Drawable background = v.getBackground();
@@ -535,11 +537,14 @@ public final class Tgx101Diag {
       } else if (background != null) {
         b.append(" bg ").append(background.getClass().getSimpleName());
       }
-      if (v instanceof android.view.ViewGroup) {
-        android.view.ViewGroup group = (android.view.ViewGroup) v;
-        if (Build.VERSION.SDK_INT >= 18 && !group.getClipChildren()) b.append(" noClipChildren");
-        for (int i = 0; i < group.getChildCount(); i++) appendLayers(group.getChildAt(i), top, bottom, b, depth + 1, count);
-      }
+      if (Build.VERSION.SDK_INT >= 18 && v.getClipBounds() != null) b.append(" clipBounds ").append(v.getClipBounds());
+      if (Build.VERSION.SDK_INT >= 21 && v.getClipToOutline()) b.append(" clipToOutline");
+    }
+    if (v instanceof android.view.ViewGroup && (over || depth < 10)) {
+      android.view.ViewGroup group = (android.view.ViewGroup) v;
+      if (Build.VERSION.SDK_INT >= 18 && !group.getClipChildren()) b.append(" noClipChildren");
+      if (Build.VERSION.SDK_INT >= 21 && !group.getClipToPadding()) b.append(" noClipToPadding");
+      for (int i = 0; i < group.getChildCount(); i++) appendLayers(group.getChildAt(i), top, bottom, b, depth + 1, count);
     }
   }
 
