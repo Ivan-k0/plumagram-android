@@ -271,6 +271,13 @@ public final class Tgx101Bird {
   public static void doubleTap (ViewController<?> host) {
     if (host.isDestroyed()) return;
     if (host instanceof PlaybackController) {
+      // (user 2026-11-06 «двойной тап по птице не переносит в последний чат и оттуда в плеер»): with «last chat» chosen the
+      // player works as any screen — the chat opens over it, a double tap there comes back to the player
+      if (Settings.instance().tgx101BirdDoubleTap() == DOUBLE_TAP_LAST_NOTIFICATION) {
+        org.thunderdog.challegram.Tgx101Diag.mark("bird: double tap in the player → the last chat");
+        openLastNotification(host);
+        return;
+      }
       // (user 2026-11-05 «двойной тап возвращает в то же место, где был до этого»): the screen below stays as it was left
       host.navigateBack();
       return;
@@ -425,7 +432,7 @@ public final class Tgx101Bird {
             }
             // (log 11:08: from «Газета» the chat replaced it in the stack — the second double tap had nowhere to go back
             // to): over the feed the chat keeps it underneath
-            boolean keep = host instanceof Tgx101GazetaController;
+            boolean keep = host instanceof Tgx101GazetaController || host instanceof PlaybackController; // the player stays underneath too
             org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters params = keep ? new org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters().keepStack() : null;
             org.thunderdog.challegram.telegram.TdlibUi.ChatOpenParameters kept = tgx101KeepPlace(tdlib, chatId, params);
             if (kept != params) {
