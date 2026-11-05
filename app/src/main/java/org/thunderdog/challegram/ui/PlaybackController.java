@@ -3651,6 +3651,9 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       ids.append(R.id.btn_tgx101Wave);
       strings.append(R.string.Tgx101Wave);
 
+      ids.append(R.id.btn_tgx101Playlists);
+      strings.append(R.string.Tgx101Playlists);
+
       ids.append(R.id.btn_tgx101QueueSearch);
       strings.append(R.string.Tgx101PlayerSearch);
 
@@ -3666,7 +3669,9 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   @Override
   public void onMoreItemPressed (int id) {
-    if (id == R.id.btn_tgx101HiddenMusic) {
+    if (id == R.id.btn_tgx101Playlists) {
+      Tgx101Playlists.show(this);
+    } else if (id == R.id.btn_tgx101HiddenMusic) {
       tgx101ShowHidden();
     } else if (id == R.id.btn_tgx101Wave) {
       tgx101ShowWaveSheet();
