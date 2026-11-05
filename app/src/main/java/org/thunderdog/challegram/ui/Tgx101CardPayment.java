@@ -40,7 +40,9 @@ import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.data.TD;
 import org.thunderdog.challegram.navigation.ViewController;
+import org.thunderdog.challegram.theme.ColorId;
 import org.thunderdog.challegram.theme.Theme;
+import org.thunderdog.challegram.tool.Fonts;
 import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.tool.UI;
 
@@ -131,7 +133,7 @@ public final class Tgx101CardPayment {
         break;
       }
       case TdApi.PaymentProviderOther.CONSTRUCTOR: {
-        showWebForm(c, ((TdApi.PaymentProviderOther) provider).url, after);
+        showWebForm(c, ((TdApi.PaymentProviderOther) provider).url, botName, false, after);
         break;
       }
       default:
@@ -339,7 +341,7 @@ public final class Tgx101CardPayment {
   }
 
   @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
-  private static void showWebForm (ViewController<?> c, String url, @Nullable RunnableData<String> onCredentials) {
+  private static void showWebForm (ViewController<?> c, String url, @Nullable String botName, boolean bankCheck, @Nullable RunnableData<String> onCredentials) {
     final Dialog dialog = new Dialog(c.context(), android.R.style.Theme_Black_NoTitleBar_Fullscreen);
     WebView webView = new WebView(c.context());
     WebSettings settings = webView.getSettings();
@@ -359,11 +361,53 @@ public final class Tgx101CardPayment {
         onCredentials.runWithData(credentials);
       }), "TelegramWebviewProxy");
     }
+    // (user 2026-11-05 «нужно разместить на этом окне информацию о том, что это за сервис»): above the page, whose bill it is and
+    // whose page it is — its site as it changes, with a lock when it's https; the card is typed on that site, not in the app
+    LinearLayout page = new LinearLayout(c.context());
+    page.setOrientation(LinearLayout.VERTICAL);
+    page.setBackgroundColor(Theme.getColor(ColorId.filling));
+    LinearLayout bar = new LinearLayout(c.context());
+    bar.setOrientation(LinearLayout.HORIZONTAL);
+    bar.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    bar.setBackgroundColor(Theme.getColor(ColorId.headerBackground));
+    bar.setPadding(Screen.dp(4f), Screen.dp(6f), Screen.dp(16f), Screen.dp(8f));
+    android.widget.ImageView close = new android.widget.ImageView(c.context());
+    close.setImageResource(R.drawable.baseline_close_24);
+    close.setColorFilter(Theme.getColor(ColorId.headerIcon));
+    close.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+    org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(close);
+    close.setOnClickListener(v -> dialog.dismiss());
+    bar.addView(close, new LinearLayout.LayoutParams(Screen.dp(48f), Screen.dp(48f)));
+    LinearLayout texts = new LinearLayout(c.context());
+    texts.setOrientation(LinearLayout.VERTICAL);
+    android.widget.TextView titleView = new android.widget.TextView(c.context());
+    titleView.setTextColor(Theme.getColor(ColorId.headerText));
+    titleView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 17f);
+    titleView.setTypeface(Fonts.getRobotoMedium());
+    titleView.setSingleLine(true);
+    titleView.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    String who = StringUtils.isEmpty(botName) ? "" : " · " + botName;
+    titleView.setText(Lang.getString(bankCheck ? R.string.Tgx101PayPageBankCheck : R.string.Tgx101PayPageTitle) + who);
+    texts.addView(titleView);
+    final android.widget.TextView serviceView = new android.widget.TextView(c.context());
+    serviceView.setTextColor(Theme.getColor(ColorId.headerText));
+    serviceView.setAlpha(.75f);
+    serviceView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 13f);
+    serviceView.setMaxLines(2);
+    serviceView.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    serviceView.setText(serviceLine(url));
+    texts.addView(serviceView);
+    LinearLayout.LayoutParams textsParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+    textsParams.leftMargin = Screen.dp(8f);
+    bar.addView(texts, textsParams);
+    page.addView(bar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    page.addView(webView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
     final java.util.Set<String> visited = new java.util.HashSet<>();
     webView.setWebViewClient(new WebViewClient() {
       @Override
       public void onPageStarted (WebView view, String pageUrl, android.graphics.Bitmap favicon) {
         rememberOrigin(visited, pageUrl);
+        serviceView.setText(serviceLine(pageUrl));
       }
 
       @Override
@@ -376,7 +420,7 @@ public final class Tgx101CardPayment {
         return false;
       }
     });
-    dialog.setContentView(webView, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    dialog.setContentView(page, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     dialog.setOnDismissListener(d -> {
       // Nothing from the payment page stays on the phone. Only its own sites are wiped:
       // other web pages in the app (bot games, video players) keep their data.
@@ -386,6 +430,14 @@ public final class Tgx101CardPayment {
     });
     webView.loadUrl(url);
     dialog.show();
+  }
+
+  /** «🔒 site · the card is typed on the payment service's page» */
+  private static String serviceLine (@Nullable String pageUrl) {
+    android.net.Uri uri = pageUrl != null ? android.net.Uri.parse(pageUrl) : null;
+    String host = uri != null && uri.getHost() != null ? uri.getHost() : "?";
+    boolean secure = uri != null && "https".equalsIgnoreCase(uri.getScheme());
+    return (secure ? "\uD83D\uDD12 " : "⚠ ") + Lang.getString(R.string.Tgx101PayPageService, host);
   }
 
   private static void rememberOrigin (java.util.Set<String> origins, @Nullable String pageUrl) {
@@ -440,7 +492,7 @@ public final class Tgx101CardPayment {
       if (error != null) {
         UI.showToast(Lang.getString(R.string.StarsPayFailed, TD.toErrorString(error)), Toast.LENGTH_LONG);
       } else if (!StringUtils.isEmpty(result.verificationUrl)) {
-        showWebForm(c, result.verificationUrl, null); // 3-D Secure
+        showWebForm(c, result.verificationUrl, c.tdlib().cache().userName(form.sellerBotUserId), true, null); // 3-D Secure
       } else {
         UI.showToast(R.string.StarsPaid, Toast.LENGTH_SHORT);
       }

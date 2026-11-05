@@ -1551,6 +1551,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101StarsBuyHint, "Оплатите банковской картой прямо здесь или купите на Fragment за TON. Звёзды можно тратить в ботах и каналах.");
     RU.put(R.string.Tgx101StarsBuyHeader, "Купить звёзды");
     RU.put(R.string.Tgx101StarsBuyMore, "Другие пакеты");
+    RU.put(R.string.Tgx101PayPageTitle, "Оплата картой");
+    RU.put(R.string.Tgx101PayPageBankCheck, "Проверка банка (3-D Secure)");
+    RU.put(R.string.Tgx101PayPageService, "%1$s — страница платёжного сервиса, карта вводится там");
     RU.put(R.string.Tgx101StarsPremiumBot, "Купить через @PremiumBot");
     RU.put(R.string.Tgx101StarsHistory, "История");
     RU.put(R.string.Tgx101StarsHistoryEmpty, "Операций пока нет");
