@@ -185,15 +185,17 @@ abstract class Tgx101HoldMenu {
     LinearLayout reactions = new LinearLayout(context);
     reactions.setOrientation(LinearLayout.HORIZONTAL);
     reactions.setPadding(Screen.dp(8f), Screen.dp(2f), Screen.dp(8f), Screen.dp(6f));
-    for (String e : Tgx101SavedKit.QUICK_REACTIONS) {
-      TextView b = Tgx101SavedHomeController.text(context, 19f, Theme.textAccentColor(), false);
+    for (String e : Tgx101SavedKit.quickReactions()) {
+      // seven in a menu 250 dp wide: smaller and closer than four
+      final boolean many = Tgx101SavedKit.quickReactions().length > 5;
+      TextView b = Tgx101SavedHomeController.text(context, many ? 16f : 19f, Theme.textAccentColor(), false);
       b.setText(Tgx101SavedKit.emoji(e));
       b.setGravity(Gravity.CENTER);
       b.setBackground(Tgx101SavedHomeController.card(Theme.backgroundColor(), 18f));
       Views.setClickable(b);
       b.setOnClickListener(v -> click.runWithData(e));
       LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, Screen.dp(38f), 1f);
-      rp.setMargins(Screen.dp(3f), 0, Screen.dp(3f), 0);
+      rp.setMargins(Screen.dp(many ? 1.5f : 3f), 0, Screen.dp(many ? 1.5f : 3f), 0);
       reactions.addView(b, rp);
       rows.add(b);
       hovers.add(null);

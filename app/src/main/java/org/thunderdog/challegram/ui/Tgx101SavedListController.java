@@ -1248,7 +1248,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
     Tgx101SavedKit.reactionCounts(tdlib, counts -> {
       if (isDestroyed()) return;
       java.util.LinkedHashSet<String> all = new java.util.LinkedHashSet<>(counts.keySet());
-      for (String e : Tgx101SavedKit.QUICK_REACTIONS) all.add(e);
+      for (String e : Tgx101SavedKit.quickReactions()) all.add(e);
       Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
       h[0] = Tgx101Sheet.show(this, null, body -> {
         body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101SavedReaction)));

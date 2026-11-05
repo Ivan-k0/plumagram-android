@@ -588,7 +588,7 @@ public final class Tgx101SavedActions {
       LinearLayout reactions = new LinearLayout(context);
       reactions.setOrientation(LinearLayout.HORIZONTAL);
       reactions.setPadding(Screen.dp(16f), 0, Screen.dp(16f), Screen.dp(6f));
-      for (String e : Tgx101SavedKit.QUICK_REACTIONS) {
+      for (String e : Tgx101SavedKit.quickReactions()) {
         TextView b = Tgx101SavedHomeController.text(context, 20f, Theme.textAccentColor(), false);
         b.setText(Tgx101SavedKit.emoji(e));
         b.setGravity(Gravity.CENTER);
@@ -687,7 +687,7 @@ public final class Tgx101SavedActions {
     row.setOrientation(LinearLayout.HORIZONTAL);
     row.setPadding(Screen.dp(16f), Screen.dp(4f), Screen.dp(16f), Screen.dp(8f));
     final List<String> shown = new ArrayList<>();
-    for (String e : Tgx101SavedKit.QUICK_REACTIONS) shown.add(e);
+    for (String e : Tgx101SavedKit.quickReactions()) shown.add(e);
     // a reaction already on them that isn't in the quick row is shown too
     for (TdApi.Message m : messages) for (String e : Tgx101SavedKit.reactionsOf(tdlib, m)) if (!shown.contains(e) && shown.size() < 6) shown.add(e);
     final List<TextView> buttons = new ArrayList<>();
@@ -1357,7 +1357,7 @@ public final class Tgx101SavedActions {
       }
 
       // a reaction straight from the banner (user 2026-10-15: «реакции … при пересылке»)
-      for (String e : Tgx101SavedKit.QUICK_REACTIONS) {
+      for (String e : Tgx101SavedKit.quickReactions()) {
         TextView b = Tgx101SavedHomeController.text(context, 18f, ink, false);
         b.setText(Tgx101SavedKit.emoji(e));
         b.setGravity(Gravity.CENTER);

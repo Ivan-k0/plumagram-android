@@ -1610,6 +1610,7 @@
   <item name="btn_tgx101LongPressMenu" type="id"/>
   <item name="btn_tgx101Haptics" type="id"/>
   <item name="btn_tgx101SaveFavorite" type="id"/>
+  <item name="btn_tgx101SavedQuickReactions" type="id"/>
   <item name="btn_tgx101QueueSearch" type="id"/>
   <item name="btn_tgx101TrackInfo" type="id"/>
   <item name="btn_tgx101ToStorage" type="id"/>

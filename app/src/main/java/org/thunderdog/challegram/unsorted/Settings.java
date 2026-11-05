@@ -4548,6 +4548,15 @@ public class Settings {
     pmc.putInt("tgx101_music_speed", speed);
   }
 
+  /** TGx101 (user 2026-11-05): the reactions pinned for the Storage, comma separated; null: the first four */
+  public @androidx.annotation.Nullable String tgx101QuickReactions () {
+    return pmc.getString("tgx101_saved_quick_reactions", null);
+  }
+
+  public void setTgx101QuickReactions (String value) {
+    pmc.putString("tgx101_saved_quick_reactions", value);
+  }
+
   public boolean tgx101PlayerSwipePaging () {
     return pmc.getBoolean(KEY_TGX101_PLAYER_SWIPE_PAGING, true);
   }

@@ -524,6 +524,28 @@ public final class Tgx101SavedKit {
   }
 
   public static final String[] QUICK_REACTIONS = {"❤", "🔥", "👍", "⚡"};
+  public static final int QUICK_REACTIONS_MAX = 7; // (user 2026-11-05: 4 to 7 in one row, pinned in the Storage's settings)
+
+  /** The reactions pinned in the Storage's settings, in their order; the first four by default */
+  public static String[] quickReactions () {
+    String saved = org.thunderdog.challegram.unsorted.Settings.instance().tgx101QuickReactions();
+    if (saved != null) {
+      List<String> known = new ArrayList<>();
+      for (String e : QUICK_REACTIONS) known.add(e);
+      for (String e : MORE_REACTIONS) known.add(e);
+      List<String> out = new ArrayList<>();
+      for (String e : saved.split(",")) {
+        if (known.contains(e) && !out.contains(e) && out.size() < QUICK_REACTIONS_MAX) out.add(e);
+      }
+      if (!out.isEmpty()) return out.toArray(new String[0]);
+    }
+    return QUICK_REACTIONS;
+  }
+
+  public static void setQuickReactions (List<String> reactions) {
+    org.thunderdog.challegram.unsorted.Settings.instance().setTgx101QuickReactions(android.text.TextUtils.join(",", reactions));
+  }
+
   public static final String[] MORE_REACTIONS = {"😁", "🤔", "🎉", "💯", "😢", "🙏", "👎", "😍", "🏆", "💔", "👀", "🤝", "✍", "🆒", "😎", "🤯"};
 
   /** Telegram's reaction tags in Saved Messages are a Premium feature: without it they are kept on this phone */
