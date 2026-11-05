@@ -4691,6 +4691,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       HeaderButton reportButton = header.addButton(menu, R.id.menu_btn_report, R.drawable.baseline_report_24, iconColorId, this, Screen.dp(52f));
 
       // TGx101 (user 2026-10-17): the selected Saved messages go to a folder / get tags at once
+      header.addButton(menu, R.id.menu_btn_tgx101SaveFiles, R.drawable.baseline_file_download_24, iconColorId, this, Screen.dp(52f))
+        .setVisibility((value = !tgx101SelectedSavable().isEmpty()) ? View.VISIBLE : View.GONE);
+      if (value) totalButtonsCount++;
       header.addButton(menu, R.id.menu_btn_tgx101ToStorage, R.drawable.tgx101_storage_tiles_24, iconColorId, this, Screen.dp(52f))
         .setVisibility((value = canTgx101StoreSelected()) ? View.VISIBLE : View.GONE);
       if (value) totalButtonsCount++;
@@ -4850,6 +4853,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
     } else if (id == R.id.menu_btn_viewScheduled) {
       viewScheduledMessages(false);
+    } else if (id == R.id.menu_btn_tgx101SaveFiles) {
+      java.util.List<TdApi.Message> savable = tgx101SelectedSavable();
+      if (!savable.isEmpty()) {
+        tgx101DownloadAndSave(savable.get(0).chatId, savable.toArray(new TdApi.Message[0]));
+        finishSelectMode(-1);
+      }
     } else if (id == R.id.menu_btn_tgx101ToStorage) {
       if (selectedMessageIds != null && selectedMessageIds.size() > 0) {
         java.util.List<TdApi.Message> messages = new java.util.ArrayList<>();
@@ -6664,6 +6673,18 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
+  // (user 2026-11-05 «при выделении нескольких медиа нужно дать возможность их сохранять»)
+  private java.util.List<TdApi.Message> tgx101SelectedSavable () {
+    java.util.List<TdApi.Message> out = new java.util.ArrayList<>();
+    if (selectedMessageIds == null) return out;
+    for (int i = 0; i < selectedMessageIds.size(); i++) {
+      TGMessage container = selectedMessageIds.valueAt(i);
+      TdApi.Message message = container.getMessage(selectedMessageIds.keyAt(i));
+      if (message != null && container.canBeSaved() && TD.getFile(message) != null) out.add(message);
+    }
+    return out;
+  }
+
   private boolean canTgx101StoreSelected () {
     return chat != null && tdlib.isSelfChat(chat.id) && getMessageTopicId() == null && !areScheduledOnly() && selectedMessageIds != null && selectedMessageIds.size() > 0;
   }
@@ -6683,6 +6704,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       headerView.updateButton(R.id.menu_messageActions, R.id.menu_btn_copy, (value = canCopySelectedMessages()) ? View.VISIBLE : View.GONE, 0);
       if (value) totalButtonsCount++;
       headerView.updateButton(R.id.menu_messageActions, R.id.menu_btn_tgx101ToStorage, (value = canTgx101StoreSelected()) ? View.VISIBLE : View.GONE, 0);
+      if (value) totalButtonsCount++;
+      headerView.updateButton(R.id.menu_messageActions, R.id.menu_btn_tgx101SaveFiles, (value = !tgx101SelectedSavable().isEmpty()) ? View.VISIBLE : View.GONE, 0);
       if (value) totalButtonsCount++;
       headerView.updateButton(R.id.menu_messageActions, R.id.menu_btn_retry, (value = canResendSelectedMessages()) ? View.VISIBLE : View.GONE, 0);
       if (value) totalButtonsCount++;
@@ -10328,7 +10351,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   // TGx101 (user 2026-10-06): «Save» on a photo / video / file that isn't downloaded yet — download, then save as usual
   private void tgx101DownloadAndSave (TGMessage message) {
-    TdApi.Message[] all = message.getAllMessages();
+    tgx101DownloadAndSave(message.getChatId(), message.getAllMessages());
+  }
+
+  private void tgx101DownloadAndSave (final long chatId, TdApi.Message[] all) {
     java.util.List<Integer> fileIds = new java.util.ArrayList<>();
     for (TdApi.Message m : all) {
       TdApi.File file = TD.getFile(m);
@@ -10336,7 +10362,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     if (fileIds.isEmpty()) return;
     UI.showToast(R.string.Tgx101Downloading, android.widget.Toast.LENGTH_SHORT);
-    final long chatId = message.getChatId();
     final long[] messageIds = new long[all.length];
     for (int i = 0; i < all.length; i++) messageIds[i] = all[i].id;
     final java.util.concurrent.atomic.AtomicInteger left = new java.util.concurrent.atomic.AtomicInteger(fileIds.size());
