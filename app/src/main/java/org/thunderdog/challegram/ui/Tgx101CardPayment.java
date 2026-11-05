@@ -347,6 +347,9 @@ public final class Tgx101CardPayment {
     settings.setDomStorageEnabled(true);
     settings.setSaveFormData(false);
     settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+    // (user 2026-11-05 «год и месяц не помещаются»): the page's text grew with the phone's font size (112 %), and its narrow
+    // «MM/YY» field cut the hint. The payment page is shown at its own size, as its makers laid it out
+    settings.setTextZoom(100);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       webView.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
     }
