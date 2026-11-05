@@ -1476,13 +1476,20 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     }
   }
 
+  // (user 2026-11-05 «свайп по плашке влево или вправо переключает треки; голосовые и кружки — пусть убирает»): to the side, music goes
+  // to the next track (left) or the previous (right), and only ✕ closes it; a voice or video message closes as before.
   // (user 2026-11-04, player mockup) the music's bar: a swipe up or down opens the player, a swipe to a side follows the finger and closes
   private static final int TGX101_SWIPE_NONE = 0, TGX101_SWIPE_WATCHING = 1, TGX101_SWIPE_OPENED = 2, TGX101_SWIPE_SIDE = 3;
   private int tgx101SwipeMode;
   private float tgx101SwipeX, tgx101SwipeY, tgx101SwipeDx;
   private android.view.VelocityTracker tgx101SwipeVelocity;
   private FactorAnimator tgx101SwipeAnimator;
-  private boolean tgx101SwipeCloses;
+  private boolean tgx101SwipeCloses, tgx101SwipeSkips, tgx101SwipeSkipNext, tgx101SwipeComesIn;
+
+  /** Music, and there's a track that way: dx &lt; 0 — the next */
+  private boolean tgx101CanSwipeTo (float dx) {
+    return TdlibManager.instance().audio().tgx101CanSkip(dx < 0);
+  }
 
   private void tgx101SetSwipeDx (float dx) {
     if (tgx101SwipeDx != dx) {
@@ -1500,6 +1507,9 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
 
   /** The bar is back in its place for what comes next: the voice message's ✕ brings the music */
   private void tgx101ResetSwipe () {
+    if (tgx101SwipeComesIn || tgx101SwipeSkips) {
+      return; // this very track's bar is on its way in
+    }
     if (tgx101SwipeAnimator != null) {
       tgx101SwipeAnimator.cancel();
     }
@@ -1517,10 +1527,21 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
 
         @Override
         public void onFactorChangeFinished (int id, float finalFactor, FactorAnimator callee) {
-          if (finalFactor == 1f && tgx101SwipeCloses) {
+          if (finalFactor != 1f) return;
+          if (tgx101SwipeCloses) {
             tgx101SwipeCloses = false;
             UI.hapticVibrate(headerView, false);
             TdlibManager.instance().player().stopPlayback(true);
+          } else if (tgx101SwipeSkips) {
+            tgx101SwipeSkips = false;
+            UI.hapticVibrate(headerView, false);
+            TdlibManager.instance().player().skip(tgx101SwipeSkipNext);
+            // the next one comes in from the other side
+            tgx101SwipeComesIn = true;
+            tgx101SwipeDx = (tgx101SwipeSkipNext ? 1f : -1f) * width * .35f;
+            tgx101AnimateSwipeTo(0f, false, 0f);
+          } else {
+            tgx101SwipeComesIn = false;
           }
         }
       }, AnimatorUtils.DECELERATE_INTERPOLATOR, 180L);
@@ -1542,7 +1563,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     switch (e.getActionMasked()) {
       case MotionEvent.ACTION_DOWN: {
         tgx101SwipeMode = TGX101_SWIPE_NONE;
-        if (isCurrentSection(SECTION_AUDIO) && !BitwiseUtils.hasFlag(ongoingSections, SECTION_CALL) && needClickAt(headerView, e.getX(), e.getY()) && playbackSpeedLayout == null && !tgx101SwipeCloses) {
+        if (isCurrentSection(SECTION_AUDIO) && !BitwiseUtils.hasFlag(ongoingSections, SECTION_CALL) && needClickAt(headerView, e.getX(), e.getY()) && playbackSpeedLayout == null && !tgx101SwipeCloses && !tgx101SwipeSkips && !tgx101SwipeComesIn) {
           tgx101SwipeMode = TGX101_SWIPE_WATCHING;
           tgx101SwipeX = e.getX();
           tgx101SwipeY = e.getY();
@@ -1583,7 +1604,11 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
           }
         }
         if (tgx101SwipeMode == TGX101_SWIPE_SIDE) {
-          tgx101SetSwipeDx(e.getX() - tgx101SwipeX);
+          float dx = e.getX() - tgx101SwipeX;
+          if (tgx101ShowsNext() && !tgx101CanSwipeTo(dx)) {
+            dx *= .3f; // no track that way: it gives a little and comes back
+          }
+          tgx101SetSwipeDx(dx);
           return true;
         }
         if (tgx101SwipeMode == TGX101_SWIPE_OPENED) {
@@ -1603,7 +1628,16 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
             velocity = tgx101SwipeVelocity.getXVelocity();
           }
           final boolean flung = Math.abs(velocity) > Screen.dp(500f) && Math.signum(velocity) == Math.signum(tgx101SwipeDx);
-          if (e.getActionMasked() == MotionEvent.ACTION_UP && (flung || Math.abs(tgx101SwipeDx) > width * .35f)) {
+          final boolean far = flung || Math.abs(tgx101SwipeDx) > width * .35f;
+          if (e.getActionMasked() == MotionEvent.ACTION_UP && far && tgx101ShowsNext()) {
+            if (tgx101CanSwipeTo(tgx101SwipeDx)) {
+              tgx101SwipeSkipNext = tgx101SwipeDx < 0;
+              tgx101AnimateSwipeTo(Math.signum(tgx101SwipeDx) * width * .6f, false, velocity);
+              tgx101SwipeSkips = true;
+            } else {
+              tgx101AnimateSwipeTo(0f, false, 0f);
+            }
+          } else if (e.getActionMasked() == MotionEvent.ACTION_UP && far) {
             tgx101AnimateSwipeTo(Math.signum(tgx101SwipeDx) * width, true, velocity);
           } else {
             tgx101AnimateSwipeTo(0f, false, 0f);
