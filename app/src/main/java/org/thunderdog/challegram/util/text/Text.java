@@ -3071,12 +3071,16 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
 
   private ViewProvider viewProvider;
 
+  private static final long TGX101_PRESS_DELAY_MS = 260;
+
   private static class PressHighlight {
     public final int causePartIndex;
     public final int startPartIndex, endPartIndex;
     public final Spoiler spoiler;
-    // Not drawn until the tap timeout passes, so starting a scroll on a link doesn't flash it.
-    public final long visibleAt = android.os.SystemClock.uptimeMillis() + android.view.ViewConfiguration.getTapTimeout();
+    // Not drawn at once, so starting a scroll on a link doesn't flash it: the finger often rests a moment first
+    // (user 2026-11-05 «подсветки во время жестов быть не должно», video: at the tap timeout a slow scroll still lit it;
+    // the same wait as a quote's ripple)
+    public final long visibleAt = android.os.SystemClock.uptimeMillis() + TGX101_PRESS_DELAY_MS;
 
     public PressHighlight (int causePartIndex, int startPartIndex, int endPartIndex, Spoiler spoiler) {
       this.causePartIndex = causePartIndex;
@@ -3310,7 +3314,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
         }
 
         this.pressHighlight = new PressHighlight(causeIndex, startIndex, endIndex, needRevealSpoiler ? spoiler : null);
-        view.postDelayed(view::invalidate, android.view.ViewConfiguration.getTapTimeout());
+        view.postDelayed(view::invalidate, TGX101_PRESS_DELAY_MS);
         if (this.pressHighlight.isSpoilerReveal()) {
           this.pressHighlight.spoiler.setPressed(true, true);
         } else {
