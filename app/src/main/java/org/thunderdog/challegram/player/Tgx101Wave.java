@@ -77,6 +77,7 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
       if (TGPlayerController.compareTracks(list.get(i), lastOurs)) at = i;
     }
     final int origin = at;
+    org.thunderdog.challegram.Tgx101Diag.mark("flow: goes on from " + origin + " of " + list.size() + " at " + (leftAt / 1000) + " s");
     isStopped = false;
     lastTrack = null;
     session = this;
@@ -152,6 +153,8 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
       }
       session = this;
       List<TdApi.Message> mixed = mix(found);
+      queue = new ArrayList<>(mixed); // (user 2026-11-05 «продолжение потока не работает»): the player's list wasn't this one yet when it was asked
+      org.thunderdog.challegram.Tgx101Diag.mark("flow: started, " + mixed.size() + " tracks from " + queries.size() + " searches");
       TdlibManager.instance().player().addTrackChangeListener(this);
       TdlibManager.instance().player().playPauseMessage(tdlib, mixed.get(0), new TGPlayerController.PlayListBuilder() {
         @Override
@@ -175,6 +178,9 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
     if (keep && queue != null && lastOurs != null) {
       leftAt = TdlibManager.instance().player().tgx101PositionWhenLeft(lastOurs);
       suspended = this;
+      org.thunderdog.challegram.Tgx101Diag.mark("flow: left at " + (leftAt / 1000) + " s of track " + lastOurs.id + ", " + queue.size() + " in its queue, may go on");
+    } else {
+      org.thunderdog.challegram.Tgx101Diag.mark("flow: ended" + (keep ? ", nothing played yet to go on from" : ""));
     }
   }
 
@@ -276,7 +282,6 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
       return;
     }
     lastOurs = newTrack;
-    rememberQueue();
     refillIfNeeded();
   }
 
