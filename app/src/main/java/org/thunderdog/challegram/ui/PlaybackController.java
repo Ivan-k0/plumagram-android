@@ -1010,6 +1010,40 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     UI.post(tgx101UndoHide, 5000);
   }
 
+  /** (user 2026-11-05 «не вижу, где хранятся дизлайкнутые аудио») all that is hidden, a tap brings it back */
+  private void tgx101ShowHidden () {
+    final Tgx101Sheet.Handle[] handle = new Tgx101Sheet.Handle[1];
+    handle[0] = Tgx101Sheet.show(this, null, body -> tgx101FillHidden(body));
+  }
+
+  private void tgx101FillHidden (android.widget.LinearLayout body) {
+    body.removeAllViews();
+    body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101DislikeHidden)));
+    final List<String> artists = tgx101Taste().hiddenArtists();
+    final List<String[]> tracks = tgx101Taste().hiddenTracks();
+    if (artists.isEmpty() && tracks.isEmpty()) {
+      body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101DislikeHiddenNone), null, false, null));
+      return;
+    }
+    android.widget.TextView hint = Tgx101SavedHomeController.text(context, 13f, Theme.textDecentColor(), false);
+    hint.setText(Lang.getString(R.string.Tgx101DislikeHiddenHint));
+    hint.setPadding(Screen.dp(20f), 0, Screen.dp(20f), Screen.dp(6f));
+    body.addView(hint);
+    for (String artist : artists) {
+      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_block_24, 0, artist, null, false, v -> {
+        tgx101Taste().setArtistHidden(artist, false);
+        tgx101FillHidden(body);
+      }));
+    }
+    for (int i = tracks.size() - 1; i >= 0; i--) { // the latest first
+      final String[] track = tracks.get(i);
+      body.addView(Tgx101Sheet.row(context, R.drawable.tgx101_thumb_down_outline_24, 0, track[1], null, false, v -> {
+        tgx101Taste().restoreTrack(track[0]);
+        tgx101FillHidden(body);
+      }));
+    }
+  }
+
   private void tgx101AttachDislikeMenu (View button) {
     final View.OnTouchListener keepFinger = (v, e) -> {
       if (e.getActionMasked() == MotionEvent.ACTION_DOWN && v.getParent() != null) {
@@ -3462,6 +3496,9 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       ids.append(R.id.btn_tgx101QueueSearch);
       strings.append(R.string.Tgx101PlayerSearch);
 
+      ids.append(R.id.btn_tgx101HiddenMusic);
+      strings.append(R.string.Tgx101DislikeHidden);
+
       ids.append(R.id.btn_tgx101TrackInfo);
       strings.append(R.string.Tgx101PlayerInfo);
 
@@ -3471,7 +3508,9 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   @Override
   public void onMoreItemPressed (int id) {
-    if (id == R.id.btn_tgx101Wave) {
+    if (id == R.id.btn_tgx101HiddenMusic) {
+      tgx101ShowHidden();
+    } else if (id == R.id.btn_tgx101Wave) {
       tgx101ShowWaveSheet();
     } else if (id == R.id.btn_tgx101QueueSearch) {
       tgx101ShowQueueSearch();
