@@ -7228,6 +7228,7 @@
   <string name="Tgx101BirdHint">Hold — a ring of actions around the finger: slide to one and let go. Taps and swipes go through the bird. Hold 2.5 s without moving — the bird lifts and can be put at the left or right edge. Untouched, it pales. Shown when the side menu is on and the ✎ button is hidden.</string>
   <string name="Tgx101BirdRing">Actions in the ring</string>
   <string name="Tgx101BirdInChats">Bird in chats, groups and channels</string>
+  <string name="Tgx101BirdInPlayer">Bird in the music player</string>
   <string name="Tgx101BirdDoubleTap">Double tap on the bird</string>
   <string name="Tgx101BirdDoubleTapHint">While a double tap is set, a single tap on the bird reaches what lies under it a moment later.</string>
   <string name="Tgx101BirdTapNone">Nothing</string>

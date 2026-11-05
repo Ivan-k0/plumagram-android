@@ -3896,6 +3896,9 @@ public class Settings {
   private static final String KEY_TGX101_BIRD_IN_CHATS = "tgx101_bird_in_chats", KEY_TGX101_BIRD_DOUBLE_TAP = "tgx101_bird_double_tap";
   public boolean tgx101BirdInChats () { return pmc.getBoolean(KEY_TGX101_BIRD_IN_CHATS, false); }
   public void setTgx101BirdInChats (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD_IN_CHATS, v); }
+  private static final String KEY_TGX101_BIRD_IN_PLAYER = "tgx101_bird_in_player";
+  public boolean tgx101BirdInPlayer () { return pmc.getBoolean(KEY_TGX101_BIRD_IN_PLAYER, false); }
+  public void setTgx101BirdInPlayer (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD_IN_PLAYER, v); }
   public int tgx101BirdDoubleTap () { return pmc.getInt(KEY_TGX101_BIRD_DOUBLE_TAP, 0); }
   public void setTgx101BirdDoubleTap (int v) { pmc.putInt(KEY_TGX101_BIRD_DOUBLE_TAP, v); }
   public boolean tgx101BirdMoveLearned () { return pmc.getBoolean(KEY_TGX101_BIRD_MOVED, false); }

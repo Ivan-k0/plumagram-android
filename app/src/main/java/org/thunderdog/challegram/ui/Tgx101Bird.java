@@ -158,6 +158,7 @@ public final class Tgx101Bird {
     if (c instanceof MainController) return enabled();
     if (c instanceof ChatsController) return ((ChatsController) c).tgx101IsOwnList() && enabled();
     if (c instanceof MessagesController) return ((MessagesController) c).tgx101WantsBird();
+    if (c instanceof PlaybackController) return Settings.instance().tgx101Bird() && Settings.instance().tgx101BirdInPlayer(); // (user 2026-11-05) if switched on in its settings
     if (c instanceof Tgx101GazetaController) return Tgx101Gazeta.bird() && Settings.instance().tgx101Bird(); // (user 2026-10-27) if switched on in its settings
     return false;
   }
@@ -227,7 +228,7 @@ public final class Tgx101Bird {
 
       @Override
       public boolean birdHasDoubleTap () {
-        return Settings.instance().tgx101BirdDoubleTap() != DOUBLE_TAP_NONE;
+        return Settings.instance().tgx101BirdDoubleTap() != DOUBLE_TAP_NONE || host(context) instanceof PlaybackController;
       }
 
       @Override
@@ -260,6 +261,11 @@ public final class Tgx101Bird {
 
   public static void doubleTap (ViewController<?> host) {
     if (host.isDestroyed()) return;
+    if (host instanceof PlaybackController) {
+      // (user 2026-11-05 «двойной тап возвращает в то же место, где был до этого»): the screen below stays as it was left
+      host.navigateBack();
+      return;
+    }
     int mode = Settings.instance().tgx101BirdDoubleTap();
     org.thunderdog.challegram.Tgx101Diag.mark("bird: double tap " + mode);
     switch (mode) {
@@ -492,7 +498,8 @@ public final class Tgx101Bird {
         break;
       case ACTION_PLAYER: {
         // (user 2026-11-05 «из птички нужно дать доступ к плееру»): what the music's bar opens
-        openPlayer(host.navigationController());
+        if (host instanceof PlaybackController) host.navigateBack(); // it's open: back to where it was opened from
+        else openPlayer(host.navigationController());
         break;
       }
       case ACTION_NEXT_ACCOUNT: {

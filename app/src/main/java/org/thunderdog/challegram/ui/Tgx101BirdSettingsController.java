@@ -60,6 +60,8 @@ public class Tgx101BirdSettingsController extends RecyclerViewController<Void> i
           view.getToggler().setRadioEnabled(on, isUpdate);
         } else if (id == R.id.btn_tgx101BirdInChats) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101BirdInChats(), isUpdate);
+        } else if (id == R.id.btn_tgx101BirdInPlayer) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101BirdInPlayer(), isUpdate);
           view.setEnabledAnimated(on, isUpdate);
         } else if (id == R.id.btn_tgx101BirdRing) {
           view.setData(Tgx101GesturesController.birdRingValue());
@@ -76,6 +78,8 @@ public class Tgx101BirdSettingsController extends RecyclerViewController<Void> i
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101Bird, 0, R.string.Tgx101Bird));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101BirdInChats, 0, R.string.Tgx101BirdInChats));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101BirdInPlayer, 0, R.string.Tgx101BirdInPlayer));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101BirdHint));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
@@ -90,6 +94,7 @@ public class Tgx101BirdSettingsController extends RecyclerViewController<Void> i
 
   private void updateAll () {
     adapter.updateValuedSettingById(R.id.btn_tgx101BirdInChats);
+    adapter.updateValuedSettingById(R.id.btn_tgx101BirdInPlayer);
     adapter.updateValuedSettingById(R.id.btn_tgx101BirdRing);
     adapter.updateValuedSettingById(R.id.btn_tgx101BirdDoubleTap);
   }
@@ -104,6 +109,8 @@ public class Tgx101BirdSettingsController extends RecyclerViewController<Void> i
       return;
     } else if (id == R.id.btn_tgx101BirdInChats) {
       Settings.instance().setTgx101BirdInChats(adapter.toggleView(v)); // a chat opened after this has it
+    } else if (id == R.id.btn_tgx101BirdInPlayer) {
+      Settings.instance().setTgx101BirdInPlayer(adapter.toggleView(v));
     } else if (id == R.id.btn_tgx101BirdRing) {
       Tgx101GesturesController.chooseBirdRing(this, () -> adapter.updateValuedSettingById(R.id.btn_tgx101BirdRing));
     } else if (id == R.id.btn_tgx101BirdDoubleTap) {
