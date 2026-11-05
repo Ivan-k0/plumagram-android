@@ -9933,9 +9933,17 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   private int tgx101MenuPrefetchToken;
   private static final long TGX101_MENU_PREFETCH_FRESH = 2000;
 
+  /** The count of who has seen it, asked for with the rest of the menu's data, so that the menu opens with it in place */
+  public volatile TdApi.MessageViewers tgx101Viewers;
+
   /** Asks for what the message menu needs; called at the first tap, while a second one is awaited */
   public void tgx101PrefetchMenu () {
     final int token = ++tgx101MenuPrefetchToken;
+    if (canGetViewers() && !isUnread() && !noUnread()) {
+      tdlib.send(new TdApi.GetMessageViewers(getChatId(), getId()), (viewers, error) -> {
+        if (viewers != null) tgx101Viewers = viewers;
+      });
+    }
     tgx101MenuPrefetchStart = android.os.SystemClock.uptimeMillis();
     tgx101MenuPrefetchReady = 0;
     final AtomicInteger left = new AtomicInteger(2);

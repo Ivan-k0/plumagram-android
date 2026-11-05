@@ -877,53 +877,71 @@ public final class Tgx101MessageMenu {
       row = new LinearLayout(context);
       row.setOrientation(LinearLayout.HORIZONTAL);
       row.setGravity(Gravity.CENTER_VERTICAL);
-      row.setPadding(Screen.dp(16f), 0, Screen.dp(12f), 0);
+      row.setPadding(Screen.dp(16f), 0, Screen.dp(8f), 0);
       android.widget.ImageView eye = new android.widget.ImageView(context);
       eye.setImageResource(R.drawable.baseline_visibility_24);
       eye.setColorFilter(Theme.getColor(ColorId.icon));
       row.addView(eye, new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f)));
       text = new TextView(context);
-      text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
+      text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f); // «11 просмотров» beside three faces fits whole
       text.setTextColor(Theme.getColor(ColorId.text));
       text.setSingleLine(true);
       text.setEllipsize(TextUtils.TruncateAt.END);
-      text.setText("…");
       LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-      textParams.leftMargin = Screen.dp(14f);
+      textParams.leftMargin = Screen.dp(10f);
       row.addView(text, textParams);
       // the place is kept from the start, the menu doesn't grow when the answer comes
       cardMain.addView(row, 0, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f)));
       cardMain.addView(divider(context), 1);
     }
+    final View faces[] = new View[1];
+    final me.vkryl.core.lambda.RunnableData<TdApi.MessageViewers> apply = viewers -> {
+      final int count = viewers != null ? viewers.viewers.length : 0;
+      if (reacted != null) {
+        org.thunderdog.challegram.data.TGReactions reactions = message.getMessageReactions();
+        int total = reactions != null ? reactions.getTotalCount() : 0;
+        if (count >= total && text != null) {
+          text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f);
+          text.setText(Lang.getString(R.string.Tgx101ReactedOfSeen, total, count));
+        }
+        return;
+      }
+      text.setText(viewers == null ? "—" : count == 0 ? MessageSeenController.getNobodyString(message) : count == 1 ? message.tdlib().senderName(new TdApi.MessageSenderUser(viewers.viewers[0].userId)) : MessageSeenController.getViewString(message, count).toString());
+      if (count == 0) return;
+      java.util.List<TdApi.MessageSender> senders = new ArrayList<>();
+      for (int i = 0; i < Math.min(3, count); i++) senders.add(new TdApi.MessageSenderUser(viewers.viewers[i].userId));
+      faces[0] = new Faces(context, message.tdlib(), senders);
+      row.addView(faces[0], new LinearLayout.LayoutParams(Screen.dp(22f + 14f * (senders.size() - 1) + 4f), Screen.dp(22f)));
+      Views.setClickable(row);
+      RippleSupport.setTransparentSelector(row);
+      row.setOnClickListener(v -> {
+        if (host.popup != null) host.popup.hideWindow(true);
+        if (count > 1) {
+          org.thunderdog.challegram.component.popups.ModernActionedLayout.showMessageSeen(c, message, viewers);
+        } else {
+          message.tdlib().ui().openPrivateProfile(c, viewers.viewers[0].userId, new org.thunderdog.challegram.telegram.TdlibUi.UrlOpenParameters());
+        }
+      });
+    };
+    // (user's video 2026-11-05 19:10): the row was empty for the first frames of the menu, then all came at once; asked for during the wait it's there from the start
+    final TdApi.MessageViewers known = message.tgx101Viewers;
+    if (known != null) {
+      apply.runWithData(known);
+    }
     message.tdlib().send(new TdApi.GetMessageViewers(message.getChatId(), message.getId()), (viewers, error) -> {
       if (error != null) {
         org.thunderdog.challegram.Tgx101Diag.mark("menu: viewers error " + error.code);
       }
+      if (known != null) return;
       c.runOnUiThreadOptional(() -> {
-        final int count = viewers != null ? viewers.viewers.length : 0;
-        if (reacted != null) {
-          org.thunderdog.challegram.data.TGReactions reactions = message.getMessageReactions();
-          int total = reactions != null ? reactions.getTotalCount() : 0;
-          if (count >= total && text != null) {
-            text.setText(Lang.getString(R.string.Tgx101ReactedOfSeen, total, count));
-          }
-          return;
+        apply.runWithData(viewers);
+        // came late: appears softly
+        text.setAlpha(0f);
+        text.animate().alpha(1f).setDuration(160).start();
+        if (faces[0] != null) {
+          faces[0].setAlpha(0f);
+          faces[0].animate().alpha(1f).setDuration(160).start();
         }
-        text.setText(viewers == null ? "—" : count == 0 ? MessageSeenController.getNobodyString(message) : count == 1 ? message.tdlib().senderName(new TdApi.MessageSenderUser(viewers.viewers[0].userId)) : MessageSeenController.getViewString(message, count).toString());
-        if (count == 0) return;
-        java.util.List<TdApi.MessageSender> senders = new ArrayList<>();
-        for (int i = 0; i < Math.min(3, count); i++) senders.add(new TdApi.MessageSenderUser(viewers.viewers[i].userId));
-        row.addView(new Faces(context, message.tdlib(), senders), new LinearLayout.LayoutParams(Screen.dp(22f + 14f * (senders.size() - 1) + 4f), Screen.dp(22f)));
-        Views.setClickable(row);
-        RippleSupport.setTransparentSelector(row);
-        row.setOnClickListener(v -> {
-          if (host.popup != null) host.popup.hideWindow(true);
-          if (count > 1) {
-            org.thunderdog.challegram.component.popups.ModernActionedLayout.showMessageSeen(c, message, viewers);
-          } else {
-            message.tdlib().ui().openPrivateProfile(c, viewers.viewers[0].userId, new org.thunderdog.challegram.telegram.TdlibUi.UrlOpenParameters());
-          }
-        });
       });
     });
   }

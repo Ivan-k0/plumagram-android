@@ -712,6 +712,8 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
       }
     };
 
+    backgroundView.animate().alpha(0f).setDuration(MenuMoreWrap.REVEAL_DURATION).start();
+
     Animator menuAnimator = null;
 
     if (Config.REVEAL_ANIMATION_AVAILABLE && menuWrap.getAnchorMode() == MenuMoreWrap.ANCHOR_MODE_RIGHT) {
@@ -827,6 +829,8 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
         }
         case ANIMATION_TYPE_MORE_SCALE:
         case ANIMATION_TYPE_MORE_REVEAL: {
+          // the dim starts at alpha 0 and only sheets' animation ever raised it: a ⋮ menu had none at all
+          backgroundView.animate().alpha(1f).setDuration(MenuMoreWrap.REVEAL_DURATION).start();
           Animator.AnimatorListener listener = new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd (Animator animation) {
