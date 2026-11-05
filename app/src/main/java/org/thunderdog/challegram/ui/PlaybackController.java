@@ -360,6 +360,11 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     tgx101Heart.setContentDescription(Lang.getString(R.string.Tgx101PlayerSave));
     tgx101Heart.setOnClickListener(v -> tgx101ToggleSaved());
     tgx101AttachFolderMenu(tgx101Heart);
+    tgx101Dislike = newButton(R.id.btn_tgx101Dislike, R.drawable.tgx101_thumb_down_outline_24, false);
+    tgx101Dislike.setContentDescription(Lang.getString(R.string.Tgx101Dislike));
+    tgx101Dislike.setOnClickListener(v -> tgx101ToggleDislike());
+    tgx101AttachDislikeMenu(tgx101Dislike);
+    org.thunderdog.challegram.player.Tgx101MusicTaste.addListener(tgx101TasteListener);
     tgx101HoldToSeek(nextButton, 1);
     tgx101HoldToSeek(prevButton, -1);
     playPauseButton = new PlayPauseButton(context);
@@ -375,6 +380,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     frameLayout.addView(playPauseButton);
 
     frameLayout.addView(tgx101Heart);
+    frameLayout.addView(tgx101Dislike);
 
     tgx101SpeedPill = new Tgx101Pill(context);
     tgx101SpeedPill.setTint(tgx101Tint);
@@ -386,12 +392,23 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     tgx101SpeedPill.setOnClickListener(v -> tgx101ShowSpeedSheet());
     addThemeInvalidateListener(tgx101SpeedPill);
     frameLayout.addView(tgx101SpeedPill);
+    tgx101LyricsPill = new Tgx101Pill(context);
+    tgx101LyricsPill.setTint(tgx101Tint);
+    tgx101LyricsPill.setController(this);
+    tgx101LyricsPill.setIcon(R.drawable.baseline_format_text_24);
+    FrameLayoutFix.LayoutParams lyricsParams = FrameLayoutFix.newParams(Screen.dp(48f), Screen.dp(40f));
+    lyricsParams.leftMargin = Screen.dp(16f + 64f + 8f);
+    tgx101LyricsPill.setLayoutParams(lyricsParams);
+    tgx101LyricsPill.setContentDescription(Lang.getString(R.string.Tgx101Lyrics));
+    tgx101LyricsPill.setOnClickListener(v -> tgx101ShowLyrics());
+    addThemeInvalidateListener(tgx101LyricsPill);
+    frameLayout.addView(tgx101LyricsPill);
     tgx101NextPill = new Tgx101Pill(context);
     tgx101NextPill.setTint(tgx101Tint);
     tgx101NextPill.setController(this);
     tgx101NextPill.setIcon(R.drawable.baseline_queue_music_24);
     FrameLayoutFix.LayoutParams nextParams = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(40f));
-    nextParams.leftMargin = Screen.dp(16f + 64f + 8f);
+    nextParams.leftMargin = Screen.dp(16f + 64f + 8f + 48f + 8f);
     nextParams.rightMargin = Screen.dp(16f);
     tgx101NextPill.setLayoutParams(nextParams);
     tgx101NextPill.setOnClickListener(v -> {
@@ -424,6 +441,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     super.destroy();
     tdlib.context().player().removeTrackListChangeListener(this);
     tdlib.context().player().removeTrackChangeListener(tgx101SpeedListener);
+    org.thunderdog.challegram.player.Tgx101MusicTaste.removeListener(tgx101TasteListener);
     TGLegacyManager.instance().removeEmojiListener(this);
     TGLegacyManager.instance().removeEmojiListener(adapter);
     Views.destroyRecyclerView(recyclerView);
@@ -767,6 +785,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     if (coverView != null) coverView.invalidate();
     if (tgx101SpeedPill != null) tgx101SpeedPill.invalidate();
     if (tgx101NextPill != null) tgx101NextPill.invalidate();
+    if (tgx101LyricsPill != null) tgx101LyricsPill.invalidate();
   }
 
   private void tgx101UpdateTint (InlineResultCommon item, boolean animated) {
@@ -827,111 +846,99 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     ensureScroll(hadItem);
     tgx101UpdateNextPill();
     tgx101UpdateHeart();
+    if (tgx101LyricsSheet != null && item != null) tgx101LyricsSheet.setItem(item);
   }
 
   // ♥: to the Storage, held to a folder of it (user 2026-11-04, player mockup)
 
-  private ImageView tgx101Heart;
-  private final android.util.SparseArray<long[]> tgx101SavedCopies = new android.util.SparseArray<>();
-  private final android.util.SparseArray<java.util.List<TdApi.Message>> tgx101SavedMessages = new android.util.SparseArray<>();
+  private ImageView tgx101Heart, tgx101Dislike;
+  private final Runnable tgx101TasteListener = this::tgx101UpdateHeart;
+
+  private org.thunderdog.challegram.player.Tgx101MusicTaste tgx101Taste () {
+    return org.thunderdog.challegram.player.Tgx101MusicTaste.get(tdlib);
+  }
 
   private void tgx101UpdateHeart () {
     if (tgx101Heart == null || currentItem == null) return;
-    boolean canSave = currentItem.getMessage().chatId != 0;
+    final TdApi.Message message = currentItem.getMessage();
+    boolean canSave = message.chatId != 0;
     tgx101Heart.setVisibility(canSave ? View.VISIBLE : View.GONE);
-    boolean saved = tgx101SavedCopies.get(currentItem.getTrackFile().id) != null;
+    boolean saved = tgx101Taste().isLiked(message);
     tgx101Heart.setImageResource(saved ? R.drawable.baseline_favorite_24 : R.drawable.tgx101_heart_outline_24);
     setActive(tgx101Heart, saved);
-  }
-
-  /** The copies get their real ids when they are sent; an empty entry until then keeps ♥ lit and unpressable */
-  private void tgx101ForwardToStorage (me.vkryl.core.lambda.RunnableData<long[]> after) {
-    if (currentItem == null) return;
-    final TdApi.Message message = currentItem.getMessage();
-    final int fileId = currentItem.getTrackFile().id;
-    tgx101SavedCopies.put(fileId, new long[0]);
-    tgx101UpdateHeart();
-    tdlib.send(new TdApi.ForwardMessages(tdlib.selfChatId(), null, message.chatId, new long[] {message.id}, null, false, false), (result, error) -> {
-      if (error != null) {
-        UI.post(() -> {
-          tgx101SavedCopies.remove(fileId);
-          if (!isDestroyed()) tgx101UpdateHeart();
-          UI.showError(error);
-        });
-        return;
-      }
-      // Listening here, on the client's thread: the answer about the sending can't come before it
-      final long[] ids = new long[result.messages.length];
-      final java.util.ArrayList<Long> waiting = new java.util.ArrayList<>();
-      final java.util.ArrayList<TdApi.Message> copies = new java.util.ArrayList<>(java.util.Arrays.asList(result.messages));
-      UI.post(() -> tgx101SavedMessages.put(fileId, copies));
-      for (int i = 0; i < ids.length; i++) {
-        ids[i] = result.messages[i].id;
-        if (result.messages[i].sendingState != null) waiting.add(ids[i]);
-      }
-      if (waiting.isEmpty()) {
-        UI.post(() -> tgx101OnSavedCopies(fileId, ids, after));
-        return;
-      }
-      final long selfChatId = tdlib.selfChatId();
-      final org.thunderdog.challegram.telegram.MessageListener[] listener = new org.thunderdog.challegram.telegram.MessageListener[1];
-      listener[0] = new org.thunderdog.challegram.telegram.MessageListener() {
-        @Override
-        public void onMessageSendSucceeded (TdApi.Message sent, long oldMessageId) {
-          UI.post(() -> {
-            if (!waiting.remove((Long) oldMessageId)) return;
-            for (int i = 0; i < ids.length; i++) {
-              if (ids[i] == oldMessageId) {
-                ids[i] = sent.id;
-                copies.set(i, sent);
-              }
-            }
-            if (waiting.isEmpty()) {
-              tdlib.listeners().unsubscribeFromMessageUpdates(selfChatId, listener[0]);
-              tgx101OnSavedCopies(fileId, ids, after);
-            }
-          });
-        }
-
-        @Override
-        public void onMessageSendFailed (TdApi.Message failed, long oldMessageId, TdApi.Error sendError) {
-          UI.post(() -> {
-            if (!waiting.remove((Long) oldMessageId)) return;
-            tdlib.listeners().unsubscribeFromMessageUpdates(selfChatId, listener[0]);
-            tgx101SavedCopies.remove(fileId);
-            if (!isDestroyed()) tgx101UpdateHeart();
-            UI.showError(sendError);
-          });
-        }
-      };
-      tdlib.listeners().subscribeToMessageUpdates(selfChatId, listener[0]);
-    });
-  }
-
-  private void tgx101OnSavedCopies (int fileId, long[] ids, me.vkryl.core.lambda.RunnableData<long[]> after) {
-    tgx101SavedCopies.put(fileId, ids);
-    if (!isDestroyed()) tgx101UpdateHeart();
-    after.runWithData(ids);
+    boolean disliked = tgx101Taste().isDisliked(message);
+    tgx101Dislike.setImageResource(disliked ? R.drawable.tgx101_thumb_down_24 : R.drawable.tgx101_thumb_down_outline_24);
+    setActive(tgx101Dislike, disliked);
+    if (coverView != null) coverView.invalidate();
   }
 
   private void tgx101ToggleSaved () {
+    if (currentItem != null) tgx101Taste().toggleLike(currentItem.getMessage());
+  }
+
+  // 👎 (user 2026-11-05): the next track, this one isn't offered by the wave any more, with «Undo» for a slip of a finger; pressed again
+  // on a hidden one: it's back. Nothing else changes: an artist goes only by a choice in the menu of the held button
+
+  private void tgx101ToggleDislike () {
     if (currentItem == null) return;
-    int fileId = currentItem.getTrackFile().id;
-    long[] copies = tgx101SavedCopies.get(fileId);
-    if (copies != null) { // only what this very button has just put there
-      if (copies.length == 0) return; // still being sent
-      tgx101SavedCopies.remove(fileId);
-      tdlib.send(new TdApi.DeleteMessages(tdlib.selfChatId(), copies, true), tdlib.typedOkHandler());
-      UI.showToast(R.string.Tgx101PlayerUnsaved, android.widget.Toast.LENGTH_SHORT);
-      tgx101UpdateHeart();
+    final TdApi.Message message = currentItem.getMessage();
+    if (tgx101Taste().isDisliked(message)) {
+      tgx101Taste().setDisliked(message, false);
       return;
     }
-    // (group 2026-11-05 00:08 «нажатие на лайк автоматом сохраняет в хранилище в папку музыка, если не выбрана иная»)
-    tgx101ForwardToStorage(ids -> {
-      org.thunderdog.challegram.data.Tgx101SavedStore store = org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib);
-      org.thunderdog.challegram.data.Tgx101SavedStore.Folder folder = store.playerFolder(Lang.getString(R.string.Tgx101PlayerMusicFolder));
-      store.putInFolderKeepingLast(folder.id, ids);
-      UI.showToast(Lang.getString(R.string.Tgx101SavedPutDone, folder.name), android.widget.Toast.LENGTH_SHORT);
+    tgx101Taste().setDisliked(message, true);
+    tdlib.context().player().skip(true);
+    tgx101ShowUndo(message);
+  }
+
+  private org.thunderdog.challegram.widget.SnackBar tgx101Snack;
+  private Runnable tgx101SnackHide;
+
+  private void tgx101ShowUndo (TdApi.Message message) {
+    if (tgx101Snack != null) {
+      tgx101Snack.dismissSnackBar(false);
+    }
+    if (tgx101SnackHide != null) UI.removePendingRunnable(tgx101SnackHide);
+    final org.thunderdog.challegram.widget.SnackBar snack = new org.thunderdog.challegram.widget.SnackBar(context);
+    tgx101Snack = snack;
+    Views.setPaddingBottom(snack, extraBottomInsetWithoutIme);
+    snack.setCallback(new org.thunderdog.challegram.widget.SnackBar.Callback() {
+      @Override
+      public void onSnackBarTransition (org.thunderdog.challegram.widget.SnackBar v, float factor) { }
+
+      @Override
+      public void onDestroySnackBar (org.thunderdog.challegram.widget.SnackBar v) {
+        if (tgx101Snack == v) tgx101Snack = null;
+        if (v.getParent() instanceof ViewGroup) ((ViewGroup) v.getParent()).removeView(v);
+      }
+    });
+    snack.addThemeListeners(this);
+    snack.setText(Lang.getString(R.string.Tgx101DislikeDone));
+    snack.setAction(Lang.getString(R.string.Tgx101Undo), () -> {
+      tgx101Taste().setDisliked(message, false);
+      if (!isDestroyed()) tdlib.context().player().playPauseMessage(tdlib, message, this);
+    }, true);
+    ((ViewGroup) getValue()).addView(snack);
+    snack.showSnackBar(true);
+    tgx101SnackHide = () -> {
+      if (tgx101Snack == snack) snack.dismissSnackBar(true);
+    };
+    UI.post(tgx101SnackHide, 5000);
+  }
+
+  private void tgx101AttachDislikeMenu (View button) {
+    final View.OnTouchListener keepFinger = (v, e) -> {
+      if (e.getActionMasked() == MotionEvent.ACTION_DOWN && v.getParent() != null) {
+        v.getParent().requestDisallowInterceptTouchEvent(true);
+      }
+      return false;
+    };
+    button.setOnTouchListener(keepFinger);
+    button.setOnLongClickListener(v -> {
+      if (currentItem == null) return false;
+      UI.forceVibrate(v, false);
+      new Tgx101DislikeMenu(this, v, keepFinger, currentItem.getMessage());
+      return true;
     });
   }
 
@@ -952,49 +959,18 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       new Tgx101HeartMenu(this, v, keepFinger, new Tgx101HeartMenu.Host() {
         @Override
         public void withSavedCopy (me.vkryl.core.lambda.RunnableData<java.util.List<TdApi.Message>> action) {
-          tgx101WithSavedCopy(action);
+          if (currentItem != null) tgx101Taste().withCopy(currentItem.getMessage(), action);
         }
 
         @Override
         public void saveToFolder (long folderId) {
-          if (folderId != 0) {
-            tgx101SaveToFolder(folderId);
-          } else {
-            tgx101SaveToFolder(org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).playerFolder(Lang.getString(R.string.Tgx101PlayerMusicFolder)).id);
-          }
+          if (currentItem == null) return;
+          long id = folderId != 0 ? folderId : org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).playerFolder(Lang.getString(R.string.Tgx101PlayerMusicFolder)).id;
+          tgx101Taste().saveToFolder(currentItem.getMessage(), id);
         }
       });
       return true;
     });
-  }
-
-  private void tgx101WithSavedCopy (me.vkryl.core.lambda.RunnableData<java.util.List<TdApi.Message>> action) {
-    if (currentItem == null) return;
-    final int fileId = currentItem.getTrackFile().id;
-    long[] copies = tgx101SavedCopies.get(fileId);
-    if (copies == null) {
-      tgx101ForwardToStorage(ids -> action.runWithData(tgx101SavedMessages.get(fileId)));
-    } else if (copies.length != 0) {
-      action.runWithData(tgx101SavedMessages.get(fileId));
-    }
-  }
-
-  private void tgx101SaveToFolder (long folderId) {
-    if (currentItem == null) return;
-    final org.thunderdog.challegram.data.Tgx101SavedStore store = org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib);
-    store.setPlayerFolder(folderId);
-    final me.vkryl.core.lambda.RunnableData<long[]> put = ids -> {
-      org.thunderdog.challegram.data.Tgx101SavedStore.Folder folder = store.folder(folderId);
-      if (folder == null) return;
-      store.putInFolderKeepingLast(folderId, ids);
-      UI.showToast(Lang.getString(R.string.Tgx101SavedPutDone, folder.name), android.widget.Toast.LENGTH_SHORT);
-    };
-    long[] copies = tgx101SavedCopies.get(currentItem.getTrackFile().id);
-    if (copies == null) {
-      tgx101ForwardToStorage(put);
-    } else if (copies.length != 0) {
-      put.runWithData(copies);
-    }
   }
 
   // Queue search and the file's details (user 2026-11-04, player mockup): sheets over the list, the list itself stays as it is
@@ -1162,6 +1138,36 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     }
   }
 
+  /** (user 2026-11-05) «Wave», and the similar tracks from outside: off until the warning is read and it's switched on */
+  private void tgx101ShowWaveSheet () {
+    final Tgx101Sheet.Handle[] handle = new Tgx101Sheet.Handle[1];
+    handle[0] = Tgx101Sheet.show(this, null, body -> {
+      body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101Wave)));
+      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_music_note_24, 0, Lang.getString(R.string.Tgx101WaveStart), null, false, v -> {
+        handle[0].dismiss();
+        tgx101StartWave();
+      }));
+      final org.thunderdog.challegram.unsorted.Settings settings = org.thunderdog.challegram.unsorted.Settings.instance();
+      final boolean on = settings.tgx101WaveHints();
+      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_search_24, 0, Lang.getString(on ? R.string.Tgx101WaveHintsOff : R.string.Tgx101WaveHintsOn), null, on, v -> {
+        settings.setTgx101WaveHints(!on);
+        handle[0].dismiss();
+        tgx101ShowWaveSheet();
+      }));
+      android.widget.TextView warning = Tgx101SavedHomeController.text(context, 13f, Theme.textDecentColor(), false);
+      warning.setText(Lang.getString(R.string.Tgx101WaveHintsWarning));
+      warning.setPadding(Screen.dp(20f), Screen.dp(2f), Screen.dp(20f), Screen.dp(6f));
+      body.addView(warning);
+    });
+  }
+
+  private void tgx101StartWave () {
+    String artist = currentItem != null ? org.thunderdog.challegram.player.Tgx101MusicTaste.artistOf(currentItem.getMessage()) : null;
+    org.thunderdog.challegram.player.Tgx101Wave.start(tdlib, artist, started -> {
+      if (!started) UI.showToast(R.string.Tgx101WaveEmpty, android.widget.Toast.LENGTH_SHORT);
+    });
+  }
+
   private void tgx101ShowFileDetails () {
     if (currentItem == null) return;
     final TdApi.Audio audio = currentItem.getTrackAudio();
@@ -1240,7 +1246,14 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   // The row under the buttons (user 2026-11-04, player mockup)
 
-  private Tgx101Pill tgx101SpeedPill, tgx101NextPill;
+  private Tgx101Pill tgx101SpeedPill, tgx101NextPill, tgx101LyricsPill;
+  private Tgx101LyricsSheet tgx101LyricsSheet;
+
+  private void tgx101ShowLyrics () {
+    if (currentItem != null && tgx101LyricsSheet == null) {
+      tgx101LyricsSheet = new Tgx101LyricsSheet(this, currentItem, () -> tgx101LyricsSheet = null);
+    }
+  }
 
   private final TGPlayerController.TrackChangeListener tgx101SpeedListener = new TGPlayerController.TrackChangeListener() {
     @Override
@@ -1420,7 +1433,8 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       if (iconRes != 0) {
         android.graphics.drawable.Drawable icon = Drawables.get(getResources(), iconRes);
         if (icon != null) {
-          Drawables.drawCentered(c, icon, left + Screen.dp(9f), getHeight() / 2f, Paints.getIconGrayPorterDuffPaint());
+          // with no words: in the middle of the pill
+          Drawables.drawCentered(c, icon, text.length() == 0 ? getWidth() / 2f : left + Screen.dp(9f), getHeight() / 2f, Paints.getIconGrayPorterDuffPaint());
         }
         left += Screen.dp(26f);
       }
@@ -1453,6 +1467,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
   public void onTrackPlayProgress (Tdlib tdlib, long chatId, long messageId, int fileId, float progress, long playPosition, long playDuration, boolean isBuffering) {
     if (currentItem != null && TGPlayerController.compareTracks(currentItem.getMessage(), chatId, messageId, fileId)) {
       coverView.setDurations(playPosition, playDuration);
+      if (tgx101LyricsSheet != null) tgx101LyricsSheet.onProgress(playPosition);
     }
   }
 
@@ -3110,10 +3125,12 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       }
       controller.tgx101TintButton(controller.shuffleButton, controller.isShuffleActive());
       controller.tgx101TintButton(controller.repeatButton, controller.isRepeatActive());
-      controller.tgx101TintButton(controller.tgx101Heart, controller.currentItem != null && controller.tgx101SavedCopies.get(controller.currentItem.getTrackFile().id) != null);
+      controller.tgx101TintButton(controller.tgx101Heart, controller.currentItem != null && controller.tgx101Taste().isLiked(controller.currentItem.getMessage()));
+      controller.tgx101TintButton(controller.tgx101Dislike, controller.currentItem != null && controller.tgx101Taste().isDisliked(controller.currentItem.getMessage()));
       float rowY = overlayHeight - Screen.dp(TGX101_ROW_DP) / 2f - controller.tgx101SpeedPill.getMeasuredHeight() / 2f - Screen.dp(4f);
       controller.tgx101SpeedPill.setTranslationY(rowY);
       controller.tgx101NextPill.setTranslationY(rowY);
+      controller.tgx101LyricsPill.setTranslationY(rowY);
       // beside the title of the big cover; the collapsed header has its own ⋮ there
       View heart = controller.tgx101Heart;
       heart.setTranslationX(startX + workingDistance - heart.getMeasuredWidth());
@@ -3121,6 +3138,12 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       float heartAlpha = coverFactor;
       heart.setAlpha(heartAlpha);
       heart.setEnabled(heartAlpha > .5f);
+      // 👎 across the title from it
+      View dislike = controller.tgx101Dislike;
+      dislike.setTranslationX(startX);
+      dislike.setTranslationY(heart.getTranslationY());
+      dislike.setAlpha(heartAlpha);
+      dislike.setEnabled(heartAlpha > .5f);
     }
   }
 
@@ -3298,6 +3321,9 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         strings.append(R.string.PlayListReverse);
       }
 
+      ids.append(R.id.btn_tgx101Wave);
+      strings.append(R.string.Tgx101Wave);
+
       ids.append(R.id.btn_tgx101QueueSearch);
       strings.append(R.string.Tgx101PlayerSearch);
 
@@ -3310,7 +3336,9 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   @Override
   public void onMoreItemPressed (int id) {
-    if (id == R.id.btn_tgx101QueueSearch) {
+    if (id == R.id.btn_tgx101Wave) {
+      tgx101ShowWaveSheet();
+    } else if (id == R.id.btn_tgx101QueueSearch) {
       tgx101ShowQueueSearch();
     } else if (id == R.id.btn_tgx101TrackInfo) {
       tgx101ShowFileDetails();

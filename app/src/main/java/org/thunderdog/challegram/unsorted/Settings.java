@@ -2421,6 +2421,11 @@ public class Settings {
       }
       pmc.putBoolean(marker7, true);
     }
+    final String marker8 = "tgx101_defaults_2026_11_05";
+    if (!pmc.getBoolean(marker8, false)) {
+      if (!freshInstall && !pmc.contains(KEY_TGX101_SNOOZE_MINUTES)) pmc.putInt(KEY_TGX101_SNOOZE_MINUTES, 30);
+      pmc.putBoolean(marker8, true);
+    }
   }
 
   private boolean isFreshAppInstallation () {
@@ -4181,7 +4186,7 @@ public class Settings {
   public static final int TGX101_NOTIF_BUTTON_LIKE = -1, TGX101_NOTIF_BUTTON_HEART = -2;
 
   public int tgx101SnoozeMinutes () {
-    return pmc.getInt(KEY_TGX101_SNOOZE_MINUTES, 30);
+    return pmc.getInt(KEY_TGX101_SNOOZE_MINUTES, TGX101_NOTIF_BUTTON_LIKE); // new installs (group 2026-11-05 11:48): «Нравится» in the middle
   }
 
   public void setTgx101SnoozeMinutes (int minutes) {
@@ -4512,6 +4517,24 @@ public class Settings {
 
   public void setTgx101PlayerShowsTotal (boolean value) {
     pmc.putBoolean("tgx101_player_shows_total", value);
+  }
+
+  /** TGx101 music player: the wave asks outside services what is similar */
+  public boolean tgx101WaveHints () {
+    return pmc.getBoolean("tgx101_wave_hints", false);
+  }
+
+  public void setTgx101WaveHints (boolean value) {
+    pmc.putBoolean("tgx101_wave_hints", value);
+  }
+
+  /** TGx101 music player: {@link org.thunderdog.challegram.player.Tgx101MusicTaste} */
+  public @androidx.annotation.Nullable String tgx101MusicTaste (int accountId) {
+    return pmc.getString("tgx101_music_taste_" + accountId, null);
+  }
+
+  public void setTgx101MusicTaste (int accountId, String value) {
+    pmc.putString("tgx101_music_taste_" + accountId, value);
   }
 
   /** TGx101 music player: the last music, for the bird's «Player» when nothing plays */

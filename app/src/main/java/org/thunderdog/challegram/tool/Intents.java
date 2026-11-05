@@ -121,6 +121,8 @@ public class Intents {
   public static final String ACTION_PLAYBACK_STOP = PACKAGE_NAME + ".ACTION_PLAY_STOP";
   public static final String ACTION_PLAYBACK_PLAY = PACKAGE_NAME + ".ACTION_PLAY_PLAY";
   public static final String ACTION_PLAYBACK_PAUSE = PACKAGE_NAME + ".ACTION_PLAY_PAUSE";
+  public static final String ACTION_PLAYBACK_LIKE = PACKAGE_NAME + ".ACTION_PLAY_LIKE";
+  public static final String ACTION_PLAYBACK_DISLIKE = PACKAGE_NAME + ".ACTION_PLAY_DISLIKE";
   public static final String CHANNEL_ID_PLAYBACK = "playback";
 
   @RequiresApi(Build.VERSION_CODES.O)

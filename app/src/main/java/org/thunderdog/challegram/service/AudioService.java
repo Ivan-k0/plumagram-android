@@ -511,6 +511,15 @@ public class AudioService extends Service implements TGPlayerController.TrackLis
         }
 
         @Override
+        public void onCustomAction (@NonNull String action, @androidx.annotation.Nullable android.os.Bundle extras) {
+          if (TGX101_ACTION_LIKE.equals(action)) {
+            tgx101Like();
+          } else if (TGX101_ACTION_DISLIKE.equals(action)) {
+            tgx101Dislike();
+          }
+        }
+
+        @Override
         public void onSkipToNext () {
           TdlibManager.instance().player().skip(true);
         }
@@ -601,6 +610,15 @@ public class AudioService extends Service implements TGPlayerController.TrackLis
         actions |= android.media.session.PlaybackState.ACTION_SKIP_TO_PREVIOUS;
       }
       stateBuilder.setActions(actions);
+      if (currentTrack != null && currentTdlib != null) {
+        org.thunderdog.challegram.player.Tgx101MusicTaste taste = org.thunderdog.challegram.player.Tgx101MusicTaste.get(currentTdlib);
+        stateBuilder.addCustomAction(new android.media.session.PlaybackState.CustomAction.Builder(TGX101_ACTION_DISLIKE, Lang.getString(R.string.Tgx101Dislike),
+          taste.isDisliked(currentTrack) ? R.drawable.tgx101_thumb_down_24 : R.drawable.tgx101_thumb_down_outline_24).build());
+        if (tgx101CanLike()) {
+          stateBuilder.addCustomAction(new android.media.session.PlaybackState.CustomAction.Builder(TGX101_ACTION_LIKE, Lang.getString(R.string.Tgx101PlayerSave),
+            taste.isLiked(currentTrack) ? R.drawable.baseline_favorite_24 : R.drawable.tgx101_heart_outline_24).build());
+        }
+      }
 
       stateBuilder.setState(
         playState == TGPlayerController.STATE_PLAYING ?
@@ -611,7 +629,51 @@ public class AudioService extends Service implements TGPlayerController.TrackLis
     }
   }
 
+  // (user 2026-11-05 «лайк и дизлайк по бокам, кнопка стоп зачем нужна?»): 👎 ⏮ ⏯ ⏭ ♥. The system's music card takes these two from the
+  // session, older ones from the notification's actions. A paused card is closed by swiping it away
+
+  private static final String TGX101_ACTION_LIKE = "tgx101_like", TGX101_ACTION_DISLIKE = "tgx101_dislike";
+
+  /** The track that plays now, with its account */
+  private static @androidx.annotation.Nullable Object[] tgx101Current () {
+    TGPlayerController player = TdlibManager.instance().player();
+    TdApi.Message track = player.getCurrentTrack();
+    Tdlib tdlib = player.tgx101CurrentTdlib();
+    return track != null && tdlib != null && track.content instanceof TdApi.MessageAudio ? new Object[] {tdlib, track} : null;
+  }
+
+  public static void tgx101Like () {
+    Object[] current = tgx101Current();
+    if (current != null) org.thunderdog.challegram.player.Tgx101MusicTaste.get((Tdlib) current[0]).toggleLike((TdApi.Message) current[1]);
+  }
+
+  public static void tgx101Dislike () {
+    Object[] current = tgx101Current();
+    if (current == null) return;
+    org.thunderdog.challegram.player.Tgx101MusicTaste taste = org.thunderdog.challegram.player.Tgx101MusicTaste.get((Tdlib) current[0]);
+    TdApi.Message track = (TdApi.Message) current[1];
+    boolean hide = !taste.isDisliked(track);
+    taste.setDisliked(track, hide);
+    if (hide) TdlibManager.instance().player().skip(true);
+  }
+
+  private final Runnable tgx101TasteListener = () -> {
+    if (currentTrack != null) {
+      updateNotification();
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) setSessionPlayState();
+    }
+  };
+  private boolean tgx101ListensToTaste;
+
+  private boolean tgx101CanLike () {
+    return currentTrack != null && currentTrack.chatId != 0;
+  }
+
   private void destroyResources () {
+    if (tgx101ListensToTaste) {
+      tgx101ListensToTaste = false;
+      org.thunderdog.challegram.player.Tgx101MusicTaste.removeListener(tgx101TasteListener);
+    }
     TdlibManager.instance().player().setReduceVolume(false);
     emptyCover = recycleBitmap(emptyCover);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && mediaSession != null) {
@@ -668,6 +730,22 @@ public class AudioService extends Service implements TGPlayerController.TrackLis
 
     // PendingIntent pIntent = PendingIntent.getActivity(this, (int) SystemClock.uptimeMillis(), new Intent(this, MainActivity.class), 0);
 
+    if (!tgx101ListensToTaste) {
+      tgx101ListensToTaste = true;
+      org.thunderdog.challegram.player.Tgx101MusicTaste.addListener(tgx101TasteListener);
+    }
+    org.thunderdog.challegram.player.Tgx101MusicTaste tgx101Taste = org.thunderdog.challegram.player.Tgx101MusicTaste.get(currentTdlib);
+    // Android 4: the system can't draw vector icons in a notification, and there's no card with sides to put them on
+    final boolean tgx101Sides = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
+    if (!tgx101Sides) {
+      // ⏮ ⏯ ⏭, and ⏹ on pause, as it has always been
+    } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && playState != TGPlayerController.STATE_PLAYING) {
+      // Before Android 13 a paused card can't be swiped away: here ⏹ is the only way to close it from the shade
+      b.addAction(R.drawable.baseline_stop_24_white, Lang.getString(R.string.PlayStop), PendingIntent.getBroadcast(this, 100, valueOf(Intents.ACTION_PLAYBACK_STOP), Intents.mutabilityFlags(false)));
+    } else {
+      b.addAction(tgx101Taste.isDisliked(currentTrack) ? R.drawable.tgx101_thumb_down_24 : R.drawable.tgx101_thumb_down_outline_24, Lang.getString(R.string.Tgx101Dislike),
+        PendingIntent.getBroadcast(this, 100, valueOf(Intents.ACTION_PLAYBACK_DISLIKE), Intents.mutabilityFlags(false)));
+    }
     b.addAction(R.drawable.baseline_skip_previous_24_white, Lang.getString(R.string.PlaySkipPrev), prevIntent);
     if (playState == TGPlayerController.STATE_PLAYING) {
       b.addAction(R.drawable.baseline_pause_36_white, Lang.getString(R.string.PlayPause), playPauseIntent);
@@ -675,14 +753,21 @@ public class AudioService extends Service implements TGPlayerController.TrackLis
       b.addAction(R.drawable.baseline_play_arrow_36_white, Lang.getString(playPosition > 0 ? R.string.PlayResume : R.string.PlayPlay), playPauseIntent);
     }
     b.addAction(R.drawable.baseline_skip_next_24_white, Lang.getString(R.string.PlaySkipNext), nextIntent);
+    if (!tgx101Sides) {
+      if (playState != TGPlayerController.STATE_PLAYING) {
+        b.addAction(R.drawable.baseline_stop_24_white, Lang.getString(R.string.PlayStop), PendingIntent.getBroadcast(this, 100, valueOf(Intents.ACTION_PLAYBACK_STOP), Intents.mutabilityFlags(false)));
+      }
+    } else if (tgx101CanLike()) {
+      b.addAction(tgx101Taste.isLiked(currentTrack) ? R.drawable.baseline_favorite_24 : R.drawable.tgx101_heart_outline_24, Lang.getString(R.string.Tgx101PlayerSave),
+        PendingIntent.getBroadcast(this, 100, valueOf(Intents.ACTION_PLAYBACK_LIKE), Intents.mutabilityFlags(false)));
+    }
     if (playState != TGPlayerController.STATE_PLAYING) {
-      PendingIntent stopIntent = PendingIntent.getBroadcast(this, 100, valueOf(Intents.ACTION_PLAYBACK_STOP), Intents.mutabilityFlags(false));
-      b.addAction(R.drawable.baseline_stop_24_white, Lang.getString(R.string.PlayStop), stopIntent);
+      b.setDeleteIntent(PendingIntent.getBroadcast(this, 100, valueOf(Intents.ACTION_PLAYBACK_STOP), Intents.mutabilityFlags(false)));
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       b.setColor(currentTdlib.accountPlayerColor());
-      int[] indexes = new int[] {0,1,2};
+      int[] indexes = new int[] {1,2,3};
       b.setStyle(new Notification.MediaStyle().setShowActionsInCompactView(indexes).setMediaSession(((android.media.session.MediaSession) mediaSession).getSessionToken()));
     }
     b.setSmallIcon(R.drawable.baseline_play_circle_filled_24_white);

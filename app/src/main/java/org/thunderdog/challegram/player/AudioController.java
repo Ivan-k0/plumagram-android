@@ -632,6 +632,17 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
     }
   }
 
+  /** There's a track that way: {@link #skip} would go to it, not close the player */
+  public boolean tgx101CanSkip (boolean next) {
+    if (playbackMode != PLAYBACK_MODE_EXOPLAYER_LIST || exoPlayer == null) {
+      return false;
+    }
+    if (exoPlayer.getRepeatMode() == Player.REPEAT_MODE_ONE) {
+      return exoPlayer.getMediaItemCount() > 1; // skip goes through the whole list there
+    }
+    return (next ? exoPlayer.getNextWindowIndex() : exoPlayer.getPreviousWindowIndex()) != C.POSITION_UNSET;
+  }
+
   public void skip (boolean next) {
     if (playbackMode == PLAYBACK_MODE_UNSET) {
       return;
