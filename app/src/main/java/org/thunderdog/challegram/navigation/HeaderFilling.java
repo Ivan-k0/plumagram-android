@@ -177,7 +177,50 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     }
   }
 
+  // (user 2026-11-05 «красить в цвет шапки газеты»): over a screen with its own header colours the music's bar takes them
+  private static final float TGX101_BAR_LINE_DP = 3f;
+  private float tgx101BarCollapse;
+
+  /** 0 the whole bar … 1 a line of the progress; a screen hiding its header says how far it has gone */
+  public void tgx101SetBarCollapse (float factor) {
+    if (tgx101BarCollapse != factor) {
+      tgx101BarCollapse = factor;
+      invalidateOngoingBar();
+    }
+  }
+
+  private @Nullable ViewController<?> tgx101Screen () {
+    return navigationController != null ? navigationController.getCurrentStackItem() : null;
+  }
+
+  private int tgx101ScreenFill () {
+    ViewController<?> screen = tgx101Screen();
+    return screen != null ? screen.tgx101HeaderColor() : 0;
+  }
+
+  private int tgx101ScreenText () {
+    ViewController<?> screen = tgx101Screen();
+    return screen != null && tgx101ScreenFill() != 0 ? screen.tgx101HeaderTextColor() : 0;
+  }
+
+  private int tgx101BarFill () {
+    int custom = tgx101ScreenFill();
+    return custom != 0 ? custom : tgx101Tint.background(Theme.fillingColor());
+  }
+
+  private int tgx101BarIcon () {
+    int custom = tgx101ScreenText();
+    return custom != 0 ? custom : Theme.iconColor();
+  }
+
+  private @Nullable TextColorSet tgx101TextSet () {
+    final int custom = tgx101ScreenText();
+    return custom == 0 ? null : () -> custom;
+  }
+
   private int getSpeedCounterColor () {
+    final int custom = tgx101ScreenText();
+    if (custom != 0) return custom;
     return ColorUtils.fromToArgb(Theme.getColor(ColorId.icon), Theme.getColor(ColorId.iconActive), speedIsActive.getFloatValue());
   }
 
@@ -705,17 +748,28 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
 
   private void drawOngoingAudio (Canvas c, int playerTop, float rectWidth, int playerBottom) {
     if (restoreRect && restorePixels > 0) {
-      c.drawRect(rectWidth, playerTop, width, playerBottom, Paints.fillingPaint(tgx101Tint.background(Theme.fillingColor())));
+      c.drawRect(rectWidth, playerTop, width, playerBottom, Paints.fillingPaint(tgx101BarFill()));
     }
 
-    final int playerFillingColor = ColorUtils.alphaColor(dropShadowAlpha, tgx101Tint.background(Theme.fillingColor()));
+    final int playerFillingColor = ColorUtils.alphaColor(dropShadowAlpha, tgx101BarFill());
+    final int customText = tgx101ScreenText();
+    final int seekColor = customText != 0 ? customText : tgx101Tint.accent(Theme.getColor(ColorId.headerBarCallActive));
+    // (user 2026-11-05) with a screen's header gone the bar is a line of the progress under the status bar
+    final int collapsedBottom = playerTop + Screen.dp(TGX101_BAR_LINE_DP);
+    final int shownBottom = tgx101BarCollapse > 0f ? (int) (playerBottom + (collapsedBottom - playerBottom) * tgx101BarCollapse) : playerBottom;
 
-    c.drawRect(0, playerTop, rectWidth, playerBottom, Paints.fillingPaint(playerFillingColor));
+    c.drawRect(0, playerTop, rectWidth, shownBottom, Paints.fillingPaint(playerFillingColor));
     if (seekFactor != 0f) {
-      c.drawRect(0, playerBottom - (Screen.dp(1f) + 1), (int) (width * seekFactor), playerBottom, Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha, tgx101Tint.accent(Theme.getColor(ColorId.headerBarCallActive)))));
+      c.drawRect(0, shownBottom - (Screen.dp(1f) + 1) - (int) (Screen.dp(1f) * tgx101BarCollapse), (int) (width * seekFactor), shownBottom, Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha, seekColor)));
     }
+    if (tgx101BarCollapse >= 1f) return;
 
     final float tgx101ShownAlpha = dropShadowAlpha;
+    final int tgx101CollapseSave = tgx101BarCollapse > 0f ? c.save() : -1;
+    if (tgx101BarCollapse > 0f) {
+      c.clipRect(0, playerTop, width, shownBottom);
+      dropShadowAlpha *= Math.max(0f, 1f - tgx101BarCollapse * 1.6f);
+    }
     final boolean tgx101Swiped = tgx101SwipeDx != 0f && width > 0;
     if (tgx101Swiped) {
       dropShadowAlpha *= Math.max(0f, 1f - Math.abs(tgx101SwipeDx) / (width * .7f));
@@ -730,10 +784,10 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     }
 
     TdApi.File file = TD.getFile(playingMessage);
-    DrawAlgorithms.drawPlayPause(c, Screen.dp(28f), playerBottom - Size.getHeaderPlayerSize() / 2, Screen.dp(12f), playPausePath, playPauseDrawFactor, playPauseDrawFactor = playPauseFactor, file != null ? TD.getFileProgress(file) : 1f, ColorUtils.alphaColor(dropShadowAlpha, Theme.iconColor()));
+    DrawAlgorithms.drawPlayPause(c, Screen.dp(28f), playerBottom - Size.getHeaderPlayerSize() / 2, Screen.dp(12f), playPausePath, playPauseDrawFactor, playPauseDrawFactor = playPauseFactor, file != null ? TD.getFileProgress(file) : 1f, ColorUtils.alphaColor(dropShadowAlpha, tgx101BarIcon()));
 
     if (tgx101ShowsNext()) {
-      Drawables.draw(c, forwardIcon, getRightButtonLeft(width - Screen.dp(TGX101_SPEED_GAP), 2), playerBottom - Size.getHeaderPlayerSize() / 2 - forwardIcon.getMinimumHeight() / 2, dropShadowAlpha == 1f ? Paints.getIconGrayPorterDuffPaint() : Paints.getPorterDuffPaint(ColorUtils.alphaColor(dropShadowAlpha, Theme.iconColor())));
+      Drawables.draw(c, forwardIcon, getRightButtonLeft(width - Screen.dp(TGX101_SPEED_GAP), 2), playerBottom - Size.getHeaderPlayerSize() / 2 - forwardIcon.getMinimumHeight() / 2, dropShadowAlpha == 1f && customText == 0 ? Paints.getIconGrayPorterDuffPaint() : Paints.getPorterDuffPaint(ColorUtils.alphaColor(dropShadowAlpha, tgx101BarIcon())));
     }
     drawCloseIcon(c, playerTop, width, playerBottom, true);
 
@@ -742,18 +796,19 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       final int oldTop = playerTop + Screen.dp(9f);
       final float oldAlpha = (1f - tgx101TextSwap) * dropShadowAlpha;
       if (tgx101OldTitle != null) {
-        tgx101OldTitle.draw(c, textLeft, oldTop, null, oldAlpha);
+        tgx101OldTitle.draw(c, textLeft, oldTop, tgx101TextSet(), oldAlpha);
       }
       if (tgx101OldSubtitle != null) {
-        tgx101OldSubtitle.draw(c, textLeft + (tgx101OldTitle != null ? tgx101OldTitle.getWidth() : 0), oldTop, null, oldAlpha);
+        tgx101OldSubtitle.draw(c, textLeft + (tgx101OldTitle != null ? tgx101OldTitle.getWidth() : 0), oldTop, tgx101TextSet(), oldAlpha);
       }
     }
-    drawOngoingText(c, playerTop, rectWidth, playerBottom, textLeft, null, tgx101TextSwap, tgx101TextSwap);
+    drawOngoingText(c, playerTop, rectWidth, playerBottom, textLeft, tgx101TextSet(), tgx101TextSwap, tgx101TextSwap);
 
     if (tgx101Swiped) {
       c.restore();
-      dropShadowAlpha = tgx101ShownAlpha;
     }
+    if (tgx101CollapseSave != -1) c.restoreToCount(tgx101CollapseSave);
+    dropShadowAlpha = tgx101ShownAlpha;
   }
 
   private static final float TGX101_AUDIO_TEXT_LEFT_DP = 56f;
@@ -772,7 +827,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
 
   private void drawCloseIcon (Canvas c, int playerTop, float rectWidth, int playerBottom, boolean alignRight) {
     float cx = alignRight ? rectWidth - Screen.dp(50f) / 2 : Screen.dp(28f);
-    DrawAlgorithms.drawMark(c, cx, playerTop + (playerBottom - playerTop) / 2, 1f, Screen.dp(9f), Paints.getProgressPaint(ColorUtils.alphaColor(dropShadowAlpha, Theme.iconColor()),  Screen.dp(2f)));
+    DrawAlgorithms.drawMark(c, cx, playerTop + (playerBottom - playerTop) / 2, 1f, Screen.dp(9f), Paints.getProgressPaint(ColorUtils.alphaColor(dropShadowAlpha, isCurrentSection(SECTION_AUDIO) ? tgx101BarIcon() : Theme.iconColor()),  Screen.dp(2f)));
   }
 
   // Ongoing bar text
@@ -1568,7 +1623,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
   public boolean needClickAt (View view, float x, float y) {
     touchDownX = x;
     touchDownY = y;
-    return (navigationController == null || !navigationController.isAnimating()) && (showOngoingBar || showFactor != 0f) && dropShadowAlpha != 0f && hideFactor != 1f && !(y < playerTop) && !(y > playerBottom) && !(y <= fillingBottom);
+    return (navigationController == null || !navigationController.isAnimating()) && (showOngoingBar || showFactor != 0f) && dropShadowAlpha != 0f && hideFactor != 1f && !(y < playerTop) && !(y > playerBottom) && !(y <= fillingBottom) && tgx101BarCollapse < .5f; // the line lets the feed's scroll through
   }
 
   @Override

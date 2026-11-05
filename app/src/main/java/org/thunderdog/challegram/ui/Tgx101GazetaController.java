@@ -296,6 +296,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       header.setTranslationY(-headerHide);
       float alpha = 1f - headerHide / (float) max;
       for (int i = 0; i < header.getChildCount(); i++) header.getChildAt(i).setAlpha(alpha);
+      if (header.getFilling() != null) header.getFilling().tgx101SetBarCollapse(headerHide / (float) max);
     }
   }
 
