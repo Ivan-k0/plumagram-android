@@ -40,11 +40,63 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
   private static final long REPEAT_WINDOW_MS = 2 * 60 * 60 * 1000L;
 
   private static @Nullable Tgx101Wave session;
+  // (user 2026-11-05 «включил поток, потом переключил на плейлист — поток собьётся? — так нужно, чтобы не сбивался»): the flow left for
+  // something else keeps its queue and its place, and goes on from there when asked
+  private static @Nullable Tgx101Wave suspended;
 
   /** @param seedArtist the wave starts around this artist, null: around what the account likes */
   public static void start (Tdlib tdlib, @Nullable String seedArtist, RunnableBool after) {
-    if (session != null) session.stop();
+    if (session != null) session.stop(false);
+    suspended = null;
     new Tgx101Wave(tdlib, seedArtist).begin(after);
+  }
+
+  /** The track the flow left at, when it can go on */
+  public static @Nullable TdApi.Message resumable (Tdlib tdlib) {
+    Tgx101Wave wave = suspended;
+    return wave != null && wave.tdlib == tdlib && wave.queue != null && wave.lastOurs != null ? wave.lastOurs : null;
+  }
+
+  public static boolean resume (Tdlib tdlib) {
+    Tgx101Wave wave = suspended;
+    if (wave == null || resumable(tdlib) == null) return false;
+    suspended = null;
+    if (session != null) session.stop(false);
+    wave.goOn();
+    return true;
+  }
+
+  private @Nullable List<TdApi.Message> queue;
+  private @Nullable TdApi.Message lastOurs;
+  private long leftAt;
+
+  private void goOn () {
+    final List<TdApi.Message> list = new ArrayList<>(queue);
+    int at = 0;
+    for (int i = 0; i < list.size(); i++) {
+      if (TGPlayerController.compareTracks(list.get(i), lastOurs)) at = i;
+    }
+    final int origin = at;
+    isStopped = false;
+    lastTrack = null;
+    session = this;
+    TdlibManager.instance().player().addTrackChangeListener(this);
+    TdlibManager.instance().player().tgx101PlayFrom(tdlib, list.get(origin), new TGPlayerController.PlayListBuilder() {
+      @Override
+      public TGPlayerController.PlayList buildPlayList (TdApi.Message fromMessage) {
+        return new TGPlayerController.PlayList(list, origin).setReachedEnds(true, true);
+      }
+
+      @Override
+      public boolean wouldReusePlayList (TdApi.Message fromMessage, boolean isReverse, boolean hasAltered, List<TdApi.Message> trackList, long playListChatId) {
+        return false;
+      }
+    }, leftAt);
+  }
+
+  private void rememberQueue () {
+    List<TdApi.Message> list = TdlibManager.instance().player().getTrackList();
+    if (list != null) queue = new ArrayList<>(list);
   }
 
   public static boolean isActive () {
@@ -116,10 +168,14 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
     });
   }
 
-  private void stop () {
+  private void stop (boolean keep) {
     isStopped = true;
     if (session == this) session = null;
     TdlibManager.instance().player().removeTrackChangeListener(this);
+    if (keep && queue != null && lastOurs != null) {
+      leftAt = TdlibManager.instance().player().tgx101PositionWhenLeft(lastOurs);
+      suspended = this;
+    }
   }
 
   /** Two new for one known: the known ones are those of the artists it likes */
@@ -210,15 +266,17 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
   public void onTrackChanged (Tdlib tdlib, @Nullable TdApi.Message newTrack, int fileId, int state, float progress, boolean byUser) {
     if (isStopped) return;
     if (newTrack == null || state == TGPlayerController.STATE_NONE) {
-      stop(); // closed
+      stop(true); // closed: it may go on later
       return;
     }
     if (newTrack == lastTrack) return;
     lastTrack = newTrack;
     if (this.tdlib != tdlib || !isOurs(newTrack)) {
-      stop();
+      stop(true); // something else plays now
       return;
     }
+    lastOurs = newTrack;
+    rememberQueue();
     refillIfNeeded();
   }
 
@@ -236,6 +294,7 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
     load(Math.min(3, queries.size()), found -> {
       TGPlayerController p = TdlibManager.instance().player();
       for (TdApi.Message track : mix(found)) p.addToPlayList(track);
+      rememberQueue();
     });
   }
 }

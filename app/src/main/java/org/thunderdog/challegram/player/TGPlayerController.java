@@ -1243,6 +1243,21 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
     return false;
   }
 
+  private TdApi.Message tgx101LeftMessage;
+  private long tgx101LeftPosition;
+
+  /** Where this music was when another track took its place, 0 if it's not the one left last */
+  long tgx101PositionWhenLeft (TdApi.Message message) {
+    return tgx101LeftMessage != null && compareTracks(tgx101LeftMessage, message) ? Math.max(0, tgx101LeftPosition) : 0;
+  }
+
+  /** A queue played from this place of its track */
+  void tgx101PlayFrom (Tdlib tdlib, TdApi.Message message, PlayListBuilder builder, long positionMs) {
+    tgx101RestorePosition = positionMs;
+    playPauseMessageImpl(message, true, false, tdlib, builder);
+    tgx101RestorePosition = 0;
+  }
+
   private void tgx101Resume (Tgx101SuspendedMusic music) {
     tgx101RestorePosition = music.position;
     playPauseMessageImpl(music.message, true, false, music.tdlib, music);
@@ -1390,6 +1405,8 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
       if (currentMessage != null && currentTdlib != null && Td.isAudio(currentMessage.content) && (message == null || Td.isAudio(message.content))) {
         // (user 2026-11-05) what the wave goes by; a voice message cutting in says nothing about the song
         Tgx101MusicTaste.get(currentTdlib).noteListen(currentMessage, playPosition, playDuration, message != null);
+        tgx101LeftMessage = currentMessage;
+        tgx101LeftPosition = playPosition;
       }
 
       final int newState;

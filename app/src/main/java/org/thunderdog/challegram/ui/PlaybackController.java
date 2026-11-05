@@ -1274,7 +1274,15 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     final Tgx101Sheet.Handle[] handle = new Tgx101Sheet.Handle[1];
     handle[0] = Tgx101Sheet.show(this, null, body -> {
       body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101Wave)));
-      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_music_note_24, 0, Lang.getString(R.string.Tgx101WaveStart), null, false, v -> {
+      final TdApi.Message left = org.thunderdog.challegram.player.Tgx101Wave.resumable(tdlib);
+      if (left != null && left.content instanceof TdApi.MessageAudio) {
+        String leftTitle = TD.getTitle(((TdApi.MessageAudio) left.content).audio);
+        body.addView(Tgx101Sheet.row(context, R.drawable.baseline_play_arrow_36_white, 0, Lang.getString(R.string.Tgx101WaveResume), leftTitle, false, v -> {
+          handle[0].dismiss();
+          org.thunderdog.challegram.player.Tgx101Wave.resume(tdlib);
+        }));
+      }
+      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_music_note_24, 0, Lang.getString(left != null ? R.string.Tgx101WaveStartNew : R.string.Tgx101WaveStart), null, false, v -> {
         handle[0].dismiss();
         tgx101StartWave();
       }));
