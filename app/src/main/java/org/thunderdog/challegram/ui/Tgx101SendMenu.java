@@ -71,13 +71,12 @@ public final class Tgx101SendMenu extends Tgx101HoldMenu {
         row(0, f.color(), f.name, false, () -> pick(() -> toFolder(f)), null);
       }
       separator();
-      row(R.drawable.baseline_create_new_folder_24, 0, Lang.getString(R.string.Tgx101SavedNewFolder), false, () -> {
-        dismiss();
+      row(R.drawable.baseline_create_new_folder_24, 0, Lang.getString(R.string.Tgx101SavedNewFolder), false, () -> dismissThen(() ->
         Tgx101SavedActions.askName(c, Lang.getString(R.string.Tgx101SavedNewFolder), null, name -> {
           picked.run();
           toFolder(Tgx101SavedStore.get(c.tdlib()).createFolder(name));
-        });
-      }, null);
+        })
+      ), null);
     });
   }
 

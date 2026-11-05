@@ -7479,7 +7479,13 @@
   <string name="Tgx101Lyrics">Lyrics</string>
   <string name="Tgx101Dislike">Don\'t like it</string>
   <string name="Tgx101Wave">Flow</string>
+  <string name="Tgx101Playlists">Playlists</string>
+  <string name="Tgx101PlaylistsLoading">Looking for music in the Storage…</string>
+  <string name="Tgx101PlaylistsNone">No folders or tags of the Storage hold music yet. ♥ saves a track to the «Music» folder.</string>
+  <string name="Tgx101PlaylistsProfile">Music of the profile</string>
   <string name="Tgx101WaveStart">Start the flow</string>
+  <string name="Tgx101WaveResume">Go on with the flow</string>
+  <string name="Tgx101WaveStartNew">A new flow</string>
   <string name="Tgx101WaveHintsOn">Also ask what is similar</string>
   <string name="Tgx101WaveHintsOff">Don\'t ask what is similar</string>
   <string name="Tgx101WaveHintsWarning">Similar artists and tracks are asked of Deezer and YouTube Music: they get the artist and track names and see your IP address; a proxy set up in the app isn\'t used for this. The music itself only comes from your Telegram chats and channels. The YouTube Music part is unofficial and may stop working.</string>

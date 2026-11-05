@@ -43,13 +43,20 @@ public final class Tgx101Sheet {
     public final PopupLayout popup;
     public final LinearLayout body;
 
+    private Runnable closer;
+
     Handle (PopupLayout popup, LinearLayout body) {
       this.popup = popup;
       this.body = body;
     }
 
     public void dismiss () {
-      if (!popup.isWindowHidden()) popup.hideWindow(true);
+      if (popup.isWindowHidden()) return;
+      if (closer != null) {
+        closer.run();
+      } else {
+        popup.hideWindow(true);
+      }
     }
   }
 
@@ -96,7 +103,15 @@ public final class Tgx101Sheet {
     final int topRoom = org.thunderdog.challegram.navigation.HeaderView.getTopOffset() + Screen.dp(8f); // never under the status bar
     wrap.setPadding(0, topRoom, 0, 0);
     wrap.setClickable(true);
-    wrap.setOnClickListener(v -> popup.hideWindow(true)); // a tap outside only closes the sheet
+    // (user 2026-11-05 «закрывалось тоже нормально»): the keyboard goes down together with the sheet, not after it is gone
+    final Runnable close = () -> {
+      if (popup.isWindowHidden()) return;
+      View field = findInput(body);
+      if (field != null && field.hasFocus()) org.thunderdog.challegram.tool.Keyboard.hide(field);
+      popup.hideWindow(true);
+    };
+    sheet.closer = close;
+    wrap.setOnClickListener(v -> close.run()); // a tap outside only closes the sheet
     sheet.popup = popup;
 
     // above the keyboard (the sheet sits in the activity's own window)
@@ -114,8 +129,9 @@ public final class Tgx101Sheet {
     if (hasInput && activityWindow != null) {
       activityWindow.setSoftInputMode((previousSoftInput & ~android.view.WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST) | android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
     }
+    final boolean[] imeFollowed = {false};
     final android.view.ViewTreeObserver.OnGlobalLayoutListener ime = () -> {
-      if (wrap.getHeight() == 0) return;
+      if (wrap.getHeight() == 0 || imeFollowed[0]) return;
       int bottom = 0;
       if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
         android.view.WindowInsets insets = wrap.getRootWindowInsets();
@@ -141,6 +157,38 @@ public final class Tgx101Sheet {
         a.start();
       }
     };
+    // (user 2026-11-05, video of the music search «анимации…»): the sheet rose, stopped, and rose again as the keyboard came. On Android 11+
+    // it now rides with the keyboard frame by frame; the layout listener above is left for older systems
+    final boolean[] imeRiding = imeFollowed;
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R && hasInput) {
+      wrap.setWindowInsetsAnimationCallback(new android.view.WindowInsetsAnimation.Callback(android.view.WindowInsetsAnimation.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
+        @Override
+        public void onPrepare (@androidx.annotation.NonNull android.view.WindowInsetsAnimation animation) {
+          if ((animation.getTypeMask() & android.view.WindowInsets.Type.ime()) != 0) {
+            imeRiding[0] = true;
+            if (imeAnimator[0] != null) imeAnimator[0].cancel();
+          }
+        }
+
+        @androidx.annotation.NonNull
+        @Override
+        public android.view.WindowInsets onProgress (@androidx.annotation.NonNull android.view.WindowInsets insets, @androidx.annotation.NonNull java.util.List<android.view.WindowInsetsAnimation> running) {
+          if (imeRiding[0] && wrap.getHeight() > 0) {
+            wrap.getLocationOnScreen(location);
+            int imeTop = wrap.getRootView().getHeight() - insets.getInsets(android.view.WindowInsets.Type.ime()).bottom;
+            int bottom = Math.max(0, location[1] + wrap.getHeight() - imeTop);
+            imeTarget[0] = bottom;
+            if (wrap.getPaddingBottom() != bottom) wrap.setPadding(0, wrap.getPaddingTop(), 0, bottom);
+          }
+          return insets;
+        }
+
+        @Override
+        public void onEnd (@androidx.annotation.NonNull android.view.WindowInsetsAnimation animation) {
+          if ((animation.getTypeMask() & android.view.WindowInsets.Type.ime()) != 0) imeRiding[0] = false;
+        }
+      });
+    }
     wrap.getViewTreeObserver().addOnGlobalLayoutListener(ime);
     wrap.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
       @Override
@@ -173,7 +221,9 @@ public final class Tgx101Sheet {
     });
     sheet.measure(View.MeasureSpec.makeMeasureSpec(Screen.currentWidth() - Screen.dp(16f), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(Screen.currentHeight(), View.MeasureSpec.AT_MOST));
     popup.showSimplePopupView(wrap, sheet.getMeasuredHeight() + Screen.dp(8f) + Screen.getNavigationBarHeight());
-    return new Handle(popup, body);
+    Handle handle = new Handle(popup, body);
+    handle.closer = close;
+    return handle;
   }
 
   private static @Nullable android.widget.EditText findInput (View v) {
@@ -191,6 +241,7 @@ public final class Tgx101Sheet {
   /** The column that follows the finger */
   public static final class DragSheet extends LinearLayout {
     PopupLayout popup;
+    @Nullable Runnable closer;
     /** a sheet outside a popup (a window of its own): what a swipe away does */
     public @Nullable Runnable swipedAway;
     private final int touchSlop;
@@ -259,7 +310,7 @@ public final class Tgx101Sheet {
           velocity = null;
           dragging = false;
           if (getTranslationY() > getHeight() / 3f || vy > Screen.dp(900f)) {
-            if (popup != null) popup.hideWindow(true);
+            if (closer != null) closer.run(); else if (popup != null) popup.hideWindow(true);
             else if (swipedAway != null) swipedAway.run();
           } else {
             animate().translationY(0f).setDuration(180).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();

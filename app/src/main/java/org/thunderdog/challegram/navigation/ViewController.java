@@ -1080,6 +1080,11 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
   }
 
   /** TGx101: what closes a popup screen by a swipe down: a flick this fast over this distance, or letting go past this share of the height */
+  /** How far down a popup screen must be pulled before it starts to follow the finger, 0: the usual touch slop */
+  public float tgx101PopupStartDp () {
+    return 0f;
+  }
+
   public float tgx101PopupCloseFlingDp () {
     return 1000f;
   }

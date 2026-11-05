@@ -70,10 +70,9 @@ final class Tgx101HeartMenu extends Tgx101HoldMenu {
         row(0, f.color(), f.name, false, () -> pick(() -> host.saveToFolder(f.id)), null);
       }
       separator();
-      row(R.drawable.baseline_create_new_folder_24, 0, Lang.getString(R.string.Tgx101SavedNewFolder), false, () -> {
-        dismiss();
-        Tgx101SavedActions.askName(c, Lang.getString(R.string.Tgx101SavedNewFolder), null, name -> host.saveToFolder(Tgx101SavedStore.get(c.tdlib()).createFolder(name).id));
-      }, null);
+      row(R.drawable.baseline_create_new_folder_24, 0, Lang.getString(R.string.Tgx101SavedNewFolder), false, () -> dismissThen(() ->
+        Tgx101SavedActions.askName(c, Lang.getString(R.string.Tgx101SavedNewFolder), null, name -> host.saveToFolder(Tgx101SavedStore.get(c.tdlib()).createFolder(name).id))
+      ), null);
     });
   }
 
@@ -84,7 +83,7 @@ final class Tgx101HeartMenu extends Tgx101HoldMenu {
         row(0, Tgx101SavedListController.TAG_COLOR, "#" + t, false, () -> pick(() -> host.withSavedCopy(saved -> Tgx101SavedActions.applyTag(c, saved, t, false))), null);
       }
       separator();
-      row(R.drawable.baseline_add_24, 0, Lang.getString(R.string.Tgx101SendNewTag), false, () -> pick(() -> host.withSavedCopy(saved -> Tgx101SavedActions.tag(c, saved, null))), null);
+      row(R.drawable.baseline_add_24, 0, Lang.getString(R.string.Tgx101SendNewTag), false, () -> dismissThen(() -> host.withSavedCopy(saved -> Tgx101SavedActions.tag(c, saved, null))), null);
     });
   }
 }

@@ -1747,7 +1747,13 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101Lyrics, "Текст песни");
     RU.put(R.string.Tgx101Dislike, "Не нравится");
     RU.put(R.string.Tgx101Wave, "Поток");
+    RU.put(R.string.Tgx101Playlists, "Плейлисты");
+    RU.put(R.string.Tgx101PlaylistsLoading, "Ищу музыку в Хранилище…");
+    RU.put(R.string.Tgx101PlaylistsNone, "В папках и метках Хранилища пока нет музыки. ♥ сохраняет трек в папку «Музыка».");
+    RU.put(R.string.Tgx101PlaylistsProfile, "Музыка профиля");
     RU.put(R.string.Tgx101WaveStart, "Запустить поток");
+    RU.put(R.string.Tgx101WaveResume, "Продолжить поток");
+    RU.put(R.string.Tgx101WaveStartNew, "Новый поток");
     RU.put(R.string.Tgx101WaveHintsOn, "Спрашивать, что похоже");
     RU.put(R.string.Tgx101WaveHintsOff, "Не спрашивать, что похоже");
     RU.put(R.string.Tgx101WaveHintsWarning, "Похожих исполнителей и треки поток спросит у Deezer и YouTube Music: они получат название трека и исполнителя и увидят ваш IP-адрес, прокси из приложения здесь не используется. Сама музыка будет только из ваших чатов и каналов Telegram. Часть с YouTube Music неофициальная и может перестать работать.");

@@ -292,7 +292,9 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
         boolean approve;
 
         if (slidingVertical) {
-          approve = diffY >= Screen.getTouchSlopBig() && Math.abs(diffX) <= Screen.getTouchSlopY();
+          ViewController<?> popup = navigation.getCurrentStackItem();
+          float start = popup != null ? Screen.dp(popup.tgx101PopupStartDp()) : 0f;
+          approve = diffY >= Math.max(Screen.getTouchSlopBig(), start) && Math.abs(diffX) <= Math.max(Screen.getTouchSlopY(), start * .6f);
         } else if (Lang.rtl()) {
           approve = diffX <= -Screen.getTouchSlopBig() && Math.abs(diffY) <= Screen.getTouchSlopY();
         } else {

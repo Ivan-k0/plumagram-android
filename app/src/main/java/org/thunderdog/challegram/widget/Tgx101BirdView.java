@@ -234,7 +234,9 @@ public class Tgx101BirdView extends View {
     if (this.active == active) return;
     this.active = active;
     if (!active) closeRing(true);
-    setVisibility(active ? VISIBLE : GONE);
+    // (video 2026-11-05 23:23, «подёргивания, когда свайп не завершён»): GONE asked the whole window for a new layout each time a swipe
+    // «back» showed the screen below and hid it again; a hidden bird takes no touches either way
+    setVisibility(active ? VISIBLE : INVISIBLE);
   }
 
   public boolean isActive () {
