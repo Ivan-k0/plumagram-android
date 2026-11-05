@@ -586,6 +586,8 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     disallowBoundTouch = true;
   }
 
+  private static final float TGX101_SEEK_SWIPE_DP = 16f;
+
   private void dropSeek () {
     if (seekCaught != null) {
       seekCaught.requestDisallowInterceptTouchEvent(false);
@@ -669,7 +671,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
         float cx = progress.centerX();
         float cy = progress.centerY();
 
-        if (x >= cx - bound && x <= startX + tgx101PlaySize() + getPreviewOffset() + Math.max(getTitleWidth(), sizeWidth) + bound && y >= cy - bound && y <= cy + bound) {
+        if (x >= cx - bound && x <= startX + tgx101PlaySize() + getPreviewOffset() + Math.max(Math.max(getTitleWidth(), sizeWidth), waveform != null ? waveform.getWidth() : 0) + bound && y >= cy - bound && y <= cy + bound) {
           loadCaught = true;
         }
         return loadCaught;
@@ -678,7 +680,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
         if (!(loadCaught || seekCaught != null))
           return false;
         if (waveform != null) {
-          if (seekCaught != null && !isSeeking && Math.abs(seekStartX - x) >= Screen.getTouchSlop()) {
+          if (seekCaught != null && !isSeeking && Math.abs(seekStartX - x) >= TGX101_SEEK_SWIPE_DP * Screen.density()) { // a clear swipe, a shaky tap still plays
             isSeeking = true;
             seekStartX = x;
           }
@@ -701,12 +703,8 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       case MotionEvent.ACTION_UP: {
         if (!(loadCaught || seekCaught != null))
           return false;
-        if (seekCaught != null && !isSeeking && waveform != null && isPlaying && playDuration > 0) {
-          // (user 2026-11-05 «нажатие на волну снимает с паузы»): a tap on the wave goes to that place, playing or on pause
-          int waveformLeft = startX + tgx101PlaySize() + getPreviewOffset();
-          desiredSeek = MathUtils.clamp((x - waveformLeft) / (float) waveform.getWidth());
-          isSeeking = true;
-        }
+        // (user 2026-11-05 «одинарный должен снимать с паузы, положение только по свайпу»): a tap on the wave is the play button
+        final boolean tgx101WaveTap = seekCaught != null && !isSeeking && waveform != null;
         if (isSeeking && desiredSeek != -1 && isPlaying && playDuration > 0) {
           seekDesireTime = SystemClock.uptimeMillis();
           final long position = (long) ((double) playDuration * desiredSeek);
@@ -717,7 +715,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
         }
         dropSeek();
         if (waveform != null) setSubtitle(buildSubtitle());
-        if (loadCaught && progress.performClick(view)) {
+        if ((loadCaught || tgx101WaveTap) && progress.performClick(view)) {
           context.performClickSoundFeedback();
         }
 
