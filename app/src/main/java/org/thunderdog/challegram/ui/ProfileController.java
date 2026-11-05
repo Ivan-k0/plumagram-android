@@ -1456,6 +1456,8 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   }
 
   private boolean eventsBelongToSlider;
+  private static final float TGX101_STRIP_REACH_DP = 10f;
+  private boolean tgx101StripHoldsPaging, tgx101PagingBeforeStrip;
   private int touchingMode = TOUCH_MODE_NONE;
 
   private static final int TOUCH_MODE_NONE = -1;
@@ -1542,10 +1544,17 @@ public class ProfileController extends ViewController<ProfileController.Args> im
             /*stopCachedScrolls();
             baseRecyclerView.stopScroll();*/
 
-            if (startY >= pagerTop && startY <= pagerTop + getPagerTopViewHeight() && topWrap != null && topWrap.getParent() != null) {
+            // (group 2026-11-05 14:14 «обычные свайпы должны листать список, а не менять вложения; область шире»): a swipe on the strip moves
+            // the strip only, the tab changes by a tap or a swipe over the content; the strip takes the finger a little above and below itself
+            if (startY >= pagerTop - Screen.dp(TGX101_STRIP_REACH_DP) && startY <= pagerTop + getPagerTopViewHeight() + Screen.dp(TGX101_STRIP_REACH_DP) && topWrap != null && topWrap.getParent() != null) {
               touchingMode = TOUCH_MODE_SLIDER;
               eventsBelongToSlider = true;
               setEventsBelongToPager(true);
+              if (!tgx101StripHoldsPaging) {
+                tgx101StripHoldsPaging = true;
+                tgx101PagingBeforeStrip = pager.isPagingEnabled();
+                pager.setPagingEnabled(false);
+              }
             } else if (currentPositionOffset == 0f && belongsToBaseRecycler(getMeasuredWidth(), startY) && calculateBaseScrollY() < maxItemsScrollY()) {
               touchingMode = TOUCH_MODE_BASE_RECYCLER;
               setEventsBelongToPager(false);
@@ -1594,6 +1603,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
               }
             }
             e.offsetLocation(0, -topWrap.getTranslationY());
+            e.setLocation(e.getX(), Math.max(getTopViewTopPadding(), Math.min(e.getY(), getTopViewTopPadding() + getPagerTopViewHeight() - 1)));
             if (!eventsBelongToSlider) {
               touchingMode = TOUCH_MODE_PAGER;
               topWrap.dispatchTouchEvent(MotionEvent.obtain(e.getDownTime(), e.getEventTime(), MotionEvent.ACTION_CANCEL, e.getX(), e.getY(), e.getMetaState()));
@@ -1607,6 +1617,10 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           case MotionEvent.ACTION_UP:
           case MotionEvent.ACTION_CANCEL: {
             touchingMode = TOUCH_MODE_NONE;
+            if (tgx101StripHoldsPaging) {
+              tgx101StripHoldsPaging = false;
+              pager.setPagingEnabled(tgx101PagingBeforeStrip);
+            }
             break;
           }
         }
