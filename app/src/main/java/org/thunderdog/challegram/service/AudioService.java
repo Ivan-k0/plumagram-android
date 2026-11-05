@@ -735,7 +735,11 @@ public class AudioService extends Service implements TGPlayerController.TrackLis
       org.thunderdog.challegram.player.Tgx101MusicTaste.addListener(tgx101TasteListener);
     }
     org.thunderdog.challegram.player.Tgx101MusicTaste tgx101Taste = org.thunderdog.challegram.player.Tgx101MusicTaste.get(currentTdlib);
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && playState != TGPlayerController.STATE_PLAYING) {
+    // Android 4: the system can't draw vector icons in a notification, and there's no card with sides to put them on
+    final boolean tgx101Sides = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
+    if (!tgx101Sides) {
+      // ⏮ ⏯ ⏭, and ⏹ on pause, as it has always been
+    } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && playState != TGPlayerController.STATE_PLAYING) {
       // Before Android 13 a paused card can't be swiped away: here ⏹ is the only way to close it from the shade
       b.addAction(R.drawable.baseline_stop_24_white, Lang.getString(R.string.PlayStop), PendingIntent.getBroadcast(this, 100, valueOf(Intents.ACTION_PLAYBACK_STOP), Intents.mutabilityFlags(false)));
     } else {
@@ -749,7 +753,11 @@ public class AudioService extends Service implements TGPlayerController.TrackLis
       b.addAction(R.drawable.baseline_play_arrow_36_white, Lang.getString(playPosition > 0 ? R.string.PlayResume : R.string.PlayPlay), playPauseIntent);
     }
     b.addAction(R.drawable.baseline_skip_next_24_white, Lang.getString(R.string.PlaySkipNext), nextIntent);
-    if (tgx101CanLike()) {
+    if (!tgx101Sides) {
+      if (playState != TGPlayerController.STATE_PLAYING) {
+        b.addAction(R.drawable.baseline_stop_24_white, Lang.getString(R.string.PlayStop), PendingIntent.getBroadcast(this, 100, valueOf(Intents.ACTION_PLAYBACK_STOP), Intents.mutabilityFlags(false)));
+      }
+    } else if (tgx101CanLike()) {
       b.addAction(tgx101Taste.isLiked(currentTrack) ? R.drawable.baseline_favorite_24 : R.drawable.tgx101_heart_outline_24, Lang.getString(R.string.Tgx101PlayerSave),
         PendingIntent.getBroadcast(this, 100, valueOf(Intents.ACTION_PLAYBACK_LIKE), Intents.mutabilityFlags(false)));
     }
