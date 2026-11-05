@@ -747,6 +747,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
   }
 
   private void drawOngoingAudio (Canvas c, int playerTop, float rectWidth, int playerBottom) {
+    rectWidth = Math.round(rectWidth); // (user 2026-11-05, screenshot) two pieces split at a fraction of a pixel left a vertical line between them
     if (restoreRect && restorePixels > 0) {
       c.drawRect(rectWidth, playerTop, width, playerBottom, Paints.fillingPaint(tgx101BarFill()));
     }

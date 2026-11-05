@@ -891,39 +891,73 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     tgx101ShowUndo(message);
   }
 
-  private org.thunderdog.challegram.widget.SnackBar tgx101Snack;
-  private Runnable tgx101SnackHide;
+  // (user 2026-11-05, screenshot «отмена налазит на текст, сделай в нашем стиле»): a capsule over the list; the words give way to the button
+
+  private View tgx101UndoCapsule;
+  private Runnable tgx101UndoHide;
+
+  private void tgx101HideUndo (boolean animated) {
+    final View capsule = tgx101UndoCapsule;
+    tgx101UndoCapsule = null;
+    if (tgx101UndoHide != null) {
+      UI.removePendingRunnable(tgx101UndoHide);
+      tgx101UndoHide = null;
+    }
+    if (capsule == null) return;
+    final Runnable remove = () -> {
+      if (capsule.getParent() instanceof ViewGroup) ((ViewGroup) capsule.getParent()).removeView(capsule);
+    };
+    if (animated) {
+      capsule.animate().alpha(0f).translationY(Screen.dp(12f)).setDuration(160).withEndAction(remove).start();
+    } else {
+      remove.run();
+    }
+  }
 
   private void tgx101ShowUndo (TdApi.Message message) {
-    if (tgx101Snack != null) {
-      tgx101Snack.dismissSnackBar(false);
-    }
-    if (tgx101SnackHide != null) UI.removePendingRunnable(tgx101SnackHide);
-    final org.thunderdog.challegram.widget.SnackBar snack = new org.thunderdog.challegram.widget.SnackBar(context);
-    tgx101Snack = snack;
-    Views.setPaddingBottom(snack, extraBottomInsetWithoutIme);
-    snack.setCallback(new org.thunderdog.challegram.widget.SnackBar.Callback() {
-      @Override
-      public void onSnackBarTransition (org.thunderdog.challegram.widget.SnackBar v, float factor) { }
+    tgx101HideUndo(false);
+    final android.widget.LinearLayout capsule = new android.widget.LinearLayout(context);
+    capsule.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    capsule.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    capsule.setPadding(Screen.dp(16f), 0, Screen.dp(4f), 0);
+    android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+    bg.setColor(Theme.getColor(ColorId.filling));
+    bg.setCornerRadius(Screen.dp(16f));
+    bg.setStroke(Math.max(1, Screen.dp(.5f)), Theme.getColor(ColorId.separator));
+    capsule.setBackground(bg);
+    capsule.setClickable(true);
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) capsule.setElevation(Screen.dp(4f));
 
-      @Override
-      public void onDestroySnackBar (org.thunderdog.challegram.widget.SnackBar v) {
-        if (tgx101Snack == v) tgx101Snack = null;
-        if (v.getParent() instanceof ViewGroup) ((ViewGroup) v.getParent()).removeView(v);
-      }
-    });
-    snack.addThemeListeners(this);
-    snack.setText(Lang.getString(R.string.Tgx101DislikeDone));
-    snack.setAction(Lang.getString(R.string.Tgx101Undo), () -> {
+    android.widget.TextView text = Tgx101SavedHomeController.text(context, 14f, Theme.textAccentColor(), false);
+    text.setText(Lang.getString(R.string.Tgx101DislikeDone));
+    text.setSingleLine(true);
+    text.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    capsule.addView(text, new android.widget.LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+    android.widget.TextView undo = Tgx101SavedHomeController.text(context, 14f, tgx101Tint.accent(Theme.getColor(ColorId.textLink)), true);
+    undo.setText(Lang.getString(R.string.Tgx101Undo));
+    undo.setGravity(android.view.Gravity.CENTER);
+    undo.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
+    Views.setClickable(undo);
+    org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(undo);
+    undo.setOnClickListener(v -> {
+      tgx101HideUndo(true);
       tgx101Taste().setDisliked(message, false);
       if (!isDestroyed()) tdlib.context().player().playPauseMessage(tdlib, message, this);
-    }, true);
-    ((ViewGroup) getValue()).addView(snack);
-    snack.showSnackBar(true);
-    tgx101SnackHide = () -> {
-      if (tgx101Snack == snack) snack.dismissSnackBar(true);
-    };
-    UI.post(tgx101SnackHide, 5000);
+    });
+    capsule.addView(undo, new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(48f)));
+
+    FrameLayoutFix.LayoutParams params = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(48f), android.view.Gravity.BOTTOM);
+    params.leftMargin = params.rightMargin = Screen.dp(12f);
+    params.bottomMargin = Screen.dp(12f) + extraBottomInsetWithoutIme;
+    capsule.setLayoutParams(params);
+    capsule.setAlpha(0f);
+    capsule.setTranslationY(Screen.dp(12f));
+    ((ViewGroup) getValue()).addView(capsule);
+    capsule.animate().alpha(1f).translationY(0f).setDuration(180).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+    tgx101UndoCapsule = capsule;
+    tgx101UndoHide = () -> tgx101HideUndo(true);
+    UI.post(tgx101UndoHide, 5000);
   }
 
   private void tgx101AttachDislikeMenu (View button) {
@@ -2841,6 +2875,8 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       tgx101TextSwapAnimator.animateTo(1f);
     }
 
+    private final Paint tgx101ScrimPaint = new Paint(Paint.DITHER_FLAG);
+    private int tgx101ScrimHeight;
     private boolean tgx101CoverSwapping, tgx101CoverFading;
     private long tgx101CoverSwapStart;
     private float tgx101CoverFade;
@@ -3065,6 +3101,19 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       source.setBounds(x, y, x + width, y + height);
       source.draw(c);
       tgx101DrawOldCover(c, x, y, width, height, radius);
+      // (user 2026-11-05, screenshots «не видны кнопки вверху и строка состояния, когда обложка светлая»): white on any cover
+      if (coverFactor > 0f) {
+        final int scrimHeight = Math.min(height, HeaderView.getTopOffset() + HeaderView.getSize(false) + Screen.dp(28f));
+        if (tgx101ScrimHeight != scrimHeight) {
+          tgx101ScrimHeight = scrimHeight;
+          tgx101ScrimPaint.setShader(new LinearGradient(0, 0, 0, scrimHeight, 0x80000000, 0x00000000, Shader.TileMode.CLAMP));
+        }
+        tgx101ScrimPaint.setAlpha((int) (255f * coverFactor));
+        c.save();
+        c.translate(x, y);
+        c.drawRect(0, 0, width, scrimHeight, tgx101ScrimPaint);
+        c.restore();
+      }
 
       int shadowAlpha = (int) (255f * coverFactor);
       if (coverFactor > 0f) {
