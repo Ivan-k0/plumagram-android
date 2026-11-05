@@ -1101,6 +1101,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedAiUndone, "Возвращено из папок: %1$d");
     RU.put(R.string.Tgx101BirdSection, "Птичка");
     RU.put(R.string.Tgx101BirdInChats, "Птичка в чатах, группах и каналах");
+    RU.put(R.string.Tgx101BirdInPlayer, "Птичка в музыкальном плеере");
     RU.put(R.string.Tgx101BirdDoubleTap, "Двойное нажатие на птичку");
     RU.put(R.string.Tgx101BirdDoubleTapHint, "Пока двойное нажатие задано, одиночное нажатие на птичку доходит до того, что под ней, чуть позже.");
     RU.put(R.string.Tgx101BirdTapNone, "Ничего");

@@ -1860,6 +1860,7 @@
   <item name="btn_tgx101Bird" type="id"/>
   <item name="btn_tgx101BirdRing" type="id"/>
   <item name="btn_tgx101BirdInChats" type="id"/>
+  <item name="btn_tgx101BirdInPlayer" type="id"/>
   <item name="btn_tgx101BirdDoubleTap" type="id"/>
   <item name="btn_tgx101BirdOpen" type="id"/>
   <item name="btn_tgx101AccountSwitch" type="id"/>
