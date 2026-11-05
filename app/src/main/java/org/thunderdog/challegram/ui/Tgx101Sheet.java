@@ -43,13 +43,20 @@ public final class Tgx101Sheet {
     public final PopupLayout popup;
     public final LinearLayout body;
 
+    private Runnable closer;
+
     Handle (PopupLayout popup, LinearLayout body) {
       this.popup = popup;
       this.body = body;
     }
 
     public void dismiss () {
-      if (!popup.isWindowHidden()) popup.hideWindow(true);
+      if (popup.isWindowHidden()) return;
+      if (closer != null) {
+        closer.run();
+      } else {
+        popup.hideWindow(true);
+      }
     }
   }
 
@@ -96,7 +103,15 @@ public final class Tgx101Sheet {
     final int topRoom = org.thunderdog.challegram.navigation.HeaderView.getTopOffset() + Screen.dp(8f); // never under the status bar
     wrap.setPadding(0, topRoom, 0, 0);
     wrap.setClickable(true);
-    wrap.setOnClickListener(v -> popup.hideWindow(true)); // a tap outside only closes the sheet
+    // (user 2026-11-05 «закрывалось тоже нормально»): the keyboard goes down together with the sheet, not after it is gone
+    final Runnable close = () -> {
+      if (popup.isWindowHidden()) return;
+      View field = findInput(body);
+      if (field != null && field.hasFocus()) org.thunderdog.challegram.tool.Keyboard.hide(field);
+      popup.hideWindow(true);
+    };
+    sheet.closer = close;
+    wrap.setOnClickListener(v -> close.run()); // a tap outside only closes the sheet
     sheet.popup = popup;
 
     // above the keyboard (the sheet sits in the activity's own window)
@@ -206,7 +221,9 @@ public final class Tgx101Sheet {
     });
     sheet.measure(View.MeasureSpec.makeMeasureSpec(Screen.currentWidth() - Screen.dp(16f), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(Screen.currentHeight(), View.MeasureSpec.AT_MOST));
     popup.showSimplePopupView(wrap, sheet.getMeasuredHeight() + Screen.dp(8f) + Screen.getNavigationBarHeight());
-    return new Handle(popup, body);
+    Handle handle = new Handle(popup, body);
+    handle.closer = close;
+    return handle;
   }
 
   private static @Nullable android.widget.EditText findInput (View v) {
@@ -224,6 +241,7 @@ public final class Tgx101Sheet {
   /** The column that follows the finger */
   public static final class DragSheet extends LinearLayout {
     PopupLayout popup;
+    @Nullable Runnable closer;
     /** a sheet outside a popup (a window of its own): what a swipe away does */
     public @Nullable Runnable swipedAway;
     private final int touchSlop;
@@ -292,7 +310,7 @@ public final class Tgx101Sheet {
           velocity = null;
           dragging = false;
           if (getTranslationY() > getHeight() / 3f || vy > Screen.dp(900f)) {
-            if (popup != null) popup.hideWindow(true);
+            if (closer != null) closer.run(); else if (popup != null) popup.hideWindow(true);
             else if (swipedAway != null) swipedAway.run();
           } else {
             animate().translationY(0f).setDuration(180).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
