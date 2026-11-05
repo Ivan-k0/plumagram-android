@@ -299,12 +299,26 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     }
   }
 
+  private static final boolean TGX101_ROOT_UNDER_HEADER = android.os.Build.VERSION.SDK_INT >= 35;
+
   /** the feed reaches up under the header only while it's on screen; the window's layout is left as it was */
   private void setUnderHeader (boolean under) {
     if (root != null && root.getParent() instanceof ViewGroup) {
       ViewGroup parent = (ViewGroup) root.getParent();
       parent.setClipToPadding(!under);
       parent.setClipChildren(!under);
+      // (OnePlus 10, Android 16, 2026-11-05: the hanging layer was cut at the root's top whatever the flags said, the window's
+      // colour showed where the header had been): there the root itself goes up under the header, its layer doesn't hang
+      if (TGX101_ROOT_UNDER_HEADER && root.getLayoutParams() instanceof ViewGroup.MarginLayoutParams && inner != null) {
+        ViewGroup.MarginLayoutParams rootParams = (ViewGroup.MarginLayoutParams) root.getLayoutParams();
+        int wanted = under ? -Size.getHeaderPortraitSize() : 0;
+        if (rootParams.topMargin != wanted) {
+          rootParams.topMargin = wanted;
+          root.setLayoutParams(rootParams);
+          ((ViewGroup.MarginLayoutParams) inner.getLayoutParams()).topMargin = under ? 0 : -Size.getHeaderPortraitSize();
+          inner.requestLayout();
+        }
+      }
     }
   }
 
