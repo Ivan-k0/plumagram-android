@@ -4287,14 +4287,19 @@ public class TdlibUi extends Handler {
         if (after != null) after.runWithBool(true);
         break;
       }
+      case TdApi.InternalLinkTypeAttachmentMenuBot.CONSTRUCTOR: {
+        TdApi.InternalLinkTypeAttachmentMenuBot attach = (TdApi.InternalLinkTypeAttachmentMenuBot) linkType;
+        long currentChatId = attach.targetChat != null && attach.targetChat.getConstructor() == TdApi.TargetChatCurrent.CONSTRUCTOR && context instanceof org.thunderdog.challegram.ui.MessagesController ? ((org.thunderdog.challegram.ui.MessagesController) context).getChatId() : 0;
+        org.thunderdog.challegram.ui.Tgx101WebAppController.openAttachment(context, currentChatId, attach.botUsername, attach.url);
+        if (after != null) after.runWithBool(true);
+        break;
+      }
       case TdApi.InternalLinkTypeMainWebApp.CONSTRUCTOR: {
         TdApi.InternalLinkTypeMainWebApp webApp = (TdApi.InternalLinkTypeMainWebApp) linkType;
         org.thunderdog.challegram.ui.Tgx101WebAppController.openLink(context, context instanceof org.thunderdog.challegram.ui.MessagesController ? ((org.thunderdog.challegram.ui.MessagesController) context).getChatId() : 0, webApp.botUsername, null, webApp.startParameter);
         if (after != null) after.runWithBool(true);
         break;
       }
-
-      case TdApi.InternalLinkTypeAttachmentMenuBot.CONSTRUCTOR:
 
       case TdApi.InternalLinkTypeRestorePurchases.CONSTRUCTOR:
       case TdApi.InternalLinkTypeChatBoost.CONSTRUCTOR:

@@ -123,6 +123,36 @@ public class Tgx101WebAppController extends ViewController<Tgx101WebAppControlle
     }));
   }
 
+  /** (user 2026-11-05, Fragment → «Connect Telegram wallet»: «ссылка в неизвестном формате») an attachment menu bot's link
+   *  (tg://resolve?domain=wallet&attach=wallet&startattach=…): its mini app opens with the link's url, asked once per bot */
+  public static void openAttachment (TdlibDelegate context, long currentChatId, String botUsername, String url) {
+    Tdlib tdlib = context.tdlib();
+    tdlib.send(new TdApi.SearchPublicChat(botUsername), (chat, error) -> {
+      long botUserId = chat != null ? TD.getUserId(chat) : 0;
+      if (botUserId == 0) {
+        UI.post(() -> UI.showError(error));
+        return;
+      }
+      if (!Settings.instance().tgx101WebAppOpenAllowed(botUserId)) {
+        UI.post(() -> {
+          ViewController<?> c = context.context().navigation().getCurrentStackItem();
+          if (c == null) return;
+          String bot = TD.getUserName(botUserId, tdlib.cache().user(botUserId));
+          c.showOptions(Lang.getString(R.string.Tgx101WebAppOpenAsk, bot), new int[] {R.id.btn_done, R.id.btn_cancel}, new String[] {Lang.getString(R.string.Tgx101WebAppOpen), Lang.getString(R.string.Cancel)}, null, new int[] {R.drawable.baseline_open_in_browser_24, R.drawable.baseline_cancel_24}, (v, id) -> {
+            if (id == R.id.btn_done) {
+              Settings.instance().setTgx101WebAppOpenAllowed(botUserId);
+              openAttachment(context, currentChatId, botUsername, url);
+            }
+            return true;
+          });
+        });
+        return;
+      }
+      org.thunderdog.challegram.Tgx101Diag.mark("link: attachment bot mini app opens");
+      UI.post(() -> openInChat(context, currentChatId != 0 ? currentChatId : chat.id, botUserId, url));
+    });
+  }
+
   /** t.me/bot/app and t.me/bot?startapp links */
   public static void openLink (TdlibDelegate context, long chatId, String botUsername, @Nullable String webAppShortName, @Nullable String startParameter) {
     Tdlib tdlib = context.tdlib();
