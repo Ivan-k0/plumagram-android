@@ -1579,14 +1579,12 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     sheet.setClickable(true); // taps on the sheet itself don't close it
     android.graphics.drawable.GradientDrawable sheetBackground = new android.graphics.drawable.GradientDrawable();
     sheetBackground.setColor(Theme.fillingColor());
-    float r = Screen.dp(18f);
-    sheetBackground.setCornerRadii(new float[] {0, 0, 0, 0, r, r, r, r});
+    // (user 2026-11-05 «без нижней губы»): straight bottom edge, nothing under the circles
     sheet.setBackground(sheetBackground);
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
       sheet.setElevation(Screen.dp(8f));
     }
     sheet.addView(tgx101HeaderStrip, new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(org.thunderdog.challegram.widget.Tgx101StoriesStrip.HEIGHT_DP)));
-    sheet.setPadding(0, 0, 0, Screen.dp(10f)); // (user 2026-11-01 «убрать ручки везде»): no grip under the circles
     // a swipe up on the sheet puts it away too
     sheet.setOnTouchListener(new View.OnTouchListener() {
       private float downY;
