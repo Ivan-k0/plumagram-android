@@ -311,8 +311,10 @@ public class Intents {
       try {
         BaseActivity context = UI.getUiContext();
         if (UI.getUiState() == UI.State.RESUMED && openInAppBrowser(context, uri, false)) {
+          org.thunderdog.challegram.Tgx101Diag.mark("link: opened in the in-app browser (" + uri.getHost() + ")");
           return true;
         }
+        org.thunderdog.challegram.Tgx101Diag.mark("link: given to the system (" + uri.getHost() + "), app state " + UI.getUiState());
 
         Intent intent;
 
@@ -323,6 +325,7 @@ public class Intents {
         UI.startActivity(intent);
         return true;
       } catch (Throwable throwable) {
+        org.thunderdog.challegram.Tgx101Diag.mark("link: could not open (" + uri.getHost() + "): " + throwable.getClass().getSimpleName() + " " + throwable.getMessage());
         Log.w("Cannot open link: %s", throwable, uri);
       }
     }
@@ -787,6 +790,7 @@ public class Intents {
         return true;
       }
     } catch (Throwable t) {
+      org.thunderdog.challegram.Tgx101Diag.mark("link: the in-app browser failed: " + t.getClass().getSimpleName() + " " + t.getMessage());
       Log.e("Cant launch CustomTabs client", t);
     }
     return false;

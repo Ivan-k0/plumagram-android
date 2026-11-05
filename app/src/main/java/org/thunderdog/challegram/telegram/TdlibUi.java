@@ -3060,6 +3060,7 @@ public class TdlibUi extends Handler {
       return;
     }
     tdlib.send(new TdApi.GetExternalLinkInfo(originalUrl), (loginUrlInfo, error) -> {
+      org.thunderdog.challegram.Tgx101Diag.mark("link: external info " + (error != null ? "error " + error.code : loginUrlInfo.getClass().getSimpleName()));
       if (error != null) {
         openUrlImpl(context, originalUrl, options, after);
         return;
@@ -3167,6 +3168,8 @@ public class TdlibUi extends Handler {
     }
 
     Uri uri = Strings.wrapHttps(url);
+    // (user 2026-11-05 «почему ссылки не открываются»): which link and which way it went — the site only, no path
+    org.thunderdog.challegram.Tgx101Diag.mark("link: open " + (uri != null ? uri.getScheme() + "://" + uri.getHost() : "(not a web link)") + ", prompt " + (options != null && options.requireOpenPrompt) + ", trusted " + (uri != null && tdlib.isTrustedHost(url, true)));
 
     if (options != null && options.requireOpenPrompt && (uri == null || !tdlib.isTrustedHost(url, true))
       && !org.thunderdog.challegram.ui.Tgx101LinkSheet.isAnswered(url, options.displayUrl)) {

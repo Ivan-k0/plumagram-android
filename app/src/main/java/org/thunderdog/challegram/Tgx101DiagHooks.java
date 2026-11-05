@@ -147,7 +147,8 @@ public final class Tgx101DiagHooks {
   public static void onNewIntent (android.content.Intent intent) {
     if (BuildConfig.TGX101_DIAG && intent != null) {
       android.os.Bundle extras = intent.getExtras();
-      Tgx101Diag.mark("new intent " + intent.getAction() + (extras != null ? " extras " + extras.keySet() : ""));
+      android.net.Uri data = intent.getData();
+      Tgx101Diag.mark("new intent " + intent.getAction() + (data != null ? " " + data.getScheme() + "://" + data.getHost() : "") + (extras != null ? " extras " + extras.keySet() : ""));
     }
   }
 
