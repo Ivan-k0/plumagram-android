@@ -114,8 +114,9 @@ public final class Tgx101Sheet {
     if (hasInput && activityWindow != null) {
       activityWindow.setSoftInputMode((previousSoftInput & ~android.view.WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST) | android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
     }
+    final boolean[] imeFollowed = {false};
     final android.view.ViewTreeObserver.OnGlobalLayoutListener ime = () -> {
-      if (wrap.getHeight() == 0) return;
+      if (wrap.getHeight() == 0 || imeFollowed[0]) return;
       int bottom = 0;
       if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
         android.view.WindowInsets insets = wrap.getRootWindowInsets();
@@ -141,6 +142,38 @@ public final class Tgx101Sheet {
         a.start();
       }
     };
+    // (user 2026-11-05, video of the music search «анимации…»): the sheet rose, stopped, and rose again as the keyboard came. On Android 11+
+    // it now rides with the keyboard frame by frame; the layout listener above is left for older systems
+    final boolean[] imeRiding = imeFollowed;
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R && hasInput) {
+      wrap.setWindowInsetsAnimationCallback(new android.view.WindowInsetsAnimation.Callback(android.view.WindowInsetsAnimation.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
+        @Override
+        public void onPrepare (@androidx.annotation.NonNull android.view.WindowInsetsAnimation animation) {
+          if ((animation.getTypeMask() & android.view.WindowInsets.Type.ime()) != 0) {
+            imeRiding[0] = true;
+            if (imeAnimator[0] != null) imeAnimator[0].cancel();
+          }
+        }
+
+        @androidx.annotation.NonNull
+        @Override
+        public android.view.WindowInsets onProgress (@androidx.annotation.NonNull android.view.WindowInsets insets, @androidx.annotation.NonNull java.util.List<android.view.WindowInsetsAnimation> running) {
+          if (imeRiding[0] && wrap.getHeight() > 0) {
+            wrap.getLocationOnScreen(location);
+            int imeTop = wrap.getRootView().getHeight() - insets.getInsets(android.view.WindowInsets.Type.ime()).bottom;
+            int bottom = Math.max(0, location[1] + wrap.getHeight() - imeTop);
+            imeTarget[0] = bottom;
+            if (wrap.getPaddingBottom() != bottom) wrap.setPadding(0, wrap.getPaddingTop(), 0, bottom);
+          }
+          return insets;
+        }
+
+        @Override
+        public void onEnd (@androidx.annotation.NonNull android.view.WindowInsetsAnimation animation) {
+          if ((animation.getTypeMask() & android.view.WindowInsets.Type.ime()) != 0) imeRiding[0] = false;
+        }
+      });
+    }
     wrap.getViewTreeObserver().addOnGlobalLayoutListener(ime);
     wrap.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
       @Override

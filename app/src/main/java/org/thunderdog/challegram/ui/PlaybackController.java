@@ -1137,7 +1137,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         final boolean searching = query.length() >= Tgx101AllChatsSearch.MIN_QUERY;
         allChats.setQuery(query);
         int shown = 0;
-        for (int i = 1; i < tracks.size() - 1 && shown < (searching ? 8 : 40); i++) {
+        for (int i = 1; i < tracks.size() - 1 && shown < (searching ? 8 : 15); i++) { // (video 2026-11-05) forty rows made the sheet a second late
           Object data = tracks.get(i).getData();
           if (!(data instanceof InlineResultCommon)) continue;
           InlineResultCommon track = (InlineResultCommon) data;
