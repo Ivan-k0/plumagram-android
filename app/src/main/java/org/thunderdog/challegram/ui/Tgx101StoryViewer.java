@@ -55,7 +55,6 @@ public class Tgx101StoryViewer extends Dialog {
   private int personIndex, storyIndex;
 
   private final FrameLayout root;
-  private View bottomBar;
   private final ImageView imageView;
   private final VideoView videoView;
   private final ProgressBars bars;
@@ -232,13 +231,34 @@ public class Tgx101StoryViewer extends Dialog {
     captionView = text(context, 15f, Color.WHITE);
     captionView.setOnClickListener(v -> setCaptionExpanded(!captionExpanded));
     captionView.setOnTouchListener(new View.OnTouchListener() {
+      // (user 2026-11-05 «свайп внутри описания сворачивает его»): the text's scroll ended with a click that folded it.
+      // A finger that moved never clicks: it scrolls; it folds only as a swipe down begun with the text at its very top
       private float downY;
+      private int downScroll;
+      private boolean moved;
       @Override
       public boolean onTouch (View v, MotionEvent e) {
-        if (e.getActionMasked() == MotionEvent.ACTION_DOWN) downY = e.getY();
-        if (e.getActionMasked() == MotionEvent.ACTION_UP && captionExpanded && v.getScrollY() == 0 && e.getY() - downY > Screen.dp(40f)) {
-          setCaptionExpanded(false); // swipe down folds the text
-          return true;
+        switch (e.getActionMasked()) {
+          case MotionEvent.ACTION_DOWN:
+            downY = e.getY();
+            downScroll = v.getScrollY();
+            moved = false;
+            break;
+          case MotionEvent.ACTION_MOVE:
+            if (Math.abs(e.getY() - downY) > android.view.ViewConfiguration.get(v.getContext()).getScaledTouchSlop()) moved = true;
+            break;
+          case MotionEvent.ACTION_UP:
+            if (moved) {
+              MotionEvent cancel = MotionEvent.obtain(e);
+              cancel.setAction(MotionEvent.ACTION_CANCEL);
+              v.onTouchEvent(cancel); // the text ends its scroll, no click comes
+              cancel.recycle();
+              if (captionExpanded && downScroll == 0 && v.getScrollY() == 0 && e.getY() - downY > Screen.dp(40f)) {
+                setCaptionExpanded(false);
+              }
+              return true;
+            }
+            break;
         }
         return false;
       }
@@ -323,8 +343,6 @@ public class Tgx101StoryViewer extends Dialog {
     bottomParams.rightMargin = Screen.dp(10f);
     bottomParams.bottomMargin = Screen.dp(16f);
     root.addView(bottom, bottomParams);
-    bottomBar = bottom;
-    root.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> { if (b - t != ob - ot) v.post(this::tgx101FitMedia); });
 
     root.setOnTouchListener(new GestureHandler());
     // keep the reply field and ♡ above the system navigation bar
@@ -586,7 +604,6 @@ public class Tgx101StoryViewer extends Dialog {
     captionExpanded = false;
     captionView.setVisibility(captionText.isEmpty() ? View.GONE : View.VISIBLE);
     applyCaption(false);
-    captionView.post(this::tgx101FitMedia);
   }
 
   private void applyCaption (boolean animate) {
@@ -646,29 +663,11 @@ public class Tgx101StoryViewer extends Dialog {
     return capsule;
   }
 
-  // (user 2026-11-05 «описание закрывает низ истории, а там может быть текст»): the picture ends above the folded caption
-  // and the reply field; on a tall screen it only moves up, a short one makes it a little smaller
-  private void tgx101FitMedia () {
-    if (captionExpanded || root.getHeight() == 0) return;
-    View limitView = captionView.getVisibility() == View.VISIBLE ? captionView : bottomBar;
-    if (limitView == null || limitView.getHeight() == 0) return;
-    int margin = Math.max(0, root.getHeight() - root.getPaddingBottom() - limitView.getTop() + Screen.dp(6f));
-    View[] media = {imageView, videoView, areasView};
-    for (View m : media) {
-      ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) m.getLayoutParams();
-      if (lp.bottomMargin != margin) {
-        lp.bottomMargin = margin;
-        m.setLayoutParams(lp);
-      }
-    }
-  }
-
   private void setCaptionExpanded (boolean expanded) {
     if (captionExpanded == expanded || captionText.isEmpty()) return;
     captionExpanded = expanded;
     setPaused(expanded);
     applyCaption(true);
-    if (!expanded) captionView.post(this::tgx101FitMedia);
   }
 
   @Nullable
@@ -1076,6 +1075,8 @@ public class Tgx101StoryViewer extends Dialog {
     private final Runnable hold = () -> {
       holding = true;
       setPaused(true);
+      // (user 2026-11-05 «удержание на паузе должно скрывать описание»): the whole picture while held
+      if (captionView.getVisibility() == View.VISIBLE) captionView.animate().alpha(0f).setDuration(150).start();
       org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK);
     };
 
@@ -1146,6 +1147,7 @@ public class Tgx101StoryViewer extends Dialog {
             holding = false;
             adjusting = false;
             hideLevel();
+            captionView.animate().alpha(1f).setDuration(150).start();
             setPaused(false);
             return true;
           }
