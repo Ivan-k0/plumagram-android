@@ -1421,7 +1421,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     }
   }
 
-  // (user 2026-11-04, player mockup) the music's bar: a swipe up opens the player, a swipe to a side follows the finger and closes
+  // (user 2026-11-04, player mockup) the music's bar: a swipe up or down opens the player, a swipe to a side follows the finger and closes
   private static final int TGX101_SWIPE_NONE = 0, TGX101_SWIPE_WATCHING = 1, TGX101_SWIPE_OPENED = 2, TGX101_SWIPE_SIDE = 3;
   private int tgx101SwipeMode;
   private float tgx101SwipeX, tgx101SwipeY, tgx101SwipeDx;
@@ -1517,12 +1517,13 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
               tgx101SwipeMode = TGX101_SWIPE_SIDE;
               tgx101SwipeX = e.getX(); // no jump: it goes from here
               tgx101CancelClicks(e);
-            } else if (dy < 0 && tgx101ShowsNext()) {
+            } else if (tgx101ShowsNext() && !(dy > 0 && needLongPress(tgx101SwipeX, tgx101SwipeY))) {
+              // (user 2026-11-05) up or down; only down over the speed stays its picker
               tgx101SwipeMode = TGX101_SWIPE_OPENED;
               tgx101CancelClicks(e);
               openPlayer();
             } else {
-              tgx101SwipeMode = TGX101_SWIPE_NONE; // down over the speed: its picker, as it was
+              tgx101SwipeMode = TGX101_SWIPE_NONE;
             }
           }
         }
