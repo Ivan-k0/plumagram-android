@@ -1079,6 +1079,19 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     return true;
   }
 
+  /** TGx101: what closes a popup screen by a swipe down: a flick this fast over this distance, or letting go past this share of the height */
+  public float tgx101PopupCloseFlingDp () {
+    return 1000f;
+  }
+
+  public float tgx101PopupCloseDistanceDp () {
+    return 72f;
+  }
+
+  public float tgx101PopupDropFactor () {
+    return Size.NAVIGATION_DROP_FACTOR;
+  }
+
   /** TGx101: the system's back gesture is this screen's own for now (one step inside it): no preview of the screen below, {@link #performOnBackPressed} when it ends */
   public boolean tgx101TakesSystemBack () {
     return false;

@@ -744,12 +744,61 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     return scrollFactor != 0f && recyclerView != null && mayExpandOverlay();
   }
 
+  // (user 2026-11-05 «сверху вниз слишком чувствителен, подёргивания, когда свайп не завершён»): it takes a real pull to bring the cover
+  // down; a pull let go early goes smoothly back to where it began, with no fraction of a pixel lost on the way
+
+  private static final float TGX101_PULL_RETURN_DP = 96f, TGX101_PULL_FLICK_DP = 48f, TGX101_PULL_FLICK_DP_PER_MS = 1.2f;
+  private float tgx101PullRest;
+  private int tgx101PullScrolled;
+  private long tgx101PullStartedAt;
+
+  private static float tgx101PullSlop () {
+    return Screen.getTouchSlop() * 2;
+  }
+
+  private void tgx101BeginPull () {
+    recyclerView.stopScroll();
+    tgx101PullRest = 0f;
+    tgx101PullScrolled = 0;
+    tgx101PullStartedAt = android.os.SystemClock.uptimeMillis();
+  }
+
   private void tgx101PullList (float dy) {
-    recyclerView.scrollBy(0, (int) -dy);
+    tgx101PullRest -= dy;
+    int by = (int) tgx101PullRest;
+    if (by != 0) {
+      tgx101PullRest -= by;
+      tgx101PullScrolled += by;
+      recyclerView.scrollBy(0, by);
+    }
   }
 
   private void tgx101EndPull (float total) {
-    if (total >= Screen.dp(32f)) tgx101ReturnToCover();
+    final long time = Math.max(1L, android.os.SystemClock.uptimeMillis() - tgx101PullStartedAt);
+    final boolean flick = total >= Screen.dp(TGX101_PULL_FLICK_DP) && total / time >= Screen.dp(TGX101_PULL_FLICK_DP_PER_MS);
+    if (total >= Screen.dp(TGX101_PULL_RETURN_DP) || flick) {
+      tgx101ReturnToCover();
+    } else if (tgx101PullScrolled != 0) {
+      recyclerView.smoothScrollBy(0, -tgx101PullScrolled);
+    }
+    tgx101PullScrolled = 0;
+  }
+
+  // Closing the player down is a longer way than the other popup screens
+
+  @Override
+  public float tgx101PopupCloseFlingDp () {
+    return 1800f;
+  }
+
+  @Override
+  public float tgx101PopupCloseDistanceDp () {
+    return 160f;
+  }
+
+  @Override
+  public float tgx101PopupDropFactor () {
+    return .4f;
   }
 
   private void tgx101ReturnToCover () {
@@ -783,6 +832,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   private void tgx101InvalidateTinted () {
     if (coverView != null) coverView.invalidate();
+    tgx101MatchStatusIcons();
     if (tgx101SpeedPill != null) tgx101SpeedPill.invalidate();
     if (tgx101NextPill != null) tgx101NextPill.invalidate();
     if (tgx101LyricsPill != null) tgx101LyricsPill.invalidate();
@@ -1392,9 +1442,10 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
           startY = lastY = y;
           return false;
         case MotionEvent.ACTION_MOVE:
-          if (!pulling && controller != null && controller.tgx101ListOpened() && y - startY > Screen.getTouchSlop() && y - startY > Math.abs(x - startX)) {
+          if (!pulling && controller != null && controller.tgx101ListOpened() && y - startY > tgx101PullSlop() && y - startY > Math.abs(x - startX)) {
             pulling = true;
             lastY = y;
+            controller.tgx101BeginPull();
             if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
             MotionEvent cancel = MotionEvent.obtain(e);
             cancel.setAction(MotionEvent.ACTION_CANCEL);
@@ -1417,6 +1468,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         case MotionEvent.ACTION_CANCEL:
           if (pulling) {
             pulling = false;
+            controller.tgx101EndPull(0f);
             return true;
           }
           return false;
@@ -2436,10 +2488,11 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
           if (Math.hypot(x - tgx101PullX, y - tgx101PullStartY) > Screen.getTouchSlop()) {
             tgx101FreeTap = false;
           }
-          if (!isSeeking && !tgx101Pulling && controller.tgx101ListOpened() && Math.abs(y - tgx101PullStartY) > Screen.getTouchSlop() && Math.abs(y - tgx101PullStartY) > Math.abs(x - tgx101PullX)) {
+          if (!isSeeking && !tgx101Pulling && controller.tgx101ListOpened() && Math.abs(y - tgx101PullStartY) > tgx101PullSlop() && Math.abs(y - tgx101PullStartY) > Math.abs(x - tgx101PullX)) {
             tgx101Pulling = true; // down over the player: the list goes down with the finger, letting go brings the cover
             tgx101DurationTap = false;
             tgx101PullLastY = y;
+            controller.tgx101BeginPull();
             getParent().requestDisallowInterceptTouchEvent(true);
           }
           if (tgx101Pulling) {
@@ -2474,6 +2527,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         }
         case MotionEvent.ACTION_CANCEL: {
           tgx101DurationTap = false;
+          if (tgx101Pulling) controller.tgx101EndPull(0f);
           tgx101Pulling = false;
           tgx101FreeTap = false;
           if (isSeeking) {
@@ -2565,6 +2619,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       if (this.collapseFactor != factor) {
         this.collapseFactor = factor;
         controller.updateButtonColors();
+        controller.tgx101MatchStatusIcons();
         invalidate();
       }
     }
@@ -3288,9 +3343,40 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   // ViewController
 
+  // (user 2026-11-05, screenshot «в таком положении тоже не читается строка»): over the cover the icons are white on its shade; with the
+  // cover gone up they stand on the player's tone, which may be light
+
+  @Override
+  public Boolean tgx101LightStatusBar () {
+    if (coverView == null || coverView.getActualCollapseFactor() < .5f) return false;
+    int ground = tgx101Tint.background(Theme.fillingColor());
+    return (0.299f * android.graphics.Color.red(ground) + 0.587f * android.graphics.Color.green(ground) + 0.114f * android.graphics.Color.blue(ground)) / 255f > .6f;
+  }
+
+  private Boolean tgx101StatusIconsDark;
+
+  private void tgx101MatchStatusIcons () {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M || !isFocused()) return;
+    Boolean dark = tgx101LightStatusBar();
+    if (dark.equals(tgx101StatusIconsDark)) return;
+    tgx101StatusIconsDark = dark;
+    UI.setLightSystemBars(context().getWindow(), !Theme.isDark(), dark, 0, false);
+  }
+
+  @Override
+  public void onBlur () {
+    super.onBlur();
+    tgx101StatusIconsDark = null;
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+      UI.setLightSystemBars(context().getWindow(), !Theme.isDark(), Theme.needLightStatusBar(), 0, false);
+    }
+  }
+
   @Override
   public void onFocus () {
     super.onFocus();
+    tgx101StatusIconsDark = null;
+    tgx101MatchStatusIcons();
     coverView.setDisableAnimation(false);
     destroyAllStackItemsById(R.id.controller_playback);
   }

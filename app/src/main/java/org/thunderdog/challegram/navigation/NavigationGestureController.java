@@ -193,7 +193,8 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
       boolean close;
 
       if (slidingVertical) {
-        close = lastScrollY < (float) navigation.getValue().getMeasuredHeight() * Size.NAVIGATION_DROP_FACTOR;
+        ViewController<?> current = navigation.getCurrentStackItem();
+        close = lastScrollY < (float) navigation.getValue().getMeasuredHeight() * (current != null ? current.tgx101PopupDropFactor() : Size.NAVIGATION_DROP_FACTOR);
       } else {
         close = (tgx101Reverse ? -lastScrollX : lastScrollX) < (float) navigation.getValue().getMeasuredWidth() * Size.NAVIGATION_DROP_FACTOR;
       }
@@ -212,15 +213,13 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
     return false;
   }
 
-  private static final float TGX101_POPUP_CLOSE_FLING_DP = 1000f;
-  private static final float TGX101_POPUP_CLOSE_MIN_DISTANCE_DP = 72f;
-
   public boolean onFling (MotionEvent event, MotionEvent event2, float velocityX, float velocityY) {
     float velocity = slidingVertical ? velocityY : velocityX;
     float abs = Math.abs(velocity);
 
     // TGx101: popup screens (the call screen) closed on the lightest downward flick; ask for a firmer one
-    boolean firmEnough = !slidingVertical || (abs > Screen.dp(TGX101_POPUP_CLOSE_FLING_DP) && lastScrollY >= Screen.dp(TGX101_POPUP_CLOSE_MIN_DISTANCE_DP));
+    ViewController<?> tgx101Current = navigation.getCurrentStackItem();
+    boolean firmEnough = !slidingVertical || tgx101Current == null || (abs > Screen.dp(tgx101Current.tgx101PopupCloseFlingDp()) && lastScrollY >= Screen.dp(tgx101Current.tgx101PopupCloseDistanceDp()));
 
     if (abs > Screen.dp(250, 1f) && firmEnough) {
       abortUp = true;
