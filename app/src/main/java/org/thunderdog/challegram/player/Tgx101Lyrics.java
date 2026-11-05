@@ -96,6 +96,108 @@ public final class Tgx101Lyrics {
     return new Tgx101Lyrics(lines, true);
   }
 
+  // lrclib.net: only when asked for in the sheet, where it says what goes there
+
+  public static final int ONLINE_FOUND = 0, ONLINE_NOT_FOUND = 1, ONLINE_FAILED = 2;
+
+  public interface OnlineCallback {
+    /** Not on the UI thread */
+    void onResult (int status, @Nullable Tgx101Lyrics lyrics);
+  }
+
+  private static java.io.File cacheFile (String key) {
+    java.io.File dir = new java.io.File(org.thunderdog.challegram.unsorted.AppContext.get().getCacheDir(), "tgx101_lyrics");
+    if (!dir.exists() && !dir.mkdirs()) return null;
+    return new java.io.File(dir, Integer.toHexString(key.hashCode()) + "_" + key.length() + ".lrc");
+  }
+
+  /** What lrclib.net gave for this file before: not on the UI thread */
+  public static @Nullable Tgx101Lyrics fromCache (String key) {
+    try {
+      java.io.File file = cacheFile(key);
+      if (file == null || !file.exists()) return null;
+      try (java.io.FileInputStream in = new java.io.FileInputStream(file)) {
+        return parse(new String(readAll(in), "UTF-8"));
+      }
+    } catch (Throwable ignored) {
+      return null;
+    }
+  }
+
+  private static byte[] readAll (java.io.InputStream in) throws java.io.IOException {
+    java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+    byte[] buffer = new byte[8192];
+    int count;
+    while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
+    return out.toByteArray();
+  }
+
+  public static void searchOnline (String key, @Nullable String title, @Nullable String artist, @Nullable String fileName, int durationSeconds, OnlineCallback callback) {
+    org.thunderdog.challegram.core.Background.instance().post(() -> {
+      java.net.HttpURLConnection connection = null;
+      try {
+        StringBuilder url = new StringBuilder("https://lrclib.net/api/search?");
+        if (title != null && !title.isEmpty()) {
+          url.append("track_name=").append(java.net.URLEncoder.encode(title, "UTF-8"));
+          if (artist != null && !artist.isEmpty()) url.append("&artist_name=").append(java.net.URLEncoder.encode(artist, "UTF-8"));
+        } else if (fileName != null && !fileName.isEmpty()) {
+          int dot = fileName.lastIndexOf('.');
+          url.append("q=").append(java.net.URLEncoder.encode(dot > 0 ? fileName.substring(0, dot) : fileName, "UTF-8"));
+        } else {
+          callback.onResult(ONLINE_NOT_FOUND, null);
+          return;
+        }
+        connection = (java.net.HttpURLConnection) new java.net.URL(url.toString()).openConnection();
+        connection.setConnectTimeout(10000);
+        connection.setReadTimeout(15000);
+        connection.setRequestProperty("User-Agent", "PlumaGram (https://github.com/Ivan-k0/plumagram-android)");
+        if (connection.getResponseCode() != 200) {
+          callback.onResult(connection.getResponseCode() == 404 ? ONLINE_NOT_FOUND : ONLINE_FAILED, null);
+          return;
+        }
+        String text;
+        try (java.io.InputStream in = connection.getInputStream()) {
+          text = pick(new org.json.JSONArray(new String(readAll(in), "UTF-8")), durationSeconds);
+        }
+        Tgx101Lyrics lyrics = parse(text);
+        if (lyrics != null) {
+          java.io.File file = cacheFile(key);
+          if (file != null) {
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(file)) {
+              out.write(text.getBytes("UTF-8"));
+            }
+          }
+        }
+        callback.onResult(lyrics != null ? ONLINE_FOUND : ONLINE_NOT_FOUND, lyrics);
+      } catch (Throwable t) {
+        callback.onResult(ONLINE_FAILED, null);
+      } finally {
+        if (connection != null) connection.disconnect();
+      }
+    });
+  }
+
+  /** The nearest by length. Times from a recording of another length would run ahead or behind: then only the words */
+  private static @Nullable String pick (org.json.JSONArray results, int durationSeconds) {
+    org.json.JSONObject best = null;
+    double bestDifference = Double.MAX_VALUE;
+    for (int i = 0; i < results.length(); i++) {
+      org.json.JSONObject item = results.optJSONObject(i);
+      if (item == null || item.optBoolean("instrumental")) continue;
+      if (item.optString("plainLyrics", "").isEmpty() && item.optString("syncedLyrics", "").isEmpty()) continue;
+      double difference = durationSeconds > 0 ? Math.abs(item.optDouble("duration", 0) - durationSeconds) : 0;
+      if (difference < bestDifference) {
+        best = item;
+        bestDifference = difference;
+      }
+    }
+    if (best == null) return null;
+    String synced = best.isNull("syncedLyrics") ? "" : best.optString("syncedLyrics", "");
+    String plain = best.isNull("plainLyrics") ? "" : best.optString("plainLyrics", "");
+    if (!synced.isEmpty() && bestDifference <= 3 && durationSeconds > 0) return synced;
+    return !plain.isEmpty() ? plain : synced.replaceAll("(?m)^\\[[^]]*]\\s*", "");
+  }
+
   // The file
 
   private static final int MAX_FRAME = 2 * 1024 * 1024;

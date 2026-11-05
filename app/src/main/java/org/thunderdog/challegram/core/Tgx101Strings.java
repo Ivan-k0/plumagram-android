@@ -1741,6 +1741,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PlayerSearch, "Поиск музыки");
     RU.put(R.string.Tgx101PlayerSearchAll, "Во всех чатах");
     RU.put(R.string.Tgx101Lyrics, "Текст песни");
+    RU.put(R.string.Tgx101LyricsFind, "Найти на lrclib.net");
+    RU.put(R.string.Tgx101LyricsWarning, "Название, исполнитель и имя файла уйдут на сайт lrclib.net, он не связан с Telegram. Сайт увидит ваш IP-адрес; прокси из приложения здесь не используется.");
+    RU.put(R.string.Tgx101LyricsSearching, "Ищу…");
+    RU.put(R.string.Tgx101LyricsNotFound, "Текст не найден");
+    RU.put(R.string.Tgx101LyricsFailed, "Не удалось связаться с lrclib.net");
     RU.put(R.string.Tgx101LyricsLoading, "Смотрю в файле…");
     RU.put(R.string.Tgx101LyricsNone, "В файле нет текста песни");
     RU.put(R.string.Tgx101LyricsNotLoaded, "Файл ещё не загрузился");

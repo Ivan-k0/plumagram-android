@@ -76,7 +76,8 @@ final class Tgx101LyricsSheet {
     final TdApi.Audio audio = item.getTrackAudio();
     final String path = TD.isFileLoaded(item.getTrackFile()) ? item.getTrackFile().local.path : null;
     Background.instance().post(() -> {
-      Tgx101Lyrics found = Tgx101Lyrics.fromFile(path);
+      Tgx101Lyrics inFile = Tgx101Lyrics.fromFile(path);
+      Tgx101Lyrics found = inFile != null ? inFile : Tgx101Lyrics.fromCache(onlineKey(item));
       UI.post(() -> {
         if (request != token) return;
         if (found != null) {
@@ -100,8 +101,36 @@ final class Tgx101LyricsSheet {
     handle.body.addView(Tgx101Sheet.row(c.context(), 0, 0, Lang.getString(res), null, false, null));
   }
 
+  private static String onlineKey (InlineResultCommon item) {
+    TdApi.File file = item.getTrackFile();
+    return file.remote != null && file.remote.uniqueId != null && !file.remote.uniqueId.isEmpty() ? file.remote.uniqueId : "local_" + file.id;
+  }
+
   private void showMissing (TdApi.Audio audio, boolean fileLoaded) {
-    showMessage(fileLoaded ? R.string.Tgx101LyricsNone : R.string.Tgx101LyricsNotLoaded);
+    showMissing(audio, fileLoaded ? R.string.Tgx101LyricsNone : R.string.Tgx101LyricsNotLoaded);
+  }
+
+  private void showMissing (TdApi.Audio audio, int message) {
+    showMessage(message);
+    // Nothing leaves the phone before this tap, and it says what leaves
+    TextView warning = Tgx101SavedHomeController.text(c.context(), 13f, Theme.textDecentColor(), false);
+    warning.setText(Lang.getString(R.string.Tgx101LyricsWarning));
+    warning.setPadding(Screen.dp(20f), Screen.dp(2f), Screen.dp(20f), Screen.dp(6f));
+    handle.body.addView(warning);
+    handle.body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_search_24, 0, Lang.getString(R.string.Tgx101LyricsFind), null, false, v -> searchOnline(audio)));
+  }
+
+  private void searchOnline (TdApi.Audio audio) {
+    final int request = ++token;
+    showMessage(R.string.Tgx101LyricsSearching);
+    Tgx101Lyrics.searchOnline(onlineKey(item), audio.title, audio.performer, audio.fileName, audio.duration, (status, found) -> UI.post(() -> {
+      if (request != token) return;
+      if (found != null) {
+        show(found);
+      } else {
+        showMissing(audio, status == Tgx101Lyrics.ONLINE_FAILED ? R.string.Tgx101LyricsFailed : R.string.Tgx101LyricsNotFound);
+      }
+    }));
   }
 
   private void show (Tgx101Lyrics lyrics) {

@@ -7473,6 +7473,11 @@
   <string name="Tgx101PlayerSearch">Search music</string>
   <string name="Tgx101PlayerSearchAll">In all chats</string>
   <string name="Tgx101Lyrics">Lyrics</string>
+  <string name="Tgx101LyricsFind">Find on lrclib.net</string>
+  <string name="Tgx101LyricsWarning">The track\'s title, performer and file name will go to lrclib.net, which isn\'t part of Telegram. The site will see your IP address; a proxy set up in the app isn\'t used for this.</string>
+  <string name="Tgx101LyricsSearching">Searching…</string>
+  <string name="Tgx101LyricsNotFound">No lyrics found</string>
+  <string name="Tgx101LyricsFailed">Couldn\'t reach lrclib.net</string>
   <string name="Tgx101LyricsLoading">Looking in the file…</string>
   <string name="Tgx101LyricsNone">The file has no lyrics</string>
   <string name="Tgx101LyricsNotLoaded">The file hasn\'t finished loading yet</string>
