@@ -55,6 +55,7 @@ public class Tgx101StoryViewer extends Dialog {
   private int personIndex, storyIndex;
 
   private final FrameLayout root;
+  private View bottomBar;
   private final ImageView imageView;
   private final VideoView videoView;
   private final ProgressBars bars;
@@ -322,6 +323,8 @@ public class Tgx101StoryViewer extends Dialog {
     bottomParams.rightMargin = Screen.dp(10f);
     bottomParams.bottomMargin = Screen.dp(16f);
     root.addView(bottom, bottomParams);
+    bottomBar = bottom;
+    root.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> { if (b - t != ob - ot) v.post(this::tgx101FitMedia); });
 
     root.setOnTouchListener(new GestureHandler());
     // keep the reply field and ♡ above the system navigation bar
@@ -583,6 +586,7 @@ public class Tgx101StoryViewer extends Dialog {
     captionExpanded = false;
     captionView.setVisibility(captionText.isEmpty() ? View.GONE : View.VISIBLE);
     applyCaption(false);
+    captionView.post(this::tgx101FitMedia);
   }
 
   private void applyCaption (boolean animate) {
@@ -596,10 +600,12 @@ public class Tgx101StoryViewer extends Dialog {
       captionView.setMovementMethod(new android.text.method.ScrollingMovementMethod());
       captionView.setVerticalScrollBarEnabled(true);
       captionView.scrollTo(0, 0);
+      captionView.setClickable(true); // setMovementMethod drops the click: a tap folds it again
       captionView.setBackground(tgx101Capsule());
       captionView.setPadding(Screen.dp(16f), Screen.dp(12f), Screen.dp(16f), Screen.dp(12f));
     } else {
       captionView.setMovementMethod(null);
+      captionView.setClickable(true); // (user 2026-11-05 «описание вообще не открывается»): setMovementMethod(null) had taken the tap away
       captionView.setMaxHeight(Integer.MAX_VALUE);
       captionView.scrollTo(0, 0);
       captionView.setMaxLines(2);
@@ -640,11 +646,29 @@ public class Tgx101StoryViewer extends Dialog {
     return capsule;
   }
 
+  // (user 2026-11-05 «описание закрывает низ истории, а там может быть текст»): the picture ends above the folded caption
+  // and the reply field; on a tall screen it only moves up, a short one makes it a little smaller
+  private void tgx101FitMedia () {
+    if (captionExpanded || root.getHeight() == 0) return;
+    View limitView = captionView.getVisibility() == View.VISIBLE ? captionView : bottomBar;
+    if (limitView == null || limitView.getHeight() == 0) return;
+    int margin = Math.max(0, root.getHeight() - root.getPaddingBottom() - limitView.getTop() + Screen.dp(6f));
+    View[] media = {imageView, videoView, areasView};
+    for (View m : media) {
+      ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) m.getLayoutParams();
+      if (lp.bottomMargin != margin) {
+        lp.bottomMargin = margin;
+        m.setLayoutParams(lp);
+      }
+    }
+  }
+
   private void setCaptionExpanded (boolean expanded) {
     if (captionExpanded == expanded || captionText.isEmpty()) return;
     captionExpanded = expanded;
     setPaused(expanded);
     applyCaption(true);
+    if (!expanded) captionView.post(this::tgx101FitMedia);
   }
 
   @Nullable
