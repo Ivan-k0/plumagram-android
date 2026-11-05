@@ -681,7 +681,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   }
 
   public static int getVideoSize () {
-    return Math.min(Screen.smallestSide() - Screen.dp(32), Screen.dp(640));
+    return Math.min(Screen.smallestSide() - Screen.dp(92f), Screen.dp(640)); // (user 2026-11-05) room for the «→A» beside it, and above a keyboard
   }
 
   public boolean inSizeAnimation () {
