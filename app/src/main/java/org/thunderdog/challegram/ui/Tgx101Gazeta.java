@@ -470,7 +470,7 @@ public final class Tgx101Gazeta {
   }
 
   public interface FeedCallback {
-    void onFeed (List<Post> posts, int firstUnread);
+    void onFeed (List<Post> posts, int firstUnread, boolean complete);
   }
 
   static Post newPost (TdApi.Message message) {
@@ -508,14 +508,17 @@ public final class Tgx101Gazeta {
   /** the unread posts of every channel (with a few read ones above), merged by time; on the UI thread */
   public static void loadFeed (Tdlib tdlib, long[] chatIds, FeedCallback callback) {
     if (chatIds.length == 0) {
-      UI.post(() -> callback.onFeed(new ArrayList<>(), -1));
+      UI.post(() -> callback.onFeed(new ArrayList<>(), -1, true));
       return;
     }
     List<TdApi.Message> all = new ArrayList<>();
     Map<Long, Long> lastRead = new HashMap<>();
-    AtomicInteger pending = new AtomicInteger(chatIds.length);
-    Runnable done = () -> {
-      if (pending.decrementAndGet() != 0) return;
+    // (user 2026-11-05, journal of a OnePlus: 41 s for 70 channels, the slowest one held all the rest back): what this phone
+    // keeps comes first and the feed shows it at once; what the network brings joins it in portions
+    final AtomicInteger pending = new AtomicInteger(chatIds.length);
+    final AtomicInteger localPending = new AtomicInteger(chatIds.length);
+    final java.util.concurrent.atomic.AtomicBoolean portionPlanned = new java.util.concurrent.atomic.AtomicBoolean();
+    final me.vkryl.core.lambda.RunnableBool show = complete -> {
       List<Post> posts = build(tdlib, all, lastRead);
       int firstUnread = -1;
       for (int i = 0; i < posts.size(); i++) {
@@ -525,11 +528,30 @@ public final class Tgx101Gazeta {
         }
       }
       final int at = firstUnread;
-      UI.post(() -> callback.onFeed(posts, at));
+      UI.post(() -> callback.onFeed(posts, at, complete));
+    };
+    final Runnable portion = () -> {
+      if (portionPlanned.compareAndSet(false, true)) {
+        UI.post(() -> {
+          portionPlanned.set(false);
+          if (pending.get() > 0) show.runWithBool(false);
+        }, 800);
+      }
+    };
+    Runnable done = () -> {
+      if (pending.decrementAndGet() != 0) {
+        portion.run();
+        return;
+      }
+      show.runWithBool(true);
+    };
+    final Runnable localDone = () -> {
+      if (localPending.decrementAndGet() == 0 && pending.get() > 0) show.runWithBool(false);
     };
     for (long chatId : chatIds) {
       TdApi.Chat chat = tdlib.chat(chatId);
       if (chat == null) {
+        localDone.run();
         done.run();
         continue;
       }
@@ -542,12 +564,19 @@ public final class Tgx101Gazeta {
       TdApi.GetChatHistory request = unread > 0 && read != 0
         ? new TdApi.GetChatHistory(chatId, read, -unread, unread + READ_CONTEXT, false)
         : new TdApi.GetChatHistory(chatId, 0, 0, READ_CONTEXT + Math.max(0, unread), false);
-      fetch(tdlib, request, 2, messages -> {
+      final MessagesCallback keep = messages -> {
         synchronized (all) {
           for (TdApi.Message m : messages) {
             if (isPost(m) && org.thunderdog.challegram.data.Tgx101MessageFilters.match(tdlib, m, chat) == null && hiddenTopic(tdlib, m) == null) all.add(m);
           }
         }
+      };
+      tdlib.send(new TdApi.GetChatHistory(request.chatId, request.fromMessageId, request.offset, request.limit, true), (messages, error) -> {
+        keep.onMessages(messages != null ? messages.messages : new TdApi.Message[0]);
+        localDone.run();
+      });
+      fetch(tdlib, request, 2, messages -> {
+        keep.onMessages(messages);
         done.run();
       });
     }

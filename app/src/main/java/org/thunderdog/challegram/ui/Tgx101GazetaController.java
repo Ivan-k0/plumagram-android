@@ -483,6 +483,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       @Override
       public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
         if (newState == RecyclerView.SCROLL_STATE_IDLE && isFocused()) settleHeader();
+        if (newState == RecyclerView.SCROLL_STATE_IDLE && waitingPortion != null) applyPortion(waitingPortion, false, waitingChats);
         if (newState == RecyclerView.SCROLL_STATE_DRAGGING) arrowWentToUnread = false; // the finger: the arrow starts over
       }
     });
@@ -548,21 +549,26 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   private void load () {
     Tgx101Gazeta.loadChannels(tdlib, chatIds -> {
       if (isDestroyed()) return;
-      Tgx101Gazeta.loadFeed(tdlib, chatIds, (feed, firstUnread) -> {
+      Tgx101Gazeta.loadFeed(tdlib, chatIds, (feed, firstUnread, complete) -> {
         if (isDestroyed()) return;
+        if (!loaded && feed.isEmpty() && !complete) return; // nothing at hand yet: «Loading» stays
+        if (loaded) {
+          applyPortion(feed, complete, chatIds);
+          return;
+        }
         loaded = true;
         rememberedIndex = -1;
         posts.clear();
         posts.addAll(feed);
         unreadAnchor = firstUnread >= 0 && firstUnread < posts.size() ? posts.get(firstUnread) : null; // stays where it was
         adapter.notifyDataSetChanged();
-        empty.setVisibility(posts.isEmpty() ? View.VISIBLE : View.GONE);
+        empty.setVisibility(posts.isEmpty() && complete ? View.VISIBLE : View.GONE);
         empty.setText(Lang.getString(chatIds.length == 0 ? R.string.Tgx101GazetaNoChannels : R.string.Tgx101GazetaEmpty));
-        org.thunderdog.challegram.Tgx101Diag.mark("gazeta: " + chatIds.length + " channels, " + posts.size() + " posts, first unread " + firstUnread);
+        org.thunderdog.challegram.Tgx101Diag.mark("gazeta: " + chatIds.length + " channels, " + posts.size() + " posts, first unread " + firstUnread + (complete ? "" : ", more coming"));
         LinearLayoutManager manager = (LinearLayoutManager) list.getLayoutManager();
         if (manager != null && !posts.isEmpty()) {
           // the first unread post; with none — the post the feed was left on; else the newest
-          // (user 2026-10-28 09:50 «вернулся — туда, где остался»): the place it was left first; the first unread is a
+          // (user 2026-10-28 09:50 «вернулся — туда, где остался»): the place it was left first; the first unread a
           // tap on the arrow in the header away
           int at = placeIndex();
           if (at == -1) at = firstUnread;
@@ -573,10 +579,82 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
           markVisibleRead();
           updateArrow();
         });
-        completeAlbums();
-        readChannelsWithNothingToShow(chatIds);
+        if (complete) {
+          completeAlbums();
+          readChannelsWithNothingToShow(chatIds);
+        }
       });
     });
+  }
+
+  // What the network brought joins the feed by date; the post under the finger stays where it is. Waits for the list to
+  // stand still and for a selection to end
+  private @Nullable List<Tgx101Gazeta.Post> waitingPortion;
+  private boolean waitingComplete;
+  private long[] waitingChats;
+
+  private void applyPortion (List<Tgx101Gazeta.Post> feed, boolean complete, long[] chatIds) {
+    waitingPortion = feed;
+    waitingComplete |= complete;
+    waitingChats = chatIds;
+    if (list != null && list.getScrollState() != RecyclerView.SCROLL_STATE_IDLE || selecting()) return;
+    final boolean finished = waitingComplete;
+    waitingPortion = null;
+    waitingComplete = false;
+    java.util.LinkedHashMap<String, Tgx101Gazeta.Post> merged = new java.util.LinkedHashMap<>();
+    for (Tgx101Gazeta.Post post : posts) merged.put(postKey(post), post);
+    for (Tgx101Gazeta.Post post : feed) {
+      Tgx101Gazeta.Post had = merged.get(postKey(post));
+      if (had == null) {
+        merged.put(postKey(post), post);
+      } else {
+        if (post.unread) had.unread = true;
+        for (TdApi.Message m : post.messages) {
+          boolean have = false;
+          for (TdApi.Message h : had.messages) if (h.id == m.id) have = true;
+          if (!have) had.messages.add(m);
+        }
+        java.util.Collections.sort(had.messages, (x, y) -> Long.compare(x.id, y.id));
+      }
+    }
+    LinearLayoutManager manager = (LinearLayoutManager) list.getLayoutManager();
+    int firstVisible = manager != null ? manager.findFirstVisibleItemPosition() : RecyclerView.NO_POSITION;
+    View firstView = manager != null && firstVisible != RecyclerView.NO_POSITION ? manager.findViewByPosition(firstVisible) : null;
+    Tgx101Gazeta.Post anchor = firstView != null && firstVisible < posts.size() ? posts.get(firstVisible) : null;
+    int anchorTop = firstView != null ? firstView.getTop() - list.getPaddingTop() : 0;
+    int before = posts.size();
+    posts.clear();
+    posts.addAll(merged.values());
+    java.util.Collections.sort(posts, (x, y) -> {
+      TdApi.Message a = x.first(), b = y.first();
+      return a.date != b.date ? Integer.compare(a.date, b.date) : Long.compare(a.id, b.id);
+    });
+    rememberedIndex = -1;
+    if (unreadAnchor == null || !posts.contains(unreadAnchor)) unreadAnchor = null;
+    for (Tgx101Gazeta.Post post : posts) {
+      if (post.unread) {
+        unreadAnchor = post; // an older unread one may have just come
+        break;
+      }
+    }
+    if (posts.size() != before) adapter.notifyDataSetChanged();
+    if (anchor != null && manager != null && posts.size() != before) {
+      int at = posts.indexOf(anchor);
+      if (at != -1) manager.scrollToPositionWithOffset(at, anchorTop);
+    }
+    empty.setVisibility(posts.isEmpty() && finished ? View.VISIBLE : View.GONE);
+    org.thunderdog.challegram.Tgx101Diag.mark("gazeta: portion, " + before + " → " + posts.size() + " posts" + (finished ? ", all here" : ""));
+    updateArrow();
+    if (finished) {
+      if (posts.isEmpty()) empty.setText(Lang.getString(chatIds.length == 0 ? R.string.Tgx101GazetaNoChannels : R.string.Tgx101GazetaEmpty));
+      completeAlbums();
+      readChannelsWithNothingToShow(chatIds);
+    }
+  }
+
+  private static String postKey (Tgx101Gazeta.Post post) {
+    TdApi.Message first = post.first();
+    return post.chatId + ":" + (first.mediaAlbumId != 0 ? "a" + first.mediaAlbumId : String.valueOf(first.id));
   }
 
   /**
