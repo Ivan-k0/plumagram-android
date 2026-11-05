@@ -39,8 +39,9 @@ public final class Tgx101BarOrder {
     DRAWER_SETTINGS = "settings", DRAWER_PROXY = "proxy", DRAWER_NIGHT = "night", DRAWER_STORY = "story",
     DRAWER_PEEK = "peek", // «Не подглядывай!» (user 2026-10-22)
     DRAWER_GAZETA = "gazeta", // «Газета» (user 2026-10-27)
-    DRAWER_PLAYER = "player"; // (user 2026-11-05 «плеер нужно добавить в боковое меню (по желанию)»)
-  private static final String[] DRAWER_OFF_BY_DEFAULT = {DRAWER_PLAYER};
+    DRAWER_PLAYER = "player", // (user 2026-11-05 «плеер нужно добавить в боковое меню (по желанию)»)
+    DRAWER_STORAGE = "storage"; // (group 2026-11-05 14:54 «в боковое меню дать возможность добавлять хранилище»)
+  private static final String[] DRAWER_OFF_BY_DEFAULT = {DRAWER_PLAYER, DRAWER_STORAGE};
   /** What a new install starts with (user 2026-11-04, screenshot 23:46) */
   public static final String DRAWER_NEW_INSTALL = DRAWER_CALLS + "," + DRAWER_SETTINGS + "," + DRAWER_SAVED + "," + DRAWER_GAZETA + ",-" + DRAWER_STORY + ",-" + DRAWER_CONTACTS + ",-" + DRAWER_SAVED_BY_CHATS + ",-" + DRAWER_PROXY + ",-" + DRAWER_NIGHT + ",-" + DRAWER_PEEK;
   // TGx101 (user 2026-10-12): the chat's ⋮ menu is editable too, with «Proxy» to add (off until switched on)
@@ -67,7 +68,7 @@ public final class Tgx101BarOrder {
     {CUT, COPY, PASTE, SELECT_ALL, APPS},
     {SWIPE_PIN, SWIPE_TRANSLATE, SWIPE_SAVE, SWIPE_FORWARD, SWIPE_REPLY, SWIPE_COPY, SWIPE_EDIT, SWIPE_SELECT, SWIPE_DELETE,
       SWIPE_REACTION, SWIPE_DELETE_ALL, SWIPE_LINK, SWIPE_SAVE_FILE, SWIPE_REPORT},
-    {DRAWER_GAZETA, DRAWER_STORY, DRAWER_CONTACTS, DRAWER_CALLS, DRAWER_SAVED, DRAWER_SAVED_BY_CHATS, DRAWER_SETTINGS, DRAWER_PROXY, DRAWER_NIGHT, DRAWER_PEEK, DRAWER_PLAYER},
+    {DRAWER_GAZETA, DRAWER_STORY, DRAWER_CONTACTS, DRAWER_CALLS, DRAWER_SAVED, DRAWER_SAVED_BY_CHATS, DRAWER_SETTINGS, DRAWER_PROXY, DRAWER_NIGHT, DRAWER_PEEK, DRAWER_PLAYER, DRAWER_STORAGE},
     {CHAT_CALL, CHAT_VIDEO_CALL, CHAT_SEARCH, CHAT_DATE, CHAT_SAVED_BY_CHATS, CHAT_BACKGROUND, CHAT_MUTE, CHAT_NOTIFICATIONS, CHAT_MEDIA, CHAT_TRANSLATE,
       CHAT_PINNED, CHAT_LINKED, CHAT_SCHEDULED, CHAT_VOICE_CHAT, CHAT_TOPICS, CHAT_REPORT, CHAT_PASSCODE, CHAT_OTHER, CHAT_PROXY, CHAT_LEAVE},
     {TAB_GAZETA, TAB_CONTACTS, TAB_CALLS, TAB_SETTINGS, TAB_PROFILE}
@@ -127,6 +128,7 @@ public final class Tgx101BarOrder {
     switch (key) {
       case DRAWER_GAZETA: return R.id.btn_tgx101Gazeta;
       case DRAWER_PLAYER: return R.id.btn_tgx101Player;
+      case DRAWER_STORAGE: return R.id.btn_tgx101Storage;
       case DRAWER_PEEK: return R.id.btn_tgx101Peek;
       case DRAWER_STORY: return R.id.btn_tgx101NewStory;
       case DRAWER_CONTACTS: return R.id.btn_contacts;
@@ -143,6 +145,7 @@ public final class Tgx101BarOrder {
     switch (key) {
       case DRAWER_GAZETA: return R.string.Tgx101Gazeta;
       case DRAWER_PLAYER: return R.string.Tgx101BirdPlayer;
+      case DRAWER_STORAGE: return R.string.Tgx101BirdStorage;
       case DRAWER_PEEK: return R.string.Tgx101Peek;
       case DRAWER_STORY: return R.string.Tgx101NewStory;
       case DRAWER_CONTACTS: return R.string.Contacts;
@@ -159,6 +162,7 @@ public final class Tgx101BarOrder {
     switch (key) {
       case DRAWER_GAZETA: return R.drawable.tgx101_gazeta_24;
       case DRAWER_PLAYER: return R.drawable.baseline_music_note_24;
+      case DRAWER_STORAGE: return R.drawable.tgx101_storage_tiles_24;
       case DRAWER_PEEK: return org.thunderdog.challegram.data.Tgx101Peek.isOn() ? R.drawable.baseline_eye_off_24 : R.drawable.baseline_visibility_24;
       case DRAWER_STORY: return R.drawable.baseline_camera_alt_24;
       case DRAWER_CONTACTS: return R.drawable.baseline_perm_contact_calendar_24;
