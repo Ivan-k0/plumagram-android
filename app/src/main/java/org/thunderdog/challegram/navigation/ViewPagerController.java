@@ -452,6 +452,14 @@ public abstract class ViewPagerController<T> extends TelegramViewController<T> i
       tgx101TabAnimator.cancel(); // a swipe takes over the indicator (cancel ends it: the tabs are settled)
     }
     tgx101OnPageScrollState(state);
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && this instanceof org.thunderdog.challegram.ui.MainController) {
+      // (user 2026-11-05 «папки переключаются неправильно, видно только вверху»): the black box for the folders strip
+      if (state == ViewPager.SCROLL_STATE_DRAGGING) {
+        org.thunderdog.challegram.Tgx101FrameTrace.start(org.thunderdog.challegram.tool.UI.getContext(context()), "folders");
+      } else if (state == ViewPager.SCROLL_STATE_IDLE && headerCell != null) {
+        org.thunderdog.challegram.Tgx101Diag.mark("folders: idle on page " + pager.getCurrentItem() + ", strip line at " + headerCell.getTopView().getSelectionFactor());
+      }
+    }
     if (state != ViewPager.SCROLL_STATE_SETTLING && headerCell != null) {
       headerCell.getTopView().resetFromTo();
     }
