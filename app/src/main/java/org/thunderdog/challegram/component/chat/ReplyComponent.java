@@ -534,9 +534,7 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
         trimmedTitle.draw(c, startX + textLeft, startX + textLeft + trimmedTitle.getWidth(), 0, startY + Screen.dp(1f));
       }
 
-      if (tgx101Wave != null && !isWhite) {
-        tgx101Wave.draw(c, 0f, startX + textLeft, startY + Screen.dp(30f));
-      } else if (trimmedContent != null) {
+      if (trimmedContent != null) {
         trimmedContent.draw(c, startX + textLeft, startX + textLeft + trimmedContent.getWidth(), 0, startY + Screen.dp(22f), null, 1f, textMediaReceiver);
       }
 
@@ -1078,23 +1076,20 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
     return new MediaPreview(miniPreview, preview, contour, isPrivate || hasSpoiler, previewCircle);
   }
 
-  private @Nullable Waveform tgx101Wave;
   private final android.graphics.Path tgx101WashPath = new android.graphics.Path();
   private final float[] tgx101Radii = new float[8];
 
   private void setMessage (TdApi.Message msg, boolean forceRequestImage, boolean forceLocal) {
     currentMessage = msg;
-    tgx101Wave = null;
-    if (isMessageComponent() && msg.content.getConstructor() == TdApi.MessageVoiceNote.CONSTRUCTOR && Td.isEmpty(quote)) {
-      byte[] data = ((TdApi.MessageVoiceNote) msg.content).voiceNote.waveform;
-      if (data != null && data.length > 0) {
-        tgx101Wave = new Waveform(data, Waveform.MODE_RECT, isOutBubble());
-        tgx101Wave.layout(Screen.dp(120f));
-      }
-    }
-    MediaPreview mediaPreview = newMediaPreview(msg.chatId, msg.content);
+    // (user 2026-11-05 «просто подписываться, без линий, без пустоты»): a voice or round message is its name only: no wave,
+    // no circle, no length
+    final boolean tgx101PlainName = isMessageComponent() && Td.isEmpty(quote) &&
+      (msg.content.getConstructor() == TdApi.MessageVoiceNote.CONSTRUCTOR || msg.content.getConstructor() == TdApi.MessageVideoNote.CONSTRUCTOR);
+    MediaPreview mediaPreview = tgx101PlainName ? null : newMediaPreview(msg.chatId, msg.content);
     ContentPreview contentPreview = ContentPreview.getChatListPreview(tdlib, msg.chatId, msg, true);
-    if (!Td.isEmpty(quote)) {
+    if (tgx101PlainName) {
+      contentPreview = new ContentPreview(null, msg.content.getConstructor() == TdApi.MessageVoiceNote.CONSTRUCTOR ? R.string.ChatContentVoice : R.string.ChatContentRoundVideo);
+    } else if (!Td.isEmpty(quote)) {
       contentPreview = new ContentPreview(contentPreview, quote.text);
     } else if (!StringUtils.isEmpty(pollOptionId) && msg.content.getConstructor() == TdApi.MessagePoll.CONSTRUCTOR) {
       TdApi.MessagePoll poll = (TdApi.MessagePoll) msg.content;
