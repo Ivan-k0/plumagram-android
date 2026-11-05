@@ -2180,7 +2180,6 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   // (group 2026-11-05 15:15, log 15:15:49 «input cursor 54 → 130» at each lift): scrolling a long text put the cursor where
   // the finger left it and the keyboard took that word. A finger that moved scrolls only: the cursor stays where it was
   private boolean tgx101ScrollGesture;
-  private int tgx101KeepSelStart = -1, tgx101KeepSelEnd = -1;
   private float tgx101ScrollDownX, tgx101ScrollDownY;
 
   @Override
@@ -2191,8 +2190,6 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     final int action = event.getActionMasked();
     if (action == MotionEvent.ACTION_DOWN) {
       tgx101ScrollGesture = false;
-      tgx101KeepSelStart = isFocused() ? getSelectionStart() : -1;
-      tgx101KeepSelEnd = isFocused() ? getSelectionEnd() : -1;
       tgx101ScrollDownX = event.getX();
       tgx101ScrollDownY = event.getY();
     } else if (action == MotionEvent.ACTION_MOVE && !tgx101ScrollGesture && Math.hypot(event.getX() - tgx101ScrollDownX, event.getY() - tgx101ScrollDownY) > android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop()) {
@@ -2200,17 +2197,19 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     }
     boolean result;
     try {
-      result = super.onTouchEvent(event);
+      if (action == MotionEvent.ACTION_UP && tgx101ScrollGesture && !hasSelection()) {
+        // (log 2026-11-05 22:38): putting the cursor back made the field scroll back to it — every swipe began at the end again.
+        // The lift after a scroll is told as a cancel: the editor never moves the cursor, the place the text was scrolled to stays
+        MotionEvent cancel = MotionEvent.obtain(event);
+        cancel.setAction(MotionEvent.ACTION_CANCEL);
+        result = super.onTouchEvent(cancel);
+        cancel.recycle();
+      } else {
+        result = super.onTouchEvent(event);
+      }
     } catch (Throwable t) {
       Log.e("System bug", t);
       return false;
-    }
-    if (action == MotionEvent.ACTION_UP && tgx101ScrollGesture && tgx101KeepSelStart >= 0 && tgx101KeepSelEnd <= length() && !hasSelection()
-      && (getSelectionStart() != tgx101KeepSelStart || getSelectionEnd() != tgx101KeepSelEnd)) {
-      final int start = tgx101KeepSelStart, end = tgx101KeepSelEnd;
-      org.thunderdog.challegram.Tgx101Diag.mark("input: a scroll, the cursor stays at " + start);
-      setSelection(start, end);
-      post(() -> { if (start <= length() && end <= length() && !hasSelection()) setSelection(start, end); }); // the editor moves it once more after the lift
     }
     if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) tgx101ScrollGesture = false;
     return result;
