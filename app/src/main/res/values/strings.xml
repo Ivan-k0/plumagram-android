@@ -6112,7 +6112,7 @@
   <string name="Tgx101CardExpiry">MM/YY</string>
   <string name="Tgx101PayPageTitle">Card payment</string>
   <string name="Tgx101PayPageBankCheck">Bank check (3-D Secure)</string>
-  <string name="Tgx101PayPageService">%1$s — the payment service's page, the card is entered there</string>
+  <string name="Tgx101PayPageService">%1$s — the payment service’s page, the card is entered there</string>
   <string name="Tgx101CardCvc">CVC / CVV</string>
   <string name="Tgx101CardName">Name on card</string>
   <string name="Tgx101CardCountry">Country code (e.g. UA)</string>
