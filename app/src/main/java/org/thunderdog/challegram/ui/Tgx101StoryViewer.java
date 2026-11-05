@@ -19,6 +19,7 @@ import android.os.SystemClock;
 import android.text.InputType;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -274,6 +275,15 @@ public class Tgx101StoryViewer extends Dialog {
     replyView = new EditText(context) {
       // (group 2026-11-05 14:25 «поле слишком вплотную стоит, нужно пространство»): the window pans just enough to show
       // what has focus; asking for 14 dp more below, the field stands apart from the keyboard
+      @Override
+      public boolean onKeyPreIme (int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_UP && hasFocus()) {
+          Tgx101Diag.mark("story: back puts the keyboard away, the field lets go");
+          post(this::clearFocus); // the story goes on (the window's insets don't tell this dialog about the keyboard)
+        }
+        return super.onKeyPreIme(keyCode, event);
+      }
+
       @Override
       public void getFocusedRect (android.graphics.Rect r) {
         super.getFocusedRect(r);
@@ -1163,6 +1173,15 @@ public class Tgx101StoryViewer extends Dialog {
                 startPerson(personIndex + (dx < 0 ? 1 : -1), true);
               }
             }
+            return true;
+          }
+          if (e.getActionMasked() == MotionEvent.ACTION_UP && replyView.hasFocus()) {
+            // (user 2026-11-05 22:33 «открыл поле ввода, нажал на историю, и всё потухло»): a tap on the story while writing
+            // puts the keyboard away and lets the story go on, as in the official app — it doesn't flip to the next one paused
+            Tgx101Diag.mark("story: tap while writing — the keyboard goes, the story goes on");
+            Keyboard.hide(replyView);
+            replyView.clearFocus();
+            setPaused(false);
             return true;
           }
           if (e.getActionMasked() == MotionEvent.ACTION_UP) {
