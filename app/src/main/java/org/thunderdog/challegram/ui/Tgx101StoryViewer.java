@@ -347,14 +347,6 @@ public class Tgx101StoryViewer extends Dialog {
     root.setOnTouchListener(new GestureHandler());
     // keep the reply field and ♡ above the system navigation bar
     if (android.os.Build.VERSION.SDK_INT >= 21) root.setOnApplyWindowInsetsListener((v, insets) -> {
-      if (android.os.Build.VERSION.SDK_INT >= 30) {
-        boolean ime = insets.isVisible(android.view.WindowInsets.Type.ime());
-        if (tgx101ImeShown && !ime && replyView.hasFocus()) {
-          Tgx101Diag.mark("story: keyboard gone, the reply field lets go");
-          replyView.clearFocus();
-        }
-        tgx101ImeShown = ime;
-      }
       bottomParams.bottomMargin = Screen.dp(16f) + insets.getSystemWindowInsetBottom();
       bottom.setLayoutParams(bottomParams);
       captionParams.bottomMargin = Screen.dp(72f) + insets.getSystemWindowInsetBottom();
@@ -364,6 +356,16 @@ public class Tgx101StoryViewer extends Dialog {
     setContentView(root);
     // the status bar is shown now (black): keep the header below it
     if (android.os.Build.VERSION.SDK_INT >= 21) root.setOnApplyWindowInsetsListener((v, insets) -> {
+      // (log 2026-11-05 22:27:45): this listener replaces the one above, the keyboard's going was never seen there
+      if (android.os.Build.VERSION.SDK_INT >= 30) {
+        boolean ime = insets.isVisible(android.view.WindowInsets.Type.ime());
+        if (tgx101ImeShown && !ime && replyView.hasFocus()) {
+          Tgx101Diag.mark("story: keyboard gone, the reply field lets go");
+          replyView.clearFocus();
+        }
+        if (ime != tgx101ImeShown) Tgx101Diag.mark("story: keyboard " + (ime ? "up" : "down") + ", field focused " + replyView.hasFocus() + ", paused " + paused);
+        tgx101ImeShown = ime;
+      }
       v.setPadding(0, insets.getSystemWindowInsetTop(), 0, insets.getStableInsetBottom());
       return insets;
     });
@@ -718,7 +720,8 @@ public class Tgx101StoryViewer extends Dialog {
   private boolean tgx101ImeShown;
 
   private void setPaused (boolean paused) {
-    if (!paused && replyView != null && replyView.hasFocus()) return; // typing a reply: the story waits
+    // typing a reply: the story waits — only while the keyboard is up (where it can be seen), so a field left focused never holds it
+    if (!paused && replyView != null && replyView.hasFocus() && android.os.Build.VERSION.SDK_INT >= 30 && tgx101ImeShown) return;
     if (this.paused == paused) return;
     this.paused = paused;
     if (paused) {
