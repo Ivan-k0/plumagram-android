@@ -7474,6 +7474,8 @@
   <string name="Tgx101PlayerSearchAll">In all chats</string>
   <string name="Tgx101Lyrics">Lyrics</string>
   <string name="Tgx101Dislike">Don\'t like it</string>
+  <string name="Tgx101Wave">Wave</string>
+  <string name="Tgx101WaveEmpty">Not enough music in your chats for a wave</string>
   <string name="Tgx101DislikeDone">The wave won\'t offer this track</string>
   <string name="Tgx101DislikeTrack">Don\'t offer this track</string>
   <string name="Tgx101DislikeArtist">Don\'t offer %1$s</string>

@@ -1880,6 +1880,7 @@
   <item name="btn_tgx101Gazeta" type="id"/>
   <item name="btn_tgx101Player" type="id"/>
   <item name="btn_tgx101Dislike" type="id"/>
+  <item name="btn_tgx101Wave" type="id"/>
   <item name="controller_tgx101Gazeta" type="id"/>
   <item name="controller_tgx101GazetaSettings" type="id"/>
   <item name="menu_tgx101Gazeta" type="id"/>

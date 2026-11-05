@@ -1742,6 +1742,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PlayerSearchAll, "Во всех чатах");
     RU.put(R.string.Tgx101Lyrics, "Текст песни");
     RU.put(R.string.Tgx101Dislike, "Не нравится");
+    RU.put(R.string.Tgx101Wave, "Волна");
+    RU.put(R.string.Tgx101WaveEmpty, "В ваших чатах мало музыки для волны");
     RU.put(R.string.Tgx101DislikeDone, "Волна больше не предложит этот трек");
     RU.put(R.string.Tgx101DislikeTrack, "Не предлагать трек");
     RU.put(R.string.Tgx101DislikeArtist, "Не предлагать: %1$s");

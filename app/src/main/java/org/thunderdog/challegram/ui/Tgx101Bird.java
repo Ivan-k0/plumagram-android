@@ -68,11 +68,20 @@ public final class Tgx101Bird {
       return;
     }
     TdlibManager.instance().player().tgx101ResumeLastMusic(resumed -> {
-      if (!resumed) {
-        org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101BirdPlayerNone, android.widget.Toast.LENGTH_SHORT);
-      } else if (!navigation.isDestroyed()) {
-        navigation.getHeaderView().getFilling().openPlayer();
+      if (resumed) {
+        if (!navigation.isDestroyed()) navigation.getHeaderView().getFilling().openPlayer();
+        return;
       }
+      // nothing to bring back: the wave
+      ViewController<?> top = navigation.getCurrentStackItem();
+      if (top == null) return;
+      org.thunderdog.challegram.player.Tgx101Wave.start(top.tdlib(), null, started -> {
+        if (!started) {
+          org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101BirdPlayerNone, android.widget.Toast.LENGTH_SHORT);
+        } else if (!navigation.isDestroyed()) {
+          navigation.getHeaderView().getFilling().openPlayer();
+        }
+      });
     });
   }
 

@@ -1138,6 +1138,13 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     }
   }
 
+  private void tgx101StartWave () {
+    String artist = currentItem != null ? org.thunderdog.challegram.player.Tgx101MusicTaste.artistOf(currentItem.getMessage()) : null;
+    org.thunderdog.challegram.player.Tgx101Wave.start(tdlib, artist, started -> {
+      if (!started) UI.showToast(R.string.Tgx101WaveEmpty, android.widget.Toast.LENGTH_SHORT);
+    });
+  }
+
   private void tgx101ShowFileDetails () {
     if (currentItem == null) return;
     final TdApi.Audio audio = currentItem.getTrackAudio();
@@ -3291,6 +3298,9 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         strings.append(R.string.PlayListReverse);
       }
 
+      ids.append(R.id.btn_tgx101Wave);
+      strings.append(R.string.Tgx101Wave);
+
       ids.append(R.id.btn_tgx101QueueSearch);
       strings.append(R.string.Tgx101PlayerSearch);
 
@@ -3303,7 +3313,9 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   @Override
   public void onMoreItemPressed (int id) {
-    if (id == R.id.btn_tgx101QueueSearch) {
+    if (id == R.id.btn_tgx101Wave) {
+      tgx101StartWave();
+    } else if (id == R.id.btn_tgx101QueueSearch) {
       tgx101ShowQueueSearch();
     } else if (id == R.id.btn_tgx101TrackInfo) {
       tgx101ShowFileDetails();
