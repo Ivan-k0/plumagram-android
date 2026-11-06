@@ -194,7 +194,8 @@ public final class Tgx101MessageTextSelection {
 
     private List<Tgx101SelectionBar.Action> buildActions (Context context) {
       List<Tgx101SelectionBar.Action> actions = new ArrayList<>();
-      actions.add(new Tgx101SelectionBar.Action(Tgx101BarOrder.QUOTE, Lang.getString(R.string.Tgx101EditorQuote), () -> {
+      // (user 2026-11-06 «в ответах цитата не нужна»): a quote is a reply — only where one can be written
+      if (controller.canWriteMessages() && msg.canReplyTo()) actions.add(new Tgx101SelectionBar.Action(Tgx101BarOrder.QUOTE, Lang.getString(R.string.Tgx101EditorQuote), () -> {
         if (msg.tgx101SelectableIsTranscription()) {
           String selected = selectedText();
           close("quote");

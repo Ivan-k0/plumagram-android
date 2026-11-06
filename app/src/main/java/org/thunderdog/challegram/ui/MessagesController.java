@@ -12320,12 +12320,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // navigation buttons — without the capsule the room is the part of the list behind the navigation bar
       androidx.core.view.WindowInsetsCompat insets = androidx.core.view.ViewCompat.getRootWindowInsets(messagesView);
       int nav = insets != null ? insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom : 0;
+      // (user 2026-11-06, «Ответы» «чат сильно низко, подними»): with no field the last message sat on the very edge —
+      // it now stands 16 dp above whatever is at the bottom
+      final int air = Screen.dp(16f);
+      padding = Math.max(padding, air);
       if (nav > 0) {
         int[] list = new int[2];
         messagesView.getLocationInWindow(list);
         int listBottom = list[1] - Math.round(messagesView.getTranslationY()) + messagesView.getHeight();
         int behind = listBottom - (messagesView.getRootView().getHeight() - nav);
-        if (behind > 0) padding = behind + Screen.dp(4f);
+        if (behind > 0) padding = behind + air;
       }
     }
     // TGx101 (Vivo 0.1.545 19:38 «после применения экран прыгнул»; 0.1.564 00:17 — a new line): the field changes size for a
