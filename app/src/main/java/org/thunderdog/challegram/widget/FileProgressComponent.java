@@ -1171,7 +1171,10 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
     animated = animated && shouldAnimate();
     switch (state) {
       case TdlibFilesManager.STATE_DOWNLOADED_OR_UPLOADED: {
-        completeCloud(animated);
+        // (user's video 2026-11-06 15:53 «облако мелькает»): a file just sent showed the «downloaded» cloud for a frame in its
+        // button; a file that has just been uploaded is ours already — no cloud for it
+        completeCloud(animated && !tgx101Uploaded);
+        tgx101Uploaded = false;
         if (downloadedIconRes != 0) {
           setIcon(downloadedIconRes, animated);
           setInProgress(false, animated);
@@ -1192,6 +1195,7 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
       }
       case TdlibFilesManager.STATE_IN_PROGRESS: {
         completeCloud(false);
+        if (isUploading()) tgx101Uploaded = true;
         setIcon(getCancelIcon(), animated);
         setInProgress(true, animated);
         setAlpha(1f, animated);
@@ -1291,6 +1295,7 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
   }
 
   private float cloudReverseHideFactor;
+  private boolean tgx101Uploaded; // the file went up from here: its «done» is a sent file, not a downloaded one
   private FactorAnimator cloudHideAnimator;
   private static final int ANIMATOR_CLOUD_HIDE = 4;
 
