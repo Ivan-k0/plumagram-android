@@ -78,8 +78,17 @@ public final class Tgx101MessageTextSelection {
     if (msg.isTranslated()) return fail("translated");
     int offset = text.tgx101OffsetAt(touchX, touchY);
     if (offset < 0) return fail("no offset at " + Math.round(touchX) + "," + Math.round(touchY));
+    openSessions++;
     new Session(controller, tdlib, msg, text, formatted, message, onClose).start(offset);
     return true;
+  }
+
+  /** (user 2026-11-06 «почему снимается выделение?»): while a text is being selected, a sideways swipe belongs to it, not to
+   *  selecting messages by a drag — that drag took the swipe and unselected the message */
+  private static int openSessions;
+
+  public static boolean isOpen () {
+    return openSessions > 0;
   }
 
   private static final class Session {
@@ -153,6 +162,7 @@ public final class Tgx101MessageTextSelection {
       if (list != null) list.removeOnScrollListener(follow);
       if (!popup.isWindowHidden()) popup.hideWindow(true);
       controller.tgx101SetInputQuiet(false);
+      openSessions = Math.max(0, openSessions - 1);
       if (onClose != null) onClose.run();
     }
 

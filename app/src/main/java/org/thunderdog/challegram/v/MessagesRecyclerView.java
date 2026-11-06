@@ -718,6 +718,8 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
             boolean inCheckColumn = tgx101DragDownX < Screen.dp(56f) || tgx101DragDownX > getWidth() - Screen.dp(40f);
             if (dy > Screen.getTouchSlop() && dy > dx && !inCheckColumn) {
               tgx101DragTracking = false; // an ordinary scroll
+            } else if (org.thunderdog.challegram.ui.Tgx101MessageTextSelection.isOpen()) {
+              tgx101DragTracking = false; // a text is being selected: the swipe is the text's
             } else if ((inCheckColumn && dy > Screen.getTouchSlop()) || (dx > Screen.getTouchSlop() * 1.5f && dx > dy * 1.5f) && tgx101DragStartPos != -1) {
               View child = findChildViewUnder(getWidth() / 2f, tgx101DragDownY);
               org.thunderdog.challegram.data.TGMessage msg = child instanceof org.thunderdog.challegram.component.chat.MessageView ? ((org.thunderdog.challegram.component.chat.MessageView) child).getMessage() : null;
