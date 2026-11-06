@@ -488,14 +488,18 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     return isOutgoingBubble() ? getContentX() : (int) bubblePathRect.left;
   }
 
+  // (journal 2026-11-06 17:09: at the last frame of folding the bubble's reactions stood at 786, the circle's place was 846 —
+  // the gap measured before the move was 32, the layout changed under way) — the place under the circle is taken every frame
   @Override
   protected int tgx101ReactionsDx () {
-    return tgx101TextMode() && tgx101Measure == 0 ? Math.round(tgx101ReactionsGapX * (1f - tgx101TextFactor())) : 0;
+    if (!tgx101TextMode() || tgx101Measure != 0) return 0;
+    return Math.round((tgx101CircleReactionsX() - tgx101InlineReactionsX()) * (1f - tgx101TextFactor()));
   }
 
   @Override
   protected int tgx101ReactionsDy () {
-    return tgx101TextMode() && tgx101Measure == 0 ? Math.round(tgx101ReactionsGapY * (1f - tgx101TextFactor())) : 0;
+    if (!tgx101TextMode() || tgx101Measure != 0) return 0;
+    return Math.round((tgx101StickerReactionsY() - tgx101InlineReactionsY()) * (1f - tgx101TextFactor()));
   }
   private int tgx101HeightDiff;
 
