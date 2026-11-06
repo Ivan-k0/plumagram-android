@@ -508,8 +508,9 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     if (animated) tgx101MeasureHeightDiff();
     tgx101TextAnimator().setValue(on, animated);
     // (user's screenshot 2026-11-06 15:47 «смайлы налезают на текст снизу»): the reactions were laid out once, for the circle
-    // (no room for the time); in the bubble the time line fell onto their last row. They are laid out for what is shown now
-    buildReactions(false);
+    // (no room for the time); in the bubble the time line fell onto their last row. They are laid out again once the move
+    // is over (user's video 16:07: laid out at its start, the folding jerked halfway); without a move — at once
+    if (!animated) buildReactions(false);
     if (!animated) {
       rebuildAndUpdateContent();
       invalidate();
