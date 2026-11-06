@@ -1043,17 +1043,32 @@ public class SettingsController extends ViewController<Void> implements
   private org.thunderdog.challegram.widget.AvatarView tgx101CardAvatar;
   private android.widget.TextView tgx101CardName, tgx101CardSub;
 
-  // (user 2026-11-06, screenshot 00:04 «плеер перекрывает поиск»): the list moves down under the music bar, as the chats do
+  // (user 2026-11-06, screenshots 00:04 and 00:19 «плеер перекрывает поиск»): moving the whole list (as the chats do) didn't
+  // work here and left a grey band at the bottom; only the top block — search and my card — gets the bar's room above it
+  private View tgx101Top;
+
+  private float tgx101PlayerTop () {
+    return context().navigation() != null && context().navigation().getHeaderView() != null ? context().navigation().getHeaderView().getFilling().getPlayerOffset() : 0f;
+  }
+
   @Override
-  public View getViewForApplyingOffsets () {
-    return contentView;
+  protected boolean applyPlayerOffset (float factor, float top) {
+    super.applyPlayerOffset(factor, top);
+    if (tgx101Top != null) {
+      int pad = Screen.dp(8f) + Math.round(top);
+      if (tgx101Top.getPaddingTop() != pad) {
+        tgx101Top.setPadding(tgx101Top.getPaddingLeft(), pad, tgx101Top.getPaddingRight(), tgx101Top.getPaddingBottom());
+      }
+    }
+    return true;
   }
 
   private View tgx101MakeTop (Context context) {
     android.widget.LinearLayout top = new android.widget.LinearLayout(context);
     top.setOrientation(android.widget.LinearLayout.VERTICAL);
     top.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-    top.setPadding(0, Screen.dp(8f), 0, Screen.dp(2f));
+    top.setPadding(0, Screen.dp(8f) + Math.round(tgx101PlayerTop()), 0, Screen.dp(2f));
+    tgx101Top = top;
 
     android.widget.TextView plaque = new android.widget.TextView(context);
     plaque.setText(Lang.getString(R.string.Tgx101SearchSettings));
