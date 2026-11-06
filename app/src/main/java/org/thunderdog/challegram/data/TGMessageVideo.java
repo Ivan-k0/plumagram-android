@@ -537,6 +537,9 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     // (no room for the time); in the bubble the time line fell onto their last row. They are laid out again once the move
     // is over (user's video 16:07: laid out at its start, the folding jerked halfway); without a move — at once
     buildReactions(false); // laid out for where the move goes (measured with them above)
+    // (user 2026-11-06 «ты видел, что чат прыгал?»): the measuring left the reactions laid out for the narrow circle-sized
+    // bubble, and the first frame of the move took the message's height from that — the chat above jumped by their extra rows
+    if (isLayoutBuilt()) rebuildContent();
     if (!animated) {
       rebuildAndUpdateContent();
       invalidate();
