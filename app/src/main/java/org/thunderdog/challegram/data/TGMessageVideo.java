@@ -240,6 +240,13 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
           requestLayout();
           invalidateOverlay();
           invalidate();
+          // (user 2026-11-06 «почему мы уже 10-й раз чиним одно и то же»): every frame of the move in numbers
+          if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+            org.thunderdog.challegram.Tgx101Diag.mark("round text: f " + String.format(java.util.Locale.ROOT, "%.3f", factor)
+              + ", height " + height + ", content " + getContentHeight() + ", diff " + tgx101HeightDiff
+              + ", reactions inline y " + (tgx101InlineReactionsY() + tgx101ReactionsDy()) + " (shift " + tgx101ReactionsDy() + "), sticker y " + tgx101StickerReactionsY()
+              + ", h " + Math.round(getMessageReactions().getAnimatedHeight()) + ", circle bubble " + useCircleBubble() + ", at bottom " + tgx101AtBottom);
+          }
         }
         break;
       }
