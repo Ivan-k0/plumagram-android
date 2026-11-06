@@ -275,7 +275,14 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     if (id ==  FULL_SIZE_ANIMATOR_ID) {
       fullSizeAnimatorDuration = RESIZE_DEFAULT_DURATION;
     }
+    if (id == TEXT_ANIMATOR_ID && finalFactor == 1f && isLayoutBuilt()) {
+      buildReactions(false); // the bubble's own rules for the reactions and the time
+      rebuildContent();
+      requestLayout();
+      invalidate();
+    }
     if (id == TEXT_ANIMATOR_ID && finalFactor == 0f) {
+      buildReactions(false);
       rebuildAndUpdateContent(); // back to the circle entirely
       // the sizes now match the circle's exactly, so the bubble's outline wasn't remade and the text bubble's stayed
       // behind the circle
@@ -500,6 +507,9 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     tgx101AtBottom = animated && c != null && c.getMessagesView() != null && !c.getMessagesView().canScrollVertically(1);
     if (animated) tgx101MeasureHeightDiff();
     tgx101TextAnimator().setValue(on, animated);
+    // (user's screenshot 2026-11-06 15:47 «смайлы налезают на текст снизу»): the reactions were laid out once, for the circle
+    // (no room for the time); in the bubble the time line fell onto their last row. They are laid out for what is shown now
+    buildReactions(false);
     if (!animated) {
       rebuildAndUpdateContent();
       invalidate();
@@ -988,8 +998,11 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
       float pillLeft = x - contentWidth - (useBubbles ? Screen.dp(6f) * 2 : 0);
       float circleRight = centerX + circleRadius;
       float timeRight = tgx101CircleTimeX != Integer.MIN_VALUE ? tgx101CircleTimeX + computeBubbleTimePartWidth(false) + Screen.dp(11f) : circleRight;
-      transcribeButtonX = buttonOnLeft ? pillLeft - Screen.dp(4f) - buttonRadius : Math.max(circleRight, timeRight) + Screen.dp(4f) + buttonRadius;
-      transcribeButtonY = receiver.getBottom() - Screen.dp(TRANSCRIBE_BUTTON_RADIUS) ;
+      // (user 2026-11-06, screenshots of the official app «кнопка распознавания точно не должна быть на краю»): the button
+      // keeps by the circle; where the views and time stick out past the circle, it stands above them instead of after them
+      boolean timeSticksOut = !buttonOnLeft && timeRight > circleRight + Screen.dp(4f);
+      transcribeButtonX = buttonOnLeft ? pillLeft - Screen.dp(4f) - buttonRadius : circleRight + Screen.dp(8f) + buttonRadius;
+      transcribeButtonY = receiver.getBottom() - buttonRadius - (timeSticksOut ? Screen.dp(30f) : 0);
       tgx101ButtonDx = transcribeButtonX - centerX;
       tgx101ButtonDy = transcribeButtonY - receiver.centerY();
       tgx101DrawCircleButton(c, transcribeButtonX, transcribeButtonY, 1f);
