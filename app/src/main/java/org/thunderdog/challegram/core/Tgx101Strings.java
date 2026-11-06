@@ -1748,6 +1748,13 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101Dislike, "Не нравится");
     RU.put(R.string.Tgx101Wave, "Поток");
     RU.put(R.string.Tgx101Playlists, "Плейлисты");
+    RU.put(R.string.Tgx101WaveSave, "Сохранить как плейлист");
+    RU.put(R.string.Tgx101WaveSaveName, "Поток %1$s");
+    RU.put(R.string.Tgx101WaveSaved, "Сохранено: %1$s");
+    RU.put(R.string.Tgx101PlaylistGone, "Треков этого плейлиста больше нет");
+    RU.put(R.string.Tgx101PlaylistRename, "Переименовать");
+    RU.put(R.string.Tgx101PlaylistDelete, "Удалить плейлист");
+    RU.put(R.string.Tgx101PlaylistDeleted, "Удалено: %1$s");
     RU.put(R.string.Tgx101PlaylistsLoading, "Ищу музыку в Хранилище…");
     RU.put(R.string.Tgx101PlaylistsNone, "В папках и метках Хранилища пока нет музыки. ♥ сохраняет трек в папку «Музыка».");
     RU.put(R.string.Tgx101PlaylistsProfile, "Музыка профиля");

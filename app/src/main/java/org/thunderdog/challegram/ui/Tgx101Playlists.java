@@ -57,6 +57,8 @@ final class Tgx101Playlists {
       body.addView(Tgx101Sheet.title(c.context(), Lang.getString(R.string.Tgx101Playlists)));
       body.addView(Tgx101Sheet.row(c.context(), 0, 0, Lang.getString(R.string.Tgx101PlaylistsLoading), null, false, null));
     });
+    waiting = 1; // the player's own playlists, read from the cloud first
+    org.thunderdog.challegram.data.Tgx101PlaylistStore.get(tdlib).sync(this::done);
     load();
   }
 
@@ -70,7 +72,7 @@ final class Tgx101Playlists {
     for (int i = 0; i < tags.size() && i < MAX_TAGS; i++) ids.addAll(store.localTagged(tags.get(i)));
     final List<Long> all = new ArrayList<>(ids);
     final long self = tdlib.selfChatId();
-    waiting = 1; // the profile
+    waiting++; // the profile
     for (int from = 0; from < all.size(); from += CHUNK) {
       long[] chunk = new long[Math.min(CHUNK, all.size() - from)];
       for (int i = 0; i < chunk.length; i++) chunk[i] = all.get(from + i);
@@ -129,6 +131,26 @@ final class Tgx101Playlists {
     body.removeAllViews();
     body.addView(Tgx101Sheet.title(c.context(), Lang.getString(R.string.Tgx101Playlists)));
     boolean any = false;
+    final org.thunderdog.challegram.data.Tgx101PlaylistStore own = org.thunderdog.challegram.data.Tgx101PlaylistStore.get(tdlib);
+    for (org.thunderdog.challegram.data.Tgx101PlaylistStore.Playlist playlist : own.list()) {
+      any = true;
+      android.view.View row = Tgx101Sheet.row(c.context(), R.drawable.baseline_queue_music_24, 0, playlist.name, String.valueOf(playlist.tracks.size()), false, v -> {
+        handle.dismiss();
+        own.resolve(playlist, tracks -> {
+          if (tracks.isEmpty()) {
+            UI.showToast(R.string.Tgx101PlaylistGone, android.widget.Toast.LENGTH_SHORT);
+          } else {
+            play(tracks);
+          }
+        });
+      });
+      row.setOnLongClickListener(v -> {
+        handle.dismiss();
+        UI.post(() -> manage(own, playlist), 200);
+        return true;
+      });
+      body.addView(row);
+    }
     if (!profile.isEmpty()) {
       any = true;
       body.addView(row(R.drawable.baseline_account_circle_24, 0, Lang.getString(R.string.Tgx101PlaylistsProfile), profile));
@@ -166,6 +188,23 @@ final class Tgx101Playlists {
     if (!any) {
       body.addView(Tgx101Sheet.row(c.context(), 0, 0, Lang.getString(R.string.Tgx101PlaylistsNone), null, false, null));
     }
+  }
+
+  /** Held: rename, remove */
+  private void manage (org.thunderdog.challegram.data.Tgx101PlaylistStore own, org.thunderdog.challegram.data.Tgx101PlaylistStore.Playlist playlist) {
+    final Tgx101Sheet.Handle[] sheet = new Tgx101Sheet.Handle[1];
+    sheet[0] = Tgx101Sheet.show(c, null, body -> {
+      body.addView(Tgx101Sheet.title(c.context(), playlist.name));
+      body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_edit_24, 0, Lang.getString(R.string.Tgx101PlaylistRename), null, false, v -> {
+        sheet[0].dismiss();
+        UI.post(() -> Tgx101SavedActions.askName(c, Lang.getString(R.string.Tgx101PlaylistRename), playlist.name, name -> own.rename(playlist.id, name)), 200);
+      }));
+      body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_delete_24, 0, Lang.getString(R.string.Tgx101PlaylistDelete), null, false, v -> {
+        sheet[0].dismiss();
+        own.remove(playlist.id);
+        UI.showToast(Lang.getString(R.string.Tgx101PlaylistDeleted, playlist.name), android.widget.Toast.LENGTH_SHORT);
+      }));
+    });
   }
 
   private android.view.View row (int icon, int swatch, String name, List<TdApi.Message> tracks) {

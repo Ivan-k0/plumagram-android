@@ -63,6 +63,7 @@ public final class Tgx101SavedCloud {
   /** (user 2026-10-29 «защита») only this account's own file counts: one forwarded into Saved Messages (sent by someone
    *  else) is an ordinary file — never read, never hidden */
   public static boolean isCloudFile (@Nullable TdApi.Message m) {
+    if (Tgx101PlaylistStore.isCloudFile(m)) return true; // the player's playlists: a service file the same way
     return m != null && m.content != null && m.content.getConstructor() == TdApi.MessageDocument.CONSTRUCTOR
       && m.forwardInfo == null && m.isOutgoing && m.importInfo == null
       && FILE_NAME.equals(((TdApi.MessageDocument) m.content).document.fileName);

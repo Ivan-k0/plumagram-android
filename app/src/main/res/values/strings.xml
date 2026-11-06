@@ -7480,6 +7480,13 @@
   <string name="Tgx101Dislike">Don\'t like it</string>
   <string name="Tgx101Wave">Flow</string>
   <string name="Tgx101Playlists">Playlists</string>
+  <string name="Tgx101WaveSave">Save as a playlist</string>
+  <string name="Tgx101WaveSaveName">Flow %1$s</string>
+  <string name="Tgx101WaveSaved">Saved: %1$s</string>
+  <string name="Tgx101PlaylistGone">The tracks of this playlist are no longer there</string>
+  <string name="Tgx101PlaylistRename">Rename</string>
+  <string name="Tgx101PlaylistDelete">Delete the playlist</string>
+  <string name="Tgx101PlaylistDeleted">Deleted: %1$s</string>
   <string name="Tgx101PlaylistsLoading">Looking for music in the Storage…</string>
   <string name="Tgx101PlaylistsNone">No folders or tags of the Storage hold music yet. ♥ saves a track to the «Music» folder.</string>
   <string name="Tgx101PlaylistsProfile">Music of the profile</string>

@@ -4528,6 +4528,15 @@ public class Settings {
     pmc.putBoolean("tgx101_wave_hints", value);
   }
 
+  /** TGx101 music player: {@link org.thunderdog.challegram.data.Tgx101PlaylistStore}, this phone's copy */
+  public @androidx.annotation.Nullable String tgx101Playlists (int accountId) {
+    return pmc.getString("tgx101_playlists_" + accountId, null);
+  }
+
+  public void setTgx101Playlists (int accountId, String value) {
+    pmc.putString("tgx101_playlists_" + accountId, value);
+  }
+
   /** TGx101 music player: {@link org.thunderdog.challegram.player.Tgx101MusicTaste} */
   public @androidx.annotation.Nullable String tgx101MusicTaste (int accountId) {
     return pmc.getString("tgx101_music_taste_" + accountId, null);

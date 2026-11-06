@@ -1286,6 +1286,18 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         handle[0].dismiss();
         tgx101StartWave();
       }));
+      // (user 2026-11-06) the whole queue of the flow as a playlist, on every device of the account
+      final List<TdApi.Message> flowQueue = org.thunderdog.challegram.player.Tgx101Wave.queueOf(tdlib);
+      if (flowQueue != null) {
+        body.addView(Tgx101Sheet.row(context, R.drawable.baseline_queue_music_24, 0, Lang.getString(R.string.Tgx101WaveSave), String.valueOf(flowQueue.size()), false, v -> {
+          handle[0].dismiss();
+          String name = Lang.getString(R.string.Tgx101WaveSaveName, new java.text.SimpleDateFormat("d MMMM", java.util.Locale.getDefault()).format(new java.util.Date()));
+          UI.post(() -> Tgx101SavedActions.askName(this, Lang.getString(R.string.Tgx101WaveSave), name, chosen -> {
+            org.thunderdog.challegram.data.Tgx101PlaylistStore.get(tdlib).add(chosen, flowQueue);
+            UI.showToast(Lang.getString(R.string.Tgx101WaveSaved, chosen), android.widget.Toast.LENGTH_SHORT);
+          }), 200);
+        }));
+      }
       final org.thunderdog.challegram.unsorted.Settings settings = org.thunderdog.challegram.unsorted.Settings.instance();
       final boolean on = settings.tgx101WaveHints();
       body.addView(Tgx101Sheet.row(context, R.drawable.baseline_search_24, 0, Lang.getString(on ? R.string.Tgx101WaveHintsOff : R.string.Tgx101WaveHintsOn), null, on, v -> {
