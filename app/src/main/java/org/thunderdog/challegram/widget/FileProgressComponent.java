@@ -538,8 +538,17 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
     try (java.io.FileInputStream in = new java.io.FileInputStream(path)) {
       byte[] head = new byte[12];
       if (in.read(head) < 12) return true;
-      String box = new String(head, 4, 4, java.nio.charset.StandardCharsets.US_ASCII);
-      return !(box.equals("ftyp") || box.equals("moov") || box.equals("mdat") || box.equals("wide") || box.equals("free") || box.equals("skip"));
+      StringBuilder hex = new StringBuilder();
+      boolean zeros = true;
+      for (byte b : head) {
+        hex.append(String.format(java.util.Locale.ROOT, "%02x", b & 0xff));
+        if (b != 0) zeros = false;
+      }
+      org.thunderdog.challegram.Tgx101Diag.mark("file: video head " + hex);
+      // (user 2026-11-06 «не открывается файл, который всегда открывался», a 721 MB vid.mp4): only an MP4 box name was taken
+      // for a video, a stream of another kind under .mp4 (TS and the like, which the player plays) was called damaged.
+      // Damaged now is only a file whose beginning is empty; anything else goes to the player
+      return zeros;
     } catch (Throwable t) {
       return false; // can't tell — let it try
     }
