@@ -497,13 +497,13 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     // (user's videos 2026-11-06 16:07, 16:23 «реакции резко перепрыгивают»): each height is measured with the reactions laid
     // out as that look lays them — under the circle, or in the bubble with room for the time — so the move goes from one to
     // the other in one piece; before, the bubble's height came without its reactions and they jumped at the end
+    // (user's video 2026-11-06 16:45: laying the reactions out anew for each measure made the whole chat jump by 64 px at the
+    // start and the end of folding) — both looks are measured with the reactions as they are now
     tgx101Measure = -1;
-    buildReactions(false);
     rebuildContent();
     int circleHeight = height;
     final int circleReactionsY = tgx101StickerReactionsY(), circleReactionsX = tgx101CircleReactionsX();
     tgx101Measure = 1;
-    buildReactions(false);
     rebuildContent();
     int bubbleHeight = height;
     // (user's videos 2026-11-06 16:30: «смайлы всё равно в конце прыгают»): under the circle the time stands above the
@@ -536,10 +536,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     // (user's screenshot 2026-11-06 15:47 «смайлы налезают на текст снизу»): the reactions were laid out once, for the circle
     // (no room for the time); in the bubble the time line fell onto their last row. They are laid out again once the move
     // is over (user's video 16:07: laid out at its start, the folding jerked halfway); without a move — at once
-    buildReactions(false); // laid out for where the move goes (measured with them above)
-    // (user 2026-11-06 «ты видел, что чат прыгал?»): the measuring left the reactions laid out for the narrow circle-sized
-    // bubble, and the first frame of the move took the message's height from that — the chat above jumped by their extra rows
-    if (isLayoutBuilt()) rebuildContent();
+    if (!animated) buildReactions(false); // with a move — once it is over (onChildFactorChangeFinished)
     if (!animated) {
       rebuildAndUpdateContent();
       invalidate();
