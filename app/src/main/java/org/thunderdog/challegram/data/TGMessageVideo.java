@@ -479,10 +479,15 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
   private void tgx101MeasureHeightDiff () {
     tgx101HeightDiff = 0;
+    // (user's videos 2026-11-06 16:07, 16:23 «реакции резко перепрыгивают»): each height is measured with the reactions laid
+    // out as that look lays them — under the circle, or in the bubble with room for the time — so the move goes from one to
+    // the other in one piece; before, the bubble's height came without its reactions and they jumped at the end
     tgx101Measure = -1;
+    buildReactions(false);
     rebuildContent();
     int circleHeight = height;
     tgx101Measure = 1;
+    buildReactions(false);
     rebuildContent();
     int bubbleHeight = height;
     tgx101Measure = 0;
@@ -510,7 +515,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     // (user's screenshot 2026-11-06 15:47 «смайлы налезают на текст снизу»): the reactions were laid out once, for the circle
     // (no room for the time); in the bubble the time line fell onto their last row. They are laid out again once the move
     // is over (user's video 16:07: laid out at its start, the folding jerked halfway); without a move — at once
-    if (!animated) buildReactions(false);
+    buildReactions(false); // laid out for where the move goes (measured with them above)
     if (!animated) {
       rebuildAndUpdateContent();
       invalidate();
