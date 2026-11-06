@@ -225,7 +225,7 @@ public class Tgx101SettingsSearch extends ViewController<Void> {
       }
     });
     field.requestFocus();
-    field.postDelayed(() -> org.thunderdog.challegram.tool.Keyboard.show(field), 250);
+    field.postDelayed(() -> { if (!isDestroyed() && isFocused()) org.thunderdog.challegram.tool.Keyboard.show(field); }, 250); // not after a quick «back»
     // the index reads 23 screens on the UI thread (~140 ms) — after the keyboard has come up, not under it (a 73 ms frame)
     UI.post(this::buildIndex, 650);
     return column;
@@ -376,6 +376,17 @@ public class Tgx101SettingsSearch extends ViewController<Void> {
       p.setEllipsize(TextUtils.TruncateAt.END);
       r.addView(p);
       results.addView(r);
+    }
+  }
+
+  // (user's video 2026-11-06 15:42, vivo): «back» from the search left its keyboard up over the settings for 8 s, until the
+  // chat list put it away; the search takes its keyboard with it whenever it stops being the screen on top
+  @Override
+  public void onBlur () {
+    super.onBlur();
+    if (field != null) {
+      field.clearFocus();
+      org.thunderdog.challegram.tool.Keyboard.hide(field);
     }
   }
 
