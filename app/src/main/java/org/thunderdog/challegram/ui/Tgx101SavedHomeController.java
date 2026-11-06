@@ -349,6 +349,12 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     return (Math.round(alpha * 255) << 24) | (color & 0xffffff);
   }
 
+  /** (user 2026-11-06, screenshot «плеер налазит на поиск в хранилище»): the music's bar under the header moves the page down, as in the chats */
+  @Override
+  public View getViewForApplyingOffsets () {
+    return outerView;
+  }
+
   @Override
   protected View onCreateView (Context context) {
     madeStart = android.os.SystemClock.uptimeMillis();
