@@ -475,6 +475,21 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   // heights are measured before the move: the bubble starts exactly at the circle's height and the difference goes away
   // smoothly with the rest
   private int tgx101Measure; // 0 — as is, -1 — laid out as the circle, 1 — as the bubble at the circle's size
+  private int tgx101ReactionsGapX, tgx101ReactionsGapY;
+
+  private int tgx101CircleReactionsX () {
+    return isOutgoingBubble() ? getContentX() : (int) bubblePathRect.left;
+  }
+
+  @Override
+  protected int tgx101ReactionsDx () {
+    return tgx101TextMode() && tgx101Measure == 0 ? Math.round(tgx101ReactionsGapX * (1f - tgx101TextFactor())) : 0;
+  }
+
+  @Override
+  protected int tgx101ReactionsDy () {
+    return tgx101TextMode() && tgx101Measure == 0 ? Math.round(tgx101ReactionsGapY * (1f - tgx101TextFactor())) : 0;
+  }
   private int tgx101HeightDiff;
 
   private void tgx101MeasureHeightDiff () {
@@ -486,10 +501,16 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     buildReactions(false);
     rebuildContent();
     int circleHeight = height;
+    final int circleReactionsY = tgx101StickerReactionsY(), circleReactionsX = tgx101CircleReactionsX();
     tgx101Measure = 1;
     buildReactions(false);
     rebuildContent();
     int bubbleHeight = height;
+    // (user's videos 2026-11-06 16:30: «смайлы всё равно в конце прыгают»): under the circle the time stands above the
+    // reactions, in the bubble below them — on the last frame of folding they dropped by that row. The bubble's reactions
+    // now ride to the circle's place as the bubble shrinks
+    tgx101ReactionsGapY = circleReactionsY - tgx101InlineReactionsY();
+    tgx101ReactionsGapX = circleReactionsX - tgx101InlineReactionsX();
     tgx101Measure = 0;
     rebuildContent();
     tgx101HeightDiff = bubbleHeight - circleHeight;

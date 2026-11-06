@@ -2526,8 +2526,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           }
           drawReactionsWithBubbles(c, view, left, top - Screen.dp(6));
         } else {
-          int x = (int) bubblePathRect.left + xReactionBubblePadding;
-          int y = bottomContentEdge - (int) messageReactions.getAnimatedHeight() - timeAddedHeight - xReactionBubblePaddingBottom;
+          int x = (int) bubblePathRect.left + xReactionBubblePadding + tgx101ReactionsDx();
+          int y = bottomContentEdge - (int) messageReactions.getAnimatedHeight() - timeAddedHeight - xReactionBubblePaddingBottom + tgx101ReactionsDy();
           if (commentButton.isVisible() && commentButton.isInline()) {
             y -= commentButton.getAnimatedHeight(0, commentButton.getVisibility());
           }
@@ -10093,6 +10093,15 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
 
   // Reaction positions and draw
+
+  /** TGx101: a shift of the reactions laid out in the bubble (a round video's text folding into the circle) */
+  protected int tgx101ReactionsDx () { return 0; }
+  protected int tgx101ReactionsDy () { return 0; }
+
+  /** TGx101: where the reactions in the bubble stand now, and where they would under a transparent (sticker) bubble */
+  protected final int tgx101InlineReactionsX () { return (int) bubblePathRect.left + xReactionBubblePadding; }
+  protected final int tgx101InlineReactionsY () { return bottomContentEdge - (int) messageReactions.getAnimatedHeight() - timeAddedHeight - xReactionBubblePaddingBottom; }
+  protected final int tgx101StickerReactionsY () { return (int) (findBottomEdge() - messageReactions.getAnimatedHeight()) - Screen.dp(6); }
 
   private void drawReactionsWithBubbles (Canvas c, MessageView v, int x, int y) {
     messageReactions.drawReactionBubbles(c, v, x, y);
