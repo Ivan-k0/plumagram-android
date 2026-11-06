@@ -51,6 +51,17 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
     new Tgx101Wave(tdlib, seedArtist).begin(after);
   }
 
+  /** What the flow has in its queue now, or had when it was left; hidden tracks left out */
+  public static @Nullable List<TdApi.Message> queueOf (Tdlib tdlib) {
+    Tgx101Wave wave = session != null && session.tdlib == tdlib ? session : (suspended != null && suspended.tdlib == tdlib ? suspended : null);
+    if (wave == null || wave.queue == null) return null;
+    List<TdApi.Message> list = new ArrayList<>();
+    for (TdApi.Message track : wave.queue) {
+      if (!wave.taste.isHidden(track)) list.add(track);
+    }
+    return list.isEmpty() ? null : list;
+  }
+
   /** The track the flow left at, when it can go on */
   public static @Nullable TdApi.Message resumable (Tdlib tdlib) {
     Tgx101Wave wave = suspended;
