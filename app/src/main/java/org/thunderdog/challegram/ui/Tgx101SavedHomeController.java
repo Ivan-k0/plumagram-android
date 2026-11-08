@@ -2353,7 +2353,9 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
           downX = e.getRawX();
           downY = e.getRawY();
           pulling = swiping = armed = sideways = false;
-          overSideways = inside(chipsScroll, e) || (pinnedSection != null && pinnedSection.getVisibility() == View.VISIBLE && inside(pinnedScroll, e));
+          // (user 2026-11-08 «свайп не должен работать только на области закреплённых — там карусель — и всё»): the kinds' chips
+          // no longer keep the swipe for themselves
+          overSideways = pinnedSection != null && pinnedSection.getVisibility() == View.VISIBLE && inside(pinnedScroll, e);
           break;
         case MotionEvent.ACTION_MOVE: {
           float dx = e.getRawX() - downX, dy = e.getRawY() - downY;

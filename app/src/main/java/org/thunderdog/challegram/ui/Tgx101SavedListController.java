@@ -708,8 +708,16 @@ public class Tgx101SavedListController extends ViewController<Void> {
   private long pageStartedAt, switchStartedAt;
 
   /** a page or a switch that hangs (its picture or its data never came) gives way to the next touch: done or put back */
+  private @Nullable android.animation.ValueAnimator pageAnimator;
+
   private void tgx101UnstickPage () {
     long now = android.os.SystemClock.uptimeMillis();
+    // (journal 2026-11-08 22:09:00, 22:09:02: swipes 0.6 s after the one before were not taken — its page was still coming in):
+    // a new touch brings a page that is let go to its end at once, the swipe is taken
+    if (paging && pageCommitted && pageAnimator != null) {
+      org.thunderdog.challegram.Tgx101Diag.mark("storage list: the page before still moving — brought to its end for the next swipe");
+      pageAnimator.end();
+    }
     if (paging && now - pageStartedAt > 800) {
       org.thunderdog.challegram.Tgx101Diag.mark("storage list: a page hung " + (now - pageStartedAt) + " ms (picture " + (pageReady ? "ready" : "not yet") + ", " + (pageCommitted ? "let go" : "held") + ", end " + pageEnd + ") — " + (pageReady || pageEnd > 0 ? "finished" : "put back"));
       if (pageReady || pageEnd > 0) {
@@ -968,6 +976,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
       UI.forceVibrate(list, false);
     }
     android.animation.ValueAnimator va = android.animation.ValueAnimator.ofFloat(from, to);
+    pageAnimator = va;
     va.setDuration(duration);
     va.setInterpolator(new android.view.animation.DecelerateInterpolator(f));
     va.addUpdateListener(an -> {
@@ -977,6 +986,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
     va.addListener(new android.animation.AnimatorListenerAdapter() {
       @Override
       public void onAnimationEnd (android.animation.Animator animation) {
+        if (pageAnimator == animation) pageAnimator = null;
         if (commit) finishPage(); else revertPage();
       }
     });
