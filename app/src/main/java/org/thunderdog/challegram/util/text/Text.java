@@ -3432,8 +3432,10 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
   public int getTextColor (@Nullable TextColorSet defaultTheme, @Nullable TextEntity entity, boolean allClickable, boolean isPressed) {
     TextColorSet theme = pickTheme(defaultTheme, entity);
     boolean isClickable = isClickable(entity);
-    boolean isQuote = entity != null && entity.isQuote();
-    return isClickable ? theme.clickableTextColor(isPressed) : (isQuote ? Theme.getColor(theme.quoteTextColorId()): theme.defaultTextColor());
+    // TGx101 (user 2026-11-06 19:42, screenshots of both apps in a dark theme: «сделай читабельно»): a quote's words were the
+    // theme's quote colour — grey #A0A0A0 on its grey fill in the night themes; they are the message's own text colour now,
+    // the quote is told by its line and fill
+    return isClickable ? theme.clickableTextColor(isPressed) : theme.defaultTextColor();
   }
 
   public long getMediaTextComplexColor () {
