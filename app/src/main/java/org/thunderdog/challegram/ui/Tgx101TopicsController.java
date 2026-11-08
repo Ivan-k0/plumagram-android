@@ -919,7 +919,7 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
       if (isDestroyed() || !isFocused() || inSearchMode() || !startFeedDrag()) return;
       org.thunderdog.challegram.unsorted.Settings.instance().setTgx101TopicsPeekCount(shown + 1);
       org.thunderdog.challegram.Tgx101Diag.mark("topics: the feed peeks in (" + (shown + 1) + " of 2)");
-      final float peek = Screen.dp(14f) / (float) Math.max(1, recyclerView.getWidth());
+      final float peek = Screen.dp(14f) / (float) Math.max(1, Screen.currentWidth());
       android.animation.ValueAnimator va = android.animation.ValueAnimator.ofFloat(0f, 1f, 0f);
       va.setDuration(900);
       va.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
