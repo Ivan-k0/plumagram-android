@@ -149,7 +149,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   @Override
   public void fillMenuItems (int id, HeaderView header, LinearLayout menu) {
     if (id == R.id.menu_tgx101SavedHome) {
-      header.addButton(menu, R.id.menu_btn_tgx101SavedSearch, R.drawable.baseline_search_24, getHeaderIconColorId(), this, Screen.dp(49f));
+      // (user 2026-11-08 «убери кнопку поиска в шапке хранилища»): the search pill under the header is the way in
       header.addButton(menu, R.id.menu_btn_tgx101SavedFeed, R.drawable.baseline_forum_24, getHeaderIconColorId(), this, Screen.dp(49f));
       header.addButton(menu, R.id.menu_btn_tgx101SavedSettings, R.drawable.baseline_settings_24, getHeaderIconColorId(), this, Screen.dp(49f));
     }
@@ -410,7 +410,9 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     search.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);
     search.setBackground(card(Theme.fillingColor(), 21f));
     Views.setClickable(search);
-    search.setOnClickListener(v -> Tgx101SavedListController.openSearch(this));
+    // (user 2026-11-08 «нажатие на пузырь поиска должно открывать поиск как при свайпе сейчас», screenshot): the search with
+    // the field and the kinds at the bottom, where the thumb is — the pull-down that opened it is gone
+    search.setOnClickListener(v -> Tgx101SavedListController.openSearchReach(this));
     ImageView glass = new ImageView(context);
     glass.setImageResource(R.drawable.baseline_search_24);
     glass.setColorFilter(Theme.getColor(ColorId.icon));
@@ -2311,14 +2313,16 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
           break;
         case MotionEvent.ACTION_MOVE: {
           float dx = e.getRawX() - downX, dy = e.getRawY() - downY;
-          if (getScrollY() <= 0 && dy > slop && dy > Math.abs(dx)) { // (user's video 2026-10-17: a slant start missed it)
-            pulling = true;
-            downY = e.getRawY() - slop; // no jump: the pull starts from here
-            return true;
-          }
-          // (user 2026-10-16) no sideways swipes through the kinds here: the pull-down panel has them
+          // (user 2026-11-08 «свайп поиска убери»): no pull-down search any more — the pill opens it.
+          // (user 2026-11-08 «свайп в главном хранилища, чтобы начать переключение между фото, видео и т. д.»): a swipe to
+          // the left (the finger goes left) opens the kinds and follows the finger; to the right is the screen's «back»
           if (!overSideways && Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy)) {
-            sideways = true;
+            if (dx < 0) {
+              swiping = true;
+              org.thunderdog.challegram.Tgx101Diag.mark("storage home: a swipe left opens the kinds");
+            } else {
+              sideways = true;
+            }
             return true;
           }
           break;
@@ -2333,7 +2337,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
         if (e.getActionMasked() == MotionEvent.ACTION_UP || e.getActionMasked() == MotionEvent.ACTION_CANCEL) sideways = false;
         return true;
       }
-      if (!pulling && !swiping && selected.isEmpty() && e.getActionMasked() == MotionEvent.ACTION_MOVE && getScrollY() <= 0) {
+      if (false && !pulling && !swiping && selected.isEmpty() && e.getActionMasked() == MotionEvent.ACTION_MOVE && getScrollY() <= 0) {
         // the list took the touch first (a child let it go, or the start was slanted) — at the top a pull down is
         // still the search (user's video 2026-10-17: «свайп поиска срабатывает не всегда»)
         float ddy = e.getRawY() - downY, ddx = e.getRawX() - downX;
@@ -2362,7 +2366,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
               UI.forceVibrate(this, false);
             }
           } else {
-            column.setTranslationX(dx * .25f);
+            column.setTranslationX(Math.min(0f, dx) * .25f);
           }
           return true;
         case MotionEvent.ACTION_UP:
@@ -2374,7 +2378,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
             pullIcon.animate().alpha(0f).setDuration(180).start();
           } else {
             column.animate().translationX(0f).setDuration(200).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
-            if (up && Math.abs(dx) > Screen.dp(80f)) openKindSwipe(dx < 0);
+            if (up && dx < -Screen.dp(80f)) openKindSwipe(true);
           }
           pulling = swiping = false;
           return true;

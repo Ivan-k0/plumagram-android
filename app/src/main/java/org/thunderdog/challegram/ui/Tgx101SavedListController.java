@@ -369,6 +369,8 @@ public class Tgx101SavedListController extends ViewController<Void> {
             if (tracking && Math.abs(dy) > Screen.dp(14f) && Math.abs(dy) > Math.abs(dx)) tracking = false; // a scroll
             if (tracking && Math.abs(dx) > Screen.dp(22f) && Math.abs(dx) > Math.abs(dy) * 2.5f) {
               tracking = false;
+              org.thunderdog.challegram.Tgx101Diag.mark("storage list: sideways " + (dx < 0 ? "left" : "right") + " " + Math.round(dx) + "," + Math.round(dy)
+                + " px, mode " + mode + (reach ? " (search)" : "") + ", kind #" + kindIndex());
               int i = kindIndex() + (dx < 0 ? 1 : -1);
               if (i >= 0 && i < KIND_ORDER.length && !reach && beginPage(KIND_ORDER[i], dx < 0)) {
                 dragging = true;
@@ -1091,6 +1093,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
   private boolean swipeKind (float dx) {
     if (mode != MODE_KIND && !reach) return false;
     int i = kindIndex() + (dx < 0 ? 1 : -1);
+    org.thunderdog.challegram.Tgx101Diag.mark("storage search: swipe " + (dx < 0 ? "left" : "right") + " → kind #" + i + (i < 0 || i >= KIND_ORDER.length ? " (none)" : ""));
     if (i < 0 || i >= KIND_ORDER.length) return false;
     UI.forceVibrate(list, false);
     switchKind(KIND_ORDER[i]);
