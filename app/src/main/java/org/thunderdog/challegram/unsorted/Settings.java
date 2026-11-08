@@ -2412,10 +2412,10 @@ public class Settings {
     // the seventh (user 2026-11-04, screenshots 23:46–23:47: «вот так должно быть у новых пользователей»): the bird's ring of
     // seven, its place and the side menu of calls, settings, saved and «Газета»; those who have the app already keep what they have
     // the eighth (user 2026-11-08, compact bubbles approved): for new installs; who has the app turns them on in MagiX
-    final String marker8 = "tgx101_defaults_2026_11_08";
-    if (!pmc.getBoolean(marker8, false)) {
+    final String markerCompact = "tgx101_defaults_2026_11_08";
+    if (!pmc.getBoolean(markerCompact, false)) {
       if (!freshInstall && !pmc.contains(KEY_TGX101_COMPACT_BUBBLES)) pmc.putBoolean(KEY_TGX101_COMPACT_BUBBLES, false);
-      pmc.putBoolean(marker8, true);
+      pmc.putBoolean(markerCompact, true);
     }
     final String marker7 = "tgx101_defaults_2026_11_04";
     if (!pmc.getBoolean(marker7, false)) {
