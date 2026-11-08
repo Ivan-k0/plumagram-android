@@ -1292,7 +1292,9 @@ public class Settings {
 
   public int getChatListMode () {
     if (_chatListMode == null) {
-      int defaultMode = CHAT_MODE_3LINE; // TODO determine based on display settings
+      // TGx101 (user 2026-11-08 23:23, screenshots): the name and one line of text, «You:» on that line — tidier; who chose
+      // a style keeps it
+      int defaultMode = CHAT_MODE_2LINE;
       _chatListMode = pmc.getInt(KEY_CHAT_LIST_MODE, defaultMode);
     }
     return _chatListMode;
