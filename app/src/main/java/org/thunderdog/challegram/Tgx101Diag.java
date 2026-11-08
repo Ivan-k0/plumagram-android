@@ -863,12 +863,24 @@ public final class Tgx101Diag {
     private static float displayHz;
     private static final Handler main = new Handler(Looper.getMainLooper());
 
-    // Diagnostics thread
+    private static long lastVsync;
+    private static final long[] intervals = new long[10];
+    private static int intervalCount;
+
+    // Diagnostics thread. The rate is the shortest step between the frames of a run in a row: DEADLINE was tried first, but it
+    // is the frame's time budget, not the step (121 frames a second were told «30 Hz», 2026-11-08 16:16)
     static void onFrame (android.view.FrameMetrics m) {
-      if (Build.VERSION.SDK_INT < 31) return;
-      long deadline = m.getMetric(android.view.FrameMetrics.DEADLINE);
-      if (deadline <= 0) return;
-      float rate = 1_000_000_000f / deadline;
+      if (Build.VERSION.SDK_INT < 26) return;
+      long vsync = m.getMetric(android.view.FrameMetrics.INTENDED_VSYNC_TIMESTAMP);
+      long step = lastVsync != 0 ? vsync - lastVsync : 0;
+      lastVsync = vsync;
+      if (step <= 0 || step > 50_000_000L) { intervalCount = 0; return; } // a pause: a new run
+      intervals[intervalCount % intervals.length] = step;
+      intervalCount++;
+      if (intervalCount < intervals.length) return;
+      long shortest = Long.MAX_VALUE;
+      for (long i : intervals) shortest = Math.min(shortest, i);
+      float rate = 1_000_000_000f / shortest;
       int bucket = rate >= 100 ? 120 : rate >= 75 ? 90 : rate >= 45 ? 60 : rate >= 25 ? 30 : Math.round(rate);
       if (bucket == hz) {
         candidateFrames = 0;
