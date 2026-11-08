@@ -667,7 +667,7 @@ public final class Tgx101Diag {
           android.app.usage.UsageStatsManager usm = (android.app.usage.UsageStatsManager) app.getSystemService(Context.USAGE_STATS_SERVICE);
           if (usm != null) b.append(", standby bucket ").append(usm.getAppStandbyBucket());
         }
-        b.append(", keep-alive ").append(org.thunderdog.challegram.unsorted.Settings.instance().getNewSetting(org.thunderdog.challegram.unsorted.Settings.SETTING_FLAG_KEEP_ALIVE_CONNECTION) ? "on" : "off");
+        // (crash 0.2.873): no Settings here — it is made later in the start, made early it asserts; the keep-alive service tells itself
       } catch (Throwable ignored) { }
       lastRx = rx(); lastTx = tx();
       mark(b.toString());
