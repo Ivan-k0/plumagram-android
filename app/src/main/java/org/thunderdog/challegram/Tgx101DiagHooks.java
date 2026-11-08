@@ -47,6 +47,7 @@ public final class Tgx101DiagHooks {
         }
         case TdApi.UpdateConnectionState.CONSTRUCTOR:
           Tgx101Diag.mark("td connection " + ((TdApi.UpdateConnectionState) update).state.getClass().getSimpleName());
+          if (((TdApi.UpdateConnectionState) update).state.getConstructor() == TdApi.ConnectionStateConnecting.CONSTRUCTOR) Tgx101Diag.WakeWatch.connecting();
           return;
         case TdApi.UpdateAuthorizationState.CONSTRUCTOR:
           Tgx101Diag.mark("td authorization " + ((TdApi.UpdateAuthorizationState) update).authorizationState.getClass().getSimpleName());

@@ -321,12 +321,15 @@ public final class Tgx101Diag {
             event += " state=" + intent.getIntExtra("state", -1);
           }
           mark("system " + event);
+          if (Intent.ACTION_SCREEN_OFF.equals(action)) WakeWatch.screen(context, false);
+          else if (Intent.ACTION_SCREEN_ON.equals(action)) WakeWatch.screen(context, true);
         }
       }, filter);
     } catch (Throwable t) {
       mark("system receiver failed: " + t);
     }
     RateWatch.attachDisplay(app);
+    WakeWatch.attach(app);
     mark("diagnostics attached");
   }
 
@@ -590,6 +593,173 @@ public final class Tgx101Diag {
 
   private static String time () {
     return new SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US).format(new Date());
+  }
+
+  /**
+   * What wakes the app (user 2026-11-08: a 4PDA reader saw the app ping more often than Telegram, also in deep sleep):
+   * why the process started, deep sleep (doze) on and off, each push and each hold of the CPU while the screen is off,
+   * the traffic between them, and a summary of each screen-off time when the screen comes on. Only the developer's own
+   * builds: nothing in «Т». Nothing here runs on a timer — a timer would wake the phone itself.
+   */
+  public static final class WakeWatch {
+    private static boolean on () { return BuildConfig.TGX101_DIAG && !BuildConfig.TGX101_TEST && writer != null; }
+
+    private static long offAt; // elapsedRealtime of the screen going off, 0 = screen on
+    private static int pushes, connects, holds, idleTimes, offBattery;
+    private static long holdMs, idleMs, idleSince, offRx, offTx, lastRx, lastTx;
+
+    private static long rx () { return android.net.TrafficStats.getUidRxBytes(android.os.Process.myUid()); }
+    private static long tx () { return android.net.TrafficStats.getUidTxBytes(android.os.Process.myUid()); }
+
+    /** traffic since the last wake event, «↓1.2 KB ↑0.4 KB» */
+    private static String trafficStep () {
+      long r = rx(), t = tx();
+      String out = lastRx > 0 ? "↓" + kb(r - lastRx) + " ↑" + kb(t - lastTx) : "↓? ↑?";
+      lastRx = r; lastTx = t;
+      return out;
+    }
+
+    private static String kb (long bytes) {
+      return bytes < 0 ? "?" : String.format(Locale.US, "%.1f KB", bytes / 1024f);
+    }
+
+    private static int battery (Context context) {
+      try {
+        Intent b = context.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        if (b == null) return -1;
+        int level = b.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1), scale = b.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, 100);
+        return level < 0 || scale <= 0 ? -1 : level * 100 / scale;
+      } catch (Throwable t) {
+        return -1;
+      }
+    }
+
+    private static String sleepState (Context context) {
+      if (Build.VERSION.SDK_INT < 23) return "";
+      try {
+        android.os.PowerManager pm = (android.os.PowerManager) context.getSystemService(Context.POWER_SERVICE);
+        if (pm == null) return "";
+        StringBuilder b = new StringBuilder();
+        if (pm.isDeviceIdleMode()) b.append(", deep sleep");
+        else if (Build.VERSION.SDK_INT >= 33 && pm.isDeviceLightIdleMode()) b.append(", light sleep");
+        if (pm.isPowerSaveMode()) b.append(", battery saver");
+        if (offAt != 0) b.append(", screen off ").append((android.os.SystemClock.elapsedRealtime() - offAt) / 60000).append(" min");
+        return b.toString();
+      } catch (Throwable t) {
+        return "";
+      }
+    }
+
+    static void attach (Application app) {
+      if (!on()) return;
+      String why = "?";
+      try {
+        android.app.ActivityManager.RunningAppProcessInfo info = new android.app.ActivityManager.RunningAppProcessInfo();
+        android.app.ActivityManager.getMyMemoryState(info);
+        why = info.importance <= android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND ? "on the screen (" + info.importance + ")" :
+          "in the background (" + info.importance + (info.importanceReasonCode != 0 ? ", reason " + info.importanceReasonCode : "") + ")";
+      } catch (Throwable ignored) { }
+      StringBuilder b = new StringBuilder("wake: the app started ").append(why).append(sleepState(app));
+      try {
+        android.os.PowerManager pm = (android.os.PowerManager) app.getSystemService(Context.POWER_SERVICE);
+        if (Build.VERSION.SDK_INT >= 23 && pm != null) b.append(", battery limits ").append(pm.isIgnoringBatteryOptimizations(app.getPackageName()) ? "off" : "on");
+        if (Build.VERSION.SDK_INT >= 28) {
+          android.app.usage.UsageStatsManager usm = (android.app.usage.UsageStatsManager) app.getSystemService(Context.USAGE_STATS_SERVICE);
+          if (usm != null) b.append(", standby bucket ").append(usm.getAppStandbyBucket());
+        }
+        b.append(", keep-alive ").append(org.thunderdog.challegram.unsorted.Settings.instance().getNewSetting(org.thunderdog.challegram.unsorted.Settings.SETTING_FLAG_KEEP_ALIVE_CONNECTION) ? "on" : "off");
+      } catch (Throwable ignored) { }
+      lastRx = rx(); lastTx = tx();
+      mark(b.toString());
+      if (Build.VERSION.SDK_INT < 23) return;
+      IntentFilter filter = new IntentFilter();
+      filter.addAction(android.os.PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED);
+      filter.addAction("android.os.action.LIGHT_DEVICE_IDLE_MODE_CHANGED");
+      filter.addAction(android.os.PowerManager.ACTION_POWER_SAVE_MODE_CHANGED);
+      try {
+        app.registerReceiver(new BroadcastReceiver() {
+          @Override
+          public void onReceive (Context context, Intent intent) {
+            android.os.PowerManager pm = (android.os.PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            if (pm == null) return;
+            String action = intent.getAction();
+            if (android.os.PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED.equals(action)) {
+              boolean idle = pm.isDeviceIdleMode();
+              long now = android.os.SystemClock.elapsedRealtime();
+              if (idle) { idleSince = now; idleTimes++; }
+              else if (idleSince != 0) { idleMs += now - idleSince; idleSince = 0; }
+              mark("wake: deep sleep " + (idle ? "begins" : "ends — a window for the network") + sleepState(context) + ", app traffic " + trafficStep());
+            } else if ("android.os.action.LIGHT_DEVICE_IDLE_MODE_CHANGED".equals(action)) {
+              if (Build.VERSION.SDK_INT >= 33) mark("wake: light sleep " + (pm.isDeviceLightIdleMode() ? "begins" : "ends") + sleepState(context));
+            } else {
+              mark("wake: battery saver " + (pm.isPowerSaveMode() ? "on" : "off"));
+            }
+          }
+        }, filter);
+      } catch (Throwable t) {
+        mark("wake: sleep receiver failed " + t);
+      }
+    }
+
+    static void screen (Context context, boolean screenOn) {
+      if (!on()) return;
+      long now = android.os.SystemClock.elapsedRealtime();
+      if (!screenOn) {
+        offAt = now;
+        pushes = connects = holds = idleTimes = 0;
+        holdMs = idleMs = 0;
+        idleSince = 0;
+        offRx = rx(); offTx = tx();
+        lastRx = offRx; lastTx = offTx;
+        offBattery = battery(context);
+        return;
+      }
+      if (offAt == 0) return;
+      long minutes = (now - offAt) / 60000;
+      if (idleSince != 0) { idleMs += now - idleSince; idleSince = 0; }
+      int batteryNow = battery(context);
+      mark("wake: the screen was off " + minutes + " min — pushes " + pushes + ", connections " + connects +
+        ", CPU held " + holds + " times for " + (holdMs / 1000) + " s, app traffic ↓" + kb(rx() - offRx) + " ↑" + kb(tx() - offTx) +
+        ", deep sleep " + (idleMs / 60000) + " min (" + idleTimes + " times)" +
+        (offBattery >= 0 && batteryNow >= 0 ? ", phone battery " + offBattery + "% → " + batteryNow + "%" : ""));
+      offAt = 0;
+    }
+
+    /** a push from Google arrived */
+    public static void push (int priority, int originalPriority) {
+      if (!on()) return;
+      pushes++;
+      Context context = org.thunderdog.challegram.unsorted.AppContext.get();
+      mark("wake: push, priority " + priority + (priority != originalPriority ? " (sent as " + originalPriority + ")" : "") + (context != null ? sleepState(context) : "") + ", app traffic since the last " + trafficStep());
+    }
+
+    /** TDLib began connecting */
+    public static void connecting () {
+      if (!on()) return;
+      connects++;
+      if (offAt != 0) {
+        Context context = org.thunderdog.challegram.unsorted.AppContext.get();
+        mark("wake: connecting with the screen off" + (context != null ? sleepState(context) : "") + ", app traffic since the last " + trafficStep());
+      }
+    }
+
+    /** the app held the CPU awake for {@code ms} */
+    public static void held (long ms, String who) {
+      if (!on()) return;
+      holds++;
+      holdMs += ms;
+      if (offAt != 0) mark("wake: CPU held " + ms + " ms by " + who);
+    }
+
+    public static boolean screenOff () {
+      return on() && offAt != 0;
+    }
+
+    public static void note (String what) {
+      if (!on()) return;
+      Context context = org.thunderdog.challegram.unsorted.AppContext.get();
+      mark("wake: " + what + (context != null ? sleepState(context) : ""));
+    }
   }
 
   // UI stalls: every main thread message longer than STALL_MS, with its stack when it lasts STALL_STACK_MS+

@@ -15,6 +15,8 @@ abstract class DefaultFirebaseMessagingService : FirebaseMessagingService() {
     val payload = makePayload(remoteMessage)
     val sentTime: Long = remoteMessage.getSentTime()
     val ttl: Int = remoteMessage.getTtl()
+    // TGx101: the journal — how urgent Google was told the push is (a high one wakes the phone from deep sleep)
+    org.thunderdog.challegram.Tgx101Diag.WakeWatch.push(remoteMessage.getPriority(), remoteMessage.getOriginalPriority())
     PushManagerBridge.onMessageReceived(this, payload, sentTime, ttl)
   }
 

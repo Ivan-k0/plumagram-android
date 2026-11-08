@@ -137,6 +137,7 @@ public class KeepAliveService extends Service {
       return START_NOT_STICKY;
     }
     syncAccounts();
+    org.thunderdog.challegram.Tgx101Diag.WakeWatch.note("keep-alive service " + (intent == null ? "restarted by the system" : "started") + ", holds " + heldAccounts.size() + " accounts");
     return START_STICKY;
   }
 
@@ -196,6 +197,7 @@ public class KeepAliveService extends Service {
 
   @Override
   public void onDestroy () {
+    org.thunderdog.challegram.Tgx101Diag.WakeWatch.note("keep-alive service stopped");
     for (Tdlib tdlib : heldAccounts.values()) {
       tdlib.decrementKeepAliveReferenceCount();
     }

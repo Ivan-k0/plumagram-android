@@ -2493,11 +2493,16 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
 
   public void runWithWakeLock (@NonNull RunnableData<TdlibManager> runnable) {
     boolean locked = addWakeLockReference();
+    long tgx101Start = android.os.SystemClock.elapsedRealtime();
     try {
       runnable.runWithData(this);
     } finally {
       if (locked) {
         removeWakeLockReference();
+      }
+      if (org.thunderdog.challegram.Tgx101Diag.WakeWatch.screenOff()) { // the journal: who keeps the phone awake
+        StackTraceElement[] st = new Throwable().getStackTrace();
+        org.thunderdog.challegram.Tgx101Diag.WakeWatch.held(android.os.SystemClock.elapsedRealtime() - tgx101Start, st.length > 1 ? st[1].getClassName() + "." + st[1].getMethodName() : "?");
       }
     }
   }
