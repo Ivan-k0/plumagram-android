@@ -3782,7 +3782,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // (crash 2026-10-22, 0.2.240): the chat screen made ahead has no chat yet
       boolean feed = chat != null && previewMode == PREVIEW_MODE_NONE && !areScheduled && messageThread == null && messageTopicId == null && tdlib.isForum(chat.id);
       tgx101TopicsSwitch.setFeed(true, false);
-      topBar.setItemVisible(tgx101TopicsItem, feed, false);
+      topBar.setItemVisible(tgx101TopicsItem, false, false); // (user 2026-11-08 23:13): the strip isn't needed in the feed at all, not even folding away
       if (feed) Tgx101TopicsController.prefetch(tdlib, chat.id); // «Topics» then opens at once
       tgx101NeedTopicsUnder = feed;
       tgx101FeedNow = feed;
@@ -3794,7 +3794,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
         final long chatId = chat.id;
         UI.post(() -> {
           if (isDestroyed() || chat == null || chat.id != chatId || !tgx101FeedNow) return;
-          topBar.setItemVisible(tgx101TopicsItem, false, true);
           if (tgx101TopicsButton != null) {
             tgx101TopicsButton.setVisibility(View.VISIBLE);
             tgx101TopicsButton.setScaleX(.4f);
