@@ -666,7 +666,7 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
       int contentStartY = Math.round(rectF.top + entry.getSpacingStart());
       entry.item.component.tgx101SetContentWidth(useBubbles() ? getContentWidth() : 0);
       entry.item.component.draw(view, c, startX, contentStartY, previewReceiver, imageReceiver, backgroundColor, useBubbles() ? ColorUtils.compositeColor(contentReplaceColor, pressColor) : contentReplaceColor, entry.getVisibility(), entry.item.getCheckFactor());
-      if (entry.item.component.tgx101HasDots() && tgx101HasMenuDots()) {
+      if (entry.item.component.tgx101HasDots() && tgx101HasMenuDots() && org.thunderdog.challegram.unsorted.Settings.instance().tgx101MediaDots() == org.thunderdog.challegram.unsorted.Settings.TGX101_MEDIA_DOTS_ON) {
         // TGx101: ⋮ in the top right corner of the card — a finger-sized area around it opens the message menu
         float dotsX = startX + getContentWidth() - Screen.dp(4f);
         float dotsY = contentStartY + Screen.dp(8f);
@@ -832,7 +832,7 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
 
   /** TGx101 (user 2026-10-06): ⋮ on document cards in the normal mode (the iOS long-press mode uses the long press) */
   private boolean tgx101HasMenuDots () {
-    return !org.thunderdog.challegram.unsorted.Settings.instance().tgx101LongPressMenu();
+    return !org.thunderdog.challegram.unsorted.Settings.instance().tgx101LongPressMenu() && org.thunderdog.challegram.unsorted.Settings.instance().tgx101MediaDots() != org.thunderdog.challegram.unsorted.Settings.TGX101_MEDIA_DOTS_OFF;
   }
 
   /** TGx101: a finger-sized area around the ⋮ (top right of the first card) opens the message menu, the rest opens the file */

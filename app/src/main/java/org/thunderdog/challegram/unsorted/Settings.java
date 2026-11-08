@@ -3823,6 +3823,18 @@ public class Settings {
   public void setTgx101HideInputCommands (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_INPUT_COMMANDS, v); }
   public boolean tgx101HideInputEmoji () { return pmc.getBoolean(KEY_TGX101_HIDE_INPUT_EMOJI, false); }
 
+  // TGx101 (user 2026-11-08 «сделай отключаемой три точки у медиа, 3 режима»): ⋮ on photos, videos and file cards — shown;
+  // not drawn but its corner still opens the message menu; off entirely (the corner is the media's again)
+  public static final int TGX101_MEDIA_DOTS_ON = 0, TGX101_MEDIA_DOTS_HIDDEN = 1, TGX101_MEDIA_DOTS_OFF = 2;
+  private static final String KEY_TGX101_MEDIA_DOTS = "tgx101_media_dots";
+  private static volatile int tgx101MediaDots = -1;
+  public int tgx101MediaDots () {
+    int v = tgx101MediaDots;
+    if (v == -1) tgx101MediaDots = v = pmc.getInt(KEY_TGX101_MEDIA_DOTS, TGX101_MEDIA_DOTS_ON);
+    return v;
+  }
+  public void setTgx101MediaDots (int v) { pmc.putInt(KEY_TGX101_MEDIA_DOTS, v); tgx101MediaDots = v; }
+
   // TGx101 (user 2026-11-07 14:02 «у оф. тг больше информации вмещается, пузыри тоньше», approved 2026-11-08): a text bubble's
   // fields above and below as in Telegram (7 dp, was 12), so the time stands on its last line; consecutive bubbles closer.
   // On for new installs (tgx101PinOldDefaults), read on every layout — kept in memory

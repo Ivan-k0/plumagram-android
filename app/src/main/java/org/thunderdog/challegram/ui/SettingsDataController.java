@@ -650,6 +650,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NoAnimation, 0, R.string.Tgx101NoAnimation),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_CUSTOM - TGX101_PILLS, R.id.btn_tgx101MediaDots, 0, R.string.Tgx101MediaDots),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         // (user 2026-10-26 «функции ИИ отдельным подменю», «настройки птички вынеси в Фишки»): one row each, the rest inside
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101AiOpen, 0, R.string.Tgx101AiSection),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1087,6 +1089,13 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           adapter.updateItemById(R.id.btn_tgx101FloatingInput);
           if (tgx101Preview != null) tgx101Preview.invalidate();
         });
+    } else if (id == R.id.btn_tgx101MediaDots) {
+      pills.bind(Lang.getString(R.string.Tgx101MediaDots),
+        new String[] {Lang.getString(R.string.Tgx101MediaDotsOn), Lang.getString(R.string.Tgx101MediaDotsHidden), Lang.getString(R.string.Tgx101MediaDotsOff)},
+        Settings.instance().tgx101MediaDots(), index -> {
+          Settings.instance().setTgx101MediaDots(index);
+          adapter.updateItemById(R.id.btn_tgx101MediaDots);
+        });
     } else if (id == R.id.btn_tgx101StoriesMode) {
       int current = Tgx101Stories.mode();
       pills.bind(Lang.getString(R.string.Tgx101StoriesMode),
@@ -1175,7 +1184,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101HideCompose || id == R.id.btn_tgx101HideJoin || id == R.id.btn_tgx101HideSponsored) return 0;
     if (id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101SearchHoldProxy || id == R.id.btn_tgx101CapsuleScrollHide || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101CapsuleTabs || id == R.id.btn_tgx101ContactsMenu || id == R.id.btn_tgx101QuickCalls) return 0;
     if (id == R.id.btn_tgx101RearRounds || id == R.id.btn_tgx101RoundRememberCamera || id == R.id.btn_tgx101RoundAskCamera) return 4;
-    if (id == R.id.btn_tgx101NoAnimation) return 4; // «Media»
+    if (id == R.id.btn_tgx101NoAnimation || id == R.id.btn_tgx101MediaDots) return 4; // «Media»
     if (id == R.id.btn_tgx101HideAllReactions || id == R.id.btn_tgx101HideChannelReactions || id == R.id.btn_tgx101NextChannelSwipe || id == R.id.btn_tgx101NextChannelBackToList || id == R.id.btn_showDiscussButton || id == R.id.btn_showCommentsButton
       || id == R.id.btn_showChannelMuteButton || id == R.id.btn_tgx101ChannelMuteBell || id == R.id.btn_hideSubscribeLink || id == R.id.btn_separateChannelPosts || id == R.id.btn_tgx101TypeMedia) return 3;
     if (id == R.id.btn_tgx101VoiceQueue || id == R.id.btn_tgx101CameraInAttach || id == R.id.btn_tgx101ZoomPullClose || id == R.id.btn_roundVideoQuality

@@ -693,7 +693,7 @@ public class TGMessageMedia extends TGMessage {
         tgx101DotsVisible.setValue(false, true);
       }
     }
-    if (tgx101HasMenuZone()) {
+    if (tgx101HasMenuZone() && org.thunderdog.challegram.unsorted.Settings.instance().tgx101MediaDots() == org.thunderdog.challegram.unsorted.Settings.TGX101_MEDIA_DOTS_ON) {
       // ⋮ on a soft dark pill in the top right corner of the photo / video, own and incoming alike (user 2026-10-06)
       float dotsAlpha = tgx101DotsVisible.getFloatValue();
       if (dotsAlpha > 0f) {
@@ -1039,7 +1039,7 @@ public class TGMessageMedia extends TGMessage {
   // user 2026-10-06: ⋮ in the top right corner of a single photo / video (normal mode); in the iOS long-press mode
   // the long press is the menu and the whole photo opens it
   private boolean tgx101HasMenuZone () {
-    return !org.thunderdog.challegram.unsorted.Settings.instance().tgx101LongPressMenu() && useBubbles() && mosaicWrapper != null
+    return !org.thunderdog.challegram.unsorted.Settings.instance().tgx101LongPressMenu() && org.thunderdog.challegram.unsorted.Settings.instance().tgx101MediaDots() != org.thunderdog.challegram.unsorted.Settings.TGX101_MEDIA_DOTS_OFF && useBubbles() && mosaicWrapper != null
       && mosaicWrapper.getSingularItem() != null && !isHot() && !isSponsoredMessage();
   }
 
