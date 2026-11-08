@@ -777,12 +777,14 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   // (user 2026-10-17 «свайп с главной хранилища в обе стороны; справа налево — список чатов выезжает справа»)
   @Override
   public boolean tgx101SlideBackBothWays () {
-    return Tgx101SavedStore.get(tdlib).backSwipe != Tgx101SavedStore.BACK_RIGHT; // the user's choice in the storage's settings
+    // (user 2026-11-08 «свайп справа налево не возвращает в чаты, а переключает плашки; выбор убирай, только слева направо»):
+    // right to left belongs to the type chips; back to the chats is left to right only, the choice in the settings is gone
+    return false;
   }
 
   @Override
   public boolean tgx101SlideBackForward () {
-    return Tgx101SavedStore.get(tdlib).backSwipe != Tgx101SavedStore.BACK_LEFT;
+    return true;
   }
 
   @Override

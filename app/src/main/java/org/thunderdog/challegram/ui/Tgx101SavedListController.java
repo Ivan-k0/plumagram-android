@@ -284,9 +284,31 @@ public class Tgx101SavedListController extends ViewController<Void> {
     list = new org.thunderdog.challegram.v.CustomRecyclerView(context) {
       private boolean downStoppedFling;
 
+      private float tgx101DownX, tgx101DownY;
+      private boolean tgx101Moved;
+
       @Override
       public boolean dispatchTouchEvent (MotionEvent e) {
         int action = e.getActionMasked();
+        // (user 2026-11-08 «свайпы внутри поиска — вместо свайпа срабатывает клик и открывает файлы»): the list takes only
+        // the vertical scroll; a sideways swipe stayed inside the row, which clicked on the finger's lift. A finger that went
+        // further than a touch's slop is a swipe — its lift is a cancel for the row, never a click
+        if (action == MotionEvent.ACTION_DOWN) {
+          tgx101DownX = e.getRawX();
+          tgx101DownY = e.getRawY();
+          tgx101Moved = false;
+        } else if (action == MotionEvent.ACTION_MOVE && !tgx101Moved) {
+          int slop = android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop();
+          tgx101Moved = Math.hypot(e.getRawX() - tgx101DownX, e.getRawY() - tgx101DownY) > slop;
+        } else if (action == MotionEvent.ACTION_UP && tgx101Moved && !paging && getScrollState() != SCROLL_STATE_DRAGGING) {
+          tgx101Moved = false;
+          org.thunderdog.challegram.Tgx101Diag.mark("storage list: a swipe's lift is no click (mode " + mode + ")");
+          MotionEvent cancel = MotionEvent.obtain(e);
+          cancel.setAction(MotionEvent.ACTION_CANCEL);
+          boolean result = super.dispatchTouchEvent(cancel);
+          cancel.recycle();
+          return result;
+        }
         if (action == MotionEvent.ACTION_DOWN) {
           // (user 2026-10-16 «жест назад в папках и метках — во время прокрутки, как в обычных чатах»): a touch on a still
           // flinging list kept the gesture for the list (it asks the parents not to intercept) — as in the chats, the
