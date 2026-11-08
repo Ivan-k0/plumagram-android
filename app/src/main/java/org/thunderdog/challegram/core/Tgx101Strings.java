@@ -1361,6 +1361,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AppliesAfterRestart, "Применится после перезапуска приложения");
     RU.put(R.string.Tgx101HideInputEmoji, "Скрыть кнопку смайлов и стикеров");
     RU.put(R.string.Tgx101CompactBubbles, "Компактные пузыри");
+    RU.put(R.string.Tgx101KeepHighRate, "Не снижать частоту экрана");
+    RU.put(R.string.Tgx101KeepHighRateHint, "После видео система может держать приложение на 60 Гц до перезапуска. Включено: приложение просит систему не снижать ему частоту ради экономии — прокрутка остаётся плавной, батарея может садиться чуть быстрее");
     RU.put(R.string.Tgx101TopicsButton, "Темы");
     RU.put(R.string.Tgx101FeedButton, "Лента");
     RU.put(R.string.Tgx101TopicsButtonHint, "Темы — здесь или свайпом вправо");

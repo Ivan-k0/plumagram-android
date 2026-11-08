@@ -468,7 +468,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
    * TGx101 (trace 2026-10-21, «свайп в хранилище не плавный»): the vivo panel runs 120 Hz, yet the app drew at 60 — the
    * system keeps an app it doesn't know at 60 Hz. The window asks for the highest refresh rate at the current resolution
    */
-  private void tgx101AskHighRefreshRate () {
+  public void tgx101AskHighRefreshRate () {
     if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) return;
     try {
       android.view.Display display = getWindowManager().getDefaultDisplay();
@@ -489,7 +489,8 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
         // (phone 2026-11-09 00:08, after a video: SurfaceFlinger «FrameRateOverrides setFrameRate (uid of the app, 60 Hz)»
         // while the window asked 120 — the system's power saving held the whole app at 60 until a restart): the window
         // opts out of that balancing, the rate it asks stays
-        try { getWindow().setFrameRatePowerSavingsBalanced(false); } catch (Throwable ignored) { }
+        // MagiX → Notifications, off by default (user 2026-11-09)
+        try { getWindow().setFrameRatePowerSavingsBalanced(!org.thunderdog.challegram.unsorted.Settings.instance().tgx101KeepHighRate()); } catch (Throwable ignored) { }
       }
       Tgx101Diag.mark("display: " + Math.round(current.getRefreshRate()) + " Hz → asked " + Math.round(best.getRefreshRate()) + " Hz (mode " + best.getModeId() + ")");
     } catch (Throwable t) {

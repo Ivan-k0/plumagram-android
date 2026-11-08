@@ -3852,6 +3852,10 @@ public class Settings {
   // TGx101 (user 2026-11-07 14:02 «у оф. тг больше информации вмещается, пузыри тоньше», approved 2026-11-08): a text bubble's
   // fields above and below as in Telegram (7 dp, was 12), so the time stands on its last line; consecutive bubbles closer.
   // On for new installs (tgx101PinOldDefaults), read on every layout — kept in memory
+  // (user 2026-11-09) Android 15+: after a video the system held the whole app at 60 Hz till a restart — off by default
+  private static final String KEY_TGX101_KEEP_HIGH_RATE = "tgx101_keep_high_rate";
+  public boolean tgx101KeepHighRate () { return pmc.getBoolean(KEY_TGX101_KEEP_HIGH_RATE, false); }
+  public void setTgx101KeepHighRate (boolean v) { pmc.putBoolean(KEY_TGX101_KEEP_HIGH_RATE, v); }
   private static final String KEY_TGX101_COMPACT_BUBBLES = "tgx101_compact_bubbles";
   private static volatile int tgx101CompactBubbles = -1;
   public boolean tgx101CompactBubbles () {
