@@ -711,6 +711,51 @@ public final class Tgx101Diag {
   // window, its views (Android 15+) and its video surfaces. The rate the app is really drawn at is taken from each frame's
   // deadline; when it changes, the journal tells what could hold it: the players not released, the video views, the window's ask
 
+  // TGx101 (user 2026-11-08: text in a channel «пересобирается» for a moment on opening): a message laid out anew in its first
+  // 3 s, or made again for the same message soon after, is told with what asked for it
+  private static final long MESSAGE_WATCH_MS = 3000;
+  private static final java.util.LinkedHashMap<String, Long> madeMessages = new java.util.LinkedHashMap<String, Long>(64, .75f, false) {
+    @Override protected boolean removeEldestEntry (java.util.Map.Entry<String, Long> eldest) { return size() > 400; }
+  };
+
+  public static void messageMade (long chatId, long messageId, String kind) {
+    if (!BuildConfig.TGX101_DIAG || writer == null || messageId == 0) return;
+    long now = SystemClock.uptimeMillis();
+    String key = chatId + "/" + messageId;
+    Long before;
+    synchronized (madeMessages) {
+      before = madeMessages.put(key, now);
+    }
+    if (before != null && now - before < 10_000) {
+      mark("message made again: " + key + " " + kind + ", " + (now - before) + " ms after the last one, by " + callers(3));
+    }
+  }
+
+  public static void messageRebuilt (long chatId, long messageId, String kind, String what, long madeAt, int oldWidth, int newWidth, int oldHeight, int newHeight) {
+    if (!BuildConfig.TGX101_DIAG || writer == null) return;
+    long age = SystemClock.uptimeMillis() - madeAt;
+    if (madeAt == 0 || age > MESSAGE_WATCH_MS) return;
+    mark("message rebuilt (" + what + "): " + chatId + "/" + messageId + " " + kind + " +" + age + " ms after made, width " + oldWidth +
+      (oldWidth != newWidth ? " → " + newWidth : "") + ", height " + oldHeight + (oldHeight != newHeight ? " → " + newHeight : " same") +
+      ", top " + topScreen + ", by " + callers(3));
+  }
+
+  /** The nearest callers outside the diagnostics and the message's own layout, short */
+  private static String callers (int count) {
+    StringBuilder b = new StringBuilder();
+    int n = 0;
+    for (StackTraceElement e : new Throwable().getStackTrace()) {
+      String c = e.getClassName();
+      if (c.endsWith(".Tgx101Diag")) continue;
+      String m = e.getMethodName();
+      if (n == 0 && (m.equals("rebuildLayout") || m.equals("rebuildContent") || m.equals("buildLayout") || m.equals("<init>"))) continue;
+      if (b.length() > 0) b.append(' ');
+      b.append(c.substring(c.lastIndexOf('.') + 1)).append('.').append(m).append(':').append(e.getLineNumber());
+      if (++n >= count + 3) break;
+    }
+    return b.toString();
+  }
+
   private static final java.util.WeakHashMap<Object, String> livePlayers = new java.util.WeakHashMap<>();
 
   /** A video or music player is built (U.newExoPlayer) */

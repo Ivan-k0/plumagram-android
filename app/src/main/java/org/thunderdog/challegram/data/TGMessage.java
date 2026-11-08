@@ -369,6 +369,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     this.currentViews = new MultipleViewProvider();
     this.currentViews.setContentProvider(this);
     this.msg = msg;
+    this.tgx101MadeAt = android.os.SystemClock.uptimeMillis();
+    org.thunderdog.challegram.Tgx101Diag.messageMade(msg.chatId, msg.id, getClass().getSimpleName());
     this.sponsoredMessage = sponsoredMessage;
     this.flags |= BitwiseUtils.optional(FLAG_BELOW_ALL_MESSAGES, isBelowAllMessages);
     this.messageReactions = new TGReactions(this, tdlib, msg.interactionInfo != null ? tgx101VisibleReactions(msg, msg.interactionInfo.reactions) : null, new TGReactions.MessageReactionsDelegate() {
@@ -1253,11 +1255,17 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return ReplyComponent.height() + Screen.dp(useBubble() ? 3f : 6f) - (useForward() ? Screen.dp(9f) : 0);
   }
 
+  // TGx101 (user 2026-11-08: «заходишь в канал — текст на мгновение пересобирается, слегка мигает»): every rebuild of a
+  // message in its first seconds goes to the journal, with what asked for it
+  private long tgx101MadeAt;
+
   public void rebuildLayout () {
     final int width = this.width;
     if (width != 0) {
+      int oldHeight = height;
       this.width = 0;
       buildLayout(width);
+      org.thunderdog.challegram.Tgx101Diag.messageRebuilt(msg.chatId, msg.id, getClass().getSimpleName(), "layout", tgx101MadeAt, width, width, oldHeight, height);
     }
   }
 
@@ -1278,6 +1286,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       return;
     }
 
+    if (this.width != 0) {
+      org.thunderdog.challegram.Tgx101Diag.messageRebuilt(msg.chatId, msg.id, getClass().getSimpleName(), "new width", tgx101MadeAt, this.width, width, height, height);
+    }
     this.width = width;
 
     if (useBubbles()) {
@@ -1428,11 +1439,13 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   protected boolean rebuildContent () {
     if ((flags & FLAG_LAYOUT_BUILT) != 0) {
+      int tgx101OldHeight = height;
       updateContentPositions(true);
       buildContent(pContentMaxWidth);
       buildBubble(false);
       int oldHeight = height;
       height = computeHeight();
+      org.thunderdog.challegram.Tgx101Diag.messageRebuilt(msg.chatId, msg.id, getClass().getSimpleName(), "content", tgx101MadeAt, width, width, tgx101OldHeight, height);
       if (oldHeight != height) {
         manager.onMessageHeightChanged(getChatId(), getId(), oldHeight, height);
       }
