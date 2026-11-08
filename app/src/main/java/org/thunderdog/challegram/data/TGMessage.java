@@ -1504,12 +1504,17 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   private int getBubbleViewPaddingTop () {
     if (tgx101Journal() && !isOutgoing()) return 0; // the post starts right under the stripe (no chat background between)
-    return useBubble() ? ((flags & FLAG_HEADER_ENABLED) != 0 ? xBubbleViewPadding : xBubbleViewPaddingSmall) : xBubbleViewPadding;
+    return useBubble() ? ((flags & FLAG_HEADER_ENABLED) != 0 ? xBubbleViewPadding : tgx101SmallViewPadding()) : xBubbleViewPadding;
   }
 
   private int getBubbleViewPaddingBottom () {
     if (tgx101Journal() && !isOutgoing()) return Screen.dp(TGX101_JOURNAL_STRIPE); // the stripe with the channel's name
-    return useBubble() ? (isBottomMessage() || (inlineKeyboard != null && !inlineKeyboard.isEmpty()) ? xBubbleViewPadding : xBubbleViewPaddingSmall) : xBubbleViewPadding;
+    return useBubble() ? (isBottomMessage() || (inlineKeyboard != null && !inlineKeyboard.isEmpty()) ? xBubbleViewPadding : tgx101SmallViewPadding()) : xBubbleViewPadding;
+  }
+
+  /** the gap's half between two bubbles in a row: compact bubbles (MagiX) stand closer, as in Telegram */
+  private int tgx101SmallViewPadding () {
+    return useBubbles() && !tgx101Feed() && Settings.instance().tgx101CompactBubbles() ? Screen.dp(.5f) : xBubbleViewPaddingSmall;
   }
 
   protected final int getPaddingBottom () {
@@ -4216,13 +4221,14 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
         // TGx101 (user 2026-11-07 14:02, screenshots of the official app: «пузыри тоньше, короткие на одну строку, иначе часы»):
         // why the time takes a line of its own — the numbers of each text message's decision
-        if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && this instanceof TGMessageText) {
+        if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && this instanceof TGMessageText && android.os.SystemClock.uptimeMillis() - tgx101MadeAt < 3000) {
           org.thunderdog.challegram.Tgx101Diag.mark("time line: " + msg.chatId + "/" + msg.id + " last line " + bottomLineContentWidth + " + time " + bubbleTimePartWidth
             + " vs max " + (allowHorizontalExtend ? pRealContentMaxWidth : Math.min(pRealContentMaxWidth, bubbleWidth)) + " (bubble " + defaultBubbleWidth + "), own line " + (timeAddedHeight > 0)
             + ", reactions vis " + messageReactions.getVisibility() + " expand " + messageReactions.getTimeHeightExpand() + " big " + useReactionBubbles()
             + ", forward " + useForward() + ", footer " + hasFooter()
             + " | content " + getContentHeight() + ", bubble h " + defaultBubbleHeight + ", reactions h " + messageReactions.getAnimatedHeight()
-            + ", time h " + getBubbleTimePartHeight() + ", pad " + xBubblePadding + "/" + xBubblePaddingSmall);
+            + ", time h " + getBubbleTimePartHeight() + ", pads " + getBubblePaddingTop() + "/" + getBubblePaddingBottom() + ", gap " + getBubbleViewPaddingTop() + "+" + getBubbleViewPaddingBottom()
+            + ", compact " + tgx101CompactText());
         }
         if (messageReactions.getVisibility() > 0f && useReactionBubbles()) {
           final int reactionsWidth = (int) messageReactions.getAnimatedWidth() + xReactionBubblePadding * 2 - getBubblePaddingLeft() - getBubblePaddingRight();
@@ -6757,7 +6763,13 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   private int getBubblePaddingTop () {
     int specialPadding = getBubbleSpecialPaddingTop();
-    return specialPadding != 0 ? specialPadding : getBubbleContentPadding();
+    return specialPadding != 0 ? specialPadding : tgx101CompactText() ? Screen.dp(TGX101_COMPACT_PAD) : getBubbleContentPadding();
+  }
+
+  /** TGx101: compact bubbles (MagiX) — a plain text bubble's fields above and below as in Telegram */
+  private static final float TGX101_COMPACT_PAD = 7f;
+  private boolean tgx101CompactText () {
+    return this instanceof TGMessageText && useBubble() && !useForward() && !tgx101Feed() && Settings.instance().tgx101CompactBubbles();
   }
 
   protected final int getBubblePaddingRight () {
@@ -6771,7 +6783,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (drawBubbleTimeOverContent() && commentButton.isVisible() && commentButton.isInline()) {
       return Math.round(getBubbleContentPadding() * (1f - commentButton.getVisibility()));
     }
-    return getBubbleContentPadding();
+    return tgx101CompactText() ? Screen.dp(TGX101_COMPACT_PAD) : getBubbleContentPadding();
   }
 
   public boolean setNeedExtraPadding (boolean needPadding) {

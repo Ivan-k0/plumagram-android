@@ -1360,6 +1360,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101CapsuleScrollHide, "Прятать нижнее меню при прокрутке");
     RU.put(R.string.Tgx101AppliesAfterRestart, "Применится после перезапуска приложения");
     RU.put(R.string.Tgx101HideInputEmoji, "Скрыть кнопку смайлов и стикеров");
+    RU.put(R.string.Tgx101CompactBubbles, "Компактные пузыри");
+    RU.put(R.string.Tgx101CompactBubblesHint, "Тоньше текстовые пузыри: время стоит на последней строке, сообщения ближе друг к другу — на экране помещается больше");
     RU.put(R.string.Tgx101RearRounds, "Кружки — начинать с основной камеры");
     RU.put(R.string.Tgx101HidePhone, "Скрыть мой номер в боковом меню");
     RU.put(R.string.Tgx101ContactMessage, "Написать");

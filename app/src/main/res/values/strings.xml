@@ -6661,6 +6661,8 @@
   <string name="Tgx101CapsuleScrollHide">Hide the bottom menu while scrolling</string>
   <string name="Tgx101AppliesAfterRestart">Restart the app to apply</string>
   <string name="Tgx101HideInputEmoji">Hide the emoji / stickers button</string>
+  <string name="Tgx101CompactBubbles">Compact bubbles</string>
+  <string name="Tgx101CompactBubblesHint">Thinner text bubbles: the time stands on the last line, bubbles closer to each other — more messages on the screen</string>
   <string name="Tgx101RearRounds">Video messages start with the main camera</string>
   <string name="Tgx101HidePhone">Hide my phone number in the side menu</string>
   <string name="Tgx101ContactMessage">Message</string>

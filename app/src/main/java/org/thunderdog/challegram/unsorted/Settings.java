@@ -2411,6 +2411,12 @@ public class Settings {
     }
     // the seventh (user 2026-11-04, screenshots 23:46–23:47: «вот так должно быть у новых пользователей»): the bird's ring of
     // seven, its place and the side menu of calls, settings, saved and «Газета»; those who have the app already keep what they have
+    // the eighth (user 2026-11-08, compact bubbles approved): for new installs; who has the app turns them on in MagiX
+    final String marker8 = "tgx101_defaults_2026_11_08";
+    if (!pmc.getBoolean(marker8, false)) {
+      if (!freshInstall && !pmc.contains(KEY_TGX101_COMPACT_BUBBLES)) pmc.putBoolean(KEY_TGX101_COMPACT_BUBBLES, false);
+      pmc.putBoolean(marker8, true);
+    }
     final String marker7 = "tgx101_defaults_2026_11_04";
     if (!pmc.getBoolean(marker7, false)) {
       if (freshInstall) {
@@ -3816,6 +3822,18 @@ public class Settings {
   public boolean tgx101HideInputCommands () { return pmc.getBoolean(KEY_TGX101_HIDE_INPUT_COMMANDS, false); }
   public void setTgx101HideInputCommands (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_INPUT_COMMANDS, v); }
   public boolean tgx101HideInputEmoji () { return pmc.getBoolean(KEY_TGX101_HIDE_INPUT_EMOJI, false); }
+
+  // TGx101 (user 2026-11-07 14:02 «у оф. тг больше информации вмещается, пузыри тоньше», approved 2026-11-08): a text bubble's
+  // fields above and below as in Telegram (7 dp, was 12), so the time stands on its last line; consecutive bubbles closer.
+  // On for new installs (tgx101PinOldDefaults), read on every layout — kept in memory
+  private static final String KEY_TGX101_COMPACT_BUBBLES = "tgx101_compact_bubbles";
+  private static volatile int tgx101CompactBubbles = -1;
+  public boolean tgx101CompactBubbles () {
+    int v = tgx101CompactBubbles;
+    if (v == -1) tgx101CompactBubbles = v = pmc.getBoolean(KEY_TGX101_COMPACT_BUBBLES, true) ? 1 : 0;
+    return v == 1;
+  }
+  public void setTgx101CompactBubbles (boolean v) { pmc.putBoolean(KEY_TGX101_COMPACT_BUBBLES, v); tgx101CompactBubbles = v ? 1 : 0; }
   public void setTgx101HideInputEmoji (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_INPUT_EMOJI, v); }
 
   // TGx101 (user 2026-10-21 «ИИ-вещи нужно дать возможность отключать одним махом»): one switch for everything AI —

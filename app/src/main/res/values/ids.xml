@@ -1624,6 +1624,7 @@
   <item name="btn_tgx101HideInputCamera" type="id"/>
   <item name="btn_tgx101HideInputCommands" type="id"/>
   <item name="btn_tgx101HideInputEmoji" type="id"/>
+  <item name="btn_tgx101CompactBubbles" type="id"/>
   <item name="btn_tgx101NavCapsule" type="id"/>
   <item name="btn_tgx101CapsuleMenu" type="id"/>
   <item name="btn_tgx101CapsuleTabs" type="id"/>
