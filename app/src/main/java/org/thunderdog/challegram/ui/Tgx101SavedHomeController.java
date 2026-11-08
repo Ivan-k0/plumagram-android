@@ -2321,15 +2321,18 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
             if (Math.abs(dx) > slop || Math.abs(dy) > slop) {
               dDecided = true;
               if (dx < 0 && Math.abs(dx) > Math.abs(dy) * 1.2f && !overSideways) {
+                org.thunderdog.challegram.Tgx101Diag.mark("storage home: a swipe left opens the kinds (caught at " + Math.round(dx) + "," + Math.round(dy) + " px)");
+                // the rows and capsules under the finger let go — before the swipe is ours (journal 22:51: this cancel came
+                // to the swipe itself and ended every one at 11 dp)
+                MotionEvent cancel = MotionEvent.obtain(e);
+                cancel.setAction(MotionEvent.ACTION_CANCEL);
+                super.dispatchTouchEvent(cancel);
+                cancel.recycle();
+                pulling = sideways = false;
                 dCaught = true;
                 swiping = true;
                 downX = dDownX;
                 downY = dDownY;
-                org.thunderdog.challegram.Tgx101Diag.mark("storage home: a swipe left opens the kinds (caught at " + Math.round(dx) + "," + Math.round(dy) + " px)");
-                MotionEvent cancel = MotionEvent.obtain(e);
-                cancel.setAction(MotionEvent.ACTION_CANCEL);
-                super.dispatchTouchEvent(cancel); // the rows and capsules under the finger let go
-                cancel.recycle();
                 getParent().requestDisallowInterceptTouchEvent(true);
               }
             }

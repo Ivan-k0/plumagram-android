@@ -370,6 +370,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
             tgx101UnstickPage();
             tgx101MoveLogged = false;
             tracking = !switching && !paging;
+            org.thunderdog.challegram.Tgx101Diag.mark("storage list: down at " + Math.round(e.getX() / Screen.dp(1f)) + "," + Math.round(e.getY() / Screen.dp(1f)) + " dp, kind #" + kindIndex() + (tracking ? "" : " (not tracking)") + (dragging ? ", was dragging" : ""));
             if (!tracking) {
               // (user 2026-11-08 «логи свайпов — ты уверен, что видишь ясно?»: twelve swipes in a row at 22:04:29–32 left no
               // trace of why) — the reason a swipe is not taken
@@ -466,7 +467,9 @@ public class Tgx101SavedListController extends ViewController<Void> {
       }
 
       @Override
-      public void onRequestDisallowInterceptTouchEvent (boolean disallowIntercept) { }
+      public void onRequestDisallowInterceptTouchEvent (boolean disallowIntercept) {
+        if (disallowIntercept) org.thunderdog.challegram.Tgx101Diag.mark("storage list: the kinds' swipe told to keep off (tracking " + tracking + ")");
+      }
     });
     list.addOnScrollListener(new RecyclerView.OnScrollListener() {
       @Override
