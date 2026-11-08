@@ -3289,6 +3289,15 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
   /** «All chats» with the hidden archive: the stories' row under it while there are stories (header stack mode) */
   public void tgx101CheckStoriesRow () {
+    // (user 2026-11-08 23:55): no stories' row in the chat list — the stories stay in the header. One special row less to
+    // count past in Telegram's indexes (a chat shown three times in a row, a user's screenshot 23:45)
+    if (adapter != null && adapter.tgx101HasStoriesRow()) adapter.tgx101SetStoriesRow(null);
+    if (TGX101_STORIES_ROW) tgx101AddStoriesRow();
+  }
+
+  private static final boolean TGX101_STORIES_ROW = false;
+
+  private void tgx101AddStoriesRow () {
     if (adapter == null || pickerDelegate != null || isDestroyed() || filter != null || chatList().getConstructor() != TdApi.ChatListMain.CONSTRUCTOR) return;
     java.util.List<TdApi.ChatActiveStories> ordered = parentController != null && Tgx101Stories.mode() == Tgx101Stories.MODE_HEADER ? parentController.tgx101HeaderStories() : java.util.Collections.emptyList();
     TdApi.Chat saved = tdlib.selfChatId() != 0 ? tdlib.chat(tdlib.selfChatId()) : null;
