@@ -934,7 +934,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private void updateMessagesViewInset () {
-    if (floatingInput && bottomWrap != null && bottomWrap.getVisibility() == View.VISIBLE) {
+    // …and with no field too (user 2026-11-08 17:31 «при переходе в канал чат мигнул», journal: a channel's list padding went
+    // 64 → 0 → 64 within 6 ms as its bottom bar came) — the floating input's room has its own case without the capsule
+    if (floatingInput && bottomWrap != null) {
       // TGx101 (Vivo 0.1.551 diag, share sheet «желе»): this reset the list padding to 0 on every keyboard show / hide,
       // then the floating input put its own padding back — two relayouts of the chat (16–22 ms frames). The floating
       // input owns the padding while it's shown

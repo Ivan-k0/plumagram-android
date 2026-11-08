@@ -669,7 +669,15 @@ public class MessagesAdapter extends RecyclerView.Adapter<MessagesHolder> {
         TGMessage msg = this.items.get(count - 1);
         msg.mergeWith(combine, false);
         msg.rebuildLayout();
-        notifyItemChanged(count - 1);
+        // TGx101 (user 2026-11-08 17:31 «при переходе в канал ЗеРада чат мигнул», journal: the post on screen was laid out
+        // again +145 ms after the chat opened, when the older messages came): the list has no item animator, so a change
+        // rebound the whole view — its pictures were requested anew and blinked. A post on screen is only measured again
+        if (msg.hasAnyTargetToInvalidate()) {
+          msg.requestLayout();
+          msg.invalidate();
+        } else {
+          notifyItemChanged(count - 1);
+        }
       }
       this.items.addAll(items);
       if (count == 0) {
