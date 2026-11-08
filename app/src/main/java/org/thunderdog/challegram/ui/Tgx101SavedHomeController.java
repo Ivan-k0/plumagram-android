@@ -2301,6 +2301,50 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       return hit.contains((int) e.getRawX(), (int) e.getRawY());
     }
 
+    // (user 2026-11-08, journal 21:01–21:03: of ~25 swipes left over «+ Новая» and «Метки и реакции» none reached the code
+    // above — something there took them first): a swipe left is caught here, before any child sees it, everywhere but the
+    // strips that scroll sideways themselves (the kinds' chips, «Pinned»)
+    private float dDownX, dDownY;
+    private boolean dDecided, dCaught;
+
+    @Override
+    public boolean dispatchTouchEvent (MotionEvent e) {
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+          dDownX = e.getRawX();
+          dDownY = e.getRawY();
+          dDecided = dCaught = false;
+          break;
+        case MotionEvent.ACTION_MOVE:
+          if (!dDecided && selected.isEmpty() && !pulling && !swiping) {
+            float dx = e.getRawX() - dDownX, dy = e.getRawY() - dDownY;
+            if (Math.abs(dx) > slop || Math.abs(dy) > slop) {
+              dDecided = true;
+              if (dx < 0 && Math.abs(dx) > Math.abs(dy) * 1.2f && !overSideways) {
+                dCaught = true;
+                swiping = true;
+                downX = dDownX;
+                downY = dDownY;
+                org.thunderdog.challegram.Tgx101Diag.mark("storage home: a swipe left opens the kinds (caught at " + Math.round(dx) + "," + Math.round(dy) + " px)");
+                MotionEvent cancel = MotionEvent.obtain(e);
+                cancel.setAction(MotionEvent.ACTION_CANCEL);
+                super.dispatchTouchEvent(cancel); // the rows and capsules under the finger let go
+                cancel.recycle();
+                getParent().requestDisallowInterceptTouchEvent(true);
+              }
+            }
+          }
+          break;
+      }
+      if (dCaught) {
+        boolean result = onTouchEvent(e);
+        int action = e.getActionMasked();
+        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) dCaught = false;
+        return result;
+      }
+      return super.dispatchTouchEvent(e);
+    }
+
     @Override
     public boolean onInterceptTouchEvent (MotionEvent e) {
       if (!selected.isEmpty()) return super.onInterceptTouchEvent(e);

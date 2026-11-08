@@ -367,7 +367,9 @@ public class Tgx101SavedListController extends ViewController<Void> {
             // (user 2026-10-16 «жест перелистывания очень чувствительный»): a clear sideways move; a vertical start is a scroll.
             // (user 2026-10-17 «мягче и бесшовнее, как свайп из чата в список»): the next kind then follows the finger
             if (tracking && Math.abs(dy) > Screen.dp(14f) && Math.abs(dy) > Math.abs(dx)) tracking = false; // a scroll
-            if (tracking && Math.abs(dx) > Screen.dp(22f) && Math.abs(dx) > Math.abs(dy) * 2.5f) {
+            // (journal 2026-11-08 21:00–21:03: slanted swipes of a live finger — 150 px sideways, 30–60 down — were refused by
+            // «2.5 times more sideways»): 1.5 times is enough, sooner (16 dp)
+            if (tracking && Math.abs(dx) > Screen.dp(16f) && Math.abs(dx) > Math.abs(dy) * 1.5f) {
               tracking = false;
               org.thunderdog.challegram.Tgx101Diag.mark("storage list: sideways " + (dx < 0 ? "left" : "right") + " " + Math.round(dx) + "," + Math.round(dy)
                 + " px, mode " + mode + (reach ? " (search)" : "") + ", kind #" + kindIndex());
