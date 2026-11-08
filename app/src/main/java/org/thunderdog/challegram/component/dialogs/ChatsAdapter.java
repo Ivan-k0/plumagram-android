@@ -193,6 +193,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
     if (target != storageAt) {
       chats.remove(storageAt);
       chats.add(target, tgx101StorageItem);
+      tgx101Op("storage " + storageAt + "→" + target);
       notifyItemMoved(getItemPositionByChatIndex(storageAt), getItemPositionByChatIndex(target));
       invalidateAttachedItemDecorations();
     }
@@ -820,6 +821,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
 
   public int removeChatById (TdApi.Chat chat, int fromIndex, Tdlib.ChatChange changeInfo) {
     final int chatIndex = tgx101ChatIndex(fromIndex);
+    tgx101Op("remove " + chat.id + " at " + fromIndex + " (row " + chatIndex + ")");
     if (chatIndex != -1) {
       TGChat removedChat = removeChat(chatIndex);
       if (removedChat.getChatId() != chat.id)
@@ -842,8 +844,10 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
 
   public int moveChat (TdApi.Chat chat, int fromIndex, int toIndex, Tdlib.ChatChange changeInfo) {
     TGChat parsedChat;
+    int tgx101From = fromIndex;
     fromIndex = tgx101ChatIndex(fromIndex);
     parsedChat = chats.remove(fromIndex);
+    tgx101Op("move " + chat.id + " " + tgx101From + "→" + toIndex + " (rows " + fromIndex + (parsedChat.getChatId() != chat.id ? ", took " + parsedChat.getChatId() + "!" : "") + ")");
     toIndex = tgx101InsertIndex(toIndex, parsedChat); // in the list without it
 
     boolean invalidateDecorations = changeInfo.metadataChanged() ||
@@ -876,6 +880,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
     newChat.makeMeasures();
     int flags = changeInfo.metadataChanged() ? ORDER_INVALIDATE_DECORATIONS : 0;
     boolean wasEmpty = !hasChats();
+    tgx101Op("add " + chat.id + " at " + atIndex + " (row " + index + ")");
     addChat(index, newChat);
     if (wasEmpty) {
       tgx101NotifyRangeInserted(getItemPositionByChatIndex(index), 2); // the first chat brings the «N chats» line with it
@@ -981,11 +986,77 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
   private int tgx101Queued;
   private boolean tgx101FullRefreshQueued;
 
+  // TGx101 (a user's screenshot 2026-11-08 23:45, many busy groups: one chat stood three times in a row, same text and
+  // counter): a chat can't be twice in the data (addChat would throw), so rows on screen went out of step with it. After
+  // changes the shown rows are checked against the data; any chat shown twice or in the wrong place is told (with the
+  // last changes of the list) and the list is redrawn from its data.
+  private final String[] tgx101Ops = new String[24];
+  private int tgx101OpAt, tgx101Heals;
+  private boolean tgx101CheckPosted;
+  private final Runnable tgx101Check = this::tgx101CheckRows;
+
+  private void tgx101Op (String op) {
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+      tgx101Ops[tgx101OpAt++ % tgx101Ops.length] = android.os.SystemClock.uptimeMillis() % 100000 + " " + op;
+    }
+  }
+
+  private void tgx101ScheduleCheck (RecyclerView recyclerView, long delay) {
+    if (!tgx101CheckPosted) {
+      tgx101CheckPosted = true;
+      recyclerView.postDelayed(tgx101Check, delay);
+    }
+  }
+
+  private void tgx101CheckRows () {
+    tgx101CheckPosted = false;
+    RecyclerView rv = attachedToRecyclers != null && attachedToRecyclers.size() == 1 ? attachedToRecyclers.get(0) : null;
+    if (rv == null || !rv.isAttachedToWindow()) return;
+    if (rv.isComputingLayout() || rv.hasPendingAdapterUpdates() || (rv.getItemAnimator() != null && rv.getItemAnimator().isRunning())) {
+      tgx101ScheduleCheck(rv, 250); // still moving: look once it settles
+      return;
+    }
+    StringBuilder problem = null;
+    java.util.HashMap<Long, Integer> shown = new java.util.HashMap<>();
+    for (int i = 0; i < rv.getChildCount(); i++) {
+      View child = rv.getChildAt(i);
+      if (!(child instanceof ChatView)) continue;
+      RecyclerView.ViewHolder holder = rv.getChildViewHolder(child);
+      int position = holder != null ? holder.getAdapterPosition() : RecyclerView.NO_POSITION;
+      if (position == RecyclerView.NO_POSITION) continue;
+      long id = ((ChatView) child).getChatId();
+      if (id == 0) continue;
+      TGChat expected = getChatByItemPosition(position);
+      Integer before = shown.put(id, position);
+      if (before != null || expected == null || expected.getChatId() != id) {
+        if (problem == null) problem = new StringBuilder();
+        problem.append(" | chat ").append(id).append(" shown at ").append(position)
+          .append(before != null ? " and at " + before : "")
+          .append(expected == null ? ", there the data has nothing" : expected.getChatId() != id ? ", there the data has " + expected.getChatId() : "");
+      }
+    }
+    if (problem == null) return;
+    int dataDuplicates = 0;
+    java.util.HashSet<Long> ids = new java.util.HashSet<>();
+    for (TGChat chat : chats) if (chat.getChatId() != 0 && !ids.add(chat.getChatId())) dataDuplicates++;
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+      StringBuilder ops = new StringBuilder();
+      for (int i = 0; i < tgx101Ops.length; i++) {
+        String op = tgx101Ops[(tgx101OpAt + i) % tgx101Ops.length];
+        if (op != null) ops.append("\n    ").append(op);
+      }
+      org.thunderdog.challegram.Tgx101Diag.mark("chat list: rows out of step with the data" + problem + " — the data has " + chats.size() + " rows, " +
+        dataDuplicates + " doubles; redrawn (" + (++tgx101Heals) + " time). Last changes:" + ops);
+    }
+    notifyDataSetChanged();
+  }
+
   private boolean tgx101Coalesce () {
     RecyclerView recyclerView = attachedToRecyclers != null && attachedToRecyclers.size() == 1 ? attachedToRecyclers.get(0) : null;
     if (recyclerView == null) {
       return false;
     }
+    tgx101ScheduleCheck(recyclerView, 400);
     if (!recyclerView.hasPendingAdapterUpdates()) {
       tgx101Queued = 0; // laid out since: the queue is empty
       tgx101FullRefreshQueued = false;
@@ -995,6 +1066,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
     }
     if (++tgx101Queued > TGX101_MAX_QUEUED_CHANGES && !recyclerView.isComputingLayout()) {
       tgx101FullRefreshQueued = true;
+      tgx101Op("full refresh after " + tgx101Queued);
       org.thunderdog.challegram.Tgx101Diag.mark("chat list: " + tgx101Queued + " changes queued without a layout → one full refresh");
       notifyDataSetChanged();
       return true;
