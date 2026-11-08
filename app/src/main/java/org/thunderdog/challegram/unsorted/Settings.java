@@ -2417,6 +2417,13 @@ public class Settings {
       if (!freshInstall) pmc.putBoolean(KEY_TGX101_BIRD_HIDE_HINT, false);
       pmc.putBoolean(markerBirdHide, true);
     }
+    // (user 2026-11-08 «ставь, но так, чтобы я смог проверить птичку сам»): a build with the journal shows the «×» once more,
+    // so it can be tried on a phone that had the app; builds for people are not touched
+    final String markerBirdTry = "tgx101_bird_hide_hint_try_855";
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && !pmc.getBoolean(markerBirdTry, false)) {
+      pmc.putBoolean(KEY_TGX101_BIRD_HIDE_HINT, true);
+      pmc.putBoolean(markerBirdTry, true);
+    }
     final String markerCompact = "tgx101_defaults_2026_11_08";
     if (!pmc.getBoolean(markerCompact, false)) {
       if (!freshInstall && !pmc.contains(KEY_TGX101_COMPACT_BUBBLES)) pmc.putBoolean(KEY_TGX101_COMPACT_BUBBLES, false);
