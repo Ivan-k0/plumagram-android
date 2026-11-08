@@ -567,6 +567,21 @@ public class SettingsCacheController extends RecyclerViewController<SettingsData
   private void tgx101Clear (TdApi.FileType[] types, @Nullable long[] chatIds, long size) {
     if (isCleaningUp || isBusyGlobally || overview == null) return;
     overview.setBusy(true);
+    // TGx101 (group 2026-11-07 20:26 «к общей очистке — анимированные стикеры, а то обычные удаляются, а анимированные нет»):
+    // the app's own cache of animated stickers goes with the stickers — it is not Telegram's, the optimizer never saw it
+    if (chatIds == null && fastStats != null) {
+      boolean stickers = false;
+      for (TdApi.FileType type : types) stickers |= type instanceof TdApi.FileTypeSticker;
+      if (stickers && fastStats.getLottieSize() > 0) {
+        final long lottie = fastStats.getLottieSize();
+        final TGStorageStatsFast fs = fastStats;
+        Background.instance().post(() -> {
+          boolean ok = fs.deleteLottieFiles();
+          org.thunderdog.challegram.Tgx101Diag.mark("storage: animated stickers' cache " + Strings.buildSize(lottie) + (ok ? " cleared" : " cleared in part") + " with the stickers");
+          tdlib.ui().post(() -> { if (!isDestroyed()) reloadFastStats(); });
+        });
+      }
+    }
     ImageLoader.instance().clear(tdlib.id(), false);
     tdlib.send(new TdApi.OptimizeStorage(0, 0, 0, 0, types, chatIds, null, false, 100000), (stats, error) -> {
       org.thunderdog.challegram.Tgx101Diag.mark("storage: cleared " + Strings.buildSize(size) + " of " + types.length + " types" + (chatIds != null ? " in " + chatIds.length + " chats" : "") + (error != null ? ", error " + error.message : ""));
