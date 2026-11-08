@@ -2304,8 +2304,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     // (user 2026-11-08, journal 21:01–21:03: of ~25 swipes left over «+ Новая» and «Метки и реакции» none reached the code
     // above — something there took them first): a swipe left is caught here, before any child sees it, everywhere but the
     // strips that scroll sideways themselves (the kinds' chips, «Pinned»)
-    private float dDownX, dDownY, tgx101PrevDx;
-    private long tgx101PrevTime;
+    private float dDownX, dDownY;
     private boolean dDecided, dCaught;
 
     @Override
@@ -2414,8 +2413,6 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
             }
           } else {
             column.setTranslationX(Math.min(0f, dx) * .25f);
-            tgx101PrevDx = dx;
-            tgx101PrevTime = e.getEventTime();
           }
           return true;
         case MotionEvent.ACTION_UP:
@@ -2427,10 +2424,11 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
             pullIcon.animate().alpha(0f).setDuration(180).start();
           } else {
             column.animate().translationX(0f).setDuration(200).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
-            // (journal 2026-11-08 22:49–22:58: ~60 swipes of 50–75 dp were caught but opened nothing, 80 dp was asked): 40 dp,
-            // or a short quick flick
-            float speed = (dx - tgx101PrevDx) / Math.max(1f, (e.getEventTime() - tgx101PrevTime));
-            if (up && (dx < -Screen.dp(40f) || (dx < -Screen.dp(16f) && speed < -Screen.dp(.6f)))) openKindSwipe(true);
+            // (user 2026-11-08 «свайпы не укорачивай»): 80 dp as before. (video 22:44: every swipe was caught, none opened) — the
+            // end of each swipe is told: a lift or a cancel, how far
+            boolean open = up && dx < -Screen.dp(80f);
+            org.thunderdog.challegram.Tgx101Diag.mark("storage home: the swipe " + (up ? "let go" : "cancelled") + " at " + Math.round(dx / Screen.dp(1f)) + "," + Math.round(dy / Screen.dp(1f)) + " dp — " + (open ? "opens the kinds" : "nothing"));
+            if (open) openKindSwipe(true);
           }
           pulling = swiping = false;
           return true;
@@ -2451,6 +2449,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
         break;
       }
     }
+    org.thunderdog.challegram.Tgx101Diag.mark("storage home: opens kind " + pick + (counts == null ? " (no counts yet)" : ""));
     if (pick != -1) Tgx101SavedListController.openKind(this, pick);
   }
 
