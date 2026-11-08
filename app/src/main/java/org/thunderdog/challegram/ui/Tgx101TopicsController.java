@@ -331,7 +331,7 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
     // the header as in the group's chat: its photo, name and members
     headerCell = new ChatHeaderView(context, tdlib, this);
     headerCell.setCallback(this);
-    headerCell.setInnerMargins(Screen.dp(56f), Screen.dp(100f)); // room for search and ⋮ (the name ran under the search, 0.2.242)
+    headerCell.setInnerMargins(Screen.dp(56f), Screen.dp(97f)); // room for «Feed» and ⋮ (the name ran under the search, 0.2.242)
     headerCell.setChat(tdlib, getArgumentsStrict().chat, null);
     // topics fetched ahead (from the feed's switch or an earlier visit): the list is there at once, refreshed behind it
     List<TdApi.ForumTopic> cached = cachedTopics.get(cacheKey(tdlib, getArgumentsStrict().chat.id));
@@ -467,7 +467,9 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
   @Override
   public void fillMenuItems (int id, org.thunderdog.challegram.navigation.HeaderView header, LinearLayout menu) {
     if (id == R.id.menu_search) {
-      header.addSearchButton(menu, this);
+      // (user 2026-11-08 «иконку поиска — на иконку Лента»): the search goes into ⋮
+      header.addButton(menu, R.id.menu_btn_tgx101Feed, R.drawable.baseline_format_list_bulleted_type_24, getHeaderIconColorId(), this, Screen.dp(48f))
+        .setTag(Lang.getString(R.string.Tgx101FeedButton));
       header.addMoreButton(menu, this);
     } else if (id == R.id.menu_clear) {
       header.addClearButton(menu, this);
@@ -476,7 +478,9 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
 
   @Override
   public void onMenuItemPressed (int id, View view) {
-    if (id == R.id.menu_btn_search) {
+    if (id == R.id.menu_btn_tgx101Feed) {
+      openAllMessages();
+    } else if (id == R.id.menu_btn_search) {
       if (headerView != null) headerView.openSearchMode();
     } else if (id == R.id.menu_btn_clear) {
       clearSearchInput();
@@ -487,6 +491,7 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
       if (canCreateTopics()) {
         ids.add(R.id.btn_tgx101TopicNew); titles.add(Lang.getString(R.string.Tgx101TopicNew)); icons.add(R.drawable.baseline_add_24);
       }
+      ids.add(R.id.btn_tgx101TopicsSearch); titles.add(Lang.getString(R.string.Search)); icons.add(R.drawable.baseline_search_24);
       ids.add(R.id.btn_tgx101TopicsInfo); titles.add(Lang.getString(R.string.GroupInfo)); icons.add(R.drawable.baseline_info_24);
       ids.add(R.id.btn_reportChat); titles.add(Lang.getString(R.string.Report)); icons.add(R.drawable.baseline_report_24);
       ids.add(R.id.btn_tgx101TopicsLeave); titles.add(Lang.getString(R.string.LeaveMegaMenu)); icons.add(R.drawable.baseline_logout_24);
@@ -497,6 +502,10 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
   @Override
   public void onMoreItemPressed (int id) {
     TdApi.Chat chat = getArgumentsStrict().chat;
+    if (id == R.id.btn_tgx101TopicsSearch) {
+      if (headerView != null) headerView.openSearchMode();
+      return;
+    }
     if (id == R.id.btn_tgx101TopicNew) {
       createTopic();
     } else if (id == R.id.btn_tgx101TopicsInfo) {
@@ -558,6 +567,7 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
       // topic just left reports its new read mark
       UI.post(tgx101Reload, 1500);
     }
+    tgx101MaybePeek();
   }
 
   private final Runnable tgx101Reload = () -> {
@@ -791,7 +801,7 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
   private void buildRows () {
     rows.clear();
     if (searchQuery == null) {
-      rows.add(ROW_SWITCH);
+      // (user 2026-11-08 «убираем полоску в темах»): no «Темы | Лента» strip — «Feed» is in the header, the feed by a swipe left
       rows.addAll(topics);
     } else {
       String q = searchQuery.toLowerCase();
@@ -894,6 +904,35 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
   public void onPrepareToShow () {
     super.onPrepareToShow();
     if (topicsSwitch != null) topicsSwitch.setFeed(false, false); // back here: the thumb on «Topics»
+  }
+
+  // (user 2026-11-08 «пару раз нужна подсказка, что можно свайпать, а не только тыкать — аккуратно выезжающий экран справа на
+  // пару мм»): the first two times the topics show, the feed peeks in from the right by a few millimetres and goes back
+  private boolean tgx101PeekDone;
+
+  private void tgx101MaybePeek () {
+    if (tgx101PeekDone || inSearchMode()) return;
+    tgx101PeekDone = true;
+    int shown = org.thunderdog.challegram.unsorted.Settings.instance().tgx101TopicsPeekCount();
+    if (shown >= 2) return;
+    UI.post(() -> {
+      if (isDestroyed() || !isFocused() || inSearchMode() || !startFeedDrag()) return;
+      org.thunderdog.challegram.unsorted.Settings.instance().setTgx101TopicsPeekCount(shown + 1);
+      org.thunderdog.challegram.Tgx101Diag.mark("topics: the feed peeks in (" + (shown + 1) + " of 2)");
+      final float peek = Screen.dp(14f) / (float) Math.max(1, recyclerView.getWidth());
+      android.animation.ValueAnimator va = android.animation.ValueAnimator.ofFloat(0f, 1f, 0f);
+      va.setDuration(900);
+      va.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+      va.addUpdateListener(a -> tgx101FeedDrag(peek * (float) a.getAnimatedValue()));
+      va.addListener(new android.animation.AnimatorListenerAdapter() {
+        @Override
+        public void onAnimationEnd (android.animation.Animator animation) {
+          org.thunderdog.challegram.navigation.NavigationController nav = context().navigation();
+          if (nav != null) nav.tgx101EndDragForward(false, 0f);
+        }
+      });
+      va.start();
+    }, 700);
   }
 
   private void createTopic () {

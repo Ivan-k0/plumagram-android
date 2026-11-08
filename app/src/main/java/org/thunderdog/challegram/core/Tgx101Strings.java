@@ -1362,6 +1362,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101HideInputEmoji, "Скрыть кнопку смайлов и стикеров");
     RU.put(R.string.Tgx101CompactBubbles, "Компактные пузыри");
     RU.put(R.string.Tgx101TopicsButton, "Темы");
+    RU.put(R.string.Tgx101FeedButton, "Лента");
     RU.put(R.string.Tgx101TopicsButtonHint, "Темы — здесь или свайпом вправо");
     RU.put(R.string.Tgx101BirdHide, "Скрыть птичку");
     RU.put(R.string.Tgx101BirdHideAsk, "Скрыть птичку? Вернуть её можно в любой момент: MagiX → Меню и навигация → Птичка.");

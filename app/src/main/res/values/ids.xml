@@ -1799,6 +1799,8 @@
   <item name="menu_tgx101SavedHome" type="id"/>
   <item name="menu_btn_tgx101SavedSearch" type="id"/>
   <item name="menu_btn_tgx101Topics" type="id"/>
+  <item name="menu_btn_tgx101Feed" type="id"/>
+  <item name="btn_tgx101TopicsSearch" type="id"/>
   <item name="menu_btn_tgx101SavedFeed" type="id"/>
   <item name="menu_btn_tgx101SavedSettings" type="id"/>
   <item name="tgx101SavedThumb" type="id"/>

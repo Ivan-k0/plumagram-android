@@ -3787,6 +3787,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tgx101NeedTopicsUnder = feed;
       tgx101FeedNow = feed;
       if (tgx101TopicsButton != null) tgx101TopicsButton.setVisibility(View.GONE);
+      headerCell.setInnerMargins(Screen.dp(56f), Screen.dp(feed ? 97f : 49f)); // (user's screenshot 2026-11-08 22:30): the name ran under «Topics»
       if (feed) {
         // (mockup Б, 1 and 2): the strip shows where it was, then folds away while «Topics» comes up in the header — the eye
         // sees where it went; the first time a hint says it once
