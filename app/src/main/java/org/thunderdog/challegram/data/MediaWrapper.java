@@ -1224,11 +1224,14 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
 
       int fpRadius = !isVideo() || !isDoubleLine ? 0 : downloadedAnimator.isAnimating() ? Screen.dp(FileProgressComponent.DEFAULT_STREAMING_RADIUS) : getFileProgress().getRadius();
       int doubleFpRadius = fpRadius * 2;
+      // (user's screenshot 2026-11-09 00:20): a channel's video playing by itself has no stream button (see tgx101Playing
+      // below) — its room on the left of the plate stood empty; the plate is as wide as its text then
+      int buttonRoom = tgx101InlineVideo && receiver instanceof GifReceiver && !receiver.needPlaceholder() ? 0 : doubleFpRadius;
 
       int pDurationCorners = isDoubleLine ? MathUtils.fromTo(Screen.dp(4f), Screen.dp(12f), dlFactor) : Screen.dp(4f);
       int pDurationTop = cellTop + Screen.dp(8f) + (needTopOffset ? Screen.dp(16f) : 0);
       int pDurationLeft = cellLeft + Screen.dp(12f);
-      int pDurationRight = (int) (pDurationLeft + ((durationTrimmed != null && fileProgress.isUploading()) ? durationWidth : MathUtils.fromTo(durationWidthShort, durationWidth, dlFactor)) + ((doubleFpRadius) * (isStreamingUI ? dlFactor : 1f)) + ((isStreamingUI) ? MathUtils.fromTo(Screen.dp(4f), Screen.dp(isSmallStreamingUI ? 26f : 16f), dlFactor) : Screen.dp(4f)));
+      int pDurationRight = (int) (pDurationLeft + ((durationTrimmed != null && fileProgress.isUploading()) ? durationWidth : MathUtils.fromTo(durationWidthShort, durationWidth, dlFactor)) + ((buttonRoom) * (isStreamingUI ? dlFactor : 1f)) + ((isStreamingUI) ? MathUtils.fromTo(Screen.dp(4f), Screen.dp(buttonRoom == 0 && isDoubleLine ? 6f : isSmallStreamingUI ? 26f : 16f), dlFactor) : Screen.dp(4f)));
       int pDurationBottom = pDurationTop + (isDoubleLine ? MathUtils.fromTo(durationHeight(), (doubleFpRadius) + Screen.dp(8f), dlFactor) : durationHeight());
 
       float cellCenterX = cellLeft + cellWidth / 2f;
@@ -1268,7 +1271,7 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
       c.save();
       c.clipRect(durationRect);
       if (isDoubleLine) {
-        int textBaseline = pDurationLeft + (int) MathUtils.fromTo(0, (durationDx = doubleFpRadius + Screen.dp(6f)), dlFactor);
+        int textBaseline = pDurationLeft + (int) MathUtils.fromTo(0, (durationDx = buttonRoom == 0 ? 0 : buttonRoom + Screen.dp(6f)), dlFactor);
         int textYBaseline = (int) MathUtils.fromTo(pDurationTop + durationOffset(), pDurationTop + (((pDurationTop + doubleFpRadius + Screen.dp(8f)) - pDurationTop) / 2f), dlFactor);
         Paint mediumPaint = Paints.whiteMediumPaint(13f, false, false);
         mediumPaint.setAlpha(paint.getAlpha());
