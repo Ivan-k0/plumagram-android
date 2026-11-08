@@ -4214,6 +4214,14 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           }
         }
 
+        // TGx101 (user 2026-11-07 14:02, screenshots of the official app: «пузыри тоньше, короткие на одну строку, иначе часы»):
+        // why the time takes a line of its own — the numbers of each text message's decision
+        if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && this instanceof TGMessageText) {
+          org.thunderdog.challegram.Tgx101Diag.mark("time line: " + msg.chatId + "/" + msg.id + " last line " + bottomLineContentWidth + " + time " + bubbleTimePartWidth
+            + " vs max " + (allowHorizontalExtend ? pRealContentMaxWidth : Math.min(pRealContentMaxWidth, bubbleWidth)) + " (bubble " + defaultBubbleWidth + "), own line " + (timeAddedHeight > 0)
+            + ", reactions vis " + messageReactions.getVisibility() + " expand " + messageReactions.getTimeHeightExpand() + " big " + useReactionBubbles()
+            + ", forward " + useForward() + ", footer " + hasFooter());
+        }
         if (messageReactions.getVisibility() > 0f && useReactionBubbles()) {
           final int reactionsWidth = (int) messageReactions.getAnimatedWidth() + xReactionBubblePadding * 2 - getBubblePaddingLeft() - getBubblePaddingRight();
           final int reactionsFitBubbleWidth = Math.max(Math.max(defaultBubbleWidth, reactionsWidth), bubbleTimePartWidthWithoutPadding);
