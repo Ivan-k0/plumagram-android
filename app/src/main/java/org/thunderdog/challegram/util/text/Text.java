@@ -1201,7 +1201,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
   private void processTextOrEmoji (final String in, final int start, final int end, final ArrayList<TextPart> out, final Emoji.Callback emojiCallback, final @Nullable TextEntity entity) {
     TextPaint paint = getTextPaint(entity);
     Paint.FontMetricsInt fontMetricsInt = Paints.getFontMetricsInt(paint);
-    emojiSize = Math.abs(fontMetricsInt.descent - fontMetricsInt.ascent) + Screen.dp(2f);
+    emojiSize = Math.abs(tgx101LineHeight(fontMetricsInt, paint.getTextSize())) + Screen.dp(2f); // TGx101: as the line, brought to Roboto's
 
     if (in.endsWith("wtftest")) {
       in.toString();
@@ -2243,9 +2243,35 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
     if (mTmpTextSizePx == -1 || mTmpTextSizePx != textSizePx) {
       TextPaint paint = textStyleProvider.getTextPaint();
       paint.getFontMetricsInt(fm);
+      tgx101NormalizeLine(fm, paint.getTextSize());
       mTmpTextSizePx = textSizePx;
     }
     return fm;
+  }
+
+  /**
+   * TGx101 (user 2026-11-08 «подогнать под все шрифты»): each font sets its own line height — measured against Roboto's
+   * 1.172 of the size: Manrope +17 %, PT Serif +13 %, Google Sans and Merriweather +7 %, Montserrat +4 %, Inter +3 %. A line
+   * taller than Roboto's is brought to it, the excess taken half above and half below, so the letters stay centred
+   */
+  public static final float TGX101_LINE_RATIO = 1.172f;
+
+  public static void tgx101NormalizeLine (Paint.FontMetricsInt fm, float textSizePx) {
+    if (textSizePx <= 0) return;
+    int target = Math.round(textSizePx * TGX101_LINE_RATIO);
+    int excess = (fm.descent - fm.ascent + fm.leading) - target;
+    if (excess <= 1) return;
+    int top = excess / 2;
+    fm.ascent += top;
+    fm.descent -= excess - top;
+    fm.top = Math.min(fm.top, fm.ascent);
+    fm.bottom = Math.max(fm.bottom, fm.descent);
+  }
+
+  /** the line's height for a paint, brought to Roboto's as above */
+  public static int tgx101LineHeight (Paint.FontMetricsInt fm, float textSizePx) {
+    int h = fm.descent - fm.ascent;
+    return textSizePx > 0 ? Math.min(h, Math.round(textSizePx * TGX101_LINE_RATIO) - fm.leading) : h;
   }
 
   private Paint.FontMetricsInt getFontMetrics () {
@@ -2260,6 +2286,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
   public static int getLineHeight (TextStyleProvider textStyleProvider, boolean needPadding) {
     TextPaint paint = textStyleProvider.getTextPaint();
     Paint.FontMetricsInt fm = paint.getFontMetricsInt();
+    tgx101NormalizeLine(fm, paint.getTextSize()); // a fresh copy — brought to Roboto's line as the text itself
     return (Math.abs(fm.descent - fm.ascent) + fm.leading) + (needPadding ? textStyleProvider.convertUnit(2f) : 0);
   }
 

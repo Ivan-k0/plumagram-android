@@ -6778,7 +6778,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   private int getBubblePaddingBottom () {
     if (useForward()) {
-      return xBubblePadding + xBubblePaddingSmall;
+      // compact bubbles: a forwarded text's time stands on its last line too (user 2026-11-08 «пересланные — по очереди»)
+      return this instanceof TGMessageText && !tgx101Feed() && Settings.instance().tgx101CompactBubbles() ? Screen.dp(TGX101_COMPACT_PAD) : xBubblePadding + xBubblePaddingSmall;
     }
     if (drawBubbleTimeOverContent() && commentButton.isVisible() && commentButton.isInline()) {
       return Math.round(getBubbleContentPadding() * (1f - commentButton.getVisibility()));
