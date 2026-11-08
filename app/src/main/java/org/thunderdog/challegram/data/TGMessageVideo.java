@@ -505,28 +505,34 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
   // (journal 2026-11-06 17:09: at the last frame of folding the bubble's reactions stood at 786, the circle's place was 846 —
   // the gap measured before the move was 32, the layout changed under way) — the place under the circle is taken every frame
   // (user 2026-11-08 «при закрытии текста реакции очень резко подъезжают»): they rode with the bubble's bottom, which goes up
-  // ~1600 px in a quarter of a second. Now, as in the other app shown side by side, they don't travel: in the bubble they
-  // fade where they are, under the circle they come up at once at their final place (measured before the move), fading in
-  private int tgx101CircleReactionsY = -1;
+  // ~1600 px in a quarter of a second. Then (0.2.839) they faded in the bubble and came up at their final place — two sets at
+  // once, the new one hanging over the fading text while the circle was still small («ну такое себе»). Now (user's choice
+  // «под растущим кружком») one set hangs under the circle as it grows or shrinks, with the gap it has under the full circle;
+  // the set in the bubble fades within the first 40 % of the move
+  private int tgx101ReactionsUnderCircleX = Integer.MIN_VALUE, tgx101ReactionsUnderCircleY;
 
   @Override
   protected float tgx101ReactionsFade () {
-    if (tgx101Measure != 0 || tgx101CircleReactionsY < 0) return -1f;
+    if (tgx101Measure != 0 || tgx101ReactionsUnderCircleX == Integer.MIN_VALUE) return -1f;
     float f = tgx101TextFactor();
-    return f > 0f && f < 1f ? f : -1f;
+    if (f <= 0f || f >= 1f) return -1f;
+    return Math.max(0f, Math.min(1f, (f - .6f) / .4f)); // the bubble's set: gone once the move is 40 % done
+  }
+
+  private boolean tgx101ReactionsUnderCircle () {
+    return tgx101TextMode() && tgx101Measure == 0 && tgx101TextFactor() < 1f && tgx101ReactionsUnderCircleX != Integer.MIN_VALUE;
   }
 
   @Override
   protected int tgx101ReactionsDx () {
-    if (!tgx101TextMode() || tgx101Measure != 0 || tgx101TextFactor() >= 1f) return 0; // the text open: in the bubble
-    return tgx101CircleReactionsX() - tgx101InlineReactionsX();
+    if (!tgx101ReactionsUnderCircle()) return 0; // the text open: in the bubble
+    return getChildrenLeft() + tgx101ReactionsUnderCircleX - tgx101InlineReactionsX();
   }
 
   @Override
   protected int tgx101ReactionsDy () {
-    if (!tgx101TextMode() || tgx101Measure != 0 || tgx101TextFactor() >= 1f) return 0;
-    int target = tgx101CircleReactionsY >= 0 ? tgx101CircleReactionsY : tgx101StickerReactionsY();
-    return target - tgx101InlineReactionsY();
+    if (!tgx101ReactionsUnderCircle()) return 0;
+    return getChildrenTop() + getChildrenHeight() + tgx101ReactionsUnderCircleY - tgx101InlineReactionsY();
   }
   private int tgx101HeightDiff;
 
@@ -542,7 +548,9 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     rebuildContent();
     int circleHeight = height;
     final int circleReactionsY = tgx101StickerReactionsY(), circleReactionsX = tgx101CircleReactionsX();
-    tgx101CircleReactionsY = circleReactionsY;
+    // where the reactions stand under the full circle, from its bottom-left corner — kept under the circle as it changes size
+    tgx101ReactionsUnderCircleX = circleReactionsX - getChildrenLeft();
+    tgx101ReactionsUnderCircleY = circleReactionsY - (getChildrenTop() + getChildrenHeight());
     tgx101Measure = 1;
     rebuildContent();
     int bubbleHeight = height;
