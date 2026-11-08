@@ -282,6 +282,19 @@ public class Tgx101SavedListController extends ViewController<Void> {
     buildViewSwitch();
 
     list = new org.thunderdog.challegram.v.CustomRecyclerView(context) {
+      // (journal 2026-11-08 22:33–22:38: ~40 swipes to the right never reached the kinds' code, the screen's «back» wasn't
+      // listening either) — who keeps the gesture from the list
+      @Override
+      public void requestDisallowInterceptTouchEvent (boolean disallow) {
+        if (disallow && org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+          StackTraceElement[] st = new Throwable().getStackTrace();
+          StringBuilder b = new StringBuilder();
+          for (int i = 1; i < Math.min(st.length, 5); i++) b.append(' ').append(st[i].getClassName().substring(st[i].getClassName().lastIndexOf('.') + 1)).append('.').append(st[i].getMethodName()).append(':').append(st[i].getLineNumber());
+          org.thunderdog.challegram.Tgx101Diag.mark("storage list: a child keeps the gesture —" + b);
+        }
+        super.requestDisallowInterceptTouchEvent(disallow);
+      }
+
       private boolean downStoppedFling;
 
       private float tgx101DownX, tgx101DownY;
@@ -343,7 +356,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
     list.addOnItemTouchListener(dragSelect);
     list.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
       private float downX, downY;
-      private boolean tracking, dragging;
+      private boolean tracking, dragging, tgx101MoveLogged;
       private @Nullable android.view.VelocityTracker velocity;
 
       @Override
@@ -355,6 +368,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
             downY = e.getRawY();
             // (user 2026-10-16) rows don't slide here: a sideways swipe anywhere switches the kind
             tgx101UnstickPage();
+            tgx101MoveLogged = false;
             tracking = !switching && !paging;
             if (!tracking) {
               // (user 2026-11-08 «логи свайпов — ты уверен, что видишь ясно?»: twelve swipes in a row at 22:04:29–32 left no
@@ -371,6 +385,10 @@ public class Tgx101SavedListController extends ViewController<Void> {
           case MotionEvent.ACTION_MOVE: {
             track(e);
             float dx = e.getRawX() - downX, dy = e.getRawY() - downY;
+            if (tracking && !tgx101MoveLogged && Math.hypot(dx, dy) > Screen.dp(12f)) {
+              tgx101MoveLogged = true;
+              org.thunderdog.challegram.Tgx101Diag.mark("storage list: first move " + Math.round(dx) + "," + Math.round(dy) + " px, kind #" + kindIndex() + ", mode " + mode + (reach ? " (search)" : ""));
+            }
             // (user 2026-10-16 «жест перелистывания очень чувствительный»): a clear sideways move; a vertical start is a scroll.
             // (user 2026-10-17 «мягче и бесшовнее, как свайп из чата в список»): the next kind then follows the finger
             if (tracking && Math.abs(dy) > Screen.dp(14f) && Math.abs(dy) > Math.abs(dx)) tracking = false; // a scroll
