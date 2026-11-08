@@ -485,6 +485,12 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       params.preferredDisplayModeId = best.getModeId();
       params.preferredRefreshRate = best.getRefreshRate();
       getWindow().setAttributes(params);
+      if (android.os.Build.VERSION.SDK_INT >= 35) {
+        // (phone 2026-11-09 00:08, after a video: SurfaceFlinger «FrameRateOverrides setFrameRate (uid of the app, 60 Hz)»
+        // while the window asked 120 — the system's power saving held the whole app at 60 until a restart): the window
+        // opts out of that balancing, the rate it asks stays
+        try { getWindow().setFrameRatePowerSavingsBalanced(false); } catch (Throwable ignored) { }
+      }
       Tgx101Diag.mark("display: " + Math.round(current.getRefreshRate()) + " Hz → asked " + Math.round(best.getRefreshRate()) + " Hz (mode " + best.getModeId() + ")");
     } catch (Throwable t) {
       Tgx101Diag.mark("display: refresh rate not asked — " + t.getClass().getSimpleName());
