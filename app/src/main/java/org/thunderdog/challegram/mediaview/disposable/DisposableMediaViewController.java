@@ -210,6 +210,7 @@ public abstract class DisposableMediaViewController extends ViewController<Dispo
 
     checkProgressTimer(false);
 
+    org.thunderdog.challegram.Tgx101Diag.playerReleased(exoPlayer);
     exoPlayer.release();
     exoPlayer = null;
 

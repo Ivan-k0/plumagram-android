@@ -210,6 +210,7 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
             final AtomicBoolean exoPlayerReleased = new AtomicBoolean(false);
             final Runnable act = () -> {
               if (!exoPlayerReleased.getAndSet(true)) {
+                org.thunderdog.challegram.Tgx101Diag.playerReleased(finishingExoPlayer);
                 finishingExoPlayer.release();
               }
             };
@@ -244,6 +245,7 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
             finishingExoPlayer.setPlayWhenReady(false);
             UI.post(act, 1000);
           } else {
+            org.thunderdog.challegram.Tgx101Diag.playerReleased(exoPlayer);
             exoPlayer.release();
           }
           exoPlayer = null;
@@ -362,6 +364,7 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
 
     if (exoPlayer != null) {
       exoPlayer.removeListener(this);
+      org.thunderdog.challegram.Tgx101Diag.playerReleased(exoPlayer);
       exoPlayer.release();
       exoPlayer = null;
     }

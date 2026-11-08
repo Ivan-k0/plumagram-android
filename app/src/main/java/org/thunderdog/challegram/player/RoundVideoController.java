@@ -574,6 +574,7 @@ public class RoundVideoController extends BasePlaybackController implements
     setFile(null, null);
 
     if (exoPlayer != null) {
+      org.thunderdog.challegram.Tgx101Diag.playerReleased(exoPlayer);
       exoPlayer.release();
       exoPlayer = null;
     }

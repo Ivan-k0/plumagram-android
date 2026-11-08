@@ -84,6 +84,7 @@ public class SimpleVideoPlayer extends TextureView implements Destroyable, Playe
       this.videoDuration = 0;
       if (StringUtils.isEmpty(path)) {
         if (player != null) {
+          org.thunderdog.challegram.Tgx101Diag.playerReleased(player);
           player.release();
           player = null;
         }

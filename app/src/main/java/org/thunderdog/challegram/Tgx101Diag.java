@@ -326,6 +326,7 @@ public final class Tgx101Diag {
     } catch (Throwable t) {
       mark("system receiver failed: " + t);
     }
+    RateWatch.attachDisplay(app);
     mark("diagnostics attached");
   }
 
@@ -705,6 +706,172 @@ public final class Tgx101Diag {
     }
   }
 
+  // TGx101 (user 2026-11-08: «пропадает со временем герцовка после просмотров видео или кружков, помогает перезагрузка»):
+  // the panel stays at 120 Hz, but the app itself may be drawn at less — the system lowers an app's rate by the votes of its
+  // window, its views (Android 15+) and its video surfaces. The rate the app is really drawn at is taken from each frame's
+  // deadline; when it changes, the journal tells what could hold it: the players not released, the video views, the window's ask
+
+  private static final java.util.WeakHashMap<Object, String> livePlayers = new java.util.WeakHashMap<>();
+
+  /** A video or music player is built (U.newExoPlayer) */
+  public static void playerBuilt (Object player) {
+    if (!BuildConfig.TGX101_DIAG || writer == null || player == null) return;
+    String who = "?";
+    StackTraceElement[] trace = new Throwable().getStackTrace();
+    for (StackTraceElement e : trace) {
+      String c = e.getClassName();
+      if (!c.endsWith(".Tgx101Diag") && !c.endsWith(".U")) {
+        who = c.substring(c.lastIndexOf('.') + 1) + "." + e.getMethodName();
+        break;
+      }
+    }
+    int live;
+    synchronized (livePlayers) {
+      livePlayers.put(player, who + " @" + time());
+      live = livePlayers.size();
+    }
+    mark("player built by " + who + ", live " + live);
+  }
+
+  /** A player is released */
+  public static void playerReleased (Object player) {
+    if (!BuildConfig.TGX101_DIAG || writer == null || player == null) return;
+    String who;
+    int live;
+    synchronized (livePlayers) {
+      who = livePlayers.remove(player);
+      live = livePlayers.size();
+    }
+    mark("player released (" + (who != null ? who : "not counted") + "), live " + live);
+  }
+
+  /** What may hold the app's refresh rate down, said into the journal. Main thread */
+  public static void markRateHolders (String reason) {
+    if (!BuildConfig.TGX101_DIAG || writer == null) return;
+    StringBuilder b = new StringBuilder("rate holders (").append(reason).append("): drawn at ").append(RateWatch.hz).append(" Hz");
+    Activity a = topActivity.get();
+    try {
+      if (a != null) {
+        android.view.Display d = a.getWindowManager().getDefaultDisplay();
+        b.append(", display for the app ").append(Math.round(d.getRefreshRate())).append(" Hz");
+        if (Build.VERSION.SDK_INT >= 23) b.append(" mode ").append(d.getMode().getModeId());
+        android.view.WindowManager.LayoutParams lp = a.getWindow().getAttributes();
+        b.append(", window asks mode ").append(Build.VERSION.SDK_INT >= 23 ? lp.preferredDisplayModeId : -1).append(" / ").append(Math.round(lp.preferredRefreshRate)).append(" Hz");
+        if (Build.VERSION.SDK_INT >= 35) {
+          try { b.append(", balanced power ").append(a.getWindow().isFrameRatePowerSavingsBalanced()); } catch (Throwable ignored) { }
+        }
+      }
+    } catch (Throwable t) {
+      b.append(", display ? ").append(t.getClass().getSimpleName());
+    }
+    synchronized (livePlayers) {
+      b.append("\n  players live ").append(livePlayers.size());
+      for (java.util.Map.Entry<Object, String> e : livePlayers.entrySet()) {
+        b.append("\n    ").append(e.getValue());
+        try {
+          androidx.media3.common.Player p = (androidx.media3.common.Player) e.getKey();
+          androidx.media3.common.VideoSize size = p.getVideoSize();
+          b.append(": state ").append(p.getPlaybackState()).append(p.isPlaying() ? " playing" : p.getPlayWhenReady() ? " wants to play" : " paused")
+            .append(", video ").append(size.width).append('x').append(size.height)
+            .append(", volume ").append(p.getVolume());
+        } catch (Throwable t) {
+          b.append(": ? ").append(t.getClass().getSimpleName());
+        }
+      }
+    }
+    if (a != null) {
+      int[] count = {0};
+      b.append("\n  video views and frame rate asks:");
+      appendRateViews(a.getWindow().getDecorView(), b, 0, count);
+      if (count[0] == 0) b.append(" none");
+    }
+    mark(b.toString());
+  }
+
+  private static void appendRateViews (android.view.View v, StringBuilder b, int depth, int[] count) {
+    if (count[0] >= 20) return;
+    boolean video = v instanceof android.view.TextureView || v instanceof android.view.SurfaceView;
+    float asked = Float.NaN;
+    if (Build.VERSION.SDK_INT >= 35) {
+      try { asked = v.getRequestedFrameRate(); } catch (Throwable ignored) { }
+    }
+    if (video || !Float.isNaN(asked)) {
+      count[0]++;
+      b.append("\n    ").append(v.getClass().getSimpleName());
+      android.view.ViewParent parent = v.getParent();
+      if (parent != null) b.append(" in ").append(parent.getClass().getSimpleName());
+      b.append(" ").append(v.getWidth()).append('x').append(v.getHeight())
+        .append(v.isShown() ? " shown" : " hidden").append(" alpha ").append(v.getAlpha())
+        .append(v.getWindowToken() != null ? "" : " detached");
+      if (v instanceof android.view.TextureView) b.append(((android.view.TextureView) v).isAvailable() ? ", surface ready" : ", no surface");
+      if (!Float.isNaN(asked)) b.append(", asks ").append(asked);
+    }
+    if (v instanceof android.view.ViewGroup) {
+      android.view.ViewGroup g = (android.view.ViewGroup) v;
+      for (int i = 0; i < g.getChildCount(); i++) appendRateViews(g.getChildAt(i), b, depth + 1, count);
+    }
+  }
+
+  private static final class RateWatch {
+    static volatile int hz;
+    private static int candidate, candidateFrames;
+    private static float displayHz;
+    private static final Handler main = new Handler(Looper.getMainLooper());
+
+    // Diagnostics thread
+    static void onFrame (android.view.FrameMetrics m) {
+      if (Build.VERSION.SDK_INT < 31) return;
+      long deadline = m.getMetric(android.view.FrameMetrics.DEADLINE);
+      if (deadline <= 0) return;
+      float rate = 1_000_000_000f / deadline;
+      int bucket = rate >= 100 ? 120 : rate >= 75 ? 90 : rate >= 45 ? 60 : rate >= 25 ? 30 : Math.round(rate);
+      if (bucket == hz) {
+        candidateFrames = 0;
+        return;
+      }
+      if (bucket != candidate) {
+        candidate = bucket;
+        candidateFrames = 0;
+      }
+      // a rate is taken after 5 frames in a row, one odd frame says nothing
+      if (++candidateFrames < 5) return;
+      int was = hz;
+      hz = bucket;
+      candidateFrames = 0;
+      mark("rate: the app is drawn at " + bucket + " Hz" + (was > 0 ? " (was " + was + ")" : "") + ", top " + topScreen);
+      if (was > 0 && bucket < was) {
+        main.post(() -> markRateHolders("rate went down"));
+      } else if (was > 0 && bucket > was) {
+        main.post(() -> markRateHolders("rate came back"));
+      }
+    }
+
+    static void attachDisplay (Application app) {
+      if (Build.VERSION.SDK_INT < 17) return;
+      try {
+        android.hardware.display.DisplayManager dm = (android.hardware.display.DisplayManager) app.getSystemService(Context.DISPLAY_SERVICE);
+        android.view.Display d = dm.getDisplay(android.view.Display.DEFAULT_DISPLAY);
+        displayHz = d != null ? d.getRefreshRate() : 0;
+        dm.registerDisplayListener(new android.hardware.display.DisplayManager.DisplayListener() {
+          @Override public void onDisplayAdded (int id) { }
+          @Override public void onDisplayRemoved (int id) { }
+          @Override public void onDisplayChanged (int id) {
+            if (id != android.view.Display.DEFAULT_DISPLAY) return;
+            android.view.Display display = dm.getDisplay(id);
+            if (display == null) return;
+            float now = display.getRefreshRate();
+            if (Math.abs(now - displayHz) > 1f) {
+              mark("display: now " + Math.round(now) + " Hz for the app (was " + Math.round(displayHz) + ")" + (Build.VERSION.SDK_INT >= 23 ? ", mode " + display.getMode().getModeId() : "") + ", top " + topScreen);
+              displayHz = now;
+            }
+          }
+        }, main);
+      } catch (Throwable t) {
+        mark("display listener failed: " + t);
+      }
+    }
+  }
+
   private static final class FrameWatch {
     private static final long JANK_NS = 20_000_000L; // missed at least one 60 Hz frame
     private static final java.util.WeakHashMap<Activity, Object> listeners = new java.util.WeakHashMap<>();
@@ -744,6 +911,7 @@ public final class Tgx101Diag {
           (m.getMetric(android.view.FrameMetrics.FIRST_DRAW_FRAME) == 1 ? " (first)" : "") + ", top " + topScreen);
       }
       if (m.getMetric(android.view.FrameMetrics.FIRST_DRAW_FRAME) == 1) return;
+      RateWatch.onFrame(m);
       if (windowStart == 0) windowStart = now;
       if (now - windowStart >= 1000) report();
       if (windowStart == 0) windowStart = now;
@@ -770,7 +938,7 @@ public final class Tgx101Diag {
 
     private static void report () {
       if (janky > 0) {
-        mark("JANK " + janky + "/" + total + " frames ≥20 ms, worst " + (worst / 1_000_000L) + " ms (" + worstPhases + ")");
+        mark("JANK " + janky + "/" + total + " frames ≥20 ms" + (RateWatch.hz > 0 ? " at " + RateWatch.hz + " Hz" : "") + ", worst " + (worst / 1_000_000L) + " ms (" + worstPhases + ")");
       }
       total = janky = 0;
       worst = 0;

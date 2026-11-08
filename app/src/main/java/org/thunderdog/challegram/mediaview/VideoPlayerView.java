@@ -320,6 +320,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
       if (player != null) {
         player.setVideoTextureView(null);
         Views.removeFromParent(targetView);
+        org.thunderdog.challegram.Tgx101Diag.playerReleased(player);
         player.release();
         player = null;
       }
@@ -340,7 +341,10 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
         final ExoPlayer released = player;
         released.setPlayWhenReady(false);
         released.setVolume(0f);
-        UI.post(released::release, 400);
+        UI.post(() -> {
+          org.thunderdog.challegram.Tgx101Diag.playerReleased(released);
+          released.release();
+        }, 400);
         player = null;
       }
       setLongStreamingAlertHandler(false);
