@@ -846,7 +846,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101WebAppClose, "Закрыть");
     RU.put(R.string.Tgx101ReleaseToClose, "Отпустите, чтобы закрыть");
     RU.put(R.string.Tgx101ZoomPullClose, "Свайп вниз закрывает зум фото");
-    RU.put(R.string.Tgx101SnoozeAction, "Тихо %1$s");
+    RU.put(R.string.Tgx101SnoozeAction, "🔕 %1$s");
     RU.put(R.string.Tgx101SnoozeMins, "%1$dм");
     RU.put(R.string.Tgx101SnoozeHours, "%1$dч");
     RU.put(R.string.Tgx101SnoozeSetting, "Третья кнопка в уведомлениях");
@@ -1815,7 +1815,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101TorchOff, "Выключить фонарик");
     RU.put(R.string.Tgx101TorchBusy, "Фонарик занят — снимает задняя камера");
     RU.put(R.string.Tgx101SnoozeLike, "Реакция, как двойной тап");
-    RU.put(R.string.Tgx101SnoozeLikeButton, "Нравится");
+    RU.put(R.string.Tgx101SnoozeLikeButton, "❤"); // (user 2026-11-08, mockup «Кнопки уведомления» А): the sign — the words around it fit
     RU.put(R.string.Tgx101SnoozeHeart, "❤️");
     RU.put(R.string.Tgx101SnoozeLiked, "%1$s — реакция поставлена");
     RU.put(R.string.Tgx101Ai, "ИИ-помощник");

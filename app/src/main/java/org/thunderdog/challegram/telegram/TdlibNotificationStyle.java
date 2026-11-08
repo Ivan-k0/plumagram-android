@@ -658,7 +658,7 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
       styleIntent(Intents.ACTION_MESSAGE_SNOOZE, likeIntent, tdlib, group, needReplyToMessage, allMessageIds, allUserIds);
       try {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(org.thunderdog.challegram.unsorted.AppContext.get(), notificationId, likeIntent, Intents.mutabilityFlags(true));
-        tgx101SnoozeAction = new NotificationCompat.Action.Builder(R.drawable.baseline_favorite_24, Lang.getString(R.string.Tgx101SnoozeLikeButton), pendingIntent) // (user 2026-10-20) just the word, no emoji
+        tgx101SnoozeAction = new NotificationCompat.Action.Builder(R.drawable.baseline_favorite_24, Lang.getString(R.string.Tgx101SnoozeLikeButton), pendingIntent) // (user 2026-11-08, mockup «Кнопки уведомления» А): «❤» — on a narrow notification the three words were cut
           .setShowsUserInterface(false)
           .build();
       } catch (Throwable t) {
