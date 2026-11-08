@@ -40,10 +40,10 @@ public class Tgx101Pills extends LinearLayout {
 
   private final TextView titleView;
   private final LinearLayout pills;
-  private @androidx.annotation.Nullable View.OnLongClickListener hold;
+  private @androidx.annotation.Nullable android.view.View.OnLongClickListener hold;
 
   /** TGx101 (user 2026-11-08 «пояснения — по долгому удержанию, как во всей системе»): holding the title or a pill explains */
-  public void setHold (@androidx.annotation.Nullable View.OnLongClickListener hold) {
+  public void setHold (@androidx.annotation.Nullable android.view.View.OnLongClickListener hold) {
     this.hold = hold;
     titleView.setOnLongClickListener(hold);
     for (int i = 0; i < pills.getChildCount(); i++) pills.getChildAt(i).setOnLongClickListener(hold);
