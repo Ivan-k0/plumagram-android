@@ -410,7 +410,19 @@ public class TextEntityMessage extends TextEntity {
 
   @Override
   public boolean isUnderline () {
-    return BitwiseUtils.hasFlag(flags, FLAG_UNDERLINE);
+    return BitwiseUtils.hasFlag(flags, FLAG_UNDERLINE) || tgx101IsLink(); // links are underlined everywhere (user 2026-11-08)
+  }
+
+  @Override
+  public boolean tgx101IsLink () {
+    if (clickableEntity == null) return false;
+    switch (clickableEntity.type.getConstructor()) {
+      case TdApi.TextEntityTypeUrl.CONSTRUCTOR:
+      case TdApi.TextEntityTypeTextUrl.CONSTRUCTOR:
+      case TdApi.TextEntityTypeEmailAddress.CONSTRUCTOR:
+        return true;
+    }
+    return false;
   }
 
   @Override

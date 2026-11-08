@@ -3462,7 +3462,31 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
     // TGx101 (user 2026-11-06 19:42, screenshots of both apps in a dark theme: «сделай читабельно»): a quote's words were the
     // theme's quote colour — grey #A0A0A0 on its grey fill in the night themes; they are the message's own text colour now,
     // the quote is told by its line and fill
-    return isClickable ? theme.clickableTextColor(isPressed) : theme.defaultTextColor();
+    return isClickable ? tgx101Vivid(theme.clickableTextColor(isPressed)) : theme.defaultTextColor();
+  }
+
+  /**
+   * TGx101 (user 2026-11-08, screenshots of a channel and a group: «ссылки приглушённые — ярче, везде»): a link's colour of the
+   * theme with more colour in it — at least 70 % saturation, bright on a dark theme, deep enough to read on a light one
+   */
+  private static int tgx101VividIn, tgx101VividOut;
+  private static boolean tgx101VividDark;
+
+  public static int tgx101Vivid (int color) {
+    boolean dark = org.thunderdog.challegram.theme.Theme.isDark();
+    if (color == tgx101VividIn && dark == tgx101VividDark && tgx101VividOut != 0) return tgx101VividOut;
+    int out = tgx101VividImpl(color, dark);
+    tgx101VividIn = color; tgx101VividDark = dark; tgx101VividOut = out;
+    return out;
+  }
+
+  private static int tgx101VividImpl (int color, boolean dark) {
+    float[] hsv = new float[3];
+    android.graphics.Color.colorToHSV(color, hsv);
+    if (hsv[1] < .12f) return color; // a grey link (a theme's choice) stays grey
+    hsv[1] = Math.max(hsv[1], .7f);
+    hsv[2] = dark ? Math.max(hsv[2], .92f) : Math.min(Math.max(hsv[2], .55f), .82f);
+    return android.graphics.Color.HSVToColor(android.graphics.Color.alpha(color), hsv);
   }
 
   public long getMediaTextComplexColor () {

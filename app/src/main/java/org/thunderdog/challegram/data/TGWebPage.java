@@ -1191,10 +1191,44 @@ public class TGWebPage implements FileProgressComponent.SimpleListener, MediaWra
       return true;
     }
 
-    return
-      (siteName != null && siteName.onTouchEvent(view, e, callback)) ||
+    if ((siteName != null && siteName.onTouchEvent(view, e, callback)) ||
       (title != null && title.onTouchEvent(view, e, callback)) ||
-      (description != null && description.onTouchEvent(view, e, callback));
+      (description != null && description.onTouchEvent(view, e, callback))) {
+      tgx101Armed = false;
+      return true;
+    }
+    return tgx101BlockTap(view, e, startX, startY);
+  }
+
+  // TGx101 (user 2026-11-08, screenshot of 4pda.to's preview: «место, где цитата-ссылка, должно быть кликабельно»): a short tap
+  // anywhere in the preview's block — between the words, on its empty right part — opens the link, as its title does
+  private boolean tgx101Armed;
+  private float tgx101DownX, tgx101DownY;
+
+  private boolean tgx101BlockTap (View view, MotionEvent e, int startX, int startY) {
+    if (type == TYPE_TELEGRAM_AD || StringUtils.isEmpty(url)) return false;
+    float x = e.getX(), y = e.getY();
+    switch (e.getAction()) {
+      case MotionEvent.ACTION_DOWN:
+        tgx101Armed = x >= startX && x <= startX + getWidth() && y >= startY && y <= startY + getHeight();
+        tgx101DownX = x;
+        tgx101DownY = y;
+        return tgx101Armed;
+      case MotionEvent.ACTION_MOVE:
+        if (tgx101Armed && Math.hypot(x - tgx101DownX, y - tgx101DownY) > Screen.dp(10f)) tgx101Armed = false;
+        return tgx101Armed;
+      case MotionEvent.ACTION_CANCEL:
+        tgx101Armed = false;
+        return false;
+      case MotionEvent.ACTION_UP:
+        if (!tgx101Armed) return false;
+        tgx101Armed = false;
+        view.playSoundEffect(android.view.SoundEffectConstants.CLICK);
+        org.thunderdog.challegram.Tgx101Diag.mark("link preview: the block tapped, opens " + android.net.Uri.parse(url).getHost());
+        parent.tdlib().ui().openUrl(parent.controller(), url, rippleButton != null ? new TdlibUi.UrlOpenParameters(rippleButton.firstButton().openParameters(view)).disableEmbedView() : new TdlibUi.UrlOpenParameters());
+        return true;
+    }
+    return false;
   }
 
   private void drawHeader (Canvas c, int startX, int startY, int previewWidth, boolean rtl, ComplexReceiver textMediaReceiver) {

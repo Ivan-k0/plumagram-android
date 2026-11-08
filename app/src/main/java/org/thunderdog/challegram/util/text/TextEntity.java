@@ -130,6 +130,8 @@ public abstract class TextEntity {
   public TdApi.RichTextIcon getIcon () { return null; }
   public abstract boolean isItalic ();
   public abstract boolean isUnderline ();
+  /** TGx101 (user 2026-11-08 «все ссылки ярче и подчёркнуты — в газете, чатах, каналах, везде»): an address, a link word or an e-mail */
+  public boolean tgx101IsLink () { return false; }
   public abstract boolean isStrikethrough ();
   public abstract boolean hasAnchor (String anchor);
   public abstract boolean isFullWidth ();

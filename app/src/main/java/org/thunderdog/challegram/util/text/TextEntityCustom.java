@@ -350,7 +350,12 @@ public class TextEntityCustom extends TextEntity {
 
   @Override
   public boolean isUnderline () {
-    return BitwiseUtils.hasFlag(flags, FLAG_UNDERLINE);
+    return BitwiseUtils.hasFlag(flags, FLAG_UNDERLINE) || tgx101IsLink(); // links are underlined everywhere (user 2026-11-08)
+  }
+
+  @Override
+  public boolean tgx101IsLink () {
+    return isClickable() && (linkType == LINK_TYPE_URL || linkType == LINK_TYPE_EMAIL) && link != null;
   }
 
   @Override
