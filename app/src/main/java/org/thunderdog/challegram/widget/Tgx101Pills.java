@@ -40,6 +40,14 @@ public class Tgx101Pills extends LinearLayout {
 
   private final TextView titleView;
   private final LinearLayout pills;
+  private @androidx.annotation.Nullable View.OnLongClickListener hold;
+
+  /** TGx101 (user 2026-11-08 «пояснения — по долгому удержанию, как во всей системе»): holding the title or a pill explains */
+  public void setHold (@androidx.annotation.Nullable View.OnLongClickListener hold) {
+    this.hold = hold;
+    titleView.setOnLongClickListener(hold);
+    for (int i = 0; i < pills.getChildCount(); i++) pills.getChildAt(i).setOnLongClickListener(hold);
+  }
 
   public Tgx101Pills (Context context) {
     super(context);
@@ -99,6 +107,7 @@ public class Tgx101Pills extends LinearLayout {
       pill.setOnClickListener(v -> {
         if (index != selected) onPick.onPick(index);
       });
+      if (hold != null) pill.setOnLongClickListener(hold);
       LayoutParams params = new LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
       if (i > 0) params.leftMargin = -Math.max(1, Screen.dp(1f)); // the joined pills share one border line
       pills.addView(pill, params);

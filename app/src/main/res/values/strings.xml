@@ -6662,7 +6662,8 @@
   <string name="Tgx101AppliesAfterRestart">Restart the app to apply</string>
   <string name="Tgx101HideInputEmoji">Hide the emoji / stickers button</string>
   <string name="Tgx101CompactBubbles">Compact bubbles</string>
-  <string name="Tgx101MediaDots">The ⋮ button on media and files («Hidden» — its corner still opens the menu)</string>
+  <string name="Tgx101MediaDots">The ⋮ button on media and files</string>
+  <string name="Tgx101MediaDotsHint">Shown — ⋮ in the top right corner of photos, videos and files. Hidden — not drawn, but a tap in that corner still opens the message menu. Off — the corner works as the media.</string>
   <string name="Tgx101MediaDotsOn">Shown</string>
   <string name="Tgx101MediaDotsHidden">Hidden</string>
   <string name="Tgx101MediaDotsOff">Off</string>

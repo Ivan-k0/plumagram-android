@@ -215,6 +215,11 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           tgx101Preview.invalidate();
         }
         if (view instanceof org.thunderdog.challegram.widget.Tgx101Pills) {
+          final int hint = tgx101HoldHint(item.getId());
+          ((org.thunderdog.challegram.widget.Tgx101Pills) view).setHold(hint == 0 ? null : v -> {
+            context().tooltipManager().builder(v).show(tdlib, Lang.getString(hint)).hideDelayed();
+            return true;
+          });
           tgx101BindPills((org.thunderdog.challegram.widget.Tgx101Pills) view, item.getId());
         }
         if (view instanceof Tgx101AppIconPicker) {
@@ -230,6 +235,11 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         if (mode == MODE_TGX101) {
           // TGx101: hold to read a title cut with "…"; tap only toggles
           view.setOnLongClickListener(v -> {
+            int hint = tgx101HoldHint(itemId);
+            if (hint != 0) {
+              context().tooltipManager().builder(v).show(tdlib, Lang.getString(hint)).hideDelayed();
+              return true;
+            }
             if (((SettingView) v).isNameEllipsized()) {
               context().tooltipManager().builder(v).show(tdlib, ((SettingView) v).getName().toString()).hideDelayed();
               return true;
@@ -618,7 +628,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideBlocked, 0, R.string.Tgx101HideBlocked),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CompactBubbles, 0, R.string.Tgx101CompactBubbles),
-        new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101CompactBubblesHint),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SameSettings, 0, R.string.Tgx101SameSettings),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SameSettingsHint),
@@ -1078,6 +1087,13 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   private static final int[] FOREGROUND_NOTIF_NAMES = {R.string.Tgx101ForegroundNotifShow, R.string.Tgx101ForegroundNotifQuiet, R.string.Tgx101ForegroundNotifHide};
 
   // TGx101 (approved mockup «Окна Material 3» В): a choice of two right in its row as pills, no window
+  /** TGx101: what holding a setting explains — the explanation lives here, not in the title (user 2026-11-08) */
+  private static int tgx101HoldHint (int id) {
+    if (id == R.id.btn_tgx101MediaDots) return R.string.Tgx101MediaDotsHint;
+    if (id == R.id.btn_tgx101CompactBubbles) return R.string.Tgx101CompactBubblesHint;
+    return 0;
+  }
+
   private void tgx101BindPills (org.thunderdog.challegram.widget.Tgx101Pills pills, int id) {
     if (id == R.id.btn_tgx101FloatingInput) {
       int style = Settings.instance().tgx101InputStyle();
