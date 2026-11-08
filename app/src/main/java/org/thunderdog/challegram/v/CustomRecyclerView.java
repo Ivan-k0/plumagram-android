@@ -148,7 +148,7 @@ public class CustomRecyclerView extends RecyclerView implements Animated {
         }
       } else if (e.getActionMasked() == MotionEvent.ACTION_MOVE && getScrollState() == SCROLL_STATE_IDLE) {
         float dx = e.getX() - tgx101DownX, dy = e.getY() - tgx101DownY;
-        if (dx > 0 && dx > Math.abs(dy) * 1.3f && !org.thunderdog.challegram.core.Lang.rtl()) {
+        if (dx > 0 && dx > Math.abs(dy) * 1.3f && !org.thunderdog.challegram.core.Lang.rtl() && !tgx101OwnRightSwipes) {
           return false;
         }
       }
@@ -158,6 +158,16 @@ public class CustomRecyclerView extends RecyclerView implements Animated {
   }
 
   private float tgx101DownX, tgx101DownY;
+  /**
+   * TGx101 (journal 2026-11-08 23:00: in the storage's kinds every swipe to the right over a row never reached the kinds' own
+   * swipe — this list's «a move to the right is the back swipe's» kept it from its item touch listeners): a list whose
+   * listeners use swipes to the right themselves takes them
+   */
+  private boolean tgx101OwnRightSwipes;
+
+  public void setTgx101OwnRightSwipes (boolean own) {
+    this.tgx101OwnRightSwipes = own;
+  }
 
   private boolean tgx101IsVertical () {
     LayoutManager manager = getLayoutManager();

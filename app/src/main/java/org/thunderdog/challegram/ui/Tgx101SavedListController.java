@@ -344,6 +344,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
         return super.dispatchTouchEvent(e);
       }
     };
+    ((org.thunderdog.challegram.v.CustomRecyclerView) list).setTgx101OwnRightSwipes(true); // to the right is the kind before
     list.setClipToPadding(false);
     list.setPadding(Screen.dp(12f), Screen.dp(4f), Screen.dp(12f), Screen.dp(96f));
     list.setOverScrollMode(View.OVER_SCROLL_NEVER); // (user 2026-10-16 «дёргается при прокрутке до конца», «Видео» top and bottom): no stretch at the ends
