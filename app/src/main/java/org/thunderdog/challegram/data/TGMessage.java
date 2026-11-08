@@ -4220,7 +4220,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           org.thunderdog.challegram.Tgx101Diag.mark("time line: " + msg.chatId + "/" + msg.id + " last line " + bottomLineContentWidth + " + time " + bubbleTimePartWidth
             + " vs max " + (allowHorizontalExtend ? pRealContentMaxWidth : Math.min(pRealContentMaxWidth, bubbleWidth)) + " (bubble " + defaultBubbleWidth + "), own line " + (timeAddedHeight > 0)
             + ", reactions vis " + messageReactions.getVisibility() + " expand " + messageReactions.getTimeHeightExpand() + " big " + useReactionBubbles()
-            + ", forward " + useForward() + ", footer " + hasFooter());
+            + ", forward " + useForward() + ", footer " + hasFooter()
+            + " | content " + getContentHeight() + ", bubble h " + defaultBubbleHeight + ", reactions h " + messageReactions.getAnimatedHeight()
+            + ", time h " + getBubbleTimePartHeight() + ", pad " + xBubblePadding + "/" + xBubblePaddingSmall);
         }
         if (messageReactions.getVisibility() > 0f && useReactionBubbles()) {
           final int reactionsWidth = (int) messageReactions.getAnimatedWidth() + xReactionBubblePadding * 2 - getBubblePaddingLeft() - getBubblePaddingRight();
