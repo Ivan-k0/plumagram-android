@@ -1255,6 +1255,14 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return ReplyComponent.height() + Screen.dp(useBubble() ? 3f : 6f) - (useForward() ? Screen.dp(9f) : 0);
   }
 
+  /**
+   * TGx101 (user 2026-11-08 «нижний кружок: верхний лагает, реакции у него мигают»): a round video measures both of its
+   * looks before the text folds — 2776 → 1102 → 1162 → 2776 px in one go. Each step told the list, it scrolled by +1674,
+   * −60, −1614 px in one frame, the message above left the screen and came back in another view: a frame of the other
+   * round's video in it, its reactions blank until their pictures loaded again. While measuring, the list isn't told
+   */
+  protected boolean tgx101QuietHeight;
+
   // TGx101 (user 2026-11-08: «заходишь в канал — текст на мгновение пересобирается, слегка мигает»): every rebuild of a
   // message in its first seconds goes to the journal, with what asked for it
   private long tgx101MadeAt;
@@ -1447,7 +1455,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       height = computeHeight();
       org.thunderdog.challegram.Tgx101Diag.messageRebuilt(msg.chatId, msg.id, getClass().getSimpleName(), "content", tgx101MadeAt, width, width, tgx101OldHeight, height);
       if (oldHeight != height) {
-        manager.onMessageHeightChanged(getChatId(), getId(), oldHeight, height);
+        if (!tgx101QuietHeight) manager.onMessageHeightChanged(getChatId(), getId(), oldHeight, height);
       }
       return oldHeight != height;
     } else {
@@ -4336,7 +4344,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (height != oldHeight) {
       // FIXME?
       if (hasAnyTargetToInvalidate()) {
-        manager.onMessageHeightChanged(getChatId(), getId(), oldHeight, height);
+        if (!tgx101QuietHeight) manager.onMessageHeightChanged(getChatId(), getId(), oldHeight, height);
       }
       requestLayout();
     }

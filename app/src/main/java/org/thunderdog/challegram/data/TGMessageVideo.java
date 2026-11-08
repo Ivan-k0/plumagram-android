@@ -524,6 +524,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     // the other in one piece; before, the bubble's height came without its reactions and they jumped at the end
     // (user's video 2026-11-06 16:45: laying the reactions out anew for each measure made the whole chat jump by 64 px at the
     // start and the end of folding) — both looks are measured with the reactions as they are now
+    tgx101QuietHeight = true; // the height comes back to where it is now at the end — the list has nothing to follow
     tgx101Measure = -1;
     rebuildContent();
     int circleHeight = height;
@@ -538,6 +539,7 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     tgx101ReactionsGapX = circleReactionsX - tgx101InlineReactionsX();
     tgx101Measure = 0;
     rebuildContent();
+    tgx101QuietHeight = false;
     tgx101HeightDiff = bubbleHeight - circleHeight;
   }
 
