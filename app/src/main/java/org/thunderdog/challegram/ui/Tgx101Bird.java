@@ -38,7 +38,8 @@ public final class Tgx101Bird {
   private Tgx101Bird () { }
 
   public static final int ACTION_STORAGE = 0, ACTION_PROXY = 1, ACTION_ACCOUNTS = 2, ACTION_CALLS = 3, ACTION_SETTINGS = 4,
-    ACTION_COMPOSE = 5, ACTION_SEARCH = 6, ACTION_NEXT_ACCOUNT = 7, ACTION_NOTE = 8, ACTION_MENU = 9, ACTION_NIGHT = 10, ACTION_PEEK = 11, ACTION_GAZETA = 12, ACTION_PLAYER = 13;
+    ACTION_COMPOSE = 5, ACTION_SEARCH = 6, ACTION_NEXT_ACCOUNT = 7, ACTION_NOTE = 8, ACTION_MENU = 9, ACTION_NIGHT = 10, ACTION_PEEK = 11, ACTION_GAZETA = 12, ACTION_PLAYER = 13,
+    ACTION_HIDE = 99; // «×» under a new user's first ring: hide the bird (not in the ring's settings)
   public static final int MAX = 7; // (user 2026-10-22 «7 возможных кнопок вместо 5, в два ряда — 4 и 3»)
 
   /** the order of the bits in {@link Settings#tgx101BirdRing()} */
@@ -122,6 +123,9 @@ public final class Tgx101Bird {
         continue;
       }
       out.add(new Tgx101BirdView.Item(i, ICONS[i], COLORS[i], Lang.getString(TITLES[i])));
+    }
+    if (Settings.instance().tgx101BirdHideHint() && !out.isEmpty()) {
+      out.add(new Tgx101BirdView.Item(ACTION_HIDE, R.drawable.baseline_close_24, 0xff5a6675, Lang.getString(R.string.Tgx101BirdHide)));
     }
     return out.toArray(new Tgx101BirdView.Item[0]);
   }
@@ -454,12 +458,92 @@ public final class Tgx101Bird {
     });
   }
 
+  /** «Скрыть птичку?» — yes hides it and says where it comes back, with «Вернуть» for a few seconds */
+  private static void confirmHide (ViewController<?> host) {
+    host.showOptions(Lang.getString(R.string.Tgx101BirdHideAsk), new int[] {R.id.btn_done, R.id.btn_cancel},
+      new String[] {Lang.getString(R.string.Tgx101BirdHideYes), Lang.getString(R.string.Cancel)},
+      new int[] {ViewController.OptionColor.RED, ViewController.OptionColor.NORMAL},
+      new int[] {R.drawable.baseline_close_24, R.drawable.baseline_cancel_24}, (itemView, id) -> {
+        if (id == R.id.btn_done) {
+          Settings.instance().setTgx101Bird(false);
+          org.thunderdog.challegram.Tgx101Diag.mark("bird: hidden from its ring");
+          sync(host);
+          showHiddenCapsule(host);
+        }
+        return true;
+      });
+  }
+
+  private static @Nullable android.view.View hiddenCapsule;
+
+  private static void showHiddenCapsule (ViewController<?> host) {
+    BaseActivity context = host.context();
+    Tgx101BirdView bird = birds.get(context);
+    if (bird == null || !(bird.getParent() instanceof android.view.ViewGroup)) return;
+    final android.view.ViewGroup root = (android.view.ViewGroup) bird.getParent();
+    if (hiddenCapsule != null && hiddenCapsule.getParent() instanceof android.view.ViewGroup) ((android.view.ViewGroup) hiddenCapsule.getParent()).removeView(hiddenCapsule);
+    final android.widget.LinearLayout capsule = new android.widget.LinearLayout(context);
+    capsule.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    capsule.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    capsule.setPadding(org.thunderdog.challegram.tool.Screen.dp(16f), org.thunderdog.challegram.tool.Screen.dp(8f), org.thunderdog.challegram.tool.Screen.dp(4f), org.thunderdog.challegram.tool.Screen.dp(8f));
+    android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+    bg.setColor(org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.filling));
+    bg.setCornerRadius(org.thunderdog.challegram.tool.Screen.dp(16f));
+    bg.setStroke(Math.max(1, org.thunderdog.challegram.tool.Screen.dp(.5f)), org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.separator));
+    capsule.setBackground(bg);
+    capsule.setClickable(true);
+    if (android.os.Build.VERSION.SDK_INT >= 21) capsule.setElevation(org.thunderdog.challegram.tool.Screen.dp(4f));
+    android.widget.LinearLayout texts = new android.widget.LinearLayout(context);
+    texts.setOrientation(android.widget.LinearLayout.VERTICAL);
+    android.widget.TextView title = Tgx101SavedHomeController.text(context, 14f, org.thunderdog.challegram.theme.Theme.textAccentColor(), true);
+    title.setText(Lang.getString(R.string.Tgx101BirdHidden));
+    android.widget.TextView where = Tgx101SavedHomeController.text(context, 13f, org.thunderdog.challegram.theme.Theme.textDecentColor(), false);
+    where.setText(Lang.getString(R.string.Tgx101BirdHiddenWhere));
+    texts.addView(title);
+    texts.addView(where);
+    capsule.addView(texts, new android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+    android.widget.TextView back = Tgx101SavedHomeController.text(context, 14f, org.thunderdog.challegram.theme.Theme.getColor(org.thunderdog.challegram.theme.ColorId.textLink), true);
+    back.setText(Lang.getString(R.string.Tgx101BirdReturn));
+    back.setGravity(android.view.Gravity.CENTER);
+    back.setPadding(org.thunderdog.challegram.tool.Screen.dp(12f), 0, org.thunderdog.challegram.tool.Screen.dp(12f), 0);
+    org.thunderdog.challegram.tool.Views.setClickable(back);
+    org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(back);
+    final Runnable hide = () -> {
+      if (hiddenCapsule != capsule) return;
+      hiddenCapsule = null;
+      capsule.animate().alpha(0f).translationY(org.thunderdog.challegram.tool.Screen.dp(12f)).setDuration(160).withEndAction(() -> root.removeView(capsule)).start();
+    };
+    back.setOnClickListener(v -> {
+      Settings.instance().setTgx101Bird(true);
+      org.thunderdog.challegram.Tgx101Diag.mark("bird: brought back from the capsule");
+      sync(host);
+      hide.run();
+    });
+    capsule.addView(back, new android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.WRAP_CONTENT, org.thunderdog.challegram.tool.Screen.dp(48f)));
+    android.widget.FrameLayout.LayoutParams params = new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, android.view.Gravity.BOTTOM);
+    params.leftMargin = params.rightMargin = org.thunderdog.challegram.tool.Screen.dp(12f);
+    androidx.core.view.WindowInsetsCompat insets = androidx.core.view.ViewCompat.getRootWindowInsets(root);
+    int nav = insets != null ? insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom : 0;
+    params.bottomMargin = org.thunderdog.challegram.tool.Screen.dp(16f) + nav;
+    capsule.setAlpha(0f);
+    capsule.setTranslationY(org.thunderdog.challegram.tool.Screen.dp(12f));
+    root.addView(capsule, params);
+    capsule.animate().alpha(1f).translationY(0f).setDuration(180).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+    hiddenCapsule = capsule;
+    org.thunderdog.challegram.tool.UI.post(hide, 4500);
+  }
+
   public static void run (ViewController<?> host, int action, @Nullable Runnable search) {
     if (host.isDestroyed()) return;
     Tdlib tdlib = host.tdlib();
     BaseActivity context = host.context();
     org.thunderdog.challegram.Tgx101Diag.mark("bird: action " + action);
+    if (Settings.instance().tgx101BirdHideHint()) Settings.instance().setTgx101BirdHideHint(false); // «×» was there once
     switch (action) {
+      case ACTION_HIDE: {
+        confirmHide(host);
+        break;
+      }
       case ACTION_STORAGE:
       case ACTION_NOTE: {
         if (org.thunderdog.challegram.data.Tgx101SavedStore.get(tdlib).storageOn) {

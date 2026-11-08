@@ -6662,6 +6662,12 @@
   <string name="Tgx101AppliesAfterRestart">Restart the app to apply</string>
   <string name="Tgx101HideInputEmoji">Hide the emoji / stickers button</string>
   <string name="Tgx101CompactBubbles">Compact bubbles</string>
+  <string name="Tgx101BirdHide">Hide the bird</string>
+  <string name="Tgx101BirdHideAsk">Hide the bird? It comes back any time: MagiX → Menus and navigation → Bird.</string>
+  <string name="Tgx101BirdHideYes">Yes, hide</string>
+  <string name="Tgx101BirdHidden">The bird is hidden</string>
+  <string name="Tgx101BirdHiddenWhere">Back: MagiX → Menus and navigation → Bird</string>
+  <string name="Tgx101BirdReturn">Bring back</string>
   <string name="Tgx101MediaDots">The ⋮ button on media and files</string>
   <string name="Tgx101MediaDotsHint">Shown — ⋮ in the top right corner of photos, videos and files. Hidden — not drawn, but a tap in that corner still opens the message menu. Off — the corner works as the media.</string>
   <string name="Tgx101MediaDotsOn">Shown</string>

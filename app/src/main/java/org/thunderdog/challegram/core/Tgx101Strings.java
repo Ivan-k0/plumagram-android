@@ -1361,6 +1361,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AppliesAfterRestart, "Применится после перезапуска приложения");
     RU.put(R.string.Tgx101HideInputEmoji, "Скрыть кнопку смайлов и стикеров");
     RU.put(R.string.Tgx101CompactBubbles, "Компактные пузыри");
+    RU.put(R.string.Tgx101BirdHide, "Скрыть птичку");
+    RU.put(R.string.Tgx101BirdHideAsk, "Скрыть птичку? Вернуть её можно в любой момент: MagiX → Меню и навигация → Птичка.");
+    RU.put(R.string.Tgx101BirdHideYes, "Да, скрыть");
+    RU.put(R.string.Tgx101BirdHidden, "Птичка скрыта");
+    RU.put(R.string.Tgx101BirdHiddenWhere, "Вернуть: MagiX → Меню и навигация → Птичка");
+    RU.put(R.string.Tgx101BirdReturn, "Вернуть");
     RU.put(R.string.Tgx101MediaDots, "Кнопка ⋮ на медиа и файлах");
     RU.put(R.string.Tgx101MediaDotsHint, "Показана — кнопка ⋮ в правом верхнем углу фото, видео и файлов. Скрыта — кнопки не видно, но нажатие в этом углу всё равно открывает меню сообщения. Выключена — угол работает как обычное медиа.");
     RU.put(R.string.Tgx101MediaDotsOn, "Показана");

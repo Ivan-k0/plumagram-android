@@ -2412,6 +2412,11 @@ public class Settings {
     // the seventh (user 2026-11-04, screenshots 23:46–23:47: «вот так должно быть у новых пользователей»): the bird's ring of
     // seven, its place and the side menu of calls, settings, saved and «Газета»; those who have the app already keep what they have
     // the eighth (user 2026-11-08, compact bubbles approved): for new installs; who has the app turns them on in MagiX
+    final String markerBirdHide = "tgx101_bird_hide_hint_2026_11_08";
+    if (!pmc.getBoolean(markerBirdHide, false)) {
+      if (!freshInstall) pmc.putBoolean(KEY_TGX101_BIRD_HIDE_HINT, false);
+      pmc.putBoolean(markerBirdHide, true);
+    }
     final String markerCompact = "tgx101_defaults_2026_11_08";
     if (!pmc.getBoolean(markerCompact, false)) {
       if (!freshInstall && !pmc.contains(KEY_TGX101_COMPACT_BUBBLES)) pmc.putBoolean(KEY_TGX101_COMPACT_BUBBLES, false);
@@ -3907,6 +3912,11 @@ public class Settings {
   private static final String KEY_TGX101_BIRD_PLACE_LAND = "tgx101_bird_place_land";
   private static final String KEY_TGX101_BIRD_MOVED = "tgx101_bird_moved_25"; // the 2.5 s hold is back (2026-10-21): its hint shows again
   public boolean tgx101Bird () { return pmc.getBoolean(KEY_TGX101_BIRD, true); }
+  // TGx101 (user 2026-11-07 18:24 voice, mockup «Птичка: скрыть» variant А): a new user's first ring carries «×» under it
+  // once — it hides the bird after a question. Gone after any choice in the ring; those who had the app never see it
+  private static final String KEY_TGX101_BIRD_HIDE_HINT = "tgx101_bird_hide_hint";
+  public boolean tgx101BirdHideHint () { return pmc.getBoolean(KEY_TGX101_BIRD_HIDE_HINT, true); }
+  public void setTgx101BirdHideHint (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD_HIDE_HINT, v); }
   public void setTgx101Bird (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD, v); }
   public int tgx101BirdRing () { return pmc.getInt(KEY_TGX101_BIRD_RING, TGX101_BIRD_RING_NEW_INSTALL); }
   // storage, calls, settings, player (user 2026-11-05: in place of the note), night, peek, «Газета» (the bits are Tgx101Bird.ACTION_*)

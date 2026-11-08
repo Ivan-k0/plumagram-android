@@ -548,7 +548,7 @@ public class Tgx101BirdView extends View {
   // the ring
 
   private float angleOf (int i) {
-    int n = items.length;
+    int n = accountsRing ? items.length : layoutCount();
     float from = 100f, to = 260f; // opens away from the edge
     if (n <= 1) return 180f;
     float spread = Math.min(160f, (accountsRing ? 60f : 40f) * (n - 1));
@@ -562,14 +562,29 @@ public class Tgx101BirdView extends View {
   private static final float RING_R_OUTER = RING_R + ITEM + 10f;
 
   private boolean twoRowsFor (boolean accounts) {
-    return !accounts && items.length > 5;
+    return !accounts && layoutCount() > 5;
   }
 
   private boolean twoRows () {
-    return !accountsRing && items.length > 5;
+    return !accountsRing && layoutCount() > 5;
+  }
+
+  /** (mockup «Птичка: скрыть» А) the «×» of a new user's first ring stands under the ring along the edge, apart from the rest */
+  private static final float HIDE_R = 110f;
+
+  private boolean isHide (int i) {
+    return !accountsRing && i < items.length && items[i].id == org.thunderdog.challegram.ui.Tgx101Bird.ACTION_HIDE;
+  }
+
+  /** the ring's own actions, without the «×» */
+  private int layoutCount () {
+    int n = items.length;
+    if (n > 0 && items[n - 1].id == org.thunderdog.challegram.ui.Tgx101Bird.ACTION_HIDE) n--;
+    return n;
   }
 
   private float radiusOf (int i) {
+    if (isHide(i)) return HIDE_R;
     return twoRows() && i < 4 ? RING_R_OUTER : RING_R;
   }
 
@@ -581,8 +596,9 @@ public class Tgx101BirdView extends View {
   }
 
   private float angleFor (int i) {
+    if (isHide(i)) return right ? 250f : -70f;
     if (!twoRows()) return angleOf(i);
-    return i < 4 ? rowAngle(i, 4, 30f) : rowAngle(i - 4, items.length - 4, 40f);
+    return i < 4 ? rowAngle(i, 4, 30f) : rowAngle(i - 4, layoutCount() - 4, 40f);
   }
 
   private float itemX (int i, float open) {
