@@ -2348,6 +2348,17 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private View tgx101CenterPlay;
   private float tgx101CenterLoggedHeader = -1f;
 
+  // (user's video 2026-11-09 00:05): opening a video showed ▶ for ~90 ms before the player said «playing» and it turned ⏸
+  private static final long TGX101_ASSUME_PLAYING_MS = 800;
+  private MediaItem tgx101SeenItem, tgx101StateItem;
+  private long tgx101SeenAt;
+
+  private boolean tgx101ShowsPause () {
+    if (isPlayingVideo) return true;
+    MediaItem item = stack != null ? stack.getCurrent() : null;
+    return item != null && item == tgx101SeenItem && item != tgx101StateItem && android.os.SystemClock.uptimeMillis() - tgx101SeenAt < TGX101_ASSUME_PLAYING_MS;
+  }
+
   private void tgx101UpdateCenterPlay () {
     if (tgx101CenterPlay == null) return;
     MediaItem item = stack != null ? stack.getCurrent() : null;
@@ -2363,6 +2374,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
     if (shown != (tgx101CenterPlay.getVisibility() == View.VISIBLE)) {
       org.thunderdog.challegram.Tgx101Diag.mark("player: centre button " + (shown ? "shown" : "hidden") + " (mode " + mode + ", video " + (item != null && item.isVideo()) + ", slider " + (videoSliderView != null) + ", header " + headerVisible.getFloatValue() + ", size " + tgx101CenterPlay.getWidth() + ", parent " + (tgx101CenterPlay.getParent() != null) + ")");
+    }
+    if (item != tgx101SeenItem) { // a video just opened: it starts by itself — ⏸ until the player tells (or 0.8 s)
+      tgx101SeenItem = item;
+      tgx101SeenAt = android.os.SystemClock.uptimeMillis();
+      tgx101CenterPlay.postInvalidateDelayed(TGX101_ASSUME_PLAYING_MS + 20);
     }
     tgx101CenterPlay.setAlpha(alpha);
     tgx101CenterPlay.setVisibility(shown ? View.VISIBLE : View.GONE);
@@ -4592,6 +4608,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       videoSliderView.setIsPlaying(isPlaying, videoFactor > 0f);
     }
     isPlayingVideo = isPlaying;
+    if (isPlaying) tgx101StateItem = stack != null ? stack.getCurrent() : null; // it plays: no more guessing (a pause in the first 0.8 s waits that out)
     // (user 2026-11-01) paused: the controls and the middle play button stay on screen until a tap elsewhere
     if (!isPlaying && mode == MODE_MESSAGES && !headerVisible.getValue() && !tgx101Locked() && item != null && item.isVideo() && !item.isGifType() && !isDestroyed()
       && popupView != null && !popupView.isWindowHidden()) { // not the pause of the closing viewer
@@ -6585,7 +6602,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         paint.setColor(0x80000000);
         c.drawCircle(cx, cy, r, paint);
         paint.setColor(0xffffffff);
-        if (isPlayingVideo) {
+        if (tgx101ShowsPause()) {
           float w = r * .16f, h = r * .44f, gap = r * .14f;
           bar.set(cx - gap - w, cy - h, cx - gap, cy + h); // RectF form: the float one is Android 5+ only
           c.drawRoundRect(bar, w / 3f, w / 3f, paint);

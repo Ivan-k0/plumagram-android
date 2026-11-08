@@ -10165,7 +10165,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   private void tgx101DrawReactionsFaded (Canvas c, MessageView view, int x, int y, float alpha) {
     if (alpha <= 0f) return;
     if (alpha >= 1f) { drawReactionsWithBubbles(c, view, x, y); return; }
-    int save = c.saveLayerAlpha(0, y - Screen.dp(12f), view.getMeasuredWidth(), y + messageReactions.getAnimatedHeight() + Screen.dp(12f), Math.round(alpha * 255));
+    int save = android.os.Build.VERSION.SDK_INT >= 21 ?
+      c.saveLayerAlpha(0, y - Screen.dp(12f), view.getMeasuredWidth(), y + messageReactions.getAnimatedHeight() + Screen.dp(12f), Math.round(alpha * 255)) :
+      c.saveLayerAlpha(0, y - Screen.dp(12f), view.getMeasuredWidth(), y + messageReactions.getAnimatedHeight() + Screen.dp(12f), Math.round(alpha * 255), Canvas.ALL_SAVE_FLAG); // Android 4: the five-argument form is 5.0+
     drawReactionsWithBubbles(c, view, x, y);
     c.restoreToCount(save);
   }

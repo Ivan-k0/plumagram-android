@@ -971,7 +971,7 @@ public final class Tgx101Diag {
         b.append(", display for the app ").append(Math.round(d.getRefreshRate())).append(" Hz");
         if (Build.VERSION.SDK_INT >= 23) b.append(" mode ").append(d.getMode().getModeId());
         android.view.WindowManager.LayoutParams lp = a.getWindow().getAttributes();
-        b.append(", window asks mode ").append(Build.VERSION.SDK_INT >= 23 ? lp.preferredDisplayModeId : -1).append(" / ").append(Math.round(lp.preferredRefreshRate)).append(" Hz");
+        b.append(", window asks mode ").append(Build.VERSION.SDK_INT >= 23 ? lp.preferredDisplayModeId : -1).append(" / ").append(Build.VERSION.SDK_INT >= 21 ? Math.round(lp.preferredRefreshRate) : -1).append(" Hz");
         if (Build.VERSION.SDK_INT >= 35) {
           try { b.append(", balanced power ").append(a.getWindow().isFrameRatePowerSavingsBalanced()); } catch (Throwable ignored) { }
         }
