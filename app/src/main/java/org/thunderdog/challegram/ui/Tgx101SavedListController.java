@@ -354,7 +354,14 @@ public class Tgx101SavedListController extends ViewController<Void> {
             downX = e.getRawX(); // raw: the list itself moves under the finger
             downY = e.getRawY();
             // (user 2026-10-16) rows don't slide here: a sideways swipe anywhere switches the kind
+            tgx101UnstickPage();
             tracking = !switching && !paging;
+            if (!tracking) {
+              // (user 2026-11-08 «логи свайпов — ты уверен, что видишь ясно?»: twelve swipes in a row at 22:04:29–32 left no
+              // trace of why) — the reason a swipe is not taken
+              org.thunderdog.challegram.Tgx101Diag.mark("storage list: a swipe not taken — " + (switching ? "the search's kind still switching (" + (android.os.SystemClock.uptimeMillis() - switchStartedAt) + " ms, its data " + (switchArrived != null ? "here" : "not yet") + ")"
+                : "a page still moving (" + (android.os.SystemClock.uptimeMillis() - pageStartedAt) + " ms, picture " + (pageReady ? "ready" : "not yet") + ", " + (pageCommitted ? "let go" : "held") + ", data " + (pageWaiting ? "not yet" : "here") + ")"));
+            }
             dragging = false;
             if (velocity != null) velocity.recycle();
             velocity = android.view.VelocityTracker.obtain();
@@ -698,8 +705,32 @@ public class Tgx101SavedListController extends ViewController<Void> {
 
   /** the old kind becomes a picture (taken from the screen as it is — drawing the list again lost its pictures and
    *  some words), then the list takes the new kind and waits beside it */
+  private long pageStartedAt, switchStartedAt;
+
+  /** a page or a switch that hangs (its picture or its data never came) gives way to the next touch: done or put back */
+  private void tgx101UnstickPage () {
+    long now = android.os.SystemClock.uptimeMillis();
+    if (paging && now - pageStartedAt > 800) {
+      org.thunderdog.challegram.Tgx101Diag.mark("storage list: a page hung " + (now - pageStartedAt) + " ms (picture " + (pageReady ? "ready" : "not yet") + ", " + (pageCommitted ? "let go" : "held") + ", end " + pageEnd + ") — " + (pageReady || pageEnd > 0 ? "finished" : "put back"));
+      if (pageReady || pageEnd > 0) {
+        if (!pageReady) showKind(pageNewKind);
+        paintKindTabs();
+        finishPage();
+      } else {
+        paging = false;
+        dropGhost();
+        list.setTranslationX(0f);
+        emptyView.setTranslationX(0f);
+        list.setBackground(null);
+      }
+    }
+    // the search's switch waits for its data (up to 3 s, then it puts the list back itself): only told, not cut short —
+    // cut, its chip and its list would disagree
+  }
+
   private boolean beginPage (int newKind, boolean forward) {
     if (paging || switching || mode != MODE_KIND || newKind == kind || isDestroyed() || list.getWidth() == 0) return false;
+    pageStartedAt = android.os.SystemClock.uptimeMillis();
     clearSelection();
     Tgx101SwipeRow.closeOpen();
     list.stopScroll();
@@ -1037,6 +1068,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
 
   private void beginSwitch (boolean forward, @Nullable Runnable beforeSwap, Runnable startLoad) {
     switching = true;
+    switchStartedAt = android.os.SystemClock.uptimeMillis();
     switchOutDone = false;
     switchArrived = null;
     switchForward = forward;
