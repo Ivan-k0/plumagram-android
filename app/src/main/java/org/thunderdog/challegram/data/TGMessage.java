@@ -2297,7 +2297,13 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         c.drawRoundRect(lr, line / 2f, line / 2f, Paints.fillingPaint(colors[i]));
         y += line + gap;
       }
-      // the channel's photo on the left
+      // the channel's photo on the left — placed on the stripe as it is drawn now (user 2026-11-08 «съехало фото профиля»:
+      // the stripe went under a round video's reactions, the photo stayed where layoutAvatar had put it, at the circle)
+      int iconSize = tgx101JournalIconSize(), iconTop = Math.round((top + bottom) / 2f - iconSize / 2f);
+      if (avatarReceiver.getTop() != iconTop) {
+        int iconLeft = Lang.rtl() ? view.getMeasuredWidth() - Screen.dp(12f) - iconSize : Screen.dp(12f);
+        avatarReceiver.setBounds(iconLeft, iconTop, iconLeft + iconSize, iconTop + iconSize);
+      }
       if (avatarReceiver.needPlaceholder()) avatarReceiver.drawPlaceholder(c);
       avatarReceiver.draw(c);
     }
