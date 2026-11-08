@@ -6662,6 +6662,8 @@
   <string name="Tgx101AppliesAfterRestart">Restart the app to apply</string>
   <string name="Tgx101HideInputEmoji">Hide the emoji / stickers button</string>
   <string name="Tgx101CompactBubbles">Compact bubbles</string>
+  <string name="Tgx101TopicsButton">Topics</string>
+  <string name="Tgx101TopicsButtonHint">Topics are here — or swipe right</string>
   <string name="Tgx101BirdHide">Hide the bird</string>
   <string name="Tgx101BirdHideAsk">Hide the bird? It comes back any time: MagiX → Menus and navigation → Bird.</string>
   <string name="Tgx101BirdHideYes">Yes, hide</string>

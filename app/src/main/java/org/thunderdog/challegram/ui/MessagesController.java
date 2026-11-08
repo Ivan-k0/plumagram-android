@@ -3785,6 +3785,33 @@ public class MessagesController extends ViewController<MessagesController.Argume
       topBar.setItemVisible(tgx101TopicsItem, feed, false);
       if (feed) Tgx101TopicsController.prefetch(tdlib, chat.id); // «Topics» then opens at once
       tgx101NeedTopicsUnder = feed;
+      tgx101FeedNow = feed;
+      if (tgx101TopicsButton != null) tgx101TopicsButton.setVisibility(View.GONE);
+      if (feed) {
+        // (mockup Б, 1 and 2): the strip shows where it was, then folds away while «Topics» comes up in the header — the eye
+        // sees where it went; the first time a hint says it once
+        final long chatId = chat.id;
+        UI.post(() -> {
+          if (isDestroyed() || chat == null || chat.id != chatId || !tgx101FeedNow) return;
+          topBar.setItemVisible(tgx101TopicsItem, false, true);
+          if (tgx101TopicsButton != null) {
+            tgx101TopicsButton.setVisibility(View.VISIBLE);
+            tgx101TopicsButton.setScaleX(.4f);
+            tgx101TopicsButton.setScaleY(.4f);
+            tgx101TopicsButton.setAlpha(0f);
+            tgx101TopicsButton.animate().scaleX(1f).scaleY(1f).alpha(1f).setStartDelay(120).setDuration(260)
+              .setInterpolator(new android.view.animation.OvershootInterpolator(1.6f)).start();
+            if (!Settings.instance().tgx101TopicsButtonHintShown()) {
+              Settings.instance().setTgx101TopicsButtonHintShown();
+              tgx101TopicsButton.postDelayed(() -> {
+                if (!isDestroyed() && tgx101TopicsButton.isShown()) {
+                  context().tooltipManager().builder(tgx101TopicsButton).show(tdlib, Lang.getString(R.string.Tgx101TopicsButtonHint)).hideDelayed(4000, java.util.concurrent.TimeUnit.MILLISECONDS);
+                }
+              }, 450);
+            }
+          }
+        }, 450);
+      }
     }
 
     if (inPreviewMode) {
@@ -4631,6 +4658,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
         if (tgx101TrButton.getParent() instanceof ViewGroup) ((ViewGroup) tgx101TrButton.getParent()).removeView(tgx101TrButton);
         menu.addView(tgx101TrButton, Lang.rtl() ? 0 : -1);
       }
+      // TGx101 (user 2026-11-07 20:24, mockup «Темы и Лента» Б): a group with topics opened as one feed — «Topics» in the header
+      // instead of the «Темы | Лента» strip, which took a whole row over the messages
+      tgx101TopicsButton = header.addButton(menu, R.id.menu_btn_tgx101Topics, R.drawable.baseline_apps_24, getHeaderIconColorId(), this, Screen.dp(48f));
+      tgx101TopicsButton.setTag(Lang.getString(R.string.Tgx101TopicsButton));
+      tgx101TopicsButton.setVisibility(tgx101FeedNow ? View.VISIBLE : View.GONE);
       header.addMoreButton(menu, this);
     } else if (id == R.id.menu_gallery) {
       header.addButton(menu, R.id.menu_btn_gallery, R.drawable.baseline_image_24, getHeaderIconColorId(), this, Screen.dp(52f));
@@ -4753,6 +4785,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   public void onMenuItemPressed (int id, View view) {
+    if (id == R.id.menu_btn_tgx101Topics) {
+      if (chat != null) Tgx101TopicsController.switchToTopics(this, chat);
+      return;
+    }
     if (id == R.id.menu_btn_savedMessagesTags) {
       showSavedMessagesTags();
       return;
@@ -8338,7 +8374,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private CollapseListView.Item tgx101VoiceItem;
   private CollapseListView.Item tgx101TopicsItem;
   private org.thunderdog.challegram.component.chat.Tgx101TopicsSwitch tgx101TopicsSwitch;
-  private boolean tgx101NeedTopicsUnder;
+  private boolean tgx101NeedTopicsUnder, tgx101FeedNow;
+  private @Nullable HeaderButton tgx101TopicsButton;
 
   public @Nullable ReplyInfo getCurrentReplyId () {
     if (reply != null) {

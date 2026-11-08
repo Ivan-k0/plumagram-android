@@ -3919,6 +3919,9 @@ public class Settings {
   private static final String KEY_TGX101_BIRD_PLACE_LAND = "tgx101_bird_place_land";
   private static final String KEY_TGX101_BIRD_MOVED = "tgx101_bird_moved_25"; // the 2.5 s hold is back (2026-10-21): its hint shows again
   public boolean tgx101Bird () { return pmc.getBoolean(KEY_TGX101_BIRD, true); }
+  // TGx101 (mockup «Темы и Лента» Б, 2): the hint at «Topics» in a group's feed header — once
+  public boolean tgx101TopicsButtonHintShown () { return pmc.getBoolean("tgx101_topics_button_hint", false); }
+  public void setTgx101TopicsButtonHintShown () { pmc.putBoolean("tgx101_topics_button_hint", true); }
   // TGx101 (user 2026-11-07 18:24 voice, mockup «Птичка: скрыть» variant А): a new user's first ring carries «×» under it
   // once — it hides the bird after a question. Gone after any choice in the ring; those who had the app never see it
   private static final String KEY_TGX101_BIRD_HIDE_HINT = "tgx101_bird_hide_hint";
