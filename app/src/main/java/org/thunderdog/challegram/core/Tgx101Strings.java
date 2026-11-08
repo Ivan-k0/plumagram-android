@@ -1361,9 +1361,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AppliesAfterRestart, "Применится после перезапуска приложения");
     RU.put(R.string.Tgx101HideInputEmoji, "Скрыть кнопку смайлов и стикеров");
     RU.put(R.string.Tgx101CompactBubbles, "Компактные пузыри");
-    RU.put(R.string.Tgx101MediaDots, "Кнопка ⋮ на медиа и файлах");
+    RU.put(R.string.Tgx101MediaDots, "Кнопка ⋮ на медиа и файлах («Скрыта» — угол всё равно открывает меню)");
     RU.put(R.string.Tgx101MediaDotsOn, "Показана");
-    RU.put(R.string.Tgx101MediaDotsHidden, "Скрыта, угол открывает меню");
+    RU.put(R.string.Tgx101MediaDotsHidden, "Скрыта");
     RU.put(R.string.Tgx101MediaDotsOff, "Выключена");
     RU.put(R.string.Tgx101CompactBubblesHint, "Тоньше текстовые пузыри: время стоит на последней строке, сообщения ближе друг к другу — на экране помещается больше");
     RU.put(R.string.Tgx101RearRounds, "Кружки — начинать с основной камеры");
