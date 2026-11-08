@@ -285,6 +285,26 @@ abstract class TGMessageServiceImpl extends TGMessage {
     }
   }
 
+  // TGx101 (user 2026-11-07 14:02, the official app side by side; compact bubbles in MagiX): a one-line service plate is
+  // closer to its neighbours (fields 6 dp, were 10 — 17 dp of air between two plates) and carries its time on the right
+  private boolean tgx101Compact () {
+    return useBubbles() && org.thunderdog.challegram.unsorted.Settings.instance().tgx101CompactBubbles();
+  }
+
+  private boolean tgx101TimeInPlate () {
+    return tgx101Compact() && chatPhoto == null && displayText != null && displayText.getLineCount() == 1 && !android.text.TextUtils.isEmpty(time)
+      && displayText.getWidth() + tgx101TimeRoom() <= Math.max(0, this.width - Screen.dp(12f) * 2);
+  }
+
+  private int tgx101TimeRoom () {
+    return Screen.dp(6f) + (int) org.thunderdog.challegram.U.measureText(time, mTimeBubble());
+  }
+
+  @Override
+  protected int getBubbleContentPadding () {
+    return tgx101Compact() ? Screen.dp(6f) : super.getBubbleContentPadding();
+  }
+
   private int getTextY () {
     if (useBubbles()) {
       return getContentY();
@@ -330,9 +350,10 @@ abstract class TGMessageServiceImpl extends TGMessage {
     if (useBubbles()) {
       int backgroundRadius = Screen.dp(Theme.getBubbleDateRadius());
       RectF rectF = Paints.getRectF();
-      int left = (int) (this.width / 2f - displayText.getWidth() / 2f);
+      final int timeRoom = tgx101TimeInPlate() ? tgx101TimeRoom() : 0;
+      int left = (int) (this.width / 2f - (displayText.getWidth() + timeRoom) / 2f);
       int top = textY;
-      int right = left + displayText.getWidth();
+      int right = left + displayText.getWidth() + timeRoom;
       int bottom = top + displayText.getHeight();
       int backgroundPaddingHorizontal = Screen.dp(8f);
       int backgroundPaddingVertical = Screen.dp(4f);
@@ -345,12 +366,22 @@ abstract class TGMessageServiceImpl extends TGMessage {
 
       int backgroundColor = getBubbleDateBackgroundColor();
       c.drawRoundRect(rectF, backgroundRadius, backgroundRadius, Paints.fillingPaint(backgroundColor));
+      if (timeRoom > 0) {
+        android.text.TextPaint timePaint = mTimeBubble();
+        int saveColor = timePaint.getColor();
+        timePaint.setColor(me.vkryl.core.ColorUtils.alphaColor(.75f, defaultTextColorSet().defaultTextColor()));
+        android.graphics.Paint.FontMetricsInt fm = timePaint.getFontMetricsInt();
+        float baseline = (top + bottom) / 2f - (fm.ascent + fm.descent) / 2f;
+        c.drawText(time, right - timeRoom + Screen.dp(6f), baseline, timePaint);
+        timePaint.setColor(saveColor);
+      }
     }
 
     // Text
     int paddingHorizontal = Screen.dp(12f);
+    int tgx101Shift = useBubbles() && tgx101TimeInPlate() ? tgx101TimeRoom() / 2 : 0; // the words stand left of the time
     displayText.draw(c,
-      paddingHorizontal, this.width - paddingHorizontal, 0,
+      paddingHorizontal - tgx101Shift, this.width - paddingHorizontal - tgx101Shift, 0,
       textY,
       null, 1f,
       view.getTextMediaReceiver()
