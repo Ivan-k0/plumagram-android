@@ -2559,12 +2559,19 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           }
           drawReactionsWithBubbles(c, view, left, top - Screen.dp(6));
         } else {
-          int x = (int) bubblePathRect.left + xReactionBubblePadding + tgx101ReactionsDx();
-          int y = bottomContentEdge - (int) messageReactions.getAnimatedHeight() - timeAddedHeight - xReactionBubblePaddingBottom + tgx101ReactionsDy();
+          int x = (int) bubblePathRect.left + xReactionBubblePadding;
+          int y = bottomContentEdge - (int) messageReactions.getAnimatedHeight() - timeAddedHeight - xReactionBubblePaddingBottom;
           if (commentButton.isVisible() && commentButton.isInline()) {
             y -= commentButton.getAnimatedHeight(0, commentButton.getVisibility());
           }
-          drawReactionsWithBubbles(c, view, x, y);
+          float fade = tgx101ReactionsFade();
+          if (fade >= 0f) {
+            // a round video's text folding / opening: the reactions fade in the bubble and come up under the circle
+            tgx101DrawReactionsFaded(c, view, x, y, fade);
+            tgx101DrawReactionsFaded(c, view, x + tgx101ReactionsDx(), y + tgx101ReactionsDy(), 1f - fade);
+          } else {
+            drawReactionsWithBubbles(c, view, x + tgx101ReactionsDx(), y + tgx101ReactionsDy());
+          }
         }
       }
     }
@@ -10129,6 +10136,16 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   /** TGx101: a shift of the reactions laid out in the bubble (a round video's text folding into the circle) */
   protected int tgx101ReactionsDx () { return 0; }
+  /** TGx101: ≥ 0 — the reactions are drawn twice: at their place in the bubble with this alpha, at the shifted one with the rest */
+  protected float tgx101ReactionsFade () { return -1f; }
+
+  private void tgx101DrawReactionsFaded (Canvas c, MessageView view, int x, int y, float alpha) {
+    if (alpha <= 0f) return;
+    if (alpha >= 1f) { drawReactionsWithBubbles(c, view, x, y); return; }
+    int save = c.saveLayerAlpha(0, y - Screen.dp(12f), view.getMeasuredWidth(), y + messageReactions.getAnimatedHeight() + Screen.dp(12f), Math.round(alpha * 255));
+    drawReactionsWithBubbles(c, view, x, y);
+    c.restoreToCount(save);
+  }
   protected int tgx101ReactionsDy () { return 0; }
 
   /** TGx101: where the reactions in the bubble stand now, and where they would under a transparent (sticker) bubble */
