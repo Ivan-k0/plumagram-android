@@ -2267,7 +2267,13 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       if (buttons > 0) {
         c.drawRect(0, bubblePathRect.bottom, view.getMeasuredWidth(), bubblePathRect.bottom + buttons, Paints.fillingPaint(Theme.getColor(ColorId.bubbleIn_background)));
       }
-      float top = bubblePathRect.bottom + buttons, bottom = top + Screen.dp(TGX101_JOURNAL_STRIPE);
+      float top = bubblePathRect.bottom + buttons;
+      if (tgx101JournalItemsUnderBubble()) {
+        // (user 2026-11-08 «полоса отделяет реакции — зачем?»): a round video's reactions and comments stand under the
+        // circle, outside its bubble — the stripe goes after them, not between the circle and its own reactions
+        top = Math.max(top, findBottomEdge() - Screen.dp(TGX101_JOURNAL_STRIPE));
+      }
+      float bottom = top + Screen.dp(TGX101_JOURNAL_STRIPE);
       // user 2026-10-09 00:25 «разделение бесшовным, между постами 3 полужирные полоски (цвет настраивается), иконка канала
       // на 15 % больше полосок»: the gap has the post's own colour; three bold lines right of the channel's photo
       c.drawRect(0, top, view.getMeasuredWidth(), bottom, Paints.fillingPaint(Theme.getColor(ColorId.bubbleIn_background)));
@@ -2514,7 +2520,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
     // Reaction bubbles
     if (useReactionBubbles) {
-      int top = (int) (findBottomEdge() - messageReactions.getAnimatedHeight());
+      int top = (int) (tgx101ItemsBottomEdge() - messageReactions.getAnimatedHeight());
       if (!useBubbles) {
         if (commentButton.isVisible() && commentButton.isInline()) {
           top -= commentButton.getAnimatedHeight(-Screen.dp(2), commentButton.getVisibility());
@@ -2558,7 +2564,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           } else {
             left = getContentX();
           }
-          int bottom = findBottomEdge() - Math.round((Screen.dp(5f) * commentButton.getVisibility()));
+          int bottom = tgx101ItemsBottomEdge() - Math.round((Screen.dp(5f) * commentButton.getVisibility()));
           int right = left + commentButton.getAnimatedWidth(0, 1f);
           int top = bottom - commentButton.getAnimatedHeight(0, commentButton.getVisibility());
           int inset = Math.round((right - left) * 0.2f * (1f - commentButton.getVisibility()));
@@ -10114,7 +10120,20 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   /** TGx101: where the reactions in the bubble stand now, and where they would under a transparent (sticker) bubble */
   protected final int tgx101InlineReactionsX () { return (int) bubblePathRect.left + xReactionBubblePadding; }
   protected final int tgx101InlineReactionsY () { return bottomContentEdge - (int) messageReactions.getAnimatedHeight() - timeAddedHeight - xReactionBubblePaddingBottom; }
-  protected final int tgx101StickerReactionsY () { return (int) (findBottomEdge() - messageReactions.getAnimatedHeight()) - Screen.dp(6); }
+  protected final int tgx101StickerReactionsY () { return (int) (tgx101ItemsBottomEdge() - messageReactions.getAnimatedHeight()) - Screen.dp(6); }
+
+  /** «Journal»: the reactions or the comments button stand under a bubble of their own (a round video, a sticker) */
+  private boolean tgx101JournalItemsUnderBubble () {
+    return tgx101Journal() && !isOutgoing() && useBubbles() && useReactionBubbles() && (useStickerBubbleReactions() || useMediaBubbleReactions()) || (tgx101Journal() && !isOutgoing() && useBubbles() && commentButton.isVisible() && commentButton.isBubble());
+  }
+
+  /** Where the reactions and comments under the bubble end: above the journal's stripe, which closes the post */
+  private int tgx101ItemsBottomEdge () {
+    return findBottomEdge() - (tgx101JournalItemsUnderBubble() ? Screen.dp(TGX101_JOURNAL_STRIPE) : 0);
+  }
+
+  /** The widest the content can be laid out */
+  protected final int tgx101RealContentMaxWidth () { return pRealContentMaxWidth; }
 
   private void drawReactionsWithBubbles (Canvas c, MessageView v, int x, int y) {
     messageReactions.drawReactionBubbles(c, v, x, y);

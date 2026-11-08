@@ -277,6 +277,20 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     this.fullSizeAnimatorDuration = fullSizeAnimatorDuration;
   }
 
+  // (user 2026-11-08, PlumaGram and another app side by side, «как прыгает чат вверху и внизу»): under the circle the reactions
+  // were laid out at the circle's width (3 in a row), in the text's bubble at the bubble's (5 in a row); folding rode them in one
+  // row and laid them out anew on the last frame — 3 rows at once, the message grew and the chat jumped. They are laid out
+  // the same way in both looks now: as wide as a post can be, with room for the time, so nothing changes when the move ends
+  @Override
+  protected void buildReactions (boolean animated) {
+    if (useBubbles() && useReactionBubbles() && tgx101RealContentMaxWidth() > 0) {
+      messageReactions.measureReactionBubbles(tgx101RealContentMaxWidth() - xReactionBubblePadding * 2, computeBubbleTimePartWidth(true, true));
+      messageReactions.resetReactionsAnimator(animated);
+      return;
+    }
+    super.buildReactions(animated);
+  }
+
   @Override
   protected void onChildFactorChangeFinished (int id, float finalFactor, FactorAnimator callee) {
     if (id ==  FULL_SIZE_ANIMATOR_ID) {
