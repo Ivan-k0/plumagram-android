@@ -590,7 +590,10 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     tgx101TextKey = key;
     // (user 2026-11-04 14:31 «выделение плохо видно, сделай вид текста как при голосовых, без фона»): the same text
     // straight on the bubble and the same one width as a voice message, whatever the length of the text
-    int textWidth = Math.max(Screen.dp(120f), Math.min(maxWidth - Screen.dp(TM_PAD) * 2, Screen.dp(TM_WIDTH)));
+    // (user 2026-11-08, screenshots of both apps: «текст в пузыре распределён по всей ширине пузыря, у нас неправильно»): the
+    // reactions widened the bubble while the text kept a voice's old 222 dp and left an empty strip on the right — the text
+    // takes the bubble's whole width now, as voice messages do since 03.11
+    int textWidth = Math.max(Screen.dp(120f), maxWidth - Screen.dp(TM_PAD) * 2);
     tgx101Text = new org.thunderdog.challegram.util.text.Text.Builder(text, textWidth, getTextStyleProvider(), getTextColorSet()).build();
     // (user 2026-11-04 «текст не лежит в пузыре как нужно»): with the plate went its margins — the bubble's own, as a voice's
     tgx101TextW = textWidth + Screen.dp(TM_PAD) * 2;
