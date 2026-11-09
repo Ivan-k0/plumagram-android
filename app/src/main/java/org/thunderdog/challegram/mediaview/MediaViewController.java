@@ -4679,14 +4679,16 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       boolean apply =
         (along >= Screen.dp(TGX101_CLOSE_FLING_DP) && distance >= Screen.dp(TGX101_CLOSE_FLING_MIN_DISTANCE_DP) && Math.abs(velocityY) > Math.abs(velocityX)) ||
         (distance >= Screen.dp(TGX101_CLOSE_DISTANCE_DP) && along >= 0f);
+      org.thunderdog.challegram.Tgx101Diag.mark("media viewer: slide let go by a fling — " + Math.round(lastSlideY / Screen.dp(1f)) + " dp, speed " + Math.round(velocityY / Screen.dp(1f)) + "/" + Math.round(velocityX / Screen.dp(1f)) + " dp/s → " + (apply ? "closes" : "back"));
       dropSlideMode(apply ? 0f : velocityX, velocityY, apply);
     }
     return false;
   }
 
-  private static final float TGX101_CLOSE_FLING_DP = 900f;
-  private static final float TGX101_CLOSE_FLING_MIN_DISTANCE_DP = 72f;
-  private static final float TGX101_CLOSE_DISTANCE_DP = 160f;
+  // (user 2026-11-09 19:24 «тяжело свайпается видео вниз»: swipes of 256 and 317 dp in 0.15 s left it open) — lighter
+  private static final float TGX101_CLOSE_FLING_DP = 600f;
+  private static final float TGX101_CLOSE_FLING_MIN_DISTANCE_DP = 48f;
+  private static final float TGX101_CLOSE_DISTANCE_DP = 110f;
 
   private boolean canCloseBySlide () {
     return mode != MODE_SECRET && (mode != MODE_GALLERY || currentSection == SECTION_CAPTION) && !mediaView.isZoomed() && !inCaption;
@@ -4700,6 +4702,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private void setInSlideMode (float x, float y) {
     slideItem = stack.getCurrent();
     inSlideMode = true;
+    org.thunderdog.challegram.Tgx101Diag.mark("media viewer: slide starts at " + Math.round(x / Screen.dp(1f)) + "," + Math.round(y / Screen.dp(1f)) + " dp");
     if (tgx101LandscapeWindow() && !tgx101FullscreenDeferred) {
       // TGx101 (user's Vivo recording 2026-10-04): in landscape the chat behind showed without the status bar while
       // the photo was pulled down, then jumped once it closed — bring the status bar back as the pull starts
@@ -6538,6 +6541,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             }
             if (inSlideMode) {
               boolean apply = e.getAction() == MotionEvent.ACTION_UP && Math.abs(lastSlideY) >= Screen.dp(TGX101_CLOSE_DISTANCE_DP);
+              org.thunderdog.challegram.Tgx101Diag.mark("media viewer: slide let go " + (e.getAction() == MotionEvent.ACTION_UP ? "" : "(cancelled) ") + "at " + Math.round(lastSlideY / Screen.dp(1f)) + " dp → " + (apply ? "closes" : "back"));
               dropSlideMode(0f, apply ? (lastSlideY < 0f ? -1f : 1f) : 0f, apply);
             }
             break;
