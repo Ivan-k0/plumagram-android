@@ -3697,6 +3697,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     }
     if (item.getLongId() == Settings.SETTING_FLAG_KEEP_ALIVE_CONNECTION) {
       KeepAliveService.sync(context());
+      org.thunderdog.challegram.telegram.TdlibManager.instance().tgx101Wake("the background connection changed"); // TGx101
       if (value) {
         KeepAliveService.requestIgnoreBatteryOptimizations(context());
       }

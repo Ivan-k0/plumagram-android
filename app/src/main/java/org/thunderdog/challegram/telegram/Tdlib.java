@@ -798,11 +798,31 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     decrementReferenceCount(REFERENCE_TYPE_JOB, id);
   }
 
+  // TGx101 (phone 2026-11-09, a night of 219 network wake-ups): what holds the instance, by kind — the app's idle network
+  // cut (TdlibManager#tgx101CheckIdle) waits for anything but the open screens (a call, a live location, a job, a
+  // notification being made)
+  private final int[] tgx101Refs = new int[REFERENCE_TYPE_KEEP_ALIVE + 1];
+
+  /** null — nothing but the screens holds it; otherwise what does, for the journal */
+  public @Nullable String tgx101BusyWith () {
+    synchronized (clientLock) {
+      StringBuilder b = null;
+      for (int i = 0; i < tgx101Refs.length; i++) {
+        if (i != REFERENCE_TYPE_UI && tgx101Refs[i] > 0) {
+          if (b == null) b = new StringBuilder();
+          b.append(b.length() > 0 ? ", " : "").append("kind ").append(i).append(" ×").append(tgx101Refs[i]);
+        }
+      }
+      return b != null ? b.toString() : null;
+    }
+  }
+
   private void incrementReferenceCount (int type, String id) {
     boolean wakeup;
     int referenceCount;
     synchronized (clientLock) {
       referenceCount = this.referenceCount.incrementAndGet();
+      if (type >= 0 && type < tgx101Refs.length) tgx101Refs[type]++;
       wakeup = referenceCount == 1;
       Log.v(Log.TAG_ACCOUNTS, "+ accountId:%d, referenceCount:%d, type:%d, id:%s", accountId, referenceCount, type, id);
       if (type == REFERENCE_TYPE_UI)
@@ -823,6 +843,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     int referenceCount;
     synchronized (clientLock) {
       referenceCount = this.referenceCount.decrementAndGet();
+      if (type >= 0 && type < tgx101Refs.length && tgx101Refs[type] > 0) tgx101Refs[type]--;
       if (referenceCount < 0) {
         RuntimeException e = new IllegalStateException("type == " + type);
         Tracer.onOtherError(e);

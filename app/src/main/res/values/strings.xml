@@ -6663,6 +6663,8 @@
   <string name="Tgx101HideInputEmoji">Hide the emoji / stickers button</string>
   <string name="Tgx101CompactBubbles">Compact bubbles</string>
   <string name="Tgx101KeepHighRate">Keep the high refresh rate</string>
+  <string name="Tgx101IdleCut">Disconnect in the background</string>
+  <string name="Tgx101IdleCutHint">5 minutes after you leave the app it disconnects from Telegram, and new messages come by push, as in the official app — the phone wakes up much less often. A push, a reply from a notification or opening the app connect it again. Works only when push notifications work and «Keep connection in background» is off</string>
   <string name="Tgx101KeepHighRateHint">After a video the system may keep the app at 60 Hz until it restarts. On: the app asks the system not to lower its refresh rate to save power — scrolling stays smooth, the battery may last a little less</string>
   <string name="Tgx101TopicsButton">Topics</string>
   <string name="Tgx101FeedButton">Feed</string>

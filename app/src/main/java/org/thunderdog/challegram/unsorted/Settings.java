@@ -3856,6 +3856,10 @@ public class Settings {
   private static final String KEY_TGX101_KEEP_HIGH_RATE = "tgx101_keep_high_rate";
   public boolean tgx101KeepHighRate () { return pmc.getBoolean(KEY_TGX101_KEEP_HIGH_RATE, false); }
   public void setTgx101KeepHighRate (boolean v) { pmc.putBoolean(KEY_TGX101_KEEP_HIGH_RATE, v); }
+  // (user 2026-11-09) the connection cut 5 min after the app leaves the screen when push works — on by default, can be off
+  private static final String KEY_TGX101_IDLE_CUT = "tgx101_idle_cut";
+  public boolean tgx101IdleCut () { return pmc.getBoolean(KEY_TGX101_IDLE_CUT, true); }
+  public void setTgx101IdleCut (boolean v) { pmc.putBoolean(KEY_TGX101_IDLE_CUT, v); }
   private static final String KEY_TGX101_COMPACT_BUBBLES = "tgx101_compact_bubbles";
   private static volatile int tgx101CompactBubbles = -1;
   public boolean tgx101CompactBubbles () {

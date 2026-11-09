@@ -187,6 +187,8 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
   public static void performExternalAction (Context context, int action, TdlibNotificationExtras extras) {
     if (extras == null)
       return;
+    AppContext.init(context);
+    TdlibManager.instanceForAccountId(extras.accountId).tgx101Wake("a notification's action");
     performSyncTask(context, extras.accountId, "external:" + action, (tdlib, onDone) -> {
       tdlib.incrementNotificationReferenceCount();
       switch (action) {
@@ -218,6 +220,8 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
       return;
     if (StringUtils.isEmpty(text))
       return;
+    AppContext.init(context);
+    TdlibManager.instanceForAccountId(extras.accountId).tgx101Wake("a reply from a notification");
     performSyncTask(context, extras.accountId, "reply", (tdlib, onDone) -> {
       TdApi.InputMessageReplyTo replyTo;
       if (extras.needReply) {
@@ -429,6 +433,8 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
   @Override
   @UiThread
   public void onUiStateChanged (int newState) {
+    if (newState == UI.State.RESUMED) tgx101Wake("the app is on the screen");
+    else tgx101ScheduleIdle();
     boolean hasUi = newState != UI.State.DESTROYED && newState != UI.State.UNKNOWN;
     if (this.hasUi != hasUi) {
       this.hasUi = hasUi;
@@ -564,7 +570,9 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
     if (isEmulator) {
       client.send(new TdApi.SetOption("is_emulator", new TdApi.OptionValueBoolean(true)), tdlib.okHandler());
     }
-    if (networkType != null) {
+    if (tgx101Idle) {
+      client.send(new TdApi.SetNetworkType(new TdApi.NetworkTypeNone()), tdlib.okHandler()); // TGx101: cut while away
+    } else if (networkType != null) {
       client.send(new TdApi.SetNetworkType(networkType), tdlib.okHandler());
     } else if (Settings.instance().forceDisableNetwork()) {
       client.send(new TdApi.SetNetworkType(new TdApi.NetworkTypeNone()), tdlib.okHandler());
@@ -740,11 +748,76 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
 
   public void setNetworkType (TdApi.NetworkType networkType) {
     this.networkType = networkType;
+    tgx101ApplyNetwork();
+  }
+
+  private void tgx101ApplyNetwork () {
+    TdApi.NetworkType type = tgx101Idle ? new TdApi.NetworkTypeNone() : networkType;
+    if (type == null) return;
     for (TdlibAccount account : accounts) {
       if (account.hasTdlib(false)) {
-        account.tdlib.setNetworkType(networkType);
+        account.tdlib.setNetworkType(type);
       }
     }
+  }
+
+  // TGx101 (phone 2026-11-09: 219 network wake-ups in a night, the most of any app — the connection stayed open while
+  // the app's screens lived in memory, ~500 group messages and ~800 status changes came through it): 5 min after the app
+  // leaves the screen the connection is cut — only when the background connection is off and Google push works, no
+  // music, no call, nothing but the screens holds TDLib. A push, a reply or «read» from a notification and the app's
+  // return bring it back at once.
+  private static final long TGX101_IDLE_MS = java.util.concurrent.TimeUnit.MINUTES.toMillis(5);
+  private volatile boolean tgx101Idle;
+  private final android.os.Handler tgx101IdleHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+  private final Runnable tgx101IdleCheck = this::tgx101CheckIdle;
+
+  public boolean tgx101IsIdle () {
+    return tgx101Idle;
+  }
+
+  private void tgx101ScheduleIdle () {
+    tgx101IdleHandler.removeCallbacks(tgx101IdleCheck);
+    tgx101IdleHandler.postDelayed(tgx101IdleCheck, TGX101_IDLE_MS);
+  }
+
+  /** the network is needed now (push, a notification's action, the app on screen) */
+  public void tgx101Wake (String why) {
+    tgx101IdleHandler.removeCallbacks(tgx101IdleCheck);
+    if (tgx101Idle) {
+      tgx101Idle = false;
+      tgx101ApplyNetwork();
+      org.thunderdog.challegram.Tgx101Diag.WakeWatch.note("connection back: " + why);
+    }
+    if (UI.getUiState() != UI.State.RESUMED) {
+      tgx101ScheduleIdle(); // still away: cut again in 5 min
+    }
+  }
+
+  private void tgx101CheckIdle () {
+    if (tgx101Idle || UI.getUiState() == UI.State.RESUMED) return;
+    String keep = null;
+    if (!Settings.instance().tgx101IdleCut()) keep = "the cut is off in MagiX";
+    else if (Settings.instance().getNewSetting(Settings.SETTING_FLAG_KEEP_ALIVE_CONNECTION)) keep = "the background connection is on";
+    else if (getTokenState() != TokenState.OK) keep = "push doesn't work (token " + getTokenState() + ")";
+    else if (player().isPlayingMusic()) keep = "music plays";
+    else if (org.thunderdog.challegram.service.TGCallService.currentInstance() != null) keep = "a call";
+    else {
+      for (TdlibAccount account : accounts) {
+        if (account.hasTdlib(false)) {
+          if (!account.isUnauthorized() && !account.isDeviceRegistered()) { keep = "account " + account.id + " has no push"; break; }
+          String busy = account.tdlib.tgx101BusyWith();
+          if (busy != null) { keep = "account " + account.id + " busy: " + busy; break; }
+        }
+      }
+    }
+    if (keep != null) {
+      org.thunderdog.challegram.Tgx101Diag.WakeWatch.note("connection kept: " + keep);
+      tgx101ScheduleIdle();
+      return;
+    }
+    tgx101Idle = true;
+    tgx101ApplyNetwork();
+    org.thunderdog.challegram.Tgx101Diag.WakeWatch.note("connection cut: the app away 5 min, push works");
   }
 
   void onConnectionStateChanged (Tdlib tdlib, @ConnectionState int newState) {

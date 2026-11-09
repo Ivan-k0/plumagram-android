@@ -83,6 +83,7 @@ public class PushProcessor {
     if (accountId == TdlibAccount.NO_ID && (StringUtils.isEmpty(payload) || payload.equals("{}") || payload.equals("{\"badge\":\"0\"}"))) {
       TDLib.Tag.notifications(pushId, accountId, "Empty payload: %s. Quitting task.", payload);
     } else {
+      TdlibManager.instanceForAccountId(accountId).tgx101Wake("push"); // TGx101: the connection cut while away comes back
       TdlibManager.instanceForAccountId(accountId).runWithWakeLock(manager -> processPush(manager, pushId, payload, accountId));
     }
   }

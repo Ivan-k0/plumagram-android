@@ -489,6 +489,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().useTgx101NotificationPlane(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideBlocked) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideBlocked(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101IdleCut) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101IdleCut(), isUpdate);
         } else if (itemId == R.id.btn_tgx101KeepHighRate) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101KeepHighRate(), isUpdate);
         } else if (itemId == R.id.btn_tgx101CompactBubbles) {
@@ -705,6 +707,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101ForegroundNotif, 0, R.string.Tgx101ForegroundNotif),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101KeepHighRate, 0, R.string.Tgx101KeepHighRate),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101IdleCut, 0, R.string.Tgx101IdleCut),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.PullToSearchHint),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
 
@@ -1096,6 +1100,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101MediaDots) return R.string.Tgx101MediaDotsHint;
     if (id == R.id.btn_tgx101CompactBubbles) return R.string.Tgx101CompactBubblesHint;
     if (id == R.id.btn_tgx101KeepHighRate) return R.string.Tgx101KeepHighRateHint;
+    if (id == R.id.btn_tgx101IdleCut) return R.string.Tgx101IdleCutHint;
     return 0;
   }
 
@@ -1210,7 +1215,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       || id == R.id.btn_showChannelMuteButton || id == R.id.btn_tgx101ChannelMuteBell || id == R.id.btn_hideSubscribeLink || id == R.id.btn_separateChannelPosts || id == R.id.btn_tgx101TypeMedia) return 3;
     if (id == R.id.btn_tgx101VoiceQueue || id == R.id.btn_tgx101CameraInAttach || id == R.id.btn_tgx101ZoomPullClose || id == R.id.btn_roundVideoQuality
       || id == R.id.btn_roundStabilization) return 4;
-    if (id == R.id.btn_tgx101Snooze || id == R.id.btn_tgx101ForegroundNotif || id == R.id.btn_tgx101KeepHighRate) return 5;
+    if (id == R.id.btn_tgx101Snooze || id == R.id.btn_tgx101ForegroundNotif || id == R.id.btn_tgx101KeepHighRate || id == R.id.btn_tgx101IdleCut) return 5;
     if (id == R.id.btn_tgx101AppIcon || id == R.id.btn_tgx101NotificationPlane) return 9; // user 2026-10-14: the plane icon goes with the app icon
     if (id == R.id.btn_tgx101UiText || id == R.id.btn_tgx101UiBold || id == R.id.btn_tgx101ChatListTextSize || id == R.id.btn_tgx101Font || id == R.id.btn_tgx101InputFontScale || id == R.id.btn_tgx101TextWeight || id == R.id.btn_chatFontSize || id == R.id.btn_bigEmojiSize) return 6;
     if (id == R.id.btn_tgx101CallBar || id == R.id.btn_tgx101NewCallScreen || id == R.id.btn_tgx101CallPhoto || id == R.id.btn_tgx101CallPattern
@@ -1625,6 +1630,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         });
     } else if (id == R.id.btn_tgx101SameSettings) {
       Settings.instance().setTgx101SameSettingsAllAccounts(toggleResult);
+    } else if (id == R.id.btn_tgx101IdleCut) {
+      Settings.instance().setTgx101IdleCut(toggleResult);
+      org.thunderdog.challegram.telegram.TdlibManager.instance().tgx101Wake("the cut turned " + (toggleResult ? "on" : "off")); // off: back at once
     } else if (id == R.id.btn_tgx101KeepHighRate) {
       Settings.instance().setTgx101KeepHighRate(toggleResult);
       if (context() instanceof org.thunderdog.challegram.BaseActivity) ((org.thunderdog.challegram.BaseActivity) context()).tgx101AskHighRefreshRate(); // at once
