@@ -193,6 +193,7 @@ public final class TdlibDataSource extends BaseDataSource {
   private final FileUpdateListener listener = this::processUpdate;
 
   private boolean referenceAcquired;
+  private volatile boolean tgx101Boosted;
   private static final java.util.concurrent.atomic.AtomicInteger tgx101OpenLogs = new java.util.concurrent.atomic.AtomicInteger();
 
   public TdlibDataSource (int defaultAccountId, int defaultPriority, RequestModifier requestModifier) {
@@ -406,17 +407,24 @@ public final class TdlibDataSource extends BaseDataSource {
           return C.RESULT_END_OF_INPUT;
         }
         if (available == 0) {
-          if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
-            long waitStart = android.os.SystemClock.uptimeMillis();
-            if (!latch.await(3, java.util.concurrent.TimeUnit.SECONDS)) {
-              org.thunderdog.challegram.Tgx101Diag.mark("stream: file " + file.id + " waiting 3 s for bytes at " + offset + " (limit " + downloadLimit + " from " + initialOffset
+          long waitStart = android.os.SystemClock.uptimeMillis();
+          if (!latch.await(2, java.util.concurrent.TimeUnit.SECONDS)) {
+            // TGx101 (journal 2026-11-09 18:56: the first bytes of a 113 MB video came after 14 s, then ~60 KB/s, while the
+            // whole file came at 11 MB/s): small pieces are fetched one part at a time — after 2 s of waiting the rest of the
+            // file from here is asked at once, so it comes at the speed of a full download
+            if (!tgx101Boosted && !file.local.isDownloadingCompleted) {
+              tgx101Boosted = true;
+              acquireOrUpdateReference(file, offset, TdlibFilesManager.LIMIT_MAX);
+            }
+            if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+              org.thunderdog.challegram.Tgx101Diag.mark("stream: file " + file.id + " waiting 2 s for bytes at " + offset + " (limit " + downloadLimit + " from " + initialOffset
                 + "), have " + file.local.downloadedSize + ", prefix " + file.local.downloadedPrefixSize + " at " + file.local.downloadOffset + (file.local.isDownloadingActive ? ", downloading" : ", NOT downloading")
-                + (referenceAcquired ? "" : ", no reference"));
-              latch.await();
+                + (referenceAcquired ? "" : ", no reference") + " — the rest of the file asked from here");
+            }
+            latch.await();
+            if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
               org.thunderdog.challegram.Tgx101Diag.mark("stream: file " + file.id + " bytes came after " + (android.os.SystemClock.uptimeMillis() - waitStart) + " ms");
             }
-          } else {
-            latch.await();
           }
           continue;
         }
@@ -451,6 +459,7 @@ public final class TdlibDataSource extends BaseDataSource {
   private static final long PRELOAD_SECONDS = 10;
 
   private long calculateDownloadLimit (TdApi.File file, long offset, int readLength) {
+    if (tgx101Boosted) return TdlibFilesManager.LIMIT_MAX; // TGx101: asked to the end once it was too slow
     long downloadLimit;
     if (BitwiseUtils.hasFlag(flags, Flag.DOWNLOAD_FULLY)) {
       downloadLimit = TdlibFilesManager.LIMIT_MAX;
@@ -526,6 +535,14 @@ public final class TdlibDataSource extends BaseDataSource {
       if (referenceAcquired) {
         tdlib.files().removeCloudReference(file, listener);
         referenceAcquired = false;
+      }
+      // TGx101 (user 2026-11-09 «выхожу — загрузка останавливается, а загружено уже половина»): more than half here —
+      // the rest is fetched after the video is closed; less stays as it is, not to spend traffic on what wasn't watched
+      if (file.size > 0 && !file.local.isDownloadingCompleted && file.local.canBeDownloaded && file.local.downloadedSize * 2 >= file.size) {
+        tdlib.files().downloadFile(file);
+        if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+          org.thunderdog.challegram.Tgx101Diag.mark("stream: file " + file.id + " closed with " + file.local.downloadedSize + " of " + file.size + " — the rest keeps loading");
+        }
       }
       tdlib.listeners().removeFileListener(file.id, listener);
       transferEnded();
