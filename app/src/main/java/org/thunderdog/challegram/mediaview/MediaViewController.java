@@ -1445,7 +1445,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       case ANIMATOR_REVEAL: {
         if (finalFactor == 0f) {
           showCurrentCell();
-          popupView.onCustomHideAnimationComplete();
+          if (popupView.tgx101IsOverKeyboard()) {
+            // (user's video 2026-11-09 19:57: one white frame in the photo's place after each close) — its own window went
+            // away before the chat drew the photo back; the window waits two frames for the chat
+            final PopupLayout closing = popupView;
+            closing.postOnAnimation(() -> closing.postOnAnimation(closing::onCustomHideAnimationComplete));
+          } else {
+            popupView.onCustomHideAnimationComplete();
+          }
           setFullScreen(false);
           if (mode == MODE_SECRET && revealAnimationType == ANIMATION_TYPE_SECRET_CLOSE) {
             setLowProfile(false);
