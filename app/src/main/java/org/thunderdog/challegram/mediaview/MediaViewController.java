@@ -9648,15 +9648,22 @@ public class MediaViewController extends ViewController<MediaViewController.Args
    *  closed in the middle of the change, the next pencil tap found its views still attached and crashed (0.2.896, 21:05:05) */
   private void tgx101LeavePlainEdit () {
     if (!inForceEditMode()) return;
-    if (bottomWrap != null) bottomWrap.setAlpha(0f);
-    if (captionWrapView != null) captionWrapView.setAlpha(0f);
-    final View hiddenBottom = bottomWrap, hiddenCaption = captionWrapView;
+    // all of the send screen: its bottom bar, caption and send button (21:10:44: the send arrow still showed)
+    final java.util.ArrayList<View> hidden = new java.util.ArrayList<>();
+    if (forceEditMode_views != null) hidden.addAll(forceEditMode_views);
+    if (bottomWrap != null) hidden.add(bottomWrap);
+    if (captionWrapView != null) hidden.add(captionWrapView);
+    if (sendButton != null) hidden.add(sendButton);
+    final java.util.ArrayList<Integer> was = new java.util.ArrayList<>();
+    for (View v : hidden) { was.add(v.getVisibility()); v.setVisibility(View.INVISIBLE); } // not alpha: the section animators set it every frame
     UI.post(() -> {
       if (!isDestroyed() && inForceEditMode() && currentSection == SECTION_CAPTION && !tgx101HasEdits()) {
         closeForceEditMode();
       }
-      if (hiddenBottom != null) hiddenBottom.setAlpha(1f); // back for whoever uses them next
-      if (hiddenCaption != null) hiddenCaption.setAlpha(1f);
+      for (int i = 0; i < hidden.size(); i++) { // back for whoever uses them next
+        View v = hidden.get(i);
+        if (v.getVisibility() == View.INVISIBLE) v.setVisibility(was.get(i));
+      }
     }, 320);
   }
 
