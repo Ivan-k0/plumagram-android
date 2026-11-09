@@ -278,7 +278,11 @@ public final class Tgx101M3Sheets {
       TextView button = textButton(context, item, index, index == cancelIndex ? accent : itemColor(forcedTheme, item, accent), delegate, onClick);
       LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
       if (stacked) {
+        // (user's screenshot 2026-11-09, the proxy's «Включить / Сохранить прокси / Отмена»): stacked buttons stood
+        // line to line — a finger's height each and a gap between them
         params.gravity = Lang.rtl() ? Gravity.LEFT : Gravity.RIGHT;
+        if (k > 0) params.topMargin = Screen.dp(4f);
+        button.setMinHeight(Screen.dp(44f));
       } else if (k > 0) {
         params.leftMargin = Screen.dp(8f);
       }
