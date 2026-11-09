@@ -12305,6 +12305,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   };
 
+  private static final long TGX101_VIEWER_SETTLE_MS = 450; // the viewer's opening flight is over by then
+  private long tgx101ViewerSince;
+  private final Runnable tgx101PaddingAfterViewer = () -> {
+    if (isDestroyed() || messagesView == null) return;
+    updateFloatingListPadding();
+  };
+
   private void updateFloatingListPadding () {
     if (!floatingInput || messagesView == null || bottomWrap == null) return;
     if (tgx101ImeRiding && !tgx101ImeStarted) return; // the end-state layout before the ride starts: not real yet
@@ -12315,6 +12322,22 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // message menu brings the keyboard up while the menu is still fading out — the room stood at 218 px for 120 ms and
     // then jumped by 1247 px in one frame
     if (context().getCurrentPopupWindow() != null && !(inputView != null && inputView.hasFocus())) return;
+    // (user's video 2026-11-09 16:34): a photo opened with the keyboard up — the viewer goes full screen, the keyboard goes
+    // down and the field's room was counted with the keyboard's height twice (1356 → 2500 px in one frame): the chat jumped
+    // under the photo flying out of it. Under the viewer the chat keeps its place; it catches up once the viewer is gone
+    PopupLayout tgx101Popup = context().getCurrentPopupWindow();
+    if (tgx101Popup != null && tgx101Popup.getBoundController() instanceof org.thunderdog.challegram.mediaview.MediaViewController) {
+      long now = android.os.SystemClock.uptimeMillis();
+      if (tgx101ViewerSince == 0) tgx101ViewerSince = now;
+      long left = TGX101_VIEWER_SETTLE_MS - (now - tgx101ViewerSince);
+      if (left > 0) { // still flying out: the chat stays; caught up once the photo covers the screen
+        messagesView.removeCallbacks(tgx101PaddingAfterViewer);
+        messagesView.postDelayed(tgx101PaddingAfterViewer, left + 16);
+        return;
+      }
+    } else {
+      tgx101ViewerSince = 0;
+    }
     // (user 2026-10-22 «притормаживает, если напишешь и сразу выйдешь из чата»): leaving with the keyboard up, the keyboard
     // went down while the chat slid away and the list was laid out again for every step of it — the chat is leaving, its
     // room doesn't matter. If the back is cancelled, onFocus catches up
