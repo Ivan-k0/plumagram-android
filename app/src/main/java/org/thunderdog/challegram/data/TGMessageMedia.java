@@ -537,10 +537,16 @@ public class TGMessageMedia extends TGMessage {
       // left a narrow picture pressed to the left
       maxWidth = origMaxWidth;
       maxHeight = (int) ((float) origMaxWidth * MAX_RATIO);
+    } else if (tgx101Feed() && !isOutgoing() && !mosaicWrapper.isSingular()) {
+      // TGx101 (user's screenshot 2026-11-09 16:02): «Blocks» — the card is as wide as the chat, an album laid out at the
+      // bubble's usual width left an empty strip on its right; it takes the card's whole inner width
+      maxWidth = origMaxWidth;
+      maxHeight = (int) ((float) origMaxWidth * .85f);
     } else {
       maxWidth = getSmallestMaxContentWidth();
       maxHeight = getSmallestMaxContentHeight();
     }
+    final boolean tgx101FillCard = tgx101Feed() && !isOutgoing() && !needFullWidth && !mosaicWrapper.isSingular();
 
     int minWidth = Screen.dp(MosaicWrapper.MIN_LAYOUT_WIDTH);
     int minHeight = Screen.dp(MosaicWrapper.MIN_LAYOUT_HEIGHT);
@@ -562,7 +568,7 @@ public class TGMessageMedia extends TGMessage {
     minWidth = Math.min(minWidth, maxWidth);
     minHeight = Math.min(minHeight, maxHeight);
 
-    mosaicWrapper.build(maxWidth, maxHeight, minWidth, minHeight, needFullWidth ? MosaicWrapper.MODE_FIT_WIDTH : MosaicWrapper.MODE_FIT_AS_IS, false);
+    mosaicWrapper.build(maxWidth, maxHeight, minWidth, minHeight, needFullWidth || tgx101FillCard ? MosaicWrapper.MODE_FIT_WIDTH : MosaicWrapper.MODE_FIT_AS_IS, false);
 
     if (isHot()) {
       updateTimerText();
