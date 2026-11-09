@@ -9627,17 +9627,28 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private void goBackToCaption (boolean byBackPress) {
     if (currentSection != SECTION_CAPTION) {
-      changeSection(SECTION_CAPTION, byBackPress || currentSection == SECTION_PAINT ? MODE_BACK_PRESS : MODE_CANCEL);
-      // TGx101 (user 2026-11-09 «зачем там окно с полем ввода»): the pencil on a chat's photo opens «edit and send»; left
-      // without a single change, its send screen (caption, send) was one more «back» for nothing — straight back to the photo
-      if (inForceEditMode() && !tgx101HasEdits()) {
-        UI.post(() -> {
-          if (!isDestroyed() && inForceEditMode() && currentSection == SECTION_CAPTION && !tgx101HasEdits()) {
-            closeForceEditMode();
-          }
-        }, 220);
+      final boolean tgx101Plain = inForceEditMode() && !tgx101HasEdits();
+      // TGx101 (user 2026-11-09 «зачем там окно с полем ввода», then «на мгновение появляется»): the pencil on a chat's
+      // photo opens «edit and send»; left without a change, its send screen came up for 0.2 s and went — it's closed right
+      // away, the section changing fast
+      changeSection(SECTION_CAPTION, byBackPress || currentSection == SECTION_PAINT ? MODE_BACK_PRESS : MODE_CANCEL, tgx101Plain);
+      if (inForceEditMode()) {
+        org.thunderdog.challegram.Tgx101Diag.mark("viewer editor: left " + (byBackPress ? "by back" : "by cancel") + " — " + tgx101EditsSaid());
+      }
+      if (tgx101Plain && inForceEditMode() && !tgx101HasEdits()) {
+        closeForceEditMode();
       }
     }
+  }
+
+  private String tgx101EditsSaid () {
+    MediaItem item = stack != null ? stack.getCurrent() : null;
+    if (item == null) return "no item";
+    org.thunderdog.challegram.mediaview.data.FiltersState f = item.getFiltersState();
+    org.thunderdog.challegram.mediaview.crop.CropState c = item.getCropState();
+    PaintState p = item.getPaintState();
+    return "crop " + (c == null ? "none" : c.isEmpty() ? "empty" : "SET (rotate " + c.getRotateBy() + ", degrees " + c.getDegreesAroundCenter() + ", region " + !c.isRegionEmpty() + ")")
+      + ", paint " + (p == null ? "none" : p.isEmpty() ? "empty" : "SET") + ", filters " + (f == null ? "none" : f.isEmpty() ? "empty" : "SET");
   }
 
   private boolean tgx101HasEdits () {
