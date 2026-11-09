@@ -8986,7 +8986,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         boolean plain = inForceEditMode() && !tgx101HasEdits();
         changeSection(SECTION_CAPTION, MODE_CANCEL, plain);
         if (inForceEditMode()) org.thunderdog.challegram.Tgx101Diag.mark("viewer editor: discarded — " + tgx101EditsSaid());
-        if (plain && inForceEditMode() && !tgx101HasEdits()) closeForceEditMode();
+        if (plain) tgx101LeavePlainEdit();
       }
       return true;
     }, getForcedTheme());
@@ -9640,10 +9640,24 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       if (inForceEditMode()) {
         org.thunderdog.challegram.Tgx101Diag.mark("viewer editor: left " + (byBackPress ? "by back" : "by cancel") + " — " + tgx101EditsSaid());
       }
-      if (tgx101Plain && inForceEditMode() && !tgx101HasEdits()) {
+      if (tgx101Plain) tgx101LeavePlainEdit();
+    }
+  }
+
+  /** the send screen after an editor left without a change: hidden at once, closed once the sections have settled —
+   *  closed in the middle of the change, the next pencil tap found its views still attached and crashed (0.2.896, 21:05:05) */
+  private void tgx101LeavePlainEdit () {
+    if (!inForceEditMode()) return;
+    if (bottomWrap != null) bottomWrap.setAlpha(0f);
+    if (captionWrapView != null) captionWrapView.setAlpha(0f);
+    final View hiddenBottom = bottomWrap, hiddenCaption = captionWrapView;
+    UI.post(() -> {
+      if (!isDestroyed() && inForceEditMode() && currentSection == SECTION_CAPTION && !tgx101HasEdits()) {
         closeForceEditMode();
       }
-    }
+      if (hiddenBottom != null) hiddenBottom.setAlpha(1f); // back for whoever uses them next
+      if (hiddenCaption != null) hiddenCaption.setAlpha(1f);
+    }, 320);
   }
 
   private String tgx101EditsSaid () {
