@@ -489,6 +489,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().useTgx101NotificationPlane(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideBlocked) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideBlocked(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101SaveFolder) {
+          view.setData(tgx101SaveFolderPaths());
         } else if (itemId == R.id.btn_tgx101IdleCut) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101IdleCut(), isUpdate);
         } else if (itemId == R.id.btn_tgx101KeepHighRate) {
@@ -664,6 +666,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NoAnimation, 0, R.string.Tgx101NoAnimation),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_CUSTOM - TGX101_PILLS, R.id.btn_tgx101MediaDots, 0, R.string.Tgx101MediaDots),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101SaveFolder, 0, R.string.Tgx101SaveFolder),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         // (user 2026-10-26 «функции ИИ отдельным подменю», «настройки птички вынеси в Фишки»): one row each, the rest inside
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101AiOpen, 0, R.string.Tgx101AiSection),
@@ -1095,9 +1099,29 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   private static final int[] FOREGROUND_NOTIF_NAMES = {R.string.Tgx101ForegroundNotifShow, R.string.Tgx101ForegroundNotifQuiet, R.string.Tgx101ForegroundNotifHide};
 
   // TGx101 (approved mockup «Окна Material 3» В): a choice of two right in its row as pills, no window
+  /** TGx101: where saved things land now, «Download/PlumaGram, Pictures/PlumaGram, Music/PlumaGram» */
+  private static String tgx101SaveFolderPaths () {
+    String sub = Settings.instance().tgx101SaveSubfolder();
+    String tail = sub != null ? "/" + sub : "";
+    return "Download" + tail + ", Pictures" + tail + ", Music" + tail;
+  }
+
+  private void tgx101AskSaveFolderName () {
+    String own = Settings.instance().tgx101SaveFolderName();
+    openInputAlert(Lang.getString(R.string.Tgx101SaveFolderName), Lang.getString(R.string.Tgx101SaveFolderNameHint), R.string.Save, R.string.Cancel, own, (inputView, result) -> {
+      String clean = Settings.tgx101CleanFolderName(result);
+      if (clean.isEmpty()) return false; // nothing usable: the field stays
+      Settings.instance().setTgx101SaveFolderName(clean);
+      Settings.instance().setTgx101SaveFolderMode(Settings.TGX101_SAVE_CUSTOM);
+      adapter.updateValuedSettingById(R.id.btn_tgx101SaveFolder);
+      return true;
+    }, true);
+  }
+
   /** TGx101: what holding a setting explains — the explanation lives here, not in the title (user 2026-11-08) */
   private static int tgx101HoldHint (int id) {
     if (id == R.id.btn_tgx101MediaDots) return R.string.Tgx101MediaDotsHint;
+    if (id == R.id.btn_tgx101SaveFolder) return R.string.Tgx101SaveFolderHint;
     if (id == R.id.btn_tgx101CompactBubbles) return R.string.Tgx101CompactBubblesHint;
     if (id == R.id.btn_tgx101KeepHighRate) return R.string.Tgx101KeepHighRateHint;
     if (id == R.id.btn_tgx101IdleCut) return R.string.Tgx101IdleCutHint;
@@ -1210,7 +1234,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101HideCompose || id == R.id.btn_tgx101HideJoin || id == R.id.btn_tgx101HideSponsored) return 0;
     if (id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101NavCapsule || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101SearchHoldProxy || id == R.id.btn_tgx101CapsuleScrollHide || id == R.id.btn_tgx101CapsuleMenu || id == R.id.btn_tgx101CapsuleTabs || id == R.id.btn_tgx101ContactsMenu || id == R.id.btn_tgx101QuickCalls) return 0;
     if (id == R.id.btn_tgx101RearRounds || id == R.id.btn_tgx101RoundRememberCamera || id == R.id.btn_tgx101RoundAskCamera) return 4;
-    if (id == R.id.btn_tgx101NoAnimation || id == R.id.btn_tgx101MediaDots) return 4; // «Media»
+    if (id == R.id.btn_tgx101NoAnimation || id == R.id.btn_tgx101MediaDots || id == R.id.btn_tgx101SaveFolder) return 4; // «Media»
     if (id == R.id.btn_tgx101HideAllReactions || id == R.id.btn_tgx101HideChannelReactions || id == R.id.btn_tgx101NextChannelSwipe || id == R.id.btn_tgx101NextChannelBackToList || id == R.id.btn_showDiscussButton || id == R.id.btn_showCommentsButton
       || id == R.id.btn_showChannelMuteButton || id == R.id.btn_tgx101ChannelMuteBell || id == R.id.btn_hideSubscribeLink || id == R.id.btn_separateChannelPosts || id == R.id.btn_tgx101TypeMedia) return 3;
     if (id == R.id.btn_tgx101VoiceQueue || id == R.id.btn_tgx101CameraInAttach || id == R.id.btn_tgx101ZoomPullClose || id == R.id.btn_roundVideoQuality
@@ -1702,6 +1726,27 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     } else if (id == R.id.btn_tgx101ForegroundNotif) {
       // (user 2026-10-27 «уведомления в приложении — настроить грамотно»): its own screen — show / sound / vibration
       navigateTo(new Tgx101ForegroundNotifController(context, tdlib));
+    } else if (id == R.id.btn_tgx101SaveFolder) {
+      // (user 2026-11-09, mockup «Папка для сохранения»): PlumaGram / Telegram / none / a name of one's own
+      int current = Settings.instance().tgx101SaveFolderMode();
+      String own = Settings.instance().tgx101SaveFolderName();
+      ListItem[] items = {
+        new ListItem(ListItem.TYPE_RADIO_OPTION, 1, 0, org.thunderdog.challegram.BuildConfig.PROJECT_NAME, R.id.btn_tgx101SaveFolder, current == Settings.TGX101_SAVE_APP),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, 2, 0, Lang.getString(R.string.Tgx101SaveFolderTelegram), R.id.btn_tgx101SaveFolder, current == Settings.TGX101_SAVE_TELEGRAM),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, 3, 0, Lang.getString(R.string.Tgx101SaveFolderNone), R.id.btn_tgx101SaveFolder, current == Settings.TGX101_SAVE_NONE),
+        new ListItem(ListItem.TYPE_RADIO_OPTION, 4, 0, own.isEmpty() ? Lang.getString(R.string.Tgx101SaveFolderOwn) : Lang.getString(R.string.Tgx101SaveFolderOwnNamed, own), R.id.btn_tgx101SaveFolder, current == Settings.TGX101_SAVE_CUSTOM),
+      };
+      showSettings(new SettingsWrapBuilder(R.id.btn_tgx101SaveFolder)
+        .setRawItems(items)
+        .setIntDelegate((resultId, result) -> {
+          int picked = result.get(R.id.btn_tgx101SaveFolder);
+          if (picked == 4) {
+            tgx101AskSaveFolderName();
+          } else if (picked >= 1 && picked <= 3) {
+            Settings.instance().setTgx101SaveFolderMode(picked - 1);
+            adapter.updateValuedSettingById(R.id.btn_tgx101SaveFolder);
+          }
+        }));
     } else if (id == R.id.btn_tgx101Snooze) {
       int current = Settings.instance().tgx101SnoozeMinutes();
       // (user 2026-10-20 «в уведомлении вместо «Тихо» — «Нравится»», «реакция как при двойном тапе, первая выбранная»):

@@ -2085,7 +2085,7 @@ public class U {
     File storageDir = null;
     if (!isPrivate) {
       if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
-        storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), BuildConfig.PROJECT_NAME);
+        storageDir = org.thunderdog.challegram.unsorted.Settings.tgx101SaveDir(Environment.DIRECTORY_PICTURES); // TGx101: MagiX → Media → the save folder
       } else {
         Log.w("External storage is not mounted READ/WRITE.");
       }

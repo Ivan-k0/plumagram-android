@@ -6664,6 +6664,14 @@
   <string name="Tgx101CompactBubbles">Compact bubbles</string>
   <string name="Tgx101KeepHighRate">Keep the high refresh rate</string>
   <string name="Tgx101IdleCut">Disconnect in the background</string>
+  <string name="Tgx101SaveFolder">Folder for saving</string>
+  <string name="Tgx101SaveFolderHint">The folder inside Download, Pictures and Music where saved files, photos, videos and music go. «Telegram» — the same folders as the official app; «No folder» — straight into Download, Pictures and Music. Things saved before stay where they are</string>
+  <string name="Tgx101SaveFolderTelegram">Telegram (with the official app)</string>
+  <string name="Tgx101SaveFolderNone">No folder</string>
+  <string name="Tgx101SaveFolderOwn">Own name…</string>
+  <string name="Tgx101SaveFolderOwnNamed">Own name: %1$s</string>
+  <string name="Tgx101SaveFolderName">Folder name</string>
+  <string name="Tgx101SaveFolderNameHint">Saved things will be in Download, Pictures and Music, in a folder with this name</string>
   <string name="Tgx101IdleCutHint">5 minutes after you leave the app it disconnects from Telegram, and new messages come by push, as in the official app — the phone wakes up much less often. A push, a reply from a notification or opening the app connect it again. Works only when push notifications work and «Keep connection in background» is off</string>
   <string name="Tgx101KeepHighRateHint">After a video the system may keep the app at 60 Hz until it restarts. On: the app asks the system not to lower its refresh rate to save power — scrolling stays smooth, the battery may last a little less</string>
   <string name="Tgx101TopicsButton">Topics</string>

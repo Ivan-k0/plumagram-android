@@ -3860,6 +3860,43 @@ public class Settings {
   private static final String KEY_TGX101_IDLE_CUT = "tgx101_idle_cut";
   public boolean tgx101IdleCut () { return pmc.getBoolean(KEY_TGX101_IDLE_CUT, true); }
   public void setTgx101IdleCut (boolean v) { pmc.putBoolean(KEY_TGX101_IDLE_CUT, v); }
+  // (user 2026-11-09, mockup «Папка для сохранения»): the subfolder of Pictures / Download / Music things are saved into
+  public static final int TGX101_SAVE_APP = 0, TGX101_SAVE_TELEGRAM = 1, TGX101_SAVE_NONE = 2, TGX101_SAVE_CUSTOM = 3;
+  private static final String KEY_TGX101_SAVE_FOLDER = "tgx101_save_folder";
+  private static final String KEY_TGX101_SAVE_FOLDER_NAME = "tgx101_save_folder_name";
+  public int tgx101SaveFolderMode () { return pmc.getInt(KEY_TGX101_SAVE_FOLDER, TGX101_SAVE_APP); }
+  public void setTgx101SaveFolderMode (int mode) { pmc.putInt(KEY_TGX101_SAVE_FOLDER, mode); }
+  public String tgx101SaveFolderName () { return pmc.getString(KEY_TGX101_SAVE_FOLDER_NAME, ""); }
+  public void setTgx101SaveFolderName (String name) { pmc.putString(KEY_TGX101_SAVE_FOLDER_NAME, tgx101CleanFolderName(name)); }
+
+  /** what a folder's name can't have, gone; dots and spaces off its ends */
+  public static String tgx101CleanFolderName (@Nullable String name) {
+    if (name == null) return "";
+    String clean = name.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "").trim();
+    while (clean.startsWith(".")) clean = clean.substring(1).trim();
+    while (clean.endsWith(".")) clean = clean.substring(0, clean.length() - 1).trim();
+    return clean.length() > 64 ? clean.substring(0, 64).trim() : clean;
+  }
+
+  /** the subfolder, null — straight into Pictures / Download / Music */
+  public @Nullable String tgx101SaveSubfolder () {
+    switch (tgx101SaveFolderMode()) {
+      case TGX101_SAVE_TELEGRAM: return "Telegram";
+      case TGX101_SAVE_NONE: return null;
+      case TGX101_SAVE_CUSTOM: {
+        String name = tgx101SaveFolderName();
+        return name.isEmpty() ? BuildConfig.PROJECT_NAME : name;
+      }
+      default: return BuildConfig.PROJECT_NAME;
+    }
+  }
+
+  /** a public folder (Environment.DIRECTORY_*) with the chosen subfolder */
+  public static java.io.File tgx101SaveDir (String publicType) {
+    java.io.File dir = android.os.Environment.getExternalStoragePublicDirectory(publicType);
+    String sub = instance().tgx101SaveSubfolder();
+    return sub != null ? new java.io.File(dir, sub) : dir;
+  }
   private static final String KEY_TGX101_COMPACT_BUBBLES = "tgx101_compact_bubbles";
   private static volatile int tgx101CompactBubbles = -1;
   public boolean tgx101CompactBubbles () {

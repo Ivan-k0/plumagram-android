@@ -1363,6 +1363,14 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101CompactBubbles, "Компактные пузыри");
     RU.put(R.string.Tgx101KeepHighRate, "Не снижать частоту экрана");
     RU.put(R.string.Tgx101IdleCut, "Отключаться в фоне");
+    RU.put(R.string.Tgx101SaveFolder, "Папка для сохранения");
+    RU.put(R.string.Tgx101SaveFolderHint, "Папка внутри Download, Pictures и Music, куда попадают сохранённые файлы, фото, видео и музыка. «Telegram» — те же папки, что у официального приложения; «Без папки» — прямо в Download, Pictures и Music. Сохранённое раньше остаётся на месте");
+    RU.put(R.string.Tgx101SaveFolderTelegram, "Telegram (вместе с официальным)");
+    RU.put(R.string.Tgx101SaveFolderNone, "Без папки");
+    RU.put(R.string.Tgx101SaveFolderOwn, "Своё имя…");
+    RU.put(R.string.Tgx101SaveFolderOwnNamed, "Своё имя: %1$s");
+    RU.put(R.string.Tgx101SaveFolderName, "Имя папки");
+    RU.put(R.string.Tgx101SaveFolderNameHint, "Сохранённое будет в Download, Pictures и Music, в папке с этим именем");
     RU.put(R.string.Tgx101IdleCutHint, "Через 5 минут после выхода из приложения оно отключается от Telegram, а новые сообщения приходят через push, как в официальном приложении, — телефон просыпается намного реже. Push, ответ из уведомления или открытие приложения подключают его снова. Работает, только когда работают push-уведомления и выключено «Держать соединение в фоне»");
     RU.put(R.string.Tgx101KeepHighRateHint, "После видео система может держать приложение на 60 Гц до перезапуска. Включено: приложение просит систему не снижать ему частоту ради экономии — прокрутка остаётся плавной, батарея может садиться чуть быстрее");
     RU.put(R.string.Tgx101TopicsButton, "Темы");

@@ -4519,11 +4519,11 @@ public class TD {
     switch (file.fileType.getConstructor()) {
       case TdApi.FileTypeAudio.CONSTRUCTOR:
       case TdApi.FileTypeVoiceNote.CONSTRUCTOR: {
-        destDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
+        destDir = org.thunderdog.challegram.unsorted.Settings.tgx101SaveDir(Environment.DIRECTORY_MUSIC); // TGx101: the save folder
         break;
       }
       default: {
-        destDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        destDir = org.thunderdog.challegram.unsorted.Settings.tgx101SaveDir(Environment.DIRECTORY_DOWNLOADS);
         break;
       }
     }
@@ -4584,7 +4584,7 @@ public class TD {
     if (!sourceFile.exists()) {
       return;
     }
-    final File destDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+    final File destDir = org.thunderdog.challegram.unsorted.Settings.tgx101SaveDir(Environment.DIRECTORY_DOWNLOADS); // TGx101: the save folder
     if (!FileUtils.createDirectory(destDir)) {
       return;
     }
