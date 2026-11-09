@@ -9619,7 +9619,23 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private void goBackToCaption (boolean byBackPress) {
     if (currentSection != SECTION_CAPTION) {
       changeSection(SECTION_CAPTION, byBackPress || currentSection == SECTION_PAINT ? MODE_BACK_PRESS : MODE_CANCEL);
+      // TGx101 (user 2026-11-09 «зачем там окно с полем ввода»): the pencil on a chat's photo opens «edit and send»; left
+      // without a single change, its send screen (caption, send) was one more «back» for nothing — straight back to the photo
+      if (inForceEditMode() && !tgx101HasEdits()) {
+        UI.post(() -> {
+          if (!isDestroyed() && inForceEditMode() && currentSection == SECTION_CAPTION && !tgx101HasEdits()) {
+            closeForceEditMode();
+          }
+        }, 220);
+      }
     }
+  }
+
+  private boolean tgx101HasEdits () {
+    MediaItem item = stack != null ? stack.getCurrent() : null;
+    if (item == null) return false;
+    org.thunderdog.challegram.mediaview.data.FiltersState filters = item.getFiltersState();
+    return hasAppliedCrop() || hasAppliedPaints() || (filters != null && !filters.isEmpty());
   }
 
   // etc
