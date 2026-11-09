@@ -4504,6 +4504,24 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return TGMessage.getContentLeft();
   }
 
+  /** TGx101: the journal — which of canSlideBackFrom's rules refuses the back swipe at this point */
+  public String tgx101WhyNoSlideBack (NavigationController navigationController, float x, float y) {
+    if (context().getRecordAudioVideoController().isOpen()) return "recording open";
+    if (pagerScrollOffset > 0f) return "pager offset " + pagerScrollOffset;
+    if (hasAttachedFiles()) return "attached files";
+    if (hasEditedChanges()) return "edited changes";
+    if (getChatId() == 0 || inPreviewMode) return "preview";
+    int baseY = Views.getLocationInWindow(navigationController.getValue())[1];
+    if (emojiLayout != null && emojiLayout.getVisibility() == View.VISIBLE && y >= Views.getLocationInWindow(emojiLayout)[1] - baseY) return "over the emoji panel";
+    if (inputView != null && inputView.getVisibility() == View.VISIBLE) {
+      int inputY = Views.getLocationInWindow(inputView)[1] - baseY;
+      if (y >= inputY && y < inputY + inputView.getMeasuredHeight()) return "over the input field (y " + inputY + "–" + (inputY + inputView.getMeasuredHeight()) + ")";
+    }
+    if (needTabs() && y < HeaderView.getSize(true)) return "over the tabs";
+    if (Settings.instance().needChatQuickShare()) return "quick share: only from the left " + getSlideBackBound() + " px";
+    return "?";
+  }
+
   @Override
   public boolean canSlideBackFrom (NavigationController navigationController, float x, float y) {
     if (context().getRecordAudioVideoController().isOpen()) {

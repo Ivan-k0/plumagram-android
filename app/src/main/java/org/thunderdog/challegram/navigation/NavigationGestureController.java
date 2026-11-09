@@ -132,7 +132,7 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
       org.thunderdog.challegram.Tgx101Diag.mark("back swipe: listening at " + Math.round(startX / Screen.dp(1f)) + "," + Math.round(startY / Screen.dp(1f)) + "dp");
     }
     if (!listenSlidingBack && org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
-      org.thunderdog.challegram.Tgx101Diag.mark("back swipe: not listening at " + Math.round(startX / Screen.dp(1f)) + "," + Math.round(startY / Screen.dp(1f)) + "dp (scrolling " + isScrolling + ")");
+      org.thunderdog.challegram.Tgx101Diag.mark("back swipe: not listening at " + Math.round(startX / Screen.dp(1f)) + "," + Math.round(startY / Screen.dp(1f)) + "dp (scrolling " + isScrolling + ") — " + tgx101WhyNot(c, startX, startY));
     }
     slidingVertical = listenSlidingBack && c.usePopupMode();
 
@@ -143,6 +143,27 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
     int stackSize = navigation.getStackSize();
     ViewController<?> c = navigation.getCurrentStackItem();
     return navigation.swipeNavigationEnabled() && stackSize > 0 && c != null && c.swipeNavigationEnabled() && (!c.forceFadeMode() || c.tgx101SlideBackInFadeMode()) && !c.inSelectMode() && !c.inCustomMode() && !(stackSize == 1 && c.inSearchMode());
+  }
+
+  /** TGx101 (user 2026-11-09 18:36: the back swipe never started in a channel, every touch «not listening»): which rule said no */
+  private String tgx101WhyNot (ViewController<?> c, float x, float y) {
+    if (!navigation.swipeNavigationEnabled()) return "navigation swipes off";
+    if (navigation.getStackSize() <= 0) return "empty stack";
+    if (!c.swipeNavigationEnabled()) return c.getClass().getSimpleName() + " swipes off";
+    if (c.forceFadeMode() && !c.tgx101SlideBackInFadeMode()) return "fade mode";
+    if (c.inSelectMode()) return "select mode";
+    if (c.inCustomMode()) return "custom mode";
+    if (navigation.getStackSize() == 1 && c.inSearchMode()) return "search on the root";
+    if (!c.canSlideBackFrom(navigation, x, y)) {
+      String why = c instanceof org.thunderdog.challegram.ui.MessagesController ? ((org.thunderdog.challegram.ui.MessagesController) c).tgx101WhyNoSlideBack(navigation, x, y) : null;
+      return "the screen refuses here" + (why != null ? ": " + why : "");
+    }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      RootFrameLayout root = UI.getContext(navigation.getContext()).getRootView();
+      Rect g = root.getSystemGesturesInsets();
+      if (x < g.left || x > root.getMeasuredWidth() - g.right) return "the system's gesture edge (" + g.left + "/" + g.right + " px)";
+    }
+    return "drawer / scrolling";
   }
 
   private boolean canSlideBack (ViewController<?> c, float x, float y) {
