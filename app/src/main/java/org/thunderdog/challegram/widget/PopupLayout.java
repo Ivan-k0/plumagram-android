@@ -204,6 +204,8 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     this.tgx101OverKeyboard = true;
   }
 
+  private Object tgx101BackCallback; // android.window.OnBackInvokedCallback, Android 13+
+
   public boolean tgx101IsOverKeyboard () {
     return tgx101OverKeyboard;
   }
@@ -379,6 +381,20 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
             lp.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
             updated = true;
             org.thunderdog.challegram.Tgx101Diag.mark("popup: over the keyboard in its own window");
+            // its own window gets «back» itself and the system dismissed it at once (19:49:12, 19:49:55: no flight back,
+            // the photo's place left empty) — the viewer closes the usual way instead
+            if (Build.VERSION.SDK_INT >= 33) {
+              try {
+                android.window.OnBackInvokedDispatcher d = rootView.findOnBackInvokedDispatcher();
+                if (d != null) {
+                  android.window.OnBackInvokedCallback cb = () -> UI.getContext(getContext()).onBackPressed();
+                  tgx101BackCallback = cb;
+                  d.registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_OVERLAY, cb);
+                }
+              } catch (Throwable t) {
+                org.thunderdog.challegram.Tgx101Diag.mark("popup: back callback failed " + t);
+              }
+            }
           }
           if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             WindowManager.LayoutParams lp = (WindowManager.LayoutParams) rootView.getLayoutParams();

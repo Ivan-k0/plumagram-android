@@ -1017,10 +1017,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
   }
 
+  private boolean tgx101OverKb; // the viewer opens over the keyboard (see PopupLayout#tgx101SetOverKeyboard)
+
   private void setFullScreen (boolean isFullscreen) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       if (mode != MODE_GALLERY && Config.CUTOUT_ENABLED) {
-        if (isFullscreen && (mode == MODE_MESSAGES || mode == MODE_SIMPLE) && !(popupView != null && popupView.tgx101IsOverKeyboard())) {
+        if (isFullscreen && (mode == MODE_MESSAGES || mode == MODE_SIMPLE) && !tgx101OverKb) {
           ViewController<?> c = context.navigation().getCurrentStackItem();
           if (c != null) {
             c.hideSoftwareKeyboard();
@@ -6231,6 +6233,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   @Override
   protected View onCreateView (Context context) {
     context().closeOtherPips();
+    // decided before going fullscreen: that took the keyboard away before the viewer was even made (journal 19:49:45)
+    tgx101OverKb = (mode == MODE_MESSAGES || mode == MODE_SIMPLE) && context().isKeyboardVisible() && canRunFullscreen();
 
     if (SET_FULLSCREEN_ON_OPEN) {
       if (tgx101LandscapeWindow()) {
@@ -6282,7 +6286,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       popupView.setNeedRootInsets();
       popupView.setHideKeyboard();
       popupView.init(false);
-    } else if ((mode == MODE_MESSAGES || mode == MODE_SIMPLE) && context().isKeyboardVisible()) {
+    } else if (tgx101OverKb) {
       // TGx101: the keyboard is up — the viewer opens in its own window above it (see PopupLayout#tgx101SetOverKeyboard)
       popupView.tgx101SetOverKeyboard();
       popupView.setNeedFullScreen(true);
