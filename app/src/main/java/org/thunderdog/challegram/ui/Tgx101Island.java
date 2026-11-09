@@ -48,7 +48,7 @@ import me.vkryl.android.AnimatorUtils;
 /**
  * TGx101 (approved mockup «Уведомления», variant 2 «Капсула-остров», user 2026-10-27): a silent in-app notification — a
  * small dark capsule under the camera with the chat's photo and name. No sound, no vibration; it goes by itself in 4 s;
- * a tap opens it into a card with two lines of the message, a second tap opens the chat; a swipe up takes it away, two
+ * a tap opens it into a card with two lines of the message, a second tap opens the chat; a swipe up or sideways takes it away, two
  * swipes in a row from one chat keep that chat's capsules away for 5 minutes. Nothing for the chat that is open now.
  */
 public final class Tgx101Island {
@@ -176,6 +176,10 @@ public final class Tgx101Island {
     private float shown; // 0..1
     private float expanded; // 0..1
     private float dragY;
+    // (user 2026-11-09 «смахиваться не только вверх, но и в бока»): sideways too — the drop follows the finger and fades
+    private float dragX;
+    private int dragAxis; // 0 — not decided yet, 1 — sideways, 2 — up / down
+    private @Nullable android.view.VelocityTracker velocity;
     private @Nullable ValueAnimator showAnimator, expandAnimator, dragAnimator;
 
     IslandView (Context context) {
@@ -222,6 +226,7 @@ public final class Tgx101Island {
         avatar.requestChat(tdlib, chatId, AvatarReceiver.Options.NONE);
         setExpanded(0f);
         dragY = 0f;
+        dragX = 0f;
       }
       layoutTexts();
       removeCallbacks(hide);
@@ -281,7 +286,7 @@ public final class Tgx101Island {
       float w = collapsedW + (expandedW - collapsedW) * expanded;
       float h = collapsedH + (expandedH - collapsedH) * expanded;
       float top = Screen.getStatusBarHeight() + Screen.dp(6f) + dragY;
-      float cx = getWidth() / 2f;
+      float cx = getWidth() / 2f + dragX;
       rect.set(cx - w / 2f, top, cx + w / 2f, top + h);
     }
 
@@ -292,10 +297,11 @@ public final class Tgx101Island {
       int save = c.save();
       float scale = .7f + .3f * shown;
       c.scale(scale, scale, rect.centerX(), rect.top);
-      int alpha = (int) (255 * Math.min(1f, shown * 1.4f));
+      float sideFade = getWidth() > 0 ? 1f - Math.min(1f, Math.abs(dragX) / (getWidth() * .55f)) : 1f;
+      int alpha = (int) (255 * Math.min(1f, shown * 1.4f) * sideFade);
       // (user 2026-10-27 «в цвет темы и мягче»): the theme's own card colour, a soft shadow under it and a hairline
       // edge instead of the black island
-      float a = Math.min(1f, shown * 1.4f);
+      float a = Math.min(1f, shown * 1.4f) * sideFade;
       float radius = Screen.dp(17f) + Screen.dp(7f) * expanded;
       fill.setColor(org.thunderdog.challegram.theme.Theme.fillingColor());
       fill.setAlpha((int) (255 * a));
@@ -341,7 +347,7 @@ public final class Tgx101Island {
 
     // touches: only on the capsule / card itself, the rest goes through
 
-    private float downX, downY, downDrag;
+    private float downX, downY, downDrag, downDragX;
     private boolean tracking, moved;
 
     @Override
@@ -355,19 +361,33 @@ public final class Tgx101Island {
           if (!hit.contains(e.getX(), e.getY())) return false;
           tracking = true;
           moved = false;
+          dragAxis = 0;
           downX = e.getX();
           downY = e.getY();
           downDrag = dragY;
+          downDragX = dragX;
+          if (velocity != null) velocity.recycle();
+          velocity = android.view.VelocityTracker.obtain();
+          velocity.addMovement(e);
           removeCallbacks(hide);
           if (dragAnimator != null) dragAnimator.cancel();
           return true;
         }
         case MotionEvent.ACTION_MOVE: {
           if (!tracking) return false;
+          if (velocity != null) velocity.addMovement(e);
+          float dx = e.getX() - downX;
           float dy = e.getY() - downY;
-          if (!moved && Math.hypot(e.getX() - downX, dy) > Screen.getTouchSlop()) moved = true;
+          if (!moved && Math.hypot(dx, dy) > Screen.getTouchSlop()) {
+            moved = true;
+            dragAxis = Math.abs(dx) > Math.abs(dy) ? 1 : 2;
+          }
           if (moved) {
-            dragY = Math.min(Screen.dp(12f), downDrag + dy) * (dy > 0 ? .3f : 1f);
+            if (dragAxis == 1) {
+              dragX = downDragX + dx;
+            } else {
+              dragY = Math.min(Screen.dp(12f), downDrag + dy) * (dy > 0 ? .3f : 1f);
+            }
             invalidate();
           }
           return true;
@@ -376,8 +396,21 @@ public final class Tgx101Island {
         case MotionEvent.ACTION_CANCEL: {
           if (!tracking) return false;
           tracking = false;
+          float vx = 0f;
+          if (velocity != null) {
+            velocity.addMovement(e);
+            velocity.computeCurrentVelocity(1000);
+            vx = velocity.getXVelocity();
+            velocity.recycle();
+            velocity = null;
+          }
+          boolean flung = Math.abs(vx) > Screen.dp(600f) && Math.signum(vx) == Math.signum(dragX);
           if (e.getActionMasked() == MotionEvent.ACTION_UP && !moved) {
             onTap();
+          } else if (dragAxis == 1 && (Math.abs(dragX) > getWidth() / 3f || (flung && Math.abs(dragX) > Screen.dp(24f)))) {
+            // swiped sideways: flies out that way; counts like a swipe up
+            if (tdlib != null) onDismissedBySwipe(tdlib, chatId, title);
+            flyOutSideways();
           } else if (dragY < -Screen.dp(20f)) {
             // swiped up: away; twice in a row from one chat — that chat quiet for 5 minutes
             if (tdlib != null) onDismissedBySwipe(tdlib, chatId, title);
@@ -429,12 +462,43 @@ public final class Tgx101Island {
 
     private void settleDrag () {
       if (dragAnimator != null) dragAnimator.cancel();
-      ValueAnimator a = ValueAnimator.ofFloat(dragY, 0f);
+      final float fromY = dragY, fromX = dragX;
+      ValueAnimator a = ValueAnimator.ofFloat(1f, 0f);
       a.setDuration(180);
       a.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
       a.addUpdateListener(an -> {
-        dragY = (float) an.getAnimatedValue();
+        float f = (float) an.getAnimatedValue();
+        dragY = fromY * f;
+        dragX = fromX * f;
         invalidate();
+      });
+      dragAnimator = a;
+      a.start();
+    }
+
+    private void flyOutSideways () {
+      if (dragAnimator != null) dragAnimator.cancel();
+      final float from = dragX, to = Math.signum(dragX == 0f ? 1f : dragX) * getWidth();
+      ValueAnimator a = ValueAnimator.ofFloat(0f, 1f);
+      a.setDuration(160);
+      a.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+      a.addUpdateListener(an -> {
+        dragX = from + (to - from) * (float) an.getAnimatedValue();
+        invalidate();
+      });
+      a.addListener(new android.animation.AnimatorListenerAdapter() {
+        @Override
+        public void onAnimationEnd (android.animation.Animator animation) {
+          if (dragAnimator != animation) return;
+          if (showAnimator != null) showAnimator.cancel();
+          shown = 0f;
+          shownTarget = 0f;
+          dragX = 0f;
+          dragY = 0f;
+          setExpanded(0f);
+          invalidate();
+          showNext();
+        }
       });
       dragAnimator = a;
       a.start();
@@ -469,6 +533,7 @@ public final class Tgx101Island {
           if (showAnimator != animation) return;
           if (!show) {
             dragY = 0f;
+            dragX = 0f;
             setExpanded(0f);
           }
           if (after != null) after.run();
