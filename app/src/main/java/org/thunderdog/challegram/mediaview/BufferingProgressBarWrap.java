@@ -59,7 +59,9 @@ public class BufferingProgressBarWrap extends View implements Destroyable {
 
     int cx = getMeasuredWidth() / 2;
     int cy = getMeasuredHeight() / 2;
-    int dSize = Screen.dp(42f);
+    // TGx101 (user 2026-11-09 «под плеем квадрат»): a circle as big as the viewer's middle button (72 dp), not a 84 dp
+    // rounded square that stood out around it while the video loaded
+    int dSize = Screen.dp(36f);
 
     progressComponent.setBounds(0, 0, getMeasuredWidth(), getMeasuredHeight());
     fakeDialogFrame.set(cx - dSize, cy - dSize, cx + dSize, cy + dSize);
@@ -109,7 +111,7 @@ public class BufferingProgressBarWrap extends View implements Destroyable {
     final int color = 0x4c000000;
     final int bgColor = ColorUtils.color((int) ((float) Color.alpha(color) * progressVisible.getFloatValue()), color);
 
-    canvas.drawRoundRect(fakeDialogFrame, Screen.dp(12f), Screen.dp(12f), Paints.getPorterDuffPaint(bgColor));
+    canvas.drawRoundRect(fakeDialogFrame, fakeDialogFrame.width() / 2f, fakeDialogFrame.height() / 2f, Paints.getPorterDuffPaint(bgColor));
     progressComponent.draw(canvas);
   }
 }
