@@ -8981,7 +8981,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private void showYesNo () {
     showOptions(Lang.getString(R.string.DiscardCurrentChanges), new int[]{R.id.btn_discard, R.id.btn_cancel}, new String[]{Lang.getString(R.string.Discard), Lang.getString(R.string.Cancel)}, new int[]{OptionColor.RED, OptionColor.NORMAL}, new int[]{R.drawable.baseline_delete_24, R.drawable.baseline_cancel_24}, (itemView, id) -> {
       if (id == R.id.btn_discard) {
-        changeSection(SECTION_CAPTION, MODE_CANCEL);
+        // TGx101 (user's video 2026-11-09 21:00: drew, «back», «Сбросить» — the send screen came up anyway): discarded and
+        // nothing applied before — straight back to the photo, the send screen closed at once
+        boolean plain = inForceEditMode() && !tgx101HasEdits();
+        changeSection(SECTION_CAPTION, MODE_CANCEL, plain);
+        if (inForceEditMode()) org.thunderdog.challegram.Tgx101Diag.mark("viewer editor: discarded — " + tgx101EditsSaid());
+        if (plain && inForceEditMode() && !tgx101HasEdits()) closeForceEditMode();
       }
       return true;
     }, getForcedTheme());
