@@ -4858,6 +4858,15 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private static final int ANIMATOR_SLIDE = 15;
 
   private void dropSlideMode (float velocityX, float velocityY, boolean apply) {
+    if (apply && inForceEditMode()) {
+      // TGx101 (user 2026-11-09 «превью фото исчезает, когда свайпаю из экрана отправки»): the send screen shows a copy of
+      // the photo, not the message's — it had nowhere to fly and faded away; the message's photo comes back first and
+      // flies into its place
+      inSlideMode = false;
+      closeForceEditMode();
+      close();
+      return;
+    }
     inSlideMode = false;
     if (tgx101SlideLeftFullscreen) {
       tgx101SlideLeftFullscreen = false;
