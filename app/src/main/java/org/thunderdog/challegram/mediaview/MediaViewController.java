@@ -1020,7 +1020,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private void setFullScreen (boolean isFullscreen) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       if (mode != MODE_GALLERY && Config.CUTOUT_ENABLED) {
-        if (isFullscreen && (mode == MODE_MESSAGES || mode == MODE_SIMPLE)) {
+        if (isFullscreen && (mode == MODE_MESSAGES || mode == MODE_SIMPLE) && !(popupView != null && popupView.tgx101IsOverKeyboard())) {
           ViewController<?> c = context.navigation().getCurrentStackItem();
           if (c != null) {
             c.hideSoftwareKeyboard();
@@ -6282,6 +6282,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       popupView.setNeedRootInsets();
       popupView.setHideKeyboard();
       popupView.init(false);
+    } else if ((mode == MODE_MESSAGES || mode == MODE_SIMPLE) && context().isKeyboardVisible()) {
+      // TGx101: the keyboard is up — the viewer opens in its own window above it (see PopupLayout#tgx101SetOverKeyboard)
+      popupView.tgx101SetOverKeyboard();
+      popupView.setNeedFullScreen(true);
+      popupView.init(true);
+      popupView.setIgnoreAllInsets(true);
     } else {
       popupView.setNeedRootInsets();
       popupView.init(true);

@@ -195,6 +195,31 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
 
   private boolean needRootInsets;
 
+  // TGx101 (user 2026-11-09, compared with exteraGram): a photo opened with the keyboard up — its own window above the
+  // keyboard, like Telegram's viewer (FLAG_ALT_FOCUSABLE_IM on a focusable window puts it over the input method), so the
+  // keyboard goes away under it and the chat doesn't move while the photo flies out
+  private boolean tgx101OverKeyboard;
+
+  public void tgx101SetOverKeyboard () {
+    this.tgx101OverKeyboard = true;
+  }
+
+  public boolean tgx101IsOverKeyboard () {
+    return tgx101OverKeyboard;
+  }
+
+  @Override
+  public boolean dispatchKeyEvent (android.view.KeyEvent event) {
+    // its own focused window gets «back» itself: handed to the activity, so the viewer closes with its animation
+    if (tgx101OverKeyboard && event.getKeyCode() == android.view.KeyEvent.KEYCODE_BACK) {
+      if (event.getAction() == android.view.KeyEvent.ACTION_UP && !event.isCanceled()) {
+        UI.getContext(getContext()).onBackPressed();
+      }
+      return true;
+    }
+    return super.dispatchKeyEvent(event);
+  }
+
   public void setNeedRootInsets () {
     this.needRootInsets = true;
   }
@@ -324,7 +349,12 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
   private void showSystemWindow (View anchorView) {
     final BaseActivity context = UI.getContext(getContext());
     window = new PopupWindow(this, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-    if (softInputMode != 0) {
+    if (tgx101OverKeyboard) {
+      window.setFocusable(true);
+      window.setOutsideTouchable(false);
+      window.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
+      window.setClippingEnabled(false);
+    } else if (softInputMode != 0) {
       window.setSoftInputMode(softInputMode);
       window.setFocusable(true);
       window.setOutsideTouchable(false);
@@ -343,6 +373,13 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
           window.setBackgroundDrawable(new RootDrawable(UI.getContext(getContext())));
           View rootView = window.getContentView().getRootView();
           boolean updated = patchPopupWindow(rootView, needFullScreen, shouldDisallowScreenshots());
+          if (tgx101OverKeyboard) {
+            WindowManager.LayoutParams lp = (WindowManager.LayoutParams) rootView.getLayoutParams();
+            lp.flags |= WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
+            lp.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+            updated = true;
+            org.thunderdog.challegram.Tgx101Diag.mark("popup: over the keyboard in its own window");
+          }
           if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             WindowManager.LayoutParams lp = (WindowManager.LayoutParams) rootView.getLayoutParams();
             lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
