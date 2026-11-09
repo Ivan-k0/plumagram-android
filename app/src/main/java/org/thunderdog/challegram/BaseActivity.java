@@ -1896,6 +1896,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     setGestureNavigationEnabled(Screen.isGesturalNavigationEnabled(getResources()));
     currentOrientation = newConfig.orientation;
     Lang.checkLanguageCode();
+    TdlibManager.instance().dateManager().checkDateAndTimeFormat();
     setSystemNightMode(newConfig.uiMode & Configuration.UI_MODE_NIGHT_MASK);
     if (needRecreate) {
       recreate();

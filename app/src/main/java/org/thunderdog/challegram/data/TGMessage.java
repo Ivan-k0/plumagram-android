@@ -55,7 +55,6 @@ import org.drinkless.tdlib.Client;
 import org.drinkless.tdlib.TdApi;
 import org.drinkmore.Tracer;
 import org.thunderdog.challegram.BaseActivity;
-import org.thunderdog.challegram.BuildConfig;
 import org.thunderdog.challegram.Log;
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.U;
@@ -5883,6 +5882,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
   }
 
+  public int getMergeFlags () {
+    return flags & (MESSAGE_FLAG_IS_BOTTOM | MESSAGE_FLAG_HAS_OLDER_MESSAGE |
+      MESSAGE_FLAG_BELOW_HEADER | FLAG_MERGE_FORWARD | FLAG_MERGE_BOTTOM | FLAG_HEADER_ENABLED |
+      FLAG_SHOW_TICKS | FLAG_SHOW_BADGE | FLAG_SHOW_DATE | FLAG_EXTRA_PADDING);
+  }
+
   public boolean isForward () {
     return msg.forwardInfo != null;
   }
@@ -9260,6 +9265,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         }
 
         case TdApi.MessagePaymentSuccessfulBot.CONSTRUCTOR:
+        case TdApi.MessageTonConnectRequest.CONSTRUCTOR:
+        case TdApi.MessageTonWalletTransfer.CONSTRUCTOR:
+        case TdApi.MessageUnpaidMessagesAllowedByLink.CONSTRUCTOR:
           break;
 
         case TdApi.MessageUnsupported.CONSTRUCTOR:
@@ -9272,7 +9280,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           break;
         }
         default: {
-          Td.assertMessageContent_af730a78();
+          Td.assertMessageContent_cc875c63();
           throw Td.unsupported(msg.content);
         }
       }
@@ -9316,7 +9324,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
     logEntity.offset = b.length();
 
-    b.append(Lang.getString(R.string.AppName)).append(' ').append(BuildConfig.VERSION_NAME).append("\n");
+    b.append(Lang.getString(R.string.AppName)).append(' ').append(U.getVersionName()).append("\n");
     b.append("Type: ").append(msg.content != null ? msg.content.getClass().getSimpleName() : "NULL").append("\n");
     b.append("Android: ").append(SdkVersion.getPrettyName()).append(" (").append(Build.VERSION.SDK_INT).append(")\n");
     b.append("Screen: ").append(Screen.widestSide()).append("x").append(Screen.smallestSide()).append("x").append(Screen.density()).append("\n");

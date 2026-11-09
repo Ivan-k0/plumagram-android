@@ -284,3 +284,7 @@ val PATH =
     "Path"
   else
     "PATH"
+
+// TGX 1826: the generator name for @MadeByGenerator
+fun Any.className(): String =
+  org.gradle.api.internal.GeneratedSubclasses.unpackType(this).simpleName

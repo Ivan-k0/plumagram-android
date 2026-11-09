@@ -667,10 +667,13 @@ public final class TGMessageService extends TGMessageServiceImpl {
             case TdApi.MessagePollOptionDeleted.CONSTRUCTOR:
             case TdApi.MessageChatAddedToCommunity.CONSTRUCTOR:
             case TdApi.MessageChatRemovedFromCommunity.CONSTRUCTOR:
+            case TdApi.MessageTonConnectRequest.CONSTRUCTOR:
+            case TdApi.MessageTonWalletTransfer.CONSTRUCTOR:
+            case TdApi.MessageUnpaidMessagesAllowedByLink.CONSTRUCTOR:
               staticResId = R.string.ActionPinnedNoText;
               break;
             default:
-              Td.assertMessageContent_af730a78();
+              Td.assertMessageContent_cc875c63();
               throw Td.unsupported(message.content);
           }
           if (format == null) {

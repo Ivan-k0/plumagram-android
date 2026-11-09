@@ -29,6 +29,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.inputmethod.EditorInfo;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -356,6 +357,9 @@ public class PasscodeController extends ViewController<PasscodeController.Args> 
 
     contentView.addView(passwordView);
 
+    if (waitsForBiometrics()) {
+      return;
+    }
     if (inGlobalUnlockMode()) {
       UI.showKeyboardDelayed(passwordView);
     } else if (!isNavigationAnimating()) {
@@ -986,7 +990,7 @@ public class PasscodeController extends ViewController<PasscodeController.Args> 
   @Override
   public void onFocus () {
     super.onFocus();
-    if (mode == Passcode.MODE_PASSWORD) {
+    if (mode == Passcode.MODE_PASSWORD && !waitsForBiometrics()) {
       UI.showKeyboardDelayed(passwordView);
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -1014,6 +1018,9 @@ public class PasscodeController extends ViewController<PasscodeController.Args> 
     } else {
       UI.showToast(error, Toast.LENGTH_SHORT);
       tooltipInfo = null;
+    }
+    if (mode == Passcode.MODE_PASSWORD && isFocused()) {
+      showKeyboardWithWindowFocus();
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       if (swirlView != null) {
@@ -1135,12 +1142,62 @@ public class PasscodeController extends ViewController<PasscodeController.Args> 
         boolean isStrong = needStrongBiometrics();
         String title = Passcode.getActionName(Passcode.MODE_BIOMETRICS, passcodeView.getState(), false, BitwiseUtils.optional(Passcode.BIOMETRICS_OPTION_ONLY_STRONG, isStrong));
         String cancel = Lang.getString(R.string.CancelBiometrics);
+        showKeyboardOnFocus = false;
+        if (mode == Passcode.MODE_PASSWORD) {
+          // The prompt takes the input of the window, and the system shows a keyboard left under
+          // it again when the window gets it back
+          Keyboard.hide(passwordView);
+        }
         BiometricAuthentication.authenticate(context, title, cancel, isStrong, this);
       } else {
         BiometricAuthentication.cancelAuthentication();
       }
       isBiometricAuthenticationActive = needBiometricsAuthentication;
     }
+  }
+
+  private boolean showKeyboardOnFocus;
+
+  private void showKeyboardWithWindowFocus () {
+    passwordView.requestFocus();
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2 &&
+      !passwordView.hasWindowFocus()) {
+      if (!showKeyboardOnFocus) {
+        showKeyboardOnFocus = true;
+        passwordView.getViewTreeObserver().addOnWindowFocusChangeListener(
+          new KeyboardOnFocus(this)
+        );
+      }
+    } else {
+      UI.showKeyboardDelayed(passwordView);
+    }
+  }
+
+  @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
+  private static final class KeyboardOnFocus
+    implements ViewTreeObserver.OnWindowFocusChangeListener {
+    private final PasscodeController controller;
+
+    KeyboardOnFocus (PasscodeController controller) {
+      this.controller = controller;
+    }
+
+    @Override
+    public void onWindowFocusChanged (boolean hasFocus) {
+      if (!hasFocus) {
+        return;
+      }
+      controller.passwordView.getViewTreeObserver().removeOnWindowFocusChangeListener(this);
+      if (controller.showKeyboardOnFocus) {
+        controller.showKeyboardOnFocus = false;
+        UI.showKeyboardDelayed(controller.passwordView);
+      }
+    }
+  }
+
+  private boolean waitsForBiometrics () {
+    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !inSetupMode() &&
+      mode != Passcode.MODE_BIOMETRICS && !biometricsScanCompleted && needUnlockWithBiometrics();
   }
 
   @Override
@@ -1228,6 +1285,7 @@ public class PasscodeController extends ViewController<PasscodeController.Args> 
     if (specificChat != null) {
       chatPasscode.hash = Passcode.getPasscodeHash(String.valueOf(biometricsId));
       chatPasscode.mode = Passcode.MODE_BIOMETRICS;
+      chatPasscode.setRequireStrongBiometrics(strong);
       tdlib.setPasscode(specificChat, chatPasscode);
     } else {
       Passcode.instance().setBiometrics(biometricsId, strong);

@@ -2692,7 +2692,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   }
 
   private void addStartupMarker () {
-    if (Config.ENABLE_BASELINE_PROFILE_HOOKS) {
+    if (Config.ENABLE_TEST_HOOKS) {
       tdlib.awaitConnection(() -> runOnUiThreadOptional(() -> {
         ViewGroup group = (ViewGroup) getWrapUnchecked();
         if (group.findViewById(R.id.startup_marker) == null) {
@@ -2705,7 +2705,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   private static boolean tgx101PhoneBookSynced;
 
   private void showAnnoyingAlertsForCompliance (boolean fromAppResume) {
-    if (Config.ENABLE_BASELINE_PROFILE_HOOKS) {
+    if (Config.ENABLE_TEST_HOOKS) {
       addStartupMarker();
     }
     // TGx101: bring the phone book copy of Telegram contacts up to date once per launch
@@ -3446,8 +3446,12 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       if (uri == null) {
         throw new IllegalArgumentException("uri == null");
       }
+      Uri card = Uri.parse(uri.toString());
+      if (U.isInternalUri(card)) {
+        throw new IllegalArgumentException("Tried to share internal file: " + uri);
+      }
       ContentResolver cr = UI.getContext().getContentResolver();
-      try (InputStream stream = cr.openInputStream(uri)) {
+      try (InputStream stream = cr.openInputStream(card)) {
         if (stream == null) {
           throw new IllegalArgumentException("stream == null (vcard)");
         }
@@ -3623,7 +3627,12 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       return false;
     }
 
-    String filePath = U.tryResolveFilePath(uri);
+    String filePath = U.resolveSharedFilePath(uri);
+
+    if (filePath == null) {
+      // TGX 1826: the app's own private files shared back to it by another app are refused
+      throw new IllegalArgumentException("Tried to share internal file: " + uri);
+    }
 
     if (StringUtils.isEmpty(filePath)) {
       // TGx101: files from Downloads / file managers often have no real path — send the content itself

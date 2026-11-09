@@ -109,6 +109,7 @@ public class ReplyBarView extends FrameLayoutFix implements View.OnClickListener
     pinnedMessagesBar.setCollapseButtonVisible(false);
     pinnedMessagesBar.setIgnoreAlbums(true);
     pinnedMessagesBar.tgx101SetThinLine(true);
+    pinnedMessagesBar.setNoEmptyProgress(); // TGX 1826: the hidden spinner no longer redraws the chat
     pinnedMessagesBar.setMessageListener(new PinnedMessagesBar.MessageListener() {
       @Override
       public void onCreateMessagePreview (PinnedMessagesBar view, MessagePreviewView previewView) {

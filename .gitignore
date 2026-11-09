@@ -17,6 +17,8 @@ obj
 /captures
 /local.properties
 
+/tests
+
 libc++_shared.so
 
 # TGx101: our own Firebase config for release/debug builds, kept out of git

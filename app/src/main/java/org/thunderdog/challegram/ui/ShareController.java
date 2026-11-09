@@ -853,7 +853,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
               textRes = R.string.ShareTextPlain;
               break;
             default:
-              Td.assertMessageContent_af730a78();
+              Td.assertMessageContent_cc875c63();
               title1Res = R.string.ShareTitleMedia;
               title2Res = R.string.ShareTitleMediaX;
               textRes = R.string.ShareTextMedia;

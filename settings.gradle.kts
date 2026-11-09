@@ -27,6 +27,7 @@ val generateBaselineProfile = providers.gradleProperty("generateBaselineProfile"
 }.orElse(false)
 
 rootProject.name = "tgx"
+includeBuild("vkryl/annotation") // TGX 1826: @MadeByLLM for vkryl modules
 if (generateBaselineProfile.get()) {
   include(":baseline-profile")
 }

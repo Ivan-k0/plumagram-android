@@ -847,6 +847,9 @@ JNI_FUNC(jint, createLottieCache, jlong ptr, jstring jCachePath, jobject firstFr
     fseek(info->cacheFile, info->headerSize + sizeof(uint32_t) + firstFrameSize, SEEK_SET);
     info->nextFrameNo = 1;
   } else {
+    if (cacheFile != nullptr) { // TGX 1826: the cache file was left open
+      fclose(cacheFile);
+    }
     return 1;
   }
   return 0;

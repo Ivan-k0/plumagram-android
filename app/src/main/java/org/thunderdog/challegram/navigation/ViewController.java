@@ -3787,6 +3787,9 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     org.thunderdog.challegram.Tgx101DiagHooks.onControllerFocus(this, true); // TGx101: diagnostics builds only
     if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) context.tgx101LogWindowState("screen", false); // only when it changed
     context.addKeyEventListener(this);
+    if (Config.ENABLE_TEST_HOOKS) {
+      updateScreenMarker();
+    }
   }
 
   protected final void trackUserActivity () {
@@ -3921,16 +3924,36 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
   }
 
   protected final View newStartupMarker () {
+    return newTestMarker(R.id.startup_marker);
+  }
+
+  private View newTestMarker (@IdRes int id) {
     View marker = new View(context) {
       @Override
       public boolean onTouchEvent (MotionEvent event) {
         return false;
       }
     };
-    marker.setId(R.id.startup_marker);
+    marker.setId(id);
     marker.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
     marker.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
     return marker;
+  }
+
+  private void updateScreenMarker () {
+    ViewGroup rootView = context.getRootView();
+    View marker = rootView.findViewById(R.id.screen_marker);
+    if (marker == null) {
+      marker = newTestMarker(R.id.screen_marker);
+      rootView.addView(marker);
+    }
+    String screenName;
+    try {
+      screenName = context.getResources().getResourceEntryName(getId());
+    } catch (Throwable t) {
+      screenName = getClass().getSimpleName();
+    }
+    marker.setContentDescription(screenName);
   }
 
   @Override

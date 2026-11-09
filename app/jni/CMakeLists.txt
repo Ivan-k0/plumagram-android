@@ -72,20 +72,26 @@ add_compile_options(
 
 # tdjni
 
+# TGX 1826: prebuilt OpenSSL is split by platform too — openssl/<ndk>/<android-N>/<abi>; the older layout as fallback
+set(OPENSSL_ROOT ${TDLIB_DIR}/openssl/${ANDROID_NDK_REVISION}/${ANDROID_PLATFORM}/${ANDROID_ABI})
+if (NOT EXISTS ${OPENSSL_ROOT}/lib/libcryptox.so)
+  set(OPENSSL_ROOT ${TDLIB_DIR}/openssl/${ANDROID_NDK_REVISION}/${ANDROID_ABI})
+endif()
+
 add_library(crypto SHARED IMPORTED)
 set_target_properties(crypto PROPERTIES IMPORTED_LOCATION
-  ${TDLIB_DIR}/openssl/${ANDROID_NDK_REVISION}/${ANDROID_ABI}/lib/libcryptox.so
+  ${OPENSSL_ROOT}/lib/libcryptox.so
 )
 add_library(ssl SHARED IMPORTED)
 set_target_properties(ssl PROPERTIES IMPORTED_LOCATION
-  ${TDLIB_DIR}/openssl/${ANDROID_NDK_REVISION}/${ANDROID_ABI}/lib/libsslx.so
+  ${OPENSSL_ROOT}/lib/libsslx.so
 )
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.11.0")
   target_include_directories(crypto INTERFACE
-    ${TDLIB_DIR}/openssl/${ANDROID_NDK_REVISION}/${ANDROID_ABI}/include
+    ${OPENSSL_ROOT}/include
   )
   target_include_directories(ssl INTERFACE
-    ${TDLIB_DIR}/openssl/${ANDROID_NDK_REVISION}/${ANDROID_ABI}/include
+    ${OPENSSL_ROOT}/include
   )
 endif()
 
@@ -93,9 +99,16 @@ add_library(tdjni SHARED IMPORTED)
 # TGx101: tdlib's install.sh has a typo ("$ANDROID_NDK_VERSION}") so a TDLib upgrade lands in
 # libs/<ndk>/libs/<abi>/ while libs/<ndk>/<abi>/ keeps the previous build. Prefer the nested
 # (fresh) copy, otherwise the native library won't match TdApi.java.
-set(TDJNI_PATH ${TDLIB_DIR}/src/main/libs/${ANDROID_NDK_REVISION}/libs/${ANDROID_ABI}/libtdjni.so)
+# TGX 1826: prebuilt TDLib is split by platform too — libs/<ndk>/<android-N>/<abi>; the older layouts as fallbacks
+set(TDJNI_PATH ${TDLIB_DIR}/src/main/libs/${ANDROID_NDK_REVISION}/${ANDROID_PLATFORM}/${ANDROID_ABI}/libtdjni.so)
+if (NOT EXISTS ${TDJNI_PATH})
+  set(TDJNI_PATH ${TDLIB_DIR}/src/main/libs/${ANDROID_NDK_REVISION}/libs/${ANDROID_ABI}/libtdjni.so)
+endif()
 if (NOT EXISTS ${TDJNI_PATH})
   set(TDJNI_PATH ${TDLIB_DIR}/src/main/libs/${ANDROID_NDK_REVISION}/${ANDROID_ABI}/libtdjni.so)
+endif()
+if (NOT EXISTS ${TDJNI_PATH})
+  message(FATAL_ERROR "TDLib for ${ANDROID_PLATFORM} ${ANDROID_ABI} not found under ${TDLIB_DIR}/src/main/libs/${ANDROID_NDK_REVISION}")
 endif()
 set_target_properties(tdjni PROPERTIES IMPORTED_LOCATION ${TDJNI_PATH})
 target_link_libraries(tdjni INTERFACE crypto ssl)

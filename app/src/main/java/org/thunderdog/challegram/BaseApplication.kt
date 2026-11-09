@@ -44,6 +44,16 @@ class BaseApplication : TgxApplication(), Configuration.Provider {
     }
   }
 
+  override fun onTrimMemory(level: Int) {
+    super.onTrimMemory(level)
+    // TGx101: by name, like the startup — this class must not reference the rest of the app (Android 4, see onCreate)
+    try {
+      Class.forName("org.thunderdog.challegram.telegram.TdlibManager").getMethod("trimMemory", Int::class.javaPrimitiveType).invoke(null, level)
+    } catch (t: Throwable) {
+      android.util.Log.w("tgx", "trimMemory", t)
+    }
+  }
+
   override val workManagerConfiguration: Configuration
     get() = Configuration.Builder().build()
 }

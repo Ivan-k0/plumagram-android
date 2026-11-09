@@ -20,6 +20,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.TypedValue;
+import android.view.Choreographer;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -257,7 +258,15 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
 
   private CancellableRunnable lastAccountSwitchTask;
 
+  // Checked only when it may have changed, e.g. on resume, since asking the system is slow
+  private @Tdlib.ResolvableProblem int resolvableProblem = Tdlib.ResolvableProblem.NONE;
+
   private void updateCounter () {
+    resolvableProblem = currentTdlib().findResolvableProblem();
+    updateCounterBadge();
+  }
+
+  private void updateCounterBadge () {
     Tdlib tdlib = currentTdlib();
     boolean animated = getActivityState() == UI.State.RESUMED;
     // TGx101 (4PDA 2026-10-29 mutnyy1 + user: «полностью убираем красные уведомления … в бутерброде»): problems are shown
@@ -290,9 +299,18 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     updateCounter();
   }
 
+  private boolean isCounterFramePosted;
+  private final Choreographer.FrameCallback counterFrame = frameTimeNanos -> {
+    isCounterFramePosted = false;
+    updateCounterBadge();
+  };
+
   @Override
   public void onTotalUnreadCounterChanged (@NonNull TdApi.ChatList chatList, boolean isReset) {
-    updateCounter();
+    if (!isCounterFramePosted) {
+      isCounterFramePosted = true;
+      Choreographer.getInstance().postFrameCallback(counterFrame);
+    }
   }
 
   @Override
@@ -558,7 +576,8 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
   }
 
   private void showExperimentalAlert () {
-    if (BuildConfig.EXPERIMENTAL && !BuildConfig.DEBUG) {
+    // Builds of tests are experimental too, and the alert would stop UI tests at launch
+    if (BuildConfig.EXPERIMENTAL && !BuildConfig.DEBUG && !Config.ENABLE_TEST_HOOKS) {
       ViewController<?> c = navigation.getCurrentStackItem();
       if (c != null) {
         c.openAlert(R.string.ExperimentalBuildTitle,
@@ -1837,7 +1856,7 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       KeepAliveService.requestIgnoreBatteryOptimizationsOnce(this);
     }
     tdlib.context().global().notifyResolvableProblemAvailabilityMightHaveChanged();
-    tdlib.context().dateManager().checkCurrentDate();
+    tdlib.context().dateManager().checkDateAndTimeFormat();
     UI.startNotificationService();
     TemporaryNotification.hide(this);
   }
@@ -1876,6 +1895,7 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
     TdlibManager.instance().global().removeCountersListener(this);
     TdlibManager.instance().global().removeResolvableProblemAvailabilityListener(this);
     TdlibManager.instance().calls().removeCurrentCallListener(lockScreenCallListener);
+    Choreographer.getInstance().removeFrameCallback(counterFrame);
     destroyMessageControllers();
 
     Log.i("MainActivity.onDestroy");

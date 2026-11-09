@@ -971,7 +971,7 @@ public final class Tgx101StoryEditor extends Dialog {
     for (TextLayer t : texts) {
       if (t.weatherEmoji != null) {
         double w = weatherWidth(t.weatherEmoji, t.temperature, WEATHER_HEIGHT) * t.scale, h = WEATHER_HEIGHT * t.scale;
-        TdApi.StoryAreaPosition p = new TdApi.StoryAreaPosition(t.cx * 100.0 / W, t.cy * 100.0 / H, w * 100.0 / W, h * 100.0 / H, t.rotation, 30);
+        TdApi.AreaPosition p = new TdApi.AreaPosition(t.cx * 100.0 / W, t.cy * 100.0 / H, w * 100.0 / W, h * 100.0 / H, t.rotation, 30);
         areas.add(new TdApi.InputStoryArea(p, new TdApi.InputStoryAreaTypeWeather(t.temperature, t.weatherEmoji, t.weatherColor)));
         continue;
       }
@@ -980,13 +980,13 @@ public final class Tgx101StoryEditor extends Dialog {
         RectF box = new RectF();
         boxOf(t, layout, box);
         double w = box.width() * t.scale, h = box.height() * t.scale;
-        TdApi.StoryAreaPosition p = new TdApi.StoryAreaPosition(t.cx * 100.0 / W, t.cy * 100.0 / H, w * 100.0 / W, h * 100.0 / H, t.rotation, 25);
+        TdApi.AreaPosition p = new TdApi.AreaPosition(t.cx * 100.0 / W, t.cy * 100.0 / H, w * 100.0 / W, h * 100.0 / H, t.rotation, 25);
         areas.add(new TdApi.InputStoryArea(p, new TdApi.InputStoryAreaTypeLink(t.url)));
         continue;
       }
       if (t.reaction == null) continue;
       double size = REACTION_SIZE * t.scale;
-      TdApi.StoryAreaPosition p = new TdApi.StoryAreaPosition(t.cx * 100.0 / W, t.cy * 100.0 / H, size * 100.0 / W, size * 100.0 / H, t.rotation, 50);
+      TdApi.AreaPosition p = new TdApi.AreaPosition(t.cx * 100.0 / W, t.cy * 100.0 / H, size * 100.0 / W, size * 100.0 / H, t.rotation, 50);
       areas.add(new TdApi.InputStoryArea(p, new TdApi.InputStoryAreaTypeSuggestedReaction(new TdApi.ReactionTypeEmoji(t.reactionType), t.dark, t.flipped)));
     }
     return areas.isEmpty() ? null : new TdApi.InputStoryAreas(areas.toArray(new TdApi.InputStoryArea[0]));

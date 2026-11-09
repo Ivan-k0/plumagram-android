@@ -126,6 +126,7 @@ import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.telegram.TdlibDataSource;
 import org.thunderdog.challegram.telegram.TdlibDelegate;
 import org.thunderdog.challegram.telegram.TdlibFilesManager;
+import org.thunderdog.challegram.telegram.TdlibManager;
 import org.thunderdog.challegram.telegram.TdlibNotificationChannelGroup;
 import org.thunderdog.challegram.telegram.TdlibNotificationManager;
 import org.thunderdog.challegram.tool.Fonts;
@@ -473,6 +474,10 @@ public class U {
   }
 
   public static void startForeground (Service service, int notificationId, Notification notification) {
+    startForeground(service, notificationId, notification, false);
+  }
+
+  public static void startForeground (Service service, int notificationId, Notification notification, boolean callAnswered) {
     if (notification == null)
       throw new IllegalArgumentException();
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -484,12 +489,16 @@ public class U {
         case TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION:
         case TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION_2:
         case TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION: {
+          // TGx101 + TGX 1826: the media playback type stays ours (the ring plays through it); the microphone as upstream
+          // decides (answered or ongoing, or before Android 14), and if Android still refuses it, the service starts without
           int baseType = android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL |
             android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK;
-          // A ringing call doesn't need the microphone, and Android 14+ refuses a microphone
-          // foreground service started from the background (the call service used to crash
-          // there, leaving only a plain notification). Add it once the call is ongoing.
-          if ((notificationId == TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION || notificationId == TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION_2) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && (
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
+            callAnswered ||
+            notificationId == TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION ||
+            notificationId == TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION_2
+          )) {
             try {
               service.startForeground(notificationId, notification, baseType | android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
               return;
@@ -2473,7 +2482,7 @@ public class U {
     String metadata = Lang.getAppBuildAndVersion(tdlib) + " (" + BuildConfig.COMMIT + ")\n" +
       (!buildInfo.getPullRequests().isEmpty() ? "PRs: " + buildInfo.pullRequestsList() + "\n" : "") +
       (!"none".equals(BuildConfig.TGX_EXTENSION) ? "Extension: " + BuildConfig.TGX_EXTENSION + "\n" : "") +
-      (!BuildConfig.LATEST_FLAVOR ? ("flavor: " + BuildConfig.FLAVOR_SDK + "\n") : "") +
+      (!BuildConfig.LATEST_FLAVOR ? ("flavor: " + BuildConfig.FLAVOR + "\n") : "") +
       "TDLib: " + Td.tdlibVersion() + " (tdlib/td@" + Td.tdlibCommitHash() + ")\n" +
       "androidx-media3: " + MediaLibraryInfo.VERSION + " [" + MediaLibraryInfo.registeredModules().replaceAll("(?<=^| )media3\\.", "") + "]\n" +
       "tgcalls: TGX-Android/tgcalls@" + BuildConfig.TGCALLS_COMMIT + "\n" +
@@ -2498,6 +2507,26 @@ public class U {
       metadata += "\nAPK Fingerprint: `" + fingerprint + "`";
     }
     return metadata;
+  }
+
+  // Version name of the manifest of the installed APK, read once. A build of all ABIs makes an APK
+  // for each, with its ABI in the version name of its manifest, while all of them share one
+  // BuildConfig with the version name of one of them
+  private static volatile String versionName;
+
+  public static String getVersionName () {
+    String versionName = U.versionName;
+    if (versionName == null) {
+      try {
+        versionName = AppContext.get().getPackageManager()
+          .getPackageInfo(BuildConfig.APPLICATION_ID, 0).versionName;
+      } catch (Throwable ignored) { }
+      if (StringUtils.isEmpty(versionName)) {
+        return BuildConfig.VERSION_NAME;
+      }
+      U.versionName = versionName;
+    }
+    return versionName;
   }
 
   public static String getApkFingerprint (String algorithm) {
@@ -3039,10 +3068,85 @@ public class U {
     return pathString;
   }
 
+  public static @Nullable String resolveSharedFilePath (Uri uri) {
+    String path = tryResolveFilePath(Uri.parse(uri.toString()));
+    if (path.startsWith("content://")) {
+      return isInternalUri(Uri.parse(path)) ? null : path;
+    }
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+      return path;
+    }
+    String canonicalPath = getCanonicalPath(path);
+    return canonicalPath == null || isInternalPath(canonicalPath) ? null : canonicalPath;
+  }
+
   public static boolean isInternalUri (Uri uri) {
-    String pathString = normalizeFilePath(uri.getPath());
-    File dir = AppContext.get().getFilesDir();
-    return !StringUtils.isEmpty(pathString) && pathString.startsWith(dir.getPath());
+    Uri parsed = Uri.parse(uri.toString());
+    if ("content".equalsIgnoreCase(parsed.getScheme())) {
+      if (!FileProvider.isOwnUri(parsed)) {
+        return false;
+      }
+      File file = FileProvider.getFileForUri(AppContext.get(), parsed);
+      return file == null || isInternalPath(file.getPath());
+    }
+    return isInternalPath(parsed.getPath());
+  }
+
+  public static boolean isInternalPath (@Nullable String path) {
+    if (StringUtils.isEmpty(path)) {
+      return false;
+    }
+    String canonicalPath = getCanonicalPath(path);
+    if (canonicalPath == null) {
+      return true;
+    }
+    Context context = AppContext.get();
+    if (canonicalPath.startsWith("/proc/") ||
+      isInsideDir(canonicalPath, context.getApplicationInfo().dataDir) ||
+      (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInsideDir(canonicalPath,
+        context.createDeviceProtectedStorageContext().getDataDir().getPath()))) {
+      return true;
+    }
+    // Shared storage folds case and invisible characters of names, e.g. a zero-width joiner
+    String appDir = foldName("/Android/data/" + context.getPackageName() + "/");
+    if (!foldName(canonicalPath + "/").contains(appDir)) {
+      return false;
+    }
+    File tdlibDir = context.getExternalFilesDir(null);
+    String tdlibPath = tdlibDir != null ? getCanonicalPath(tdlibDir.getPath()) : null;
+    // Android 4.2–4.4 also mounts the external storage at /storage/emulated/legacy
+    String legacyRoot = "/storage/emulated/legacy/";
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1 &&
+      Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT && canonicalPath.startsWith(legacyRoot)) {
+      String root = getCanonicalPath(Environment.getExternalStorageDirectory().getPath());
+      if (!StringUtils.isEmpty(root)) {
+        canonicalPath = root + "/" + canonicalPath.substring(legacyRoot.length());
+      }
+    }
+    return StringUtils.isEmpty(tdlibPath) || !isInsideDir(canonicalPath, tdlibPath) ||
+      canonicalPath.length() == tdlibPath.length() ||
+      !TdlibManager.isExternalTdlibFile(canonicalPath.substring(tdlibPath.length() + 1));
+  }
+
+  private static String foldName (String name) {
+    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ?
+      android.icu.text.Normalizer2.getNFKCCasefoldInstance().normalize(name) :
+      name.toLowerCase(Locale.ROOT);
+  }
+
+  public static @Nullable String getCanonicalPath (String path) {
+    try {
+      return new File(path).getCanonicalPath();
+    } catch (IOException e) {
+      return null;
+    }
+  }
+
+  private static boolean isInsideDir (String path, @Nullable String dir) {
+    String dirPath = StringUtils.isEmpty(dir) ? null : getCanonicalPath(dir);
+    return !StringUtils.isEmpty(dirPath) &&
+      path.regionMatches(true, 0, dirPath, 0, dirPath.length()) &&
+      (path.length() == dirPath.length() || path.charAt(dirPath.length()) == File.separatorChar);
   }
 
   public static byte[] decodeQuotedPrintable(final byte[] bytes) {
@@ -3523,8 +3627,9 @@ public class U {
         }
         android.content.ClipData.Item clipItem = clipData.getItemAt(0);
         if (clipData.getDescription().hasMimeType("text/html")) {
+          // The description may name HTML that the item doesn't have, e.g. a URI of that type
           String htmlText = clipItem.getHtmlText();
-          return TD.htmlToCharSequence(htmlText);
+          return htmlText != null ? TD.htmlToCharSequence(htmlText) : clipItem.getText();
         } else if (clipData.getDescription().hasMimeType("text/plain")) {
           return clipItem.getText();
         }
@@ -3694,20 +3799,13 @@ public class U {
 
   public static String getPreferredAbiFlavor () {
     final String abi = U.getCpuAbi();
-    final String flavor = switch (abi) {
+    return switch (abi) {
       case "arm64-v8a" -> "arm64";
       case "armeabi-v7a" -> "arm32";
       case "x86" -> "x86";
       case "x86_64", "x64" -> "x64";
       default -> null;
     };
-    if (flavor == null) {
-      String[] flavors = new String[] {"arm64", "arm32", "x86", "x64"};
-      if (ArrayUtils.contains(flavors, BuildConfig.FLAVOR_ABI)) {
-        return BuildConfig.FLAVOR_ABI;
-      }
-    }
-    return flavor;
   }
 
   /** TGx101: a whole file into memory (java.nio.file.Files needs Android 8) */

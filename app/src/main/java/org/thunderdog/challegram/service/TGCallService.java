@@ -14,6 +14,7 @@
  */
 package org.thunderdog.challegram.service;
 
+import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -26,6 +27,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -49,6 +51,7 @@ import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
 
 import org.drinkless.tdlib.TdApi;
 import org.thunderdog.challegram.BuildConfig;
@@ -296,6 +299,9 @@ public class TGCallService extends Service implements
       }
 
       if (Intents.ACTION_ANSWER_CALL.equals(action)) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && incomingNotification != null) {
+          U.startForeground(TGCallService.this, TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION, incomingNotification, true);
+        }
         acceptIncomingCall();
         return;
       }
@@ -585,7 +591,7 @@ public class TGCallService extends Service implements
       return;
     }
     TdApi.User caller = tdlib.cache().user(call.userId);
-    Bitmap photo = caller != null ? TdlibNotificationUtils.buildLargeIcon(tdlib, caller.profilePhoto != null ? caller.profilePhoto.small : null, tdlib.cache().userAccentColor(caller), TD.getLetters(caller), false, true) : null;
+    Bitmap photo = caller != null ? TdlibNotificationUtils.buildLargeIcon(tdlib, ChatId.fromUserId(caller.id), caller.profilePhoto != null ? caller.profilePhoto.small : null, tdlib.cache().userAccentColor(caller), TD.getLetters(caller), false, true) : null;
     Tgx101CallPopup.show(this, call.id, caller != null ? TD.getUserName(caller) : "", photo, new Tgx101CallPopup.Callback() {
       @Override public void onAnswer () { acceptIncomingCall(); }
       @Override public void onDecline () { declineIncomingCall(); }
@@ -1123,7 +1129,7 @@ public class TGCallService extends Service implements
       String speakerTitle = Lang.getString(speakerOn ? R.string.Tgx101CallSpeakerOff : R.string.Tgx101CallSpeakerOn);
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         // TGx101: Android 12+ system call card — the status bar then shows the call chip with the timer; tap returns to the call
-        Bitmap photo = TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true);
+        Bitmap photo = TdlibNotificationUtils.buildLargeIcon(tdlib, ChatId.fromUserId(user.id), user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true);
         builder.setStyle(Notification.CallStyle.forOngoingCall(tgx101Caller(user, photo), endPendingIntent));
         builder.addAction(new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(this, R.drawable.baseline_volume_up_24_white), speakerTitle, speakerPendingIntent).build());
         // TGx101 (user 2026-10-07 15:44/15:56 «добавь ещё справа выкл звук», «кнопки нет без звука»): mute my microphone, on the right
@@ -1152,7 +1158,7 @@ public class TGCallService extends Service implements
         if (callDuration <= 0) {
           views.setTextViewText(R.id.tgx101_call_timer, Lang.getString(call != null && call.isVideo ? R.string.Tgx101OutgoingVideoCall : R.string.OutgoingCall));
         }
-        Bitmap photo = TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true);
+        Bitmap photo = TdlibNotificationUtils.buildLargeIcon(tdlib, ChatId.fromUserId(user.id), user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true);
         if (photo != null) {
           views.setImageViewBitmap(R.id.tgx101_call_photo, photo);
         }
@@ -1184,7 +1190,7 @@ public class TGCallService extends Service implements
       builder.setColor(tdlib.accountColor());
     }
     Bitmap bitmap = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? null : // TGx101: the own layout / the caller already shows the photo
-      TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true);
+      TdlibNotificationUtils.buildLargeIcon(tdlib, ChatId.fromUserId(user.id), user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true);
     if (bitmap != null) {
       builder.setLargeIcon(bitmap);
     }
@@ -1193,7 +1199,7 @@ public class TGCallService extends Service implements
     } else {
       ongoingCallNotification = builder.getNotification();
     }
-    U.startForeground(this, tgx101OngoingId, ongoingCallNotification);
+    U.startForeground(this, tgx101OngoingId, ongoingCallNotification, true);
     tgx101WentForeground = true;
   }
 
@@ -1354,7 +1360,7 @@ public class TGCallService extends Service implements
       PendingIntent answerPendingIntent = PendingIntent.getActivity(this, 0, answerIntent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_UPDATE_CURRENT | Intents.mutabilityFlags(false));
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         // TGx101: Android 12+ system incoming call card — shown as a pop-up over an unlocked phone too
-        Bitmap photo = user != null ? TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true) : null;
+        Bitmap photo = user != null ? TdlibNotificationUtils.buildLargeIcon(tdlib, ChatId.fromUserId(user.id), user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true) : null;
         builder.setStyle(Notification.CallStyle.forIncomingCall(tgx101Caller(user, photo), declinePendingIntent, answerPendingIntent).setIsVideo(call != null && call.isVideo));
         builder.setContentText(Lang.getString(call != null && call.isVideo ? R.string.Tgx101IncomingVideoCall : R.string.IncomingCall)); // TGx101: not the name twice
         // TGx101 (user 2026-10-07 15:44 «добавь ещё справа выкл звук»): mute the ringing without answering
@@ -1378,6 +1384,18 @@ public class TGCallService extends Service implements
       builder.setColor(tdlib.accountColor());
       builder.setVibrate(new long[0]);
       builder.setCategory(Notification.CATEGORY_CALL);
+      if (user != null) {
+        // TGX 1826: Do not disturb lets starred contacts and repeat callers ring
+        String uri = TdlibNotificationUtils.getPersonUri(tdlib, user);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+          builder.addPerson(new android.app.Person.Builder()
+            .setName(TD.getUserName(user))
+            .setUri(uri)
+            .build());
+        } else {
+          builder.addPerson(uri);
+        }
+      }
       // TGx101: only over a locked or dark screen. On an unlocked phone some firmwares (Vivo) launch
       // the full-screen intent right away, so the app came back every time it was minimized.
       if (needFullScreenIntent()) {
@@ -1385,7 +1403,7 @@ public class TGCallService extends Service implements
       }
       builder.setVisibility(Notification.VISIBILITY_PUBLIC);
     }
-    Bitmap bitmap = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? null : user != null ? TdlibNotificationUtils.buildLargeIcon(tdlib, user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true) : null;
+    Bitmap bitmap = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? null : user != null ? TdlibNotificationUtils.buildLargeIcon(tdlib, ChatId.fromUserId(user.id), user.profilePhoto != null ? user.profilePhoto.small : null, tdlib.cache().userAccentColor(user), TD.getLetters(user), false, true) : null;
     if (bitmap != null) {
       builder.setLargeIcon(bitmap);
     }
@@ -1394,7 +1412,7 @@ public class TGCallService extends Service implements
     } else {
       incomingNotification = builder.getNotification();
     }
-    U.startForeground(this, TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION, incomingNotification);
+    U.startForeground(this, TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION, incomingNotification, false);
     tgx101WentForeground = true;
     return true;
   }
@@ -1527,7 +1545,9 @@ public class TGCallService extends Service implements
     }
 
     int vibrateMode = tdlib.notifications().getCallVibrateMode(ChatId.fromUserId(user.id));
-    if (vibrateMode != TdlibNotificationManager.VIBRATE_MODE_DISABLED) {
+    boolean needVibrate = vibrateMode != TdlibNotificationManager.VIBRATE_MODE_DISABLED;
+    // Like a call of the system, none in silent mode, whatever the vibration of calls is set to
+    if (needVibrate && !tdlib.notifications().isRingerSilent()) {
       vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
       if (vibrator != null) {
         switch (vibrateMode) {

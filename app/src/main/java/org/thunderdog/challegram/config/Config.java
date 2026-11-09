@@ -64,7 +64,10 @@ public class Config {
   // The only way around for the sender is to transcode video fully even when there's no need at all.
   public static final boolean TRANSCODE_ROTATED_VIDEOS_FOR_IOS_CLIENT = true;
 
-  public static final boolean ENABLE_BASELINE_PROFILE_HOOKS = BuildConfig.LAB_FLAVOR;
+  public static final boolean ENABLE_TEST_HOOKS = BuildConfig.TEST_HOOKS_ENABLED;
+
+  // How often at most a chat of the chat list layouts changes of its last message and unread count
+  public static final long CHAT_CHANGES_INTERVAL_MS = 100;
 
   public static final boolean ENABLE_DELETE_CALL_HISTORY = BuildConfig.DEBUG;
 
@@ -92,6 +95,7 @@ public class Config {
 
   public static final boolean NOTIFICATION_AUTO_CANCEL = true;
   public static final boolean NOTIFICATION_AUTO_CANCEL_SPECIFIC = true;
+  public static final boolean REUSE_NOTIFICATION_ICONS = true;
   public static final int MAX_RUNNING_TDLIBS = 5;
 
   public static final boolean NEED_LANGUAGE_WORKAROUND = false;
@@ -265,7 +269,9 @@ public class Config {
 
   public static final boolean SHOW_COPY_REPORT_DETAILS_IN_SETTINGS = BuildConfig.EXPERIMENTAL;
 
-  public static final boolean FORCE_DISABLE_NOTIFICATIONS = BuildConfig.EXPERIMENTAL && !BuildConfig.DEBUG;
+  public static final boolean FORCE_DISABLE_NOTIFICATIONS =
+    BuildConfig.EXPERIMENTAL && !BuildConfig.DEBUG && !ENABLE_TEST_HOOKS &&
+    !BuildConfig.FIREBASE_MESSAGING_ENABLED;
 
   public static final int MINIMUM_CALL_CONTACTS_SUGGESTIONS = 3;
 

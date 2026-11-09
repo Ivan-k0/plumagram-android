@@ -14,6 +14,8 @@
  */
 package org.thunderdog.challegram.data;
 
+import android.os.SystemClock;
+import android.view.Choreographer;
 import android.view.Gravity;
 import android.view.View;
 
@@ -24,6 +26,7 @@ import org.drinkless.tdlib.TdApi;
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.U;
 import org.thunderdog.challegram.component.dialogs.ChatView;
+import org.thunderdog.challegram.config.Config;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.loader.ComplexReceiver;
 import org.thunderdog.challegram.navigation.ViewController;
@@ -90,10 +93,25 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   private static final int FLAG_SHOW_SCAM = 1 << 15;
   private static final int FLAG_SHOW_FAKE = 1 << 16;
   private static final int FLAG_MESSAGE = 1 << 17;
+  private static final int FLAG_CHANGES_POSTED = 1 << 18;
 
   private static final int ARCHIVE_PREVIEW_LIMIT = 9;
 
   private int flags, listMode;
+
+  private static final int CHANGE_COUNTER = 1;
+  private static final int CHANGE_TIME = 1 << 1;
+  private static final int CHANGE_TEXT = 1 << 2;
+  private static final int CHANGE_TITLE = 1 << 3;
+  private int pendingChanges;
+  private long lastChangesLayoutAt;
+  private static final ArrayList<TGChat> chatsWithChanges = new ArrayList<>();
+  private static boolean isChangesFramePosted;
+  private static final Choreographer.FrameCallback changesFrame =
+    frameTimeNanos -> layoutPostedChanges();
+  // Test hooks: how long changes waited for their layout, for the tools of floods
+  private long changesPendingSince;
+  private static long changesLagMax, changesLagSum, changesLagCount;
 
   private final ViewController<?> context;
   private final Tdlib tdlib;
@@ -115,6 +133,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   private @Nullable EmojiStatusHelper.EmojiStatusDrawable emojiStatusDrawable;
 
   private String time;
+  private int timeDate = Integer.MIN_VALUE;
   private int timeWidth;
 
   private Text prefix;
@@ -520,13 +539,89 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
       chat.lastMessage = message;
       if ((oldMessage == null && message == null) || (oldMessage != null && message != null && oldMessage.id == message.id))
         return false;
-      setCounter(true);
-      setTime();
-      setText();
-      layoutTitle(false);
+      postChanges(CHANGE_COUNTER | CHANGE_TIME | CHANGE_TEXT | CHANGE_TITLE);
       return true;
     }
     return false;
+  }
+
+  private void postChanges (int changes) {
+    if (Config.ENABLE_TEST_HOOKS && pendingChanges == 0) {
+      changesPendingSince = SystemClock.uptimeMillis();
+    }
+    pendingChanges |= changes;
+    if ((flags & FLAG_ATTACHED) == 0) {
+      return;
+    }
+    if ((flags & FLAG_CHANGES_POSTED) == 0) {
+      flags |= FLAG_CHANGES_POSTED;
+      chatsWithChanges.add(this);
+    }
+    postChangesFrame();
+  }
+
+  private static void postChangesFrame () {
+    if (isChangesFramePosted || chatsWithChanges.isEmpty()) {
+      return;
+    }
+    final long now = SystemClock.uptimeMillis();
+    long delay = Long.MAX_VALUE;
+    for (int i = 0; i < chatsWithChanges.size(); i++) {
+      final long layoutAt = chatsWithChanges.get(i).lastChangesLayoutAt;
+      delay = Math.min(delay, layoutAt + Config.CHAT_CHANGES_INTERVAL_MS - now);
+    }
+    isChangesFramePosted = true;
+    Choreographer.getInstance().postFrameCallbackDelayed(changesFrame, Math.max(0, delay));
+  }
+
+  private static void layoutPostedChanges () {
+    isChangesFramePosted = false;
+    final long now = SystemClock.uptimeMillis();
+    for (int i = chatsWithChanges.size() - 1; i >= 0; i--) {
+      final TGChat chat = chatsWithChanges.get(i);
+      if ((chat.flags & FLAG_ATTACHED) == 0) {
+        chatsWithChanges.remove(i);
+        chat.flags &= ~FLAG_CHANGES_POSTED;
+      } else if (now >= chat.lastChangesLayoutAt + Config.CHAT_CHANGES_INTERVAL_MS) {
+        chatsWithChanges.remove(i);
+        chat.flags &= ~FLAG_CHANGES_POSTED;
+        if (Config.ENABLE_TEST_HOOKS) {
+          final long lag = now - chat.changesPendingSince;
+          changesLagMax = Math.max(changesLagMax, lag);
+          changesLagSum += lag;
+          changesLagCount++;
+        }
+        chat.applyChanges();
+        chat.lastChangesLayoutAt = now;
+        chat.currentViews.invalidate();
+      }
+    }
+    postChangesFrame();
+  }
+
+  public static String takeChangesLag () {
+    // Test hooks: how long changes of chats waited since the last call
+    final String lag = "max " + changesLagMax + " ms, mean " +
+      (changesLagCount > 0 ? changesLagSum / changesLagCount : 0) + " ms of " + changesLagCount;
+    changesLagMax = changesLagSum = changesLagCount = 0;
+    return lag;
+  }
+
+  private void applyChanges () {
+    final int changes = pendingChanges;
+    pendingChanges = 0;
+    if ((changes & CHANGE_COUNTER) != 0) {
+      setCounter(true);
+    }
+    if ((changes & CHANGE_TIME) != 0) {
+      setTime();
+    }
+    if ((changes & CHANGE_TEXT) != 0) {
+      setText();
+    }
+    if ((changes & CHANGE_TITLE) != 0) {
+      layoutTitle(false);
+    }
   }
 
   public boolean updateChatPermissions (long chatId, TdApi.ChatPermissions permissions) {
@@ -588,12 +683,17 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
     return position != null ? position.source : null;
   }
 
+  private @Nullable ContentPreview actualPreview () {
+    return (pendingChanges & CHANGE_TEXT) == 0 ? currentPreview : null;
+  }
+
   public boolean checkLastMessageId (long messageId) {
     if (chat != null && chat.lastMessage != null && chat.lastMessage.id == messageId) {
       return true;
     }
-    if (currentPreview != null) {
-      Tdlib.Album album = currentPreview.getAlbum();
+    ContentPreview preview = actualPreview();
+    if (preview != null) {
+      Tdlib.Album album = preview.getAlbum();
       if (album != null) {
         for (TdApi.Message message : album.messages) {
           if (message.id == messageId) {
@@ -624,8 +724,9 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
 
   public boolean updateMessageContent (long chatId, long messageId, TdApi.MessageContent newContent) {
     if (getChatId() == chatId && chat.lastMessage != null) {
-      if (currentPreview != null) {
-        Tdlib.Album album = currentPreview.getAlbum();
+      ContentPreview preview = actualPreview();
+      if (preview != null) {
+        Tdlib.Album album = preview.getAlbum();
         if (album != null) {
           boolean updatedAlbum = false;
           for (TdApi.Message message : album.messages) {
@@ -640,7 +741,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
             return true;
           }
         }
-        if (currentPreview.updateRelatedMessage(chatId, messageId, newContent, this)) {
+        if (preview.updateRelatedMessage(chatId, messageId, newContent, this)) {
           return true;
         }
       }
@@ -661,8 +762,9 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
         return true;
       }
 
-      if (currentPreview != null) {
-        Tdlib.Album album = currentPreview.getAlbum();
+      ContentPreview preview = actualPreview();
+      if (preview != null) {
+        Tdlib.Album album = preview.getAlbum();
         if (album != null) {
           boolean albumChanged = false;
           for (int index = album.messages.size() - 1; index >= 0; index--) {
@@ -679,7 +781,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
             setContentPreview(ContentPreview.getAlbumPreview(tdlib, chat.lastMessage, album, true));
           }
         }
-        if (currentPreview.belongsToRelatedMessage(chatId, messageIds)) {
+        if (preview.belongsToRelatedMessage(chatId, messageIds)) {
           setText();
           return true;
         }
@@ -703,10 +805,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
       chat.lastReadInboxMessageId = lastReadInboxMessageId;
       chat.unreadCount = unreadCount;
       boolean newShowDraft = showDraft();
-      setCounter(true);
-      if (showDraft != newShowDraft) {
-        setText();
-      }
+      postChanges(CHANGE_COUNTER | (showDraft != newShowDraft ? CHANGE_TEXT : 0));
       return true;
     }
     return false;
@@ -1118,13 +1217,16 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   public boolean setTime () {
     String time;
     if (tgx101Storage) {
+      timeDate = Integer.MIN_VALUE;
       time = tgx101StorageDate != 0 ? Lang.timeOrDateShort(tgx101StorageDate, TimeUnit.SECONDS) : "";
     } else if (isArchive()) {
+      timeDate = Integer.MIN_VALUE;
       int maxDate = archive.maxDate();
       time = maxDate != 0 ? Lang.timeOrDateShort(maxDate, TimeUnit.SECONDS) : "";
     } else {
       TdApi.ChatSource source = getSource();
       if (source != null) {
+        timeDate = Integer.MIN_VALUE;
         switch (source.getConstructor()) {
           case TdApi.ChatSourceMtprotoProxy.CONSTRUCTOR:
             time = Lang.getString(R.string.ProxySponsor);
@@ -1140,7 +1242,12 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
         }
       } else {
         int date = chat.draftMessage != null && showDraft() ? chat.draftMessage.date : chat.lastMessage != null ? chat.lastMessage.date : 0;
-        time = date != 0 ? Lang.timeOrDateShort(date, TimeUnit.SECONDS) : "";
+        if (date != timeDate || this.time == null) {
+          time = date != 0 ? Lang.timeOrDateShort(date, TimeUnit.SECONDS) : "";
+          timeDate = date;
+        } else {
+          time = this.time;
+        }
       }
     }
     boolean changed = !time.equals(this.time);
@@ -1166,12 +1273,14 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   }
 
   public void updateDate () {
+    timeDate = Integer.MIN_VALUE;
     if (setTime()) {
       layoutTitle(false);
     }
   }
 
   public void updateLocale (boolean forceText) {
+    timeDate = Integer.MIN_VALUE;
     setTime();
     setCounter(true);
     if (forceText || (flags & FLAG_CONTENT_STRING) != 0 || (flags & FLAG_TEXT_DRAFT) != 0) {
@@ -1427,6 +1536,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   }
 
   public void setText () {
+    pendingChanges &= ~CHANGE_TEXT;
     flags &= ~FLAG_HAS_PREFIX;
     flags &= ~FLAG_TEXT_DRAFT;
     flags &= ~FLAG_CONTENT_HIDDEN;
@@ -1637,7 +1747,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   @Override
   public void onContentPreviewChanged (long chatId, long messageId, ContentPreview newPreview, ContentPreview oldPreview) {
     tdlib.ui().post(() -> {
-      if (currentPreview == oldPreview) {
+      if (actualPreview() == oldPreview) {
         setContentPreview(newPreview);
         currentViews.invalidate();
       }
@@ -1672,6 +1782,9 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   private final TdlibStatusManager.Helper statusHelper;
 
   public void attachToView (View view) {
+    if (pendingChanges != 0) {
+      applyChanges();
+    }
     if (currentViews.attachToView(view)) {
       setViewAttached(true);
     }

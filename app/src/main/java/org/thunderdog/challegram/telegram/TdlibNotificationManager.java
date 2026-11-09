@@ -44,6 +44,7 @@ import org.thunderdog.challegram.TDLib;
 import org.thunderdog.challegram.U;
 import org.thunderdog.challegram.config.Config;
 import org.thunderdog.challegram.core.BaseThread;
+import org.thunderdog.challegram.core.SerialQueue;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.data.TD;
 import org.thunderdog.challegram.helper.Recorder;
@@ -72,6 +73,7 @@ import java.util.concurrent.CountDownLatch;
 import me.vkryl.core.BitwiseUtils;
 import me.vkryl.core.FileUtils;
 import me.vkryl.core.StringUtils;
+import me.vkryl.core.lambda.RunnableData;
 import me.vkryl.leveldb.LevelDB;
 import tgx.td.ChatId;
 
@@ -131,6 +133,10 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
   private static final int ON_REBUILD_NOTIFICATION_GROUP = 19;
   private static final int ON_RESTART = 20;
   private static final int REMOVE_NOTIFICATIONS = 21;
+  private static final int RESET_CHANNELS = 22;
+  private static final int UPDATE_CHANNEL_SETTINGS = 23;
+  private static final int CREATE_CHANNELS = 24;
+  private static final int UPDATE_CHAT_CHANNEL = 25;
 
   @SuppressWarnings("DeprecatedIsStillUsed")
   @Deprecated
@@ -305,7 +311,7 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
   private Boolean _inAppChatSounds;
 
   @Nullable
-  private Integer _channelGlobalVersion;
+  private volatile Integer _channelGlobalVersion;
   private final LocalScopeNotificationSettings privateSettings, groupSettings, channelSettings;
   private @Nullable TdApi.ScopeNotificationSettings settingsForPrivateChats, settingsForGroupChats, settingsForChannelChats;
 
@@ -321,40 +327,53 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
     return accountId != 0 ? "account" + accountId + "_" + key : key;
   }
 
-  public static class NotificationQueue extends BaseThread {
+  public static class NotificationQueue implements SerialQueue.Callback {
     private final TdlibManager context;
+    private final SerialQueue queue;
 
     public NotificationQueue (String name, TdlibManager context) {
-      super(name);
       this.context = context;
+      this.queue = SerialQueue.create(name, Thread.NORM_PRIORITY, this);
     }
 
     public void init () {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        sendMessage(Message.obtain(getHandler(), CLEANUP_CHANNELS), 0);
+        send(CLEANUP_CHANNELS, null);
       }
     }
 
+    public void send (int what, @Nullable Object obj) {
+      queue.send(what, 0, 0, obj);
+    }
+
+    public void send (int what, int arg1, int arg2, @Nullable Object obj) {
+      queue.send(what, arg1, arg2, obj);
+    }
+
+    public void post (@NonNull Runnable work, long delayMillis) {
+      queue.post(work, delayMillis);
+    }
+
+    public boolean isCurrentThread () {
+      return queue.isCurrentThread();
+    }
+
     @Override
-    protected void process (Message msg) {
-      switch (msg.what) {
+    public void handle (int what, int arg1, int arg2, @Nullable Object object) {
+      switch (what) {
         case CLEANUP_CHANNELS: {
           if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             TdlibNotificationChannelGroup.cleanupChannelGroups(context);
           }
           break;
         }
-        case PLAY_SOUND: {
-          ((TdlibNotificationManager) msg.obj).playSound(msg.arg1, msg.arg2);
-          break;
-        }
         case REBUILD_NOTIFICATION: {
-          ((TdlibNotificationManager) msg.obj).rebuildNotification();
+          ((TdlibNotificationManager) object).rebuildNotification();
           break;
         }
         case ENSURE_CHANNELS: {
           if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Tdlib tdlib = ((TdlibNotificationManager) msg.obj).tdlib;
+            Tdlib tdlib = ((TdlibNotificationManager) object).tdlib;
             TdlibNotificationChannelGroup.cleanupChannelGroups(context);
             try {
               tdlib.notifications().createChannels();
@@ -367,92 +386,129 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
           break;
         }
         case ON_UPDATE_NOTIFICATION_CHANNELS: {
-          ((TdlibNotificationManager) msg.obj).onUpdateNotificationChannels(BitwiseUtils.mergeLong(msg.arg1, msg.arg2));
+          long accountUserId = BitwiseUtils.mergeLong(arg1, arg2);
+          ((TdlibNotificationManager) object).onUpdateNotificationChannels(accountUserId);
           break;
         }
         case ON_UPDATE_ACTIVE_NOTIFICATIONS: {
-          Object[] obj = (Object[]) msg.obj;
+          Object[] obj = (Object[]) object;
           ((TdlibNotificationManager) obj[0]).processActiveNotifications((TdApi.UpdateActiveNotifications) obj[1]);
           obj[0] = obj[1] = null;
           break;
         }
         /*case ON_UPDATE_HAVE_PENDING_NOTIFICATIONS: {
-          Object[] obj = (Object[]) msg.obj;
+          Object[] obj = (Object[]) object;
           ((TdlibNotificationManager) obj[0]).processHavePendingNotifications((TdApi.UpdateHavePendingNotifications) obj[1]);
           obj[0] = obj[1] = null;
           break;
         }*/
         case ON_UPDATE_NOTIFICATION_GROUP: {
-          Object[] obj = (Object[]) msg.obj;
+          Object[] obj = (Object[]) object;
           ((TdlibNotificationManager) obj[0]).processNotificationGroup((TdApi.UpdateNotificationGroup) obj[1]);
           obj[0] = obj[1] = null;
           break;
         }
         case ON_UPDATE_NOTIFICATION: {
-          Object[] obj = (Object[]) msg.obj;
+          Object[] obj = (Object[]) object;
           ((TdlibNotificationManager) obj[0]).processNotification((TdApi.UpdateNotification) obj[1]);
           obj[0] = obj[1] = null;
           break;
         }
         case ON_HIDE_ALL_NOTIFICATIONS: {
-          ((TdlibNotificationManager) msg.obj).onHideAllImpl(msg.arg1);
+          ((TdlibNotificationManager) object).onHideAllImpl(arg1);
           break;
         }
         case ON_HIDE_NOTIFICATION: {
-          Object[] obj = (Object[]) msg.obj;
+          Object[] obj = (Object[]) object;
           ((TdlibNotificationManager) obj[0]).onHideImpl((TdlibNotificationExtras) obj[1]);
           obj[0] = obj[1] = null;
           break;
         }
         case ON_REBUILD_NOTIFICATIONS: {
-          Object[] obj = (Object[]) msg.obj;
+          Object[] obj = (Object[]) object;
           ((TdlibNotificationManager) obj[0]).rebuildNotificationsImpl((TdApi.NotificationSettingsScope) obj[1]);
           obj[0] = obj[1] = null;
           break;
         }
         case ON_REBUILD_NOTIFICATIONS_SPECIFIC: {
-          ((TdlibNotificationManager) msg.obj).rebuildNotificationsImpl(BitwiseUtils.mergeLong(msg.arg1, msg.arg2));
+          long chatId = BitwiseUtils.mergeLong(arg1, arg2);
+          ((TdlibNotificationManager) object).rebuildNotificationsImpl(chatId);
           break;
         }
         case ON_CHAT_OPENED: {
-          ((TdlibNotificationManager) msg.obj).onChatOpenedImpl(BitwiseUtils.mergeLong(msg.arg1, msg.arg2));
+          ((TdlibNotificationManager) object).onChatOpenedImpl(BitwiseUtils.mergeLong(arg1, arg2));
           break;
         }
         case ON_DROP_NOTIFICATION_DATA: {
-          ((TdlibNotificationManager) msg.obj).onDropNotificationDataImpl(msg.arg1 == 1);
+          ((TdlibNotificationManager) object).onDropNotificationDataImpl(arg1 == 1);
+          break;
+        }
+        case RESET_CHANNELS: {
+          Object[] data = (Object[]) object;
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ((TdlibNotificationManager) data[0]).resetChannelsImpl((TdApi.User) data[1], arg1 == 1);
+          }
+          data[0] = data[1] = null;
+          break;
+        }
+        case UPDATE_CHANNEL_SETTINGS: {
+          Object[] data = (Object[]) object;
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ((TdlibNotificationManager) data[0]).updateChannelSettingsImpl(
+              (TdApi.NotificationSettingsScope) data[1], (long) data[2], (long) data[3]
+            );
+          }
+          data[0] = data[1] = data[2] = data[3] = null;
+          break;
+        }
+        case CREATE_CHANNELS: {
+          Object[] data = (Object[]) object;
+          @SuppressWarnings("unchecked")
+          RunnableData<TdlibNotificationChannelGroup.ChannelCreationFailureException> after =
+            (RunnableData<TdlibNotificationChannelGroup.ChannelCreationFailureException>) data[1];
+          ((TdlibNotificationManager) data[0]).createChannelsImpl(after);
+          data[0] = data[1] = null;
+          break;
+        }
+        case UPDATE_CHAT_CHANNEL: {
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            long chatId = BitwiseUtils.mergeLong(arg1, arg2);
+            ((TdlibNotificationManager) object).updateChatChannelImpl(chatId);
+          }
           break;
         }
         case RELEASE_REFERENCE: {
-          ((TdlibNotificationManager) msg.obj).tdlib.decrementNotificationReferenceCount();
+          ((TdlibNotificationManager) object).tdlib.decrementNotificationReferenceCount();
           break;
         }
         case RELEASE_REFERENCE_WITH_TASK: {
-          Object[] data = (Object[]) msg.obj;
+          Object[] data = (Object[]) object;
           ((Runnable) data[1]).run();
           ((TdlibNotificationManager) data[0]).tdlib.decrementNotificationReferenceCount();
           data[0] = data[1] = null;
           break;
         }
         case ON_UPDATE_MY_USER_ID: {
-          ((TdlibNotificationManager) msg.obj).onUpdateMyUserIdImpl(BitwiseUtils.mergeLong(msg.arg1, msg.arg2));
+          long myUserId = BitwiseUtils.mergeLong(arg1, arg2);
+          ((TdlibNotificationManager) object).onUpdateMyUserIdImpl(myUserId);
           break;
         }
         case ON_UPDATE_MY_USER: {
-          Object[] data = (Object[]) msg.obj;
+          Object[] data = (Object[]) object;
           ((TdlibNotificationManager) data[0]).onUpdateMyUserImpl((TdApi.User) data[1]);
           data[0] = data[1] = null;
           break;
         }
         case ON_REBUILD_NOTIFICATION_GROUP: {
-          ((TdlibNotificationManager) msg.obj).rebuildNotificationGroupImpl(msg.arg1);
+          ((TdlibNotificationManager) object).rebuildNotificationGroupImpl(arg1);
           break;
         }
         case ON_RESTART: {
-          ((TdlibNotificationManager) msg.obj).onRestartImpl();
+          ((TdlibNotificationManager) object).onRestartImpl();
           break;
         }
         case REMOVE_NOTIFICATIONS: {
-          Object[] data = (Object[]) msg.obj;
+          Object[] data = (Object[]) object;
           ((TdlibNotificationManager) data[0]).removeNotificationGroupImpl((TdlibNotificationExtras) data[1]);
           data[0] = data[1] = null;
           break;
@@ -1192,6 +1248,10 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
 
   public TdlibNotificationChannelGroup getChannelCache () throws TdlibNotificationChannelGroup.ChannelCreationFailureException {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      if (tdlib.account().isLoggingOut()) {
+        // Its channels are deleted by the log out, and nothing may make them again
+        throw new TdlibNotificationChannelGroup.ChannelCreationFailureException("Logging out");
+      }
       long accountUserId = tdlib.myUserId(true);
       boolean isDebug = tdlib.account().isDebug();
       int globalVersion = getChannelsGlobalVersion();
@@ -1214,6 +1274,114 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
       return getChannelCache().getChannel(group, false);
     }
     return null;
+  }
+
+  public @Nullable TdlibNotificationChannelGroup getExistingChannelCache () {
+    // The group of channels of the current version if it's made already, without making one
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      TdlibNotificationChannelGroup cache = channelGroupCache;
+      long accountUserId = tdlib.myUserId(true);
+      boolean isDebug = tdlib.account().isDebug();
+      if (cache != null && cache.compareTo(accountUserId, isDebug, getChannelsGlobalVersion())) {
+        return cache;
+      }
+    }
+    return null;
+  }
+
+  @NotificationThread
+  @RequiresApi(Build.VERSION_CODES.O)
+  private void resetChannelsImpl (@Nullable TdApi.User user, boolean recreate) {
+    // On the queue, in order with every making of channels, so that the group of the account
+    // isn't deleted between the group and its channels, e.g. at a log out. The user is the one
+    // of the moment of the reset, which a log out may have taken away by now
+    int channelGlobalVersion = getChannelsGlobalVersion();
+    int newGlobalVersion = channelGlobalVersion == Integer.MAX_VALUE ?
+      Integer.MIN_VALUE : channelGlobalVersion + 1;
+    _channelGlobalVersion = newGlobalVersion;
+    Settings.instance().putInt(key(_CHANNEL_VERSION_GLOBAL_KEY, tdlib.id()), newGlobalVersion);
+    channelGroupCache = null;
+    if (user != null) {
+      boolean isDebug = tdlib.account().isDebug();
+      TdlibNotificationChannelGroup.deleteChannels(tdlib, user.id, isDebug, user, recreate);
+    }
+  }
+
+  @AnyThread
+  @RequiresApi(Build.VERSION_CODES.O)
+  public void createChannels (
+    RunnableData<TdlibNotificationChannelGroup.ChannelCreationFailureException> after
+  ) {
+    // On the queue, in order with the reset of channels; after gets the error there, if any
+    queue.send(CREATE_CHANNELS, new Object[] {this, after});
+  }
+
+  @NotificationThread
+  private void createChannelsImpl (
+    RunnableData<TdlibNotificationChannelGroup.ChannelCreationFailureException> after
+  ) {
+    TdlibNotificationChannelGroup.ChannelCreationFailureException error = null;
+    try {
+      createChannels();
+    } catch (TdlibNotificationChannelGroup.ChannelCreationFailureException e) {
+      error = e;
+    }
+    after.runWithData(error);
+  }
+
+  @NotificationThread
+  @RequiresApi(Build.VERSION_CODES.O)
+  private void updateChannelSettingsImpl (
+    @Nullable TdApi.NotificationSettingsScope scope,
+    long chatId,
+    long channelVersion
+  ) {
+    if (tdlib.account().isLoggingOut()) {
+      return;
+    }
+    long selfUserId = tdlib.myUserId();
+    try {
+      TdlibNotificationChannelGroup.updateChannelSettings(tdlib, selfUserId,
+        tdlib.account().isDebug(), getChannelsGlobalVersion(), scope, chatId, channelVersion
+      );
+    } catch (TdlibNotificationChannelGroup.ChannelCreationFailureException e) {
+      TDLib.Tag.notifications("Unable to increment notification channel version for chat %d:\n%s",
+        chatId,
+        Log.toString(e)
+      );
+      tdlib.settings().trackNotificationChannelProblem(e, chatId);
+    }
+    onUpdateNotificationChannels(selfUserId);
+    if (chatId != 0) {
+      tdlib.listeners().updateNotificationChannel(chatId);
+    } else {
+      tdlib.listeners().updateNotificationChannel(scope);
+    }
+  }
+
+  @AnyThread
+  public void updateChatChannel (long chatId) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      sendLocked(UPDATE_CHAT_CHANNEL, chatId);
+    }
+  }
+
+  @NotificationThread
+  @RequiresApi(Build.VERSION_CODES.O)
+  private void updateChatChannelImpl (long chatId) {
+    long myUserId = tdlib.myUserId();
+    TdApi.Chat chat = tdlib.chat(chatId);
+    if (myUserId != 0 && chat != null && !tdlib.account().isLoggingOut()) {
+      try {
+        TdlibNotificationChannelGroup.updateChat(tdlib, myUserId, chat);
+      } catch (TdlibNotificationChannelGroup.ChannelCreationFailureException e) {
+        TDLib.Tag.notifications("Unable to update notification channel of chat %d:\n%s",
+          chatId,
+          Log.toString(e)
+        );
+        tdlib.settings().trackNotificationChannelProblem(e, chatId);
+      }
+    }
   }
 
   public boolean resetChannelCache (long accountUserId) {
@@ -1241,7 +1409,6 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
 
   @RequiresApi(Build.VERSION_CODES.O)
   private void incrementChannelVersion (@Nullable TdApi.NotificationSettingsScope scope, long chatId, LevelDB editor) {
-    long selfUserId = tdlib.myUserId();
     LocalScopeNotificationSettings settings = chatId != 0 ? null : getLocalNotificationSettings(scope);
     String key = chatId != 0 ? key(_CHANNEL_VERSION_CUSTOM_KEY + chatId) : settings.prefix(KEY_PREFIX_CHANNEL_VERSION);
     long oldVersion = chatId != 0 ? Settings.instance().getLong(key, 0) : settings.getChannelVersion();
@@ -1251,18 +1418,7 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
       settings.setChannelVersion(newVersion);
     }
     editor.apply();
-    try {
-      TdlibNotificationChannelGroup.updateChannelSettings(tdlib, selfUserId, tdlib.account().isDebug(), getChannelsGlobalVersion(), scope, chatId, newVersion);
-    } catch (TdlibNotificationChannelGroup.ChannelCreationFailureException e) {
-      TDLib.Tag.notifications("Unable to increment notification channel version for chat %d:\n%s", chatId, Log.toString(e));
-      tdlib.settings().trackNotificationChannelProblem(e, chatId);
-    }
-    onUpdateNotificationChannels(selfUserId);
-    if (chatId != 0) {
-      tdlib.listeners().updateNotificationChannel(chatId);
-    } else {
-      tdlib.listeners().updateNotificationChannel(scope);
-    }
+    queue.send(UPDATE_CHANNEL_SETTINGS, new Object[] {this, scope, chatId, newVersion});
   }
 
   @RequiresApi(Build.VERSION_CODES.O)
@@ -1477,6 +1633,17 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
     return true;
   }
 
+  public boolean isRingerSilent () {
+    if (audioManager() != null) {
+      try {
+        return audioManager().getRingerMode() == AudioManager.RINGER_MODE_SILENT;
+      } catch (Throwable t) {
+        Log.w(t);
+      }
+    }
+    return false;
+  }
+
   public int getCallVibrateMode (long chatId) {
     int vibrateMode = getCustomCallVibrateModeForChat(chatId);
     boolean silentOnly;
@@ -1595,13 +1762,6 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
       .remove(key(_CALL_VIBRATE_KEY, accountId))
       .remove(key(_CALL_VIBRATE_ONLYSILENT_KEY, accountId));
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      int channelGlobalVersion = getChannelsGlobalVersion();
-      int newGlobalVersion = (channelGlobalVersion == Integer.MAX_VALUE ? Integer.MIN_VALUE : channelGlobalVersion + 1);
-      _channelGlobalVersion = newGlobalVersion;
-      editor.putInt(key(_CHANNEL_VERSION_GLOBAL_KEY, accountId), newGlobalVersion);
-    }
-
     String customSoundKey = key(_CUSTOM_SOUND_KEY, accountId);
     String customSoundNameKey = key(_CUSTOM_SOUND_NAME_KEY, accountId);
     String customSoundPathKey = key(_CUSTOM_SOUND_PATH_KEY, accountId);
@@ -1636,13 +1796,8 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
 
     _repeatNotificationMinutes = null;
 
-    long selfUserId = tdlib.myUserId(true);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      TdlibAccount account = tdlib.account();
-      if (selfUserId != 0) {
-        TdApi.User user = tdlib.myUser();
-        TdlibNotificationChannelGroup.deleteChannels(tdlib, selfUserId, account.isDebug(), user, !onlyLocal);
-      }
+      queue.send(RESET_CHANNELS, onlyLocal ? 0 : 1, 0, new Object[] {this, tdlib.myUser()});
     }
 
     boolean updated = false;
@@ -1680,7 +1835,7 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      onUpdateNotificationChannels(selfUserId);
+      onUpdateNotificationChannels(tdlib.myUserId(true));
     }
     if (updated) {
       tdlib.context().onUpdateAllNotifications();
@@ -1987,13 +2142,34 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
   private final SparseIntArray loadedSounds;
   private final SparseIntArray sounds;
 
+  private static BaseThread soundThread;
+
+  private static BaseThread soundThread () {
+    // Sounds keep a Looper of their own, which SoundPool takes for its callbacks
+    synchronized (TdlibNotificationManager.class) {
+      if (soundThread == null) {
+        soundThread = new BaseThread("NotificationSounds") {
+          @Override
+          protected void process (Message msg) {
+            ((TdlibNotificationManager) msg.obj).playSound(msg.arg1, msg.arg2);
+          }
+        };
+      }
+      return soundThread;
+    }
+  }
+
   @SuppressWarnings("deprecation")
   private void playSound (@RawRes int soundResource, int delayAfter) {
     if (audioManager() == null || Recorder.instance().isRecording()) {
       return;
     }
-    if (Thread.currentThread() != queue) {
-      queue.sendMessage(Message.obtain(queue.getHandler(), PLAY_SOUND, soundResource, delayAfter, this), 0);
+    BaseThread soundThread = soundThread();
+    if (Thread.currentThread() != soundThread) {
+      soundThread.sendMessage(
+        Message.obtain(soundThread.getHandler(), PLAY_SOUND, soundResource, delayAfter, this),
+        0
+      );
       return;
     }
     long ms = System.currentTimeMillis();
@@ -2057,18 +2233,21 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
   @Override
   public void onPerformStartup (boolean isAfterRestart) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      sendLockedMessage(Message.obtain(queue.getHandler(), ENSURE_CHANNELS, this), null);
+      sendLocked(null, ENSURE_CHANNELS, this);
     }
   }
 
   @Override
   public void onPerformUserCleanup () {
     resetNotificationSettings(true);
+    if (Config.REUSE_NOTIFICATION_ICONS) {
+      tdlib.context().notificationIcons().releaseAccount(tdlib.id());
+    }
   }
 
   @Override
   public void onPerformRestart () {
-    queue.sendMessage(Message.obtain(queue.getHandler(), ON_RESTART, this), 0);
+    queue.send(ON_RESTART, this);
   }
 
   @Override
@@ -2083,9 +2262,25 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
     }
   }
 
-  private void sendLockedMessage (Message message, @Nullable Runnable after) {
+  private void sendLocked (@Nullable Runnable after, int what, @Nullable Object obj) {
+    sendLocked(after, what, 0, 0, obj);
+  }
+
+  private void sendLocked (int what, long value) {
+    int first = BitwiseUtils.splitLongToFirstInt(value);
+    int second = BitwiseUtils.splitLongToSecondInt(value);
+    sendLocked(null, what, first, second, this);
+  }
+
+  private void sendLocked (
+    @Nullable Runnable after,
+    int what,
+    int arg1,
+    int arg2,
+    @Nullable Object obj
+  ) {
     tdlib.incrementNotificationReferenceCount();
-    queue.sendMessage(message, 0);
+    queue.send(what, arg1, arg2, obj);
     releaseTdlibReference(after);
   }
 
@@ -2097,8 +2292,8 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
 
   @AnyThread
   public void onUpdateNotificationChannels (long accountUserId) {
-    if (Thread.currentThread() != queue) {
-      sendLockedMessage(Message.obtain(queue.getHandler(), ON_UPDATE_NOTIFICATION_CHANNELS, BitwiseUtils.splitLongToFirstInt(accountUserId), BitwiseUtils.splitLongToSecondInt(accountUserId), this), null);
+    if (!queue.isCurrentThread()) {
+      sendLocked(ON_UPDATE_NOTIFICATION_CHANNELS, accountUserId);
     } else {
       resetNotificationGroupImpl(accountUserId);
     }
@@ -2137,8 +2332,8 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
    * */
   @AnyThread
   private void rebuildNotification () {
-    if (Thread.currentThread() != queue) {
-      sendLockedMessage(Message.obtain(queue.getHandler(), REBUILD_NOTIFICATION, this), null);
+    if (!queue.isCurrentThread()) {
+      sendLocked(null, REBUILD_NOTIFICATION, this);
     } else {
       rebuildNotificationImpl();
     }
@@ -2192,7 +2387,20 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
     boolean defaultShowPreview = defaultShowPreview(chatId);
     boolean hadPreview = oldNotificationSettings.useDefaultShowPreview ? defaultShowPreview : oldNotificationSettings.showPreview;
     boolean hasPreview = update.notificationSettings.useDefaultShowPreview ? defaultShowPreview : update.notificationSettings.showPreview;
-    if (hadPreview != hasPreview) {
+    // Icons of the chat leave when it can't notify anymore, see TdlibNotificationHelper.retainIcons
+    final TdApi.ChatNotificationSettings settings = update.notificationSettings;
+    final boolean isSwitched = Config.REUSE_NOTIFICATION_ICONS && (
+      settings.useDefaultMuteFor != oldNotificationSettings.useDefaultMuteFor ||
+      (settings.muteFor == 0) != (oldNotificationSettings.muteFor == 0) ||
+      settings.useDefaultDisableMentionNotifications !=
+        oldNotificationSettings.useDefaultDisableMentionNotifications ||
+      settings.disableMentionNotifications != oldNotificationSettings.disableMentionNotifications ||
+      settings.useDefaultDisablePinnedMessageNotifications !=
+        oldNotificationSettings.useDefaultDisablePinnedMessageNotifications ||
+      settings.disablePinnedMessageNotifications !=
+        oldNotificationSettings.disablePinnedMessageNotifications
+    );
+    if (hadPreview != hasPreview || isSwitched) {
       onUpdateNotifications(update.chatId);
     }
   }
@@ -2203,6 +2411,12 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
     TdApi.ScopeNotificationSettings settings = update.notificationSettings;
     TdApi.ScopeNotificationSettings existingSettings = getScopeNotificationSettings(scope);
     boolean previewToggled = existingSettings != null && existingSettings.showPreview != settings.showPreview;
+    final boolean isSwitched = Config.REUSE_NOTIFICATION_ICONS && existingSettings != null && (
+      (existingSettings.muteFor == 0) != (settings.muteFor == 0) ||
+      existingSettings.disableMentionNotifications != settings.disableMentionNotifications ||
+      existingSettings.disablePinnedMessageNotifications !=
+        settings.disablePinnedMessageNotifications
+    );
     switch (scope.getConstructor()) {
       case TdApi.NotificationSettingsScopePrivateChats.CONSTRUCTOR:
         settingsForPrivateChats = settings;
@@ -2216,7 +2430,7 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
       default:
         throw new RuntimeException();
     }
-    if (previewToggled) {
+    if (previewToggled || isSwitched) {
       onUpdateNotifications(scope);
     }
   }
@@ -2226,15 +2440,15 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
   @TdlibThread
   void releaseTdlibReference (@Nullable Runnable after) {
     if (after != null) {
-      queue.sendMessage(Message.obtain(queue.getHandler(), RELEASE_REFERENCE_WITH_TASK, new Object[] {this, after}), 0);
+      queue.send(RELEASE_REFERENCE_WITH_TASK, new Object[] {this, after});
     } else {
-      queue.sendMessage(Message.obtain(queue.getHandler(), RELEASE_REFERENCE, this), 0);
+      queue.send(RELEASE_REFERENCE, this);
     }
   }
 
   @TdlibThread
   void onUpdateActiveNotifications (TdApi.UpdateActiveNotifications update, @Nullable Runnable after) {
-    sendLockedMessage(Message.obtain(queue.getHandler(), ON_UPDATE_ACTIVE_NOTIFICATIONS, new Object[] {this, update}), after);
+    sendLocked(after, ON_UPDATE_ACTIVE_NOTIFICATIONS, new Object[] {this, update});
   }
 
   @TdlibThread
@@ -2246,36 +2460,36 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
         if (result != PushProcessor.ShowStatus.NOT_SHOWN) {
           FetchNotificationService.stopForegroundTask(context, -1, tdlib.accountId());
         }
-        sendLockedMessage(Message.obtain(queue.getHandler(), ON_UPDATE_NOTIFICATION_GROUP, new Object[] {this, update}), null);
+        sendLocked(null, ON_UPDATE_NOTIFICATION_GROUP, new Object[] {this, update});
       }, 1500L);
       return;
     }
-    sendLockedMessage(Message.obtain(queue.getHandler(), ON_UPDATE_NOTIFICATION_GROUP, new Object[] {this, update}), null);
+    sendLocked(null, ON_UPDATE_NOTIFICATION_GROUP, new Object[] {this, update});
   }
 
   @TdlibThread
   void onUpdateNotification (TdApi.UpdateNotification update) {
-    sendLockedMessage(Message.obtain(queue.getHandler(), ON_UPDATE_NOTIFICATION, new Object[] {this, update}), null);
+    sendLocked(null, ON_UPDATE_NOTIFICATION, new Object[] {this, update});
   }
 
   @TdlibThread
   void onUpdateMyUserId (long myUserId) {
-    sendLockedMessage(Message.obtain(queue.getHandler(), ON_UPDATE_MY_USER_ID, BitwiseUtils.splitLongToFirstInt(myUserId), BitwiseUtils.splitLongToSecondInt(myUserId), this), null);
+    sendLocked(ON_UPDATE_MY_USER_ID, myUserId);
   }
 
   @TdlibThread
   void onUpdateMyUser (@Nullable TdApi.User user) {
-    sendLockedMessage(Message.obtain(queue.getHandler(), ON_UPDATE_MY_USER, new Object[] {this, user}), null);
+    sendLocked(null, ON_UPDATE_MY_USER, new Object[] {this, user});
   }
 
   @AnyThread
   public void onHideAll (int category) {
-    queue.sendMessage(Message.obtain(queue.getHandler(), ON_HIDE_ALL_NOTIFICATIONS, category, 0, this), 0);
+    queue.send(ON_HIDE_ALL_NOTIFICATIONS, category, 0, this);
   }
 
   @AnyThread
   public void removeNotificationGroup (TdlibNotificationExtras extras) {
-    queue.sendMessage(Message.obtain(queue.getHandler(), REMOVE_NOTIFICATIONS, new Object[] {this, extras}), 0);
+    queue.send(REMOVE_NOTIFICATIONS, new Object[] {this, extras});
   }
 
   @AnyThread
@@ -2289,29 +2503,29 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
 
   @AnyThread
   public void onHide (TdlibNotificationExtras extras) {
-    sendLockedMessage(Message.obtain(queue.getHandler(), ON_HIDE_NOTIFICATION, new Object[] {this, extras}), null);
+    sendLocked(null, ON_HIDE_NOTIFICATION, new Object[] {this, extras});
   }
 
   @AnyThread
   public void onChatOpened (long chatId) {
     if (ChatId.isSecret(chatId)) {
-      sendLockedMessage(Message.obtain(queue.getHandler(), ON_CHAT_OPENED, BitwiseUtils.splitLongToFirstInt(chatId), BitwiseUtils.splitLongToSecondInt(chatId), this), null);
+      sendLocked(ON_CHAT_OPENED, chatId);
     }
   }
 
   @AnyThread
   public void onUpdateNotifications (TdApi.NotificationSettingsScope scope) {
-    sendLockedMessage(Message.obtain(queue.getHandler(), ON_REBUILD_NOTIFICATIONS, new Object[] {this, scope}), null);
+    sendLocked(null, ON_REBUILD_NOTIFICATIONS, new Object[] {this, scope});
   }
 
   @AnyThread
   public void onUpdateNotifications (long chatId) {
-    sendLockedMessage(Message.obtain(queue.getHandler(), ON_REBUILD_NOTIFICATIONS_SPECIFIC, BitwiseUtils.splitLongToFirstInt(chatId), BitwiseUtils.splitLongToSecondInt(chatId), this), null);
+    sendLocked(ON_REBUILD_NOTIFICATIONS_SPECIFIC, chatId);
   }
 
   @AnyThread
   public void onDropNotificationData (boolean hideAll) {
-    queue.sendMessage(Message.obtain(queue.getHandler(), ON_DROP_NOTIFICATION_DATA, hideAll ? 1 : 0, 0, this), 0);
+    queue.send(ON_DROP_NOTIFICATION_DATA, hideAll ? 1 : 0, 0, this);
   }
 
   // Impl
@@ -2363,6 +2577,10 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
   @NotificationThread
   private void onUpdateMyUserImpl (TdApi.User user) {
     this.myUser = user;
+    boolean isLoggingOut = tdlib.account().isLoggingOut();
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && user != null && !isLoggingOut) {
+      TdlibNotificationChannelGroup.updateGroup(user, tdlib.account().isDebug());
+    }
   }
 
   @NotificationThread

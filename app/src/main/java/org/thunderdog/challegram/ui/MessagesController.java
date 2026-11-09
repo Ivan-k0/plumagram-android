@@ -179,6 +179,7 @@ import org.thunderdog.challegram.player.RoundVideoController;
 import org.thunderdog.challegram.support.RippleSupport;
 import org.thunderdog.challegram.support.ViewSupport;
 import org.thunderdog.challegram.telegram.ChatListener;
+import org.thunderdog.challegram.telegram.DateChangeListener;
 import org.thunderdog.challegram.telegram.EmojiMediaType;
 import org.thunderdog.challegram.telegram.GlobalAccountListener;
 import org.thunderdog.challegram.telegram.ListManager;
@@ -289,7 +290,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   Menu, Unlockable, View.OnClickListener,
   ActivityResultHandler, MoreDelegate, CommandKeyboardLayout.Callback, MediaCollectorDelegate, SelectDelegate,
   ReplyBarView.Callback, RaiseHelper.Listener,
-  TGLegacyManager.EmojiLoadListener, ChatHeaderView.Callback,
+  TGLegacyManager.EmojiLoadListener, ChatHeaderView.Callback, DateChangeListener,
   ChatListener, NotificationSettingsListener, EmojiLayout.Listener,
   MessageThreadListener, TdlibSingleUnreadReactionsManager.UnreadSingleReactionListener,
   TdlibCache.SupergroupDataChangeListener, TdlibCache.BasicGroupDataChangeListener, TdlibCache.SecretChatDataChangeListener,
@@ -1091,7 +1092,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       Views.setLayerType(messagesView, View.LAYER_TYPE_HARDWARE);
     }
 
-    manager.modifyRecycler(context, messagesView, messagesManager);
+    manager.modifyRecycler(messagesView, messagesManager);
 
     params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0);
     params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
@@ -1300,6 +1301,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tgx101Veil) params.topMargin = tgx101VeilShift; // below the header, as before
 
     topBar = new CollapseListView(context);
+    topBar.setId(R.id.msg_topBar);
     topBar.setLayoutParams(params);
     if (Settings.instance().useFloatingInput()) topBar.tgx101SetNoShadows(true); // capsules, no full-width shadow lines
     topBar.setTotalHeightChangeListener(listView -> onMessagesFrameChanged());
@@ -2262,6 +2264,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     updateView();
 
     TGLegacyManager.instance().addEmojiListener(this);
+    tdlib.context().dateManager().addListener(this);
 
     if (needTabs()) {
       pagerHeaderView = new ViewPagerHeaderViewCompact(context);
@@ -4295,7 +4298,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         } else {
           showActionDeleteChatButton();
         }
-      } else if (tdlib.isBotChat(chat) && chat.lastMessage == null) {
+      } else if (tdlib.isBotChat(chat) && (chat.lastMessage == null || botStartArgument != null)) {
         showActionBotButton();
       } else {
         CharSequence restrictionStatus = tdlib.getBasicMessageRestrictionText(chat);
@@ -5371,7 +5374,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   public final boolean shouldDisallowScreenshots () {
-    return (chat != null && (isSecretChat() || chat.hasProtectedContent || manager.hasVisibleProtectedContent())) || super.shouldDisallowScreenshots();
+    return !Config.ENABLE_TEST_HOOKS && ((chat != null && (isSecretChat() || chat.hasProtectedContent || manager.hasVisibleProtectedContent())) || super.shouldDisallowScreenshots());
   }
 
   @Override
@@ -5751,6 +5754,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
       tdlib.settings().removeJoinRequestsDismissListener(this);
       TGLegacyManager.instance().removeEmojiListener(this);
+      tdlib.context().dateManager().removeListener(this);
       if (emojiLayout != null) {
         emojiLayout.destroy();
       }
@@ -8053,6 +8057,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         Runnable after = () -> {
           if (!isDestroyed() && getChatId() == chatId) {
             tdlib.sendBotStartMessage(tdlib.chatUserId(chatId), chat.id, botStartArgument);
+            botStartArgument = null;
             hideActionButton();
           }
         };
@@ -9131,7 +9136,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           return !Td.equalsTo(oldText, newText);
         }
         default: {
-          Td.assertMessageContent_af730a78();
+          Td.assertMessageContent_cc875c63();
           break;
         }
       }
@@ -9628,7 +9633,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         break;
       }
       default: {
-        Td.assertMessageContent_af730a78();
+        Td.assertMessageContent_cc875c63();
         throw Td.unsupported(editContext.message.content);
       }
     }
@@ -14370,7 +14375,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
       case Intents.ACTIVITY_RESULT_GALLERY_FILE: {
         final Uri path = data != null ? data.getData() : null;
         if (path == null) break;
-        String imagePath = U.tryResolveFilePath(path);
+        String imagePath = U.resolveSharedFilePath(path);
+        if (imagePath == null) {
+          break;
+        }
 
         if (inPreviewMode) {
           if (previewMode == PREVIEW_MODE_WALLPAPER) {
@@ -14396,7 +14404,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         if (showSlowModeRestriction(mediaButton, null) || showRestriction(mediaButton, RightId.SEND_AUDIO)) {
           return;
         }
-        final String audioPath = U.tryResolveFilePath(path);
+        final String audioPath = U.resolveSharedFilePath(path);
         if (audioPath != null) {
           final long chatId = chat.id;
           final boolean disableNotification = obtainSilentMode();
@@ -15620,6 +15628,21 @@ public class MessagesController extends ViewController<MessagesController.Argume
       ((LinearLayoutManager) wallpapersList.getLayoutManager()).setReverseLayout(Lang.rtl());
       wallpapersList.invalidateItemDecorations();
       ((WallpaperAdapter) wallpapersList.getAdapter()).centerWallpapers(false);
+    }
+  }
+
+  @Override
+  public void onTimeFormatChanged () {
+    if (chat == null) {
+      return;
+    }
+    manager.updateDateSeparators();
+    manager.updateTimeFormat();
+    if (headerCell != null) {
+      headerCell.setChat(tdlib, chat, messageThread);
+      if (messageThread != null) {
+        updateMessageThreadSubtitle();
+      }
     }
   }
 

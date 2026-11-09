@@ -45,12 +45,15 @@ val validateGitSetupTask = tasks.register<ValidateGitSetupTask>("validateGitSetu
       "../tdlib/src/main/libs"
     ).asFileTree.matching {
       include("*/*/*.so")
+      include("*/*/*/*.so")
     },
     layout.projectDirectory.dir(
       "../tdlib/openssl"
     ).asFileTree.matching {
       include("*/*/lib/libcryptox.so")
       include("*/*/lib/libsslx.so")
+      include("*/*/*/lib/libcryptox.so")
+      include("*/*/*/lib/libsslx.so")
     }
   )
 }
@@ -367,6 +370,8 @@ android {
     resValue("string", "contacts_account_type", "${tgx101AppId}.contacts")
 
     buildConfigString("PROJECT_NAME", config.applicationName)
+    buildConfigField("boolean", "FIREBASE_MESSAGING_ENABLED", "true") // TGX 1826: our builds always carry Firebase messaging
+    buildConfigField("boolean", "TEST_HOOKS_ENABLED", "false") // TGX 1826: their test build types only
     buildConfigString("SAFETYNET_API_KEY", config.safetyNetToken)
 
     buildConfigString("DOWNLOAD_URL", config.appDownloadUrl)
@@ -876,7 +881,15 @@ android {
 
         var openSslVersionFull = ""
         var openSslReleaseDate = ""
-        val openSslVersionFile = requireFile(project.isolated.rootProject.projectDirectory.file("tdlib/openssl/${ndkVersion}/${abiVariant.filters.first()}/include/openssl/opensslv.h").asFile)
+        // TGX 1826: OpenSSL is split by platform — any platform's header gives the version; the old layout as fallback
+        val openSslAbi = abiVariant.filters.first()
+        val openSslNdkDir = project.isolated.rootProject.projectDirectory.dir("tdlib/openssl/${ndkVersion}").asFile
+        val openSslVersionFile = requireFile(
+          openSslNdkDir.listFiles()?.sortedBy { it.name }
+            ?.map { it.resolve("$openSslAbi/include/openssl/opensslv.h") }
+            ?.firstOrNull { it.exists() }
+            ?: openSslNdkDir.resolve("$openSslAbi/include/openssl/opensslv.h")
+        )
         openSslVersionFile.bufferedReader().use { reader ->
           val regex = Regex("^# define (OPENSSL_FULL_VERSION_STR|OPENSSL_RELEASE_DATE)\\s*\"([^\"]+)\"$")
           while (true) {
@@ -1136,6 +1149,7 @@ dependencies {
     libs.google.play.billing.latest
   )
   // The Checker Framework: https://checkerframework.org/CHANGELOG.md
+  compileOnly(libs.vkryl.annotation) // TGX 1826: annotations of generated code
   compileOnly(libs.annotations.checkerframework)
   // OkHttp: https://github.com/square/okhttp/blob/master/CHANGELOG.md
   flavorImplementation(

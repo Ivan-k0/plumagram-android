@@ -37,6 +37,7 @@ import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.data.TD;
 import org.thunderdog.challegram.player.TGPlayerController;
 import org.thunderdog.challegram.telegram.CallManager;
+import org.thunderdog.challegram.telegram.DateChangeListener;
 import org.thunderdog.challegram.telegram.TGLegacyAudioManager;
 import org.thunderdog.challegram.telegram.TGLegacyManager;
 import org.thunderdog.challegram.telegram.Tdlib;
@@ -162,6 +163,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
         .build();
 
       TdlibManager.instance().player().addTrackChangeListener(this);
+      TdlibManager.instance().dateManager().addListener(timeFormatListener);
       initCallListeners();
       updateSpeedCounter(TdlibManager.instance().player().getSpeed(), false);
     } else {
@@ -233,6 +235,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
   public void performDestroy () {
     TGLegacyManager.instance().removeEmojiListener(this);
     org.thunderdog.challegram.voip.Tgx101GroupCall.removeGlobalListener(this);
+    TdlibManager.instance().dateManager().removeListener(timeFormatListener);
   }
 
   // Component stuff
@@ -708,6 +711,19 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     return title;
   }
 
+  private final DateChangeListener timeFormatListener = new DateChangeListener() {
+    @Override
+    public void onTimeFormatChanged () {
+      if (playingMessage != null && !Td.isAudio(playingMessage.content) &&
+        isCurrentSection(SECTION_AUDIO) && !isCurrentSection(SECTION_CALL)) {
+        final float seekFactor = HeaderFilling.this.seekFactor;
+        buildAudio();
+        HeaderFilling.this.seekFactor = seekFactor;
+        invalidateOngoingBar();
+      }
+    }
+  };
+
   private void buildAudio () {
     if (playPausePath == null) {
       playPausePath = new Path();
@@ -720,7 +736,13 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
 
     if (playingMessage.content.getConstructor() != TdApi.MessageAudio.CONSTRUCTOR) {
       title = buildPrivateTitle(playingMessageTdlib, playingMessage);
-      subtitle = TD.isScheduled(playingMessage) ? Lang.getString(R.string.ScheduledMessage) : playingMessage.date != 0 ? Lang.getRelativeTimestamp(playingMessage.date, TimeUnit.SECONDS, true, 5) : null; // TODO update
+      if (TD.isScheduled(playingMessage)) {
+        subtitle = Lang.getString(R.string.ScheduledMessage);
+      } else if (playingMessage.date != 0) {
+        subtitle = Lang.getRelativeTimestamp(playingMessage.date, TimeUnit.SECONDS, true, 5);
+      } else {
+        subtitle = null;
+      }
       isVoice = playingMessage.content.getConstructor() == TdApi.MessageVoiceNote.CONSTRUCTOR;
     } else {
       TdApi.Audio audio = ((TdApi.MessageAudio) playingMessage.content).audio;

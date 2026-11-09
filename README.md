@@ -62,12 +62,14 @@ This is the complete source code and the build instructions for the official alt
 * [Homebrew](https://brew.sh)
 * git with LFS: `$ brew install git git-lfs && git lfs install`
 * JDK: `$ brew install openjdk@25`
+* [rustup](https://rustup.rs), then Rust of `version.rust` of `version.properties` with targets of Android: `$ scripts/setup-rust.sh`, which prints `rust.dir` for `local.properties`
 
 #### Ubuntu
 
 * git with LFS: `# apt install git git-lfs`
 * Run `$ git lfs install` if you just installed `git-lfs`
 * JDK: `# apt install openjdk-25-jdk`
+* rustup: `# apt install rustup`, then Rust of `version.rust` of `version.properties` with targets of Android: `$ scripts/setup-rust.sh`, which prints `rust.dir` for `local.properties`. Run it again after a change of `version.rust`
 * If multiple JDK versions are installed:<br/>`# update-java-alternatives --list`<br/>`# update-java-alternatives --set java-1.25.0-openjdk-amd64` (or other compatible version)
 
 #### Windows
@@ -77,14 +79,16 @@ This is the complete source code and the build instructions for the official alt
 * Run `pacman -S --needed git mingw-w64-ucrt-x86_64-git-lfs perl make diffutils`
 * Run `git lfs install`
 * Run `git config --global core.longpaths true`
+* [rustup](https://rustup.rs), then Rust of `version.rust` of `version.properties` with targets of Android: `scripts/setup-rust.sh`, which prints `rust.dir` for `local.properties`
 * Clone the repository
 * Set `msys2.dir` in `local.properties` after cloning
+* Note: you have to use `\\` or `/` as path separator in properties files
 
 ### Building
 
 1. `$ git clone --recursive https://github.com/TGX-Android/Telegram-X tgx`
 2. In case you forgot the `--recursive` flag, `cd` into `tgx` directory and run: `$ git submodule update --init --recursive`
-3. Open project via **[Android Studio](https://developer.android.com/studio/)** or build manually from the command line: `./gradlew assembleLatestUniversalDebug`
+3. Open project via **[Android Studio](https://developer.android.com/studio/)** or build manually from the command line: `./gradlew assembleLatestDebug`
 4. If build fails, follow the instructions provided in the error message.
 
 #### Publishing
@@ -92,10 +96,55 @@ This is the complete source code and the build instructions for the official alt
 1. [Obtain Telegram API credentials](https://core.telegram.org/api/obtaining_api_id)
 2. Create `local.properties` file in the root project folder using any text editor:<br/><pre># Location where you have Android SDK installed
    sdk.dir=YOUR_ANDROID_SDK_FOLDER
+   \# Home of rustup with Rust of version.rust, printed by scripts/setup-rust.sh
+   rust.dir=YOUR_RUSTUP_HOME_FOLDER
    \# Telegram API credentials obtained at previous step
    telegram.api_id=YOUR_TELEGRAM_API_ID
    telegram.api_hash=YOUR_TELEGRAM_API_HASH</pre>
 3. [Setup Firebase](https://firebase.google.com/docs/android/setup) and replace `google-services.json` with the one that's suitable for your `app.id`
+
+### Commands
+
+<details>
+<summary>Reference of commands for building and maintenance</summary>
+
+`-Pabi` limits native libraries to given ABIs, separated by commas: `arm64`, `arm32`, `x64` or `x86`. Without it, all ABIs are built. `Latest` in task names can be replaced with another flavor.
+
+#### Building
+
+Set up Android SDK, NDK and `local.properties`, on Windows in MSYS2:
+```shell
+scripts/setup.sh
+```
+
+Check that submodules and Git LFS files are fetched:
+```shell
+./gradlew :app:validateGitSetup
+```
+
+Build and install debug build on connected device:
+```shell
+./gradlew :app:installLatestDebug -Pabi=arm64
+```
+
+Build `legacy` flavor for Android 4.x, which requires older NDK:
+```shell
+./gradlew :app:assembleLegacyDebug -PuseLegacyNdk=true -Pabi=arm32
+```
+
+Build libvpx, FFmpeg and tlottie for all flavors and ABIs, add `-PuseLegacyNdk=true` for `legacy` flavor:
+```shell
+./gradlew :app:buildLibvpx
+./gradlew :app:buildFfmpeg
+./gradlew :app:buildTlottie
+```
+
+Builds of tlottie for `arm64-v8a` are optimized by the profile of its drawing, `app/jni/tlottie/arm64-v8a.profdata`. After updates of tlottie or Rust, builds warn that it doesn't match, and it's made again from animated stickers and emoji on a connected device of the ABI, see [`GenerateTlottieProfileTask`](buildSrc/src/main/kotlin/tgx/gradle/task/GenerateTlottieProfileTask.kt):
+```shell
+ANDROID_SERIAL=<device> ./gradlew ":app:generateTlottieProfile[arm64-v8a]" -Ptlottie.samples=<samples>
+```
+
+</details>
 
 ## Reproducing public builds
 
@@ -112,7 +161,7 @@ And update its configuration:
 2. Clone `tgx` repository to `/home/vk/tgx`
 3. Check out the specific commit you want to verify
 4. In rare cases of builds that include unmerged pull requests, you must follow actions performed by [Publisher's](https://github.com/TGX-Android/Publisher/blob/main/main.js) `fetchPr` and `squashPr` tasks
-5. `cd` into `tgx` folder and install dependencies: `# apt install $(cat reproducible-builds/dependencies.txt)`
+5. `cd` into `tgx` folder and install dependencies: `# apt install $(cat reproducible-builds/dependencies.txt)`, then Rust with its targets of Android by `scripts/setup-rust.sh` as in the requirements above
 6. Follow up the build instruction from the previous section
 7. Run `$ apkanalyzer apk compare --different-only <remote-apk> <reproduced-apk>`
 8. If only signature files and metadata differ, build reproduction is successful.
@@ -146,6 +195,6 @@ List of third-party components used in **Telegram X** can be found [here](/docs/
 
 ## Contributions
 
-**Telegram X** welcomes contributions. Check out [pull request template](/docs/PULL_REQUEST_TEMPLATE.md) and [guide for contributors](/docs/GUIDE.md) to learn more about Telegram X internals before creating the first pull request.
+**Telegram X** welcomes contributions. Check out [pull request template](/docs/PULL_REQUEST_TEMPLATE.md), [code style](/docs/CODE_STYLE.md) and [guide for contributors](/docs/GUIDE.md) to learn more about Telegram X internals before creating the first pull request.
 
 If you are a regular user and experience a problem with Telegram X, the best place to look for solution is [Telegram X chat](https://t.me/tgandroidtests) — a community with over 4 thousand members. Please do not use this repository to ask questions: if you have general issue with Telegram, refer to [FAQ](http://telegram.org/faq) or contact [Telegram Support](https://telegram.org/faq#telegram-support).

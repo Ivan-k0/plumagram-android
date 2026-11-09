@@ -172,7 +172,7 @@ public class SelectTextForQuoteDialog {
         // it just won't be pixel/offset-perfect if the guess was off (rare: only matters
         // when the same substring appears more than once in the message).
       }
-      quote = new TdApi.InputTextQuote(quoteFormatted, position);
+      quote = new TdApi.InputTextQuote(quoteFormatted, null, position);
     }
     // else: nothing selected -- fall through with quote == null, i.e. a normal whole-message reply.
     final TdApi.InputTextQuote finalQuote = quote;

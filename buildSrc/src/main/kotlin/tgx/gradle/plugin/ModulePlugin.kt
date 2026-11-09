@@ -48,6 +48,12 @@ open class ModulePlugin : Plugin<Project> {
     project.dependencies {
       add("coreLibraryDesugaring", libs.desugaring)
     }
+    // TGX 1826: vkryl modules use @MadeByLLM from the included build vkryl/annotation (compile time only)
+    project.configurations.named {
+      it == "compileOnly" || it == "testCompileOnly" || it == "androidTestCompileOnly"
+    }.configureEach {
+      dependencies.addLater(libs.vkryl.annotation)
+    }
 
     project.afterEvaluate {
       tasks.withType(JavaCompile::class.java).configureEach {

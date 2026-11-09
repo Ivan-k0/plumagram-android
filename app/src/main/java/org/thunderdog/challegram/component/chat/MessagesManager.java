@@ -14,7 +14,6 @@
  */
 package org.thunderdog.challegram.component.chat;
 
-import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -1759,6 +1758,8 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       case TdApi.InternalLinkTypeSearch.CONSTRUCTOR:
       case TdApi.InternalLinkTypeStarPurchase.CONSTRUCTOR:
       case TdApi.InternalLinkTypeTextCompositionStyle.CONSTRUCTOR:
+      case TdApi.InternalLinkTypeTonConnect.CONSTRUCTOR:
+      case TdApi.InternalLinkTypeTonWalletTransfer.CONSTRUCTOR:
         return false;
 
       case TdApi.InternalLinkTypeSettings.CONSTRUCTOR: {
@@ -1811,7 +1812,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       }
 
       default:
-        Td.assertInternalLinkType_44babac4();
+        Td.assertInternalLinkType_c232a5d5();
         break;
     }
     return true;
@@ -1980,6 +1981,72 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     }
   }
 
+  public void updateDateSeparators () {
+    // Dates and merging follow the days of the time zone as when the messages are loaded, and
+    // the topmost visible message keeps its top
+    ArrayList<TGMessage> items = adapter.getItems();
+    if (items == null || items.isEmpty()) {
+      return;
+    }
+    int anchorIndex = manager.findLastVisibleItemPosition();
+    View anchorView = anchorIndex != RecyclerView.NO_POSITION ?
+      manager.findViewByPosition(anchorIndex) : null;
+    final int count = items.size();
+    boolean changed = false;
+    int topFlags = 0, topTime = 0, topIndex = 0;
+    for (int i = count - 1; i >= 0; i--) {
+      TGMessage message = items.get(i);
+      int flags = message.getMergeFlags();
+      int time = message.getMergeTime();
+      int index = message.getMergeIndex();
+      TGMessage top = i + 1 < count ? items.get(i + 1) : null;
+      message.mergeWith(top, i == 0);
+      // mergeWith also changes the message above, so it's final only now
+      if (top != null) {
+        changed |= updateMerge(top, i + 1, topFlags, topTime, topIndex);
+      }
+      topFlags = flags;
+      topTime = time;
+      topIndex = index;
+    }
+    changed |= updateMerge(items.get(0), 0, topFlags, topTime, topIndex);
+    if (changed && anchorView != null) {
+      RecyclerView view = controller.getMessagesView();
+      int bottom = anchorView.getTop() + items.get(anchorIndex).getHeight();
+      manager.scrollToPositionWithOffset(
+        anchorIndex,
+        view.getHeight() - view.getPaddingBottom() - bottom
+      );
+    }
+  }
+
+  private boolean updateMerge (TGMessage message, int position, int flags, int time, int index) {
+    if (message.getMergeFlags() == flags && message.getMergeTime() == time &&
+      message.getMergeIndex() == index) {
+      return false;
+    }
+    message.rebuildLayout();
+    adapter.notifyItemChanged(position);
+    return true;
+  }
+
+  public void updateTimeFormat () {
+    ArrayList<TGMessage> items = adapter.getItems();
+    if (items != null) {
+      for (TGMessage m : items) {
+        if (m.updateLocale()) {
+          int height = m.getHeight();
+          m.rebuildLayout();
+          if (height != m.getHeight() && !useBubbles()) {
+            m.requestLayout();
+          } else {
+            m.invalidate();
+          }
+        }
+      }
+    }
+  }
+
   public void onUpdateTextSize () {
     ArrayList<TGMessage> items = adapter.getItems();
     if (items != null) {
@@ -2070,8 +2137,10 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     }
 
     if (!isWasScrollByUser()) {
-      final int unreadBadgeIndex = adapter.indexOfMessageWithUnreadSeparator();
       final int index = adapter.indexOfMessageContainer(messageId);
+      final int lastVisibleIndex = manager.findLastVisibleItemPosition();
+      final int unreadBadgeIndex = index != -1 ?
+        adapter.indexOfMessageWithUnreadSeparator(index, lastVisibleIndex) : -1;
       if (unreadBadgeIndex != -1 && index != -1 && index <= unreadBadgeIndex) {
         View unreadBadgeView = manager.findViewByPosition(unreadBadgeIndex);
         if (unreadBadgeView != null && unreadBadgeView.getTop() <= controller.getTopOffset()) {
@@ -2087,9 +2156,9 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     listener.add();
   }
 
-  public void modifyRecycler (Context context, RecyclerView recyclerView, LinearLayoutManager manager) {
+  public void modifyRecycler (RecyclerView recyclerView, LinearLayoutManager manager) {
     this.manager = manager;
-    this.adapter = new MessagesAdapter(context, this, this.controller);
+    this.adapter = new MessagesAdapter(this.controller.context(), this, this.controller);
 
     recyclerView.removeOnScrollListener(listener);
     recyclerView.addOnScrollListener(listener);

@@ -4,14 +4,23 @@
 # Location of the SDK. This is only used by Gradle.
 # For customization when using a Version Control System, please read the
 # header note.
+
+# Note for Windows: use \\ or / as file path separator.
+
 # Path to Android SDK
 sdk.dir=
+
+# Path to the home of rustup with Rust of version.rust of version.properties, see scripts/setup-rust.sh
+rust.dir=
 
 # Location of the MSYS2. This is only used on Windows.
 msys2.dir=
 
 ## Path to the keystore file
 keystore.file=
+
+## Path to a google-services.json used instead of the one in the repository
+google_services.file=
 
 ## Package name
 app.id=org.example.tgx

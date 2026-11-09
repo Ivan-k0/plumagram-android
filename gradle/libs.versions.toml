@@ -138,6 +138,7 @@ google-mlkit-language-id-legacy = "16.1.1"
 google-mlkit-translate-legacy = "16.1.2"
 
 [libraries]
+vkryl-annotation = { module = "me.vkryl:annotation" } # TGX 1826: included build, so without version
 desugaring = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugaring" }
 androidx-multidex = { module = "androidx.multidex:multidex", version.ref = "androidx-multidex" }
 
@@ -297,6 +298,7 @@ androidx-tracing-lollipop = { module = "androidx.tracing:tracing-ktx", version.r
 androidx-tracing-latest = { module = "androidx.tracing:tracing-ktx", version.ref = "androidx-tracing-latest" }
 
 [plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" } # TGX 1826: vkryl/annotation
 android-application = { id = "com.android.application", version.ref = "android-gradle-plugin" }
 android-library = { id = "com.android.library", version.ref = "android-gradle-plugin" }
 android-test = { id = "com.android.test", version.ref = "android-gradle-plugin" }

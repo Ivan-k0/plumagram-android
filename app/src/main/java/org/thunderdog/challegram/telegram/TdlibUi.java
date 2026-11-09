@@ -3761,7 +3761,7 @@ public class TdlibUi extends Handler {
       }
       case TdApi.InternalLinkTypeProxy.CONSTRUCTOR: {
         TdApi.Proxy proxy = ((TdApi.InternalLinkTypeProxy) linkType).proxy;
-        if (proxy != null) {
+        if (isSupportedProxy(proxy)) {
           openProxyAlert(context, proxy);
         } else {
           showLinkTooltip(tdlib, R.drawable.baseline_warning_24, Lang.getString(R.string.ProxyLinkUnsupported), openParameters);
@@ -4325,7 +4325,9 @@ public class TdlibUi extends Handler {
       case TdApi.InternalLinkTypeSavedMessages.CONSTRUCTOR:
       case TdApi.InternalLinkTypeSearch.CONSTRUCTOR:
       case TdApi.InternalLinkTypeStarPurchase.CONSTRUCTOR:
-      case TdApi.InternalLinkTypeTextCompositionStyle.CONSTRUCTOR: {
+      case TdApi.InternalLinkTypeTextCompositionStyle.CONSTRUCTOR:
+      case TdApi.InternalLinkTypeTonConnect.CONSTRUCTOR:
+      case TdApi.InternalLinkTypeTonWalletTransfer.CONSTRUCTOR: {
         unsupported.run();
         break;
       }
@@ -4453,7 +4455,7 @@ public class TdlibUi extends Handler {
         return; // async
       }
       default: {
-        Td.assertInternalLinkType_44babac4();
+        Td.assertInternalLinkType_c232a5d5();
         throw Td.unsupported(linkType);
       }
     }
@@ -4565,11 +4567,16 @@ public class TdlibUi extends Handler {
     });
   }
 
+  private static boolean isSupportedProxy (@Nullable TdApi.Proxy proxy) {
+    // Web proxies need a relay page in a hidden web view, which the app doesn't have
+    return proxy != null && proxy.type.getConstructor() != TdApi.ProxyTypeWeb.CONSTRUCTOR;
+  }
+
   public void openProxyAlert (TdlibDelegate context, @Nullable TdApi.Proxy proxy) {
     ViewController<?> c = context.context().navigation().getCurrentStackItem();
     if (c == null)
       return;
-    if (proxy == null) {
+    if (!isSupportedProxy(proxy)) {
       // unsupported proxy
       return;
     }
@@ -7466,6 +7473,10 @@ public class TdlibUi extends Handler {
         return info != null && position < info.actions.length ? info.actions[position].url : null;
       }
     });
+  }
+
+  public void openTonAddress (TdlibDelegate context, String tonAddress) {
+    // TODO
   }
 
   public List<HapticMenuHelper.MenuItem> fillDefaultHapticMenu (long chatId, boolean isEdit, boolean canToggleMarkdown, boolean canSendWithoutSound) {

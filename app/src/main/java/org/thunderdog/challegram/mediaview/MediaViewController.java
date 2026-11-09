@@ -120,6 +120,7 @@ import org.thunderdog.challegram.navigation.TooltipOverlayView;
 import org.thunderdog.challegram.navigation.ViewController;
 import org.thunderdog.challegram.support.ViewSupport;
 import org.thunderdog.challegram.telegram.CallManager;
+import org.thunderdog.challegram.telegram.DateChangeListener;
 import org.thunderdog.challegram.telegram.MessageListener;
 import org.thunderdog.challegram.telegram.RightId;
 import org.thunderdog.challegram.telegram.TGLegacyManager;
@@ -199,7 +200,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   PopupLayout.TouchSectionProvider, FlingDetector.Callback, CallManager.CurrentCallListener,
   ColorPreviewView.BrushChangeListener, PaintState.UndoStateListener, MediaView.FactorChangeListener,
   EmojiToneHelper.Delegate, MessageListener, InputView.SelectionChangeListener, PopupLayout.ShowListener,
-  RootFrameLayout.InsetsChangeListener{
+  RootFrameLayout.InsetsChangeListener, DateChangeListener {
 
   // TGx101 (user video 2026-10-21 17:00 «плавности не хватает», vs the official app): 260 ms, was 180 (90 at 0.5× animations)
   private static final long REVEAL_ANIMATION_DURATION = /*BuildConfig.DEBUG ? 1800l :*/ 260;
@@ -2527,6 +2528,13 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       }
     }
     return null;
+  }
+
+  @Override
+  public void onTimeFormatChanged () {
+    if (headerCell != null) {
+      headerCell.setSubtitle(genSubtitle());
+    }
   }
 
   private CharSequence genSubtitle () {
@@ -6996,6 +7004,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     loadMoreIfNeeded();
 
     TGLegacyManager.instance().addEmojiListener(this);
+    tdlib.context().dateManager().addListener(this);
     tdlib.context().calls().addCurrentCallListener(this);
     if (stack.getCurrent().getSourceChatId() != 0) {
       subscribeToChatId(stack.getCurrent().getSourceChatId());
@@ -7153,6 +7162,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       Views.destroyRecyclerView(thumbsRecyclerView);
     }
     TGLegacyManager.instance().removeEmojiListener(this);
+    tdlib.context().dateManager().removeListener(this);
     if (mediaView != null) {
       mediaView.destroy();
     }
