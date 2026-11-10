@@ -348,6 +348,29 @@ public class GifReceiver implements GifWatcher, Runnable, Receiver {
     }
   }
 
+  /**
+   * TGx101 (user video 2026-11-10 11:18 «обложка мелькает в начале и в конце»): a copy of the frame on screen, turned
+   * upright, so the viewer can open on the very picture the feed shows instead of the post's cover
+   */
+  public @Nullable Bitmap tgx101CopyFrame (int maxSide) {
+    GifState g = gif;
+    if (g == null) return null;
+    synchronized (g.getBusyList()) {
+      if (!g.hasBitmap()) return null;
+      Bitmap b = g.getBitmap(false);
+      if (!U.isValidBitmap(b)) return null;
+      try {
+        float scale = Math.min(1f, (float) maxSide / Math.max(b.getWidth(), b.getHeight()));
+        Matrix m = new Matrix();
+        m.postScale(scale, scale);
+        if (g.getRotation() != 0) m.postRotate(g.getRotation());
+        return Bitmap.createBitmap(b, 0, 0, b.getWidth(), b.getHeight(), m, true);
+      } catch (Throwable t) {
+        return null;
+      }
+    }
+  }
+
   public boolean needPlaceholder () {
     return state != STATE_LOADED || gif == null || !gif.hasBitmap();
   }

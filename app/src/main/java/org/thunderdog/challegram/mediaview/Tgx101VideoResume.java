@@ -60,6 +60,50 @@ public final class Tgx101VideoResume {
     }
   }
 
+  // (user video 2026-11-10 11:18 «обложка мелькает в начале и в конце каждый раз»): the picture handed over each way —
+  // the feed's frame to the viewer as it opens, the viewer's last frame back to the post as it closes. One of each is
+  // enough: only one video opens at a time
+  private static @Nullable String startFrameKey;
+  private static @Nullable android.graphics.Bitmap startFrame;
+  private static int backFrameFileId;
+  private static @Nullable android.graphics.Bitmap backFrame;
+
+  public static void startFrame (@Nullable MediaItem item, @Nullable android.graphics.Bitmap frame) {
+    String key = key(item);
+    synchronized (Tgx101VideoResume.class) {
+      startFrameKey = key != null && frame != null ? key : null;
+      startFrame = startFrameKey != null ? frame : null;
+    }
+  }
+
+  static @Nullable android.graphics.Bitmap takeStartFrame (@Nullable MediaItem item) {
+    String key = key(item);
+    synchronized (Tgx101VideoResume.class) {
+      if (key == null || !key.equals(startFrameKey)) return null;
+      android.graphics.Bitmap frame = startFrame;
+      startFrame = null;
+      startFrameKey = null;
+      return frame;
+    }
+  }
+
+  public static void backFrame (int fileId, @Nullable android.graphics.Bitmap frame) {
+    synchronized (Tgx101VideoResume.class) {
+      backFrameFileId = frame != null ? fileId : 0;
+      backFrame = frame;
+    }
+  }
+
+  public static @Nullable android.graphics.Bitmap takeBackFrame (int fileId) {
+    synchronized (Tgx101VideoResume.class) {
+      if (fileId == 0 || fileId != backFrameFileId) return null;
+      android.graphics.Bitmap frame = backFrame;
+      backFrame = null;
+      backFrameFileId = 0;
+      return frame;
+    }
+  }
+
   static long takeStart (@Nullable MediaItem item) {
     String key = key(item);
     if (key == null) return 0;

@@ -2707,7 +2707,11 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         long at = org.thunderdog.challegram.loader.gif.GifActor.tgx101Position(((TdApi.MessageVideo) m.content).video.video.id);
         if (at > 0) {
           org.thunderdog.challegram.mediaview.Tgx101VideoResume.startAt(item, at);
-          org.thunderdog.challegram.Tgx101Diag.mark("gazeta viewer: the video starts at " + at + " ms, where the feed stands");
+          // (user video 2026-11-10 11:18 «обложка мелькает в начале»): the viewer opens on the frame the feed shows now,
+          // not on the post's cover, until its player has the same frame
+          android.graphics.Bitmap frame = feedFrame(post, ((TdApi.MessageVideo) m.content).video.video.id);
+          org.thunderdog.challegram.mediaview.Tgx101VideoResume.startFrame(item, frame);
+          org.thunderdog.challegram.Tgx101Diag.mark("gazeta viewer: the video starts at " + at + " ms, where the feed stands" + (frame != null ? ", on the feed's frame " + frame.getWidth() + "x" + frame.getHeight() : ", no frame of the feed"));
         }
       }
     }
@@ -2730,6 +2734,21 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     org.thunderdog.challegram.mediaview.MediaViewController viewer = new org.thunderdog.challegram.mediaview.MediaViewController(context(), tdlib);
     viewer.setArguments(args);
     viewer.open();
+  }
+
+  /** the frame the post's video plays by itself in the feed now, or null */
+  private @Nullable android.graphics.Bitmap feedFrame (Tgx101Gazeta.Post post, int fileId) {
+    Card card = cardOf(post);
+    if (card == null || card.player.getVisibility() != View.VISIBLE || card.player.fileId != fileId) return null;
+    return card.player.receiver.tgx101CopyFrame(1280);
+  }
+
+  private @Nullable Card cardOf (@Nullable Tgx101Gazeta.Post post) {
+    if (post == null || list == null) return null;
+    int i = posts.indexOf(post);
+    if (i == -1) return null;
+    RecyclerView.ViewHolder holder = list.findViewHolderForAdapterPosition(i);
+    return holder != null && holder.itemView instanceof Card ? (Card) holder.itemView : null;
   }
 
   private @Nullable Tgx101Gazeta.Post viewerPost;
@@ -3109,9 +3128,37 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       receiver.detach();
     }
 
+    // (user video 2026-11-10 11:18 «обложка мелькает в конце»): back from the viewer the video starts again where the
+    // viewer left it — until its first frame, the viewer's last frame stands here instead of the cover under it
+    private @Nullable android.graphics.Bitmap hold;
+    private long holdSince;
+
     @Override
     protected void onDraw (android.graphics.Canvas c) {
-      if (!receiver.needPlaceholder()) receiver.draw(c); // until the first frame the cover under it shows
+      if (!receiver.needPlaceholder()) {
+        hold = null;
+        receiver.draw(c);
+        return;
+      }
+      if (hold == null) {
+        hold = org.thunderdog.challegram.mediaview.Tgx101VideoResume.takeBackFrame(fileId);
+        holdSince = android.os.SystemClock.uptimeMillis();
+      }
+      if (hold == null || hold.isRecycled() || android.os.SystemClock.uptimeMillis() - holdSince > 3000) {
+        hold = null;
+        return; // until the first frame the cover under it shows
+      }
+      org.thunderdog.challegram.loader.gif.GifFile file = receiver.getCurrentFile();
+      boolean fit = file != null && file.getScaleType() == org.thunderdog.challegram.loader.gif.GifFile.FIT_CENTER;
+      float w = getWidth(), h = getHeight();
+      float scale = fit ? Math.min(w / hold.getWidth(), h / hold.getHeight()) : Math.max(w / hold.getWidth(), h / hold.getHeight());
+      float bw = hold.getWidth() * scale, bh = hold.getHeight() * scale;
+      android.graphics.RectF dst = new android.graphics.RectF((w - bw) / 2f, (h - bh) / 2f, (w + bw) / 2f, (h + bh) / 2f);
+      int save = c.save();
+      c.clipRect(0, 0, w, h);
+      c.drawBitmap(hold, null, dst, org.thunderdog.challegram.tool.Paints.getBitmapPaint());
+      c.restoreToCount(save);
+      postInvalidateDelayed(32); // looks again for the video's own frame
     }
   }
 

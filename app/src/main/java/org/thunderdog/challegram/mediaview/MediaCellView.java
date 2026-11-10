@@ -798,11 +798,44 @@ public class MediaCellView extends ViewGroup implements
   // as its first frame (the cover) — the picture jumped. The frame on screen at that moment flies back instead
   private @Nullable android.graphics.Bitmap tgx101Frame;
 
+  // (user video 2026-11-10 11:18 «обложка мелькает в начале»): a video opened from where it plays by itself in the feed
+  // showed the post's cover (a different picture) until the player's first frame; the feed's frame stands in instead
+  private @Nullable android.graphics.Bitmap tgx101StartFrame;
+
+  /** fitted the way the receiver fits its picture (FIT_CENTER), so it stands exactly where the cover would */
+  private void tgx101DrawFitted (android.graphics.Canvas c, android.graphics.Bitmap frame) {
+    // (user video 2026-11-01 21:18 «ужас убирания видео свайпом»): stretched over the receiver's whole bounds — the
+    // full-screen height — the clip into the post cut a blown-up face out of it
+    android.graphics.Rect dst = Paints.getRect();
+    float boxW = receiver.getWidth(), boxH = receiver.getHeight();
+    float fit = Math.min(boxW / frame.getWidth(), boxH / frame.getHeight());
+    float frameW = frame.getWidth() * fit, frameH = frame.getHeight() * fit;
+    dst.set(Math.round(receiver.centerX() - frameW / 2f), Math.round(receiver.centerY() - frameH / 2f), Math.round(receiver.centerX() + frameW / 2f), Math.round(receiver.centerY() + frameH / 2f));
+    android.graphics.Paint paint = Paints.getBitmapPaint();
+    int was = paint.getAlpha();
+    paint.setAlpha(Math.round(255 * Math.max(0f, Math.min(1f, receiver.getAlpha() * receiver.getPaintAlpha()))));
+    c.drawBitmap(frame, null, dst, paint);
+    paint.setAlpha(was);
+  }
+
+  /** the frame on screen now (the player's, or the one standing in for it), for the place the viewer closes into */
+  public @Nullable android.graphics.Bitmap tgx101FrameNow () {
+    if (tgx101Frame != null && !tgx101Frame.isRecycled()) return tgx101Frame;
+    if (hideStaticView && videoReady && playerView != null) return playerView.tgx101CurrentFrame();
+    return tgx101StartFrame;
+  }
+
   public void setDisappearing (boolean disappearing) {
     this.disappearing = disappearing;
     if (!disappearing) tgx101Frame = null;
     if (disappearing && hideStaticView && videoReady && playerView != null && media != null && media.isVideo()) {
       tgx101Frame = playerView.tgx101CurrentFrame();
+    }
+    if (disappearing && media != null && media.isVideo()) {
+      // (user video 2026-11-10 11:18 «обложка мелькает в конце»): the post the video lands in keeps this frame until its
+      // own video plays again, instead of showing its cover in between
+      android.graphics.Bitmap back = tgx101Frame != null ? tgx101Frame : tgx101StartFrame;
+      if (back != null) Tgx101VideoResume.backFrame(media.getFileId(), back);
     }
     if (disappearing) {
       if (isPlaying && media != null) {
@@ -1341,6 +1374,7 @@ public class MediaCellView extends ViewGroup implements
 
     this.media = media;
     tgx101Closing = false;
+    tgx101StartFrame = media != null && media.isVideo() ? Tgx101VideoResume.takeStartFrame(media) : null;
     // (user's recording 2026-10-30 15:38 «кнопка плэй тупо мешает»): a video the viewer starts by itself showed its ▶ all
     // the opening flight, until the player had begun — it is left out while that start is on its way (1.5 s at most)
     tgx101StartPending = media != null && media.isVideo() && !media.isGifType() && media.isRemoteVideo() && Config.VIDEO_PLAYER_AVAILABLE && (media.isLoaded() || Config.VIDEO_CLOUD_PLAYBACK_AVAILABLE);
@@ -2047,19 +2081,9 @@ public class MediaCellView extends ViewGroup implements
         }
         receiver.draw(c);
         if (disappearing && tgx101Frame != null && !tgx101Frame.isRecycled()) {
-          // (user video 2026-11-01 21:18 «ужас убирания видео свайпом»): the frame was stretched over the receiver's whole
-          // bounds — the full-screen height — and the clip into the post cut a blown-up face out of it. It is fitted the way
-          // the receiver fits its picture (FIT_CENTER), so it lands exactly where the cover would
-          android.graphics.Rect dst = Paints.getRect();
-          float boxW = receiver.getWidth(), boxH = receiver.getHeight();
-          float fit = Math.min(boxW / tgx101Frame.getWidth(), boxH / tgx101Frame.getHeight());
-          float frameW = tgx101Frame.getWidth() * fit, frameH = tgx101Frame.getHeight() * fit;
-          dst.set(Math.round(receiver.centerX() - frameW / 2f), Math.round(receiver.centerY() - frameH / 2f), Math.round(receiver.centerX() + frameW / 2f), Math.round(receiver.centerY() + frameH / 2f));
-          android.graphics.Paint paint = Paints.getBitmapPaint();
-          int was = paint.getAlpha();
-          paint.setAlpha(Math.round(255 * Math.max(0f, Math.min(1f, receiver.getAlpha() * receiver.getPaintAlpha()))));
-          c.drawBitmap(tgx101Frame, null, dst, paint);
-          paint.setAlpha(was);
+          tgx101DrawFitted(c, tgx101Frame);
+        } else if (!disappearing && tgx101StartFrame != null && !tgx101StartFrame.isRecycled()) {
+          tgx101DrawFitted(c, tgx101StartFrame); // the feed's frame until the player has its own
         }
       } else {
         if (targetAnimator != null) {
@@ -2141,6 +2165,7 @@ public class MediaCellView extends ViewGroup implements
   private void setVideoReady (boolean isReady) {
     if (this.videoReady != isReady) {
       this.videoReady = isReady;
+      if (isReady) tgx101StartFrame = null; // the player shows its own frame now
       invalidateImageComponents();
     }
   }
