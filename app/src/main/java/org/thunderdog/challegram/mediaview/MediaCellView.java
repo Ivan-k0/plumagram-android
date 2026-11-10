@@ -1373,9 +1373,18 @@ public class MediaCellView extends ViewGroup implements
       }
     }
 
+    // the viewer swaps the opened item for its own copy of the same message (it may pick another quality — another file)
+    // as it loads the chat's media around it: the frame standing in for the player stays with that message
+    MediaItem tgx101Was = this.media;
+    android.graphics.Bitmap tgx101Kept = tgx101Was != null && media != null && !videoReady && tgx101StartFrame != null &&
+      tgx101Was.getSourceChatId() == media.getSourceChatId() && tgx101Was.getSourceMessageId() == media.getSourceMessageId() && media.getSourceMessageId() != 0 ? tgx101StartFrame : null;
     this.media = media;
     tgx101Closing = false;
     tgx101StartFrame = media != null && media.isVideo() ? Tgx101VideoResume.takeStartFrame(media) : null;
+    if (tgx101StartFrame == null && tgx101Kept != null && media.isVideo()) {
+      tgx101StartFrame = tgx101Kept;
+      org.thunderdog.challegram.Tgx101Diag.mark("viewer: the copy of the message keeps the handed frame");
+    }
     if (tgx101StartFrame != null) org.thunderdog.challegram.Tgx101Diag.mark("viewer: opens on the handed frame " + tgx101StartFrame.getWidth() + "x" + tgx101StartFrame.getHeight() + " until the player's own");
     // (user's recording 2026-10-30 15:38 «кнопка плэй тупо мешает»): a video the viewer starts by itself showed its ▶ all
     // the opening flight, until the player had begun — it is left out while that start is on its way (1.5 s at most)

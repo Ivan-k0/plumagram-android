@@ -520,6 +520,9 @@ public class MediaItem implements MessageSourceProvider, InvalidateContentProvid
     this.sourceVideo = video;
     this.sourceAlternativeVideos = alternativeVideos;
 
+    if (cover != null && org.thunderdog.challegram.mediaview.Tgx101VideoResume.coverSkipped(video.video.id)) {
+      cover = null; // opened from the feed, whose post shows the video's own frame
+    }
     if (cover != null) {
       setMiniThumbnail(cover.minithumbnail);
       TdApi.PhotoSize previewSize = MediaWrapper.buildPreviewSize(cover.sizes);

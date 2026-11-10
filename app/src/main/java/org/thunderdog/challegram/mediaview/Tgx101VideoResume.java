@@ -94,6 +94,22 @@ public final class Tgx101VideoResume {
     }
   }
 
+  // (user video 2026-11-10 12:35): the feed's post shows the video's own frame (its thumbnail), the viewer showed the
+  // author's cover — every copy of the item the viewer makes as it loads the channel's media did, so the cover came up in
+  // the middle of the opening and at the end of the closing. A video opened from the feed uses its own frame everywhere
+  private static final java.util.Map<Integer, Long> noCover = new java.util.concurrent.ConcurrentHashMap<>();
+
+  public static void skipCover (int videoFileId) {
+    if (noCover.size() > 200) noCover.clear();
+    noCover.put(videoFileId, android.os.SystemClock.uptimeMillis());
+  }
+
+  /** for half an hour after it was opened from the feed — the same video opened later from its channel keeps its cover */
+  public static boolean coverSkipped (int videoFileId) {
+    Long at = noCover.get(videoFileId);
+    return at != null && android.os.SystemClock.uptimeMillis() - at < 30 * 60_000L;
+  }
+
   public static void backFrame (int fileId, @Nullable android.graphics.Bitmap frame) {
     synchronized (Tgx101VideoResume.class) {
       backFrameFileId = frame != null ? fileId : 0;

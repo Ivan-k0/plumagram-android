@@ -2700,6 +2700,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     List<org.thunderdog.challegram.mediaview.data.MediaItem> items = new ArrayList<>();
     for (TdApi.Message m : post.messages) {
       if (!isVisual(m)) continue;
+      // the post shows the video's own frame (fileOf: its thumbnail), so does the viewer — never the author's cover
+      if (m.content.getConstructor() == TdApi.MessageVideo.CONSTRUCTOR) org.thunderdog.challegram.mediaview.Tgx101VideoResume.skipCover(((TdApi.MessageVideo) m.content).video.video.id);
       org.thunderdog.challegram.mediaview.data.MediaItem item = org.thunderdog.challegram.mediaview.data.MediaItem.valueOf(context(), tdlib, m);
       if (item != null) items.add(item);
       // (user 2026-10-30 «в офф клиенте видео продолжается, а у нас заново»): the viewer starts where the feed's video stands
