@@ -3894,8 +3894,24 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     else if (content instanceof TdApi.InputMessageDocument) ((TdApi.InputMessageDocument) content).caption = caption;
     else if (content instanceof TdApi.InputMessageAudio) ((TdApi.InputMessageAudio) content).caption = caption;
     else if (content instanceof TdApi.InputMessageAnimation) ((TdApi.InputMessageAnimation) content).caption = caption;
+    else if (content instanceof TdApi.InputMessageVoiceNote) ((TdApi.InputMessageVoiceNote) content).caption = caption;
     else return false;
     return true;
+  }
+
+  private static TdApi.FormattedText tgx101Prepend (TdApi.FormattedText head, TdApi.FormattedText tail) {
+    if (tail == null || tail.text == null || tail.text.isEmpty()) return head;
+    String separator = "\n\n";
+    int shift = head.text.length() + separator.length();
+    int headCount = head.entities != null ? head.entities.length : 0;
+    int tailCount = tail.entities != null ? tail.entities.length : 0;
+    TdApi.TextEntity[] entities = new TdApi.TextEntity[headCount + tailCount];
+    for (int i = 0; i < headCount; i++) entities[i] = head.entities[i];
+    for (int i = 0; i < tailCount; i++) {
+      TdApi.TextEntity e = tail.entities[i];
+      entities[headCount + i] = new TdApi.TextEntity(e.offset + shift, e.length, e.type);
+    }
+    return new TdApi.FormattedText(head.text + separator + tail.text, entities);
   }
 
   private void shareContents (final Tdlib tdlib, final String type, final ArrayList<TdApi.InputMessageContent> contents, boolean mergeAlbum) {
@@ -3913,8 +3929,16 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         public void generateFunctionsForChat (long chatId, TdApi.Chat chat, TdApi.MessageSendOptions sendOptions, ArrayList<TdApi.Function<?>> functions) {
           List<TdApi.InputMessageContent> album = null;
           boolean captionPut = comment[0] == null;
+          final int firstFunction = functions.size();
           for (TdApi.InputMessageContent content : contents) {
             content = tdlib.filegen().createThumbnail(content, ChatId.isSecret(chatId));
+            if (!captionPut && content instanceof TdApi.InputMessageText) {
+              // TGx101 (user's video 2026-11-10 10:37 «где подпись?»): a link shared from Maps — the picker's comment is
+              // the message's first line (it was dropped: text has no caption); a copy, as the same contents go to every chat
+              TdApi.InputMessageText text = (TdApi.InputMessageText) content;
+              content = new TdApi.InputMessageText(tgx101Prepend(comment[0], text.text), text.linkPreviewOptions, text.clearDraft);
+              captionPut = true;
+            }
             if (!captionPut && tgx101SetCaption(content, comment[0])) captionPut = true; // the picker's comment on the first file
             if (mergeAlbum) {
               int combineMode = TD.getCombineMode(content);
@@ -3934,6 +3958,10 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
           }
           if (mergeAlbum) {
             TD.processAlbum(tdlib, chatId, sendOptions, functions, album);
+          }
+          if (!captionPut) {
+            // nothing could carry it (a contact, a location…): the comment goes first, on its own, as in the picker
+            functions.addAll(firstFunction, TD.sendMessageText(chatId, null, null, sendOptions, new TdApi.InputMessageText(comment[0], null, false), tdlib.maxMessageTextLength()));
           }
         }
 
