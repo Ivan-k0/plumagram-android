@@ -6171,6 +6171,7 @@
   <string name="Tgx101AudioHeadset">Headset</string>
   <string name="Tgx101AudioBluetooth">Bluetooth</string>
   <string name="Tgx101CallDecline">Decline</string>
+  <string name="Tgx101CallWeak">Weak connection</string>
   <string name="Tgx101CallAnswerWaits">No connection yet — the call is answered as soon as Telegram connects</string>
   <string name="Tgx101CallMessage">Message</string>
   <string name="Tgx101CallSilence">Silence</string>

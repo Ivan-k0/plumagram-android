@@ -498,6 +498,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AudioHeadset, "Гарнитура");
     RU.put(R.string.Tgx101AudioBluetooth, "Bluetooth");
     RU.put(R.string.Tgx101CallDecline, "Отклонить");
+    RU.put(R.string.Tgx101CallWeak, "Слабая связь");
     RU.put(R.string.Tgx101CallAnswerWaits, "Пока нет связи — звонок примется, как только Telegram подключится");
     RU.put(R.string.Tgx101CallMessage, "Сообщение");
     RU.put(R.string.Tgx101CallSilence, "Без звука");

@@ -296,8 +296,18 @@ public class CallController extends ViewController<CallController.Arguments> imp
   private BoolAnimator strengthAnimator;
   private static final int ANIMATOR_STRENGTH = 6;
 
+  private boolean tgx101TopRow;
+  private @Nullable android.widget.TextView tgx101WeakLabel;
+
   private void updateCallStrength () {
     boolean isVisible = callStrength >= 0 && call != null && call.state.getConstructor() == TdApi.CallStateReady.CONSTRUCTOR && callDuration >= 0;
+    if (tgx101WeakLabel != null) {
+      boolean weak = isVisible && callStrength <= 1;
+      if ((tgx101WeakLabel.getVisibility() == View.VISIBLE) != weak) {
+        tgx101WeakLabel.setVisibility(weak ? View.VISIBLE : View.GONE);
+        org.thunderdog.challegram.Tgx101Diag.mark("[call] screen: «weak connection» " + (weak ? "shown" : "hidden") + ", bars " + callStrength);
+      }
+    }
     if (!isVisible == (strengthAnimator != null && strengthAnimator.getValue())) {
       if (strengthAnimator == null) {
         strengthAnimator = new BoolAnimator(ANIMATOR_STRENGTH, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 180l);
@@ -336,7 +346,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
   @Override
   public void onStatusBarHeightChanged (int newHeight) {
     int startMargin = Math.max(Screen.dp(18f) + newHeight, Screen.dp(42f));
-    Views.setTopMargin(brandWrap, startMargin);
+    Views.setTopMargin(brandWrap, tgx101TopRow ? newHeight + Screen.dp(2f) : startMargin);
     Views.setTopMargin(nameView, startMargin + Screen.dp(34f));
     Views.setTopMargin(stateView, startMargin + Screen.dp(Settings.instance().useNewCallScreen() && photoMode != Settings.CALL_PHOTO_FULL_SCREEN ? 86f : 94f));
     if (photoMode == Settings.CALL_PHOTO_CIRCLE) {
@@ -571,11 +581,19 @@ public class CallController extends ViewController<CallController.Arguments> imp
       params.rightMargin = Screen.dp(10f);
     }
     params.leftMargin = params.rightMargin = Screen.dp(18f);
+    if (newScreen) {
+      // TGx101 (user 2026-11-10 «полоски спустить на уровень с групповым звонком»): the bird and the connection bars stand
+      // in the top row, centred on the «add people» button's height (48 dp, 2 dp under the status bar)
+      params.height = Screen.dp(48f);
+      params.topMargin = Screen.getStatusBarHeight() + Screen.dp(2f);
+      tgx101TopRow = true;
+    }
     brandWrap = new LinearLayout(context);
     if (DEBUG_FADE_BRANDING) {
       brandWrap.setAlpha(0f);
     }
     brandWrap.setOrientation(LinearLayout.HORIZONTAL);
+    if (newScreen) brandWrap.setGravity(Gravity.CENTER_VERTICAL);
     brandWrap.setLayoutParams(params);
     contentView.addView(brandWrap);
 
@@ -667,6 +685,20 @@ public class CallController extends ViewController<CallController.Arguments> imp
     lp = new LinearLayout.LayoutParams(Screen.dp(18f), Screen.dp(18f));
     // lp.topMargin = Screen.dp(2f);
     lp.leftMargin = Screen.dp(8f);
+    if (newScreen) {
+      // (user 2026-11-10 «надпись дело хорошее»): «Weak connection» left of the bird when the bars fall to one or none
+      tgx101WeakLabel = new android.widget.TextView(context);
+      tgx101WeakLabel.setText(Lang.getString(R.string.Tgx101CallWeak));
+      tgx101WeakLabel.setTextColor(0xffffffff);
+      tgx101WeakLabel.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+      tgx101WeakLabel.setTypeface(Fonts.getRobotoMedium());
+      Views.setSimpleShadow(tgx101WeakLabel);
+      LinearLayout.LayoutParams wl = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      wl.rightMargin = Screen.dp(8f);
+      tgx101WeakLabel.setLayoutParams(wl);
+      tgx101WeakLabel.setVisibility(View.GONE);
+      brandWrap.addView(tgx101WeakLabel, 0);
+    }
     strengthView = new CallStrengthView(context);
     strengthView.setLayoutParams(lp);
     if (callStrength < 0) {
