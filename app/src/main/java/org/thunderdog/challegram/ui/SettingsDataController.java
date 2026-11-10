@@ -1134,10 +1134,13 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       pills.bind(Lang.getString(R.string.Tgx101InputStyle),
         new String[] {Lang.getString(R.string.Tgx101InputStyleFloating), Lang.getString(R.string.Tgx101InputStyleFlat)},
         style == 0 ? 0 : 1, index -> {
+          boolean changed = (index == 0) != Settings.instance().useFloatingInput();
           Settings.instance().setUseFloatingInput(index == 0);
           if (index != 0) Settings.instance().setTgx101InputWell(false);
           adapter.updateItemById(R.id.btn_tgx101FloatingInput);
           if (tgx101Preview != null) tgx101Preview.invalidate();
+          // user 2026-11-10: chats already made keep the old field — the restart is offered, as with fonts
+          if (changed) tgx101AskRestart(R.string.Tgx101AppliesAfterRestart);
         });
     } else if (id == R.id.btn_tgx101MediaDots) {
       pills.bind(Lang.getString(R.string.Tgx101MediaDots),

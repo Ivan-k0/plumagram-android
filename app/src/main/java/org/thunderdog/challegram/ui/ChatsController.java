@@ -536,6 +536,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     chatsViewport = tdlib.messageViewer().createViewport(new TdApi.MessageSourceChatList(), this);
     chatsView = (ChatsRecyclerView) Views.inflate(context(), R.layout.recycler_chats, contentView);
     chatsView.setId(R.id.chats_list);
+    tgx101TrackListFinger(); // the order holds still under a finger, see tgx101ListOp
     chatsView.setMeasureListener((v, oldWidth, oldHeight, newWidth, newHeight) -> {
       if (newHeight != oldHeight && adapter.hasArchive() && hideArchive && adapter.getItemCount() > 0) {
         adapter.notifyLastItemChanged();
@@ -600,6 +601,8 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
           dragFrom = fromPosition;
         }
         dragTo = toPosition;
+        tgx101ListPinDrag = true; // the pinned chats are being reordered by hand: Telegram's changes apply at once
+        tgx101FlushListOps();
         adapter.movePinnedChat(fromPosition, toPosition);
         if (dragTooltip != null) {
           dragTooltip.hideNow();
@@ -894,6 +897,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     }
     runOnUiThreadOptional(() -> {
       initialLoadFinished = true;
+      tgx101FlushListOps(); // the next page goes after the changes before it
       adapter.addMore(parsedChats.toArray(new TGChat[0]));
       tgx101CheckStorageRow(); // Saved Messages may have just come with this page (the row was missing after a restart)
     });
@@ -3705,31 +3709,120 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   @Override
   public void onChatAdded (TdlibChatList chatList, TdApi.Chat chat, int atIndex, Tdlib.ChatChange changeInfo) {
     tgx101MarkListChange("added", chat.id, -1, atIndex);
-    runOnUiThreadOptional(() ->
+    runOnUiThreadOptional(() -> tgx101ListOp(() ->
       chatsView.processChatUpdate(
         adapter.addChat(chat, atIndex, changeInfo)
       )
-    );
+    ));
   }
 
   @Override
   public void onChatRemoved (TdlibChatList chatList, TdApi.Chat chat, int fromIndex, Tdlib.ChatChange changeInfo) {
     tgx101MarkListChange("removed", chat.id, fromIndex, -1);
-    runOnUiThreadOptional(() ->
+    runOnUiThreadOptional(() -> tgx101ListOp(() ->
       chatsView.processChatUpdate(
         adapter.removeChatById(chat, fromIndex, changeInfo)
       )
-    );
+    ));
   }
 
   @Override
   public void onChatMoved (TdlibChatList chatList, TdApi.Chat chat, int fromIndex, int toIndex, Tdlib.ChatChange changeInfo) {
     tgx101MarkListChange("moved", chat.id, fromIndex, toIndex);
-    runOnUiThreadOptional(() ->
+    runOnUiThreadOptional(() -> tgx101ListOp(() ->
       chatsView.processChatUpdate(
         adapter.moveChat(chat, fromIndex, toIndex, changeInfo)
       )
-    );
+    ));
+  }
+
+  // TGx101 (user 2026-11-10: «когда приходит много сообщений за раз из разных групп, список постоянно подпрыгивает туда
+  // сюда»; log 09:48:40 — 38 moves in one second, one chat moved twice within 1 ms): the list's changes on screen are
+  // gathered for a moment and told together — one layout, one animation of them all instead of a jump per message — and
+  // while a finger is on the list (or it still flies) the order holds still, so the chat under the finger stays put.
+  // The changes are kept in Telegram's order and applied in it, so the indexes stay right.
+  private static final long TGX101_LIST_GATHER_MS = 220;
+  private static final long TGX101_LIST_AFTER_FINGER_MS = 450;
+  private final ArrayList<Runnable> tgx101ListOps = new ArrayList<>();
+  private boolean tgx101ListFlushPosted, tgx101ListFinger, tgx101ListPinDrag;
+  private long tgx101ListFingerAt;
+  private final Runnable tgx101ListFlush = () -> {
+    tgx101ListFlushPosted = false;
+    if (tgx101ListHeld()) {
+      tgx101PostListFlush(TGX101_LIST_AFTER_FINGER_MS); // looked again once the finger is up and the list stops
+      return;
+    }
+    tgx101FlushListOps();
+  };
+
+  private boolean tgx101ListHeld () {
+    // a finger whose «up» was never seen (the list left the window mid-touch) holds it no longer than a few seconds
+    boolean finger = tgx101ListFinger && android.os.SystemClock.uptimeMillis() - tgx101ListFingerAt < 6000;
+    return chatsView != null && !tgx101ListPinDrag &&
+      (finger || chatsView.getScrollState() != RecyclerView.SCROLL_STATE_IDLE);
+  }
+
+  private void tgx101PostListFlush (long delay) {
+    if (chatsView == null || tgx101ListFlushPosted) return;
+    tgx101ListFlushPosted = true;
+    chatsView.postDelayed(tgx101ListFlush, delay);
+  }
+
+  private void tgx101ListOp (Runnable op) {
+    if (isDestroyed() || chatsView == null) return;
+    boolean gather = initialLoadFinished && !tgx101ListPinDrag && chatsView.isAttachedToWindow() && chatsView.getVisibility() == View.VISIBLE;
+    if (!gather) {
+      tgx101FlushListOps(); // off screen or still loading: as before, at once (and after the ones waiting)
+      op.run();
+      return;
+    }
+    tgx101ListOps.add(op);
+    tgx101PostListFlush(tgx101ListHeld() ? TGX101_LIST_AFTER_FINGER_MS : TGX101_LIST_GATHER_MS);
+  }
+
+  /** applies the waiting changes now — before anything else changes the list's rows */
+  public void tgx101FlushListOps () {
+    if (tgx101ListOps.isEmpty()) return;
+    ArrayList<Runnable> ops = new ArrayList<>(tgx101ListOps);
+    tgx101ListOps.clear();
+    if (ops.size() > 1) org.thunderdog.challegram.Tgx101Diag.mark("chat list: " + ops.size() + " changes shown together");
+    for (Runnable op : ops) {
+      if (isDestroyed() || chatsView == null) return;
+      op.run();
+    }
+  }
+
+  private void tgx101TrackListFinger () {
+    chatsView.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+      @Override
+      public boolean onInterceptTouchEvent (@NonNull RecyclerView rv, @NonNull android.view.MotionEvent e) {
+        tgx101ListFinger(e);
+        return false;
+      }
+
+      @Override
+      public void onTouchEvent (@NonNull RecyclerView rv, @NonNull android.view.MotionEvent e) {
+        tgx101ListFinger(e);
+      }
+    });
+    chatsView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+      @Override
+      public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
+        if (newState == RecyclerView.SCROLL_STATE_IDLE && !tgx101ListOps.isEmpty()) tgx101PostListFlush(TGX101_LIST_AFTER_FINGER_MS);
+      }
+    });
+  }
+
+  private void tgx101ListFinger (android.view.MotionEvent e) {
+    int action = e.getActionMasked();
+    if (action == android.view.MotionEvent.ACTION_DOWN) {
+      tgx101ListFinger = true;
+      tgx101ListFingerAt = android.os.SystemClock.uptimeMillis();
+    } else if (action == android.view.MotionEvent.ACTION_UP || action == android.view.MotionEvent.ACTION_CANCEL) {
+      tgx101ListFinger = false;
+      tgx101ListPinDrag = false;
+      if (!tgx101ListOps.isEmpty()) tgx101PostListFlush(TGX101_LIST_AFTER_FINGER_MS);
+    }
   }
 
   // Destructor
@@ -3737,6 +3830,8 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   @Override
   public void destroy () {
     super.destroy();
+    tgx101ListOps.clear();
+    if (chatsView != null) chatsView.removeCallbacks(tgx101ListFlush);
     if (tgx101StoriesStrip != null) {
       tgx101StoriesStrip.destroy();
     }
