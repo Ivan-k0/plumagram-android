@@ -397,6 +397,7 @@ public class TGCallService extends Service implements
   }
 
   private Object communicationDeviceChangedListener;
+  private Object tgx101ModeListener;
 
   private void initCall (Tdlib tdlib, TdApi.Call call) {
     if (callInitialized) {
@@ -446,6 +447,10 @@ public class TGCallService extends Service implements
           communicationDeviceChangedListener = (AudioManager.OnCommunicationDeviceChangedListener) device -> AUDIO_ROUTE_EXECUTOR.execute(this::notifyAudioSettingsChanged); // TGx101: off the main thread
         }
         am.addOnCommunicationDeviceChangedListener(Executors.newSingleThreadExecutor(), (AudioManager.OnCommunicationDeviceChangedListener) communicationDeviceChangedListener);
+        if (tgx101ModeListener == null) {
+          tgx101ModeListener = (AudioManager.OnModeChangedListener) this::tgx101OnModeChanged;
+        }
+        am.addOnModeChangedListener(Executors.newSingleThreadExecutor(), (AudioManager.OnModeChangedListener) tgx101ModeListener);
         notifyAudioSettingsChanged();
       } else {
         if (btAdapter != null && btAdapter.isEnabled()) {
@@ -514,6 +519,9 @@ public class TGCallService extends Service implements
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
       if (communicationDeviceChangedListener != null) {
         am.removeOnCommunicationDeviceChangedListener((AudioManager.OnCommunicationDeviceChangedListener) communicationDeviceChangedListener);
+      }
+      if (tgx101ModeListener != null) {
+        am.removeOnModeChangedListener((AudioManager.OnModeChangedListener) tgx101ModeListener);
       }
     }
     am.unregisterMediaButtonEventReceiver(new ComponentName(this, VoIPMediaButtonReceiver.class));
@@ -1869,6 +1877,11 @@ public class TGCallService extends Service implements
       // adopting it turned audio calls on speaker. The call picks its own route in configureDeviceForCall.
       return;
     }
+    if (am.getMode() != AudioManager.MODE_IN_COMMUNICATION) {
+      // TGx101 (15:04): the route the system picks for a mode changed elsewhere is not the user's choice — tgx101OnModeChanged
+      // puts the mode and the chosen route back
+      return;
+    }
     final int reportedMode = mode;
     UI.post(() -> {
       // TGx101: the system's echo of our own switch is not a change made elsewhere (it flipped the route back and forth)
@@ -1886,6 +1899,29 @@ public class TGCallService extends Service implements
   }
 
   private volatile long tgx101AudioSwitchUntil;
+
+  /**
+   * TGx101 (user 2026-11-10 15:04 «включил громкую связь, но она сама сбросилась», «не слышно было»): while the outgoing
+   * call was still ringing, something else put the phone's audio mode back to normal — the system moved the sound to the
+   * earpiece (taken for the user's choice: the speaker button went off) and the microphone, started in the normal mode,
+   * recorded silence the whole call. While the call is set up the mode stays «communication»: a change elsewhere is put
+   * back at once, with the speaker choice the call had
+   */
+  private void tgx101OnModeChanged (int mode) {
+    if (isDestroyed) return;
+    org.thunderdog.challegram.Tgx101Diag.mark("[call] audio mode changed to " + mode + (isConfigured ? " during the call" : ""));
+    if (!isConfigured || mode == AudioManager.MODE_IN_COMMUNICATION || mode == AudioManager.MODE_IN_CALL || mode == AudioManager.MODE_RINGTONE) return;
+    final int keep = lastAudioMode;
+    org.thunderdog.challegram.voip.Tgx101Audio.run(() -> {
+      if (!isConfigured || isDestroyed) return;
+      AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
+      am.setMode(AudioManager.MODE_IN_COMMUNICATION);
+      org.thunderdog.challegram.Tgx101Diag.mark("[call] audio mode put back to communication, speaker mode " + keep);
+      UI.post(() -> {
+        if (isConfigured && !isDestroyed) setAudioMode(keep);
+      });
+    });
+  }
 
   // Network type
 
