@@ -603,7 +603,8 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     Tgx101Transcription.Result result = Tgx101Transcription.get(tdlib, msg);
     String text;
     if (result == null || result.state == Tgx101Transcription.STATE_NONE || (result.state == Tgx101Transcription.STATE_PENDING && android.text.TextUtils.isEmpty(result.text))) {
-      text = org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101RoundTranscribing); // (user 2026-11-05) not three dots
+      // (user 2026-11-05 «не три точки», 2026-11-10 «да, вместо надписи»): the hopping dots, drawn over a blank of their width
+      text = Tgx101Transcription.PENDING_BLANK;
     } else {
       text = result.text != null ? result.text : "";
     }
@@ -709,6 +710,11 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
     if (tgx101Text != null) {
       tgx101Text.draw(c, x, y + mini + Screen.dp(TM_GAP));
+      Tgx101Transcription.Result tgx101Result = Tgx101Transcription.get(tdlib, msg);
+      if (tgx101Result == null || tgx101Result.state == Tgx101Transcription.STATE_NONE || (tgx101Result.state == Tgx101Transcription.STATE_PENDING && android.text.TextUtils.isEmpty(tgx101Result.text))) {
+        Tgx101HopDots.draw(c, x + Tgx101HopDots.width() / 2f + Screen.dp(2f), y + mini + Screen.dp(TM_GAP) + tgx101Text.getLineCenterY(), getTextColor());
+        invalidate();
+      }
     }
   }
 

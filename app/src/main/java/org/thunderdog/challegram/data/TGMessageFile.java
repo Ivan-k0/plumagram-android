@@ -675,9 +675,17 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
           c.drawCircle(dotsX, dotsY + Screen.dp(5f) * d, Screen.dp(1.6f), dotPaint);
         }
       }
+      boolean tgx101Dots = entry.item.component.isVoice() && Tgx101Transcription.pendingBlank(tdlib, getMessage(entry.item.messageId));
       for (ListAnimator.Entry<TextWrapper> caption : entry.item.caption) {
         int right = useBubbles() ? startX + getContentWidth() : startX + Math.max(entry.item.component.getWidth(), caption.item.getWidth());
-        caption.item.draw(c, startX, right, 0, contentStartY + entry.item.component.getHeight() + Screen.dp(TEXT_MARGIN), null, entry.getVisibility() * caption.getVisibility() * alpha, view.getTextMediaReceiver());
+        int captionTop = contentStartY + entry.item.component.getHeight() + Screen.dp(TEXT_MARGIN);
+        caption.item.draw(c, startX, right, 0, captionTop, null, entry.getVisibility() * caption.getVisibility() * alpha, view.getTextMediaReceiver());
+        if (tgx101Dots && caption.item == entry.item.captionWrapper) {
+          // (user 2026-11-10): the transcription on its way — the dots hop over the blank where its text will be
+          float a = entry.getVisibility() * caption.getVisibility() * alpha;
+          Tgx101HopDots.draw(c, startX + Tgx101HopDots.width() / 2f + Screen.dp(2f), captionTop + caption.item.getLineCenterY(), ColorUtils.alphaColor(a, getTextColor()));
+          view.postInvalidateOnAnimation();
+        }
       }
     }
     if (clip) {

@@ -825,12 +825,10 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
    */
   static void tgx101DrawTranscribeMark (Canvas c, float cx, float cy, int color, boolean pending) {
     android.text.TextPaint paint = Paints.getBoldPaint14(false, color);
-    String letter = pending ? "…" : "A";
+    // (user 2026-11-10 «в кнопке 3 точки по-прежнему? не годится»): the button keeps its «→A» while the text is on its way —
+    // the hopping dots stand where the text will be
+    String letter = "A";
     paint.getTextBounds(letter, 0, letter.length(), tgx101MarkBounds);
-    if (pending) {
-      c.drawText(letter, cx - paint.measureText(letter) / 2f - tgx101MarkBounds.left + (paint.measureText(letter) - tgx101MarkBounds.width()) / 2f, cy - tgx101MarkBounds.exactCenterY(), paint);
-      return;
-    }
     float arrow = Screen.dp(8f), gap = Screen.dp(2f), head = Screen.dp(3f);
     float total = arrow + gap + tgx101MarkBounds.width();
     float left = cx - total / 2f, right = left + arrow;

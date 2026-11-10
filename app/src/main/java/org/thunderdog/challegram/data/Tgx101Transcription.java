@@ -131,6 +131,15 @@ public final class Tgx101Transcription {
 
   /** The transcription as an italic caption to show in the bubble, or null. */
   @Nullable
+  /** stands in the text while it is on its way, the hopping dots drawn over it — braille blanks, never trimmed */
+  public static final String PENDING_BLANK = "\u2800\u2800\u2800";
+
+  /** the transcription is on its way and has no words yet: the dots stand where its text will be */
+  public static boolean pendingBlank (Tdlib tdlib, @Nullable TdApi.Message message) {
+    Result result = message != null ? get(tdlib, message) : null;
+    return result != null && !result.collapsed && result.state == STATE_PENDING && result.text.isEmpty();
+  }
+
   public static TdApi.FormattedText captionFor (Tdlib tdlib, TdApi.Message message) {
     Result result = get(tdlib, message);
     if (result == null || result.collapsed) {
@@ -139,7 +148,9 @@ public final class Tgx101Transcription {
     String text;
     switch (result.state) {
       case STATE_PENDING:
-        text = result.text.isEmpty() ? Lang.getString(R.string.TranscriptionInProgress) : result.text + "…";
+        // (user 2026-11-10 «да, вместо надписи»): no «Recognizing speech…» — a blank of the hopping dots' width, the dots
+        // are drawn over it (Tgx101HopDots); the line keeps its height, so the text coming in moves nothing
+        text = result.text.isEmpty() ? PENDING_BLANK : result.text + "…";
         break;
       case STATE_DONE:
         text = result.text.isEmpty() ? Lang.getString(R.string.TranscriptionEmpty) : result.text;
