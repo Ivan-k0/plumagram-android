@@ -358,6 +358,10 @@ public final class Tgx101BarOrder {
         result.add(off ? "-" + key : key);
       }
     }
+    if (!Tgx101TextEditor.EDIT_WINDOW) { // the edit window is off for now: no «Editor» to order
+      result.remove(EDITOR);
+      result.remove("-" + EDITOR);
+    }
     return result;
   }
 

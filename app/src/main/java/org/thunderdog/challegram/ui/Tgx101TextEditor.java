@@ -57,8 +57,12 @@ public final class Tgx101TextEditor {
   private Tgx101TextEditor () { }
 
   /** Text and caption edits only; anything else (rich posts etc.) keeps the stock editing in the input field. */
+  /** (user 2026-11-10 «редактор пока удаляем из приложения, будем потом дорабатывать»): the full-size edit window is off —
+   *  «Edit» edits in the message input; the code stays for its next version */
+  public static final boolean EDIT_WINDOW = false;
+
   public static boolean canEdit (TdApi.Message message) {
-    if (message == null || !Settings.instance().useTgx101TextEditor()) return false;
+    if (!EDIT_WINDOW || message == null || !Settings.instance().useTgx101TextEditor()) return false;
     switch (message.content.getConstructor()) {
       case TdApi.MessageText.CONSTRUCTOR:
       case TdApi.MessageAnimatedEmoji.CONSTRUCTOR:

@@ -189,6 +189,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
       List<ListItem> rows = new ArrayList<>();
       for (int i = 0; i < order.length; i++) {
         if (sectionOf(order[i]) != section) continue;
+        if (order[i] == R.id.btn_tgx101EditorWindow && !Tgx101TextEditor.EDIT_WINDOW) continue; // the edit window is off for now
         int known = indexOf(Tgx101MessageMenu.ORDERABLE_IDS, order[i]);
         rows.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MenuAction, Tgx101MessageMenu.ORDERABLE_ICONS[known], Tgx101MessageMenu.ORDERABLE_NAMES[known]).setLongId(i).setData(order[i]));
       }
