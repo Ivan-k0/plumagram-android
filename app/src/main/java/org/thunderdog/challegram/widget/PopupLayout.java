@@ -193,6 +193,9 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     this.touchSectionProvider = touchProvider;
   }
 
+  /** TGx101: when it went into the activity's list of windows (BaseActivity.hasAnimatingWindow) */
+  public long tgx101AddedAt;
+
   private boolean needRootInsets;
 
   // TGx101 (user 2026-11-09, compared with exteraGram): a photo opened with the keyboard up — its own window above the

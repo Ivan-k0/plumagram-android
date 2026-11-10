@@ -3241,6 +3241,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       tgx101RestoreInput = null;
     }
     windows.add(window);
+    window.tgx101AddedAt = android.os.SystemClock.uptimeMillis();
     UI.post(this::updatePopupBackPriority);
     Tgx101DiagHooks.onPopup(window, window.getBoundController() != null ? window.getBoundController() : window.getBoundView(), true); // TGx101
     checkDisallowScreenshots();
@@ -3249,8 +3250,18 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   }
 
   public boolean hasAnimatingWindow () {
-    for (PopupLayout window : windows) {
+    for (int i = windows.size() - 1; i >= 0; i--) {
+      PopupLayout window = windows.get(i);
       if (!window.hadCompletelyShown() && !window.tgx101HandingOff) {
+        // TGx101 (user 2026-11-10 16:15 «тап не работает»): a message menu opened and the chat swiped away while it was
+        // still opening — its window went with the chat, but it stayed here «still opening» and every chat tap after that
+        // was refused as navigation in progress. A window gone from the screen for half a second holds nothing any more
+        if (!androidx.core.view.ViewCompat.isAttachedToWindow(window) && android.os.SystemClock.uptimeMillis() - window.tgx101AddedAt > 500) {
+          Tgx101Diag.mark("popup " + window + ": gone from the screen while still opening — dropped, navigation free");
+          windows.remove(i);
+          notifyBackPressAvailabilityChanged();
+          continue;
+        }
         return true;
       }
     }
