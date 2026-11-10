@@ -1028,7 +1028,9 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
 
       // TGx101: «Select text» left the menu: a second long press on the selected message opens it
       // TGx101: «Цитировать» on others' messages opens the quote window (select a part, copy, reply with it)
-      if (!msg.isOutgoing() && !msg.isTranslated()) {
+      // (user 2026-11-10 «зачем он нужен, если есть другой функционал»): with the new text selection the quote window isn't
+      // offered — a second long press selects the text, with copy, quote and reply
+      if (!msg.isOutgoing() && !msg.isTranslated() && (org.thunderdog.challegram.ui.Tgx101TextEditor.EDIT_WINDOW || !Settings.instance().useTgx101TextEditor())) {
         ids.append(R.id.btn_messageSelectText);
         strings.append(Settings.instance().useTgx101TextEditor() ? R.string.Tgx101EditorMenu : R.string.Tgx101QuoteAction);
         icons.append(R.drawable.baseline_format_quote_close_24);
