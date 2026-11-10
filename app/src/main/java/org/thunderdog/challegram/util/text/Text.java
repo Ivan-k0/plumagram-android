@@ -1028,6 +1028,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
     this.parts = out;
     if (this.pressHighlights != null)
       this.pressHighlights.clear();
+    if (BuildConfig.TGX101_DIAG) tgx101CheckWidths(maxWidth);
 
     if (BuildConfig.DEBUG && maxLineCount == -1) {
       StringBuilder debug = new StringBuilder();
@@ -1051,6 +1052,44 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
       for (int i = 0; i < partCount; i++) {
         getLineWidth(parts.get(i).getLineIndex());
       }
+    }
+  }
+
+  // TGx101 (user's screenshot 2026-11-10 14:04, a long link sticking out of the bubble): after the layout each line is
+  // measured as it will be drawn — a line wider than the room is told with both widths, the font and its first characters
+  private static long tgx101WidthLogAt;
+  private static int tgx101WidthLogs;
+
+  private void tgx101CheckWidths (int maxWidth) {
+    if (parts == null || parts.isEmpty() || maxWidth <= 0) return;
+    int lines = parts.get(parts.size() - 1).getLineIndex() + 1;
+    for (int line = 0; line < lines; line++) {
+      float measured = 0, actual = 0;
+      TextPart first = null;
+      int count = 0;
+      for (TextPart part : parts) {
+        if (part.getLineIndex() != line || part.getEnd() <= part.getStart()) continue;
+        if (first == null) first = part;
+        count++;
+        measured = Math.max(measured, part.getX() + part.getWidth());
+        TextPaint paint = getTextPaint(part.getEntity());
+        actual = Math.max(actual, part.getX() + paint.measureText(part.getLine(), part.getStart(), part.getEnd()));
+      }
+      if (first == null || actual <= maxWidth + Screen.dp(1f)) continue;
+      long now = android.os.SystemClock.uptimeMillis();
+      if (now - tgx101WidthLogAt > 60_000) {
+        tgx101WidthLogAt = now;
+        tgx101WidthLogs = 0;
+      }
+      if (++tgx101WidthLogs > 6) return;
+      TextPaint paint = getTextPaint(first.getEntity());
+      String head = first.getLine().substring(first.getStart(), Math.min(first.getEnd(), first.getStart() + 16));
+      org.thunderdog.challegram.Tgx101Diag.mark("text: line " + line + " of " + lines + " wider than its room — room " + maxWidth +
+        ", counted " + Math.round(measured) + ", drawn " + Math.round(actual) + ", parts " + count + ", size " + paint.getTextSize() +
+        ", font " + (paint.getTypeface() != null ? Integer.toHexString(paint.getTypeface().hashCode()) + (paint.getTypeface().isBold() ? " bold" : "") : "default") +
+        ", fake bold " + paint.isFakeBoldText() + ", entity " + (first.getEntity() != null ? first.getEntity().getClass().getSimpleName() : "none") +
+        ", starts «" + head + "»");
+      return;
     }
   }
 
