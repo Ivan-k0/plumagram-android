@@ -925,6 +925,14 @@ public class TGMessageMedia extends TGMessage {
     return 0;
   }
 
+  /** (user video 2026-11-10 11:18) the frame the video of this message plays by itself in the bubble now, or null */
+  public @Nullable android.graphics.Bitmap tgx101PlayingFrame (long messageId) {
+    MediaWrapper wrapper = mosaicWrapper != null ? mosaicWrapper.findMediaWrapperByMessageId(messageId) : null;
+    org.thunderdog.challegram.loader.Receiver receiver = wrapper != null ? wrapper.getTargetReceiverReference() : null;
+    if (!(receiver instanceof org.thunderdog.challegram.loader.gif.GifReceiver) || receiver.needPlaceholder()) return null;
+    return ((org.thunderdog.challegram.loader.gif.GifReceiver) receiver).tgx101CopyFrame(1280);
+  }
+
   @Override
   public void requestMediaContent (ComplexReceiver receiver, boolean invalidate, int invalidateArg) {
     mosaicWrapper.requestFiles(receiver, invalidate);

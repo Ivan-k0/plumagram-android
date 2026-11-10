@@ -1088,6 +1088,39 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
     return false;
   }
 
+  // TGx101 (user video 2026-11-10 11:18 «обложка мелькает в конце», «и для чатов»): back from the viewer a video that plays
+  // by itself starts again where the viewer left it — until its first frame the viewer's last frame stands in the bubble
+  // instead of the cover
+  private @Nullable android.graphics.Bitmap tgx101Hold;
+  private long tgx101HoldSince;
+
+  private void tgx101DrawHold (View view, Canvas c, Receiver receiver) {
+    if (!(receiver instanceof GifReceiver) || video == null) return;
+    if (!receiver.needPlaceholder()) {
+      tgx101Hold = null;
+      return;
+    }
+    if (tgx101Hold == null) {
+      tgx101Hold = org.thunderdog.challegram.mediaview.Tgx101VideoResume.takeBackFrame(video.video.id);
+      tgx101HoldSince = android.os.SystemClock.uptimeMillis();
+    }
+    android.graphics.Bitmap hold = tgx101Hold;
+    if (hold == null || hold.isRecycled() || android.os.SystemClock.uptimeMillis() - tgx101HoldSince > 3000) {
+      tgx101Hold = null;
+      return;
+    }
+    float l = receiver.getLeft(), t = receiver.getTop(), w = receiver.getWidth(), h = receiver.getHeight();
+    if (w <= 0 || h <= 0) return;
+    float scale = Math.max(w / hold.getWidth(), h / hold.getHeight()); // as the bubble crops its video
+    float bw = hold.getWidth() * scale, bh = hold.getHeight() * scale;
+    RectF dst = new RectF(l + (w - bw) / 2f, t + (h - bh) / 2f, l + (w + bw) / 2f, t + (h + bh) / 2f);
+    int save = c.save();
+    c.clipRect(l, t, l + w, t + h);
+    c.drawBitmap(hold, null, dst, Paints.getBitmapPaint());
+    c.restoreToCount(save);
+    view.postInvalidateDelayed(32); // looks again for the video's own frame
+  }
+
   public <T extends View & DrawableProvider> void draw (T view, Canvas c, int startX, int startY, Receiver preview, Receiver receiver, float alpha) {
     final float selectionFactor = selectionAnimator != null && source != null ? source.getSelectionFactor(selectionAnimator) : 0f;
     // TGx101 (user 2026-10-30, channel Jeteed in «Journal»: square corners while the feed's are round): «Journal» media
@@ -1141,6 +1174,7 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
     } else {
       DrawAlgorithms.drawReceiver(c, preview, receiver, false, true, cellLeft, cellTop, cellRight, cellBottom);
     }
+    tgx101DrawHold(view, c, receiver);
     float spoilerFactor = spoilerOverlayVisible.getFloatValue();
     if (spoilerFactor > 0f) {
       Receiver spoilerReceiver;

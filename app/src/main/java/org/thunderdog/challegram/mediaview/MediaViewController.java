@@ -10438,7 +10438,13 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     // (user 2026-10-30) a channel's video playing by itself in its post: the viewer starts where it stands
     if (msg != null && msg.content.getConstructor() == TdApi.MessageVideo.CONSTRUCTOR && item.isVideo()) {
       long at = org.thunderdog.challegram.loader.gif.GifActor.tgx101Position(((TdApi.MessageVideo) msg.content).video.video.id);
-      if (at > 0 && org.thunderdog.challegram.data.Tgx101ChatMedia.autoplay(messageContainer.tdlib(), msg.chatId)) Tgx101VideoResume.startAt(item, at);
+      if (at > 0 && org.thunderdog.challegram.data.Tgx101ChatMedia.autoplay(messageContainer.tdlib(), msg.chatId)) {
+        Tgx101VideoResume.startAt(item, at);
+        // (user video 2026-11-10 11:18 «обложка мелькает», «и для чатов»): the viewer opens on the bubble's frame, not the cover
+        android.graphics.Bitmap frame = messageContainer.tgx101PlayingFrame(messageId);
+        Tgx101VideoResume.startFrame(item, frame);
+        org.thunderdog.challegram.Tgx101Diag.mark("chat viewer: the video starts at " + at + " ms" + (frame != null ? ", on the bubble's frame " + frame.getWidth() + "x" + frame.getHeight() : ", no frame of the bubble"));
+      }
     }
 
     boolean allowLoadMore = !messageContainer.isSponsoredMessage() && !item.isSecret() && !item.isViewOnce();
