@@ -1060,16 +1060,6 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
   private static long tgx101WidthLogAt;
   private static int tgx101WidthLogs;
 
-  private String tgx101RunWidths (TextPart part) {
-    TextPaint lp = getLayoutPaint(part.getEntity());
-    String t = part.getLine();
-    float run = BiDiUtils.measureTextRun(part.getBidiEntity(), t, part.getStart(), part.getEnd(), lp);
-    float runChars = 0;
-    for (int i = part.getStart(); i < part.getEnd(); i++) runChars += BiDiUtils.measureTextRun(part.getBidiEntity(), t, i, i + 1, lp);
-    return ", layout paint size " + lp.getTextSize() + " font " + (lp.getTypeface() != null ? Integer.toHexString(lp.getTypeface().hashCode()) : "default") +
-      ", run " + Math.round(run) + ", run by letters " + Math.round(runChars) + ", bidi " + part.getBidiEntity() + ", line text length " + t.length();
-  }
-
   private void tgx101CheckWidths (int maxWidth) {
     if (parts == null || parts.isEmpty() || maxWidth <= 0 || maxWidth >= Integer.MAX_VALUE / 2) return; // unlimited room: nothing to stick out of
     int lines = parts.get(parts.size() - 1).getLineIndex() + 1;
@@ -1094,16 +1084,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
       if (++tgx101WidthLogs > 6) return;
       TextPaint paint = getTextPaint(first.getEntity());
       String head = first.getLine().substring(first.getStart(), Math.min(first.getEnd(), first.getStart() + 16));
-      float chars = 0, pairs = 0;
-      String lineText = first.getLine();
-      for (int i = first.getStart(); i < first.getEnd(); i++) {
-        chars += paint.measureText(lineText, i, i + 1);
-        if (i + 6 <= first.getEnd() && (i - first.getStart()) % 6 == 0) pairs += paint.measureText(lineText, i, i + 6);
-      }
-      String extra = ", letters one by one " + Math.round(chars) + ", by sixes " + Math.round(pairs) + ", whole " + Math.round(paint.measureText(lineText, first.getStart(), first.getEnd())) +
-        ", letter spacing " + (android.os.Build.VERSION.SDK_INT >= 21 ? paint.getLetterSpacing() : 0f) +
-        ", features " + (android.os.Build.VERSION.SDK_INT >= 21 ? paint.getFontFeatureSettings() : "-") +
-        ", part width " + Math.round(first.getWidth()) + tgx101RunWidths(first);
+      String extra = ", part width " + Math.round(first.getWidth());
       org.thunderdog.challegram.Tgx101Diag.mark("text: line " + line + " of " + lines + " wider than its room — room " + maxWidth +
         ", counted " + Math.round(measured) + ", drawn " + Math.round(actual) + ", parts " + count + ", size " + paint.getTextSize() +
         ", font " + (paint.getTypeface() != null ? Integer.toHexString(paint.getTypeface().hashCode()) + (paint.getTypeface().isBold() ? " bold" : "") : "default") +
