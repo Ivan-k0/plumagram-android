@@ -1051,6 +1051,20 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
     notifyDataSetChanged();
   }
 
+  /**
+   * TGx101 (log 2026-11-10 09:06, «аномальное поведение папок при переключении»): the list has been laid out — the full
+   * refresh queued by {@link #tgx101Coalesce()} is done. Its mark used to be dropped only by the next change and only if
+   * the list had nothing pending then; a folder's list nearly always has some other change pending (a counter, a photo
+   * told straight to it), so the mark stayed on for hours and every later move of a channel was thrown away — the rows
+   * on screen stood in the old order until the check redrew them, right while switching to that folder.
+   */
+  public void tgx101LaidOut () {
+    if (tgx101FullRefreshQueued || tgx101Queued != 0) {
+      tgx101Queued = 0;
+      tgx101FullRefreshQueued = false;
+    }
+  }
+
   private boolean tgx101Coalesce () {
     RecyclerView recyclerView = attachedToRecyclers != null && attachedToRecyclers.size() == 1 ? attachedToRecyclers.get(0) : null;
     if (recyclerView == null) {
@@ -1062,7 +1076,10 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
       tgx101FullRefreshQueued = false;
     }
     if (tgx101FullRefreshQueued) {
-      return true; // the whole list is redrawn at the next layout anyway
+      // the whole list is redrawn at the next layout anyway — told again in case that refresh already went (a layout
+      // without onLayout), so this change is never dropped (cheap: it only marks the list)
+      if (!recyclerView.isComputingLayout()) notifyDataSetChanged();
+      return true;
     }
     if (++tgx101Queued > TGX101_MAX_QUEUED_CHANGES && !recyclerView.isComputingLayout()) {
       tgx101FullRefreshQueued = true;

@@ -372,6 +372,7 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
   @Override
   protected void onLayout (boolean changed, int l, int t, int r, int b) {
     super.onLayout(changed, l, t, r, b);
+    if (adapter != null && !hasPendingAdapterUpdates()) adapter.tgx101LaidOut(); // the queued refresh is done
     tgx101CheckDuplicates();
   }
 
