@@ -1084,11 +1084,21 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
       if (++tgx101WidthLogs > 6) return;
       TextPaint paint = getTextPaint(first.getEntity());
       String head = first.getLine().substring(first.getStart(), Math.min(first.getEnd(), first.getStart() + 16));
+      float chars = 0, pairs = 0;
+      String lineText = first.getLine();
+      for (int i = first.getStart(); i < first.getEnd(); i++) {
+        chars += paint.measureText(lineText, i, i + 1);
+        if (i + 6 <= first.getEnd() && (i - first.getStart()) % 6 == 0) pairs += paint.measureText(lineText, i, i + 6);
+      }
+      String extra = ", letters one by one " + Math.round(chars) + ", by sixes " + Math.round(pairs) + ", whole " + Math.round(paint.measureText(lineText, first.getStart(), first.getEnd())) +
+        ", letter spacing " + (android.os.Build.VERSION.SDK_INT >= 21 ? paint.getLetterSpacing() : 0f) +
+        ", features " + (android.os.Build.VERSION.SDK_INT >= 21 ? paint.getFontFeatureSettings() : "-") +
+        ", part width " + Math.round(first.getWidth());
       org.thunderdog.challegram.Tgx101Diag.mark("text: line " + line + " of " + lines + " wider than its room — room " + maxWidth +
         ", counted " + Math.round(measured) + ", drawn " + Math.round(actual) + ", parts " + count + ", size " + paint.getTextSize() +
         ", font " + (paint.getTypeface() != null ? Integer.toHexString(paint.getTypeface().hashCode()) + (paint.getTypeface().isBold() ? " bold" : "") : "default") +
         ", fake bold " + paint.isFakeBoldText() + ", entity " + (first.getEntity() != null ? first.getEntity().getClass().getSimpleName() : "none") +
-        ", starts «" + head + "»");
+        ", starts «" + head + "»" + extra);
       return;
     }
   }
