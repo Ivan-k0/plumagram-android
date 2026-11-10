@@ -424,7 +424,10 @@ public final class Tgx101TextEditor {
         int ime = insets.getInsets(android.view.WindowInsets.Type.ime()).bottom;
         int screenBottom = location[1] + wrap.getHeight();
         int imeTop = wrap.getRootView().getHeight() - ime;
-        bottomInset = imeVisible ? Math.max(bottomInset, Math.max(0, screenBottom - imeTop)) : 0;
+        // (2026-11-10) without the keyboard the card stands above the system's navigation bar (three buttons are tall)
+        int navTop = wrap.getRootView().getHeight() - insets.getInsets(android.view.WindowInsets.Type.navigationBars()).bottom;
+        int navInset = Math.max(0, screenBottom - navTop);
+        bottomInset = imeVisible ? Math.max(bottomInset, Math.max(navInset, Math.max(0, screenBottom - imeTop))) : navInset;
       }
       if (bottomInset > Screen.dp(80f)) {
         maxImeInset[0] = Math.max(maxImeInset[0], bottomInset);

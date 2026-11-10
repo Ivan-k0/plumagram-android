@@ -60,6 +60,19 @@ public final class Tgx101Sheet {
     }
   }
 
+  /** the height of the system's navigation bar over the bottom of the activity's window (0 when it doesn't overlap) */
+  static int tgx101NavigationInset (ViewController<?> c) {
+    android.view.Window window = c.context().getWindow();
+    View decor = window != null ? window.getDecorView() : null;
+    if (decor == null || android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) return 0;
+    android.view.WindowInsets insets = decor.getRootWindowInsets();
+    if (insets == null) return 0;
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+      return insets.getInsets(android.view.WindowInsets.Type.navigationBars()).bottom;
+    }
+    return insets.getStableInsetBottom();
+  }
+
   /** A sheet with a drag handle; {@code fill} adds content to its column before it is shown */
   public static Handle show (ViewController<?> c, @Nullable Runnable onDismiss, me.vkryl.core.lambda.RunnableData<LinearLayout> fill) {
     Context context = c.context();
@@ -101,7 +114,10 @@ public final class Tgx101Sheet {
     sheetParams.leftMargin = sheetParams.rightMargin = sheetParams.bottomMargin = Screen.dp(8f);
     wrap.addView(sheet, sheetParams);
     final int topRoom = org.thunderdog.challegram.navigation.HeaderView.getTopOffset() + Screen.dp(8f); // never under the status bar
-    wrap.setPadding(0, topRoom, 0, 0);
+    // TGx101 (a user's screenshot 2026-11-10, three-button navigation: the bottom button of «Sync contacts» lay under the
+    // buttons): the sheet sits in the activity's own window, drawn to the very bottom of the screen — it stands above the
+    // system's navigation bar, whatever its kind and height, from the first frame
+    wrap.setPadding(0, topRoom, 0, tgx101NavigationInset(c));
     wrap.setClickable(true);
     // (user 2026-11-05 «закрывалось тоже нормально»): the keyboard goes down together with the sheet, not after it is gone
     final Runnable close = () -> {
@@ -119,7 +135,7 @@ public final class Tgx101Sheet {
     final int[] location = new int[2];
     // (test 2026-10-15: the visible-frame guess lifted a sheet with no field ~250 px off the bottom) — Android 11+ asks
     // the system for the keyboard itself; older ones only lift a sheet that has a focused text field
-    final int[] imeTarget = {-1};
+    final int[] imeTarget = {wrap.getPaddingBottom()};
     final android.animation.ValueAnimator[] imeAnimator = new android.animation.ValueAnimator[1];
     // a sheet with a text field: the screen under it doesn't pan up for the keyboard (that and the sheet's own rise made
     // a double jump); the sheet rises by itself. Put back when it closes, and its keyboard goes with it
@@ -135,11 +151,16 @@ public final class Tgx101Sheet {
       int bottom = 0;
       if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
         android.view.WindowInsets insets = wrap.getRootWindowInsets();
-        if (insets != null && insets.isVisible(android.view.WindowInsets.Type.ime())) {
+        if (insets != null) {
+          // the keyboard or, without it, the system's navigation bar (gestures or three buttons)
           wrap.getLocationOnScreen(location);
-          int imeTop = wrap.getRootView().getHeight() - insets.getInsets(android.view.WindowInsets.Type.ime()).bottom;
-          bottom = Math.max(0, location[1] + wrap.getHeight() - imeTop);
+          int coverTop = wrap.getRootView().getHeight() - insets.getInsets(android.view.WindowInsets.Type.ime() | android.view.WindowInsets.Type.navigationBars()).bottom;
+          bottom = Math.max(0, location[1] + wrap.getHeight() - coverTop);
         }
+      } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M && wrap.getRootWindowInsets() != null && !(wrap.findFocus() instanceof android.widget.EditText)) {
+        wrap.getLocationOnScreen(location);
+        int coverTop = wrap.getRootView().getHeight() - wrap.getRootWindowInsets().getSystemWindowInsetBottom();
+        bottom = Math.max(0, location[1] + wrap.getHeight() - coverTop);
       } else if (wrap.findFocus() instanceof android.widget.EditText) {
         wrap.getWindowVisibleDisplayFrame(frame);
         wrap.getLocationOnScreen(location);
@@ -175,7 +196,7 @@ public final class Tgx101Sheet {
         public android.view.WindowInsets onProgress (@androidx.annotation.NonNull android.view.WindowInsets insets, @androidx.annotation.NonNull java.util.List<android.view.WindowInsetsAnimation> running) {
           if (imeRiding[0] && wrap.getHeight() > 0) {
             wrap.getLocationOnScreen(location);
-            int imeTop = wrap.getRootView().getHeight() - insets.getInsets(android.view.WindowInsets.Type.ime()).bottom;
+            int imeTop = wrap.getRootView().getHeight() - insets.getInsets(android.view.WindowInsets.Type.ime() | android.view.WindowInsets.Type.navigationBars()).bottom;
             int bottom = Math.max(0, location[1] + wrap.getHeight() - imeTop);
             imeTarget[0] = bottom;
             if (wrap.getPaddingBottom() != bottom) wrap.setPadding(0, wrap.getPaddingTop(), 0, bottom);
