@@ -7117,6 +7117,10 @@ public class Settings {
       if (proxy == null) {
         return null;
       }
+      // TGx101 (a 4PDA reader 2026-11-10: «после переключения на обычный mtproto web подключение становится 27101»): a WEB
+      // proxy is stored as MTProto on 127.0.0.1 — its name comes from its own address, not the description that can be lost
+      String webName = org.thunderdog.challegram.proxy.Tgx101WebProxy.nameOf(id);
+      if (webName != null) return webName;
       final String name = StringUtils.isEmpty(description) ? proxy.server + ":" + proxy.port : description;
       int stringRes;
       switch (proxy.type.getConstructor()) {

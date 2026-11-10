@@ -140,6 +140,12 @@ public final class Tgx101WebProxy {
     return secret != null ? new Address(parts[0], parts[1], secret) : null;
   }
 
+  /** «host (WEB)» for a WEB proxy, null for any other */
+  public static @Nullable String nameOf (int proxyId) {
+    Address address = proxyId != Settings.PROXY_ID_NONE ? load(proxyId) : null;
+    return address != null ? address.display() + " (WEB)" : null;
+  }
+
   public static boolean isWebProxy (int proxyId) {
     return proxyId != Settings.PROXY_ID_NONE && Settings.instance().pmc().getString(KEY_PREFIX + proxyId, null) != null;
   }

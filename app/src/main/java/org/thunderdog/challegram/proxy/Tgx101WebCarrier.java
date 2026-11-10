@@ -147,6 +147,9 @@ final class Tgx101WebCarrier {
     if (active) return;
     active = true;
     if (!isSupported()) {
+      log("this WebView can't carry it — listener " + WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER) +
+        ", array buffer " + WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_ARRAY_BUFFER) +
+        ", start script " + WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT));
       setState(STATE_UNSUPPORTED);
       return; // fails closed: TDLib keeps trying the local port and nothing leaves directly
     }
@@ -176,8 +179,15 @@ final class Tgx101WebCarrier {
     return state;
   }
 
+  /** TGx101 (a 4PDA reader 2026-11-10: a WEB proxy that works in Desktop doesn't connect here): each step of the carrier
+   *  goes to the log — never the address or the secret */
+  private static void log (String what) {
+    org.thunderdog.challegram.Tgx101Diag.mark("web proxy: " + what);
+  }
+
   private void setState (int state) {
     if (this.state != state) {
+      log("state " + (state == STATE_CONNECTING ? "connecting" : state == STATE_CONNECTED ? "connected" : state == STATE_UNSUPPORTED ? "unsupported" : "stopped"));
       this.state = state;
       main.post(() -> stateListener.onCarrierStateChanged(state));
     }
@@ -208,6 +218,7 @@ final class Tgx101WebCarrier {
       }
     } catch (IOException e) {
       if (active && gen == acceptGeneration) {
+        log("local port " + port + " not open: " + e.getClass().getSimpleName());
         // Port taken: retry shortly (only this run — a stop / start in between has its own loop)
         main.postDelayed(() -> {
           if (active && gen == acceptGeneration) new Thread(() -> acceptLoop(gen), "TGx101WebAccept").start();
@@ -380,6 +391,7 @@ final class Tgx101WebCarrier {
     switch (type) {
       case T_WELCOME: {
         if (welcomed || streamId != 0) return false;
+        log("WELCOME — carrying");
         welcomed = true;
         backoffMs = 2000;
         setState(STATE_CONNECTED);
@@ -398,6 +410,7 @@ final class Tgx101WebCarrier {
         return true;
       }
       case T_BYE:
+        log("relay said BYE");
         return false;
       case T_DATA:
       case T_CLOSE:
@@ -553,6 +566,29 @@ final class Tgx101WebCarrier {
       }
 
       @Override
+      public void onPageFinished (WebView view, String url) {
+        if (gen == generation) log("bridge page loaded");
+      }
+
+      @Override
+      @RequiresApi(Build.VERSION_CODES.M) // called from Android 6 on
+      public void onReceivedError (WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
+        if (gen == generation && request.isForMainFrame()) log("bridge page failed: " + error.getErrorCode() + " " + error.getDescription());
+      }
+
+      @Override
+      @RequiresApi(Build.VERSION_CODES.M) // called from Android 6 on
+      public void onReceivedHttpError (WebView view, WebResourceRequest request, WebResourceResponse response) {
+        if (gen == generation) log("bridge " + (request.isForMainFrame() ? "page" : "request") + " HTTP " + response.getStatusCode() + " " + response.getReasonPhrase());
+      }
+
+      @Override
+      public void onReceivedSslError (WebView view, android.webkit.SslErrorHandler handler, android.net.http.SslError error) {
+        if (gen == generation) log("bridge TLS error " + error.getPrimaryError());
+        handler.cancel();
+      }
+
+      @Override
       public boolean onRenderProcessGone (WebView view, android.webkit.RenderProcessGoneDetail detail) {
         if (view == webView) {
           webView = null;
@@ -564,6 +600,7 @@ final class Tgx101WebCarrier {
     view.loadUrl(bridgeUrl + "#android=" + nonce);
     main.postDelayed(() -> {
       if (gen == generation && active && !welcomed) {
+        log("no WELCOME in " + HANDSHAKE_TIMEOUT_MS / 1000 + " s (page answered " + (reply != null) + ")");
         failCarrier(); // no WELCOME in time
       }
     }, HANDSHAKE_TIMEOUT_MS);
@@ -575,10 +612,14 @@ final class Tgx101WebCarrier {
       JSONObject json = new JSONObject(data);
       String t = json.optString("t");
       if ("tproxy-android-init".equals(t) && json.optInt("v") == 1 && nonce.equals(json.optString("nonce")) && reply == null) {
+        log("bridge page ready, HELLO sent");
         reply = replyProxy;
         send(frame(T_HELLO, 0, new byte[] {1}, 0, 1));
       } else if ("close".equals(t) || "error".equals(t)) {
+        log("bridge said «" + t + "» " + json.optString("reason", json.optString("message", json.optString("code", ""))));
         failCarrier();
+      } else if (!"status".equals(t)) {
+        log("bridge control «" + t + "» v" + json.optInt("v", -1) + (json.has("nonce") && !nonce.equals(json.optString("nonce")) ? ", nonce doesn't match" : ""));
       }
       // "status" and other informational controls are ignored
     } catch (Throwable ignored) { }
@@ -586,6 +627,7 @@ final class Tgx101WebCarrier {
 
   private void failCarrier () {
     if (!active) return;
+    log("carrier restarts in " + backoffMs / 1000 + " s");
     closeAllStreams(); // TDLib reconnects through a fresh carrier
     destroyWebView();
     setState(STATE_CONNECTING);
