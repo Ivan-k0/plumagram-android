@@ -2355,7 +2355,11 @@ public class U {
     }
 
     if (Config.USE_TEXT_ADVANCE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-      return p.getRunAdvance(in, start, end, 0, in.length(), isRtl, end);
+      // TGx101 (user's screenshot 2026-11-10, a long link sticking out of the bubble; the log: letter by letter 1100 px, the
+      // same line whole 1288): measured with the whole text as its context, a single letter of a long word came out ~15 %
+      // narrower than it is drawn — the layout splitting the word letter by letter built lines wider than the bubble. A run
+      // is measured within its own bounds
+      return p.getRunAdvance(in, start, end, start, end, isRtl, end);
     }
 
     return measureText(in, start, end, p);
