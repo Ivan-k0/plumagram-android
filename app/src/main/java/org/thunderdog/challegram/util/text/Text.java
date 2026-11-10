@@ -1210,13 +1210,12 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
   // Paint of entity and size of its emoji, prepared once for each entity of the text,
   // because preparing paint converts units of its text size
   private TextPaint getLayoutPaint (@Nullable TextEntity entity) {
-    // TGx101 (user's screenshot 2026-11-10 14:04, a long link: lines stuck out of the bubble): TGX 1826 kept the paint of
-    // an entity for the whole layout; ours is shared and set up anew (size, font) by other texts in between, so parts were
-    // measured at one size and drawn at another. The paint is taken afresh each time, as before the merge
-    layoutPaint = getTextPaint(entity);
-    layoutPaintEntity = entity;
-    Paint.FontMetricsInt fontMetricsInt = Paints.getFontMetricsInt(layoutPaint);
-    emojiSize = Math.abs(tgx101LineHeight(fontMetricsInt, layoutPaint.getTextSize())) + Screen.dp(2f); // TGx101: as the line, brought to Roboto's
+    if (layoutPaint == null || layoutPaintEntity != entity) {
+      layoutPaint = getTextPaint(entity);
+      layoutPaintEntity = entity;
+      Paint.FontMetricsInt fontMetricsInt = Paints.getFontMetricsInt(layoutPaint);
+      emojiSize = Math.abs(tgx101LineHeight(fontMetricsInt, layoutPaint.getTextSize())) + Screen.dp(2f); // TGx101: as the line, brought to Roboto's
+    }
     return layoutPaint;
   }
 
