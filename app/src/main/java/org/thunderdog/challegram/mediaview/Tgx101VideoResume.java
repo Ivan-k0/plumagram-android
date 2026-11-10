@@ -104,10 +104,14 @@ public final class Tgx101VideoResume {
     noCover.put(videoFileId, android.os.SystemClock.uptimeMillis());
   }
 
-  /** for half an hour after it was opened from the feed — the same video opened later from its channel keeps its cover */
+  /** while the viewer opened from the feed is open (its copies of the item too) — the same video opened later from its
+   *  channel keeps its cover, as its bubble there does (user video 2026-11-10 12:52) */
   public static boolean coverSkipped (int videoFileId) {
-    Long at = noCover.get(videoFileId);
-    return at != null && android.os.SystemClock.uptimeMillis() - at < 30 * 60_000L;
+    return noCover.containsKey(videoFileId);
+  }
+
+  public static void clearSkippedCovers () {
+    noCover.clear();
   }
 
   public static void backFrame (int fileId, @Nullable android.graphics.Bitmap frame) {

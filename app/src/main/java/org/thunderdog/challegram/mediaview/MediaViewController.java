@@ -7133,6 +7133,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   @Override
   public void destroy () {
+    Tgx101VideoResume.clearSkippedCovers(); // a video opened from the feed keeps its cover again in its channel
     context.tgx101SetPhotoNavDark(false);
     super.destroy();
     VideoPlayerView.tgx101CueSink = null;
