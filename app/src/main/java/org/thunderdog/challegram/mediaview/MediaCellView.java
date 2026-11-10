@@ -836,6 +836,7 @@ public class MediaCellView extends ViewGroup implements
       // own video plays again, instead of showing its cover in between
       android.graphics.Bitmap back = tgx101Frame != null ? tgx101Frame : tgx101StartFrame;
       if (back != null) Tgx101VideoResume.backFrame(media.getFileId(), back);
+      org.thunderdog.challegram.Tgx101Diag.mark("viewer close: " + (back != null ? "hands its frame " + back.getWidth() + "x" + back.getHeight() + " back" : "no frame to hand back (ready " + videoReady + ", hidden static " + hideStaticView + ")"));
     }
     if (disappearing) {
       if (isPlaying && media != null) {

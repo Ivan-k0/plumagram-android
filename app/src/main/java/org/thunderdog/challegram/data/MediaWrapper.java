@@ -1103,6 +1103,7 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
     if (tgx101Hold == null) {
       tgx101Hold = org.thunderdog.challegram.mediaview.Tgx101VideoResume.takeBackFrame(video.video.id);
       tgx101HoldSince = android.os.SystemClock.uptimeMillis();
+      if (tgx101Hold != null) org.thunderdog.challegram.Tgx101Diag.mark("chat bubble: holds the viewer's frame until its video plays");
     }
     android.graphics.Bitmap hold = tgx101Hold;
     if (hold == null || hold.isRecycled() || android.os.SystemClock.uptimeMillis() - tgx101HoldSince > 3000) {

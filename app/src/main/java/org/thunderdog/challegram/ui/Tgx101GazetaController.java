@@ -2739,8 +2739,32 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   /** the frame the post's video plays by itself in the feed now, or null */
   private @Nullable android.graphics.Bitmap feedFrame (Tgx101Gazeta.Post post, int fileId) {
     Card card = cardOf(post);
-    if (card == null || card.player.getVisibility() != View.VISIBLE || card.player.fileId != fileId) return null;
-    return card.player.receiver.tgx101CopyFrame(1280);
+    String why;
+    if (card == null) why = "no card on screen";
+    else if (card.player.getVisibility() != View.VISIBLE) why = "player hidden";
+    else if (card.player.fileId != fileId) why = "player has file " + card.player.fileId + ", not " + fileId;
+    else {
+      android.graphics.Bitmap frame = card.player.receiver.tgx101CopyFrame(1280);
+      if (frame != null) return frame;
+      // the decoder's frame wasn't at hand: the picture the post shows, as it is on screen
+      int w = card.player.getWidth(), h = card.player.getHeight();
+      if (w > 0 && h > 0 && !card.player.receiver.needPlaceholder()) {
+        try {
+          float scale = Math.min(1f, 1280f / Math.max(w, h));
+          android.graphics.Bitmap shot = android.graphics.Bitmap.createBitmap(Math.max(1, Math.round(w * scale)), Math.max(1, Math.round(h * scale)), android.graphics.Bitmap.Config.ARGB_8888);
+          android.graphics.Canvas canvas = new android.graphics.Canvas(shot);
+          canvas.scale(scale, scale);
+          card.player.receiver.draw(canvas);
+          return shot;
+        } catch (Throwable t) {
+          why = "snapshot failed: " + t;
+        }
+      } else {
+        why = "player has no frame (" + w + "x" + h + ", placeholder " + card.player.receiver.needPlaceholder() + ")";
+      }
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("gazeta viewer: no frame of the feed — " + why);
+    return null;
   }
 
   private @Nullable Card cardOf (@Nullable Tgx101Gazeta.Post post) {
@@ -3143,6 +3167,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
       if (hold == null) {
         hold = org.thunderdog.challegram.mediaview.Tgx101VideoResume.takeBackFrame(fileId);
         holdSince = android.os.SystemClock.uptimeMillis();
+        if (hold != null) org.thunderdog.challegram.Tgx101Diag.mark("gazeta post: holds the viewer's frame until its video plays");
       }
       if (hold == null || hold.isRecycled() || android.os.SystemClock.uptimeMillis() - holdSince > 3000) {
         hold = null;
