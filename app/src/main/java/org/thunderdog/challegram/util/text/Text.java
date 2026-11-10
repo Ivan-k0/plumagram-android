@@ -354,7 +354,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
     this.defaultTextColorSet = textColorSet;
     this.entities = entities;
     this.suffix = suffix;
-    this.suffixWidth = !StringUtils.isEmpty(suffix) ? (int) U.measureText(this.suffix, getTextPaint(null)) : 0;
+    this.suffixWidth = !StringUtils.isEmpty(suffix) ? (int) U.measureText(this.suffix, getLayoutPaint(null)) : 0;
     set(maxWidth, in);
   }
 
@@ -972,7 +972,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
           if (!prevIsNewLine || !BitwiseUtils.hasFlag(textFlags, Text.FLAG_IGNORE_CONTINUOUS_NEWLINES)) {
             if (BitwiseUtils.hasFlag(textFlags, Text.FLAG_IGNORE_NEWLINES)) {
               if (currentX > 0 && !out.isEmpty()) {
-                currentX += (int) makeSpaceSize(getTextPaint(null));
+                currentX += (int) makeSpaceSize(getLayoutPaint(null));
                 if (currentX > getLineMaxWidth(out.get(out.size() - 1).getLineIndex(), currentY)) {
                   newLineOrEllipsis(out, in);
                 }
@@ -1260,7 +1260,17 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
   // because preparing paint converts units of its text size
   private TextPaint getLayoutPaint (@Nullable TextEntity entity) {
     if (layoutPaint == null || layoutPaintEntity != entity) {
-      layoutPaint = getTextPaint(entity);
+      // TGx101 (user's screenshot 2026-11-10, a long link sticking out of the bubble; the log: counted 1100 px, drawn 1289):
+      // the paints are shared by every text of the app and each one sets its own size on them before use. Messages are laid
+      // out off the main thread while the main thread draws other texts (sizes 48–52 px) — the layout measured a link at
+      // their size, ~15 % smaller. The layout measures with its own copy, its size set from this text's style
+      TextPaint shared = getTextPaint(entity);
+      TextPaint own = new TextPaint(shared);
+      float size = textStyleProvider.getTextSizeInPixels();
+      if (entity != null && entity.isSmall()) size *= .75f;
+      own.setTextSize(size);
+      own.baselineShift = shared.baselineShift;
+      layoutPaint = own;
       layoutPaintEntity = entity;
       Paint.FontMetricsInt fontMetricsInt = Paints.getFontMetricsInt(layoutPaint);
       emojiSize = Math.abs(tgx101LineHeight(fontMetricsInt, layoutPaint.getTextSize())) + Screen.dp(2f); // TGx101: as the line, brought to Roboto's
@@ -1978,7 +1988,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
         int ellipsisMaxWidth = lineMaxWidth - currentX;
         String ellipsized = TextUtils.ellipsize(
           in.substring(start, end).replace('\n', ' '),
-          getTextPaint(entity),
+          getLayoutPaint(entity),
           ellipsisMaxWidth,
           TextUtils.TruncateAt.END
         ).toString();
@@ -1988,7 +1998,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
         }
       }
 
-      float ellipsisWidth = BiDiUtils.measureTextRun(bidiEntity, ellipsis, getTextPaint(entity));
+      float ellipsisWidth = BiDiUtils.measureTextRun(bidiEntity, ellipsis, getLayoutPaint(entity));
       if (!BiDiUtils.isValid(bidiEntity)) {
         bidiEntity = lastPart.getBidiEntity();
       }
@@ -2004,7 +2014,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
           lineIndex++;
         }
 
-        final float defaultEllipsisWidth = U.measureText(defaultEllipsis, getTextPaint(entity));
+        final float defaultEllipsisWidth = U.measureText(defaultEllipsis, getLayoutPaint(entity));
         if (hasEllipsizedPart && !StringUtils.equalsOrBothEmpty(ellipsis, defaultEllipsis) && ellipsis.length() > defaultEllipsis.length()) {
           TextPart ellipsisPart = new TextPart(this, ellipsis, 0, ellipsis.length() - defaultEllipsis.length(), lineIndex, paragraphIndex);
           ellipsisPart.setXY(currentX, currentY);
@@ -2028,7 +2038,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
         // Hard path: find enough place for ellipsis and place it there
         final int requiredLineIndex = lastPart.getLineIndex();
         final int minEnd = lastPart.getEnd();
-        final float defaultEllipsisWidth = U.measureText(defaultEllipsis, getTextPaint(null));
+        final float defaultEllipsisWidth = U.measureText(defaultEllipsis, getLayoutPaint(null));
 
         boolean done = false;
         do {
@@ -2043,7 +2053,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
               ellipsis = defaultEllipsis;
               changedEllipsis = true;
             }
-            ellipsisWidth = changedEllipsis || !lastPart.isSameEntity(entity) ? U.measureText(ellipsis, getTextPaint(lastPart.getEntity())) : ellipsisWidth;
+            ellipsisWidth = changedEllipsis || !lastPart.isSameEntity(entity) ? U.measureText(ellipsis, getLayoutPaint(lastPart.getEntity())) : ellipsisWidth;
 
             TextPart ellipsisPart = new TextPart(this, ellipsis, 0, ellipsis.length(), lastPart.getLineIndex(), lastPart.getParagraphIndex());
             ellipsisPart.setXY(currentX, currentY);
@@ -2061,7 +2071,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
 
           if (currentX + defaultEllipsisWidth <= lineMaxWidth) {
             final int ellipsisMaxWidth = lineMaxWidth - lastPart.getX();
-            final TextPaint paint = getTextPaint(lastPart.getEntity());
+            final TextPaint paint = getLayoutPaint(lastPart.getEntity());
             int subEnd = end > start ? Math.max(end, minEnd) : minEnd;
             ellipsis = TextUtils.ellipsize(in.substring(lastPart.getStart(), subEnd).replace('\n', ' '), paint, ellipsisMaxWidth - defaultEllipsisWidth, TextUtils.TruncateAt.END).toString();
             if (!StringUtils.isEmpty(ellipsis)) {
