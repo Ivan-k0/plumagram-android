@@ -1376,6 +1376,7 @@ public class MediaCellView extends ViewGroup implements
     this.media = media;
     tgx101Closing = false;
     tgx101StartFrame = media != null && media.isVideo() ? Tgx101VideoResume.takeStartFrame(media) : null;
+    if (tgx101StartFrame != null) org.thunderdog.challegram.Tgx101Diag.mark("viewer: opens on the handed frame " + tgx101StartFrame.getWidth() + "x" + tgx101StartFrame.getHeight() + " until the player's own");
     // (user's recording 2026-10-30 15:38 «кнопка плэй тупо мешает»): a video the viewer starts by itself showed its ▶ all
     // the opening flight, until the player had begun — it is left out while that start is on its way (1.5 s at most)
     tgx101StartPending = media != null && media.isVideo() && !media.isGifType() && media.isRemoteVideo() && Config.VIDEO_PLAYER_AVAILABLE && (media.isLoaded() || Config.VIDEO_CLOUD_PLAYBACK_AVAILABLE);

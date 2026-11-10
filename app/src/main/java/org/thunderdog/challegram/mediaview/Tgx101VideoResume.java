@@ -73,17 +73,24 @@ public final class Tgx101VideoResume {
     synchronized (Tgx101VideoResume.class) {
       startFrameKey = key != null && frame != null ? key : null;
       startFrame = startFrameKey != null ? frame : null;
+      startFrameAt = android.os.SystemClock.uptimeMillis();
     }
   }
 
+  private static long startFrameAt;
+
+  /** not used up: the viewer replaces the opened item with its own copy as it loads the chat's media around it, and the
+   *  copy asks again — the frame stays for a few seconds, for any item of that video */
   static @Nullable android.graphics.Bitmap takeStartFrame (@Nullable MediaItem item) {
     String key = key(item);
     synchronized (Tgx101VideoResume.class) {
       if (key == null || !key.equals(startFrameKey)) return null;
-      android.graphics.Bitmap frame = startFrame;
-      startFrame = null;
-      startFrameKey = null;
-      return frame;
+      if (android.os.SystemClock.uptimeMillis() - startFrameAt > 5000) {
+        startFrame = null;
+        startFrameKey = null;
+        return null;
+      }
+      return startFrame;
     }
   }
 
