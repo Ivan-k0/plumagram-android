@@ -108,7 +108,8 @@ public class ChatsRecyclerView extends CustomRecyclerView implements ClickHelper
   // TGx101: a circle with a magnifier slides down from the top and its ring fills while pulling; at the
   // threshold it turns blue with one short vibration. Search opens only when the finger is released past
   // the threshold; pulling back or releasing earlier cancels.
-  private static final float PULL_THRESHOLD_DP = 96f, PULL_SLOP_DP = 10f;
+  // (user 2026-11-10 «порог протяжки перед открытием сделай немножечко меньше»): 96 → 84 dp, as in the settings
+  private static final float PULL_THRESHOLD_DP = org.thunderdog.challegram.ui.Tgx101PullSearch.THRESHOLD_DP, PULL_SLOP_DP = 10f;
   private boolean pullToSearchTracking, pullToSearchActive, pullToSearchReady, tgx101PullConsumed;
   private float pullToSearchStartX, pullToSearchStartY, pullDistance;
   private android.animation.ValueAnimator pullReturnAnimator;

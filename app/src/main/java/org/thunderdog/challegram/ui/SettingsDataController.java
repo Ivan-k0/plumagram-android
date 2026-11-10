@@ -611,8 +611,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Haptics, 0, R.string.Tgx101Haptics),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MenuBlur, 0, R.string.Tgx101MenuBlur),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        // (user 2026-11-10 «размытие под меню окнами нужно убрать вообще, всегда выключено»): no blur setting any more
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MessageMenuOrder, 0, R.string.Tgx101MessageMenuOrder),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101ChatMenuOrder, 0, R.string.Tgx101ChatMenuOrder),

@@ -4178,7 +4178,7 @@ public class Settings {
   }
 
   public boolean tgx101MenuBlur () {
-    return pmc.getBoolean("tgx101_menu_blur", false); // new installs: off (2026-10-28); older ones were pinned to the old default
+    return false; // (user 2026-11-10 «убрать вообще эту функцию, всегда выключено»): no blur under menus and windows, for anyone
   }
 
   public void setTgx101MenuBlur (boolean v) {

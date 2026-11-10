@@ -803,38 +803,9 @@ public class SettingsController extends ViewController<Void> implements
 
     tgx101MakeCards(items);
     this.contentView.setAdapter(adapter);
-    // (user 2026-11-06 «сделай тут поиск по свайпу сверху вниз»): a pull down from the very top opens the settings search
-    this.contentView.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
-      private float downX, downY;
-      private boolean armed, fired;
-      @Override
-      public boolean onInterceptTouchEvent (@androidx.annotation.NonNull RecyclerView rv, @androidx.annotation.NonNull android.view.MotionEvent e) {
-        switch (e.getActionMasked()) {
-          case android.view.MotionEvent.ACTION_DOWN:
-            downX = e.getX();
-            downY = e.getY();
-            armed = !rv.canScrollVertically(-1);
-            fired = false;
-            break;
-          case android.view.MotionEvent.ACTION_MOVE: {
-            if (!armed || fired) break;
-            float dy = e.getY() - downY, dx = Math.abs(e.getX() - downX);
-            if (dy < -Screen.dp(8f) || dx > dy) {
-              if (dy < 0 || dx > Screen.dp(24f)) armed = false; // scrolling up or sideways: not a pull
-              break;
-            }
-            if (dy > Screen.dp(96f) && !rv.canScrollVertically(-1)) {
-              fired = true;
-              org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK);
-              org.thunderdog.challegram.Tgx101Diag.mark("settings: pulled down, search opens");
-              Tgx101SettingsSearch.open(SettingsController.this);
-            }
-            break;
-          }
-        }
-        return false;
-      }
-    });
+    // (user 2026-11-06 «сделай тут поиск по свайпу сверху вниз»): a pull down from the very top opens the settings search —
+    // since 2026-11-10 with the chat list's safety: the ring, a hold past the line, open on letting go (Tgx101PullSearch)
+    Tgx101PullSearch.attach(this.contentView, () -> Tgx101SettingsSearch.open(SettingsController.this));
     tgx101RoundGroups();
     if (MainController.tgx101CapsuleSpace() > 0) {
       // TGx101 (a 4PDA user's screenshot 2026-10-16 «нижняя панель накладывается на пункт „Канал PlumaGram“»): the last
