@@ -77,13 +77,18 @@ public final class Tgx101WebProxy {
   private static @Nullable Tgx101WebCarrier carrier;
   private static int carrierProxyId;
   private static boolean initialized;
+  @SuppressWarnings("FieldCanBeLocal")
+  private static @Nullable Settings.ProxyChangeListener listener;
 
   // Startup: follow the current proxy
 
   public static void init () {
     if (initialized) return;
     initialized = true;
-    Settings.instance().addProxyListener(new Settings.ProxyChangeListener() {
+    // (a 4PDA reader's log 2026-11-10 15:51: a WEB proxy chosen, no carrier ever started — «Connection refused» on :27101):
+    // Settings keeps its proxy listeners by weak references and nothing else held this one, so it was collected soon
+    // after the start and choosing a WEB proxy did nothing. It is held here for the app's whole life
+    Settings.instance().addProxyListener(listener = new Settings.ProxyChangeListener() {
       @Override
       public void onProxyConfigurationChanged (int proxyId, @Nullable TdApi.Proxy proxy, @Nullable String description, boolean isCurrent, boolean isNewAdd) {
         if (isCurrent) {
