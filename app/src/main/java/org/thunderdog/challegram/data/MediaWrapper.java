@@ -1094,19 +1094,22 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
   private @Nullable android.graphics.Bitmap tgx101Hold;
   private long tgx101HoldSince;
 
+  private long tgx101HoldFrameNo;
+
   private void tgx101DrawHold (View view, Canvas c, Receiver receiver) {
     if (!(receiver instanceof GifReceiver) || video == null) return;
-    if (!receiver.needPlaceholder()) {
-      tgx101Hold = null;
-      return;
-    }
+    GifReceiver gif = (GifReceiver) receiver;
+    long frameNo = gif.needPlaceholder() ? -2 : gif.tgx101FrameNo();
     if (tgx101Hold == null) {
       tgx101Hold = org.thunderdog.challegram.mediaview.Tgx101VideoResume.takeBackFrame(video.video.id);
+      if (tgx101Hold == null) return;
+      // the bubble may still show its old frame from before the viewer: held until the video shows a new one
       tgx101HoldSince = android.os.SystemClock.uptimeMillis();
-      if (tgx101Hold != null) org.thunderdog.challegram.Tgx101Diag.mark("chat bubble: holds the viewer's frame until its video plays");
+      tgx101HoldFrameNo = frameNo;
+      org.thunderdog.challegram.Tgx101Diag.mark("chat bubble: holds the viewer's frame until its video plays (frame " + frameNo + ")");
     }
     android.graphics.Bitmap hold = tgx101Hold;
-    if (hold == null || hold.isRecycled() || android.os.SystemClock.uptimeMillis() - tgx101HoldSince > 3000) {
+    if (hold.isRecycled() || frameNo != tgx101HoldFrameNo || android.os.SystemClock.uptimeMillis() - tgx101HoldSince > 2000) {
       tgx101Hold = null;
       return;
     }

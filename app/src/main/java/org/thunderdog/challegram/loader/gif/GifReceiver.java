@@ -371,6 +371,16 @@ public class GifReceiver implements GifWatcher, Runnable, Receiver {
     }
   }
 
+  /** TGx101: the number of the frame on screen, -1 if none — to tell when a video shows a new frame */
+  public long tgx101FrameNo () {
+    GifState g = gif;
+    if (g == null) return -1;
+    synchronized (g.getBusyList()) {
+      GifState.Frame frame = g.getFrame();
+      return frame != null ? frame.no : -1;
+    }
+  }
+
   public boolean needPlaceholder () {
     return state != STATE_LOADED || gif == null || !gif.hasBitmap();
   }

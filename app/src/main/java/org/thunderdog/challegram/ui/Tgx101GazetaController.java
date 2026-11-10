@@ -2741,7 +2741,15 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     Card card = cardOf(post);
     String why;
     if (card == null) why = "no card on screen";
-    else if (card.player.getVisibility() != View.VISIBLE) why = "player hidden";
+    else if (card.player.getVisibility() != View.VISIBLE) {
+      // a video too big to play by itself in the feed: the post shows its own picture — the one the viewer opens on
+      android.graphics.drawable.Drawable d = card.mediaImage.getDrawable();
+      if (d instanceof android.graphics.drawable.BitmapDrawable) {
+        android.graphics.Bitmap b = ((android.graphics.drawable.BitmapDrawable) d).getBitmap();
+        if (b != null && !b.isRecycled()) return b;
+      }
+      why = "player hidden, the post's picture is " + (d != null ? d.getClass().getSimpleName() : "none");
+    }
     else if (card.player.fileId != fileId) why = "player has file " + card.player.fileId + ", not " + fileId;
     else {
       android.graphics.Bitmap frame = card.player.receiver.tgx101CopyFrame(1280);
@@ -3153,25 +3161,26 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     }
 
     // (user video 2026-11-10 11:18 «обложка мелькает в конце»): back from the viewer the video starts again where the
-    // viewer left it — until its first frame, the viewer's last frame stands here instead of the cover under it
+    // viewer left it — until it shows a new frame (it may still have its old one from before the viewer), the viewer's
+    // last frame stands here instead of the cover or that old frame
     private @Nullable android.graphics.Bitmap hold;
-    private long holdSince;
+    private long holdSince, holdFrameNo;
 
     @Override
     protected void onDraw (android.graphics.Canvas c) {
-      if (!receiver.needPlaceholder()) {
-        hold = null;
-        receiver.draw(c);
-        return;
-      }
+      long frameNo = receiver.needPlaceholder() ? -2 : receiver.tgx101FrameNo();
       if (hold == null) {
         hold = org.thunderdog.challegram.mediaview.Tgx101VideoResume.takeBackFrame(fileId);
         holdSince = android.os.SystemClock.uptimeMillis();
-        if (hold != null) org.thunderdog.challegram.Tgx101Diag.mark("gazeta post: holds the viewer's frame until its video plays");
+        holdFrameNo = frameNo;
+        if (hold != null) org.thunderdog.challegram.Tgx101Diag.mark("gazeta post: holds the viewer's frame until its video plays (frame " + frameNo + ")");
       }
-      if (hold == null || hold.isRecycled() || android.os.SystemClock.uptimeMillis() - holdSince > 3000) {
+      if (hold != null && (hold.isRecycled() || frameNo != holdFrameNo || android.os.SystemClock.uptimeMillis() - holdSince > 2000)) {
         hold = null;
-        return; // until the first frame the cover under it shows
+      }
+      if (hold == null) {
+        if (frameNo != -2) receiver.draw(c); // until the first frame the cover under it shows
+        return;
       }
       org.thunderdog.challegram.loader.gif.GifFile file = receiver.getCurrentFile();
       boolean fit = file != null && file.getScaleType() == org.thunderdog.challegram.loader.gif.GifFile.FIT_CENTER;
