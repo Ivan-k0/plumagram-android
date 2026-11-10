@@ -86,13 +86,14 @@ public class Tgx101IncomingControls extends FrameLayout {
     rowParams.bottomMargin = Screen.dp(44f + 72f + 36f);
     addView(row, rowParams);
     ImageView decline = addButton(row, R.drawable.baseline_call_end_24, R.string.Tgx101CallDecline, v -> {
-      if (!answered) callback.onDecline();
+      callback.onDecline(); // (user 2026-11-10) also after a swipe to answer that didn't go through — no frozen screen
     });
     decline.setColorFilter(0xffff6b6b);
     messageButton = addButton(row, R.drawable.baseline_chat_bubble_24, R.string.Tgx101CallMessage, v -> toggleReplies());
 
     // «Ответить» slider
     AnswerSlider slider = new AnswerSlider(context);
+    this.slider = slider;
     LayoutParams sliderParams = new LayoutParams(Screen.dp(310f), Screen.dp(72f), Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
     sliderParams.bottomMargin = Screen.dp(44f);
     addView(slider, sliderParams);
@@ -174,6 +175,17 @@ public class Tgx101IncomingControls extends FrameLayout {
   }
 
   /** Wide pill with a white knob: drag it to the right end to answer; released earlier it slides back. */
+  private AnswerSlider slider;
+
+  /**
+   * TGx101 (user 2026-11-10 13:24, no internet: «экран завис, поднять трубку было нельзя»): the answer didn't go through —
+   * the slider used to stay at its end, locked, and the decline button with it. It goes back and can be swiped again
+   */
+  public void tgx101AnswerFailed () {
+    answered = false;
+    if (slider != null) slider.goBack();
+  }
+
   private class AnswerSlider extends FrameLayout {
     private final ImageView knob;
     private final LinearLayout content;
@@ -271,6 +283,15 @@ public class Tgx101IncomingControls extends FrameLayout {
         return result;
       }
       return super.drawChild(c, child, drawingTime);
+    }
+
+    void goBack () {
+      if (settle != null) settle.cancel();
+      settle = ValueAnimator.ofFloat(knob.getTranslationX(), 0f);
+      settle.setDuration(240);
+      settle.setInterpolator(new android.view.animation.DecelerateInterpolator(1.4f));
+      settle.addUpdateListener(a -> setKnobTranslation((float) a.getAnimatedValue()));
+      settle.start();
     }
 
     private void setKnobTranslation (float t) {

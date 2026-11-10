@@ -535,14 +535,28 @@ debugCall id:long debug:string = Ok;
     return true;
   }
 
-  public void acceptCall (Context context, Tdlib tdlib, final int callId) {
-    if (checkConnection(context, tdlib)) {
-      if (!checkRecordPermissions(context, tdlib, tdlib.cache().getCall(callId), 0, null)) {
-        return;
-      }
-      Log.v(Log.TAG_VOIP, "#%d: AcceptCall requested", callId);
-      tdlib.client().send(new TdApi.AcceptCall(callId, VoIP.getProtocol()), object -> Log.v(Log.TAG_VOIP, "#%d: AcceptCall completed: %s", callId, object));
+  /** @return false — the answer didn't go (the slider goes back) */
+  public boolean acceptCall (Context context, Tdlib tdlib, final int callId) {
+    // TGx101 (user 2026-11-10 13:24, a call that came by push while Telegram was still connecting on a poor mobile network):
+    // the answer was refused with «no connection» and the call missed. Off-line only in airplane mode now — otherwise the
+    // answer goes and TDLib sends it as soon as it is connected
+    boolean connected = tdlib.isConnected();
+    if (!connected && U.isAirplaneModeOn() && !checkConnection(context, tdlib)) {
+      org.thunderdog.challegram.Tgx101Diag.mark("[call] answer refused: airplane mode");
+      return false;
     }
+    if (!checkRecordPermissions(context, tdlib, tdlib.cache().getCall(callId), 0, null)) {
+      org.thunderdog.challegram.Tgx101Diag.mark("[call] answer waits for the microphone permission");
+      return false;
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("[call] answer sent" + (connected ? "" : " while Telegram is still connecting — it goes once connected"));
+    if (!connected) UI.showToast(R.string.Tgx101CallAnswerWaits, android.widget.Toast.LENGTH_LONG);
+    Log.v(Log.TAG_VOIP, "#%d: AcceptCall requested", callId);
+    tdlib.client().send(new TdApi.AcceptCall(callId, VoIP.getProtocol()), object -> {
+      Log.v(Log.TAG_VOIP, "#%d: AcceptCall completed: %s", callId, object);
+      org.thunderdog.challegram.Tgx101Diag.mark("[call] answer " + (object.getConstructor() == TdApi.Ok.CONSTRUCTOR ? "accepted by Telegram" : "failed: " + object));
+    });
+    return true;
   }
 
   public void hangUpCurrentCall () {

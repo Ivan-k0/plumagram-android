@@ -1136,7 +1136,9 @@ public class CallController extends ViewController<CallController.Arguments> imp
     return new Tgx101IncomingControls.Callback() {
       @Override
       public void onAnswer () {
-        onCallAccept(call);
+        if (!tdlib.context().calls().acceptCall(context(), tdlib, call.id) && incomingControls != null) {
+          incomingControls.tgx101AnswerFailed(); // the slider goes back, it can be swiped again
+        }
       }
 
       @Override
