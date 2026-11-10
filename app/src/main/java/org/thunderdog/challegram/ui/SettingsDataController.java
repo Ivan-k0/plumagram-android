@@ -447,7 +447,11 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(Settings.instance().skipOwnVoiceInQueue() ? R.string.Tgx101VoiceQueueSkipOwn : R.string.Tgx101VoiceQueueAll);
         } else if (itemId == R.id.btn_tgx101Gestures) {
           int action = Settings.instance().tgx101DoubleTapAction();
-          view.setData(action == Settings.DOUBLE_TAP_OFF ? Lang.getString(R.string.Tgx101GesturesSummaryOff) : Lang.getString(R.string.Tgx101GesturesSummary, Tgx101GesturesController.doubleTapName(action)));
+          // (user 2026-11-10 «не могу найти, где включается меню по удержанию»): the long press is named here too
+          String holdAction = Lang.getString(Settings.instance().tgx101LongPressMenu() ? R.string.Tgx101LongPressOpenMenu : R.string.Tgx101LongPressSelect);
+          if (!holdAction.isEmpty()) holdAction = Character.toLowerCase(holdAction.charAt(0)) + holdAction.substring(1);
+          String hold = Lang.getString(R.string.Tgx101GesturesHold, holdAction);
+          view.setData(hold + " · " + (action == Settings.DOUBLE_TAP_OFF ? Lang.getString(R.string.Tgx101GesturesSummaryOff) : Lang.getString(R.string.Tgx101GesturesSummary, Tgx101GesturesController.doubleTapName(action))));
         } else if (itemId == R.id.btn_tgx101NewCallScreen) {
           view.getToggler().setRadioEnabled(Settings.instance().useNewCallScreen(), isUpdate);
         } else if (quickReplyIndex(itemId) != -1) {
@@ -632,8 +636,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideBlocked, 0, R.string.Tgx101HideBlocked),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CompactBubbles, 0, R.string.Tgx101CompactBubbles),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        // (user 2026-11-10 «компактные пузыри не нужны, можно вообще убрать эту функцию»): no setting, always off
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SameSettings, 0, R.string.Tgx101SameSettings),
         new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101SameSettingsHint),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),

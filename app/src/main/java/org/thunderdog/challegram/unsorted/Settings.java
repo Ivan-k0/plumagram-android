@@ -3901,6 +3901,7 @@ public class Settings {
   private static final String KEY_TGX101_COMPACT_BUBBLES = "tgx101_compact_bubbles";
   private static volatile int tgx101CompactBubbles = -1;
   public boolean tgx101CompactBubbles () {
+    if (true) return false; // (user 2026-11-10 «не нужны, можно вообще убрать»): the feature is off for everyone
     int v = tgx101CompactBubbles;
     if (v == -1) tgx101CompactBubbles = v = pmc.getBoolean(KEY_TGX101_COMPACT_BUBBLES, true) ? 1 : 0;
     return v == 1;
