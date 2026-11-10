@@ -135,8 +135,10 @@ open class ModulePlugin : Plugin<Project> {
             Sdk.VARIANTS.forEach { (_, variant) ->
               register(variant.flavor) {
                 dimension = "SDK"
+                val tgx101NativeMinSdk = maxOf(variant.minSdk, ndkVersion.ndkVersionToMinSdk())
                 externalNativeBuild.cmake.arguments(
-                  "-DANDROID_PLATFORM=android-${maxOf(variant.minSdk, ndkVersion.ndkVersionToMinSdk())}",
+                  "-DANDROID_PLATFORM=android-${tgx101NativeMinSdk}",
+                  "-DANDROID_MIN_SDK_VERSION=${tgx101NativeMinSdk}",
                   "-DANDROID_STL=${if (ndkVersion.ndkVersionMajor() >= 27) "c++_shared" else "c++_static"}",
                   "-DTGX_FLAVOR=${variant.flavor}"
                 )

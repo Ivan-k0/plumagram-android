@@ -308,7 +308,8 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       contentWrapper.addView(controller.getValue());
     }
     controller.attachNavigationController(this);
-    syncKeyboardState(controller); // controller.onPrepareToShow();
+    syncKeyboardState(controller);
+    controller.onPrepareToShow();
     org.thunderdog.challegram.ui.Tgx101Bird.sync(controller); // TGx101: the bird goes or stays as the screen starts to show
     controller.onAttachStateChanged(this, true);
     checkDisallowScreenshots();
@@ -326,7 +327,8 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       contentWrapper.addView(controller.getValue(), index);
     }
     controller.attachNavigationController(this);
-    syncKeyboardState(controller); // controller.onPrepareToShow();
+    syncKeyboardState(controller);
+    controller.onPrepareToShow();
     org.thunderdog.challegram.ui.Tgx101Bird.sync(controller); // TGx101: the bird goes or stays as the screen starts to show
     controller.onAttachStateChanged(this, true);
     checkDisallowScreenshots();
