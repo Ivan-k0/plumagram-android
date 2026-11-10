@@ -1629,6 +1629,12 @@ public class RecordAudioVideoController implements
   }
 
   private void stopRecordingImpl (int closeMode) {
+    // (user 2026-11-10, a voice sent at 11:42 «что-то мигает и уходит под клавиатуру», the old trouble): the trace began
+    // only once the voice was saved, ~90 ms on — the recording panel's closing was not in it. Frames from the release now
+    if (currentRecording == RECORD_MODE_AUDIO) {
+      org.thunderdog.challegram.Tgx101Diag.mark("voice: finger up — " + (closeMode == CLOSE_MODE_SEND ? "send" : closeMode == CLOSE_MODE_CANCEL ? "cancel" : "preview"));
+      org.thunderdog.challegram.Tgx101FrameTrace.start(context, "voice-release");
+    }
     final boolean needResult = closeMode != CLOSE_MODE_CANCEL && hasValidOutputTarget();
     switch (currentRecording) {
       case RECORD_MODE_AUDIO:
