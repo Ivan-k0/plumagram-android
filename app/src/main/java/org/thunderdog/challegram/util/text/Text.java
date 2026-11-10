@@ -1061,7 +1061,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
   private static int tgx101WidthLogs;
 
   private void tgx101CheckWidths (int maxWidth) {
-    if (parts == null || parts.isEmpty() || maxWidth <= 0) return;
+    if (parts == null || parts.isEmpty() || maxWidth <= 0 || maxWidth >= Integer.MAX_VALUE / 2) return; // unlimited room: nothing to stick out of
     int lines = parts.get(parts.size() - 1).getLineIndex() + 1;
     for (int line = 0; line < lines; line++) {
       float measured = 0, actual = 0;
@@ -1075,7 +1075,7 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
         TextPaint paint = getTextPaint(part.getEntity());
         actual = Math.max(actual, part.getX() + paint.measureText(part.getLine(), part.getStart(), part.getEnd()));
       }
-      if (first == null || actual <= maxWidth + Screen.dp(1f)) continue;
+      if (first == null || actual <= (float) maxWidth + Screen.dp(1f)) continue;
       long now = android.os.SystemClock.uptimeMillis();
       if (now - tgx101WidthLogAt > 60_000) {
         tgx101WidthLogAt = now;
