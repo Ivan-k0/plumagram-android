@@ -5425,12 +5425,19 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       int index = indexOfMessageInternal(messageId);
       if (index >= 0) {
         TdApi.Message message = combinedMessages.remove(index);
+        boolean tgx101LastChanged = false;
         if (index == combinedMessages.size() && index > 0) {
           msg = combinedMessages.get(index - 1);
           computeQuickButtons();
+          tgx101LastChanged = true;
         }
         if (combinedMessages.isEmpty()) {
           return REMOVE_COMPLETELY;
+        }
+        if (tgx101LastChanged) {
+          // TGx101 (user 2026-11-11): the album's time comes from its last part — a failed video removed from the end
+          // left «failed» written instead of the time of the photos that stayed
+          buildTime();
         }
         onMessageCombinationRemoved(message, index);
         forceRemoveAnimation(messageId);
