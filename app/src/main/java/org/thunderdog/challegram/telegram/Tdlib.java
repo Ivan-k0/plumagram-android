@@ -4893,6 +4893,68 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     client().send(new TdApi.ResendMessages(chatId, messageIds, null, 0), messageHandler());
   }
 
+  /**
+   * TGx101 (user 2026-11-11): a media that failed to send, sent again. TDLib re-sends only what it allows
+   * (a video whose compression failed answers «Message can't be re-sent»); then the same file goes as a new
+   * message — its file id makes TDLib prepare it again from the original — and the failed one is removed.
+   */
+  public void tgx101SendAgain (long chatId, long messageId) {
+    client().send(new TdApi.GetMessage(chatId, messageId), result -> {
+      if (!(result instanceof TdApi.Message)) {
+        return;
+      }
+      TdApi.Message m = (TdApi.Message) result;
+      if (!(m.sendingState instanceof TdApi.MessageSendingStateFailed)) {
+        return;
+      }
+      if (((TdApi.MessageSendingStateFailed) m.sendingState).canRetry) {
+        org.thunderdog.challegram.Tgx101Diag.mark("send again: " + chatId + "/" + messageId + " re-sent");
+        resendMessages(chatId, new long[] {m.id});
+        return;
+      }
+      TdApi.InputMessageContent content = null;
+      switch (m.content.getConstructor()) {
+        case TdApi.MessageVideo.CONSTRUCTOR: {
+          TdApi.MessageVideo v = (TdApi.MessageVideo) m.content;
+          content = new TdApi.InputMessageVideo(
+            new TdApi.InputVideo(new TdApi.InputFileId(v.video.video.id), null, null, v.startTimestamp, null, v.video.duration, v.video.width, v.video.height, v.video.supportsStreaming),
+            v.caption, v.showCaptionAboveMedia, null, v.hasSpoiler);
+          break;
+        }
+        case TdApi.MessagePhoto.CONSTRUCTOR: {
+          TdApi.MessagePhoto ph = (TdApi.MessagePhoto) m.content;
+          TdApi.PhotoSize big = ph.photo.sizes.length > 0 ? ph.photo.sizes[ph.photo.sizes.length - 1] : null;
+          if (big != null) {
+            content = new TdApi.InputMessagePhoto(new TdApi.InputPhoto(new TdApi.InputFileId(big.photo.id), null, null, null, big.width, big.height), ph.caption, ph.showCaptionAboveMedia, null, ph.hasSpoiler);
+          }
+          break;
+        }
+        case TdApi.MessageAnimation.CONSTRUCTOR: {
+          TdApi.MessageAnimation an = (TdApi.MessageAnimation) m.content;
+          content = new TdApi.InputMessageAnimation(new TdApi.InputAnimation(new TdApi.InputFileId(an.animation.animation.id), null, null, an.animation.duration, an.animation.width, an.animation.height), an.caption, an.showCaptionAboveMedia, an.hasSpoiler);
+          break;
+        }
+        case TdApi.MessageDocument.CONSTRUCTOR: {
+          TdApi.MessageDocument d = (TdApi.MessageDocument) m.content;
+          content = new TdApi.InputMessageDocument(new TdApi.InputDocument(new TdApi.InputFileId(d.document.document.id), null, false), d.caption);
+          break;
+        }
+      }
+      if (content == null) {
+        org.thunderdog.challegram.Tgx101Diag.mark("send again: " + chatId + "/" + messageId + " — nothing to send for " + m.content.getClass().getSimpleName());
+        return;
+      }
+      org.thunderdog.challegram.Tgx101Diag.mark("send again: " + chatId + "/" + messageId + " as a new message");
+      client().send(new TdApi.SendMessage(chatId, m.topicId, null, new TdApi.MessageSendOptions(), null, content), sent -> {
+        if (sent instanceof TdApi.Message) {
+          client().send(new TdApi.DeleteMessages(chatId, new long[] {messageId}, true), silentHandler());
+        } else {
+          messageHandler().onResult(sent);
+        }
+      });
+    });
+  }
+
   private final HashMap<String, TdApi.MessageContent> pendingMessageTexts = new HashMap<>();
   private final HashMap<String, TdApi.FormattedText> pendingMessageCaptions = new HashMap<>();
 

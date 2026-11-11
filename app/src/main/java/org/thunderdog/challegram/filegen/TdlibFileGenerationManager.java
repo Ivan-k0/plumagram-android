@@ -352,6 +352,10 @@ public final class TdlibFileGenerationManager {
     if (info != null) {
       pendingTasks.remove(generationId);
       info.cancel();
+      // TGx101 (user 2026-11-11): a stopped conversion is over too — the mark kept for a crash during it stayed,
+      // and the next send of that video failed at once with «previous attempt did not finish»
+      // (a failed video opened in the viewer started its compression, closing the viewer stopped it)
+      tdlib.settings().forgetConversion(info.getOriginalPath(), info.conversion);
     }
   }
 

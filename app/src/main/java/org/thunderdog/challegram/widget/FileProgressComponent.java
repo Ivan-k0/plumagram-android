@@ -425,7 +425,11 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
       tgx101FailedMessage = TD.isFailed(message);
     }
     if (file != null) {
-      if (isSendingMessage) {
+      if (tgx101FailedMessage) {
+        // TGx101: a failed message counts as «sending» for Tdlib.messageSending (its sending state is set) —
+        // it drew the cancel cross with the size, as if the upload were still on
+        setCurrentState(TdlibFilesManager.STATE_FAILED, shouldAnimate());
+      } else if (isSendingMessage) {
         setCurrentState(TdlibFilesManager.STATE_IN_PROGRESS, shouldAnimate());
         if (isUploadFinished()) {
           setProgress(1f, 1f);
@@ -899,8 +903,7 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
       case TdlibFilesManager.STATE_FAILED: {
         // TGx101: a tap on a media that didn't leave sends it again
         if (chatId != 0 && messageId != 0) {
-          org.thunderdog.challegram.Tgx101Diag.mark("file: send again " + chatId + "/" + messageId);
-          tdlib.resendMessages(chatId, new long[] {messageId});
+          tdlib.tgx101SendAgain(chatId, messageId);
           return true;
         }
         break;
