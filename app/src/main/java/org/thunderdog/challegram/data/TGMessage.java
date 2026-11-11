@@ -2416,7 +2416,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       if (isSending()) {
         Drawables.draw(c, Icons.getClockIcon(ColorId.iconLight), clockX, pClockTop - Screen.dp(Icons.CLOCK_SHIFT_Y), Paints.getIconLightPorterDuffPaint());
       } else if (isFailed()) {
-        // TODO failure icon
+        tgx101DrawFailure(c, viewsX + Screen.dp(Icons.TICKS_SHIFT_X) + Icons.getSingleTickWidth() / 2f, pTicksTop + Screen.dp(6f) - Screen.dp(Icons.TICKS_SHIFT_Y) + Screen.dp(6f));
       } else if (shouldShowTicks() && getViewCountMode() != VIEW_COUNT_MAIN) {
         boolean unread = isUnread() && !noUnread();
         Drawables.draw(c, unread ? Icons.getSingleTick(ColorId.ticks) : Icons.getDoubleTick(ColorId.ticksRead), viewsX, pTicksTop - Screen.dp(Icons.TICKS_SHIFT_Y), unread ? Paints.getTicksPaint() : Paints.getTicksReadPaint());
@@ -4604,7 +4604,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       }
 
       if (isFailed) {
-        // TODO failure icon
+        tgx101DrawFailure(c, startX - Screen.dp(Icons.TICKS_SHIFT_X) + Screen.dp(12f), top - Screen.dp(Icons.TICKS_SHIFT_Y) + Screen.dp(12f));
       } else if (isSending) {
         Drawables.draw(c, Icons.getClockIcon(iconColorId), startX - Screen.dp(Icons.CLOCK_SHIFT_X), top - Screen.dp(Icons.CLOCK_SHIFT_Y), iconPaint);
       } else {
@@ -5605,24 +5605,72 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return false; // override in children
   }
 
+  // TGx101 (user 2026-11-11, a video in an album didn't leave): an album counts as failed when any of its parts failed —
+  // its time and ticks come from the last part, a sent photo, and the failed video looked like it was still loading
   public final boolean isFailed () {
-    return msg.sendingState != null && msg.sendingState.getConstructor() == TdApi.MessageSendingStateFailed.CONSTRUCTOR;
-  }
-
-  public final boolean canResend () {
-    if (!(msg.sendingState instanceof TdApi.MessageSendingStateFailed) || !((TdApi.MessageSendingStateFailed) msg.sendingState).canRetry) {
-      return false;
+    if (msg.sendingState != null && msg.sendingState.getConstructor() == TdApi.MessageSendingStateFailed.CONSTRUCTOR) {
+      return true;
     }
     synchronized (this) {
       if (combinedMessages != null) {
         for (TdApi.Message msg : combinedMessages) {
-          if (!(msg.sendingState instanceof TdApi.MessageSendingStateFailed) || !((TdApi.MessageSendingStateFailed) msg.sendingState).canRetry) {
-            return false;
+          if (msg.sendingState != null && msg.sendingState.getConstructor() == TdApi.MessageSendingStateFailed.CONSTRUCTOR) {
+            return true;
           }
         }
       }
     }
-    return true;
+    return false;
+  }
+
+  // TGx101: the failed parts can be sent again when each of them allows it, the sent ones stay as they are
+  public final boolean canResend () {
+    synchronized (this) {
+      if (combinedMessages != null && !combinedMessages.isEmpty()) {
+        boolean any = false;
+        for (TdApi.Message msg : combinedMessages) {
+          if (msg.sendingState instanceof TdApi.MessageSendingStateFailed) {
+            if (!((TdApi.MessageSendingStateFailed) msg.sendingState).canRetry) {
+              return false;
+            }
+            any = true;
+          }
+        }
+        return any;
+      }
+    }
+    return msg.sendingState instanceof TdApi.MessageSendingStateFailed && ((TdApi.MessageSendingStateFailed) msg.sendingState).canRetry;
+  }
+
+  /** TGx101: ids of the parts that failed to send, sorted; the message's own id when it isn't an album. */
+  public final long[] getFailedIds () {
+    LongSet ids = new LongSet();
+    synchronized (this) {
+      if (combinedMessages != null && !combinedMessages.isEmpty()) {
+        for (TdApi.Message msg : combinedMessages) {
+          if (msg.sendingState instanceof TdApi.MessageSendingStateFailed) {
+            ids.add(msg.id);
+          }
+        }
+      } else if (msg.sendingState instanceof TdApi.MessageSendingStateFailed) {
+        ids.add(msg.id);
+      }
+    }
+    long[] result = ids.toArray();
+    Arrays.sort(result);
+    return result;
+  }
+
+  /** TGx101: the red «!» drawn where the ticks of a sent message are (it was a TODO in the base). */
+  private static void tgx101DrawFailure (Canvas c, float cx, float cy) {
+    float r = Screen.dp(6.5f);
+    c.drawCircle(cx, cy, r, Paints.fillingPaint(Theme.getColor(ColorId.textNegative)));
+    Paint white = Paints.fillingPaint(0xffffffff);
+    float w = Screen.dp(1.6f);
+    RectF rect = Paints.getRectF();
+    rect.set(cx - w / 2f, cy - Screen.dp(3.8f), cx + w / 2f, cy + Screen.dp(1f));
+    c.drawRoundRect(rect, w / 2f, w / 2f, white);
+    c.drawCircle(cx, cy + Screen.dp(2.9f), w / 2f + Screen.dp(.1f), white);
   }
 
   public final String[] getFailureMessages () {

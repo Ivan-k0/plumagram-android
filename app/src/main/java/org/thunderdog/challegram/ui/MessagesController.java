@@ -5086,11 +5086,19 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void resendSelectedMessages () {
     if (selectedMessageIds != null && selectedMessageIds.size() > 0) {
-      long[] messageIds = new long[selectedMessageIds.size()];
-      for (int i = 0; i < messageIds.length; i++) {
-        messageIds[i] = selectedMessageIds.keyAt(i);
+      // TGx101: only the failed ones — a selected album also holds its sent parts
+      me.vkryl.core.collection.LongSet ids = new me.vkryl.core.collection.LongSet();
+      for (int i = 0; i < selectedMessageIds.size(); i++) {
+        TdApi.Message message = selectedMessageIds.valueAt(i).getMessage(selectedMessageIds.keyAt(i));
+        if (message != null && message.sendingState instanceof TdApi.MessageSendingStateFailed) {
+          ids.add(message.id);
+        }
       }
-      tdlib.resendMessages(getChatId(), messageIds);
+      long[] messageIds = ids.toArray();
+      java.util.Arrays.sort(messageIds);
+      if (messageIds.length > 0) {
+        tdlib.resendMessages(getChatId(), messageIds);
+      }
     }
   }
 
@@ -7401,7 +7409,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         showCallOptions(contact.phoneNumber, contact.userId);
         return true;
       } else if (id == R.id.btn_messageResend) {
-        tdlib.resendMessages(selectedMessage.getChatId(), selectedMessage.getIds());
+        tdlib.resendMessages(selectedMessage.getChatId(), selectedMessage.getFailedIds()); // TGx101: only the parts that didn't leave
         return true;
       } else if (id == R.id.btn_messageSendNow) {
         cancelSheduledKeyboardOpeningAndHideAllKeyboards();

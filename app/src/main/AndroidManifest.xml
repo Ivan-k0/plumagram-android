@@ -208,6 +208,14 @@
       </intent-filter>
     </receiver>
 
+    <!-- TGx101: the app stays awake while files and media are prepared and uploaded -->
+    <service
+      android:name=".service.Tgx101SendAwake"
+      android:enabled="true"
+      android:exported="false"
+      android:foregroundServiceType="dataSync"
+      android:stopWithTask="false" />
+
     <service
       android:name=".service.SyncContactsService"
       android:enabled="true"

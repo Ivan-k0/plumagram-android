@@ -334,6 +334,7 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
     if (this.messageId == oldMessageId) {
       this.messageId = newMessageId;
       this.isSendingMessage = false;
+      this.tgx101FailedMessage = !success;
       setCurrentState(success ? (TD.isFileLoadedAndExists(file) ? TdlibFilesManager.STATE_DOWNLOADED_OR_UPLOADED : TdlibFilesManager.STATE_PAUSED) : TdlibFilesManager.STATE_FAILED, shouldAnimate());
     }
     if (this.playPauseFile != null && this.playPauseFile.id == oldMessageId) {
@@ -404,6 +405,9 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
   }
 
   private boolean isSendingMessage;
+  // TGx101: the message of this file failed to send — a later «paused» from the file (its preparation or upload
+  // stopped) must not hide that: a video whose compression died showed «× size» as if still loading
+  private boolean tgx101FailedMessage;
 
   public void setFile (@Nullable TdApi.File file, @Nullable TdApi.Message message) {
     if (this.file != null && !isLocal) {
@@ -418,6 +422,7 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
     }
     if (message != null) {
       isSendingMessage = tdlib.messageSending(message); // TGx101: a sent message's new content ends «sending» too
+      tgx101FailedMessage = TD.isFailed(message);
     }
     if (file != null) {
       if (isSendingMessage) {
@@ -892,7 +897,12 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
         break;
       }
       case TdlibFilesManager.STATE_FAILED: {
-        // TODO retry send message
+        // TGx101: a tap on a media that didn't leave sends it again
+        if (chatId != 0 && messageId != 0) {
+          org.thunderdog.challegram.Tgx101Diag.mark("file: send again " + chatId + "/" + messageId);
+          tdlib.resendMessages(chatId, new long[] {messageId});
+          return true;
+        }
         break;
       }
       case TdlibFilesManager.STATE_DOWNLOADED_OR_UPLOADED: {
@@ -1794,6 +1804,9 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
       }
     } else if (downloadedFile != null && file != null) {
       Td.copyTo(downloadedFile, file);
+    }
+    if (tgx101FailedMessage && state == TdlibFilesManager.STATE_PAUSED) {
+      state = TdlibFilesManager.STATE_FAILED;
     }
     if (isUI) {
       setCurrentState(state, shouldAnimate());

@@ -1625,6 +1625,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101CheckUpdates, "Сообщать о новых версиях");
     RU.put(R.string.Tgx101CheckUpdatesHint, "Раз в день при открытии приложение проверяет на GitHub, не вышла ли новая версия PlumaGram. Новая появится внизу бокового меню и здесь: файл для вашей сборки скачивается только по нажатию, проверяется подпись, затем открывается системный установщик.");
     RU.put(R.string.Tgx101UpdateChannel, "Обновления PlumaGram");
+    RU.put(R.string.Tgx101SendingChannel, "Отправка файлов");
+    RU.put(R.string.Tgx101SendingTitle, "Отправка…");
     RU.put(R.string.Tgx101UpdateTitle, "Вышла PlumaGram %1$s");
     RU.put(R.string.Tgx101UpdateText, "Обновить можно из бокового меню или в настройках");
     RU.put(R.string.Tgx101UpdateRow, "Обновить PlumaGram · %1$s");

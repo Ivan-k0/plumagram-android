@@ -6890,6 +6890,8 @@
   <string name="Tgx101CheckUpdates">Notify about new versions</string>
   <string name="Tgx101CheckUpdatesHint">Once a day, when the app is opened, it checks GitHub for a new PlumaGram version. A new one shows up at the bottom of the side menu and here: the file for your build is downloaded only on a tap, its signature is checked, then the system installer opens.</string>
   <string name="Tgx101UpdateChannel">PlumaGram updates</string>
+  <string name="Tgx101SendingChannel">Sending files</string>
+  <string name="Tgx101SendingTitle">Sending…</string>
   <string name="Tgx101UpdateTitle">PlumaGram %1$s is available</string>
   <string name="Tgx101UpdateText">Update from the side menu or Settings</string>
   <string name="Tgx101UpdateRow">Update PlumaGram · %1$s</string>

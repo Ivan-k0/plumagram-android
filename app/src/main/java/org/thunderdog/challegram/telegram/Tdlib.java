@@ -9040,6 +9040,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
 
   private void updateFile (TdApi.UpdateFile update) {
     listeners.updateFile(update);
+    org.thunderdog.challegram.service.Tgx101SendAwake.onFile(accountId, update.file); // TGx101: the app stays awake while uploading
 
     // TODO
 
@@ -9960,6 +9961,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
 
   private void updateFileGenerationStart (TdApi.UpdateFileGenerationStart update) {
     org.thunderdog.challegram.Tgx101Diag.mark("file prep " + update.generationId + ": asked (" + update.conversion + ")");
+    org.thunderdog.challegram.service.Tgx101SendAwake.onGenerationStart(accountId, update.generationId); // TGx101: and while preparing a file
     synchronized (awaitingGenerations) {
       Generation generation = awaitingGenerations.remove(update.conversion);
       if (generation != null) {
@@ -9976,6 +9978,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
 
   private void updateFileGenerationStop (TdApi.UpdateFileGenerationStop update) {
     org.thunderdog.challegram.Tgx101Diag.mark("file prep " + update.generationId + ": TDLib stopped it");
+    org.thunderdog.challegram.service.Tgx101SendAwake.onGenerationStop(accountId, update.generationId);
     synchronized (awaitingGenerations) {
       Generation generation = pendingGenerations.remove(update.generationId);
       if (generation != null) {
