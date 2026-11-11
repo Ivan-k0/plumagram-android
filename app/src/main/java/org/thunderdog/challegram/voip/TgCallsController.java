@@ -146,15 +146,19 @@ public class TgCallsController extends VoIPInstance {
           org.thunderdog.challegram.Tgx101Diag.mark("[tgcalls] no log file");
           return;
         }
-        java.util.regex.Pattern telling = java.util.regex.Pattern.compile("(?i)ice|candidate|reflector|relay|turn|stun|transport|connect|dtls|srtp|error|fail|audio|signal|network|state|ssrc|packet|rtp|rtcp|playout|recording|sending|receiving|handshake|ssl|negotiat");
+        // TGx101 (user 2026-11-11 14:47 «меня слышно и видно, я — нет», every outgoing video call that day): the channels'
+        // own lines too — video, the incoming and outgoing channels, the camera, codecs, streams — they were cut out
+        java.util.regex.Pattern telling = java.util.regex.Pattern.compile("(?i)ice|candidate|reflector|relay|turn|stun|transport|connect|dtls|srtp|error|fail|audio|signal|network|state|ssrc|packet|rtp|rtcp|playout|recording|sending|receiving|handshake|ssl|negotiat|video|channel|content|incoming|outgoing|capture|camera|codec|stream|decod|encod|sink|mid:|exchange|coordinat|warning");
         int lines = 0, kept = 0;
         try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(file))) {
           String line;
           java.util.regex.Pattern noise = java.util.regex.Pattern.compile("Add ACK|Got ACK|RESEND|Enqueue SEND|sending ping|Repeated RECV|Send:type|Got:type");
-          while ((line = reader.readLine()) != null && kept < 3000) {
+          while ((line = reader.readLine()) != null && kept < 5000) {
             lines++;
             if (telling.matcher(line).find() && !noise.matcher(line).find()) {
-              org.thunderdog.challegram.Tgx101Diag.mark("[tgcalls] " + (line.length() > 300 ? line.substring(0, 300) : line));
+              // the channel negotiation whole (what each side offers: its audio and video, their ssrc), other lines cut
+              int max = line.contains("NegotiateChannels") || line.contains("MediaState") ? 4000 : 300;
+              org.thunderdog.challegram.Tgx101Diag.mark("[tgcalls] " + (line.length() > max ? line.substring(0, max) : line));
               kept++;
             }
           }
