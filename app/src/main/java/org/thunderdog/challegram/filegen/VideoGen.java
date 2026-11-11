@@ -118,6 +118,8 @@ public class VideoGen {
     private long reportedBytesCount, reportedExpectedBytesCount;
 
     private int inputVideoRotation;
+    private int tgx101Retries;
+    private long tgx101StartedMs;
 
     private final VideoGen context;
     private final long generationId;
@@ -134,6 +136,7 @@ public class VideoGen {
     }
 
     public void onTranscodeProgress (double progress, long expectedSize) {
+      org.thunderdog.challegram.service.Tgx101SendAwake.onGenerationProgress(context.tdlib.accountId(), generationId, progress);
       if (this.transcodeProgress != progress) {
         this.transcodeProgress = progress;
         reportBytes(expectedSize, this.reportedBytesCount);
@@ -299,7 +302,23 @@ public class VideoGen {
         Log.i(t);
       }
     });
+    final java.util.concurrent.atomic.AtomicReference<RunnableData<Throwable>> tgx101Failure = new java.util.concurrent.atomic.AtomicReference<>();
+    final ProgressCallback tgx101Progress = onProgress;
     RunnableData<Throwable> onFailure = t -> {
+      // TGx101 (user 2026-11-11 22:39): a compression that ran a while and then died was killed under it — the phone froze
+      // the app with the screen off and the codec was gone on waking («Muxer error»). It starts again, up to two times,
+      // once the screen is on, instead of failing the send
+      if (t != null && !entry.canceled.get() && !entry.transcodeFinished.get() && entry.tgx101Retries < 2
+        && android.os.SystemClock.elapsedRealtime() - entry.tgx101StartedMs > 5000) {
+        entry.tgx101Retries++;
+        org.thunderdog.challegram.Tgx101Diag.mark("file prep " + info.generationId + ": compression died after " + ((android.os.SystemClock.elapsedRealtime() - entry.tgx101StartedMs) / 1000) + " s (" + t.getClass().getSimpleName() + ": " + t.getMessage() + ") — again when the screen is on, try " + (entry.tgx101Retries + 1));
+        org.thunderdog.challegram.service.Tgx101SendAwake.whenScreenOn(() -> queue.post(() -> {
+          if (entry.canceled.get() || entry.transcodeFinished.get()) return;
+          entry.tgx101StartedMs = android.os.SystemClock.elapsedRealtime();
+          awaitOrConvertVideo(sourcePath, destinationPath, info, entry, tgx101Progress, onComplete, onCancel, tgx101Failure.get());
+        }, 0));
+        return;
+      }
       synchronized (entry) {
         if (!entry.transcodeFinished.getAndSet(true)) {
           if (t != null) {
@@ -323,6 +342,8 @@ public class VideoGen {
       return;
     }
 
+    tgx101Failure.set(onFailure);
+    entry.tgx101StartedMs = android.os.SystemClock.elapsedRealtime();
     awaitOrConvertVideo(sourcePath, destinationPath, info, entry, onProgress, onComplete, onCancel, onFailure);
   }
 

@@ -27,7 +27,9 @@ import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.tool.Intents;
 import org.thunderdog.challegram.unsorted.AppContext;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -42,13 +44,19 @@ import java.util.Set;
  * holds longer than 2 h without a fresh sign of work.
  */
 public class Tgx101SendAwake extends Service {
-  private static final String CHANNEL_ID = "tgx101_sending";
+  // TGx101 (22:39 the same day: vivo's fast freezer froze the app 5 s after the screen went off, the minimal notification
+  // didn't keep it): an ordinary «Sending» notification with a progress bar, as a sending app shows — a new channel id,
+  // since a channel's importance can't be raised once made
+  private static final String CHANNEL_ID = "tgx101_sending_progress";
   private static final int NOTIFICATION_ID = Integer.MAX_VALUE - 21;
   private static final long LINGER_MS = 8_000;
   private static final long WAKE_TIMEOUT_MS = 2 * 60 * 60 * 1000L;
 
   private static final Object sync = new Object();
   private static final Set<String> active = new HashSet<>();
+  private static final Map<String, Float> progress = new HashMap<>();
+  private static Tgx101SendAwake instance;
+  private static long lastNotifyMs;
   private static PowerManager.WakeLock wakeLock;
   private static boolean serviceAsked;
   private static long heldSince;
@@ -70,8 +78,78 @@ public class Tgx101SendAwake extends Service {
     String key = "u" + accountId + ":" + file.id;
     if (file.remote.isUploadingActive) {
       add(key);
+      long total = Math.max(file.expectedSize, file.size);
+      if (total > 0) setProgress(key, (float) file.remote.uploadedSize / total);
     } else {
       remove(key);
+    }
+  }
+
+  /** a video's compression, 0..1 */
+  public static void onGenerationProgress (int accountId, long generationId, double value) {
+    setProgress("g" + accountId + ":" + generationId, (float) value);
+  }
+
+  private static void setProgress (String key, float value) {
+    synchronized (sync) {
+      if (!active.contains(key)) return;
+      progress.put(key, Math.max(0f, Math.min(1f, value)));
+    }
+    long now = SystemClock.elapsedRealtime();
+    if (now - lastNotifyMs < 1000) return;
+    lastNotifyMs = now;
+    handler().post(() -> {
+      Tgx101SendAwake service = instance;
+      if (service != null) {
+        try {
+          service.postNotification();
+        } catch (Throwable ignored) { }
+      }
+    });
+  }
+
+  // TGx101: what the notification says — a compression first (the slowest one), then the uploads together
+  private static float[] state () {
+    synchronized (sync) {
+      float gen = -1, upSum = 0;
+      int ups = 0;
+      for (String key : active) {
+        Float p = progress.get(key);
+        if (key.startsWith("g")) {
+          float v = p != null ? p : 0f;
+          gen = gen < 0 ? v : Math.min(gen, v);
+        } else {
+          upSum += p != null ? p : 0f;
+          ups++;
+        }
+      }
+      if (gen >= 0) return new float[] {1, gen};
+      if (ups > 0) return new float[] {0, upSum / ups};
+      return new float[] {0, -1};
+    }
+  }
+
+  /** TGx101: runs when the screen is on — at once if it is, else on the next SCREEN_ON (a frozen app may not compress) */
+  public static void whenScreenOn (Runnable r) {
+    Context context = AppContext.get();
+    PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+    if (pm == null || pm.isInteractive()) {
+      r.run();
+      return;
+    }
+    android.content.BroadcastReceiver receiver = new android.content.BroadcastReceiver() {
+      @Override
+      public void onReceive (Context c, Intent intent) {
+        try {
+          c.getApplicationContext().unregisterReceiver(this);
+        } catch (Throwable ignored) { }
+        r.run();
+      }
+    };
+    try {
+      ContextCompat.registerReceiver(context.getApplicationContext(), receiver, new android.content.IntentFilter(Intent.ACTION_SCREEN_ON), ContextCompat.RECEIVER_NOT_EXPORTED);
+    } catch (Throwable t) {
+      r.run();
     }
   }
 
@@ -105,6 +183,7 @@ public class Tgx101SendAwake extends Service {
       if (!active.remove(key)) {
         return;
       }
+      progress.remove(key);
       if (active.isEmpty()) {
         handler().removeCallbacks(stopLater);
         handler().postDelayed(stopLater, LINGER_MS);
@@ -180,6 +259,12 @@ public class Tgx101SendAwake extends Service {
   // Service
 
   @Override
+  public void onCreate () {
+    super.onCreate();
+    instance = this;
+  }
+
+  @Override
   public int onStartCommand (Intent intent, int flags, int startId) {
     try {
       postNotification();
@@ -204,23 +289,28 @@ public class Tgx101SendAwake extends Service {
 
   private void postNotification () {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      NotificationChannel channel = new NotificationChannel(CHANNEL_ID, Lang.getString(R.string.Tgx101SendingChannel), NotificationManager.IMPORTANCE_MIN);
+      NotificationChannel channel = new NotificationChannel(CHANNEL_ID, Lang.getString(R.string.Tgx101SendingChannel), NotificationManager.IMPORTANCE_LOW);
       channel.setShowBadge(false);
       NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
       if (manager != null) {
         manager.createNotificationChannel(channel);
       }
     }
+    float[] st = state();
+    int percent = st[1] >= 0 ? Math.round(st[1] * 100f) : -1;
+    String title = Lang.getString(st[0] == 1 ? R.string.Tgx101SendingPreparing : R.string.Tgx101SendingTitle);
     Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
       .setSmallIcon(R.drawable.baseline_arrow_upward_24)
-      .setContentTitle(Lang.getString(R.string.Tgx101SendingTitle))
+      .setContentTitle(percent >= 0 ? title + " · " + percent + "%" : title)
       .setSilent(true)
+      .setOnlyAlertOnce(true)
       .setLocalOnly(true)
-      .setPriority(NotificationCompat.PRIORITY_MIN)
+      .setPriority(NotificationCompat.PRIORITY_LOW)
       .setCategory(NotificationCompat.CATEGORY_PROGRESS)
       .setShowWhen(false)
       .setOngoing(true)
-      .setProgress(0, 0, true)
+      .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+      .setProgress(100, Math.max(0, percent), percent < 0)
       .setContentIntent(PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), Intents.mutabilityFlags(false)))
       .build();
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -239,6 +329,7 @@ public class Tgx101SendAwake extends Service {
 
   @Override
   public void onDestroy () {
+    if (instance == this) instance = null;
     synchronized (sync) {
       serviceAsked = false;
     }
