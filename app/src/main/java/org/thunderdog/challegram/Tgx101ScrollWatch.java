@@ -12,10 +12,16 @@
  */
 package org.thunderdog.challegram;
 
+import android.os.SystemClock;
 import android.view.Choreographer;
+import android.view.MotionEvent;
+import android.view.VelocityTracker;
+
+import androidx.annotation.NonNull;
 
 import androidx.recyclerview.widget.RecyclerView;
 
+import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.tool.UI;
 
 import java.util.Locale;
@@ -27,7 +33,7 @@ import java.util.Locale;
  * line: how long, how many frames, how many slow ones and the worst, and for the chats list how long its rows took to
  * fill in (bind — names, texts, the avatar asked for) and to draw, and how many new rows were made.
  */
-public final class Tgx101ScrollWatch extends RecyclerView.OnScrollListener implements Choreographer.FrameCallback {
+public final class Tgx101ScrollWatch extends RecyclerView.OnScrollListener implements Choreographer.FrameCallback, RecyclerView.OnItemTouchListener {
   private static final long SLOW_NS = 20_000_000L;
 
   private final String name;
@@ -46,7 +52,162 @@ public final class Tgx101ScrollWatch extends RecyclerView.OnScrollListener imple
 
   public static void attach (RecyclerView list, String name) {
     if (!BuildConfig.TGX101_DIAG || list == null) return;
-    list.addOnScrollListener(new Tgx101ScrollWatch(name));
+    Tgx101ScrollWatch w = new Tgx101ScrollWatch(name);
+    w.list = list;
+    list.addOnScrollListener(w);
+    list.addOnItemTouchListener(w); // only watches: never takes the touch
+  }
+
+  // TGx101 (user 2026-11-11 «свайпы в чатах и списке чатов иногда как желе»): how the list follows the finger.
+  // Per gesture, frame by frame: the finger's way and the list's way — how much of the finger the list took while
+  // dragged, the widest gap between them, frames where the finger moved and the list stood (stalls) or stepped far
+  // off the finger (uneven), the finger's speed at letting go against the speed the fling starts with, how long and
+  // far the fling ran, frames with row animations running under the finger, frames pressed against the list's end
+  // (the stretch), and the worst delay of a touch. The frame steps go to the log only when something looks off.
+  private RecyclerView list;
+  private VelocityTracker velocity;
+  private boolean fingerDown, dragged;
+  private int drags;
+  private float lastFingerY, fingerPx, fingerFramePx;
+  private float listPx, listFramePx, dragListPx, flingPx;
+  private float maxGapPx, gapPx;
+  private int stalls, uneven, animFrames, edgeFrames, dragFrames;
+  private long touchDelayWorstMs, releaseNs, dragNs, dragStartNs;
+  private float releaseSpeed, flingStartPx;
+  private int flingStartFrames;
+  private long flingT0, flingT1;
+  private long flingEndNs;
+  private boolean flingStopped;
+  private final StringBuilder steps = new StringBuilder();
+  private int stepCount;
+
+  private void resetTouch () {
+    drags = 0;
+    fingerPx = listPx = dragListPx = flingPx = 0;
+    fingerFramePx = listFramePx = 0;
+    maxGapPx = gapPx = 0;
+    stalls = uneven = animFrames = edgeFrames = dragFrames = 0;
+    touchDelayWorstMs = 0;
+    releaseNs = dragNs = dragStartNs = 0;
+    releaseSpeed = flingStartPx = 0;
+    flingStartFrames = 0;
+    flingT0 = flingT1 = 0;
+    flingEndNs = 0;
+    flingStopped = false;
+    steps.setLength(0);
+    stepCount = 0;
+  }
+
+  @Override
+  public boolean onInterceptTouchEvent (@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+    watchTouch(e);
+    return false;
+  }
+
+  @Override
+  public void onTouchEvent (@NonNull RecyclerView rv, @NonNull MotionEvent e) { }
+
+  @Override
+  public void onRequestDisallowInterceptTouchEvent (boolean disallowIntercept) { }
+
+  private void watchTouch (MotionEvent e) {
+    long delay = SystemClock.uptimeMillis() - e.getEventTime();
+    switch (e.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN: {
+        if (!running) resetTouch();
+        if (running && releaseNs != 0) flingStopped = true;
+        fingerDown = true;
+        dragged = false;
+        lastFingerY = e.getRawY();
+        if (velocity != null) velocity.recycle();
+        velocity = VelocityTracker.obtain();
+        velocity.addMovement(e);
+        break;
+      }
+      case MotionEvent.ACTION_MOVE: {
+        if (!fingerDown) break;
+        float y = e.getRawY();
+        float d = y - lastFingerY;
+        lastFingerY = y;
+        if (velocity != null) velocity.addMovement(e);
+        if (running && list != null && list.getScrollState() == RecyclerView.SCROLL_STATE_DRAGGING) {
+          if (!dragged) {
+            dragged = true;
+            drags++;
+            dragStartNs = System.nanoTime();
+            releaseNs = 0;
+          }
+          fingerPx += Math.abs(d);
+          fingerFramePx += Math.abs(d);
+          touchDelayWorstMs = Math.max(touchDelayWorstMs, delay);
+        }
+        break;
+      }
+      case MotionEvent.ACTION_UP:
+      case MotionEvent.ACTION_CANCEL: {
+        if (!fingerDown) break;
+        fingerDown = false;
+        if (velocity != null) {
+          velocity.addMovement(e);
+          velocity.computeCurrentVelocity(1000);
+          if (dragged) releaseSpeed = Math.abs(velocity.getYVelocity()) / Screen.density();
+          velocity.recycle();
+          velocity = null;
+        }
+        if (dragged) {
+          releaseNs = System.nanoTime();
+          dragNs += releaseNs - dragStartNs;
+          flingStartPx = 0;
+          flingStartFrames = 0;
+        }
+        break;
+      }
+    }
+  }
+
+  @Override
+  public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
+    if (!running) return;
+    float d = Math.abs(dy);
+    listPx += d;
+    listFramePx += d;
+    if (fingerDown && dragged) {
+      dragListPx += d;
+    } else if (releaseNs != 0) {
+      flingPx += d;
+    }
+  }
+
+  /** once a frame while the list moves: compare the finger's step with the list's */
+  private void frameStep (long frameTimeNanos) {
+    if (list == null) return;
+    boolean dragging = fingerDown && dragged;
+    if (dragging) {
+      dragFrames++;
+      gapPx += fingerFramePx - listFramePx;
+      maxGapPx = Math.max(maxGapPx, Math.abs(gapPx));
+      if (fingerFramePx > Screen.dp(1f) && listFramePx < .5f) {
+        if (list.canScrollVertically(1) && list.canScrollVertically(-1)) stalls++;
+        else edgeFrames++;
+      } else if (fingerFramePx > Screen.dp(2f) && Math.abs(listFramePx - fingerFramePx) > Math.max(Screen.dp(2f), fingerFramePx * .4f)) {
+        uneven++;
+      }
+    } else if (releaseNs != 0 && !fingerDown) {
+      if (flingStartFrames < 3) {
+        if (flingStartFrames == 0) flingT0 = lastNs != 0 ? lastNs : frameTimeNanos;
+        flingStartPx += listFramePx;
+        flingStartFrames++;
+        flingT1 = frameTimeNanos;
+      }
+      if (listFramePx > 0) flingEndNs = frameTimeNanos;
+    }
+    if (list.isAnimating()) animFrames++;
+    if (stepCount < 80 && (dragging || releaseNs != 0)) {
+      if (stepCount > 0) steps.append(' ');
+      steps.append(dragging ? "" : "~").append(Math.round(fingerFramePx)).append('/').append(Math.round(listFramePx));
+      stepCount++;
+    }
+    fingerFramePx = listFramePx = 0;
   }
 
   // TGx101 (user 2026-10-30 17:51, «свайп назад с лагами»): the same measure for a gesture that is no list's scroll —
@@ -149,6 +310,7 @@ public final class Tgx101ScrollWatch extends RecyclerView.OnScrollListener imple
       if (d >= SLOW_NS) slow++;
       worstNs = Math.max(worstNs, d);
     }
+    frameStep(frameTimeNanos);
     lastNs = frameTimeNanos;
     Choreographer.getInstance().postFrameCallback(this);
   }
@@ -169,5 +331,41 @@ public final class Tgx101ScrollWatch extends RecyclerView.OnScrollListener imple
       b.append("; new rows made ").append(created);
     }
     Tgx101Diag.mark(b.toString());
+    reportSwipe();
   }
+
+  private void reportSwipe () {
+    if (list == null || drags == 0 || fingerPx < Screen.dp(8f)) {
+      resetTouch();
+      return;
+    }
+    float dp = Screen.density();
+    int follow = fingerPx > 0 ? Math.round(100f * dragListPx / fingerPx) : 0;
+    StringBuilder b = new StringBuilder(String.format(Locale.US,
+      "  swipe %s: %d drag(s) %.0f dp in %.2f s, the list took %d%% (widest gap %.0f dp), stalls %d, uneven %d",
+      name, drags, fingerPx / dp, dragNs / 1e9, follow, maxGapPx / dp, stalls, uneven));
+    float flingStartSpeed = 0;
+    if (releaseSpeed > 0) {
+      // the first three frames after letting go, as a speed
+      flingStartSpeed = flingStartFrames > 0 && flingT1 > flingT0 ? flingStartPx / dp / ((flingT1 - flingT0) / 1e9f) : 0;
+      b.append(String.format(Locale.US, "; let go at %.0f dp/s, the fling starts at %.0f dp/s (%d%%)",
+        releaseSpeed, flingStartSpeed, releaseSpeed > 0 ? Math.round(100f * flingStartSpeed / releaseSpeed) : 0));
+      if (flingPx > 0) {
+        b.append(String.format(Locale.US, ", ran %.0f dp%s", flingPx / dp, flingEndNs > 0 && releaseNs > 0 ? String.format(Locale.US, " for %.2f s", Math.max(0, (flingEndNs - releaseNs)) / 1e9) : ""));
+      }
+      if (flingStopped) b.append(", caught by a finger");
+    }
+    if (animFrames > 0) b.append("; row animations on ").append(animFrames).append(" frames");
+    if (edgeFrames > 0) b.append("; against the end ").append(edgeFrames).append(" frames");
+    b.append("; touch delay worst ").append(touchDelayWorstMs).append(" ms");
+    boolean off = follow < 90 || follow > 110 || stalls > 0 || uneven > 1 || animFrames > 0
+      || (releaseSpeed > 300 && flingStartSpeed > 0 && Math.abs(flingStartSpeed - releaseSpeed) > releaseSpeed * .35f);
+    if (off && steps.length() > 0) {
+      b.append(" | steps finger/list px, ~ after letting go: ").append(steps);
+    }
+    Tgx101Diag.mark(b.toString());
+    resetTouch();
+  }
+
+
 }
