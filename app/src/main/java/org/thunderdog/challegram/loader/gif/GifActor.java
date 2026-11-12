@@ -364,7 +364,9 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
       if (start == 0 && !file.isStill()) {
         long at = tgx101Position(file.getFileId());
         if (at > 0) start = at / 1000.0;
+        tgx101JumpTo.remove(file.getFileId()); // starts there already
       }
+      tgx101Path = path;
       nativePtr = N.createDecoder(path, metadata, start);
       width = (int) metadata[0];
       height = (int) metadata[1];
@@ -397,7 +399,7 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
           int ret = N.getVideoFrame(nativePtr, frame.bitmap, metadata);
           frame.no = lastTimeStamp = metadata[3];
           if (tgx101Positions.size() > 500) tgx101Positions.clear(); // the last few hundred videos are enough
-          tgx101Positions.put(file.getFileId(), lastTimeStamp);
+          if (!tgx101JumpTo.containsKey(file.getFileId())) tgx101Positions.put(file.getFileId(), lastTimeStamp);
           return ret == 1 && !N.isVideoBroken(nativePtr);
         }
       }, 1, Bitmap.Config.ARGB_8888);
@@ -451,10 +453,17 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
   /** where the viewer left this file's video — the feed's copy goes on from there */
   public static void tgx101SetPosition (int fileId, long positionMs) {
     tgx101Positions.put(fileId, positionMs);
+    tgx101JumpTo.put(fileId, positionMs); // a copy playing now jumps there with its next frame
   }
+
+  // TGx101: where the viewer left a file's video, until the copy in the feed has jumped there
+  private static final java.util.Map<Integer, Long> tgx101JumpTo = new java.util.concurrent.ConcurrentHashMap<>();
+  private volatile @Nullable String tgx101Path;
 
   /** the last frame shown of this file's video playing by itself, ms; 0 — none */
   public static long tgx101Position (int fileId) {
+    Long jump = tgx101JumpTo.get(fileId);
+    if (jump != null) return jump;
     Long at = tgx101Positions.get(fileId);
     return at != null ? at : 0;
   }
@@ -557,6 +566,28 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
         }
       } else {
         desiredNextFrameNo = 0;
+      }
+      if (!isLottie && !seekToStart && tgx101Path != null) {
+        // TGx101 (user 2026-11-12 «если я вручную перематываю видео, то это не учитывается для повторного
+        // воспроизведения — возвращает в место, где видео само дошло»): the viewer closed somewhere else (a seek, or
+        // just further on) — this copy, which went on by itself from where it was, jumps there; the viewer opened on it
+        // again starts there too
+        Long jump = tgx101JumpTo.remove(file.getFileId());
+        if (jump != null) {
+          long jumped = N.createDecoder(tgx101Path, metadata, jump / 1000.0);
+          if (jumped != 0) {
+            synchronized (nativeSync) {
+              long old = nativePtr;
+              nativePtr = jumped;
+              if (old != 0) N.destroyDecoder(old);
+            }
+            gif.clearBusy();
+            gifRestarted = true;
+            org.thunderdog.challegram.Tgx101Diag.mark("gif: file " + file.getFileId() + " jumps to " + jump + " ms, where the viewer left it");
+          } else {
+            org.thunderdog.challegram.Tgx101Diag.mark("gif: file " + file.getFileId() + " couldn't jump to " + jump + " ms");
+          }
+        }
       }
       if (seekToStart && !isLottie) {
         gif.clearBusy();
@@ -754,7 +785,7 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
         if (GifBridge.instance().scheduleNextFrame(this, file.getFileId(), force ? 0 : frameDelayMs, force)) {
           if (gif == null || !gif.isFrozen()) {
             this.lastTimeStamp = nextTimeStamp;
-            if (!isLottie && nextTimeStamp > 0) tgx101Positions.put(file.getFileId(), nextTimeStamp); // where it stands now
+            if (!isLottie && nextTimeStamp > 0 && !tgx101JumpTo.containsKey(file.getFileId())) tgx101Positions.put(file.getFileId(), nextTimeStamp); // where it stands now
           }
         }
       }
