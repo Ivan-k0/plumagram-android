@@ -133,6 +133,12 @@ public final class Tgx101VoiceCutSheet {
         lengths.setText(t);
         int piece = Math.abs(view.flag2 - view.flag1);
         playPiece.setText("▶  " + Lang.getString(R.string.Tgx101VoiceCutPiece, Math.max(1, Math.round(piece / (float) Tgx101VoiceEdit.RATE))));
+        // nothing chosen yet — the piece and the scissors wait for the flag to be pulled apart
+        boolean hasPiece = view.hasPiece();
+        playPiece.setEnabled(hasPiece);
+        playPiece.setAlpha(hasPiece ? 1f : .4f);
+        cut.setEnabled(hasPiece);
+        cut.setAlpha(hasPiece ? 1f : .4f);
         if (edit.isPlaying() != wasPlaying[0]) {
           wasPlaying[0] = edit.isPlaying();
           play.setImageResource(edit.isPlaying() ? R.drawable.baseline_pause_24 : R.drawable.baseline_play_arrow_36_white);
@@ -333,11 +339,16 @@ public final class Tgx101VoiceCutSheet {
       resetFlags();
     }
 
+    /** (user 2026-11-12 «по умолчанию нет выделенной красной полосы… один ползунок, начинаешь тянуть — раздваивается»): one
+     *  flag in the middle of what is kept, nothing chosen; the one dragged leaves its twin where it stood */
     void resetFlags () {
       int ts = edit.trimStartShown(), te = edit.trimEndShown();
-      flag1 = ts + (te - ts) * 35 / 100;
-      flag2 = ts + (te - ts) * 60 / 100;
+      flag1 = flag2 = ts + (te - ts) / 2;
       invalidate();
+    }
+
+    boolean hasPiece () {
+      return Math.abs(flag2 - flag1) >= Tgx101VoiceEdit.RATE / 10; // a tenth of a second
     }
 
     private float left () {
