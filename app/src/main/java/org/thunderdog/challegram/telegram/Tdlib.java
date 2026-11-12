@@ -7688,6 +7688,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
 
   private void updateNewMessage (TdApi.UpdateNewMessage update, boolean isUpdate) {
     if (update.message.sendingState instanceof TdApi.MessageSendingStatePending && update.message.content.getConstructor() != TdApi.MessageChatSetMessageAutoDeleteTime.CONSTRUCTOR) {
+      org.thunderdog.challegram.service.Tgx101SendAwake.onSendingMedia(accountId, update.message); // TGx101: the «Sending» notification opens it
       addRemoveSendingMessage(update.message.chatId, update.message.id, true);
       if (isUpdate)
         return;
@@ -7715,6 +7716,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   }
 
   private void updateMessageSendSucceeded (TdApi.UpdateMessageSendSucceeded update) {
+    org.thunderdog.challegram.service.Tgx101SendAwake.onSendingDone(accountId, update.message.chatId, update.oldMessageId, update.message.id, true);
     synchronized (dataLock) {
       Settings.instance().updateScrollMessageId(accountId, update.message.chatId, update.oldMessageId, update.message.id);
     }
@@ -7736,6 +7738,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   }
 
   private void updateMessageSendFailed (TdApi.UpdateMessageSendFailed update) {
+    org.thunderdog.challegram.service.Tgx101SendAwake.onSendingDone(accountId, update.message.chatId, update.oldMessageId, update.message.id, false);
     UI.showError(update.error);
     synchronized (dataLock) {
       Settings.instance().updateScrollMessageId(accountId, update.message.chatId, update.oldMessageId, update.message.id);

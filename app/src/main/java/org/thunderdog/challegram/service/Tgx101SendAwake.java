@@ -60,6 +60,96 @@ public class Tgx101SendAwake extends Service {
   private static final Set<String> quiet = new HashSet<>();
   private static final long NOTIFY_AFTER_MS = 700;
   private static final Runnable startLater = Tgx101SendAwake::startIfLoud;
+
+  // TGx101 (user 2026-11-12 «при нажатии на уведомление должно отправлять в тот чат и к тому видео»): the media
+  // messages being sent, newest last — a tap on the notification opens the newest one's chat at it
+  private static final java.util.ArrayList<long[]> sending = new java.util.ArrayList<>(); // {accountId, chatId, messageId}
+
+  public static void onSendingMedia (int accountId, TdApi.Message message) {
+    if (message == null || message.content == null) return;
+    switch (message.content.getConstructor()) {
+      case TdApi.MessageVideo.CONSTRUCTOR:
+      case TdApi.MessagePhoto.CONSTRUCTOR:
+      case TdApi.MessageAnimation.CONSTRUCTOR:
+      case TdApi.MessageDocument.CONSTRUCTOR:
+      case TdApi.MessageAudio.CONSTRUCTOR:
+        break;
+      default:
+        return;
+    }
+    if (message.content.getConstructor() == TdApi.MessageVideo.CONSTRUCTOR) {
+      warnAboutBackgroundOnce();
+    }
+    synchronized (sync) {
+      sending.add(new long[] {accountId, message.chatId, message.id});
+      if (sending.size() > 50) sending.remove(0);
+    }
+    refreshNotification();
+  }
+
+  public static void onSendingDone (int accountId, long chatId, long oldMessageId, long newMessageId, boolean succeeded) {
+    synchronized (sync) {
+      for (int i = sending.size() - 1; i >= 0; i--) {
+        long[] m = sending.get(i);
+        if (m[0] == accountId && m[1] == chatId && m[2] == oldMessageId) {
+          sending.remove(i);
+        }
+      }
+    }
+    refreshNotification();
+  }
+
+  /**
+   * TGx101 (user 2026-11-12 «один раз можно об этом предупредить и больше не нужно»): vivo's fast freezer stops a
+   * video's compression with the screen off unless the app may run in the background (proven on the user's phone the
+   * same day) — the first video sent without that permission says so once, with a button to the system's ask
+   */
+  private static void warnAboutBackgroundOnce () {
+    Context context = AppContext.get();
+    if (KeepAliveService.isIgnoringBatteryOptimizations(context)) return;
+    android.content.SharedPreferences prefs = context.getSharedPreferences("tgx101_sending", Context.MODE_PRIVATE);
+    if (prefs.getBoolean("background_warned", false)) return;
+    prefs.edit().putBoolean("background_warned", true).apply();
+    org.thunderdog.challegram.tool.UI.post(() -> {
+      org.thunderdog.challegram.navigation.ViewController<?> c = org.thunderdog.challegram.tool.UI.getCurrentStackItem();
+      if (c == null) return;
+      c.showOptions(Lang.getString(R.string.Tgx101SendingBackgroundInfo), new int[] {R.id.btn_done, R.id.btn_cancel}, new String[] {Lang.getString(R.string.Tgx101SendingBackgroundAllow), Lang.getString(R.string.Tgx101SendingBackgroundLater)}, null, new int[] {R.drawable.baseline_check_24, R.drawable.baseline_cancel_24}, (v, id) -> {
+        if (id == R.id.btn_done) {
+          KeepAliveService.requestIgnoreBatteryOptimizations(c.context());
+        }
+        return true;
+      });
+    });
+  }
+
+  private static void refreshNotification () {
+    handler().post(() -> {
+      Tgx101SendAwake service = instance;
+      if (service != null) {
+        try {
+          service.postNotification();
+        } catch (Throwable ignored) { }
+      }
+    });
+  }
+
+  private PendingIntent contentIntent () {
+    long[] target;
+    synchronized (sync) {
+      target = sending.isEmpty() ? null : sending.get(sending.size() - 1);
+    }
+    if (target != null) {
+      try {
+        org.thunderdog.challegram.telegram.Tdlib tdlib = org.thunderdog.challegram.telegram.TdlibManager.getTdlib((int) target[0]);
+        long localChatId = tdlib.settings().getLocalChatId(target[1]);
+        Intent intent = Intents.valueOfLocalChatId((int) target[0], localChatId, target[2]);
+        return PendingIntent.getActivity(this, (int) (target[2] & 0x7fffffff), intent, PendingIntent.FLAG_UPDATE_CURRENT | Intents.mutabilityFlags(false));
+      } catch (Throwable t) {
+        Log.e("Sending notification: no chat intent", t);
+      }
+    }
+    return PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), Intents.mutabilityFlags(false));
+  }
   private static Tgx101SendAwake instance;
   private static long lastNotifyMs;
   private static PowerManager.WakeLock wakeLock;
@@ -350,7 +440,7 @@ public class Tgx101SendAwake extends Service {
       .setOngoing(true)
       .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
       .setProgress(100, Math.max(0, percent), percent < 0)
-      .setContentIntent(PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), Intents.mutabilityFlags(false)))
+      .setContentIntent(contentIntent())
       .build();
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
       startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);

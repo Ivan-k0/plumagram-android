@@ -6893,6 +6893,9 @@
   <string name="Tgx101SendingChannel">Sending files</string>
   <string name="Tgx101SendingTitle">Sending</string>
   <string name="Tgx101SendingPreparing">Preparing video</string>
+  <string name="Tgx101SendingBackgroundInfo">To keep sending videos while the screen is off, allow PlumaGram to run in the background. Otherwise the phone may pause the sending until the screen is on again.</string>
+  <string name="Tgx101SendingBackgroundAllow">Allow</string>
+  <string name="Tgx101SendingBackgroundLater">Not now</string>
   <string name="Tgx101UpdateTitle">PlumaGram %1$s is available</string>
   <string name="Tgx101UpdateText">Update from the side menu or Settings</string>
   <string name="Tgx101UpdateRow">Update PlumaGram · %1$s</string>

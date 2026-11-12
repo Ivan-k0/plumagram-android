@@ -1628,6 +1628,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SendingChannel, "Отправка файлов");
     RU.put(R.string.Tgx101SendingTitle, "Отправка");
     RU.put(R.string.Tgx101SendingPreparing, "Подготовка видео");
+    RU.put(R.string.Tgx101SendingBackgroundInfo, "Чтобы видео отправлялись и при выключенном экране, разрешите PlumaGram работу в фоне. Иначе телефон может остановить отправку, пока экран не включится.");
+    RU.put(R.string.Tgx101SendingBackgroundAllow, "Разрешить");
+    RU.put(R.string.Tgx101SendingBackgroundLater, "Не сейчас");
     RU.put(R.string.Tgx101UpdateTitle, "Вышла PlumaGram %1$s");
     RU.put(R.string.Tgx101UpdateText, "Обновить можно из бокового меню или в настройках");
     RU.put(R.string.Tgx101UpdateRow, "Обновить PlumaGram · %1$s");
