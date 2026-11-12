@@ -14,8 +14,8 @@ package org.thunderdog.challegram.player;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.DashPathEffect;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.drawable.GradientDrawable;
 import android.util.TypedValue;
@@ -23,6 +23,7 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -42,20 +43,24 @@ import org.thunderdog.challegram.ui.Tgx101Sheet;
 import me.vkryl.core.ColorUtils;
 
 /**
- * TGx101 (user 2026-11-12, mockup «Голосовое: прослушка и обрезка», variant Б): the scissors' editor — two red flags on
- * the note's wave, the piece between them can be listened to and cut out; «Bring back» returns the last cut piece;
- * «Cancel» returns the note as it was when the editor opened, «Done» keeps the cuts.
+ * TGx101 (user 2026-11-12, mockup «Голосовое: прослушка и обрезка», Б1/Б2): the voice note's editor, opened by the
+ * scissors. Above the wave the two red flags of the piece to cut; on the wave itself the yellow edges that trim its
+ * start and end (moving the start puts the listening there, so ▶ tells how the note begins); below it, apart so it isn't
+ * caught by the edges, the slider where listening starts, with its line on the wave. ▶ plays from the slider, «▶ piece»
+ * the piece between the flags, the scissors cut it out, the arrow brings back the last cut. No hint text.
+ * «Cancel» returns the note as it was when the editor opened, «Done» keeps the changes.
  */
 public final class Tgx101VoiceCutSheet {
   private Tgx101VoiceCutSheet () { }
 
-  private static final int RED = 0xffe5533f;
+  private static final int RED = 0xffe5533f, YELLOW = 0xfff2c14e;
 
   public static void show (ViewController<?> c, Tgx101VoiceEdit edit, Runnable onClose) {
     final Object snapshot = edit.snapshot();
     final boolean[] done = {false};
     final Context context = c.context();
     final Tgx101Sheet.Handle[] handle = new Tgx101Sheet.Handle[1];
+    final int baseCuts = countCuts(edit);
     handle[0] = Tgx101Sheet.show(c, () -> {
       edit.stop();
       if (!done[0]) edit.restore(snapshot);
@@ -67,44 +72,39 @@ public final class Tgx101VoiceCutSheet {
       header.setOrientation(LinearLayout.HORIZONTAL);
       header.setGravity(Gravity.CENTER_VERTICAL);
       header.setPadding(pad, Screen.dp(6f), pad, 0);
-      TextView title = text(context, Lang.getString(R.string.Tgx101VoiceCutTitle), 18f, Theme.textAccentColor(), true);
+      TextView title = text(context, Lang.getString(R.string.Tgx101VoiceEditTitle), 18f, Theme.textAccentColor(), true);
       header.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
       TextView lengths = text(context, "", 14f, Theme.textDecentColor(), false);
       header.addView(lengths);
       body.addView(header);
 
-      TextView hint = text(context, Lang.getString(R.string.Tgx101VoiceCutHint), 14f, Theme.textDecentColor(), false);
-      hint.setPadding(pad, Screen.dp(6f), pad, Screen.dp(4f));
-      body.addView(hint);
-
-      final CutView cut = new CutView(context, edit);
-      LinearLayout.LayoutParams cutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(124f));
-      cutParams.leftMargin = cutParams.rightMargin = pad;
-      cutParams.topMargin = Screen.dp(6f);
-      body.addView(cut, cutParams);
+      final EditView view = new EditView(context, edit);
+      LinearLayout.LayoutParams viewParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(EditView.HEIGHT));
+      viewParams.leftMargin = viewParams.rightMargin = pad;
+      viewParams.topMargin = Screen.dp(14f);
+      body.addView(view, viewParams);
 
       LinearLayout actions = new LinearLayout(context);
       actions.setOrientation(LinearLayout.HORIZONTAL);
       actions.setGravity(Gravity.CENTER_VERTICAL);
-      actions.setPadding(pad, Screen.dp(16f), pad, 0);
-      final TextView playAll = pill(context, "▶", Theme.getColor(ColorId.waveformActive), 0xffffffff, true);
-      playAll.setContentDescription(Lang.getString(R.string.Tgx101VoiceCutPlayAll));
-      actions.addView(playAll, new LinearLayout.LayoutParams(Screen.dp(48f), Screen.dp(48f)));
+      actions.setPadding(pad, Screen.dp(14f), pad, 0);
+      final ImageView play = round(context, R.drawable.baseline_play_arrow_36_white, Theme.getColor(ColorId.waveformActive), 0xffffffff, 52f, false);
+      play.setContentDescription(Lang.getString(R.string.Tgx101VoiceCutPlayAll));
+      actions.addView(play, new LinearLayout.LayoutParams(Screen.dp(52f), Screen.dp(52f)));
       final TextView playPiece = pill(context, "", 0, Theme.textAccentColor(), false);
-      LinearLayout.LayoutParams pieceParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(42f));
+      LinearLayout.LayoutParams pieceParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(44f));
       pieceParams.leftMargin = Screen.dp(10f);
       actions.addView(playPiece, pieceParams);
-      final TextView cutButton = pill(context, "✂  " + Lang.getString(R.string.Tgx101VoiceCutDo), RED, 0xffffffff, true);
-      LinearLayout.LayoutParams cutButtonParams = new LinearLayout.LayoutParams(0, Screen.dp(44f), 1f);
-      cutButtonParams.leftMargin = Screen.dp(10f);
-      actions.addView(cutButton, cutButtonParams);
+      actions.addView(new View(context), new LinearLayout.LayoutParams(0, 1, 1f));
+      final ImageView bringBack = round(context, R.drawable.baseline_undo_24, 0, Theme.textAccentColor(), 48f, true);
+      bringBack.setContentDescription(Lang.getString(R.string.Tgx101VoiceCutBringBack));
+      LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(Screen.dp(48f), Screen.dp(48f));
+      backParams.rightMargin = Screen.dp(10f);
+      actions.addView(bringBack, backParams);
+      final ImageView cut = round(context, R.drawable.baseline_content_cut_24, RED, 0xffffffff, 52f, false);
+      cut.setContentDescription(Lang.getString(R.string.Tgx101VoiceCutDo));
+      actions.addView(cut, new LinearLayout.LayoutParams(Screen.dp(52f), Screen.dp(52f)));
       body.addView(actions);
-
-      final TextView bringBack = pill(context, "↶  " + Lang.getString(R.string.Tgx101VoiceCutBringBack), 0, Theme.textAccentColor(), false);
-      LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f));
-      backParams.leftMargin = backParams.rightMargin = pad;
-      backParams.topMargin = Screen.dp(10f);
-      body.addView(bringBack, backParams);
 
       LinearLayout bottom = new LinearLayout(context);
       bottom.setOrientation(LinearLayout.HORIZONTAL);
@@ -117,44 +117,49 @@ public final class Tgx101VoiceCutSheet {
       bottom.addView(ok, okParams);
       body.addView(bottom);
 
+      final boolean[] wasPlaying = {false};
       final Runnable refresh = () -> {
-        int was = Math.round(edit.samples / (float) Tgx101VoiceEdit.RATE);
+        int was = Math.max(1, Math.round(edit.samples / (float) Tgx101VoiceEdit.RATE));
         int now = Math.max(1, Math.round(edit.keptSamples() / (float) Tgx101VoiceEdit.RATE));
-        lengths.setText(edit.canBringBack() || was != now
-          ? Lang.getString(R.string.Tgx101VoiceCutLengths, Strings.buildDuration(was), Strings.buildDuration(now))
-          : Strings.buildDuration(was));
-        int piece = Math.abs(cut.flag2 - cut.flag1);
+        int cuts = countCuts(edit);
+        String t = was != now ? Strings.buildDuration(was) + " → " + Strings.buildDuration(now) : Strings.buildDuration(was);
+        if (cuts > 0) t += " · " + Lang.getString(R.string.Tgx101VoiceCutCount, cuts);
+        lengths.setText(t);
+        int piece = Math.abs(view.flag2 - view.flag1);
         playPiece.setText("▶  " + Lang.getString(R.string.Tgx101VoiceCutPiece, Math.max(1, Math.round(piece / (float) Tgx101VoiceEdit.RATE))));
-        playAll.setText(edit.isPlaying() ? "❚❚" : "▶");
-        bringBack.setVisibility(edit.canBringBack() ? View.VISIBLE : View.GONE);
-        cut.invalidate();
+        if (edit.isPlaying() != wasPlaying[0]) {
+          wasPlaying[0] = edit.isPlaying();
+          play.setImageResource(edit.isPlaying() ? R.drawable.baseline_pause_24 : R.drawable.baseline_play_arrow_36_white);
+        }
+        bringBack.setVisibility(edit.canBringBack() ? View.VISIBLE : View.INVISIBLE);
+        view.invalidate();
       };
-      cut.onChanged = refresh;
+      view.onChanged = refresh;
       final Tgx101VoiceEdit.Listener listener = refresh::run;
       edit.addListener(listener);
       refresh.run();
 
-      playAll.setOnClickListener(v -> {
+      play.setOnClickListener(v -> {
         if (edit.isPlaying()) edit.pause();
-        else edit.playAllShown();
+        else edit.playKept();
       });
       playPiece.setOnClickListener(v -> {
         if (edit.isPlaying()) edit.pause();
-        else edit.playShown(cut.flag1, cut.flag2);
+        else edit.playShown(view.flag1, view.flag2);
       });
-      cutButton.setOnClickListener(v -> {
+      cut.setOnClickListener(v -> {
         edit.stop();
-        int a = Math.min(cut.flag1, cut.flag2), b = Math.max(cut.flag1, cut.flag2);
+        int a = Math.min(view.flag1, view.flag2), b = Math.max(view.flag1, view.flag2);
         if (edit.cutShown(a, b)) {
-          cut.resetFlags();
-          edit.setPosition(a);
+          view.resetFlags();
+          if (edit.position() > a) edit.setPosition(a);
         }
         refresh.run();
       });
       bringBack.setOnClickListener(v -> {
         edit.stop();
         edit.bringBackLast();
-        cut.resetFlags();
+        view.resetFlags();
         refresh.run();
       });
       cancel.setOnClickListener(v -> {
@@ -164,10 +169,14 @@ public final class Tgx101VoiceCutSheet {
       ok.setOnClickListener(v -> {
         done[0] = true;
         edit.removeListener(listener);
-        org.thunderdog.challegram.Tgx101Diag.mark("voice edit: editor done, " + (edit.keptSamples() * 1000L / Tgx101VoiceEdit.RATE) + " ms kept");
+        org.thunderdog.challegram.Tgx101Diag.mark("voice edit: editor done, " + (edit.keptSamples() * 1000L / Tgx101VoiceEdit.RATE) + " ms kept, " + countCuts(edit) + " cut(s)");
         if (handle[0] != null) handle[0].dismiss();
       });
     }, true);
+  }
+
+  private static int countCuts (Tgx101VoiceEdit edit) {
+    return edit.seams().length;
   }
 
   private static TextView text (Context context, CharSequence s, float size, int color, boolean bold) {
@@ -197,139 +206,233 @@ public final class Tgx101VoiceCutSheet {
     return v;
   }
 
-  /** the big wave with the two red flags */
-  static final class CutView extends View {
+  private static ImageView round (Context context, int icon, int fill, int tint, float size, boolean outlined) {
+    ImageView v = new ImageView(context);
+    v.setImageResource(icon);
+    v.setColorFilter(tint);
+    v.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+    int p = Screen.dp(size * .24f);
+    v.setPadding(p, p, p, p);
+    GradientDrawable bg = new GradientDrawable();
+    bg.setShape(GradientDrawable.OVAL);
+    if (outlined) {
+      bg.setColor(0);
+      bg.setStroke(Screen.dp(1f), ColorUtils.alphaColor(.25f, Theme.textAccentColor()));
+    } else {
+      bg.setColor(fill);
+    }
+    v.setBackground(bg);
+    v.setClickable(true);
+    v.setFocusable(true);
+    return v;
+  }
+
+  /** flags above, the wave with its yellow edges, the listening slider below */
+  static final class EditView extends View {
+    static final float HEIGHT = 184f;
+    private static final float FLAGS = 30f, WAVE_TOP = 34f, WAVE_H = 96f, SLIDER_Y = 162f, EDGE_W = 14f, SIDE = 14f;
+
     private final Tgx101VoiceEdit edit;
     int flag1, flag2;
     Runnable onChanged;
     private final Paint label = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint small = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint dash = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF rect = new RectF();
-    private final Path path = new Path();
 
-    CutView (Context context, Tgx101VoiceEdit edit) {
+    EditView (Context context, Tgx101VoiceEdit edit) {
       super(context);
       this.edit = edit;
       label.setTypeface(Fonts.getRobotoMedium());
       label.setTextSize(Screen.dp(12f));
       label.setColor(0xffffffff);
+      small.setTypeface(Fonts.getRobotoRegular());
+      small.setTextSize(Screen.dp(12f));
+      dash.setStyle(Paint.Style.STROKE);
+      dash.setStrokeWidth(Screen.dp(2f));
+      dash.setColor(RED);
+      dash.setPathEffect(new DashPathEffect(new float[] {Screen.dp(4f), Screen.dp(3f)}, 0));
       resetFlags();
     }
 
     void resetFlags () {
-      int len = edit.shownLength();
-      flag1 = len * 35 / 100;
-      flag2 = len * 60 / 100;
+      int ts = edit.trimStartShown(), te = edit.trimEndShown();
+      flag1 = ts + (te - ts) * 35 / 100;
+      flag2 = ts + (te - ts) * 60 / 100;
       invalidate();
     }
 
-    private float top () {
-      return Screen.dp(28f);
+    private float left () {
+      return Screen.dp(SIDE);
+    }
+
+    private float right () {
+      return getMeasuredWidth() - Screen.dp(SIDE);
     }
 
     private float xOf (int shown) {
-      float l = Screen.dp(12f), r = getMeasuredWidth() - Screen.dp(12f);
-      return l + (r - l) * shown / (float) Math.max(1, edit.shownLength());
+      return left() + (right() - left()) * shown / (float) Math.max(1, edit.shownLength());
     }
 
     private int shownAt (float x) {
-      float l = Screen.dp(12f), r = getMeasuredWidth() - Screen.dp(12f);
-      return Math.round(Math.max(0f, Math.min(1f, (x - l) / Math.max(1f, r - l))) * edit.shownLength());
+      return Math.round(Math.max(0f, Math.min(1f, (x - left()) / Math.max(1f, right() - left()))) * edit.shownLength());
     }
 
     @Override
     protected void onDraw (@NonNull Canvas c) {
-      int w = getMeasuredWidth(), h = getMeasuredHeight();
-      float top = top();
+      int w = getMeasuredWidth();
+      float waveTop = Screen.dp(WAVE_TOP), waveBottom = waveTop + Screen.dp(WAVE_H);
       int accent = Theme.getColor(ColorId.waveformActive);
       int inactive = Theme.getColor(ColorId.waveformInactive);
-      rect.set(0, top, w, h);
-      c.drawRoundRect(rect, Screen.dp(14f), Screen.dp(14f), Paints.fillingPaint(ColorUtils.alphaColor(.06f, Theme.textAccentColor())));
+      int text = Theme.textAccentColor();
 
-      int a = Math.min(flag1, flag2), b = Math.max(flag1, flag2);
-      float xa = xOf(a), xb = xOf(b);
-      c.drawRect(xa, top, xb, h, Paints.fillingPaint(ColorUtils.alphaColor(.22f, RED)));
+      // the wave's box
+      rect.set(0, waveTop, w, waveBottom);
+      c.drawRoundRect(rect, Screen.dp(14f), Screen.dp(14f), Paints.fillingPaint(ColorUtils.alphaColor(.07f, text)));
 
       int len = edit.shownLength();
       int ts = edit.trimStartShown(), te = edit.trimEndShown(), pos = edit.position();
-      float l = Screen.dp(12f), r = w - Screen.dp(12f);
+      int a = Math.min(flag1, flag2), b = Math.max(flag1, flag2);
+      float xa = xOf(a), xb = xOf(b), xs = xOf(ts), xe = xOf(te);
+
+      c.drawRect(xa, waveTop, xb, waveBottom, Paints.fillingPaint(ColorUtils.alphaColor(.22f, RED)));
+
       float step = Screen.dp(5f);
-      int bars = Math.max(1, (int) ((r - l) / step));
-      float centerY = (top + h) / 2f;
-      float maxH = (h - top) - Screen.dp(28f), minH = Screen.dp(3f);
+      int bars = Math.max(1, (int) ((right() - left()) / step));
+      float centerY = (waveTop + waveBottom) / 2f;
+      float maxH = Screen.dp(WAVE_H) - Screen.dp(26f), minH = Screen.dp(3f);
       for (int i = 0; i < bars; i++) {
         int from = (int) ((long) len * i / bars), to = (int) ((long) len * (i + 1) / bars);
         int mid = (from + to) / 2;
         float p = edit.peak(from, to);
         float bh = Math.max(minH, Math.min(maxH, minH + (float) Math.sqrt(p) * maxH));
-        float x = l + i * step;
+        float x = left() + i * step;
         int color;
-        if (mid >= a && mid < b) color = 0xfff08a7c;
-        else if (mid < ts || mid >= te) color = ColorUtils.alphaColor(.35f, inactive);
-        else if (edit.isPlaying() && mid < pos) color = accent;
+        if (mid < ts || mid >= te) color = ColorUtils.alphaColor(.3f, inactive);
+        else if (mid >= a && mid < b) color = 0xfff08a7c;
+        else if (mid < pos) color = accent;
         else color = inactive;
         rect.set(x, centerY - bh / 2f, x + Screen.dp(3f), centerY + bh / 2f);
         c.drawRoundRect(rect, Screen.dp(1.5f), Screen.dp(1.5f), Paints.fillingPaint(color));
       }
-      // cut seams
+      // what the edges cut off, darker
+      Paint shade = Paints.fillingPaint(ColorUtils.alphaColor(.35f, 0xff000000));
+      if (xs > 0) c.drawRect(0, waveTop, xs, waveBottom, shade);
+      if (xe < w) c.drawRect(xe, waveTop, w, waveBottom, shade);
+      // the cut seams
       for (int seam : edit.seams()) {
         float x = xOf(seam);
-        c.drawRect(x - Screen.dp(1f), top + Screen.dp(4f), x + Screen.dp(1f), h - Screen.dp(4f), Paints.fillingPaint(RED));
+        c.drawLine(x, waveTop + Screen.dp(6f), x, waveBottom - Screen.dp(6f), dash);
       }
-      // cursor
-      if (edit.isPlaying()) {
-        float x = xOf(pos);
-        c.drawRect(x - Screen.dp(1f), top - Screen.dp(2f), x + Screen.dp(1f), h, Paints.fillingPaint(Theme.textAccentColor()));
-      }
-      drawFlag(c, xOf(flag1), flag1, h);
-      drawFlag(c, xOf(flag2), flag2, h);
+      // where listening starts, on the wave
+      float xp = xOf(pos);
+      c.drawRect(xp - Screen.dp(1f), waveTop + Screen.dp(6f), xp + Screen.dp(1f), waveBottom - Screen.dp(6f), Paints.fillingPaint(ColorUtils.alphaColor(.9f, text)));
+
+      // the yellow edges on the wave
+      Paint yellow = Paints.fillingPaint(YELLOW);
+      float bw = Screen.dp(3f);
+      c.drawRect(xs, waveTop, xe, waveTop + bw, yellow);
+      c.drawRect(xs, waveBottom - bw, xe, waveBottom, yellow);
+      float ew = Screen.dp(EDGE_W);
+      rect.set(xs - ew, waveTop, xs, waveBottom);
+      c.drawRoundRect(rect, Screen.dp(7f), Screen.dp(7f), yellow);
+      rect.set(xe, waveTop, xe + ew, waveBottom);
+      c.drawRoundRect(rect, Screen.dp(7f), Screen.dp(7f), yellow);
+      Paint grip = Paints.fillingPaint(0xff5a4610);
+      c.drawRect(xs - ew / 2f - Screen.dp(1f), centerY - Screen.dp(13f), xs - ew / 2f + Screen.dp(1f), centerY + Screen.dp(13f), grip);
+      c.drawRect(xe + ew / 2f - Screen.dp(1f), centerY - Screen.dp(13f), xe + ew / 2f + Screen.dp(1f), centerY + Screen.dp(13f), grip);
+
+      // the red flags above
+      drawFlag(c, xOf(flag1), flag1, waveBottom);
+      drawFlag(c, xOf(flag2), flag2, waveBottom);
+
+      // the listening slider below, apart from the edges
+      float sy = Screen.dp(SLIDER_Y);
+      rect.set(left(), sy - Screen.dp(2f), right(), sy + Screen.dp(2f));
+      c.drawRoundRect(rect, Screen.dp(2f), Screen.dp(2f), Paints.fillingPaint(ColorUtils.alphaColor(.15f, text)));
+      rect.set(xs, sy - Screen.dp(2f), Math.max(xs, xp), sy + Screen.dp(2f));
+      c.drawRoundRect(rect, Screen.dp(2f), Screen.dp(2f), Paints.fillingPaint(accent));
+      c.drawCircle(xp, sy, Screen.dp(10f), Paints.fillingPaint(0xffffffff));
+      c.drawCircle(xp, sy, Screen.dp(10f), Paints.strokeSmallPaint(ColorUtils.alphaColor(.25f, 0xff000000)));
+      String t = Strings.buildDuration(edit.keptBefore(pos) / Tgx101VoiceEdit.RATE);
+      small.setColor(Theme.textDecentColor());
+      float tw = small.measureText(t);
+      float tx = xp + Screen.dp(16f);
+      if (tx + tw > w) tx = xp - Screen.dp(16f) - tw;
+      c.drawText(t, tx, sy + Screen.dp(4.5f), small);
     }
 
-    private void drawFlag (Canvas c, float x, int shown, int h) {
-      c.drawRect(x - Screen.dp(1f), 0, x + Screen.dp(1f), h, Paints.fillingPaint(RED));
+    private void drawFlag (Canvas c, float x, int shown, float bottom) {
+      c.drawRect(x - Screen.dp(1f), 0, x + Screen.dp(1f), bottom, Paints.fillingPaint(RED));
       String t = Strings.buildDuration(shown / Tgx101VoiceEdit.RATE);
       float tw = label.measureText(t);
-      boolean left = x + tw + Screen.dp(16f) > getMeasuredWidth();
-      float fx = left ? x - tw - Screen.dp(14f) : x;
+      boolean toLeft = x + tw + Screen.dp(16f) > getMeasuredWidth();
+      float fx = toLeft ? x - tw - Screen.dp(14f) : x;
       rect.set(fx, 0, fx + tw + Screen.dp(14f), Screen.dp(22f));
       c.drawRoundRect(rect, Screen.dp(6f), Screen.dp(6f), Paints.fillingPaint(RED));
       c.drawText(t, fx + Screen.dp(7f), Screen.dp(15.5f), label);
     }
 
-    private int dragging; // 0 none, 1 or 2 a flag
+    private static final int NONE = 0, FLAG1 = 1, FLAG2 = 2, EDGE_START = 3, EDGE_END = 4, SLIDER = 5;
+    private int dragging;
 
     @Override
     public boolean onTouchEvent (MotionEvent e) {
-      float x = e.getX();
+      float x = e.getX(), y = e.getY();
       switch (e.getActionMasked()) {
         case MotionEvent.ACTION_DOWN: {
-          float d1 = Math.abs(x - xOf(flag1)), d2 = Math.abs(x - xOf(flag2));
-          dragging = d1 <= d2 ? 1 : 2;
-          if (Math.min(d1, d2) > Screen.dp(40f)) {
-            // a tap far from both flags moves the nearer one there
-            if (dragging == 1) flag1 = shownAt(x);
-            else flag2 = shownAt(x);
+          float waveTop = Screen.dp(WAVE_TOP), waveBottom = waveTop + Screen.dp(WAVE_H);
+          float sliderTop = waveBottom + Screen.dp(12f);
+          float xs = xOf(edit.trimStartShown()), xe = xOf(edit.trimEndShown());
+          float ew = Screen.dp(EDGE_W), grab = Screen.dp(12f);
+          if (y >= sliderTop) {
+            dragging = SLIDER;
+          } else if (y >= waveTop && x >= xs - ew - grab && x <= xs + grab && Math.abs(x - xs) <= Math.abs(x - xe)) {
+            dragging = EDGE_START;
+          } else if (y >= waveTop && x >= xe - grab && x <= xe + ew + grab) {
+            dragging = EDGE_END;
+          } else {
+            float d1 = Math.abs(x - xOf(flag1)), d2 = Math.abs(x - xOf(flag2));
+            dragging = d1 <= d2 ? FLAG1 : FLAG2;
           }
           if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
-          edit.stop();
-          changed();
+          edit.stop(); // listening restarts from the new place on ▶, not on every move
+          move(x);
           return true;
         }
         case MotionEvent.ACTION_MOVE: {
-          if (dragging == 1) flag1 = shownAt(x);
-          else if (dragging == 2) flag2 = shownAt(x);
-          changed();
+          move(x);
           return true;
         }
         case MotionEvent.ACTION_UP:
         case MotionEvent.ACTION_CANCEL:
-          dragging = 0;
+          if (dragging == EDGE_START || dragging == EDGE_END) {
+            org.thunderdog.challegram.Tgx101Diag.mark("voice edit: edges " + (edit.trimStartShown() * 1000L / Tgx101VoiceEdit.RATE) + "–" + (edit.trimEndShown() * 1000L / Tgx101VoiceEdit.RATE) + " ms of " + (edit.shownLength() * 1000L / Tgx101VoiceEdit.RATE));
+          }
+          dragging = NONE;
           if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
           return true;
       }
       return true;
     }
 
-    private void changed () {
+    private void move (float x) {
+      int s = shownAt(x);
+      switch (dragging) {
+        case FLAG1: flag1 = s; break;
+        case FLAG2: flag2 = s; break;
+        case EDGE_START:
+          edit.setTrimShown(s, edit.trimEndShown());
+          edit.setPosition(edit.trimStartShown()); // ▶ then tells how the note begins
+          break;
+        case EDGE_END:
+          edit.setTrimShown(edit.trimStartShown(), s);
+          if (edit.position() > edit.trimEndShown()) edit.setPosition(edit.trimStartShown());
+          break;
+        case SLIDER:
+          edit.setPosition(Math.max(edit.trimStartShown(), Math.min(s, edit.trimEndShown())));
+          break;
+      }
       invalidate();
       if (onChanged != null) onChanged.run();
     }

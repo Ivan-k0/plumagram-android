@@ -274,15 +274,9 @@ public class VoiceWaveformView extends View implements FactorAnimator.Target, Tg
       float x = xOf(seam);
       c.drawRect(x - Screen.dp(.75f), centerY - Screen.dp(13f), x + Screen.dp(.75f), centerY + Screen.dp(13f), Paints.fillingPaint(0xffe5533f));
     }
-    // the yellow edges
-    float hx1 = xOf(ts), hx2 = xOf(te), top = centerY - Screen.dp(16f), bottom = centerY + Screen.dp(16f);
-    Paint edge = Paints.fillingPaint(EDGE_COLOR);
-    c.drawRect(hx1, top, hx2, top + Screen.dp(2f), edge);
-    c.drawRect(hx1, bottom - Screen.dp(2f), hx2, bottom, edge);
-    rect.set(hx1 - Screen.dp(HANDLE_WIDTH), top, hx1, bottom);
-    c.drawRoundRect(rect, Screen.dp(3f), Screen.dp(3f), edge);
-    rect.set(hx2, top, hx2 + Screen.dp(HANDLE_WIDTH), bottom);
-    c.drawRoundRect(rect, Screen.dp(3f), Screen.dp(3f), edge);
+    // (user 2026-11-12 «убери пока жёлтый функционал из главного, оставь только в редакторе»): the edges are set in the
+    // scissors' editor; here what they cut off is only greyed
+    float top = centerY - Screen.dp(16f), bottom = centerY + Screen.dp(16f);
     // the cursor while listening
     if (edit.isPlaying()) {
       float x = xOf(pos);
@@ -321,16 +315,10 @@ public class VoiceWaveformView extends View implements FactorAnimator.Target, Tg
     switch (e.getActionMasked()) {
       case MotionEvent.ACTION_DOWN: {
         downX = x;
-        float hx1 = xOf(edit.trimStartShown()), hx2 = xOf(edit.trimEndShown());
-        float grab = Screen.dp(18f);
         if (x < waveStart() - Screen.dp(4f)) {
           touch = TOUCH_PLAY;
         } else if (x > getMeasuredWidth() - Screen.dp(SCISSORS_WIDTH) - Screen.dp(4f)) {
           touch = TOUCH_SCISSORS;
-        } else if (Math.abs(x - hx1) <= grab && Math.abs(x - hx1) <= Math.abs(x - hx2)) {
-          touch = TOUCH_START;
-        } else if (Math.abs(x - hx2) <= grab) {
-          touch = TOUCH_END;
         } else if (x <= waveEnd() + Screen.dp(4f)) {
           touch = TOUCH_SEEK;
         } else {

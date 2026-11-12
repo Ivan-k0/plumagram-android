@@ -6894,6 +6894,8 @@
   <string name="Tgx101SendingTitle">Sending</string>
   <string name="Tgx101SendingPreparing">Preparing video</string>
   <string name="Tgx101VoiceCutTitle">Cut out a piece</string>
+  <string name="Tgx101VoiceEditTitle">Voice note</string>
+  <string name="Tgx101VoiceCutCount">%1$d cut</string>
   <string name="Tgx101VoiceCutHint">Put the flags at the start and the end of what isn\'t needed — the piece between them can be listened to and cut out</string>
   <string name="Tgx101VoiceCutPlayAll">Listen to the whole note</string>
   <string name="Tgx101VoiceCutDo">Cut out</string>
