@@ -90,7 +90,14 @@ public final class Tgx101VoiceEdit {
   /** Decodes the file; null when it can't be read or is too long. Not on the main thread. */
   public static @Nullable Tgx101VoiceEdit load (String path) {
     try {
-      if (path == null || !new File(path).exists() || N.openOpusFile(path) == 0) return null;
+      if (path == null || !new File(path).exists()) return null;
+      // (user 2026-11-12 «продолжение голосового не сработало, вернулось прежнее значение»): a resumed recording goes on
+      // with its page numbers from 0 again — the reader takes that gap for the end, and only the part before the pause was
+      // heard. It reads a copy with the pages numbered in a row
+      String readPath = path;
+      File copy = new File(path + ".play.ogg");
+      if (renumber(new File(path), copy)) readPath = copy.getAbsolutePath();
+      if (N.openOpusFile(readPath) == 0) return null;
       final int capacity = 48000 * 2 / 5; // 100 ms
       ByteBuffer buffer = ByteBuffer.allocateDirect(capacity).order(ByteOrder.LITTLE_ENDIAN);
       int[] args = new int[3];
@@ -118,6 +125,8 @@ public final class Tgx101VoiceEdit {
         }
         if (args[2] == 1 || size == 0) break;
       }
+      //noinspection ResultOfMethodCallIgnored
+      copy.delete();
       if (count < RATE / 10) return null;
       org.thunderdog.challegram.Tgx101Diag.mark("voice edit: loaded " + (count * 1000L / RATE) + " ms");
       return new Tgx101VoiceEdit(path, out, count);
@@ -548,6 +557,7 @@ public final class Tgx101VoiceEdit {
       int start = -preSkip; // decoded samples of the next packet, in the recording's time
       for (int i = 2; i < packets.size(); i++) {
         byte[] p = packets.get(i);
+        if (p.length == 0 || (p.length >= 8 && p[0] == 'O' && p[1] == 'p' && p[2] == 'u' && p[3] == 's')) continue;
         int n = opusSamples(p);
         if (n <= 0) n = 960;
         int center = start + n / 2;
@@ -588,6 +598,51 @@ public final class Tgx101VoiceEdit {
     } catch (Throwable t) {
       org.thunderdog.challegram.Tgx101Diag.mark("voice edit: export failed — " + t.getClass().getSimpleName() + ": " + t.getMessage());
       return null;
+    }
+  }
+
+  /** the same packets in pages numbered in a row (and one end of stream) */
+  private static boolean renumber (File from, File to) {
+    try {
+      byte[] data = readAll(from);
+      List<byte[]> packets = new ArrayList<>();
+      long serial = parseOgg(data, packets);
+      if (packets.size() < 3) return false;
+      byte[] head = packets.get(0);
+      if (head.length < 19 || head[0] != 'O' || head[1] != 'p') return false;
+      int preSkip = (head[10] & 0xff) | ((head[11] & 0xff) << 8);
+      ByteArrayOutputStream out = new ByteArrayOutputStream(data.length);
+      int seq = 0;
+      writePage(out, serial, seq++, 0x02, 0, Collections.singletonList(head));
+      writePage(out, serial, seq++, 0x00, 0, Collections.singletonList(packets.get(1)));
+      ArrayList<byte[]> page = new ArrayList<>();
+      int pageBytes = 0, pageSegments = 0;
+      long granule = preSkip;
+      for (int i = 2; i < packets.size(); i++) {
+        byte[] p = packets.get(i);
+        if (p.length == 0) continue;
+        if (p.length >= 8 && p[0] == 'O' && p[1] == 'p' && p[2] == 'u' && p[3] == 's') continue; // a header again
+        int n = opusSamples(p);
+        if (n <= 0) n = 960;
+        int segments = p.length / 255 + 1;
+        if (!page.isEmpty() && (pageSegments + segments > 255 || pageBytes + p.length > 4000)) {
+          writePage(out, serial, seq++, 0x00, granule, page);
+          page.clear();
+          pageBytes = pageSegments = 0;
+        }
+        page.add(p);
+        pageBytes += p.length;
+        pageSegments += segments;
+        granule += n;
+      }
+      if (page.isEmpty()) return false;
+      writePage(out, serial, seq, 0x04, granule, page);
+      try (FileOutputStream fos = new FileOutputStream(to)) {
+        out.writeTo(fos);
+      }
+      return true;
+    } catch (Throwable t) {
+      return false;
     }
   }
 

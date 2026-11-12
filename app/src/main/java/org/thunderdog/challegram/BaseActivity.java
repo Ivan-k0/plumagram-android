@@ -3216,7 +3216,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     if (isActivityBusyWithSomething()) {
       boolean exit = true;
 
-      if ((window.getBoundController() instanceof MediaViewController && ((MediaViewController) window.getBoundController()).isFromCamera()) || window.getBoundView() instanceof OptionsLayout || window.getBoundView() instanceof MenuMoreWrap) {
+      if (window.tgx101AllowWhileBusy || (window.getBoundController() instanceof MediaViewController && ((MediaViewController) window.getBoundController()).isFromCamera()) || window.getBoundView() instanceof OptionsLayout || window.getBoundView() instanceof MenuMoreWrap) {
         exit = false;
       } else if (!windows.isEmpty()) {
         PopupLayout firstWindow = windows.get(0);

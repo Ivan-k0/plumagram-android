@@ -619,6 +619,8 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
   /** The menu only waits under the next sheet to hand its dim over — it must not block that sheet (user 2026-10-13 12:27
    *  «плавающего меню удалить нет вовсе»: the sheet was dropped as «the activity is busy with an animating window») */
   public boolean tgx101HandingOff;
+  /** TGx101: may open while the activity is busy (the voice recording's scissors editor over the recording panel) */
+  public boolean tgx101AllowWhileBusy;
 
   /** After the menu action ran: no sheet took over — the menu's dim fades out and the menu goes */
   public static void tgx101ReleaseDim () {

@@ -67,6 +67,14 @@ public class Tgx101SendAwake extends Service {
 
   public static void onSendingMedia (int accountId, TdApi.Message message) {
     if (message == null || message.content == null) return;
+    // voice notes and round videos sent as a file of their own (an edited voice note) are quiet too
+    if (message.content.getConstructor() == TdApi.MessageVoiceNote.CONSTRUCTOR) {
+      markQuietFile(accountId, ((TdApi.MessageVoiceNote) message.content).voiceNote.voice.id);
+      return;
+    } else if (message.content.getConstructor() == TdApi.MessageVideoNote.CONSTRUCTOR) {
+      markQuietFile(accountId, ((TdApi.MessageVideoNote) message.content).videoNote.video.id);
+      return;
+    }
     switch (message.content.getConstructor()) {
       case TdApi.MessageVideo.CONSTRUCTOR:
       case TdApi.MessagePhoto.CONSTRUCTOR:
@@ -178,6 +186,7 @@ public class Tgx101SendAwake extends Service {
   /** a voice note's or a round video's file: its upload shows no notification */
   public static void markQuietFile (int accountId, int fileId) {
     synchronized (sync) {
+      if (quiet.size() > 500) quiet.clear();
       quiet.add("u" + accountId + ":" + fileId);
     }
   }
@@ -312,7 +321,8 @@ public class Tgx101SendAwake extends Service {
         return;
       }
       progress.remove(key);
-      quiet.remove(key);
+      // the quiet mark stays: a voice note's upload stops and starts again as its file grows while recording, and the next
+      // start came back «loud» (user 2026-11-12 «отправка голосового до сих пор висит в системных уведомлениях»)
       if (active.isEmpty()) {
         handler().removeCallbacks(stopLater);
         handler().postDelayed(stopLater, LINGER_MS);

@@ -75,8 +75,14 @@ public final class Tgx101Sheet {
 
   /** A sheet with a drag handle; {@code fill} adds content to its column before it is shown */
   public static Handle show (ViewController<?> c, @Nullable Runnable onDismiss, me.vkryl.core.lambda.RunnableData<LinearLayout> fill) {
+    return show(c, onDismiss, fill, false);
+  }
+
+  /** {@code overBusy}: may open while the activity is busy, e.g. over the voice recording panel */
+  public static Handle show (ViewController<?> c, @Nullable Runnable onDismiss, me.vkryl.core.lambda.RunnableData<LinearLayout> fill, boolean overBusy) {
     Context context = c.context();
     final PopupLayout popup = new PopupLayout(context);
+    popup.tgx101AllowWhileBusy = overBusy;
     popup.init(true);
     popup.setNeedRootInsets();
 

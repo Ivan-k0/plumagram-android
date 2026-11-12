@@ -167,7 +167,7 @@ public final class Tgx101VoiceCutSheet {
         org.thunderdog.challegram.Tgx101Diag.mark("voice edit: editor done, " + (edit.keptSamples() * 1000L / Tgx101VoiceEdit.RATE) + " ms kept");
         if (handle[0] != null) handle[0].dismiss();
       });
-    });
+    }, true);
   }
 
   private static TextView text (Context context, CharSequence s, float size, int color, boolean bold) {
