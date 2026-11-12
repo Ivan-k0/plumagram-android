@@ -925,12 +925,23 @@ public class ViewPagerTopView extends FrameLayoutFix implements RtlCheckListener
       callListener = fromIndex != -1 && toIndex != -1 && (Math.abs(toIndex - fromIndex) > 1 || selectionChangeListener.hasPendingUserInteraction());
     }
     float totalFactor = items.size() > 1 ? selectionFactor / (float) (items.size() - 1) : 0;
+    if (!callListener && selectionChangeListener != null && org.thunderdog.challegram.BuildConfig.TGX101_DIAG && fromIndex != -1 && toIndex != -1) {
+      // TGx101 diag: a step of the swipe the strip wasn't told about (why it may stand still and then jump)
+      long now = android.os.SystemClock.uptimeMillis();
+      if (now - tgx101SkipLoggedAt > 250) {
+        tgx101SkipLoggedAt = now;
+        org.thunderdog.challegram.Tgx101Diag.mark(String.format(java.util.Locale.ROOT, "folder strip: step not passed on — %s, from %d to %d, factor %.3f, user's own scroll pending %b",
+          set ? "following the pager" : "a jump", fromIndex, toIndex, totalFactor, selectionChangeListener.hasPendingUserInteraction()));
+      }
+    }
     if (callListener && selectionChangeListener != null && (lastCallSelectionLeft != selectionLeft || lastCallSelectionWidth != selectionWidth || lastCallSelectionFactor != totalFactor || ((showLabelOnActiveOnly || animateItemChanges) && set))) {
       int firstItemWidth = getItemExpandedWidth(0);
       int lastItemWidth = items.size() > 1 ? getItemExpandedWidth(items.size() - 1) : firstItemWidth;
       selectionChangeListener.onSelectionChanged(lastCallSelectionLeft = selectionLeft, lastCallSelectionWidth = selectionWidth, firstItemWidth, lastItemWidth, lastCallSelectionFactor = totalFactor, !set);
     }
   }
+
+  private long tgx101SkipLoggedAt;
 
   private int getItemWidth (int itemIndex, float selectionFactor) {
     float labelFactor = getLabelFactor(itemIndex, selectionFactor);

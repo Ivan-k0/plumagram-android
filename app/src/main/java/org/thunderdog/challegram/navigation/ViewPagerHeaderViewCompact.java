@@ -233,6 +233,30 @@ public class ViewPagerHeaderViewCompact extends FrameLayoutFix implements PagerH
 
   private static final boolean POST_SMOOTH_SCROLL_ALWAYS = false;
 
+  // TGx101 (user 2026-11-12 13:00 «перелистывание шапки отображается не нормально, как будто что-то пропускает»): the black
+  // box for the folder strip while the folders are swiped — each step the strip is told: where the pager is (0..1 over all
+  // folders), the chosen tab's place and width, where the row stands and where it is asked to stand, and how it gets
+  // there (follows at once, plays a jump, or scrolls smoothly), with the user's own scroll of the row that holds it back.
+  // At most 120 lines in two seconds.
+  private long tgx101TraceWindow;
+  private int tgx101TraceLines;
+
+  private void tgx101TraceStrip (float totalFactor, int selectionLeft, int selectionWidth, int rawLeft, int viewLeft, int desiredLeft, int minLeft, int maxLeft, int viewWidth, boolean animated) {
+    if (!org.thunderdog.challegram.BuildConfig.TGX101_DIAG) return;
+    long now = android.os.SystemClock.uptimeMillis();
+    if (now - tgx101TraceWindow > 2000) {
+      tgx101TraceWindow = now;
+      tgx101TraceLines = 0;
+    }
+    if (++tgx101TraceLines > 120) return;
+    int diff = viewLeft - desiredLeft;
+    String how = diff == 0 ? "in place" : animated ? "smooth scroll" : (scrollByAnimator != null && scrollByAnimator.isAnimating()) ? "joins a playing jump" : (Math.abs(diff) > Screen.dp(8f) || hasUserInteraction) ? "plays a jump" : "follows";
+    org.thunderdog.challegram.Tgx101Diag.mark(String.format(java.util.Locale.ROOT,
+      "folder strip: pager %.3f, tab at %d w %d, row at %d (raw %d) → %d [%d..%d], width %d, %s by %d px%s%s",
+      totalFactor, selectionLeft, selectionWidth, viewLeft, rawLeft, desiredLeft, minLeft, maxLeft, viewWidth, how, -diff,
+      hasUserInteraction ? ", user's own scroll pending" : "", recyclerView.getScrollState() != RecyclerView.SCROLL_STATE_IDLE ? ", row scrolling" : ""));
+  }
+
   @Override
   public void onSelectionChanged (int selectionLeft, int selectionWidth, int firstItemWidth, int lastItemWidth, float totalFactor, boolean animated) {
     View view = recyclerView.getLayoutManager().findViewByPosition(0);
@@ -316,6 +340,7 @@ public class ViewPagerHeaderViewCompact extends FrameLayoutFix implements PagerH
     // scrolls in proportion to the pager's position, the row and the line move together
     if (true || (selfWidth < selfMaxWidth) || (topView.getMaxStableWidth() - parentWidth) < lastItemWidth / 2) {
       int desiredViewLeft = (int) (maxViewLeft * (1f - totalFactor) + minViewLeft * totalFactor);
+      tgx101TraceStrip(totalFactor, selectionLeft, selectionWidth, view.getLeft(), viewLeft, desiredViewLeft, minViewLeft, maxViewLeft, viewWidth, animated);
       if (viewLeft != desiredViewLeft) {
         int diff = (viewLeft - desiredViewLeft)/* * (Lang.rtl() ? -1 : 1)*/;  // TODO RTL
         if (animated) {
