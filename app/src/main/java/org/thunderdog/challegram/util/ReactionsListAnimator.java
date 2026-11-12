@@ -352,7 +352,7 @@ public final class ReactionsListAnimator implements Iterable<ReactionsListAnimat
     int totalWidth = 0, totalHeight = 0;
     int maxTop = -1;
     int lastLineWidth = 0;
-    for (Entry entry : actualList) {
+    for (Entry entry : new ArrayList<>(actualList)) { // TGx101: a copy, see below
       TGReactions.MessageReactionEntry item = entry.item;
 
       int itemWidth = item.getBubbleTargetWidth(); // item.getBubbleWidth();
@@ -387,7 +387,10 @@ public final class ReactionsListAnimator implements Iterable<ReactionsListAnimat
       }
     }
 
-    for (Entry entry : entries) {
+    // TGx101 (a 4PDA reader's crash 2026-11-10, Moto Z2 Play, 0.2.934: IndexOutOfBounds length=1 index=1 here): a change
+    // callback inside the loop (onBeforeListChanged → a message's reactions rebuilt) shortened the list being walked;
+    // the walk goes over a copy
+    for (Entry entry : new ArrayList<>(entries)) {
       if (entry.item instanceof Animatable) {
         Animatable animatable = (Animatable) entry.item;
         if (animated) {
