@@ -10147,6 +10147,20 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     return isMediaSent;
   }
 
+  /** TGx101: whether this send carries at least one photo (the «HD quality» tick only changes photos) */
+  private boolean tgx101SendsPhoto () {
+    ArrayList<ImageFile> files = selectDelegate != null ? selectDelegate.getSelectedMediaItems(false) : null;
+    if (files == null || files.isEmpty()) {
+      MediaItem current = stack.getCurrent();
+      ImageFile file = current != null ? current.getSourceGalleryFile() : null;
+      return !(file instanceof ImageGalleryFile) || !((ImageGalleryFile) file).isVideo();
+    }
+    for (ImageFile file : files) {
+      if (!(file instanceof ImageGalleryFile) || !((ImageGalleryFile) file).isVideo()) return true;
+    }
+    return false;
+  }
+
   private boolean canDisableMarkdown () {
     if (selectDelegate == null)
       return false;
@@ -10979,8 +10993,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
               })
           );
         }
-        if (sendDelegate != null && !inForceEditMode()) {
-          // TGx101 (user 2026-10-04): photo quality for this send, right on the preview
+        if (sendDelegate != null && !inForceEditMode() && tgx101SendsPhoto()) {
+          // TGx101 (user 2026-10-04): photo quality for this send, right on the preview — only when a photo goes
+          // (user 2026-11-13 «зачем выбор качества HD при отправке видео?»: it changes nothing for a video)
           Boolean hdOverride = org.thunderdog.challegram.filegen.PhotoGenerationInfo.tgx101HdOverride;
           hapticItems.add(0,
             new HapticMenuHelper.MenuItem(R.id.btn_tgx101SendHd, Lang.getString(R.string.Tgx101SendHd), R.drawable.baseline_image_24)
