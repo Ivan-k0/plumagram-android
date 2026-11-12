@@ -865,6 +865,12 @@ public class MediaView extends FrameLayoutFix {
     invalidate();
   };
 
+  /** TGx101 (user 2026-11-12 «на мгновение показывать, на сколько секунд я перемотал двойным тапом»): the same label as a seek swipe, for a moment */
+  public void tgx101ShowTapSeek (long shownMs, long targetMs, long totalMs) {
+    showHud((shownMs >= 0 ? "+" : "−") + formatTime(Math.abs(shownMs)), formatTime(targetMs) + " / " + formatTime(totalMs));
+    postDelayed(gHideHud, 700);
+  }
+
   public void tgx101SetSpeed (float speed) {
     if (baseCell != null) baseCell.tgx101SetSpeed(speed);
   }

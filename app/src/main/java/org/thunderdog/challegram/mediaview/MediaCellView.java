@@ -1486,6 +1486,7 @@ public class MediaCellView extends ViewGroup implements
   private long lastVideoTapTime;
   private int lastVideoTapZone = Integer.MIN_VALUE;
   private boolean inVideoSeekSeries;
+  private long tgx101TapSeekFrom; // where the series of double-tap seeks began
   private Runnable pendingVideoTap;
 
   private boolean isSeekableVideo () {
@@ -1525,8 +1526,10 @@ public class MediaCellView extends ViewGroup implements
       return true;
     }
     if (isQuickRepeat && !gestures) {
+      if (!inVideoSeekSeries) tgx101TapSeekFrom = timeNow;
       inVideoSeekSeries = true;
       long position = Math.max(0, Math.min(timeTotal, timeNow + zone * org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerSeekStep() * 1000L));
+      if (getParent() instanceof MediaView) ((MediaView) getParent()).tgx101ShowTapSeek(position - tgx101TapSeekFrom, position, timeTotal); // the whole series: +5, +10, +15…
       org.thunderdog.challegram.Tgx101Diag.mark("player: double tap " + (zone < 0 ? "left" : "right") + " seek " + timeNow / 1000 + " → " + position / 1000 + " s");
       timeNow = position;
       playerView.setSeekProgress((float) ((double) position / (double) timeTotal));
