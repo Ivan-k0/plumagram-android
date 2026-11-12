@@ -255,7 +255,8 @@ public class Tgx101SendAwake extends Service {
   public static void whenScreenOn (Runnable r) {
     Context context = AppContext.get();
     PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-    if (pm == null || pm.isInteractive()) {
+    // isInteractive is Android 4.4W+; isScreenOn before it (lint before 0.2.981)
+    if (pm == null || (android.os.Build.VERSION.SDK_INT >= 20 ? pm.isInteractive() : pm.isScreenOn())) {
       r.run();
       return;
     }

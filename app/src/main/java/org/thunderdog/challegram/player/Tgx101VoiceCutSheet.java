@@ -230,17 +230,18 @@ public final class Tgx101VoiceCutSheet {
       bg.setColor(0);
       bg.setStroke(Screen.dp(1f), ColorUtils.alphaColor(.35f, Theme.textAccentColor()));
     }
-    v.setBackground(ripple(bg, kind == M3_FILLED ? 0xffffffff : Theme.textAccentColor()));
+    v.setBackground(ripple(bg, kind == M3_FILLED ? 0xffffffff : Theme.textAccentColor(), false));
     v.setClickable(true);
     v.setFocusable(true);
     return v;
   }
 
-  private static android.graphics.drawable.Drawable ripple (GradientDrawable bg, int over) {
+  /** {@code oval}: told, not read back — GradientDrawable#getShape is Android 7+ (lint before 0.2.981) */
+  private static android.graphics.drawable.Drawable ripple (GradientDrawable bg, int over, boolean oval) {
     if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.LOLLIPOP) return bg;
     GradientDrawable mask = new GradientDrawable();
-    mask.setShape(bg.getShape());
-    mask.setCornerRadius(bg.getShape() == GradientDrawable.OVAL ? 0 : Screen.dp(20f));
+    mask.setShape(oval ? GradientDrawable.OVAL : GradientDrawable.RECTANGLE);
+    mask.setCornerRadius(oval ? 0 : Screen.dp(20f));
     mask.setColor(0xffffffff);
     return new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(ColorUtils.alphaColor(.16f, over)), bg, mask);
   }
@@ -302,7 +303,7 @@ public final class Tgx101VoiceCutSheet {
     } else {
       bg.setColor(fill);
     }
-    v.setBackground(ripple(bg, outlined ? Theme.textAccentColor() : 0xffffffff));
+    v.setBackground(ripple(bg, outlined ? Theme.textAccentColor() : 0xffffffff, true));
     v.setClickable(true);
     v.setFocusable(true);
     return v;
