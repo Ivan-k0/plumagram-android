@@ -88,31 +88,31 @@ public final class Tgx101VoiceCutSheet {
       actions.setOrientation(LinearLayout.HORIZONTAL);
       actions.setGravity(Gravity.CENTER_VERTICAL);
       actions.setPadding(pad, Screen.dp(14f), pad, 0);
-      final ImageView play = round(context, R.drawable.baseline_play_arrow_36_white, Theme.getColor(ColorId.waveformActive), 0xffffffff, 52f, false);
+      final ImageView play = round(context, R.drawable.baseline_play_arrow_36_white, Theme.getColor(ColorId.waveformActive), 0xffffffff, 56f, false);
       play.setContentDescription(Lang.getString(R.string.Tgx101VoiceCutPlayAll));
-      actions.addView(play, new LinearLayout.LayoutParams(Screen.dp(52f), Screen.dp(52f)));
-      final TextView playPiece = pill(context, "", 0, Theme.textAccentColor(), false);
-      LinearLayout.LayoutParams pieceParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(44f));
+      actions.addView(play, new LinearLayout.LayoutParams(Screen.dp(56f), Screen.dp(56f)));
+      final TextView playPiece = pill(context, "", M3_TONAL);
+      LinearLayout.LayoutParams pieceParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(40f));
       pieceParams.leftMargin = Screen.dp(10f);
       actions.addView(playPiece, pieceParams);
       actions.addView(new View(context), new LinearLayout.LayoutParams(0, 1, 1f));
-      final ImageView bringBack = round(context, R.drawable.baseline_undo_24, 0, Theme.textAccentColor(), 48f, true);
+      final ImageView bringBack = round(context, R.drawable.baseline_undo_24, 0, Theme.textAccentColor(), 40f, true);
       bringBack.setContentDescription(Lang.getString(R.string.Tgx101VoiceCutBringBack));
-      LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(Screen.dp(48f), Screen.dp(48f));
+      LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(Screen.dp(40f), Screen.dp(40f));
       backParams.rightMargin = Screen.dp(10f);
       actions.addView(bringBack, backParams);
-      final ImageView cut = round(context, R.drawable.baseline_content_cut_24, RED, 0xffffffff, 52f, false);
+      final ImageView cut = round(context, R.drawable.baseline_content_cut_24, RED, 0xffffffff, 56f, false);
       cut.setContentDescription(Lang.getString(R.string.Tgx101VoiceCutDo));
-      actions.addView(cut, new LinearLayout.LayoutParams(Screen.dp(52f), Screen.dp(52f)));
+      actions.addView(cut, new LinearLayout.LayoutParams(Screen.dp(56f), Screen.dp(56f)));
       body.addView(actions);
 
       LinearLayout bottom = new LinearLayout(context);
       bottom.setOrientation(LinearLayout.HORIZONTAL);
       bottom.setPadding(pad, Screen.dp(16f), pad, Screen.dp(4f));
-      TextView cancel = pill(context, Lang.getString(R.string.Cancel), ColorUtils.alphaColor(.08f, Theme.textAccentColor()), Theme.textAccentColor(), false);
-      bottom.addView(cancel, new LinearLayout.LayoutParams(0, Screen.dp(48f), 1f));
-      TextView ok = pill(context, Lang.getString(R.string.Tgx101VoiceCutDone), Theme.getColor(ColorId.waveformActive), 0xffffffff, true);
-      LinearLayout.LayoutParams okParams = new LinearLayout.LayoutParams(0, Screen.dp(48f), 1f);
+      TextView cancel = pill(context, Lang.getString(R.string.Cancel), M3_TONAL);
+      bottom.addView(cancel, new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f));
+      TextView ok = pill(context, Lang.getString(R.string.Tgx101VoiceCutDone), M3_FILLED);
+      LinearLayout.LayoutParams okParams = new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f);
       okParams.leftMargin = Screen.dp(10f);
       bottom.addView(ok, okParams);
       body.addView(bottom);
@@ -188,22 +188,42 @@ public final class Tgx101VoiceCutSheet {
     return v;
   }
 
-  private static TextView pill (Context context, CharSequence s, int fill, int textColor, boolean bold) {
-    TextView v = text(context, s, 15f, textColor, bold);
+  // TGx101 (user 2026-11-12 «кнопки в редакторе в стиле материал?» — «да, переведи»): Material 3 buttons — 40 dp, fully
+  // rounded, Medium 14 sp with M3's letter spacing, a ripple from the finger; filled (primary), tonal (a 12 % tint of
+  // the accent) and outlined kinds; icon buttons round, filled or outlined
+  static final int M3_FILLED = 0, M3_TONAL = 1, M3_OUTLINED = 2;
+
+  private static TextView pill (Context context, CharSequence s, int kind) {
+    int accent = Theme.getColor(ColorId.waveformActive);
+    int textColor = kind == M3_FILLED ? 0xffffffff : kind == M3_TONAL ? Theme.textAccentColor() : accent;
+    TextView v = text(context, s, 14f, textColor, true);
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) v.setLetterSpacing(.007f);
     v.setGravity(Gravity.CENTER);
-    v.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);
+    v.setPadding(Screen.dp(20f), 0, Screen.dp(20f), 0);
+    v.setMinWidth(Screen.dp(64f));
     GradientDrawable bg = new GradientDrawable();
-    bg.setCornerRadius(Screen.dp(24f));
-    if (fill != 0) {
-      bg.setColor(fill);
+    bg.setCornerRadius(Screen.dp(20f));
+    if (kind == M3_FILLED) {
+      bg.setColor(accent);
+    } else if (kind == M3_TONAL) {
+      bg.setColor(ColorUtils.alphaColor(.14f, accent));
     } else {
       bg.setColor(0);
-      bg.setStroke(Screen.dp(1f), ColorUtils.alphaColor(.25f, Theme.textAccentColor()));
+      bg.setStroke(Screen.dp(1f), ColorUtils.alphaColor(.35f, Theme.textAccentColor()));
     }
-    v.setBackground(bg);
+    v.setBackground(ripple(bg, kind == M3_FILLED ? 0xffffffff : Theme.textAccentColor()));
     v.setClickable(true);
     v.setFocusable(true);
     return v;
+  }
+
+  private static android.graphics.drawable.Drawable ripple (GradientDrawable bg, int over) {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.LOLLIPOP) return bg;
+    GradientDrawable mask = new GradientDrawable();
+    mask.setShape(bg.getShape());
+    mask.setCornerRadius(bg.getShape() == GradientDrawable.OVAL ? 0 : Screen.dp(20f));
+    mask.setColor(0xffffffff);
+    return new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(ColorUtils.alphaColor(.16f, over)), bg, mask);
   }
 
   private static ImageView round (Context context, int icon, int fill, int tint, float size, boolean outlined) {
@@ -211,17 +231,17 @@ public final class Tgx101VoiceCutSheet {
     v.setImageResource(icon);
     v.setColorFilter(tint);
     v.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-    int p = Screen.dp(size * .24f);
+    int p = Screen.dp(size * .26f);
     v.setPadding(p, p, p, p);
     GradientDrawable bg = new GradientDrawable();
     bg.setShape(GradientDrawable.OVAL);
     if (outlined) {
       bg.setColor(0);
-      bg.setStroke(Screen.dp(1f), ColorUtils.alphaColor(.25f, Theme.textAccentColor()));
+      bg.setStroke(Screen.dp(1f), ColorUtils.alphaColor(.35f, Theme.textAccentColor()));
     } else {
       bg.setColor(fill);
     }
-    v.setBackground(bg);
+    v.setBackground(ripple(bg, outlined ? Theme.textAccentColor() : 0xffffffff));
     v.setClickable(true);
     v.setFocusable(true);
     return v;
