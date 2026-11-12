@@ -352,7 +352,7 @@ public final class Tgx101Updates {
       for (int i = 0; i < assets.length(); i++) {
         JSONObject a = assets.getJSONObject(i);
         String name = a.optString("name", "");
-        if (!name.endsWith(suffix) || (!BuildConfig.TGX101_TEST && name.contains("-T-"))) continue;
+        if (!isOurAsset(name)) continue;
         return new Release(latest[0] + "." + latest[1] + "." + latest[2], a.getString("browser_download_url"), name,
           a.optLong("size"), json.optString("html_url", RELEASES_URL), json.optString("body", ""));
       }
@@ -387,7 +387,7 @@ public final class Tgx101Updates {
       if (!(m.content instanceof org.drinkless.tdlib.TdApi.MessageDocument)) continue;
       org.drinkless.tdlib.TdApi.Document doc = ((org.drinkless.tdlib.TdApi.MessageDocument) m.content).document;
       String name = doc.fileName != null ? doc.fileName : "";
-      if (!name.endsWith(suffix) || (!BuildConfig.TGX101_TEST && name.contains("-T-"))) continue;
+      if (!isOurAsset(name)) continue;
       int[] v = parse(name);
       if (v == null) continue;
       String version = v[0] + "." + v[1] + "." + v[2];
@@ -416,10 +416,21 @@ public final class Tgx101Updates {
     }
   }
 
+  /**
+   * TGx101 (a 4PDA reader's «Т» log 2026-11-10 19:25: «plumagram-0.2.934 has no -T-universal.apk» though the release
+   * had it): the test files are named «PlumaGram-T-0.2.934-universal.apk» — the «-T-» stands before the version, so
+   * the name never ended with «-T-universal.apk» and a «Т» build never saw its update
+   */
+  private static boolean isOurAsset (String name) {
+    boolean test = name.contains("-T-");
+    if (test != BuildConfig.TGX101_TEST) return false;
+    return name.endsWith(assetSuffix());
+  }
+
   /** Release asset names, see scripts/tgx101/build-public.sh and build-test.sh */
   private static String assetSuffix () {
     if (BuildConfig.TGX101_TEST) {
-      return BuildConfig.LEGACY_FLAVOR ? "-T-android4.apk" : "-T-universal.apk";
+      return BuildConfig.LEGACY_FLAVOR ? "-android4.apk" : "-universal.apk";
     }
     if (BuildConfig.LEGACY_FLAVOR) return "-android4.apk";
     if (BuildConfig.LOLLIPOP_FLAVOR) return "-android5.apk";
