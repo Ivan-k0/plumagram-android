@@ -7447,7 +7447,9 @@
   <string name="Tgx101PeekAvatars">Avatars</string>
   <string name="Tgx101PeekTitles">Names</string>
   <string name="Tgx101PeekTexts">Messages</string>
-  <string name="Tgx101PeekQuickHint">Opened chats are not blurred.</string>
+  <string name="Tgx101PeekQuickHint">The same strength is used inside an opened chat.</string>
+  <string name="Tgx101PeekInside">In an opened chat too</string>
+  <string name="Tgx101PeekInsideHint">Blurs the photos beside the messages and the chat\'s photo and name at the top.</string>
   <string name="Tgx101PeekToastOn">Don\'t peek: on</string>
   <string name="Tgx101PeekToastOff">Don\'t peek: off</string>
   <string name="Tgx101SavedBannerAlways">Always</string>

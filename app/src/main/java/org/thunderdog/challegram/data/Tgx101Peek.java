@@ -40,6 +40,7 @@ public final class Tgx101Peek {
   private static final String KEY_TEXT = "tgx101_peek_text";
   private static final String KEY_TITLE = "tgx101_peek_title";
   private static final String KEY_STYLE = "tgx101_peek_style";
+  private static final String KEY_INSIDE = "tgx101_peek_inside";
 
   /** (4PDA 2026-10-29 «на скудном устройстве тормозит, пока чат не открою»; user «наш лёгкий вид лучше»): blur, or the
    *  light look — the stand-ins older phones draw anyway (plates over the lines, letters for the avatars), nothing for the
@@ -51,7 +52,7 @@ public final class Tgx101Peek {
   /** The slider's steps, % */
   public static final int[] STEPS = {0, 20, 40, 60, 80, 100};
 
-  private static boolean loaded, on, all;
+  private static boolean loaded, on, all, inside;
   private static int avatar, title, text, style;
   private static Set<Long> chats = Collections.emptySet();
 
@@ -69,6 +70,7 @@ public final class Tgx101Peek {
     text = pmc.getInt(KEY_TEXT, 80);
     title = pmc.getInt(KEY_TITLE, 0);
     style = pmc.getInt(KEY_STYLE, STYLE_BLUR);
+    inside = pmc.getBoolean(KEY_INSIDE, true);
     long[] ids = pmc.getLongArray(KEY_CHATS);
     Set<Long> set = new LinkedHashSet<>();
     if (ids != null) for (long id : ids) set.add(id);
@@ -148,6 +150,26 @@ public final class Tgx101Peek {
     invalidateAll();
   }
 
+  /** (user 2026-11-12 «скрывалась не только в списке чатов, но и в самом канале»): inside an opened chat too — the photos
+   *  beside the messages, the chat's photo and name in its header */
+  public static boolean isInside () {
+    load();
+    return inside;
+  }
+
+  public static void setInside (boolean value) {
+    load();
+    inside = value;
+    pmc().putBoolean(KEY_INSIDE, value);
+    invalidateAll();
+  }
+
+  /** Strength for this part inside the opened chat, 0 — drawn as is */
+  public static int strengthInside (long chatId, int part) {
+    load();
+    return inside ? strengthFor(chatId, part) : 0;
+  }
+
   public static int style () {
     load();
     return style;
@@ -197,7 +219,12 @@ public final class Tgx101Peek {
 
   private static void invalidateAll () {
     for (View view : views.toArray(new View[0])) {
-      if (view != null) view.invalidate();
+      if (view == null) continue;
+      view.invalidate();
+      if (view instanceof android.view.ViewGroup) { // the messages list: its rows keep what they drew
+        android.view.ViewGroup group = (android.view.ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) group.getChildAt(i).invalidate();
+      }
     }
   }
 

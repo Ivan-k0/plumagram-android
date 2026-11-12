@@ -99,6 +99,7 @@ public class ChatHeaderView extends ComplexHeaderView {
     }
 
     getAvatarReceiver().requestChat(tdlib, chat.id, AvatarReceiver.Options.FULL_SIZE);
+    setTgx101PeekChatId(chat.id); // TGx101 «Не подглядывай!»
     setShowVerify(tdlib.chatVerified(chat));
     setShowScam(tdlib.chatScam(chat));
     setShowFake(tdlib.chatFake(chat));

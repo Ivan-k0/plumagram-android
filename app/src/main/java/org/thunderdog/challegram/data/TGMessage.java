@@ -2308,8 +2308,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         int iconLeft = Lang.rtl() ? view.getMeasuredWidth() - Screen.dp(12f) - iconSize : Screen.dp(12f);
         avatarReceiver.setBounds(iconLeft, iconTop, iconLeft + iconSize, iconTop + iconSize);
       }
-      if (avatarReceiver.needPlaceholder()) avatarReceiver.drawPlaceholder(c);
-      avatarReceiver.draw(c);
+      tgx101DrawAvatar(c, avatarReceiver);
     }
     if (hasBubble) {
       if (needBubbleCornerFix()) {
@@ -2350,9 +2349,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         if (useFullWidth()) {
           c.drawCircle(cx, cy, xAvatarRadius + Screen.dp(2.5f), Paints.fillingPaint(Theme.getColor(ColorId.chatBackground)));
         }
-        if (avatarReceiver.needPlaceholder())
-          avatarReceiver.drawPlaceholder(c);
-        avatarReceiver.draw(c);
+        tgx101DrawAvatar(c, avatarReceiver);
       }
 
       // Author
@@ -3595,6 +3592,25 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   public final boolean isMessageThread () {
     return messagesController().getMessageThread() != null;
+  }
+
+  // TGx101 «Не подглядывай!» inside the chat (user 2026-11-12): the photo beside a message blurred like the chat list's
+
+  private org.thunderdog.challegram.data.Tgx101Peek.Painter tgx101PeekAvatar;
+
+  private void tgx101DrawAvatar (Canvas c, AvatarReceiver avatarReceiver) {
+    int peek = org.thunderdog.challegram.data.Tgx101Peek.strengthInside(msg.chatId, org.thunderdog.challegram.data.Tgx101Peek.PART_AVATAR);
+    if (peek <= 0) {
+      if (avatarReceiver.needPlaceholder()) avatarReceiver.drawPlaceholder(c);
+      avatarReceiver.draw(c);
+      return;
+    }
+    if (tgx101PeekAvatar == null) tgx101PeekAvatar = new org.thunderdog.challegram.data.Tgx101Peek.Painter();
+    int spread = Screen.dp(8f);
+    tgx101PeekAvatar.draw(c, avatarReceiver.getLeft() - spread, avatarReceiver.getTop() - spread, avatarReceiver.getRight() + spread, avatarReceiver.getBottom() + spread, peek, cc -> {
+      if (avatarReceiver.needPlaceholder()) avatarReceiver.drawPlaceholder(cc);
+      avatarReceiver.draw(cc);
+    }, cc -> cc.drawCircle(avatarReceiver.centerX(), avatarReceiver.centerY(), avatarReceiver.getWidth() / 2f, Paints.fillingPaint(ColorUtils.alphaColor(.35f, Theme.textDecentColor()))));
   }
 
   private boolean hasAvatar;

@@ -88,6 +88,8 @@ public class Tgx101PeekController extends RecyclerViewController<Void> implement
         int id = item.getId();
         if (id == R.id.btn_tgx101PeekOn) {
           view.getToggler().setRadioEnabled(Tgx101Peek.isOn(), isUpdate);
+        } else if (id == R.id.btn_tgx101PeekInside) {
+          view.getToggler().setRadioEnabled(Tgx101Peek.isInside(), isUpdate);
         } else if (id == R.id.btn_tgx101PeekChats) {
           int count = Tgx101Peek.chats().size();
           view.setData(count == 0 ? Lang.getString(R.string.Tgx101PeekNoChats) : Lang.getString(R.string.Tgx101PeekChatsCount, count));
@@ -124,6 +126,11 @@ public class Tgx101PeekController extends RecyclerViewController<Void> implement
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101PeekOn, R.drawable.baseline_eye_off_24, R.string.Tgx101PeekEnabled));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101PeekHint));
+
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101PeekInside, R.drawable.baseline_chat_bubble_24, R.string.Tgx101PeekInside));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101PeekInsideHint));
 
     items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101PeekWhere));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
@@ -162,6 +169,8 @@ public class Tgx101PeekController extends RecyclerViewController<Void> implement
       boolean on = adapter.toggleView(v);
       Tgx101Peek.setOn(on);
       if (context().getDrawer() != null) context().getDrawer().tgx101UpdatePeekItem(on);
+    } else if (id == R.id.btn_tgx101PeekInside) {
+      Tgx101Peek.setInside(adapter.toggleView(v));
     } else if (id == R.id.btn_tgx101PeekAll || id == R.id.btn_tgx101PeekSelected) {
       adapter.processToggle(v);
       Tgx101Peek.setAll(id == R.id.btn_tgx101PeekAll);

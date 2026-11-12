@@ -1817,6 +1817,7 @@
   <item name="btn_tgx101SavedSettingsOpen" type="id"/>
   <item name="btn_tgx101Peek" type="id"/>
   <item name="btn_tgx101PeekOn" type="id"/>
+  <item name="btn_tgx101PeekInside" type="id"/>
   <item name="btn_tgx101PeekAll" type="id"/>
   <item name="btn_tgx101PeekSelected" type="id"/>
   <item name="btn_tgx101PeekChats" type="id"/>

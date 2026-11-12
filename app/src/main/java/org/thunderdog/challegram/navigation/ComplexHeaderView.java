@@ -956,6 +956,17 @@ public class ComplexHeaderView extends BaseView implements RtlCheckListener, Sti
     paint.setTextSize(textSize);
   }
 
+  /** TGx101: the chat this header shows, for «Не подглядывай!»; 0 — none */
+  protected long tgx101PeekChatId;
+  private final org.thunderdog.challegram.data.Tgx101Peek.Painter tgx101PeekAvatar = new org.thunderdog.challegram.data.Tgx101Peek.Painter();
+  private final org.thunderdog.challegram.data.Tgx101Peek.Painter tgx101PeekTitle = new org.thunderdog.challegram.data.Tgx101Peek.Painter();
+
+  public void setTgx101PeekChatId (long chatId) {
+    tgx101PeekChatId = chatId;
+    if (chatId != 0) org.thunderdog.challegram.data.Tgx101Peek.register(this);
+    invalidate();
+  }
+
   @Override
   @SuppressWarnings("deprecation")
   protected void onDraw (@NonNull Canvas c) {
@@ -983,10 +994,23 @@ public class ComplexHeaderView extends BaseView implements RtlCheckListener, Sti
       final float textScaleFactor = MathUtils.fromTo(1f + scaleFactor * .1f, avatarTextScale, avatarExpandFactor);
 
       layoutReceiver();
-      if (receiver.needPlaceholder()) {
-        receiver.drawPlaceholderRounded(c, receiver.getDisplayRadius(), Theme.headerPlaceholderColor());
+      // TGx101 «Не подглядывай!» inside the chat (user 2026-11-12): the chat's photo and name in its header blurred too
+      final int peekAvatar = tgx101PeekChatId != 0 ? org.thunderdog.challegram.data.Tgx101Peek.strengthInside(tgx101PeekChatId, org.thunderdog.challegram.data.Tgx101Peek.PART_AVATAR) : 0;
+      final int peekTitle = tgx101PeekChatId != 0 ? org.thunderdog.challegram.data.Tgx101Peek.strengthInside(tgx101PeekChatId, org.thunderdog.challegram.data.Tgx101Peek.PART_TITLE) : 0;
+      if (peekAvatar <= 0) {
+        if (receiver.needPlaceholder()) {
+          receiver.drawPlaceholderRounded(c, receiver.getDisplayRadius(), Theme.headerPlaceholderColor());
+        }
+        receiver.draw(c);
+      } else {
+        int spread = Screen.dp(8f);
+        tgx101PeekAvatar.draw(c, receiver.getLeft() - spread, receiver.getTop() - spread, receiver.getRight() + spread, receiver.getBottom() + spread, peekAvatar, cc -> {
+          if (receiver.needPlaceholder()) {
+            receiver.drawPlaceholderRounded(cc, receiver.getDisplayRadius(), Theme.headerPlaceholderColor());
+          }
+          receiver.draw(cc);
+        }, cc -> receiver.drawPlaceholderRounded(cc, receiver.getDisplayRadius(), ColorUtils.alphaColor(.35f, Theme.headerTextColor())));
       }
-      receiver.draw(c);
       drawTgx101PhotoCount(c, avatarExpandFactor);
       if (avatarExpandFactor > 0f && receiver.getRequestedPlaceholder() == null) {
         getTopShadow().setAlpha((int) (255f * .8f * avatarExpandFactor));
@@ -1038,6 +1062,16 @@ public class ComplexHeaderView extends BaseView implements RtlCheckListener, Sti
           }
           trimmedTitleExpanded.draw(c, 0, 0, null, avatarExpandFactor);
           trimmedTitleClickRect.set(0, 0, trimmedTitleExpanded.getWidth(), trimmedTitleExpanded.getHeight());
+        } else if (peekTitle > 0) {
+          final Text t = trimmedTitle;
+          int spread = Screen.dp(6f);
+          tgx101PeekTitle.draw(c, -spread, -spread, t.getWidth() + spread, t.getHeight() + spread, peekTitle, cc -> t.draw(cc, 0, 0, null, 1f), cc -> {
+            float inset = t.getHeight() * .18f;
+            android.graphics.RectF r = Paints.getRectF();
+            r.set(0, inset, t.getWidth(), t.getHeight() - inset);
+            cc.drawRoundRect(r, r.height() / 2f, r.height() / 2f, Paints.fillingPaint(ColorUtils.alphaColor(.35f, Theme.headerTextColor())));
+          });
+          trimmedTitleClickRect.set(0, 0, t.getWidth(), t.getHeight());
         } else {
           trimmedTitle.draw(c, 0, 0, null, 1f);
           trimmedTitleClickRect.set(0, 0, trimmedTitle.getWidth(), trimmedTitle.getHeight());

@@ -1058,6 +1058,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     messagesManager.setManager(manager);
 
     messagesView = (MessagesRecyclerView) Views.inflate(context(), R.layout.recycler_messages, contentView);
+    org.thunderdog.challegram.data.Tgx101Peek.register(messagesView); // TGx101: «Не подглядывай!» redraws the messages' photos
     // TGx101 (user 2026-10-14 «полоса скролла как будто съедает часть экрана, у экстеры такого нет»): no scroll bar in chats
     messagesView.setVerticalScrollBarEnabled(false);
     addThemeInvalidateListener(messagesView);
