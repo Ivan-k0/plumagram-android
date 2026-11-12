@@ -390,7 +390,14 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   private void buildTitles (int maxWidth) {
     if (doc != null && title != null) {
       // TGx101 (user 2026-10-30 «нижний файл слишком длинный»): the document name is one line, cut in the middle (the extension stays), room on the right is kept for ⋮
-      trimmedTitle = new Text.Builder(title, maxWidth - Screen.dp(TGX101_DOTS_SPACE), Paints.getTitleStyleProvider(), context.getTextColorSet()).textFlags(Text.FLAG_ELLIPSIZE_MIDDLE).singleLine().allBold().highlight(context.getHighlightedText(Highlight.Pool.KEY_FILE_TITLE, title)).build();
+      if (context.useBubbles()) {
+        // TGx101 (user 2026-11-12, a reference screenshot): in bubbles the card is as wide as its name — a long name wraps onto
+        // a second line within a moderate width instead of stretching the bubble across the screen
+        int titleWidth = Math.min(maxWidth - Screen.dp(TGX101_DOTS_SPACE), Screen.dp(TGX101_BUBBLE_TITLE_MAX));
+        trimmedTitle = new Text.Builder(title, titleWidth, Paints.getTitleStyleProvider(), context.getTextColorSet()).maxLineCount(2).allBold().highlight(context.getHighlightedText(Highlight.Pool.KEY_FILE_TITLE, title)).build();
+      } else {
+        trimmedTitle = new Text.Builder(title, maxWidth - Screen.dp(TGX101_DOTS_SPACE), Paints.getTitleStyleProvider(), context.getTextColorSet()).textFlags(Text.FLAG_ELLIPSIZE_MIDDLE).singleLine().allBold().highlight(context.getHighlightedText(Highlight.Pool.KEY_FILE_TITLE, title)).build();
+      }
     } else {
       trimmedTitle = title != null ? new Text.Builder(title, maxWidth - (audio != null ? Screen.dp(TGX101_DOTS_SPACE) : 0), Paints.getTitleStyleProvider(), context.getTextColorSet()).textFlags(doc != null ? Text.FLAG_ELLIPSIZE_MIDDLE : 0).singleLine().allBold().highlight(context.getHighlightedText(Highlight.Pool.KEY_FILE_TITLE, title)).build() : null;
     }
@@ -554,9 +561,9 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       contentWidth += waveform.getWidth() + tgx101SideDurationWidth() + transcribeButtonSpace();
     } else {
       contentWidth += Math.max(getTitleWidth(), sizeWidth) + Screen.dp(tgx101HasDots() ? TGX101_DOTS_SPACE : 6f);
-      if (tgx101HasDots() && lastMaxWidth > contentWidth) {
-        // TGx101 (user 2026-10-30, channel «100 с чем-то книг»: «длина их должна быть одной»): music and files take the
-        // whole width — the ⋮ of each stands in one place, not after its name
+      if (tgx101HasDots() && !context.useBubbles() && lastMaxWidth > contentWidth) {
+        // TGx101 (user 2026-10-30, channel «100 с чем-то книг»: «длина их должна быть одной»): without bubbles music and files take the
+        // whole width — the ⋮ of each stands in one place, not after its name; in bubbles they keep their content's width (user 2026-11-12)
         contentWidth = lastMaxWidth;
       }
     }
@@ -569,6 +576,8 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
   // TGx101: room for ⋮ to the right of a document's name; extra height when the name takes two lines
   private static final float TGX101_DOTS_SPACE = 20f;
+  // TGx101: the widest a document's name gets in a bubble before it wraps (user 2026-11-12)
+  private static final float TGX101_BUBBLE_TITLE_MAX = 200f;
 
   private int tgx101TitleExtraHeight () {
     if (waveform != null || trimmedTitle == null || trimmedTitle.getLineCount() <= 1) return 0;
