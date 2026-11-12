@@ -4765,9 +4765,10 @@ public class Settings {
   // «Remember speed» off the speed lives only while the viewer is open and is never written
   private float tgx101SessionSpeed = 1f;
 
-  // TGx101 (user 2026-10-27 17:43, 2026-11-05 «убрать из настроек, всегда выкл»): a chat never reopens where it was left:
-  // the first unread or the end
-  public boolean tgx101RememberChatPlace () { return false; }
+  // TGx101 (user 2026-10-27 17:43): reopen a chat where it was left (Telegram X) — off: the first unread or the end.
+  // (2026-11-05 taken out of the settings, 2026-11-13 back «верни, выкл. сразу»): a new key, so it comes back off for everyone
+  public boolean tgx101RememberChatPlace () { return pmc.getBoolean("tgx101_remember_chat_place_v2", false); }
+  public void setTgx101RememberChatPlace (boolean v) { pmc.putBoolean("tgx101_remember_chat_place_v2", v); }
 
   // TGx101 (user 2026-10-27): the video stream's quality picked in the viewer — the short side (720, 480…), 0 = «Auto»
   public int tgx101VideoQuality () { return pmc.getInt("tgx101_video_quality", 0); }
