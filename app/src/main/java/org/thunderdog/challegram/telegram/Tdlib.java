@@ -1951,6 +1951,9 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       switch (object.getConstructor()) {
         case TdApi.File.CONSTRUCTOR:
           generation.file = (TdApi.File) object;
+          if (org.thunderdog.challegram.service.Tgx101SendAwake.isQuietConversion(id)) {
+            org.thunderdog.challegram.service.Tgx101SendAwake.markQuietFile(accountId, generation.file.id); // TGx101: no «Sending» notification for voice notes
+          }
           break;
         case TdApi.Error.CONSTRUCTOR:
           Log.w("Error starting file generation: %s", TD.toErrorString(object));
@@ -10023,7 +10026,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
 
   private void updateFileGenerationStart (TdApi.UpdateFileGenerationStart update) {
     org.thunderdog.challegram.Tgx101Diag.mark("file prep " + update.generationId + ": asked (" + update.conversion + ")");
-    org.thunderdog.challegram.service.Tgx101SendAwake.onGenerationStart(accountId, update.generationId); // TGx101: and while preparing a file
+    org.thunderdog.challegram.service.Tgx101SendAwake.onGenerationStart(accountId, update.generationId, update.conversion); // TGx101: and while preparing a file
     synchronized (awaitingGenerations) {
       Generation generation = awaitingGenerations.remove(update.conversion);
       if (generation != null) {

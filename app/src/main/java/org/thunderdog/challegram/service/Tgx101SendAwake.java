@@ -55,6 +55,11 @@ public class Tgx101SendAwake extends Service {
   private static final Object sync = new Object();
   private static final Set<String> active = new HashSet<>();
   private static final Map<String, Float> progress = new HashMap<>();
+  // TGx101 (user 2026-11-12 «для голосовых и кружков системное уведомление об отправке не нужно»): their preparing and
+  // upload keep the CPU but show no notification
+  private static final Set<String> quiet = new HashSet<>();
+  private static final long NOTIFY_AFTER_MS = 700;
+  private static final Runnable startLater = Tgx101SendAwake::startIfLoud;
   private static Tgx101SendAwake instance;
   private static long lastNotifyMs;
   private static PowerManager.WakeLock wakeLock;
@@ -66,8 +71,25 @@ public class Tgx101SendAwake extends Service {
 
   // TDLib hooks
 
-  public static void onGenerationStart (int accountId, long generationId) {
-    add("g" + accountId + ":" + generationId);
+  public static void onGenerationStart (int accountId, long generationId, String conversion) {
+    String key = "g" + accountId + ":" + generationId;
+    if (isQuietConversion(conversion)) {
+      synchronized (sync) {
+        quiet.add(key);
+      }
+    }
+    add(key);
+  }
+
+  public static boolean isQuietConversion (@Nullable String conversion) {
+    return conversion != null && (conversion.startsWith("voice") || conversion.startsWith("round"));
+  }
+
+  /** a voice note's or a round video's file: its upload shows no notification */
+  public static void markQuietFile (int accountId, int fileId) {
+    synchronized (sync) {
+      quiet.add("u" + accountId + ":" + fileId);
+    }
   }
 
   public static void onGenerationStop (int accountId, long generationId) {
@@ -115,6 +137,7 @@ public class Tgx101SendAwake extends Service {
       int ups = 0;
       for (String key : active) {
         Float p = progress.get(key);
+        if (quiet.contains(key)) continue;
         if (key.startsWith("g")) {
           float v = p != null ? p : 0f;
           gen = gen < 0 ? v : Math.min(gen, v);
@@ -174,8 +197,23 @@ public class Tgx101SendAwake extends Service {
     }
     if (first) {
       org.thunderdog.challegram.Tgx101Diag.mark("sending awake: on (" + key + ")");
-      startService();
     }
+    // the notification waits a moment: a voice note's upload starts before its file is known as a voice note's
+    handler().removeCallbacks(startLater);
+    handler().postDelayed(startLater, NOTIFY_AFTER_MS);
+  }
+
+  private static void startIfLoud () {
+    boolean loud = false;
+    synchronized (sync) {
+      for (String k : active) {
+        if (!quiet.contains(k)) {
+          loud = true;
+          break;
+        }
+      }
+    }
+    if (loud) startService();
   }
 
   private static void remove (String key) {
@@ -184,6 +222,7 @@ public class Tgx101SendAwake extends Service {
         return;
       }
       progress.remove(key);
+      quiet.remove(key);
       if (active.isEmpty()) {
         handler().removeCallbacks(stopLater);
         handler().postDelayed(stopLater, LINGER_MS);

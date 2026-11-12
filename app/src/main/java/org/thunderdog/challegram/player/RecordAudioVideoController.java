@@ -1745,6 +1745,7 @@ public class RecordAudioVideoController implements
     roundKey = "round" + SystemClock.uptimeMillis() + "_" + System.currentTimeMillis() + "_" + Math.random();
     tdlib.client().send(new TdApi.PreliminaryUploadFile(new TdApi.InputFileGenerated(null, roundKey, 0), ChatId.isSecret(targetChatId) ? new TdApi.FileTypeSecret() : new TdApi.FileTypeVideoNote(), 1), object -> {
       if (object.getConstructor() == TdApi.File.CONSTRUCTOR) {
+        org.thunderdog.challegram.service.Tgx101SendAwake.markQuietFile(tdlib.accountId(), ((TdApi.File) object).id); // TGx101: no «Sending» notification for round videos
         setRoundGenerationFile((TdApi.File) object);
       } else {
         UI.showError(object);
