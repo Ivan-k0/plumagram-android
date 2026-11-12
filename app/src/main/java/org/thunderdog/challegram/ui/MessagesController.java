@@ -10245,7 +10245,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tgx101AiBefore != null) {
       ids.append(R.id.btn_tgx101AiUndo); titles.append(R.string.Tgx101AiUndo); icons.append(R.drawable.baseline_undo_24);
     }
-    showOptions(Lang.getString(R.string.Tgx101AiInfo), ids.get(), titles.get(), null, icons.get(), (itemView, id) -> {
+    showOptions(org.thunderdog.challegram.data.Tgx101OwnAi.mode() == org.thunderdog.challegram.data.Tgx101OwnAi.MODE_ALWAYS_OWN && org.thunderdog.challegram.data.Tgx101OwnAi.isReady() ? Lang.getString(R.string.Tgx101OwnAiInfo, org.thunderdog.challegram.data.Tgx101OwnAi.displayName(context(), org.thunderdog.challegram.data.Tgx101OwnAi.providerId())) : Lang.getString(R.string.Tgx101AiInfo), ids.get(), titles.get(), null, icons.get(), (itemView, id) -> {
       final TdApi.FormattedText text = inputView.getOutputText(false);
       if (id == R.id.btn_tgx101AiFix) {
         tgx101RunAi(new TdApi.FixTextWithAi(text), "fix");

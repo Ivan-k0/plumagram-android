@@ -22,6 +22,7 @@ import org.thunderdog.challegram.component.base.SettingView;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.data.Tgx101OwnAi;
 import org.thunderdog.challegram.telegram.Tdlib;
+import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.v.CustomRecyclerView;
 import org.thunderdog.challegram.widget.MaterialEditTextGroup;
 
@@ -83,7 +84,10 @@ public class Tgx101OwnAiController extends RecyclerViewController<Void> implemen
             : testResult == null ? Lang.getString(R.string.Tgx101OwnAiTestHint)
             : testResult.isEmpty() ? Lang.getString(R.string.Tgx101OwnAiTestOk)
             : Lang.getString(R.string.Tgx101OwnAiTestFailed, testResult));
-          view.setEnabledAnimated(Tgx101OwnAi.isReady() && !testing, isUpdate);
+          // (user 2026-11-13 «кнопку проверить слегка выделить и добавить анимацию»): the result in its colour
+          view.setDataColorId(testing || testResult == null ? 0 : testResult.isEmpty() ? org.thunderdog.challegram.theme.ColorId.fillingPositive : org.thunderdog.challegram.theme.ColorId.textNegative);
+          view.setIcon(testResult != null && !testing ? (testResult.isEmpty() ? R.drawable.baseline_check_circle_24 : R.drawable.baseline_error_24) : R.drawable.baseline_flash_on_24);
+          view.setEnabledAnimated(Tgx101OwnAi.isReady(), isUpdate);
         }
       }
     };
@@ -116,7 +120,7 @@ public class Tgx101OwnAiController extends RecyclerViewController<Void> implemen
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
       items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101OwnAiModel, 0, R.string.Tgx101OwnAiModel));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101OwnAiTest, 0, R.string.Tgx101OwnAiTest));
+      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101OwnAiTest, R.drawable.baseline_flash_on_24, R.string.Tgx101OwnAiTest).setTextColorId(org.thunderdog.challegram.theme.ColorId.textNeutral));
       if (Tgx101OwnAi.hasKey(provider)) {
         items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
         items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101OwnAiForget, 0, R.string.Tgx101OwnAiForget).setTextColorId(org.thunderdog.challegram.theme.ColorId.textNegative));
@@ -139,6 +143,42 @@ public class Tgx101OwnAiController extends RecyclerViewController<Void> implemen
 
   private void rebuild () {
     if (adapter != null) adapter.setItems(buildItems(), false);
+  }
+
+  private android.animation.ValueAnimator pulse;
+
+  /** «Проверяю…»: the row breathes while the request is out */
+  private void testPulse (View v, boolean on) {
+    if (pulse != null) {
+      pulse.cancel();
+      pulse = null;
+    }
+    View row = findRow(R.id.btn_tgx101OwnAiTest);
+    if (row == null) row = v;
+    final View target = row;
+    if (!on) {
+      target.setAlpha(1f);
+      return;
+    }
+    pulse = android.animation.ValueAnimator.ofFloat(1f, .55f);
+    pulse.setDuration(520);
+    pulse.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+    pulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+    pulse.addUpdateListener(a -> target.setAlpha((float) a.getAnimatedValue()));
+    pulse.start();
+  }
+
+  private @androidx.annotation.Nullable View findRow (int id) {
+    if (adapter == null || getRecyclerView() == null) return null;
+    int i = adapter.indexOfViewById(id);
+    androidx.recyclerview.widget.RecyclerView.LayoutManager lm = getRecyclerView().getLayoutManager();
+    return i >= 0 && lm != null ? lm.findViewByPosition(i) : null;
+  }
+
+  @Override
+  public void destroy () {
+    super.destroy();
+    if (pulse != null) pulse.cancel();
   }
 
   @Override
@@ -197,11 +237,36 @@ public class Tgx101OwnAiController extends RecyclerViewController<Void> implemen
       if (testing || !Tgx101OwnAi.isReady()) return;
       testing = true;
       adapter.updateValuedSettingById(R.id.btn_tgx101OwnAiTest);
+      final long started = android.os.SystemClock.uptimeMillis();
+      testPulse(v, true);
       Tgx101OwnAi.test(error -> {
         if (isDestroyed()) return;
-        testing = false;
-        testResult = error != null ? error : "";
-        adapter.updateValuedSettingById(R.id.btn_tgx101OwnAiTest);
+        // at least a moment of «Проверяю…», so the answer reads as an answer, not a flicker
+        long wait = Math.max(0, 600 - (android.os.SystemClock.uptimeMillis() - started));
+        v.postDelayed(() -> {
+          if (isDestroyed()) return;
+          testing = false;
+          testResult = error != null ? error : "";
+          testPulse(v, false);
+          adapter.updateValuedSettingById(R.id.btn_tgx101OwnAiTest);
+          View row = findRow(R.id.btn_tgx101OwnAiTest);
+          if (row != null) {
+            if (error == null) {
+              // works: a soft bump
+              row.animate().cancel();
+              row.setScaleX(1f); row.setScaleY(1f);
+              row.animate().scaleX(1.035f).scaleY(1.035f).setDuration(120).withEndAction(() ->
+                row.animate().scaleX(1f).scaleY(1f).setDuration(220).setInterpolator(new android.view.animation.OvershootInterpolator(2.5f)).start()).start();
+              row.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM);
+            } else {
+              // doesn't: a short shake, as a wrong code does
+              android.animation.ObjectAnimator shake = android.animation.ObjectAnimator.ofFloat(row, View.TRANSLATION_X, 0, -Screen.dp(10f), Screen.dp(10f), -Screen.dp(7f), Screen.dp(7f), -Screen.dp(3f), 0);
+              shake.setDuration(420);
+              shake.start();
+              row.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+            }
+          }
+        }, wait);
       });
     } else if (id == R.id.btn_tgx101OwnAiForget) {
       Tgx101OwnAi.setKey(provider, null);
