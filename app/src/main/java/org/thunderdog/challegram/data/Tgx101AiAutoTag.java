@@ -74,7 +74,7 @@ public final class Tgx101AiAutoTag {
     String prompt = "Дай каждой записи одну метку: из моих, если подходит, иначе новую — одно короткое слово с маленькой буквы, без #. " +
       "Если тема неясна — «номер: -». Ответь только строками «номер: метка».";
     TdApi.InputRichMessage message = new TdApi.InputRichMessage(new TdApi.RichMessageSourceMarkdown(text.toString(), new TdApi.InputRichMessageMedia[0]), false, false);
-    tdlib.client().send(new TdApi.ComposeRichMessageWithAi(message, "", "", prompt, false), result -> UI.post(() -> {
+    Tgx101OwnAi.send(tdlib, new TdApi.ComposeRichMessageWithAi(message, "", "", prompt, false), result -> UI.post(() -> {
       String answer = null;
       if (result.getConstructor() == TdApi.RichMessage.CONSTRUCTOR) {
         TdApi.FormattedText f = Tgx101RichMessage.toText((TdApi.RichMessage) result);

@@ -2918,7 +2918,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     String pack = Lang.packId();
     String to = pack != null && pack.length() >= 2 ? pack.substring(0, 2) : "";
     UI.showToast(R.string.Tgx101GazetaTopicThinking, android.widget.Toast.LENGTH_SHORT);
-    tdlib.send(new TdApi.SummarizeMessage(main.chatId, main.id, to, ""), (summary, error) -> UI.post(() -> {
+    org.thunderdog.challegram.data.Tgx101OwnAi.send(tdlib, new TdApi.SummarizeMessage(main.chatId, main.id, to, ""), (summary, error) -> UI.post(() -> {
       if (isDestroyed()) return;
       // the summary's words first; without a summary (a short post) — the post's own
       java.util.Set<String> fromSummary = Tgx101Gazeta.stems(summary != null ? summary.text : null);
@@ -3052,7 +3052,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     TdApi.Message main = post.main();
     String pack = Lang.packId();
     String to = pack != null && pack.length() >= 2 ? pack.substring(0, 2) : "";
-    tdlib.send(new TdApi.SummarizeMessage(main.chatId, main.id, to, ""), (result, error) -> UI.post(() -> {
+    org.thunderdog.challegram.data.Tgx101OwnAi.send(tdlib, new TdApi.SummarizeMessage(main.chatId, main.id, to, ""), (result, error) -> UI.post(() -> {
       post.summaryLoading = false;
       if (result != null) {
         post.summary = result;

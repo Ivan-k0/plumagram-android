@@ -224,7 +224,7 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
       "Ответь только строками вида «номер: папка», без пояснений.";
     org.thunderdog.challegram.Tgx101Diag.mark("ai sort: " + batch.size() + " records, " + folders.size() + " folders, " + text.length() + " chars");
     TdApi.InputRichMessage message = new TdApi.InputRichMessage(new TdApi.RichMessageSourceMarkdown(text.toString(), new TdApi.InputRichMessageMedia[0]), false, false);
-    tdlib.client().send(new TdApi.ComposeRichMessageWithAi(message, "", "", prompt, false), object -> runOnUiThreadOptional(() -> {
+    org.thunderdog.challegram.data.Tgx101OwnAi.send(tdlib, new TdApi.ComposeRichMessageWithAi(message, "", "", prompt, false), object -> runOnUiThreadOptional(() -> {
       switch (object.getConstructor()) {
         case TdApi.RichMessage.CONSTRUCTOR: {
           TdApi.FormattedText answer = org.thunderdog.challegram.data.Tgx101RichMessage.toText((TdApi.RichMessage) object);

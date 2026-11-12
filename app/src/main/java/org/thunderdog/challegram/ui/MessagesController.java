@@ -10316,7 +10316,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     final TdApi.FormattedText before = inputView.getOutputText(false);
     org.thunderdog.challegram.Tgx101Diag.mark("ai: " + what + ", " + before.text.length() + " chars");
     UI.showToast(R.string.Tgx101AiWorking, android.widget.Toast.LENGTH_SHORT);
-    tdlib.client().send(function, object -> runOnUiThreadOptional(() -> {
+    org.thunderdog.challegram.data.Tgx101OwnAi.send(tdlib, function, object -> runOnUiThreadOptional(() -> {
       tgx101AiBusy = false;
       TdApi.FormattedText result = null;
       switch (object.getConstructor()) {

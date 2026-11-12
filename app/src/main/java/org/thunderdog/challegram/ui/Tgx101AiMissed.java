@@ -101,7 +101,7 @@ public final class Tgx101AiMissed {
       String prompt = "Это сообщения, которые я пропустил. Перескажи главное 5–7 пунктами по-русски, коротко, без вступления. " +
         "Каждый пункт — одна строка вида «номер: суть», где номер — сообщение, к которому пункт относится. Важное и то, что просят меня, — первым.";
       TdApi.InputRichMessage message = new TdApi.InputRichMessage(new TdApi.RichMessageSourceMarkdown(text.toString(), new TdApi.InputRichMessageMedia[0]), false, false);
-      tdlib.client().send(new TdApi.ComposeRichMessageWithAi(message, "", "", prompt, false), result -> UI.post(() -> {
+      org.thunderdog.challegram.data.Tgx101OwnAi.send(tdlib, new TdApi.ComposeRichMessageWithAi(message, "", "", prompt, false), result -> UI.post(() -> {
         String answer = null, failure = null;
         switch (result.getConstructor()) {
           case TdApi.RichMessage.CONSTRUCTOR: {

@@ -62,6 +62,10 @@ public class Tgx101AiSettingsController extends RecyclerViewController<Void> imp
           view.getToggler().setRadioEnabled(s.tgx101Ai(), isUpdate);
           return;
         }
+        if (id == R.id.btn_tgx101OwnAi) {
+          view.setData(Tgx101OwnAiController.value(context()));
+          return;
+        }
         if (id == R.id.btn_tgx101AiCompose) {
           view.getToggler().setRadioEnabled(s.tgx101AiCompose(), isUpdate);
         } else if (id == R.id.btn_tgx101AiSummary) {
@@ -89,14 +93,29 @@ public class Tgx101AiSettingsController extends RecyclerViewController<Void> imp
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiSort, 0, R.string.Tgx101AiSortSetting));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    // TGx101 (user 2026-11-13): the person's own AI for when Telegram's says no (no Premium)
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101OwnAi, R.drawable.baseline_vpn_key_24, R.string.Tgx101OwnAi));
+    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101OwnAiRowHint));
     adapter.setItems(items, false);
     recyclerView.setAdapter(adapter);
+  }
+
+  @Override
+  public void onFocus () {
+    super.onFocus();
+    if (adapter != null) adapter.updateValuedSettingById(R.id.btn_tgx101OwnAi);
   }
 
   @Override
   public void onClick (View v) {
     int id = v.getId();
     Settings s = Settings.instance();
+    if (id == R.id.btn_tgx101OwnAi) {
+      navigateTo(new Tgx101OwnAiController(context, tdlib));
+      return;
+    }
     if (id == R.id.btn_tgx101AiAll) {
       s.setTgx101Ai(adapter.toggleView(v)); // user 2026-10-21: all AI things off / on at once
       adapter.updateValuedSettingById(R.id.btn_tgx101AiCompose);

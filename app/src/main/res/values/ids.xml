@@ -1964,4 +1964,21 @@
   <item name="btn_tgx101MagixPreview" type="id"/>
   <item name="btn_tgx101GestureDoubleTapZoom" type="id"/>
   <item name="btn_tgx101SitesWithoutPrompt" type="id"/>
+  <item name="controller_tgx101OwnAi" type="id"/>
+  <item name="btn_tgx101OwnAi" type="id"/>
+  <item name="btn_tgx101OwnAiNone" type="id"/>
+  <item name="btn_tgx101OwnAiP1" type="id"/>
+  <item name="btn_tgx101OwnAiP2" type="id"/>
+  <item name="btn_tgx101OwnAiP3" type="id"/>
+  <item name="btn_tgx101OwnAiP4" type="id"/>
+  <item name="btn_tgx101OwnAiP5" type="id"/>
+  <item name="btn_tgx101OwnAiP6" type="id"/>
+  <item name="btn_tgx101OwnAiMode0" type="id"/>
+  <item name="btn_tgx101OwnAiMode1" type="id"/>
+  <item name="btn_tgx101OwnAiMode2" type="id"/>
+  <item name="btn_tgx101OwnAiKey" type="id"/>
+  <item name="btn_tgx101OwnAiModel" type="id"/>
+  <item name="btn_tgx101OwnAiUrl" type="id"/>
+  <item name="btn_tgx101OwnAiTest" type="id"/>
+  <item name="btn_tgx101OwnAiForget" type="id"/>
 </resources>
