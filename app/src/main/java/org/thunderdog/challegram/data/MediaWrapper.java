@@ -1096,6 +1096,36 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
 
   private long tgx101HoldFrameNo;
 
+  // TGx101 (user 2026-11-12 «секунды в превью считаются в реальном времени», as in the reference recording): a video
+  // playing by itself in its post counts down what is left of it in the corner — the plain «0:27» there stood still;
+  // stopped (or not loaded yet), the corner tells the whole length again
+  private int tgx101LiveSeconds = -1;
+  private @Nullable String tgx101LiveText;
+
+  private void tgx101LiveDuration (Receiver receiver) {
+    if (video == null) return;
+    boolean playing = tgx101InlineVideo && receiver instanceof GifReceiver && !receiver.needPlaceholder();
+    if (!playing || fileProgress.isFailed() || fileProgress.isLoading() || !fileProgress.isUploadFinished()) {
+      if (tgx101LiveSeconds != -1) {
+        tgx101LiveSeconds = -1;
+        updateDuration(); // the whole length again
+      }
+      return;
+    }
+    if (tgx101LiveSeconds == -1 && !(StringUtils.equalsOrBothEmpty(duration, durationShort) && StringUtils.equalsOrBothEmpty(durationTrimmed, Strings.buildDuration(video.duration)))) {
+      return; // the corner tells something else (a size, a download) — left as it is
+    }
+    long at = ((GifReceiver) receiver).tgx101FrameNo();
+    if (at < 0) return;
+    int left = (int) Math.max(0, Math.min(video.duration, (long) video.duration - at / 1000L));
+    if (left == tgx101LiveSeconds && duration == tgx101LiveText) return; // (updateDuration on a file update puts the whole length back)
+    tgx101LiveSeconds = left;
+    String text = tgx101LiveText = Strings.buildDuration(left);
+    int width = (int) U.measureText(text, Paints.whiteMediumPaint(13f, false, true));
+    duration = durationShort = durationTrimmed = text;
+    durationWidthFull = durationWidthShort = durationWidth = width;
+  }
+
   private void tgx101DrawHold (View view, Canvas c, Receiver receiver) {
     if (!(receiver instanceof GifReceiver) || video == null) return;
     GifReceiver gif = (GifReceiver) receiver;
@@ -1254,6 +1284,7 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
 
     // Log.d("%s %s => [%s, %s, trim: %s] <%s>", isStreamingUI, isDoubleLine, duration, durationShort, durationTrimmed, dlFactor);
 
+    tgx101LiveDuration(receiver);
     RectF actionButtonRect = Paints.getRectF();
     boolean showDuration = !StringUtils.isEmpty(durationTrimmed) && selectionFactor < 1f;
 
