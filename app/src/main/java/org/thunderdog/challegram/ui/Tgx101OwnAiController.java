@@ -85,7 +85,7 @@ public class Tgx101OwnAiController extends RecyclerViewController<Void> implemen
             : testResult.isEmpty() ? Lang.getString(R.string.Tgx101OwnAiTestOk)
             : Lang.getString(R.string.Tgx101OwnAiTestFailed, testResult));
           // (user 2026-11-13 «кнопку проверить слегка выделить и добавить анимацию»): the result in its colour
-          view.setDataColorId(testing || testResult == null ? 0 : testResult.isEmpty() ? org.thunderdog.challegram.theme.ColorId.fillingPositive : org.thunderdog.challegram.theme.ColorId.textNegative);
+          view.setDataColorId(testing || testResult == null ? 0 : testResult.isEmpty() ? org.thunderdog.challegram.theme.ColorId.textSecure : org.thunderdog.challegram.theme.ColorId.textNegative);
           view.setIcon(testResult != null && !testing ? (testResult.isEmpty() ? R.drawable.baseline_check_circle_24 : R.drawable.baseline_error_24) : R.drawable.baseline_flash_on_24);
           view.setEnabledAnimated(Tgx101OwnAi.isReady(), isUpdate);
         }
@@ -119,14 +119,17 @@ public class Tgx101OwnAiController extends RecyclerViewController<Void> implemen
       items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101OwnAiKey, 0, R.string.Tgx101OwnAiKey));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
       items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101OwnAiModel, 0, R.string.Tgx101OwnAiModel));
-      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101OwnAiTest, R.drawable.baseline_flash_on_24, R.string.Tgx101OwnAiTest).setTextColorId(org.thunderdog.challegram.theme.ColorId.textNeutral));
       if (Tgx101OwnAi.hasKey(provider)) {
         items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
         items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101OwnAiForget, 0, R.string.Tgx101OwnAiForget).setTextColorId(org.thunderdog.challegram.theme.ColorId.textNegative));
       }
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
       items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, Lang.getString(provider == Tgx101OwnAi.PROVIDER_CUSTOM ? R.string.Tgx101OwnAiCustomHint : R.string.Tgx101OwnAiKeyWhere, Tgx101OwnAi.displayName(context, provider)), false));
+
+      // (user 2026-11-13 «отдели как-то от списка»): «Check» in a block of its own, apart from the fields
+      items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101OwnAiTest, R.drawable.baseline_flash_on_24, R.string.Tgx101OwnAiTest).setTextColorId(org.thunderdog.challegram.theme.ColorId.textNeutral));
+      items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
 
       items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101OwnAiWhen));
       items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
