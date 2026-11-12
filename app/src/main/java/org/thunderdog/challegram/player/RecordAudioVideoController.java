@@ -1251,6 +1251,12 @@ public class RecordAudioVideoController implements
     lockView.setMode(needVideo ? RecordLockView.MODE_VIDEO : RecordLockView.MODE_AUDIO);
     setRecordMode(needVideo ? RECORD_MODE_VIDEO : RECORD_MODE_AUDIO, !inRaiseMode);
 
+    if (!needVideo) {
+      // TGx101 (user 2026-11-11 «как только я нажал на кнопку, секунды и запись должны сразу идти»): a voice note starts
+      // with the press, not when the panel's 160 ms opening ends (the camera still waits for it)
+      onRecordFocus();
+    }
+
     // checkActualRecording(CLOSE_MODE_CANCEL);
 
     return true;

@@ -54,7 +54,7 @@ public class Recorder implements Runnable {
   }
 
   public static final int PROGRESS_FRAME_DELAY = 57;
-  public static final int START_DELAY = 150;
+  public static final int START_DELAY = 150; // TGx101: no longer used (see record())
 
   private static BaseThread recordThread, encodeThread;
   private Tdlib.Generation currentGeneration;
@@ -101,7 +101,7 @@ public class Recorder implements Runnable {
         }
         startRecording(tdlib, isSecret, listener, isResume);
       }
-    }, START_DELAY), 0);
+    }, 0), 0); // TGx101 (user 2026-11-11 «запись голосового начинается поздно»): no START_DELAY — the mic opens at once
   }
 
   public void resume (final Tdlib tdlib, final boolean isSecret, final Listener listener) {
@@ -175,39 +175,19 @@ public class Recorder implements Runnable {
   private ByteBuffer fileBuffer;
   private int bufferSize;
 
+  // TGx101 (user 2026-11-11 «как только я нажал на кнопку, секунды и запись должны сразу идти»): the mic opens first and
+  // reads at once; the file (TDLib's PreliminaryUploadFile round trip, which may take hundreds of ms) and the encoder are
+  // made meanwhile on encodeThread — the buffers read before it is ready wait in encodeThread's queue and go into the file
+  // first, so nothing from the press on is lost and the timer starts with the mic, not with TDLib's answer.
+  private boolean encoderReady;
+  private long tgx101MicStart;
+
   private void startRecording (Tdlib tdlib, boolean isSecret, Recorder.Listener listener, boolean isResume) {
     this.tdlib = tdlib;
     this.listener = listener;
-
-    final String id = "voice" + GenerationInfo.randomStamp();
-    Tdlib.Generation generation = isResume ? currentGeneration :
-      tdlib.generateFile(id, new TdApi.FileTypeVoiceNote(), isSecret, 1, 5000);
-
-    if (generation == null) {
-      dispatchError();
-      return;
-    }
-
-    currentGeneration = generation;
+    final long t0 = SystemClock.elapsedRealtime();
 
     try {
-      if (isResume) {
-        if (resumeFile == null || !U.moveFile(resumeFile, new File(generation.destinationPath + ".resume"))) {
-          dispatchError();
-          return;
-        }
-
-        if (N.resumeRecord(generation.destinationPath, 48000) == 0) {
-          dispatchError();
-          return;
-        }
-      } else {
-        if (N.startRecord(generation.destinationPath, 48000) == 0) {
-          dispatchError();
-          return;
-        }
-      }
-
       if (bufferSize == 0) {
         bufferSize = AudioRecord.getMinBufferSize(48000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
 
@@ -225,13 +205,6 @@ public class Recorder implements Runnable {
         }
       }
 
-      if (fileBuffer == null) {
-        fileBuffer = ByteBuffer.allocateDirect(1920);
-        fileBuffer.order(ByteOrder.nativeOrder());
-      } else {
-        fileBuffer.rewind();
-      }
-
       recorder = new AudioRecord(MediaRecorder.AudioSource.MIC, 48000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize * 10);
     } catch (Throwable t) {
       Log.e("Couldn't set up recorder", t);
@@ -239,18 +212,23 @@ public class Recorder implements Runnable {
       return;
     }
 
+    // Queued before the first buffer, so encodeThread prepares the file before it writes anything
+    encodeThread.post(() -> startEncoder(tdlib, isSecret, isResume, t0), 0);
+
     try {
       tryInitEnhancers();
       if (!isResume) {
         recordStart = SystemClock.elapsedRealtime();
-        recordTimeCount = 0;
       }
       removeFile = true;
       allowResuming = false;
       recorder.startRecording();
+      tgx101MicStart = SystemClock.elapsedRealtime();
+      org.thunderdog.challegram.Tgx101Diag.mark("voice: mic on in " + (tgx101MicStart - t0) + " ms" + (isResume ? " (resume)" : ""));
       if (!isResume) {
         initMaxAmplitude();
       }
+      recordThread.post(this::processProgress, 0); // the timer starts now
       dispatchRecord();
     } catch (Throwable t) {
       if (recorder != null) {
@@ -263,9 +241,82 @@ public class Recorder implements Runnable {
     }
   }
 
+  private void startEncoder (Tdlib tdlib, boolean isSecret, boolean isResume, long t0) {
+    encoderReady = false; // set and read only on encodeThread, so the last recording's queued buffers are still written
+    final String id = "voice" + GenerationInfo.randomStamp();
+    Tdlib.Generation generation = isResume ? currentGeneration :
+      tdlib.generateFile(id, new TdApi.FileTypeVoiceNote(), isSecret, 1, 5000);
+
+    if (generation == null) {
+      failEncoder();
+      return;
+    }
+
+    currentGeneration = generation;
+
+    try {
+      if (isResume) {
+        if (resumeFile == null || !U.moveFile(resumeFile, new File(generation.destinationPath + ".resume"))) {
+          failEncoder();
+          return;
+        }
+
+        if (N.resumeRecord(generation.destinationPath, 48000) == 0) {
+          failEncoder();
+          return;
+        }
+      } else {
+        if (N.startRecord(generation.destinationPath, 48000) == 0) {
+          failEncoder();
+          return;
+        }
+        recordTimeCount = 0;
+      }
+
+      if (fileBuffer == null) {
+        fileBuffer = ByteBuffer.allocateDirect(1920);
+        fileBuffer.order(ByteOrder.nativeOrder());
+      } else {
+        fileBuffer.rewind();
+      }
+    } catch (Throwable t) {
+      Log.e("Couldn't set up voice encoder", t);
+      failEncoder();
+      return;
+    }
+    encoderReady = true;
+    org.thunderdog.challegram.Tgx101Diag.mark("voice: file ready in " + (SystemClock.elapsedRealtime() - t0) + " ms");
+  }
+
+  /** encodeThread: the file or the encoder could not be made — the mic stops, its read loop then cleans up */
+  private void failEncoder () {
+    encoderReady = false;
+    org.thunderdog.challegram.Tgx101Diag.mark("voice: file failed");
+    if (currentGeneration != null) {
+      tdlib.finishGeneration(currentGeneration, new TdApi.Error());
+      currentGeneration = null;
+    }
+    recordThread.post(() -> {
+      removeFile = true;
+      allowResuming = false;
+      if (recorder != null) {
+        try {
+          recorder.stop();
+        } catch (Throwable ignored) { }
+      } else {
+        encodeThread.post(() -> cleanupRecording(true, false), 0);
+      }
+    }, 0);
+    final Listener listener = this.listener;
+    if (listener != null) {
+      UI.post(listener::onFail);
+    }
+  }
+
   private File resumeFile;
 
   private void cleanupRecording (boolean removeFile, boolean allowResuming) {
+    encoderReady = false;
     N.stopRecord(!removeFile && allowResuming);
     setRecording(false);
     if (currentGeneration != null) {
@@ -337,6 +388,10 @@ public class Recorder implements Runnable {
   }
 
   private void processBuffer (final ByteBuffer buffer, boolean flush) {
+    if (!encoderReady) { // TGx101: the file failed — the buffer is dropped
+      recordThread.post(() -> buffers.add(buffer), 0);
+      return;
+    }
     while (buffer.hasRemaining()) {
       int oldLimit = -1;
       if (buffer.remaining() > fileBuffer.remaining()) {
