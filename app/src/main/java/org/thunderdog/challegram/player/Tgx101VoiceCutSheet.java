@@ -267,6 +267,9 @@ public final class Tgx101VoiceCutSheet {
     private final Paint small = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint dash = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF rect = new RectF();
+    // the bars' peaks, kept until the length, the cuts or the bar count change (a drag redrew them from the recording)
+    private float[] peakCache;
+    private int peakLen, peakSeams;
 
     EditView (Context context, Tgx101VoiceEdit edit) {
       super(context);
@@ -329,10 +332,17 @@ public final class Tgx101VoiceCutSheet {
       int bars = Math.max(1, (int) ((right() - left()) / step));
       float centerY = (waveTop + waveBottom) / 2f;
       float maxH = Screen.dp(WAVE_H) - Screen.dp(26f), minH = Screen.dp(3f);
+      int seamsKey = java.util.Arrays.hashCode(edit.seams());
+      if (peakCache == null || peakCache.length != bars || peakLen != len || peakSeams != seamsKey) {
+        peakCache = new float[bars];
+        for (int i = 0; i < bars; i++) peakCache[i] = edit.peak((int) ((long) len * i / bars), (int) ((long) len * (i + 1) / bars));
+        peakLen = len;
+        peakSeams = seamsKey;
+      }
       for (int i = 0; i < bars; i++) {
         int from = (int) ((long) len * i / bars), to = (int) ((long) len * (i + 1) / bars);
         int mid = (from + to) / 2;
-        float p = edit.peak(from, to);
+        float p = peakCache[i];
         float bh = Math.max(minH, Math.min(maxH, minH + (float) Math.sqrt(p) * maxH));
         float x = left() + i * step;
         int color;

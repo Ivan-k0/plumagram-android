@@ -258,9 +258,21 @@ public class VoiceWaveformView extends View implements FactorAnimator.Target, Tg
     int bars = Math.max(1, (int) ((we - ws) / step));
     float maxH = Screen.dp(20f) * expand, minH = Screen.dp(2f);
     int barColor = ColorUtils.alphaColor(.85f, onPrimary == 0 ? 0xffffffff : onPrimary);
+    // (user 2026-11-12 «пролаги, когда ведёшь ползунок»): the bars' peaks were read from the whole recording on every frame;
+    // they are kept until the note's length, its cuts or the bar count change
+    int seamsKey = java.util.Arrays.hashCode(edit.seams());
+    if (peakCache == null || peakCache.length != bars || peakLen != len || peakSeams != seamsKey || peakEdit != edit) {
+      peakCache = new float[bars];
+      for (int i = 0; i < bars; i++) {
+        peakCache[i] = edit.peak((int) ((long) len * i / bars), (int) ((long) len * (i + 1) / bars));
+      }
+      peakLen = len;
+      peakSeams = seamsKey;
+      peakEdit = edit;
+    }
     for (int i = 0; i < bars; i++) {
       int from = (int) ((long) len * i / bars), to = (int) ((long) len * (i + 1) / bars);
-      float p = edit.peak(from, to);
+      float p = peakCache[i];
       float h = Math.max(minH, Math.min(maxH, minH + (float) Math.sqrt(p) * maxH));
       float x = ws + i * step;
       int mid = (from + to) / 2;
@@ -278,7 +290,8 @@ public class VoiceWaveformView extends View implements FactorAnimator.Target, Tg
 
     // the capsule: ▶ / ❚❚ and the time — the note's length, the heard part while listening
     int kept = edit.keptSamples();
-    String time = edit.isPlaying()
+    // while listening or dragging the cursor: where it is, moving with it
+    String time = edit.isPlaying() || dragging
       ? Strings.buildDuration(edit.keptBefore(pos) / Tgx101VoiceEdit.RATE)
       : Strings.buildDuration(Math.max(1, Math.round(kept / (float) Tgx101VoiceEdit.RATE)));
     textPaint.setColor(onPrimary);
@@ -322,6 +335,9 @@ public class VoiceWaveformView extends View implements FactorAnimator.Target, Tg
   // TGx101 (user video 2026-11-12 20:05: swipes along the bar that began on the capsule played and stopped the note at
   // each lift — a moved finger seeks, wherever it began; listening holds while dragging and goes on from the new place)
   private boolean dragging, resumeAfterDrag;
+  private float[] peakCache;
+  private int peakLen, peakSeams;
+  private Tgx101VoiceEdit peakEdit;
 
   @Override
   public boolean onTouchEvent (MotionEvent e) {
