@@ -216,7 +216,11 @@ public final class Tgx101Sheet {
         }
       });
     }
-    wrap.getViewTreeObserver().addOnGlobalLayoutListener(ime);
+    // TGx101 (user video 2026-11-12 13:18, the voice editor: «не плавная анимация выезда»): the listener measured the sheet's
+    // place on screen while it was still sliding up — still low, it took itself for covered by the screen's bottom, rose
+    // above its place in one frame and then slid back down for 250 ms. A sheet without a text field has its navigation
+    // bar room from the first frame and needs no keyboard: it only slides
+    if (hasInput) wrap.getViewTreeObserver().addOnGlobalLayoutListener(ime);
     wrap.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
       @Override
       public void onViewAttachedToWindow (View v) { }
