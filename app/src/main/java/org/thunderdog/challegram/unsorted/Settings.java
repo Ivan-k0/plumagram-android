@@ -7321,6 +7321,7 @@ public class Settings {
    */
   private void dispatchProxyConfiguration (int id, @Nullable TdApi.Proxy proxy, @Nullable String description, boolean isCurrent, boolean isNewAdd) {
     org.thunderdog.challegram.Tgx101Diag.mark("proxy: #" + id + " " + org.thunderdog.challegram.Tgx101DiagHooks.proxyKind(proxy) + (isCurrent ? ", now in use" : "") + (isNewAdd ? ", just added" : ""));
+    org.thunderdog.challegram.proxy.Tgx101WebProxy.onProxyChanged(id, proxy, isCurrent); // TGx101: called directly, see there
     for (ProxyChangeListener listener : proxyListeners) {
       listener.onProxyConfigurationChanged(id, proxy, description, isCurrent, isNewAdd);
     }

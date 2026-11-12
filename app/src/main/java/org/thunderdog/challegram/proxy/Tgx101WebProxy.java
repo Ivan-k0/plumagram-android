@@ -77,8 +77,13 @@ public final class Tgx101WebProxy {
   private static @Nullable Tgx101WebCarrier carrier;
   private static int carrierProxyId;
   private static boolean initialized;
-  @SuppressWarnings("FieldCanBeLocal")
-  private static @Nullable Settings.ProxyChangeListener listener;
+  /** Called by Settings whenever the proxy changes. (0.2.934 on the user's phone 2026-11-12: a WEB proxy added and chosen,
+   *  «now in use» written, the carrier never asked.) The listener held in a static field was dropped by R8 — a field only
+   *  written is removed — so Settings' weak list lost it again; a direct call can't be lost */
+  public static void onProxyChanged (int proxyId, @Nullable TdApi.Proxy proxy, boolean isCurrent) {
+    if (!initialized || !isCurrent) return;
+    UI.post(() -> activate(proxy != null ? proxyId : Settings.PROXY_ID_NONE));
+  }
 
   // Startup: follow the current proxy
 
@@ -86,23 +91,7 @@ public final class Tgx101WebProxy {
     if (initialized) return;
     initialized = true;
     diag("init, current " + Settings.instance().getEffectiveProxyId()); // TGx101
-    // (a 4PDA reader's log 2026-11-10 15:51: a WEB proxy chosen, no carrier ever started — «Connection refused» on :27101):
-    // Settings keeps its proxy listeners by weak references and nothing else held this one, so it was collected soon
-    // after the start and choosing a WEB proxy did nothing. It is held here for the app's whole life
-    Settings.instance().addProxyListener(listener = new Settings.ProxyChangeListener() {
-      @Override
-      public void onProxyConfigurationChanged (int proxyId, @Nullable TdApi.Proxy proxy, @Nullable String description, boolean isCurrent, boolean isNewAdd) {
-        if (isCurrent) {
-          UI.post(() -> activate(proxy != null ? proxyId : Settings.PROXY_ID_NONE));
-        }
-      }
-
-      @Override
-      public void onProxyAvailabilityChanged (boolean isAvailable) { }
-
-      @Override
-      public void onProxyAdded (Settings.Proxy proxy, boolean isCurrent) { }
-    });
+    // later changes come by onProxyChanged, called by Settings directly
     activate(Settings.instance().getEffectiveProxyId());
   }
 

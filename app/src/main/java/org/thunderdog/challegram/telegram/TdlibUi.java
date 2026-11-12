@@ -3659,6 +3659,15 @@ public class TdlibUi extends Handler {
   }
 
   public void openTelegramUrl (final TdlibDelegate context, final String rawUrl, @Nullable UrlOpenParameters openParameters, @Nullable RunnableBool after) {
+    // TGx101 (phone check 2026-11-12: a tg://webproxy link from another app said «invalid link»): links from outside come
+    // straight here, past openUrl — WEB proxy links are caught here as well
+    if (rawUrl != null && !tdlib.context().inRecoveryMode()) {
+      ViewController<?> webProxyContext = context instanceof ViewController<?> ? (ViewController<?>) context : context.context().navigation().getCurrentStackItem();
+      if (org.thunderdog.challegram.proxy.Tgx101WebProxy.tryOpenLink(webProxyContext, rawUrl)) {
+        if (after != null) after.runWithBool(true);
+        return;
+      }
+    }
     if (StringUtils.isEmpty(rawUrl) || tdlib.context().inRecoveryMode()) {
       if (after != null)
         after.runWithBool(false);
