@@ -1077,7 +1077,10 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
 
     // TGx101: "A" transcription button at the top right of the circle (the bottom has the duration, the
     // sound icon and, on outgoing ones, the time), hidden while the video plays full size
-    if (!TD.isSelfDestructTypeImmediately(getMessage())) {
+    // (user 2026-11-12 «во время проигрывания кружка нужно отключить доступ к кнопке распознавания»): while the round plays
+    // open (full size) the button fades out and takes no taps — it is there only for the closed circle
+    float tgx101Open = isFullSizeAnimator.getFloatValue();
+    if (!TD.isSelfDestructTypeImmediately(getMessage()) && tgx101Open < 1f) {
       // (user 2026-11-04 14:42, video «так же должно быть и у нас»): outside the circle, level with its bottom, next to the
       // duration on the left of one's own, next to the views and time on the right of others' — not over them
       float buttonRadius = Screen.dp(TRANSCRIBE_BUTTON_RADIUS);
@@ -1093,7 +1096,10 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
       transcribeButtonY = receiver.getBottom() - buttonRadius - (timeSticksOut ? Screen.dp(30f) : 0);
       tgx101ButtonDx = transcribeButtonX - centerX;
       tgx101ButtonDy = transcribeButtonY - receiver.centerY();
-      tgx101DrawCircleButton(c, transcribeButtonX, transcribeButtonY, 1f);
+      tgx101DrawCircleButton(c, transcribeButtonX, transcribeButtonY, 1f - tgx101Open);
+      if (tgx101Open > 0f) {
+        transcribeButtonX = transcribeButtonY = 0; // opening or closing: seen fading, not tappable
+      }
     } else {
       transcribeButtonX = transcribeButtonY = 0;
     }
