@@ -148,7 +148,7 @@ public final class Tgx101OwnAi {
   public static String displayName (Context context, int id) {
     Provider p = provider(id);
     if (p == null) return "";
-    return p.name != null ? p.name : context.getString(org.thunderdog.challegram.R.string.Tgx101OwnAiCustom);
+    return p.name != null ? p.name : org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101OwnAiCustom);
   }
 
   // The key: a private file of its own, encrypted on Android 6+
@@ -386,7 +386,10 @@ public final class Tgx101OwnAi {
     String base = id == PROVIDER_CUSTOM ? customUrl() : p.baseUrl;
     if (base.endsWith("/")) base = base.substring(0, base.length() - 1);
     if (TextUtils.isEmpty(base) || TextUtils.isEmpty(model)) throw new IllegalStateException("no address or model");
-    if (!base.startsWith("https://") && !(id == PROVIDER_CUSTOM && base.startsWith("http://"))) throw new IllegalStateException("the address must start with https://");
+    // plain http only to this very phone (an AI running on it); anything else goes encrypted
+    if (!base.startsWith("https://") && !(id == PROVIDER_CUSTOM && (base.startsWith("http://localhost") || base.startsWith("http://127.0.0.1")))) {
+      throw new IllegalStateException(org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101OwnAiHttpsOnly));
+    }
 
     if (p.kind == KIND_ANTHROPIC) {
       // Claude Messages API (raw HTTP: the SDK needs Java 8 / OkHttp 4, past what this app's Android 4 builds carry)

@@ -1322,12 +1322,13 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101OwnAiTestFailed, "Не работает: %1$s");
     RU.put(R.string.Tgx101OwnAiForget, "Удалить ключ с телефона");
     RU.put(R.string.Tgx101OwnAiKeyWhere, "Ключ создаётся в вашем аккаунте %1$s, в разделе ключей API. Запросы оплачивает этот аккаунт.");
-    RU.put(R.string.Tgx101OwnAiCustomHint, "Любой сервис в формате OpenAI: адрес заканчивается на /v1 (например, ИИ на своём компьютере). Ключ — если он нужен.");
+    RU.put(R.string.Tgx101OwnAiCustomHint, "Любой сервис в формате OpenAI: адрес начинается с https:// и заканчивается на /v1; http:// — только для ИИ на этом телефоне (localhost). Ключ — если он нужен.");
     RU.put(R.string.Tgx101OwnAiWhen, "Когда использовать");
     RU.put(R.string.Tgx101OwnAiModeFirst, "Когда ИИ Telegram отказал");
     RU.put(R.string.Tgx101OwnAiModeAlways, "Всегда");
     RU.put(R.string.Tgx101OwnAiModeTelegram, "Никогда — только ИИ Telegram");
     RU.put(R.string.Tgx101OwnAiPrivacy, "Тексты для своего ИИ уходят в выбранный сервис, а не в Telegram: только то, с чем идёт работа — сообщение, пропущенные сообщения, запись Хранилища. Ключ хранится на этом телефоне зашифрованным и не попадает в резервную копию настроек.");
+    RU.put(R.string.Tgx101OwnAiHttpsOnly, "адрес должен начинаться с https:// (http:// — только для этого телефона: localhost)");
     RU.put(R.string.Tgx101PeekToastOn, "«Не подглядывай!» включено");
     RU.put(R.string.Tgx101PeekToastOff, "«Не подглядывай!» выключено");
     RU.put(R.string.Tgx101SavedBannerAlways, "Всегда");

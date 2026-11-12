@@ -7842,10 +7842,11 @@
   <string name="Tgx101OwnAiTestFailed">Doesn\'t work: %1$s</string>
   <string name="Tgx101OwnAiForget">Delete the key from this phone</string>
   <string name="Tgx101OwnAiKeyWhere">The key is made in your %1$s account, in the API keys section. Requests are paid by that account.</string>
-  <string name="Tgx101OwnAiCustomHint">Any service that speaks the OpenAI format: the address ends with /v1 (for example, an AI on your own computer). The key is optional.</string>
+  <string name="Tgx101OwnAiCustomHint">Any service that speaks the OpenAI format: the address starts with https:// and ends with /v1; http:// only for an AI on this phone (localhost). The key is optional.</string>
   <string name="Tgx101OwnAiWhen">When to use</string>
   <string name="Tgx101OwnAiModeFirst">When Telegram\'s AI says no</string>
   <string name="Tgx101OwnAiModeAlways">Always</string>
   <string name="Tgx101OwnAiModeTelegram">Never — only Telegram\'s AI</string>
   <string name="Tgx101OwnAiPrivacy">Texts for your own AI go to the chosen service, not to Telegram: only the text being worked on — the message, the missed messages, a Storage entry. The key is kept on this phone, encrypted, and is not in the settings backup.</string>
+  <string name="Tgx101OwnAiHttpsOnly">the address must start with https:// (http:// only for this phone: localhost)</string>
 </resources>

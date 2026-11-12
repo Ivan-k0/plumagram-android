@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TGx101 (user 2026-11-13, «Свой ИИ»): plain http only to this very phone (an AI running on it, or the developer's
+     adb reverse); everywhere else stays as Android has it: https with the system's certificates -->
+<network-security-config>
+  <domain-config cleartextTrafficPermitted="true">
+    <domain includeSubdomains="false">localhost</domain>
+    <domain includeSubdomains="false">127.0.0.1</domain>
+  </domain-config>
+</network-security-config>

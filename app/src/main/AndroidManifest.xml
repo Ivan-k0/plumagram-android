@@ -139,6 +139,7 @@
     android:allowBackup="false"
     android:fullBackupContent="false"
     android:dataExtractionRules="@xml/data_extraction_rules"
+    android:networkSecurityConfig="@xml/tgx101_network_security"
     android:hardwareAccelerated="true"
     android:icon="@mipmap/app_launcher"
     android:label="@string/AppName"
