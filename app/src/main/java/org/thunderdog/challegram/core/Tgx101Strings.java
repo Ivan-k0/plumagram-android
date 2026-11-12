@@ -1628,6 +1628,14 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SendingChannel, "Отправка файлов");
     RU.put(R.string.Tgx101SendingTitle, "Отправка");
     RU.put(R.string.Tgx101SendingPreparing, "Подготовка видео");
+    RU.put(R.string.Tgx101VoiceCutTitle, "Вырезать кусок");
+    RU.put(R.string.Tgx101VoiceCutHint, "Поставьте флажки на начало и конец лишнего — кусок между ними можно прослушать и вырезать");
+    RU.put(R.string.Tgx101VoiceCutPlayAll, "Прослушать всё голосовое");
+    RU.put(R.string.Tgx101VoiceCutDo, "Вырезать");
+    RU.put(R.string.Tgx101VoiceCutBringBack, "Вернуть вырезанное");
+    RU.put(R.string.Tgx101VoiceCutDone, "Готово");
+    RU.put(R.string.Tgx101VoiceCutLengths, "было %1$s · стало %2$s");
+    RU.put(R.string.Tgx101VoiceCutPiece, "Кусок · %1$d с");
     RU.put(R.string.Tgx101SendingBackgroundInfo, "Чтобы видео отправлялись и при выключенном экране, разрешите PlumaGram работу в фоне. Иначе телефон может остановить отправку, пока экран не включится.");
     RU.put(R.string.Tgx101SendingBackgroundAllow, "Разрешить");
     RU.put(R.string.Tgx101SendingBackgroundLater, "Не сейчас");

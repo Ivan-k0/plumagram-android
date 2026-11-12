@@ -554,6 +554,14 @@ public class RecordAudioVideoController implements
       params.leftMargin = params.rightMargin = Screen.dp(56f);
       this.audioPreviewView = new VoiceWaveformView(context);
       this.audioPreviewView.setLayoutParams(params);
+      // TGx101 (user 2026-11-12, mockup «Голосовое: прослушка и обрезка»): the scissors open the editor for cutting pieces out
+      this.audioPreviewView.setCallback(edit -> {
+        org.thunderdog.challegram.navigation.ViewController<?> c = context.navigation().getCurrentStackItem();
+        if (c != null) {
+          org.thunderdog.challegram.Tgx101Diag.mark("voice edit: editor opened");
+          Tgx101VoiceCutSheet.show(c, edit, audioPreviewView::invalidate);
+        }
+      });
       this.inputOverlayView.addView(audioPreviewView);
 
       this.videoPreviewView = new SimpleVideoPlayer(context);
@@ -1590,6 +1598,7 @@ public class RecordAudioVideoController implements
   }
 
   private void resumeRecordingImpl (int mode) {
+    if (audioPreviewView != null) audioPreviewView.stopPlayback(); // TGx101: listening stops when recording goes on
     editAnimator.setValue(false, true);
     if (mode == RECORD_MODE_AUDIO) {
       currentRecording = mode;
@@ -2131,10 +2140,29 @@ public class RecordAudioVideoController implements
       return;
     }
 
+    audioPreviewView.stopPlayback(); // TGx101
+    final Tgx101VoiceEdit tgx101Edit = audioPreviewView.getEdit();
     setRecordModeImpl(RECORD_MODE_NONE);
 
     final var record = voiceRecord;
-    if (initialSendOptions != null && record != null) {
+    if (initialSendOptions != null && record != null && tgx101Edit != null && tgx101Edit.isEdited()) {
+      // TGx101: the trimmed / cut note goes as a new file made of the kept pieces; the recording itself is dropped
+      final TdApi.MessageSelfDestructType selfDestructType = obtainSelfDestructType();
+      Background.instance().post(() -> {
+        final Tgx101VoiceEdit.Result result = tgx101Edit.export();
+        UI.post(() -> {
+          if (result != null) {
+            sendAudioNote(new TdApi.InputMessageVoiceNote(new TdApi.InputVoiceNote(new TdApi.InputFileLocal(result.file.getAbsolutePath()), result.duration, result.waveform), null, selfDestructType), initialSendOptions);
+            Recorder.instance().finish(true);
+            tdlib.client().send(new TdApi.DeleteFile(record.getFileId()), tdlib.silentHandler());
+          } else {
+            // couldn't be cut: the note goes whole, as recorded
+            sendAudioNote(new TdApi.InputMessageVoiceNote(new TdApi.InputVoiceNote(record.toInputFile(), record.getDuration(), record.getWaveform()), null, selfDestructType), initialSendOptions);
+            Recorder.instance().finish(false);
+          }
+        });
+      });
+    } else if (initialSendOptions != null && record != null) {
       if (record.getWaveform() == null) {
         Background.instance().post(() -> {
           byte[] waveform = N.getWaveform(record.getPath());
