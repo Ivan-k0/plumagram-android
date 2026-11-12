@@ -319,6 +319,9 @@ public class VoiceWaveformView extends View implements FactorAnimator.Target, Tg
   private static final int TOUCH_NONE = 0, TOUCH_PLAY = 1, TOUCH_SCISSORS = 2, TOUCH_START = 3, TOUCH_END = 4, TOUCH_SEEK = 5;
   private int touch;
   private float downX;
+  // TGx101 (user video 2026-11-12 20:05: swipes along the bar that began on the capsule played and stopped the note at
+  // each lift — a moved finger seeks, wherever it began; listening holds while dragging and goes on from the new place)
+  private boolean dragging, resumeAfterDrag;
 
   @Override
   public boolean onTouchEvent (MotionEvent e) {
@@ -330,6 +333,8 @@ public class VoiceWaveformView extends View implements FactorAnimator.Target, Tg
     switch (e.getActionMasked()) {
       case MotionEvent.ACTION_DOWN: {
         downX = x;
+        dragging = false;
+        resumeAfterDrag = false;
         if (x >= capsule.left - Screen.dp(10f) && x <= capsule.right + Screen.dp(10f)) {
           touch = TOUCH_PLAY;
         } else if (x > barRight()) {
@@ -352,7 +357,13 @@ public class VoiceWaveformView extends View implements FactorAnimator.Target, Tg
           edit.setPosition(edit.trimStartShown());
         } else if (touch == TOUCH_END) {
           edit.setTrimShown(edit.trimStartShown(), shownAt(x));
-        } else if (touch == TOUCH_SEEK && Math.abs(x - downX) > Screen.dp(6f)) {
+        } else if ((touch == TOUCH_SEEK || touch == TOUCH_PLAY) && (dragging || Math.abs(x - downX) > Screen.dp(8f))) {
+          if (!dragging) {
+            dragging = true;
+            touch = TOUCH_SEEK;
+            resumeAfterDrag = edit.isPlaying();
+            edit.pause();
+          }
           edit.setPosition(shownAt(x));
         }
         return true;
@@ -369,7 +380,11 @@ public class VoiceWaveformView extends View implements FactorAnimator.Target, Tg
           edit.stop();
           if (callback != null) callback.onVoiceScissors(edit);
         } else if (t == TOUCH_SEEK) {
+          boolean wasPlaying = edit.isPlaying();
+          if (wasPlaying) edit.pause();
           edit.setPosition(shownAt(x));
+          if (resumeAfterDrag || wasPlaying) edit.playKept();
+          dragging = resumeAfterDrag = false;
         } else if (t == TOUCH_START || t == TOUCH_END) {
           org.thunderdog.challegram.Tgx101Diag.mark("voice edit: edges " + (edit.trimStartShown() * 1000L / Tgx101VoiceEdit.RATE) + "–" + (edit.trimEndShown() * 1000L / Tgx101VoiceEdit.RATE) + " ms of " + (edit.shownLength() * 1000L / Tgx101VoiceEdit.RATE));
         }
