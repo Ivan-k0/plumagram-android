@@ -181,16 +181,22 @@ public class VoiceWaveformView extends View implements FactorAnimator.Target, Tg
   private static final float PLAY_RADIUS = 15f, SCISSORS_WIDTH = 36f, HANDLE_WIDTH = 6f, BAR = 2f, BAR_GAP = 2f;
   private static final int EDGE_COLOR = 0xfff2c14e;
 
-  private float playCx () {
-    return Screen.dp(PLAY_RADIUS + 2f);
+  private final RectF capsule = new RectF();
+
+  private float barLeft () {
+    return Screen.dp(2f);
+  }
+
+  private float barRight () {
+    return getMeasuredWidth() - Screen.dp(SCISSORS_WIDTH) - Screen.dp(4f);
   }
 
   private float waveStart () {
-    return Screen.dp(PLAY_RADIUS * 2 + 12f);
+    return barLeft() + Screen.dp(14f);
   }
 
   private float waveEnd () {
-    return getMeasuredWidth() - Screen.dp(SCISSORS_WIDTH) - timeWidth() - Screen.dp(8f);
+    return barRight() - Screen.dp(14f);
   }
 
   private float timeWidth () {
@@ -228,74 +234,83 @@ public class VoiceWaveformView extends View implements FactorAnimator.Target, Tg
       return;
     }
 
-    final int accent = Theme.getColor(ColorId.waveformActive);
-    final int inactive = Theme.getColor(ColorId.waveformInactive);
-
-    // ▶ / pause
-    float pcx = playCx();
-    c.drawCircle(pcx, centerY, Screen.dp(PLAY_RADIUS), Paints.fillingPaint(accent));
-    Paint white = Paints.fillingPaint(0xffffffff);
-    if (edit.isPlaying()) {
-      float w = Screen.dp(3f), h = Screen.dp(10f), gap = Screen.dp(2.5f);
-      rect.set(pcx - gap - w, centerY - h / 2f, pcx - gap, centerY + h / 2f);
-      c.drawRoundRect(rect, Screen.dp(1f), Screen.dp(1f), white);
-      rect.set(pcx + gap, centerY - h / 2f, pcx + gap + w, centerY + h / 2f);
-      c.drawRoundRect(rect, Screen.dp(1f), Screen.dp(1f), white);
-    } else {
-      float s = Screen.dp(6f);
-      path.reset();
-      path.moveTo(pcx - s * .6f, centerY - s);
-      path.lineTo(pcx + s, centerY);
-      path.lineTo(pcx - s * .6f, centerY + s);
-      path.close();
-      c.drawPath(path, white);
-    }
-
-    // the wave: grey outside the edges, the played part in the accent colour
-    float ws = waveStart(), we = waveEnd();
+    // TGx101 (user 2026-11-12, a reference screenshot «смотри как грамотно расположены цифры, плэй и пауза тоже на полосе»):
+    // the wave lies in a rounded bar of the buttons' colour, the heard part darker; ▶ / ❚❚ and the time sit together in a
+    // capsule in the middle of the bar; the scissors stand beside it
+    final int primary = Theme.getColor(ColorId.circleButtonRegular);
+    final int onPrimary = Theme.getColor(ColorId.circleButtonRegularIcon);
+    float bl = barLeft(), br = barRight();
+    float bh = Screen.dp(36f);
+    rect.set(bl, centerY - bh / 2f, br, centerY + bh / 2f);
+    c.drawRoundRect(rect, bh / 2f, bh / 2f, Paints.fillingPaint(ColorUtils.alphaColor(.22f, primary)));
     int len = edit.shownLength();
     int ts = edit.trimStartShown(), te = edit.trimEndShown();
     int pos = edit.position();
+    float xp = xOf(pos);
+    if (pos > ts || edit.isPlaying()) {
+      c.save();
+      c.clipRect(bl, centerY - bh / 2f, Math.max(bl, xp), centerY + bh / 2f);
+      c.drawRoundRect(rect, bh / 2f, bh / 2f, Paints.fillingPaint(ColorUtils.alphaColor(.55f, primary)));
+      c.restore();
+    }
+    float ws = waveStart(), we = waveEnd();
     float step = Screen.dp(BAR + BAR_GAP);
     int bars = Math.max(1, (int) ((we - ws) / step));
-    float maxH = Screen.dp(22f) * expand, minH = Screen.dp(2f);
+    float maxH = Screen.dp(20f) * expand, minH = Screen.dp(2f);
+    int barColor = ColorUtils.alphaColor(.85f, onPrimary == 0 ? 0xffffffff : onPrimary);
     for (int i = 0; i < bars; i++) {
       int from = (int) ((long) len * i / bars), to = (int) ((long) len * (i + 1) / bars);
       float p = edit.peak(from, to);
       float h = Math.max(minH, Math.min(maxH, minH + (float) Math.sqrt(p) * maxH));
       float x = ws + i * step;
       int mid = (from + to) / 2;
-      int color = mid < ts || mid >= te ? ColorUtils.alphaColor(.35f, inactive) : (mid < pos && (edit.isPlaying() || pos > ts) ? accent : inactive);
+      int color = mid < ts || mid >= te ? ColorUtils.alphaColor(.3f, barColor) : barColor;
       rect.set(x, centerY - h / 2f, x + Screen.dp(BAR), centerY + h / 2f);
       c.drawRoundRect(rect, Screen.dp(1f), Screen.dp(1f), Paints.fillingPaint(color));
     }
-    // the cut seams
     for (int seam : edit.seams()) {
       float x = xOf(seam);
-      c.drawRect(x - Screen.dp(.75f), centerY - Screen.dp(13f), x + Screen.dp(.75f), centerY + Screen.dp(13f), Paints.fillingPaint(0xffe5533f));
+      c.drawRect(x - Screen.dp(.75f), centerY - Screen.dp(12f), x + Screen.dp(.75f), centerY + Screen.dp(12f), Paints.fillingPaint(0xffe5533f));
     }
-    // (user 2026-11-12 «убери пока жёлтый функционал из главного, оставь только в редакторе»): the edges are set in the
-    // scissors' editor; here what they cut off is only greyed
-    float top = centerY - Screen.dp(16f), bottom = centerY + Screen.dp(16f);
-    // the cursor while listening
-    if (edit.isPlaying()) {
-      float x = xOf(pos);
-      c.drawRect(x - Screen.dp(1f), top + Screen.dp(2f), x + Screen.dp(1f), bottom - Screen.dp(2f), Paints.fillingPaint(Theme.textAccentColor()));
+    if (pos > ts || edit.isPlaying()) {
+      c.drawRect(xp - Screen.dp(1f), centerY - bh / 2f, xp + Screen.dp(1f), centerY + bh / 2f, Paints.fillingPaint(0xffffffff));
     }
 
-    // the time: the note's length, «heard / length» while listening
+    // the capsule: ▶ / ❚❚ and the time — the note's length, the heard part while listening
     int kept = edit.keptSamples();
     String time = edit.isPlaying()
-      ? Strings.buildDuration(edit.keptBefore(pos) / Tgx101VoiceEdit.RATE) + " / " + Strings.buildDuration(Math.round(kept / (float) Tgx101VoiceEdit.RATE))
+      ? Strings.buildDuration(edit.keptBefore(pos) / Tgx101VoiceEdit.RATE)
       : Strings.buildDuration(Math.max(1, Math.round(kept / (float) Tgx101VoiceEdit.RATE)));
-    textPaint.setColor(Theme.textAccentColor());
-    c.drawText(time, we + Screen.dp(8f), centerY + textOffset, textPaint);
+    textPaint.setColor(onPrimary);
+    float tw = textPaint.measureText(time);
+    float icon = Screen.dp(12f), padX = Screen.dp(10f), gap = Screen.dp(6f);
+    float cw = padX + icon + gap + tw + padX, ch = Screen.dp(26f);
+    float cx = (bl + br) / 2f;
+    capsule.set(cx - cw / 2f, centerY - ch / 2f, cx + cw / 2f, centerY + ch / 2f);
+    c.drawRoundRect(capsule, ch / 2f, ch / 2f, Paints.fillingPaint(primary));
+    float ix = capsule.left + padX, icy = centerY;
+    Paint on = Paints.fillingPaint(onPrimary);
+    if (edit.isPlaying()) {
+      float w = Screen.dp(3.5f), hh = Screen.dp(11f);
+      rect.set(ix + Screen.dp(1f), icy - hh / 2f, ix + Screen.dp(1f) + w, icy + hh / 2f);
+      c.drawRoundRect(rect, Screen.dp(1f), Screen.dp(1f), on);
+      rect.set(ix + icon - Screen.dp(1f) - w, icy - hh / 2f, ix + icon - Screen.dp(1f), icy + hh / 2f);
+      c.drawRoundRect(rect, Screen.dp(1f), Screen.dp(1f), on);
+    } else {
+      path.reset();
+      path.moveTo(ix + Screen.dp(1f), icy - Screen.dp(6f));
+      path.lineTo(ix + icon, icy);
+      path.lineTo(ix + Screen.dp(1f), icy + Screen.dp(6f));
+      path.close();
+      c.drawPath(path, on);
+    }
+    c.drawText(time, ix + icon + gap, centerY + textOffset, textPaint);
 
     // ✂
     Drawable scissors = Drawables.get(getResources(), R.drawable.baseline_content_cut_24);
     if (scissors != null) {
-      float cx = width - Screen.dp(SCISSORS_WIDTH) / 2f;
-      Drawables.draw(c, scissors, cx - scissors.getMinimumWidth() / 2f, centerY - scissors.getMinimumHeight() / 2f, Paints.getPorterDuffPaint(Theme.getColor(ColorId.icon)));
+      float sx = width - Screen.dp(SCISSORS_WIDTH) / 2f;
+      Drawables.draw(c, scissors, sx - scissors.getMinimumWidth() / 2f, centerY - scissors.getMinimumHeight() / 2f, Paints.getPorterDuffPaint(Theme.getColor(ColorId.icon)));
     }
   }
 
@@ -315,11 +330,11 @@ public class VoiceWaveformView extends View implements FactorAnimator.Target, Tg
     switch (e.getActionMasked()) {
       case MotionEvent.ACTION_DOWN: {
         downX = x;
-        if (x < waveStart() - Screen.dp(4f)) {
+        if (x >= capsule.left - Screen.dp(10f) && x <= capsule.right + Screen.dp(10f)) {
           touch = TOUCH_PLAY;
-        } else if (x > getMeasuredWidth() - Screen.dp(SCISSORS_WIDTH) - Screen.dp(4f)) {
+        } else if (x > barRight()) {
           touch = TOUCH_SCISSORS;
-        } else if (x <= waveEnd() + Screen.dp(4f)) {
+        } else if (x >= barLeft()) {
           touch = TOUCH_SEEK;
         } else {
           touch = TOUCH_NONE;

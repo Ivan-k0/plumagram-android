@@ -1630,7 +1630,6 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SendingPreparing, "Подготовка видео");
     RU.put(R.string.Tgx101VoiceCutTitle, "Вырезать кусок");
     RU.put(R.string.Tgx101VoiceEditTitle, "Голосовое");
-    RU.put(R.string.Tgx101VoiceDeleteAsk, "Удалить это голосовое?");
     RU.put(R.string.Tgx101VoiceCutCount, "вырезано %1$d");
     RU.put(R.string.Tgx101VoiceCutHint, "Поставьте флажки на начало и конец лишнего — кусок между ними можно прослушать и вырезать");
     RU.put(R.string.Tgx101VoiceCutPlayAll, "Прослушать всё голосовое");

@@ -483,24 +483,8 @@ public class RecordAudioVideoController implements
         if (recordMode == RECORD_MODE_VIDEO_EDIT) {
           closeVideoEditMode(null);
         } else if (recordMode == RECORD_MODE_AUDIO_EDIT) {
-          // TGx101 (user 2026-11-12 «кнопка "удалить" должна быть с подтверждением»): a paused voice note — maybe listened
-          // to and edited — goes only after «Delete» is confirmed
-          org.thunderdog.challegram.navigation.ViewController<?> c = context.navigation().getCurrentStackItem();
-          if (c == null) {
-            closeAudioEditMode(null);
-            return;
-          }
-          if (audioPreviewView != null) audioPreviewView.stopPlayback();
-          c.showOptions(Lang.getString(R.string.Tgx101VoiceDeleteAsk), new int[] {R.id.btn_delete, R.id.btn_cancel},
-            new String[] {Lang.getString(R.string.Delete), Lang.getString(R.string.Cancel)},
-            new int[] {org.thunderdog.challegram.navigation.ViewController.OptionColor.RED, org.thunderdog.challegram.navigation.ViewController.OptionColor.NORMAL},
-            new int[] {R.drawable.baseline_delete_24, R.drawable.baseline_cancel_24}, (itemView, id) -> {
-              if (id == R.id.btn_delete && recordMode == RECORD_MODE_AUDIO_EDIT) {
-                org.thunderdog.challegram.Tgx101Diag.mark("voice: deleted after asking");
-                closeAudioEditMode(null);
-              }
-              return true;
-            });
+          // (user 2026-11-12: the confirmation asked before is not wanted with the bar of the reference) — at once, as before
+          closeAudioEditMode(null);
         }
       });
       this.deleteButton.setLayoutParams(FrameLayoutFix.newParams(Screen.dp(56f), ViewGroup.LayoutParams.MATCH_PARENT, Gravity.LEFT));
