@@ -5208,6 +5208,7 @@ public class Settings {
       new VideoLimit(new VideoSize(1024, 640)), // 640p
       new VideoLimit(new VideoSize(1280, 720), 60), // 720p | HD
       new VideoLimit(new VideoSize(1920, 1080), 60), // 1080p | FullHD
+      new VideoLimit(new VideoSize(2560, 1440), 60), // 1440p | 2K (TGx101, user 2026-11-12: «есть 1080p и 4K, а 2К нет»); ~12 Mbit/s at 30 FPS, between 1080p's ~6.8 and 4K's ~27
       new VideoLimit(new VideoSize(3840, 2160), 60), // 2160p | 4K
       new VideoLimit(new VideoSize(7680, 4320), 60) // 4320p | 8K
     };
