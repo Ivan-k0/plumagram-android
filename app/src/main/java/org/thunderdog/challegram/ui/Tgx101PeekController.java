@@ -172,8 +172,9 @@ public class Tgx101PeekController extends RecyclerViewController<Void> implement
     } else if (id == R.id.btn_tgx101PeekInside) {
       Tgx101Peek.setInside(adapter.toggleView(v));
     } else if (id == R.id.btn_tgx101PeekAll || id == R.id.btn_tgx101PeekSelected) {
-      adapter.processToggle(v);
       Tgx101Peek.setAll(id == R.id.btn_tgx101PeekAll);
+      // (phone check 2026-11-12: after a tap both dots stayed marked) — the list is built again from the saved value
+      adapter.setItems(buildItems(), false);
       if (id == R.id.btn_tgx101PeekSelected && Tgx101Peek.chats().isEmpty()) pickChats();
     } else if (id == R.id.btn_tgx101PeekChats) {
       pickChats();
