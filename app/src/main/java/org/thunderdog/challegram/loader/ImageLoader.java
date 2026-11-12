@@ -394,10 +394,13 @@ public class ImageLoader {
       }
 
       if (!watchers.isEmpty()) {
-        Set<Map.Entry<String, ImageWatchers>> entrySet = watchers.entrySet();
+        // TGx101 (crash 2026-11-12 16:24, a user's POCO F5, Android 15, 0.2.934, ConcurrentModificationException here on the
+        // ImageThread): a watcher told the image is gone asks for it again at once, on this thread and under this lock, and
+        // the map changed under the walk. The records are taken out first, then told; new requests made meanwhile stay
+        ArrayList<ImageWatchers> records = new ArrayList<>(watchers.values());
+        watchers.clear();
 
-        for (Map.Entry<String, ImageWatchers> entry : entrySet) {
-          ImageWatchers record = entry.getValue();
+        for (ImageWatchers record : records) {
 
           ImageFile file = record.getFile();
           if (accountId != TdlibAccount.NO_ID && file.accountId() != accountId) {
@@ -411,8 +414,6 @@ public class ImageLoader {
             reference.imageLoaded(record.getFile(), false, null);
           }
         }
-
-        watchers.clear();
       }
     }
 
