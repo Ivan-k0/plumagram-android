@@ -269,7 +269,14 @@ public class Tgx101SendAwake extends Service {
       }
     };
     try {
-      ContextCompat.registerReceiver(context.getApplicationContext(), receiver, new android.content.IntentFilter(Intent.ACTION_SCREEN_ON), ContextCompat.RECEIVER_NOT_EXPORTED);
+      // (Android 4 builds: their older androidx has no ContextCompat.RECEIVER_NOT_EXPORTED — lint before 0.2.980) the platform
+      // flag on 13+, plain before
+      android.content.IntentFilter filter = new android.content.IntentFilter(Intent.ACTION_SCREEN_ON);
+      if (android.os.Build.VERSION.SDK_INT >= 33) {
+        context.getApplicationContext().registerReceiver(receiver, filter, 0x4 /* Context.RECEIVER_NOT_EXPORTED */);
+      } else {
+        context.getApplicationContext().registerReceiver(receiver, filter);
+      }
     } catch (Throwable t) {
       r.run();
     }
