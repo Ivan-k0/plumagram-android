@@ -348,6 +348,35 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
   // TGx101 (approved mockup «Шапка как одно целое», 1): a row of the header's veil — written in the header's colours
   private boolean tgx101OnHeader;
 
+  // TGx101 «Не подглядывай!» (user 2026-11-12 «я бы ещё блюрил все имена в закрепах»): the sender's name in a pinned message
+
+  private boolean tgx101PeekNames;
+  private org.thunderdog.challegram.data.Tgx101Peek.Painter tgx101PeekName;
+
+  public void tgx101SetPeekNames (boolean peek) {
+    if (tgx101PeekNames != peek) {
+      tgx101PeekNames = peek;
+      if (peek) org.thunderdog.challegram.data.Tgx101Peek.register(this);
+      invalidate();
+    }
+  }
+
+  private void tgx101DrawTitle (Canvas c, Text text, int x, int y, float alpha) {
+    int peek = tgx101PeekNames && data != null ? org.thunderdog.challegram.data.Tgx101Peek.strengthInside(data.message.chatId, org.thunderdog.challegram.data.Tgx101Peek.PART_TITLE) : 0;
+    if (peek <= 0) {
+      text.draw(c, x, y, null, alpha);
+      return;
+    }
+    if (tgx101PeekName == null) tgx101PeekName = new org.thunderdog.challegram.data.Tgx101Peek.Painter();
+    int spread = Screen.dp(6f), h = text.getLineHeight(false);
+    tgx101PeekName.draw(c, x - spread, y - spread, x + text.getWidth() + spread, y + h + spread, peek, cc -> text.draw(cc, x, y, null, alpha), cc -> {
+      float inset = h * .18f;
+      android.graphics.RectF r = Paints.getRectF();
+      r.set(x, y + inset, x + text.getWidth(), y + h - inset);
+      cc.drawRoundRect(r, r.height() / 2f, r.height() / 2f, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(.35f * alpha, Theme.textDecentColor())));
+    });
+  }
+
   public void tgx101SetOnHeader (boolean onHeader) {
     this.tgx101OnHeader = onHeader;
     tgx101SetOneLine(onHeader);
@@ -739,7 +768,7 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
     if (!tgx101OneLine) for (ListAnimator.Entry<TextEntry> entry : titleText) {
       int titleY = tgx101TwoLine ? contextTextY - Screen.dp(2f) - (entry.item.content != null ? entry.item.content.getLineHeight(false) : Screen.dp(TEXT_SIZE)) : Screen.dp(7f);
       if (entry.item.content != null) {
-        entry.item.content.draw(c, textX, titleY, null, entry.getVisibility());
+        tgx101DrawTitle(c, entry.item.content, textX, titleY, entry.getVisibility());
       }
       if (entry.item.drawable != null) {
         float textCenterY = titleY + (entry.item.content != null ? entry.item.content.getLineHeight(false) : Screen.dp(TEXT_SIZE)) / 2f;

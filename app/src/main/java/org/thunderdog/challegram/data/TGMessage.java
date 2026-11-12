@@ -2363,7 +2363,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
             hPsaTextT.draw(c, left, left + hPsaTextT.getWidth(), 0, newTop);
             newTop += getPsaTitleHeight();
           }
-          hAuthorNameT.draw(c, left, left + hAuthorNameT.getWidth(), 0, newTop);
+          tgx101DrawAuthorName(c, left, newTop);
           if (hAuthorEmojiStatus != null) {
             hAuthorEmojiStatus.draw(c, left + hAuthorNameT.getWidth() + Screen.dp(3), newTop, 1f, view.getEmojiStatusReceiver());
           }
@@ -3595,6 +3595,29 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   // TGx101 «Не подглядывай!» inside the chat (user 2026-11-12): the photo beside a message blurred like the chat list's
+
+  private org.thunderdog.challegram.data.Tgx101Peek.Painter tgx101PeekName;
+
+  /** The sender's name over a message — a group member, a channel in the classic look (user 2026-11-12 «и названия в
+   *  пузырях групп и каналов») — blurred like the chat list's names */
+  private void tgx101DrawAuthorName (Canvas c, int left, int top) {
+    final Text name = hAuthorNameT;
+    if (name == null) return;
+    int peek = org.thunderdog.challegram.data.Tgx101Peek.strengthInside(msg.chatId, org.thunderdog.challegram.data.Tgx101Peek.PART_TITLE);
+    if (peek <= 0) {
+      name.draw(c, left, left + name.getWidth(), 0, top);
+      return;
+    }
+    if (tgx101PeekName == null) tgx101PeekName = new org.thunderdog.challegram.data.Tgx101Peek.Painter();
+    int spread = Screen.dp(6f), h = name.getLineHeight(false);
+    tgx101PeekName.draw(c, left - spread, top - spread, left + name.getWidth() + spread, top + h + spread, peek,
+      cc -> name.draw(cc, left, left + name.getWidth(), 0, top), cc -> {
+        float inset = h * .18f;
+        android.graphics.RectF r = Paints.getRectF();
+        r.set(left, top + inset, left + name.getWidth(), top + h - inset);
+        cc.drawRoundRect(r, r.height() / 2f, r.height() / 2f, Paints.fillingPaint(ColorUtils.alphaColor(.35f, Theme.textDecentColor())));
+      });
+  }
 
   private org.thunderdog.challegram.data.Tgx101Peek.Painter tgx101PeekAvatar;
 

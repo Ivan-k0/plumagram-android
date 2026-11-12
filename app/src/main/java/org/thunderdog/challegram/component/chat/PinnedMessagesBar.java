@@ -519,6 +519,7 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
   }
 
   private void updateContentInset (MessagePreviewView view, int position, float focusPosition, int contentInset, float collapse) {
+    view.tgx101SetPeekNames(true); // TGx101 «Не подглядывай!»: the names in the pinned messages blurred too
     if (contentInset == 0) {
       view.setContentInset(0);
       return;

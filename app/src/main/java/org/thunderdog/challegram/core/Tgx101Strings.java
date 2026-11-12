@@ -1278,7 +1278,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PeekTexts, "Сообщения");
     RU.put(R.string.Tgx101PeekQuickHint, "Та же сила — и в открытом чате.");
     RU.put(R.string.Tgx101PeekInside, "И в открытом чате");
-    RU.put(R.string.Tgx101PeekInsideHint, "Размывает аватарки возле сообщений, а также фото и название чата в шапке.");
+    RU.put(R.string.Tgx101PeekInsideHint, "Размывает аватарки и имена у сообщений, имена в закреплённых, а также фото и название чата в шапке.");
     RU.put(R.string.Tgx101PeekToastOn, "«Не подглядывай!» включено");
     RU.put(R.string.Tgx101PeekToastOff, "«Не подглядывай!» выключено");
     RU.put(R.string.Tgx101SavedBannerAlways, "Всегда");
