@@ -7800,4 +7800,27 @@
   <string name="Tgx101PreviewComments">Comments</string>
   <string name="Tgx101GestureDoubleTapZoom">Double tap zooms (instead of pause)</string>
   <string name="Tgx101FileGone">Telegram can\'t give this file right now. Open the chat again or try later.</string>
+  <string name="Tgx101NewLoginTitle">New login to your account</string>
+  <string name="Tgx101NewLoginTitleMany">New logins to your account: %1$d</string>
+  <string name="Tgx101NewLoginAccount">Account: %1$s</string>
+  <string name="Tgx101NewLoginQuestion">Is it you?</string>
+  <string name="Tgx101NewLoginMe">It\'s me</string>
+  <string name="Tgx101NewLoginNotMe">It wasn\'t me</string>
+  <string name="Tgx101NewLoginConfirmed">Login confirmed</string>
+  <string name="Tgx101NewLoginEnded">Session ended</string>
+  <string name="Tgx101NewLoginEndedText">%1$s no longer has access to your account.</string>
+  <string name="Tgx101NewLoginOutAll">Log out on all other devices</string>
+  <string name="Tgx101NewLoginOutAllHint">%1$d more · this phone stays</string>
+  <string name="Tgx101NewLoginPassword">Set a cloud password</string>
+  <string name="Tgx101NewLoginPasswordHint">Without it, one code is enough to log in</string>
+  <string name="Tgx101NewLoginPasswordChange">Change the cloud password</string>
+  <string name="Tgx101NewLoginPasswordChangeHint">In case someone learned it</string>
+  <string name="Tgx101NewLoginDevices">All devices</string>
+  <string name="Tgx101NewLoginDevicesHint">See them and end one by one</string>
+  <string name="Tgx101NewLoginTip">Never tell anyone your login code — neither Telegram nor its support ever asks for it. Most likely the code was lured out of you.</string>
+  <string name="Tgx101NewLoginDone">Done</string>
+  <string name="Tgx101NewLoginOutAllTitle">Log out on all other devices?</string>
+  <string name="Tgx101NewLoginOutAllText">This phone stays. On those devices you will need to log in again.</string>
+  <string name="Tgx101NewLoginOutAllDo">Log out everywhere</string>
+  <string name="Tgx101NewLoginOutAllDone">Logged out on all other devices</string>
 </resources>

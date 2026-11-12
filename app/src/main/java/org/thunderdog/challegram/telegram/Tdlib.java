@@ -9099,9 +9099,21 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     });
   }
 
+  // TGx101 (user 2026-11-13 «как в оф телеграм… безопасность прежде всего»): a new login waiting for «it's me» / «it wasn't me»
+  private volatile @Nullable TdApi.UnconfirmedSession tgx101UnconfirmedSession;
+  private volatile int tgx101UnconfirmedCount;
+
+  public @Nullable TdApi.UnconfirmedSession tgx101UnconfirmedSession () {
+    return tgx101UnconfirmedSession;
+  }
+
   @TdlibThread
   private void updateUnconfirmedSession (TdApi.UpdateUnconfirmedSession update) {
-    // TODO
+    tgx101UnconfirmedSession = update.session;
+    tgx101UnconfirmedCount = update.unconfirmedSessionCount;
+    final TdApi.UnconfirmedSession session = update.session;
+    final int count = update.unconfirmedSessionCount;
+    UI.post(() -> org.thunderdog.challegram.ui.Tgx101NewLogin.onUpdate(this, session, count));
   }
 
   // Updates: FILES

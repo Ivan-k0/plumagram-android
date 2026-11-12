@@ -2642,6 +2642,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   @Override
   public void onFocus () {
     super.onFocus();
+    Tgx101NewLogin.onMainFocus(this); // TGx101: a new login that came while the chats were away
     if (getValue() != null) {
       getValue().postDelayed(this::tgx101PrepareStorage, 700); // after the chats settle
       getValue().postDelayed(tgx101MeasureLater, 2200); // and laid out again once its own loads came
