@@ -203,16 +203,26 @@ public class VoiceWaveformView extends View implements FactorAnimator.Target, Tg
     return textPaint.measureText(edit != null && edit.isPlaying() ? "0:00 / 0:00" : "0:00") + Screen.dp(4f);
   }
 
+  // TGx101 (user 2026-11-12 «после "Готово" полоса должна быть обрезана, а не затемнена»): the bar shows only the kept
+  // part — from the start edge to the end edge — stretched over its whole width
+  private int viewFrom () {
+    return edit != null ? edit.trimStartShown() : 0;
+  }
+
+  private int viewTo () {
+    return edit != null ? Math.max(edit.trimStartShown() + 1, edit.trimEndShown()) : 1;
+  }
+
   private float xOf (int shown) {
     float s = waveStart(), e = waveEnd();
-    int len = edit != null ? Math.max(1, edit.shownLength()) : 1;
-    return s + (e - s) * shown / (float) len;
+    int from = viewFrom(), to = viewTo();
+    return s + (e - s) * (shown - from) / (float) Math.max(1, to - from);
   }
 
   private int shownAt (float x) {
     float s = waveStart(), e = waveEnd();
-    int len = edit != null ? edit.shownLength() : 0;
-    return Math.round(Math.max(0f, Math.min(1f, (x - s) / Math.max(1f, e - s))) * len);
+    int from = viewFrom(), to = viewTo();
+    return from + Math.round(Math.max(0f, Math.min(1f, (x - s) / Math.max(1f, e - s))) * (to - from));
   }
 
   private final Path path = new Path();
@@ -261,17 +271,19 @@ public class VoiceWaveformView extends View implements FactorAnimator.Target, Tg
     // (user 2026-11-12 «пролаги, когда ведёшь ползунок»): the bars' peaks were read from the whole recording on every frame;
     // they are kept until the note's length, its cuts or the bar count change
     int seamsKey = java.util.Arrays.hashCode(edit.seams());
+    final int vf = viewFrom(), vt = viewTo(), span = vt - vf;
+    seamsKey = seamsKey * 31 + vf * 17 + vt;
     if (peakCache == null || peakCache.length != bars || peakLen != len || peakSeams != seamsKey || peakEdit != edit) {
       peakCache = new float[bars];
       for (int i = 0; i < bars; i++) {
-        peakCache[i] = edit.peak((int) ((long) len * i / bars), (int) ((long) len * (i + 1) / bars));
+        peakCache[i] = edit.peak(vf + (int) ((long) span * i / bars), vf + (int) ((long) span * (i + 1) / bars));
       }
       peakLen = len;
       peakSeams = seamsKey;
       peakEdit = edit;
     }
     for (int i = 0; i < bars; i++) {
-      int from = (int) ((long) len * i / bars), to = (int) ((long) len * (i + 1) / bars);
+      int from = vf + (int) ((long) span * i / bars), to = vf + (int) ((long) span * (i + 1) / bars);
       float p = peakCache[i];
       float h = Math.max(minH, Math.min(maxH, minH + (float) Math.sqrt(p) * maxH));
       float x = ws + i * step;
@@ -281,6 +293,7 @@ public class VoiceWaveformView extends View implements FactorAnimator.Target, Tg
       c.drawRoundRect(rect, Screen.dp(1f), Screen.dp(1f), Paints.fillingPaint(color));
     }
     for (int seam : edit.seams()) {
+      if (seam <= vf || seam >= vt) continue;
       float x = xOf(seam);
       c.drawRect(x - Screen.dp(.75f), centerY - Screen.dp(12f), x + Screen.dp(.75f), centerY + Screen.dp(12f), Paints.fillingPaint(0xffe5533f));
     }

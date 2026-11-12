@@ -56,14 +56,14 @@ public final class Tgx101VoiceCutSheet {
   private static final int RED = 0xffe5533f, YELLOW = 0xfff2c14e;
 
   public static void show (ViewController<?> c, Tgx101VoiceEdit edit, Runnable onClose) {
-    final Object snapshot = edit.snapshot();
+    final Object snapshot = edit.editorState();
     final boolean[] done = {false};
     final Context context = c.context();
     final Tgx101Sheet.Handle[] handle = new Tgx101Sheet.Handle[1];
     final int baseCuts = countCuts(edit);
     handle[0] = Tgx101Sheet.show(c, () -> {
       edit.stop();
-      if (!done[0]) edit.restore(snapshot);
+      if (!done[0]) edit.restoreEditorState(snapshot);
       onClose.run();
     }, body -> {
       int pad = Screen.dp(18f);
@@ -435,6 +435,7 @@ public final class Tgx101VoiceCutSheet {
           }
           if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
           edit.stop(); // listening restarts from the new place on ▶, not on every move
+          if (dragging == EDGE_START || dragging == EDGE_END) edit.beginEdges();
           move(x);
           return true;
         }
@@ -445,6 +446,8 @@ public final class Tgx101VoiceCutSheet {
         case MotionEvent.ACTION_UP:
         case MotionEvent.ACTION_CANCEL:
           if (dragging == EDGE_START || dragging == EDGE_END) {
+            edit.commitEdges();
+            if (onChanged != null) onChanged.run();
             org.thunderdog.challegram.Tgx101Diag.mark("voice edit: edges " + (edit.trimStartShown() * 1000L / Tgx101VoiceEdit.RATE) + "–" + (edit.trimEndShown() * 1000L / Tgx101VoiceEdit.RATE) + " ms of " + (edit.shownLength() * 1000L / Tgx101VoiceEdit.RATE));
           }
           dragging = NONE;

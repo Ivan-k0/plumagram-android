@@ -240,6 +240,7 @@ public final class Tgx101VoiceEdit {
     ArrayList<int[]> trial = new ArrayList<>(cutsAdded);
     trial.add(new int[] {o1, o2});
     if (keptSamples(merge(trial)) < RATE / 2) return false;
+    pushHistory();
     cutsAdded.add(new int[] {o1, o2});
     rebuildCuts();
     org.thunderdog.challegram.Tgx101Diag.mark("voice edit: cut " + (o1 * 1000L / RATE) + "–" + (o2 * 1000L / RATE) + " ms");
@@ -247,14 +248,42 @@ public final class Tgx101VoiceEdit {
     return true;
   }
 
+  // TGx101 (user 2026-11-12 «если я возвращаюсь в редактор, когда уже обрезал — должна быть возможность отменить»): every
+  // action — a cut or a move of the yellow edges — goes into one history kept with the note, so «bring back» undoes the
+  // last one, also after the editor was closed with «Done» and opened again
+  private final ArrayList<Object> history = new ArrayList<>();
+
+  private void pushHistory () {
+    history.add(snapshot());
+    if (history.size() > 50) history.remove(0);
+  }
+
+  /** call before the edges are dragged; {@link #commitEdges} keeps it only when they moved */
+  public void beginEdges () {
+    pendingEdges = snapshot();
+    pendingTrim = new int[] {trimStart, trimEnd};
+  }
+
+  public void commitEdges () {
+    if (pendingEdges != null && pendingTrim != null && (pendingTrim[0] != trimStart || pendingTrim[1] != trimEnd)) {
+      history.add(pendingEdges);
+      if (history.size() > 50) history.remove(0);
+    }
+    pendingEdges = null;
+    pendingTrim = null;
+  }
+
+  private Object pendingEdges;
+  private int[] pendingTrim;
+
   public boolean canBringBack () {
-    return !cutsAdded.isEmpty();
+    return !history.isEmpty();
   }
 
   public void bringBackLast () {
-    if (cutsAdded.isEmpty()) return;
-    cutsAdded.remove(cutsAdded.size() - 1);
-    rebuildCuts();
+    if (history.isEmpty()) return;
+    Object last = history.remove(history.size() - 1);
+    applySnapshot(last);
     notifyChanged();
   }
 
@@ -265,15 +294,33 @@ public final class Tgx101VoiceEdit {
     return new Object[] {trimStart, trimEnd, copy};
   }
 
+  /** «Cancel» in the editor: the edits and their history as they were when it opened */
+  public Object editorState () {
+    return new Object[] {snapshot(), new ArrayList<>(history)};
+  }
+
   @SuppressWarnings("unchecked")
+  public void restoreEditorState (Object state) {
+    Object[] s = (Object[]) state;
+    applySnapshot(s[0]);
+    history.clear();
+    history.addAll((ArrayList<Object>) s[1]);
+    notifyChanged();
+  }
+
   public void restore (Object snapshot) {
+    applySnapshot(snapshot);
+    notifyChanged();
+  }
+
+  @SuppressWarnings("unchecked")
+  private void applySnapshot (Object snapshot) {
     Object[] s = (Object[]) snapshot;
     trimStart = (Integer) s[0];
     trimEnd = (Integer) s[1];
     cutsAdded.clear();
-    cutsAdded.addAll((ArrayList<int[]>) s[2]);
+    for (int[] c : (ArrayList<int[]>) s[2]) cutsAdded.add(c.clone());
     rebuildCuts();
-    notifyChanged();
   }
 
   private void rebuildCuts () {
