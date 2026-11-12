@@ -596,7 +596,9 @@ android {
           arguments(
             "-DANDROID_PLATFORM=android-${selectedMinSdk}",
             "-DANDROID_MIN_SDK_VERSION=${selectedMinSdk}",
-            "-DANDROID_STL=${if (appliedNdkVersion.ndkVersionMajor() >= 27) "c++_shared" else "c++_static"}",
+            // TGx101: always shared — TDLib (since tdlib/td@4c6377a) is built with c++_shared for every NDK, the Android 4 build had
+            // no libc++_shared.so and crashed at start (BlackBerry Z30, Android 4.3, 0.2.934, 2026-11-12)
+            "-DANDROID_STL=c++_shared",
             "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON",
             "-DCMAKE_SKIP_RPATH=ON",
             "-DCMAKE_C_VISIBILITY_PRESET=hidden",
@@ -695,7 +697,7 @@ android {
 
         ndkVersion = appliedNdkVersion
         buildConfigString("NDK_VERSION", ndkVersion)
-        buildConfigBool("SHARED_STL", ndkVersion.ndkVersionMajor() >= 27)
+        buildConfigBool("SHARED_STL", true) // TGx101: see ANDROID_STL above
         buildConfigBool("WEBP_ENABLED", true)
         if (ndk.abiFilters.isNotEmpty())
           error(ndk.abiFilters.joinToString())

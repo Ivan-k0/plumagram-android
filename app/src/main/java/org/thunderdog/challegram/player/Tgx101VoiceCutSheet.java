@@ -84,35 +84,40 @@ public final class Tgx101VoiceCutSheet {
       viewParams.topMargin = Screen.dp(14f);
       body.addView(view, viewParams);
 
+      // TGx101 (user 2026-11-12, mockup Ф1 + «Отмена — красная обводка, Готово — синяя обводка, без заливки»): the app's own
+      // button shape — rounded rectangles, 14 dp corners, 44 / 40 dp tall; ▶ a blue tint (not like «Done»), the piece a red
+      // tint taking the room left, «bring back» grey, the scissors red; the row always fits (the piece shrinks, «bring back»
+      // takes no room when there's nothing to bring back)
+      final int blue = Theme.getColor(ColorId.textNeutral);
       LinearLayout actions = new LinearLayout(context);
       actions.setOrientation(LinearLayout.HORIZONTAL);
       actions.setGravity(Gravity.CENTER_VERTICAL);
       actions.setPadding(pad, Screen.dp(14f), pad, 0);
-      final ImageView play = round(context, R.drawable.baseline_play_arrow_36_white, Theme.getColor(ColorId.circleButtonRegular), Theme.getColor(ColorId.circleButtonRegularIcon), 56f, false);
+      final ImageView play = iconBox(context, R.drawable.baseline_play_arrow_36_white, ColorUtils.alphaColor(.18f, blue), 0, blue);
       play.setContentDescription(Lang.getString(R.string.Tgx101VoiceCutPlayAll));
-      actions.addView(play, new LinearLayout.LayoutParams(Screen.dp(56f), Screen.dp(56f)));
-      // the piece belongs to the red flags: outlined in red, apart from the note's own buttons
-      final TextView playPiece = pill(context, "", M3_PIECE);
-      LinearLayout.LayoutParams pieceParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(40f));
-      pieceParams.leftMargin = Screen.dp(10f);
+      actions.addView(play, new LinearLayout.LayoutParams(Screen.dp(48f), Screen.dp(44f)));
+      final TextView playPiece = textBox(context, "", ColorUtils.alphaColor(.14f, RED), 0, 0xfff08a7c);
+      LinearLayout.LayoutParams pieceParams = new LinearLayout.LayoutParams(0, Screen.dp(44f), 1f);
+      pieceParams.leftMargin = Screen.dp(8f);
       actions.addView(playPiece, pieceParams);
-      actions.addView(new View(context), new LinearLayout.LayoutParams(0, 1, 1f));
-      final ImageView bringBack = round(context, R.drawable.baseline_undo_24, 0, Theme.textAccentColor(), 40f, true);
+      final ImageView bringBack = iconBox(context, R.drawable.baseline_undo_24, ColorUtils.alphaColor(.07f, Theme.textAccentColor()), 0, Theme.textAccentColor());
       bringBack.setContentDescription(Lang.getString(R.string.Tgx101VoiceCutBringBack));
-      LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(Screen.dp(40f), Screen.dp(40f));
-      backParams.rightMargin = Screen.dp(10f);
+      LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(Screen.dp(44f), Screen.dp(44f));
+      backParams.leftMargin = Screen.dp(8f);
       actions.addView(bringBack, backParams);
-      final ImageView cut = round(context, R.drawable.baseline_content_cut_24, RED, 0xffffffff, 56f, false);
+      final ImageView cut = iconBox(context, R.drawable.baseline_content_cut_24, RED, 0, 0xffffffff);
       cut.setContentDescription(Lang.getString(R.string.Tgx101VoiceCutDo));
-      actions.addView(cut, new LinearLayout.LayoutParams(Screen.dp(56f), Screen.dp(56f)));
+      LinearLayout.LayoutParams cutParams = new LinearLayout.LayoutParams(Screen.dp(56f), Screen.dp(44f));
+      cutParams.leftMargin = Screen.dp(8f);
+      actions.addView(cut, cutParams);
       body.addView(actions);
 
       LinearLayout bottom = new LinearLayout(context);
       bottom.setOrientation(LinearLayout.HORIZONTAL);
       bottom.setPadding(pad, Screen.dp(16f), pad, Screen.dp(4f));
-      TextView cancel = pill(context, Lang.getString(R.string.Cancel), M3_TEXT);
+      TextView cancel = textBox(context, Lang.getString(R.string.Cancel), 0, ColorUtils.alphaColor(.85f, RED), 0xfff08a7c);
       bottom.addView(cancel, new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f));
-      TextView ok = pill(context, Lang.getString(R.string.Tgx101VoiceCutDone), M3_FILLED);
+      TextView ok = textBox(context, Lang.getString(R.string.Tgx101VoiceCutDone), 0, ColorUtils.alphaColor(.9f, blue), blue);
       LinearLayout.LayoutParams okParams = new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f);
       okParams.leftMargin = Screen.dp(10f);
       bottom.addView(ok, okParams);
@@ -132,7 +137,7 @@ public final class Tgx101VoiceCutSheet {
           wasPlaying[0] = edit.isPlaying();
           play.setImageResource(edit.isPlaying() ? R.drawable.baseline_pause_24 : R.drawable.baseline_play_arrow_36_white);
         }
-        bringBack.setVisibility(edit.canBringBack() ? View.VISIBLE : View.INVISIBLE);
+        bringBack.setVisibility(edit.canBringBack() ? View.VISIBLE : View.GONE);
         view.invalidate();
       };
       view.onChanged = refresh;
@@ -232,6 +237,48 @@ public final class Tgx101VoiceCutSheet {
     mask.setCornerRadius(bg.getShape() == GradientDrawable.OVAL ? 0 : Screen.dp(20f));
     mask.setColor(0xffffffff);
     return new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(ColorUtils.alphaColor(.16f, over)), bg, mask);
+  }
+
+  private static final float BOX_RADIUS = 14f;
+
+  private static GradientDrawable box (int fill, int stroke) {
+    GradientDrawable bg = new GradientDrawable();
+    bg.setCornerRadius(Screen.dp(BOX_RADIUS));
+    bg.setColor(fill);
+    if (stroke != 0) bg.setStroke(Screen.dp(1.2f), stroke);
+    return bg;
+  }
+
+  private static android.graphics.drawable.Drawable boxRipple (int fill, int stroke, int over) {
+    GradientDrawable bg = box(fill, stroke);
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.LOLLIPOP) return bg;
+    GradientDrawable mask = box(0xffffffff, 0);
+    return new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(ColorUtils.alphaColor(.16f, over)), bg, mask);
+  }
+
+  private static TextView textBox (Context context, CharSequence s, int fill, int stroke, int textColor) {
+    TextView v = text(context, s, 15f, textColor, false);
+    v.setGravity(Gravity.CENTER);
+    v.setSingleLine(true);
+    v.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    v.setPadding(Screen.dp(12f), 0, Screen.dp(12f), 0);
+    v.setBackground(boxRipple(fill, stroke, textColor));
+    v.setClickable(true);
+    v.setFocusable(true);
+    return v;
+  }
+
+  private static ImageView iconBox (Context context, int icon, int fill, int stroke, int tint) {
+    ImageView v = new ImageView(context);
+    v.setImageResource(icon);
+    v.setColorFilter(tint);
+    v.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+    int p = Screen.dp(10f);
+    v.setPadding(p, p, p, p);
+    v.setBackground(boxRipple(fill, stroke, tint));
+    v.setClickable(true);
+    v.setFocusable(true);
+    return v;
   }
 
   private static ImageView round (Context context, int icon, int fill, int tint, float size, boolean outlined) {

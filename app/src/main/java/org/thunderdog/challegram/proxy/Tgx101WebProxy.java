@@ -85,6 +85,7 @@ public final class Tgx101WebProxy {
   public static void init () {
     if (initialized) return;
     initialized = true;
+    diag("init, current " + Settings.instance().getEffectiveProxyId()); // TGx101
     // (a 4PDA reader's log 2026-11-10 15:51: a WEB proxy chosen, no carrier ever started — «Connection refused» on :27101):
     // Settings keeps its proxy listeners by weak references and nothing else held this one, so it was collected soon
     // after the start and choosing a WEB proxy did nothing. It is held here for the app's whole life
@@ -105,8 +106,16 @@ public final class Tgx101WebProxy {
     activate(Settings.instance().getEffectiveProxyId());
   }
 
+  private static void diag (String what) {
+    org.thunderdog.challegram.Tgx101Diag.mark("web proxy: " + what);
+  }
+
   private static void activate (int proxyId) {
     Address address = proxyId != Settings.PROXY_ID_NONE ? load(proxyId) : null;
+    // TGx101 (a reader's log 0.2.934 2026-11-12: a WEB proxy chosen, no «web proxy:» line at all) — every step is written down
+    diag("activate id " + proxyId + (proxyId == Settings.PROXY_ID_NONE ? " (none)" : address != null ? " → " + address.display() :
+      Settings.instance().pmc().getString(KEY_PREFIX + proxyId, null) != null ? " → stored, can't be read" : " → not a WEB proxy") +
+      (carrier != null ? ", carrier for " + carrierProxyId : ""));
     if (address == null) {
       if (carrier != null) {
         carrier.stop();
@@ -116,12 +125,14 @@ public final class Tgx101WebProxy {
       return;
     }
     if (carrier != null && carrierProxyId == proxyId) {
+      diag("already carrying");
       return;
     }
     if (carrier != null) {
       carrier.stop();
     }
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+      diag("Android " + Build.VERSION.SDK_INT + " — not supported");
       UI.showToast(R.string.Tgx101WebProxyUnsupported, Toast.LENGTH_LONG);
       return;
     }
