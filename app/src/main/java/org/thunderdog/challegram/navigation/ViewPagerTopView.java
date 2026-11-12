@@ -818,6 +818,20 @@ public class ViewPagerTopView extends FrameLayoutFix implements RtlCheckListener
   private int lastMeasuredWidth;
   private int commonItemWidth;
 
+  // TGx101 (black box 2026-11-12 13:38:02: the strip grew 1120 → 1216 px while still — a counter came — and kept its old
+  // place, so the first step of the next swipe asked it to move 43 px at once; that jump fought the finger and the row
+  // went left, then back right: «как будто что-то пропускает»). A size change while still puts the row in place now
+  private int tgx101LastWidth;
+
+  @Override
+  protected void onSizeChanged (int w, int h, int oldw, int oldh) {
+    super.onSizeChanged(w, h, oldw, oldh);
+    if (tgx101LastWidth != 0 && w != tgx101LastWidth && selectionChangeListener != null) {
+      post(() -> updateAnchorPosition(false));
+    }
+    tgx101LastWidth = w;
+  }
+
   private int calculateCommonItemWidth (int parentWidth) {
     int itemWidth = Math.min(parentWidth / items.size(), maxItemWidth);
     if (parentWidth - itemWidth * items.size() < itemWidth / 2) {

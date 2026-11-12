@@ -447,6 +447,14 @@ public class ViewPagerHeaderViewCompact extends FrameLayoutFix implements PagerH
 
   private void pseudoSmoothScrollBy (int scrollX) {
     if (scrollByAnimator != null && scrollByAnimator.isAnimating()) {
+      // TGx101 (black box 2026-11-12 13:38:02): a small step while a jump still plays — the finger goes on and the strip
+      // follows it from where it is; re-aiming the jump's curve made the row overshoot and turn back
+      if (Math.abs(scrollX) <= Screen.dp(8f) && !hasUserInteraction) {
+        scrollByAnimator.stopAnimation();
+        scrollByAnimator = null;
+        recyclerView.scrollBy(scrollX, 0);
+        return;
+      }
       finalScrollBy = scrollX + scrolledBy;
       return;
     }
