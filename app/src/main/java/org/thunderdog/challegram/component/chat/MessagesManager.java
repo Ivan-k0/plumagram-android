@@ -2228,6 +2228,21 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         // TGx101 (user 2026-10-14 13:55 / 20:2x, on the phone: sent while scrolled up — the chat jumped to the end in one
         // frame): it goes down to the new message the way the arrow does — a glide, from 1.5 screens away if it's far
         RecyclerView tgx101List = controller.getMessagesView();
+        // TGx101 (user 2026-11-12 «после того как заново загрузил видео после ошибки меня должно бросать сразу вниз чата к
+        // этому видео, но стрелка справа должна однократно возвращать к тому месту где было видео с ошибкой»): a failed
+        // media sent again comes as a new message at the end — the chat glides down to it even from near the bottom, and
+        // the arrow keeps one way back to where the failed one was (it is removed, so the message above it)
+        long tgx101ResendReturn = message.isSending() ? tgx101FindResentFailed(message.getMessage()) : 0;
+        if (tgx101ResendReturn != 0 && tgx101List != null && androidx.core.view.ViewCompat.isAttachedToWindow(tgx101List) && !tgx101IsRestoringPosition()) {
+          adapter.addMessage(message, false, false);
+          tgx101List.post(() -> {
+            controller.tgx101SettleBarsForSend();
+            if (!tgx101SmoothScrollToBottom()) scrollToBottom(false);
+          });
+          org.thunderdog.challegram.Tgx101Diag.mark("sent again: glides down to it, the arrow returns to " + (tgx101ResendReturn >> 20));
+          tgx101SetReturnAfterSend(message, tgx101ResendReturn);
+          return;
+        }
         if (!atBottom && message.isSending() && tgx101List != null && androidx.core.view.ViewCompat.isAttachedToWindow(tgx101List) && !tgx101IsRestoringPosition()) {
           long returnTo = tgx101VisibleMessageId();
           adapter.addMessage(message, false, false);
@@ -2285,6 +2300,76 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       // never let go — it waited for the 600 ms safety timer; it slides away with the reload now
       controller.tgx101ReleaseBarForSend();
     }
+  }
+
+  /**
+   * TGx101: the new sending message is a failed one sent again (by a tap on it, «Resend» or the selection) when a failed
+   * outgoing message in the list holds the same file. Returns the message where the arrow brings you back — the one
+   * above the failed (that one is removed after), or the failed itself when it is the oldest loaded; 0 when not a re-send.
+   */
+  private long tgx101FindResentFailed (TdApi.Message sent) {
+    int fileId = tgx101MediaFileId(sent.content);
+    if (fileId == 0) return 0;
+    for (int i = 0, n = adapter.getMessageCount(); i < n; i++) {
+      TGMessage container = adapter.getMessage(i);
+      if (container == null || !container.isFailed()) continue;
+      for (TdApi.Message m : container.getAllMessages()) {
+        if (m.id != sent.id && m.sendingState instanceof TdApi.MessageSendingStateFailed && tgx101MediaFileId(m.content) == fileId) {
+          TGMessage above = i + 1 < n ? adapter.getMessage(i + 1) : null;
+          return above != null ? above.getBiggestId() : m.id;
+        }
+      }
+    }
+    // TDLib's own re-send may take the failed one away before the new one comes
+    if (tgx101LeftFailedFileId == fileId && android.os.SystemClock.uptimeMillis() - tgx101LeftFailedAt < 5000) {
+      tgx101LeftFailedFileId = 0;
+      return tgx101LeftFailedReturn;
+    }
+    return 0;
+  }
+
+  private int tgx101LeftFailedFileId;
+  private long tgx101LeftFailedReturn, tgx101LeftFailedAt;
+
+  /** a failed media leaving the list is remembered for a moment, with the message above it */
+  private void tgx101RememberFailedLeaving (long[] messageIds) {
+    for (int i = 0, n = adapter.getMessageCount(); i < n; i++) {
+      TGMessage container = adapter.getMessage(i);
+      if (container == null || !container.isFailed()) continue;
+      for (TdApi.Message m : container.getAllMessages()) {
+        if (!(m.sendingState instanceof TdApi.MessageSendingStateFailed) || !me.vkryl.core.ArrayUtils.contains(messageIds, m.id)) continue;
+        int fileId = tgx101MediaFileId(m.content);
+        if (fileId == 0) continue;
+        TGMessage above = i + 1 < n ? adapter.getMessage(i + 1) : null;
+        tgx101LeftFailedFileId = fileId;
+        tgx101LeftFailedReturn = above != null ? above.getBiggestId() : m.id;
+        tgx101LeftFailedAt = android.os.SystemClock.uptimeMillis();
+        return;
+      }
+    }
+  }
+
+  private static int tgx101MediaFileId (TdApi.MessageContent content) {
+    if (content == null) return 0;
+    switch (content.getConstructor()) {
+      case TdApi.MessageVideo.CONSTRUCTOR:
+        return ((TdApi.MessageVideo) content).video.video.id;
+      case TdApi.MessagePhoto.CONSTRUCTOR: {
+        TdApi.PhotoSize[] sizes = ((TdApi.MessagePhoto) content).photo.sizes;
+        return sizes.length > 0 ? sizes[sizes.length - 1].photo.id : 0;
+      }
+      case TdApi.MessageAnimation.CONSTRUCTOR:
+        return ((TdApi.MessageAnimation) content).animation.animation.id;
+      case TdApi.MessageDocument.CONSTRUCTOR:
+        return ((TdApi.MessageDocument) content).document.document.id;
+      case TdApi.MessageAudio.CONSTRUCTOR:
+        return ((TdApi.MessageAudio) content).audio.audio.id;
+      case TdApi.MessageVideoNote.CONSTRUCTOR:
+        return ((TdApi.MessageVideoNote) content).videoNote.video.id;
+      case TdApi.MessageVoiceNote.CONSTRUCTOR:
+        return ((TdApi.MessageVoiceNote) content).voiceNote.voice.id;
+    }
+    return 0;
   }
 
   /** the message in the middle of what's on screen now — where the arrow brings you back */
@@ -2751,6 +2836,8 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         if (leaving > 0 && leaving < shown.getCombinedMessageCount()) controller.tgx101TakeChangingAlbum(view);
       }
     }
+
+    tgx101RememberFailedLeaving(messageIds);
 
     int tgx101RemovedRows = 0;
     int index = 0;
