@@ -88,10 +88,11 @@ public final class Tgx101VoiceCutSheet {
       actions.setOrientation(LinearLayout.HORIZONTAL);
       actions.setGravity(Gravity.CENTER_VERTICAL);
       actions.setPadding(pad, Screen.dp(14f), pad, 0);
-      final ImageView play = round(context, R.drawable.baseline_play_arrow_36_white, Theme.getColor(ColorId.waveformActive), 0xffffffff, 56f, false);
+      final ImageView play = round(context, R.drawable.baseline_play_arrow_36_white, Theme.getColor(ColorId.circleButtonRegular), Theme.getColor(ColorId.circleButtonRegularIcon), 56f, false);
       play.setContentDescription(Lang.getString(R.string.Tgx101VoiceCutPlayAll));
       actions.addView(play, new LinearLayout.LayoutParams(Screen.dp(56f), Screen.dp(56f)));
-      final TextView playPiece = pill(context, "", M3_TONAL);
+      // the piece belongs to the red flags: outlined in red, apart from the note's own buttons
+      final TextView playPiece = pill(context, "", M3_PIECE);
       LinearLayout.LayoutParams pieceParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(40f));
       pieceParams.leftMargin = Screen.dp(10f);
       actions.addView(playPiece, pieceParams);
@@ -109,7 +110,7 @@ public final class Tgx101VoiceCutSheet {
       LinearLayout bottom = new LinearLayout(context);
       bottom.setOrientation(LinearLayout.HORIZONTAL);
       bottom.setPadding(pad, Screen.dp(16f), pad, Screen.dp(4f));
-      TextView cancel = pill(context, Lang.getString(R.string.Cancel), M3_TONAL);
+      TextView cancel = pill(context, Lang.getString(R.string.Cancel), M3_TEXT);
       bottom.addView(cancel, new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f));
       TextView ok = pill(context, Lang.getString(R.string.Tgx101VoiceCutDone), M3_FILLED);
       LinearLayout.LayoutParams okParams = new LinearLayout.LayoutParams(0, Screen.dp(40f), 1f);
@@ -191,11 +192,13 @@ public final class Tgx101VoiceCutSheet {
   // TGx101 (user 2026-11-12 «кнопки в редакторе в стиле материал?» — «да, переведи»): Material 3 buttons — 40 dp, fully
   // rounded, Medium 14 sp with M3's letter spacing, a ripple from the finger; filled (primary), tonal (a 12 % tint of
   // the accent) and outlined kinds; icon buttons round, filled or outlined
-  static final int M3_FILLED = 0, M3_TONAL = 1, M3_OUTLINED = 2;
+  // (user's screenshot 2026-11-12 19:2x «сливаются отмена и кусок»): each kind is told apart by what it is — «Done» filled in
+  // the app's primary button colour, «Cancel» a text button with no box, the piece outlined in the flags' red
+  static final int M3_FILLED = 0, M3_TONAL = 1, M3_OUTLINED = 2, M3_TEXT = 3, M3_PIECE = 4;
 
   private static TextView pill (Context context, CharSequence s, int kind) {
-    int accent = Theme.getColor(ColorId.waveformActive);
-    int textColor = kind == M3_FILLED ? 0xffffffff : kind == M3_TONAL ? Theme.textAccentColor() : accent;
+    int accent = Theme.getColor(ColorId.circleButtonRegular);
+    int textColor = kind == M3_FILLED ? Theme.getColor(ColorId.circleButtonRegularIcon) : kind == M3_TONAL ? Theme.textAccentColor() : kind == M3_PIECE ? RED : Theme.getColor(ColorId.textNeutral);
     TextView v = text(context, s, 14f, textColor, true);
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) v.setLetterSpacing(.007f);
     v.setGravity(Gravity.CENTER);
@@ -207,6 +210,11 @@ public final class Tgx101VoiceCutSheet {
       bg.setColor(accent);
     } else if (kind == M3_TONAL) {
       bg.setColor(ColorUtils.alphaColor(.14f, accent));
+    } else if (kind == M3_TEXT) {
+      bg.setColor(0);
+    } else if (kind == M3_PIECE) {
+      bg.setColor(ColorUtils.alphaColor(.08f, RED));
+      bg.setStroke(Screen.dp(1f), ColorUtils.alphaColor(.7f, RED));
     } else {
       bg.setColor(0);
       bg.setStroke(Screen.dp(1f), ColorUtils.alphaColor(.35f, Theme.textAccentColor()));
