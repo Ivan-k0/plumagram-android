@@ -24,6 +24,7 @@ import android.view.View;
 import androidx.annotation.DrawableRes;
 
 import org.thunderdog.challegram.theme.ColorId;
+import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.theme.Theme;
 import org.thunderdog.challegram.tool.Drawables;
 import org.thunderdog.challegram.tool.Paints;
@@ -131,6 +132,42 @@ public class HeaderButton extends View {
   }
 
   private int tgx101ForcedColor;
+  private int tgx101SwipeHint;
+
+  /** TGx101 (user 2026-11-12 «стрелочки, которые указывают, в какую сторону можно свайпать»): a small rounded chevron beside
+   *  the icon, -1 — to the left (the feed: the topics lie left), 1 — to the right (the topics: the feed lies right), 0 — none */
+  public void tgx101SetSwipeHint (int direction) {
+    if (this.tgx101SwipeHint != direction) {
+      this.tgx101SwipeHint = direction;
+      invalidate();
+    }
+  }
+
+  private void tgx101DrawSwipeHint (Canvas c) {
+    if (tgx101SwipeHint == 0 || drawable == null) return;
+    int dir = Lang.rtl() ? -tgx101SwipeHint : tgx101SwipeHint;
+    float cx = getMeasuredWidth() / 2f + dir * (drawable.getMinimumWidth() / 2f + Screen.dp(5f));
+    float cy = getMeasuredHeight() / 2f;
+    float h = Screen.dp(3.5f), w = Screen.dp(2.25f);
+    Paint p = tgx101ChevronPaint;
+    if (p == null) {
+      p = tgx101ChevronPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+      p.setStyle(Paint.Style.STROKE);
+      p.setStrokeCap(Paint.Cap.ROUND);
+      p.setStrokeJoin(Paint.Join.ROUND);
+    }
+    p.setStrokeWidth(Screen.dp(1.75f));
+    p.setColor(ColorUtils.alphaColor(.7f, getColor(Theme.headerTextColor())));
+    android.graphics.Path path = tgx101Chevron;
+    path.reset();
+    path.moveTo(cx - dir * w, cy - h);
+    path.lineTo(cx + dir * w, cy);
+    path.lineTo(cx - dir * w, cy + h);
+    c.drawPath(path, p);
+  }
+
+  private final android.graphics.Path tgx101Chevron = new android.graphics.Path();
+  private Paint tgx101ChevronPaint;
 
   /** TGx101: a colour of its own instead of the theme's (0 — back to the theme) */
   public void tgx101SetForcedColor (int color) {
@@ -186,6 +223,7 @@ public class HeaderButton extends View {
       if (needMirror) {
         c.restore();
       }
+      tgx101DrawSwipeHint(c);
     }
   }
 

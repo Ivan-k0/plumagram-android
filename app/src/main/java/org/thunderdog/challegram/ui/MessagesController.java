@@ -4684,6 +4684,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // instead of the «Темы | Лента» strip, which took a whole row over the messages
       tgx101TopicsButton = header.addButton(menu, R.id.menu_btn_tgx101Topics, R.drawable.baseline_apps_24, getHeaderIconColorId(), this, Screen.dp(48f));
       tgx101TopicsButton.setTag(Lang.getString(R.string.Tgx101TopicsButton));
+      tgx101TopicsButton.tgx101SetSwipeHint(-1); // the topics lie to the left — a swipe right brings them
       tgx101TopicsButton.setVisibility(tgx101FeedNow ? View.VISIBLE : View.GONE);
       header.addMoreButton(menu, this);
     } else if (id == R.id.menu_gallery) {

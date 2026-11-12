@@ -468,8 +468,9 @@ public class Tgx101TopicsController extends RecyclerViewController<Tgx101TopicsC
   public void fillMenuItems (int id, org.thunderdog.challegram.navigation.HeaderView header, LinearLayout menu) {
     if (id == R.id.menu_search) {
       // (user 2026-11-08 «иконку поиска — на иконку Лента»): the search goes into ⋮
-      header.addButton(menu, R.id.menu_btn_tgx101Feed, R.drawable.baseline_format_list_bulleted_type_24, getHeaderIconColorId(), this, Screen.dp(48f))
-        .setTag(Lang.getString(R.string.Tgx101FeedButton));
+      org.thunderdog.challegram.navigation.HeaderButton feedButton = header.addButton(menu, R.id.menu_btn_tgx101Feed, R.drawable.baseline_format_list_bulleted_type_24, getHeaderIconColorId(), this, Screen.dp(48f));
+      feedButton.setTag(Lang.getString(R.string.Tgx101FeedButton));
+      feedButton.tgx101SetSwipeHint(1); // the feed lies to the right — a swipe left brings it
       header.addMoreButton(menu, this);
     } else if (id == R.id.menu_clear) {
       header.addClearButton(menu, this);
