@@ -3901,10 +3901,9 @@ public class Settings {
   private static final String KEY_TGX101_COMPACT_BUBBLES = "tgx101_compact_bubbles";
   private static volatile int tgx101CompactBubbles = -1;
   public boolean tgx101CompactBubbles () {
-    if (true) return false; // (user 2026-11-10 «не нужны, можно вообще убрать»): the feature is off for everyone
-    int v = tgx101CompactBubbles;
-    if (v == -1) tgx101CompactBubbles = v = pmc.getBoolean(KEY_TGX101_COMPACT_BUBBLES, true) ? 1 : 0;
-    return v == 1;
+    // (user 2026-11-10 «не нужны» meant the menu item only; 2026-11-13 «я просил убрать только из меню, но сами по себе
+    // должны быть активны»): on for everyone, with no switch left to turn them off
+    return true;
   }
   public void setTgx101CompactBubbles (boolean v) { pmc.putBoolean(KEY_TGX101_COMPACT_BUBBLES, v); tgx101CompactBubbles = v ? 1 : 0; }
   public void setTgx101HideInputEmoji (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_INPUT_EMOJI, v); }
