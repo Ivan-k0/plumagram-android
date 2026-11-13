@@ -2304,11 +2304,6 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
   }
 
-  /** TGx101: the player's controls are up — a single tap hides them at once, no wait for a second tap */
-  public boolean tgx101ControlsShown () {
-    return headerView != null && needHeader() && headerVisible.getValue() && !inPictureInPicture;
-  }
-
   private boolean toggleHeaderVisibility () {
     if (headerView != null && needHeader()) {
       boolean isVisible = headerVisible.toggleValue(true);
