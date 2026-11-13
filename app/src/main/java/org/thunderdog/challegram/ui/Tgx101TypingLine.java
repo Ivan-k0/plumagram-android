@@ -91,13 +91,9 @@ public final class Tgx101TypingLine {
     float thin = Math.max(1, Screen.dp(.5f));
     paint.setShader(null);
     paint.setColor(Theme.separatorColor());
-    c.drawRect(0, y, w, y + thin, paint);
-    // (user 2026-11-13, mockup «Живая линия поля» variant Б «ваш темп за сутки»): at rest the line is the colour of the
-    // day's typing pace — calm blue, lively violet, very fast pink; it changes slowly, the same in every chat
-    int tempo = Tempo.color();
-    paint.setShader(new LinearGradient(0, 0, w, 0, new int[] {ColorUtils.alphaColor(0f, tempo), ColorUtils.alphaColor(Theme.isDark() ? .7f : .9f, tempo), ColorUtils.alphaColor(Theme.isDark() ? .7f : .9f, tempo), ColorUtils.alphaColor(0f, tempo)}, new float[] {0f, .2f, .8f, 1f}, Shader.TileMode.CLAMP));
-    c.drawRect(0, y, w, y + Math.max(thin, Screen.dp(1f)), paint);
-    paint.setShader(null);
+    Session.drawLine(c, paint, 0, w, y, thin);
+    long next = Session.nextChangeIn();
+    if (next > 0) host.postInvalidateDelayed(next);
 
     long now = SystemClock.uptimeMillis();
     float dt = lastFrame != 0 ? Math.min(64, now - lastFrame) : 16;
@@ -154,11 +150,7 @@ public final class Tgx101TypingLine {
     float thin = Math.max(1, Screen.dp(.5f));
     paint.setShader(null);
     paint.setColor(Theme.separatorColor());
-    c.drawRect(left, y, right, y + thin, paint);
-    int tempo = Tempo.color();
-    paint.setShader(new LinearGradient(left, 0, right, 0, new int[] {ColorUtils.alphaColor(0f, tempo), ColorUtils.alphaColor(Theme.isDark() ? .7f : .9f, tempo), ColorUtils.alphaColor(Theme.isDark() ? .7f : .9f, tempo), ColorUtils.alphaColor(0f, tempo)}, new float[] {0f, .2f, .8f, 1f}, Shader.TileMode.CLAMP));
-    c.drawRect(left, y, right, y + Math.max(thin, Screen.dp(1f)), paint);
-    paint.setShader(null);
+    Session.drawLine(c, paint, left, right, y, thin);
     if (fill > 0f) {
       paint.setColor(ColorUtils.alphaColor(Theme.isDark() ? .85f : 1f, accent()));
       c.drawRect(left, y, left + w * fill, y + Math.max(thin, Screen.dp(1.5f)), paint);
@@ -174,6 +166,97 @@ public final class Tgx101TypingLine {
     float thick = Screen.dp(Theme.isDark() ? 1.5f : 2f) + Screen.dp(1f) * energy;
     c.drawRect(l, y - thick / 2f + thin / 2f, r, y + thick / 2f + thin / 2f, paint);
     paint.setShader(null);
+  }
+
+  /**
+   * (user 2026-11-13 «используем тонкую линию: чем меньше сижу — тем ровнее, чем дольше за сеанс — тем больше обрывов,
+   * без фанатизма, красиво»): the line at rest is whole for the first 10 minutes of a sitting; then every 5 minutes one
+   * small gap opens — softly, over half a minute — at its own place along the line, up to 12 after an hour. Leaving the
+   * app for more than 5 minutes ends the sitting: the next visit starts whole again. Only the time on the phone, kept in
+   * memory, nothing stored.
+   */
+  public static final class Session {
+    private static long start, pausedAt;
+    private static final int MAX_GAPS = 12;
+    private static final long FIRST_MS = 10 * 60_000L, EVERY_MS = 5 * 60_000L, OPEN_MS = 30_000L, BREAK_MS = 5 * 60_000L;
+    // the gaps' places: spread over the line but not evenly — fixed, so a gap never moves once it is there
+    private static final float[] PLACES = {.47f, .18f, .74f, .31f, .88f, .09f, .6f, .39f, .81f, .24f, .67f, .54f};
+
+    public static void resume () {
+      long now = SystemClock.elapsedRealtime();
+      if (start == 0 || (pausedAt != 0 && now - pausedAt > BREAK_MS)) start = now;
+      pausedAt = 0;
+    }
+
+    public static void pause () {
+      pausedAt = SystemClock.elapsedRealtime();
+    }
+
+    private static long sat () {
+      if (start == 0) resume();
+      return SystemClock.elapsedRealtime() - start;
+    }
+
+    /** how open gap i is now, 0…1 */
+    private static float open (int i, long sat) {
+      long at = FIRST_MS + i * EVERY_MS;
+      return sat <= at ? 0f : Math.min(1f, (sat - at) / (float) OPEN_MS);
+    }
+
+    /** when the line next changes (a gap starts or is opening), 0 — never more */
+    static long nextChangeIn () {
+      if (!ENABLED) return 0;
+      long sat = sat();
+      for (int i = 0; i < MAX_GAPS; i++) {
+        long at = FIRST_MS + i * EVERY_MS;
+        if (sat < at) return Math.min(at - sat + 50, 60_000L);
+        if (sat < at + OPEN_MS) return 500;
+      }
+      return 0;
+    }
+
+    /** the thin line from left to right with the sitting's gaps (soft ends, a few dp wide) */
+    /** (user 2026-11-13 «я думал это как суточную обыграть — в задачи на потом»): the sitting's gaps are off for now */
+    static final boolean ENABLED = false;
+
+    static void drawLine (Canvas c, Paint paint, float left, float right, float y, float thin) {
+      if (!ENABLED) {
+        c.drawRect(left, y, right, y + thin, paint);
+        return;
+      }
+      long sat = sat();
+      float w = right - left;
+      float[] from = new float[MAX_GAPS], to = new float[MAX_GAPS];
+      int n = 0;
+      for (int i = 0; i < MAX_GAPS; i++) {
+        float o = open(i, sat);
+        if (o <= 0f) break;
+        float half = (Screen.dp(2f) + Screen.dp(3f) * o) / 2f; // 2 → 5 dp
+        float cx = left + w * PLACES[i];
+        from[n] = cx - half;
+        to[n] = cx + half;
+        n++;
+      }
+      // sort the gaps along the line, then draw the pieces between them
+      for (int a = 1; a < n; a++) for (int b = a; b > 0 && from[b] < from[b - 1]; b--) {
+        float f = from[b]; from[b] = from[b - 1]; from[b - 1] = f;
+        float t = to[b]; to[b] = to[b - 1]; to[b - 1] = t;
+      }
+      float x = left;
+      int base = paint.getColor();
+      for (int i = 0; i <= n; i++) {
+        float end = i < n ? from[i] : right;
+        if (end > x) c.drawRect(x, y, end, y + thin, paint);
+        if (i < n) {
+          // a soft edge each side, so a gap looks cut cleanly, not chipped
+          paint.setColor(ColorUtils.alphaColor(.45f * android.graphics.Color.alpha(base) / 255f, base | 0xff000000));
+          c.drawRect(from[i] - Screen.dp(1f), y, from[i], y + thin, paint);
+          c.drawRect(to[i], y, to[i] + Screen.dp(1f), y + thin, paint);
+          paint.setColor(base);
+          x = to[i] + Screen.dp(1f);
+        }
+      }
+    }
   }
 
   /**
