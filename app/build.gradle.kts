@@ -831,10 +831,11 @@ android {
       // (2026-10-20: the 1000th mod commit) past 999 the count simply carries into the base's digits — versionCode still
       // only grows (installs over the previous build) and stays far from the Int limit
       require(modBuild in 0..99999) { "modBuild out of range: $modBuild" }
-      // 0.2 began at mod build 848 (2026-10-16): the shown number is 0.2.<builds since then>; versionCode keeps the full count.
-      val modVersion = "0.2"
-      val modPatch = modBuild - 848
-      require(modPatch >= 0) { "modBuild below the 0.2 start: $modBuild" }
+      // 0.2 began at mod build 848 (2026-10-16), 0.3 at 1854 (2026-11-13, user «следующие версии уже идут под 0.3»): the
+      // shown number is 0.3.<builds since then>; versionCode keeps the full count, so it still only grows.
+      val modVersion = "0.3"
+      val modPatch = modBuild - 1854
+      require(modPatch >= 0) { "modBuild below the 0.3 start: $modBuild" }
 
       var baseVersionCode: Int? = null
       var baseVersionName: String? = null
