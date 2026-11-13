@@ -1289,7 +1289,36 @@ public class RecordAudioVideoController implements
 
   public boolean finishRecording (boolean needPreview) {
     boolean forcePreview = tdlib.getSlowModeRestrictionText(targetChatId) != null;
-    return stopRecording(canSendRecording() ? (needPreview || forcePreview ? CLOSE_MODE_PREVIEW : (hasValidOutputTarget() && targetController.areScheduledOnly()) ? CLOSE_MODE_PREVIEW_SCHEDULE : CLOSE_MODE_SEND) : CLOSE_MODE_CANCEL, true);
+    int closeMode = canSendRecording() ? (needPreview || forcePreview ? CLOSE_MODE_PREVIEW : (hasValidOutputTarget() && targetController.areScheduledOnly()) ? CLOSE_MODE_PREVIEW_SCHEDULE : CLOSE_MODE_SEND) : CLOSE_MODE_CANCEL;
+    if (closeMode == CLOSE_MODE_SEND && hasValidOutputTarget() && Settings.instance().tgx101Confirm(Settings.CONFIRM_VOICE)) {
+      // TGx101 «Подтверждение» (user 2026-11-13): the recording stops into its preview and the card asks — «Cancel»
+      // leaves it there (listen, cut, delete), nothing is lost
+      closeMode = CLOSE_MODE_PREVIEW;
+      tgx101ConfirmPending = true;
+      tgx101ConfirmSeconds = Math.max(1, totalDuration() / 1000);
+      tgx101ConfirmVideo = recordingVideo;
+    }
+    return stopRecording(closeMode, true);
+  }
+
+  private boolean tgx101ConfirmPending, tgx101ConfirmVideo;
+  private long tgx101ConfirmSeconds;
+
+  private void tgx101AskBeforeSending () {
+    tgx101ConfirmPending = false;
+    if (targetController == null || targetController.isDestroyed()) return;
+    final boolean video = tgx101ConfirmVideo;
+    org.thunderdog.challegram.ui.Tgx101SendConfirmSheet.ask(targetController, Settings.CONFIRM_VOICE, targetChatId,
+      Lang.getString(video ? R.string.Tgx101ConfirmRoundTitle : R.string.Tgx101ConfirmVoiceTitle), null,
+      org.thunderdog.challegram.tool.Strings.buildDuration(tgx101ConfirmSeconds), () -> {
+        if (targetController != null && !targetController.showSlowModeRestriction(sendButton, null)) {
+          if (recordMode == RECORD_MODE_VIDEO_EDIT) {
+            sendVideo(Td.newSendOptions());
+          } else if (recordMode == RECORD_MODE_AUDIO_EDIT) {
+            sendAudio(Td.newSendOptions());
+          }
+        }
+      }, null);
   }
 
   private boolean stopRecording (int closeMode, boolean showPrompt) {
@@ -1574,6 +1603,8 @@ public class RecordAudioVideoController implements
           sendVideo(Td.newSendOptions());
         } else if (finalFactor == 1f && voiceCloseMode == CLOSE_MODE_PREVIEW_SCHEDULE) {
           sendAudio(Td.newSendOptions());
+        } else if (finalFactor == 1f && tgx101ConfirmPending) {
+          tgx101AskBeforeSending();
         }
         break;
       }

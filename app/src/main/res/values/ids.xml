@@ -1966,6 +1966,13 @@
   <item name="btn_tgx101SitesWithoutPrompt" type="id"/>
   <item name="controller_tgx101OwnAi" type="id"/>
   <item name="controller_tgx101OwnAiModels" type="id"/>
+  <item name="controller_tgx101Confirm" type="id"/>
+  <item name="btn_tgx101ConfirmVoice" type="id"/>
+  <item name="btn_tgx101ConfirmSticker" type="id"/>
+  <item name="btn_tgx101ConfirmMedia" type="id"/>
+  <item name="btn_tgx101ConfirmGif" type="id"/>
+  <item name="btn_tgx101ConfirmCalls" type="id"/>
+  <item name="btn_tgx101SectionConfirm" type="id"/>
   <item name="btn_tgx101OwnAiModelPick" type="id"/>
   <item name="btn_tgx101OwnAiModelManual" type="id"/>
   <item name="btn_tgx101OwnAi" type="id"/>

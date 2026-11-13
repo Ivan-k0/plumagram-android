@@ -13405,6 +13405,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
       inputView.onCustomEmojiSelected(sticker);
       return false;
     }
+    // TGx101 «Подтверждение» (user 2026-11-13): asked first when switched on
+    if (Tgx101SendConfirmSheet.ask(this, org.thunderdog.challegram.unsorted.Settings.CONFIRM_STICKER, getChatId(), null, !StringUtils.isEmpty(emoji) ? emoji : sticker.emoji, Lang.getString(R.string.Tgx101ConfirmStickerTitle),
+      () -> sendContent(view, RightId.SEND_OTHER_MESSAGES, R.string.ChatDisabledStickers, R.string.ChatRestrictedStickers, R.string.ChatRestrictedStickersUntil, allowReply, initialSendOptions, () -> new TdApi.InputMessageSticker(new TdApi.InputSticker(new TdApi.InputFileId(sticker.sticker.id), null, 0, 0), emoji)), null)) {
+      return true;
+    }
     return sendContent(view, RightId.SEND_OTHER_MESSAGES, R.string.ChatDisabledStickers, R.string.ChatRestrictedStickers, R.string.ChatRestrictedStickersUntil, allowReply, initialSendOptions, () -> new TdApi.InputMessageSticker(new TdApi.InputSticker(new TdApi.InputFileId(sticker.sticker.id), null, 0, 0), emoji));
   }
 
@@ -13413,6 +13418,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private boolean sendAnimation (View view, TdApi.Animation animation, boolean allowReply) {
+    if (Tgx101SendConfirmSheet.ask(this, org.thunderdog.challegram.unsorted.Settings.CONFIRM_GIF, getChatId(), null, null,
+      animation.duration > 0 ? "GIF · " + Strings.buildDuration(animation.duration) : "GIF",
+      () -> sendContent(view, RightId.SEND_OTHER_MESSAGES, R.string.ChatDisabledGifs, R.string.ChatRestrictedGifs, R.string.ChatRestrictedGifsUntil, allowReply, Td.newSendOptions(), () -> TD.toInputMessageContent(animation)), null)) {
+      return true;
+    }
     return sendContent(view, RightId.SEND_OTHER_MESSAGES, R.string.ChatDisabledGifs, R.string.ChatRestrictedGifs, R.string.ChatRestrictedGifsUntil, allowReply, Td.newSendOptions(), () -> TD.toInputMessageContent(animation));
   }
 
@@ -14565,9 +14575,33 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
+  private boolean tgx101MediaConfirmed;
+
+  private static String tgx101Capital (String s) {
+    return s.isEmpty() ? s : s.substring(0, 1).toUpperCase(java.util.Locale.getDefault()) + s.substring(1);
+  }
+
   public boolean sendPhotosAndVideosCompressed (final ImageGalleryFile[] files, final boolean needGroupMedia, final TdApi.MessageSendOptions modifiedSendOptions, boolean disableMarkdown, boolean asFiles, boolean showCaptionAboveMedia, boolean hasSpoiler) {
     if (files == null || files.length == 0) {
       return false;
+    }
+    if (!tgx101MediaConfirmed) {
+      // TGx101 «Подтверждение» (user 2026-11-13): how many photos and videos, asked first when switched on
+      int videos = 0;
+      for (ImageGalleryFile f : files) if (f.isVideo()) videos++;
+      int photos = files.length - videos;
+      String detail = photos > 0 && videos > 0 ? Lang.getString(R.string.Tgx101ConfirmPhotos, photos) + " · " + Lang.getString(R.string.Tgx101ConfirmVideos, videos)
+        : videos > 0 ? tgx101Capital(Lang.getString(R.string.Tgx101ConfirmVideos, videos)) : Lang.getString(R.string.Tgx101ConfirmPhotos, photos);
+      if (Tgx101SendConfirmSheet.ask(this, org.thunderdog.challegram.unsorted.Settings.CONFIRM_MEDIA, getChatId(), null, null, detail, () -> {
+        tgx101MediaConfirmed = true;
+        try {
+          sendPhotosAndVideosCompressed(files, needGroupMedia, modifiedSendOptions, disableMarkdown, asFiles, showCaptionAboveMedia, hasSpoiler);
+        } finally {
+          tgx101MediaConfirmed = false;
+        }
+      }, null)) {
+        return true;
+      }
     }
 
     boolean hasCaption = false;

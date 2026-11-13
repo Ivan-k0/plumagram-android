@@ -251,6 +251,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(Tgx101BackupController.lastBackupText());
           return;
         }
+        if (itemId == R.id.btn_tgx101SectionConfirm) {
+          view.setData(Tgx101ConfirmController.value());
+          return;
+        }
         int tgx101SectionIndex = tgx101SectionIndex(itemId);
         if (tgx101SectionIndex != -1) {
           view.setData(Lang.getString(TGX101_SECTION_HINTS[tgx101SectionIndex]));
@@ -1268,6 +1272,11 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         int i = TGX101_SECTION_ORDER[k];
         if (k > 0) out.add(new ListItem(ListItem.TYPE_SEPARATOR));
         out.add(new ListItem(ListItem.TYPE_VALUED_SETTING, TGX101_SECTION_IDS[i], TGX101_SECTION_ICONS[i], TGX101_SECTION_TITLES[i]));
+        if (i == 2) {
+          // (user 2026-11-13 «"подтверждение" отдельный пункт в меню MagiX»): right after «Messages and menu»
+          out.add(new ListItem(ListItem.TYPE_SEPARATOR));
+          out.add(new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101SectionConfirm, R.drawable.baseline_playlist_add_check_24, R.string.Tgx101Confirm));
+        }
       }
       out.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
       // TGx101 (approved mockup «Копия настроек», variant В): the whole app's settings to a file and back
@@ -1408,6 +1417,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     }
     final int id = v.getId();
     final boolean toggleResult = adapter.toggleView(v);
+    if (id == R.id.btn_tgx101SectionConfirm) {
+      navigateTo(new Tgx101ConfirmController(context, tdlib));
+      return;
+    }
     int tgx101SectionIndex = tgx101SectionIndex(id);
     if (tgx101SectionIndex != -1) {
       if (tgx101SectionIndex == TGX101_SECTION_DATA) {
