@@ -537,14 +537,68 @@ public class MediaCellView extends ViewGroup implements
       super(context);
     }
 
-    // TGx101 (user 2026-11-13 «отзеркаливание медиа, чтобы полоски были не чёрные… там что нет простых решений?»): the
-    // video's own layer is drawn a second time, mirrored at its edges, into the bars — the GPU redraws the same layer every
-    // frame, no copies, no snapshots; dimmed so the picture itself stays the bright part
+    // TGx101 (user 2026-11-13 «сделай как на ютубе… не мелькает лишнего»): a glow behind the video, the way that site does
+    // it — not a mirror, the frame shrunk to a few dozen pixels, stretched over the whole screen, blurred and dimmed. A new
+    // frame is taken every 1.5 s while playing and the glow flows into it over a second, so cuts in the video never flash.
+    // Cost: one readback of a 32-pixel picture per 1.5 s and a few draw calls; the blur is the GPU's (Android 12+), older
+    // phones get the bare stretched picture, already soft at that size.
+    private final android.graphics.Paint tgx101GlowPaint = new android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG);
     private final android.graphics.Paint tgx101Dim = new android.graphics.Paint();
+    private final android.graphics.RectF tgx101GlowRect = new android.graphics.RectF();
+    private android.graphics.Bitmap tgx101GlowNow, tgx101GlowWas;
+    private long tgx101GlowFlowStart; // when the glow began flowing from Was into Now
+    private float tgx101GlowShown; // 0…1, the glow's own fade in and out
+    private long tgx101GlowShownAt;
+    private boolean tgx101GlowGrabPosted;
+    private static final long TGX101_GLOW_EVERY = 1500, TGX101_GLOW_FLOW = 1000, TGX101_GLOW_FADE = 350;
 
     private boolean tgx101MirrorWanted () {
       return org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerMirror() && media != null && (media.isVideo() || media.isGif())
         && hideStaticView && videoReady && revealFactor >= 1f && !disappearing && factor == 0f && !tgx101Closing && !isZoomed() && !forceTouchMode;
+    }
+
+    private final Runnable tgx101GlowGrab = () -> {
+      tgx101GlowGrabPosted = false;
+      if (tgx101MirrorWanted()) {
+        if (isPlaying || tgx101GlowNow == null) tgx101GrabGlow();
+        tgx101ScheduleGlowGrab();
+      }
+    };
+
+    private void tgx101ScheduleGlowGrab () {
+      if (!tgx101GlowGrabPosted) {
+        tgx101GlowGrabPosted = true;
+        postDelayed(tgx101GlowGrab, TGX101_GLOW_EVERY);
+      }
+    }
+
+    private void tgx101GrabGlow () {
+      if (playerView == null) return;
+      float ratio = playerView.tgx101FrameRatio();
+      if (ratio <= 0f) return;
+      int side = Build.VERSION.SDK_INT >= 31 ? 32 : 16;
+      int bw = ratio >= 1f ? side : Math.max(2, Math.round(side * ratio));
+      int bh = ratio >= 1f ? Math.max(2, Math.round(side / ratio)) : side;
+      android.graphics.Bitmap into = tgx101GlowWas;
+      if (into == null || into.isRecycled() || into.getWidth() != bw || into.getHeight() != bh) {
+        try {
+          into = android.graphics.Bitmap.createBitmap(bw, bh, android.graphics.Bitmap.Config.ARGB_8888);
+        } catch (Throwable t) {
+          return;
+        }
+      }
+      if (!playerView.tgx101GrabInto(into)) return;
+      tgx101GlowWas = tgx101GlowNow;
+      tgx101GlowNow = into;
+      tgx101GlowFlowStart = tgx101GlowWas != null ? android.os.SystemClock.uptimeMillis() : 0;
+      invalidate();
+    }
+
+    void tgx101ResetGlow () {
+      tgx101GlowNow = tgx101GlowWas = null;
+      tgx101GlowShown = 0f;
+      tgx101GlowShownAt = tgx101GlowFlowStart = 0;
+      invalidate();
     }
 
     private Object tgx101BlurNode; // a RenderNode on Android 12+, kept apart so older ones never load its class
@@ -552,42 +606,59 @@ public class MediaCellView extends ViewGroup implements
     @Override
     protected void dispatchDraw (Canvas c) {
       View v = getChildCount() > 0 ? getChildAt(0) : null;
-      boolean mirror = v != null && v.getVisibility() == View.VISIBLE && v.getWidth() > 0 && tgx101MirrorWanted();
-      if (mirror && Build.VERSION.SDK_INT >= 31 && c.isHardwareAccelerated()) {
-        // (user 2026-11-13 «заблюрь, чтобы было по уму»): the mirrored bars go into a layer of their own that the GPU blurs,
-        // then the video itself over it — the blur never lies on the picture, nothing for the CPU to do
-        if (tgx101BlurNode == null) tgx101BlurNode = Tgx101Blur.create(Screen.dp(22f));
-        android.graphics.Canvas rc = Tgx101Blur.begin(tgx101BlurNode, getWidth(), getHeight());
-        tgx101DrawBars(rc, v);
-        Tgx101Blur.end(tgx101BlurNode, c);
-        super.dispatchDraw(c);
-        return;
+      boolean wanted = v != null && v.getVisibility() == View.VISIBLE && v.getWidth() > 0 && tgx101MirrorWanted();
+      long now = android.os.SystemClock.uptimeMillis();
+      if (wanted) {
+        if (tgx101GlowNow == null) tgx101GrabGlow();
+        tgx101ScheduleGlowGrab();
       }
+      // fades in when it comes, out when zoomed; gone at once when the viewer closes or the setting is off
+      boolean softOut = !disappearing && !tgx101Closing && factor == 0f && org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerMirror();
+      float target = wanted && tgx101GlowNow != null ? 1f : 0f;
+      if (target == 0f && !softOut) {
+        tgx101GlowShown = 0f;
+      } else if (tgx101GlowShown != target) {
+        long dt = tgx101GlowShownAt != 0 ? Math.min(100, now - tgx101GlowShownAt) : 16;
+        float step = dt / (float) TGX101_GLOW_FADE;
+        tgx101GlowShown = target > tgx101GlowShown ? Math.min(target, tgx101GlowShown + step) : Math.max(target, tgx101GlowShown - step);
+      }
+      tgx101GlowShownAt = tgx101GlowShown != target ? now : 0;
+      boolean animating = tgx101GlowShown != target;
+      if (tgx101GlowShown > 0f && tgx101GlowNow != null && !tgx101GlowNow.isRecycled()) {
+        float flow = tgx101GlowFlowStart != 0 ? Math.min(1f, (now - tgx101GlowFlowStart) / (float) TGX101_GLOW_FLOW) : 1f;
+        if (flow >= 1f) tgx101GlowFlowStart = 0; else animating = true;
+        if (Build.VERSION.SDK_INT >= 31 && c.isHardwareAccelerated()) {
+          if (tgx101BlurNode == null) tgx101BlurNode = Tgx101Blur.create(Screen.dp(18f));
+          android.graphics.Canvas rc = Tgx101Blur.begin(tgx101BlurNode, getWidth(), getHeight());
+          tgx101DrawGlow(rc, flow);
+          Tgx101Blur.end(tgx101BlurNode, c);
+        } else {
+          tgx101DrawGlow(c, flow);
+        }
+      }
+      if (animating) postInvalidateOnAnimation();
       super.dispatchDraw(c);
-      if (mirror) tgx101DrawBars(c, v);
     }
 
-    private void tgx101DrawBars (Canvas c, View v) {
+    private void tgx101DrawGlow (Canvas c, float flow) {
       int w = getWidth(), h = getHeight();
-      float l = v.getLeft(), t = v.getTop(), r = v.getRight(), b = v.getBottom();
-      float edge = Screen.dp(1f);
-      tgx101Dim.setColor(0x73000000); // 45 %
-      long time = getDrawingTime();
-      if (l > edge) tgx101DrawMirrored(c, v, time, 0, 0, l, h, -1f, 1f, l, 0);
-      if (r < w - edge) tgx101DrawMirrored(c, v, time, r, 0, w, h, -1f, 1f, r, 0);
-      if (t > edge) tgx101DrawMirrored(c, v, time, 0, 0, w, t, 1f, -1f, 0, t);
-      if (b < h - edge) tgx101DrawMirrored(c, v, time, 0, b, w, h, 1f, -1f, 0, b);
-    }
-
-    private void tgx101DrawMirrored (Canvas c, View v, long time, float l, float t, float r, float b, float sx, float sy, float px, float py) {
-      c.save();
-      c.clipRect(l, t, r, b);
-      c.save();
-      c.scale(sx, sy, px, py);
-      drawChild(c, v, time);
-      c.restore();
-      c.drawRect(l, t, r, b, tgx101Dim);
-      c.restore();
+      android.graphics.Bitmap now = tgx101GlowNow;
+      // covers the screen, a little larger, centred — the edges of the picture never show
+      float scale = Math.max(w / (float) now.getWidth(), h / (float) now.getHeight()) * 1.15f;
+      float dw = now.getWidth() * scale, dh = now.getHeight() * scale;
+      tgx101GlowRect.set((w - dw) / 2f, (h - dh) / 2f, (w + dw) / 2f, (h + dh) / 2f);
+      int alpha = (int) (255 * tgx101GlowShown);
+      android.graphics.Bitmap was = tgx101GlowWas;
+      if (flow < 1f && was != null && !was.isRecycled()) {
+        tgx101GlowPaint.setAlpha(alpha);
+        c.drawBitmap(was, null, tgx101GlowRect, tgx101GlowPaint);
+        tgx101GlowPaint.setAlpha((int) (alpha * flow));
+      } else {
+        tgx101GlowPaint.setAlpha(alpha);
+      }
+      c.drawBitmap(now, null, tgx101GlowRect, tgx101GlowPaint);
+      tgx101Dim.setColor(android.graphics.Color.argb((int) (0x80 * tgx101GlowShown), 0, 0, 0)); // 50 %: the picture stays the bright part
+      c.drawRect(0, 0, w, h, tgx101Dim);
     }
 
     @Override
@@ -1347,7 +1418,7 @@ public class MediaCellView extends ViewGroup implements
   }
 
   public void setMedia (@Nullable MediaItem media) {
-    if (videoParentView != null) videoParentView.invalidate();
+    if (videoParentView != null) videoParentView.tgx101ResetGlow(); // another video: never the last one's glow
     setMedia(media, false, 0, 1f);
   }
 

@@ -7850,5 +7850,5 @@
   <string name="Tgx101OwnAiPrivacy">Texts for your own AI go to the chosen service, not to Telegram: only the text being worked on — the message, the missed messages, a Storage entry. The key is kept on this phone, encrypted, and is not in the settings backup.</string>
   <string name="Tgx101OwnAiHttpsOnly">the address must start with https:// (http:// only for this phone: localhost)</string>
   <string name="Tgx101OwnAiInfo">Own AI: %1$s — the text goes to this service</string>
-  <string name="Tgx101PlayerMirror">Mirrored edges</string>
+  <string name="Tgx101PlayerMirror">Ambient glow</string>
 </resources>

@@ -118,6 +118,20 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     }
   }
 
+  /** TGx101: the current frame shrunk into {@code into} (a few dozen pixels) — for the glow behind the video */
+  public boolean tgx101GrabInto (android.graphics.Bitmap into) {
+    if (renderView == null || !renderView.isAvailable() || renderView.getWidth() <= 0) return false;
+    try {
+      return renderView.getBitmap(into) != null;
+    } catch (Throwable t) {
+      return false;
+    }
+  }
+
+  public float tgx101FrameRatio () {
+    return renderView != null && renderView.getHeight() > 0 ? (float) renderView.getWidth() / renderView.getHeight() : 0f;
+  }
+
   public void prepareTextureView () {
     if (renderView == null) {
       this.renderView = new TextureView(context);
