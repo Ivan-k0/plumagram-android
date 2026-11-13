@@ -107,6 +107,22 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     this.errorHandler = onError;
   }
 
+  /** TGx101 (user 2026-11-13 «отзеркаливание медиа, чтобы полоски были не чёрные»): a small copy of the frame on screen for
+   *  the mirrored bars, into {@code reuse} when it has the size — null when there's none */
+  public @androidx.annotation.Nullable android.graphics.Bitmap tgx101MirrorFrame (@androidx.annotation.Nullable android.graphics.Bitmap reuse) {
+    if (renderView == null || !renderView.isAvailable() || renderView.getWidth() <= 0 || renderView.getHeight() <= 0) return null;
+    try {
+      float scale = Math.min(1f, 200f / Math.max(renderView.getWidth(), renderView.getHeight()));
+      int w = Math.max(1, Math.round(renderView.getWidth() * scale)), h = Math.max(1, Math.round(renderView.getHeight() * scale));
+      if (reuse != null && !reuse.isRecycled() && reuse.isMutable() && reuse.getWidth() == w && reuse.getHeight() == h) {
+        return renderView.getBitmap(reuse);
+      }
+      return renderView.getBitmap(w, h);
+    } catch (Throwable t) {
+      return null;
+    }
+  }
+
   /** TGx101: the frame on screen now (smaller), for the closing animation — null when there's none */
   public @androidx.annotation.Nullable android.graphics.Bitmap tgx101CurrentFrame () {
     if (renderView == null || !renderView.isAvailable() || renderView.getWidth() <= 0) return null;

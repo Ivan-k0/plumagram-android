@@ -260,6 +260,12 @@ public class MediaCellView extends ViewGroup implements
     this.receiver = imageReceiver;
     this.preview = imagePreviewReceiver;
 
+    // TGx101 (user 2026-11-13): the bars beside a photo or video that doesn't fill the screen show the picture mirrored at its
+    // edges instead of black — behind everything, it draws only outside the picture
+    this.tgx101Mirror = new Tgx101MirrorView(context);
+    this.tgx101Mirror.setLayoutParams(new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    addView(tgx101Mirror);
+
     addView(imageViewParent);
 
     this.overlayView = new ForegroundView(context);
@@ -2116,6 +2122,121 @@ public class MediaCellView extends ViewGroup implements
       if (savedFactor/* || zoomFactor != 1f || translateX != 0 || translateY != 0*/) {
         c.restore();
       }
+      if (tgx101Mirror != null) tgx101Mirror.invalidate(); // the mirrored bars follow what the picture shows
+    }
+  }
+
+  // TGx101: mirrored bars
+
+  private Tgx101MirrorView tgx101Mirror;
+
+  private class Tgx101MirrorView extends View {
+    private final android.graphics.Paint bitmapPaint = new android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG | android.graphics.Paint.ANTI_ALIAS_FLAG);
+    private final android.graphics.Paint dim = new android.graphics.Paint();
+    private final RectF content = new RectF();
+    private android.graphics.Bitmap frame;
+    private long frameAt;
+    private float shown;
+    private long shownAt;
+
+    Tgx101MirrorView (Context context) {
+      super(context);
+      dim.setColor(0x73000000); // 45 %: the bars read as a backdrop, the picture itself stays the bright part
+      if (Build.VERSION.SDK_INT >= 31) {
+        float r = Screen.dp(14f);
+        setRenderEffect(android.graphics.RenderEffect.createBlurEffect(r, r, android.graphics.Shader.TileMode.MIRROR));
+      }
+    }
+
+    private boolean videoShown () {
+      return playerView != null && hideStaticView && videoReady;
+    }
+
+    /** where the picture stands, in this view; false — nothing to mirror */
+    private boolean findContent () {
+      if (videoShown()) {
+        View target = playerView.getTargetView();
+        if (target == null || target.getWidth() <= 0 || videoParentView == null) return false;
+        float l = videoParentView.getLeft() + target.getLeft(), t = videoParentView.getTop() + target.getTop();
+        content.set(l, t, l + target.getWidth(), t + target.getHeight());
+        return true;
+      }
+      if (receiver == null || receiver.getWidth() <= 0) return false;
+      int tw = receiver.getTargetWidth(), th = receiver.getTargetHeight();
+      if (tw <= 0 || th <= 0) {
+        tw = preview.getTargetWidth();
+        th = preview.getTargetHeight();
+      }
+      if (tw <= 0 || th <= 0) return false;
+      float w = Math.min(tw, receiver.getWidth()), h = Math.min(th, receiver.getHeight());
+      content.set(receiver.centerX() - w / 2f, receiver.centerY() - h / 2f, receiver.centerX() + w / 2f, receiver.centerY() + h / 2f);
+      return true;
+    }
+
+    private boolean wanted () {
+      return media != null && (media.isPhoto() || media.isVideo() || media.isGif()) && revealFactor >= 1f && !disappearing && factor == 0f
+        && imageAlpha >= 1f && !isZoomed() && !tgx101Closing;
+    }
+
+    private void drawPicture (android.graphics.Canvas c) {
+      if (videoShown()) {
+        if (frame != null && !frame.isRecycled()) c.drawBitmap(frame, null, content, bitmapPaint);
+      } else if (receiver.needPlaceholder()) {
+        if (preview.needPlaceholder()) miniThumbnail.draw(c);
+        preview.draw(c);
+      } else {
+        receiver.draw(c);
+      }
+    }
+
+    @Override
+    protected void onDraw (android.graphics.Canvas c) {
+      boolean want = wanted() && findContent();
+      long now = android.os.SystemClock.uptimeMillis();
+      float step = shownAt == 0 ? 0f : (now - shownAt) / 220f;
+      shownAt = now;
+      shown = want ? Math.min(1f, shown + step) : Math.max(0f, shown - step * 2f);
+      if (shown > 0f && shown < 1f) postInvalidateOnAnimation();
+      if (shown <= 0f || !findContent()) {
+        if (!want) shownAt = 0;
+        return;
+      }
+      int w = getWidth(), h = getHeight();
+      float edge = Screen.dp(1f);
+      boolean sides = content.left > edge || content.right < w - edge;
+      boolean tops = content.top > edge || content.bottom < h - edge;
+      if (!sides && !tops) return;
+      if (videoShown() && (frame == null || now - frameAt > 80)) {
+        android.graphics.Bitmap next = playerView.tgx101MirrorFrame(frame);
+        if (next != null) {
+          frame = next;
+          frameAt = now;
+        }
+      }
+      int alpha = Math.round(255 * shown);
+      int save = c.saveLayerAlpha(0, 0, w, h, alpha);
+      if (sides) {
+        mirror(c, 0, 0, content.left, h, -1f, 1f, content.left, 0);
+        mirror(c, content.right, 0, w, h, -1f, 1f, content.right, 0);
+      }
+      if (tops) {
+        mirror(c, 0, 0, w, content.top, 1f, -1f, 0, content.top);
+        mirror(c, 0, content.bottom, w, h, 1f, -1f, 0, content.bottom);
+      }
+      c.restoreToCount(save);
+      if (videoShown() && isPlaying) postInvalidateDelayed(80); // ~12 frames a second: the bars move with the video, softly
+    }
+
+    private void mirror (android.graphics.Canvas c, float l, float t, float r, float b, float sx, float sy, float px, float py) {
+      if (r - l < 1f || b - t < 1f) return;
+      c.save();
+      c.clipRect(l, t, r, b);
+      c.save();
+      c.scale(sx, sy, px, py);
+      drawPicture(c);
+      c.restore();
+      c.drawRect(l, t, r, b, dim);
+      c.restore();
     }
   }
 
@@ -2299,6 +2420,10 @@ public class MediaCellView extends ViewGroup implements
       playerView.setCallback(this);
       hideStaticView = true;
       addView(videoParentView, 0);
+      if (tgx101Mirror != null && indexOfChild(tgx101Mirror) > 0) {
+        removeView(tgx101Mirror); // under the video: the blurred bars' edge must not lie over the picture
+        addView(tgx101Mirror, 0);
+      }
       checkPostRotation(false);
     } else {
       layoutVideo(true);
