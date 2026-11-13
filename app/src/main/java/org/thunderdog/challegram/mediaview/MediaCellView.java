@@ -547,12 +547,27 @@ public class MediaCellView extends ViewGroup implements
         && hideStaticView && videoReady && revealFactor >= 1f && !disappearing && factor == 0f && !tgx101Closing && !isZoomed() && !forceTouchMode;
     }
 
+    private Object tgx101BlurNode; // a RenderNode on Android 12+, kept apart so older ones never load its class
+
     @Override
     protected void dispatchDraw (Canvas c) {
+      View v = getChildCount() > 0 ? getChildAt(0) : null;
+      boolean mirror = v != null && v.getVisibility() == View.VISIBLE && v.getWidth() > 0 && tgx101MirrorWanted();
+      if (mirror && Build.VERSION.SDK_INT >= 31 && c.isHardwareAccelerated()) {
+        // (user 2026-11-13 «заблюрь, чтобы было по уму»): the mirrored bars go into a layer of their own that the GPU blurs,
+        // then the video itself over it — the blur never lies on the picture, nothing for the CPU to do
+        if (tgx101BlurNode == null) tgx101BlurNode = Tgx101Blur.create(Screen.dp(22f));
+        android.graphics.Canvas rc = Tgx101Blur.begin(tgx101BlurNode, getWidth(), getHeight());
+        tgx101DrawBars(rc, v);
+        Tgx101Blur.end(tgx101BlurNode, c);
+        super.dispatchDraw(c);
+        return;
+      }
       super.dispatchDraw(c);
-      if (getChildCount() == 0 || !tgx101MirrorWanted()) return;
-      View v = getChildAt(0);
-      if (v.getVisibility() != View.VISIBLE || v.getWidth() <= 0) return;
+      if (mirror) tgx101DrawBars(c, v);
+    }
+
+    private void tgx101DrawBars (Canvas c, View v) {
       int w = getWidth(), h = getHeight();
       float l = v.getLeft(), t = v.getTop(), r = v.getRight(), b = v.getBottom();
       float edge = Screen.dp(1f);
@@ -2450,6 +2465,28 @@ public class MediaCellView extends ViewGroup implements
   public void onProgress (TdApi.File file, float progress) {
     if (callback != null) {
       callback.onSeekSecondaryProgress(media, TD.getFileOffsetProgress(file), TD.getFilePrefixProgress(file));
+    }
+  }
+
+  /** Android 12+: a layer the GPU blurs — apart, so Android 4–11 never load RenderNode / RenderEffect */
+  @androidx.annotation.RequiresApi(31)
+  private static final class Tgx101Blur {
+    static Object create (float radius) {
+      android.graphics.RenderNode node = new android.graphics.RenderNode("tgx101mirror");
+      node.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(radius, radius, android.graphics.Shader.TileMode.CLAMP));
+      return node;
+    }
+
+    static android.graphics.Canvas begin (Object node, int w, int h) {
+      android.graphics.RenderNode n = (android.graphics.RenderNode) node;
+      n.setPosition(0, 0, w, h);
+      return n.beginRecording(w, h);
+    }
+
+    static void end (Object node, android.graphics.Canvas c) {
+      android.graphics.RenderNode n = (android.graphics.RenderNode) node;
+      n.endRecording();
+      c.drawRenderNode(n);
     }
   }
 }
