@@ -217,7 +217,7 @@ public final class Tgx101TypingLine {
 
     /** the thin line from left to right with the sitting's gaps (soft ends, a few dp wide) */
     /** (user 2026-11-13 «я думал это как суточную обыграть — в задачи на потом»): the sitting's gaps are off for now */
-    static final boolean ENABLED = false;
+    static final boolean ENABLED = true; // (user 2026-11-13 «та нет. по сеансу доделай уже»)
 
     static void drawLine (Canvas c, Paint paint, float left, float right, float y, float thin) {
       if (!ENABLED) {
