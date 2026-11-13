@@ -633,6 +633,17 @@ public class TGMessageMedia extends TGMessage {
       // left a narrow picture pressed to the left
       maxWidth = origMaxWidth;
       maxHeight = (int) ((float) origMaxWidth * MAX_RATIO);
+    } else if (tgx101Feed() && !isOutgoing() && mosaicWrapper.isSingular() && !useForward()) {
+      // TGx101 (user's screenshot 2026-11-13 12:58 «вертикальный контент опять не на весь пузырь»): «Blocks» — one photo or
+      // video took the bubble's usual width in a card as wide as the chat, an empty strip on its right. It takes the card's
+      // whole inner width as albums do (2026-11-09); a tall video is shown whole in a 5:4 frame with its own frame blurred
+      // at the sides, a tall photo no taller than a square — as «Journal»
+      maxWidth = origMaxWidth;
+      MediaWrapper item = mosaicWrapper.getSingularItem();
+      maxHeight = (int) ((float) origMaxWidth * (item.isGif() ? MAX_RATIO_GIF : tgx101JournalMaxRatio(item)));
+      if (item.getContentWidth() > 0) {
+        maxHeight = Math.min(maxHeight, (int) ((float) item.getContentHeight() * origMaxWidth / item.getContentWidth()));
+      }
     } else if (tgx101Feed() && !isOutgoing() && !mosaicWrapper.isSingular()) {
       // TGx101 (user's screenshot 2026-11-09 16:02): «Blocks» — the card is as wide as the chat, an album laid out at the
       // bubble's usual width left an empty strip on its right; it takes the card's whole inner width
@@ -642,7 +653,7 @@ public class TGMessageMedia extends TGMessage {
       maxWidth = getSmallestMaxContentWidth();
       maxHeight = getSmallestMaxContentHeight();
     }
-    final boolean tgx101FillCard = tgx101Feed() && !isOutgoing() && !needFullWidth && !mosaicWrapper.isSingular();
+    final boolean tgx101FillCard = tgx101Feed() && !isOutgoing() && !needFullWidth && (!mosaicWrapper.isSingular() || !useForward());
 
     int minWidth = Screen.dp(MosaicWrapper.MIN_LAYOUT_WIDTH);
     int minHeight = Screen.dp(MosaicWrapper.MIN_LAYOUT_HEIGHT);

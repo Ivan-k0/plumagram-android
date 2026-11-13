@@ -1009,7 +1009,12 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
 
   /** «Journal»: a single video taller than 5:4 — shown whole in its 5:4 frame, blurred at the sides */
   private boolean tgx101TallWhole () {
-    return tgx101JournalMedia() && isVideo() && source.tgx101JournalSingleMedia() && contentWidth > 0 && contentHeight > 0 && (long) contentHeight * 4 > (long) contentWidth * 5;
+    return (tgx101JournalMedia() || tgx101FeedMedia()) && isVideo() && source.tgx101JournalSingleMedia() && contentWidth > 0 && contentHeight > 0 && (long) contentHeight * 4 > (long) contentWidth * 5;
+  }
+
+  /** «Blocks» (2026-11-13): a single incoming video fills the card, a tall one whole in the middle like «Journal» */
+  private boolean tgx101FeedMedia () {
+    return source != null && source.tgx101Feed() && !source.isOutgoing() && !source.useForward() && source.useBubbles();
   }
 
   private boolean tgx101JournalMedia () {
