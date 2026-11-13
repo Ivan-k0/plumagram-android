@@ -2234,7 +2234,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     contentView.addView(bottomWrap);
     if (!inPreviewMode && org.thunderdog.challegram.unsorted.Settings.instance().tgx101InputPlayer()) {
       // TGx101 «Плеер в поле ввода» (user 2026-11-13, mockup approved): a line on the field's edge, the player above it
-      tgx101InputPlayer = new Tgx101InputPlayer(this, contentView, bottomWrap);
+      tgx101InputPlayer = new Tgx101InputPlayer(this, contentView, bottomWrap, inputView);
       messagesView.addOnScrollListener(new RecyclerView.OnScrollListener() {
         @Override
         public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {

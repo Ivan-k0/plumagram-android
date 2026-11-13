@@ -76,7 +76,10 @@ public final class Tgx101InputPlayer implements TGPlayerController.TrackChangeLi
   private @Nullable ValueAnimator expandAnimator;
   private boolean destroyed;
 
-  Tgx101InputPlayer (MessagesController c, ViewGroup host, View anchor) {
+  private final View field; // the input itself: the line runs along the bottom of its row
+
+  Tgx101InputPlayer (MessagesController c, ViewGroup host, View anchor, View field) {
+    this.field = field;
     this.c = c;
     this.tdlib = c.tdlib();
     this.host = host;
@@ -84,7 +87,7 @@ public final class Tgx101InputPlayer implements TGPlayerController.TrackChangeLi
     Context context = c.context();
 
     strip = new StripView(context);
-    strip.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(STRIP_TOUCH_DP), Gravity.TOP));
+    strip.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(STRIP_DP), Gravity.TOP));
     strip.setVisibility(View.GONE);
 
     panel = new LinearLayout(context);
@@ -101,7 +104,7 @@ public final class Tgx101InputPlayer implements TGPlayerController.TrackChangeLi
 
     View handle = new View(context);
     GradientDrawable handleBg = new GradientDrawable();
-    handleBg.setColor(Theme.separatorColor());
+    handleBg.setColor(ColorUtils.alphaColor(.25f, Theme.textAccentColor())); // the separator colour didn't show on the dark theme
     handleBg.setCornerRadius(Screen.dp(2f));
     handle.setBackground(handleBg);
     LinearLayout.LayoutParams handleParams = new LinearLayout.LayoutParams(Screen.dp(34f), Screen.dp(4f));
@@ -190,7 +193,9 @@ public final class Tgx101InputPlayer implements TGPlayerController.TrackChangeLi
 
     // dragging the open player down puts it back
     panel.setOnTouchListener(new DragListener(false));
-    strip.setOnTouchListener(new DragListener(true));
+    // (user 2026-11-13 «полоса на разделении поля ввода и нижнего отступа»): the line lies on the field's bottom edge and
+    // takes no touches there — the field's own taps stay the field's; a swipe up from the field brings the player out
+    strip.setClickable(false);
 
     int at = host.indexOfChild(anchor);
     host.addView(panel, at < 0 ? host.getChildCount() : at, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP)); // under the field
@@ -200,7 +205,7 @@ public final class Tgx101InputPlayer implements TGPlayerController.TrackChangeLi
     tdlib.context().player().addTrackChangeListener(this);
   }
 
-  private static final float STRIP_TOUCH_DP = 18f; // the line is 2 dp, a finger gets 18
+  private static final float STRIP_DP = 12f; // the 2 dp line in its middle, room for its glow
   private static final float SCROLL_HIDE_DP = 72f;
 
   private final android.view.ViewTreeObserver.OnPreDrawListener placer = () -> {
@@ -213,11 +218,21 @@ public final class Tgx101InputPlayer implements TGPlayerController.TrackChangeLi
     if (destroyed) return;
     float top = anchor.getTop() + anchor.getTranslationY();
     if (anchor.getVisibility() != View.VISIBLE) top = host.getHeight();
-    strip.setTranslationY(top - strip.getHeight());
+    // the line: the bottom of the field's row (between the field and the filling under it — the gesture bar's room or the
+    // three buttons' — or the emoji / keyboard panel)
+    float line = top + fieldRowBottom();
+    strip.setTranslationY(line - strip.getHeight() / 2f);
     int h = panel.getHeight();
     panel.setTranslationY(top - h * expand);
     boolean out = expand > 0f;
     if ((panel.getVisibility() == View.VISIBLE) != out) panel.setVisibility(out ? View.VISIBLE : View.GONE);
+  }
+
+  private float fieldRowBottom () {
+    View v = field;
+    while (v != null && v.getParent() != anchor && v.getParent() instanceof View) v = (View) v.getParent();
+    if (v == null || v.getParent() != anchor) return anchor.getHeight() - anchor.getPaddingBottom();
+    return v.getBottom() + v.getTranslationY();
   }
 
   // Track
@@ -622,14 +637,14 @@ public final class Tgx101InputPlayer implements TGPlayerController.TrackChangeLi
       boolean paused = state != TGPlayerController.STATE_PLAYING;
       int accent = Theme.getColor(ColorId.textNeutral);
       float lineH = Screen.dp(2f);
-      float y = getHeight() - lineH;
+      float y = getHeight() / 2f - lineH / 2f;
       int w = getWidth();
       paint.setShader(null);
       paint.setColor(ColorUtils.alphaColor(alpha * .14f, Theme.textAccentColor()));
-      c.drawRect(0, y, w, getHeight(), paint);
+      c.drawRect(0, y, w, y + lineH, paint);
       float x = w * Math.max(0f, Math.min(1f, progress));
       paint.setColor(ColorUtils.alphaColor(alpha * (paused ? .4f : 1f), accent));
-      c.drawRect(0, y, x, getHeight(), paint);
+      c.drawRect(0, y, x, y + lineH, paint);
       if (!paused && x > 0) {
         float glow = Screen.dp(8f);
         paint.setShader(new android.graphics.RadialGradient(x, y + lineH / 2f, glow, ColorUtils.alphaColor(alpha * .55f, accent), 0, android.graphics.Shader.TileMode.CLAMP));
