@@ -184,24 +184,72 @@ public final class Tgx101TypingLine {
     // the gaps' places: spread over the line but not evenly — fixed, so a gap never moves once it is there
     private static final float[] PLACES = {.47f, .18f, .74f, .31f, .88f, .09f, .6f, .39f, .81f, .24f, .67f, .54f};
 
+    // (user 2026-11-13 «давай суточную линию»): the gaps count the whole day in the app, not one sitting — time open
+    // today, kept on the phone (one number and the day), from midnight to midnight
+    private static final boolean DAILY = true;
+    private static final int[] DAY_MINUTES = {15, 30, 45, 60, 80, 100, 120, 150, 180, 240, 300, 360};
+    private static final String KEY_DAY = "tgx101_line_day", KEY_DAY_MS = "tgx101_line_day_ms";
+    private static long dayMs = -1, resumedAt;
+    private static int day;
+
+    private static int today () {
+      java.util.Calendar cal = java.util.Calendar.getInstance();
+      return cal.get(java.util.Calendar.YEAR) * 1000 + cal.get(java.util.Calendar.DAY_OF_YEAR);
+    }
+
+    private static void loadDay () {
+      if (dayMs < 0) {
+        day = org.thunderdog.challegram.unsorted.Settings.instance().pmc().getInt(KEY_DAY, 0);
+        dayMs = org.thunderdog.challegram.unsorted.Settings.instance().pmc().getLong(KEY_DAY_MS, 0);
+      }
+      int t = today();
+      if (t != day) {
+        day = t;
+        dayMs = 0;
+        if (resumedAt != 0) resumedAt = SystemClock.elapsedRealtime(); // past midnight the new day counts from now
+      }
+    }
+
+    private static void saveDay () {
+      org.thunderdog.challegram.unsorted.Settings.instance().pmc().putInt(KEY_DAY, day);
+      org.thunderdog.challegram.unsorted.Settings.instance().pmc().putLong(KEY_DAY_MS, dayMs);
+    }
+
     public static void resume () {
       long now = SystemClock.elapsedRealtime();
       if (start == 0 || (pausedAt != 0 && now - pausedAt > BREAK_MS)) start = now;
       pausedAt = 0;
+      loadDay();
+      resumedAt = now;
     }
 
     public static void pause () {
-      pausedAt = SystemClock.elapsedRealtime();
+      long now = SystemClock.elapsedRealtime();
+      pausedAt = now;
+      loadDay();
+      if (resumedAt != 0) {
+        dayMs += now - resumedAt;
+        resumedAt = 0;
+        saveDay();
+      }
     }
 
     private static long sat () {
       if (start == 0) resume();
+      if (DAILY) {
+        loadDay();
+        return dayMs + (resumedAt != 0 ? SystemClock.elapsedRealtime() - resumedAt : 0);
+      }
       return SystemClock.elapsedRealtime() - start;
+    }
+
+    private static long gapAt (int i) {
+      return (DAILY ? DAY_MINUTES[i] : AT_MINUTES[i]) * 60_000L;
     }
 
     /** how open gap i is now, 0…1 */
     private static float open (int i, long sat) {
-      long at = AT_MINUTES[i] * 60_000L;
+      long at = gapAt(i);
       return sat <= at ? 0f : Math.min(1f, (sat - at) / (float) OPEN_MS);
     }
 
@@ -210,7 +258,7 @@ public final class Tgx101TypingLine {
       if (!ENABLED) return 0;
       long sat = sat();
       for (int i = 0; i < MAX_GAPS; i++) {
-        long at = AT_MINUTES[i] * 60_000L;
+        long at = gapAt(i);
         if (sat < at) return Math.min(at - sat + 50, 60_000L);
         if (sat < at + OPEN_MS) return 500;
       }
@@ -218,8 +266,7 @@ public final class Tgx101TypingLine {
     }
 
     /** the thin line from left to right with the sitting's gaps (soft ends, a few dp wide) */
-    /** (user 2026-11-13 «я думал это как суточную обыграть — в задачи на потом»): the sitting's gaps are off for now */
-    static final boolean ENABLED = true; // (user 2026-11-13 «та нет. по сеансу доделай уже»)
+    static final boolean ENABLED = true;
 
     static void drawLine (Canvas c, Paint paint, float left, float right, float y, float thin) {
       if (!ENABLED) {
