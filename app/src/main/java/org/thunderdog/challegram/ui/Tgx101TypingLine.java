@@ -233,7 +233,7 @@ public final class Tgx101TypingLine {
       for (int i = 0; i < MAX_GAPS; i++) {
         float o = open(i, sat);
         if (o <= 0f) break;
-        float half = (Screen.dp(2f) + Screen.dp(3f) * o) / 2f; // 2 → 5 dp
+        float half = (Screen.dp(3f) + Screen.dp(4f) * o) / 2f; // 3 → 7 dp (user 2026-11-13 «давай шире чуть»)
         float cx = left + w * PLACES[i];
         from[n] = cx - half;
         to[n] = cx + half;
