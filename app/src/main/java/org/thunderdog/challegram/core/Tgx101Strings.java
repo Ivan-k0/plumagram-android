@@ -1329,6 +1329,18 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101OwnAiModelPrice, "$%1$s за вход / $%2$s за ответ на млн токенов");
     RU.put(R.string.Tgx101OwnAiModelFree, "бесплатная");
     RU.put(R.string.Tgx101OwnAiModelCurrent, "выбрана");
+    RU.put(R.string.Tgx101InPlayerSave, "В Избранное");
+    RU.put(R.string.Tgx101InPlayerUnsave, "Убрать из Избранного");
+    RU.put(R.string.Tgx101InPlayerSaved, "Сохранено в Избранное");
+    RU.put(R.string.Tgx101InPlayerUnsaved, "Убрано из Избранного");
+    RU.put(R.string.Tgx101InPlayerSpeed, "Скорость");
+    RU.put(R.string.Tgx101InPlayerPrev, "Предыдущее");
+    RU.put(R.string.Tgx101InPlayerNext, "Следующее");
+    RU.put(R.string.Tgx101InPlayerPlay, "Играть");
+    RU.put(R.string.Tgx101InPlayerPause, "Пауза");
+    RU.put(R.string.Tgx101InPlayerClose, "Закрыть плеер");
+    RU.put(R.string.Tgx101InPlayerTrack, "Трек");
+    RU.put(R.string.Tgx101InPlayerVoice, "Голосовое");
     RU.put(R.string.Tgx101Confirm, "Подтверждение");
     RU.put(R.string.Tgx101ConfirmBeforeSending, "Спрашивать перед отправкой");
     RU.put(R.string.Tgx101ConfirmOther, "Другое");

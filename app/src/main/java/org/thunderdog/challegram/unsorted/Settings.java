@@ -4736,6 +4736,15 @@ public class Settings {
     pmc.putInt(KEY_TGX101_PLAYER_SEEK_STEP, seconds);
   }
 
+  /** TGx101 «Плеер в поле ввода» (user 2026-11-13): on by default, MagiX → Input field */
+  public boolean tgx101InputPlayer () {
+    return pmc.getBoolean("tgx101_input_player", true);
+  }
+
+  public void setTgx101InputPlayer (boolean on) {
+    pmc.putBoolean("tgx101_input_player", on);
+  }
+
   // TGx101 «Подтверждение» (user 2026-11-13, mockup approved): ask before sending these — off until switched on
   public static final int CONFIRM_VOICE = 0, CONFIRM_STICKER = 1, CONFIRM_MEDIA = 2, CONFIRM_GIF = 3;
   private static final String[] CONFIRM_KEYS = {"tgx101_confirm_voice", "tgx101_confirm_sticker", "tgx101_confirm_media", "tgx101_confirm_gif"};

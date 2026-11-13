@@ -327,6 +327,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private MessagesLayout contentView;
   private LinearLayout bottomWrap;
+  private @Nullable Tgx101InputPlayer tgx101InputPlayer;
   private FillingSpace bottomSpace;
   private MessagesRecyclerView messagesView;
 
@@ -1112,6 +1113,19 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     bottomWrap = new LinearLayout(context) {
       int lastHeight;
+
+      // TGx101 «Плеер в поле ввода»: a swipe up from the field brings the player out
+      @Override
+      public boolean onInterceptTouchEvent (MotionEvent ev) {
+        if (tgx101InputPlayer != null && tgx101InputPlayer.interceptField(ev)) return true;
+        return super.onInterceptTouchEvent(ev);
+      }
+
+      @Override
+      public boolean onTouchEvent (MotionEvent ev) {
+        if (tgx101InputPlayer != null && tgx101InputPlayer.onFieldTouch(ev)) return true;
+        return super.onTouchEvent(ev);
+      }
 
       @Override
       protected void dispatchDraw (Canvas c) {
@@ -2218,6 +2232,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     contentView.addView(bottomSpace);
     contentView.addView(bottomWrap);
+    if (!inPreviewMode && org.thunderdog.challegram.unsorted.Settings.instance().tgx101InputPlayer()) {
+      // TGx101 «Плеер в поле ввода» (user 2026-11-13, mockup approved): a line on the field's edge, the player above it
+      tgx101InputPlayer = new Tgx101InputPlayer(this, contentView, bottomWrap);
+      messagesView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+        @Override
+        public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
+          if (tgx101InputPlayer != null) tgx101InputPlayer.onChatScrolled(dy);
+        }
+      });
+    }
     if (floatingInput) {
       // TGx101 (user video 2026-10-11 23:46): while the keyboard comes back after the attach menu, its place showed the
       // chat under the held field — a plain panel stands there until the keyboard slides over it
@@ -5625,6 +5649,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
   @Override
   public void destroy () {
     UI.removePendingRunnable(tgx101CloseEmojiFallback); // a global post: it would run on the closed chat
+    if (tgx101InputPlayer != null) {
+      tgx101InputPlayer.destroy();
+      tgx101InputPlayer = null;
+    }
     resetSelectableControl();
 
     discardAttachedFiles(false);
@@ -13406,7 +13434,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       return false;
     }
     // TGx101 «Подтверждение» (user 2026-11-13): asked first when switched on
-    if (Tgx101SendConfirmSheet.ask(this, org.thunderdog.challegram.unsorted.Settings.CONFIRM_STICKER, getChatId(), null, !StringUtils.isEmpty(emoji) ? emoji : sticker.emoji, Lang.getString(R.string.Tgx101ConfirmStickerTitle),
+    if (Tgx101SendConfirmSheet.ask(this, org.thunderdog.challegram.unsorted.Settings.CONFIRM_STICKER, getChatId(), null, !StringUtils.isEmpty(emoji) ? emoji : sticker.emoji, null,
       () -> sendContent(view, RightId.SEND_OTHER_MESSAGES, R.string.ChatDisabledStickers, R.string.ChatRestrictedStickers, R.string.ChatRestrictedStickersUntil, allowReply, initialSendOptions, () -> new TdApi.InputMessageSticker(new TdApi.InputSticker(new TdApi.InputFileId(sticker.sticker.id), null, 0, 0), emoji)), null)) {
       return true;
     }

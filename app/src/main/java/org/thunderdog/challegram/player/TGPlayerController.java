@@ -616,7 +616,7 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
 
   public final void removeTrackChangeListener (@NonNull TrackChangeListener listener) {
     synchronized (this) {
-      globalListeners.add(listener);
+      globalListeners.remove(listener); // TGx101: it added the listener again instead of taking it out
     }
   }
 

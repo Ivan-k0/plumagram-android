@@ -130,7 +130,7 @@ public final class Tgx101SendConfirmSheet {
     detailView.setEllipsize(TextUtils.TruncateAt.END);
     LinearLayout.LayoutParams detailParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
     detailParams.leftMargin = Screen.dp(12f);
-    plate.addView(detailView, detailParams);
+    if (!TextUtils.isEmpty(detail)) plate.addView(detailView, detailParams);
     LinearLayout.LayoutParams plateParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     plateParams.topMargin = Screen.dp(12f);
     card.addView(plate, plateParams);
