@@ -12112,7 +12112,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // TGx101 (approved mockup «Поле ввода — классика», variant Б, user 2026-10-23): the docked field — the theme's panel,
   // on it a «well» for the words (a rectangle with 10 dp corners, a shade off the panel) from the smile to the clip; the
   // send / mic button stands beside it on its own rounded square
-  private static final boolean TGX101_FIELD_CARD = true;
+  private static final boolean TGX101_FIELD_CARD = false; // (user 2026-11-13 «возвращаем старый стиль»): kept, off
 
   private void tgx101DrawWell (Canvas c, View wrap) {
     int w = wrap.getWidth(), h = wrap.getHeight() - wrap.getPaddingBottom();

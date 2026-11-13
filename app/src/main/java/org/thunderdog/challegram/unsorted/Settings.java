@@ -4736,9 +4736,9 @@ public class Settings {
     pmc.putInt(KEY_TGX101_PLAYER_SEEK_STEP, seconds);
   }
 
-  /** TGx101 «Плеер в поле ввода» (user 2026-11-13): on by default, MagiX → Input field */
+  /** TGx101 «Плеер в поле ввода» (user 2026-11-13): «плеер пока убираем полностью, но код сохрани» — off, no switch */
   public boolean tgx101InputPlayer () {
-    return pmc.getBoolean("tgx101_input_player", true);
+    return false;
   }
 
   public void setTgx101InputPlayer (boolean on) {
