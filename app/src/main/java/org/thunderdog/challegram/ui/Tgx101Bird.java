@@ -213,6 +213,12 @@ public final class Tgx101Bird {
   }
 
   /** the screen's search took the place: no bird */
+  /** TGx101 (2026-11-13): the input field's player out — the bird steps aside (it lay over the heart), back when it goes */
+  public static void setMadeRoom (BaseActivity context, boolean away) {
+    Tgx101BirdView bird = birds.get(context);
+    if (bird != null) bird.tgx101MakeRoom(away);
+  }
+
   public static void hideFor (ViewController<?> c) {
     Tgx101BirdView bird = birds.get(c.context());
     if (bird != null && host(c.context()) == c) bird.setActive(false);

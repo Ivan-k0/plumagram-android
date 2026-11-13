@@ -239,6 +239,17 @@ public class Tgx101BirdView extends View {
     setVisibility(active ? VISIBLE : INVISIBLE);
   }
 
+  private boolean tgx101MadeRoom;
+
+  /** (2026-11-13) the input field's player out: the bird fades away and takes no touches, then comes back */
+  public void tgx101MakeRoom (boolean away) {
+    if (tgx101MadeRoom == away) return;
+    tgx101MadeRoom = away;
+    if (away) closeRing(true);
+    animate().cancel();
+    animate().alpha(away ? 0f : 1f).setDuration(away ? 150 : 180).start();
+  }
+
   public boolean isActive () {
     return active && getVisibility() == VISIBLE;
   }
@@ -341,6 +352,7 @@ public class Tgx101BirdView extends View {
   @SuppressLint("ClickableViewAccessibility")
   @Override
   public boolean onTouchEvent (MotionEvent e) {
+    if (tgx101MadeRoom) return false;
     if (!isActive()) return false;
     if (readGeneration != placeGeneration && !moving) readPlace();
     if (forwardTarget != null) {

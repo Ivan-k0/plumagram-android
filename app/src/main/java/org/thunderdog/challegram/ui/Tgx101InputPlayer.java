@@ -468,6 +468,7 @@ public final class Tgx101InputPlayer implements TGPlayerController.TrackChangeLi
       panel.setVisibility(View.VISIBLE);
     }
     Tgx101Diag.mark("input player: " + (out ? "out" : "away"));
+    Tgx101Bird.setMadeRoom(c.context(), out);
     if (!animated || expand == to) {
       expand = to;
       place();
@@ -552,6 +553,7 @@ public final class Tgx101InputPlayer implements TGPlayerController.TrackChangeLi
     dragStartY = rawY;
     dragStartExpand = expand;
     panel.setVisibility(View.VISIBLE);
+    if (expand == 0f) Tgx101Bird.setMadeRoom(c.context(), true);
     lastY = rawY;
     lastT = android.os.SystemClock.uptimeMillis();
     velocityY = 0;
@@ -760,5 +762,6 @@ public final class Tgx101InputPlayer implements TGPlayerController.TrackChangeLi
     player.removeTrackChangeListener(this);
     host.removeView(panel);
     host.removeView(strip);
+    if (expand > 0f) Tgx101Bird.setMadeRoom(c.context(), false);
   }
 }
