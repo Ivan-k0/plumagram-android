@@ -170,15 +170,17 @@ public final class Tgx101TypingLine {
 
   /**
    * (user 2026-11-13 «используем тонкую линию: чем меньше сижу — тем ровнее, чем дольше за сеанс — тем больше обрывов,
-   * без фанатизма, красиво»): the line at rest is whole for the first 10 minutes of a sitting; then every 5 minutes one
-   * small gap opens — softly, over half a minute — at its own place along the line, up to 12 after an hour. Leaving the
+   * без фанатизма, красиво»): the line at rest is whole for the first 3 minutes of a sitting; then at 5, 7, 10, 12, 14,
+   * 18, 21, 25, 30, 45 and 60 minutes one more small gap opens — softly, over half a minute — at its own place along the line, up to 12 after an hour. Leaving the
    * app for more than 5 minutes ends the sitting: the next visit starts whole again. Only the time on the phone, kept in
    * memory, nothing stored.
    */
   public static final class Session {
     private static long start, pausedAt;
-    private static final int MAX_GAPS = 12;
-    private static final long FIRST_MS = 10 * 60_000L, EVERY_MS = 5 * 60_000L, OPEN_MS = 30_000L, BREAK_MS = 5 * 60_000L;
+    // (user 2026-11-13 «10 минут мало: первая через 3 минуты, потом 5-7-10-12-14-18-21-25-30-45-60»)
+    private static final int[] AT_MINUTES = {3, 5, 7, 10, 12, 14, 18, 21, 25, 30, 45, 60};
+    private static final int MAX_GAPS = AT_MINUTES.length;
+    private static final long OPEN_MS = 30_000L, BREAK_MS = 5 * 60_000L;
     // the gaps' places: spread over the line but not evenly — fixed, so a gap never moves once it is there
     private static final float[] PLACES = {.47f, .18f, .74f, .31f, .88f, .09f, .6f, .39f, .81f, .24f, .67f, .54f};
 
@@ -199,7 +201,7 @@ public final class Tgx101TypingLine {
 
     /** how open gap i is now, 0…1 */
     private static float open (int i, long sat) {
-      long at = FIRST_MS + i * EVERY_MS;
+      long at = AT_MINUTES[i] * 60_000L;
       return sat <= at ? 0f : Math.min(1f, (sat - at) / (float) OPEN_MS);
     }
 
@@ -208,7 +210,7 @@ public final class Tgx101TypingLine {
       if (!ENABLED) return 0;
       long sat = sat();
       for (int i = 0; i < MAX_GAPS; i++) {
-        long at = FIRST_MS + i * EVERY_MS;
+        long at = AT_MINUTES[i] * 60_000L;
         if (sat < at) return Math.min(at - sat + 50, 60_000L);
         if (sat < at + OPEN_MS) return 500;
       }

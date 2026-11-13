@@ -12136,7 +12136,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     // variant А (flat): the panel with a hairline on top instead of the shadow; variant Б adds the well
     c.drawRect(0, top, w, top + Math.max(1, Screen.dp(.5f)), Paints.fillingPaint(Theme.separatorColor()));
-    if (tgx101TypingLine != null && Settings.instance().tgx101TypingLine()) tgx101TypingLine.draw(c, h, w); // the field's bottom edge, live
+    // the field's bottom edge, live — made with the first drawing, not the first letter (user 2026-11-13 «полоски нема»)
+    if (tgx101TypingLine == null && inputView != null && bottomWrap != null) tgx101TypingLine = new Tgx101TypingLine(bottomWrap, inputView);
+    if (tgx101TypingLine != null && Settings.instance().tgx101TypingLine()) tgx101TypingLine.draw(c, h, w);
     if (!Settings.instance().tgx101InputWell()) return;
     int wash = Theme.isDark() ? 0x0dffffff : 0x0f1e3a5a;
     int well = me.vkryl.core.ColorUtils.compositeColor(filling, wash);
