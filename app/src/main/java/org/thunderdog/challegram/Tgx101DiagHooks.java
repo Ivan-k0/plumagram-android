@@ -16,6 +16,7 @@ import android.view.MotionEvent;
 
 import org.drinkless.tdlib.TdApi;
 import org.thunderdog.challegram.tool.Screen;
+import org.thunderdog.challegram.tool.UI;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,6 +35,87 @@ public final class Tgx101DiagHooks {
 
   // TDLib
 
+  // (user 2026-11-13 «почему связь пропадает», log 21:06–21:11: «Connecting» about once a minute for ~10 s on a good Wi-Fi,
+  // pings to Telegram's server without a loss): each drop tells what the phone's network was at that moment and how long
+  // the way back took, so the network's part and the app's can be told apart
+  private static long connectingSince, lastReadyAt;
+  private static final long[] dropTimes = new long[64];
+  private static int dropCount;
+
+  private static String connectionDetails (TdApi.ConnectionState st) {
+    long now = android.os.SystemClock.elapsedRealtime();
+    switch (st.getConstructor()) {
+      case TdApi.ConnectionStateConnecting.CONSTRUCTOR:
+      case TdApi.ConnectionStateConnectingToProxy.CONSTRUCTOR:
+      case TdApi.ConnectionStateWaitingForNetwork.CONSTRUCTOR: {
+        boolean fresh = connectingSince == 0;
+        if (fresh) {
+          connectingSince = now;
+          dropTimes[dropCount++ % dropTimes.length] = now;
+        }
+        int lastHour = 0;
+        for (int i = 0; i < Math.min(dropCount, dropTimes.length); i++) if (now - dropTimes[i] < 3_600_000L) lastHour++;
+        return " — " + network() + (UI.isResumed() ? ", app open" : ", app in the background")
+          + (lastReadyAt != 0 && fresh ? ", ready for " + (now - lastReadyAt) / 1000 + " s before" : "")
+          + (fresh ? ", drops in the last hour " + lastHour : "");
+      }
+      case TdApi.ConnectionStateUpdating.CONSTRUCTOR:
+      case TdApi.ConnectionStateReady.CONSTRUCTOR: {
+        String back = connectingSince != 0 ? " — back after " + String.format(java.util.Locale.US, "%.1f", (now - connectingSince) / 1000f) + " s, " + network() : "";
+        if (st.getConstructor() == TdApi.ConnectionStateReady.CONSTRUCTOR) {
+          connectingSince = 0;
+          lastReadyAt = now;
+        }
+        return back;
+      }
+    }
+    return "";
+  }
+
+  /** the phone's network right now: Wi-Fi with its signal, mobile with its generation, VPN, validated or not */
+  private static String network () {
+    try {
+      android.content.Context ctx = org.thunderdog.challegram.unsorted.AppContext.get();
+      android.net.ConnectivityManager cm = (android.net.ConnectivityManager) ctx.getSystemService(android.content.Context.CONNECTIVITY_SERVICE);
+      if (cm == null) return "network ?";
+      if (android.os.Build.VERSION.SDK_INT < 23) {
+        android.net.NetworkInfo info = cm.getActiveNetworkInfo();
+        return info == null ? "no network" : "network " + info.getTypeName() + (info.isConnected() ? "" : " (not connected)");
+      }
+      android.net.Network n = cm.getActiveNetwork();
+      if (n == null) return "no network";
+      android.net.NetworkCapabilities c = cm.getNetworkCapabilities(n);
+      if (c == null) return "network ?";
+      StringBuilder b = new StringBuilder();
+      if (c.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI)) {
+        b.append("Wi-Fi");
+        try {
+          android.net.wifi.WifiManager wm = (android.net.wifi.WifiManager) ctx.getApplicationContext().getSystemService(android.content.Context.WIFI_SERVICE);
+          android.net.wifi.WifiInfo wi = wm != null ? wm.getConnectionInfo() : null;
+          if (wi != null && wi.getRssi() > -127) {
+            b.append(' ').append(wi.getRssi()).append(" dBm");
+            if (android.os.Build.VERSION.SDK_INT >= 21) b.append(wi.getFrequency() >= 4900 ? " 5 GHz" : " 2.4 GHz");
+          }
+        } catch (Throwable ignored) { }
+      } else if (c.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR)) {
+        b.append("mobile");
+      } else if (c.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET)) {
+        b.append("ethernet");
+      } else {
+        b.append("other");
+      }
+      if (c.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)) b.append(" + VPN");
+      b.append(c.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED) ? ", validated" : ", NOT validated");
+      if (android.os.Build.VERSION.SDK_INT >= 29) {
+        int down = c.getLinkDownstreamBandwidthKbps();
+        if (down > 0) b.append(", ").append(down / 1000).append(" Mbit/s down");
+      }
+      return b.toString();
+    } catch (Throwable t) {
+      return "network ? (" + t.getClass().getSimpleName() + ")";
+    }
+  }
+
   public static void onUpdate (TdApi.Update update) {
     if (!BuildConfig.TGX101_DIAG) {
       return;
@@ -45,10 +127,12 @@ public final class Tgx101DiagHooks {
           Tgx101Diag.mark("td user " + u.userId + " status " + status(u.status));
           return;
         }
-        case TdApi.UpdateConnectionState.CONSTRUCTOR:
-          Tgx101Diag.mark("td connection " + ((TdApi.UpdateConnectionState) update).state.getClass().getSimpleName());
-          if (((TdApi.UpdateConnectionState) update).state.getConstructor() == TdApi.ConnectionStateConnecting.CONSTRUCTOR) Tgx101Diag.WakeWatch.connecting();
+        case TdApi.UpdateConnectionState.CONSTRUCTOR: {
+          TdApi.ConnectionState st = ((TdApi.UpdateConnectionState) update).state;
+          Tgx101Diag.mark("td connection " + st.getClass().getSimpleName() + connectionDetails(st));
+          if (st.getConstructor() == TdApi.ConnectionStateConnecting.CONSTRUCTOR) Tgx101Diag.WakeWatch.connecting();
           return;
+        }
         case TdApi.UpdateAuthorizationState.CONSTRUCTOR:
           Tgx101Diag.mark("td authorization " + ((TdApi.UpdateAuthorizationState) update).authorizationState.getClass().getSimpleName());
           return;
