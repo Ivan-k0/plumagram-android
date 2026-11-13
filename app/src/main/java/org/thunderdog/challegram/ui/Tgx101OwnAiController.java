@@ -72,7 +72,11 @@ public class Tgx101OwnAiController extends RecyclerViewController<Void> implemen
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
         int id = item.getId();
         int provider = Tgx101OwnAi.providerId();
-        if (id != R.id.btn_tgx101OwnAiTest) view.setDrawModifier(null);
+        if (id != R.id.btn_tgx101OwnAiTest) {
+          // rows are recycled: «Check»'s icon and its green / red don't stay on «Key» or «Model»
+          view.setDrawModifier(null);
+          view.setDataColorId(0);
+        }
         if (id == R.id.btn_tgx101OwnAiKey) {
           view.setData(Tgx101OwnAi.hasKey(provider) ? Tgx101OwnAi.maskedKey(provider) : Lang.getString(R.string.Tgx101OwnAiKeyNone));
         } else if (id == R.id.btn_tgx101OwnAiModel) {
