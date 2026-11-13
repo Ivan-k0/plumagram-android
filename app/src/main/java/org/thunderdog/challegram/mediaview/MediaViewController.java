@@ -6580,6 +6580,13 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
       @Override
       public boolean onInterceptTouchEvent (MotionEvent e) {
+        if (e.getActionMasked() == MotionEvent.ACTION_DOWN && disallowIntercept) {
+          // TGx101 (user 2026-11-13 «не могу свернуть видео после смены свечения», log 13:08–13:09: every swipe «passed on»,
+          // no slide): Android drops a child's «don't intercept» at each new touch without calling this method — our copy
+          // stayed set after the player settings' list was scrolled, and no swipe closed the viewer again
+          disallowIntercept = false;
+          org.thunderdog.challegram.Tgx101Diag.mark("media viewer: a stale «don't intercept» dropped at the touch");
+        }
         if (tgx101Locked()) {
           return false; // TGx101: the child lock layer takes every touch, no swipe closes the video
         }
