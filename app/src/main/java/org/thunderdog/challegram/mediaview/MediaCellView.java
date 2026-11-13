@@ -2122,7 +2122,6 @@ public class MediaCellView extends ViewGroup implements
       if (savedFactor/* || zoomFactor != 1f || translateX != 0 || translateY != 0*/) {
         c.restore();
       }
-      if (tgx101Mirror != null) tgx101Mirror.invalidate(); // the mirrored bars follow what the picture shows
     }
   }
 
@@ -2131,110 +2130,106 @@ public class MediaCellView extends ViewGroup implements
   private Tgx101MirrorView tgx101Mirror;
 
   private class Tgx101MirrorView extends View {
-    private final android.graphics.Paint bitmapPaint = new android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG | android.graphics.Paint.ANTI_ALIAS_FLAG);
+    // (user 2026-11-13 «для фото не нужно… стало лагать, оно грузит процессор? нужно, чтобы было супер лёгким»): video and
+    // GIF only; a tiny copy of the frame (≈48 px) every 2 s, cross-faded in 0.4 s — stretched over the bars it is blurred by
+    // itself, so no blur effect, no extra layer, no per-frame copies off the GPU
+    private static final long SNAPSHOT_EVERY_MS = 2000, FADE_MS = 400;
+    private final android.graphics.Paint bitmapPaint = new android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG);
     private final android.graphics.Paint dim = new android.graphics.Paint();
     private final RectF content = new RectF();
-    private android.graphics.Bitmap frame;
+    private android.graphics.Bitmap frame, previous;
     private long frameAt;
     private float shown;
     private long shownAt;
 
     Tgx101MirrorView (Context context) {
       super(context);
-      dim.setColor(0x73000000); // 45 %: the bars read as a backdrop, the picture itself stays the bright part
-      if (Build.VERSION.SDK_INT >= 31) {
-        float r = Screen.dp(14f);
-        setRenderEffect(android.graphics.RenderEffect.createBlurEffect(r, r, android.graphics.Shader.TileMode.MIRROR));
-      }
     }
 
     private boolean videoShown () {
       return playerView != null && hideStaticView && videoReady;
     }
 
-    /** where the picture stands, in this view; false — nothing to mirror */
     private boolean findContent () {
-      if (videoShown()) {
-        View target = playerView.getTargetView();
-        if (target == null || target.getWidth() <= 0 || videoParentView == null) return false;
-        float l = videoParentView.getLeft() + target.getLeft(), t = videoParentView.getTop() + target.getTop();
-        content.set(l, t, l + target.getWidth(), t + target.getHeight());
-        return true;
-      }
-      if (receiver == null || receiver.getWidth() <= 0) return false;
-      int tw = receiver.getTargetWidth(), th = receiver.getTargetHeight();
-      if (tw <= 0 || th <= 0) {
-        tw = preview.getTargetWidth();
-        th = preview.getTargetHeight();
-      }
-      if (tw <= 0 || th <= 0) return false;
-      float w = Math.min(tw, receiver.getWidth()), h = Math.min(th, receiver.getHeight());
-      content.set(receiver.centerX() - w / 2f, receiver.centerY() - h / 2f, receiver.centerX() + w / 2f, receiver.centerY() + h / 2f);
+      if (!videoShown()) return false;
+      View target = playerView.getTargetView();
+      if (target == null || target.getWidth() <= 0 || videoParentView == null) return false;
+      float l = videoParentView.getLeft() + target.getLeft(), t = videoParentView.getTop() + target.getTop();
+      content.set(l, t, l + target.getWidth(), t + target.getHeight());
       return true;
     }
 
     private boolean wanted () {
-      return media != null && (media.isPhoto() || media.isVideo() || media.isGif()) && revealFactor >= 1f && !disappearing && factor == 0f
+      return media != null && (media.isVideo() || media.isGif()) && revealFactor >= 1f && !disappearing && factor == 0f
         && imageAlpha >= 1f && !isZoomed() && !tgx101Closing;
-    }
-
-    private void drawPicture (android.graphics.Canvas c) {
-      if (videoShown()) {
-        if (frame != null && !frame.isRecycled()) c.drawBitmap(frame, null, content, bitmapPaint);
-      } else if (receiver.needPlaceholder()) {
-        if (preview.needPlaceholder()) miniThumbnail.draw(c);
-        preview.draw(c);
-      } else {
-        receiver.draw(c);
-      }
     }
 
     @Override
     protected void onDraw (android.graphics.Canvas c) {
-      boolean want = wanted() && findContent();
       long now = android.os.SystemClock.uptimeMillis();
+      boolean want = wanted() && findContent();
+      if (!want && media != null && (media.isVideo() || media.isGif()) && !disappearing) {
+        postInvalidateDelayed(250); // after a zoom or a swipe it comes back by itself
+      }
       float step = shownAt == 0 ? 0f : (now - shownAt) / 220f;
       shownAt = now;
       shown = want ? Math.min(1f, shown + step) : Math.max(0f, shown - step * 2f);
-      if (shown > 0f && shown < 1f) postInvalidateOnAnimation();
-      if (shown <= 0f || !findContent()) {
-        if (!want) shownAt = 0;
+      if (shown <= 0f) {
+        shownAt = 0;
         return;
       }
+      if (!findContent()) return;
       int w = getWidth(), h = getHeight();
       float edge = Screen.dp(1f);
       boolean sides = content.left > edge || content.right < w - edge;
       boolean tops = content.top > edge || content.bottom < h - edge;
       if (!sides && !tops) return;
-      if (videoShown() && (frame == null || now - frameAt > 80)) {
-        android.graphics.Bitmap next = playerView.tgx101MirrorFrame(frame);
+      if (frame == null || (isPlaying && now - frameAt >= SNAPSHOT_EVERY_MS)) {
+        android.graphics.Bitmap next = playerView.tgx101MirrorFrame(previous); // the old previous is reused
         if (next != null) {
+          previous = frame;
           frame = next;
           frameAt = now;
         }
       }
-      int alpha = Math.round(255 * shown);
-      int save = c.saveLayerAlpha(0, 0, w, h, alpha);
+      float fade = previous != null ? Math.min(1f, (now - frameAt) / (float) FADE_MS) : 1f;
       if (sides) {
-        mirror(c, 0, 0, content.left, h, -1f, 1f, content.left, 0);
-        mirror(c, content.right, 0, w, h, -1f, 1f, content.right, 0);
+        mirror(c, 0, 0, content.left, h, true, fade);
+        mirror(c, content.right, 0, w, h, true, fade);
       }
       if (tops) {
-        mirror(c, 0, 0, w, content.top, 1f, -1f, 0, content.top);
-        mirror(c, 0, content.bottom, w, h, 1f, -1f, 0, content.bottom);
+        mirror(c, 0, 0, w, content.top, false, fade);
+        mirror(c, 0, content.bottom, w, h, false, fade);
       }
-      c.restoreToCount(save);
-      if (videoShown() && isPlaying) postInvalidateDelayed(80); // ~12 frames a second: the bars move with the video, softly
+      if (shown < 1f || fade < 1f) {
+        postInvalidateOnAnimation();
+      } else if (isPlaying) {
+        postInvalidateDelayed(SNAPSHOT_EVERY_MS - Math.min(SNAPSHOT_EVERY_MS - 16, now - frameAt));
+      }
     }
 
-    private void mirror (android.graphics.Canvas c, float l, float t, float r, float b, float sx, float sy, float px, float py) {
-      if (r - l < 1f || b - t < 1f) return;
+    private void mirror (android.graphics.Canvas c, float l, float t, float r, float b, boolean horizontal, float fade) {
+      if (r - l < 1f || b - t < 1f || frame == null) return;
       c.save();
       c.clipRect(l, t, r, b);
       c.save();
-      c.scale(sx, sy, px, py);
-      drawPicture(c);
+      if (horizontal) {
+        float edgeX = l == 0 ? content.left : content.right;
+        c.scale(-1f, 1f, edgeX, 0);
+      } else {
+        float edgeY = t == 0 ? content.top : content.bottom;
+        c.scale(1f, -1f, 0, edgeY);
+      }
+      if (fade < 1f && previous != null && !previous.isRecycled()) {
+        bitmapPaint.setAlpha(Math.round(255 * shown));
+        c.drawBitmap(previous, null, content, bitmapPaint);
+        bitmapPaint.setAlpha(Math.round(255 * shown * fade));
+      } else {
+        bitmapPaint.setAlpha(Math.round(255 * shown));
+      }
+      if (!frame.isRecycled()) c.drawBitmap(frame, null, content, bitmapPaint);
       c.restore();
+      dim.setColor(android.graphics.Color.argb(Math.round(115 * shown), 0, 0, 0)); // 45 %: the bars stay a backdrop
       c.drawRect(l, t, r, b, dim);
       c.restore();
     }

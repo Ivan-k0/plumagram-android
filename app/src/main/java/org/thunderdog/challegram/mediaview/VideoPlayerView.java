@@ -112,7 +112,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
   public @androidx.annotation.Nullable android.graphics.Bitmap tgx101MirrorFrame (@androidx.annotation.Nullable android.graphics.Bitmap reuse) {
     if (renderView == null || !renderView.isAvailable() || renderView.getWidth() <= 0 || renderView.getHeight() <= 0) return null;
     try {
-      float scale = Math.min(1f, 200f / Math.max(renderView.getWidth(), renderView.getHeight()));
+      float scale = Math.min(1f, 48f / Math.max(renderView.getWidth(), renderView.getHeight())); // tiny: blurred by stretching
       int w = Math.max(1, Math.round(renderView.getWidth() * scale)), h = Math.max(1, Math.round(renderView.getHeight() * scale));
       if (reuse != null && !reuse.isRecycled() && reuse.isMutable() && reuse.getWidth() == w && reuse.getHeight() == h) {
         return renderView.getBitmap(reuse);
