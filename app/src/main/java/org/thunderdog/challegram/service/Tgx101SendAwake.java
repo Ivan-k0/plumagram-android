@@ -93,6 +93,7 @@ public class Tgx101SendAwake extends Service {
       if (sending.size() > 50) sending.remove(0);
     }
     refreshNotification();
+    handler().post(startLater); // its upload may already be running: it is loud now
   }
 
   public static void onSendingDone (int accountId, long chatId, long oldMessageId, long newMessageId, boolean succeeded) {
@@ -105,6 +106,7 @@ public class Tgx101SendAwake extends Service {
       }
     }
     refreshNotification();
+    handler().post(Tgx101SendAwake::dropIfQuiet); // what is left may be only voice notes / rounds
   }
 
   /**
@@ -194,11 +196,19 @@ public class Tgx101SendAwake extends Service {
     handler().post(Tgx101SendAwake::dropIfQuiet);
   }
 
+  /** a file upload shows the notification only while a photo, video, GIF, document or music is being sent: a voice note's
+   *  file is uploaded under a new id once it is sent (log 2026-11-13 11:10: recorded as u0:18515, uploaded as u0:18879, the
+   *  notification came for the unknown one), so its id can't be known ahead — no such media sent, no notification */
+  private static boolean isQuiet (String k) {
+    if (quiet.contains(k)) return true;
+    return k.startsWith("u") && sending.isEmpty();
+  }
+
   private static @Nullable String loudKeys () {
     StringBuilder b = null;
     synchronized (sync) {
       for (String k : active) {
-        if (quiet.contains(k)) continue;
+        if (isQuiet(k)) continue;
         if (b == null) b = new StringBuilder();
         else b.append(", ");
         b.append(k);
@@ -270,7 +280,7 @@ public class Tgx101SendAwake extends Service {
       int ups = 0;
       for (String key : active) {
         Float p = progress.get(key);
-        if (quiet.contains(key)) continue;
+        if (isQuiet(key)) continue;
         if (key.startsWith("g")) {
           float v = p != null ? p : 0f;
           gen = gen < 0 ? v : Math.min(gen, v);
