@@ -47,8 +47,11 @@ final class Tgx101TypingLine {
 
   private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-  private static final int FAST = 0xffb070f0; // violet the fast hand runs into
-  private static final int WARM = 0xfff08a5a; // a deleted letter
+  // (user 2026-11-13 «на светлой теме вообще не видно — цвета темнее и насыщеннее»): a palette for each theme
+  private static int accent () { return Theme.isDark() ? Theme.getColor(ColorId.textNeutral) : 0xff1565c0; }
+  private static int fast () { return Theme.isDark() ? 0xffb070f0 : 0xff6a1bc8; } // violet the fast hand runs into
+  private static int warm () { return Theme.isDark() ? 0xfff08a5a : 0xffd84315; } // a deleted letter, near the limit
+  private static int limit () { return Theme.isDark() ? Theme.getColor(ColorId.textNegative) : 0xffc62828; }
 
   Tgx101TypingLine (View host, TextView field) {
     this.host = host;
@@ -98,11 +101,10 @@ final class Tgx101TypingLine {
     float fill = (float) Math.sqrt(Math.min(1f, length / 4096f));
     boolean easing = Math.abs(fill - shownFill) > .002f;
     shownFill = easing ? shownFill + (fill - shownFill) * Math.min(1f, dt / 90f) : fill;
-    int accentFill = Theme.getColor(ColorId.textNeutral);
-    int fillColor = shownFill > .97f ? Theme.getColor(ColorId.textNegative) : shownFill > .85f ? WARM : accentFill;
+    int fillColor = shownFill > .97f ? limit() : shownFill > .85f ? warm() : accent();
     if (shownFill > 0f) {
       paint.setShader(null);
-      paint.setColor(ColorUtils.alphaColor(.85f, fillColor));
+      paint.setColor(ColorUtils.alphaColor(Theme.isDark() ? .85f : 1f, fillColor));
       c.drawRect(0, y, w * shownFill, y + Math.max(thin, Screen.dp(1.5f)), paint);
     }
     if (easing) host.postInvalidateOnAnimation();
@@ -116,17 +118,22 @@ final class Tgx101TypingLine {
     }
 
     float cx = shownFill > 0f ? w * shownFill : caretX(w); // the pulse rides the fill's end
-    float half = Screen.dp(22f) + Screen.dp(170f) * energy;
-    int accent = Theme.getColor(ColorId.textNeutral);
-    int color = deleting && kick > 0f ? ColorUtils.fromToArgb(accent, WARM, kick) : ColorUtils.fromToArgb(accent, FAST, Math.max(0f, energy - .35f) / .65f);
-    int mid = ColorUtils.alphaColor(Math.min(1f, .35f + .65f * glow), color);
+    // (user 2026-11-13 «пульс не доходит дальше половины поля — продлить, но не до самого конца»): fast typing carries it
+    // ahead up to 85 % of the field, a little behind the fill's end too
+    float right = Math.min(w * .85f, cx + Screen.dp(24f) + w * .85f * energy);
+    float left = Math.max(0f, cx - Screen.dp(24f) - Screen.dp(90f) * energy);
+    if (right <= left + 1f) right = left + Screen.dp(24f);
+    int color = deleting && kick > 0f ? ColorUtils.fromToArgb(accent(), warm(), kick) : ColorUtils.fromToArgb(accent(), fast(), Math.max(0f, energy - .35f) / .65f);
+    float strength = Theme.isDark() ? .35f + .65f * glow : .55f + .45f * glow; // light: denser, it must show on white
+    int mid = ColorUtils.alphaColor(Math.min(1f, strength), color);
     int edge = ColorUtils.alphaColor(0f, color);
-    paint.setShader(new LinearGradient(cx - half, 0, cx + half, 0, new int[] {edge, mid, edge}, new float[] {0f, .5f, 1f}, Shader.TileMode.CLAMP));
-    float thick = Screen.dp(1.5f) + Screen.dp(1f) * energy;
-    c.drawRect(cx - half, y - thick / 2f + thin / 2f, cx + half, y + thick / 2f + thin / 2f, paint);
+    float at = Math.max(0f, Math.min(1f, (cx - left) / (right - left)));
+    paint.setShader(new LinearGradient(left, 0, right, 0, new int[] {edge, mid, edge}, new float[] {0f, at, 1f}, Shader.TileMode.CLAMP));
+    float thick = Screen.dp(Theme.isDark() ? 1.5f : 2f) + Screen.dp(1f) * energy;
+    c.drawRect(left, y - thick / 2f + thin / 2f, right, y + thick / 2f + thin / 2f, paint);
     // a soft halo below the line, into the room under the field
-    paint.setShader(new LinearGradient(0, y, 0, y + Screen.dp(10f), ColorUtils.alphaColor(.22f * glow, color), ColorUtils.alphaColor(0f, color), Shader.TileMode.CLAMP));
-    c.drawRect(cx - half * .7f, y, cx + half * .7f, y + Screen.dp(10f), paint);
+    paint.setShader(new LinearGradient(0, y, 0, y + Screen.dp(10f), ColorUtils.alphaColor((Theme.isDark() ? .22f : .16f) * glow, color), ColorUtils.alphaColor(0f, color), Shader.TileMode.CLAMP));
+    c.drawRect(left + (cx - left) * .3f, y, cx + (right - cx) * .7f, y + Screen.dp(10f), paint);
     paint.setShader(null);
     host.postInvalidateOnAnimation();
   }
