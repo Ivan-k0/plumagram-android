@@ -867,8 +867,55 @@ public class MediaView extends FrameLayoutFix {
 
   /** TGx101 (user 2026-11-12 «на мгновение показывать, на сколько секунд я перемотал двойным тапом»): the same label as a seek swipe, for a moment */
   public void tgx101ShowTapSeek (long shownMs, long targetMs, long totalMs) {
-    showHud((shownMs >= 0 ? "+" : "−") + formatTime(Math.abs(shownMs)), formatTime(targetMs) + " / " + formatTime(totalMs));
-    postDelayed(gHideHud, 700);
+    // (user 2026-11-13 «уведомление о перемотке не годится, сделай просто по бокам, без белой подложки», example video):
+    // at the side that was tapped — three arrows running that way and «10 s» under them, no plate, no centre label
+    tgx101TapSide = shownMs >= 0 ? 1 : -1;
+    tgx101TapSecs = Math.round(Math.abs(shownMs) / 1000f);
+    long now = android.os.SystemClock.uptimeMillis();
+    if (tgx101TapUntil < now) tgx101TapStart = now;
+    tgx101TapUntil = now + 700;
+    postInvalidateOnAnimation();
+  }
+
+  private int tgx101TapSide, tgx101TapSecs;
+  private long tgx101TapStart, tgx101TapUntil;
+  private final android.graphics.Path tgx101TapArrow = new android.graphics.Path();
+  private final android.graphics.Paint tgx101TapPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
+  private void tgx101DrawTapSeek (android.graphics.Canvas c) {
+    long now = android.os.SystemClock.uptimeMillis();
+    if (tgx101TapSide == 0 || now > tgx101TapUntil + 220) return;
+    float alpha = now <= tgx101TapUntil ? Math.min(1f, (now - tgx101TapStart) / 120f) : 1f - (now - tgx101TapUntil) / 220f;
+    alpha = Math.max(0f, Math.min(1f, alpha));
+    float cx = getMeasuredWidth() * (tgx101TapSide > 0 ? .8f : .2f), cy = getMeasuredHeight() * .45f;
+    float size = Screen.dp(11f), gap = Screen.dp(3f);
+    float total = size * 3 + gap * 2;
+    int lit = (int) (((now - tgx101TapStart) / 140) % 4); // a wave running towards the side
+    tgx101TapPaint.setShadowLayer(Screen.dp(3f), 0, Screen.dp(1f), android.graphics.Color.argb(Math.round(140 * alpha), 0, 0, 0));
+    for (int i = 0; i < 3; i++) {
+      int order = tgx101TapSide > 0 ? i : 2 - i;
+      float a = order == lit ? 1f : order < lit ? .75f : .35f;
+      tgx101TapPaint.setColor(android.graphics.Color.argb(Math.round(255 * alpha * a), 255, 255, 255));
+      float left = cx - total / 2f + i * (size + gap);
+      tgx101TapArrow.reset();
+      if (tgx101TapSide > 0) {
+        tgx101TapArrow.moveTo(left, cy - size / 2f);
+        tgx101TapArrow.lineTo(left + size, cy);
+        tgx101TapArrow.lineTo(left, cy + size / 2f);
+      } else {
+        tgx101TapArrow.moveTo(left + size, cy - size / 2f);
+        tgx101TapArrow.lineTo(left, cy);
+        tgx101TapArrow.lineTo(left + size, cy + size / 2f);
+      }
+      tgx101TapArrow.close();
+      c.drawPath(tgx101TapArrow, tgx101TapPaint);
+    }
+    tgx101TapPaint.setColor(android.graphics.Color.argb(Math.round(255 * alpha), 255, 255, 255));
+    tgx101TapPaint.setTextAlign(android.graphics.Paint.Align.CENTER);
+    tgx101TapPaint.setTextSize(Screen.dp(13f));
+    tgx101TapPaint.setFakeBoldText(true);
+    c.drawText(org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101Seconds, tgx101TapSecs), cx, cy + size / 2f + Screen.dp(20f), tgx101TapPaint);
+    postInvalidateOnAnimation();
   }
 
   public void tgx101SetSpeed (float speed) {
@@ -1115,6 +1162,7 @@ public class MediaView extends FrameLayoutFix {
   @Override
   protected void dispatchDraw (android.graphics.Canvas c) {
     super.dispatchDraw(c);
+    tgx101DrawTapSeek(c);
     if (gHudAlpha > 0f && gHudTitle != null) {
       float cx = getMeasuredWidth() / 2f, cy = getMeasuredHeight() * .42f;
       gHudPaint.setTextAlign(android.graphics.Paint.Align.CENTER);
