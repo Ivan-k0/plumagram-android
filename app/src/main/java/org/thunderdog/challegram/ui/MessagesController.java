@@ -5649,10 +5649,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
   @Override
   public void destroy () {
     UI.removePendingRunnable(tgx101CloseEmojiFallback); // a global post: it would run on the closed chat
-    if (tgx101InputPlayer != null) {
-      tgx101InputPlayer.destroy();
-      tgx101InputPlayer = null;
-    }
+    // (user 2026-11-13 «плеер не включился», log 20:46: the track played, the field's player never heard of it): this
+    // screen is reused for the next chat after destroy(), and the player was made only once with the view — it is put
+    // away here and taken down only with the screen itself (below)
+    if (tgx101InputPlayer != null) tgx101InputPlayer.setExpanded(false, false);
     resetSelectableControl();
 
     discardAttachedFiles(false);
@@ -5765,6 +5765,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     if (destroyInstance || !reuseEnabled) {
       super.destroy();
+      if (tgx101InputPlayer != null) {
+        tgx101InputPlayer.destroy();
+        tgx101InputPlayer = null;
+      }
       if (liveLocation != null) {
         liveLocation.destroy();
         liveLocation = null;
