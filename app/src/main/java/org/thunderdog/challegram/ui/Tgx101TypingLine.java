@@ -78,6 +78,7 @@ public final class Tgx101TypingLine {
     }
     int recent = 0;
     for (int i = 0; i < Math.min(keyCount, keys.length); i++) if (now - keys[i] < 1500) recent++;
+    if (longer && recent >= 3) Tempo.add(recent / 1.5f);
     float speed = Math.min(1f, (recent / 1.5f) / 7f); // ~7 keys a second is «fast»
     energy = Math.max(energy * .6f + speed * .4f, longer ? .18f : energy);
     kick = 1f;
@@ -91,6 +92,12 @@ public final class Tgx101TypingLine {
     paint.setShader(null);
     paint.setColor(Theme.separatorColor());
     c.drawRect(0, y, w, y + thin, paint);
+    // (user 2026-11-13, mockup «Живая линия поля» variant Б «ваш темп за сутки»): at rest the line is the colour of the
+    // day's typing pace — calm blue, lively violet, very fast pink; it changes slowly, the same in every chat
+    int tempo = Tempo.color();
+    paint.setShader(new LinearGradient(0, 0, w, 0, new int[] {ColorUtils.alphaColor(0f, tempo), ColorUtils.alphaColor(Theme.isDark() ? .7f : .9f, tempo), ColorUtils.alphaColor(Theme.isDark() ? .7f : .9f, tempo), ColorUtils.alphaColor(0f, tempo)}, new float[] {0f, .2f, .8f, 1f}, Shader.TileMode.CLAMP));
+    c.drawRect(0, y, w, y + Math.max(thin, Screen.dp(1f)), paint);
+    paint.setShader(null);
 
     long now = SystemClock.uptimeMillis();
     float dt = lastFrame != 0 ? Math.min(64, now - lastFrame) : 16;
@@ -148,6 +155,10 @@ public final class Tgx101TypingLine {
     paint.setShader(null);
     paint.setColor(Theme.separatorColor());
     c.drawRect(left, y, right, y + thin, paint);
+    int tempo = Tempo.color();
+    paint.setShader(new LinearGradient(left, 0, right, 0, new int[] {ColorUtils.alphaColor(0f, tempo), ColorUtils.alphaColor(Theme.isDark() ? .7f : .9f, tempo), ColorUtils.alphaColor(Theme.isDark() ? .7f : .9f, tempo), ColorUtils.alphaColor(0f, tempo)}, new float[] {0f, .2f, .8f, 1f}, Shader.TileMode.CLAMP));
+    c.drawRect(left, y, right, y + Math.max(thin, Screen.dp(1f)), paint);
+    paint.setShader(null);
     if (fill > 0f) {
       paint.setColor(ColorUtils.alphaColor(Theme.isDark() ? .85f : 1f, accent()));
       c.drawRect(left, y, left + w * fill, y + Math.max(thin, Screen.dp(1.5f)), paint);
@@ -163,6 +174,54 @@ public final class Tgx101TypingLine {
     float thick = Screen.dp(Theme.isDark() ? 1.5f : 2f) + Screen.dp(1f) * energy;
     c.drawRect(l, y - thick / 2f + thin / 2f, r, y + thick / 2f + thin / 2f, paint);
     paint.setShader(null);
+  }
+
+  /**
+   * The day's typing pace: letters a second while typing, averaged over about a day (older bursts count less and less),
+   * kept on the phone only — no text, no times of messages, just one number
+   */
+  static final class Tempo {
+    private static final String KEY = "tgx101_typing_tempo", KEY_AT = "tgx101_typing_tempo_at";
+    private static float rate = -1f;
+    private static long at;
+    private static int unsaved;
+
+    private static void load () {
+      if (rate >= 0f) return;
+      rate = org.thunderdog.challegram.unsorted.Settings.instance().pmc().getFloat(KEY, 0f);
+      at = org.thunderdog.challegram.unsorted.Settings.instance().pmc().getLong(KEY_AT, 0);
+    }
+
+    static void add (float lettersPerSecond) {
+      load();
+      long now = System.currentTimeMillis();
+      // a day-long memory: what was typed a day ago weighs about a third
+      float keep = at == 0 ? 0f : (float) Math.exp(-(now - at) / 86_400_000d) * .97f;
+      rate = rate * keep + Math.min(15f, lettersPerSecond) * (1f - keep);
+      at = now;
+      if (++unsaved >= 20) save();
+    }
+
+    static void save () {
+      if (rate < 0f) return;
+      unsaved = 0;
+      org.thunderdog.challegram.unsorted.Settings.instance().pmc().putFloat(KEY, rate);
+      org.thunderdog.challegram.unsorted.Settings.instance().pmc().putLong(KEY_AT, at);
+    }
+
+    static float rate () {
+      load();
+      return rate;
+    }
+
+    /** blue below ~2.5 letters a second, violet around 5, pink past 7 */
+    static int color () {
+      float r = rate();
+      int blue = accent(), violet = Theme.isDark() ? 0xff9a7af0 : 0xff6a1bc8, pink = Theme.isDark() ? 0xffe77fb5 : 0xffc2185b;
+      if (r <= 2.5f) return blue;
+      if (r <= 5f) return ColorUtils.fromToArgb(blue, violet, (r - 2.5f) / 2.5f);
+      return ColorUtils.fromToArgb(violet, pink, Math.min(1f, (r - 5f) / 2.5f));
+    }
   }
 
   /** where the caret stands, in the wrap's coordinates; the field's middle if unknown */
