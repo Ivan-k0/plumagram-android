@@ -12136,6 +12136,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     // variant А (flat): the panel with a hairline on top instead of the shadow; variant Б adds the well
     c.drawRect(0, top, w, top + Math.max(1, Screen.dp(.5f)), Paints.fillingPaint(Theme.separatorColor()));
+    if (tgx101TypingLine != null) tgx101TypingLine.draw(c, h, w); // the field's bottom edge, live
     if (!Settings.instance().tgx101InputWell()) return;
     int wash = Theme.isDark() ? 0x0dffffff : 0x0f1e3a5a;
     int well = me.vkryl.core.ColorUtils.compositeColor(filling, wash);
@@ -13153,8 +13154,20 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tgx101CalcChip.getTranslationY() != y) tgx101CalcChip.setTranslationY(y);
   }
 
+  private @Nullable Tgx101TypingLine tgx101TypingLine;
+  private int tgx101TypedLength;
+
   public void onInputTextChange (CharSequence charSequence, boolean byUserAction) {
     tgx101UpdateCalc(charSequence);
+    if (tgx101TypingLine == null && !floatingLook && bottomWrap != null && inputView != null) {
+      tgx101TypingLine = new Tgx101TypingLine(bottomWrap, inputView);
+    }
+    if (tgx101TypingLine != null) {
+      int len = charSequence != null ? charSequence.length() : 0;
+      if (byUserAction && len != tgx101TypedLength) tgx101TypingLine.onTyped(len > tgx101TypedLength);
+      tgx101TypedLength = len;
+      tgx101TypingLine.setLength(len);
+    }
     if (byUserAction && charSequence != null && charSequence.length() > 0 && !tgx101TypingHidesArrow) {
       tgx101TypingHidesArrow = true;
       if (manager != null) manager.checkScrollToBottomButton(); // TGx101: typing hides the arrow
