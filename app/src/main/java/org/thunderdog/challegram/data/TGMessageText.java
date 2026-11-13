@@ -883,7 +883,8 @@ public class TGMessageText extends TGMessage {
 
   @Override
   public boolean tgx101CanSummarize () {
-    return Settings.instance().tgx101AiSummary() && !StringUtils.isEmpty(msg.summaryLanguageCode) && translatedText == null && text != null;
+    return Settings.instance().tgx101AiSummary() && translatedText == null && text != null
+      && (!StringUtils.isEmpty(msg.summaryLanguageCode) || Tgx101OwnAi.canSummarizeLong(text.text));
   }
 
   @Override

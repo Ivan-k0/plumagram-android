@@ -1330,6 +1330,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101OwnAiPrivacy, "Тексты для своего ИИ уходят в выбранный сервис, а не в Telegram: только то, с чем идёт работа — сообщение, пропущенные сообщения, запись Хранилища. Ключ хранится на этом телефоне зашифрованным и не попадает в резервную копию настроек.");
     RU.put(R.string.Tgx101OwnAiHttpsOnly, "адрес должен начинаться с https:// (http:// — только для этого телефона: localhost)");
     RU.put(R.string.Tgx101OwnAiInfo, "Свой ИИ: %1$s — текст уходит в этот сервис");
+    RU.put(R.string.Tgx101PlayerMirror, "Отражение по краям");
     RU.put(R.string.Tgx101PeekToastOn, "«Не подглядывай!» включено");
     RU.put(R.string.Tgx101PeekToastOff, "«Не подглядывай!» выключено");
     RU.put(R.string.Tgx101SavedBannerAlways, "Всегда");

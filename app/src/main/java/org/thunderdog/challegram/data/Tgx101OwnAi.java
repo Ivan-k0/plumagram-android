@@ -136,6 +136,12 @@ public final class Tgx101OwnAi {
     Settings.instance().pmc().putString(KEY_URL, url != null ? url.trim() : "");
   }
 
+  /** (user 2026-11-13 «кратко должно работать и с чужими ИИ»): with the person's own AI any long post can be summed up,
+   *  not only those Telegram marks */
+  public static boolean canSummarizeLong (@Nullable String text) {
+    return text != null && text.length() >= 600 && mode() != MODE_TELEGRAM_ONLY && isReady();
+  }
+
   /** A service is chosen and has what it needs to answer */
   public static boolean isReady () {
     int id = providerId();

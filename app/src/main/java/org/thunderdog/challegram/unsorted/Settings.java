@@ -4776,6 +4776,15 @@ public class Settings {
 
   private static final String KEY_TGX101_PLAYER_KEEP_SPEED = "tgx101_player_keep_speed";
 
+  /** TGx101 (user 2026-11-13 «отзеркаливание должно отключаться в настройках плеера»): the bars beside a video mirror it */
+  public boolean tgx101PlayerMirror () {
+    return pmc.getBoolean("tgx101_player_mirror", true);
+  }
+
+  public void setTgx101PlayerMirror (boolean on) {
+    pmc.putBoolean("tgx101_player_mirror", on);
+  }
+
   /** TGx101 (user 2026-10-26 12:52 «сбрасывать скорость видео по умолчанию»): off — every viewer opens at 1× */
   public boolean tgx101PlayerKeepSpeed () {
     return pmc.getBoolean(KEY_TGX101_PLAYER_KEEP_SPEED, true);

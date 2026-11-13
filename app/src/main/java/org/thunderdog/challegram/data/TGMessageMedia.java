@@ -400,7 +400,8 @@ public class TGMessageMedia extends TGMessage {
   @Override
   public boolean tgx101CanSummarize () {
     TdApi.Message m = tgx101CaptionMessage();
-    return org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiSummary() && m != null && !me.vkryl.core.StringUtils.isEmpty(m.summaryLanguageCode) && translatedText == null && !Td.isEmpty(caption);
+    return org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiSummary() && m != null && translatedText == null && !Td.isEmpty(caption)
+      && (!me.vkryl.core.StringUtils.isEmpty(m.summaryLanguageCode) || Tgx101OwnAi.canSummarizeLong(caption.text));
   }
 
   @Override

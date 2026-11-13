@@ -1300,6 +1300,7 @@ public class MediaCellView extends ViewGroup implements
   }
 
   public void setMedia (@Nullable MediaItem media) {
+    if (tgx101Mirror != null) tgx101Mirror.invalidate();
     setMedia(media, false, 0, 1f);
   }
 
@@ -2160,7 +2161,7 @@ public class MediaCellView extends ViewGroup implements
     }
 
     private boolean wanted () {
-      return media != null && (media.isVideo() || media.isGif()) && revealFactor >= 1f && !disappearing && factor == 0f
+      return org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerMirror() && media != null && (media.isVideo() || media.isGif()) && revealFactor >= 1f && !disappearing && factor == 0f
         && imageAlpha >= 1f && !isZoomed() && !tgx101Closing;
     }
 
@@ -2342,6 +2343,7 @@ public class MediaCellView extends ViewGroup implements
   private void invalidateImageComponents () {
     imageView.invalidate();
     buttonView.invalidate();
+    if (tgx101Mirror != null) tgx101Mirror.invalidate(); // (user 2026-11-13 «зеркало теперь не работает»): woken by the video's state
   }
 
   private boolean isPlaying;

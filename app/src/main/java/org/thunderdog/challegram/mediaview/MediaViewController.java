@@ -4240,6 +4240,20 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     tgx101RefreshSettings();
   }
 
+  /** the panel swiped down: it goes on down from where the finger left it */
+  private void tgx101SwipeAwaySettings (View panel) {
+    if (tgx101SettingsView == null) return;
+    View closing = tgx101SettingsView;
+    closing.setClickable(false);
+    org.thunderdog.challegram.Tgx101Diag.mark("player: settings swiped away");
+    closing.animate().alpha(0f).setDuration(180).start();
+    panel.animate().translationY(panel.getHeight()).setDuration(200).setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR)
+      .withEndAction(() -> contentView.removeView(closing)).start();
+    tgx101SettingsView = null;
+    tgx101SettingsRows = null;
+    tgx101SettingsPage = PAGE_MAIN;
+  }
+
   private boolean tgx101CloseSettings () {
     if (tgx101SettingsView == null) return false;
     // TGx101: a light slide out (user 2026-10-03: windows of the player open and close smoothly)
@@ -4412,7 +4426,85 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     wrap.setOnClickListener(v -> tgx101CloseSettings());
     androidx.core.view.ViewCompat.setTranslationZ(wrap, Screen.dp(30f));
 
-    LinearLayout panel = new LinearLayout(context);
+    // TGx101 (user 2026-11-13 «настройки плеера должны смахиваться свайпом сверху вниз»): in portrait the panel follows a
+    // finger moving down (from its header, or from its list when the list is at its top) and goes past a quarter of its height
+    // or on a quick flick; otherwise it springs back
+    final android.widget.ScrollView[] scrollRef = new android.widget.ScrollView[1];
+    LinearLayout panel = new LinearLayout(context) {
+      private float downX, downY, lastY;
+      private long lastT;
+      private float velocity;
+      private boolean dragging;
+      private final int slop = android.view.ViewConfiguration.get(context).getScaledTouchSlop();
+
+      private boolean canDrag () {
+        return !landscape && (scrollRef[0] == null || !scrollRef[0].canScrollVertically(-1));
+      }
+
+      @Override
+      public boolean onInterceptTouchEvent (android.view.MotionEvent e) {
+        switch (e.getActionMasked()) {
+          case android.view.MotionEvent.ACTION_DOWN:
+            downX = e.getRawX();
+            downY = lastY = e.getRawY();
+            lastT = e.getEventTime();
+            velocity = 0;
+            dragging = false;
+            break;
+          case android.view.MotionEvent.ACTION_MOVE: {
+            float dy = e.getRawY() - downY, dx = e.getRawX() - downX;
+            if (!dragging && dy > slop && dy > Math.abs(dx) * 1.5f && canDrag()) {
+              dragging = true;
+              downY = e.getRawY();
+              return true;
+            }
+            break;
+          }
+        }
+        return false;
+      }
+
+      @Override
+      public boolean onTouchEvent (android.view.MotionEvent e) {
+        switch (e.getActionMasked()) {
+          case android.view.MotionEvent.ACTION_DOWN:
+            downX = e.getRawX();
+            downY = lastY = e.getRawY();
+            lastT = e.getEventTime();
+            velocity = 0;
+            dragging = canDrag();
+            return true;
+          case android.view.MotionEvent.ACTION_MOVE: {
+            if (!dragging) return true;
+            float y = e.getRawY();
+            long dt = Math.max(1, e.getEventTime() - lastT);
+            velocity = (y - lastY) / dt * 1000f;
+            lastY = y;
+            lastT = e.getEventTime();
+            float dy = Math.max(0f, y - downY);
+            setTranslationY(dy);
+            View wrapView = (View) getParent();
+            if (wrapView != null) wrapView.setAlpha(1f - Math.min(.6f, dy / Math.max(1f, getHeight()) * .8f));
+            return true;
+          }
+          case android.view.MotionEvent.ACTION_UP:
+          case android.view.MotionEvent.ACTION_CANCEL: {
+            if (!dragging) return true;
+            dragging = false;
+            float dy = getTranslationY();
+            if (dy > getHeight() * .25f || velocity > Screen.dp(900f)) {
+              tgx101SwipeAwaySettings(this);
+            } else {
+              animate().translationY(0).setDuration(180).setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR).start();
+              View wrapView = (View) getParent();
+              if (wrapView != null) wrapView.animate().alpha(1f).setDuration(180).start();
+            }
+            return true;
+          }
+        }
+        return super.onTouchEvent(e);
+      }
+    };
     panel.setOrientation(LinearLayout.VERTICAL);
     panel.setClickable(true);
     android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
@@ -4468,6 +4560,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     panel.addView(header);
 
     android.widget.ScrollView scroll = new android.widget.ScrollView(context);
+    scrollRef[0] = scroll;
     LinearLayout rows = new LinearLayout(context);
     rows.setOrientation(LinearLayout.VERTICAL);
     scroll.addView(rows);
@@ -4515,6 +4608,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       tgx101ShowGuide();
     });
     tgx101SettingsRow(rows, R.drawable.baseline_replay_24, Lang.getString(R.string.Tgx101PlayerSeekStep), Lang.getString(R.string.Tgx101Seconds, settings.tgx101PlayerSeekStep()), -1, () -> tgx101OpenSettingsPage(PAGE_STEP));
+    tgx101SettingsRow(rows, R.drawable.dot_baseline_flip_horizontal_24, Lang.getString(R.string.Tgx101PlayerMirror), null, settings.tgx101PlayerMirror() ? 1 : 0, () -> {
+      settings.setTgx101PlayerMirror(!settings.tgx101PlayerMirror());
+      org.thunderdog.challegram.Tgx101Diag.mark("player settings: mirrored edges " + settings.tgx101PlayerMirror());
+      tgx101RefreshSettings();
+    });
     tgx101SettingsRow(rows, R.drawable.baseline_repeat_24, Lang.getString(R.string.Tgx101PlayerLoop), null, settings.tgx101PlayerLoop() ? 1 : 0, () -> {
       settings.setTgx101PlayerLoop(!settings.tgx101PlayerLoop());
       org.thunderdog.challegram.Tgx101Diag.mark("player settings: repeat " + settings.tgx101PlayerLoop());
