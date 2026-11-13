@@ -220,7 +220,9 @@ public final class Tgx101InputPlayer implements TGPlayerController.TrackChangeLi
     if (anchor.getVisibility() != View.VISIBLE) top = host.getHeight();
     // the line: the bottom of the field's row (between the field and the filling under it — the gesture bar's room or the
     // three buttons' — or the emoji / keyboard panel)
-    float line = top + fieldRowBottom();
+    // (user 2026-11-13 «по уму она должна быть на твоём первом месте сверху»): on the field's top edge again — opening,
+    // it rises with the player and is its slider, no seam; the bottom is the card's (variant В)
+    float line = top;
     strip.setTranslationY(line - strip.getHeight() / 2f);
     int h = panel.getHeight();
     panel.setTranslationY(top - h * expand);
@@ -481,8 +483,9 @@ public final class Tgx101InputPlayer implements TGPlayerController.TrackChangeLi
       return;
     }
     expandAnimator = ValueAnimator.ofFloat(expand, to);
-    expandAnimator.setDuration(out ? 280 : 220);
-    expandAnimator.setInterpolator(out ? new android.view.animation.OvershootInterpolator(.8f) : new android.view.animation.DecelerateInterpolator());
+    // (video 2026-11-13 21:29: putting it away took ~75 ms and began at full speed — a jerk) away: 240 ms, easing in and out
+    expandAnimator.setDuration(out ? 280 : 240);
+    expandAnimator.setInterpolator(out ? new android.view.animation.OvershootInterpolator(.8f) : new androidx.interpolator.view.animation.FastOutSlowInInterpolator());
     expandAnimator.addUpdateListener(a -> {
       expand = Math.max(0f, (float) a.getAnimatedValue());
       place();

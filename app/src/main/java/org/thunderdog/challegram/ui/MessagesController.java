@@ -12112,12 +12112,28 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // TGx101 (approved mockup «Поле ввода — классика», variant Б, user 2026-10-23): the docked field — the theme's panel,
   // on it a «well» for the words (a rectangle with 10 dp corners, a shade off the panel) from the smile to the clip; the
   // send / mic button stands beside it on its own rounded square
+  private static final boolean TGX101_FIELD_CARD = true;
+
   private void tgx101DrawWell (Canvas c, View wrap) {
     int w = wrap.getWidth(), h = wrap.getHeight() - wrap.getPaddingBottom();
     if (w <= 0 || h <= 0) return;
     int filling = Theme.fillingColor();
     float top = tgx101TopReveal; // a growing field's top rises, a shrinking one comes down (above its own bounds)
-    c.drawRect(0, top, w, wrap.getHeight(), Paints.fillingPaint(filling));
+    int gap = wrap.getHeight() - h;
+    if (TGX101_FIELD_CARD && gap > 0) {
+      // (user 2026-11-13, mockup «Низ поля ввода» variant В «посмотрим вживую»): the field is a card with round bottom
+      // corners lying on a darker base — the room under it (the gesture bar's or the buttons') reads as its base, not as
+      // more empty field
+      int base = me.vkryl.core.ColorUtils.compositeColor(filling, Theme.isDark() ? 0x47000000 : 0x12000000);
+      c.drawRect(0, Math.max(top, h - Screen.dp(20f)), w, wrap.getHeight(), Paints.fillingPaint(base));
+      android.graphics.RectF card = Paints.getRectF();
+      float r = Screen.dp(18f);
+      card.set(0, top, w, h);
+      c.drawRoundRect(card, r, r, Paints.fillingPaint(filling));
+      c.drawRect(0, top, w, Math.max(top, h - r), Paints.fillingPaint(filling)); // only the bottom corners round
+    } else {
+      c.drawRect(0, top, w, wrap.getHeight(), Paints.fillingPaint(filling));
+    }
     // variant А (flat): the panel with a hairline on top instead of the shadow; variant Б adds the well
     c.drawRect(0, top, w, top + Math.max(1, Screen.dp(.5f)), Paints.fillingPaint(Theme.separatorColor()));
     if (!Settings.instance().tgx101InputWell()) return;
