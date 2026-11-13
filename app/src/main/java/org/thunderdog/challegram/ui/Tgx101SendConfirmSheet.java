@@ -66,6 +66,7 @@ public final class Tgx101SendConfirmSheet {
     final PopupLayout popup = new PopupLayout(context);
     popup.init(true);
     popup.setNeedRootInsets();
+    popup.tgx101AllowWhileBusy = true; // a voice's card comes up while its recording panel is still open
 
     final int accent = Theme.getColor(ColorId.textNeutral);
     LinearLayout card = new LinearLayout(context);
