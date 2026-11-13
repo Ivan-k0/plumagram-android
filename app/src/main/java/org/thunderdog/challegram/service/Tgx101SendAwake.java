@@ -189,6 +189,40 @@ public class Tgx101SendAwake extends Service {
       if (quiet.size() > 500) quiet.clear();
       quiet.add("u" + accountId + ":" + fileId);
     }
+    // (user 2026-11-13 «отправка голосовых до сих пор висит в уведомлениях… кружки тоже»): the mark may come after the
+    // notification was already shown for a file not yet known as a voice note's — it goes then at once
+    handler().post(Tgx101SendAwake::dropIfQuiet);
+  }
+
+  private static @Nullable String loudKeys () {
+    StringBuilder b = null;
+    synchronized (sync) {
+      for (String k : active) {
+        if (quiet.contains(k)) continue;
+        if (b == null) b = new StringBuilder();
+        else b.append(", ");
+        b.append(k);
+      }
+    }
+    return b != null ? b.toString() : null;
+  }
+
+  /** only quiet things are being sent: no notification (the CPU stays held by the wake lock) */
+  private static void dropIfQuiet () {
+    boolean asked;
+    synchronized (sync) {
+      asked = serviceAsked;
+    }
+    if (!asked || loudKeys() != null) return;
+    synchronized (sync) {
+      if (active.isEmpty()) return; // the usual ending handles it
+      serviceAsked = false;
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("sending awake: notification removed — only voice notes / rounds are being sent");
+    Context context = AppContext.get();
+    try {
+      context.stopService(new Intent(context, Tgx101SendAwake.class));
+    } catch (Throwable ignored) { }
   }
 
   public static void onGenerationStop (int accountId, long generationId) {
@@ -311,16 +345,14 @@ public class Tgx101SendAwake extends Service {
   }
 
   private static void startIfLoud () {
-    boolean loud = false;
+    String loud = loudKeys();
+    if (loud == null) return;
+    boolean asked;
     synchronized (sync) {
-      for (String k : active) {
-        if (!quiet.contains(k)) {
-          loud = true;
-          break;
-        }
-      }
+      asked = serviceAsked;
     }
-    if (loud) startService();
+    if (!asked) org.thunderdog.challegram.Tgx101Diag.mark("sending awake: notification for " + loud);
+    startService();
   }
 
   private static void remove (String key) {
@@ -329,6 +361,7 @@ public class Tgx101SendAwake extends Service {
         return;
       }
       progress.remove(key);
+      if (!active.isEmpty()) handler().post(Tgx101SendAwake::dropIfQuiet); // what is left may all be quiet
       // the quiet mark stays: a voice note's upload stops and starts again as its file grows while recording, and the next
       // start came back «loud» (user 2026-11-12 «отправка голосового до сих пор висит в системных уведомлениях»)
       if (active.isEmpty()) {
