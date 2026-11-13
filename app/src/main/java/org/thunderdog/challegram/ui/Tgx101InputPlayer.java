@@ -228,6 +228,29 @@ public final class Tgx101InputPlayer implements TGPlayerController.TrackChangeLi
     panel.setTranslationY(top - h * expand);
     boolean out = expand > 0f;
     if ((panel.getVisibility() == View.VISIBLE) != out) panel.setVisibility(out ? View.VISIBLE : View.GONE);
+    applyMotionLook();
+  }
+
+  private float lastLook = -1f;
+
+  /**
+   * (user 2026-11-13 «размытие во время поднятия и отпускания, чтобы было бесшовно»): on its way the player's contents are
+   * blurred and see-through, sharp once it stands — the GPU blurs on Android 12+, older ones only fade
+   */
+  private void applyMotionLook () {
+    float e = Math.max(0f, Math.min(1f, expand));
+    if (e == lastLook) return;
+    lastLook = e;
+    float shown = Math.min(1f, e * 1.25f);
+    for (int i = 0; i < panel.getChildCount(); i++) panel.getChildAt(i).setAlpha(shown);
+    if (android.os.Build.VERSION.SDK_INT >= 31) Blur31.apply(panel, e >= 1f || e <= 0f ? 0f : Screen.dp(14f) * (1f - e));
+  }
+
+  @androidx.annotation.RequiresApi(31)
+  private static final class Blur31 {
+    static void apply (View v, float radius) {
+      v.setRenderEffect(radius < .5f ? null : android.graphics.RenderEffect.createBlurEffect(radius, radius, android.graphics.Shader.TileMode.CLAMP));
+    }
   }
 
   private float fieldRowBottom () {
