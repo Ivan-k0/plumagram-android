@@ -1965,6 +1965,9 @@
   <item name="btn_tgx101GestureDoubleTapZoom" type="id"/>
   <item name="btn_tgx101SitesWithoutPrompt" type="id"/>
   <item name="controller_tgx101OwnAi" type="id"/>
+  <item name="controller_tgx101OwnAiModels" type="id"/>
+  <item name="btn_tgx101OwnAiModelPick" type="id"/>
+  <item name="btn_tgx101OwnAiModelManual" type="id"/>
   <item name="btn_tgx101OwnAi" type="id"/>
   <item name="btn_tgx101OwnAiNone" type="id"/>
   <item name="btn_tgx101OwnAiP1" type="id"/>

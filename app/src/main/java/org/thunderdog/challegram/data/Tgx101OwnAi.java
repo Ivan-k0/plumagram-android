@@ -375,6 +375,168 @@ public final class Tgx101OwnAi {
     });
   }
 
+  // The service's own list of models (user 2026-11-13 «забить доступными моделями… по удержанию описание преимуществ и
+  // минусов»): asked with the person's key, the same way the answers are — nothing else is sent
+
+  public static final class ModelInfo {
+    public final String id, name;
+    public final @Nullable String about; // the service's own words, when it has them
+    public final long contextTokens; // 0 — unknown
+    public final @Nullable String priceIn, priceOut; // dollars per million tokens, when the service tells
+
+    ModelInfo (String id, @Nullable String name, @Nullable String about, long contextTokens, @Nullable String priceIn, @Nullable String priceOut) {
+      this.id = id;
+      this.name = TextUtils.isEmpty(name) ? id : name;
+      this.about = TextUtils.isEmpty(about) ? null : about.trim();
+      this.contextTokens = contextTokens;
+      this.priceIn = priceIn;
+      this.priceOut = priceOut;
+    }
+  }
+
+  /** the list, or a String saying what went wrong */
+  public static void listModels (me.vkryl.core.lambda.RunnableData<Object> after) {
+    worker.execute(() -> {
+      Object result;
+      try {
+        java.util.List<ModelInfo> list = fetchModels();
+        diag("models: " + list.size() + " from provider " + providerId());
+        result = list;
+      } catch (Throwable t) {
+        result = safeMessage(t);
+        diag("models failed — " + result);
+      }
+      final Object r = result;
+      org.thunderdog.challegram.tool.UI.post(() -> after.runWithData(r));
+    });
+  }
+
+  private static java.util.List<ModelInfo> fetchModels () throws Exception {
+    int id = providerId();
+    Provider p = provider(id);
+    if (p == null) throw new IllegalStateException("no service chosen");
+    String key = key(id);
+    String base = id == PROVIDER_CUSTOM ? customUrl() : p.baseUrl;
+    if (base.endsWith("/")) base = base.substring(0, base.length() - 1);
+    if (TextUtils.isEmpty(base)) throw new IllegalStateException("no address");
+    if (!base.startsWith("https://") && !(id == PROVIDER_CUSTOM && (base.startsWith("http://localhost") || base.startsWith("http://127.0.0.1")))) {
+      throw new IllegalStateException(org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101OwnAiHttpsOnly));
+    }
+    java.util.List<ModelInfo> list = new java.util.ArrayList<>();
+    if (p.kind == KIND_ANTHROPIC) {
+      JSONObject reply = get(base + "/models?limit=1000", new String[] {"x-api-key", key, "anthropic-version", "2023-06-01"});
+      JSONArray data = reply.optJSONArray("data");
+      if (data != null) for (int i = 0; i < data.length(); i++) {
+        JSONObject m = data.optJSONObject(i);
+        if (m != null && !TextUtils.isEmpty(m.optString("id"))) list.add(new ModelInfo(m.optString("id"), m.optString("display_name", null), null, 0, null, null));
+      }
+      return list; // newest first, as the service gives them
+    }
+    if (id == PROVIDER_GEMINI) {
+      // Google's own list says what each model can do and how much it holds (its OpenAI-style list says neither)
+      JSONObject reply = get("https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000", new String[] {"x-goog-api-key", key});
+      JSONArray models = reply.optJSONArray("models");
+      if (models != null) for (int i = 0; i < models.length(); i++) {
+        JSONObject m = models.optJSONObject(i);
+        if (m == null) continue;
+        JSONArray methods = m.optJSONArray("supportedGenerationMethods");
+        if (methods == null || !methods.toString().contains("\"generateContent\"")) continue; // embeddings, image makers
+        String name = m.optString("name", "");
+        if (name.startsWith("models/")) name = name.substring("models/".length());
+        if (name.isEmpty()) continue;
+        list.add(new ModelInfo(name, m.optString("displayName", null), m.optString("description", null), m.optLong("inputTokenLimit", 0), null, null));
+      }
+      return list;
+    }
+    JSONObject reply = get(base + "/models", TextUtils.isEmpty(key) ? new String[0] : new String[] {"Authorization", "Bearer " + key});
+    JSONArray data = reply.optJSONArray("data");
+    if (data == null) data = reply.optJSONArray("models"); // some local servers
+    if (data != null) for (int i = 0; i < data.length(); i++) {
+      JSONObject m = data.optJSONObject(i);
+      if (m == null) continue;
+      String mid = m.optString("id", m.optString("name", ""));
+      if (mid.isEmpty() || !looksLikeChatModel(mid)) continue;
+      String in = null, out = null;
+      JSONObject pricing = m.optJSONObject("pricing"); // OpenRouter: dollars per token
+      if (pricing != null) {
+        in = perMillion(pricing.optString("prompt", null));
+        out = perMillion(pricing.optString("completion", null));
+      }
+      list.add(new ModelInfo(mid, id == PROVIDER_OPENROUTER ? m.optString("name", null) : null, m.optString("description", null), m.optLong("context_length", 0), in, out));
+    }
+    if (id != PROVIDER_OPENROUTER) {
+      java.util.Collections.sort(list, (a, b) -> a.id.compareToIgnoreCase(b.id));
+    }
+    return list;
+  }
+
+  /** OpenAI's list has voices, pictures, embeddings — none of them answer a text */
+  private static boolean looksLikeChatModel (String id) {
+    String s = id.toLowerCase(java.util.Locale.ROOT);
+    for (String no : new String[] {"embed", "tts", "whisper", "dall-e", "moderation", "image", "audio", "realtime", "transcribe", "davinci", "babbage", "sora", "search", "rerank"}) {
+      if (s.contains(no)) return false;
+    }
+    return true;
+  }
+
+  private static @Nullable String perMillion (@Nullable String perToken) {
+    if (TextUtils.isEmpty(perToken)) return null;
+    try {
+      double v = Double.parseDouble(perToken) * 1_000_000d;
+      if (v < 0) return null;
+      String text = v >= 10 ? String.format(java.util.Locale.US, "%.0f", v) : String.format(java.util.Locale.US, "%.2f", v);
+      if (text.contains(".")) text = text.replaceAll("0+$", "").replaceAll("\\.$", "");
+      return text;
+    } catch (NumberFormatException e) {
+      return null;
+    }
+  }
+
+  public static final int MODEL_FAST = 1, MODEL_SMART = 2, MODEL_THINKING = 4;
+
+  /** what kind of model the name says it is — the services' own naming, there's no field for it */
+  public static int modelTraits (String id) {
+    String s = id.toLowerCase(java.util.Locale.ROOT);
+    int t = 0;
+    if (s.contains("reason") || s.contains("thinking") || s.contains("-r1") || s.matches("^(openai/)?o\\d.*")) t |= MODEL_THINKING;
+    for (String w : new String[] {"mini", "nano", "flash", "lite", "haiku", "small", "fast", "instant", "turbo", "-8b", "-7b", "-3b", "-1b"}) {
+      if (s.contains(w)) { t |= MODEL_FAST; break; }
+    }
+    if ((t & MODEL_FAST) == 0) {
+      for (String w : new String[] {"opus", "-pro", "ultra", "large", "-max", "405b"}) {
+        if (s.contains(w)) { t |= MODEL_SMART; break; }
+      }
+    }
+    return t;
+  }
+
+  private static JSONObject get (String url, String[] headers) throws Exception {
+    HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+    try {
+      c.setRequestMethod("GET");
+      c.setConnectTimeout(15000);
+      c.setReadTimeout(30000);
+      c.setRequestProperty("Accept", "application/json");
+      for (int i = 0; i + 1 < headers.length; i += 2) c.setRequestProperty(headers[i], headers[i + 1]);
+      int code = c.getResponseCode();
+      InputStream in = code >= 200 && code < 300 ? c.getInputStream() : c.getErrorStream();
+      String text = in != null ? read(in) : "";
+      if (code < 200 || code >= 300) {
+        String reason = text;
+        try {
+          JSONObject e = new JSONObject(text);
+          Object err = e.opt("error");
+          if (err instanceof JSONObject) reason = ((JSONObject) err).optString("message", text);
+          else if (err instanceof String) reason = (String) err;
+        } catch (Throwable ignored) { }
+        throw new IllegalStateException("HTTP " + code + (TextUtils.isEmpty(reason) ? "" : ": " + reason));
+      }
+      return new JSONObject(text);
+    } finally {
+      c.disconnect();
+    }
+  }
+
   private static String safeMessage (Throwable t) {
     String m = t.getMessage();
     if (TextUtils.isEmpty(m)) m = t.getClass().getSimpleName();

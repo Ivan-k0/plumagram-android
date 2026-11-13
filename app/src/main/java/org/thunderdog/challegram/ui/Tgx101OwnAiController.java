@@ -86,7 +86,7 @@ public class Tgx101OwnAiController extends RecyclerViewController<Void> implemen
             : Lang.getString(R.string.Tgx101OwnAiTestFailed, testResult));
           // (user 2026-11-13 «кнопку проверить слегка выделить и добавить анимацию»): the result in its colour
           view.setDataColorId(testing || testResult == null ? 0 : testResult.isEmpty() ? org.thunderdog.challegram.theme.ColorId.textSecure : org.thunderdog.challegram.theme.ColorId.textNegative);
-          view.setIcon(testResult != null && !testing ? (testResult.isEmpty() ? R.drawable.baseline_check_circle_24 : R.drawable.baseline_error_24) : R.drawable.baseline_flash_on_24);
+          view.invalidate(); // the icon on the right follows the state (TestIcon)
           view.setEnabledAnimated(Tgx101OwnAi.isReady(), isUpdate);
         }
       }
@@ -128,7 +128,9 @@ public class Tgx101OwnAiController extends RecyclerViewController<Void> implemen
 
       // (user 2026-11-13 «отдели как-то от списка»): «Check» in a block of its own, apart from the fields
       items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101OwnAiTest, R.drawable.baseline_flash_on_24, R.string.Tgx101OwnAiTest).setTextColorId(org.thunderdog.challegram.theme.ColorId.textNeutral));
+      // (user 2026-11-13 «галочку бы справа, а не слева, текст прижимается к левому краю»): no icon on the left, the
+      // lightning / tick / error on the right
+      items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101OwnAiTest, 0, R.string.Tgx101OwnAiTest).setTextColorId(org.thunderdog.challegram.theme.ColorId.textNeutral).setDrawModifier(new TestIcon()));
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
 
       items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101OwnAiWhen));
@@ -146,6 +148,26 @@ public class Tgx101OwnAiController extends RecyclerViewController<Void> implemen
 
   private void rebuild () {
     if (adapter != null) adapter.setItems(buildItems(), false);
+  }
+
+  /** «Проверить»'s icon, at the row's right end */
+  private class TestIcon implements org.thunderdog.challegram.util.DrawModifier {
+    @Override
+    public void afterDraw (View view, android.graphics.Canvas c) {
+      boolean done = testResult != null && !testing;
+      int res = done ? (testResult.isEmpty() ? R.drawable.baseline_check_circle_24 : R.drawable.baseline_error_24) : R.drawable.baseline_flash_on_24;
+      int colorId = done ? (testResult.isEmpty() ? org.thunderdog.challegram.theme.ColorId.textSecure : org.thunderdog.challegram.theme.ColorId.textNegative) : org.thunderdog.challegram.theme.ColorId.textNeutral;
+      android.graphics.drawable.Drawable d = org.thunderdog.challegram.tool.Drawables.get(view.getResources(), res);
+      float alpha = view instanceof SettingView ? .5f + .5f * ((SettingView) view).getVisuallyEnabledFactor() : 1f;
+      android.graphics.Paint paint = org.thunderdog.challegram.tool.Paints.getPorterDuffPaint(me.vkryl.core.ColorUtils.alphaColor(alpha, org.thunderdog.challegram.theme.Theme.getColor(colorId)));
+      float cx = view.getWidth() - Screen.dp(18f) - d.getMinimumWidth() / 2f;
+      org.thunderdog.challegram.tool.Drawables.drawCentered(c, d, cx, view.getHeight() / 2f, paint);
+    }
+
+    @Override
+    public int getWidth () {
+      return Screen.dp(24f) + Screen.dp(18f) * 2;
+    }
   }
 
   private android.animation.ValueAnimator pulse;
@@ -218,6 +240,17 @@ public class Tgx101OwnAiController extends RecyclerViewController<Void> implemen
         // the key typed hidden, not kept by the keyboard
         group.getEditText().setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
       }
+    } else if (id == R.id.btn_tgx101OwnAiModel && (provider != Tgx101OwnAi.PROVIDER_CUSTOM ? Tgx101OwnAi.hasKey(provider) : !TextUtils.isEmpty(Tgx101OwnAi.customUrl()))) {
+      // (user 2026-11-13): the service's own list to choose from; typing by hand is its first row
+      Tgx101OwnAiModelsController c = new Tgx101OwnAiModelsController(context, tdlib);
+      c.setArguments(() -> {
+        testResult = null;
+        if (adapter != null) {
+          adapter.updateValuedSettingById(R.id.btn_tgx101OwnAiModel);
+          adapter.updateValuedSettingById(R.id.btn_tgx101OwnAiTest);
+        }
+      });
+      navigateTo(c);
     } else if (id == R.id.btn_tgx101OwnAiModel) {
       openInputAlert(Lang.getString(R.string.Tgx101OwnAiModel), Lang.getString(R.string.Tgx101OwnAiModelHint), R.string.Done, R.string.Cancel, Tgx101OwnAi.model(provider), (inputView, result) -> {
         Tgx101OwnAi.setModel(provider, result.trim());
