@@ -952,6 +952,10 @@ public class MediaView extends FrameLayoutFix {
     return baseCell != null && baseCell.tgx101LoadSubtitles(uri, name);
   }
 
+  public void tgx101ApplyAmbient () {
+    if (baseCell != null) baseCell.tgx101ApplyAmbient();
+  }
+
   public void tgx101ApplyLooping () {
     if (baseCell != null) baseCell.tgx101ApplyLooping();
   }

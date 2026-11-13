@@ -4608,9 +4608,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       tgx101ShowGuide();
     });
     tgx101SettingsRow(rows, R.drawable.baseline_replay_24, Lang.getString(R.string.Tgx101PlayerSeekStep), Lang.getString(R.string.Tgx101Seconds, settings.tgx101PlayerSeekStep()), -1, () -> tgx101OpenSettingsPage(PAGE_STEP));
-    tgx101SettingsRow(rows, R.drawable.dot_baseline_flip_horizontal_24, Lang.getString(R.string.Tgx101PlayerMirror), null, settings.tgx101PlayerMirror() ? 1 : 0, () -> {
-      settings.setTgx101PlayerMirror(!settings.tgx101PlayerMirror());
-      org.thunderdog.challegram.Tgx101Diag.mark("player settings: mirrored edges " + settings.tgx101PlayerMirror());
+    final int ambient = settings.tgx101PlayerAmbient();
+    tgx101SettingsRow(rows, R.drawable.dot_baseline_flip_horizontal_24, Lang.getString(R.string.Tgx101PlayerMirror),
+      Lang.getString(ambient == Settings.AMBIENT_GLOW ? R.string.Tgx101PlayerAmbientGlow : ambient == Settings.AMBIENT_MIRROR ? R.string.Tgx101PlayerAmbientMirror : R.string.Off), -1, () -> {
+      // a tap goes glow → mirror → off → glow
+      int next = ambient == Settings.AMBIENT_GLOW ? Settings.AMBIENT_MIRROR : ambient == Settings.AMBIENT_MIRROR ? Settings.AMBIENT_OFF : Settings.AMBIENT_GLOW;
+      settings.setTgx101PlayerAmbient(next);
+      org.thunderdog.challegram.Tgx101Diag.mark("player settings: around the video " + (next == Settings.AMBIENT_GLOW ? "glow" : next == Settings.AMBIENT_MIRROR ? "mirror" : "off"));
+      mediaView.tgx101ApplyAmbient();
       tgx101RefreshSettings();
     });
     tgx101SettingsRow(rows, R.drawable.baseline_repeat_24, Lang.getString(R.string.Tgx101PlayerLoop), null, settings.tgx101PlayerLoop() ? 1 : 0, () -> {

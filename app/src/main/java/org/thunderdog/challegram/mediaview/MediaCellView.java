@@ -608,6 +608,11 @@ public class MediaCellView extends ViewGroup implements
       View v = getChildCount() > 0 ? getChildAt(0) : null;
       boolean wanted = v != null && v.getVisibility() == View.VISIBLE && v.getWidth() > 0 && tgx101MirrorWanted();
       long now = android.os.SystemClock.uptimeMillis();
+      if (wanted && org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerAmbient() == org.thunderdog.challegram.unsorted.Settings.AMBIENT_MIRROR) {
+        tgx101GlowShown = 0f;
+        tgx101DrawMirror(c, v);
+        return;
+      }
       if (wanted) {
         if (tgx101GlowNow == null) tgx101GrabGlow();
         tgx101ScheduleGlowGrab();
@@ -638,6 +643,47 @@ public class MediaCellView extends ViewGroup implements
       }
       if (animating) postInvalidateOnAnimation();
       super.dispatchDraw(c);
+    }
+
+    // The mirror (kept as a choice, user 2026-11-13 «не удаляй код нашего зеркала… оставить два на выбор»): the video's own
+    // layer drawn a second time, mirrored at its edges, into the bars — live every frame, the GPU reuses the layer; blurred
+    // in a layer of its own on Android 12+, under the video
+    private Object tgx101MirrorNode;
+
+    private void tgx101DrawMirror (Canvas c, View v) {
+      if (Build.VERSION.SDK_INT >= 31 && c.isHardwareAccelerated()) {
+        if (tgx101MirrorNode == null) tgx101MirrorNode = Tgx101Blur.create(Screen.dp(22f));
+        android.graphics.Canvas rc = Tgx101Blur.begin(tgx101MirrorNode, getWidth(), getHeight());
+        tgx101DrawBars(rc, v);
+        Tgx101Blur.end(tgx101MirrorNode, c);
+        super.dispatchDraw(c);
+        return;
+      }
+      super.dispatchDraw(c);
+      tgx101DrawBars(c, v);
+    }
+
+    private void tgx101DrawBars (Canvas c, View v) {
+      int w = getWidth(), h = getHeight();
+      float l = v.getLeft(), t = v.getTop(), r = v.getRight(), b = v.getBottom();
+      float edge = Screen.dp(1f);
+      tgx101Dim.setColor(0x73000000); // 45 %
+      long time = getDrawingTime();
+      if (l > edge) tgx101DrawMirrored(c, v, time, 0, 0, l, h, -1f, 1f, l, 0);
+      if (r < w - edge) tgx101DrawMirrored(c, v, time, r, 0, w, h, -1f, 1f, r, 0);
+      if (t > edge) tgx101DrawMirrored(c, v, time, 0, 0, w, t, 1f, -1f, 0, t);
+      if (b < h - edge) tgx101DrawMirrored(c, v, time, 0, b, w, h, 1f, -1f, 0, b);
+    }
+
+    private void tgx101DrawMirrored (Canvas c, View v, long time, float l, float t, float r, float b, float sx, float sy, float px, float py) {
+      c.save();
+      c.clipRect(l, t, r, b);
+      c.save();
+      c.scale(sx, sy, px, py);
+      drawChild(c, v, time);
+      c.restore();
+      c.drawRect(l, t, r, b, tgx101Dim);
+      c.restore();
     }
 
     private void tgx101DrawGlow (Canvas c, float flow) {
@@ -1721,6 +1767,10 @@ public class MediaCellView extends ViewGroup implements
 
   public boolean tgx101LoadSubtitles (android.net.Uri uri, String name) {
     return playerView != null && playerView.tgx101LoadSubtitles(uri, name);
+  }
+
+  public void tgx101ApplyAmbient () {
+    if (videoParentView != null) videoParentView.tgx101ResetGlow();
   }
 
   public void tgx101ApplyLooping () {
