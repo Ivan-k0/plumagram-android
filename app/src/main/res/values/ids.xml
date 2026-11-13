@@ -1973,6 +1973,7 @@
   <item name="btn_tgx101ConfirmGif" type="id"/>
   <item name="btn_tgx101ConfirmCalls" type="id"/>
   <item name="btn_tgx101SectionConfirm" type="id"/>
+  <item name="btn_tgx101TypingLine" type="id"/>
   <item name="btn_tgx101OwnAiModelPick" type="id"/>
   <item name="btn_tgx101OwnAiModelManual" type="id"/>
   <item name="btn_tgx101OwnAi" type="id"/>

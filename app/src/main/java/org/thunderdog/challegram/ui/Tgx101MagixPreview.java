@@ -175,6 +175,8 @@ public class Tgx101MagixPreview extends View {
     }
   }
 
+  private final android.graphics.Paint demoPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
   private void drawInput (Canvas c, float left, float top, float right, float bottom) {
     Settings s = Settings.instance();
     float y = header(c, left, top, right, Lang.getString(R.string.Tgx101PreviewMom), Lang.getString(R.string.Tgx101PreviewOnline), 0xffcc5049, "М");
@@ -207,7 +209,23 @@ public class Tgx101MagixPreview extends View {
       c.drawText("😊", x, cy, emoji);
       x += Screen.dp(28f);
     }
-    c.drawText(Lang.getString(R.string.Message), x, cy, ph);
+    // TGx101 «Полоска и пульс» shown live: the field types a line by itself, the length fills the line under it, the
+    // pulse speeds up with the typing, then it is «sent» and starts over
+    boolean line = style != 0 && s.tgx101TypingLine();
+    String demo = Lang.getString(R.string.Tgx101TypingLineDemo);
+    long t = android.os.SystemClock.uptimeMillis() % 5200;
+    int typed = !line ? 0 : t < 2800 ? (int) (demo.length() * (t / 2800f)) : t < 3800 ? demo.length() : 0;
+    if (typed > 0) {
+      c.drawText(demo.substring(0, typed), x, cy, Paints.getRegularTextPaint(14f, Theme.textAccentColor()));
+    } else {
+      c.drawText(Lang.getString(R.string.Message), x, cy, ph);
+    }
+    if (line) {
+      float energy = t < 2800 ? .25f + .75f * (t / 2800f) : t < 3800 ? Math.max(0f, 1f - (t - 2800) / 900f) : 0f;
+      float fill = typed > 0 ? (float) Math.sqrt(typed / 120f) * .7f : 0f;
+      Tgx101TypingLine.drawDemo(c, demoPaint, fl, fr, fb - Screen.dp(2f), fill, energy);
+      postInvalidateOnAnimation();
+    }
     float rx = fr - Screen.dp(12f);
     String[] icons = s.tgx101HideInputCamera() ? new String[] {"🎤", "📎"} : new String[] {"🎤", "📷", "📎"};
     for (String i : icons) {

@@ -4736,6 +4736,15 @@ public class Settings {
     pmc.putInt(KEY_TGX101_PLAYER_SEEK_STEP, seconds);
   }
 
+  /** TGx101 «Полоска и пульс» (user 2026-11-13): the live line under the classic field — MagiX → Input field */
+  public boolean tgx101TypingLine () {
+    return pmc.getBoolean("tgx101_typing_line", true);
+  }
+
+  public void setTgx101TypingLine (boolean on) {
+    pmc.putBoolean("tgx101_typing_line", on);
+  }
+
   /** TGx101 «Плеер в поле ввода» (user 2026-11-13): «плеер пока убираем полностью, но код сохрани» — off, no switch */
   public boolean tgx101InputPlayer () {
     return false;

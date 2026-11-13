@@ -34,7 +34,7 @@ import me.vkryl.core.ColorUtils;
  * blue glow, a fast one spreads it wider, brighter and towards violet, a deleted letter warms it for a moment; the pulse
  * fades a second after the last key, the fill stays while the text does.
  */
-final class Tgx101TypingLine {
+public final class Tgx101TypingLine {
   private final View host;   // the field's wrap: it draws the line
   private final TextView field;
 
@@ -136,6 +136,33 @@ final class Tgx101TypingLine {
     c.drawRect(left + (cx - left) * .3f, y, cx + (right - cx) * .7f, y + Screen.dp(10f), paint);
     paint.setShader(null);
     host.postInvalidateOnAnimation();
+  }
+
+  /**
+   * MagiX's live example (user 2026-11-13 «полоску и пульс нужно показать наглядно людям»): the same line for a field
+   * running from left to right at y — the fill (0…1 of the width) and the pulse at its end (energy 0…1)
+   */
+  static void drawDemo (Canvas c, Paint paint, float left, float right, float y, float fill, float energy) {
+    float w = right - left;
+    float thin = Math.max(1, Screen.dp(.5f));
+    paint.setShader(null);
+    paint.setColor(Theme.separatorColor());
+    c.drawRect(left, y, right, y + thin, paint);
+    if (fill > 0f) {
+      paint.setColor(ColorUtils.alphaColor(Theme.isDark() ? .85f : 1f, accent()));
+      c.drawRect(left, y, left + w * fill, y + Math.max(thin, Screen.dp(1.5f)), paint);
+    }
+    if (energy <= .01f) return;
+    float cx = left + w * Math.max(fill, .02f);
+    float r = Math.min(left + w * .85f, cx + Screen.dp(24f) + w * .85f * energy);
+    float l = Math.max(left, cx - Screen.dp(24f) - Screen.dp(90f) * energy);
+    int color = ColorUtils.fromToArgb(accent(), fast(), Math.max(0f, energy - .35f) / .65f);
+    float strength = Theme.isDark() ? .35f + .65f * energy : .55f + .45f * energy;
+    float at = Math.max(0f, Math.min(1f, (cx - l) / Math.max(1f, r - l)));
+    paint.setShader(new LinearGradient(l, 0, r, 0, new int[] {ColorUtils.alphaColor(0f, color), ColorUtils.alphaColor(Math.min(1f, strength), color), ColorUtils.alphaColor(0f, color)}, new float[] {0f, at, 1f}, Shader.TileMode.CLAMP));
+    float thick = Screen.dp(Theme.isDark() ? 1.5f : 2f) + Screen.dp(1f) * energy;
+    c.drawRect(l, y - thick / 2f + thin / 2f, r, y + thick / 2f + thin / 2f, paint);
+    paint.setShader(null);
   }
 
   /** where the caret stands, in the wrap's coordinates; the field's middle if unknown */

@@ -408,6 +408,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101CapsuleScrollHide(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideInputEmoji) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101HideInputEmoji(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101TypingLine) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101TypingLine(), isUpdate);
         } else if (itemId == R.id.btn_tgx101RearRounds) {
           view.getToggler().setRadioEnabled(Settings.instance().startRoundWithRear(), isUpdate);
         } else if (itemId == R.id.btn_tgx101RoundAskCamera) {
@@ -701,6 +703,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideInputCommands, 0, R.string.Tgx101HideInputCommands),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideInputEmoji, 0, R.string.Tgx101HideInputEmoji),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101TypingLine, 0, R.string.Tgx101TypingLine),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101RearRounds, 0, R.string.Tgx101RearRounds),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1231,7 +1235,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101CapsuleScrollHide
       || id == R.id.btn_tgx101Bird || id == R.id.btn_tgx101BirdRing || id == R.id.btn_tgx101SwipeToStorage || id == R.id.btn_tgx101SolidControls) return TGX101_SECTION_NAV;
     if (id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap || id == R.id.btn_tgx101SwipeKeyboard || id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands
-      || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101TextEditor) return TGX101_SECTION_INPUT;
+      || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101TypingLine || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101TextEditor) return TGX101_SECTION_INPUT;
     if (id == R.id.btn_tgx101QuickCalls) return 7;
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked || id == R.id.btn_tgx101CompactBubbles || id == R.id.btn_tgx101RememberChatPlace) return 2;
     if (id == R.id.btn_tgx101SavedSettingsOpen || id == R.id.btn_tgx101AiAll || id == R.id.btn_tgx101AiCompose || id == R.id.btn_tgx101AiSummary || id == R.id.btn_tgx101AiMissed || id == R.id.btn_tgx101AiSort || id == R.id.btn_tgx101Peek
@@ -1351,7 +1355,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       gone.add(R.id.btn_tgx101ZoomPullClose);
     }
     int[] bottomMenu = {R.id.btn_tgx101CapsuleMenu, R.id.btn_tgx101ContactsMenu, R.id.btn_tgx101QuickCalls, R.id.btn_tgx101BottomGap, R.id.btn_tgx101HideCompose};
-    int[] inputButtons = {R.id.btn_tgx101HideInputCamera, R.id.btn_tgx101HideInputCommands, R.id.btn_tgx101HideInputEmoji};
+    int[] inputButtons = {R.id.btn_tgx101HideInputCamera, R.id.btn_tgx101HideInputCommands, R.id.btn_tgx101HideInputEmoji, R.id.btn_tgx101TypingLine};
     // TGx101 (user 2026-10-12 14:52 «не видно где выключатель рекламы»): channel switches get their own section
     int[] channels = {R.id.btn_tgx101HideSponsored, R.id.btn_tgx101HideJoin};
     int[] other = {R.id.btn_tgx101RearRounds, R.id.btn_tgx101RoundRememberCamera, R.id.btn_tgx101RoundAskCamera, R.id.btn_tgx101HidePhone, R.id.btn_tgx101NotificationPlane, R.id.btn_tgx101ForegroundNotif};
@@ -1633,6 +1637,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       tgx101AskRestart(R.string.Tgx101AppliesAfterRestart);
     } else if (id == R.id.btn_tgx101HideInputEmoji) {
       Settings.instance().setTgx101HideInputEmoji(toggleResult);
+    } else if (id == R.id.btn_tgx101TypingLine) {
+      Settings.instance().setTgx101TypingLine(toggleResult);
     } else if (id == R.id.btn_tgx101RearRounds) {
       Settings.instance().setStartRoundWithRear(toggleResult);
     } else if (id == R.id.btn_tgx101RoundRememberCamera) {
