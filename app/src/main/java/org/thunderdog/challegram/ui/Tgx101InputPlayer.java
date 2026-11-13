@@ -457,7 +457,13 @@ public final class Tgx101InputPlayer implements TGPlayerController.TrackChangeLi
     return expand > 0f;
   }
 
+  private boolean targetOut; // where the player is going — a repeated request on the way changes nothing
+
   public void setExpanded (boolean out, boolean animated) {
+    // (user 2026-11-13 «смотри как оно сворачивается… рывки», log 20:50:53: «away» six times 8 ms apart) every scrolled
+    // frame started the putting-away over from the start
+    if (out == targetOut && (expandAnimator != null || expand == (out ? 1f : 0f)) && !dragging) return;
+    targetOut = out;
     if (expandAnimator != null) {
       expandAnimator.cancel();
       expandAnimator = null;
@@ -489,7 +495,7 @@ public final class Tgx101InputPlayer implements TGPlayerController.TrackChangeLi
 
   /** the chat scrolled: ~72 dp of it (or a fling) puts the player away, a short touch or a small scroll doesn't */
   public void onChatScrolled (int dy) {
-    if (expand < 1f || dragging) return;
+    if (!targetOut || expand <= 0f || dragging) return;
     scrolledWhileOut += Math.abs(dy);
     if (scrolledWhileOut > Screen.dp(SCROLL_HIDE_DP)) {
       setExpanded(false, true);
