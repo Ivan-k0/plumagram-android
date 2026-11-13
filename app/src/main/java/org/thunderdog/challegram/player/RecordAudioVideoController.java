@@ -1310,6 +1310,15 @@ public class RecordAudioVideoController implements
     if (async) {
       mode = recordingVideo ? RECORD_MODE_VIDEO_EDIT : RECORD_MODE_AUDIO_EDIT;
       editAnimator.setValue(true, true);
+      // TGx101 (user 2026-11-13, photo: the paused voice with «lock + mic» standing on the right; log 12:34:04 «voice:
+      // finger up — preview» + «activity paused»): stopped into the preview while still held (app left, call, slow
+      // mode) the lock was never reached — its tall «slide up to lock» column stayed. The preview always gets the
+      // small «continue» button a locked recording gets.
+      if (!isReleased) {
+        isReleased = true;
+        releaseAnimator.setValue(true, true);
+      }
+      lockView.setCollapseFactor(1f);
       if (sendButton != null) {
         sendButton.getSlowModeCounterController(tdlib).setCurrentChat(targetChatId);
       }
