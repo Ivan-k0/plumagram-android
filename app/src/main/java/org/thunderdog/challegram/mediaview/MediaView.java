@@ -122,6 +122,10 @@ public class MediaView extends FrameLayoutFix {
     }
   }
 
+  public boolean tgx101ControlsShown () {
+    return boundController != null && boundController.tgx101ControlsShown();
+  }
+
   public void onMediaClick (float x, float y) {
     if (boundController != null) {
       boundController.onMediaItemClick(this, x, y);

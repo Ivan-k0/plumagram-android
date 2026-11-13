@@ -1716,6 +1716,13 @@ public class MediaCellView extends ViewGroup implements
       }
       return true;
     }
+    if (getParent() instanceof MediaView && ((MediaView) getParent()).tgx101ControlsShown()) {
+      // (user 2026-11-13 «скрытие окна управления при одиночном тапе сделай быстрее на 0.3 секунды»): hiding doesn't wait
+      // the 300 ms for a second tap — a double tap still seeks or pauses, the controls just stay hidden then
+      org.thunderdog.challegram.Tgx101Diag.mark("player: controls hidden at once by the tap");
+      ((MediaView) getParent()).onMediaClick(x, y);
+      return true;
+    }
     pendingVideoTap = () -> {
       pendingVideoTap = null;
       if (getParent() instanceof MediaView) {
