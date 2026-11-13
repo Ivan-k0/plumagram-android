@@ -2417,10 +2417,7 @@ public class MediaCellView extends ViewGroup implements
       playerView.setCallback(this);
       hideStaticView = true;
       addView(videoParentView, 0);
-      if (tgx101Mirror != null && indexOfChild(tgx101Mirror) > 0) {
-        removeView(tgx101Mirror); // under the video: the blurred bars' edge must not lie over the picture
-        addView(tgx101Mirror, 0);
-      }
+      // the mirror stays right above the video (now 0, the mirror 1): under it, the video's own black layer covered the bars
       checkPostRotation(false);
     } else {
       layoutVideo(true);

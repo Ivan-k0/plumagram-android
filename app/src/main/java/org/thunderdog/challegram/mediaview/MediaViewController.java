@@ -4806,6 +4806,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private static final float TGX101_CLOSE_DISTANCE_DP = 110f;
 
   private boolean canCloseBySlide () {
+    // TGx101 (log 2026-11-13 12:24: the settings panel's swipe down closed the viewer's slide instead): the open player
+    // settings take the swipe themselves
+    if (tgx101SettingsView != null) return false;
     return mode != MODE_SECRET && (mode != MODE_GALLERY || currentSection == SECTION_CAPTION) && !mediaView.isZoomed() && !inCaption;
   }
 
