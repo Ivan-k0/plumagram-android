@@ -140,7 +140,7 @@ public final class Tgx101FrameTrace {
   }
 
   /** (user 2026-10-24 «10 мало — может и час пройти, пока скажу про баг»): traces of the last day are kept, at most 300
-   * (~200 KB each); older folders go when a new one starts */
+   * (~350 KB each), the last 8 hours whole (see KEEP_ALL_MS); older folders go when a new one starts */
   /** Builds without frame traces remove a leftover traces folder, once per start, in the background */
   public static void removeLeftovers (Context context) {
     if (BuildConfig.TGX101_DIAG && !BuildConfig.TGX101_TEST) return;
@@ -160,7 +160,11 @@ public final class Tgx101FrameTrace {
     f.delete();
   }
 
+  // (user 2026-11-12 «увеличь кол-во кадров, чтобы хватало на 5-8 часов»): 300 lasted ~3 h of use (up to 117 traces an hour,
+  // ~350 KB each) — the last 8 hours are now kept whole, up to 1200 (~420 MB); past 8 h at most 300, past a day none
   private static final int KEEP = 300;
+  private static final int KEEP_MAX = 1200;
+  private static final long KEEP_ALL_MS = 8L * 60 * 60 * 1000;
   private static final long KEEP_MS = 24L * 60 * 60 * 1000;
 
   // (user 2026-10-24 «забил мне загрузки — храни отдельно»): the app's own folder Android/data/<package>/files/frames —
@@ -174,9 +178,12 @@ public final class Tgx101FrameTrace {
       java.io.File[] all = root.listFiles(java.io.File::isDirectory);
       if (all != null) {
         java.util.Arrays.sort(all, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
-        long old = System.currentTimeMillis() - KEEP_MS;
+        long now = System.currentTimeMillis();
+        long old = now - KEEP_MS, recent = now - KEEP_ALL_MS;
         for (int i = 0; i < all.length; i++) {
-          if (all.length - i <= KEEP && all[i].lastModified() >= old) break;
+          long at = all[i].lastModified();
+          int left = all.length - i;
+          if (at >= old && left <= KEEP_MAX && (left <= KEEP || at >= recent)) break;
           java.io.File[] files = all[i].listFiles();
           if (files != null) for (java.io.File f : files) f.delete();
           all[i].delete();
