@@ -7849,6 +7849,8 @@
   <string name="Tgx101OwnAiModelPrice">$%1$s in / $%2$s out per million tokens</string>
   <string name="Tgx101OwnAiModelFree">free</string>
   <string name="Tgx101OwnAiModelCurrent">chosen</string>
+  <string name="Tgx101OwnAiModelTokensK">%1$s K tokens</string>
+  <string name="Tgx101OwnAiModelTokensM">%1$s M tokens</string>
   <string name="Tgx101OwnAiModelPickThis">Choose</string>
   <string name="Tgx101OwnAiModelAboutService">The service says:</string>
   <string name="Tgx101OwnAiModelGuess">Strengths and weaknesses are judged by the name of the model.</string>

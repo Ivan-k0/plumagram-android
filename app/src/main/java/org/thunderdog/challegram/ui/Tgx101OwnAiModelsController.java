@@ -126,7 +126,8 @@ public class Tgx101OwnAiModelsController extends RecyclerViewController<Runnable
     if ((t & Tgx101OwnAi.MODEL_THINKING) != 0) parts.add(firstWords(R.string.Tgx101OwnAiModelThinking));
     if ((t & Tgx101OwnAi.MODEL_FAST) != 0) parts.add(firstWords(R.string.Tgx101OwnAiModelFast));
     else if ((t & Tgx101OwnAi.MODEL_SMART) != 0) parts.add(firstWords(R.string.Tgx101OwnAiModelSmart));
-    String ctx = context(m.contextTokens);
+    else if ((t & Tgx101OwnAi.MODEL_THINKING) == 0) parts.add(Lang.getString(R.string.Tgx101OwnAiModelBalanced)); // never an empty row
+    String ctx = shortContext(m.contextTokens);
     if (ctx != null) parts.add(ctx);
     if ("0".equals(m.priceIn) && "0".equals(m.priceOut)) parts.add(Lang.getString(R.string.Tgx101OwnAiModelFree));
     return TextUtils.join(" · ", parts);
@@ -138,6 +139,17 @@ public class Tgx101OwnAiModelsController extends RecyclerViewController<Runnable
     int cut = s.indexOf(':');
     if (cut < 0) cut = s.indexOf(',');
     return cut > 0 ? s.substring(0, cut) : s;
+  }
+
+  /** «131 тыс. токенов» for the row, the free mark still fits after it */
+  private static @androidx.annotation.Nullable String shortContext (long tokens) {
+    if (tokens <= 0) return null;
+    if (tokens >= 1_000_000) {
+      double m = tokens / 1_000_000d;
+      String v = m == Math.floor(m) ? String.valueOf((long) m) : String.format(Locale.US, "%.1f", m).replace(".0", "");
+      return Lang.getString(R.string.Tgx101OwnAiModelTokensM, v);
+    }
+    return Lang.getString(R.string.Tgx101OwnAiModelTokensK, String.valueOf(Math.round(tokens / 1000d)));
   }
 
   private static @androidx.annotation.Nullable String context (long tokens) {

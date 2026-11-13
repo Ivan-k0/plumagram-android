@@ -72,6 +72,7 @@ public class Tgx101OwnAiController extends RecyclerViewController<Void> implemen
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
         int id = item.getId();
         int provider = Tgx101OwnAi.providerId();
+        if (id != R.id.btn_tgx101OwnAiTest) view.setDrawModifier(null);
         if (id == R.id.btn_tgx101OwnAiKey) {
           view.setData(Tgx101OwnAi.hasKey(provider) ? Tgx101OwnAi.maskedKey(provider) : Lang.getString(R.string.Tgx101OwnAiKeyNone));
         } else if (id == R.id.btn_tgx101OwnAiModel) {
@@ -86,7 +87,8 @@ public class Tgx101OwnAiController extends RecyclerViewController<Void> implemen
             : Lang.getString(R.string.Tgx101OwnAiTestFailed, testResult));
           // (user 2026-11-13 «кнопку проверить слегка выделить и добавить анимацию»): the result in its colour
           view.setDataColorId(testing || testResult == null ? 0 : testResult.isEmpty() ? org.thunderdog.challegram.theme.ColorId.textSecure : org.thunderdog.challegram.theme.ColorId.textNegative);
-          view.invalidate(); // the icon on the right follows the state (TestIcon)
+          view.setDrawModifier(item.getDrawModifier()); // the icon on the right follows the state (TestIcon)
+          view.invalidate();
           view.setEnabledAnimated(Tgx101OwnAi.isReady(), isUpdate);
         }
       }

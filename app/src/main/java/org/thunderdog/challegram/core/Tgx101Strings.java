@@ -1329,6 +1329,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101OwnAiModelPrice, "$%1$s за вход / $%2$s за ответ на млн токенов");
     RU.put(R.string.Tgx101OwnAiModelFree, "бесплатная");
     RU.put(R.string.Tgx101OwnAiModelCurrent, "выбрана");
+    RU.put(R.string.Tgx101OwnAiModelTokensK, "%1$s тыс. токенов");
+    RU.put(R.string.Tgx101OwnAiModelTokensM, "%1$s млн токенов");
     RU.put(R.string.Tgx101OwnAiModelPickThis, "Выбрать");
     RU.put(R.string.Tgx101OwnAiModelAboutService, "Сервис пишет:");
     RU.put(R.string.Tgx101OwnAiModelGuess, "Плюсы и минусы — по названию модели.");
