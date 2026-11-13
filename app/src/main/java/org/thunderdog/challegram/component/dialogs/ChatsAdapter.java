@@ -820,12 +820,21 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
   }
 
   public int removeChatById (TdApi.Chat chat, int fromIndex, Tdlib.ChatChange changeInfo) {
-    final int chatIndex = tgx101ChatIndex(fromIndex);
+    int chatIndex = tgx101ChatIndex(fromIndex);
     tgx101Op("remove " + chat.id + " at " + fromIndex + " (row " + chatIndex + ")");
+    if (chatIndex != -1 && (chatIndex >= chats.size() || chats.get(chatIndex).getChatId() != chat.id)) {
+      // TGx101 (as updateChat's crash 2026-11-13): rows out of step — the chat is found by its id before anything is taken
+      // out (it took the wrong chat out and only then threw)
+      int found = indexOfChat(chat.id);
+      org.thunderdog.challegram.Tgx101Diag.mark("chat list: removal of " + chat.id + " expected at row " + chatIndex + (found != -1 ? ", found at " + found : ", not shown"));
+      if (found == -1) {
+        if (attachedToRecyclers != null && attachedToRecyclers.size() == 1) tgx101ScheduleCheck(attachedToRecyclers.get(0), 200);
+        return 0;
+      }
+      chatIndex = found;
+    }
     if (chatIndex != -1) {
       TGChat removedChat = removeChat(chatIndex);
-      if (removedChat.getChatId() != chat.id)
-        throw new IllegalStateException();
 
       TGChat prevChat = getChatAt(chatIndex - 1);
       TGChat nextChat = getChatAt(chatIndex);
@@ -893,10 +902,22 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
   }
 
   public int updateChat (TdApi.Chat chat, int index, Tdlib.ChatChange changeInfo) {
-    final int chatIndex = tgx101ChatIndex(index);
-    TGChat parsedChat = chats.get(chatIndex);
-    if (parsedChat.getChatId() != chat.id)
-      throw new IllegalStateException();
+    int chatIndex = tgx101ChatIndex(index);
+    TGChat parsedChat = chatIndex >= 0 && chatIndex < chats.size() ? chats.get(chatIndex) : null;
+    if (parsedChat == null || parsedChat.getChatId() != chat.id) {
+      // TGx101 (crash 2026-11-13 10:37, Xiaomi 2306EPN60G, Android 16, 0.2.982: IllegalStateException here): the shown rows
+      // went out of step with Telegram's order (the Storage row among the chats shifts the places). The chat is found by its
+      // id; not shown at all — the change waits for the rows check, which redraws the list from its data
+      int found = indexOfChat(chat.id);
+      org.thunderdog.challegram.Tgx101Diag.mark("chat list: update of " + chat.id + " expected at row " + chatIndex + (found != -1 ? ", found at " + found : ", not shown"));
+      if (found == -1) {
+        tgx101Op("update " + chat.id + " missed");
+        if (attachedToRecyclers != null && attachedToRecyclers.size() == 1) tgx101ScheduleCheck(attachedToRecyclers.get(0), 200);
+        return 0;
+      }
+      chatIndex = found;
+      parsedChat = chats.get(found);
+    }
     parsedChat.updateChatPosition(chat.id, changeInfo.position, changeInfo.sourceChanged(), changeInfo.pinStateChanged());
     tgx101PlaceStorage();
     return changeInfo.metadataChanged() ? ORDER_INVALIDATE_DECORATIONS : 0;
