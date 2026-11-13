@@ -381,6 +381,101 @@ public class TGMessageMedia extends TGMessage {
     return setCaption(caption, messageId, false);
   }
 
+  // TGx101 «Кратко» for captions (user 2026-11-13 «оф. клиент чаще предлагает сокращать большие новости… крупные новости
+  // PlumaGram пропускает»): big news come with a photo or a video, their text is a caption — «Short» was drawn only for text
+  // messages. Telegram marks the caption's message summarizable just the same (summaryLanguageCode)
+
+  private @Nullable TdApi.FormattedText tgx101Summary;
+  private boolean tgx101SummaryShown, tgx101SummaryLoading;
+
+  private @Nullable TdApi.Message tgx101CaptionMessage () {
+    if (captionMessageId == 0 || captionMessageId == msg.id) return msg;
+    synchronized (this) {
+      ArrayList<TdApi.Message> combined = getCombinedMessagesUnsafely();
+      if (combined != null) for (TdApi.Message m : combined) if (m.id == captionMessageId) return m;
+    }
+    return null;
+  }
+
+  @Override
+  public boolean tgx101CanSummarize () {
+    TdApi.Message m = tgx101CaptionMessage();
+    return org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiSummary() && m != null && !me.vkryl.core.StringUtils.isEmpty(m.summaryLanguageCode) && translatedText == null && !Td.isEmpty(caption);
+  }
+
+  @Override
+  public boolean tgx101SummaryShown () {
+    return tgx101SummaryShown;
+  }
+
+  private TdApi.FormattedText tgx101WithSummary (TdApi.FormattedText t) {
+    if (!tgx101CanSummarize()) return t;
+    java.util.List<TdApi.TextEntity> list = new java.util.ArrayList<>();
+    StringBuilder b = new StringBuilder();
+    if (tgx101SummaryShown && tgx101Summary != null) {
+      String head = "✨ " + Lang.getString(R.string.Tgx101AiShort);
+      b.append(head).append("\n\n");
+      int sumStart = b.length();
+      String sum = tgx101Summary.text.trim();
+      b.append(sum);
+      list.add(new TdApi.TextEntity(0, head.length(), new TdApi.TextEntityTypeBold()));
+      if (tgx101Summary.entities != null) {
+        for (TdApi.TextEntity e : tgx101Summary.entities) {
+          if (e.offset + e.length <= sum.length()) list.add(new TdApi.TextEntity(sumStart + e.offset, e.length, e.type));
+        }
+      }
+      b.append("\n\n");
+      String more = Lang.getString(R.string.Tgx101AiShowFull);
+      list.add(new TdApi.TextEntity(b.length(), more.length(), new TdApi.TextEntityTypeTextUrl(TGMessageText.TGX101_FULL_LINK)));
+      b.append(more);
+    } else {
+      b.append(t.text);
+      if (t.entities != null) java.util.Collections.addAll(list, t.entities);
+      b.append('\n');
+      String chip = "✨ " + Lang.getString(tgx101SummaryLoading ? R.string.Tgx101AiShortLoading : R.string.Tgx101AiShort);
+      list.add(new TdApi.TextEntity(b.length(), chip.length(), new TdApi.TextEntityTypeTextUrl(TGMessageText.TGX101_SUMMARY_LINK)));
+      b.append(chip);
+    }
+    return new TdApi.FormattedText(b.toString(), list.toArray(new TdApi.TextEntity[0]));
+  }
+
+  private void tgx101RebuildCaption () {
+    setCaption(caption, captionMessageId, true);
+    rebuildContent();
+    invalidate();
+  }
+
+  @Override
+  public boolean tgx101ToggleSummary () {
+    if (!tgx101CanSummarize()) return false;
+    if (tgx101SummaryShown || tgx101Summary != null) {
+      tgx101SummaryShown = !tgx101SummaryShown;
+      tgx101RebuildCaption();
+      return true;
+    }
+    if (tgx101SummaryLoading) return true;
+    TdApi.Message m = tgx101CaptionMessage();
+    if (m == null) return false;
+    tgx101SummaryLoading = true;
+    tgx101RebuildCaption();
+    String pack = Lang.packId();
+    String to = pack != null && pack.length() >= 2 ? pack.substring(0, 2) : ""; // the summary in the app's language
+    org.thunderdog.challegram.Tgx101Diag.mark("ai short (caption): asked for " + m.chatId + "/" + m.id + " (" + m.summaryLanguageCode + (to.isEmpty() ? "" : " → " + to) + ")");
+    Tgx101OwnAi.send(tdlib, new TdApi.SummarizeMessage(m.chatId, m.id, to, ""), result -> runOnUiThreadOptional(() -> {
+      tgx101SummaryLoading = false;
+      if (result.getConstructor() == TdApi.FormattedText.CONSTRUCTOR) {
+        tgx101Summary = (TdApi.FormattedText) result;
+        tgx101SummaryShown = true;
+        org.thunderdog.challegram.Tgx101Diag.mark("ai short (caption): " + tgx101Summary.text.length() + " chars");
+      } else {
+        org.thunderdog.challegram.Tgx101Diag.mark("ai short (caption): failed " + result);
+        org.thunderdog.challegram.tool.UI.showError(result);
+      }
+      tgx101RebuildCaption();
+    }));
+    return true;
+  }
+
   @Override
   protected void onUpdateHighlightedText () {
     if (mosaicWrapper != null) {
@@ -397,7 +492,7 @@ public class TGMessageMedia extends TGMessage {
         this.wrapper.performDestroy();
       }
       if (!Td.isEmpty(caption)) {
-        TdApi.FormattedText fText = translatedText != null ? translatedText : Tgx101Text.displayText(this, caption); // TGx101
+        TdApi.FormattedText fText = translatedText != null ? translatedText : tgx101WithSummary(Tgx101Text.displayText(this, caption)); // TGx101
         this.wrapper = new TextWrapper(fText.text, getTextStyleProvider(), getTextColorSet())
           .setEntities(TextEntity.valueOf(tdlib, fText, openParameters()), (wrapper, text, specificMedia) -> {
             if (this.wrapper == wrapper) {
