@@ -260,12 +260,6 @@ public class MediaCellView extends ViewGroup implements
     this.receiver = imageReceiver;
     this.preview = imagePreviewReceiver;
 
-    // TGx101 (user 2026-11-13): the bars beside a photo or video that doesn't fill the screen show the picture mirrored at its
-    // edges instead of black — behind everything, it draws only outside the picture
-    this.tgx101Mirror = new Tgx101MirrorView(context);
-    this.tgx101Mirror.setLayoutParams(new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-    addView(tgx101Mirror);
-
     addView(imageViewParent);
 
     this.overlayView = new ForegroundView(context);
@@ -541,6 +535,44 @@ public class MediaCellView extends ViewGroup implements
   private class CellVideoView extends ViewGroup {
     public CellVideoView (Context context) {
       super(context);
+    }
+
+    // TGx101 (user 2026-11-13 «отзеркаливание медиа, чтобы полоски были не чёрные… там что нет простых решений?»): the
+    // video's own layer is drawn a second time, mirrored at its edges, into the bars — the GPU redraws the same layer every
+    // frame, no copies, no snapshots; dimmed so the picture itself stays the bright part
+    private final android.graphics.Paint tgx101Dim = new android.graphics.Paint();
+
+    private boolean tgx101MirrorWanted () {
+      return org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerMirror() && media != null && (media.isVideo() || media.isGif())
+        && hideStaticView && videoReady && revealFactor >= 1f && !disappearing && factor == 0f && !tgx101Closing && !isZoomed() && !forceTouchMode;
+    }
+
+    @Override
+    protected void dispatchDraw (Canvas c) {
+      super.dispatchDraw(c);
+      if (getChildCount() == 0 || !tgx101MirrorWanted()) return;
+      View v = getChildAt(0);
+      if (v.getVisibility() != View.VISIBLE || v.getWidth() <= 0) return;
+      int w = getWidth(), h = getHeight();
+      float l = v.getLeft(), t = v.getTop(), r = v.getRight(), b = v.getBottom();
+      float edge = Screen.dp(1f);
+      tgx101Dim.setColor(0x73000000); // 45 %
+      long time = getDrawingTime();
+      if (l > edge) tgx101DrawMirrored(c, v, time, 0, 0, l, h, -1f, 1f, l, 0);
+      if (r < w - edge) tgx101DrawMirrored(c, v, time, r, 0, w, h, -1f, 1f, r, 0);
+      if (t > edge) tgx101DrawMirrored(c, v, time, 0, 0, w, t, 1f, -1f, 0, t);
+      if (b < h - edge) tgx101DrawMirrored(c, v, time, 0, b, w, h, 1f, -1f, 0, b);
+    }
+
+    private void tgx101DrawMirrored (Canvas c, View v, long time, float l, float t, float r, float b, float sx, float sy, float px, float py) {
+      c.save();
+      c.clipRect(l, t, r, b);
+      c.save();
+      c.scale(sx, sy, px, py);
+      drawChild(c, v, time);
+      c.restore();
+      c.drawRect(l, t, r, b, tgx101Dim);
+      c.restore();
     }
 
     @Override
@@ -1300,7 +1332,7 @@ public class MediaCellView extends ViewGroup implements
   }
 
   public void setMedia (@Nullable MediaItem media) {
-    if (tgx101Mirror != null) tgx101Mirror.invalidate();
+    if (videoParentView != null) videoParentView.invalidate();
     setMedia(media, false, 0, 1f);
   }
 
@@ -1744,6 +1776,7 @@ public class MediaCellView extends ViewGroup implements
         scale = 1f + (finalScale - 1f) * rotateFactor;
       }
       playerView.setScaleX(scale);
+      if (videoParentView != null) videoParentView.invalidate(); // TGx101: the mirrored bars off while zoomed, back after
       playerView.setScaleY(scale);
     }
   }
@@ -2128,113 +2161,7 @@ public class MediaCellView extends ViewGroup implements
 
   // TGx101: mirrored bars
 
-  private Tgx101MirrorView tgx101Mirror;
 
-  private class Tgx101MirrorView extends View {
-    // (user 2026-11-13 «для фото не нужно… стало лагать, оно грузит процессор? нужно, чтобы было супер лёгким»): video and
-    // GIF only; a tiny copy of the frame (≈48 px) every 2 s, cross-faded in 0.4 s — stretched over the bars it is blurred by
-    // itself, so no blur effect, no extra layer, no per-frame copies off the GPU
-    private static final long SNAPSHOT_EVERY_MS = 2000, FADE_MS = 400;
-    private final android.graphics.Paint bitmapPaint = new android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG);
-    private final android.graphics.Paint dim = new android.graphics.Paint();
-    private final RectF content = new RectF();
-    private android.graphics.Bitmap frame, previous;
-    private long frameAt;
-    private float shown;
-    private long shownAt;
-
-    Tgx101MirrorView (Context context) {
-      super(context);
-    }
-
-    private boolean videoShown () {
-      return playerView != null && hideStaticView && videoReady;
-    }
-
-    private boolean findContent () {
-      if (!videoShown()) return false;
-      View target = playerView.getTargetView();
-      if (target == null || target.getWidth() <= 0 || videoParentView == null) return false;
-      float l = videoParentView.getLeft() + target.getLeft(), t = videoParentView.getTop() + target.getTop();
-      content.set(l, t, l + target.getWidth(), t + target.getHeight());
-      return true;
-    }
-
-    private boolean wanted () {
-      return org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerMirror() && media != null && (media.isVideo() || media.isGif()) && revealFactor >= 1f && !disappearing && factor == 0f
-        && imageAlpha >= 1f && !isZoomed() && !tgx101Closing;
-    }
-
-    @Override
-    protected void onDraw (android.graphics.Canvas c) {
-      long now = android.os.SystemClock.uptimeMillis();
-      boolean want = wanted() && findContent();
-      if (!want && media != null && (media.isVideo() || media.isGif()) && !disappearing) {
-        postInvalidateDelayed(250); // after a zoom or a swipe it comes back by itself
-      }
-      float step = shownAt == 0 ? 0f : (now - shownAt) / 220f;
-      shownAt = now;
-      shown = want ? Math.min(1f, shown + step) : Math.max(0f, shown - step * 2f);
-      if (shown <= 0f) {
-        shownAt = 0;
-        return;
-      }
-      if (!findContent()) return;
-      int w = getWidth(), h = getHeight();
-      float edge = Screen.dp(1f);
-      boolean sides = content.left > edge || content.right < w - edge;
-      boolean tops = content.top > edge || content.bottom < h - edge;
-      if (!sides && !tops) return;
-      if (frame == null || (isPlaying && now - frameAt >= SNAPSHOT_EVERY_MS)) {
-        android.graphics.Bitmap next = playerView.tgx101MirrorFrame(previous); // the old previous is reused
-        if (next != null) {
-          previous = frame;
-          frame = next;
-          frameAt = now;
-        }
-      }
-      float fade = previous != null ? Math.min(1f, (now - frameAt) / (float) FADE_MS) : 1f;
-      if (sides) {
-        mirror(c, 0, 0, content.left, h, true, fade);
-        mirror(c, content.right, 0, w, h, true, fade);
-      }
-      if (tops) {
-        mirror(c, 0, 0, w, content.top, false, fade);
-        mirror(c, 0, content.bottom, w, h, false, fade);
-      }
-      if (shown < 1f || fade < 1f) {
-        postInvalidateOnAnimation();
-      } else if (isPlaying) {
-        postInvalidateDelayed(SNAPSHOT_EVERY_MS - Math.min(SNAPSHOT_EVERY_MS - 16, now - frameAt));
-      }
-    }
-
-    private void mirror (android.graphics.Canvas c, float l, float t, float r, float b, boolean horizontal, float fade) {
-      if (r - l < 1f || b - t < 1f || frame == null) return;
-      c.save();
-      c.clipRect(l, t, r, b);
-      c.save();
-      if (horizontal) {
-        float edgeX = l == 0 ? content.left : content.right;
-        c.scale(-1f, 1f, edgeX, 0);
-      } else {
-        float edgeY = t == 0 ? content.top : content.bottom;
-        c.scale(1f, -1f, 0, edgeY);
-      }
-      if (fade < 1f && previous != null && !previous.isRecycled()) {
-        bitmapPaint.setAlpha(Math.round(255 * shown));
-        c.drawBitmap(previous, null, content, bitmapPaint);
-        bitmapPaint.setAlpha(Math.round(255 * shown * fade));
-      } else {
-        bitmapPaint.setAlpha(Math.round(255 * shown));
-      }
-      if (!frame.isRecycled()) c.drawBitmap(frame, null, content, bitmapPaint);
-      c.restore();
-      dim.setColor(android.graphics.Color.argb(Math.round(115 * shown), 0, 0, 0)); // 45 %: the bars stay a backdrop
-      c.drawRect(l, t, r, b, dim);
-      c.restore();
-    }
-  }
 
   public void attach () {
     gifReceiver.attach();
@@ -2343,7 +2270,7 @@ public class MediaCellView extends ViewGroup implements
   private void invalidateImageComponents () {
     imageView.invalidate();
     buttonView.invalidate();
-    if (tgx101Mirror != null) tgx101Mirror.invalidate(); // (user 2026-11-13 «зеркало теперь не работает»): woken by the video's state
+    if (videoParentView != null) videoParentView.invalidate(); // TGx101: the mirrored bars follow the video's state
   }
 
   private boolean isPlaying;
@@ -2417,7 +2344,6 @@ public class MediaCellView extends ViewGroup implements
       playerView.setCallback(this);
       hideStaticView = true;
       addView(videoParentView, 0);
-      // the mirror stays right above the video (now 0, the mirror 1): under it, the video's own black layer covered the bars
       checkPostRotation(false);
     } else {
       layoutVideo(true);
