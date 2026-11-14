@@ -794,9 +794,14 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
       d = Math.max(-1f, Math.min(1f, d));
       float rotation = -d * 35f; // half the turn: less of the «italic» smear
       float alpha = Math.max(0f, 1f - Math.abs(d) * 1.7f); // the leaving row is gone by mid-way, the rows hardly overlap
-      view.setCameraDistance(view.getHeight() * 24f);
-      view.setPivotX(view.getWidth() / 2f);
-      view.setPivotY(d > 0 ? 0 : view.getHeight()); // turns about the edge it shares with the bar
+      // (diag 2026-11-14 19:53: an idle chat drew 120 frames a second, «CustomRecyclerView in» the pinned bar ×362 in 3 s):
+      // setCameraDistance asks for a new frame every time, changed or not — set from the pre-draw, it fed itself a frame
+      // forever (70 % of a core). Only when it really changes, and the pivots likewise
+      float camera = view.getHeight() * 24f; // getCameraDistance gives back what setCameraDistance was given
+      if (Math.abs(view.getCameraDistance() - camera) > 1f) view.setCameraDistance(camera);
+      float px = view.getWidth() / 2f, py = d > 0 ? 0 : view.getHeight(); // turns about the edge it shares with the bar
+      if (view.getPivotX() != px) view.setPivotX(px);
+      if (view.getPivotY() != py) view.setPivotY(py);
       if (Math.abs(view.getRotationX() - rotation) > .05f) view.setRotationX(rotation);
       if (Math.abs(view.getAlpha() - alpha) > .005f) view.setAlpha(alpha);
     }
