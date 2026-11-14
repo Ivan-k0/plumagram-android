@@ -82,6 +82,9 @@ public final class Tgx101Sheet {
   public static Handle show (ViewController<?> c, @Nullable Runnable onDismiss, me.vkryl.core.lambda.RunnableData<LinearLayout> fill, boolean overBusy) {
     Context context = c.context();
     final PopupLayout popup = new PopupLayout(context);
+    // above the status bar like the photo viewer: under it the sheet opened behind the viewer, unseen, and taps went
+    // to the viewer (journal 2026-11-15 00:50: the timer tapped four times, four sheets, none seen)
+    popup.setOverlayStatusBar(true);
     popup.tgx101AllowWhileBusy = overBusy;
     popup.init(true);
     popup.setNeedRootInsets();

@@ -71,7 +71,7 @@ public final class Tgx101RedrawWatch {
         try {
           long ticks = cpuTicks();
           long now = SystemClock.uptimeMillis();
-          if (lastCpuTicks >= 0 && ticks >= 0 && decor.hasWindowFocus()) {
+          if (lastCpuTicks >= 0 && ticks >= 0 && org.thunderdog.challegram.tool.UI.getContext(decor.getContext()).getActivityState() == org.thunderdog.challegram.tool.UI.State.RESUMED) { // (window focus was off with a sheet up — no line came)
             long ms = Math.max(1, now - lastCpuAt);
             long cpuPercent = (ticks - lastCpuTicks) * 10 * 100 / ms; // ticks are 10 ms
             Object top = org.thunderdog.challegram.tool.UI.getCurrentStackItem(decor.getContext());

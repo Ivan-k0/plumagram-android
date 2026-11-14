@@ -51,6 +51,9 @@ public final class Tgx101CallConfirmSheet {
     c.context().tgx101CancelKeyboardComeBack();
     c.hideSoftwareKeyboard();
     final PopupLayout popup = new PopupLayout(context);
+    // above the status bar like the photo viewer: under it the sheet opened behind the viewer, unseen, and taps went
+    // to the viewer (journal 2026-11-15 00:50: the timer tapped four times, four sheets, none seen)
+    popup.setOverlayStatusBar(true);
     popup.init(true);
     popup.setNeedRootInsets();
 

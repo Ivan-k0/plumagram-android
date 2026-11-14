@@ -64,6 +64,9 @@ public final class Tgx101SendConfirmSheet {
     final String what = kind == Settings.CONFIRM_VOICE ? "voice" : kind == Settings.CONFIRM_STICKER ? "sticker" : kind == Settings.CONFIRM_MEDIA ? "media" : "gif";
     Tgx101Diag.mark("confirm: asked before sending " + what);
     final PopupLayout popup = new PopupLayout(context);
+    // above the status bar like the photo viewer: under it the sheet opened behind the viewer, unseen, and taps went
+    // to the viewer (journal 2026-11-15 00:50: the timer tapped four times, four sheets, none seen)
+    popup.setOverlayStatusBar(true);
     popup.init(true);
     popup.setNeedRootInsets();
     popup.tgx101AllowWhileBusy = true; // a voice's card comes up while its recording panel is still open

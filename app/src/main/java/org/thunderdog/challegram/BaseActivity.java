@@ -3034,7 +3034,10 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     for (PopupLayout w : windows) {
       if (w == forceTouchWindow) continue;
       View content = w.getChildCount() > 0 ? w.getChildAt(w.getChildCount() - 1) : null;
-      String off = content != null ? Tgx101DiagHooks.offPlace(content) : "";
+      // only a window moved by a big part of itself: a menu standing at the right or a short slide is its normal place
+      boolean farOff = content != null && content.getWidth() > 0 && content.getHeight() > 0 &&
+        (Math.abs(content.getTranslationX()) > content.getWidth() * .3f || Math.abs(content.getTranslationY()) > content.getHeight() * .3f);
+      String off = farOff ? Tgx101DiagHooks.offPlace(content) : "";
       if (!off.isEmpty()) b.append(b.length() > 0 ? "; " : "").append("window ").append(content.getClass().getSimpleName()).append(" ").append(off);
     }
     Object top = navigation != null ? navigation.getCurrentStackItem() : null;
