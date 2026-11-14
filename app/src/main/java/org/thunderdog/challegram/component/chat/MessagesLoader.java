@@ -1680,6 +1680,8 @@ public class MessagesLoader implements Client.ResultHandler {
             break; // TGx101: only a jump to a reply flashes (not a notification, search, link or pinned message)
           }
           if (scrollMessageId != null) scrollItem.tgx101SetHighlightedChild(scrollMessageId.getMessageId()); // TGx101: album item
+          // (user 2026-11-15 «по цитате… должно подсвечиваться внутри пузыря»): a quote far up, loaded around it — the words too
+          if (scrollMessageId != null) MessagesManager.tgx101ApplyQuote(scrollItem, scrollMessageId.getMessageId());
           scrollItem.highlight(false);
           break;
         }

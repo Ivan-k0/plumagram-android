@@ -873,6 +873,12 @@ public class TGMessageMedia extends TGMessage {
 
   private static float TEXT_MARGIN = 10f;
 
+  // (user 2026-11-15) a reply quoting a caption: its words light up too
+  @Override
+  protected boolean tgx101DrawQuoteHighlight (Canvas c, float factor, long elapsed) {
+    return tgx101DrawQuoteIn(c, wrapper != null ? wrapper.getCurrent() : null, factor, elapsed);
+  }
+
   private int getTextX (View view, @NonNull TextWrapper wrapper, boolean rtl) {
     if (rtl) {
       if (useBubbles())

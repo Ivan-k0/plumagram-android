@@ -3338,6 +3338,14 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     tgx101QuotePosition = position;
   }
 
+  /** the quoted words light up inside the bubble the reply leads to (once — the next jump has its own) */
+  static void tgx101ApplyQuote (TGMessage msg, long messageId) {
+    boolean quote = tgx101QuoteMessageId != 0 && tgx101QuoteMessageId == messageId;
+    msg.tgx101SetHighlightedQuote(quote ? tgx101QuoteText : null, tgx101QuotePosition);
+    if (quote) org.thunderdog.challegram.Tgx101Diag.mark("jump: the quote lights up in the message (" + tgx101QuoteText.length() + " letters)");
+    tgx101QuoteMessageId = 0;
+  }
+
   public static boolean tgx101FlashAllowed (long messageId) {
     return messageId != 0 && messageId == tgx101ReplyJumpMessageId && android.os.SystemClock.uptimeMillis() < tgx101ReplyJumpUntil && !tgx101SkipFlash(messageId);
   }
@@ -4210,9 +4218,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       // TGx101 (user 2026-10-05): only jumps to a message flash it — not the arrow to the first unread, not a notification
       if ((highlightMode == HIGHLIGHT_MODE_NORMAL || highlightMode == HIGHLIGHT_MODE_NORMAL_NEXT) && tgx101FlashAllowed(messageId.getMessageId())) {
         msg.tgx101SetHighlightedChild(messageId.getMessageId()); // TGx101: the album item the reply was to
-        boolean quote = tgx101QuoteMessageId != 0 && tgx101QuoteMessageId == messageId.getMessageId();
-        msg.tgx101SetHighlightedQuote(quote ? tgx101QuoteText : null, tgx101QuotePosition);
-        tgx101QuoteMessageId = 0;
+        tgx101ApplyQuote(msg, messageId.getMessageId());
         msg.highlight(true);
       }
       scrollToMessage(index, msg, highlightMode, allowSmooth, false);

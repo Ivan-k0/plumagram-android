@@ -98,14 +98,23 @@ public final class Tgx101TypingLine {
     host.invalidate();
   }
 
+  private boolean keyboardUp () {
+    try {
+      return org.thunderdog.challegram.tool.UI.getContext(host.getContext()).isKeyboardVisible();
+    } catch (Throwable t) {
+      return field.isFocused();
+    }
+  }
+
   /** the line along y (the field's bottom), width w */
   void draw (Canvas c, float y, int w) {
     float thin = Math.max(1, Screen.dp(.5f));
     paint.setShader(null);
     paint.setColor(Theme.separatorColor());
     // (user 2026-11-14 23:46 «при открытой клавиатуре внизу поля ввода не должна быть видна полоса»): while typing — the
-    // plain line, the word only at rest
-    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101MorseLine() && !field.isFocused()) {
+    // plain line, the word only at rest. By the keyboard, not the field's focus: a chat keeps the cursor in the field
+    // with the keyboard down, and the word never showed (user 2026-11-15 «морзе не работает?»)
+    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101MorseLine() && !keyboardUp()) {
       Morse.draw(c, paint, tdlib, host, 0, w, y, thin);
     } else {
       Session.drawLine(c, paint, 0, w, y, thin);
