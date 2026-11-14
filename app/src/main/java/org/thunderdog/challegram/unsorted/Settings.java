@@ -3932,6 +3932,14 @@ public class Settings {
   private static final String KEY_TGX101_AI_AUTO_TAGS = "tgx101_ai_auto_tags";
   public boolean tgx101AiAutoTags () { return tgx101Ai() && pmc.getBoolean(KEY_TGX101_AI_AUTO_TAGS, false); }
   public void setTgx101AiAutoTags (boolean v) { pmc.putBoolean(KEY_TGX101_AI_AUTO_TAGS, v); }
+
+  /** TGx101 (user 2026-11-14, Storage variant Б): a new record goes to a folder by itself — the phone's rules, then the AI when it's on */
+  public boolean tgx101StorageAutoFolders () { return pmc.getBoolean("tgx101_storage_auto_folders", false); }
+  public void setTgx101StorageAutoFolders (boolean v) { pmc.putBoolean("tgx101_storage_auto_folders", v); }
+
+  /** {@link org.thunderdog.challegram.data.Tgx101AutoFile}: what went to a folder by itself, for «Вернуть» */
+  public String tgx101StorageAutoLog (int accountId) { return pmc.getString("tgx101_storage_auto_log_" + accountId, ""); }
+  public void setTgx101StorageAutoLog (int accountId, String value) { pmc.putString("tgx101_storage_auto_log_" + accountId, value); }
   public String tgx101AiSortHint (int accountId) { return pmc.getString("tgx101_ai_sort_hint_" + accountId, ""); }
   public void setTgx101AiSortHint (int accountId, String v) { pmc.putString("tgx101_ai_sort_hint_" + accountId, v); }
   public String tgx101AiSortRejected (int accountId) { return pmc.getString("tgx101_ai_sort_rejected_" + accountId, ""); }

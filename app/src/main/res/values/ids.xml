@@ -1869,6 +1869,7 @@
   <item name="btn_tgx101SavedAsMessages" type="id"/>
   <item name="btn_tgx101AiSortHint" type="id"/>
   <item name="btn_tgx101AiAutoTags" type="id"/>
+  <item name="btn_tgx101StorageAutoFolders" type="id"/>
   <item name="menu_btn_tgx101SavedAi" type="id"/>
   <item name="btn_tgx101Bird" type="id"/>
   <item name="btn_tgx101BirdRing" type="id"/>

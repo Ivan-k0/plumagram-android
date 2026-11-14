@@ -77,6 +77,8 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
           view.getToggler().setRadioEnabled(org.thunderdog.challegram.unsorted.Settings.instance().tgx101SwipeToStorage(), isUpdate);
         } else if (id == R.id.btn_tgx101AiAutoTags) {
           view.getToggler().setRadioEnabled(org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiAutoTags(), isUpdate);
+        } else if (id == R.id.btn_tgx101StorageAutoFolders) {
+          view.getToggler().setRadioEnabled(org.thunderdog.challegram.unsorted.Settings.instance().tgx101StorageAutoFolders(), isUpdate);
         } else if (id == R.id.btn_tgx101SavedStorageOn) {
           view.getToggler().setRadioEnabled(s.storageOn, isUpdate);
         } else if (id == R.id.btn_tgx101SavedSwitch) {
@@ -102,6 +104,8 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SavedStorageOn, 0, R.string.Tgx101SavedStorageOn));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiAutoTags, 0, R.string.Tgx101AiAutoTags));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101StorageAutoFolders, 0, R.string.Tgx101AutoFileSetting));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101StorageRow, 0, R.string.Tgx101StorageRowSetting));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
@@ -328,6 +332,10 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
       boolean on = adapter.toggleView(v);
       org.thunderdog.challegram.unsorted.Settings.instance().setTgx101AiAutoTags(on);
       if (on) org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101AiAutoTagsHint, android.widget.Toast.LENGTH_LONG);
+    } else if (id == R.id.btn_tgx101StorageAutoFolders) {
+      boolean on = adapter.toggleView(v);
+      org.thunderdog.challegram.unsorted.Settings.instance().setTgx101StorageAutoFolders(on);
+      if (on) org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101AutoFileHint, android.widget.Toast.LENGTH_LONG);
     } else if (id == R.id.btn_tgx101SavedStorageOn) {
       s.storageOn = adapter.toggleView(v);
       s.save();

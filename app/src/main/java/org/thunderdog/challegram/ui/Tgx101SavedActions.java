@@ -177,6 +177,15 @@ public final class Tgx101SavedActions {
         h[0].dismiss();
         UI.post(() -> Tgx101StorageTools.showWeek(c), 200);
       }));
+      // (user 2026-11-14, Storage variants Б and В): what went to folders by itself, and a question in words
+      body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_folder_24, 0, Lang.getString(R.string.Tgx101AutoFileLog), null, false, v -> {
+        h[0].dismiss();
+        UI.post(() -> Tgx101StorageTools.showAutoLog(c), 200);
+      }));
+      body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_search_24, 0, Lang.getString(R.string.Tgx101StorageAsk), null, false, v -> {
+        h[0].dismiss();
+        UI.post(() -> Tgx101StorageTools.showAsk(c), 200);
+      }));
       Tgx101SavedAiSortController.Undo undo = Tgx101SavedAiSortController.pending(c.tdlib());
       if (undo != null) {
         body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_undo_24, 0, Lang.getString(R.string.Tgx101SavedAiUndo, undo.count), null, false, v -> {

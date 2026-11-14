@@ -252,6 +252,188 @@ public final class Tgx101StorageTools {
     }));
   }
 
+  // What went to a folder by itself (variant Б)
+
+  public static void showAutoLog (ViewController<?> c) {
+    final Tgx101Sheet.Handle[] handle = new Tgx101Sheet.Handle[1];
+    handle[0] = Tgx101Sheet.show(c, null, body -> fillAutoLog(c, body));
+  }
+
+  private static void fillAutoLog (ViewController<?> c, LinearLayout body) {
+    body.removeAllViews();
+    body.addView(Tgx101Sheet.title(c.context(), Lang.getString(R.string.Tgx101AutoFileLog)));
+    final org.thunderdog.challegram.unsorted.Settings settings = org.thunderdog.challegram.unsorted.Settings.instance();
+    final boolean on = settings.tgx101StorageAutoFolders();
+    body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_folder_24, 0, Lang.getString(R.string.Tgx101AutoFileSetting), null, on, v -> {
+      settings.setTgx101StorageAutoFolders(!on);
+      fillAutoLog(c, body);
+    }));
+    body.addView(hint(c, Lang.getString(R.string.Tgx101AutoFileHint)));
+    final Tgx101SavedStore store = Tgx101SavedStore.get(c.tdlib());
+    List<org.thunderdog.challegram.data.Tgx101AutoFile.Entry> entries = org.thunderdog.challegram.data.Tgx101AutoFile.entries(c.tdlib());
+    if (entries.isEmpty()) {
+      body.addView(Tgx101Sheet.row(c.context(), 0, 0, Lang.getString(R.string.Tgx101AutoFileNone), null, false, null));
+      return;
+    }
+    for (final org.thunderdog.challegram.data.Tgx101AutoFile.Entry entry : entries) {
+      Tgx101SavedStore.Folder folder = store.folder(entry.folderId);
+      if (folder == null) continue;
+      String title = entry.title.length() > 26 ? entry.title.substring(0, 25).trim() + "…" : entry.title;
+      body.addView(Tgx101Sheet.row(c.context(), entry.byAi ? R.drawable.baseline_stars_24 : R.drawable.baseline_folder_24, 0,
+        title + " → " + folder.name, Lang.getString(R.string.Tgx101AutoFileUndo), false, v -> {
+          org.thunderdog.challegram.data.Tgx101AutoFile.undo(c.tdlib(), entry);
+          fillAutoLog(c, body);
+        }));
+    }
+  }
+
+  // Asking the Storage in words (variant В)
+
+  private static final int ASK_CANDIDATES = 40, ASK_SHOWN = 5, WORDS_SHOWN = 8;
+
+  /** All the words a record can be found by */
+  private static String searchable (Tdlib tdlib, TdApi.Message m) {
+    StringBuilder b = new StringBuilder(Tgx101SavedKit.title(m));
+    TdApi.FormattedText t = Tgx101SavedKit.text(m);
+    if (t != null) b.append(' ').append(t.text);
+    if (Tgx101SavedKit.kindOf(m) == Tgx101SavedKit.KIND_LINK) b.append(' ').append(Tgx101SavedKit.site(m));
+    if (m.content.getConstructor() == TdApi.MessageDocument.CONSTRUCTOR) b.append(' ').append(((TdApi.MessageDocument) m.content).document.fileName);
+    if (m.content.getConstructor() == TdApi.MessageVoiceNote.CONSTRUCTOR) {
+      TdApi.SpeechRecognitionResult r = ((TdApi.MessageVoiceNote) m.content).voiceNote.speechRecognitionResult;
+      if (r instanceof TdApi.SpeechRecognitionResultText) b.append(' ').append(((TdApi.SpeechRecognitionResultText) r).text);
+    }
+    if (m.forwardInfo != null) b.append(' ').append(Tgx101SavedKit.source(tdlib, m));
+    Tgx101SavedStore.Folder folder = Tgx101SavedStore.get(tdlib).folderOf(m.id);
+    if (folder != null) b.append(' ').append(folder.name);
+    return b.toString();
+  }
+
+  public static void showAsk (ViewController<?> c) {
+    Tgx101SavedActions.askText(c, Lang.getString(R.string.Tgx101StorageAsk), "", Lang.getString(R.string.Tgx101StorageAskExample), question -> {
+      if (question == null || question.trim().isEmpty()) return;
+      final String q = question.trim();
+      UI.post(() -> answerSheet(c, q), 200); // the question's sheet goes first
+    });
+  }
+
+  private static void answerSheet (ViewController<?> c, String q) {
+    {
+      if (c.isDestroyed()) return;
+      final Tgx101Sheet.Handle[] handle = new Tgx101Sheet.Handle[1];
+      handle[0] = Tgx101Sheet.show(c, null, body -> loading(c, body, R.string.Tgx101StorageAsk));
+      Tgx101SavedKit.history(c.tdlib(), SCAN, messages -> {
+        if (c.isDestroyed()) return;
+        // the phone narrows it down first: the records with the question's words, the latest for the rest
+        final List<String> words = stems(q);
+        final List<TdApi.Message> scored = new ArrayList<>();
+        final Map<Long, Integer> scores = new HashMap<>();
+        for (TdApi.Message m : messages) {
+          if (m.content == null) continue;
+          List<String> has = stems(searchable(c.tdlib(), m));
+          int score = 0;
+          for (String w : words) if (has.contains(w)) score++;
+          if (score > 0) {
+            scored.add(m);
+            scores.put(m.id, score);
+          }
+        }
+        java.util.Collections.sort(scored, (a, b) -> Integer.compare(scores.get(b.id), scores.get(a.id)));
+        final List<TdApi.Message> byWords = new ArrayList<>(scored.subList(0, Math.min(WORDS_SHOWN, scored.size())));
+        org.thunderdog.challegram.Tgx101Diag.mark("storage: asked, " + scored.size() + " by words of " + messages.size());
+        if (!org.thunderdog.challegram.unsorted.Settings.instance().tgx101Ai()) {
+          fillAnswer(c, handle[0], q, null, new ArrayList<>(), byWords);
+          return;
+        }
+        List<TdApi.Message> candidates = new ArrayList<>(scored.subList(0, Math.min(ASK_CANDIDATES, scored.size())));
+        for (TdApi.Message m : messages) {
+          if (candidates.size() >= ASK_CANDIDATES) break;
+          if (m.content != null && !candidates.contains(m)) candidates.add(m);
+        }
+        askStorage(c.tdlib(), q, candidates, (answer, found) -> {
+          if (!c.isDestroyed()) fillAnswer(c, handle[0], q, answer, found, byWords);
+        });
+      });
+    }
+  }
+
+  private interface Answer {
+    void onAnswer (@Nullable String answer, List<TdApi.Message> found);
+  }
+
+  private static void askStorage (Tdlib tdlib, String question, List<TdApi.Message> candidates, Answer after) {
+    StringBuilder text = new StringBuilder("Вопрос: ").append(question.replace('\n', ' ')).append("\n\nЗаписи:\n");
+    for (int i = 0; i < candidates.size(); i++) {
+      TdApi.Message m = candidates.get(i);
+      String line = Tgx101SavedKit.kindLabel(Tgx101SavedKit.kindOf(m)) + ". " + searchable(tdlib, m).replace('\n', ' ');
+      line = line.replace('[', '(').replace(']', ')').replaceAll("[*_`]", " ").replaceAll("\s+", " ").trim();
+      if (line.length() > 160) line = line.substring(0, 160) + "…";
+      text.append(i + 1).append(") ").append(line).append(" (").append(Tgx101SavedKit.shortDate(m.date)).append(")\n");
+    }
+    String prompt = "Ответь на вопрос по этим записям. Первой строкой — короткий ответ своими словами, одна-две фразы, на «вы»; ничего не придумывай сверх записей. " +
+      "Второй строкой — «Записи: » и номера до " + ASK_SHOWN + " самых подходящих через запятую, по порядку; если подходящих нет — «Записи: -».";
+    TdApi.InputRichMessage message = new TdApi.InputRichMessage(new TdApi.RichMessageSourceMarkdown(text.toString(), new TdApi.InputRichMessageMedia[0]), false, false);
+    org.thunderdog.challegram.Tgx101Diag.mark("storage: asking the AI, " + candidates.size() + " records, " + text.length() + " chars");
+    org.thunderdog.challegram.data.Tgx101OwnAi.send(tdlib, new TdApi.ComposeRichMessageWithAi(message, "", "", prompt, false), result -> UI.post(() -> {
+      String answer = null;
+      if (result.getConstructor() == TdApi.RichMessage.CONSTRUCTOR) {
+        TdApi.FormattedText f = org.thunderdog.challegram.data.Tgx101RichMessage.toText((TdApi.RichMessage) result);
+        answer = f != null ? f.text : null;
+      } else if (result.getConstructor() == TdApi.FormattedText.CONSTRUCTOR) {
+        answer = ((TdApi.FormattedText) result).text;
+      }
+      List<TdApi.Message> found = new ArrayList<>();
+      if (answer == null) {
+        org.thunderdog.challegram.Tgx101Diag.mark("storage: the AI failed — " + (result instanceof TdApi.Error ? ((TdApi.Error) result).message : "?"));
+        after.onAnswer(null, found);
+        return;
+      }
+      String words = answer, numbers = "";
+      int at = answer.toLowerCase(Locale.ROOT).lastIndexOf("записи:");
+      if (at >= 0) {
+        words = answer.substring(0, at);
+        numbers = answer.substring(at + "записи:".length());
+      }
+      java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\d{1,3}").matcher(numbers);
+      while (m.find() && found.size() < ASK_SHOWN) {
+        int n = Integer.parseInt(m.group()) - 1;
+        if (n >= 0 && n < candidates.size() && !found.contains(candidates.get(n))) found.add(candidates.get(n));
+      }
+      words = words.replaceAll("[*_`]", "").trim();
+      after.onAnswer(words.isEmpty() ? null : words, found);
+    }));
+  }
+
+  private static void fillAnswer (ViewController<?> c, Tgx101Sheet.Handle handle, String question, @Nullable String answer, List<TdApi.Message> found, List<TdApi.Message> byWords) {
+    LinearLayout body = handle.body;
+    body.removeAllViews();
+    body.addView(Tgx101Sheet.title(c.context(), question));
+    if (answer != null) {
+      TextView v = Tgx101SavedHomeController.text(c.context(), 15f, Theme.textAccentColor(), false);
+      v.setText(answer);
+      v.setPadding(Screen.dp(20f), 0, Screen.dp(20f), Screen.dp(4f));
+      body.addView(v);
+      body.addView(hint(c, Lang.getString(R.string.Tgx101StorageAskByAi)));
+    } else if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101Ai()) {
+      body.addView(hint(c, Lang.getString(R.string.Tgx101StorageAskFailed)));
+    }
+    for (TdApi.Message m : found) body.addView(record(c, handle, m));
+    List<TdApi.Message> rest = new ArrayList<>();
+    for (TdApi.Message m : byWords) if (!found.contains(m)) rest.add(m);
+    if (!rest.isEmpty()) {
+      body.addView(Tgx101Sheet.title(c.context(), Lang.getString(R.string.Tgx101StorageAskByWords)));
+      for (TdApi.Message m : rest) body.addView(record(c, handle, m));
+    }
+    if (found.isEmpty() && rest.isEmpty()) body.addView(Tgx101Sheet.row(c.context(), 0, 0, Lang.getString(R.string.Tgx101PlayerNothing), null, false, null));
+  }
+
+  private static android.view.View record (ViewController<?> c, Tgx101Sheet.Handle handle, TdApi.Message m) {
+    String title = Tgx101SavedKit.title(m);
+    return Tgx101Sheet.row(c.context(), 0, 0, title, Tgx101SavedKit.shortDate(m.date), false, v -> {
+      handle.dismiss();
+      Tgx101SavedKit.openInFeed(c, m);
+    });
+  }
+
   // The phone's own rules
 
   /** Who a record came from: a chat or a user, 0 — written here */
