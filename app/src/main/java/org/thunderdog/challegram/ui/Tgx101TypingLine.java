@@ -46,6 +46,11 @@ public final class Tgx101TypingLine {
   private long lastFrame;
 
   private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+  private final Runnable wake = this::invalidateHost;
+
+  private void invalidateHost () {
+    host.invalidate();
+  }
 
   // (user 2026-11-13 «на светлой теме вообще не видно — цвета темнее и насыщеннее»): a palette for each theme
   private static int accent () { return Theme.isDark() ? Theme.getColor(ColorId.textNeutral) : 0xff1565c0; }
@@ -92,8 +97,12 @@ public final class Tgx101TypingLine {
     paint.setShader(null);
     paint.setColor(Theme.separatorColor());
     Session.drawLine(c, paint, 0, w, y, thin);
+    // (log 2026-11-14 19:44: an idle chat drew 1828 frames in 15 s, 70 % of a core) every drawing posted one more delayed
+    // invalidate, each of them posted another when it fired — the chains piled up into a redraw without end. One pending
+    // wake-up only, replaced, never added to
     long next = Session.nextChangeIn();
-    if (next > 0) host.postInvalidateDelayed(next);
+    host.removeCallbacks(wake);
+    if (next > 0) host.postDelayed(wake, next);
 
     long now = SystemClock.uptimeMillis();
     float dt = lastFrame != 0 ? Math.min(64, now - lastFrame) : 16;
