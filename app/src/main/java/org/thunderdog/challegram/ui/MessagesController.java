@@ -5400,6 +5400,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void tgx101ShowAutoDelete () {
     if (chat == null) return;
+    if (!isSecretChat()) { // the Material 3 sheet (mockup «Окна выбора в Material 3», board 2)
+      tdlib.ui().showTTLPicker(context(), chat);
+      return;
+    }
     final long chatId = chat.id;
     final int current = chat.messageAutoDeleteTime;
     int[] optionIds = {R.id.btn_tgx101AutoDelete0, R.id.btn_tgx101AutoDelete1, R.id.btn_tgx101AutoDelete2, R.id.btn_tgx101AutoDelete3};
