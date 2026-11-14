@@ -2081,7 +2081,10 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
         || top instanceof org.thunderdog.challegram.ui.PasswordController;
       if (!secret) {
         Tgx101DiagHooks.onTouch(ev, top);
-        if (ev.getActionMasked() == MotionEvent.ACTION_DOWN) tgx101LogEdgeTouch(ev);
+        if (ev.getActionMasked() == MotionEvent.ACTION_DOWN) {
+          tgx101LogEdgeTouch(ev);
+          tgx101CheckStuck();
+        }
       }
     }
     return super.dispatchTouchEvent(ev);
@@ -2995,6 +2998,12 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       forceTouchWindow.setHideKeyboard();
     }
     forceTouchWindow.showAnimatedPopupView(forceTouchView, forceTouchView);
+    if (BuildConfig.TGX101_DIAG) {
+      tgx101ForceTouchAt = android.os.SystemClock.uptimeMillis();
+      tgx101ForceTouchLogged = false;
+      Object top = navigation != null ? navigation.getCurrentStackItem() : null;
+      Tgx101Diag.mark("preview by a long press: opened over " + (top != null ? top.getClass().getSimpleName() : "?") + ", " + forceTouchView.getClass().getSimpleName() + (context.allowFullscreen() ? ", full screen" : ""));
+    }
     return true;
   }
 
@@ -3004,8 +3013,47 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     }
   }
 
+  // (4PDA 2026-11-15, Android 15 «на пол экрана профиль человека замерзает и никак от него не избавиться, пока заново
+  // не зайдёшь»): the long-press preview should go when the finger lifts. When a new touch comes while one is still up,
+  // the journal says how long it has been up and what the window is doing
+  private long tgx101ForceTouchAt;
+  private boolean tgx101ForceTouchLogged;
+  private long tgx101StuckLoggedAt;
+
+  private void tgx101CheckStuck () {
+    long now = android.os.SystemClock.uptimeMillis();
+    if (forceTouchWindow != null && tgx101ForceTouchAt != 0 && now - tgx101ForceTouchAt > 1500 && !tgx101ForceTouchLogged) {
+      tgx101ForceTouchLogged = true;
+      Tgx101Diag.mark("preview by a long press: STILL OPEN " + (now - tgx101ForceTouchAt) / 1000 + " s after it opened and a new finger came — window " +
+        (forceTouchWindow.getParent() != null ? "attached" : "detached") + ", shown " + forceTouchWindow.isShown() + ", alpha " + Math.round(forceTouchWindow.getAlpha() * 100) + " %" +
+        ", windows " + windows.size() + ", " + Tgx101DiagHooks.offPlace(forceTouchView));
+    }
+    if (now - tgx101StuckLoggedAt < 3000) return;
+    StringBuilder b = new StringBuilder();
+    if (navigation != null && navigation.isAnimating()) b.append("a screen change still going");
+    for (PopupLayout w : windows) {
+      if (w == forceTouchWindow) continue;
+      View content = w.getChildCount() > 0 ? w.getChildAt(w.getChildCount() - 1) : null;
+      String off = content != null ? Tgx101DiagHooks.offPlace(content) : "";
+      if (!off.isEmpty()) b.append(b.length() > 0 ? "; " : "").append("window ").append(content.getClass().getSimpleName()).append(" ").append(off);
+    }
+    Object top = navigation != null ? navigation.getCurrentStackItem() : null;
+    if (top instanceof org.thunderdog.challegram.navigation.ViewController) {
+      String off = Tgx101DiagHooks.offPlace(((org.thunderdog.challegram.navigation.ViewController<?>) top).getWrapUnchecked());
+      if (!off.isEmpty()) b.append(b.length() > 0 ? "; " : "").append(top.getClass().getSimpleName()).append(" ").append(off);
+    }
+    if (b.length() > 0) {
+      tgx101StuckLoggedAt = now;
+      Tgx101Diag.mark("touch found the screen not settled: " + b + (navigation != null ? ", stack " + navigation.getStackSize() : ""));
+    }
+  }
+
   public void closeForceTouch () {
     if (forceTouchWindow != null) {
+      if (BuildConfig.TGX101_DIAG) {
+        Tgx101Diag.mark("preview by a long press: closed after " + (android.os.SystemClock.uptimeMillis() - tgx101ForceTouchAt) + " ms");
+        tgx101ForceTouchAt = 0;
+      }
       forceTouchWindow.hideWindow(true);
       forceTouchWindow = null;
       forceTouchView = null;

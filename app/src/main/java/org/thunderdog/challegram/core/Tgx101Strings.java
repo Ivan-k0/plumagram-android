@@ -1389,6 +1389,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101OwnAiInfo, "Свой ИИ: %1$s — текст уходит в этот сервис");
     RU.put(R.string.Tgx101PlayerMirror, "Вокруг видео");
     RU.put(R.string.Tgx101PlayerAmbientGlow, "Свечение");
+    RU.put(R.string.Tgx101ChoiceMore, "Другое время…");
+    RU.put(R.string.Tgx101ChatAutoDelete, "Автоудаление сообщений");
+    RU.put(R.string.Tgx101ChatAutoDeleteHint, "Новые сообщения в этом чате исчезнут у всех через выбранное время. Старые не трогаются.");
+    RU.put(R.string.Tgx101ChoiceSave, "Сохранить");
+    RU.put(R.string.Tgx101TimerX, "Таймер: %1$s");
     RU.put(R.string.Tgx101PlayerAmbientMirror, "Зеркало");
     RU.put(R.string.Tgx101PeekToastOn, "«Не подглядывай!» включено");
     RU.put(R.string.Tgx101PeekToastOff, "«Не подглядывай!» выключено");

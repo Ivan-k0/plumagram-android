@@ -992,6 +992,36 @@ public class TdlibUi extends Handler {
 
   public void showTTLPicker (final Context context, final TdApi.Chat chat) {
     int ttl = tdlib.chatTTL(chat.id);
+    if (!ChatId.isSecret(chat.id)) {
+      // TGx101 (mockup «Окна выбора в Material 3», board 2): a list with radio dots, the usual periods at once
+      final int[] values = {0, 86400, 604800, 2678400, 31536000};
+      final ArrayList<String> labels = new ArrayList<>();
+      labels.add(Lang.getString(R.string.Off));
+      labels.add(Lang.plural(R.string.xDays, 1));
+      labels.add(Lang.plural(R.string.xWeeks, 1));
+      labels.add(Lang.plural(R.string.xMonths, 1));
+      labels.add(Lang.plural(R.string.xYears, 1));
+      int found = -1;
+      for (int i = 0; i < values.length; i++) if (values[i] == ttl) found = i;
+      final int[] all;
+      if (found == -1) { // a period set elsewhere stays in the list
+        all = java.util.Arrays.copyOf(values, values.length + 1);
+        all[values.length] = ttl;
+        labels.add(Lang.getDuration(ttl));
+        found = values.length;
+      } else {
+        all = values;
+      }
+      new org.thunderdog.challegram.ui.Tgx101ChoiceSheet.Builder(context)
+        .title(Lang.getString(R.string.Tgx101ChatAutoDelete))
+        .subtitle(Lang.getString(R.string.Tgx101ChatAutoDeleteHint))
+        .options(labels, found)
+        .list(true)
+        .doneLabel(index -> Lang.getString(R.string.Tgx101ChoiceSave))
+        .onDone(index -> setTTL(chat, all[index]))
+        .show();
+      return;
+    }
     TdApi.MessageSelfDestructType selfDestructType = ttl != 0 ? new TdApi.MessageSelfDestructTypeTimer(ttl) : null;
     showTTLPicker(context, selfDestructType, !ChatId.isSecret(chat.id), false, false, 0, result -> setTTL(chat, result.ttlTime));
   }
@@ -1043,6 +1073,34 @@ public class TdlibUi extends Handler {
         break;
       }
       i++;
+    }
+
+    // TGx101 (mockup «Окна выбора в Material 3», board 1): pills in a grid, the usual values at once, the rest under «Other time…»
+    {
+      final ArrayList<String> labels = new ArrayList<>(ttlOptions.size());
+      final boolean[] usual = new boolean[ttlOptions.size()];
+      int usualCount = 0;
+      for (int k = 0; k < ttlOptions.size(); k++) {
+        TTLOption o = ttlOptions.get(k);
+        labels.add(o.ttlTime > 0 && o.ttlTime < 60 ? Lang.plural(R.string.xSeconds, o.ttlTime) : o.ttlString);
+        int t = o.ttlTime;
+        usual[k] = t <= 0 || t == 5 || t == 10 || t == 30 || t == 60 || t == 3600 || t == 86400 || (precise && (t == 3 || t == 15 || t == 20));
+        if (usual[k]) usualCount++;
+      }
+      final int selectedIndex = foundIndex;
+      new org.thunderdog.challegram.ui.Tgx101ChoiceSheet.Builder(context)
+        .title(Lang.getString(R.string.MessageLifetime))
+        .subtitle(message != 0 ? Lang.getString(message) : null)
+        .options(labels, selectedIndex)
+        .usual(usualCount < ttlOptions.size() ? usual : null)
+        .columns(3)
+        .dark(useDarkMode)
+        .doneLabel(index -> ttlOptions.get(index).isOff() ? Lang.getString(R.string.Done) : Lang.getString(R.string.Tgx101TimerX, labels.get(index)))
+        .onDone(index -> {
+          if (callback != null) callback.runWithData(ttlOptions.get(index));
+        })
+        .show();
+      if (selectedIndex >= 0) return;
     }
 
     final InfiniteRecyclerView<TTLOption> infiniteView = new InfiniteRecyclerView<>(context, true);

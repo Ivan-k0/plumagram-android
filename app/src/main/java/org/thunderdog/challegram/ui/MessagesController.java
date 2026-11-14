@@ -12159,8 +12159,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else {
       c.drawRect(0, top, w, wrap.getHeight(), Paints.fillingPaint(filling));
     }
-    // variant А (flat): the panel with a hairline on top instead of the shadow; variant Б adds the well
-    c.drawRect(0, top, w, top + Math.max(1, Screen.dp(.5f)), Paints.fillingPaint(Theme.separatorColor()));
+    // variant А (flat): the panel with no line on top (user 2026-11-15 «поле выделяется серой полосой вверху — не нужно»);
+    // variant Б adds the well
     // the field's bottom edge, live — made with the first drawing, not the first letter (user 2026-11-13 «полоски нема»)
     if (tgx101TypingLine == null && inputView != null && bottomWrap != null) tgx101TypingLine = new Tgx101TypingLine(bottomWrap, inputView, tdlib);
     if (tgx101TypingLine != null && Settings.instance().tgx101TypingLine()) tgx101TypingLine.draw(c, h, w);

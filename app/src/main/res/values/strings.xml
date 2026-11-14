@@ -7910,4 +7910,9 @@
   <string name="Tgx101PlayerMirror">Around the video</string>
   <string name="Tgx101PlayerAmbientGlow">Glow</string>
   <string name="Tgx101PlayerAmbientMirror">Mirror</string>
+  <string name="Tgx101ChoiceMore">Other time…</string>
+  <string name="Tgx101ChatAutoDelete">Auto-delete messages</string>
+  <string name="Tgx101ChatAutoDeleteHint">New messages in this chat will disappear for everyone after the chosen time. Old ones stay.</string>
+  <string name="Tgx101ChoiceSave">Save</string>
+  <string name="Tgx101TimerX">Timer: %1$s</string>
 </resources>

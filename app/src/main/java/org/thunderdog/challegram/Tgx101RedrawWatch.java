@@ -31,6 +31,9 @@ public final class Tgx101RedrawWatch {
   private static final Map<String, int[]> counts = new HashMap<>();
   private static long windowStart;
   private static int frames;
+  private static int minuteFrames;
+  private static long lastCpuTicks = -1, lastCpuAt;
+  private static boolean loadLoopOn;
 
   public static void install (View decor) {
     if (!BuildConfig.TGX101_DIAG || decor == null) return;
@@ -40,6 +43,7 @@ public final class Tgx101RedrawWatch {
       public void onDraw () {
         try {
           frames++;
+          minuteFrames++;
           collect(decor, 0);
           long now = SystemClock.uptimeMillis();
           if (windowStart == 0) windowStart = now;
@@ -52,6 +56,50 @@ public final class Tgx101RedrawWatch {
         } catch (Throwable ignored) { }
       }
     });
+    startLoadLoop(decor);
+  }
+
+  // (4PDA 2026-11-15 «с последними версиями существенно потяжелело… пропала лёгкость»): once a minute while the app is
+  // on the screen — how much of one CPU core the app took, how many frames it drew, memory and the screen on top.
+  // The minutes when the phone felt heavy can then be compared with the light ones
+  private static void startLoadLoop (View decor) {
+    if (loadLoopOn) return;
+    loadLoopOn = true;
+    decor.postDelayed(new Runnable() {
+      @Override
+      public void run () {
+        try {
+          long ticks = cpuTicks();
+          long now = SystemClock.uptimeMillis();
+          if (lastCpuTicks >= 0 && ticks >= 0 && decor.hasWindowFocus()) {
+            long ms = Math.max(1, now - lastCpuAt);
+            long cpuPercent = (ticks - lastCpuTicks) * 10 * 100 / ms; // ticks are 10 ms
+            Object top = org.thunderdog.challegram.tool.UI.getCurrentStackItem(decor.getContext());
+            Runtime r = Runtime.getRuntime();
+            long mb = 1024 * 1024;
+            Tgx101Diag.mark("load: last " + (ms / 1000) + " s — CPU " + cpuPercent + " % of a core, " + minuteFrames + " frames (" + (minuteFrames * 1000L / ms) + "/s), heap " +
+              (r.totalMemory() - r.freeMemory()) / mb + "/" + r.maxMemory() / mb + " MB, native " + android.os.Debug.getNativeHeapAllocatedSize() / mb + " MB, threads " + Thread.activeCount() +
+              ", on " + (top != null ? top.getClass().getSimpleName() : "?"));
+          }
+          lastCpuTicks = ticks;
+          lastCpuAt = now;
+          minuteFrames = 0;
+        } catch (Throwable ignored) { }
+        decor.postDelayed(this, 60_000);
+      }
+    }, 60_000);
+  }
+
+  /** utime + stime of this process, in clock ticks */
+  private static long cpuTicks () {
+    try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader("/proc/self/stat"))) {
+      String line = reader.readLine();
+      if (line == null) return -1;
+      String[] f = line.substring(line.lastIndexOf(')') + 2).split(" ");
+      return Long.parseLong(f[11]) + Long.parseLong(f[12]);
+    } catch (Throwable t) {
+      return -1;
+    }
   }
 
   /** the deepest dirty views: a dirty parent with a dirty child counts only the child */
