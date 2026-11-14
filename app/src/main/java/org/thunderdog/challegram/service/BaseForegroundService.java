@@ -59,6 +59,7 @@ public abstract class BaseForegroundService extends Service {
   private static final String ACTION_STOP  = "stop";
 
   private final List<TaskInfo> tasks = new ArrayList<>();
+  private int lastStartId;
   private CharSequence activeTitle;
   private CharSequence activeText;
   private String activeChannelId;
@@ -67,6 +68,7 @@ public abstract class BaseForegroundService extends Service {
   @Override
   public int onStartCommand (Intent intent, int flags, int startId) {
     synchronized (BaseForegroundService.class) {
+      lastStartId = startId;
       String callbackId = intent != null ? intent.getStringExtra(EXTRA_CALLBACK_ID) : null;
       String action = intent != null ? intent.getAction() : null;
       TDLib.Tag.notifications("%s: handling %s, startId=%d", getClass().getSimpleName(), action, startId);
@@ -137,6 +139,7 @@ public abstract class BaseForegroundService extends Service {
     } catch (Throwable t) {
       TDLib.Tag.notifications(pushId, accountId, "failed %s.handleStart() Title: %s  ChannelId: %s  Text: %s Error:\n%s", getClass().getSimpleName(), title, channelId, text, Log.toString(t));
       tasks.remove(info);
+      tgx101FallbackForeground();
       if (tasks.isEmpty()) {
         TDLib.Tag.notifications(pushId, accountId, "%s: Ending foreground service because of failure.", getClass().getSimpleName());
         finishService();
@@ -147,7 +150,10 @@ public abstract class BaseForegroundService extends Service {
 
   private void finishService () {
     stopForeground(true);
-    stopSelf();
+    // TGx101 (crash 2026-11-13, Moto Z2 Play, Android 9: «startForegroundService() did not then call startForeground()»
+    // in FetchNotificationService): stopSelf() also dropped a start already sent and not yet handled — Android 8–9 then
+    // kill the app. Only the requests handled so far are ended; a newer one keeps the service until it is handled
+    stopSelfResult(lastStartId);
 
     activeTitle = null;
     activeText = null;
@@ -197,6 +203,7 @@ public abstract class BaseForegroundService extends Service {
       success = true;
     } catch (Throwable t) {
       TDLib.Tag.notifications(pushId, accountId, "%s: Failed to update foreground notification:\n%s", getClass().getSimpleName(), Log.toString(t));
+      tgx101FallbackForeground();
     }
 
     if (tasks.isEmpty()) {
@@ -223,6 +230,18 @@ public abstract class BaseForegroundService extends Service {
       b.setContentText(text);
     }
     U.startForeground(this, TdlibNotificationManager.ID_FOREGROUND_PENDING_TASK, b.build());
+  }
+
+  /** each start sent by startForegroundService must reach startForeground, even when the task's own notification fails */
+  private void tgx101FallbackForeground () {
+    try {
+      NotificationCompat.Builder b = new NotificationCompat.Builder(this, U.getOtherNotificationChannel())
+        .setSmallIcon(R.drawable.baseline_sync_white_24)
+        .setContentTitle(Lang.getString(R.string.RetrievingMessages));
+      U.startForeground(this, TdlibNotificationManager.ID_FOREGROUND_PENDING_TASK, b.build());
+    } catch (Throwable t) {
+      TDLib.Tag.notifications("%s: fallback foreground notification failed:\n%s", getClass().getSimpleName(), Log.toString(t));
+    }
   }
 
   @Nullable
