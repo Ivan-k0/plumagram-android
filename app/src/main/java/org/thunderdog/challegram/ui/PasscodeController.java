@@ -681,6 +681,11 @@ public class PasscodeController extends ViewController<PasscodeController.Args> 
   }
 
   @Override
+  public int tgx101SignsLength () {
+    return specificChat == null ? Passcode.instance().tgx101SignsLength() : 0;
+  }
+
+  @Override
   public boolean tgx101Symbols () {
     if (specificChat != null || mode != Passcode.MODE_PATTERN) return false;
     return inSetupMode() ? Passcode.tgx101PendingSymbols : Passcode.instance().tgx101Symbols();

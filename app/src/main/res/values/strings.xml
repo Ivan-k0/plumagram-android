@@ -7913,9 +7913,9 @@
   <string name="Tgx101PasscodePin6">6-digit PIN</string>
   <string name="Tgx101PasscodeSigns">Signs on the dots</string>
   <string name="Tgx101PasscodeShuffle">Shuffle the PIN digits</string>
-  <string name="Tgx101PasscodeSignsChoose">Join 4 or more signs — the order is your key</string>
-  <string name="Tgx101PasscodeSignsConfirm">The signs moved — join the same ones again</string>
-  <string name="Tgx101PasscodeSignsUnlock">Join your signs</string>
+  <string name="Tgx101PasscodeSignsChoose">Tap 4+ signs in order, then wait</string>
+  <string name="Tgx101PasscodeSignsConfirm">The signs moved — tap the same ones again</string>
+  <string name="Tgx101PasscodeSignsUnlock">Tap your signs</string>
   <string name="Tgx101ChoiceMore">Other time…</string>
   <string name="Tgx101ChatAutoDelete">Auto-delete messages</string>
   <string name="Tgx101ChatAutoDeleteHint">New messages in this chat will disappear for everyone after the chosen time. Old ones stay.</string>

@@ -100,6 +100,13 @@ public class Passcode implements UI.StateListener {
     Settings.instance().putBoolean(KEY_TGX101_SHUFFLE, shuffle);
   }
 
+  private static final String KEY_TGX101_SIGNS_LENGTH = "pc_tgx101_signs_len";
+
+  /** how many signs the key has: the lock opens as soon as that many are tapped */
+  public int tgx101SignsLength () {
+    return Settings.instance().getInt(KEY_TGX101_SIGNS_LENGTH, 0);
+  }
+
   public boolean tgx101Symbols () {
     return mode == MODE_PATTERN && Settings.instance().getBoolean(KEY_TGX101_SYMBOLS, false);
   }
@@ -438,6 +445,7 @@ public class Passcode implements UI.StateListener {
 
   public void setPattern (String pattern) {
     Settings.instance().putBoolean(KEY_TGX101_SYMBOLS, tgx101PendingSymbols);
+    Settings.instance().putInt(KEY_TGX101_SIGNS_LENGTH, pattern != null ? pattern.length() : 0);
     setPasscodeHash(MODE_PATTERN, pattern, 0);
   }
 

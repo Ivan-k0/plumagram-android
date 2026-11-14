@@ -1393,9 +1393,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PasscodePin6, "ПИН из 6 цифр");
     RU.put(R.string.Tgx101PasscodeSigns, "Знаки на точках");
     RU.put(R.string.Tgx101PasscodeShuffle, "Перемешивать цифры ПИН-кода");
-    RU.put(R.string.Tgx101PasscodeSignsChoose, "Соедините 4 знака или больше — ключ в их порядке");
-    RU.put(R.string.Tgx101PasscodeSignsConfirm, "Знаки переехали — соедините те же ещё раз");
-    RU.put(R.string.Tgx101PasscodeSignsUnlock, "Соедините свои знаки");
+    RU.put(R.string.Tgx101PasscodeSignsChoose, "Нажмите от 4 знаков по порядку и подождите");
+    RU.put(R.string.Tgx101PasscodeSignsConfirm, "Знаки переехали — нажмите те же ещё раз");
+    RU.put(R.string.Tgx101PasscodeSignsUnlock, "Нажмите свои знаки");
     RU.put(R.string.Tgx101ChatAutoDelete, "Автоудаление сообщений");
     RU.put(R.string.Tgx101ChatAutoDeleteHint, "Новые сообщения в этом чате исчезнут у всех через выбранное время. Старые не трогаются.");
     RU.put(R.string.Tgx101ChoiceSave, "Сохранить");

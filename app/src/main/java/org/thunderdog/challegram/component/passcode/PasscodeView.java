@@ -507,6 +507,9 @@ public class PasscodeView extends View {
   }
 
   private boolean onPatternTouch (MotionEvent e) {
+    if (tgx101Symbols()) {
+      return tgx101OnSignTouch(e);
+    }
     if (patternAnimating) {
       return false;
     }
@@ -537,9 +540,8 @@ public class PasscodeView extends View {
       case MotionEvent.ACTION_UP: {
         if (isIntercepted) {
           if (callback != null) {
-            callback.handlePattern(tgx101Symbols() ? tgx101ToSigns(pattern) : new PasscodeBuilder(pattern));
+            callback.handlePattern(new PasscodeBuilder(pattern));
           }
-          if (tgx101Symbols()) tgx101Shuffle(); // the next try: the signs in new places
           clearPattern(true);
           invalidate();
           return true;
@@ -553,6 +555,15 @@ public class PasscodeView extends View {
 
   private void drawPattern (Canvas c) {
     boolean signs = tgx101Symbols();
+    if (signs) {
+      tgx101DrawProgress(c);
+      long since = android.os.SystemClock.uptimeMillis() - tgx101FlashAt;
+      if (tgx101FlashDot != -1 && since < 220) {
+        PatternDot d = patternDots[tgx101FlashDot];
+        c.drawCircle(d.getX(), d.getY(), Screen.dp(30f), Paints.fillingPaint(ColorUtils.alphaColor(.22f * (1f - since / 220f), Theme.getColor(ColorId.passcodeIcon))));
+        postInvalidateOnAnimation();
+      }
+    }
     for (int i = 0; i < patternDots.length; i++) {
       PatternDot dot = patternDots[i];
       if (signs) {
@@ -575,6 +586,81 @@ public class PasscodeView extends View {
   // on each try; the key is the order of the signs, so the line drawn looks different every time
 
   private int[] tgx101Signs; // tgx101Signs[dot] = the sign standing on that dot
+
+  // (user 2026-11-15 «палец когда едет задевает другие»): the signs are tapped one by one, not drawn — a finger sliding
+  // between two signs crossed others, and with the signs moving each time the key came out different. Unlock goes
+  // as soon as the key's length is tapped; setting it up, a pause of a second after 4 or more taps finishes it
+
+  private int tgx101DownDot = -1;
+  private long tgx101FlashAt;
+  private int tgx101FlashDot = -1;
+  private final Runnable tgx101Finish = this::tgx101Submit;
+
+  private int tgx101DotAt (float x, float y) {
+    float r = Screen.dp(30f);
+    for (int i = 0; i < patternDots.length; i++) {
+      PatternDot d = patternDots[i];
+      if (Math.abs(x - d.getX()) <= r && Math.abs(y - d.getY()) <= r) return i;
+    }
+    return -1;
+  }
+
+  private boolean tgx101OnSignTouch (MotionEvent e) {
+    if (pattern == null || patternDots == null) return false;
+    switch (e.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN:
+        tgx101DownDot = tgx101DotAt(e.getX(), e.getY());
+        return tgx101DownDot != -1;
+      case MotionEvent.ACTION_UP: {
+        int dot = tgx101DotAt(e.getX(), e.getY());
+        if (dot != -1 && dot == tgx101DownDot) tgx101Tap(dot);
+        tgx101DownDot = -1;
+        return true;
+      }
+      case MotionEvent.ACTION_CANCEL:
+        tgx101DownDot = -1;
+        return true;
+    }
+    return true;
+  }
+
+  private void tgx101Tap (int dot) {
+    String typed = pattern.toString();
+    if (pattern.getSize() >= PasscodeBuilder.PATTERN_MAX_SIZE || typed.indexOf((char) ('0' + dot)) >= 0) return; // each sign once
+    pattern.append(dot);
+    UI.hapticVibrate(this, false);
+    tgx101FlashDot = callback.isPasscodeVisible() ? dot : -1; // with «invisible», no sign lights up under the finger
+    tgx101FlashAt = android.os.SystemClock.uptimeMillis();
+    invalidate();
+    removeCallbacks(tgx101Finish);
+    int need = callback.inSetupMode() ? 0 : callback.tgx101SignsLength();
+    if (need > 0 && pattern.getSize() >= need) {
+      tgx101Submit();
+    } else if (need <= 0 && pattern.getSize() >= Passcode.MIN_PATTERN_SIZE) {
+      postDelayed(tgx101Finish, 1200);
+    }
+  }
+
+  private void tgx101Submit () {
+    removeCallbacks(tgx101Finish);
+    if (pattern == null || pattern.getSize() == 0) return;
+    PasscodeBuilder signs = tgx101ToSigns(pattern);
+    pattern.clear();
+    tgx101FlashDot = -1;
+    tgx101Shuffle(); // the next try: the signs in new places
+    if (callback != null) callback.handlePattern(signs);
+  }
+
+  private void tgx101DrawProgress (Canvas c) {
+    if (pattern == null || patternDots == null) return;
+    int n = pattern.getSize();
+    if (n == 0) return;
+    float r = Screen.dp(4.5f), gap = Screen.dp(14f);
+    float cy = patternDots[0].getY() - Screen.dp(62f);
+    float cx = (patternDots[0].getX() + patternDots[2].getX()) / 2f - (n - 1) * gap / 2f;
+    android.graphics.Paint p = Paints.fillingPaint(Theme.getColor(ColorId.passcodeIcon));
+    for (int i = 0; i < n; i++) c.drawCircle(cx + i * gap, cy, r, p);
+  }
 
   private boolean tgx101Symbols () {
     return callback != null && callback.tgx101Symbols();
@@ -677,6 +763,7 @@ public class PasscodeView extends View {
   public interface Callback {
     boolean isPasscodeVisible ();
     default boolean tgx101Symbols () { return false; }
+    default int tgx101SignsLength () { return 0; }
     void updateConfirmMode ();
     void handlePattern (PasscodeBuilder pattern);
     void handlePincode (PasscodeBuilder pincode);
