@@ -1121,9 +1121,34 @@ public class MessagesController extends ViewController<MessagesController.Argume
         return super.onInterceptTouchEvent(ev);
       }
 
+      // TGx101 (user 2026-11-14): holding the field's line (its bottom edge and the room under it) taps the Morse word out
+      private final Runnable tgx101MorseHold = () -> {
+        if (Settings.instance().tgx101MorseLine()) Tgx101TypingLine.Morse.vibrate(getContext());
+      };
+      private float tgx101HoldX, tgx101HoldY;
+
       @Override
       public boolean onTouchEvent (MotionEvent ev) {
         if (tgx101InputPlayer != null && tgx101InputPlayer.onFieldTouch(ev)) return true;
+        if (Settings.instance().tgx101MorseLine() && !floatingLook) {
+          switch (ev.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+              if (ev.getY() >= getHeight() - getPaddingBottom() - Screen.dp(10f)) {
+                tgx101HoldX = ev.getX();
+                tgx101HoldY = ev.getY();
+                postDelayed(tgx101MorseHold, android.view.ViewConfiguration.getLongPressTimeout());
+                return true;
+              }
+              break;
+            case MotionEvent.ACTION_MOVE:
+              if (Math.abs(ev.getX() - tgx101HoldX) > Screen.getTouchSlop() || Math.abs(ev.getY() - tgx101HoldY) > Screen.getTouchSlop()) removeCallbacks(tgx101MorseHold);
+              return true;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+              removeCallbacks(tgx101MorseHold);
+              return true;
+          }
+        }
         return super.onTouchEvent(ev);
       }
 
@@ -12137,7 +12162,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // variant А (flat): the panel with a hairline on top instead of the shadow; variant Б adds the well
     c.drawRect(0, top, w, top + Math.max(1, Screen.dp(.5f)), Paints.fillingPaint(Theme.separatorColor()));
     // the field's bottom edge, live — made with the first drawing, not the first letter (user 2026-11-13 «полоски нема»)
-    if (tgx101TypingLine == null && inputView != null && bottomWrap != null) tgx101TypingLine = new Tgx101TypingLine(bottomWrap, inputView);
+    if (tgx101TypingLine == null && inputView != null && bottomWrap != null) tgx101TypingLine = new Tgx101TypingLine(bottomWrap, inputView, tdlib);
     if (tgx101TypingLine != null && Settings.instance().tgx101TypingLine()) tgx101TypingLine.draw(c, h, w);
     if (!Settings.instance().tgx101InputWell()) return;
     int wash = Theme.isDark() ? 0x0dffffff : 0x0f1e3a5a;
@@ -13162,7 +13187,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public void onInputTextChange (CharSequence charSequence, boolean byUserAction) {
     tgx101UpdateCalc(charSequence);
     if (tgx101TypingLine == null && !floatingLook && bottomWrap != null && inputView != null) {
-      tgx101TypingLine = new Tgx101TypingLine(bottomWrap, inputView);
+      tgx101TypingLine = new Tgx101TypingLine(bottomWrap, inputView, tdlib);
     }
     if (tgx101TypingLine != null) {
       int len = charSequence != null ? charSequence.length() : 0;

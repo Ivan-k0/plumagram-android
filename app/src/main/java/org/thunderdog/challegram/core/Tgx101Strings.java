@@ -1330,6 +1330,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101OwnAiModelFree, "бесплатная");
     RU.put(R.string.Tgx101OwnAiModelCurrent, "выбрана");
     RU.put(R.string.Tgx101TypingLine, "Полоска и пульс при наборе");
+    RU.put(R.string.Tgx101MorseLine, "Слово в линии");
     RU.put(R.string.Tgx101TypingLineDemo, "Уже еду, буду минут через десять!");
     RU.put(R.string.Tgx101InPlayerSave, "В Избранное");
     RU.put(R.string.Tgx101InPlayerUnsave, "Убрать из Избранного");

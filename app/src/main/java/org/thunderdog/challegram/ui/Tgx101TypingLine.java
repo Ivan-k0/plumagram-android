@@ -58,9 +58,12 @@ public final class Tgx101TypingLine {
   private static int warm () { return Theme.isDark() ? 0xfff08a5a : 0xffd84315; } // a deleted letter, near the limit
   private static int limit () { return Theme.isDark() ? Theme.getColor(ColorId.textNegative) : 0xffc62828; }
 
-  Tgx101TypingLine (View host, TextView field) {
+  private final org.thunderdog.challegram.telegram.Tdlib tdlib;
+
+  Tgx101TypingLine (View host, TextView field, org.thunderdog.challegram.telegram.Tdlib tdlib) {
     this.host = host;
     this.field = field;
+    this.tdlib = tdlib;
     // the field taking or losing the focus changes what the line shows
     host.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus, newFocus) -> {
       if (oldFocus == field || newFocus == field) host.invalidate();
@@ -100,7 +103,11 @@ public final class Tgx101TypingLine {
     float thin = Math.max(1, Screen.dp(.5f));
     paint.setShader(null);
     paint.setColor(Theme.separatorColor());
-    Session.drawLine(c, paint, 0, w, y, thin);
+    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101MorseLine()) {
+      Morse.draw(c, paint, tdlib, host, 0, w, y, thin);
+    } else {
+      Session.drawLine(c, paint, 0, w, y, thin);
+    }
     // (log 2026-11-14 19:44: an idle chat drew 1828 frames in 15 s, 70 % of a core) every drawing posted one more delayed
     // invalidate, each of them posted another when it fired — the chains piled up into a redraw without end. One pending
     // wake-up only, replaced, never added to
@@ -192,6 +199,206 @@ public final class Tgx101TypingLine {
    * app for more than 5 minutes ends the sitting: the next visit starts whole again. Only the time on the phone, kept in
    * memory, nothing stored.
    */
+  /**
+   * TGx101 (user 2026-11-14, mockup «Морзе PLUMAGRAM в цветах собеседников»; a separate switch, off by default): the
+   * line's middle spells PLUMAGRAM in Morse, letter by letter as the day goes — time in the app (10 min a letter) and
+   * one's own sent messages (about 4.5 a letter) add up. A letter brought by messages takes the name colour of the chat
+   * written to most while it came; a letter brought by time stays grey. The word whole: a light runs along the line once
+   * and it stays the colour of the day's most written-to chat till midnight. The sides are plain grey. Holding the line
+   * taps the word out by vibration only. Everything is counted on the phone.
+   */
+  public static final class Morse {
+    private static final String[] CODE = {".--.", ".-..", "..-", "--", ".-", "--.", ".-.", ".-", "--"};
+    private static final String KEY = "tgx101_morse_day";
+    private static int day = -1, messages, letters;
+    private static final long[] letterChat = new long[CODE.length]; // 0 — brought by time
+    private static final java.util.HashMap<Long, Integer> sinceLetter = new java.util.HashMap<>(), today = new java.util.HashMap<>();
+    private static boolean swept;
+    private static long sweepStart;
+
+    private static void load () {
+      int t = Session.todayKey();
+      if (day == t) return;
+      day = t;
+      messages = 0;
+      letters = 0;
+      swept = false;
+      java.util.Arrays.fill(letterChat, 0);
+      sinceLetter.clear();
+      today.clear();
+      String saved = org.thunderdog.challegram.unsorted.Settings.instance().pmc().getString(KEY, null);
+      if (saved == null) return;
+      try {
+        String[] parts = saved.split("\\|", -1);
+        if (Integer.parseInt(parts[0]) != t) return;
+        messages = Integer.parseInt(parts[1]);
+        swept = "1".equals(parts[2]);
+        String[] ls = parts[3].isEmpty() ? new String[0] : parts[3].split(",");
+        letters = Math.min(CODE.length, ls.length);
+        for (int i = 0; i < letters; i++) letterChat[i] = Long.parseLong(ls[i]);
+        if (parts.length > 4 && !parts[4].isEmpty()) {
+          for (String kv : parts[4].split(",")) {
+            String[] a = kv.split(":");
+            today.put(Long.parseLong(a[0]), Integer.parseInt(a[1]));
+          }
+        }
+      } catch (Throwable ignored) { }
+    }
+
+    private static void save () {
+      StringBuilder b = new StringBuilder().append(day).append('|').append(messages).append('|').append(swept ? 1 : 0).append('|');
+      for (int i = 0; i < letters; i++) {
+        if (i > 0) b.append(',');
+        b.append(letterChat[i]);
+      }
+      b.append('|');
+      boolean first = true;
+      for (java.util.Map.Entry<Long, Integer> e : today.entrySet()) {
+        if (!first) b.append(',');
+        first = false;
+        b.append(e.getKey()).append(':').append(e.getValue());
+      }
+      org.thunderdog.challegram.unsorted.Settings.instance().pmc().putString(KEY, b.toString());
+    }
+
+    /** one's own message has gone (from any account) */
+    public static synchronized void onSent (long chatId) {
+      if (!org.thunderdog.challegram.unsorted.Settings.instance().tgx101MorseLine()) return;
+      load();
+      messages++;
+      Integer n = sinceLetter.get(chatId);
+      sinceLetter.put(chatId, n == null ? 1 : n + 1);
+      Integer d = today.get(chatId);
+      today.put(chatId, d == null ? 1 : d + 1);
+      advance();
+      save();
+    }
+
+    /** letters the day has earned so far: 10 minutes or ~4.5 messages each */
+    private static void advance () {
+      float units = Session.todayMs() / 600_000f + messages / 4.5f;
+      int earned = Math.min(CODE.length, (int) units);
+      boolean changed = false;
+      while (letters < earned) {
+        long best = 0;
+        int bestN = 0;
+        for (java.util.Map.Entry<Long, Integer> e : sinceLetter.entrySet()) {
+          if (e.getValue() > bestN) {
+            bestN = e.getValue();
+            best = e.getKey();
+          }
+        }
+        letterChat[letters++] = best;
+        sinceLetter.clear();
+        changed = true;
+      }
+      if (changed) save();
+    }
+
+    private static long topChat () {
+      long best = 0;
+      int bestN = 0;
+      for (java.util.Map.Entry<Long, Integer> e : today.entrySet()) {
+        if (e.getValue() > bestN) {
+          bestN = e.getValue();
+          best = e.getKey();
+        }
+      }
+      return best;
+    }
+
+    private static int chatColor (org.thunderdog.challegram.telegram.Tdlib tdlib, long chatId) {
+      if (tdlib == null || chatId == 0) return 0;
+      try {
+        return tdlib.chatAccentColor(chatId).getNameColor();
+      } catch (Throwable t) {
+        return 0;
+      }
+    }
+
+    static synchronized void draw (Canvas c, Paint paint, org.thunderdog.challegram.telegram.Tdlib tdlib, View host, float left, float right, float y, float thin) {
+      load();
+      advance();
+      float w = right - left;
+      float units = 0;
+      for (int i = 0; i < CODE.length; i++) {
+        for (int j = 0; j < CODE[i].length(); j++) units += (CODE[i].charAt(j) == '.' ? 1f : 3f) + (j < CODE[i].length() - 1 ? 1f : 0f);
+        if (i < CODE.length - 1) units += 3f;
+      }
+      // the word in the middle 60 %, the plain grey line at the sides
+      float span = w * .6f, unit = span / units, from = left + (w - span) / 2f;
+      int rest = paint.getColor();
+      c.drawRect(left, y, from, y + thin, paint);
+      c.drawRect(from + span, y, right, y + thin, paint);
+      boolean done = letters == CODE.length;
+      int topColor = done ? chatColor(tdlib, topChat()) : 0;
+      if (done && !swept) {
+        swept = true;
+        sweepStart = SystemClock.uptimeMillis();
+        save();
+      }
+      float x = from;
+      float thick = Math.max(thin, Screen.dp(1.5f));
+      for (int i = 0; i < CODE.length; i++) {
+        boolean shown = i < letters;
+        int col = !shown ? rest : done && topColor != 0 ? topColor : letterChat[i] != 0 ? chatColor(tdlib, letterChat[i]) : 0;
+        if (shown && col == 0) col = rest; // a letter brought by time
+        float letterStart = x;
+        for (int j = 0; j < CODE[i].length(); j++) {
+          float len = (CODE[i].charAt(j) == '.' ? 1f : 3f) * unit;
+          if (shown) {
+            paint.setColor(col);
+            boolean colored = col != rest;
+            float top = colored ? y + thin / 2f - thick / 2f : y, bottom = colored ? y + thin / 2f + thick / 2f : y + thin;
+            c.drawRect(x, top, x + len, bottom, paint);
+          }
+          x += len;
+          if (j < CODE[i].length() - 1) x += unit;
+        }
+        if (!shown) { // not come yet: the line stays whole there
+          paint.setColor(rest);
+          c.drawRect(letterStart, y, x + (i < CODE.length - 1 ? 3f * unit : 0f), y + thin, paint);
+        }
+        if (i < CODE.length - 1) x += 3f * unit;
+      }
+      paint.setColor(rest);
+      // the word just completed: a light runs along it once
+      long since = SystemClock.uptimeMillis() - sweepStart;
+      if (sweepStart != 0 && since < 1400) {
+        float k = since / 1400f;
+        float half = Screen.dp(30f);
+        float cx = from - half + (span + half * 2f) * k;
+        int glow = topColor != 0 ? topColor : 0xffffffff;
+        paint.setShader(new LinearGradient(cx - half, 0, cx + half, 0, new int[] {ColorUtils.alphaColor(0f, glow), ColorUtils.alphaColor(1f - k, 0xffffffff), ColorUtils.alphaColor(0f, glow)}, null, Shader.TileMode.CLAMP));
+        c.drawRect(cx - half, y - Screen.dp(1f), cx + half, y + thin + Screen.dp(1f), paint);
+        paint.setShader(null);
+        host.postInvalidateOnAnimation();
+      }
+    }
+
+    /** the word tapped out by vibration only: dot 70 ms, dash 210 ms; 70 ms between signs, 210 between letters */
+    static void vibrate (android.content.Context context) {
+      java.util.ArrayList<Long> pattern = new java.util.ArrayList<>();
+      pattern.add(0L);
+      for (int i = 0; i < CODE.length; i++) {
+        for (int j = 0; j < CODE[i].length(); j++) {
+          pattern.add(CODE[i].charAt(j) == '.' ? 70L : 210L);
+          pattern.add(j < CODE[i].length() - 1 ? 70L : 210L);
+        }
+      }
+      pattern.remove(pattern.size() - 1);
+      long[] p = new long[pattern.size()];
+      for (int i = 0; i < p.length; i++) p[i] = pattern.get(i);
+      try {
+        android.os.Vibrator v = (android.os.Vibrator) context.getSystemService(android.content.Context.VIBRATOR_SERVICE);
+        if (v == null) return;
+        if (android.os.Build.VERSION.SDK_INT >= 26) v.vibrate(android.os.VibrationEffect.createWaveform(p, -1));
+        else v.vibrate(p, -1);
+      } catch (Throwable ignored) { }
+    }
+  }
+
+
   public static final class Session {
     private static long start, pausedAt;
     // (user 2026-11-13 «10 минут мало: первая через 3 минуты, потом 5-7-10-12-14-18-21-25-30-45-60»)
@@ -208,6 +415,10 @@ public final class Tgx101TypingLine {
     private static final String KEY_DAY = "tgx101_line_day", KEY_DAY_MS = "tgx101_line_day_ms";
     private static long dayMs = -1, resumedAt;
     private static int day;
+
+    static int todayKey () {
+      return today();
+    }
 
     private static int today () {
       java.util.Calendar cal = java.util.Calendar.getInstance();
@@ -258,6 +469,13 @@ public final class Tgx101TypingLine {
         return dayMs + (resumedAt != 0 ? SystemClock.elapsedRealtime() - resumedAt : 0);
       }
       return SystemClock.elapsedRealtime() - start;
+    }
+
+    /** time in the app today, ms */
+    static long todayMs () {
+      if (start == 0) resume();
+      loadDay();
+      return dayMs + (resumedAt != 0 ? SystemClock.elapsedRealtime() - resumedAt : 0);
     }
 
     private static long gapAt (int i) {

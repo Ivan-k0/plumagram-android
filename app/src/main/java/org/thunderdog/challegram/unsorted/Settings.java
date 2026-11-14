@@ -4736,6 +4736,15 @@ public class Settings {
     pmc.putInt(KEY_TGX101_PLAYER_SEEK_STEP, seconds);
   }
 
+  /** TGx101 (user 2026-11-14): PLUMAGRAM in Morse on the field's line — its own switch, off by default */
+  public boolean tgx101MorseLine () {
+    return pmc.getBoolean("tgx101_morse_line", false);
+  }
+
+  public void setTgx101MorseLine (boolean on) {
+    pmc.putBoolean("tgx101_morse_line", on);
+  }
+
   /** TGx101 «Полоска и пульс» (user 2026-11-13): the live line under the classic field — MagiX → Input field */
   public boolean tgx101TypingLine () {
     return pmc.getBoolean("tgx101_typing_line", true);
