@@ -71,10 +71,13 @@ public final class Tgx101RedrawWatch {
         try {
           long ticks = cpuTicks();
           long now = SystemClock.uptimeMillis();
-          if (lastCpuTicks >= 0 && ticks >= 0 && org.thunderdog.challegram.tool.UI.getContext(decor.getContext()).getActivityState() == org.thunderdog.challegram.tool.UI.State.RESUMED) { // (window focus was off with a sheet up — no line came)
+          if (lastCpuTicks >= 0 && ticks >= 0 && org.thunderdog.challegram.tool.UI.getUiState() == org.thunderdog.challegram.tool.UI.State.RESUMED) { // (the decor's context is not the activity on Android 10+: a lookup through it threw every minute, no line came)
             long ms = Math.max(1, now - lastCpuAt);
             long cpuPercent = (ticks - lastCpuTicks) * 10 * 100 / ms; // ticks are 10 ms
-            Object top = org.thunderdog.challegram.tool.UI.getCurrentStackItem(decor.getContext());
+            Object top = null;
+            try {
+              top = org.thunderdog.challegram.tool.UI.getCurrentStackItem();
+            } catch (Throwable ignored) { }
             Runtime r = Runtime.getRuntime();
             long mb = 1024 * 1024;
             Tgx101Diag.mark("load: last " + (ms / 1000) + " s — CPU " + cpuPercent + " % of a core, " + minuteFrames + " frames (" + (minuteFrames * 1000L / ms) + "/s), heap " +
@@ -84,7 +87,9 @@ public final class Tgx101RedrawWatch {
           lastCpuTicks = ticks;
           lastCpuAt = now;
           minuteFrames = 0;
-        } catch (Throwable ignored) { }
+        } catch (Throwable t) {
+          Tgx101Diag.mark("load: failed " + t.getClass().getSimpleName() + " " + t.getMessage());
+        }
         decor.postDelayed(this, 60_000);
       }
     }, 60_000);
