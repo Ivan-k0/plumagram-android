@@ -61,6 +61,10 @@ public final class Tgx101TypingLine {
   Tgx101TypingLine (View host, TextView field) {
     this.host = host;
     this.field = field;
+    // the field taking or losing the focus changes what the line shows
+    host.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus, newFocus) -> {
+      if (oldFocus == field || newFocus == field) host.invalidate();
+    });
   }
 
   /** the text changed by the person: longer — a key, shorter — a deletion */
@@ -110,7 +114,11 @@ public final class Tgx101TypingLine {
 
     // (user 2026-11-13 «длина с пульсом»): the line fills from the left with the message's length — up to the 4096
     // letters a message holds, square-rooted so the first words show at once; orange near the limit, red at it
-    float fill = (float) Math.sqrt(Math.min(1f, length / 4096f));
+    // (user 2026-11-14 «в простое полоса должна быть только рваной»): the length and the pulse only while the field is
+    // being typed in; at rest just the torn thin line
+    boolean active = field.isFocused();
+    if (!active) energy = kick = 0f;
+    float fill = active ? (float) Math.sqrt(Math.min(1f, length / 4096f)) : 0f;
     boolean easing = Math.abs(fill - shownFill) > .002f;
     shownFill = easing ? shownFill + (fill - shownFill) * Math.min(1f, dt / 90f) : fill;
     int fillColor = shownFill > .97f ? limit() : shownFill > .85f ? warm() : accent();
