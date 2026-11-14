@@ -1630,9 +1630,7 @@ public class MainActivity extends BaseActivity implements GlobalAccountListener,
       Runnable open = () -> {
         final TdlibContext context = new TdlibContext(this, tdlib);
         final TdlibUi.ChatOpenParameters params = new TdlibUi.ChatOpenParameters().onDone(tdlib::decrementUiReferenceCount);
-        // TGx101 (user 2026-11-14 «по уведомлению плюма всегда открывает то сообщение и спускает чат вниз, даже если включён
-        // режим "там, где был"»): with MagiX «Remember the place in a chat» on, a notification opens the chat where it was left
-        if (specificMessageId != 0 && !org.thunderdog.challegram.unsorted.Settings.instance().tgx101RememberChatPlace()) {
+        if (specificMessageId != 0) {
           org.thunderdog.challegram.component.chat.MessagesManager.tgx101SkipFlashOnce(specificMessageId); // TGx101: no flash from a notification
           params.highlightMessage(new MessageId(chatId, specificMessageId));
         }
