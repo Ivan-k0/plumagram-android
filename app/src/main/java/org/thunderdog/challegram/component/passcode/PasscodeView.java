@@ -609,9 +609,11 @@ public class PasscodeView extends View {
   private void tgx101DrawSign (Canvas c, int sign, float cx, float cy) {
     int color = Theme.getColor(ColorId.passcodeIcon);
     float r = Screen.dp(12f);
+    // the faint disc first: fillingPaint is one shared paint — taken for the disc after the sign's, it turned every
+    // filled sign faint and only the ring and the frame (their own stroke paint) stood out (user 2026-11-15)
+    c.drawCircle(cx, cy, Screen.dp(26f), Paints.fillingPaint(ColorUtils.alphaColor(.08f, color)));
     android.graphics.Paint fill = Paints.fillingPaint(color);
     android.graphics.Paint stroke = Paints.getProgressPaint(color, Screen.dp(3f));
-    c.drawCircle(cx, cy, Screen.dp(26f), Paints.fillingPaint(ColorUtils.alphaColor(.08f, color)));
     android.graphics.Path p = tgx101Path;
     p.reset();
     switch (sign) {
