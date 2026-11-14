@@ -162,6 +162,21 @@ public final class Tgx101SavedActions {
         h[0].dismiss();
         c.navigateTo(new Tgx101SavedAiSortController(c.context(), c.tdlib()));
       }));
+      // (user 2026-11-14, Storage variant А): the same without the AI, the copies saved twice, the week in numbers
+      if (!org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiSort() || !org.thunderdog.challegram.unsorted.Settings.instance().tgx101Ai()) {
+        body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_folder_24, 0, Lang.getString(R.string.Tgx101StorageRules), null, false, v -> {
+          h[0].dismiss();
+          c.navigateTo(new Tgx101SavedAiSortController(c.context(), c.tdlib()).tgx101LocalOnly(true));
+        }));
+      }
+      body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_content_copy_24, 0, Lang.getString(R.string.Tgx101StorageDuplicates), null, false, v -> {
+        h[0].dismiss();
+        UI.post(() -> Tgx101StorageTools.showDuplicates(c), 200);
+      }));
+      body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_date_range_24, 0, Lang.getString(R.string.Tgx101StorageWeek), null, false, v -> {
+        h[0].dismiss();
+        UI.post(() -> Tgx101StorageTools.showWeek(c), 200);
+      }));
       Tgx101SavedAiSortController.Undo undo = Tgx101SavedAiSortController.pending(c.tdlib());
       if (undo != null) {
         body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_undo_24, 0, Lang.getString(R.string.Tgx101SavedAiUndo, undo.count), null, false, v -> {

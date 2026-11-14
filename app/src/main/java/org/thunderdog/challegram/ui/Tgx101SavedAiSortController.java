@@ -58,6 +58,30 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
     super(context, tdlib);
   }
 
+  // (user 2026-11-14, Storage variant А): with no AI — or when it says no — the phone's own rules propose, on the same screen
+  private boolean localOnly;
+  private @Nullable CharSequence localNote;
+
+  public Tgx101SavedAiSortController tgx101LocalOnly (boolean localOnly) {
+    this.localOnly = localOnly;
+    return this;
+  }
+
+  private void local (Tgx101SavedStore store, CharSequence note) {
+    showStatus(Lang.getString(R.string.Tgx101StorageRulesWorking));
+    Tgx101StorageTools.propose(tdlib, batch, proposed -> {
+      if (isDestroyed()) return;
+      proposal.clear();
+      proposal.putAll(proposed);
+      if (proposal.isEmpty()) {
+        showStatus(Lang.getString(R.string.Tgx101StorageRulesNothing));
+        return;
+      }
+      localNote = note;
+      showProposal(store);
+    });
+  }
+
   @Override
   public int getId () {
     return R.id.controller_tgx101SavedAiSort;
@@ -65,7 +89,7 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
 
   @Override
   public CharSequence getName () {
-    return Lang.getString(R.string.Tgx101SavedAiSort);
+    return Lang.getString(localOnly ? R.string.Tgx101StorageRules : R.string.Tgx101SavedAiSort);
   }
 
   @Override
@@ -111,7 +135,7 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
       for (TdApi.Message m : messages) {
         if (batch.size() >= BATCH) break;
         if (m.content == null || store.isFiled(m.id)) continue;
-        if (!hasSense(m)) continue; // a photo with no caption, a voice not transcribed: nothing to sort by (test 2026-10-21)
+        if (!localOnly && !hasSense(m)) continue; // a photo with no caption, a voice not transcribed: nothing to sort by (test 2026-10-21)
         batch.add(m);
       }
       if (batch.isEmpty()) {
@@ -192,6 +216,10 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
   }
 
   private void ask (Tgx101SavedStore store) {
+    if (localOnly) {
+      local(store, Lang.getString(R.string.Tgx101StorageRulesHint));
+      return;
+    }
     StringBuilder text = new StringBuilder();
     List<Tgx101SavedStore.Folder> folders = store.folders();
     text.append("Папки и примеры того, что в них уже лежит:\n");
@@ -236,8 +264,8 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
           break;
         case TdApi.Error.CONSTRUCTOR: {
           String error = ((TdApi.Error) object).message;
-          org.thunderdog.challegram.Tgx101Diag.mark("ai sort: failed — " + error);
-          showStatus(error != null && error.contains("PREMIUM") ? Lang.getString(R.string.Tgx101AiPremium) : Lang.getString(R.string.Tgx101AiFailed, TD.toErrorString(object)));
+          org.thunderdog.challegram.Tgx101Diag.mark("ai sort: failed — " + error + ", the phone's rules instead");
+          local(store, Lang.getString(R.string.Tgx101StorageRulesInstead, error != null && error.contains("PREMIUM") ? Lang.getString(R.string.Tgx101AiPremium) : TD.toErrorString(object)));
           break;
         }
       }
@@ -299,9 +327,15 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
       showStatus(Lang.getString(R.string.Tgx101SavedAiNoAnswer));
       return;
     }
+    showProposal(store);
+  }
+
+  private void showProposal (Tgx101SavedStore store) {
+    Map<String, String> existing = new LinkedHashMap<>();
+    for (Tgx101SavedStore.Folder f : store.folders()) existing.put(f.name.trim().toLowerCase(Locale.ROOT), f.name);
     checked = new boolean[batch.size()];
     List<ListItem> items = new ArrayList<>();
-    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, Lang.getString(R.string.Tgx101SavedAiHint), false));
+    items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, localNote != null ? localNote : Lang.getString(R.string.Tgx101SavedAiHint), false));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     String hint = org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiSortHint(tdlib.id());
     ListItem hintItem = new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101AiSortHint, R.drawable.baseline_edit_24, R.string.Tgx101SavedAiWish);
