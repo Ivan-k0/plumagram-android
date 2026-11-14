@@ -29,6 +29,12 @@ public final class Tgx101RedrawWatch {
   private Tgx101RedrawWatch () { }
 
   private static final Map<String, int[]> counts = new HashMap<>();
+  private static final Map<String, View> samples = new HashMap<>();
+
+  /** a view that can say what in it keeps moving (a chat row: which chat, what is animated there) */
+  public interface Describable {
+    String tgx101Describe ();
+  }
   private static long windowStart;
   private static int frames;
   private static int minuteFrames;
@@ -50,6 +56,7 @@ public final class Tgx101RedrawWatch {
           if (now - windowStart >= 3000) {
             if (frames >= 60) report(frames, now - windowStart);
             counts.clear();
+            samples.clear();
             frames = 0;
             windowStart = now;
           }
@@ -124,6 +131,7 @@ public final class Tgx101RedrawWatch {
       int[] c = counts.get(key);
       if (c == null) counts.put(key, c = new int[1]);
       c[0]++;
+      if (v instanceof Describable) samples.put(key, v);
     }
     return dirty || childDirty;
   }
@@ -144,6 +152,12 @@ public final class Tgx101RedrawWatch {
     java.util.Collections.sort(list, (a, c) -> Integer.compare(c.getValue()[0], a.getValue()[0]));
     for (int i = 0; i < Math.min(6, list.size()); i++) {
       b.append(i == 0 ? " " : " | ").append(list.get(i).getKey()).append(" ×").append(list.get(i).getValue()[0]);
+      View sample = samples.get(list.get(i).getKey());
+      if (sample instanceof Describable) {
+        try {
+          b.append(" (").append(((Describable) sample).tgx101Describe()).append(")");
+        } catch (Throwable ignored) { }
+      }
     }
     Tgx101Diag.mark(b.toString());
   }

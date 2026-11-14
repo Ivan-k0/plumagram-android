@@ -72,7 +72,7 @@ import me.vkryl.core.ColorUtils;
 import me.vkryl.core.collection.IntList;
 import tgx.td.ChatPosition;
 
-public class ChatView extends BaseView implements TdlibSettingsManager.PreferenceChangeListener, InvalidateContentProvider, EmojiStatusHelper.EmojiStatusReceiverInvalidateDelegate, TdlibUi.MessageProvider {
+public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx101RedrawWatch.Describable, TdlibSettingsManager.PreferenceChangeListener, InvalidateContentProvider, EmojiStatusHelper.EmojiStatusReceiverInvalidateDelegate, TdlibUi.MessageProvider {
   private static Paint timePaint;
   private static TextPaint titlePaint, titlePaintFake; // counterTextPaint
 
@@ -666,6 +666,14 @@ public class ChatView extends BaseView implements TdlibSettingsManager.Preferenc
 
   public TGChat getChat () {
     return chat;
+  }
+
+  // TGx101 (diag, 2026-11-15: one chat row redrew 86 times a second for 5 minutes in an idle list): which chat, and what
+  // in its row can animate — the journal names the one that never stops
+  @Override
+  public String tgx101Describe () {
+    if (chat == null) return "empty";
+    return "chat " + chat.getChatId() + (chat.getEmojiStatus() != null ? ", has an emoji status" : "");
   }
 
   public long getChatId () {
