@@ -112,6 +112,7 @@ public class PasscodeSetupController extends ViewController<PasscodeSetupControl
     biometricsSeparator.setVisibility(isAvailable ? View.VISIBLE : View.GONE);
     biometricsView.setVisibility(isAvailable ? View.VISIBLE : View.GONE);
     boolean canChangeVisibility = getPasscodeMode() != Passcode.MODE_BIOMETRICS;
+    if (tgx101ShuffleView != null) tgx101ShuffleView.setVisibility(getPasscodeMode() == Passcode.MODE_PINCODE ? View.VISIBLE : View.GONE);
     visibilityView.setVisibility(canChangeVisibility ? View.VISIBLE : View.GONE);
     if (visibilitySeparator != null) {
       visibilitySeparator.setVisibility(canChangeVisibility ? View.VISIBLE : View.GONE);
@@ -332,6 +333,16 @@ public class PasscodeSetupController extends ViewController<PasscodeSetupControl
       tgx101EmergencyView.addThemeListeners(this);
       autoLockWrap.addView(tgx101EmergencyView);
 
+      // TGx101 (user 2026-11-15): the PIN's digits in new places on each entry
+      tgx101ShuffleView = new SettingView(context, tdlib);
+      tgx101ShuffleView.setId(R.id.btn_tgx101PasscodeShuffle);
+      tgx101ShuffleView.setType(SettingView.TYPE_RADIO);
+      tgx101ShuffleView.setName(R.string.Tgx101PasscodeShuffle);
+      tgx101ShuffleView.getToggler().setRadioEnabled(Passcode.instance().tgx101Shuffle(), false);
+      tgx101ShuffleView.setOnClickListener(this);
+      tgx101ShuffleView.addThemeListeners(this);
+      autoLockWrap.addView(tgx101ShuffleView);
+
       shadow = new ShadowView(context);
       addThemeInvalidateListener(shadow);
       shadow.setSimpleBottomTransparentShadow(true);
@@ -472,12 +483,20 @@ public class PasscodeSetupController extends ViewController<PasscodeSetupControl
     strings.append(R.string.PasscodePIN);
     icons.append(R.drawable.vkryl_baseline_lock_pin_24);
 
+    ids.append(R.id.btn_tgx101PasscodePin6); // TGx101 (user 2026-11-15)
+    strings.append(R.string.Tgx101PasscodePin6);
+    icons.append(R.drawable.vkryl_baseline_lock_pin_24);
+
     ids.append(R.id.btn_passcodeType_password);
     strings.append(R.string.login_Password);
     icons.append(R.drawable.mrgrigri_baseline_textbox_password_24);
 
     ids.append(R.id.btn_passcodeType_pattern);
     strings.append(R.string.PasscodePattern);
+    icons.append(R.drawable.itsspelledhaley_baseline_lock_pattern_24);
+
+    ids.append(R.id.btn_tgx101PasscodeSigns); // TGx101 (user 2026-11-15, variant Б)
+    strings.append(R.string.Tgx101PasscodeSigns);
     icons.append(R.drawable.itsspelledhaley_baseline_lock_pattern_24);
 
     ids.append(R.id.btn_passcodeType_gesture);
@@ -492,8 +511,12 @@ public class PasscodeSetupController extends ViewController<PasscodeSetupControl
 
     context.showOptions(info, ids.get(), strings.get(), null, icons.get(), (itemView, id) -> {
       int mode;
-      if (id == R.id.btn_passcodeType_pin) {
+      Passcode.tgx101PendingPinLength = id == R.id.btn_tgx101PasscodePin6 ? Passcode.PINCODE_MAX_SIZE : Passcode.PINCODE_SIZE;
+      Passcode.tgx101PendingSymbols = id == R.id.btn_tgx101PasscodeSigns;
+      if (id == R.id.btn_passcodeType_pin || id == R.id.btn_tgx101PasscodePin6) {
         mode = Passcode.MODE_PINCODE;
+      } else if (id == R.id.btn_tgx101PasscodeSigns) {
+        mode = Passcode.MODE_PATTERN;
       } else if (id == R.id.btn_passcodeType_password) {
         mode = Passcode.MODE_PASSWORD;
       } else if (id == R.id.btn_passcodeType_pattern) {
@@ -518,7 +541,7 @@ public class PasscodeSetupController extends ViewController<PasscodeSetupControl
     });
   }
 
-  private SettingView tgx101EmergencyView;
+  private SettingView tgx101EmergencyView, tgx101ShuffleView;
 
   private void tgx101UpdateEmergency () {
     if (tgx101EmergencyView != null) {
@@ -527,6 +550,9 @@ public class PasscodeSetupController extends ViewController<PasscodeSetupControl
   }
 
   private void tgx101OpenEmergencySetup (int mode) {
+    // the emergency code is entered on the same lock screen: the same PIN length, signs or dots
+    Passcode.tgx101PendingPinLength = Passcode.instance().tgx101PinLength();
+    Passcode.tgx101PendingSymbols = Passcode.instance().tgx101Symbols();
     PasscodeController c = new PasscodeController(context, tdlib);
     c.setPasscodeMode(PasscodeController.MODE_SETUP);
     c.forceMode(mode);
@@ -546,6 +572,8 @@ public class PasscodeSetupController extends ViewController<PasscodeSetupControl
         disablePasscode();
         updateEnabledStatus(true);
       }
+    } else if (viewId == R.id.btn_tgx101PasscodeShuffle) {
+      Passcode.instance().tgx101SetShuffle(tgx101ShuffleView.toggleRadio());
     } else if (viewId == R.id.btn_tgx101EmergencyPasscode) {
       int mode = Passcode.instance().getMode();
       if (mode != Passcode.MODE_PINCODE && mode != Passcode.MODE_PASSWORD && mode != Passcode.MODE_PATTERN) {

@@ -77,6 +77,32 @@ public class Passcode implements UI.StateListener {
   public static final int MIN_PASSWORD_SIZE = 1;
   public static final int MIN_PATTERN_SIZE = 4;
   public static final int PINCODE_SIZE = 4;
+  public static final int PINCODE_MAX_SIZE = 6; // TGx101 (user 2026-11-15): a PIN of 4 or 6 digits
+
+  // TGx101 (user 2026-11-15, mockup «Код-пароль: жест, который не подсмотреть»): the PIN's length, the digits shuffled on
+  // each entry, and «signs on the dots» — the pattern's dots carry signs, shuffled each time, the key is the order of
+  // the signs, so the line drawn looks different to an onlooker every time
+  private static final String KEY_TGX101_PIN_LENGTH = "pc_tgx101_pin_len", KEY_TGX101_SHUFFLE = "pc_tgx101_shuffle", KEY_TGX101_SYMBOLS = "pc_tgx101_symbols";
+  /** set by the setup before a new passcode is entered; saved with it */
+  public static int tgx101PendingPinLength = PINCODE_SIZE;
+  public static boolean tgx101PendingSymbols;
+
+  public int tgx101PinLength () {
+    int len = Settings.instance().getInt(KEY_TGX101_PIN_LENGTH, PINCODE_SIZE);
+    return len == PINCODE_MAX_SIZE ? PINCODE_MAX_SIZE : PINCODE_SIZE;
+  }
+
+  public boolean tgx101Shuffle () {
+    return Settings.instance().getBoolean(KEY_TGX101_SHUFFLE, false);
+  }
+
+  public void tgx101SetShuffle (boolean shuffle) {
+    Settings.instance().putBoolean(KEY_TGX101_SHUFFLE, shuffle);
+  }
+
+  public boolean tgx101Symbols () {
+    return mode == MODE_PATTERN && Settings.instance().getBoolean(KEY_TGX101_SYMBOLS, false);
+  }
 
   @SuppressWarnings("SpellCheckingInspection")
   private static final String SALT_OLD = "VGhpcyBpcyBhIHZlcnkgc2VjdXJlIHNhbHQgb2YgQ2hhbGxlZ3JhbS4=";
@@ -361,7 +387,7 @@ public class Passcode implements UI.StateListener {
   }
 
   public boolean comparePincode (String pincode) {
-    return passcodeHash != null && pincode != null && pincode.length() == PINCODE_SIZE && passcodeHash.equals(getPasscodeHashOld(pincode));
+    return passcodeHash != null && pincode != null && pincode.length() == tgx101PinLength() && passcodeHash.equals(getPasscodeHashOld(pincode));
   }
 
   public boolean comparePassword (String password) {
@@ -386,10 +412,11 @@ public class Passcode implements UI.StateListener {
   }
 
   public static boolean isValidPincode (String pincode) {
-    return pincode != null && pincode.length() == PINCODE_SIZE;
+    return pincode != null && (pincode.length() == PINCODE_SIZE || pincode.length() == PINCODE_MAX_SIZE);
   }
 
   public void setPincode (String pincode) {
+    Settings.instance().putInt(KEY_TGX101_PIN_LENGTH, pincode != null && pincode.length() == PINCODE_MAX_SIZE ? PINCODE_MAX_SIZE : PINCODE_SIZE);
     setPasscodeHash(MODE_PINCODE, pincode, 0);
   }
 
@@ -410,6 +437,7 @@ public class Passcode implements UI.StateListener {
   }
 
   public void setPattern (String pattern) {
+    Settings.instance().putBoolean(KEY_TGX101_SYMBOLS, tgx101PendingSymbols);
     setPasscodeHash(MODE_PATTERN, pattern, 0);
   }
 

@@ -180,6 +180,28 @@ public class PinInputLayout extends FrameLayoutFix implements View.OnClickListen
     return callback != null && callback.onPinRemoveAll();
   }
 
+  // TGx101 (user 2026-11-15): the digits in new places on each try, so a hand seen from the side gives nothing away
+  public void tgx101Shuffle (boolean shuffle) {
+    int[] digits = {1, 2, 3, 4, 5, 6, 7, 8, 9, 0};
+    if (shuffle) {
+      java.security.SecureRandom random = new java.security.SecureRandom();
+      for (int i = digits.length - 1; i > 0; i--) {
+        int j = random.nextInt(i + 1);
+        int t = digits[i]; digits[i] = digits[j]; digits[j] = t;
+      }
+    }
+    int k = 0;
+    for (int i = 0; i < getChildCount() && k < digits.length; i++) {
+      View v = getChildAt(i);
+      if (v instanceof PinButtonView && v.getId() != -1) {
+        v.setId(digits[k]);
+        ((PinButtonView) v).setNumber(digits[k]);
+        v.invalidate();
+        k++;
+      }
+    }
+  }
+
   public interface Callback {
     void onPinRemove ();
     boolean onPinRemoveAll ();

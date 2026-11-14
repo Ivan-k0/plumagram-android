@@ -44,8 +44,15 @@ public class PincodeOutputView {
   private View parentView;
 
   public PincodeOutputView () {
-    circles = new PincodeCircle[Passcode.PINCODE_SIZE];
+    circles = new PincodeCircle[Passcode.PINCODE_MAX_SIZE];
     space = Screen.dpf(21f);
+  }
+
+  private int length = Passcode.PINCODE_SIZE;
+
+  /** TGx101: 4 or 6 digits */
+  public void tgx101SetLength (int length) {
+    this.length = Math.max(1, Math.min(Passcode.PINCODE_MAX_SIZE, length));
   }
 
   public void setParentView (View view) {
@@ -53,7 +60,7 @@ public class PincodeOutputView {
   }
 
   public void append () {
-    if (size < Passcode.PINCODE_SIZE && drawingSize < Passcode.PINCODE_SIZE) {
+    if (size < length && drawingSize < length) {
       if (circles[drawingSize] == null) {
         circles[drawingSize] = new PincodeCircle(this);
       }

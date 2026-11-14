@@ -380,6 +380,8 @@ public class PasscodeController extends ViewController<PasscodeController.Args> 
       pinLayout.initWithFeedback(isPasscodeVisible());
       pinLayout.setCallback(this);
     }
+    passcodeView.tgx101SetPinLength(tgx101PinLength());
+    pinLayout.tgx101Shuffle(tgx101ShuffleDigits());
     updatePincodeOrientation();
 
     contentView.addView(pinLayout);
@@ -434,16 +436,17 @@ public class PasscodeController extends ViewController<PasscodeController.Args> 
 
   @Override
   public void onPinAppend (int digit) {
-    if (passcodeView.getPincodeOutput().isAnimating() || (pincode != null && pincode.getSize() >= Passcode.PINCODE_SIZE)) return;
+    if (passcodeView.getPincodeOutput().isAnimating() || (pincode != null && pincode.getSize() >= tgx101PinLength())) return;
     if (pincode == null) {
       pincode = new PasscodeBuilder();
     }
     pincode.append(digit);
     passcodeView.getPincodeOutput().append();
 
-    if (pincode.getSize() == Passcode.PINCODE_SIZE) {
+    if (pincode.getSize() == tgx101PinLength()) {
       handlePincode(new PasscodeBuilder(pincode));
       pincode.clear();
+      if (pinLayout != null && tgx101ShuffleDigits()) pinLayout.tgx101Shuffle(true); // the next try: new places
     }
   }
 
@@ -667,6 +670,22 @@ public class PasscodeController extends ViewController<PasscodeController.Args> 
     }
   }
 
+  // TGx101 (user 2026-11-15): a PIN of 4 or 6 digits (the app's lock; a chat's stays 4), the digits shuffled on each try
+  private int tgx101PinLength () {
+    if (specificChat != null) return Passcode.PINCODE_SIZE;
+    return inSetupMode() ? Passcode.tgx101PendingPinLength : Passcode.instance().tgx101PinLength();
+  }
+
+  private boolean tgx101ShuffleDigits () {
+    return specificChat == null && !inSetupMode() && Passcode.instance().tgx101Shuffle();
+  }
+
+  @Override
+  public boolean tgx101Symbols () {
+    if (specificChat != null || mode != Passcode.MODE_PATTERN) return false;
+    return inSetupMode() ? Passcode.tgx101PendingSymbols : Passcode.instance().tgx101Symbols();
+  }
+
   @Override
   public boolean isPasscodeVisible () {
     if (Config.DISABLE_PASSWORD_INVISIBILITY && mode == Passcode.MODE_PASSWORD)
@@ -835,7 +854,7 @@ public class PasscodeController extends ViewController<PasscodeController.Args> 
       return;
     }
 
-    if (pincode.getSize() != Passcode.PINCODE_SIZE) {
+    if (pincode.getSize() != tgx101PinLength()) {
       UI.showToast(R.string.passcode_pattern_tooshort, Toast.LENGTH_SHORT);
       return;
     }

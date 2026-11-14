@@ -610,6 +610,9 @@
   <item type="id" name="btn_hideSecretChats" />
   <item type="id" name="btn_passcode" />
   <item type="id" name="btn_passcodeType_pin" />
+  <item type="id" name="btn_tgx101PasscodePin6" />
+  <item type="id" name="btn_tgx101PasscodeSigns" />
+  <item type="id" name="btn_tgx101PasscodeShuffle" />
   <item type="id" name="btn_passcodeType_password" />
   <item type="id" name="btn_passcodeType_pattern" />
   <item type="id" name="btn_passcodeType_gesture" />

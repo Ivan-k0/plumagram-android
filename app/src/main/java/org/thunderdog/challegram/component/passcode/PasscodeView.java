@@ -230,6 +230,9 @@ public class PasscodeView extends View {
       text = Lang.getString(R.string.format_PasscodeTooManyAttempts, Lang.plural(R.string.TryAgainSeconds, seconds));
     } else {
       text = Passcode.getActionName(mode, state, true, extraData);
+      if (mode == Passcode.MODE_PATTERN && tgx101Symbols()) {
+        text = Lang.getString(state == Passcode.STATE_UNLOCK ? R.string.Tgx101PasscodeSignsUnlock : state == Passcode.STATE_CONFIRM ? R.string.Tgx101PasscodeSignsConfirm : R.string.Tgx101PasscodeSignsChoose);
+      }
     }
 
     if (text == null) {
@@ -534,8 +537,9 @@ public class PasscodeView extends View {
       case MotionEvent.ACTION_UP: {
         if (isIntercepted) {
           if (callback != null) {
-            callback.handlePattern(new PasscodeBuilder(pattern));
+            callback.handlePattern(tgx101Symbols() ? tgx101ToSigns(pattern) : new PasscodeBuilder(pattern));
           }
+          if (tgx101Symbols()) tgx101Shuffle(); // the next try: the signs in new places
           clearPattern(true);
           invalidate();
           return true;
@@ -548,8 +552,14 @@ public class PasscodeView extends View {
   }
 
   private void drawPattern (Canvas c) {
-    for (PatternDot dot : patternDots) {
-      dot.draw(c);
+    boolean signs = tgx101Symbols();
+    for (int i = 0; i < patternDots.length; i++) {
+      PatternDot dot = patternDots[i];
+      if (signs) {
+        tgx101DrawSign(c, tgx101Signs()[i], dot.getX(), dot.getY());
+      } else {
+        dot.draw(c);
+      }
     }
     if (callback.isPasscodeVisible()) {
       for (PatternLine line : patternLines) {
@@ -561,12 +571,91 @@ public class PasscodeView extends View {
     }
   }
 
+  // TGx101 (user 2026-11-15, mockup «Код-пароль: жест, который не подсмотреть», variant Б): signs on the dots, shuffled
+  // on each try; the key is the order of the signs, so the line drawn looks different every time
+
+  private int[] tgx101Signs; // tgx101Signs[dot] = the sign standing on that dot
+
+  private boolean tgx101Symbols () {
+    return callback != null && callback.tgx101Symbols();
+  }
+
+  private int[] tgx101Signs () {
+    if (tgx101Signs == null) tgx101Shuffle();
+    return tgx101Signs;
+  }
+
+  public void tgx101Shuffle () {
+    int[] a = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+    java.security.SecureRandom random = new java.security.SecureRandom();
+    for (int i = a.length - 1; i > 0; i--) {
+      int j = random.nextInt(i + 1);
+      int t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    tgx101Signs = a;
+    invalidate();
+  }
+
+  private PasscodeBuilder tgx101ToSigns (PasscodeBuilder dots) {
+    int[] signs = tgx101Signs();
+    PasscodeBuilder out = new PasscodeBuilder();
+    String s = dots.toString();
+    for (int i = 0; i < s.length(); i++) out.append(signs[s.charAt(i) - '0']);
+    return out;
+  }
+
+  private final android.graphics.Path tgx101Path = new android.graphics.Path();
+
+  private void tgx101DrawSign (Canvas c, int sign, float cx, float cy) {
+    int color = Theme.getColor(ColorId.passcodeIcon);
+    float r = Screen.dp(12f);
+    android.graphics.Paint fill = Paints.fillingPaint(color);
+    android.graphics.Paint stroke = Paints.getProgressPaint(color, Screen.dp(3f));
+    c.drawCircle(cx, cy, Screen.dp(26f), Paints.fillingPaint(ColorUtils.alphaColor(.08f, color)));
+    android.graphics.Path p = tgx101Path;
+    p.reset();
+    switch (sign) {
+      case 0: c.drawCircle(cx, cy, r, fill); return; // circle
+      case 1: c.drawRect(cx - r * .85f, cy - r * .85f, cx + r * .85f, cy + r * .85f, fill); return; // square
+      case 2: c.drawCircle(cx, cy, r - Screen.dp(1.5f), stroke); return; // ring
+      case 3: p.moveTo(cx, cy - r); p.lineTo(cx + r, cy + r * .8f); p.lineTo(cx - r, cy + r * .8f); break; // triangle
+      case 4: p.moveTo(cx, cy - r); p.lineTo(cx + r, cy); p.lineTo(cx, cy + r); p.lineTo(cx - r, cy); break; // rhombus
+      case 5: { // plus
+        float w = r * .36f;
+        c.drawRect(cx - w, cy - r, cx + w, cy + r, fill);
+        c.drawRect(cx - r, cy - w, cx + r, cy + w, fill);
+        return;
+      }
+      case 6: c.drawRect(cx - r * .8f, cy - r * .8f, cx + r * .8f, cy + r * .8f, stroke); return; // frame
+      case 7: p.moveTo(cx, cy + r); p.lineTo(cx + r, cy - r * .8f); p.lineTo(cx - r, cy - r * .8f); break; // triangle down
+      default: { // star
+        for (int i = 0; i < 10; i++) {
+          double a = Math.PI / 2 + i * Math.PI / 5;
+          float rr = i % 2 == 0 ? r * 1.1f : r * .45f;
+          float x = cx + (float) (Math.cos(a) * rr), y = cy - (float) (Math.sin(a) * rr);
+          if (i == 0) p.moveTo(x, y); else p.lineTo(x, y);
+        }
+        break;
+      }
+    }
+    p.close();
+    c.drawPath(p, fill);
+  }
+
   private PincodeOutputView pincodeView;
+
+  private int tgx101PinLength = Passcode.PINCODE_SIZE;
+
+  public void tgx101SetPinLength (int length) {
+    tgx101PinLength = length;
+    if (pincodeView != null) pincodeView.tgx101SetLength(length);
+  }
 
   private void layoutPincode () {
     if (pincodeView == null) {
       pincodeView = new PincodeOutputView();
       pincodeView.setParentView(this);
+      pincodeView.tgx101SetLength(tgx101PinLength);
     }
     pincodeView.setRect(lineLeft, lineTop - Screen.dp(52f) - 1, lineRight, lineTop - 1);
   }
@@ -585,6 +674,7 @@ public class PasscodeView extends View {
 
   public interface Callback {
     boolean isPasscodeVisible ();
+    default boolean tgx101Symbols () { return false; }
     void updateConfirmMode ();
     void handlePattern (PasscodeBuilder pattern);
     void handlePincode (PasscodeBuilder pincode);
