@@ -47,7 +47,9 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
     if (Config.NEED_SYSTEM_SYNC) {
       int accountId = extras != null ? extras.getInt(EXTRA_ACCOUNT_ID, TdlibAccount.NO_ID) : TdlibAccount.NO_ID;
       try {
-        TdlibManager.makeSync(getContext(), accountId, TdlibManager.SYNC_CAUSE_SYSTEM_SYNC, 0, !TdlibManager.inUiThread(), 0);
+        // TGx101 (battery 2026-11-14: 42 syncs in 20 h held the connection 21 m 50 s, up to 134 s each, the mobile radio on
+        // 1 h 51 m — while the pushes came in by themselves): the system's safety-net sync waits at most 25 s
+        TdlibManager.makeSync(getContext(), accountId, TdlibManager.SYNC_CAUSE_SYSTEM_SYNC, 0, !TdlibManager.inUiThread(), 25_000);
       } catch (Throwable t) {
         Log.e("Failed to perform sync", t);
       }

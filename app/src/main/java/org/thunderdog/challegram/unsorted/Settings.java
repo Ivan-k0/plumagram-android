@@ -8649,8 +8649,9 @@ public class Settings {
   // Sync
 
   public long getPeriodicSyncFrequencySeconds () {
-    // TODO
-    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? TimeUnit.MINUTES.toSeconds(30) : TimeUnit.HOURS.toSeconds(1);
+    // TGx101 (battery 2026-11-14): every 30 min woke the phone and the mobile radio for a sync the pushes already cover —
+    // once an hour is enough of a safety net
+    return TimeUnit.HOURS.toSeconds(1);
   }
 
   // Push token
