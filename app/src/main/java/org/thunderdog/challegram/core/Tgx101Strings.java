@@ -1330,7 +1330,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101OwnAiModelFree, "бесплатная");
     RU.put(R.string.Tgx101OwnAiModelCurrent, "выбрана");
     RU.put(R.string.Tgx101TypingLine, "Полоска и пульс при наборе");
-    RU.put(R.string.Tgx101MorseLine, "Слово в линии");
+    RU.put(R.string.Tgx101MorseLine, "Интерактивная полоса ввода");
     RU.put(R.string.Tgx101TypingLineDemo, "Уже еду, буду минут через десять!");
     RU.put(R.string.Tgx101InPlayerSave, "В Избранное");
     RU.put(R.string.Tgx101InPlayerUnsave, "Убрать из Избранного");
@@ -1965,7 +1965,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101Torch, "Фонарик");
     RU.put(R.string.Tgx101TorchOn, "Включить фонарик");
     RU.put(R.string.Tgx101TorchOff, "Выключить фонарик");
-    RU.put(R.string.Tgx101TorchBusy, "Фонарик занят — снимает задняя камера");
+    RU.put(R.string.Tgx101TorchBusy, "Телефон не даёт фонарик, пока снимает фронтальная камера — переключитесь на заднюю");
     RU.put(R.string.Tgx101SnoozeLike, "Реакция, как двойной тап");
     RU.put(R.string.Tgx101SnoozeLikeButton, "❤"); // (user 2026-11-08, mockup «Кнопки уведомления» А): the sign — the words around it fit
     RU.put(R.string.Tgx101SnoozeHeart, "❤️");

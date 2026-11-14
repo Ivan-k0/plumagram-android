@@ -154,7 +154,10 @@ public class VideoCameraCapturer {
         @Override public void onCameraDisconnected () { android.util.Log.w("TGx101Video", "camera disconnected"); }
         @Override public void onCameraFreezed (String error) { android.util.Log.w("TGx101Video", "camera frozen: " + error); }
         @Override public void onCameraOpening (String name) { android.util.Log.i("TGx101Video", "camera opening " + name); }
-        @Override public void onFirstFrameAvailable () { android.util.Log.i("TGx101Video", "camera first frame"); }
+        @Override public void onFirstFrameAvailable () {
+          android.util.Log.i("TGx101Video", "camera first frame");
+          if (tgx101TorchWanted) tgx101ApplyTorch(VideoCameraCapturer.this, true); // a new session (camera turned, SD/HD) starts dark
+        }
         @Override public void onCameraClosed () { android.util.Log.i("TGx101Video", "camera closed"); }
       });
       textureHelper = SurfaceTextureHelper.create("TGx101CameraTexture", Tgx101Video.eglContext());
@@ -216,4 +219,82 @@ public class VideoCameraCapturer {
   }
 
   private static native CapturerObserver nativeGetJavaVideoCapturerObserver (long ptr);
+
+  // TGx101 (user 2026-11-15 «нельзя включить фонарик когда разговариваешь по видеосвязи»): while the call films with the
+  // back camera the system lends its flash to no one else — the call's own camera lights it, in its capture request
+
+  private static volatile boolean tgx101TorchWanted;
+
+  /** @return 1 — the call's camera lit (or put out) its flash, 0 — no call camera with a flash right now, -1 — it failed */
+  @Keep
+  public static int tgx101Torch (boolean on) {
+    if (!on) tgx101TorchWanted = false;
+    VideoCameraCapturer c = current;
+    if (c == null || c.screenData != null || !c.capturing || !(c.capturer instanceof org.webrtc.Camera2Capturer)) return 0;
+    try {
+      Object session = tgx101Field(c.capturer, "currentSession");
+      if (session == null) return 0;
+      android.hardware.camera2.CameraCharacteristics ch = (android.hardware.camera2.CameraCharacteristics) tgx101Field(session, "cameraCharacteristics");
+      if (ch == null || !Boolean.TRUE.equals(ch.get(android.hardware.camera2.CameraCharacteristics.FLASH_INFO_AVAILABLE))) return 0;
+      tgx101TorchWanted = on;
+      return tgx101ApplyTorch(c, on) ? 1 : -1;
+    } catch (Throwable t) {
+      android.util.Log.w("TGx101Video", "torch: " + t);
+      return -1;
+    }
+  }
+
+  private static boolean tgx101ApplyTorch (VideoCameraCapturer c, boolean on) {
+    try {
+      Object session = tgx101Field(c.capturer, "currentSession");
+      if (session == null) return false;
+      android.hardware.camera2.CameraCharacteristics ch = (android.hardware.camera2.CameraCharacteristics) tgx101Field(session, "cameraCharacteristics");
+      if (ch == null || !Boolean.TRUE.equals(ch.get(android.hardware.camera2.CameraCharacteristics.FLASH_INFO_AVAILABLE))) return false;
+      Handler cameraHandler = (Handler) tgx101Field(session, "cameraThreadHandler");
+      Runnable apply = () -> {
+        try {
+          android.hardware.camera2.CameraDevice device = (android.hardware.camera2.CameraDevice) tgx101Field(session, "cameraDevice");
+          android.hardware.camera2.CameraCaptureSession capture = (android.hardware.camera2.CameraCaptureSession) tgx101Field(session, "captureSession");
+          android.view.Surface surface = (android.view.Surface) tgx101Field(session, "surface");
+          org.webrtc.CameraEnumerationAndroid.CaptureFormat format = (org.webrtc.CameraEnumerationAndroid.CaptureFormat) tgx101Field(session, "captureFormat");
+          int factor = (Integer) tgx101Field(session, "fpsUnitFactor");
+          if (device == null || capture == null || surface == null || format == null || factor == 0) return;
+          android.hardware.camera2.CaptureRequest.Builder b = device.createCaptureRequest(android.hardware.camera2.CameraDevice.TEMPLATE_RECORD);
+          b.set(android.hardware.camera2.CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new android.util.Range<>(format.framerate.min / factor, format.framerate.max / factor));
+          b.set(android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE, android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE_ON);
+          b.set(android.hardware.camera2.CaptureRequest.CONTROL_AE_LOCK, false);
+          int[] af = ch.get(android.hardware.camera2.CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
+          if (af != null) for (int mode : af) {
+            if (mode == android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO) {
+              b.set(android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE, mode);
+              break;
+            }
+          }
+          b.set(android.hardware.camera2.CaptureRequest.FLASH_MODE, on ? android.hardware.camera2.CaptureRequest.FLASH_MODE_TORCH : android.hardware.camera2.CaptureRequest.FLASH_MODE_OFF);
+          b.addTarget(surface);
+          capture.setRepeatingRequest(b.build(), null, cameraHandler);
+          android.util.Log.i("TGx101Video", "torch " + (on ? "on" : "off") + " through the call's camera");
+        } catch (Throwable t) {
+          android.util.Log.w("TGx101Video", "torch request failed: " + t);
+          org.thunderdog.challegram.Tgx101Diag.mark("torch: the call's camera refused — " + t.getClass().getSimpleName());
+        }
+      };
+      if (cameraHandler != null) cameraHandler.post(apply); else apply.run();
+      return true;
+    } catch (Throwable t) {
+      android.util.Log.w("TGx101Video", "torch: " + t);
+      return false;
+    }
+  }
+
+  private static Object tgx101Field (Object target, String name) throws Exception {
+    for (Class<?> k = target.getClass(); k != null; k = k.getSuperclass()) {
+      try {
+        java.lang.reflect.Field f = k.getDeclaredField(name);
+        f.setAccessible(true);
+        return f.get(target);
+      } catch (NoSuchFieldException ignored) { }
+    }
+    return null;
+  }
 }

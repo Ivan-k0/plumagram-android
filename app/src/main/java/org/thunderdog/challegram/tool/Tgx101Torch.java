@@ -49,6 +49,13 @@ public final class Tgx101Torch {
   public static void set (boolean enable) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return;
     if (!enable && !on) return;
+    // a video call filming with the back camera: its own camera lights the flash (the system lends it to no one else)
+    int viaCall = callCameraTorch(enable);
+    if (viaCall == 1) {
+      on = enable;
+      org.thunderdog.challegram.Tgx101Diag.mark("torch: " + (enable ? "on" : "off") + " through the call's camera");
+      return;
+    }
     String id = findCamera();
     if (id == null) return;
     try {
@@ -60,6 +67,16 @@ public final class Tgx101Torch {
       on = false;
       org.thunderdog.challegram.Tgx101Diag.mark("torch: failed " + t.getClass().getSimpleName() + " " + t.getMessage());
       if (enable) UI.showToast(Lang.getString(R.string.Tgx101TorchBusy), android.widget.Toast.LENGTH_SHORT);
+    }
+  }
+
+  private static int callCameraTorch (boolean enable) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) return 0;
+    try {
+      Object r = Class.forName("org.telegram.messenger.voip.VideoCameraCapturer").getMethod("tgx101Torch", boolean.class).invoke(null, enable);
+      return r instanceof Integer ? (Integer) r : 0;
+    } catch (Throwable t) {
+      return 0;
     }
   }
 

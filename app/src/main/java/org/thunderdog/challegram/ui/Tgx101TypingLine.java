@@ -103,7 +103,9 @@ public final class Tgx101TypingLine {
     float thin = Math.max(1, Screen.dp(.5f));
     paint.setShader(null);
     paint.setColor(Theme.separatorColor());
-    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101MorseLine()) {
+    // (user 2026-11-14 23:46 «при открытой клавиатуре внизу поля ввода не должна быть видна полоса»): while typing — the
+    // plain line, the word only at rest
+    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101MorseLine() && !field.isFocused()) {
       Morse.draw(c, paint, tdlib, host, 0, w, y, thin);
     } else {
       Session.drawLine(c, paint, 0, w, y, thin);
@@ -338,7 +340,9 @@ public final class Tgx101TypingLine {
         save();
       }
       float x = from;
-      float thick = Math.max(thin, Screen.dp(1.5f));
+      // (user 2026-11-14 23:45 «не шире серой полосы, меняется только цвет, форма плавная, а не квадратная»): a mark is the
+      // grey line's own thickness, only coloured, and its colour fades in and out at the ends
+      float soft = Screen.dp(3f);
       for (int i = 0; i < CODE.length; i++) {
         boolean shown = i < letters;
         int col = !shown ? rest : done && topColor != 0 ? topColor : letterChat[i] != 0 ? chatColor(tdlib, letterChat[i]) : 0;
@@ -347,10 +351,16 @@ public final class Tgx101TypingLine {
         for (int j = 0; j < CODE[i].length(); j++) {
           float len = (CODE[i].charAt(j) == '.' ? 1f : 3f) * unit;
           if (shown) {
-            paint.setColor(col);
-            boolean colored = col != rest;
-            float top = colored ? y + thin / 2f - thick / 2f : y, bottom = colored ? y + thin / 2f + thick / 2f : y + thin;
-            c.drawRect(x, top, x + len, bottom, paint);
+            paint.setColor(rest);
+            c.drawRect(x, y, x + len, y + thin, paint);
+            if (col != rest) {
+              float edge = Math.min(soft, len / 2f) / len;
+              paint.setShader(new LinearGradient(x, 0, x + len, 0,
+                new int[] {ColorUtils.alphaColor(0f, col), col, col, ColorUtils.alphaColor(0f, col)},
+                new float[] {0f, edge, 1f - edge, 1f}, Shader.TileMode.CLAMP));
+              c.drawRect(x, y, x + len, y + thin, paint);
+              paint.setShader(null);
+            }
           }
           x += len;
           if (j < CODE[i].length() - 1) x += unit;
@@ -370,7 +380,7 @@ public final class Tgx101TypingLine {
         float cx = from - half + (span + half * 2f) * k;
         int glow = topColor != 0 ? topColor : 0xffffffff;
         paint.setShader(new LinearGradient(cx - half, 0, cx + half, 0, new int[] {ColorUtils.alphaColor(0f, glow), ColorUtils.alphaColor(1f - k, 0xffffffff), ColorUtils.alphaColor(0f, glow)}, null, Shader.TileMode.CLAMP));
-        c.drawRect(cx - half, y - Screen.dp(1f), cx + half, y + thin + Screen.dp(1f), paint);
+        c.drawRect(Math.max(from, cx - half), y, Math.min(from + span, cx + half), y + thin, paint);
         paint.setShader(null);
         host.postInvalidateOnAnimation();
       }
