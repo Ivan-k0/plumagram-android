@@ -47,6 +47,7 @@ public final class Tgx101SoundLevel implements TeeAudioProcessor.AudioBufferSink
     this.channels = channelCount;
     this.encoding = encoding;
     this.nextAt = 0; // a new track or a seek: the line starts over from now
+    Tgx101TypingLine.Sound.newTrack();
   }
 
   @Override

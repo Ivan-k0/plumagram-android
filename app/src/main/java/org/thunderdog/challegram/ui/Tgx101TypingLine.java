@@ -519,16 +519,35 @@ public final class Tgx101TypingLine {
     private static void wake (java.lang.ref.WeakReference<View> ref) {
       // only to start it: a line already alive keeps its own pace — every piece of sound asking for one more frame
       // (20 a second) would break the cap below
-      if (SystemClock.uptimeMillis() - liveAt < 200) return;
+      if (SystemClock.uptimeMillis() - liveAt < 200 || calm()) return;
       View view = ref != null ? ref.get() : null;
       if (view != null) view.postInvalidateOnAnimation();
+    }
+
+    // (phone 2026-11-15 22:39: while a voice note played with the chat open the app took 40–59 % of a core — the field's
+    // bottom drawn 24 times a second, each frame costing the same however small; user «да, через минуту»): the wave
+    // goes with the first minute of an unbroken sound, then the line rests until the next track or voice note —
+    // music playing for hours no longer redraws the chat
+    private static final long CALM_AFTER_MS = 60_000L;
+    private static volatile long soundSince; // when the sound playing now began, 0 — nothing yet
+
+    /** a new track, voice note or a jump inside one: its minute starts over */
+    public static void newTrack () {
+      soundSince = 0;
+    }
+
+    private static boolean calm () {
+      long since = soundSince;
+      return since != 0 && SystemClock.uptimeMillis() - since > CALM_AFTER_MS && !recording();
     }
 
     /** from any thread */
     public static void push (float level) {
       if (!wanted()) return;
+      long now = SystemClock.uptimeMillis();
+      if (level > .02f && (soundSince == 0 || now - at > 2000)) soundSince = now; // after two seconds of silence it is a new sound
       target = Math.max(0f, Math.min(1f, level));
-      at = SystemClock.uptimeMillis();
+      at = now;
       wake(hostRef);
       wake(panelRef);
     }
@@ -576,11 +595,13 @@ public final class Tgx101TypingLine {
       long now = SystemClock.uptimeMillis();
       float dt = shownAt != 0 ? Math.min(64, now - shownAt) : 16;
       shownAt = now;
-      float to = now - at > 250 ? 0f : target;
+      boolean calm = calm();
+      float to = calm || now - at > 250 ? 0f : target;
       shown += (to - shown) * Math.min(1f, dt / (to > shown ? 60f : 240f));
       if (shown < .012f && to == 0f) shown = 0f;
       // the rings already on their way run out to the ends first (about a second and a half)
-      boolean alive = at != 0 && (shown > 0f || now - at < 250 + 1800 || tint(now) > 0f);
+      long quietSince = calm ? soundSince + CALM_AFTER_MS : at + 250;
+      boolean alive = at != 0 && (shown > 0f || now - quietSince < 1800 || tint(now) > 0f);
       if (!alive) {
         if (historyAt != 0) {
           java.util.Arrays.fill(history, 0f);
