@@ -124,7 +124,11 @@ public final class Tgx101TypingLine {
   void draw (Canvas c, float y, int w) {
     float thin = Math.max(1, Screen.dp(.5f));
     paint.setShader(null);
-    paint.setColor(Theme.separatorColor());
+    // (user 2026-11-15): with a voice being recorded or sound playing, a light wave runs along the line with the
+    // sound; the thin line gives way to it and comes back when it is quiet
+    float sound = Sound.shown(host);
+    paint.setColor(ColorUtils.alphaColor(1f - .85f * Math.min(1f, sound * 3f), Theme.separatorColor()));
+    if (sound > 0f) Sound.draw(c, y, w, sound, thin);
     // (user 2026-11-14 23:46 «при открытой клавиатуре внизу поля ввода не должна быть видна полоса»): while typing — the
     // plain line, the word only at rest. By the keyboard, not the field's focus: a chat keeps the cursor in the field
     // with the keyboard down, and the word never showed (user 2026-11-15 «морзе не работает?»)
@@ -459,6 +463,92 @@ public final class Tgx101TypingLine {
     }
   }
 
+
+  /**
+   * TGx101 (user 2026-11-15 «когда записываешь голосовое идёт волна типа эквалайзера лёгкая, которая реагирует на
+   * голос… или когда проигрывается музыка или голосовое; в простое тонкая линия как сейчас»): how loud it is right now,
+   * 0…1 — from the microphone while recording, from the player while it plays (Tgx101SoundLevel). On with «Interactive
+   * input line» (the Morse switch).
+   */
+  public static final class Sound {
+    private static volatile float target;
+    private static volatile long at;
+    private static volatile boolean wanted;
+    private static volatile long wantedAt;
+    private static float shown;
+    private static long shownAt;
+    private static java.lang.ref.WeakReference<View> hostRef;
+    private static final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
+    private static final Paint wavePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final android.graphics.Path wavePath = new android.graphics.Path();
+
+    /** asked on the player's thread for every piece of sound: the settings are read once a second at most */
+    public static boolean wanted () {
+      long now = SystemClock.uptimeMillis();
+      if (wantedAt == 0 || now - wantedAt > 1000) {
+        wantedAt = now;
+        try {
+          org.thunderdog.challegram.unsorted.Settings s = org.thunderdog.challegram.unsorted.Settings.instance();
+          wanted = s.tgx101MorseLine() && s.tgx101TypingLine();
+        } catch (Throwable t) {
+          wanted = false;
+        }
+      }
+      return wanted;
+    }
+
+    /** from any thread */
+    public static void push (float level) {
+      if (!wanted()) return;
+      target = Math.max(0f, Math.min(1f, level));
+      at = SystemClock.uptimeMillis();
+      java.lang.ref.WeakReference<View> ref = hostRef;
+      View host = ref != null ? ref.get() : null;
+      if (host != null) host.postInvalidateOnAnimation();
+    }
+
+    /** the level to show in {@code delay} ms */
+    public static void pushAt (float level, long delay) {
+      if (delay <= 0) push(level);
+      else main.postDelayed(() -> push(level), delay);
+    }
+
+    /** the level as drawn: rises fast, falls softly, gone a quarter of a second after the last sound */
+    static float shown (View host) {
+      java.lang.ref.WeakReference<View> ref = hostRef;
+      if (ref == null || ref.get() != host) hostRef = new java.lang.ref.WeakReference<>(host);
+      long now = SystemClock.uptimeMillis();
+      float dt = shownAt != 0 ? Math.min(64, now - shownAt) : 16;
+      shownAt = now;
+      float to = now - at > 250 ? 0f : target;
+      shown += (to - shown) * Math.min(1f, dt / (to > shown ? 60f : 240f));
+      if (shown < .012f && to == 0f) {
+        shown = 0f;
+        return 0f;
+      }
+      host.postInvalidateOnAnimation();
+      return shown;
+    }
+
+    static void draw (Canvas c, float y, int w, float level, float thin) {
+      float t = SystemClock.uptimeMillis() / 1000f;
+      float amp = Screen.dp(.8f) + Screen.dp(5f) * level;
+      float step = Screen.dp(5f);
+      float l1 = Screen.dp(74f), l2 = Screen.dp(41f), l3 = Screen.dp(23f);
+      wavePath.reset();
+      for (float x = 0; x <= w; x += step) {
+        float edge = (float) Math.sin(Math.PI * x / w); // still at both ends
+        double a = Math.sin(2 * Math.PI * x / l1 - t * 5.3) * .5 + Math.sin(2 * Math.PI * x / l2 + t * 3.9) * .32 + Math.sin(2 * Math.PI * x / l3 - t * 8.1) * .18 * level;
+        float yy = y + thin / 2f + (float) a * amp * edge;
+        if (x == 0) wavePath.moveTo(x, yy); else wavePath.lineTo(x, yy);
+      }
+      wavePaint.setStyle(Paint.Style.STROKE);
+      wavePaint.setStrokeWidth(Screen.dp(1.5f));
+      wavePaint.setStrokeJoin(Paint.Join.ROUND);
+      wavePaint.setColor(ColorUtils.alphaColor(Math.min(1f, .35f + level * 1.6f) * (Theme.isDark() ? .9f : 1f), accent()));
+      c.drawPath(wavePath, wavePaint);
+    }
+  }
 
   public static final class Session {
     private static long start, pausedAt;

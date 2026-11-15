@@ -742,6 +742,22 @@ public class U {
           }
         }
       }
+
+      // TGx101 (user 2026-11-15): the field's line moves with the sound being played — the decoded sound passes a
+      // listener on its way out. The sink is built as the library builds it (playback through the track's own speed
+      // setting stays off, as it is by default), with the listener added
+      @Override
+      protected androidx.media3.exoplayer.audio.AudioSink buildAudioSink (Context context, boolean enableFloatOutput, boolean enableAudioTrackPlaybackParams) {
+        if (enableAudioTrackPlaybackParams) return super.buildAudioSink(context, enableFloatOutput, enableAudioTrackPlaybackParams);
+        try {
+          return new androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
+            .setEnableFloatOutput(enableFloatOutput)
+            .setAudioProcessors(org.thunderdog.challegram.player.Tgx101SoundLevel.processors())
+            .build();
+        } catch (Throwable t) {
+          return super.buildAudioSink(context, enableFloatOutput, enableAudioTrackPlaybackParams);
+        }
+      }
     }.setExtensionRendererMode(extensionMode)
       // TGx101 (4PDA nyan_ame 2026-10-21: a 320×42 H.264 GIF played in the chat but failed when opened —
       // «MediaCodecVideoRenderer error»): a hardware decoder refusing a format hands it to the next one (the software one)
