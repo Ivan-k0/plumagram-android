@@ -673,24 +673,39 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
   @Override
   public String tgx101Describe () {
     if (chat == null) return "empty";
-    return "chat " + chat.getChatId() + (chat.getEmojiStatus() != null ? ", has an emoji status" : "") + (tgx101LastCaller != null ? ", asked by " + tgx101LastCaller : "");
+    return "chat " + chat.getChatId() + (chat.getEmojiStatus() != null ? ", has an emoji status" : "") + (tgx101LastCaller != null ? ", asked by " + tgx101LastCaller : "") + tgx101ResetCallers();
   }
 
-  private int tgx101Invalidates;
+  private String tgx101ResetCallers () {
+    tgx101Callers.clear();
+    tgx101LastCaller = null;
+    return "";
+  }
+
+  private final java.util.HashMap<String, int[]> tgx101Callers = new java.util.HashMap<>();
   private String tgx101LastCaller;
 
   @Override
   public void invalidate () {
     super.invalidate();
-    // diag: every 200th redraw request, who asked (three frames of the stack below this one)
-    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && ++tgx101Invalidates % 200 == 0) {
+    // diag: who asks this row to redraw, counted by caller (two frames of the stack below this one)
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && tgx101Callers.size() < 32) {
       StackTraceElement[] st = new Throwable().getStackTrace();
       StringBuilder b = new StringBuilder();
-      for (int i = 1; i < Math.min(st.length, 5); i++) {
+      for (int i = 1; i < Math.min(st.length, 4); i++) {
         if (b.length() > 0) b.append(" < ");
         b.append(st[i].getClassName().replace("org.thunderdog.challegram.", "")).append('.').append(st[i].getMethodName()).append(':').append(st[i].getLineNumber());
       }
-      tgx101LastCaller = b.toString();
+      String k = b.toString();
+      int[] c = tgx101Callers.get(k);
+      if (c == null) tgx101Callers.put(k, c = new int[1]);
+      c[0]++;
+      StringBuilder all = new StringBuilder();
+      for (java.util.Map.Entry<String, int[]> e : tgx101Callers.entrySet()) {
+        if (all.length() > 0) all.append(" ; ");
+        all.append(e.getValue()[0]).append("× ").append(e.getKey());
+      }
+      tgx101LastCaller = all.toString();
     }
   }
 
