@@ -423,7 +423,11 @@ public class Passcode implements UI.StateListener {
   }
 
   public void setPincode (String pincode) {
-    Settings.instance().putInt(KEY_TGX101_PIN_LENGTH, pincode != null && pincode.length() == PINCODE_MAX_SIZE ? PINCODE_MAX_SIZE : PINCODE_SIZE);
+    int tgx101Length = pincode != null && pincode.length() == PINCODE_MAX_SIZE ? PINCODE_MAX_SIZE : PINCODE_SIZE;
+    // an emergency PIN of the old length can't be typed any more (the screen takes the PIN at the new length): it goes,
+    // so the settings don't show an emergency code that would never work
+    if (tgx101Length != tgx101PinLength() && Settings.instance().getInt(KEY_TGX101_EMERGENCY_MODE, MODE_NONE) == MODE_PINCODE) tgx101RemoveEmergency();
+    Settings.instance().putInt(KEY_TGX101_PIN_LENGTH, tgx101Length);
     setPasscodeHash(MODE_PINCODE, pincode, 0);
   }
 
@@ -444,8 +448,13 @@ public class Passcode implements UI.StateListener {
   }
 
   public void setPattern (String pattern) {
+    int tgx101Length = pattern != null ? pattern.length() : 0;
+    boolean tgx101WereSymbols = Settings.instance().getBoolean(KEY_TGX101_SYMBOLS, false);
+    // signs are taken at the key's length: an emergency code of another length (or one drawn as a line) can't be entered
+    if ((tgx101WereSymbols != tgx101PendingSymbols || (tgx101PendingSymbols && tgx101Length != tgx101SignsLength()))
+      && Settings.instance().getInt(KEY_TGX101_EMERGENCY_MODE, MODE_NONE) == MODE_PATTERN) tgx101RemoveEmergency();
     Settings.instance().putBoolean(KEY_TGX101_SYMBOLS, tgx101PendingSymbols);
-    Settings.instance().putInt(KEY_TGX101_SIGNS_LENGTH, pattern != null ? pattern.length() : 0);
+    Settings.instance().putInt(KEY_TGX101_SIGNS_LENGTH, tgx101Length);
     setPasscodeHash(MODE_PATTERN, pattern, 0);
   }
 

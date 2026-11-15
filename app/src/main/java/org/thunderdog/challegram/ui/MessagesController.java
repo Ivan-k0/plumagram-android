@@ -1126,6 +1126,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         if (Settings.instance().tgx101MorseLine()) Tgx101TypingLine.Morse.vibrate(getContext());
       };
       private float tgx101HoldX, tgx101HoldY;
+      private boolean tgx101Holding; // this touch began on the line: only then its moves and its end are taken
 
       @Override
       public boolean onTouchEvent (MotionEvent ev) {
@@ -1136,15 +1137,20 @@ public class MessagesController extends ViewController<MessagesController.Argume
               if (ev.getY() >= getHeight() - getPaddingBottom() - Screen.dp(10f)) {
                 tgx101HoldX = ev.getX();
                 tgx101HoldY = ev.getY();
+                tgx101Holding = true;
                 postDelayed(tgx101MorseHold, android.view.ViewConfiguration.getLongPressTimeout());
                 return true;
               }
+              tgx101Holding = false;
               break;
             case MotionEvent.ACTION_MOVE:
+              if (!tgx101Holding) break;
               if (Math.abs(ev.getX() - tgx101HoldX) > Screen.getTouchSlop() || Math.abs(ev.getY() - tgx101HoldY) > Screen.getTouchSlop()) removeCallbacks(tgx101MorseHold);
               return true;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
+              if (!tgx101Holding) break;
+              tgx101Holding = false;
               removeCallbacks(tgx101MorseHold);
               return true;
           }

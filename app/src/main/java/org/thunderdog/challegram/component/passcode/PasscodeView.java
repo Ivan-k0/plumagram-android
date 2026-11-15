@@ -633,7 +633,7 @@ public class PasscodeView extends View {
     tgx101FlashAt = android.os.SystemClock.uptimeMillis();
     invalidate();
     removeCallbacks(tgx101Finish);
-    int need = callback.inSetupMode() ? 0 : callback.tgx101SignsLength();
+    int need = callback.tgx101SignsLength(); // 0 — a new key of any length: a pause finishes it
     if (need > 0 && pattern.getSize() >= need) {
       tgx101Submit();
     } else if (need <= 0 && pattern.getSize() >= Passcode.MIN_PATTERN_SIZE) {

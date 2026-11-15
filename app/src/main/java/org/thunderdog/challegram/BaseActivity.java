@@ -2072,6 +2072,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   @Override
   public boolean dispatchTouchEvent (MotionEvent ev) {
     tgx101LastTouchAt = android.os.SystemClock.uptimeMillis();
+    tgx101TrackFinger(ev);
     if (BuildConfig.TGX101_DIAG) { // TGx101: gesture log in diagnostics builds
       Object top = navigation != null ? navigation.getCurrentStackItem() : null;
       // Never log touches on the passcode / 2FA screens: tap positions on the keypad would reveal the PIN
@@ -3006,7 +3007,23 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     if (context.needHideKeyboard()) {
       forceTouchWindow.setHideKeyboard();
     }
+    // closed some other way (the back key): the next preview must still open
+    final PopupLayout tgx101Window = forceTouchWindow;
+    tgx101Window.setDismissListener(popup -> {
+      if (forceTouchWindow == tgx101Window) {
+        forceTouchWindow = null;
+        forceTouchView = null;
+      }
+    });
+    // a new finger on the preview while none is held under it: the one that opened it has gone
+    tgx101Window.tgx101OnNewTouch = () -> {
+      if (forceTouchWindow == tgx101Window && !tgx101FingerDown) {
+        Tgx101Diag.mark("preview by a long press: left with no finger — closed by a new touch");
+        closeForceTouch();
+      }
+    };
     forceTouchWindow.showAnimatedPopupView(forceTouchView, forceTouchView);
+    if (!tgx101FingerDown) tgx101CloseOrphanPreview(700); // opened with no finger on the screen at all
     if (BuildConfig.TGX101_DIAG) {
       tgx101ForceTouchAt = android.os.SystemClock.uptimeMillis();
       tgx101ForceTouchLogged = false;
@@ -3058,6 +3075,36 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
       tgx101StuckLoggedAt = now;
       Tgx101Diag.mark("touch found the screen not settled: " + b + (navigation != null ? ", stack " + navigation.getStackSize() : ""));
     }
+  }
+
+  // TGx101 (4PDA 2026-11-15, Android 15 «на пол экрана профиль человека замерзает и никак от него не избавиться»): the
+  // preview lives only while its finger is down. If the finger has lifted and the view that opened it did not close
+  // it (it was recycled, or the preview came up late), it is closed from here
+  private boolean tgx101FingerDown;
+
+  /** every touch of the app's windows passes here — the activity's own and its popup windows' */
+  public void tgx101TrackFinger (MotionEvent ev) {
+    switch (ev.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN:
+        tgx101FingerDown = true;
+        break;
+      case MotionEvent.ACTION_UP:
+      case MotionEvent.ACTION_CANCEL:
+        tgx101FingerDown = false;
+        tgx101CloseOrphanPreview(400);
+        break;
+    }
+  }
+
+  private void tgx101CloseOrphanPreview (long delay) {
+    final PopupLayout window = forceTouchWindow;
+    if (window == null) return;
+    UI.post(() -> {
+      if (forceTouchWindow == window && !tgx101FingerDown) {
+        Tgx101Diag.mark("preview by a long press: left with no finger — closed");
+        closeForceTouch();
+      }
+    }, delay);
   }
 
   public void closeForceTouch () {

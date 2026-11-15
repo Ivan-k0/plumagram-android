@@ -682,7 +682,11 @@ public class PasscodeController extends ViewController<PasscodeController.Args> 
 
   @Override
   public int tgx101SignsLength () {
-    return specificChat == null ? Passcode.instance().tgx101SignsLength() : 0;
+    if (specificChat != null) return 0;
+    // setting the emergency code: it must be as long as the key itself — the lock screen takes the key as soon as
+    // that many signs are tapped, so a longer or shorter emergency code could never be entered
+    if (inSetupMode()) return tgx101Emergency ? Passcode.instance().tgx101SignsLength() : 0;
+    return Passcode.instance().tgx101SignsLength();
   }
 
   @Override

@@ -65,9 +65,23 @@ public final class Tgx101TypingLine {
     this.field = field;
     this.tdlib = tdlib;
     // the field taking or losing the focus changes what the line shows
-    host.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus, newFocus) -> {
+    // only while the host is in a window: the observer belongs to the whole window, and a listener left on it kept
+    // every chat screen ever opened (previews too) in memory until the app was closed
+    final android.view.ViewTreeObserver.OnGlobalFocusChangeListener focus = (oldFocus, newFocus) -> {
       if (oldFocus == field || newFocus == field) host.invalidate();
+    };
+    host.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+      @Override
+      public void onViewAttachedToWindow (View v) {
+        v.getViewTreeObserver().addOnGlobalFocusChangeListener(focus);
+      }
+
+      @Override
+      public void onViewDetachedFromWindow (View v) {
+        v.getViewTreeObserver().removeOnGlobalFocusChangeListener(focus);
+      }
     });
+    if (host.getWindowToken() != null) host.getViewTreeObserver().addOnGlobalFocusChangeListener(focus);
   }
 
   /** the text changed by the person: longer — a key, shorter — a deletion */
@@ -490,7 +504,7 @@ public final class Tgx101TypingLine {
       org.thunderdog.challegram.unsorted.Settings.instance().pmc().putLong(KEY_DAY_MS, dayMs);
     }
 
-    public static void resume () {
+    public static synchronized void resume () {
       long now = SystemClock.elapsedRealtime();
       if (start == 0 || (pausedAt != 0 && now - pausedAt > BREAK_MS)) start = now;
       pausedAt = 0;
@@ -498,7 +512,7 @@ public final class Tgx101TypingLine {
       resumedAt = now;
     }
 
-    public static void pause () {
+    public static synchronized void pause () {
       long now = SystemClock.elapsedRealtime();
       pausedAt = now;
       loadDay();
@@ -509,7 +523,7 @@ public final class Tgx101TypingLine {
       }
     }
 
-    private static long sat () {
+    private static synchronized long sat () {
       if (start == 0) resume();
       if (DAILY) {
         loadDay();
@@ -519,8 +533,9 @@ public final class Tgx101TypingLine {
     }
 
     /** time in the app today, ms */
-    static long todayMs () {
-      if (start == 0) resume();
+    static synchronized long todayMs () {
+      // no resume() here: a message sent with the app in the background (a reply from a notification) asks for this on
+      // TDLib's thread — it started «time in the app» with nobody in it, counted until the next visit ended
       loadDay();
       return dayMs + (resumedAt != 0 ? SystemClock.elapsedRealtime() - resumedAt : 0);
     }

@@ -10123,7 +10123,8 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       case TdApi.UpdateMessageSendSucceeded.CONSTRUCTOR: {
         { // TGx101: the field line's word counts the written words
           TdApi.Message sent = ((TdApi.UpdateMessageSendSucceeded) update).message;
-          TdApi.FormattedText sentText = Td.textOrCaption(sent.content);
+          // written by hand only: a forwarded post or a bot's inline result is not one's own words
+          TdApi.FormattedText sentText = sent.forwardInfo == null && sent.viaBotUserId == 0 ? Td.textOrCaption(sent.content) : null;
           org.thunderdog.challegram.ui.Tgx101TypingLine.Morse.onSent(sent.chatId, sentText != null ? sentText.text : null);
         }
         updateMessageSendSucceeded((TdApi.UpdateMessageSendSucceeded) update);

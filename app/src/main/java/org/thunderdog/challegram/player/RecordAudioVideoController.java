@@ -1166,6 +1166,7 @@ public class RecordAudioVideoController implements
   }
 
   public boolean startRecording (View view, boolean inRaiseMode) {
+    tgx101ConfirmPending = false; // TGx101: a question left from a recording that never reached its preview
     if (this.recordMode != RECORD_MODE_NONE) {
       return false;
     }
@@ -1298,7 +1299,9 @@ public class RecordAudioVideoController implements
       tgx101ConfirmSeconds = Math.max(1, totalDuration() / 1000);
       tgx101ConfirmVideo = recordingVideo;
     }
-    return stopRecording(closeMode, true);
+    boolean stopped = stopRecording(closeMode, true);
+    if (!stopped) tgx101ConfirmPending = false; // nothing was stopped: no card for a later, unrelated preview
+    return stopped;
   }
 
   private boolean tgx101ConfirmPending, tgx101ConfirmVideo;

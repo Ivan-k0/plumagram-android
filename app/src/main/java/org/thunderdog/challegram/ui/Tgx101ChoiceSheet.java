@@ -149,6 +149,9 @@ public final class Tgx101ChoiceSheet {
     scroll.addView(grid);
     LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     scrollParams.topMargin = Screen.dp(16f);
+    // on a short screen with every value shown the list gives way and scrolls — it took all the height and pushed
+    // «Cancel» / the done button off the sheet
+    scrollParams.weight = 1f;
     sheet.addView(scroll, scrollParams);
 
     final TextView more = new TextView(context);

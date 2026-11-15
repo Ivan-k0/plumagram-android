@@ -527,6 +527,20 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     this.touchDownInterceptor = touchDownInterceptor;
   }
 
+  /** TGx101: a new touch came down on this window (the long-press preview: its own finger is on the screen under it) */
+  public @Nullable Runnable tgx101OnNewTouch;
+
+  @Override
+  public boolean dispatchTouchEvent (MotionEvent e) {
+    if (tgx101OnNewTouch != null && e.getActionMasked() == MotionEvent.ACTION_DOWN) {
+      tgx101OnNewTouch.run();
+      return true;
+    }
+    BaseActivity tgx101Activity = UI.getContext(getContext());
+    if (tgx101Activity != null) tgx101Activity.tgx101TrackFinger(e); // a preview may be opened from a popup window too
+    return super.dispatchTouchEvent(e);
+  }
+
   @Override
   public boolean onTouchEvent (MotionEvent e) {
     if (e.getAction() == MotionEvent.ACTION_DOWN) {

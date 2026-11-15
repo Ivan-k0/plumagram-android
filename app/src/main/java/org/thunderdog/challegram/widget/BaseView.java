@@ -314,6 +314,7 @@ public class BaseView extends SparseDrawableView implements ClickHelper.Delegate
     }
     int forceTouchMode = needForceTouch(x, y);
     if (forceTouchMode != FORCE_TOUCH_NONE) {
+      tgx101PreviewWanted = true; // the finger is down and asks for a preview — until it lifts or the press is cancelled
       switch (forceTouchMode) {
         case FORCE_TOUCH_CHAT: {
           TdApi.Chat chat = tdlib.chat(chatId);
@@ -325,7 +326,9 @@ public class BaseView extends SparseDrawableView implements ClickHelper.Delegate
                   Log.i("Message thread unavailable %d %d: %s", chatId, threadMessages[0].id, TD.toErrorString(error));
                 } else {
                   tdlib.ui().post(() -> {
-                    if (pendingTask == null && pendingController == null) {
+                    // (4PDA 2026-11-15, Android 15 «профиль на пол экрана замерзает, не убрать»): the answer may come
+                    // after the finger has gone — a preview opened then has no finger to close it and stays for good
+                    if (tgx101PreviewWanted && pendingTask == null && pendingController == null) {
                       openChatPreviewAsync(chatList, chat, ThreadInfo.openedFromChat(tdlib, threadInfo, chatId, contextChatId), null, filter, x, y);
                     }
                   });
@@ -388,12 +391,14 @@ public class BaseView extends SparseDrawableView implements ClickHelper.Delegate
 
   @Override
   public void onLongPressCancelled (View view, float x, float y) {
+    tgx101PreviewWanted = false;
     cancelAsyncPreview();
     closePreview();
   }
 
   @Override
   public void onLongPressFinish (View view, float x, float y) {
+    tgx101PreviewWanted = false;
     setInLongPress(false, x, y);
     closePreview();
   }
@@ -530,6 +535,10 @@ public class BaseView extends SparseDrawableView implements ClickHelper.Delegate
         if (pendingController == controller) {
           pendingController = null;
           pendingTask = null;
+          if (!tgx101PreviewWanted) { // TGx101: the finger went while the preview was getting ready
+            controller.destroy();
+            return;
+          }
           openPreview(controller, x, y);
         }
       }
@@ -551,6 +560,7 @@ public class BaseView extends SparseDrawableView implements ClickHelper.Delegate
   }
 
   private ViewController<?> currentOpenPreview;
+  private boolean tgx101PreviewWanted;
 
   private @Nullable RunnableData<MessagesController> maximiedChatModifier;
 
