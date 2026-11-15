@@ -126,13 +126,16 @@ public final class Tgx101TypingLine {
     paint.setShader(null);
     // (user 2026-11-15): with a voice being recorded or sound playing, a light wave runs along the line with the
     // sound; the thin line gives way to it and comes back when it is quiet
+    // (user 2026-11-15 17:30 «полоса такая же серая как и сейчас, толще не становится»): the wave is the line itself,
+    // bent — the same grey, the same thickness
     float sound = Sound.shown(host);
-    paint.setColor(ColorUtils.alphaColor(1f - .85f * Math.min(1f, sound * 3f), Theme.separatorColor()));
-    if (sound > 0f) Sound.draw(c, y, w, sound, thin);
+    paint.setColor(Theme.separatorColor());
     // (user 2026-11-14 23:46 «при открытой клавиатуре внизу поля ввода не должна быть видна полоса»): while typing — the
     // plain line, the word only at rest. By the keyboard, not the field's focus: a chat keeps the cursor in the field
     // with the keyboard down, and the word never showed (user 2026-11-15 «морзе не работает?»)
-    if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101MorseLine() && !keyboardUp()) {
+    if (sound > 0f) {
+      Sound.draw(c, y, w, sound, thin);
+    } else if (Morse.ENABLED && org.thunderdog.challegram.unsorted.Settings.instance().tgx101MorseLine() && !keyboardUp()) {
       Morse.draw(c, paint, tdlib, host, 0, w, y, thin);
     } else {
       Session.drawLine(c, paint, 0, w, y, thin);
@@ -238,6 +241,8 @@ public final class Tgx101TypingLine {
    * taps the word out by vibration only. Everything is counted on the phone.
    */
   public static final class Morse {
+    /** (user 2026-11-15 17:30 «Морзе быть не должно, просто полоса»): the word is off for everyone; its code is kept */
+    public static final boolean ENABLED = false;
     // PLUMA FREEDOM
     private static final String[] CODE = {".--.", ".-..", "..-", "--", ".-", "..-.", ".-.", ".", ".", "-..", "---", "--"};
     private static final int SECOND_WORD = 5; // the letter the second word starts with: 7 units before it, not 3
@@ -318,7 +323,7 @@ public final class Tgx101TypingLine {
 
     /** one's own message has gone (from any account): its text's or caption's words count; one with no words adds nothing */
     public static synchronized void onSent (long chatId, CharSequence text) {
-      if (!org.thunderdog.challegram.unsorted.Settings.instance().tgx101MorseLine()) return;
+      if (!ENABLED || !org.thunderdog.challegram.unsorted.Settings.instance().tgx101MorseLine()) return;
       int n = countWords(text);
       if (n == 0) return;
       load();
@@ -543,9 +548,9 @@ public final class Tgx101TypingLine {
         if (x == 0) wavePath.moveTo(x, yy); else wavePath.lineTo(x, yy);
       }
       wavePaint.setStyle(Paint.Style.STROKE);
-      wavePaint.setStrokeWidth(Screen.dp(1.5f));
+      wavePaint.setStrokeWidth(thin);
       wavePaint.setStrokeJoin(Paint.Join.ROUND);
-      wavePaint.setColor(ColorUtils.alphaColor(Math.min(1f, .35f + level * 1.6f) * (Theme.isDark() ? .9f : 1f), accent()));
+      wavePaint.setColor(Theme.separatorColor());
       c.drawPath(wavePath, wavePaint);
     }
   }

@@ -1131,7 +1131,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       @Override
       public boolean onTouchEvent (MotionEvent ev) {
         if (tgx101InputPlayer != null && tgx101InputPlayer.onFieldTouch(ev)) return true;
-        if (Settings.instance().tgx101MorseLine() && !floatingLook) {
+        if (Tgx101TypingLine.Morse.ENABLED && Settings.instance().tgx101MorseLine() && !floatingLook) {
           switch (ev.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
               if (ev.getY() >= getHeight() - getPaddingBottom() - Screen.dp(10f)) {
