@@ -382,7 +382,7 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsViewHolder> {
     switch (viewType) {
       case VIEW_TYPE_CHAT: {
         ((ChatView) holder.itemView).attach();
-        if (context.tgx101PageHidden() || context.context().isPasscodeShowing()) ((ChatView) holder.itemView).setAnimationsDisabled(true); // TGx101: a folder page not on screen, or under the passcode screen
+        ((ChatView) holder.itemView).tgx101SetHeld(context.tgx101PageHidden() || context.context().isPasscodeShowing()); // TGx101: a folder page not on screen, or under the passcode screen
         break;
       }
       case VIEW_TYPE_INFO: {

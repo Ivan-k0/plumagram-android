@@ -236,6 +236,13 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
     this.isSelected.setValue(isSelected, animated);
   }
 
+  /** TGx101: a row not seen (its folder page beside the screen, the passcode screen over it) holds its gifs still */
+  public void tgx101SetHeld (boolean held) {
+    emojiStatusReceiver.tgx101SetHeld(held);
+    textMediaReceiver.tgx101SetHeld(held);
+    reactionsReceiver.tgx101SetHeld(held);
+  }
+
   public void setAnimationsDisabled (boolean disabled) {
     avatarReceiver.setAnimationDisabled(disabled);
     textMediaReceiver.setAnimationDisabled(disabled);

@@ -275,6 +275,16 @@ public class GifReceiver implements GifWatcher, Runnable, Receiver {
     // TODO
   }
 
+  private boolean tgx101Held;
+
+  /** TGx101 (journal 2026-11-15): held (a chat row off screen, under the lock), the gif no longer asks its view to redraw */
+  public void tgx101SetHeld (boolean held) {
+    if (tgx101Held != held) {
+      tgx101Held = held;
+      if (!held) invalidate();
+    }
+  }
+
   @Override
   public boolean isInsideContent (float x, float y, int emptyWidth, int emptyHeight) {
     if (file != null || (emptyWidth != 0 && emptyHeight != 0)) {
@@ -572,6 +582,7 @@ public class GifReceiver implements GifWatcher, Runnable, Receiver {
 
   @Override
   public void invalidate () {
+    if (tgx101Held) return;
     if (view != null && !(tgx101LimitedByListener && updateListener != null)) {
       view.invalidate(getLeft(), getTop(), getRight(), getBottom());
     }

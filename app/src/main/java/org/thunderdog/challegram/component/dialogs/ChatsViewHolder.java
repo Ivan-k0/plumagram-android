@@ -95,7 +95,8 @@ public class ChatsViewHolder extends RecyclerView.ViewHolder {
         view.setPreviewActionListProvider(actionListProvider);
         view.setLongPressInterceptor(parentController);
         if (parentController != null) {
-          view.setAnimationsDisabled(parentController.isLaunching() || parentController.tgx101PageHidden() || parentController.context().isPasscodeShowing());
+          view.setAnimationsDisabled(parentController.isLaunching());
+          view.tgx101SetHeld(parentController.tgx101PageHidden() || parentController.context().isPasscodeShowing());
           view.setOnClickListener(parentController);
           view.setOnLongClickListener(parentController);
         } else {

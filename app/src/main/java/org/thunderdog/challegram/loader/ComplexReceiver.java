@@ -232,7 +232,9 @@ public class ComplexReceiver implements Destroyable, InvalidateDelegate {
   }
 
   public GifReceiver getGifReceiver (long key) {
-    return getReceiver(gifReceivers, view, updateListener, isAttached, animationsDisabled, key, TYPE_GIF);
+    GifReceiver gif = getReceiver(gifReceivers, view, updateListener, isAttached, animationsDisabled, key, TYPE_GIF);
+    if (tgx101Held) gif.tgx101SetHeld(true);
+    return gif;
   }
 
   public AvatarReceiver getAvatarReceiver (long key) {
@@ -242,6 +244,16 @@ public class ComplexReceiver implements Destroyable, InvalidateDelegate {
   private boolean isAttached = true;
 
   private boolean animationsDisabled;
+
+  private boolean tgx101Held;
+
+  /** TGx101: the gifs in it stop asking for redraws (a chat row off screen or under the lock) */
+  public void tgx101SetHeld (boolean held) {
+    if (this.tgx101Held != held) {
+      this.tgx101Held = held;
+      for (int i = 0; i < gifReceivers.size(); i++) gifReceivers.valueAt(i).tgx101SetHeld(held);
+    }
+  }
 
   public void setAnimationDisabled (boolean animationsDisabled) {
     if (this.animationsDisabled != animationsDisabled) {

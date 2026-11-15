@@ -1269,7 +1269,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       for (int i = 0; i < chatsView.getChildCount(); i++) {
         android.view.View v = chatsView.getChildAt(i);
         if (v instanceof org.thunderdog.challegram.component.dialogs.ChatView) {
-          ((org.thunderdog.challegram.component.dialogs.ChatView) v).setAnimationsDisabled(hidden);
+          ((org.thunderdog.challegram.component.dialogs.ChatView) v).tgx101SetHeld(hidden || context.isPasscodeShowing());
         }
       }
     }
