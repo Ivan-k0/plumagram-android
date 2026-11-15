@@ -1144,13 +1144,25 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   public void onPageScrolled (int position, int actualPosition, float actualPositionOffset, int actualPositionOffsetPixels) {
     super.onPageScrolled(position, actualPosition, actualPositionOffset, actualPositionOffsetPixels);
     tgx101UpdateVeil();
+    if (actualPositionOffset == 0f) tgx101PausePagesBeside(position); // settled: a page made beside it since is held too
     if (Config.CHAT_FOLDERS_HIDE_BOTTOM_BAR_ON_SCROLL && displayTabsAtBottom()) {
       showBottomBar();
     }
   }
 
+  // TGx101: only the page on screen animates its chat rows (see ChatsController#tgx101SetPageHidden)
+  private void tgx101PausePagesBeside (int current) {
+    androidx.collection.SparseArrayCompat<ViewController<?>> all = getAllCachedControllers();
+    if (all == null) return;
+    for (int i = 0; i < all.size(); i++) {
+      ViewController<?> c = all.valueAt(i);
+      if (c instanceof ChatsController) ((ChatsController) c).tgx101SetPageHidden(all.keyAt(i) != current);
+    }
+  }
+
   @Override
   public void onPageSelected (int position, int actualPosition) {
+    tgx101PausePagesBeside(position);
     if (!inSearchMode()) {
       composeWrap.show();
     }

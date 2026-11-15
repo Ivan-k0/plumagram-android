@@ -1252,6 +1252,28 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     }
   }
 
+  // TGx101 (user 2026-11-15 «у меня на экране все статично»; journal: an animated emoji status on the next folder's
+  // page, laid out beside the screen, kept the list at 38–70 % of a core): a folder page not on screen holds its rows'
+  // animations still; they go on when the page is shown
+  private boolean tgx101PageHidden;
+
+  public boolean tgx101PageHidden () {
+    return tgx101PageHidden;
+  }
+
+  public void tgx101SetPageHidden (boolean hidden) {
+    if (tgx101PageHidden == hidden) return;
+    tgx101PageHidden = hidden;
+    if (chatsView != null) {
+      for (int i = 0; i < chatsView.getChildCount(); i++) {
+        android.view.View v = chatsView.getChildAt(i);
+        if (v instanceof org.thunderdog.challegram.component.dialogs.ChatView) {
+          ((org.thunderdog.challegram.component.dialogs.ChatView) v).setAnimationsDisabled(hidden);
+        }
+      }
+    }
+  }
+
   public boolean isLaunching () {
     return initializationTime == 0 || SystemClock.uptimeMillis() - initializationTime <= 1000l;
   }
