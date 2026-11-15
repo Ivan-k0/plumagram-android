@@ -2270,6 +2270,27 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       drawContent(view, c, pContentX, pContentY, pContentMaxWidth);
     }
 
+    // TGx101 (user 2026-11-15 «подсветка цитат внутри пузыря так и не заработала»): the quoted words are lit here, over
+    // the bubble — they were drawn with the wave in drawBackground, which is the row's background under this view, so
+    // the bubble's own fill covered them and nothing was seen
+    if (highlightFactor != 0f && tgx101QuoteText != null) {
+      if (tgx101WaveStart < 0) tgx101WaveStart = android.os.SystemClock.uptimeMillis();
+      long quoteElapsed = android.os.SystemClock.uptimeMillis() - tgx101WaveStart;
+      if (tgx101DrawQuoteHighlight(c, highlightFactor, quoteElapsed)) {
+        if (!tgx101QuoteSeen) {
+          tgx101QuoteSeen = true;
+          org.thunderdog.challegram.Tgx101Diag.mark("jump: the quoted words are drawn in the message");
+        }
+        if (quoteElapsed < 1400) view.postInvalidateOnAnimation();
+      } else {
+        org.thunderdog.challegram.Tgx101Diag.mark("jump: the quote is not found in the message's text — the whole message flashes");
+        tgx101QuoteText = null; // the usual flash + wave
+        tgx101WaveStart = -1;
+        view.invalidate();
+        if (view.getParent() instanceof View) ((View) view.getParent()).invalidate(); // the wave is in the row's background
+      }
+    }
+
     // TGx101: the jump flash over the bubble and its content — together with the wave in drawHighlight
     // (user 2026-10-05: «верни подсвечивание сообщения при переходе + к волне»)
     if (hasBubble && tgx101Journal() && !isOutgoing()) {
@@ -7431,7 +7452,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   protected @Nullable String tgx101QuoteText;
   protected int tgx101QuotePosition;
 
+  private boolean tgx101QuoteSeen;
+
   public void tgx101SetHighlightedQuote (@Nullable String text, int position) {
+    tgx101QuoteSeen = false;
     tgx101QuoteText = StringUtils.isEmpty(text) ? null : text;
     tgx101QuotePosition = position;
   }
@@ -7536,19 +7560,13 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   public void drawHighlight (View view, Canvas c) {
     if (highlightFactor == 0f || tgx101WaveStart == 0) return;
+    if (tgx101QuoteText != null) return; // the quoted words only: lit in draw(), over the bubble
     if (tgx101WaveStart < 0) {
       // the wave starts when the message is actually drawn — a message loaded off screen (a reply to a photo far
       // above, user 2026-10-05) had its wave over before it scrolled in, only the flash was left
       tgx101WaveStart = android.os.SystemClock.uptimeMillis();
     }
     long elapsed = android.os.SystemClock.uptimeMillis() - tgx101WaveStart;
-    if (tgx101QuoteText != null) {
-      if (tgx101DrawQuoteHighlight(c, highlightFactor, elapsed)) {
-        if (elapsed < 1400) view.postInvalidateOnAnimation();
-        return;
-      }
-      tgx101QuoteText = null; // not found in the text: the usual flash + wave
-    }
     if (elapsed >= TGX101_WAVE_DURATION + 250) {
       return;
     }
