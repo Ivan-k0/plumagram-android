@@ -190,6 +190,23 @@ public final class Tgx101OwnAi {
     e.apply();
   }
 
+  /**
+   * https anywhere; plain http only to this very phone and only for the person's own address. The host is compared
+   * whole: by its beginning «http://localhost.example.com» or «http://127.0.0.1@example.com» passed, and on Android
+   * below 7 the key would have gone there unencrypted
+   */
+  private static boolean addressAllowed (int providerId, String base) {
+    try {
+      java.net.URI uri = new java.net.URI(base);
+      String scheme = uri.getScheme(), host = uri.getHost();
+      if ("https".equalsIgnoreCase(scheme)) return true; // any host the person gave: it goes encrypted
+      if (host == null || uri.getUserInfo() != null) return false;
+      return "http".equalsIgnoreCase(scheme) && providerId == PROVIDER_CUSTOM && ("localhost".equalsIgnoreCase(host) || "127.0.0.1".equals(host));
+    } catch (Throwable t) {
+      return false;
+    }
+  }
+
   private static @Nullable String key (int providerId) {
     String stored = secrets().getString("k" + providerId, null);
     return stored != null ? decrypt(stored) : null;
@@ -419,7 +436,7 @@ public final class Tgx101OwnAi {
     String base = id == PROVIDER_CUSTOM ? customUrl() : p.baseUrl;
     if (base.endsWith("/")) base = base.substring(0, base.length() - 1);
     if (TextUtils.isEmpty(base)) throw new IllegalStateException("no address");
-    if (!base.startsWith("https://") && !(id == PROVIDER_CUSTOM && (base.startsWith("http://localhost") || base.startsWith("http://127.0.0.1")))) {
+    if (!addressAllowed(id, base)) {
       throw new IllegalStateException(org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101OwnAiHttpsOnly));
     }
     java.util.List<ModelInfo> list = new java.util.ArrayList<>();
@@ -555,7 +572,7 @@ public final class Tgx101OwnAi {
     if (base.endsWith("/")) base = base.substring(0, base.length() - 1);
     if (TextUtils.isEmpty(base) || TextUtils.isEmpty(model)) throw new IllegalStateException("no address or model");
     // plain http only to this very phone (an AI running on it); anything else goes encrypted
-    if (!base.startsWith("https://") && !(id == PROVIDER_CUSTOM && (base.startsWith("http://localhost") || base.startsWith("http://127.0.0.1")))) {
+    if (!addressAllowed(id, base)) {
       throw new IllegalStateException(org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101OwnAiHttpsOnly));
     }
 
