@@ -319,8 +319,18 @@ public class Tgx101SettingsSearch extends ViewController<Void> {
   private static final String KEY_RECENT = "tgx101_settings_search_recent";
   private static final int RECENT_MAX = 9;
 
+  // (user 2026-11-15 «в поиске уберём историю запросов, простыня какая-то»): no list of past searches — an empty
+  // field shows the hint only; what was kept before is wiped. The code of the list stays
+  private static final boolean RECENT_ENABLED = false;
+
   private static List<String[]> recent () {
     List<String[]> out = new ArrayList<>();
+    if (!RECENT_ENABLED) {
+      if (org.thunderdog.challegram.unsorted.Settings.instance().pmc().getString(KEY_RECENT, null) != null) {
+        org.thunderdog.challegram.unsorted.Settings.instance().pmc().remove(KEY_RECENT);
+      }
+      return out;
+    }
     String raw = org.thunderdog.challegram.unsorted.Settings.instance().pmc().getString(KEY_RECENT, null);
     if (raw == null || raw.isEmpty()) return out;
     for (String line : raw.split("\n")) {
@@ -331,6 +341,7 @@ public class Tgx101SettingsSearch extends ViewController<Void> {
   }
 
   private void remember (Entry e) {
+    if (!RECENT_ENABLED) return;
     String query = field != null ? field.getText().toString().trim() : "";
     if (query.isEmpty()) return;
     String clean = query.replace('\t', ' ').replace('\n', ' ');

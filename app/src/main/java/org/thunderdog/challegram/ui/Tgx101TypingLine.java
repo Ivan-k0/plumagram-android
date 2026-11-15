@@ -131,7 +131,10 @@ public final class Tgx101TypingLine {
     boolean sound = Sound.live(host, false);
     float room = host.getHeight() - y;
     // recording with no room under the line: the recording panel draws the wave over its own bottom edge
-    if (sound && Sound.recording() && room < Screen.dp(10f)) sound = false;
+    // (user 2026-11-15 «когда пишу голосовое с открытой клавиатурой, линии звука не должны пробиваться снизу»): with
+    // the keyboard up the wave swinging down came out from under the panel, over the keyboard's edge — there too the
+    // panel draws it, upwards
+    if (sound && Sound.recording() && (room < Screen.dp(10f) || keyboardUp())) sound = false;
     paint.setColor(Theme.separatorColor());
     // (user 2026-11-14 23:46 «при открытой клавиатуре внизу поля ввода не должна быть видна полоса»): while typing — the
     // plain line, the word only at rest. By the keyboard, not the field's focus: a chat keeps the cursor in the field
@@ -160,7 +163,9 @@ public final class Tgx101TypingLine {
     // letters a message holds, square-rooted so the first words show at once; orange near the limit, red at it
     // (user 2026-11-14 «в простое полоса должна быть только рваной»): the length and the pulse only while the field is
     // being typed in; at rest just the torn thin line
-    boolean active = field.isFocused();
+    // (user 2026-11-15 «синюю полосу (сколько написано) в простое нужно убрать»): a chat keeps the cursor in the field
+    // with the keyboard down, so the fill stayed over a text not being typed — only with the keyboard up
+    boolean active = field.isFocused() && keyboardUp();
     if (!active) energy = kick = 0f;
     float fill = active ? (float) Math.sqrt(Math.min(1f, length / 4096f)) : 0f;
     boolean easing = Math.abs(fill - shownFill) > .002f;
@@ -509,7 +514,12 @@ public final class Tgx101TypingLine {
       return wanted;
     }
 
+    private static volatile long liveAt; // the last time a view drew the line alive: it asks for its next frame itself
+
     private static void wake (java.lang.ref.WeakReference<View> ref) {
+      // only to start it: a line already alive keeps its own pace — every piece of sound asking for one more frame
+      // (20 a second) would break the cap below
+      if (SystemClock.uptimeMillis() - liveAt < 200) return;
       View view = ref != null ? ref.get() : null;
       if (view != null) view.postInvalidateOnAnimation();
     }
@@ -578,7 +588,11 @@ public final class Tgx101TypingLine {
         }
         return false;
       }
-      view.postInvalidateOnAnimation();
+      liveAt = now;
+      // (user 2026-11-15 «не залипает ли процессор с новой линией?»): music can play for hours with a chat open — the
+      // line is redrawn 30 times a second then, not on every frame of a 120 Hz screen; a recording is short and
+      // follows the voice at the screen's own rate
+      if (recording()) view.postInvalidateOnAnimation(); else view.postInvalidateDelayed(33);
       return true;
     }
 
@@ -642,6 +656,14 @@ public final class Tgx101TypingLine {
      * navigation buttons) — while recording the wave swings up only and is drawn by the recording panel itself, over
      * its bottom edge: the panel lies on the field down to the line
      */
+    public static boolean keyboardUp (View view) {
+      try {
+        return org.thunderdog.challegram.tool.UI.getContext(view.getContext()).isKeyboardVisible();
+      } catch (Throwable t) {
+        return false;
+      }
+    }
+
     public static void drawOverPanel (Canvas c, View panel, float bottom, int w) {
       if (!recording() && tint(SystemClock.uptimeMillis()) <= 0f) return;
       if (!live(panel, true)) return;

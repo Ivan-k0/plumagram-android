@@ -1783,6 +1783,10 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
   @Override
   protected void onDraw (Canvas c) {
     final int x = getPaddingLeft() + Screen.dp(placeholderIcon != null ? 20 : 0) + org.thunderdog.challegram.widget.Tgx101CursorDrawable.hintRoom(); // the cursor stands before it
+    // TGx101 (user 2026-11-15 «в поле пропало "Сообщение", когда пустое»; back after leaving the chat and coming in
+    // again): the hint is switched by the text's changes only — a text emptied some way that tells no one left the
+    // field empty with no hint. An empty field always has it
+    if (!showPlaceholder.getValue() && length() == 0) showPlaceholder.setValue(true, false);
     final float alpha = showPlaceholder.getFloatValue();
     final int offset = (int) (hasSubPlaceholder.getFloatValue() * (getTextSize() / 18 * 8));
     final int baseline = getBaseline();
