@@ -673,11 +673,12 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
   @Override
   public String tgx101Describe () {
     if (chat == null) return "empty";
-    return "chat " + chat.getChatId() + (chat.getEmojiStatus() != null ? ", has an emoji status" : "") + (tgx101LastCaller != null ? ", asked by " + tgx101LastCaller : "") + tgx101ResetCallers();
+    return "chat " + chat.getChatId() + (chat.getEmojiStatus() != null ? ", has an emoji status" : "") + ", drawn " + tgx101Draws + "×" + (tgx101LastCaller != null ? ", asked by " + tgx101LastCaller : "") + tgx101ResetCallers();
   }
 
   private String tgx101ResetCallers () {
     tgx101Callers.clear();
+    tgx101Draws = 0;
     tgx101LastCaller = null;
     return "";
   }
@@ -688,11 +689,41 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
   @Override
   public void invalidate () {
     super.invalidate();
+    tgx101CountCaller("");
+  }
+
+  @Override
+  public void invalidate (android.graphics.Rect dirty) {
+    super.invalidate(dirty);
+    tgx101CountCaller("rect ");
+  }
+
+  @Override
+  public void invalidate (int l, int t, int r, int b) {
+    super.invalidate(l, t, r, b);
+    tgx101CountCaller("ltrb ");
+  }
+
+  @Override
+  public void invalidateDrawable (@androidx.annotation.NonNull android.graphics.drawable.Drawable drawable) {
+    super.invalidateDrawable(drawable);
+    tgx101CountCaller("drawable ");
+  }
+
+  @Override
+  public void postInvalidateOnAnimation () {
+    super.postInvalidateOnAnimation();
+    tgx101CountCaller("onAnimation ");
+  }
+
+  private int tgx101Draws;
+
+  private void tgx101CountCaller (String kind) {
     // diag: who asks this row to redraw, counted by caller (two frames of the stack below this one)
     if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && tgx101Callers.size() < 32) {
       StackTraceElement[] st = new Throwable().getStackTrace();
-      StringBuilder b = new StringBuilder();
-      for (int i = 1; i < Math.min(st.length, 4); i++) {
+      StringBuilder b = new StringBuilder(kind);
+      for (int i = 2; i < Math.min(st.length, 5); i++) {
         if (b.length() > 0) b.append(" < ");
         b.append(st[i].getClassName().replace("org.thunderdog.challegram.", "")).append('.').append(st[i].getMethodName()).append(':').append(st[i].getLineNumber());
       }
@@ -888,6 +919,7 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
 
   @Override
   protected void onDraw (Canvas c) {
+    tgx101Draws++;
     if (chat == null) {
       return;
     }
