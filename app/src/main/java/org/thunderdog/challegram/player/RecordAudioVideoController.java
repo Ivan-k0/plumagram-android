@@ -1723,7 +1723,7 @@ public class RecordAudioVideoController implements
   public void onAmplitude (float amplitude) {
     if (isOpen() && currentRecording != RECORD_MODE_NONE) {
       if (startTime != 0) {
-        org.thunderdog.challegram.ui.Tgx101TypingLine.Sound.push(Math.min(1f, amplitude / 150f)); // TGx101: the field's line follows the voice
+        org.thunderdog.challegram.ui.Tgx101TypingLine.Sound.pushRecording(Math.min(1f, amplitude / 150f)); // TGx101: the field's line follows the voice
         recordBackground.setVolume(amplitude, true);
       } else {
         startTimers(SystemClock.uptimeMillis());

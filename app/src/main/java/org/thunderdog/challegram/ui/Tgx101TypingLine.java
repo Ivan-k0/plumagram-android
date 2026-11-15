@@ -134,7 +134,7 @@ public final class Tgx101TypingLine {
     // plain line, the word only at rest. By the keyboard, not the field's focus: a chat keeps the cursor in the field
     // with the keyboard down, and the word never showed (user 2026-11-15 «морзе не работает?»)
     if (sound > 0f) {
-      Sound.draw(c, y, w, sound, thin);
+      Sound.draw(c, y, w, sound, thin, host.getHeight() - y);
     } else if (Morse.ENABLED && org.thunderdog.challegram.unsorted.Settings.instance().tgx101MorseLine() && !keyboardUp()) {
       Morse.draw(c, paint, tdlib, host, 0, w, y, thin);
     } else {
@@ -512,6 +512,14 @@ public final class Tgx101TypingLine {
       if (host != null) host.postInvalidateOnAnimation();
     }
 
+    private static volatile long recordingAt;
+
+    /** the microphone's level while a voice note is being recorded */
+    public static void pushRecording (float level) {
+      recordingAt = SystemClock.uptimeMillis();
+      push(level);
+    }
+
     /** the level to show in {@code delay} ms */
     public static void pushAt (float level, long delay) {
       if (delay <= 0) push(level);
@@ -529,22 +537,51 @@ public final class Tgx101TypingLine {
       shown += (to - shown) * Math.min(1f, dt / (to > shown ? 60f : 240f));
       if (shown < .012f && to == 0f) {
         shown = 0f;
-        return 0f;
+        // the rings already on their way run out to the ends first (about a second and a half)
+        if (now - at > 250 + 1800) {
+          java.util.Arrays.fill(history, 0f);
+          historyAt = 0;
+          return 0f;
+        }
+        host.postInvalidateOnAnimation();
+        return .0001f;
       }
       host.postInvalidateOnAnimation();
       return shown;
     }
 
-    static void draw (Canvas c, float y, int w, float level, float thin) {
+    // (user 2026-11-15, mockup «Волна под полем ввода», variant В «От середины»): each loud moment runs from the
+    // middle of the line to its ends, like rings on water — the level as it was a moment ago stands further out
+    private static final int HISTORY = 160;
+    private static final float[] history = new float[HISTORY]; // history[i] — the level i steps of 16 ms ago
+    private static long historyAt;
+
+    private static void remember (float level) {
+      long now = SystemClock.uptimeMillis();
+      int steps = historyAt == 0 ? 1 : (int) Math.min(HISTORY, (now - historyAt) / 16);
+      if (steps <= 0) return;
+      historyAt = historyAt == 0 || steps == HISTORY ? now : historyAt + steps * 16L;
+      System.arraycopy(history, 0, history, steps, HISTORY - steps);
+      for (int i = 0; i < steps; i++) history[i] = level;
+    }
+
+    static void draw (Canvas c, float y, int w, float level, float thin, float roomBelow) {
+      remember(level);
+      // (phone check 2026-11-15 17:34): the recording panel lies over the field down to the line and hid the wave's upper
+      // half — while recording, with room under the line, the wave swings down from the line only
+      boolean down = SystemClock.uptimeMillis() - recordingAt < 2500 && roomBelow >= Screen.dp(10f);
       float t = SystemClock.uptimeMillis() / 1000f;
-      float amp = Screen.dp(.8f) + Screen.dp(5f) * level;
-      float step = Screen.dp(5f);
-      float l1 = Screen.dp(74f), l2 = Screen.dp(41f), l3 = Screen.dp(23f);
+      float amp = Screen.dp(6f);
+      float step = Screen.dp(3f), perStep = Screen.dp(2.6f), length = Screen.dp(30f);
+      float mid = w / 2f;
       wavePath.reset();
       for (float x = 0; x <= w; x += step) {
-        float edge = (float) Math.sin(Math.PI * x / w); // still at both ends
-        double a = Math.sin(2 * Math.PI * x / l1 - t * 5.3) * .5 + Math.sin(2 * Math.PI * x / l2 + t * 3.9) * .32 + Math.sin(2 * Math.PI * x / l3 - t * 8.1) * .18 * level;
-        float yy = y + thin / 2f + (float) a * amp * edge;
+        float d = Math.abs(x - mid);
+        float past = history[Math.min(HISTORY - 1, Math.round(d / perStep))];
+        float fade = 1f - d / mid * .75f; // lower towards the ends
+        fade *= Math.min(1f, d / Screen.dp(14f)); // and still in the very middle: the two halves met at a sharp point
+        float swing = (float) Math.sin(2 * Math.PI * d / length - t * 7.0);
+        float yy = y + thin / 2f + (down ? (swing + 1f) * .75f : swing) * past * amp * fade;
         if (x == 0) wavePath.moveTo(x, yy); else wavePath.lineTo(x, yy);
       }
       wavePaint.setStyle(Paint.Style.STROKE);
@@ -658,7 +695,8 @@ public final class Tgx101TypingLine {
     }
 
     /** the thin line from left to right with the sitting's gaps (soft ends, a few dp wide) */
-    static final boolean ENABLED = true;
+    // (user 2026-11-15 «да, сделать сплошной»): no gaps for the time in the app any more — a plain whole line; code kept
+    static final boolean ENABLED = false;
 
     static void drawLine (Canvas c, Paint paint, float left, float right, float y, float thin) {
       if (!ENABLED) {
