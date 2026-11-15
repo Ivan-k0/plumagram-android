@@ -179,9 +179,25 @@ public class RecordButton extends View implements FactorAnimator.Target, ClickHe
     }
   }
 
+  // TGx101 (user 2026-11-15, mockup «Запись голосового: кнопка и линия», «2»; the docked field only — the floating one
+  // keeps the filled halo): a thin ring round the button that widens with the voice, instead of the filled circle
+  private boolean tgx101Ring;
+
+  public void tgx101SetRing (boolean ring) {
+    if (tgx101Ring != ring) {
+      tgx101Ring = ring;
+      invalidate();
+    }
+  }
+
   @Override
   public void onDraw (Canvas c) {
     int color = Theme.getColor(ColorId.circleButtonRegular);
+    if (tgx101Ring) {
+      float loud = Math.min(1f, volume);
+      c.drawCircle(center, center, (radius + Math.max(Screen.dp(4f), radiusAdd * volume)) * expand,
+        Paints.getProgressPaint(ColorUtils.alphaColor((.25f + .5f * loud) * expand, color), Screen.dp(1.5f)));
+    } else
     c.drawCircle(center, center, (radius + radiusAdd * volume) * expand, Paints.fillingPaint(ColorUtils.alphaColor(.3f, color)));
     c.drawCircle(center, center, radius * expand, Paints.fillingPaint(color));
   }

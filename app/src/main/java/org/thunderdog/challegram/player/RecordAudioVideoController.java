@@ -104,6 +104,7 @@ public class RecordAudioVideoController implements
   private RecordBackgroundView videoBackgroundView;
   private ShadowView videoTopShadowView, videoBottomShadowView;
   private RecordButton recordBackground;
+  private boolean tgx101WaveOverPanel;
   private VoiceVideoButtonView voiceVideoButtonView;
   private RecordLockView lockView;
   private CameraControlButton switchCameraButton;
@@ -260,6 +261,15 @@ public class RecordAudioVideoController implements
         @Override
         public boolean onTouchEvent (MotionEvent event) {
           return Views.isValid(this);
+        }
+
+        // TGx101: with no room under the field's line the voice's wave is drawn here, over the panel's bottom edge
+        @Override
+        protected void dispatchDraw (android.graphics.Canvas c) {
+          super.dispatchDraw(c);
+          if (tgx101WaveOverPanel && !tgx101OverlayFloating && !recordingVideo) {
+            org.thunderdog.challegram.ui.Tgx101TypingLine.Sound.drawOverPanel(c, this, getHeight(), getWidth());
+          }
         }
       };
       this.inputOverlayView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(49f), Gravity.BOTTOM));
@@ -797,6 +807,7 @@ public class RecordAudioVideoController implements
       // TGx101 (user 2026-10-05): our input row is taller than the 49dp recording bar — its lower part stayed visible
       // under the bar as a grey strip. The bar now has the row's height (without the bottom gap below it).
       int rowHeight = view.getHeight() - view.getPaddingBottom();
+      tgx101WaveOverPanel = view.getPaddingBottom() < Screen.dp(10f);
       ViewGroup.LayoutParams lp = inputOverlayView.getLayoutParams();
       int want = Math.max(Screen.dp(49f), rowHeight);
       // TGx101 (user 2026-10-07 19:14, mockup «Запись-голосового» 1): with the floating field the bar is the same capsule —
@@ -1723,7 +1734,10 @@ public class RecordAudioVideoController implements
   public void onAmplitude (float amplitude) {
     if (isOpen() && currentRecording != RECORD_MODE_NONE) {
       if (startTime != 0) {
-        org.thunderdog.challegram.ui.Tgx101TypingLine.Sound.pushRecording(Math.min(1f, amplitude / 150f)); // TGx101: the field's line follows the voice
+        if (!recordingVideo && !tgx101OverlayFloating) { // TGx101: the docked field's line follows the voice; the floating field stays as it was
+          org.thunderdog.challegram.ui.Tgx101TypingLine.Sound.pushRecording(Math.min(1f, amplitude / 150f));
+        }
+        recordBackground.tgx101SetRing(!tgx101OverlayFloating);
         recordBackground.setVolume(amplitude, true);
       } else {
         startTimers(SystemClock.uptimeMillis());

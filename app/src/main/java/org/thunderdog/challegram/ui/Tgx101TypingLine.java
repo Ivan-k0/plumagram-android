@@ -128,13 +128,18 @@ public final class Tgx101TypingLine {
     // sound; the thin line gives way to it and comes back when it is quiet
     // (user 2026-11-15 17:30 «полоса такая же серая как и сейчас, толще не становится»): the wave is the line itself,
     // bent — the same grey, the same thickness
-    float sound = Sound.shown(host);
+    boolean sound = Sound.live(host, false);
+    float room = host.getHeight() - y;
+    // recording with no room under the line: the recording panel draws the wave over its own bottom edge
+    if (sound && Sound.recording() && room < Screen.dp(10f)) sound = false;
     paint.setColor(Theme.separatorColor());
     // (user 2026-11-14 23:46 «при открытой клавиатуре внизу поля ввода не должна быть видна полоса»): while typing — the
     // plain line, the word only at rest. By the keyboard, not the field's focus: a chat keeps the cursor in the field
     // with the keyboard down, and the word never showed (user 2026-11-15 «морзе не работает?»)
-    if (sound > 0f) {
-      Sound.draw(c, y, w, sound, thin, host.getHeight() - y);
+    if (sound) {
+      // (phone check 2026-11-15 17:34): the recording panel lies over the field down to the line and hid the wave's upper
+      // half — while recording the wave swings down from the line only
+      Sound.draw(c, y, w, thin, Sound.recording() ? 1 : 0);
     } else if (Morse.ENABLED && org.thunderdog.challegram.unsorted.Settings.instance().tgx101MorseLine() && !keyboardUp()) {
       Morse.draw(c, paint, tdlib, host, 0, w, y, thin);
     } else {
@@ -480,9 +485,11 @@ public final class Tgx101TypingLine {
     private static volatile long at;
     private static volatile boolean wanted;
     private static volatile long wantedAt;
+    private static volatile long recordingAt; // the last level from the microphone
+    private static volatile long tintAt;      // when this recording's colour set out from the middle, 0 — not yet
     private static float shown;
     private static long shownAt;
-    private static java.lang.ref.WeakReference<View> hostRef;
+    private static java.lang.ref.WeakReference<View> hostRef, panelRef;
     private static final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
     private static final Paint wavePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private static final android.graphics.Path wavePath = new android.graphics.Path();
@@ -502,21 +509,30 @@ public final class Tgx101TypingLine {
       return wanted;
     }
 
+    private static void wake (java.lang.ref.WeakReference<View> ref) {
+      View view = ref != null ? ref.get() : null;
+      if (view != null) view.postInvalidateOnAnimation();
+    }
+
     /** from any thread */
     public static void push (float level) {
       if (!wanted()) return;
       target = Math.max(0f, Math.min(1f, level));
       at = SystemClock.uptimeMillis();
-      java.lang.ref.WeakReference<View> ref = hostRef;
-      View host = ref != null ? ref.get() : null;
-      if (host != null) host.postInvalidateOnAnimation();
+      wake(hostRef);
+      wake(panelRef);
     }
 
-    private static volatile long recordingAt;
-
-    /** the microphone's level while a voice note is being recorded */
+    /**
+     * the microphone's level while a voice note is being recorded. (user 2026-11-15 «во время записи голосового линия
+     * начинала перекрашиваться в цвет темы, в цвет микрофона. Как волна начинается с середины — так и окрашивается, с
+     * первых волн»): the first sound of a recording sends the colour out from the middle
+     */
     public static void pushRecording (float level) {
-      recordingAt = SystemClock.uptimeMillis();
+      long now = SystemClock.uptimeMillis();
+      if (now - recordingAt > 1500) tintAt = 0; // a new recording
+      recordingAt = now;
+      if (tintAt == 0 && level > .04f && wanted()) tintAt = now;
       push(level);
     }
 
@@ -526,28 +542,44 @@ public final class Tgx101TypingLine {
       else main.postDelayed(() -> push(level), delay);
     }
 
-    /** the level as drawn: rises fast, falls softly, gone a quarter of a second after the last sound */
-    static float shown (View host) {
-      java.lang.ref.WeakReference<View> ref = hostRef;
-      if (ref == null || ref.get() != host) hostRef = new java.lang.ref.WeakReference<>(host);
+    static boolean recording () {
+      return SystemClock.uptimeMillis() - recordingAt < 600;
+    }
+
+    /** how much of the recording's colour the line has: whole while recording, fading for a third of a second after */
+    private static float tint (long now) {
+      if (tintAt == 0) return 0f;
+      long since = now - recordingAt;
+      return since < 600 ? 1f : Math.max(0f, 1f - (since - 600) / 300f);
+    }
+
+    /**
+     * true — the line is alive now (a sound, its rings still running out, or a recording's colour) and is drawn by
+     * {@link #draw}; the view is asked for the next frame. The level rises fast and falls softly
+     */
+    static boolean live (View view, boolean panel) {
+      java.lang.ref.WeakReference<View> ref = panel ? panelRef : hostRef;
+      if (ref == null || ref.get() != view) {
+        ref = new java.lang.ref.WeakReference<>(view);
+        if (panel) panelRef = ref; else hostRef = ref;
+      }
       long now = SystemClock.uptimeMillis();
       float dt = shownAt != 0 ? Math.min(64, now - shownAt) : 16;
       shownAt = now;
       float to = now - at > 250 ? 0f : target;
       shown += (to - shown) * Math.min(1f, dt / (to > shown ? 60f : 240f));
-      if (shown < .012f && to == 0f) {
-        shown = 0f;
-        // the rings already on their way run out to the ends first (about a second and a half)
-        if (now - at > 250 + 1800) {
+      if (shown < .012f && to == 0f) shown = 0f;
+      // the rings already on their way run out to the ends first (about a second and a half)
+      boolean alive = at != 0 && (shown > 0f || now - at < 250 + 1800 || tint(now) > 0f);
+      if (!alive) {
+        if (historyAt != 0) {
           java.util.Arrays.fill(history, 0f);
           historyAt = 0;
-          return 0f;
         }
-        host.postInvalidateOnAnimation();
-        return .0001f;
+        return false;
       }
-      host.postInvalidateOnAnimation();
-      return shown;
+      view.postInvalidateOnAnimation();
+      return true;
     }
 
     // (user 2026-11-15, mockup «Волна под полем ввода», variant В «От середины»): each loud moment runs from the
@@ -565,12 +597,11 @@ public final class Tgx101TypingLine {
       for (int i = 0; i < steps; i++) history[i] = level;
     }
 
-    static void draw (Canvas c, float y, int w, float level, float thin, float roomBelow) {
-      remember(level);
-      // (phone check 2026-11-15 17:34): the recording panel lies over the field down to the line and hid the wave's upper
-      // half — while recording, with room under the line, the wave swings down from the line only
-      boolean down = SystemClock.uptimeMillis() - recordingAt < 2500 && roomBelow >= Screen.dp(10f);
-      float t = SystemClock.uptimeMillis() / 1000f;
+    /** @param way 0 — the wave swings both ways from the line, 1 — down only, -1 — up only */
+    static void draw (Canvas c, float y, int w, float thin, int way) {
+      remember(shown);
+      long now = SystemClock.uptimeMillis();
+      float t = now / 1000f;
       float amp = Screen.dp(6f);
       float step = Screen.dp(3f), perStep = Screen.dp(2.6f), length = Screen.dp(30f);
       float mid = w / 2f;
@@ -581,14 +612,41 @@ public final class Tgx101TypingLine {
         float fade = 1f - d / mid * .75f; // lower towards the ends
         fade *= Math.min(1f, d / Screen.dp(14f)); // and still in the very middle: the two halves met at a sharp point
         float swing = (float) Math.sin(2 * Math.PI * d / length - t * 7.0);
-        float yy = y + thin / 2f + (down ? (swing + 1f) * .75f : swing) * past * amp * fade;
+        float yy = y + thin / 2f + (way == 0 ? swing : way * (swing + 1f) * .75f) * past * amp * fade;
         if (x == 0) wavePath.moveTo(x, yy); else wavePath.lineTo(x, yy);
       }
       wavePaint.setStyle(Paint.Style.STROKE);
       wavePaint.setStrokeWidth(thin);
       wavePaint.setStrokeJoin(Paint.Join.ROUND);
-      wavePaint.setColor(Theme.separatorColor());
+      int grey = Theme.separatorColor();
+      wavePaint.setColor(grey);
+      float tint = tint(now);
+      if (tint > 0f) {
+        // the colour of the round recording button, running out from the middle at the rings' pace
+        int color = ColorUtils.fromToArgb(grey, Theme.getColor(ColorId.circleButtonRegular), tint);
+        float front = (now - tintAt) / 16f * perStep, soft = Screen.dp(26f);
+        if (front >= mid + soft) {
+          wavePaint.setColor(color);
+        } else {
+          float a = Math.max(0f, (mid - front - soft) / w), b = Math.max(a, (mid - front) / w);
+          float e = Math.min(1f, (mid + front + soft) / w), d = Math.min(e, (mid + front) / w);
+          wavePaint.setShader(new LinearGradient(0, 0, w, 0, new int[] {grey, color, color, grey}, new float[] {a, b, Math.max(b, d), Math.max(b, e)}, Shader.TileMode.CLAMP));
+        }
+      }
       c.drawPath(wavePath, wavePaint);
+      wavePaint.setShader(null);
+    }
+
+    /**
+     * (user 2026-11-15, mockup «Запись голосового: кнопка и линия», «Н»): a field with no room under it (three
+     * navigation buttons) — while recording the wave swings up only and is drawn by the recording panel itself, over
+     * its bottom edge: the panel lies on the field down to the line
+     */
+    public static void drawOverPanel (Canvas c, View panel, float bottom, int w) {
+      if (!recording() && tint(SystemClock.uptimeMillis()) <= 0f) return;
+      if (!live(panel, true)) return;
+      float thin = Math.max(1, Screen.dp(.5f));
+      draw(c, bottom - thin, w, thin, -1);
     }
   }
 
