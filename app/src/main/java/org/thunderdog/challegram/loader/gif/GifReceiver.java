@@ -567,9 +567,12 @@ public class GifReceiver implements GifWatcher, Runnable, Receiver {
   }
 
   @SuppressWarnings("deprecation")
+  /** TGx101: the update listener is a refresh-rate limiter that invalidates the view itself — no direct redraw here */
+  public boolean tgx101LimitedByListener;
+
   @Override
   public void invalidate () {
-    if (view != null) {
+    if (view != null && !(tgx101LimitedByListener && updateListener != null)) {
       view.invalidate(getLeft(), getTop(), getRight(), getBottom());
     }
     if (updateListener != null) {

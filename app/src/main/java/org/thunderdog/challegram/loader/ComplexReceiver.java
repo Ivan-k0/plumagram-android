@@ -68,6 +68,15 @@ public class ComplexReceiver implements Destroyable, InvalidateDelegate {
     return this;
   }
 
+  // TGx101 (journal 2026-11-15: an idle chat list at 70 % of a core, one row's animated emoji status redrawn 60 times
+  // a second): a gif under a refresh-rate limiter asks for redraws through the limiter only — it also invalidated
+  // its view by itself on every frame, so the 30 fps cap never held
+  private static void tgx101MarkLimited (Receiver receiver, @Nullable ComplexReceiverUpdateListener listener) {
+    if (receiver instanceof org.thunderdog.challegram.loader.gif.GifReceiver) {
+      ((org.thunderdog.challegram.loader.gif.GifReceiver) receiver).tgx101LimitedByListener = listener instanceof org.thunderdog.challegram.receiver.RefreshRateLimiter;
+    }
+  }
+
   private static <T extends Receiver> void setUpdateListener (LongSparseArray<T> receivers, ComplexReceiverUpdateListener listener) {
     if (listener != null) {
       for (int i = 0; i < receivers.size(); i++) {
@@ -75,10 +84,12 @@ public class ComplexReceiver implements Destroyable, InvalidateDelegate {
         receivers.valueAt(i).setUpdateListener(receiver ->
           listener.onRequestInvalidate(receiver, key)
         );
+        tgx101MarkLimited(receivers.valueAt(i), listener);
       }
     } else {
       for (int i = 0; i < receivers.size(); i++) {
         receivers.valueAt(i).setUpdateListener(null);
+        tgx101MarkLimited(receivers.valueAt(i), null);
       }
     }
   }
@@ -204,6 +215,7 @@ public class ComplexReceiver implements Destroyable, InvalidateDelegate {
         updateListener.onRequestInvalidate(r, key)
       );
     }
+    tgx101MarkLimited(receiver, updateListener);
     target.append(key, receiver);
     return receiver;
   }
