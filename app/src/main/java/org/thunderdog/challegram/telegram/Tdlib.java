@@ -10121,7 +10121,11 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         break;
       }
       case TdApi.UpdateMessageSendSucceeded.CONSTRUCTOR: {
-        org.thunderdog.challegram.ui.Tgx101TypingLine.Morse.onSent(((TdApi.UpdateMessageSendSucceeded) update).message.chatId); // TGx101: the field line's word
+        { // TGx101: the field line's word counts the written words
+          TdApi.Message sent = ((TdApi.UpdateMessageSendSucceeded) update).message;
+          TdApi.FormattedText sentText = Td.textOrCaption(sent.content);
+          org.thunderdog.challegram.ui.Tgx101TypingLine.Morse.onSent(sent.chatId, sentText != null ? sentText.text : null);
+        }
         updateMessageSendSucceeded((TdApi.UpdateMessageSendSucceeded) update);
         break;
       }

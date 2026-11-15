@@ -212,16 +212,24 @@ public final class Tgx101TypingLine {
    */
   /**
    * TGx101 (user 2026-11-14, mockup «Морзе PLUMAGRAM в цветах собеседников»; a separate switch, off by default): the
-   * line's middle spells PLUMAGRAM in Morse, letter by letter as the day goes — time in the app (10 min a letter) and
-   * one's own sent messages (about 4.5 a letter) add up. A letter brought by messages takes the name colour of the chat
-   * written to most while it came; a letter brought by time stays grey. The word whole: a light runs along the line once
+   * line's middle spells a word in Morse, letter by letter as the day goes — time in the app and the words of one's own
+   * sent messages add up. (user 2026-11-15: the word is PLUMA FREEDOM, 12 letters; 30 minutes a letter, 45 written words
+   * a letter — it was PLUMAGRAM, 10 minutes and about 4.5 messages of any length.) A letter brought by words takes the
+   * name colour of the chat written to most while it came; a letter brought by time stays grey. The word whole: a light runs along the line once
    * and it stays the colour of the day's most written-to chat till midnight. The sides are plain grey. Holding the line
    * taps the word out by vibration only. Everything is counted on the phone.
    */
   public static final class Morse {
-    private static final String[] CODE = {".--.", ".-..", "..-", "--", ".-", "--.", ".-.", ".-", "--"};
+    // PLUMA FREEDOM
+    private static final String[] CODE = {".--.", ".-..", "..-", "--", ".-", "..-.", ".-.", ".", ".", "-..", "---", "--"};
+    private static final int SECOND_WORD = 5; // the letter the second word starts with: 7 units before it, not 3
+    private static final float LETTER_MS = 30 * 60_000f, LETTER_WORDS = 45f;
+    /** units of silence after letter i (none after the last) */
+    private static float gapAfter (int i) {
+      return i >= CODE.length - 1 ? 0f : i + 1 == SECOND_WORD ? 7f : 3f;
+    }
     private static final String KEY = "tgx101_morse_day";
-    private static int day = -1, messages, letters;
+    private static int day = -1, words, letters;
     private static final long[] letterChat = new long[CODE.length]; // 0 — brought by time
     private static final java.util.HashMap<Long, Integer> sinceLetter = new java.util.HashMap<>(), today = new java.util.HashMap<>();
     private static boolean swept;
@@ -231,7 +239,7 @@ public final class Tgx101TypingLine {
       int t = Session.todayKey();
       if (day == t) return;
       day = t;
-      messages = 0;
+      words = 0;
       letters = 0;
       swept = false;
       java.util.Arrays.fill(letterChat, 0);
@@ -242,7 +250,7 @@ public final class Tgx101TypingLine {
       try {
         String[] parts = saved.split("\\|", -1);
         if (Integer.parseInt(parts[0]) != t) return;
-        messages = Integer.parseInt(parts[1]);
+        words = Integer.parseInt(parts[1]);
         swept = "1".equals(parts[2]);
         String[] ls = parts[3].isEmpty() ? new String[0] : parts[3].split(",");
         letters = Math.min(CODE.length, ls.length);
@@ -257,7 +265,7 @@ public final class Tgx101TypingLine {
     }
 
     private static void save () {
-      StringBuilder b = new StringBuilder().append(day).append('|').append(messages).append('|').append(swept ? 1 : 0).append('|');
+      StringBuilder b = new StringBuilder().append(day).append('|').append(words).append('|').append(swept ? 1 : 0).append('|');
       for (int i = 0; i < letters; i++) {
         if (i > 0) b.append(',');
         b.append(letterChat[i]);
@@ -272,22 +280,42 @@ public final class Tgx101TypingLine {
       org.thunderdog.challegram.unsorted.Settings.instance().pmc().putString(KEY, b.toString());
     }
 
-    /** one's own message has gone (from any account) */
-    public static synchronized void onSent (long chatId) {
+    /** words of a text: runs of letters or digits («don't» and «что-то» are one word each) */
+    static int countWords (CharSequence text) {
+      if (text == null) return 0;
+      int count = 0;
+      boolean in = false;
+      for (int i = 0, n = text.length(); i < n; ) {
+        int cp = Character.codePointAt(text, i);
+        i += Character.charCount(cp);
+        if (Character.isLetterOrDigit(cp)) {
+          if (!in) count++;
+          in = true;
+        } else if (cp != '\'' && cp != '\u2019' && cp != '-') {
+          in = false;
+        }
+      }
+      return count;
+    }
+
+    /** one's own message has gone (from any account): its text's or caption's words count; one with no words adds nothing */
+    public static synchronized void onSent (long chatId, CharSequence text) {
       if (!org.thunderdog.challegram.unsorted.Settings.instance().tgx101MorseLine()) return;
+      int n = countWords(text);
+      if (n == 0) return;
       load();
-      messages++;
-      Integer n = sinceLetter.get(chatId);
-      sinceLetter.put(chatId, n == null ? 1 : n + 1);
+      words += n;
+      Integer since = sinceLetter.get(chatId);
+      sinceLetter.put(chatId, since == null ? n : since + n);
       Integer d = today.get(chatId);
-      today.put(chatId, d == null ? 1 : d + 1);
+      today.put(chatId, d == null ? n : d + n);
       advance();
       save();
     }
 
-    /** letters the day has earned so far: 10 minutes or ~4.5 messages each */
+    /** letters the day has earned so far: 30 minutes or 45 written words each */
     private static void advance () {
-      float units = Session.todayMs() / 600_000f + messages / 4.5f;
+      float units = Session.todayMs() / LETTER_MS + words / LETTER_WORDS;
       int earned = Math.min(CODE.length, (int) units);
       boolean changed = false;
       while (letters < earned) {
@@ -334,7 +362,7 @@ public final class Tgx101TypingLine {
       float units = 0;
       for (int i = 0; i < CODE.length; i++) {
         for (int j = 0; j < CODE[i].length(); j++) units += (CODE[i].charAt(j) == '.' ? 1f : 3f) + (j < CODE[i].length() - 1 ? 1f : 0f);
-        if (i < CODE.length - 1) units += 3f;
+        units += gapAfter(i);
       }
       // the word in the middle 60 %, the plain grey line at the sides
       float span = w * .6f, unit = span / units, from = left + (w - span) / 2f;
@@ -376,9 +404,9 @@ public final class Tgx101TypingLine {
         }
         if (!shown) { // not come yet: the line stays whole there
           paint.setColor(rest);
-          c.drawRect(letterStart, y, x + (i < CODE.length - 1 ? 3f * unit : 0f), y + thin, paint);
+          c.drawRect(letterStart, y, x + gapAfter(i) * unit, y + thin, paint);
         }
-        if (i < CODE.length - 1) x += 3f * unit;
+        x += gapAfter(i) * unit;
       }
       paint.setColor(rest);
       // the word just completed: a light runs along it once
@@ -395,14 +423,14 @@ public final class Tgx101TypingLine {
       }
     }
 
-    /** the word tapped out by vibration only: dot 70 ms, dash 210 ms; 70 ms between signs, 210 between letters */
+    /** the words tapped out by vibration only: dot 70 ms, dash 210 ms; 70 ms between signs, 210 between letters, 490 between the words */
     static void vibrate (android.content.Context context) {
       java.util.ArrayList<Long> pattern = new java.util.ArrayList<>();
       pattern.add(0L);
       for (int i = 0; i < CODE.length; i++) {
         for (int j = 0; j < CODE[i].length(); j++) {
           pattern.add(CODE[i].charAt(j) == '.' ? 70L : 210L);
-          pattern.add(j < CODE[i].length() - 1 ? 70L : 210L);
+          pattern.add(j < CODE[i].length() - 1 ? 70L : (long) (gapAfter(i) * 70f));
         }
       }
       pattern.remove(pattern.size() - 1);

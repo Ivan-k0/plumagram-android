@@ -4736,7 +4736,7 @@ public class Settings {
     pmc.putInt(KEY_TGX101_PLAYER_SEEK_STEP, seconds);
   }
 
-  /** TGx101 (user 2026-11-14): PLUMAGRAM in Morse on the field's line — its own switch, off by default */
+  /** TGx101 (user 2026-11-14): PLUMA FREEDOM in Morse on the field's line — its own switch, off by default */
   public boolean tgx101MorseLine () {
     return pmc.getBoolean("tgx101_morse_line", false);
   }
