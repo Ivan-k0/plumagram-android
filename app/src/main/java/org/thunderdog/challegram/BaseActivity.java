@@ -2476,6 +2476,14 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     if (this.isPasscodeShowing != isShowing) {
       this.isPasscodeShowing = isShowing;
       notifyBackPressAvailabilityChanged();
+      // TGx101 (journal 2026-11-15: an animated emoji status went on under the passcode screen, 38 % of a core): the
+      // chat list under the lock holds its animations; unlocked, the page on screen goes on
+      if (navigation != null) {
+        for (int i = 0; i < navigation.getStackSize(); i++) {
+          ViewController<?> c = navigation.getStack().get(i);
+          if (c instanceof org.thunderdog.challegram.ui.MainController) ((org.thunderdog.challegram.ui.MainController) c).tgx101HoldPages(isShowing);
+        }
+      }
       if (isShowing) {
         removeAllWindows();
       } else {

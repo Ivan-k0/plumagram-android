@@ -1150,6 +1150,11 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     }
   }
 
+  /** under the passcode screen every page holds still; unlocked, the one on screen goes on */
+  public void tgx101HoldPages (boolean hold) {
+    tgx101PausePagesBeside(hold ? -1 : getCurrentPagerItemPosition());
+  }
+
   // TGx101: only the page on screen animates its chat rows (see ChatsController#tgx101SetPageHidden)
   private void tgx101PausePagesBeside (int current) {
     androidx.collection.SparseArrayCompat<ViewController<?>> all = getAllCachedControllers();

@@ -1262,8 +1262,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   }
 
   public void tgx101SetPageHidden (boolean hidden) {
-    if (tgx101PageHidden == hidden) return;
+    boolean changed = tgx101PageHidden != hidden;
     tgx101PageHidden = hidden;
+    if (!changed && hidden) return; // un-hiding always walks the rows: some were made held under the passcode screen
     if (chatsView != null) {
       for (int i = 0; i < chatsView.getChildCount(); i++) {
         android.view.View v = chatsView.getChildAt(i);
