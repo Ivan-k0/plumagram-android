@@ -209,8 +209,8 @@ public class Tgx101MagixPreview extends View {
       c.drawText("😊", x, cy, emoji);
       x += Screen.dp(28f);
     }
-    // TGx101 «Полоска и пульс» shown live: the field types a line by itself, the length fills the line under it, the
-    // pulse speeds up with the typing, then it is «sent» and starts over
+    // TGx101 «Полоска и пульс» shown live: the field types a line by itself, the pulse under it speeds up with the
+    // typing, then it is «sent» and starts over
     boolean line = style != 0 && s.tgx101TypingLine();
     String demo = Lang.getString(R.string.Tgx101TypingLineDemo);
     long t = android.os.SystemClock.uptimeMillis() % 5200;

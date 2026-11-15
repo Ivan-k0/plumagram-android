@@ -267,7 +267,7 @@ public class RecordAudioVideoController implements
         @Override
         protected void dispatchDraw (android.graphics.Canvas c) {
           super.dispatchDraw(c);
-          if (!tgx101OverlayFloating && !recordingVideo && (tgx101WaveOverPanel || org.thunderdog.challegram.ui.Tgx101TypingLine.Sound.keyboardUp(this))) {
+          if (tgx101WaveOverPanel && !tgx101OverlayFloating && !recordingVideo && !org.thunderdog.challegram.ui.Tgx101TypingLine.Sound.keyboardUp(this)) {
             org.thunderdog.challegram.ui.Tgx101TypingLine.Sound.drawOverPanel(c, this, getHeight(), getWidth());
           }
         }

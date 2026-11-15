@@ -13203,7 +13203,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
       int len = charSequence != null ? charSequence.length() : 0;
       if (byUserAction && len != tgx101TypedLength) tgx101TypingLine.onTyped(len > tgx101TypedLength);
       tgx101TypedLength = len;
-      tgx101TypingLine.setLength(len);
     }
     if (byUserAction && charSequence != null && charSequence.length() > 0 && !tgx101TypingHidesArrow) {
       tgx101TypingHidesArrow = true;

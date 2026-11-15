@@ -30,9 +30,9 @@ import me.vkryl.core.ColorUtils;
 /**
  * TGx101 (user 2026-11-13, variant Б made interactive, mockup «Живая линия поля», «длина с пульсом»): the classic
  * field's bottom edge is a hairline between the field and the room under it (or the screen's bottom with no gap). The
- * message's length fills it from the left; at the fill's end a pulse answers the typing: a slow hand gives a short calm
- * blue glow, a fast one spreads it wider, brighter and towards violet, a deleted letter warms it for a moment; the pulse
- * fades a second after the last key, the fill stays while the text does.
+ * At the cursor a pulse answers the typing: a slow hand gives a short calm blue glow, a fast one spreads it wider,
+ * brighter and towards violet, a deleted letter warms it for a moment; the pulse fades a second after the last key.
+ * (The fill that showed the message's length was taken out on 2026-11-15.)
  */
 public final class Tgx101TypingLine {
   private final View host;   // the field's wrap: it draws the line
@@ -56,7 +56,6 @@ public final class Tgx101TypingLine {
   private static int accent () { return Theme.isDark() ? Theme.getColor(ColorId.textNeutral) : 0xff1565c0; }
   private static int fast () { return Theme.isDark() ? 0xffb070f0 : 0xff6a1bc8; } // violet the fast hand runs into
   private static int warm () { return Theme.isDark() ? 0xfff08a5a : 0xffd84315; } // a deleted letter, near the limit
-  private static int limit () { return Theme.isDark() ? Theme.getColor(ColorId.textNegative) : 0xffc62828; }
 
   private final org.thunderdog.challegram.telegram.Tdlib tdlib;
 
@@ -84,15 +83,8 @@ public final class Tgx101TypingLine {
     if (host.getWindowToken() != null) host.getViewTreeObserver().addOnGlobalFocusChangeListener(focus);
   }
 
-  /** the text changed by the person: longer — a key, shorter — a deletion */
-  private int length;
-  private float shownFill; // the fill as drawn, easing to the length
-
-  /** the text the field holds now (a message is up to 4096 letters) */
-  void setLength (int length) {
-    this.length = length;
-    host.invalidate();
-  }
+  // (user 2026-11-15 23:1x «синюю полосу вообще убери из кода, подсветка при наборе остаётся»): the fill that showed the
+  // text's length is gone; the pulse answering the typing stays, at the cursor
 
   void onTyped (boolean longer) {
     long now = SystemClock.uptimeMillis();
@@ -128,13 +120,16 @@ public final class Tgx101TypingLine {
     // sound; the thin line gives way to it and comes back when it is quiet
     // (user 2026-11-15 17:30 «полоса такая же серая как и сейчас, толще не становится»): the wave is the line itself,
     // bent — the same grey, the same thickness
-    boolean sound = Sound.live(host, false);
+    // with the keyboard up the wave is not shown and is not asked for either — it would redraw the field for nothing
+    boolean sound = !keyboardUp() && Sound.live(host, false);
     float room = host.getHeight() - y;
     // recording with no room under the line: the recording panel draws the wave over its own bottom edge
     // (user 2026-11-15 «когда пишу голосовое с открытой клавиатурой, линии звука не должны пробиваться снизу»): with
     // the keyboard up the wave swinging down came out from under the panel, over the keyboard's edge — there too the
     // panel draws it, upwards
-    if (sound && Sound.recording() && (room < Screen.dp(10f) || keyboardUp())) sound = false;
+    if (sound && Sound.recording() && room < Screen.dp(10f)) sound = false;
+    // (user 2026-11-15 23:0x «полоса до сих пор активна, когда клавиатура открыта… её не должно быть видно»): with the
+    // keyboard up there is no sound wave at all — not while recording, not while something plays (see above)
     paint.setColor(Theme.separatorColor());
     // (user 2026-11-14 23:46 «при открытой клавиатуре внизу поля ввода не должна быть видна полоса»): while typing — the
     // plain line, the word only at rest. By the keyboard, not the field's focus: a chat keeps the cursor in the field
@@ -159,24 +154,9 @@ public final class Tgx101TypingLine {
     float dt = lastFrame != 0 ? Math.min(64, now - lastFrame) : 16;
     lastFrame = now;
 
-    // (user 2026-11-13 «длина с пульсом»): the line fills from the left with the message's length — up to the 4096
-    // letters a message holds, square-rooted so the first words show at once; orange near the limit, red at it
-    // (user 2026-11-14 «в простое полоса должна быть только рваной»): the length and the pulse only while the field is
-    // being typed in; at rest just the torn thin line
-    // (user 2026-11-15 «синюю полосу (сколько написано) в простое нужно убрать»): a chat keeps the cursor in the field
-    // with the keyboard down, so the fill stayed over a text not being typed — only with the keyboard up
+    // the pulse only while the field is being typed in — the keyboard up; at rest just the thin line
     boolean active = field.isFocused() && keyboardUp();
     if (!active) energy = kick = 0f;
-    float fill = active ? (float) Math.sqrt(Math.min(1f, length / 4096f)) : 0f;
-    boolean easing = Math.abs(fill - shownFill) > .002f;
-    shownFill = easing ? shownFill + (fill - shownFill) * Math.min(1f, dt / 90f) : fill;
-    int fillColor = shownFill > .97f ? limit() : shownFill > .85f ? warm() : accent();
-    if (shownFill > 0f) {
-      paint.setShader(null);
-      paint.setColor(ColorUtils.alphaColor(Theme.isDark() ? .85f : 1f, fillColor));
-      c.drawRect(0, y, w * shownFill, y + Math.max(thin, Screen.dp(1.5f)), paint);
-    }
-    if (easing) host.postInvalidateOnAnimation();
     boolean idle = keyCount == 0 || now - keys[(keyCount - 1) % keys.length] > 350;
     if (idle) energy = Math.max(0f, energy - dt / 900f);
     kick = Math.max(0f, kick - dt / 260f);
@@ -186,7 +166,7 @@ public final class Tgx101TypingLine {
       return;
     }
 
-    float cx = shownFill > 0f ? w * shownFill : caretX(w); // the pulse rides the fill's end
+    float cx = caretX(w); // the pulse stands at the cursor
     // (user 2026-11-13 «пульс не доходит дальше половины поля — продлить, но не до самого конца»): fast typing carries it
     // ahead up to 85 % of the field, a little behind the fill's end too
     float right = Math.min(w * .85f, cx + Screen.dp(24f) + w * .85f * energy);
@@ -209,20 +189,16 @@ public final class Tgx101TypingLine {
 
   /**
    * MagiX's live example (user 2026-11-13 «полоску и пульс нужно показать наглядно людям»): the same line for a field
-   * running from left to right at y — the fill (0…1 of the width) and the pulse at its end (energy 0…1)
+   * running from left to right at y — the pulse (energy 0…1) where the typing has got to (0…1 of the width)
    */
-  static void drawDemo (Canvas c, Paint paint, float left, float right, float y, float fill, float energy) {
+  static void drawDemo (Canvas c, Paint paint, float left, float right, float y, float where, float energy) {
     float w = right - left;
     float thin = Math.max(1, Screen.dp(.5f));
     paint.setShader(null);
     paint.setColor(Theme.separatorColor());
     Session.drawLine(c, paint, left, right, y, thin);
-    if (fill > 0f) {
-      paint.setColor(ColorUtils.alphaColor(Theme.isDark() ? .85f : 1f, accent()));
-      c.drawRect(left, y, left + w * fill, y + Math.max(thin, Screen.dp(1.5f)), paint);
-    }
     if (energy <= .01f) return;
-    float cx = left + w * Math.max(fill, .02f);
+    float cx = left + w * Math.max(where, .02f);
     float r = Math.min(left + w * .85f, cx + Screen.dp(24f) + w * .85f * energy);
     float l = Math.max(left, cx - Screen.dp(24f) - Screen.dp(90f) * energy);
     int color = ColorUtils.fromToArgb(accent(), fast(), Math.max(0f, energy - .35f) / .65f);
