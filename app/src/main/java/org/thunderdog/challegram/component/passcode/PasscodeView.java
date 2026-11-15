@@ -656,7 +656,10 @@ public class PasscodeView extends View {
     int n = pattern.getSize();
     if (n == 0) return;
     float r = Screen.dp(4.5f), gap = Screen.dp(14f);
-    float cy = patternDots[0].getY() - Screen.dp(62f);
+    // between the hint and the grid; where there is no room for them there, under the grid (they sat on the hint's
+    // text, user 2026-11-15)
+    float top = textTop + Screen.dp(6f), bottom = patternDots[0].getY() - Screen.dp(30f);
+    float cy = bottom - top >= Screen.dp(18f) ? (top + bottom) / 2f : patternDots[6].getY() + Screen.dp(44f);
     float cx = (patternDots[0].getX() + patternDots[2].getX()) / 2f - (n - 1) * gap / 2f;
     android.graphics.Paint p = Paints.fillingPaint(Theme.getColor(ColorId.passcodeIcon));
     for (int i = 0; i < n; i++) c.drawCircle(cx + i * gap, cy, r, p);
