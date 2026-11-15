@@ -197,8 +197,9 @@ public class RecordButton extends View implements FactorAnimator.Target, ClickHe
       float loud = Math.min(1f, volume);
       c.drawCircle(center, center, (radius + Math.max(Screen.dp(4f), radiusAdd * volume)) * expand,
         Paints.getProgressPaint(ColorUtils.alphaColor((.25f + .5f * loud) * expand, color), Screen.dp(1.5f)));
-    } else
-    c.drawCircle(center, center, (radius + radiusAdd * volume) * expand, Paints.fillingPaint(ColorUtils.alphaColor(.3f, color)));
+    } else {
+      c.drawCircle(center, center, (radius + radiusAdd * volume) * expand, Paints.fillingPaint(ColorUtils.alphaColor(.3f, color)));
+    }
     c.drawCircle(center, center, radius * expand, Paints.fillingPaint(color));
   }
 }
