@@ -1199,6 +1199,33 @@ public class AvatarReceiver implements Receiver, ChatListener, TdlibCache.UserDa
     );
   }
 
+  /** TGx101 diag: the most visible loaded photo's alpha (fade-in × paint), 1 with no photo loaded; and what each is */
+  public float tgx101PhotoVisibility () {
+    if (enabledReceivers == 0) return 1f;
+    float best = -1f;
+    for (int i = 0; i < RECEIVER_TYPE_COUNT; i++) {
+      @ReceiverType int receiverType = 1 << i;
+      if (!BitwiseUtils.hasFlag(enabledReceivers, receiverType)) continue;
+      Receiver r = findReceiver(receiverType);
+      if (r.needPlaceholder()) continue;
+      best = Math.max(best, r.getAlpha() * r.getPaintAlpha());
+    }
+    return best < 0f ? 1f : best;
+  }
+
+  public String tgx101PhotoState () {
+    StringBuilder b = new StringBuilder("data " + dataType + ", receivers " + enabledReceivers + ", placeholder " + (requestedPlaceholder != null));
+    for (int i = 0; i < RECEIVER_TYPE_COUNT; i++) {
+      @ReceiverType int receiverType = 1 << i;
+      if (!BitwiseUtils.hasFlag(enabledReceivers, receiverType)) continue;
+      Receiver r = findReceiver(receiverType);
+      b.append(" | ").append(receiverType).append(' ').append(r.getClass().getSimpleName()).append(r.needPlaceholder() ? " empty" : " loaded")
+        .append(" alpha ").append(Math.round(r.getAlpha() * 100) / 100f).append(" paint ").append(Math.round(r.getPaintAlpha() * 100) / 100f)
+        .append(" bounds ").append(r.getWidth()).append('x').append(r.getHeight());
+    }
+    return b.toString();
+  }
+
   /** TGx101: a photo was asked for and nothing of it (not even the small preview) is loaded yet */
   public boolean tgx101PhotoMissing () {
     if (enabledReceivers == 0) return false;

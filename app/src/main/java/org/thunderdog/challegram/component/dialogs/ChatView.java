@@ -812,6 +812,18 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
         }
       }, 2000);
     }
+    // (user 2026-11-16 21:31, group «MacBook МакБук»: the avatar's place empty — not one pixel but the row's own — and
+    // nothing in the journal: a photo counted as loaded, drawn invisible) — a loaded photo still near-transparent 2 s on
+    if (avatarReceiver.tgx101PhotoVisibility() < .05f && tgx101AvatarWaitChatId != -chat.getChatId()) {
+      final long chatId = chat.getChatId();
+      tgx101AvatarWaitChatId = -chatId;
+      postDelayed(() -> {
+        if (chat != null && chat.getChatId() == chatId && tgx101AvatarReportedChatId != chatId && avatarReceiver.tgx101PhotoVisibility() < .05f) {
+          tgx101AvatarReportedChatId = chatId;
+          org.thunderdog.challegram.Tgx101Diag.mark("chat row: photo of chat " + chatId + " loaded but drawn invisible for 2 s — " + avatarReceiver.tgx101PhotoState());
+        }
+      }, 2000);
+    }
     boolean empty = avatarReceiver.isEmpty();
     if (!empty && (chat.getAvatarPlaceholder() != null || avatarReceiver.getRequestedChatId() == chat.getChatId())) return;
     tgx101AvatarReportedChatId = chat.getChatId();
