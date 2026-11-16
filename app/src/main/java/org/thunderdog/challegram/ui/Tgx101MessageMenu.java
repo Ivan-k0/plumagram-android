@@ -548,7 +548,8 @@ public final class Tgx101MessageMenu {
         down[0] = e.getRawX();
         down[1] = e.getRawY();
       }
-      return false;
+      // the long press on the message under the menu opened the selection: the same finger goes on selecting
+      return Tgx101MessageTextSelection.followFinger(e, v);
     });
     final float firstX = lastTouchRawX, firstY = lastTouchRawY;
     host.selectInPlace = () -> {

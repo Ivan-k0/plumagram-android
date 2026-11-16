@@ -91,6 +91,36 @@ public final class Tgx101MessageTextSelection {
     return openSessions > 0;
   }
 
+  // (user 2026-11-16 «чтобы слово выделялось сразу, как только я начинаю вести палец, а не ждать, пока я выделю слово,
+  // и уж потом тянуть ползунок»): the long press that opened the selection keeps going — while that finger is down the
+  // selection runs from the word to it, forwards or backwards, as Android's own text does; the handles and the bar
+  // come when it's lifted. The view that got the long press hands its touches over here
+  private static @Nullable Session following;
+
+  /** true — the touch is the selecting finger's and was taken; {@code view} is the one the touch is in */
+  public static boolean followFinger (MotionEvent e, View view) {
+    Session session = following;
+    if (session == null) return false;
+    switch (e.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN: {
+        following = null; // a new touch: the finger was lifted elsewhere
+        return false;
+      }
+      case MotionEvent.ACTION_MOVE: {
+        if (view.getParent() != null) view.getParent().requestDisallowInterceptTouchEvent(true);
+        session.followTo(e.getRawX(), e.getRawY());
+        return true;
+      }
+      case MotionEvent.ACTION_UP:
+      case MotionEvent.ACTION_CANCEL: {
+        following = null;
+        session.followDone();
+        return true;
+      }
+    }
+    return true;
+  }
+
   private static final class Session {
     private final MessagesController controller;
     private final Tdlib tdlib;
@@ -140,8 +170,55 @@ public final class Tgx101MessageTextSelection {
       return view != null && androidx.core.view.ViewCompat.isAttachedToWindow(view) ? view : null;
     }
 
+    private int anchorStart, anchorEnd;
+    private boolean followed;
+
+    void followTo (float rawX, float rawY) {
+      if (closed) return;
+      View view = currentView();
+      if (view == null) return;
+      int[] at = new int[2];
+      view.getLocationOnScreen(at);
+      float vx = rawX - at[0] - msg.tgx101ContentShiftX(), vy = rawY - at[1];
+      int offset = text.tgx101OffsetAt(vx, vy);
+      if (offset < 0) return;
+      int start, end;
+      if (offset >= anchorEnd) {
+        start = anchorStart; end = offset; overlay.dragging = Overlay.END;
+      } else if (offset <= anchorStart) {
+        start = offset; end = anchorEnd; overlay.dragging = Overlay.START;
+      } else {
+        start = anchorStart; end = anchorEnd; overlay.dragging = Overlay.END;
+      }
+      if (!followed) {
+        followed = true;
+        Tgx101Diag.mark("select: the long press's finger goes on selecting");
+      }
+      if (start != this.start || end != this.end) {
+        setSelection(start, end);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+          org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
+        }
+      }
+      bar.onSelectionChanging();
+      overlay.showMagnifier(view, vx + msg.tgx101ContentShiftX());
+    }
+
+    void followDone () {
+      if (closed) return;
+      overlay.dragging = Overlay.NONE;
+      overlay.dismissMagnifier();
+      overlay.updateBar();
+      bar.showNow();
+      if (followed) Tgx101Diag.mark("select: finger lifted at " + start + ".." + end);
+      overlay.invalidate();
+    }
+
     void start (int offset) {
       int[] word = wordAt(offset);
+      anchorStart = word[0];
+      anchorEnd = word[1];
+      following = this;
       controller.tgx101SetInputQuiet(true);
       setSelection(word[0], word[1]);
       if (list != null) list.addOnScrollListener(follow);
@@ -153,6 +230,7 @@ public final class Tgx101MessageTextSelection {
     void close (String reason) {
       if (closed) return;
       closed = true;
+      if (following == this) following = null;
       Tgx101Diag.mark("select: closed — " + reason);
       text.tgx101ClearSelection();
       View view = currentView();
