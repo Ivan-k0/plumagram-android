@@ -786,7 +786,7 @@ public class TGMessageMedia extends TGMessage {
     startY += tgx101MediaOffset();
     mosaicWrapper.draw(view, c, startX, startY, complexReceiver, useFullWidth(), tgx101HiddenMedia != null ? tgx101HiddenMedia.getSourceMessageId() : 0);
     if (tgx101HighlightedChildId() != 0) {
-      mosaicWrapper.tgx101DrawItemHighlight(c, tgx101HighlightedChildId(), tgx101ItemFlashColor()); // TGx101: only that album item flashes
+      mosaicWrapper.tgx101DrawItemOutline(c, tgx101HighlightedChildId(), tgx101OutlinePaint()); // TGx101: only that album item is outlined
     }
     // (user video 2026-10-22 «как скрывается и появляется кнопка ⋮ — нужно плавнее»): it vanished at once on the tap and
     // popped back after the photo landed, showing over the viewer's fading dim meanwhile. Now it fades out as the photo

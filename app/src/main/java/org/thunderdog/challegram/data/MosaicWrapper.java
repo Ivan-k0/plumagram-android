@@ -1107,6 +1107,20 @@ public class MosaicWrapper implements FactorAnimator.Target, ComplexReceiver.Key
     }
   }
 
+  /** TGx101 (user 2026-11-17 «обводка»): a frame inside one album item's edges, over the photo */
+  public void tgx101DrawItemOutline (android.graphics.Canvas c, long messageId, android.graphics.Paint paint) {
+    if (mosaicItems == null) return;
+    float inset = paint.getStrokeWidth() / 2f, r = org.thunderdog.challegram.tool.Screen.dp(6f);
+    for (MosaicItemInfo info : mosaicItems) {
+      if (info.target.getSourceMessageId() == messageId) {
+        int left = lastStartX + info.x, top = lastStartY + info.y;
+        android.graphics.RectF rect = org.thunderdog.challegram.tool.Paints.getRectF();
+        rect.set(left + inset, top + inset, left + info.target.getCellWidth() - inset, top + info.target.getCellHeight() - inset);
+        c.drawRoundRect(rect, r, r, paint);
+      }
+    }
+  }
+
   /** TGx101: vertical bounds of one album item (for the jump wave at the level of that photo); null — not here */
   public @androidx.annotation.Nullable int[] tgx101ItemVerticalBounds (long messageId) {
     if (mosaicItems == null) return null;

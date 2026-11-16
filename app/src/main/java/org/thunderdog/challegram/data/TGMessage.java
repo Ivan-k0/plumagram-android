@@ -2343,7 +2343,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       // the flash goes after the corner fixes: they repaint the frame around a photo in the bubble colour and left
       // white edges in the highlight (video 10.10 13:00, «по краям пустоты»)
       if (highlightFactor != 0f && tgx101HighlightedChildId == 0 && tgx101QuoteText == null) {
-        drawBubble(c, Paints.fillingPaint(tgx101FlashColor()), false, 0);
+        // (user 2026-11-17, mockup «Подсветка при переходе», variant 2 «обводка»): a thin accent frame round the bubble
+        // that holds and melts with the highlight, in place of the wash and the wave
+        drawBubble(c, tgx101OutlinePaint(), true, 0);
       }
       if (commentButton.isVisible() && commentButton.isInline()) {
         int left = leftContentEdge;
@@ -7563,6 +7565,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   public void drawHighlight (View view, Canvas c) {
     if (highlightFactor == 0f || tgx101WaveStart == 0) return;
     if (tgx101QuoteText != null) return; // the quoted words only: lit in draw(), over the bubble
+    if (useBubbles() && useBubble()) return; // a bubble (or an album item) gets the outline drawn over it in draw()
     if (tgx101WaveStart < 0) {
       // the wave starts when the message is actually drawn — a message loaded off screen (a reply to a photo far
       // above, user 2026-10-05) had its wave over before it scrolled in, only the flash was left
@@ -7610,6 +7613,22 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   /** For the album item flash */
   protected final int tgx101ItemFlashColor () {
     return tgx101FlashColor();
+  }
+
+  private static Paint tgx101OutlinePaint;
+
+  /** TGx101: the jump's outline — the accent (lighter in a dark theme), 2 dp, fading with the highlight */
+  protected final Paint tgx101OutlinePaint () {
+    if (tgx101OutlinePaint == null) {
+      tgx101OutlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+      tgx101OutlinePaint.setStyle(Paint.Style.STROKE);
+    }
+    boolean dark = Theme.isDark();
+    int accent = dark ? ColorUtils.fromToArgb(Theme.getColor(ColorId.textLink), 0xffffffff, .2f) : Theme.getColor(ColorId.textLink);
+    float f = highlightFactor;
+    tgx101OutlinePaint.setStrokeWidth(Screen.dp(2f));
+    tgx101OutlinePaint.setColor(ColorUtils.alphaColor(Math.min(1f, f * 1.25f), accent)); // full for the first part, then melts
+    return tgx101OutlinePaint;
   }
 
   public void highlight (boolean revoke) {
