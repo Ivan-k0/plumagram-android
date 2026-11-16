@@ -232,7 +232,7 @@ public final class ReactionsListAnimator implements Iterable<ReactionsListAnimat
     return metadata;
   }
 
-  public void applyAnimation (float factor) {
+  public synchronized void applyAnimation (float factor) {
     boolean haveChanges = metadata.applyAnimation(factor);
     for (Entry entry : entries) {
       haveChanges = entry.applyAnimation(factor) || haveChanges;
@@ -268,7 +268,7 @@ public final class ReactionsListAnimator implements Iterable<ReactionsListAnimat
     metadata.finishAnimation(applyFuture);
   }
 
-  public void stopAnimation (boolean applyFuture) {
+  public synchronized void stopAnimation (boolean applyFuture) {
     if (animator != null) {
       animator.cancel();
       removeJunk(applyFuture);
@@ -296,7 +296,7 @@ public final class ReactionsListAnimator implements Iterable<ReactionsListAnimat
     return -1;
   }
 
-  public void clear (boolean animated) {
+  public synchronized void clear (boolean animated) {
     reset(null, animated);
   }
 
@@ -348,7 +348,7 @@ public final class ReactionsListAnimator implements Iterable<ReactionsListAnimat
     }
   }
 
-  public void measureImpl (boolean animated) {
+  public synchronized void measureImpl (boolean animated) {
     int totalWidth = 0, totalHeight = 0;
     int maxTop = -1;
     int lastLineWidth = 0;
@@ -460,7 +460,10 @@ public final class ReactionsListAnimator implements Iterable<ReactionsListAnimat
     }
   }
 
-  public void reset (@Nullable List<TGReactions.MessageReactionEntry> newItems, boolean animated, @Nullable ResetCallback resetCallback) {
+  // TGx101 (crash 2026-11-16, Moto Z2 Play, Android 9, 0.3.46: ArrayIndexOutOfBoundsException in ArrayList.add inside
+  // reset, from MessagesLoader's TDLib thread): a message's reactions were rebuilt on the loader's thread while the
+  // main thread changed the same lists — the lists are now changed under the animator's own lock
+  public synchronized void reset (@Nullable List<TGReactions.MessageReactionEntry> newItems, boolean animated, @Nullable ResetCallback resetCallback) {
     if (!animated) {
       stopAnimation(false);
       for (int i = entries.size() - 1; i >= 0; i--) {
