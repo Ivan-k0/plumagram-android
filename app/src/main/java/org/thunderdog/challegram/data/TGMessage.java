@@ -1513,7 +1513,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   /** the gap's half between two bubbles in a row: compact bubbles (MagiX) stand closer, as in Telegram */
   private int tgx101SmallViewPadding () {
-    return useBubbles() && !tgx101Feed() && Settings.instance().tgx101CompactBubbles() ? Screen.dp(.5f) : xBubbleViewPaddingSmall;
+    // (user 2026-11-16 «слишком малый отступ между пузырями», screenshots side by side: Telegram's gap 8 px on the 1440 px
+    // screen, ours 2 px with .5 dp halves) — 1.15 dp halves, 8 px there
+    return useBubbles() && !tgx101Feed() && Settings.instance().tgx101CompactBubbles() ? Screen.dp(1.15f) : xBubbleViewPaddingSmall;
   }
 
   protected final int getPaddingBottom () {
