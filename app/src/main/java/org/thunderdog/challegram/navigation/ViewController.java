@@ -958,13 +958,6 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     return getBackButtonResource();
   }
 
-  /** TGx101: the search field's hint for a while (the replies to a message); null puts the usual one back */
-  protected final void tgx101SetSearchHint (@Nullable CharSequence hint) {
-    if (searchHeaderView != null) {
-      searchHeaderView.editView().setHint(hint != null ? hint : Lang.getString(getSearchHint()));
-    }
-  }
-
   protected @StringRes int getSearchHint () {
     return R.string.Search;
   }

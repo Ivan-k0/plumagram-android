@@ -42,26 +42,8 @@ public class MessagesSearchManagerMiddleware {
   private int discardedCount = 0;
   private BaseSearchResultManager searchResultManager;
 
-  // TGx101: «Ответы на сообщение» — while set, the chat's search is answered from the replies found (Tgx101Replies)
-  private @Nullable Tgx101Replies tgx101Replies;
-
-  public void tgx101SetReplies (@Nullable Tgx101Replies replies) {
-    this.tgx101Replies = replies;
-  }
-
-  public @Nullable Tgx101Replies tgx101Replies (long chatId) {
-    Tgx101Replies replies = tgx101Replies;
-    return replies != null && replies.chatId == chatId ? replies : null;
-  }
-
   @UiThread
   public void search (TdApi.SearchChatMessages query, Client.ResultHandler resultHandler) {
-    Tgx101Replies replies = tgx101Replies(query.chatId);
-    if (replies != null && replies.isDone()) {
-      TdApi.FoundChatMessages answer = replies.answer(tdlib, query);
-      tdlib.runOnTdlibThread(() -> resultHandler.onResult(answer));
-      return;
-    }
     final String contextId = makeContextId(query);
     if (checkContextId(contextId)) {
       this.searchResultManager = new BaseSearchResultManager(tdlib, query);
