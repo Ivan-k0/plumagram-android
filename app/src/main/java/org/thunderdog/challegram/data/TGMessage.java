@@ -2346,6 +2346,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         // (user 2026-11-17, mockup «Подсветка при переходе», variant 2 «обводка»): a thin accent frame round the bubble
         // that holds and melts with the highlight, in place of the wash and the wave
         drawBubble(c, tgx101OutlinePaint(), true, 0);
+        view.postInvalidateOnAnimation(); // it breathes
       }
       if (commentButton.isVisible() && commentButton.isInline()) {
         int left = leftContentEdge;
@@ -7616,6 +7617,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   private static Paint tgx101OutlinePaint;
+  private long tgx101OutlineAt; // when the frame first showed, 0 — not yet (its breath counts from it)
 
   /** TGx101: the jump's outline — the accent (lighter in a dark theme), 2 dp, fading with the highlight */
   protected final Paint tgx101OutlinePaint () {
@@ -7625,15 +7627,22 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
     boolean dark = Theme.isDark();
     int accent = dark ? ColorUtils.fromToArgb(Theme.getColor(ColorId.textLink), 0xffffffff, .2f) : Theme.getColor(ColorId.textLink);
+    // (user 2026-11-17 «чуть добавить анимации, дыхания, и чуть продли время»): the frame breathes — it swells to 3 dp and
+    // brightens, then settles to 2 dp and dims, once in 1.2 s, starting at its fullest; it lasts 3 s and melts in 0.7 s
+    long now = android.os.SystemClock.uptimeMillis();
+    if (tgx101OutlineAt <= 0) tgx101OutlineAt = now;
+    double phase = (now - tgx101OutlineAt) / 1200.0 * Math.PI * 2;
+    float breath = (float) (.5 + .5 * Math.cos(phase));
     float f = highlightFactor;
-    tgx101OutlinePaint.setStrokeWidth(Screen.dp(2f));
-    tgx101OutlinePaint.setColor(ColorUtils.alphaColor(Math.min(1f, f * 1.25f), accent)); // full for the first part, then melts
+    tgx101OutlinePaint.setStrokeWidth(Screen.dp(2f + breath));
+    tgx101OutlinePaint.setColor(ColorUtils.alphaColor(Math.min(1f, f * 1.25f) * (.6f + .4f * breath), accent));
     return tgx101OutlinePaint;
   }
 
   public void highlight (boolean revoke) {
     cancelHighlightRevoke();
     tgx101WaveStart = -1; // set on the first draw
+    tgx101OutlineAt = 0;
     setHighlight(1f);
     if (revoke) {
       revokeHighlight();
@@ -7702,8 +7711,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       return;
     }
     if (revokeAnimator == null) {
-      revokeAnimator = new FactorAnimator(ANIMATOR_REVOKE, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 400l, 0f);
-      revokeAnimator.setStartDelay(2000l);
+      revokeAnimator = new FactorAnimator(ANIMATOR_REVOKE, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 700l, 0f); // TGx101: 400 → 700 ms
+      revokeAnimator.setStartDelay(3000l); // TGx101 (user 2026-11-17 «чуть продли время»): 2 → 3 s
     } else {
       revokeAnimator.forceFactor(0f);
     }
