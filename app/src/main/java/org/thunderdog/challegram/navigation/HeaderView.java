@@ -1737,7 +1737,109 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     if (updated != visibility) decor.setSystemUiVisibility(updated);
   }
 
+  // TGx101 journal (4PDA video 2026-11-16 12:26: back from a channel the folder tabs and the search icon in the main
+  // header stayed invisible / faint until another chat was opened and closed): every finished header switch writes how
+  // it ended — the transition's last factor, the mode, the title's and the menu's alpha and colour of the screen that
+  // stays — and checks the same 0.5 s later, so a header left half-faded is seen with its cause
+  static String tgx101Who (@Nullable ViewController<?> c) {
+    if (c == null) return "none";
+    String name = c.getClass().getSimpleName();
+    long chatId = c.getChatId();
+    if (chatId == 0) return name;
+    String kind;
+    try {
+      kind = c.tdlib().isSelfChat(chatId) ? "saved" : c.tdlib().isChannel(chatId) ? "channel" : chatId < 0 ? "group" : "private";
+    } catch (Throwable t) {
+      kind = "chat";
+    }
+    return name + " (" + kind + ")";
+  }
+
+  private static String tgx101ModeName (int mode) {
+    switch (mode) {
+      case MODE_NONE: return "none";
+      case MODE_HORIZONTAL: return "horizontal";
+      case MODE_VERTICAL: return "vertical";
+      case MODE_FADE: return "fade";
+    }
+    return String.valueOf(mode);
+  }
+
+  private static String tgx101ViewState (@Nullable View v) {
+    if (v == null) return "null";
+    StringBuilder b = new StringBuilder(v.getClass().getSimpleName())
+      .append(" alpha ").append(Math.round(v.getAlpha() * 100) / 100f);
+    if (v.getVisibility() != View.VISIBLE) b.append(v.getVisibility() == View.GONE ? " gone" : " invisible");
+    if (v.getTranslationX() != 0f || v.getTranslationY() != 0f) b.append(" shift ").append((int) v.getTranslationX()).append(',').append((int) v.getTranslationY());
+    if (v.getParent() == null) b.append(" detached");
+    if (v instanceof ViewPagerHeaderViewCompact) {
+      ViewPagerTopView tv = ((ViewPagerHeaderViewCompact) v).getTopView();
+      if (tv != null) b.append(" {").append(tv.tgx101State()).append('}');
+    }
+    if (v instanceof ViewGroup) {
+      ViewGroup g = (ViewGroup) v;
+      int n = Math.min(g.getChildCount(), 4);
+      for (int i = 0; i < n; i++) {
+        View ch = g.getChildAt(i);
+        if (ch.getAlpha() < 0.99f || ch.getVisibility() != View.VISIBLE) {
+          b.append(" [").append(ch.getClass().getSimpleName()).append(' ').append(Math.round(ch.getAlpha() * 100) / 100f)
+            .append(ch.getVisibility() != View.VISIBLE ? " hidden" : "").append(']');
+        }
+      }
+    }
+    return b.toString();
+  }
+
+  private void tgx101MarkSwitch (String how, @Nullable ViewController<?> current) {
+    if (!org.thunderdog.challegram.BuildConfig.TGX101_DIAG) return;
+    final View t = title;
+    final View m = menu;
+    final String who = tgx101Who(current);
+    org.thunderdog.challegram.Tgx101Diag.mark("header " + how + " → " + who + ": last factor " + (Math.round(translationFactor * 1000) / 1000f)
+      + (translateForward ? " forward" : " back") + ", mode " + tgx101ModeName(translationMode) + (shareHeader ? " shared" : "")
+      + ", title " + tgx101ViewState(t) + ", menu " + tgx101ViewState(m) + ", back button " + Math.round(backButton.getAlpha() * 100) / 100f
+      + ", header alpha " + Math.round(getAlpha() * 100) / 100f + ", text " + Integer.toHexString(getHeaderTextColor(current, true)));
+    tgx101CheckLater(how, current, who, 500, 0);
+  }
+
+  private boolean tgx101Faint () {
+    View t = title;
+    if (t == null) return false;
+    if (t.getAlpha() < 0.99f || t.getParent() == null || (menu != null && menu.getVisibility() == View.VISIBLE && menu.getAlpha() < 0.99f)) return true;
+    if (t instanceof ViewGroup) {
+      ViewGroup g = (ViewGroup) t;
+      for (int i = 0; i < g.getChildCount(); i++) {
+        View ch = g.getChildAt(i);
+        if (ch.getVisibility() == View.VISIBLE && ch.getAlpha() < 0.99f) return true;
+      }
+    }
+    return false;
+  }
+
+  /** 0.5 s after a switch; if the header is still faint — again every 2 s (up to 30 s) until it is whole */
+  private void tgx101CheckLater (String how, @Nullable ViewController<?> current, String who, long delay, int round) {
+    postDelayed(() -> {
+      if (stack.getCurrent() != current) {
+        if (round > 0) org.thunderdog.challegram.Tgx101Diag.mark("header still faint when the screen changed (" + who + " → " + tgx101Who(stack.getCurrent()) + ")");
+        return;
+      }
+      boolean faint = tgx101Faint();
+      if (round == 0 || !faint) {
+        org.thunderdog.challegram.Tgx101Diag.mark("header " + (round == 0 ? "0.5 s" : (round * 2) + " s more") + " after " + how + " → " + who + ": "
+          + (faint ? "FAINT — " : round > 0 ? "whole again — " : "ok — ") + "title " + tgx101ViewState(title) + ", menu " + tgx101ViewState(menu)
+          + ", animating " + isAnimating);
+      }
+      if (faint && round < 15) tgx101CheckLater(how, current, who, 2000, round + 1);
+      else if (faint) org.thunderdog.challegram.Tgx101Diag.mark("header still FAINT 30 s after " + how + " → " + who + ": title " + tgx101ViewState(title));
+    }, delay);
+  }
+
   void applyPreview (ViewController<?> current) {
+    applyPreviewImpl(current);
+    tgx101MarkSwitch("switched", current);
+  }
+
+  private void applyPreviewImpl (ViewController<?> current) {
     this.previewOpened = false;
 
     if (shareHeader) {
@@ -2738,6 +2840,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
       ((StretchyHeaderView) title).setScaleFactor(getHeightFactor(), getHeightFactor(), getHeightFactor(), false);
     }
     invalidate();
+    tgx101MarkSwitch("stayed", current);
   }
 
   private float getHeightFactor () {

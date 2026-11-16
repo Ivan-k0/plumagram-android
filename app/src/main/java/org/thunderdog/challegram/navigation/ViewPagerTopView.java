@@ -1086,6 +1086,14 @@ public class ViewPagerTopView extends FrameLayoutFix implements RtlCheckListener
 
   private float overlayFactor;
 
+  /** TGx101 journal (folder tabs left invisible / faint in the main header): what decides how the labels are drawn */
+  public String tgx101State () {
+    return "tabs " + (items == null ? "none" : items.size()) + " alpha " + Math.round(getAlpha() * 100) / 100f
+      + (getVisibility() != VISIBLE ? " hidden" : "") + ", overlay " + overlayFactor + ", disabled " + disabledFactor
+      + ", selection " + selectionFactor + ", width " + getWidth() + "/" + totalWidth
+      + ", colors " + Integer.toHexString(Theme.getColor(toTextColorId)) + "/" + (fromTextColorId != ColorId.NONE ? Integer.toHexString(Theme.getColor(fromTextColorId)) : "subtitle");
+  }
+
   public void setOverlayFactor (float factor) {
     if (this.overlayFactor != factor) {
       this.overlayFactor = factor;
