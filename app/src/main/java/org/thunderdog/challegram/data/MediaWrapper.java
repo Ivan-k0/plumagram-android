@@ -1160,6 +1160,42 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
     view.postInvalidateDelayed(32); // looks again for the video's own frame
   }
 
+  // TGx101 (user 2026-11-16 15:28, chat with a friend: an own photo sent at 15:07 stays an empty plate in the bubble — no
+  // picture, no thumbnail) — once per photo: what was asked for and where the files stand, when nothing is drawn for 2 s
+  private long tgx101EmptySince;
+  private boolean tgx101EmptyReported;
+
+  private void tgx101CheckEmpty (View view, Receiver preview, Receiver receiver) {
+    if (tgx101EmptyReported) return;
+    boolean empty = (receiver == null || receiver.needPlaceholder()) && (preview == null || preview.needPlaceholder());
+    if (!empty) {
+      tgx101EmptySince = 0;
+      return;
+    }
+    if (tgx101EmptySince != 0) return;
+    final long since = tgx101EmptySince = android.os.SystemClock.uptimeMillis();
+    view.postDelayed(() -> {
+      if (tgx101EmptyReported || tgx101EmptySince != since) return;
+      tgx101EmptyReported = true;
+      org.thunderdog.challegram.Tgx101Diag.mark("media in a bubble drawn empty for 2 s: message " + (source != null ? source.getChatId() : 0) + "/" + sourceMessageId
+        + " " + (photo != null ? "photo" : video != null ? "video" : animation != null ? "animation" : "other")
+        + (source != null ? (source.isOutgoing() ? ", own" : "") + (source.isSending() ? ", sending" : "") + (source.isFailed() ? ", failed" : "") : "")
+        + ", target " + tgx101FileState(targetFile) + ", preview size " + (previewSize != null ? tgx101FileState(previewSize.photo) : "none")
+        + ", mini " + (miniThumbnail != null) + ", image " + (targetImageFile != null ? targetImageFile.getId() : "none") + ", preview " + (previewFile != null ? previewFile.getId() : "none")
+        + ", receivers " + (receiver != null ? receiver.getClass().getSimpleName() : "none") + "/" + (preview != null ? preview.getClass().getSimpleName() : "none")
+        + ", cell " + cellWidth + "x" + cellHeight + ", content " + contentWidth + "x" + contentHeight);
+    }, 2000);
+  }
+
+  private static String tgx101FileState (@Nullable TdApi.File f) {
+    if (f == null) return "none";
+    boolean exists = f.local.path != null && !f.local.path.isEmpty() && new java.io.File(f.local.path).exists();
+    return "#" + f.id + " " + f.size + " B, local " + (f.local.isDownloadingCompleted ? "done" : f.local.isDownloadingActive ? "loading " + f.local.downloadedSize : "no")
+      + (f.local.path != null && !f.local.path.isEmpty() ? (exists ? " (file there)" : " (file missing)") : "")
+      + ", remote " + (f.remote.isUploadingCompleted ? "uploaded" : f.remote.isUploadingActive ? "uploading " + f.remote.uploadedSize : "no")
+      + (f.remote.id != null && !f.remote.id.isEmpty() ? " id" : "");
+  }
+
   public <T extends View & DrawableProvider> void draw (T view, Canvas c, int startX, int startY, Receiver preview, Receiver receiver, float alpha) {
     final float selectionFactor = selectionAnimator != null && source != null ? source.getSelectionFactor(selectionAnimator) : 0f;
     // TGx101 (user 2026-10-30, channel Jeteed in «Journal»: square corners while the feed's are round): «Journal» media
@@ -1214,6 +1250,7 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
       DrawAlgorithms.drawReceiver(c, preview, receiver, false, true, cellLeft, cellTop, cellRight, cellBottom);
     }
     tgx101DrawHold(view, c, receiver);
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) tgx101CheckEmpty(view, preview, receiver);
     float spoilerFactor = spoilerOverlayVisible.getFloatValue();
     if (spoilerFactor > 0f) {
       Receiver spoilerReceiver;
