@@ -1486,6 +1486,9 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       animator.addListener(new AnimatorListenerAdapter() {
         @Override
         public void onAnimationEnd (Animator animation) {
+          // TGx101 (4PDA journal 2026-11-16, OnePlus with animations off): the slide ended on its first frame — the
+          // header was left at the finger's step. The last step is drawn before the screens are put in place
+          setFactor(0f);
           finishTransaction(FINISH_PREVIEW);
         }
       });
@@ -1679,6 +1682,10 @@ public class NavigationController implements Future<View>, ThemeChangeListener, 
       animator.addListener(new AnimatorListenerAdapter() {
         @Override
         public void onAnimationEnd (Animator animation) {
+          // TGx101 (4PDA journal 2026-11-16, OnePlus with animations off): the back slide ended on its first frame and
+          // the main header stayed at the finger's step — tabs and search faint (alpha 0.0–0.6) until the next screen.
+          // The last step is drawn before the screens are put in place
+          setFactor(1f);
           finishTransaction(FINISH_NAVIGATION);
         }
       });
