@@ -155,14 +155,35 @@ public final class Tgx101MessageTextSelection {
       this.follow = new RecyclerView.OnScrollListener() {
         @Override
         public void onScrolled (@NonNull RecyclerView recyclerView, int dx, int dy) {
-          if (closed) return;
-          if (currentView() == null) {
-            close("the message scrolled away");
-            return;
-          }
+          if (closed || (dx == 0 && dy == 0)) return;
+          // (user 2026-11-16): the chat moves — the bar goes away; the selection stays even scrolled off the screen
+          bar.hideForScroll();
+          overlay.removeCallbacks(barAfterScroll);
+          if (recyclerView.getScrollState() == RecyclerView.SCROLL_STATE_IDLE) overlay.postDelayed(barAfterScroll, 150); // moved by the app itself
           overlay.postInvalidateOnAnimation();
         }
+
+        @Override
+        public void onScrollStateChanged (@NonNull RecyclerView recyclerView, int newState) {
+          if (closed) return;
+          overlay.removeCallbacks(barAfterScroll);
+          if (newState == RecyclerView.SCROLL_STATE_IDLE) overlay.postDelayed(barAfterScroll, 150);
+          else bar.hideForScroll();
+        }
       };
+    }
+
+    // the chat stands still: the bar comes back if some of the selection is on the screen (within the chat's list)
+    private final Runnable barAfterScroll = this::barAfterScroll;
+
+    private void barAfterScroll () {
+      if (closed) return;
+      if (overlay.selectionOnScreen()) {
+        overlay.updateBar();
+        bar.showAfterScroll();
+      } else {
+        Tgx101Diag.mark("select: the chat stands, the selection off the screen — the bar waits");
+      }
     }
 
     private @Nullable View currentView () {
@@ -231,6 +252,7 @@ public final class Tgx101MessageTextSelection {
       if (closed) return;
       closed = true;
       if (following == this) following = null;
+      overlay.removeCallbacks(barAfterScroll);
       Tgx101Diag.mark("select: closed — " + reason);
       text.tgx101ClearSelection();
       View view = currentView();
@@ -411,6 +433,18 @@ public final class Tgx101MessageTextSelection {
       if (dragging == NONE) {
         post(this::updateBar);
       }
+    }
+
+    boolean selectionOnScreen () {
+      View view = session.currentView();
+      if (view == null || Float.isNaN(startX)) return false;
+      View list = session.list;
+      int[] l = new int[2];
+      if (list != null) list.getLocationOnScreen(l);
+      getLocationOnScreen(location);
+      float top = Math.min(startTop, endTop) + location[1], bottom = Math.max(startBottom, endBottom) + location[1];
+      int listTop = list != null ? l[1] : location[1], listBottom = list != null ? l[1] + list.getHeight() : location[1] + getHeight();
+      return bottom > listTop && top < listBottom;
     }
 
     void updateBar () {

@@ -122,11 +122,40 @@ public final class Tgx101SelectionBar {
     if (content == null) {
       build(new ArrayList<>());
     }
-    if (hiddenWhileDragging) {
+    if (hiddenWhileDragging || hiddenForScroll) {
       content.setAlpha(0f);
       return;
     }
     reposition();
+  }
+
+  // TGx101 (user 2026-11-16 «меню над выделением должно исчезать, когда я свайпаю по чату, и появляться, только когда
+  // текст в пределах видимости экрана»): the chat moves — the bar fades away; it is back once the chat stands still
+  // and the selection is on the screen
+  private boolean hiddenForScroll;
+
+  public void hideForScroll () {
+    if (hiddenForScroll) return;
+    hiddenForScroll = true;
+    if (content != null && window != null) {
+      org.thunderdog.challegram.Tgx101Diag.mark("select: bar hidden — the chat moves");
+      content.animate().cancel();
+      content.animate().alpha(0f).setDuration(100).start();
+    }
+  }
+
+  public void showAfterScroll () {
+    if (!hiddenForScroll) return;
+    hiddenForScroll = false;
+    if (content != null && window != null && !hiddenWhileDragging) {
+      org.thunderdog.challegram.Tgx101Diag.mark("select: bar back — the chat stands, the selection on the screen");
+      reposition();
+      content.animate().cancel();
+      pivotAtBottom();
+      content.setScaleX(.96f);
+      content.setScaleY(.96f);
+      content.animate().alpha(1f).scaleX(1f).scaleY(1f).setInterpolator(BACK).setDuration(HANDLE_BACK).start();
+    }
   }
 
   private static boolean isStandard (int id) {
@@ -172,6 +201,7 @@ public final class Tgx101SelectionBar {
     view.removeCallbacks(showAfterDrag);
     view.removeCallbacks(fadeForHandle);
     hiddenWhileDragging = false;
+    hiddenForScroll = false;
     handleDragging = false;
     if (window != null) {
       try { window.dismiss(); } catch (Throwable ignored) { }
@@ -195,7 +225,7 @@ public final class Tgx101SelectionBar {
   private final Runnable showAfterDrag = () -> {
     hiddenWhileDragging = false;
     org.thunderdog.challegram.Tgx101Diag.mark("select: bar shown again");
-    if (content != null && window != null) {
+    if (content != null && window != null && !hiddenForScroll) {
       reposition();
       content.animate().alpha(1f).setDuration(120).start();
     }
@@ -258,7 +288,7 @@ public final class Tgx101SelectionBar {
     if (hiddenWhileDragging) {
       hiddenWhileDragging = false;
       org.thunderdog.challegram.Tgx101Diag.mark("select: bar back after the handle");
-      if (content != null && window != null) {
+      if (content != null && window != null && !hiddenForScroll) {
         reposition();
         content.animate().cancel();
         pivotAtBottom();
