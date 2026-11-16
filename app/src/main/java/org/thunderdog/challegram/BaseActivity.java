@@ -1219,18 +1219,28 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
           cutoutIgnored = true;
           Window w = getWindow();
           WindowManager.LayoutParams params = w.getAttributes();
-          params.layoutInDisplayCutoutMode = isFullscreen ? WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT;
-          w.setAttributes(params);
+          int mode = isFullscreen ? WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT;
+          if (params.layoutInDisplayCutoutMode != mode) { // already so since the last photo: no window relayout
+            params.layoutInDisplayCutoutMode = mode;
+            w.setAttributes(params);
+          }
         }
         setWindowFlags(isFullscreen ? WindowManager.LayoutParams.FLAG_FULLSCREEN : 0, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         int uiVisibility = computeUiVisibility();
         setWindowDecorSystemUiVisibility(uiVisibility, true);
         tgx101LogWindowState("fullscreen " + isFullscreen, true); // TGx101: diagnostics builds only
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && !isFullscreen && (Config.CUTOUT_ENABLED || cutoutIgnored)) {
+        // TGx101 (user 2026-11-16, recording 21:58–22:00: every close of a photo lost a frame ~130 ms in, the render thread
+        // waiting 12–20 ms on the window's relayout): in portrait the cutout is in the status bar's strip, where the
+        // window lies anyway while the bar is shown — the «short edges» mode set for the photo stays, and the window
+        // isn't laid out again on each close and the next open. Only landscape, with its cutout at a side, goes back
+        boolean portrait = getResources().getConfiguration().orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && !isFullscreen && (Config.CUTOUT_ENABLED || cutoutIgnored) && !portrait) {
           Window w = getWindow();
           WindowManager.LayoutParams params = w.getAttributes();
-          params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT;
-          w.setAttributes(params);
+          if (params.layoutInDisplayCutoutMode != WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT) {
+            params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT;
+            w.setAttributes(params);
+          }
         }
       }
     }
@@ -1890,6 +1900,15 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   @Override
   public void onConfigurationChanged (@NonNull Configuration newConfig)  {
     super.onConfigurationChanged(newConfig);
+    // TGx101: the «short edges» mode kept in portrait after a photo (setFullScreen) goes once the phone is turned —
+    // the landscape cutout is at a side, where the chat must not lie
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && !isFullscreen && newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+      WindowManager.LayoutParams params = getWindow().getAttributes();
+      if (params.layoutInDisplayCutoutMode != WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT) {
+        params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT;
+        getWindow().setAttributes(params);
+      }
+    }
     boolean needRecreate = Screen.checkDensity();
     navigation.configurationChanged(newConfig);
     if (isPasscodeShowing && passcodeController != null) {
