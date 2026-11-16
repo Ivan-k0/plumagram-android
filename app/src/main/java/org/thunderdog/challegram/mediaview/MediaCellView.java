@@ -172,6 +172,7 @@ public class MediaCellView extends ViewGroup implements
         }
         MediaView mediaView = (MediaView) parent;
         mediaView.setIgnoreDisallowInterceptTouchEvent(true);
+        tgx101OnTouch(event);
         boolean res = super.onTouchEvent(event);
         mediaView.setIgnoreDisallowInterceptTouchEvent(false);
         return res;
