@@ -248,6 +248,19 @@ public final class Tgx101MessageTextSelection {
       Tgx101Diag.mark("select: in-bubble selection " + start + ".." + end + " of " + text.getText().length());
     }
 
+    // (user 2026-11-16 «нужно чуть более контрастное выделение, у меня тускло»): on the dark theme's outgoing bubble the
+    // accent at 35 % barely stood out (87,107,129 → 101,128,152) — in a message it is lighter and stronger: the accent
+    // a third of the way to white at 50 %; in a light theme the theme's own colour, a half stronger. The field as it was
+    private static int bubbleSelectionColor () {
+      if (Theme.isDark()) {
+        int accent = Theme.getColor(ColorId.textLink);
+        return me.vkryl.core.ColorUtils.alphaColor(.5f, me.vkryl.core.ColorUtils.fromToArgb(accent, 0xffffffff, .33f));
+      }
+      int themed = Theme.getColor(ColorId.textSelectionHighlight);
+      int alpha = Math.min(255, Math.round(android.graphics.Color.alpha(themed) * 1.5f));
+      return (themed & 0x00ffffff) | (alpha << 24);
+    }
+
     void close (String reason) {
       if (closed) return;
       closed = true;
@@ -270,7 +283,7 @@ public final class Tgx101MessageTextSelection {
       int length = text.getText().length();
       this.start = Math.max(0, Math.min(length, Math.min(start, end)));
       this.end = Math.max(0, Math.min(length, Math.max(start, end)));
-      text.tgx101SetSelection(this.start, this.end, org.thunderdog.challegram.widget.EmojiEditText.tgx101SelectionColor(Theme.getColor(ColorId.textSelectionHighlight)));
+      text.tgx101SetSelection(this.start, this.end, bubbleSelectionColor());
       View view = currentView();
       if (view != null) view.invalidate();
       overlay.invalidate();
