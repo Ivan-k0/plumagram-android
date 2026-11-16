@@ -15078,9 +15078,22 @@ public class MessagesController extends ViewController<MessagesController.Argume
           UI.post(tgx101ViewerClosed, 600);
         }
         msg.setMediaVisible(item, isVisible);
+        tgx101MediaHiddenIn = isVisible ? null : msg;
+      } else if (isVisible && tgx101MediaHiddenIn != null) {
+        // TGx101 (user 2026-11-16 15:47 video: a photo drawn on in the viewer and sent — the original stayed an empty
+        // plate): the send jumped the chat to the newest message and the original left the list, so the viewer's «show it
+        // again» found nothing. The message the photo was hidden in is shown again all the same
+        org.thunderdog.challegram.Tgx101Diag.mark("media viewer: the hidden photo's message left the list — shown again (" + tgx101MediaHiddenIn.getChatId() + "/" + tgx101MediaHiddenIn.getSmallestId() + ")");
+        tgx101MediaHiddenIn.setMediaVisible(item, true);
+        tgx101MediaHiddenIn = null;
       }
+    } else if (isVisible && tgx101MediaHiddenIn != null) {
+      tgx101MediaHiddenIn.setMediaVisible(item, true);
+      tgx101MediaHiddenIn = null;
     }
   }
+
+  private @Nullable TGMessage tgx101MediaHiddenIn;
 
   // Updates (new)
 
