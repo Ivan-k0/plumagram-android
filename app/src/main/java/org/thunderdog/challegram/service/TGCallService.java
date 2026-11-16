@@ -119,6 +119,13 @@ public class TGCallService extends Service implements
     if (Log.isEnabled(Log.TAG_VOIP)) {
       Log.i(Log.TAG_VOIP, "TGCallService.onStartCommand received, intent: %s", intent);
     }
+    // TGx101 (crash 2026-11-16 13:31, vivo X100 Ultra, Android 16, 0.3.57: «startForegroundService() did not then call
+    // startForeground()» in TGCallService): every start sent by startForegroundService needs its own startForeground —
+    // the flag was set once per service, so a start for the next call into a service that had already left the
+    // foreground (the last call over) skipped the placeholder and Android closed the app. And a stop no longer drops a
+    // start sent meanwhile (stopSelfResult with the last start)
+    tgx101WentForeground = false;
+    tgx101LastStartId = startId;
     final int oldCallId = callId();
     int accountId, callId;
     if (intent != null) {
@@ -136,7 +143,7 @@ public class TGCallService extends Service implements
     if (call == null || user == null) {
       Log.w(Log.TAG_VOIP, "TGCallService.onStartCommand: failed because call or other party not found, call: %s, user: %s", call, user);
       tgx101ForegroundOnce(); // (crash 2026-10-19 16:57) started with startForegroundService: Android closes the app otherwise
-      stopSelf();
+      stopSelfResult(tgx101LastStartId);
       return START_NOT_STICKY;
     }
     if (callInitialized) {
@@ -179,6 +186,7 @@ public class TGCallService extends Service implements
   }
 
   private boolean tgx101WentForeground;
+  private int tgx101LastStartId;
 
   public int callId () {
     return call != null ? call.id : 0;
@@ -301,6 +309,7 @@ public class TGCallService extends Service implements
       if (Intents.ACTION_ANSWER_CALL.equals(action)) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && incomingNotification != null) {
           U.startForeground(TGCallService.this, TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION, incomingNotification, true);
+          tgx101WentForeground = true;
         }
         acceptIncomingCall();
         return;
@@ -858,6 +867,7 @@ public class TGCallService extends Service implements
     if (ongoingCallNotification == null || isDestroyed) return;
     try {
       U.startForeground(this, tgx101OngoingId, ongoingCallNotification);
+      tgx101WentForeground = true;
       org.thunderdog.challegram.Tgx101Diag.mark("[call] foreground again, the app on the screen");
     } catch (Throwable t) {
       org.thunderdog.challegram.Tgx101Diag.mark("[call] foreground again failed " + t.getClass().getSimpleName());
@@ -2128,7 +2138,7 @@ public class TGCallService extends Service implements
         cleanupChannels((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE));
         U.stopForeground(this, true, TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION, TdlibNotificationManager.ID_FOREGROUND_ONGOING_CALL_NOTIFICATION_2, TdlibNotificationManager.ID_FOREGROUND_INCOMING_CALL_NOTIFICATION);
         incomingNotification = ongoingCallNotification = null;
-        stopSelf();
+        if (tgx101LastStartId != 0) stopSelfResult(tgx101LastStartId); else stopSelf(); // a start sent meanwhile is kept
       }
       return;
     }
