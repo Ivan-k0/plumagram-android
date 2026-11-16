@@ -179,26 +179,55 @@ public class RecordButton extends View implements FactorAnimator.Target, ClickHe
     }
   }
 
-  // TGx101 (user 2026-11-15, mockup «Запись голосового: кнопка и линия», «2»; the docked field only — the floating one
-  // keeps the filled halo): a thin ring round the button that widens with the voice, instead of the filled circle
-  private boolean tgx101Ring;
+  // TGx101 (user 2026-11-16, mockups «вокруг кнопки записи», after Telegram for Mac): «если линия активна — просто кнопка
+  // и линия; если не активна — капля в два слоя; для всех полей ввода». With the field's live line on, the button only
+  // breathes a little with the voice and the line carries the wave; otherwise a two-layer drop round the button — the
+  // near layer quick, the far one slow and paler — its edge swaying with the voice
+  public static final int TGX101_HALO_DROP = 0, TGX101_HALO_NONE = 1;
+  private int tgx101Halo = TGX101_HALO_DROP;
+  private float tgx101Slow;
+  private long tgx101LastFrame;
+  private final android.graphics.Path tgx101Path = new android.graphics.Path();
 
-  public void tgx101SetRing (boolean ring) {
-    if (tgx101Ring != ring) {
-      tgx101Ring = ring;
+  public void tgx101SetHalo (int halo) {
+    if (tgx101Halo != halo) {
+      tgx101Halo = halo;
       invalidate();
     }
+  }
+
+  private void tgx101Drop (Canvas c, float r, float amp, float phase, float speed, long now, int color) {
+    tgx101Path.rewind();
+    for (int i = 0; i <= 48; i++) {
+      double a = i / 48.0 * Math.PI * 2;
+      float rr = r + amp * (float) (Math.sin(a * 3 + now / (260.0 * speed) + phase) * .6 + Math.sin(a * 5 - now / (190.0 * speed) + phase * 2) * .4);
+      float x = center + (float) Math.cos(a) * rr, y = center + (float) Math.sin(a) * rr;
+      if (i == 0) tgx101Path.moveTo(x, y); else tgx101Path.lineTo(x, y);
+    }
+    tgx101Path.close();
+    c.drawPath(tgx101Path, Paints.fillingPaint(color));
   }
 
   @Override
   public void onDraw (Canvas c) {
     int color = Theme.getColor(ColorId.circleButtonRegular);
-    if (tgx101Ring) {
-      float loud = Math.min(1f, volume);
-      c.drawCircle(center, center, (radius + Math.max(Screen.dp(4f), radiusAdd * volume)) * expand,
-        Paints.getProgressPaint(ColorUtils.alphaColor((.25f + .5f * loud) * expand, color), Screen.dp(1.5f)));
+    float loud = Math.min(1f, volume);
+    if (tgx101Halo == TGX101_HALO_NONE) {
+      c.drawCircle(center, center, radius * expand * (1f + .06f * loud), Paints.fillingPaint(color));
+      return;
+    }
+    long now = android.os.SystemClock.uptimeMillis();
+    float dt = tgx101LastFrame == 0 ? 16f : Math.min(64f, now - tgx101LastFrame);
+    tgx101LastFrame = now;
+    tgx101Slow += (loud - tgx101Slow) * (1f - (float) Math.exp(-dt / 260f));
+    if (expand > 0f) {
+      float r = radius * expand;
+      tgx101Drop(c, r + (Screen.dp(10f) + Screen.dp(16f) * tgx101Slow) * expand, (Screen.dp(3f) + Screen.dp(6f) * tgx101Slow) * expand, 2f, 1.8f, now, ColorUtils.alphaColor(.16f, color));
+      tgx101Drop(c, r + (Screen.dp(5f) + Screen.dp(11f) * loud) * expand, (Screen.dp(2f) + Screen.dp(5f) * loud) * expand, 0f, 1f, now, ColorUtils.alphaColor(.28f, color));
+      postInvalidateOnAnimation(); // the edge sways on its own, between the voice's steps
     } else {
-      c.drawCircle(center, center, (radius + radiusAdd * volume) * expand, Paints.fillingPaint(ColorUtils.alphaColor(.3f, color)));
+      tgx101LastFrame = 0;
+      tgx101Slow = 0f;
     }
     c.drawCircle(center, center, radius * expand, Paints.fillingPaint(color));
   }
