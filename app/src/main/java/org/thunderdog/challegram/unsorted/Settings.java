@@ -4745,6 +4745,16 @@ public class Settings {
     pmc.putBoolean("tgx101_morse_line", on);
   }
 
+  /** TGx101 (user 2026-11-16): the colour of the field line's sound wave — 0 as before (grey, the record button's while
+   *  recording), then the theme's accent, white, black and the rainbow (Tgx101TypingLine.Sound.WAVE_COLORS) */
+  public int tgx101WaveColor () {
+    return pmc.getInt("tgx101_wave_color", 0);
+  }
+
+  public void setTgx101WaveColor (int color) {
+    pmc.putInt("tgx101_wave_color", color);
+  }
+
   /** TGx101 «Полоска и пульс» (user 2026-11-13): the live line under the classic field — MagiX → Input field */
   public boolean tgx101TypingLine () {
     return pmc.getBoolean("tgx101_typing_line", true);

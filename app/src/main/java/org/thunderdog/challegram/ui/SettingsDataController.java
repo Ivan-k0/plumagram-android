@@ -412,6 +412,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101TypingLine(), isUpdate);
         } else if (itemId == R.id.btn_tgx101MorseLine) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101MorseLine(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101WaveColor) {
+          int which = Settings.instance().tgx101WaveColor();
+          if (!Tgx101TypingLine.Sound.waveColorShown(which)) which = Tgx101TypingLine.Sound.WAVE_DEFAULT;
+          view.setData(TGX101_WAVE_NAMES[which]);
         } else if (itemId == R.id.btn_tgx101RearRounds) {
           view.getToggler().setRadioEnabled(Settings.instance().startRoundWithRear(), isUpdate);
         } else if (itemId == R.id.btn_tgx101RoundAskCamera) {
@@ -709,6 +713,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101TypingLine, 0, R.string.Tgx101TypingLine),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MorseLine, 0, R.string.Tgx101MorseLine),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101WaveColor, 0, R.string.Tgx101WaveColor),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101RearRounds, 0, R.string.Tgx101RearRounds),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1239,7 +1245,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101CapsuleScrollHide
       || id == R.id.btn_tgx101Bird || id == R.id.btn_tgx101BirdRing || id == R.id.btn_tgx101SwipeToStorage || id == R.id.btn_tgx101SolidControls) return TGX101_SECTION_NAV;
     if (id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap || id == R.id.btn_tgx101SwipeKeyboard || id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands
-      || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101TypingLine || id == R.id.btn_tgx101MorseLine || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101TextEditor) return TGX101_SECTION_INPUT;
+      || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101TypingLine || id == R.id.btn_tgx101MorseLine || id == R.id.btn_tgx101WaveColor || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101TextEditor) return TGX101_SECTION_INPUT;
     if (id == R.id.btn_tgx101QuickCalls) return 7;
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked || id == R.id.btn_tgx101CompactBubbles || id == R.id.btn_tgx101RememberChatPlace) return 2;
     if (id == R.id.btn_tgx101SavedSettingsOpen || id == R.id.btn_tgx101AiAll || id == R.id.btn_tgx101AiCompose || id == R.id.btn_tgx101AiSummary || id == R.id.btn_tgx101AiMissed || id == R.id.btn_tgx101AiSort || id == R.id.btn_tgx101Peek
@@ -1359,7 +1365,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       gone.add(R.id.btn_tgx101ZoomPullClose);
     }
     int[] bottomMenu = {R.id.btn_tgx101CapsuleMenu, R.id.btn_tgx101ContactsMenu, R.id.btn_tgx101QuickCalls, R.id.btn_tgx101BottomGap, R.id.btn_tgx101HideCompose};
-    int[] inputButtons = {R.id.btn_tgx101HideInputCamera, R.id.btn_tgx101HideInputCommands, R.id.btn_tgx101HideInputEmoji, R.id.btn_tgx101TypingLine, R.id.btn_tgx101MorseLine};
+    int[] inputButtons = {R.id.btn_tgx101HideInputCamera, R.id.btn_tgx101HideInputCommands, R.id.btn_tgx101HideInputEmoji, R.id.btn_tgx101TypingLine, R.id.btn_tgx101MorseLine, R.id.btn_tgx101WaveColor};
     // TGx101 (user 2026-10-12 14:52 «не видно где выключатель рекламы»): channel switches get their own section
     int[] channels = {R.id.btn_tgx101HideSponsored, R.id.btn_tgx101HideJoin};
     int[] other = {R.id.btn_tgx101RearRounds, R.id.btn_tgx101RoundRememberCamera, R.id.btn_tgx101RoundAskCamera, R.id.btn_tgx101HidePhone, R.id.btn_tgx101NotificationPlane, R.id.btn_tgx101ForegroundNotif};
@@ -1645,6 +1651,22 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101TypingLine(toggleResult);
     } else if (id == R.id.btn_tgx101MorseLine) {
       Settings.instance().setTgx101MorseLine(toggleResult);
+    } else if (id == R.id.btn_tgx101WaveColor) {
+      // (user 2026-11-16 «давай красить только волну, когда активна»): white only in a dark theme, black only in a light one
+      int current = Settings.instance().tgx101WaveColor();
+      if (!Tgx101TypingLine.Sound.waveColorShown(current)) current = Tgx101TypingLine.Sound.WAVE_DEFAULT;
+      java.util.List<ListItem> options = new java.util.ArrayList<>();
+      for (int which = 0; which < TGX101_WAVE_NAMES.length; which++) {
+        if (!Tgx101TypingLine.Sound.waveColorShown(which)) continue;
+        options.add(new ListItem(ListItem.TYPE_RADIO_OPTION, which + 1, 0, TGX101_WAVE_NAMES[which], R.id.btn_tgx101WaveColor, which == current));
+      }
+      showSettings(new SettingsWrapBuilder(R.id.btn_tgx101WaveColor)
+        .setRawItems(options.toArray(new ListItem[0]))
+        .setIntDelegate((resultId, result) -> {
+          int chosen = result.get(R.id.btn_tgx101WaveColor) - 1;
+          if (chosen >= 0) Settings.instance().setTgx101WaveColor(chosen);
+          adapter.updateValuedSettingById(R.id.btn_tgx101WaveColor);
+        }));
     } else if (id == R.id.btn_tgx101RearRounds) {
       Settings.instance().setStartRoundWithRear(toggleResult);
     } else if (id == R.id.btn_tgx101RoundRememberCamera) {
@@ -2046,6 +2068,13 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       // new SettingItem(SettingItem.TYPE_DESCRIPTION, 0, 0, R.string.SizeLimitDesc)
     };
   }
+
+  // the order is Tgx101TypingLine.Sound's: default, accent, white, black, then the rainbow
+  private static final int[] TGX101_WAVE_NAMES = {
+    R.string.Tgx101WaveDefault, R.string.Tgx101WaveAccent, R.string.Tgx101WaveWhite, R.string.Tgx101WaveBlack,
+    R.string.Tgx101WaveRed, R.string.Tgx101WaveOrange, R.string.Tgx101WaveYellow, R.string.Tgx101WaveGreen,
+    R.string.Tgx101WaveLightBlue, R.string.Tgx101WaveBlue, R.string.Tgx101WaveViolet
+  };
 
   private static String tgx101SnoozeName (int value) {
     if (value == Settings.TGX101_NOTIF_BUTTON_LIKE || value == Settings.TGX101_NOTIF_BUTTON_HEART) return Lang.getString(R.string.Tgx101SnoozeLike);
