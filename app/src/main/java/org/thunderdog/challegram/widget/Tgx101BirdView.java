@@ -46,7 +46,7 @@ import org.thunderdog.challegram.unsorted.Settings;
  * bird pressed to the screen's edge, over every chat list, when the side menu is on and ✎ is off.
  * Tap — the side menu. Hold — a ring of up to 5 actions around the finger; the finger slides to one and lets go.
  * Holding 2.5 s without moving lifts the bird: it follows the finger and sticks to the nearer edge where it is let go.
- * A hint at the bottom says so until the bird was moved once.
+ * A hint at the bottom says so until the bird was moved once, or for its first minute on screen.
  */
 public class Tgx101BirdView extends View {
   public interface Callback {
@@ -191,6 +191,8 @@ public class Tgx101BirdView extends View {
   private long liftAnimStart = -1;
   private boolean liftOpening;
   private float hint; // 0..1
+  private long hintShownSince;
+  private static final long HINT_MS = 60_000;
   private long lastFrame;
   // (user 2026-10-21, variant 1 «как AssistiveTouch»): 3 s untouched the bird pales to 40%; a finger brings it back
   private static final long IDLE_MS = 3000;
@@ -781,6 +783,17 @@ public class Tgx101BirdView extends View {
     float shownTarget = busy ? 1f : IDLE_ALPHA;
     shown += (shownTarget - shown) * (1f - (float) Math.exp(-dt / (shownTarget > shown ? 40f : 220f)));
     if (Math.abs(shownTarget - shown) > .005f) more = true; else shown = shownTarget;
+    // (user 2026-11-16 «показываем 1 минуту — потом она пропадает»): the hint stays a minute of being shown, then fades
+    // and doesn't come back, as if the bird was moved
+    if (!Settings.instance().tgx101BirdMoveLearned() && getVisibility() == VISIBLE) {
+      long nowHint = SystemClock.uptimeMillis();
+      if (hintShownSince == 0) {
+        hintShownSince = nowHint;
+        postInvalidateDelayed(HINT_MS + 50);
+      } else if (nowHint - hintShownSince >= HINT_MS) {
+        Settings.instance().setTgx101BirdMoveLearned(true);
+      }
+    }
     float hintTarget = Settings.instance().tgx101BirdMoveLearned() ? 0f : 1f;
     hint += (hintTarget - hint) * k * .5f;
     if (Math.abs(hintTarget - hint) > .005f) more = true; else hint = hintTarget;

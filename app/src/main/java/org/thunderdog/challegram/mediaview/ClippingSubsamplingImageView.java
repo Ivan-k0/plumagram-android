@@ -91,15 +91,18 @@ public class ClippingSubsamplingImageView extends SubsamplingScaleImageView {
     if (!glide) {
       return library.onTouch(e);
     }
+    // where the picture stands now: turning panning off puts it back in the middle (the library's setPanEnabled), so it is
+    // set back here before the frame is drawn (user 2026-11-16 «фото прыгает»: 0.3.66 jumped 570–960 px at each lift)
+    tgx101GlideScale = getScale();
+    tgx101GlideFrom = new android.graphics.PointF(getCenter().x, getCenter().y);
     setPanEnabled(false); // the library checks it in its fling: no glide of its own
     boolean res;
     try {
       res = library.onTouch(e);
     } finally {
       setPanEnabled(true);
+      setScaleAndCenter(tgx101GlideScale, new android.graphics.PointF(tgx101GlideFrom.x, tgx101GlideFrom.y));
     }
-    tgx101GlideScale = getScale();
-    tgx101GlideFrom = new android.graphics.PointF(getCenter().x, getCenter().y);
     tgx101GlideDx = vx * .25f;
     tgx101GlideDy = vy * .25f;
     tgx101GlideStart = 0;
