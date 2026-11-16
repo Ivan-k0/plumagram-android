@@ -84,6 +84,7 @@ import org.thunderdog.challegram.component.chat.AudioFile;
 import org.thunderdog.challegram.component.chat.ChatBottomBarView;
 import org.thunderdog.challegram.component.chat.ChatHeaderView;
 import org.thunderdog.challegram.component.chat.ChatSearchMembersView;
+import org.thunderdog.challegram.component.chat.Tgx101Replies;
 import org.thunderdog.challegram.component.chat.CircleCounterBadgeView;
 import org.thunderdog.challegram.component.chat.CommandKeyboardLayout;
 import org.thunderdog.challegram.component.chat.CounterBadgeView;
@@ -7578,6 +7579,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
           tdlib.ui().unblockMember(this, selectedMessage.getChatId(), selectedMessage.getMessage().senderId, selectedMessageSender.status);
         }
         return true;
+      } else if (id == R.id.btn_messageTgx101Replies) {
+        tgx101OpenReplies(selectedMessage);
+        return true;
       } else if (id == R.id.btn_messageMore) {
         cancelSheduledKeyboardOpeningAndHideAllKeyboards();
         IntList ids = new IntList(3);
@@ -7590,7 +7594,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
             runOnUiThreadOptional(() -> {
               if (!selectedMessage.isDestroyed()) {
                 Object tag = MessageView.fillMessageOptions(this, selectedMessage, otherMember, ids, icons, strings, true);
-                tgx101AddMoreActions(ids, icons, strings);
+                tgx101AddMoreActions(selectedMessage, ids, icons, strings);
                 if (!ids.isEmpty()) {
                   showMessageOptions(selectedMessage, ids.get(), strings.get(), icons.get(), tag, otherMember, true);
                 }
@@ -7599,7 +7603,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           });
         } else {
           Object tag = MessageView.fillMessageOptions(this, selectedMessage, selectedMessageSender, ids, icons, strings, true);
-          tgx101AddMoreActions(ids, icons, strings);
+          tgx101AddMoreActions(selectedMessage, ids, icons, strings);
           if (!ids.isEmpty()) {
             showMessageOptions(selectedMessage, ids.get(), strings.get(), icons.get(), tag, selectedMessageSender, true);
           }
@@ -10540,7 +10544,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         // built with isMore = true, which skips them) and silently did nothing — take them from the full list
         tag = MessageView.fillMessageOptions(this, selectedMessage, member, new IntList(4), new IntList(4), new StringList(4), false);
       }
-      tgx101AddMoreActions(ids, icons, strings);
+      tgx101AddMoreActions(selectedMessage, ids, icons, strings);
       java.util.List<OptionItem> items = new java.util.ArrayList<>();
       int[] idArray = ids.get(), iconArray = icons.get();
       String[] stringArray = strings.get();
@@ -10561,7 +10565,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   // TGx101: «More…» = the actions the user moved there (MagiX → message menu) + Telegram X's own extra ones
-  private void tgx101AddMoreActions (IntList ids, IntList icons, StringList strings) {
+  private void tgx101AddMoreActions (TGMessage selectedMessage, IntList ids, IntList icons, StringList strings) {
     java.util.List<OptionItem> moved = Tgx101MessageMenu.takePendingMore();
     int[] oldIds = ids.get(), oldIcons = icons.get();
     String[] oldStrings = strings.get();
@@ -10582,6 +10586,51 @@ public class MessagesController extends ViewController<MessagesController.Argume
       icons.append(oldIcons[i]);
       strings.append(oldStrings[i]);
     }
+    // (user 2026-11-16, 4PDA wish): every reply to this message, in the chat's search — groups only
+    TGMessage m = selectedMessage;
+    if (m != null && !m.isSending() && m.getMessage().id > 0 && ChatId.isMultiChat(m.getChatId()) && !tdlib.isChannel(m.getChatId()) && added.add(R.id.btn_messageTgx101Replies)) {
+      ids.append(R.id.btn_messageTgx101Replies);
+      icons.append(R.drawable.baseline_forum_24);
+      strings.append(Lang.getString(R.string.Tgx101RepliesToMessage));
+    }
+  }
+
+  // TGx101 «Ответы на сообщение» (user 2026-11-16, 4PDA wish, mockup): the chat goes into its search with the replies to
+  // one message as the results — the counter, the arrows, the list, the sender and date buttons work on them; words
+  // typed narrow them. While the history is read the counter says how far it got
+  private int tgx101RepliesSession;
+  private boolean tgx101RepliesOn;
+
+  private void tgx101OpenReplies (TGMessage m) {
+    if (m == null || headerView == null || chat == null) return;
+    final long chatId = m.getChatId(), messageId = m.getMessage().id;
+    final int session = ++tgx101RepliesSession;
+    TdApi.FormattedText text = Td.textOrCaption(m.getMessage().content);
+    String preview = text != null && text.text != null ? text.text.replace('\n', ' ').trim() : "";
+    if (preview.length() > 28) preview = preview.substring(0, 27).trim() + "…";
+    manager.tgx101SetReplies(null);
+    tgx101RepliesOn = true;
+    if (!inSearchMode()) {
+      headerView.openSearchMode(true, false); // no keyboard: there is nothing to type
+    }
+    tgx101SetSearchHint(preview.isEmpty() ? Lang.getString(R.string.Tgx101RepliesToMessage) : Lang.getString(R.string.Tgx101RepliesTo, preview));
+    onChatSearchStarted();
+    searchCounterView.setText(Lang.getString(R.string.Tgx101RepliesLooking));
+    Tgx101Replies.collect(tdlib, chatId, messageId, new Tgx101Replies.Progress() {
+      @Override
+      public void onProgress (int found, int scanned) {
+        if (session != tgx101RepliesSession || !tgx101RepliesOn) return;
+        searchCounterView.setText(Lang.getString(R.string.Tgx101RepliesLookingFound, found));
+      }
+
+      @Override
+      public void onDone (Tgx101Replies replies) {
+        if (session != tgx101RepliesSession || !tgx101RepliesOn || isDestroyed()) return;
+        manager.tgx101SetReplies(replies);
+        if (replies.wasCut()) UI.showToast(R.string.Tgx101RepliesCut, android.widget.Toast.LENGTH_SHORT);
+        searchChatMessages(getLastMessageSearchQuery());
+      }
+    });
   }
 
   private void pinUnpinMessage (TGMessage m, boolean pin) {
@@ -16166,6 +16215,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   protected void onLeaveSearchMode () {
+    if (tgx101RepliesOn) {
+      tgx101RepliesOn = false;
+      tgx101RepliesSession++;
+      manager.tgx101SetReplies(null);
+      tgx101SetSearchHint(null);
+    }
     if (searchFromUserMessageId != null) {
       manager.setHighlightMessageId(searchFromUserMessageId, MessagesManager.HIGHLIGHT_MODE_WITHOUT_HIGHLIGHT);
     }

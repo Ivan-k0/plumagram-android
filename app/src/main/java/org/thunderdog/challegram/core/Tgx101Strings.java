@@ -987,6 +987,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedSelect, "Выделить");
     RU.put(R.string.Tgx101SavedInFeed, "В ленте");
     RU.put(R.string.Tgx101SavedMore, "Ещё");
+    RU.put(R.string.Tgx101RepliesToMessage, "Ответы на сообщение");
+    RU.put(R.string.Tgx101RepliesTo, "Ответы на «%1$s»");
+    RU.put(R.string.Tgx101RepliesLooking, "Ищу ответы…");
+    RU.put(R.string.Tgx101RepliesLookingFound, "Ищу… найдено %1$d");
+    RU.put(R.string.Tgx101RepliesCut, "Ответы искались в 20 000 сообщений после него");
     RU.put(R.string.Tgx101SavedOrganizeFolder, "Папка · одна");
     RU.put(R.string.Tgx101SavedOrganizeTags, "Метки · можно несколько");
     RU.put(R.string.Tgx101SavedOrganizePartial, "Уже стоит у части: %1$s. Нажатие поставит всем.");

@@ -7158,6 +7158,11 @@
   <string name="Tgx101SavedSelect">Select</string>
   <string name="Tgx101SavedInFeed">In the feed</string>
   <string name="Tgx101SavedMore">More</string>
+  <string name="Tgx101RepliesToMessage">Replies to the message</string>
+  <string name="Tgx101RepliesTo">Replies to «%1$s»</string>
+  <string name="Tgx101RepliesLooking">Looking for replies…</string>
+  <string name="Tgx101RepliesLookingFound">Looking… %1$d found</string>
+  <string name="Tgx101RepliesCut">Replies looked for in the 20,000 messages after it</string>
   <string name="Tgx101SavedOrganizeFolder">Folder · one</string>
   <string name="Tgx101SavedOrganizeTags">Tags · several</string>
   <string name="Tgx101SavedOrganizePartial">Some already have: %1$s. A tap puts it on all.</string>

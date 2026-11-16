@@ -1222,6 +1222,7 @@
   <item type="id" name="btn_messageSearchFilterGif" />
 
   <item type="id" name="btn_messageMore" />
+  <item type="id" name="btn_messageTgx101Replies" />
   <item type="id" name="btn_messageCopy" />
   <item type="id" name="btn_messageSelectText" />
   <item type="id" name="btn_messageCopyLink" />

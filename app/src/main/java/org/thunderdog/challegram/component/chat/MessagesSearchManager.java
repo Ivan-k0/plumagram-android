@@ -108,7 +108,7 @@ public class MessagesSearchManager {
   public void search (final long chatId, final TdApi.MessageTopic topicId, final TdApi.MessageSender fromSender, final TdApi.SearchMessagesFilter filter, final boolean isSecret, final String input, MessageId foundMsgId) {
     final int contextId = reset(chatId, topicId, input);
 
-    if (input.length() == 0 && fromSender == null && filter == null) {
+    if (input.length() == 0 && fromSender == null && filter == null && searchManagerMiddleware.tgx101Replies(chatId) == null) { // TGx101: the replies need no words
       delegate.showSearchResult(STATE_NO_INPUT, 0, true, true, null);
       return;
     }

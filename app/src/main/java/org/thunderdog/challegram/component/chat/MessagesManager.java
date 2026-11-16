@@ -657,6 +657,11 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
 
   // Search
 
+  /** TGx101 «Ответы на сообщение»: the chat's search answered from these replies (null — the usual search again) */
+  public void tgx101SetReplies (@Nullable Tgx101Replies replies) {
+    searchMiddleware.tgx101SetReplies(replies);
+  }
+
   public void openSearch (TdApi.Chat chat, String query, TdApi.MessageSender sender, TdApi.SearchMessagesFilter filter) {
     // TGx101 (user 2026-10-22 «как работает переход по закрепам» in topics): a search inside a forum topic — the pinned
     // list among them — looks only in that topic
