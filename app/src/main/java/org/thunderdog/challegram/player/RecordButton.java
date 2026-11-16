@@ -224,7 +224,9 @@ public class RecordButton extends View implements FactorAnimator.Target, ClickHe
       float r = radius * expand;
       tgx101Drop(c, r + (Screen.dp(10f) + Screen.dp(16f) * tgx101Slow) * expand, (Screen.dp(3f) + Screen.dp(6f) * tgx101Slow) * expand, 2f, 1.8f, now, ColorUtils.alphaColor(.16f, color));
       tgx101Drop(c, r + (Screen.dp(5f) + Screen.dp(11f) * loud) * expand, (Screen.dp(2f) + Screen.dp(5f) * loud) * expand, 0f, 1f, now, ColorUtils.alphaColor(.28f, color));
-      postInvalidateOnAnimation(); // the edge sways on its own, between the voice's steps
+      // the edge sways on its own, between the voice's steps — 30 times a second, as the line's wave (user 2026-11-16
+      // «не будет грузить процессор больше, чем было?»): every frame of a 120 Hz screen for the whole recording was too much
+      postInvalidateDelayed(33);
     } else {
       tgx101LastFrame = 0;
       tgx101Slow = 0f;
