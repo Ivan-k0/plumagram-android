@@ -85,9 +85,11 @@ public class MediaCellViewDetector implements FactorAnimator.Target {
       }
       case MotionEvent.ACTION_CANCEL: {
         listenClick = false;
+        if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) tgx101PanEnd();
         break;
       }
       case MotionEvent.ACTION_UP: {
+        if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) tgx101PanEnd();
         if (listenClick) {
           onClick(e.getX(), e.getY());
         }
@@ -568,12 +570,68 @@ public class MediaCellViewDetector implements FactorAnimator.Target {
     float x = e.getX();
     float y = e.getY();
 
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) tgx101PanStep(e, x - lastMoveX, y - lastMoveY);
     offsetPositionBy(x - lastMoveX, y - lastMoveY);
 
     lastMoveX = x;
     lastMoveY = y;
 
     callback.onZoom();
+  }
+
+  // TGx101 (user 2026-11-16 «приближённое медиа идёт лесенкой»: on the recording the picture moved 12, 36, 48 px in
+  // neighbouring frames while the finger went evenly) — per frame: the finger's way that reached the picture and in how
+  // many touches, the picture's x as drawn, and the touches' own times; written when the finger is lifted
+  private final StringBuilder tgx101Pan = new StringBuilder();
+  private float tgx101PanFrameDx;
+  private int tgx101PanFrameEvents, tgx101PanFrames, tgx101PanEmpty;
+  private long tgx101PanStart, tgx101PanLastEventTime;
+  private boolean tgx101PanFrameAsked;
+  private final android.view.Choreographer.FrameCallback tgx101PanFrame = frameTimeNanos -> {
+    tgx101PanFrameAsked = false;
+    if (tgx101PanStart == 0) return;
+    tgx101PanFrames++;
+    if (tgx101PanFrameEvents == 0) tgx101PanEmpty++;
+    if (tgx101Pan.length() < 3000) {
+      tgx101Pan.append(' ').append(Math.round(tgx101PanFrameDx)).append('/').append(tgx101PanFrameEvents);
+      tgx101Pan.append('@').append(Math.round(positionX * displayRect.width()));
+    }
+    tgx101PanFrameDx = 0;
+    tgx101PanFrameEvents = 0;
+    if (state == STATE_MOVING) {
+      tgx101PanFrameAsked = true;
+      android.view.Choreographer.getInstance().postFrameCallback(this.tgx101PanFrameRef());
+    }
+  };
+
+  private android.view.Choreographer.FrameCallback tgx101PanFrameRef () {
+    return tgx101PanFrame;
+  }
+
+  private void tgx101PanStep (MotionEvent e, float dx, float dy) {
+    if (tgx101PanStart == 0) {
+      tgx101PanStart = SystemClock.uptimeMillis();
+      tgx101Pan.setLength(0);
+      tgx101PanFrames = tgx101PanEmpty = 0;
+      tgx101PanLastEventTime = e.getEventTime();
+    }
+    tgx101PanFrameDx += Math.abs(dx) > Math.abs(dy) ? dx : dy;
+    tgx101PanFrameEvents += 1 + e.getHistorySize();
+    if (tgx101Pan.length() < 3000) {
+      tgx101Pan.append(" e").append(e.getEventTime() - tgx101PanLastEventTime).append(e.getHistorySize() > 0 ? "+h" + e.getHistorySize() : "");
+    }
+    tgx101PanLastEventTime = e.getEventTime();
+    if (!tgx101PanFrameAsked) {
+      tgx101PanFrameAsked = true;
+      android.view.Choreographer.getInstance().postFrameCallback(tgx101PanFrame);
+    }
+  }
+
+  private void tgx101PanEnd () {
+    if (tgx101PanStart == 0) return;
+    org.thunderdog.challegram.Tgx101Diag.mark("zoomed pan: " + (SystemClock.uptimeMillis() - tgx101PanStart) + " ms, zoom " + Math.round(zoom * 100) / 100f + ", frames " + tgx101PanFrames + " (with no touch " + tgx101PanEmpty + ") | per frame finger px/touches@picture x, eN = ms since the last touch:" + tgx101Pan);
+    tgx101PanStart = 0;
+    tgx101Pan.setLength(0);
   }
 
   // Utils
