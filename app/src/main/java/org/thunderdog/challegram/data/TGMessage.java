@@ -7712,7 +7712,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
     if (revokeAnimator == null) {
       revokeAnimator = new FactorAnimator(ANIMATOR_REVOKE, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 700l, 0f); // TGx101: 400 → 700 ms
-      revokeAnimator.setStartDelay(3000l); // TGx101 (user 2026-11-17 «чуть продли время»): 2 → 3 s
+      revokeAnimator.setStartDelay(2500l); // TGx101 (user 2026-11-17 «чуть продли время», then «2,5 секунды ок»): 2 → 2.5 s
     } else {
       revokeAnimator.forceFactor(0f);
     }
