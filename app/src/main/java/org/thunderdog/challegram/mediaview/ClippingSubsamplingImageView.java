@@ -46,6 +46,96 @@ public class ClippingSubsamplingImageView extends SubsamplingScaleImageView {
 
   private final Path path = new Path();
 
+  // TGx101 (user 2026-11-16 «приближённое медиа идёт лесенкой», journal 15:56: while the finger moves the picture goes
+  // evenly, 29 33 28 25 px a frame; once let go the library's own glide went 33 20 36 39 34 18 29 36 21 51 10 — it counts
+  // its time by the wall clock at draw, not by the frame's time, so a frame drawn a bit late or early takes half or double
+  // a step). The library's glide is turned off at the lift and the same one — the finger's speed × 0.25 s, ease-out over
+  // 500 ms, as the library's — is played here by the frames' own times
+  private android.view.VelocityTracker tgx101Velocity;
+  private float tgx101DownX, tgx101DownY;
+  private boolean tgx101OneFinger;
+  private float tgx101GlideScale, tgx101GlideDx, tgx101GlideDy;
+  private android.graphics.PointF tgx101GlideFrom;
+  private long tgx101GlideStart;
+  private boolean tgx101Gliding;
+  private final android.view.Choreographer.FrameCallback tgx101GlideFrame = this::tgx101GlideStep;
+
+  public interface Tgx101LibraryTouch {
+    boolean onTouch (android.view.MotionEvent e);
+  }
+
+  /** Feeds the library the event; at a lift that would fling, the library's glide is skipped and this one plays instead. */
+  public boolean tgx101TouchWithGlide (android.view.MotionEvent e, Tgx101LibraryTouch library) {
+    int action = e.getActionMasked();
+    if (action == android.view.MotionEvent.ACTION_DOWN) {
+      tgx101StopGlide();
+      if (tgx101Velocity != null) tgx101Velocity.clear();
+      tgx101DownX = e.getX();
+      tgx101DownY = e.getY();
+      tgx101OneFinger = true;
+    }
+    if (e.getPointerCount() > 1) tgx101OneFinger = false;
+    if (tgx101Velocity == null) tgx101Velocity = android.view.VelocityTracker.obtain();
+    tgx101Velocity.addMovement(e);
+    if (action != android.view.MotionEvent.ACTION_UP) {
+      return library.onTouch(e);
+    }
+    android.view.ViewConfiguration vc = android.view.ViewConfiguration.get(getContext());
+    tgx101Velocity.computeCurrentVelocity(1000, vc.getScaledMaximumFlingVelocity());
+    float vx = tgx101Velocity.getXVelocity(), vy = tgx101Velocity.getYVelocity();
+    tgx101Velocity.clear();
+    boolean glide = tgx101OneFinger && isReady() && isPanEnabled() && getCenter() != null
+      && (Math.abs(e.getX() - tgx101DownX) > 50 || Math.abs(e.getY() - tgx101DownY) > 50)
+      && (Math.abs(vx) > 500 || Math.abs(vy) > 500)
+      && (Math.abs(vx) > vc.getScaledMinimumFlingVelocity() || Math.abs(vy) > vc.getScaledMinimumFlingVelocity());
+    if (!glide) {
+      return library.onTouch(e);
+    }
+    setPanEnabled(false); // the library checks it in its fling: no glide of its own
+    boolean res;
+    try {
+      res = library.onTouch(e);
+    } finally {
+      setPanEnabled(true);
+    }
+    tgx101GlideScale = getScale();
+    tgx101GlideFrom = new android.graphics.PointF(getCenter().x, getCenter().y);
+    tgx101GlideDx = vx * .25f;
+    tgx101GlideDy = vy * .25f;
+    tgx101GlideStart = 0;
+    tgx101Gliding = true;
+    android.view.Choreographer.getInstance().postFrameCallback(tgx101GlideFrame);
+    return res;
+  }
+
+  private void tgx101StopGlide () {
+    if (tgx101Gliding) {
+      tgx101Gliding = false;
+      android.view.Choreographer.getInstance().removeFrameCallback(tgx101GlideFrame);
+    }
+  }
+
+  private void tgx101GlideStep (long frameTimeNanos) {
+    if (!tgx101Gliding) return;
+    if (!isReady() || getWindowToken() == null || Math.abs(getScale() - tgx101GlideScale) > .001f) {
+      tgx101Gliding = false;
+      return;
+    }
+    long frameMs = frameTimeNanos / 1000000L;
+    if (tgx101GlideStart == 0) {
+      float hz = org.thunderdog.challegram.tool.Screen.refreshRate();
+      tgx101GlideStart = frameMs - Math.round(1000f / (hz > 1f ? hz : 60f)); // the first frame already moves
+    }
+    float t = Math.min(1f, (frameMs - tgx101GlideStart) / 500f);
+    float f = t * (2f - t); // ease out, as the library's
+    setScaleAndCenter(tgx101GlideScale, new android.graphics.PointF(tgx101GlideFrom.x - tgx101GlideDx * f / tgx101GlideScale, tgx101GlideFrom.y - tgx101GlideDy * f / tgx101GlideScale));
+    if (t < 1f) {
+      android.view.Choreographer.getInstance().postFrameCallback(tgx101GlideFrame);
+    } else {
+      tgx101Gliding = false;
+    }
+  }
+
   // TGx101 (user 2026-11-16 «приближённое медиа идёт лесенкой»: on the recording a zoomed photo moved 12, 36, 48 px in
   // neighbouring frames while the finger went evenly) — the big photos are this view's, panned by the library itself:
   // per drawn frame the finger's way since the last frame and in how many touches, and the picture's step; once the
