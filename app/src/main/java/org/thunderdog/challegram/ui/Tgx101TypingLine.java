@@ -524,6 +524,7 @@ public final class Tgx101TypingLine {
       if (!wanted()) return;
       long now = SystemClock.uptimeMillis();
       if (level > .02f && (soundSince == 0 || now - at > 2000)) soundSince = now; // after two seconds of silence it is a new sound
+      if (level > .02f && (playTintAt == 0 || now - at > 900)) playTintAt = now; // the colour sets out again after the old one faded
       target = Math.max(0f, Math.min(1f, level));
       at = now;
       wake(hostRef);
@@ -554,6 +555,15 @@ public final class Tgx101TypingLine {
     }
 
     /** how much of the recording's colour the line has: whole while recording, fading for a third of a second after */
+    private static volatile long playTintAt; // when the playing sound's (chosen) colour set out from the middle, 0 — not yet
+
+    /** the chosen colour on a playing sound: whole while it sounds, fading for a third of a second after it stops */
+    private static float playTint (long now) {
+      if (playTintAt == 0) return 0f;
+      long since = now - at;
+      return since < 600 ? 1f : Math.max(0f, 1f - (since - 600) / 300f);
+    }
+
     private static float tint (long now) {
       if (tintAt == 0) return 0f;
       long since = now - recordingAt;
@@ -664,18 +674,20 @@ public final class Tgx101TypingLine {
       wavePaint.setStrokeJoin(Paint.Join.ROUND);
       int grey = Theme.separatorColor();
       wavePaint.setColor(grey);
+      // (user 2026-11-16 «красить только волну, когда активна»; «волна красит линию не из центра, а сразу целиком —
+      // сделай как было»): a chosen colour runs out from the middle like the recording's — while recording, and while
+      // a sound plays, from its first waves
       int chosen = waveColor(org.thunderdog.challegram.unsorted.Settings.instance().tgx101WaveColor());
-      if (chosen != 0) {
-        // (user 2026-11-16 «красить только волну, когда активна»): the chosen colour, playing or recording alike
-        wavePaint.setColor(chosen);
-        c.drawPath(wavePath, wavePaint);
-        return;
-      }
       float tint = tint(now);
+      long from = tintAt;
+      if (tint <= 0f && chosen != 0) {
+        tint = playTint(now);
+        from = playTintAt;
+      }
       if (tint > 0f) {
-        // the colour of the round recording button, running out from the middle at the rings' pace
-        int color = ColorUtils.fromToArgb(grey, Theme.getColor(ColorId.circleButtonRegular), tint);
-        float front = (now - tintAt) / 16f * perStep, soft = Screen.dp(26f);
+        // the colour of the round recording button (or the chosen one), running out from the middle at the rings' pace
+        int color = ColorUtils.fromToArgb(grey, chosen != 0 ? chosen : Theme.getColor(ColorId.circleButtonRegular), tint);
+        float front = (now - from) / 16f * perStep, soft = Screen.dp(26f);
         if (front >= mid + soft) {
           wavePaint.setColor(color);
         } else {
