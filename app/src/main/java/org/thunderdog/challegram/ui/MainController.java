@@ -2193,30 +2193,62 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     }
   }
 
-  private long tgx101LastTabClick;
-  private int tgx101LastTabClicked = -1;
-
   /** (user's voice note 2026-10-19 «двойной тап по настройкам в нижнем меню должен тоже переключать профиль»): as in the
-   *  official app, a double tap on «Settings» (or «Profile») goes to the next account, round */
-  private boolean tgx101CheckDoubleTapAccount (int tab) {
-    long now = android.os.SystemClock.uptimeMillis();
-    boolean doubleTap = tab == tgx101LastTabClicked && now - tgx101LastTabClick < 400;
-    tgx101LastTabClicked = tab;
-    tgx101LastTabClick = doubleTap ? 0 : now;
-    if (!doubleTap || (tab != Tgx101NavCapsule.TAB_SETTINGS && tab != Tgx101NavCapsule.TAB_PROFILE)) return false;
+   *  official app, a double tap on «Settings» (or «Profile») goes to the next account, round. (4PDA 2026-11-16, user:
+   *  «срабатывает редко, потому что сначала открывает профиль и он не ждёт второго касания… как двойной тап для
+   *  реакции»): with two accounts or more the first tap waits 200 ms for a second one — as the message's double tap —
+   *  and only then opens the tab; a second tap in that time switches the account and nothing opens */
+  private static final long TGX101_TAB_DOUBLE_TAP_WINDOW = 200;
+  private me.vkryl.core.lambda.CancellableRunnable tgx101PendingTab;
+  private int tgx101PendingTabId = -1;
+
+  private boolean tgx101HasOtherAccounts () {
+    return org.thunderdog.challegram.telegram.TdlibManager.instance().getActiveAccounts().size() >= 2;
+  }
+
+  private void tgx101SwitchToNextAccount () {
     java.util.List<org.thunderdog.challegram.telegram.TdlibAccount> accounts = org.thunderdog.challegram.telegram.TdlibManager.instance().getActiveAccounts();
-    if (accounts.size() < 2) return false;
+    if (accounts.size() < 2) return;
     int at = 0;
     for (int i = 0; i < accounts.size(); i++) if (accounts.get(i).id == tdlib.id()) at = i;
     org.thunderdog.challegram.telegram.TdlibAccount next = accounts.get((at + 1) % accounts.size());
     org.thunderdog.challegram.Tgx101Diag.mark("bottom menu: double tap → switch account " + tdlib.id() + " → " + next.id);
     UI.forceVibrate(tgx101Capsule, false);
     next.context().changePreferredAccountId(next.id, org.thunderdog.challegram.telegram.TdlibManager.SWITCH_REASON_USER_CLICK);
+  }
+
+  /** true — the tap is taken here: either it waits for a second one, or it was the second one */
+  private boolean tgx101CheckDoubleTapAccount (int tab) {
+    if (tgx101PendingTab != null) {
+      boolean same = tgx101PendingTabId == tab;
+      tgx101PendingTab.cancel();
+      tgx101PendingTab = null;
+      tgx101PendingTabId = -1;
+      if (same) {
+        tgx101SwitchToNextAccount();
+        return true;
+      }
+    }
+    if ((tab != Tgx101NavCapsule.TAB_SETTINGS && tab != Tgx101NavCapsule.TAB_PROFILE) || !tgx101HasOtherAccounts()) return false;
+    tgx101PendingTabId = tab;
+    tgx101PendingTab = new me.vkryl.core.lambda.CancellableRunnable() {
+      @Override
+      public void act () {
+        tgx101PendingTab = null;
+        tgx101PendingTabId = -1;
+        if (!isDestroyed()) tgx101OnTabClickNow(tab);
+      }
+    };
+    UI.post(tgx101PendingTab, TGX101_TAB_DOUBLE_TAP_WINDOW);
     return true;
   }
 
   private void tgx101OnTabClick (int tab) {
     if (tgx101CheckDoubleTapAccount(tab)) return;
+    tgx101OnTabClickNow(tab);
+  }
+
+  private void tgx101OnTabClickNow (int tab) {
     NavigationController navigation = context().navigation();
     ViewController<?> current = navigation != null ? navigation.getCurrentStackItem() : null;
     Integer currentTab = current != null ? tgx101TabRoots.get(current) : null;
