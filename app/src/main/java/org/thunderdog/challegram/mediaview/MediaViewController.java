@@ -925,8 +925,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   private void showCurrentCell () {
-    if (hiddenCell != null && delegate != null) {
-      delegate.setMediaItemVisible(hiddenCellIndex, hiddenCell, true);
+    // TGx101 (user 2026-11-16 21:51: a chat photo drawn on and sent on to another chat — the original stayed an empty
+    // plate): the edit mode puts its own arguments in, the chat's delegate with them; a viewer closed from the edit mode
+    // (the share picker's send, the send button) told that one, and the chat never showed its photo again
+    MediaViewDelegate target = forceEditModeOld_arguments != null && forceEditModeOld_arguments.delegate != null ? forceEditModeOld_arguments.delegate : delegate;
+    if (hiddenCell != null && target != null) {
+      target.setMediaItemVisible(hiddenCellIndex, hiddenCell, true);
     }
     hiddenCell = null;
   }
