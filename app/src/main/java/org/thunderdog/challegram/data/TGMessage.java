@@ -2345,12 +2345,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       if (highlightFactor != 0f && tgx101HighlightedChildId == 0 && tgx101QuoteText == null) {
         // (user 2026-11-17, mockup «Подсветка при переходе», variant 2 «обводка»): a thin accent frame round the bubble
         // that holds and melts with the highlight, in place of the wash and the wave
-        Paint outline = tgx101OutlinePaint();
-        Paint halo = tgx101HaloPaint();
-        // the halo lies just outside the frame
-        drawBubble(c, halo, true, Math.round(outline.getStrokeWidth() / 2f + halo.getStrokeWidth() / 2f));
-        drawBubble(c, outline, true, 0);
-        view.postInvalidateOnAnimation(); // the halo breathes
+        drawBubble(c, tgx101OutlinePaint(), true, 0);
+        if (tgx101OutlineAppearing()) view.postInvalidateOnAnimation();
       }
       if (commentButton.isVisible() && commentButton.isInline()) {
         int left = leftContentEdge;
@@ -7631,29 +7627,22 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
     boolean dark = Theme.isDark();
     int accent = dark ? ColorUtils.fromToArgb(Theme.getColor(ColorId.textLink), 0xffffffff, .2f) : Theme.getColor(ColorId.textLink);
-    // (user 2026-11-17, mockup «дыхание рамки», variant 4 «ореол»): the frame itself stands still — 2 dp, full —
-    // and melts with the highlight; a halo round it breathes (tgx101HaloPaint)
+    // (user 2026-11-17 «убери дыхание: просто плавное появление и такое же плавное исчезание»): the frame comes in over
+    // 0.7 s and goes in 0.7 s on the same curve (the highlight's own fade), 2 dp, steady in between
+    long now = android.os.SystemClock.uptimeMillis();
+    if (tgx101OutlineAt <= 0) tgx101OutlineAt = now;
+    float t = Math.min(1f, (now - tgx101OutlineAt) / (float) TGX101_OUTLINE_IN);
+    float in = 1f - (1f - t) * (1f - t); // decelerating, as the fade out
     tgx101OutlinePaint.setStrokeWidth(Screen.dp(2f));
-    tgx101OutlinePaint.setColor(ColorUtils.alphaColor(Math.min(1f, highlightFactor * 1.25f), accent));
+    tgx101OutlinePaint.setColor(ColorUtils.alphaColor(in * highlightFactor, accent));
     return tgx101OutlinePaint;
   }
 
-  private static Paint tgx101HaloPaint;
+  private static final long TGX101_OUTLINE_IN = 700L;
 
-  /** TGx101: the halo round the jump frame — swells from 2 to 7 dp and brightens, twice in its 2.5 s (1.6 s a breath) */
-  protected final Paint tgx101HaloPaint () {
-    if (tgx101HaloPaint == null) {
-      tgx101HaloPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-      tgx101HaloPaint.setStyle(Paint.Style.STROKE);
-    }
-    long now = android.os.SystemClock.uptimeMillis();
-    if (tgx101OutlineAt <= 0) tgx101OutlineAt = now;
-    float breath = (float) (.5 - .5 * Math.cos((now - tgx101OutlineAt) / 1600.0 * Math.PI * 2));
-    boolean dark = Theme.isDark();
-    int accent = dark ? ColorUtils.fromToArgb(Theme.getColor(ColorId.textLink), 0xffffffff, .2f) : Theme.getColor(ColorId.textLink);
-    tgx101HaloPaint.setStrokeWidth(Screen.dp(2f + 5f * breath));
-    tgx101HaloPaint.setColor(ColorUtils.alphaColor(Math.min(1f, highlightFactor * 1.25f) * (.14f + .22f * breath), accent));
-    return tgx101HaloPaint;
+  /** the frame is still coming in: one more frame is wanted */
+  protected final boolean tgx101OutlineAppearing () {
+    return tgx101OutlineAt <= 0 || android.os.SystemClock.uptimeMillis() - tgx101OutlineAt < TGX101_OUTLINE_IN;
   }
 
   public void highlight (boolean revoke) {
