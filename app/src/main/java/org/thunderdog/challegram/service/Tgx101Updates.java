@@ -379,23 +379,51 @@ public final class Tgx101Updates {
   private static @Nullable Release fetchFromChannel (Context context) throws Exception {
     org.thunderdog.challegram.telegram.Tdlib tdlib = org.thunderdog.challegram.telegram.TdlibManager.instance().current();
     org.drinkless.tdlib.TdApi.Chat chat = (org.drinkless.tdlib.TdApi.Chat) tdSync(tdlib, new org.drinkless.tdlib.TdApi.SearchPublicChat(CHANNEL_USERNAME), 20_000);
-    String suffix = assetSuffix();
-    org.drinkless.tdlib.TdApi.FoundChatMessages found = (org.drinkless.tdlib.TdApi.FoundChatMessages) tdSync(tdlib,
-      new org.drinkless.tdlib.TdApi.SearchChatMessages(chat.id, null, "", null, 0, 0, 50, new org.drinkless.tdlib.TdApi.SearchMessagesFilterDocument()), 20_000);
     prefs(context).edit().putLong(KEY_LAST_CHECK, System.currentTimeMillis()).apply();
-    for (org.drinkless.tdlib.TdApi.Message m : found.messages) {
-      if (!(m.content instanceof org.drinkless.tdlib.TdApi.MessageDocument)) continue;
-      org.drinkless.tdlib.TdApi.Document doc = ((org.drinkless.tdlib.TdApi.MessageDocument) m.content).document;
-      String name = doc.fileName != null ? doc.fileName : "";
-      if (!isOurAsset(name)) continue;
-      int[] v = parse(name);
-      if (v == null) continue;
-      String version = v[0] + "." + v[1] + "." + v[2];
-      if (!isNewer(version)) return null; // newest first: nothing newer
-      Tgx101Diag.mark("update: " + version + " found in the channel, " + name);
-      return new Release(version, CHANNEL_SCHEME + m.chatId + ":" + m.id, name, doc.document.size, "https://t.me/" + CHANNEL_USERNAME + "/" + (m.id >> 20), "");
+    // (4PDA 2026-11-16, Android 5: «не высвечивается обновление»): the APKs go into the post's comments — the channel's
+    // discussion group — not into the channel itself, so the channel alone never had a file to offer. Both are looked in
+    java.util.ArrayList<Long> chats = new java.util.ArrayList<>();
+    chats.add(chat.id);
+    try {
+      if (chat.type instanceof org.drinkless.tdlib.TdApi.ChatTypeSupergroup) {
+        long supergroupId = ((org.drinkless.tdlib.TdApi.ChatTypeSupergroup) chat.type).supergroupId;
+        org.drinkless.tdlib.TdApi.SupergroupFullInfo info = (org.drinkless.tdlib.TdApi.SupergroupFullInfo) tdSync(tdlib, new org.drinkless.tdlib.TdApi.GetSupergroupFullInfo(supergroupId), 20_000);
+        if (info.linkedChatId != 0) chats.add(info.linkedChatId);
+      }
+    } catch (Throwable t) {
+      Tgx101Diag.mark("update: the channel's discussion group not found (" + t.getMessage() + ")");
     }
-    return null;
+    Release best = null;
+    int[] bestVersion = null;
+    for (long chatId : chats) {
+      org.drinkless.tdlib.TdApi.FoundChatMessages found;
+      try {
+        found = (org.drinkless.tdlib.TdApi.FoundChatMessages) tdSync(tdlib,
+          new org.drinkless.tdlib.TdApi.SearchChatMessages(chatId, null, "", null, 0, 0, 50, new org.drinkless.tdlib.TdApi.SearchMessagesFilterDocument()), 20_000);
+      } catch (Throwable t) {
+        Tgx101Diag.mark("update: searching chat " + chatId + " failed (" + t.getMessage() + ")");
+        continue;
+      }
+      for (org.drinkless.tdlib.TdApi.Message m : found.messages) {
+        if (!(m.content instanceof org.drinkless.tdlib.TdApi.MessageDocument)) continue;
+        org.drinkless.tdlib.TdApi.Document doc = ((org.drinkless.tdlib.TdApi.MessageDocument) m.content).document;
+        String name = doc.fileName != null ? doc.fileName : "";
+        if (!isOurAsset(name)) continue;
+        int[] v = parse(name);
+        if (v == null) continue;
+        String version = v[0] + "." + v[1] + "." + v[2];
+        if (!isNewer(version)) break; // newest first: nothing newer here
+        if (bestVersion == null || compare(v, bestVersion) > 0) {
+          bestVersion = v;
+          String link = chatId == chat.id ? "https://t.me/" + CHANNEL_USERNAME + "/" + (m.id >> 20) : "https://t.me/" + CHANNEL_USERNAME;
+          best = new Release(version, CHANNEL_SCHEME + m.chatId + ":" + m.id, name, doc.document.size, link, "");
+        }
+        break; // the newest file of ours in this chat is enough
+      }
+    }
+    if (best != null) Tgx101Diag.mark("update: " + best.version + " found through Telegram, " + best.apkName);
+    else Tgx101Diag.mark("update: nothing newer in the channel or its comments (" + chats.size() + " chats looked in)");
+    return best;
   }
 
   /** Downloads a channel-posted APK through TDLib into {@code part} */
