@@ -134,19 +134,21 @@ public final class Tgx101TypingLine {
     // (user 2026-11-14 23:46 «при открытой клавиатуре внизу поля ввода не должна быть видна полоса»): while typing — the
     // plain line, the word only at rest. By the keyboard, not the field's focus: a chat keeps the cursor in the field
     // with the keyboard down, and the word never showed (user 2026-11-15 «морзе не работает?»)
+    // (user 2026-11-16 22:16 «эта полоса работает только на аудиозапись и проигрывание; если включена — в покое просто
+    // ровная полоса; если выключена — полосы вообще быть не должно»): «Интерактивная полоса ввода» on — the wave with
+    // the sound, a plain whole line at rest (no Morse word, no gaps for the time in the app); off — no line at all
+    boolean lineOn = org.thunderdog.challegram.unsorted.Settings.instance().tgx101MorseLine();
     if (sound) {
       // (phone check 2026-11-15 17:34): the recording panel lies over the field down to the line and hid the wave's upper
       // half — while recording the wave swings down from the line only
       Sound.draw(c, y, w, thin, Sound.recording() ? 1 : 0);
-    } else if (Morse.ENABLED && org.thunderdog.challegram.unsorted.Settings.instance().tgx101MorseLine() && !keyboardUp()) {
-      Morse.draw(c, paint, tdlib, host, 0, w, y, thin);
-    } else {
-      Session.drawLine(c, paint, 0, w, y, thin);
+    } else if (lineOn) {
+      c.drawRect(0, y, w, y + thin, paint);
     }
     // (log 2026-11-14 19:44: an idle chat drew 1828 frames in 15 s, 70 % of a core) every drawing posted one more delayed
     // invalidate, each of them posted another when it fired — the chains piled up into a redraw without end. One pending
     // wake-up only, replaced, never added to
-    long next = Session.nextChangeIn();
+    long next = 0; // the line's gaps by the time in the app are gone (2026-11-16): nothing changes on its own any more
     host.removeCallbacks(wake);
     if (next > 0) host.postDelayed(wake, next);
 
@@ -196,7 +198,7 @@ public final class Tgx101TypingLine {
     float thin = Math.max(1, Screen.dp(.5f));
     paint.setShader(null);
     paint.setColor(Theme.separatorColor());
-    Session.drawLine(c, paint, left, right, y, thin);
+    c.drawRect(left, y, right, y + thin, paint); // whole, as the field's own at rest (user 2026-11-16)
     if (energy <= .01f) return;
     float cx = left + w * Math.max(where, .02f);
     float r = Math.min(left + w * .85f, cx + Screen.dp(24f) + w * .85f * energy);
