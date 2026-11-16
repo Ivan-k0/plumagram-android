@@ -58,7 +58,7 @@ import tgx.td.Td;
  * The bubble's own text engine draws the highlight; a transparent layer over the chat draws the two handles
  * and takes their drags (with the system magnifier); the bubble bar follows the top handle: Quote, Copy,
  * Select all, Editor (own messages), then Translate and the other "process text" apps. No keyboard.
- * Around the text a swipe scrolls the chat, the first tap is ignored (safety), a second one closes; Back closes.
+ * Around the text a swipe scrolls the chat, a still tap anywhere closes at once; Back closes.
  */
 public final class Tgx101MessageTextSelection {
   private Tgx101MessageTextSelection () { }
@@ -370,7 +370,6 @@ public final class Tgx101MessageTextSelection {
     private boolean forwarding, movedAside;
     private float downRawX, downRawY;
     private long downTime;
-    private long lastAsideTap;
     private @Nullable Object magnifier;
 
     Overlay (Context context, Session session) {
@@ -478,13 +477,9 @@ public final class Tgx101MessageTextSelection {
             forwardToList(e.getEventTime(), e.getActionMasked(), e.getRawX(), e.getRawY());
             forwarding = false;
           } else if (up && !movedAside) {
-            long now = SystemClock.uptimeMillis();
-            if (now - lastAsideTap < 2000) {
-              session.close("second tap aside");
-            } else {
-              lastAsideTap = now;
-              Tgx101Diag.mark("select: first tap aside — kept (a second one closes)");
-            }
+            // (user 2026-11-16 «выделение снимается сразу, как кликаешь ровно, без свайпа, на любое место — в тексте или
+            // в выделенном; касание, а не жест — жест по-прежнему двигает»): a still tap anywhere closes at once
+            session.close("tap");
           }
           return true;
         }
