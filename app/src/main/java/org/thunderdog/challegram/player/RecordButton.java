@@ -185,7 +185,7 @@ public class RecordButton extends View implements FactorAnimator.Target, ClickHe
   // near layer quick, the far one slow and paler — its edge swaying with the voice
   public static final int TGX101_HALO_DROP = 0, TGX101_HALO_NONE = 1;
   private int tgx101Halo = TGX101_HALO_DROP;
-  private float tgx101Slow;
+  private float tgx101Slow, tgx101Near;
   private long tgx101LastFrame;
   private final android.graphics.Path tgx101Path = new android.graphics.Path();
 
@@ -220,16 +220,20 @@ public class RecordButton extends View implements FactorAnimator.Target, ClickHe
     float dt = tgx101LastFrame == 0 ? 16f : Math.min(64f, now - tgx101LastFrame);
     tgx101LastFrame = now;
     tgx101Slow += (loud - tgx101Slow) * (1f - (float) Math.exp(-dt / 260f));
+    // (user 2026-11-16 22:11 «первая волна слишком резкая, а вторая норм»): the near layer jumped with each burst of the
+    // voice — it follows it in ~0.1 s now, sways less and is a little paler
+    tgx101Near += (loud - tgx101Near) * (1f - (float) Math.exp(-dt / 110f));
     if (expand > 0f) {
       float r = radius * expand;
       tgx101Drop(c, r + (Screen.dp(10f) + Screen.dp(16f) * tgx101Slow) * expand, (Screen.dp(3f) + Screen.dp(6f) * tgx101Slow) * expand, 2f, 1.8f, now, ColorUtils.alphaColor(.16f, color));
-      tgx101Drop(c, r + (Screen.dp(5f) + Screen.dp(11f) * loud) * expand, (Screen.dp(2f) + Screen.dp(5f) * loud) * expand, 0f, 1f, now, ColorUtils.alphaColor(.28f, color));
+      tgx101Drop(c, r + (Screen.dp(5f) + Screen.dp(9f) * tgx101Near) * expand, (Screen.dp(1.5f) + Screen.dp(3f) * tgx101Near) * expand, 0f, 1.3f, now, ColorUtils.alphaColor(.22f, color));
       // the edge sways on its own, between the voice's steps — 30 times a second, as the line's wave (user 2026-11-16
       // «не будет грузить процессор больше, чем было?»): every frame of a 120 Hz screen for the whole recording was too much
       postInvalidateDelayed(33);
     } else {
       tgx101LastFrame = 0;
       tgx101Slow = 0f;
+      tgx101Near = 0f;
     }
     c.drawCircle(center, center, radius * expand, Paints.fillingPaint(color));
   }
