@@ -720,7 +720,12 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
               tgx101DragTracking = false; // an ordinary scroll
             } else if (org.thunderdog.challegram.ui.Tgx101MessageTextSelection.isOpen()) {
               tgx101DragTracking = false; // a text is being selected: the swipe is the text's
-            } else if ((inCheckColumn && dy > Screen.getTouchSlop()) || (dx > Screen.getTouchSlop() * 1.5f && dx > dy * 1.5f) && tgx101DragStartPos != -1) {
+            } else if (!inCheckColumn && dx > Screen.getTouchSlop() * 1.5f && dx > dy * 1.5f) {
+              // (user 2026-11-17 «свайпы влево или вправо не должны снимать выделение — ни во время выделения, ни когда
+              // уже выделено»): a sideways swipe no longer drags the selection on or off; to the right it is the back swipe
+              tgx101DragTracking = false;
+              org.thunderdog.challegram.Tgx101Diag.mark("select: sideways swipe — the selection stays");
+            } else if (inCheckColumn && dy > Screen.getTouchSlop() && tgx101DragStartPos != -1) {
               View child = findChildViewUnder(getWidth() / 2f, tgx101DragDownY);
               org.thunderdog.challegram.data.TGMessage msg = child instanceof org.thunderdog.challegram.component.chat.MessageView ? ((org.thunderdog.challegram.component.chat.MessageView) child).getMessage() : null;
               if (msg != null && msg.canBeSelected()) {

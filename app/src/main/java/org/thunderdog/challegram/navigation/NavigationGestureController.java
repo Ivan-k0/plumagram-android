@@ -127,6 +127,7 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
       return false;
 
     listenSlidingBack = ((drawer != null && drawer.isVisible()) || (!isScrolling && canSlideBack(c, startX, startY)));
+    tgx101DownInSelect = c.inSelectMode();
     tgx101DragLogged = false;
     if (listenSlidingBack && org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
       org.thunderdog.challegram.Tgx101Diag.mark("back swipe: listening at " + Math.round(startX / Screen.dp(1f)) + "," + Math.round(startY / Screen.dp(1f)) + "dp");
@@ -139,10 +140,18 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
     return listenSlidingBack;
   }
 
+  // TGx101 (user 2026-11-17 «когда сообщение выделено — свайп назад работает в обычном режиме»): in a chat with messages
+  // selected the back swipe goes back as usual (the selection goes with the chat); elsewhere select mode still holds it
+  private static boolean tgx101SelectBlocks (ViewController<?> c) {
+    return c.inSelectMode() && !(c instanceof org.thunderdog.challegram.ui.MessagesController);
+  }
+
+  private boolean tgx101DownInSelect;
+
   private boolean canSlideBack () {
     int stackSize = navigation.getStackSize();
     ViewController<?> c = navigation.getCurrentStackItem();
-    return navigation.swipeNavigationEnabled() && stackSize > 0 && c != null && c.swipeNavigationEnabled() && (!c.forceFadeMode() || c.tgx101SlideBackInFadeMode()) && !c.inSelectMode() && !c.inCustomMode() && !(stackSize == 1 && c.inSearchMode());
+    return navigation.swipeNavigationEnabled() && stackSize > 0 && c != null && c.swipeNavigationEnabled() && (!c.forceFadeMode() || c.tgx101SlideBackInFadeMode()) && !tgx101SelectBlocks(c) && !c.inCustomMode() && !(stackSize == 1 && c.inSearchMode());
   }
 
   /** TGx101 (user 2026-11-09 18:36: the back swipe never started in a channel, every touch «not listening»): which rule said no */
@@ -151,7 +160,7 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
     if (navigation.getStackSize() <= 0) return "empty stack";
     if (!c.swipeNavigationEnabled()) return c.getClass().getSimpleName() + " swipes off";
     if (c.forceFadeMode() && !c.tgx101SlideBackInFadeMode()) return "fade mode";
-    if (c.inSelectMode()) return "select mode";
+    if (tgx101SelectBlocks(c)) return "select mode";
     if (c.inCustomMode()) return "custom mode";
     if (navigation.getStackSize() == 1 && c.inSearchMode()) return "search on the root";
     if (!c.canSlideBackFrom(navigation, x, y)) {
@@ -169,7 +178,7 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
   private boolean canSlideBack (ViewController<?> c, float x, float y) {
     int stackSize = navigation.getStackSize();
     if (navigation.swipeNavigationEnabled() && stackSize > 0 && c != null){
-      if (c.swipeNavigationEnabled() && (!c.forceFadeMode() || c.tgx101SlideBackInFadeMode()) && !c.inSelectMode() && !c.inCustomMode() && !(stackSize == 1 && c.inSearchMode()) && c.canSlideBackFrom(navigation, x, y)) {
+      if (c.swipeNavigationEnabled() && (!c.forceFadeMode() || c.tgx101SlideBackInFadeMode()) && !tgx101SelectBlocks(c) && !c.inCustomMode() && !(stackSize == 1 && c.inSearchMode()) && c.canSlideBackFrom(navigation, x, y)) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
           RootFrameLayout rootFrameLayout = UI.getContext(navigation.getContext()).getRootView();
           Rect gestureInsets = rootFrameLayout.getSystemGesturesInsets();
@@ -350,6 +359,18 @@ public class NavigationGestureController implements GestureDetector.OnGestureLis
         if (!canSlideBack()) {
           listenSlidingBack = false;
           return false;
+        }
+        ViewController<?> tgx101Top = navigation.getCurrentStackItem();
+        if (tgx101Top != null && tgx101Top.inSelectMode()) {
+          if (!tgx101DownInSelect) {
+            // (user 2026-11-17 «во время выделения долгим удержанием свайпы влево-вправо не должны снимать выделение»):
+            // this finger's long press has just started selecting — its move is no back swipe
+            org.thunderdog.challegram.Tgx101Diag.mark("back swipe: not taken — the long press under this finger just started selecting");
+            listenSlidingBack = false;
+            return false;
+          }
+          org.thunderdog.challegram.Tgx101Diag.mark("back swipe: from select mode — the selection closes, the chat goes back");
+          navigation.getHeaderView().closeSelectMode(true, false);
         }
 
         startX += diffX;
